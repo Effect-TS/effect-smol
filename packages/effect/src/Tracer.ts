@@ -6,6 +6,7 @@ import type { Fiber } from "./Fiber.ts"
 import { constFalse, type LazyArg } from "./Function.ts"
 import type * as core from "./internal/core.ts"
 import type { LogLevel } from "./LogLevel.ts"
+import * as Option from "./Option.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 
 /**
@@ -15,7 +16,7 @@ import * as ServiceMap from "./ServiceMap.ts"
 export interface Tracer {
   span(this: Tracer, options: {
     readonly name: string
-    readonly parent: AnySpan | undefined
+    readonly parent: Option.Option<AnySpan>
     readonly annotations: ServiceMap.ServiceMap<never>
     readonly links: Array<SpanLink>
     readonly startTime: bigint
@@ -241,7 +242,7 @@ export interface Span {
   readonly name: string
   readonly spanId: string
   readonly traceId: string
-  readonly parent: AnySpan | undefined
+  readonly parent: Option.Option<AnySpan>
   readonly annotations: ServiceMap.ServiceMap<never>
   readonly status: SpanStatus
   readonly attributes: ReadonlyMap<string, unknown>
@@ -410,7 +411,7 @@ export class NativeSpan implements Span {
   readonly sampled: boolean
 
   readonly name: string
-  readonly parent: AnySpan | undefined
+  readonly parent: Option.Option<AnySpan>
   readonly annotations: ServiceMap.ServiceMap<never>
   readonly links: Array<SpanLink>
   readonly startTime: bigint
@@ -422,7 +423,7 @@ export class NativeSpan implements Span {
 
   constructor(options: {
     readonly name: string
-    readonly parent: AnySpan | undefined
+    readonly parent: Option.Option<AnySpan>
     readonly annotations: ServiceMap.ServiceMap<never>
     readonly links: Array<SpanLink>
     readonly startTime: bigint
@@ -441,7 +442,7 @@ export class NativeSpan implements Span {
       startTime: options.startTime
     }
     this.attributes = new Map()
-    this.traceId = options.parent?.traceId ?? randomHexString(32)
+    this.traceId = Option.getOrUndefined(options.parent)?.traceId ?? randomHexString(32)
     this.spanId = randomHexString(16)
   }
 

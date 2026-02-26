@@ -17,7 +17,6 @@ import * as Schema from "../../../Schema.ts"
 import * as Issue from "../../../SchemaIssue.ts"
 import * as Scope from "../../../Scope.ts"
 import * as ServiceMap from "../../../ServiceMap.ts"
-import * as UndefinedOr from "../../../UndefinedOr.ts"
 import type * as Rpc from "../../rpc/Rpc.ts"
 import { RequestId } from "../../rpc/RpcMessage.ts"
 import * as RpcServer from "../../rpc/RpcServer.ts"
@@ -71,7 +70,7 @@ export type EntityState = {
     readonly rpc: Rpc.AnyWithProps
     readonly message: Message.IncomingRequestLocal<any>
     sentReply: boolean
-    lastSentChunk: Reply.Chunk<Rpc.Any> | undefined
+    lastSentChunk: Option.Option<Reply.Chunk<Rpc.Any>>
     sequence: number
   }>
   lastActiveCheck: number
@@ -251,7 +250,7 @@ export const make = Effect.fnUntraced(function*<
                       sequence,
                       values: response.values
                     })
-                    request.lastSentChunk = reply
+                    request.lastSentChunk = Option.some(reply)
                     return request.message.respond(reply)
                   })
                 ))
@@ -438,10 +437,13 @@ export const make = Effect.fnUntraced(function*<
                 rpc,
                 message,
                 sentReply: false,
-                lastSentChunk: message.lastSentReply as Reply.Chunk<Rpc.Any> | undefined,
-                sequence: UndefinedOr.match(message.lastSentReply, {
-                  onUndefined: () => 0,
-                  onDefined: (reply) => reply._tag === "Chunk" ? reply.sequence + 1 : 0
+                lastSentChunk: Option.filter(
+                  message.lastSentReply,
+                  (reply): reply is Reply.Chunk<Rpc.Any> => reply._tag === "Chunk"
+                ),
+                sequence: Option.match(message.lastSentReply, {
+                  onNone: () => 0,
+                  onSome: (reply) => reply._tag === "Chunk" ? reply.sequence + 1 : 0
                 })
               }
               server.activeRequests.set(message.envelope.requestId, entry)
@@ -450,7 +452,10 @@ export const make = Effect.fnUntraced(function*<
                 id: RequestId(message.envelope.requestId),
                 payload: new Request({
                   ...message.envelope,
-                  lastSentChunk: message.lastSentReply as Reply.Chunk<R> | undefined
+                  lastSentChunk: Option.filter(
+                    message.lastSentReply,
+                    (reply): reply is Reply.Chunk<R> => reply._tag === "Chunk"
+                  )
                 })
               })
             }
@@ -460,8 +465,8 @@ export const make = Effect.fnUntraced(function*<
                 return Effect.void
               } else if (
                 message.envelope._tag === "AckChunk" &&
-                entry.lastSentChunk !== undefined &&
-                message.envelope.replyId !== entry.lastSentChunk.id
+                Option.isSome(entry.lastSentChunk) &&
+                message.envelope.replyId !== entry.lastSentChunk.value.id
               ) {
                 return Effect.void
               }
@@ -585,9 +590,9 @@ const makeMessageDecode = <Type extends string, Rpcs extends Rpc.Any>(
     rpc: Rpc.AnyWithProps
   ) {
     const payload = yield* Schema.decodeEffect(Schema.toCodecJson(rpc.payloadSchema))(message.envelope.payload)
-    const lastSentReply = message.lastSentReply !== undefined
-      ? yield* Schema.decodeEffect(Reply.Reply(rpc))(message.lastSentReply)
-      : undefined
+    const lastSentReply = Option.isNone(message.lastSentReply) ?
+      message.lastSentReply :
+      Option.some(yield* Schema.decodeEffect(Reply.Reply(rpc))(message.lastSentReply.value))
     return {
       _tag: "IncomingRequest",
       envelope: {
@@ -602,7 +607,7 @@ const makeMessageDecode = <Type extends string, Rpcs extends Rpc.Any>(
     {
       readonly _tag: "IncomingRequest"
       readonly envelope: Envelope.Request.Any
-      readonly lastSentReply: Reply.Reply<Rpcs> | undefined
+      readonly lastSentReply: Option.Option<Reply.Reply<Rpcs>>
     } | {
       readonly _tag: "IncomingEnvelope"
       readonly envelope: Envelope.AckChunk | Envelope.Interrupt
@@ -627,7 +632,7 @@ const makeMessageDecode = <Type extends string, Rpcs extends Rpc.Any>(
       {
         readonly _tag: "IncomingRequest"
         readonly envelope: Envelope.Request.Any
-        readonly lastSentReply: Reply.Reply<Rpcs> | undefined
+        readonly lastSentReply: Option.Option<Reply.Reply<Rpcs>>
       },
       Schema.SchemaError,
       Rpc.ServicesServer<Rpcs>

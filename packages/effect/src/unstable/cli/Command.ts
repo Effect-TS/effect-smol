@@ -360,10 +360,10 @@ export interface ParsedTokens {
   readonly flags: Record<string, ReadonlyArray<string>>
   readonly arguments: ReadonlyArray<string>
   readonly errors?: ReadonlyArray<CliError.CliError>
-  readonly subcommand?: {
+  readonly subcommand: Option.Option<{
     readonly name: string
     readonly parsedInput: ParsedTokens
-  }
+  }>
 }
 
 /**
@@ -646,17 +646,17 @@ export const withSubcommands: {
   type InternalInput = NextInput & { readonly [SubcommandStateSymbol]?: SubcommandState }
 
   const parse = Effect.fnUntraced(function*(raw: ParsedTokens) {
-    if (!raw.subcommand) {
+    if (Option.isNone(raw.subcommand)) {
       return (yield* impl.parse(raw)) as NextInput
     }
 
-    const sub = byName.get(raw.subcommand.name)
+    const sub = byName.get(raw.subcommand.value.name)
     if (!sub) {
       return (yield* impl.parse(raw)) as NextInput
     }
 
     const context = yield* impl.parseContext(raw)
-    const result = yield* sub.parse(raw.subcommand.parsedInput)
+    const result = yield* sub.parse(raw.subcommand.value.parsedInput)
     return Object.assign({}, context, { [SubcommandStateSymbol]: { name: sub.name, result } }) as NextInput
   })
 

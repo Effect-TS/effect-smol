@@ -7,6 +7,7 @@ import * as Effect from "../../Effect.ts"
 import * as ErrorReporter from "../../ErrorReporter.ts"
 import type * as Exit from "../../Exit.ts"
 import { constUndefined } from "../../Function.ts"
+import * as Option from "../../Option.ts"
 import { hasProperty } from "../../Predicate.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Request from "./HttpServerRequest.ts"
@@ -256,7 +257,7 @@ export const causeResponse = <E>(
  */
 export const causeResponseStripped = <E>(
   cause: Cause.Cause<E>
-): readonly [response: Response.HttpServerResponse, cause: Cause.Cause<E> | undefined] => {
+): readonly [response: Response.HttpServerResponse, cause: Option.Option<Cause.Cause<E>>] => {
   let response: Response.HttpServerResponse | undefined
   const failures = cause.reasons.filter((f) => {
     if (f._tag === "Die" && Response.isHttpServerResponse(f.defect)) {
@@ -267,7 +268,7 @@ export const causeResponseStripped = <E>(
   })
   return [
     response ?? internalServerError,
-    failures.length > 0 ? Cause.fromReasons(failures) : undefined
+    failures.length > 0 ? Option.some(Cause.fromReasons(failures)) : Option.none()
   ]
 }
 

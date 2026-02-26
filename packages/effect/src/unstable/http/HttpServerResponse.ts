@@ -7,6 +7,7 @@ import type * as FileSystem from "../../FileSystem.ts"
 import { dual } from "../../Function.ts"
 import * as Inspectable from "../../Inspectable.ts"
 import { PipeInspectableProto } from "../../internal/core.ts"
+import * as Option from "../../Option.ts"
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import type { PlatformError } from "../../PlatformError.ts"
 import { hasProperty } from "../../Predicate.ts"
@@ -871,8 +872,8 @@ class ServerHttpClientResponse extends Inspectable.Class implements HttpClientRe
     return this.response.cookies
   }
 
-  get remoteAddress(): string | undefined {
-    return undefined
+  get remoteAddress(): Option.Option<string> {
+    return Option.none()
   }
 
   get stream(): Stream.Stream<Uint8Array, HttpClientError.HttpClientError> {
@@ -1043,7 +1044,7 @@ export const fromClientResponse = (
     cookies: response.cookies,
     body: Body.stream(
       Stream.catchIf(response.stream, isEmptyBodyError, () => Stream.empty),
-      Headers.get(headers, "content-type"),
+      Option.getOrUndefined(Headers.get(headers, "content-type")),
       getContentLength(headers)
     )
   })
@@ -1058,7 +1059,7 @@ const isEmptyBodyError = (
   HttpClientError.isHttpClientError(error) && error.reason._tag === "EmptyBodyError"
 
 const getContentLength = (headers: Headers.Headers): number | undefined => {
-  const contentLength = Headers.get(headers, "content-length")
+  const contentLength = Option.getOrUndefined(Headers.get(headers, "content-length"))
   if (contentLength === undefined) {
     return undefined
   }

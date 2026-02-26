@@ -6,10 +6,10 @@ import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Fiber from "../../Fiber.ts"
 import * as Num from "../../Number.ts"
+import * as Option from "../../Option.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
-import * as UndefinedOr from "../../UndefinedOr.ts"
 import * as Headers from "../../unstable/http/Headers.ts"
 import * as HttpClient from "../../unstable/http/HttpClient.ts"
 import * as HttpClientError from "../../unstable/http/HttpClientError.ts"
@@ -24,7 +24,10 @@ const policy = Schedule.forever.pipe(
       && error.reason._tag === "StatusCodeError"
       && error.reason.response.status === 429
     ) {
-      const retryAfter = UndefinedOr.map(error.reason.response.headers["retry-after"], Num.parse) ?? 5
+      const retryAfter = Option.fromUndefinedOr(error.reason.response.headers["retry-after"]).pipe(
+        Option.flatMap(Num.parse),
+        Option.getOrElse(() => 5)
+      )
       return Effect.succeed(Duration.seconds(retryAfter))
     }
     return Effect.succeed(Duration.seconds(1))

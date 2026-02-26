@@ -710,7 +710,7 @@ export const date = (options: DateOptions): Prompt<Date> => {
     typed: "",
     cursor: initialCursorPosition,
     value: opts.initial,
-    error: undefined
+    error: Option.none()
   }
   return custom(initialState, {
     render: handleDateRender(opts),
@@ -727,7 +727,7 @@ export const file = (options: FileOptions = {}): Prompt<string> => {
   const opts: FileOptionsReq = {
     type: options.type ?? "file",
     message: options.message ?? `Choose a file`,
-    startingPath: options.startingPath,
+    startingPath: Option.fromUndefinedOr(options.startingPath),
     maxPerPage: options.maxPerPage ?? 10,
     filter: options.filter ?? (() => Effect.succeed(true))
   }
@@ -736,10 +736,10 @@ export const file = (options: FileOptions = {}): Prompt<string> => {
     never,
     Environment
   > = Effect.gen(function*() {
-    const currentPath = yield* resolveCurrentPath(undefined, opts)
+    const currentPath = yield* resolveCurrentPath(Option.none(), opts)
     const files = yield* getFileList(currentPath, opts)
     const confirm = Confirm.Hide()
-    return { cursor: 0, files, path: undefined, confirm }
+    return { cursor: 0, files, path: Option.none(), confirm }
   })
   return custom(initialState, {
     render: handleFileRender(opts),
@@ -796,7 +796,7 @@ export const float = (options: FloatOptions): Prompt<number> => {
   const initialState: NumberState = {
     cursor: 0,
     value: "",
-    error: undefined
+    error: Option.none()
   }
   return custom(initialState, {
     render: handleRenderFloat(opts),
@@ -836,7 +836,7 @@ export const integer = (options: IntegerOptions): Prompt<number> => {
   const initialState: NumberState = {
     cursor: 0,
     value: "",
-    error: undefined
+    error: Option.none()
   }
   return custom(initialState, {
     render: handleRenderInteger(opts),
@@ -1003,7 +1003,7 @@ export const multiSelect = <const A>(
       initialSelected.add(i)
     }
   }
-  const initialState: MultiSelectState = { index: 0, selectedIndices: initialSelected, error: undefined }
+  const initialState: MultiSelectState = { index: 0, selectedIndices: initialSelected, error: Option.none() }
   return custom(initialState, {
     render: handleMultiSelectRender(opts),
     process: handleMultiSelectProcess(opts),
@@ -1283,7 +1283,7 @@ const TRUE_VALUE_REGEXP = /^y|t$/
 const FALSE_VALUE_REGEXP = /^n|f$/
 
 const handleConfirmProcess = (input: Terminal.UserInput, defaultValue: boolean) => {
-  const value = input.input ?? ""
+  const value = Option.getOrElse(input.input, () => "")
   if (input.key.name === "enter" || input.key.name === "return") {
     return Effect.succeed(Action.Submit({ value: defaultValue }))
   }
@@ -1303,7 +1303,7 @@ interface DateState {
   readonly cursor: number
   readonly value: globalThis.Date
   readonly dateParts: ReadonlyArray<DatePart>
-  readonly error: string | undefined
+  readonly error: Option.Option<string>
 }
 
 const handleDateClear = (options: DateOptionsReq) => {
@@ -1314,8 +1314,8 @@ const handleDateClear = (options: DateOptionsReq) => {
     const resetCurrentLine = Ansi.eraseLine + Ansi.cursorLeft
     const parts = Arr.reduce(state.dateParts, "", (doc, part) => doc + part.toString())
     const promptText = renderDateOutput("?", figures.pointerSmall, parts, options, { plain: true })
-    const errorText = state.error !== undefined
-      ? Arr.match(state.error.split(NEWLINE_REGEXP), {
+    const errorText = Option.isSome(state.error)
+      ? Arr.match(state.error.value.split(NEWLINE_REGEXP), {
         onEmpty: () => "",
         onNonEmpty: (errorLines) => `${figures.pointerSmall} ${errorLines.join("\n")}`
       })
@@ -1326,8 +1326,8 @@ const handleDateClear = (options: DateOptionsReq) => {
 }
 
 const renderDateError = (state: DateState, pointer: string): string => {
-  if (state.error !== undefined) {
-    const errorLines = state.error.split(NEWLINE_REGEXP)
+  if (Option.isSome(state.error)) {
+    const errorLines = state.error.value.split(NEWLINE_REGEXP)
     if (Arr.isReadonlyArrayNonEmpty(errorLines)) {
       const prefix = Ansi.annotate(pointer, Ansi.red) + " "
       const lines = Arr.map(errorLines, (str) => annotateErrorLine(str))
@@ -1395,12 +1395,12 @@ const processDown = (state: DateState) => {
 
 const processDateCursorLeft = (state: DateState) => {
   const previous = state.dateParts[state.cursor].previousPart()
-  if (previous !== undefined) {
+  if (Option.isSome(previous)) {
     return Action.NextFrame({
       state: {
         ...state,
         typed: "",
-        cursor: state.dateParts.indexOf(previous)
+        cursor: state.dateParts.indexOf(previous.value)
       }
     })
   }
@@ -1409,12 +1409,12 @@ const processDateCursorLeft = (state: DateState) => {
 
 const processDateCursorRight = (state: DateState) => {
   const next = state.dateParts[state.cursor].nextPart()
-  if (next !== undefined) {
+  if (Option.isSome(next)) {
     return Action.NextFrame({
       state: {
         ...state,
         typed: "",
-        cursor: state.dateParts.indexOf(next)
+        cursor: state.dateParts.indexOf(next.value)
       }
     })
   }
@@ -1423,9 +1423,10 @@ const processDateCursorRight = (state: DateState) => {
 
 const processDateNext = (state: DateState) => {
   const next = state.dateParts[state.cursor].nextPart()
-  const cursor = next !== undefined
-    ? state.dateParts.indexOf(next)
-    : state.dateParts.findIndex((part) => !part.isToken())
+  const cursor = Option.match(next, {
+    onNone: () => state.dateParts.findIndex((part) => !part.isToken()),
+    onSome: (next) => state.dateParts.indexOf(next)
+  })
   return Action.NextFrame({
     state: { ...state, cursor }
   })
@@ -1499,14 +1500,14 @@ const handleDateProcess = (options: DateOptionsReq) => {
             Action.NextFrame({
               state: {
                 ...state,
-                error
+                error: Option.some(error)
               }
             }),
           onSuccess: (value) => Action.Submit({ value })
         })
       }
       default: {
-        return Effect.succeed(defaultDateProcessor(input.input ?? "", state))
+        return Effect.succeed(defaultDateProcessor(Option.getOrElse(input.input, () => ""), state))
       }
     }
   }
@@ -1603,23 +1604,20 @@ abstract class DatePart {
   /**
    * Retrieves the next date part in the list of parts.
    */
-  nextPart(): DatePart | undefined {
-    const currentPartIndex = Arr.findFirstIndex(this.parts, (part) => part === this) ?? 0
-    return Option.getOrUndefined(
-      Arr.findFirst(this.parts.slice(currentPartIndex + 1), (part) => !part.isToken())
-    )
+  nextPart(): Option.Option<DatePart> {
+    const currentPartIndex = Option.getOrElse(Arr.findFirstIndex(this.parts, (part) => part === this), () => 0)
+    return Arr.findFirst(this.parts.slice(currentPartIndex + 1), (part) => !part.isToken())
   }
 
   /**
    * Retrieves the previous date part in the list of parts.
    */
-  previousPart(): DatePart | undefined {
+  previousPart(): Option.Option<DatePart> {
     const currentPartIndex = Arr.findFirstIndex(this.parts, (part) => part === this)
-    if (currentPartIndex !== undefined) {
-      return Option.getOrUndefined(
-        Arr.findLast(this.parts.slice(0, currentPartIndex), (part) => !part.isToken())
-      )
+    if (Option.isSome(currentPartIndex)) {
+      return Arr.findLast(this.parts.slice(0, currentPartIndex.value), (part) => !part.isToken())
     }
+    return Option.none()
   }
 
   toString() {
@@ -1845,13 +1843,13 @@ class Meridiem extends DatePart {
 }
 
 interface FileOptionsReq extends Required<Omit<FileOptions, "startingPath">> {
-  readonly startingPath: string | undefined
+  readonly startingPath: Option.Option<string>
 }
 
 interface FileState {
   readonly cursor: number
   readonly files: ReadonlyArray<string>
-  readonly path: string | undefined
+  readonly path: Option.Option<string>
   readonly confirm: Confirm
 }
 
@@ -1865,14 +1863,14 @@ const Confirm = Data.taggedEnum<Confirm>()
 const showConfirmation = Confirm.$is("Show")
 
 const resolveCurrentPath = (
-  path: string | undefined,
+  path: Option.Option<string>,
   options: FileOptionsReq
 ): Effect.Effect<string, never, FileSystem.FileSystem> => {
-  if (path !== undefined) {
-    return Effect.succeed(path)
+  if (Option.isSome(path)) {
+    return Effect.succeed(path.value)
   }
-  const startingPath = options.startingPath
-  if (startingPath !== undefined) {
+  if (Option.isSome(options.startingPath)) {
+    const startingPath = options.startingPath.value
     return Effect.flatMap(FileSystem.FileSystem.asEffect(), (fs) =>
       // Ensure the user provided starting path exists
       Effect.orDie(fs.exists(startingPath)).pipe(
@@ -2093,7 +2091,7 @@ const processSelection = Effect.fnUntraced(function*(state: FileState, options: 
       state: {
         cursor: 0,
         files,
-        path: resolvedPath,
+        path: Option.some(resolvedPath),
         confirm: Confirm.Hide()
       }
     })
@@ -2129,7 +2127,7 @@ const handleFileProcess = (options: FileOptionsReq) => {
             state: {
               cursor: 0,
               files,
-              path: resolvedPath,
+              path: Option.some(resolvedPath),
               confirm: Confirm.Hide()
             }
           })
@@ -2160,7 +2158,7 @@ interface MultiSelectOptionsReq extends MultiSelectOptions {}
 type MultiSelectState = {
   index: number
   selectedIndices: Set<number>
-  error: string | undefined
+  error: Option.Option<string>
 }
 
 const renderMultiSelectError = (
@@ -2168,8 +2166,8 @@ const renderMultiSelectError = (
   pointer: string,
   renderOptions?: RenderOptions | undefined
 ): string => {
-  if (state.error !== undefined) {
-    return Arr.match(state.error.split(NEWLINE_REGEXP), {
+  if (Option.isSome(state.error)) {
+    return Arr.match(state.error.value.split(NEWLINE_REGEXP), {
       onEmpty: () => "",
       onNonEmpty: (errorLines) => {
         if (renderOptions?.plain === true) {
@@ -2341,12 +2339,12 @@ const handleMultiSelectProcess = <A>(options: SelectOptionsReq<A> & MultiSelectO
     switch (input.key.name) {
       case "k":
       case "up": {
-        return processMultiSelectCursorUp({ ...state, error: undefined }, totalChoices)
+        return processMultiSelectCursorUp({ ...state, error: Option.none() }, totalChoices)
       }
       case "j":
       case "down":
       case "tab": {
-        return processMultiSelectCursorDown({ ...state, error: undefined }, totalChoices)
+        return processMultiSelectCursorDown({ ...state, error: Option.none() }, totalChoices)
       }
       case "space": {
         return processSpace(state, options)
@@ -2356,12 +2354,12 @@ const handleMultiSelectProcess = <A>(options: SelectOptionsReq<A> & MultiSelectO
         const selectedCount = state.selectedIndices.size
         if (options.min !== undefined && selectedCount < options.min) {
           return Effect.succeed(
-            Action.NextFrame({ state: { ...state, error: `At least ${options.min} are required` } })
+            Action.NextFrame({ state: { ...state, error: Option.some(`At least ${options.min} are required`) } })
           )
         }
         if (options.max !== undefined && selectedCount > options.max) {
           return Effect.succeed(
-            Action.NextFrame({ state: { ...state, error: `At most ${options.max} choices are allowed` } })
+            Action.NextFrame({ state: { ...state, error: Option.some(`At most ${options.max} choices are allowed`) } })
           )
         }
         const selectedValues = Array.from(state.selectedIndices).sort(EffectNumber.Order).map((index) =>
@@ -2392,7 +2390,7 @@ interface FloatOptionsReq extends Required<FloatOptions> {}
 interface NumberState {
   readonly cursor: number
   readonly value: string
-  readonly error: string | undefined
+  readonly error: Option.Option<string>
 }
 
 const handleNumberClear = (options: IntegerOptionsReq) => {
@@ -2417,7 +2415,7 @@ const renderNumberInput = (
   if (submitted || renderOptions?.plain === true) {
     return value
   }
-  const annotation = state.error !== undefined ?
+  const annotation = Option.isSome(state.error) ?
     Ansi.red :
     Ansi.combine(Ansi.underlined, Ansi.cyanBright)
   return Ansi.annotate(value, annotation)
@@ -2428,8 +2426,8 @@ const renderNumberError = (
   pointer: string,
   renderOptions?: RenderOptions | undefined
 ) => {
-  if (state.error !== undefined) {
-    return Arr.match(state.error.split(NEWLINE_REGEXP), {
+  if (Option.isSome(state.error)) {
+    return Arr.match(state.error.value.split(NEWLINE_REGEXP), {
       onEmpty: () => "",
       onNonEmpty: (errorLines) => {
         if (renderOptions?.plain === true) {
@@ -2479,19 +2477,19 @@ const processNumberBackspace = (state: NumberState) => {
   }
   const value = state.value.slice(0, state.value.length - 1)
   return Effect.succeed(Action.NextFrame({
-    state: { ...state, value, error: undefined }
+    state: { ...state, value, error: Option.none() }
   }))
 }
 
 const processNumberClear = (state: NumberState) =>
   Effect.succeed(Action.NextFrame({
-    state: { ...state, cursor: 0, value: "", error: undefined }
+    state: { ...state, cursor: 0, value: "", error: Option.none() }
   }))
 
 const defaultIntProcessor = (input: string, state: NumberState) => {
   if (state.value.length === 0 && input === "-") {
     return Effect.succeed(Action.NextFrame({
-      state: { ...state, value: "-", error: undefined }
+      state: { ...state, value: "-", error: Option.none() }
     }))
   }
 
@@ -2500,7 +2498,7 @@ const defaultIntProcessor = (input: string, state: NumberState) => {
     return Effect.succeed(Action.Beep())
   } else {
     return Effect.succeed(Action.NextFrame({
-      state: { ...state, value: `${parsed}`, error: undefined }
+      state: { ...state, value: `${parsed}`, error: Option.none() }
     }))
   }
 }
@@ -2511,7 +2509,7 @@ const defaultFloatProcessor = (input: string, state: NumberState) => {
   }
   if (state.value.length === 0 && input === "-") {
     return Effect.succeed(Action.NextFrame({
-      state: { ...state, value: "-", error: undefined }
+      state: { ...state, value: "-", error: Option.none() }
     }))
   }
 
@@ -2523,7 +2521,7 @@ const defaultFloatProcessor = (input: string, state: NumberState) => {
       state: {
         ...state,
         value: input === "." ? `${parsed}.` : `${parsed}`,
-        error: undefined
+        error: Option.none()
       }
     }))
   }
@@ -2556,7 +2554,7 @@ const handleProcessInteger = (options: IntegerOptionsReq) => {
             value: state.value === "" || state.value === "-"
               ? `${options.incrementBy}`
               : `${Number.parseInt(state.value) + options.incrementBy}`,
-            error: undefined
+            error: Option.none()
           }
         }))
       }
@@ -2568,7 +2566,7 @@ const handleProcessInteger = (options: IntegerOptionsReq) => {
             value: state.value === "" || state.value === "-"
               ? `-${options.decrementBy}`
               : `${Number.parseInt(state.value) - options.decrementBy}`,
-            error: undefined
+            error: Option.none()
           }
         }))
       }
@@ -2579,7 +2577,7 @@ const handleProcessInteger = (options: IntegerOptionsReq) => {
           return Effect.succeed(Action.NextFrame({
             state: {
               ...state,
-              error: "Must provide an integer value"
+              error: Option.some("Must provide an integer value")
             }
           }))
         } else {
@@ -2588,7 +2586,7 @@ const handleProcessInteger = (options: IntegerOptionsReq) => {
               Action.NextFrame({
                 state: {
                   ...state,
-                  error
+                  error: Option.some(error)
                 }
               }),
             onSuccess: (value) => Action.Submit({ value })
@@ -2596,7 +2594,7 @@ const handleProcessInteger = (options: IntegerOptionsReq) => {
         }
       }
       default: {
-        return defaultIntProcessor(input.input ?? "", state)
+        return defaultIntProcessor(Option.getOrElse(input.input, () => ""), state)
       }
     }
   }
@@ -2629,7 +2627,7 @@ const handleProcessFloat = (options: FloatOptionsReq) => {
             value: state.value === "" || state.value === "-"
               ? `${options.incrementBy}`
               : `${Number.parseFloat(state.value) + options.incrementBy}`,
-            error: undefined
+            error: Option.none()
           }
         }))
       }
@@ -2641,7 +2639,7 @@ const handleProcessFloat = (options: FloatOptionsReq) => {
             value: state.value === "" || state.value === "-"
               ? `-${options.decrementBy}`
               : `${Number.parseFloat(state.value) - options.decrementBy}`,
-            error: undefined
+            error: Option.none()
           }
         }))
       }
@@ -2652,7 +2650,7 @@ const handleProcessFloat = (options: FloatOptionsReq) => {
           return Effect.succeed(Action.NextFrame({
             state: {
               ...state,
-              error: "Must provide a floating point value"
+              error: Option.some("Must provide a floating point value")
             }
           }))
         } else {
@@ -2664,7 +2662,7 @@ const handleProcessFloat = (options: FloatOptionsReq) => {
                   Action.NextFrame({
                     state: {
                       ...state,
-                      error
+                      error: Option.some(error)
                     }
                   }),
                 onSuccess: (value) => Action.Submit({ value })
@@ -2673,7 +2671,7 @@ const handleProcessFloat = (options: FloatOptionsReq) => {
         }
       }
       default: {
-        return defaultFloatProcessor(input.input ?? "", state)
+        return defaultFloatProcessor(Option.getOrElse(input.input, () => ""), state)
       }
     }
   }
@@ -2717,7 +2715,7 @@ const updateAutoCompleteState = <A>(
 }
 
 const autoCompleteCursor = (state: AutoCompleteState) =>
-  Arr.findFirstIndex(state.filtered, (index) => index === state.index) ?? 0
+  Option.getOrElse(Arr.findFirstIndex(state.filtered, (index) => index === state.index), () => 0)
 
 const renderSelectOutput = <A>(
   leadingSymbol: string,
@@ -3083,7 +3081,7 @@ const handleAutoCompleteProcess = <A>(options: AutoCompleteOptionsReq<A>) => {
         return Effect.succeed(Action.Submit({ value: selected.value }))
       }
       default: {
-        return processAutoCompleteInput(input.input ?? "", state, options)
+        return processAutoCompleteInput(Option.getOrElse(input.input, () => ""), state, options)
       }
     }
   }
@@ -3099,7 +3097,7 @@ interface TextOptionsReq extends Required<TextOptions> {
 interface TextState {
   readonly cursor: number
   readonly value: string
-  readonly error: string | undefined
+  readonly error: Option.Option<string>
 }
 
 const renderClearScreen = Effect.fnUntraced(function*(state: TextState, options: TextOptionsReq) {
@@ -3137,7 +3135,7 @@ const renderTextInput = (
     }
   }
 
-  const annotation = nextState.error !== undefined ?
+  const annotation = Option.isSome(nextState.error) ?
     Ansi.red
     : submitted ?
     Ansi.white
@@ -3163,8 +3161,8 @@ const renderTextError = (
   pointer: string,
   renderOptions?: RenderOptions | undefined
 ): string => {
-  if (nextState.error !== undefined) {
-    return Arr.match(nextState.error.split(NEWLINE_REGEXP), {
+  if (Option.isSome(nextState.error)) {
+    return Arr.match(nextState.error.value.split(NEWLINE_REGEXP), {
       onEmpty: () => "",
       onNonEmpty: (errorLines) => {
         if (renderOptions?.plain === true) {
@@ -3219,7 +3217,7 @@ const processTextBackspace = (state: TextState) => {
   const value = `${beforeCursor}${afterCursor}`
   return Effect.succeed(
     Action.NextFrame({
-      state: { ...state, cursor, value, error: undefined }
+      state: { ...state, cursor, value, error: Option.none() }
     })
   )
 }
@@ -3227,7 +3225,7 @@ const processTextBackspace = (state: TextState) => {
 const processTextClear = (state: TextState) =>
   Effect.succeed(
     Action.NextFrame({
-      state: { ...state, cursor: 0, value: "", error: undefined }
+      state: { ...state, cursor: 0, value: "", error: Option.none() }
     })
   )
 
@@ -3238,7 +3236,7 @@ const processTextCursorLeft = (state: TextState) => {
   const cursor = state.cursor - 1
   return Effect.succeed(
     Action.NextFrame({
-      state: { ...state, cursor, error: undefined }
+      state: { ...state, cursor, error: Option.none() }
     })
   )
 }
@@ -3250,7 +3248,7 @@ const processTextCursorRight = (state: TextState) => {
   const cursor = Math.min(state.cursor + 1, state.value.length)
   return Effect.succeed(
     Action.NextFrame({
-      state: { ...state, cursor, error: undefined }
+      state: { ...state, cursor, error: Option.none() }
     })
   )
 }
@@ -3262,7 +3260,7 @@ const processTab = (state: TextState, options: TextOptionsReq) => {
   const value = state.value.length === 0 ? options.default : state.value
   return Effect.succeed(
     Action.NextFrame({
-      state: { ...state, value, cursor: value.length, error: undefined }
+      state: { ...state, value, cursor: value.length, error: Option.none() }
     })
   )
 }
@@ -3274,7 +3272,7 @@ const defaultTextProcessor = (input: string, state: TextState) => {
   const cursor = state.cursor + input.length
   return Effect.succeed(
     Action.NextFrame({
-      state: { ...state, cursor, value, error: undefined }
+      state: { ...state, cursor, value, error: Option.none() }
     })
   )
 }
@@ -3310,7 +3308,7 @@ const handleTextProcess = (options: TextOptionsReq) => {
         return Effect.match(options.validate(value), {
           onFailure: (error) =>
             Action.NextFrame({
-              state: { ...state, value, error }
+              state: { ...state, value, error: Option.some(error) }
             }),
           onSuccess: (value) => Action.Submit({ value })
         })
@@ -3319,7 +3317,7 @@ const handleTextProcess = (options: TextOptionsReq) => {
         return processTab(state, options)
       }
       default: {
-        return defaultTextProcessor(input.input ?? "", state)
+        return defaultTextProcessor(Option.getOrElse(input.input, () => ""), state)
       }
     }
   }
@@ -3345,7 +3343,7 @@ const basePrompt = (
   const initialState: TextState = {
     cursor: opts.default.length,
     value: opts.default,
-    error: undefined
+    error: Option.none()
   }
   return custom(initialState, {
     render: handleTextRender(opts),

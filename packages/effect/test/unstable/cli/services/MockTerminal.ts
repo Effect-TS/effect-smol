@@ -3,6 +3,7 @@ import type * as Cause from "effect/Cause"
 import * as Console from "effect/Console"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
 import * as Queue from "effect/Queue"
 import type * as Scope from "effect/Scope"
 import * as ServiceMap from "effect/ServiceMap"
@@ -127,7 +128,7 @@ const toUserInput = (
 ): Terminal.UserInput => {
   const { ctrl = false, meta = false, shift = false } = modifiers
   return {
-    input: key,
+    input: Option.some(key),
     key: { name: key, ctrl, meta, shift }
   }
 }

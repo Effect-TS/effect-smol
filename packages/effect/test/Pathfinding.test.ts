@@ -74,7 +74,7 @@ describe("A*", () => {
  */
 const assertPath = (
   terrain: Terrain,
-  actual: Graph.PathResult<number> | undefined,
+  actual: Option.Option<Graph.PathResult<number>>,
   sequence: Sequence
 ) => {
   const derived = sequenceFromPath(terrain, actual)
@@ -88,7 +88,7 @@ const assertPath = (
     message += `\n${printSolution(terrain, pathFromSequence(terrain, sequence))}`
     message += `\n`
     message += `\nActual Path:`
-    message += `\n${printSolution(terrain, actual)}`
+    message += `\n${printSolution(terrain, Option.getOrUndefined(actual))}`
 
     throw new AssertionError({ message, stackStartFn: assertPath })
   }
@@ -155,19 +155,21 @@ const pathFromSequence = (
  */
 const sequenceFromPath = (
   terrain: Terrain,
-  path?: Graph.PathResult<number>
+  path: Option.Option<Graph.PathResult<number>>
 ): Sequence | undefined => {
-  if (path === undefined || path.path.length === 0) {
+  if (Option.isNone(path) || path.value.path.length === 0) {
     return undefined
   }
 
+  const pathValue = path.value
+
   const sequence = []
-  const start = terrain.coordinates.get(path.path[0])!
+  const start = terrain.coordinates.get(pathValue.path[0])!
   let previous = Graph.getNode(terrain.graph, terrain.nodes.get(start)!).pipe(
     Option.getOrThrowWith(() => new Error(`Start location ${start} not found in terrain`))
   )
 
-  for (const index of path.path.slice(1)) {
+  for (const index of pathValue.path.slice(1)) {
     const current = Graph.getNode(terrain.graph, index).pipe(
       Option.getOrThrowWith(() => new Error(`Location ${index} not found in terrain`))
     )
@@ -343,7 +345,7 @@ const weights = new Map([
 const printSolution = (terrain: Terrain, solution?: Graph.PathResult<number>): string => {
   // Clone the grid to avoid mutating the original
   const grid = terrain.grid.map((line) => line.slice())
-  const steps = solution?.path ?? []
+  const steps = solution === undefined ? [] : solution.path
 
   for (const [key, index] of steps.entries()) {
     const node = Graph.getNode(terrain.graph, index).pipe(

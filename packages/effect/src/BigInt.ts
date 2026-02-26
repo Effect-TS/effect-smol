@@ -8,6 +8,7 @@
 import * as Combiner from "./Combiner.ts"
 import * as Equ from "./Equivalence.ts"
 import { dual } from "./Function.ts"
+import * as Option from "./Option.ts"
 import * as order from "./Order.ts"
 import type { Ordering } from "./Ordering.ts"
 import * as predicate from "./Predicate.ts"
@@ -116,26 +117,28 @@ export const subtract: {
  * If the dividend is not a multiple of the divisor the result will be a `bigint` value
  * which represents the integer division rounded down to the nearest integer.
  *
- * Returns `undefined` if the divisor is `0n`.
+ * Returns `Option.none()` if the divisor is `0n`.
  *
  * @example
  * ```ts
  * import { divide } from "effect/BigInt"
  * import * as assert from "node:assert"
  *
- * assert.deepStrictEqual(divide(6n, 3n), 2n)
- * assert.deepStrictEqual(divide(6n, 0n), undefined)
+ * import { Option } from "effect"
+ *
+ * assert.deepStrictEqual(divide(6n, 3n), Option.some(2n))
+ * assert.deepStrictEqual(divide(6n, 0n), Option.none())
  * ```
  *
  * @category math
  * @since 2.0.0
  */
 export const divide: {
-  (that: bigint): (self: bigint) => bigint | undefined
-  (self: bigint, that: bigint): bigint | undefined
+  (that: bigint): (self: bigint) => Option.Option<bigint>
+  (self: bigint, that: bigint): Option.Option<bigint>
 } = dual(
   2,
-  (self: bigint, that: bigint): bigint | undefined => that === bigint0 ? undefined : self / that
+  (self: bigint, that: bigint): Option.Option<bigint> => that === bigint0 ? Option.none() : Option.some(self / that)
 )
 
 /**
@@ -532,7 +535,7 @@ export const sqrtUnsafe = (n: bigint): bigint => {
 }
 
 /**
- * Determines the square root of a given `bigint` safely. Returns `undefined` if
+ * Determines the square root of a given `bigint` safely. Returns `Option.none()` if
  * the given `bigint` is negative.
  *
  * **Example**
@@ -540,16 +543,17 @@ export const sqrtUnsafe = (n: bigint): bigint => {
  * ```ts
  * import { BigInt } from "effect"
  *
- * BigInt.sqrt(4n) // 2n
- * BigInt.sqrt(9n) // 3n
- * BigInt.sqrt(16n) // 4n
- * BigInt.sqrt(-1n) // undefined
+ * BigInt.sqrt(4n) // Option.some(2n)
+ * BigInt.sqrt(9n) // Option.some(3n)
+ * BigInt.sqrt(16n) // Option.some(4n)
+ * BigInt.sqrt(-1n) // Option.none()
  * ```
  *
  * @category math
  * @since 2.0.0
  */
-export const sqrt = (n: bigint): bigint | undefined => isGreaterThanOrEqualTo(n, bigint0) ? sqrtUnsafe(n) : undefined
+export const sqrt = (n: bigint): Option.Option<bigint> =>
+  isGreaterThanOrEqualTo(n, bigint0) ? Option.some(sqrtUnsafe(n)) : Option.none()
 
 /**
  * Takes an `Iterable` of `bigint`s and returns their sum as a single `bigint
@@ -602,52 +606,52 @@ export const multiplyAll = (collection: Iterable<bigint>): bigint => {
  * Converts a `bigint` to a `number`.
  *
  * If the `bigint` is outside the safe integer range for JavaScript (`Number.MAX_SAFE_INTEGER`
- * and `Number.MIN_SAFE_INTEGER`), it returns `undefined`
+ * and `Number.MIN_SAFE_INTEGER`), it returns `Option.none()`.
  *
  * @example
  * ```ts
  * import { BigInt as BI } from "effect"
  *
- * BI.toNumber(42n) // 42
- * BI.toNumber(BigInt(Number.MAX_SAFE_INTEGER) + 1n) // undefined
- * BI.toNumber(BigInt(Number.MIN_SAFE_INTEGER) - 1n) // undefined
+ * BI.toNumber(42n) // Option.some(42)
+ * BI.toNumber(BigInt(Number.MAX_SAFE_INTEGER) + 1n) // Option.none()
+ * BI.toNumber(BigInt(Number.MIN_SAFE_INTEGER) - 1n) // Option.none()
  * ```
  *
  * @category conversions
  * @since 2.0.0
  */
-export const toNumber = (b: bigint): number | undefined => {
+export const toNumber = (b: bigint): Option.Option<number> => {
   if (b > BigInt(Number.MAX_SAFE_INTEGER) || b < BigInt(Number.MIN_SAFE_INTEGER)) {
-    return undefined
+    return Option.none()
   }
-  return Number(b)
+  return Option.some(Number(b))
 }
 
 /**
  * Converts a string to a `bigint`.
  *
  * If the string is empty or contains characters that cannot be converted into a
- * `bigint`, it returns `undefined`.
+ * `bigint`, it returns `Option.none()`.
  *
  * @example
  * ```ts
  * import { BigInt } from "effect"
  *
- * BigInt.fromString("42") // 42n
- * BigInt.fromString(" ") // undefined
- * BigInt.fromString("a") // undefined
+ * BigInt.fromString("42") // Option.some(42n)
+ * BigInt.fromString(" ") // Option.none()
+ * BigInt.fromString("a") // Option.none()
  * ```
  *
  * @category conversions
  * @since 2.4.12
  */
-export const fromString = (s: string): bigint | undefined => {
+export const fromString = (s: string): Option.Option<bigint> => {
   try {
     return s.trim() === ""
-      ? undefined
-      : BigInt(s)
+      ? Option.none()
+      : Option.some(BigInt(s))
   } catch {
-    return undefined
+    return Option.none()
   }
 }
 
@@ -656,30 +660,30 @@ export const fromString = (s: string): bigint | undefined => {
  *
  * If the number is outside the safe integer range for JavaScript
  * (`Number.MAX_SAFE_INTEGER` and `Number.MIN_SAFE_INTEGER`) or if the number is
- * not a valid `bigint`, it returns `undefined`.
+ * not a valid `bigint`, it returns `Option.none()`.
  *
  * @example
  * ```ts
  * import { BigInt } from "effect"
  *
- * BigInt.fromNumber(42) // 42n
+ * BigInt.fromNumber(42) // Option.some(42n)
  *
- * BigInt.fromNumber(Number.MAX_SAFE_INTEGER + 1) // undefined
- * BigInt.fromNumber(Number.MIN_SAFE_INTEGER - 1) // undefined
+ * BigInt.fromNumber(Number.MAX_SAFE_INTEGER + 1) // Option.none()
+ * BigInt.fromNumber(Number.MIN_SAFE_INTEGER - 1) // Option.none()
  * ```
  *
  * @category conversions
  * @since 2.4.12
  */
-export function fromNumber(n: number): bigint | undefined {
+export function fromNumber(n: number): Option.Option<bigint> {
   if (n > Number.MAX_SAFE_INTEGER || n < Number.MIN_SAFE_INTEGER) {
-    return undefined
+    return Option.none()
   }
 
   try {
-    return BigInt(n)
+    return Option.some(BigInt(n))
   } catch {
-    return undefined
+    return Option.none()
   }
 }
 

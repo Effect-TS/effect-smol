@@ -3,6 +3,7 @@
  */
 
 import * as Layer from "../../Layer.ts"
+import * as Option from "../../Option.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type * as CliError from "./CliError.ts"
 import type { HelpDoc } from "./HelpDoc.ts"
@@ -44,6 +45,7 @@ export interface Formatter {
    *
    * @example
    * ```ts
+   * import { Option as O } from "effect"
    * import type { HelpDoc } from "effect/unstable/cli"
    * import { CliOutput } from "effect/unstable/cli"
    *
@@ -55,7 +57,7 @@ export interface Formatter {
    *       name: "verbose",
    *       aliases: ["-v"],
    *       type: "boolean",
-   *       description: "Enable verbose output",
+   *       description: O.some("Enable verbose output"),
    *       required: false
    *     }
    *   ],
@@ -63,7 +65,7 @@ export interface Formatter {
    *     {
    *       name: "file",
    *       type: "string",
-   *       description: "Input file to process",
+   *       description: O.some("Input file to process"),
    *       required: true,
    *       variadic: false
    *     }
@@ -459,7 +461,7 @@ const formatHelpDocImpl = (doc: HelpDoc, colors: ColorFunctions): string => {
       const nameType = `${coloredName} ${coloredType}`
 
       const optionalSuffix = arg.required ? "" : colors.dim(" (optional)")
-      const description = (arg.description ?? "") + optionalSuffix
+      const description = Option.getOrElse(arg.description, () => "") + optionalSuffix
 
       return {
         left: nameType,
@@ -491,7 +493,7 @@ const formatHelpDocImpl = (doc: HelpDoc, colors: ColorFunctions): string => {
 
       return {
         left: namesPart + typePart,
-        right: flag.description ?? ""
+        right: Option.getOrElse(flag.description, () => "")
       }
     })
 
@@ -519,7 +521,7 @@ const formatHelpDocImpl = (doc: HelpDoc, colors: ColorFunctions): string => {
 
       return {
         left: namesPart + typePart,
-        right: flag.description ?? ""
+        right: Option.getOrElse(flag.description, () => "")
       }
     })
 

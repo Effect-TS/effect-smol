@@ -1,12 +1,12 @@
 import { describe, it } from "@effect/vitest"
-import { assertDefined, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import { DateTime, Duration, Effect, UndefinedOr } from "effect"
+import { assertNone, assertSome, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
+import { DateTime, Duration, Effect, Option } from "effect"
 import { TestClock } from "effect/testing"
 
 const setTo2024NZ = TestClock.setTime(new Date("2023-12-31T11:00:00.000Z").getTime())
-const assertSomeIso = (value: DateTime.DateTime | undefined, expected: string) => {
-  const iso = UndefinedOr.map(value, (value) => DateTime.formatIso(DateTime.toUtc(value)))
-  strictEqual(iso, expected)
+const assertSomeIso = (value: Option.Option<DateTime.DateTime>, expected: string) => {
+  const iso = Option.map(value, (value) => DateTime.formatIso(DateTime.toUtc(value)))
+  assertSome(iso, expected)
 }
 const isDeno = "Deno" in globalThis
 
@@ -81,9 +81,9 @@ describe("DateTime", () => {
       Effect.gen(function*() {
         yield* setTo2024NZ
         const now = DateTime.make({ year: 2024, month: 2, day: 29 })
-        assertDefined(now)
-        const future = DateTime.add(now, { years: 1 })
-        strictEqual(DateTime.formatIso(future), "2025-02-28T00:00:00.000Z")
+        assertSomeIso(now, "2024-02-29T00:00:00.000Z")
+        const future = Option.map(now, (value) => DateTime.add(value, { years: 1 }))
+        assertSome(Option.map(future, DateTime.formatIso), "2025-02-28T00:00:00.000Z")
       }))
   })
 
@@ -385,35 +385,31 @@ describe("DateTime", () => {
     it.effect("parses time + zone", () =>
       Effect.gen(function*() {
         const dt = DateTime.makeZonedFromString("2024-07-21T20:12:34.112546348+12:00[Pacific/Auckland]")
-        assertDefined(dt)
-        strictEqual(dt.toJSON(), "2024-07-21T08:12:34.112Z")
+        assertSome(Option.map(dt, (value) => value.toJSON()), "2024-07-21T08:12:34.112Z")
       }))
 
     it.effect("only offset", () =>
       Effect.gen(function*() {
         const dt = DateTime.makeZonedFromString("2024-07-21T20:12:34.112546348+12:00")
-        assertDefined(dt)
-        strictEqual(dt.zone._tag, "Offset")
-        strictEqual(dt.toJSON(), "2024-07-21T08:12:34.112Z")
+        assertSome(Option.map(dt, (value) => value.zone._tag), "Offset")
+        assertSome(Option.map(dt, (value) => value.toJSON()), "2024-07-21T08:12:34.112Z")
       }))
 
     it.effect("only offset with 00:00", () =>
       Effect.gen(function*() {
         const dt = DateTime.makeZonedFromString("2024-07-21T20:12:34.112546348+00:00")
-        assertDefined(dt)
-        strictEqual(dt.zone._tag, "Offset")
-        strictEqual(dt.toJSON(), "2024-07-21T20:12:34.112Z")
+        assertSome(Option.map(dt, (value) => value.zone._tag), "Offset")
+        assertSome(Option.map(dt, (value) => value.toJSON()), "2024-07-21T20:12:34.112Z")
       }))
 
     it.effect("roundtrip", () =>
       Effect.gen(function*() {
-        const dt = UndefinedOr.map(
+        const dt = Option.flatMap(
           DateTime.makeZonedFromString("2024-07-21T20:12:34.112546348+12:00[Pacific/Auckland]"),
           (d) => DateTime.makeZonedFromString(DateTime.formatIsoZoned(d))
         )
-        assertDefined(dt)
-        deepStrictEqual(dt.zone, DateTime.zoneMakeNamedUnsafe("Pacific/Auckland"))
-        strictEqual(dt.toJSON(), "2024-07-21T08:12:34.112Z")
+        assertSome(Option.map(dt, (value) => DateTime.zoneToString(value.zone)), "Pacific/Auckland")
+        assertSome(Option.map(dt, (value) => value.toJSON()), "2024-07-21T08:12:34.112Z")
       }))
   })
 
@@ -935,7 +931,7 @@ describe("DateTime", () => {
         })
 
         if (expectedResults.reject === "REJECT") {
-          strictEqual(rejectResult, undefined)
+          assertNone(rejectResult)
         } else {
           assertSomeIso(rejectResult, expectedResults.reject)
         }

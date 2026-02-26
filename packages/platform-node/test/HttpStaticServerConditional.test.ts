@@ -2,6 +2,7 @@ import { assert, describe, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import * as FileSystem from "effect/FileSystem"
 import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
 import * as Path from "effect/Path"
 import * as PlatformError from "effect/PlatformError"
 import {
@@ -39,19 +40,19 @@ const permissionDeniedError = (path: string) =>
 
 const fileInfo: FileSystem.File.Info = {
   type: "File",
-  mtime: new Date(lastModified),
-  atime: undefined,
-  birthtime: undefined,
+  mtime: Option.some(new Date(lastModified)),
+  atime: Option.none(),
+  birthtime: Option.none(),
   dev: 0,
-  ino: undefined,
+  ino: Option.none(),
   mode: 0,
-  nlink: undefined,
-  uid: undefined,
-  gid: undefined,
-  rdev: undefined,
+  nlink: Option.none(),
+  uid: Option.none(),
+  gid: Option.none(),
+  rdev: Option.none(),
   size: FileSystem.Size(fileBody.length),
-  blksize: undefined,
-  blocks: undefined
+  blksize: Option.none(),
+  blocks: Option.none()
 }
 
 const makeHandler = async () => {

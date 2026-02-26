@@ -666,18 +666,24 @@ describe("TxHashMap", () => {
 
         // Test data-first: find user1's first session
         const user1Session = yield* TxHashMap.findFirst(txMap, (session) => session.userId === "user1")
-        assert.deepStrictEqual(user1Session, ["session3", { userId: "user1", loginTime: "11:00" }])
+        assert.deepStrictEqual(
+          user1Session,
+          Option.some<[string, { userId: string; loginTime: string }]>([
+            "session3",
+            { userId: "user1", loginTime: "11:00" }
+          ])
+        )
 
         // Test data-last: find session not belonging to user1 or user2
         const otherSession = yield* txMap.pipe(
           TxHashMap.findFirst((session) => session.userId !== "user1" && session.userId !== "user2")
         )
-        assert.deepStrictEqual(otherSession, undefined)
+        assert.deepStrictEqual(otherSession, Option.none())
 
         // Test with empty map
         const emptyMap = yield* TxHashMap.empty<string, { userId: string }>()
         const notFound = yield* TxHashMap.findFirst(emptyMap, () => true)
-        assert.deepStrictEqual(notFound, undefined)
+        assert.deepStrictEqual(notFound, Option.none())
       })))
 
     it.effect("some should check if any entry matches predicate", () =>

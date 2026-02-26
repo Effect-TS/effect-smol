@@ -19,7 +19,6 @@ import * as Schema from "../../Schema.ts"
 import * as Issue from "../../SchemaIssue.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
 import * as Tuple from "../../Tuple.ts"
-import * as UndefinedOr from "../../UndefinedOr.ts"
 
 const TypeId = "~effect/http/UrlParams"
 
@@ -222,14 +221,13 @@ export const getAll: {
  * @category combinators
  */
 export const getFirst: {
-  (key: string): (self: UrlParams) => string | undefined
-  (self: UrlParams, key: string): string | undefined
+  (key: string): (self: UrlParams) => Option.Option<string>
+  (self: UrlParams, key: string): Option.Option<string>
 } = dual(
   2,
-  (self: UrlParams, key: string): string | undefined =>
+  (self: UrlParams, key: string): Option.Option<string> =>
     Arr.findFirst(self.params, ([k]) => k === key).pipe(
-      Option.map(([, value]) => value),
-      Option.getOrUndefined
+      Option.map(([, value]) => value)
     )
 )
 
@@ -238,12 +236,11 @@ export const getFirst: {
  * @category combinators
  */
 export const getLast: {
-  (key: string): (self: UrlParams) => string | undefined
-  (self: UrlParams, key: string): string | undefined
-} = dual(2, (self: UrlParams, key: string): string | undefined =>
+  (key: string): (self: UrlParams) => Option.Option<string>
+  (self: UrlParams, key: string): Option.Option<string>
+} = dual(2, (self: UrlParams, key: string): Option.Option<string> =>
   Arr.findLast(self.params, ([k]) => k === key).pipe(
-    Option.map(([, value]) => value),
-    Option.getOrUndefined
+    Option.map(([, value]) => value)
   ))
 
 /**
@@ -465,9 +462,9 @@ export const schemaJsonField = (field: string): schemaJsonField =>
       Schema.UnknownFromJsonString,
       Transformation.transformOrFail({
         decode: (params) =>
-          UndefinedOr.match(getFirst(params, field), {
-            onUndefined: () => Effect.fail(new Issue.Pointer([field], new Issue.MissingKey(undefined))),
-            onDefined: Effect.succeed
+          Option.match(getFirst(params, field), {
+            onNone: () => Effect.fail(new Issue.Pointer([field], new Issue.MissingKey(undefined))),
+            onSome: Effect.succeed
           }),
         encode: (value) => Effect.succeed(make([[field, value]]))
       })

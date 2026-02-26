@@ -1,6 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
-import { deepStrictEqual, strictEqual } from "@effect/vitest/utils"
+import { assertNone, assertSome, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import { Effect, Stream } from "effect"
+import * as Option from "effect/Option"
 import { HttpClientRequest, HttpServerRequest } from "effect/unstable/http"
 
 describe("HttpServerRequest", () => {
@@ -22,7 +23,7 @@ describe("HttpServerRequest", () => {
     strictEqual(HttpClientRequest.isHttpClientRequest(clientRequest), true)
     strictEqual(clientRequest.method, "POST")
     strictEqual(clientRequest.url, "http://localhost:3000/todos/1")
-    strictEqual(clientRequest.hash, "top")
+    assertSome(clientRequest.hash, "top")
     strictEqual(clientRequest.headers["content-type"], "application/json")
     strictEqual(clientRequest.headers["content-length"], "13")
     strictEqual(clientRequest.headers["x-test"], "ok")
@@ -107,4 +108,18 @@ describe("HttpServerRequest", () => {
         assert.strictEqual(new TextDecoder().decode(yield* parts[1].contentEffect), "hello")
       }
     }))
+
+  it("remoteAddress defaults to none for web requests", () => {
+    const request = HttpServerRequest.fromWeb(new Request("http://example.com"))
+    assertNone(request.remoteAddress)
+  })
+
+  it("modify distinguishes missing and explicit none remoteAddress", () => {
+    const request = HttpServerRequest.fromWeb(new Request("http://example.com"))
+    const withRemoteAddress = request.modify({ remoteAddress: Option.some("127.0.0.1") })
+
+    assertSome(withRemoteAddress.remoteAddress, "127.0.0.1")
+    assertSome(withRemoteAddress.modify({}).remoteAddress, "127.0.0.1")
+    assertNone(withRemoteAddress.modify({ remoteAddress: Option.none() }).remoteAddress)
+  })
 })

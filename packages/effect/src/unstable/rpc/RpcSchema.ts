@@ -3,6 +3,7 @@
  */
 import * as Cause from "../../Cause.ts"
 import { constUndefined } from "../../Function.ts"
+import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
 import type * as AST from "../../SchemaAST.ts"
@@ -20,16 +21,16 @@ export function isStreamSchema(schema: Schema.Top): schema is Stream<Schema.Top,
 }
 
 /** @internal */
-export function getStreamSchemas(schema: Schema.Top): {
+export function getStreamSchemas(schema: Schema.Top): Option.Option<{
   readonly success: Schema.Top
   readonly error: Schema.Top
-} | undefined {
+}> {
   return isStreamSchema(schema) ?
-    {
+    Option.some({
       success: schema.success,
       error: schema.error
-    } :
-    undefined
+    }) :
+    Option.none()
 }
 
 /**

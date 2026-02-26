@@ -13,6 +13,7 @@ import type * as FileSystem from "effect/FileSystem"
 import { flow } from "effect/Function"
 import * as Inspectable from "effect/Inspectable"
 import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
 import type * as Path from "effect/Path"
 import type * as Record from "effect/Record"
 import type * as Schema from "effect/Schema"
@@ -282,7 +283,7 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
   readonly url: string
   private bunServer: BunServer<WebSocketContext>
   public headersOverride?: Headers.Headers | undefined
-  private remoteAddressOverride?: string | undefined
+  private remoteAddressOverride?: Option.Option<string> | undefined
 
   constructor(
     source: Request,
@@ -290,7 +291,7 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
     url: string,
     bunServer: BunServer<WebSocketContext>,
     headersOverride?: Headers.Headers,
-    remoteAddressOverride?: string
+    remoteAddressOverride?: Option.Option<string>
   ) {
     super()
     this[ServerRequest.TypeId] = ServerRequest.TypeId
@@ -313,7 +314,7 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
     options: {
       readonly url?: string | undefined
       readonly headers?: Headers.Headers | undefined
-      readonly remoteAddress?: string | undefined
+      readonly remoteAddress?: Option.Option<string> | undefined
     }
   ) {
     return new BunServerRequest(
@@ -322,7 +323,7 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
       options.url ?? this.url,
       this.bunServer,
       options.headers ?? this.headersOverride,
-      options.remoteAddress ?? this.remoteAddressOverride
+      "remoteAddress" in options ? options.remoteAddress : this.remoteAddressOverride
     )
   }
   get method(): HttpMethod {
@@ -331,8 +332,8 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
   get originalUrl() {
     return this.source.url
   }
-  get remoteAddress(): string | undefined {
-    return this.remoteAddressOverride ?? this.bunServer.requestIP(this.source)?.address
+  get remoteAddress(): Option.Option<string> {
+    return this.remoteAddressOverride ?? Option.fromNullishOr(this.bunServer.requestIP(this.source)?.address)
   }
   get headers(): Headers.Headers {
     this.headersOverride ??= Headers.fromInput(this.source.headers)

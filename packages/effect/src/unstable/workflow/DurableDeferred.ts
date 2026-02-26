@@ -8,7 +8,7 @@ import * as Effect from "../../Effect.ts"
 import * as Encoding from "../../Encoding.ts"
 import * as Exit from "../../Exit.ts"
 import { dual } from "../../Function.ts"
-import * as Predicate from "../../Predicate.ts"
+import * as Option from "../../Option.ts"
 import * as Schema from "../../Schema.ts"
 import * as Getter from "../../SchemaGetter.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -124,12 +124,12 @@ const await_: <Success extends Schema.Top, Error extends Schema.Top>(
   const instance = yield* InstanceTag
   const exit = yield* Workflow.wrapActivityResult(
     engine.deferredResult(self),
-    Predicate.isUndefined
+    Option.isNone
   )
-  if (exit === undefined) {
+  if (Option.isNone(exit)) {
     return yield* Workflow.suspend(instance)
   }
-  return yield* exit as Exit.Exit<any, any>
+  return yield* exit.value as Exit.Exit<any, any>
 })
 
 export {
@@ -235,8 +235,8 @@ export const raceAll = <
   return Effect.gen(function*() {
     const engine = yield* EngineTag
     const exit = yield* engine.deferredResult(deferred)
-    if (exit !== undefined) {
-      return yield* Effect.flatten(exit) as Effect.Effect<any, any, any>
+    if (Option.isSome(exit)) {
+      return yield* Effect.flatten(exit.value) as Effect.Effect<any, any, any>
     }
     return yield* into(Effect.raceAll(options.effects), deferred)
   })

@@ -1,11 +1,38 @@
 import * as BigInt from "effect/BigInt"
 import { describe, it } from "vitest"
-import { strictEqual } from "./utils/assert.ts"
+import { assertNone, assertSome, strictEqual } from "./utils/assert.ts"
 
 describe("BigInt", () => {
   it("Equivalence", () => {
     strictEqual(BigInt.Equivalence(1n, 1n), true)
     strictEqual(BigInt.Equivalence(1n, 2n), false)
+  })
+
+  it("divide", () => {
+    assertSome(BigInt.divide(6n, 3n), 2n)
+    assertNone(BigInt.divide(6n, 0n))
+    strictEqual(BigInt.divideUnsafe(6n, 3n), 2n)
+  })
+
+  it("sqrt", () => {
+    assertSome(BigInt.sqrt(4n), 2n)
+    assertNone(BigInt.sqrt(-1n))
+  })
+
+  it("toNumber", () => {
+    assertSome(BigInt.toNumber(42n), 42)
+    assertNone(BigInt.toNumber(BigInt.BigInt(Number.MAX_SAFE_INTEGER) + 1n))
+  })
+
+  it("fromString", () => {
+    assertSome(BigInt.fromString("42"), 42n)
+    assertNone(BigInt.fromString(" "))
+    assertNone(BigInt.fromString("a"))
+  })
+
+  it("fromNumber", () => {
+    assertSome(BigInt.fromNumber(42), 42n)
+    assertNone(BigInt.fromNumber(Number.MAX_SAFE_INTEGER + 1))
   })
 
   it("ReducerSum", () => {

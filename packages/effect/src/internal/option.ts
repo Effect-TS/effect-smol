@@ -45,10 +45,17 @@ const SomeProto = Object.assign(Object.create(CommonProto), {
   }
 })
 
+Object.defineProperty(SomeProto, "valueOrUndefined", {
+  get() {
+    return this.value
+  }
+})
+
 const NoneHash = Hash.hash("None")
 const NoneProto = Object.assign(Object.create(CommonProto), {
   _tag: "None",
   _op: "None",
+  valueOrUndefined: undefined,
   [Equal.symbol]<A>(this: Option.None<A>, that: unknown): boolean {
     return isOption(that) && isNone(that)
   },

@@ -38,6 +38,7 @@ import * as Latch from "./Latch.ts"
 import * as MutableList from "./MutableList.ts"
 import * as MutableRef from "./MutableRef.ts"
 import { nextPow2 } from "./Number.ts"
+import * as Option from "./Option.ts"
 import { type Pipeable, pipeArguments } from "./Pipeable.ts"
 import * as Scope from "./Scope.ts"
 import type { Covariant, Invariant } from "./Types.ts"
@@ -1300,14 +1301,14 @@ export const remaining = <A>(self: Subscription<A>): Effect.Effect<number> =>
  *
  * // Unsafe synchronous check for remaining messages
  * const remainingOption = PubSub.remainingUnsafe(subscription)
- * if (remainingOption) {
- *   console.log("Messages available:", remainingOption)
+ * if (remainingOption._tag === "Some") {
+ *   console.log("Messages available:", remainingOption.value)
  * } else {
  *   console.log("Subscription is shutdown")
  * }
  *
  * // Useful for polling or batching scenarios
- * if (remainingOption && remainingOption > 10) {
+ * if (remainingOption._tag === "Some" && remainingOption.value > 10) {
  *   // Process messages in batch
  * }
  * ```
@@ -1315,11 +1316,11 @@ export const remaining = <A>(self: Subscription<A>): Effect.Effect<number> =>
  * @since 4.0.0
  * @category getters
  */
-export const remainingUnsafe = <A>(self: Subscription<A>): number | undefined => {
+export const remainingUnsafe = <A>(self: Subscription<A>): Option.Option<number> => {
   if (self.shutdownFlag.current) {
-    return undefined
+    return Option.none()
   }
-  return self.subscription.size() + self.replayWindow.remaining
+  return Option.some(self.subscription.size() + self.replayWindow.remaining)
 }
 
 // -----------------------------------------------------------------------------

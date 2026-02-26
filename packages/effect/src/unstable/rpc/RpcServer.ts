@@ -11,7 +11,7 @@ import { constant, constTrue, constVoid, identity } from "../../Function.ts"
 import { reportCauseUnsafe } from "../../internal/effect.ts"
 import * as Latch from "../../Latch.ts"
 import * as Layer from "../../Layer.ts"
-import type * as Option from "../../Option.ts"
+import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Pull from "../../Pull.ts"
 import * as Queue from "../../Queue.ts"
@@ -547,7 +547,7 @@ export const make: <Rpcs extends Rpc.Any>(
         decode: Schema.decodeUnknownEffect(Schema.toCodecJson(rpc.payloadSchema)) as any,
         encodeChunk: Schema.encodeUnknownEffect(
           Schema.toCodecJson(
-            Schema.Array(streamSchemas ? streamSchemas.success : Schema.Any)
+            Schema.Array(Option.isSome(streamSchemas) ? streamSchemas.value.success : Schema.Any)
           )
         ) as any,
         encodeExit: Schema.encodeUnknownEffect(Schema.toCodecJson(Rpc.exitSchema(rpc as any))) as any,

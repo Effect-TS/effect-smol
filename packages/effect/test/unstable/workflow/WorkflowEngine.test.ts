@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Exit, Layer, Schema } from "effect"
+import { Effect, Exit, Layer, Option, Schema } from "effect"
 import { Workflow, WorkflowEngine } from "effect/unstable/workflow"
 
 describe("WorkflowEngine", () => {
@@ -19,8 +19,8 @@ describe("WorkflowEngine", () => {
       const polled = yield* IncrementWorkflow.poll(executionId)
 
       assert.strictEqual(result, 2)
-      assert(polled !== undefined && polled._tag === "Complete" && Exit.isSuccess(polled.exit))
-      assert.strictEqual(polled.exit.value, 2)
+      assert(Option.isSome(polled) && polled.value._tag === "Complete" && Exit.isSuccess(polled.value.exit))
+      assert.strictEqual(polled.value.exit.value, 2)
     }).pipe(
       Effect.provide(IncrementWorkflowLayer.pipe(
         Layer.provideMerge(WorkflowEngine.layerMemory)

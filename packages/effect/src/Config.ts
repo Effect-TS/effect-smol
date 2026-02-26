@@ -738,7 +738,10 @@ export const Boolean = Schema.Literals([...TrueValues.literals, ...FalseValues.l
 export const Duration = Schema.String.pipe(Schema.decodeTo(Schema.Duration, {
   decode: Getter.transformOrFail((s) => {
     const d = Duration_.fromInput(s as any)
-    return d ? Effect.succeed(d) : Effect.fail(new Issue.InvalidValue(Option.some(s)))
+    return Option.match(d, {
+      onNone: () => Effect.fail(new Issue.InvalidValue(Option.some(s))),
+      onSome: Effect.succeed
+    })
   }),
   encode: Getter.forbidden(() => "Encoding Duration is not supported")
 }))

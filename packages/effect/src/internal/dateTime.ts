@@ -9,11 +9,11 @@ import type { LazyArg } from "../Function.ts"
 import { dual } from "../Function.ts"
 import * as Hash from "../Hash.ts"
 import * as Inspectable from "../Inspectable.ts"
+import * as Option from "../Option.ts"
 import * as order from "../Order.ts"
 import { pipeArguments } from "../Pipeable.ts"
 import * as Predicate from "../Predicate.ts"
 import type { Mutable } from "../Types.ts"
-import * as UndefinedOr from "../UndefinedOr.ts"
 import * as effect from "./effect.ts"
 
 /** @internal */
@@ -264,10 +264,10 @@ export const makeZonedUnsafe = (input: DateTime.DateTime.Input, options?: {
     zone = zoneMakeOffset(timeZoneOption)
   } else {
     const parsedZone = zoneFromString(timeZoneOption)
-    if (parsedZone === undefined) {
+    if (Option.isNone(parsedZone)) {
       throw new IllegalArgumentError(`Invalid time zone: ${timeZoneOption}`)
     }
-    zone = parsedZone
+    zone = parsedZone.value
   }
   if (options?.adjustForTimeZone !== true) {
     return makeZonedProto(self.epochMilliseconds, zone, self.partsUtc)
@@ -283,20 +283,20 @@ export const makeZoned: (
     readonly adjustForTimeZone?: boolean | undefined
     readonly disambiguation?: DateTime.Disambiguation | undefined
   }
-) => DateTime.Zoned | undefined = UndefinedOr.liftThrowable(makeZonedUnsafe)
+) => Option.Option<DateTime.Zoned> = Option.liftThrowable(makeZonedUnsafe)
 
 /** @internal */
-export const make: <A extends DateTime.DateTime.Input>(input: A) => DateTime.DateTime.PreserveZone<A> | undefined =
-  UndefinedOr.liftThrowable(makeUnsafe)
+export const make: <A extends DateTime.DateTime.Input>(input: A) => Option.Option<DateTime.DateTime.PreserveZone<A>> =
+  Option.liftThrowable(makeUnsafe)
 
 const zonedStringRegExp = /^(.{17,35})\[(.+)\]$/
 
 /** @internal */
-export const makeZonedFromString = (input: string): DateTime.Zoned | undefined => {
+export const makeZonedFromString = (input: string): Option.Option<DateTime.Zoned> => {
   const match = zonedStringRegExp.exec(input)
   if (match === null) {
     const offset = parseOffset(input)
-    return offset !== null ? makeZoned(input, { timeZone: offset }) : undefined
+    return offset !== null ? makeZoned(input, { timeZone: offset }) : Option.none()
   }
   const [, isoString, timeZone] = match
   return makeZoned(isoString, { timeZone })
@@ -402,7 +402,7 @@ export const zoneMakeOffset = (offset: number): DateTime.TimeZone.Offset => {
 }
 
 /** @internal */
-export const zoneMakeNamed: (zoneId: string) => DateTime.TimeZone.Named | undefined = UndefinedOr.liftThrowable(
+export const zoneMakeNamed: (zoneId: string) => Option.Option<DateTime.TimeZone.Named> = Option.liftThrowable(
   zoneMakeNamedUnsafe
 )
 
@@ -420,10 +420,10 @@ export const zoneMakeLocal = (): DateTime.TimeZone.Named =>
 const offsetZoneRegExp = /^(?:GMT|[+-])/
 
 /** @internal */
-export const zoneFromString = (zone: string): DateTime.TimeZone | undefined => {
+export const zoneFromString = (zone: string): Option.Option<DateTime.TimeZone> => {
   if (offsetZoneRegExp.test(zone)) {
     const offset = parseOffset(zone)
-    return offset === null ? undefined : zoneMakeOffset(offset)
+    return offset === null ? Option.none() : Option.some(zoneMakeOffset(offset))
   }
   return zoneMakeNamed(zone)
 }
@@ -441,17 +441,17 @@ export const setZoneNamed: {
   (zoneId: string, options?: {
     readonly adjustForTimeZone?: boolean | undefined
     readonly disambiguation?: DateTime.Disambiguation | undefined
-  }): (self: DateTime.DateTime) => DateTime.Zoned | undefined
+  }): (self: DateTime.DateTime) => Option.Option<DateTime.Zoned>
   (self: DateTime.DateTime, zoneId: string, options?: {
     readonly adjustForTimeZone?: boolean | undefined
     readonly disambiguation?: DateTime.Disambiguation | undefined
-  }): DateTime.Zoned | undefined
+  }): Option.Option<DateTime.Zoned>
 } = dual(
   isDateTimeArgs,
   (self: DateTime.DateTime, zoneId: string, options?: {
     readonly adjustForTimeZone?: boolean | undefined
     readonly disambiguation?: DateTime.Disambiguation | undefined
-  }): DateTime.Zoned | undefined => UndefinedOr.map(zoneMakeNamed(zoneId), (zone) => setZone(self, zone, options))
+  }): Option.Option<DateTime.Zoned> => Option.map(zoneMakeNamed(zoneId), (zone) => setZone(self, zone, options))
 )
 
 /** @internal */

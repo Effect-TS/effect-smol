@@ -5,6 +5,7 @@ import * as Effect from "../../Effect.ts"
 import * as FileSystem from "../../FileSystem.ts"
 import { identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
+import * as Option from "../../Option.ts"
 import type { PlatformError } from "../../PlatformError.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
@@ -80,8 +81,8 @@ export const make: (impl: {
         "etag",
         Etag.toString(etag)
       )
-      if (info.mtime) {
-        ;(headers as any)["last-modified"] = info.mtime.toUTCString()
+      if (Option.isSome(info.mtime)) {
+        ;(headers as any)["last-modified"] = info.mtime.value.toUTCString()
       }
       const contentLength = end !== undefined ? end - start : Number(info.size) - start
       return impl.fileResponse(

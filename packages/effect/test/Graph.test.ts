@@ -1,13 +1,13 @@
-import {
-  assertDefined,
-  assertNone,
-  assertSome,
-  assertUndefined,
-  deepStrictEqual,
-  strictEqual
-} from "@effect/vitest/utils"
+import { assertNone, assertSome, strictEqual } from "@effect/vitest/utils"
 import { Equal, Graph, Hash, Option } from "effect"
 import { describe, expect, it } from "vitest"
+
+const assertSomeEdge = <E>(edge: Option.Option<Graph.Edge<E>>): Graph.Edge<E> => {
+  if (Option.isNone(edge)) {
+    throw new Error("Expected edge to be present")
+  }
+  return edge.value
+}
 
 describe("Graph", () => {
   describe("constructors", () => {
@@ -148,7 +148,7 @@ describe("Graph", () => {
         const undefinedNode = Graph.findNode(graph, (data) => data === undefined)
         const undefinedNodes = Graph.findNodes(graph, (data) => data === undefined)
 
-        expect(undefinedNode).toEqual(0)
+        expect(undefinedNode).toEqual(Option.some(0))
         expect(undefinedNodes).toEqual([0, 2])
       })
 
@@ -179,7 +179,7 @@ describe("Graph", () => {
         })
 
         expect(Graph.edgeCount(graph)).toBe(1)
-        expect(Graph.getEdge(graph, 0)).toEqual(new Graph.Edge({ source: 0, target: 1, data: undefined }))
+        expect(Graph.getEdge(graph, 0)).toEqual(Option.some(new Graph.Edge({ source: 0, target: 1, data: undefined })))
       })
 
       it("should correctly update edges with undefined data", () => {
@@ -198,8 +198,8 @@ describe("Graph", () => {
         const edge0 = Graph.getEdge(updated, 0)
         const edge1 = Graph.getEdge(updated, 1)
 
-        expect(edge0).toEqual(new Graph.Edge({ source: 0, target: 1, data: 100 }))
-        expect(edge1).toEqual(new Graph.Edge({ source: 1, target: 0, data: undefined }))
+        expect(edge0).toEqual(Option.some(new Graph.Edge({ source: 0, target: 1, data: 100 })))
+        expect(edge1).toEqual(Option.some(new Graph.Edge({ source: 1, target: 0, data: undefined })))
       })
 
       it("should correctly compare graphs with undefined edge data", () => {
@@ -231,7 +231,7 @@ describe("Graph", () => {
         const undefinedEdge = Graph.findEdge(graph, (data) => data === undefined)
         const undefinedEdges = Graph.findEdges(graph, (data) => data === undefined)
 
-        expect(undefinedEdge).toEqual(0)
+        expect(undefinedEdge).toEqual(Option.some(0))
         expect(undefinedEdges).toEqual([0, 2])
       })
 
@@ -305,7 +305,7 @@ describe("Graph", () => {
         expect(Graph.nodeCount(graph)).toBe(2)
         expect(Graph.edgeCount(graph)).toBe(1)
         expect(Graph.getNode(graph, 0)).toEqual(Option.some(undefined))
-        expect(Graph.getEdge(graph, 0)).toEqual(new Graph.Edge({ source: 0, target: 1, data: undefined }))
+        expect(Graph.getEdge(graph, 0)).toEqual(Option.some(new Graph.Edge({ source: 0, target: 1, data: undefined })))
       })
 
       it("should correctly handle graph operations with mixed undefined data", () => {
@@ -474,7 +474,7 @@ describe("Graph", () => {
       })
 
       const result = Graph.findNode(graph, (data) => data === "Node B")
-      expect(result).toBe(1)
+      expect(result).toEqual(Option.some(1))
     })
 
     it("should return None when no node matches", () => {
@@ -484,7 +484,7 @@ describe("Graph", () => {
       })
 
       const result = Graph.findNode(graph, (data) => data === "Node C")
-      expect(result).toBe(undefined)
+      expect(result).toEqual(Option.none())
     })
 
     it("should find first matching node when multiple match", () => {
@@ -495,7 +495,7 @@ describe("Graph", () => {
       })
 
       const result = Graph.findNode(graph, (data) => data.startsWith("Start"))
-      expect(result).toBe(0)
+      expect(result).toEqual(Option.some(0))
     })
   })
 
@@ -524,7 +524,7 @@ describe("Graph", () => {
       })
 
       const result = Graph.findEdge(graph, (data) => data === 20)
-      expect(result).toBe(1)
+      expect(result).toEqual(Option.some(1))
     })
 
     it("should return None when no edge matches", () => {
@@ -535,7 +535,7 @@ describe("Graph", () => {
       })
 
       const result = Graph.findEdge(graph, (data) => data === 99)
-      expect(result).toBe(undefined)
+      expect(result).toEqual(Option.none())
     })
 
     it("should find first matching edge when multiple match", () => {
@@ -549,7 +549,7 @@ describe("Graph", () => {
       })
 
       const result = Graph.findEdge(graph, (data) => data > 20)
-      expect(result).toBe(1)
+      expect(result).toEqual(Option.some(1))
     })
   })
 
@@ -606,7 +606,7 @@ describe("Graph", () => {
       })
 
       const edge = Graph.getEdge(result, 0)
-      deepStrictEqual(edge, new Graph.Edge({ source: 0, target: 1, data: 20 }))
+      assertSome(edge, new Graph.Edge({ source: 0, target: 1, data: 20 }))
     })
 
     it("should do nothing if edge doesn't exist", () => {
@@ -620,7 +620,7 @@ describe("Graph", () => {
 
         // Original edge should be unchanged
         const edge = Graph.getEdge(mutable, edgeIndex)
-        deepStrictEqual(edge, new Graph.Edge({ source: 0, target: 1, data: 10 }))
+        assertSome(edge, new Graph.Edge({ source: 0, target: 1, data: 10 }))
       })
     })
   })
@@ -703,13 +703,9 @@ describe("Graph", () => {
       const edge1 = Graph.getEdge(graph, edgeBC!)
       const edge2 = Graph.getEdge(graph, edgeCA!)
 
-      assertDefined(edge0)
-      assertDefined(edge1)
-      assertDefined(edge2)
-
-      expect(edge0.data).toBe(20)
-      expect(edge1.data).toBe(40)
-      expect(edge2.data).toBe(60)
+      expect(assertSomeEdge(edge0).data).toBe(20)
+      expect(assertSomeEdge(edge1).data).toBe(40)
+      expect(assertSomeEdge(edge2).data).toBe(60)
     })
 
     it("should modify graph in place during construction", () => {
@@ -722,8 +718,7 @@ describe("Graph", () => {
 
         // Before transformation
         const beforeData = Graph.getEdge(mutable, edgeAB!)
-        assertDefined(beforeData)
-        expect(beforeData.data).toBe(10)
+        assertSome(beforeData, new Graph.Edge({ source: 0, target: 1, data: 10 }))
 
         // Apply transformation
         Graph.mapEdges(mutable, (data) => data * 5)
@@ -731,8 +726,7 @@ describe("Graph", () => {
 
       // After transformation
       const afterData = Graph.getEdge(graph, edgeAB!)
-      assertDefined(afterData)
-      expect(afterData.data).toBe(50)
+      expect(assertSomeEdge(afterData).data).toBe(50)
     })
   })
 
@@ -759,24 +753,9 @@ describe("Graph", () => {
       const edge1 = Graph.getEdge(graph, edgeBC!)
       const edge2 = Graph.getEdge(graph, edgeCA!)
 
-      assertDefined(edge0)
-      assertDefined(edge1)
-      assertDefined(edge2)
-
-      // Edge 0: was A -> B, now B -> A
-      expect(edge0.source).toBe(nodeB!)
-      expect(edge0.target).toBe(nodeA!)
-      expect(edge0.data).toBe(1)
-
-      // Edge 1: was B -> C, now C -> B
-      expect(edge1.source).toBe(nodeC!)
-      expect(edge1.target).toBe(nodeB!)
-      expect(edge1.data).toBe(2)
-
-      // Edge 2: was C -> A, now A -> C
-      expect(edge2.source).toBe(nodeA!)
-      expect(edge2.target).toBe(nodeC!)
-      expect(edge2.data).toBe(3)
+      assertSome(edge0, new Graph.Edge({ source: nodeB!, target: nodeA!, data: 1 }))
+      assertSome(edge1, new Graph.Edge({ source: nodeC!, target: nodeB!, data: 2 }))
+      assertSome(edge2, new Graph.Edge({ source: nodeA!, target: nodeC!, data: 3 }))
     })
 
     it("should update adjacency lists correctly", () => {
@@ -856,11 +835,11 @@ describe("Graph", () => {
 
       // Only the keep -> keep edge should remain
       const remainingEdge = Graph.getEdge(graph, 2)
-      deepStrictEqual(remainingEdge, new Graph.Edge({ source: 0, target: 2, data: 3 }))
+      assertSome(remainingEdge, new Graph.Edge({ source: 0, target: 2, data: 3 }))
 
       // Edges involving removed node should be gone
-      expect(Graph.getEdge(graph, 0)).toBe(undefined)
-      expect(Graph.getEdge(graph, 1)).toBe(undefined)
+      expect(Graph.getEdge(graph, 0)).toEqual(Option.none())
+      expect(Graph.getEdge(graph, 1)).toEqual(Option.none())
     })
 
     it("should handle transformation without filtering", () => {
@@ -931,14 +910,11 @@ describe("Graph", () => {
       const edge1 = Graph.getEdge(graph, 1)
       const edge2 = Graph.getEdge(graph, 2)
 
-      assertDefined(edge1)
-      assertDefined(edge2)
-
-      expect(edge1.data).toBe(30) // 15 * 2
-      expect(edge2.data).toBe(50) // 25 * 2
+      expect(assertSomeEdge(edge1).data).toBe(30) // 15 * 2
+      expect(assertSomeEdge(edge2).data).toBe(50) // 25 * 2
 
       // Filtered out edge should not exist
-      expect(Graph.getEdge(graph, 0)).toBe(undefined)
+      expect(Graph.getEdge(graph, 0)).toEqual(Option.none())
     })
 
     it("should update adjacency lists when removing edges", () => {
@@ -990,13 +966,9 @@ describe("Graph", () => {
       const edge1 = Graph.getEdge(graph, 1)
       const edge2 = Graph.getEdge(graph, 2)
 
-      assertDefined(edge0)
-      assertDefined(edge1)
-      assertDefined(edge2)
-
-      expect(edge0.data).toBe(110)
-      expect(edge1.data).toBe(120)
-      expect(edge2.data).toBe(130)
+      expect(assertSomeEdge(edge0).data).toBe(110)
+      expect(assertSomeEdge(edge1).data).toBe(120)
+      expect(assertSomeEdge(edge2).data).toBe(130)
     })
 
     it("should handle filtering without transformation", () => {
@@ -1017,14 +989,11 @@ describe("Graph", () => {
       const edge0 = Graph.getEdge(graph, 0)
       const edge2 = Graph.getEdge(graph, 2)
 
-      assertDefined(edge0)
-      assertDefined(edge2)
-
-      expect(edge0.data.type).toBe("primary")
-      expect(edge2.data.type).toBe("primary")
+      expect(assertSomeEdge(edge0).data.type).toBe("primary")
+      expect(assertSomeEdge(edge2).data.type).toBe("primary")
 
       // Secondary edge should be removed
-      expect(Graph.getEdge(graph, 1)).toBe(undefined)
+      expect(Graph.getEdge(graph, 1)).toEqual(Option.none())
     })
   })
 
@@ -1081,11 +1050,11 @@ describe("Graph", () => {
 
       // Check remaining edge
       const edge2 = Graph.getEdge(graph, edgeAC!)
-      deepStrictEqual(edge2, new Graph.Edge({ source: 0, target: 2, data: "A-C" }))
+      assertSome(edge2, new Graph.Edge({ source: 0, target: 2, data: "A-C" }))
 
       // Check removed edges
-      expect(Graph.getEdge(graph, edgeAB!)).toBe(undefined) // A-B removed
-      expect(Graph.getEdge(graph, edgeBC!)).toBe(undefined) // B-C removed
+      expect(Graph.getEdge(graph, edgeAB!)).toEqual(Option.none()) // A-B removed
+      expect(Graph.getEdge(graph, edgeBC!)).toEqual(Option.none()) // B-C removed
     })
   })
 
@@ -1114,14 +1083,11 @@ describe("Graph", () => {
       const edge1 = Graph.getEdge(graph, edgeBC!)
       const edge2 = Graph.getEdge(graph, edgeCA!)
 
-      assertDefined(edge1)
-      assertDefined(edge2)
-
-      expect(edge1.data).toBe(15)
-      expect(edge2.data).toBe(25)
+      assertSome(edge1, new Graph.Edge({ source: 1, target: 2, data: 15 }))
+      assertSome(edge2, new Graph.Edge({ source: 2, target: 0, data: 25 }))
 
       // Edge with weight 5 should be removed
-      expect(Graph.getEdge(graph, edgeAB!)).toBe(undefined)
+      expect(Graph.getEdge(graph, edgeAB!)).toEqual(Option.none())
     })
 
     it("should update adjacency lists when filtering edges", () => {
@@ -1337,10 +1303,7 @@ describe("Graph", () => {
       const edgeIndex = 0
       const edge = Graph.getEdge(graph, edgeIndex)
 
-      assertDefined(edge)
-      expect(edge.source).toBe(0)
-      expect(edge.target).toBe(1)
-      expect(edge.data).toBe(42)
+      assertSome(edge, new Graph.Edge({ source: 0, target: 1, data: 42 }))
     })
 
     it("should return None for non-existent edge", () => {
@@ -1348,7 +1311,7 @@ describe("Graph", () => {
       const edgeIndex = 999
       const edge = Graph.getEdge(graph, edgeIndex)
 
-      expect(edge).toBe(undefined)
+      expect(edge).toEqual(Option.none())
     })
 
     describe("hasEdge", () => {
@@ -2284,10 +2247,7 @@ describe("Graph", () => {
         cost: (edge) => edge
       })
 
-      assertDefined(result)
-      expect(result.path).toEqual([nodeA!, nodeB!, nodeC!])
-      expect(result.distance).toBe(7)
-      expect(result.costs).toEqual([5, 2])
+      assertSome(result, { path: [nodeA!, nodeB!, nodeC!], distance: 7, costs: [5, 2] })
     })
 
     it("should return None for unreachable nodes", () => {
@@ -2309,7 +2269,7 @@ describe("Graph", () => {
         cost: (edge) => edge
       })
 
-      expect(result).toBe(undefined)
+      expect(result).toEqual(Option.none())
     })
 
     it("should handle same source and target", () => {
@@ -2325,10 +2285,7 @@ describe("Graph", () => {
         cost: (edge) => edge
       })
 
-      assertDefined(result)
-      expect(result.path).toEqual([nodeA!])
-      expect(result.distance).toBe(0)
-      expect(result.costs).toEqual([])
+      assertSome(result, { path: [nodeA!], distance: 0, costs: [] })
     })
 
     it("should throw for negative weights", () => {
@@ -2389,10 +2346,7 @@ describe("Graph", () => {
         heuristic
       })
 
-      assertDefined(result)
-      expect(result.path).toEqual([nodeA!, nodeB!, nodeC!])
-      expect(result.distance).toBe(2)
-      expect(result.costs).toEqual([1, 1])
+      assertSome(result, { path: [nodeA!, nodeB!, nodeC!], distance: 2, costs: [1, 1] })
     })
 
     it("should return None for unreachable nodes", () => {
@@ -2413,7 +2367,7 @@ describe("Graph", () => {
         cost: (edge) => edge,
         heuristic
       })
-      assertUndefined(result)
+      assertNone(result)
     })
 
     it("should handle same source and target", () => {
@@ -2431,10 +2385,7 @@ describe("Graph", () => {
         heuristic
       })
 
-      assertDefined(result)
-      expect(result.path).toEqual([0])
-      expect(result.distance).toBe(0)
-      expect(result.costs).toEqual([])
+      assertSome(result, { path: [0], distance: 0, costs: [] })
     })
 
     it("should throw for negative weights", () => {
@@ -2475,10 +2426,7 @@ describe("Graph", () => {
         cost: (edge) => edge
       })
 
-      assertDefined(result)
-      expect(result.path).toEqual([0, 1, 2])
-      expect(result.distance).toBe(2)
-      expect(result.costs).toEqual([-1, 3])
+      assertSome(result, { path: [0, 1, 2], distance: 2, costs: [-1, 3] })
     })
 
     it("should return None for unreachable nodes", () => {
@@ -2496,7 +2444,7 @@ describe("Graph", () => {
         cost: (edge) => edge
       })
 
-      assertUndefined(result)
+      assertNone(result)
     })
 
     it("should handle same source and target", () => {
@@ -2510,10 +2458,7 @@ describe("Graph", () => {
         cost: (edge) => edge
       })
 
-      assertDefined(result)
-      expect(result.path).toEqual([0])
-      expect(result.distance).toBe(0)
-      expect(result.costs).toEqual([])
+      assertSome(result, { path: [0], distance: 0, costs: [] })
     })
 
     it("should detect negative cycles", () => {
@@ -2532,7 +2477,7 @@ describe("Graph", () => {
         cost: (edge) => edge
       })
 
-      expect(result).toBe(undefined)
+      expect(result).toEqual(Option.none())
     })
   })
 

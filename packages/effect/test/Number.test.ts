@@ -2,9 +2,9 @@ import { pipe } from "effect/Function"
 import * as N from "effect/Number"
 import assert from "node:assert/strict"
 import { describe, it } from "vitest"
+import { assertNone, assertSome } from "./utils/assert.ts"
 
-const assertNaN = (value: number | undefined): void => {
-  assert.ok(typeof value === "number")
+const assertNaN = (value: number): void => {
   assert.ok(Number.isNaN(value))
 }
 
@@ -87,14 +87,14 @@ describe("subtract", () => {
 
 describe("divide", () => {
   it("divides numbers in data-first and data-last forms", () => {
-    assert.strictEqual(N.divide(6, 3), 2)
-    assert.strictEqual(pipe(6, N.divide(3)), 2)
-    assert.strictEqual(N.divide(0, 3), 0)
+    assertSome(N.divide(6, 3), 2)
+    assertSome(pipe(6, N.divide(3)), 2)
+    assertSome(N.divide(0, 3), 0)
   })
 
-  it("returns undefined for zero and negative-zero divisors", () => {
-    assert.strictEqual(N.divide(6, 0), undefined)
-    assert.strictEqual(N.divide(6, -0), undefined)
+  it("returns none for zero and negative-zero divisors", () => {
+    assertNone(N.divide(6, 0))
+    assertNone(N.divide(6, -0))
   })
 })
 
@@ -319,21 +319,21 @@ describe("nextPow2", () => {
 
 describe("parse", () => {
   it("parses valid numeric strings using Number semantics", () => {
-    assert.strictEqual(N.parse("42"), 42)
-    assert.strictEqual(N.parse("3.14"), 3.14)
-    assert.strictEqual(N.parse(" 42 "), 42)
+    assertSome(N.parse("42"), 42)
+    assertSome(N.parse("3.14"), 3.14)
+    assertSome(N.parse(" 42 "), 42)
   })
 
   it("supports NaN and infinities as explicit string literals", () => {
-    assertNaN(N.parse("NaN"))
-    assert.strictEqual(N.parse("Infinity"), Infinity)
-    assert.strictEqual(N.parse("-Infinity"), -Infinity)
+    assertSome(N.parse("NaN"), NaN)
+    assertSome(N.parse("Infinity"), Infinity)
+    assertSome(N.parse("-Infinity"), -Infinity)
   })
 
-  it("returns undefined for empty or invalid strings", () => {
-    assert.strictEqual(N.parse(""), undefined)
-    assert.strictEqual(N.parse("   "), undefined)
-    assert.strictEqual(N.parse("not a number"), undefined)
+  it("returns none for empty or invalid strings", () => {
+    assertNone(N.parse(""))
+    assertNone(N.parse("   "))
+    assertNone(N.parse("not a number"))
   })
 })
 

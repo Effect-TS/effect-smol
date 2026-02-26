@@ -78,7 +78,7 @@ export interface Workflow<
   readonly poll: (
     executionId: string
   ) => Effect.Effect<
-    Result<Success["Type"], Error["Type"]> | undefined,
+    Option.Option<Result<Success["Type"], Error["Type"]>>,
     never,
     WorkflowEngine | Success["DecodingServices"] | Error["DecodingServices"]
   >

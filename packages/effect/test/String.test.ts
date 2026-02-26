@@ -1,7 +1,8 @@
+import { Option } from "effect"
 import { pipe } from "effect/Function"
 import * as S from "effect/String"
-import { describe, it } from "vitest"
-import { assertFalse, assertTrue, deepStrictEqual, strictEqual } from "./utils/assert.ts"
+import { assert, describe, it } from "vitest"
+import { assertFalse, assertNone, assertSome, assertTrue, deepStrictEqual, strictEqual } from "./utils/assert.ts"
 
 describe("String", () => {
   describe("String (constructor)", () => {
@@ -293,15 +294,15 @@ describe("String", () => {
 
   describe("charCodeAt", () => {
     it("returns char code at index (data-first)", () => {
-      strictEqual(S.charCodeAt("abc", 1), 98)
+      assertSome(S.charCodeAt("abc", 1), 98)
     })
 
     it("returns char code at index (data-last)", () => {
-      strictEqual(pipe("abc", S.charCodeAt(0)), 97)
+      assertSome(pipe("abc", S.charCodeAt(0)), 97)
     })
 
-    it("returns undefined for out of bounds", () => {
-      strictEqual(S.charCodeAt("abc", 10), undefined)
+    it("returns none for out of bounds", () => {
+      assertNone(S.charCodeAt("abc", 10))
     })
   })
 
@@ -317,59 +318,59 @@ describe("String", () => {
 
   describe("at", () => {
     it("returns character at index", () => {
-      strictEqual(pipe("abc", S.at(1)), "b")
+      assertSome(pipe("abc", S.at(1)), "b")
     })
 
-    it("returns empty string for out of bounds", () => {
-      strictEqual(pipe("abc", S.at(10)), "")
+    it("returns none for out of bounds", () => {
+      assertNone(pipe("abc", S.at(10)))
     })
   })
 
   describe("charAt", () => {
     it("returns character at index (data-first)", () => {
-      strictEqual(S.charAt("abc", 1), "b")
+      assertSome(S.charAt("abc", 1), "b")
     })
 
     it("returns character at index (data-last)", () => {
-      strictEqual(pipe("abc", S.charAt(1)), "b")
+      assertSome(pipe("abc", S.charAt(1)), "b")
     })
 
-    it("returns undefined for out of bounds", () => {
-      strictEqual(S.charAt("abc", 10), undefined)
+    it("returns none for out of bounds", () => {
+      assertNone(S.charAt("abc", 10))
     })
   })
 
   describe("codePointAt", () => {
     it("returns code point at index", () => {
-      strictEqual(pipe("abc", S.codePointAt(1)), 98)
+      assertSome(pipe("abc", S.codePointAt(1)), 98)
     })
 
-    it("returns undefined for out of bounds", () => {
-      strictEqual(pipe("abc", S.codePointAt(10)), undefined)
+    it("returns none for out of bounds", () => {
+      assertNone(pipe("abc", S.codePointAt(10)))
     })
 
     it("handles surrogate pairs", () => {
-      strictEqual(pipe("𝟘", S.codePointAt(0)), 120792)
+      assertSome(pipe("𝟘", S.codePointAt(0)), 120792)
     })
   })
 
   describe("indexOf", () => {
     it("returns index of first occurrence", () => {
-      strictEqual(pipe("abbbc", S.indexOf("b")), 1)
+      assertSome(pipe("abbbc", S.indexOf("b")), 1)
     })
 
-    it("returns undefined when not found", () => {
-      strictEqual(pipe("abbbc", S.indexOf("z")), undefined)
+    it("returns none when not found", () => {
+      assertNone(pipe("abbbc", S.indexOf("z")))
     })
   })
 
   describe("lastIndexOf", () => {
     it("returns index of last occurrence", () => {
-      strictEqual(pipe("abbbc", S.lastIndexOf("b")), 3)
+      assertSome(pipe("abbbc", S.lastIndexOf("b")), 3)
     })
 
-    it("returns undefined when not found", () => {
-      strictEqual(pipe("abbbc", S.lastIndexOf("z")), undefined)
+    it("returns none when not found", () => {
+      assertNone(pipe("abbbc", S.lastIndexOf("z")))
     })
   })
 
@@ -382,14 +383,14 @@ describe("String", () => {
   })
 
   describe("match", () => {
-    it("returns match array on match", () => {
+    it("returns some on match", () => {
       const result = pipe("hello", S.match(/l+/))
-      strictEqual(result !== null, true)
-      strictEqual(result![0], "ll")
+      assert(Option.isSome(result))
+      strictEqual(result.value[0], "ll")
     })
 
-    it("returns null on no match", () => {
-      strictEqual(pipe("hello", S.match(/x/)), null)
+    it("returns none on no match", () => {
+      assertNone(pipe("hello", S.match(/x/)))
     })
   })
 
@@ -459,19 +460,19 @@ describe("String", () => {
 
   describe("search", () => {
     it("returns index on match (data-first)", () => {
-      strictEqual(S.search("ababb", "b"), 1)
+      assertSome(S.search("ababb", "b"), 1)
     })
 
     it("returns index on match (data-last)", () => {
-      strictEqual(pipe("ababb", S.search("b")), 1)
+      assertSome(pipe("ababb", S.search("b")), 1)
     })
 
-    it("returns undefined when not found", () => {
-      strictEqual(S.search("ababb", "d"), undefined)
+    it("returns none when not found", () => {
+      assertNone(S.search("ababb", "d"))
     })
 
     it("works with regex", () => {
-      strictEqual(S.search("ababb", /bb/), 3)
+      assertSome(S.search("ababb", /bb/), 3)
     })
   })
 

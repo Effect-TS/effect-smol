@@ -6,6 +6,7 @@ import type * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
 import { constant } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
+import * as Option from "../../Option.ts"
 import * as Queue from "../../Queue.ts"
 import * as RpcServer from "../rpc/RpcServer.ts"
 import type * as ClusterError from "./ClusterError.ts"
@@ -36,23 +37,19 @@ export const layerHandlers = Runners.Rpcs.toLayer(Effect.gen(function*() {
           ? new Message.IncomingRequest({
             envelope,
             respond: constVoid,
-            lastSentReply: undefined
+            lastSentReply: Option.none()
           })
           : new Message.IncomingEnvelope({ envelope })
       ),
     Effect: ({ persisted, request }) => {
-      let replyEncoded:
-        | Effect.Effect<
-          Reply.Encoded,
-          ClusterError.EntityNotAssignedToRunner
-        >
-        | undefined = undefined
+      let replyEncoded: Option.Option<Effect.Effect<Reply.Encoded, ClusterError.EntityNotAssignedToRunner>> = Option
+        .none()
       let resume = (reply: Effect.Effect<Reply.Encoded, ClusterError.EntityNotAssignedToRunner>) => {
-        replyEncoded = reply
+        replyEncoded = Option.some(reply)
       }
       const message = new Message.IncomingRequest({
         envelope: request,
-        lastSentReply: undefined,
+        lastSentReply: Option.none(),
         respond(reply) {
           resume(Effect.orDie(Reply.serialize(reply)))
           return Effect.void
@@ -89,8 +86,8 @@ export const layerHandlers = Runners.Rpcs.toLayer(Effect.gen(function*() {
       return Effect.andThen(
         sharding.send(message),
         Effect.callback<Reply.Encoded, ClusterError.EntityNotAssignedToRunner>((resume_) => {
-          if (replyEncoded) {
-            resume_(replyEncoded)
+          if (Option.isSome(replyEncoded)) {
+            resume_(replyEncoded.value)
           } else {
             resume = resume_
           }
@@ -103,7 +100,7 @@ export const layerHandlers = Runners.Rpcs.toLayer(Effect.gen(function*() {
         (queue) => {
           const message = new Message.IncomingRequest({
             envelope: request,
-            lastSentReply: undefined,
+            lastSentReply: Option.none(),
             respond(reply) {
               return Effect.flatMap(Reply.serialize(reply), (reply) => {
                 Queue.offerUnsafe(queue, reply)
@@ -191,6 +188,6 @@ export const layerClientOnly: Layer.Layer<
   Layer.provide(RunnerHealth.layerNoop),
   Layer.updateService(ShardingConfig, (config) => ({
     ...config,
-    runnerAddress: undefined
+    runnerAddress: Option.none()
   }))
 )

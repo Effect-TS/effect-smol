@@ -5,6 +5,7 @@ import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Latch from "../../Latch.ts"
 import * as Layer from "../../Layer.ts"
+import * as Option from "../../Option.ts"
 import * as Queue from "../../Queue.ts"
 import * as RcMap from "../../RcMap.ts"
 import * as Schema from "../../Schema.ts"
@@ -80,7 +81,7 @@ export class Runners extends ServiceMap.Service<Runners, {
    */
   readonly notify: <R extends Rpc.Any>(
     options: {
-      readonly address: RunnerAddress | undefined
+      readonly address: Option.Option<RunnerAddress>
       readonly message: Message.Outgoing<R>
       readonly discard: boolean
     }
@@ -166,8 +167,8 @@ export const make: (options: Omit<Runners["Service"], "sendLocal" | "notifyLocal
         Duplicate: ({ lastReceivedReply, originalId }) => {
           // If the last received reply is an exit, we can just return it
           // as the response.
-          if (lastReceivedReply && lastReceivedReply._tag === "WithExit") {
-            return message.respond(lastReceivedReply.withRequestId(message.envelope.requestId))
+          if (Option.isSome(lastReceivedReply) && lastReceivedReply.value._tag === "WithExit") {
+            return message.respond(lastReceivedReply.value.withRequestId(message.envelope.requestId))
           }
           requestIdRewrites.set(message.envelope.requestId, originalId)
           return afterPersist(
@@ -341,10 +342,10 @@ export const make: (options: Omit<Runners["Service"], "sendLocal" | "notifyLocal
       return notifyWith(message, (message, duplicate) => {
         if (discard || message._tag === "OutgoingEnvelope") {
           return options.notify(options_)
-        } else if (!duplicate && options_.address) {
+        } else if (!duplicate && Option.isSome(options_.address)) {
           return Effect.catch(
             options.send({
-              address: options_.address,
+              address: options_.address.value,
               message
             }),
             (_) => replyFromStorage(message)
@@ -584,11 +585,11 @@ export const makeRpc: Effect.Effect<
       })
     },
     notify({ address, message }) {
-      if (!address) {
+      if (Option.isNone(address)) {
         return Effect.void
       }
       const envelope = message.envelope
-      return RcMap.get(clients, address).pipe(
+      return RcMap.get(clients, address.value).pipe(
         Effect.flatMap((client) => client.Notify({ envelope })),
         Effect.scoped,
         Effect.ignore

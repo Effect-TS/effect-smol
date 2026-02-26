@@ -1,4 +1,4 @@
-import { type Cause, Effect, Layer, MutableRef, Queue, Schedule, Schema, ServiceMap, Stream } from "effect"
+import { type Cause, Effect, Layer, MutableRef, Option, Queue, Schedule, Schema, ServiceMap, Stream } from "effect"
 import type { Envelope } from "effect/unstable/cluster"
 import { ClusterSchema, Entity } from "effect/unstable/cluster"
 import type { RpcGroup } from "effect/unstable/rpc"
@@ -104,7 +104,10 @@ export const TestEntityNoState = TestEntity.toLayer(
         return Queue.take(state.messages)
       },
       StreamWithKey: (envelope) => {
-        let sequence = envelope.lastSentChunkValue ? envelope.lastSentChunkValue + 1 : 0
+        let sequence = Option.match(envelope.lastSentChunkValue, {
+          onNone: () => 0,
+          onSome: (value) => value + 1
+        })
         return Stream.fromQueue(state.streamMessages).pipe(
           Stream.map(() => sequence++)
         )

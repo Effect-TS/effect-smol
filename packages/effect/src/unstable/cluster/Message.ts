@@ -3,6 +3,7 @@
  */
 import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
+import * as Option from "../../Option.ts"
 import * as Schema from "../../Schema.ts"
 import type { ServiceMap } from "../../ServiceMap.ts"
 import * as Rpc from "../rpc/Rpc.ts"
@@ -36,7 +37,7 @@ export const incomingLocalFromOutgoing = <R extends Rpc.Any>(self: Outgoing<R>):
   return new IncomingRequestLocal({
     envelope: self.envelope,
     respond: self.respond,
-    lastSentReply: undefined
+    lastSentReply: Option.none()
   })
 }
 
@@ -46,7 +47,7 @@ export const incomingLocalFromOutgoing = <R extends Rpc.Any>(self: Outgoing<R>):
  */
 export class IncomingRequest<R extends Rpc.Any> extends Data.TaggedClass("IncomingRequest")<{
   readonly envelope: Envelope.PartialRequest
-  readonly lastSentReply: Reply.Encoded | undefined
+  readonly lastSentReply: Option.Option<Reply.Encoded>
   readonly respond: (reply: Reply.ReplyWithContext<R>) => Effect.Effect<void, MalformedMessage | PersistenceError>
 }> {}
 
@@ -56,7 +57,7 @@ export class IncomingRequest<R extends Rpc.Any> extends Data.TaggedClass("Incomi
  */
 export class IncomingRequestLocal<R extends Rpc.Any> extends Data.TaggedClass("IncomingRequestLocal")<{
   readonly envelope: Envelope.Request<R>
-  readonly lastSentReply: Reply.Reply<R> | undefined
+  readonly lastSentReply: Option.Option<Reply.Reply<R>>
   readonly respond: (reply: Reply.Reply<R>) => Effect.Effect<void, MalformedMessage | PersistenceError>
 }> {}
 
@@ -82,7 +83,7 @@ export type Outgoing<R extends Rpc.Any> = OutgoingRequest<R> | OutgoingEnvelope
 export class OutgoingRequest<R extends Rpc.Any> extends Data.TaggedClass("OutgoingRequest")<{
   readonly envelope: Envelope.Request<R>
   readonly services: ServiceMap<Rpc.Services<R>>
-  readonly lastReceivedReply: Reply.Reply<R> | undefined
+  readonly lastReceivedReply: Option.Option<Reply.Reply<R>>
   readonly rpc: R
   readonly respond: (reply: Reply.Reply<R>) => Effect.Effect<void>
 }> {
@@ -196,7 +197,7 @@ export const deserializeLocal = <Rpc extends Rpc.Any>(
           ...encoded,
           payload
         } as any),
-        lastSentReply: undefined,
+        lastSentReply: Option.none(),
         respond: self.respond
       })
     )

@@ -4,6 +4,7 @@
 import type * as Config from "effect/Config"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
 import * as HttpRunner from "effect/unstable/cluster/HttpRunner"
 import * as MessageStorage from "effect/unstable/cluster/MessageStorage"
 import * as RunnerHealth from "effect/unstable/cluster/RunnerHealth"
@@ -47,11 +48,11 @@ export const layerHttpServer: Layer.Layer<
   ShardingConfig.ShardingConfig
 > = Effect.gen(function*() {
   const config = yield* ShardingConfig.ShardingConfig
-  const listenAddress = config.runnerListenAddress ?? config.runnerAddress
-  if (listenAddress === undefined) {
-    return yield* Effect.die("BunClusterHttp.layerHttpServer: ShardingConfig.runnerAddress is undefined")
+  const listenAddress = Option.orElse(config.runnerListenAddress, () => config.runnerAddress)
+  if (Option.isNone(listenAddress)) {
+    return yield* Effect.die("BunClusterHttp.layerHttpServer: ShardingConfig.runnerAddress is None")
   }
-  return BunHttpServer.layer(listenAddress)
+  return BunHttpServer.layer(listenAddress.value)
 }).pipe(Layer.unwrap)
 
 /**

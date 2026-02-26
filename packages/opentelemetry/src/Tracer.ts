@@ -9,6 +9,7 @@ import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import { constTrue, dual } from "effect/Function"
 import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
 import * as Predicate from "effect/Predicate"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Tracer from "effect/Tracer"
@@ -350,7 +351,7 @@ export class OtelSpan implements Tracer.Span {
   readonly traceId: string
   readonly attributes = new Map<string, unknown>()
   readonly sampled: boolean
-  readonly parent: Tracer.AnySpan | undefined
+  readonly parent: Option.Option<Tracer.AnySpan>
   status: Tracer.SpanStatus
 
   constructor(
@@ -365,9 +366,9 @@ export class OtelSpan implements Tracer.Span {
     this.links = options.links
     this.kind = options.kind
     const active = contextApi.active()
-    this.parent = options.parent ?? ((options?.root !== true) ?
-      getOtelParent(traceApi, active, options.annotations) :
-      undefined)
+    this.parent = options.root !== true
+      ? Option.orElse(options.parent, () => getOtelParent(traceApi, active, options.annotations))
+      : options.parent
     this.span = tracer.startSpan(
       options.name,
       {
@@ -380,7 +381,9 @@ export class OtelSpan implements Tracer.Span {
           : undefined as any,
         kind: kindMap[this.kind]
       },
-      this.parent ? populateContext(active, this.parent, options.annotations) : Otel.trace.deleteSpan(active)
+      Option.isSome(this.parent) ?
+        populateContext(active, this.parent.value, options.annotations) :
+        Otel.trace.deleteSpan(active)
     )
     const spanContext = this.span.spanContext()
     this.spanId = spanContext.spanId
@@ -460,17 +463,15 @@ const getOtelParent = (
   tracer: Otel.TraceAPI,
   context: Otel.Context,
   annotations: ServiceMap.ServiceMap<never>
-): Tracer.AnySpan | undefined => {
-  const active = tracer.getSpan(context)
-  const otelParent = active ? active.spanContext() : undefined
-  return otelParent
-    ? Tracer.externalSpan({
-      spanId: otelParent.spanId,
-      traceId: otelParent.traceId,
-      sampled: (otelParent.traceFlags & 1) === 1,
-      annotations
-    })
-    : undefined
+): Option.Option<Tracer.AnySpan> => {
+  const otelParent = tracer.getSpan(context)?.spanContext()
+  if (!otelParent) return Option.none()
+  return Option.some(Tracer.externalSpan({
+    spanId: otelParent.spanId,
+    traceId: otelParent.traceId,
+    sampled: (otelParent.traceFlags & 1) === 1,
+    annotations
+  }))
 }
 
 const makeSpanContext = (

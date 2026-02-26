@@ -397,8 +397,11 @@ describe("HttpServer", () => {
             span(options) {
               assert.strictEqual(options.name, "http.client GET")
               assert.strictEqual(options.kind, "client")
-              assert(options.parent?._tag === "Span")
-              assert.strictEqual(options.parent.name, "request parent")
+              assert(options.parent._tag === "Some")
+              if (options.parent.value._tag !== "Span") {
+                throw new Error("Expected span parent")
+              }
+              assert.strictEqual(options.parent.value.name, "request parent")
               return requestSpan
             }
           })
@@ -406,7 +409,8 @@ describe("HttpServer", () => {
         Effect.withSpan("request parent"),
         Effect.repeat({ times: 2 })
       )
-      expect((body as any).parent.spanId).toEqual(requestSpan.spanId)
+      expect((body as any).parent._tag).toEqual("Some")
+      expect((body as any).parent.value.spanId).toEqual(requestSpan.spanId)
     }).pipe(Effect.provide(NodeHttpServer.layerTest)))
 
   it.effect("html", () =>

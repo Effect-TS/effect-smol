@@ -10,6 +10,7 @@ import * as Filter from "./Filter.ts"
 import { dual } from "./Function.ts"
 import type * as Inspectable from "./Inspectable.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
+import * as Option from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import * as Predicate from "./Predicate.ts"
 import type { Scheduler } from "./Scheduler.ts"
@@ -365,20 +366,20 @@ export const set: {
  *
  *   // No fiber initially
  *   const emptyFiber = FiberHandle.getUnsafe(handle)
- *   console.log(emptyFiber === undefined) // true
+ *   console.log(emptyFiber._tag === "None") // true
  *
  *   // Add a fiber
  *   yield* FiberHandle.run(handle, Effect.succeed("hello"))
  *   const fiber = FiberHandle.getUnsafe(handle)
- *   console.log(fiber !== undefined) // true
+ *   console.log(fiber._tag === "Some") // true
  * })
  * ```
  *
  * @since 2.0.0
  * @category combinators
  */
-export function getUnsafe<A, E>(self: FiberHandle<A, E>): Fiber.Fiber<A, E> | undefined {
-  return self.state._tag === "Closed" ? undefined : self.state.fiber
+export function getUnsafe<A, E>(self: FiberHandle<A, E>): Option.Option<Fiber.Fiber<A, E>> {
+  return self.state._tag === "Closed" ? Option.none() : Option.fromUndefinedOr(self.state.fiber)
 }
 
 /**
@@ -394,10 +395,10 @@ export function getUnsafe<A, E>(self: FiberHandle<A, E>): Fiber.Fiber<A, E> | un
  *   // Add a fiber
  *   yield* FiberHandle.run(handle, Effect.succeed("hello"))
  *
- *   // Get the fiber (fails if no fiber)
+ *   // Get the current fiber if present
  *   const fiber = yield* FiberHandle.get(handle)
- *   if (fiber) {
- *     const result = yield* Fiber.await(fiber)
+ *   if (fiber._tag === "Some") {
+ *     const result = yield* Fiber.await(fiber.value)
  *     console.log(result) // "hello"
  *   }
  * })
@@ -406,7 +407,7 @@ export function getUnsafe<A, E>(self: FiberHandle<A, E>): Fiber.Fiber<A, E> | un
  * @since 2.0.0
  * @category combinators
  */
-export function get<A, E>(self: FiberHandle<A, E>): Effect.Effect<Fiber.Fiber<A, E> | undefined> {
+export function get<A, E>(self: FiberHandle<A, E>): Effect.Effect<Option.Option<Fiber.Fiber<A, E>>> {
   return Effect.suspend(() => Effect.succeed(getUnsafe(self)))
 }
 
@@ -426,7 +427,7 @@ export function get<A, E>(self: FiberHandle<A, E>): Effect.Effect<Fiber.Fiber<A,
  *
  *   // The handle is now empty
  *   const fiber = FiberHandle.getUnsafe(handle)
- *   console.log(fiber) // undefined
+ *   console.log(fiber) // Option.none()
  * })
  * ```
  *

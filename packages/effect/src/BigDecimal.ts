@@ -19,6 +19,7 @@ import * as Equ from "./Equivalence.ts"
 import { dual } from "./Function.ts"
 import * as Hash from "./Hash.ts"
 import { type Inspectable, NodeInspectSymbol } from "./Inspectable.ts"
+import * as Option from "./Option.ts"
 import * as order from "./Order.ts"
 import type { Ordering } from "./Ordering.ts"
 import { type Pipeable, pipeArguments } from "./Pipeable.ts"
@@ -415,11 +416,11 @@ export const roundTerminal = (n: bigint): bigint => {
  * If the dividend is not a multiple of the divisor the result will be a `BigDecimal` value
  * which represents the integer division rounded down to the nearest integer.
  *
- * If the divisor is `0`, the result will be `undefined`.
+ * If the divisor is `0`, the result will be `Option.none()`.
  *
  * @example
  * ```ts
- * import { BigDecimal } from "effect"
+ * import { BigDecimal, Option } from "effect"
  * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(
@@ -427,21 +428,21 @@ export const roundTerminal = (n: bigint): bigint => {
  *     BigDecimal.fromStringUnsafe("6"),
  *     BigDecimal.fromStringUnsafe("3")
  *   ),
- *   BigDecimal.fromStringUnsafe("2")
+ *   Option.some(BigDecimal.fromStringUnsafe("2"))
  * )
  * assert.deepStrictEqual(
  *   BigDecimal.divide(
  *     BigDecimal.fromStringUnsafe("6"),
  *     BigDecimal.fromStringUnsafe("4")
  *   ),
- *   BigDecimal.fromStringUnsafe("1.5")
+ *   Option.some(BigDecimal.fromStringUnsafe("1.5"))
  * )
  * assert.deepStrictEqual(
  *   BigDecimal.divide(
  *     BigDecimal.fromStringUnsafe("6"),
  *     BigDecimal.fromStringUnsafe("0")
  *   ),
- *   undefined
+ *   Option.none()
  * )
  * ```
  *
@@ -449,23 +450,23 @@ export const roundTerminal = (n: bigint): bigint => {
  * @category math
  */
 export const divide: {
-  (that: BigDecimal): (self: BigDecimal) => BigDecimal | undefined
-  (self: BigDecimal, that: BigDecimal): BigDecimal | undefined
-} = dual(2, (self: BigDecimal, that: BigDecimal): BigDecimal | undefined => {
+  (that: BigDecimal): (self: BigDecimal) => Option.Option<BigDecimal>
+  (self: BigDecimal, that: BigDecimal): Option.Option<BigDecimal>
+} = dual(2, (self: BigDecimal, that: BigDecimal): Option.Option<BigDecimal> => {
   if (that.value === bigint0) {
-    return undefined
+    return Option.none()
   }
 
   if (self.value === bigint0) {
-    return zero
+    return Option.some(zero)
   }
 
   const scale = self.scale - that.scale
   if (self.value === that.value) {
-    return make(bigint1, scale)
+    return Option.some(make(bigint1, scale))
   }
 
-  return divideWithPrecision(self.value, that.value, scale, DEFAULT_PRECISION)
+  return Option.some(divideWithPrecision(self.value, that.value, scale, DEFAULT_PRECISION))
 })
 
 /**
@@ -846,11 +847,11 @@ export const negate = (n: BigDecimal): BigDecimal => make(-n.value, n.scale)
 /**
  * Returns the remainder left over when one operand is divided by a second operand.
  *
- * If the divisor is `0`, the result will be `undefined`.
+ * If the divisor is `0`, the result will be `Option.none()`.
  *
  * @example
  * ```ts
- * import { BigDecimal } from "effect"
+ * import { BigDecimal, Option } from "effect"
  * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(
@@ -858,21 +859,21 @@ export const negate = (n: BigDecimal): BigDecimal => make(-n.value, n.scale)
  *     BigDecimal.fromStringUnsafe("2"),
  *     BigDecimal.fromStringUnsafe("2")
  *   ),
- *   BigDecimal.fromStringUnsafe("0")
+ *   Option.some(BigDecimal.fromStringUnsafe("0"))
  * )
  * assert.deepStrictEqual(
  *   BigDecimal.remainder(
  *     BigDecimal.fromStringUnsafe("3"),
  *     BigDecimal.fromStringUnsafe("2")
  *   ),
- *   BigDecimal.fromStringUnsafe("1")
+ *   Option.some(BigDecimal.fromStringUnsafe("1"))
  * )
  * assert.deepStrictEqual(
  *   BigDecimal.remainder(
  *     BigDecimal.fromStringUnsafe("-4"),
  *     BigDecimal.fromStringUnsafe("2")
  *   ),
- *   BigDecimal.fromStringUnsafe("0")
+ *   Option.some(BigDecimal.fromStringUnsafe("0"))
  * )
  * ```
  *
@@ -880,15 +881,15 @@ export const negate = (n: BigDecimal): BigDecimal => make(-n.value, n.scale)
  * @category math
  */
 export const remainder: {
-  (divisor: BigDecimal): (self: BigDecimal) => BigDecimal | undefined
-  (self: BigDecimal, divisor: BigDecimal): BigDecimal | undefined
-} = dual(2, (self: BigDecimal, divisor: BigDecimal): BigDecimal | undefined => {
+  (divisor: BigDecimal): (self: BigDecimal) => Option.Option<BigDecimal>
+  (self: BigDecimal, divisor: BigDecimal): Option.Option<BigDecimal>
+} = dual(2, (self: BigDecimal, divisor: BigDecimal): Option.Option<BigDecimal> => {
   if (divisor.value === bigint0) {
-    return undefined
+    return Option.none()
   }
 
   const max = Math.max(self.scale, divisor.scale)
-  return make(scale(self, max).value % scale(divisor, max).value, max)
+  return Option.some(make(scale(self, max).value % scale(divisor, max).value, max))
 })
 
 /**
@@ -1023,9 +1024,7 @@ export const fromBigInt = (n: bigint): BigDecimal => make(n, 0)
  * @category constructors
  */
 export const fromNumberUnsafe = (n: number): BigDecimal => {
-  const out = fromNumber(n)
-  if (out) return out
-  throw new RangeError(`Number must be finite, got ${n}`)
+  return Option.getOrThrowWith(fromNumber(n), () => new RangeError(`Number must be finite, got ${n}`))
 }
 
 /**
@@ -1034,27 +1033,27 @@ export const fromNumberUnsafe = (n: number): BigDecimal => {
  * It is not recommended to convert a floating point number to a decimal directly,
  * as the floating point representation may be unexpected.
  *
- * Returns `undefined` for `NaN`, `+Infinity` or `-Infinity`.
+ * Returns `Option.none()` for `NaN`, `+Infinity` or `-Infinity`.
  *
  * @example
  * ```ts
- * import { BigDecimal } from "effect"
+ * import { BigDecimal, Option } from "effect"
  * import * as assert from "node:assert"
  *
- * assert.deepStrictEqual(BigDecimal.fromNumber(123), BigDecimal.make(123n, 0))
+ * assert.deepStrictEqual(BigDecimal.fromNumber(123), Option.some(BigDecimal.make(123n, 0)))
  * assert.deepStrictEqual(
  *   BigDecimal.fromNumber(123.456),
- *   BigDecimal.make(123456n, 3)
+ *   Option.some(BigDecimal.make(123456n, 3))
  * )
- * assert.deepStrictEqual(BigDecimal.fromNumber(Infinity), undefined)
+ * assert.deepStrictEqual(BigDecimal.fromNumber(Infinity), Option.none())
  * ```
  *
  * @since 4.0.0
  * @category constructors
  */
-export const fromNumber = (n: number): BigDecimal | undefined => {
+export const fromNumber = (n: number): Option.Option<BigDecimal> => {
   if (!Number.isFinite(n)) {
-    return undefined
+    return Option.none()
   }
 
   const string = `${n}`
@@ -1063,7 +1062,7 @@ export const fromNumber = (n: number): BigDecimal | undefined => {
   }
 
   const [lead, trail = ""] = string.split(".")
-  return make(BigInt(`${lead}${trail}`), trail.length)
+  return Option.some(make(BigInt(`${lead}${trail}`), trail.length))
 }
 
 /**
@@ -1071,23 +1070,23 @@ export const fromNumber = (n: number): BigDecimal | undefined => {
  *
  * @example
  * ```ts
- * import { BigDecimal } from "effect"
+ * import { BigDecimal, Option } from "effect"
  * import * as assert from "node:assert"
  *
- * assert.deepStrictEqual(BigDecimal.fromString("123"), BigDecimal.make(123n, 0))
+ * assert.deepStrictEqual(BigDecimal.fromString("123"), Option.some(BigDecimal.make(123n, 0)))
  * assert.deepStrictEqual(
  *   BigDecimal.fromString("123.456"),
- *   BigDecimal.make(123456n, 3)
+ *   Option.some(BigDecimal.make(123456n, 3))
  * )
- * assert.deepStrictEqual(BigDecimal.fromString("123.abc"), undefined)
+ * assert.deepStrictEqual(BigDecimal.fromString("123.abc"), Option.none())
  * ```
  *
  * @since 2.0.0
  * @category constructors
  */
-export const fromString = (s: string): BigDecimal | undefined => {
+export const fromString = (s: string): Option.Option<BigDecimal> => {
   if (s === "") {
-    return zero
+    return Option.some(zero)
   }
 
   let base: string
@@ -1098,7 +1097,7 @@ export const fromString = (s: string): BigDecimal | undefined => {
     base = s.slice(0, seperator)
     exp = Number(trail)
     if (base === "" || !Number.isSafeInteger(exp) || !FINITE_INT_REGEXP.test(trail)) {
-      return undefined
+      return Option.none()
     }
   } else {
     base = s
@@ -1119,15 +1118,15 @@ export const fromString = (s: string): BigDecimal | undefined => {
   }
 
   if (!FINITE_INT_REGEXP.test(digits)) {
-    return undefined
+    return Option.none()
   }
 
   const scale = offset - exp
   if (!Number.isSafeInteger(scale)) {
-    return undefined
+    return Option.none()
   }
 
-  return make(BigInt(digits), scale)
+  return Option.some(make(BigInt(digits), scale))
 }
 
 /**
@@ -1147,9 +1146,7 @@ export const fromString = (s: string): BigDecimal | undefined => {
  * @category constructors
  */
 export const fromStringUnsafe = (s: string): BigDecimal => {
-  const out = fromString(s)
-  if (out) return out
-  throw new Error(`Invalid numerical string: ${s}`)
+  return Option.getOrThrowWith(fromString(s), () => new Error(`Invalid numerical string: ${s}`))
 }
 
 /**
