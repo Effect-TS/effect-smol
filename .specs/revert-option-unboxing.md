@@ -285,10 +285,10 @@ Note: `ShardManager.ts`, `ShardStorage.ts`, and `internal/shardManager.ts` were
 
 #### Explicitly No Observability Change Needed
 
-| File                    | Reason                                               |
-| ----------------------- | ---------------------------------------------------- |
-| `OtlpMetrics.ts`        | Consumer of SummaryState.quantiles which stays as-is |
-| `PrometheusMetrics.ts`  | Consumer of SummaryState.quantiles which stays as-is |
+| File                   | Reason                                               |
+| ---------------------- | ---------------------------------------------------- |
+| `OtlpMetrics.ts`       | Consumer of SummaryState.quantiles which stays as-is |
+| `PrometheusMetrics.ts` | Consumer of SummaryState.quantiles which stays as-is |
 
 #### DevTools (`unstable/devtools/`)
 
