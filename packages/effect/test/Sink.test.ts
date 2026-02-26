@@ -147,6 +147,15 @@ describe("Sink", () => {
         deepStrictEqual(result, [2, 4])
       }))
 
+    it.effect("takeWhileFilter consumes the first failing input", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.make(1, 2, 3, 4).pipe(
+          Stream.transduce(Sink.takeWhileFilter((n) => n < 3 ? Result.succeed(n) : Result.failVoid)),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [[1, 2], [], []])
+      }))
+
     it.effect("takeWhileEffect", () =>
       Effect.gen(function*() {
         const result = yield* Stream.make(1, 2, 3, 4).pipe(
@@ -161,6 +170,17 @@ describe("Sink", () => {
           Stream.run(Sink.takeWhileFilterEffect((n) => Effect.succeed(n < 3 ? Result.succeed(n + 1) : Result.failVoid)))
         )
         deepStrictEqual(result, [2, 3])
+      }))
+
+    it.effect("takeWhileFilterEffect consumes the first failing input", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.make(1, 2, 3, 4).pipe(
+          Stream.transduce(
+            Sink.takeWhileFilterEffect((n) => Effect.succeed(n < 3 ? Result.succeed(n) : Result.failVoid))
+          ),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [[1, 2], [], []])
       }))
   })
 
