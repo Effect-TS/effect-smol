@@ -1586,15 +1586,6 @@ export const getJsonSchema = <Tool extends Any>(tool: Tool, options?: {
 export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S, options?: {
   readonly transformer?: CodecTransformer
 }): JsonSchema.JsonSchema => {
-  const props = AST.isObjects(schema.ast) ? schema.ast.propertySignatures : []
-  if (props.length === 0) {
-    return {
-      type: "object",
-      properties: {},
-      required: [],
-      additionalProperties: false
-    }
-  }
   if (Predicate.isNotUndefined(options?.transformer)) {
     return options.transformer(schema).jsonSchema
   }

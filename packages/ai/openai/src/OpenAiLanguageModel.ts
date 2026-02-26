@@ -23,6 +23,7 @@ import * as AiError from "effect/unstable/ai/AiError"
 import * as IdGenerator from "effect/unstable/ai/IdGenerator"
 import * as LanguageModel from "effect/unstable/ai/LanguageModel"
 import * as AiModel from "effect/unstable/ai/Model"
+import { toCodecOpenAI } from "effect/unstable/ai/OpenAiStructuredOutput"
 import type * as Prompt from "effect/unstable/ai/Prompt"
 import type * as Response from "effect/unstable/ai/Response"
 import * as Tool from "effect/unstable/ai/Tool"
@@ -369,7 +370,7 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
         options,
         toolNameMapper
       })
-      const responseFormat = prepareResponseFormat({
+      const responseFormat = yield* prepareResponseFormat({
         config,
         options
       })
@@ -429,7 +430,10 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
           })
         )
     )
-  })
+  }).pipe(Effect.provideService(
+    LanguageModel.CurrentCodecTransformer,
+    toCodecOpenAI
+  ))
 })
 
 /**
@@ -1014,10 +1018,11 @@ const makeResponse = Effect.fnUntraced(
 
         case "function_call": {
           hasToolCalls = true
+
           const toolName = part.name
-          const toolParams = part.arguments
-          const params = yield* Effect.try({
-            try: () => Tool.unsafeSecureJsonParse(toolParams),
+
+          const toolParams = yield* Effect.try({
+            try: () => Tool.unsafeSecureJsonParse(part.arguments),
             catch: (cause) =>
               AiError.make({
                 module: "OpenAiLanguageModel",
@@ -1029,6 +1034,9 @@ const makeResponse = Effect.fnUntraced(
                 })
               })
           })
+
+          const params = yield* transformToolCallParams(options.tools, part.name, toolParams)
+
           parts.push({
             type: "tool-call",
             id: part.call_id,
@@ -1708,11 +1716,14 @@ const makeStreamResponse = Effect.fnUntraced(
 
               case "function_call": {
                 delete activeToolCalls[event.output_index]
+
                 hasToolCalls = true
+
                 const toolName = event.item.name
-                const toolParams = event.item.arguments
-                const params = yield* Effect.try({
-                  try: () => Tool.unsafeSecureJsonParse(toolParams),
+                const toolArgs = event.item.arguments
+
+                const toolParams = yield* Effect.try({
+                  try: () => Tool.unsafeSecureJsonParse(toolArgs),
                   catch: (cause) =>
                     AiError.make({
                       module: "OpenAiLanguageModel",
@@ -1724,10 +1735,14 @@ const makeStreamResponse = Effect.fnUntraced(
                       })
                     })
                 })
+
+                const params = yield* transformToolCallParams(options.tools, toolName, toolParams)
+
                 parts.push({
                   type: "tool-params-end",
                   id: event.item.call_id
                 })
+
                 parts.push({
                   type: "tool-call",
                   id: event.item.call_id,
@@ -1735,6 +1750,7 @@ const makeStreamResponse = Effect.fnUntraced(
                   params,
                   metadata: { openai: { ...makeItemIdMetadata(event.item.id) } }
                 })
+
                 break
               }
 
@@ -2259,12 +2275,14 @@ const prepareTools = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Too
   for (const tool of allowedTools) {
     if (Tool.isUserDefined(tool)) {
       const strict = Tool.getStrictMode(tool) ?? config.strictJsonSchema ?? true
+      const description = Tool.getDescription(tool)
+      const parameters = yield* tryJsonSchema(tool.parametersSchema, "prepareTools")
       tools.push({
         type: "function",
         name: tool.name,
-        description: Tool.getDescription(tool) ?? null,
-        parameters: Tool.getJsonSchema(tool) as { readonly [x: string]: Schema.Json },
-        strict
+        parameters,
+        strict,
+        ...(Predicate.isNotUndefined(description) ? { description } : undefined)
       })
     }
 
@@ -2458,23 +2476,45 @@ const makeItemIdMetadata = (itemId: string | undefined) => Predicate.isNotUndefi
 const makeEncryptedContentMetadata = (encryptedContent: string | null | undefined) =>
   Predicate.isNotNullish(encryptedContent) ? { encryptedContent } : undefined
 
-const prepareResponseFormat = ({ config, options }: {
+const unsupportedSchemaError = (error: unknown, method: string): AiError.AiError =>
+  AiError.make({
+    module: "OpenAiLanguageModel",
+    method,
+    reason: new AiError.UnsupportedSchemaError({
+      description: error instanceof Error ? error.message : String(error)
+    })
+  })
+
+const tryCodecTransform = <S extends Schema.Top>(schema: S, method: string) =>
+  Effect.try({
+    try: () => toCodecOpenAI(schema),
+    catch: (error) => unsupportedSchemaError(error, method)
+  })
+
+const tryJsonSchema = <S extends Schema.Top>(schema: S, method: string) =>
+  Effect.try({
+    try: () => Tool.getJsonSchemaFromSchema(schema, { transformer: toCodecOpenAI }),
+    catch: (error) => unsupportedSchemaError(error, method)
+  })
+
+const prepareResponseFormat = Effect.fnUntraced(function*({ config, options }: {
   readonly config: typeof Config.Service
   readonly options: LanguageModel.ProviderOptions
-}): typeof Generated.TextResponseFormatConfiguration.Encoded => {
+}): Effect.fn.Return<typeof Generated.TextResponseFormatConfiguration.Encoded, AiError.AiError> {
   if (options.responseFormat.type === "json") {
     const name = options.responseFormat.objectName
     const schema = options.responseFormat.schema
+    const jsonSchema = tryJsonSchema(schema, "prepareResponseFormat")
     return {
       type: "json_schema",
       name,
       description: AST.resolveDescription(schema.ast) ?? "Response with a JSON object",
-      schema: Tool.getJsonSchemaFromSchema(schema) as any,
+      schema: jsonSchema,
       strict: config.strictJsonSchema ?? true
     }
   }
   return { type: "text" }
-}
+})
 
 interface ModelCapabilities {
   readonly isReasoningModel: boolean
@@ -2584,3 +2624,40 @@ const getUsage = (usage: Generated.ResponseUsage | null | undefined): Response.U
     }
   }
 }
+
+const transformToolCallParams = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Tool.Any>>(
+  tools: Tools,
+  toolName: string,
+  toolParams: unknown
+): Effect.fn.Return<unknown, AiError.AiError> {
+  const tool = tools.find((tool) => tool.name === toolName)
+
+  if (Predicate.isUndefined(tool)) {
+    return yield* AiError.make({
+      module: "OpenAiLanguageModel",
+      method: "makeResponse",
+      reason: new AiError.ToolNotFoundError({
+        toolName,
+        availableTools: tools.map((tool) => tool.name)
+      })
+    })
+  }
+
+  const { codec } = yield* tryCodecTransform(tool.parametersSchema, "makeResponse")
+
+  const transform = Schema.decodeEffect(codec)
+
+  return yield* (
+    transform(toolParams) as Effect.Effect<unknown, Schema.SchemaError>
+  ).pipe(Effect.mapError((error) =>
+    AiError.make({
+      module: "OpenAiLanguageModel",
+      method: "makeResponse",
+      reason: new AiError.ToolParameterValidationError({
+        toolName,
+        toolParams,
+        description: error.issue.toString()
+      })
+    })
+  ))
+})
