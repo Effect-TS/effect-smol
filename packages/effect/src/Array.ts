@@ -1074,7 +1074,7 @@ export const lastNonEmpty = <A>(self: NonEmptyReadonlyArray<A>): A => self[self.
  * ```ts
  * import { Array } from "effect"
  *
- * console.log(Array.tail([1, 2, 3, 4])) // [2, 3, 4]
+ * console.log(Array.tail([1, 2, 3, 4])) // Option.some([2, 3, 4])
  * console.log(Array.tail([])) // Option.none()
  * ```
  *
@@ -1119,7 +1119,7 @@ export const tailNonEmpty = <A>(self: NonEmptyReadonlyArray<A>): Array<A> => sel
  * ```ts
  * import { Array } from "effect"
  *
- * console.log(Array.init([1, 2, 3, 4])) // [1, 2, 3]
+ * console.log(Array.init([1, 2, 3, 4])) // Option.some([1, 2, 3])
  * console.log(Array.init([])) // Option.none()
  * ```
  *
@@ -1455,7 +1455,7 @@ export const dropWhileFilter: {
  * ```ts
  * import { Array } from "effect"
  *
- * console.log(Array.findFirstIndex([5, 3, 8, 9], (x) => x > 5)) // 2
+ * console.log(Array.findFirstIndex([5, 3, 8, 9], (x) => x > 5)) // Option.some(2)
  * ```
  *
  * @see {@link findLastIndex} — search from the end
@@ -1487,7 +1487,7 @@ export const findFirstIndex: {
  * ```ts
  * import { Array } from "effect"
  *
- * console.log(Array.findLastIndex([1, 3, 8, 9], (x) => x < 5)) // 1
+ * console.log(Array.findLastIndex([1, 3, 8, 9], (x) => x < 5)) // Option.some(1)
  * ```
  *
  * @see {@link findFirstIndex} — search from the start
@@ -1550,7 +1550,7 @@ export const findFirst: {
  * ```ts
  * import { Array } from "effect"
  *
- * console.log(Array.findFirstWithIndex([1, 2, 3, 4, 5], (x) => x > 3)) // [4, 3]
+ * console.log(Array.findFirstWithIndex([1, 2, 3, 4, 5], (x) => x > 3)) // Option.some([4, 3])
  * ```
  *
  * @see {@link findFirst} — get only the element
@@ -1654,7 +1654,7 @@ export const findLast: {
  * ```ts
  * import { Array } from "effect"
  *
- * console.log(Array.insertAt(["a", "b", "c", "e"], 3, "d")) // ["a", "b", "c", "d", "e"]
+ * console.log(Array.insertAt(["a", "b", "c", "e"], 3, "d")) // Option.some(["a", "b", "c", "d", "e"])
  * ```
  *
  * @see {@link replace} — replace an existing element
@@ -1686,7 +1686,7 @@ export const insertAt: {
  * ```ts
  * import { Array } from "effect"
  *
- * console.log(Array.replace([1, 2, 3], 1, 4)) // [1, 4, 3]
+ * console.log(Array.replace([1, 2, 3], 1, 4)) // Option.some([1, 4, 3])
  * ```
  *
  * @see {@link modify} — transform an element with a function
@@ -1720,7 +1720,7 @@ export const replace: {
  * ```ts
  * import { Array } from "effect"
  *
- * console.log(Array.modify([1, 2, 3, 4], 2, (n) => n * 2)) // [1, 2, 6, 4]
+ * console.log(Array.modify([1, 2, 3, 4], 2, (n) => n * 2)) // Option.some([1, 2, 6, 4])
  * console.log(Array.modify([1, 2, 3, 4], 5, (n) => n * 2)) // Option.none()
  * ```
  *
