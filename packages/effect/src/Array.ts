@@ -3349,18 +3349,20 @@ export const filter: {
 )
 
 /**
- * Splits an iterable into two arrays: elements that fail the predicate and
- * elements that satisfy it.
+ * Splits an iterable using a `Filter` into failures and successes.
  *
  * - Returns `[excluded, satisfying]`.
- * - Supports refinements for type narrowing.
+ * - The filter receives `(element, index)`.
  *
- * **Example** (Partitioning by predicate)
+ * **Example** (Partitioning with a filter)
  *
  * ```ts
- * import { Array } from "effect"
+ * import { Array, Result } from "effect"
  *
- * console.log(Array.partition([1, 2, 3, 4], (n) => n % 2 === 0)) // [[1, 3], [2, 4]]
+ * console.log(Array.partition([1, -2, 3], (n, i) =>
+ *   n > 0 ? Result.succeed(n + i) : Result.fail(`negative:${n}`)
+ * ))
+ * // [["negative:-2"], [1, 5]]
  * ```
  *
  * @see {@link filter} — keep only matching elements
@@ -3370,44 +3372,6 @@ export const filter: {
  * @since 2.0.0
  */
 export const partition: {
-  <A, B extends A>(refinement: (a: NoInfer<A>, i: number) => a is B): (
-    self: Iterable<A>
-  ) => [excluded: Array<Exclude<A, B>>, satisfying: Array<B>]
-  <A>(
-    predicate: (a: NoInfer<A>, i: number) => boolean
-  ): (self: Iterable<A>) => [excluded: Array<A>, satisfying: Array<A>]
-  <A, B extends A>(
-    self: Iterable<A>,
-    refinement: (a: A, i: number) => a is B
-  ): [excluded: Array<Exclude<A, B>>, satisfying: Array<B>]
-  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): [excluded: Array<A>, satisfying: Array<A>]
-} = dual(
-  2,
-  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): [excluded: Array<A>, satisfying: Array<A>] => {
-    const excluded: Array<A> = []
-    const satisfying: Array<A> = []
-    const as = fromIterable(self)
-    for (let i = 0; i < as.length; i++) {
-      if (predicate(as[i], i)) {
-        satisfying.push(as[i])
-      } else {
-        excluded.push(as[i])
-      }
-    }
-    return [excluded, satisfying]
-  }
-)
-
-/**
- * Splits an iterable using a `Filter` into failures and successes.
- *
- * - Returns `[failures, successes]`.
- * - The filter receives `(element, index)`.
- *
- * @category filtering
- * @since 4.0.0
- */
-export const partitionFilter: {
   <A, Pass, Fail>(
     f: Filter.Filter<NoInfer<A>, Pass, Fail, [i: number]>
   ): (self: Iterable<A>) => [excluded: Array<Fail>, satisfying: Array<Pass>]

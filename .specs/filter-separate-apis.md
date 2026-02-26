@@ -9,6 +9,11 @@ each. Remove `Filter.apply` and its type helpers since they only existed to
 normalize boolean/Result returns in the overloaded implementations. Convert all
 remaining Option-based `filterMap` APIs to use `Filter.Filter`.
 
+Update (EFF-594): partition APIs are now Filter-only. `partitionFilter`,
+`partitionFilterEffect`, and `partitionQueueFilter` are renamed to
+`partition`, `partitionEffect`, and `partitionQueue`, and predicate/refinement
+partition variants are removed.
+
 ## Motivation
 
 The overloaded approach has drawbacks:
@@ -27,6 +32,9 @@ The overloaded approach has drawbacks:
 
 - Split every overloaded API that accepts both predicates and `Filter` into two
   separate functions.
+- For partition APIs (`Array.partition`, `Stream.partition`,
+  `Stream.partitionEffect`, `Stream.partitionQueue`), remove predicate-only
+  variants and require `Filter` / `FilterEffect`.
 - Add back `catchFilter`, `catchCauseFilter`, `tapCauseFilter`, `onExitFilter`,
   `onErrorFilter` as standalone Filter-accepting APIs.
 - Remove `Filter.apply`, `OrPredicate`, `ResultOrBool`, `Pass`, `Fail`,
@@ -39,7 +47,7 @@ The overloaded approach has drawbacks:
 - No changes to `Filter` constructors or combinators (`make`, `fromPredicate`,
   `compose`, `zip`, etc.).
 - No changes to `Filter.FilterEffect` beyond removing it from overloaded APIs.
-- No renaming of existing predicate-only APIs (`filter`, `catchIf`, etc.).
+- No renaming of existing predicate-only APIs outside the partition family.
 - Graph APIs (`filterMapNodes`, `filterMapEdges`) — out of scope.
 - CLI module APIs (`Param.filterMap`, `Argument.filterMap`, `Flag.filterMap`) —
   different pattern with `onNone` error handler, out of scope.
@@ -47,18 +55,17 @@ The overloaded approach has drawbacks:
 ## Naming Convention
 
 - **`filterMap`** — standalone filter-and-map operations (well-known FP name).
-- **`*Filter` suffix** — alternative to an existing predicate API (e.g.,
-  `partitionFilter` is the Filter alternative to `partition`,
-  `partitionQueueFilter` for `partitionQueue`).
+- **`*Filter` suffix** — alternative to an existing predicate API, except for
+  the partition family (which uses base names and is Filter-only).
 
 ## API Changes
 
-### New APIs to Add
+### APIs to Add / Finalize
 
 | Module  | New API                 | Accepts                              | Returns (simplified)                             |
 | ------- | ----------------------- | ------------------------------------ | ------------------------------------------------ |
 | Array   | `filterMap`             | `Filter<A, B, X, [i: number]>`       | `Array<B>`                                       |
-| Array   | `partitionFilter`       | `Filter<A, Pass, Fail, [i: number]>` | `[Array<Fail>, Array<Pass>]`                     |
+| Array   | `partition`             | `Filter<A, Pass, Fail, [i: number]>` | `[Array<Fail>, Array<Pass>]`                     |
 | Array   | `takeWhileFilter`       | `Filter<A, B, X, [i: number]>`       | `Array<B>`                                       |
 | Array   | `dropWhileFilter`       | `Filter<A, B, X, [i: number]>`       | `Array<A>`                                       |
 | Effect  | `filterMap`             | `Filter<A, B, X>`                    | `Effect<Array<B>>`                               |
@@ -72,9 +79,9 @@ The overloaded approach has drawbacks:
 | Effect  | `onErrorFilter`         | `Filter<Cause, Pass, …>`             | `Effect<A, E, R>`                                |
 | Stream  | `filterMap`             | `Filter<A, B, X>`                    | `Stream<B, E, R>`                                |
 | Stream  | `filterMapEffect`       | `FilterEffect<A, B, …>`              | `Stream<B, E \| E2, R \| R2>`                    |
-| Stream  | `partitionFilter`       | `Filter<A, Pass, Fail>`              | `Effect<[Stream<Fail>, Stream<Pass>], …, Scope>` |
-| Stream  | `partitionFilterEffect` | `FilterEffect<A, P, F, …>`           | `Effect<[Stream<F>, Stream<P>], …, Scope>`       |
-| Stream  | `partitionQueueFilter`  | `Filter<A, Pass, Fail>`              | scoped queue-based partition                     |
+| Stream  | `partition`             | `Filter<A, Pass, Fail>`              | `Effect<[Stream<Fail>, Stream<Pass>], …, Scope>` |
+| Stream  | `partitionEffect`       | `FilterEffect<A, P, F, …>`           | `Effect<[Stream<F>, Stream<P>], …, Scope>`       |
+| Stream  | `partitionQueue`        | `Filter<A, Pass, Fail>`              | scoped queue-based partition                     |
 | Stream  | `takeWhileFilter`       | `Filter<A, B, X>`                    | `Stream<B, E, R>`                                |
 | Stream  | `dropWhileFilter`       | `Filter<A, B, X>`                    | `Stream<A, E, R>`                                |
 | Stream  | `catchFilter`           | `Filter<E, Pass, Fail>`              | `Stream<A \| A2, …>`                             |
@@ -97,37 +104,37 @@ Remove the `Filter`/`OrPredicate`/`FilterEffect` overloads from each of these
 functions, leaving only `Predicate`, `Refinement`, and (where applicable)
 effectful-predicate overloads:
 
-| Module  | Function            | Remove overload accepting              |
-| ------- | ------------------- | -------------------------------------- |
-| Array   | `filter`            | `Filter.Filter<A, B, X>`               |
-| Array   | `partition`         | `Filter.Filter<A, Pass, Fail>`         |
-| Array   | `takeWhile`         | `Filter.Filter<A, B, X>`               |
-| Array   | `dropWhile`         | `Filter.Filter<A, B, X>`               |
-| Effect  | `filter`            | `Filter.Filter`, `Filter.FilterEffect` |
-| Effect  | `filterOrElse`      | `Filter.OrPredicate`                   |
-| Effect  | `filterOrFail`      | `Filter.Filter`                        |
-| Effect  | `catchIf`           | `Filter.OrPredicate`                   |
-| Effect  | `catchCauseIf`      | `Filter.OrPredicate`                   |
-| Effect  | `tapCauseIf`        | `Filter.OrPredicate`                   |
-| Effect  | `onExitIf`          | `Filter.OrPredicate`                   |
-| Effect  | `onErrorIf`         | `Filter.OrPredicate`                   |
-| Stream  | `filter`            | `Filter.OrPredicate`                   |
-| Stream  | `filterEffect`      | `Filter.FilterEffect`                  |
-| Stream  | `partition`         | `Filter.OrPredicate`                   |
-| Stream  | `partitionEffect`   | `Filter.FilterEffect`                  |
-| Stream  | `partitionQueue`    | `Filter.OrPredicate`                   |
-| Stream  | `takeWhile`         | `Filter.Filter`                        |
-| Stream  | `dropWhile`         | `Filter.Filter`                        |
-| Stream  | `catchIf`           | `Filter.OrPredicate`                   |
-| Stream  | `catchCauseIf`      | `Filter.OrPredicate`                   |
-| Channel | `filter`            | `Filter.OrPredicate`                   |
-| Channel | `filterEffect`      | `Filter.FilterEffect`                  |
-| Channel | `filterArray`       | `Filter.OrPredicate`                   |
-| Channel | `filterArrayEffect` | `Filter.FilterEffect`                  |
-| Channel | `catchIf`           | `Filter.OrPredicate`                   |
-| Channel | `catchCauseIf`      | `Filter.OrPredicate`                   |
-| Sink    | `takeWhile`         | `Filter.Filter`                        |
-| Sink    | `takeWhileEffect`   | `Filter.FilterEffect`                  |
+| Module  | Function            | Remove overload accepting                         |
+| ------- | ------------------- | ------------------------------------------------- |
+| Array   | `filter`            | `Filter.Filter<A, B, X>`                          |
+| Array   | `partition`         | `Filter.Filter<A, Pass, Fail>`                    |
+| Array   | `takeWhile`         | `Filter.Filter<A, B, X>`                          |
+| Array   | `dropWhile`         | `Filter.Filter<A, B, X>`                          |
+| Effect  | `filter`            | `Filter.Filter`, `Filter.FilterEffect`            |
+| Effect  | `filterOrElse`      | `Filter.OrPredicate`                              |
+| Effect  | `filterOrFail`      | `Filter.Filter`                                   |
+| Effect  | `catchIf`           | `Filter.OrPredicate`                              |
+| Effect  | `catchCauseIf`      | `Filter.OrPredicate`                              |
+| Effect  | `tapCauseIf`        | `Filter.OrPredicate`                              |
+| Effect  | `onExitIf`          | `Filter.OrPredicate`                              |
+| Effect  | `onErrorIf`         | `Filter.OrPredicate`                              |
+| Stream  | `filter`            | `Filter.OrPredicate`                              |
+| Stream  | `filterEffect`      | `Filter.FilterEffect`                             |
+| Stream  | `partition`         | `Predicate`, `Refinement`                         |
+| Stream  | `partitionEffect`   | effectful predicate `(a) => Effect<boolean, ...>` |
+| Stream  | `partitionQueue`    | `Predicate`, `Refinement`                         |
+| Stream  | `takeWhile`         | `Filter.Filter`                                   |
+| Stream  | `dropWhile`         | `Filter.Filter`                                   |
+| Stream  | `catchIf`           | `Filter.OrPredicate`                              |
+| Stream  | `catchCauseIf`      | `Filter.OrPredicate`                              |
+| Channel | `filter`            | `Filter.OrPredicate`                              |
+| Channel | `filterEffect`      | `Filter.FilterEffect`                             |
+| Channel | `filterArray`       | `Filter.OrPredicate`                              |
+| Channel | `filterArrayEffect` | `Filter.FilterEffect`                             |
+| Channel | `catchIf`           | `Filter.OrPredicate`                              |
+| Channel | `catchCauseIf`      | `Filter.OrPredicate`                              |
+| Sink    | `takeWhile`         | `Filter.Filter`                                   |
+| Sink    | `takeWhileEffect`   | `Filter.FilterEffect`                             |
 
 ### Filter.ts Removals
 
@@ -291,7 +298,7 @@ Modules that use plain boolean predicates with `catchIf` (e.g.,
 - Update tests for Option-based `filterMap` to use `Filter`/`Result` instead.
 - Add new tests for each new API:
   - Verify `filterMap` with a `Filter.Filter` that transforms values.
-  - Verify `partitionFilter` separates pass/fail correctly with typed outputs.
+  - Verify `partition` separates pass/fail correctly with typed outputs.
   - Verify `catchFilter` catches errors matched by a Filter.
   - etc.
 - Use `it.effect` from `@effect/vitest` and `assert` (not `expect`).
@@ -342,13 +349,14 @@ after Task 1 the Filter path goes through `Channel.filterMapArray` instead).
 1. Add `filterMap(f: Filter<A, B, X, [i: number]>): Array<B>` — iterate, call
    filter with element and index, push `result.success` values. Dual
    (data-last + data-first).
-2. Add `partitionFilter(f: Filter<A, Pass, Fail, [i: number]>): [Array<Fail>,
-   Array<Pass>]` — iterate, split on `Result.isSuccess`. Dual.
+2. Change `partition` to `partition(f: Filter<A, Pass, Fail, [i: number]>): [Array<Fail>,
+    Array<Pass>]` — iterate, split on `Result.isSuccess`. Dual.
 3. Add `takeWhileFilter(f: Filter<A, B, X, [i: number]>): Array<B>` — take
    prefix while filter succeeds, collect `.success` values. Dual.
 4. Add `dropWhileFilter(f: Filter<A, B, X, [i: number]>): Array<A>` — drop
    prefix while filter succeeds, keep remaining original values. Dual.
-5. Remove `Filter.Filter<A, B, X>` overloads from `filter`, `partition`,
+5. Remove predicate / refinement overloads from `partition` and remove
+   `partitionFilter`; keep `Filter.Filter<A, B, X>` overload removals from `filter`,
    `takeWhile`, `dropWhile`.
 6. Update implementations: `filter`/`takeWhile`/`dropWhile` use boolean check
    directly; `partition` has inline boolean/Result branching that must be
@@ -402,18 +410,21 @@ deferred.
 Channel.filterMapArray internally).
 
 1. Add `filterMap`, `filterMapEffect`.
-2. Add `partitionFilter`, `partitionFilterEffect`.
-3. Add `partitionQueueFilter`.
-4. Add `takeWhileFilter`, `dropWhileFilter`.
-5. Add `catchFilter`, `catchCauseFilter`.
-6. Remove Filter/OrPredicate overloads from `filter`, `filterEffect`,
-   `partition`, `partitionEffect`, `partitionQueue`, `takeWhile`, `dropWhile`,
+2. Rename `partitionFilter`, `partitionFilterEffect`, and
+   `partitionQueueFilter` to `partition`, `partitionEffect`, and
+   `partitionQueue`.
+3. Add `takeWhileFilter`, `dropWhileFilter`.
+4. Add `catchFilter`, `catchCauseFilter`.
+5. Remove predicate/refinement overloads from `partition`, `partitionQueue`,
+   and effectful-predicate overloads from `partitionEffect`; keep Filter-only
+   signatures. Also remove Filter/OrPredicate overloads from `filter`,
+   `filterEffect`, `takeWhile`, `dropWhile`,
    `catchIf`, `catchCauseIf`.
-7. Update implementations — `filterMap` delegates to
+6. Update implementations — `filterMap` delegates to
    `Channel.filterMapArray`, predicate-only `filter` delegates to
    `Channel.filterArray`.
-8. Update Stream tests.
-9. Validate: `pnpm lint-fix && pnpm test packages/effect/test/Stream/ && pnpm check:tsgo`
+7. Update Stream tests.
+8. Validate: `pnpm lint-fix && pnpm test packages/effect/test/Stream/ && pnpm check:tsgo`
 
 ### Task 5: Sink + Pull — Add separate Filter APIs, remove Filter overloads
 

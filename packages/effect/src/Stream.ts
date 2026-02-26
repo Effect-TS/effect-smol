@@ -4014,17 +4014,17 @@ export const filterMapEffect: {
 )
 
 /**
- * Partitions a stream using a predicate and exposes passing and failing values as queues.
+ * Partitions a stream using a `Filter` and exposes passing and failing values as queues.
  *
  * Each queue fails with the stream error or `Cause.Done` when the source ends.
  *
  * @example
  * ```ts
- * import { Console, Effect, Stream } from "effect"
+ * import { Console, Effect, Result, Stream } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const [passes, fails] = yield* Stream.make(1, 2, 3, 4).pipe(
- *     Stream.partitionQueue((n) => n % 2 === 0)
+ *     Stream.partitionQueue((n) => n % 2 === 0 ? Result.succeed(n) : Result.fail(n))
  *   )
  *
  *   const passValues = yield* Stream.fromQueue(passes).pipe(Stream.runCollect)
@@ -4043,122 +4043,6 @@ export const filterMapEffect: {
  * @category Filtering
  */
 export const partitionQueue: {
-  <A, B extends A>(refinement: Refinement<NoInfer<A>, B>, options?: {
-    readonly capacity?: number | "unbounded" | undefined
-  }): <E, R>(self: Stream<A, E, R>) => Effect.Effect<
-    [
-      passes: Queue.Dequeue<B, E | Cause.Done>,
-      fails: Queue.Dequeue<Exclude<A, B>, E | Cause.Done>
-    ],
-    never,
-    R | Scope.Scope
-  >
-  <A>(predicate: Predicate<NoInfer<A>>, options?: {
-    readonly capacity?: number | "unbounded" | undefined
-  }): <E, R>(self: Stream<A, E, R>) => Effect.Effect<
-    [
-      passes: Queue.Dequeue<A, E | Cause.Done>,
-      fails: Queue.Dequeue<A, E | Cause.Done>
-    ],
-    never,
-    R | Scope.Scope
-  >
-  <A, E, R, B extends A>(self: Stream<A, E, R>, refinement: Refinement<A, B>, options?: {
-    readonly capacity?: number | "unbounded" | undefined
-  }): Effect.Effect<
-    [
-      passes: Queue.Dequeue<B, E | Cause.Done>,
-      fails: Queue.Dequeue<Exclude<A, B>, E | Cause.Done>
-    ],
-    never,
-    R | Scope.Scope
-  >
-  <A, E, R>(
-    self: Stream<A, E, R>,
-    predicate: Predicate<NoInfer<A>>,
-    options?: {
-      readonly capacity?: number | "unbounded" | undefined
-    }
-  ): Effect.Effect<
-    [
-      passes: Queue.Dequeue<A, E | Cause.Done>,
-      fails: Queue.Dequeue<A, E | Cause.Done>
-    ],
-    never,
-    R | Scope.Scope
-  >
-} = dual(
-  (args) => isStream(args[0]),
-  Effect.fnUntraced(
-    function*<A, E, R>(
-      self: Stream<A, E, R>,
-      predicate: Predicate<NoInfer<A>>,
-      options?: {
-        readonly capacity?: number | "unbounded" | undefined
-      }
-    ): Effect.fn.Return<
-      [
-        passes: Queue.Dequeue<any, E | Cause.Done>,
-        fails: Queue.Dequeue<any, E | Cause.Done>
-      ],
-      never,
-      R | Scope.Scope
-    > {
-      const scope = yield* Effect.scope
-      const pull = yield* Channel.toPullScoped(self.channel, scope)
-      const capacity = options?.capacity === "unbounded" ? undefined : options?.capacity ?? DefaultChunkSize
-      const passes = yield* Queue.make<any, E | Cause.Done>({ capacity })
-      const fails = yield* Queue.make<any, E | Cause.Done>({ capacity })
-
-      yield* Effect.gen(function*() {
-        while (true) {
-          const chunk = yield* pull
-          const excluded: Array<any> = []
-          const satisfying: Array<any> = []
-          for (let i = 0; i < chunk.length; i++) {
-            const value = chunk[i]
-            if (predicate(value as NoInfer<A>)) {
-              satisfying.push(value)
-            } else {
-              excluded.push(value)
-            }
-          }
-          let passFiber: Fiber.Fiber<any> | undefined = undefined
-          if (satisfying.length > 0) {
-            const leftover = Queue.offerAllUnsafe(passes, satisfying)
-            if (leftover.length > 0) {
-              passFiber = yield* Effect.forkChild(Queue.offerAll(passes, leftover))
-            }
-          }
-          if (excluded.length > 0) {
-            const leftover = Queue.offerAllUnsafe(fails, excluded)
-            if (leftover.length > 0) {
-              yield* Queue.offerAll(fails, leftover)
-            }
-          }
-          if (passFiber) yield* Fiber.join(passFiber)
-        }
-      }).pipe(
-        Effect.onError((cause) => {
-          Queue.failCauseUnsafe(passes, cause)
-          Queue.failCauseUnsafe(fails, cause)
-          return Effect.void
-        }),
-        Effect.forkIn(scope)
-      )
-
-      return [passes, fails]
-    }
-  )
-)
-
-/**
- * Partitions a stream using a `Filter` and exposes passing and failing values as queues.
- *
- * @since 4.0.0
- * @category Filtering
- */
-export const partitionQueueFilter: {
   <A, Pass, Fail>(filter: Filter.Filter<NoInfer<A>, Pass, Fail>, options?: {
     readonly capacity?: number | "unbounded" | undefined
   }): <E, R>(self: Stream<A, E, R>) => Effect.Effect<
@@ -4249,101 +4133,12 @@ export const partitionQueueFilter: {
 )
 
 /**
- * Splits a stream using an effectful predicate, producing pass and fail streams.
- *
- * @since 4.0.0
- * @category Filtering
- *
- * @example
- * ```ts
- * import { Console, Effect, Stream } from "effect"
- *
- * const program = Effect.scoped(
- *   Effect.gen(function*() {
- *     const [evens, odds] = yield* Stream.make(1, 2, 3, 4).pipe(
- *       Stream.partitionEffect((n) => Effect.succeed(n % 2 === 0))
- *     )
- *     const result = yield* Effect.all({
- *       evens: Stream.runCollect(evens),
- *       odds: Stream.runCollect(odds)
- *     })
- *     yield* Console.log(result)
- *   })
- * )
- *
- * Effect.runPromise(program)
- * // Output: { evens: [ 2, 4 ], odds: [ 1, 3 ] }
- * ```
- */
-export const partitionEffect: {
-  <A, EX, RX>(predicate: (a: NoInfer<A>, i: number) => Effect.Effect<boolean, EX, RX>, options?: {
-    readonly capacity?: number | "unbounded" | undefined
-    readonly concurrency?: number | "unbounded" | undefined
-  }): <E, R>(self: Stream<A, E, R>) => Effect.Effect<
-    [
-      passes: Stream<A, E | EX>,
-      fails: Stream<A, E | EX>
-    ],
-    never,
-    R | RX | Scope.Scope
-  >
-  <A, E, R, EX, RX>(
-    self: Stream<A, E, R>,
-    predicate: (a: NoInfer<A>, i: number) => Effect.Effect<boolean, EX, RX>,
-    options?: {
-      readonly capacity?: number | "unbounded" | undefined
-      readonly concurrency?: number | "unbounded" | undefined
-    }
-  ): Effect.Effect<
-    [
-      passes: Stream<A, E | EX>,
-      fails: Stream<A, E | EX>
-    ],
-    never,
-    R | RX | Scope.Scope
-  >
-} = dual(
-  (args) => isStream(args[0]),
-  <A, E, R, EX, RX>(
-    self: Stream<A, E, R>,
-    predicate: (a: NoInfer<A>, i: number) => Effect.Effect<boolean, EX, RX>,
-    options?: {
-      readonly capacity?: number | "unbounded" | undefined
-      readonly concurrency?: number | "unbounded" | undefined
-    }
-  ): Effect.Effect<
-    [
-      passes: Stream<A, E | EX>,
-      fails: Stream<A, E | EX>
-    ],
-    never,
-    R | RX | Scope.Scope
-  > =>
-    Effect.map(
-      partitionQueueFilter<Result.Result<A, A>, E | EX, R | RX, A, A>(
-        mapEffect(
-          self,
-          (a, i) =>
-            Effect.map(
-              predicate(a as NoInfer<A>, i),
-              (passes): Result.Result<A, A> => passes ? Result.succeed(a) : Result.fail(a)
-            ),
-          options
-        ),
-        (result) => result,
-        options
-      ),
-      ([passes, fails]) => [fromQueue(passes), fromQueue(fails)] as const
-    )
-)
-
-/**
  * Splits a stream using an effectful `Filter`, producing pass and fail streams.
  *
  * @since 4.0.0
  * @category Filtering
  */
-export const partitionFilterEffect: {
+export const partitionEffect: {
   <A, Pass, Fail, EX, RX>(filter: Filter.FilterEffect<NoInfer<A>, Pass, Fail, EX, RX>, options?: {
     readonly capacity?: number | "unbounded" | undefined
     readonly concurrency?: number | "unbounded" | undefined
@@ -4388,7 +4183,7 @@ export const partitionFilterEffect: {
     R | RX | Scope.Scope
   > =>
     Effect.map(
-      partitionQueueFilter<Result.Result<Pass, Fail>, E | EX, R | RX, Pass, Fail>(
+      partitionQueue<Result.Result<Pass, Fail>, E | EX, R | RX, Pass, Fail>(
         mapEffect(self, (a) => filter(a as NoInfer<A>), options),
         (result) => result,
         options
@@ -4398,8 +4193,7 @@ export const partitionFilterEffect: {
 )
 
 /**
- * Splits a stream into excluded and satisfying substreams using a predicate or
- * refinement.
+ * Splits a stream into excluded and satisfying substreams using a `Filter`.
  *
  * The faster stream may advance up to `bufferSize` elements ahead of the slower
  * one.
@@ -4409,12 +4203,12 @@ export const partitionFilterEffect: {
  *
  * @example
  * ```ts
- * import { Console, Effect, Stream } from "effect"
+ * import { Console, Effect, Result, Stream } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const [excluded, satisfying] = yield* Stream.partition(
  *     Stream.make(1, 2, 3, 4),
- *     (n) => n % 2 === 0
+ *     (n) => n % 2 === 0 ? Result.succeed(n) : Result.fail(n)
  *   )
  *   const left = yield* Stream.runCollect(excluded)
  *   const right = yield* Stream.runCollect(satisfying)
@@ -4426,60 +4220,6 @@ export const partitionFilterEffect: {
  * ```
  */
 export const partition: {
-  <C extends A, B extends A, A = C>(
-    refinement: Refinement<NoInfer<A>, B>,
-    options?: { readonly bufferSize?: number | undefined }
-  ): <E, R>(
-    self: Stream<C, E, R>
-  ) => Effect.Effect<
-    [excluded: Stream<Exclude<C, B>, E>, satisfying: Stream<B, E>],
-    never,
-    R | Scope.Scope
-  >
-  <C extends A, E, R, B extends A, A = C>(
-    self: Stream<C, E, R>,
-    refinement: Refinement<A, B>,
-    options?: { readonly bufferSize?: number | undefined }
-  ): Effect.Effect<
-    [excluded: Stream<Exclude<C, B>, E>, satisfying: Stream<B, E>],
-    never,
-    R | Scope.Scope
-  >
-  <A>(
-    predicate: Predicate<NoInfer<A>>,
-    options?: { readonly bufferSize?: number | undefined }
-  ): <E, R>(
-    self: Stream<A, E, R>
-  ) => Effect.Effect<
-    [excluded: Stream<A, E>, satisfying: Stream<A, E>],
-    never,
-    R | Scope.Scope
-  >
-  <A, E, R>(
-    self: Stream<A, E, R>,
-    predicate: Predicate<A>,
-    options?: { readonly bufferSize?: number | undefined }
-  ): Effect.Effect<[excluded: Stream<A, E>, satisfying: Stream<A, E>], never, R | Scope.Scope>
-} = dual(
-  (args) => isStream(args[0]),
-  <A, E, R>(
-    self: Stream<A, E, R>,
-    predicate: Predicate<NoInfer<A>>,
-    options?: { readonly bufferSize?: number | undefined }
-  ): Effect.Effect<[excluded: Stream<A, E>, satisfying: Stream<A, E>], never, R | Scope.Scope> =>
-    Effect.map(
-      partitionQueue(self, predicate, { capacity: options?.bufferSize ?? 16 }),
-      ([passes, fails]) => [fromQueue(fails), fromQueue(passes)] as const
-    )
-)
-
-/**
- * Splits a stream into excluded and satisfying substreams using a `Filter`.
- *
- * @since 4.0.0
- * @category Filtering
- */
-export const partitionFilter: {
   <A, Pass, Fail>(
     filter: Filter.Filter<NoInfer<A>, Pass, Fail>,
     options?: { readonly bufferSize?: number | undefined }
@@ -4511,7 +4251,7 @@ export const partitionFilter: {
     R | Scope.Scope
   > =>
     Effect.map(
-      partitionQueueFilter(self, filter, { capacity: options?.bufferSize ?? 16 }),
+      partitionQueue(self, filter, { capacity: options?.bufferSize ?? 16 }),
       ([passes, fails]) => [fromQueue(fails), fromQueue(passes)] as const
     )
 )

@@ -1755,11 +1755,19 @@ export const partition: {
   <A>(self: Chunk<A>, predicate: (a: A, i: number) => boolean): [excluded: Chunk<A>, satisfying: Chunk<A>]
 } = dual(
   2,
-  <A>(self: Chunk<A>, predicate: (a: A, i: number) => boolean): [excluded: Chunk<A>, satisfying: Chunk<A>] =>
-    pipe(
-      RA.partition(toReadonlyArray(self), predicate),
-      ([l, r]) => [fromArrayUnsafe(l), fromArrayUnsafe(r)]
-    )
+  <A>(self: Chunk<A>, predicate: (a: A, i: number) => boolean): [excluded: Chunk<A>, satisfying: Chunk<A>] => {
+    const excluded: Array<A> = []
+    const satisfying: Array<A> = []
+    const as = toReadonlyArray(self)
+    for (let i = 0; i < as.length; i++) {
+      if (predicate(as[i], i)) {
+        satisfying.push(as[i])
+      } else {
+        excluded.push(as[i])
+      }
+    }
+    return [fromArrayUnsafe(excluded), fromArrayUnsafe(satisfying)]
+  }
 )
 
 /**

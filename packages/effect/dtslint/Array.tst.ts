@@ -317,45 +317,21 @@ describe("Array", () => {
     expect(Array.partition(numbersOrStrings, (item, i) => {
       expect(item).type.toBe<string | number>()
       expect(i).type.toBe<number>()
-      return true
-    })).type.toBe<[Array<string | number>, Array<string | number>]>()
+      return typeof item === "number" ? Result.succeed(item + i) : Result.fail(item)
+    })).type.toBe<[excluded: Array<string>, satisfying: Array<number>]>()
     expect(pipe(
       numbersOrStrings,
       Array.partition((item, i) => {
         expect(item).type.toBe<string | number>()
         expect(i).type.toBe<number>()
-        return true
-      })
-    )).type.toBe<[Array<string | number>, Array<string | number>]>()
-    expect(Array.partition(numbersOrStrings, predicateNumbersOrStrings))
-      .type.toBe<[excluded: Array<string | number>, satisfying: Array<string | number>]>()
-    expect(pipe(numbersOrStrings, Array.partition(predicateNumbersOrStrings)))
-      .type.toBe<[excluded: Array<string | number>, satisfying: Array<string | number>]>()
-    expect(Array.partition(numbersOrStrings, Predicate.isNumber))
-      .type.toBe<[excluded: Array<string>, satisfying: Array<number>]>()
-    expect(pipe(numbersOrStrings, Array.partition(Predicate.isNumber)))
-      .type.toBe<[excluded: Array<string>, satisfying: Array<number>]>()
-
-    expect(Array.partition).type.not.toBeCallableWith(
-      numbersOrStrings,
-      (_item: string | number) => Result.succeed(_item)
-    )
-  })
-
-  it("partitionFilter", () => {
-    expect(Array.partitionFilter(numbersOrStrings, (item, i) => {
-      expect(item).type.toBe<string | number>()
-      expect(i).type.toBe<number>()
-      return typeof item === "number" ? Result.succeed(item + i) : Result.fail(item)
-    })).type.toBe<[excluded: Array<string>, satisfying: Array<number>]>()
-    expect(pipe(
-      numbersOrStrings,
-      Array.partitionFilter((item, i) => {
-        expect(item).type.toBe<string | number>()
-        expect(i).type.toBe<number>()
         return typeof item === "number" ? Result.succeed(item + i) : Result.fail(item)
       })
     )).type.toBe<[excluded: Array<string>, satisfying: Array<number>]>()
+
+    expect(Array.partition).type.not.toBeCallableWith(
+      numbersOrStrings,
+      (_item: string | number) => true
+    )
   })
 
   it("filter", () => {
