@@ -281,7 +281,7 @@ export const layerConfig = (options?: {
   /**
    * The config value to load for the API key.
    */
-  readonly apiKey?: Config.Config<Redacted.Redacted<string>> | undefined
+  readonly apiKey?: Config.Config<Redacted.Redacted<string> | undefined> | undefined
 
   /**
    * The config value to load for the API URL.
@@ -291,12 +291,12 @@ export const layerConfig = (options?: {
   /**
    * The config value to load for the organization ID.
    */
-  readonly organizationId?: Config.Config<Redacted.Redacted<string>> | undefined
+  readonly organizationId?: Config.Config<Redacted.Redacted<string> | undefined> | undefined
 
   /**
    * The config value to load for the project ID.
    */
-  readonly projectId?: Config.Config<Redacted.Redacted<string>> | undefined
+  readonly projectId?: Config.Config<Redacted.Redacted<string> | undefined> | undefined
 
   /**
    * Optional transformer for the HTTP client.

@@ -372,7 +372,7 @@ export const layerConfig = (options?: {
    * If not provided, requests will be made without authentication (useful for
    * proxied setups or testing).
    */
-  readonly apiKey?: Config.Config<Redacted.Redacted<string>> | undefined
+  readonly apiKey?: Config.Config<Redacted.Redacted<string> | undefined> | undefined
 
   /**
    * The base URL for the Anthropic API.
