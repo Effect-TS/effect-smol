@@ -6754,15 +6754,15 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     it("Struct", async () => {
       const schema = Schema.Struct({
         a: Schema.FiniteFromString,
-        b: Schema.String
+        b: Schema.FiniteFromString
       }).pipe(Schema.encodeKeys({ a: "c" }))
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
-      await decoding.succeed({ c: "1", b: "b" }, { a: 1, b: "b" })
+      await decoding.succeed({ c: "1", b: "2" }, { a: 1, b: 2 })
 
       const encoding = asserts.encoding()
-      await encoding.succeed({ a: 1, b: "b" }, { c: "1", b: "b" })
+      await encoding.succeed({ a: 1, b: 2 }, { c: "1", b: "2" })
     })
 
     it("Class", async () => {

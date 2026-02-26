@@ -1736,11 +1736,12 @@ export function encodeKeys<
     const fields: any = {}
     const reverseMapping: any = {}
     for (const k in self.fields) {
+      const encoded = toEncoded(self.fields[k])
       if (Object.hasOwn(mapping, k)) {
-        fields[mapping[k]!] = toEncoded(self.fields[k])
+        fields[mapping[k]!] = encoded
         reverseMapping[mapping[k]!] = k
       } else {
-        fields[k] = self.fields[k]
+        fields[k] = encoded
       }
     }
     return Struct(fields).pipe(decodeTo(
