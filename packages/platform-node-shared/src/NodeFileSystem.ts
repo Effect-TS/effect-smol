@@ -479,7 +479,7 @@ const makeFileInfo = (stat: NFS.Stats): FileSystem.File.Info => ({
   uid: stat.uid,
   gid: stat.gid,
   size: FileSystem.Size(stat.size),
-  blksize: FileSystem.Size(stat.blksize),
+  blksize: stat.blksize !== undefined ? FileSystem.Size(stat.blksize) : undefined,
   blocks: stat.blocks
 })
 const stat = (() => {
