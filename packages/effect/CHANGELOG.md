@@ -1,5 +1,36 @@
 # effect
 
+## 4.0.0-beta.15
+
+### Patch Changes
+
+- [#1500](https://github.com/Effect-TS/effect-smol/pull/1500) [`24ae609`](https://github.com/Effect-TS/effect-smol/commit/24ae60995d2fd7d621be356cdfdfd328c79639ba) Thanks @qadama831! - Unwrap `_Success` schema to enable field access.
+
+- [#1486](https://github.com/Effect-TS/effect-smol/pull/1486) [`0e3c059`](https://github.com/Effect-TS/effect-smol/commit/0e3c059987caa55ebd0c134f7c7b147c639c328e) Thanks @tim-smart! - Fix `Stream.groupedWithin` to stop emitting empty arrays when schedule ticks fire while upstream is idle.
+
+- [#1503](https://github.com/Effect-TS/effect-smol/pull/1503) [`e843b0a`](https://github.com/Effect-TS/effect-smol/commit/e843b0a7d7e7b600a0b3bd477f24e2e4cd26bc8b) Thanks @tim-smart! - allow creating standalone http handlers from HttpApiEndpoints
+
+- [#1499](https://github.com/Effect-TS/effect-smol/pull/1499) [`f4389a2`](https://github.com/Effect-TS/effect-smol/commit/f4389a2cca3c5bbf00d69779f52ce41255f15a28) Thanks @tim-smart! - fix atom node timeout cleanup
+
+- [#1494](https://github.com/Effect-TS/effect-smol/pull/1494) [`5b73de0`](https://github.com/Effect-TS/effect-smol/commit/5b73de095b3402d0c5c74092ace6ce18ebfad566) - Refine `ExtractServices` to omit tool handler requirements when automatic tool resolution is explicitly disabled through the `disableToolCallResolution` option.
+
+- [#1496](https://github.com/Effect-TS/effect-smol/pull/1496) [`595d2d6`](https://github.com/Effect-TS/effect-smol/commit/595d2d6e7d50419f3532bd39266191532ace38f2) Thanks @IMax153! - Refactor unstable CLI global flags to command-scoped declarations.
+
+  ### Breaking changes
+  - Remove `GlobalFlag.add`, `GlobalFlag.remove`, and `GlobalFlag.clear`
+  - Add `Command.withGlobalFlags(...)` as the declaration API for command/subcommand scope
+  - Change `GlobalFlag.setting` constructor to curried form which carries type-level identifier:
+    - before: `GlobalFlag.setting({ flag, ... })`
+    - after: `GlobalFlag.setting("id")({ flag })`
+  - Change setting context identity to a stable type-level string:
+    - `effect/unstable/cli/GlobalFlag/${id}`
+
+  ### Behavior changes
+  - Global flags are now scoped by command path (root-to-leaf declarations)
+  - Out-of-scope global flags are rejected for the selected subcommand path
+  - Help now renders only global flags active for the requested command path
+  - Setting defaults are sourced from `Flag` combinators (`optional`, `withDefault`) rather than setting constructor defaults
+
 ## 4.0.0-beta.14
 
 ### Patch Changes

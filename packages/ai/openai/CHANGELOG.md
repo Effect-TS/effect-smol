@@ -1,5 +1,14 @@
 # @effect/ai-openai
 
+## 4.0.0-beta.15
+
+### Patch Changes
+
+- [#1502](https://github.com/Effect-TS/effect-smol/pull/1502) [`285b7e6`](https://github.com/Effect-TS/effect-smol/commit/285b7e667167566d5788367d5155b19c79f1bf22) Thanks @tim-smart! - allow undefined for ai config
+
+- Updated dependencies [[`24ae609`](https://github.com/Effect-TS/effect-smol/commit/24ae60995d2fd7d621be356cdfdfd328c79639ba), [`0e3c059`](https://github.com/Effect-TS/effect-smol/commit/0e3c059987caa55ebd0c134f7c7b147c639c328e), [`e843b0a`](https://github.com/Effect-TS/effect-smol/commit/e843b0a7d7e7b600a0b3bd477f24e2e4cd26bc8b), [`f4389a2`](https://github.com/Effect-TS/effect-smol/commit/f4389a2cca3c5bbf00d69779f52ce41255f15a28), [`5b73de0`](https://github.com/Effect-TS/effect-smol/commit/5b73de095b3402d0c5c74092ace6ce18ebfad566), [`595d2d6`](https://github.com/Effect-TS/effect-smol/commit/595d2d6e7d50419f3532bd39266191532ace38f2)]:
+  - effect@4.0.0-beta.15
+
 ## 4.0.0-beta.14
 
 ### Patch Changes
