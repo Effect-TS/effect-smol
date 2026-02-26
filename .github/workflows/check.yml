@@ -120,6 +120,16 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Pre-pull test container images
+        run: |
+          docker pull testcontainers/ryuk:0.14.0 &
+          docker pull ghcr.io/tursodatabase/libsql-server:main &
+          docker pull postgres:alpine &
+          docker pull mysql:lts &
+          docker pull vitess/vttestserver:mysql80 &
+          docker pull redis:alpine &
+          wait
+
       - name: Install dependencies
         if: matrix.runtime == 'Node'
         uses: ./.github/actions/setup
