@@ -615,11 +615,20 @@ describe("TxHashMap", () => {
         )
 
         const emailMap = yield* userMap.pipe(
-          TxHashMap.filterMap((user) => "email" in user ? Result.succeed(user.email) : Result.failVoid)
+          TxHashMap.filterMap(
+            (user, key) => "email" in user ? Result.succeed(`${key}:${user.email}`) : Result.failVoid
+          )
         )
 
         const emailSize = yield* TxHashMap.size(emailMap)
+        const user1Email = yield* TxHashMap.get(emailMap, "user1")
+        const user2Email = yield* TxHashMap.get(emailMap, "user2")
+        const user3Email = yield* TxHashMap.get(emailMap, "user3")
+
         assert.strictEqual(emailSize, 2)
+        assert.deepStrictEqual(user1Email, Option.some("user1:alice@example.com"))
+        assert.deepStrictEqual(user2Email, Option.none())
+        assert.deepStrictEqual(user3Email, Option.some("user3:charlie@example.com"))
       })))
 
     it.effect("hasBy should check if any entry matches predicate", () =>

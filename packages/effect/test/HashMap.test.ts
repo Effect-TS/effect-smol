@@ -258,6 +258,20 @@ describe("HashMap", () => {
       expect(HashMap.has(map2, "a")).toBe(false)
       expect(HashMap.has(map2, "c")).toBe(false)
     })
+
+    it("filterMap - key argument", () => {
+      const map1 = HashMap.make(["a", 1], ["b", 2], ["c", 3], ["d", 4])
+      const map2 = HashMap.filterMap(
+        map1,
+        (value, key) => key < "c" ? Result.succeed(`${key}:${value}`) : Result.failVoid
+      )
+
+      expect(HashMap.size(map2)).toBe(2)
+      expect(HashMap.get(map2, "a")).toEqual(Option.some("a:1"))
+      expect(HashMap.get(map2, "b")).toEqual(Option.some("b:2"))
+      expect(HashMap.has(map2, "c")).toBe(false)
+      expect(HashMap.has(map2, "d")).toBe(false)
+    })
   })
 
   describe("search operations", () => {
