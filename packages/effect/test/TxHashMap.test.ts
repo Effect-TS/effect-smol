@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Hash, HashMap, Option, TxHashMap } from "effect"
+import { Effect, Hash, HashMap, Option, Result, TxHashMap } from "effect"
 
 describe("TxHashMap", () => {
   describe("constructors", () => {
@@ -592,7 +592,7 @@ describe("TxHashMap", () => {
         // Test data-first: parse numbers, filter out invalid ones
         const numberMap = yield* TxHashMap.filterMap(txMap, (value) => {
           const num = parseInt(value, 10)
-          return isNaN(num) ? Option.none() : Option.some(num)
+          return isNaN(num) ? Result.failVoid : Result.succeed(num)
         })
 
         const size = yield* TxHashMap.size(numberMap)
@@ -615,7 +615,7 @@ describe("TxHashMap", () => {
         )
 
         const emailMap = yield* userMap.pipe(
-          TxHashMap.filterMap((user) => "email" in user ? Option.some(user.email) : Option.none())
+          TxHashMap.filterMap((user) => "email" in user ? Result.succeed(user.email) : Result.failVoid)
         )
 
         const emailSize = yield* TxHashMap.size(emailMap)

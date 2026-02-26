@@ -3,6 +3,7 @@
  */
 
 import type { Equal } from "./Equal.ts"
+import type * as Filter from "./Filter.ts"
 import type { Inspectable } from "./Inspectable.ts"
 import * as internal from "./internal/hashMap.ts"
 import type { Option } from "./Option.ts"
@@ -1072,18 +1073,18 @@ export const filter: {
 export const compact: <K, A>(self: HashMap<K, Option<A>>) => HashMap<K, A> = internal.compact
 
 /**
- * Maps over the entries of the `HashMap` using the specified partial function
- * and filters out `None` values.
+ * Maps over the entries of the `HashMap` using the specified filter and keeps
+ * only successful results.
  *
  * @example
  * ```ts
  * import * as HashMap from "effect/HashMap"
- * import * as Option from "effect/Option"
+ * import * as Result from "effect/Result"
  *
  * const map1 = HashMap.make(["a", 1], ["b", 2], ["c", 3], ["d", 4])
  * const map2 = HashMap.filterMap(
  *   map1,
- *   (value) => value % 2 === 0 ? Option.some(value * 2) : Option.none()
+ *   (value) => value % 2 === 0 ? Result.succeed(value * 2) : Result.failVoid
  * )
  *
  * console.log(HashMap.size(map2)) // 2
@@ -1095,8 +1096,8 @@ export const compact: <K, A>(self: HashMap<K, Option<A>>) => HashMap<K, A> = int
  * @category filtering
  */
 export const filterMap: {
-  <A, K, B>(f: (value: A, key: K) => Option<B>): (self: HashMap<K, A>) => HashMap<K, B>
-  <K, A, B>(self: HashMap<K, A>, f: (value: A, key: K) => Option<B>): HashMap<K, B>
+  <A, K, B, X>(f: Filter.Filter<A, B, X, [key: K]>): (self: HashMap<K, A>) => HashMap<K, B>
+  <K, A, B, X>(self: HashMap<K, A>, f: Filter.Filter<A, B, X, [key: K]>): HashMap<K, B>
 } = internal.filterMap
 
 /**

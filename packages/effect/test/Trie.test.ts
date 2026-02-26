@@ -3,6 +3,7 @@ import { assertNone, assertSome, deepStrictEqual, strictEqual, throws } from "@e
 import * as Equal from "effect/Equal"
 import { pipe } from "effect/Function"
 import * as Option from "effect/Option"
+import * as Result from "effect/Result"
 import * as Trie from "effect/Trie"
 
 describe("Trie", () => {
@@ -406,9 +407,9 @@ describe("Trie", () => {
       Trie.insert("sells", 1)
     )
 
-    strictEqual(Equal.equals(Trie.filterMap(trie, (v) => v > 1 ? Option.some(v) : Option.none()), trieMapV), true)
+    strictEqual(Equal.equals(Trie.filterMap(trie, (v) => v > 1 ? Result.succeed(v) : Result.failVoid), trieMapV), true)
     strictEqual(
-      Equal.equals(Trie.filterMap(trie, (v, k) => k.length > 3 ? Option.some(v) : Option.none()), trieMapK),
+      Equal.equals(Trie.filterMap(trie, (v, k) => k.length > 3 ? Result.succeed(v) : Result.failVoid), trieMapK),
       true
     )
   })

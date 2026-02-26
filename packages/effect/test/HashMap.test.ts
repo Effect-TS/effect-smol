@@ -1,4 +1,4 @@
-import { Equal, Hash, HashMap, Option } from "effect"
+import { Equal, Hash, HashMap, Option, Result } from "effect"
 import { FastCheck as fc } from "effect/testing"
 import { describe, expect, it } from "vitest"
 
@@ -251,7 +251,7 @@ describe("HashMap", () => {
 
     it("filterMap", () => {
       const map1 = HashMap.make(["a", 1], ["b", 2], ["c", 3], ["d", 4])
-      const map2 = HashMap.filterMap(map1, (value) => value % 2 === 0 ? Option.some(value * 2) : Option.none())
+      const map2 = HashMap.filterMap(map1, (value) => value % 2 === 0 ? Result.succeed(value * 2) : Result.failVoid)
       expect(HashMap.size(map2)).toBe(2)
       expect(HashMap.get(map2, "b")).toEqual(Option.some(4))
       expect(HashMap.get(map2, "d")).toEqual(Option.some(8))

@@ -3,6 +3,7 @@
  */
 
 import * as Equal_ from "../Equal.ts"
+import type * as Filter from "../Filter.ts"
 import { format } from "../Formatter.ts"
 import { dual, pipe } from "../Function.ts"
 import * as Hash from "../Hash.ts"
@@ -12,6 +13,7 @@ import * as Option from "../Option.ts"
 import type { Pipeable } from "../Pipeable.ts"
 import { pipeArguments } from "../Pipeable.ts"
 import { hasProperty } from "../Predicate.ts"
+import * as Result from "../Result.ts"
 import type { NoInfer } from "../Types.ts"
 
 /** @internal */
@@ -1255,14 +1257,14 @@ export const compact = <K, A>(self: HashMap<K, Option.Option<A>>): HashMap<K, A>
 
 /** @internal */
 export const filterMap = dual<
-  <A, K, B>(f: (value: A, key: K) => Option.Option<B>) => (self: HashMap<K, A>) => HashMap<K, B>,
-  <K, A, B>(self: HashMap<K, A>, f: (value: A, key: K) => Option.Option<B>) => HashMap<K, B>
->(2, <K, A, B>(self: HashMap<K, A>, f: (value: A, key: K) => Option.Option<B>): HashMap<K, B> => {
+  <A, K, B, X>(f: Filter.Filter<A, B, X, [key: K]>) => (self: HashMap<K, A>) => HashMap<K, B>,
+  <K, A, B, X>(self: HashMap<K, A>, f: Filter.Filter<A, B, X, [key: K]>) => HashMap<K, B>
+>(2, <K, A, B, X>(self: HashMap<K, A>, f: Filter.Filter<A, B, X, [key: K]>): HashMap<K, B> => {
   let result = empty<K, B>()
   for (const [key, value] of self) {
     const mapped = f(value, key)
-    if (Option.isSome(mapped)) {
-      result = set(result, key, mapped.value)
+    if (Result.isSuccess(mapped)) {
+      result = set(result, key, mapped.success)
     }
   }
   return result

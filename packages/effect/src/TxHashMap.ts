@@ -3,6 +3,7 @@
  */
 
 import * as Effect from "./Effect.ts"
+import type * as Filter from "./Filter.ts"
 import { format } from "./Formatter.ts"
 import { dual } from "./Function.ts"
 import * as HashMap from "./HashMap.ts"
@@ -1488,15 +1489,15 @@ export const reduce: {
 )
 
 /**
- * Combines filtering and mapping in a single operation. Applies a function that returns
- * an Option to each entry, keeping only the Some values and transforming them.
+ * Combines filtering and mapping in a single operation. Applies a filter to each
+ * entry, keeping only successful results and transforming them.
  *
  * **Return behavior**: This function returns a new TxHashMap reference containing
- * only the transformed entries that returned Some values. The original TxHashMap is not modified.
+ * only the transformed entries that succeeded. The original TxHashMap is not modified.
  *
  * @example
  * ```ts
- * import { Effect, Option, TxHashMap } from "effect"
+ * import { Effect, Option, Result, TxHashMap } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Create a mixed data map
@@ -1511,10 +1512,10 @@ export const reduce: {
  *   const activeAdminAges = yield* TxHashMap.filterMap(
  *     userData,
  *     (user, username) => {
- *       if (!user.active || user.role !== "admin") return Option.none()
+ *       if (!user.active || user.role !== "admin") return Result.failVoid
  *       const age = parseInt(user.age)
- *       if (isNaN(age)) return Option.none()
- *       return Option.some({
+ *       if (isNaN(age)) return Result.failVoid
+ *       return Result.succeed({
  *         username,
  *         age,
  *         seniority: age > 27 ? "senior" : "junior"
@@ -1532,7 +1533,7 @@ export const reduce: {
  *   const validAges = yield* userData.pipe(
  *     TxHashMap.filterMap((user) => {
  *       const age = parseInt(user.age)
- *       return isNaN(age) ? Option.none() : Option.some(age)
+ *       return isNaN(age) ? Result.failVoid : Result.succeed(age)
  *     })
  *   )
  *
@@ -1545,18 +1546,18 @@ export const reduce: {
  * @category combinators
  */
 export const filterMap: {
-  <A, V, K>(
-    f: (value: V, key: K) => Option.Option<A>
+  <V, K, A, X>(
+    f: Filter.Filter<V, A, X, [key: K]>
   ): (self: TxHashMap<K, V>) => Effect.Effect<TxHashMap<K, A>, never, Effect.Transaction>
-  <K, V, A>(
+  <K, V, A, X>(
     self: TxHashMap<K, V>,
-    f: (value: V, key: K) => Option.Option<A>
+    f: Filter.Filter<V, A, X, [key: K]>
   ): Effect.Effect<TxHashMap<K, A>, never, Effect.Transaction>
 } = dual(
   2,
-  <K, V, A>(
+  <K, V, A, X>(
     self: TxHashMap<K, V>,
-    f: (value: V, key: K) => Option.Option<A>
+    f: Filter.Filter<V, A, X, [key: K]>
   ): Effect.Effect<TxHashMap<K, A>, never, Effect.Transaction> =>
     Effect.gen(function*() {
       const currentMap = yield* TxRef.get(self.ref)

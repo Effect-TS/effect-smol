@@ -7,6 +7,7 @@
 import type * as Combiner from "./Combiner.ts"
 import * as Equal from "./Equal.ts"
 import type { Equivalence } from "./Equivalence.ts"
+import type * as Filter from "./Filter.ts"
 import { dual, identity } from "./Function.ts"
 import type { TypeLambda } from "./HKT.ts"
 import * as Option from "./Option.ts"
@@ -661,16 +662,16 @@ export const mapEntries: {
 )
 
 /**
- * Transforms a record into a record by applying the function `f` to each key and value in the original record.
- * If the function returns `Some`, the key-value pair is included in the output record.
+ * Transforms a record by applying the function `f` to each key and value in the original record.
+ * If the function succeeds, the key-value pair is included in the output record.
  *
  * @example
  * ```ts
- * import { Option, Record } from "effect"
+ * import { Record, Result } from "effect"
  * import * as assert from "node:assert"
  *
  * const x = { a: 1, b: 2, c: 3 }
- * const f = (a: number, key: string) => a > 2 ? Option.some(a * 2) : Option.none()
+ * const f = (a: number, key: string) => a > 2 ? Result.succeed(a * 2) : Result.failVoid
  * assert.deepStrictEqual(Record.filterMap(x, f), { c: 6 })
  * ```
  *
@@ -678,24 +679,24 @@ export const mapEntries: {
  * @since 2.0.0
  */
 export const filterMap: {
-  <K extends string, A, B>(
-    f: (a: A, key: K) => Option.Option<B>
+  <K extends string, A, B, X>(
+    f: Filter.Filter<A, B, X, [key: K]>
   ): (self: ReadonlyRecord<K, A>) => Record<ReadonlyRecord.NonLiteralKey<K>, B>
-  <K extends string, A, B>(
+  <K extends string, A, B, X>(
     self: ReadonlyRecord<K, A>,
-    f: (a: A, key: K) => Option.Option<B>
+    f: Filter.Filter<A, B, X, [key: K]>
   ): Record<ReadonlyRecord.NonLiteralKey<K>, B>
 } = dual(
   2,
-  <K extends string, A, B>(
+  <K extends string, A, B, X>(
     self: ReadonlyRecord<K, A>,
-    f: (a: A, key: K) => Option.Option<B>
+    f: Filter.Filter<A, B, X, [key: K]>
   ): Record<ReadonlyRecord.NonLiteralKey<K>, B> => {
     const out: Record<string, B> = empty()
     for (const key of keys(self)) {
-      const o = f(self[key], key)
-      if (Option.isSome(o)) {
-        out[key] = o.value
+      const result = f(self[key], key)
+      if (R.isSuccess(result)) {
+        out[key] = result.success
       }
     }
     return out
@@ -767,9 +768,18 @@ export const filter: {
  */
 export const getSomes: <K extends string, A>(
   self: ReadonlyRecord<K, Option.Option<A>>
-) => Record<ReadonlyRecord.NonLiteralKey<K>, A> = filterMap(
-  identity
-)
+) => Record<ReadonlyRecord.NonLiteralKey<K>, A> = <K extends string, A>(
+  self: ReadonlyRecord<K, Option.Option<A>>
+): Record<ReadonlyRecord.NonLiteralKey<K>, A> => {
+  const out: Record<string, A> = empty()
+  for (const key of keys(self)) {
+    const option = self[key]
+    if (Option.isSome(option)) {
+      out[key] = option.value
+    }
+  }
+  return out
+}
 
 /**
  * Given a record with `Result` values, returns a new record containing only the `Err` values, preserving the original keys.

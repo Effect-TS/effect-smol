@@ -184,7 +184,7 @@ describe("Record", () => {
 
     it("filterMap", () => {
       const x: Record<string, number> = { a: 1, b: 2, c: 3, [symA]: null }
-      const filtered = Record.filterMap(x, (value, key) => (value > 2 ? Option.some(key) : Option.none()))
+      const filtered = Record.filterMap(x, (value, key) => (value > 2 ? Result.succeed(key) : Result.failVoid))
       deepStrictEqual(filtered, { c: "c" })
     })
 

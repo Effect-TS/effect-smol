@@ -16,6 +16,7 @@
  * @since 2.0.0
  */
 import type { Equal } from "./Equal.ts"
+import type * as Filter from "./Filter.ts"
 import type { Inspectable } from "./Inspectable.ts"
 import * as TR from "./internal/trie.ts"
 import type { Option } from "./Option.ts"
@@ -708,13 +709,13 @@ export const filter: {
 } = TR.filter
 
 /**
- * Maps over the entries of the `Trie` using the specified partial function
- * and filters out `None` values.
+ * Maps over the entries of the `Trie` using the specified filter and keeps
+ * only successful results.
  *
  * @example
  * ```ts
  * import * as Equal from "effect/Equal"
- * import * as Option from "effect/Option"
+ * import * as Result from "effect/Result"
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
  *
@@ -735,7 +736,7 @@ export const filter: {
  *
  * assert.equal(
  *   Equal.equals(
- *     Trie.filterMap(trie, (v) => v > 1 ? Option.some(v) : Option.none()),
+ *     Trie.filterMap(trie, (v) => v > 1 ? Result.succeed(v) : Result.failVoid),
  *     trieMapV
  *   ),
  *   true
@@ -744,7 +745,7 @@ export const filter: {
  *   Equal.equals(
  *     Trie.filterMap(
  *       trie,
- *       (v, k) => k.length > 3 ? Option.some(v) : Option.none()
+ *       (v, k) => k.length > 3 ? Result.succeed(v) : Result.failVoid
  *     ),
  *     trieMapK
  *   ),
@@ -756,8 +757,8 @@ export const filter: {
  * @category filtering
  */
 export const filterMap: {
-  <A, B>(f: (value: A, key: string) => Option<B>): (self: Trie<A>) => Trie<B>
-  <A, B>(self: Trie<A>, f: (value: A, key: string) => Option<B>): Trie<B>
+  <A, B, X>(f: Filter.Filter<A, B, X, [key: string]>): (self: Trie<A>) => Trie<B>
+  <A, B, X>(self: Trie<A>, f: Filter.Filter<A, B, X, [key: string]>): Trie<B>
 } = TR.filterMap
 
 /**
