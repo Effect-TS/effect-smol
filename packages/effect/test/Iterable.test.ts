@@ -1,6 +1,6 @@
 import { describe, it } from "@effect/vitest"
 import { assertFalse, assertNone, assertSome, assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import { Equivalence, Iterable as Iter, Option } from "effect"
+import { Equivalence, Iterable as Iter, Option, Result } from "effect"
 import { pipe } from "effect/Function"
 import type { Predicate } from "effect/Predicate"
 
@@ -318,12 +318,36 @@ describe("Iterable", () => {
   })
 
   it("filterMap", () => {
-    const f = (n: number) => (n % 2 === 0 ? Option.none() : Option.some(n))
+    const f = (n: number) => (n % 2 === 0 ? Result.failVoid : Result.succeed(n))
     deepStrictEqual(pipe([1, 2, 3], Iter.filterMap(f), toArray), [1, 3])
     deepStrictEqual(pipe([], Iter.filterMap(f), toArray), [])
-    const g = (n: number, i: number) => ((i + n) % 2 === 0 ? Option.none() : Option.some(n))
+    const g = (n: number, i: number) => ((i + n) % 2 === 0 ? Result.failVoid : Result.succeed(n))
     deepStrictEqual(pipe([1, 2, 4], Iter.filterMap(g), toArray), [1, 2])
     deepStrictEqual(pipe([], Iter.filterMap(g), toArray), [])
+  })
+
+  it("filterMapWhile", () => {
+    deepStrictEqual(
+      pipe([1, 3, 4, 5], Iter.filterMapWhile((n) => n % 2 === 1 ? Result.succeed(n) : Result.failVoid), toArray),
+      [1, 3]
+    )
+    deepStrictEqual(
+      pipe([1, 2, 3], Iter.filterMapWhile((n, i) => n === i + 1 ? Result.succeed(n + i) : Result.failVoid), toArray),
+      [1, 3, 5]
+    )
+  })
+
+  it("getFailures", () => {
+    deepStrictEqual(toArray(Iter.getFailures([])), [])
+    deepStrictEqual(toArray(Iter.getFailures([Result.succeed(1), Result.fail("err"), Result.fail("nope")])), [
+      "err",
+      "nope"
+    ])
+  })
+
+  it("getSuccesses", () => {
+    deepStrictEqual(toArray(Iter.getSuccesses([])), [])
+    deepStrictEqual(toArray(Iter.getSuccesses([Result.fail("err"), Result.succeed(1), Result.succeed(2)])), [1, 2])
   })
 
   it("isEmpty", () => {

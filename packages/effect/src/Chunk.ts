@@ -72,6 +72,7 @@ import * as RA from "./Array.ts"
 import type { NonEmptyReadonlyArray } from "./Array.ts"
 import * as Equal from "./Equal.ts"
 import * as Equivalence from "./Equivalence.ts"
+import type * as Filter from "./Filter.ts"
 import { format } from "./Formatter.ts"
 import { dual, identity, pipe } from "./Function.ts"
 import * as Hash from "./Hash.ts"
@@ -84,6 +85,7 @@ import * as Order from "./Order.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import { pipeArguments } from "./Pipeable.ts"
 import { hasProperty, type Predicate, type Refinement } from "./Predicate.ts"
+import * as R from "./Result.ts"
 import type { Result } from "./Result.ts"
 import type { Covariant, NoInfer } from "./Types.ts"
 import * as UndefinedOr from "./UndefinedOr.ts"
@@ -998,19 +1000,19 @@ export const appendAll: {
  * @example
  * ```ts
  * import { Chunk } from "effect"
- * import * as Option from "effect/Option"
+ * import * as Result from "effect/Result"
  *
  * const chunk = Chunk.make("1", "2", "hello", "3", "world")
  * const numbers = Chunk.filterMap(chunk, (str) => {
  *   const num = parseInt(str)
- *   return isNaN(num) ? Option.none() : Option.some(num)
+ *   return isNaN(num) ? Result.failVoid : Result.succeed(num)
  * })
  * console.log(Chunk.toArray(numbers)) // [1, 2, 3]
  *
  * // With index parameter
  * const evenIndexNumbers = Chunk.filterMap(chunk, (str, i) => {
  *   const num = parseInt(str)
- *   return isNaN(num) || i % 2 !== 0 ? Option.none() : Option.some(num)
+ *   return isNaN(num) || i % 2 !== 0 ? Result.failVoid : Result.succeed(num)
  * })
  * console.log(Chunk.toArray(evenIndexNumbers)) // [1]
  * ```
@@ -1019,17 +1021,17 @@ export const appendAll: {
  * @category filtering
  */
 export const filterMap: {
-  <A, B>(f: (a: A, i: number) => Option<B>): (self: Chunk<A>) => Chunk<B>
-  <A, B>(self: Chunk<A>, f: (a: A, i: number) => Option<B>): Chunk<B>
+  <A, B, X>(f: Filter.Filter<A, B, X, [i: number]>): (self: Chunk<A>) => Chunk<B>
+  <A, B, X>(self: Chunk<A>, f: Filter.Filter<A, B, X, [i: number]>): Chunk<B>
 } = dual(
   2,
-  <A, B>(self: Chunk<A>, f: (a: A, i: number) => Option<B>): Chunk<B> => {
+  <A, B, X>(self: Chunk<A>, f: Filter.Filter<A, B, X, [i: number]>): Chunk<B> => {
     const as = RA.fromIterable(self)
     const out: Array<B> = []
     for (let i = 0; i < as.length; i++) {
-      const o = f(as[i], i)
-      if (O.isSome(o)) {
-        out.push(o.value)
+      const result = f(as[i], i)
+      if (R.isSuccess(result)) {
+        out.push(result.success)
       }
     }
     return fromArrayUnsafe(out)
@@ -1067,17 +1069,17 @@ export const filter: {
 )
 
 /**
- * Transforms all elements of the chunk for as long as the specified function returns some value
+ * Transforms all elements of the chunk for as long as the specified function succeeds.
  *
  * @example
  * ```ts
  * import { Chunk } from "effect"
- * import * as Option from "effect/Option"
+ * import * as Result from "effect/Result"
  *
  * const chunk = Chunk.make("1", "2", "hello", "3", "4")
  * const result = Chunk.filterMapWhile(chunk, (s) => {
  *   const num = parseInt(s)
- *   return isNaN(num) ? Option.none() : Option.some(num)
+ *   return isNaN(num) ? Result.failVoid : Result.succeed(num)
  * })
  * console.log(Chunk.toArray(result)) // [1, 2]
  * // Stops at "hello" and doesn't process "3", "4"
@@ -1085,7 +1087,7 @@ export const filter: {
  * // Compare with regular filterMap
  * const allNumbers = Chunk.filterMap(chunk, (s) => {
  *   const num = parseInt(s)
- *   return isNaN(num) ? Option.none() : Option.some(num)
+ *   return isNaN(num) ? Result.failVoid : Result.succeed(num)
  * })
  * console.log(Chunk.toArray(allNumbers)) // [1, 2, 3, 4]
  * ```
@@ -1094,14 +1096,14 @@ export const filter: {
  * @category filtering
  */
 export const filterMapWhile: {
-  <A, B>(f: (a: A) => Option<B>): (self: Chunk<A>) => Chunk<B>
-  <A, B>(self: Chunk<A>, f: (a: A) => Option<B>): Chunk<B>
-} = dual(2, <A, B>(self: Chunk<A>, f: (a: A) => Option<B>): Chunk<B> => {
+  <A, B, X>(f: Filter.Filter<A, B, X>): (self: Chunk<A>) => Chunk<B>
+  <A, B, X>(self: Chunk<A>, f: Filter.Filter<A, B, X>): Chunk<B>
+} = dual(2, <A, B, X>(self: Chunk<A>, f: Filter.Filter<A, B, X>): Chunk<B> => {
   const out: Array<B> = []
   for (const a of self) {
-    const b = f(a)
-    if (O.isSome(b)) {
-      out.push(b.value)
+    const result = f(a)
+    if (R.isSuccess(result)) {
+      out.push(result.success)
     } else {
       break
     }
@@ -1126,7 +1128,15 @@ export const filterMapWhile: {
  * @category filtering
  * @since 2.0.0
  */
-export const compact = <A>(self: Chunk<Option<A>>): Chunk<A> => filterMap(self, identity)
+export const compact = <A>(self: Chunk<Option<A>>): Chunk<A> => {
+  const out: Array<A> = []
+  for (const option of self) {
+    if (O.isSome(option)) {
+      out.push(option.value)
+    }
+  }
+  return fromArrayUnsafe(out)
+}
 
 /**
  * Applies a function to each element in a chunk and returns a new chunk containing the concatenated mapped elements.

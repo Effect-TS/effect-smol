@@ -32,7 +32,8 @@
 
 import type { NonEmptyArray } from "./Array.ts"
 import * as Equal from "./Equal.ts"
-import { dual, identity } from "./Function.ts"
+import type * as Filter from "./Filter.ts"
+import { dual } from "./Function.ts"
 import type { Option } from "./Option.ts"
 import * as O from "./Option.ts"
 import { isBoolean } from "./Predicate.ts"
@@ -1505,21 +1506,21 @@ export const flatten = <A>(self: Iterable<Iterable<A>>): Iterable<A> => ({
 })
 
 /**
- * Transforms elements of an iterable using a function that returns an Option, keeping only the Some values.
+ * Transforms elements of an iterable using a function that returns a `Result`, keeping only successful values.
  *
  * This combines mapping and filtering in a single operation - the function is applied to each element,
- * and only elements that result in Option.some are included in the result.
+ * and only elements that result in `Result.succeed` are included in the result.
  *
  * @example
  * ```ts
  * import { Iterable } from "effect"
- * import * as Option from "effect/Option"
+ * import * as Result from "effect/Result"
  *
  * // Parse strings to numbers, keeping only valid ones
  * const strings = ["1", "2", "invalid", "4", "not-a-number"]
  * const numbers = Iterable.filterMap(strings, (s) => {
  *   const num = parseInt(s)
- *   return isNaN(num) ? Option.none() : Option.some(num)
+ *   return isNaN(num) ? Result.failVoid : Result.succeed(num)
  * })
  * console.log(Array.from(numbers)) // [1, 2, 4]
  *
@@ -1533,7 +1534,7 @@ export const flatten = <A>(self: Iterable<Iterable<A>>): Iterable<A> => ({
  * const adultEmails = Iterable.filterMap(
  *   users,
  *   (user) =>
- *     user.age >= 18 && user.email ? Option.some(user.email) : Option.none()
+ *     user.age >= 18 && user.email ? Result.succeed(user.email) : Result.failVoid
  * )
  * console.log(Array.from(adultEmails)) // ["alice@example.com", "charlie@example.com"]
  *
@@ -1541,7 +1542,7 @@ export const flatten = <A>(self: Iterable<Iterable<A>>): Iterable<A> => ({
  * const items = ["a", "b", "c", "d", "e"]
  * const evenIndexItems = Iterable.filterMap(
  *   items,
- *   (item, i) => i % 2 === 0 ? Option.some(`${i}: ${item}`) : Option.none()
+ *   (item, i) => i % 2 === 0 ? Result.succeed(`${i}: ${item}`) : Result.failVoid
  * )
  * console.log(Array.from(evenIndexItems)) // ["0: a", "2: c", "4: e"]
  * ```
@@ -1550,11 +1551,11 @@ export const flatten = <A>(self: Iterable<Iterable<A>>): Iterable<A> => ({
  * @since 2.0.0
  */
 export const filterMap: {
-  <A, B>(f: (a: A, i: number) => Option<B>): (self: Iterable<A>) => Iterable<B>
-  <A, B>(self: Iterable<A>, f: (a: A, i: number) => Option<B>): Iterable<B>
+  <A, B, X>(f: Filter.Filter<A, B, X, [i: number]>): (self: Iterable<A>) => Iterable<B>
+  <A, B, X>(self: Iterable<A>, f: Filter.Filter<A, B, X, [i: number]>): Iterable<B>
 } = dual(
   2,
-  <A, B>(self: Iterable<A>, f: (a: A, i: number) => Option<B>): Iterable<B> => ({
+  <A, B, X>(self: Iterable<A>, f: Filter.Filter<A, B, X, [i: number]>): Iterable<B> => ({
     [Symbol.iterator]() {
       const iterator = self[Symbol.iterator]()
       let i = 0
@@ -1562,9 +1563,9 @@ export const filterMap: {
         next() {
           let result = iterator.next()
           while (!result.done) {
-            const b = f(result.value, i++)
-            if (O.isSome(b)) {
-              return { done: false, value: b.value }
+            const next = f(result.value, i++)
+            if (R.isSuccess(next)) {
+              return { done: false, value: next.success }
             }
             result = iterator.next()
           }
@@ -1576,18 +1577,18 @@ export const filterMap: {
 )
 
 /**
- * Transforms all elements of the `Iterable` for as long as the specified function returns some value
+ * Transforms all elements of the `Iterable` for as long as the specified function succeeds.
  *
  * @example
  * ```ts
  * import { Iterable } from "effect"
- * import * as Option from "effect/Option"
+ * import * as Result from "effect/Result"
  *
  * // Parse numbers until we hit an invalid one
  * const strings = ["1", "2", "3", "invalid", "4", "5"]
  * const numbers = Iterable.filterMapWhile(strings, (s) => {
  *   const num = parseInt(s)
- *   return isNaN(num) ? Option.none() : Option.some(num)
+ *   return isNaN(num) ? Result.failVoid : Result.succeed(num)
  * })
  * console.log(Array.from(numbers)) // [1, 2, 3] (stops at "invalid")
  *
@@ -1595,7 +1596,7 @@ export const filterMap: {
  * const values = [2, 4, 6, 7, 8, 10]
  * const doubledEvens = Iterable.filterMapWhile(
  *   values,
- *   (n) => n % 2 === 0 ? Option.some(n * 2) : Option.none()
+ *   (n) => n % 2 === 0 ? Result.succeed(n * 2) : Result.failVoid
  * )
  * console.log(Array.from(doubledEvens)) // [4, 8, 12] (stops at 7)
  *
@@ -1603,7 +1604,7 @@ export const filterMap: {
  * const letters = ["a", "b", "c", "d", "e"]
  * const indexedUntilC = Iterable.filterMapWhile(
  *   letters,
- *   (letter, i) => letter !== "c" ? Option.some(`${i}: ${letter}`) : Option.none()
+ *   (letter, i) => letter !== "c" ? Result.succeed(`${i}: ${letter}`) : Result.failVoid
  * )
  * console.log(Array.from(indexedUntilC)) // ["0: a", "1: b"] (stops at "c")
  * ```
@@ -1612,9 +1613,9 @@ export const filterMap: {
  * @since 2.0.0
  */
 export const filterMapWhile: {
-  <A, B>(f: (a: A, i: number) => Option<B>): (self: Iterable<A>) => Iterable<B>
-  <A, B>(self: Iterable<A>, f: (a: A, i: number) => Option<B>): Iterable<B>
-} = dual(2, <A, B>(self: Iterable<A>, f: (a: A, i: number) => Option<B>) => ({
+  <A, B, X>(f: Filter.Filter<A, B, X, [i: number]>): (self: Iterable<A>) => Iterable<B>
+  <A, B, X>(self: Iterable<A>, f: Filter.Filter<A, B, X, [i: number]>): Iterable<B>
+} = dual(2, <A, B, X>(self: Iterable<A>, f: Filter.Filter<A, B, X, [i: number]>) => ({
   [Symbol.iterator]() {
     const iterator = self[Symbol.iterator]()
     let i = 0
@@ -1624,9 +1625,9 @@ export const filterMapWhile: {
         if (result.done) {
           return { done: true, value: undefined }
         }
-        const b = f(result.value, i++)
-        if (O.isSome(b)) {
-          return { done: false, value: b.value }
+        const next = f(result.value, i++)
+        if (R.isSuccess(next)) {
+          return { done: false, value: next.success }
         }
         return { done: true, value: undefined }
       }
@@ -1654,7 +1655,25 @@ export const filterMapWhile: {
  * @category filtering
  * @since 2.0.0
  */
-export const getSomes: <A>(self: Iterable<Option<A>>) => Iterable<A> = filterMap(identity)
+export const getSomes = <A>(self: Iterable<Option<A>>): Iterable<A> => {
+  return {
+    [Symbol.iterator]() {
+      const iterator = self[Symbol.iterator]()
+      return {
+        next() {
+          let result = iterator.next()
+          while (!result.done) {
+            if (O.isSome(result.value)) {
+              return { done: false, value: result.value.value }
+            }
+            result = iterator.next()
+          }
+          return { done: true, value: undefined }
+        }
+      }
+    }
+  }
+}
 
 /**
  * Retrieves the `Err` values from an `Iterable` of `Result`s.
@@ -1680,7 +1699,25 @@ export const getSomes: <A>(self: Iterable<Option<A>>) => Iterable<A> = filterMap
  * @category filtering
  * @since 2.0.0
  */
-export const getFailures = <R, L>(self: Iterable<Result<R, L>>): Iterable<L> => filterMap(self, R.getFailure)
+export const getFailures = <R0, L>(self: Iterable<Result<R0, L>>): Iterable<L> => {
+  return {
+    [Symbol.iterator]() {
+      const iterator = self[Symbol.iterator]()
+      return {
+        next() {
+          let result = iterator.next()
+          while (!result.done) {
+            if (R.isFailure(result.value)) {
+              return { done: false, value: result.value.failure }
+            }
+            result = iterator.next()
+          }
+          return { done: true, value: undefined }
+        }
+      }
+    }
+  }
+}
 
 /**
  * Retrieves the `Ok` values from an `Iterable` of `Result`s.
@@ -1706,7 +1743,25 @@ export const getFailures = <R, L>(self: Iterable<Result<R, L>>): Iterable<L> => 
  * @category filtering
  * @since 2.0.0
  */
-export const getSuccesses = <R, L>(self: Iterable<Result<R, L>>): Iterable<R> => filterMap(self, R.getSuccess)
+export const getSuccesses = <R0, L>(self: Iterable<Result<R0, L>>): Iterable<R0> => {
+  return {
+    [Symbol.iterator]() {
+      const iterator = self[Symbol.iterator]()
+      return {
+        next() {
+          let result = iterator.next()
+          while (!result.done) {
+            if (R.isSuccess(result.value)) {
+              return { done: false, value: result.value.success }
+            }
+            result = iterator.next()
+          }
+          return { done: true, value: undefined }
+        }
+      }
+    }
+  }
+}
 
 /**
  * Filters an iterable to only include elements that match a predicate.
@@ -1828,7 +1883,7 @@ export const flatMapNullishOr: {
   <A, B>(self: Iterable<A>, f: (a: A) => B): Iterable<NonNullable<B>> =>
     filterMap(self, (a) => {
       const b = f(a)
-      return b == null ? O.none() : O.some(b)
+      return b == null ? R.failVoid : R.succeed(b)
     })
 )
 

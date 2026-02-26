@@ -692,9 +692,20 @@ describe("Chunk", () => {
     )
   })
 
+  it("filterMap", () => {
+    assertEquals(
+      Chunk.filterMap(Chunk.make(1, 2, 3, 4), (n) => n % 2 === 0 ? Result.succeed(n * 2) : Result.failVoid),
+      Chunk.make(4, 8)
+    )
+    assertEquals(
+      Chunk.filterMap(Chunk.make(1, 2, 3, 4), (n, i) => (n + i) % 2 === 1 ? Result.succeed(n) : Result.failVoid),
+      Chunk.make(1, 2, 3, 4)
+    )
+  })
+
   it("filterMapWhile", () => {
     assertEquals(
-      Chunk.filterMapWhile(Chunk.make(1, 3, 4, 5), (n) => n % 2 === 1 ? Option.some(n) : Option.none()),
+      Chunk.filterMapWhile(Chunk.make(1, 3, 4, 5), (n) => n % 2 === 1 ? Result.succeed(n) : Result.failVoid),
       Chunk.make(1, 3)
     )
   })
