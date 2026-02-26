@@ -873,6 +873,8 @@ describe("Array", () => {
     deepStrictEqual(Arr.filterMap([], f), [])
     deepStrictEqual(Arr.filterMap([1, 2, 3], f), [2, 4])
     deepStrictEqual(pipe([1, 2, 3], Arr.filterMap(f)), [2, 4])
+    deepStrictEqual(pipe(new Set([1, 2, 3]), Arr.filterMap(f)), [2, 4])
+    deepStrictEqual(pipe([1, 2, 3][Symbol.iterator](), Arr.filterMap(f)), [2, 4])
   })
 
   it("partitionMap", () => {
@@ -1360,12 +1362,17 @@ describe("Array", () => {
   })
 
   it("partitionFilter", () => {
-    const f: Filter.Filter<number, number, string, [i: number]> = (n) =>
-      n > 0 ? Result.succeed(n) : Result.fail(`negative: ${n}`)
+    const f: Filter.Filter<number, number, string, [i: number]> = (n, i) =>
+      n > 0 ? Result.succeed(n + i) : Result.fail(`negative: ${n}:${i}`)
     deepStrictEqual(Arr.partitionFilter([], f), [[], []])
-    deepStrictEqual(Arr.partitionFilter([1, -2, 3, -4], f), [["negative: -2", "negative: -4"], [1, 3]])
-    deepStrictEqual(pipe([5, 10], Arr.partitionFilter(f)), [[], [5, 10]])
-    deepStrictEqual(pipe([-1, -2], Arr.partitionFilter(f)), [["negative: -1", "negative: -2"], []])
+    deepStrictEqual(Arr.partitionFilter([1, -2, 3, -4], f), [["negative: -2:1", "negative: -4:3"], [1, 5]])
+    deepStrictEqual(pipe([5, 10], Arr.partitionFilter(f)), [[], [5, 11]])
+    deepStrictEqual(pipe([-1, -2], Arr.partitionFilter(f)), [["negative: -1:0", "negative: -2:1"], []])
+    deepStrictEqual(pipe(new Set([1, -2, 3, -4]), Arr.partitionFilter(f)), [["negative: -2:1", "negative: -4:3"], [
+      1,
+      5
+    ]])
+    deepStrictEqual(pipe([1, -2, 3][Symbol.iterator](), Arr.partitionFilter(f)), [["negative: -2:1"], [1, 5]])
   })
 
   it("partition with predicate", () => {
