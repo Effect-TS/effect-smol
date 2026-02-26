@@ -907,15 +907,14 @@ export const bigintFromString = new Transformation(
  */
 export const durationFromNanos: Transformation<Duration.Duration, bigint> = transformOrFail({
   decode: (i) => Effect.succeed(Duration.nanos(i)),
-  encode: (a) => {
-    const nanos = Duration.toNanos(a)
-    if (Predicate.isUndefined(nanos)) {
-      return Effect.fail(
-        new Issue.InvalidValue(Option.some(a), { message: `Unable to encode ${a} into a bigint` })
-      )
-    }
-    return Effect.succeed(nanos)
-  }
+  encode: (a) =>
+    Option.match(Duration.toNanos(a), {
+      onNone: () =>
+        Effect.fail(
+          new Issue.InvalidValue(Option.some(a), { message: `Unable to encode ${a} into a bigint` })
+        ),
+      onSome: (nanos) => Effect.succeed(nanos)
+    })
 })
 
 /**

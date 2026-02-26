@@ -713,7 +713,9 @@ export const makePersisted = Effect.fnUntraced(function*(options: {
           yield* Ref.set(chat.history, history)
           // Export the chat history
           const exported = yield* Effect.orDie(chat.export)
-          const timeToLive = Predicate.isNotUndefined(ttl) ? Duration.fromInput(ttl) : undefined
+          const timeToLive = Predicate.isNotUndefined(ttl)
+            ? Option.getOrUndefined(Duration.fromInput(ttl))
+            : undefined
           // Save the chat to the backing store
           yield* store.set(chatId, exported as object, timeToLive)
         }
@@ -755,7 +757,9 @@ export const makePersisted = Effect.fnUntraced(function*(options: {
       // Export the chat history
       const history = yield* Effect.orDie(chat.export)
       // Save the history for the newly created chat
-      const timeToLive = Predicate.isNotUndefined(ttl) ? Duration.fromInput(ttl) : undefined
+      const timeToLive = Predicate.isNotUndefined(ttl)
+        ? Option.getOrUndefined(Duration.fromInput(ttl))
+        : undefined
       yield* store.set(chatId, history as object, timeToLive)
       // Convert the chat to a persisted chat
       return yield* toPersisted(chatId, chat, ttl)
