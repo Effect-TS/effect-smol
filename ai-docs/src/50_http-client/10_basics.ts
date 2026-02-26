@@ -48,7 +48,12 @@ export class JsonPlaceholder extends ServiceMap.Service<JsonPlaceholder, {
         // that it shows up in telemetry for this request.
         yield* Effect.annotateCurrentSpan({ id })
 
-        const todo = yield* client.get(`/todos/${id}`).pipe(
+        const todo = yield* client.get(`/todos/${id}`, {
+          // You can pass additional options to individual requests.
+          // There are options for query parameters, request body, headers, and
+          // more.
+          urlParams: { format: "json" }
+        }).pipe(
           Effect.flatMap(HttpClientResponse.schemaBodyJson(Todo)),
           Effect.mapError((cause) => new JsonPlaceholderError({ cause }))
         )
@@ -62,6 +67,8 @@ export class JsonPlaceholder extends ServiceMap.Service<JsonPlaceholder, {
         yield* Effect.annotateCurrentSpan({ title: todo.title })
 
         const createdTodo = yield* HttpClientRequest.post("/todos").pipe(
+          // The HttpClientRequest module has many helper functions for building requests.
+          HttpClientRequest.setUrlParams({ format: "json" }),
           HttpClientRequest.bodyJsonUnsafe(todo),
           client.execute,
           Effect.flatMap(HttpClientResponse.schemaBodyJson(Todo)),
