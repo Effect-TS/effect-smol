@@ -740,7 +740,7 @@ export const Duration = Schema.String.pipe(Schema.decodeTo(Schema.Duration, {
     const d = Duration_.fromInput(s as any)
     return Option.match(d, {
       onNone: () => Effect.fail(new Issue.InvalidValue(Option.some(s))),
-      onSome: (duration) => Effect.succeed(duration)
+      onSome: Effect.succeed
     })
   }),
   encode: Getter.forbidden(() => "Encoding Duration is not supported")
