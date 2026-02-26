@@ -147,7 +147,7 @@ export interface Single<Kind extends ParamKind, out A> extends Param<Kind, A> {
   readonly _tag: "Single"
   readonly kind: Kind
   readonly name: string
-  readonly description: string | undefined
+  readonly description: Option.Option<string>
   readonly aliases: ReadonlyArray<string>
   readonly primitiveType: Primitive.Primitive<A>
   readonly typeName?: string | undefined
@@ -193,8 +193,8 @@ export interface Variadic<Kind extends ParamKind, A> extends Param<Kind, Readonl
   readonly _tag: "Variadic"
   readonly kind: Kind
   readonly param: Param<Kind, A>
-  readonly min: number | undefined
-  readonly max: number | undefined
+  readonly min: Option.Option<number>
+  readonly max: Option.Option<number>
 }
 
 const Proto = {
@@ -268,7 +268,7 @@ export const makeSingle = <const Kind extends ParamKind, A>(params: {
   readonly name: string
   readonly primitiveType: Primitive.Primitive<A>
   readonly typeName?: string | undefined
-  readonly description?: string | undefined
+  readonly description?: Option.Option<string> | undefined
   readonly aliases?: ReadonlyArray<string> | undefined
 }): Single<Kind, A> => {
   const parse: Parse<A> = (args) =>
@@ -278,7 +278,7 @@ export const makeSingle = <const Kind extends ParamKind, A>(params: {
   return Object.assign(Object.create(Proto), {
     _tag: "Single",
     ...params,
-    description: params.description,
+    description: params.description ?? Option.none(),
     aliases: params.aliases ?? [],
     parse
   })
@@ -903,7 +903,7 @@ export const withDescription: {
   return transformSingle(self, <X>(single: Single<Kind, X>) =>
     makeSingle({
       ...single,
-      description
+      description: Option.some(description)
     }))
 })
 
@@ -1292,8 +1292,8 @@ export const variadic = <Kind extends ParamKind, A>(
     _tag: "Variadic",
     kind: self.kind,
     param: self,
-    min: options?.min,
-    max: options?.max,
+    min: Option.fromNullishOr(options?.min),
+    max: Option.fromNullishOr(options?.max),
     parse
   })
 }
@@ -1878,7 +1878,11 @@ const transformSingle = <Kind extends ParamKind, A>(
     Map: (mapped) => map(transformSingle(mapped.param, f), mapped.f),
     Transform: (mapped) => transform(transformSingle(mapped.param, f), mapped.f),
     Optional: (p) => optional(transformSingle(p.param, f)) as Param<Kind, A>,
-    Variadic: (p) => variadic(transformSingle(p.param, f), { min: p.min, max: p.max }) as Param<Kind, A>
+    Variadic: (p) =>
+      variadic(transformSingle(p.param, f), {
+        min: Option.getOrUndefined(p.min),
+        max: Option.getOrUndefined(p.max)
+      }) as Param<Kind, A>
   })
 }
 

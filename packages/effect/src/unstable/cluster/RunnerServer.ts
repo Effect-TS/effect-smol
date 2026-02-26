@@ -6,6 +6,7 @@ import type * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
 import { constant } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
+import * as Option from "../../Option.ts"
 import * as Queue from "../../Queue.ts"
 import * as RpcServer from "../rpc/RpcServer.ts"
 import type * as ClusterError from "./ClusterError.ts"
@@ -36,7 +37,7 @@ export const layerHandlers = Runners.Rpcs.toLayer(Effect.gen(function*() {
           ? new Message.IncomingRequest({
             envelope,
             respond: constVoid,
-            lastSentReply: undefined
+            lastSentReply: Option.none()
           })
           : new Message.IncomingEnvelope({ envelope })
       ),
@@ -52,7 +53,7 @@ export const layerHandlers = Runners.Rpcs.toLayer(Effect.gen(function*() {
       }
       const message = new Message.IncomingRequest({
         envelope: request,
-        lastSentReply: undefined,
+        lastSentReply: Option.none(),
         respond(reply) {
           resume(Effect.orDie(Reply.serialize(reply)))
           return Effect.void
@@ -103,7 +104,7 @@ export const layerHandlers = Runners.Rpcs.toLayer(Effect.gen(function*() {
         (queue) => {
           const message = new Message.IncomingRequest({
             envelope: request,
-            lastSentReply: undefined,
+            lastSentReply: Option.none(),
             respond(reply) {
               return Effect.flatMap(Reply.serialize(reply), (reply) => {
                 Queue.offerUnsafe(queue, reply)
@@ -191,6 +192,6 @@ export const layerClientOnly: Layer.Layer<
   Layer.provide(RunnerHealth.layerNoop),
   Layer.updateService(ShardingConfig, (config) => ({
     ...config,
-    runnerAddress: undefined
+    runnerAddress: Option.none()
   }))
 )

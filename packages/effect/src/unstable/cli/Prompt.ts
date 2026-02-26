@@ -1283,7 +1283,7 @@ const TRUE_VALUE_REGEXP = /^y|t$/
 const FALSE_VALUE_REGEXP = /^n|f$/
 
 const handleConfirmProcess = (input: Terminal.UserInput, defaultValue: boolean) => {
-  const value = input.input ?? ""
+  const value = Option.getOrElse(input.input, () => "")
   if (input.key.name === "enter" || input.key.name === "return") {
     return Effect.succeed(Action.Submit({ value: defaultValue }))
   }
@@ -1506,7 +1506,7 @@ const handleDateProcess = (options: DateOptionsReq) => {
         })
       }
       default: {
-        return Effect.succeed(defaultDateProcessor(input.input ?? "", state))
+        return Effect.succeed(defaultDateProcessor(Option.getOrElse(input.input, () => ""), state))
       }
     }
   }
@@ -2588,7 +2588,7 @@ const handleProcessInteger = (options: IntegerOptionsReq) => {
         }
       }
       default: {
-        return defaultIntProcessor(input.input ?? "", state)
+        return defaultIntProcessor(Option.getOrElse(input.input, () => ""), state)
       }
     }
   }
@@ -2662,7 +2662,7 @@ const handleProcessFloat = (options: FloatOptionsReq) => {
         }
       }
       default: {
-        return defaultFloatProcessor(input.input ?? "", state)
+        return defaultFloatProcessor(Option.getOrElse(input.input, () => ""), state)
       }
     }
   }
@@ -3066,7 +3066,7 @@ const handleAutoCompleteProcess = <A>(options: AutoCompleteOptionsReq<A>) => {
         return Effect.succeed(Action.Submit({ value: selected.value }))
       }
       default: {
-        return processAutoCompleteInput(input.input ?? "", state, options)
+        return processAutoCompleteInput(Option.getOrElse(input.input, () => ""), state, options)
       }
     }
   }
@@ -3297,7 +3297,7 @@ const handleTextProcess = (options: TextOptionsReq) => {
         return processTab(state, options)
       }
       default: {
-        return defaultTextProcessor(input.input ?? "", state)
+        return defaultTextProcessor(Option.getOrElse(input.input, () => ""), state)
       }
     }
   }

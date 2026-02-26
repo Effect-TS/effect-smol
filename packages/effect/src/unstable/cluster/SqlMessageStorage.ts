@@ -4,8 +4,8 @@
 import * as Arr from "../../Array.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
+import * as Option from "../../Option.ts"
 import * as Schedule from "../../Schedule.ts"
-import * as UndefinedOr from "../../UndefinedOr.ts"
 import * as Migrator from "../sql/Migrator.ts"
 import * as SqlClient from "../sql/SqlClient.ts"
 import type { Row } from "../sql/SqlConnection.ts"
@@ -138,7 +138,7 @@ export const make: (options?: {
 
   const messageFromRow = (row: MessageRow & ReplyJoinRow): {
     readonly envelope: Envelope.Encoded
-    readonly lastSentReply: Reply.Encoded | undefined
+    readonly lastSentReply: Option.Option<Reply.Encoded>
   } => {
     switch (Number(row.kind) as 0 | 1 | 2) {
       case 0:
@@ -163,14 +163,14 @@ export const make: (options?: {
               undefined)
           },
           lastSentReply: row.reply_reply_id ?
-            {
+            Option.some({
               _tag: "Chunk",
               id: String(row.reply_reply_id),
               requestId: String(row.request_id),
               sequence: Number(row.reply_sequence!),
               values: JSON.parse(row.reply_payload!)
-            } :
-            undefined
+            }) :
+            Option.none()
         }
       case 1:
         return {
@@ -185,7 +185,7 @@ export const make: (options?: {
               entityId: row.entity_id
             }
           },
-          lastSentReply: undefined
+          lastSentReply: Option.none()
         }
       case 2:
         return {
@@ -199,7 +199,7 @@ export const make: (options?: {
               entityId: row.entity_id
             }
           },
-          lastSentReply: undefined
+          lastSentReply: Option.none()
         }
     }
   }
@@ -398,21 +398,23 @@ export const make: (options?: {
             return SaveResultEncoded.Duplicate({
               originalId: Snowflake.Snowflake(row.id as any),
               lastReceivedReply: row.reply_id ?
-                replyKindNum === replyKind.WithExit ?
-                  {
-                    id: String(row.reply_id),
-                    requestId: String(row.id),
-                    _tag: "WithExit",
-                    exit: JSON.parse(row.reply_payload as string)
-                  } :
-                  {
-                    id: String(row.reply_id),
-                    requestId: String(row.id),
-                    _tag: "Chunk",
-                    sequence: Number(row.reply_sequence),
-                    values: JSON.parse(row.reply_payload as string)
-                  } :
-                undefined
+                Option.some(
+                  replyKindNum === replyKind.WithExit ?
+                    ({
+                      id: String(row.reply_id),
+                      requestId: String(row.id),
+                      _tag: "WithExit",
+                      exit: JSON.parse(row.reply_payload as string)
+                    }) :
+                    ({
+                      id: String(row.reply_id),
+                      requestId: String(row.id),
+                      _tag: "Chunk",
+                      sequence: Number(row.reply_sequence),
+                      values: JSON.parse(row.reply_payload as string)
+                    })
+                ) :
+                Option.none()
             })
           })
         )
@@ -455,7 +457,7 @@ export const make: (options?: {
 
     requestIdForPrimaryKey: (primaryKey) =>
       sql<{ id: string | bigint }>`SELECT id FROM ${messagesTableSql} WHERE message_id = ${primaryKey}`.pipe(
-        Effect.map((rows) => UndefinedOr.map(rows[0]?.id, Snowflake.Snowflake)),
+        Effect.map((rows) => Option.fromNullishOr(rows[0]?.id).pipe(Option.map(Snowflake.Snowflake))),
         Effect.provideService(SqlClient.SafeIntegers, true),
         PersistenceError.refail,
         withTracerDisabled
@@ -506,7 +508,7 @@ export const make: (options?: {
         }
         const messages: Array<{
           readonly envelope: Envelope.Encoded
-          readonly lastSentReply: Reply.Encoded | undefined
+          readonly lastSentReply: Option.Option<Reply.Encoded>
         }> = new Array(rows.length)
         const ids = new Array<string>(rows.length)
         for (let i = 0; i < rows.length; i++) {

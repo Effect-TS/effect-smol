@@ -6,6 +6,7 @@
  * Extracted from command.ts to avoid circular dependencies.
  */
 import * as Effect from "../../../Effect.ts"
+import * as Option from "../../../Option.ts"
 import type { Command } from "../Command.ts"
 import type * as GlobalFlag from "../GlobalFlag.ts"
 import type { FlagDoc, HelpDoc } from "../HelpDoc.ts"
@@ -136,7 +137,7 @@ export const getHelpForCommandPath = <Name extends string, Input, E, R>(
           name: single.name,
           aliases: formattedAliases,
           type: single.typeName ?? Primitive.getTypeName(single.primitiveType),
-          description: single.description,
+          description: Option.getOrUndefined(single.description),
           required: false
         })
       }

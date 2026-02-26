@@ -3,6 +3,7 @@
  */
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
 import * as Runners from "effect/unstable/cluster/Runners"
 import * as ShardingConfig from "effect/unstable/cluster/ShardingConfig"
 import * as RpcClient from "effect/unstable/rpc/RpcClient"
@@ -48,9 +49,9 @@ export const layerSocketServer: Layer.Layer<
   ShardingConfig.ShardingConfig
 > = Effect.gen(function*() {
   const config = yield* ShardingConfig.ShardingConfig
-  const listenAddress = config.runnerListenAddress ?? config.runnerAddress
-  if (listenAddress === undefined) {
+  const listenAddress = Option.orElse(config.runnerListenAddress, () => config.runnerAddress)
+  if (Option.isNone(listenAddress)) {
     return yield* Effect.die("layerSocketServer: ShardingConfig.runnerListenAddress is None")
   }
-  return NodeSocketServer.layer(listenAddress)
+  return NodeSocketServer.layer(listenAddress.value)
 }).pipe(Layer.unwrap)

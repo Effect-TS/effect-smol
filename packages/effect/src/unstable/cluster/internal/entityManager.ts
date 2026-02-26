@@ -17,7 +17,6 @@ import * as Schema from "../../../Schema.ts"
 import * as Issue from "../../../SchemaIssue.ts"
 import * as Scope from "../../../Scope.ts"
 import * as ServiceMap from "../../../ServiceMap.ts"
-import * as UndefinedOr from "../../../UndefinedOr.ts"
 import type * as Rpc from "../../rpc/Rpc.ts"
 import { RequestId } from "../../rpc/RpcMessage.ts"
 import * as RpcServer from "../../rpc/RpcServer.ts"
@@ -434,14 +433,19 @@ export const make = Effect.fnUntraced(function*<
                 return Effect.fail(new MailboxFull({ address: message.envelope.address }))
               }
 
+              const lastSentChunk = Option.filter(
+                message.lastSentReply,
+                (reply): reply is Reply.Chunk<Rpc.Any> => reply._tag === "Chunk"
+              )
+
               entry = {
                 rpc,
                 message,
                 sentReply: false,
-                lastSentChunk: message.lastSentReply as Reply.Chunk<Rpc.Any> | undefined,
-                sequence: UndefinedOr.match(message.lastSentReply, {
-                  onUndefined: () => 0,
-                  onDefined: (reply) => reply._tag === "Chunk" ? reply.sequence + 1 : 0
+                lastSentChunk: Option.getOrUndefined(lastSentChunk),
+                sequence: Option.match(lastSentChunk, {
+                  onNone: () => 0,
+                  onSome: (reply) => reply.sequence + 1
                 })
               }
               server.activeRequests.set(message.envelope.requestId, entry)
@@ -450,7 +454,7 @@ export const make = Effect.fnUntraced(function*<
                 id: RequestId(message.envelope.requestId),
                 payload: new Request({
                   ...message.envelope,
-                  lastSentChunk: message.lastSentReply as Reply.Chunk<R> | undefined
+                  lastSentChunk: lastSentChunk as Option.Option<Reply.Chunk<R>>
                 })
               })
             }
@@ -585,9 +589,9 @@ const makeMessageDecode = <Type extends string, Rpcs extends Rpc.Any>(
     rpc: Rpc.AnyWithProps
   ) {
     const payload = yield* Schema.decodeEffect(Schema.toCodecJson(rpc.payloadSchema))(message.envelope.payload)
-    const lastSentReply = message.lastSentReply !== undefined
-      ? yield* Schema.decodeEffect(Reply.Reply(rpc))(message.lastSentReply)
-      : undefined
+    const lastSentReply = Option.isSome(message.lastSentReply)
+      ? Option.some(yield* Schema.decodeEffect(Reply.Reply(rpc))(message.lastSentReply.value))
+      : Option.none()
     return {
       _tag: "IncomingRequest",
       envelope: {
@@ -602,7 +606,7 @@ const makeMessageDecode = <Type extends string, Rpcs extends Rpc.Any>(
     {
       readonly _tag: "IncomingRequest"
       readonly envelope: Envelope.Request.Any
-      readonly lastSentReply: Reply.Reply<Rpcs> | undefined
+      readonly lastSentReply: Option.Option<Reply.Reply<Rpcs>>
     } | {
       readonly _tag: "IncomingEnvelope"
       readonly envelope: Envelope.AckChunk | Envelope.Interrupt
@@ -627,7 +631,7 @@ const makeMessageDecode = <Type extends string, Rpcs extends Rpc.Any>(
       {
         readonly _tag: "IncomingRequest"
         readonly envelope: Envelope.Request.Any
-        readonly lastSentReply: Reply.Reply<Rpcs> | undefined
+        readonly lastSentReply: Option.Option<Reply.Reply<Rpcs>>
       },
       Schema.SchemaError,
       Rpc.ServicesServer<Rpcs>
