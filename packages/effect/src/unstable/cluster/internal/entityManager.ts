@@ -590,20 +590,16 @@ const makeMessageDecode = <Type extends string, Rpcs extends Rpc.Any>(
     rpc: Rpc.AnyWithProps
   ) {
     const payload = yield* Schema.decodeEffect(Schema.toCodecJson(rpc.payloadSchema))(message.envelope.payload)
-    const lastSentReply = Option.match(message.lastSentReply, {
-      onNone: () => Effect.succeedNone,
-      onSome: (lastSentReply) =>
-        Schema.decodeEffect(Reply.Reply(rpc))(lastSentReply).pipe(
-          Effect.map(Option.some)
-        )
-    })
+    const lastSentReply = Option.isNone(message.lastSentReply) ?
+      message.lastSentReply :
+      Option.some(yield* Schema.decodeEffect(Reply.Reply(rpc))(message.lastSentReply.value))
     return {
       _tag: "IncomingRequest",
       envelope: {
         ...message.envelope,
         payload
       } as Envelope.Request.Any,
-      lastSentReply: yield* lastSentReply
+      lastSentReply
     } as const
   })
 
