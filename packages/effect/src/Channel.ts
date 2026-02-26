@@ -4092,7 +4092,7 @@ const catch_: {
   InErr & InErr1,
   InDone & InDone1,
   Env | Env1
-> => catchCauseFilter(self, Cause.findError as any, (e: any) => f(e)) as any)
+> => catchCauseFilter(self, Cause.findError, (e) => f(e)))
 
 export {
   /**
@@ -5052,7 +5052,7 @@ export const catchReasons: {
   >
 } = dual((args) => isChannel(args[0]), (self, errorTag, cases, orElse) => {
   let keys: Set<string>
-  return catch_(self, (error: any) => {
+  return catch_(self, (error) => {
     if (
       isTagged(error, errorTag) &&
       hasProperty(error, "reason") &&
@@ -5160,9 +5160,9 @@ export const unwrapReason: {
 > =>
   catchFilter(
     self,
-    (error: any) =>
+    (error) =>
       isTagged(error, errorTag) && hasProperty(error, "reason") ? Result.succeed(error.reason) : Result.fail(error),
-    fail as any
+    fail
   ) as any)
 
 /**
