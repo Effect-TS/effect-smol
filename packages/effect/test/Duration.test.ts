@@ -85,6 +85,8 @@ describe("Duration", () => {
     assertSome(Duration.fromInput([0, Infinity]), Duration.infinity)
     assertSome(Duration.fromInput([0, -Infinity]), Duration.negativeInfinity)
     assertSome(Duration.fromInput([0, NaN]), Duration.zero)
+
+    assertNone(Duration.fromInput("invalid" as any))
   })
 
   it("Order", () => {
@@ -189,6 +191,8 @@ describe("Duration", () => {
 
     // infinity
     assertSome(Duration.divide(Duration.infinity, 2), Duration.infinity)
+    assertSome(Duration.divide(Duration.infinity, -2), Duration.negativeInfinity)
+    assertSome(Duration.divide(Duration.negativeInfinity, -2), Duration.infinity)
 
     // divide by zero
     assertNone(Duration.divide(Duration.minutes(1), 0))
@@ -444,6 +448,7 @@ describe("Duration", () => {
   it("toNanos", () => {
     assertSome(Duration.nanos(1n).pipe(Duration.toNanos), 1n)
     assertNone(Duration.infinity.pipe(Duration.toNanos))
+    assertNone(Duration.negativeInfinity.pipe(Duration.toNanos))
     assertSome(Duration.millis(1.0005).pipe(Duration.toNanos), 1_000_500n)
     assertSome(Duration.millis(100).pipe(Duration.toNanos), 100_000_000n)
   })
