@@ -153,6 +153,7 @@ export interface Bottom<
    * @throws {Error} The issue is contained in the error cause.
    */
   makeUnsafe(input: this["~type.make.in"], options?: MakeOptions): this["Type"]
+  makeOption(input: this["~type.make.in"], options?: MakeOptions): Option_.Option<this["Type"]>
 }
 
 /**
@@ -8034,6 +8035,9 @@ function makeClass<
     }
     static makeUnsafe(input: S["~type.make.in"], options?: MakeOptions): Self {
       return new this(input, options)
+    }
+    static makeOption(input: S["~type.make.in"], options?: MakeOptions): Option_.Option<Self> {
+      return Parser.makeOption(getClassSchema(this) as any)(input, options) as any
     }
     static annotate(annotations: Annotations.Declaration<Self, readonly [S]>) {
       return this.rebuild(AST.annotate(this.ast, annotations))

@@ -2272,6 +2272,28 @@ export const makeGreaterThan = <T>(options: {
 
 A constructor creates a value of the schema's type, running all validations at the time of creation. If the value does not satisfy the schema, the constructor throws an error. Every schema exposes a `makeUnsafe` method for this purpose.
 
+For a non-throwing alternative, use `Schema.makeOption` (or `SchemaParser.makeOption`), which returns `Option.Some` on success and `Option.None` on failure.
+
+```ts
+import { Schema, SchemaParser } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.Number.check(Schema.isGreaterThan(0))
+})
+
+console.log(schema.makeOption({ a: 1 }))
+// { _id: 'Option', _tag: 'Some', value: { a: 1 } }
+
+console.log(schema.makeOption({ a: -1 }))
+// { _id: 'Option', _tag: 'None' }
+
+// Equivalent standalone usage:
+const parse = SchemaParser.makeOption(schema)
+
+console.log(parse({ a: 1 }))
+// { _id: 'Option', _tag: 'Some', value: { a: 1 } }
+```
+
 ## Constructors in Composed Schemas
 
 To support constructing values from composed schemas, `makeUnsafe` is now available on all schemas, including unions.
