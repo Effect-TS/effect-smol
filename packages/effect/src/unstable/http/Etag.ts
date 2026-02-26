@@ -4,6 +4,7 @@
 import * as Effect from "../../Effect.ts"
 import type * as FileSystem from "../../FileSystem.ts"
 import * as Layer from "../../Layer.ts"
+import * as Option from "../../Option.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Body from "./HttpBody.ts"
 
@@ -54,9 +55,10 @@ export class Generator extends ServiceMap.Service<Generator, {
 }>()("effect/http/Etag/Generator") {}
 
 const fromFileInfo = (info: FileSystem.File.Info) => {
-  const mtime = info.mtime
-    ? info.mtime.getTime().toString(16)
-    : "0"
+  const mtime = Option.match(info.mtime, {
+    onNone: () => "0",
+    onSome: (mtime) => mtime.getTime().toString(16)
+  })
   return `${info.size.toString(16)}-${mtime}`
 }
 
