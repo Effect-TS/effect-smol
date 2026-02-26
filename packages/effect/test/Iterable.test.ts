@@ -332,8 +332,8 @@ describe("Iterable", () => {
       [1, 3]
     )
     deepStrictEqual(
-      pipe([1, 2, 3], Iter.filterMapWhile((n, i) => n === i + 1 ? Result.succeed(n + i) : Result.failVoid), toArray),
-      [1, 3, 5]
+      pipe([1, 2, 4], Iter.filterMapWhile((n, i) => n === i + 1 ? Result.succeed(n + i) : Result.failVoid), toArray),
+      [1, 3]
     )
   })
 

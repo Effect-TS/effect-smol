@@ -698,8 +698,8 @@ describe("Chunk", () => {
       Chunk.make(4, 8)
     )
     assertEquals(
-      Chunk.filterMap(Chunk.make(1, 2, 3, 4), (n, i) => (n + i) % 2 === 1 ? Result.succeed(n) : Result.failVoid),
-      Chunk.make(1, 2, 3, 4)
+      Chunk.filterMap(Chunk.make(1, 2, 3, 4), (n, i) => i % 2 === 0 ? Result.succeed(n + i) : Result.failVoid),
+      Chunk.make(1, 5)
     )
   })
 
