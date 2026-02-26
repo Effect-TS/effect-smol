@@ -516,7 +516,7 @@
                 "type": "object",
                 "properties": {
                   "file": {
-                    "$ref": "#/components/schemas/Arrays_1"
+                    "$ref": "#/components/schemas/String_4"
                   }
                 },
                 "required": ["file"],
@@ -577,7 +577,7 @@
                 "type": "object",
                 "properties": {
                   "file": {
-                    "$ref": "#/components/schemas/Arrays_1"
+                    "$ref": "#/components/schemas/String_4"
                   }
                 },
                 "required": ["file"],
@@ -627,6 +627,10 @@
       "String_1": {
         "type": "string"
       },
+      "String_4": {
+        "type": "string",
+        "format": "binary"
+      },
       "Undefined_": {
         "type": "null"
       },
@@ -639,42 +643,6 @@
             "$ref": "#/components/schemas/Undefined_"
           }
         ]
-      },
-      "Arrays_1": {
-        "allOf": [
-          {
-            "minItems": 1
-          },
-          {
-            "maxItems": 1
-          }
-        ],
-        "items": {
-          "additionalProperties": false,
-          "properties": {
-            "contentType": {
-              "type": "string",
-              "contentEncoding": "binary"
-            },
-            "key": {
-              "$ref": "#/components/schemas/String_1"
-            },
-            "name": {
-              "$ref": "#/components/schemas/String_1"
-            },
-            "path": {
-              "$ref": "#/components/schemas/String_1"
-            }
-          },
-          "required": [
-            "key",
-            "name",
-            "contentType",
-            "path"
-          ],
-          "type": "object"
-        },
-        "type": "array"
       },
       "ComponentsSchema": {
         "additionalProperties": false,
