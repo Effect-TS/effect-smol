@@ -258,9 +258,9 @@ const make = Effect.gen(function*() {
   // allow them to move to another runner.
 
   const releasingShards = MutableHashSet.empty<ShardId>()
-  const runnerAddress = getRunnerAddress()
-  if (runnerAddress) {
-    const selfAddress = runnerAddress
+  const initialRunnerAddress = getRunnerAddress()
+  if (initialRunnerAddress) {
+    const selfAddress = initialRunnerAddress
     yield* Scope.addFinalizerExit(shardingScope, () => {
       // the locks expire over time, so if this fails we ignore it
       return Effect.ignore(runnerStorage.releaseAll(selfAddress))
@@ -442,8 +442,8 @@ const make = Effect.gen(function*() {
   const storageReadLock = Semaphore.makeUnsafe(1)
   const withStorageReadLock = storageReadLock.withPermits(1)
 
-  if (storageEnabled && runnerAddress) {
-    const selfAddress = runnerAddress
+  if (storageEnabled && initialRunnerAddress) {
+    const selfAddress = initialRunnerAddress
     const entityRegistrationTimeoutMillis = Duration.toMillis(
       Duration.fromInputUnsafe(config.entityRegistrationTimeout)
     )
@@ -865,9 +865,9 @@ const make = Effect.gen(function*() {
   // shard assignments for outgoing messages (they could still be in use by
   // entities that are shutting down).
 
-  const selfRunner = runnerAddress ?
+  const selfRunner = initialRunnerAddress ?
     new Runner({
-      address: runnerAddress,
+      address: initialRunnerAddress,
       groups: config.shardGroups,
       weight: config.runnerShardWeight
     }) :
@@ -990,7 +990,7 @@ const make = Effect.gen(function*() {
     Effect.annotateLogs({
       module: "effect/cluster/Sharding",
       fiber: "RunnerStorage sync",
-      runner: runnerAddress
+      runner: initialRunnerAddress
     }),
     Effect.forkIn(shardingScope)
   )
@@ -1264,6 +1264,7 @@ const make = Effect.gen(function*() {
 
   const registerEntity: Sharding["Service"]["registerEntity"] = Effect.fnUntraced(
     function*(entity, build, options) {
+      const runnerAddress = getRunnerAddress()
       if (!runnerAddress || entityManagers.has(entity.type)) return
       const scope = yield* Effect.scope
       yield* Scope.addFinalizer(
