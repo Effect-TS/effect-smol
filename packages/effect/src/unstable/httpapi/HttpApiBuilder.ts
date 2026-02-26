@@ -20,7 +20,7 @@ import * as Transformation from "../../SchemaTransformation.ts"
 import type * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
-import type { Covariant } from "../../Types.ts"
+import type { Covariant, NoInfer } from "../../Types.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
 import type { Cookie } from "../http/Cookies.ts"
 import type * as Etag from "../http/Etag.ts"
@@ -63,7 +63,6 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
   | HttpPlatform
   | Path
   | HttpApiGroup.ToService<Id, Groups>
-  | HttpApiGroup.ErrorServicesEncode<Groups>
 > =>
   HttpRouter.use(Effect.fnUntraced(function*(router) {
     const services = yield* Effect.services<
@@ -168,7 +167,7 @@ export interface Handlers<
     | R
     | HttpApiEndpoint.MiddlewareWithName<Endpoints, Name>
     | HttpApiEndpoint.MiddlewareServicesWithName<Endpoints, Name>
-    | HttpApiEndpoint.ExcludeProvided<
+    | HttpApiEndpoint.ExcludeProvidedWithName<
       Endpoints,
       Name,
       R1 | HttpApiEndpoint.ServerServicesWithName<Endpoints, Name>
@@ -188,7 +187,7 @@ export interface Handlers<
     | R
     | HttpApiEndpoint.MiddlewareWithName<Endpoints, Name>
     | HttpApiEndpoint.MiddlewareServicesWithName<Endpoints, Name>
-    | HttpApiEndpoint.ExcludeProvided<
+    | HttpApiEndpoint.ExcludeProvidedWithName<
       Endpoints,
       Name,
       R1 | HttpApiEndpoint.ServerServicesWithName<Endpoints, Name>
@@ -283,6 +282,54 @@ export declare namespace Handlers {
     > ? _R | _RX :
     never
 }
+
+/**
+ * @since 4.0.0
+ * @category handlers
+ */
+export const endpoint = <
+  ApiId extends string,
+  Groups extends HttpApiGroup.Any,
+  const GroupName extends HttpApiGroup.Name<Groups>,
+  const EndpointName extends HttpApiEndpoint.Name<HttpApiGroup.Endpoints<HttpApiGroup.WithName<Groups, GroupName>>>,
+  R,
+  Group extends HttpApiGroup.Any = HttpApiGroup.WithName<Groups, GroupName>,
+  Endpoint extends HttpApiEndpoint.Any = HttpApiEndpoint.WithName<HttpApiGroup.Endpoints<Group>, EndpointName>
+>(
+  api: HttpApi.HttpApi<ApiId, Groups>,
+  groupName: GroupName,
+  endpointName: EndpointName,
+  handler: NoInfer<
+    HttpApiEndpoint.HandlerWithName<
+      HttpApiGroup.Endpoints<HttpApiGroup.WithName<Groups, GroupName>>,
+      EndpointName,
+      never,
+      R
+    >
+  >
+): Effect.Effect<
+  Effect.Effect<
+    HttpServerResponse,
+    never,
+    | HttpServerRequest
+    | HttpRouter.RouteContext
+    | Request.ParsedSearchParams
+    | Exclude<R, HttpApiEndpoint.MiddlewareProvides<Endpoint>>
+  >,
+  never,
+  | HttpApiEndpoint.ServerServices<Endpoint>
+  | HttpApiEndpoint.Middleware<Endpoint>
+  | HttpApiEndpoint.MiddlewareServices<Endpoint>
+  | Etag.Generator
+  | FileSystem
+  | HttpPlatform
+  | Path
+> =>
+  Effect.servicesWith((services: ServiceMap.ServiceMap<any>) => {
+    const group = api.groups[groupName] as unknown as HttpApiGroup.AnyWithProps
+    const endpoint = group.endpoints[endpointName] as unknown as HttpApiEndpoint.AnyWithProps
+    return Effect.succeed(handlerToHttpEffect(group, endpoint, services, handler as any, false))
+  })
 
 /**
  * @since 4.0.0
@@ -497,22 +544,23 @@ function decodePayload(
   }
 }
 
-function handlerToRoute(
+function handlerToHttpEffect(
   group: HttpApiGroup.AnyWithProps,
-  handler: Handlers.Item<any>,
-  services: ServiceMap.ServiceMap<any>
-): HttpRouter.Route<any, any> {
-  const endpoint = handler.endpoint
+  endpoint: HttpApiEndpoint.AnyWithProps,
+  services: ServiceMap.ServiceMap<any>,
+  handler: HttpApiEndpoint.Handler<any, any, any>,
+  isRaw: boolean
+) {
   const encodeSuccess = Schema.encodeUnknownEffect(makeSuccessSchema(endpoint))
   const encodeError = Schema.encodeUnknownEffect(makeErrorSchema(endpoint))
   const decodeParams = UndefinedOr.map(endpoint.params, Schema.decodeUnknownEffect)
   const decodeHeaders = UndefinedOr.map(endpoint.headers, Schema.decodeUnknownEffect)
   const decodeQuery = UndefinedOr.map(endpoint.query, Schema.decodeUnknownEffect)
 
-  const shouldParsePayload = endpoint.payload.size > 0 && !handler.isRaw
+  const shouldParsePayload = endpoint.payload.size > 0 && !isRaw
   const payloadBy = shouldParsePayload ? buildPayloadDecoders(endpoint.payload) : undefined
 
-  const effect = applyMiddleware(
+  return applyMiddleware(
     group,
     endpoint,
     services,
@@ -545,7 +593,7 @@ function handlerToRoute(
           request.payload = yield* result
         }
       }
-      const response = yield* handler.handler(request)
+      const response = yield* handler(request)
       return Response.isHttpServerResponse(response) ? response : yield* encodeSuccess(response)
     })
   ).pipe(
@@ -558,11 +606,18 @@ function handlerToRoute(
     }),
     Effect.provideServices(services)
   )
+}
 
+function handlerToRoute(
+  group: HttpApiGroup.AnyWithProps,
+  handler: Handlers.Item<any>,
+  services: ServiceMap.ServiceMap<any>
+): HttpRouter.Route<any, any> {
+  const endpoint = handler.endpoint
   return HttpRouter.route(
     endpoint.method,
     endpoint.path as HttpRouter.PathInput,
-    effect,
+    handlerToHttpEffect(group, endpoint, services, handler.handler, handler.isRaw),
     { uninterruptible: handler.uninterruptible }
   )
 }

@@ -513,8 +513,8 @@ export type ServerServices<Endpoint> = Endpoint extends HttpApiEndpoint<
     | _Payload["DecodingServices"]
     | _Headers["DecodingServices"]
     | _Success["EncodingServices"]
-  // Error services are handled globally
-  // | _Error["EncodingServices"]
+    | _Error["EncodingServices"]
+    | HttpApiMiddleware.ErrorServicesEncode<_M>
   : never
 
 /**
@@ -668,10 +668,19 @@ export type MiddlewareServicesWithName<Endpoints extends Any, Name extends strin
  * @since 4.0.0
  * @category models
  */
-export type ExcludeProvided<Endpoints extends Any, Name extends string, R> = Exclude<
+export type ExcludeProvidedWithName<Endpoints extends Any, Name extends string, R> = ExcludeProvided<
+  WithName<Endpoints, Name>,
+  R
+>
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type ExcludeProvided<Endpoint extends Any, R> = Exclude<
   R,
   | HttpRouter.Provided
-  | HttpApiMiddleware.Provides<MiddlewareWithName<Endpoints, Name>>
+  | HttpApiMiddleware.Provides<Middleware<Endpoint>>
 >
 
 /**
