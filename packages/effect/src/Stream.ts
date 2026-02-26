@@ -3937,7 +3937,7 @@ export const filter: {
         toChannel(self),
         (value): Filter.ApplyResult<A, Result> => Filter.apply(filter, value)
       )
-    ) as any
+    )
 )
 
 /**
@@ -4748,10 +4748,10 @@ export const catchIf: {
     Channel.catchFilter(
       toChannel(self),
       (error): Filter.ApplyResult<E, Result> => Filter.apply(filter, error),
-      (e: any) => f(e).channel,
-      orElse && ((e: any) => orElse(e).channel)
+      (e) => f(e).channel,
+      orElse && ((e) => orElse(e).channel)
     )
-  ) as any)
+  ))
 
 /**
  * Recovers from failures whose `_tag` matches the provided value by switching to
@@ -5316,7 +5316,7 @@ export const catchCauseIf: {
     Channel.catchCauseFilter(
       self.channel,
       ((cause: any) => Filter.apply(filter as any, cause)) as any,
-      (failure: any, cause: any) => (f as any)(failure, cause).channel
+      (failure, cause) => f(failure as any, cause).channel
     ) as any
   ))
 
