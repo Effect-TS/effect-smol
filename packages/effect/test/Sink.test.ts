@@ -7,7 +7,7 @@ import {
   deepStrictEqual,
   strictEqual
 } from "@effect/vitest/utils"
-import { Array, Cause, Effect, Option, Ref, Sink, Stream } from "effect"
+import { Array, Cause, Effect, Option, Ref, Result, Sink, Stream } from "effect"
 import { constTrue, pipe } from "effect/Function"
 
 describe("Sink", () => {
@@ -127,6 +127,40 @@ describe("Sink", () => {
         )
         const result = yield* Stream.runCollect(stream)
         deepStrictEqual(result, [[]])
+      }))
+  })
+
+  describe("takeWhile", () => {
+    it.effect("takeWhile", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.make(1, 2, 3, 4).pipe(
+          Stream.run(Sink.takeWhile((n) => n < 3))
+        )
+        deepStrictEqual(result, [1, 2])
+      }))
+
+    it.effect("takeWhileFilter", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.make(1, 2, 3, 4).pipe(
+          Stream.run(Sink.takeWhileFilter((n) => n < 3 ? Result.succeed(n * 2) : Result.failVoid))
+        )
+        deepStrictEqual(result, [2, 4])
+      }))
+
+    it.effect("takeWhileEffect", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.make(1, 2, 3, 4).pipe(
+          Stream.run(Sink.takeWhileEffect((n) => Effect.succeed(n < 3)))
+        )
+        deepStrictEqual(result, [1, 2])
+      }))
+
+    it.effect("takeWhileFilterEffect", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.make(1, 2, 3, 4).pipe(
+          Stream.run(Sink.takeWhileFilterEffect((n) => Effect.succeed(n < 3 ? Result.succeed(n + 1) : Result.failVoid)))
+        )
+        deepStrictEqual(result, [2, 3])
       }))
   })
 
