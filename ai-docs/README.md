@@ -12,6 +12,8 @@
 
 - Use numeric filename prefixes to control ordering (`10_`, `20_`, etc). Avoid starting with `0` unless explicity requested to do so.
 - Use a top JSDoc block with `@title` and optional description to control rendered title/description.
+- `fixtures` directories are ignored and not included in the generated
+  documentation. Use them for any supporting code or data needed for examples.
 
 ## Example guidelines
 

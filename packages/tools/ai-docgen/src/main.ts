@@ -77,8 +77,10 @@ const directoryToMarkdown = Effect.fn("directoryToMarkdown")(
       Effect.fn(function*(file) {
         const filePath = pathService.join(directory, file)
         const stat = yield* fs.stat(filePath)
+        const basename = pathService.basename(filePath)
 
         if (stat.type === "Directory") {
+          if (basename === "fixtures") return null
           return `${yield* directoryToMarkdown(filePath)}\n`
         } else if (/\.tsx?$/.test(file)) {
           const metadata = yield* tsFileMetadata(filePath)
