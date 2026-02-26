@@ -8,6 +8,9 @@ documentation and the source code found in `./packages`. Do not use
 `node_modules` or any other external documentation, as it may be outdated or
 incorrect.
 
+**Note**: The examples in this documentation contain comments for illustration
+purposes. In practice, you would not include these comments in your code.
+
 ## Writing `Effect` code
 
 Prefer writing Effect code with `Effect.gen` & `Effect.fn("name")`. Then attach
@@ -196,6 +199,20 @@ Learn how to safely manage resources in Effect using `Scope`s and finalizers.
   a resource, ensuring that it is properly cleaned up when the service is no
   longer needed.
 - **[Creating Layers that run background tasks](./ai-docs/src/01_effect/04_resources/20_layer-side-effects.ts)**: Use Layer.effectDiscard to encapsulate background tasks without a service interface.
+- **[Dynamic resources with LayerMap](./ai-docs/src/01_effect/04_resources/30_layer-map.ts)**:
+  Use `LayerMap.Service` to dynamically build and manage resources that are
+  keyed by some identifier, such as a tenant ID.
+
+## Running Effect programs
+
+- **[Running effects with NodeRuntime and BunRuntime](./ai-docs/src/01_effect/05_running/10_run-main.ts)**: Use `NodeRuntime.runMain` to run an Effect program as your process entrypoint.
+- **[Using Layer.launch as the application entry point](./ai-docs/src/01_effect/05_running/20_layer-launch.ts)**: Use `Layer.launch` to run a long-running Effect program as your process entrypoint.
+
+## Broadcasting messages with PubSub
+
+Use `PubSub` when you need one producer to fan out messages to many consumers.
+
+- **[Broadcasting domain events with PubSub](./ai-docs/src/01_effect/06_pubsub/10_pubsub.ts)**: Build an in-process event bus with `PubSub` and expose it as a service.
 
 ## Working with Streams
 
@@ -239,6 +256,11 @@ setup.
 - **[Customizing logging](./ai-docs/src/08_observability/10_logging.ts)**: Configure loggers & log-level filtering for production applications.
 - **[Setting up tracing with Otlp modules](./ai-docs/src/08_observability/20_otlp-tracing.ts)**: Configure Otlp tracing + log export with a reusable observability layer.
 
+## Testing Effect programs
+
+- **[Writing Effect tests with @effect/vitest](./ai-docs/src/09_testing/10_effect-tests.ts)**: Using `it.effect` for Effect-based tests.
+- **[Testing services with shared layers](./ai-docs/src/09_testing/20_layer-tests.ts)**: How to test Effect services that depend on other services.
+
 ## Effect HttpClient
 
 Build http clients with the `HttpClient` module.
@@ -255,12 +277,9 @@ managing the flow of a CLI application.
   Build a command-line app with typed arguments and flags, then wire subcommand
   handlers into a single executable command.
 
-## Working with Cluster entities
+## Building distributed applications with cluster
 
 The cluster modules let you model stateful services as entities and distribute
 them across multiple machines.
 
-- **[Defining cluster entities](./ai-docs/src/80_cluster/10_entities.ts)**:
-  Define entity RPCs, implement stateful handlers, and call entities through a
-  typed client. This example also shows `SingleRunner.layer` for local
-  development and `maxIdleTime` for passivation.
+- **[Defining cluster entities](./ai-docs/src/80_cluster/10_entities.ts)**: Define distributed entity RPCs and run them in a cluster.

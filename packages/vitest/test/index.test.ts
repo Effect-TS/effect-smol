@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, it, layer } from "@effect/vitest"
+import { afterAll, assert, describe, expect, it, layer } from "@effect/vitest"
 import { Clock, Duration, Effect, Fiber, Layer, ServiceMap } from "effect"
 import { FastCheck, TestClock } from "effect/testing"
 
@@ -202,15 +202,13 @@ it.prop(
 it.effect.prop("symmetry", [realNumber, FastCheck.integer()], ([a, b]) =>
   Effect.gen(function*() {
     yield* Effect.void
-
-    return a + b === b + a
+    assert.isTrue(a + b === b + a)
   }))
 
 it.effect.prop("symmetry with object", { a: realNumber, b: FastCheck.integer() }, ({ a, b }) =>
   Effect.gen(function*() {
     yield* Effect.void
-
-    return a + b === b + a
+    assert.strictEqual(a + b, b + a)
   }))
 
 it.effect.prop(
@@ -219,6 +217,6 @@ it.effect.prop(
   ({ a, b, c }) =>
     Effect.gen(function*() {
       yield* Effect.scope
-      return (a + b + c).includes(b)
+      assert.include(a + b + c, b)
     })
 )

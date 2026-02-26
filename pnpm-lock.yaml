@@ -217,6 +217,9 @@ importers:
       '@effect/sql-sqlite-wasm':
         specifier: workspace:*
         version: link:../packages/sql/sqlite-wasm
+      '@effect/vitest':
+        specifier: workspace:*
+        version: link:../packages/vitest
       effect:
         specifier: workspace:*
         version: link:../packages/effect
