@@ -3921,6 +3921,14 @@ export * as Tuple from "./Tuple.ts"
 export * as TxChunk from "./TxChunk.ts"
 
 /**
+ * A transactional deferred value — a write-once cell that can be read within transactions.
+ * Readers retry until a value is set; once set, the value is immutable.
+ *
+ * @since 4.0.0
+ */
+export * as TxDeferred from "./TxDeferred.ts"
+
+/**
  * @since 2.0.0
  */
 export * as TxHashMap from "./TxHashMap.ts"
@@ -3929,6 +3937,25 @@ export * as TxHashMap from "./TxHashMap.ts"
  * @since 2.0.0
  */
 export * as TxHashSet from "./TxHashSet.ts"
+
+/**
+ * A transactional priority queue. Elements are dequeued in order determined by the
+ * provided `Order` instance. All operations participate in the STM transaction system.
+ *
+ * @since 4.0.0
+ */
+export * as TxPriorityQueue from "./TxPriorityQueue.ts"
+
+/**
+ * TxPubSub is a transactional publish/subscribe hub that provides Software Transactional Memory
+ * (STM) semantics for message broadcasting. Publishers broadcast messages to all current
+ * subscribers, with each subscriber receiving its own copy of every published message.
+ *
+ * Supports multiple queue strategies: bounded, unbounded, dropping, and sliding.
+ *
+ * @since 4.0.0
+ */
+export * as TxPubSub from "./TxPubSub.ts"
 
 /**
  * TxQueue is a transactional queue data structure that provides Software Transactional Memory (STM)
@@ -3942,6 +3969,26 @@ export * as TxHashSet from "./TxHashSet.ts"
  * @since 4.0.0
  */
 export * as TxQueue from "./TxQueue.ts"
+
+/**
+ * A transactional pseudo-random number generator. The PRNG state lives in a
+ * `TxRef`, so rolling back a transaction also rolls back the random state.
+ *
+ * Uses the PCG-XSH-RR algorithm for deterministic, high-quality random output.
+ *
+ * @since 4.0.0
+ */
+export * as TxRandom from "./TxRandom.ts"
+
+/**
+ * TxReentrantLock is a transactional read/write lock with reentrant semantics using Software
+ * Transactional Memory (STM). Multiple readers can hold the lock concurrently, OR a single
+ * writer can hold exclusive access. A fiber holding a write lock may acquire additional
+ * read or write locks (reentrancy).
+ *
+ * @since 4.0.0
+ */
+export * as TxReentrantLock from "./TxReentrantLock.ts"
 
 /**
  * TxRef is a transactional value, it can be read and modified within the body of a transaction.
@@ -3959,6 +4006,14 @@ export * as TxRef from "./TxRef.ts"
  * @since 4.0.0
  */
 export * as TxSemaphore from "./TxSemaphore.ts"
+
+/**
+ * TxSubscriptionRef is a TxRef that allows subscribing to all committed changes. Subscribers
+ * receive the current value followed by every subsequent update via a transactional queue.
+ *
+ * @since 4.0.0
+ */
+export * as TxSubscriptionRef from "./TxSubscriptionRef.ts"
 
 /**
  * Type-level utility types for TypeScript.
