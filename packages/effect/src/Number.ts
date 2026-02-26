@@ -133,7 +133,16 @@ export const divide: {
 /**
  * Provides an unsafe division operation on `number`s.
  *
- * This operation delegates to JavaScript division semantics.
+ * Throws a `RangeError` if the divisor is `0`.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Number } from "effect"
+ *
+ * Number.divideUnsafe(6, 3) // 2
+ * Number.divideUnsafe(6, 0) // throws RangeError("Division by zero")
+ * ```
  *
  * @category math
  * @since 2.0.0
@@ -141,7 +150,11 @@ export const divide: {
 export const divideUnsafe: {
   (that: number): (self: number) => number
   (self: number, that: number): number
-} = dual(2, (self: number, that: number): number => self / that)
+} = dual(
+  2,
+  (self: number, that: number): number =>
+    Option.getOrThrowWith(divide(self, that), () => new RangeError("Division by zero"))
+)
 
 /**
  * Returns the result of adding `1` to a given number.

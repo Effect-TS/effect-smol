@@ -1,6 +1,6 @@
 import { Number } from "effect"
 import { describe, it } from "vitest"
-import { assertNone, assertSome, strictEqual } from "./utils/assert.ts"
+import { assertNone, assertSome, strictEqual, throws } from "./utils/assert.ts"
 
 describe("Number", () => {
   it("Equivalence", () => {
@@ -13,7 +13,7 @@ describe("Number", () => {
     assertSome(Number.divide(6, 3), 2)
     assertNone(Number.divide(6, 0))
     strictEqual(Number.divideUnsafe(6, 3), 2)
-    strictEqual(Number.divideUnsafe(6, 0), Infinity)
+    throws(() => Number.divideUnsafe(6, 0), new RangeError("Division by zero"))
   })
 
   it("parse", () => {
