@@ -2484,6 +2484,67 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     await encoding.succeed(Option.some(1), "1")
   })
 
+  it("OptionFromUndefinedOr", async () => {
+    const schema = Schema.OptionFromUndefinedOr(Schema.FiniteFromString)
+    const asserts = new TestSchema.Asserts(schema)
+
+    if (verifyGeneration) {
+      const arbitrary = asserts.arbitrary()
+      arbitrary.verifyGeneration()
+    }
+
+    const decoding = asserts.decoding()
+    await decoding.succeed(undefined, Option.none())
+    await decoding.succeed("1", Option.some(1))
+    await decoding.fail("a", `Expected a finite number, got NaN`)
+
+    const encoding = asserts.encoding()
+    await encoding.succeed(Option.none(), undefined)
+    await encoding.succeed(Option.some(1), "1")
+  })
+
+  describe("OptionFromNullishOr", () => {
+    it("onNoneEncoding: null", async () => {
+      const schema = Schema.OptionFromNullishOr(Schema.FiniteFromString, { onNoneEncoding: null })
+      const asserts = new TestSchema.Asserts(schema)
+
+      if (verifyGeneration) {
+        const arbitrary = asserts.arbitrary()
+        arbitrary.verifyGeneration()
+      }
+
+      const decoding = asserts.decoding()
+      await decoding.succeed(null, Option.none())
+      await decoding.succeed(undefined, Option.none())
+      await decoding.succeed("1", Option.some(1))
+      await decoding.fail("a", `Expected a finite number, got NaN`)
+
+      const encoding = asserts.encoding()
+      await encoding.succeed(Option.none(), null)
+      await encoding.succeed(Option.some(1), "1")
+    })
+
+    it("onNoneEncoding: undefined", async () => {
+      const schema = Schema.OptionFromNullishOr(Schema.FiniteFromString, { onNoneEncoding: undefined })
+      const asserts = new TestSchema.Asserts(schema)
+
+      if (verifyGeneration) {
+        const arbitrary = asserts.arbitrary()
+        arbitrary.verifyGeneration()
+      }
+
+      const decoding = asserts.decoding()
+      await decoding.succeed(null, Option.none())
+      await decoding.succeed(undefined, Option.none())
+      await decoding.succeed("1", Option.some(1))
+      await decoding.fail("a", `Expected a finite number, got NaN`)
+
+      const encoding = asserts.encoding()
+      await encoding.succeed(Option.none(), undefined)
+      await encoding.succeed(Option.some(1), "1")
+    })
+  })
+
   it("OptionFromOptionalKey", async () => {
     const schema = Schema.Struct({
       a: Schema.OptionFromOptionalKey(Schema.FiniteFromString)

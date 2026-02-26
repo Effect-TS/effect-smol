@@ -1006,8 +1006,7 @@ export const errorFromErrorJsonEncoded = (options?: {
  * ```
  *
  * See also:
- * - {@link optionFromOptionalKey}
- * - {@link optionFromOptional}
+ * - {@link optionFromNullishOr}
  *
  * @since 4.0.0
  */
@@ -1015,6 +1014,88 @@ export function optionFromNullOr<T>(): Transformation<Option.Option<T>, T | null
   return transform({
     decode: Option.fromNullOr,
     encode: Option.getOrNull
+  })
+}
+
+/**
+ * Decodes `T | undefined` into `Option<T>` and encodes `Option<T>` back
+ * to `T | undefined`.
+ *
+ * When to use this:
+ * - Converting undefined-or API fields to `Option`.
+ *
+ * Behavior:
+ * - Decode: `undefined` → `Option.none()`, non-undefined → `Option.some(value)`.
+ * - Encode: `Option.none()` → `undefined`, `Option.some(value)` → `value`.
+ * - Pure and synchronous.
+ *
+ * **Example** (Option from undefined-or)
+ *
+ * ```ts
+ * import { Schema, SchemaTransformation } from "effect"
+ *
+ * const schema = Schema.UndefinedOr(Schema.String).pipe(
+ *   Schema.decodeTo(
+ *     Schema.Option(Schema.String),
+ *     SchemaTransformation.optionFromUndefinedOr()
+ *   )
+ * )
+ * ```
+ *
+ * See also:
+ * - {@link optionFromOptionalKey}
+ * - {@link optionFromOptional}
+ *
+ * @since 4.0.0
+ */
+export function optionFromUndefinedOr<T>(): Transformation<Option.Option<T>, T | undefined> {
+  return transform({
+    decode: Option.fromUndefinedOr,
+    encode: Option.getOrUndefined
+  })
+}
+
+/**
+ * Decodes `T | null | undefined` into `Option<T>` and encodes `Option<T>`
+ * back to `T | null` or `T | undefined` depending on the provided `options.onNoneEncoding` (defaults to `undefined`).
+ *
+ * When to use this:
+ * - Converting nullish API fields to `Option` when both `null` and
+ *   `undefined` represent absence.
+ *
+ * Behavior:
+ * - Decode: `null` or `undefined` → `Option.none()`, otherwise → `Option.some(value)`.
+ * - Encode: `Option.none()` → `null` or `undefined` (per `options.onNoneEncoding`),
+ *   `Option.some(value)` → `value`.
+ * - Pure and synchronous.
+ *
+ * **Example** (Option from nullish, encoding None as null)
+ *
+ * ```ts
+ * import { Schema, SchemaTransformation } from "effect"
+ *
+ * const schema = Schema.NullishOr(Schema.String).pipe(
+ *   Schema.decodeTo(
+ *     Schema.Option(Schema.String),
+ *     SchemaTransformation.optionFromNullishOr({ onNoneEncoding: null })
+ *   )
+ * )
+ * ```
+ *
+ * See also:
+ * - {@link optionFromNullOr}
+ * - {@link optionFromUndefinedOr}
+ *
+ * @since 4.0.0
+ */
+export function optionFromNullishOr<T>(
+  options?: {
+    onNoneEncoding: null | undefined
+  }
+): Transformation<Option.Option<T>, T | null | undefined> {
+  return transform({
+    decode: Option.fromNullishOr,
+    encode: options?.onNoneEncoding === null ? Option.getOrNull : Option.getOrUndefined
   })
 }
 
@@ -1047,8 +1128,8 @@ export function optionFromNullOr<T>(): Transformation<Option.Option<T>, T | null
  * ```
  *
  * See also:
- * - {@link optionFromNullOr}
  * - {@link optionFromOptional}
+ * - {@link optionFromUndefinedOr}
  * - {@link transformOptional}
  *
  * @since 4.0.0
@@ -1088,8 +1169,8 @@ export function optionFromOptionalKey<T>(): Transformation<Option.Option<T>, T> 
  * ```
  *
  * See also:
- * - {@link optionFromNullOr}
  * - {@link optionFromOptionalKey}
+ * - {@link optionFromUndefinedOr}
  * - {@link transformOptional}
  *
  * @since 4.0.0
