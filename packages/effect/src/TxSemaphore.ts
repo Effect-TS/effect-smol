@@ -100,7 +100,7 @@ const makeTxSemaphore = (permitsRef: TxRef.TxRef<number>, capacity: number): TxS
  * @since 4.0.0
  * @category constructors
  */
-export const make = (permits: number): Effect.Effect<TxSemaphore> =>
+export const make = (permits: number): Effect.Effect<TxSemaphore, never, Effect.Transaction> =>
   Effect.gen(function*() {
     if (permits < 0) {
       return yield* Effect.die(new Error("Permits must be non-negative"))
@@ -140,7 +140,8 @@ export const make = (permits: number): Effect.Effect<TxSemaphore> =>
  * @since 4.0.0
  * @category combinators
  */
-export const available = (self: TxSemaphore): Effect.Effect<number> => TxRef.get(self.permitsRef)
+export const available = (self: TxSemaphore): Effect.Effect<number, never, Effect.Transaction> =>
+  TxRef.get(self.permitsRef)
 
 /**
  * Gets the maximum capacity (total permits) of the semaphore.
@@ -200,16 +201,14 @@ export const capacity = (self: TxSemaphore): Effect.Effect<number> => Effect.suc
  * @since 4.0.0
  * @category combinators
  */
-export const acquire = (self: TxSemaphore): Effect.Effect<void> =>
-  Effect.atomic(
-    Effect.gen(function*() {
-      const permits = yield* TxRef.get(self.permitsRef)
-      if (permits <= 0) {
-        return yield* Effect.retryTransaction
-      }
-      yield* TxRef.set(self.permitsRef, permits - 1)
-    })
-  )
+export const acquire = (self: TxSemaphore): Effect.Effect<void, never, Effect.Transaction> =>
+  Effect.gen(function*() {
+    const permits = yield* TxRef.get(self.permitsRef)
+    if (permits <= 0) {
+      return yield* Effect.retryTransaction
+    }
+    yield* TxRef.set(self.permitsRef, permits - 1)
+  })
 
 /**
  * Acquires the specified number of permits from the semaphore. If not enough
@@ -238,19 +237,17 @@ export const acquire = (self: TxSemaphore): Effect.Effect<void> =>
  * @since 4.0.0
  * @category combinators
  */
-export const acquireN = (self: TxSemaphore, n: number): Effect.Effect<void> => {
+export const acquireN = (self: TxSemaphore, n: number): Effect.Effect<void, never, Effect.Transaction> => {
   if (n <= 0) {
     return Effect.die(new Error("Number of permits must be positive"))
   }
-  return Effect.atomic(
-    Effect.gen(function*() {
-      const permits = yield* TxRef.get(self.permitsRef)
-      if (permits < n) {
-        return yield* Effect.retryTransaction
-      }
-      yield* TxRef.set(self.permitsRef, permits - n)
-    })
-  )
+  return Effect.gen(function*() {
+    const permits = yield* TxRef.get(self.permitsRef)
+    if (permits < n) {
+      return yield* Effect.retryTransaction
+    }
+    yield* TxRef.set(self.permitsRef, permits - n)
+  })
 }
 
 /**
@@ -280,7 +277,7 @@ export const acquireN = (self: TxSemaphore, n: number): Effect.Effect<void> => {
  * @since 4.0.0
  * @category combinators
  */
-export const tryAcquire = (self: TxSemaphore): Effect.Effect<boolean> =>
+export const tryAcquire = (self: TxSemaphore): Effect.Effect<boolean, never, Effect.Transaction> =>
   TxRef.modify(self.permitsRef, (permits: number) => {
     if (permits > 0) {
       return [true, permits - 1]
@@ -316,7 +313,7 @@ export const tryAcquire = (self: TxSemaphore): Effect.Effect<boolean> =>
  * @since 4.0.0
  * @category combinators
  */
-export const tryAcquireN = (self: TxSemaphore, n: number): Effect.Effect<boolean> => {
+export const tryAcquireN = (self: TxSemaphore, n: number): Effect.Effect<boolean, never, Effect.Transaction> => {
   if (n <= 0) {
     return Effect.die(new Error("Number of permits must be positive"))
   }
@@ -356,7 +353,7 @@ export const tryAcquireN = (self: TxSemaphore, n: number): Effect.Effect<boolean
  * @since 4.0.0
  * @category combinators
  */
-export const release = (self: TxSemaphore): Effect.Effect<void> =>
+export const release = (self: TxSemaphore): Effect.Effect<void, never, Effect.Transaction> =>
   TxRef.update(self.permitsRef, (permits: number) => permits >= self.capacity ? permits : permits + 1)
 
 /**
@@ -388,7 +385,7 @@ export const release = (self: TxSemaphore): Effect.Effect<void> =>
  * @since 4.0.0
  * @category combinators
  */
-export const releaseN = (self: TxSemaphore, n: number): Effect.Effect<void> => {
+export const releaseN = (self: TxSemaphore, n: number): Effect.Effect<void, never, Effect.Transaction> => {
   if (n <= 0) {
     return Effect.die(new Error("Number of permits must be positive"))
   }
@@ -441,9 +438,9 @@ export const withPermit = <A, E, R>(
   effect: Effect.Effect<A, E, R>
 ): Effect.Effect<A, E, R> =>
   Effect.acquireUseRelease(
-    acquire(self),
+    Effect.transaction(acquire(self)),
     () => effect,
-    () => release(self)
+    () => Effect.transaction(release(self))
   )
 
 /**
@@ -491,9 +488,9 @@ export const withPermits = <A, E, R>(
   effect: Effect.Effect<A, E, R>
 ): Effect.Effect<A, E, R> =>
   Effect.acquireUseRelease(
-    acquireN(self, n),
+    Effect.transaction(acquireN(self, n)),
     () => effect,
-    () => releaseN(self, n)
+    () => Effect.transaction(releaseN(self, n))
   )
 
 /**
@@ -537,8 +534,8 @@ export const withPermits = <A, E, R>(
  */
 export const withPermitScoped = (self: TxSemaphore): Effect.Effect<void, never, Scope.Scope> =>
   Effect.acquireRelease(
-    acquire(self),
-    () => release(self)
+    Effect.transaction(acquire(self)),
+    () => Effect.transaction(release(self))
   )
 
 /**

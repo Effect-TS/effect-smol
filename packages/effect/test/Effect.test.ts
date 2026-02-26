@@ -2068,37 +2068,29 @@ describe("Effect", () => {
     describe("basic isolation", () => {
       it.effect("should create isolated transaction boundaries", () =>
         Effect.gen(function*() {
-          const ref1 = yield* TxRef.make(0)
-          const ref2 = yield* TxRef.make(100)
+          const ref1 = TxRef.makeUnsafe(0)
+          const ref2 = TxRef.makeUnsafe(100)
 
-          // Nested atomic transaction - should compose
-          yield* Effect.atomic(Effect.gen(function*() {
-            yield* TxRef.set(ref1, 10)
+          // Each Effect.transaction creates an isolated boundary
+          yield* Effect.transaction(TxRef.set(ref1, 10))
 
-            // This atomic operation composes with the parent
-            yield* Effect.atomic(
-              // Part of same transaction
-              TxRef.set(ref1, 20)
-            )
-          }))
-
-          // Isolated transaction - should be independent
+          // Another isolated transaction
           yield* Effect.transaction(TxRef.set(ref2, 200))
 
-          const val1 = yield* TxRef.get(ref1)
-          const val2 = yield* TxRef.get(ref2)
+          const val1 = yield* Effect.transaction(TxRef.get(ref1))
+          const val2 = yield* Effect.transaction(TxRef.get(ref2))
 
-          assert.strictEqual(val1, 20)
+          assert.strictEqual(val1, 10)
           assert.strictEqual(val2, 200)
         }))
 
       it.effect("should isolate failures between parent and child transactions", () =>
         Effect.gen(function*() {
-          const ref1 = yield* TxRef.make(0)
-          const ref2 = yield* TxRef.make(100)
+          const ref1 = TxRef.makeUnsafe(0)
+          const ref2 = TxRef.makeUnsafe(100)
 
-          // Parent atomic transaction that will fail
-          const parentError = yield* Effect.atomic(Effect.gen(function*() {
+          // Parent transaction that will fail
+          const parentError = yield* Effect.transaction(Effect.gen(function*() {
             yield* TxRef.set(ref1, 10)
 
             // Child isolated transaction should commit independently
@@ -2108,8 +2100,8 @@ describe("Effect", () => {
             return yield* Effect.fail("parent failed")
           })).pipe(Effect.flip)
 
-          const val1 = yield* TxRef.get(ref1)
-          const val2 = yield* TxRef.get(ref2)
+          const val1 = yield* Effect.transaction(TxRef.get(ref1))
+          const val2 = yield* Effect.transaction(TxRef.get(ref2))
 
           assert.strictEqual(parentError, "parent failed")
           assert.strictEqual(val1, 0) // Parent transaction rolled back
@@ -2118,11 +2110,11 @@ describe("Effect", () => {
 
       it.effect("should isolate failures from child to parent transactions", () =>
         Effect.gen(function*() {
-          const ref1 = yield* TxRef.make(0)
-          const ref2 = yield* TxRef.make(100)
+          const ref1 = TxRef.makeUnsafe(0)
+          const ref2 = TxRef.makeUnsafe(100)
 
-          // Parent atomic transaction should succeed
-          yield* Effect.atomic(Effect.gen(function*() {
+          // Parent transaction should succeed
+          yield* Effect.transaction(Effect.gen(function*() {
             yield* TxRef.set(ref1, 10)
 
             // Child isolated transaction that fails
@@ -2138,8 +2130,8 @@ describe("Effect", () => {
             assert.strictEqual(Result.isFailure(childResult), true)
           }))
 
-          const val1 = yield* TxRef.get(ref1)
-          const val2 = yield* TxRef.get(ref2)
+          const val1 = yield* Effect.transaction(TxRef.get(ref1))
+          const val2 = yield* Effect.transaction(TxRef.get(ref2))
 
           assert.strictEqual(val1, 20) // Parent transaction committed
           assert.strictEqual(val2, 100) // Child transaction rolled back
@@ -2149,11 +2141,11 @@ describe("Effect", () => {
     describe("transaction nesting", () => {
       it.effect("should handle multiple levels of nested isolated transactions", () =>
         Effect.gen(function*() {
-          const ref1 = yield* TxRef.make(0)
-          const ref2 = yield* TxRef.make(0)
-          const ref3 = yield* TxRef.make(0)
+          const ref1 = TxRef.makeUnsafe(0)
+          const ref2 = TxRef.makeUnsafe(0)
+          const ref3 = TxRef.makeUnsafe(0)
 
-          yield* Effect.atomic(Effect.gen(function*() {
+          yield* Effect.transaction(Effect.gen(function*() {
             yield* TxRef.set(ref1, 1)
 
             yield* Effect.transaction(Effect.gen(function*() {
@@ -2163,9 +2155,9 @@ describe("Effect", () => {
             }))
           }))
 
-          const val1 = yield* TxRef.get(ref1)
-          const val2 = yield* TxRef.get(ref2)
-          const val3 = yield* TxRef.get(ref3)
+          const val1 = yield* Effect.transaction(TxRef.get(ref1))
+          const val2 = yield* Effect.transaction(TxRef.get(ref2))
+          const val3 = yield* Effect.transaction(TxRef.get(ref3))
 
           assert.strictEqual(val1, 1)
           assert.strictEqual(val2, 2)
@@ -2176,7 +2168,7 @@ describe("Effect", () => {
     describe("transactionWith function", () => {
       it.effect("should provide isolated transaction state", () =>
         Effect.gen(function*() {
-          const ref = yield* TxRef.make(0)
+          const ref = TxRef.makeUnsafe(0)
 
           const result = yield* Effect.transactionWith((txState) =>
             Effect.gen(function*() {
@@ -2204,12 +2196,12 @@ describe("Effect", () => {
           assert.strictEqual(result.retry, false)
         }))
 
-      it.effect("should maintain isolation when nested in atomic blocks", () =>
+      it.effect("should maintain isolation when nested in transaction blocks", () =>
         Effect.gen(function*() {
-          const ref1 = yield* TxRef.make(0)
-          const ref2 = yield* TxRef.make(0)
+          const ref1 = TxRef.makeUnsafe(0)
+          const ref2 = TxRef.makeUnsafe(0)
 
-          yield* Effect.atomic(Effect.gen(function*() {
+          yield* Effect.transaction(Effect.gen(function*() {
             yield* TxRef.set(ref1, 10)
 
             // This should run in its own isolated transaction
@@ -2226,37 +2218,43 @@ describe("Effect", () => {
             assert.strictEqual(isolatedResult.journalSize, 0)
           }))
 
-          const val1 = yield* TxRef.get(ref1)
-          const val2 = yield* TxRef.get(ref2)
+          const val1 = yield* Effect.transaction(TxRef.get(ref1))
+          const val2 = yield* Effect.transaction(TxRef.get(ref2))
 
           assert.strictEqual(val1, 10)
           assert.strictEqual(val2, 20)
         }))
     })
 
-    describe("comparison with atomic behavior", () => {
-      it.effect("should demonstrate difference between atomic composition and transaction isolation", () =>
+    describe("transaction isolation behavior", () => {
+      it.effect("should rollback entire transaction on failure", () =>
         Effect.gen(function*() {
-          const ref = yield* TxRef.make(0)
+          const ref = TxRef.makeUnsafe(0)
 
-          // Test atomic composition - nested failure rolls back entire atomic block
-          const atomicError = yield* Effect.atomic(Effect.gen(function*() {
+          // Transaction failure rolls back all changes
+          const txError = yield* Effect.transaction(Effect.gen(function*() {
             yield* TxRef.set(ref, 10)
 
-            // This nested atomic composes with parent and will roll back everything
-            return yield* Effect.atomic(Effect.gen(function*() {
+            // Nested transaction fails independently
+            return yield* Effect.transaction(Effect.gen(function*() {
               yield* TxRef.set(ref, 20)
-              return yield* Effect.fail("atomic nested failure")
+              return yield* Effect.fail("nested failure")
             }))
           })).pipe(Effect.flip)
 
-          const atomicValue = yield* TxRef.get(ref)
+          const valueAfterFailure = yield* Effect.transaction(TxRef.get(ref))
 
-          // Reset ref
-          yield* TxRef.set(ref, 0)
+          assert.strictEqual(txError, "nested failure")
+          // Outer transaction rolled back because the nested failure propagated
+          assert.strictEqual(valueAfterFailure, 0)
+        }))
 
-          // Test transaction isolation - nested failure doesn't affect parent
-          yield* Effect.atomic(Effect.gen(function*() {
+      it.effect("should isolate nested transaction failure when caught", () =>
+        Effect.gen(function*() {
+          const ref = TxRef.makeUnsafe(0)
+
+          // Parent transaction succeeds, child failure is caught
+          yield* Effect.transaction(Effect.gen(function*() {
             yield* TxRef.set(ref, 10)
 
             // This isolated transaction fails but doesn't affect parent
@@ -2269,13 +2267,9 @@ describe("Effect", () => {
             assert.strictEqual(childError, "transaction nested failure")
           }))
 
-          const transactionValue = yield* TxRef.get(ref)
+          const transactionValue = yield* Effect.transaction(TxRef.get(ref))
 
-          // Atomic: entire block rolled back due to nested failure
-          assert.strictEqual(atomicError, "atomic nested failure")
-          assert.strictEqual(atomicValue, 0)
-
-          // Transaction: parent committed despite nested failure
+          // Parent committed despite nested failure (which was caught)
           assert.strictEqual(transactionValue, 10)
         }))
     })
