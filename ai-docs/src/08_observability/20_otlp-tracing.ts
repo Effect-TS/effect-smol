@@ -9,7 +9,7 @@ import { FetchHttpClient } from "effect/unstable/http"
 import { OtlpLogger, OtlpSerialization, OtlpTracer } from "effect/unstable/observability"
 
 // Configure OTLP span export.
-export const OtlpTracingLive = OtlpTracer.layer({
+export const OtlpTracingLayer = OtlpTracer.layer({
   url: "http://localhost:4318/v1/traces",
   resource: {
     serviceName: "checkout-api",
@@ -21,7 +21,7 @@ export const OtlpTracingLive = OtlpTracer.layer({
 })
 
 // Configure OTLP log export.
-export const OtlpLoggingLive = OtlpLogger.layer({
+export const OtlpLoggingLayer = OtlpLogger.layer({
   url: "http://localhost:4318/v1/logs",
   resource: {
     serviceName: "checkout-api",
@@ -33,7 +33,7 @@ export const OtlpLoggingLive = OtlpLogger.layer({
 //
 // - OtlpTracer/OtlpLogger require an OTLP serializer and an HttpClient.
 // - FetchHttpClient.layer provides the HttpClient used by the exporter.
-export const ObservabilityLive = Layer.merge(OtlpTracingLive, OtlpLoggingLive).pipe(
+export const ObservabilityLayer = Layer.merge(OtlpTracingLayer, OtlpLoggingLayer).pipe(
   Layer.provide(OtlpSerialization.layerJson),
   Layer.provide(FetchHttpClient.layer)
 )
@@ -86,7 +86,7 @@ const CheckoutTest = Layer.effectDiscard(
 const Main = CheckoutTest.pipe(
   // Provide the observability layer at the very end, so that all spans created
   // by the app are exported.
-  Layer.provide(ObservabilityLive)
+  Layer.provide(ObservabilityLayer)
 )
 
 // Launch the app

@@ -63,11 +63,11 @@ export const useCounter = Effect.gen(function*() {
 
 // `SingleRunner.layer` is useful for local development / tests where you still
 // want the cluster entity runtime model.
-declare const SqlClientLive: Layer.Layer<SqlClient.SqlClient>
+declare const SqlClientLayer: Layer.Layer<SqlClient.SqlClient>
 
 // Create the cluster layer using `NodeClusterSocket.layer`
 const ClusterLayer = NodeClusterSocket.layer().pipe(
-  Layer.provide(SqlClientLive)
+  Layer.provide(SqlClientLayer)
 )
 
 // You can also use `TestRunner.layer` to run your entities in a single process,
