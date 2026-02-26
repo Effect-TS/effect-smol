@@ -204,21 +204,21 @@ describe("Channel", () => {
   })
 
   describe("filtering", () => {
-    it.effect("filter with Filter", () =>
+    it.effect("filterMap with Filter", () =>
       Effect.gen(function*() {
         const filter = Filter.make((n: number) => n % 2 === 0 ? Result.succeed(n * 2) : Result.fail(n))
         const result = yield* Channel.fromArray([1, 2, 3, 4]).pipe(
-          Channel.filter(filter),
+          Channel.filterMap(filter),
           Channel.runCollect
         )
         assert.deepStrictEqual(result, [4, 8])
       }))
 
-    it.effect("filterEffect with FilterEffect", () =>
+    it.effect("filterMapEffect with FilterEffect", () =>
       Effect.gen(function*() {
         const filter = Filter.makeEffect((n: number) => Effect.succeed(n > 2 ? Result.succeed(n + 1) : Result.fail(n)))
         const result = yield* Channel.fromArray([1, 2, 3, 4]).pipe(
-          Channel.filterEffect(filter),
+          Channel.filterMapEffect(filter),
           Channel.runCollect
         )
         assert.deepStrictEqual(result, [4, 5])
@@ -390,6 +390,32 @@ describe("Channel", () => {
       Effect.gen(function*() {
         const result = yield* Channel.fail("boom").pipe(
           Channel.catchIf((error) => error === "boom", (error) => Channel.succeed(`recovered: ${error}`)),
+          Channel.runCollect
+        )
+        assert.deepStrictEqual(result, ["recovered: boom"])
+      }))
+
+    it.effect("catchFilter with Filter", () =>
+      Effect.gen(function*() {
+        const filter = Filter.make((error: string) =>
+          error === "boom"
+            ? Result.succeed(error)
+            : Result.fail(error)
+        )
+        const result = yield* Channel.fail("boom").pipe(
+          Channel.catchFilter(filter, (error) => Channel.succeed(`recovered: ${error}`)),
+          Channel.runCollect
+        )
+        assert.deepStrictEqual(result, ["recovered: boom"])
+      }))
+
+    it.effect("catchCauseFilter with Filter", () =>
+      Effect.gen(function*() {
+        const result = yield* Channel.fail("boom").pipe(
+          Channel.catchCauseFilter(
+            Cause.findError as any,
+            (error) => Channel.succeed(`recovered: ${error}`)
+          ),
           Channel.runCollect
         )
         assert.deepStrictEqual(result, ["recovered: boom"])

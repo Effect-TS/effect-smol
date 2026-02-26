@@ -3931,7 +3931,13 @@ export const filter: {
   <A, E, R, Result extends Filter.ResultOrBool>(
     self: Stream<A, E, R>,
     filter: Filter.OrPredicate<NoInfer<A>, Result>
-  ): Stream<Filter.Pass<A, Result>, E, R> => fromChannel(Channel.filterArray(toChannel(self), filter))
+  ): Stream<Filter.Pass<A, Result>, E, R> =>
+    fromChannel(
+      Channel.filterMapArray(
+        toChannel(self),
+        (value): Filter.ApplyResult<A, Result> => Filter.apply(filter, value)
+      )
+    ) as any
 )
 
 /**
@@ -3972,7 +3978,7 @@ export const filterEffect: {
   <A, E, R, B, X, EX, RX>(
     self: Stream<A, E, R>,
     filter: Filter.FilterEffect<A, B, X, EX, RX>
-  ): Stream<B, E | EX, R | RX> => fromChannel(Channel.filterArrayEffect(toChannel(self), filter))
+  ): Stream<B, E | EX, R | RX> => fromChannel(Channel.filterMapArrayEffect(toChannel(self), filter))
 )
 
 /**
@@ -4739,9 +4745,9 @@ export const catchIf: {
   orElse?: ((failure: Filter.Fail<E, Result>) => Stream<A3, E3, R3>) | undefined
 ): Stream<A | A2 | A3, E2 | E3, R | R2 | R3> =>
   fromChannel(
-    Channel.catchIf(
+    Channel.catchFilter(
       toChannel(self),
-      filter as any,
+      (error): Filter.ApplyResult<E, Result> => Filter.apply(filter, error),
       (e: any) => f(e).channel,
       orElse && ((e: any) => orElse(e).channel)
     )
@@ -5307,8 +5313,11 @@ export const catchCauseIf: {
   f: (failure: Filter.Pass<Cause.Cause<E>, Result>, cause: Cause.Cause<E>) => Stream<A2, E2, R2>
 ): Stream<A | A2, Cause.Cause.Error<Filter.Fail<Cause.Cause<E>, Result>> | E2, R | R2> =>
   fromChannel(
-    Channel.catchCauseIf(self.channel, filter as any, (failure: any, cause: any) =>
-      (f as any)(failure, cause).channel) as any
+    Channel.catchCauseFilter(
+      self.channel,
+      ((cause: any) => Filter.apply(filter as any, cause)) as any,
+      (failure: any, cause: any) => (f as any)(failure, cause).channel
+    ) as any
   ))
 
 /**
