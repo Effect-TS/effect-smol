@@ -200,6 +200,25 @@ Learn how to safely manage resources in Effect using `Scope`s and finalizers.
   Use `LayerMap.Service` to dynamically build and manage resources that are
   keyed by some identifier, such as a tenant ID.
 
+## Broadcasting messages with PubSub
+
+Use `PubSub` when you need one producer to fan out messages to many consumers.
+Each subscriber receives its own copy of each message and manages its own
+consumption pace.
+
+Choose a strategy based on your delivery guarantees:
+
+- `PubSub.bounded` applies backpressure when full.
+- `PubSub.dropping` drops new messages when full.
+- `PubSub.sliding` keeps new messages and evicts old ones when full.
+
+Use replay (`{ replay: n }`) when late subscribers should receive a recent
+window of events.
+
+- **[Broadcasting domain events with PubSub](./ai-docs/src/01_effect/06_pubsub/10_pubsub.ts)**:
+  Build an in-process event bus with `PubSub` and expose it as a service so
+  multiple consumers can independently process the same events.
+
 ## Working with Streams
 
 Effect Streams represent effectful, pull-based sequences of values over time.
@@ -268,7 +287,4 @@ managing the flow of a CLI application.
 The cluster modules let you model stateful services as entities and distribute
 them across multiple machines.
 
-- **[Defining cluster entities](./ai-docs/src/80_cluster/10_entities.ts)**:
-  Define entity RPCs, implement stateful handlers, and call entities through a
-  typed client. This example also shows `SingleRunner.layer` for local
-  development and `maxIdleTime` for passivation.
+- **[Defining cluster entities](./ai-docs/src/80_cluster/10_entities.ts)**: Define distributed entity RPCs and run them in a cluster.
