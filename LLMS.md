@@ -8,6 +8,9 @@ documentation and the source code found in `./packages`. Do not use
 `node_modules` or any other external documentation, as it may be outdated or
 incorrect.
 
+**Note**: The examples in this documentation contain comments for illustration
+purposes. In practice, you would not include these comments in your code.
+
 ## Writing `Effect` code
 
 Prefer writing Effect code with `Effect.gen` & `Effect.fn("name")`. Then attach
