@@ -2871,6 +2871,20 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
   })
 
+  describe("makeOption", () => {
+    it("Struct", () => {
+      const schema = Schema.Struct({ a: Schema.Number.check(Schema.isGreaterThan(0)) })
+      deepStrictEqual(schema.makeOption({ a: 1 }), Option.some({ a: 1 }))
+      deepStrictEqual(schema.makeOption({ a: -1 }), Option.none())
+    })
+
+    it("Class", () => {
+      class A extends Schema.Class<A>("A")(Schema.Struct({ a: Schema.Number.check(Schema.isGreaterThan(0)) })) {}
+      deepStrictEqual(A.makeOption({ a: 1 }), Option.some(new A({ a: 1 })))
+      deepStrictEqual(A.makeOption({ a: -1 }), Option.none())
+    })
+  })
+
   describe("withConstructorDefault", () => {
     describe("Struct", () => {
       it("should not apply defaults when decoding / encoding", async () => {

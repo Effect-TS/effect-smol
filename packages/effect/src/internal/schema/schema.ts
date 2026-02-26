@@ -31,5 +31,6 @@ export function make<S extends Schema.Top>(ast: S["ast"], options?: object): S {
   self.ast = ast
   self.rebuild = (ast: AST.AST) => make(ast, options)
   self.makeUnsafe = Parser.makeUnsafe(self)
+  self.makeOption = Parser.makeOption(self)
   return self
 }
