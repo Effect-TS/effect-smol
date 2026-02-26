@@ -6,6 +6,13 @@ import type { Span } from "effect/Tracer"
 import { HttpClient, HttpClientResponse } from "effect/unstable/http"
 import { OtlpSerialization, OtlpTracer } from "effect/unstable/observability"
 
+const getParent = (span: Tracer.Span): Tracer.AnySpan => {
+  if (span.parent._tag === "None") {
+    throw new Error("Expected parent span")
+  }
+  return span.parent.value
+}
+
 describe("Tracer", () => {
   describe("Effect.withSpan", () => {
     it.effect("should capture the stack trace", () =>
@@ -18,7 +25,7 @@ describe("Tracer", () => {
           Effect.flip
         )
 
-        assertInclude(Cause.pretty(cause), "Tracer.test.ts:13:41")
+        assertInclude(Cause.pretty(cause), "Tracer.test.ts:20:41")
       }))
 
     it.effect("should set the parent span", () =>
@@ -29,8 +36,7 @@ describe("Tracer", () => {
         )
 
         strictEqual(span.name, "A")
-        if (span.parent._tag !== "Some") throw new Error("Expected parent span")
-        strictEqual((span.parent.value as Span).name, "B")
+        strictEqual((getParent(span) as Span).name, "B")
       }))
 
     it.effect("should override the parent span when root is set to true", () =>
@@ -59,8 +65,7 @@ describe("Tracer", () => {
         )
 
         strictEqual(span.name, "A")
-        if (span.parent._tag !== "Some") throw new Error("Expected parent span")
-        strictEqual(span.parent.value.spanId, "000")
+        strictEqual(getParent(span).spanId, "000")
       }))
 
     it.effect("should still apply minimum trace level with sampled parent spans", () =>
@@ -227,8 +232,7 @@ describe("Tracer", () => {
     it.effect("should allow setting the parent span for the current span", () =>
       Effect.gen(function*() {
         const span = yield* Effect.currentSpan
-        if (span.parent._tag !== "Some") throw new Error("Expected parent span")
-        strictEqual(span.parent.value.spanId, "456")
+        strictEqual(getParent(span).spanId, "456")
       }).pipe(
         Effect.withSpan("A"),
         Effect.withParentSpan({
@@ -307,8 +311,7 @@ describe("Tracer", () => {
     it.effect("should set the parent trace span for the layer constructor", () =>
       Effect.gen(function*() {
         const span = yield* Effect.makeSpan("child")
-        if (span.parent._tag !== "Some") throw new Error("Expected parent span")
-        const parent = span.parent.value as Tracer.Span
+        const parent = getParent(span) as Tracer.Span
         strictEqual(parent.name, "parent")
         strictEqual(span.attributes.get("code.stacktrace"), undefined)
         strictEqual(parent.attributes.get("code.stacktrace"), undefined)
@@ -324,8 +327,7 @@ describe("Tracer", () => {
     it.effect("should create a new parent trace span for the layer constructor", () =>
       Effect.gen(function*() {
         const span = yield* Effect.makeSpan("child")
-        if (span.parent._tag !== "Some") throw new Error("Expected parent span")
-        const parent = span.parent.value as Tracer.Span
+        const parent = getParent(span) as Tracer.Span
         strictEqual(parent.name, "parent")
         strictEqual(parent.attributes.get("code.stacktrace"), undefined)
       }).pipe(Effect.provide(Layer.span("parent"))))
@@ -400,9 +402,9 @@ describe("Tracer", () => {
           Effect.withSpan("parent")
         )
         strictEqual(span.name, "child")
-        if (span.parent._tag !== "Some") throw new Error("Expected parent span")
-        strictEqual(span.parent.value._tag, "Span")
-        strictEqual((span.parent.value as Span).name, "parent")
+        const parent = getParent(span)
+        strictEqual(parent._tag, "Span")
+        strictEqual((parent as Span).name, "parent")
       }))
   })
 })
