@@ -55,38 +55,38 @@ The overloaded approach has drawbacks:
 
 ### New APIs to Add
 
-| Module  | New API                    | Accepts                              | Returns (simplified)                                     |
-| ------- | -------------------------- | ------------------------------------ | -------------------------------------------------------- |
-| Array   | `filterMap`                | `Filter<A, B, X, [i: number]>`      | `Array<B>`                                               |
-| Array   | `partitionFilter`          | `Filter<A, Pass, Fail, [i: number]>` | `[Array<Fail>, Array<Pass>]`                            |
-| Array   | `takeWhileFilter`          | `Filter<A, B, X, [i: number]>`      | `Array<B>`                                               |
-| Array   | `dropWhileFilter`          | `Filter<A, B, X, [i: number]>`      | `Array<A>`                                               |
-| Effect  | `filterMap`                | `Filter<A, B, X>`                   | `Effect<Array<B>>`                                       |
-| Effect  | `filterMapEffect`          | `FilterEffect<A, B, …>`             | `Effect<Array<B>, E, R>`                                 |
-| Effect  | `filterMapOrElse`          | `Filter<A, B, X>`                   | `Effect<B \| C, …>`                                     |
-| Effect  | `filterMapOrFail`          | `Filter<A, B, X>`                   | `Effect<B, E2 \| E, R>`                                 |
-| Effect  | `catchFilter`              | `Filter<E, Pass, Fail>`             | `Effect<A \| A2, …>`                                    |
-| Effect  | `catchCauseFilter`         | `Filter<Cause, Pass, …>`            | `Effect<A \| B, …>`                                     |
-| Effect  | `tapCauseFilter`           | `Filter<Cause, Pass, …>`            | `Effect<A, E, R>`                                        |
-| Effect  | `onExitFilter`             | `Filter<Exit, Pass, …>`             | `Effect<A, E, R>`                                        |
-| Effect  | `onErrorFilter`            | `Filter<Cause, Pass, …>`            | `Effect<A, E, R>`                                        |
-| Stream  | `filterMap`                | `Filter<A, B, X>`                   | `Stream<B, E, R>`                                        |
-| Stream  | `filterMapEffect`          | `FilterEffect<A, B, …>`             | `Stream<B, E \| E2, R \| R2>`                           |
-| Stream  | `partitionFilter`          | `Filter<A, Pass, Fail>`             | `Effect<[Stream<Fail>, Stream<Pass>], …, Scope>`         |
-| Stream  | `partitionFilterEffect`    | `FilterEffect<A, P, F, …>`          | `Effect<[Stream<F>, Stream<P>], …, Scope>`               |
-| Stream  | `partitionQueueFilter`     | `Filter<A, Pass, Fail>`             | scoped queue-based partition                             |
-| Stream  | `takeWhileFilter`          | `Filter<A, B, X>`                   | `Stream<B, E, R>`                                        |
-| Stream  | `dropWhileFilter`          | `Filter<A, B, X>`                   | `Stream<A, E, R>`                                        |
-| Stream  | `catchFilter`              | `Filter<E, Pass, Fail>`             | `Stream<A \| A2, …>`                                    |
-| Stream  | `catchCauseFilter`         | `Filter<Cause, Pass, …>`            | `Stream<A \| B, …>`                                     |
-| Channel | `filterMap`                | `Filter<Elem, B, X>`                | `Channel<B, …>`                                          |
-| Channel | `filterMapEffect`          | `FilterEffect<Elem, …>`             | `Channel<B, …>`                                          |
-| Channel | `filterMapArray`           | `Filter<A, B, X>`                   | `Channel<B, …>`                                          |
-| Channel | `filterMapArrayEffect`     | `FilterEffect<A, B, …>`             | `Channel<B, …>`                                          |
-| Channel | `catchFilter`              | `Filter<E, Pass, Fail>`             | `Channel<…>`                                             |
-| Channel | `catchCauseFilter`         | `Filter<Cause, Pass, …>`            | `Channel<…>`                                             |
-| Sink    | `takeWhileFilter`          | `Filter<A, B, X>`                   | `Sink<Chunk<B>, …>`                                     |
-| Sink    | `takeWhileFilterEffect`    | `FilterEffect<A, B, …>`             | `Sink<Chunk<B>, …>`                                     |
+| Module  | New API                 | Accepts                              | Returns (simplified)                             |
+| ------- | ----------------------- | ------------------------------------ | ------------------------------------------------ |
+| Array   | `filterMap`             | `Filter<A, B, X, [i: number]>`       | `Array<B>`                                       |
+| Array   | `partitionFilter`       | `Filter<A, Pass, Fail, [i: number]>` | `[Array<Fail>, Array<Pass>]`                     |
+| Array   | `takeWhileFilter`       | `Filter<A, B, X, [i: number]>`       | `Array<B>`                                       |
+| Array   | `dropWhileFilter`       | `Filter<A, B, X, [i: number]>`       | `Array<A>`                                       |
+| Effect  | `filterMap`             | `Filter<A, B, X>`                    | `Effect<Array<B>>`                               |
+| Effect  | `filterMapEffect`       | `FilterEffect<A, B, …>`              | `Effect<Array<B>, E, R>`                         |
+| Effect  | `filterMapOrElse`       | `Filter<A, B, X>`                    | `Effect<B \| C, …>`                              |
+| Effect  | `filterMapOrFail`       | `Filter<A, B, X>`                    | `Effect<B, E2 \| E, R>`                          |
+| Effect  | `catchFilter`           | `Filter<E, Pass, Fail>`              | `Effect<A \| A2, …>`                             |
+| Effect  | `catchCauseFilter`      | `Filter<Cause, Pass, …>`             | `Effect<A \| B, …>`                              |
+| Effect  | `tapCauseFilter`        | `Filter<Cause, Pass, …>`             | `Effect<A, E, R>`                                |
+| Effect  | `onExitFilter`          | `Filter<Exit, Pass, …>`              | `Effect<A, E, R>`                                |
+| Effect  | `onErrorFilter`         | `Filter<Cause, Pass, …>`             | `Effect<A, E, R>`                                |
+| Stream  | `filterMap`             | `Filter<A, B, X>`                    | `Stream<B, E, R>`                                |
+| Stream  | `filterMapEffect`       | `FilterEffect<A, B, …>`              | `Stream<B, E \| E2, R \| R2>`                    |
+| Stream  | `partitionFilter`       | `Filter<A, Pass, Fail>`              | `Effect<[Stream<Fail>, Stream<Pass>], …, Scope>` |
+| Stream  | `partitionFilterEffect` | `FilterEffect<A, P, F, …>`           | `Effect<[Stream<F>, Stream<P>], …, Scope>`       |
+| Stream  | `partitionQueueFilter`  | `Filter<A, Pass, Fail>`              | scoped queue-based partition                     |
+| Stream  | `takeWhileFilter`       | `Filter<A, B, X>`                    | `Stream<B, E, R>`                                |
+| Stream  | `dropWhileFilter`       | `Filter<A, B, X>`                    | `Stream<A, E, R>`                                |
+| Stream  | `catchFilter`           | `Filter<E, Pass, Fail>`              | `Stream<A \| A2, …>`                             |
+| Stream  | `catchCauseFilter`      | `Filter<Cause, Pass, …>`             | `Stream<A \| B, …>`                              |
+| Channel | `filterMap`             | `Filter<Elem, B, X>`                 | `Channel<B, …>`                                  |
+| Channel | `filterMapEffect`       | `FilterEffect<Elem, …>`              | `Channel<B, …>`                                  |
+| Channel | `filterMapArray`        | `Filter<A, B, X>`                    | `Channel<B, …>`                                  |
+| Channel | `filterMapArrayEffect`  | `FilterEffect<A, B, …>`              | `Channel<B, …>`                                  |
+| Channel | `catchFilter`           | `Filter<E, Pass, Fail>`              | `Channel<…>`                                     |
+| Channel | `catchCauseFilter`      | `Filter<Cause, Pass, …>`             | `Channel<…>`                                     |
+| Sink    | `takeWhileFilter`       | `Filter<A, B, X>`                    | `Sink<Chunk<B>, …>`                              |
+| Sink    | `takeWhileFilterEffect` | `FilterEffect<A, B, …>`              | `Sink<Chunk<B>, …>`                              |
 
 All new APIs support both data-first and data-last (dual) where the original
 overloaded API did.
@@ -97,37 +97,37 @@ Remove the `Filter`/`OrPredicate`/`FilterEffect` overloads from each of these
 functions, leaving only `Predicate`, `Refinement`, and (where applicable)
 effectful-predicate overloads:
 
-| Module  | Function            | Remove overload accepting                |
-| ------- | ------------------- | ---------------------------------------- |
-| Array   | `filter`            | `Filter.Filter<A, B, X>`                |
-| Array   | `partition`         | `Filter.Filter<A, Pass, Fail>`           |
-| Array   | `takeWhile`         | `Filter.Filter<A, B, X>`                |
-| Array   | `dropWhile`         | `Filter.Filter<A, B, X>`                |
-| Effect  | `filter`            | `Filter.Filter`, `Filter.FilterEffect`   |
-| Effect  | `filterOrElse`      | `Filter.OrPredicate`                     |
-| Effect  | `filterOrFail`      | `Filter.Filter`                          |
-| Effect  | `catchIf`           | `Filter.OrPredicate`                     |
-| Effect  | `catchCauseIf`      | `Filter.OrPredicate`                     |
-| Effect  | `tapCauseIf`        | `Filter.OrPredicate`                     |
-| Effect  | `onExitIf`          | `Filter.OrPredicate`                     |
-| Effect  | `onErrorIf`         | `Filter.OrPredicate`                     |
-| Stream  | `filter`            | `Filter.OrPredicate`                     |
-| Stream  | `filterEffect`      | `Filter.FilterEffect`                    |
-| Stream  | `partition`         | `Filter.OrPredicate`                     |
-| Stream  | `partitionEffect`   | `Filter.FilterEffect`                    |
-| Stream  | `partitionQueue`    | `Filter.OrPredicate`                     |
-| Stream  | `takeWhile`         | `Filter.Filter`                          |
-| Stream  | `dropWhile`         | `Filter.Filter`                          |
-| Stream  | `catchIf`           | `Filter.OrPredicate`                     |
-| Stream  | `catchCauseIf`      | `Filter.OrPredicate`                     |
-| Channel | `filter`            | `Filter.OrPredicate`                     |
-| Channel | `filterEffect`      | `Filter.FilterEffect`                    |
-| Channel | `filterArray`       | `Filter.OrPredicate`                     |
-| Channel | `filterArrayEffect` | `Filter.FilterEffect`                    |
-| Channel | `catchIf`           | `Filter.OrPredicate`                     |
-| Channel | `catchCauseIf`      | `Filter.OrPredicate`                     |
-| Sink    | `takeWhile`         | `Filter.Filter`                          |
-| Sink    | `takeWhileEffect`   | `Filter.FilterEffect`                    |
+| Module  | Function            | Remove overload accepting              |
+| ------- | ------------------- | -------------------------------------- |
+| Array   | `filter`            | `Filter.Filter<A, B, X>`               |
+| Array   | `partition`         | `Filter.Filter<A, Pass, Fail>`         |
+| Array   | `takeWhile`         | `Filter.Filter<A, B, X>`               |
+| Array   | `dropWhile`         | `Filter.Filter<A, B, X>`               |
+| Effect  | `filter`            | `Filter.Filter`, `Filter.FilterEffect` |
+| Effect  | `filterOrElse`      | `Filter.OrPredicate`                   |
+| Effect  | `filterOrFail`      | `Filter.Filter`                        |
+| Effect  | `catchIf`           | `Filter.OrPredicate`                   |
+| Effect  | `catchCauseIf`      | `Filter.OrPredicate`                   |
+| Effect  | `tapCauseIf`        | `Filter.OrPredicate`                   |
+| Effect  | `onExitIf`          | `Filter.OrPredicate`                   |
+| Effect  | `onErrorIf`         | `Filter.OrPredicate`                   |
+| Stream  | `filter`            | `Filter.OrPredicate`                   |
+| Stream  | `filterEffect`      | `Filter.FilterEffect`                  |
+| Stream  | `partition`         | `Filter.OrPredicate`                   |
+| Stream  | `partitionEffect`   | `Filter.FilterEffect`                  |
+| Stream  | `partitionQueue`    | `Filter.OrPredicate`                   |
+| Stream  | `takeWhile`         | `Filter.Filter`                        |
+| Stream  | `dropWhile`         | `Filter.Filter`                        |
+| Stream  | `catchIf`           | `Filter.OrPredicate`                   |
+| Stream  | `catchCauseIf`      | `Filter.OrPredicate`                   |
+| Channel | `filter`            | `Filter.OrPredicate`                   |
+| Channel | `filterEffect`      | `Filter.FilterEffect`                  |
+| Channel | `filterArray`       | `Filter.OrPredicate`                   |
+| Channel | `filterArrayEffect` | `Filter.FilterEffect`                  |
+| Channel | `catchIf`           | `Filter.OrPredicate`                   |
+| Channel | `catchCauseIf`      | `Filter.OrPredicate`                   |
+| Sink    | `takeWhile`         | `Filter.Filter`                        |
+| Sink    | `takeWhileEffect`   | `Filter.FilterEffect`                  |
 
 ### Filter.ts Removals
 
@@ -151,17 +151,17 @@ Convert all `filterMap` APIs that currently accept `(a) => Option<B>` to accept
 where `Result.succeed` = keep (equivalent to `Some`) and `Result.failVoid` =
 discard (equivalent to `None`).
 
-| Module    | Function           | Old signature                    | New signature                      |
-| --------- | ------------------ | -------------------------------- | ---------------------------------- |
-| Chunk     | `filterMap`        | `(a: A, i: number) => Option<B>` | `Filter<A, B, X, [i: number]>`   |
-| Chunk     | `filterMapWhile`   | `(a: A) => Option<B>`           | `Filter<A, B, X>`                 |
-| Iterable  | `filterMap`        | `(a: A, i: number) => Option<B>` | `Filter<A, B, X, [i: number]>`   |
-| Iterable  | `filterMapWhile`   | `(a: A, i: number) => Option<B>` | `Filter<A, B, X, [i: number]>`   |
-| HashMap   | `filterMap`        | `(v: A, k: K) => Option<B>`     | `Filter<A, B, X, [key: K]>`      |
-| Record    | `filterMap`        | `(a: A, k: K) => Option<B>`     | `Filter<A, B, X, [key: K]>`      |
-| Trie      | `filterMap`        | `(v: A, k: string) => Option<B>` | `Filter<A, B, X, [key: string]>` |
-| Option    | `filterMap`        | `(a: A) => Option<B>`           | `Filter<A, B, X>`                 |
-| TxHashMap | `filterMap`        | `(v: A, k: K) => Option<A>`     | `Filter<A, B, X, [key: K]>`      |
+| Module    | Function         | Old signature                    | New signature                    |
+| --------- | ---------------- | -------------------------------- | -------------------------------- |
+| Chunk     | `filterMap`      | `(a: A, i: number) => Option<B>` | `Filter<A, B, X, [i: number]>`   |
+| Chunk     | `filterMapWhile` | `(a: A) => Option<B>`            | `Filter<A, B, X>`                |
+| Iterable  | `filterMap`      | `(a: A, i: number) => Option<B>` | `Filter<A, B, X, [i: number]>`   |
+| Iterable  | `filterMapWhile` | `(a: A, i: number) => Option<B>` | `Filter<A, B, X, [i: number]>`   |
+| HashMap   | `filterMap`      | `(v: A, k: K) => Option<B>`      | `Filter<A, B, X, [key: K]>`      |
+| Record    | `filterMap`      | `(a: A, k: K) => Option<B>`      | `Filter<A, B, X, [key: K]>`      |
+| Trie      | `filterMap`      | `(v: A, k: string) => Option<B>` | `Filter<A, B, X, [key: string]>` |
+| Option    | `filterMap`      | `(a: A) => Option<B>`            | `Filter<A, B, X>`                |
+| TxHashMap | `filterMap`      | `(v: A, k: K) => Option<A>`      | `Filter<A, B, X, [key: K]>`      |
 
 **Design notes:**
 
@@ -182,13 +182,13 @@ discard (equivalent to `None`).
 These functions delegate to `filterMap` with Option-returning callbacks and must
 be rewritten:
 
-| Module   | Function        | Current implementation              | Required change              |
-| -------- | --------------- | ----------------------------------- | ---------------------------- |
-| Iterable | `getSomes`      | `filterMap(identity)` on `Option`   | Rewrite with explicit loop   |
-| Iterable | `getFailures`   | `filterMap(Result.getFailure)`      | Rewrite with explicit loop   |
-| Iterable | `getSuccesses`  | `filterMap(Result.getSuccess)`      | Rewrite with explicit loop   |
-| Chunk    | `compact`       | `filterMap(identity)` on `Option`   | Rewrite with explicit loop   |
-| Record   | `getSomes`      | delegates to `filterMap`            | Rewrite with explicit loop   |
+| Module   | Function       | Current implementation            | Required change            |
+| -------- | -------------- | --------------------------------- | -------------------------- |
+| Iterable | `getSomes`     | `filterMap(identity)` on `Option` | Rewrite with explicit loop |
+| Iterable | `getFailures`  | `filterMap(Result.getFailure)`    | Rewrite with explicit loop |
+| Iterable | `getSuccesses` | `filterMap(Result.getSuccess)`    | Rewrite with explicit loop |
+| Chunk    | `compact`      | `filterMap(identity)` on `Option` | Rewrite with explicit loop |
+| Record   | `getSomes`     | delegates to `filterMap`          | Rewrite with explicit loop |
 
 **Strategy:** Rewrite each with an explicit loop, matching the pattern
 `Array.getSomes` already uses.
@@ -209,6 +209,7 @@ Note: `Array.partition` does NOT use `Filter.apply` — it has inline
 split when removing the Filter overload.
 
 Affected internal files:
+
 - `packages/effect/src/internal/effect.ts`
 - `packages/effect/src/Array.ts`
 - `packages/effect/src/Stream.ts`
@@ -298,11 +299,13 @@ Modules that use plain boolean predicates with `catchIf` (e.g.,
 ## Validation
 
 After each task:
+
 - `pnpm lint-fix`
 - `pnpm test <relevant test files>`
 - `pnpm check:tsgo` (run `pnpm clean` first if type checking fails spuriously)
 
 Final validation:
+
 - `pnpm codegen` (regenerate barrel files)
 - `pnpm lint-fix`
 - `pnpm check:tsgo`
@@ -519,10 +522,10 @@ to `HashMap.filterMap` — they must change together.
 5. Run `pnpm docgen`.
 6. Create changeset in `.changeset/` for `effect` package (severity: `minor`).
    Include migration notes for:
-    - Overloaded APIs split into separate functions
-    - Option-based `filterMap` converted to `Filter`-based (return `Result`
-      instead of `Option`; index/key params preserved via `Filter`'s `Args`)
-    - `Filter.apply` and type helpers removed
+   - Overloaded APIs split into separate functions
+   - Option-based `filterMap` converted to `Filter`-based (return `Result`
+     instead of `Option`; index/key params preserved via `Filter`'s `Args`)
+   - `Filter.apply` and type helpers removed
 
 ### Task Dependency Graph
 
@@ -539,6 +542,7 @@ Task 8 (Option)                                ─┤        │
 ```
 
 **Parallelizable groups:**
+
 - **Group A:** Task 1 → Tasks 2, 4, 5 (Channel first, then dependents)
 - **Group B:** Task 3 (Effect + unstable, independent)
 - **Group C:** Task 6 (Chunk + Iterable, independent)
