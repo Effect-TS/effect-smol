@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import type * as Option from "../../Option.ts"
 import * as Schema from "../../Schema.ts"
 
 /**
@@ -80,7 +81,7 @@ export interface Span {
   readonly sampled: boolean
   readonly attributes: ReadonlyMap<string, unknown>
   readonly status: SpanStatus
-  readonly parent: ParentSpan | undefined
+  readonly parent: Option.Option<ParentSpan>
 }
 
 /**
@@ -95,7 +96,7 @@ export const Span: Schema.Codec<Span> = Schema.Struct({
   sampled: Schema.Boolean,
   attributes: Schema.ReadonlyMap(Schema.String, Schema.Any),
   status: SpanStatus,
-  parent: Schema.UndefinedOr(Schema.suspend(() => ParentSpan))
+  parent: Schema.Option(Schema.suspend(() => ParentSpan))
 })
 
 /**
