@@ -5286,12 +5286,12 @@ export const noopSpan = (options: {
   readonly annotations: ServiceMap.ServiceMap<never>
 }): Tracer.Span => Object.assign(Object.create(NoopSpanProto), options)
 
-const filterDisablePropagation: (span: Option.Option<Tracer.AnySpan>) => Option.Option<Tracer.AnySpan> = Option.flatMap(
-  (span) =>
-    ServiceMap.get(span.annotations, Tracer.DisablePropagation)
-      ? span._tag === "Span" ? filterDisablePropagation(span.parent) : Option.none()
-      : Option.some(span)
-)
+const filterDisablePropagation = (span: Tracer.AnySpan | undefined): Option.Option<Tracer.AnySpan> => {
+  if (!span) return Option.none()
+  return ServiceMap.get(span.annotations, Tracer.DisablePropagation)
+    ? span._tag === "Span" ? filterDisablePropagation(Option.getOrUndefined(span.parent)) : Option.none()
+    : Option.some(span)
+}
 
 /** @internal */
 export const makeSpanUnsafe = <XA, XE>(
@@ -5305,7 +5305,7 @@ export const makeSpanUnsafe = <XA, XE>(
     ? Option.some(options.parent)
     : options?.root
     ? Option.none<Tracer.AnySpan>()
-    : filterDisablePropagation(Option.fromUndefinedOr(fiber.currentSpan))
+    : filterDisablePropagation(fiber.currentSpan)
 
   let span: Tracer.Span
 
