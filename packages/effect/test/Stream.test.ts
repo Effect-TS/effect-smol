@@ -173,6 +173,26 @@ describe("Stream", () => {
       }))
   })
 
+  describe("filtering", () => {
+    it.effect("filterMap", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.make(1, 2, 3, 4).pipe(
+          Stream.filterMap((n) => n % 2 === 0 ? Result.succeed(n + 10) : Result.failVoid),
+          Stream.runCollect
+        )
+        assert.deepStrictEqual(result, [12, 14])
+      }))
+
+    it.effect("filterMapEffect", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.make(1, 2, 3, 4).pipe(
+          Stream.filterMapEffect((n) => Effect.succeed(n % 2 === 0 ? Result.succeed(n + 1) : Result.failVoid)),
+          Stream.runCollect
+        )
+        assert.deepStrictEqual(result, [3, 5])
+      }))
+  })
+
   describe("taking", () => {
     it.effect("take - pulls the first `n` values from a stream", () =>
       Effect.gen(function*() {
@@ -218,6 +238,15 @@ describe("Stream", () => {
           Stream.runCollect
         )
         assert.deepStrictEqual(result, [1, 2])
+      }))
+
+    it.effect("takeWhileFilter - takes elements while a filter succeeds", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.range(1, 5).pipe(
+          Stream.takeWhileFilter((n) => n < 3 ? Result.succeed(n + 10) : Result.failVoid),
+          Stream.runCollect
+        )
+        assert.deepStrictEqual(result, [11, 12])
       }))
 
     it.effect("takeUntilEffect - takes elements until an effectful predicate is satisfied", () =>
@@ -376,13 +405,13 @@ describe("Stream", () => {
 
     it.effect("catchIf with filter input", () =>
       Effect.gen(function*() {
-        const matched = yield* Stream.catchIf(
+        const matched = yield* Stream.catchFilter(
           Stream.fail("boom" as string | number),
           (e: string | number) => typeof e === "string" ? Result.succeed(e.length) : Result.fail(`fallback: ${e}`),
           (length) => Stream.succeed(`caught: ${length}`),
           (failure) => Stream.succeed(failure)
         ).pipe(Stream.runCollect)
-        const unmatched = yield* Stream.catchIf(
+        const unmatched = yield* Stream.catchFilter(
           Stream.fail(42 as string | number),
           (e: string | number) => typeof e === "string" ? Result.succeed(e.length) : Result.fail(`fallback: ${e}`),
           (length) => Stream.succeed(`caught: ${length}`),
@@ -390,6 +419,18 @@ describe("Stream", () => {
         ).pipe(Stream.runCollect)
         assert.deepStrictEqual(matched, ["caught: 4"])
         assert.deepStrictEqual(unmatched, ["fallback: 42"])
+      }))
+
+    it.effect("catchCauseFilter", () =>
+      Effect.gen(function*() {
+        const recovered = yield* Stream.fail("boom").pipe(
+          Stream.catchCauseFilter(
+            (cause) => Cause.hasFails(cause) ? Result.succeed(Cause.squash(cause)) : Result.fail(cause),
+            (failure) => Stream.succeed(`recovered: ${failure}`)
+          ),
+          Stream.runCollect
+        )
+        assert.deepStrictEqual(recovered, ["recovered: boom"])
       }))
 
     it.effect("catchTag orElse", () =>
@@ -3090,6 +3131,15 @@ describe("Stream", () => {
         deepStrictEqual(result1, result2)
       }))
 
+    it.effect("dropWhileFilter", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.make(1, 2, 3, 4, 5).pipe(
+          Stream.dropWhileFilter((n) => n < 3 ? Result.succeed(n) : Result.failVoid),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [3, 4, 5])
+      }))
+
     it.effect("dropWhile - short circuits", () =>
       Effect.gen(function*() {
         const result = yield* pipe(
@@ -3359,7 +3409,7 @@ describe("Stream", () => {
       Effect.gen(function*() {
         const stream = pipe(
           Stream.fromIterable(Array.empty<number>()),
-          Stream.partitionEffect((n) => Effect.succeed(n % 2 === 0 ? Result.succeed(n) : Result.fail(n))),
+          Stream.partitionFilterEffect((n) => Effect.succeed(n % 2 === 0 ? Result.succeed(n) : Result.fail(n))),
           Effect.map(([odds, evens]) => pipe(evens, Stream.mergeResult(odds))),
           Effect.flatMap(Stream.runCollect),
           Effect.scoped
@@ -3371,11 +3421,11 @@ describe("Stream", () => {
         strictEqual(result, 0)
       }))
 
-    it.effect("partition with Filter - values", () =>
+    it.effect("partitionFilter - values", () =>
       Effect.gen(function*() {
         const { result1, result2 } = yield* pipe(
           Stream.range(0, 5),
-          Stream.partition((n) => n % 2 === 0 ? Result.succeed(n) : Result.fail(n)),
+          Stream.partitionFilter((n) => n % 2 === 0 ? Result.succeed(n) : Result.fail(n)),
           Effect.flatMap(([odds, evens]) =>
             Effect.all({
               result1: Stream.runCollect(evens),
@@ -3388,12 +3438,12 @@ describe("Stream", () => {
         deepStrictEqual(result2, [1, 3, 5])
       }))
 
-    it.effect("partition with Filter - errors", () =>
+    it.effect("partitionFilter - errors", () =>
       Effect.gen(function*() {
         const { result1, result2 } = yield* pipe(
           Stream.make(0),
           Stream.concat(Stream.fail("boom")),
-          Stream.partition((n) => n % 2 === 0 ? Result.succeed(n) : Result.fail(n)),
+          Stream.partitionFilter((n) => n % 2 === 0 ? Result.succeed(n) : Result.fail(n)),
           Effect.flatMap(([odds, evens]) =>
             Effect.all({
               result1: Effect.flip(Stream.runCollect(evens)),
@@ -3406,11 +3456,11 @@ describe("Stream", () => {
         assert.strictEqual(result2, "boom")
       }))
 
-    it.effect("partition with Filter - backpressure", () =>
+    it.effect("partitionFilter - backpressure", () =>
       Effect.gen(function*() {
         const { result1, result2, result3 } = yield* pipe(
           Stream.range(0, 5),
-          Stream.partition((n) => (n % 2 === 0 ? Result.succeed(n) : Result.fail(n)), { bufferSize: 1 }),
+          Stream.partitionFilter((n) => (n % 2 === 0 ? Result.succeed(n) : Result.fail(n)), { bufferSize: 1 }),
           Effect.flatMap(([odds, evens]) =>
             Effect.gen(function*() {
               const ref = yield* Ref.make(Array.empty<number>())
