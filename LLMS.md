@@ -203,21 +203,8 @@ Learn how to safely manage resources in Effect using `Scope`s and finalizers.
 ## Broadcasting messages with PubSub
 
 Use `PubSub` when you need one producer to fan out messages to many consumers.
-Each subscriber receives its own copy of each message and manages its own
-consumption pace.
 
-Choose a strategy based on your delivery guarantees:
-
-- `PubSub.bounded` applies backpressure when full.
-- `PubSub.dropping` drops new messages when full.
-- `PubSub.sliding` keeps new messages and evicts old ones when full.
-
-Use replay (`{ replay: n }`) when late subscribers should receive a recent
-window of events.
-
-- **[Broadcasting domain events with PubSub](./ai-docs/src/01_effect/06_pubsub/10_pubsub.ts)**:
-  Build an in-process event bus with `PubSub` and expose it as a service so
-  multiple consumers can independently process the same events.
+- **[Broadcasting domain events with PubSub](./ai-docs/src/01_effect/06_pubsub/10_pubsub.ts)**: Build an in-process event bus with `PubSub` and expose it as a service.
 
 ## Working with Streams
 
@@ -282,7 +269,7 @@ managing the flow of a CLI application.
   Build a command-line app with typed arguments and flags, then wire subcommand
   handlers into a single executable command.
 
-## Working with Cluster entities
+## Building distributed applications with cluster
 
 The cluster modules let you model stateful services as entities and distribute
 them across multiple machines.
