@@ -242,6 +242,11 @@ setup.
 - **[Customizing logging](./ai-docs/src/08_observability/10_logging.ts)**: Configure loggers & log-level filtering for production applications.
 - **[Setting up tracing with Otlp modules](./ai-docs/src/08_observability/20_otlp-tracing.ts)**: Configure Otlp tracing + log export with a reusable observability layer.
 
+## Testing Effect programs
+
+- **[Writing Effect tests with @effect/vitest](./ai-docs/src/09_testing/10_effect-tests.ts)**: Using `it.effect` for Effect-based tests.
+- **[Testing services with shared layers](./ai-docs/src/09_testing/20_layer-tests.ts)**: How to test Effect services that depend on other services.
+
 ## Effect HttpClient
 
 Build http clients with the `HttpClient` module.
