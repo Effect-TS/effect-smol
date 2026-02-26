@@ -8,6 +8,7 @@
 import * as Arr from "../../../Array.ts"
 import * as Effect from "../../../Effect.ts"
 import { YieldableProto } from "../../../internal/core.ts"
+import * as Option from "../../../Option.ts"
 import { pipeArguments } from "../../../Pipeable.ts"
 import * as Predicate from "../../../Predicate.ts"
 import * as ServiceMap from "../../../ServiceMap.ts"
@@ -132,7 +133,7 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
         args.push({
           name: single.name,
           type: single.typeName ?? Primitive.getTypeName(single.primitiveType),
-          description: single.description,
+          description: Option.getOrUndefined(single.description),
           required: !metadata.isOptional,
           variadic: metadata.isVariadic
         })
@@ -157,7 +158,7 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
           name: single.name,
           aliases: formattedAliases,
           type: single.typeName ?? Primitive.getTypeName(single.primitiveType),
-          description: single.description,
+          description: Option.getOrUndefined(single.description),
           required: single.primitiveType._tag !== "Boolean"
         })
       }

@@ -4,6 +4,7 @@
 import type * as Cause from "effect/Cause"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
 import { badArgument, type PlatformError } from "effect/PlatformError"
 import * as Predicate from "effect/Predicate"
 import * as Queue from "effect/Queue"
@@ -52,7 +53,7 @@ export const make: (
       const queue = yield* Queue.make<Terminal.UserInput, Cause.Done>()
       const handleKeypress = (s: string | undefined, k: readline.Key) => {
         const userInput = {
-          input: s,
+          input: Option.fromNullishOr(s),
           key: { name: k.name ?? "", ctrl: !!k.ctrl, meta: !!k.meta, shift: !!k.shift }
         }
         Queue.offerUnsafe(queue, userInput)
