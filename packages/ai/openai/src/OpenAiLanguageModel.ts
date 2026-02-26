@@ -2504,7 +2504,7 @@ const prepareResponseFormat = Effect.fnUntraced(function*({ config, options }: {
   if (options.responseFormat.type === "json") {
     const name = options.responseFormat.objectName
     const schema = options.responseFormat.schema
-    const jsonSchema = tryJsonSchema(schema, "prepareResponseFormat")
+    const jsonSchema = yield* tryJsonSchema(schema, "prepareResponseFormat")
     return {
       type: "json_schema",
       name,
