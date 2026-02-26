@@ -3971,16 +3971,6 @@ export * as TxPubSub from "./TxPubSub.ts"
 export * as TxQueue from "./TxQueue.ts"
 
 /**
- * A transactional pseudo-random number generator. The PRNG state lives in a
- * `TxRef`, so rolling back a transaction also rolls back the random state.
- *
- * Uses the PCG-XSH-RR algorithm for deterministic, high-quality random output.
- *
- * @since 4.0.0
- */
-export * as TxRandom from "./TxRandom.ts"
-
-/**
  * TxReentrantLock is a transactional read/write lock with reentrant semantics using Software
  * Transactional Memory (STM). Multiple readers can hold the lock concurrently, OR a single
  * writer can hold exclusive access. A fiber holding a write lock may acquire additional

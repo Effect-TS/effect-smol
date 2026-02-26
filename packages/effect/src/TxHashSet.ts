@@ -66,7 +66,7 @@ const TxHashSetProto = {
  *   console.log(hasApple) // true
  *
  *   // Multi-step atomic operations
- *   yield* Effect.atomic(
+ *   yield* Effect.transaction(
  *     Effect.gen(function*() {
  *       const hasCherry = yield* TxHashSet.has(txSet, "cherry")
  *       if (hasCherry) {
@@ -165,7 +165,7 @@ const makeTxHashSet = <V>(ref: TxRef.TxRef<HashSet.HashSet<V>>): TxHashSet<V> =>
  * @since 2.0.0
  * @category constructors
  */
-export const empty = <V = never>(): Effect.Effect<TxHashSet<V>> =>
+export const empty = <V = never>(): Effect.Effect<TxHashSet<V>, never, Effect.Transaction> =>
   Effect.gen(function*() {
     const ref = yield* TxRef.make(HashSet.empty<V>())
     return makeTxHashSet(ref)
@@ -195,7 +195,7 @@ export const empty = <V = never>(): Effect.Effect<TxHashSet<V>> =>
  */
 export const make = <Values extends ReadonlyArray<any>>(
   ...values: Values
-): Effect.Effect<TxHashSet<Values[number]>> =>
+): Effect.Effect<TxHashSet<Values[number]>, never, Effect.Transaction> =>
   Effect.gen(function*() {
     const hashSet = HashSet.make(...values)
     const ref = yield* TxRef.make(hashSet)
@@ -225,7 +225,7 @@ export const make = <Values extends ReadonlyArray<any>>(
  * @since 2.0.0
  * @category constructors
  */
-export const fromIterable = <V>(values: Iterable<V>): Effect.Effect<TxHashSet<V>> =>
+export const fromIterable = <V>(values: Iterable<V>): Effect.Effect<TxHashSet<V>, never, Effect.Transaction> =>
   Effect.gen(function*() {
     const hashSet = HashSet.fromIterable(values)
     const ref = yield* TxRef.make(hashSet)
@@ -257,7 +257,7 @@ export const fromIterable = <V>(values: Iterable<V>): Effect.Effect<TxHashSet<V>
  * @since 2.0.0
  * @category constructors
  */
-export const fromHashSet = <V>(hashSet: HashSet.HashSet<V>): Effect.Effect<TxHashSet<V>> =>
+export const fromHashSet = <V>(hashSet: HashSet.HashSet<V>): Effect.Effect<TxHashSet<V>, never, Effect.Transaction> =>
   Effect.gen(function*() {
     const ref = yield* TxRef.make(hashSet)
     return makeTxHashSet(ref)
@@ -315,11 +315,11 @@ export const isTxHashSet = (u: unknown): u is TxHashSet<unknown> => typeof u ===
  * @category mutations
  */
 export const add: {
-  <V>(value: V): (self: TxHashSet<V>) => Effect.Effect<void>
-  <V>(self: TxHashSet<V>, value: V): Effect.Effect<void>
+  <V>(value: V): (self: TxHashSet<V>) => Effect.Effect<void, never, Effect.Transaction>
+  <V>(self: TxHashSet<V>, value: V): Effect.Effect<void, never, Effect.Transaction>
 } = dual<
-  <V>(value: V) => (self: TxHashSet<V>) => Effect.Effect<void>,
-  <V>(self: TxHashSet<V>, value: V) => Effect.Effect<void>
+  <V>(value: V) => (self: TxHashSet<V>) => Effect.Effect<void, never, Effect.Transaction>,
+  <V>(self: TxHashSet<V>, value: V) => Effect.Effect<void, never, Effect.Transaction>
 >(2, <V>(self: TxHashSet<V>, value: V) => TxRef.update(self.ref, (set) => HashSet.add(set, value)))
 
 /**
@@ -350,22 +350,20 @@ export const add: {
  * @category mutations
  */
 export const remove: {
-  <V>(value: V): (self: TxHashSet<V>) => Effect.Effect<boolean>
-  <V>(self: TxHashSet<V>, value: V): Effect.Effect<boolean>
+  <V>(value: V): (self: TxHashSet<V>) => Effect.Effect<boolean, never, Effect.Transaction>
+  <V>(self: TxHashSet<V>, value: V): Effect.Effect<boolean, never, Effect.Transaction>
 } = dual<
-  <V>(value: V) => (self: TxHashSet<V>) => Effect.Effect<boolean>,
-  <V>(self: TxHashSet<V>, value: V) => Effect.Effect<boolean>
+  <V>(value: V) => (self: TxHashSet<V>) => Effect.Effect<boolean, never, Effect.Transaction>,
+  <V>(self: TxHashSet<V>, value: V) => Effect.Effect<boolean, never, Effect.Transaction>
 >(2, <V>(self: TxHashSet<V>, value: V) =>
-  Effect.atomic(
-    Effect.gen(function*() {
-      const currentSet = yield* TxRef.get(self.ref)
-      const existed = HashSet.has(currentSet, value)
-      if (existed) {
-        yield* TxRef.set(self.ref, HashSet.remove(currentSet, value))
-      }
-      return existed
-    })
-  ))
+  Effect.gen(function*() {
+    const currentSet = yield* TxRef.get(self.ref)
+    const existed = HashSet.has(currentSet, value)
+    if (existed) {
+      yield* TxRef.set(self.ref, HashSet.remove(currentSet, value))
+    }
+    return existed
+  }))
 
 /**
  * Checks if the TxHashSet contains the specified value.
@@ -402,11 +400,11 @@ export const remove: {
  * @category elements
  */
 export const has: {
-  <V>(value: V): (self: TxHashSet<V>) => Effect.Effect<boolean>
-  <V>(self: TxHashSet<V>, value: V): Effect.Effect<boolean>
+  <V>(value: V): (self: TxHashSet<V>) => Effect.Effect<boolean, never, Effect.Transaction>
+  <V>(self: TxHashSet<V>, value: V): Effect.Effect<boolean, never, Effect.Transaction>
 } = dual<
-  <V>(value: V) => (self: TxHashSet<V>) => Effect.Effect<boolean>,
-  <V>(self: TxHashSet<V>, value: V) => Effect.Effect<boolean>
+  <V>(value: V) => (self: TxHashSet<V>) => Effect.Effect<boolean, never, Effect.Transaction>,
+  <V>(self: TxHashSet<V>, value: V) => Effect.Effect<boolean, never, Effect.Transaction>
 >(2, <V>(self: TxHashSet<V>, value: V) =>
   Effect.gen(function*() {
     const set = yield* TxRef.get(self.ref)
@@ -435,7 +433,7 @@ export const has: {
  * @since 2.0.0
  * @category getters
  */
-export const size = <V>(self: TxHashSet<V>): Effect.Effect<number> =>
+export const size = <V>(self: TxHashSet<V>): Effect.Effect<number, never, Effect.Transaction> =>
   Effect.gen(function*() {
     const set = yield* TxRef.get(self.ref)
     return HashSet.size(set)
@@ -460,7 +458,7 @@ export const size = <V>(self: TxHashSet<V>): Effect.Effect<number> =>
  * @since 2.0.0
  * @category getters
  */
-export const isEmpty = <V>(self: TxHashSet<V>): Effect.Effect<boolean> =>
+export const isEmpty = <V>(self: TxHashSet<V>): Effect.Effect<boolean, never, Effect.Transaction> =>
   Effect.gen(function*() {
     const set = yield* TxRef.get(self.ref)
     return HashSet.isEmpty(set)
@@ -489,7 +487,8 @@ export const isEmpty = <V>(self: TxHashSet<V>): Effect.Effect<boolean> =>
  * @since 2.0.0
  * @category mutations
  */
-export const clear = <V>(self: TxHashSet<V>): Effect.Effect<void> => TxRef.set(self.ref, HashSet.empty<V>())
+export const clear = <V>(self: TxHashSet<V>): Effect.Effect<void, never, Effect.Transaction> =>
+  TxRef.set(self.ref, HashSet.empty<V>())
 
 /**
  * Creates the union of two TxHashSets, returning a new TxHashSet.
@@ -513,20 +512,23 @@ export const clear = <V>(self: TxHashSet<V>): Effect.Effect<void> => TxRef.set(s
  * @category combinators
  */
 export const union: {
-  <V1>(that: TxHashSet<V1>): <V0>(self: TxHashSet<V0>) => Effect.Effect<TxHashSet<V1 | V0>>
-  <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>): Effect.Effect<TxHashSet<V0 | V1>>
+  <V1>(that: TxHashSet<V1>): <V0>(self: TxHashSet<V0>) => Effect.Effect<TxHashSet<V1 | V0>, never, Effect.Transaction>
+  <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>): Effect.Effect<TxHashSet<V0 | V1>, never, Effect.Transaction>
 } = dual<
-  <V1>(that: TxHashSet<V1>) => <V0>(self: TxHashSet<V0>) => Effect.Effect<TxHashSet<V1 | V0>>,
-  <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>) => Effect.Effect<TxHashSet<V0 | V1>>
+  <V1>(
+    that: TxHashSet<V1>
+  ) => <V0>(self: TxHashSet<V0>) => Effect.Effect<TxHashSet<V1 | V0>, never, Effect.Transaction>,
+  <V0, V1>(
+    self: TxHashSet<V0>,
+    that: TxHashSet<V1>
+  ) => Effect.Effect<TxHashSet<V0 | V1>, never, Effect.Transaction>
 >(2, <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>) =>
-  Effect.atomic(
-    Effect.gen(function*() {
-      const set1 = yield* TxRef.get(self.ref)
-      const set2 = yield* TxRef.get(that.ref)
-      const combined = HashSet.union(set1, set2)
-      return yield* fromHashSet(combined)
-    })
-  ))
+  Effect.gen(function*() {
+    const set1 = yield* TxRef.get(self.ref)
+    const set2 = yield* TxRef.get(that.ref)
+    const combined = HashSet.union(set1, set2)
+    return yield* fromHashSet(combined)
+  }))
 
 /**
  * Creates the intersection of two TxHashSets, returning a new TxHashSet.
@@ -550,20 +552,23 @@ export const union: {
  * @category combinators
  */
 export const intersection: {
-  <V1>(that: TxHashSet<V1>): <V0>(self: TxHashSet<V0>) => Effect.Effect<TxHashSet<V1 & V0>>
-  <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>): Effect.Effect<TxHashSet<V0 & V1>>
+  <V1>(that: TxHashSet<V1>): <V0>(self: TxHashSet<V0>) => Effect.Effect<TxHashSet<V1 & V0>, never, Effect.Transaction>
+  <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>): Effect.Effect<TxHashSet<V0 & V1>, never, Effect.Transaction>
 } = dual<
-  <V1>(that: TxHashSet<V1>) => <V0>(self: TxHashSet<V0>) => Effect.Effect<TxHashSet<V1 & V0>>,
-  <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>) => Effect.Effect<TxHashSet<V0 & V1>>
+  <V1>(
+    that: TxHashSet<V1>
+  ) => <V0>(self: TxHashSet<V0>) => Effect.Effect<TxHashSet<V1 & V0>, never, Effect.Transaction>,
+  <V0, V1>(
+    self: TxHashSet<V0>,
+    that: TxHashSet<V1>
+  ) => Effect.Effect<TxHashSet<V0 & V1>, never, Effect.Transaction>
 >(2, <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>) =>
-  Effect.atomic(
-    Effect.gen(function*() {
-      const set1 = yield* TxRef.get(self.ref)
-      const set2 = yield* TxRef.get(that.ref)
-      const common = HashSet.intersection(set1, set2)
-      return yield* fromHashSet(common)
-    })
-  ))
+  Effect.gen(function*() {
+    const set1 = yield* TxRef.get(self.ref)
+    const set2 = yield* TxRef.get(that.ref)
+    const common = HashSet.intersection(set1, set2)
+    return yield* fromHashSet(common)
+  }))
 
 /**
  * Creates the difference of two TxHashSets (elements in the first set that are not in the second), returning a new TxHashSet.
@@ -587,20 +592,23 @@ export const intersection: {
  * @category combinators
  */
 export const difference: {
-  <V1>(that: TxHashSet<V1>): <V0>(self: TxHashSet<V0>) => Effect.Effect<TxHashSet<V0>>
-  <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>): Effect.Effect<TxHashSet<V0>>
+  <V1>(that: TxHashSet<V1>): <V0>(self: TxHashSet<V0>) => Effect.Effect<TxHashSet<V0>, never, Effect.Transaction>
+  <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>): Effect.Effect<TxHashSet<V0>, never, Effect.Transaction>
 } = dual<
-  <V1>(that: TxHashSet<V1>) => <V0>(self: TxHashSet<V0>) => Effect.Effect<TxHashSet<V0>>,
-  <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>) => Effect.Effect<TxHashSet<V0>>
+  <V1>(
+    that: TxHashSet<V1>
+  ) => <V0>(self: TxHashSet<V0>) => Effect.Effect<TxHashSet<V0>, never, Effect.Transaction>,
+  <V0, V1>(
+    self: TxHashSet<V0>,
+    that: TxHashSet<V1>
+  ) => Effect.Effect<TxHashSet<V0>, never, Effect.Transaction>
 >(2, <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>) =>
-  Effect.atomic(
-    Effect.gen(function*() {
-      const set1 = yield* TxRef.get(self.ref)
-      const set2 = yield* TxRef.get(that.ref)
-      const diff = HashSet.difference(set1, set2)
-      return yield* fromHashSet(diff)
-    })
-  ))
+  Effect.gen(function*() {
+    const set1 = yield* TxRef.get(self.ref)
+    const set2 = yield* TxRef.get(that.ref)
+    const diff = HashSet.difference(set1, set2)
+    return yield* fromHashSet(diff)
+  }))
 
 /**
  * Checks if a TxHashSet is a subset of another TxHashSet.
@@ -625,19 +633,17 @@ export const difference: {
  * @category elements
  */
 export const isSubset: {
-  <V1>(that: TxHashSet<V1>): <V0>(self: TxHashSet<V0>) => Effect.Effect<boolean>
-  <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>): Effect.Effect<boolean>
+  <V1>(that: TxHashSet<V1>): <V0>(self: TxHashSet<V0>) => Effect.Effect<boolean, never, Effect.Transaction>
+  <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>): Effect.Effect<boolean, never, Effect.Transaction>
 } = dual<
-  <V1>(that: TxHashSet<V1>) => <V0>(self: TxHashSet<V0>) => Effect.Effect<boolean>,
-  <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>) => Effect.Effect<boolean>
+  <V1>(that: TxHashSet<V1>) => <V0>(self: TxHashSet<V0>) => Effect.Effect<boolean, never, Effect.Transaction>,
+  <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>) => Effect.Effect<boolean, never, Effect.Transaction>
 >(2, <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>) =>
-  Effect.atomic(
-    Effect.gen(function*() {
-      const set1 = yield* TxRef.get(self.ref)
-      const set2 = yield* TxRef.get(that.ref)
-      return HashSet.isSubset(set1, set2)
-    })
-  ))
+  Effect.gen(function*() {
+    const set1 = yield* TxRef.get(self.ref)
+    const set2 = yield* TxRef.get(that.ref)
+    return HashSet.isSubset(set1, set2)
+  }))
 
 /**
  * Tests whether at least one value in the TxHashSet satisfies the predicate.
@@ -661,11 +667,11 @@ export const isSubset: {
  * @category elements
  */
 export const some: {
-  <V>(predicate: Predicate<V>): (self: TxHashSet<V>) => Effect.Effect<boolean>
-  <V>(self: TxHashSet<V>, predicate: Predicate<V>): Effect.Effect<boolean>
+  <V>(predicate: Predicate<V>): (self: TxHashSet<V>) => Effect.Effect<boolean, never, Effect.Transaction>
+  <V>(self: TxHashSet<V>, predicate: Predicate<V>): Effect.Effect<boolean, never, Effect.Transaction>
 } = dual<
-  <V>(predicate: Predicate<V>) => (self: TxHashSet<V>) => Effect.Effect<boolean>,
-  <V>(self: TxHashSet<V>, predicate: Predicate<V>) => Effect.Effect<boolean>
+  <V>(predicate: Predicate<V>) => (self: TxHashSet<V>) => Effect.Effect<boolean, never, Effect.Transaction>,
+  <V>(self: TxHashSet<V>, predicate: Predicate<V>) => Effect.Effect<boolean, never, Effect.Transaction>
 >(2, <V>(self: TxHashSet<V>, predicate: Predicate<V>) =>
   Effect.gen(function*() {
     const set = yield* TxRef.get(self.ref)
@@ -694,11 +700,11 @@ export const some: {
  * @category elements
  */
 export const every: {
-  <V>(predicate: Predicate<V>): (self: TxHashSet<V>) => Effect.Effect<boolean>
-  <V>(self: TxHashSet<V>, predicate: Predicate<V>): Effect.Effect<boolean>
+  <V>(predicate: Predicate<V>): (self: TxHashSet<V>) => Effect.Effect<boolean, never, Effect.Transaction>
+  <V>(self: TxHashSet<V>, predicate: Predicate<V>): Effect.Effect<boolean, never, Effect.Transaction>
 } = dual<
-  <V>(predicate: Predicate<V>) => (self: TxHashSet<V>) => Effect.Effect<boolean>,
-  <V>(self: TxHashSet<V>, predicate: Predicate<V>) => Effect.Effect<boolean>
+  <V>(predicate: Predicate<V>) => (self: TxHashSet<V>) => Effect.Effect<boolean, never, Effect.Transaction>,
+  <V>(self: TxHashSet<V>, predicate: Predicate<V>) => Effect.Effect<boolean, never, Effect.Transaction>
 >(2, <V>(self: TxHashSet<V>, predicate: Predicate<V>) =>
   Effect.gen(function*() {
     const set = yield* TxRef.get(self.ref)
@@ -732,19 +738,17 @@ export const every: {
  * @category mapping
  */
 export const map: {
-  <V, U>(f: (value: V) => U): (self: TxHashSet<V>) => Effect.Effect<TxHashSet<U>>
-  <V, U>(self: TxHashSet<V>, f: (value: V) => U): Effect.Effect<TxHashSet<U>>
+  <V, U>(f: (value: V) => U): (self: TxHashSet<V>) => Effect.Effect<TxHashSet<U>, never, Effect.Transaction>
+  <V, U>(self: TxHashSet<V>, f: (value: V) => U): Effect.Effect<TxHashSet<U>, never, Effect.Transaction>
 } = dual<
-  <V, U>(f: (value: V) => U) => (self: TxHashSet<V>) => Effect.Effect<TxHashSet<U>>,
-  <V, U>(self: TxHashSet<V>, f: (value: V) => U) => Effect.Effect<TxHashSet<U>>
+  <V, U>(f: (value: V) => U) => (self: TxHashSet<V>) => Effect.Effect<TxHashSet<U>, never, Effect.Transaction>,
+  <V, U>(self: TxHashSet<V>, f: (value: V) => U) => Effect.Effect<TxHashSet<U>, never, Effect.Transaction>
 >(2, <V, U>(self: TxHashSet<V>, f: (value: V) => U) =>
-  Effect.atomic(
-    Effect.gen(function*() {
-      const currentSet = yield* TxRef.get(self.ref)
-      const mappedSet = HashSet.map(currentSet, f)
-      return yield* fromHashSet(mappedSet)
-    })
-  ))
+  Effect.gen(function*() {
+    const currentSet = yield* TxRef.get(self.ref)
+    const mappedSet = HashSet.map(currentSet, f)
+    return yield* fromHashSet(mappedSet)
+  }))
 
 /**
  * Filters the TxHashSet keeping only values that satisfy the predicate, returning a new TxHashSet.
@@ -767,27 +771,39 @@ export const map: {
  * @category filtering
  */
 export const filter: {
-  <V, U extends V>(refinement: Refinement<NoInfer<V>, U>): (self: TxHashSet<V>) => Effect.Effect<TxHashSet<U>>
-  <V>(predicate: Predicate<NoInfer<V>>): (self: TxHashSet<V>) => Effect.Effect<TxHashSet<V>>
-  <V, U extends V>(self: TxHashSet<V>, refinement: Refinement<V, U>): Effect.Effect<TxHashSet<U>>
-  <V>(self: TxHashSet<V>, predicate: Predicate<V>): Effect.Effect<TxHashSet<V>>
+  <V, U extends V>(
+    refinement: Refinement<NoInfer<V>, U>
+  ): (self: TxHashSet<V>) => Effect.Effect<TxHashSet<U>, never, Effect.Transaction>
+  <V>(
+    predicate: Predicate<NoInfer<V>>
+  ): (self: TxHashSet<V>) => Effect.Effect<TxHashSet<V>, never, Effect.Transaction>
+  <V, U extends V>(
+    self: TxHashSet<V>,
+    refinement: Refinement<V, U>
+  ): Effect.Effect<TxHashSet<U>, never, Effect.Transaction>
+  <V>(self: TxHashSet<V>, predicate: Predicate<V>): Effect.Effect<TxHashSet<V>, never, Effect.Transaction>
 } = dual<
   {
-    <V, U extends V>(refinement: Refinement<NoInfer<V>, U>): (self: TxHashSet<V>) => Effect.Effect<TxHashSet<U>>
-    <V>(predicate: Predicate<NoInfer<V>>): (self: TxHashSet<V>) => Effect.Effect<TxHashSet<V>>
+    <V, U extends V>(
+      refinement: Refinement<NoInfer<V>, U>
+    ): (self: TxHashSet<V>) => Effect.Effect<TxHashSet<U>, never, Effect.Transaction>
+    <V>(
+      predicate: Predicate<NoInfer<V>>
+    ): (self: TxHashSet<V>) => Effect.Effect<TxHashSet<V>, never, Effect.Transaction>
   },
   {
-    <V, U extends V>(self: TxHashSet<V>, refinement: Refinement<V, U>): Effect.Effect<TxHashSet<U>>
-    <V>(self: TxHashSet<V>, predicate: Predicate<V>): Effect.Effect<TxHashSet<V>>
+    <V, U extends V>(
+      self: TxHashSet<V>,
+      refinement: Refinement<V, U>
+    ): Effect.Effect<TxHashSet<U>, never, Effect.Transaction>
+    <V>(self: TxHashSet<V>, predicate: Predicate<V>): Effect.Effect<TxHashSet<V>, never, Effect.Transaction>
   }
 >(2, <V>(self: TxHashSet<V>, predicate: Predicate<V>) =>
-  Effect.atomic(
-    Effect.gen(function*() {
-      const currentSet = yield* TxRef.get(self.ref)
-      const filteredSet = HashSet.filter(currentSet, predicate)
-      return yield* fromHashSet(filteredSet)
-    })
-  ))
+  Effect.gen(function*() {
+    const currentSet = yield* TxRef.get(self.ref)
+    const filteredSet = HashSet.filter(currentSet, predicate)
+    return yield* fromHashSet(filteredSet)
+  }))
 
 /**
  * Reduces the TxHashSet to a single value by iterating through the values and applying an accumulator function.
@@ -812,11 +828,25 @@ export const filter: {
  * @category folding
  */
 export const reduce: {
-  <V, U>(zero: U, f: (accumulator: U, value: V) => U): (self: TxHashSet<V>) => Effect.Effect<U>
-  <V, U>(self: TxHashSet<V>, zero: U, f: (accumulator: U, value: V) => U): Effect.Effect<U>
+  <V, U>(
+    zero: U,
+    f: (accumulator: U, value: V) => U
+  ): (self: TxHashSet<V>) => Effect.Effect<U, never, Effect.Transaction>
+  <V, U>(
+    self: TxHashSet<V>,
+    zero: U,
+    f: (accumulator: U, value: V) => U
+  ): Effect.Effect<U, never, Effect.Transaction>
 } = dual<
-  <V, U>(zero: U, f: (accumulator: U, value: V) => U) => (self: TxHashSet<V>) => Effect.Effect<U>,
-  <V, U>(self: TxHashSet<V>, zero: U, f: (accumulator: U, value: V) => U) => Effect.Effect<U>
+  <V, U>(
+    zero: U,
+    f: (accumulator: U, value: V) => U
+  ) => (self: TxHashSet<V>) => Effect.Effect<U, never, Effect.Transaction>,
+  <V, U>(
+    self: TxHashSet<V>,
+    zero: U,
+    f: (accumulator: U, value: V) => U
+  ) => Effect.Effect<U, never, Effect.Transaction>
 >(3, <V, U>(self: TxHashSet<V>, zero: U, f: (accumulator: U, value: V) => U) =>
   Effect.gen(function*() {
     const set = yield* TxRef.get(self.ref)
@@ -848,4 +878,5 @@ export const reduce: {
  * @since 2.0.0
  * @category conversions
  */
-export const toHashSet = <V>(self: TxHashSet<V>): Effect.Effect<HashSet.HashSet<V>> => TxRef.get(self.ref)
+export const toHashSet = <V>(self: TxHashSet<V>): Effect.Effect<HashSet.HashSet<V>, never, Effect.Transaction> =>
+  TxRef.get(self.ref)

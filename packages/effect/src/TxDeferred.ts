@@ -92,7 +92,7 @@ const makeTxDeferred = <A, E>(ref: TxRef.TxRef<Option<Result<A, E>>>): TxDeferre
  * @since 4.0.0
  * @category constructors
  */
-export const make = <A, E = never>(): Effect.Effect<TxDeferred<A, E>> =>
+export const make = <A, E = never>(): Effect.Effect<TxDeferred<A, E>, never, Effect.Transaction> =>
   Effect.map(TxRef.make<Option<Result<A, E>>>(O.none()), makeTxDeferred)
 
 /**
@@ -114,18 +114,16 @@ export const make = <A, E = never>(): Effect.Effect<TxDeferred<A, E>> =>
  * @since 4.0.0
  * @category getters
  */
-const await_ = <A, E>(self: TxDeferred<A, E>): Effect.Effect<A, E> =>
-  Effect.atomic(
-    Effect.gen(function*() {
-      const option = yield* TxRef.get(self.ref)
-      if (O.isNone(option)) {
-        return yield* Effect.retryTransaction
-      }
-      return Res.isSuccess(option.value)
-        ? option.value.success
-        : yield* Effect.fail(option.value.failure)
-    })
-  )
+const await_ = <A, E>(self: TxDeferred<A, E>): Effect.Effect<A, E, Effect.Transaction> =>
+  Effect.gen(function*() {
+    const option = yield* TxRef.get(self.ref)
+    if (O.isNone(option)) {
+      return yield* Effect.retryTransaction
+    }
+    return Res.isSuccess(option.value)
+      ? option.value.success
+      : yield* Effect.fail(option.value.failure)
+  })
 
 export {
   /**
@@ -160,7 +158,8 @@ export {
  * @since 4.0.0
  * @category getters
  */
-export const poll = <A, E>(self: TxDeferred<A, E>): Effect.Effect<Option<Result<A, E>>> => TxRef.get(self.ref)
+export const poll = <A, E>(self: TxDeferred<A, E>): Effect.Effect<Option<Result<A, E>>, never, Effect.Transaction> =>
+  TxRef.get(self.ref)
 
 /**
  * Completes the deferred with a `Result`. Returns `true` if this was the first
@@ -183,11 +182,11 @@ export const poll = <A, E>(self: TxDeferred<A, E>): Effect.Effect<Option<Result<
  * @category mutations
  */
 export const done: {
-  <A, E>(result: Result<A, E>): (self: TxDeferred<A, E>) => Effect.Effect<boolean>
-  <A, E>(self: TxDeferred<A, E>, result: Result<A, E>): Effect.Effect<boolean>
+  <A, E>(result: Result<A, E>): (self: TxDeferred<A, E>) => Effect.Effect<boolean, never, Effect.Transaction>
+  <A, E>(self: TxDeferred<A, E>, result: Result<A, E>): Effect.Effect<boolean, never, Effect.Transaction>
 } = dual(
   2,
-  <A, E>(self: TxDeferred<A, E>, result: Result<A, E>): Effect.Effect<boolean> =>
+  <A, E>(self: TxDeferred<A, E>, result: Result<A, E>): Effect.Effect<boolean, never, Effect.Transaction> =>
     TxRef.modify(self.ref, (current) => {
       if (O.isSome(current)) {
         return [false, current]
@@ -217,11 +216,12 @@ export const done: {
  * @category mutations
  */
 export const succeed: {
-  <A>(value: A): <E>(self: TxDeferred<A, E>) => Effect.Effect<boolean>
-  <A, E>(self: TxDeferred<A, E>, value: A): Effect.Effect<boolean>
+  <A>(value: A): <E>(self: TxDeferred<A, E>) => Effect.Effect<boolean, never, Effect.Transaction>
+  <A, E>(self: TxDeferred<A, E>, value: A): Effect.Effect<boolean, never, Effect.Transaction>
 } = dual(
   2,
-  <A, E>(self: TxDeferred<A, E>, value: A): Effect.Effect<boolean> => done(self, Res.succeed(value))
+  <A, E>(self: TxDeferred<A, E>, value: A): Effect.Effect<boolean, never, Effect.Transaction> =>
+    done(self, Res.succeed(value))
 )
 
 /**
@@ -245,11 +245,12 @@ export const succeed: {
  * @category mutations
  */
 export const fail: {
-  <E>(error: E): <A>(self: TxDeferred<A, E>) => Effect.Effect<boolean>
-  <A, E>(self: TxDeferred<A, E>, error: E): Effect.Effect<boolean>
+  <E>(error: E): <A>(self: TxDeferred<A, E>) => Effect.Effect<boolean, never, Effect.Transaction>
+  <A, E>(self: TxDeferred<A, E>, error: E): Effect.Effect<boolean, never, Effect.Transaction>
 } = dual(
   2,
-  <A, E>(self: TxDeferred<A, E>, error: E): Effect.Effect<boolean> => done(self, Res.fail(error))
+  <A, E>(self: TxDeferred<A, E>, error: E): Effect.Effect<boolean, never, Effect.Transaction> =>
+    done(self, Res.fail(error))
 )
 
 /**

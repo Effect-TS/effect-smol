@@ -92,7 +92,7 @@ const TxSubscriptionRefProto: Omit<TxSubscriptionRef<any>, typeof TypeId | "ref"
  * @since 4.0.0
  * @category constructors
  */
-export const make = <A>(value: A): Effect.Effect<TxSubscriptionRef<A>> =>
+export const make = <A>(value: A): Effect.Effect<TxSubscriptionRef<A>, never, Effect.Transaction> =>
   Effect.gen(function*() {
     const ref = yield* TxRef.make(value)
     const pubsub = yield* TxPubSub.unbounded<A>()
@@ -124,7 +124,7 @@ export const make = <A>(value: A): Effect.Effect<TxSubscriptionRef<A>> =>
  * @since 4.0.0
  * @category getters
  */
-export const get = <A>(self: TxSubscriptionRef<A>): Effect.Effect<A> => TxRef.get(self.ref)
+export const get = <A>(self: TxSubscriptionRef<A>): Effect.Effect<A, never, Effect.Transaction> => TxRef.get(self.ref)
 
 // =============================================================================
 // Mutations
@@ -150,20 +150,26 @@ export const get = <A>(self: TxSubscriptionRef<A>): Effect.Effect<A> => TxRef.ge
  * @category mutations
  */
 export const modify: {
-  <A, B>(f: (current: A) => [returnValue: B, newValue: A]): (self: TxSubscriptionRef<A>) => Effect.Effect<B>
-  <A, B>(self: TxSubscriptionRef<A>, f: (current: A) => [returnValue: B, newValue: A]): Effect.Effect<B>
+  <A, B>(
+    f: (current: A) => [returnValue: B, newValue: A]
+  ): (self: TxSubscriptionRef<A>) => Effect.Effect<B, never, Effect.Transaction>
+  <A, B>(
+    self: TxSubscriptionRef<A>,
+    f: (current: A) => [returnValue: B, newValue: A]
+  ): Effect.Effect<B, never, Effect.Transaction>
 } = dual(
   2,
-  <A, B>(self: TxSubscriptionRef<A>, f: (current: A) => [returnValue: B, newValue: A]): Effect.Effect<B> =>
-    Effect.atomic(
-      Effect.gen(function*() {
-        const current = yield* TxRef.get(self.ref)
-        const [returnValue, newValue] = f(current)
-        yield* TxRef.set(self.ref, newValue)
-        yield* TxPubSub.publish(self.pubsub, newValue)
-        return returnValue
-      })
-    )
+  <A, B>(
+    self: TxSubscriptionRef<A>,
+    f: (current: A) => [returnValue: B, newValue: A]
+  ): Effect.Effect<B, never, Effect.Transaction> =>
+    Effect.gen(function*() {
+      const current = yield* TxRef.get(self.ref)
+      const [returnValue, newValue] = f(current)
+      yield* TxRef.set(self.ref, newValue)
+      yield* TxPubSub.publish(self.pubsub, newValue)
+      return returnValue
+    })
 )
 
 /**
@@ -184,11 +190,12 @@ export const modify: {
  * @category mutations
  */
 export const set: {
-  <A>(value: A): (self: TxSubscriptionRef<A>) => Effect.Effect<void>
-  <A>(self: TxSubscriptionRef<A>, value: A): Effect.Effect<void>
+  <A>(value: A): (self: TxSubscriptionRef<A>) => Effect.Effect<void, never, Effect.Transaction>
+  <A>(self: TxSubscriptionRef<A>, value: A): Effect.Effect<void, never, Effect.Transaction>
 } = dual(
   2,
-  <A>(self: TxSubscriptionRef<A>, value: A): Effect.Effect<void> => modify(self, () => [void 0, value])
+  <A>(self: TxSubscriptionRef<A>, value: A): Effect.Effect<void, never, Effect.Transaction> =>
+    modify(self, () => [void 0, value])
 )
 
 /**
@@ -210,11 +217,11 @@ export const set: {
  * @category mutations
  */
 export const update: {
-  <A>(f: (current: A) => A): (self: TxSubscriptionRef<A>) => Effect.Effect<void>
-  <A>(self: TxSubscriptionRef<A>, f: (current: A) => A): Effect.Effect<void>
+  <A>(f: (current: A) => A): (self: TxSubscriptionRef<A>) => Effect.Effect<void, never, Effect.Transaction>
+  <A>(self: TxSubscriptionRef<A>, f: (current: A) => A): Effect.Effect<void, never, Effect.Transaction>
 } = dual(
   2,
-  <A>(self: TxSubscriptionRef<A>, f: (current: A) => A): Effect.Effect<void> =>
+  <A>(self: TxSubscriptionRef<A>, f: (current: A) => A): Effect.Effect<void, never, Effect.Transaction> =>
     modify(self, (current) => [void 0, f(current)])
 )
 
@@ -238,11 +245,12 @@ export const update: {
  * @category mutations
  */
 export const getAndSet: {
-  <A>(value: A): (self: TxSubscriptionRef<A>) => Effect.Effect<A>
-  <A>(self: TxSubscriptionRef<A>, value: A): Effect.Effect<A>
+  <A>(value: A): (self: TxSubscriptionRef<A>) => Effect.Effect<A, never, Effect.Transaction>
+  <A>(self: TxSubscriptionRef<A>, value: A): Effect.Effect<A, never, Effect.Transaction>
 } = dual(
   2,
-  <A>(self: TxSubscriptionRef<A>, value: A): Effect.Effect<A> => modify(self, (current) => [current, value])
+  <A>(self: TxSubscriptionRef<A>, value: A): Effect.Effect<A, never, Effect.Transaction> =>
+    modify(self, (current) => [current, value])
 )
 
 /**
@@ -265,11 +273,11 @@ export const getAndSet: {
  * @category mutations
  */
 export const getAndUpdate: {
-  <A>(f: (current: A) => A): (self: TxSubscriptionRef<A>) => Effect.Effect<A>
-  <A>(self: TxSubscriptionRef<A>, f: (current: A) => A): Effect.Effect<A>
+  <A>(f: (current: A) => A): (self: TxSubscriptionRef<A>) => Effect.Effect<A, never, Effect.Transaction>
+  <A>(self: TxSubscriptionRef<A>, f: (current: A) => A): Effect.Effect<A, never, Effect.Transaction>
 } = dual(
   2,
-  <A>(self: TxSubscriptionRef<A>, f: (current: A) => A): Effect.Effect<A> =>
+  <A>(self: TxSubscriptionRef<A>, f: (current: A) => A): Effect.Effect<A, never, Effect.Transaction> =>
     modify(self, (current) => [current, f(current)])
 )
 
@@ -292,11 +300,11 @@ export const getAndUpdate: {
  * @category mutations
  */
 export const updateAndGet: {
-  <A>(f: (current: A) => A): (self: TxSubscriptionRef<A>) => Effect.Effect<A>
-  <A>(self: TxSubscriptionRef<A>, f: (current: A) => A): Effect.Effect<A>
+  <A>(f: (current: A) => A): (self: TxSubscriptionRef<A>) => Effect.Effect<A, never, Effect.Transaction>
+  <A>(self: TxSubscriptionRef<A>, f: (current: A) => A): Effect.Effect<A, never, Effect.Transaction>
 } = dual(
   2,
-  <A>(self: TxSubscriptionRef<A>, f: (current: A) => A): Effect.Effect<A> =>
+  <A>(self: TxSubscriptionRef<A>, f: (current: A) => A): Effect.Effect<A, never, Effect.Transaction> =>
     modify(self, (current) => {
       const newValue = f(current)
       return [newValue, newValue]
@@ -335,13 +343,20 @@ export const updateAndGet: {
  * @since 4.0.0
  * @category subscriptions
  */
-export const changes = <A>(self: TxSubscriptionRef<A>): Effect.Effect<TxQueue.TxDequeue<A>, never, Scope.Scope> =>
-  Effect.gen(function*() {
-    const sub = yield* TxPubSub.subscribe(self.pubsub)
-    const current = yield* TxRef.get(self.ref)
-    yield* TxQueue.offer(sub as TxQueue.TxQueue<A>, current)
-    return sub
-  })
+export const changes = <A>(
+  self: TxSubscriptionRef<A>
+): Effect.Effect<TxQueue.TxQueue<A>, never, Scope.Scope> =>
+  Effect.acquireRelease(
+    Effect.transaction(
+      Effect.gen(function*() {
+        const sub = yield* TxPubSub.acquireSubscriber(self.pubsub)
+        const current = yield* TxRef.get(self.ref)
+        yield* TxQueue.offer(sub, current)
+        return sub
+      })
+    ),
+    (queue) => Effect.transaction(TxPubSub.releaseSubscriber(self.pubsub, queue))
+  )
 
 /**
  * Returns a Stream of all changes to the TxSubscriptionRef, starting with the
@@ -366,11 +381,11 @@ export const changes = <A>(self: TxSubscriptionRef<A>): Effect.Effect<TxQueue.Tx
  * @since 4.0.0
  * @category subscriptions
  */
-export const changesStream = <A>(self: TxSubscriptionRef<A>): Stream.Stream<A> =>
+export const changesStream = <A>(self: TxSubscriptionRef<A>): Stream.Stream<A, never, never> =>
   Stream.unwrap(
     Effect.map(
       changes(self),
-      (sub) => Stream.fromEffectRepeat(TxQueue.take(sub))
+      (sub) => Stream.fromEffectRepeat(Effect.transaction(TxQueue.take(sub)))
     )
   )
 

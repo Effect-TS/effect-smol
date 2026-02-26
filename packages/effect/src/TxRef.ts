@@ -35,12 +35,12 @@ const TypeId = "~effect/transactions/TxRef"
  *   const ref: TxRef.TxRef<number> = yield* TxRef.make(0)
  *
  *   // Use within a transaction
- *   yield* Effect.atomic(Effect.gen(function*() {
+ *   yield* Effect.transaction(Effect.gen(function*() {
  *     const current = yield* TxRef.get(ref)
  *     yield* TxRef.set(ref, current + 1)
  *   }))
  *
- *   const final = yield* TxRef.get(ref)
+ *   const final = yield* Effect.transaction(TxRef.get(ref))
  *   console.log(final) // 1
  * })
  * ```
@@ -64,21 +64,28 @@ export interface TxRef<in out A> extends Pipeable {
  *
  * const program = Effect.gen(function*() {
  *   // Create a transactional reference with initial value
- *   const counter = yield* TxRef.make(0)
- *   const name = yield* TxRef.make("Alice")
+ *   const counter = yield* Effect.transaction(TxRef.make(0))
+ *   const name = yield* Effect.transaction(TxRef.make("Alice"))
  *
  *   // Use in transactions
- *   yield* Effect.atomic(Effect.gen(function*() {
+ *   yield* Effect.transaction(Effect.gen(function*() {
  *     yield* TxRef.set(counter, 42)
  *     yield* TxRef.set(name, "Bob")
  *   }))
  *
- *   console.log(yield* TxRef.get(counter)) // 42
- *   console.log(yield* TxRef.get(name)) // "Bob"
+ *   console.log(yield* Effect.transaction(TxRef.get(counter))) // 42
+ *   console.log(yield* Effect.transaction(TxRef.get(name))) // "Bob"
  * })
  * ```
  */
-export const make = <A>(initial: A) => Effect.sync(() => makeUnsafe(initial))
+export const make = <A>(initial: A) =>
+  Effect.withTxState((state) =>
+    Effect.sync(() => {
+      const ref = makeUnsafe(initial)
+      state.journal.set(ref, { version: ref.version, value: ref.value })
+      return ref
+    })
+  )
 
 /**
  * Creates a new `TxRef` with the specified initial value.
@@ -121,22 +128,27 @@ export const makeUnsafe = <A>(initial: A): TxRef<A> => ({
  *   const counter = yield* TxRef.make(0)
  *
  *   // Modify and return both old and new value
- *   const result = yield* Effect.atomic(
+ *   const result = yield* Effect.transaction(
  *     TxRef.modify(counter, (current) => [current * 2, current + 1])
  *   )
  *
  *   console.log(result) // 0 (the return value: current * 2)
- *   console.log(yield* TxRef.get(counter)) // 1 (the new value: current + 1)
+ *   console.log(yield* Effect.transaction(TxRef.get(counter))) // 1 (the new value: current + 1)
  * })
  * ```
  */
 export const modify: {
-  <A, R>(f: (current: NoInfer<A>) => [returnValue: R, newValue: A]): (self: TxRef<A>) => Effect.Effect<R>
-  <A, R>(self: TxRef<A>, f: (current: A) => [returnValue: R, newValue: A]): Effect.Effect<R>
+  <A, R>(
+    f: (current: NoInfer<A>) => [returnValue: R, newValue: A]
+  ): (self: TxRef<A>) => Effect.Effect<R, never, Effect.Transaction>
+  <A, R>(self: TxRef<A>, f: (current: A) => [returnValue: R, newValue: A]): Effect.Effect<R, never, Effect.Transaction>
 } = dual(
   2,
-  <A, R>(self: TxRef<A>, f: (current: A) => [returnValue: R, newValue: A]): Effect.Effect<R> =>
-    Effect.atomicWith((state) =>
+  <A, R>(
+    self: TxRef<A>,
+    f: (current: A) => [returnValue: R, newValue: A]
+  ): Effect.Effect<R, never, Effect.Transaction> =>
+    Effect.withTxState((state) =>
       Effect.sync(() => {
         if (!state.journal.has(self)) {
           state.journal.set(self, { version: self.version, value: self.value })
@@ -162,20 +174,21 @@ export const modify: {
  *   const counter = yield* TxRef.make(10)
  *
  *   // Update the value using a function
- *   yield* Effect.atomic(
+ *   yield* Effect.transaction(
  *     TxRef.update(counter, (current) => current * 2)
  *   )
  *
- *   console.log(yield* TxRef.get(counter)) // 20
+ *   console.log(yield* Effect.transaction(TxRef.get(counter))) // 20
  * })
  * ```
  */
 export const update: {
-  <A>(f: (current: NoInfer<A>) => A): (self: TxRef<A>) => Effect.Effect<void>
-  <A>(self: TxRef<A>, f: (current: A) => A): Effect.Effect<void>
+  <A>(f: (current: NoInfer<A>) => A): (self: TxRef<A>) => Effect.Effect<void, never, Effect.Transaction>
+  <A>(self: TxRef<A>, f: (current: A) => A): Effect.Effect<void, never, Effect.Transaction>
 } = dual(
   2,
-  <A>(self: TxRef<A>, f: (current: A) => A): Effect.Effect<void> => modify(self, (current) => [void 0, f(current)])
+  <A>(self: TxRef<A>, f: (current: A) => A): Effect.Effect<void, never, Effect.Transaction> =>
+    modify(self, (current) => [void 0, f(current)])
 )
 
 /**
@@ -191,7 +204,7 @@ export const update: {
  *   const counter = yield* TxRef.make(42)
  *
  *   // Read the value within a transaction
- *   const value = yield* Effect.atomic(
+ *   const value = yield* Effect.transaction(
  *     TxRef.get(counter)
  *   )
  *
@@ -199,7 +212,8 @@ export const update: {
  * })
  * ```
  */
-export const get = <A>(self: TxRef<A>): Effect.Effect<A> => modify(self, (current) => [current, current])
+export const get = <A>(self: TxRef<A>): Effect.Effect<A, never, Effect.Transaction> =>
+  modify(self, (current) => [current, current])
 
 /**
  * Sets the value of the `TxRef`.
@@ -214,15 +228,15 @@ export const get = <A>(self: TxRef<A>): Effect.Effect<A> => modify(self, (curren
  *   const counter = yield* TxRef.make(0)
  *
  *   // Set a new value within a transaction
- *   yield* Effect.atomic(
+ *   yield* Effect.transaction(
  *     TxRef.set(counter, 100)
  *   )
  *
- *   console.log(yield* TxRef.get(counter)) // 100
+ *   console.log(yield* Effect.transaction(TxRef.get(counter))) // 100
  * })
  * ```
  */
 export const set: {
-  <A>(value: A): (self: TxRef<A>) => Effect.Effect<void>
-  <A>(self: TxRef<A>, value: A): Effect.Effect<void>
-} = dual(2, <A>(self: TxRef<A>, value: A): Effect.Effect<void> => update(self, () => value))
+  <A>(value: A): (self: TxRef<A>) => Effect.Effect<void, never, Effect.Transaction>
+  <A>(self: TxRef<A>, value: A): Effect.Effect<void, never, Effect.Transaction>
+} = dual(2, <A>(self: TxRef<A>, value: A): Effect.Effect<void, never, Effect.Transaction> => update(self, () => value))

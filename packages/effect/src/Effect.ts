@@ -13554,8 +13554,40 @@ export class Transaction extends ServiceMap.Service<
 >()("effect/Effect/Transaction") {}
 
 /**
- * Defines a transaction. Transactions are "all or nothing" with respect to changes made to
- * transactional values (i.e. TxRef) that occur within the transaction body.
+ * Accesses the current transaction state within an active transaction.
+ *
+ * This function requires `Transaction` in the context and does NOT create or strip
+ * transaction boundaries. Use it to interact with the transaction journal (e.g. in
+ * `TxRef` internals). To define a transaction boundary, use {@link transaction}.
+ *
+ * @example
+ * ```ts
+ * import { Effect, TxRef } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const ref = yield* Effect.transaction(TxRef.make(0))
+ *
+ *   yield* Effect.transaction(Effect.gen(function*() {
+ *     yield* TxRef.set(ref, 42)
+ *     return yield* TxRef.get(ref)
+ *   }))
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ * @category Transactions
+ */
+export const withTxState = <A, E, R>(
+  f: (state: Transaction["Service"]) => Effect<A, E, R>
+): Effect<A, E, R | Transaction> =>
+  flatMap(
+    Transaction.asEffect(),
+    (state) => internalCall(() => f(state))
+  )
+
+/**
+ * Defines a transaction boundary. Transactions are "all or nothing" with respect to changes
+ * made to transactional values (i.e. TxRef) that occur within the transaction body.
  *
  * In Effect transactions are optimistic with retry, that means transactions are retried when:
  *
@@ -13565,125 +13597,27 @@ export class Transaction extends ServiceMap.Service<
  * - any of the accessed transactional values change during the execution of the transaction
  *   due to a different transaction committing before the current.
  *
- * - parent transaction retry, if you have a transaction within another transaction and
- *   the parent retries the child will also retry together with the parent.
+ * Each call to `transaction` always creates a new isolated transaction boundary with its own
+ * journal and retry logic.
  *
  * @example
  * ```ts
  * import { Effect, TxRef } from "effect"
  *
  * const program = Effect.gen(function*() {
- *   const ref1 = yield* TxRef.make(0)
- *   const ref2 = yield* TxRef.make(0)
+ *   const ref1 = yield* Effect.transaction(TxRef.make(0))
+ *   const ref2 = yield* Effect.transaction(TxRef.make(0))
  *
- *   // All operations within atomic block succeed or fail together
- *   yield* Effect.atomic(Effect.gen(function*() {
+ *   // All operations within transaction block succeed or fail together
+ *   yield* Effect.transaction(Effect.gen(function*() {
  *     yield* TxRef.set(ref1, 10)
  *     yield* TxRef.set(ref2, 20)
  *     const sum = (yield* TxRef.get(ref1)) + (yield* TxRef.get(ref2))
  *     console.log(`Transaction sum: ${sum}`)
  *   }))
  *
- *   console.log(`Final ref1: ${yield* TxRef.get(ref1)}`) // 10
- *   console.log(`Final ref2: ${yield* TxRef.get(ref2)}`) // 20
- * })
- * ```
- *
- * @since 4.0.0
- * @category Transactions
- */
-export const atomic = <A, E, R>(
-  effect: Effect<A, E, R>
-): Effect<A, E, Exclude<R, Transaction>> => atomicWith(() => effect)
-
-/**
- * Executes a function within a transaction context, providing access to the transaction state.
- *
- * @example
- * ```ts
- * import { Effect, TxRef } from "effect"
- *
- * const program = Effect.atomicWith((txState) =>
- *   Effect.gen(function*() {
- *     const ref = yield* TxRef.make(0)
- *
- *     // Access transaction state for debugging
- *     console.log(`Journal size: ${txState.journal.size}`)
- *     console.log(`Retry flag: ${txState.retry}`)
- *
- *     yield* TxRef.set(ref, 42)
- *     return yield* TxRef.get(ref)
- *   })
- * )
- *
- * Effect.runPromise(program).then(console.log) // 42
- * ```
- *
- * @since 4.0.0
- * @category Transactions
- */
-export const atomicWith = <A, E, R>(
-  f: (state: Transaction["Service"]) => Effect<A, E, R>
-): Effect<A, E, Exclude<R, Transaction>> =>
-  withFiber((fiber) => {
-    // Check if transaction already exists and reuse it (composing behavior)
-    if (fiber.services.mapUnsafe.has(Transaction.key)) {
-      return internalCall(() => f(ServiceMap.getUnsafe(fiber.services, Transaction))) as Effect<
-        A,
-        E,
-        Exclude<R, Transaction>
-      >
-    }
-    // No existing transaction, create isolated one using transactionWith
-    return transactionWith(f)
-  })
-
-/**
- * Creates an isolated transaction that never composes with parent transactions.
- *
- * **Details**
- *
- * Unlike `Effect.atomic`, which composes with parent transactions when nested,
- * `Effect.transaction` always creates a new isolated transaction boundary.
- * This ensures complete isolation between different transaction scopes.
- *
- * **Key Differences from Effect.atomic:**
- * - Always creates a new transaction, even when called within another transaction
- * - Parent transaction failures don't affect isolated transactions
- * - Isolated transaction failures don't affect parent transactions
- * - Each transaction has its own journal and retry logic
- *
- * **When to Use:**
- * - When you need guaranteed isolation between transaction scopes
- * - For implementing independent operations that shouldn't be affected by outer transactions
- * - When building transaction-based systems where isolation is critical
- *
- * @example
- * ```ts
- * import { Effect, TxRef } from "effect"
- *
- * const program = Effect.gen(function*() {
- *   const ref1 = yield* TxRef.make(0)
- *   const ref2 = yield* TxRef.make(100)
- *
- *   // Nested atomic transaction - ref1 will be part of outer transaction
- *   yield* Effect.atomic(Effect.gen(function*() {
- *     yield* TxRef.set(ref1, 10)
- *
- *     // This atomic operation composes with the parent
- *     yield* Effect.atomic(Effect.gen(function*() {
- *       yield* TxRef.set(ref1, 20) // Part of same transaction
- *     }))
- *   }))
- *
- *   // Isolated transaction - ref2 will be in its own transaction
- *   yield* Effect.transaction(Effect.gen(function*() {
- *     yield* TxRef.set(ref2, 200)
- *   }))
- *
- *   const val1 = yield* TxRef.get(ref1) // 20
- *   const val2 = yield* TxRef.get(ref2) // 200
- *   return { ref1: val1, ref2: val2 }
+ *   console.log(`Final ref1: ${yield* Effect.transaction(TxRef.get(ref1))}`) // 10
+ *   console.log(`Final ref2: ${yield* Effect.transaction(TxRef.get(ref2))}`) // 20
  * })
  * ```
  *
@@ -13695,32 +13629,19 @@ export const transaction = <A, E, R>(
 ): Effect<A, E, Exclude<R, Transaction>> => transactionWith(() => effect)
 
 /**
- * Executes a function within an isolated transaction context, providing access to the transaction state.
+ * Like {@link transaction} but provides access to the transaction state.
  *
- * This function always creates a new transaction boundary, regardless of whether it's called
- * within another transaction. This ensures complete isolation between transaction scopes.
+ * Always creates a new isolated transaction boundary with its own journal and retry logic.
  *
  * @example
  * ```ts
  * import { Effect, TxRef } from "effect"
  *
- * const program = Effect.transactionWith((txState) =>
+ * const program = Effect.transactionWith((_txState) =>
  *   Effect.gen(function*() {
  *     const ref = yield* TxRef.make(0)
- *
- *     // This transaction is isolated - it has its own journal
- *     // txState.journal is independent of any parent transaction
- *
  *     yield* TxRef.set(ref, 42)
  *     return yield* TxRef.get(ref)
- *   })
- * )
- *
- * // Even when nested in another atomic block, this transaction is isolated
- * const nestedProgram = Effect.atomic(
- *   Effect.gen(function*() {
- *     const result = yield* program // Runs in its own isolated transaction
- *     return result
  *   })
  * )
  * ```
@@ -13830,16 +13751,16 @@ function clearTransaction(state: Transaction["Service"]) {
  *
  * const program = Effect.gen(function*() {
  *   // create a transactional reference
- *   const ref = yield* TxRef.make(0)
+ *   const ref = yield* Effect.transaction(TxRef.make(0))
  *
  *   // forks a fiber that increases the value of `ref` every 100 millis
  *   yield* Effect.forkChild(Effect.forever(
  *     // update to transactional value
- *     TxRef.update(ref, (n) => n + 1).pipe(Effect.delay("100 millis"))
+ *     Effect.transaction(TxRef.update(ref, (n) => n + 1)).pipe(Effect.delay("100 millis"))
  *   ))
  *
  *   // the following will retry 10 times until the `ref` value is 10
- *   yield* Effect.atomic(Effect.gen(function*() {
+ *   yield* Effect.transaction(Effect.gen(function*() {
  *     const value = yield* TxRef.get(ref)
  *     if (value < 10) {
  *       yield* Effect.log(`retry due to value: ${value}`)
