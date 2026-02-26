@@ -6,6 +6,7 @@
  */
 import * as Equ from "./Equivalence.ts"
 import { dual } from "./Function.ts"
+import * as Option from "./Option.ts"
 import * as order from "./Order.ts"
 import type { Ordering } from "./Ordering.ts"
 import * as predicate from "./Predicate.ts"
@@ -107,27 +108,40 @@ export const subtract: {
 /**
  * Provides a division operation on `number`s.
  *
- * Returns `undefined` if the divisor is `0`.
+ * Returns `Option.none()` if the divisor is `0`.
  *
  * **Example**
  *
  * ```ts
  * import { Number } from "effect"
  *
- * Number.divide(6, 3) // 2
- * Number.divide(6, 0) // undefined
+ * Number.divide(6, 3) // Option.some(2)
+ * Number.divide(6, 0) // Option.none()
  * ```
  *
  * @category math
  * @since 2.0.0
  */
 export const divide: {
-  (that: number): (self: number) => number | undefined
-  (self: number, that: number): number | undefined
+  (that: number): (self: number) => Option.Option<number>
+  (self: number, that: number): Option.Option<number>
 } = dual(
   2,
-  (self: number, that: number): number | undefined => that === 0 ? undefined : self / that
+  (self: number, that: number): Option.Option<number> => that === 0 ? Option.none() : Option.some(self / that)
 )
+
+/**
+ * Provides an unsafe division operation on `number`s.
+ *
+ * This operation delegates to JavaScript division semantics.
+ *
+ * @category math
+ * @since 2.0.0
+ */
+export const divideUnsafe: {
+  (that: number): (self: number) => number
+  (self: number, that: number): number
+} = dual(2, (self: number, that: number): number => self / that)
 
 /**
  * Returns the result of adding `1` to a given number.
@@ -506,34 +520,32 @@ export const nextPow2 = (n: number): number => {
  * ```ts
  * import { Number } from "effect"
  *
- * Number.parse("42") // 42
- * Number.parse("3.14") // 3.14
- * Number.parse("NaN") // NaN
- * Number.parse("Infinity") // Infinity
- * Number.parse("-Infinity") // -Infinity
- * Number.parse("not a number") // undefined
+ * Number.parse("42") // Option.some(42)
+ * Number.parse("3.14") // Option.some(3.14)
+ * Number.parse("NaN") // Option.some(NaN)
+ * Number.parse("Infinity") // Option.some(Infinity)
+ * Number.parse("-Infinity") // Option.some(-Infinity)
+ * Number.parse("not a number") // Option.none()
  * ```
  *
  * @category constructors
  * @since 2.0.0
  */
-export const parse = (s: string): number | undefined => {
+export const parse = (s: string): Option.Option<number> => {
   if (s === "NaN") {
-    return NaN
+    return Option.some(NaN)
   }
   if (s === "Infinity") {
-    return Infinity
+    return Option.some(Infinity)
   }
   if (s === "-Infinity") {
-    return -Infinity
+    return Option.some(-Infinity)
   }
   if (s.trim() === "") {
-    return undefined
+    return Option.none()
   }
   const n = Number(s)
-  return Number.isNaN(n) ?
-    undefined
-    : n
+  return Number.isNaN(n) ? Option.none() : Option.some(n)
 }
 
 /**

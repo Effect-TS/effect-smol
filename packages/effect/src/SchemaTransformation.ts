@@ -1239,9 +1239,9 @@ export const bigDecimalFromString: Transformation<BigDecimal.BigDecimal, string>
 >({
   decode: (s) => {
     const result = BigDecimal.fromString(s)
-    return result === undefined
+    return Option.isNone(result)
       ? Effect.fail(new Issue.InvalidValue(Option.some(s), { message: `Invalid BigDecimal string: ${s}` }))
-      : Effect.succeed(result)
+      : Effect.succeed(result.value)
   },
   encode: (bd) => Effect.succeed(BigDecimal.format(bd))
 })

@@ -10,6 +10,7 @@ import * as Effect from "effect/Effect"
 import * as Fiber from "effect/Fiber"
 import * as Layer from "effect/Layer"
 import * as Number from "effect/Number"
+import * as Option from "effect/Option"
 import * as Queue from "effect/Queue"
 import * as RcRef from "effect/RcRef"
 import * as Redacted from "effect/Redacted"
@@ -386,7 +387,7 @@ export const fromPool = Effect.fnUntraced(function*(
       config = {
         ...config,
         host: config.host ?? parsed.host ?? undefined,
-        port: config.port ?? (parsed.port ? Number.parse(parsed.port) : undefined),
+        port: config.port ?? (parsed.port ? Option.getOrUndefined(Number.parse(parsed.port)) : undefined),
         username: config.username ?? parsed.user ?? undefined,
         password: config.password ?? (parsed.password ? Redacted.make(parsed.password) : undefined),
         database: config.database ?? parsed.database ?? undefined
