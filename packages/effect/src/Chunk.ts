@@ -88,7 +88,6 @@ import { hasProperty, type Predicate, type Refinement } from "./Predicate.ts"
 import * as R from "./Result.ts"
 import type { Result } from "./Result.ts"
 import type { Covariant, NoInfer } from "./Types.ts"
-import * as UndefinedOr from "./UndefinedOr.ts"
 
 const TypeId = "~effect/collections/Chunk"
 
@@ -2365,7 +2364,7 @@ export const modify: {
 } = dual(
   3,
   <A, B>(self: Chunk<A>, i: number, f: (a: A) => B): Chunk<A | B> | undefined =>
-    UndefinedOr.map(RA.modify(toReadonlyArray(self), i, f), fromArrayUnsafe)
+    pipe(RA.modify(toReadonlyArray(self), i, f), O.map(fromArrayUnsafe), O.getOrUndefined)
 )
 
 /**
@@ -2567,7 +2566,11 @@ export const findFirst: {
 export const findFirstIndex: {
   <A>(predicate: Predicate<A>): (self: Chunk<A>) => number | undefined
   <A>(self: Chunk<A>, predicate: Predicate<A>): number | undefined
-} = RA.findFirstIndex
+} = dual(
+  2,
+  <A>(self: Chunk<A>, predicate: Predicate<A>): number | undefined =>
+    O.getOrUndefined(RA.findFirstIndex(self, predicate))
+)
 
 /**
  * Find the last element for which a predicate holds.
@@ -2627,7 +2630,11 @@ export const findLast: {
 export const findLastIndex: {
   <A>(predicate: Predicate<A>): (self: Chunk<A>) => number | undefined
   <A>(self: Chunk<A>, predicate: Predicate<A>): number | undefined
-} = RA.findLastIndex
+} = dual(
+  2,
+  <A>(self: Chunk<A>, predicate: Predicate<A>): number | undefined =>
+    O.getOrUndefined(RA.findLastIndex(self, predicate))
+)
 
 /**
  * Check if a predicate holds true for every `Chunk` element.

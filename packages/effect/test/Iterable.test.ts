@@ -265,7 +265,7 @@ describe("Iterable", () => {
   })
 
   it("unfold", () => {
-    const as = Iter.unfold(5, (n) => (n > 0 ? [n, n - 1] : undefined))
+    const as = Iter.unfold(5, (n) => (n > 0 ? Option.some([n, n - 1]) : Option.none()))
     deepStrictEqual(toArray(as), [5, 4, 3, 2, 1])
   })
 

@@ -1557,6 +1557,7 @@ export * as Inspectable from "./Inspectable.ts"
  * @example
  * ```ts
  * import { Iterable } from "effect"
+ * import * as Option from "effect/Option"
  *
  * // Create iterables
  * const numbers = Iterable.range(1, 5)
@@ -1566,7 +1567,7 @@ export * as Inspectable from "./Inspectable.ts"
  * console.log(Array.from(filtered)) // [6, 8, 10]
  *
  * // Infinite iterables
- * const fibonacci = Iterable.unfold([0, 1], ([a, b]) => [a, [b, a + b]])
+ * const fibonacci = Iterable.unfold([0, 1], ([a, b]) => Option.some([a, [b, a + b]]))
  * const first10 = Iterable.take(fibonacci, 10)
  * console.log(Array.from(first10)) // [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
  * ```
