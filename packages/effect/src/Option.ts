@@ -31,7 +31,7 @@
  * **Gotchas**
  *
  * - `Option.some(null)` is a valid `Some`; use {@link fromNullishOr} to treat `null`/`undefined` as `None`
- * - {@link filterMap} is an alias for {@link flatMap}
+ * - {@link filterMap} uses a `Filter` callback that returns `Result`
  * - {@link getOrThrow} throws a generic `Error`; prefer {@link getOrThrowWith} for custom errors
  * - `None` is a singleton; compare with {@link isNone}, not `===`
  * - When yielded in `Effect.gen`, a `None` becomes a `NoSuchElementError` defect
@@ -77,6 +77,7 @@ import * as Combiner from "./Combiner.ts"
 import type { EffectIterator, Yieldable } from "./Effect.ts"
 import * as Equal from "./Equal.ts"
 import * as Equivalence from "./Equivalence.ts"
+import type * as Filter from "./Filter.ts"
 import type { LazyArg } from "./Function.ts"
 import { constNull, constUndefined, dual, identity } from "./Function.ts"
 import type { TypeLambda } from "./HKT.ts"
@@ -1972,33 +1973,40 @@ export const partitionMap: {
   return result.isFailure(e) ? [some(e.failure), none()] : [none(), some(e.success)]
 })
 
-// TODO(4.0): remove?
 /**
- * Alias of {@link flatMap}. Applies a function returning `Option` to the value
- * inside a `Some`, flattening the result.
+ * Transforms and filters an `Option` using a `Filter` callback.
+ *
+ * The callback returns a `Result`: `Result.succeed` keeps and transforms the
+ * value, while `Result.fail` discards it.
  *
  * **Example** (Filtering and transforming)
  *
  * ```ts
  * import { Option } from "effect"
+ * import * as Result from "effect/Result"
  *
  * console.log(Option.filterMap(
  *   Option.some(2),
- *   (n) => (n % 2 === 0 ? Option.some(`Even: ${n}`) : Option.none())
+ *   (n) => (n % 2 === 0 ? Result.succeed(`Even: ${n}`) : Result.failVoid)
  * ))
  * // Output: { _id: 'Option', _tag: 'Some', value: 'Even: 2' }
  * ```
  *
- * @see {@link flatMap} (canonical)
  * @see {@link filter} for predicate-based filtering
  *
  * @category Filtering
  * @since 2.0.0
  */
 export const filterMap: {
-  <A, B>(f: (a: A) => Option<B>): (self: Option<A>) => Option<B>
-  <A, B>(self: Option<A>, f: (a: A) => Option<B>): Option<B>
-} = flatMap
+  <A, B, X>(f: Filter.Filter<A, B, X>): (self: Option<A>) => Option<B>
+  <A, B, X>(self: Option<A>, f: Filter.Filter<A, B, X>): Option<B>
+} = dual(2, <A, B, X>(self: Option<A>, f: Filter.Filter<A, B, X>): Option<B> => {
+  if (isNone(self)) {
+    return none()
+  }
+  const next = f(self.value)
+  return result.isSuccess(next) ? some(next.success) : none()
+})
 
 /**
  * Filters an `Option` using a predicate. Returns `None` if the predicate is
@@ -2048,7 +2056,7 @@ export const filter: {
 } = dual(
   2,
   <A>(self: Option<A>, predicate: Predicate<A>): Option<A> =>
-    filterMap(self, (b) => (predicate(b) ? option.some(b) : option.none))
+    isNone(self) ? none() : predicate(self.value) ? some(self.value) : none()
 )
 
 /**
