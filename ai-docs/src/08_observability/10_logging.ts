@@ -3,6 +3,7 @@
  *
  * Configure loggers & log-level filtering for production applications.
  */
+import { NodeFileSystem } from "@effect/platform-node"
 import { Config, Effect, Layer, Logger, References } from "effect"
 
 // Build a logger layer that emits one JSON line per log entry.
@@ -10,6 +11,13 @@ export const JsonLoggerLayer = Logger.layer([Logger.consoleJson])
 
 // Raise the minimum level to "Warn" to skip debug/info logs.
 export const WarnAndAbove = Layer.succeed(References.MinimumLogLevel, "Warn")
+
+// There is a built-in logger for writing to a file
+export const FileLoggerLayer = Logger.layer([
+  Logger.toFile(Logger.formatSimple, "app.log")
+]).pipe(
+  Layer.provide(NodeFileSystem.layer)
+)
 
 // Define a custom logger for app-specific formatting and routing.
 export const appLogger = Effect.gen(function*() {
