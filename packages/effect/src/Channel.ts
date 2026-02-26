@@ -4383,11 +4383,13 @@ export const catchReason: {
     errorTag: K,
     reasonTag: RK,
     f: (
-      reason: Types.ExtractReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
+      reason: Types.ExtractReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>,
+      error: Types.NarrowReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
     ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>,
     orElse?:
       | ((
-        reason: Types.ExcludeReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
+        reason: Types.ExcludeReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>,
+        error: Types.OmitReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
       ) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>)
       | undefined
   ): <
@@ -4437,11 +4439,13 @@ export const catchReason: {
     errorTag: K,
     reasonTag: RK,
     f: (
-      reason: Types.ExtractReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
+      reason: Types.ExtractReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>,
+      error: Types.NarrowReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
     ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>,
     orElse?:
       | ((
-        reason: Types.ExcludeReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
+        reason: Types.ExcludeReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>,
+        error: Types.OmitReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
       ) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>)
       | undefined
   ): Channel<
@@ -4482,11 +4486,13 @@ export const catchReason: {
   errorTag: K,
   reasonTag: RK,
   f: (
-    reason: Types.ExtractReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
+    reason: Types.ExtractReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>,
+    error: Types.NarrowReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
   ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>,
   orElse?:
     | ((
-      reason: Types.ExcludeReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
+      reason: Types.ExcludeReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>,
+      error: Types.OmitReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
     ) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>)
     | undefined
 ): Channel<
@@ -4512,9 +4518,9 @@ export const catchReason: {
       if (isTagged(error, errorTag) && hasProperty(error, "reason")) {
         const reason = error.reason as Types.ExcludeReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
         if (isTagged(reason, reasonTag)) {
-          return f(reason as any)
+          return f(reason as any, error as any)
         }
-        return orElse ? orElse(reason) as any : fail(error) as any
+        return orElse ? orElse(reason, error as any) as any : fail(error) as any
       }
       return fail(error) as any
     }
@@ -4532,7 +4538,8 @@ export const catchReasons: {
     OutErr,
     Cases extends {
       [RK in Types.ReasonTags<Types.ExtractTag<Types.NoInfer<OutErr>, K>>]+?: (
-        reason: Types.ExtractReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
+        reason: Types.ExtractReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>,
+        error: Types.NarrowReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
       ) => Channel<any, any, any, any, any, any, any>
     },
     OutElem2 = Types.unassigned,
@@ -4547,7 +4554,8 @@ export const catchReasons: {
     cases: Cases,
     orElse?:
       | ((
-        reason: Types.ExcludeReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, Extract<keyof Cases, string>>
+        reason: Types.ExcludeReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, Extract<keyof Cases, string>>,
+        error: Types.OmitReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, Extract<keyof Cases, string>>
       ) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>)
       | undefined
   ): <OutElem, OutDone, InElem, InErr, InDone, Env>(
@@ -4607,7 +4615,8 @@ export const catchReasons: {
     K extends Types.Tags<OutErr>,
     Cases extends {
       [RK in Types.ReasonTags<Types.ExtractTag<OutErr, K>>]+?: (
-        reason: Types.ExtractReason<Types.ExtractTag<OutErr, K>, RK>
+        reason: Types.ExtractReason<Types.ExtractTag<OutErr, K>, RK>,
+        error: Types.NarrowReason<Types.ExtractTag<OutErr, K>, RK>
       ) => Channel<any, any, any, any, any, any, any>
     },
     OutElem2 = Types.unassigned,
@@ -4623,7 +4632,8 @@ export const catchReasons: {
     cases: Cases,
     orElse?:
       | ((
-        reason: Types.ExcludeReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, Extract<keyof Cases, string>>
+        reason: Types.ExcludeReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, Extract<keyof Cases, string>>,
+        error: Types.OmitReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, Extract<keyof Cases, string>>
       ) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>)
       | undefined
   ): Channel<
@@ -4682,9 +4692,9 @@ export const catchReasons: {
       const reason = error.reason as { readonly _tag: string }
       keys ??= new Set(Object.keys(cases))
       if (keys.has(reason._tag)) {
-        return (cases as any)[reason._tag](reason as any)
+        return (cases as any)[reason._tag](reason as any, error)
       }
-      return orElse ? orElse(reason) as any : fail(error) as any
+      return orElse ? orElse(reason, error) as any : fail(error) as any
     }
     return fail(error) as any
   })
