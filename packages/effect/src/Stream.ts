@@ -4320,7 +4320,7 @@ export const partitionEffect: {
     R | RX | Scope.Scope
   > =>
     Effect.map(
-      partitionQueueFilter(
+      partitionQueueFilter<Result.Result<A, A>, E | EX, R | RX, A, A>(
         mapEffect(
           self,
           (a, i) =>
@@ -4329,12 +4329,12 @@ export const partitionEffect: {
               (passes): Result.Result<A, A> => passes ? Result.succeed(a) : Result.fail(a)
             ),
           options
-        ) as Stream<Result.Result<A, A>, E | EX, R | RX>,
-        ((result: Result.Result<A, A>) => result) as Filter.Filter<Result.Result<A, A>, A, A>,
+        ),
+        (result) => result,
         options
       ),
-      ([passes, fails]) => [fromQueue(passes), fromQueue(fails)]
-    ) as any
+      ([passes, fails]) => [fromQueue(passes), fromQueue(fails)] as const
+    )
 )
 
 /**
@@ -4388,13 +4388,13 @@ export const partitionFilterEffect: {
     R | RX | Scope.Scope
   > =>
     Effect.map(
-      partitionQueueFilter(
-        mapEffect(self, (a) => filter(a as NoInfer<A>), options) as Stream<Result.Result<Pass, Fail>, E | EX, R | RX>,
-        ((result: Result.Result<Pass, Fail>) => result) as Filter.Filter<Result.Result<Pass, Fail>, Pass, Fail>,
+      partitionQueueFilter<Result.Result<Pass, Fail>, E | EX, R | RX, Pass, Fail>(
+        mapEffect(self, (a) => filter(a as NoInfer<A>), options),
+        (result) => result,
         options
       ),
       ([passes, fails]) => [fromQueue(passes), fromQueue(fails)] as const
-    ) as any
+    )
 )
 
 /**

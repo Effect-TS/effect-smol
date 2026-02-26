@@ -3421,6 +3421,42 @@ describe("Stream", () => {
         strictEqual(result, 0)
       }))
 
+    it.effect("partitionFilterEffect - values", () =>
+      Effect.gen(function*() {
+        const { result1, result2 } = yield* pipe(
+          Stream.range(0, 5),
+          Stream.partitionFilterEffect((n) =>
+            Effect.succeed(n % 2 === 0 ? Result.succeed(n + 10) : Result.fail(`odd:${n}`))
+          ),
+          Effect.flatMap(([passes, fails]) =>
+            Effect.all({
+              result1: Stream.runCollect(passes),
+              result2: Stream.runCollect(fails)
+            })
+          ),
+          Effect.scoped
+        )
+        deepStrictEqual(result1, [10, 12, 14])
+        deepStrictEqual(result2, ["odd:1", "odd:3", "odd:5"])
+      }))
+
+    it.effect("partitionQueueFilter - values", () =>
+      Effect.gen(function*() {
+        const { result1, result2 } = yield* pipe(
+          Stream.range(0, 5),
+          Stream.partitionQueueFilter((n) => n % 2 === 0 ? Result.succeed(n + 1) : Result.fail(`odd:${n}`)),
+          Effect.flatMap(([passes, fails]) =>
+            Effect.all({
+              result1: Stream.runCollect(Stream.fromQueue(passes)),
+              result2: Stream.runCollect(Stream.fromQueue(fails))
+            })
+          ),
+          Effect.scoped
+        )
+        deepStrictEqual(result1, [1, 3, 5])
+        deepStrictEqual(result2, ["odd:1", "odd:3", "odd:5"])
+      }))
+
     it.effect("partitionFilter - values", () =>
       Effect.gen(function*() {
         const { result1, result2 } = yield* pipe(
