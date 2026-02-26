@@ -289,6 +289,43 @@ describe("Command", () => {
         assert.deepStrictEqual(captured, ["eu-west-1", "us-west-2"])
       }).pipe(Effect.provide(TestLayer)))
 
+    it.effect("should support mixed action and setting global flags", () =>
+      Effect.gen(function*() {
+        const actions: Array<boolean> = []
+        const captured: Array<string> = []
+        let handlerInvocations = 0
+
+        const VerboseAction = GlobalFlag.action({
+          flag: Flag.boolean("verbose").pipe(Flag.withDefault(false)),
+          run: (value) =>
+            Effect.sync(() => {
+              actions.push(value)
+            })
+        })
+        const Format = GlobalFlag.setting("format")({
+          flag: Flag.string("format").pipe(Flag.withDefault("text"))
+        })
+
+        const command = Command.make("deploy", {}, () =>
+          Effect.gen(function*() {
+            handlerInvocations += 1
+            captured.push(yield* Format)
+          })).pipe(
+            Command.withGlobalFlags([VerboseAction, Format])
+          )
+
+        const runCommand = Command.runWith(command, {
+          version: "1.0.0"
+        })
+
+        yield* runCommand(["--format", "json"])
+        yield* runCommand(["--verbose", "--format", "yaml"])
+
+        assert.deepStrictEqual(captured, ["json"])
+        assert.deepStrictEqual(actions, [true])
+        assert.strictEqual(handlerInvocations, 1)
+      }).pipe(Effect.provide(TestLayer)))
+
     it.effect("should expose setting global flags in Command.provide APIs", () =>
       Effect.gen(function*() {
         const Region = GlobalFlag.setting("region")({
