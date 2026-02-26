@@ -98,7 +98,7 @@ export class WorkflowEngine extends ServiceMap.Service<
       workflow: Workflow.Workflow<Name, Payload, Success, Error>,
       executionId: string
     ) => Effect.Effect<
-      Workflow.Result<Success["Type"], Error["Type"]> | undefined,
+      Option.Option<Workflow.Result<Success["Type"], Error["Type"]>>,
       never,
       Success["DecodingServices"] | Error["DecodingServices"]
     >
@@ -147,7 +147,7 @@ export class WorkflowEngine extends ServiceMap.Service<
     >(
       deferred: DurableDeferred.DurableDeferred<Success, Error>
     ) => Effect.Effect<
-      Exit.Exit<Success["Type"], Error["Type"]> | undefined,
+      Option.Option<Exit.Exit<Success["Type"], Error["Type"]>>,
       never,
       WorkflowInstance
     >
@@ -277,7 +277,7 @@ export interface Encoded {
   readonly poll: (
     workflow: Workflow.Any,
     executionId: string
-  ) => Effect.Effect<Workflow.Result<unknown, unknown> | undefined>
+  ) => Effect.Effect<Option.Option<Workflow.Result<unknown, unknown>>>
   readonly interrupt: (
     workflow: Workflow.Any,
     executionId: string
@@ -297,7 +297,7 @@ export interface Encoded {
   readonly deferredResult: (
     deferred: DurableDeferred.Any
   ) => Effect.Effect<
-    Exit.Exit<unknown, unknown> | undefined,
+    Option.Option<Exit.Exit<unknown, unknown>>,
     never,
     WorkflowInstance
   >
@@ -438,12 +438,12 @@ export const makeUnsafe = (options: Encoded): WorkflowEngine["Service"] =>
           executionId: instance.executionId
         })
         const exit = yield* options.deferredResult(deferred)
-        if (exit === undefined) {
+        if (Option.isNone(exit)) {
           return exit
         }
         return yield* Effect.orDie(
-          Schema.decodeEffect(deferred.exitSchema)(toJsonExit(exit))
-        ) as Effect.Effect<Exit.Exit<Success["Type"], Error["Type"]>>
+          Schema.decodeEffect(deferred.exitSchema)(toJsonExit(exit.value))
+        ).pipe(Effect.map(Option.some)) as Effect.Effect<Option.Option<Exit.Exit<Success["Type"], Error["Type"]>>>
       },
       Effect.withSpan(
         "WorkflowEngine.deferredResult",
@@ -642,15 +642,20 @@ export const layer: Layer.Layer<WorkflowEngine> = Layer.effect(WorkflowEngine)(
         Effect.suspend(() => {
           const state = executions.get(executionId)
           if (!state) {
-            return Effect.succeed(undefined)
+            return Effect.succeedNone
           }
           const exit = state.fiber?.pollUnsafe()
-          return exit ?? Effect.succeed(undefined)
+          if (!exit) {
+            return Effect.succeedNone
+          }
+          return exit._tag === "Failure"
+            ? Effect.die(exit.cause)
+            : Effect.succeedSome(exit.value)
         }),
       deferredResult: Effect.fnUntraced(function*(deferred) {
         const instance = yield* WorkflowInstance
         const id = `${instance.executionId}/${deferred.name}`
-        return deferredResults.get(id)
+        return Option.fromNullishOr(deferredResults.get(id))
       }),
       deferredDone: (options) =>
         Effect.suspend(() => {

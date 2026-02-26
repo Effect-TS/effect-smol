@@ -4,6 +4,7 @@
  *
  * @internal
  */
+import * as Option from "../../../../Option.ts"
 import type { Command } from "../../Command.ts"
 import * as Param from "../../Param.ts"
 import * as Primitive from "../../Primitive.ts"
@@ -135,7 +136,7 @@ export const fromCommand = (cmd: Command.Any): CommandDescriptor => {
       flags.push({
         name: single.name,
         aliases: single.aliases,
-        description: single.description,
+        description: Option.getOrUndefined(single.description),
         type: toFlagType(single as Param.Single<"flag", unknown>)
       })
     }
@@ -149,7 +150,7 @@ export const fromCommand = (cmd: Command.Any): CommandDescriptor => {
       if (single.kind !== "argument") continue
       args.push({
         name: single.name,
-        description: single.description,
+        description: Option.getOrUndefined(single.description),
         required: !metadata.isOptional,
         variadic: metadata.isVariadic,
         type: toArgumentType(single as Param.Single<"argument", unknown>)
