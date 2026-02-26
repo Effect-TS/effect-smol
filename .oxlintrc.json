@@ -10,7 +10,8 @@
     "packages/**/CHANGELOG.md",
     "!scratchpad/**/*",
     ".agents/**/*",
-    ".context/**/*"
+    ".context/**/*",
+    ".specs/**/*"
   ],
   "jsPlugins": ["@effect/oxc/oxlint"],
   "overrides": [{
