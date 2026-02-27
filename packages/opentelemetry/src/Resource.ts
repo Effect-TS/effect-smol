@@ -70,7 +70,7 @@ export const layerFromEnv = (
     Effect.gen(function*() {
       const serviceName = yield* Config.option(Config.string("OTEL_SERVICE_NAME"))
       const attributes = yield* Config.string("OTEL_RESOURCE_ATTRIBUTES").pipe(
-        Config.withDefault(() => ""),
+        Config.withDefault(""),
         Config.map((s) => {
           const attrs = s.split(",")
           return Arr.reduce(attrs, {} as OtelApi.Attributes, (acc, attr) => {

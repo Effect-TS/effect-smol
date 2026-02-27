@@ -106,7 +106,7 @@ Only triggers when data is missing. Validation errors (wrong type, out of range)
 ```ts
 import { Config, ConfigProvider, Effect } from "effect"
 
-const port = Config.int("port").pipe(Config.withDefault(() => 3000))
+const port = Config.int("port").pipe(Config.withDefault(3000))
 
 const provider = ConfigProvider.fromUnknown({})
 Effect.runSync(port.parse(provider)) // 3000
@@ -550,7 +550,7 @@ const DbConfig = Config.schema(
 const AppConfig = Config.all({
   server: ServerConfig,
   db: DbConfig,
-  debug: Config.boolean("debug").pipe(Config.withDefault(() => false))
+  debug: Config.boolean("debug").pipe(Config.withDefault(false))
 })
 
 // In production, just yield it — reads from process.env

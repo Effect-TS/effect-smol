@@ -2614,7 +2614,7 @@ export * as Optic from "./Optic.ts"
  * **Gotchas**
  *
  * - `Option.some(null)` is a valid `Some`; use {@link fromNullishOr} to treat `null`/`undefined` as `None`
- * - {@link filterMap} is an alias for {@link flatMap}
+ * - {@link filterMap} uses a `Filter` callback that returns `Result`
  * - {@link getOrThrow} throws a generic `Error`; prefer {@link getOrThrowWith} for custom errors
  * - `None` is a singleton; compare with {@link isNone}, not `===`
  * - When yielded in `Effect.gen`, a `None` becomes a `NoSuchElementError` defect

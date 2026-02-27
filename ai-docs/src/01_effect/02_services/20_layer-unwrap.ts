@@ -52,7 +52,7 @@ export class MessageStore extends ServiceMap.Service<MessageStore, {
     Effect.gen(function*() {
       // Read config inside an Effect, then choose which concrete layer to use.
       const useInMemory = yield* Config.boolean("MESSAGE_STORE_IN_MEMORY").pipe(
-        Config.withDefault(() => false)
+        Config.withDefault(false)
       )
 
       if (useInMemory) {

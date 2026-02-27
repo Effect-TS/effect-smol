@@ -75,7 +75,7 @@ import type { Path, SourceError } from "./ConfigProvider.ts"
 import * as ConfigProvider from "./ConfigProvider.ts"
 import * as Duration_ from "./Duration.ts"
 import * as Effect from "./Effect.ts"
-import { dual, type LazyArg } from "./Function.ts"
+import { dual } from "./Function.ts"
 import { PipeInspectableProto, YieldableProto } from "./internal/core.ts"
 import * as LogLevel_ from "./LogLevel.ts"
 import * as Option from "./Option.ts"
@@ -413,7 +413,7 @@ function isMissingDataOnly(issue: Issue.Issue): boolean {
  * ```ts
  * import { Config, ConfigProvider, Effect } from "effect"
  *
- * const port = Config.number("port").pipe(Config.withDefault(() => 3000))
+ * const port = Config.number("port").pipe(Config.withDefault(3000))
  *
  * const provider = ConfigProvider.fromUnknown({})
  * // Effect.runSync(port.parse(provider)) // 3000
@@ -425,14 +425,14 @@ function isMissingDataOnly(issue: Issue.Issue): boolean {
  * @since 4.0.0
  */
 export const withDefault: {
-  <const A2>(defaultValue: LazyArg<A2>): <A>(self: Config<A>) => Config<A2 | A>
-  <A, const A2>(self: Config<A>, defaultValue: LazyArg<A2>): Config<A | A2>
-} = dual(2, <A, const A2>(self: Config<A>, defaultValue: LazyArg<A2>): Config<A | A2> => {
+  <const A2>(defaultValue: A2): <A>(self: Config<A>) => Config<A2 | A>
+  <A, const A2>(self: Config<A>, defaultValue: A2): Config<A | A2>
+} = dual(2, <A, const A2>(self: Config<A>, defaultValue: A2): Config<A | A2> => {
   return orElse(self, (err) => {
     if (Schema.isSchemaError(err.cause)) {
       const issue = err.cause.issue
       if (isMissingDataOnly(issue)) {
-        return succeed(defaultValue())
+        return succeed(defaultValue)
       }
     }
     return fail(err.cause)
@@ -466,7 +466,7 @@ export const withDefault: {
  * @since 4.0.0
  */
 export const option = <A>(self: Config<A>): Config<Option.Option<A>> =>
-  self.pipe(map(Option.some), withDefault(() => Option.none()))
+  self.pipe(map(Option.some), withDefault(Option.none()))
 
 /**
  * Utility type that recursively replaces primitives with `Config` in a nested
