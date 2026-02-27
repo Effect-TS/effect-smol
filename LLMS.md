@@ -245,6 +245,12 @@ Learn how to batch multiple requests into fewer external calls.
 
 - **[Batching requests with RequestResolver](./ai-docs/src/05_batching/10_request-resolver.ts)**: Define request types with `Request.Class`, resolve them in batches with `RequestResolver`.
 
+## Working with Schedules
+
+Schedules define recurring patterns for retries, repeats and polling.
+
+- **[Working with the Schedule module](./ai-docs/src/06_schedule/10_schedules.ts)**: Build schedules, compose them, and use them with `Effect.retry` and `Effect.repeat`.
+
 ## Observability
 
 Effect has built-in support for structured logging, distributed tracing, and
@@ -260,17 +266,6 @@ setup.
 
 - **[Writing Effect tests with @effect/vitest](./ai-docs/src/09_testing/10_effect-tests.ts)**: Using `it.effect` for Effect-based tests.
 - **[Testing services with shared layers](./ai-docs/src/09_testing/20_layer-tests.ts)**: How to test Effect services that depend on other services.
-
-## Working with Schedules
-
-Schedules define recurring patterns for retries, repeats, heartbeats, and
-polling loops. You can start with basic schedules like fixed spacing or
-exponential backoff, then compose them into production policies with
-attempt limits, conditional continuation, jitter, and telemetry hooks.
-
-- **[Working with the Schedule module](./ai-docs/src/06_schedule/10_schedules.ts)**:
-  Build schedules from primitives, compose them, and use them with
-  `Effect.retry` and `Effect.repeat`.
 
 ## Effect HttpClient
 
