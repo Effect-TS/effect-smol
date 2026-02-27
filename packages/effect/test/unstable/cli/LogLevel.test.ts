@@ -199,4 +199,3 @@ describe("LogLevel", () => {
       assert.strictEqual(logs.length, 0)
     }).pipe(Effect.provide(TestLayer)))
 })
-

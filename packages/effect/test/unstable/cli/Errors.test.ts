@@ -128,4 +128,3 @@ describe("Command errors", () => {
     })
   })
 })
-

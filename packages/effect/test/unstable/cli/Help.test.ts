@@ -368,4 +368,3 @@ describe("Command help output", () => {
       `)
     }).pipe(Effect.provide(TestLayer)))
 })
-

@@ -50,7 +50,7 @@ import * as Predicate from "../../Predicate.ts"
 import type * as Scope from "../../Scope.ts"
 import type * as Sink from "../../Sink.ts"
 import type * as Stream from "../../Stream.ts"
-import { type ChildProcessHandle, ChildProcessSpawner } from "./ChildProcessSpawner.js"
+import { type ChildProcessHandle, ChildProcessSpawner } from "./ChildProcessSpawner.ts"
 
 const TypeId = "~effect/unstable/process/ChildProcess"
 

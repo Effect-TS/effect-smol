@@ -388,4 +388,3 @@ describe("Command arguments", () => {
       }
     }).pipe(Effect.provide(TestLayer)))
 })
-

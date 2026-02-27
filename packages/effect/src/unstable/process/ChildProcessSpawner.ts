@@ -7,13 +7,13 @@
  * @since 4.0.0
  */
 import * as Brand from "../../Brand.ts"
-import * as Effect from "../../Effect.js"
+import * as Effect from "../../Effect.ts"
 import * as Inspectable from "../../Inspectable.ts"
 import type * as PlatformError from "../../PlatformError.ts"
 import type * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Sink from "../../Sink.ts"
-import * as Stream from "../../Stream.js"
+import * as Stream from "../../Stream.ts"
 import type { Command, KillOptions } from "./ChildProcess.ts"
 
 /**
