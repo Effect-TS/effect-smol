@@ -3,6 +3,7 @@
  */
 
 import type { NonEmptyReadonlyArray } from "../../Array.ts"
+import type * as Option from "../../Option.ts"
 import type * as ServiceMap from "../../ServiceMap.ts"
 
 /**
@@ -12,7 +13,7 @@ import type * as ServiceMap from "../../ServiceMap.ts"
  *
  * @example
  * ```ts
- * import { ServiceMap } from "effect"
+ * import { Option as O, ServiceMap } from "effect"
  * import type * as HelpDoc from "effect/unstable/cli/HelpDoc"
  *
  * const deployCommandHelp: HelpDoc.HelpDoc = {
@@ -24,14 +25,14 @@ import type * as ServiceMap from "../../ServiceMap.ts"
  *       name: "verbose",
  *       aliases: ["-v"],
  *       type: "boolean",
- *       description: "Enable verbose logging",
+ *       description: O.some("Enable verbose logging"),
  *       required: false
  *     },
  *     {
  *       name: "env",
  *       aliases: ["-e"],
  *       type: "string",
- *       description: "Target environment",
+ *       description: O.some("Target environment"),
  *       required: true
  *     }
  *   ],
@@ -39,7 +40,7 @@ import type * as ServiceMap from "../../ServiceMap.ts"
  *     {
  *       name: "target",
  *       type: "string",
- *       description: "Deployment target (e.g., 'production', 'staging')",
+ *       description: O.some("Deployment target (e.g., 'production', 'staging')"),
  *       required: true,
  *       variadic: false
  *     }
@@ -116,13 +117,14 @@ export interface ExampleDoc {
  *
  * @example
  * ```ts
+ * import { Option as O } from "effect"
  * import type { HelpDoc } from "effect/unstable/cli"
  *
  * const verboseFlag: HelpDoc.FlagDoc = {
  *   name: "verbose",
  *   aliases: ["-v", "--verbose"],
  *   type: "boolean",
- *   description: "Enable verbose output",
+ *   description: O.some("Enable verbose output"),
  *   required: false
  * }
  *
@@ -130,7 +132,7 @@ export interface ExampleDoc {
  *   name: "port",
  *   aliases: ["-p"],
  *   type: "integer",
- *   description: "Port number to use",
+ *   description: O.some("Port number to use"),
  *   required: true
  * }
  * ```
@@ -157,7 +159,7 @@ export interface FlagDoc {
   /**
    * Description of what the flag does
    */
-  readonly description: string | undefined
+  readonly description: Option.Option<string>
 
   /**
    * Whether this flag is required
@@ -170,7 +172,7 @@ export interface FlagDoc {
  *
  * @example
  * ```ts
- * import { ServiceMap } from "effect"
+ * import { Option as O, ServiceMap } from "effect"
  * import type { HelpDoc } from "effect/unstable/cli"
  *
  * const deploySubcommand: HelpDoc.SubcommandDoc = {
@@ -249,13 +251,13 @@ export interface SubcommandGroupDoc {
  *
  * @example
  * ```ts
- * import { ServiceMap } from "effect"
+ * import { Option as O, ServiceMap } from "effect"
  * import type { HelpDoc } from "effect/unstable/cli"
  *
  * const sourceArg: HelpDoc.ArgDoc = {
  *   name: "source",
  *   type: "file",
- *   description: "Source file to process",
+ *   description: O.some("Source file to process"),
  *   required: true,
  *   variadic: false
  * }
@@ -263,7 +265,7 @@ export interface SubcommandGroupDoc {
  * const filesArg: HelpDoc.ArgDoc = {
  *   name: "files",
  *   type: "file",
- *   description: "Files to process (can specify multiple)",
+ *   description: O.some("Files to process (can specify multiple)"),
  *   required: false,
  *   variadic: true
  * }
@@ -295,7 +297,7 @@ export interface ArgDoc {
   /**
    * Description of what the argument is for
    */
-  readonly description: string | undefined
+  readonly description: Option.Option<string>
 
   /**
    * Whether this argument is required or optional

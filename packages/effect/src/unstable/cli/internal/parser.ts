@@ -25,6 +25,7 @@
  * - Errors accumulate rather than throwing exceptions
  */
 import * as Effect from "../../../Effect.ts"
+import * as Option from "../../../Option.ts"
 import * as CliError from "../CliError.ts"
 import type { Command, ParsedTokens } from "../Command.ts"
 import * as Param from "../Param.ts"
@@ -39,9 +40,10 @@ import type { LexResult, Token } from "./lexer.ts"
 
 /** @internal */
 export const getCommandPath = (parsedInput: ParsedTokens): ReadonlyArray<string> =>
-  parsedInput.subcommand
-    ? [parsedInput.subcommand.name, ...getCommandPath(parsedInput.subcommand.parsedInput)]
-    : []
+  Option.match(parsedInput.subcommand, {
+    onNone: () => [],
+    onSome: (subcommand) => [subcommand.name, ...getCommandPath(subcommand.parsedInput)]
+  })
 
 /** @internal */
 export const parseArgs = (
@@ -70,6 +72,7 @@ export const parseArgs = (
       return {
         flags: result.flags,
         arguments: [...result.arguments, ...afterEndOfOptions],
+        subcommand: Option.none(),
         ...(result.errors.length > 0 && { errors: result.errors })
       }
     }
@@ -85,7 +88,7 @@ export const parseArgs = (
     return {
       flags: result.flags,
       arguments: afterEndOfOptions,
-      subcommand: { name: result.sub.name, parsedInput: subParsed },
+      subcommand: Option.some({ name: result.sub.name, parsedInput: subParsed }),
       ...(allErrors.length > 0 && { errors: allErrors })
     }
   })
