@@ -145,7 +145,7 @@ export const make = (
         report({
           ...options,
           error: pretty,
-          severity: isObject ? getSeverity(original) : "Error",
+          severity: isObject ? getSeverity(original) : "Info",
           attributes: isObject ? getAttributes(original) : emptyAttributes
         })
       }
@@ -392,7 +392,7 @@ export const getSeverity = (error: object): Severity => {
   if (severity in error && LogLevel.values.includes(error[severity] as Severity)) {
     return error[severity] as Severity
   }
-  return "Error"
+  return "Info"
 }
 
 /**
