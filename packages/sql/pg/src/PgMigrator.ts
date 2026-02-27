@@ -7,7 +7,7 @@ import * as Layer from "effect/Layer"
 import * as Path from "effect/Path"
 import * as Redacted from "effect/Redacted"
 import * as ChildProcess from "effect/unstable/process/ChildProcess"
-import type * as ChildProcessSpawner from "effect/unstable/process/ChildProcessSpawner"
+import * as ChildProcessSpawner from "effect/unstable/process/ChildProcessSpawner"
 import * as Migrator from "effect/unstable/sql/Migrator"
 import type { SqlClient } from "effect/unstable/sql/SqlClient"
 import type { SqlError } from "effect/unstable/sql/SqlError"
@@ -38,6 +38,7 @@ export const run: <R2 = never>(
     const pgDump = (args: Array<string>) =>
       Effect.gen(function*() {
         const sql = yield* PgClient
+        const spawner = yield* ChildProcessSpawner.ChildProcessSpawner
         const dump = yield* ChildProcess.make("pg_dump", [...args, "--no-owner", "--no-privileges"], {
           env: {
             PATH: (globalThis as any).process?.env.PATH,
@@ -50,7 +51,7 @@ export const run: <R2 = never>(
             PGDATABASE: sql.config.database,
             PGSSLMODE: sql.config.ssl ? "require" : "prefer"
           }
-        }).pipe(ChildProcess.string)
+        }).pipe(spawner.string)
 
         return dump.replace(/^--.*$/gm, "")
           .replace(/^SET .*$/gm, "")

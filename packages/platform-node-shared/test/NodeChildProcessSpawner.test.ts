@@ -910,7 +910,8 @@ describe("NodeChildProcessSpawner", () => {
 
     it.effect("ChildProcess.string should not deadlock on large output", () =>
       Effect.gen(function*() {
-        const output = yield* ChildProcess.string(ChildProcess.make("sh", ["-c", "seq 1 100000"]))
+        const spawner = yield* ChildProcessSpawner.ChildProcessSpawner
+        const output = yield* spawner.string(ChildProcess.make("sh", ["-c", "seq 1 100000"]))
         const lines = output.trim().split("\n")
         assert.strictEqual(lines.length, 100000)
         assert.strictEqual(lines[0], "1")

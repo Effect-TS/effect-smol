@@ -2,7 +2,7 @@ import { assert, describe, expect, it } from "@effect/vitest"
 import { Effect, FileSystem, Layer, Option, Path, PlatformError, Ref, Result } from "effect"
 import { TestConsole } from "effect/testing"
 import { Argument, CliOutput, Command, Flag } from "effect/unstable/cli"
-import { ChildProcessSpawner } from "effect/unstable/process/ChildProcessSpawner"
+import * as ChildProcessSpawner from "effect/unstable/process/ChildProcessSpawner"
 import * as MockTerminal from "./services/MockTerminal.ts"
 
 const ConsoleLayer = TestConsole.layer
@@ -39,7 +39,7 @@ const TestLayer = Layer.mergeAll(
   PathLayer,
   TerminalLayer,
   CliOutputLayer,
-  Layer.mock(ChildProcessSpawner)({})
+  Layer.succeed(ChildProcessSpawner.ChildProcessSpawner, ChildProcessSpawner.make(() => Effect.die("Not implemented")))
 )
 
 describe("Command arguments", () => {

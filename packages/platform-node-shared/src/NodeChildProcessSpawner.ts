@@ -17,7 +17,13 @@ import * as Sink from "effect/Sink"
 import * as Stream from "effect/Stream"
 import * as ChildProcess from "effect/unstable/process/ChildProcess"
 import type { ChildProcessHandle } from "effect/unstable/process/ChildProcessSpawner"
-import { ChildProcessSpawner, ExitCode, makeHandle, ProcessId } from "effect/unstable/process/ChildProcessSpawner"
+import {
+  ChildProcessSpawner,
+  ExitCode,
+  make as makeSpawner,
+  makeHandle,
+  ProcessId
+} from "effect/unstable/process/ChildProcessSpawner"
 import * as NodeChildProcess from "node:child_process"
 import { handleErrnoException } from "./internal/utils.ts"
 import * as NodeSink from "./NodeSink.ts"
@@ -545,9 +551,7 @@ const make = Effect.gen(function*() {
     }
   })
 
-  return ChildProcessSpawner.of({
-    spawn: spawnCommand
-  })
+  return makeSpawner(spawnCommand)
 })
 
 /**

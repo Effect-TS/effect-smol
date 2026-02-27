@@ -7,13 +7,13 @@
  * @since 4.0.0
  */
 import * as Brand from "../../Brand.ts"
-import type * as Effect from "../../Effect.ts"
+import * as Effect from "../../Effect.ts"
 import * as Inspectable from "../../Inspectable.ts"
 import type * as PlatformError from "../../PlatformError.ts"
 import type * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Sink from "../../Sink.ts"
-import type * as Stream from "../../Stream.ts"
+import * as Stream from "../../Stream.ts"
 import type { Command, KillOptions } from "./ChildProcess.ts"
 
 /**
@@ -129,18 +129,32 @@ export const makeHandle = (params: Omit<ChildProcessHandle, typeof HandleTypeId>
   Object.assign(Object.create(HandleProto), params)
 
 /**
- * Service interface for spawning child processes.
+ * Create a new `ChildProcessSpawner` service from a `spawn` funciton
  *
  * @since 4.0.0
  * @category Models
  */
-export interface ChildProcessSpawner {
-  /**
-   * Spawn a command and return a handle for interaction.
-   */
-  readonly spawn: (
-    command: Command
-  ) => Effect.Effect<ChildProcessHandle, PlatformError.PlatformError, Scope.Scope>
+export const make = (spawn: ChildProcessSpawner["Service"]["spawn"]): ChildProcessSpawner["Service"] => {
+  const streamString: ChildProcessSpawner["Service"]["streamLines"] = (command, options) =>
+    spawn(command).pipe(
+      Effect.map((handle) =>
+        Stream.decodeText(
+          options?.includeStderr === true ? handle.all : handle.stdout
+        )
+      ),
+      Stream.unwrap
+    )
+  const streamLines: ChildProcessSpawner["Service"]["streamLines"] = (command, options) =>
+    Stream.splitLines(streamString(command, options))
+
+  return ChildProcessSpawner.of({
+    spawn,
+    exitCode: (command) => Effect.scoped(Effect.flatMap(spawn(command), (handle) => handle.exitCode)),
+    streamString,
+    streamLines,
+    lines: (command, options) => Stream.runCollect(streamLines(command, options)),
+    string: (command, options) => Stream.mkString(streamString(command, options))
+  })
 }
 
 /**
@@ -149,7 +163,48 @@ export interface ChildProcessSpawner {
  * @since 4.0.0
  * @category Service
  */
-export const ChildProcessSpawner: ServiceMap.Service<
-  ChildProcessSpawner,
-  ChildProcessSpawner
-> = ServiceMap.Service("effect/process/ChildProcessSpawner")
+export class ChildProcessSpawner extends ServiceMap.Service<ChildProcessSpawner, {
+  /**
+   * Spawn a command and return a handle for interaction.
+   */
+  spawn(
+    command: Command
+  ): Effect.Effect<ChildProcessHandle, PlatformError.PlatformError, Scope.Scope>
+
+  /**
+   * Run a command and return its exit code.
+   */
+  exitCode(
+    command: Command
+  ): Effect.Effect<ExitCode, PlatformError.PlatformError>
+
+  /**
+   * Stream the output of a command as strings. Optionally include stderr output
+   * interleaved with stdout.
+   */
+  streamString(command: Command, options?: {
+    readonly includeStderr?: boolean | undefined
+  }): Stream.Stream<string, PlatformError.PlatformError>
+
+  /**
+   * Stream the output of a command as lines. Optionally include stderr output
+   * interleaved with stdout.
+   */
+  streamLines(command: Command, options?: {
+    readonly includeStderr?: boolean | undefined
+  }): Stream.Stream<string, PlatformError.PlatformError>
+
+  /**
+   * Run a command and return the lines of its output as an array of strings.
+   */
+  lines(command: Command, options?: {
+    readonly includeStderr?: boolean | undefined
+  }): Effect.Effect<Array<string>, PlatformError.PlatformError>
+
+  /**
+   * Run a command and return its output as a string.
+   */
+  string(command: Command, options?: {
+    readonly includeStderr?: boolean | undefined
+  }): Effect.Effect<string, PlatformError.PlatformError>
+}>()("effect/process/ChildProcessSpawner") {}

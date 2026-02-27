@@ -41,7 +41,7 @@
  * @since 4.0.0
  */
 import type * as Duration from "../../Duration.ts"
-import * as Effect from "../../Effect.ts"
+import type * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"
 import { PipeInspectableProto, YieldableProto } from "../../internal/core.ts"
 import type { Pipeable } from "../../Pipeable.ts"
@@ -49,9 +49,8 @@ import type * as PlatformError from "../../PlatformError.ts"
 import * as Predicate from "../../Predicate.ts"
 import type * as Scope from "../../Scope.ts"
 import type * as Sink from "../../Sink.ts"
-import * as Stream from "../../Stream.ts"
-import type { ChildProcessHandle, ExitCode } from "./ChildProcessSpawner.ts"
-import { ChildProcessSpawner } from "./ChildProcessSpawner.ts"
+import type * as Stream from "../../Stream.ts"
+import { type ChildProcessHandle, ChildProcessSpawner } from "./ChildProcessSpawner.ts"
 
 const TypeId = "~effect/unstable/process/ChildProcess"
 
@@ -515,7 +514,7 @@ const Proto = {
   ...YieldableProto,
   [TypeId]: TypeId,
   asEffect(this: Command) {
-    return spawn(this)
+    return ChildProcessSpawner.use((_) => _.spawn(this))
   }
 }
 
@@ -821,155 +820,6 @@ export const setEnv: {
       }
     }
   }
-)
-
-/**
- * Spawn a command and return a handle for interaction.
- *
- * Unlike `exec`, this does not wait for the process to complete. Instead,
- * it returns a handle that provides access to the process's stdin, stdout,
- * stderr streams and exit code.
- *
- * Note: For piped commands, only the first command in the pipeline is spawned
- * and a handle to it is returned.
- *
- * @example
- * ```ts
- * import { NodeServices } from "@effect/platform-node"
- * import { Console, Effect, Stream } from "effect"
- * import { ChildProcess } from "effect/unstable/process"
- *
- * const program = Effect.gen(function*() {
- *   const cmd = ChildProcess.make`long-running-process`
- *   const handle = yield* ChildProcess.spawn(cmd)
- *
- *   // Stream stdout
- *   yield* handle.stdout.pipe(
- *     Stream.decodeText(),
- *     Stream.runForEach(Console.log),
- *     Effect.forkChild
- *   )
- *
- *   // Wait for exit
- *   const exitCode = yield* handle.exitCode
- *   yield* Console.log(`Process exited with code ${exitCode}`)
- * }).pipe(Effect.provide(NodeServices.layer))
- * ```
- *
- * @since 4.0.0
- * @category Execution
- */
-export const spawn = (command: Command): Effect.Effect<
-  ChildProcessHandle,
-  PlatformError.PlatformError,
-  ChildProcessSpawner | Scope.Scope
-> => ChildProcessSpawner.use((_) => _.spawn(command))
-
-/**
- * @since 4.0.0
- * @category Execution
- */
-export const exitCode = (command: Command): Effect.Effect<
-  ExitCode,
-  PlatformError.PlatformError,
-  ChildProcessSpawner
-> => Effect.scoped(Effect.flatMap(spawn(command), (handle) => handle.exitCode))
-
-/**
- * @since 4.0.0
- * @category Execution
- */
-export const streamString: {
-  (options?: {
-    readonly includeStderr?: boolean | undefined
-  }): (self: Command) => Stream.Stream<string, PlatformError.PlatformError, ChildProcessSpawner>
-  (self: Command, options?: {
-    readonly includeStderr?: boolean | undefined
-  }): Stream.Stream<string, PlatformError.PlatformError, ChildProcessSpawner>
-} = dual(
-  (args) => isCommand(args[0]),
-  (
-    self: Command,
-    options?: { readonly includeStderr?: boolean | undefined }
-  ): Stream.Stream<
-    string,
-    PlatformError.PlatformError,
-    ChildProcessSpawner
-  > =>
-    spawn(self).pipe(
-      Effect.map((handle) =>
-        Stream.decodeText(
-          options?.includeStderr === true ? handle.all : handle.stdout
-        )
-      ),
-      Stream.unwrap
-    )
-)
-
-/**
- * @since 4.0.0
- * @category Execution
- */
-export const streamLines: {
-  (options?: {
-    readonly includeStderr?: boolean | undefined
-  }): (self: Command) => Stream.Stream<string, PlatformError.PlatformError, ChildProcessSpawner>
-  (self: Command, options?: {
-    readonly includeStderr?: boolean | undefined
-  }): Stream.Stream<string, PlatformError.PlatformError, ChildProcessSpawner>
-} = dual(
-  (args) => isCommand(args[0]),
-  (self: Command, options?: { readonly includeStderr?: boolean | undefined }): Stream.Stream<
-    string,
-    PlatformError.PlatformError,
-    ChildProcessSpawner
-  > => Stream.splitLines(streamString(self, options))
-)
-
-/**
- * @since 4.0.0
- * @category Execution
- */
-export const lines: {
-  (options?: {
-    readonly includeStderr?: boolean | undefined
-  }): (self: Command) => Effect.Effect<Array<string>, PlatformError.PlatformError, ChildProcessSpawner>
-  (self: Command, options?: {
-    readonly includeStderr?: boolean | undefined
-  }): Effect.Effect<Array<string>, PlatformError.PlatformError, ChildProcessSpawner>
-} = dual(
-  (args) => isCommand(args[0]),
-  (
-    self: Command,
-    options?: { readonly includeStderr?: boolean | undefined }
-  ): Effect.Effect<
-    Array<string>,
-    PlatformError.PlatformError,
-    ChildProcessSpawner
-  > => Stream.runCollect(streamLines(self, options))
-)
-
-/**
- * @since 4.0.0
- * @category Execution
- */
-export const string: {
-  (options?: {
-    readonly includeStderr?: boolean | undefined
-  }): (self: Command) => Effect.Effect<string, PlatformError.PlatformError, ChildProcessSpawner>
-  (self: Command, options?: {
-    readonly includeStderr?: boolean | undefined
-  }): Effect.Effect<string, PlatformError.PlatformError, ChildProcessSpawner>
-} = dual(
-  (args) => isCommand(args[0]),
-  (
-    self: Command,
-    options?: { readonly includeStderr?: boolean | undefined }
-  ): Effect.Effect<
-    string,
-    PlatformError.PlatformError,
-    ChildProcessSpawner
-  > => Stream.mkString(streamString(self, options))
 )
 
 const isTemplateString = (u: unknown): u is TemplateStringsArray =>
