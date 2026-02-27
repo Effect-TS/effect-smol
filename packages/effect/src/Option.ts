@@ -156,6 +156,7 @@ export type Option<A> = None<A> | Some<A>
 export interface None<out A> extends Pipeable, Inspectable, Yieldable<Option<A>, A, NoSuchElementError> {
   readonly _tag: "None"
   readonly _op: "None"
+  readonly valueOrUndefined: undefined
   readonly [TypeId]: {
     readonly _A: Covariant<A>
   }
@@ -189,6 +190,7 @@ export interface Some<out A> extends Pipeable, Inspectable, Yieldable<Option<A>,
   readonly _tag: "Some"
   readonly _op: "Some"
   readonly value: A
+  readonly valueOrUndefined: A
   readonly [TypeId]: {
     readonly _A: Covariant<A>
   }
