@@ -100,14 +100,15 @@ overloaded API did.
 
 ### Overloads to Remove
 
-Remove the `Filter`/`OrPredicate`/`FilterEffect` overloads from each of these
-functions, leaving only `Predicate`, `Refinement`, and (where applicable)
-effectful-predicate overloads:
+Remove the `Filter`/`OrPredicate`/`FilterEffect` overloads from predicate-first
+functions. For the partition family (`Array.partition`, `Stream.partition`,
+`Stream.partitionEffect`, `Stream.partitionQueue`), remove predicate/refinement
+variants and keep only Filter-based signatures:
 
 | Module  | Function            | Remove overload accepting                         |
 | ------- | ------------------- | ------------------------------------------------- |
 | Array   | `filter`            | `Filter.Filter<A, B, X>`                          |
-| Array   | `partition`         | `Filter.Filter<A, Pass, Fail>`                    |
+| Array   | `partition`         | `Predicate`, `Refinement`                         |
 | Array   | `takeWhile`         | `Filter.Filter<A, B, X>`                          |
 | Array   | `dropWhile`         | `Filter.Filter<A, B, X>`                          |
 | Effect  | `filter`            | `Filter.Filter`, `Filter.FilterEffect`            |
@@ -358,9 +359,8 @@ after Task 1 the Filter path goes through `Channel.filterMapArray` instead).
 5. Remove predicate / refinement overloads from `partition` and remove
    `partitionFilter`; keep `Filter.Filter<A, B, X>` overload removals from `filter`,
    `takeWhile`, `dropWhile`.
-6. Update implementations: `filter`/`takeWhile`/`dropWhile` use boolean check
-   directly; `partition` has inline boolean/Result branching that must be
-   simplified to boolean-only.
+6. Update implementations: `filter`/`takeWhile`/`dropWhile` use boolean checks
+   directly; `partition` uses `Result.isSuccess` / `Result.isFailure` only.
 7. Update all Array tests: change any test using `Array.filter(items, aFilter)`
    to `Array.filterMap(items, aFilter)`, etc.
 8. Validate: `pnpm lint-fix && pnpm test packages/effect/test/Array.test.ts && pnpm check:tsgo`
