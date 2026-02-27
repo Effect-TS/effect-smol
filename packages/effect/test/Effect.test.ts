@@ -23,10 +23,10 @@ import {
 } from "effect"
 import { constFalse, constTrue, pipe } from "effect/Function"
 import { TestClock } from "effect/testing"
-import { assertCauseFail } from "./utils/assert.ts"
+import type { Yieldable } from "../src/Effect.ts"
 import type { Inspectable } from "../src/Inspectable.ts"
 import type { Pipeable } from "../src/Pipeable.ts"
-import type { Yieldable } from "../src/Effect.ts"
+import { assertCauseFail } from "./utils/assert.ts"
 
 class ATag extends ServiceMap.Service<ATag, "A">()("ATag") {}
 
@@ -137,9 +137,11 @@ describe("Effect", () => {
 
   it("ServiceMap.Opaque", async () => {
     const ServiceTypeId = "~effect/ServiceMap/Service" as const
-     const TypeId = "~ServiceMap.Opaque"
+    const TypeId = "~ServiceMap.Opaque"
 
-     interface Opaque<Identifier extends object, in out Shape extends object> extends Pipeable, Inspectable, Yieldable<Opaque<Identifier, Identifier>, Identifier, never, Identifier> {
+    interface Opaque<Identifier extends object, in out Shape extends object>
+      extends Pipeable, Inspectable, Yieldable<Opaque<Identifier, Identifier>, Identifier, never, Identifier>
+    {
       readonly [ServiceTypeId]: {
         readonly _Service: Types.Invariant<Identifier>
         readonly _Identifier: Types.Invariant<Identifier>
@@ -158,7 +160,7 @@ describe("Effect", () => {
       readonly key: string
     }
 
-    function Opaque  <Identifier extends object, Shape extends object>() {
+    function Opaque<Identifier extends object, Shape extends object>() {
       return <const Key extends string>(key: Key) => {
         const c: abstract new(_: never) => Shape & { readonly [TypeId]: Key } = class {} as any
 
