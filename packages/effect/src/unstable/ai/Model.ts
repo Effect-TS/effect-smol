@@ -14,7 +14,7 @@
  *
  * declare const myAnthropicLayer: Layer.Layer<LanguageModel.LanguageModel>
  *
- * const anthropicModel = Model.make("anthropic", myAnthropicLayer)
+ * const anthropicModel = Model.make("anthropic", "claude-3-5-haiku", myAnthropicLayer)
  *
  * const program = Effect.gen(function*() {
  *   const response = yield* LanguageModel.generateText({
@@ -152,40 +152,25 @@ const Proto = {
  * @since 4.0.0
  * @category constructors
  */
-export const make: {
-  <const Provider extends string, const Name extends string, Provides, Requires>(
-    /**
-     * Provider identifier (e.g., "openai", "anthropic", "amazon-bedrock").
-     */
-    provider: Provider,
-    /**
-     * Model identifier (e.g., "gpt-5", "claude-3-5-haiku").
-     */
-    modelName: Name,
-    /**
-     * Layer that provides the AI services for this provider.
-     */
-    layer: Layer.Layer<Provides, never, Requires>
-  ): Model<Provider, Provides, Requires>
-  <const Provider extends string, Provides, Requires>(
-    /**
-     * Provider identifier (e.g., "openai", "anthropic", "amazon-bedrock").
-     */
-    provider: Provider,
-    /**
-     * Layer that provides the AI services for this provider.
-     */
-    layer: Layer.Layer<Provides, never, Requires>
-  ): Model<Provider, Provides, Requires>
-} = (provider: string, modelNameOrLayer: unknown, maybeLayer?: unknown): Model<string, unknown, unknown> => {
-  const modelName = maybeLayer === undefined ? provider : modelNameOrLayer
-  const layer = maybeLayer === undefined ? modelNameOrLayer : maybeLayer
-  return Object.assign(
+export const make = <const Provider extends string, const Name extends string, Provides, Requires>(
+  /**
+   * Provider identifier (e.g., "openai", "anthropic", "amazon-bedrock").
+   */
+  provider: Provider,
+  /**
+   * Model identifier (e.g., "gpt-5", "claude-3-5-haiku").
+   */
+  modelName: Name,
+  /**
+   * Layer that provides the AI services for this provider.
+   */
+  layer: Layer.Layer<Provides, never, Requires>
+): Model<Provider, Provides, Requires> =>
+  Object.assign(
     Object.create(Proto),
     { provider },
     Layer.merge(
       Layer.succeed(ProviderName)(provider),
-      Layer.merge(Layer.succeed(ModelName)(modelName as string), layer as Layer.Layer<unknown>)
+      Layer.merge(Layer.succeed(ModelName)(modelName), layer)
     )
   )
-}

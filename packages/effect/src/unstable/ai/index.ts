@@ -280,7 +280,7 @@ export * as McpServer from "./McpServer.ts"
  *
  * declare const myAnthropicLayer: Layer.Layer<LanguageModel.LanguageModel>
  *
- * const anthropicModel = Model.make("anthropic", myAnthropicLayer)
+ * const anthropicModel = Model.make("anthropic", "claude-3-5-haiku", myAnthropicLayer)
  *
  * const program = Effect.gen(function*() {
  *   const response = yield* LanguageModel.generateText({
