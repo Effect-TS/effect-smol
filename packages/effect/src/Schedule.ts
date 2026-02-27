@@ -2585,7 +2585,10 @@ export const reduce: {
       Pull.matchEffect(step(now, input), {
         onSuccess([output, delay]) {
           const next = combine(state, output)
-          if (!isEffect(next)) return effect.succeed([next, delay] as [State, Duration.Duration])
+          if (!isEffect(next)) {
+            state = next
+            return effect.succeed([next, delay] as [State, Duration.Duration])
+          }
           return effect.map(next, (nextState) => {
             state = nextState
             return [nextState, delay]

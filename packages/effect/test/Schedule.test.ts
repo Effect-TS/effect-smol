@@ -159,6 +159,18 @@ describe("Schedule", () => {
       }))
   })
 
+  describe("reduce", () => {
+    it.effect("accumulates state with synchronous combine", () =>
+      Effect.gen(function*() {
+        const schedule = Schedule.forever.pipe(
+          Schedule.reduce(() => 0, (state, output) => state + output)
+        )
+        const inputs = Array.makeBy(5, constUndefined)
+        const output = yield* runCollect(schedule, inputs)
+        expect(output).toEqual([0, 1, 3, 6, 10])
+      }))
+  })
+
   describe("jittered", () => {
     it.effect("keeps delays within 80%-120% of the original", () =>
       Effect.gen(function*() {
