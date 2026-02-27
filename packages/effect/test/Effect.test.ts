@@ -160,6 +160,13 @@ describe("Effect", () => {
       Effect.provideService(ATag, ATag.of({ test: Effect.succeed("A" as const) })),
       Effect.runPromise
     )
+
+    const layer = Layer.effect(ATag, Effect.sync(() => ATag.of({ test: Effect.succeed("A" as const) })))
+    await ATag.asEffect().pipe(
+      Effect.tap((_) => Effect.sync(() => assert.deepStrictEqual(_, ATag.of({ test: Effect.succeed("A" as const) })))),
+      Effect.provide(layer),
+      Effect.runPromise
+    )
     // We receive the Opaque Shape (Identifier) as opposed to the raw Shape
     expectTypeOf<ReturnType<typeof ATag.asEffect>>()
       .toEqualTypeOf<Effect.Effect<ATag, never, ATag>>()
