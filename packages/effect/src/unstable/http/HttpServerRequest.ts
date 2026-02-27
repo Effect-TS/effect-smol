@@ -22,6 +22,7 @@ import { hasBody, type HttpMethod } from "./HttpMethod.ts"
 import { HttpServerError, type RequestError, RequestParseError } from "./HttpServerError.ts"
 import * as Multipart from "./Multipart.ts"
 import * as UrlParams from "./UrlParams.ts"
+import { copyPreResponseHandlersUnsafe } from "./internal/preResponseHandler.ts"
 
 export {
   /**
@@ -327,12 +328,17 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
       readonly remoteAddress?: string | undefined
     }
   ) {
-    return new ServerRequestImpl(
+    const request = new ServerRequestImpl(
       this.source,
       options.url ?? this.url,
       options.headers ?? this.headersOverride,
       options.remoteAddress ?? this.remoteAddressOverride
     )
+    for (const symbol of Object.getOwnPropertySymbols(this)) {
+      ;(request as any)[symbol] = (this as any)[symbol]
+    }
+    copyPreResponseHandlersUnsafe(this, request)
+    return request
   }
   get method(): HttpMethod {
     return this.source.method.toUpperCase() as HttpMethod

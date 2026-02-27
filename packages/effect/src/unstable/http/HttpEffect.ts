@@ -18,7 +18,7 @@ import { HttpServerRequest } from "./HttpServerRequest.ts"
 import * as Request from "./HttpServerRequest.ts"
 import type { HttpServerResponse } from "./HttpServerResponse.ts"
 import * as Response from "./HttpServerResponse.ts"
-import { appendPreResponseHandlerUnsafe, requestPreResponseHandlers } from "./internal/preResponseHandler.ts"
+import { appendPreResponseHandlerUnsafe, getPreResponseHandlerUnsafe } from "./internal/preResponseHandler.ts"
 
 /**
  * @since 4.0.0
@@ -37,7 +37,7 @@ export const toHandled = <E, R, EH, RH>(
       const fiber = Fiber.getCurrent()!
       reportCauseUnsafe(fiber, cause)
       const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
-      const handler = requestPreResponseHandlers.get(request)
+      const handler = getPreResponseHandlerUnsafe(request)
       const cont = cause.reasons.length === 0 ? Effect.succeed(response) : Effect.failCause(cause)
       if (handler === undefined) {
         ;(request as any)[handledSymbol] = true
@@ -60,7 +60,7 @@ export const toHandled = <E, R, EH, RH>(
     onSuccess: (response) => {
       const fiber = Fiber.getCurrent()!
       const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
-      const handler = requestPreResponseHandlers.get(request)
+      const handler = getPreResponseHandlerUnsafe(request)
       if (handler === undefined) {
         ;(request as any)[handledSymbol] = true
         return Effect.mapEager(handleResponse(request, response), () => response)
