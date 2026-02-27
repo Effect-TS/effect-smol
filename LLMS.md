@@ -267,6 +267,14 @@ Build http clients with the `HttpClient` module.
 
 - **[Getting started with HttpClient](./ai-docs/src/50_http-client/10_basics.ts)**: Define a service that uses the HttpClient module to fetch data from an external API
 
+## Building HttpApi servers
+
+`HttpApi` gives you schema-first, type-safe HTTP APIs with runtime validation, typed clients, and OpenAPI docs from one definition.
+
+- **[Getting started with HttpApi](./ai-docs/src/51_http-server/10_basics.ts)**:
+  Define a schema-first API, implement handlers, secure endpoints with
+  middleware, serve it over HTTP, and call it using a generated typed client.
+
 ## Building CLI applications
 
 Use the "effect/unstable/cli" modules to build CLI applications. These modules
