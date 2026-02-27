@@ -3,6 +3,7 @@
  */
 import type * as Cause from "./Cause.ts"
 import type * as Effect from "./Effect.ts"
+import type * as Option from "./Option.ts"
 import type { PlatformError } from "./PlatformError.ts"
 import * as Predicate from "./Predicate.ts"
 import type * as Queue from "./Queue.ts"
@@ -71,7 +72,7 @@ export interface UserInput {
   /**
    * The character read from the user (if any).
    */
-  readonly input: string | undefined
+  readonly input: Option.Option<string>
   /**
    * The key that the user pressed.
    */

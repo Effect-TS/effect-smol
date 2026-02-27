@@ -6,6 +6,7 @@ import * as Effect from "effect/Effect"
 import type { LazyArg } from "effect/Function"
 import * as Inspectable from "effect/Inspectable"
 import type * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
 import * as Queue from "effect/Queue"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"
@@ -213,7 +214,7 @@ abstract class IncomingMessageImpl<E> extends Inspectable.Class implements HttpI
   }
 
   get remoteAddress() {
-    return undefined
+    return Option.none()
   }
 
   _textEffect: Effect.Effect<string, E> | undefined

@@ -12,12 +12,12 @@ import * as Hash from "./Hash.ts"
 import { type Inspectable, NodeInspectSymbol } from "./Inspectable.ts"
 import * as dateTime from "./internal/dateTime.ts"
 import * as N from "./Number.ts"
+import * as Option from "./Option.ts"
 import { type Pipeable, pipeArguments } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
 import * as Result from "./Result.ts"
 import * as String from "./String.ts"
 import type { Mutable } from "./Types.ts"
-import * as UndefinedOr from "./UndefinedOr.ts"
 
 const TypeId = "~effect/time/Cron"
 
@@ -83,7 +83,7 @@ const TypeId = "~effect/time/Cron"
  */
 export interface Cron extends Pipeable, Equal.Equal, Inspectable {
   readonly [TypeId]: typeof TypeId
-  readonly tz: DateTime.TimeZone | undefined
+  readonly tz: Option.Option<DateTime.TimeZone>
   readonly seconds: ReadonlySet<number>
   readonly minutes: ReadonlySet<number>
   readonly hours: ReadonlySet<number>
@@ -307,7 +307,7 @@ export const make = (values: {
   o.days = new Set(Arr.sort(values.days, N.Order))
   o.months = new Set(Arr.sort(values.months, N.Order))
   o.weekdays = new Set(Arr.sort(values.weekdays, N.Order))
-  o.tz = values.tz
+  o.tz = Option.fromUndefinedOr(values.tz)
 
   const seconds = Array.from(o.seconds)
   const minutes = Array.from(o.minutes)
@@ -379,15 +379,11 @@ const CronParseErrorTypeId = "~effect/time/Cron/CronParseError"
  * @since 4.0.0
  * @category models
  */
-/**
- * @category Models
- * @since 4.0.0
- */
 export class CronParseError extends Data.TaggedError("CronParseError")<{
   readonly message: string
   readonly input?: string
 }> {
-  readonly [CronParseErrorTypeId] = CronParseErrorTypeId
+  readonly [CronParseErrorTypeId]: typeof CronParseErrorTypeId = CronParseErrorTypeId
 }
 
 /**
@@ -456,11 +452,10 @@ export const parse = (cron: string, tz?: DateTime.TimeZone | string): Result.Res
   const [seconds, minutes, hours, days, months, weekdays] = segments
   const zone = tz === undefined || dateTime.isTimeZone(tz) ?
     Result.succeed(tz) :
-    UndefinedOr.match(dateTime.zoneFromString(tz), {
-      onUndefined: () =>
-        Result.fail(new CronParseError({ message: `Invalid time zone in cron expression`, input: tz })),
-      onDefined: (zone) => Result.succeed(zone)
-    })
+    Result.fromOption(
+      dateTime.zoneFromString(tz),
+      () => new CronParseError({ message: `Invalid time zone in cron expression`, input: tz })
+    )
 
   return Result.all({
     tz: zone,
@@ -528,7 +523,7 @@ export const parseUnsafe = (cron: string, tz?: DateTime.TimeZone | string): Cron
  */
 export const match = (cron: Cron, date: DateTime.DateTime.Input): boolean => {
   const parts = dateTime.makeZonedUnsafe(date, {
-    timeZone: cron.tz
+    timeZone: Option.getOrUndefined(cron.tz)
   }).pipe(dateTime.toParts)
 
   if (cron.seconds.size !== 0 && !cron.seconds.has(parts.seconds)) {
@@ -592,7 +587,7 @@ const daysInMonth = (date: Date): number =>
  * @category utils
  */
 export const next = (cron: Cron, now?: DateTime.DateTime.Input): Date => {
-  const tz = cron.tz
+  const tz = Option.getOrUndefined(cron.tz)
   const zoned = dateTime.makeZonedUnsafe(now ?? new Date(), {
     timeZone: tz
   })

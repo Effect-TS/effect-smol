@@ -6,6 +6,7 @@ import * as Equ from "../../Equivalence.ts"
 import { dual } from "../../Function.ts"
 import * as Hash from "../../Hash.ts"
 import * as Inspectable from "../../Inspectable.ts"
+import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Record from "../../Record.ts"
 import * as Redactable from "../../Redactable.ts"
@@ -185,12 +186,12 @@ export const has: {
  * @category combinators
  */
 export const get: {
-  (key: string): (self: Headers) => string | undefined
-  (self: Headers, key: string): string | undefined
+  (key: string): (self: Headers) => Option.Option<string>
+  (self: Headers, key: string): Option.Option<string>
 } = dual<
-  (key: string) => (self: Headers) => string | undefined,
-  (self: Headers, key: string) => string | undefined
->(2, (self, key) => self[key.toLowerCase()])
+  (key: string) => (self: Headers) => Option.Option<string>,
+  (self: Headers, key: string) => Option.Option<string>
+>(2, (self, key) => Option.fromUndefinedOr(self[key.toLowerCase()]))
 
 /**
  * @since 4.0.0

@@ -683,8 +683,8 @@ export const make: <Rpcs extends Rpc.Any, const Flatten extends boolean = false>
       case "Chunk": {
         const requestId = RequestId(message.requestId)
         const entry = entries.get(requestId)
-        if (!entry || !entry.schemas.decodeChunk) return Effect.void
-        return entry.schemas.decodeChunk(message.values).pipe(
+        if (!entry || Option.isNone(entry.schemas.decodeChunk)) return Effect.void
+        return entry.schemas.decodeChunk.value(message.values).pipe(
           Effect.provideServices(entry.context),
           Effect.orDie,
           Effect.flatMap((chunk) =>
@@ -738,9 +738,9 @@ export const make: <Rpcs extends Rpc.Any, const Flatten extends boolean = false>
 })
 
 interface RpcSchemas {
-  readonly decodeChunk:
-    | ((chunk: ReadonlyArray<unknown>) => Effect.Effect<NonEmptyReadonlyArray<any>, Schema.SchemaError, unknown>)
-    | undefined
+  readonly decodeChunk: Option.Option<
+    (chunk: ReadonlyArray<unknown>) => Effect.Effect<NonEmptyReadonlyArray<any>, Schema.SchemaError, unknown>
+  >
   readonly encodePayload: (payload: any) => Effect.Effect<any, Schema.SchemaError, unknown>
   readonly decodeExit: (encoded: unknown) => Effect.Effect<Exit.Exit<any, any>, Schema.SchemaError, unknown>
 }
@@ -752,9 +752,10 @@ const rpcSchemas = (rpc: Rpc.AnyWithProps) => {
   }
   const streamSchemas = RpcSchema.getStreamSchemas(rpc.successSchema)
   entry = {
-    decodeChunk: streamSchemas ?
-      Schema.decodeUnknownEffect(Schema.toCodecJson(Schema.NonEmptyArray(streamSchemas.success))) :
-      undefined,
+    decodeChunk: Option.map(
+      streamSchemas,
+      (streamSchemas) => Schema.decodeUnknownEffect(Schema.toCodecJson(Schema.NonEmptyArray(streamSchemas.success)))
+    ),
     encodePayload: Schema.encodeEffect(Schema.toCodecJson(rpc.payloadSchema)),
     decodeExit: Schema.decodeUnknownEffect(Schema.toCodecJson(Rpc.exitSchema(rpc as any)))
   }

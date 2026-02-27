@@ -1,12 +1,29 @@
 import { Number } from "effect"
 import { describe, it } from "vitest"
-import { strictEqual } from "./utils/assert.ts"
+import { assertNone, assertSome, strictEqual, throws } from "./utils/assert.ts"
 
 describe("Number", () => {
   it("Equivalence", () => {
     strictEqual(Number.Equivalence(1, 1), true)
     strictEqual(Number.Equivalence(1, 2), false)
     strictEqual(Number.Equivalence(NaN, NaN), true)
+  })
+
+  it("divide", () => {
+    assertSome(Number.divide(6, 3), 2)
+    assertNone(Number.divide(6, 0))
+    strictEqual(Number.divideUnsafe(6, 3), 2)
+    throws(() => Number.divideUnsafe(6, 0), new RangeError("Division by zero"))
+  })
+
+  it("parse", () => {
+    assertSome(Number.parse("42"), 42)
+    assertSome(Number.parse("3.14"), 3.14)
+    assertSome(Number.parse("NaN"), NaN)
+    assertSome(Number.parse("Infinity"), Infinity)
+    assertSome(Number.parse("-Infinity"), -Infinity)
+    assertNone(Number.parse(""))
+    assertNone(Number.parse("not a number"))
   })
 
   it("ReducerSum", () => {

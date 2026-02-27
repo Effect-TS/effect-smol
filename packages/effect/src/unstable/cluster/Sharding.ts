@@ -199,6 +199,7 @@ interface EntityManagerState {
 
 const make = Effect.gen(function*() {
   const config = yield* ShardingConfig
+  const getRunnerAddress = () => Option.getOrUndefined(config.runnerAddress)
   const clock = yield* Clock
 
   const runnersService = yield* Runners
@@ -228,7 +229,10 @@ const make = Effect.gen(function*() {
   const events = yield* PubSub.unbounded<ShardingRegistrationEvent>()
   const getRegistrationEvents: Stream.Stream<ShardingRegistrationEvent> = Stream.fromPubSub(events)
 
-  const isLocalRunner = (address: RunnerAddress) => Equal.equals(address, config.runnerAddress)
+  const isLocalRunner = (address: RunnerAddress) => {
+    const runnerAddress = getRunnerAddress()
+    return runnerAddress !== undefined && Equal.equals(address, runnerAddress)
+  }
 
   function getShardId(entityId: EntityId, group: string): ShardId {
     const id = Math.abs(hashString(entityId) % config.shardsPerGroup) + 1
@@ -254,8 +258,9 @@ const make = Effect.gen(function*() {
   // allow them to move to another runner.
 
   const releasingShards = MutableHashSet.empty<ShardId>()
-  if (config.runnerAddress) {
-    const selfAddress = config.runnerAddress
+  const initialRunnerAddress = getRunnerAddress()
+  if (initialRunnerAddress) {
+    const selfAddress = initialRunnerAddress
     yield* Scope.addFinalizerExit(shardingScope, () => {
       // the locks expire over time, so if this fails we ignore it
       return Effect.ignore(runnerStorage.releaseAll(selfAddress))
@@ -437,8 +442,8 @@ const make = Effect.gen(function*() {
   const storageReadLock = Semaphore.makeUnsafe(1)
   const withStorageReadLock = storageReadLock.withPermits(1)
 
-  if (storageEnabled && config.runnerAddress) {
-    const selfAddress = config.runnerAddress
+  if (storageEnabled && initialRunnerAddress) {
+    const selfAddress = initialRunnerAddress
     const entityRegistrationTimeoutMillis = Duration.toMillis(
       Duration.fromInputUnsafe(config.entityRegistrationTimeout)
     )
@@ -824,7 +829,7 @@ const make = Effect.gen(function*() {
         if (isPersisted) {
           return runnerIsLocal
             ? notifyLocal(message, discard)
-            : runnersService.notify({ address: Option.getOrUndefined(maybeRunner), message, discard })
+            : runnersService.notify({ address: maybeRunner, message, discard })
         } else if (Option.isNone(maybeRunner)) {
           return Effect.fail(new EntityNotAssignedToRunner({ address }))
         }
@@ -860,9 +865,9 @@ const make = Effect.gen(function*() {
   // shard assignments for outgoing messages (they could still be in use by
   // entities that are shutting down).
 
-  const selfRunner = config.runnerAddress ?
+  const selfRunner = initialRunnerAddress ?
     new Runner({
-      address: config.runnerAddress,
+      address: initialRunnerAddress,
       groups: config.shardGroups,
       weight: config.runnerShardWeight
     }) :
@@ -985,7 +990,7 @@ const make = Effect.gen(function*() {
     Effect.annotateLogs({
       module: "effect/cluster/Sharding",
       fiber: "RunnerStorage sync",
-      runner: config.runnerAddress
+      runner: initialRunnerAddress
     }),
     Effect.forkIn(shardingScope)
   )
@@ -1046,7 +1051,7 @@ const make = Effect.gen(function*() {
                   spanId: options.message.spanId,
                   sampled: options.message.sampled
                 }),
-                lastReceivedReply: undefined,
+                lastReceivedReply: Option.none(),
                 rpc,
                 services: fiber.services as ServiceMap.ServiceMap<any>,
                 respond
@@ -1259,7 +1264,8 @@ const make = Effect.gen(function*() {
 
   const registerEntity: Sharding["Service"]["registerEntity"] = Effect.fnUntraced(
     function*(entity, build, options) {
-      if (!config.runnerAddress || entityManagers.has(entity.type)) return
+      const runnerAddress = getRunnerAddress()
+      if (!runnerAddress || entityManagers.has(entity.type)) return
       const scope = yield* Effect.scope
       yield* Scope.addFinalizer(
         scope,
@@ -1270,7 +1276,7 @@ const make = Effect.gen(function*() {
       const manager = yield* EntityManager.make(entity, build, {
         ...options,
         storage,
-        runnerAddress: config.runnerAddress,
+        runnerAddress,
         sharding
       }).pipe(
         Effect.provideServices(services.pipe(

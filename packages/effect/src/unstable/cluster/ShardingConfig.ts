@@ -25,13 +25,13 @@ export class ShardingConfig extends ServiceMap.Service<ShardingConfig, {
    * If `None`, the runner is not part of the cluster and will be in a client-only
    * mode.
    */
-  readonly runnerAddress: RunnerAddress | undefined
+  readonly runnerAddress: Option.Option<RunnerAddress>
   /**
    * The listen address for the current runner.
    *
    * Defaults to the `runnerAddress`.
    */
-  readonly runnerListenAddress: RunnerAddress | undefined
+  readonly runnerListenAddress: Option.Option<RunnerAddress>
   /**
    * A number that determines how many shards this runner will be assigned
    * relative to other runners.
@@ -129,8 +129,8 @@ const defaultRunnerAddress = RunnerAddress.makeUnsafe({ host: "localhost", port:
  * @category defaults
  */
 export const defaults: ShardingConfig["Service"] = {
-  runnerAddress: defaultRunnerAddress,
-  runnerListenAddress: undefined,
+  runnerAddress: Option.some(defaultRunnerAddress),
+  runnerListenAddress: Option.none(),
   runnerShardWeight: 1,
   shardsPerGroup: 300,
   shardGroups: ["default"],
@@ -177,7 +177,7 @@ export const config: Config.Config<ShardingConfig["Service"]> = Config.all({
       Config.withDefault(defaultRunnerAddress.port)
       // Config.withDescription("The port used for inter-runner communication.")
     )
-  }).pipe(Config.map((options) => RunnerAddress.makeUnsafe(options)), Config.option, Config.map(Option.getOrUndefined)),
+  }).pipe(Config.map((options) => RunnerAddress.makeUnsafe(options)), Config.option),
   runnerListenAddress: Config.all({
     host: Config.string("listenHost"),
     // Config.withDescription("The host to listen on.")
@@ -185,7 +185,7 @@ export const config: Config.Config<ShardingConfig["Service"]> = Config.all({
       Config.withDefault(defaultRunnerAddress.port)
       // Config.withDescription("The port to listen on.")
     )
-  }).pipe(Config.map((options) => RunnerAddress.makeUnsafe(options)), Config.option, Config.map(Option.getOrUndefined)),
+  }).pipe(Config.map((options) => RunnerAddress.makeUnsafe(options)), Config.option),
   runnerShardWeight: Config.int("runnerShardWeight").pipe(
     Config.withDefault(defaults.runnerShardWeight)
     // Config.withDescription("A number that determines how many shards this runner will be assigned relative to other runners.")

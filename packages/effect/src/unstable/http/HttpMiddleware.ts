@@ -6,6 +6,7 @@ import * as Effect from "../../Effect.ts"
 import { constant, constFalse } from "../../Function.ts"
 import * as internalEffect from "../../internal/effect.ts"
 import * as Layer from "../../Layer.ts"
+import * as Option from "../../Option.ts"
 import type { Predicate } from "../../Predicate.ts"
 import type { ReadonlyRecord } from "../../Record.ts"
 import { TracerEnabled } from "../../References.ts"
@@ -102,7 +103,7 @@ export const logger: <E, R>(
         } else if (exit._tag === "Failure") {
           const [response, cause] = causeResponseStripped(exit.cause)
           return Effect.andThen(
-            Effect.annotateLogs(Effect.log(cause ?? "Sent HTTP Response"), {
+            Effect.annotateLogs(Effect.log(Option.getOrElse(cause, () => "Sent HTTP Response")), {
               "http.method": request.method,
               "http.url": request.url,
               "http.status": response.status
@@ -139,7 +140,7 @@ export const tracer: <E, R>(
     }
     const nameGenerator = fiber.getRef(SpanNameGenerator)
     const span = internalEffect.makeSpanUnsafe(fiber, nameGenerator(request), {
-      parent: TraceContext.fromHeaders(request.headers),
+      parent: Option.getOrUndefined(TraceContext.fromHeaders(request.headers)),
       kind: "server"
     })
     const prevServices = fiber.services
@@ -149,21 +150,21 @@ export const tracer: <E, R>(
       const endTime = fiber.getRef(Clock).currentTimeNanosUnsafe()
       fiber.currentScheduler.scheduleTask(() => {
         const url = Request.toURL(request)
-        if (url !== undefined && (url.username !== "" || url.password !== "")) {
-          url.username = "REDACTED"
-          url.password = "REDACTED"
+        if (Option.isSome(url) && (url.value.username !== "" || url.value.password !== "")) {
+          url.value.username = "REDACTED"
+          url.value.password = "REDACTED"
         }
         const redactedHeaderNames = fiber.getRef(Headers.CurrentRedactedNames)
         const requestHeaders = Headers.redact(request.headers, redactedHeaderNames)
         span.attribute("http.request.method", request.method)
-        if (url !== undefined) {
-          span.attribute("url.full", url.toString())
-          span.attribute("url.path", url.pathname)
-          const query = url.search.slice(1)
+        if (Option.isSome(url)) {
+          span.attribute("url.full", url.value.toString())
+          span.attribute("url.path", url.value.pathname)
+          const query = url.value.search.slice(1)
           if (query !== "") {
-            span.attribute("url.query", url.search.slice(1))
+            span.attribute("url.query", url.value.search.slice(1))
           }
-          span.attribute("url.scheme", url.protocol.slice(0, -1))
+          span.attribute("url.scheme", url.value.protocol.slice(0, -1))
         }
         if (request.headers["user-agent"] !== undefined) {
           span.attribute("user_agent.original", request.headers["user-agent"])
@@ -171,8 +172,8 @@ export const tracer: <E, R>(
         for (const name in requestHeaders) {
           span.attribute(`http.request.header.${name}`, String(requestHeaders[name]))
         }
-        if (request.remoteAddress !== undefined) {
-          span.attribute("client.address", request.remoteAddress)
+        if (Option.isSome(request.remoteAddress)) {
+          span.attribute("client.address", request.remoteAddress.value)
         }
         const response = exitResponse(exit)
         span.attribute("http.response.status_code", response.status)
@@ -200,7 +201,7 @@ export const xForwardedHeaders = make((httpApp) =>
           "host",
           request.headers["x-forwarded-host"]
         ),
-        remoteAddress: request.headers["x-forwarded-for"]?.split(",")[0].trim()
+        remoteAddress: Option.fromNullishOr(request.headers["x-forwarded-for"]?.split(",")[0].trim())
       })
       : request)
 )

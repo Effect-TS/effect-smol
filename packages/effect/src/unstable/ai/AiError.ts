@@ -183,7 +183,7 @@ export class NetworkError extends Schema.ErrorClass<NetworkError>(
       description: error.description,
       reason: error._tag,
       request: {
-        hash: error.request.hash,
+        hash: Option.getOrUndefined(error.request.hash),
         headers: redactHeaders(error.request.headers),
         method: error.request.method,
         url: error.request.url,

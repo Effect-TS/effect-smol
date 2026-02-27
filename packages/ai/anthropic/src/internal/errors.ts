@@ -190,8 +190,8 @@ export const parseRateLimitHeaders = (headers: Record<string, string>) => {
   let retryAfter: Duration.Duration | undefined
   if (Predicate.isNotUndefined(retryAfterRaw)) {
     const parsed = Number.parse(retryAfterRaw)
-    if (Predicate.isNotUndefined(parsed)) {
-      retryAfter = Duration.seconds(parsed)
+    if (Option.isSome(parsed)) {
+      retryAfter = Duration.seconds(parsed.value)
     }
   }
   const requestsLimitRaw = headers["anthropic-ratelimit-requests-limit"]
@@ -200,13 +200,15 @@ export const parseRateLimitHeaders = (headers: Record<string, string>) => {
   const tokensRemainingRaw = headers["anthropic-ratelimit-tokens-remaining"]
   return {
     retryAfter,
-    requestsLimit: Predicate.isNotUndefined(requestsLimitRaw) ? Number.parse(requestsLimitRaw) ?? null : null,
+    requestsLimit: Predicate.isNotUndefined(requestsLimitRaw) ? Option.getOrNull(Number.parse(requestsLimitRaw)) : null,
     requestsRemaining: Predicate.isNotUndefined(requestsRemainingRaw)
-      ? Number.parse(requestsRemainingRaw) ?? null
+      ? Option.getOrNull(Number.parse(requestsRemainingRaw))
       : null,
     requestsReset: headers["anthropic-ratelimit-requests-reset"] ?? null,
-    tokensLimit: Predicate.isNotUndefined(tokensLimitRaw) ? Number.parse(tokensLimitRaw) ?? null : null,
-    tokensRemaining: Predicate.isNotUndefined(tokensRemainingRaw) ? Number.parse(tokensRemainingRaw) ?? null : null,
+    tokensLimit: Predicate.isNotUndefined(tokensLimitRaw) ? Option.getOrNull(Number.parse(tokensLimitRaw)) : null,
+    tokensRemaining: Predicate.isNotUndefined(tokensRemainingRaw)
+      ? Option.getOrNull(Number.parse(tokensRemainingRaw))
+      : null,
     tokensReset: headers["anthropic-ratelimit-tokens-reset"] ?? null
   }
 }
@@ -222,7 +224,7 @@ export const buildHttpRequestDetails = (
   method: request.method,
   url: request.url,
   urlParams: Array.from(request.urlParams),
-  hash: request.hash,
+  hash: Option.getOrUndefined(request.hash),
   headers: Redactable.redact(request.headers) as Record<string, string>
 })
 

@@ -11,6 +11,7 @@ import * as Effect from "effect/Effect"
 import * as Encoding from "effect/Encoding"
 import { dual } from "effect/Function"
 import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
 import * as Predicate from "effect/Predicate"
 import * as Redactable from "effect/Redactable"
 import * as Schema from "effect/Schema"
@@ -903,7 +904,7 @@ const buildHttpRequestDetails = (
   method: request.method,
   url: request.url,
   urlParams: Array.from(request.urlParams),
-  hash: request.hash,
+  hash: Option.getOrUndefined(request.hash),
   headers: Redactable.redact(request.headers) as Record<string, string>
 })
 

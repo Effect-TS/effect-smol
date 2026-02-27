@@ -9,6 +9,7 @@ import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import { constTrue, dual } from "effect/Function"
 import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
 import * as Predicate from "effect/Predicate"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Tracer from "effect/Tracer"
@@ -350,7 +351,7 @@ export class OtelSpan implements Tracer.Span {
   readonly traceId: string
   readonly attributes = new Map<string, unknown>()
   readonly sampled: boolean
-  readonly parent: Tracer.AnySpan | undefined
+  readonly parent: Option.Option<Tracer.AnySpan>
   status: Tracer.SpanStatus
 
   constructor(
@@ -365,9 +366,11 @@ export class OtelSpan implements Tracer.Span {
     this.links = options.links
     this.kind = options.kind
     const active = contextApi.active()
-    this.parent = options.parent ?? (options?.root !== true) ?
-      getOtelParent(traceApi, active, options.annotations) :
-      undefined
+    const parent = Option.match(options.parent, {
+      onSome: (parent) => parent,
+      onNone: () => options.root !== true ? getOtelParent(traceApi, active, options.annotations) : undefined
+    })
+    this.parent = Option.fromUndefinedOr(parent)
     this.span = tracer.startSpan(
       options.name,
       {
@@ -380,7 +383,7 @@ export class OtelSpan implements Tracer.Span {
           : undefined as any,
         kind: kindMap[this.kind]
       },
-      this.parent ? populateContext(active, this.parent, options.annotations) : Otel.trace.deleteSpan(active)
+      parent ? populateContext(active, parent, options.annotations) : Otel.trace.deleteSpan(active)
     )
     const spanContext = this.span.spanContext()
     this.spanId = spanContext.spanId

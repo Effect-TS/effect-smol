@@ -1064,18 +1064,18 @@ export const last = <A>(self: ReadonlyArray<A>): Option.Option<A> =>
 export const lastNonEmpty = <A>(self: NonEmptyReadonlyArray<A>): A => self[self.length - 1]
 
 /**
- * Returns all elements except the first, or `undefined` if the array is empty.
+ * Returns all elements except the first, wrapped in an `Option`.
  *
  * - Allocates a new array via `slice(1)`.
- * - Returns `undefined` (not `Option`) for empty inputs.
+ * - Returns `Option.none()` for empty inputs.
  *
  * **Example** (Getting the tail)
  *
  * ```ts
  * import { Array } from "effect"
  *
- * console.log(Array.tail([1, 2, 3, 4])) // [2, 3, 4]
- * console.log(Array.tail([])) // undefined
+ * console.log(Array.tail([1, 2, 3, 4])) // Option.some([2, 3, 4])
+ * console.log(Array.tail([])) // Option.none()
  * ```
  *
  * @see {@link tailNonEmpty} — when the array is known non-empty
@@ -1084,9 +1084,9 @@ export const lastNonEmpty = <A>(self: NonEmptyReadonlyArray<A>): A => self[self.
  * @category getters
  * @since 2.0.0
  */
-export function tail<A>(self: Iterable<A>): Array<A> | undefined {
+export function tail<A>(self: Iterable<A>): Option.Option<Array<A>> {
   const as = fromIterable(self)
-  return isReadonlyArrayNonEmpty(as) ? tailNonEmpty(as) : undefined
+  return isReadonlyArrayNonEmpty(as) ? Option.some(tailNonEmpty(as)) : Option.none()
 }
 
 /**
@@ -1109,18 +1109,18 @@ export function tail<A>(self: Iterable<A>): Array<A> | undefined {
 export const tailNonEmpty = <A>(self: NonEmptyReadonlyArray<A>): Array<A> => self.slice(1)
 
 /**
- * Returns all elements except the last, or `undefined` if the array is empty.
+ * Returns all elements except the last, wrapped in an `Option`.
  *
  * - Allocates a new array via `slice(0, -1)`.
- * - Returns `undefined` (not `Option`) for empty inputs.
+ * - Returns `Option.none()` for empty inputs.
  *
  * **Example** (Getting init)
  *
  * ```ts
  * import { Array } from "effect"
  *
- * console.log(Array.init([1, 2, 3, 4])) // [1, 2, 3]
- * console.log(Array.init([])) // undefined
+ * console.log(Array.init([1, 2, 3, 4])) // Option.some([1, 2, 3])
+ * console.log(Array.init([])) // Option.none()
  * ```
  *
  * @see {@link initNonEmpty} — when the array is known non-empty
@@ -1129,9 +1129,9 @@ export const tailNonEmpty = <A>(self: NonEmptyReadonlyArray<A>): Array<A> => sel
  * @category getters
  * @since 2.0.0
  */
-export function init<A>(self: Iterable<A>): Array<A> | undefined {
+export function init<A>(self: Iterable<A>): Option.Option<Array<A>> {
   const as = fromIterable(self)
-  return isReadonlyArrayNonEmpty(as) ? initNonEmpty(as) : undefined
+  return isReadonlyArrayNonEmpty(as) ? Option.some(initNonEmpty(as)) : Option.none()
 }
 
 /**
@@ -1447,15 +1447,15 @@ export const dropWhileFilter: {
 )
 
 /**
- * Returns the index of the first element matching the predicate, or `undefined`
- * if none match.
+ * Returns the index of the first element matching the predicate, wrapped in an
+ * `Option`.
  *
  * **Example** (Finding an index)
  *
  * ```ts
  * import { Array } from "effect"
  *
- * console.log(Array.findFirstIndex([5, 3, 8, 9], (x) => x > 5)) // 2
+ * console.log(Array.findFirstIndex([5, 3, 8, 9], (x) => x > 5)) // Option.some(2)
  * ```
  *
  * @see {@link findLastIndex} — search from the end
@@ -1465,28 +1465,29 @@ export const dropWhileFilter: {
  * @since 2.0.0
  */
 export const findFirstIndex: {
-  <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => number | undefined
-  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): number | undefined
-} = dual(2, <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): number | undefined => {
+  <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => Option.Option<number>
+  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Option.Option<number>
+} = dual(2, <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Option.Option<number> => {
   let i = 0
   for (const a of self) {
     if (predicate(a, i)) {
-      return i
+      return Option.some(i)
     }
     i++
   }
+  return Option.none()
 })
 
 /**
- * Returns the index of the last element matching the predicate, or `undefined`
- * if none match.
+ * Returns the index of the last element matching the predicate, wrapped in an
+ * `Option`.
  *
  * **Example** (Finding the last matching index)
  *
  * ```ts
  * import { Array } from "effect"
  *
- * console.log(Array.findLastIndex([1, 3, 8, 9], (x) => x < 5)) // 1
+ * console.log(Array.findLastIndex([1, 3, 8, 9], (x) => x < 5)) // Option.some(1)
  * ```
  *
  * @see {@link findFirstIndex} — search from the start
@@ -1496,15 +1497,16 @@ export const findFirstIndex: {
  * @since 2.0.0
  */
 export const findLastIndex: {
-  <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => number | undefined
-  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): number | undefined
-} = dual(2, <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): number | undefined => {
+  <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => Option.Option<number>
+  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Option.Option<number>
+} = dual(2, <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Option.Option<number> => {
   const input = fromIterable(self)
   for (let i = input.length - 1; i >= 0; i--) {
     if (predicate(input[i], i)) {
-      return i
+      return Option.some(i)
     }
   }
+  return Option.none()
 })
 
 /**
@@ -1541,14 +1543,14 @@ export const findFirst: {
 
 /**
  * Returns a tuple `[element, index]` of the first element matching a
- * predicate, or `undefined` if none match.
+ * predicate, wrapped in an `Option`.
  *
  * **Example** (Finding element with its index)
  *
  * ```ts
  * import { Array } from "effect"
  *
- * console.log(Array.findFirstWithIndex([1, 2, 3, 4, 5], (x) => x > 3)) // [4, 3]
+ * console.log(Array.findFirstWithIndex([1, 2, 3, 4, 5], (x) => x > 3)) // Option.some([4, 3])
  * ```
  *
  * @see {@link findFirst} — get only the element
@@ -1558,32 +1560,33 @@ export const findFirst: {
  * @since 3.17.0
  */
 export const findFirstWithIndex: {
-  <A, B>(f: (a: NoInfer<A>, i: number) => Option.Option<B>): (self: Iterable<A>) => [B, number] | undefined
-  <A, B extends A>(refinement: (a: NoInfer<A>, i: number) => a is B): (self: Iterable<A>) => [B, number] | undefined
-  <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => [A, number] | undefined
-  <A, B>(self: Iterable<A>, f: (a: A, i: number) => Option.Option<B>): [B, number] | undefined
-  <A, B extends A>(self: Iterable<A>, refinement: (a: A, i: number) => a is B): [B, number] | undefined
-  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): [A, number] | undefined
+  <A, B>(f: (a: NoInfer<A>, i: number) => Option.Option<B>): (self: Iterable<A>) => Option.Option<[B, number]>
+  <A, B extends A>(refinement: (a: NoInfer<A>, i: number) => a is B): (self: Iterable<A>) => Option.Option<[B, number]>
+  <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => Option.Option<[A, number]>
+  <A, B>(self: Iterable<A>, f: (a: A, i: number) => Option.Option<B>): Option.Option<[B, number]>
+  <A, B extends A>(self: Iterable<A>, refinement: (a: A, i: number) => a is B): Option.Option<[B, number]>
+  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Option.Option<[A, number]>
 } = dual(
   2,
   <A>(
     self: Iterable<A>,
     f: ((a: A, i: number) => boolean) | ((a: A, i: number) => Option.Option<A>)
-  ): [A, number] | undefined => {
+  ): Option.Option<[A, number]> => {
     let i = 0
     for (const a of self) {
       const o = f(a, i)
       if (typeof o === "boolean") {
         if (o) {
-          return [a, i]
+          return Option.some([a, i])
         }
       } else {
         if (Option.isSome(o)) {
-          return [o.value, i]
+          return Option.some([o.value, i])
         }
       }
       i++
     }
+    return Option.none()
   }
 )
 
@@ -1640,8 +1643,8 @@ export const findLast: {
 )
 
 /**
- * Inserts an element at the specified index, returning a new `NonEmptyArray`,
- * or `undefined` if the index is out of bounds.
+ * Inserts an element at the specified index, returning a new `NonEmptyArray`
+ * wrapped in an `Option`.
  *
  * - Valid indices: `0` to `length` (inclusive — inserting at `length` appends).
  * - Does not mutate the input.
@@ -1651,7 +1654,7 @@ export const findLast: {
  * ```ts
  * import { Array } from "effect"
  *
- * console.log(Array.insertAt(["a", "b", "c", "e"], 3, "d")) // ["a", "b", "c", "d", "e"]
+ * console.log(Array.insertAt(["a", "b", "c", "e"], 3, "d")) // Option.some(["a", "b", "c", "d", "e"])
  * ```
  *
  * @see {@link replace} — replace an existing element
@@ -1661,20 +1664,20 @@ export const findLast: {
  * @since 2.0.0
  */
 export const insertAt: {
-  <B>(i: number, b: B): <A>(self: Iterable<A>) => NonEmptyArray<A | B> | undefined
-  <A, B>(self: Iterable<A>, i: number, b: B): NonEmptyArray<A | B> | undefined
-} = dual(3, <A, B>(self: Iterable<A>, i: number, b: B): NonEmptyArray<A | B> | undefined => {
+  <B>(i: number, b: B): <A>(self: Iterable<A>) => Option.Option<NonEmptyArray<A | B>>
+  <A, B>(self: Iterable<A>, i: number, b: B): Option.Option<NonEmptyArray<A | B>>
+} = dual(3, <A, B>(self: Iterable<A>, i: number, b: B): Option.Option<NonEmptyArray<A | B>> => {
   const out: Array<A | B> = Array.from(self) // copy because `splice` mutates the array
   if (i < 0 || i > out.length) {
-    return undefined
+    return Option.none()
   }
   out.splice(i, 0, b)
-  return out as any
+  return Option.some(out as any)
 })
 
 /**
  * Replaces the element at the specified index with a new value, returning a new
- * array, or `undefined` if the index is out of bounds.
+ * array, wrapped in an `Option`.
  *
  * - Does not mutate the input.
  *
@@ -1683,7 +1686,7 @@ export const insertAt: {
  * ```ts
  * import { Array } from "effect"
  *
- * console.log(Array.replace([1, 2, 3], 1, 4)) // [1, 4, 3]
+ * console.log(Array.replace([1, 2, 3], 1, 4)) // Option.some([1, 4, 3])
  * ```
  *
  * @see {@link modify} — transform an element with a function
@@ -1695,20 +1698,20 @@ export const insertAt: {
 export const replace: {
   <B>(i: number, b: B): <A, S extends Iterable<A> = Iterable<A>>(
     self: S
-  ) => ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B> | undefined
+  ) => Option.Option<ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B>>
   <A, B, S extends Iterable<A> = Iterable<A>>(
     self: S,
     i: number,
     b: B
-  ): ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B> | undefined
+  ): Option.Option<ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B>>
 } = dual(
   3,
-  <A, B>(self: Iterable<A>, i: number, b: B): Array<A | B> | undefined => modify(self, i, () => b)
+  <A, B>(self: Iterable<A>, i: number, b: B): Option.Option<Array<A | B>> => modify(self, i, () => b)
 )
 
 /**
  * Applies a function to the element at the specified index, returning a new
- * array, or `undefined` if the index is out of bounds.
+ * array, wrapped in an `Option`.
  *
  * - Does not mutate the input.
  *
@@ -1717,8 +1720,8 @@ export const replace: {
  * ```ts
  * import { Array } from "effect"
  *
- * console.log(Array.modify([1, 2, 3, 4], 2, (n) => n * 2)) // [1, 2, 6, 4]
- * console.log(Array.modify([1, 2, 3, 4], 5, (n) => n * 2)) // undefined
+ * console.log(Array.modify([1, 2, 3, 4], 2, (n) => n * 2)) // Option.some([1, 2, 6, 4])
+ * console.log(Array.modify([1, 2, 3, 4], 5, (n) => n * 2)) // Option.none()
  * ```
  *
  * @see {@link replace} — set a fixed value at an index
@@ -1732,21 +1735,21 @@ export const modify: {
   <A, B, S extends Iterable<A> = Iterable<A>>(
     i: number,
     f: (a: ReadonlyArray.Infer<S>) => B
-  ): (self: S) => ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B> | undefined
+  ): (self: S) => Option.Option<ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B>>
   <A, B, S extends Iterable<A> = Iterable<A>>(
     self: S,
     i: number,
     f: (a: ReadonlyArray.Infer<S>) => B
-  ): ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B> | undefined
-} = dual(3, <A, B>(self: Iterable<A>, i: number, f: (a: A) => B): Array<A | B> | undefined => {
+  ): Option.Option<ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B>>
+} = dual(3, <A, B>(self: Iterable<A>, i: number, f: (a: A) => B): Option.Option<Array<A | B>> => {
   const arr = Array.from(self)
   if (isOutOfBounds(i, arr)) {
-    return undefined
+    return Option.none()
   }
   const out: Array<A | B> = arr
   const b = f(arr[i])
   out[i] = b
-  return out
+  return Option.some(out)
 })
 
 /**
@@ -3736,14 +3739,15 @@ export const max: {
 
 /**
  * Builds an array by repeatedly applying a function to a seed value. The
- * function returns `[element, nextSeed]` to continue, or `undefined` to stop.
+ * function returns `Option.some([element, nextSeed])` to continue, or
+ * `Option.none()` to stop.
  *
  * **Example** (Generating a sequence)
  *
  * ```ts
- * import { Array } from "effect"
+ * import { Array, Option } from "effect"
  *
- * console.log(Array.unfold(1, (n) => n <= 5 ? [n, n + 1] : undefined))
+ * console.log(Array.unfold(1, (n) => n <= 5 ? Option.some([n, n + 1]) : Option.none()))
  * // [1, 2, 3, 4, 5]
  * ```
  *
@@ -3753,12 +3757,15 @@ export const max: {
  * @category constructors
  * @since 2.0.0
  */
-export const unfold = <B, A>(b: B, f: (b: B) => readonly [A, B] | undefined): Array<A> => {
+export const unfold = <B, A>(b: B, f: (b: B) => Option.Option<readonly [A, B]>): Array<A> => {
   const out: Array<A> = []
   let next: B = b
-  let o: readonly [A, B] | undefined
-  while ((o = f(next))) {
-    const [a, b] = o
+  while (true) {
+    const o = f(next)
+    if (Option.isNone(o)) {
+      break
+    }
+    const [a, b] = o.value
     out.push(a)
     next = b
   }

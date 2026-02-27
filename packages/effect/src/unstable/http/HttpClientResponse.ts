@@ -4,6 +4,7 @@
 import * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"
 import * as Inspectable from "../../Inspectable.ts"
+import * as Option from "../../Option.ts"
 import * as Schema from "../../Schema.ts"
 import type { ParseOptions } from "../../SchemaAST.ts"
 import * as Stream from "../../Stream.ts"
@@ -255,8 +256,8 @@ class WebHttpClientResponse extends Inspectable.Class implements HttpClientRespo
     return this.cachedCookies = Cookies.fromSetCookie(this.source.headers.getSetCookie())
   }
 
-  get remoteAddress(): string | undefined {
-    return undefined
+  get remoteAddress(): Option.Option<string> {
+    return Option.none()
   }
 
   get stream(): Stream.Stream<Uint8Array, Error.HttpClientError> {

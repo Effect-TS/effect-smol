@@ -339,10 +339,10 @@ export interface ParsedTokens {
   readonly flags: Record<string, ReadonlyArray<string>>
   readonly arguments: ReadonlyArray<string>
   readonly errors?: ReadonlyArray<CliError.CliError>
-  readonly subcommand?: {
+  readonly subcommand: Option.Option<{
     readonly name: string
     readonly parsedInput: ParsedTokens
-  }
+  }>
 }
 
 /**
@@ -619,16 +619,16 @@ export const withSubcommands: {
   const parse = Effect.fnUntraced(function*(raw: ParsedTokens) {
     const parent = yield* impl.parse(raw)
 
-    if (!raw.subcommand) {
+    if (Option.isNone(raw.subcommand)) {
       return parent
     }
 
-    const sub = byName.get(raw.subcommand.name)
+    const sub = byName.get(raw.subcommand.value.name)
     if (!sub) {
       return parent
     }
 
-    const result = yield* sub.parse(raw.subcommand.parsedInput)
+    const result = yield* sub.parse(raw.subcommand.value.parsedInput)
     // Attach subcommand info internally for routing
     return Object.assign({}, parent, { _subcommand: { name: sub.name, result } }) as InternalInput
   })

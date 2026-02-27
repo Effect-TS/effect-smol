@@ -5,6 +5,7 @@ import * as Arr from "../../Array.ts"
 import * as Effect from "../../Effect.ts"
 import { compose, dual, identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
+import * as Option from "../../Option.ts"
 import type { ReadonlyRecord } from "../../Record.ts"
 import * as Schema from "../../Schema.ts"
 import type { ParseOptions } from "../../SchemaAST.ts"
@@ -12,7 +13,6 @@ import * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Tracer from "../../Tracer.ts"
 import type * as Types from "../../Types.ts"
-import * as UndefinedOr from "../../UndefinedOr.ts"
 import * as FindMyWay from "./FindMyWay.ts"
 import * as HttpEffect from "./HttpEffect.ts"
 import type * as HttpMethod from "./HttpMethod.ts"
@@ -177,8 +177,8 @@ export const make = Effect.gen(function*() {
           )
         }
         const route = result.handler
-        if (route.prefix !== undefined) {
-          contextMap.set(HttpServerRequest.HttpServerRequest.key, sliceRequestUrl(request, route.prefix))
+        if (Option.isSome(route.prefix)) {
+          contextMap.set(HttpServerRequest.HttpServerRequest.key, sliceRequestUrl(request, route.prefix.value))
         }
         contextMap.set(HttpServerRequest.ParsedSearchParams.key, result.searchParams)
         contextMap.set(RouteContext.key, {
@@ -501,7 +501,7 @@ export interface Route<E = never, R = never> {
   readonly path: PathInput
   readonly handler: Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>
   readonly uninterruptible: boolean
-  readonly prefix: string | undefined
+  readonly prefix: Option.Option<string>
 }
 
 /**
@@ -527,12 +527,12 @@ const makeRoute = <E, R>(options: {
   readonly path: PathInput
   readonly handler: Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>
   readonly uninterruptible?: boolean | undefined
-  readonly prefix?: string | undefined
+  readonly prefix?: Option.Option<string> | string | undefined
 }): Route<E, Exclude<R, Provided>> =>
   ({
     ...options,
     uninterruptible: options.uninterruptible ?? false,
-    prefix: options.prefix,
+    prefix: typeof options.prefix === "string" ? Option.some(options.prefix) : options.prefix ?? Option.none(),
     [RouteTypeId]: RouteTypeId
   }) as Route<E, Exclude<R, Provided>>
 
@@ -598,9 +598,9 @@ export const prefixRoute: {
   makeRoute({
     ...self,
     path: prefixPath(self.path, prefix) as PathInput,
-    prefix: UndefinedOr.match(self.prefix, {
-      onUndefined: () => prefix as string,
-      onDefined: (existingPrefix) => prefixPath(existingPrefix, prefix) as string
+    prefix: Option.match(self.prefix, {
+      onNone: () => prefix as string,
+      onSome: (existingPrefix) => prefixPath(existingPrefix, prefix) as string
     })
   }))
 

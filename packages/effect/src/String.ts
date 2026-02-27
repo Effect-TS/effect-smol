@@ -10,6 +10,7 @@ import * as Equ from "./Equivalence.ts"
 import { dual } from "./Function.ts"
 import * as readonlyArray from "./internal/array.ts"
 import * as number from "./Number.ts"
+import * as Option from "./Option.ts"
 import * as order from "./Order.ts"
 import type * as Ordering from "./Ordering.ts"
 import type { Refinement } from "./Predicate.ts"
@@ -468,29 +469,27 @@ export const endsWith = (searchString: string, position?: number) => (self: stri
   self.endsWith(searchString, position)
 
 /**
- * Returns the character code at the specified index, or `undefined` if the index is out of bounds.
+ * Returns the character code at the specified index, or `None` if the index is out of bounds.
  *
  * **Example**
  *
  * ```ts
  * import { String } from "effect"
  *
- * String.charCodeAt("abc", 1) // 98
- * String.charCodeAt("abc", 4) // undefined
+ * String.charCodeAt("abc", 1) // Option.some(98)
+ * String.charCodeAt("abc", 4) // Option.none()
  * ```
  *
  * @category elements
  * @since 2.0.0
  */
 export const charCodeAt: {
-  (index: number): (self: string) => number | undefined
-  (self: string, index: number): number | undefined
+  (index: number): (self: string) => Option.Option<number>
+  (self: string, index: number): Option.Option<number>
 } = dual(
   2,
-  (self: string, index: number): number | undefined => {
-    const out = self.charCodeAt(index)
-    return isNaN(out) ? undefined : out
-  }
+  (self: string, index: number): Option.Option<number> =>
+    Option.filter(Option.some(self.charCodeAt(index)), (charCode) => !isNaN(charCode))
 )
 
 /**
@@ -511,23 +510,24 @@ export const charCodeAt: {
 export const substring = (start: number, end?: number) => (self: string): string => self.substring(start, end)
 
 /**
- * A `pipe`-able version of the native `charAt` method.
+ * Returns the character at the specified index, or `None` if the index is out of bounds.
  *
  * **Example**
  *
  * ```ts
  * import { pipe, String } from "effect"
  *
- * pipe("abc", String.at(1)) // "b"
- * pipe("abc", String.at(4)) // undefined
+ * pipe("abc", String.at(1)) // Option.some("b")
+ * pipe("abc", String.at(4)) // Option.none()
  * ```
  *
  * @category elements
  * @since 2.0.0
  */
-export const at = (index: number) => (self: string): string | undefined => {
-  return self.charAt(index)
-}
+export const at: {
+  (index: number): (self: string) => Option.Option<string>
+  (self: string, index: number): Option.Option<string>
+} = dual(2, (self: string, index: number): Option.Option<string> => Option.fromUndefinedOr(self.at(index)))
 
 /**
  * Returns the character at the specified index, or `None` if the index is out of bounds.
@@ -537,42 +537,40 @@ export const at = (index: number) => (self: string): string | undefined => {
  * ```ts
  * import { pipe, String } from "effect"
  *
- * pipe("abc", String.charAt(1)) // "b"
- * pipe("abc", String.charAt(4)) // undefined
+ * pipe("abc", String.charAt(1)) // Option.some("b")
+ * pipe("abc", String.charAt(4)) // Option.none()
  * ```
  *
  * @category elements
  * @since 2.0.0
  */
 export const charAt: {
-  (index: number): (self: string) => string | undefined
-  (self: string, index: number): string | undefined
+  (index: number): (self: string) => Option.Option<string>
+  (self: string, index: number): Option.Option<string>
 } = dual(
   2,
-  (self: string, index: number): string | undefined => {
-    const out = self.charAt(index)
-    return isNonEmpty(out) ? out : undefined
-  }
+  (self: string, index: number): Option.Option<string> => Option.filter(Option.some(self.charAt(index)), isNonEmpty)
 )
 
 /**
- * A `pipe`-able version of the native `codePointAt` method.
+ * Returns the Unicode code point at the specified index, or `None` if the index is out of bounds.
  *
  * **Example**
  *
  * ```ts
  * import { pipe, String } from "effect"
  *
- * pipe("abc", String.codePointAt(1)) // 98
- * pipe("abc", String.codePointAt(10)) // undefined
+ * pipe("abc", String.codePointAt(1)) // Option.some(98)
+ * pipe("abc", String.codePointAt(10)) // Option.none()
  * ```
  *
  * @category elements
  * @since 2.0.0
  */
-export const codePointAt = (index: number) => (self: string): number | undefined => {
-  return self.codePointAt(index)
-}
+export const codePointAt: {
+  (index: number): (self: string) => Option.Option<number>
+  (self: string, index: number): Option.Option<number>
+} = dual(2, (self: string, index: number): Option.Option<number> => Option.fromUndefinedOr(self.codePointAt(index)))
 
 /**
  * Returns the index of the first occurrence of a substring, or `None` if not found.
@@ -582,17 +580,15 @@ export const codePointAt = (index: number) => (self: string): number | undefined
  * ```ts
  * import { pipe, String } from "effect"
  *
- * pipe("abbbc", String.indexOf("b")) // 1
- * pipe("abbbc", String.indexOf("z")) // undefined
+ * pipe("abbbc", String.indexOf("b")) // Option.some(1)
+ * pipe("abbbc", String.indexOf("z")) // Option.none()
  * ```
  *
  * @category searching
  * @since 2.0.0
  */
-export const indexOf = (searchString: string) => (self: string): number | undefined => {
-  const out = self.indexOf(searchString)
-  return out >= 0 ? out : undefined
-}
+export const indexOf = (searchString: string) => (self: string): Option.Option<number> =>
+  Option.filter(Option.some(self.indexOf(searchString)), number.isGreaterThanOrEqualTo(0))
 
 /**
  * Returns the index of the last occurrence of a substring, or `None` if not found.
@@ -602,17 +598,15 @@ export const indexOf = (searchString: string) => (self: string): number | undefi
  * ```ts
  * import { pipe, String } from "effect"
  *
- * pipe("abbbc", String.lastIndexOf("b")) // 3
- * pipe("abbbc", String.lastIndexOf("d")) // undefined
+ * pipe("abbbc", String.lastIndexOf("b")) // Option.some(3)
+ * pipe("abbbc", String.lastIndexOf("d")) // Option.none()
  * ```
  *
  * @category searching
  * @since 2.0.0
  */
-export const lastIndexOf = (searchString: string) => (self: string): number | undefined => {
-  const out = self.lastIndexOf(searchString)
-  return out >= 0 ? out : undefined
-}
+export const lastIndexOf = (searchString: string) => (self: string): Option.Option<number> =>
+  Option.filter(Option.some(self.lastIndexOf(searchString)), number.isGreaterThanOrEqualTo(0))
 
 /**
  * Compares two strings according to the current locale.
@@ -642,14 +636,15 @@ export const localeCompare =
  * ```ts
  * import { pipe, String } from "effect"
  *
- * pipe("hello", String.match(/l+/)) // ["ll"]
- * pipe("hello", String.match(/x/)) // null
+ * pipe("hello", String.match(/l+/)) // Option.some(["ll"])
+ * pipe("hello", String.match(/x/)) // Option.none()
  * ```
  *
  * @category searching
  * @since 2.0.0
  */
-export const match = (regExp: RegExp | string) => (self: string): RegExpMatchArray | null => self.match(regExp)
+export const match = (regExp: RegExp | string) => (self: string): Option.Option<RegExpMatchArray> =>
+  Option.fromNullOr(self.match(regExp))
 
 /**
  * It is the `pipe`-able version of the native `matchAll` method.
@@ -770,23 +765,21 @@ export const replaceAll = (searchValue: string | RegExp, replaceValue: string) =
  * ```ts
  * import { String } from "effect"
  *
- * String.search("ababb", "b") // 1
- * String.search("ababb", "/abb/") // 2
- * String.search("ababb", "d") // undefined
+ * String.search("ababb", "b") // Option.some(1)
+ * String.search("ababb", /abb/) // Option.some(2)
+ * String.search("ababb", "d") // Option.none()
  * ```
  *
  * @category searching
  * @since 2.0.0
  */
 export const search: {
-  (regExp: RegExp | string): (self: string) => number | undefined
-  (self: string, regExp: RegExp | string): number | undefined
+  (regExp: RegExp | string): (self: string) => Option.Option<number>
+  (self: string, regExp: RegExp | string): Option.Option<number>
 } = dual(
   2,
-  (self: string, regExp: RegExp | string): number | undefined => {
-    const out = self.search(regExp)
-    return out >= 0 ? out : undefined
-  }
+  (self: string, regExp: RegExp | string): Option.Option<number> =>
+    Option.filter(Option.some(self.search(regExp)), number.isGreaterThanOrEqualTo(0))
 )
 
 /**

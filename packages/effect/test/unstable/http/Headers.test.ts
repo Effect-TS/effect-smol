@@ -1,5 +1,5 @@
 import { describe, it } from "@effect/vitest"
-import { deepStrictEqual, doesNotThrow, strictEqual } from "@effect/vitest/utils"
+import { assertNone, assertSome, deepStrictEqual, doesNotThrow, strictEqual } from "@effect/vitest/utils"
 import { Schema } from "effect"
 import { Headers } from "effect/unstable/http"
 import { assertSuccess } from "../../utils/assert.ts"
@@ -45,5 +45,11 @@ describe("Headers", () => {
     })
 
     strictEqual(nativeHeaders.get("foo"), "bar")
+  })
+
+  it("get returns Option", () => {
+    const headers = Headers.fromInput({ foo: "bar" })
+    assertSome(Headers.get(headers, "foo"), "bar")
+    assertNone(Headers.get(headers, "missing"))
   })
 })

@@ -18,3 +18,4 @@ This directory contains specifications for all major features and enhancements i
 - [httpapi-client-middleware.md](httpapi-client-middleware.md) - Add client-side middleware support to HttpApi, mirroring Rpc's `RpcMiddleware.layerClient` pattern.
 - [ai-docs-comprehensive.md](ai-docs-comprehensive.md) - Comprehensive AI documentation covering 22 topics: running effects, streams, integration, HTTP servers, RPC, AI modules, cluster, workflows, observability, caching, scheduling, batching, testing, and more.
 - [filter-separate-apis.md](filter-separate-apis.md) - Reverse overloaded Filter consolidation: separate predicate/Filter APIs, convert Option-based filterMap to Filter.
+- [revert-option-unboxing.md](revert-option-unboxing.md) - Revert APIs from `A | undefined` back to `Option<A>` across effect, cluster, cli, and platform packages.

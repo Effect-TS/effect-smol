@@ -4,6 +4,7 @@
 import * as Effect from "../../Effect.ts"
 import type * as FileSystem from "../../FileSystem.ts"
 import type * as Inspectable from "../../Inspectable.ts"
+import type * as Option from "../../Option.ts"
 import { hasProperty } from "../../Predicate.ts"
 import { redact } from "../../Redactable.ts"
 import * as Schema from "../../Schema.ts"
@@ -32,7 +33,7 @@ export const isHttpIncomingMessage = (u: unknown): u is HttpIncomingMessage => h
 export interface HttpIncomingMessage<E = unknown> extends Inspectable.Inspectable {
   readonly [TypeId]: typeof TypeId
   readonly headers: Headers.Headers
-  readonly remoteAddress: string | undefined
+  readonly remoteAddress: Option.Option<string>
   readonly json: Effect.Effect<unknown, E>
   readonly text: Effect.Effect<string, E>
   readonly urlParamsBody: Effect.Effect<UrlParams.UrlParams, E>

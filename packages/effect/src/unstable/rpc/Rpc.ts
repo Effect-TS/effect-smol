@@ -4,6 +4,7 @@
 import type * as Cause from "../../Cause.ts"
 import type { Effect } from "../../Effect.ts"
 import type { Exit as Exit_ } from "../../Exit.ts"
+import * as Option from "../../Option.ts"
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as PrimaryKey from "../../PrimaryKey.ts"
@@ -782,14 +783,14 @@ export const exitSchema = <R extends Any>(
   const rpc = self as any as AnyWithProps
   const failures = new Set<Schema.Top>([rpc.errorSchema])
   const streamSchemas = RpcSchema.getStreamSchemas(rpc.successSchema)
-  if (streamSchemas) {
-    failures.add(streamSchemas.error)
+  if (Option.isSome(streamSchemas)) {
+    failures.add(streamSchemas.value.error)
   }
   for (const middleware of rpc.middlewares) {
     failures.add(middleware.error)
   }
   const schema = Schema.Exit(
-    streamSchemas ? Schema.Void : rpc.successSchema,
+    Option.isSome(streamSchemas) ? Schema.Void : rpc.successSchema,
     Schema.Union([...failures]),
     rpc.defectSchema
   )

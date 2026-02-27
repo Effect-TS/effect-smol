@@ -10,6 +10,7 @@ import type { Inspectable } from "./Inspectable.ts"
 import * as Internal from "./internal/dateTime.ts"
 import { provideService } from "./internal/effect.ts"
 import * as Layer from "./Layer.ts"
+import type * as Option from "./Option.ts"
 import type * as order from "./Order.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import * as ServiceMap from "./ServiceMap.ts"
@@ -560,7 +561,7 @@ export const makeZoned: (
     readonly adjustForTimeZone?: boolean | undefined
     readonly disambiguation?: Disambiguation | undefined
   }
-) => Zoned | undefined = Internal.makeZoned
+) => Option.Option<Zoned> = Internal.makeZoned
 
 /**
  * Create a `DateTime` from one of the following:
@@ -589,7 +590,7 @@ export const makeZoned: (
  * DateTime.make("2024-01-01")
  * ```
  */
-export const make: <A extends DateTime.Input>(input: A) => DateTime.PreserveZone<A> | undefined = Internal.make
+export const make: <A extends DateTime.Input>(input: A) => Option.Option<DateTime.PreserveZone<A>> = Internal.make
 
 /**
  * Create a `DateTime.Zoned` from a string.
@@ -603,19 +604,19 @@ export const make: <A extends DateTime.Input>(input: A) => DateTime.PreserveZone
  * const result1 = DateTime.makeZonedFromString(
  *   "2024-01-01T12:00:00+02:00[Europe/Berlin]"
  * )
- * console.log(result1 !== undefined) // true
+ * console.log(result1._tag === "Some") // true
  *
  * const result2 = DateTime.makeZonedFromString("2024-01-01T12:00:00Z")
- * console.log(result2 !== undefined) // true
+ * console.log(result2._tag === "Some") // true
  *
  * const invalid = DateTime.makeZonedFromString("invalid")
- * console.log(invalid === undefined) // true
+ * console.log(invalid._tag === "None") // true
  * ```
  *
  * @since 3.6.0
  * @category constructors
  */
-export const makeZonedFromString: (input: string) => Zoned | undefined = Internal.makeZonedFromString
+export const makeZonedFromString: (input: string) => Option.Option<Zoned> = Internal.makeZonedFromString
 
 /**
  * Get the current time using the `Clock` service and convert it to a `DateTime`.
@@ -807,16 +808,16 @@ export const zoneMakeOffset: (offset: number) => TimeZone.Offset = Internal.zone
  * import { DateTime } from "effect"
  *
  * const validZone = DateTime.zoneMakeNamed("Europe/London")
- * console.log(validZone !== undefined) // true
+ * console.log(validZone._tag === "Some") // true
  *
  * const invalidZone = DateTime.zoneMakeNamed("Invalid/Zone")
- * console.log(invalidZone === undefined) // true
+ * console.log(invalidZone._tag === "None") // true
  * ```
  *
  * @category time zones
  * @since 3.6.0
  */
-export const zoneMakeNamed: (zoneId: string) => TimeZone.Named | undefined = Internal.zoneMakeNamed
+export const zoneMakeNamed: (zoneId: string) => Option.Option<TimeZone.Named> = Internal.zoneMakeNamed
 
 /**
  * Create a named time zone from a IANA time zone identifier.
@@ -875,15 +876,15 @@ export const zoneMakeLocal: () => TimeZone.Named = Internal.zoneMakeLocal
  * const offsetZone = DateTime.zoneFromString("+03:00")
  * const invalid = DateTime.zoneFromString("invalid")
  *
- * console.log(namedZone !== undefined) // true
- * console.log(offsetZone !== undefined) // true
- * console.log(invalid === undefined) // true
+ * console.log(namedZone._tag === "Some") // true
+ * console.log(offsetZone._tag === "Some") // true
+ * console.log(invalid._tag === "None") // true
  * ```
  *
  * @category time zones
  * @since 3.6.0
  */
-export const zoneFromString: (zone: string) => TimeZone | undefined = Internal.zoneFromString
+export const zoneFromString: (zone: string) => Option.Option<TimeZone> = Internal.zoneFromString
 
 /**
  * Format a `TimeZone` as a string.
@@ -924,11 +925,11 @@ export const setZoneNamed: {
   (zoneId: string, options?: {
     readonly adjustForTimeZone?: boolean | undefined
     readonly disambiguation?: Disambiguation | undefined
-  }): (self: DateTime) => Zoned | undefined
+  }): (self: DateTime) => Option.Option<Zoned>
   (self: DateTime, zoneId: string, options?: {
     readonly adjustForTimeZone?: boolean | undefined
     readonly disambiguation?: Disambiguation | undefined
-  }): Zoned | undefined
+  }): Option.Option<Zoned>
 } = Internal.setZoneNamed
 
 /**

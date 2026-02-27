@@ -8,6 +8,7 @@ import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
 import * as Latch from "../../Latch.ts"
 import * as Layer from "../../Layer.ts"
+import * as Option from "../../Option.ts"
 import * as PrimaryKey from "../../PrimaryKey.ts"
 import * as RcMap from "../../RcMap.ts"
 import type * as Record from "../../Record.ts"
@@ -150,8 +151,9 @@ export const make = Effect.gen(function*() {
     const replies = yield* storage.repliesForUnfiltered([requestId])
     const last = replies[replies.length - 1]
     if (last && last._tag === "WithExit") {
-      return last as WithExitEncoded<Workflow.ResultEncoded<any, any>>
+      return Option.some(last as WithExitEncoded<Workflow.ResultEncoded<any, any>>)
     }
+    return Option.none<WithExitEncoded<Workflow.ResultEncoded<any, any>>>()
   })
 
   const requestReply = Effect.fnUntraced(function*(options: {
@@ -162,10 +164,10 @@ export const make = Effect.gen(function*() {
     readonly id: string
   }) {
     const requestId = yield* requestIdFor(options)
-    if (requestId === undefined) {
-      return undefined
+    if (Option.isNone(requestId)) {
+      return Option.none<WithExitEncoded<Workflow.ResultEncoded<any, any>>>()
     }
-    return yield* replyForRequestId(requestId)
+    return yield* replyForRequestId(requestId.value)
   })
 
   const resetActivityAttempt = Effect.fnUntraced(
@@ -182,8 +184,8 @@ export const make = Effect.gen(function*() {
         tag: "activity",
         id: activityPrimaryKey(options.activity.name, options.attempt)
       })
-      if (requestId === undefined) return
-      yield* sharding.reset(requestId)
+      if (Option.isNone(requestId)) return
+      yield* sharding.reset(requestId.value)
     },
     Effect.retry({
       times: 3,
@@ -218,13 +220,13 @@ export const make = Effect.gen(function*() {
       id: ""
     })
 
-    const maybeSuspended =
-      maybeReply && maybeReply.exit._tag === "Success" && maybeReply.exit.value._tag === "Suspended"
-        ? maybeReply
-        : undefined
+    const maybeSuspended = Option.filter(
+      maybeReply,
+      (reply) => reply.exit._tag === "Success" && reply.exit.value._tag === "Suspended"
+    )
 
-    if (maybeSuspended === undefined) return
-    yield* sharding.reset(Snowflake.Snowflake(maybeSuspended.requestId))
+    if (Option.isNone(maybeSuspended)) return
+    yield* sharding.reset(Snowflake.Snowflake(maybeSuspended.value.requestId))
     yield* sharding.pollStorage
   })
 
@@ -239,13 +241,13 @@ export const make = Effect.gen(function*() {
       tag: "resume",
       id: ""
     })
-    if (requestId === undefined) {
+    if (Option.isNone(requestId)) {
       const client = (yield* RcMap.get(clientsPartial, options.workflowName))(options.executionId)
       return yield* client.resume({} as any, { discard: true })
     }
-    const reply = yield* replyForRequestId(requestId)
-    if (reply === undefined) return
-    yield* sharding.reset(requestId)
+    const reply = yield* replyForRequestId(requestId.value)
+    if (Option.isNone(reply)) return
+    yield* sharding.reset(requestId.value)
   }, Effect.scoped)
 
   const engine = WorkflowEngine.makeUnsafe({
@@ -272,7 +274,7 @@ export const make = Effect.gen(function*() {
                     }
                     return engine.deferredResult(InterruptSignal).pipe(
                       Effect.flatMap((maybeExit) => {
-                        if (maybeExit === undefined) {
+                        if (Option.isNone(maybeExit)) {
                           return Effect.void
                         }
                         instance.suspended = false
@@ -373,12 +375,12 @@ export const make = Effect.gen(function*() {
         tag: "run",
         id: ""
       })
-      if (!reply) return undefined
-      const exit = yield* (Schema.decodeEffect(exitSchema)(reply.exit) as Effect.Effect<
+      if (Option.isNone(reply)) return Option.none()
+      const exit = yield* (Schema.decodeEffect(exitSchema)(reply.value.exit) as Effect.Effect<
         Exit.Exit<any, any>,
         Schema.SchemaError
       >)
-      return yield* exit
+      return Option.some(yield* exit)
     }, Effect.orDie),
 
     interrupt: Effect.fnUntraced(
@@ -392,10 +394,11 @@ export const make = Effect.gen(function*() {
           id: ""
         })
 
-        const nonSuspendedReply = reply && (reply.exit._tag !== "Success" || reply.exit.value._tag !== "Suspended")
-          ? reply
-          : undefined
-        if (nonSuspendedReply !== undefined) {
+        const nonSuspendedReply = Option.filter(
+          reply,
+          (reply) => reply.exit._tag !== "Success" || reply.exit.value._tag !== "Suspended"
+        )
+        if (Option.isSome(nonSuspendedReply)) {
           return
         }
 
@@ -463,13 +466,15 @@ export const make = Effect.gen(function*() {
           })
         ),
         Effect.map((reply) => {
-          if (reply === undefined) {
-            return undefined
+          if (Option.isNone(reply)) {
+            return Option.none<Exit.Exit<unknown, unknown>>()
           }
-          const decoded = decodeDeferredWithExit(reply as any)
-          return decoded.exit._tag === "Success"
-            ? decoded.exit.value
-            : decoded.exit
+          const decoded = decodeDeferredWithExit(reply.value as any)
+          return Option.some(
+            decoded.exit._tag === "Success"
+              ? decoded.exit.value
+              : decoded.exit
+          )
         }),
         Effect.retry({
           while: (e) => e._tag === "PersistenceError",

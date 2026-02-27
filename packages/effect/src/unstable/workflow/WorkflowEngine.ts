@@ -98,7 +98,7 @@ export class WorkflowEngine extends ServiceMap.Service<
       workflow: Workflow.Workflow<Name, Payload, Success, Error>,
       executionId: string
     ) => Effect.Effect<
-      Workflow.Result<Success["Type"], Error["Type"]> | undefined,
+      Option.Option<Workflow.Result<Success["Type"], Error["Type"]>>,
       never,
       Success["DecodingServices"] | Error["DecodingServices"]
     >
@@ -147,7 +147,7 @@ export class WorkflowEngine extends ServiceMap.Service<
     >(
       deferred: DurableDeferred.DurableDeferred<Success, Error>
     ) => Effect.Effect<
-      Exit.Exit<Success["Type"], Error["Type"]> | undefined,
+      Option.Option<Exit.Exit<Success["Type"], Error["Type"]>>,
       never,
       WorkflowInstance
     >
@@ -277,7 +277,7 @@ export interface Encoded {
   readonly poll: (
     workflow: Workflow.Any,
     executionId: string
-  ) => Effect.Effect<Workflow.Result<unknown, unknown> | undefined>
+  ) => Effect.Effect<Option.Option<Workflow.Result<unknown, unknown>>>
   readonly interrupt: (
     workflow: Workflow.Any,
     executionId: string
@@ -297,7 +297,7 @@ export interface Encoded {
   readonly deferredResult: (
     deferred: DurableDeferred.Any
   ) => Effect.Effect<
-    Exit.Exit<unknown, unknown> | undefined,
+    Option.Option<Exit.Exit<unknown, unknown>>,
     never,
     WorkflowInstance
   >
@@ -354,14 +354,14 @@ export const makeUnsafe = (options: Encoded): WorkflowEngine["Service"] =>
       const executionId = opts.executionId
       const suspendedRetrySchedule = opts.suspendedRetrySchedule ?? defaultRetrySchedule
       yield* Effect.annotateCurrentSpan({ executionId })
-      let result: Workflow.Result<Success["Type"], Error["Type"]> | undefined
+      let result = Option.none<Workflow.Result<Success["Type"], Error["Type"]>>()
 
       // link interruption with parent workflow
       const parentInstance = yield* Effect.serviceOption(WorkflowInstance)
       if (Option.isSome(parentInstance)) {
         const instance = parentInstance.value
         yield* Effect.addFinalizer(() => {
-          if (!instance.interrupted || result?._tag === "Complete") {
+          if (!instance.interrupted || (Option.isSome(result) && result.value._tag === "Complete")) {
             return Effect.void
           }
           return options.interrupt(self, executionId)
@@ -384,21 +384,23 @@ export const makeUnsafe = (options: Encoded): WorkflowEngine["Service"] =>
         parent: Option.getOrUndefined(parentInstance)
       })
       if (Option.isSome(parentInstance)) {
-        result = yield* Workflow.wrapActivityResult(
+        const wrapped = yield* Workflow.wrapActivityResult(
           run,
           (result) => result._tag === "Suspended"
         )
-        if (result._tag === "Suspended") {
+        result = Option.some(wrapped)
+        if (wrapped._tag === "Suspended") {
           return yield* Workflow.suspend(parentInstance.value)
         }
-        return yield* result.exit
+        return yield* wrapped.exit
       }
 
       let sleep: Effect.Effect<any> | undefined
       while (true) {
-        result = yield* run
-        if (result._tag === "Complete") {
-          return yield* result.exit as Exit.Exit<any>
+        const wrapped = yield* run
+        result = Option.some(wrapped)
+        if (wrapped._tag === "Complete") {
+          return yield* wrapped.exit as Exit.Exit<any>
         }
         sleep ??= (yield* Schedule.toStepWithSleep(suspendedRetrySchedule))(
           void 0
@@ -438,12 +440,14 @@ export const makeUnsafe = (options: Encoded): WorkflowEngine["Service"] =>
           executionId: instance.executionId
         })
         const exit = yield* options.deferredResult(deferred)
-        if (exit === undefined) {
-          return exit
+        if (Option.isNone(exit)) {
+          return Option.none()
         }
-        return yield* Effect.orDie(
-          Schema.decodeEffect(deferred.exitSchema)(toJsonExit(exit))
-        ) as Effect.Effect<Exit.Exit<Success["Type"], Error["Type"]>>
+        return Option.some(
+          yield* Effect.orDie(
+            Schema.decodeEffect(deferred.exitSchema)(toJsonExit(exit.value))
+          ) as Effect.Effect<Exit.Exit<Success["Type"], Error["Type"]>>
+        )
       },
       Effect.withSpan(
         "WorkflowEngine.deferredResult",
@@ -642,15 +646,20 @@ export const layer: Layer.Layer<WorkflowEngine> = Layer.effect(WorkflowEngine)(
         Effect.suspend(() => {
           const state = executions.get(executionId)
           if (!state) {
-            return Effect.succeed(undefined)
+            return Effect.succeedNone
           }
           const exit = state.fiber?.pollUnsafe()
-          return exit ?? Effect.succeed(undefined)
+          if (!exit) {
+            return Effect.succeedNone
+          }
+          return exit._tag === "Success"
+            ? Effect.succeedSome(exit.value)
+            : Effect.die(exit.cause)
         }),
       deferredResult: Effect.fnUntraced(function*(deferred) {
         const instance = yield* WorkflowInstance
         const id = `${instance.executionId}/${deferred.name}`
-        return deferredResults.get(id)
+        return Option.fromNullishOr(deferredResults.get(id))
       }),
       deferredDone: (options) =>
         Effect.suspend(() => {

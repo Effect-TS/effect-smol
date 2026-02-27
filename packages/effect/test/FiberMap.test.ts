@@ -1,6 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
 import { assertFalse, assertTrue, strictEqual } from "@effect/vitest/utils"
-import { Array, Deferred, Effect, Exit, Fiber, FiberMap, pipe, Ref, Scope } from "effect"
+import { Array, Deferred, Effect, Exit, Fiber, FiberMap, Option, pipe, Ref, Scope } from "effect"
 import { TestClock } from "effect/testing"
 
 describe("FiberMap", () => {
@@ -49,6 +49,30 @@ describe("FiberMap", () => {
       )
 
       strictEqual(yield* (Ref.get(ref)), 10)
+    }))
+
+  it.effect("get and getUnsafe", () =>
+    Effect.gen(function*() {
+      const map = yield* FiberMap.make<string, string>()
+
+      assert.deepStrictEqual(FiberMap.getUnsafe(map, "a"), Option.none())
+      assert.deepStrictEqual(yield* FiberMap.get(map, "a"), Option.none())
+
+      const fiber = yield* FiberMap.run(map, "a", Effect.never)
+
+      const unsafeFiber = FiberMap.getUnsafe(map, "a")
+      if (Option.isNone(unsafeFiber)) {
+        assert.fail("expected Option.some from getUnsafe")
+        return
+      }
+      strictEqual(unsafeFiber.value, fiber)
+
+      const safeFiber = yield* FiberMap.get(map, "a")
+      if (Option.isNone(safeFiber)) {
+        assert.fail("expected Option.some from get")
+        return
+      }
+      strictEqual(safeFiber.value, fiber)
     }))
 
   it.effect("join", () =>

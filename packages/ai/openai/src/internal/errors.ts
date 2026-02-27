@@ -161,12 +161,14 @@ export const parseRateLimitHeaders = (headers: Record<string, string>) => {
   let retryAfter: Duration.Duration | undefined
   if (Predicate.isNotUndefined(retryAfterRaw)) {
     const parsed = Number.parse(retryAfterRaw)
-    if (Predicate.isNotUndefined(parsed)) {
-      retryAfter = Duration.seconds(parsed)
+    if (Option.isSome(parsed)) {
+      retryAfter = Duration.seconds(parsed.value)
     }
   }
   const remainingRaw = headers["x-ratelimit-remaining-requests"]
-  const remaining = Predicate.isNotUndefined(remainingRaw) ? Number.parse(remainingRaw) ?? null : null
+  const remaining = Predicate.isNotUndefined(remainingRaw)
+    ? Option.getOrNull(Number.parse(remainingRaw))
+    : null
   return {
     retryAfter,
     limit: headers["x-ratelimit-limit-requests"] ?? null,
@@ -187,7 +189,7 @@ export const buildHttpRequestDetails = (
   method: request.method,
   url: request.url,
   urlParams: Array.from(request.urlParams),
-  hash: request.hash,
+  hash: Option.getOrUndefined(request.hash),
   headers: Redactable.redact(request.headers) as Record<string, string>
 })
 

@@ -1,5 +1,5 @@
 import { assert, describe, expect, it } from "@effect/vitest"
-import { Cause, DateTime, Duration, Effect, Exit, Fiber, Layer, Schema, ServiceMap } from "effect"
+import { Cause, DateTime, Duration, Effect, Exit, Fiber, Layer, Option, Schema, ServiceMap } from "effect"
 import { TestClock } from "effect/testing"
 import {
   ClusterWorkflowEngine,
@@ -80,7 +80,7 @@ describe.concurrent("ClusterWorkflowEngine", () => {
       expect(driver.requests.size).toEqual(10)
 
       // test poll
-      expect(yield* EmailWorkflow.poll(executionId)).toEqual(new Workflow.Complete({ exit: Exit.void }))
+      expect(yield* EmailWorkflow.poll(executionId)).toEqual(Option.some(new Workflow.Complete({ exit: Exit.void })))
     }).pipe(Effect.provide(TestWorkflowLayer)))
 
   it.effect("interrupt", () =>

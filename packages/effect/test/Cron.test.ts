@@ -1,6 +1,6 @@
 import { describe, it } from "@effect/vitest"
 import { assertFalse, assertTrue, deepStrictEqual, throws } from "@effect/vitest/utils"
-import { Cron, DateTime, Equal, Result } from "effect"
+import { Cron, DateTime, Equal, Option, Result } from "effect"
 
 const match = (input: Cron.Cron | string, date: DateTime.DateTime.Input) =>
   Cron.match(Cron.isCron(input) ? input : Cron.parseUnsafe(input), date)
@@ -10,13 +10,20 @@ const next = (input: Cron.Cron | string, after?: DateTime.DateTime.Input) =>
 
 describe("Cron", () => {
   it("isCronParseError", () => {
-    assertTrue(
-      Cron.isCronParseError(
-        new Cron.CronParseError({ message: "Invalid number of segments in cron expression", input: "" })
-      )
-    )
+    const result = Cron.parse("")
+    assertTrue(Result.isFailure(result))
+    assertTrue(Cron.isCronParseError(result.failure))
     assertFalse(Cron.isCronParseError(new Error("regular error")))
     assertFalse(Cron.isCronParseError("not an error"))
+  })
+
+  it("CronParseError constructor", () => {
+    const error = new Cron.CronParseError({ message: "boom", input: "0 0 * * *" })
+    assertTrue(error instanceof Error)
+    assertTrue(Cron.isCronParseError(error))
+    deepStrictEqual(error._tag, "CronParseError")
+    deepStrictEqual(error.message, "boom")
+    deepStrictEqual(error.input, "0 0 * * *")
   })
 
   it("parse", () => {
@@ -53,16 +60,39 @@ describe("Cron", () => {
         weekdays: []
       }))
     )
+
+    const withNamedTimeZone = Cron.parseUnsafe("23 0-20/2 * * *", "Europe/Berlin")
+    assertTrue(Option.isSome(withNamedTimeZone.tz))
+    deepStrictEqual(DateTime.zoneToString(withNamedTimeZone.tz.value), "Europe/Berlin")
+
+    const withOffsetTimeZone = Cron.parseUnsafe("23 0-20/2 * * *", "+02:00")
+    assertTrue(Option.isSome(withOffsetTimeZone.tz))
+    deepStrictEqual(DateTime.zoneToString(withOffsetTimeZone.tz.value), "+02:00")
+
+    const withoutTimeZone = Cron.parseUnsafe("23 0-20/2 * * *")
+    assertTrue(Option.isNone(withoutTimeZone.tz))
   })
 
   it("parseUnsafe", () => {
     throws(
       () => Cron.parseUnsafe(""),
-      new Cron.CronParseError({ message: "Invalid number of segments in cron expression", input: "" })
+      (error) => {
+        if (!Cron.isCronParseError(error)) {
+          throw new Error("Expected CronParseError")
+        }
+        deepStrictEqual(error.message, "Invalid number of segments in cron expression")
+        deepStrictEqual(error.input, "")
+      }
     )
     throws(
       () => Cron.parseUnsafe("0 0 4 8-14 * *", ""),
-      new Cron.CronParseError({ message: "Invalid time zone in cron expression", input: "" })
+      (error) => {
+        if (!Cron.isCronParseError(error)) {
+          throw new Error("Expected CronParseError")
+        }
+        deepStrictEqual(error.message, "Invalid time zone in cron expression")
+        deepStrictEqual(error.input, "")
+      }
     )
   })
 
@@ -167,7 +197,7 @@ describe("Cron", () => {
   })
 
   it("handles transition into daylight savings time", () => {
-    const make = (date: string) => DateTime.makeZonedFromString(date)
+    const make = (date: string): DateTime.Zoned => Option.getOrThrow(DateTime.makeZonedFromString(date))
     const sequence = Cron.sequence(
       Cron.parseUnsafe("30 * * * *", "Europe/Berlin"),
       make("2024-03-31T00:00:00.000+01:00[Europe/Berlin]")
@@ -179,10 +209,10 @@ describe("Cron", () => {
     const c = make("2024-03-31T03:30:00.000+02:00[Europe/Berlin]")
     const d = make("2024-03-31T04:30:00.000+02:00[Europe/Berlin]")
 
-    deepStrictEqual(next().pipe(DateTime.formatIsoZoned), a?.pipe(DateTime.formatIsoZoned))
-    deepStrictEqual(next().pipe(DateTime.formatIsoZoned), b?.pipe(DateTime.formatIsoZoned))
-    deepStrictEqual(next().pipe(DateTime.formatIsoZoned), c?.pipe(DateTime.formatIsoZoned))
-    deepStrictEqual(next().pipe(DateTime.formatIsoZoned), d?.pipe(DateTime.formatIsoZoned))
+    deepStrictEqual(next().pipe(DateTime.formatIsoZoned), a.pipe(DateTime.formatIsoZoned))
+    deepStrictEqual(next().pipe(DateTime.formatIsoZoned), b.pipe(DateTime.formatIsoZoned))
+    deepStrictEqual(next().pipe(DateTime.formatIsoZoned), c.pipe(DateTime.formatIsoZoned))
+    deepStrictEqual(next().pipe(DateTime.formatIsoZoned), d.pipe(DateTime.formatIsoZoned))
   })
 
   it("handles transition out of daylight savings time", () => {
@@ -196,7 +226,7 @@ describe("Cron", () => {
     // - Skip second occurrence of ambiguous times (02:30 +01:00)
     // - Continue normally after transition (03:30 +01:00)
 
-    const make = (date: string) => DateTime.makeZonedFromString(date)
+    const make = (date: string): DateTime.Zoned => Option.getOrThrow(DateTime.makeZonedFromString(date))
     const sequence = Cron.sequence(
       Cron.parseUnsafe("30 * * * *", "Europe/Berlin"),
       make("2024-10-27T00:00:00.000+02:00[Europe/Berlin]")
@@ -209,16 +239,16 @@ describe("Cron", () => {
     const d = make("2024-10-27T03:30:00.000+01:00[Europe/Berlin]") // Standard time (skips 2nd 02:30)
     const e = make("2024-10-27T04:30:00.000+01:00[Europe/Berlin]") // Standard time
 
-    deepStrictEqual(next().pipe(DateTime.formatIsoZoned), a?.pipe(DateTime.formatIsoZoned))
-    deepStrictEqual(next().pipe(DateTime.formatIsoZoned), b?.pipe(DateTime.formatIsoZoned))
-    deepStrictEqual(next().pipe(DateTime.formatIsoZoned), c?.pipe(DateTime.formatIsoZoned))
-    deepStrictEqual(next().pipe(DateTime.formatIsoZoned), d?.pipe(DateTime.formatIsoZoned))
-    deepStrictEqual(next().pipe(DateTime.formatIsoZoned), e?.pipe(DateTime.formatIsoZoned))
+    deepStrictEqual(next().pipe(DateTime.formatIsoZoned), a.pipe(DateTime.formatIsoZoned))
+    deepStrictEqual(next().pipe(DateTime.formatIsoZoned), b.pipe(DateTime.formatIsoZoned))
+    deepStrictEqual(next().pipe(DateTime.formatIsoZoned), c.pipe(DateTime.formatIsoZoned))
+    deepStrictEqual(next().pipe(DateTime.formatIsoZoned), d.pipe(DateTime.formatIsoZoned))
+    deepStrictEqual(next().pipe(DateTime.formatIsoZoned), e.pipe(DateTime.formatIsoZoned))
   })
 
   it("handles utc timezone", () => {
     const utc = DateTime.zoneMakeNamedUnsafe("UTC")
-    const make = (date: string) => DateTime.makeZonedFromString(date)
+    const make = (date: string): DateTime.Zoned => Option.getOrThrow(DateTime.makeZonedFromString(date))
     const sequence = Cron.sequence(Cron.parseUnsafe("30 * * * *", utc), make("2024-10-27T00:00:00.000+00:00[UTC]"))
     const next = (): DateTime.Zoned => DateTime.makeZonedUnsafe(sequence.next().value, { timeZone: utc })
 
@@ -227,9 +257,9 @@ describe("Cron", () => {
     const c = make("2024-10-27T02:30:00.000+00:00[UTC]")
     const d = make("2024-10-27T03:30:00.000+00:00[UTC]")
 
-    deepStrictEqual(next().pipe(DateTime.formatIsoZoned), a?.pipe(DateTime.formatIsoZoned))
-    deepStrictEqual(next().pipe(DateTime.formatIsoZoned), b?.pipe(DateTime.formatIsoZoned))
-    deepStrictEqual(next().pipe(DateTime.formatIsoZoned), c?.pipe(DateTime.formatIsoZoned))
-    deepStrictEqual(next().pipe(DateTime.formatIsoZoned), d?.pipe(DateTime.formatIsoZoned))
+    deepStrictEqual(next().pipe(DateTime.formatIsoZoned), a.pipe(DateTime.formatIsoZoned))
+    deepStrictEqual(next().pipe(DateTime.formatIsoZoned), b.pipe(DateTime.formatIsoZoned))
+    deepStrictEqual(next().pipe(DateTime.formatIsoZoned), c.pipe(DateTime.formatIsoZoned))
+    deepStrictEqual(next().pipe(DateTime.formatIsoZoned), d.pipe(DateTime.formatIsoZoned))
   })
 })

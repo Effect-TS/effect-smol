@@ -1482,10 +1482,10 @@ export function decodeHexString<E extends string>(): Getter<string, E> {
  */
 export function dateTimeUtcFromInput<E extends DateTime.DateTime.Input>(): Getter<DateTime.Utc, E> {
   return transformOrFail((input) => {
-    const dt = DateTime.make(input)
-    return dt
-      ? Effect.succeed(DateTime.toUtc(dt))
-      : Effect.fail(new Issue.InvalidValue(Option.some(input), { message: "Invalid DateTime input" }))
+    return Option.match(DateTime.make(input), {
+      onNone: () => Effect.fail(new Issue.InvalidValue(Option.some(input), { message: "Invalid DateTime input" })),
+      onSome: (dt) => Effect.succeed(DateTime.toUtc(dt))
+    })
   })
 }
 
