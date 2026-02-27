@@ -275,6 +275,12 @@ Build http clients with the `HttpClient` module.
   Define a schema-first API, implement handlers, secure endpoints with
   middleware, serve it over HTTP, and call it using a generated typed client.
 
+## Working with child processes
+
+Use the `effect/unstable/process` modules to define child processes and run them with `ChildProcessSpawner.
+
+- **[Working with child processes](./ai-docs/src/60_child-process/10_working-with-child-processes.ts)**: This example shows how to collect process output, compose pipelines, and stream long-running command output.
+
 ## Building CLI applications
 
 Use the "effect/unstable/cli" modules to build CLI applications. These modules
