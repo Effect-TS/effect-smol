@@ -42,51 +42,43 @@ export type OpenRouterRateLimitMetadata = OpenRouterErrorMetadata & {
 }
 
 declare module "effect/unstable/ai/AiError" {
-  export interface RateLimitError {
-    readonly metadata: {
-      readonly openrouter?: OpenRouterRateLimitMetadata | null
-    }
+  export interface RateLimitErrorMetadata {
+    readonly openrouter?: OpenRouterRateLimitMetadata | null
   }
 
-  export interface QuotaExhaustedError {
-    readonly metadata: {
-      readonly openrouter?: OpenRouterErrorMetadata | null
-    }
+  export interface QuotaExhaustedErrorMetadata {
+    readonly openrouter?: OpenRouterErrorMetadata | null
   }
 
-  export interface AuthenticationError {
-    readonly metadata: {
-      readonly openrouter?: OpenRouterErrorMetadata | null
-    }
+  export interface AuthenticationErrorMetadata {
+    readonly openrouter?: OpenRouterErrorMetadata | null
   }
 
-  export interface ContentPolicyError {
-    readonly metadata: {
-      readonly openrouter?: OpenRouterErrorMetadata | null
-    }
+  export interface ContentPolicyErrorMetadata {
+    readonly openrouter?: OpenRouterErrorMetadata | null
   }
 
-  export interface InvalidRequestError {
-    readonly metadata: {
-      readonly openrouter?: OpenRouterErrorMetadata | null
-    }
+  export interface InvalidRequestErrorMetadata {
+    readonly openrouter?: OpenRouterErrorMetadata | null
   }
 
-  export interface InternalProviderError {
-    readonly metadata: {
-      readonly openrouter?: OpenRouterErrorMetadata | null
-    }
+  export interface InternalProviderErrorMetadata {
+    readonly openrouter?: OpenRouterErrorMetadata | null
   }
 
-  export interface InvalidOutputError {
-    readonly metadata: {
-      readonly openrouter?: OpenRouterErrorMetadata | null
-    }
+  export interface InvalidOutputErrorMetadata {
+    readonly openrouter?: OpenRouterErrorMetadata | null
   }
 
-  export interface UnknownError {
-    readonly metadata: {
-      readonly openrouter?: OpenRouterErrorMetadata | null
-    }
+  export interface StructuredOutputErrorMetadata {
+    readonly openrouter?: OpenRouterErrorMetadata | null
+  }
+
+  export interface UnsupportedSchemaErrorMetadata {
+    readonly openrouter?: OpenRouterErrorMetadata | null
+  }
+
+  export interface UnknownErrorMetadata {
+    readonly openrouter?: OpenRouterErrorMetadata | null
   }
 }
