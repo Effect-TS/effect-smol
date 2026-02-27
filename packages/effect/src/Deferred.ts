@@ -568,8 +568,9 @@ export const isDone = <A, E>(self: Deferred<A, E>): Effect<boolean> => internalE
 export const isDoneUnsafe = <A, E>(self: Deferred<A, E>): boolean => self.effect !== undefined
 
 /**
- * Returns a `Effect<A, E, R>` from the `Deferred` if this `Deferred` has
- * already been completed, `undefined` otherwise.
+ * Returns the current completion effect as an `Option`. This returns
+ * `Option.some(effect)` when the `Deferred` is completed, `Option.none()`
+ * otherwise.
  *
  * @example
  * ```ts

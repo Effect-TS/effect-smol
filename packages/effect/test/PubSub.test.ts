@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Array, Effect, Fiber, Latch, PubSub } from "effect"
+import { Array, Effect, Fiber, Latch, Option, PubSub } from "effect"
 import { pipe } from "effect/Function"
 
 describe("PubSub", () => {
@@ -397,6 +397,21 @@ describe("PubSub", () => {
       yield* PubSub.publishAll(pubsub, [1, 2])
       assert.deepStrictEqual(PubSub.sizeUnsafe(pubsub), 0)
     }))
+
+  it.effect("remainingUnsafe returns Option.none after shutdown", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const pubsub = yield* PubSub.bounded<number>(2)
+        const subscription = yield* PubSub.subscribe(pubsub)
+
+        assert.deepStrictEqual(PubSub.remainingUnsafe(subscription), Option.some(0))
+        yield* PubSub.publish(pubsub, 1)
+        assert.deepStrictEqual(PubSub.remainingUnsafe(subscription), Option.some(1))
+
+        yield* PubSub.shutdown(pubsub)
+        assert.deepStrictEqual(PubSub.remainingUnsafe(subscription), Option.none())
+      })
+    ))
 
   describe("replay", () => {
     it.effect("unbounded", () =>

@@ -729,26 +729,32 @@ export const modify: {
  *     "content1"
  *   ], ["access_count", 0])
  *
- *   // Increment an existing numeric counter
- *   const updateFn = (opt: any) =>
- *     opt._tag === "Some" && typeof opt.value === "number"
- *       ? ({ ...opt, value: opt.value + 1 } as any)
- *       : opt
- *
  *   // Increment existing counter
- *   yield* TxHashMap.modifyAt(storage, "access_count", updateFn)
+ *   yield* TxHashMap.modifyAt(storage, "access_count", (current) =>
+ *     current._tag === "Some" && typeof current.value === "number"
+ *       ? { ...current, value: current.value + 1 }
+ *       : current
+ *   )
  *   const count1 = yield* TxHashMap.get(storage, "access_count")
  *   console.log(count1) // Option.some(1)
  *
  *   // Increment existing counter again
- *   yield* TxHashMap.modifyAt(storage, "access_count", updateFn)
+ *   yield* TxHashMap.modifyAt(storage, "access_count", (current) =>
+ *     current._tag === "Some" && typeof current.value === "number"
+ *       ? { ...current, value: current.value + 1 }
+ *       : current
+ *   )
  *   const count2 = yield* TxHashMap.get(storage, "access_count")
  *   console.log(count2) // Option.some(2)
  *
- *   // Remove by returning a None-like value
- *   yield* TxHashMap.modifyAt(storage, "file1.txt", () => ({ _tag: "None" } as any))
- *   const hasFile = yield* TxHashMap.has(storage, "file1.txt")
- *   console.log(hasFile) // false
+ *   // Update an existing string entry
+ *   yield* TxHashMap.modifyAt(storage, "file1.txt", (current) =>
+ *     current._tag === "Some" && typeof current.value === "string"
+ *       ? { ...current, value: `${current.value}.bak` }
+ *       : current
+ *   )
+ *   const backup = yield* TxHashMap.get(storage, "file1.txt")
+ *   console.log(backup) // Option.some("content1.bak")
  * })
  * ```
  *
