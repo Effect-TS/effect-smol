@@ -284,7 +284,7 @@ describe("Config", () => {
     describe("withDefault", () => {
       it("value", async () => {
         const defaultValue = 0
-        const config = Config.finite("a").pipe(Config.withDefault(() => defaultValue))
+        const config = Config.finite("a").pipe(Config.withDefault(defaultValue))
 
         await assertSuccess(config, ConfigProvider.fromUnknown({ a: "1" }), 1)
         await assertSuccess(config, ConfigProvider.fromUnknown({}), defaultValue)
@@ -298,7 +298,7 @@ describe("Config", () => {
 
       it("redacted", async () => {
         const defaultValue = Redacted.make("default")
-        const config = Config.redacted("a").pipe(Config.withDefault(() => defaultValue))
+        const config = Config.redacted("a").pipe(Config.withDefault(defaultValue))
 
         await assertSuccess(config, ConfigProvider.fromUnknown({ a: "value" }), Redacted.make("value"))
         await assertSuccess(config, ConfigProvider.fromUnknown({}), defaultValue)
@@ -307,7 +307,7 @@ describe("Config", () => {
       it("struct", async () => {
         const defaultValue = { a: "a", c: 0 }
         const config = Config.all({ a: Config.nonEmptyString("b"), c: Config.finite("d") }).pipe(
-          Config.withDefault(() => defaultValue)
+          Config.withDefault(defaultValue)
         )
 
         await assertSuccess(config, ConfigProvider.fromUnknown({ b: "b", d: "1" }), { a: "b", c: 1 })
