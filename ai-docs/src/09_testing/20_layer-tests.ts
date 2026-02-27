@@ -79,7 +79,7 @@ class TodoService extends ServiceMap.Service<TodoService, {
   // You would also add a live layer here that provides real dependencies for
   // production code.
   //
-  // static readonly layer = Layer.effect(TodoService)(...).pipe(
+  // static readonly layer = Layer.effect(TodoService, ...).pipe(
   //   Layer.provide(TodoRepo.layer)
   // )
 
