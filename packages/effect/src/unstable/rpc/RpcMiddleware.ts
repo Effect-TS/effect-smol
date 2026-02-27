@@ -173,7 +173,7 @@ export type ErrorServicesDecode<A> = ErrorSchema<A>["DecodingServices"]
  * @since 4.0.0
  * @category models
  */
-export interface AnyService extends ServiceMap.Service<any, any> {
+export interface AnyService extends ServiceMap.Key<any, any> {
   readonly [TypeId]: typeof TypeId
   readonly error: Schema.Top
   readonly requiredForClient: boolean
@@ -184,7 +184,7 @@ export interface AnyService extends ServiceMap.Service<any, any> {
  * @since 4.0.0
  * @category models
  */
-export interface AnyServiceWithProps extends ServiceMap.Service<any, RpcMiddleware<any, any, any>> {
+export interface AnyServiceWithProps extends ServiceMap.Key<any, RpcMiddleware<any, any, any>> {
   readonly [TypeId]: typeof TypeId
   readonly error: Schema.Top
   readonly requiredForClient: boolean
@@ -253,7 +253,7 @@ export const Service = <
  * @category client
  */
 export const layerClient = <Id extends AnyId, S, R, EX = never, RX = never>(
-  tag: ServiceMap.Service<Id, S>,
+  tag: ServiceMap.Key<Id, S>,
   service:
     | RpcMiddlewareClient<Id[TypeId]["error"]["Type"], Id[TypeId]["clientError"], R>
     | Effect.Effect<RpcMiddlewareClient<Id[TypeId]["error"]["Type"], Id[TypeId]["clientError"], R>, EX, RX>

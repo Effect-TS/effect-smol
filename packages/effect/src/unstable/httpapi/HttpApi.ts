@@ -67,13 +67,13 @@ export interface HttpApi<
    * api is called.
    */
   middleware<I extends HttpApiMiddleware.AnyId, S>(
-    middleware: ServiceMap.Service<I, S>
+    middleware: ServiceMap.Key<I, S>
   ): HttpApi<Id, HttpApiGroup.AddMiddleware<Groups, I>>
 
   /**
    * Annotate the `HttpApi`.
    */
-  annotate<I, S>(tag: ServiceMap.Service<I, S>, value: S): HttpApi<Id, Groups>
+  annotate<I, S>(tag: ServiceMap.Key<I, S>, value: S): HttpApi<Id, Groups>
 
   /**
    * Annotate the `HttpApi` with a ServiceMap.
@@ -137,14 +137,14 @@ const Proto = {
       annotations: this.annotations
     })
   },
-  middleware(this: AnyWithProps, tag: HttpApiMiddleware.AnyKey) {
+  middleware(this: AnyWithProps, tag: HttpApiMiddleware.AnyService) {
     return makeProto({
       identifier: this.identifier,
       groups: Record.map(this.groups, (group) => group.middleware(tag as any)),
       annotations: this.annotations
     })
   },
-  annotate(this: AnyWithProps, key: ServiceMap.Service<any, any>, value: any) {
+  annotate(this: AnyWithProps, key: ServiceMap.Key<any, any>, value: any) {
     return makeProto({
       identifier: this.identifier,
       groups: this.groups,
@@ -212,7 +212,7 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
       readonly group: HttpApiGroup.AnyWithProps
       readonly endpoint: HttpApiEndpoint.AnyWithProps
       readonly mergedAnnotations: ServiceMap.ServiceMap<never>
-      readonly middleware: ReadonlySet<HttpApiMiddleware.AnyKey>
+      readonly middleware: ReadonlySet<HttpApiMiddleware.AnyService>
       readonly successes: ReadonlyMap<number, readonly [Schema.Top, ...Array<Schema.Top>]>
       readonly errors: ReadonlyMap<number, readonly [Schema.Top, ...Array<Schema.Top>]>
     }) => void

@@ -136,7 +136,7 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
       readonly group: HttpApiGroup.AnyWithProps
       readonly endpoint: HttpApiEndpoint.AnyWithProps
       readonly mergedAnnotations: ServiceMap.ServiceMap<never>
-      readonly middleware: ReadonlySet<HttpApiMiddleware.AnyKey>
+      readonly middleware: ReadonlySet<HttpApiMiddleware.AnyService>
       readonly successes: ReadonlyMap<number, readonly [Schema.Top, ...Array<Schema.Top>]>
       readonly errors: ReadonlyMap<number, readonly [Schema.Top, ...Array<Schema.Top>]>
       readonly endpointFn: Function

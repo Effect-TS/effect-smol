@@ -200,7 +200,7 @@ export class Decoding<S extends Schema.Top> {
    * decoding context.
    */
   provide<Id, Service>(
-    service: ServiceMap.Service<Id, Service>,
+    service: ServiceMap.Key<Id, Service>,
     implementation: Service
   ): Decoding<Schema.middlewareDecoding<S, Exclude<S["DecodingServices"], Id>>> {
     return new Decoding(
@@ -276,7 +276,7 @@ class Encoding<S extends Schema.Top> {
    * encoding context.
    */
   provide<Id, Service>(
-    service: ServiceMap.Service<Id, Service>,
+    service: ServiceMap.Key<Id, Service>,
     implementation: Service
   ): Encoding<Schema.middlewareEncoding<S, Exclude<S["EncodingServices"], Id>>> {
     return new Encoding(

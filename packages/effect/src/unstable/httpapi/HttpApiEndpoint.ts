@@ -77,7 +77,7 @@ export interface HttpApiEndpoint<
   readonly success: ReadonlySet<Schema.Top>
   readonly error: ReadonlySet<Schema.Top>
   readonly annotations: ServiceMap.ServiceMap<never>
-  readonly middlewares: ReadonlySet<ServiceMap.Service<Middleware, any>>
+  readonly middlewares: ReadonlySet<ServiceMap.Key<Middleware, any>>
 
   /**
    * Add a prefix to the path of the endpoint.
@@ -101,7 +101,7 @@ export interface HttpApiEndpoint<
   /**
    * Add an `HttpApiMiddleware` to the endpoint.
    */
-  middleware<I extends HttpApiMiddleware.AnyId, S>(middleware: ServiceMap.Service<I, S>): HttpApiEndpoint<
+  middleware<I extends HttpApiMiddleware.AnyId, S>(middleware: ServiceMap.Key<I, S>): HttpApiEndpoint<
     Name,
     Method,
     Path,
@@ -119,7 +119,7 @@ export interface HttpApiEndpoint<
    * Add an annotation on the endpoint.
    */
   annotate<I, S>(
-    key: ServiceMap.Service<I, S>,
+    key: ServiceMap.Key<I, S>,
     value: Types.NoInfer<S>
   ): HttpApiEndpoint<
     Name,
@@ -174,7 +174,7 @@ export function getSuccessSchemas(endpoint: AnyWithProps): [Schema.Top, ...Array
 export function getErrorSchemas(endpoint: AnyWithProps): [Schema.Top, ...Array<Schema.Top>] {
   const schemas = new Set<Schema.Top>(endpoint.error)
   for (const middleware of endpoint.middlewares) {
-    const key = middleware as any as HttpApiMiddleware.AnyKey
+    const key = middleware as any as HttpApiMiddleware.AnyService
     if (key.error !== undefined) {
       schemas.add(key.error)
     }
@@ -787,13 +787,13 @@ const Proto = {
       path: HttpRouter.prefixPath(this.path, prefix)
     })
   },
-  middleware(this: AnyWithProps, middleware: HttpApiMiddleware.AnyKey) {
+  middleware(this: AnyWithProps, middleware: HttpApiMiddleware.AnyService) {
     return makeProto({
       ...this,
       middlewares: new Set([...this.middlewares, middleware as any])
     })
   },
-  annotate(this: AnyWithProps, key: ServiceMap.Service<any, any>, value: any) {
+  annotate(this: AnyWithProps, key: ServiceMap.Key<any, any>, value: any) {
     return makeProto({
       ...this,
       annotations: ServiceMap.add(this.annotations, key, value)
@@ -830,7 +830,7 @@ function makeProto<
   readonly success: ReadonlySet<Schema.Top>
   readonly error: ReadonlySet<Schema.Top>
   readonly annotations: ServiceMap.ServiceMap<never>
-  readonly middlewares: ReadonlySet<ServiceMap.Service<Middleware, any>>
+  readonly middlewares: ReadonlySet<ServiceMap.Key<Middleware, any>>
 }): HttpApiEndpoint<
   Name,
   Method,

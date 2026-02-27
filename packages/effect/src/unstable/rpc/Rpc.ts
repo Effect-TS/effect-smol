@@ -132,7 +132,7 @@ export interface Rpc<
    * Add an annotation on the rpc.
    */
   annotate<I, S>(
-    tag: ServiceMap.Service<I, S>,
+    tag: ServiceMap.Key<I, S>,
     value: S
   ): Rpc<Tag, Payload, Success, Error, Middleware, Requires>
 
@@ -660,7 +660,7 @@ const Proto = {
       middlewares: this.middlewares
     })
   },
-  annotate(this: AnyWithProps, tag: ServiceMap.Service<any, any>, value: any) {
+  annotate(this: AnyWithProps, tag: ServiceMap.Key<any, any>, value: any) {
     return makeProto({
       _tag: this._tag,
       payloadSchema: this.payloadSchema,

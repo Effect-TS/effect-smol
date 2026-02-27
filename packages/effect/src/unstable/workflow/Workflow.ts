@@ -44,7 +44,7 @@ export interface Workflow<
    * Add an annotation to the workflow.
    */
   annotate<I, S>(
-    key: ServiceMap.Service<I, S>,
+    key: ServiceMap.Key<I, S>,
     value: S
   ): Workflow<Name, Payload, Success, Error>
 

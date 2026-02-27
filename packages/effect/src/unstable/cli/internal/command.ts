@@ -35,7 +35,7 @@ interface SubcommandGroup {
  */
 export interface CommandInternal<Name extends string, Input, E, R> extends Command<Name, Input, E, R> {
   readonly config: ConfigInternal
-  readonly service: ServiceMap.Service<CommandContext<Name>, Input>
+  readonly service: ServiceMap.Key<CommandContext<Name>, Input>
   readonly annotations: ServiceMap.ServiceMap<never>
   readonly globalFlags: ReadonlyArray<GlobalFlag.GlobalFlag<any>>
   readonly parse: (input: ParsedTokens) => Effect.Effect<Input, CliError.CliError, Environment>
@@ -74,7 +74,7 @@ export const Proto = {
     return pipeArguments(this, arguments)
   },
   asEffect(this: Command<any, any, any, any>) {
-    return toImpl(this).service.asEffect()
+    return (toImpl(this).service as ServiceMap.Service<any, any>).asEffect()
   }
 }
 
@@ -88,7 +88,7 @@ export const Proto = {
 export const makeCommand = <const Name extends string, Input, E, R>(options: {
   readonly name: Name
   readonly config: ConfigInternal
-  readonly service?: ServiceMap.Service<CommandContext<Name>, Input> | undefined
+  readonly service?: ServiceMap.Key<CommandContext<Name>, Input> | undefined
   readonly annotations?: ServiceMap.ServiceMap<never> | undefined
   readonly globalFlags?: ReadonlyArray<GlobalFlag.GlobalFlag<any>> | undefined
   readonly description?: string | undefined

@@ -1660,17 +1660,17 @@ export const provideServices: {
  */
 export const provideService: {
   <I, S>(
-    key: ServiceMap.Service<I, S>,
+    key: ServiceMap.Key<I, S>,
     value: Types.NoInfer<S>
   ): <A, In, L, E, R>(self: Sink<A, In, L, E, R>) => Sink<A, In, L, E, Exclude<R, I>>
   <A, In, L, E, R, I, S>(
     self: Sink<A, In, L, E, R>,
-    key: ServiceMap.Service<I, S>,
+    key: ServiceMap.Key<I, S>,
     value: Types.NoInfer<S>
   ): Sink<A, In, L, E, Exclude<R, I>>
 } = dual(3, <A, In, L, E, R, I, S>(
   self: Sink<A, In, L, E, R>,
-  key: ServiceMap.Service<I, S>,
+  key: ServiceMap.Key<I, S>,
   value: Types.NoInfer<S>
 ): Sink<A, In, L, E, Exclude<R, I>> =>
   fromTransform((upstream, scope) =>

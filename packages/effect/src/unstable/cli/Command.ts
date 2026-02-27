@@ -795,19 +795,19 @@ export const withAlias: {
  */
 export const annotate: {
   <I, S>(
-    service: ServiceMap.Service<I, S>,
+    service: ServiceMap.Key<I, S>,
     value: NoInfer<S>
   ): <Name extends string, Input, E, R>(
     self: Command<Name, Input, E, R>
   ) => Command<Name, Input, E, R>
   <Name extends string, Input, E, R, I, S>(
     self: Command<Name, Input, E, R>,
-    service: ServiceMap.Service<I, S>,
+    service: ServiceMap.Key<I, S>,
     value: NoInfer<S>
   ): Command<Name, Input, E, R>
 } = dual(3, <Name extends string, Input, E, R, I, S>(
   self: Command<Name, Input, E, R>,
-  service: ServiceMap.Service<I, S>,
+  service: ServiceMap.Key<I, S>,
   value: NoInfer<S>
 ) => {
   const impl = toImpl(self)
@@ -956,19 +956,19 @@ export const provide: {
  */
 export const provideSync: {
   <I, S, Input>(
-    service: ServiceMap.Service<I, S>,
+    service: ServiceMap.Key<I, S>,
     implementation: S | ((input: Input) => S)
   ): <const Name extends string, E, R>(
     self: Command<Name, Input, E, R>
   ) => Command<Name, Input, E, Exclude<R, I>>
   <const Name extends string, Input, E, R, I, S>(
     self: Command<Name, Input, E, R>,
-    service: ServiceMap.Service<I, S>,
+    service: ServiceMap.Key<I, S>,
     implementation: S | ((input: Input) => S)
   ): Command<Name, Input, E, Exclude<R, I>>
 } = dual(3, <const Name extends string, Input, E, R, I, S>(
   self: Command<Name, Input, E, R>,
-  service: ServiceMap.Service<I, S>,
+  service: ServiceMap.Key<I, S>,
   implementation: S | ((input: Input) => S)
 ) =>
   mapHandler(self, (handler, input) =>
@@ -987,19 +987,19 @@ export const provideSync: {
  */
 export const provideEffect: {
   <I, S, Input, R2, E2>(
-    service: ServiceMap.Service<I, S>,
+    service: ServiceMap.Key<I, S>,
     effect: Effect.Effect<S, E2, R2> | ((input: Input) => Effect.Effect<S, E2, R2>)
   ): <const Name extends string, E, R>(
     self: Command<Name, Input, E, R>
   ) => Command<Name, Input, E | E2, Exclude<R, I> | R2>
   <const Name extends string, Input, E, R, I, S, R2, E2>(
     self: Command<Name, Input, E, R>,
-    service: ServiceMap.Service<I, S>,
+    service: ServiceMap.Key<I, S>,
     effect: Effect.Effect<S, E2, R2> | ((input: Input) => Effect.Effect<S, E2, R2>)
   ): Command<Name, Input, E | E2, Exclude<R, I> | R2>
 } = dual(3, <const Name extends string, Input, E, R, I, S, R2, E2>(
   self: Command<Name, Input, E, R>,
-  service: ServiceMap.Service<I, S>,
+  service: ServiceMap.Key<I, S>,
   effect: Effect.Effect<S, E2, R2> | ((input: Input) => Effect.Effect<S, E2, R2>)
 ) =>
   mapHandler(

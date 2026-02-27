@@ -641,7 +641,7 @@ const applyMiddleware = <A extends Effect.Effect<any, any, any>>(
 ) => {
   const options = { group, endpoint }
   for (const key_ of endpoint.middlewares) {
-    const key = key_ as any as HttpApiMiddleware.AnyKey
+    const key = key_ as any as HttpApiMiddleware.AnyService
     const service = services.mapUnsafe.get(key_.key) as HttpApiMiddleware.HttpApiMiddleware<any, any, any>
     const apply = HttpApiMiddleware.isSecurity(key)
       ? makeSecurityMiddleware(key, service as any)
@@ -657,7 +657,7 @@ const securityMiddlewareCache = new WeakMap<
 >()
 
 const makeSecurityMiddleware = (
-  key: HttpApiMiddleware.AnyKeySecurity,
+  key: HttpApiMiddleware.AnyServiceSecurity,
   service: HttpApiMiddleware.HttpApiMiddlewareSecurity<any, any, any, any>
 ): (effect: Effect.Effect<any, any, any>, options: any) => Effect.Effect<any, any, any> => {
   if (securityMiddlewareCache.has(key)) {

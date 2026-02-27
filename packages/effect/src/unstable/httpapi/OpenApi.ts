@@ -111,7 +111,7 @@ export class Transform extends ServiceMap.Service<
   (openApiSpec: Record<string, any>) => Record<string, any>
 >()("effect/httpapi/OpenApi/Transform") {}
 
-const servicesPartial = <Tags extends Record<string, ServiceMap.Service<any, any> | ServiceMap.Service<never, any>>>(
+const servicesPartial = <Tags extends Record<string, ServiceMap.Key<any, any> | ServiceMap.Key<never, any>>>(
   tags: Tags
 ): (
   options: {
@@ -175,7 +175,7 @@ const apiCache = new WeakMap<HttpApi.Any, OpenAPISpec>()
  */
 function processAnnotation<Services, S, I>(
   ctx: ServiceMap.ServiceMap<Services>,
-  annotation: ServiceMap.Service<I, S>,
+  annotation: ServiceMap.Key<I, S>,
   f: (s: S) => void
 ) {
   const o = ServiceMap.getOption(ctx, annotation)

@@ -131,12 +131,12 @@ export interface RpcGroup<in out R extends Rpc.Any> extends Pipeable {
   /**
    * Annotate the group with a value.
    */
-  annotate<I, S>(service: ServiceMap.Service<I, S>, value: S): RpcGroup<R>
+  annotate<I, S>(service: ServiceMap.Key<I, S>, value: S): RpcGroup<R>
 
   /**
    * Annotate the Rpc's above this point with a value.
    */
-  annotateRpcs<I, S>(service: ServiceMap.Service<I, S>, value: S): RpcGroup<R>
+  annotateRpcs<I, S>(service: ServiceMap.Key<I, S>, value: S): RpcGroup<R>
 
   /**
    * Annotate the group with the provided annotations.
@@ -314,13 +314,13 @@ const RpcGroupProto = {
       })
     })
   },
-  annotate(this: RpcGroup<any>, service: ServiceMap.Service<any, any>, value: any) {
+  annotate(this: RpcGroup<any>, service: ServiceMap.Key<any, any>, value: any) {
     return makeProto({
       requests: this.requests,
       annotations: ServiceMap.add(this.annotations, service, value)
     })
   },
-  annotateRpcs(this: RpcGroup<any>, service: ServiceMap.Service<any, any>, value: any) {
+  annotateRpcs(this: RpcGroup<any>, service: ServiceMap.Key<any, any>, value: any) {
     return this.annotateRpcsMerge(ServiceMap.make(service, value))
   },
   annotateMerge(this: RpcGroup<any>, context: ServiceMap.ServiceMap<any>) {
