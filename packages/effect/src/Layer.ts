@@ -1572,8 +1572,7 @@ export const updateService: {
     layer: Layer<A1, E1, R1>,
     service: ServiceMap.Key<I, A>,
     f: (a: A) => A
-  ): Layer<A1, E1, I | R1> =>
-    provide(layer, effect(service)(internalEffect.map((service as ServiceMap.Service<I, A>).asEffect(), f)))
+  ): Layer<A1, E1, I | R1> => provide(layer, effect(service)(internalEffect.map(service.asEffect(), f)))
 )
 
 /**

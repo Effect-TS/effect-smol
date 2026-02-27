@@ -74,7 +74,7 @@ export const Proto = {
     return pipeArguments(this, arguments)
   },
   asEffect(this: Command<any, any, any, any>) {
-    return (toImpl(this).service as ServiceMap.Service<any, any>).asEffect()
+    return toImpl(this).service.asEffect()
   }
 }
 

@@ -39,6 +39,7 @@ export interface Key<in out Identifier, in out Shape> extends Pipeable, Inspecta
   readonly Identifier: Identifier
   readonly key: string
   readonly stack?: string | undefined
+  asEffect(): Effect<Shape, never, Identifier>
 }
 
 /**
