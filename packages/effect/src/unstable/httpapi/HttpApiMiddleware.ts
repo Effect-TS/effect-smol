@@ -25,7 +25,7 @@ const SecurityTypeId = "~effect/httpapi/HttpApiMiddleware/Security"
  * @since 4.0.0
  * @category guards
  */
-export const isSecurity = (u: AnyKey): u is AnyKeySecurity => hasProperty(u, SecurityTypeId)
+export const isSecurity = (u: AnyService): u is AnyServiceSecurity => hasProperty(u, SecurityTypeId)
 
 /**
  * @since 4.0.0
@@ -87,7 +87,7 @@ export interface ForClient<Id> {
  * @since 4.0.0
  * @category models
  */
-export interface AnyKey extends ServiceMap.Service<any, any> {
+export interface AnyService extends ServiceMap.Key<any, any> {
   readonly [TypeId]: typeof TypeId
   readonly provides: any
   readonly error: Schema.Top
@@ -99,7 +99,7 @@ export interface AnyKey extends ServiceMap.Service<any, any> {
  * @since 4.0.0
  * @category models
  */
-export interface AnyKeySecurity extends AnyKey {
+export interface AnyServiceSecurity extends AnyService {
   readonly [SecurityTypeId]: typeof SecurityTypeId
   readonly security: Record<string, HttpApiSecurity.HttpApiSecurity>
 }
@@ -297,7 +297,7 @@ export const Service = <
  * @category client
  */
 export const layerClient = <Id extends AnyId, S, R, EX = never, RX = never>(
-  tag: ServiceMap.Service<Id, S>,
+  tag: ServiceMap.Key<Id, S>,
   service:
     | HttpApiMiddlewareClient<Id[typeof TypeId]["error"]["Type"], Id[typeof TypeId]["clientError"], R>
     | Effect.Effect<

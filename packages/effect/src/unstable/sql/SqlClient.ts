@@ -180,7 +180,7 @@ export const make = Effect.fnUntraced(function*(options: SqlClient.MakeOptions) 
  * @category transactions
  */
 export const makeWithTransaction = <I, S>(options: {
-  readonly transactionService: ServiceMap.Service<I, readonly [conn: S, counter: number]>
+  readonly transactionService: ServiceMap.Key<I, readonly [conn: S, counter: number]>
   readonly spanAttributes: ReadonlyArray<readonly [string, unknown]>
   readonly acquireConnection: Effect.Effect<readonly [Scope.Closeable | undefined, S], SqlError>
   readonly begin: (conn: NoInfer<S>) => Effect.Effect<void, SqlError>

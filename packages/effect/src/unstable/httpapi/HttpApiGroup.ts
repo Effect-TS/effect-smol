@@ -61,7 +61,7 @@ export interface HttpApiGroup<
    * Endpoints added after this api is called **will not** have the middleware
    * applied.
    */
-  middleware<I extends HttpApiMiddleware.AnyId, S>(middleware: ServiceMap.Service<I, S>): HttpApiGroup<
+  middleware<I extends HttpApiMiddleware.AnyId, S>(middleware: ServiceMap.Key<I, S>): HttpApiGroup<
     Id,
     HttpApiEndpoint.AddMiddleware<Endpoints, I>,
     TopLevel
@@ -75,7 +75,7 @@ export interface HttpApiGroup<
   /**
    * Add an annotation to an `HttpApiGroup`.
    */
-  annotate<I, S>(key: ServiceMap.Service<I, S>, value: S): HttpApiGroup<Id, Endpoints, TopLevel>
+  annotate<I, S>(key: ServiceMap.Key<I, S>, value: S): HttpApiGroup<Id, Endpoints, TopLevel>
 
   /**
    * For each endpoint in an `HttpApiGroup`, update the annotations with a new
@@ -91,7 +91,7 @@ export interface HttpApiGroup<
    * Note that this will only add the annotation to the endpoints before this api
    * is called.
    */
-  annotateEndpoints<I, S>(key: ServiceMap.Service<I, S>, value: S): HttpApiGroup<Id, Endpoints, TopLevel>
+  annotateEndpoints<I, S>(key: ServiceMap.Key<I, S>, value: S): HttpApiGroup<Id, Endpoints, TopLevel>
 }
 
 /**
@@ -238,7 +238,7 @@ const Proto = {
       annotations: this.annotations
     })
   },
-  middleware(this: AnyWithProps, middleware: HttpApiMiddleware.AnyKey) {
+  middleware(this: AnyWithProps, middleware: HttpApiMiddleware.AnyService) {
     return makeProto({
       identifier: this.identifier,
       topLevel: this.topLevel,
@@ -254,7 +254,7 @@ const Proto = {
       annotations: ServiceMap.merge(this.annotations, annotations)
     })
   },
-  annotate<I, S>(this: AnyWithProps, annotation: ServiceMap.Service<I, S>, value: S) {
+  annotate<I, S>(this: AnyWithProps, annotation: ServiceMap.Key<I, S>, value: S) {
     return makeProto({
       identifier: this.identifier,
       topLevel: this.topLevel,
@@ -270,7 +270,7 @@ const Proto = {
       annotations: this.annotations
     })
   },
-  annotateEndpoints<I, S>(this: AnyWithProps, annotation: ServiceMap.Service<I, S>, value: S) {
+  annotateEndpoints<I, S>(this: AnyWithProps, annotation: ServiceMap.Key<I, S>, value: S) {
     return makeProto({
       identifier: this.identifier,
       topLevel: this.topLevel,

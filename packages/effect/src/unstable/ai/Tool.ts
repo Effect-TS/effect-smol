@@ -257,7 +257,7 @@ export interface Tool<
    * instead of being provided when creating the tool call handler layer.
    */
   addDependency<Identifier, Service>(
-    tag: ServiceMap.Service<Identifier, Service>
+    tag: ServiceMap.Key<Identifier, Service>
   ): Tool<Name, Config, Identifier | Requirements>
 
   /**
@@ -311,7 +311,7 @@ export interface Tool<
   /**
    * Add an annotation to the tool.
    */
-  annotate<I, S>(tag: ServiceMap.Service<I, S>, value: S): Tool<Name, Config, Requirements>
+  annotate<I, S>(tag: ServiceMap.Key<I, S>, value: S): Tool<Name, Config, Requirements>
 
   /**
    * Add many annotations to the tool.
@@ -1006,7 +1006,7 @@ const Proto = {
   setFailure(this: Any, failureSchema: Schema.Top) {
     return userDefinedProto({ ...this, failureSchema })
   },
-  annotate<I, S>(this: Any, tag: ServiceMap.Service<I, S>, value: S) {
+  annotate<I, S>(this: Any, tag: ServiceMap.Key<I, S>, value: S) {
     return userDefinedProto({
       ...this,
       annotations: ServiceMap.add(this.annotations, tag, value)
@@ -1150,7 +1150,7 @@ export const make = <
   Success extends Schema.Top = typeof Schema.Void,
   Failure extends Schema.Top = typeof Schema.Never,
   Mode extends FailureMode | undefined = undefined,
-  Dependencies extends Array<ServiceMap.Service<any, any>> = []
+  Dependencies extends Array<ServiceMap.Key<any, any> | ServiceMap.Key<never, any>> = []
 >(name: Name, options?: {
   /**
    * An optional description explaining what the tool does.

@@ -1983,17 +1983,17 @@ export const exitFindErrorOption = <A, E>(self: Exit.Exit<A, E>): Option.Option<
 
 /** @internal */
 export const service: {
-  <I, S>(service: ServiceMap.Service<I, S>): Effect.Effect<S, never, I>
+  <I, S>(service: ServiceMap.Key<I, S>): Effect.Effect<S, never, I>
 } = fromYieldable as any
 
 /** @internal */
 export const serviceOption = <I, S>(
-  service: ServiceMap.Service<I, S>
+  service: ServiceMap.Key<I, S>
 ): Effect.Effect<Option.Option<S>> => withFiber((fiber) => succeed(ServiceMap.getOption(fiber.services, service)))
 
 /** @internal */
 export const serviceOptional = <I, S>(
-  service: ServiceMap.Service<I, S>
+  service: ServiceMap.Key<I, S>
 ): Effect.Effect<S, Cause.NoSuchElementError> =>
   withFiber((fiber) =>
     fiber.services.mapUnsafe.has(service.key)
@@ -2031,19 +2031,19 @@ export const updateServices: {
 /** @internal */
 export const updateService: {
   <I, A>(
-    service: ServiceMap.Service<I, A>,
+    service: ServiceMap.Key<I, A>,
     f: (value: A) => A
   ): <XA, E, R>(self: Effect.Effect<XA, E, R>) => Effect.Effect<XA, E, R | I>
   <XA, E, R, I, A>(
     self: Effect.Effect<XA, E, R>,
-    service: ServiceMap.Service<I, A>,
+    service: ServiceMap.Key<I, A>,
     f: (value: A) => A
   ): Effect.Effect<XA, E, R | I>
 } = dual(
   3,
   <XA, E, R, I, A>(
     self: Effect.Effect<XA, E, R>,
-    service: ServiceMap.Service<I, A>,
+    service: ServiceMap.Key<I, A>,
     f: (value: A) => A
   ): Effect.Effect<XA, E, R | I> =>
     updateServices(self, (s) => {
@@ -2088,20 +2088,20 @@ export const provideServices: {
 /** @internal */
 export const provideService: {
   <I, S>(
-    service: ServiceMap.Service<I, S>
+    service: ServiceMap.Key<I, S>
   ): {
     (implementation: S): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, I>>
     <A, E, R>(self: Effect.Effect<A, E, R>, implementation: S): Effect.Effect<A, E, Exclude<R, I>>
   }
   <I, S>(
-    key: ServiceMap.Service<I, S>,
+    key: ServiceMap.Key<I, S>,
     implementation: S
   ): <A, E, R>(
     self: Effect.Effect<A, E, R>
   ) => Effect.Effect<A, E, Exclude<R, I>>
   <A, E, R, I, S>(
     self: Effect.Effect<A, E, R>,
-    service: ServiceMap.Service<I, S>,
+    service: ServiceMap.Key<I, S>,
     implementation: S
   ): Effect.Effect<A, E, Exclude<R, I>>
 } = function(this: any) {
@@ -2114,7 +2114,7 @@ export const provideService: {
 
 const provideServiceImpl = <A, E, R, I, S>(
   self: Effect.Effect<A, E, R>,
-  service: ServiceMap.Service<I, S>,
+  service: ServiceMap.Key<I, S>,
   implementation: S
 ): Effect.Effect<A, E, Exclude<R, I>> =>
   updateServices(self, (s) => {
@@ -2126,21 +2126,21 @@ const provideServiceImpl = <A, E, R, I, S>(
 /** @internal */
 export const provideServiceEffect: {
   <I, S, E2, R2>(
-    service: ServiceMap.Service<I, S>,
+    service: ServiceMap.Key<I, S>,
     acquire: Effect.Effect<S, E2, R2>
   ): <A, E, R>(
     self: Effect.Effect<A, E, R>
   ) => Effect.Effect<A, E | E2, Exclude<R, I> | R2>
   <A, E, R, I, S, E2, R2>(
     self: Effect.Effect<A, E, R>,
-    service: ServiceMap.Service<I, S>,
+    service: ServiceMap.Key<I, S>,
     acquire: Effect.Effect<S, E2, R2>
   ): Effect.Effect<A, E | E2, Exclude<R, I> | R2>
 } = dual(
   3,
   <A, E, R, I, S, E2, R2>(
     self: Effect.Effect<A, E, R>,
-    service: ServiceMap.Service<I, S>,
+    service: ServiceMap.Key<I, S>,
     acquire: Effect.Effect<S, E2, R2>
   ): Effect.Effect<A, E | E2, Exclude<R, I> | R2> =>
     flatMap(acquire, (implementation) => provideService(self, service, implementation))

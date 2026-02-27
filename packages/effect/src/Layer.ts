@@ -606,8 +606,8 @@ export const buildWithScope: {
  * @category constructors
  */
 export const succeed: {
-  <I, S>(service: ServiceMap.Service<I, S>): (resource: S) => Layer<I>
-  <I, S>(service: ServiceMap.Service<I, S>, resource: Types.NoInfer<S>): Layer<I>
+  <I, S>(service: ServiceMap.Key<I, S>): (resource: S) => Layer<I>
+  <I, S>(service: ServiceMap.Key<I, S>, resource: Types.NoInfer<S>): Layer<I>
 } = function() {
   if (arguments.length === 1) {
     return (resource: any) => succeedServices(ServiceMap.make(arguments[0], resource))
@@ -693,8 +693,8 @@ export const empty: Layer<never> = succeedServices(ServiceMap.empty())
  * @category constructors
  */
 export const sync: {
-  <I, S>(service: ServiceMap.Service<I, S>): (evaluate: LazyArg<S>) => Layer<I>
-  <I, S>(service: ServiceMap.Service<I, S>, evaluate: LazyArg<S>): Layer<I>
+  <I, S>(service: ServiceMap.Key<I, S>): (evaluate: LazyArg<S>) => Layer<I>
+  <I, S>(service: ServiceMap.Key<I, S>, evaluate: LazyArg<S>): Layer<I>
 } = function() {
   if (arguments.length === 1) {
     return (evaluate: LazyArg<any>) => syncServices(() => ServiceMap.make(arguments[0], evaluate()))
@@ -762,11 +762,11 @@ export const syncServices = <A>(evaluate: LazyArg<ServiceMap.ServiceMap<A>>): La
  * @category constructors
  */
 export const effect: {
-  <I, S>(service: ServiceMap.Service<I, S>): <E, R>(
+  <I, S>(service: ServiceMap.Key<I, S>): <E, R>(
     effect: Effect<S, E, R>
   ) => Layer<I, E, Exclude<R, Scope.Scope>>
   <I, S, E, R>(
-    service: ServiceMap.Service<I, S>,
+    service: ServiceMap.Key<I, S>,
     effect: Effect<S, E, R>
   ): Layer<I, E, Exclude<R, Scope.Scope>>
 } = function() {
@@ -777,7 +777,7 @@ export const effect: {
 } as any
 
 const effectImpl = <I, S, E, R>(
-  service: ServiceMap.Service<I, S>,
+  service: ServiceMap.Key<I, S>,
   effect: Effect<S, E, R>
 ): Layer<I, E, Exclude<R, Scope.Scope>> =>
   effectServices(internalEffect.map(effect, (value) => ServiceMap.make(service, value)))
@@ -1558,19 +1558,19 @@ export const catchCause: {
  */
 export const updateService: {
   <I, A>(
-    service: ServiceMap.Service<I, A>,
+    service: ServiceMap.Key<I, A>,
     f: (a: A) => A
   ): <A1, E1, R1>(layer: Layer<A1, E1, R1>) => Layer<A1, E1, I | R1>
   <A1, E1, R1, I, A>(
     layer: Layer<A1, E1, R1>,
-    service: ServiceMap.Service<I, A>,
+    service: ServiceMap.Key<I, A>,
     f: (a: A) => A
   ): Layer<A1, E1, I | R1>
 } = dual(
   3,
   <A1, E1, R1, I, A>(
     layer: Layer<A1, E1, R1>,
-    service: ServiceMap.Service<I, A>,
+    service: ServiceMap.Key<I, A>,
     f: (a: A) => A
   ): Layer<A1, E1, I | R1> => provide(layer, effect(service)(internalEffect.map(service.asEffect(), f)))
 )
@@ -1759,7 +1759,7 @@ export type PartialEffectful<A extends object> = Types.Simplify<
  * @category Testing
  */
 export const mock =
-  <I, S extends object>(service: ServiceMap.Service<I, S>) => (implementation: PartialEffectful<S>): Layer<I> =>
+  <I, S extends object>(service: ServiceMap.Key<I, S>) => (implementation: PartialEffectful<S>): Layer<I> =>
     succeed(service)(
       new Proxy({ ...implementation as object } as S, {
         get(target, prop, _receiver) {

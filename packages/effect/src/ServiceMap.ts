@@ -25,6 +25,24 @@ import type * as Types from "./Types.ts"
 const ServiceTypeId = "~effect/ServiceMap/Service" as const
 
 /**
+ * The base type used for all ServiceMap keys.
+ *
+ * @since 4.0.0
+ * @category Models
+ */
+export interface Key<in out Identifier, in out Shape> extends Pipeable, Inspectable {
+  readonly [ServiceTypeId]: {
+    readonly _Service: Types.Invariant<Shape>
+    readonly _Identifier: Types.Invariant<Identifier>
+  }
+  readonly Service: Shape
+  readonly Identifier: Identifier
+  readonly key: string
+  readonly stack?: string | undefined
+  asEffect(): Effect<Shape, never, Identifier>
+}
+
+/**
  * @example
  * ```ts
  * import { ServiceMap } from "effect"
@@ -42,21 +60,12 @@ const ServiceTypeId = "~effect/ServiceMap/Service" as const
  * @category Models
  */
 export interface Service<in out Identifier, in out Shape>
-  extends Pipeable, Inspectable, Yieldable<Service<Identifier, Shape>, Shape, never, Identifier>
+  extends Key<Identifier, Shape>, Yieldable<Service<Identifier, Shape>, Shape, never, Identifier>
 {
-  readonly [ServiceTypeId]: {
-    readonly _Service: Types.Invariant<Shape>
-    readonly _Identifier: Types.Invariant<Identifier>
-  }
-  readonly Service: Shape
-  readonly Identifier: Identifier
   of(self: Shape): Shape
   serviceMap(self: Shape): ServiceMap<Identifier>
   use<A, E, R>(f: (service: Shape) => Effect<A, E, R>): Effect<A, E, R | Identifier>
   useSync<A>(f: (service: Shape) => A): Effect<A, never, Identifier>
-
-  readonly stack?: string | undefined
-  readonly key: string
 }
 
 /**
@@ -293,7 +302,7 @@ export declare namespace Service {
    * @since 4.0.0
    * @category Models
    */
-  export type Any = Service<never, any> | Service<any, any>
+  export type Any = Key<never, any> | Key<any, any>
 
   /**
    * @example
@@ -433,20 +442,20 @@ const Proto: Omit<ServiceMap<never>, "mapUnsafe"> = {
 export const isServiceMap = (u: unknown): u is ServiceMap<never> => hasProperty(u, TypeId)
 
 /**
- * Checks if the provided argument is a `Service`.
+ * Checks if the provided argument is a `Key`.
  *
  * @example
  * ```ts
  * import { ServiceMap } from "effect"
  * import * as assert from "node:assert"
  *
- * assert.strictEqual(ServiceMap.isService(ServiceMap.Service("Service")), true)
+ * assert.strictEqual(ServiceMap.isKey(ServiceMap.Service("Service")), true)
  * ```
  *
  * @since 4.0.0
  * @category Guards
  */
-export const isService = (u: unknown): u is Service<any, any> => hasProperty(u, ServiceTypeId)
+export const isKey = (u: unknown): u is Key<any, any> => hasProperty(u, ServiceTypeId)
 
 /**
  * Checks if the provided argument is a `Reference`.
@@ -505,7 +514,7 @@ const emptyServiceMap = makeUnsafe(new Map())
  * @category Constructors
  */
 export const make = <I, S>(
-  key: Service<I, S>,
+  key: Key<I, S>,
   service: Types.NoInfer<S>
 ): ServiceMap<I> => makeUnsafe(new Map([[key.key, service]]))
 
@@ -536,17 +545,17 @@ export const make = <I, S>(
  */
 export const add: {
   <I, S>(
-    key: Service<I, S>,
+    key: Key<I, S>,
     service: Types.NoInfer<S>
   ): <Services>(self: ServiceMap<Services>) => ServiceMap<Services | I>
   <Services, I, S>(
     self: ServiceMap<Services>,
-    key: Service<I, S>,
+    key: Key<I, S>,
     service: Types.NoInfer<S>
   ): ServiceMap<Services | I>
 } = dual(3, <Services, I, S>(
   self: ServiceMap<Services>,
-  key: Service<I, S>,
+  key: Key<I, S>,
   service: Types.NoInfer<S>
 ): ServiceMap<Services | I> => {
   const map = new Map(self.mapUnsafe)
@@ -560,17 +569,17 @@ export const add: {
  */
 export const addOrOmit: {
   <I, S>(
-    key: Service<I, S>,
+    key: Key<I, S>,
     service: Option.Option<Types.NoInfer<S>>
   ): <Services>(self: ServiceMap<Services>) => ServiceMap<Services | I>
   <Services, I, S>(
     self: ServiceMap<Services>,
-    key: Service<I, S>,
+    key: Key<I, S>,
     service: Option.Option<Types.NoInfer<S>>
   ): ServiceMap<Services | I>
 } = dual(3, <Services, I, S>(
   self: ServiceMap<Services>,
-  key: Service<I, S>,
+  key: Key<I, S>,
   service: Option.Option<Types.NoInfer<S>>
 ): ServiceMap<Services | I> => {
   const map = new Map(self.mapUnsafe)
@@ -615,9 +624,9 @@ export const addOrOmit: {
  * @category Getters
  */
 export const getOrElse: {
-  <S, I, B>(key: Service<I, S>, orElse: LazyArg<B>): <Services>(self: ServiceMap<Services>) => S | B
-  <Services, S, I, B>(self: ServiceMap<Services>, key: Service<I, S>, orElse: LazyArg<B>): S | B
-} = dual(3, <Services, S, I, B>(self: ServiceMap<Services>, key: Service<I, S>, orElse: LazyArg<B>): S | B => {
+  <S, I, B>(key: Key<I, S>, orElse: LazyArg<B>): <Services>(self: ServiceMap<Services>) => S | B
+  <Services, S, I, B>(self: ServiceMap<Services>, key: Key<I, S>, orElse: LazyArg<B>): S | B
+} = dual(3, <Services, S, I, B>(self: ServiceMap<Services>, key: Key<I, S>, orElse: LazyArg<B>): S | B => {
   if (self.mapUnsafe.has(key.key)) {
     return self.mapUnsafe.get(key.key)! as any
   }
@@ -629,11 +638,11 @@ export const getOrElse: {
  * @category Getters
  */
 export const getOrUndefined: {
-  <S, I>(key: Service<I, S>): <Services>(self: ServiceMap<Services>) => S | undefined
-  <Services, S, I>(self: ServiceMap<Services>, key: Service<I, S>): S | undefined
+  <S, I>(key: Key<I, S>): <Services>(self: ServiceMap<Services>) => S | undefined
+  <Services, S, I>(self: ServiceMap<Services>, key: Key<I, S>): S | undefined
 } = dual(
   2,
-  <Services, S, I>(self: ServiceMap<Services>, key: Service<I, S>): S | undefined => self.mapUnsafe.get(key.key)
+  <Services, S, I>(self: ServiceMap<Services>, key: Key<I, S>): S | undefined => self.mapUnsafe.get(key.key)
 )
 
 /**
@@ -665,11 +674,11 @@ export const getOrUndefined: {
  * @category unsafe
  */
 export const getUnsafe: {
-  <S, I>(service: Service<I, S>): <Services>(self: ServiceMap<Services>) => S
-  <Services, S, I>(self: ServiceMap<Services>, services: Service<I, S>): S
+  <S, I>(service: Key<I, S>): <Services>(self: ServiceMap<Services>) => S
+  <Services, S, I>(self: ServiceMap<Services>, services: Key<I, S>): S
 } = dual(
   2,
-  <Services, I extends Services, S>(self: ServiceMap<Services>, service: Service<I, S>): S => {
+  <Services, I extends Services, S>(self: ServiceMap<Services>, service: Key<I, S>): S => {
     if (!self.mapUnsafe.has(service.key)) {
       if (ReferenceTypeId in service) return getDefaultValue(service as any)
       throw serviceNotFoundError(service)
@@ -704,8 +713,8 @@ export const getUnsafe: {
  * @category Getters
  */
 export const get: {
-  <Services, I extends Services, S>(service: Service<I, S>): (self: ServiceMap<Services>) => S
-  <Services, I extends Services, S>(self: ServiceMap<Services>, service: Service<I, S>): S
+  <Services, I extends Services, S>(service: Key<I, S>): (self: ServiceMap<Services>) => S
+  <Services, I extends Services, S>(self: ServiceMap<Services>, service: Key<I, S>): S
 } = getUnsafe
 
 /**
@@ -743,7 +752,7 @@ const getDefaultValue = (ref: Reference<any>) => {
   return (ref as any)[defaultValueCacheKey] = ref.defaultValue()
 }
 
-const serviceNotFoundError = (service: Service<any, any>) => {
+const serviceNotFoundError = (service: Key<any, any>) => {
   const error = new Error(
     `Service not found${service.key ? `: ${String(service.key)}` : ""}`
   )
@@ -793,9 +802,9 @@ const serviceNotFoundError = (service: Service<any, any>) => {
  * @category Getters
  */
 export const getOption: {
-  <S, I>(service: Service<I, S>): <Services>(self: ServiceMap<Services>) => Option.Option<S>
-  <Services, S, I>(self: ServiceMap<Services>, service: Service<I, S>): Option.Option<S>
-} = dual(2, <Services, I extends Services, S>(self: ServiceMap<Services>, service: Service<I, S>): Option.Option<S> => {
+  <S, I>(service: Key<I, S>): <Services>(self: ServiceMap<Services>) => Option.Option<S>
+  <Services, S, I>(self: ServiceMap<Services>, service: Key<I, S>): Option.Option<S>
+} = dual(2, <Services, I extends Services, S>(self: ServiceMap<Services>, service: Key<I, S>): Option.Option<S> => {
   if (self.mapUnsafe.has(service.key)) {
     return Option.some(self.mapUnsafe.get(service.key)! as any)
   }
@@ -911,7 +920,7 @@ export const mergeAll = <T extends Array<unknown>>(
  * @since 4.0.0
  * @category Utils
  */
-export const pick = <S extends ReadonlyArray<Service<any, any>>>(
+export const pick = <S extends ReadonlyArray<Key<any, any>>>(
   ...services: S
 ) =>
 <Services>(self: ServiceMap<Services>): ServiceMap<Services & Service.Identifier<S[number]>> => {
@@ -951,7 +960,7 @@ export const pick = <S extends ReadonlyArray<Service<any, any>>>(
  * @since 4.0.0
  * @category Utils
  */
-export const omit = <S extends ReadonlyArray<Service<any, any>>>(
+export const omit = <S extends ReadonlyArray<Key<any, any>>>(
   ...keys: S
 ) =>
 <Services>(self: ServiceMap<Services>): ServiceMap<Exclude<Services, Service.Identifier<S[number]>>> => {

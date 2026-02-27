@@ -75,12 +75,12 @@ export interface Entity<
   /**
    * Annotate the entity with a value.
    */
-  annotate<I, S>(key: ServiceMap.Service<I, S>, value: S): Entity<Type, Rpcs>
+  annotate<I, S>(key: ServiceMap.Key<I, S>, value: S): Entity<Type, Rpcs>
 
   /**
    * Annotate the Rpc's above this point with a value.
    */
-  annotateRpcs<I, S>(key: ServiceMap.Service<I, S>, value: S): Entity<Type, Rpcs>
+  annotateRpcs<I, S>(key: ServiceMap.Key<I, S>, value: S): Entity<Type, Rpcs>
 
   /**
    * Annotate the entity with the given annotations.
@@ -207,10 +207,10 @@ const Proto = {
   [Equal.symbol](this: Entity<string, any>, that: Equal.Equal): boolean {
     return isEntity(that) && this.type === that.type
   },
-  annotate<I, S>(this: Entity<string, any>, key: ServiceMap.Service<I, S>, value: S) {
+  annotate<I, S>(this: Entity<string, any>, key: ServiceMap.Key<I, S>, value: S) {
     return fromRpcGroup(this.type, this.protocol.annotate(key, value))
   },
-  annotateRpcs<I, S>(this: Entity<string, any>, key: ServiceMap.Service<I, S>, value: S) {
+  annotateRpcs<I, S>(this: Entity<string, any>, key: ServiceMap.Key<I, S>, value: S) {
     return fromRpcGroup(this.type, this.protocol.annotateRpcs(key, value))
   },
   annotateMerge<S>(this: Entity<string, any>, annotations: ServiceMap.ServiceMap<S>) {
