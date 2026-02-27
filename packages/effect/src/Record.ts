@@ -487,8 +487,8 @@ export const replace: {
 )
 
 /**
- * If the given key exists in the record, returns a new record with the key removed,
- * otherwise returns `undefined`.
+ * If the given key exists in the record, returns a new record with the key removed.
+ * If the key does not exist, returns a shallow copy of the original record.
  *
  * @example
  * ```ts
