@@ -26,7 +26,10 @@ const TestLayer = Layer.mergeAll(
   PathLayer,
   TerminalLayer,
   CliOutputLayer,
-  Layer.mock(ChildProcessSpawner.ChildProcessSpawner)({})
+  Layer.succeed(
+    ChildProcessSpawner.ChildProcessSpawner,
+    ChildProcessSpawner.make(() => Effect.die("Not implemented"))
+  )
 )
 
 const TestLayerWithoutFormatter = Layer.mergeAll(
@@ -35,7 +38,10 @@ const TestLayerWithoutFormatter = Layer.mergeAll(
   FileSystemLayer,
   PathLayer,
   TerminalLayer,
-  Layer.mock(ChildProcessSpawner.ChildProcessSpawner)({})
+  Layer.succeed(
+    ChildProcessSpawner.ChildProcessSpawner,
+    ChildProcessSpawner.make(() => Effect.die("Not implemented"))
+  )
 )
 
 describe("Command", () => {
@@ -1226,3 +1232,4 @@ describe("Command", () => {
       }))
   })
 })
+

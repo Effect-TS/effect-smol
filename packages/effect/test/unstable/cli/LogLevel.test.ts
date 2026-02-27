@@ -1,7 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Effect, FileSystem, Layer, Logger, Option, Path, ServiceMap } from "effect"
 import { CliOutput, Command, Flag, GlobalFlag } from "effect/unstable/cli"
-import { ChildProcessSpawner } from "effect/unstable/process/ChildProcessSpawner"
+import * as ChildProcessSpawner from "effect/unstable/process/ChildProcessSpawner"
 import * as MockTerminal from "./services/MockTerminal.ts"
 
 interface Log {
@@ -43,7 +43,10 @@ const FileSystemLayer = FileSystem.layerNoop({})
 const PathLayer = Path.layer
 const TerminalLayer = MockTerminal.layer
 const CliOutputLayer = CliOutput.layer(CliOutput.defaultFormatter({ colors: false }))
-const SpawnerLayer = Layer.mock(ChildProcessSpawner)({})
+const SpawnerLayer = Layer.succeed(
+  ChildProcessSpawner.ChildProcessSpawner,
+  ChildProcessSpawner.make(() => Effect.die("Not implemented"))
+)
 const LoggerLayer = Layer.effectServices(makeMockLogger)
 
 const TestLayer = Layer.mergeAll(
@@ -196,3 +199,4 @@ describe("LogLevel", () => {
       assert.strictEqual(logs.length, 0)
     }).pipe(Effect.provide(TestLayer)))
 })
+

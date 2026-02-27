@@ -15,7 +15,7 @@ const TestLayer = Layer.mergeAll(
   FileSystemLayer,
   PathLayer,
   TerminalLayer,
-  Layer.mock(ChildProcessSpawner.ChildProcessSpawner)({})
+  Layer.succeed(ChildProcessSpawner.ChildProcessSpawner, ChildProcessSpawner.make(() => Effect.die("Not implemented")))
 )
 
 describe("Param", () => {

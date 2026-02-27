@@ -2,7 +2,7 @@ import { describe, expect, it } from "@effect/vitest"
 import { Effect, FileSystem, Layer, Path } from "effect"
 import { TestConsole } from "effect/testing"
 import { CliOutput, Command } from "effect/unstable/cli"
-import { ChildProcessSpawner } from "effect/unstable/process/ChildProcessSpawner"
+import * as ChildProcessSpawner from "effect/unstable/process/ChildProcessSpawner"
 import * as Cli from "./fixtures/ComprehensiveCli.ts"
 import * as MockTerminal from "./services/MockTerminal.ts"
 import * as TestActions from "./services/TestActions.ts"
@@ -25,7 +25,7 @@ const TestLayer = Layer.mergeAll(
   PathLayer,
   TerminalLayer,
   CliOutputLayer,
-  Layer.mock(ChildProcessSpawner)({})
+  Layer.succeed(ChildProcessSpawner.ChildProcessSpawner, ChildProcessSpawner.make(() => Effect.die("Not implemented")))
 )
 
 const runCommand = Effect.fnUntraced(
@@ -368,3 +368,4 @@ describe("Command help output", () => {
       `)
     }).pipe(Effect.provide(TestLayer)))
 })
+
