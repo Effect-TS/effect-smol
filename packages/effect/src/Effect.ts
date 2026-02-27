@@ -5660,7 +5660,7 @@ export const provideServices: {
  * @since 4.0.0
  * @category ServiceMap
  */
-export const service: <I, S>(service: ServiceMap.Service<I, S>) => Effect<S, never, I> = internal.service
+export const service: <I, S>(service: ServiceMap.Key<I, S>) => Effect<S, never, I> = internal.service
 
 /**
  * Optionally accesses a service from the environment.
@@ -5696,7 +5696,7 @@ export const service: <I, S>(service: ServiceMap.Service<I, S>) => Effect<S, nev
  * @since 2.0.0
  * @category ServiceMap
  */
-export const serviceOption: <I, S>(key: ServiceMap.Service<I, S>) => Effect<Option<S>> = internal.serviceOption
+export const serviceOption: <I, S>(key: ServiceMap.Key<I, S>) => Effect<Option<S>> = internal.serviceOption
 
 /**
  * Provides part of the required context while leaving the rest unchanged.
@@ -5778,12 +5778,12 @@ export const updateServices: {
  */
 export const updateService: {
   <I, A>(
-    service: ServiceMap.Service<I, A>,
+    service: ServiceMap.Key<I, A>,
     f: (value: A) => A
   ): <XA, E, R>(self: Effect<XA, E, R>) => Effect<XA, E, R | I>
   <XA, E, R, I, A>(
     self: Effect<XA, E, R>,
-    service: ServiceMap.Service<I, A>,
+    service: ServiceMap.Key<I, A>,
     f: (value: A) => A
   ): Effect<XA, E, R | I>
 } = internal.updateService
@@ -5835,18 +5835,18 @@ export const updateService: {
  */
 export const provideService: {
   <I, S>(
-    service: ServiceMap.Service<I, S>
+    service: ServiceMap.Key<I, S>
   ): {
     (implementation: S): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, I>>
     <A, E, R>(self: Effect<A, E, R>, implementation: S): Effect<A, E, Exclude<R, I>>
   }
   <I, S>(
-    service: ServiceMap.Service<I, S>,
+    service: ServiceMap.Key<I, S>,
     implementation: S
   ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, I>>
   <A, E, R, I, S>(
     self: Effect<A, E, R>,
-    service: ServiceMap.Service<I, S>,
+    service: ServiceMap.Key<I, S>,
     implementation: S
   ): Effect<A, E, Exclude<R, I>>
 } = internal.provideService
@@ -5905,12 +5905,12 @@ export const provideService: {
  */
 export const provideServiceEffect: {
   <I, S, E2, R2>(
-    service: ServiceMap.Service<I, S>,
+    service: ServiceMap.Key<I, S>,
     acquire: Effect<S, E2, R2>
   ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E | E2, Exclude<R, I> | R2>
   <A, E, R, I, S, E2, R2>(
     self: Effect<A, E, R>,
-    service: ServiceMap.Service<I, S>,
+    service: ServiceMap.Key<I, S>,
     acquire: Effect<S, E2, R2>
   ): Effect<A, E | E2, Exclude<R, I> | R2>
 } = internal.provideServiceEffect
