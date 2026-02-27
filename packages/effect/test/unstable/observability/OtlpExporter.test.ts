@@ -5,7 +5,7 @@ import { HttpBody, HttpClient, HttpClientResponse } from "effect/unstable/http"
 import type { HttpClientError } from "effect/unstable/http"
 import { OtlpExporter } from "effect/unstable/observability"
 
-const makeHttpClient = Effect.fnUntraced(function*(retryAfter: string) {
+const makeHttpClient = Effect.fnUntraced(function*(retryAfter: string | undefined) {
   const attempts = yield* Ref.make(0)
 
   const httpClient = HttpClient.makeWith(
@@ -15,7 +15,9 @@ const makeHttpClient = Effect.fnUntraced(function*(retryAfter: string) {
       if (attempt === 1) {
         return HttpClientResponse.fromWeb(
           request,
-          new Response(null, { status: 429, headers: { "retry-after": retryAfter } })
+          retryAfter === undefined
+            ? new Response(null, { status: 429 })
+            : new Response(null, { status: 429, headers: { "retry-after": retryAfter } })
         )
       }
       return HttpClientResponse.fromWeb(request, new Response())
@@ -66,6 +68,27 @@ describe("OtlpExporter", () => {
     Effect.scoped(
       Effect.gen(function*() {
         const { attempts, httpClient } = yield* makeHttpClient("soon")
+        const exporter = yield* makeExporter(httpClient)
+
+        exporter.push({ value: 1 })
+        yield* yieldNowN(3)
+
+        assert.strictEqual(yield* Ref.get(attempts), 1)
+
+        yield* TestClock.adjust("4 seconds")
+        yield* yieldNowN(2)
+        assert.strictEqual(yield* Ref.get(attempts), 1)
+
+        yield* TestClock.adjust("1 second")
+        yield* yieldNowN(2)
+        assert.strictEqual(yield* Ref.get(attempts), 2)
+      })
+    ))
+
+  it.effect("uses fallback retry-after delay when header is missing", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const { attempts, httpClient } = yield* makeHttpClient(undefined)
         const exporter = yield* makeExporter(httpClient)
 
         exporter.push({ value: 1 })
