@@ -1711,105 +1711,44 @@ export const mapAccum: {
 })
 
 /**
- * Separate elements based on a predicate that also exposes the index of the element.
+ * Splits a chunk using a `Filter` into failures and successes.
+ *
+ * - Returns `[excluded, satisfying]`.
+ * - The filter receives `(element, index)`.
  *
  * @example
  * ```ts
- * import { Chunk } from "effect"
+ * import { Chunk, Result } from "effect"
  *
- * const chunk = Chunk.make(1, 2, 3, 4, 5, 6)
- * const [odds, evens] = Chunk.partition(chunk, (n) => n % 2 === 0)
- * console.log(Chunk.toArray(odds)) // [1, 3, 5]
- * console.log(Chunk.toArray(evens)) // [2, 4, 6]
- *
- * // With index parameter
- * const words = Chunk.make("a", "bb", "ccc", "dddd")
- * const [short, long] = Chunk.partition(words, (word, i) => word.length > i)
- * console.log(Chunk.toArray(short)) // ["a", "bb"]
- * console.log(Chunk.toArray(long)) // ["ccc", "dddd"]
- *
- * // With refinement
- * const mixed = Chunk.make("hello", 42, "world", 100)
- * const [strings, numbers] = Chunk.partition(
- *   mixed,
- *   (x): x is number => typeof x === "number"
+ * const [excluded, satisfying] = Chunk.partition(Chunk.make(1, -2, 3), (n, i) =>
+ *   n > 0 ? Result.succeed(n + i) : Result.fail(`negative:${n}`)
  * )
- * console.log(Chunk.toArray(strings)) // ["hello", "world"]
- * console.log(Chunk.toArray(numbers)) // [42, 100]
+ *
+ * console.log(Chunk.toArray(excluded)) // ["negative:-2"]
+ * console.log(Chunk.toArray(satisfying)) // [1, 5]
  * ```
  *
  * @category filtering
  * @since 2.0.0
  */
 export const partition: {
-  <A, B extends A>(
-    refinement: (a: NoInfer<A>, i: number) => a is B
-  ): (self: Chunk<A>) => [excluded: Chunk<Exclude<A, B>>, satisfying: Chunk<B>]
-  <A>(
-    predicate: (a: NoInfer<A>, i: number) => boolean
-  ): (self: Chunk<A>) => [excluded: Chunk<A>, satisfying: Chunk<A>]
-  <A, B extends A>(
+  <A, Pass, Fail>(
+    f: Filter.Filter<NoInfer<A>, Pass, Fail, [i: number]>
+  ): (self: Chunk<A>) => [excluded: Chunk<Fail>, satisfying: Chunk<Pass>]
+  <A, Pass, Fail>(
     self: Chunk<A>,
-    refinement: (a: A, i: number) => a is B
-  ): [excluded: Chunk<Exclude<A, B>>, satisfying: Chunk<B>]
-  <A>(self: Chunk<A>, predicate: (a: A, i: number) => boolean): [excluded: Chunk<A>, satisfying: Chunk<A>]
+    f: Filter.Filter<A, Pass, Fail, [i: number]>
+  ): [excluded: Chunk<Fail>, satisfying: Chunk<Pass>]
 } = dual(
   2,
-  <A>(self: Chunk<A>, predicate: (a: A, i: number) => boolean): [excluded: Chunk<A>, satisfying: Chunk<A>] => {
-    const excluded: Array<A> = []
-    const satisfying: Array<A> = []
-    const as = toReadonlyArray(self)
-    for (let i = 0; i < as.length; i++) {
-      if (predicate(as[i], i)) {
-        satisfying.push(as[i])
-      } else {
-        excluded.push(as[i])
-      }
-    }
+  <A, Pass, Fail>(
+    self: Chunk<A>,
+    f: Filter.Filter<A, Pass, Fail, [i: number]>
+  ): [excluded: Chunk<Fail>, satisfying: Chunk<Pass>] => {
+    const [excluded, satisfying] = RA.partition(self, f)
     return [fromArrayUnsafe(excluded), fromArrayUnsafe(satisfying)]
   }
 )
-
-/**
- * Partitions the elements of this chunk into two chunks using f.
- *
- * @example
- * ```ts
- * import { Chunk } from "effect"
- * import * as Result from "effect/Result"
- *
- * const chunk = Chunk.make("1", "hello", "2", "world", "3")
- * const [errors, numbers] = Chunk.partitionMap(chunk, (str) => {
- *   const num = parseInt(str)
- *   return isNaN(num)
- *     ? Result.fail(`"${str}" is not a number`)
- *     : Result.succeed(num)
- * })
- *
- * console.log(Chunk.toArray(errors)) // ['"hello" is not a number', '"world" is not a number']
- * console.log(Chunk.toArray(numbers)) // [1, 2, 3]
- *
- * // All successes
- * const validNumbers = Chunk.make("1", "2", "3")
- * const [noErrors, allNumbers] = Chunk.partitionMap(
- *   validNumbers,
- *   (str) => Result.succeed(parseInt(str))
- * )
- * console.log(Chunk.toArray(noErrors)) // []
- * console.log(Chunk.toArray(allNumbers)) // [1, 2, 3]
- * ```
- *
- * @category filtering
- * @since 2.0.0
- */
-export const partitionMap: {
-  <A, B, C>(f: (a: A) => Result<C, B>): (self: Chunk<A>) => [left: Chunk<B>, right: Chunk<C>]
-  <A, B, C>(self: Chunk<A>, f: (a: A) => Result<C, B>): [left: Chunk<B>, right: Chunk<C>]
-} = dual(2, <A, B, C>(self: Chunk<A>, f: (a: A) => Result<C, B>): [left: Chunk<B>, right: Chunk<C>] =>
-  pipe(
-    RA.partitionMap(toReadonlyArray(self), f),
-    ([l, r]) => [fromArrayUnsafe(l), fromArrayUnsafe(r)]
-  ))
 
 /**
  * Partitions the elements of this chunk into two chunks.

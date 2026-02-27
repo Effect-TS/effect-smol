@@ -4232,7 +4232,7 @@ export const partition: {
   ): Effect.Effect<[excluded: Array<E>, satisfying: Array<B>], never, R> =>
     map(
       forEach(elements, (a, i) => result(f(a, i)), options),
-      (results) => Arr.partitionMap(results, identity)
+      (results) => Arr.partition(results, identity)
     )
 )
 

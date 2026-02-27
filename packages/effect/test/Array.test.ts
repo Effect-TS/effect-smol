@@ -877,12 +877,9 @@ describe("Array", () => {
     deepStrictEqual(pipe([1, 2, 3][Symbol.iterator](), Arr.filterMap(f)), [2, 4])
   })
 
-  it("partitionMap", () => {
-    deepStrictEqual(Arr.partitionMap([], identity), [[], []])
-    deepStrictEqual(Arr.partitionMap([Result.succeed(1), Result.fail("a"), Result.succeed(2)], identity), [["a"], [
-      1,
-      2
-    ]])
+  it("partition (identity)", () => {
+    deepStrictEqual(Arr.partition([], identity), [[], []])
+    deepStrictEqual(Arr.partition([Result.succeed(1), Result.fail("a"), Result.succeed(2)], identity), [["a"], [1, 2]])
   })
 
   it("partition - transformed outputs", () => {

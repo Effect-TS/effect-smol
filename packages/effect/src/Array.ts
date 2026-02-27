@@ -3138,50 +3138,6 @@ export const flatten: <const S extends ReadonlyArray<ReadonlyArray<any>>>(self: 
   flatMap(identity) as any
 
 /**
- * Maps each element to a `Result`, then separates failures and successes into
- * two arrays.
- *
- * - Returns `[failures, successes]`.
- *
- * **Example** (Partitioning by Result)
- *
- * ```ts
- * import { Array, Result } from "effect"
- *
- * const result = Array.partitionMap(
- *   [1, 2, 3, 4, 5],
- *   (x) => x % 2 === 0 ? Result.succeed(x) : Result.fail(x)
- * )
- * console.log(result) // [[1, 3, 5], [2, 4]]
- * ```
- *
- * @see {@link partition} — partition by predicate
- * @see {@link separate} — partition an array of Results
- *
- * @category filtering
- * @since 2.0.0
- */
-export const partitionMap: {
-  <A, B, C>(f: (a: A, i: number) => Result.Result<C, B>): (self: Iterable<A>) => [fails: Array<B>, successes: Array<C>]
-  <A, B, C>(self: Iterable<A>, f: (a: A, i: number) => Result.Result<C, B>): [fails: Array<B>, successes: Array<C>]
-} = dual(
-  2,
-  <A, B, C>(self: Iterable<A>, f: (a: A, i: number) => Result.Result<C, B>): [fails: Array<B>, successes: Array<C>] => {
-    const failures: Array<B> = []
-    const successes: Array<C> = []
-    const as = fromIterable(self)
-    for (let i = 0; i < as.length; i++) {
-      const e = f(as[i], i)
-      if (Result.isFailure(e)) {
-        failures.push(e.failure)
-      } else {
-        successes.push(e.success)
-      }
-    }
-    return [failures, successes]
-  }
-)
-/**
  * Extracts all `Some` values from an iterable of `Option`s, discarding `None`s.
  *
  * **Example** (Extracting Some values)
@@ -3387,9 +3343,9 @@ export const partition: {
   ): [excluded: Array<Fail>, satisfying: Array<Pass>] => {
     const excluded: Array<Fail> = []
     const satisfying: Array<Pass> = []
-    const as = fromIterable(self)
-    for (let i = 0; i < as.length; i++) {
-      const result = f(as[i], i)
+    let i = 0
+    for (const a of self) {
+      const result = f(a, i++)
       if (Result.isSuccess(result)) {
         satisfying.push(result.success)
       } else {
@@ -3428,7 +3384,7 @@ export const separate: <T extends Iterable<Result.Result<any, any>>>(
 ) => [
   failures: Array<Result.Result.Failure<ReadonlyArray.Infer<T>>>,
   successes: Array<Result.Result.Success<ReadonlyArray.Infer<T>>>
-] = partitionMap(identity)
+] = partition(identity)
 
 /**
  * Folds an iterable from left to right into a single value.
