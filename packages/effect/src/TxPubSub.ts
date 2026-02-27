@@ -391,8 +391,8 @@ export const isShutdown = <A>(self: TxPubSub<A>): Effect.Effect<boolean, never, 
  * @category mutations
  */
 export const publish: {
-  <A>(value: A): (self: TxPubSub<A>) => Effect.Effect<boolean>
-  <A>(self: TxPubSub<A>, value: A): Effect.Effect<boolean>
+  <A>(value: A): (self: TxPubSub<A>) => Effect.Effect<boolean, never, Effect.Transaction>
+  <A>(self: TxPubSub<A>, value: A): Effect.Effect<boolean, never, Effect.Transaction>
 } = dual(
   2,
   <A>(self: TxPubSub<A>, value: A): Effect.Effect<boolean, never, Effect.Transaction> =>
@@ -440,8 +440,8 @@ export const publish: {
  * @category mutations
  */
 export const publishAll: {
-  <A>(values: Iterable<A>): (self: TxPubSub<A>) => Effect.Effect<boolean>
-  <A>(self: TxPubSub<A>, values: Iterable<A>): Effect.Effect<boolean>
+  <A>(values: Iterable<A>): (self: TxPubSub<A>) => Effect.Effect<boolean, never, Effect.Transaction>
+  <A>(self: TxPubSub<A>, values: Iterable<A>): Effect.Effect<boolean, never, Effect.Transaction>
 } = dual(
   2,
   <A>(self: TxPubSub<A>, values: Iterable<A>): Effect.Effect<boolean, never, Effect.Transaction> =>
