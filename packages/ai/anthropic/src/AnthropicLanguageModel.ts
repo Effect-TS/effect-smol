@@ -408,7 +408,7 @@ export const model = (
   model: (string & {}) | Model,
   config?: Omit<typeof Config.Service, "model">
 ): AiModel.Model<"anthropic", LanguageModel.LanguageModel, AnthropicClient> =>
-  AiModel.make("anthropic", layer({ model, config }))
+  AiModel.make("anthropic", model, layer({ model, config }))
 
 /**
  * Creates an Anthropic language model service.

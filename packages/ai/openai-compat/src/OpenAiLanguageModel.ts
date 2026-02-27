@@ -316,7 +316,7 @@ export const model = (
   model: string,
   config?: Omit<typeof Config.Service, "model">
 ): AiModel.Model<"openai", LanguageModel.LanguageModel, OpenAiClient> =>
-  AiModel.make("openai", layer({ model, config }))
+  AiModel.make("openai", model, layer({ model, config }))
 
 // TODO
 // /**
@@ -327,7 +327,7 @@ export const model = (
 //   model: string,
 //   config?: Omit<typeof Config.Service, "model">
 // ): AiModel.Model<"openai", LanguageModel.LanguageModel | Tokenizer.Tokenizer, OpenAiClient> =>
-//   AiModel.make("openai", layerWithTokenizer({ model, config }))
+//   AiModel.make("openai", model, layerWithTokenizer({ model, config }))
 
 /**
  * Creates an OpenAI language model service.

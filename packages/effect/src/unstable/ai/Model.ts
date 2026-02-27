@@ -14,7 +14,7 @@
  *
  * declare const myAnthropicLayer: Layer.Layer<LanguageModel.LanguageModel>
  *
- * const anthropicModel = Model.make("anthropic", myAnthropicLayer)
+ * const anthropicModel = Model.make("anthropic", "claude-3-5-haiku", myAnthropicLayer)
  *
  * const program = Effect.gen(function*() {
  *   const response = yield* LanguageModel.generateText({
@@ -55,8 +55,13 @@ const TypeId = "~effect/ai/Model" as const
  */
 export interface Model<in out Provider, in out Provides, in out Requires>
   extends
-    Layer.Layer<Provides | ProviderName, never, Requires>,
-    Effect.Yieldable<Model<Provider, Provides, Requires>, Layer.Layer<Provides | ProviderName>, never, Requires>
+    Layer.Layer<Provides | ProviderName | ModelName, never, Requires>,
+    Effect.Yieldable<
+      Model<Provider, Provides, Requires>,
+      Layer.Layer<Provides | ProviderName | ModelName>,
+      never,
+      Requires
+    >
 {
   readonly [TypeId]: typeof TypeId
   /**
@@ -77,6 +82,20 @@ export interface Model<in out Provider, in out Provides, in out Requires>
  */
 export class ProviderName extends ServiceMap.Service<ProviderName, string>()(
   "effect/unstable/ai/Model/ProviderName"
+) {}
+
+/**
+ * Service tag that provides the current large language model name.
+ *
+ * This tag is automatically provided by Model instances and can be used to
+ * access the name of the model that is currently in use within a given Effect
+ * program.
+ *
+ * @since 4.0.0
+ * @category services
+ */
+export class ModelName extends ServiceMap.Service<ModelName, string>()(
+  "effect/unstable/ai/Model/ModelName"
 ) {}
 
 const Proto = {
@@ -112,11 +131,12 @@ const Proto = {
  *
  * declare const bedrockLayer: Layer.Layer<LanguageModel.LanguageModel>
  *
- * // Model automatically provides ProviderName service
+ * // Model automatically provides ProviderName and ModelName services
  * const checkProviderAndGenerate = Effect.gen(function*() {
  *   const provider = yield* Model.ProviderName
+ *   const modelName = yield* Model.ModelName
  *
- *   console.log(`Generating with: ${provider}`)
+ *   console.log(`Generating with: ${provider}/${modelName}`)
  *
  *   return yield* LanguageModel.generateText({
  *     prompt: `Hello from ${provider}!`
@@ -124,19 +144,23 @@ const Proto = {
  * })
  *
  * const program = checkProviderAndGenerate.pipe(
- *   Effect.provide(Model.make("amazon-bedrock", bedrockLayer))
+ *   Effect.provide(Model.make("amazon-bedrock", "claude-3-5-haiku", bedrockLayer))
  * )
- * // Will log: "Generating with: amazon-bedrock"
+ * // Will log: "Generating with: amazon-bedrock/claude-3-5-haiku"
  * ```
  *
  * @since 4.0.0
  * @category constructors
  */
-export const make = <const Provider extends string, Provides, Requires>(
+export const make = <const Provider extends string, const Name extends string, Provides, Requires>(
   /**
    * Provider identifier (e.g., "openai", "anthropic", "amazon-bedrock").
    */
   provider: Provider,
+  /**
+   * Model identifier (e.g., "gpt-5", "claude-3-5-haiku").
+   */
+  modelName: Name,
   /**
    * Layer that provides the AI services for this provider.
    */
@@ -145,5 +169,12 @@ export const make = <const Provider extends string, Provides, Requires>(
   Object.assign(
     Object.create(Proto),
     { provider },
-    Layer.merge(Layer.succeed(ProviderName)(provider), layer)
+    Layer.merge(
+      layer,
+      Layer.succeedServices(
+        ProviderName.serviceMap(provider).pipe(
+          ServiceMap.add(ModelName, modelName)
+        )
+      )
+    )
   )
