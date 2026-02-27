@@ -5,6 +5,7 @@ import * as Effect from "effect/Effect"
 import { flow } from "effect/Function"
 import * as Inspectable from "effect/Inspectable"
 import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
 import type * as Scope from "effect/Scope"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"
@@ -189,8 +190,8 @@ class UndiciResponse extends Inspectable.Class implements HttpClientResponse {
     return this.cachedCookies = header ? Cookies.fromSetCookie(header) : Cookies.empty
   }
 
-  get remoteAddress(): string | undefined {
-    return undefined
+  get remoteAddress(): Option.Option<string> {
+    return Option.none()
   }
 
   get stream(): Stream.Stream<Uint8Array, Error.HttpClientError> {

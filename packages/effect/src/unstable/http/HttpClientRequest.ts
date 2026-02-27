@@ -6,6 +6,7 @@ import type * as FileSystem from "../../FileSystem.ts"
 import { dual } from "../../Function.ts"
 import * as Inspectable from "../../Inspectable.ts"
 import { stringOrRedacted } from "../../internal/redacted.ts"
+import * as Option from "../../Option.ts"
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import type * as PlatformError from "../../PlatformError.ts"
 import { hasProperty } from "../../Predicate.ts"
@@ -37,7 +38,7 @@ export interface HttpClientRequest extends Inspectable.Inspectable, Pipeable {
   readonly method: HttpMethod
   readonly url: string
   readonly urlParams: UrlParams.UrlParams
-  readonly hash: string | undefined
+  readonly hash: Option.Option<string>
   readonly headers: Headers.Headers
   readonly body: HttpBody.HttpBody
 }
@@ -91,7 +92,7 @@ function makeProto(
   method: HttpMethod,
   url: string,
   urlParams: UrlParams.UrlParams,
-  hash: string | undefined,
+  hash: Option.Option<string>,
   headers: Headers.Headers,
   body: HttpBody.HttpBody
 ): HttpClientRequest {
@@ -113,7 +114,7 @@ export const empty: HttpClientRequest = makeProto(
   "GET",
   "",
   UrlParams.empty,
-  undefined,
+  Option.none(),
   Headers.empty,
   HttpBody.empty
 )
@@ -344,7 +345,7 @@ export const setUrl: {
   }
   const clone = new URL(url.toString())
   const urlParams = UrlParams.fromInput(clone.searchParams)
-  const hash = clone.hash ? clone.hash.slice(1) : undefined
+  const hash = Option.fromNullishOr(clone.hash === "" ? undefined : clone.hash.slice(1))
   clone.search = ""
   clone.hash = ""
   return makeProto(
@@ -504,7 +505,7 @@ export const setHash: {
     self.method,
     self.url,
     self.urlParams,
-    hash,
+    Option.some(hash),
     self.headers,
     self.body
   ))
@@ -518,7 +519,7 @@ export const removeHash = (self: HttpClientRequest): HttpClientRequest =>
     self.method,
     self.url,
     self.urlParams,
-    undefined,
+    Option.none(),
     self.headers,
     self.body
   )
@@ -737,9 +738,10 @@ export const bodyFile: {
  * @since 4.0.0
  * @category combinators
  */
-export function toUrl(self: HttpClientRequest): URL | undefined {
-  const r = UrlParams.makeUrl(self.url, self.urlParams, self.hash)
+export function toUrl(self: HttpClientRequest): Option.Option<URL> {
+  const r = UrlParams.makeUrl(self.url, self.urlParams, Option.getOrUndefined(self.hash))
   if (Result.isSuccess(r)) {
-    return r.success
+    return Option.some(r.success)
   }
+  return Option.none()
 }

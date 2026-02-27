@@ -1,6 +1,8 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect } from "effect"
+import { assertNone } from "@effect/vitest/utils"
+import { Cause, Effect } from "effect"
 import {
+  causeResponseStripped,
   HttpServerError,
   InternalError,
   isHttpServerError,
@@ -98,6 +100,22 @@ describe("HttpServerError", () => {
       assert.isFalse(isHttpServerError(new RouteNotFound({ request })))
       assert.isFalse(isHttpServerError(new ServeError({ cause: new Error("boom") })))
       assert.isFalse(isHttpServerError({ _tag: "HttpServerError" }))
+    })
+  })
+
+  describe("causeResponseStripped", () => {
+    it("returns none cause for response defects", () => {
+      const response = makeResponse(418)
+      const [out, cause] = causeResponseStripped(Cause.die(response))
+      assert.strictEqual(out, response)
+      assertNone(cause)
+    })
+
+    it("returns some cause for non-response failures", () => {
+      const request = makeRequest("GET", "http://example.com/fail")
+      const [out, cause] = causeResponseStripped(Cause.fail(new RouteNotFound({ request })))
+      assert.strictEqual(out.status, 500)
+      assert.strictEqual(cause._tag, "Some")
     })
   })
 })

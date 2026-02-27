@@ -1,5 +1,6 @@
 import { describe, it } from "@effect/vitest"
-import { strictEqual } from "@effect/vitest/utils"
+import { assertNone, assertSome, strictEqual } from "@effect/vitest/utils"
+import * as Option from "effect/Option"
 import { HttpClientRequest } from "effect/unstable/http"
 
 describe("HttpClientRequest", () => {
@@ -77,6 +78,33 @@ describe("HttpClientRequest", () => {
 
       strictEqual(request.headers["content-type"], undefined)
       strictEqual(request.headers["content-length"], undefined)
+    })
+  })
+
+  describe("hash", () => {
+    it("stores hash as Option", () => {
+      const request = HttpClientRequest.get(new URL("http://example.com/path?x=1#section"))
+      assertSome(request.hash, "section")
+      const url = HttpClientRequest.toUrl(request)
+      if (Option.isNone(url)) {
+        throw new Error("Expected toUrl to return Some")
+      }
+      strictEqual(url.value.toString(), "http://example.com/path?x=1#section")
+    })
+
+    it("removes hash", () => {
+      const request = HttpClientRequest.get("http://example.com").pipe(
+        HttpClientRequest.setHash("section"),
+        HttpClientRequest.removeHash
+      )
+      assertNone(request.hash)
+    })
+
+    it("returns none for invalid url", () => {
+      const request = HttpClientRequest.get("http://example.com").pipe(
+        HttpClientRequest.setUrl("http://[::1")
+      )
+      assertNone(HttpClientRequest.toUrl(request))
     })
   })
 })

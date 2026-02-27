@@ -9,6 +9,7 @@ import type * as FileSystem from "effect/FileSystem"
 import { flow, type LazyArg } from "effect/Function"
 import * as Latch from "effect/Latch"
 import * as Layer from "effect/Layer"
+import type * as Option from "effect/Option"
 import type * as Path from "effect/Path"
 import type * as Record from "effect/Record"
 import * as Scope from "effect/Scope"
@@ -246,7 +247,7 @@ class ServerRequestImpl extends NodeHttpIncomingMessage<HttpServerError> impleme
     upgradeEffect?: Effect.Effect<Socket.Socket, HttpServerError>,
     url = source.url!,
     headersOverride?: Headers.Headers,
-    remoteAddressOverride?: string
+    remoteAddressOverride?: Option.Option<string>
   ) {
     super(source, (cause) =>
       new HttpServerError({
@@ -278,7 +279,7 @@ class ServerRequestImpl extends NodeHttpIncomingMessage<HttpServerError> impleme
     options: {
       readonly url?: string | undefined
       readonly headers?: Headers.Headers | undefined
-      readonly remoteAddress?: string | undefined
+      readonly remoteAddress?: Option.Option<string> | undefined
     }
   ) {
     return new ServerRequestImpl(
@@ -287,7 +288,7 @@ class ServerRequestImpl extends NodeHttpIncomingMessage<HttpServerError> impleme
       this.upgradeEffect,
       options.url ?? this.url,
       options.headers ?? this.headersOverride,
-      options.remoteAddress ?? this.remoteAddressOverride
+      "remoteAddress" in options ? options.remoteAddress : this.remoteAddressOverride
     )
   }
 

@@ -5,6 +5,7 @@ import * as Data from "../../Data.ts"
 import * as Duration from "../../Duration.ts"
 import { dual } from "../../Function.ts"
 import * as Inspectable from "../../Inspectable.ts"
+import * as Option from "../../Option.ts"
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Record from "../../Record.ts"
@@ -512,11 +513,11 @@ export const remove: {
  * @category combinators
  */
 export const get: {
-  (name: string): (self: Cookies) => Cookie | undefined
-  (self: Cookies, name: string): Cookie | undefined
+  (name: string): (self: Cookies) => Option.Option<Cookie>
+  (self: Cookies, name: string): Option.Option<Cookie>
 } = dual(
   (args) => isCookies(args[0]),
-  (self: Cookies, name: string): Cookie | undefined => self.cookies[name]
+  (self: Cookies, name: string): Option.Option<Cookie> => Option.fromUndefinedOr(self.cookies[name])
 )
 
 /**
@@ -526,13 +527,11 @@ export const get: {
  * @category combinators
  */
 export const getValue: {
-  (name: string): (self: Cookies) => string | undefined
-  (self: Cookies, name: string): string | undefined
+  (name: string): (self: Cookies) => Option.Option<string>
+  (self: Cookies, name: string): Option.Option<string>
 } = dual(
   (args) => isCookies(args[0]),
-  (self: Cookies, name: string): string | undefined => {
-    return self.cookies[name]?.value
-  }
+  (self: Cookies, name: string): Option.Option<string> => Option.map(get(self, name), (cookie) => cookie.value)
 )
 
 /**

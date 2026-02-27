@@ -6,6 +6,7 @@ import * as Channel from "../../Channel.ts"
 import * as Effect from "../../Effect.ts"
 import type * as FileSystem from "../../FileSystem.ts"
 import * as Inspectable from "../../Inspectable.ts"
+import * as Option from "../../Option.ts"
 import type * as Path from "../../Path.ts"
 import type { ReadonlyRecord } from "../../Record.ts"
 import * as Result from "../../Result.ts"
@@ -62,7 +63,7 @@ export interface HttpServerRequest extends HttpIncomingMessage.HttpIncomingMessa
     options: {
       readonly url?: string
       readonly headers?: Headers.Headers
-      readonly remoteAddress?: string
+      readonly remoteAddress?: Option.Option<string>
     }
   ) => HttpServerRequest
 }
@@ -297,13 +298,13 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
   readonly source: Request
   readonly url: string
   public headersOverride?: Headers.Headers | undefined
-  private remoteAddressOverride?: string | undefined
+  private remoteAddressOverride?: Option.Option<string> | undefined
 
   constructor(
     source: Request,
     url: string,
     headersOverride?: Headers.Headers,
-    remoteAddressOverride?: string
+    remoteAddressOverride?: Option.Option<string>
   ) {
     super()
     this[TypeId] = TypeId
@@ -324,14 +325,14 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
     options: {
       readonly url?: string | undefined
       readonly headers?: Headers.Headers | undefined
-      readonly remoteAddress?: string | undefined
+      readonly remoteAddress?: Option.Option<string> | undefined
     }
   ) {
     return new ServerRequestImpl(
       this.source,
       options.url ?? this.url,
       options.headers ?? this.headersOverride,
-      options.remoteAddress ?? this.remoteAddressOverride
+      "remoteAddress" in options ? options.remoteAddress : this.remoteAddressOverride
     )
   }
   get method(): HttpMethod {
@@ -340,8 +341,8 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
   get originalUrl() {
     return this.source.url
   }
-  get remoteAddress(): string | undefined {
-    return this.remoteAddressOverride ? this.remoteAddressOverride : undefined
+  get remoteAddress(): Option.Option<string> {
+    return this.remoteAddressOverride ?? Option.none()
   }
   get headers(): Headers.Headers {
     this.headersOverride ??= Headers.fromInput(this.source.headers as any)
@@ -490,13 +491,13 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
  * @since 4.0.0
  * @category conversions
  */
-export const toURL = (self: HttpServerRequest): URL | undefined => {
+export const toURL = (self: HttpServerRequest): Option.Option<URL> => {
   const host = self.headers.host ?? "localhost"
   const protocol = self.headers["x-forwarded-proto"] === "https" ? "https" : "http"
   try {
-    return new URL(self.url, `${protocol}://${host}`)
+    return Option.some(new URL(self.url, `${protocol}://${host}`))
   } catch {
-    return undefined
+    return Option.none()
   }
 }
 
@@ -512,7 +513,7 @@ export const toWebResult = (self: HttpServerRequest, options?: {
     return Result.succeed(self.source)
   }
   const url = toURL(self)
-  if (url === undefined) {
+  if (Option.isNone(url)) {
     return Result.fail(
       new RequestParseError({
         request: self,
@@ -531,7 +532,7 @@ export const toWebResult = (self: HttpServerRequest, options?: {
     requestInit.body = Stream.toReadableStreamWith(self.stream, options?.services ?? ServiceMap.empty())
     ;(requestInit as any).duplex = "half"
   }
-  return Result.succeed(new Request(url, requestInit))
+  return Result.succeed(new Request(url.value, requestInit))
 }
 
 /**
