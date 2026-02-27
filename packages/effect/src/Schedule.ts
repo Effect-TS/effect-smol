@@ -1310,7 +1310,7 @@ export const collectWhile: {
   <Input, Output, Error2 = never, Env2 = never>(
     predicate: (
       metadata: Metadata<Output, Input>
-    ) => Effect<boolean, Error2, Env2>
+    ) => boolean | Effect<boolean, Error2, Env2>
   ): <Error, Env>(
     self: Schedule<Output, Input, Error, Env>
   ) => Schedule<Array<Output>, Input, Error | Error2, Env | Env2>
@@ -1318,19 +1318,18 @@ export const collectWhile: {
     self: Schedule<Output, Input, Error, Env>,
     predicate: (
       metadata: Metadata<Output, Input>
-    ) => Effect<boolean, Error2, Env2>
+    ) => boolean | Effect<boolean, Error2, Env2>
   ): Schedule<Array<Output>, Input, Error | Error2, Env | Env2>
 } = dual(2, <Output, Input, Error, Env, Error2 = never, Env2 = never>(
   self: Schedule<Output, Input, Error, Env>,
   predicate: (
     metadata: Metadata<Output, Input>
-  ) => Effect<boolean, Error2, Env2>
+  ) => boolean | Effect<boolean, Error2, Env2>
 ): Schedule<Array<Output>, Input, Error | Error2, Env | Env2> =>
-  reduce(while_(self, predicate), () => [] as Array<Output>, (outputs, output) =>
-    effect.succeed((() => {
-      outputs.push(output)
-      return outputs
-    })())))
+  reduce(while_(self, predicate), () => [] as Array<Output>, (outputs, output) => {
+    outputs.push(output)
+    return outputs
+  }))
 
 /**
  * Returns a new `Schedule` that recurs on the specified `Cron` schedule and
@@ -2566,31 +2565,37 @@ export const recurs = (times: number): Schedule<number> =>
 export const reduce: {
   <State, Output, Error2 = never, Env2 = never>(
     initial: LazyArg<State>,
-    combine: (state: State, output: Output) => Effect<State, Error2, Env2>
+    combine: (state: State, output: Output) => State | Effect<State, Error2, Env2>
   ): <Input, Error, Env>(
     self: Schedule<Output, Input, Error, Env>
   ) => Schedule<State, Input, Error | Error2, Env | Env2>
   <Output, Input, Error, Env, State, Error2 = never, Env2 = never>(
     self: Schedule<Output, Input, Error, Env>,
     initial: LazyArg<State>,
-    combine: (state: State, output: Output) => Effect<State, Error2, Env2>
+    combine: (state: State, output: Output) => State | Effect<State, Error2, Env2>
   ): Schedule<State, Input, Error | Error2, Env | Env2>
 } = dual(3, <Output, Input, Error, Env, State, Error2 = never, Env2 = never>(
   self: Schedule<Output, Input, Error, Env>,
   initial: LazyArg<State>,
-  combine: (state: State, output: Output) => Effect<State, Error2, Env2>
+  combine: (state: State, output: Output) => State | Effect<State, Error2, Env2>
 ): Schedule<State, Input, Error | Error2, Env | Env2> =>
   fromStep(effect.map(toStep(self), (step) => {
     let state = initial()
     return (now, input) =>
       Pull.matchEffect(step(now, input), {
-        onSuccess: ([output, delay]) =>
-          effect.map(combine(state, output), (nextState) => {
+        onSuccess([output, delay]) {
+          const next = combine(state, output)
+          if (!isEffect(next)) return effect.succeed([next, delay] as [State, Duration.Duration])
+          return effect.map(next, (nextState) => {
             state = nextState
             return [nextState, delay]
-          }),
+          })
+        },
         onFailure: effect.failCause,
-        onDone: (output) => effect.flatMap(combine(state, output), Cause.done)
+        onDone(output) {
+          const next = combine(state, output)
+          return isEffect(next) ? effect.flatMap(next, Cause.done) : Cause.done(next)
+        }
       })
   })))
 
@@ -3098,7 +3103,7 @@ const while_: {
   <Input, Output, Error2 = never, Env2 = never>(
     predicate: (
       metadata: Metadata<Output, Input>
-    ) => Effect<boolean, Error2, Env2>
+    ) => boolean | Effect<boolean, Error2, Env2>
   ): <Error, Env>(
     self: Schedule<Output, Input, Error, Env>
   ) => Schedule<Output, Input, Error | Error2, Env | Env2>
@@ -3106,21 +3111,22 @@ const while_: {
     self: Schedule<Output, Input, Error, Env>,
     predicate: (
       metadata: Metadata<Output, Input>
-    ) => Effect<boolean, Error2, Env2>
+    ) => boolean | Effect<boolean, Error2, Env2>
   ): Schedule<Output, Input, Error | Error2, Env | Env2>
 } = dual(2, <Output, Input, Error, Env, Error2 = never, Env2 = never>(
   self: Schedule<Output, Input, Error, Env>,
   predicate: (
     metadata: Metadata<Output, Input>
-  ) => Effect<boolean, Error2, Env2>
+  ) => boolean | Effect<boolean, Error2, Env2>
 ): Schedule<Output, Input, Error | Error2, Env | Env2> =>
   fromStep(effect.map(toStep(self), (step) => {
     const meta = metadataFn()
     return (now, input) =>
       effect.flatMap(step(now, input), (result) => {
         const [output, duration] = result
+        const eff = predicate({ ...meta(now, input), output, duration })
         return effect.flatMap(
-          predicate({ ...meta(now, input), output, duration }),
+          isEffect(eff) ? eff : effect.succeed(eff),
           (check) => (check ? effect.succeed(result) : Cause.done(output))
         )
       })
@@ -3265,6 +3271,16 @@ export const satisfiesInputType = <T>() =>
 <Input extends T, Output = never, Error = never, Env = never>(
   self: Schedule<Output, Input, Error, Env>
 ): Schedule<Output, Input, Error, Env> => self
+
+/**
+ * Sets the input type of the provided schedule to a specified type, without
+ * altering the schedule's behavior.
+ *
+ * @since 2.0.0
+ * @category ensuring types
+ */
+export const setInputType =
+  <T>() => <Output, Error, Env>(self: Schedule<Output, T, Error, Env>): Schedule<Output, T, Error, Env> => self
 
 /**
  * Ensures that the provided schedule respects a specified output type.

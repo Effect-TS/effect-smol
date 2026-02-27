@@ -32,7 +32,7 @@ import * as HttpApiSchema from "./HttpApiSchema.ts"
  * @since 4.0.0
  * @category models
  */
-export type Client<Groups extends HttpApiGroup.Any, E, R> = Simplify<
+export type Client<Groups extends HttpApiGroup.Any, E = HttpApiSchemaError, R = never> = Simplify<
   & {
     readonly [Group in Extract<Groups, { readonly topLevel: false }> as HttpApiGroup.Name<Group>]: Client.Group<
       Group,
@@ -45,6 +45,14 @@ export type Client<Groups extends HttpApiGroup.Any, E, R> = Simplify<
     readonly [Method in Client.TopLevelMethods<Groups, E, R> as Method[0]]: Method[1]
   }
 >
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type ForApi<Api extends HttpApi.Any, E = HttpApiSchemaError, R = never> = Api extends
+  HttpApi.HttpApi<infer _Id, infer Groups> ? Client<Groups, E, R> :
+  never
 
 /**
  * @since 4.0.0
@@ -314,7 +322,7 @@ export const make = <ApiId extends string, Groups extends HttpApiGroup.Any>(
     readonly baseUrl?: URL | string | undefined
   }
 ): Effect.Effect<
-  Client<Groups, HttpApiSchemaError, never>,
+  Client<Groups>,
   never,
   HttpClient.HttpClient | HttpApiGroup.MiddlewareClient<Groups>
 > =>

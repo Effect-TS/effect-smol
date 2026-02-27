@@ -245,6 +245,12 @@ Learn how to batch multiple requests into fewer external calls.
 
 - **[Batching requests with RequestResolver](./ai-docs/src/05_batching/10_request-resolver.ts)**: Define request types with `Request.Class`, resolve them in batches with `RequestResolver`.
 
+## Working with Schedules
+
+Schedules define recurring patterns for retries, repeats and polling.
+
+- **[Working with the Schedule module](./ai-docs/src/06_schedule/10_schedules.ts)**: Build schedules, compose them, and use them with `Effect.retry` and `Effect.repeat`.
+
 ## Observability
 
 Effect has built-in support for structured logging, distributed tracing, and
@@ -267,6 +273,20 @@ Build http clients with the `HttpClient` module.
 
 - **[Getting started with HttpClient](./ai-docs/src/50_http-client/10_basics.ts)**: Define a service that uses the HttpClient module to fetch data from an external API
 
+## Building HttpApi servers
+
+`HttpApi` gives you schema-first, type-safe HTTP APIs with runtime validation, typed clients, and OpenAPI docs from one definition.
+
+- **[Getting started with HttpApi](./ai-docs/src/51_http-server/10_basics.ts)**:
+  Define a schema-first API, implement handlers, secure endpoints with
+  middleware, serve it over HTTP, and call it using a generated typed client.
+
+## Working with child processes
+
+Use the `effect/unstable/process` modules to define child processes and run them with `ChildProcessSpawner.
+
+- **[Working with child processes](./ai-docs/src/60_child-process/10_working-with-child-processes.ts)**: This example shows how to collect process output, compose pipelines, and stream long-running command output.
+
 ## Building CLI applications
 
 Use the "effect/unstable/cli" modules to build CLI applications. These modules
@@ -276,6 +296,16 @@ managing the flow of a CLI application.
 - **[Getting started with Effect CLI modules](./ai-docs/src/70_cli/10_basics.ts)**:
   Build a command-line app with typed arguments and flags, then wire subcommand
   handlers into a single executable command.
+
+## Working with AI modules
+
+Effect's AI modules provide a provider-agnostic interface for language models.
+You can generate text, decode structured objects with `Schema` and stream partial
+responses.
+
+- **[Using LanguageModel for text, objects, and streams](./ai-docs/src/71_ai/10_language-model.ts)**:
+  Configure a provider once, then use `LanguageModel` for plain text
+  generation, schema-validated object generation, and streaming responses.
 
 ## Building distributed applications with cluster
 

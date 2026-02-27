@@ -31,6 +31,8 @@ used in practice.
 
 - **Prefer using the service style** of structuring code, as this represents real
   world usage and best practices.
+- Use the `fixtures` directory to illustrate / suggest best practices for
+  project structure, file organization, and code organization.
 
 Pull requests with only ai documentation changes **DO NOT** need a changeset.
 
