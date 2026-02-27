@@ -170,7 +170,11 @@ export const make = <const Provider extends string, const Name extends string, P
     Object.create(Proto),
     { provider },
     Layer.merge(
-      Layer.succeed(ProviderName)(provider),
-      Layer.merge(Layer.succeed(ModelName)(modelName), layer)
+      layer,
+      Layer.succeedServices(
+        ProviderName.serviceMap(provider).pipe(
+          ServiceMap.add(ModelName, modelName)
+        )
+      )
     )
   )
