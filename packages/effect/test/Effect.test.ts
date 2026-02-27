@@ -1,4 +1,4 @@
-import { assert, describe, it } from "@effect/vitest"
+import { assert, describe, expectTypeOf, it } from "@effect/vitest"
 import { assertExitFailure } from "@effect/vitest/utils"
 import {
   Cause,
@@ -135,45 +135,47 @@ describe("Effect", () => {
       Effect.runPromise
     ))
 
-  it("ServiceMap.Opaque", () => {
+  it("ServiceMap.Opaque", async () => {
     const ServiceTypeId = "~effect/ServiceMap/Service" as const
      const TypeId = "~ServiceMap.Opaque"
 
-     interface Opaque<Identifier extends object, in out Shape extends object>
-  extends Pipeable, Inspectable, Yieldable<Opaque<Identifier, Identifier>, Identifier, never, Identifier>
-{
-  readonly [ServiceTypeId]: {
-    readonly _Service: Types.Invariant<Identifier>
-    readonly _Identifier: Types.Invariant<Identifier>
-  }
-  readonly Service: Identifier
-  readonly Identifier: Identifier
-  // of(self: Identifier): Identifier
-  // serviceMap(self: Identifier): ServiceMap.ServiceMap<Identifier>
-  // difference; of is used to cast Shape to identifier
-  of(self: Shape): Identifier
-  serviceMap(self: Shape): ServiceMap.ServiceMap<Identifier>
-  use<A, E, R>(f: (service: Identifier) => Effect.Effect<A, E, R>): Effect.Effect<A, E, R | Identifier>
-  useSync<A>(f: (service: Identifier) => A): Effect.Effect<A, never, Identifier>
+     interface Opaque<Identifier extends object, in out Shape extends object> extends Pipeable, Inspectable, Yieldable<Opaque<Identifier, Identifier>, Identifier, never, Identifier> {
+      readonly [ServiceTypeId]: {
+        readonly _Service: Types.Invariant<Identifier>
+        readonly _Identifier: Types.Invariant<Identifier>
+      }
+      readonly Service: Identifier
+      readonly Identifier: Identifier
+      // of(self: Identifier): Identifier
+      // serviceMap(self: Identifier): ServiceMap.ServiceMap<Identifier>
+      // difference; of is used to cast Shape to identifier
+      of(self: Shape): Identifier
+      serviceMap(self: Shape): ServiceMap.ServiceMap<Identifier>
+      use<A, E, R>(f: (service: Identifier) => Effect.Effect<A, E, R>): Effect.Effect<A, E, R | Identifier>
+      useSync<A>(f: (service: Identifier) => A): Effect.Effect<A, never, Identifier>
 
-  readonly stack?: string | undefined
-  readonly key: string
-}
+      readonly stack?: string | undefined
+      readonly key: string
+    }
 
- function Opaque  <Identifier extends object, Shape extends object>() {
-  return <const Key extends string>(_key: Key) => {
-    const c: abstract new(_: never) => Shape & { readonly [TypeId]: Key } = class {} as any
+    function Opaque  <Identifier extends object, Shape extends object>() {
+      return <const Key extends string>(key: Key) => {
+        const c: abstract new(_: never) => Shape & { readonly [TypeId]: Key } = class {} as any
 
-    return null as unknown as typeof c & Opaque<Identifier, Shape>
-  }
-}
-class ATag extends Opaque<ATag, { test: Effect.Effect<"A"> }>()("ATag") {}
+        // TODO: implement. Currently not needed for the illustration.
+        return ServiceMap.Service<any, any>()(key) as unknown as typeof c & Opaque<Identifier, Shape>
+      }
+    }
+    class ATag extends Opaque<ATag, { test: Effect.Effect<"A"> }>()("ATag") {}
 
-    ATag.asEffect().pipe(
-      Effect.tap((_) => Effect.sync(() => assert.strictEqual(_, ATag.of({ test: Effect.succeed("A" as const) })))),
-      Effect.provideService(ATag, ATag.of({ test: Effect.succeed("A") })),
+    await ATag.asEffect().pipe(
+      Effect.tap((_) => Effect.sync(() => assert.deepStrictEqual(_, ATag.of({ test: Effect.succeed("A" as const) })))),
+      Effect.provideService(ATag, ATag.of({ test: Effect.succeed("A" as const) })),
       Effect.runPromise
     )
+    // We receive the Opaque Shape (Identifier) as opposed to the raw Shape
+    expectTypeOf<ReturnType<typeof ATag.asEffect>>()
+      .toEqualTypeOf<Effect.Effect<ATag, never, ATag>>()
   })
 
   describe("fromOption", () => {
