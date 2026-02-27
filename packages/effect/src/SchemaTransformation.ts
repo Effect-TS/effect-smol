@@ -1393,10 +1393,10 @@ export const timeZoneNamedFromString: Transformation<DateTime.TimeZone.Named, st
   string
 >({
   decode: (s) => {
-    const result = DateTime.zoneMakeNamed(s)
-    return result === undefined
-      ? Effect.fail(new Issue.InvalidValue(Option.some(s), { message: `Invalid IANA time zone: ${s}` }))
-      : Effect.succeed(result)
+    return Option.match(DateTime.zoneMakeNamed(s), {
+      onNone: () => Effect.fail(new Issue.InvalidValue(Option.some(s), { message: `Invalid IANA time zone: ${s}` })),
+      onSome: Effect.succeed
+    })
   },
   encode: (tz) => Effect.succeed(tz.id)
 })
@@ -1409,10 +1409,10 @@ export const timeZoneFromString: Transformation<DateTime.TimeZone, string> = tra
   string
 >({
   decode: (s) => {
-    const result = DateTime.zoneFromString(s)
-    return result === undefined
-      ? Effect.fail(new Issue.InvalidValue(Option.some(s), { message: `Invalid time zone: ${s}` }))
-      : Effect.succeed(result)
+    return Option.match(DateTime.zoneFromString(s), {
+      onNone: () => Effect.fail(new Issue.InvalidValue(Option.some(s), { message: `Invalid time zone: ${s}` })),
+      onSome: Effect.succeed
+    })
   },
   encode: (tz) => Effect.succeed(DateTime.zoneToString(tz))
 })
@@ -1425,10 +1425,10 @@ export const dateTimeUtcFromString: Transformation<DateTime.Utc, string> = trans
   string
 >({
   decode: (s) => {
-    const result = DateTime.make(s)
-    return result === undefined
-      ? Effect.fail(new Issue.InvalidValue(Option.some(s), { message: "Invalid DateTime input" }))
-      : Effect.succeed(DateTime.toUtc(result))
+    return Option.match(DateTime.make(s), {
+      onNone: () => Effect.fail(new Issue.InvalidValue(Option.some(s), { message: "Invalid DateTime input" })),
+      onSome: (result) => Effect.succeed(DateTime.toUtc(result))
+    })
   },
   encode: (utc) => Effect.succeed(DateTime.formatIso(utc))
 })
@@ -1441,10 +1441,11 @@ export const dateTimeZonedFromString: Transformation<DateTime.Zoned, string> = t
   string
 >({
   decode: (s) => {
-    const result = DateTime.makeZonedFromString(s)
-    return result === undefined
-      ? Effect.fail(new Issue.InvalidValue(Option.some(s), { message: `Invalid zoned DateTime string: ${s}` }))
-      : Effect.succeed(result)
+    return Option.match(DateTime.makeZonedFromString(s), {
+      onNone: () =>
+        Effect.fail(new Issue.InvalidValue(Option.some(s), { message: `Invalid zoned DateTime string: ${s}` })),
+      onSome: Effect.succeed
+    })
   },
   encode: (zoned) => Effect.succeed(DateTime.formatIsoZoned(zoned))
 })
