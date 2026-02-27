@@ -349,7 +349,7 @@ export const DisablePropagation = ServiceMap.Reference<boolean>(
  * @category references
  * @since 4.0.0
  */
-export const CurrentTraceLevel: ServiceMap.Reference<LogLevel> = ServiceMap.Reference<LogLevel>(
+export const CurrentTraceLevel: ServiceMap.ReferenceImpl<LogLevel> = ServiceMap.Reference<LogLevel>(
   "effect/Tracer/CurrentTraceLevel",
   { defaultValue: () => "Info" }
 )
@@ -392,7 +392,7 @@ export const TracerKey = "effect/Tracer"
  * })
  * ```
  */
-export const Tracer: ServiceMap.Reference<Tracer> = ServiceMap.Reference<Tracer>(TracerKey, {
+export const Tracer: ServiceMap.ReferenceImpl<Tracer> = ServiceMap.Reference<Tracer>(TracerKey, {
   defaultValue: () =>
     make({
       span: (options) => new NativeSpan(options)

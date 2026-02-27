@@ -34,7 +34,7 @@ export interface Geolocation {
  * @since 1.0.0
  * @category Service
  */
-export const Geolocation: ServiceMap.Service<Geolocation, Geolocation> = ServiceMap.Service<Geolocation>(TypeId)
+export const Geolocation: ServiceMap.ServiceImpl<Geolocation, Geolocation> = ServiceMap.Service<Geolocation>(TypeId)
 
 /**
  * @since 1.0.0

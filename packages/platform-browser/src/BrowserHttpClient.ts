@@ -55,7 +55,7 @@ export type XHRResponseType = "arraybuffer" | "text"
  * @since 1.0.0
  * @category References
  */
-export const CurrentXHRResponseType: ServiceMap.Reference<XHRResponseType> = ServiceMap.Reference(
+export const CurrentXHRResponseType: ServiceMap.ReferenceImpl<XHRResponseType> = ServiceMap.Reference(
   "@effect/platform-browser/BrowserHttpClient/CurrentXHRResponseType",
   { defaultValue: (): XHRResponseType => "text" }
 )

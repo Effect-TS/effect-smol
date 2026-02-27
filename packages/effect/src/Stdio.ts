@@ -32,7 +32,7 @@ export interface Stdio {
  * @since 4.0.0
  * @category Services
  */
-export const Stdio: ServiceMap.Service<Stdio, Stdio> = ServiceMap.Service<Stdio>(TypeId)
+export const Stdio: ServiceMap.ServiceImpl<Stdio, Stdio> = ServiceMap.Service<Stdio>(TypeId)
 
 /**
  * @since 4.0.0

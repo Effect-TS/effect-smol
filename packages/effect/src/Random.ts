@@ -50,7 +50,7 @@ import type * as ServiceMap from "./ServiceMap.ts"
  * @since 4.0.0
  * @category Random Number Generators
  */
-export const Random: ServiceMap.Reference<{
+export const Random: ServiceMap.ReferenceImpl<{
   nextIntUnsafe(): number
   nextDoubleUnsafe(): number
 }> = random.Random

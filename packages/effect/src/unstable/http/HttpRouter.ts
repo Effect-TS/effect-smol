@@ -80,7 +80,7 @@ export interface HttpRouter {
  * @since 4.0.0
  * @category HttpRouter
  */
-export const HttpRouter: ServiceMap.Service<HttpRouter, HttpRouter> = ServiceMap.Service<HttpRouter>(
+export const HttpRouter: ServiceMap.ServiceImpl<HttpRouter, HttpRouter> = ServiceMap.Service<HttpRouter>(
   "effect/http/HttpRouter"
 )
 

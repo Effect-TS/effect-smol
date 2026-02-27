@@ -226,13 +226,13 @@ export const isLogger = (u: unknown): u is Logger<unknown, unknown> => Predicate
  * @since 4.0.0
  * @category references
  */
-export const CurrentLoggers: ServiceMap.Reference<ReadonlySet<Logger<unknown, any>>> = effect.CurrentLoggers
+export const CurrentLoggers: ServiceMap.ReferenceImpl<ReadonlySet<Logger<unknown, any>>> = effect.CurrentLoggers
 
 /**
  * @since 4.0.0
  * @category references
  */
-export const LogToStderr: ServiceMap.Reference<boolean> = effect.LogToStderr
+export const LogToStderr: ServiceMap.ReferenceImpl<boolean> = effect.LogToStderr
 
 /**
  * Transforms the output of a `Logger` using the provided function.

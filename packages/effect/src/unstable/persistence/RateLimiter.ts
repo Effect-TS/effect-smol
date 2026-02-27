@@ -43,7 +43,7 @@ export interface RateLimiter {
  * @since 4.0.0
  * @category Tags
  */
-export const RateLimiter: ServiceMap.Service<RateLimiter, RateLimiter> = ServiceMap.Service<RateLimiter>(TypeId)
+export const RateLimiter: ServiceMap.ServiceImpl<RateLimiter, RateLimiter> = ServiceMap.Service<RateLimiter>(TypeId)
 
 /**
  * @since 4.0.0

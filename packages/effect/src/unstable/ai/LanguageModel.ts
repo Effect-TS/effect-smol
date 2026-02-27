@@ -193,7 +193,7 @@ export type CodecTransformer = <T, E, RD, RE>(schema: Schema.Codec<T, E, RD, RE>
  * @since 4.0.0
  * @category services
  */
-export const CurrentCodecTransformer: ServiceMap.Reference<CodecTransformer> =
+export const CurrentCodecTransformer: ServiceMap.ReferenceImpl<CodecTransformer> =
   InternalCodecTransformer.CurrentCodecTransformer
 
 /**

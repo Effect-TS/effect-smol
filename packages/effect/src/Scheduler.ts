@@ -27,7 +27,7 @@ export interface Scheduler {
  * @since 4.0.0
  * @category references
  */
-export const Scheduler: ServiceMap.Reference<Scheduler> = ServiceMap.Reference<Scheduler>("effect/Scheduler", {
+export const Scheduler: ServiceMap.ReferenceImpl<Scheduler> = ServiceMap.Reference<Scheduler>("effect/Scheduler", {
   defaultValue: () => new MixedScheduler()
 })
 

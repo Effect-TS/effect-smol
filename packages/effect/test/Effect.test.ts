@@ -18,11 +18,15 @@ import {
   Schedule,
   Scope,
   ServiceMap,
-  TxRef
+  TxRef,
+  Types
 } from "effect"
 import { constFalse, constTrue, pipe } from "effect/Function"
 import { TestClock } from "effect/testing"
 import { assertCauseFail } from "./utils/assert.ts"
+import type { Inspectable } from "../src/Inspectable.ts"
+import type { Pipeable } from "../src/Pipeable.ts"
+import type { Yieldable } from "../src/Effect.ts"
 
 class ATag extends ServiceMap.Service<ATag, "A">()("ATag") {}
 
@@ -130,6 +134,47 @@ describe("Effect", () => {
       Effect.provideService(ATag, "A"),
       Effect.runPromise
     ))
+
+  it("ServiceMap.Opaque", () => {
+    const ServiceTypeId = "~effect/ServiceMap/Service" as const
+     const TypeId = "~ServiceMap.Opaque"
+
+     interface Opaque<Identifier extends object, in out Shape extends object>
+  extends Pipeable, Inspectable, Yieldable<Opaque<Identifier, Identifier>, Identifier, never, Identifier>
+{
+  readonly [ServiceTypeId]: {
+    readonly _Service: Types.Invariant<Identifier>
+    readonly _Identifier: Types.Invariant<Identifier>
+  }
+  readonly Service: Identifier
+  readonly Identifier: Identifier
+  // of(self: Identifier): Identifier
+  // serviceMap(self: Identifier): ServiceMap.ServiceMap<Identifier>
+  // difference; of is used to cast Shape to identifier
+  of(self: Shape): Identifier
+  serviceMap(self: Shape): ServiceMap.ServiceMap<Identifier>
+  use<A, E, R>(f: (service: Identifier) => Effect.Effect<A, E, R>): Effect.Effect<A, E, R | Identifier>
+  useSync<A>(f: (service: Identifier) => A): Effect.Effect<A, never, Identifier>
+
+  readonly stack?: string | undefined
+  readonly key: string
+}
+
+ function Opaque  <Identifier extends object, Shape extends object>() {
+  return <const Key extends string>(_key: Key) => {
+    const c: abstract new(_: never) => Shape & { readonly [TypeId]: Key } = class {} as any
+
+    return null as unknown as typeof c & Opaque<Identifier, Shape>
+  }
+}
+class ATag extends Opaque<ATag, { test: Effect.Effect<"A"> }>()("ATag") {}
+
+    ATag.asEffect().pipe(
+      Effect.tap((_) => Effect.sync(() => assert.strictEqual(_, ATag.of({ test: Effect.succeed("A" as const) })))),
+      Effect.provideService(ATag, ATag.of({ test: Effect.succeed("A") })),
+      Effect.runPromise
+    )
+  })
 
   describe("fromOption", () => {
     it("from a some", () =>

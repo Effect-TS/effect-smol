@@ -25,7 +25,7 @@ import * as Reactivity from "./Reactivity.ts"
  * @category Models
  */
 export interface AtomRpcClient<Self, Id extends string, Rpcs extends Rpc.Any, E> extends
-  ServiceMap.Service<
+  ServiceMap.ServiceImpl<
     Self,
     RpcClient.RpcClient.Flat<Rpcs, RpcClientError>
   >

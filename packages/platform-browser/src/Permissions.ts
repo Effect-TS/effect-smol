@@ -87,7 +87,7 @@ export class PermissionsError extends Data.TaggedError("PermissionsError")<{
  * @since 1.0.0
  * @category Service
  */
-export const Permissions: ServiceMap.Service<Permissions, Permissions> = ServiceMap.Service<Permissions>(TypeId)
+export const Permissions: ServiceMap.ServiceImpl<Permissions, Permissions> = ServiceMap.Service<Permissions>(TypeId)
 
 /**
  * A layer that directly interfaces with the `navigator.permissions` api

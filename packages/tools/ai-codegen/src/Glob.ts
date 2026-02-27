@@ -37,7 +37,7 @@ export interface Glob {
  * @since 1.0.0
  * @category tags
  */
-export const Glob: ServiceMap.Service<Glob, Glob> = ServiceMap.Service("@effect/ai-codegen/Glob")
+export const Glob: ServiceMap.ServiceImpl<Glob, Glob> = ServiceMap.Service("@effect/ai-codegen/Glob")
 
 /**
  * Layer providing the Glob service.

@@ -128,7 +128,7 @@ export interface Console {
  * @since 4.0.0
  * @category references
  */
-export const Console: ServiceMap.Reference<Console> = effect.ConsoleRef
+export const Console: ServiceMap.ReferenceImpl<Console> = effect.ConsoleRef
 
 /**
  * Creates an Effect that provides access to the current console instance.

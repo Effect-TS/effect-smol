@@ -208,7 +208,7 @@ export interface Formatter {
  * @since 4.0.0
  * @category services
  */
-export const Formatter: ServiceMap.Reference<Formatter> = ServiceMap.Reference(
+export const Formatter: ServiceMap.ReferenceImpl<Formatter> = ServiceMap.Reference(
   "effect/cli/CliOutput",
   { defaultValue: () => defaultFormatter() }
 )

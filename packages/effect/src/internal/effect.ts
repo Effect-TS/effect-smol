@@ -3626,7 +3626,7 @@ export const ScopeTypeId = "~effect/Scope"
 export const ScopeCloseableTypeId = "~effect/Scope/Closeable"
 
 /** @internal */
-export const scopeTag: ServiceMap.Service<Scope.Scope, Scope.Scope> = ServiceMap.Service<Scope.Scope>("effect/Scope")
+export const scopeTag: ServiceMap.ServiceImpl<Scope.Scope, Scope.Scope> = ServiceMap.Service<Scope.Scope>("effect/Scope")
 
 /** @internal */
 export const scopeClose = <A, E>(self: Scope.Scope, exit_: Exit.Exit<A, E>) =>

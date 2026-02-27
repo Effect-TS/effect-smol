@@ -74,7 +74,7 @@ export interface CodeGenerator {
  * @since 1.0.0
  * @category tags
  */
-export const CodeGenerator: ServiceMap.Service<CodeGenerator, CodeGenerator> = ServiceMap.Service(
+export const CodeGenerator: ServiceMap.ServiceImpl<CodeGenerator, CodeGenerator> = ServiceMap.Service(
   "@effect/ai-codegen/CodeGenerator"
 )
 

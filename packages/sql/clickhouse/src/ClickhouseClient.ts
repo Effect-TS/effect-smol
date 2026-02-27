@@ -318,7 +318,7 @@ export const QueryId = ServiceMap.Reference<string | undefined>(
  * @category References
  * @since 1.0.0
  */
-export const ClickhouseSettings: ServiceMap.Reference<
+export const ClickhouseSettings: ServiceMap.ReferenceImpl<
   NonNullable<Clickhouse.BaseQueryParams["clickhouse_settings"]>
 > = ServiceMap.Reference("@effect/sql-clickhouse/ClickhouseClient/ClickhouseSettings", {
   defaultValue: () => ({})

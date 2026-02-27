@@ -120,7 +120,7 @@ export interface Clock {
  * @category references
  * @since 4.0.0
  */
-export const Clock: ServiceMap.Reference<Clock> = effect.ClockRef
+export const Clock: ServiceMap.ReferenceImpl<Clock> = effect.ClockRef
 
 /**
  * Accesses the current Clock service and uses it to run the provided function.

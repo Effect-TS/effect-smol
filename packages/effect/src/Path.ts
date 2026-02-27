@@ -191,7 +191,7 @@ export declare namespace Path {
  * const result = Effect.provide(program, customPathLayer)
  * ```
  */
-export const Path: ServiceMap.Service<Path, Path> = ServiceMap.Service("effect/Path")
+export const Path: ServiceMap.ServiceImpl<Path, Path> = ServiceMap.Service("effect/Path")
 
 /**
  * The following functions are adapted from the Node.js source code:
