@@ -184,7 +184,7 @@ describe("Record", () => {
 
     it("filterMap", () => {
       const x: Record<string, number> = { a: 1, b: 2, c: 3, [symA]: null }
-      const filtered = Record.filterMap(x, (value, key) => (value > 2 ? Option.some(key) : Option.none()))
+      const filtered = Record.filterMap(x, (value, key) => (value > 2 ? Result.succeed(key) : Result.failVoid))
       deepStrictEqual(filtered, { c: "c" })
     })
 
@@ -198,16 +198,10 @@ describe("Record", () => {
       deepStrictEqual(Record.filter(x, (value) => value > 2), { c: 3, d: 4 })
     })
 
-    it("partitionMap", () => {
-      const f = (n: number) => (n > 2 ? Result.succeed(n + 1) : Result.fail(n - 1))
-      deepStrictEqual(Record.partitionMap({}, f), [{}, {}])
-      deepStrictEqual(Record.partitionMap({ a: 1, b: 3, [symA]: null }, f), [{ a: 0 }, { b: 4 }])
-    })
-
     it("partition", () => {
-      const f = (n: number) => n > 2
+      const f = (n: number) => (n > 2 ? Result.succeed(n + 1) : Result.fail(n - 1))
       deepStrictEqual(Record.partition({}, f), [{}, {}])
-      deepStrictEqual(Record.partition({ a: 1, b: 3, [symA]: null }, f), [{ a: 1 }, { b: 3 }])
+      deepStrictEqual(Record.partition({ a: 1, b: 3, [symA]: null }, f), [{ a: 0 }, { b: 4 }])
     })
 
     it("separate", () => {

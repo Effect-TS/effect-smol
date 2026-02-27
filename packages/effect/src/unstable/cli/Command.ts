@@ -1253,14 +1253,14 @@ export const runWith = <const Name extends string, Input, E, R>(
       // 9. Run command handler with composed context
       yield* Effect.provideServices(program, services)
     },
-    Effect.catchIf(
+    Effect.catchFilter(
       ((error: any) =>
         CliError.isCliError(error) && error._tag === "ShowHelp"
           ? Result.succeed(error)
           : Result.fail(error)) as any,
       (error: any) => showHelp(command, error.commandPath)
     ),
-    Effect.catchIf(
+    Effect.catchFilter(
       (e) =>
         Terminal.isQuitError(e)
           ? Result.succeed(e)

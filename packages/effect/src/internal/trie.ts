@@ -1,12 +1,14 @@
 import * as Equal from "../Equal.ts"
+import type * as Filter from "../Filter.ts"
 import { format } from "../Formatter.ts"
-import { dual, identity, pipe } from "../Function.ts"
+import { dual, pipe } from "../Function.ts"
 import * as Hash from "../Hash.ts"
 import { NodeInspectSymbol, toJson } from "../Inspectable.ts"
 import * as Option from "../Option.ts"
 import type * as Ordering from "../Ordering.ts"
 import { pipeArguments } from "../Pipeable.ts"
 import { hasProperty } from "../Predicate.ts"
+import * as Result from "../Result.ts"
 import type * as TR from "../Trie.ts"
 import type { NoInfer } from "../Types.ts"
 
@@ -309,22 +311,27 @@ export const filter: {
 
 /** @internal */
 export const filterMap = dual<
-  <A, B>(
-    f: (value: A, key: string) => Option.Option<B>
+  <A, B, X>(
+    f: Filter.Filter<A, B, X, [key: string]>
   ) => (self: TR.Trie<A>) => TR.Trie<B>,
-  <A, B>(self: TR.Trie<A>, f: (value: A, key: string) => Option.Option<B>) => TR.Trie<B>
->(2, (self, f) =>
+  <A, B, X>(self: TR.Trie<A>, f: Filter.Filter<A, B, X, [key: string]>) => TR.Trie<B>
+>(2, <A, B, X>(self: TR.Trie<A>, f: Filter.Filter<A, B, X, [key: string]>): TR.Trie<B> =>
   reduce(
     self,
-    empty(),
+    empty<B>(),
     (trie, value, key) => {
-      const option = f(value, key)
-      return Option.isSome(option) ? insert(trie, key, option.value) : trie
+      const result = f(value, key)
+      return Result.isSuccess(result) ? insert(trie, key, result.success) : trie
     }
   ))
 
 /** @internal */
-export const compact = <A>(self: TR.Trie<Option.Option<A>>) => filterMap(self, identity)
+export const compact = <A>(self: TR.Trie<Option.Option<A>>) =>
+  reduce(
+    self,
+    empty<A>(),
+    (trie, option, key) => Option.isSome(option) ? insert(trie, key, option.value) : trie
+  )
 
 /** @internal */
 export const forEach = dual<

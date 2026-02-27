@@ -7,6 +7,7 @@
 import type * as Combiner from "./Combiner.ts"
 import * as Equal from "./Equal.ts"
 import type { Equivalence } from "./Equivalence.ts"
+import type * as Filter from "./Filter.ts"
 import { dual, identity } from "./Function.ts"
 import type { TypeLambda } from "./HKT.ts"
 import * as Option from "./Option.ts"
@@ -661,16 +662,16 @@ export const mapEntries: {
 )
 
 /**
- * Transforms a record into a record by applying the function `f` to each key and value in the original record.
- * If the function returns `Some`, the key-value pair is included in the output record.
+ * Transforms a record by applying the function `f` to each key and value in the original record.
+ * If the function succeeds, the key-value pair is included in the output record.
  *
  * @example
  * ```ts
- * import { Option, Record } from "effect"
+ * import { Record, Result } from "effect"
  * import * as assert from "node:assert"
  *
  * const x = { a: 1, b: 2, c: 3 }
- * const f = (a: number, key: string) => a > 2 ? Option.some(a * 2) : Option.none()
+ * const f = (a: number, key: string) => a > 2 ? Result.succeed(a * 2) : Result.failVoid
  * assert.deepStrictEqual(Record.filterMap(x, f), { c: 6 })
  * ```
  *
@@ -678,24 +679,24 @@ export const mapEntries: {
  * @since 2.0.0
  */
 export const filterMap: {
-  <K extends string, A, B>(
-    f: (a: A, key: K) => Option.Option<B>
+  <K extends string, A, B, X>(
+    f: Filter.Filter<A, B, X, [key: K]>
   ): (self: ReadonlyRecord<K, A>) => Record<ReadonlyRecord.NonLiteralKey<K>, B>
-  <K extends string, A, B>(
+  <K extends string, A, B, X>(
     self: ReadonlyRecord<K, A>,
-    f: (a: A, key: K) => Option.Option<B>
+    f: Filter.Filter<A, B, X, [key: K]>
   ): Record<ReadonlyRecord.NonLiteralKey<K>, B>
 } = dual(
   2,
-  <K extends string, A, B>(
+  <K extends string, A, B, X>(
     self: ReadonlyRecord<K, A>,
-    f: (a: A, key: K) => Option.Option<B>
+    f: Filter.Filter<A, B, X, [key: K]>
   ): Record<ReadonlyRecord.NonLiteralKey<K>, B> => {
     const out: Record<string, B> = empty()
     for (const key of keys(self)) {
-      const o = f(self[key], key)
-      if (Option.isSome(o)) {
-        out[key] = o.value
+      const result = f(self[key], key)
+      if (R.isSuccess(result)) {
+        out[key] = result.success
       }
     }
     return out
@@ -767,9 +768,18 @@ export const filter: {
  */
 export const getSomes: <K extends string, A>(
   self: ReadonlyRecord<K, Option.Option<A>>
-) => Record<ReadonlyRecord.NonLiteralKey<K>, A> = filterMap(
-  identity
-)
+) => Record<ReadonlyRecord.NonLiteralKey<K>, A> = <K extends string, A>(
+  self: ReadonlyRecord<K, Option.Option<A>>
+): Record<ReadonlyRecord.NonLiteralKey<K>, A> => {
+  const out: Record<string, A> = empty()
+  for (const key of keys(self)) {
+    const option = self[key]
+    if (Option.isSome(option)) {
+      out[key] = option.value
+    }
+  }
+  return out
+}
 
 /**
  * Given a record with `Result` values, returns a new record containing only the `Err` values, preserving the original keys.
@@ -842,7 +852,7 @@ export const getSuccesses = <K extends string, A, E>(
 }
 
 /**
- * Partitions the elements of a record into two groups: those that match a predicate, and those that don't.
+ * Partitions the elements of a record into two groups: those that match a filter, and those that don't.
  *
  * @example
  * ```ts
@@ -851,27 +861,27 @@ export const getSuccesses = <K extends string, A, E>(
  *
  * const x = { a: 1, b: 2, c: 3 }
  * const f = (n: number) => (n % 2 === 0 ? Result.succeed(n) : Result.fail(n))
- * assert.deepStrictEqual(Record.partitionMap(x, f), [{ a: 1, c: 3 }, { b: 2 }])
+ * assert.deepStrictEqual(Record.partition(x, f), [{ a: 1, c: 3 }, { b: 2 }])
  * ```
  *
  * @category filtering
  * @since 2.0.0
  */
-export const partitionMap: {
+export const partition: {
   <K extends string, A, B, C>(
-    f: (a: A, key: K) => Result<C, B>
+    f: Filter.Filter<A, C, B, [key: K]>
   ): (
     self: ReadonlyRecord<K, A>
   ) => [left: Record<ReadonlyRecord.NonLiteralKey<K>, B>, right: Record<ReadonlyRecord.NonLiteralKey<K>, C>]
   <K extends string, A, B, C>(
     self: ReadonlyRecord<K, A>,
-    f: (a: A, key: K) => Result<C, B>
+    f: Filter.Filter<A, C, B, [key: K]>
   ): [left: Record<ReadonlyRecord.NonLiteralKey<K>, B>, right: Record<ReadonlyRecord.NonLiteralKey<K>, C>]
 } = dual(
   2,
   <K extends string, A, B, C>(
     self: ReadonlyRecord<K, A>,
-    f: (a: A, key: K) => Result<C, B>
+    f: Filter.Filter<A, C, B, [key: K]>
   ): [left: Record<ReadonlyRecord.NonLiteralKey<K>, B>, right: Record<ReadonlyRecord.NonLiteralKey<K>, C>] => {
     const left: Record<string, B> = empty()
     const right: Record<string, C> = empty()
@@ -907,66 +917,7 @@ export const partitionMap: {
  */
 export const separate: <K extends string, A, B>(
   self: ReadonlyRecord<K, Result<B, A>>
-) => [Record<ReadonlyRecord.NonLiteralKey<K>, A>, Record<ReadonlyRecord.NonLiteralKey<K>, B>] = partitionMap(identity)
-
-/**
- * Partitions a record into two separate records based on the result of a predicate function.
- *
- * @example
- * ```ts
- * import { Record } from "effect"
- * import * as assert from "node:assert"
- *
- * assert.deepStrictEqual(
- *   Record.partition({ a: 1, b: 3 }, (n) => n > 2),
- *   [{ a: 1 }, { b: 3 }]
- * )
- * ```
- *
- * @category filtering
- * @since 2.0.0
- */
-export const partition: {
-  <K extends string, A, B extends A>(refinement: (a: NoInfer<A>, key: K) => a is B): (
-    self: ReadonlyRecord<K, A>
-  ) => [
-    excluded: Record<ReadonlyRecord.NonLiteralKey<K>, Exclude<A, B>>,
-    satisfying: Record<ReadonlyRecord.NonLiteralKey<K>, B>
-  ]
-  <K extends string, A>(
-    predicate: (a: NoInfer<A>, key: K) => boolean
-  ): (
-    self: ReadonlyRecord<K, A>
-  ) => [excluded: Record<ReadonlyRecord.NonLiteralKey<K>, A>, satisfying: Record<ReadonlyRecord.NonLiteralKey<K>, A>]
-  <K extends string, A, B extends A>(
-    self: ReadonlyRecord<K, A>,
-    refinement: (a: A, key: K) => a is B
-  ): [
-    excluded: Record<ReadonlyRecord.NonLiteralKey<K>, Exclude<A, B>>,
-    satisfying: Record<ReadonlyRecord.NonLiteralKey<K>, B>
-  ]
-  <K extends string, A>(
-    self: ReadonlyRecord<K, A>,
-    predicate: (a: A, key: K) => boolean
-  ): [excluded: Record<ReadonlyRecord.NonLiteralKey<K>, A>, satisfying: Record<ReadonlyRecord.NonLiteralKey<K>, A>]
-} = dual(
-  2,
-  <K extends string, A>(
-    self: ReadonlyRecord<K, A>,
-    predicate: (a: A, key: K) => boolean
-  ): [excluded: Record<ReadonlyRecord.NonLiteralKey<K>, A>, satisfying: Record<ReadonlyRecord.NonLiteralKey<K>, A>] => {
-    const left: Record<string, A> = empty()
-    const right: Record<string, A> = empty()
-    for (const key of keys(self)) {
-      if (predicate(self[key], key)) {
-        right[key] = self[key]
-      } else {
-        left[key] = self[key]
-      }
-    }
-    return [left, right]
-  }
-)
+) => [Record<ReadonlyRecord.NonLiteralKey<K>, A>, Record<ReadonlyRecord.NonLiteralKey<K>, B>] = partition(identity)
 
 /**
  * Retrieve the keys of a given record as an array.

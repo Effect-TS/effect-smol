@@ -311,7 +311,7 @@ export const encode = <IE, Done>(): Channel.Channel<
       let done = false
       const pull = upstream.pipe(
         Effect.map(Arr.map(encoder.write)),
-        Effect.catchIf(Retry.filter as any, (retry: any) => {
+        Effect.catchFilter(Retry.filter as any, (retry: any) => {
           done = true
           return Effect.succeed(Arr.of(encoder.write(retry)))
         }),

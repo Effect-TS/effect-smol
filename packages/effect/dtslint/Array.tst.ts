@@ -317,24 +317,21 @@ describe("Array", () => {
     expect(Array.partition(numbersOrStrings, (item, i) => {
       expect(item).type.toBe<string | number>()
       expect(i).type.toBe<number>()
-      return true
-    })).type.toBe<[Array<string | number>, Array<string | number>]>()
+      return typeof item === "number" ? Result.succeed(item + i) : Result.fail(item)
+    })).type.toBe<[excluded: Array<string>, satisfying: Array<number>]>()
     expect(pipe(
       numbersOrStrings,
       Array.partition((item, i) => {
         expect(item).type.toBe<string | number>()
         expect(i).type.toBe<number>()
-        return true
+        return typeof item === "number" ? Result.succeed(item + i) : Result.fail(item)
       })
-    )).type.toBe<[Array<string | number>, Array<string | number>]>()
-    expect(Array.partition(numbersOrStrings, predicateNumbersOrStrings))
-      .type.toBe<[excluded: Array<string | number>, satisfying: Array<string | number>]>()
-    expect(pipe(numbersOrStrings, Array.partition(predicateNumbersOrStrings)))
-      .type.toBe<[excluded: Array<string | number>, satisfying: Array<string | number>]>()
-    expect(Array.partition(numbersOrStrings, Predicate.isNumber))
-      .type.toBe<[excluded: Array<string>, satisfying: Array<number>]>()
-    expect(pipe(numbersOrStrings, Array.partition(Predicate.isNumber)))
-      .type.toBe<[excluded: Array<string>, satisfying: Array<number>]>()
+    )).type.toBe<[excluded: Array<string>, satisfying: Array<number>]>()
+
+    expect(Array.partition).type.not.toBeCallableWith(
+      numbersOrStrings,
+      (_item: string | number) => true
+    )
   })
 
   it("filter", () => {
@@ -362,6 +359,27 @@ describe("Array", () => {
 
     expect(Array.filter(numbersOrStrings, Predicate.isNumber)).type.toBe<Array<number>>()
     expect(pipe(numbersOrStrings, Array.filter(Predicate.isNumber))).type.toBe<Array<number>>()
+
+    expect(Array.filter).type.not.toBeCallableWith(
+      numbersOrStrings,
+      (_item: string | number) => Result.succeed(_item)
+    )
+  })
+
+  it("filterMap", () => {
+    expect(Array.filterMap(numbersOrStrings, (item, i) => {
+      expect(item).type.toBe<string | number>()
+      expect(i).type.toBe<number>()
+      return typeof item === "number" ? Result.succeed(item + i) : Result.fail("error")
+    })).type.toBe<Array<number>>()
+    expect(pipe(
+      numbersOrStrings,
+      Array.filterMap((item, i) => {
+        expect(item).type.toBe<string | number>()
+        expect(i).type.toBe<number>()
+        return typeof item === "number" ? Result.succeed(item + i) : Result.fail("error")
+      })
+    )).type.toBe<Array<number>>()
   })
 
   it("takeWhile", () => {
@@ -387,6 +405,27 @@ describe("Array", () => {
 
     expect(Array.takeWhile(numbersOrStrings, Predicate.isNumber)).type.toBe<Array<number>>()
     expect(pipe(numbersOrStrings, Array.takeWhile(Predicate.isNumber))).type.toBe<Array<number>>()
+
+    expect(Array.takeWhile).type.not.toBeCallableWith(
+      numbersOrStrings,
+      (_item: string | number) => Result.succeed(_item)
+    )
+  })
+
+  it("takeWhileFilter", () => {
+    expect(Array.takeWhileFilter(numbersOrStrings, (item, i) => {
+      expect(item).type.toBe<string | number>()
+      expect(i).type.toBe<number>()
+      return typeof item === "number" ? Result.succeed(item + i) : Result.fail("stop")
+    })).type.toBe<Array<number>>()
+    expect(pipe(
+      numbersOrStrings,
+      Array.takeWhileFilter((item, i) => {
+        expect(item).type.toBe<string | number>()
+        expect(i).type.toBe<number>()
+        return typeof item === "number" ? Result.succeed(item + i) : Result.fail("stop")
+      })
+    )).type.toBe<Array<number>>()
   })
 
   it("findFirst", () => {
@@ -537,6 +576,27 @@ describe("Array", () => {
 
     expect(Array.dropWhile(numbersOrStrings, Predicate.isNumber)).type.toBe<Array<string | number>>()
     expect(pipe(numbersOrStrings, Array.dropWhile(Predicate.isNumber))).type.toBe<Array<string | number>>()
+
+    expect(Array.dropWhile).type.not.toBeCallableWith(
+      numbersOrStrings,
+      (_item: string | number) => Result.succeed(_item)
+    )
+  })
+
+  it("dropWhileFilter", () => {
+    expect(Array.dropWhileFilter(numbersOrStrings, (item, i) => {
+      expect(item).type.toBe<string | number>()
+      expect(i).type.toBe<number>()
+      return typeof item === "number" ? Result.succeed(item + i) : Result.fail("stop")
+    })).type.toBe<Array<string | number>>()
+    expect(pipe(
+      numbersOrStrings,
+      Array.dropWhileFilter((item, i) => {
+        expect(item).type.toBe<string | number>()
+        expect(i).type.toBe<number>()
+        return typeof item === "number" ? Result.succeed(item + i) : Result.fail("stop")
+      })
+    )).type.toBe<Array<string | number>>()
   })
 
   it("flatMap", () => {

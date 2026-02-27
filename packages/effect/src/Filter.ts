@@ -75,63 +75,6 @@ export interface FilterEffect<
 }
 
 // -------------------------------------------------------------------------------------
-// apply
-// -------------------------------------------------------------------------------------
-
-/**
- * @since 4.0.0
- * @category Apply
- */
-export type OrPredicate<A, R extends boolean | Result.Result<any, any>, Args extends ReadonlyArray<any> = []> = (
-  input: A,
-  ...args: Args
-) => R
-
-/**
- * @since 4.0.0
- * @category Apply
- */
-export type ResultOrBool<Out = any> = boolean | Result.Result<any, Out>
-
-/**
- * @since 4.0.0
- * @category Apply
- */
-export type Pass<A, R extends boolean | Result.Result<any, any>> = [R] extends [Result.Result<infer _P, infer _F>] ? _P
-  : A
-
-/**
- * @since 4.0.0
- * @category Apply
- */
-export type Fail<A, R extends boolean | Result.Result<any, any>> = [R] extends [Result.Result<infer _P, infer _F>] ? _F
-  : A
-
-/**
- * @since 4.0.0
- * @category Apply
- */
-export type ApplyResult<A, R extends boolean | Result.Result<any, any>> = Result.Result<Pass<A, R>, Fail<A, R>>
-
-/**
- * Applies a filter, predicate, or refinement to an input and returns a boxed
- * result. Extra arguments are forwarded to the function.
- *
- * @since 4.0.0
- * @category Apply
- */
-export const apply = <In, R extends ResultOrBool>(
-  filter: (input: In, ...args: Array<any>) => R,
-  input: In,
-  ...args: Array<any>
-): ApplyResult<In, R> => {
-  const result = filter(input, ...args)
-  if (result === true) return Result.succeed(input) as any
-  if (result === false) return Result.fail(input) as any
-  return result as any
-}
-
-// -------------------------------------------------------------------------------------
 // Constructors
 // -------------------------------------------------------------------------------------
 

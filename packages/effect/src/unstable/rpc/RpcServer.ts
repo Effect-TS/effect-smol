@@ -15,7 +15,6 @@ import type * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Pull from "../../Pull.ts"
 import * as Queue from "../../Queue.ts"
-import * as Result from "../../Result.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../Schema.ts"
 import * as Scope from "../../Scope.ts"
@@ -1362,12 +1361,7 @@ const makeSocketProtocol: Effect.Effect<
         return writeRaw(parser.encode(ResponseDefectEncoded(cause))!)
       }
     }).pipe(
-      Effect.catchIf(
-        ((
-          error: any
-        ) => (error.reason._tag === "SocketCloseError" ? Result.succeed(error.reason) : Result.fail(error))) as any,
-        (_: any) => Effect.void
-      ),
+      Effect.catchReason("SocketError", "SocketCloseError", (_) => Effect.void),
       Effect.orDie
     )
   }

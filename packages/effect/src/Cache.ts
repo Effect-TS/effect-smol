@@ -15,6 +15,7 @@ import * as MutableHashMap from "./MutableHashMap.ts"
 import * as Option from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import type { Predicate } from "./Predicate.ts"
+import * as Result from "./Result.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 
 const TypeId = "~effect/Cache"
@@ -1160,10 +1161,10 @@ export const keys = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<Ite
     const now = fiber.getRef(effect.ClockRef).currentTimeMillisUnsafe()
     return effect.succeed(Iterable.filterMap(self.map, ([key, entry]) => {
       if (entry.expiresAt === undefined || entry.expiresAt > now) {
-        return Option.some(key)
+        return Result.succeed(key)
       }
       MutableHashMap.remove(self.map, key)
-      return Option.none()
+      return Result.failVoid
     }))
   })
 
@@ -1215,10 +1216,10 @@ export const entries = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<
       if (entry.expiresAt === undefined || entry.expiresAt > now) {
         const exit = entry.deferred.effect
         return !core.isExit(exit) || effect.exitIsFailure(exit)
-          ? Option.none()
-          : Option.some([key, exit.value as A])
+          ? Result.failVoid
+          : Result.succeed([key, exit.value as A])
       }
       MutableHashMap.remove(self.map, key)
-      return Option.none()
+      return Result.failVoid
     }))
   })

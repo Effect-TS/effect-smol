@@ -281,7 +281,7 @@ export const toChannelMap = <IE, A>(
         return writeChunk
       }),
       Effect.forever({ disableYield: true }),
-      Effect.catchCauseIf(
+      Effect.catchCauseFilter(
         Pull.filterNoDone,
         (cause) => Queue.failCause(queue, cause)
       ),
@@ -540,11 +540,10 @@ export const fromWebSocket = <RO>(
         currentWS = ws
         latch.openUnsafe()
         if (opts?.onOpen) yield* opts.onOpen
-        return yield* FiberSet.join(fiberSet).pipe(
-          Effect.catchIf(
-            SocketCloseError.filterClean((_) => !closeCodeIsError(_)) as any,
-            (_: any) => Effect.void
-          )
+        return yield* Effect.catchFilter(
+          FiberSet.join(fiberSet),
+          SocketCloseError.filterClean((_) => !closeCodeIsError(_)),
+          () => Effect.void
         )
       })).pipe(
         Effect.updateServices((input: ServiceMap.ServiceMap<R>) => ServiceMap.merge(acquireContext, input)),
@@ -688,11 +687,10 @@ export const fromTransformStream = <R>(acquire: Effect.Effect<InputTransformStre
         yield* latch.open
         if (opts?.onOpen) yield* opts.onOpen
 
-        return yield* FiberSet.join(fiberSet).pipe(
-          Effect.catchIf(
-            SocketCloseError.filterClean((_) => !closeCodeIsError(_)) as any,
-            (_: any) => Effect.void
-          )
+        return yield* Effect.catchFilter(
+          FiberSet.join(fiberSet),
+          SocketCloseError.filterClean((_) => !closeCodeIsError(_)),
+          () => Effect.void
         )
       })).pipe(
         (_) => _,

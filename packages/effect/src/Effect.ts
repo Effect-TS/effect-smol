@@ -763,7 +763,7 @@ export const all: <
 ) => All.Return<Arg, O> = internal.all
 
 /**
- * Applies an effectful function to each element and partitions failures and
+ * Applies an effectful `Filter` to each element and partitions failures and
  * successes.
  *
  * The returned tuple is `[excluded, satisfying]`, where:
@@ -776,10 +776,10 @@ export const all: <
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Effect, Result } from "effect"
  *
  * const program = Effect.partition([0, 1, 2, 3], (n) =>
- *   n % 2 === 0 ? Effect.fail(`${n} is even`) : Effect.succeed(n)
+ *   Effect.succeed(n % 2 === 0 ? Result.fail(`${n} is even`) : Result.succeed(n))
  * )
  *
  * Effect.runPromise(program).then(console.log)
@@ -790,15 +790,15 @@ export const all: <
  * @category Collecting
  */
 export const partition: {
-  <A, B, E, R>(
-    f: (a: A, i: number) => Effect<B, E, R>,
+  <A, Pass, Fail, E, R>(
+    filter: Filter.FilterEffect<NoInfer<A>, Pass, Fail, E, R, [i: number]>,
     options?: { readonly concurrency?: Concurrency | undefined }
-  ): (elements: Iterable<A>) => Effect<[excluded: Array<E>, satisfying: Array<B>], never, R>
-  <A, B, E, R>(
+  ): (elements: Iterable<A>) => Effect<[excluded: Array<Fail>, satisfying: Array<Pass>], E, R>
+  <A, Pass, Fail, E, R>(
     elements: Iterable<A>,
-    f: (a: A, i: number) => Effect<B, E, R>,
+    filter: Filter.FilterEffect<NoInfer<A>, Pass, Fail, E, R, [i: number]>,
     options?: { readonly concurrency?: Concurrency | undefined }
-  ): Effect<[excluded: Array<E>, satisfying: Array<B>], never, R>
+  ): Effect<[excluded: Array<Fail>, satisfying: Array<Pass>], E, R>
 } = internal.partition
 
 /**
@@ -3202,15 +3202,14 @@ export const catchDefect: {
 } = internal.catchDefect
 
 /**
- * Recovers from specific errors using a `Filter`, `Predicate`, or
- * `Refinement`.
+ * Recovers from specific errors using a `Predicate` or `Refinement`.
  *
  * **When to Use**
  *
- * `catchIf` lets you recover from errors that match a condition. Pass a
- * `Filter` for transformation, a `Refinement` for type narrowing, or a
- * `Predicate` for simple boolean matching. Non-matching errors re-fail with
- * the original cause. Defects and interrupts are not caught.
+ * `catchIf` lets you recover from errors that match a condition. Use a
+ * `Refinement` for type narrowing or a `Predicate` for simple boolean
+ * matching. Non-matching errors re-fail with the original cause. Defects and
+ * interrupts are not caught.
  *
  * **Previously Known As**
  *
@@ -3237,7 +3236,7 @@ export const catchDefect: {
  *
  * // With a Filter
  * const recovered2 = program.pipe(
- *   Effect.catchIf(
+ *   Effect.catchFilter(
  *     Filter.tagged("NotFound"),
  *     (error) => Effect.succeed(`missing:${error.id}`)
  *   )
@@ -3253,10 +3252,10 @@ export const catchIf: {
     f: (e: EB) => Effect<A2, E2, R2>,
     orElse?: ((e: Exclude<E, EB>) => Effect<A3, E3, R3>) | undefined
   ): <A, R>(self: Effect<A, E, R>) => Effect<A | A2 | A3, E2 | E3, R | R2 | R3>
-  <E, Result extends Filter.ResultOrBool, A2, E2, R2, A3 = never, E3 = Filter.Fail<E, Result>, R3 = never>(
-    filter: Filter.OrPredicate<NoInfer<E>, Result>,
-    f: (e: Filter.Pass<E, Result>) => Effect<A2, E2, R2>,
-    orElse?: ((e: Filter.Fail<E, Result>) => Effect<A3, E3, R3>) | undefined
+  <E, A2, E2, R2, A3 = never, E3 = E, R3 = never>(
+    predicate: Predicate.Predicate<NoInfer<E>>,
+    f: (e: NoInfer<E>) => Effect<A2, E2, R2>,
+    orElse?: ((e: NoInfer<E>) => Effect<A3, E3, R3>) | undefined
   ): <A, R>(self: Effect<A, E, R>) => Effect<A | A2 | A3, E2 | E3, R | R2 | R3>
   <A, E, R, EB extends E, A2, E2, R2, A3 = never, E3 = Exclude<E, EB>, R3 = never>(
     self: Effect<A, E, R>,
@@ -3264,13 +3263,33 @@ export const catchIf: {
     f: (e: EB) => Effect<A2, E2, R2>,
     orElse?: ((e: Exclude<E, EB>) => Effect<A3, E3, R3>) | undefined
   ): Effect<A | A2 | A3, E2 | E3, R | R2 | R3>
-  <A, E, R, Result extends Filter.ResultOrBool, A2, E2, R2, A3 = never, E3 = Filter.Fail<E, Result>, R3 = never>(
+  <A, E, R, A2, E2, R2, A3 = never, E3 = E, R3 = never>(
     self: Effect<A, E, R>,
-    filter: Filter.OrPredicate<NoInfer<E>, Result>,
-    f: (e: Filter.Pass<E, Result>) => Effect<A2, E2, R2>,
-    orElse?: ((e: Filter.Fail<E, Result>) => Effect<A3, E3, R3>) | undefined
+    predicate: Predicate.Predicate<E>,
+    f: (e: E) => Effect<A2, E2, R2>,
+    orElse?: ((e: E) => Effect<A3, E3, R3>) | undefined
   ): Effect<A | A2 | A3, E2 | E3, R | R2 | R3>
 } = internal.catchIf
+
+/**
+ * Recovers from specific errors using a `Filter`.
+ *
+ * @since 4.0.0
+ * @category Error Handling
+ */
+export const catchFilter: {
+  <E, EB, A2, E2, R2, X, A3 = never, E3 = X, R3 = never>(
+    filter: Filter.Filter<NoInfer<E>, EB, X>,
+    f: (e: EB) => Effect<A2, E2, R2>,
+    orElse?: ((e: X) => Effect<A3, E3, R3>) | undefined
+  ): <A, R>(self: Effect<A, E, R>) => Effect<A | A2 | A3, E2 | E3, R | R2 | R3>
+  <A, E, R, EB, A2, E2, R2, X, A3 = never, E3 = X, R3 = never>(
+    self: Effect<A, E, R>,
+    filter: Filter.Filter<NoInfer<E>, EB, X>,
+    f: (e: EB) => Effect<A2, E2, R2>,
+    orElse?: ((e: X) => Effect<A3, E3, R3>) | undefined
+  ): Effect<A | A2 | A3, E2 | E3, R | R2 | R3>
+} = internal.catchFilter
 
 /**
  * Catches `NoSuchElementError` failures and converts them to `Option.none`.
@@ -3341,16 +3360,34 @@ export const catchNoSuchElement: <A, E, R>(
  * @category Error Handling
  */
 export const catchCauseIf: {
-  <E, Result extends Filter.ResultOrBool<Cause.Cause<any>>, B, E2, R2>(
-    filter: Filter.OrPredicate<Cause.Cause<E>, Result>,
-    f: (failure: Filter.Pass<Cause.Cause<E>, Result>, cause: Cause.Cause<E>) => Effect<B, E2, R2>
-  ): <A, R>(self: Effect<A, E, R>) => Effect<A | B, Cause.Cause.Error<Filter.Fail<Cause.Cause<E>, Result>> | E2, R | R2>
-  <A, E, R, B, E2, R2, Result extends Filter.ResultOrBool<Cause.Cause<any>>>(
+  <E, B, E2, R2>(
+    predicate: Predicate.Predicate<Cause.Cause<E>>,
+    f: (cause: Cause.Cause<E>) => Effect<B, E2, R2>
+  ): <A, R>(self: Effect<A, E, R>) => Effect<A | B, E | E2, R | R2>
+  <A, E, R, B, E2, R2>(
     self: Effect<A, E, R>,
-    filter: Filter.OrPredicate<Cause.Cause<E>, Result>,
-    f: (failure: Filter.Pass<Cause.Cause<E>, Result>, cause: Cause.Cause<E>) => Effect<B, E2, R2>
-  ): Effect<A | B, Cause.Cause.Error<Filter.Fail<Cause.Cause<E>, Result>> | E2, R | R2>
+    predicate: Predicate.Predicate<Cause.Cause<E>>,
+    f: (cause: Cause.Cause<E>) => Effect<B, E2, R2>
+  ): Effect<A | B, E | E2, R | R2>
 } = internal.catchCauseIf
+
+/**
+ * Recovers from specific failures based on a `Filter`.
+ *
+ * @since 4.0.0
+ * @category Error Handling
+ */
+export const catchCauseFilter: {
+  <E, B, E2, R2, EB, X extends Cause.Cause<any>>(
+    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
+    f: (failure: EB, cause: Cause.Cause<E>) => Effect<B, E2, R2>
+  ): <A, R>(self: Effect<A, E, R>) => Effect<A | B, Cause.Cause.Error<X> | E2, R | R2>
+  <A, E, R, B, E2, R2, EB, X extends Cause.Cause<any>>(
+    self: Effect<A, E, R>,
+    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
+    f: (failure: EB, cause: Cause.Cause<E>) => Effect<B, E2, R2>
+  ): Effect<A | B, Cause.Cause.Error<X> | E2, R | R2>
+} = internal.catchCauseFilter
 
 /**
  * The `mapError` function is used to transform or modify the error
@@ -3637,16 +3674,34 @@ export const tapCause: {
  * @category Sequencing
  */
 export const tapCauseIf: {
-  <E, Result extends Filter.ResultOrBool, B, E2, R2>(
-    filter: Filter.OrPredicate<Cause.Cause<E>, Result>,
-    f: (a: Filter.Pass<Cause.Cause<E>, Result>, cause: Cause.Cause<E>) => Effect<B, E2, R2>
+  <E, B, E2, R2>(
+    predicate: Predicate.Predicate<Cause.Cause<E>>,
+    f: (cause: Cause.Cause<E>) => Effect<B, E2, R2>
   ): <A, R>(self: Effect<A, E, R>) => Effect<A, E | E2, R | R2>
-  <A, E, R, Result extends Filter.ResultOrBool, B, E2, R2>(
+  <A, E, R, B, E2, R2>(
     self: Effect<A, E, R>,
-    filter: Filter.OrPredicate<Cause.Cause<E>, Result>,
-    f: (a: Filter.Pass<Cause.Cause<E>, Result>, cause: Cause.Cause<E>) => Effect<B, E2, R2>
+    predicate: Predicate.Predicate<Cause.Cause<E>>,
+    f: (cause: Cause.Cause<E>) => Effect<B, E2, R2>
   ): Effect<A, E | E2, R | R2>
 } = internal.tapCauseIf
+
+/**
+ * Conditionally executes a side effect based on the cause of a failed effect.
+ *
+ * @since 4.0.0
+ * @category Sequencing
+ */
+export const tapCauseFilter: {
+  <E, B, E2, R2, EB, X extends Cause.Cause<any>>(
+    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
+    f: (a: EB, cause: Cause.Cause<E>) => Effect<B, E2, R2>
+  ): <A, R>(self: Effect<A, E, R>) => Effect<A, E | E2, R | R2>
+  <A, E, R, B, E2, R2, EB, X extends Cause.Cause<any>>(
+    self: Effect<A, E, R>,
+    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
+    f: (a: EB, cause: Cause.Cause<E>) => Effect<B, E2, R2>
+  ): Effect<A, E | E2, R | R2>
+} = internal.tapCauseFilter
 
 /**
  * Inspect severe errors or defects (non-recoverable failures) in an effect.
@@ -4641,12 +4696,12 @@ export const raceFirst: {
 // -----------------------------------------------------------------------------
 
 /**
- * Filters elements of an iterable using a predicate, refinement, effectful
- * predicate, or `Filter.FilterEffect`.
+ * Filters elements of an iterable using a predicate, refinement, or effectful
+ * predicate.
  *
  * @example
  * ```ts
- * import { Effect, Filter, Result } from "effect"
+ * import { Effect } from "effect"
  *
  * // Sync predicate
  * const evens = Effect.filter([1, 2, 3, 4], (n) => n % 2 === 0)
@@ -4654,10 +4709,7 @@ export const raceFirst: {
  * // Effectful predicate
  * const checked = Effect.filter([1, 2, 3], (n) => Effect.succeed(n > 1))
  *
- * // FilterEffect
- * const mapped = Effect.filter([1, 2, 3, 4], (n) =>
- *   Effect.succeed(n % 2 === 0 ? Result.succeed(n * 2) : Result.fail(n))
- * )
+ * // Use Effect.filterMapEffect for effectful Filter.Filter callbacks
  * ```
  *
  * @since 2.0.0
@@ -4670,14 +4722,6 @@ export const filter: {
   <A>(
     predicate: Predicate.Predicate<NoInfer<A>>
   ): (elements: Iterable<A>) => Effect<Array<A>>
-  <A, B, X>(
-    filter: Filter.Filter<NoInfer<A>, B, X>,
-    options?: { readonly concurrency?: Concurrency | undefined }
-  ): (elements: Iterable<A>) => Effect<Array<B>>
-  <A, B, X, E, R>(
-    filter: Filter.FilterEffect<NoInfer<A>, B, X, E, R>,
-    options?: { readonly concurrency?: Concurrency | undefined }
-  ): (elements: Iterable<A>) => Effect<Array<B>, E, R>
   <A, E, R>(
     predicate: (a: NoInfer<A>, i: number) => Effect<boolean, E, R>,
     options?: { readonly concurrency?: Concurrency | undefined }
@@ -4690,21 +4734,46 @@ export const filter: {
     elements: Iterable<A>,
     predicate: Predicate.Predicate<A>
   ): Effect<Array<A>>
-  <A, B, X>(
-    elements: Iterable<A>,
-    filter: Filter.Filter<NoInfer<A>, B, X>
-  ): Effect<Array<B>>
-  <A, B, X, E, R>(
-    elements: Iterable<A>,
-    filter: Filter.FilterEffect<NoInfer<A>, B, X, E, R>,
-    options?: { readonly concurrency?: Concurrency | undefined }
-  ): Effect<Array<B>, E, R>
   <A, E, R>(
     iterable: Iterable<A>,
     predicate: (a: NoInfer<A>, i: number) => Effect<boolean, E, R>,
     options?: { readonly concurrency?: Concurrency | undefined }
   ): Effect<Array<A>, E, R>
 } = internal.filter
+
+/**
+ * Filters and maps elements of an iterable with a `Filter`.
+ *
+ * @since 4.0.0
+ * @category Filtering
+ */
+export const filterMap: {
+  <A, B, X>(
+    filter: Filter.Filter<NoInfer<A>, B, X>
+  ): (elements: Iterable<A>) => Effect<Array<B>>
+  <A, B, X>(
+    elements: Iterable<A>,
+    filter: Filter.Filter<NoInfer<A>, B, X>
+  ): Effect<Array<B>>
+} = internal.filterMap
+
+/**
+ * Effectfully filters and maps elements of an iterable with a `FilterEffect`.
+ *
+ * @since 4.0.0
+ * @category Filtering
+ */
+export const filterMapEffect: {
+  <A, B, X, E, R>(
+    filter: Filter.FilterEffect<NoInfer<A>, B, X, E, R>,
+    options?: { readonly concurrency?: Concurrency | undefined }
+  ): (elements: Iterable<A>) => Effect<Array<B>, E, R>
+  <A, B, X, E, R>(
+    elements: Iterable<A>,
+    filter: Filter.FilterEffect<NoInfer<A>, B, X, E, R>,
+    options?: { readonly concurrency?: Concurrency | undefined }
+  ): Effect<Array<B>, E, R>
+} = internal.filterMapEffect
 
 /**
  * Filters an effect, providing an alternative effect if the predicate fails.
@@ -4741,21 +4810,39 @@ export const filterOrElse: {
     refinement: Predicate.Refinement<NoInfer<A>, B>,
     orElse: (a: EqualsWith<A, B, NoInfer<A>, Exclude<NoInfer<A>, B>>) => Effect<C, E2, R2>
   ): <E, R>(self: Effect<A, E, R>) => Effect<B | C, E2 | E, R2 | R>
-  <A, Result extends Filter.ResultOrBool, C, E2, R2>(
-    filter: Filter.OrPredicate<NoInfer<A>, Result>,
-    orElse: (a: Filter.Fail<A, Result>) => Effect<C, E2, R2>
-  ): <E, R>(self: Effect<A, E, R>) => Effect<Filter.Pass<A, Result> | C, E2 | E, R2 | R>
+  <A, C, E2, R2>(
+    predicate: Predicate.Predicate<NoInfer<A>>,
+    orElse: (a: NoInfer<A>) => Effect<C, E2, R2>
+  ): <E, R>(self: Effect<A, E, R>) => Effect<A | C, E2 | E, R2 | R>
   <A, E, R, C, E2, R2, B extends A>(
     self: Effect<A, E, R>,
     refinement: Predicate.Refinement<A, B>,
     orElse: (a: EqualsWith<A, B, A, Exclude<A, B>>) => Effect<C, E2, R2>
   ): Effect<B | C, E | E2, R | R2>
-  <A, E, R, Result extends Filter.ResultOrBool, C, E2, R2>(
+  <A, E, R, C, E2, R2>(
     self: Effect<A, E, R>,
-    filter: Filter.OrPredicate<NoInfer<A>, Result>,
-    orElse: (a: Filter.Fail<A, Result>) => Effect<C, E2, R2>
-  ): Effect<Filter.Pass<A, Result> | C, E | E2, R | R2>
+    predicate: Predicate.Predicate<NoInfer<A>>,
+    orElse: (a: NoInfer<A>) => Effect<C, E2, R2>
+  ): Effect<A | C, E | E2, R | R2>
 } = internal.filterOrElse
+
+/**
+ * Filters an effect with a `Filter`, providing an alternative effect on failure.
+ *
+ * @since 4.0.0
+ * @category Filtering
+ */
+export const filterMapOrElse: {
+  <A, B, X, C, E2, R2>(
+    filter: Filter.Filter<NoInfer<A>, B, X>,
+    orElse: (x: X) => Effect<C, E2, R2>
+  ): <E, R>(self: Effect<A, E, R>) => Effect<B | C, E2 | E, R2 | R>
+  <A, E, R, B, X, C, E2, R2>(
+    self: Effect<A, E, R>,
+    filter: Filter.Filter<NoInfer<A>, B, X>,
+    orElse: (x: X) => Effect<C, E2, R2>
+  ): Effect<B | C, E | E2, R | R2>
+} = internal.filterMapOrElse
 
 /**
  * Filters an effect, failing with a custom error if the predicate fails.
@@ -4795,19 +4882,12 @@ export const filterOrFail: {
     predicate: Predicate.Predicate<NoInfer<A>>,
     orFailWith: (a: NoInfer<A>) => E2
   ): <E, R>(self: Effect<A, E, R>) => Effect<A, E2 | E, R>
-  <A, B, X, E2>(
-    filter: Filter.Filter<NoInfer<A>, B, X>,
-    orFailWith: (x: X) => E2
-  ): <E, R>(self: Effect<A, E, R>) => Effect<B, E2 | E, R>
   <A, B extends A>(
     refinement: Predicate.Refinement<NoInfer<A>, B>
   ): <E, R>(self: Effect<A, E, R>) => Effect<B, Cause.NoSuchElementError | E, R>
   <A>(
     predicate: Predicate.Predicate<NoInfer<A>>
   ): <E, R>(self: Effect<A, E, R>) => Effect<A, Cause.NoSuchElementError | E, R>
-  <A, B, X>(
-    filter: Filter.Filter<NoInfer<A>, B, X>
-  ): <E, R>(self: Effect<A, E, R>) => Effect<B, Cause.NoSuchElementError | E, R>
   <A, E, R, E2, B extends A>(
     self: Effect<A, E, R>,
     refinement: Predicate.Refinement<NoInfer<A>, B>,
@@ -4818,11 +4898,6 @@ export const filterOrFail: {
     predicate: Predicate.Predicate<NoInfer<A>>,
     orFailWith: (a: NoInfer<A>) => E2
   ): Effect<A, E2 | E, R>
-  <A, E, R, B, X, E2>(
-    self: Effect<A, E, R>,
-    filter: Filter.Filter<A, B, X>,
-    orFailWith: (x: X) => E2
-  ): Effect<B, E2 | E, R>
   <A, E, R, B extends A>(
     self: Effect<A, E, R>,
     refinement: Predicate.Refinement<NoInfer<A>, B>
@@ -4831,11 +4906,32 @@ export const filterOrFail: {
     self: Effect<A, E, R>,
     predicate: Predicate.Predicate<NoInfer<A>>
   ): Effect<A, E | Cause.NoSuchElementError, R>
+} = internal.filterOrFail
+
+/**
+ * Filters an effect with a `Filter`, failing when the filter fails.
+ *
+ * @since 4.0.0
+ * @category Filtering
+ */
+export const filterMapOrFail: {
+  <A, B, X, E2>(
+    filter: Filter.Filter<NoInfer<A>, B, X>,
+    orFailWith: (x: X) => E2
+  ): <E, R>(self: Effect<A, E, R>) => Effect<B, E2 | E, R>
+  <A, B, X>(
+    filter: Filter.Filter<NoInfer<A>, B, X>
+  ): <E, R>(self: Effect<A, E, R>) => Effect<B, Cause.NoSuchElementError | E, R>
+  <A, E, R, B, X, E2>(
+    self: Effect<A, E, R>,
+    filter: Filter.Filter<A, B, X>,
+    orFailWith: (x: X) => E2
+  ): Effect<B, E2 | E, R>
   <A, E, R, B, X>(
     self: Effect<A, E, R>,
     filter: Filter.Filter<A, B, X>
-  ): Effect<B, E | Cause.NoSuchElementError, R>
-} = internal.filterOrFail
+  ): Effect<B, Cause.NoSuchElementError | E, R>
+} = internal.filterMapOrFail
 
 // -----------------------------------------------------------------------------
 // Conditional Operators
@@ -6243,7 +6339,7 @@ export const onError: {
 
 /**
  * Runs the finalizer only when this effect fails and the `Cause` matches the
- * filter, passing the filtered failure and the original cause.
+ * provided predicate.
  *
  * @example
  * ```ts
@@ -6265,16 +6361,34 @@ export const onError: {
  * @category Resource Management & Finalization
  */
 export const onErrorIf: {
-  <E, Result extends Filter.ResultOrBool, XE, XR>(
-    filter: Filter.OrPredicate<Cause.Cause<E>, Result>,
-    f: (failure: Filter.Pass<Cause.Cause<E>, Result>, cause: Cause.Cause<E>) => Effect<void, XE, XR>
+  <E, XE, XR>(
+    predicate: Predicate.Predicate<Cause.Cause<E>>,
+    f: (cause: Cause.Cause<E>) => Effect<void, XE, XR>
   ): <A, R>(self: Effect<A, E, R>) => Effect<A, E | XE, R | XR>
-  <A, E, R, XE, XR, Result extends Filter.ResultOrBool>(
+  <A, E, R, XE, XR>(
     self: Effect<A, E, R>,
-    filter: Filter.OrPredicate<Cause.Cause<E>, Result>,
-    f: (failure: Filter.Pass<Cause.Cause<E>, Result>, cause: Cause.Cause<E>) => Effect<void, XE, XR>
+    predicate: Predicate.Predicate<Cause.Cause<E>>,
+    f: (cause: Cause.Cause<E>) => Effect<void, XE, XR>
   ): Effect<A, E | XE, R | XR>
 } = internal.onErrorIf
+
+/**
+ * Runs the finalizer only when this effect fails and the cause matches the provided `Filter`.
+ *
+ * @since 4.0.0
+ * @category Resource Management & Finalization
+ */
+export const onErrorFilter: {
+  <A, E, EB, X, XE, XR>(
+    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
+    f: (failure: EB, cause: Cause.Cause<E>) => Effect<void, XE, XR>
+  ): <R>(self: Effect<A, E, R>) => Effect<A, E | XE, R | XR>
+  <A, E, R, EB, X, XE, XR>(
+    self: Effect<A, E, R>,
+    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
+    f: (failure: EB, cause: Cause.Cause<E>) => Effect<void, XE, XR>
+  ): Effect<A, E | XE, R | XR>
+} = internal.onErrorFilter
 
 /**
  * The low level primitive that powers `onExit`.
@@ -6327,20 +6441,20 @@ export const onExit: {
 } = internal.onExit
 
 /**
- * Runs the cleanup effect only when the `Exit` passes the provided filter.
- *
- * The cleanup is skipped when the filter returns `Filter.fail`.
+ * Runs the cleanup effect only when the `Exit` satisfies the provided
+ * predicate.
  *
  * @example
  * ```ts
- * import { Console, Effect, Exit, Filter } from "effect"
- *
- * const exitFilter = Filter.fromPredicate(Exit.isSuccess<number, never>)
+ * import { Console, Effect, Exit } from "effect"
  *
  * const program = Effect.onExitIf(
  *   Effect.succeed(42),
- *   exitFilter,
- *   (success) => Console.log(`Succeeded with: ${success.value}`)
+ *   Exit.isSuccess,
+ *   (exit) =>
+ *     Exit.isSuccess(exit)
+ *       ? Console.log(`Succeeded with: ${exit.value}`)
+ *       : Effect.void
  * )
  * ```
  *
@@ -6348,22 +6462,34 @@ export const onExit: {
  * @category Resource Management & Finalization
  */
 export const onExitIf: {
-  <A, E, XE, XR, Result extends Filter.ResultOrBool>(
-    filter: Filter.OrPredicate<Exit.Exit<NoInfer<A>, NoInfer<E>>, Result>,
-    f: (
-      pass: Filter.Pass<Exit.Exit<NoInfer<A>, NoInfer<E>>, Result>,
-      exit: Exit.Exit<NoInfer<A>, NoInfer<E>>
-    ) => Effect<void, XE, XR>
+  <A, E, XE, XR>(
+    predicate: Predicate.Predicate<Exit.Exit<NoInfer<A>, NoInfer<E>>>,
+    f: (exit: Exit.Exit<NoInfer<A>, NoInfer<E>>) => Effect<void, XE, XR>
   ): <R>(self: Effect<A, E, R>) => Effect<A, E | XE, R | XR>
-  <A, E, R, XE, XR, Result extends Filter.ResultOrBool>(
+  <A, E, R, XE, XR>(
     self: Effect<A, E, R>,
-    filter: Filter.OrPredicate<Exit.Exit<NoInfer<A>, NoInfer<E>>, Result>,
-    f: (
-      pass: Filter.Pass<Exit.Exit<NoInfer<A>, NoInfer<E>>, Result>,
-      exit: Exit.Exit<NoInfer<A>, NoInfer<E>>
-    ) => Effect<void, XE, XR>
+    predicate: Predicate.Predicate<Exit.Exit<NoInfer<A>, NoInfer<E>>>,
+    f: (exit: Exit.Exit<NoInfer<A>, NoInfer<E>>) => Effect<void, XE, XR>
   ): Effect<A, E | XE, R | XR>
 } = internal.onExitIf
+
+/**
+ * Runs the cleanup effect only when the `Exit` matches the provided `Filter`.
+ *
+ * @since 4.0.0
+ * @category Resource Management & Finalization
+ */
+export const onExitFilter: {
+  <A, E, XE, XR, B, X>(
+    filter: Filter.Filter<Exit.Exit<NoInfer<A>, NoInfer<E>>, B, X>,
+    f: (b: B, exit: Exit.Exit<NoInfer<A>, NoInfer<E>>) => Effect<void, XE, XR>
+  ): <R>(self: Effect<A, E, R>) => Effect<A, E | XE, R | XR>
+  <A, E, R, XE, XR, B, X>(
+    self: Effect<A, E, R>,
+    filter: Filter.Filter<Exit.Exit<NoInfer<A>, NoInfer<E>>, B, X>,
+    f: (b: B, exit: Exit.Exit<NoInfer<A>, NoInfer<E>>) => Effect<void, XE, XR>
+  ): Effect<A, E | XE, R | XR>
+} = internal.onExitFilter
 
 // -----------------------------------------------------------------------------
 // Caching

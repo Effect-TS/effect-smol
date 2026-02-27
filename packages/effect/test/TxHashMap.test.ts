@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Hash, HashMap, Option, TxHashMap } from "effect"
+import { Effect, Hash, HashMap, Option, Result, TxHashMap } from "effect"
 
 describe("TxHashMap", () => {
   describe("constructors", () => {
@@ -592,7 +592,7 @@ describe("TxHashMap", () => {
         // Test data-first: parse numbers, filter out invalid ones
         const numberMap = yield* TxHashMap.filterMap(txMap, (value) => {
           const num = parseInt(value, 10)
-          return isNaN(num) ? Option.none() : Option.some(num)
+          return isNaN(num) ? Result.failVoid : Result.succeed(num)
         })
 
         const size = yield* TxHashMap.size(numberMap)
@@ -615,11 +615,20 @@ describe("TxHashMap", () => {
         )
 
         const emailMap = yield* userMap.pipe(
-          TxHashMap.filterMap((user) => "email" in user ? Option.some(user.email) : Option.none())
+          TxHashMap.filterMap(
+            (user, key) => "email" in user ? Result.succeed(`${key}:${user.email}`) : Result.failVoid
+          )
         )
 
         const emailSize = yield* TxHashMap.size(emailMap)
+        const user1Email = yield* TxHashMap.get(emailMap, "user1")
+        const user2Email = yield* TxHashMap.get(emailMap, "user2")
+        const user3Email = yield* TxHashMap.get(emailMap, "user3")
+
         assert.strictEqual(emailSize, 2)
+        assert.deepStrictEqual(user1Email, Option.some("user1:alice@example.com"))
+        assert.deepStrictEqual(user2Email, Option.none())
+        assert.deepStrictEqual(user3Email, Option.some("user3:charlie@example.com"))
       })))
 
     it.effect("hasBy should check if any entry matches predicate", () =>

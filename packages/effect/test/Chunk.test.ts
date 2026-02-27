@@ -636,16 +636,31 @@ describe("Chunk", () => {
   })
 
   it("partition", () => {
-    assertTuple(Chunk.partition(Chunk.empty(), (n) => n > 2), [Chunk.empty(), Chunk.empty()])
-    assertTuple(Chunk.partition(Chunk.make(1, 3), (n) => n > 2), [Chunk.make(1), Chunk.make(3)])
+    assertTuple(
+      Chunk.partition(Chunk.empty<number>(), (n) => n > 2 ? Result.succeed(n) : Result.fail(n)),
+      [Chunk.empty(), Chunk.empty()]
+    )
+    assertTuple(
+      Chunk.partition(Chunk.make(1, 3), (n) => n > 2 ? Result.succeed(n) : Result.fail(n)),
+      [Chunk.make(1), Chunk.make(3)]
+    )
 
-    assertTuple(Chunk.partition(Chunk.empty(), (n, i) => n + i > 2), [Chunk.empty(), Chunk.empty()])
-    assertTuple(Chunk.partition(Chunk.make(1, 2), (n, i) => n + i > 2), [Chunk.make(1), Chunk.make(2)])
+    assertTuple(
+      Chunk.partition(
+        Chunk.empty<number>(),
+        (n, i) => n + i > 2 ? Result.succeed(n + i) : Result.fail(`negative:${n + i}`)
+      ),
+      [Chunk.empty(), Chunk.empty()]
+    )
+    assertTuple(
+      Chunk.partition(Chunk.make(1, 2), (n, i) => n + i > 2 ? Result.succeed(n + i) : Result.fail(`negative:${n + i}`)),
+      [Chunk.make("negative:1"), Chunk.make(3)]
+    )
   })
 
-  it("partitionMap", () => {
-    assertTuple(Chunk.partitionMap(Chunk.empty(), identity), [Chunk.empty(), Chunk.empty()])
-    assertTuple(Chunk.partitionMap(Chunk.make(Result.succeed(1), Result.fail("a"), Result.succeed(2)), identity), [
+  it("partition (identity)", () => {
+    assertTuple(Chunk.partition(Chunk.empty(), identity), [Chunk.empty(), Chunk.empty()])
+    assertTuple(Chunk.partition(Chunk.make(Result.succeed(1), Result.fail("a"), Result.succeed(2)), identity), [
       Chunk.make("a"),
       Chunk.make(1, 2)
     ])
@@ -692,9 +707,20 @@ describe("Chunk", () => {
     )
   })
 
+  it("filterMap", () => {
+    assertEquals(
+      Chunk.filterMap(Chunk.make(1, 2, 3, 4), (n) => n % 2 === 0 ? Result.succeed(n * 2) : Result.failVoid),
+      Chunk.make(4, 8)
+    )
+    assertEquals(
+      Chunk.filterMap(Chunk.make(1, 2, 3, 4), (n, i) => i % 2 === 0 ? Result.succeed(n + i) : Result.failVoid),
+      Chunk.make(1, 5)
+    )
+  })
+
   it("filterMapWhile", () => {
     assertEquals(
-      Chunk.filterMapWhile(Chunk.make(1, 3, 4, 5), (n) => n % 2 === 1 ? Option.some(n) : Option.none()),
+      Chunk.filterMapWhile(Chunk.make(1, 3, 4, 5), (n) => n % 2 === 1 ? Result.succeed(n) : Result.failVoid),
       Chunk.make(1, 3)
     )
   })

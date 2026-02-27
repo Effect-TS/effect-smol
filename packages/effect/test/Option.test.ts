@@ -262,7 +262,7 @@ describe("Option", () => {
   })
 
   it("filterMap", () => {
-    const f = (n: number) => (gt2(n) ? Option.some(n + 1) : Option.none())
+    const f = (n: number) => (gt2(n) ? Result.succeed(n + 1) : Result.failVoid)
     assertNone(pipe(Option.none(), Option.filterMap(f)))
     assertNone(pipe(Option.some(1), Option.filterMap(f)))
     assertSome(pipe(Option.some(3), Option.filterMap(f)), 4)
