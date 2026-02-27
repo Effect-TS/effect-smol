@@ -10,5 +10,8 @@ describe("Config", () => {
 
     const c2 = Config.withDefault(c, "a")
     expect(c2).type.toBe<Config.Config<"a" | "b">>()
+
+    const c3 = c.pipe(Config.withDefault("c"))
+    expect(c3).type.toBe<Config.Config<"a" | "b" | "c">>()
   })
 })
