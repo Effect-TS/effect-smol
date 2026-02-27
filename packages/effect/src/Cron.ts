@@ -378,10 +378,6 @@ const CronParseErrorTypeId = "~effect/time/Cron/CronParseError"
  * @since 4.0.0
  * @category models
  */
-/**
- * @category Models
- * @since 4.0.0
- */
 export interface CronParseError {
   readonly _tag: "CronParseError"
   readonly [CronParseErrorTypeId]: typeof CronParseErrorTypeId

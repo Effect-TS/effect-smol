@@ -51,6 +51,17 @@ describe("Cron", () => {
         weekdays: []
       }))
     )
+
+    const withNamedTimeZone = Cron.parseUnsafe("23 0-20/2 * * *", "Europe/Berlin")
+    assertTrue(Option.isSome(withNamedTimeZone.tz))
+    deepStrictEqual(DateTime.zoneToString(withNamedTimeZone.tz.value), "Europe/Berlin")
+
+    const withOffsetTimeZone = Cron.parseUnsafe("23 0-20/2 * * *", "+02:00")
+    assertTrue(Option.isSome(withOffsetTimeZone.tz))
+    deepStrictEqual(DateTime.zoneToString(withOffsetTimeZone.tz.value), "+02:00")
+
+    const withoutTimeZone = Cron.parseUnsafe("23 0-20/2 * * *")
+    assertTrue(Option.isNone(withoutTimeZone.tz))
   })
 
   it("parseUnsafe", () => {
