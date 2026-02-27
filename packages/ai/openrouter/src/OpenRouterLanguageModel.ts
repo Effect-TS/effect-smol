@@ -233,7 +233,7 @@ export const model = (
   model: string,
   config?: Omit<typeof Config.Service, "model">
 ): AiModel.Model<"openai", LanguageModel.LanguageModel, OpenRouterClient> =>
-  AiModel.make("openai", layer({ model, config }))
+  AiModel.make("openai", model, layer({ model, config }))
 
 /**
  * Creates an OpenRouter language model service.
