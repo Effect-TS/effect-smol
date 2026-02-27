@@ -277,6 +277,16 @@ managing the flow of a CLI application.
   Build a command-line app with typed arguments and flags, then wire subcommand
   handlers into a single executable command.
 
+## Working with AI modules
+
+Effect's AI modules provide a provider-agnostic interface for language models.
+You can generate text, decode structured objects with `Schema` and stream partial
+responses.
+
+- **[Using LanguageModel for text, objects, and streams](./ai-docs/src/71_ai/10_language-model.ts)**:
+  Configure a provider once, then use `LanguageModel` for plain text
+  generation, schema-validated object generation, and streaming responses.
+
 ## Building distributed applications with cluster
 
 The cluster modules let you model stateful services as entities and distribute
