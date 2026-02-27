@@ -4290,6 +4290,90 @@ export const validate: {
 )
 
 /** @internal */
+export const findFirst: {
+  <A, E, R>(
+    predicate: (a: NoInfer<A>, i: number) => Effect.Effect<boolean, E, R>
+  ): (elements: Iterable<A>) => Effect.Effect<Option.Option<A>, E, R>
+  <A, E, R>(
+    elements: Iterable<A>,
+    predicate: (a: NoInfer<A>, i: number) => Effect.Effect<boolean, E, R>
+  ): Effect.Effect<Option.Option<A>, E, R>
+} = dual(
+  (args) => isIterable(args[0]) && !isEffect(args[0]),
+  <A, E, R>(
+    elements: Iterable<A>,
+    predicate: (a: A, i: number) => Effect.Effect<boolean, E, R>
+  ): Effect.Effect<Option.Option<A>, E, R> =>
+    suspend(() => {
+      const iterator = elements[Symbol.iterator]()
+      const next = iterator.next()
+      if (!next.done) {
+        return findFirstLoop(iterator, 0, predicate, next.value)
+      }
+      return succeed(Option.none())
+    })
+)
+
+const findFirstLoop = <A, E, R>(
+  iterator: Iterator<A>,
+  index: number,
+  predicate: (a: A, i: number) => Effect.Effect<boolean, E, R>,
+  value: A
+): Effect.Effect<Option.Option<A>, E, R> =>
+  flatMap(predicate(value, index), (keep) => {
+    if (keep) {
+      return succeed(Option.some(value))
+    }
+    const next = iterator.next()
+    if (!next.done) {
+      return findFirstLoop(iterator, index + 1, predicate, next.value)
+    }
+    return succeed(Option.none())
+  })
+
+/** @internal */
+export const findFirstFilter: {
+  <A, B, X, E, R>(
+    filter: Filter.FilterEffect<NoInfer<A>, B, X, E, R, [i: number]>
+  ): (elements: Iterable<A>) => Effect.Effect<Option.Option<B>, E, R>
+  <A, B, X, E, R>(
+    elements: Iterable<A>,
+    filter: Filter.FilterEffect<NoInfer<A>, B, X, E, R, [i: number]>
+  ): Effect.Effect<Option.Option<B>, E, R>
+} = dual(
+  (args) => isIterable(args[0]) && !isEffect(args[0]),
+  <A, B, X, E, R>(
+    elements: Iterable<A>,
+    filter: Filter.FilterEffect<A, B, X, E, R, [i: number]>
+  ): Effect.Effect<Option.Option<B>, E, R> =>
+    suspend(() => {
+      const iterator = elements[Symbol.iterator]()
+      const next = iterator.next()
+      if (!next.done) {
+        return findFirstFilterLoop(iterator, 0, filter, next.value)
+      }
+      return succeed(Option.none())
+    })
+)
+
+const findFirstFilterLoop = <A, B, X, E, R>(
+  iterator: Iterator<A>,
+  index: number,
+  filter: Filter.FilterEffect<A, B, X, E, R, [i: number]>,
+  value: A
+): Effect.Effect<Option.Option<B>, E, R> =>
+  flatMap(filter(value, index), (result) => {
+    if (Result.isSuccess(result)) {
+      return succeed(Option.some(result.success))
+    }
+    const next = iterator.next()
+    if (!next.done) {
+      return findFirstFilterLoop(iterator, index + 1, filter, next.value)
+    }
+    return succeed(Option.none())
+  })
+
+/** @internal */
 export const whileLoop: <A, E, R>(options: {
   readonly while: LazyArg<boolean>
   readonly body: LazyArg<Effect.Effect<A, E, R>>

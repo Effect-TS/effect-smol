@@ -870,6 +870,54 @@ export const validate: {
 } = internal.validate
 
 /**
+ * Returns the first element that satisfies an effectful predicate.
+ *
+ * The predicate receives the element and its index. Evaluation short-circuits
+ * as soon as an element matches.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.findFirst([1, 2, 3, 4], (n) => Effect.succeed(n > 2))
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // { _id: 'Option', _tag: 'Some', value: 3 }
+ * ```
+ *
+ * @since 2.0.0
+ * @category Collecting
+ */
+export const findFirst: {
+  <A, E, R>(
+    predicate: (a: NoInfer<A>, i: number) => Effect<boolean, E, R>
+  ): (elements: Iterable<A>) => Effect<Option<A>, E, R>
+  <A, E, R>(
+    elements: Iterable<A>,
+    predicate: (a: NoInfer<A>, i: number) => Effect<boolean, E, R>
+  ): Effect<Option<A>, E, R>
+} = internal.findFirst
+
+/**
+ * Returns the first value that passes an effectful `FilterEffect`.
+ *
+ * The filter receives the element and index. Evaluation short-circuits on the
+ * first `Result.succeed` and returns the transformed value in `Option.some`.
+ *
+ * @since 4.0.0
+ * @category Collecting
+ */
+export const findFirstFilter: {
+  <A, B, X, E, R>(
+    filter: Filter.FilterEffect<NoInfer<A>, B, X, E, R, [i: number]>
+  ): (elements: Iterable<A>) => Effect<Option<B>, E, R>
+  <A, B, X, E, R>(
+    elements: Iterable<A>,
+    filter: Filter.FilterEffect<NoInfer<A>, B, X, E, R, [i: number]>
+  ): Effect<Option<B>, E, R>
+} = internal.findFirstFilter
+
+/**
  * Executes an effectful operation for each element in an `Iterable`.
  *
  * **Details**

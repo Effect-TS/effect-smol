@@ -472,6 +472,54 @@ describe("Effect", () => {
       }))
   })
 
+  describe("findFirst", () => {
+    it.effect("returns first matching element", () =>
+      Effect.gen(function*() {
+        const result = yield* Effect.findFirst([1, 2, 3, 4], (n) => Effect.succeed(n > 2))
+        assert.deepStrictEqual(result, Option.some(3))
+      }))
+
+    it.effect("returns none when no element matches", () =>
+      Effect.gen(function*() {
+        const result = yield* Effect.findFirst([1, 2, 3, 4], (n) => Effect.succeed(n > 10))
+        assert.deepStrictEqual(result, Option.none())
+      }))
+
+    it.effect("short-circuits on first match", () =>
+      Effect.gen(function*() {
+        const seen: Array<number> = []
+        const result = yield* Effect.findFirst([1, 2, 3, 4], (n) =>
+          Effect.sync(() => {
+            seen.push(n)
+            return n > 2
+          }))
+        assert.deepStrictEqual(result, Option.some(3))
+        assert.deepStrictEqual(seen, [1, 2, 3])
+      }))
+  })
+
+  describe("findFirstFilter", () => {
+    it.effect("returns first successful transformed value", () =>
+      Effect.gen(function*() {
+        const result = yield* Effect.findFirstFilter([1, 2, 3, 4], (n) =>
+          Effect.succeed(n % 2 === 0 ? Result.succeed(`n=${n}`) : Result.failVoid))
+        assert.deepStrictEqual(result, Option.some("n=2"))
+      }))
+
+    it.effect("passes index to filter", () =>
+      Effect.gen(function*() {
+        const result = yield* Effect.findFirstFilter([10, 11, 12], (n, i) =>
+          Effect.succeed(i === 2 ? Result.succeed(`${n}:${i}`) : Result.failVoid))
+        assert.deepStrictEqual(result, Option.some("12:2"))
+      }))
+
+    it.effect("returns none when filter never succeeds", () =>
+      Effect.gen(function*() {
+        const result = yield* Effect.findFirstFilter([1, 2, 3], () => Effect.succeed(Result.failVoid))
+        assert.deepStrictEqual(result, Option.none())
+      }))
+  })
+
   describe("filter", () => {
     it.live("odd numbers", () =>
       Effect.gen(function*() {
