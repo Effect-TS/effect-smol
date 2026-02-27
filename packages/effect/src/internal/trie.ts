@@ -683,19 +683,19 @@ export const modify = dual<
 
 /** @internal */
 export const longestPrefixOf = dual<
-  (key: string) => <V>(self: TR.Trie<V>) => [string, V] | undefined,
-  <V>(self: TR.Trie<V>, key: string) => [string, V] | undefined
+  (key: string) => <V>(self: TR.Trie<V>) => Option.Option<[string, V]>,
+  <V>(self: TR.Trie<V>, key: string) => Option.Option<[string, V]>
 >(
   2,
-  <V>(self: TR.Trie<V>, key: string): [string, V] | undefined => {
+  <V>(self: TR.Trie<V>, key: string): Option.Option<[string, V]> => {
     let n: Node<V> | undefined = (self as TrieImpl<V>)._root
-    if (n === undefined || key.length === 0) return undefined
-    let longestPrefixNode: [string, V] | undefined = undefined
+    if (n === undefined || key.length === 0) return Option.none()
+    let longestPrefixNode: Option.Option<[string, V]> = Option.none()
     let cIndex = 0
     while (cIndex < key.length) {
       const c = key[cIndex]
       if (n.value !== undefined) {
-        longestPrefixNode = [key.slice(0, cIndex + 1), n.value]
+        longestPrefixNode = Option.some([key.slice(0, cIndex + 1), n.value])
       }
 
       if (c > n.key) {

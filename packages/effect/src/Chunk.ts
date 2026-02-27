@@ -2035,7 +2035,7 @@ export const splitWhere: {
  * @since 2.0.0
  * @category elements
  */
-export const tail = <A>(self: Chunk<A>): Chunk<A> | undefined => self.length > 0 ? drop(self, 1) : undefined
+export const tail = <A>(self: Chunk<A>): O.Option<Chunk<A>> => self.length > 0 ? O.some(drop(self, 1)) : O.none()
 
 /**
  * Returns every elements after the first.
@@ -2344,27 +2344,27 @@ export const remove: {
  *
  * const chunk = Chunk.make(1, 2, 3, 4)
  * const result = Chunk.modify(chunk, 1, (n) => n * 10)
- * console.log(result) // { _id: 'Chunk', values: [ 1, 20, 3, 4 ] }
+ * console.log(result) // Option.some(Chunk.make(1, 20, 3, 4))
  *
  * // Index out of bounds returns None
- * const outOfBounds = chunk?.pipe(Chunk.modify(10, (n) => n * 10))
- * console.log(outOfBounds === undefined) // true
+ * const outOfBounds = chunk.pipe(Chunk.modify(10, (n) => n * 10))
+ * console.log(outOfBounds) // Option.none()
  *
  * // Negative index returns None
- * const negative = chunk?.pipe(Chunk.modify(-1, (n) => n * 10))
- * console.log(negative === undefined) // true
+ * const negative = chunk.pipe(Chunk.modify(-1, (n) => n * 10))
+ * console.log(negative) // Option.none()
  * ```
  *
  * @category elements
  * @since 2.0.0
  */
 export const modify: {
-  <A, B>(i: number, f: (a: A) => B): (self: Chunk<A>) => Chunk<A | B> | undefined
-  <A, B>(self: Chunk<A>, i: number, f: (a: A) => B): Chunk<A | B> | undefined
+  <A, B>(i: number, f: (a: A) => B): (self: Chunk<A>) => O.Option<Chunk<A | B>>
+  <A, B>(self: Chunk<A>, i: number, f: (a: A) => B): O.Option<Chunk<A | B>>
 } = dual(
   3,
-  <A, B>(self: Chunk<A>, i: number, f: (a: A) => B): Chunk<A | B> | undefined =>
-    pipe(RA.modify(toReadonlyArray(self), i, f), O.map(fromArrayUnsafe), O.getOrUndefined)
+  <A, B>(self: Chunk<A>, i: number, f: (a: A) => B): O.Option<Chunk<A | B>> =>
+    pipe(RA.modify(toReadonlyArray(self), i, f), O.map(fromArrayUnsafe))
 )
 
 /**
@@ -2377,24 +2377,24 @@ export const modify: {
  *
  * const chunk = Chunk.make("a", "b", "c", "d")
  * const result = Chunk.replace(chunk, 1, "X")
- * console.log(result) // { _id: 'Chunk', values: [ 'a', 'X', 'c', 'd' ] }
+ * console.log(result) // Option.some(Chunk.make("a", "X", "c", "d"))
  *
  * // Index out of bounds returns None
- * const outOfBounds = chunk?.pipe(Chunk.replace(10, "Y"))
- * console.log(outOfBounds === undefined) // true
+ * const outOfBounds = chunk.pipe(Chunk.replace(10, "Y"))
+ * console.log(outOfBounds) // Option.none()
  *
  * // Negative index returns None
- * const negative = chunk?.pipe(Chunk.replace(-1, "Z"))
- * console.log(negative === undefined) // true
+ * const negative = chunk.pipe(Chunk.replace(-1, "Z"))
+ * console.log(negative) // Option.none()
  * ```
  *
  * @category elements
  * @since 2.0.0
  */
 export const replace: {
-  <B>(i: number, b: B): <A>(self: Chunk<A>) => Chunk<B | A> | undefined
-  <A, B>(self: Chunk<A>, i: number, b: B): Chunk<B | A> | undefined
-} = dual(3, <A, B>(self: Chunk<A>, i: number, b: B): Chunk<B | A> | undefined => modify(self, i, () => b))
+  <B>(i: number, b: B): <A>(self: Chunk<A>) => O.Option<Chunk<B | A>>
+  <A, B>(self: Chunk<A>, i: number, b: B): O.Option<Chunk<B | A>>
+} = dual(3, <A, B>(self: Chunk<A>, i: number, b: B): O.Option<Chunk<B | A>> => modify(self, i, () => b))
 
 /**
  * Return a Chunk of length n with element i initialized with f(i).
@@ -2549,27 +2549,26 @@ export const findFirst: {
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5)
  * const result = Chunk.findFirstIndex(chunk, (n) => n > 3)
- * console.log(result) // 3
+ * console.log(result) // Option.some(3)
  *
  * // No match found
  * const notFound = Chunk.findFirstIndex(chunk, (n) => n > 10)
- * console.log(notFound) // undefined
+ * console.log(notFound) // Option.none()
  *
  * // Find first even number
  * const firstEven = Chunk.findFirstIndex(chunk, (n) => n % 2 === 0)
- * console.log(firstEven) // 1
+ * console.log(firstEven) // Option.some(1)
  * ```
  *
  * @category elements
  * @since 2.0.0
  */
 export const findFirstIndex: {
-  <A>(predicate: Predicate<A>): (self: Chunk<A>) => number | undefined
-  <A>(self: Chunk<A>, predicate: Predicate<A>): number | undefined
+  <A>(predicate: Predicate<A>): (self: Chunk<A>) => O.Option<number>
+  <A>(self: Chunk<A>, predicate: Predicate<A>): O.Option<number>
 } = dual(
   2,
-  <A>(self: Chunk<A>, predicate: Predicate<A>): number | undefined =>
-    O.getOrUndefined(RA.findFirstIndex(self, predicate))
+  <A>(self: Chunk<A>, predicate: Predicate<A>): O.Option<number> => RA.findFirstIndex(self, predicate)
 )
 
 /**
@@ -2613,27 +2612,26 @@ export const findLast: {
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5)
  * const result = Chunk.findLastIndex(chunk, (n) => n < 4)
- * console.log(result) // 2
+ * console.log(result) // Option.some(2)
  *
  * // No match found
  * const notFound = Chunk.findLastIndex(chunk, (n) => n > 10)
- * console.log(notFound) // undefined
+ * console.log(notFound) // Option.none()
  *
  * // Find last even number index
  * const lastEven = Chunk.findLastIndex(chunk, (n) => n % 2 === 0)
- * console.log(lastEven) // 3
+ * console.log(lastEven) // Option.some(3)
  * ```
  *
  * @category elements
  * @since 2.0.0
  */
 export const findLastIndex: {
-  <A>(predicate: Predicate<A>): (self: Chunk<A>) => number | undefined
-  <A>(self: Chunk<A>, predicate: Predicate<A>): number | undefined
+  <A>(predicate: Predicate<A>): (self: Chunk<A>) => O.Option<number>
+  <A>(self: Chunk<A>, predicate: Predicate<A>): O.Option<number>
 } = dual(
   2,
-  <A>(self: Chunk<A>, predicate: Predicate<A>): number | undefined =>
-    O.getOrUndefined(RA.findLastIndex(self, predicate))
+  <A>(self: Chunk<A>, predicate: Predicate<A>): O.Option<number> => RA.findLastIndex(self, predicate)
 )
 
 /**

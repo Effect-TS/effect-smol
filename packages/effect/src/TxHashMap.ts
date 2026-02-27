@@ -1685,7 +1685,7 @@ export const findFirst: {
     self: TxHashMap<K, V>,
     predicate: (value: V, key: K) => boolean
   ): Effect.Effect<Option.Option<[K, V]>, never, Effect.Transaction> =>
-    TxRef.get(self.ref).pipe(Effect.map((map) => Option.fromUndefinedOr(HashMap.findFirst(map, predicate))))
+    TxRef.get(self.ref).pipe(Effect.map((map) => HashMap.findFirst(map, predicate)))
 )
 
 /**

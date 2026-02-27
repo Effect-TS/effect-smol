@@ -414,7 +414,7 @@ export const get: {
 
 /**
  * Apply a function to the element at the specified key, creating a new record,
- * or return `undefined` if the key doesn't exist.
+ * or return `Option.none()` if the key doesn't exist.
  *
  * @example
  * ```ts
@@ -424,8 +424,8 @@ export const get: {
  *
  * const input: Record<string, number> = { a: 3 }
  *
- * Record.modify(input, "a", f) // { a: 6 }
- * Record.modify(input, "b", f) // undefined
+ * Record.modify(input, "a", f) // Option.some({ a: 6 })
+ * Record.modify(input, "b", f) // Option.none()
  * ```
  *
  * @category utils
@@ -435,21 +435,21 @@ export const modify: {
   <K extends string | symbol, A, B>(
     key: NoInfer<K>,
     f: (a: A) => B
-  ): (self: ReadonlyRecord<K, A>) => Record<K, A | B> | undefined
+  ): (self: ReadonlyRecord<K, A>) => Option.Option<Record<K, A | B>>
   <K extends string | symbol, A, B>(
     self: ReadonlyRecord<K, A>,
     key: NoInfer<K>,
     f: (a: A) => B
-  ): Record<K, A | B> | undefined
+  ): Option.Option<Record<K, A | B>>
 } = dual(
   3,
   <K extends string | symbol, A, B>(
     self: ReadonlyRecord<K, A>,
     key: NoInfer<K>,
     f: (a: A) => B
-  ): Record<K, A | B> | undefined => {
-    if (!has(self, key)) return undefined
-    return { ...self, [key]: f(self[key]) }
+  ): Option.Option<Record<K, A | B>> => {
+    if (!has(self, key)) return Option.none()
+    return Option.some({ ...self, [key]: f(self[key]) })
   }
 )
 
@@ -460,8 +460,8 @@ export const modify: {
  * ```ts
  * import { Record } from "effect"
  *
- * Record.replace({ a: 1, b: 2, c: 3 }, "a", 10) // { a: 10, b: 2, c: 3 }
- * Record.replace(Record.empty<string>(), "a", 10) // undefined
+ * Record.replace({ a: 1, b: 2, c: 3 }, "a", 10) // Option.some({ a: 10, b: 2, c: 3 })
+ * Record.replace(Record.empty<string>(), "a", 10) // Option.none()
  * ```
  *
  * @category utils
@@ -471,19 +471,19 @@ export const replace: {
   <K extends string | symbol, B>(
     key: NoInfer<K>,
     b: B
-  ): <A>(self: ReadonlyRecord<K, A>) => Record<K, A | B> | undefined
+  ): <A>(self: ReadonlyRecord<K, A>) => Option.Option<Record<K, A | B>>
   <K extends string | symbol, A, B>(
     self: ReadonlyRecord<K, A>,
     key: NoInfer<K>,
     b: B
-  ): Record<K, A | B> | undefined
+  ): Option.Option<Record<K, A | B>>
 } = dual(
   3,
   <K extends string | symbol, A, B>(
     self: ReadonlyRecord<K, A>,
     key: NoInfer<K>,
     b: B
-  ): Record<K, A | B> | undefined => modify(self, key, () => b)
+  ): Option.Option<Record<K, A | B>> => modify(self, key, () => b)
 )
 
 /**
@@ -519,7 +519,7 @@ export const remove: {
 /**
  * Retrieves the value of the property with the given `key` from a record and returns an `Option`
  * of a tuple with the value and the record with the removed property.
- * If the key is not present, returns `undefined`.
+ * If the key is not present, returns `Option.none()`.
  *
  * @example
  * ```ts
@@ -527,8 +527,8 @@ export const remove: {
  *
  * const input: Record<string, number> = { a: 1, b: 2 }
  *
- * Record.pop(input, "a") // [1, { b: 2 }]
- * Record.pop(input, "c") // undefined
+ * Record.pop(input, "a") // Option.some([1, { b: 2 }])
+ * Record.pop(input, "c") // Option.none()
  * ```
  *
  * @category utils
@@ -537,15 +537,16 @@ export const remove: {
 export const pop: {
   <K extends string | symbol, X extends K>(
     key: X
-  ): <A>(self: ReadonlyRecord<K, A>) => [A, Record<Exclude<K, X>, A>] | undefined
+  ): <A>(self: ReadonlyRecord<K, A>) => Option.Option<[A, Record<Exclude<K, X>, A>]>
   <K extends string | symbol, A, X extends K>(
     self: ReadonlyRecord<K, A>,
     key: X
-  ): [A, Record<Exclude<K, X>, A>] | undefined
+  ): Option.Option<[A, Record<Exclude<K, X>, A>]>
 } = dual(2, <K extends string | symbol, A, X extends K>(
   self: ReadonlyRecord<K, A>,
   key: X
-): [A, Record<Exclude<K, X>, A>] | undefined => has(self, key) ? [self[key], remove(self, key)] : undefined)
+): Option.Option<[A, Record<Exclude<K, X>, A>]> =>
+  has(self, key) ? Option.some([self[key], remove(self, key)]) : Option.none())
 
 /**
  * Maps a record into another record by applying a transformation function to each of its values.
@@ -1411,27 +1412,31 @@ export function makeReducerIntersection<K extends string, A>(
 export const findFirst: {
   <K extends string | symbol, V, V2 extends V>(
     refinement: (value: NoInfer<V>, key: NoInfer<K>) => value is V2
-  ): (self: ReadonlyRecord<K, V>) => [K, V2] | undefined
+  ): (self: ReadonlyRecord<K, V>) => Option.Option<[K, V2]>
   <K extends string | symbol, V>(
     predicate: (value: NoInfer<V>, key: NoInfer<K>) => boolean
-  ): (self: ReadonlyRecord<K, V>) => [K, V] | undefined
+  ): (self: ReadonlyRecord<K, V>) => Option.Option<[K, V]>
   <K extends string | symbol, V, V2 extends V>(
     self: ReadonlyRecord<K, V>,
     refinement: (value: NoInfer<V>, key: NoInfer<K>) => value is V2
-  ): [K, V2] | undefined
+  ): Option.Option<[K, V2]>
   <K extends string | symbol, V>(
     self: ReadonlyRecord<K, V>,
     predicate: (value: NoInfer<V>, key: NoInfer<K>) => boolean
-  ): [K, V] | undefined
+  ): Option.Option<[K, V]>
 } = dual(
   2,
-  <K extends string | symbol, V>(self: ReadonlyRecord<K, V>, f: (value: V, key: K) => boolean): [K, V] | undefined => {
+  <K extends string | symbol, V>(
+    self: ReadonlyRecord<K, V>,
+    f: (value: V, key: K) => boolean
+  ): Option.Option<[K, V]> => {
     const k = keys(self)
     for (let i = 0; i < k.length; i++) {
       const key = k[i]
       if (f(self[key], key)) {
-        return [key, self[key]]
+        return Option.some([key, self[key]])
       }
     }
+    return Option.none()
   }
 )

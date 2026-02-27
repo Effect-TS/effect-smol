@@ -342,10 +342,10 @@ describe("Trie", () => {
       Trie.insert("she", 2)
     )
 
-    deepStrictEqual(Trie.longestPrefixOf(trie, "sell"), undefined)
-    deepStrictEqual(Trie.longestPrefixOf(trie, "sells"), ["sells", 1])
-    deepStrictEqual(Trie.longestPrefixOf(trie, "shell"), ["she", 2])
-    deepStrictEqual(Trie.longestPrefixOf(trie, "shellsort"), ["shells", 0])
+    assertNone(Trie.longestPrefixOf(trie, "sell"))
+    assertSome(Trie.longestPrefixOf(trie, "sells"), ["sells", 1])
+    assertSome(Trie.longestPrefixOf(trie, "shell"), ["she", 2])
+    assertSome(Trie.longestPrefixOf(trie, "shellsort"), ["shells", 0])
   })
 
   it("map", () => {
