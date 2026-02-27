@@ -80,7 +80,7 @@ export interface Spawner {
  * @since 4.0.0
  * @category tags
  */
-export const Spawner: ServiceMap.Service<
+export const Spawner: ServiceMap.ServiceImpl<
   Spawner,
   SpawnerFn<unknown>
 > = ServiceMap.Service("effect/workers/Worker/Spawner")

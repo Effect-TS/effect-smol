@@ -451,7 +451,7 @@ export const CurrentLogAnnotations = ServiceMap.Reference<ReadonlyRecord<string,
  * @category references
  * @since 4.0.0
  */
-export const CurrentLogLevel: ServiceMap.Reference<Severity> = ServiceMap.Reference<Severity>(
+export const CurrentLogLevel: ServiceMap.ReferenceImpl<Severity> = ServiceMap.Reference<Severity>(
   "effect/References/CurrentLogLevel",
   { defaultValue: () => "Info" }
 )
@@ -516,7 +516,7 @@ export const MinimumLogLevel = ServiceMap.Reference<
  * @category references
  * @since 4.0.0
  */
-export const UnhandledLogLevel: ServiceMap.Reference<Severity | undefined> = ServiceMap.Reference(
+export const UnhandledLogLevel: ServiceMap.ReferenceImpl<Severity | undefined> = ServiceMap.Reference(
   "effect/References/UnhandledLogLevel",
   { defaultValue: (): Severity | undefined => "Error" }
 )

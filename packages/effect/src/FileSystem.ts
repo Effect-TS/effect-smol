@@ -709,7 +709,7 @@ export type OpenFlag =
  * @since 4.0.0
  * @category tag
  */
-export const FileSystem: ServiceMap.Service<FileSystem, FileSystem> = ServiceMap.Service("effect/platform/FileSystem")
+export const FileSystem: ServiceMap.ServiceImpl<FileSystem, FileSystem> = ServiceMap.Service("effect/platform/FileSystem")
 
 /**
  * Creates a FileSystem implementation from a partial implementation.

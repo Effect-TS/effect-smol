@@ -106,7 +106,7 @@ export const isQuitError = (u: unknown): u is QuitError => Predicate.hasProperty
  * @since 4.0.0
  * @category Services
  */
-export const Terminal: ServiceMap.Service<Terminal, Terminal> = ServiceMap.Service("effect/platform/Terminal")
+export const Terminal: ServiceMap.ServiceImpl<Terminal, Terminal> = ServiceMap.Service("effect/platform/Terminal")
 
 /**
  * Creates a Terminal implementation

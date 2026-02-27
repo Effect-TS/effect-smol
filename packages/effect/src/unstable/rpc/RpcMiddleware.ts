@@ -110,7 +110,7 @@ export interface ServiceClass<
   E extends Schema.Top,
   ClientError,
   Requires
-> extends ServiceMap.Service<Self, RpcMiddleware<Provides, E["Type"], Requires>> {
+> extends ServiceMap.ServiceImpl<Self, RpcMiddleware<Provides, E["Type"], Requires>> {
   new(_: never): ServiceMap.ServiceClass.Shape<Name, RpcMiddleware<Provides, E["Type"], Requires>> & {
     readonly [TypeId]: {
       readonly error: E

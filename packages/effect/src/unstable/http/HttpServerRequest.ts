@@ -71,7 +71,7 @@ export interface HttpServerRequest extends HttpIncomingMessage.HttpIncomingMessa
  * @since 4.0.0
  * @category context
  */
-export const HttpServerRequest: ServiceMap.Service<HttpServerRequest, HttpServerRequest> = ServiceMap.Service(
+export const HttpServerRequest: ServiceMap.ServiceImpl<HttpServerRequest, HttpServerRequest> = ServiceMap.Service(
   "effect/http/HttpServerRequest"
 )
 

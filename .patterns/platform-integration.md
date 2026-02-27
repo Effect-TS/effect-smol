@@ -25,7 +25,7 @@ export interface FileSystem {
 }
 
 // Service key for dependency injection
-export const FileSystem: ServiceMap.Service<FileSystem, FileSystem> = ServiceMap.Service("effect/platform/FileSystem")
+export const FileSystem: ServiceMap.ServiceImpl<FileSystem, FileSystem> = ServiceMap.Service("effect/platform/FileSystem")
 
 // Type identification
 const TypeId: unique symbol = Symbol.for("effect/platform/FileSystem")

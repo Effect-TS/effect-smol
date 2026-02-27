@@ -53,7 +53,7 @@ export interface SpecFetcher {
  * @since 1.0.0
  * @category tags
  */
-export const SpecFetcher: ServiceMap.Service<SpecFetcher, SpecFetcher> = ServiceMap.Service(
+export const SpecFetcher: ServiceMap.ServiceImpl<SpecFetcher, SpecFetcher> = ServiceMap.Service(
   "@effect/ai-codegen/SpecFetcher"
 )
 

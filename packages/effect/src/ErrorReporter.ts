@@ -164,7 +164,7 @@ export const make = (
  * @since 4.0.0
  * @category References
  */
-export const CurrentErrorReporters: ServiceMap.Reference<ReadonlySet<ErrorReporter>> = effect.CurrentErrorReporters
+export const CurrentErrorReporters: ServiceMap.ReferenceImpl<ReadonlySet<ErrorReporter>> = effect.CurrentErrorReporters
 
 /**
  * Creates a `Layer` that registers one or more `ErrorReporter`s.

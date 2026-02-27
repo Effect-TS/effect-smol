@@ -61,7 +61,7 @@ export interface ProviderDiscovery {
  * @since 1.0.0
  * @category tags
  */
-export const ProviderDiscovery: ServiceMap.Service<ProviderDiscovery, ProviderDiscovery> = ServiceMap.Service(
+export const ProviderDiscovery: ServiceMap.ServiceImpl<ProviderDiscovery, ProviderDiscovery> = ServiceMap.Service(
   "@effect/ai-codegen/ProviderDiscovery"
 )
 

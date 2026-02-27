@@ -67,7 +67,7 @@ export interface BarrelGenerator {
  * @since 1.0.0
  * @category tags
  */
-export const BarrelGenerator: ServiceMap.Service<BarrelGenerator, BarrelGenerator> = ServiceMap.Service(
+export const BarrelGenerator: ServiceMap.ServiceImpl<BarrelGenerator, BarrelGenerator> = ServiceMap.Service(
   "@effect/utils/BarrelGenerator"
 )
 

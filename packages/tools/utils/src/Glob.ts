@@ -28,7 +28,7 @@ export interface Glob {
  * @since 1.0.0
  * @category tags
  */
-export const Glob: ServiceMap.Service<Glob, Glob> = ServiceMap.Service("@effect/utils/Glob")
+export const Glob: ServiceMap.ServiceImpl<Glob, Glob> = ServiceMap.Service("@effect/utils/Glob")
 
 /**
  * @since 1.0.0

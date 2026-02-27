@@ -38,7 +38,7 @@ export class ClipboardError extends Data.TaggedError("ClipboardError")<{
  * @since 1.0.0
  * @category Service
  */
-export const Clipboard: ServiceMap.Service<Clipboard, Clipboard> = ServiceMap.Service<Clipboard>(TypeId)
+export const Clipboard: ServiceMap.ServiceImpl<Clipboard, Clipboard> = ServiceMap.Service<Clipboard>(TypeId)
 
 /**
  * @since 1.0.0

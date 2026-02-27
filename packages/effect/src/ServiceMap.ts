@@ -50,6 +50,13 @@ export interface Service<in out Identifier, in out Shape>
   }
   readonly Service: Shape
   readonly Identifier: Identifier
+  readonly stack?: string | undefined
+  readonly key: string
+}
+
+export interface ServiceImpl<in out Identifier, in out Shape>
+  extends Service<Identifier, Shape>
+{
   of(self: Shape): Shape
   serviceMap(self: Shape): ServiceMap<Identifier>
   use<A, E, R>(f: (service: Shape) => Effect<A, E, R>): Effect<A, E, R | Identifier>
@@ -64,7 +71,7 @@ export interface Service<in out Identifier, in out Shape>
  * @category Models
  */
 export interface ServiceClass<in out Self, in out Identifier extends string, in out Shape>
-  extends Service<Self, Shape>
+  extends ServiceImpl<Self, Shape>
 {
   new(_: never): ServiceClass.Shape<Identifier, Shape>
   readonly key: Identifier
@@ -112,7 +119,7 @@ export declare namespace ServiceClass {
  * @category Constructors
  */
 export const Service: {
-  <Identifier, Shape = Identifier>(key: string): Service<Identifier, Shape>
+  <Identifier, Shape = Identifier>(key: string): ServiceImpl<Identifier, Shape>
   <Self, Shape>(): <
     const Identifier extends string,
     E,
@@ -220,7 +227,7 @@ const ReferenceTypeId = "~effect/ServiceMap/Reference" as const
  * import { ServiceMap } from "effect"
  *
  * // Define a reference with a default value
- * const LoggerRef: ServiceMap.Reference<{ log: (msg: string) => void }> =
+ * const LoggerRef: ServiceMap.ReferenceImpl<{ log: (msg: string) => void }> =
  *   ServiceMap.Reference("Logger", {
  *     defaultValue: () => ({ log: (msg: string) => console.log(msg) })
  *   })
@@ -236,6 +243,10 @@ const ReferenceTypeId = "~effect/ServiceMap/Reference" as const
 export interface Reference<in out Shape> extends Service<never, Shape> {
   readonly [ReferenceTypeId]: typeof ReferenceTypeId
   readonly defaultValue: () => Shape
+  [Symbol.iterator](): EffectIterator<Reference<Shape>>
+}
+
+export interface ReferenceImpl<in out Shape> extends Reference<Shape>, ServiceImpl<never, Shape> {
   [Symbol.iterator](): EffectIterator<Reference<Shape>>
 }
 
@@ -998,4 +1009,4 @@ export const omit = <S extends ReadonlyArray<Service<any, any>>>(
 export const Reference: <Service>(
   key: string,
   options: { readonly defaultValue: () => Service }
-) => Reference<Service> = Service as any
+) => ReferenceImpl<Service> = Service as any

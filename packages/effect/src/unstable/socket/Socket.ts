@@ -36,7 +36,7 @@ export const isSocket = (u: unknown): u is Socket => Predicate.hasProperty(u, Ty
  * @since 4.0.0
  * @category tags
  */
-export const Socket: ServiceMap.Service<Socket, Socket> = ServiceMap.Service<Socket>("effect/socket/Socket")
+export const Socket: ServiceMap.ServiceImpl<Socket, Socket> = ServiceMap.Service<Socket>("effect/socket/Socket")
 
 /**
  * @since 4.0.0

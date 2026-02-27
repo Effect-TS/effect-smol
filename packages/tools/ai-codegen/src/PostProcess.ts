@@ -74,7 +74,7 @@ export interface PostProcessor {
  * @since 1.0.0
  * @category tags
  */
-export const PostProcessor: ServiceMap.Service<PostProcessor, PostProcessor> = ServiceMap.Service(
+export const PostProcessor: ServiceMap.ServiceImpl<PostProcessor, PostProcessor> = ServiceMap.Service(
   "@effect/ai-codegen/PostProcessor"
 )
 

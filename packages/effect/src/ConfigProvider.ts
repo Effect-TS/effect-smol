@@ -355,7 +355,7 @@ export interface ConfigProvider extends Pipeable {
  * @category Services
  * @since 4.0.0
  */
-export const ConfigProvider: ServiceMap.Reference<ConfigProvider> = ServiceMap.Reference<ConfigProvider>(
+export const ConfigProvider: ServiceMap.ReferenceImpl<ConfigProvider> = ServiceMap.Reference<ConfigProvider>(
   "effect/ConfigProvider",
   { defaultValue: () => fromEnv() }
 )
