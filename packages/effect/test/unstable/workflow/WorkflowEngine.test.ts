@@ -25,4 +25,29 @@ describe("WorkflowEngine", () => {
       Effect.provide(IncrementWorkflowLayer),
       Effect.provide(WorkflowEngine.layer)
     ))
+
+  it.effect("layer returns cached result for completed execution", () => {
+    let runs = 0
+    const workflow = Workflow.make({
+      name: "WorkflowEngine/CachedResultWorkflow",
+      payload: { value: Schema.Number },
+      success: Schema.Number,
+      idempotencyKey: ({ value }) => String(value)
+    })
+    const workflowLayer = workflow.toLayer(({ value }) => {
+      runs += 1
+      return Effect.succeed(value + 1)
+    })
+
+    return Effect.gen(function*() {
+      yield* workflow.execute({ value: 1 }, { discard: true })
+      const result = yield* workflow.execute({ value: 1 })
+
+      assert.strictEqual(result, 2)
+      assert.strictEqual(runs, 1)
+    }).pipe(
+      Effect.provide(workflowLayer),
+      Effect.provide(WorkflowEngine.layer)
+    )
+  })
 })

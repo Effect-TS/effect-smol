@@ -507,6 +507,7 @@ const defaultRetrySchedule = Schedule.exponential(200, 1.5).pipe(
  */
 export const layer: Layer.Layer<WorkflowEngine> = Layer.effect(WorkflowEngine)(
   Effect.gen(function*() {
+    const maxCompletedExecutions = 1024
     const scope = yield* Effect.scope
 
     const workflows = new Map<string, {
@@ -529,17 +530,44 @@ export const layer: Layer.Layer<WorkflowEngine> = Layer.effect(WorkflowEngine)(
       fiber: Fiber.Fiber<Workflow.Result<unknown, unknown>> | undefined
     }
     const executions = new Map<string, ExecutionState>()
+    const completedExecutions = new Map<string, Exit.Exit<Workflow.Result<unknown, unknown>, unknown>>()
 
     type ActivityState = {
       exit: Exit.Exit<Workflow.Result<unknown, unknown>> | undefined
     }
     const activities = new Map<string, ActivityState>()
 
+    const trimCompletedExecutions = () => {
+      while (completedExecutions.size > maxCompletedExecutions) {
+        const oldest = completedExecutions.keys().next().value
+        if (oldest === undefined) break
+        completedExecutions.delete(oldest)
+      }
+    }
+
+    const cleanExecutionState = (executionId: string) => {
+      executions.delete(executionId)
+      const prefix = `${executionId}/`
+      for (const key of activities.keys()) {
+        if (key.startsWith(prefix)) {
+          activities.delete(key)
+        }
+      }
+      for (const key of deferredResults.keys()) {
+        if (key.startsWith(prefix)) {
+          deferredResults.delete(key)
+        }
+      }
+    }
+
     const resume = Effect.fnUntraced(function*(executionId: string): Effect.fn.Return<void> {
       const state = executions.get(executionId)
       if (!state) return
       const exit = state.fiber?.pollUnsafe()
-      if (exit && exit._tag === "Success" && exit.value._tag === "Complete") {
+      if (exit && (exit._tag !== "Success" || exit.value._tag === "Complete")) {
+        completedExecutions.set(executionId, exit)
+        trimCompletedExecutions()
+        cleanExecutionState(executionId)
         return
       } else if (state.fiber && !exit) {
         return
@@ -589,6 +617,18 @@ export const layer: Layer.Layer<WorkflowEngine> = Layer.effect(WorkflowEngine)(
         }
 
         let state = executions.get(options.executionId)
+        if (!state) {
+          const exit = completedExecutions.get(options.executionId)
+          if (exit) {
+            if (exit._tag === "Success") {
+              if (exit.value._tag === "Complete") {
+                return exit.value.exit as any
+              }
+              return
+            }
+            return yield* Effect.orDie(Effect.failCause(exit.cause))
+          }
+        }
         if (!state) {
           state = {
             payload: options.payload,
@@ -642,7 +682,13 @@ export const layer: Layer.Layer<WorkflowEngine> = Layer.effect(WorkflowEngine)(
         Effect.suspend(() => {
           const state = executions.get(executionId)
           if (!state) {
-            return Effect.succeed(undefined)
+            const completed = completedExecutions.get(executionId)
+            if (!completed) {
+              return Effect.succeed(undefined)
+            }
+            return completed._tag === "Success"
+              ? Effect.succeed(completed.value)
+              : Effect.succeed(new Workflow.Complete({ exit: Exit.failCause(completed.cause as any) }))
           }
           const exit = state.fiber?.pollUnsafe()
           return exit ?? Effect.succeed(undefined)
