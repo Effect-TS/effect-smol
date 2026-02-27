@@ -763,7 +763,7 @@ export const all: <
 ) => All.Return<Arg, O> = internal.all
 
 /**
- * Applies an effectful function to each element and partitions failures and
+ * Applies an effectful `Filter` to each element and partitions failures and
  * successes.
  *
  * The returned tuple is `[excluded, satisfying]`, where:
@@ -776,10 +776,10 @@ export const all: <
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Effect, Result } from "effect"
  *
  * const program = Effect.partition([0, 1, 2, 3], (n) =>
- *   n % 2 === 0 ? Effect.fail(`${n} is even`) : Effect.succeed(n)
+ *   Effect.succeed(n % 2 === 0 ? Result.fail(`${n} is even`) : Result.succeed(n))
  * )
  *
  * Effect.runPromise(program).then(console.log)
@@ -790,15 +790,15 @@ export const all: <
  * @category Collecting
  */
 export const partition: {
-  <A, B, E, R>(
-    f: (a: A, i: number) => Effect<B, E, R>,
+  <A, Pass, Fail, E, R>(
+    filter: Filter.FilterEffect<NoInfer<A>, Pass, Fail, E, R, [i: number]>,
     options?: { readonly concurrency?: Concurrency | undefined }
-  ): (elements: Iterable<A>) => Effect<[excluded: Array<E>, satisfying: Array<B>], never, R>
-  <A, B, E, R>(
+  ): (elements: Iterable<A>) => Effect<[excluded: Array<Fail>, satisfying: Array<Pass>], E, R>
+  <A, Pass, Fail, E, R>(
     elements: Iterable<A>,
-    f: (a: A, i: number) => Effect<B, E, R>,
+    filter: Filter.FilterEffect<NoInfer<A>, Pass, Fail, E, R, [i: number]>,
     options?: { readonly concurrency?: Concurrency | undefined }
-  ): Effect<[excluded: Array<E>, satisfying: Array<B>], never, R>
+  ): Effect<[excluded: Array<Fail>, satisfying: Array<Pass>], E, R>
 } = internal.partition
 
 /**

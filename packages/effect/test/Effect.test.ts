@@ -413,7 +413,7 @@ describe("Effect", () => {
     it.effect("collects only successes", () =>
       Effect.gen(function*() {
         const values = [0, 1, 2, 3, 4]
-        const [excluded, satisfying] = yield* Effect.partition(values, Effect.succeed)
+        const [excluded, satisfying] = yield* Effect.partition(values, (n) => Effect.succeed(Result.succeed(n)))
         assert.deepStrictEqual(excluded, [])
         assert.deepStrictEqual(satisfying, values)
       }))
@@ -421,7 +421,7 @@ describe("Effect", () => {
     it.effect("collects only failures", () =>
       Effect.gen(function*() {
         const values = [0, 1, 2, 3, 4]
-        const [excluded, satisfying] = yield* Effect.partition(values, Effect.fail)
+        const [excluded, satisfying] = yield* Effect.partition(values, (n) => Effect.succeed(Result.fail(n)))
         assert.deepStrictEqual(excluded, values)
         assert.deepStrictEqual(satisfying, [])
       }))
@@ -430,7 +430,7 @@ describe("Effect", () => {
       Effect.gen(function*() {
         const values = [0, 1, 2, 3, 4, 5]
         const [excluded, satisfying] = yield* Effect.partition(values, (n) =>
-          n % 2 === 0 ? Effect.fail(n) : Effect.succeed(n))
+          Effect.succeed(n % 2 === 0 ? Result.fail(n) : Result.succeed(n)))
         assert.deepStrictEqual(excluded, [0, 2, 4])
         assert.deepStrictEqual(satisfying, [1, 3, 5])
       }))
@@ -440,7 +440,7 @@ describe("Effect", () => {
         const values = [0, 1, 2, 3, 4, 5]
         const [excluded, satisfying] = yield* Effect.partition(
           values,
-          (n) => n % 2 === 0 ? Effect.fail(n) : Effect.succeed(n),
+          (n) => Effect.succeed(n % 2 === 0 ? Result.fail(n) : Result.succeed(n)),
           { concurrency: "unbounded" }
         )
         assert.deepStrictEqual(excluded, [0, 2, 4])

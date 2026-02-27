@@ -1,5 +1,5 @@
 /** @effect-diagnostics floatingEffect:skip-file */
-import { type Cause, Data, Effect, type Option, pipe, type Scope, type Types } from "effect"
+import { type Cause, Data, Effect, type Option, pipe, Result, type Scope, type Types } from "effect"
 import { describe, expect, it } from "tstyche"
 
 // Fixtures
@@ -410,14 +410,17 @@ describe("Effect.fn", () => {
 
 describe("Effect.partition", () => {
   it("data-first", () => {
-    const result = Effect.partition([1, 2, 3], (n) => n % 2 === 0 ? Effect.fail(`${n}`) : Effect.succeed(n))
+    const result = Effect.partition(
+      [1, 2, 3],
+      (n) => Effect.succeed(n % 2 === 0 ? Result.fail(`${n}`) : Result.succeed(n))
+    )
     expect(result).type.toBe<Effect.Effect<[excluded: Array<string>, satisfying: Array<number>], never, never>>()
   })
 
   it("data-last", () => {
     const result = pipe(
       [1, 2, 3],
-      Effect.partition((n) => n % 2 === 0 ? Effect.fail(n) : Effect.succeed(`${n}`))
+      Effect.partition((n) => Effect.succeed(n % 2 === 0 ? Result.fail(n) : Result.succeed(`${n}`)))
     )
     expect(result).type.toBe<Effect.Effect<[excluded: Array<number>, satisfying: Array<string>], never, never>>()
   })
