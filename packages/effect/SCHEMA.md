@@ -907,6 +907,55 @@ type Encoded = {
 type Encoded = typeof schema.Encoded
 ```
 
+### Reusing Fields
+
+Every `Schema.Struct` exposes a `.fields` property containing its field definitions. You can spread these fields into a new struct to reuse them, similar to how TypeScript interfaces use `extends`.
+
+**Example** (Single inheritance)
+
+```ts
+import { Schema } from "effect"
+
+const Timestamped = Schema.Struct({
+  createdAt: Schema.Date,
+  updatedAt: Schema.Date
+})
+
+const User = Schema.Struct({
+  ...Timestamped.fields,
+  name: Schema.String,
+  email: Schema.String
+})
+
+const Post = Schema.Struct({
+  ...Timestamped.fields,
+  title: Schema.String,
+  body: Schema.String
+})
+```
+
+**Example** (Multiple inheritance)
+
+```ts
+import { Schema } from "effect"
+
+const Timestamped = Schema.Struct({
+  createdAt: Schema.Date,
+  updatedAt: Schema.Date
+})
+
+const SoftDeletable = Schema.Struct({
+  deletedAt: Schema.optionalKey(Schema.Date)
+})
+
+const User = Schema.Struct({
+  ...Timestamped.fields,
+  ...SoftDeletable.fields,
+  name: Schema.String,
+  email: Schema.String
+})
+```
+
 ### Deriving Structs
 
 You can derive new struct schemas from existing ones — picking, omitting, renaming, or transforming individual fields — without rewriting the schema from scratch. The `mapFields` method on `Schema.Struct` accepts a function that transforms the struct's fields and returns a new `Schema.Struct` based on the result.

@@ -1636,6 +1636,27 @@ export interface Struct<Fields extends Struct.Fields> extends
   >
 {
   readonly "~rebuild.out": this
+  /**
+   * The field definitions of this struct. Spread them into a new struct to
+   * reuse fields across schemas.
+   *
+   * **Example** (Reusing fields across structs)
+   *
+   * ```ts
+   * import { Schema } from "effect"
+   *
+   * const Timestamped = Schema.Struct({
+   *   createdAt: Schema.Date,
+   *   updatedAt: Schema.Date
+   * })
+   *
+   * const User = Schema.Struct({
+   *   ...Timestamped.fields,
+   *   name: Schema.String,
+   *   email: Schema.String
+   * })
+   * ```
+   */
   readonly fields: Fields
   /**
    * Returns a new struct with the fields modified by the provided function.
