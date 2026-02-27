@@ -4214,24 +4214,24 @@ export const all = <
 
 /** @internal */
 export const partition: {
-  <A, Pass, Fail, E, R>(
-    filter: Filter.FilterEffect<NoInfer<A>, Pass, Fail, E, R, [i: number]>,
+  <A, B, E, R>(
+    f: (a: A, i: number) => Effect.Effect<B, E, R>,
     options?: { readonly concurrency?: Concurrency | undefined }
-  ): (elements: Iterable<A>) => Effect.Effect<[excluded: Array<Fail>, satisfying: Array<Pass>], E, R>
-  <A, Pass, Fail, E, R>(
+  ): (elements: Iterable<A>) => Effect.Effect<[excluded: Array<E>, satisfying: Array<B>], never, R>
+  <A, B, E, R>(
     elements: Iterable<A>,
-    filter: Filter.FilterEffect<NoInfer<A>, Pass, Fail, E, R, [i: number]>,
+    f: (a: A, i: number) => Effect.Effect<B, E, R>,
     options?: { readonly concurrency?: Concurrency | undefined }
-  ): Effect.Effect<[excluded: Array<Fail>, satisfying: Array<Pass>], E, R>
+  ): Effect.Effect<[excluded: Array<E>, satisfying: Array<B>], never, R>
 } = dual(
   (args) => isIterable(args[0]) && !isEffect(args[0]),
-  <A, Pass, Fail, E, R>(
+  <A, B, E, R>(
     elements: Iterable<A>,
-    filter: Filter.FilterEffect<A, Pass, Fail, E, R, [i: number]>,
+    f: (a: A, i: number) => Effect.Effect<B, E, R>,
     options?: { readonly concurrency?: Concurrency | undefined }
-  ): Effect.Effect<[excluded: Array<Fail>, satisfying: Array<Pass>], E, R> =>
+  ): Effect.Effect<[excluded: Array<E>, satisfying: Array<B>], never, R> =>
     map(
-      forEach(elements, filter, options),
+      forEach(elements, (a, i) => result(f(a, i)), options),
       (results) => Arr.partition(results, identity)
     )
 )
@@ -4279,7 +4279,7 @@ export const validate: {
     } | undefined
   ): Effect.Effect<Array<B> | void, Arr.NonEmptyArray<E>, R> =>
     flatMap(
-      partition(elements, (a, i) => result(f(a, i)), { concurrency: options?.concurrency }),
+      partition(elements, f, { concurrency: options?.concurrency }),
       ([excluded, satisfying]) => {
         if (Arr.isArrayNonEmpty(excluded)) {
           return fail(excluded)
