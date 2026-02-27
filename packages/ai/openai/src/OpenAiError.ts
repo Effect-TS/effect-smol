@@ -57,51 +57,43 @@ export type OpenAiRateLimitMetadata = OpenAiErrorMetadata & {
 }
 
 declare module "effect/unstable/ai/AiError" {
-  export interface RateLimitError {
-    readonly metadata: {
-      readonly openai?: OpenAiRateLimitMetadata | null
-    }
+  export interface RateLimitErrorMetadata {
+    readonly openai?: OpenAiRateLimitMetadata | null
   }
 
-  export interface QuotaExhaustedError {
-    readonly metadata: {
-      readonly openai?: OpenAiErrorMetadata | null
-    }
+  export interface QuotaExhaustedErrorMetadata {
+    readonly openai?: OpenAiErrorMetadata | null
   }
 
-  export interface AuthenticationError {
-    readonly metadata: {
-      readonly openai?: OpenAiErrorMetadata | null
-    }
+  export interface AuthenticationErrorMetadata {
+    readonly openai?: OpenAiErrorMetadata | null
   }
 
-  export interface ContentPolicyError {
-    readonly metadata: {
-      readonly openai?: OpenAiErrorMetadata | null
-    }
+  export interface ContentPolicyErrorMetadata {
+    readonly openai?: OpenAiErrorMetadata | null
   }
 
-  export interface InvalidRequestError {
-    readonly metadata: {
-      readonly openai?: OpenAiErrorMetadata | null
-    }
+  export interface InvalidRequestErrorMetadata {
+    readonly openai?: OpenAiErrorMetadata | null
   }
 
-  export interface InternalProviderError {
-    readonly metadata: {
-      readonly openai?: OpenAiErrorMetadata | null
-    }
+  export interface InternalProviderErrorMetadata {
+    readonly openai?: OpenAiErrorMetadata | null
   }
 
-  export interface InvalidOutputError {
-    readonly metadata: {
-      readonly openai?: OpenAiErrorMetadata | null
-    }
+  export interface InvalidOutputErrorMetadata {
+    readonly openai?: OpenAiErrorMetadata | null
   }
 
-  export interface UnknownError {
-    readonly metadata: {
-      readonly openai?: OpenAiErrorMetadata | null
-    }
+  export interface StructuredOutputErrorMetadata {
+    readonly openai?: OpenAiErrorMetadata | null
+  }
+
+  export interface UnsupportedSchemaErrorMetadata {
+    readonly openai?: OpenAiErrorMetadata | null
+  }
+
+  export interface UnknownErrorMetadata {
+    readonly openai?: OpenAiErrorMetadata | null
   }
 }

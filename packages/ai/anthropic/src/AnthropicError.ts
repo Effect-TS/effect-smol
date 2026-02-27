@@ -61,51 +61,43 @@ export type AnthropicRateLimitMetadata = AnthropicErrorMetadata & {
 }
 
 declare module "effect/unstable/ai/AiError" {
-  export interface RateLimitError {
-    readonly metadata: {
-      readonly anthropic?: AnthropicRateLimitMetadata | null
-    }
+  export interface RateLimitErrorMetadata {
+    readonly anthropic?: AnthropicRateLimitMetadata | null
   }
 
-  export interface QuotaExhaustedError {
-    readonly metadata: {
-      readonly anthropic?: AnthropicErrorMetadata | null
-    }
+  export interface QuotaExhaustedErrorMetadata {
+    readonly anthropic?: AnthropicErrorMetadata | null
   }
 
-  export interface AuthenticationError {
-    readonly metadata: {
-      readonly anthropic?: AnthropicErrorMetadata | null
-    }
+  export interface AuthenticationErrorMetadata {
+    readonly anthropic?: AnthropicErrorMetadata | null
   }
 
-  export interface ContentPolicyError {
-    readonly metadata: {
-      readonly anthropic?: AnthropicErrorMetadata | null
-    }
+  export interface ContentPolicyErrorMetadata {
+    readonly anthropic?: AnthropicErrorMetadata | null
   }
 
-  export interface InvalidRequestError {
-    readonly metadata: {
-      readonly anthropic?: AnthropicErrorMetadata | null
-    }
+  export interface InvalidRequestErrorMetadata {
+    readonly anthropic?: AnthropicErrorMetadata | null
   }
 
-  export interface InternalProviderError {
-    readonly metadata: {
-      readonly anthropic?: AnthropicErrorMetadata | null
-    }
+  export interface InternalProviderErrorMetadata {
+    readonly anthropic?: AnthropicErrorMetadata | null
   }
 
-  export interface InvalidOutputError {
-    readonly metadata: {
-      readonly anthropic?: AnthropicErrorMetadata | null
-    }
+  export interface InvalidOutputErrorMetadata {
+    readonly anthropic?: AnthropicErrorMetadata | null
   }
 
-  export interface UnknownError {
-    readonly metadata: {
-      readonly anthropic?: AnthropicErrorMetadata | null
-    }
+  export interface StructuredOutputErrorMetadata {
+    readonly anthropic?: AnthropicErrorMetadata | null
+  }
+
+  export interface UnsupportedSchemaErrorMetadata {
+    readonly anthropic?: AnthropicErrorMetadata | null
+  }
+
+  export interface UnknownErrorMetadata {
+    readonly anthropic?: AnthropicErrorMetadata | null
   }
 }

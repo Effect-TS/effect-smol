@@ -89,8 +89,11 @@ import { HttpRequestDetails, HttpResponseDetails } from "./Response.ts"
 
 const ReasonTypeId = "~effect/unstable/ai/AiError/Reason" as const
 
-const constEmptyObjectOption = () => Option.some({})
-const constEmptyObject = () => ({})
+const providerMetadataWithDefaults = <Metadata extends ProviderMetadata>() =>
+  (ProviderMetadata as unknown as typeof ProviderMetadata & Schema.Schema<Metadata>).pipe(
+    Schema.withConstructorDefault(() => Option.some({} as Metadata)),
+    Schema.withDecodingDefault(() => ({} as Metadata))
+  )
 
 const redactHeaders = (headers: Record<string, string>): Record<string, string> => {
   const redacted = redact(headers) as Record<string, string | Redacted.Redacted>
@@ -259,6 +262,86 @@ export const ProviderMetadata: Schema.$Record<
 export type ProviderMetadata = typeof ProviderMetadata.Type
 
 /**
+ * Provider-specific metadata attached to `RateLimitError`.
+ *
+ * @since 1.0.0
+ * @category provider options
+ */
+export interface RateLimitErrorMetadata extends ProviderMetadata {}
+
+/**
+ * Provider-specific metadata attached to `QuotaExhaustedError`.
+ *
+ * @since 1.0.0
+ * @category provider options
+ */
+export interface QuotaExhaustedErrorMetadata extends ProviderMetadata {}
+
+/**
+ * Provider-specific metadata attached to `AuthenticationError`.
+ *
+ * @since 1.0.0
+ * @category provider options
+ */
+export interface AuthenticationErrorMetadata extends ProviderMetadata {}
+
+/**
+ * Provider-specific metadata attached to `ContentPolicyError`.
+ *
+ * @since 1.0.0
+ * @category provider options
+ */
+export interface ContentPolicyErrorMetadata extends ProviderMetadata {}
+
+/**
+ * Provider-specific metadata attached to `InvalidRequestError`.
+ *
+ * @since 1.0.0
+ * @category provider options
+ */
+export interface InvalidRequestErrorMetadata extends ProviderMetadata {}
+
+/**
+ * Provider-specific metadata attached to `InternalProviderError`.
+ *
+ * @since 1.0.0
+ * @category provider options
+ */
+export interface InternalProviderErrorMetadata extends ProviderMetadata {}
+
+/**
+ * Provider-specific metadata attached to `InvalidOutputError`.
+ *
+ * @since 1.0.0
+ * @category provider options
+ */
+export interface InvalidOutputErrorMetadata extends ProviderMetadata {}
+
+/**
+ * Provider-specific metadata attached to `StructuredOutputError`.
+ *
+ * @since 1.0.0
+ * @category provider options
+ */
+export interface StructuredOutputErrorMetadata extends ProviderMetadata {}
+
+/**
+ * Provider-specific metadata attached to `UnsupportedSchemaError`.
+ *
+ * @since 1.0.0
+ * @category provider options
+ */
+export interface UnsupportedSchemaErrorMetadata extends ProviderMetadata {}
+
+/**
+ * Provider-specific metadata attached to `UnknownError`.
+ *
+ * @since 1.0.0
+ * @category provider options
+ */
+export interface UnknownErrorMetadata extends ProviderMetadata {}
+
+/**
  * Token usage information from AI operations.
  *
  * @since 1.0.0
@@ -313,10 +396,7 @@ export class RateLimitError extends Schema.ErrorClass<RateLimitError>(
 )({
   _tag: Schema.tag("RateLimitError"),
   retryAfter: Schema.optional(Schema.Duration),
-  metadata: ProviderMetadata.pipe(
-    Schema.withConstructorDefault(constEmptyObjectOption),
-    Schema.withDecodingDefault(constEmptyObject)
-  ),
+  metadata: providerMetadataWithDefaults<RateLimitErrorMetadata>(),
   http: Schema.optional(HttpContext)
 }) {
   /**
@@ -364,10 +444,7 @@ export class QuotaExhaustedError extends Schema.ErrorClass<QuotaExhaustedError>(
 )({
   _tag: Schema.tag("QuotaExhaustedError"),
   resetAt: Schema.optional(Schema.DateTimeUtc),
-  metadata: ProviderMetadata.pipe(
-    Schema.withConstructorDefault(constEmptyObjectOption),
-    Schema.withDecodingDefault(constEmptyObject)
-  ),
+  metadata: providerMetadataWithDefaults<QuotaExhaustedErrorMetadata>(),
   http: Schema.optional(HttpContext)
 }) {
   /**
@@ -417,10 +494,7 @@ export class AuthenticationError extends Schema.ErrorClass<AuthenticationError>(
 )({
   _tag: Schema.tag("AuthenticationError"),
   kind: Schema.Literals(["InvalidKey", "ExpiredKey", "MissingKey", "InsufficientPermissions", "Unknown"]),
-  metadata: ProviderMetadata.pipe(
-    Schema.withConstructorDefault(constEmptyObjectOption),
-    Schema.withDecodingDefault(constEmptyObject)
-  ),
+  metadata: providerMetadataWithDefaults<AuthenticationErrorMetadata>(),
   http: Schema.optional(HttpContext)
 }) {
   /**
@@ -475,10 +549,7 @@ export class ContentPolicyError extends Schema.ErrorClass<ContentPolicyError>(
 )({
   _tag: Schema.tag("ContentPolicyError"),
   description: Schema.String,
-  metadata: ProviderMetadata.pipe(
-    Schema.withConstructorDefault(constEmptyObjectOption),
-    Schema.withDecodingDefault(constEmptyObject)
-  ),
+  metadata: providerMetadataWithDefaults<ContentPolicyErrorMetadata>(),
   http: Schema.optional(HttpContext)
 }) {
   /**
@@ -530,10 +601,7 @@ export class InvalidRequestError extends Schema.ErrorClass<InvalidRequestError>(
   parameter: Schema.optional(Schema.String),
   constraint: Schema.optional(Schema.String),
   description: Schema.optional(Schema.String),
-  metadata: ProviderMetadata.pipe(
-    Schema.withConstructorDefault(constEmptyObjectOption),
-    Schema.withDecodingDefault(constEmptyObject)
-  ),
+  metadata: providerMetadataWithDefaults<InvalidRequestErrorMetadata>(),
   http: Schema.optional(HttpContext)
 }) {
   /**
@@ -585,10 +653,7 @@ export class InternalProviderError extends Schema.ErrorClass<InternalProviderErr
 )({
   _tag: Schema.tag("InternalProviderError"),
   description: Schema.String,
-  metadata: ProviderMetadata.pipe(
-    Schema.withConstructorDefault(constEmptyObjectOption),
-    Schema.withDecodingDefault(constEmptyObject)
-  ),
+  metadata: providerMetadataWithDefaults<InternalProviderErrorMetadata>(),
   http: Schema.optional(HttpContext)
 }) {
   /**
@@ -636,10 +701,7 @@ export class InvalidOutputError extends Schema.ErrorClass<InvalidOutputError>(
 )({
   _tag: Schema.tag("InvalidOutputError"),
   description: Schema.String,
-  metadata: ProviderMetadata.pipe(
-    Schema.withConstructorDefault(constEmptyObjectOption),
-    Schema.withDecodingDefault(constEmptyObject)
-  ),
+  metadata: providerMetadataWithDefaults<InvalidOutputErrorMetadata>(),
   usage: Schema.optional(UsageInfo)
 }) {
   /**
@@ -710,10 +772,7 @@ export class StructuredOutputError extends Schema.ErrorClass<StructuredOutputErr
 )({
   _tag: Schema.tag("StructuredOutputError"),
   description: Schema.String,
-  metadata: ProviderMetadata.pipe(
-    Schema.withConstructorDefault(constEmptyObjectOption),
-    Schema.withDecodingDefault(constEmptyObject)
-  ),
+  metadata: providerMetadataWithDefaults<StructuredOutputErrorMetadata>(),
   usage: Schema.optional(UsageInfo)
 }) {
   /**
@@ -785,10 +844,7 @@ export class UnsupportedSchemaError extends Schema.ErrorClass<UnsupportedSchemaE
 )({
   _tag: Schema.tag("UnsupportedSchemaError"),
   description: Schema.String,
-  metadata: ProviderMetadata.pipe(
-    Schema.withConstructorDefault(constEmptyObjectOption),
-    Schema.withDecodingDefault(constEmptyObject)
-  )
+  metadata: providerMetadataWithDefaults<UnsupportedSchemaErrorMetadata>()
 }) {
   /**
    * @since 1.0.0
@@ -835,10 +891,7 @@ export class UnknownError extends Schema.ErrorClass<UnknownError>(
 )({
   _tag: Schema.tag("UnknownError"),
   description: Schema.optional(Schema.String),
-  metadata: ProviderMetadata.pipe(
-    Schema.withConstructorDefault(constEmptyObjectOption),
-    Schema.withDecodingDefault(constEmptyObject)
-  ),
+  metadata: providerMetadataWithDefaults<UnknownErrorMetadata>(),
   http: Schema.optional(HttpContext)
 }) {
   /**
