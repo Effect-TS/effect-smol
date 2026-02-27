@@ -1,5 +1,14 @@
 # @effect/platform-node-shared
 
+## 4.0.0-beta.19
+
+### Patch Changes
+
+- [#1526](https://github.com/Effect-TS/effect-smol/pull/1526) [`b9951d6`](https://github.com/Effect-TS/effect-smol/commit/b9951d6b178b4c2173112fa7454b6abd8030585f) Thanks @tim-smart! - fix fs.stat when blksize is undefined
+
+- Updated dependencies []:
+  - effect@4.0.0-beta.19
+
 ## 4.0.0-beta.18
 
 ### Patch Changes

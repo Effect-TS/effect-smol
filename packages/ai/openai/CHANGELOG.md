@@ -1,5 +1,14 @@
 # @effect/ai-openai
 
+## 4.0.0-beta.19
+
+### Patch Changes
+
+- [#1522](https://github.com/Effect-TS/effect-smol/pull/1522) [`19984c2`](https://github.com/Effect-TS/effect-smol/commit/19984c2c1b23ef06d69f9bbd4c4ad992a03c6860) Thanks @IMax153! - Fix missing `yield*` in `OpenAiLanguageModel.prepareResponseFormat`
+
+- Updated dependencies []:
+  - effect@4.0.0-beta.19
+
 ## 4.0.0-beta.18
 
 ### Patch Changes
