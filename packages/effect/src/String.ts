@@ -766,7 +766,7 @@ export const replaceAll = (searchValue: string | RegExp, replaceValue: string) =
  * import { String } from "effect"
  *
  * String.search("ababb", "b") // Option.some(1)
- * String.search("ababb", "/abb/") // Option.some(2)
+ * String.search("ababb", /abb/) // Option.some(2)
  * String.search("ababb", "d") // Option.none()
  * ```
  *
