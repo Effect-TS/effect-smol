@@ -17,6 +17,15 @@ describe("Cron", () => {
     assertFalse(Cron.isCronParseError("not an error"))
   })
 
+  it("CronParseError constructor", () => {
+    const error = new Cron.CronParseError({ message: "boom", input: "0 0 * * *" })
+    assertTrue(error instanceof Error)
+    assertTrue(Cron.isCronParseError(error))
+    deepStrictEqual(error._tag, "CronParseError")
+    deepStrictEqual(error.message, "boom")
+    deepStrictEqual(error.input, "0 0 * * *")
+  })
+
   it("parse", () => {
     // At 04:00 on every day-of-month from 8 through 14.
     deepStrictEqual(

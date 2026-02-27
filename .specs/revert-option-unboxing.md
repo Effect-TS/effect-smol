@@ -19,7 +19,7 @@ changes were introduced across four commits:
 - Revert `Schema.UndefinedOr(X)` back to `Schema.Option(X)` in cluster wire formats
 - Revert `Effect.undefined` usages back to `Effect.succeedNone` where introduced
   by these commits
-- Revert `CronParseError` from `Data.TaggedError` class back to a plain interface
+- Keep `CronParseError` as a `Data.TaggedError` class
 - Restore `Number.divideUnsafe`
 - Update all internal implementations to work with Option types
 - Update all tests to use Option types
@@ -446,7 +446,7 @@ all callers of changed APIs within the same task.
 - DateTime: `makeZoned`, `make`, `makeZonedFromString`, `zoneMakeNamed`,
   `zoneFromString`, `setZoneNamed` all from `X | undefined` -> `Option<X>`
 - Cron `tz` field: `TimeZone | undefined` -> `Option<TimeZone>`
-- Revert `CronParseError` from `Data.TaggedError` back to plain interface
+- Keep `CronParseError` as a `Data.TaggedError` class
 - Update `SchemaTransformation.ts` where it calls `DateTime.zoneMakeNamed`,
   `zoneFromString`, `make`, `makeZonedFromString` and checks `=== undefined`
 - Update `SchemaGetter.ts` where it calls `DateTime.make`
