@@ -33,6 +33,11 @@ declare const simpleEffect: Effect.Effect<string, SimpleError>
 declare const noSuchOrOther: Effect.Effect<string, Cause.NoSuchElementError | OtherError>
 declare const onlyNoSuch: Effect.Effect<number, Cause.NoSuchElementError>
 
+declare const string: Effect.Effect<string, "err-1", "dep-1">
+declare const number: Effect.Effect<number, "err-2", "dep-2">
+declare const stringArray: Array<Effect.Effect<string, "err-3", "dep-3">>
+declare const numberRecord: Record<string, Effect.Effect<number, "err-4", "dep-4">>
+
 describe("Types", () => {
   describe("ReasonOf", () => {
     it("extracts reason type", () => {
@@ -459,5 +464,119 @@ describe("Effect.findFirstFilter", () => {
       Effect.findFirstFilter((n, i) => Effect.succeed(i > 0 ? Result.succeed(n.toString()) : Result.failVoid))
     )
     expect(result).type.toBe<Effect.Effect<Option.Option<string>, never, never>>()
+  })
+})
+
+describe("all", () => {
+  it("tuple", () => {
+    expect(Effect.all([string, number])).type.toBe<
+      Effect.Effect<[string, number], "err-1" | "err-2", "dep-1" | "dep-2">
+    >()
+    expect(Effect.all([string, number], undefined)).type.toBe<
+      Effect.Effect<[string, number], "err-1" | "err-2", "dep-1" | "dep-2">
+    >()
+    expect(Effect.all([string, number], {})).type.toBe<
+      Effect.Effect<[string, number], "err-1" | "err-2", "dep-1" | "dep-2">
+    >()
+    expect(Effect.all([string, number], { concurrency: "unbounded" })).type.toBe<
+      Effect.Effect<[string, number], "err-1" | "err-2", "dep-1" | "dep-2">
+    >()
+    expect(Effect.all([string, number], { discard: true })).type.toBe<
+      Effect.Effect<void, "err-1" | "err-2", "dep-1" | "dep-2">
+    >()
+    expect(Effect.all([string, number], { discard: true, concurrency: "unbounded" })).type.toBe<
+      Effect.Effect<void, "err-1" | "err-2", "dep-1" | "dep-2">
+    >()
+    expect(Effect.all([string, number], { mode: "result" })).type.toBe<
+      Effect.Effect<[Result.Result<string, "err-1">, Result.Result<number, "err-2">], never, "dep-1" | "dep-2">
+    >()
+    expect(Effect.all([string, number], { mode: "result", discard: true })).type.toBe<
+      Effect.Effect<void, never, "dep-1" | "dep-2">
+    >()
+  })
+
+  it("struct", () => {
+    expect(Effect.all({ a: string, b: number })).type.toBe<
+      Effect.Effect<{ a: string; b: number }, "err-1" | "err-2", "dep-1" | "dep-2">
+    >()
+    expect(Effect.all({ a: string, b: number }, undefined)).type.toBe<
+      Effect.Effect<{ a: string; b: number }, "err-1" | "err-2", "dep-1" | "dep-2">
+    >()
+    expect(Effect.all({ a: string, b: number }, {})).type.toBe<
+      Effect.Effect<{ a: string; b: number }, "err-1" | "err-2", "dep-1" | "dep-2">
+    >()
+    expect(Effect.all({ a: string, b: number }, { concurrency: "unbounded" })).type.toBe<
+      Effect.Effect<{ a: string; b: number }, "err-1" | "err-2", "dep-1" | "dep-2">
+    >()
+    expect(Effect.all({ a: string, b: number }, { discard: true })).type.toBe<
+      Effect.Effect<void, "err-1" | "err-2", "dep-1" | "dep-2">
+    >()
+    expect(Effect.all({ a: string, b: number }, { discard: true, concurrency: "unbounded" })).type.toBe<
+      Effect.Effect<void, "err-1" | "err-2", "dep-1" | "dep-2">
+    >()
+    expect(Effect.all({ a: string, b: number }, { mode: "result" })).type.toBe<
+      Effect.Effect<
+        { a: Result.Result<string, "err-1">; b: Result.Result<number, "err-2"> },
+        never,
+        "dep-1" | "dep-2"
+      >
+    >()
+    expect(Effect.all({ a: string, b: number }, { mode: "result", discard: true })).type.toBe<
+      Effect.Effect<void, never, "dep-1" | "dep-2">
+    >()
+  })
+
+  it("array", () => {
+    expect(Effect.all(stringArray)).type.toBe<
+      Effect.Effect<Array<string>, "err-3", "dep-3">
+    >()
+    expect(Effect.all(stringArray, undefined)).type.toBe<
+      Effect.Effect<Array<string>, "err-3", "dep-3">
+    >()
+    expect(Effect.all(stringArray, {})).type.toBe<
+      Effect.Effect<Array<string>, "err-3", "dep-3">
+    >()
+    expect(Effect.all(stringArray, { concurrency: "unbounded" })).type.toBe<
+      Effect.Effect<Array<string>, "err-3", "dep-3">
+    >()
+    expect(Effect.all(stringArray, { discard: true })).type.toBe<
+      Effect.Effect<void, "err-3", "dep-3">
+    >()
+    expect(Effect.all(stringArray, { discard: true, concurrency: "unbounded" })).type.toBe<
+      Effect.Effect<void, "err-3", "dep-3">
+    >()
+    expect(Effect.all(stringArray, { mode: "result" })).type.toBe<
+      Effect.Effect<Array<Result.Result<string, "err-3">>, never, "dep-3">
+    >()
+    expect(Effect.all(stringArray, { mode: "result", discard: true })).type.toBe<
+      Effect.Effect<void, never, "dep-3">
+    >()
+  })
+
+  it("record", () => {
+    expect(Effect.all(numberRecord)).type.toBe<
+      Effect.Effect<{ [x: string]: number }, "err-4", "dep-4">
+    >()
+    expect(Effect.all(numberRecord, undefined)).type.toBe<
+      Effect.Effect<{ [x: string]: number }, "err-4", "dep-4">
+    >()
+    expect(Effect.all(numberRecord, {})).type.toBe<
+      Effect.Effect<{ [x: string]: number }, "err-4", "dep-4">
+    >()
+    expect(Effect.all(numberRecord, { concurrency: "unbounded" })).type.toBe<
+      Effect.Effect<{ [x: string]: number }, "err-4", "dep-4">
+    >()
+    expect(Effect.all(numberRecord, { discard: true })).type.toBe<
+      Effect.Effect<void, "err-4", "dep-4">
+    >()
+    expect(Effect.all(numberRecord, { discard: true, concurrency: "unbounded" })).type.toBe<
+      Effect.Effect<void, "err-4", "dep-4">
+    >()
+    expect(Effect.all(numberRecord, { mode: "result" })).type.toBe<
+      Effect.Effect<{ [x: string]: Result.Result<number, "err-4"> }, never, "dep-4">
+    >()
+    expect(Effect.all(numberRecord, { mode: "result", discard: true })).type.toBe<
+      Effect.Effect<void, never, "dep-4">
+    >()
   })
 })
