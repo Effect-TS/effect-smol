@@ -1029,7 +1029,8 @@ const compileUriTemplate = (segments: TemplateStringsArray, ...schemas: Readonly
       const key = String(i)
       arr.push(toCodecStringTree)
       routerPath += `:${key}${segment.replace(":", "::")}`
-      const paramName = isParam(schemas[i]) ? schemas[i].name : `param${key}`
+      const schema = schemas[i]
+      const paramName = isParam(schema) ? (schema as Param<string, Schema.Top>).name : `param${key}`
       params[paramName] = toCodecStringTree
       uriPath += `{${paramName}}${segment}`
     }

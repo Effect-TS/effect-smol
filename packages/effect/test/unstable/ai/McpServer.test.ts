@@ -28,11 +28,10 @@ const makeTestClient = (resourceLayer: Layer.Layer<never, never, any>) =>
       return handler(request)
     }
 
-    const clientLayer = Layer.mergeAll(
-      RpcClient.layerProtocolHttp({ url: "http://localhost/mcp" }),
-      RpcSerialization.layerJsonRpc(),
-      FetchHttpClient.layer,
-      Layer.succeed(FetchHttpClient.Fetch, customFetch)
+    const clientLayer = RpcClient.layerProtocolHttp({ url: "http://localhost/mcp" }).pipe(
+      Layer.provideMerge(RpcSerialization.layerJsonRpc()),
+      Layer.provideMerge(FetchHttpClient.layer),
+      Layer.provideMerge(Layer.succeed(FetchHttpClient.Fetch, customFetch))
     )
     const client = yield* RpcClient.make(McpSchema.ClientRpcs).pipe(
       Effect.provide(clientLayer)
