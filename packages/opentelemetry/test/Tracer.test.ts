@@ -43,6 +43,20 @@ describe("Tracer", () => {
         Effect.provide(TracingLive)
       ))
 
+    it.effect("nested withSpan sets correct parent chain", () =>
+      Effect.gen(function*() {
+        const child = yield* Effect.currentSpan.pipe(
+          Effect.withSpan("child"),
+          Effect.withSpan("parent")
+        )
+        assert.instanceOf(child, Tracer.OtelSpan)
+        assert.strictEqual(child.name, "child")
+        assert.isDefined(child.parent)
+        assert.strictEqual((child.parent as Tracer.OtelSpan).name, "parent")
+      }).pipe(
+        Effect.provide(TracingLive)
+      ))
+
     it.effect("supervisor sets context", () =>
       Effect.sync(() => {
         const context = OtelApi.context.active()
