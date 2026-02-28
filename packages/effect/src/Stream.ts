@@ -9462,7 +9462,7 @@ export const withSpan: {
 } = function() {
   const dataFirst = isStream(arguments[0])
   const name = dataFirst ? arguments[1] : arguments[0]
-  const options = addSpanStackTrace(dataFirst ? arguments[1] : arguments[2])
+  const options = addSpanStackTrace(dataFirst ? arguments[2] : arguments[1])
   if (dataFirst) {
     const self = arguments[0] as Stream<any, any, any>
     return fromChannel(Channel.withSpan(self.channel, name, options))
