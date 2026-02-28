@@ -374,7 +374,11 @@ export const make = <
           return yield* engine.register(self, execute)
         })
       ),
-    executionId: (payload) => makeExecutionId(self.payloadSchema.make(payload)),
+    executionId: (payload) =>
+      Effect.flatMap(
+        Effect.sync(() => self.payloadSchema.makeUnsafe(payload)),
+        makeExecutionId
+      ),
     withCompensation
   }
 

@@ -26,4 +26,16 @@ describe("WorkflowEngine", () => {
         Layer.provideMerge(WorkflowEngine.layerMemory)
       ))
     ))
+
+  it.effect("executionId matches execute id", () =>
+    Effect.gen(function*() {
+      const executionId = yield* IncrementWorkflow.executionId({ value: 1 })
+      const discardedExecutionId = yield* IncrementWorkflow.execute({ value: 1 }, { discard: true })
+
+      assert.strictEqual(discardedExecutionId, executionId)
+    }).pipe(
+      Effect.provide(IncrementWorkflowLayer.pipe(
+        Layer.provideMerge(WorkflowEngine.layerMemory)
+      ))
+    ))
 })
