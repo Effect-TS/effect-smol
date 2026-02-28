@@ -365,9 +365,9 @@ export class OtelSpan implements Tracer.Span {
     this.links = options.links
     this.kind = options.kind
     const active = contextApi.active()
-    this.parent = options.parent ?? (options?.root !== true) ?
+    this.parent = options.parent ?? ((options?.root !== true) ?
       getOtelParent(traceApi, active, options.annotations) :
-      undefined
+      undefined)
     this.span = tracer.startSpan(
       options.name,
       {
