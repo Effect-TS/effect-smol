@@ -2,7 +2,11 @@ import { describe, test } from "@effect/vitest"
 import { deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import { Effect, References, ServiceMap, Stream } from "effect"
 import * as Layer from "effect/Layer"
-import { HttpEffect, HttpServerResponse } from "effect/unstable/http"
+import { HttpEffect, HttpServerRequest, HttpServerResponse } from "effect/unstable/http"
+import {
+  appendPreResponseHandlerUnsafe,
+  requestPreResponseHandlers
+} from "effect/unstable/http/internal/preResponseHandler"
 
 describe("Http/App", () => {
   describe("toWebHandler", () => {
@@ -87,6 +91,19 @@ describe("Http/App", () => {
       )
       const response = await handler(new Request("http://localhost:3000/"))
       strictEqual(await response.text(), "420")
+    })
+
+    test("pre-response handlers are keyed by request source", () => {
+      const request = HttpServerRequest.fromWeb(new Request("http://localhost:3000/"))
+      const modified = request.modify({ url: "/updated" })
+      const handler = (
+        _request: HttpServerRequest.HttpServerRequest,
+        response: HttpServerResponse.HttpServerResponse
+      ) => Effect.succeed(response)
+
+      appendPreResponseHandlerUnsafe(request, handler)
+
+      strictEqual(requestPreResponseHandlers.get(modified.source), handler)
     })
   })
 

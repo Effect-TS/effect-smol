@@ -43,7 +43,7 @@ export const TypeId = "~effect/http/HttpServerRequest"
  */
 export interface HttpServerRequest extends HttpIncomingMessage.HttpIncomingMessage<HttpServerError> {
   readonly [TypeId]: typeof TypeId
-  readonly source: unknown
+  readonly source: object
   readonly url: string
   readonly originalUrl: string
   readonly method: HttpMethod
