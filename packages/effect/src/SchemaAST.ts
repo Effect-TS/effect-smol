@@ -1455,20 +1455,20 @@ export class Arrays extends Base {
         // handle post rest elements
         // ---------------------------------------------
         for (let j = 0; j < tail.length; j++) {
-          i += j
-          if (len < i) {
+          const index = i + j
+          if (len < index) {
             continue
           } else {
             const tailj = tail[j]
             const keyAnnotations = tailj.ast.context?.annotations
-            const eff = tailj.parser(Option.some(input[i]), options)
+            const eff = tailj.parser(Option.some(input[index]), options)
             const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
             if (exit._tag === "Failure") {
               const issueRest = Cause.findError(exit.cause)
               if (Result.isFailure(issueRest)) {
                 return yield* exit
               }
-              const issue = new Issue.Pointer([i], issueRest.success)
+              const issue = new Issue.Pointer([index], issueRest.success)
               if (errorsAllOption) {
                 if (issues) issues.push(issue)
                 else issues = [issue]
@@ -1476,9 +1476,9 @@ export class Arrays extends Base {
                 return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
               }
             } else if (exit.value._tag === "Some") {
-              output[i] = exit.value.value
+              output[index] = exit.value.value
             } else {
-              const issue = new Issue.Pointer([i], new Issue.MissingKey(keyAnnotations))
+              const issue = new Issue.Pointer([index], new Issue.MissingKey(keyAnnotations))
               if (errorsAllOption) {
                 if (issues) issues.push(issue)
                 else issues = [issue]

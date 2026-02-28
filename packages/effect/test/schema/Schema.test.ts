@@ -3646,6 +3646,22 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await encoding.succeed([1, "a", "b", 2], ["1", "a", "b", "2"])
       await encoding.succeed([1, "a", true, "b", 2], ["1", "a", true, "b", "2"])
     })
+
+    it("[String] + [Boolean, String, Number, Number] validates every post-rest index", async () => {
+      const schema = Schema.TupleWithRest(
+        Schema.Tuple([Schema.String]),
+        [Schema.Boolean, Schema.String, Schema.FiniteFromString, Schema.FiniteFromString]
+      )
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.fail(
+        ["a", true, "b", "1", "x"],
+        `Expected a finite number, got NaN
+  at [4]`
+      )
+      await decoding.succeed(["a", true, "b", "1", "2"], ["a", true, "b", 1, 2])
+    })
   })
 
   describe("StructWithRest", () => {
