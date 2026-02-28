@@ -743,7 +743,6 @@ export declare namespace All {
  * ```
  *
  * @see {@link forEach} for iterating over elements and applying an effect.
- * @see {@link allWith} for a data-last version of this function.
  *
  * @since 2.0.0
  * @category Collecting
