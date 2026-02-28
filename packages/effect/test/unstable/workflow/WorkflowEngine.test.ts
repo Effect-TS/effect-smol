@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Exit, Schema } from "effect"
+import { Effect, Exit, Layer, Schema } from "effect"
 import { Workflow, WorkflowEngine } from "effect/unstable/workflow"
 
 describe("WorkflowEngine", () => {
@@ -22,7 +22,8 @@ describe("WorkflowEngine", () => {
       assert(polled !== undefined && polled._tag === "Complete" && Exit.isSuccess(polled.exit))
       assert.strictEqual(polled.exit.value, 2)
     }).pipe(
-      Effect.provide(IncrementWorkflowLayer),
-      Effect.provide(WorkflowEngine.layer)
+      Effect.provide(IncrementWorkflowLayer.pipe(
+        Layer.provideMerge(WorkflowEngine.layerMemory)
+      ))
     ))
 })
