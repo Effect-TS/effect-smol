@@ -102,7 +102,7 @@ jobs:
         run: node ./packages/tools/bundle/src/bin.ts compare --base-dir base/packages/tools/bundle/fixtures
       - name: Upload stats artifact
         if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           path: stats.txt
 
@@ -156,7 +156,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
       - name: Generate JSDoc Analysis
         shell: bash
         run: |
@@ -168,7 +168,7 @@ jobs:
           cat jsdoc-analysis.txt >> jsdoc-stats.md
           echo "\`\`\`" >> jsdoc-stats.md
       - name: Upload JSDoc stats artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: jsdoc-stats
           path: jsdoc-stats.md
