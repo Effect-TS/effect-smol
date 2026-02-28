@@ -502,10 +502,14 @@ const defaultRetrySchedule = Schedule.exponential(200, 1.5).pipe(
 )
 
 /**
+ * A in-memory implementation of the WorkflowEngine. This is useful for testing
+ * and local development, but is not suitable for production use as it does not
+ * provide durability guarantees.
+ *
  * @since 4.0.0
  * @category Layers
  */
-export const layer: Layer.Layer<WorkflowEngine> = Layer.effect(WorkflowEngine)(
+export const layerMemory: Layer.Layer<WorkflowEngine> = Layer.effect(WorkflowEngine)(
   Effect.gen(function*() {
     const scope = yield* Effect.scope
 
