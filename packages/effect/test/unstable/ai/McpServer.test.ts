@@ -75,11 +75,13 @@ describe("McpServer", () => {
         return handler(request)
       }
 
+      const clientLayer = RpcClient.layerProtocolHttp({ url: "http://localhost/mcp" }).pipe(
+        Layer.provideMerge(RpcSerialization.layerJsonRpc()),
+        Layer.provideMerge(FetchHttpClient.layer),
+        Layer.provideMerge(Layer.succeed(FetchHttpClient.Fetch, customFetch))
+      )
       const client = yield* RpcClient.make(McpSchema.ClientRpcs).pipe(
-        Effect.provide(RpcClient.layerProtocolHttp({ url: "http://localhost/mcp" })),
-        Effect.provide(RpcSerialization.layerJsonRpc()),
-        Effect.provide(FetchHttpClient.layer),
-        Effect.provideService(FetchHttpClient.Fetch, customFetch)
+        Effect.provide(clientLayer)
       )
 
       const result = yield* client["tools/list"]({})
