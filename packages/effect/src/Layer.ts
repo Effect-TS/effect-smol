@@ -26,7 +26,6 @@ import type { LazyArg } from "./Function.ts"
 import { constant, constTrue, constUndefined, dual, identity } from "./Function.ts"
 import * as core from "./internal/core.ts"
 import * as internalEffect from "./internal/effect.ts"
-import type { ErrorWithStackTraceLimit } from "./internal/tracer.ts"
 import * as internalTracer from "./internal/tracer.ts"
 import { type Pipeable, pipeArguments } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
@@ -1766,10 +1765,10 @@ export const mock =
           if (prop in target) {
             return target[prop as keyof S]
           }
-          const prevLimit = (Error as ErrorWithStackTraceLimit).stackTraceLimit
-          ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = 2
+          const prevLimit = Error.stackTraceLimit
+          Error.stackTraceLimit = 2
           const error = new Error(`${service.key}: Unimplemented method "${prop.toString()}"`)
-          ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = prevLimit
+          Error.stackTraceLimit = prevLimit
           error.name = "UnimplementedError"
           return makeUnimplemented(error)
         },

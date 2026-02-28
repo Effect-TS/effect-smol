@@ -153,5 +153,8 @@ export const MessagePort: Transferable<Schema.declare<MessagePort>> = schema(
  */
 export const Uint8Array: Transferable<Schema.Uint8Array> = schema(
   Schema.Uint8Array,
-  (_) => [_.buffer]
+  (_) => [
+    // TODO: Support SharedArrayBuffer in Schema
+    _.buffer as ArrayBuffer
+  ]
 )

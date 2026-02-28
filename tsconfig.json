@@ -26,6 +26,7 @@
     "./packages/tools/*/dtslint/**/*.ts",
     "./packages/tools/*/benchmark/**/*.ts"
   ],
+  "exclude": ["./packages/platform-deno/test/**/*.ts"],
   "compilerOptions": {
     "rootDir": ".",
     "noEmit": true,
