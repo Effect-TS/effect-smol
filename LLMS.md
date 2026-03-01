@@ -230,6 +230,9 @@ They let you model finite or infinite data sources.
   - `Stream.callback` for any callback-based API
   - `NodeStream.fromReadable` for Node.js readable streams
 - **[Consuming and transforming streams](./ai-docs/src/02_stream/20_consuming-streams.ts)**: How to transform and consume streams using operators like `map`, `flatMap`, `filter`, `mapEffect`, and various `run*` methods.
+- **[Decoding and encoding streams](./ai-docs/src/02_stream/30_encoding.ts)**:
+  Use `Stream.pipeThroughChannel` with the `Ndjson` & `Msgpack` modules to
+  decode and encode streams of structured data.
 
 ## Integrating Effect into existing applications
 
