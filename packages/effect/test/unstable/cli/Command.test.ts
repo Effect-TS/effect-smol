@@ -513,7 +513,7 @@ describe("Command", () => {
         if (Exit.isFailure(exit)) {
           const fails = exit.cause.reasons.filter(Cause.isFailReason)
           assert.isTrue(
-            fails.some((r) => CliError.isCliError(r.error) && r.error._tag === "CliExit" && r.error.code === 2)
+            fails.some((r) => CliError.CliExit.is(r.error) && r.error.code === 2)
           )
         }
       }).pipe(Effect.provide(TestLayer)))
@@ -533,7 +533,7 @@ describe("Command", () => {
         if (Exit.isFailure(exit)) {
           const fails = exit.cause.reasons.filter(Cause.isFailReason)
           assert.isTrue(
-            fails.some((r) => CliError.isCliError(r.error) && r.error._tag === "CliExit" && r.error.code === 1)
+            fails.some((r) => CliError.CliExit.is(r.error) && r.error.code === 1)
           )
         }
 
@@ -558,6 +558,75 @@ describe("Command", () => {
         yield* runCmd([])
 
         assert.isFalse(handlerCalled)
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("withErrorHandler on subcommand fires for subcommand parse errors", () =>
+      Effect.gen(function*() {
+        let subHandlerCalled = false
+        let rootHandlerCalled = false
+
+        const sub = Command.make("sub", {
+          name: Flag.string("name")
+        }).pipe(
+          Command.withErrorHandler(() =>
+            Effect.sync(() => {
+              subHandlerCalled = true
+            })
+          )
+        )
+
+        const root = Command.make("app", {}).pipe(
+          Command.withSubcommands([sub]),
+          Command.withErrorHandler(() =>
+            Effect.sync(() => {
+              rootHandlerCalled = true
+            })
+          )
+        )
+
+        const runCmd = Command.runWith(root, { version: "1.0.0" })
+        yield* runCmd(["sub", "--unknown"])
+
+        assert.isTrue(subHandlerCalled)
+        assert.isFalse(rootHandlerCalled)
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("withErrorHandler on root acts as fallback for subcommand without handler", () =>
+      Effect.gen(function*() {
+        let rootHandlerCalled = false
+
+        const sub = Command.make("sub", {
+          name: Flag.string("name")
+        })
+
+        const root = Command.make("app", {}).pipe(
+          Command.withSubcommands([sub]),
+          Command.withErrorHandler(() =>
+            Effect.sync(() => {
+              rootHandlerCalled = true
+            })
+          )
+        )
+
+        const runCmd = Command.runWith(root, { version: "1.0.0" })
+        yield* runCmd(["sub", "--unknown"])
+
+        assert.isTrue(rootHandlerCalled)
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("Command.exit(0) still fails with CliExit", () =>
+      Effect.gen(function*() {
+        const cmd = Command.make("tool", {}, () => Command.exit(0))
+        const runCmd = Command.runWith(cmd, { version: "1.0.0" })
+
+        const exit = yield* Effect.exit(runCmd([]))
+        assert.isTrue(Exit.isFailure(exit))
+        if (Exit.isFailure(exit)) {
+          const fails = exit.cause.reasons.filter(Cause.isFailReason)
+          assert.isTrue(
+            fails.some((r) => CliError.CliExit.is(r.error) && r.error.code === 0)
+          )
+        }
       }).pipe(Effect.provide(TestLayer)))
   })
 

@@ -22,7 +22,12 @@ import * as CliOutput from "./CliOutput.ts"
 import * as GlobalFlag from "./GlobalFlag.ts"
 import { checkForDuplicateFlags, makeCommand, toImpl, TypeId } from "./internal/command.ts"
 import { parseConfig } from "./internal/config.ts"
-import { getGlobalFlagsForCommandPath, getGlobalFlagsForCommandTree, getHelpForCommandPath } from "./internal/help.ts"
+import {
+  getCommandsForCommandPath,
+  getGlobalFlagsForCommandPath,
+  getGlobalFlagsForCommandTree,
+  getHelpForCommandPath
+} from "./internal/help.ts"
 import * as Lexer from "./internal/lexer.ts"
 import * as Parser from "./internal/parser.ts"
 import * as Param from "./Param.ts"
@@ -1125,16 +1130,18 @@ const showHelp = <Name extends string, Input, E, R>(
   command: Command<Name, Input, E, R>,
   commandPath: ReadonlyArray<string>,
   errors?: ReadonlyArray<CliError.CliError>
-): Effect.Effect<void, CliError.CliError, Environment> =>
+): Effect.Effect<void, CliError.CliError | CliError.CliExit, Environment> =>
   Effect.gen(function*() {
     const formatter = yield* CliOutput.Formatter
     const helpDoc = yield* getHelpForCommandPath(command, commandPath, GlobalFlag.BuiltIns)
     yield* Console.log(formatter.formatHelpDoc(helpDoc))
     if (errors && errors.length > 0) {
       yield* Console.error(formatter.formatErrors(errors))
-      const handler = toImpl(command).errorHandler
+      const commands = getCommandsForCommandPath(command, commandPath)
+      const target = [...commands].reverse().find((cmd) => toImpl(cmd).errorHandler !== undefined)
+      const handler = target ? toImpl(target).errorHandler : undefined
       if (handler) {
-        yield* handler(errors, commandPath) as Effect.Effect<void, CliError.CliError>
+        yield* handler(errors, commandPath) as Effect.Effect<void, CliError.CliExit>
       }
     }
   })
@@ -1168,13 +1175,13 @@ export const run: {
     readonly version: string
   }): <Name extends string, Input, E, R>(
     command: Command<Name, Input, E, R>
-  ) => Effect.Effect<void, Exclude<E, CliError.CliExit> | Exclude<CliError.CliError, CliError.CliExit>, R | Environment>
+  ) => Effect.Effect<void, Exclude<E, CliError.CliExit> | CliError.CliError, R | Environment>
   <Name extends string, Input, E, R>(
     command: Command<Name, Input, E, R>,
     config: {
       readonly version: string
     }
-  ): Effect.Effect<void, Exclude<E, CliError.CliExit> | Exclude<CliError.CliError, CliError.CliExit>, R | Environment>
+  ): Effect.Effect<void, Exclude<E, CliError.CliExit> | CliError.CliError, R | Environment>
 } = dual(2, <Name extends string, Input, E, R>(
   command: Command<Name, Input, E, R>,
   config: {
@@ -1186,7 +1193,7 @@ export const run: {
   const input = process.argv.slice(2)
   return runWith(command, config)(input).pipe(
     Effect.catchIf(
-      (e): e is CliError.CliExit => CliError.isCliError(e) && e._tag === "CliExit",
+      (e): e is CliError.CliExit => CliError.CliExit.is(e),
       (e) => Effect.sync(() => process.exit(e.code))
     )
   )
@@ -1238,7 +1245,7 @@ export const runWith = <const Name extends string, Input, E, R>(
   }
 ): (
   input: ReadonlyArray<string>
-) => Effect.Effect<void, Exclude<E, Terminal.QuitError> | CliError.CliError, R | Environment> => {
+) => Effect.Effect<void, Exclude<E, Terminal.QuitError> | CliError.CliError | CliError.CliExit, R | Environment> => {
   const commandImpl = toImpl(command)
   return Effect.fnUntraced(
     function*(args: ReadonlyArray<string>) {

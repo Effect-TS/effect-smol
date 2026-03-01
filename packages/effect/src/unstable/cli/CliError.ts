@@ -81,7 +81,6 @@ export type CliError =
   | UnknownSubcommand
   | ShowHelp
   | UserError
-  | CliExit
 
 /**
  * Error thrown when an unrecognized option is encountered.
@@ -526,4 +525,9 @@ export class CliExit extends Schema.ErrorClass(`${TypeId}/CliExit`)({
   override get message() {
     return `CLI exiting with code ${this.code}`
   }
+
+  /**
+   * @since 4.0.0
+   */
+  static is = Schema.is(CliExit)
 }
