@@ -124,6 +124,13 @@ describe("Schema", () => {
       expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<string & Brand.Brand<"a">, string, never, never>>()
     })
 
+    it("opaqueBrand", () => {
+      const schema = Schema.String.pipe(Schema.opaqueBrand("a"))
+      expect(schema.makeUnsafe).type.toBe<MakeUnsafe<string, Brand.Brand<"a">>>()
+      expect(schema).type.toBe<Schema.opaqueBrand<Schema.String, "a">>()
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<Brand.Brand<"a">, string, never, never>>()
+    })
+
     it("refine", () => {
       const schema = Schema.Option(Schema.String).pipe(Schema.refine(Option.isSome))
       expect(schema.makeUnsafe).type.toBe<MakeUnsafe<Option.Option<string>, Option.Some<string>>>()
@@ -1336,6 +1343,39 @@ describe("Schema", () => {
       expect(schema.annotate({})).type.toBe<
         Schema.brand<Schema.brand<Schema.Number, "MyBrand">, "MyBrand2">
       >()
+    })
+  })
+
+  describe("opaqueBrand", () => {
+    it("brand", () => {
+      const schema = Schema.Number.pipe(Schema.opaqueBrand("MyBrand"))
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<Brand.Brand<"MyBrand">, number, never, never>
+      >()
+      expect(schema).type.toBe<Schema.opaqueBrand<Schema.Number, "MyBrand">>()
+      expect(schema.annotate({})).type.toBe<Schema.opaqueBrand<Schema.Number, "MyBrand">>()
+    })
+
+    it("rebrands existing brands", () => {
+      const schema = Schema.Number.pipe(Schema.brand("MyBrand"), Schema.opaqueBrand("MyBrand2"))
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<Brand.Brand<"MyBrand2">, number, never, never>
+      >()
+      expect(schema).type.toBe<
+        Schema.opaqueBrand<Schema.brand<Schema.Number, "MyBrand">, "MyBrand2">
+      >()
+    })
+
+    it("is not assignable to stringly APIs", () => {
+      const WorkspaceIdSchema = Schema.String.pipe(Schema.opaqueBrand("WorkspaceId"))
+      type WorkspaceId = typeof WorkspaceIdSchema.Type
+
+      const takesWorkspaceId = (workspaceId: WorkspaceId) => workspaceId
+      const takesDirectoryId = (directoryId: string) => directoryId
+
+      expect(takesWorkspaceId).type.toBeCallableWith(WorkspaceIdSchema.makeUnsafe("workspace_1"))
+      expect(takesWorkspaceId).type.not.toBeCallableWith("directory_1")
+      expect(takesDirectoryId).type.not.toBeCallableWith(WorkspaceIdSchema.makeUnsafe("workspace_1"))
     })
   })
 

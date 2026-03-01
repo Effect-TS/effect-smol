@@ -2685,6 +2685,44 @@ export function brand<B extends string>(identifier: B) {
 }
 
 /**
+ * @since 4.0.0
+ */
+export interface opaqueBrand<S extends Top, B extends string> extends
+  Bottom<
+    Brand.Brand<B>,
+    S["Encoded"],
+    S["DecodingServices"],
+    S["EncodingServices"],
+    S["ast"],
+    opaqueBrand<S, B>,
+    S["~type.make.in"],
+    Brand.Brand<B>,
+    S["~type.parameters"],
+    Brand.Brand<B>,
+    S["~type.mutability"],
+    S["~type.optionality"],
+    S["~type.constructor.default"],
+    S["~encoded.mutability"],
+    S["~encoded.optionality"]
+  >
+{
+  readonly "~rebuild.out": this
+  readonly schema: S
+  readonly identifier: string
+}
+
+/**
+ * Adds an opaque brand to a schema.
+ *
+ * @category Branding
+ * @since 4.0.0
+ */
+export function opaqueBrand<B extends string>(identifier: B) {
+  return <S extends Top>(schema: S): opaqueBrand<S["~rebuild.out"], B> =>
+    make(AST.brand(schema.ast, identifier), { schema, identifier })
+}
+
+/**
  * @category Constructors
  * @since 4.0.0
  */
