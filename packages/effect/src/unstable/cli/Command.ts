@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 import type { NonEmptyArray, NonEmptyReadonlyArray } from "../../Array.ts"
+import * as Cause from "../../Cause.ts"
 import * as Console from "../../Console.ts"
 import * as Effect from "../../Effect.ts"
 import type * as FileSystem from "../../FileSystem.ts"
@@ -1078,13 +1079,14 @@ const showHelp = <Name extends string, Input, E, R>(
   command: Command<Name, Input, E, R>,
   commandPath: ReadonlyArray<string>,
   errors?: ReadonlyArray<CliError.CliError>
-): Effect.Effect<void, never, Environment> =>
+): Effect.Effect<void, CliError.CliError, Environment> =>
   Effect.gen(function*() {
     const formatter = yield* CliOutput.Formatter
     const helpDoc = yield* getHelpForCommandPath(command, commandPath, GlobalFlag.BuiltIns)
     yield* Console.log(formatter.formatHelpDoc(helpDoc))
     if (errors && errors.length > 0) {
       yield* Console.error(formatter.formatErrors(errors))
+      return yield* Effect.failCause(Cause.fromReasons(errors.map(Cause.makeFailReason)))
     }
   })
 
