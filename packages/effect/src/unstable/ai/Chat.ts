@@ -296,42 +296,8 @@ const encodeHistoryJson = Schema.encodeUnknownEffect(Schema.fromJsonString(Promp
 // Constructors
 // =============================================================================
 
-/**
- * Creates a new Chat service with empty conversation history.
- *
- * This is the most common way to start a fresh chat session without
- * any initial context or system prompts.
- *
- * @example
- * ```ts
- * import { Effect } from "effect"
- * import { Chat } from "effect/unstable/ai"
- *
- * const freshChat = Effect.gen(function*() {
- *   const chat = yield* Chat.empty
- *
- *   const response = yield* chat.generateText({
- *     prompt: "Hello! Can you introduce yourself?"
- *   })
- *
- *   console.log(response.content)
- *
- *   return chat
- * })
- * ```
- *
- * @since 4.0.0
- * @category constructors
- */
-export const empty: Effect.Effect<Service> = Effect.gen(function*() {
-  const history = yield* Ref.make(Prompt.empty)
-  const services = yield* Effect.services<never>()
-  const semaphore = yield* Semaphore.make(1)
-
-  const provideContext = <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
-    Effect.updateServices(effect, (existing) => ServiceMap.merge(services, existing))
-  const provideContextStream = <A, E, R>(stream: Stream.Stream<A, E, R>): Stream.Stream<A, E, R> =>
-    Stream.updateServices(stream, (existing) => ServiceMap.merge(services, existing))
+const makeUnsafe = (history: Ref.Ref<Prompt.Prompt>) => {
+  const semaphore = Semaphore.makeUnsafe(1)
 
   return Chat.of({
     history,
@@ -368,7 +334,6 @@ export const empty: Effect.Effect<Service> = Effect.gen(function*() {
 
         return response
       },
-      provideContext,
       semaphore.withPermits(1),
       (effect) => Effect.withSpan(effect, "Chat.generateText", { captureStackTrace: false })
     ),
@@ -397,7 +362,6 @@ export const empty: Effect.Effect<Service> = Effect.gen(function*() {
               semaphore.release(1)
             )
         )).pipe(
-          provideContextStream,
           Stream.withSpan("Chat.streamText", {
             captureStackTrace: false
           })
@@ -418,7 +382,6 @@ export const empty: Effect.Effect<Service> = Effect.gen(function*() {
 
         return response
       },
-      provideContext,
       semaphore.withPermits(1),
       (effect, options) =>
         Effect.withSpan(effect, "Chat.generateObject", {
@@ -429,7 +392,36 @@ export const empty: Effect.Effect<Service> = Effect.gen(function*() {
         })
     )
   })
-})
+}
+
+/**
+ * Creates a new Chat service with empty conversation history.
+ *
+ * This is the most common way to start a fresh chat session without
+ * any initial context or system prompts.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Chat } from "effect/unstable/ai"
+ *
+ * const freshChat = Effect.gen(function*() {
+ *   const chat = yield* Chat.empty
+ *
+ *   const response = yield* chat.generateText({
+ *     prompt: "Hello! Can you introduce yourself?"
+ *   })
+ *
+ *   console.log(response.content)
+ *
+ *   return chat
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const empty: Effect.Effect<Service> = Effect.sync(() => makeUnsafe(Ref.makeUnsafe(Prompt.empty)))
 
 /**
  * Creates a new Chat service from an initial prompt.
@@ -489,13 +481,8 @@ export const empty: Effect.Effect<Service> = Effect.gen(function*() {
  * @since 4.0.0
  * @category constructors
  */
-export const fromPrompt = Effect.fnUntraced(
-  function*(prompt: Prompt.RawInput) {
-    const chat = yield* empty
-    yield* Ref.set(chat.history, Prompt.make(prompt))
-    return chat
-  }
-)
+export const fromPrompt = (prompt: Prompt.RawInput) =>
+  Effect.sync(() => makeUnsafe(Ref.makeUnsafe(Prompt.make(prompt))))
 
 /**
  * Creates a Chat service from previously exported chat data.
@@ -534,8 +521,7 @@ export const fromPrompt = Effect.fnUntraced(
  */
 export const fromExport = (data: unknown): Effect.Effect<
   Service,
-  Schema.SchemaError,
-  LanguageModel.LanguageModel
+  Schema.SchemaError
 > => Effect.flatMap(decodeHistory(data), fromPrompt)
 
 /**
@@ -576,8 +562,7 @@ export const fromExport = (data: unknown): Effect.Effect<
  */
 export const fromJson = (data: string): Effect.Effect<
   Service,
-  Schema.SchemaError,
-  LanguageModel.LanguageModel
+  Schema.SchemaError
 > => Effect.flatMap(decodeHistoryJson(data), fromPrompt)
 
 // =============================================================================
