@@ -29,58 +29,59 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaRep
   const schemas = Arr.map(asts, (ast) => recur(ast))
 
   return {
-    representations: Arr.map(schemas, compact),
-    references: Rec.map(Rec.filter(references, (_, k) => !isCompactable(k)), compact)
+    representations: Arr.map(schemas, inline),
+    references: Rec.map(Rec.filter(references, (_, k) => !isInlineable(k)), inline)
   }
 
-  function isCompactable($ref: string): boolean {
+  function isInlineable($ref: string): boolean {
+    // inline when used once and only once
     return !usedReferences.has($ref)
   }
 
-  function compact(s: SchemaRepresentation.Representation): SchemaRepresentation.Representation {
+  function inline(s: SchemaRepresentation.Representation): SchemaRepresentation.Representation {
     switch (s._tag) {
       default:
         return s
       case "Declaration":
         return {
           ...s,
-          typeParameters: s.typeParameters.map(compact),
-          encodedSchema: compact(s.encodedSchema)
+          typeParameters: s.typeParameters.map(inline),
+          encodedSchema: inline(s.encodedSchema)
         }
       case "Reference": {
-        if (isCompactable(s.$ref)) {
-          return compact(references[s.$ref])
+        if (isInlineable(s.$ref)) {
+          return inline(references[s.$ref])
         }
         return s
       }
       case "Suspend":
-        return { ...s, thunk: compact(s.thunk) }
+        return { ...s, thunk: inline(s.thunk) }
       case "String":
         return {
           ...s,
-          ...(s.contentSchema ? { contentSchema: compact(s.contentSchema) } : undefined)
+          ...(s.contentSchema ? { contentSchema: inline(s.contentSchema) } : undefined)
         }
       case "TemplateLiteral":
-        return { ...s, parts: s.parts.map(compact) }
+        return { ...s, parts: s.parts.map(inline) }
       case "Arrays":
         return {
           ...s,
-          elements: s.elements.map((e) => ({ ...e, type: compact(e.type) })),
-          rest: s.rest.map(compact)
+          elements: s.elements.map((e) => ({ ...e, type: inline(e.type) })),
+          rest: s.rest.map(inline)
         }
       case "Objects":
         return {
           ...s,
           checks: s.checks.map(compactCheck),
-          propertySignatures: s.propertySignatures.map((ps) => ({ ...ps, type: compact(ps.type) })),
+          propertySignatures: s.propertySignatures.map((ps) => ({ ...ps, type: inline(ps.type) })),
           indexSignatures: s.indexSignatures.map((is) => ({
             ...is,
-            parameter: compact(is.parameter),
-            type: compact(is.type)
+            parameter: inline(is.parameter),
+            type: inline(is.type)
           }))
         }
       case "Union":
-        return { ...s, types: s.types.map(compact) }
+        return { ...s, types: s.types.map(inline) }
     }
   }
 
@@ -92,7 +93,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaRep
         return {
           ...check,
           meta: check.meta._tag === "isPropertyNames"
-            ? { _tag: "isPropertyNames", propertyNames: compact(check.meta.propertyNames) } as M
+            ? { _tag: "isPropertyNames", propertyNames: inline(check.meta.propertyNames) } as M
             : check.meta
         }
       case "FilterGroup":
