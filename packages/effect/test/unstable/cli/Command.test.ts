@@ -399,8 +399,7 @@ describe("Command", () => {
           version: "1.0.0"
         })
 
-        const exit = yield* Effect.exit(runCommand(["db", "--region", "eu-west-1"]))
-        assert.isTrue(Exit.isFailure(exit))
+        yield* runCommand(["db", "--region", "eu-west-1"])
 
         const stderr = yield* TestConsole.errorLines
         assert.isTrue(
@@ -452,11 +451,10 @@ describe("Command", () => {
           version: "1.0.0"
         })
 
-        const exit = yield* Effect.exit(runCommand([
+        yield* runCommand([
           "--env",
           "invalid"
-        ]))
-        assert.isTrue(Exit.isFailure(exit))
+        ])
 
         const stderr = yield* TestConsole.errorLines
         assert.isTrue(
@@ -473,8 +471,7 @@ describe("Command", () => {
           version: "1.0.0"
         })
 
-        const exit = yield* Effect.exit(runCommand(["invalid-command"]))
-        assert.isTrue(Exit.isFailure(exit))
+        yield* runCommand(["invalid-command"])
 
         // Check that help text was shown to stdout
         const stdout = yield* TestConsole.logLines
@@ -492,22 +489,6 @@ describe("Command", () => {
       Effect.gen(function*() {
         const result = yield* Effect.flip(Cli.run(["test-failing", "--input", "test"]))
         assert.strictEqual(result, "Handler error")
-      }).pipe(Effect.provide(TestLayer)))
-
-    it.effect("parse errors should produce CliExit with code 1", () =>
-      Effect.gen(function*() {
-        const runCommand = Command.runWith(Cli.ComprehensiveCli, {
-          version: "1.0.0"
-        })
-
-        const exit = yield* Effect.exit(runCommand(["invalid-command"]))
-        assert.isTrue(Exit.isFailure(exit))
-        if (Exit.isFailure(exit)) {
-          const fails = exit.cause.reasons.filter(Cause.isFailReason)
-          assert.isTrue(
-            fails.some((r) => CliError.isCliError(r.error) && r.error._tag === "CliExit" && r.error.code === 1)
-          )
-        }
       }).pipe(Effect.provide(TestLayer)))
 
     it.effect("Command.exit should allow handlers to set exit code", () =>
@@ -957,8 +938,7 @@ describe("Command", () => {
 
         const runCmd = Command.runWith(cmd, { version: "1.0.0" })
 
-        const exit = yield* Effect.exit(runCmd(["--pkg"]))
-        assert.isTrue(Exit.isFailure(exit))
+        yield* runCmd(["--pkg"])
 
         assert.isFalse(invoked)
         const stderr = yield* TestConsole.errorLines
@@ -1014,8 +994,7 @@ describe("Command", () => {
         const cli = root.pipe(Command.withSubcommands([known]))
         const runCli = Command.runWith(cli, { version: "1.0.0" })
 
-        const exit = yield* Effect.exit(runCli(["--unknown", "bogus"]))
-        assert.isTrue(Exit.isFailure(exit))
+        yield* runCli(["--unknown", "bogus"])
 
         const stderr = yield* TestConsole.errorLines
         const text = stderr.join("\n")
@@ -1087,8 +1066,7 @@ describe("Command", () => {
 
     it.effect("should suggest similar subcommands for unknown subcommands", () =>
       Effect.gen(function*() {
-        const exit = yield* Effect.exit(Cli.run(["cpy"]))
-        assert.isTrue(Exit.isFailure(exit))
+        yield* Cli.run(["cpy"])
 
         const errorOutput = yield* TestConsole.errorLines
         const errorText = errorOutput.join("\n")
@@ -1104,8 +1082,7 @@ describe("Command", () => {
 
     it.effect("should suggest similar subcommands for nested unknown subcommands", () =>
       Effect.gen(function*() {
-        const exit = yield* Effect.exit(Cli.run(["admin", "usrs", "list"]))
-        assert.isTrue(Exit.isFailure(exit))
+        yield* Cli.run(["admin", "usrs", "list"])
 
         // Capture the error output
         const errorOutput = yield* TestConsole.errorLines
@@ -1122,8 +1099,7 @@ describe("Command", () => {
 
     it.effect("should suggest similar options for unrecognized options", () =>
       Effect.gen(function*() {
-        const exit = yield* Effect.exit(Cli.run(["--debugs", "copy", "src.txt", "dest.txt"]))
-        assert.isTrue(Exit.isFailure(exit))
+        yield* Cli.run(["--debugs", "copy", "src.txt", "dest.txt"])
 
         const errorOutput = yield* TestConsole.errorLines
         const errorText = errorOutput.join("\n")
@@ -1139,8 +1115,7 @@ describe("Command", () => {
 
     it.effect("should suggest similar short options for unrecognized short options", () =>
       Effect.gen(function*() {
-        const exit = yield* Effect.exit(Cli.run(["-u", "copy", "src.txt", "dest.txt"]))
-        assert.isTrue(Exit.isFailure(exit))
+        yield* Cli.run(["-u", "copy", "src.txt", "dest.txt"])
 
         const errorOutput = yield* TestConsole.errorLines
         const errorText = errorOutput.join("\n")

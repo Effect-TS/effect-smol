@@ -1078,14 +1078,13 @@ const showHelp = <Name extends string, Input, E, R>(
   command: Command<Name, Input, E, R>,
   commandPath: ReadonlyArray<string>,
   errors?: ReadonlyArray<CliError.CliError>
-): Effect.Effect<void, CliError.CliError, Environment> =>
+): Effect.Effect<void, never, Environment> =>
   Effect.gen(function*() {
     const formatter = yield* CliOutput.Formatter
     const helpDoc = yield* getHelpForCommandPath(command, commandPath, GlobalFlag.BuiltIns)
     yield* Console.log(formatter.formatHelpDoc(helpDoc))
     if (errors && errors.length > 0) {
       yield* Console.error(formatter.formatErrors(errors))
-      return yield* exit(1)
     }
   })
 
