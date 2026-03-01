@@ -312,6 +312,9 @@ responses.
 - **[Defining and using AI tools](./ai-docs/src/71_ai/20_tools.ts)**:
   Define tools with schemas, group them into toolkits, implement handlers,
   and pass them to `LanguageModel.generateText`.
+- **[Stateful chat sessions](./ai-docs/src/71_ai/30_chat.ts)**:
+  The AI `Chat` module maintains conversation history automatically. Build
+  AI agents or chat assistants.
 
 ## Building distributed applications with cluster
 
