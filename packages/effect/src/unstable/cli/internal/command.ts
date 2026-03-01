@@ -44,6 +44,9 @@ export interface CommandInternal<Name extends string, Input, E, R> extends Comma
     commandPath: ReadonlyArray<string>
   ) => Effect.Effect<void, E | CliError.CliError, R | Environment>
   readonly buildHelpDoc: (commandPath: ReadonlyArray<string>) => HelpDoc
+  readonly errorHandler:
+    | ((errors: ReadonlyArray<CliError.CliError>, commandPath: ReadonlyArray<string>) => Effect.Effect<void, any, any>)
+    | undefined
 }
 
 /* ========================================================================== */
@@ -99,6 +102,9 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
   readonly parse?: ((input: ParsedTokens) => Effect.Effect<Input, CliError.CliError, Environment>) | undefined
   readonly handle?:
     | ((input: Input, commandPath: ReadonlyArray<string>) => Effect.Effect<void, E, R | Environment>)
+    | undefined
+  readonly errorHandler?:
+    | ((errors: ReadonlyArray<CliError.CliError>, commandPath: ReadonlyArray<string>) => Effect.Effect<void, any, any>)
     | undefined
 }): Command<Name, Input, E, R> => {
   const service = options.service ?? ServiceMap.Service<CommandContext<Name>, Input>(`${TypeId}/${options.name}`)
@@ -202,6 +208,7 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
     parse,
     handle,
     buildHelpDoc,
+    errorHandler: options.errorHandler,
     ...(Predicate.isNotUndefined(options.description)
       ? { description: options.description }
       : {}),

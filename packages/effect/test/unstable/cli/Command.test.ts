@@ -517,6 +517,48 @@ describe("Command", () => {
           )
         }
       }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("withErrorHandler should run after default error display on parse errors", () =>
+      Effect.gen(function*() {
+        const cmd = Command.make("tool", {
+          name: Flag.string("name")
+        }).pipe(
+          Command.withErrorHandler(() => Command.exit(1))
+        )
+
+        const runCmd = Command.runWith(cmd, { version: "1.0.0" })
+
+        const exit = yield* Effect.exit(runCmd(["--unknown"]))
+        assert.isTrue(Exit.isFailure(exit))
+        if (Exit.isFailure(exit)) {
+          const fails = exit.cause.reasons.filter(Cause.isFailReason)
+          assert.isTrue(
+            fails.some((r) => CliError.isCliError(r.error) && r.error._tag === "CliExit" && r.error.code === 1)
+          )
+        }
+
+        // default error display should still have fired
+        const stderr = yield* TestConsole.errorLines
+        assert.isTrue(stderr.some((line) => String(line).includes("Unrecognized flag")))
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("withErrorHandler should not run when there are no parse errors", () =>
+      Effect.gen(function*() {
+        let handlerCalled = false
+
+        const cmd = Command.make("tool", {}, () => Effect.void).pipe(
+          Command.withErrorHandler(() =>
+            Effect.sync(() => {
+              handlerCalled = true
+            })
+          )
+        )
+
+        const runCmd = Command.runWith(cmd, { version: "1.0.0" })
+        yield* runCmd([])
+
+        assert.isFalse(handlerCalled)
+      }).pipe(Effect.provide(TestLayer)))
   })
 
   describe("withSubcommands", () => {

@@ -478,6 +478,53 @@ export const withHandler: {
 ): Command<Name, A, E, Exclude<R, GlobalFlag.BuiltInSettingContext>> =>
   makeCommand({ ...toImpl(self), handle: handler }))
 
+/**
+ * Adds a post-hook that runs after the default error display (help + stderr)
+ * when parse errors occur. The default behavior (print help to stdout, print
+ * errors to stderr) is preserved; this hook runs afterward.
+ *
+ * Use this to control the exit code or perform additional error handling.
+ *
+ * @example
+ * ```ts
+ * import { Command, Flag } from "effect/unstable/cli"
+ *
+ * const app = Command.make("app", {
+ *   name: Flag.string("name")
+ * }).pipe(
+ *   Command.withErrorHandler((errors, commandPath) =>
+ *     Command.exit(1)
+ *   )
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const withErrorHandler: {
+  <E2, R2>(
+    handler: (
+      errors: ReadonlyArray<CliError.CliError>,
+      commandPath: ReadonlyArray<string>
+    ) => Effect.Effect<void, E2, R2>
+  ): <Name extends string, Input, E, R>(
+    self: Command<Name, Input, E, R>
+  ) => Command<Name, Input, E | E2, R | R2>
+  <Name extends string, Input, E, R, E2, R2>(
+    self: Command<Name, Input, E, R>,
+    handler: (
+      errors: ReadonlyArray<CliError.CliError>,
+      commandPath: ReadonlyArray<string>
+    ) => Effect.Effect<void, E2, R2>
+  ): Command<Name, Input, E | E2, R | R2>
+} = dual(2, <Name extends string, Input, E, R, E2, R2>(
+  self: Command<Name, Input, E, R>,
+  handler: (
+    errors: ReadonlyArray<CliError.CliError>,
+    commandPath: ReadonlyArray<string>
+  ) => Effect.Effect<void, E2, R2>
+): Command<Name, Input, E | E2, R | R2> => makeCommand({ ...toImpl(self), errorHandler: handler }) as any)
+
 interface SubcommandGroupInternal {
   readonly group: string | undefined
   readonly commands: NonEmptyReadonlyArray<Command.Any>
@@ -1078,13 +1125,17 @@ const showHelp = <Name extends string, Input, E, R>(
   command: Command<Name, Input, E, R>,
   commandPath: ReadonlyArray<string>,
   errors?: ReadonlyArray<CliError.CliError>
-): Effect.Effect<void, never, Environment> =>
+): Effect.Effect<void, CliError.CliError, Environment> =>
   Effect.gen(function*() {
     const formatter = yield* CliOutput.Formatter
     const helpDoc = yield* getHelpForCommandPath(command, commandPath, GlobalFlag.BuiltIns)
     yield* Console.log(formatter.formatHelpDoc(helpDoc))
     if (errors && errors.length > 0) {
       yield* Console.error(formatter.formatErrors(errors))
+      const handler = toImpl(command).errorHandler
+      if (handler) {
+        yield* handler(errors, commandPath) as Effect.Effect<void, CliError.CliError>
+      }
     }
   })
 
