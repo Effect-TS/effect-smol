@@ -633,8 +633,8 @@ export const toMillis = (self: Input): number =>
  * @since 2.0.0
  * @category getters
  */
-export const toSeconds = (self: Duration): number =>
-  match(self, {
+export const toSeconds = (self: Input): number =>
+  match(fromInputUnsafe(self), {
     onMillis: (millis) => millis / 1_000,
     onNanos: (nanos) => Number(nanos) / 1_000_000_000,
     onInfinity: () => Infinity,
@@ -655,8 +655,8 @@ export const toSeconds = (self: Duration): number =>
  * @since 3.8.0
  * @category getters
  */
-export const toMinutes = (self: Duration): number =>
-  match(self, {
+export const toMinutes = (self: Input): number =>
+  match(fromInputUnsafe(self), {
     onMillis: (millis) => millis / 60_000,
     onNanos: (nanos) => Number(nanos) / 60_000_000_000,
     onInfinity: () => Infinity,
@@ -677,8 +677,8 @@ export const toMinutes = (self: Duration): number =>
  * @since 3.8.0
  * @category getters
  */
-export const toHours = (self: Duration): number =>
-  match(self, {
+export const toHours = (self: Input): number =>
+  match(fromInputUnsafe(self), {
     onMillis: (millis) => millis / 3_600_000,
     onNanos: (nanos) => Number(nanos) / 3_600_000_000_000,
     onInfinity: () => Infinity,
@@ -699,8 +699,8 @@ export const toHours = (self: Duration): number =>
  * @since 3.8.0
  * @category getters
  */
-export const toDays = (self: Duration): number =>
-  match(self, {
+export const toDays = (self: Input): number =>
+  match(fromInputUnsafe(self), {
     onMillis: (millis) => millis / 86_400_000,
     onNanos: (nanos) => Number(nanos) / 86_400_000_000_000,
     onInfinity: () => Infinity,
@@ -721,8 +721,8 @@ export const toDays = (self: Duration): number =>
  * @since 3.8.0
  * @category getters
  */
-export const toWeeks = (self: Duration): number =>
-  match(self, {
+export const toWeeks = (self: Input): number =>
+  match(fromInputUnsafe(self), {
     onMillis: (millis) => millis / 604_800_000,
     onNanos: (nanos) => Number(nanos) / 604_800_000_000_000,
     onInfinity: () => Infinity,

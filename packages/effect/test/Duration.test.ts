@@ -433,6 +433,16 @@ describe("Duration", () => {
     strictEqual(Duration.infinity.pipe(Duration.toSeconds), Infinity)
   })
 
+  it("to unit getters from Input", () => {
+    const minute: Duration.Input = "1 minute"
+    const day: Duration.Input = "1 day"
+    strictEqual(Duration.toSeconds(minute), 60)
+    strictEqual(Duration.toMinutes(minute), 1)
+    strictEqual(Duration.toHours(day), 24)
+    strictEqual(Duration.toDays(day), 1)
+    strictEqual(Duration.toWeeks("14 days"), 2)
+  })
+
   it("toNanos", () => {
     deepStrictEqual(Duration.nanos(1n).pipe(Duration.toNanos), 1n)
     assertUndefined(Duration.infinity.pipe(Duration.toNanos))
