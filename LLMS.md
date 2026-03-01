@@ -309,6 +309,9 @@ responses.
 - **[Using LanguageModel for text, objects, and streams](./ai-docs/src/71_ai/10_language-model.ts)**:
   Configure a provider once, then use `LanguageModel` for plain text
   generation, schema-validated object generation, and streaming responses.
+- **[Defining and using AI tools](./ai-docs/src/71_ai/20_tools.ts)**:
+  Define tools with schemas, group them into toolkits, implement handlers,
+  and pass them to `LanguageModel.generateText`.
 
 ## Building distributed applications with cluster
 
