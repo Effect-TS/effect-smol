@@ -148,6 +148,24 @@ describe("Stream", () => {
         const result = yield* Stream.range(3, 3).pipe(Stream.runCollect)
         assert.deepStrictEqual(result, [3])
       }))
+
+    it.effect("fromIterable - emits array as one chunk by default", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.fromIterable([1, 2, 3, 4]).pipe(
+          Stream.chunks,
+          Stream.runCollect
+        )
+        assert.deepStrictEqual(result, [[1, 2, 3, 4]])
+      }))
+
+    it.effect("fromIterable - supports chunkSize option", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.fromIterable([1, 2, 3, 4, 5], { chunkSize: 2 }).pipe(
+          Stream.chunks,
+          Stream.runCollect
+        )
+        assert.deepStrictEqual(result, [[1, 2], [3, 4], [5]])
+      }))
   })
 
   describe("encoding", () => {

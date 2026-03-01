@@ -963,6 +963,10 @@ export const fromIteratorSucceed = <A>(iterator: IterableIterator<A>, maxChunkSi
 /**
  * Creates a new `Stream` from an iterable collection of values.
  *
+ * **Options**
+ *
+ * - `chunkSize`: Maximum number of values emitted per chunk.
+ *
  * @example
  * ```ts
  * import { Console, Effect, Stream } from "effect"
@@ -982,10 +986,15 @@ export const fromIteratorSucceed = <A>(iterator: IterableIterator<A>, maxChunkSi
  * @since 2.0.0
  * @category Constructors
  */
-export const fromIterable = <A>(iterable: Iterable<A>): Stream<A> =>
-  Array.isArray(iterable)
+export const fromIterable = <A>(
+  iterable: Iterable<A>,
+  options?: {
+    readonly chunkSize?: number | undefined
+  }
+): Stream<A> =>
+  Array.isArray(iterable) && options?.chunkSize === undefined
     ? fromArray(iterable)
-    : fromChannel(Channel.fromIterableArray(iterable))
+    : fromChannel(Channel.fromIterableArray(iterable, options?.chunkSize))
 
 /**
  * Creates a stream from an effect producing an iterable of values.
