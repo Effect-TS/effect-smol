@@ -120,6 +120,44 @@ export declare namespace Client {
       never
 }
 
+type ApiGroups<Api extends HttpApi.Any> = Api extends HttpApi.HttpApi<infer _ApiId, infer Groups> ? Groups : never
+
+type EndpointId<Endpoint extends HttpApiEndpoint.Any> = Endpoint extends {
+  readonly method: infer Method extends HttpMethod.HttpMethod
+  readonly path: infer Path extends string
+} ? `${Method} ${Path}`
+  : never
+
+type EndpointWithId<Endpoints extends HttpApiEndpoint.Any, Id extends string> = Id extends
+  `${infer Method extends HttpMethod.HttpMethod} ${infer Path extends string}` ?
+  Extract<Endpoints, { readonly method: Method; readonly path: Path }> :
+  never
+
+type UrlBuilderRequest<Endpoint extends HttpApiEndpoint.Any> = (
+  & ([HttpApiEndpoint.Params<Endpoint>["Encoded"]] extends [never] ? {}
+    : { readonly params: HttpApiEndpoint.Params<Endpoint>["Encoded"] })
+  & ([HttpApiEndpoint.Query<Endpoint>["Encoded"]] extends [never] ? {}
+    : { readonly query: HttpApiEndpoint.Query<Endpoint>["Encoded"] })
+) extends infer Request ? keyof Request extends never ? void | undefined : Request
+  : never
+
+type UrlBuilderArgs<Endpoint extends HttpApiEndpoint.Any> = [UrlBuilderRequest<Endpoint>] extends [void | undefined] ?
+  [request?: UrlBuilderRequest<Endpoint>]
+  : [request: UrlBuilderRequest<Endpoint>]
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type UrlBuilder<Api extends HttpApi.Any> = <
+  const GroupName extends HttpApiGroup.Name<ApiGroups<Api>>,
+  const Id extends EndpointId<HttpApiGroup.EndpointsWithName<ApiGroups<Api>, GroupName>>
+>(
+  group: GroupName,
+  endpoint: Id,
+  ...args: UrlBuilderArgs<EndpointWithId<HttpApiGroup.EndpointsWithName<ApiGroups<Api>, GroupName>, Id>>
+) => string
+
 const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>(
   api: HttpApi.HttpApi<ApiId, Groups>,
   options: {
@@ -438,6 +476,25 @@ export const endpoint = <
   }).pipe(Effect.map(() => client)) as any
 }
 
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const urlBuilder = <Api extends HttpApi.Any>(options?: {
+  readonly baseUrl?: URL | string | undefined
+}): UrlBuilder<Api> => {
+  return ((_: string, endpoint: string, request?: {
+    readonly params?: Record<string, string | undefined> | undefined
+    readonly query?: UrlParams.Input | undefined
+  }) => {
+    const path = endpoint.slice(endpoint.indexOf(" ") + 1)
+    const withParams = request?.params === undefined ? path : compilePath(path)(request.params)
+    const query = request?.query === undefined ? "" : UrlParams.toString(UrlParams.fromInput(request.query))
+    const url = query === "" ? withParams : `${withParams}?${query}`
+    return options?.baseUrl === undefined ? url : new URL(url, options.baseUrl.toString()).toString()
+  }) as UrlBuilder<Api>
+}
+
 // ----------------------------------------------------------------------------
 
 const paramsRegExp = /:(\w+)\??/g
@@ -448,7 +505,7 @@ const compilePath = (path: string) => {
   if (len === 1) {
     return (_: any) => path
   }
-  return (params: Record<string, string>) => {
+  return (params: Record<string, string | undefined>) => {
     let url = segments[0]
     for (let i = 1; i < len; i++) {
       if (i % 2 === 0) {

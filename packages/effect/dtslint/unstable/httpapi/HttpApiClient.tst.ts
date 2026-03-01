@@ -58,6 +58,50 @@ describe("HttpApiClient", () => {
     })
   })
 
+  describe("urlBuilder", () => {
+    it("should use method/path keys with encoded params and query", () => {
+      const Api = HttpApi.make("Api")
+        .add(
+          HttpApiGroup.make("users")
+            .add(
+              HttpApiEndpoint.get("getUser", "/users/:id", {
+                params: {
+                  id: Schema.FiniteFromString
+                },
+                query: {
+                  page: Schema.FiniteFromString
+                }
+              }),
+              HttpApiEndpoint.get("health", "/health")
+            )
+        )
+
+      const builder = HttpApiClient.urlBuilder<typeof Api>({
+        baseUrl: "https://api.example.com"
+      })
+
+      const getUserUrl = builder("users", "GET /users/:id", {
+        params: { id: "123" },
+        query: { page: "1" }
+      })
+
+      expect<typeof getUserUrl>().type.toBe<string>()
+
+      const healthUrl = builder("users", "GET /health")
+
+      expect<typeof healthUrl>().type.toBe<string>()
+
+      // @ts-expect-error!
+      builder("users", "GET /users/:id", { params: { id: 123 }, query: { page: "1" } })
+
+      // @ts-expect-error!
+      builder("users", "GET /users/:id", { params: { id: "123" }, query: { page: 1 } })
+
+      // @ts-expect-error!
+      builder("users", "POST /users/:id", { params: { id: "123" }, query: { page: "1" } })
+    })
+  })
+
   describe("headers option", () => {
     it("should accept a record of fields", () => {
       const Api = HttpApi.make("Api")
