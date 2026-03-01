@@ -3092,6 +3092,11 @@ export const MessageDeltaContentTextAnnotationsFilePathObject = Schema.Struct({
   "description":
     "A URL for the file that's generated when the assistant used the `code_interpreter` tool to generate a file."
 })
+export type MessagePhase = "commentary" | "final_answer"
+export const MessagePhase = Schema.Literals(["commentary", "final_answer"]).annotate({
+  "description":
+    "Labels an `assistant` message as intermediate commentary (`commentary`) or the final answer (`final_answer`). For models like `gpt-5.3-codex` and beyond, when sending follow-up requests, preserve and resend phase on all assistant messages — dropping it can degrade performance. Not used for user messages.\n\nUse `commentary` for an intermediate assistant message and `final_answer` for\nthe final assistant message. For follow-up requests with models like\n`gpt-5.3-codex` and later, preserve and resend phase on all assistant\nmessages. Omitting it can degrade performance. Not used for user messages.\n"
+})
 export type MessageRequestContentTextObject = { readonly "type": "text"; readonly "text": string }
 export const MessageRequestContentTextObject = Schema.Struct({
   "type": Schema.Literal("text").annotate({ "description": "Always `text`." }),
@@ -14710,6 +14715,7 @@ export type RealtimeCallCreateRequest = {
     readonly "model"?:
       | string
       | "gpt-realtime"
+      | "gpt-realtime-1.5"
       | "gpt-realtime-2025-08-28"
       | "gpt-4o-realtime-preview"
       | "gpt-4o-realtime-preview-2024-10-01"
@@ -14720,6 +14726,7 @@ export type RealtimeCallCreateRequest = {
       | "gpt-realtime-mini"
       | "gpt-realtime-mini-2025-10-06"
       | "gpt-realtime-mini-2025-12-15"
+      | "gpt-audio-1.5"
       | "gpt-audio-mini"
       | "gpt-audio-mini-2025-10-06"
       | "gpt-audio-mini-2025-12-15"
@@ -14796,6 +14803,7 @@ export const RealtimeCallCreateRequest = Schema.Struct({
           Schema.String,
           Schema.Literals([
             "gpt-realtime",
+            "gpt-realtime-1.5",
             "gpt-realtime-2025-08-28",
             "gpt-4o-realtime-preview",
             "gpt-4o-realtime-preview-2024-10-01",
@@ -14806,6 +14814,7 @@ export const RealtimeCallCreateRequest = Schema.Struct({
             "gpt-realtime-mini",
             "gpt-realtime-mini-2025-10-06",
             "gpt-realtime-mini-2025-12-15",
+            "gpt-audio-1.5",
             "gpt-audio-mini",
             "gpt-audio-mini-2025-10-06",
             "gpt-audio-mini-2025-12-15"
@@ -15022,6 +15031,7 @@ export type RealtimeSession = {
   readonly "model"?:
     | string
     | "gpt-realtime"
+    | "gpt-realtime-1.5"
     | "gpt-realtime-2025-08-28"
     | "gpt-4o-realtime-preview"
     | "gpt-4o-realtime-preview-2024-10-01"
@@ -15032,6 +15042,7 @@ export type RealtimeSession = {
     | "gpt-realtime-mini"
     | "gpt-realtime-mini-2025-10-06"
     | "gpt-realtime-mini-2025-12-15"
+    | "gpt-audio-1.5"
     | "gpt-audio-mini"
     | "gpt-audio-mini-2025-10-06"
     | "gpt-audio-mini-2025-12-15"
@@ -15096,6 +15107,7 @@ export const RealtimeSession = Schema.Struct({
       Schema.String,
       Schema.Literals([
         "gpt-realtime",
+        "gpt-realtime-1.5",
         "gpt-realtime-2025-08-28",
         "gpt-4o-realtime-preview",
         "gpt-4o-realtime-preview-2024-10-01",
@@ -15106,6 +15118,7 @@ export const RealtimeSession = Schema.Struct({
         "gpt-realtime-mini",
         "gpt-realtime-mini-2025-10-06",
         "gpt-realtime-mini-2025-12-15",
+        "gpt-audio-1.5",
         "gpt-audio-mini",
         "gpt-audio-mini-2025-10-06",
         "gpt-audio-mini-2025-12-15"
@@ -15455,6 +15468,7 @@ export type RealtimeSessionCreateRequestGA = {
   readonly "model"?:
     | string
     | "gpt-realtime"
+    | "gpt-realtime-1.5"
     | "gpt-realtime-2025-08-28"
     | "gpt-4o-realtime-preview"
     | "gpt-4o-realtime-preview-2024-10-01"
@@ -15465,6 +15479,7 @@ export type RealtimeSessionCreateRequestGA = {
     | "gpt-realtime-mini"
     | "gpt-realtime-mini-2025-10-06"
     | "gpt-realtime-mini-2025-12-15"
+    | "gpt-audio-1.5"
     | "gpt-audio-mini"
     | "gpt-audio-mini-2025-10-06"
     | "gpt-audio-mini-2025-12-15"
@@ -15535,6 +15550,7 @@ export const RealtimeSessionCreateRequestGA = Schema.Struct({
       Schema.String,
       Schema.Literals([
         "gpt-realtime",
+        "gpt-realtime-1.5",
         "gpt-realtime-2025-08-28",
         "gpt-4o-realtime-preview",
         "gpt-4o-realtime-preview-2024-10-01",
@@ -15545,6 +15561,7 @@ export const RealtimeSessionCreateRequestGA = Schema.Struct({
         "gpt-realtime-mini",
         "gpt-realtime-mini-2025-10-06",
         "gpt-realtime-mini-2025-12-15",
+        "gpt-audio-1.5",
         "gpt-audio-mini",
         "gpt-audio-mini-2025-10-06",
         "gpt-audio-mini-2025-12-15"
@@ -15741,6 +15758,7 @@ export type RealtimeSessionCreateResponseGA = {
   readonly "model"?:
     | string
     | "gpt-realtime"
+    | "gpt-realtime-1.5"
     | "gpt-realtime-2025-08-28"
     | "gpt-4o-realtime-preview"
     | "gpt-4o-realtime-preview-2024-10-01"
@@ -15751,6 +15769,7 @@ export type RealtimeSessionCreateResponseGA = {
     | "gpt-realtime-mini"
     | "gpt-realtime-mini-2025-10-06"
     | "gpt-realtime-mini-2025-12-15"
+    | "gpt-audio-1.5"
     | "gpt-audio-mini"
     | "gpt-audio-mini-2025-10-06"
     | "gpt-audio-mini-2025-12-15"
@@ -15829,6 +15848,7 @@ export const RealtimeSessionCreateResponseGA = Schema.Struct({
       Schema.String,
       Schema.Literals([
         "gpt-realtime",
+        "gpt-realtime-1.5",
         "gpt-realtime-2025-08-28",
         "gpt-4o-realtime-preview",
         "gpt-4o-realtime-preview-2024-10-01",
@@ -15839,6 +15859,7 @@ export const RealtimeSessionCreateResponseGA = Schema.Struct({
         "gpt-realtime-mini",
         "gpt-realtime-mini-2025-10-06",
         "gpt-realtime-mini-2025-12-15",
+        "gpt-audio-1.5",
         "gpt-audio-mini",
         "gpt-audio-mini-2025-10-06",
         "gpt-audio-mini-2025-12-15"
@@ -19437,6 +19458,7 @@ export const Message = Schema.Struct({
 export type EasyInputMessage = {
   readonly "role": "user" | "assistant" | "system" | "developer"
   readonly "content": string | InputMessageContentList
+  readonly "phase"?: MessagePhase | null
   readonly "type"?: "message"
 }
 export const EasyInputMessage = Schema.Struct({
@@ -19450,6 +19472,7 @@ export const EasyInputMessage = Schema.Struct({
     "description":
       "Text, image, or audio input to the model, used to generate a response.\nCan also contain previous assistant responses.\n"
   }),
+  "phase": Schema.optionalKey(Schema.Union([MessagePhase, Schema.Null])),
   "type": Schema.optionalKey(
     Schema.Literal("message").annotate({ "description": "The type of the message input. Always `message`.\n" })
   )
@@ -20225,6 +20248,7 @@ export type OutputMessage = {
   readonly "type": "message"
   readonly "role": "assistant"
   readonly "content": ReadonlyArray<OutputMessageContent>
+  readonly "phase"?: MessagePhase | null
   readonly "status": "in_progress" | "completed" | "incomplete"
 }
 export const OutputMessage = Schema.Struct({
@@ -20234,6 +20258,7 @@ export const OutputMessage = Schema.Struct({
     "description": "The role of the output message. Always `assistant`.\n"
   }),
   "content": Schema.Array(OutputMessageContent).annotate({ "description": "The content of the output message.\n" }),
+  "phase": Schema.optionalKey(Schema.Union([MessagePhase, Schema.Null])),
   "status": Schema.Literals(["in_progress", "completed", "incomplete"]).annotate({
     "description":
       "The status of the message input. One of `in_progress`, `completed`, or\n`incomplete`. Populated when input items are returned via API.\n"
@@ -21493,6 +21518,7 @@ export type CompactResponseMethodPublicBody = {
   readonly "input"?: string | ReadonlyArray<InputItem> | null
   readonly "previous_response_id"?: string | null
   readonly "instructions"?: string | null
+  readonly "prompt_cache_key"?: string | null
 }
 export const CompactResponseMethodPublicBody = Schema.Struct({
   "model": ModelIdsCompaction,
@@ -21526,7 +21552,15 @@ export const CompactResponseMethodPublicBody = Schema.Struct({
         "A system (or developer) message inserted into the model's context.\nWhen used along with `previous_response_id`, the instructions from a previous response will not be carried over to the next response. This makes it simple to swap out system (or developer) messages in new responses."
     }),
     Schema.Null
-  ]))
+  ])),
+  "prompt_cache_key": Schema.optionalKey(
+    Schema.Union([
+      Schema.String.annotate({ "description": "A key to use when reading from or writing to the prompt cache." }).check(
+        Schema.isMaxLength(64)
+      ),
+      Schema.Null
+    ])
+  )
 })
 export type ResponseItemList = {
   readonly "object": "list"
@@ -23840,6 +23874,236 @@ export const CreateResponse = Schema.Struct({
       Schema.Null
     ])
   )
+})
+export type ResponsesClientEventResponseCreate = {
+  readonly "type": "response.create"
+  readonly "metadata"?: Metadata
+  readonly "top_logprobs"?: number
+  readonly "temperature"?: number | null
+  readonly "top_p"?: number | null
+  readonly "user"?: string | null
+  readonly "safety_identifier"?: string | null
+  readonly "prompt_cache_key"?: string | null
+  readonly "service_tier"?: ServiceTier
+  readonly "prompt_cache_retention"?: "in-memory" | "24h" | null
+  readonly "previous_response_id"?: string | null
+  readonly "model"?:
+    | ModelIdsShared
+    | "o1-pro"
+    | "o1-pro-2025-03-19"
+    | "o3-pro"
+    | "o3-pro-2025-06-10"
+    | "o3-deep-research"
+    | "o3-deep-research-2025-06-26"
+    | "o4-mini-deep-research"
+    | "o4-mini-deep-research-2025-06-26"
+    | "computer-use-preview"
+    | "computer-use-preview-2025-03-11"
+    | "gpt-5-codex"
+    | "gpt-5-pro"
+    | "gpt-5-pro-2025-10-06"
+    | "gpt-5.1-codex-max"
+  readonly "reasoning"?: Reasoning | null
+  readonly "background"?: boolean | null
+  readonly "max_output_tokens"?: number | null
+  readonly "max_tool_calls"?: number | null
+  readonly "text"?: ResponseTextParam
+  readonly "tools"?: ToolsArray
+  readonly "tool_choice"?: ToolChoiceParam
+  readonly "prompt"?: Prompt
+  readonly "truncation"?: "auto" | "disabled" | null
+  readonly "input"?: InputParam
+  readonly "include"?: ReadonlyArray<IncludeEnum> | null
+  readonly "parallel_tool_calls"?: boolean | null
+  readonly "store"?: boolean | null
+  readonly "instructions"?: string | null
+  readonly "stream"?: boolean | null
+  readonly "stream_options"?: ResponseStreamOptions
+  readonly "conversation"?: ConversationParam | null
+  readonly "context_management"?: ReadonlyArray<ContextManagementParam> | null
+}
+export const ResponsesClientEventResponseCreate = Schema.Struct({
+  "type": Schema.Literal("response.create").annotate({
+    "description": "The type of the client event. Always `response.create`.\n"
+  }),
+  "metadata": Schema.optionalKey(Metadata),
+  "top_logprobs": Schema.optionalKey(
+    Schema.Union([
+      Schema.Number.annotate({
+        "description":
+          "An integer between 0 and 20 specifying the number of most likely tokens to\nreturn at each token position, each with an associated log probability.\n"
+      }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(20)).check(
+        Schema.makeFilterGroup([Schema.isGreaterThanOrEqualTo(0), Schema.isLessThanOrEqualTo(20)], {
+          "description":
+            "An integer between 0 and 20 specifying the number of most likely tokens to\nreturn at each token position, each with an associated log probability.\n"
+        })
+      )
+    ])
+  ),
+  "temperature": Schema.optionalKey(
+    Schema.Union([
+      Schema.Number.annotate({
+        "description":
+          "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic.\nWe generally recommend altering this or `top_p` but not both.\n"
+      }).check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(2)),
+      Schema.Null
+    ])
+  ),
+  "top_p": Schema.optionalKey(Schema.Union([
+    Schema.Number.annotate({
+      "description":
+        "An alternative to sampling with temperature, called nucleus sampling,\nwhere the model considers the results of the tokens with top_p probability\nmass. So 0.1 means only the tokens comprising the top 10% probability mass\nare considered.\n\nWe generally recommend altering this or `temperature` but not both.\n"
+    }).check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(1)),
+    Schema.Null
+  ])),
+  "user": Schema.optionalKey(
+    Schema.Union([Schema.String, Schema.Null]).annotate({
+      "description":
+        "This field is being replaced by `safety_identifier` and `prompt_cache_key`. Use `prompt_cache_key` instead to maintain caching optimizations.\nA stable identifier for your end-users.\nUsed to boost cache hit rates by better bucketing similar requests and  to help OpenAI detect and prevent abuse. [Learn more](/docs/guides/safety-best-practices#safety-identifiers).\n"
+    })
+  ),
+  "safety_identifier": Schema.optionalKey(
+    Schema.Union([Schema.String, Schema.Null]).annotate({
+      "description":
+        "A stable identifier used to help detect users of your application that may be violating OpenAI's usage policies.\nThe IDs should be a string that uniquely identifies each user, with a maximum length of 64 characters. We recommend hashing their username or email address, in order to avoid sending us any identifying information. [Learn more](/docs/guides/safety-best-practices#safety-identifiers).\n"
+    })
+  ),
+  "prompt_cache_key": Schema.optionalKey(
+    Schema.Union([Schema.String, Schema.Null]).annotate({
+      "description":
+        "Used by OpenAI to cache responses for similar requests to optimize your cache hit rates. Replaces the `user` field. [Learn more](/docs/guides/prompt-caching).\n"
+    })
+  ),
+  "service_tier": Schema.optionalKey(ServiceTier),
+  "prompt_cache_retention": Schema.optionalKey(
+    Schema.Union([
+      Schema.Literals(["in-memory", "24h"]).annotate({
+        "description":
+          "The retention policy for the prompt cache. Set to `24h` to enable extended prompt caching, which keeps cached prefixes active for longer, up to a maximum of 24 hours. [Learn more](/docs/guides/prompt-caching#prompt-cache-retention).\n"
+      }),
+      Schema.Null
+    ])
+  ),
+  "previous_response_id": Schema.optionalKey(
+    Schema.Union([
+      Schema.String.annotate({
+        "description":
+          "The unique ID of the previous response to the model. Use this to\ncreate multi-turn conversations. Learn more about\n[conversation state](/docs/guides/conversation-state). Cannot be used in conjunction with `conversation`.\n"
+      }),
+      Schema.Null
+    ])
+  ),
+  "model": Schema.optionalKey(
+    Schema.Union([
+      ModelIdsShared,
+      Schema.Literals([
+        "o1-pro",
+        "o1-pro-2025-03-19",
+        "o3-pro",
+        "o3-pro-2025-06-10",
+        "o3-deep-research",
+        "o3-deep-research-2025-06-26",
+        "o4-mini-deep-research",
+        "o4-mini-deep-research-2025-06-26",
+        "computer-use-preview",
+        "computer-use-preview-2025-03-11",
+        "gpt-5-codex",
+        "gpt-5-pro",
+        "gpt-5-pro-2025-10-06",
+        "gpt-5.1-codex-max"
+      ]).annotate({ "title": "ResponsesOnlyModel" })
+    ]).annotate({
+      "description":
+        "Model ID used to generate the response, like `gpt-4o` or `o3`. OpenAI\noffers a wide range of models with different capabilities, performance\ncharacteristics, and price points. Refer to the [model guide](/docs/models)\nto browse and compare available models.\n"
+    })
+  ),
+  "reasoning": Schema.optionalKey(Schema.Union([Reasoning, Schema.Null])),
+  "background": Schema.optionalKey(
+    Schema.Union([
+      Schema.Boolean.annotate({
+        "description": "Whether to run the model response in the background.\n[Learn more](/docs/guides/background).\n"
+      }),
+      Schema.Null
+    ])
+  ),
+  "max_output_tokens": Schema.optionalKey(
+    Schema.Union([
+      Schema.Number.annotate({
+        "description":
+          "An upper bound for the number of tokens that can be generated for a response, including visible output tokens and [reasoning tokens](/docs/guides/reasoning).\n"
+      }).check(Schema.isInt()),
+      Schema.Null
+    ])
+  ),
+  "max_tool_calls": Schema.optionalKey(
+    Schema.Union([
+      Schema.Number.annotate({
+        "description":
+          "The maximum number of total calls to built-in tools that can be processed in a response. This maximum number applies across all built-in tool calls, not per individual tool. Any further attempts to call a tool by the model will be ignored.\n"
+      }).check(Schema.isInt()),
+      Schema.Null
+    ])
+  ),
+  "text": Schema.optionalKey(ResponseTextParam),
+  "tools": Schema.optionalKey(ToolsArray),
+  "tool_choice": Schema.optionalKey(ToolChoiceParam),
+  "prompt": Schema.optionalKey(Prompt),
+  "truncation": Schema.optionalKey(Schema.Union([
+    Schema.Literals(["auto", "disabled"]).annotate({
+      "description":
+        "The truncation strategy to use for the model response.\n- `auto`: If the input to this Response exceeds\n  the model's context window size, the model will truncate the\n  response to fit the context window by dropping items from the beginning of the conversation.\n- `disabled` (default): If the input size will exceed the context window\n  size for a model, the request will fail with a 400 error.\n"
+    }),
+    Schema.Null
+  ])),
+  "input": Schema.optionalKey(InputParam),
+  "include": Schema.optionalKey(Schema.Union([
+    Schema.Array(IncludeEnum).annotate({
+      "description":
+        "Specify additional output data to include in the model response. Currently supported values are:\n- `web_search_call.action.sources`: Include the sources of the web search tool call.\n- `code_interpreter_call.outputs`: Includes the outputs of python code execution in code interpreter tool call items.\n- `computer_call_output.output.image_url`: Include image urls from the computer call output.\n- `file_search_call.results`: Include the search results of the file search tool call.\n- `message.input_image.image_url`: Include image urls from the input message.\n- `message.output_text.logprobs`: Include logprobs with assistant messages.\n- `reasoning.encrypted_content`: Includes an encrypted version of reasoning tokens in reasoning item outputs. This enables reasoning items to be used in multi-turn conversations when using the Responses API statelessly (like when the `store` parameter is set to `false`, or when an organization is enrolled in the zero data retention program)."
+    }),
+    Schema.Null
+  ])),
+  "parallel_tool_calls": Schema.optionalKey(
+    Schema.Union([
+      Schema.Boolean.annotate({ "description": "Whether to allow the model to run tool calls in parallel.\n" }),
+      Schema.Null
+    ])
+  ),
+  "store": Schema.optionalKey(
+    Schema.Union([
+      Schema.Boolean.annotate({
+        "description": "Whether to store the generated model response for later retrieval via\nAPI.\n"
+      }),
+      Schema.Null
+    ])
+  ),
+  "instructions": Schema.optionalKey(Schema.Union([
+    Schema.String.annotate({
+      "description":
+        "A system (or developer) message inserted into the model's context.\n\nWhen using along with `previous_response_id`, the instructions from a previous\nresponse will not be carried over to the next response. This makes it simple\nto swap out system (or developer) messages in new responses.\n"
+    }),
+    Schema.Null
+  ])),
+  "stream": Schema.optionalKey(Schema.Union([
+    Schema.Boolean.annotate({
+      "description":
+        "If set to true, the model response data will be streamed to the client\nas it is generated using [server-sent events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#Event_stream_format).\nSee the [Streaming section below](/docs/api-reference/responses-streaming)\nfor more information.\n"
+    }),
+    Schema.Null
+  ])),
+  "stream_options": Schema.optionalKey(ResponseStreamOptions),
+  "conversation": Schema.optionalKey(Schema.Union([ConversationParam, Schema.Null])),
+  "context_management": Schema.optionalKey(
+    Schema.Union([
+      Schema.Array(ContextManagementParam).annotate({
+        "description": "Context management configuration for this request.\n"
+      }).check(Schema.isMinLength(1)),
+      Schema.Null
+    ])
+  )
+}).annotate({
+  "description":
+    "Client event for creating a response over a persistent WebSocket connection.\nThis payload uses the same top-level fields as `POST /v1/responses`.\n\nNotes:\n- `stream` is implicit over WebSocket and should not be sent.\n- `background` is not supported over WebSocket.\n"
 })
 export type ResponseStreamEvent =
   | ResponseAudioDeltaEvent
@@ -30470,7 +30734,7 @@ export interface OpenAiClient {
     HttpClientError.HttpClientError | SchemaError
   >
   /**
-   * Create a vector store file batch.
+   * The maximum number of files in a single batch request is 2000.
    */
   readonly "createVectorStoreFileBatch": <Config extends OperationConfig>(
     vectorStoreId: string,
