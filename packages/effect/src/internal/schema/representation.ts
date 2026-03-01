@@ -122,16 +122,9 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaRep
     const last = getLastEncoding(ast)
 
     if (ast === last) {
-      const reference = ast._tag === "Declaration"
-        ? gen(ast._tag)
-        : gen(InternalAnnotations.resolveIdentifier(ast) ?? prefix ?? `${ast._tag}_`)
-
-      const encodedSchemaPrefix = ast._tag === "Declaration"
-        ? InternalAnnotations.resolveIdentifier(ast) ?? prefix
-        : prefix
-
+      const reference = gen(InternalAnnotations.resolveIdentifier(ast) ?? prefix ?? `${ast._tag}_`)
       referenceMap.set(ast, reference)
-      const out = on(ast, encodedSchemaPrefix)
+      const out = on(ast)
       references[reference] = out
       return { _tag: "Reference", $ref: reference }
     } else {
@@ -153,12 +146,12 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaRep
     return AST.null
   }
 
-  function on(last: AST.AST, encodedSchemaPrefix?: string): SchemaRepresentation.Representation {
+  function on(last: AST.AST): SchemaRepresentation.Representation {
     const annotations = fromASTAnnotations(last.annotations)
     switch (last._tag) {
       case "Declaration": {
         // this must be executed before transforming the type parameters
-        const encodedSchema = recur(getEncodedSchema(last), encodedSchemaPrefix)
+        const encodedSchema = recur(getEncodedSchema(last))
         return {
           _tag: "Declaration",
           typeParameters: last.typeParameters.map((ast) => recur(ast)),
