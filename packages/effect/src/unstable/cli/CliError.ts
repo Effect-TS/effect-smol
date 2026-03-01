@@ -81,6 +81,7 @@ export type CliError =
   | UnknownSubcommand
   | ShowHelp
   | UserError
+  | CliExit
 
 /**
  * Error thrown when an unrecognized option is encountered.
@@ -484,4 +485,45 @@ export class UserError extends Schema.ErrorClass(`${TypeId}/UserError`)({
    * @since 4.0.0
    */
   readonly [TypeId] = TypeId
+}
+
+/**
+ * Signal to terminate the CLI process with a specific exit code.
+ *
+ * Use `Command.exit(code)` to emit this from command handlers or
+ * custom validation logic.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Command, Flag } from "effect/unstable/cli"
+ *
+ * const deploy = Command.make("deploy", {
+ *   env: Flag.string("env")
+ * }, (config) =>
+ *   Effect.gen(function*() {
+ *     if (config.env === "production") {
+ *       yield* Command.exit(1)
+ *     }
+ *   }))
+ * ```
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export class CliExit extends Schema.ErrorClass(`${TypeId}/CliExit`)({
+  _tag: Schema.tag("CliExit"),
+  code: Schema.Number
+}) {
+  /**
+   * @since 4.0.0
+   */
+  readonly [TypeId] = TypeId
+
+  /**
+   * @since 4.0.0
+   */
+  override get message() {
+    return `CLI exiting with code ${this.code}`
+  }
 }

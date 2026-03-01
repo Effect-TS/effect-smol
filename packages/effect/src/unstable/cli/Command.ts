@@ -2,7 +2,6 @@
  * @since 4.0.0
  */
 import type { NonEmptyArray, NonEmptyReadonlyArray } from "../../Array.ts"
-import * as Cause from "../../Cause.ts"
 import * as Console from "../../Console.ts"
 import * as Effect from "../../Effect.ts"
 import type * as FileSystem from "../../FileSystem.ts"
@@ -1086,7 +1085,7 @@ const showHelp = <Name extends string, Input, E, R>(
     yield* Console.log(formatter.formatHelpDoc(helpDoc))
     if (errors && errors.length > 0) {
       yield* Console.error(formatter.formatErrors(errors))
-      return yield* Effect.failCause(Cause.fromReasons(errors.map(Cause.makeFailReason)))
+      return yield* exit(1)
     }
   })
 
@@ -1119,13 +1118,13 @@ export const run: {
     readonly version: string
   }): <Name extends string, Input, E, R>(
     command: Command<Name, Input, E, R>
-  ) => Effect.Effect<void, E | CliError.CliError, R | Environment>
+  ) => Effect.Effect<void, Exclude<E, CliError.CliExit> | Exclude<CliError.CliError, CliError.CliExit>, R | Environment>
   <Name extends string, Input, E, R>(
     command: Command<Name, Input, E, R>,
     config: {
       readonly version: string
     }
-  ): Effect.Effect<void, E | CliError.CliError, R | Environment>
+  ): Effect.Effect<void, Exclude<E, CliError.CliExit> | Exclude<CliError.CliError, CliError.CliExit>, R | Environment>
 } = dual(2, <Name extends string, Input, E, R>(
   command: Command<Name, Input, E, R>,
   config: {
@@ -1135,7 +1134,12 @@ export const run: {
   // TODO: process.argv is a Node.js global. For browser/edge runtime support,
   // consider accepting an optional args parameter or using a platform service.
   const input = process.argv.slice(2)
-  return runWith(command, config)(input)
+  return runWith(command, config)(input).pipe(
+    Effect.catchIf(
+      (e): e is CliError.CliExit => CliError.isCliError(e) && e._tag === "CliExit",
+      (e) => Effect.sync(() => process.exit(e.code))
+    )
+  )
 })
 
 /**
@@ -1271,3 +1275,32 @@ export const runWith = <const Name extends string, Input, E, R>(
     )
   )
 }
+
+/**
+ * Terminates the CLI with the specified exit code.
+ *
+ * When used inside a command handler, this signals the CLI framework
+ * to exit the process with the given code. `Command.run` intercepts
+ * this and calls `process.exit(code)`. `Command.runWith` propagates
+ * it as a `CliExit` error for testability.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Command, Flag } from "effect/unstable/cli"
+ *
+ * const deploy = Command.make("deploy", {
+ *   env: Flag.string("env")
+ * }, (config) =>
+ *   Effect.gen(function*() {
+ *     if (config.env !== "staging" && config.env !== "production") {
+ *       yield* Command.exit(1)
+ *     }
+ *   }))
+ * ```
+ *
+ * @since 4.0.0
+ * @category command execution
+ */
+export const exit = (code: number): Effect.Effect<never, CliError.CliExit> =>
+  Effect.fail(new CliError.CliExit({ code }))

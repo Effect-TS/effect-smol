@@ -1,7 +1,7 @@
 import { assert, describe, expect, it } from "@effect/vitest"
-import { Effect, Exit, FileSystem, Layer, Option, Path, ServiceMap } from "effect"
+import { Cause, Effect, Exit, FileSystem, Layer, Option, Path, ServiceMap } from "effect"
 import { TestConsole } from "effect/testing"
-import { Argument, CliOutput, Command, Flag, GlobalFlag } from "effect/unstable/cli"
+import { Argument, CliError, CliOutput, Command, Flag, GlobalFlag } from "effect/unstable/cli"
 import { toImpl } from "effect/unstable/cli/internal/command"
 import { ChildProcessSpawner } from "effect/unstable/process"
 import * as Cli from "./fixtures/ComprehensiveCli.ts"
@@ -492,6 +492,49 @@ describe("Command", () => {
       Effect.gen(function*() {
         const result = yield* Effect.flip(Cli.run(["test-failing", "--input", "test"]))
         assert.strictEqual(result, "Handler error")
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("parse errors should produce CliExit with code 1", () =>
+      Effect.gen(function*() {
+        const runCommand = Command.runWith(Cli.ComprehensiveCli, {
+          version: "1.0.0"
+        })
+
+        const exit = yield* Effect.exit(runCommand(["invalid-command"]))
+        assert.isTrue(Exit.isFailure(exit))
+        if (Exit.isFailure(exit)) {
+          const fails = exit.cause.reasons.filter(Cause.isFailReason)
+          assert.isTrue(
+            fails.some((r) => CliError.isCliError(r.error) && r.error._tag === "CliExit" && r.error.code === 1)
+          )
+        }
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("Command.exit should allow handlers to set exit code", () =>
+      Effect.gen(function*() {
+        const cmd = Command.make("tool", {
+          fail: Flag.boolean("fail")
+        }, (config) =>
+          Effect.gen(function*() {
+            if (config.fail) {
+              yield* Command.exit(2)
+            }
+          }))
+
+        const runCmd = Command.runWith(cmd, { version: "1.0.0" })
+
+        // Success case
+        yield* runCmd(["--fail", "false"])
+
+        // Exit case
+        const exit = yield* Effect.exit(runCmd(["--fail", "true"]))
+        assert.isTrue(Exit.isFailure(exit))
+        if (Exit.isFailure(exit)) {
+          const fails = exit.cause.reasons.filter(Cause.isFailReason)
+          assert.isTrue(
+            fails.some((r) => CliError.isCliError(r.error) && r.error._tag === "CliExit" && r.error.code === 2)
+          )
+        }
       }).pipe(Effect.provide(TestLayer)))
   })
 
