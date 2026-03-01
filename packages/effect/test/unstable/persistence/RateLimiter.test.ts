@@ -14,7 +14,7 @@ describe(`RateLimiter`, () => {
           window: "1 minute",
           limit: 5,
           tokens: 1,
-          key: "a"
+          key: "fw-delay"
         })
         yield* Effect.repeat(consume, { times: 3 }) // 1 + 3
         let result = yield* consume // 5
@@ -50,7 +50,7 @@ describe(`RateLimiter`, () => {
           window: "1 minute",
           limit: 5,
           tokens: 1,
-          key: "a"
+          key: "fw-fail"
         })
         yield* Effect.repeat(consume, { times: 3 })
         let result = yield* consume
@@ -81,6 +81,52 @@ describe(`RateLimiter`, () => {
       ))
   })
 
+  it.effect("memory store shares state across separate layer provisions", () =>
+    Effect.gen(function*() {
+      const consumeInScope = Effect.gen(function*() {
+        const limiter = yield* RateLimiter.make
+        return yield* limiter.consume({
+          algorithm: "fixed-window",
+          onExceeded: "fail",
+          window: "1 minute",
+          limit: 5,
+          tokens: 3,
+          key: "shared"
+        })
+      }).pipe(Effect.provide(RateLimiter.layerStoreMemory))
+
+      // First scope: consume 3 of 5 tokens
+      const result = yield* consumeInScope
+      assert.strictEqual(result.remaining, 2)
+
+      // Second scope (separate provide): consume 3 more — should exceed limit
+      const error = yield* Effect.flip(consumeInScope)
+      assert.strictEqual(error.reason._tag, "RateLimitExceeded")
+    }))
+
+  it.effect("memory store shares token-bucket state across separate layer provisions", () =>
+    Effect.gen(function*() {
+      const consumeInScope = Effect.gen(function*() {
+        const limiter = yield* RateLimiter.make
+        return yield* limiter.consume({
+          algorithm: "token-bucket",
+          onExceeded: "fail",
+          window: "1 minute",
+          limit: 5,
+          tokens: 3,
+          key: "shared-tb"
+        })
+      }).pipe(Effect.provide(RateLimiter.layerStoreMemory))
+
+      // First scope: consume 3 of 5 tokens
+      const result = yield* consumeInScope
+      assert.strictEqual(result.remaining, 2)
+
+      // Second scope (separate provide): consume 3 more — should exceed limit
+      const error = yield* Effect.flip(consumeInScope)
+      assert.strictEqual(error.reason._tag, "RateLimitExceeded")
+    }))
+
   describe("token-bucket", () => {
     it.effect("onExceeded delay", () =>
       Effect.gen(function*() {
@@ -91,7 +137,7 @@ describe(`RateLimiter`, () => {
           window: "1 minute",
           limit: 5,
           tokens: 1,
-          key: "a"
+          key: "tb-delay"
         })
         const refillRate = Duration.divideUnsafe(Duration.minutes(1), 5)
         yield* Effect.repeat(consume, { times: 3 }) // 1 + 3
@@ -120,7 +166,7 @@ describe(`RateLimiter`, () => {
           window: "1 minute",
           limit: 5,
           tokens: 1,
-          key: "a"
+          key: "tb-fail"
         })
         const refillRate = Duration.divideUnsafe(Duration.minutes(1), 5)
         yield* Effect.repeat(consume, { times: 3 }) // 1 + 3
