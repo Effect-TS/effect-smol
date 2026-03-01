@@ -1,5 +1,5 @@
 import { assert, describe, expect, it } from "@effect/vitest"
-import { Effect, FileSystem, Layer, Option, Path, ServiceMap } from "effect"
+import { Effect, Exit, FileSystem, Layer, Option, Path, ServiceMap } from "effect"
 import { TestConsole } from "effect/testing"
 import { Argument, CliOutput, Command, Flag, GlobalFlag } from "effect/unstable/cli"
 import { toImpl } from "effect/unstable/cli/internal/command"
@@ -399,7 +399,8 @@ describe("Command", () => {
           version: "1.0.0"
         })
 
-        yield* runCommand(["db", "--region", "eu-west-1"])
+        const exit = yield* Effect.exit(runCommand(["db", "--region", "eu-west-1"]))
+        assert.isTrue(Exit.isFailure(exit))
 
         const stderr = yield* TestConsole.errorLines
         assert.isTrue(
@@ -451,10 +452,11 @@ describe("Command", () => {
           version: "1.0.0"
         })
 
-        yield* runCommand([
+        const exit = yield* Effect.exit(runCommand([
           "--env",
           "invalid"
-        ])
+        ]))
+        assert.isTrue(Exit.isFailure(exit))
 
         const stderr = yield* TestConsole.errorLines
         assert.isTrue(
@@ -471,7 +473,8 @@ describe("Command", () => {
           version: "1.0.0"
         })
 
-        yield* runCommand(["invalid-command"])
+        const exit = yield* Effect.exit(runCommand(["invalid-command"]))
+        assert.isTrue(Exit.isFailure(exit))
 
         // Check that help text was shown to stdout
         const stdout = yield* TestConsole.logLines
@@ -911,7 +914,8 @@ describe("Command", () => {
 
         const runCmd = Command.runWith(cmd, { version: "1.0.0" })
 
-        yield* runCmd(["--pkg"])
+        const exit = yield* Effect.exit(runCmd(["--pkg"]))
+        assert.isTrue(Exit.isFailure(exit))
 
         assert.isFalse(invoked)
         const stderr = yield* TestConsole.errorLines
@@ -967,7 +971,8 @@ describe("Command", () => {
         const cli = root.pipe(Command.withSubcommands([known]))
         const runCli = Command.runWith(cli, { version: "1.0.0" })
 
-        yield* runCli(["--unknown", "bogus"])
+        const exit = yield* Effect.exit(runCli(["--unknown", "bogus"]))
+        assert.isTrue(Exit.isFailure(exit))
 
         const stderr = yield* TestConsole.errorLines
         const text = stderr.join("\n")
@@ -1039,7 +1044,8 @@ describe("Command", () => {
 
     it.effect("should suggest similar subcommands for unknown subcommands", () =>
       Effect.gen(function*() {
-        yield* Cli.run(["cpy"])
+        const exit = yield* Effect.exit(Cli.run(["cpy"]))
+        assert.isTrue(Exit.isFailure(exit))
 
         const errorOutput = yield* TestConsole.errorLines
         const errorText = errorOutput.join("\n")
@@ -1055,7 +1061,8 @@ describe("Command", () => {
 
     it.effect("should suggest similar subcommands for nested unknown subcommands", () =>
       Effect.gen(function*() {
-        yield* Cli.run(["admin", "usrs", "list"])
+        const exit = yield* Effect.exit(Cli.run(["admin", "usrs", "list"]))
+        assert.isTrue(Exit.isFailure(exit))
 
         // Capture the error output
         const errorOutput = yield* TestConsole.errorLines
@@ -1072,7 +1079,8 @@ describe("Command", () => {
 
     it.effect("should suggest similar options for unrecognized options", () =>
       Effect.gen(function*() {
-        yield* Cli.run(["--debugs", "copy", "src.txt", "dest.txt"])
+        const exit = yield* Effect.exit(Cli.run(["--debugs", "copy", "src.txt", "dest.txt"]))
+        assert.isTrue(Exit.isFailure(exit))
 
         const errorOutput = yield* TestConsole.errorLines
         const errorText = errorOutput.join("\n")
@@ -1088,7 +1096,8 @@ describe("Command", () => {
 
     it.effect("should suggest similar short options for unrecognized short options", () =>
       Effect.gen(function*() {
-        yield* Cli.run(["-u", "copy", "src.txt", "dest.txt"])
+        const exit = yield* Effect.exit(Cli.run(["-u", "copy", "src.txt", "dest.txt"]))
+        assert.isTrue(Exit.isFailure(exit))
 
         const errorOutput = yield* TestConsole.errorLines
         const errorText = errorOutput.join("\n")
