@@ -196,7 +196,7 @@ describe("toSchema", () => {
       )
       assertToSchemaWithReviver(
         Schema.Option(Schema.URL),
-        `Schema.Option(Declaration1)`
+        `Schema.Option(Declaration_1)`
       )
     })
 
