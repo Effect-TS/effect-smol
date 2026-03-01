@@ -477,6 +477,30 @@ export const endpoint = <
 }
 
 /**
+ * Creates a type-safe URL builder keyed by `${method} ${path}`.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect"
+ * import { HttpApi, HttpApiClient, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
+ *
+ * const Api = HttpApi.make("Api").add(
+ *   HttpApiGroup.make("users").add(
+ *     HttpApiEndpoint.get("getUser", "/users/:id", {
+ *       params: { id: Schema.String }
+ *     })
+ *   )
+ * )
+ *
+ * const buildUrl = HttpApiClient.urlBuilder<typeof Api>({
+ *   baseUrl: "https://api.example.com"
+ * })
+ *
+ * buildUrl("users", "GET /users/:id", {
+ *   params: { id: "123" }
+ * })
+ * //=> "https://api.example.com/users/123"
+ * ```
  * @since 4.0.0
  * @category constructors
  */
