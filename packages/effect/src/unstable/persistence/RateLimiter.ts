@@ -459,56 +459,57 @@ export class RateLimiterStore extends ServiceMap.Service<
  */
 export const layerStoreMemory: Layer.Layer<
   RateLimiterStore
-> = Layer.sync(RateLimiterStore, () => {
+> = (() => {
   const fixedCounters = new Map<string, { count: number; expiresAt: number }>()
   const tokenBuckets = new Map<string, { tokens: number; lastRefill: number }>()
 
-  return RateLimiterStore.of({
-    fixedWindow: (options) =>
-      Effect.clockWith((clock) =>
-        Effect.sync(() => {
-          const refillRateMillis = Duration.toMillis(options.refillRate)
-          const now = clock.currentTimeMillisUnsafe()
-          let counter = fixedCounters.get(options.key)
-          if (!counter || counter.expiresAt <= now) {
-            counter = { count: 0, expiresAt: now }
-            fixedCounters.set(options.key, counter)
-          }
-          if (options.limit && counter.count + options.tokens > options.limit) {
-            return [counter.count + options.tokens, counter.expiresAt - now] as const
-          }
-          counter.count += options.tokens
-          counter.expiresAt += refillRateMillis * options.tokens
-          return [counter.count, counter.expiresAt - now] as const
-        })
-      ),
-    tokenBucket: (options) =>
-      Effect.clockWith((clock) =>
-        Effect.sync(() => {
-          const refillRateMillis = Duration.toMillis(options.refillRate)
-          const now = clock.currentTimeMillisUnsafe()
-          let bucket = tokenBuckets.get(options.key)
-          if (!bucket) {
-            bucket = { tokens: options.limit, lastRefill: now }
-            tokenBuckets.set(options.key, bucket)
-          } else {
-            const elapsed = now - bucket.lastRefill
-            const tokensToAdd = Math.floor(elapsed / refillRateMillis)
-            if (tokensToAdd > 0) {
-              bucket.tokens = Math.min(options.limit, bucket.tokens + tokensToAdd)
-              bucket.lastRefill += tokensToAdd * refillRateMillis
+  return Layer.sync(RateLimiterStore, () =>
+    RateLimiterStore.of({
+      fixedWindow: (options) =>
+        Effect.clockWith((clock) =>
+          Effect.sync(() => {
+            const refillRateMillis = Duration.toMillis(options.refillRate)
+            const now = clock.currentTimeMillisUnsafe()
+            let counter = fixedCounters.get(options.key)
+            if (!counter || counter.expiresAt <= now) {
+              counter = { count: 0, expiresAt: now }
+              fixedCounters.set(options.key, counter)
             }
-          }
+            if (options.limit && counter.count + options.tokens > options.limit) {
+              return [counter.count + options.tokens, counter.expiresAt - now] as const
+            }
+            counter.count += options.tokens
+            counter.expiresAt += refillRateMillis * options.tokens
+            return [counter.count, counter.expiresAt - now] as const
+          })
+        ),
+      tokenBucket: (options) =>
+        Effect.clockWith((clock) =>
+          Effect.sync(() => {
+            const refillRateMillis = Duration.toMillis(options.refillRate)
+            const now = clock.currentTimeMillisUnsafe()
+            let bucket = tokenBuckets.get(options.key)
+            if (!bucket) {
+              bucket = { tokens: options.limit, lastRefill: now }
+              tokenBuckets.set(options.key, bucket)
+            } else {
+              const elapsed = now - bucket.lastRefill
+              const tokensToAdd = Math.floor(elapsed / refillRateMillis)
+              if (tokensToAdd > 0) {
+                bucket.tokens = Math.min(options.limit, bucket.tokens + tokensToAdd)
+                bucket.lastRefill += tokensToAdd * refillRateMillis
+              }
+            }
 
-          const newTokenCount = bucket.tokens - options.tokens
-          if (options.allowOverflow || newTokenCount >= 0) {
-            bucket.tokens = newTokenCount
-          }
-          return newTokenCount
-        })
-      )
-  })
-})
+            const newTokenCount = bucket.tokens - options.tokens
+            if (options.allowOverflow || newTokenCount >= 0) {
+              bucket.tokens = newTokenCount
+            }
+            return newTokenCount
+          })
+        )
+    }))
+})()
 
 /**
  * @since 4.0.0
