@@ -6579,16 +6579,16 @@ const schema = Schema.toType(Schema.String)
 
 - `decodeUnknown` -> `decodeUnknownEffect`
 - `decode` -> `decodeEffect`
-- `decodeUnknownEither` -> `decodeUnknownResult`
-- `decodeEither` -> `decodeResult`
+- `decodeUnknownEither` -> `decodeUnknownExit`
+- `decodeEither` -> `decodeExit`
 - `encodeUnknown` -> `encodeUnknownEffect`
 - `encode` -> `encodeEffect`
-- `encodeUnknownEither` -> `encodeUnknownResult`
-- `encodeEither` -> `encodeResult`
+- `encodeUnknownEither` -> `encodeUnknownExit`
+- `encodeEither` -> `encodeExit`
 
 Reasons:
 
-- `Either` is now `Result`
+- `Either` is now `Result` (the `*Either` decode/encode APIs are renamed to `*Exit` because they return `Exit` with full `Cause` errors, not `Result`)
 - `decode` is now an API that defines a transformation between schemas.
 
 ## Decoding / Encoding API Removal
