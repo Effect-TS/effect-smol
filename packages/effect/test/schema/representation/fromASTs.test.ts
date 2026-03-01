@@ -338,12 +338,12 @@ describe("fromAST", () => {
           },
           checks: [],
           typeParameters: [
-            { _tag: "Reference", $ref: "A" }
+            { _tag: "Reference", $ref: "A1" }
           ],
-          encodedSchema: { _tag: "Reference", $ref: "A" }
+          encodedSchema: { _tag: "Reference", $ref: "A1" }
         },
         references: {
-          A: {
+          A1: {
             _tag: "Objects",
             propertySignatures: [
               {
@@ -378,21 +378,21 @@ describe("fromAST", () => {
                 annotations: { identifier: "A" },
                 checks: [],
                 typeParameters: [
-                  { _tag: "Reference", $ref: "A" }
+                  { _tag: "Reference", $ref: "A1" }
                 ],
-                encodedSchema: { _tag: "Reference", $ref: "A" }
+                encodedSchema: { _tag: "Reference", $ref: "A1" }
               }
             },
             {
               isOptional: false,
-              type: { _tag: "Reference", $ref: "A" }
+              type: { _tag: "Reference", $ref: "A1" }
             }
           ],
           rest: [],
           checks: []
         },
         references: {
-          A: {
+          A1: {
             _tag: "Objects",
             propertySignatures: [
               {
