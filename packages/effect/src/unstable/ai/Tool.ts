@@ -952,7 +952,7 @@ export type HandlerError<T> = T extends Tool<
   infer _Name,
   infer _Config,
   infer _Requirements
-> ? _Config["failureMode"] extends "error" ? _Config["failure"]["Type"] | AiError.AiError | AiError.AiErrorReason
+> ? _Config["failureMode"] extends "error" ? _Config["failure"]["Type"] | AiError.AiError
   : never
   : never
 

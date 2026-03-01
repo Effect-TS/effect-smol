@@ -1236,7 +1236,6 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
     const queue = yield* Queue.make<
       Response.StreamPart<Tools>,
       | AiError.AiError
-      | AiError.AiErrorReason
       | Cause.Done
       | Schema.SchemaError
     >()
