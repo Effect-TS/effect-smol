@@ -212,18 +212,12 @@ export const makeRunMain = (
           return Effect.logError(cause)
         })
       )
-    let keepAlive: ReturnType<typeof globalThis.setInterval> | undefined
     try {
-      keepAlive = globalThis.setInterval(constVoid, 2_147_483_647)
-    } catch {
-      keepAlive = undefined
-    }
-    fiber.addObserver(() => {
-      if (keepAlive !== undefined) {
+      const keepAlive = globalThis.setInterval(constVoid, 2_147_483_647)
+      fiber.addObserver(() => {
         clearInterval(keepAlive)
-        keepAlive = undefined
-      }
-    })
+      })
+    } catch {}
     const teardown = options?.teardown ?? defaultTeardown
     return f({ fiber, teardown })
   })
