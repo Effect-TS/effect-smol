@@ -497,7 +497,7 @@ export const withHandler: {
  * const app = Command.make("app", {
  *   name: Flag.string("name")
  * }).pipe(
- *   Command.withErrorHandler((errors, commandPath) =>
+ *   Command.onParseError((errors, commandPath) =>
  *     Command.exit(1)
  *   )
  * )
@@ -506,7 +506,7 @@ export const withHandler: {
  * @since 4.0.0
  * @category combinators
  */
-export const withErrorHandler: {
+export const onParseError: {
   <E2, R2>(
     handler: (
       errors: ReadonlyArray<CliError.CliError>,
@@ -528,7 +528,7 @@ export const withErrorHandler: {
     errors: ReadonlyArray<CliError.CliError>,
     commandPath: ReadonlyArray<string>
   ) => Effect.Effect<void, E2, R2>
-): Command<Name, Input, E | E2, R | R2> => makeCommand({ ...toImpl(self), errorHandler: handler }) as any)
+): Command<Name, Input, E | E2, R | R2> => makeCommand({ ...toImpl(self), onParseError: handler }) as any)
 
 interface SubcommandGroupInternal {
   readonly group: string | undefined
@@ -1130,7 +1130,7 @@ const showHelp = <Name extends string, Input, E, R>(
   command: Command<Name, Input, E, R>,
   commandPath: ReadonlyArray<string>,
   errors?: ReadonlyArray<CliError.CliError>
-): Effect.Effect<void, CliError.CliError | CliError.CliExit, Environment> =>
+): Effect.Effect<void, CliError.CliError | CliError.ExitCode, Environment> =>
   Effect.gen(function*() {
     const formatter = yield* CliOutput.Formatter
     const helpDoc = yield* getHelpForCommandPath(command, commandPath, GlobalFlag.BuiltIns)
@@ -1138,10 +1138,10 @@ const showHelp = <Name extends string, Input, E, R>(
     if (errors && errors.length > 0) {
       yield* Console.error(formatter.formatErrors(errors))
       const commands = getCommandsForCommandPath(command, commandPath)
-      const target = [...commands].reverse().find((cmd) => toImpl(cmd).errorHandler !== undefined)
-      const handler = target ? toImpl(target).errorHandler : undefined
+      const target = [...commands].reverse().find((cmd) => toImpl(cmd).onParseError !== undefined)
+      const handler = target ? toImpl(target).onParseError : undefined
       if (handler) {
-        yield* handler(errors, commandPath) as Effect.Effect<void, CliError.CliExit>
+        yield* handler(errors, commandPath) as Effect.Effect<void, CliError.ExitCode>
       }
     }
   })
@@ -1175,13 +1175,13 @@ export const run: {
     readonly version: string
   }): <Name extends string, Input, E, R>(
     command: Command<Name, Input, E, R>
-  ) => Effect.Effect<void, Exclude<E, CliError.CliExit> | CliError.CliError, R | Environment>
+  ) => Effect.Effect<void, Exclude<E, CliError.ExitCode> | CliError.CliError, R | Environment>
   <Name extends string, Input, E, R>(
     command: Command<Name, Input, E, R>,
     config: {
       readonly version: string
     }
-  ): Effect.Effect<void, Exclude<E, CliError.CliExit> | CliError.CliError, R | Environment>
+  ): Effect.Effect<void, Exclude<E, CliError.ExitCode> | CliError.CliError, R | Environment>
 } = dual(2, <Name extends string, Input, E, R>(
   command: Command<Name, Input, E, R>,
   config: {
@@ -1193,7 +1193,7 @@ export const run: {
   const input = process.argv.slice(2)
   return runWith(command, config)(input).pipe(
     Effect.catchIf(
-      (e): e is CliError.CliExit => CliError.CliExit.is(e),
+      (e): e is CliError.ExitCode => CliError.isExitCode(e),
       (e) => Effect.sync(() => process.exit(e.code))
     )
   )
@@ -1245,7 +1245,7 @@ export const runWith = <const Name extends string, Input, E, R>(
   }
 ): (
   input: ReadonlyArray<string>
-) => Effect.Effect<void, Exclude<E, Terminal.QuitError> | CliError.CliError | CliError.CliExit, R | Environment> => {
+) => Effect.Effect<void, Exclude<E, Terminal.QuitError> | CliError.CliError | CliError.ExitCode, R | Environment> => {
   const commandImpl = toImpl(command)
   return Effect.fnUntraced(
     function*(args: ReadonlyArray<string>) {
@@ -1339,7 +1339,7 @@ export const runWith = <const Name extends string, Input, E, R>(
  * When used inside a command handler, this signals the CLI framework
  * to exit the process with the given code. `Command.run` intercepts
  * this and calls `process.exit(code)`. `Command.runWith` propagates
- * it as a `CliExit` error for testability.
+ * it as an `ExitCode` error for testability.
  *
  * @example
  * ```ts
@@ -1348,16 +1348,15 @@ export const runWith = <const Name extends string, Input, E, R>(
  *
  * const deploy = Command.make("deploy", {
  *   env: Flag.string("env")
- * }, (config) =>
- *   Effect.gen(function*() {
- *     if (config.env !== "staging" && config.env !== "production") {
- *       yield* Command.exit(1)
- *     }
- *   }))
+ * }).pipe(Command.withHandler(Effect.fnUntraced(function*(config) {
+ *   if (config.env !== "staging" && config.env !== "production") {
+ *     yield* Command.exit(1)
+ *   }
+ * })))
  * ```
  *
  * @since 4.0.0
  * @category command execution
  */
-export const exit = (code: number): Effect.Effect<never, CliError.CliExit> =>
-  Effect.fail(new CliError.CliExit({ code }))
+export const exit = (code: number): Effect.Effect<never, CliError.ExitCode> =>
+  Effect.fail(new CliError.ExitCode({ code }))

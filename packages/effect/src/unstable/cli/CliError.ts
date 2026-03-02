@@ -499,19 +499,18 @@ export class UserError extends Schema.ErrorClass(`${TypeId}/UserError`)({
  *
  * const deploy = Command.make("deploy", {
  *   env: Flag.string("env")
- * }, (config) =>
- *   Effect.gen(function*() {
- *     if (config.env === "production") {
- *       yield* Command.exit(1)
- *     }
- *   }))
+ * }).pipe(Command.withHandler(Effect.fnUntraced(function*(config) {
+ *   if (config.env === "production") {
+ *     yield* Command.exit(1)
+ *   }
+ * })))
  * ```
  *
  * @since 4.0.0
  * @category models
  */
-export class CliExit extends Schema.ErrorClass(`${TypeId}/CliExit`)({
-  _tag: Schema.tag("CliExit"),
+export class ExitCode extends Schema.ErrorClass(`${TypeId}/ExitCode`)({
+  _tag: Schema.tag("ExitCode"),
   code: Schema.Number
 }) {
   /**
@@ -523,11 +522,15 @@ export class CliExit extends Schema.ErrorClass(`${TypeId}/CliExit`)({
    * @since 4.0.0
    */
   override get message() {
-    return `CLI exiting with code ${this.code}`
+    return `ExitCode(${this.code})`
   }
-
-  /**
-   * @since 4.0.0
-   */
-  static is = Schema.is(CliExit)
 }
+
+/**
+ * Type guard to check if a value is an `ExitCode`.
+ *
+ * @since 4.0.0
+ * @category guards
+ */
+export const isExitCode = (u: unknown): u is ExitCode =>
+  Predicate.hasProperty(u, TypeId) && Predicate.isTagged(u, "ExitCode")

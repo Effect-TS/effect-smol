@@ -44,7 +44,7 @@ export interface CommandInternal<Name extends string, Input, E, R> extends Comma
     commandPath: ReadonlyArray<string>
   ) => Effect.Effect<void, E | CliError.CliError, R | Environment>
   readonly buildHelpDoc: (commandPath: ReadonlyArray<string>) => HelpDoc
-  readonly errorHandler:
+  readonly onParseError:
     | ((errors: ReadonlyArray<CliError.CliError>, commandPath: ReadonlyArray<string>) => Effect.Effect<void, any, any>)
     | undefined
 }
@@ -103,7 +103,7 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
   readonly handle?:
     | ((input: Input, commandPath: ReadonlyArray<string>) => Effect.Effect<void, E, R | Environment>)
     | undefined
-  readonly errorHandler?:
+  readonly onParseError?:
     | ((errors: ReadonlyArray<CliError.CliError>, commandPath: ReadonlyArray<string>) => Effect.Effect<void, any, any>)
     | undefined
 }): Command<Name, Input, E, R> => {
@@ -208,7 +208,7 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
     parse,
     handle,
     buildHelpDoc,
-    errorHandler: options.errorHandler,
+    onParseError: options.onParseError,
     ...(Predicate.isNotUndefined(options.description)
       ? { description: options.description }
       : {}),

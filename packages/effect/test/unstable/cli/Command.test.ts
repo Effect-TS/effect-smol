@@ -495,12 +495,11 @@ describe("Command", () => {
       Effect.gen(function*() {
         const cmd = Command.make("tool", {
           fail: Flag.boolean("fail")
-        }, (config) =>
-          Effect.gen(function*() {
-            if (config.fail) {
-              yield* Command.exit(2)
-            }
+        }).pipe(
+          Command.withHandler(Effect.fnUntraced(function*(config) {
+            if (config.fail) yield* Command.exit(2)
           }))
+        )
 
         const runCmd = Command.runWith(cmd, { version: "1.0.0" })
 
@@ -513,17 +512,17 @@ describe("Command", () => {
         if (Exit.isFailure(exit)) {
           const fails = exit.cause.reasons.filter(Cause.isFailReason)
           assert.isTrue(
-            fails.some((r) => CliError.CliExit.is(r.error) && r.error.code === 2)
+            fails.some((r) => CliError.isExitCode(r.error) && r.error.code === 2)
           )
         }
       }).pipe(Effect.provide(TestLayer)))
 
-    it.effect("withErrorHandler should run after default error display on parse errors", () =>
+    it.effect("onParseError should run after default error display on parse errors", () =>
       Effect.gen(function*() {
         const cmd = Command.make("tool", {
           name: Flag.string("name")
         }).pipe(
-          Command.withErrorHandler(() => Command.exit(1))
+          Command.onParseError(() => Command.exit(1))
         )
 
         const runCmd = Command.runWith(cmd, { version: "1.0.0" })
@@ -533,7 +532,7 @@ describe("Command", () => {
         if (Exit.isFailure(exit)) {
           const fails = exit.cause.reasons.filter(Cause.isFailReason)
           assert.isTrue(
-            fails.some((r) => CliError.CliExit.is(r.error) && r.error.code === 1)
+            fails.some((r) => CliError.isExitCode(r.error) && r.error.code === 1)
           )
         }
 
@@ -542,12 +541,13 @@ describe("Command", () => {
         assert.isTrue(stderr.some((line) => String(line).includes("Unrecognized flag")))
       }).pipe(Effect.provide(TestLayer)))
 
-    it.effect("withErrorHandler should not run when there are no parse errors", () =>
+    it.effect("onParseError should not run when there are no parse errors", () =>
       Effect.gen(function*() {
         let handlerCalled = false
 
-        const cmd = Command.make("tool", {}, () => Effect.void).pipe(
-          Command.withErrorHandler(() =>
+        const cmd = Command.make("tool", {}).pipe(
+          Command.withHandler(() => Effect.void),
+          Command.onParseError(() =>
             Effect.sync(() => {
               handlerCalled = true
             })
@@ -560,7 +560,7 @@ describe("Command", () => {
         assert.isFalse(handlerCalled)
       }).pipe(Effect.provide(TestLayer)))
 
-    it.effect("withErrorHandler on subcommand fires for subcommand parse errors", () =>
+    it.effect("onParseError on subcommand fires for subcommand parse errors", () =>
       Effect.gen(function*() {
         let subHandlerCalled = false
         let rootHandlerCalled = false
@@ -568,7 +568,7 @@ describe("Command", () => {
         const sub = Command.make("sub", {
           name: Flag.string("name")
         }).pipe(
-          Command.withErrorHandler(() =>
+          Command.onParseError(() =>
             Effect.sync(() => {
               subHandlerCalled = true
             })
@@ -577,7 +577,7 @@ describe("Command", () => {
 
         const root = Command.make("app", {}).pipe(
           Command.withSubcommands([sub]),
-          Command.withErrorHandler(() =>
+          Command.onParseError(() =>
             Effect.sync(() => {
               rootHandlerCalled = true
             })
@@ -591,7 +591,7 @@ describe("Command", () => {
         assert.isFalse(rootHandlerCalled)
       }).pipe(Effect.provide(TestLayer)))
 
-    it.effect("withErrorHandler on root acts as fallback for subcommand without handler", () =>
+    it.effect("onParseError on root acts as fallback for subcommand without handler", () =>
       Effect.gen(function*() {
         let rootHandlerCalled = false
 
@@ -601,7 +601,7 @@ describe("Command", () => {
 
         const root = Command.make("app", {}).pipe(
           Command.withSubcommands([sub]),
-          Command.withErrorHandler(() =>
+          Command.onParseError(() =>
             Effect.sync(() => {
               rootHandlerCalled = true
             })
@@ -614,9 +614,11 @@ describe("Command", () => {
         assert.isTrue(rootHandlerCalled)
       }).pipe(Effect.provide(TestLayer)))
 
-    it.effect("Command.exit(0) still fails with CliExit", () =>
+    it.effect("Command.exit(0) still fails with ExitCode", () =>
       Effect.gen(function*() {
-        const cmd = Command.make("tool", {}, () => Command.exit(0))
+        const cmd = Command.make("tool", {}).pipe(
+          Command.withHandler(() => Command.exit(0))
+        )
         const runCmd = Command.runWith(cmd, { version: "1.0.0" })
 
         const exit = yield* Effect.exit(runCmd([]))
@@ -624,7 +626,7 @@ describe("Command", () => {
         if (Exit.isFailure(exit)) {
           const fails = exit.cause.reasons.filter(Cause.isFailReason)
           assert.isTrue(
-            fails.some((r) => CliError.CliExit.is(r.error) && r.error.code === 0)
+            fails.some((r) => CliError.isExitCode(r.error) && r.error.code === 0)
           )
         }
       }).pipe(Effect.provide(TestLayer)))
