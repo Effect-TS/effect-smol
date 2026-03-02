@@ -908,7 +908,7 @@ export declare namespace WithRateLimiter {
      * the same rate limit. This can be used to implement per-user or
      * per-endpoint rate limits.
      */
-    readonly key?: string | ((request: HttpClientRequest.HttpClientRequest) => string) | undefined
+    readonly key: string | ((request: HttpClientRequest.HttpClientRequest) => string)
     /**
      * Defaults to `"fixed-window"`.
      */
@@ -955,7 +955,7 @@ export const withRateLimiter: {
   const keyOption = options.key
   const resolveKey: (request: HttpClientRequest.HttpClientRequest) => string = typeof keyOption === "function"
     ? keyOption
-    : () => keyOption ?? "effect/http/HttpClient/withRateLimiter"
+    : () => keyOption
   const tokensOption = options.tokens
   const resolveTokens: (request: HttpClientRequest.HttpClientRequest) => number | undefined =
     typeof tokensOption === "function" ? tokensOption : () => tokensOption
