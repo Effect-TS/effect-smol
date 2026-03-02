@@ -1,5 +1,5 @@
 ---
-"effect": major
+"effect": patch
 ---
 
 feat: Support Reference classes
