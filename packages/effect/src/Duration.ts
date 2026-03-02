@@ -611,8 +611,8 @@ export const weeks = (weeks: number): Duration => make(weeks * 604_800_000)
  * @since 2.0.0
  * @category getters
  */
-export const toMillis = (self: Input): number =>
-  match(fromInputUnsafe(self), {
+export const toMillis = (self: Duration): number =>
+  match(self, {
     onMillis: identity,
     onNanos: (nanos) => Number(nanos) / 1_000_000,
     onInfinity: () => Infinity,
