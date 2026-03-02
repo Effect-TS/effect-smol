@@ -249,6 +249,14 @@ export interface Reference<in out Shape> extends Service<never, Shape> {
 }
 
 /**
+ * @since 4.0.0
+ * @category Models
+ */
+export interface ReferenceClass<in out Shape> extends Reference<Shape> {
+  new(_: never): {}
+}
+
+/**
  * @example
  * ```ts
  * import { ServiceMap } from "effect"
@@ -1007,4 +1015,4 @@ export const omit = <S extends ReadonlyArray<Key<any, any>>>(
 export const Reference: <Service>(
   key: string,
   options: { readonly defaultValue: () => Service }
-) => Reference<Service> = Service as any
+) => ReferenceClass<Service> = Service as any

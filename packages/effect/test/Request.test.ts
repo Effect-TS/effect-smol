@@ -9,12 +9,12 @@ import * as Resolver from "effect/RequestResolver"
 
 class Counter extends ServiceMap.Service<Counter, { count: number }>()("Counter") {}
 class Requests extends ServiceMap.Service<Requests, { count: number }>()("Requests") {}
-const Interrupts = ServiceMap.Reference("Interrupts", {
+class Interrupts extends ServiceMap.Reference("Interrupts", {
   defaultValue: () => ({ interrupts: 0 })
-})
-const RequestService = ServiceMap.Reference("RequestService", {
+}) {}
+class RequestService extends ServiceMap.Reference("RequestService", {
   defaultValue: () => ({ value: "default" })
-})
+}) {}
 const delay = <A, E, R>(self: Effect.Effect<A, E, R>) =>
   Effect.andThen(
     Effect.promise(() => new Promise((r) => setTimeout(() => r(0), 0))),
