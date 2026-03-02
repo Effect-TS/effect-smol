@@ -268,6 +268,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaRep
 export const fromASTBlacklist: Set<string> = new Set([
   // `expected` is preserved because is useful to generate descriptions in JSON Schemas
   "~structural",
+  "~sentinels",
   "meta",
   "toArbitrary",
   "toArbitraryConstraint",
