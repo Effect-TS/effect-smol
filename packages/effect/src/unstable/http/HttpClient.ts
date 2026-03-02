@@ -948,6 +948,7 @@ export const withRateLimiter: {
   options: WithRateLimiter.Options
 ): HttpClient.With<E | RateLimiter.RateLimiterError, R> => {
   const initialState: RateLimiterState = {
+    initial: true,
     limit: options.limit,
     window: Duration.max(Duration.fromInputUnsafe(options.window), Duration.millis(1))
   }
@@ -1031,6 +1032,7 @@ export const withRateLimiter: {
 interface RateLimiterState {
   readonly limit: number
   readonly window: Duration.Duration
+  readonly initial: boolean
 }
 
 const parseRateLimiterState = (
@@ -1044,7 +1046,7 @@ const parseRateLimiterState = (
   if (limit === state.limit && Duration.equals(window, state.window)) {
     return state
   }
-  return { limit, window }
+  return { limit, window, initial: false }
 }
 
 const parseRateLimitLimit = (
@@ -1061,7 +1063,7 @@ const parseRateLimitLimit = (
   if (remaining === undefined) {
     return undefined
   }
-  return Math.max(remaining + tokens, state.limit)
+  return state.initial ? remaining + tokens : Math.max(remaining + tokens, state.limit)
 }
 
 const parseRateLimitRemaining = (headers: Headers.Headers): number | undefined => {

@@ -118,22 +118,20 @@ describe("HttpClient", () => {
         const attempts = yield* Ref.make(0)
         const limiter = yield* RateLimiter.RateLimiter
         const client = HttpClient.make((request) =>
-          Effect.flatMap(
+          Effect.map(
             Ref.updateAndGet(attempts, (n) => n + 1),
             (attempt) =>
-              Effect.succeed(
-                HttpClientResponse.fromWeb(
-                  request,
-                  attempt === 1
-                    ? new Response(null, {
-                      status: 200,
-                      headers: {
-                        "x-ratelimit-remaining": "0",
-                        "x-ratelimit-reset-after": "60"
-                      }
-                    })
-                    : new Response(null, { status: 200 })
-                )
+              HttpClientResponse.fromWeb(
+                request,
+                attempt === 1
+                  ? new Response(null, {
+                    status: 200,
+                    headers: {
+                      "x-ratelimit-remaining": "0",
+                      "x-ratelimit-reset-after": "60"
+                    }
+                  })
+                  : new Response(null, { status: 200 })
               )
           )
         ).pipe(
@@ -147,10 +145,9 @@ describe("HttpClient", () => {
 
         const fiber = yield* client.get("http://test/").pipe(
           Effect.andThen(client.get("http://test/")),
-          Effect.forkChild
+          Effect.forkChild({ startImmediately: true })
         )
 
-        yield* TestClock.adjust("1 second")
         strictEqual(yield* Ref.get(attempts), 1)
 
         yield* TestClock.adjust("10 seconds")
