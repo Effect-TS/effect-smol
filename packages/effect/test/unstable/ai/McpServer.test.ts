@@ -1,4 +1,4 @@
-import { describe, it } from "@effect/vitest"
+import { describe, expect, it } from "@effect/vitest"
 import { deepStrictEqual } from "@effect/vitest/utils"
 import { Effect, Layer, Schema } from "effect"
 import { Tool, Toolkit } from "effect/unstable/ai"
@@ -141,6 +141,63 @@ describe("McpServer", () => {
       })
 
       deepStrictEqual(completeResult.completion.values, ["1", "2", "3"])
+      yield* Effect.promise(() => dispose())
+    }).pipe(Effect.scoped))
+
+  it.effect("tool without parameters should have empty input schema", () =>
+    Effect.gen(function*() {
+      const CallTool = Tool.make("CallTool", {
+        description: "A test tool without parameters",
+        parameters: Schema.Struct({}),
+        success: Schema.Struct({ ok: Schema.Boolean })
+      })
+
+      const toolkit = Toolkit.make(CallTool)
+      const handlers = toolkit.toLayer({
+        CallTool: () => Effect.succeed({ ok: true })
+      })
+      const serverLayer = McpServer.layerHttp({
+        name: "TestServer",
+        version: "1.0.0",
+        path: "/mcp"
+      }).pipe(
+        Layer.provideMerge(handlers),
+        Layer.provideMerge(RpcSerialization.layerJsonRpc())
+      )
+      const registerLayer = Layer.effectDiscard(McpServer.registerToolkit(toolkit)).pipe(
+        Layer.provide(serverLayer)
+      )
+      const appLayer = serverLayer.pipe(
+        Layer.merge(registerLayer)
+      )
+
+      const { handler, dispose } = HttpRouter.toWebHandler(appLayer, { disableLogger: true })
+
+      const customFetch: typeof fetch = (input, init) => {
+        const request = input instanceof Request ? input : new Request(input, init)
+        return handler(request)
+      }
+
+      const clientLayer = RpcClient.layerProtocolHttp({ url: "http://localhost/mcp" }).pipe(
+        Layer.provideMerge(RpcSerialization.layerJsonRpc()),
+        Layer.provideMerge(FetchHttpClient.layer),
+        Layer.provideMerge(Layer.succeed(FetchHttpClient.Fetch, customFetch))
+      )
+      const client = yield* RpcClient.make(McpSchema.ClientRpcs).pipe(
+        Effect.provide(clientLayer)
+      )
+
+      const result = yield* client["tools/list"]({})
+      const tools = result.tools
+      const tool = tools.find((item) => item.name === "CallTool")
+
+      expect(tool?.inputSchema).toEqual({
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      })
+
       yield* Effect.promise(() => dispose())
     }).pipe(Effect.scoped))
 })
