@@ -68,7 +68,7 @@ describe("McpServer", () => {
         Layer.merge(registerLayer)
       )
 
-      const { handler, dispose } = HttpRouter.toWebHandler(appLayer as any, { disableLogger: true })
+      const { handler, dispose } = HttpRouter.toWebHandler(appLayer, { disableLogger: true })
 
       const customFetch: typeof fetch = (input, init) => {
         const request = input instanceof Request ? input : new Request(input, init)
@@ -85,7 +85,7 @@ describe("McpServer", () => {
       )
 
       const result = yield* client["tools/list"]({})
-      const tools = result.tools as ReadonlyArray<{ name: string; _meta?: unknown }>
+      const tools = result.tools
       const tool = tools.find((item) => item.name === "UiTool")
 
       deepStrictEqual(tool?._meta, { ui: { resourceUri: "ui://example/ui" } })
@@ -106,7 +106,7 @@ describe("McpServer", () => {
       const { client, dispose } = yield* makeTestClient(TestTemplate)
 
       const result = yield* client["resources/templates/list"]({})
-      const templates = result.resourceTemplates as ReadonlyArray<{ uriTemplate: string; name: string }>
+      const templates = result.resourceTemplates
       const template = templates.find((t) => t.name === "README Template")
 
       // The URI template must contain {id}, not {param0}
@@ -131,12 +131,12 @@ describe("McpServer", () => {
       const { client, dispose } = yield* makeTestClient(TestTemplate)
 
       const templates = (yield* client["resources/templates/list"]({}))
-        .resourceTemplates as ReadonlyArray<{ uriTemplate: string }>
+        .resourceTemplates
       const uriTemplate = templates[0].uriTemplate
 
       // Completions use the param name from the URI template
       const completeResult = yield* client["completion/complete"]({
-        ref: { type: "ref/resource" as const, uri: uriTemplate },
+        ref: { type: "ref/resource", uri: uriTemplate },
         argument: { name: "id", value: "" }
       })
 
