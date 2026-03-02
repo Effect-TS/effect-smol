@@ -129,6 +129,14 @@ describe("Effect Eager Operations", () => {
         assert.strictEqual(result, 20)
       }))
 
+    it("proxies body length", () => {
+      const fn = Effect.fnUntracedEager(function*(a: string, b: number, c: boolean) {
+        return c ? a.length + b : b
+      })
+
+      assert.strictEqual(fn.length, 3)
+    })
+
     it.effect("re-execution creates fresh iterators", () =>
       Effect.gen(function*() {
         let execCount = 0

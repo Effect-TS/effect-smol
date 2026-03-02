@@ -2337,6 +2337,22 @@ describe("Effect", () => {
         assert.deepStrictEqual(result, [1, "a"])
       })
     })
+
+    it("should proxy body length", () => {
+      const traced = Effect.fn(function*(a: string, b: number) {
+        return a.length + b
+      })
+      const named = Effect.fn("named")(function*(a: string, b: number, c: boolean) {
+        return c ? a.length + b : b
+      })
+      const untraced = Effect.fnUntraced(function*(a: string, b: number) {
+        return a.length + b
+      }, Effect.map((n) => n))
+
+      assert.strictEqual(traced.length, 2)
+      assert.strictEqual(named.length, 3)
+      assert.strictEqual(untraced.length, 2)
+    })
   })
 
   describe("catchReason", () => {

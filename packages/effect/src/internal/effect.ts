@@ -1133,7 +1133,7 @@ export const fnUntraced: Effect.fn.Untraced = (
   body: Function,
   ...pipeables: Array<any>
 ) => {
-  return pipeables.length === 0
+  const fn = pipeables.length === 0
     ? function(this: any) {
       return suspend(() => fromIteratorUnsafe(body.apply(this, arguments)))
     }
@@ -1144,7 +1144,14 @@ export const fnUntraced: Effect.fn.Untraced = (
       }
       return effect
     }
+  return defineFunctionLength(body.length, fn)
 }
+
+const defineFunctionLength = <F extends Function>(length: number, fn: F): F =>
+  Object.defineProperty(fn, "length", {
+    value: length,
+    configurable: true
+  })
 
 const fnStackCleaner = makeStackCleaner(2)
 
@@ -1186,7 +1193,7 @@ const makeFn = (
     ? bodyOrOptions
     : (pipeables.pop()!).bind(bodyOrOptions.self)
 
-  return function(this: any, ...args: Array<any>) {
+  return defineFunctionLength(body.length, function(this: any, ...args: Array<any>) {
     let result = suspend(() => {
       const iter = body.apply(this, arguments)
       return isEffect(iter) ? iter : fromIteratorUnsafe(iter)
@@ -1216,7 +1223,7 @@ const makeFn = (
         }
       })
     )
-  }
+  })
 }
 
 /** @internal */
@@ -1224,17 +1231,20 @@ export const fnUntracedEager: Effect.fn.Untraced = (
   body: Function,
   ...pipeables: Array<any>
 ) =>
-  pipeables.length === 0
-    ? function(this: any) {
-      return fromIteratorEagerUnsafe(() => body.apply(this, arguments))
-    }
-    : function(this: any) {
-      let effect = fromIteratorEagerUnsafe(() => body.apply(this, arguments))
-      for (const pipeable of pipeables) {
-        effect = pipeable(effect)
+  defineFunctionLength(
+    body.length,
+    pipeables.length === 0
+      ? function(this: any) {
+        return fromIteratorEagerUnsafe(() => body.apply(this, arguments))
       }
-      return effect
-    }
+      : function(this: any) {
+        let effect = fromIteratorEagerUnsafe(() => body.apply(this, arguments))
+        for (const pipeable of pipeables) {
+          effect = pipeable(effect)
+        }
+        return effect
+      }
+  )
 
 const fromIteratorEagerUnsafe = (
   evaluate: () => Iterator<Effect.Yieldable<any, any, any, any>>
