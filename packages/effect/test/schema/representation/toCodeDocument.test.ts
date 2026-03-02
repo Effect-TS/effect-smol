@@ -157,15 +157,7 @@ describe("toCodeDocument", () => {
       assertSchema(
         { schema: Schema.Option(Schema.String) },
         {
-          codes: makeCode("Schema.Option(String_)", "Option.Option<String_>"),
-          references: {
-            nonRecursives: [
-              {
-                $ref: "String_",
-                code: makeCode("Schema.String", "string")
-              }
-            ]
-          },
+          codes: makeCode("Schema.Option(Schema.String)", "Option.Option<string>"),
           artifacts: [{
             _tag: "Import",
             importDeclaration: `import * as Option from "effect/Option"`
@@ -178,19 +170,7 @@ describe("toCodeDocument", () => {
       assertSchema(
         { schema: Schema.Result(Schema.String, Schema.Number) },
         {
-          codes: makeCode("Schema.Result(String_, Number_)", "Result.Result<String_, Number_>"),
-          references: {
-            nonRecursives: [
-              {
-                $ref: "String_",
-                code: makeCode("Schema.String", "string")
-              },
-              {
-                $ref: "Number_",
-                code: makeCode("Schema.Number", "number")
-              }
-            ]
-          },
+          codes: makeCode("Schema.Result(Schema.String, Schema.Number)", "Result.Result<string, number>"),
           artifacts: [{
             _tag: "Import",
             importDeclaration: `import * as Result from "effect/Result"`
@@ -201,61 +181,24 @@ describe("toCodeDocument", () => {
 
     it("CauseReason(String, Number)", () => {
       assertSchema({ schema: Schema.CauseReason(Schema.String, Schema.Number) }, {
-        codes: makeCode("Schema.CauseReason(String_, Number_)", "Cause.Failure<String_, Number_>"),
-        references: {
-          nonRecursives: [
-            {
-              $ref: "String_",
-              code: makeCode("Schema.String", "string")
-            },
-            {
-              $ref: "Number_",
-              code: makeCode("Schema.Number", "number")
-            }
-          ]
-        },
+        codes: makeCode("Schema.CauseReason(Schema.String, Schema.Number)", "Cause.Failure<string, number>"),
         artifacts: [{ _tag: "Import", importDeclaration: `import * as Cause from "effect/Cause"` }]
       })
     })
 
     it("Cause(String, Number)", () => {
       assertSchema({ schema: Schema.Cause(Schema.String, Schema.Number) }, {
-        codes: makeCode("Schema.Cause(String_, Number_)", "Cause.Cause<String_, Number_>"),
-        references: {
-          nonRecursives: [
-            {
-              $ref: "String_",
-              code: makeCode("Schema.String", "string")
-            },
-            {
-              $ref: "Number_",
-              code: makeCode("Schema.Number", "number")
-            }
-          ]
-        },
+        codes: makeCode("Schema.Cause(Schema.String, Schema.Number)", "Cause.Cause<string, number>"),
         artifacts: [{ _tag: "Import", importDeclaration: `import * as Cause from "effect/Cause"` }]
       })
     })
 
     it("Exit(String, Number, String)", () => {
       assertSchema({ schema: Schema.Exit(Schema.String, Schema.Number, Schema.Boolean) }, {
-        codes: makeCode("Schema.Exit(String_, Number_, Boolean_)", "Exit.Exit<String_, Number_, Boolean_>"),
-        references: {
-          nonRecursives: [
-            {
-              $ref: "String_",
-              code: makeCode("Schema.String", "string")
-            },
-            {
-              $ref: "Number_",
-              code: makeCode("Schema.Number", "number")
-            },
-            {
-              $ref: "Boolean_",
-              code: makeCode("Schema.Boolean", "boolean")
-            }
-          ]
-        },
+        codes: makeCode(
+          "Schema.Exit(Schema.String, Schema.Number, Schema.Boolean)",
+          "Exit.Exit<string, number, boolean>"
+        ),
         artifacts: [{ _tag: "Import", importDeclaration: `import * as Exit from "effect/Exit"` }]
       })
     })
@@ -345,7 +288,15 @@ describe("toCodeDocument", () => {
 
     it("String & identifier", () => {
       assertSchema({ schema: Schema.String.annotate({ identifier: "ID" }) }, {
-        codes: makeCode(`Schema.String.annotate({ "identifier": "ID" })`, "string")
+        codes: makeCode("ID", "ID"),
+        references: {
+          nonRecursives: [
+            {
+              $ref: "ID",
+              code: makeCode(`Schema.String.annotate({ "identifier": "ID" })`, "string")
+            }
+          ]
+        }
       })
     })
 
@@ -1417,9 +1368,13 @@ describe("toCodeDocument", () => {
         ),
         references: {
           recursives: {
-            Suspend_: makeCode(
-              `Schema.suspend((): Schema.Codec<{ readonly "a"?: Suspend_ }> => Schema.Struct({ "a": Schema.optionalKey(Suspend_) }).annotate({ "identifier": "A" }))`,
+            A: makeCode(
+              `Schema.Struct({ "a": Schema.optionalKey(Suspend_) }).annotate({ "identifier": "A" })`,
               `{ readonly "a"?: Suspend_ }`
+            ),
+            Suspend_: makeCode(
+              `Schema.suspend((): Schema.Codec<A> => A)`,
+              `A`
             )
           }
         }
@@ -1438,9 +1393,13 @@ describe("toCodeDocument", () => {
         codes: makeCode(`Objects_`, `Objects_`),
         references: {
           recursives: {
+            A: makeCode(
+              `Schema.suspend((): Schema.Codec<Objects_> => Objects_).annotate({ "identifier": "A" })`,
+              `Objects_`
+            ),
             Objects_: makeCode(
-              `Schema.Struct({ "a": Schema.optionalKey(Schema.suspend((): Schema.Codec<Objects_> => Objects_).annotate({ "identifier": "A" })) })`,
-              `{ readonly "a"?: Objects_ }`
+              `Schema.Struct({ "a": Schema.optionalKey(A) })`,
+              `{ readonly "a"?: A }`
             )
           }
         }
@@ -1611,17 +1570,9 @@ describe("toCodeDocument", () => {
     it("ReadonlySet(String)", () => {
       assertSchema({ schema: Schema.ReadonlySet(Schema.String) }, {
         codes: makeCode(
-          `Schema.ReadonlySet(String_)`,
-          "globalThis.ReadonlySet<String_>"
-        ),
-        references: {
-          nonRecursives: [
-            {
-              $ref: "String_",
-              code: makeCode(`Schema.String`, "string")
-            }
-          ]
-        }
+          `Schema.ReadonlySet(Schema.String)`,
+          "globalThis.ReadonlySet<string>"
+        )
       })
     })
 
@@ -1631,17 +1582,9 @@ describe("toCodeDocument", () => {
           { schema: Schema.ReadonlySet(Schema.String).check(Schema.isMinSize(2)) },
           {
             codes: makeCode(
-              `Schema.ReadonlySet(String_).check(Schema.isMinSize(2))`,
-              "globalThis.ReadonlySet<String_>"
-            ),
-            references: {
-              nonRecursives: [
-                {
-                  $ref: "String_",
-                  code: makeCode(`Schema.String`, "string")
-                }
-              ]
-            }
+              `Schema.ReadonlySet(Schema.String).check(Schema.isMinSize(2))`,
+              "globalThis.ReadonlySet<string>"
+            )
           }
         )
       })
@@ -1651,17 +1594,9 @@ describe("toCodeDocument", () => {
           { schema: Schema.ReadonlySet(Schema.String).check(Schema.isMaxSize(2)) },
           {
             codes: makeCode(
-              `Schema.ReadonlySet(String_).check(Schema.isMaxSize(2))`,
-              "globalThis.ReadonlySet<String_>"
-            ),
-            references: {
-              nonRecursives: [
-                {
-                  $ref: "String_",
-                  code: makeCode(`Schema.String`, "string")
-                }
-              ]
-            }
+              `Schema.ReadonlySet(Schema.String).check(Schema.isMaxSize(2))`,
+              "globalThis.ReadonlySet<string>"
+            )
           }
         )
       })
@@ -1672,17 +1607,9 @@ describe("toCodeDocument", () => {
         { schema: Schema.ReadonlySet(Schema.String).check(Schema.isSizeBetween(2, 2)) },
         {
           codes: makeCode(
-            `Schema.ReadonlySet(String_).check(Schema.isSizeBetween(2, 2))`,
-            "globalThis.ReadonlySet<String_>"
-          ),
-          references: {
-            nonRecursives: [
-              {
-                $ref: "String_",
-                code: makeCode(`Schema.String`, "string")
-              }
-            ]
-          }
+            `Schema.ReadonlySet(Schema.String).check(Schema.isSizeBetween(2, 2))`,
+            "globalThis.ReadonlySet<string>"
+          )
         }
       )
     })
@@ -1692,21 +1619,9 @@ describe("toCodeDocument", () => {
     it("HashMap(String, Number)", () => {
       assertSchema({ schema: Schema.HashMap(Schema.String, Schema.Number) }, {
         codes: makeCode(
-          `Schema.HashMap(String_, Number_)`,
-          "HashMap.HashMap<String_, Number_>"
+          `Schema.HashMap(Schema.String, Schema.Number)`,
+          "HashMap.HashMap<string, number>"
         ),
-        references: {
-          nonRecursives: [
-            {
-              $ref: "String_",
-              code: makeCode(`Schema.String`, "string")
-            },
-            {
-              $ref: "Number_",
-              code: makeCode(`Schema.Number`, "number")
-            }
-          ]
-        },
         artifacts: [{ _tag: "Import", importDeclaration: `import * as HashMap from "effect/HashMap"` }]
       })
     })

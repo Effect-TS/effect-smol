@@ -2641,6 +2641,11 @@ export function replaceContext<A extends AST>(ast: A, context: Context | undefin
 }
 
 /** @internal */
+export function getLastEncoding(ast: AST): AST {
+  return ast.encoding ? getLastEncoding(ast.encoding[ast.encoding.length - 1].to) : ast
+}
+
+/** @internal */
 export function annotate<A extends AST>(ast: A, annotations: Schema.Annotations.Annotations): A {
   if (ast.checks) {
     const last = ast.checks[ast.checks.length - 1]

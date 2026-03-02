@@ -192,39 +192,39 @@ describe("toSchema", () => {
     it("Option", () => {
       assertToSchemaWithReviver(
         Schema.Option(Schema.String),
-        `Schema.Option(String_)`
+        `Schema.Option(Schema.String)`
       )
       assertToSchemaWithReviver(
         Schema.Option(Schema.URL),
-        `Schema.Option(Declaration_1)`
+        `Schema.Option(Schema.URL)`
       )
     })
 
     it("Result", () => {
       assertToSchemaWithReviver(
         Schema.Result(Schema.String, Schema.Number),
-        `Schema.Result(String_, Number_)`
+        `Schema.Result(Schema.String, Schema.Number)`
       )
     })
 
     it("Redacted", () => {
       assertToSchemaWithReviver(
         Schema.Redacted(Schema.String),
-        `Schema.Redacted(String_)`
+        `Schema.Redacted(Schema.String)`
       )
     })
 
     it("CauseReason", () => {
       assertToSchemaWithReviver(
         Schema.CauseReason(Schema.String, Schema.Number),
-        `Schema.CauseReason(String_, Number_)`
+        `Schema.CauseReason(Schema.String, Schema.Number)`
       )
     })
 
     it("Cause", () => {
       assertToSchemaWithReviver(
         Schema.Cause(Schema.String, Schema.Number),
-        `Schema.Cause(String_, Number_)`
+        `Schema.Cause(Schema.String, Schema.Number)`
       )
     })
 
@@ -238,28 +238,28 @@ describe("toSchema", () => {
     it("Exit", () => {
       assertToSchemaWithReviver(
         Schema.Exit(Schema.String, Schema.Number, Schema.Boolean),
-        `Schema.Exit(String_, Number_, Boolean_)`
+        `Schema.Exit(Schema.String, Schema.Number, Schema.Boolean)`
       )
     })
 
     it("ReadonlyMap", () => {
       assertToSchemaWithReviver(
         Schema.ReadonlyMap(Schema.String, Schema.Number),
-        `Schema.ReadonlyMap(String_, Number_)`
+        `Schema.ReadonlyMap(Schema.String, Schema.Number)`
       )
     })
 
     it("HashMap", () => {
       assertToSchemaWithReviver(
         Schema.HashMap(Schema.String, Schema.Number),
-        `Schema.HashMap(String_, Number_)`
+        `Schema.HashMap(Schema.String, Schema.Number)`
       )
     })
 
     it("ReadonlySet", () => {
       assertToSchemaWithReviver(
         Schema.ReadonlySet(Schema.String),
-        `Schema.ReadonlySet(String_)`
+        `Schema.ReadonlySet(Schema.String)`
       )
     })
 
@@ -368,7 +368,7 @@ describe("toSchema", () => {
     it("HashSet", () => {
       assertToSchemaWithReviver(
         Schema.HashSet(Schema.String),
-        `Schema.HashSet(String_)`
+        `Schema.HashSet(Schema.String)`
       )
     })
 
@@ -411,7 +411,7 @@ describe("toSchema", () => {
       it("ReadonlySet(String)", () => {
         assertToSchemaWithReviver(
           Schema.ReadonlySet(Schema.String),
-          `Schema.ReadonlySet(String_)`
+          `Schema.ReadonlySet(Schema.String)`
         )
       })
 
@@ -419,14 +419,14 @@ describe("toSchema", () => {
         it("isMinSize", () => {
           assertToSchemaWithReviver(
             Schema.ReadonlySet(Schema.String).check(Schema.isMinSize(2)),
-            `Schema.ReadonlySet(String_).check(Schema.isMinSize(2))`
+            `Schema.ReadonlySet(Schema.String).check(Schema.isMinSize(2))`
           )
         })
 
         it("isMaxSize", () => {
           assertToSchemaWithReviver(
             Schema.ReadonlySet(Schema.String).check(Schema.isMaxSize(2)),
-            `Schema.ReadonlySet(String_).check(Schema.isMaxSize(2))`
+            `Schema.ReadonlySet(Schema.String).check(Schema.isMaxSize(2))`
           )
         })
       })
@@ -434,7 +434,7 @@ describe("toSchema", () => {
       it("isSizeBetween", () => {
         assertToSchemaWithReviver(
           Schema.ReadonlySet(Schema.String).check(Schema.isSizeBetween(2, 2)),
-          `Schema.ReadonlySet(String_).check(Schema.isSizeBetween(2, 2))`
+          `Schema.ReadonlySet(Schema.String).check(Schema.isSizeBetween(2, 2))`
         )
       })
     })

@@ -155,7 +155,7 @@ describe("OpenAPI spec", () => {
                 "content": {
                   "application/json": {
                     "schema": {
-                      "$ref": "#/components/schemas/String_"
+                      "type": "string"
                     }
                   }
                 }
@@ -165,23 +165,7 @@ describe("OpenAPI spec", () => {
                 "content": {
                   "application/json": {
                     "schema": {
-                      "type": "object",
-                      "properties": {
-                        "_tag": {
-                          "type": "string",
-                          "enum": [
-                            "HttpApiSchemaError"
-                          ]
-                        },
-                        "message": {
-                          "$ref": "#/components/schemas/String_"
-                        }
-                      },
-                      "required": [
-                        "_tag",
-                        "message"
-                      ],
-                      "additionalProperties": false
+                      "$ref": "#/components/schemas/effect_HttpApiSchemaError"
                     }
                   }
                 }
@@ -244,7 +228,7 @@ describe("OpenAPI spec", () => {
                     "content": {
                       "application/json": {
                         "schema": {
-                          "$ref": "#/components/schemas/String_"
+                          "type": "string"
                         }
                       }
                     }
@@ -254,23 +238,7 @@ describe("OpenAPI spec", () => {
                     "content": {
                       "application/json": {
                         "schema": {
-                          "type": "object",
-                          "properties": {
-                            "_tag": {
-                              "type": "string",
-                              "enum": [
-                                "HttpApiSchemaError"
-                              ]
-                            },
-                            "message": {
-                              "$ref": "#/components/schemas/String_"
-                            }
-                          },
-                          "required": [
-                            "_tag",
-                            "message"
-                          ],
-                          "additionalProperties": false
+                          "$ref": "#/components/schemas/effect_HttpApiSchemaError"
                         }
                       }
                     }
@@ -288,8 +256,14 @@ describe("OpenAPI spec", () => {
           },
           "components": {
             "schemas": {
-              "String_": {
-                "type": "string"
+              "effect_HttpApiSchemaError": {
+                "type": "object",
+                "properties": {
+                  "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
+                  "message": { "type": "string" }
+                },
+                "required": ["_tag", "message"],
+                "additionalProperties": false
               }
             },
             "securitySchemes": {}
@@ -336,20 +310,7 @@ describe("OpenAPI spec", () => {
                       "schema": {
                         "type": "array",
                         "items": {
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "type": "number"
-                            },
-                            "name": {
-                              "$ref": "#/components/schemas/String_"
-                            }
-                          },
-                          "required": [
-                            "id",
-                            "name"
-                          ],
-                          "additionalProperties": false
+                          "$ref": "#/components/schemas/User"
                         },
                         "description": "Returns an array of users"
                       }
@@ -361,29 +322,40 @@ describe("OpenAPI spec", () => {
                   "content": {
                     "application/json": {
                       "schema": {
-                        "type": "object",
-                        "properties": {
-                          "_tag": {
-                            "type": "string",
-                            "enum": [
-                              "HttpApiSchemaError"
-                            ]
-                          },
-                          "message": {
-                            "$ref": "#/components/schemas/String_"
-                          }
-                        },
-                        "required": [
-                          "_tag",
-                          "message"
-                        ],
-                        "additionalProperties": false
+                        "$ref": "#/components/schemas/effect_HttpApiSchemaError"
                       }
                     }
                   }
                 }
               }
             }
+          }
+        })
+        assert.deepStrictEqual(spec.components.schemas, {
+          User: {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "number"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "effect_HttpApiSchemaError": {
+            "type": "object",
+            "properties": {
+              "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
+              "message": { "type": "string" }
+            },
+            "required": ["_tag", "message"],
+            "additionalProperties": false
           }
         })
       })
@@ -406,7 +378,7 @@ describe("OpenAPI spec", () => {
           content: {
             "application/json": {
               schema: {
-                "$ref": "#/components/schemas/String_"
+                "type": "string"
               }
             }
           }
@@ -416,13 +388,7 @@ describe("OpenAPI spec", () => {
           content: {
             "application/json": {
               schema: {
-                type: "object",
-                properties: {
-                  _tag: { type: "string", enum: ["HttpApiSchemaError"] },
-                  message: { "$ref": "#/components/schemas/String_" }
-                },
-                required: ["_tag", "message"],
-                additionalProperties: false
+                "$ref": "#/components/schemas/effect_HttpApiSchemaError"
               }
             }
           }
@@ -465,13 +431,7 @@ describe("OpenAPI spec", () => {
           content: {
             "application/json": {
               schema: {
-                type: "object",
-                properties: {
-                  _tag: { type: "string", enum: ["HttpApiSchemaError"] },
-                  message: { "$ref": "#/components/schemas/String_" }
-                },
-                required: ["_tag", "message"],
-                additionalProperties: false
+                "$ref": "#/components/schemas/effect_HttpApiSchemaError"
               }
             }
           }
@@ -481,7 +441,7 @@ describe("OpenAPI spec", () => {
           content: {
             "text/plain": {
               schema: {
-                "$ref": "#/components/schemas/String_"
+                "type": "string"
               }
             }
           }
@@ -538,7 +498,7 @@ describe("OpenAPI spec", () => {
               name: "required",
               in: "query",
               schema: {
-                "$ref": "#/components/schemas/String_"
+                "type": "string"
               },
               required: true
             },
@@ -555,18 +515,13 @@ describe("OpenAPI spec", () => {
               in: "query",
               schema: {
                 "anyOf": [
-                  { "$ref": "#/components/schemas/String_" },
+                  { "type": "string" },
                   { "type": "null" }
                 ]
               },
               required: false
             }
           ])
-          assert.deepStrictEqual(spec.components.schemas, {
-            String_: {
-              "type": "string"
-            }
-          })
         })
       })
 
@@ -591,13 +546,8 @@ describe("OpenAPI spec", () => {
           assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
             "application/json": {
               schema: {
-                "$ref": "#/components/schemas/String_"
+                "type": "string"
               }
-            }
-          })
-          assert.deepStrictEqual(spec.components.schemas, {
-            String_: {
-              "type": "string"
             }
           })
         })
@@ -616,13 +566,8 @@ describe("OpenAPI spec", () => {
           assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
             "application/json": {
               schema: {
-                "$ref": "#/components/schemas/String_"
+                "type": "string"
               }
-            }
-          })
-          assert.deepStrictEqual(spec.components.schemas, {
-            String_: {
-              "type": "string"
             }
           })
         })
@@ -704,13 +649,8 @@ describe("OpenAPI spec", () => {
             assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
               "text/plain": {
                 schema: {
-                  "$ref": "#/components/schemas/String_"
+                  "type": "string"
                 }
-              }
-            })
-            assert.deepStrictEqual(spec.components.schemas, {
-              String_: {
-                "type": "string"
               }
             })
           })
@@ -734,17 +674,12 @@ describe("OpenAPI spec", () => {
                   "type": "object",
                   "properties": {
                     "a": {
-                      "$ref": "#/components/schemas/String_"
+                      "type": "string"
                     }
                   },
                   "required": ["a"],
                   "additionalProperties": false
                 }
-              }
-            })
-            assert.deepStrictEqual(spec.components.schemas, {
-              String_: {
-                "type": "string"
               }
             })
           })
@@ -791,7 +726,7 @@ describe("OpenAPI spec", () => {
                   "type": "object",
                   "properties": {
                     "a": {
-                      "$ref": "#/components/schemas/String_"
+                      "type": "string"
                     }
                   },
                   "required": ["a"],
@@ -800,7 +735,7 @@ describe("OpenAPI spec", () => {
               },
               "text/plain": {
                 schema: {
-                  "$ref": "#/components/schemas/String_"
+                  "type": "string"
                 }
               },
               "application/octet-stream": {
@@ -808,11 +743,6 @@ describe("OpenAPI spec", () => {
                   "type": "string",
                   "format": "binary"
                 }
-              }
-            })
-            assert.deepStrictEqual(spec.components.schemas, {
-              String_: {
-                "type": "string"
               }
             })
           })
@@ -915,10 +845,10 @@ describe("OpenAPI spec", () => {
                       items: {
                         type: "object",
                         properties: {
-                          key: { $ref: "#/components/schemas/String_" },
-                          name: { $ref: "#/components/schemas/String_" },
+                          key: { "type": "string" },
+                          name: { "type": "string" },
                           contentType: { type: "string", contentEncoding: "binary" },
-                          path: { $ref: "#/components/schemas/String_" }
+                          path: { "type": "string" }
                         },
                         required: ["key", "name", "contentType", "path"],
                         additionalProperties: false
@@ -960,13 +890,8 @@ describe("OpenAPI spec", () => {
         assert.deepStrictEqual(spec.paths["/a"].get?.responses["200"].content, {
           "application/json": {
             schema: {
-              "$ref": "#/components/schemas/String_"
+              "type": "string"
             }
-          }
-        })
-        assert.deepStrictEqual(spec.components.schemas, {
-          String_: {
-            "type": "string"
           }
         })
       })
@@ -1066,7 +991,7 @@ describe("OpenAPI spec", () => {
           assert.deepStrictEqual(spec.paths["/a"].get?.responses["200"].content, {
             "text/plain": {
               schema: {
-                "$ref": "#/components/schemas/String_"
+                "type": "string"
               }
             }
           })
@@ -1091,7 +1016,7 @@ describe("OpenAPI spec", () => {
                 "type": "object",
                 "properties": {
                   "a": {
-                    "$ref": "#/components/schemas/String_"
+                    "type": "string"
                   }
                 },
                 "required": ["a"],
@@ -1144,7 +1069,7 @@ describe("OpenAPI spec", () => {
                     "type": "object",
                     "properties": {
                       "a": {
-                        "$ref": "#/components/schemas/String_"
+                        "type": "string"
                       }
                     },
                     "required": ["a"],
@@ -1154,7 +1079,7 @@ describe("OpenAPI spec", () => {
                     "type": "object",
                     "properties": {
                       "b": {
-                        "$ref": "#/components/schemas/String_"
+                        "type": "string"
                       }
                     },
                     "required": ["b"],
@@ -1185,12 +1110,12 @@ describe("OpenAPI spec", () => {
           assert.deepStrictEqual(spec.paths["/a"].get?.responses["200"].content, {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/String_"
+                "type": "string"
               }
             },
             "text/plain": {
               "schema": {
-                "$ref": "#/components/schemas/String_"
+                "type": "string"
               }
             }
           })
@@ -1213,15 +1138,20 @@ describe("OpenAPI spec", () => {
           content: {
             "application/json": {
               schema: {
-                type: "object",
-                properties: {
-                  _tag: { type: "string", enum: ["HttpApiSchemaError"] },
-                  message: { type: "string" }
-                },
-                required: ["_tag", "message"],
-                additionalProperties: false
+                "$ref": "#/components/schemas/effect_HttpApiSchemaError"
               }
             }
+          }
+        })
+        assert.deepStrictEqual(spec.components.schemas, {
+          "effect_HttpApiSchemaError": {
+            "type": "object",
+            "properties": {
+              "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
+              "message": { "type": "string" }
+            },
+            "required": ["_tag", "message"],
+            "additionalProperties": false
           }
         })
       })
@@ -1244,7 +1174,7 @@ describe("OpenAPI spec", () => {
               content: {
                 "application/json": {
                   schema: {
-                    "$ref": "#/components/schemas/String_"
+                    "type": "string"
                   }
                 }
               }
@@ -1254,13 +1184,7 @@ describe("OpenAPI spec", () => {
               content: {
                 "application/json": {
                   schema: {
-                    type: "object",
-                    properties: {
-                      _tag: { type: "string", enum: ["HttpApiSchemaError"] },
-                      message: { "$ref": "#/components/schemas/String_" }
-                    },
-                    required: ["_tag", "message"],
-                    additionalProperties: false
+                    "$ref": "#/components/schemas/effect_HttpApiSchemaError"
                   }
                 }
               }
@@ -1270,15 +1194,21 @@ describe("OpenAPI spec", () => {
               content: {
                 "application/json": {
                   schema: {
-                    "$ref": "#/components/schemas/String_"
+                    "type": "string"
                   }
                 }
               }
             }
           })
           assert.deepStrictEqual(spec.components.schemas, {
-            String_: {
-              "type": "string"
+            "effect_HttpApiSchemaError": {
+              "type": "object",
+              "properties": {
+                "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
+                "message": { "type": "string" }
+              },
+              "required": ["_tag", "message"],
+              "additionalProperties": false
             }
           })
         })
@@ -1300,7 +1230,7 @@ describe("OpenAPI spec", () => {
               content: {
                 "application/json": {
                   schema: {
-                    "$ref": "#/components/schemas/String_"
+                    "type": "string"
                   }
                 }
               }
@@ -1310,13 +1240,7 @@ describe("OpenAPI spec", () => {
               content: {
                 "application/json": {
                   schema: {
-                    type: "object",
-                    properties: {
-                      _tag: { type: "string", enum: ["HttpApiSchemaError"] },
-                      message: { "$ref": "#/components/schemas/String_" }
-                    },
-                    required: ["_tag", "message"],
-                    additionalProperties: false
+                    "$ref": "#/components/schemas/effect_HttpApiSchemaError"
                   }
                 }
               }
@@ -1326,15 +1250,24 @@ describe("OpenAPI spec", () => {
               content: {
                 "application/json": {
                   schema: {
-                    "type": "string"
+                    "$ref": "#/components/schemas/id"
                   }
                 }
               }
             }
           })
           assert.deepStrictEqual(spec.components.schemas, {
-            String_: {
+            id: {
               "type": "string"
+            },
+            "effect_HttpApiSchemaError": {
+              "type": "object",
+              "properties": {
+                "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
+                "message": { "type": "string" }
+              },
+              "required": ["_tag", "message"],
+              "additionalProperties": false
             }
           })
         })
@@ -1356,7 +1289,7 @@ describe("OpenAPI spec", () => {
               content: {
                 "application/json": {
                   schema: {
-                    "$ref": "#/components/schemas/String_"
+                    "type": "string"
                   }
                 }
               }
@@ -1367,18 +1300,8 @@ describe("OpenAPI spec", () => {
                 "application/json": {
                   schema: {
                     "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        type: "object",
-                        properties: {
-                          _tag: { type: "string", enum: ["HttpApiSchemaError"] },
-                          message: { "$ref": "#/components/schemas/String_" }
-                        },
-                        required: ["_tag", "message"],
-                        additionalProperties: false
-                      }
+                      { "type": "string" },
+                      { "$ref": "#/components/schemas/effect_HttpApiSchemaError" }
                     ]
                   }
                 }
@@ -1386,8 +1309,14 @@ describe("OpenAPI spec", () => {
             }
           })
           assert.deepStrictEqual(spec.components.schemas, {
-            String_: {
-              "type": "string"
+            "effect_HttpApiSchemaError": {
+              "type": "object",
+              "properties": {
+                "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
+                "message": { "type": "string" }
+              },
+              "required": ["_tag", "message"],
+              "additionalProperties": false
             }
           })
         })
@@ -1417,7 +1346,7 @@ describe("OpenAPI spec", () => {
               content: {
                 "application/json": {
                   schema: {
-                    "$ref": "#/components/schemas/String_"
+                    "type": "string"
                   }
                 }
               }
@@ -1437,7 +1366,7 @@ describe("OpenAPI spec", () => {
               content: {
                 "application/json": {
                   schema: {
-                    "$ref": "#/components/schemas/String_"
+                    "type": "string"
                   }
                 }
               }
@@ -1449,7 +1378,7 @@ describe("OpenAPI spec", () => {
               content: {
                 "application/json": {
                   schema: {
-                    "$ref": "#/components/schemas/String_"
+                    "type": "string"
                   }
                 }
               }
@@ -1469,21 +1398,18 @@ describe("OpenAPI spec", () => {
               content: {
                 "application/json": {
                   schema: {
-                    "$ref": "#/components/schemas/String_"
+                    "type": "string"
                   }
                 }
               }
             }
           })
           assert.deepStrictEqual(spec.components.schemas, {
-            String_: {
-              "type": "string"
-            },
             "effect_HttpApiSchemaError": {
               "type": "object",
               "properties": {
                 "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
-                "message": { "$ref": "#/components/schemas/String_" }
+                "message": { "type": "string" }
               },
               "required": ["_tag", "message"],
               "additionalProperties": false
@@ -1514,7 +1440,7 @@ describe("OpenAPI spec", () => {
               content: {
                 "application/json": {
                   schema: {
-                    "$ref": "#/components/schemas/String_"
+                    "type": "string"
                   }
                 }
               }
@@ -1546,7 +1472,7 @@ describe("OpenAPI spec", () => {
               content: {
                 "application/json": {
                   schema: {
-                    "$ref": "#/components/schemas/String_"
+                    "type": "string"
                   }
                 }
               }
@@ -1573,9 +1499,6 @@ describe("OpenAPI spec", () => {
             }
           })
           assert.deepStrictEqual(spec.components.schemas, {
-            String_: {
-              "type": "string"
-            },
             id: {
               "type": "string"
             },
@@ -1583,7 +1506,7 @@ describe("OpenAPI spec", () => {
               "type": "object",
               "properties": {
                 "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
-                "message": { "$ref": "#/components/schemas/String_" }
+                "message": { "type": "string" }
               },
               "required": ["_tag", "message"],
               "additionalProperties": false
@@ -1614,7 +1537,7 @@ describe("OpenAPI spec", () => {
               content: {
                 "application/json": {
                   schema: {
-                    "$ref": "#/components/schemas/String_"
+                    "type": "string"
                   }
                 }
               }
@@ -1626,7 +1549,7 @@ describe("OpenAPI spec", () => {
                   schema: {
                     "anyOf": [
                       {
-                        "$ref": "#/components/schemas/String_1"
+                        "type": "string"
                       },
                       {
                         "$ref": "#/components/schemas/effect_HttpApiSchemaError"
@@ -1643,7 +1566,7 @@ describe("OpenAPI spec", () => {
               content: {
                 "application/json": {
                   schema: {
-                    "$ref": "#/components/schemas/String_"
+                    "type": "string"
                   }
                 }
               }
@@ -1655,7 +1578,7 @@ describe("OpenAPI spec", () => {
                   schema: {
                     "anyOf": [
                       {
-                        "$ref": "#/components/schemas/String_1"
+                        "type": "string"
                       },
                       {
                         "$ref": "#/components/schemas/effect_HttpApiSchemaError"
@@ -1667,17 +1590,11 @@ describe("OpenAPI spec", () => {
             }
           })
           assert.deepStrictEqual(spec.components.schemas, {
-            String_: {
-              "type": "string"
-            },
-            String_1: {
-              "type": "string"
-            },
             "effect_HttpApiSchemaError": {
               "type": "object",
               "properties": {
                 "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
-                "message": { "$ref": "#/components/schemas/String_" }
+                "message": { "type": "string" }
               },
               "required": ["_tag", "message"],
               "additionalProperties": false

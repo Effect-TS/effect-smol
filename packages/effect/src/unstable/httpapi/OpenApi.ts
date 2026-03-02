@@ -363,7 +363,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
 
       function processParameters(schema: Schema.Top | undefined, i: OpenAPISpecParameter["in"]) {
         if (schema) {
-          const ast = AST.toEncoded(schema.ast)
+          const ast = AST.getLastEncoding(schema.ast)
           if (AST.isObjects(ast)) {
             for (const ps of ast.propertySignatures) {
               op.parameters.push({
