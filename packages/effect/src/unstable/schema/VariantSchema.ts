@@ -17,7 +17,7 @@ import * as Struct_ from "../../Struct.ts"
  * @since 4.0.0
  * @category Type IDs
  */
-export const TypeId = "~effect/unstable/schema/VariantSchema"
+export const TypeId = "~effect/schema/VariantSchema"
 
 const cacheSymbol = Symbol.for(`${TypeId}/cache`)
 
@@ -71,7 +71,7 @@ export declare namespace Struct {
   }
 }
 
-const FieldTypeId = "~effect/unstable/schema/VariantSchema/Field"
+const FieldTypeId = "~effect/schema/VariantSchema/Field"
 
 /**
  * @since 4.0.0
@@ -542,7 +542,7 @@ const Union = <Members extends ReadonlyArray<Struct<any>>, Variants extends Read
   members: Members,
   variants: Variants
 ) => {
-  class VariantUnion extends (Schema.Union(members.filter((member) => Schema.isSchema(member))) as any) {}
+  const VariantUnion = Schema.Union(members.filter((member) => Schema.isSchema(member))) as any
   for (const variant of variants) {
     Object.defineProperty(VariantUnion, variant, {
       value: Schema.Union(members.map((member) => extract(member, variant)))
