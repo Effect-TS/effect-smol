@@ -288,9 +288,9 @@ describe.sequential("Request", () => {
         Resolver.setDelayEffect(
           Effect.andThen(
             Effect.yieldNow,
-            Effect.fnUntraced(function*() {
+            Effect.gen(function*() {
               delayServiceValue = (yield* RequestService).value
-            })()
+            })
           )
         )
       )
