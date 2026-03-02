@@ -38,6 +38,7 @@
     "@effect/ai-docgen": "0.0.0"
   },
   "changesets": [
+    "add-chunk-schema",
     "add-config-nested",
     "add-make-option",
     "add-missing-tx-modules",
@@ -102,6 +103,7 @@
     "fix-searchparam-initial-decode",
     "fix-serializable-wire-transfer",
     "fix-strip-approval-artifacts-multi-round",
+    "fix-tagged-union-class-sentinels",
     "fix-tuple-with-rest-post-rest-index-drift",
     "fix-tuple-with-rest-post-rest-validation",
     "forty-otters-cry",
@@ -117,7 +119,9 @@
     "great-trains-mate",
     "heavy-loops-cut",
     "hip-socks-travel",
+    "honest-pens-thank",
     "httpapi-endpoint-relax-constraints",
+    "huge-moons-rhyme",
     "humble-pigs-dig",
     "itchy-results-bet",
     "itchy-shrimps-deny",
@@ -184,6 +188,7 @@
     "wise-ants-wave",
     "wise-flags-shift",
     "yellow-clocks-dance",
+    "yellow-dingos-jump",
     "young-doors-change"
   ]
 }
