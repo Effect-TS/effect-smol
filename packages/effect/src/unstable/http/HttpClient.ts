@@ -3,10 +3,11 @@
  */
 import type { NonEmptyReadonlyArray } from "../../Array.ts"
 import * as Cause from "../../Cause.ts"
+import { Clock } from "../../Clock.js"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
-import type { Fiber } from "../../Fiber.ts"
+import * as Fiber from "../../Fiber.ts"
 import { constFalse, constTrue, dual, flow, identity } from "../../Function.ts"
 import * as Inspectable from "../../Inspectable.ts"
 import * as Layer from "../../Layer.ts"
@@ -545,7 +546,7 @@ export const make = (
     request: HttpClientRequest.HttpClientRequest,
     url: URL,
     signal: AbortSignal,
-    fiber: Fiber<HttpClientResponse.HttpClientResponse, Error.HttpClientError>
+    fiber: Fiber.Fiber<HttpClientResponse.HttpClientResponse, Error.HttpClientError>
   ) => Effect.Effect<HttpClientResponse.HttpClientResponse, Error.HttpClientError>
 ): HttpClient =>
   makeWith((effect) =>
@@ -971,9 +972,9 @@ export const withRateLimiter: {
 
   const onResponse = options.disableResponseInspection
     ? undefined
-    : (key: string, headers: Headers.Headers, tokens: number | undefined) => {
+    : (clock: Clock, key: string, headers: Headers.Headers, tokens: number | undefined) => {
       const current = getState(key)
-      const next = parseRateLimiterState(current, headers, tokens)
+      const next = parseRateLimiterState(current, clock, headers, tokens)
       if (next.limit !== current.limit || !Duration.equals(next.window, current.window)) {
         states.set(key, next)
       }
@@ -984,6 +985,8 @@ export const withRateLimiter: {
     E | RateLimiter.RateLimiterError,
     R
   > {
+    const fiber = Fiber.getCurrent()!
+    const clock = fiber.getRef(Clock)
     const key = resolveKey(request)
     const tokens = resolveTokens(request)
     const current = getState(key)
@@ -999,12 +1002,12 @@ export const withRateLimiter: {
       ({ delay }) => {
         const run = Effect.matchEffect(effect, {
           onSuccess(response) {
-            onResponse?.(key, response.headers, tokens)
+            onResponse?.(clock, key, response.headers, tokens)
             return response.status === 429 ? loop(effect, request) : Effect.succeed(response)
           },
           onFailure(error) {
             if (isTooManyRequestsHttpClientError(error)) {
-              onResponse?.(key, error.reason.response.headers, tokens)
+              onResponse?.(clock, key, error.reason.response.headers, tokens)
               return loop(effect, request)
             }
             return Effect.fail(error)
@@ -1023,11 +1026,12 @@ interface RateLimiterState {
 
 const parseRateLimiterState = (
   state: RateLimiterState,
+  clock: Clock,
   headers: Headers.Headers,
   tokens: number | undefined
 ): RateLimiterState => {
   const limit = parseRateLimitLimit(headers, tokens) ?? state.limit
-  const window = parseRateLimitWindow(headers) ?? state.window
+  const window = parseRateLimitWindow(clock, headers) ?? state.window
   if (limit === state.limit && Duration.equals(window, state.window)) {
     return state
   }
@@ -1053,8 +1057,14 @@ const parseRateLimitRemaining = (headers: Headers.Headers): number | undefined =
   return value !== undefined && value >= 0 ? value : undefined
 }
 
-const parseRateLimitWindow = (headers: Headers.Headers): Duration.Duration | undefined => {
-  const retryAfter = parseRetryAfter(getHeader(headers, "retry-after"))
+const parseRateLimitWindow = (
+  clock: Clock,
+  headers: Headers.Headers
+): Duration.Duration | undefined => {
+  const retryAfter = parseRetryAfter(
+    clock,
+    getHeader(headers, "retry-after")
+  )
   if (retryAfter !== undefined) {
     return retryAfter
   }
@@ -1062,10 +1072,13 @@ const parseRateLimitWindow = (headers: Headers.Headers): Duration.Duration | und
   if (resetAfter !== undefined) {
     return resetAfter
   }
-  return parseResetHeader(getHeader(headers, "ratelimit-reset", "x-ratelimit-reset"))
+  return parseResetHeader(clock, getHeader(headers, "ratelimit-reset", "x-ratelimit-reset"))
 }
 
-const parseRetryAfter = (value: string | undefined): Duration.Duration | undefined => {
+const parseRetryAfter = (
+  clock: Clock,
+  value: string | undefined
+): Duration.Duration | undefined => {
   if (value === undefined) {
     return undefined
   }
@@ -1077,7 +1090,7 @@ const parseRetryAfter = (value: string | undefined): Duration.Duration | undefin
   if (Number.isNaN(parsedDate)) {
     return undefined
   }
-  const millis = parsedDate - Date.now()
+  const millis = parsedDate - clock.currentTimeMillisUnsafe()
   if (millis <= 0) {
     return Duration.millis(1)
   }
@@ -1092,12 +1105,15 @@ const parseResetAfter = (value: string | undefined): Duration.Duration | undefin
   return Duration.max(Duration.seconds(numeric), Duration.millis(1))
 }
 
-const parseResetHeader = (value: string | undefined): Duration.Duration | undefined => {
+const parseResetHeader = (
+  clock: Clock,
+  value: string | undefined
+): Duration.Duration | undefined => {
   const numeric = parseNumberHeader(value)
   if (numeric === undefined || numeric <= 0) {
     return undefined
   }
-  const nowMillis = Date.now()
+  const nowMillis = clock.currentTimeMillisUnsafe()
   if (numeric > 1_000_000_000_000) {
     return Duration.millis(Math.max(numeric - nowMillis, 1))
   }
