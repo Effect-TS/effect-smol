@@ -29,7 +29,7 @@
 import * as Cause from "effect/Cause"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
-import { dual } from "effect/Function"
+import { constVoid, dual } from "effect/Function"
 import type * as Fiber from "./Fiber.ts"
 
 /**
@@ -212,6 +212,18 @@ export const makeRunMain = (
           return Effect.logError(cause)
         })
       )
+    let keepAlive: ReturnType<typeof globalThis.setInterval> | undefined
+    try {
+      keepAlive = globalThis.setInterval(constVoid, 2_147_483_647)
+    } catch {
+      keepAlive = undefined
+    }
+    fiber.addObserver(() => {
+      if (keepAlive !== undefined) {
+        clearInterval(keepAlive)
+        keepAlive = undefined
+      }
+    })
     const teardown = options?.teardown ?? defaultTeardown
     return f({ fiber, teardown })
   })

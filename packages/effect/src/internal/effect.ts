@@ -493,40 +493,6 @@ const fiberIdStore = { id: 0 }
 /** @internal */
 export const getCurrentFiber = (): Fiber.Fiber<any, any> | undefined => (globalThis as any)[currentFiberTypeId]
 
-const keepAlive = (() => {
-  let isAvailable: boolean | undefined
-  const start = () => {
-    if (isAvailable === true) return setInterval(constVoid, 2_147_483_647)
-    else if (isAvailable === false) return undefined
-
-    try {
-      const running = setInterval(constVoid, 2_147_483_647)
-      isAvailable = true
-      return running
-    } catch {
-      isAvailable = false
-      return undefined
-    }
-  }
-  let count = 0
-  let running: ReturnType<typeof globalThis.setInterval> | undefined = undefined
-  return ({
-    increment() {
-      count++
-      if (running === undefined) {
-        running = start()
-      }
-    },
-    decrement() {
-      count--
-      if (count === 0 && running !== undefined) {
-        clearInterval(running)
-        running = undefined
-      }
-    }
-  })
-})()
-
 /** @internal */
 export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
   constructor(
@@ -1056,10 +1022,8 @@ const callbackOptions: <A, E = never, R = never>(
     }, controller?.signal)
     if (yielded !== false) return yielded
     yielded = true
-    keepAlive.increment()
     fiber._yielded = () => {
       resumed = true
-      keepAlive.decrement()
     }
     if (controller === undefined && onCancel === undefined) {
       return Yield
