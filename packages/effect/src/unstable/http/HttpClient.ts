@@ -990,6 +990,13 @@ export const withRateLimiter: {
     const key = resolveKey(request)
     const tokens = resolveTokens(request)
     const current = getState(key)
+    function retry(response: HttpClientResponse.HttpClientResponse) {
+      if (options.disableResponseInspection) return loop(effect, request)
+      const retryAfter = parseRetryAfter(clock, getHeader(response.headers, "retry-after"))
+      return retryAfter
+        ? Effect.flatMap(Effect.sleep(retryAfter), () => loop(effect, request))
+        : loop(effect, request)
+    }
     return Effect.flatMap(
       options.limiter.consume({
         algorithm: options.algorithm,
@@ -1003,12 +1010,13 @@ export const withRateLimiter: {
         const run = Effect.matchEffect(effect, {
           onSuccess(response) {
             onResponse?.(clock, key, response.headers, tokens)
-            return response.status === 429 ? loop(effect, request) : Effect.succeed(response)
+            if (response.status !== 429) return Effect.succeed(response)
+            return retry(response)
           },
           onFailure(error) {
             if (isTooManyRequestsHttpClientError(error)) {
               onResponse?.(clock, key, error.reason.response.headers, tokens)
-              return loop(effect, request)
+              return retry(error.reason.response)
             }
             return Effect.fail(error)
           }
