@@ -31,7 +31,7 @@ describe("SchemaAST", () => {
           a: Schema.String
         })
         const ast = schema.ast
-        deepStrictEqual(SchemaAST.collectSentinels(ast), undefined)
+        deepStrictEqual(SchemaAST.collectSentinels(ast), [])
       })
     })
 
@@ -45,7 +45,7 @@ describe("SchemaAST", () => {
       it("optional element", () => {
         const schema = Schema.Tuple([Schema.Number, Schema.optionalKey(Schema.Literal("a"))])
         const ast = schema.ast
-        deepStrictEqual(SchemaAST.collectSentinels(ast), undefined)
+        deepStrictEqual(SchemaAST.collectSentinels(ast), [])
       })
     })
 
@@ -59,6 +59,40 @@ describe("SchemaAST", () => {
       )
       const ast = schema.ast
       deepStrictEqual(SchemaAST.collectSentinels(ast), [{ key: "_tag", literal: "A" }])
+    })
+
+    it("Class", () => {
+      class A extends Schema.Class<A>("A")({
+        type: Schema.Literal("A"),
+        a: Schema.String
+      }) {}
+      const ast = A.ast
+      deepStrictEqual(SchemaAST.collectSentinels(ast), [{ key: "type", literal: "A" }])
+    })
+
+    it("TaggedClass", () => {
+      class A extends Schema.TaggedClass<A>()("A", {
+        a: Schema.String
+      }) {}
+      const ast = A.ast
+      deepStrictEqual(SchemaAST.collectSentinels(ast), [{ key: "_tag", literal: "A" }])
+    })
+
+    it("ErrorClass", () => {
+      class E extends Schema.ErrorClass<E>("E")({
+        type: Schema.Literal("E"),
+        e: Schema.String
+      }) {}
+      const ast = E.ast
+      deepStrictEqual(SchemaAST.collectSentinels(ast), [{ key: "type", literal: "E" }])
+    })
+
+    it("TaggedErrorClass", () => {
+      class E extends Schema.TaggedErrorClass<E>()("E", {
+        e: Schema.String
+      }) {}
+      const ast = E.ast
+      deepStrictEqual(SchemaAST.collectSentinels(ast), [{ key: "_tag", literal: "E" }])
     })
   })
 

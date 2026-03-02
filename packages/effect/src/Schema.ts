@@ -3236,18 +3236,6 @@ type TaggedUnionUtils<
   }
 }
 
-/** @internal */
-export function _getTagValueIfPropertyKey(tag: PropertyKey, ast: AST.Objects): PropertyKey | undefined {
-  const ps = ast.propertySignatures.find((p) => p.name === tag)
-  if (ps) {
-    if (AST.isLiteral(ps.type) && Predicate.isPropertyKey(ps.type.literal)) {
-      return ps.type.literal
-    } else if (AST.isUniqueSymbol(ps.type)) {
-      return ps.type.symbol
-    }
-  }
-}
-
 /**
  * @since 4.0.0
  * @experimental
@@ -3283,16 +3271,17 @@ export function toTaggedUnion<const Tag extends PropertyKey>(tag: Tag) {
         return schema.members.forEach(walk)
       }
 
-      if (AST.isObjects(ast)) {
-        const key = _getTagValueIfPropertyKey(tag, ast)
-        if (key !== undefined) {
-          cases[key] = schema
-          guards[key] = is(toType(schema))
+      const sentinels = AST.collectSentinels(ast)
+      if (sentinels.length > 0) {
+        const literal = sentinels.find((s) => s.key === tag)?.literal
+        if (Predicate.isPropertyKey(literal)) {
+          cases[literal] = schema
+          guards[literal] = is(toType(schema))
           return
         }
       }
 
-      throw new globalThis.Error("No literal found")
+      throw new globalThis.Error("No literal or unique symbol found")
     }
 
     function match() {
@@ -8225,6 +8214,7 @@ function getClassSchemaFactory<S extends Top>(
             toArbitrary: ([from]: readonly [FastCheck.Arbitrary<S["Type"]>]) => () =>
               from.map((args) => new self(args)),
             toFormatter: ([from]: readonly [Formatter<S["Type"]>]) => (t: Self) => `${self.identifier}(${from(t)})`,
+            "~sentinels": AST.collectSentinels(from.ast),
             ...annotations
           }
         )

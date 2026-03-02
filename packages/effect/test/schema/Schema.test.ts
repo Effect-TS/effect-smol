@@ -6980,8 +6980,8 @@ error message 2`
   })
 
   describe("Tagged unions", () => {
-    describe("asTaggedUnion", () => {
-      it("should augment a union", () => {
+    describe("toTaggedUnion", () => {
+      it("should augment a union of structs", () => {
         const b = Symbol.for("B")
         const schema = Schema.Union([
           Schema.Struct({ _tag: Schema.Literal("A"), a: Schema.String }),
@@ -7066,6 +7066,23 @@ error message 2`
         // cases
         deepStrictEqual(schema.cases.TypeA, schema.members[0])
         deepStrictEqual(schema.cases.TypeB, schema.members[1])
+      })
+
+      it("should augment a union of classes", () => {
+        class A extends Schema.Class<A>("A")({
+          _tag: Schema.tag("A"),
+          a: Schema.String
+        }) {}
+        class B extends Schema.Class<B>("B")({
+          _tag: Schema.tag("B"),
+          b: Schema.FiniteFromString
+        }) {}
+
+        const schema = Schema.Union([A, B]).pipe(Schema.toTaggedUnion("_tag"))
+
+        // cases
+        deepStrictEqual(schema.cases.A, A)
+        deepStrictEqual(schema.cases.B, B)
       })
     })
 

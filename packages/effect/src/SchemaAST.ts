@@ -2028,7 +2028,7 @@ type Type =
 /** @internal */
 export type Sentinel = {
   readonly key: PropertyKey
-  readonly literal: LiteralValue
+  readonly literal: LiteralValue | symbol
 }
 
 function getCandidateTypes(ast: AST): ReadonlyArray<Type> {
@@ -2081,28 +2081,33 @@ function getCandidateTypes(ast: AST): ReadonlyArray<Type> {
 }
 
 /** @internal */
-export function collectSentinels(ast: AST): Array<Sentinel> | undefined {
+export function collectSentinels(ast: AST): Array<Sentinel> {
   switch (ast._tag) {
+    default:
+      return []
     case "Declaration": {
       const s = ast.annotations?.["~sentinels"]
-      return Array.isArray(s) && s.length ? s : undefined
+      return Array.isArray(s) ? s : []
     }
-    case "Objects": {
-      const v = ast.propertySignatures.flatMap((ps) =>
-        isLiteral(ps.type) && !isOptional(ps.type)
-          ? [{ key: ps.name, literal: ps.type.literal }]
-          : []
-      )
-      return v.length ? v : undefined
-    }
-    case "Arrays": {
-      const v = ast.elements.flatMap((e, i) =>
-        isLiteral(e) && !isOptional(e)
+    case "Objects":
+      return ast.propertySignatures.flatMap((ps): Array<Sentinel> => {
+        const type = ps.type
+        if (!isOptional(type)) {
+          if (isLiteral(type)) {
+            return [{ key: ps.name, literal: type.literal }]
+          }
+          if (isUniqueSymbol(type)) {
+            return [{ key: ps.name, literal: type.symbol }]
+          }
+        }
+        return []
+      })
+    case "Arrays":
+      return ast.elements.flatMap((e, i) => {
+        return isLiteral(e) && !isOptional(e)
           ? [{ key: i, literal: e.literal }]
           : []
-      )
-      return v.length ? v : undefined
-    }
+      })
     case "Suspend":
       return collectSentinels(ast.thunk())
   }
@@ -2110,7 +2115,7 @@ export function collectSentinels(ast: AST): Array<Sentinel> | undefined {
 
 type CandidateIndex = {
   byType?: { [K in Type]?: Array<AST> }
-  bySentinel?: Map<PropertyKey, Map<LiteralValue, Array<AST>>>
+  bySentinel?: Map<PropertyKey, Map<LiteralValue | symbol, Array<AST>>>
   otherwise?: { [K in Type]?: Array<AST> }
 }
 
@@ -2132,7 +2137,7 @@ function getIndex(types: ReadonlyArray<AST>): CandidateIndex {
     idx.byType ??= {}
     for (const t of types) (idx.byType[t] ??= []).push(a)
 
-    if (sentinels?.length) { // discriminated variants
+    if (sentinels.length > 0) { // discriminated variants
       idx.bySentinel ??= new Map()
       for (const { key, literal } of sentinels) {
         let m = idx.bySentinel.get(key)
