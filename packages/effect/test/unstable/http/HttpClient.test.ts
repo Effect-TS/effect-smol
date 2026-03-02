@@ -41,6 +41,7 @@ describe("HttpClient", () => {
     it.effect("delays requests above the configured limit", () =>
       Effect.gen(function*() {
         const attempts = yield* Ref.make(0)
+        const limiter = yield* RateLimiter.RateLimiter
         const client = HttpClient.make((request) =>
           Effect.gen(function*() {
             yield* Ref.update(attempts, (n) => n + 1)
@@ -48,6 +49,7 @@ describe("HttpClient", () => {
           })
         ).pipe(
           HttpClient.withRateLimiter({
+            limiter,
             key: "test",
             limit: 1,
             window: "1 minute"
@@ -71,6 +73,7 @@ describe("HttpClient", () => {
     it.effect("updates limits from response headers by default", () =>
       Effect.gen(function*() {
         const attempts = yield* Ref.make(0)
+        const limiter = yield* RateLimiter.RateLimiter
         const client = HttpClient.make((request) =>
           Effect.flatMap(
             Ref.updateAndGet(attempts, (n) => n + 1),
@@ -92,6 +95,7 @@ describe("HttpClient", () => {
           )
         ).pipe(
           HttpClient.withRateLimiter({
+            limiter,
             key: "test",
             limit: 10,
             window: "1 minute"
@@ -114,6 +118,7 @@ describe("HttpClient", () => {
     it.effect("can disable response header inspection", () =>
       Effect.gen(function*() {
         const attempts = yield* Ref.make(0)
+        const limiter = yield* RateLimiter.RateLimiter
         const client = HttpClient.make((request) =>
           Effect.flatMap(
             Ref.updateAndGet(attempts, (n) => n + 1),
@@ -133,6 +138,7 @@ describe("HttpClient", () => {
           )
         ).pipe(
           HttpClient.withRateLimiter({
+            limiter,
             key: "test",
             limit: 10,
             window: "1 minute",
@@ -149,6 +155,7 @@ describe("HttpClient", () => {
     it.effect("retries 429 responses through the limiter", () =>
       Effect.gen(function*() {
         const attempts = yield* Ref.make(0)
+        const limiter = yield* RateLimiter.RateLimiter
         const client = HttpClient.make((request) =>
           Effect.flatMap(
             Ref.updateAndGet(attempts, (n) => n + 1),
@@ -164,6 +171,7 @@ describe("HttpClient", () => {
           )
         ).pipe(
           HttpClient.withRateLimiter({
+            limiter,
             key: "test",
             limit: 1,
             window: "1 minute",
@@ -186,6 +194,7 @@ describe("HttpClient", () => {
     it.effect("retries HttpClientError 429 failures through the limiter", () =>
       Effect.gen(function*() {
         const attempts = yield* Ref.make(0)
+        const limiter = yield* RateLimiter.RateLimiter
         const client = HttpClient.make((request) =>
           Effect.flatMap(
             Ref.updateAndGet(attempts, (n) => n + 1),
@@ -202,6 +211,7 @@ describe("HttpClient", () => {
         ).pipe(
           HttpClient.filterStatusOk,
           HttpClient.withRateLimiter({
+            limiter,
             key: "test",
             limit: 1,
             window: "1 minute",

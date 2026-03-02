@@ -1,6 +1,5 @@
 import type { Effect } from "effect"
 import { HttpClient, type HttpClientError, type HttpClientResponse } from "effect/unstable/http"
-import type { RateLimiter } from "effect/unstable/persistence"
 import { describe, expect, it } from "tstyche"
 
 declare const client: HttpClient.HttpClient
@@ -114,46 +113,6 @@ describe("HttpClient", () => {
         // @ts-expect-error!
         HttpClient.retryTransient({ retryOn: "both" })
       )
-    })
-  })
-
-  describe("withRateLimiter", () => {
-    it("should require RateLimiter in the context", () => {
-      const request = client.pipe(
-        HttpClient.withRateLimiter({
-          key: "test",
-          limit: 10,
-          window: "1 minute"
-        })
-      ).get("https://example.com")
-
-      expect(request).type.toBe<
-        Effect.Effect<
-          HttpClientResponse.HttpClientResponse,
-          HttpClientError.HttpClientError | RateLimiter.RateLimiterError,
-          RateLimiter.RateLimiter
-        >
-      >()
-    })
-
-    it("should support data-first usage", () => {
-      const request = HttpClient.withRateLimiter(
-        client,
-        {
-          key: "test",
-          limit: 10,
-          window: "1 minute",
-          disableResponseInspection: true
-        }
-      ).get("https://example.com")
-
-      expect(request).type.toBe<
-        Effect.Effect<
-          HttpClientResponse.HttpClientResponse,
-          HttpClientError.HttpClientError | RateLimiter.RateLimiterError,
-          RateLimiter.RateLimiter
-        >
-      >()
     })
   })
 })

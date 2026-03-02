@@ -20,7 +20,7 @@ import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
 import * as Tracer from "../../Tracer.ts"
 import type { EqualsWith, ExcludeTag, ExtractTag, NoExcessProperties, NoInfer, Tags } from "../../Types.ts"
-import * as RateLimiter from "../persistence/RateLimiter.ts"
+import type * as RateLimiter from "../persistence/RateLimiter.ts"
 import * as Cookies from "./Cookies.ts"
 import * as Headers from "./Headers.ts"
 import * as Error from "./HttpClientError.ts"
@@ -892,6 +892,10 @@ export declare namespace WithRateLimiter {
    */
   export interface Options {
     /**
+     * The `RateLimiter` service to use for rate limiting.
+     */
+    readonly limiter: RateLimiter.RateLimiter
+    /**
      * The initial rate limit window duration.
      */
     readonly window: Duration.Input
@@ -900,13 +904,15 @@ export declare namespace WithRateLimiter {
      */
     readonly limit: number
     /**
+     * The key to identify the rate limit. Requests with the same key will share
+     * the same rate limit. This can be used to implement per-user or
+     * per-endpoint rate limits.
+     */
+    readonly key: string | ((request: HttpClientRequest.HttpClientRequest) => string)
+    /**
      * Defaults to `"fixed-window"`.
      */
     readonly algorithm?: "fixed-window" | "token-bucket" | undefined
-    /**
-     * Defaults to `"effect/http/HttpClient/withRateLimiter"`.
-     */
-    readonly key?: string | ((request: HttpClientRequest.HttpClientRequest) => string) | undefined
     /**
      * Defaults to `1`.
      */
@@ -931,15 +937,15 @@ export declare namespace WithRateLimiter {
 export const withRateLimiter: {
   (options: WithRateLimiter.Options): <E, R>(
     self: HttpClient.With<E, R>
-  ) => HttpClient.With<E | RateLimiter.RateLimiterError, R | RateLimiter.RateLimiter>
+  ) => HttpClient.With<E | RateLimiter.RateLimiterError, R>
   <E, R>(
     self: HttpClient.With<E, R>,
     options: WithRateLimiter.Options
-  ): HttpClient.With<E | RateLimiter.RateLimiterError, R | RateLimiter.RateLimiter>
+  ): HttpClient.With<E | RateLimiter.RateLimiterError, R>
 } = dual(2, <E, R>(
   self: HttpClient.With<E, R>,
   options: WithRateLimiter.Options
-): HttpClient.With<E | RateLimiter.RateLimiterError, R | RateLimiter.RateLimiter> => {
+): HttpClient.With<E | RateLimiter.RateLimiterError, R> => {
   const initialState: RateLimiterState = {
     limit: options.limit,
     window: Duration.max(Duration.fromInputUnsafe(options.window), Duration.millis(1))
@@ -949,7 +955,7 @@ export const withRateLimiter: {
   const keyOption = options.key
   const resolveKey: (request: HttpClientRequest.HttpClientRequest) => string = typeof keyOption === "function"
     ? keyOption
-    : () => keyOption ?? "effect/http/HttpClient/withRateLimiter"
+    : () => keyOption
   const tokensOption = options.tokens
   const resolveTokens: (request: HttpClientRequest.HttpClientRequest) => number | undefined =
     typeof tokensOption === "function" ? tokensOption : () => tokensOption
@@ -974,45 +980,137 @@ export const withRateLimiter: {
   return transform(self, (effect, request) => {
     const key = resolveKey(request)
     const tokens = resolveTokens(request)
-    const loop = (): Effect.Effect<
+    return Effect.suspend(function loop(): Effect.Effect<
       HttpClientResponse.HttpClientResponse,
       E | RateLimiter.RateLimiterError,
-      R | RateLimiter.RateLimiter
-    > =>
-      Effect.suspend(() =>
-        RateLimiter.RateLimiter.use((limiter) => {
-          const current = getState(key)
-          return Effect.flatMap(
-            limiter.consume({
-              algorithm: options.algorithm,
-              onExceeded: "delay",
-              key,
-              limit: current.limit,
-              window: current.window,
-              tokens
-            }),
-            ({ delay }) => {
-              const run = Effect.matchEffect(effect, {
-                onSuccess: (response) => {
-                  onResponse?.(key, response.headers)
-                  return response.status === 429 ? loop() : Effect.succeed(response)
-                },
-                onFailure: (error) => {
-                  if (isTooManyRequestsHttpClientError(error)) {
-                    onResponse?.(key, error.reason.response.headers)
-                    return loop()
-                  }
-                  return Effect.fail(error)
-                }
-              })
-              return Duration.isZero(delay) ? run : Effect.delay(run, delay)
+      R
+    > {
+      const current = getState(key)
+      return Effect.flatMap(
+        options.limiter.consume({
+          algorithm: options.algorithm,
+          onExceeded: "delay",
+          key,
+          limit: current.limit,
+          window: current.window,
+          tokens
+        }),
+        ({ delay }) => {
+          const run = Effect.matchEffect(effect, {
+            onSuccess(response) {
+              onResponse?.(key, response.headers)
+              return response.status === 429 ? loop() : Effect.succeed(response)
+            },
+            onFailure(error) {
+              if (isTooManyRequestsHttpClientError(error)) {
+                onResponse?.(key, error.reason.response.headers)
+                return loop()
+              }
+              return Effect.fail(error)
             }
-          )
-        })
+          })
+          return Duration.isZero(delay) ? run : Effect.delay(run, delay)
+        }
       )
-    return loop()
+    })
   })
 })
+
+interface RateLimiterState {
+  readonly limit: number
+  readonly window: Duration.Duration
+}
+
+const parseRateLimiterState = (state: RateLimiterState, headers: Headers.Headers): RateLimiterState => {
+  const limit = parseRateLimitLimit(headers) ?? state.limit
+  const window = parseRateLimitWindow(headers) ?? state.window
+  if (limit === state.limit && Duration.equals(window, state.window)) {
+    return state
+  }
+  return { limit, window }
+}
+
+const parseRateLimitLimit = (headers: Headers.Headers): number | undefined => {
+  const raw = getHeader(headers, "ratelimit-limit", "x-ratelimit-limit")
+  const value = parseNumberHeader(raw)
+  return value !== undefined && value > 0 ? value : undefined
+}
+
+const parseRateLimitWindow = (headers: Headers.Headers): Duration.Duration | undefined => {
+  const retryAfter = parseRetryAfter(getHeader(headers, "retry-after"))
+  if (retryAfter !== undefined) {
+    return retryAfter
+  }
+  const resetAfter = parseResetAfter(getHeader(headers, "ratelimit-reset-after", "x-ratelimit-reset-after"))
+  if (resetAfter !== undefined) {
+    return resetAfter
+  }
+  return parseResetHeader(getHeader(headers, "ratelimit-reset", "x-ratelimit-reset"))
+}
+
+const parseRetryAfter = (value: string | undefined): Duration.Duration | undefined => {
+  if (value === undefined) {
+    return undefined
+  }
+  const numeric = parseNumberHeader(value)
+  if (numeric !== undefined) {
+    return Duration.max(Duration.seconds(numeric), Duration.millis(1))
+  }
+  const parsedDate = Date.parse(value)
+  if (Number.isNaN(parsedDate)) {
+    return undefined
+  }
+  const millis = parsedDate - Date.now()
+  if (millis <= 0) {
+    return Duration.millis(1)
+  }
+  return Duration.millis(millis)
+}
+
+const parseResetAfter = (value: string | undefined): Duration.Duration | undefined => {
+  const numeric = parseNumberHeader(value)
+  if (numeric === undefined || numeric <= 0) {
+    return undefined
+  }
+  return Duration.max(Duration.seconds(numeric), Duration.millis(1))
+}
+
+const parseResetHeader = (value: string | undefined): Duration.Duration | undefined => {
+  const numeric = parseNumberHeader(value)
+  if (numeric === undefined || numeric <= 0) {
+    return undefined
+  }
+  const nowMillis = Date.now()
+  if (numeric > 1_000_000_000_000) {
+    return Duration.millis(Math.max(numeric - nowMillis, 1))
+  }
+  if (numeric > 1_000_000_000) {
+    return Duration.millis(Math.max((numeric * 1_000) - nowMillis, 1))
+  }
+  return Duration.max(Duration.seconds(numeric), Duration.millis(1))
+}
+
+const parseNumberHeader = (value: string | undefined): number | undefined => {
+  if (value === undefined) {
+    return undefined
+  }
+  const match = /-?\d+(?:\.\d+)?/.exec(value)
+  if (match === null) {
+    return undefined
+  }
+  const parsed = Number(match[0])
+  return Number.isFinite(parsed) ? parsed : undefined
+}
+
+const getHeader = (headers: Headers.Headers, ...keys: Array<string>): string | undefined => {
+  for (let i = 0; i < keys.length; i++) {
+    const value = headers[keys[i]]
+    if (value !== undefined) {
+      return value
+    }
+  }
+  return undefined
+}
 
 /**
  * Performs an additional effect after a successful request.
@@ -1352,102 +1450,6 @@ const isTooManyRequestsHttpClientError = (
   error: unknown
 ): error is Error.HttpClientError & { readonly reason: Error.StatusCodeError } =>
   Error.isHttpClientError(error) && error.reason._tag === "StatusCodeError" && error.reason.response.status === 429
-
-interface RateLimiterState {
-  readonly limit: number
-  readonly window: Duration.Duration
-}
-
-const parseRateLimiterState = (state: RateLimiterState, headers: Headers.Headers): RateLimiterState => {
-  const limit = parseRateLimitLimit(headers) ?? state.limit
-  const window = parseRateLimitWindow(headers) ?? state.window
-  if (limit === state.limit && Duration.equals(window, state.window)) {
-    return state
-  }
-  return { limit, window }
-}
-
-const parseRateLimitLimit = (headers: Headers.Headers): number | undefined => {
-  const raw = getHeader(headers, "ratelimit-limit", "x-ratelimit-limit")
-  const value = parseNumberHeader(raw)
-  return value !== undefined && value > 0 ? value : undefined
-}
-
-const parseRateLimitWindow = (headers: Headers.Headers): Duration.Duration | undefined => {
-  const retryAfter = parseRetryAfter(getHeader(headers, "retry-after"))
-  if (retryAfter !== undefined) {
-    return retryAfter
-  }
-  const resetAfter = parseResetAfter(getHeader(headers, "ratelimit-reset-after", "x-ratelimit-reset-after"))
-  if (resetAfter !== undefined) {
-    return resetAfter
-  }
-  return parseResetHeader(getHeader(headers, "ratelimit-reset", "x-ratelimit-reset"))
-}
-
-const parseRetryAfter = (value: string | undefined): Duration.Duration | undefined => {
-  if (value === undefined) {
-    return undefined
-  }
-  const numeric = parseNumberHeader(value)
-  if (numeric !== undefined) {
-    return Duration.max(Duration.seconds(numeric), Duration.millis(1))
-  }
-  const parsedDate = Date.parse(value)
-  if (Number.isNaN(parsedDate)) {
-    return undefined
-  }
-  const millis = parsedDate - Date.now()
-  if (millis <= 0) {
-    return Duration.millis(1)
-  }
-  return Duration.millis(millis)
-}
-
-const parseResetAfter = (value: string | undefined): Duration.Duration | undefined => {
-  const numeric = parseNumberHeader(value)
-  if (numeric === undefined || numeric <= 0) {
-    return undefined
-  }
-  return Duration.max(Duration.seconds(numeric), Duration.millis(1))
-}
-
-const parseResetHeader = (value: string | undefined): Duration.Duration | undefined => {
-  const numeric = parseNumberHeader(value)
-  if (numeric === undefined || numeric <= 0) {
-    return undefined
-  }
-  const nowMillis = Date.now()
-  if (numeric > 1_000_000_000_000) {
-    return Duration.millis(Math.max(numeric - nowMillis, 1))
-  }
-  if (numeric > 1_000_000_000) {
-    return Duration.millis(Math.max((numeric * 1_000) - nowMillis, 1))
-  }
-  return Duration.max(Duration.seconds(numeric), Duration.millis(1))
-}
-
-const parseNumberHeader = (value: string | undefined): number | undefined => {
-  if (value === undefined) {
-    return undefined
-  }
-  const match = /-?\d+(?:\.\d+)?/.exec(value)
-  if (match === null) {
-    return undefined
-  }
-  const parsed = Number(match[0])
-  return Number.isFinite(parsed) ? parsed : undefined
-}
-
-const getHeader = (headers: Headers.Headers, ...keys: Array<string>): string | undefined => {
-  for (let i = 0; i < keys.length; i++) {
-    const value = headers[keys[i]]
-    if (value !== undefined) {
-      return value
-    }
-  }
-  return undefined
-}
 
 const isTransientResponse = (response: HttpClientResponse.HttpClientResponse) =>
   response.status === 408 ||
