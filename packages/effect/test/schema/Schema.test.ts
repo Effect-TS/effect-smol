@@ -2,6 +2,7 @@ import {
   BigDecimal,
   Brand,
   Cause,
+  Chunk,
   DateTime,
   Duration,
   Effect,
@@ -4106,6 +4107,31 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
     const encoding = asserts.encoding()
     await encoding.succeed(HashSet.make(1, 2, 3), HashSet.make("1", "2", "3"))
+  })
+
+  it("Chunk", async () => {
+    const schema = Schema.Chunk(Schema.FiniteFromString)
+    const asserts = new TestSchema.Asserts(schema)
+
+    strictEqual(schema.value, Schema.FiniteFromString)
+    strictEqual(schema.annotate({}).value, Schema.FiniteFromString)
+
+    if (verifyGeneration) {
+      const arbitrary = asserts.arbitrary()
+      arbitrary.verifyGeneration()
+    }
+
+    const decoding = asserts.decoding()
+    await decoding.succeed(Chunk.make("1", "2", "3"), Chunk.make(1, 2, 3))
+    await decoding.fail(null, `Expected Chunk, got null`)
+    await decoding.fail(
+      Chunk.make(null),
+      `Expected string, got null
+  at ["values"][0]`
+    )
+
+    const encoding = asserts.encoding()
+    await encoding.succeed(Chunk.make(1, 2, 3), Chunk.make("1", "2", "3"))
   })
 
   it("ReadonlyMap", async () => {

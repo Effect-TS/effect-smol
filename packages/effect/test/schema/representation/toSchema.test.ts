@@ -256,6 +256,13 @@ describe("toSchema", () => {
       )
     })
 
+    it("Chunk", () => {
+      assertToSchemaWithReviver(
+        Schema.Chunk(Schema.String),
+        `Schema.Chunk(Schema.String)`
+      )
+    })
+
     it("ReadonlySet", () => {
       assertToSchemaWithReviver(
         Schema.ReadonlySet(Schema.String),

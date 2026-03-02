@@ -1771,6 +1771,8 @@ export const toSchemaDefaultReviver: Reviver<Schema.Top> = (s, recur) => {
         return Schema.Result(typeParameters[0], typeParameters[1])
       case "effect/HashSet":
         return Schema.HashSet(typeParameters[0])
+      case "effect/Chunk":
+        return Schema.Chunk(typeParameters[0])
     }
   }
 }

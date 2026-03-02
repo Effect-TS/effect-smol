@@ -8,6 +8,7 @@ import * as Arr from "./Array.ts"
 import * as BigDecimal_ from "./BigDecimal.ts"
 import type * as Brand from "./Brand.ts"
 import * as Cause_ from "./Cause.ts"
+import * as Chunk_ from "./Chunk.ts"
 import type * as Combiner from "./Combiner.ts"
 import * as Data from "./Data.ts"
 import * as DateTime from "./DateTime.ts"
@@ -6619,6 +6620,95 @@ export function HashSet<Value extends Top>(value: Value): HashSet<Value> {
         }
         const values = globalThis.Array.from(t).sort().map((v) => `${value(v)}`)
         return `HashSet(${size}) { ${values.join(", ")} }`
+      }
+    }
+  )
+  return make(schema.ast, { value })
+}
+
+/**
+ * @category Chunk
+ * @since 4.0.0
+ */
+export interface Chunk<Value extends Top> extends
+  declareConstructor<
+    Chunk_.Chunk<Value["Type"]>,
+    Chunk_.Chunk<Value["Encoded"]>,
+    readonly [Value],
+    ChunkIso<Value>
+  >
+{
+  readonly value: Value
+}
+
+/**
+ * @category Chunk
+ * @since 4.0.0
+ */
+export type ChunkIso<Value extends Top> = ReadonlyArray<Value["Iso"]>
+
+/**
+ * Creates a schema that validates a `Chunk` where values must conform to the
+ * provided schema.
+ *
+ * @category Chunk
+ * @since 4.0.0
+ */
+export function Chunk<Value extends Top>(value: Value): Chunk<Value> {
+  const schema = declareConstructor<
+    Chunk_.Chunk<Value["Type"]>,
+    Chunk_.Chunk<Value["Encoded"]>,
+    ChunkIso<Value>
+  >()(
+    [value],
+    ([value]) => {
+      const values = Array(value)
+      return (input, ast, options) => {
+        if (Chunk_.isChunk(input)) {
+          return Effect.mapBothEager(
+            Parser.decodeUnknownEffect(values)(Arr.fromIterable(input), options),
+            {
+              onSuccess: Chunk_.fromIterable,
+              onFailure: (issue) =>
+                new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["values"], issue)])
+            }
+          )
+        }
+        return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
+      }
+    },
+    {
+      typeConstructor: {
+        _tag: "effect/Chunk"
+      },
+      generation: {
+        runtime: `Schema.Chunk(?)`,
+        Type: `Chunk.Chunk<?>`
+      },
+      expected: "Chunk",
+      toCodec: ([value]) =>
+        link<Chunk_.Chunk<Value["Encoded"]>>()(
+          Array(value),
+          Transformation.transform({
+            decode: Chunk_.fromIterable,
+            encode: Arr.fromIterable
+          })
+        ),
+      toArbitrary: ([value]) => (fc, ctx) => {
+        return fc.oneof(
+          ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Chunk" } : {},
+          fc.constant([]),
+          fc.array(value, ctx?.constraints?.array)
+        ).map(Chunk_.fromIterable)
+      },
+      toEquivalence: ([value]) => Chunk_.makeEquivalence(value),
+      toFormatter: ([value]) => (t) => {
+        const size = Chunk_.size(t)
+        if (size === 0) {
+          return "Chunk(0) {}"
+        }
+        const values = globalThis.Array.from(t).sort().map((v) => `${value(v)}`)
+        return `Chunk(${size}) { ${values.join(", ")} }`
       }
     }
   )
