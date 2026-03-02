@@ -85,7 +85,6 @@
  */
 import * as Equal from "./Equal.ts"
 import * as Equivalence from "./Equivalence.ts"
-import type * as Filter from "./Filter.ts"
 import type { LazyArg } from "./Function.ts"
 import { dual, identity } from "./Function.ts"
 import type { TypeLambda } from "./HKT.ts"
@@ -1261,9 +1260,9 @@ export const takeWhile: {
  * @since 4.0.0
  */
 export const takeWhileFilter: {
-  <A, B, X>(f: Filter.Filter<NoInfer<A>, B, X, [i: number]>): (self: Iterable<A>) => Array<B>
-  <A, B, X>(self: Iterable<A>, f: Filter.Filter<A, B, X, [i: number]>): Array<B>
-} = dual(2, <A, B, X>(self: Iterable<A>, f: Filter.Filter<A, B, X, [i: number]>): Array<B> => {
+  <A, B, X>(f: (input: NoInfer<A>, i: number) => Result.Result<B, X>): (self: Iterable<A>) => Array<B>
+  <A, B, X>(self: Iterable<A>, f: (input: NoInfer<A>, i: number) => Result.Result<B, X>): Array<B>
+} = dual(2, <A, B, X>(self: Iterable<A>, f: (input: NoInfer<A>, i: number) => Result.Result<B, X>): Array<B> => {
   let i = 0
   const out: Array<B> = []
   for (const a of self) {
@@ -1429,11 +1428,11 @@ export const dropWhile: {
  * @since 4.0.0
  */
 export const dropWhileFilter: {
-  <A, B, X>(f: Filter.Filter<NoInfer<A>, B, X, [i: number]>): (self: Iterable<A>) => Array<A>
-  <A, B, X>(self: Iterable<A>, f: Filter.Filter<A, B, X, [i: number]>): Array<A>
+  <A, B, X>(f: (input: NoInfer<A>, i: number) => Result.Result<B, X>): (self: Iterable<A>) => Array<A>
+  <A, B, X>(self: Iterable<A>, f: (input: A, i: number) => Result.Result<B, X>): Array<A>
 } = dual(
   2,
-  <A, B, X>(self: Iterable<A>, f: Filter.Filter<A, B, X, [i: number]>): Array<A> => {
+  <A, B, X>(self: Iterable<A>, f: (input: A, i: number) => Result.Result<B, X>): Array<A> => {
     const input = fromIterable(self)
     let i = 0
     while (i < input.length) {
@@ -3252,9 +3251,9 @@ export const getSuccesses = <T extends Iterable<Result.Result<any, any>>>(
  * @since 4.0.0
  */
 export const filterMap: {
-  <A, B, X>(f: Filter.Filter<NoInfer<A>, B, X, [i: number]>): (self: Iterable<A>) => Array<B>
-  <A, B, X>(self: Iterable<A>, f: Filter.Filter<A, B, X, [i: number]>): Array<B>
-} = dual(2, <A, B, X>(self: Iterable<A>, f: Filter.Filter<A, B, X, [i: number]>): Array<B> => {
+  <A, B, X>(f: (input: NoInfer<A>, i: number) => Result.Result<B, X>): (self: Iterable<A>) => Array<B>
+  <A, B, X>(self: Iterable<A>, f: (input: A, i: number) => Result.Result<B, X>): Array<B>
+} = dual(2, <A, B, X>(self: Iterable<A>, f: (input: A, i: number) => Result.Result<B, X>): Array<B> => {
   const as = fromIterable(self)
   const out: Array<B> = []
   for (let i = 0; i < as.length; i++) {
@@ -3329,17 +3328,17 @@ export const filter: {
  */
 export const partition: {
   <A, Pass, Fail>(
-    f: Filter.Filter<NoInfer<A>, Pass, Fail, [i: number]>
+    f: (input: NoInfer<A>, i: number) => Result.Result<Pass, Fail>
   ): (self: Iterable<A>) => [excluded: Array<Fail>, satisfying: Array<Pass>]
   <A, Pass, Fail>(
     self: Iterable<A>,
-    f: Filter.Filter<A, Pass, Fail, [i: number]>
+    f: (input: A, i: number) => Result.Result<Pass, Fail>
   ): [excluded: Array<Fail>, satisfying: Array<Pass>]
 } = dual(
   2,
   <A, Pass, Fail>(
     self: Iterable<A>,
-    f: Filter.Filter<A, Pass, Fail, [i: number]>
+    f: (input: A, i: number) => Result.Result<Pass, Fail>
   ): [excluded: Array<Fail>, satisfying: Array<Pass>] => {
     const excluded: Array<Fail> = []
     const satisfying: Array<Pass> = []

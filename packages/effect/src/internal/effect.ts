@@ -4334,17 +4334,17 @@ const findFirstLoop = <A, E, R>(
 /** @internal */
 export const findFirstFilter: {
   <A, B, X, E, R>(
-    filter: Filter.FilterEffect<NoInfer<A>, B, X, E, R, [i: number]>
+    filter: (input: NoInfer<A>, i: number) => Effect.Effect<Result.Result<B, X>, E, R>
   ): (elements: Iterable<A>) => Effect.Effect<Option.Option<B>, E, R>
   <A, B, X, E, R>(
     elements: Iterable<A>,
-    filter: Filter.FilterEffect<NoInfer<A>, B, X, E, R, [i: number]>
+    filter: (input: NoInfer<A>, i: number) => Effect.Effect<Result.Result<B, X>, E, R>
   ): Effect.Effect<Option.Option<B>, E, R>
 } = dual(
   (args) => isIterable(args[0]) && !isEffect(args[0]),
   <A, B, X, E, R>(
     elements: Iterable<A>,
-    filter: Filter.FilterEffect<A, B, X, E, R, [i: number]>
+    filter: (input: A, i: number) => Effect.Effect<Result.Result<B, X>, E, R>
   ): Effect.Effect<Option.Option<B>, E, R> =>
     suspend(() => {
       const iterator = elements[Symbol.iterator]()
@@ -4359,7 +4359,7 @@ export const findFirstFilter: {
 const findFirstFilterLoop = <A, B, X, E, R>(
   iterator: Iterator<A>,
   index: number,
-  filter: Filter.FilterEffect<A, B, X, E, R, [i: number]>,
+  filter: (input: A, i: number) => Effect.Effect<Result.Result<B, X>, E, R>,
   value: A
 ): Effect.Effect<Option.Option<B>, E, R> =>
   flatMap(filter(value, index), (result) => {

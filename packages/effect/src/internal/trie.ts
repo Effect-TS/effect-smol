@@ -1,5 +1,4 @@
 import * as Equal from "../Equal.ts"
-import type * as Filter from "../Filter.ts"
 import { format } from "../Formatter.ts"
 import { dual, pipe } from "../Function.ts"
 import * as Hash from "../Hash.ts"
@@ -312,10 +311,10 @@ export const filter: {
 /** @internal */
 export const filterMap = dual<
   <A, B, X>(
-    f: Filter.Filter<A, B, X, [key: string]>
+    f: (input: A, key: string) => Result.Result<B, X>
   ) => (self: TR.Trie<A>) => TR.Trie<B>,
-  <A, B, X>(self: TR.Trie<A>, f: Filter.Filter<A, B, X, [key: string]>) => TR.Trie<B>
->(2, <A, B, X>(self: TR.Trie<A>, f: Filter.Filter<A, B, X, [key: string]>): TR.Trie<B> =>
+  <A, B, X>(self: TR.Trie<A>, f: (input: A, key: string) => Result.Result<B, X>) => TR.Trie<B>
+>(2, <A, B, X>(self: TR.Trie<A>, f: (input: A, key: string) => Result.Result<B, X>): TR.Trie<B> =>
   reduce(
     self,
     empty<B>(),

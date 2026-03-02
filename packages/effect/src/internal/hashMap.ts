@@ -3,7 +3,6 @@
  */
 
 import * as Equal_ from "../Equal.ts"
-import type * as Filter from "../Filter.ts"
 import { format } from "../Formatter.ts"
 import { dual, pipe } from "../Function.ts"
 import * as Hash from "../Hash.ts"
@@ -1257,9 +1256,9 @@ export const compact = <K, A>(self: HashMap<K, Option.Option<A>>): HashMap<K, A>
 
 /** @internal */
 export const filterMap = dual<
-  <A, K, B, X>(f: Filter.Filter<A, B, X, [key: K]>) => (self: HashMap<K, A>) => HashMap<K, B>,
-  <K, A, B, X>(self: HashMap<K, A>, f: Filter.Filter<A, B, X, [key: K]>) => HashMap<K, B>
->(2, <K, A, B, X>(self: HashMap<K, A>, f: Filter.Filter<A, B, X, [key: K]>): HashMap<K, B> => {
+  <A, K, B, X>(f: (input: A, key: K) => Result.Result<B, X>) => (self: HashMap<K, A>) => HashMap<K, B>,
+  <K, A, B, X>(self: HashMap<K, A>, f: (input: A, key: K) => Result.Result<B, X>) => HashMap<K, B>
+>(2, <K, A, B, X>(self: HashMap<K, A>, f: (input: A, key: K) => Result.Result<B, X>): HashMap<K, B> => {
   let result = empty<K, B>()
   for (const [key, value] of self) {
     const mapped = f(value, key)

@@ -29,8 +29,8 @@ import type { EqualsWith, ExcludeTag, ExtractReason, ExtractTag, ReasonTags, Tag
  * @since 4.0.0
  * @category Models
  */
-export interface Filter<in Input, out Pass = Input, out Fail = Input, in Args extends ReadonlyArray<any> = []> {
-  (input: Input, ...args: Args): Result.Result<Pass, Fail>
+export interface Filter<in Input, out Pass = Input, out Fail = Input> {
+  (input: Input): Result.Result<Pass, Fail>
 }
 
 /**
@@ -68,10 +68,9 @@ export interface FilterEffect<
   out Pass,
   out Fail,
   out E = never,
-  out R = never,
-  in Args extends Array<any> = []
+  out R = never
 > {
-  (input: Input, ...args: Args): Effect<Result.Result<Pass, Fail>, E, R>
+  (input: Input): Effect<Result.Result<Pass, Fail>, E, R>
 }
 
 // -------------------------------------------------------------------------------------

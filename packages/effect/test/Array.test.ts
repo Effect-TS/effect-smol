@@ -1,16 +1,6 @@
 import { describe, it } from "@effect/vitest"
 import { assertNone, assertSome, assertUndefined, deepStrictEqual, strictEqual, throws } from "@effect/vitest/utils"
-import {
-  Array as Arr,
-  Equivalence,
-  type Filter,
-  Number as Num,
-  Option,
-  Order,
-  type Predicate,
-  Result,
-  String as Str
-} from "effect"
+import { Array as Arr, Equivalence, Number as Num, Option, Order, type Predicate, Result, String as Str } from "effect"
 import { identity, pipe } from "effect/Function"
 import { FastCheck as fc } from "effect/testing"
 
@@ -161,7 +151,7 @@ describe("Array", () => {
     })
 
     it("takeWhileFilter", () => {
-      const f: Filter.Filter<number, number, string, [i: number]> = (n, i) =>
+      const f: (n: number, i: number) => Result.Result<number, string> = (n, i) =>
         n + i < 5 ? Result.succeed(n * 10) : Result.fail(`stop: ${n}`)
 
       deepStrictEqual(Arr.takeWhileFilter([], f), [])
@@ -296,7 +286,7 @@ describe("Array", () => {
     })
 
     it("dropWhileFilter", () => {
-      const f: Filter.Filter<number, number, string, [i: number]> = (n, i) =>
+      const f: (n: number, i: number) => Result.Result<number, string> = (n, i) =>
         n + i < 5 ? Result.succeed(n * 10) : Result.fail(`stop: ${n}`)
 
       deepStrictEqual(Arr.dropWhileFilter([], f), [])
@@ -867,7 +857,7 @@ describe("Array", () => {
   })
 
   it("filterMap", () => {
-    const f: Filter.Filter<number, number, string, [i: number]> = (n, i) =>
+    const f: (n: number, i: number) => Result.Result<number, string> = (n, i) =>
       n + i < 4 ? Result.succeed(n * 2) : Result.fail(`skip: ${n}`)
 
     deepStrictEqual(Arr.filterMap([], f), [])
@@ -1359,7 +1349,7 @@ describe("Array", () => {
   })
 
   it("partition", () => {
-    const f: Filter.Filter<number, number, string, [i: number]> = (n, i) =>
+    const f: (n: number, i: number) => Result.Result<number, string> = (n, i) =>
       n > 0 ? Result.succeed(n + i) : Result.fail(`negative: ${n}:${i}`)
     deepStrictEqual(Arr.partition([], f), [[], []])
     deepStrictEqual(Arr.partition([1, -2, 3, -4], f), [["negative: -2:1", "negative: -4:3"], [1, 5]])

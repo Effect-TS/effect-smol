@@ -3,7 +3,6 @@
  */
 
 import * as Effect from "./Effect.ts"
-import type * as Filter from "./Filter.ts"
 import { format } from "./Formatter.ts"
 import { dual } from "./Function.ts"
 import * as HashMap from "./HashMap.ts"
@@ -12,6 +11,7 @@ import { NodeInspectSymbol, toJson } from "./Inspectable.ts"
 import * as Option from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import { pipeArguments } from "./Pipeable.ts"
+import type { Result } from "./Result.ts"
 import * as TxRef from "./TxRef.ts"
 
 const TypeId = "~effect/transactions/TxHashMap"
@@ -1547,17 +1547,17 @@ export const reduce: {
  */
 export const filterMap: {
   <V, K, A, X>(
-    f: Filter.Filter<V, A, X, [key: K]>
+    f: (input: V, key: K) => Result<A, X>
   ): (self: TxHashMap<K, V>) => Effect.Effect<TxHashMap<K, A>, never, Effect.Transaction>
   <K, V, A, X>(
     self: TxHashMap<K, V>,
-    f: Filter.Filter<V, A, X, [key: K]>
+    f: (input: V, key: K) => Result<A, X>
   ): Effect.Effect<TxHashMap<K, A>, never, Effect.Transaction>
 } = dual(
   2,
   <K, V, A, X>(
     self: TxHashMap<K, V>,
-    f: Filter.Filter<V, A, X, [key: K]>
+    f: (input: V, key: K) => Result<A, X>
   ): Effect.Effect<TxHashMap<K, A>, never, Effect.Transaction> =>
     Effect.gen(function*() {
       const currentMap = yield* TxRef.get(self.ref)

@@ -3,11 +3,11 @@
  */
 
 import type { Equal } from "./Equal.ts"
-import type * as Filter from "./Filter.ts"
 import type { Inspectable } from "./Inspectable.ts"
 import * as internal from "./internal/hashMap.ts"
 import type { Option } from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
+import type { Result } from "./Result.ts"
 import type { NoInfer } from "./Types.ts"
 
 const TypeId = internal.HashMapTypeId
@@ -1096,8 +1096,8 @@ export const compact: <K, A>(self: HashMap<K, Option<A>>) => HashMap<K, A> = int
  * @category filtering
  */
 export const filterMap: {
-  <A, K, B, X>(f: Filter.Filter<A, B, X, [key: K]>): (self: HashMap<K, A>) => HashMap<K, B>
-  <K, A, B, X>(self: HashMap<K, A>, f: Filter.Filter<A, B, X, [key: K]>): HashMap<K, B>
+  <A, K, B, X>(f: (input: A, key: K) => Result<B, X>): (self: HashMap<K, A>) => HashMap<K, B>
+  <K, A, B, X>(self: HashMap<K, A>, f: (input: A, key: K) => Result<B, X>): HashMap<K, B>
 } = internal.filterMap
 
 /**

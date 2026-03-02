@@ -32,7 +32,6 @@
 
 import type { NonEmptyArray } from "./Array.ts"
 import * as Equal from "./Equal.ts"
-import type * as Filter from "./Filter.ts"
 import { dual } from "./Function.ts"
 import type { Option } from "./Option.ts"
 import * as O from "./Option.ts"
@@ -1551,11 +1550,11 @@ export const flatten = <A>(self: Iterable<Iterable<A>>): Iterable<A> => ({
  * @since 2.0.0
  */
 export const filterMap: {
-  <A, B, X>(f: Filter.Filter<A, B, X, [i: number]>): (self: Iterable<A>) => Iterable<B>
-  <A, B, X>(self: Iterable<A>, f: Filter.Filter<A, B, X, [i: number]>): Iterable<B>
+  <A, B, X>(f: (input: A, i: number) => Result<B, X>): (self: Iterable<A>) => Iterable<B>
+  <A, B, X>(self: Iterable<A>, f: (input: A, i: number) => Result<B, X>): Iterable<B>
 } = dual(
   2,
-  <A, B, X>(self: Iterable<A>, f: Filter.Filter<A, B, X, [i: number]>): Iterable<B> => ({
+  <A, B, X>(self: Iterable<A>, f: (input: A, i: number) => Result<B, X>): Iterable<B> => ({
     [Symbol.iterator]() {
       const iterator = self[Symbol.iterator]()
       let i = 0
@@ -1613,9 +1612,9 @@ export const filterMap: {
  * @since 2.0.0
  */
 export const filterMapWhile: {
-  <A, B, X>(f: Filter.Filter<A, B, X, [i: number]>): (self: Iterable<A>) => Iterable<B>
-  <A, B, X>(self: Iterable<A>, f: Filter.Filter<A, B, X, [i: number]>): Iterable<B>
-} = dual(2, <A, B, X>(self: Iterable<A>, f: Filter.Filter<A, B, X, [i: number]>) => ({
+  <A, B, X>(f: (input: A, i: number) => Result<B, X>): (self: Iterable<A>) => Iterable<B>
+  <A, B, X>(self: Iterable<A>, f: (input: A, i: number) => Result<B, X>): Iterable<B>
+} = dual(2, <A, B, X>(self: Iterable<A>, f: (input: A, i: number) => Result<B, X>) => ({
   [Symbol.iterator]() {
     const iterator = self[Symbol.iterator]()
     let i = 0

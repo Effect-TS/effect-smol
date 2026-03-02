@@ -16,11 +16,11 @@
  * @since 2.0.0
  */
 import type { Equal } from "./Equal.ts"
-import type * as Filter from "./Filter.ts"
 import type { Inspectable } from "./Inspectable.ts"
 import * as TR from "./internal/trie.ts"
 import type { Option } from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
+import type { Result } from "./Result.ts"
 import type { Covariant, NoInfer } from "./Types.ts"
 
 const TypeId = TR.TrieTypeId
@@ -757,8 +757,8 @@ export const filter: {
  * @category filtering
  */
 export const filterMap: {
-  <A, B, X>(f: Filter.Filter<A, B, X, [key: string]>): (self: Trie<A>) => Trie<B>
-  <A, B, X>(self: Trie<A>, f: Filter.Filter<A, B, X, [key: string]>): Trie<B>
+  <A, B, X>(f: (input: A, key: string) => Result<B, X>): (self: Trie<A>) => Trie<B>
+  <A, B, X>(self: Trie<A>, f: (input: A, key: string) => Result<B, X>): Trie<B>
 } = TR.filterMap
 
 /**

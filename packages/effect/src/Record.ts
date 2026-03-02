@@ -7,7 +7,6 @@
 import type * as Combiner from "./Combiner.ts"
 import * as Equal from "./Equal.ts"
 import type { Equivalence } from "./Equivalence.ts"
-import type * as Filter from "./Filter.ts"
 import { dual, identity } from "./Function.ts"
 import type { TypeLambda } from "./HKT.ts"
 import * as Option from "./Option.ts"
@@ -680,17 +679,17 @@ export const mapEntries: {
  */
 export const filterMap: {
   <K extends string, A, B, X>(
-    f: Filter.Filter<A, B, X, [key: K]>
+    f: (input: A, key: K) => Result<B, X>
   ): (self: ReadonlyRecord<K, A>) => Record<ReadonlyRecord.NonLiteralKey<K>, B>
   <K extends string, A, B, X>(
     self: ReadonlyRecord<K, A>,
-    f: Filter.Filter<A, B, X, [key: K]>
+    f: (input: A, key: K) => Result<B, X>
   ): Record<ReadonlyRecord.NonLiteralKey<K>, B>
 } = dual(
   2,
   <K extends string, A, B, X>(
     self: ReadonlyRecord<K, A>,
-    f: Filter.Filter<A, B, X, [key: K]>
+    f: (input: A, key: K) => Result<B, X>
   ): Record<ReadonlyRecord.NonLiteralKey<K>, B> => {
     const out: Record<string, B> = empty()
     for (const key of keys(self)) {
@@ -869,19 +868,19 @@ export const getSuccesses = <K extends string, A, E>(
  */
 export const partition: {
   <K extends string, A, B, C>(
-    f: Filter.Filter<A, C, B, [key: K]>
+    f: (input: A, key: K) => Result<C, B>
   ): (
     self: ReadonlyRecord<K, A>
   ) => [left: Record<ReadonlyRecord.NonLiteralKey<K>, B>, right: Record<ReadonlyRecord.NonLiteralKey<K>, C>]
   <K extends string, A, B, C>(
     self: ReadonlyRecord<K, A>,
-    f: Filter.Filter<A, C, B, [key: K]>
+    f: (input: A, key: K) => Result<C, B>
   ): [left: Record<ReadonlyRecord.NonLiteralKey<K>, B>, right: Record<ReadonlyRecord.NonLiteralKey<K>, C>]
 } = dual(
   2,
   <K extends string, A, B, C>(
     self: ReadonlyRecord<K, A>,
-    f: Filter.Filter<A, C, B, [key: K]>
+    f: (input: A, key: K) => Result<C, B>
   ): [left: Record<ReadonlyRecord.NonLiteralKey<K>, B>, right: Record<ReadonlyRecord.NonLiteralKey<K>, C>] => {
     const left: Record<string, B> = empty()
     const right: Record<string, C> = empty()

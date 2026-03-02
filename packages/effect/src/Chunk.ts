@@ -1021,11 +1021,11 @@ export const appendAll: {
  * @category filtering
  */
 export const filterMap: {
-  <A, B, X>(f: Filter.Filter<A, B, X, [i: number]>): (self: Chunk<A>) => Chunk<B>
-  <A, B, X>(self: Chunk<A>, f: Filter.Filter<A, B, X, [i: number]>): Chunk<B>
+  <A, B, X>(f: (input: A, i: number) => Result<B, X>): (self: Chunk<A>) => Chunk<B>
+  <A, B, X>(self: Chunk<A>, f: (input: A, i: number) => Result<B, X>): Chunk<B>
 } = dual(
   2,
-  <A, B, X>(self: Chunk<A>, f: Filter.Filter<A, B, X, [i: number]>): Chunk<B> => {
+  <A, B, X>(self: Chunk<A>, f: (input: A, i: number) => Result<B, X>): Chunk<B> => {
     const as = RA.fromIterable(self)
     const out: Array<B> = []
     for (let i = 0; i < as.length; i++) {
@@ -1733,17 +1733,17 @@ export const mapAccum: {
  */
 export const partition: {
   <A, Pass, Fail>(
-    f: Filter.Filter<NoInfer<A>, Pass, Fail, [i: number]>
+    f: (input: NoInfer<A>, i: number) => Result<Pass, Fail>
   ): (self: Chunk<A>) => [excluded: Chunk<Fail>, satisfying: Chunk<Pass>]
   <A, Pass, Fail>(
     self: Chunk<A>,
-    f: Filter.Filter<A, Pass, Fail, [i: number]>
+    f: (input: A, i: number) => Result<Pass, Fail>
   ): [excluded: Chunk<Fail>, satisfying: Chunk<Pass>]
 } = dual(
   2,
   <A, Pass, Fail>(
     self: Chunk<A>,
-    f: Filter.Filter<A, Pass, Fail, [i: number]>
+    f: (input: A, i: number) => Result<Pass, Fail>
   ): [excluded: Chunk<Fail>, satisfying: Chunk<Pass>] => {
     const [excluded, satisfying] = RA.partition(self, f)
     return [fromArrayUnsafe(excluded), fromArrayUnsafe(satisfying)]
