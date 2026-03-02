@@ -100,6 +100,32 @@ describe("HttpApiClient", () => {
       // @ts-expect-error!
       builder("users", "POST /users/:id", { params: { id: "123" }, query: { page: "1" } })
     })
+
+    it("should reflect api-level prefix in endpoint keys", () => {
+      const Api = HttpApi.make("Api")
+        .add(
+          HttpApiGroup.make("users")
+            .add(
+              HttpApiEndpoint.get("getUser", "/users/:id", {
+                params: {
+                  id: Schema.FiniteFromString
+                }
+              })
+            )
+        )
+        .prefix("/v1")
+
+      const builder = HttpApiClient.urlBuilder<typeof Api>()
+
+      const prefixedUrl = builder("users", "GET /v1/users/:id", {
+        params: { id: "123" }
+      })
+
+      expect<typeof prefixedUrl>().type.toBe<string>()
+
+      // @ts-expect-error!
+      builder("users", "GET /users/:id", { params: { id: "123" } })
+    })
   })
 
   describe("headers option", () => {

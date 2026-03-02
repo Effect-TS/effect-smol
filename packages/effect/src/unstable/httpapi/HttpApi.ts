@@ -57,7 +57,7 @@ export interface HttpApi<
   /**
    * Prefix all endpoints in the `HttpApi`.
    */
-  prefix<const Prefix extends PathInput>(prefix: Prefix): HttpApi<Id, Groups>
+  prefix<const Prefix extends PathInput>(prefix: Prefix): HttpApi<Id, HttpApiGroup.AddPrefix<Groups, Prefix>>
 
   /**
    * Add a middleware to a `HttpApi`. It will be applied to all endpoints in the
