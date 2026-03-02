@@ -20,7 +20,7 @@ import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
 import * as Tracer from "../../Tracer.ts"
 import type { EqualsWith, ExcludeTag, ExtractTag, NoExcessProperties, NoInfer, Tags } from "../../Types.ts"
-import type * as RateLimiter from "../persistence/RateLimiter.ts"
+import * as RateLimiter from "../persistence/RateLimiter.ts"
 import * as Cookies from "./Cookies.ts"
 import * as Headers from "./Headers.ts"
 import * as Error from "./HttpClientError.ts"
@@ -892,10 +892,6 @@ export declare namespace WithRateLimiter {
    */
   export interface Options {
     /**
-     * The `RateLimiter` service to use for rate limiting.
-     */
-    readonly limiter: RateLimiter.RateLimiter
-    /**
      * The initial rate limit window duration.
      */
     readonly window: Duration.Input
@@ -908,7 +904,7 @@ export declare namespace WithRateLimiter {
      * the same rate limit. This can be used to implement per-user or
      * per-endpoint rate limits.
      */
-    readonly key: string | ((request: HttpClientRequest.HttpClientRequest) => string)
+    readonly key?: string | ((request: HttpClientRequest.HttpClientRequest) => string) | undefined
     /**
      * Defaults to `"fixed-window"`.
      */
@@ -937,15 +933,15 @@ export declare namespace WithRateLimiter {
 export const withRateLimiter: {
   (options: WithRateLimiter.Options): <E, R>(
     self: HttpClient.With<E, R>
-  ) => HttpClient.With<E | RateLimiter.RateLimiterError, R>
+  ) => HttpClient.With<E | RateLimiter.RateLimiterError, R | RateLimiter.RateLimiter>
   <E, R>(
     self: HttpClient.With<E, R>,
     options: WithRateLimiter.Options
-  ): HttpClient.With<E | RateLimiter.RateLimiterError, R>
+  ): HttpClient.With<E | RateLimiter.RateLimiterError, R | RateLimiter.RateLimiter>
 } = dual(2, <E, R>(
   self: HttpClient.With<E, R>,
   options: WithRateLimiter.Options
-): HttpClient.With<E | RateLimiter.RateLimiterError, R> => {
+): HttpClient.With<E | RateLimiter.RateLimiterError, R | RateLimiter.RateLimiter> => {
   const initialState: RateLimiterState = {
     limit: options.limit,
     window: Duration.max(Duration.fromInputUnsafe(options.window), Duration.millis(1))
@@ -955,7 +951,7 @@ export const withRateLimiter: {
   const keyOption = options.key
   const resolveKey: (request: HttpClientRequest.HttpClientRequest) => string = typeof keyOption === "function"
     ? keyOption
-    : () => keyOption
+    : () => keyOption ?? "effect/http/HttpClient/withRateLimiter"
   const tokensOption = options.tokens
   const resolveTokens: (request: HttpClientRequest.HttpClientRequest) => number | undefined =
     typeof tokensOption === "function" ? tokensOption : () => tokensOption
@@ -969,50 +965,56 @@ export const withRateLimiter: {
     return initialState
   }
 
-  const onResponse = options.disableResponseInspection ? undefined : (key: string, headers: Headers.Headers) => {
-    const current = getState(key)
-    const next = parseRateLimiterState(current, headers)
-    if (next.limit !== current.limit || !Duration.equals(next.window, current.window)) {
-      states.set(key, next)
+  const onResponse = options.disableResponseInspection
+    ? undefined
+    : (key: string, headers: Headers.Headers, tokens: number | undefined) => {
+      const current = getState(key)
+      const next = parseRateLimiterState(current, headers, tokens)
+      if (next.limit !== current.limit || !Duration.equals(next.window, current.window)) {
+        states.set(key, next)
+      }
     }
-  }
 
   return transform(self, (effect, request) => {
     const key = resolveKey(request)
     const tokens = resolveTokens(request)
-    return Effect.suspend(function loop(): Effect.Effect<
-      HttpClientResponse.HttpClientResponse,
-      E | RateLimiter.RateLimiterError,
-      R
-    > {
-      const current = getState(key)
-      return Effect.flatMap(
-        options.limiter.consume({
-          algorithm: options.algorithm,
-          onExceeded: "delay",
-          key,
-          limit: current.limit,
-          window: current.window,
-          tokens
-        }),
-        ({ delay }) => {
-          const run = Effect.matchEffect(effect, {
-            onSuccess(response) {
-              onResponse?.(key, response.headers)
-              return response.status === 429 ? loop() : Effect.succeed(response)
-            },
-            onFailure(error) {
-              if (isTooManyRequestsHttpClientError(error)) {
-                onResponse?.(key, error.reason.response.headers)
-                return loop()
-              }
-              return Effect.fail(error)
+    return Effect.flatMap(
+      RateLimiter.RateLimiter.asEffect(),
+      (limiter) =>
+        Effect.suspend(function loop(): Effect.Effect<
+          HttpClientResponse.HttpClientResponse,
+          E | RateLimiter.RateLimiterError,
+          R
+        > {
+          const current = getState(key)
+          return Effect.flatMap(
+            limiter.consume({
+              algorithm: options.algorithm,
+              onExceeded: "delay",
+              key,
+              limit: current.limit,
+              window: current.window,
+              tokens
+            }),
+            ({ delay }) => {
+              const run = Effect.matchEffect(effect, {
+                onSuccess(response) {
+                  onResponse?.(key, response.headers, tokens)
+                  return response.status === 429 ? loop() : Effect.succeed(response)
+                },
+                onFailure(error) {
+                  if (isTooManyRequestsHttpClientError(error)) {
+                    onResponse?.(key, error.reason.response.headers, tokens)
+                    return loop()
+                  }
+                  return Effect.fail(error)
+                }
+              })
+              return Duration.isZero(delay) ? run : Effect.delay(run, delay)
             }
-          })
-          return Duration.isZero(delay) ? run : Effect.delay(run, delay)
-        }
-      )
-    })
+          )
+        })
+    )
   })
 })
 
@@ -1021,8 +1023,12 @@ interface RateLimiterState {
   readonly window: Duration.Duration
 }
 
-const parseRateLimiterState = (state: RateLimiterState, headers: Headers.Headers): RateLimiterState => {
-  const limit = parseRateLimitLimit(headers) ?? state.limit
+const parseRateLimiterState = (
+  state: RateLimiterState,
+  headers: Headers.Headers,
+  tokens: number | undefined
+): RateLimiterState => {
+  const limit = parseRateLimitLimit(headers, tokens) ?? state.limit
   const window = parseRateLimitWindow(headers) ?? state.window
   if (limit === state.limit && Duration.equals(window, state.window)) {
     return state
@@ -1030,10 +1036,23 @@ const parseRateLimiterState = (state: RateLimiterState, headers: Headers.Headers
   return { limit, window }
 }
 
-const parseRateLimitLimit = (headers: Headers.Headers): number | undefined => {
+const parseRateLimitLimit = (headers: Headers.Headers, tokens: number | undefined): number | undefined => {
   const raw = getHeader(headers, "ratelimit-limit", "x-ratelimit-limit")
   const value = parseNumberHeader(raw)
-  return value !== undefined && value > 0 ? value : undefined
+  if (value !== undefined && value > 0) {
+    return value
+  }
+  const remaining = parseRateLimitRemaining(headers)
+  if (remaining === undefined) {
+    return undefined
+  }
+  return Math.max(remaining + (tokens !== undefined && tokens > 0 ? tokens : 1), 1)
+}
+
+const parseRateLimitRemaining = (headers: Headers.Headers): number | undefined => {
+  const raw = getHeader(headers, "ratelimit-remaining", "x-ratelimit-remaining")
+  const value = parseNumberHeader(raw)
+  return value !== undefined && value >= 0 ? value : undefined
 }
 
 const parseRateLimitWindow = (headers: Headers.Headers): Duration.Duration | undefined => {

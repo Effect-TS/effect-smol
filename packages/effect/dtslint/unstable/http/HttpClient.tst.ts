@@ -1,5 +1,6 @@
 import type { Effect } from "effect"
 import { HttpClient, type HttpClientError, type HttpClientResponse } from "effect/unstable/http"
+import { type RateLimiter } from "effect/unstable/persistence"
 import { describe, expect, it } from "tstyche"
 
 declare const client: HttpClient.HttpClient
@@ -112,6 +113,44 @@ describe("HttpClient", () => {
       client.pipe(
         // @ts-expect-error!
         HttpClient.retryTransient({ retryOn: "both" })
+      )
+    })
+  })
+
+  describe("withRateLimiter", () => {
+    it("should support data-last and data-first usage", () => {
+      const options = {
+        key: "test",
+        limit: 1,
+        window: "1 minute"
+      } as const
+
+      const dataLast = client.pipe(HttpClient.withRateLimiter(options))
+      expect(dataLast).type.toBe<
+        HttpClient.HttpClient.With<
+          HttpClientError.HttpClientError | RateLimiter.RateLimiterError,
+          RateLimiter.RateLimiter
+        >
+      >()
+
+      const dataFirst = HttpClient.withRateLimiter(client, options)
+      expect(dataFirst).type.toBe<
+        HttpClient.HttpClient.With<
+          HttpClientError.HttpClientError | RateLimiter.RateLimiterError,
+          RateLimiter.RateLimiter
+        >
+      >()
+    })
+
+    it("should reject limiter option", () => {
+      client.pipe(
+        HttpClient.withRateLimiter({
+          // @ts-expect-error!
+          limiter: null,
+          key: "test",
+          limit: 1,
+          window: "1 minute"
+        })
       )
     })
   })
