@@ -34,7 +34,12 @@ Effect.gen(function*() {
   return yield* new FileProcessingError({ message: "Failed to read the file" })
 }).pipe(
   // Add additional functionality with .pipe
-  Effect.catch((error) => Effect.logError(`An error occurred: ${error}`))
+  Effect.catch((error) => Effect.logError(`An error occurred: ${error}`)),
+  Effect.withSpan("fileProcessing", {
+    attributes: {
+      method: "Effect.gen"
+    }
+  })
 )
 
 // Use Schema.TaggedErrorClass to define a custom error
@@ -69,7 +74,8 @@ export const effectFunction = Effect.fn("effectFunction")(
     // the function will not continue executing.
     return yield* new SomeError({ message: "Failed to read the file" })
   },
-  // Add additional functionality by passing in additional arguments
+  // Add additional functionality by passing in additional arguments.
+  // **Do not** use .pipe with Effect.fn
   Effect.catch((error) => Effect.logError(`An error occurred: ${error}`)),
   Effect.annotateLogs({
     method: "effectFunction"

@@ -25,7 +25,8 @@ export const effectFunction = Effect.fn("effectFunction")(
     // the function will not continue executing.
     return yield* new SomeError({ message: "Failed to read the file" })
   },
-  // Add additional functionality by passing in additional arguments
+  // Add additional functionality by passing in additional arguments.
+  // **Do not** use .pipe with Effect.fn
   Effect.catch((error) => Effect.logError(`An error occurred: ${error}`)),
   Effect.annotateLogs({
     method: "effectFunction"

@@ -14,6 +14,7 @@ class Todo extends Schema.Class<Todo>("Todo")({
 }) {}
 
 export class JsonPlaceholder extends ServiceMap.Service<JsonPlaceholder, {
+  readonly allTodos: Effect.Effect<ReadonlyArray<Todo>, JsonPlaceholderError>
   getTodo(id: number): Effect.Effect<Todo, JsonPlaceholderError>
   createTodo(todo: Omit<Todo, "id">): Effect.Effect<Todo, JsonPlaceholderError>
 }>()("app/JsonPlaceholder") {
@@ -39,6 +40,12 @@ export class JsonPlaceholder extends ServiceMap.Service<JsonPlaceholder, {
           schedule: Schedule.exponential(100),
           times: 3
         })
+      )
+
+      const allTodos = client.get("/todos").pipe(
+        Effect.flatMap(HttpClientResponse.schemaBodyJson(Schema.Array(Todo))),
+        Effect.mapError((cause) => new JsonPlaceholderError({ cause })),
+        Effect.withSpan("JsonPlaceholder.allTodos")
       )
 
       // Use the HttpClient to fetch a todo item by id, and decode the response
@@ -78,7 +85,11 @@ export class JsonPlaceholder extends ServiceMap.Service<JsonPlaceholder, {
         return createdTodo
       })
 
-      return JsonPlaceholder.of({ getTodo, createTodo })
+      return JsonPlaceholder.of({
+        allTodos,
+        getTodo,
+        createTodo
+      })
     })
   ).pipe(
     // Provide the fetch-based HttpClient implementation
