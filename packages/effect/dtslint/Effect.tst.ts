@@ -1,5 +1,5 @@
 /** @effect-diagnostics floatingEffect:skip-file */
-import { type Cause, Data, Effect, type Option, pipe, Result, type Scope, type Types } from "effect"
+import { type Cause, Data, Effect, Fiber, type Option, pipe, Result, type Scope, type Types } from "effect"
 import { describe, expect, it } from "tstyche"
 
 // Fixtures
@@ -264,6 +264,25 @@ describe("Effect.annotateLogsScoped", () => {
   it("returns a scoped effect for record input", () => {
     const result = Effect.annotateLogsScoped({ requestId: "req-123", attempt: 1 })
     expect(result).type.toBe<Effect.Effect<void, never, Scope.Scope>>()
+  })
+})
+
+describe("Effect.forkScoped", () => {
+  it("adds Scope to requirements in data-first usage", () => {
+    const result = pipe(
+      Effect.forkScoped(string),
+      Effect.flatMap(Fiber.join)
+    )
+    expect(result).type.toBe<Effect.Effect<string, "err-1", "dep-1" | Scope.Scope>>()
+  })
+
+  it("adds Scope to requirements in data-last usage", () => {
+    const result = pipe(
+      string,
+      Effect.forkScoped(),
+      Effect.flatMap(Fiber.join)
+    )
+    expect(result).type.toBe<Effect.Effect<string, "err-1", "dep-1" | Scope.Scope>>()
   })
 })
 

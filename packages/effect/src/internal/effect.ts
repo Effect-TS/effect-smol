@@ -4950,7 +4950,8 @@ export const forkScoped: {
       readonly startImmediately?: boolean | undefined
       readonly uninterruptible?: boolean | "inherit" | undefined
     } | undefined
-  ): [Arg] extends [Effect.Effect<infer _A, infer _E, infer _R>] ? Effect.Effect<Fiber.Fiber<_A, _E>, never, _R>
+  ): [Arg] extends [Effect.Effect<infer _A, infer _E, infer _R>] ?
+    Effect.Effect<Fiber.Fiber<_A, _E>, never, _R | Scope.Scope>
     : <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<Fiber.Fiber<A, E>, never, R | Scope.Scope>
 } = dual((args) => isEffect(args[0]), <A, E, R>(
   self: Effect.Effect<A, E, R>,
