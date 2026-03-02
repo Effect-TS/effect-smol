@@ -1576,6 +1576,15 @@ export const getJsonSchema = <Tool extends Any>(tool: Tool, options?: {
   if (isDynamic(tool) && tool.jsonSchema !== undefined) {
     return tool.jsonSchema
   }
+  const props = AST.isObjects(tool.parametersSchema.ast) ? tool.parametersSchema.ast.propertySignatures : []
+  if (props.length === 0) {
+    return {
+      type: "object",
+      properties: {},
+      required: [],
+      additionalProperties: false
+    }
+  }
   return getJsonSchemaFromSchema(tool.parametersSchema, options)
 }
 
