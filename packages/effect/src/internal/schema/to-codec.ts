@@ -28,6 +28,7 @@ function toCodecJsonBase(ast: AST.AST): AST.AST {
     }
     case "Unknown":
     case "ObjectKeyword":
+      return AST.replaceEncoding(ast, [AST.unknownToJson])
     case "Undefined":
     case "Void":
     case "Literal":

@@ -8836,6 +8836,7 @@ function serializerTree(
       return AST.replaceEncoding(ast, [booleanToString])
     case "Unknown":
     case "ObjectKeyword":
+      return AST.replaceEncoding(ast, [AST.unknownToStringTree])
     case "Enum":
     case "Number":
     case "Literal":

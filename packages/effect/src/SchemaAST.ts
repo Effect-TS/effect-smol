@@ -794,14 +794,6 @@ export class Unknown extends Base {
     return fromRefinement(this, Predicate.isUnknown)
   }
   /** @internal */
-  toCodecJson(): AST {
-    return replaceEncoding(this, [unknownToJson])
-  }
-  /** @internal */
-  toCodecStringTree(): AST {
-    return replaceEncoding(this, [unknownToStringTree])
-  }
-  /** @internal */
   getExpected(): string {
     return "unknown"
   }
@@ -829,14 +821,6 @@ export class ObjectKeyword extends Base {
   /** @internal */
   getParser() {
     return fromRefinement(this, Predicate.isObjectKeyword)
-  }
-  /** @internal */
-  toCodecJson(): AST {
-    return replaceEncoding(this, [unknownToJson])
-  }
-  /** @internal */
-  toCodecStringTree(): AST {
-    return replaceEncoding(this, [unknownToStringTree])
   }
   /** @internal */
   getExpected(): string {
@@ -3458,7 +3442,8 @@ export const unknownToNull = new Link(
   )
 )
 
-const unknownToJson = new Link(
+/** @internal */
+export const unknownToJson = new Link(
   Json,
   Transformation.passthrough()
 )
@@ -3504,7 +3489,8 @@ const StringTree = new Declaration(
   }
 )
 
-const unknownToStringTree = new Link(
+/** @internal */
+export const unknownToStringTree = new Link(
   StringTree,
   Transformation.passthrough()
 )
