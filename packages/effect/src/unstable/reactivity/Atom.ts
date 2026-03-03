@@ -1550,6 +1550,109 @@ export const withRefresh: {
   }
 )
 
+const swrTimestamp = <A, E>(result: AsyncResult.AsyncResult<A, E>): Option.Option<number> => {
+  if (result._tag === "Success") {
+    return Option.some(result.timestamp)
+  }
+  if (result._tag === "Failure") {
+    return Option.map(result.previousSuccess, (success) => success.timestamp)
+  }
+  return Option.none()
+}
+
+const isFreshWithin = (timestamp: number, staleTime: number, now: number): boolean => now - timestamp < staleTime
+
+const shouldRevalidateSWR = <A, E>(result: AsyncResult.AsyncResult<A, E>, staleTime: number): boolean => {
+  if (result.waiting) {
+    return false
+  }
+  const timestamp = Option.getOrUndefined(swrTimestamp(result))
+  if (timestamp === undefined) {
+    return result._tag !== "Initial"
+  }
+  return !isFreshWithin(timestamp, staleTime, Date.now())
+}
+
+/**
+ * Adds stale-while-revalidate refresh behavior to an async result atom.
+ *
+ * Automatic revalidation during reads is skipped while the current value is
+ * fresh within `staleTime`. Manual `refresh` calls remain forceful and always
+ * forward to the wrapped atom.
+ *
+ * Use `revalidateOnMount` to control whether stale data should trigger a
+ * background refresh on first mount. Use `revalidateOnWindowFocus` to control
+ * window focus behavior. `true` respects `staleTime` and `"always"` forces
+ * refetch.
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const swr: {
+  (
+    options: {
+      readonly staleTime: Duration.Input
+      readonly revalidateOnMount?: boolean | undefined
+      readonly revalidateOnWindowFocus?: boolean | "always" | undefined
+    }
+  ): <R extends Atom<AsyncResult.AsyncResult<any, any>>>(self: R) => WithoutSerializable<R>
+  <R extends Atom<AsyncResult.AsyncResult<any, any>>>(
+    self: R,
+    options: {
+      readonly staleTime: Duration.Input
+      readonly revalidateOnMount?: boolean | undefined
+      readonly revalidateOnWindowFocus?: boolean | "always" | undefined
+    }
+  ): WithoutSerializable<R>
+} = dual(
+  2,
+  <A, E>(
+    self: Atom<AsyncResult.AsyncResult<A, E>>,
+    options: {
+      readonly staleTime: Duration.Input
+      readonly revalidateOnMount?: boolean | undefined
+      readonly revalidateOnWindowFocus?: boolean | "always" | undefined
+    }
+  ): Atom<AsyncResult.AsyncResult<A, E>> => {
+    const staleTime = Duration.toMillis(Duration.fromInputUnsafe(options.staleTime))
+    const refresh = self.refresh ?? function(f: <A>(atom: Atom<A>) => void) {
+      f(self)
+    }
+    function read(get: Context) {
+      const current = get.once(self)
+      get.subscribe(self, (value) => {
+        get.setSelf(value)
+      })
+      if (options.revalidateOnWindowFocus !== false && options.revalidateOnWindowFocus !== undefined) {
+        get.once(windowFocusSignal)
+        get.subscribe(windowFocusSignal, () => {
+          if (options.revalidateOnWindowFocus === "always") {
+            get.refresh(self)
+          } else {
+            const current = get.once(self)
+            if (shouldRevalidateSWR(current, staleTime)) {
+              get.refresh(self)
+            }
+          }
+        })
+      }
+      const firstRead = Option.isNone(get.self<AsyncResult.AsyncResult<A, E>>())
+      if (firstRead && options.revalidateOnMount === false) {
+        return current
+      }
+      if (shouldRevalidateSWR(current, staleTime)) {
+        get.refresh(self)
+      }
+      return current
+    }
+    return isWritable(self)
+      ? writable(read, (ctx, value) => {
+        ctx.set(self, value)
+      }, refresh)
+      : readable(read, refresh)
+  }
+) as any
+
 /**
  * @since 4.0.0
  * @category Optimistic
