@@ -1,6 +1,5 @@
-import { NodeStdio } from "@effect/platform-node"
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, FileSystem, Layer, Logger, Option, Path, ServiceMap } from "effect"
+import { Effect, FileSystem, Layer, Logger, Option, Path, ServiceMap, Stdio } from "effect"
 import { CliOutput, Command, Flag, GlobalFlag } from "effect/unstable/cli"
 import * as ChildProcessSpawner from "effect/unstable/process/ChildProcessSpawner"
 import * as MockTerminal from "./services/MockTerminal.ts"
@@ -57,7 +56,7 @@ const TestLayer = Layer.mergeAll(
   CliOutputLayer,
   SpawnerLayer,
   LoggerLayer,
-  NodeStdio.layer
+  Stdio.layerTest({})
 )
 
 describe("LogLevel", () => {

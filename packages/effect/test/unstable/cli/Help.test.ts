@@ -1,6 +1,5 @@
-import { NodeStdio } from "@effect/platform-node"
 import { describe, expect, it } from "@effect/vitest"
-import { Effect, FileSystem, Layer, Path } from "effect"
+import { Effect, FileSystem, Layer, Path, Stdio } from "effect"
 import { TestConsole } from "effect/testing"
 import { CliOutput, Command } from "effect/unstable/cli"
 import * as ChildProcessSpawner from "effect/unstable/process/ChildProcessSpawner"
@@ -27,7 +26,7 @@ const TestLayer = Layer.mergeAll(
   TerminalLayer,
   CliOutputLayer,
   Layer.succeed(ChildProcessSpawner.ChildProcessSpawner, ChildProcessSpawner.make(() => Effect.die("Not implemented"))),
-  NodeStdio.layer
+  Stdio.layerTest({})
 )
 
 const runCommand = Effect.fnUntraced(

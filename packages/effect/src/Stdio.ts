@@ -1,11 +1,12 @@
 /**
  * @since 4.0.0
  */
-import type * as Effect from "./Effect.ts"
+import * as Effect from "./Effect.ts"
+import * as Layer from "./Layer.ts"
 import type { PlatformError } from "./PlatformError.ts"
 import * as ServiceMap from "./ServiceMap.ts"
-import type * as Sink from "./Sink.ts"
-import type * as Stream from "./Stream.ts"
+import * as Sink from "./Sink.ts"
+import * as Stream from "./Stream.ts"
 
 /**
  * @since 4.0.0
@@ -44,3 +45,19 @@ export const make = (options: Omit<Stdio, TypeId>): Stdio => ({
   [TypeId]: TypeId,
   ...options
 })
+
+/**
+ * @since 4.0.0
+ * @category Layers
+ */
+export const layerTest = (impl: Partial<Stdio>): Layer.Layer<Stdio> =>
+  Layer.succeed(
+    Stdio,
+    make({
+      args: Effect.succeed([]),
+      stdout: Sink.drain,
+      stderr: Sink.drain,
+      stdin: Stream.empty,
+      ...impl
+    })
+  )
