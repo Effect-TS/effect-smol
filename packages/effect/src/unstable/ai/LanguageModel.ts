@@ -1864,29 +1864,32 @@ export const getObjectName = <StructuredOutputSchema extends Schema.Top>(
 const resolveStructuredOutput = Effect.fnUntraced(function*<
   StructuredOutputSchema extends Schema.Top
 >(response: ReadonlyArray<Response.AllParts<any>>, schema: StructuredOutputSchema) {
-  const text: Array<string> = []
+  const texts: Array<string> = []
   for (const part of response) {
     if (part.type === "text") {
-      text.push(part.text)
+      texts.push(part.text)
     }
   }
+
+  const text = texts.join("")
 
   if (text.length === 0) {
     return yield* AiError.make({
       module: "LanguageModel",
       method: "generateObject",
       reason: new AiError.StructuredOutputError({
-        description: "No text content in response"
+        description: "No text content in response",
+        text
       })
     })
   }
 
   const decode = Schema.decodeEffect(Schema.fromJsonString(schema))
-  return yield* Effect.mapError(decode(text.join("")), (error) =>
+  return yield* Effect.mapError(decode(text), (error) =>
     AiError.make({
       module: "LanguageModel",
       method: "generateObject",
-      reason: AiError.StructuredOutputError.fromSchemaError(error)
+      reason: AiError.StructuredOutputError.fromSchemaError(error, text)
     }))
 })
 

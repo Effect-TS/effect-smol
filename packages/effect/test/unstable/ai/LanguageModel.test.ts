@@ -103,6 +103,29 @@ describe("LanguageModel", () => {
       }))
   })
 
+  describe("generateObject", () => {
+    it("includes full generated text in StructuredOutputError", () =>
+      Effect.gen(function*() {
+        const error = yield* LanguageModel.generateObject({
+          prompt: [],
+          schema: Schema.Struct({ count: Schema.Number })
+        }).pipe(
+          TestUtils.withLanguageModel({
+            generateText: [{
+              type: "text",
+              text: "{\"count\":\"oops\"}"
+            }]
+          }),
+          Effect.flip
+        )
+
+        strictEqual(error.reason._tag, "StructuredOutputError")
+        if (error.reason._tag === "StructuredOutputError") {
+          strictEqual(error.reason.text, "{\"count\":\"oops\"}")
+        }
+      }))
+  })
+
   describe("tool approval", () => {
     it("emits tool-approval-request when tool has needsApproval: true", () =>
       Effect.gen(function*() {

@@ -393,14 +393,16 @@ describe("AiError", () => {
     describe("StructuredOutputError", () => {
       it("should be retryable", () => {
         const error = new AiError.StructuredOutputError({
-          description: "Invalid JSON structure"
+          description: "Invalid JSON structure",
+          text: "{\"invalid\":}"
         })
         assert.isTrue(error.isRetryable)
       })
 
       it("should format message with description", () => {
         const error = new AiError.StructuredOutputError({
-          description: "Expected a valid JSON object"
+          description: "Expected a valid JSON object",
+          text: "{\"test\":true}"
         })
         assert.match(error.message, /Structured output validation failed/)
         assert.match(error.message, /Expected a valid JSON object/)
@@ -408,7 +410,8 @@ describe("AiError", () => {
 
       it("should have _tag set correctly", () => {
         const error = new AiError.StructuredOutputError({
-          description: "Test error"
+          description: "Test error",
+          text: "{\"foo\":\"bar\"}"
         })
         assert.strictEqual(error._tag, "StructuredOutputError")
       })
@@ -423,9 +426,10 @@ describe("AiError", () => {
           if (result._tag === "Failure") {
             const cause = result.cause
             if ("error" in cause && Schema.isSchemaError(cause.error)) {
-              const parseError = AiError.StructuredOutputError.fromSchemaError(cause.error)
+              const parseError = AiError.StructuredOutputError.fromSchemaError(cause.error, "{\"name\":123}")
               assert.strictEqual(parseError._tag, "StructuredOutputError")
               assert.isString(parseError.description)
+              assert.strictEqual(parseError.text, "{\"name\":123}")
             }
           }
         }))
@@ -775,12 +779,14 @@ describe("AiError", () => {
     it.effect("StructuredOutputError roundtrip", () =>
       Effect.gen(function*() {
         const error = new AiError.StructuredOutputError({
-          description: "Invalid JSON structure"
+          description: "Invalid JSON structure",
+          text: "{\"invalid\":}"
         })
         const encoded = yield* Schema.encodeEffect(AiError.StructuredOutputError)(error)
         const decoded = yield* Schema.decodeEffect(AiError.StructuredOutputError)(encoded)
         assert.strictEqual(decoded._tag, "StructuredOutputError")
         assert.strictEqual(decoded.description, "Invalid JSON structure")
+        assert.strictEqual(decoded.text, "{\"invalid\":}")
       }))
 
     it.effect("UnsupportedSchemaError roundtrip", () =>
