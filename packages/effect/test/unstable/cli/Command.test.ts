@@ -929,6 +929,94 @@ describe("Command", () => {
         ])
       }).pipe(Effect.provide(TestLayer)))
 
+    it.effect("should merge stacked withSharedFlags calls", () =>
+      Effect.gen(function*() {
+        const messages: Array<string> = []
+
+        const root = Command.make("tool", {
+          dryRun: Flag.boolean("dry-run")
+        }).pipe(
+          Command.withSharedFlags({
+            verbose: Flag.boolean("verbose")
+          }),
+          Command.withSharedFlags({
+            format: Flag.string("format")
+          })
+        )
+
+        const child = Command.make("run", {}, () =>
+          Effect.gen(function*() {
+            const parent = yield* root
+            messages.push(`verbose=${parent.verbose}, format=${parent.format}`)
+          }))
+
+        const cli = root.pipe(Command.withSubcommands([child]))
+        const runCli = Command.runWith(cli, { version: "1.0.0" })
+
+        yield* runCli(["--verbose", "--format", "json", "run"])
+
+        assert.deepStrictEqual(messages, ["verbose=true, format=json"])
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should work with Command.provide when shared flags are present", () =>
+      Effect.gen(function*() {
+        const messages: Array<string> = []
+
+        const DbUrl = ServiceMap.Service<never, string>("effect/test/unstable/cli/DbUrl")
+
+        const root = Command.make("app", {
+          dryRun: Flag.boolean("dry-run")
+        }).pipe(
+          Command.withSharedFlags({
+            env: Flag.string("env")
+          })
+        )
+
+        const deploy = Command.make("deploy", {}, () =>
+          Effect.gen(function*() {
+            const parent = yield* root
+            const dbUrl = yield* DbUrl
+            messages.push(`env=${parent.env}, db=${dbUrl}`)
+          }))
+
+        const cli = root.pipe(
+          Command.withSubcommands([deploy]),
+          Command.provideSync(DbUrl, (input) => `db://${input.env}.example.com`)
+        )
+
+        const runCli = Command.runWith(cli, { version: "1.0.0" })
+        yield* runCli(["--env", "production", "deploy"])
+
+        assert.deepStrictEqual(messages, ["env=production, db=db://production.example.com"])
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should require withSharedFlags before withSubcommands for subcommand access", () =>
+      Effect.gen(function*() {
+        const messages: Array<string> = []
+
+        // withSharedFlags BEFORE withSubcommands — correct ordering
+        const root = Command.make("tool").pipe(
+          Command.withSharedFlags({
+            verbose: Flag.boolean("verbose")
+          })
+        )
+
+        const child = Command.make("run", {}, () =>
+          Effect.gen(function*() {
+            const parent = yield* root
+            messages.push(`verbose=${parent.verbose}`)
+          }))
+
+        const cli = root.pipe(
+          Command.withSubcommands([child])
+        )
+
+        const runCli = Command.runWith(cli, { version: "1.0.0" })
+        yield* runCli(["--verbose", "run"])
+
+        assert.deepStrictEqual(messages, ["verbose=true"])
+      }).pipe(Effect.provide(TestLayer)))
+
     it.effect("should treat tokens after -- as operands (no subcommand or flags)", () =>
       Effect.gen(function*() {
         const captured: Array<ReadonlyArray<string>> = []
