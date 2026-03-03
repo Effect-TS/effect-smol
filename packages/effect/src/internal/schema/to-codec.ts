@@ -1,8 +1,6 @@
 import { memoize } from "../../Function.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as AST from "../../SchemaAST.ts"
-import * as Getter from "../../SchemaGetter.ts"
-import * as Transformation from "../../SchemaTransformation.ts"
 import * as InternalSchema from "./schema.ts"
 
 /** @internal */
@@ -16,8 +14,6 @@ export const toCodecJson = AST.toCodec((ast) => {
 
 function toCodecJsonBase(ast: AST.AST): AST.AST {
   switch (ast._tag) {
-    case "Unknown":
-    case "ObjectKeyword":
     case "Declaration": {
       const getLink = ast.annotations?.toCodecJson ?? ast.annotations?.toCodec
       if (Predicate.isFunction(getLink)) {
@@ -28,18 +24,19 @@ function toCodecJsonBase(ast: AST.AST): AST.AST {
         const to = toCodecJson(link.to)
         return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
       }
-      return AST.replaceEncoding(ast, [unknownToNull])
+      return AST.replaceEncoding(ast, [AST.unknownToNull])
     }
+    case "Unknown":
+    case "ObjectKeyword":
     case "Undefined":
     case "Void":
-      return ast.encodeToNull()
+    case "Literal":
+    case "Number":
+      return ast.toCodecJson()
     case "UniqueSymbol":
     case "Symbol":
     case "BigInt":
       return ast.toCodecStringTree()
-    case "Literal":
-    case "Number":
-      return ast.toCodecJson()
     case "Objects": {
       if (ast.propertySignatures.some((ps) => typeof ps.name !== "string")) {
         throw new globalThis.Error("Objects property names must be strings", { cause: ast })
@@ -109,14 +106,6 @@ export function makeReorder(getPriority: (ast: AST.AST) => number) {
     return sortedTypes
   }
 }
-
-const unknownToNull = new AST.Link(
-  AST.null,
-  new Transformation.Transformation(
-    Getter.passthrough(),
-    Getter.transform(() => null)
-  )
-)
 
 /** @internal */
 export const toCodecIso = memoize((ast: AST.AST): AST.AST => {

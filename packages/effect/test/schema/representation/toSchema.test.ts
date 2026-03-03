@@ -207,6 +207,20 @@ describe("toSchema", () => {
       )
     })
 
+    it("Json", () => {
+      assertToSchemaWithReviver(
+        Schema.Json,
+        `Schema.Json`
+      )
+    })
+
+    it("MutableJson", () => {
+      assertToSchemaWithReviver(
+        Schema.MutableJson,
+        `Schema.MutableJson`
+      )
+    })
+
     it("Redacted", () => {
       assertToSchemaWithReviver(
         Schema.Redacted(Schema.String),

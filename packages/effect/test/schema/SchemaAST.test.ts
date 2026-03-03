@@ -1,8 +1,66 @@
 import { Schema, SchemaAST } from "effect"
 import { describe, it } from "vitest"
-import { deepStrictEqual } from "../utils/assert.ts"
+import { deepStrictEqual, strictEqual } from "../utils/assert.ts"
 
 describe("SchemaAST", () => {
+  it("isJson", () => {
+    strictEqual(SchemaAST.isJson(null), true)
+    strictEqual(SchemaAST.isJson(undefined), false)
+    strictEqual(SchemaAST.isJson(true), true)
+    strictEqual(SchemaAST.isJson(false), true)
+    strictEqual(SchemaAST.isJson("string"), true)
+    strictEqual(SchemaAST.isJson(1), true)
+    strictEqual(SchemaAST.isJson(1.5), true)
+    strictEqual(SchemaAST.isJson(1n), false)
+    strictEqual(SchemaAST.isJson(NaN), false)
+    strictEqual(SchemaAST.isJson(Infinity), false)
+    strictEqual(SchemaAST.isJson(-Infinity), false)
+    strictEqual(SchemaAST.isJson(Symbol.for("symbol")), false)
+    strictEqual(SchemaAST.isJson([]), true)
+    strictEqual(SchemaAST.isJson([1]), true)
+    strictEqual(SchemaAST.isJson([1, undefined]), false)
+    strictEqual(SchemaAST.isJson([1, 1n]), false)
+    strictEqual(SchemaAST.isJson({}), true)
+    strictEqual(SchemaAST.isJson({ a: 1 }), true)
+    strictEqual(SchemaAST.isJson({ a: undefined }), false)
+    strictEqual(SchemaAST.isJson({ a: 1, b: 1n }), false)
+    // nested
+    strictEqual(SchemaAST.isJson({ a: { b: 1 } }), true)
+    strictEqual(SchemaAST.isJson({ a: [1, { b: "c" }] }), true)
+    strictEqual(SchemaAST.isJson({ a: { b: 1n } }), false)
+    // circular reference
+    const circular: Record<string, unknown> = {}
+    circular.self = circular
+    strictEqual(SchemaAST.isJson(circular), false)
+  })
+
+  it("isStringTree", () => {
+    strictEqual(SchemaAST.isStringTree(undefined), true)
+    strictEqual(SchemaAST.isStringTree("string"), true)
+    strictEqual(SchemaAST.isStringTree(null), false)
+    strictEqual(SchemaAST.isStringTree(true), false)
+    strictEqual(SchemaAST.isStringTree(false), false)
+    strictEqual(SchemaAST.isStringTree(1), false)
+    strictEqual(SchemaAST.isStringTree(1n), false)
+    strictEqual(SchemaAST.isStringTree(Symbol.for("symbol")), false)
+    strictEqual(SchemaAST.isStringTree([]), true)
+    strictEqual(SchemaAST.isStringTree(["a"]), true)
+    strictEqual(SchemaAST.isStringTree(["a", undefined]), true)
+    strictEqual(SchemaAST.isStringTree(["a", 1]), false)
+    strictEqual(SchemaAST.isStringTree({}), true)
+    strictEqual(SchemaAST.isStringTree({ a: "b" }), true)
+    strictEqual(SchemaAST.isStringTree({ a: undefined }), true)
+    strictEqual(SchemaAST.isStringTree({ a: "b", c: 1 }), false)
+    // nested
+    strictEqual(SchemaAST.isStringTree({ a: { b: "c" } }), true)
+    strictEqual(SchemaAST.isStringTree({ a: ["b", { c: "d" }] }), true)
+    strictEqual(SchemaAST.isStringTree({ a: { b: 1 } }), false)
+    // circular reference
+    const circular: Record<string, unknown> = {}
+    circular.self = circular
+    strictEqual(SchemaAST.isStringTree(circular), false)
+  })
+
   describe("collectSentinels", () => {
     describe("Declaration", () => {
       it("~sentinels", () => {

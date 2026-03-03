@@ -1741,6 +1741,12 @@ export const toSchemaDefaultReviver: Reviver<Schema.Top> = (s, recur) => {
       case "URLSearchParams":
         return Schema.URLSearchParams
       // effect types
+      case "effect/Option":
+        return Schema.Option(typeParameters[0])
+      case "effect/Result":
+        return Schema.Result(typeParameters[0], typeParameters[1])
+      case "effect/Redacted":
+        return Schema.Redacted(typeParameters[0])
       case "effect/DateTime.TimeZone":
         return Schema.TimeZone
       case "effect/DateTime.TimeZone.Named":
@@ -1753,6 +1759,8 @@ export const toSchemaDefaultReviver: Reviver<Schema.Top> = (s, recur) => {
         return Schema.DateTimeZoned
       case "effect/BigDecimal":
         return Schema.BigDecimal
+      case "effect/Chunk":
+        return Schema.Chunk(typeParameters[0])
       case "effect/Cause":
         return Schema.Cause(typeParameters[0], typeParameters[1])
       case "effect/Cause/Failure":
@@ -1761,18 +1769,14 @@ export const toSchemaDefaultReviver: Reviver<Schema.Top> = (s, recur) => {
         return Schema.Duration
       case "effect/Exit":
         return Schema.Exit(typeParameters[0], typeParameters[1], typeParameters[2])
+      case "effect/Json":
+        return Schema.Json
+      case "effect/MutableJson":
+        return Schema.MutableJson
       case "effect/HashMap":
         return Schema.HashMap(typeParameters[0], typeParameters[1])
-      case "effect/Option":
-        return Schema.Option(typeParameters[0])
-      case "effect/Redacted":
-        return Schema.Redacted(typeParameters[0])
-      case "effect/Result":
-        return Schema.Result(typeParameters[0], typeParameters[1])
       case "effect/HashSet":
         return Schema.HashSet(typeParameters[0])
-      case "effect/Chunk":
-        return Schema.Chunk(typeParameters[0])
     }
   }
 }

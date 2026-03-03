@@ -651,7 +651,7 @@ export class Undefined extends Base {
     return fromConst(this, undefined)
   }
   /** @internal */
-  encodeToNull(): AST {
+  toCodecJson(): AST {
     return replaceEncoding(this, [undefinedToNull])
   }
   /** @internal */
@@ -697,7 +697,7 @@ export class Void extends Base {
     return fromConst(this, undefined)
   }
   /** @internal */
-  encodeToNull(): AST {
+  toCodecJson(): AST {
     return replaceEncoding(this, [undefinedToNull])
   }
   /** @internal */
@@ -794,6 +794,14 @@ export class Unknown extends Base {
     return fromRefinement(this, Predicate.isUnknown)
   }
   /** @internal */
+  toCodecJson(): AST {
+    return replaceEncoding(this, [unknownToJson])
+  }
+  /** @internal */
+  toCodecStringTree(): AST {
+    return replaceEncoding(this, [unknownToStringTree])
+  }
+  /** @internal */
   getExpected(): string {
     return "unknown"
   }
@@ -821,6 +829,14 @@ export class ObjectKeyword extends Base {
   /** @internal */
   getParser() {
     return fromRefinement(this, Predicate.isObjectKeyword)
+  }
+  /** @internal */
+  toCodecJson(): AST {
+    return replaceEncoding(this, [unknownToJson])
+  }
+  /** @internal */
+  toCodecStringTree(): AST {
+    return replaceEncoding(this, [unknownToStringTree])
   }
   /** @internal */
   getExpected(): string {
@@ -3369,3 +3385,126 @@ export const resolveTitle: (ast: AST) => string | undefined = InternalAnnotation
  * @since 4.0.0
  */
 export const resolveDescription: (ast: AST) => string | undefined = InternalAnnotations.resolveDescription
+
+/**
+ * Returns true if the value is a JSON value.
+ *
+ * When a cyclic reference is detected, returns false.
+ *
+ * @internal
+ */
+export function isJson(u: unknown): u is Schema.Json {
+  const seen = new Set<unknown>()
+  return recur(u)
+
+  function recur(u: unknown): boolean {
+    if (u === null || typeof u === "string" || typeof u === "boolean") {
+      return true
+    }
+    if (typeof u === "number") {
+      return globalThis.Number.isFinite(u)
+    }
+    if (typeof u !== "object" || u === undefined) {
+      return false
+    }
+    if (seen.has(u)) {
+      return false
+    }
+    seen.add(u)
+    if (Array.isArray(u)) {
+      return u.every(recur)
+    }
+    return Object.keys(u).every((key) => recur((u as Record<string, unknown>)[key]))
+  }
+}
+
+/** @internal */
+export const Json = new Declaration(
+  [],
+  () => (input, ast) =>
+    isJson(input) ?
+      Effect.succeed(input) :
+      Effect.fail(new Issue.InvalidType(ast, Option.some(input))),
+  {
+    typeConstructor: {
+      _tag: "effect/Json"
+    },
+    generation: {
+      runtime: `Schema.Json`,
+      Type: `Schema.Json`
+    },
+    expected: "JSON value",
+    toCodecJson: () => new Link(unknown, Transformation.passthrough())
+  }
+)
+
+/** @internal */
+export const MutableJson = annotate(Json, {
+  typeConstructor: {
+    _tag: "effect/MutableJson"
+  },
+  generation: {
+    runtime: `Schema.MutableJson`,
+    Type: `Schema.MutableJson`
+  }
+})
+
+/** @internal */
+export const unknownToNull = new Link(
+  null_,
+  new Transformation.Transformation(
+    Getter.passthrough(),
+    Getter.transform(() => null)
+  )
+)
+
+const unknownToJson = new Link(
+  Json,
+  Transformation.passthrough()
+)
+
+/**
+ * Returns true if the value is a StringTree value.
+ *
+ * When a cyclic reference is detected, returns false.
+ *
+ * @internal
+ */
+export function isStringTree(u: unknown): u is Schema.StringTree {
+  const seen = new Set<unknown>()
+  return recur(u)
+
+  function recur(u: unknown): boolean {
+    if (u === undefined || typeof u === "string") {
+      return true
+    }
+    if (typeof u !== "object" || u === null) {
+      return false
+    }
+    if (seen.has(u)) {
+      return false
+    }
+    seen.add(u)
+    if (Array.isArray(u)) {
+      return u.every(recur)
+    }
+    return Object.keys(u).every((key) => recur((u as Record<string, unknown>)[key]))
+  }
+}
+
+const StringTree = new Declaration(
+  [],
+  () => (input, ast) =>
+    isStringTree(input) ?
+      Effect.succeed(input) :
+      Effect.fail(new Issue.InvalidType(ast, Option.some(input))),
+  {
+    expected: "StringTree",
+    toCodecStringTree: () => new Link(unknown, Transformation.passthrough())
+  }
+)
+
+const unknownToStringTree = new Link(
+  StringTree,
+  Transformation.passthrough()
+)

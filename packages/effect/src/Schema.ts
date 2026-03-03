@@ -8625,11 +8625,11 @@ export function toJsonSchemaDocument(schema: Top, options?: ToJsonSchemaOptions)
 }
 
 // -----------------------------------------------------------------------------
-// Serializer
+// Canonical Codecs
 // -----------------------------------------------------------------------------
 
 /**
- * @category Serializer
+ * @category Canonical Codecs
  * @since 4.0.0
  */
 export function toCodecJson<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T, unknown, RD, RE> {
@@ -8637,7 +8637,7 @@ export function toCodecJson<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T,
 }
 
 /**
- * @category Serializer
+ * @category Canonical Codecs
  * @since 4.0.0
  */
 export function toCodecIso<S extends Top>(schema: S): Codec<S["Type"], S["Iso"]> {
@@ -8645,13 +8645,13 @@ export function toCodecIso<S extends Top>(schema: S): Codec<S["Type"], S["Iso"]>
 }
 
 /**
- * @category Serializer
+ * @category Canonical Codecs
  * @since 4.0.0
  */
 export type StringTree = Tree<string | undefined>
 
 /**
- * The StringTree serializer converts **every leaf value to a string**, while
+ * The StringTree canonical codec converts **every leaf value to a string**, while
  * preserving the original structure.
  *
  * Declarations are converted to `undefined` (unless they have a
@@ -8665,7 +8665,7 @@ export type StringTree = Tree<string | undefined>
  *
  *    Defaults to `false`.
  *
- * @category Serializer
+ * @category Canonical Codecs
  * @since 4.0.0
  */
 export function toCodecStringTree<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T, StringTree, RD, RE>
@@ -8698,7 +8698,7 @@ type XmlEncoderOptions = {
 }
 
 /**
- * @category Serializer
+ * @category Canonical Codecs
  * @since 4.0.0
  */
 export function toEncoderXml<T, E, RD, RE>(
@@ -8818,8 +8818,6 @@ function serializerTree(
   onMissingAnnotation: (ast: AST.AST) => AST.AST
 ): AST.AST {
   switch (ast._tag) {
-    case "Unknown":
-    case "ObjectKeyword":
     case "Declaration": {
       const getLink = ast.annotations?.toCodecJson ?? ast.annotations?.toCodec
       if (Predicate.isFunction(getLink)) {
@@ -8836,6 +8834,8 @@ function serializerTree(
       return AST.replaceEncoding(ast, [nullToString])
     case "Boolean":
       return AST.replaceEncoding(ast, [booleanToString])
+    case "Unknown":
+    case "ObjectKeyword":
     case "Enum":
     case "Number":
     case "Literal":
@@ -9062,13 +9062,13 @@ export function toDifferJsonPatch<T, E>(schema: Codec<T, E>): Differ<T, JsonPatc
  * @category Tree
  * @since 4.0.0
  */
-export type Tree<Node> = Node | TreeObject<Node> | ReadonlyArray<Tree<Node>>
+export type Tree<Node> = Node | TreeRecord<Node> | ReadonlyArray<Tree<Node>>
 
 /**
  * @category Tree
  * @since 4.0.0
  */
-export interface TreeObject<A> {
+export interface TreeRecord<A> {
   readonly [x: string]: Tree<A>
 }
 
@@ -9092,49 +9092,10 @@ export function Tree<S extends Top>(node: S) {
 }
 
 /**
- * @category Tree
- * @since 4.0.0
- */
-export type MutableTree<A> = A | MutableTreeRecord<A> | Array<MutableTree<A>>
-
-/**
- * @category Tree
- * @since 4.0.0
- */
-export interface MutableTreeRecord<A> {
-  [x: string]: MutableTree<A>
-}
-
-/**
- * @category Tree
- * @since 4.0.0
- */
-export function MutableTree<S extends Top>(node: S) {
-  const MutableTree$ref = suspend((): Codec<
-    MutableTree<S["Type"]>,
-    MutableTree<S["Encoded"]>,
-    S["DecodingServices"],
-    S["EncodingServices"]
-  > => MutableTree)
-  const MutableTree = Union([
-    node,
-    mutable(Array(MutableTree$ref)),
-    Record(String, mutableKey(MutableTree$ref))
-  ])
-  return MutableTree
-}
-
-/**
  * @category JSON
  * @since 4.0.0
  */
 export type Json = null | number | boolean | string | JsonArray | JsonObject
-
-/**
- * @category JSON
- * @since 4.0.0
- */
-export const Json: Codec<Json> = Tree(Union([Null, Number, Boolean, String]))
 
 /**
  * @category JSON
@@ -9154,13 +9115,13 @@ export interface JsonObject {
  * @category JSON
  * @since 4.0.0
  */
-export type MutableJson = null | number | boolean | string | MutableJsonArray | MutableJsonObject
+export const Json: Codec<Json> = make(AST.Json)
 
 /**
  * @category JSON
  * @since 4.0.0
  */
-export const MutableJson: Codec<MutableJson> = MutableTree(Union([Null, Number, Boolean, String]))
+export type MutableJson = null | number | boolean | string | MutableJsonArray | MutableJsonObject
 
 /**
  * @category JSON
@@ -9175,6 +9136,12 @@ export interface MutableJsonArray extends Array<MutableJson> {}
 export interface MutableJsonObject {
   [x: string]: MutableJson
 }
+
+/**
+ * @category JSON
+ * @since 4.0.0
+ */
+export const MutableJson: Codec<MutableJson> = make(AST.MutableJson)
 
 // -----------------------------------------------------------------------------
 // Annotations

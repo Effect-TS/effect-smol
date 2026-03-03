@@ -44,7 +44,7 @@ describe("Serializers", () => {
       await decoding.succeed("1", "1a")
     })
 
-    describe("Schemas without encoding", () => {
+    describe("schemas without encoding", () => {
       describe("Unsupported schemas", () => {
         it("Struct with Symbol property name", () => {
           const a = Symbol.for("a")
@@ -58,8 +58,8 @@ describe("Serializers", () => {
         })
       })
 
-      describe("Schemas without annotations", () => {
-        it("Declaration", async () => {
+      describe("Declaration", () => {
+        it("instanceOf without annotations", async () => {
           const schema = Schema.instanceOf(URL)
           const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
@@ -70,26 +70,83 @@ describe("Serializers", () => {
           await decoding.fail("https://effect.website/", `Expected null, got "https://effect.website/"`)
         })
 
-        it("Unknown", async () => {
-          const schema = Schema.Unknown
-          const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
+        describe("instanceOf with annotation", () => {
+          it("arg: message: string", async () => {
+            class MyError extends Error {
+              constructor(message?: string) {
+                super(message)
+                this.name = "MyError"
+                Object.setPrototypeOf(this, MyError.prototype)
+              }
+            }
 
-          const encoding = asserts.encoding()
-          await encoding.succeed("a", null)
+            const schema = Schema.instanceOf(
+              MyError,
+              {
+                title: "MyError",
+                toCodec: () =>
+                  Schema.link<MyError>()(
+                    Schema.String,
+                    SchemaTransformation.transform({
+                      decode: (message) => new MyError(message),
+                      encode: (e) => e.message
+                    })
+                  )
+              }
+            )
+            const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
-          const decoding = asserts.decoding()
-          await decoding.fail("a", `Expected null, got "a"`)
-        })
+            const encoding = asserts.encoding()
+            await encoding.succeed(new MyError("a"), "a")
 
-        it("ObjectKeyword", async () => {
-          const schema = Schema.ObjectKeyword
-          const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
+            const decoding = asserts.decoding()
+            await decoding.succeed("a", new MyError("a"))
+          })
 
-          const encoding = asserts.encoding()
-          await encoding.succeed({ a: "value" }, null)
+          it("arg: struct", async () => {
+            class MyError extends Error {
+              static Props = Schema.Struct({
+                message: Schema.String,
+                cause: Schema.String
+              })
 
-          const decoding = asserts.decoding()
-          await decoding.fail({ a: "value" }, `Expected null, got {"a":"value"}`)
+              constructor(props: typeof MyError.Props["Type"]) {
+                super(props.message, { cause: props.cause })
+                this.name = "MyError"
+                Object.setPrototypeOf(this, MyError.prototype)
+              }
+
+              static schema = Schema.instanceOf(
+                MyError,
+                {
+                  title: "MyError",
+                  toCodec: () =>
+                    Schema.link<MyError>()(
+                      MyError.Props,
+                      SchemaTransformation.transform({
+                        decode: (props) => new MyError(props),
+                        encode: (e) => ({
+                          message: e.message,
+                          cause: typeof e.cause === "string" ? e.cause : String(e.cause)
+                        })
+                      })
+                    )
+                }
+              )
+            }
+
+            const schema = MyError.schema
+            const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
+
+            const encoding = asserts.encoding()
+            await encoding.succeed(new MyError({ message: "a", cause: "b" }), {
+              message: "a",
+              cause: "b"
+            })
+
+            const decoding = asserts.decoding()
+            await decoding.succeed({ message: "a", cause: "b" }, new MyError({ message: "a", cause: "b" }))
+          })
         })
       })
 
@@ -148,85 +205,6 @@ describe("Serializers", () => {
         })
       })
 
-      describe("instanceOf with serializer annotation", () => {
-        it("arg: message: string", async () => {
-          class MyError extends Error {
-            constructor(message?: string) {
-              super(message)
-              this.name = "MyError"
-              Object.setPrototypeOf(this, MyError.prototype)
-            }
-          }
-
-          const schema = Schema.instanceOf(
-            MyError,
-            {
-              title: "MyError",
-              toCodec: () =>
-                Schema.link<MyError>()(
-                  Schema.String,
-                  SchemaTransformation.transform({
-                    decode: (message) => new MyError(message),
-                    encode: (e) => e.message
-                  })
-                )
-            }
-          )
-          const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
-
-          const encoding = asserts.encoding()
-          await encoding.succeed(new MyError("a"), "a")
-
-          const decoding = asserts.decoding()
-          await decoding.succeed("a", new MyError("a"))
-        })
-
-        it("arg: struct", async () => {
-          class MyError extends Error {
-            static Props = Schema.Struct({
-              message: Schema.String,
-              cause: Schema.String
-            })
-
-            constructor(props: typeof MyError.Props["Type"]) {
-              super(props.message, { cause: props.cause })
-              this.name = "MyError"
-              Object.setPrototypeOf(this, MyError.prototype)
-            }
-
-            static schema = Schema.instanceOf(
-              MyError,
-              {
-                title: "MyError",
-                toCodec: () =>
-                  Schema.link<MyError>()(
-                    MyError.Props,
-                    SchemaTransformation.transform({
-                      decode: (props) => new MyError(props),
-                      encode: (e) => ({
-                        message: e.message,
-                        cause: typeof e.cause === "string" ? e.cause : String(e.cause)
-                      })
-                    })
-                  )
-              }
-            )
-          }
-
-          const schema = MyError.schema
-          const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
-
-          const encoding = asserts.encoding()
-          await encoding.succeed(new MyError({ message: "a", cause: "b" }), {
-            message: "a",
-            cause: "b"
-          })
-
-          const decoding = asserts.decoding()
-          await decoding.succeed({ message: "a", cause: "b" }, new MyError({ message: "a", cause: "b" }))
-        })
-      })
-
       it("Never", async () => {
         const schema = Schema.Never
         const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
@@ -244,6 +222,46 @@ describe("Serializers", () => {
 
         const decoding = asserts.decoding()
         await decoding.succeed(() => {})
+      })
+
+      it("Unknown", async () => {
+        const schema = Schema.Unknown
+        const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
+
+        const encoding = asserts.encoding()
+        await encoding.succeed("a")
+        await encoding.succeed(1)
+        await encoding.succeed(true)
+        await encoding.succeed(null)
+        await encoding.succeed({ a: "a", b: 1, c: true })
+        await encoding.succeed(["a", 1, true])
+        await encoding.fail({ a: 1n }, `Expected JSON value, got {"a":1n}`)
+
+        const decoding = asserts.decoding()
+        await decoding.succeed("a")
+        await decoding.succeed(1)
+        await decoding.succeed(true)
+        await decoding.succeed(null)
+        await decoding.succeed({ a: "a", b: 1, c: true })
+        await decoding.succeed(["a", 1, true])
+        await decoding.fail({ a: 1n }, `Expected JSON value, got {"a":1n}`)
+      })
+
+      it("ObjectKeyword", async () => {
+        const schema = Schema.ObjectKeyword
+        const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
+
+        const encoding = asserts.encoding()
+        await encoding.succeed({ a: "a", b: 1, c: true })
+        await encoding.succeed(["a", 1, true])
+        await encoding.fail("a", `Expected object | array | function, got "a"`)
+        await encoding.fail({ a: 1n }, `Expected JSON value, got {"a":1n}`)
+
+        const decoding = asserts.decoding()
+        await decoding.succeed({ a: "a", b: 1, c: true })
+        await decoding.succeed(["a", 1, true])
+        await decoding.fail("a", `Expected object | array | function, got "a"`)
+        await decoding.fail({ a: 1n }, `Expected JSON value, got {"a":1n}`)
       })
 
       it("Undefined", async () => {
@@ -1213,7 +1231,7 @@ describe("Serializers", () => {
       })
     })
 
-    describe("Schemas with encoding", () => {
+    describe("schemas with encoding", () => {
       it("FiniteFromDate", async () => {
         const schema = FiniteFromDate
         const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
@@ -1417,6 +1435,21 @@ describe("Serializers", () => {
   })
 
   describe("toCodecStringTree", () => {
+    it("should reorder the types in the Union based on the encoded side", async () => {
+      const schema = Schema.Union([
+        Schema.String,
+        Schema.String.pipe(Schema.encodeTo(Schema.BigInt, {
+          decode: SchemaGetter.transform((n: bigint) => String(n) + "a"),
+          encode: SchemaGetter.transform(() => 0n)
+        }))
+      ])
+      const serializer = Schema.toCodecStringTree(schema)
+      const asserts = new TestSchema.Asserts(Schema.toCodecJson(serializer))
+
+      const decoding = asserts.decoding()
+      await decoding.succeed("1", "1a")
+    })
+
     describe("keepDeclarations: true", () => {
       describe("Unsupported schemas", () => {
         it("Struct with Symbol property name", () => {
@@ -1467,21 +1500,6 @@ describe("Serializers", () => {
       })
     })
 
-    it("should reorder the types in the Union based on the encoded side", async () => {
-      const schema = Schema.Union([
-        Schema.String,
-        Schema.String.pipe(Schema.encodeTo(Schema.BigInt, {
-          decode: SchemaGetter.transform((n: bigint) => String(n) + "a"),
-          encode: SchemaGetter.transform(() => 0n)
-        }))
-      ])
-      const serializer = Schema.toCodecStringTree(schema)
-      const asserts = new TestSchema.Asserts(Schema.toCodecJson(serializer))
-
-      const decoding = asserts.decoding()
-      await decoding.succeed("1", "1a")
-    })
-
     describe("should return the same reference if nothing changed", () => {
       it("String", async () => {
         const schema = Schema.String
@@ -1528,39 +1546,53 @@ describe("Serializers", () => {
         })
       })
 
-      describe("Schemas without annotations", () => {
-        it("Declaration", async () => {
-          const schema = Schema.instanceOf(URL)
-          const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
+      it("Declaration", async () => {
+        const schema = Schema.instanceOf(URL)
+        const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
 
-          const encoding = asserts.encoding()
-          await encoding.succeed(new URL("https://effect.website"), undefined)
+        const encoding = asserts.encoding()
+        await encoding.succeed(new URL("https://effect.website"), undefined)
 
-          const decoding = asserts.decoding()
-          await decoding.fail("https://effect.website/", `Expected undefined, got "https://effect.website/"`)
-        })
+        const decoding = asserts.decoding()
+        await decoding.fail("https://effect.website/", `Expected undefined, got "https://effect.website/"`)
+      })
 
-        it("Unknown", async () => {
-          const schema = Schema.Unknown
-          const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
+      it("Unknown", async () => {
+        const schema = Schema.Unknown
+        const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
 
-          const encoding = asserts.encoding()
-          await encoding.succeed("a", undefined)
+        const encoding = asserts.encoding()
+        await encoding.succeed("a")
+        await encoding.fail(1, `Expected StringTree, got 1`)
+        await encoding.succeed({ a: "a" })
+        await encoding.succeed(["a"])
+        await encoding.fail({ a: 1 }, `Expected StringTree, got {"a":1}`)
 
-          const decoding = asserts.decoding()
-          await decoding.fail("a", `Expected undefined, got "a"`)
-        })
+        const decoding = asserts.decoding()
+        await decoding.succeed("a")
+        await decoding.fail(1, `Expected StringTree, got 1`)
+        await decoding.succeed({ a: "a" })
+        await decoding.succeed(["a"])
+        await decoding.fail({ a: 1 }, `Expected StringTree, got {"a":1}`)
+      })
 
-        it("ObjectKeyword", async () => {
-          const schema = Schema.ObjectKeyword
-          const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
+      it("ObjectKeyword", async () => {
+        const schema = Schema.ObjectKeyword
+        const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
 
-          const encoding = asserts.encoding()
-          await encoding.succeed({ a: "value" }, undefined)
+        const encoding = asserts.encoding()
+        await encoding.fail("a", `Expected object | array | function, got "a"`)
+        await encoding.fail(1, `Expected object | array | function, got 1`)
+        await encoding.succeed({ a: "a" })
+        await encoding.succeed(["a"])
+        await encoding.fail({ a: 1 }, `Expected StringTree, got {"a":1}`)
 
-          const decoding = asserts.decoding()
-          await decoding.fail({ a: "value" }, `Expected undefined, got {"a":"value"}`)
-        })
+        const decoding = asserts.decoding()
+        await decoding.fail("a", `Expected object | array | function, got "a"`)
+        await decoding.fail(1, `Expected StringTree, got 1`)
+        await decoding.succeed({ a: "a" })
+        await decoding.succeed(["a"])
+        await decoding.fail({ a: 1 }, `Expected StringTree, got {"a":1}`)
       })
 
       it("Never", async () => {

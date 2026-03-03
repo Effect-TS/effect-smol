@@ -341,11 +341,11 @@ export function toJsonSchemaMultiDocument(
   function on(schema: SchemaRepresentation.Representation): JsonSchema.JsonSchema {
     switch (schema._tag) {
       case "Any":
-        return {}
       case "Unknown":
+      case "ObjectKeyword":
+        return {}
       case "Void":
       case "Undefined":
-      case "ObjectKeyword":
         return { type: "null" }
       case "BigInt":
         return {

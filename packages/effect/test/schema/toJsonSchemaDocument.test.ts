@@ -413,21 +413,38 @@ describe("toJsonSchemaDocument", () => {
     )
   })
 
+  it("Json", () => {
+    const schema = Schema.Json
+    assertJsonSchemaDocument(
+      schema,
+      {
+        schema: {}
+      }
+    )
+  })
+
+  it("MutableJson", () => {
+    const schema = Schema.MutableJson
+    assertJsonSchemaDocument(
+      schema,
+      {
+        schema: {}
+      }
+    )
+  })
+
   it("Unknown", () => {
     const schema = Schema.Unknown
     assertJsonSchemaDocument(
       schema,
       {
-        schema: {
-          "type": "null"
-        }
+        schema: {}
       }
     )
     assertJsonSchemaDocument(
       schema.annotate({ description: "a" }),
       {
         schema: {
-          "type": "null",
           "description": "a"
         }
       }
@@ -1345,16 +1362,13 @@ describe("toJsonSchemaDocument", () => {
     assertJsonSchemaDocument(
       schema,
       {
-        schema: {
-          "type": "null"
-        }
+        schema: {}
       }
     )
     assertJsonSchemaDocument(
       schema.annotate({ description: "a" }),
       {
         schema: {
-          "type": "null",
           "description": "a"
         }
       }
@@ -2585,6 +2599,16 @@ describe("toJsonSchemaDocument", () => {
             },
             "description": "r"
           }
+        }
+      )
+    })
+
+    it("Record(String, Json)", () => {
+      const schema = Schema.Record(Schema.String, Schema.Json)
+      assertJsonSchemaDocument(
+        schema,
+        {
+          schema: { "type": "object" }
         }
       )
     })

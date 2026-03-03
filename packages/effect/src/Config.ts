@@ -670,13 +670,13 @@ const recur: (
  * @since 4.0.0
  */
 export function schema<T, E>(codec: Schema.Codec<T, E>, path?: string | ConfigProvider.Path): Config<T> {
-  const toCodecStringTree = Schema.toCodecStringTree(codec)
-  const decodeUnknownEffect = Parser.decodeUnknownEffect(toCodecStringTree)
-  const toCodecStringTreeEncoded = AST.toEncoded(toCodecStringTree.ast)
+  const codecStringTree = Schema.toCodecStringTree(codec)
+  const decodeUnknownEffect = Parser.decodeUnknownEffect(codecStringTree)
+  const codecStringTreeEncoded = AST.toEncoded(codecStringTree.ast)
   const defaultPath = typeof path === "string" ? [path] : path ?? []
   return make((provider) => {
     const path = provider.prefix ? [...provider.prefix, ...defaultPath] : defaultPath
-    return recur(toCodecStringTreeEncoded, provider, defaultPath).pipe(
+    return recur(codecStringTreeEncoded, provider, defaultPath).pipe(
       Effect.flatMapEager((tree) =>
         decodeUnknownEffect(tree).pipe(
           Effect.mapErrorEager((issue) =>
