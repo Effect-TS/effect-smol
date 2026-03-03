@@ -800,14 +800,15 @@ export class StructuredOutputError extends Schema.ErrorClass<StructuredOutputErr
    * import { AiError } from "effect/unstable/ai"
    *
    * declare const schemaError: Schema.SchemaError
+   * declare const rawText: string
    *
-   * const parseError = AiError.StructuredOutputError.fromSchemaError(schemaError)
+   * const parseError = AiError.StructuredOutputError.fromSchemaError(schemaError, rawText)
    * ```
    *
    * @since 1.0.0
    * @category constructors
    */
-  static fromSchemaError(error: Schema.SchemaError, text = ""): StructuredOutputError {
+  static fromSchemaError(error: Schema.SchemaError, text: string): StructuredOutputError {
     return new StructuredOutputError({
       description: error.message,
       text
