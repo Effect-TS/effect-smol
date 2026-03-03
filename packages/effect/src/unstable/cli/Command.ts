@@ -639,15 +639,11 @@ export const withSubcommands: {
   const impl = toImpl(self)
   const byName = new Map(normalized.flat.map((s) => [s.name, toImpl(s)] as const))
 
-  // Routing state shared between parse and handle via closure.
-  // Avoids mixing internal routing data into the user's parsed config object.
-  let selectedSubcommand:
-    | { readonly name: string; readonly result: unknown; readonly context: ContextInput }
-    | undefined
+  const SubcommandStateSymbol = Symbol("effect/cli/SubcommandState")
+  type SubcommandState = { readonly name: string; readonly result: unknown }
+  type InternalInput = Input & { readonly [SubcommandStateSymbol]?: SubcommandState }
 
   const parse = Effect.fnUntraced(function*(raw: ParsedTokens) {
-    selectedSubcommand = undefined
-
     if (!raw.subcommand) {
       return yield* impl.parse(raw)
     }
@@ -659,11 +655,13 @@ export const withSubcommands: {
 
     const context = yield* impl.parseContext(raw)
     const result = yield* sub.parse(raw.subcommand.parsedInput)
-    selectedSubcommand = { name: sub.name, result, context }
-    return context as unknown as Input
+    return Object.assign({}, context, { [SubcommandStateSymbol]: { name: sub.name, result } }) as Input
   })
 
   const handle = Effect.fnUntraced(function*(input: Input, path: ReadonlyArray<string>) {
+    const internal = input as InternalInput
+    const selectedSubcommand = internal[SubcommandStateSymbol]
+
     if (selectedSubcommand) {
       const child = byName.get(selectedSubcommand.name)
       if (!child) {
@@ -671,7 +669,7 @@ export const withSubcommands: {
       }
       return yield* child
         .handle(selectedSubcommand.result, [...path, child.name])
-        .pipe(Effect.provideService(impl.service, selectedSubcommand.context))
+        .pipe(Effect.provideService(impl.service, input as unknown as ContextInput))
     }
     return yield* impl.handle(input, path)
   })
@@ -747,7 +745,9 @@ export const withSharedFlags: {
     type NextInput = Simplify<Input & SharedInput>
     type NextContextInput = Simplify<ContextInput & SharedInput>
 
-    const parseShared = makeParser(sharedConfig)
+    const parseShared = makeParser(sharedConfig) as (
+      input: ParsedTokens
+    ) => Effect.Effect<SharedInput, CliError.CliError, Environment>
 
     const parse = Effect.fnUntraced(function*(raw: ParsedTokens) {
       const base = yield* impl.parse(raw)
