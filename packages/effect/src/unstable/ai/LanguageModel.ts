@@ -1879,7 +1879,7 @@ const resolveStructuredOutput = Effect.fnUntraced(function*<
       method: "generateObject",
       reason: new AiError.StructuredOutputError({
         description: "No text content in response",
-        text
+        responseText: text
       })
     })
   }

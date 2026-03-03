@@ -121,7 +121,7 @@ describe("LanguageModel", () => {
 
         strictEqual(error.reason._tag, "StructuredOutputError")
         if (error.reason._tag === "StructuredOutputError") {
-          strictEqual(error.reason.text, "{\"count\":\"oops\"}")
+          strictEqual(error.reason.responseText, "{\"count\":\"oops\"}")
         }
       }))
   })

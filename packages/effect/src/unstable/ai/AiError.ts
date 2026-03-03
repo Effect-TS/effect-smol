@@ -757,7 +757,7 @@ export class InvalidOutputError extends Schema.ErrorClass<InvalidOutputError>(
  *
  * const error = new AiError.StructuredOutputError({
  *   description: "Expected a valid JSON object",
- *   text: "{\"foo\":}"
+ *   responseText: "{\"foo\":}"
  * })
  *
  * console.log(error.isRetryable) // true
@@ -773,7 +773,7 @@ export class StructuredOutputError extends Schema.ErrorClass<StructuredOutputErr
 )({
   _tag: Schema.tag("StructuredOutputError"),
   description: Schema.String,
-  text: Schema.String,
+  responseText: Schema.String,
   metadata: providerMetadataWithDefaults<StructuredOutputErrorMetadata>(),
   usage: Schema.optional(UsageInfo)
 }) {
@@ -808,10 +808,10 @@ export class StructuredOutputError extends Schema.ErrorClass<StructuredOutputErr
    * @since 1.0.0
    * @category constructors
    */
-  static fromSchemaError(error: Schema.SchemaError, text: string): StructuredOutputError {
+  static fromSchemaError(error: Schema.SchemaError, responseText: string): StructuredOutputError {
     return new StructuredOutputError({
       description: error.message,
-      text
+      responseText
     })
   }
 
