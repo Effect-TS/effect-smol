@@ -36,7 +36,6 @@ import * as Multipart from "../http/Multipart.ts"
 import * as UrlParams from "../http/UrlParams.ts"
 import type * as HttpApi from "./HttpApi.ts"
 import * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
-import { BadRequest } from "./HttpApiError.ts"
 import type * as HttpApiGroup from "./HttpApiGroup.ts"
 import * as HttpApiMiddleware from "./HttpApiMiddleware.ts"
 import * as HttpApiSchema from "./HttpApiSchema.ts"
@@ -597,7 +596,6 @@ function handlerToHttpEffect(
       return Response.isHttpServerResponse(response) ? response : yield* encodeSuccess(response)
     })
   ).pipe(
-    Effect.catchIf(Schema.isSchemaError, (_) => Effect.fail(new BadRequest({}))),
     Effect.withErrorReporting,
     Effect.catch((error) => Effect.orDie(encodeError(error))),
     Effect.provideServices(services)

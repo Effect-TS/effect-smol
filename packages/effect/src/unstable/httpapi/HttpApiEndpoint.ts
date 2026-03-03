@@ -15,7 +15,7 @@ import * as HttpRouter from "../http/HttpRouter.ts"
 import type { HttpServerRequest } from "../http/HttpServerRequest.ts"
 import type { HttpServerResponse } from "../http/HttpServerResponse.ts"
 import type * as Multipart from "../http/Multipart.ts"
-import { BadRequestNoContent } from "./HttpApiError.ts"
+import { BadRequestFromSchemaError, type BadRequestNoContent } from "./HttpApiError.ts"
 import type * as HttpApiGroup from "./HttpApiGroup.ts"
 import type * as HttpApiMiddleware from "./HttpApiMiddleware.ts"
 import * as HttpApiSchema from "./HttpApiSchema.ts"
@@ -179,7 +179,7 @@ export function getErrorSchemas(endpoint: AnyWithProps): [Schema.Top, ...Array<S
       schemas.add(key.error)
     }
   }
-  return Arr.append(Array.from(schemas), BadRequestNoContent)
+  return Arr.append(Array.from(schemas), BadRequestFromSchemaError)
 }
 
 /**
