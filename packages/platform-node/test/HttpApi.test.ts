@@ -51,13 +51,6 @@ function* assertServerJson(res: HttpClientResponse.HttpClientResponse, status: n
   assert.deepStrictEqual(yield* res.json, json)
 }
 
-function* assertServerSchemaError(res: HttpClientResponse.HttpClientResponse, status: number, message: string) {
-  yield* assertServerJson(res, status, {
-    _tag: "HttpApiSchemaError",
-    message
-  })
-}
-
 function* assertClientText<E, R>(res: Effect.Effect<string, E, R>, text: string) {
   assert.strictEqual(yield* res, text)
 }
@@ -471,12 +464,7 @@ describe("HttpApi", () => {
 
         return Effect.gen(function*() {
           // server side
-          yield* assertServerSchemaError(
-            yield* HttpClient.get("/a"),
-            400,
-            `Missing key
-  at ["required"]`
-          )
+          yield* assertServerText(yield* HttpClient.get("/a"), 400, "")
           yield* assertServerJson(yield* HttpClient.get("/a?required=1"), 200, { required: 1 })
           yield* assertServerJson(yield* HttpClient.get("/a?required=1&optionalKey=1"), 200, {
             required: 1,
@@ -529,11 +517,7 @@ describe("HttpApi", () => {
 
       return Effect.gen(function*() {
         // server side
-        yield* assertServerSchemaError(
-          yield* HttpClient.post("/a"),
-          400,
-          `Expected object, got null`
-        )
+        yield* assertServerText(yield* HttpClient.post("/a"), 400, "")
         yield* assertServerJson(yield* HttpClient.post("/a", { body: HttpBody.jsonUnsafe({ a: "text" }) }), 200, {
           a: "text"
         })
@@ -933,15 +917,13 @@ describe("HttpApi", () => {
           assert.strictEqual(response.status, 400)
         }).pipe(Effect.provide(HttpLive)))
 
-      it.effect("HttpApiSchemaError", () =>
+      it.effect("BadRequest", () =>
         Effect.gen(function*() {
           const client = yield* HttpApiClient.make(Api)
           const error = yield* client.users.upload({ params: {}, payload: new FormData() }).pipe(
             Effect.flip
           )
-          assert.strictEqual(error._tag, "HttpApiSchemaError")
-          // TODO: add back issues
-          // assert.deepStrictEqual(error.issues[0].path, ["file"])
+          assert.deepStrictEqual(error, new HttpApiError.BadRequest({}))
         }).pipe(Effect.provide(HttpLive)))
     })
 

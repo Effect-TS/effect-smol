@@ -161,14 +161,7 @@ describe("OpenAPI spec", () => {
                 }
               },
               "400": {
-                "description": "The request or response did not match the expected schema",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-                    }
-                  }
-                }
+                "description": "BadRequest"
               }
             }
           }
@@ -234,14 +227,7 @@ describe("OpenAPI spec", () => {
                     }
                   },
                   "400": {
-                    "description": "The request or response did not match the expected schema",
-                    "content": {
-                      "application/json": {
-                        "schema": {
-                          "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-                        }
-                      }
-                    }
+                    "description": "BadRequest"
                   }
                 },
                 "description": "my description",
@@ -255,17 +241,7 @@ describe("OpenAPI spec", () => {
             }
           },
           "components": {
-            "schemas": {
-              "effect_HttpApiSchemaError": {
-                "type": "object",
-                "properties": {
-                  "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
-                  "message": { "type": "string" }
-                },
-                "required": ["_tag", "message"],
-                "additionalProperties": false
-              }
-            },
+            "schemas": {},
             "securitySchemes": {}
           },
           "security": [],
@@ -318,14 +294,7 @@ describe("OpenAPI spec", () => {
                   }
                 },
                 "400": {
-                  "description": "The request or response did not match the expected schema",
-                  "content": {
-                    "application/json": {
-                      "schema": {
-                        "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-                      }
-                    }
-                  }
+                  "description": "BadRequest"
                 }
               }
             }
@@ -346,15 +315,6 @@ describe("OpenAPI spec", () => {
               "id",
               "name"
             ],
-            "additionalProperties": false
-          },
-          "effect_HttpApiSchemaError": {
-            "type": "object",
-            "properties": {
-              "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
-              "message": { "type": "string" }
-            },
-            "required": ["_tag", "message"],
             "additionalProperties": false
           }
         })
@@ -384,14 +344,7 @@ describe("OpenAPI spec", () => {
           }
         },
         "400": {
-          description: "The request or response did not match the expected schema",
-          content: {
-            "application/json": {
-              schema: {
-                "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-              }
-            }
-          }
+          description: "BadRequest"
         }
       })
     })
@@ -427,14 +380,7 @@ describe("OpenAPI spec", () => {
           }
         },
         "400": {
-          description: "The request or response did not match the expected schema",
-          content: {
-            "application/json": {
-              schema: {
-                "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-              }
-            }
-          }
+          description: "BadRequest"
         },
         "405": {
           description: "Error",
@@ -1127,33 +1073,16 @@ describe("OpenAPI spec", () => {
       it("should deduplicate the descriptions", () => {
         class Group extends HttpApiGroup.make("users")
           .add(HttpApiEndpoint.post("a", "/a", {
-            error: HttpApiError.HttpApiSchemaError
+            error: HttpApiError.BadRequestNoContent
           }))
         {}
 
         class Api extends HttpApi.make("api").add(Group) {}
         const spec = OpenApi.fromApi(Api)
         assert.deepStrictEqual(spec.paths["/a"].post?.responses["400"], {
-          description: "The request or response did not match the expected schema",
-          content: {
-            "application/json": {
-              schema: {
-                "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-              }
-            }
-          }
+          description: "BadRequest"
         })
-        assert.deepStrictEqual(spec.components.schemas, {
-          "effect_HttpApiSchemaError": {
-            "type": "object",
-            "properties": {
-              "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
-              "message": { "type": "string" }
-            },
-            "required": ["_tag", "message"],
-            "additionalProperties": false
-          }
-        })
+        assert.deepStrictEqual(spec.components.schemas, {})
       })
 
       describe("1 endopoint", () => {
@@ -1180,14 +1109,7 @@ describe("OpenAPI spec", () => {
               }
             },
             "400": {
-              description: "The request or response did not match the expected schema",
-              content: {
-                "application/json": {
-                  schema: {
-                    "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-                  }
-                }
-              }
+              description: "BadRequest"
             },
             "500": {
               description: "Error",
@@ -1200,17 +1122,7 @@ describe("OpenAPI spec", () => {
               }
             }
           })
-          assert.deepStrictEqual(spec.components.schemas, {
-            "effect_HttpApiSchemaError": {
-              "type": "object",
-              "properties": {
-                "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
-                "message": { "type": "string" }
-              },
-              "required": ["_tag", "message"],
-              "additionalProperties": false
-            }
-          })
+          assert.deepStrictEqual(spec.components.schemas, {})
         })
 
         it("identifier annotation", () => {
@@ -1236,14 +1148,7 @@ describe("OpenAPI spec", () => {
               }
             },
             "400": {
-              description: "The request or response did not match the expected schema",
-              content: {
-                "application/json": {
-                  schema: {
-                    "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-                  }
-                }
-              }
+              description: "BadRequest"
             },
             "500": {
               description: "id",
@@ -1259,15 +1164,6 @@ describe("OpenAPI spec", () => {
           assert.deepStrictEqual(spec.components.schemas, {
             id: {
               "type": "string"
-            },
-            "effect_HttpApiSchemaError": {
-              "type": "object",
-              "properties": {
-                "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
-                "message": { "type": "string" }
-              },
-              "required": ["_tag", "message"],
-              "additionalProperties": false
             }
           })
         })
@@ -1295,30 +1191,17 @@ describe("OpenAPI spec", () => {
               }
             },
             "400": {
-              description: "The request or response did not match the expected schema",
+              description: "BadRequest",
               content: {
                 "application/json": {
                   schema: {
-                    "anyOf": [
-                      { "type": "string" },
-                      { "$ref": "#/components/schemas/effect_HttpApiSchemaError" }
-                    ]
+                    "type": "string"
                   }
                 }
               }
             }
           })
-          assert.deepStrictEqual(spec.components.schemas, {
-            "effect_HttpApiSchemaError": {
-              "type": "object",
-              "properties": {
-                "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
-                "message": { "type": "string" }
-              },
-              "required": ["_tag", "message"],
-              "additionalProperties": false
-            }
-          })
+          assert.deepStrictEqual(spec.components.schemas, {})
         })
       })
 
@@ -1352,14 +1235,7 @@ describe("OpenAPI spec", () => {
               }
             },
             "400": {
-              description: "The request or response did not match the expected schema",
-              content: {
-                "application/json": {
-                  schema: {
-                    "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-                  }
-                }
-              }
+              description: "BadRequest"
             },
             "500": {
               description: "Error",
@@ -1384,14 +1260,7 @@ describe("OpenAPI spec", () => {
               }
             },
             "400": {
-              description: "The request or response did not match the expected schema",
-              content: {
-                "application/json": {
-                  schema: {
-                    "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-                  }
-                }
-              }
+              description: "BadRequest"
             },
             "500": {
               description: "Error",
@@ -1404,17 +1273,7 @@ describe("OpenAPI spec", () => {
               }
             }
           })
-          assert.deepStrictEqual(spec.components.schemas, {
-            "effect_HttpApiSchemaError": {
-              "type": "object",
-              "properties": {
-                "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
-                "message": { "type": "string" }
-              },
-              "required": ["_tag", "message"],
-              "additionalProperties": false
-            }
-          })
+          assert.deepStrictEqual(spec.components.schemas, {})
         })
 
         it("identifier annotation", () => {
@@ -1446,14 +1305,7 @@ describe("OpenAPI spec", () => {
               }
             },
             "400": {
-              description: "The request or response did not match the expected schema",
-              content: {
-                "application/json": {
-                  schema: {
-                    "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-                  }
-                }
-              }
+              description: "BadRequest"
             },
             "500": {
               description: "id",
@@ -1478,14 +1330,7 @@ describe("OpenAPI spec", () => {
               }
             },
             "400": {
-              description: "The request or response did not match the expected schema",
-              content: {
-                "application/json": {
-                  schema: {
-                    "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-                  }
-                }
-              }
+              description: "BadRequest"
             },
             "500": {
               description: "id",
@@ -1501,15 +1346,6 @@ describe("OpenAPI spec", () => {
           assert.deepStrictEqual(spec.components.schemas, {
             id: {
               "type": "string"
-            },
-            "effect_HttpApiSchemaError": {
-              "type": "object",
-              "properties": {
-                "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
-                "message": { "type": "string" }
-              },
-              "required": ["_tag", "message"],
-              "additionalProperties": false
             }
           })
         })
@@ -1543,18 +1379,11 @@ describe("OpenAPI spec", () => {
               }
             },
             "400": {
-              description: "The request or response did not match the expected schema",
+              description: "BadRequest",
               content: {
                 "application/json": {
                   schema: {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-                      }
-                    ]
+                    "type": "string"
                   }
                 }
               }
@@ -1572,34 +1401,17 @@ describe("OpenAPI spec", () => {
               }
             },
             "400": {
-              description: "The request or response did not match the expected schema",
+              description: "BadRequest",
               content: {
                 "application/json": {
                   schema: {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-                      }
-                    ]
+                    "type": "string"
                   }
                 }
               }
             }
           })
-          assert.deepStrictEqual(spec.components.schemas, {
-            "effect_HttpApiSchemaError": {
-              "type": "object",
-              "properties": {
-                "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
-                "message": { "type": "string" }
-              },
-              "required": ["_tag", "message"],
-              "additionalProperties": false
-            }
-          })
+          assert.deepStrictEqual(spec.components.schemas, {})
         })
       })
 
@@ -1616,7 +1428,7 @@ describe("OpenAPI spec", () => {
             )
           const spec = OpenApi.fromApi(Api)
           assert.deepStrictEqual(spec.paths["/a"].get?.responses["400"], {
-            description: "<No Content>"
+            description: "<No Content> | BadRequest"
           })
         })
 

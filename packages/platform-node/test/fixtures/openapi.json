@@ -8,7 +8,9 @@
   "paths": {
     "/groups/{id}": {
       "get": {
-        "tags": ["groups"],
+        "tags": [
+          "groups"
+        ],
         "operationId": "groups.findById",
         "parameters": [
           {
@@ -33,14 +35,7 @@
             }
           },
           "400": {
-            "description": "The request or response did not match the expected schema",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-                }
-              }
-            }
+            "description": "BadRequest"
           },
           "418": {
             "description": "GroupError"
@@ -50,7 +45,9 @@
     },
     "/groups": {
       "post": {
-        "tags": ["groups"],
+        "tags": [
+          "groups"
+        ],
         "operationId": "groups.create",
         "parameters": [],
         "security": [],
@@ -66,14 +63,7 @@
             }
           },
           "400": {
-            "description": "The request or response did not match the expected schema",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-                }
-              }
-            }
+            "description": "BadRequest"
           }
         },
         "requestBody": {
@@ -86,7 +76,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["name"],
+                "required": [
+                  "name"
+                ],
                 "additionalProperties": false
               }
             },
@@ -98,7 +90,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["foo"],
+                "required": [
+                  "foo"
+                ],
                 "additionalProperties": false
               }
             },
@@ -110,7 +104,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["name"],
+                "required": [
+                  "name"
+                ],
                 "additionalProperties": false
               }
             }
@@ -121,7 +117,9 @@
     },
     "/groups/handle/{id}": {
       "post": {
-        "tags": ["groups"],
+        "tags": [
+          "groups"
+        ],
         "operationId": "groups.handle",
         "parameters": [
           {
@@ -149,21 +147,17 @@
                       "type": "string"
                     }
                   },
-                  "required": ["id", "name"],
+                  "required": [
+                    "id",
+                    "name"
+                  ],
                   "additionalProperties": false
                 }
               }
             }
           },
           "400": {
-            "description": "The request or response did not match the expected schema",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-                }
-              }
-            }
+            "description": "BadRequest"
           }
         },
         "requestBody": {
@@ -176,7 +170,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["name"],
+                "required": [
+                  "name"
+                ],
                 "additionalProperties": false
               }
             }
@@ -187,7 +183,9 @@
     },
     "/groups/handleraw/{id}": {
       "post": {
-        "tags": ["groups"],
+        "tags": [
+          "groups"
+        ],
         "operationId": "groups.handleRaw",
         "parameters": [
           {
@@ -215,21 +213,17 @@
                       "type": "string"
                     }
                   },
-                  "required": ["id", "name"],
+                  "required": [
+                    "id",
+                    "name"
+                  ],
                   "additionalProperties": false
                 }
               }
             }
           },
           "400": {
-            "description": "The request or response did not match the expected schema",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-                }
-              }
-            }
+            "description": "BadRequest"
           }
         },
         "requestBody": {
@@ -242,7 +236,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["name"],
+                "required": [
+                  "name"
+                ],
                 "additionalProperties": false
               }
             }
@@ -253,7 +249,9 @@
     },
     "/users/{id}": {
       "get": {
-        "tags": ["Users API"],
+        "tags": [
+          "Users API"
+        ],
         "operationId": "users.findById",
         "parameters": [
           {
@@ -282,18 +280,11 @@
             }
           },
           "400": {
-            "description": "UserError | The request or response did not match the expected schema",
+            "description": "UserError | BadRequest",
             "content": {
               "application/json": {
                 "schema": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/components/schemas/UserError"
-                    },
-                    {
-                      "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-                    }
-                  ]
+                  "$ref": "#/components/schemas/UserError"
                 }
               }
             }
@@ -303,7 +294,9 @@
     },
     "/users": {
       "post": {
-        "tags": ["Users API"],
+        "tags": [
+          "Users API"
+        ],
         "operationId": "users.create",
         "parameters": [
           {
@@ -332,18 +325,11 @@
             }
           },
           "400": {
-            "description": "UserError | The request or response did not match the expected schema",
+            "description": "UserError | BadRequest",
             "content": {
               "application/json": {
                 "schema": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/components/schemas/UserError"
-                    },
-                    {
-                      "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-                    }
-                  ]
+                  "$ref": "#/components/schemas/UserError"
                 }
               }
             }
@@ -357,15 +343,21 @@
                 "properties": {
                   "uuid": {
                     "anyOf": [
-                      { "type": "string" },
-                      { "type": "null" }
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
                     ]
                   },
                   "name": {
                     "type": "string"
                   }
                 },
-                "required": ["name"],
+                "required": [
+                  "name"
+                ],
                 "additionalProperties": false
               }
             }
@@ -374,7 +366,9 @@
         }
       },
       "get": {
-        "tags": ["Users API"],
+        "tags": [
+          "Users API"
+        ],
         "operationId": "listUsers",
         "parameters": [
           {
@@ -422,14 +416,7 @@
             }
           },
           "400": {
-            "description": "The request or response did not match the expected schema",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-                }
-              }
-            }
+            "description": "BadRequest"
           },
           "500": {
             "description": "NoStatusError",
@@ -448,7 +435,9 @@
     },
     "/users/upload/{0}": {
       "post": {
-        "tags": ["Users API"],
+        "tags": [
+          "Users API"
+        ],
         "operationId": "users.upload",
         "parameters": [
           {
@@ -487,21 +476,17 @@
                       "type": "integer"
                     }
                   },
-                  "required": ["contentType", "length"],
+                  "required": [
+                    "contentType",
+                    "length"
+                  ],
                   "additionalProperties": false
                 }
               }
             }
           },
           "400": {
-            "description": "The request or response did not match the expected schema",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-                }
-              }
-            }
+            "description": "BadRequest"
           }
         },
         "requestBody": {
@@ -515,7 +500,9 @@
                     "format": "binary"
                   }
                 },
-                "required": ["file"],
+                "required": [
+                  "file"
+                ],
                 "additionalProperties": false
               }
             }
@@ -526,7 +513,9 @@
     },
     "/users/uploadstream": {
       "post": {
-        "tags": ["Users API"],
+        "tags": [
+          "Users API"
+        ],
         "operationId": "users.uploadStream",
         "parameters": [],
         "security": [
@@ -549,21 +538,17 @@
                       "type": "integer"
                     }
                   },
-                  "required": ["contentType", "length"],
+                  "required": [
+                    "contentType",
+                    "length"
+                  ],
                   "additionalProperties": false
                 }
               }
             }
           },
           "400": {
-            "description": "The request or response did not match the expected schema",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-                }
-              }
-            }
+            "description": "BadRequest"
           }
         },
         "requestBody": {
@@ -577,7 +562,9 @@
                     "format": "binary"
                   }
                 },
-                "required": ["file"],
+                "required": [
+                  "file"
+                ],
                 "additionalProperties": false
               }
             }
@@ -588,7 +575,9 @@
     },
     "/healthz": {
       "get": {
-        "tags": ["root"],
+        "tags": [
+          "root"
+        ],
         "operationId": "healthz",
         "parameters": [],
         "security": [],
@@ -597,14 +586,7 @@
             "description": "Empty"
           },
           "400": {
-            "description": "The request or response did not match the expected schema",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-                }
-              }
-            }
+            "description": "BadRequest"
           }
         }
       }
@@ -633,10 +615,14 @@
         "properties": {
           "_tag": {
             "type": "string",
-            "enum": ["NoStatusError"]
+            "enum": [
+              "NoStatusError"
+            ]
           }
         },
-        "required": ["_tag"],
+        "required": [
+          "_tag"
+        ],
         "additionalProperties": false
       },
       "Group": {
@@ -649,21 +635,10 @@
             "type": "string"
           }
         },
-        "required": ["id", "name"],
-        "additionalProperties": false
-      },
-      "effect_HttpApiSchemaError": {
-        "type": "object",
-        "properties": {
-          "_tag": {
-            "type": "string",
-            "enum": ["HttpApiSchemaError"]
-          },
-          "message": {
-            "type": "string"
-          }
-        },
-        "required": ["_tag", "message"],
+        "required": [
+          "id",
+          "name"
+        ],
         "additionalProperties": false
       },
       "User": {
@@ -674,8 +649,12 @@
           },
           "uuid": {
             "anyOf": [
-              { "type": "string" },
-              { "type": "null" }
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "name": {
@@ -685,7 +664,11 @@
             "type": "string"
           }
         },
-        "required": ["id", "name", "createdAt"],
+        "required": [
+          "id",
+          "name",
+          "createdAt"
+        ],
         "additionalProperties": false
       },
       "UserError": {
@@ -693,10 +676,14 @@
         "properties": {
           "_tag": {
             "type": "string",
-            "enum": ["UserError"]
+            "enum": [
+              "UserError"
+            ]
           }
         },
-        "required": ["_tag"],
+        "required": [
+          "_tag"
+        ],
         "additionalProperties": false
       }
     },

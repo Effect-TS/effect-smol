@@ -597,7 +597,7 @@ function handlerToHttpEffect(
       return Response.isHttpServerResponse(response) ? response : yield* encodeSuccess(response)
     })
   ).pipe(
-    Effect.catchIf(Schema.isSchemaError, (_) => Effect.fail(new BadRequest())),
+    Effect.catchIf(Schema.isSchemaError, (_) => Effect.fail(new BadRequest({}))),
     Effect.withErrorReporting,
     Effect.catch((error) => Effect.orDie(encodeError(error))),
     Effect.provideServices(services)

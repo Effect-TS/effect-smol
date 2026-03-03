@@ -235,10 +235,10 @@ describe("HttpApiEndpoint", () => {
   })
 
   describe("error option", () => {
-    it("should default to HttpApiSchemaError", () => {
+    it("should default to BadRequestNoContent", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
       type T = typeof endpoint["~Error"]
-      expect<T>().type.toBe<typeof HttpApiError.HttpApiSchemaError>()
+      expect<T>().type.toBe<typeof HttpApiError.BadRequestNoContent>()
     })
 
     it("should accept a schema", () => {
@@ -248,7 +248,7 @@ describe("HttpApiEndpoint", () => {
       type T = typeof endpoint["~Error"]
       expect<T>().type.toBe<
         | Schema.Struct<{ readonly a: Schema.String }>
-        | typeof HttpApiError.HttpApiSchemaError
+        | typeof HttpApiError.BadRequestNoContent
       >()
     })
 
@@ -265,7 +265,7 @@ describe("HttpApiEndpoint", () => {
         | Schema.String
         | Schema.Struct<{ readonly a: Schema.String }>
         | Schema.Uint8Array
-        | typeof HttpApiError.HttpApiSchemaError
+        | typeof HttpApiError.BadRequestNoContent
       >()
     })
   })

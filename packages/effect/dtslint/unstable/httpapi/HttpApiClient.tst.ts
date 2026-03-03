@@ -245,7 +245,7 @@ describe("HttpApiClient", () => {
       expect<ReturnType<typeof f>>().type.toBe<
         Effect.Effect<
           { readonly a: number } | [{ readonly a: number }, HttpClientResponse.HttpClientResponse],
-          HttpApiError.HttpApiSchemaError | HttpClientError.HttpClientError | Schema.SchemaError
+          HttpApiError.BadRequest | HttpClientError.HttpClientError | Schema.SchemaError
         >
       >()
     })
@@ -274,14 +274,14 @@ describe("HttpApiClient", () => {
             string | { readonly a: number } | Uint8Array<ArrayBufferLike>,
             HttpClientResponse.HttpClientResponse
           ],
-          HttpApiError.HttpApiSchemaError | HttpClientError.HttpClientError | Schema.SchemaError
+          HttpApiError.BadRequest | HttpClientError.HttpClientError | Schema.SchemaError
         >
       >()
     })
   })
 
   describe("error option", () => {
-    it("should default to HttpApiSchemaError", () => {
+    it("should default to BadRequest", () => {
       const Api = HttpApi.make("Api")
         .add(
           HttpApiGroup.make("group")
@@ -296,7 +296,7 @@ describe("HttpApiClient", () => {
       expect<ReturnType<typeof f>>().type.toBe<
         Effect.Effect<
           void | [void, HttpClientResponse.HttpClientResponse],
-          | HttpApiError.HttpApiSchemaError
+          | HttpApiError.BadRequest
           | HttpClientError.HttpClientError
           | Schema.SchemaError
         >
@@ -321,7 +321,7 @@ describe("HttpApiClient", () => {
         Effect.Effect<
           void | [void, HttpClientResponse.HttpClientResponse],
           | { readonly a: number }
-          | HttpApiError.HttpApiSchemaError
+          | HttpApiError.BadRequest
           | HttpClientError.HttpClientError
           | Schema.SchemaError
         >
@@ -377,7 +377,7 @@ describe("HttpApiClient", () => {
         Effect.Effect<
           string | [string, HttpClientResponse.HttpClientResponse],
           | RequiredClientError
-          | HttpApiError.HttpApiSchemaError
+          | HttpApiError.BadRequest
           | HttpClientError.HttpClientError
           | Schema.SchemaError
         >
@@ -446,7 +446,7 @@ describe("HttpApiClient", () => {
         Effect.Effect<
           string | [string, HttpClientResponse.HttpClientResponse],
           | RequiredClientError
-          | HttpApiError.HttpApiSchemaError
+          | HttpApiError.BadRequest
           | HttpClientError.HttpClientError
           | Schema.SchemaError
         >
@@ -456,7 +456,7 @@ describe("HttpApiClient", () => {
         Effect.Effect<
           string | [string, HttpClientResponse.HttpClientResponse],
           | RequiredClientError
-          | HttpApiError.HttpApiSchemaError
+          | HttpApiError.BadRequest
           | HttpClientError.HttpClientError
           | Schema.SchemaError
         >
@@ -466,7 +466,7 @@ describe("HttpApiClient", () => {
         Effect.Effect<
           string | [string, HttpClientResponse.HttpClientResponse],
           | RequiredClientError
-          | HttpApiError.HttpApiSchemaError
+          | HttpApiError.BadRequest
           | HttpClientError.HttpClientError
           | Schema.SchemaError
         >
