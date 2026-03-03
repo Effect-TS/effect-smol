@@ -4326,11 +4326,11 @@ console.dir(Schema.toJsonSchemaDocument(PointSchema), { depth: null })
   dialect: 'draft-2020-12',
   schema: {
     type: 'array',
-    prefixItems: [ { '$ref': '#/$defs/_2' }, { '$ref': '#/$defs/_2' } ],
+    prefixItems: [ { type: 'number' }, { type: 'number' } ],
     maxItems: 2,
     minItems: 2
   },
-  definitions: { _2: { type: 'number' } }
+  definitions: {}
 }
 */
 ```
