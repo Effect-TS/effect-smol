@@ -98,14 +98,14 @@ export const ordered = <Req extends Schema.Top, Res extends Schema.Top, _, E, R>
     >,
     SqlClient.TransactionConnection["Service"] | undefined
   >({
-    key: (entry) => entry.services.mapUnsafe.get(SqlClient.TransactionConnection.key),
+    key: transactionKey,
     resolver: Effect.fnUntraced(function*(entries) {
       const inputs = yield* partitionRequests(entries, options.Request)
       const results = yield* options.execute(inputs as any).pipe(
         Effect.provideServices(entries[0].services)
       )
       if (results.length !== inputs.length) {
-        return yield* Effect.fail(new ResultLengthMismatch({ expected: inputs.length, actual: results.length }))
+        return yield* new ResultLengthMismatch({ expected: inputs.length, actual: results.length })
       }
       const decodedResults = yield* decodeArray(results).pipe(
         Effect.provideServices(entries[0].services)
@@ -154,7 +154,7 @@ export const grouped = <Req extends Schema.Top, Res extends Schema.Top, K, Row, 
     >,
     SqlClient.TransactionConnection["Service"] | undefined
   >({
-    key: (entry) => entry.services.mapUnsafe.get(SqlClient.TransactionConnection.key),
+    key: transactionKey,
     resolver: Effect.fnUntraced(function*(entries) {
       const inputs = yield* partitionRequests(entries, options.Request)
       const resultMap = MutableHashMap.empty<K, Arr.NonEmptyArray<Res["Type"]>>()
@@ -220,7 +220,11 @@ export const findById = <Id extends Schema.Top, Res extends Schema.Top, Row, E, 
     >,
     SqlClient.TransactionConnection["Service"] | undefined
   >({
-    key: (entry) => entry.services.mapUnsafe.get(SqlClient.TransactionConnection.key),
+    key(entry) {
+      const conn = entry.services.mapUnsafe.get(SqlClient.TransactionConnection.key)
+      if (!conn) return undefined
+      return Equal.byReferenceUnsafe(conn)
+    },
     resolver: Effect.fnUntraced(function*(entries) {
       const [inputs, idMap] = yield* partitionRequestsById(entries, options.Id)
       const results = yield* options.execute(inputs as any).pipe(
@@ -273,7 +277,7 @@ const void_ = <Req extends Schema.Top, _, E, R>(
     >,
     SqlClient.TransactionConnection["Service"] | undefined
   >({
-    key: (entry) => entry.services.mapUnsafe.get(SqlClient.TransactionConnection.key),
+    key: transactionKey,
     resolver: Effect.fnUntraced(function*(entries) {
       const inputs = yield* partitionRequests(entries, options.Request)
       yield* options.execute(inputs as any).pipe(
@@ -347,4 +351,10 @@ const partitionRequestsById = function*<In, A, E, R, InE>(
   }
 
   return [inputs, byIdMap] as const
+}
+
+function transactionKey<A>(entry: Request.Entry<A>): SqlClient.TransactionConnection["Service"] | undefined {
+  const conn = entry.services.mapUnsafe.get(SqlClient.TransactionConnection.key)
+  if (!conn) return undefined
+  return Equal.byReferenceUnsafe(conn)
 }
