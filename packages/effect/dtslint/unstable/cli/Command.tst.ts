@@ -42,7 +42,8 @@ describe("Command", () => {
           const parent = yield* root
           expect(parent).type.toBe<{ readonly verbose: boolean }>()
           // @ts-expect-error!
-          parent.workspace
+          const workspace = parent.workspace
+          void workspace
           return
         }))
 

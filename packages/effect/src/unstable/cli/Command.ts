@@ -318,10 +318,12 @@ export type Error<C> = C extends Command<
  * import { Console, Effect } from "effect"
  * import { Command, Flag } from "effect/unstable/cli"
  *
- * const parent = Command.make("app", {
- *   verbose: Flag.boolean("verbose"),
- *   config: Flag.string("config")
- * })
+ * const parent = Command.make("app").pipe(
+ *   Command.withSharedFlags({
+ *     verbose: Flag.boolean("verbose"),
+ *     config: Flag.string("config")
+ *   })
+ * )
  *
  * const child = Command.make("deploy", {
  *   target: Flag.string("target")

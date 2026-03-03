@@ -16,15 +16,16 @@ const workspace = Flag.string("workspace").pipe(
   Flag.withDefault("personal")
 )
 
-// Start with a root command that holds options you want available to all
-// subcommands.
-const tasks = Command.make("tasks", {
-  workspace,
-  verbose: Flag.boolean("verbose").pipe(
-    Flag.withAlias("v"),
-    Flag.withDescription("Print diagnostic output")
-  )
-}).pipe(
+// Start with a root command and explicitly share the parent flags that should
+// be available to all subcommands.
+const tasks = Command.make("tasks").pipe(
+  Command.withSharedFlags({
+    workspace,
+    verbose: Flag.boolean("verbose").pipe(
+      Flag.withAlias("v"),
+      Flag.withDescription("Print diagnostic output")
+    )
+  }),
   Command.withDescription("Track and manage tasks")
 )
 
