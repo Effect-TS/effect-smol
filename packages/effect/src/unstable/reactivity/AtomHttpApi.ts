@@ -67,7 +67,7 @@ export interface AtomHttpApiClient<Self, Id extends string, Groups extends HttpA
         }
       >,
       WithResponse extends true ? [_Success["Type"], HttpClientResponse] : _Success["Type"],
-      _Error | HttpClientError.HttpClientError | SchemaError
+      _Error["Type"] | HttpClientError.HttpClientError | SchemaError
     >
     : never
 
@@ -124,7 +124,7 @@ export interface AtomHttpApiClient<Self, Id extends string, Groups extends HttpA
   ] ? Atom.Atom<
       AsyncResult.AsyncResult<
         WithResponse extends true ? [_Success["Type"], HttpClientResponse] : _Success["Type"],
-        _Error | HttpClientError.HttpClientError | SchemaError
+        _Error["Type"] | HttpClientError.HttpClientError | SchemaError
       >
     >
     : never
