@@ -59,6 +59,7 @@ import * as Param from "./Param.ts"
  *     readonly force: boolean
  *     readonly files: ReadonlyArray<string>
  *   },
+ *   {},
  *   never,
  *   never
  * > = Command.make("deploy", {
