@@ -1,8 +1,8 @@
 import { Effect, Layer } from "effect"
 import { HttpApiBuilder, HttpApiError } from "effect/unstable/httpapi"
-import { Api } from "../Api.ts"
-import { AuthorizationLayer } from "../Http/Authorization.ts"
-import { CurrentUser } from "../HttpApi/Authorization.ts"
+import { Api } from "../../api/Api.ts"
+import { CurrentUser } from "../../api/Authorization.ts"
+import { AuthorizationLayer } from "../Authorization.ts"
 import { Users } from "../Users.ts"
 
 export const UsersApiHandlers = HttpApiBuilder.group(

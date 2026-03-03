@@ -1,22 +1,6 @@
-import { Effect, Layer, Ref, Schema, ServiceMap } from "effect"
-import { User, UserId } from "./domain/User.ts"
-
-export class UserNotFound extends Schema.TaggedErrorClass<UserNotFound>()(
-  "UserNotFound",
-  {},
-  // You can specify the status code for this error inline
-  { httpApiStatus: 404 }
-) {}
-
-export class SearchQueryTooShort
-  extends Schema.TaggedErrorClass<SearchQueryTooShort>()("SearchQueryTooShort", {}, { httpApiStatus: 422 })
-{
-  static readonly minimumLength = 2
-}
-
-export class UsersError extends Schema.TaggedErrorClass<UsersError>()("UsersError", {
-  reason: Schema.Union([UserNotFound, SearchQueryTooShort])
-}) {}
+import { Effect, Layer, Ref, ServiceMap } from "effect"
+import { User, UserId } from "../domain/User.ts"
+import { SearchQueryTooShort, UserNotFound, UsersError } from "../domain/UserErrors.ts"
 
 export class Users extends ServiceMap.Service<Users, {
   list(search: string | undefined): Effect.Effect<Array<User>, UsersError>

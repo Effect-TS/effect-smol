@@ -1,8 +1,8 @@
 import { Schema } from "effect"
 import { HttpApiEndpoint, HttpApiError, HttpApiGroup, HttpApiSchema, OpenApi } from "effect/unstable/httpapi"
 import { User, UserId } from "../domain/User.ts"
-import { Authorization } from "../HttpApi/Authorization.ts"
-import { SearchQueryTooShort, UserNotFound } from "../Users.ts"
+import { SearchQueryTooShort, UserNotFound } from "../domain/UserErrors.ts"
+import { Authorization } from "./Authorization.ts"
 
 export class UsersApiGroup extends HttpApiGroup.make("users")
   .add(
@@ -32,7 +32,9 @@ export class UsersApiGroup extends HttpApiGroup.make("users")
             decode: () => new SearchQueryTooShort()
           })
         ),
-        HttpApiError.BadRequestNoContent
+        // You can also add some of the built in `HttpApiError`s to handle common
+        // error cases like bad requests, unauthorized, etc.
+        HttpApiError.RequestTimeoutNoContent
       ]
     }),
     HttpApiEndpoint.get("getById", "/:id", {

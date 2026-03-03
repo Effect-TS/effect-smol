@@ -1,6 +1,6 @@
 import { Effect, Layer, Redacted } from "effect"
+import { Authorization, CurrentUser, Unauthorized } from "../api/Authorization.ts"
 import { User, UserId } from "../domain/User.ts"
-import { Authorization, CurrentUser, Unauthorized } from "../HttpApi/Authorization.ts"
 
 // The implementation of the Authorization middleware. It is seperate from the
 // service definition to avoid leaking it into a client.

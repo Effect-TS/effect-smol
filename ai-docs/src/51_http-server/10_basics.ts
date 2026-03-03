@@ -9,9 +9,13 @@ import { Effect, flow, Layer, Schedule, ServiceMap } from "effect"
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpRouter, HttpServer } from "effect/unstable/http"
 import { HttpApiBuilder, HttpApiClient, HttpApiMiddleware, HttpApiScalar } from "effect/unstable/httpapi"
 import { createServer } from "node:http"
-import { Api } from "./fixtures/Api.ts"
-import { Authorization } from "./fixtures/HttpApi/Authorization.ts"
-import { UsersApiHandlers } from "./fixtures/Users/http.ts"
+// Api definitions should **always** be seperate from the server implementation,
+// so that they can be shared between the server and client without leaking
+// server code into clients.
+// Ideally, the would use a seperate package in a monorepo.
+import { Api } from "./fixtures/api/Api.ts"
+import { Authorization } from "./fixtures/api/Authorization.ts"
+import { UsersApiHandlers } from "./fixtures/server/Users/http.ts"
 
 // This walkthrough focuses on runtime wiring and typed client usage.
 // See the fixture files for the API schemas, endpoint definitions and handlers:
