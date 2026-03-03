@@ -733,6 +733,19 @@ importers:
         specifier: ^25.2.0
         version: 25.2.0
 
+  packages/tools/evals:
+    dependencies:
+      '@effect/platform-node':
+        specifier: workspace:^
+        version: link:../../platform-node
+      effect:
+        specifier: workspace:^
+        version: link:../../effect
+    devDependencies:
+      '@types/node':
+        specifier: ^25.2.0
+        version: 25.2.3
+
   packages/tools/openapi-generator:
     dependencies:
       '@effect/platform-node':
