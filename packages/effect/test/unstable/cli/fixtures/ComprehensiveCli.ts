@@ -100,24 +100,26 @@ const configGet = Command.make("get", {
     Command.withDescription("Get configuration value")
   )
 
-const config = Command.make("config", {
-  // Parent command options
-  profile: Flag.string("profile").pipe(
-    Flag.withAlias("p"),
-    Flag.withDescription("Configuration profile to use"),
-    Flag.optional
-  )
-}).pipe(
+const config = Command.make("config").pipe(
+  Command.withSharedFlags({
+    // Parent command options shared with config subcommands
+    profile: Flag.string("profile").pipe(
+      Flag.withAlias("p"),
+      Flag.withDescription("Configuration profile to use"),
+      Flag.optional
+    )
+  }),
   Command.withDescription("Manage application configuration"),
   Command.withSubcommands([configSet, configGet])
 )
 
-const admin = Command.make("admin", {
-  // Boolean that can be set to false explicitly
-  sudo: Flag.boolean("sudo").pipe(
-    Flag.withDescription("Run with elevated privileges")
-  )
-}).pipe(
+const admin = Command.make("admin").pipe(
+  Command.withSharedFlags({
+    // Boolean that can be set to false explicitly
+    sudo: Flag.boolean("sudo").pipe(
+      Flag.withDescription("Run with elevated privileges")
+    )
+  }),
   Command.withDescription("Administrative commands"),
   Command.withSubcommands([users, config])
 )
@@ -271,17 +273,19 @@ const gitStatus = Command.make("status", {
     Command.withDescription("Show repository status")
   )
 
-const git = Command.make("git", {
-  verbose: Flag.boolean("verbose").pipe(
-    Flag.withDescription("Enable verbose output")
-  )
-}, (config) =>
-  logAction("git", {
-    verbose: config.verbose
-  })).pipe(
-    Command.withDescription("Git version control"),
-    Command.withSubcommands([gitClone, gitAdd, gitStatus])
-  )
+const git = Command.make("git").pipe(
+  Command.withSharedFlags({
+    verbose: Flag.boolean("verbose").pipe(
+      Flag.withDescription("Enable verbose output")
+    )
+  }),
+  Command.withHandler((config) =>
+    logAction("git", {
+      verbose: config.verbose
+    })),
+  Command.withDescription("Git version control"),
+  Command.withSubcommands([gitClone, gitAdd, gitStatus])
+)
 
 // Commands for testing error handling
 const testRequired = Command.make("test-required", {
@@ -341,62 +345,69 @@ const deployCommand = Command.make("deploy", {
     Command.withDescription("Deploy a service")
   )
 
-const app = Command.make("app", {
-  env: Flag.string("env").pipe(
-    Flag.withDescription("Environment setting"),
-    Flag.optional
-  )
-}, (config) =>
-  logAction("app", {
-    env: config.env
-  })).pipe(
-    Command.withDescription("Application management"),
-    Command.withSubcommands([deployCommand])
-  )
+const app = Command.make("app").pipe(
+  Command.withSharedFlags({
+    env: Flag.string("env").pipe(
+      Flag.withDescription("Environment setting"),
+      Flag.optional
+    )
+  }),
+  Command.withHandler((config) =>
+    logAction("app", {
+      env: config.env
+    })),
+  Command.withDescription("Application management"),
+  Command.withSubcommands([deployCommand])
+)
 
 // Service command for nested context sharing tests
-const serviceCommand = Command.make("service", {
-  name: Flag.string("name").pipe(
-    Flag.withDescription("Service name")
-  )
-}, (config) =>
-  logAction("service", {
-    name: config.name
-  })).pipe(
-    Command.withDescription("Service management"),
-    Command.withSubcommands([deployCommand])
-  )
+const serviceCommand = Command.make("service").pipe(
+  Command.withSharedFlags({
+    name: Flag.string("name").pipe(
+      Flag.withDescription("Service name")
+    )
+  }),
+  Command.withHandler((config) =>
+    logAction("service", {
+      name: config.name
+    })),
+  Command.withDescription("Service management"),
+  Command.withSubcommands([deployCommand])
+)
 
-const appWithService = Command.make("app-nested", {
-  env: Flag.string("env").pipe(
-    Flag.withDescription("Environment setting")
-  )
-}, (config) =>
-  logAction("app-nested", {
-    env: config.env
-  })).pipe(
-    Command.withDescription("Application with nested services"),
-    Command.withSubcommands([serviceCommand])
-  )
+const appWithService = Command.make("app-nested").pipe(
+  Command.withSharedFlags({
+    env: Flag.string("env").pipe(
+      Flag.withDescription("Environment setting")
+    )
+  }),
+  Command.withHandler((config) =>
+    logAction("app-nested", {
+      env: config.env
+    })),
+  Command.withDescription("Application with nested services"),
+  Command.withSubcommands([serviceCommand])
+)
 
 // Main command with global options
 // Note: No handler on root command - running with no args should show help
-export const ComprehensiveCli = Command.make("mycli", {
-  // Global options available to all subcommands
-  debug: Flag.boolean("debug").pipe(
-    Flag.withAlias("d"),
-    Flag.withDescription("Enable debug logging")
-  ),
-  config: Flag.file("config").pipe(
-    Flag.withAlias("c"),
-    Flag.withDescription("Path to configuration file"),
-    Flag.optional
-  ),
-  quiet: Flag.boolean("quiet").pipe(
-    Flag.withAlias("q"),
-    Flag.withDescription("Suppress non-error output")
-  )
-}).pipe(
+export const ComprehensiveCli = Command.make("mycli").pipe(
+  Command.withSharedFlags({
+    // Global options available to all subcommands
+    debug: Flag.boolean("debug").pipe(
+      Flag.withAlias("d"),
+      Flag.withDescription("Enable debug logging")
+    ),
+    config: Flag.file("config").pipe(
+      Flag.withAlias("c"),
+      Flag.withDescription("Path to configuration file"),
+      Flag.optional
+    ),
+    quiet: Flag.boolean("quiet").pipe(
+      Flag.withAlias("q"),
+      Flag.withDescription("Suppress non-error output")
+    )
+  }),
   Command.withDescription("A comprehensive CLI tool demonstrating all features"),
   Command.withSubcommands([admin, copy, move, remove, build, git, testRequired, testFailing, app, appWithService])
 )

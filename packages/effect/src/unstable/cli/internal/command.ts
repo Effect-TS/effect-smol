@@ -16,7 +16,7 @@ import type * as GlobalFlag from "../GlobalFlag.ts"
 import type { ArgDoc, ExampleDoc, FlagDoc, HelpDoc, SubcommandGroupDoc } from "../HelpDoc.ts"
 import * as Param from "../Param.ts"
 import * as Primitive from "../Primitive.ts"
-import { type ConfigInternal, reconstructTree } from "./config.ts"
+import { emptyConfig, type ConfigInternal, reconstructTree } from "./config.ts"
 
 /* ========================================================================== */
 /* Types                                                                      */
@@ -26,19 +26,23 @@ import type { Command, CommandContext, Environment, ParsedTokens } from "../Comm
 
 interface SubcommandGroup {
   readonly group: string | undefined
-  readonly commands: Arr.NonEmptyReadonlyArray<Command<any, unknown, unknown, unknown>>
+  readonly commands: Arr.NonEmptyReadonlyArray<Command<any, unknown, unknown, unknown, any>>
 }
 
 /**
  * Internal implementation interface with all the machinery.
  * Use toImpl() to access from internal code.
  */
-export interface CommandInternal<Name extends string, Input, E, R> extends Command<Name, Input, E, R> {
+export interface CommandInternal<Name extends string, Input, E, R, ContextInput> extends
+  Command<Name, Input, E, R, ContextInput>
+{
   readonly config: ConfigInternal
-  readonly service: ServiceMap.Key<CommandContext<Name>, Input>
+  readonly contextConfig: ConfigInternal
+  readonly service: ServiceMap.Key<CommandContext<Name>, ContextInput>
   readonly annotations: ServiceMap.ServiceMap<never>
   readonly globalFlags: ReadonlyArray<GlobalFlag.GlobalFlag<any>>
   readonly parse: (input: ParsedTokens) => Effect.Effect<Input, CliError.CliError, Environment>
+  readonly parseContext: (input: ParsedTokens) => Effect.Effect<ContextInput, CliError.CliError, Environment>
   readonly handle: (
     input: Input,
     commandPath: ReadonlyArray<string>
@@ -60,9 +64,9 @@ export const TypeId = "~effect/cli/Command" as const
  * Casts a Command to its internal implementation.
  * For use by internal modules that need access to config, parse, handle, etc.
  */
-export const toImpl = <Name extends string, Input, E, R>(
-  self: Command<Name, Input, E, R>
-): CommandInternal<Name, Input, E, R> => self as CommandInternal<Name, Input, E, R>
+export const toImpl = <Name extends string, Input, E, R, ContextInput = {}>(
+  self: Command<Name, Input, E, R, ContextInput>
+): CommandInternal<Name, Input, E, R, ContextInput> => self as CommandInternal<Name, Input, E, R, ContextInput>
 
 /* ========================================================================== */
 /* Proto                                                                      */
@@ -73,7 +77,7 @@ export const Proto = {
   pipe() {
     return pipeArguments(this, arguments)
   },
-  asEffect(this: Command<any, any, any, any>) {
+  asEffect(this: Command<any, any, any, any, any>) {
     return toImpl(this).service.asEffect()
   }
 }
@@ -85,10 +89,11 @@ export const Proto = {
 /**
  * Internal command constructor. Only accepts already-parsed ConfigInternal.
  */
-export const makeCommand = <const Name extends string, Input, E, R>(options: {
+export const makeCommand = <const Name extends string, Input, E, R, ContextInput = {}>(options: {
   readonly name: Name
   readonly config: ConfigInternal
-  readonly service?: ServiceMap.Key<CommandContext<Name>, Input> | undefined
+  readonly contextConfig?: ConfigInternal | undefined
+  readonly service?: ServiceMap.Key<CommandContext<Name>, ContextInput> | undefined
   readonly annotations?: ServiceMap.ServiceMap<never> | undefined
   readonly globalFlags?: ReadonlyArray<GlobalFlag.GlobalFlag<any>> | undefined
   readonly description?: string | undefined
@@ -97,12 +102,14 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
   readonly examples?: ReadonlyArray<Command.Example> | undefined
   readonly subcommands?: ReadonlyArray<SubcommandGroup> | undefined
   readonly parse?: ((input: ParsedTokens) => Effect.Effect<Input, CliError.CliError, Environment>) | undefined
+  readonly parseContext?: ((input: ParsedTokens) => Effect.Effect<ContextInput, CliError.CliError, Environment>) | undefined
   readonly handle?:
     | ((input: Input, commandPath: ReadonlyArray<string>) => Effect.Effect<void, E, R | Environment>)
     | undefined
-}): Command<Name, Input, E, R> => {
-  const service = options.service ?? ServiceMap.Service<CommandContext<Name>, Input>(`${TypeId}/${options.name}`)
+}): Command<Name, Input, E, R, ContextInput> => {
   const config = options.config
+  const contextConfig = options.contextConfig ?? emptyConfig
+  const service = options.service ?? ServiceMap.Service<CommandContext<Name>, ContextInput>(`${TypeId}/${options.name}`)
   const annotations = options.annotations ?? ServiceMap.empty()
   const globalFlags = options.globalFlags ?? []
   const subcommands = options.subcommands ?? []
@@ -119,6 +126,12 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
     const parsedArgs: Param.ParsedArgs = { flags: input.flags, arguments: input.arguments }
     const values = yield* parseParams(parsedArgs, config.orderedParams)
     return reconstructTree(config.tree, values) as Input
+  })
+
+  const parseContext = options.parseContext ?? Effect.fnUntraced(function*(input: ParsedTokens) {
+    const parsedArgs: Param.ParsedArgs = { flags: input.flags, arguments: input.arguments }
+    const values = yield* parseParams(parsedArgs, contextConfig.orderedParams)
+    return reconstructTree(contextConfig.tree, values) as ContextInput
   })
 
   const buildHelpDoc = (commandPath: ReadonlyArray<string>): HelpDoc => {
@@ -198,8 +211,10 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
     globalFlags,
     subcommands,
     config,
+    contextConfig,
     service,
     parse,
+    parseContext,
     handle,
     buildHelpDoc,
     ...(Predicate.isNotUndefined(options.description)
@@ -245,9 +260,9 @@ const parseParams: (parsedArgs: Param.ParsedArgs, params: ReadonlyArray<Param.An
 /**
  * Checks for duplicate flag names between parent and child commands.
  */
-export const checkForDuplicateFlags = <Name extends string, Input>(
-  parent: Command<Name, Input, unknown, unknown>,
-  subcommands: ReadonlyArray<Command<any, unknown, unknown, unknown>>
+export const checkForDuplicateFlags = <Name extends string, Input, ContextInput>(
+  parent: Command<Name, Input, unknown, unknown, ContextInput>,
+  subcommands: ReadonlyArray<Command<any, unknown, unknown, unknown, any>>
 ): void => {
   const parentImpl = toImpl(parent)
   const parentOptionNames = new Set<string>()
@@ -261,7 +276,7 @@ export const checkForDuplicateFlags = <Name extends string, Input>(
     }
   }
 
-  extractNames(parentImpl.config.flags)
+  extractNames(parentImpl.contextConfig.flags)
 
   for (const subcommand of subcommands) {
     const subImpl = toImpl(subcommand)

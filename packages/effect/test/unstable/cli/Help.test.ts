@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@effect/vitest"
 import { Effect, FileSystem, Layer, Path, Stdio } from "effect"
 import { TestConsole } from "effect/testing"
-import { CliOutput, Command } from "effect/unstable/cli"
+import { CliOutput, Command, Flag } from "effect/unstable/cli"
 import * as ChildProcessSpawner from "effect/unstable/process/ChildProcessSpawner"
 import * as Cli from "./fixtures/ComprehensiveCli.ts"
 import * as MockTerminal from "./services/MockTerminal.ts"
@@ -135,6 +135,9 @@ describe("Command help output", () => {
           destination file    Destination path
 
         FLAGS
+          --debug, -d              Enable debug logging
+          --config, -c file        Path to configuration file
+          --quiet, -q              Suppress non-error output
           --recursive, -r          Copy directories recursively
           --force, -f              Overwrite existing files
           --buffer-size integer    Buffer size in KB
@@ -162,9 +165,12 @@ describe("Command help output", () => {
           files... string    Files to remove
 
         FLAGS
-          --recursive, -r    Remove directories and contents
-          --force, -f        Force removal without prompts
-          --verbose, -v      Explain what is being done
+          --debug, -d          Enable debug logging
+          --config, -c file    Path to configuration file
+          --quiet, -q          Suppress non-error output
+          --recursive, -r      Remove directories and contents
+          --force, -f          Force removal without prompts
+          --verbose, -v        Explain what is being done
 
         GLOBAL FLAGS
           --help, -h              Show help information
@@ -186,9 +192,13 @@ describe("Command help output", () => {
           mycli admin users list [flags]
 
         FLAGS
-          --format string    Output format (json, table, csv)
-          --active           Show only active users
-          --verbose, -v      Show detailed information
+          --debug, -d          Enable debug logging
+          --config, -c file    Path to configuration file
+          --quiet, -q          Suppress non-error output
+          --sudo               Run with elevated privileges
+          --format string      Output format (json, table, csv)
+          --active             Show only active users
+          --verbose, -v        Show detailed information
 
         GLOBAL FLAGS
           --help, -h              Show help information
@@ -214,8 +224,12 @@ describe("Command help output", () => {
           email string       Email address (optional) (optional)
 
         FLAGS
-          --role string    User role (admin, user, guest)
-          --notify, -n     Send notification email
+          --debug, -d          Enable debug logging
+          --config, -c file    Path to configuration file
+          --quiet, -q          Suppress non-error output
+          --sudo               Run with elevated privileges
+          --role string        User role (admin, user, guest)
+          --notify, -n         Send notification email
 
         GLOBAL FLAGS
           --help, -h              Show help information
@@ -237,6 +251,10 @@ describe("Command help output", () => {
           mycli admin config <subcommand> [flags]
 
         FLAGS
+          --debug, -d             Enable debug logging
+          --config, -c file       Path to configuration file
+          --quiet, -q             Suppress non-error output
+          --sudo                  Run with elevated privileges
           --profile, -p string    Configuration profile to use
 
         GLOBAL FLAGS
@@ -266,6 +284,11 @@ describe("Command help output", () => {
           key=value... string    Configuration key-value pairs
 
         FLAGS
+          --debug, -d               Enable debug logging
+          --config, -c file         Path to configuration file
+          --quiet, -q               Suppress non-error output
+          --sudo                    Run with elevated privileges
+          --profile, -p string      Configuration profile to use
           --config-file, -f file    Write to specific config file
 
         GLOBAL FLAGS
@@ -274,6 +297,36 @@ describe("Command help output", () => {
           --completions choice    Print shell completion script
           --log-level choice      Sets the minimum log level"
       `)
+    }).pipe(Effect.provide(TestLayer)))
+
+  it.effect("shared flags are visible in subcommand help while local flags stay local", () =>
+    Effect.gen(function*() {
+      const root = Command.make("tool", {
+        workspace: Flag.string("workspace")
+      }).pipe(
+        Command.withSharedFlags({
+          model: Flag.string("model")
+        }),
+        Command.withSubcommands([
+          Command.make("chat", {
+            topic: Flag.string("topic")
+          })
+        ])
+      )
+
+      const runRoot = Command.runWith(root, { version: "1.0.0" })
+
+      yield* runRoot(["--help"])
+      const rootHelp = yield* TestConsole.logLines
+      expect(rootHelp.some((line) => String(line).includes("--workspace"))).toBe(true)
+      expect(rootHelp.some((line) => String(line).includes("--model"))).toBe(true)
+
+      yield* runRoot(["chat", "--help"])
+      const allHelp = yield* TestConsole.logLines
+      const chatHelp = allHelp.slice(rootHelp.length)
+      expect(chatHelp.some((line) => String(line).includes("--workspace"))).toBe(false)
+      expect(chatHelp.some((line) => String(line).includes("--model"))).toBe(true)
+      expect(chatHelp.some((line) => String(line).includes("--topic"))).toBe(true)
     }).pipe(Effect.provide(TestLayer)))
 
   it.effect("grouped subcommands", () =>

@@ -640,35 +640,27 @@ describe("Command", () => {
         assert.strictEqual(result, "Handler error")
       }).pipe(Effect.provide(TestLayer)))
 
-    it.effect("should provide parent context to subcommands", () =>
+    it.effect("should provide shared parent context to subcommands", () =>
       Effect.gen(function*() {
         const messages: Array<string> = []
 
-        const config = {
-          verbose: Flag.boolean("verbose"),
-          config: Flag.string("config")
-        }
-
-        // Create parent command
-        const parent = Command.make("parent", config, (config) =>
-          Effect.sync(() => {
-            messages.push(`parent: config=${config.config}`)
-          }))
+        const parent = Command.make("parent").pipe(
+          Command.withSharedFlags({
+            verbose: Flag.boolean("verbose"),
+            config: Flag.string("config")
+          })
+        )
 
         // Create subcommand that accesses parent context
         const child = Command.make("child", { action: Flag.string("action") }, (config) =>
           Effect.gen(function*() {
-            // Access parent config by yielding the parent command
             const parentConfig = yield* parent
             messages.push(`child: parent.verbose=${parentConfig.verbose}`)
             messages.push(`child: parent.config=${parentConfig.config}`)
             messages.push(`child: action=${config.action}`)
           }))
 
-        // Combine parent and child
-        const combined = parent.pipe(
-          Command.withSubcommands([child])
-        )
+        const combined = parent.pipe(Command.withSubcommands([child]))
 
         const runCommand = Command.runWith(combined, {
           version: "1.0.0"
@@ -690,14 +682,15 @@ describe("Command", () => {
         ])
       }).pipe(Effect.provide(TestLayer)))
 
-    it.effect("should accept parent flags before or after a subcommand (npm-style)", () =>
+    it.effect("should accept shared parent flags before or after a subcommand (npm-style)", () =>
       Effect.gen(function*() {
         const messages: Array<string> = []
 
-        // Parent command with a global-ish flag
-        const root = Command.make("npm", {
-          global: Flag.boolean("global")
-        })
+        const root = Command.make("npm").pipe(
+          Command.withSharedFlags({
+            global: Flag.boolean("global")
+          })
+        )
 
         const install = Command.make("install", {
           pkg: Flag.string("pkg")
@@ -711,9 +704,7 @@ describe("Command", () => {
 
         const runNpm = Command.runWith(npm, { version: "1.0.0" })
 
-        // Global before subcommand
         yield* runNpm(["--global", "install", "--pkg", "cowsay"])
-        // Global after subcommand
         yield* runNpm(["install", "--pkg", "cowsay", "--global"])
 
         assert.deepStrictEqual(messages, [
@@ -722,20 +713,96 @@ describe("Command", () => {
         ])
       }).pipe(Effect.provide(TestLayer)))
 
+    it.effect("should parse shared flags for parent handlers", () =>
+      Effect.gen(function*() {
+        const messages: Array<string> = []
+
+        const root = Command.make("tool", {
+          workspace: Flag.string("workspace")
+        }).pipe(
+          Command.withSharedFlags({
+            model: Flag.string("model")
+          }),
+          Command.withHandler((config) =>
+            Effect.sync(() => {
+              messages.push(`root: workspace=${config.workspace}, model=${config.model}`)
+            }))
+        )
+
+        const runRoot = Command.runWith(root, { version: "1.0.0" })
+        yield* runRoot(["--workspace", "docs", "--model", "gpt-4o"])
+
+        assert.deepStrictEqual(messages, ["root: workspace=docs, model=gpt-4o"])
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should allow child flags to reuse parent local flag names", () =>
+      Effect.gen(function*() {
+        const messages: Array<string> = []
+
+        const root = Command.make("tool", {
+          model: Flag.string("model")
+        }).pipe(
+          Command.withSharedFlags({
+            workspace: Flag.string("workspace")
+          })
+        )
+
+        const chat = Command.make("chat", {
+          model: Flag.string("model")
+        }, (config) =>
+          Effect.gen(function*() {
+            const parent = yield* root
+            messages.push(`chat: workspace=${parent.workspace}, model=${config.model}`)
+          }))
+
+        const cli = root.pipe(Command.withSubcommands([chat]))
+        const runCli = Command.runWith(cli, { version: "1.0.0" })
+
+        yield* runCli(["--workspace", "docs", "chat", "--model", "gpt-4o-mini"])
+
+        assert.deepStrictEqual(messages, ["chat: workspace=docs, model=gpt-4o-mini"])
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should reject parent local flags on subcommand paths", () =>
+      Effect.gen(function*() {
+        const root = Command.make("tool", {
+          model: Flag.string("model")
+        }).pipe(
+          Command.withSharedFlags({
+            workspace: Flag.string("workspace")
+          })
+        )
+
+        const chat = Command.make("chat", {
+          topic: Flag.string("topic")
+        })
+
+        const cli = root.pipe(Command.withSubcommands([chat]))
+        const runCli = Command.runWith(cli, { version: "1.0.0" })
+
+        yield* runCli(["--workspace", "docs", "--model", "gpt-4o", "chat", "--topic", "bugs"]).pipe(
+          Effect.catchTag("ShowHelp", () => Effect.void)
+        )
+
+        const stderr = yield* TestConsole.errorLines
+        const text = stderr.join("\n")
+        assert.isTrue(text.includes("Unrecognized flag: --model in command tool chat"))
+      }).pipe(Effect.provide(TestLayer)))
+
     it.effect("should allow direct accessing parent config in subcommands", () =>
       Effect.gen(function*() {
         const messages: Array<string> = []
 
-        // Parent command with a global-ish flag
-        const root = Command.make("npm", {
-          global: Flag.boolean("global")
-        })
+        const root = Command.make("npm").pipe(
+          Command.withSharedFlags({
+            global: Flag.boolean("global")
+          })
+        )
 
         const install = Command.make("install", {
           pkg: Flag.string("pkg")
         }, (config) =>
           Effect.gen(function*() {
-            // NEW: Direct yielding of parent command instead of root.tag
             const parentConfig = yield* root
             messages.push(`install: global=${parentConfig.global}, pkg=${config.pkg}`)
           }))
@@ -743,8 +810,6 @@ describe("Command", () => {
         const npm = root.pipe(Command.withSubcommands([install]))
 
         const runNpm = Command.runWith(npm, { version: "1.0.0" })
-
-        // Test the new pattern works
         yield* runNpm(["--global", "install", "--pkg", "effect"])
 
         assert.deepStrictEqual(messages, [
@@ -756,25 +821,28 @@ describe("Command", () => {
       Effect.gen(function*() {
         const messages: Array<string> = []
 
-        // Create root command
-        const root = Command.make("app", {
-          env: Flag.string("env")
-        }, (config) =>
-          Effect.gen(function*() {
-            messages.push(`root: env=${config.env}`)
-          }))
+        const root = Command.make("app").pipe(
+          Command.withSharedFlags({
+            env: Flag.string("env")
+          }),
+          Command.withHandler((config) =>
+            Effect.gen(function*() {
+              messages.push(`root: env=${config.env}`)
+            }))
+        )
 
-        // Create middle command that also accesses root context
-        const service = Command.make("service", {
-          name: Flag.string("name")
-        }, (config) =>
-          Effect.gen(function*() {
-            const rootConfig = yield* root
-            messages.push(`service: root.env=${rootConfig.env}`)
-            messages.push(`service: name=${config.name}`)
-          }))
+        const service = Command.make("service").pipe(
+          Command.withSharedFlags({
+            name: Flag.string("name")
+          }),
+          Command.withHandler((config) =>
+            Effect.gen(function*() {
+              const rootConfig = yield* root
+              messages.push(`service: root.env=${rootConfig.env}`)
+              messages.push(`service: name=${config.name}`)
+            }))
+        )
 
-        // Create leaf command that accesses both parent contexts
         const deploy = Command.make("deploy", {
           targetVersion: Flag.string("target-version")
         }, (config) =>
@@ -786,7 +854,6 @@ describe("Command", () => {
             messages.push(`deploy: target-version=${config.targetVersion}`)
           }))
 
-        // Build the nested command structure
         const serviceWithDeploy = service.pipe(
           Command.withSubcommands([deploy])
         )
@@ -814,20 +881,21 @@ describe("Command", () => {
         ])
       }).pipe(Effect.provide(TestLayer)))
 
-    it.effect("should handle boolean flags before subcommands", () =>
+    it.effect("should handle boolean shared flags before subcommands", () =>
       Effect.gen(function*() {
         const messages: Array<string> = []
 
-        // Create parent with boolean flag
-        const parent = Command.make("app", {
-          verbose: Flag.boolean("verbose"),
-          config: Flag.string("config")
-        }, (config) =>
-          Effect.gen(function*() {
-            messages.push(`parent: verbose=${config.verbose}, config=${config.config}`)
-          }))
+        const parent = Command.make("app").pipe(
+          Command.withSharedFlags({
+            verbose: Flag.boolean("verbose"),
+            config: Flag.string("config")
+          }),
+          Command.withHandler((config) =>
+            Effect.gen(function*() {
+              messages.push(`parent: verbose=${config.verbose}, config=${config.config}`)
+            }))
+        )
 
-        // Create subcommand
         const deploy = Command.make("deploy", {
           targetVersion: Flag.string("target-version")
         }, (config) =>
@@ -837,7 +905,6 @@ describe("Command", () => {
             messages.push(`deploy: target-version=${config.targetVersion}`)
           }))
 
-        // Combine commands
         const combined = parent.pipe(
           Command.withSubcommands([deploy])
         )
@@ -846,8 +913,8 @@ describe("Command", () => {
         yield* runCommand([
           "--config",
           "prod.json",
-          "--verbose", // Boolean flag without explicit value
-          "deploy", // This should be recognized as subcommand, not as value for --verbose
+          "--verbose",
+          "deploy",
           "--target-version",
           "1.0.0"
         ])

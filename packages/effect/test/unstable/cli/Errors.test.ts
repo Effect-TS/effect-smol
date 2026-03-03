@@ -37,10 +37,12 @@ describe("Command errors", () => {
         assert.strictEqual(error.option, "value")
       }).pipe(Effect.provide(TestLayer)))
 
-    it("throws DuplicateOption when parent and child reuse a flag name", () => {
-      const parent = Command.make("parent", {
-        shared: Flag.string("shared")
-      })
+    it("throws DuplicateOption when shared parent and child flags reuse a name", () => {
+      const parent = Command.make("parent").pipe(
+        Command.withSharedFlags({
+          shared: Flag.string("shared")
+        })
+      )
 
       const child = Command.make("child", {
         shared: Flag.string("shared")
@@ -55,6 +57,22 @@ describe("Command errors", () => {
         assert.strictEqual(duplicate.option, "shared")
         assert.strictEqual(duplicate.parentCommand, "parent")
         assert.strictEqual(duplicate.childCommand, "child")
+      }
+    })
+
+    it("allows parent local flags to reuse child flag names", () => {
+      const parent = Command.make("parent", {
+        shared: Flag.string("shared")
+      })
+
+      const child = Command.make("child", {
+        shared: Flag.string("shared")
+      })
+
+      try {
+        parent.pipe(Command.withSubcommands([child]))
+      } catch (error) {
+        assert.fail(`did not expect DuplicateOption: ${String(error)}`)
       }
     })
 

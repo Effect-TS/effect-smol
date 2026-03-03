@@ -20,7 +20,7 @@
  *
  * Key Behaviors
  * -------------
- * - Parent flags may appear before OR after the subcommand name (npm-style)
+ * - Inherited parent flags may appear before OR after the subcommand name (npm-style)
  * - Only the first Value token can open a subcommand
  * - Errors accumulate rather than throwing exceptions
  */
@@ -58,10 +58,17 @@ export const parseArgs = (
     const flagParams = singles.filter(Param.isFlagParam)
     const flagRegistry = createFlagRegistry(flagParams)
 
+    const inheritedSingles = commandImpl.contextConfig.flags.flatMap(Param.extractSingleParams)
+    const inheritedFlagParams = inheritedSingles.filter(Param.isFlagParam)
+    const inheritedFlagRegistry = createFlagRegistry(inheritedFlagParams)
+    const inheritedNames = new Set(inheritedFlagParams.map((param) => param.name))
+
     const context: CommandContext = {
       command,
       commandPath: newCommandPath,
-      flagRegistry
+      flagRegistry,
+      inheritedFlagRegistry,
+      localFlagNames: flagParams.filter((param) => !inheritedNames.has(param.name)).map((param) => param.name)
     }
 
     const result = scanCommandLevel(tokens, context)
@@ -133,6 +140,8 @@ type CommandContext = {
   readonly command: Command.Any
   readonly commandPath: ReadonlyArray<string>
   readonly flagRegistry: FlagRegistry
+  readonly inheritedFlagRegistry: FlagRegistry
+  readonly localFlagNames: ReadonlyArray<string>
 }
 
 /**
@@ -176,7 +185,7 @@ type LeafResult = {
 type SubcommandResult = {
   readonly _tag: "Sub"
   readonly flags: Readonly<FlagMap>
-  readonly sub: Command<string, unknown, unknown, unknown>
+  readonly sub: Command<string, unknown, unknown, unknown, unknown>
   readonly childTokens: ReadonlyArray<Token>
   readonly errors: ReadonlyArray<CliError.CliError>
 }
@@ -242,9 +251,9 @@ export const createFlagRegistry = (params: ReadonlyArray<FlagParam>): FlagRegist
 
 const buildSubcommandIndex = (
   subcommands: Command.Any["subcommands"]
-): Map<string, Command<string, unknown, unknown, unknown>> => {
-  const index = new Map<string, Command<string, unknown, unknown, unknown>>()
-  const setKey = (key: string, command: Command<string, unknown, unknown, unknown>) => {
+): Map<string, Command<string, unknown, unknown, unknown, unknown>> => {
+  const index = new Map<string, Command<string, unknown, unknown, unknown, unknown>>()
+  const setKey = (key: string, command: Command<string, unknown, unknown, unknown, unknown>) => {
     const existing = index.get(key)
     if (existing && existing !== command) {
       throw new Error(
@@ -448,7 +457,7 @@ const toLeafResult = (state: ParseState): LeafResult => ({
  * Determines how to handle the first value token.
  *
  * If it matches a known subcommand:
- * - Collect any parent flags from remaining tokens (npm-style)
+ * - Collect inherited parent flags from remaining tokens (npm-style)
  * - Return SubcommandResult with child tokens
  *
  * Otherwise:
@@ -461,13 +470,30 @@ const resolveFirstValue = (
   context: CommandContext,
   state: ParseState
 ): FirstValueResult => {
-  const { command, commandPath, flagRegistry } = context
+  const { command, commandPath, inheritedFlagRegistry, localFlagNames } = context
   const subIndex = buildSubcommandIndex(command.subcommands)
   const sub = subIndex.get(value)
 
   if (sub) {
-    // npm-style: parent flags can appear after subcommand name
-    const tail = consumeKnownFlags(cursor.rest(), flagRegistry)
+    const selectedPath = [...commandPath, sub.name]
+
+    // Local flags are not inherited by subcommands.
+    const parentFlags = state.flags.snapshot()
+    for (const localFlagName of localFlagNames) {
+      const values = parentFlags[localFlagName]
+      if (values !== undefined && values.length > 0) {
+        state.errors.push(
+          new CliError.UnrecognizedOption({
+            option: `--${localFlagName}`,
+            suggestions: [],
+            command: selectedPath
+          })
+        )
+      }
+    }
+
+    // npm-style: inherited parent flags can appear after subcommand name
+    const tail = consumeKnownFlags(cursor.rest(), inheritedFlagRegistry)
     state.flags.merge(tail.flagMap)
 
     return {

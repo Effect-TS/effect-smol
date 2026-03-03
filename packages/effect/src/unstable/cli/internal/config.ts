@@ -183,6 +183,55 @@ export const parseConfig = (config: Config): ConfigInternal => {
   }
 }
 
+/** @internal */
+export const emptyConfig: ConfigInternal = parseConfig({})
+
+const shiftNodeIndexes = (node: ConfigInternal.Node, offset: number): ConfigInternal.Node => {
+  switch (node._tag) {
+    case "Param":
+      return {
+        _tag: "Param",
+        index: node.index + offset
+      }
+    case "Array":
+      return {
+        _tag: "Array",
+        children: node.children.map((child) => shiftNodeIndexes(child, offset))
+      }
+    case "Nested":
+      return {
+        _tag: "Nested",
+        tree: shiftTreeIndexes(node.tree, offset)
+      }
+  }
+}
+
+const shiftTreeIndexes = (tree: ConfigInternal.Tree, offset: number): ConfigInternal.Tree => {
+  const output: ConfigInternal.Tree = {}
+  for (const key in tree) {
+    output[key] = shiftNodeIndexes(tree[key], offset)
+  }
+  return output
+}
+
+/** @internal */
+export const mergeConfig = (
+  left: ConfigInternal,
+  right: ConfigInternal
+): ConfigInternal => {
+  const offset = left.orderedParams.length
+  return {
+    [ConfigInternalTypeId]: ConfigInternalTypeId,
+    flags: [...left.flags, ...right.flags],
+    arguments: [...left.arguments, ...right.arguments],
+    orderedParams: [...left.orderedParams, ...right.orderedParams],
+    tree: {
+      ...left.tree,
+      ...shiftTreeIndexes(right.tree, offset)
+    }
+  }
+}
+
 /* ========================================================================== */
 /* Reconstruction                                                             */
 /* ========================================================================== */

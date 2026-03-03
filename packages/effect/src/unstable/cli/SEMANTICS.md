@@ -2,13 +2,17 @@
 
 This file records the intended parsing semantics with a short usage example and the test that locks it in. Examples show shell usage, not code.
 
-- **Parent flags allowed before or after subcommand (npm-style)**\
-  Example: `tool --global install --pkg cowsay` and `tool install --pkg cowsay --global`\
-  Test: `packages/effect/test/unstable/cli/Command.test.ts` – "should accept parent flags before or after a subcommand (npm-style)"
+- **Shared parent flags allowed before or after subcommand (npm-style)**\
+  Example: `tool --global install --pkg cowsay` and `tool install --pkg cowsay --global` (when `--global` is declared with `Command.withSharedFlags(...)`)\
+  Test: `packages/effect/test/unstable/cli/Command.test.ts` – "should accept shared parent flags before or after a subcommand (npm-style)"
+
+- **Local parent flags are not inherited by subcommands**\
+  Example: `tool --workspace docs chat --topic bugs` fails when `--workspace` is local to `tool`\
+  Test: `packages/effect/test/unstable/cli/Command.test.ts` – "should reject parent local flags on subcommand paths"
 
 - **Only the first value token may open a subcommand; later values are operands**\
   Example: `tool install pkg1 pkg2` → `install` chosen as subcommand; `pkg1 pkg2` are operands\
-  Test: `packages/effect/test/unstable/cli/Command.test.ts` – "should accept parent flags before or after a subcommand (npm-style)" (second invocation covers later operands)
+  Test: `packages/effect/test/unstable/cli/Command.test.ts` – "should accept shared parent flags before or after a subcommand (npm-style)" (second invocation covers later operands)
 
 - **`--` stops option parsing; everything after is an operand (no subcommands/flags)**\
   Example: `tool -- child --value x` → operands: `child --value x`; subcommand `child` is not entered\
@@ -34,8 +38,8 @@ This file records the intended parsing semantics with a short usage example and 
   Example: `tool env --env foo=bar --env cool=dude` → `{ foo: "bar", cool: "dude" }`\
   Test: `packages/effect/test/unstable/cli/Command.test.ts` – "should merge repeated key=value flags into a single record"
 
-- **Parent context is accessible inside subcommands**
-  Example: `tool --global install --pkg cowsay` → subcommand can read `global` from parent context
+- **Shared parent context is accessible inside subcommands**
+  Example: `tool --global install --pkg cowsay` → subcommand can read `global` from parent context when `global` is shared
   Test: `packages/effect/test/unstable/cli/Command.test.ts` – "should allow direct accessing parent config in subcommands"
 
 - **Built-in flags (`--version`, `--help`) take global precedence**
@@ -55,8 +59,8 @@ Below each semantic you’ll find: a short description, a usage example, how maj
 - **Commander / yargs / clap**: Allowed by default; commander/clap can tighten with options.
 - **Click / argparse / docopt**: Not allowed; options must be before the command they belong to.
 - **Cobra**: Persistent flags are available to children; placement is typically before subcommand, but not strictly enforced.
-- **Effect (current)**: Allowed (permissive). Backed by test: “should accept parent flags before or after a subcommand (npm-style)”.
-- **Suggestion**: Keep permissive default; document clearly (done). If a future app needs strictness, add an opt-in validator rather than changing defaults.
+- **Effect (current)**: Allowed for parent flags explicitly declared as shared via `Command.withSharedFlags(...)`. Backed by test: “should accept shared parent flags before or after a subcommand (npm-style)”.
+- **Suggestion**: Keep permissive placement for shared flags, with local-by-default declaration semantics.
 
 ### Options after operands (relaxed POSIX Guideline 9)
 
@@ -104,11 +108,11 @@ Below each semantic you’ll find: a short description, a usage example, how maj
 
 ### Parent context accessible in subcommands
 
-- **What**: Ability for subcommand handlers to read the parsed config of their parent.
-- **Example**: `tool --global install --pkg cowsay` → subcommand reads `global`.
+- **What**: Ability for subcommand handlers to read parent flags intentionally shared by the parent command.
+- **Example**: `tool --global install --pkg cowsay` → subcommand reads `global` when `global` is shared.
 - **Commander / yargs / clap / Cobra**: Supported via shared options or persistent flags; Click/argparse require manual plumbing.
-- **Effect (current)**: Supported; test “should allow direct accessing parent config in subcommands”.
-- **Suggestion**: Keep; this is a strength of our design.
+- **Effect (current)**: Supported for shared flags only; test “should allow direct accessing parent config in subcommands”.
+- **Suggestion**: Keep; explicit sharing avoids accidental inheritance.
 
 ### Repeated key=value flags merging
 
@@ -137,4 +141,4 @@ Below each semantic you’ll find: a short description, a usage example, how maj
 
 ## Opinionated default
 
-Effect should remain on the permissive, npm/commander-style side: flexible option placement, parent flags usable before or after subcommands, strict `--` handling, and single-shot subcommand selection on the first value. This keeps UX friendly for modern CLIs while remaining predictable via documented rules and tests.
+Effect should remain on the permissive, npm/commander-style side: flexible option placement, shared parent flags usable before or after subcommands, strict `--` handling, and single-shot subcommand selection on the first value. This keeps UX friendly for modern CLIs while remaining predictable via documented rules and tests.
