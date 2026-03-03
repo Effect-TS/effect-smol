@@ -639,7 +639,7 @@ export const withSubcommands: {
     if (internal._subcommand) {
       const child = byName.get(internal._subcommand.name)
       if (!child) {
-        return yield* new CliError.ShowHelp({ commandPath: path })
+        return yield* new CliError.ShowHelp({ commandPath: path, errors: [] })
       }
       return yield* child
         .handle(internal._subcommand.result, [...path, child.name])
@@ -1077,15 +1077,14 @@ const getOutOfScopeGlobalFlagErrors = (
 
 const showHelp = <Name extends string, Input, E, R>(
   command: Command<Name, Input, E, R>,
-  commandPath: ReadonlyArray<string>,
-  errors?: ReadonlyArray<CliError.CliError>
-): Effect.Effect<void, never, Environment> =>
+  error: CliError.ShowHelp
+): Effect.Effect<void, CliError.CliError, Environment> =>
   Effect.gen(function*() {
     const formatter = yield* CliOutput.Formatter
-    const helpDoc = yield* getHelpForCommandPath(command, commandPath, GlobalFlag.BuiltIns)
+    const helpDoc = yield* getHelpForCommandPath(command, error.commandPath, GlobalFlag.BuiltIns)
     yield* Console.log(formatter.formatHelpDoc(helpDoc))
-    if (errors && errors.length > 0) {
-      yield* Console.error(formatter.formatErrors(errors))
+    if (error.errors.length > 0) {
+      yield* Console.error(formatter.formatErrors(error.errors as any))
     }
   })
 
@@ -1209,7 +1208,7 @@ export const runWith = <const Name extends string, Input, E, R>(
       const outOfScopeErrors = getOutOfScopeGlobalFlagErrors(allFlags, activeFlags, flagMap, commandPath)
       if (outOfScopeErrors.length > 0) {
         const parseErrors = parsedArgs.errors ?? []
-        return yield* showHelp(command, commandPath, [...outOfScopeErrors, ...parseErrors])
+        return yield* new CliError.ShowHelp({ commandPath, errors: [...outOfScopeErrors, ...parseErrors] })
       }
 
       // 5. Process action flags — first present action wins, then exit
@@ -1228,11 +1227,11 @@ export const runWith = <const Name extends string, Input, E, R>(
 
       // 6. Handle parsing errors
       if (parsedArgs.errors && parsedArgs.errors.length > 0) {
-        return yield* showHelp(command, commandPath, parsedArgs.errors)
+        return yield* new CliError.ShowHelp({ commandPath, errors: parsedArgs.errors })
       }
       const parseResult = yield* Effect.result(commandImpl.parse(parsedArgs))
       if (parseResult._tag === "Failure") {
-        return yield* showHelp(command, commandPath, [parseResult.failure])
+        return yield* new CliError.ShowHelp({ commandPath, errors: [parseResult.failure] })
       }
 
       // 7. Provide setting values
@@ -1260,7 +1259,7 @@ export const runWith = <const Name extends string, Input, E, R>(
         CliError.isCliError(error) && error._tag === "ShowHelp"
           ? Result.succeed(error)
           : Result.fail(error),
-      (error) => showHelp(command, error.commandPath)
+      (error) => Effect.andThen(showHelp(command, error), Effect.fail(error))
     ),
     Effect.catchFilter(
       (e) =>

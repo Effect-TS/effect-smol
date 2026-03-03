@@ -113,7 +113,7 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
   ): Effect.Effect<void, CliError.CliError | E, R | Environment> =>
     Predicate.isNotUndefined(options.handle)
       ? options.handle(input, commandPath)
-      : Effect.fail(new CliError.ShowHelp({ commandPath }))
+      : Effect.fail(new CliError.ShowHelp({ commandPath, errors: [] }))
 
   const parse = options.parse ?? Effect.fnUntraced(function*(input: ParsedTokens) {
     const parsedArgs: Param.ParsedArgs = { flags: input.flags, arguments: input.arguments }

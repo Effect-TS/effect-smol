@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 import * as Predicate from "../../Predicate.ts"
+import * as Runtime from "../../Runtime.ts"
 import * as Schema from "../../Schema.ts"
 
 /**
@@ -387,61 +388,6 @@ export class UnknownSubcommand extends Schema.ErrorClass(`${TypeId}/UnknownSubco
 }
 
 /**
- * Control flow indicator when help is requested via --help flag.
- * This is not an error but uses the error channel for control flow.
- *
- * @example
- * ```ts
- * import { Effect } from "effect"
- * import { CliError } from "effect/unstable/cli"
- *
- * const showHelpIndicator = new CliError.ShowHelp({
- *   commandPath: ["myapp", "deploy", "production"]
- * })
- *
- * console.log(showHelpIndicator.message)
- * // "Help requested"
- *
- * // In help flag handling
- * const handleHelpFlag = (hasHelpFlag: boolean) =>
- *   Effect.gen(function*() {
- *     if (hasHelpFlag) {
- *       return yield* Effect.fail(showHelpIndicator)
- *     }
- *     return "continuing with command"
- *   })
- *
- * // In error handling
- * const handleCliErrors = (error: CliError.CliError): void => {
- *   if (error._tag === "ShowHelp") {
- *     // Display help for the command path
- *     console.log(`Displaying help for: ${error.commandPath.join(" ")}`)
- *   }
- *   // Handle other errors...
- * }
- * ```
- *
- * @since 4.0.0
- * @category models
- */
-export class ShowHelp extends Schema.ErrorClass(`${TypeId}/ShowHelp`)({
-  _tag: Schema.tag("ShowHelp"),
-  commandPath: Schema.Array(Schema.String)
-}) {
-  /**
-   * @since 4.0.0
-   */
-  readonly [TypeId] = TypeId
-
-  /**
-   * @since 4.0.0
-   */
-  override get message() {
-    return "Help requested"
-  }
-}
-
-/**
  * Wrapper for user (handler) errors to unify under CLI error channel when desired.
  *
  * @example
@@ -484,4 +430,76 @@ export class UserError extends Schema.ErrorClass(`${TypeId}/UserError`)({
    * @since 4.0.0
    */
   readonly [TypeId] = TypeId
+}
+
+const NonShowHelpErrors: Schema.Union<
+  readonly [
+    typeof UnrecognizedOption,
+    typeof DuplicateOption,
+    typeof MissingOption,
+    typeof MissingArgument,
+    typeof InvalidValue,
+    typeof UnknownSubcommand,
+    typeof UserError
+  ]
+> = Schema.Union([
+  UnrecognizedOption,
+  DuplicateOption,
+  MissingOption,
+  MissingArgument,
+  InvalidValue,
+  UnknownSubcommand,
+  UserError
+])
+
+/**
+ * Control flow indicator when help is requested via --help flag.
+ * This is not an error but uses the error channel for control flow.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { CliError } from "effect/unstable/cli"
+ *
+ * const showHelpIndicator = new CliError.ShowHelp({
+ *   commandPath: ["myapp", "deploy", "production"]
+ * })
+ *
+ * console.log(showHelpIndicator.message)
+ * // "Help requested"
+ *
+ * // In help flag handling
+ * const handleHelpFlag = (hasHelpFlag: boolean) =>
+ *   Effect.gen(function*() {
+ *     if (hasHelpFlag) {
+ *       return yield* Effect.fail(showHelpIndicator)
+ *     }
+ *     return "continuing with command"
+ *   })
+ *
+ * // In error handling
+ * const handleCliErrors = (error: CliError.CliError): void => {
+ *   if (error._tag === "ShowHelp") {
+ *     // Display help for the command path
+ *     console.log(`Displaying help for: ${error.commandPath.join(" ")}`)
+ *   }
+ *   // Handle other errors...
+ * }
+ * ```
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export class ShowHelp extends Schema.ErrorClass(`${TypeId}/ShowHelp`)({
+  _tag: Schema.tag("ShowHelp"),
+  commandPath: Schema.Array(Schema.String),
+  errors: Schema.Array(NonShowHelpErrors)
+}) {
+  readonly [TypeId] = TypeId
+  override readonly [Runtime.errorExitCode] = this.errors.length ? 1 : 0
+  override readonly [Runtime.errorReported] = false
+
+  override get message() {
+    return "Help requested"
+  }
 }
