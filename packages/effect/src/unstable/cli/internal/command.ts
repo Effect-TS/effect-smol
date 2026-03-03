@@ -122,17 +122,8 @@ export const makeCommand = <const Name extends string, Input, E, R, ContextInput
       ? options.handle(input, commandPath)
       : Effect.fail(new CliError.ShowHelp({ commandPath, errors: [] }))
 
-  const parse = options.parse ?? Effect.fnUntraced(function*(input: ParsedTokens) {
-    const parsedArgs: Param.ParsedArgs = { flags: input.flags, arguments: input.arguments }
-    const values = yield* parseParams(parsedArgs, config.orderedParams)
-    return reconstructTree(config.tree, values) as Input
-  })
-
-  const parseContext = options.parseContext ?? Effect.fnUntraced(function*(input: ParsedTokens) {
-    const parsedArgs: Param.ParsedArgs = { flags: input.flags, arguments: input.arguments }
-    const values = yield* parseParams(parsedArgs, contextConfig.orderedParams)
-    return reconstructTree(contextConfig.tree, values) as ContextInput
-  })
+  const parse = options.parse ?? makeParser(config) as any
+  const parseContext = options.parseContext ?? makeParser(contextConfig) as any
 
   const buildHelpDoc = (commandPath: ReadonlyArray<string>): HelpDoc => {
     const args: Array<ArgDoc> = []
@@ -232,6 +223,18 @@ export const makeCommand = <const Name extends string, Input, E, R, ContextInput
 /* ========================================================================== */
 /* Helpers                                                                    */
 /* ========================================================================== */
+
+/**
+ * Creates a parser for a given config. Used as the default for both `parse`
+ * and `parseContext`, and also by `withSharedFlags` to avoid constructing a
+ * full throwaway command.
+ */
+export const makeParser = (cfg: ConfigInternal) =>
+  Effect.fnUntraced(function*(input: ParsedTokens) {
+    const parsedArgs: Param.ParsedArgs = { flags: input.flags, arguments: input.arguments }
+    const values = yield* parseParams(parsedArgs, cfg.orderedParams)
+    return reconstructTree(cfg.tree, values)
+  })
 
 /**
  * Parses param values from parsed command arguments into their typed

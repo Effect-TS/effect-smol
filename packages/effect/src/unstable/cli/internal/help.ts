@@ -124,7 +124,7 @@ const getSharedFlagsForCommandPath = (
     for (const flag of ancestorImpl.contextConfig.flags) {
       const singles = Param.extractSingleParams(flag)
       for (const single of singles) {
-        if (single.kind !== "flag" || seen.has(single.name)) {
+        if (seen.has(single.name)) {
           continue
         }
         seen.add(single.name)

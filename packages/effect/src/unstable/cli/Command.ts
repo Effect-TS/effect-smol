@@ -21,7 +21,7 @@ import type { ChildProcessSpawner } from "../process/ChildProcessSpawner.ts"
 import * as CliError from "./CliError.ts"
 import * as CliOutput from "./CliOutput.ts"
 import * as GlobalFlag from "./GlobalFlag.ts"
-import { checkForDuplicateFlags, makeCommand, toImpl, TypeId } from "./internal/command.ts"
+import { checkForDuplicateFlags, makeCommand, makeParser, toImpl, TypeId } from "./internal/command.ts"
 import { mergeConfig, parseConfig } from "./internal/config.ts"
 import { getGlobalFlagsForCommandPath, getGlobalFlagsForCommandTree, getHelpForCommandPath } from "./internal/help.ts"
 import * as Lexer from "./internal/lexer.ts"
@@ -742,21 +742,17 @@ export const withSharedFlags: {
     type NextInput = Simplify<Input & SharedInput>
     type NextContextInput = Simplify<ContextInput & SharedInput>
 
-    const sharedParser = toImpl(makeCommand({
-      name: impl.name,
-      config: sharedConfig,
-      contextConfig: sharedConfig
-    }))
+    const parseShared = makeParser(sharedConfig)
 
     const parse = Effect.fnUntraced(function*(raw: ParsedTokens) {
       const base = yield* impl.parse(raw)
-      const shared = yield* sharedParser.parse(raw)
+      const shared = yield* parseShared(raw)
       return Object.assign({}, base, shared) as NextInput
     })
 
     const parseContext = Effect.fnUntraced(function*(raw: ParsedTokens) {
       const base = yield* impl.parseContext(raw)
-      const shared = yield* sharedParser.parse(raw)
+      const shared = yield* parseShared(raw)
       return Object.assign({}, base, shared) as NextContextInput
     })
 
