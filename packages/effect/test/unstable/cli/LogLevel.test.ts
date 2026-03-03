@@ -1,3 +1,4 @@
+import { NodeStdio } from "@effect/platform-node"
 import { assert, describe, it } from "@effect/vitest"
 import { Effect, FileSystem, Layer, Logger, Option, Path, ServiceMap } from "effect"
 import { CliOutput, Command, Flag, GlobalFlag } from "effect/unstable/cli"
@@ -55,7 +56,8 @@ const TestLayer = Layer.mergeAll(
   TerminalLayer,
   CliOutputLayer,
   SpawnerLayer,
-  LoggerLayer
+  LoggerLayer,
+  NodeStdio.layer
 )
 
 describe("LogLevel", () => {

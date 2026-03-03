@@ -1,3 +1,4 @@
+import { NodeStdio } from "@effect/platform-node"
 import { assert, describe, it } from "@effect/vitest"
 import { Effect, FileSystem, Layer, Path } from "effect"
 import { CliError, CliOutput, Command, Flag } from "effect/unstable/cli"
@@ -19,7 +20,8 @@ const TestLayer = Layer.mergeAll(
   FileSystemLayer,
   PathLayer,
   TerminalLayer,
-  SpawnerLayer
+  SpawnerLayer,
+  NodeStdio.layer
 )
 
 describe("Command errors", () => {

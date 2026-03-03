@@ -14,6 +14,7 @@ import * as Predicate from "../../Predicate.ts"
 import * as References from "../../References.ts"
 import * as Result from "../../Result.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
+import * as Stdio from "../../Stdio.ts"
 import * as Terminal from "../../Terminal.ts"
 import type { NoInfer, Simplify } from "../../Types.ts"
 import type { ChildProcessSpawner } from "../process/ChildProcessSpawner.ts"
@@ -272,7 +273,7 @@ export declare namespace Command {
  * @since 4.0.0
  * @category utility types
  */
-export type Environment = FileSystem.FileSystem | Path.Path | Terminal.Terminal | ChildProcessSpawner
+export type Environment = FileSystem.FileSystem | Path.Path | Terminal.Terminal | ChildProcessSpawner | Stdio.Stdio
 
 /**
  * A utility type to extract the error type from a `Command`.
@@ -1103,7 +1104,7 @@ const showHelp = <Name extends string, Input, E, R>(
  *     yield* Console.log(`Hello, ${config.name}!`)
  *   }))
  *
- * // Automatically gets args from process.argv
+ * // Automatically gets args from the Stdio service
  * const program = Command.run(greetCommand, {
  *   version: "1.0.0"
  * })
@@ -1129,12 +1130,13 @@ export const run: {
   config: {
     readonly version: string
   }
-) => {
-  // TODO: process.argv is a Node.js global. For browser/edge runtime support,
-  // consider accepting an optional args parameter or using a platform service.
-  const input = process.argv.slice(2)
-  return runWith(command, config)(input)
-})
+) =>
+  Stdio.Stdio.use(({ args }) =>
+    Effect.flatMap(
+      args,
+      (args) => runWith(command, config)(args)
+    )
+  ))
 
 /**
  * Runs a command with explicitly provided arguments instead of using process.argv.
@@ -1254,11 +1256,11 @@ export const runWith = <const Name extends string, Input, E, R>(
       yield* Effect.provideServices(program, services)
     },
     Effect.catchFilter(
-      ((error: any) =>
+      (error) =>
         CliError.isCliError(error) && error._tag === "ShowHelp"
           ? Result.succeed(error)
-          : Result.fail(error)) as any,
-      (error: any) => showHelp(command, error.commandPath)
+          : Result.fail(error),
+      (error) => showHelp(command, error.commandPath)
     ),
     Effect.catchFilter(
       (e) =>

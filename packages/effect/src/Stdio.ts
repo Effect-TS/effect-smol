@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import type * as Effect from "./Effect.ts"
 import type { PlatformError } from "./PlatformError.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 import type * as Sink from "./Sink.ts"
@@ -24,6 +25,7 @@ export const TypeId: TypeId = "~effect/Stdio"
  */
 export interface Stdio {
   readonly [TypeId]: TypeId
+  readonly args: Effect.Effect<ReadonlyArray<string>>
   readonly stdout: Sink.Sink<void, string | Uint8Array, never, PlatformError>
   readonly stderr: Sink.Sink<void, string | Uint8Array, never, PlatformError>
   readonly stdin: Stream.Stream<Uint8Array, PlatformError>

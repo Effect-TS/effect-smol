@@ -1,6 +1,7 @@
 /**
  * @since 1.0.0
  */
+import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import { systemError } from "effect/PlatformError"
 import * as Stdio from "effect/Stdio"
@@ -14,6 +15,7 @@ import { fromReadable } from "./NodeStream.ts"
 export const layer: Layer.Layer<Stdio.Stdio> = Layer.succeed(
   Stdio.Stdio,
   Stdio.make({
+    args: Effect.sync(() => process.argv.slice(2)),
     stdout: fromWritable({
       evaluate: () => process.stdout,
       onError: (cause) =>

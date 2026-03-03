@@ -1,3 +1,4 @@
+import { NodeStdio } from "@effect/platform-node"
 import { assert, describe, expect, it } from "@effect/vitest"
 import { Effect, FileSystem, Layer, Option, Path, ServiceMap } from "effect"
 import { TestConsole } from "effect/testing"
@@ -29,7 +30,8 @@ const TestLayer = Layer.mergeAll(
   Layer.succeed(
     ChildProcessSpawner.ChildProcessSpawner,
     ChildProcessSpawner.make(() => Effect.die("Not implemented"))
-  )
+  ),
+  NodeStdio.layer
 )
 
 const TestLayerWithoutFormatter = Layer.mergeAll(
@@ -41,7 +43,8 @@ const TestLayerWithoutFormatter = Layer.mergeAll(
   Layer.succeed(
     ChildProcessSpawner.ChildProcessSpawner,
     ChildProcessSpawner.make(() => Effect.die("Not implemented"))
-  )
+  ),
+  NodeStdio.layer
 )
 
 describe("Command", () => {
