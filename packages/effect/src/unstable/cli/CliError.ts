@@ -456,37 +456,6 @@ const NonShowHelpErrors: Schema.Union<
  * Control flow indicator when help is requested via --help flag.
  * This is not an error but uses the error channel for control flow.
  *
- * @example
- * ```ts
- * import { Effect } from "effect"
- * import { CliError } from "effect/unstable/cli"
- *
- * const showHelpIndicator = new CliError.ShowHelp({
- *   commandPath: ["myapp", "deploy", "production"]
- * })
- *
- * console.log(showHelpIndicator.message)
- * // "Help requested"
- *
- * // In help flag handling
- * const handleHelpFlag = (hasHelpFlag: boolean) =>
- *   Effect.gen(function*() {
- *     if (hasHelpFlag) {
- *       return yield* Effect.fail(showHelpIndicator)
- *     }
- *     return "continuing with command"
- *   })
- *
- * // In error handling
- * const handleCliErrors = (error: CliError.CliError): void => {
- *   if (error._tag === "ShowHelp") {
- *     // Display help for the command path
- *     console.log(`Displaying help for: ${error.commandPath.join(" ")}`)
- *   }
- *   // Handle other errors...
- * }
- * ```
- *
  * @since 4.0.0
  * @category models
  */
@@ -496,6 +465,7 @@ export class ShowHelp extends Schema.ErrorClass(`${TypeId}/ShowHelp`)({
   errors: Schema.Array(NonShowHelpErrors)
 }) {
   readonly [TypeId] = TypeId
+
   override readonly [Runtime.errorExitCode] = this.errors.length ? 1 : 0
   override readonly [Runtime.errorReported] = false
 
