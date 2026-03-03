@@ -76,14 +76,15 @@ import * as Param from "./Param.ts"
  * @since 4.0.0
  * @category models
  */
-export interface Command<Name extends string, Input, E = never, R = never, ContextInput = {}> extends
-  Pipeable,
-  Effect.Yieldable<
-    Command<Name, Input, E, R, ContextInput>,
-    ContextInput,
-    never,
-    CommandContext<Name>
-  >
+export interface Command<Name extends string, Input, E = never, R = never, ContextInput = {}>
+  extends
+    Pipeable,
+    Effect.Yieldable<
+      Command<Name, Input, E, R, ContextInput>,
+      ContextInput,
+      never,
+      CommandContext<Name>
+    >
 {
   readonly [TypeId]: typeof TypeId
 
@@ -640,7 +641,9 @@ export const withSubcommands: {
 
   // Routing state shared between parse and handle via closure.
   // Avoids mixing internal routing data into the user's parsed config object.
-  let selectedSubcommand: { readonly name: string; readonly result: unknown; readonly context: ContextInput } | undefined
+  let selectedSubcommand:
+    | { readonly name: string; readonly result: unknown; readonly context: ContextInput }
+    | undefined
 
   const parse = Effect.fnUntraced(function*(raw: ParsedTokens) {
     selectedSubcommand = undefined

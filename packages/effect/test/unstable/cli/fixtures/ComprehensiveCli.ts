@@ -282,7 +282,8 @@ const git = Command.make("git").pipe(
   Command.withHandler((config) =>
     logAction("git", {
       verbose: config.verbose
-    })),
+    })
+  ),
   Command.withDescription("Git version control"),
   Command.withSubcommands([gitClone, gitAdd, gitStatus])
 )
@@ -355,7 +356,8 @@ const app = Command.make("app").pipe(
   Command.withHandler((config) =>
     logAction("app", {
       env: config.env
-    })),
+    })
+  ),
   Command.withDescription("Application management"),
   Command.withSubcommands([deployCommand])
 )
@@ -370,7 +372,8 @@ const serviceCommand = Command.make("service").pipe(
   Command.withHandler((config) =>
     logAction("service", {
       name: config.name
-    })),
+    })
+  ),
   Command.withDescription("Service management"),
   Command.withSubcommands([deployCommand])
 )
@@ -384,7 +387,8 @@ const appWithService = Command.make("app-nested").pipe(
   Command.withHandler((config) =>
     logAction("app-nested", {
       env: config.env
-    })),
+    })
+  ),
   Command.withDescription("Application with nested services"),
   Command.withSubcommands([serviceCommand])
 )

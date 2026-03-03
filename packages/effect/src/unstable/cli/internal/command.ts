@@ -16,7 +16,7 @@ import type * as GlobalFlag from "../GlobalFlag.ts"
 import type { ArgDoc, ExampleDoc, FlagDoc, HelpDoc, SubcommandGroupDoc } from "../HelpDoc.ts"
 import * as Param from "../Param.ts"
 import * as Primitive from "../Primitive.ts"
-import { emptyConfig, type ConfigInternal, reconstructTree } from "./config.ts"
+import { type ConfigInternal, emptyConfig, reconstructTree } from "./config.ts"
 
 /* ========================================================================== */
 /* Types                                                                      */
@@ -33,8 +33,8 @@ interface SubcommandGroup {
  * Internal implementation interface with all the machinery.
  * Use toImpl() to access from internal code.
  */
-export interface CommandInternal<Name extends string, Input, E, R, ContextInput> extends
-  Command<Name, Input, E, R, ContextInput>
+export interface CommandInternal<Name extends string, Input, E, R, ContextInput>
+  extends Command<Name, Input, E, R, ContextInput>
 {
   readonly config: ConfigInternal
   readonly contextConfig: ConfigInternal
@@ -102,7 +102,9 @@ export const makeCommand = <const Name extends string, Input, E, R, ContextInput
   readonly examples?: ReadonlyArray<Command.Example> | undefined
   readonly subcommands?: ReadonlyArray<SubcommandGroup> | undefined
   readonly parse?: ((input: ParsedTokens) => Effect.Effect<Input, CliError.CliError, Environment>) | undefined
-  readonly parseContext?: ((input: ParsedTokens) => Effect.Effect<ContextInput, CliError.CliError, Environment>) | undefined
+  readonly parseContext?:
+    | ((input: ParsedTokens) => Effect.Effect<ContextInput, CliError.CliError, Environment>)
+    | undefined
   readonly handle?:
     | ((input: Input, commandPath: ReadonlyArray<string>) => Effect.Effect<void, E, R | Environment>)
     | undefined

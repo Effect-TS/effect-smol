@@ -726,7 +726,8 @@ describe("Command", () => {
           Command.withHandler((config) =>
             Effect.sync(() => {
               messages.push(`root: workspace=${config.workspace}, model=${config.model}`)
-            }))
+            })
+          )
         )
 
         const runRoot = Command.runWith(root, { version: "1.0.0" })
@@ -828,7 +829,8 @@ describe("Command", () => {
           Command.withHandler((config) =>
             Effect.gen(function*() {
               messages.push(`root: env=${config.env}`)
-            }))
+            })
+          )
         )
 
         const service = Command.make("service").pipe(
@@ -840,7 +842,8 @@ describe("Command", () => {
               const rootConfig = yield* root
               messages.push(`service: root.env=${rootConfig.env}`)
               messages.push(`service: name=${config.name}`)
-            }))
+            })
+          )
         )
 
         const deploy = Command.make("deploy", {
@@ -893,7 +896,8 @@ describe("Command", () => {
           Command.withHandler((config) =>
             Effect.gen(function*() {
               messages.push(`parent: verbose=${config.verbose}, config=${config.config}`)
-            }))
+            })
+          )
         )
 
         const deploy = Command.make("deploy", {
