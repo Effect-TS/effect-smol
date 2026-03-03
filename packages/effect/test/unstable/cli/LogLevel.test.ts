@@ -151,6 +151,23 @@ describe("LogLevel", () => {
       assert.deepStrictEqual(seen, [Option.none(), Option.some("warn")])
     }).pipe(Effect.provide(TestLayer)))
 
+  it.effect("should not swallow subsequent args with --log-level=<value>", () =>
+    Effect.gen(function*() {
+      const seen: Array<Option.Option<string>> = []
+      const command = Command.make("test", {
+        name: Flag.string("name").pipe(Flag.optional)
+      }, ({ name }) =>
+        Effect.sync(() => {
+          seen.push(name)
+        }))
+
+      const runCommand = Command.runWith(command, { version: "1.0.0" })
+
+      yield* runCommand(["--log-level=debug", "--name=hello"])
+
+      assert.deepStrictEqual(seen, [Option.some("hello")])
+    }).pipe(Effect.provide(TestLayer)))
+
   it.effect("should apply log level to subcommands", () =>
     Effect.gen(function*() {
       const parentCommand = Command.make("parent", {
