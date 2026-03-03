@@ -739,6 +739,7 @@ export const layerHttp = <Rpcs extends Rpc.Any>(options: {
   readonly spanPrefix?: string | undefined
   readonly spanAttributes?: Record<string, unknown> | undefined
   readonly concurrency?: number | "unbounded" | undefined
+  readonly disableFatalDefects?: boolean | undefined
 }): Layer.Layer<
   never,
   never,
@@ -1080,6 +1081,7 @@ export const toHttpEffect: <Rpcs extends Rpc.Any>(
     readonly disableTracing?: boolean | undefined
     readonly spanPrefix?: string | undefined
     readonly spanAttributes?: Record<string, unknown> | undefined
+    readonly disableFatalDefects?: boolean | undefined
   } | undefined
 ) => Effect.Effect<
   Effect.Effect<HttpServerResponse.HttpServerResponse, never, Scope.Scope | HttpServerRequest.HttpServerRequest>,
@@ -1095,6 +1097,7 @@ export const toHttpEffect: <Rpcs extends Rpc.Any>(
     readonly disableTracing?: boolean | undefined
     readonly spanPrefix?: string | undefined
     readonly spanAttributes?: Record<string, unknown> | undefined
+    readonly disableFatalDefects?: boolean | undefined
   }
 ) {
   const { httpEffect, protocol } = yield* makeProtocolWithHttpEffect
@@ -1116,6 +1119,7 @@ export const toHttpEffectWebsocket: <Rpcs extends Rpc.Any>(
     readonly disableTracing?: boolean | undefined
     readonly spanPrefix?: string | undefined
     readonly spanAttributes?: Record<string, unknown> | undefined
+    readonly disableFatalDefects?: boolean | undefined
   } | undefined
 ) => Effect.Effect<
   Effect.Effect<HttpServerResponse.HttpServerResponse, never, Scope.Scope | HttpServerRequest.HttpServerRequest>,
@@ -1131,6 +1135,7 @@ export const toHttpEffectWebsocket: <Rpcs extends Rpc.Any>(
     readonly disableTracing?: boolean | undefined
     readonly spanPrefix?: string | undefined
     readonly spanAttributes?: Record<string, unknown> | undefined
+    readonly disableFatalDefects?: boolean | undefined
   }
 ) {
   const { httpEffect, protocol } = yield* makeProtocolWithHttpEffectWebsocket
