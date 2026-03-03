@@ -23,7 +23,7 @@ export const findAll = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
   const encodeRequest = Schema.encodeEffect(options.Request)
   const decode = Schema.decodeUnknownEffect(Schema.mutable(Schema.Array(options.Result)))
   return (
-    request: Req["Encoded"]
+    request: Req["Type"]
   ): Effect.Effect<
     Array<Res["Type"]>,
     E | Schema.SchemaError,
@@ -46,7 +46,7 @@ export const findNonEmpty = <Req extends Schema.Top, Res extends Schema.Top, E, 
 ) => {
   const find = findAll(options)
   return (
-    request: Req["Encoded"]
+    request: Req["Type"]
   ): Effect.Effect<
     Arr.NonEmptyArray<Res["Type"]>,
     E | Schema.SchemaError | Cause.NoSuchElementError,

@@ -6,6 +6,34 @@ import * as Schema from "effect/Schema"
 import * as SqlSchema from "effect/unstable/sql/SqlSchema"
 
 describe("SqlSchema", () => {
+  describe("findAll", () => {
+    it.effect("accepts request type and returns decoded rows", () =>
+      Effect.gen(function*() {
+        const query = SqlSchema.findAll({
+          Request: Schema.NumberFromString,
+          Result: Schema.Struct({ value: Schema.String }),
+          execute: (request) => Effect.succeed([{ value: `id:${request}` }])
+        })
+
+        const result = yield* query(1)
+        assert.deepStrictEqual(result, [{ value: "id:1" }])
+      }))
+  })
+
+  describe("findNonEmpty", () => {
+    it.effect("accepts request type and returns decoded non-empty rows", () =>
+      Effect.gen(function*() {
+        const query = SqlSchema.findNonEmpty({
+          Request: Schema.NumberFromString,
+          Result: Schema.Struct({ value: Schema.String }),
+          execute: (request) => Effect.succeed([{ value: `id:${request}` }])
+        })
+
+        const result = yield* query(1)
+        assert.deepStrictEqual(result, [{ value: "id:1" }])
+      }))
+  })
+
   describe("findOneOption", () => {
     it.effect("returns Option.some when a row exists", () =>
       Effect.gen(function*() {
