@@ -208,10 +208,9 @@ export const makeRunMain = (
       ? Effect.runFork(effect)
       : Effect.runFork(
         Effect.tapCause(effect, (cause) => {
-          if (Cause.hasInterruptsOnly(cause)) {
-            return Effect.void
-          }
-          return Effect.logError(cause)
+          if (Cause.hasInterruptsOnly(cause)) return Effect.void
+          const isReported = getErrorReported(Cause.squash(cause))
+          return isReported ? Effect.logError(cause) : Effect.void
         })
       )
     try {
@@ -223,6 +222,13 @@ export const makeRunMain = (
     const teardown = options?.teardown ?? defaultTeardown
     return f({ fiber, teardown })
   })
+
+declare global {
+  interface Error {
+    readonly [errorExitCode]?: number
+    readonly [errorReported]?: boolean
+  }
+}
 
 /**
  * @category Exit code management
@@ -251,12 +257,6 @@ export type errorExitCode = "~effect/Runtime/errorExitCode"
  */
 export const errorExitCode: errorExitCode = "~effect/Runtime/errorExitCode"
 
-declare global {
-  interface Error {
-    readonly [errorExitCode]?: number
-  }
-}
-
 /**
  * @category Exit code management
  * @since 4.0.0
@@ -269,4 +269,45 @@ export const getErrorExitCode = (u: unknown): number => {
     }
   }
   return 1
+}
+
+/**
+ * @category Error reporting management
+ * @since 4.0.0
+ */
+export type errorReported = "~effect/Runtime/errorReported"
+
+/**
+ * Allows an error to opt-out of error reporting.
+ *
+ * ```ts
+ * import { Data, Effect, Runtime } from "effect"
+ * import { NodeRuntime } from "@effect/platform-node"
+ *
+ * class MyError extends Data.TaggedError("MyError") {
+ *   readonly [Runtime.errorReported] = true
+ * }
+ *
+ * // If the program fails with MyError, the process will exit with code 1 but
+ * // no error will be logged.
+ * NodeRuntime.runMain(Effect.fail(new MyError()))
+ * ```
+ *
+ * @category Error reporting management
+ * @since 4.0.0
+ */
+export const errorReported: errorReported = "~effect/Runtime/errorReported"
+
+/**
+ * @category Error reporting management
+ * @since 4.0.0
+ */
+export const getErrorReported = (u: unknown): boolean => {
+  if (typeof u === "object" && u !== null && errorReported in u) {
+    const isReported = u[errorReported]
+    if (typeof isReported === "boolean") {
+      return isReported
+    }
+  }
+  return true
 }
