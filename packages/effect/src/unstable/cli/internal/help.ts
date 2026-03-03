@@ -10,8 +10,7 @@ import type { Command } from "../Command.ts"
 import type * as GlobalFlag from "../GlobalFlag.ts"
 import type { FlagDoc, HelpDoc } from "../HelpDoc.ts"
 import * as Param from "../Param.ts"
-import * as Primitive from "../Primitive.ts"
-import { toImpl } from "./command.ts"
+import { toFlagDoc, toImpl } from "./command.ts"
 
 const dedupeGlobalFlags = (
   flags: ReadonlyArray<GlobalFlag.GlobalFlag<any>>
@@ -95,17 +94,6 @@ const collectDeclaredGlobalFlags = (command: Command.Any): ReadonlyArray<GlobalF
 
   visit(command)
   return dedupeGlobalFlags(collected)
-}
-
-const toFlagDoc = (single: Param.Single<typeof Param.flagKind, unknown>): FlagDoc => {
-  const formattedAliases = single.aliases.map((alias) => alias.length === 1 ? `-${alias}` : `--${alias}`)
-  return {
-    name: single.name,
-    aliases: formattedAliases,
-    type: single.typeName ?? Primitive.getTypeName(single.primitiveType),
-    description: single.description,
-    required: single.primitiveType._tag !== "Boolean"
-  }
 }
 
 const getSharedFlagsForCommandPath = (

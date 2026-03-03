@@ -156,14 +156,7 @@ export const makeCommand = <const Name extends string, Input, E, R, ContextInput
     for (const option of config.flags) {
       const singles = Param.extractSingleParams(option)
       for (const single of singles) {
-        const formattedAliases = single.aliases.map((alias) => alias.length === 1 ? `-${alias}` : `--${alias}`)
-        flags.push({
-          name: single.name,
-          aliases: formattedAliases,
-          type: single.typeName ?? Primitive.getTypeName(single.primitiveType),
-          description: single.description,
-          required: single.primitiveType._tag !== "Boolean"
-        })
+        flags.push(toFlagDoc(single))
       }
     }
 
@@ -223,6 +216,20 @@ export const makeCommand = <const Name extends string, Input, E, R, ContextInput
 /* ========================================================================== */
 /* Helpers                                                                    */
 /* ========================================================================== */
+
+/**
+ * Converts a single flag param into a FlagDoc for help display.
+ */
+export const toFlagDoc = (single: Param.Single<typeof Param.flagKind, unknown>): FlagDoc => {
+  const formattedAliases = single.aliases.map((alias) => alias.length === 1 ? `-${alias}` : `--${alias}`)
+  return {
+    name: single.name,
+    aliases: formattedAliases,
+    type: single.typeName ?? Primitive.getTypeName(single.primitiveType),
+    description: single.description,
+    required: single.primitiveType._tag !== "Boolean"
+  }
+}
 
 /**
  * Creates a parser for a given config. Used as the default for both `parse`

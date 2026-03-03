@@ -636,11 +636,13 @@ export const withSubcommands: {
   const impl = toImpl(self)
   const byName = new Map(normalized.flat.map((s) => [s.name, toImpl(s)] as const))
 
-  // Internal type for routing - not exposed in public type
-  type SubcommandInfo = { readonly name: string; readonly result: unknown }
-  type InternalInput = ContextInput & { readonly _subcommand?: SubcommandInfo }
+  // Routing state shared between parse and handle via closure.
+  // Avoids mixing internal routing data into the user's parsed config object.
+  let selectedSubcommand: { readonly name: string; readonly result: unknown; readonly context: ContextInput } | undefined
 
   const parse = Effect.fnUntraced(function*(raw: ParsedTokens) {
+    selectedSubcommand = undefined
+
     if (!raw.subcommand) {
       return yield* impl.parse(raw)
     }
@@ -650,23 +652,21 @@ export const withSubcommands: {
       return yield* impl.parse(raw)
     }
 
-    const parentContext = yield* impl.parseContext(raw)
+    const context = yield* impl.parseContext(raw)
     const result = yield* sub.parse(raw.subcommand.parsedInput)
-    // Attach subcommand info internally for routing
-    return Object.assign({}, parentContext, { _subcommand: { name: sub.name, result } }) as Input
+    selectedSubcommand = { name: sub.name, result, context }
+    return context as unknown as Input
   })
 
   const handle = Effect.fnUntraced(function*(input: Input, path: ReadonlyArray<string>) {
-    const internal = input as InternalInput
-    if (internal._subcommand) {
-      const child = byName.get(internal._subcommand.name)
+    if (selectedSubcommand) {
+      const child = byName.get(selectedSubcommand.name)
       if (!child) {
         return yield* new CliError.ShowHelp({ commandPath: path, errors: [] })
       }
-      const { _subcommand: _discard, ...contextInput } = internal
       return yield* child
-        .handle(internal._subcommand.result, [...path, child.name])
-        .pipe(Effect.provideService(impl.service, contextInput as ContextInput))
+        .handle(selectedSubcommand.result, [...path, child.name])
+        .pipe(Effect.provideService(impl.service, selectedSubcommand.context))
     }
     return yield* impl.handle(input, path)
   })
