@@ -21,9 +21,9 @@ describe("Command", () => {
         Command.Command<
           "root",
           { readonly workspace: string; readonly verbose: boolean },
+          { readonly verbose: boolean },
           never,
-          never,
-          { readonly verbose: boolean }
+          never
         >
       >()
     })
@@ -50,6 +50,32 @@ describe("Command", () => {
       root.pipe(Command.withSubcommands([child]))
     })
 
+    it("widens input after withSubcommands for input-based combinators", () => {
+      const root = Command.make("root", {
+        local: Flag.string("local")
+      }).pipe(
+        Command.withSharedFlags({
+          verbose: Flag.boolean("verbose")
+        })
+      )
+
+      const child = Command.make("child")
+
+      root.pipe(
+        Command.withSubcommands([child]),
+        Command.provideEffectDiscard((input) => {
+          expect(input).type.toBe<
+            | { readonly local: string; readonly verbose: boolean }
+            | { readonly verbose: boolean }
+          >()
+          expect(input.verbose).type.toBe<boolean>()
+          // @ts-expect-error!
+          const local = input.local
+          void local
+          return Effect.void
+        })
+      )
+    })
     it("accepts only flags", () => {
       Command.make("root").pipe(
         Command.withSharedFlags({
@@ -77,7 +103,7 @@ describe("Command", () => {
           Command.withGlobalFlags([VerboseAction, Format])
         )
 
-      expect(command).type.toBe<Command.Command<"example", {}, never, never>>()
+      expect(command).type.toBe<Command.Command<"example", {}, {}, never, never>>()
     })
 
     it("strips setting context in data-first form", () => {
@@ -97,7 +123,7 @@ describe("Command", () => {
         [VerboseAction, Format]
       )
 
-      expect(command).type.toBe<Command.Command<"example", {}, never, never>>()
+      expect(command).type.toBe<Command.Command<"example", {}, {}, never, never>>()
     })
   })
 })

@@ -26,7 +26,7 @@ import type { Command, CommandContext, Environment, ParsedTokens } from "../Comm
 
 interface SubcommandGroup {
   readonly group: string | undefined
-  readonly commands: Arr.NonEmptyReadonlyArray<Command<any, unknown, unknown, unknown, any>>
+  readonly commands: Arr.NonEmptyReadonlyArray<Command<any, unknown, any, unknown, unknown>>
 }
 
 /**
@@ -34,7 +34,7 @@ interface SubcommandGroup {
  * Use toImpl() to access from internal code.
  */
 export interface CommandInternal<Name extends string, Input, E, R, ContextInput>
-  extends Command<Name, Input, E, R, ContextInput>
+  extends Command<Name, Input, ContextInput, E, R>
 {
   readonly config: ConfigInternal
   readonly contextConfig: ConfigInternal
@@ -65,7 +65,7 @@ export const TypeId = "~effect/cli/Command" as const
  * For use by internal modules that need access to config, parse, handle, etc.
  */
 export const toImpl = <Name extends string, Input, E, R, ContextInput = {}>(
-  self: Command<Name, Input, E, R, ContextInput>
+  self: Command<Name, Input, ContextInput, E, R>
 ): CommandInternal<Name, Input, E, R, ContextInput> => self as CommandInternal<Name, Input, E, R, ContextInput>
 
 /* ========================================================================== */
@@ -108,7 +108,7 @@ export const makeCommand = <const Name extends string, Input, E, R, ContextInput
   readonly handle?:
     | ((input: Input, commandPath: ReadonlyArray<string>) => Effect.Effect<void, E, R | Environment>)
     | undefined
-}): Command<Name, Input, E, R, ContextInput> => {
+}): Command<Name, Input, ContextInput, E, R> => {
   const config = options.config
   const contextConfig = options.contextConfig ?? emptyConfig
   const service = options.service ?? ServiceMap.Service<CommandContext<Name>, ContextInput>(`${TypeId}/${options.name}`)
@@ -273,14 +273,17 @@ const parseParams: (parsedArgs: Param.ParsedArgs, params: ReadonlyArray<Param.An
  * Checks for duplicate flag names between parent and child commands.
  */
 export const checkForDuplicateFlags = <Name extends string, Input, ContextInput>(
-  parent: Command<Name, Input, unknown, unknown, ContextInput>,
-  subcommands: ReadonlyArray<Command<any, unknown, unknown, unknown, any>>
+  parent: Command<Name, Input, ContextInput, unknown, unknown>,
+  subcommands: ReadonlyArray<Command<any, unknown, any, unknown, unknown>>,
+  options?: {
+    readonly contextConfig?: ConfigInternal | undefined
+  } | undefined
 ): void => {
   const parentImpl = toImpl(parent)
   const parentOptionNames = new Set<string>()
 
-  const extractNames = (options: ReadonlyArray<Param.Any>): void => {
-    for (const option of options) {
+  const extractNames = (flags: ReadonlyArray<Param.Any>): void => {
+    for (const option of flags) {
       const singles = Param.extractSingleParams(option)
       for (const single of singles) {
         parentOptionNames.add(single.name)
@@ -288,7 +291,7 @@ export const checkForDuplicateFlags = <Name extends string, Input, ContextInput>
     }
   }
 
-  extractNames(parentImpl.contextConfig.flags)
+  extractNames((options?.contextConfig ?? parentImpl.contextConfig).flags)
 
   for (const subcommand of subcommands) {
     const subImpl = toImpl(subcommand)

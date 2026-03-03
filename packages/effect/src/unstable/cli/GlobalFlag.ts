@@ -22,7 +22,7 @@ import * as Flag from "./Flag.ts"
  * @category models
  */
 export interface HandlerContext {
-  readonly command: Command.Command<any, unknown, unknown, unknown, any>
+  readonly command: Command.Command<any, unknown, any, unknown, unknown>
   readonly commandPath: ReadonlyArray<string>
   readonly version: string
 }

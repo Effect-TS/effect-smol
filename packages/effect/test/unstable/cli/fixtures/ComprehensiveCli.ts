@@ -303,6 +303,7 @@ const testRequired = Command.make("test-required", {
 const testFailing: Command.Command<
   "test-failing",
   { readonly input: string },
+  {},
   string,
   TestActions
 > = Command.make("test-failing", {

@@ -32,7 +32,7 @@ const dedupeGlobalFlags = (
  * Includes the root command as the first element.
  */
 export const getCommandsForCommandPath = <Name extends string, Input, E, R, ContextInput>(
-  command: Command<Name, Input, E, R, ContextInput>,
+  command: Command<Name, Input, ContextInput, E, R>,
   commandPath: ReadonlyArray<string>
 ): ReadonlyArray<Command.Any> => {
   const commands: Array<Command.Any> = [command]
@@ -65,7 +65,7 @@ export const getCommandsForCommandPath = <Name extends string, Input, E, R, Cont
  * Built-ins are prepended and declarations are collected root -> leaf.
  */
 export const getGlobalFlagsForCommandPath = <Name extends string, Input, E, R, ContextInput>(
-  command: Command<Name, Input, E, R, ContextInput>,
+  command: Command<Name, Input, ContextInput, E, R>,
   commandPath: ReadonlyArray<string>,
   builtIns: ReadonlyArray<GlobalFlag.GlobalFlag<any>>
 ): ReadonlyArray<GlobalFlag.GlobalFlag<any>> => {
@@ -129,7 +129,7 @@ const getSharedFlagsForCommandPath = (
  * Built-ins are prepended and command declarations are deduplicated by identity.
  */
 export const getGlobalFlagsForCommandTree = <Name extends string, Input, E, R, ContextInput>(
-  command: Command<Name, Input, E, R, ContextInput>,
+  command: Command<Name, Input, ContextInput, E, R>,
   builtIns: ReadonlyArray<GlobalFlag.GlobalFlag<any>>
 ): ReadonlyArray<GlobalFlag.GlobalFlag<any>> =>
   dedupeGlobalFlags([
@@ -143,7 +143,7 @@ export const getGlobalFlagsForCommandTree = <Name extends string, Input, E, R, C
  * Reads active global flags for the path and includes them in the help doc.
  */
 export const getHelpForCommandPath = <Name extends string, Input, E, R, ContextInput>(
-  command: Command<Name, Input, E, R, ContextInput>,
+  command: Command<Name, Input, ContextInput, E, R>,
   commandPath: ReadonlyArray<string>,
   builtIns: ReadonlyArray<GlobalFlag.GlobalFlag<any>>
 ): Effect.Effect<HelpDoc, never, never> =>

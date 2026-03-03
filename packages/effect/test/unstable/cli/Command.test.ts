@@ -990,6 +990,22 @@ describe("Command", () => {
         assert.deepStrictEqual(messages, ["env=production, db=db://production.example.com"])
       }).pipe(Effect.provide(TestLayer)))
 
+    it.effect("should reject shared/child flag collisions when withSharedFlags is applied after withSubcommands", () =>
+      Effect.sync(() => {
+        const child = Command.make("run", {
+          verbose: Flag.boolean("verbose")
+        })
+
+        assert.throws(() =>
+          Command.make("tool").pipe(
+            Command.withSubcommands([child]),
+            Command.withSharedFlags({
+              verbose: Flag.boolean("verbose")
+            })
+          )
+        )
+      }))
+
     it.effect("should require withSharedFlags before withSubcommands for subcommand access", () =>
       Effect.gen(function*() {
         const messages: Array<string> = []
