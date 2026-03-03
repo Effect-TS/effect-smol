@@ -1647,6 +1647,25 @@ describe("Effect", () => {
         assert.strictEqual(yield* effect, 2)
       }))
 
+    it.effect("catchTags orElse", () =>
+      Effect.gen(function*() {
+        let error: ErrorA | ErrorB | ErrorC = new ErrorA()
+        const effect = Effect.failSync(() => error).pipe(
+          Effect.catchTags(
+            {
+              A: (_) => Effect.succeed(1),
+              B: (_) => Effect.succeed(2)
+            },
+            (_) => Effect.succeed(3)
+          )
+        )
+        assert.strictEqual(yield* effect, 1)
+        error = new ErrorB()
+        assert.strictEqual(yield* effect, 2)
+        error = new ErrorC()
+        assert.strictEqual(yield* effect, 3)
+      }))
+
     it.effect("tapErrorTag", () =>
       Effect.gen(function*() {
         let error: ErrorA | ErrorB | ErrorC = new ErrorA()

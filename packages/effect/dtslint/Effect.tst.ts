@@ -206,6 +206,41 @@ describe("Effect.catchReasons", () => {
   })
 })
 
+describe("Effect.catchTags", () => {
+  it("supports fallback in data-last usage", () => {
+    const result = pipe(
+      mixedEffect,
+      Effect.catchTags(
+        {
+          AiError: (error) => {
+            expect(error).type.toBe<AiError>()
+            return Effect.succeed("ok")
+          }
+        },
+        (error) => {
+          expect(error).type.toBe<OtherError>()
+          return Effect.fail(new SimpleError({ code: 1 }))
+        }
+      )
+    )
+    expect(result).type.toBe<Effect.Effect<string, SimpleError>>()
+  })
+
+  it("supports fallback in data-first usage", () => {
+    const result = Effect.catchTags(
+      mixedEffect,
+      {
+        AiError: () => Effect.succeed(1)
+      },
+      (error) => {
+        expect(error).type.toBe<OtherError>()
+        return Effect.succeed(2)
+      }
+    )
+    expect(result).type.toBe<Effect.Effect<string | number>>()
+  })
+})
+
 describe("Effect.catchNoSuchElement", () => {
   it("removes NoSuchElementError from the error channel", () => {
     const result = pipe(noSuchOrOther, Effect.catchNoSuchElement)
