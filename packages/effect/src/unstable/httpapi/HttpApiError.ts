@@ -6,27 +6,6 @@ import * as Schema from "../../Schema.ts"
 import * as HttpApiSchema from "./HttpApiSchema.ts"
 
 /**
- * @category errors
- * @since 4.0.0
- */
-export class HttpApiSchemaError extends Schema.ErrorClass<HttpApiSchemaError>("effect/HttpApiSchemaError")({
-  _tag: Schema.tag("HttpApiSchemaError"),
-  message: Schema.String
-}, {
-  httpApiStatus: 400,
-  description: "The request or response did not match the expected schema"
-}) {
-  /**
-   * @since 4.0.0
-   */
-  static fromSchemaError(error: Schema.SchemaError): HttpApiSchemaError {
-    return new HttpApiSchemaError({ message: error.message })
-  }
-
-  override readonly [ErrorReporter.ignore] = true
-}
-
-/**
  * @category Built-in errors
  * @since 4.0.0
  */

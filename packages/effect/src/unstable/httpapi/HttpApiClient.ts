@@ -23,7 +23,7 @@ import * as HttpMethod from "../http/HttpMethod.ts"
 import * as UrlParams from "../http/UrlParams.ts"
 import * as HttpApi from "./HttpApi.ts"
 import * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
-import type { HttpApiSchemaError } from "./HttpApiError.ts"
+import type { BadRequest } from "./HttpApiError.ts"
 import type * as HttpApiGroup from "./HttpApiGroup.ts"
 import type * as HttpApiMiddleware from "./HttpApiMiddleware.ts"
 import * as HttpApiSchema from "./HttpApiSchema.ts"
@@ -32,7 +32,7 @@ import * as HttpApiSchema from "./HttpApiSchema.ts"
  * @since 4.0.0
  * @category models
  */
-export type Client<Groups extends HttpApiGroup.Any, E = HttpApiSchemaError, R = never> = Simplify<
+export type Client<Groups extends HttpApiGroup.Any, E = BadRequest, R = never> = Simplify<
   & {
     readonly [Group in Extract<Groups, { readonly topLevel: false }> as HttpApiGroup.Name<Group>]: Client.Group<
       Group,
@@ -50,7 +50,7 @@ export type Client<Groups extends HttpApiGroup.Any, E = HttpApiSchemaError, R = 
  * @since 4.0.0
  * @category models
  */
-export type ForApi<Api extends HttpApi.Any, E = HttpApiSchemaError, R = never> = Api extends
+export type ForApi<Api extends HttpApi.Any, E = BadRequest, R = never> = Api extends
   HttpApi.HttpApi<infer _Id, infer Groups> ? Client<Groups, E, R> :
   never
 
@@ -383,7 +383,7 @@ export const makeWith = <ApiId extends string, Groups extends HttpApiGroup.Any, 
       | undefined
     readonly baseUrl?: URL | string | undefined
   }
-): Effect.Effect<Client<Groups, HttpApiSchemaError | E, R>, never, HttpApiGroup.MiddlewareClient<Groups>> => {
+): Effect.Effect<Client<Groups, BadRequest | E, R>, never, HttpApiGroup.MiddlewareClient<Groups>> => {
   const client: Record<string, Record<string, any>> = {}
   return makeClient(api, {
     ...options,
@@ -418,7 +418,7 @@ export const group = <
     readonly baseUrl?: URL | string | undefined
   }
 ): Effect.Effect<
-  Client.Group<Groups, GroupName, HttpApiSchemaError | E, R>,
+  Client.Group<Groups, GroupName, BadRequest | E, R>,
   never,
   HttpApiGroup.MiddlewareClient<HttpApiGroup.WithName<Groups, GroupName>>
 > => {
@@ -458,7 +458,7 @@ export const endpoint = <
 ): Effect.Effect<
   Client.Method<
     HttpApiEndpoint.WithName<HttpApiGroup.Endpoints<HttpApiGroup.WithName<Groups, GroupName>>, EndpointName>,
-    HttpApiSchemaError | E,
+    BadRequest | E,
     R
   >,
   never,

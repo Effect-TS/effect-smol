@@ -15,7 +15,7 @@ import * as HttpRouter from "../http/HttpRouter.ts"
 import type { HttpServerRequest } from "../http/HttpServerRequest.ts"
 import type { HttpServerResponse } from "../http/HttpServerResponse.ts"
 import type * as Multipart from "../http/Multipart.ts"
-import { HttpApiSchemaError } from "./HttpApiError.ts"
+import { BadRequestNoContent } from "./HttpApiError.ts"
 import type * as HttpApiGroup from "./HttpApiGroup.ts"
 import type * as HttpApiMiddleware from "./HttpApiMiddleware.ts"
 import * as HttpApiSchema from "./HttpApiSchema.ts"
@@ -53,7 +53,7 @@ export interface HttpApiEndpoint<
   out Payload extends Schema.Top = never,
   out Headers extends Schema.Top = never,
   out Success extends Schema.Top = typeof HttpApiSchema.NoContent,
-  out Error extends Schema.Top = typeof HttpApiSchemaError,
+  out Error extends Schema.Top = typeof BadRequestNoContent,
   in out Middleware = never,
   out MiddlewareR = never
 > extends Pipeable {
@@ -179,7 +179,7 @@ export function getErrorSchemas(endpoint: AnyWithProps): [Schema.Top, ...Array<S
       schemas.add(key.error)
     }
   }
-  return Arr.append(Array.from(schemas), HttpApiSchemaError)
+  return Arr.append(Array.from(schemas), BadRequestNoContent)
 }
 
 /**
@@ -936,7 +936,7 @@ export const make = <Method extends HttpMethod>(method: Method) =>
     : Payload,
   Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers,
   Success extends ReadonlyArray<Schema.Top> ? Success[number] : Success,
-  (Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error) | typeof HttpApiSchemaError
+  (Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error) | typeof BadRequestNoContent
 > => {
   return makeProto({
     name,
