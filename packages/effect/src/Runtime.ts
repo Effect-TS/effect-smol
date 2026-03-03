@@ -117,7 +117,9 @@ export const defaultTeardown: Teardown = <E, A>(
   exit: Exit.Exit<E, A>,
   onExit: (code: number) => void
 ) => {
-  onExit(Exit.isFailure(exit) ? Cause.hasInterruptsOnly(exit.cause) ? 130 : 1 : 0)
+  if (Exit.isSuccess(exit)) return onExit(0)
+  if (Cause.hasInterruptsOnly(exit.cause)) return onExit(130)
+  return onExit(getErrorExitCode(Cause.squash(exit.cause)))
 }
 
 /**
@@ -221,3 +223,50 @@ export const makeRunMain = (
     const teardown = options?.teardown ?? defaultTeardown
     return f({ fiber, teardown })
   })
+
+/**
+ * @category Exit code management
+ * @since 4.0.0
+ */
+export type errorExitCode = "~effect/Runtime/errorExitCode"
+
+/**
+ * Allows associating an exit code with an error for determining the process
+ * exit code on failure.
+ *
+ * ```ts
+ * import { Data, Effect, Runtime } from "effect"
+ * import { NodeRuntime } from "@effect/platform-node"
+ *
+ * class MyError extends Data.TaggedError("MyError") {
+ *   readonly [Runtime.errorExitCode] = 42
+ * }
+ *
+ * // If the program fails with MyError, the process will exit with code 42
+ * NodeRuntime.runMain(Effect.fail(new MyError()))
+ * ```
+ *
+ * @category Exit code management
+ * @since 4.0.0
+ */
+export const errorExitCode: errorExitCode = "~effect/Runtime/errorExitCode"
+
+declare global {
+  interface Error {
+    readonly [errorExitCode]?: number
+  }
+}
+
+/**
+ * @category Exit code management
+ * @since 4.0.0
+ */
+export const getErrorExitCode = (u: unknown): number => {
+  if (typeof u === "object" && u !== null && errorExitCode in u) {
+    const code = u[errorExitCode]
+    if (typeof code === "number") {
+      return code
+    }
+  }
+  return 1
+}
