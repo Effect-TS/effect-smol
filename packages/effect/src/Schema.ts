@@ -52,6 +52,7 @@ import * as Transformation from "./SchemaTransformation.ts"
 import type { Assign, Lambda, Mutable, Simplify } from "./Struct.ts"
 import * as Struct_ from "./Struct.ts"
 import * as FastCheck from "./testing/FastCheck.ts"
+import type { Unify } from "./Unify.ts"
 import type { UnionToIntersection } from "./Types.ts"
 
 const TypeId = InternalSchema.TypeId
@@ -3226,13 +3227,17 @@ type TaggedUnionUtils<
   ) => (value: Members[number]["Type"]) => value is Extract<Members[number]["Type"], { _tag: Keys }>
   readonly guards: { [M in Flattened[number] as M["Type"][Tag]]: (u: unknown) => u is M["Type"] }
   readonly match: {
-    <Output>(
+    <
+      Cases extends { [M in Flattened[number] as M["Type"][Tag]]: (value: M["Type"]) => any }
+    >(
       value: Members[number]["Type"],
-      cases: { [M in Flattened[number] as M["Type"][Tag]]: (value: M["Type"]) => Output }
-    ): Output
-    <Output>(
-      cases: { [M in Flattened[number] as M["Type"][Tag]]: (value: M["Type"]) => Output }
-    ): (value: Members[number]["Type"]) => Output
+      cases: Cases
+    ): Cases[keyof Cases] extends (value: any) => infer R ? Unify<R> : never
+    <
+      Cases extends { [M in Flattened[number] as M["Type"][Tag]]: (value: M["Type"]) => any }
+    >(
+      cases: Cases
+    ): (value: Members[number]["Type"]) => Cases[keyof Cases] extends (value: any) => infer R ? Unify<R> : never
   }
 }
 
