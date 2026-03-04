@@ -490,7 +490,7 @@ export const setCookie: {
  * @since 4.0.0
  * @category combinators
  */
-export const clearCookie: {
+export const expireCookie: {
   (
     name: string,
     options?: Omit<NonNullable<Cookies.Cookie["options"]>, "expires" | "maxAge">
@@ -553,7 +553,7 @@ export const setCookieUnsafe: {
  * @since 4.0.0
  * @category combinators
  */
-export const clearCookieUnsafe: {
+export const expireCookieUnsafe: {
   (
     name: string,
     options?: Omit<NonNullable<Cookies.Cookie["options"]>, "expires" | "maxAge">
@@ -572,11 +572,7 @@ export const clearCookieUnsafe: {
   ): HttpServerResponse =>
     makeResponse({
       ...self,
-      cookies: Cookies.setUnsafe(self.cookies, name, "", {
-        ...options,
-        maxAge: 0,
-        expires: new Date(0)
-      })
+      cookies: Cookies.expireCookieUnsafe(self.cookies, name, options)
     })
 )
 

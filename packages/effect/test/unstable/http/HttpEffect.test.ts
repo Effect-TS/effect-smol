@@ -35,11 +35,11 @@ describe("Http/App", () => {
       })
     })
 
-    test("clearCookie", async () => {
+    test("expireCookie", async () => {
       const handler = HttpEffect.toWebHandler(
         HttpServerResponse.empty().pipe(
-          HttpServerResponse.clearCookie("foo", { path: "/" }),
-          Effect.map(HttpServerResponse.clearCookieUnsafe("bar"))
+          HttpServerResponse.expireCookie("foo", { path: "/" }),
+          Effect.map(HttpServerResponse.expireCookieUnsafe("bar"))
         )
       )
       const response = await handler(new Request("http://localhost:3000/"))

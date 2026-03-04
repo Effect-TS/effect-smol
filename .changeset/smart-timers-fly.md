@@ -2,4 +2,4 @@
 "effect": patch
 ---
 
-Add `Cookies.expireCookie` and `HttpServerResponse.clearCookie` / `clearCookieUnsafe` for emitting expired cookies.
+Add `Cookies.expireCookie` / `expireCookieUnsafe` and `HttpServerResponse.expireCookie` / `expireCookieUnsafe` for emitting expired cookies.

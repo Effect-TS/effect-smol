@@ -1,4 +1,5 @@
 import { describe, it } from "@effect/vitest"
+import { deepStrictEqual } from "@effect/vitest/utils"
 import { Schema } from "effect"
 import { TestSchema } from "effect/testing"
 import { Cookies } from "effect/unstable/http"
@@ -8,6 +9,20 @@ describe("Cookies", () => {
   it("expireCookie", () => {
     assertSuccess(
       Cookies.expireCookie(Cookies.empty, "session", { path: "/", secure: true }),
+      Cookies.fromReadonlyRecord({
+        session: Cookies.makeCookieUnsafe("session", "", {
+          path: "/",
+          secure: true,
+          maxAge: 0,
+          expires: new Date(0)
+        })
+      })
+    )
+  })
+
+  it("expireCookieUnsafe", () => {
+    deepStrictEqual(
+      Cookies.expireCookieUnsafe(Cookies.empty, "session", { path: "/", secure: true }),
       Cookies.fromReadonlyRecord({
         session: Cookies.makeCookieUnsafe("session", "", {
           path: "/",
