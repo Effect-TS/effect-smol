@@ -1,5 +1,16 @@
 /** @effect-diagnostics floatingEffect:skip-file */
-import { type Cause, Data, Effect, Fiber, type Option, pipe, Result, type Scope, type Types } from "effect"
+import {
+  type Cause,
+  Data,
+  Effect,
+  Fiber,
+  type Option,
+  pipe,
+  Result,
+  type Scope,
+  type ServiceMap,
+  type Types
+} from "effect"
 import { describe, expect, it } from "tstyche"
 
 // Fixtures
@@ -250,6 +261,13 @@ describe("Effect.catchNoSuchElement", () => {
   it("yields never when NoSuchElementError is the only error", () => {
     const result = pipe(onlyNoSuch, Effect.catchNoSuchElement)
     expect(result).type.toBe<Effect.Effect<Option.Option<number>>>()
+  })
+})
+
+describe("Effect.services", () => {
+  it("defaults R to never", () => {
+    const result = Effect.services()
+    expect(result).type.toBe<Effect.Effect<ServiceMap.ServiceMap<never>, never, never>>()
   })
 })
 

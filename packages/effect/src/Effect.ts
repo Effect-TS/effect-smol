@@ -5518,7 +5518,7 @@ export const isSuccess: <A, E, R>(self: Effect<A, E, R>) => Effect<boolean, neve
  * @since 2.0.0
  * @category Environment
  */
-export const services: <R>() => Effect<ServiceMap.ServiceMap<R>, never, R> = internal.services
+export const services: <R = never>() => Effect<ServiceMap.ServiceMap<R>, never, R> = internal.services
 
 /**
  * Transforms the current service map using the provided function.
