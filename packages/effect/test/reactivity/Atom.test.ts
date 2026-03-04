@@ -1354,162 +1354,68 @@ describe.sequential("Atom", () => {
   })
 
   test(`swr revalidateOnMount false skips first read only`, () => {
-    const previousWindow = (globalThis as any).window
-    const previousDocument = (globalThis as any).document
-    const listeners = new Set<() => void>()
-    Object.defineProperty(globalThis, "window", {
-      value: {
-        addEventListener: (_: string, listener: () => void) => {
-          listeners.add(listener)
-        },
-        removeEventListener: (_: string, listener: () => void) => {
-          listeners.delete(listener)
-        }
-      },
-      configurable: true,
-      writable: true
-    })
-    Object.defineProperty(globalThis, "document", {
-      value: {
-        visibilityState: "visible"
-      },
-      configurable: true,
-      writable: true
-    })
-    const emitFocus = () => {
-      for (const listener of listeners) {
-        listener()
-      }
-    }
+    const r = AtomRegistry.make()
+    const focusSignal = Atom.make(0)
+    let focus = 0
+    const emitFocus = () => r.set(focusSignal, ++focus)
+    let runs = 0
+    const atom = Atom.make(() => {
+      runs++
+      return Effect.fail("fail")
+    }).pipe(
+      Atom.swr({ staleTime: 1_000, revalidateOnMount: false, revalidateOnFocus: true, focusSignal })
+    )
+    const unmount = r.mount(atom)
 
-    try {
-      const r = AtomRegistry.make()
-      let runs = 0
-      const atom = Atom.make(() => {
-        runs++
-        return Effect.fail("fail")
-      }).pipe(
-        Atom.swr({ staleTime: 1_000, revalidateOnMount: false, revalidateOnWindowFocus: true })
-      )
-      const unmount = r.mount(atom)
+    let result = r.get(atom)
+    assert(AsyncResult.isFailure(result))
+    assert.strictEqual(runs, 1)
 
-      let result = r.get(atom)
-      assert(AsyncResult.isFailure(result))
-      assert.strictEqual(runs, 1)
+    emitFocus()
+    result = r.get(atom)
+    assert(AsyncResult.isFailure(result))
+    assert.strictEqual(runs, 2)
 
-      emitFocus()
-      result = r.get(atom)
-      assert(AsyncResult.isFailure(result))
-      assert.strictEqual(runs, 2)
-
-      unmount()
-      r.dispose()
-    } finally {
-      if (typeof previousWindow === "undefined") {
-        delete (globalThis as any).window
-      } else {
-        Object.defineProperty(globalThis, "window", {
-          value: previousWindow,
-          configurable: true,
-          writable: true
-        })
-      }
-      if (typeof previousDocument === "undefined") {
-        delete (globalThis as any).document
-      } else {
-        Object.defineProperty(globalThis, "document", {
-          value: previousDocument,
-          configurable: true,
-          writable: true
-        })
-      }
-    }
+    unmount()
   })
 
   test(`swr auto revalidates failure with previousSuccess only when stale`, async () => {
-    const previousWindow = (globalThis as any).window
-    const previousDocument = (globalThis as any).document
-    const listeners = new Set<() => void>()
-    Object.defineProperty(globalThis, "window", {
-      value: {
-        addEventListener: (_: string, listener: () => void) => {
-          listeners.add(listener)
-        },
-        removeEventListener: (_: string, listener: () => void) => {
-          listeners.delete(listener)
-        }
-      },
-      configurable: true,
-      writable: true
-    })
-    Object.defineProperty(globalThis, "document", {
-      value: {
-        visibilityState: "visible"
-      },
-      configurable: true,
-      writable: true
-    })
-    const emitFocus = () => {
-      for (const listener of listeners) {
-        listener()
-      }
-    }
+    const r = AtomRegistry.make()
+    const focusSignal = Atom.make(0)
+    let focus = 0
+    const emitFocus = () => r.set(focusSignal, ++focus)
+    let runs = 0
+    const atom = Atom.fn((i: number) => {
+      runs++
+      return i === 0 ? Effect.succeed(i) : Effect.fail("fail")
+    }).pipe(
+      Atom.swr({ staleTime: 1_000, revalidateOnMount: false, revalidateOnFocus: true, focusSignal })
+    )
+    const unmount = r.mount(atom)
 
-    try {
-      const r = AtomRegistry.make()
-      let runs = 0
-      const atom = Atom.fn((i: number) => {
-        runs++
-        return i === 0 ? Effect.succeed(i) : Effect.fail("fail")
-      }).pipe(
-        Atom.swr({ staleTime: 1_000, revalidateOnMount: false, revalidateOnWindowFocus: true })
-      )
-      const unmount = r.mount(atom)
+    r.set(atom, 0)
+    let result = r.get(atom)
+    assert(AsyncResult.isSuccess(result))
+    assert.strictEqual(result.value, 0)
+    assert.strictEqual(runs, 1)
 
-      r.set(atom, 0)
-      let result = r.get(atom)
-      assert(AsyncResult.isSuccess(result))
-      assert.strictEqual(result.value, 0)
-      assert.strictEqual(runs, 1)
+    r.set(atom, 1)
+    result = r.get(atom)
+    assert(AsyncResult.isFailure(result))
+    assert.strictEqual(runs, 2)
 
-      r.set(atom, 1)
-      result = r.get(atom)
-      assert(AsyncResult.isFailure(result))
-      assert.strictEqual(runs, 2)
+    emitFocus()
+    result = r.get(atom)
+    assert(AsyncResult.isFailure(result))
+    assert.strictEqual(runs, 2)
 
-      emitFocus()
-      result = r.get(atom)
-      assert(AsyncResult.isFailure(result))
-      assert.strictEqual(runs, 2)
+    await vitest.advanceTimersByTimeAsync(1_001)
+    emitFocus()
+    result = r.get(atom)
+    assert(AsyncResult.isFailure(result))
+    assert.strictEqual(runs, 3)
 
-      await vitest.advanceTimersByTimeAsync(1_001)
-      emitFocus()
-      result = r.get(atom)
-      assert(AsyncResult.isFailure(result))
-      assert.strictEqual(runs, 3)
-
-      unmount()
-      r.dispose()
-    } finally {
-      if (typeof previousWindow === "undefined") {
-        delete (globalThis as any).window
-      } else {
-        Object.defineProperty(globalThis, "window", {
-          value: previousWindow,
-          configurable: true,
-          writable: true
-        })
-      }
-      if (typeof previousDocument === "undefined") {
-        delete (globalThis as any).document
-      } else {
-        Object.defineProperty(globalThis, "document", {
-          value: previousDocument,
-          configurable: true,
-          writable: true
-        })
-      }
-    }
+    unmount()
   })
 
   test(`swr does not refresh from initial state`, () => {
@@ -1643,191 +1549,98 @@ describe.sequential("Atom", () => {
     unmount2()
   })
 
-  test(`swr revalidates on window focus only when stale`, async () => {
-    const previousWindow = (globalThis as any).window
-    const previousDocument = (globalThis as any).document
-    const listeners = new Set<() => void>()
-    Object.defineProperty(globalThis, "window", {
-      value: {
-        addEventListener: (_: string, listener: () => void) => {
-          listeners.add(listener)
-        },
-        removeEventListener: (_: string, listener: () => void) => {
-          listeners.delete(listener)
-        }
-      },
-      configurable: true,
-      writable: true
-    })
-    Object.defineProperty(globalThis, "document", {
-      value: {
-        visibilityState: "visible"
-      },
-      configurable: true,
-      writable: true
-    })
-    const emitFocus = () => {
-      for (const listener of listeners) {
-        listener()
-      }
-    }
+  test(`swr revalidates on focus signal only when stale`, async () => {
+    const r = AtomRegistry.make()
+    const focusSignal = Atom.make(0)
+    let focus = 0
+    const emitFocus = () => r.set(focusSignal, ++focus)
+    let runs = 0
+    const atom = Atom.make(Effect.sync(() => ++runs)).pipe(
+      Atom.swr({ staleTime: 1_000, revalidateOnFocus: true, focusSignal })
+    )
+    const unmount = r.mount(atom)
 
-    try {
-      const r = AtomRegistry.make()
-      let runs = 0
-      const atom = Atom.make(Effect.sync(() => ++runs)).pipe(
-        Atom.swr({ staleTime: 1_000, revalidateOnWindowFocus: true })
-      )
-      const unmount = r.mount(atom)
+    let result = r.get(atom)
+    assert(AsyncResult.isSuccess(result))
+    assert.strictEqual(result.value, 1)
+    assert.strictEqual(runs, 1)
 
-      let result = r.get(atom)
-      assert(AsyncResult.isSuccess(result))
-      assert.strictEqual(result.value, 1)
-      assert.strictEqual(runs, 1)
+    emitFocus()
+    result = r.get(atom)
+    assert(AsyncResult.isSuccess(result))
+    assert.strictEqual(result.value, 1)
+    assert.strictEqual(runs, 1)
 
-      emitFocus()
-      result = r.get(atom)
-      assert(AsyncResult.isSuccess(result))
-      assert.strictEqual(result.value, 1)
-      assert.strictEqual(runs, 1)
+    await vitest.advanceTimersByTimeAsync(1_001)
+    emitFocus()
+    result = r.get(atom)
+    assert(AsyncResult.isSuccess(result))
+    assert.strictEqual(result.value, 2)
+    assert.strictEqual(runs, 2)
 
-      await vitest.advanceTimersByTimeAsync(1_001)
-      emitFocus()
-      result = r.get(atom)
-      assert(AsyncResult.isSuccess(result))
-      assert.strictEqual(result.value, 2)
-      assert.strictEqual(runs, 2)
-
-      unmount()
-      r.dispose()
-    } finally {
-      if (typeof previousWindow === "undefined") {
-        delete (globalThis as any).window
-      } else {
-        Object.defineProperty(globalThis, "window", {
-          value: previousWindow,
-          configurable: true,
-          writable: true
-        })
-      }
-      if (typeof previousDocument === "undefined") {
-        delete (globalThis as any).document
-      } else {
-        Object.defineProperty(globalThis, "document", {
-          value: previousDocument,
-          configurable: true,
-          writable: true
-        })
-      }
-    }
+    unmount()
   })
 
-  test(`swr can force refresh on window focus`, async () => {
-    const previousWindow = (globalThis as any).window
-    const previousDocument = (globalThis as any).document
-    const listeners = new Set<() => void>()
-    Object.defineProperty(globalThis, "window", {
-      value: {
-        addEventListener: (_: string, listener: () => void) => {
-          listeners.add(listener)
-        },
-        removeEventListener: (_: string, listener: () => void) => {
-          listeners.delete(listener)
-        }
-      },
-      configurable: true,
-      writable: true
-    })
-    Object.defineProperty(globalThis, "document", {
-      value: {
-        visibilityState: "visible"
-      },
-      configurable: true,
-      writable: true
-    })
-    const emitFocus = () => {
-      for (const listener of listeners) {
-        listener()
-      }
-    }
+  test(`swr can force refresh on focus signal`, () => {
+    const r = AtomRegistry.make()
+    const focusSignal = Atom.make(0)
+    let focus = 0
+    const emitFocus = () => r.set(focusSignal, ++focus)
+    let runs = 0
+    const atom = Atom.make(Effect.sync(() => ++runs)).pipe(
+      Atom.swr({ staleTime: 1_000, revalidateOnFocus: "always", focusSignal })
+    )
+    const unmount = r.mount(atom)
 
-    try {
-      const r = AtomRegistry.make()
-      let runs = 0
-      const atom = Atom.make(Effect.sync(() => ++runs)).pipe(
-        Atom.swr({ staleTime: 1_000, revalidateOnWindowFocus: "always" })
-      )
-      const unmount = r.mount(atom)
+    let result = r.get(atom)
+    assert(AsyncResult.isSuccess(result))
+    assert.strictEqual(result.value, 1)
+    assert.strictEqual(runs, 1)
 
-      let result = r.get(atom)
-      assert(AsyncResult.isSuccess(result))
-      assert.strictEqual(result.value, 1)
-      assert.strictEqual(runs, 1)
+    emitFocus()
+    result = r.get(atom)
+    assert(AsyncResult.isSuccess(result))
+    assert.strictEqual(result.value, 2)
+    assert.strictEqual(runs, 2)
 
-      emitFocus()
-      result = r.get(atom)
-      assert(AsyncResult.isSuccess(result))
-      assert.strictEqual(result.value, 2)
-      assert.strictEqual(runs, 2)
-
-      unmount()
-      r.dispose()
-    } finally {
-      if (typeof previousWindow === "undefined") {
-        delete (globalThis as any).window
-      } else {
-        Object.defineProperty(globalThis, "window", {
-          value: previousWindow,
-          configurable: true,
-          writable: true
-        })
-      }
-      if (typeof previousDocument === "undefined") {
-        delete (globalThis as any).document
-      } else {
-        Object.defineProperty(globalThis, "document", {
-          value: previousDocument,
-          configurable: true,
-          writable: true
-        })
-      }
-    }
+    unmount()
   })
 
   test(`swr treats value as stale at exact staleTime boundary`, async () => {
-    const previousWindow = (globalThis as any).window
-    const previousDocument = (globalThis as any).document
-    const listeners = new Set<() => void>()
-    Object.defineProperty(globalThis, "window", {
-      value: {
-        addEventListener: (_: string, listener: () => void) => {
-          listeners.add(listener)
-        },
-        removeEventListener: (_: string, listener: () => void) => {
-          listeners.delete(listener)
-        }
-      },
-      configurable: true,
-      writable: true
-    })
-    Object.defineProperty(globalThis, "document", {
-      value: {
-        visibilityState: "visible"
-      },
-      configurable: true,
-      writable: true
-    })
-    const emitFocus = () => {
-      for (const listener of listeners) {
-        listener()
-      }
-    }
+    const r = AtomRegistry.make()
+    const focusSignal = Atom.make(0)
+    let focus = 0
+    const emitFocus = () => r.set(focusSignal, ++focus)
+    let runs = 0
+    const atom = Atom.make(Effect.sync(() => ++runs)).pipe(
+      Atom.swr({ staleTime: 1_000, revalidateOnFocus: true, focusSignal })
+    )
+    const unmount = r.mount(atom)
 
-    try {
+    let result = r.get(atom)
+    assert(AsyncResult.isSuccess(result))
+    assert.strictEqual(result.value, 1)
+    assert.strictEqual(runs, 1)
+
+    await vitest.advanceTimersByTimeAsync(1_000)
+    emitFocus()
+    result = r.get(atom)
+    assert(AsyncResult.isSuccess(result))
+    assert.strictEqual(result.value, 2)
+    assert.strictEqual(runs, 2)
+
+    unmount()
+  })
+
+  test(`swr does not refresh on focus signal when disabled or omitted`, () => {
+    {
       const r = AtomRegistry.make()
+      const focusSignal = Atom.make(0)
+      let focus = 0
+      const emitFocus = () => r.set(focusSignal, ++focus)
       let runs = 0
       const atom = Atom.make(Effect.sync(() => ++runs)).pipe(
-        Atom.swr({ staleTime: 1_000, revalidateOnWindowFocus: true })
+        Atom.swr({ staleTime: 10_000, revalidateOnFocus: false, focusSignal })
       )
       const unmount = r.mount(atom)
 
@@ -1836,131 +1649,38 @@ describe.sequential("Atom", () => {
       assert.strictEqual(result.value, 1)
       assert.strictEqual(runs, 1)
 
-      await vitest.advanceTimersByTimeAsync(1_000)
       emitFocus()
       result = r.get(atom)
       assert(AsyncResult.isSuccess(result))
-      assert.strictEqual(result.value, 2)
-      assert.strictEqual(runs, 2)
+      assert.strictEqual(result.value, 1)
+      assert.strictEqual(runs, 1)
 
       unmount()
-      r.dispose()
-    } finally {
-      if (typeof previousWindow === "undefined") {
-        delete (globalThis as any).window
-      } else {
-        Object.defineProperty(globalThis, "window", {
-          value: previousWindow,
-          configurable: true,
-          writable: true
-        })
-      }
-      if (typeof previousDocument === "undefined") {
-        delete (globalThis as any).document
-      } else {
-        Object.defineProperty(globalThis, "document", {
-          value: previousDocument,
-          configurable: true,
-          writable: true
-        })
-      }
-    }
-  })
-
-  test(`swr does not refresh on window focus when disabled or omitted`, () => {
-    const previousWindow = (globalThis as any).window
-    const previousDocument = (globalThis as any).document
-    const listeners = new Set<() => void>()
-    Object.defineProperty(globalThis, "window", {
-      value: {
-        addEventListener: (_: string, listener: () => void) => {
-          listeners.add(listener)
-        },
-        removeEventListener: (_: string, listener: () => void) => {
-          listeners.delete(listener)
-        }
-      },
-      configurable: true,
-      writable: true
-    })
-    Object.defineProperty(globalThis, "document", {
-      value: {
-        visibilityState: "visible"
-      },
-      configurable: true,
-      writable: true
-    })
-    const emitFocus = () => {
-      for (const listener of listeners) {
-        listener()
-      }
     }
 
-    try {
-      {
-        const r = AtomRegistry.make()
-        let runs = 0
-        const atom = Atom.make(Effect.sync(() => ++runs)).pipe(
-          Atom.swr({ staleTime: 10_000, revalidateOnWindowFocus: false })
-        )
-        const unmount = r.mount(atom)
+    {
+      const r = AtomRegistry.make()
+      const focusSignal = Atom.make(0)
+      let focus = 0
+      const emitFocus = () => r.set(focusSignal, ++focus)
+      let runs = 0
+      const atom = Atom.make(Effect.sync(() => ++runs)).pipe(
+        Atom.swr({ staleTime: 10_000, focusSignal })
+      )
+      const unmount = r.mount(atom)
 
-        let result = r.get(atom)
-        assert(AsyncResult.isSuccess(result))
-        assert.strictEqual(result.value, 1)
-        assert.strictEqual(runs, 1)
+      let result = r.get(atom)
+      assert(AsyncResult.isSuccess(result))
+      assert.strictEqual(result.value, 1)
+      assert.strictEqual(runs, 1)
 
-        emitFocus()
-        result = r.get(atom)
-        assert(AsyncResult.isSuccess(result))
-        assert.strictEqual(result.value, 1)
-        assert.strictEqual(runs, 1)
+      emitFocus()
+      result = r.get(atom)
+      assert(AsyncResult.isSuccess(result))
+      assert.strictEqual(result.value, 1)
+      assert.strictEqual(runs, 1)
 
-        unmount()
-        r.dispose()
-      }
-
-      {
-        const r = AtomRegistry.make()
-        let runs = 0
-        const atom = Atom.make(Effect.sync(() => ++runs)).pipe(
-          Atom.swr({ staleTime: 10_000 })
-        )
-        const unmount = r.mount(atom)
-
-        let result = r.get(atom)
-        assert(AsyncResult.isSuccess(result))
-        assert.strictEqual(result.value, 1)
-        assert.strictEqual(runs, 1)
-
-        emitFocus()
-        result = r.get(atom)
-        assert(AsyncResult.isSuccess(result))
-        assert.strictEqual(result.value, 1)
-        assert.strictEqual(runs, 1)
-
-        unmount()
-        r.dispose()
-      }
-    } finally {
-      if (typeof previousWindow === "undefined") {
-        delete (globalThis as any).window
-      } else {
-        Object.defineProperty(globalThis, "window", {
-          value: previousWindow,
-          configurable: true,
-          writable: true
-        })
-      }
-      if (typeof previousDocument === "undefined") {
-        delete (globalThis as any).document
-      } else {
-        Object.defineProperty(globalThis, "document", {
-          value: previousDocument,
-          configurable: true,
-          writable: true
-        })
-      }
+      unmount()
     }
   })
 
