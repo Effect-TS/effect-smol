@@ -19,3 +19,7 @@ tmp
 
 .repos/
 .lalph/
+
+*.db
+*.db-shm
+*.db-wal
