@@ -20,7 +20,7 @@ const Boolean = Model.Field({
   jsonUpdate: Schema.Boolean,
 })
 
-export class Todo extends Model.Class<Todo>("domain/Todo")({
+export class Todo extends Model.Class<Todo>("@todos/domain/Todo")({
   id: Model.GeneratedByApp(TodoId),
   title: Schema.String,
   completed: Boolean,
