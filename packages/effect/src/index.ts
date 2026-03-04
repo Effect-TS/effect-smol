@@ -3184,7 +3184,7 @@ export * as Runtime from "./Runtime.ts"
  * const program = Effect.gen(function*() {
  *   // This will retry up to 3 times with exponential backoff
  *   const result = yield* Effect.retry(
- *     Effect.fail("Network error"),
+ *     Effect.suspend(() => Math.random() > 0.5 ? Effect.fail("Network error") : Effect.succeed("Success")),
  *     retryPolicy
  *   )
  * })
