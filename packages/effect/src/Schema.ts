@@ -3232,12 +3232,16 @@ type TaggedUnionUtils<
     >(
       value: Members[number]["Type"],
       cases: Cases
-    ): Cases[keyof Cases] extends (value: any) => infer R ? Unify<R> : never
+    ): Cases[keyof Cases] extends (value: any) => infer R
+      ? Unify<R>
+      : never
     <
       Cases extends { [M in Flattened[number] as M["Type"][Tag]]: (value: M["Type"]) => any }
     >(
       cases: Cases
-    ): (value: Members[number]["Type"]) => Cases[keyof Cases] extends (value: any) => infer R ? Unify<R> : never
+    ): (value: Members[number]["Type"]) => Cases[keyof Cases] extends (value: any) => infer R
+      ? Unify<R>
+      : never
   }
 }
 

@@ -145,6 +145,7 @@ describe("Union", () => {
         >()
       })
     })
+
     describe("TaggedUnion", () => {
       it("should depends on the order of the cases", () => {
         const schema = Schema.TaggedUnion({
