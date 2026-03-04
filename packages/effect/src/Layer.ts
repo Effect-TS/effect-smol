@@ -1331,7 +1331,7 @@ export const flatMap: {
  *   // Simulate a database connection that might fail
  *   const shouldFail = Math.random() > 0.5
  *   if (shouldFail) {
- *     yield* Effect.fail(new DatabaseError({ message: "Connection failed" }))
+ *     return yield* new DatabaseError({ message: "Connection failed" })
  *   }
  *
  *   return { query: (sql: string) => Effect.succeed(`Result: ${sql}`) }
@@ -1488,7 +1488,7 @@ export const catchTag: {
  *
  * // Primary database layer that might fail
  * const primaryDatabaseLayer = Layer.effect(Database)(Effect.gen(function*() {
- *   yield* Effect.fail(new DatabaseError({ message: "Primary DB unreachable" }))
+ *   return yield* new DatabaseError({ message: "Primary DB unreachable" })
  *   return { query: (sql: string) => Effect.succeed(`Primary: ${sql}`) }
  * }))
  *
