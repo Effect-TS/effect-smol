@@ -1935,17 +1935,17 @@ export const fromOption: <A>(
  * ```ts
  * import { Console, Effect } from "effect"
  *
- * const input: string | null = null
- *
- * const program = Effect.gen(function*() {
+ * const program = Effect.fn(function*(input: string | null) {
  *   const value = yield* Effect.fromNullishOr(input)
  *   yield* Console.log(value)
- * }).pipe(
+ * },
  *   Effect.catch(() => Console.log("missing"))
  * )
  *
- * Effect.runPromise(program)
+ * Effect.runPromise(program(null))
  * // Output: missing
+ * Effect.runPromise(program("hello"))
+ * // Output: hello
  * ```
  *
  * @since 4.0.0
@@ -3835,7 +3835,7 @@ export const tapDefect: {
  *   attempts++
  *   yield* Console.log(`Attempt ${attempts}`)
  *   if (attempts < 3) {
- *     yield* Effect.fail("Not ready")
+ *     return yield* Effect.fail("Not ready")
  *   }
  *   return "Ready"
  * })
@@ -4221,7 +4221,10 @@ export const ignoreCause: <
  *
  * const fetchUrl = Effect.gen(function*() {
  *   const endpoint = yield* Effect.service(Endpoint)
- *   return endpoint.url === "bad" ? yield* Effect.fail("Unavailable") : endpoint.url
+ *   if (endpoint.url === "bad") {
+ *     return yield* Effect.fail("Unavailable")
+ *   }
+ *   return endpoint.url
  * })
  *
  * const plan = ExecutionPlan.make(
@@ -6777,8 +6780,8 @@ export const cachedInvalidateWithTTL: {
  * import { Effect } from "effect"
  *
  * const program = Effect.gen(function*() {
- *   yield* Effect.interrupt
- *   yield* Effect.succeed("This won't execute")
+ *   return yield* Effect.interrupt
+ *   yield* Effect.succeed("This won't execute and is unreachable")
  * })
  *
  * Effect.runPromise(program).catch(console.error)
@@ -7185,7 +7188,7 @@ export const repeat: {
  *   attempt++
  *   if (attempt <= 2) {
  *     yield* Console.log(`Attempt ${attempt} failed`)
- *     yield* Effect.fail(`Error ${attempt}`)
+ *     return yield* Effect.fail(`Error ${attempt}`)
  *   }
  *   yield* Console.log(`Attempt ${attempt} succeeded`)
  *   return "success"
