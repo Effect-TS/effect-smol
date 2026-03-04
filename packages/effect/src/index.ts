@@ -1160,7 +1160,7 @@ export * as Equivalence from "./Equivalence.ts"
  *
  * // Opt in to error reporting with Effect.withErrorReporting
  * const program = Effect.gen(function*() {
- *   yield* new RateLimitError({ retryAfter: 60 })
+ *   return yield* new RateLimitError({ retryAfter: 60 })
  * }).pipe(
  *   Effect.withErrorReporting,
  *   Effect.provide(ErrorReporter.layer([consoleReporter]))
@@ -3184,7 +3184,7 @@ export * as Runtime from "./Runtime.ts"
  * const program = Effect.gen(function*() {
  *   // This will retry up to 3 times with exponential backoff
  *   const result = yield* Effect.retry(
- *     Effect.suspend(() => Math.random() > 0.5 ? Effect.fail("Network error") : Effect.succeed("Success")),
+ *     Effect.fail("Network error"),
  *     retryPolicy
  *   )
  * })

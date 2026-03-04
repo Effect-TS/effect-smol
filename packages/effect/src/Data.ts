@@ -704,7 +704,7 @@ function taggedMatch<
  * }> {}
  *
  * const program = Effect.gen(function*() {
- *   yield* new NetworkError({ code: 500, message: "timeout" })
+ *   return yield* new NetworkError({ code: 500, message: "timeout" })
  * })
  *
  * // The effect fails with a NetworkError
@@ -746,7 +746,7 @@ export const Error: new<A extends Record<string, any> = {}>(
  * }> {}
  *
  * const program = Effect.gen(function*() {
- *   yield* new NotFound({ resource: "/users/42" })
+ *   return yield* new NotFound({ resource: "/users/42" })
  * })
  *
  * const recovered = program.pipe(
