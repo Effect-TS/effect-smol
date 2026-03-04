@@ -2,6 +2,9 @@ packages:
   - packages/*
 
 catalog:
-  "@effect/platform-node": 4.0.0-beta.26
-  "@effect/sql-sqlite-node": 4.0.0-beta.26
+  '@effect/platform-node': 4.0.0-beta.26
+  '@effect/sql-sqlite-node': 4.0.0-beta.26
   effect: 4.0.0-beta.26
+
+onlyBuiltDependencies:
+  - better-sqlite3

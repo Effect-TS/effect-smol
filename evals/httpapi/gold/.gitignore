@@ -19,3 +19,5 @@ tmp
 
 .repos/
 .lalph/
+
+todos.db*

@@ -1,7 +1,7 @@
 import { Todo, type TodoId } from "@todos/domain/Todo"
 import { TodoNotFound } from "@todos/domain/TodosError"
 import { Effect, Layer, Schema, ServiceMap } from "effect"
-import { SqlClient, SqlError, SqlModel, SqlSchema } from "effect/unstable/sql"
+import { SqlClient, SqlError, SqlModel } from "effect/unstable/sql"
 import { SqlClientLayer } from "../Sql.ts"
 
 export class TodosRepoError extends Schema.TaggedErrorClass<TodosRepoError>()(
@@ -31,15 +31,11 @@ export class TodosRepo extends ServiceMap.Service<
         spanPrefix: "TodosRepo",
       })
 
-      const list = SqlSchema.findAll({
-        Request: Schema.Void,
-        Result: Todo,
-        execute: () => sql`select * from todos`,
-      })().pipe(
-        Effect.catchTags(
-          {
-            SqlError: (reason) => Effect.fail(new TodosRepoError({ reason })),
-          },
+      const list = sql`select * from todos`.pipe(
+        Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(Todo))),
+        Effect.catchTag(
+          "SqlError",
+          (reason) => Effect.fail(new TodosRepoError({ reason })),
           (e) => Effect.die(e),
         ),
         Effect.withSpan("TodosRepo.list"),
