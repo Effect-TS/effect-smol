@@ -1,0 +1,14 @@
+{
+  "name": "@todos/domain",
+  "version": "0.0.0",
+  "description": "",
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "effect": "catalog:"
+  }
+}

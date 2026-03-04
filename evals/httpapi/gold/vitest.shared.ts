@@ -3,21 +3,18 @@ import type { ViteUserConfig } from "vitest/config"
 
 const config: ViteUserConfig = {
   esbuild: {
-    target: "es2020"
-  },
-  optimizeDeps: {
-    exclude: ["bun:sqlite"]
+    target: "es2020",
   },
   test: {
     setupFiles: [path.join(__dirname, "vitest.setup.ts")],
     fakeTimers: {
-      toFake: undefined
+      toFake: undefined,
     },
     sequence: {
-      concurrent: true
+      concurrent: true,
     },
-    include: ["test/**/*.test.ts"]
-  }
+    include: ["test/**/*.test.ts"],
+  },
 }
 
 export default config

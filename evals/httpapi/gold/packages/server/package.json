@@ -1,0 +1,18 @@
+{
+  "name": "@todos/server",
+  "version": "0.0.0",
+  "description": "",
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "@todos/domain": "workspace:*",
+    "@todos/api": "workspace:*",
+    "effect": "catalog:",
+    "@effect/platform-node": "catalog:",
+    "@effect/sql-sqlite-node": "catalog:"
+  }
+}

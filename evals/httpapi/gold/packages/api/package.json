@@ -1,0 +1,15 @@
+{
+  "name": "@todos/api",
+  "version": "0.0.0",
+  "description": "",
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "@todos/domain": "workspace:*",
+    "effect": "catalog:"
+  }
+}

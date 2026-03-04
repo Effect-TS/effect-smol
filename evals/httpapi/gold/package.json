@@ -6,7 +6,7 @@
   "description": "",
   "scripts": {
     "test": "vitest",
-    "check": "oxlint -c .oxlintrc.json --fix && tsgo -b tsconfig.json"
+    "check": "prettier -w packages && oxlint -c .oxlintrc.json --fix && tsgo -b tsconfig.json"
   },
   "license": "MIT",
   "packageManager": "pnpm@10.17.1",
