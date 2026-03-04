@@ -1,0 +1,31 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": [
+    ".repos",
+    "dist",
+    "node_modules"
+  ],
+  "plugins": ["typescript", "import", "oxc", "eslint", "unicorn", "node"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "error"
+  },
+  "rules": {
+    "typescript/consistent-type-imports": [
+      "error",
+      {
+        "fixStyle": "inline-type-imports"
+      }
+    ],
+    "typescript/no-import-type-side-effects": "error",
+    "import/no-duplicates": "error",
+    "typescript/array-type": [
+      "error",
+      {
+        "default": "generic",
+        "readonly": "generic"
+      }
+    ]
+  }
+}

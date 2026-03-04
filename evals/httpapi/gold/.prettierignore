@@ -1,0 +1,8 @@
+.git/
+.github/
+.repos/
+.lalph/
+pnpm-lock.yaml
+node_modules
+dist
+build

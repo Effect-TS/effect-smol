@@ -1,0 +1,20 @@
+{
+  "name": "todos",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "description": "",
+  "scripts": {
+    "test": "vitest",
+    "check": "oxlint -c .oxlintrc.json --fix && tsgo -b tsconfig.json"
+  },
+  "license": "MIT",
+  "packageManager": "pnpm@10.17.1",
+  "devDependencies": {
+    "@effect/language-service": "^0.77.0",
+    "@typescript/native-preview": "7.0.0-dev.20260303.1",
+    "oxlint": "^1.51.0",
+    "prettier": "^3.8.1",
+    "typescript": "^5.9.3"
+  }
+}

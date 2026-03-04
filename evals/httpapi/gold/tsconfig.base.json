@@ -1,0 +1,46 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "exactOptionalPropertyTypes": true,
+    "moduleDetection": "force",
+    "composite": true,
+    "downlevelIteration": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": false,
+    "declaration": true,
+    "skipLibCheck": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "moduleResolution": "NodeNext",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "types": [],
+    "isolatedModules": true,
+    "sourceMap": true,
+    "declarationMap": true,
+    "noImplicitReturns": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true,
+    "noEmitOnError": false,
+    "noErrorTruncation": false,
+    "allowJs": false,
+    "checkJs": false,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "noUncheckedIndexedAccess": false,
+    "strictNullChecks": true,
+    "target": "ES2022",
+    "module": "NodeNext",
+    "incremental": true,
+    "removeComments": false,
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
+    "allowSyntheticDefaultImports": true,
+    "plugins": [
+      {
+        "name": "@effect/language-service"
+      }
+    ]
+  }
+}
