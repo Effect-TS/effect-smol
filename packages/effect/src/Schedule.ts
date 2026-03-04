@@ -72,7 +72,7 @@ const randomNext: Effect<number> = random.Random.useSync((random) => random.next
  * const program = Effect.gen(function*() {
  *   // Using retry schedule
  *   const result1 = yield* Effect.retry(
- *     Effect.fail("temporary error"),
+ *     Effect.suspend(() => Math.random() > 0.5 ? Effect.fail("temporary error") : Effect.succeed("Success")),
  *     retrySchedule
  *   )
  *
@@ -200,7 +200,7 @@ export const CurrentMetadata = ServiceMap.Reference<Metadata>("effect/Schedule/C
  *     Effect.gen(function*() {
  *       attempt++
  *       if (attempt < 3) {
- *         yield* Effect.fail(`Attempt ${attempt} failed`)
+ *         return yield* Effect.fail(`Attempt ${attempt} failed`)
  *       }
  *       return `Success on attempt ${attempt}`
  *     }),
@@ -619,7 +619,7 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
  *     Effect.gen(function*() {
  *       attempt++
  *       if (attempt < 5) {
- *         yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
+ *         return yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
  *       }
  *       return `Success on attempt ${attempt}`
  *     }),
@@ -679,7 +679,7 @@ export const addDelay: {
  *       attempt++
  *       yield* Console.log(`Attempt ${attempt}`)
  *       if (attempt < 6) {
- *         yield* Effect.fail(new Error(`Failure ${attempt}`))
+ *         return yield* Effect.fail(new Error(`Failure ${attempt}`))
  *       }
  *       return `Success on attempt ${attempt}`
  *     }),
@@ -855,7 +855,7 @@ export const andThenResult: {
  *       yield* Console.log(`Retry attempt ${attempt}`)
  *
  *       if (attempt < 3) {
- *         yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
+ *         return yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
  *       }
  *
  *       return `Success on attempt ${attempt}`
@@ -1092,7 +1092,7 @@ export const bothWith: {
  *       yield* Console.log(`Attempt ${attempt}`)
  *
  *       if (attempt < 7) { // Needs both phases to succeed
- *         yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
+ *         return yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
  *       }
  *
  *       return `Success on attempt ${attempt}`
@@ -1438,7 +1438,7 @@ export const collectWhile: {
  *       yield* Console.log("Complex scheduled task...")
  *       // Simulate occasional failures
  *       if (Math.random() < 0.3) {
- *         yield* Effect.fail(new Error("Scheduled task failed"))
+ *         return yield* Effect.fail(new Error("Scheduled task failed"))
  *       }
  *       return "success"
  *     }),
@@ -1648,7 +1648,7 @@ export const duration = (durationInput: Duration.Input): Schedule<Duration.Durat
  *       yield* Console.log(`Retry attempt ${attempt}`)
  *
  *       if (Math.random() < 0.8) { // 80% failure rate
- *         yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
+ *         return yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
  *       }
  *
  *       return `Success on attempt ${attempt}`
@@ -1722,7 +1722,7 @@ export const during = (duration: Duration.Input): Schedule<Duration.Duration> =>
  *       yield* Console.log(`Retry attempt ${attempt}`)
  *
  *       if (attempt < 6) {
- *         yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
+ *         return yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
  *       }
  *
  *       return `Success on attempt ${attempt}`
@@ -2006,7 +2006,7 @@ export const elapsed: Schedule<Duration.Duration> = fromStepWithMetadata(
  *       attempt++
  *       if (attempt < 4) {
  *         yield* Console.log(`Attempt ${attempt} failed, retrying...`)
- *         yield* Effect.fail(new Error(`Failure ${attempt}`))
+ *         return yield* Effect.fail(new Error(`Failure ${attempt}`))
  *       }
  *       return `Success on attempt ${attempt}`
  *     }),
@@ -2056,7 +2056,7 @@ export const exponential = (
  *       yield* Console.log(`Attempt ${attempt}`)
  *
  *       if (attempt < 5) {
- *         yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
+ *         return yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
  *       }
  *
  *       return `Success on attempt ${attempt}`
@@ -2415,7 +2415,7 @@ export const passthrough = <Output, Input, Error, Env>(
  *       yield* Console.log(`Attempt ${attempt}`)
  *
  *       if (attempt < 4) {
- *         yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
+ *         return yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
  *       }
  *
  *       return `Success on attempt ${attempt}`
@@ -2680,7 +2680,7 @@ export const spaced = (duration: Duration.Input): Schedule<number> => {
  *     Effect.gen(function*() {
  *       attempt++
  *       if (attempt < 4) {
- *         yield* Effect.fail(new Error(`Network timeout on attempt ${attempt}`))
+ *         return yield* Effect.fail(new Error(`Network timeout on attempt ${attempt}`))
  *       }
  *       return `Success on attempt ${attempt}`
  *     }),
@@ -2751,7 +2751,7 @@ export const spaced = (duration: Duration.Input): Schedule<number> => {
  *       const errorType = isCritical
  *         ? "critical database failure"
  *         : "temporary network issue"
- *       yield* Effect.fail(new Error(errorType))
+ *       return yield* Effect.fail(new Error(errorType))
  *     }),
  *     alertingSchedule
  *   ).pipe(
@@ -2819,7 +2819,7 @@ export const tapInput: {
  *     Effect.gen(function*() {
  *       attempt++
  *       if (attempt < 4) {
- *         yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
+ *         return yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
  *       }
  *       return `Success on attempt ${attempt}`
  *     }),
@@ -2939,7 +2939,7 @@ export const tapOutput: {
  *       yield* Console.log(`Attempt ${attempt}`)
  *
  *       if (attempt < 5) { // Will fail more than 3 times
- *         yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
+ *         return yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
  *       }
  *
  *       return `Success on attempt ${attempt}`
