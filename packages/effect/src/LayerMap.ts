@@ -27,7 +27,7 @@ const TypeId = "~effect/LayerMap"
  * // Create a LayerMap that provides different database configurations
  * const createDatabaseLayerMap = LayerMap.make((env: string) =>
  *   Layer.succeed(DatabaseService)({
- *     query: (sql) => Effect.succeed(`${env}: ${sql}`)
+ *     query: Effect.fn("DatabaseService.query")((sql) => Effect.succeed(`${env}: ${sql}`))
  *   })
  * )
  *
@@ -91,7 +91,7 @@ export interface LayerMap<in out K, in out I, in out E = never> {
  *   const layerMap = yield* LayerMap.make(
  *     (env: string) =>
  *       Layer.succeed(DatabaseService)({
- *         query: (sql) => Effect.succeed(`${env}: ${sql}`)
+ *         query: Effect.fn("DatabaseService.query")((sql) => Effect.succeed(`${env}: ${sql}`))
  *       }),
  *     { idleTimeToLive: "5 seconds" }
  *   )
@@ -171,10 +171,10 @@ export const make: <
  * // Create predefined layers
  * const layers = {
  *   development: Layer.succeed(DevDatabase)({
- *     query: (sql) => Effect.succeed(`DEV: ${sql}`)
+ *     query: Effect.fn("DevDatabase.query")((sql) => Effect.succeed(`DEV: ${sql}`))
  *   }),
  *   production: Layer.succeed(ProdDatabase)({
- *     query: (sql) => Effect.succeed(`PROD: ${sql}`)
+ *     query: Effect.fn("ProdDatabase.query")((sql) => Effect.succeed(`PROD: ${sql}`))
  *   })
  * } as const
  *

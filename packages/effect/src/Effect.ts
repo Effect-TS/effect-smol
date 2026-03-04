@@ -5587,7 +5587,7 @@ export const servicesWith: <R, A, E, R2>(
  * const Database = ServiceMap.Service<Database>("Database")
  *
  * const DatabaseLive = Layer.succeed(Database)({
- *   query: (sql: string) => Effect.succeed(`Result for: ${sql}`)
+ *   query: Effect.fn("Database.query")((sql: string) => Effect.succeed(`Result for: ${sql}`))
  * })
  *
  * const program = Effect.gen(function*() {
