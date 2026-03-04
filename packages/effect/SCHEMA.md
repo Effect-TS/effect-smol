@@ -2295,18 +2295,17 @@ A filter factory is a function that returns a new filter each time you call it, 
 **Example** (Factory for a `isGreaterThan` filter on ordered values)
 
 ```ts
-import type { SchemaAnnotations } from "effect"
 import { Order, Schema } from "effect"
 
 // Create a filter factory for values greater than a given value
 export const makeGreaterThan = <T>(options: {
   readonly order: Order.Order<T>
-  readonly annotate?: ((exclusiveMinimum: T) => SchemaAnnotations.Filter) | undefined
+  readonly annotate?: ((exclusiveMinimum: T) => Schema.Annotations.Filter) | undefined
   readonly format?: (value: T) => string | undefined
 }) => {
   const greaterThan = Order.isGreaterThan(options.order)
   const format = options.format ?? globalThis.String
-  return (exclusiveMinimum: T, annotations?: SchemaAnnotations.Filter) => {
+  return (exclusiveMinimum: T, annotations?: Schema.Annotations.Filter) => {
     return Schema.makeFilter<T>((input) => greaterThan(input, exclusiveMinimum), {
       title: `greaterThan(${format(exclusiveMinimum)})`,
       description: `a value greater than ${format(exclusiveMinimum)}`,
@@ -5146,7 +5145,6 @@ You can integrate `@faker-js/faker` by adding an `arbitrary` override to your sc
 ```ts
 import { faker } from "@faker-js/faker"
 import { Schema } from "effect"
-import type { SchemaAnnotations } from "effect"
 import { FastCheck } from "effect/testing"
 
 /**
@@ -5154,8 +5152,8 @@ import { FastCheck } from "effect/testing"
  * The seed comes from Fast-Check so data is reproducible and shrinks correctly.
  */
 function fake<A>(
-  gen: (f: typeof faker, ctx: SchemaAnnotations.Arbitrary.Context) => A
-): SchemaAnnotations.Arbitrary.ToArbitrary<A, readonly []> {
+  gen: (f: typeof faker, ctx: Schema.Annotations.ToArbitrary.Context) => A
+): Schema.Annotations.ToArbitrary.Declaration<A, readonly []> {
   return () => (fc, ctx) =>
     fc.nat().map((seed) => {
       faker.seed(seed)
@@ -6108,12 +6106,14 @@ You can also extend the available annotations by adding your own in a module dec
 **Example** (Adding a custom annotation for versioning)
 
 ```ts
-import { Schema, SchemaAnnotations } from "effect"
+import { Schema } from "effect"
 
 // Extend the Annotations interface with a custom `version` annotation
-declare module "effect/SchemaAnnotations" {
-  interface Annotations {
-    readonly version?: readonly [major: number, minor: number, patch: number] | undefined
+declare module "effect/Schema" {
+  namespace Annotations {
+    interface Augment {
+      readonly version?: readonly [major: number, minor: number, patch: number] | undefined
+    }
   }
 }
 
@@ -6121,7 +6121,7 @@ declare module "effect/SchemaAnnotations" {
 const schema = Schema.String.annotate({ version: [1, 2, 0] })
 
 // const version: readonly [major: number, minor: number, patch: number] | undefined
-const version = SchemaAnnotations.resolveInto(schema)?.["version"]
+const version = Schema.resolveInto(schema)?.["version"]
 
 if (version) {
   // Access individual parts of the version
