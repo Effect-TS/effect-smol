@@ -5,9 +5,9 @@ import { Cookies } from "effect/unstable/http"
 import { assertSuccess } from "../../utils/assert.ts"
 
 describe("Cookies", () => {
-  it("clearCookie", () => {
+  it("expireCookie", () => {
     assertSuccess(
-      Cookies.clearCookie(Cookies.empty, "session", { path: "/", secure: true }),
+      Cookies.expireCookie(Cookies.empty, "session", { path: "/", secure: true }),
       Cookies.fromReadonlyRecord({
         session: Cookies.makeCookieUnsafe("session", "", {
           path: "/",

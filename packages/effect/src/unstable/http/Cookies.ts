@@ -596,7 +596,7 @@ export const setUnsafe: {
  * @since 4.0.0
  * @category combinators
  */
-export const clearCookie: {
+export const expireCookie: {
   (
     name: string,
     options?: Omit<NonNullable<Cookie["options"]>, "expires" | "maxAge">

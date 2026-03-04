@@ -510,7 +510,7 @@ export const clearCookie: {
     options?: Omit<NonNullable<Cookies.Cookie["options"]>, "expires" | "maxAge">
   ): Effect.Effect<HttpServerResponse, Cookies.CookiesError> =>
     Effect.map(
-      Cookies.clearCookie(self.cookies, name, options).asEffect(),
+      Cookies.expireCookie(self.cookies, name, options).asEffect(),
       (cookies) =>
         makeResponse({
           ...self,
