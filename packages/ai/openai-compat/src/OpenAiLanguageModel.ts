@@ -1209,6 +1209,7 @@ const toChatCompletionsRequest = (payload: CreateResponse): CreateResponseReques
       ? { parallel_tool_calls: payload.parallel_tool_calls }
       : undefined),
     ...(payload.service_tier !== undefined ? { service_tier: payload.service_tier } : undefined),
+    ...(payload.reasoning !== undefined ? { reasoning: payload.reasoning } : undefined),
     ...(responseFormat !== undefined ? { response_format: responseFormat } : undefined),
     ...(tools.length > 0 ? { tools } : undefined),
     ...(toolChoice !== undefined ? { tool_choice: toolChoice } : undefined)
