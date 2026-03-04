@@ -18,8 +18,9 @@ process lifecycle utilities.
 
 ## `Runtime.runFork(runtime)` -> `Effect.runForkWith(services)`
 
-In v3, running an effect with dependencies usually meant building a
-`Runtime.Runtime<R>` value and calling `Runtime.runFork(runtime)`.
+In v3, running an effect with dependencies usually meant pulling the current
+runtime from `Effect.runtime<R>()` and calling `Runtime.runFork(runtime)` inside
+the main effect.
 
 **v3**
 
@@ -30,21 +31,25 @@ class Logger extends Context.Tag("Logger")<Logger, {
   readonly log: (message: string) => void
 }>() {}
 
-const runtime: Runtime.Runtime<Logger> = Runtime.defaultRuntime.pipe(
-  Runtime.provideService(Logger, {
-    log: (message) => console.log(message)
-  })
-)
-
 const program = Effect.gen(function*() {
   const logger = yield* Logger
   logger.log("Hello from Logger")
 })
 
-const fiber = Runtime.runFork(runtime)(program)
+const main = Effect.gen(function*() {
+  const runtime = yield* Effect.runtime<Logger>()
+  return Runtime.runFork(runtime)(program)
+}).pipe(
+  Effect.provideService(Logger, {
+    log: (message) => console.log(message)
+  })
+)
+
+const fiber = Effect.runFork(main)
 ```
 
-In v4, you pass a `ServiceMap<R>` directly to the run function:
+In v4, use the same pattern with `Effect.services<R>()`, then run with
+`Effect.runForkWith(services)`:
 
 **v4**
 
@@ -55,16 +60,21 @@ class Logger extends ServiceMap.Service<Logger, {
   readonly log: (message: string) => void
 }>()("Logger") {}
 
-const services = ServiceMap.make(Logger, {
-  log: (message) => console.log(message)
-})
-
 const program = Effect.gen(function*() {
   const logger = yield* Logger
   logger.log("Hello from Logger")
 })
 
-const fiber = Effect.runForkWith(services)(program)
+const main = Effect.gen(function*() {
+  const services = yield* Effect.services<Logger>()
+  return Effect.runForkWith(services)(program)
+}).pipe(
+  Effect.provideServices(ServiceMap.make(Logger, {
+    log: (message) => console.log(message)
+  }))
+)
+
+const fiber = Effect.runFork(main)
 ```
 
 If your effect has no service requirements, use `Effect.runFork(effect)`.
