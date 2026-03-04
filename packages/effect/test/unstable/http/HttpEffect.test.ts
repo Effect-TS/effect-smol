@@ -35,6 +35,20 @@ describe("Http/App", () => {
       })
     })
 
+    test("clearCookie", async () => {
+      const handler = HttpEffect.toWebHandler(
+        HttpServerResponse.empty().pipe(
+          HttpServerResponse.clearCookie("foo", { path: "/" }),
+          Effect.map(HttpServerResponse.clearCookieUnsafe("bar"))
+        )
+      )
+      const response = await handler(new Request("http://localhost:3000/"))
+      deepStrictEqual(response.headers.getSetCookie(), [
+        "foo=; Max-Age=0; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+        "bar=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT"
+      ])
+    })
+
     test("stream", async () => {
       const handler = HttpEffect.toWebHandler(
         Effect.succeed(HttpServerResponse.stream(Stream.make("foo", "bar").pipe(Stream.encodeText)))
