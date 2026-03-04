@@ -23,6 +23,7 @@ import {
   HttpClientRequest,
   type HttpClientResponse,
   HttpRouter,
+  HttpServer,
   HttpServerRequest,
   HttpServerResponse,
   Multipart
@@ -649,6 +650,34 @@ describe("HttpApi", () => {
         yield* assertClientJson(client.group.b(), undefined)
         yield* assertClientJson(client.group.c(), "c")
       }).pipe(Effect.provide(ApiLive))
+    })
+
+    it("no content via toWebHandler", async () => {
+      const Api = HttpApi.make("api")
+        .add(
+          HttpApiGroup.make("group")
+            .add(HttpApiEndpoint.delete("remove", "/items/:id", { params: { id: Schema.String } }))
+        )
+      const GroupLive = HttpApiBuilder.group(
+        Api,
+        "group",
+        (handlers) => handlers.handle("remove", () => Effect.void)
+      )
+      const ApiLive = HttpApiBuilder.layer(Api).pipe(
+        Layer.provide(GroupLive),
+        Layer.provide(HttpServer.layerServices)
+      )
+      const { handler, dispose } = HttpRouter.toWebHandler(
+        Layer.mergeAll(ApiLive),
+        { disableLogger: true }
+      )
+      try {
+        const response = await handler(new Request("http://localhost/items/123", { method: "DELETE" }))
+        assert.strictEqual(response.status, 204)
+        assert.strictEqual(response.body, null)
+      } finally {
+        await dispose()
+      }
     })
 
     describe("encodings", () => {
