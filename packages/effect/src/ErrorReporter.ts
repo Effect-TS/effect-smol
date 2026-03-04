@@ -200,9 +200,7 @@ export const CurrentErrorReporters: ServiceMap.Reference<ReadonlySet<ErrorReport
  *   { mergeWithExisting: true }
  * )
  *
- * const program = Effect.gen(function*() {
- *   yield* Effect.fail("boom")
- * }).pipe(
+ * const program = Effect.fail("boom").pipe(
  *   Effect.withErrorReporting,
  *   Effect.provide(ReporterLive)
  * )
