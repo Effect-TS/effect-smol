@@ -208,6 +208,24 @@ export const decodeOption: <S extends Schema.Top & { readonly DecodingServices: 
  * @category Decoding
  * @since 4.0.0
  */
+export function decodeUnknownResult<S extends Schema.Top & { readonly DecodingServices: never }>(
+  schema: S
+): (input: unknown, options?: AST.ParseOptions) => Result.Result<S["Type"], Issue.Issue> {
+  return asResult(decodeUnknownEffect(schema))
+}
+
+/**
+ * @category Decoding
+ * @since 4.0.0
+ */
+export const decodeResult: <S extends Schema.Top & { readonly DecodingServices: never }>(
+  schema: S
+) => (input: S["Encoded"], options?: AST.ParseOptions) => Result.Result<S["Type"], Issue.Issue> = decodeUnknownResult
+
+/**
+ * @category Decoding
+ * @since 4.0.0
+ */
 export function decodeUnknownSync<S extends Schema.Top & { readonly DecodingServices: never }>(
   schema: S
 ): (input: unknown, options?: AST.ParseOptions) => S["Type"] {
@@ -297,6 +315,24 @@ export const encodeOption: <S extends Schema.Top & { readonly EncodingServices: 
  * @category Encoding
  * @since 4.0.0
  */
+export function encodeUnknownResult<S extends Schema.Top & { readonly EncodingServices: never }>(
+  schema: S
+): (input: unknown, options?: AST.ParseOptions) => Result.Result<S["Encoded"], Issue.Issue> {
+  return asResult(encodeUnknownEffect(schema))
+}
+
+/**
+ * @category Encoding
+ * @since 4.0.0
+ */
+export const encodeResult: <S extends Schema.Top & { readonly EncodingServices: never }>(
+  schema: S
+) => (input: S["Type"], options?: AST.ParseOptions) => Result.Result<S["Encoded"], Issue.Issue> = encodeUnknownResult
+
+/**
+ * @category Encoding
+ * @since 4.0.0
+ */
 export function encodeUnknownSync<S extends Schema.Top & { readonly EncodingServices: never }>(
   schema: S
 ): (input: unknown, options?: AST.ParseOptions) => S["Encoded"] {
@@ -341,6 +377,23 @@ export function asOption<T, E, R>(
 ): (input: E, options?: AST.ParseOptions) => Option.Option<T> {
   const parserExit = asExit(parser)
   return (input: E, options?: AST.ParseOptions) => Exit.getSuccess(parserExit(input, options))
+}
+
+function asResult<T, E, R>(
+  parser: (input: E, options?: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, R>
+): (input: E, options?: AST.ParseOptions) => Result.Result<T, Issue.Issue> {
+  const parserExit = asExit(parser)
+  return (input: E, options?: AST.ParseOptions) => {
+    const exit = parserExit(input, options)
+    if (Exit.isSuccess(exit)) {
+      return Result.succeed(exit.value)
+    }
+    const error = Cause.findError(exit.cause)
+    if (Result.isFailure(error)) {
+      throw Cause.squash(error.failure)
+    }
+    return Result.fail(error.success)
+  }
 }
 
 function asSync<T, E, R>(

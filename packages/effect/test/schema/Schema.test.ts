@@ -6422,6 +6422,63 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
   })
 
+  describe("decodeUnknownResult / encodeUnknownResult", () => {
+    it("FiniteFromString", () => {
+      const schema = Schema.FiniteFromString
+      const decodeUnknownResult = Schema.decodeUnknownResult(schema)
+      const encodeUnknownResult = Schema.encodeUnknownResult(schema)
+
+      const r1 = decodeUnknownResult("1")
+      assertTrue(Result.isSuccess(r1))
+      strictEqual(r1.success, 1)
+
+      const r2 = decodeUnknownResult(null)
+      assertTrue(Result.isFailure(r2))
+      strictEqual(r2.failure.toString(), "Expected string, got null")
+
+      const r3 = encodeUnknownResult(1)
+      assertTrue(Result.isSuccess(r3))
+      strictEqual(r3.success, "1")
+
+      const r4 = encodeUnknownResult(null)
+      assertTrue(Result.isFailure(r4))
+      strictEqual(r4.failure.toString(), "Expected number, got null")
+    })
+  })
+
+  describe("decodeUnknownResult", () => {
+    it("should throw on async decoding", () => {
+      const AsyncString = Schema.String.pipe(Schema.decode({
+        decode: new SchemaGetter.Getter((os: Option.Option<string>) =>
+          Effect.gen(function*() {
+            yield* Effect.sleep("10 millis")
+            return os
+          })
+        ),
+        encode: SchemaGetter.passthrough()
+      }))
+      const schema = AsyncString
+
+      throws(() => SchemaParser.decodeUnknownResult(schema)("1"))
+    })
+
+    it("should throw on missing dependency", () => {
+      class MagicNumber extends ServiceMap.Service<MagicNumber, number>()("MagicNumber") {}
+      const DepString = Schema.Number.pipe(Schema.decode({
+        decode: SchemaGetter.onSome((n) =>
+          Effect.gen(function*() {
+            const magicNumber = yield* MagicNumber
+            return Option.some(n * magicNumber)
+          })
+        ),
+        encode: SchemaGetter.passthrough()
+      }))
+      const schema = DepString
+
+      throws(() => SchemaParser.decodeUnknownResult(schema as any)(1))
+    })
+  })
+
   describe("decodeUnknownExit", () => {
     it("should throw on async decoding", () => {
       const AsyncString = Schema.String.pipe(Schema.decode({
