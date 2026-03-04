@@ -303,6 +303,37 @@ export const FieldOption: <Field extends VariantSchema.Field<any> | Schema.Top>(
 
 /**
  * @since 4.0.0
+ * @category booleans
+ */
+export interface BooleanSqlite extends
+  VariantSchema.Field<{
+    readonly select: Schema.BooleanFromBit
+    readonly insert: Schema.BooleanFromBit
+    readonly update: Schema.BooleanFromBit
+    readonly json: Schema.Boolean
+    readonly jsonCreate: Schema.Boolean
+    readonly jsonUpdate: Schema.Boolean
+  }>
+{}
+
+/**
+ * A schema for sqlite booleans that are represented as `0 | 1` in database
+ * variants and `boolean` in JSON variants.
+ *
+ * @since 4.0.0
+ * @category booleans
+ */
+export const BooleanSqlite: BooleanSqlite = Field({
+  select: Schema.BooleanFromBit,
+  insert: Schema.BooleanFromBit,
+  update: Schema.BooleanFromBit,
+  json: Schema.Boolean,
+  jsonCreate: Schema.Boolean,
+  jsonUpdate: Schema.Boolean
+})
+
+/**
+ * @since 4.0.0
  * @category date & time
  */
 export interface Date extends Schema.decodeTo<Schema.instanceOf<DateTime.Utc>, Schema.String> {}

@@ -46,4 +46,15 @@ describe("Model", () => {
     expect(Model.Union).type.toBeCallableWith([first, second])
     expect(Model.Union).type.not.toBeCallableWith(first, second)
   })
+
+  it("BooleanSqlite uses bit encoding for database variants", () => {
+    const User = Model.Struct({
+      active: Model.BooleanSqlite
+    })
+    const select = Model.extract(User, "select")
+    const json = Model.extract(User, "json")
+
+    expect<Schema.Codec.Encoded<typeof select>>().type.toBe<{ readonly active: 0 | 1 }>()
+    expect<Schema.Codec.Encoded<typeof json>>().type.toBe<{ readonly active: boolean }>()
+  })
 })
