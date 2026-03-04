@@ -45,6 +45,41 @@ describe("OpenAiClient", () => {
         assert.strictEqual(body.messages[0]?.content, "hello")
       }))
 
+    it.effect("passes custom chat-completions request properties through", () =>
+      Effect.gen(function*() {
+        let capturedRequest: HttpClientRequest.HttpClientRequest | undefined
+
+        const client = yield* OpenAiClient.make({
+          apiKey: Redacted.make("sk-test-key")
+        }).pipe(
+          Effect.provide(Layer.succeed(
+            HttpClient.HttpClient,
+            makeHttpClient((request) => {
+              capturedRequest = request
+              return Effect.succeed(jsonResponse(request, 200, makeChatCompletion()))
+            })
+          ))
+        )
+
+        yield* client.createResponse({
+          model: "gpt-4o-mini",
+          messages: [{ role: "user", content: "hello" }],
+          provider_feature: {
+            enabled: true
+          }
+        })
+
+        assert.isDefined(capturedRequest)
+        if (capturedRequest === undefined) {
+          return
+        }
+
+        const body = yield* getRequestBody(capturedRequest)
+        assert.deepStrictEqual(body.provider_feature, {
+          enabled: true
+        })
+      }))
+
     it.effect("uses /embeddings path and decodes permissive embedding payloads", () =>
       Effect.gen(function*() {
         let capturedRequest: HttpClientRequest.HttpClientRequest | undefined

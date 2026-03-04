@@ -860,6 +860,7 @@ export type ChatCompletionRequest = {
   readonly stream_options?: {
     readonly include_usage?: boolean | undefined
   } | undefined
+  readonly [x: string]: unknown
 }
 /**
  * @since 1.0.0

@@ -101,6 +101,7 @@ export class Config extends ServiceMap.Service<
        * Defaults to `true`.
        */
       readonly strictJsonSchema?: boolean | undefined
+      readonly [x: string]: unknown
     }
   >
 >()("@effect/ai-openai-compat/OpenAiLanguageModel/Config") {}
@@ -1198,6 +1199,7 @@ const toChatCompletionsRequest = (payload: CreateResponse): CreateResponseReques
   const toolChoice = toChatToolChoice(payload.tool_choice)
 
   return {
+    ...extractCustomRequestProperties(payload),
     model: payload.model ?? "",
     messages: messages.length > 0 ? messages : [{ role: "user", content: "" }],
     ...(payload.temperature !== undefined ? { temperature: payload.temperature } : undefined),
@@ -1214,6 +1216,47 @@ const toChatCompletionsRequest = (payload: CreateResponse): CreateResponseReques
     ...(tools.length > 0 ? { tools } : undefined),
     ...(toolChoice !== undefined ? { tool_choice: toolChoice } : undefined)
   }
+}
+
+const createResponseKnownProperties = new Set<string>([
+  "metadata",
+  "top_logprobs",
+  "temperature",
+  "top_p",
+  "user",
+  "safety_identifier",
+  "prompt_cache_key",
+  "service_tier",
+  "prompt_cache_retention",
+  "previous_response_id",
+  "model",
+  "reasoning",
+  "background",
+  "max_output_tokens",
+  "max_tool_calls",
+  "text",
+  "tools",
+  "tool_choice",
+  "truncation",
+  "input",
+  "include",
+  "parallel_tool_calls",
+  "store",
+  "instructions",
+  "stream",
+  "conversation",
+  "modalities",
+  "seed"
+])
+
+const extractCustomRequestProperties = (payload: CreateResponse): Record<string, unknown> => {
+  const customProperties: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(payload)) {
+    if (!createResponseKnownProperties.has(key)) {
+      customProperties[key] = value
+    }
+  }
+  return customProperties
 }
 
 const toChatResponseFormat = (
