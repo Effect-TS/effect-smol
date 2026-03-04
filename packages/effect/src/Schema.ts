@@ -8347,7 +8347,7 @@ export const TaggedErrorClass: {
     schema: Struct.Fields | Struct<Struct.Fields>,
     annotations?: Annotations.Declaration<any, readonly [Struct<Struct.Fields>]>
   ): any => {
-    return ErrorClass(identifier ?? tagValue)(
+    const self = ErrorClass(identifier ?? tagValue)(
       isStruct(schema) ?
         schema.mapFields((fields) => ({ _tag: tag(tagValue), ...fields }), {
           unsafePreserveChecks: true
@@ -8355,6 +8355,8 @@ export const TaggedErrorClass: {
         TaggedStruct(tagValue, schema),
       annotations
     )
+    ;(self.prototype as any).name = tagValue
+    return self
   }
 }
 

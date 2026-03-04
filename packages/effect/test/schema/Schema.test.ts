@@ -5748,6 +5748,14 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   })
 
   describe("TaggedErrorClass", () => {
+    it("sets the error name to the tag", () => {
+      class DifferentClassName extends Schema.TaggedErrorClass<DifferentClassName>()("TaggedErrorName", {}) {}
+
+      const err = new DifferentClassName()
+      strictEqual(err._tag, "TaggedErrorName")
+      strictEqual(err.name, "TaggedErrorName")
+    })
+
     it("fields argument", async () => {
       class E extends Schema.TaggedErrorClass<E>()("E", {
         id: Schema.Number
