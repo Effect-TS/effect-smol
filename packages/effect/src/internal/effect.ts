@@ -79,6 +79,7 @@ import {
   exitSucceed,
   ExitTypeId,
   Fail,
+  identifier,
   InterruptorStackTrace,
   isCause,
   isDieReason,
@@ -1672,8 +1673,35 @@ export const map: {
   <A, E, R, B>(
     self: Effect.Effect<A, E, R>,
     f: (a: A) => B
-  ): Effect.Effect<B, E, R> => flatMap(self, (a) => succeed(internalCall(() => f(a))))
+  ): Effect.Effect<B, E, R> => mapPrimitive(self, f)
 )
+
+const mapPrimitive: <A, E, R, B>(
+  self: Effect.Effect<A, E, R>,
+  f: (a: A) => B
+) => Effect.Effect<B, E, R> = makePrimitive({
+  op: "Map",
+  single: false,
+  [evaluate](fiber): Primitive {
+    fiber._stack.push(this)
+    return this[args][0] as any
+  },
+  [contA](value, fiber): Primitive | Yield {
+    let mapped = internalCall(() => this[args][1](value))
+    let cont = fiber.getCont(contA)
+    while (cont) {
+      if (cont[identifier] !== "Map") {
+        return cont[contA](mapped, fiber)
+      }
+      const f = (cont as Primitive & {
+        readonly [args]: readonly [Effect.Effect<any, any, any>, (a: any) => any]
+      })[args][1]
+      mapped = internalCall(() => f(mapped))
+      cont = fiber.getCont(contA)
+    }
+    return fiber.yieldWith(exitSucceed(mapped))
+  }
+})
 
 /** @internal */
 export const mapEager: {

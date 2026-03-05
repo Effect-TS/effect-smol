@@ -69,6 +69,16 @@ describe("Effect", () => {
     assert.strictEqual(result, 1)
   })
 
+  it.effect("map is stack safe for long chains", () =>
+    Effect.gen(function*() {
+      let effect: Effect.Effect<number> = Effect.succeed(0)
+      for (let i = 0; i < 10_000; i++) {
+        effect = Effect.map(effect, (n) => n + 1)
+      }
+      const result = yield* effect
+      assert.strictEqual(result, 10_000)
+    }))
+
   it("acquireUseRelease interrupt", async () => {
     let acquire = false
     let use = false
