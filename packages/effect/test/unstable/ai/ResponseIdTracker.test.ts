@@ -50,7 +50,7 @@ describe("ResponseIdTracker", () => {
       const tracker = yield* ResponseIdTracker.make
       const msg1 = userMessage("msg1")
 
-      const prepared = yield* tracker.prepare(Prompt.fromMessages([msg1]))
+      const prepared = tracker.prepareUnsafe(Prompt.fromMessages([msg1]))
 
       assert.isTrue(Option.isNone(prepared))
     }))
@@ -63,7 +63,7 @@ describe("ResponseIdTracker", () => {
       const msg2 = userMessage("msg2")
 
       tracker.markParts([msg1], "resp_123")
-      const prepared = yield* tracker.prepare(Prompt.fromMessages([msg1, asst, msg2]))
+      const prepared = tracker.prepareUnsafe(Prompt.fromMessages([msg1, asst, msg2]))
 
       assertPreparedSome(prepared, "resp_123", Prompt.fromMessages([msg2]))
     }))
@@ -79,7 +79,7 @@ describe("ResponseIdTracker", () => {
       tracker.markParts([msg1], "resp_123")
       yield* tracker.clear
       tracker.markParts([msg1New], "resp_456")
-      const prepared = yield* tracker.prepare(Prompt.fromMessages([msg1New, asst, msg2]))
+      const prepared = tracker.prepareUnsafe(Prompt.fromMessages([msg1New, asst, msg2]))
 
       assertPreparedSome(prepared, "resp_456", Prompt.fromMessages([msg2]))
     }))
@@ -93,7 +93,7 @@ describe("ResponseIdTracker", () => {
 
       tracker.markParts([msg1], "resp_1")
       tracker.markParts([msg1], "resp_2")
-      const prepared = yield* tracker.prepare(Prompt.fromMessages([msg1, asst, msg2]))
+      const prepared = tracker.prepareUnsafe(Prompt.fromMessages([msg1, asst, msg2]))
 
       assertPreparedSome(prepared, "resp_2", Prompt.fromMessages([msg2]))
     }))
@@ -107,7 +107,7 @@ describe("ResponseIdTracker", () => {
 
       tracker.markParts([msg1], "resp_123")
       yield* tracker.onSessionDrop
-      const prepared = yield* tracker.prepare(Prompt.fromMessages([msg1, asst, msg2]))
+      const prepared = tracker.prepareUnsafe(Prompt.fromMessages([msg1, asst, msg2]))
 
       assert.isTrue(Option.isNone(prepared))
     }))
@@ -123,7 +123,7 @@ describe("ResponseIdTracker", () => {
       tracker.markParts([msg1], "resp_123")
       yield* tracker.onSessionDrop
       tracker.markParts([msg1New], "resp_456")
-      const prepared = yield* tracker.prepare(Prompt.fromMessages([msg1New, asst, msg2]))
+      const prepared = tracker.prepareUnsafe(Prompt.fromMessages([msg1New, asst, msg2]))
 
       assertPreparedSome(prepared, "resp_456", Prompt.fromMessages([msg2]))
     }))
@@ -159,7 +159,7 @@ describe("ResponseIdTracker", () => {
       const asst = assistantMessage("done")
       const msg2 = userMessage("msg2")
       tracker.markParts([msg1], "resp_final")
-      const prepared = yield* tracker.prepare(Prompt.fromMessages([msg1, asst, msg2]))
+      const prepared = tracker.prepareUnsafe(Prompt.fromMessages([msg1, asst, msg2]))
 
       assertPreparedSome(prepared, "resp_final", Prompt.fromMessages([msg2]))
     }))
@@ -170,7 +170,7 @@ describe("ResponseIdTracker", () => {
       const sys = systemMessage("sys")
       const user1 = userMessage("user1")
 
-      const prepared = yield* tracker.prepare(Prompt.fromMessages([sys, user1]))
+      const prepared = tracker.prepareUnsafe(Prompt.fromMessages([sys, user1]))
 
       assert.isTrue(Option.isNone(prepared))
     }))
@@ -182,7 +182,7 @@ describe("ResponseIdTracker", () => {
       const user1 = userMessage("user1")
 
       tracker.markParts([sys, user1], "resp_1")
-      const prepared = yield* tracker.prepare(Prompt.fromMessages([sys, user1]))
+      const prepared = tracker.prepareUnsafe(Prompt.fromMessages([sys, user1]))
 
       assert.isTrue(Option.isNone(prepared))
     }))
@@ -196,7 +196,7 @@ describe("ResponseIdTracker", () => {
       const user2 = userMessage("user2")
 
       tracker.markParts([sys, user1], "resp_1")
-      const prepared = yield* tracker.prepare(Prompt.fromMessages([sys, user1, asst1, user2]))
+      const prepared = tracker.prepareUnsafe(Prompt.fromMessages([sys, user1, asst1, user2]))
 
       assertPreparedSome(prepared, "resp_1", Prompt.fromMessages([user2]))
     }))
@@ -210,7 +210,7 @@ describe("ResponseIdTracker", () => {
       const tool1 = toolResultMessage("call_1")
 
       tracker.markParts([sys, user1], "resp_1")
-      const prepared = yield* tracker.prepare(Prompt.fromMessages([sys, user1, asst1, tool1]))
+      const prepared = tracker.prepareUnsafe(Prompt.fromMessages([sys, user1, asst1, tool1]))
 
       assertPreparedSome(prepared, "resp_1", Prompt.fromMessages([tool1]))
     }))
@@ -225,7 +225,7 @@ describe("ResponseIdTracker", () => {
       const user2 = userMessage("user2")
 
       tracker.markParts([sys, user1], "resp_1")
-      const prepared = yield* tracker.prepare(Prompt.fromMessages([sys, user1, asst1, tool1, user2]))
+      const prepared = tracker.prepareUnsafe(Prompt.fromMessages([sys, user1, asst1, tool1, user2]))
 
       assertPreparedSome(prepared, "resp_1", Prompt.fromMessages([tool1, user2]))
     }))
@@ -238,7 +238,7 @@ describe("ResponseIdTracker", () => {
       const asst1 = assistantMessage("assistant1")
 
       tracker.markParts([sys, user1], "resp_1")
-      const prepared = yield* tracker.prepare(Prompt.fromMessages([sys, user1, asst1]))
+      const prepared = tracker.prepareUnsafe(Prompt.fromMessages([sys, user1, asst1]))
 
       assert.isTrue(Option.isNone(prepared))
     }))
@@ -253,7 +253,7 @@ describe("ResponseIdTracker", () => {
       const asst2 = assistantMessage("assistant2")
 
       tracker.markParts([sys, user1, asst1, user2], "resp_2")
-      const prepared = yield* tracker.prepare(Prompt.fromMessages([sys, user1, asst1, user2, asst2]))
+      const prepared = tracker.prepareUnsafe(Prompt.fromMessages([sys, user1, asst1, user2, asst2]))
 
       assert.isTrue(Option.isNone(prepared))
     }))
@@ -262,7 +262,7 @@ describe("ResponseIdTracker", () => {
     Effect.gen(function*() {
       const tracker = yield* ResponseIdTracker.make
 
-      const prepared = yield* tracker.prepare(Prompt.fromMessages([]))
+      const prepared = tracker.prepareUnsafe(Prompt.fromMessages([]))
 
       assert.isTrue(Option.isNone(prepared))
     }))
@@ -277,7 +277,7 @@ describe("ResponseIdTracker", () => {
       const user2 = userMessage("user2")
 
       tracker.markParts([sys, user1], "resp_1")
-      const prepared = yield* tracker.prepare(Prompt.fromMessages([sysNew, user1, asst1, user2]))
+      const prepared = tracker.prepareUnsafe(Prompt.fromMessages([sysNew, user1, asst1, user2]))
 
       assert.isTrue(Option.isNone(prepared))
     }))
@@ -292,7 +292,7 @@ describe("ResponseIdTracker", () => {
       const user2 = userMessage("user2")
 
       tracker.markParts([sys, user1], "resp_1")
-      const prepared = yield* tracker.prepare(Prompt.fromMessages([sys, user1Edited, asst1, user2]))
+      const prepared = tracker.prepareUnsafe(Prompt.fromMessages([sys, user1Edited, asst1, user2]))
 
       assert.isTrue(Option.isNone(prepared))
     }))
@@ -308,7 +308,7 @@ describe("ResponseIdTracker", () => {
       const user2 = userMessage("user2")
 
       tracker.markParts([sys, user1], "resp_1")
-      const prepared = yield* tracker.prepare(Prompt.fromMessages([sysNew, user1Edited, asst1, user2]))
+      const prepared = tracker.prepareUnsafe(Prompt.fromMessages([sysNew, user1Edited, asst1, user2]))
 
       assert.isTrue(Option.isNone(prepared))
     }))
@@ -323,11 +323,11 @@ describe("ResponseIdTracker", () => {
       const user2 = userMessage("user2")
 
       tracker.markParts([sys, user1], "resp_1")
-      const diverged = yield* tracker.prepare(Prompt.fromMessages([sysNew, user1, asst1, user2]))
+      const diverged = tracker.prepareUnsafe(Prompt.fromMessages([sysNew, user1, asst1, user2]))
       assert.isTrue(Option.isNone(diverged))
 
       tracker.markParts([sysNew, user1], "resp_2")
-      const recovered = yield* tracker.prepare(Prompt.fromMessages([sysNew, user1, asst1, user2]))
+      const recovered = tracker.prepareUnsafe(Prompt.fromMessages([sysNew, user1, asst1, user2]))
 
       assertPreparedSome(recovered, "resp_2", Prompt.fromMessages([user2]))
     }))
@@ -343,11 +343,11 @@ describe("ResponseIdTracker", () => {
       const user3 = userMessage("user3")
 
       tracker.markParts([sys, user1], "resp_1")
-      const firstPrepared = yield* tracker.prepare(Prompt.fromMessages([sys, user1, asst1, user2]))
+      const firstPrepared = tracker.prepareUnsafe(Prompt.fromMessages([sys, user1, asst1, user2]))
       assertPreparedSome(firstPrepared, "resp_1", Prompt.fromMessages([user2]))
 
       tracker.markParts([sys, user1, asst1, user2], "resp_2")
-      const secondPrepared = yield* tracker.prepare(Prompt.fromMessages([sys, user1, asst1, user2, asst2, user3]))
+      const secondPrepared = tracker.prepareUnsafe(Prompt.fromMessages([sys, user1, asst1, user2, asst2, user3]))
       assertPreparedSome(secondPrepared, "resp_2", Prompt.fromMessages([user3]))
     }))
 
@@ -360,7 +360,7 @@ describe("ResponseIdTracker", () => {
       const msg2 = userMessage("msg2")
 
       tracker.markParts([msg1], "resp_1")
-      const prepared = yield* tracker.prepare(Prompt.fromMessages([msg1Copy, asst1, msg2]))
+      const prepared = tracker.prepareUnsafe(Prompt.fromMessages([msg1Copy, asst1, msg2]))
 
       assert.isTrue(Option.isNone(prepared))
     }))
@@ -375,7 +375,7 @@ describe("ResponseIdTracker", () => {
 
       tracker.markParts([sys, user1], "resp_1")
       yield* tracker.clear
-      const prepared = yield* tracker.prepare(Prompt.fromMessages([sys, user1, asst1, user2]))
+      const prepared = tracker.prepareUnsafe(Prompt.fromMessages([sys, user1, asst1, user2]))
 
       assert.isTrue(Option.isNone(prepared))
     }))
@@ -395,10 +395,10 @@ describe("ResponseIdTracker", () => {
       tracker.markParts([sysA, userA1], "resp_A1")
       tracker.markParts([sysB, userB1], "resp_B1")
 
-      const preparedA = yield* tracker.prepare(Prompt.fromMessages([sysA, userA1, asstA1, userA2]))
+      const preparedA = tracker.prepareUnsafe(Prompt.fromMessages([sysA, userA1, asstA1, userA2]))
       assertPreparedSome(preparedA, "resp_A1", Prompt.fromMessages([userA2]))
 
-      const preparedB = yield* tracker.prepare(Prompt.fromMessages([sysB, userB1, asstB1, userB2]))
+      const preparedB = tracker.prepareUnsafe(Prompt.fromMessages([sysB, userB1, asstB1, userB2]))
       assertPreparedSome(preparedB, "resp_B1", Prompt.fromMessages([userB2]))
     }))
 
@@ -415,10 +415,10 @@ describe("ResponseIdTracker", () => {
       tracker.markParts([sysA, userA1], "resp_A1")
       tracker.markParts([sysB, userB1], "resp_B1")
 
-      const preparedA = yield* tracker.prepare(Prompt.fromMessages([sysA, userA1, asstA1, userA2]))
+      const preparedA = tracker.prepareUnsafe(Prompt.fromMessages([sysA, userA1, asstA1, userA2]))
       assertPreparedSome(preparedA, "resp_A1", Prompt.fromMessages([userA2]))
 
-      const preparedB = yield* tracker.prepare(Prompt.fromMessages([sysB, userB1]))
+      const preparedB = tracker.prepareUnsafe(Prompt.fromMessages([sysB, userB1]))
       assert.isTrue(Option.isNone(preparedB))
     }))
 })

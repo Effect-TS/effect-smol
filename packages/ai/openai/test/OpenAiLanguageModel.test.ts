@@ -46,7 +46,7 @@ describe("OpenAiLanguageModel", () => {
         assert.isDefined(user2)
 
         const client = yield* OpenAiClient.OpenAiClient
-        const prepared = yield* client.tracker.prepare(Prompt.fromMessages([user1, assistant, user2]))
+        const prepared = client.tracker.prepareUnsafe(Prompt.fromMessages([user1, assistant, user2]))
 
         assert.isTrue(Option.isSome(prepared))
         if (Option.isSome(prepared)) {

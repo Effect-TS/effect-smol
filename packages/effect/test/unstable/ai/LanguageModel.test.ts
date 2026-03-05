@@ -222,14 +222,13 @@ describe("LanguageModel", () => {
             markedParts = parts
             markedResponseId = responseId
           },
-          prepare: (prompt) =>
-            Effect.sync(() => {
-              preparedPrompt = prompt
-              return Option.some({
-                previousResponseId: "resp_prev",
-                prompt: incrementalPrompt
-              })
+          prepareUnsafe: (prompt) => {
+            preparedPrompt = prompt
+            return Option.some({
+              previousResponseId: "resp_prev",
+              prompt: incrementalPrompt
             })
+          }
         }
 
         yield* LanguageModel.generateText({
@@ -276,14 +275,13 @@ describe("LanguageModel", () => {
           markParts: () => {
             markCalls++
           },
-          prepare: () =>
-            Effect.sync(() => {
-              prepareCalls++
-              return Option.some({
-                previousResponseId: "resp_prev",
-                prompt: Prompt.make([])
-              })
+          prepareUnsafe: () => {
+            prepareCalls++
+            return Option.some({
+              previousResponseId: "resp_prev",
+              prompt: Prompt.make([])
             })
+          }
         }
 
         yield* LanguageModel.generateText({
@@ -315,7 +313,7 @@ describe("LanguageModel", () => {
         strictEqual(markCalls, 1)
       }))
 
-    it("calls tracker.prepare after stripping resolved approvals in toolkit flow", () =>
+    it("calls tracker.prepareUnsafe after stripping resolved approvals in toolkit flow", () =>
       Effect.gen(function*() {
         const toolCallId = "call-tracker"
         const approvalId = "approval-tracker"
@@ -329,11 +327,10 @@ describe("LanguageModel", () => {
           markParts: (parts) => {
             markedParts = parts
           },
-          prepare: (prompt) =>
-            Effect.sync(() => {
-              preparedPrompt = prompt
-              return Option.none()
-            })
+          prepareUnsafe: (prompt) => {
+            preparedPrompt = prompt
+            return Option.none()
+          }
         }
 
         const prompt: Array<Prompt.Message> = [
@@ -421,14 +418,13 @@ describe("LanguageModel", () => {
             markedParts = parts
             markedResponseId = responseId
           },
-          prepare: (prompt) =>
-            Effect.sync(() => {
-              preparedPrompt = prompt
-              return Option.some({
-                previousResponseId: "resp_prev",
-                prompt: incrementalPrompt
-              })
+          prepareUnsafe: (prompt) => {
+            preparedPrompt = prompt
+            return Option.some({
+              previousResponseId: "resp_prev",
+              prompt: incrementalPrompt
             })
+          }
         }
 
         yield* LanguageModel.streamText({
@@ -482,14 +478,13 @@ describe("LanguageModel", () => {
             markedParts = parts
             markedResponseId = responseId
           },
-          prepare: (prompt) =>
-            Effect.sync(() => {
-              preparedPrompt = prompt
-              return Option.some({
-                previousResponseId: "resp_prev",
-                prompt: incrementalPrompt
-              })
+          prepareUnsafe: (prompt) => {
+            preparedPrompt = prompt
+            return Option.some({
+              previousResponseId: "resp_prev",
+              prompt: incrementalPrompt
             })
+          }
         }
 
         yield* LanguageModel.streamText({
@@ -526,7 +521,7 @@ describe("LanguageModel", () => {
         strictEqual(markedResponseId, "resp_next")
       }))
 
-    it("calls tracker.prepare after stripping resolved approvals in streamText toolkit flow", () =>
+    it("calls tracker.prepareUnsafe after stripping resolved approvals in streamText toolkit flow", () =>
       Effect.gen(function*() {
         const toolCallId = "call-tracker-stream"
         const approvalId = "approval-tracker-stream"
@@ -540,11 +535,10 @@ describe("LanguageModel", () => {
           markParts: (parts) => {
             markedParts = parts
           },
-          prepare: (prompt) =>
-            Effect.sync(() => {
-              preparedPrompt = prompt
-              return Option.none()
-            })
+          prepareUnsafe: (prompt) => {
+            preparedPrompt = prompt
+            return Option.none()
+          }
         }
 
         const prompt: Array<Prompt.Message> = [
@@ -636,14 +630,13 @@ describe("LanguageModel", () => {
             markedParts = parts
             markedResponseId = responseId
           },
-          prepare: (prompt) =>
-            Effect.sync(() => {
-              preparedPrompt = prompt
-              return Option.some({
-                previousResponseId: "resp_prev",
-                prompt: incrementalPrompt
-              })
+          prepareUnsafe: (prompt) => {
+            preparedPrompt = prompt
+            return Option.some({
+              previousResponseId: "resp_prev",
+              prompt: incrementalPrompt
             })
+          }
         }
 
         const prompt: Array<Prompt.Message> = [

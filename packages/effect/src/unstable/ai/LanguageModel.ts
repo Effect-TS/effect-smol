@@ -963,7 +963,7 @@ export const make: (params: {
         })
       }
       if (Predicate.isNotUndefined(params.tracker)) {
-        const prepared = yield* params.tracker.prepare(providerOptions.prompt)
+        const prepared = params.tracker.prepareUnsafe(providerOptions.prompt)
         if (Option.isSome(prepared)) {
           providerOptions.previousResponseId = prepared.value.previousResponseId
           providerOptions.incrementalPrompt = prepared.value.prompt
@@ -1001,7 +1001,7 @@ export const make: (params: {
         })
       }
       if (Predicate.isNotUndefined(params.tracker)) {
-        const prepared = yield* params.tracker.prepare(providerOptions.prompt)
+        const prepared = params.tracker.prepareUnsafe(providerOptions.prompt)
         if (Option.isSome(prepared)) {
           providerOptions.previousResponseId = prepared.value.previousResponseId
           providerOptions.incrementalPrompt = prepared.value.prompt
@@ -1074,7 +1074,7 @@ export const make: (params: {
     providerOptions.toolChoice = toolChoice
 
     if (Predicate.isNotUndefined(params.tracker)) {
-      const prepared = yield* params.tracker.prepare(providerOptions.prompt)
+      const prepared = params.tracker.prepareUnsafe(providerOptions.prompt)
       if (Option.isSome(prepared)) {
         providerOptions.previousResponseId = prepared.value.previousResponseId
         providerOptions.incrementalPrompt = prepared.value.prompt
@@ -1178,7 +1178,7 @@ export const make: (params: {
         })
       }
       if (Predicate.isNotUndefined(params.tracker)) {
-        const prepared = yield* params.tracker.prepare(providerOptions.prompt)
+        const prepared = params.tracker.prepareUnsafe(providerOptions.prompt)
         if (Option.isSome(prepared)) {
           providerOptions.previousResponseId = prepared.value.previousResponseId
           providerOptions.incrementalPrompt = prepared.value.prompt
@@ -1229,7 +1229,7 @@ export const make: (params: {
         })
       }
       if (Predicate.isNotUndefined(params.tracker)) {
-        const prepared = yield* params.tracker.prepare(providerOptions.prompt)
+        const prepared = params.tracker.prepareUnsafe(providerOptions.prompt)
         if (Option.isSome(prepared)) {
           providerOptions.previousResponseId = prepared.value.previousResponseId
           providerOptions.incrementalPrompt = prepared.value.prompt
@@ -1334,7 +1334,7 @@ export const make: (params: {
     providerOptions.toolChoice = toolChoice
 
     if (Predicate.isNotUndefined(params.tracker)) {
-      const prepared = yield* params.tracker.prepare(providerOptions.prompt)
+      const prepared = params.tracker.prepareUnsafe(providerOptions.prompt)
       if (Option.isSome(prepared)) {
         providerOptions.previousResponseId = prepared.value.previousResponseId
         providerOptions.incrementalPrompt = prepared.value.prompt
