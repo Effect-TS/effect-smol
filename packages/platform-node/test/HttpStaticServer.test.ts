@@ -9,8 +9,8 @@ import { tmpdir } from "node:os"
 import * as NodePath from "node:path"
 import { fileURLToPath } from "node:url"
 
-const fixturesRoot = fileURLToPath(new URL("./fixtures/http-static-files", import.meta.url))
-const fixturesOutsideFile = fileURLToPath(new URL("./fixtures/http-static-files-outside.txt", import.meta.url))
+const fixturesRoot = fileURLToPath(new URL("./fixtures/http-static-server", import.meta.url))
+const fixturesOutsideFile = fileURLToPath(new URL("./fixtures/http-static-server-outside.txt", import.meta.url))
 
 const staticFilesLayer = Layer.mergeAll(
   NodePathLayer.layer,
