@@ -33,7 +33,7 @@ export const make: Effect.Effect<Service> = Effect.sync(() => {
   let sentParts = new WeakMap<object, string>()
 
   const clear = Effect.sync(() => {
-    sentParts = new WeakMap()
+    sentParts = new WeakMap<object, string>()
   })
 
   return {
