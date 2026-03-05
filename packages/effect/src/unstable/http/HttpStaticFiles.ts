@@ -237,12 +237,12 @@ export const make: (options: Options) => Effect.Effect<
     ...options.mimeTypes
   }
 
-  const serveFile = (
+  const serveFile: (
     request: HttpServerRequest.HttpServerRequest,
     filePath: string,
     fileSize?: number
-  ): Effect.Effect<HttpServerResponse.HttpServerResponse, HttpServerError.RouteNotFound> =>
-    Effect.gen(function*() {
+  ) => Effect.Effect<HttpServerResponse.HttpServerResponse, HttpServerError.RouteNotFound> = Effect.fnUntraced(
+    function*(request, filePath, fileSize) {
       const rangeHeader = request.headers["range"]
       const resolvedFileSize = rangeHeader === undefined
         ? fileSize
@@ -290,7 +290,8 @@ export const make: (options: Options) => Effect.Effect<
       }
 
       return response
-    })
+    }
+  )
 
   return HttpServerRequest.HttpServerRequest.asEffect().pipe(
     Effect.flatMap((request) => {
