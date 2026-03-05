@@ -168,4 +168,43 @@ describe("McpServer", () => {
       const stored = server.getClientInitialize(42)
       expect(Option.isSome(stored)).toBe(true)
     }).pipe(Effect.scoped))
+
+  it.effect("advertises server extensions in initialize", () =>
+    Effect.gen(function*() {
+      const McpLayer = McpServer.layerHttp({
+        name: "TestServer",
+        version: "1.0.0",
+        path: "/mcp"
+      }).pipe(
+        Layer.provideMerge(RpcSerialization.layerJsonRpc()),
+        Layer.provideMerge(McpServer.serverExtensions({ "io.modelcontextprotocol/ui": {} }))
+      )
+
+      const { handler, dispose } = HttpRouter.toWebHandler(McpLayer, { disableLogger: true })
+
+      const customFetch: typeof fetch = (input, init) => {
+        const request = input instanceof Request ? input : new Request(input, init)
+        return handler(request)
+      }
+
+      const clientLayer = RpcClient.layerProtocolHttp({ url: "http://localhost/mcp" }).pipe(
+        Layer.provideMerge(RpcSerialization.layerJsonRpc()),
+        Layer.provideMerge(FetchHttpClient.layer),
+        Layer.provideMerge(Layer.succeed(FetchHttpClient.Fetch, customFetch))
+      )
+      const client = yield* RpcClient.make(McpSchema.ClientRpcs).pipe(
+        Effect.provide(clientLayer)
+      )
+
+      const result = yield* client.initialize({
+        protocolVersion: "2025-06-18",
+        clientInfo: { name: "test-client", version: "1.0.0" },
+        capabilities: {}
+      })
+
+      expect(result.capabilities.extensions).toEqual(
+        expect.objectContaining({ "io.modelcontextprotocol/ui": {} })
+      )
+      yield* Effect.promise(() => dispose())
+    }).pipe(Effect.scoped))
 })

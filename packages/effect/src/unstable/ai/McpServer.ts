@@ -129,6 +129,9 @@ export class McpServer extends ServiceMap.Service<McpServer, {
   readonly completion: (
     complete: typeof Complete.payloadSchema.Type
   ) => Effect.Effect<CompleteResult, InternalError, McpServerClient>
+
+  readonly serverExtensions: Record<string, Schema.Json>
+  readonly addServerExtensions: (extensions: Record<string, Schema.Json>) => Effect.Effect<void>
 }>()("effect/ai/McpServer") {
   /**
    * @since 4.0.0
@@ -160,6 +163,7 @@ export class McpServer extends ServiceMap.Service<McpServer, {
       (input: string) => Effect.Effect<CompleteResult, InternalError, McpServerClient>
     >()
     const clientInitialize = new Map<number, typeof Initialize.payloadSchema.Type>()
+    const serverExtensions: Record<string, Schema.Json> = {}
     const notificationsQueue = yield* Queue.make<RpcMessage.Request<any>>()
     const listChangedHandles = new Map<string, any>()
     const notifications = yield* RpcClient.makeNoSerialization(ServerNotificationRpcs, {
@@ -283,7 +287,12 @@ export class McpServer extends ServiceMap.Service<McpServer, {
           : `ref/prompt/${ref.name}/${complete.argument.name}`
         const handler = completionsMap.get(key)
         return handler ? yield* handler(complete.argument.value) : CompleteResult.empty
-      })
+      }),
+      serverExtensions,
+      addServerExtensions: (extensions) =>
+        Effect.sync(() => {
+          Object.assign(serverExtensions, extensions)
+        })
     })
   })
 
@@ -622,6 +631,20 @@ export const registerToolkit: <Tools extends Record<string, Tool.Any>>(
     })
   }
 })
+
+/**
+ * Register MCP server extension capabilities.
+ *
+ * @since 4.0.0
+ * @category server
+ */
+export const registerServerExtensions = (
+  extensions: Record<string, Schema.Json>
+): Effect.Effect<void, never, McpServer> =>
+  Effect.gen(function*() {
+    const server = yield* McpServer
+    yield* server.addServerExtensions(extensions)
+  })
 
 /**
  * Register an AiToolkit with the McpServer.
@@ -1095,6 +1118,9 @@ const layerHandlers = (serverInfo: {
           }
           if (server.prompts.length > 0) {
             capabilities.prompts = { listChanged: true }
+          }
+          if (Object.keys(server.serverExtensions).length > 0) {
+            capabilities.extensions = server.serverExtensions
           }
           server.initializedClients.add(clientId)
           return server.setClientInitialize(clientId, params).pipe(
