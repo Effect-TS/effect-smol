@@ -2,30 +2,27 @@
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"
-import * as Layer from "../../Layer.ts"
 import * as Option from "../../Option.ts"
-import * as Ref from "../../Ref.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
+import * as Prompt from "./Prompt.ts"
 
 /**
  * @since 4.0.0
- * @category services
+ * @category models
  */
-export class ResponseIdTracker extends ServiceMap.Service<ResponseIdTracker, Service>()(
-  "effect/unstable/ai/ResponseIdTracker"
-) {}
+export interface PrepareResult {
+  readonly previousResponseId: string
+  readonly prompt: Prompt.Prompt
+}
 
 /**
  * @since 4.0.0
  * @category models
  */
 export interface Service {
-  readonly get: Effect.Effect<Option.Option<string>>
-  readonly set: (id: string) => Effect.Effect<void>
   readonly clear: Effect.Effect<void>
   readonly onSessionDrop: Effect.Effect<void>
-  readonly markParts: (parts: ReadonlyArray<object>) => void
-  readonly hasPart: (part: object) => boolean
+  readonly markParts: (parts: ReadonlyArray<object>, responseId: string) => void
+  readonly prepare: (prompt: Prompt.Prompt) => Effect.Effect<Option.Option<PrepareResult>>
 }
 
 /**
@@ -33,26 +30,67 @@ export interface Service {
  * @category constructors
  */
 export const make: Effect.Effect<Service> = Effect.sync(() => {
-  const ref = Ref.makeUnsafe<Option.Option<string>>(Option.none())
-  const sentParts = new WeakSet<object>()
-  const clear = Ref.set(ref, Option.none())
+  let sentParts = new WeakMap<object, string>()
+
+  const clear = Effect.sync(() => {
+    sentParts = new WeakMap()
+  })
 
   return {
-    get: Ref.get(ref),
-    set: (id) => Ref.set(ref, Option.some(id)),
     clear,
     onSessionDrop: clear,
-    markParts: (parts) => {
+    markParts: (parts, responseId) => {
       for (const part of parts) {
-        sentParts.add(part)
+        sentParts.set(part, responseId)
       }
     },
-    hasPart: (part) => sentParts.has(part)
+    prepare: (prompt) =>
+      Effect.sync(() => {
+        const messages = prompt.content
+
+        let anyTracked = false
+        for (const msg of messages) {
+          if (sentParts.has(msg)) {
+            anyTracked = true
+            break
+          }
+        }
+        if (!anyTracked) {
+          return Option.none()
+        }
+
+        let lastAssistantIndex = -1
+        for (let i = messages.length - 1; i >= 0; i--) {
+          if (messages[i].role === "assistant") {
+            lastAssistantIndex = i
+            break
+          }
+        }
+        if (lastAssistantIndex === -1) {
+          return Option.none()
+        }
+
+        let responseId: string | undefined
+        for (let i = 0; i < lastAssistantIndex; i++) {
+          const id = sentParts.get(messages[i])
+          if (id === undefined) {
+            return Option.none()
+          }
+          responseId = id
+        }
+        if (responseId === undefined) {
+          return Option.none()
+        }
+
+        const partsAfterLastAssistant = messages.slice(lastAssistantIndex + 1)
+        if (partsAfterLastAssistant.length === 0) {
+          return Option.none()
+        }
+
+        return Option.some({
+          previousResponseId: responseId,
+          prompt: Prompt.fromMessages(partsAfterLastAssistant)
+        })
+      })
   }
 })
-
-/**
- * @since 4.0.0
- * @category constructors
- */
-export const layer: Layer.Layer<ResponseIdTracker> = Layer.effect(ResponseIdTracker)(make)

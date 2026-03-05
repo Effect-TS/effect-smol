@@ -69,7 +69,6 @@ import { defaultIdGenerator, IdGenerator } from "./IdGenerator.ts"
 import * as InternalCodecTransformer from "./internal/codec-transformer.ts"
 import * as Prompt from "./Prompt.ts"
 import * as Response from "./Response.ts"
-import type * as ResponseIdTracker from "./ResponseIdTracker.ts"
 import type { SpanTransformer } from "./Telemetry.ts"
 import { CurrentSpanTransformer } from "./Telemetry.ts"
 import type * as Tool from "./Tool.ts"
@@ -579,55 +578,6 @@ export type ExtractServices<Options> = Options extends {
     readonly toolkit: infer Toolkit
   } ? ExtractServicesFromToolkitOption<Exclude<Toolkit, undefined>>
   : never
-
-type IncrementalResult =
-  | {
-    readonly _tag: "Incremental"
-    readonly prompt: Prompt.Prompt
-  }
-  | {
-    readonly _tag: "Diverged"
-  }
-  | {
-    readonly _tag: "None"
-  }
-
-const computeIncrementalPrompt = (
-  prompt: Prompt.Prompt,
-  tracker: ResponseIdTracker.Service
-): IncrementalResult => {
-  const messages = prompt.content
-
-  let lastAssistantIndex = -1
-  for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].role === "assistant") {
-      lastAssistantIndex = i
-      break
-    }
-  }
-
-  if (lastAssistantIndex === -1) {
-    return { _tag: "None" }
-  }
-
-  for (let i = 0; i < lastAssistantIndex; i++) {
-    if (!tracker.hasPart(messages[i])) {
-      return { _tag: "Diverged" }
-    }
-  }
-
-  const partsAfterLastAssistant = messages.slice(lastAssistantIndex + 1)
-  if (partsAfterLastAssistant.length === 0) {
-    return { _tag: "None" }
-  }
-
-  return {
-    _tag: "Incremental",
-    prompt: Prompt.fromMessages(partsAfterLastAssistant)
-  }
-}
-
-void computeIncrementalPrompt
 
 // =============================================================================
 // Service Constructor
