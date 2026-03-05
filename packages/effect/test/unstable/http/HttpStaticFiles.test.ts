@@ -55,7 +55,7 @@ const staticFilesLayer = Layer.mergeAll(
   Layer.succeed(HttpPlatform.HttpPlatform, httpPlatform)
 )
 
-const makeHandler = (options: Omit<HttpStaticFiles.Options, "root"> = {}) =>
+const makeHandler = (options: Omit<Parameters<typeof HttpStaticFiles.make>[0], "root"> = {}) =>
   HttpRouter.toWebHandler(
     HttpStaticFiles.layer({
       root,
@@ -64,7 +64,7 @@ const makeHandler = (options: Omit<HttpStaticFiles.Options, "root"> = {}) =>
     { disableLogger: true }
   )
 
-describe("HttpStaticFiles", () => {
+describe.sequential("HttpStaticFiles", () => {
   beforeAll(async () => {
     root = await mkdtemp(NodePath.join(tmpdir(), "effect-http-static-files-"))
     outsideFile = NodePath.join(NodePath.dirname(root), `${NodePath.basename(root)}-outside.txt`)

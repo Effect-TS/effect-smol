@@ -3,6 +3,7 @@
  */
 import * as Effect from "../../Effect.ts"
 import * as FileSystem from "../../FileSystem.ts"
+import { constant } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import * as Path from "../../Path.ts"
 import type { PlatformError } from "../../PlatformError.ts"
@@ -13,24 +14,203 @@ import * as HttpServerRequest from "./HttpServerRequest.ts"
 import * as HttpServerResponse from "./HttpServerResponse.ts"
 
 /**
+ * Creates an `HttpApp` that serves files from a directory.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import * as HttpStaticFiles from "effect/unstable/http/HttpStaticFiles"
+ *
+ * const program = Effect.gen(function*() {
+ *   const app = yield* HttpStaticFiles.make({ root: "./public" })
+ *   return app
+ * })
+ * ```
+ *
  * @since 4.0.0
- * @category models
+ * @category constructors
  */
-export interface Options {
+export const make: (options: {
   readonly root: string
   readonly index?: string | undefined
   readonly spa?: boolean | undefined
   readonly cacheControl?: string | undefined
   readonly mimeTypes?: Record<string, string> | undefined
-}
+}) => Effect.Effect<
+  Effect.Effect<
+    HttpServerResponse.HttpServerResponse,
+    HttpServerError.RouteNotFound,
+    HttpServerRequest.HttpServerRequest
+  >,
+  PlatformError,
+  FileSystem.FileSystem | Path.Path | HttpPlatform.HttpPlatform
+> = Effect.fnUntraced(function*(options) {
+  const fileSystem = yield* FileSystem.FileSystem
+  const path = yield* Path.Path
+  const platform = yield* HttpPlatform.HttpPlatform
+
+  const resolvedRoot = path.resolve(options.root)
+  const index = "index" in options ? options.index : "index.html"
+  const spa = options.spa === true
+  const cacheControl = options.cacheControl
+  const mimeTypes = {
+    ...defaultMimeTypes,
+    ...options.mimeTypes
+  }
+
+  const setFileHeaders = (
+    response: HttpServerResponse.HttpServerResponse,
+    filePath: string
+  ): HttpServerResponse.HttpServerResponse => {
+    let currentResponse = HttpServerResponse.setHeaders(response, {
+      "Content-Type": resolveMimeType(path, filePath, mimeTypes),
+      "Accept-Ranges": "bytes"
+    })
+    if (cacheControl !== undefined) {
+      currentResponse = HttpServerResponse.setHeader(currentResponse, "Cache-Control", cacheControl)
+    }
+    return currentResponse
+  }
+
+  const serveFile: (
+    request: HttpServerRequest.HttpServerRequest,
+    filePath: string,
+    fileSize?: number
+  ) => Effect.Effect<HttpServerResponse.HttpServerResponse, HttpServerError.RouteNotFound> = Effect.fnUntraced(
+    function*(request, filePath, fileSize) {
+      const rangeHeader = request.headers["range"]
+      const shouldEvaluateConditionals = request.headers["if-none-match"] !== undefined ||
+        request.headers["if-modified-since"] !== undefined
+
+      let fullResponse: HttpServerResponse.HttpServerResponse | undefined
+      if (shouldEvaluateConditionals) {
+        fullResponse = setFileHeaders(yield* handlePlatformError(request, platform.fileResponse(filePath)), filePath)
+        const conditionalResponse = evaluateConditionalRequest(request, fullResponse)
+        if (conditionalResponse !== undefined) {
+          return conditionalResponse
+        }
+        if (rangeHeader === undefined) {
+          return fullResponse
+        }
+      }
+
+      const resolvedFileSize = rangeHeader === undefined
+        ? undefined
+        : fileSize ?? Number((yield* handlePlatformError(request, fileSystem.stat(filePath))).size)
+      const parsedRange = rangeHeader === undefined || resolvedFileSize === undefined
+        ? undefined
+        : parseRange(rangeHeader, resolvedFileSize)
+
+      if (parsedRange === undefined) {
+        return fullResponse ??
+          setFileHeaders(yield* handlePlatformError(request, platform.fileResponse(filePath)), filePath)
+      }
+
+      if (parsedRange === "unsatisfiable") {
+        return HttpServerResponse.empty({
+          status: 416,
+          headers: {
+            "Content-Range": `bytes */${resolvedFileSize}`
+          }
+        })
+      }
+
+      let response = setFileHeaders(
+        yield* handlePlatformError(
+          request,
+          platform.fileResponse(filePath, {
+            status: 206,
+            offset: parsedRange.start,
+            bytesToRead: parsedRange.end - parsedRange.start + 1
+          })
+        ),
+        filePath
+      )
+
+      response = HttpServerResponse.setHeader(
+        response,
+        "Content-Range",
+        `bytes ${parsedRange.start}-${parsedRange.end}/${resolvedFileSize}`
+      )
+
+      return response
+    }
+  )
+
+  // @effect-diagnostics-next-line returnEffectInGen:off
+  return HttpServerRequest.HttpServerRequest.use((request) => {
+    const resolvedPath = resolveFilePath(path, resolvedRoot, request.url)
+    if (resolvedPath === undefined) {
+      return Effect.fail(toRouteNotFound(request))
+    }
+
+    return Effect.matchEffect(fileSystem.stat(resolvedPath), {
+      onFailure: (error) =>
+        error.reason._tag === "NotFound" &&
+          spa && index !== undefined && path.extname(resolvedPath) === "" && acceptsHtml(request.headers["accept"])
+          ? serveFile(request, path.join(resolvedRoot, index))
+          : error.reason._tag === "NotFound"
+          ? Effect.fail(toRouteNotFound(request))
+          : Effect.die(error),
+      onSuccess(info) {
+        if (info.type === "File") {
+          return serveFile(request, resolvedPath, Number(info.size))
+        }
+        if (info.type === "Directory" && index !== undefined) {
+          return serveFile(request, path.join(resolvedPath, index))
+        }
+        return Effect.fail(toRouteNotFound(request))
+      }
+    })
+  })
+})
 
 /**
+ * Creates a layer that mounts static files on an `HttpRouter`.
+ *
+ * @example
+ * ```ts
+ * import { Layer } from "effect"
+ * import * as HttpRouter from "effect/unstable/http/HttpRouter"
+ * import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
+ * import * as HttpStaticFiles from "effect/unstable/http/HttpStaticFiles"
+ *
+ * const ApiLayer = HttpRouter.add("GET", "/health", HttpServerResponse.text("ok"))
+ *
+ * const StaticFilesLayer = HttpStaticFiles.layer({
+ *   root: "./public",
+ *   prefix: "/static"
+ * })
+ *
+ * const AppLayer = Layer.mergeAll(ApiLayer, StaticFilesLayer)
+ * ```
+ *
  * @since 4.0.0
- * @category models
+ * @category layers
  */
-export interface LayerOptions extends Options {
+export const layer = (options: {
+  readonly root: string
+  readonly index?: string | undefined
+  readonly spa?: boolean | undefined
+  readonly cacheControl?: string | undefined
+  readonly mimeTypes?: Record<string, string> | undefined
   readonly prefix?: string | undefined
-}
+}): Layer.Layer<
+  never,
+  PlatformError,
+  HttpRouter.HttpRouter | FileSystem.FileSystem | Path.Path | HttpPlatform.HttpPlatform
+> =>
+  Layer.effectDiscard(Effect.gen(function*() {
+    const router = yield* HttpRouter.HttpRouter
+    const handler = (yield* make(options)).pipe(
+      Effect.catch(constant(Effect.succeed(HttpServerResponse.empty({ status: 404 }))))
+    )
+    if (options.prefix !== undefined) {
+      yield* router.prefixed(options.prefix).add("GET", "/*", handler)
+      return
+    }
+    yield* router.add("GET", "/*", handler)
+  }))
 
 const defaultMimeTypes: Record<string, string> = {
   html: "text/html; charset=utf-8",
@@ -187,12 +367,11 @@ const handlePlatformError = <A>(
   request: HttpServerRequest.HttpServerRequest,
   self: Effect.Effect<A, PlatformError>
 ): Effect.Effect<A, HttpServerError.RouteNotFound> =>
-  self.pipe(
-    Effect.catchIf(
-      (error): error is PlatformError => error.reason._tag === "NotFound",
-      () => Effect.fail(toRouteNotFound(request))
-    ),
-    Effect.orDie
+  Effect.catchIf(
+    self,
+    (error): error is PlatformError => error.reason._tag === "NotFound",
+    () => Effect.fail(toRouteNotFound(request)),
+    (e) => Effect.die(e)
   )
 
 const acceptsHtml = (accept: string | undefined): boolean =>
@@ -271,192 +450,3 @@ const evaluateConditionalRequest = (
   }
   return undefined
 }
-
-/**
- * Creates an `HttpApp` that serves files from a directory.
- *
- * @example
- * ```ts
- * import { Effect } from "effect"
- * import * as HttpStaticFiles from "effect/unstable/http/HttpStaticFiles"
- *
- * const program = Effect.gen(function*() {
- *   const app = yield* HttpStaticFiles.make({ root: "./public" })
- *   return app
- * })
- * ```
- *
- * @since 4.0.0
- * @category constructors
- */
-export const make: (options: Options) => Effect.Effect<
-  Effect.Effect<
-    HttpServerResponse.HttpServerResponse,
-    HttpServerError.RouteNotFound,
-    HttpServerRequest.HttpServerRequest
-  >,
-  PlatformError,
-  FileSystem.FileSystem | Path.Path | HttpPlatform.HttpPlatform
-> = Effect.fnUntraced(function*(options) {
-  const fileSystem = yield* FileSystem.FileSystem
-  const path = yield* Path.Path
-  const platform = yield* HttpPlatform.HttpPlatform
-
-  const resolvedRoot = path.resolve(options.root)
-  const index = "index" in options ? options.index : "index.html"
-  const spa = options.spa === true
-  const cacheControl = options.cacheControl
-  const mimeTypes = {
-    ...defaultMimeTypes,
-    ...options.mimeTypes
-  }
-
-  const setFileHeaders = (
-    response: HttpServerResponse.HttpServerResponse,
-    filePath: string
-  ): HttpServerResponse.HttpServerResponse => {
-    let currentResponse = HttpServerResponse.setHeaders(response, {
-      "Content-Type": resolveMimeType(path, filePath, mimeTypes),
-      "Accept-Ranges": "bytes"
-    })
-    if (cacheControl !== undefined) {
-      currentResponse = HttpServerResponse.setHeader(currentResponse, "Cache-Control", cacheControl)
-    }
-    return currentResponse
-  }
-
-  const serveFile: (
-    request: HttpServerRequest.HttpServerRequest,
-    filePath: string,
-    fileSize?: number
-  ) => Effect.Effect<HttpServerResponse.HttpServerResponse, HttpServerError.RouteNotFound> = Effect.fnUntraced(
-    function*(request, filePath, fileSize) {
-      const rangeHeader = request.headers["range"]
-      const shouldEvaluateConditionals = request.headers["if-none-match"] !== undefined ||
-        request.headers["if-modified-since"] !== undefined
-
-      let fullResponse: HttpServerResponse.HttpServerResponse | undefined
-      if (shouldEvaluateConditionals) {
-        fullResponse = setFileHeaders(yield* handlePlatformError(request, platform.fileResponse(filePath)), filePath)
-        const conditionalResponse = evaluateConditionalRequest(request, fullResponse)
-        if (conditionalResponse !== undefined) {
-          return conditionalResponse
-        }
-        if (rangeHeader === undefined) {
-          return fullResponse
-        }
-      }
-
-      const resolvedFileSize = rangeHeader === undefined
-        ? undefined
-        : fileSize ?? Number((yield* handlePlatformError(request, fileSystem.stat(filePath))).size)
-      const parsedRange = rangeHeader === undefined || resolvedFileSize === undefined
-        ? undefined
-        : parseRange(rangeHeader, resolvedFileSize)
-
-      if (parsedRange === undefined) {
-        return fullResponse ??
-          setFileHeaders(yield* handlePlatformError(request, platform.fileResponse(filePath)), filePath)
-      }
-
-      if (parsedRange === "unsatisfiable") {
-        return HttpServerResponse.empty({
-          status: 416,
-          headers: {
-            "Content-Range": `bytes */${resolvedFileSize}`
-          }
-        })
-      }
-
-      let response = setFileHeaders(
-        yield* handlePlatformError(
-          request,
-          platform.fileResponse(filePath, {
-            status: 206,
-            offset: parsedRange.start,
-            bytesToRead: parsedRange.end - parsedRange.start + 1
-          })
-        ),
-        filePath
-      )
-
-      response = HttpServerResponse.setHeader(
-        response,
-        "Content-Range",
-        `bytes ${parsedRange.start}-${parsedRange.end}/${resolvedFileSize}`
-      )
-
-      return response
-    }
-  )
-
-  return HttpServerRequest.HttpServerRequest.use((request) => {
-    const resolvedPath = resolveFilePath(path, resolvedRoot, request.url)
-    if (resolvedPath === undefined) {
-      return Effect.fail(toRouteNotFound(request))
-    }
-
-    return fileSystem.stat(resolvedPath).pipe(
-      Effect.matchEffect({
-        onFailure: (error) =>
-          error.reason._tag === "NotFound" &&
-            spa && index !== undefined && path.extname(resolvedPath) === "" && acceptsHtml(request.headers["accept"])
-            ? serveFile(request, path.join(resolvedRoot, index))
-            : error.reason._tag === "NotFound"
-            ? Effect.fail(toRouteNotFound(request))
-            : Effect.die(error),
-        onSuccess: (info) => {
-          if (info.type === "File") {
-            return serveFile(request, resolvedPath, Number(info.size))
-          }
-          if (info.type === "Directory" && index !== undefined) {
-            return serveFile(request, path.join(resolvedPath, index))
-          }
-          return Effect.fail(toRouteNotFound(request))
-        }
-      })
-    )
-  })
-})
-
-/**
- * Creates a layer that mounts static files on an `HttpRouter`.
- *
- * @example
- * ```ts
- * import { Layer } from "effect"
- * import * as HttpRouter from "effect/unstable/http/HttpRouter"
- * import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
- * import * as HttpStaticFiles from "effect/unstable/http/HttpStaticFiles"
- *
- * const ApiLayer = HttpRouter.add("GET", "/health", HttpServerResponse.text("ok"))
- *
- * const StaticFilesLayer = HttpStaticFiles.layer({
- *   root: "./public",
- *   prefix: "/static"
- * })
- *
- * const AppLayer = Layer.mergeAll(ApiLayer, StaticFilesLayer)
- * ```
- *
- * @since 4.0.0
- * @category layers
- */
-export const layer = (
-  options: LayerOptions
-): Layer.Layer<
-  never,
-  PlatformError,
-  HttpRouter.HttpRouter | FileSystem.FileSystem | Path.Path | HttpPlatform.HttpPlatform
-> =>
-  Layer.effectDiscard(Effect.gen(function*() {
-    const router = yield* HttpRouter.HttpRouter
-    const handler = (yield* make(options)).pipe(
-      Effect.catchTag("RouteNotFound", () => Effect.succeed(HttpServerResponse.empty({ status: 404 })))
-    )
-    if (options.prefix !== undefined) {
-      yield* router.prefixed(options.prefix).add("GET", "/*", handler)
-      return
-    }
-    yield* router.add("GET", "/*", handler)
-  }))
