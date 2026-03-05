@@ -3,21 +3,25 @@
 ## Overview
 
 Add a core mechanism for tracking provider response IDs (e.g., OpenAI's `resp_123`)
-and filtering prompts to only include unsent parts. When a response ID is stored, the
-core `LanguageModel` module computes an incremental prompt (the delta since the last
-assistant turn) and passes it alongside the full prompt in `ProviderOptions`. Providers
-ignore these new fields for now — this spec builds the foundation for a future change
-where providers that support incremental input (OpenAI Responses API) use the filtered
-prompt + `previous_response_id`.
+and filtering prompts to only include unsent parts. A `ResponseIdTracker` is created
+per client (e.g., one per `OpenAiClient` instance) and passed as an optional parameter
+to `LanguageModel.make`. The tracker owns both the response ID state and the
+incremental prompt computation, exposing a `prepare` method that returns an `Option`
+of `previousResponseId` and `incrementalPrompt` together. The core `LanguageModel`
+module calls `prepare` before each provider invocation and passes the result through
+`ProviderOptions`. Providers ignore these new fields for now — this spec builds the
+foundation for a future change where providers that support incremental input (OpenAI
+Responses API) use the filtered prompt + `previous_response_id`.
 
 This is transport-agnostic: the same filtered prompt will serve both HTTP and future
 WebSocket mode, where each turn sends `{ type: "response.create", previous_response_id, input: <incremental> }`.
 
 ## Goals
 
-- Add a `ResponseIdTracker` service that stores the last response ID in memory per LanguageModel client.
-- Automatically extract `ResponseMetadataPart.id` from provider responses and store it.
-- Compute an incremental prompt (new parts only) in the core `LanguageModel.make` orchestrator — not in providers.
+- Add a `ResponseIdTracker` module that stores response IDs per prompt part via a `WeakMap`. One tracker is created per client (e.g., `OpenAiClient`) and shared across all `LanguageModel` instances backed by that client.
+- Accept an optional `tracker` parameter in `LanguageModel.make`'s `ConstructorParams`, so providers that support response ID tracking can pass their client's tracker. Providers that don't (Anthropic, OpenRouter) simply omit it.
+- Expose a `prepare` method on the tracker that takes the current prompt and returns `Option<{ previousResponseId, prompt }>` — `Some` when incremental input is possible, `None` otherwise.
+- Automatically extract `ResponseMetadataPart.id` from provider responses and associate it with sent prompt parts via `markParts`.
 - Pass both the full prompt and the incremental prompt to providers via `ProviderOptions`.
 - Proactively clear the tracker when a session/connection is known to have dropped, avoiding a wasted round-trip with a stale response ID.
 - Ensure the architecture enables a future WebSocket transport without changes to the filtering logic.
@@ -76,6 +80,12 @@ Both consume the same request body shape (`Generated.CreateResponse.Encoded`). A
 - **Anthropic**: Emits `response-metadata` parts but does not support `previous_response_id`. No changes needed.
 - **OpenRouter**: Same as Anthropic.
 
+### Existing Implementation
+
+`ResponseIdTracker.ts` already exists with a `Service` interface providing `get`, `set`, `clear`, `onSessionDrop`, `markParts`, and `hasPart`. The `make` constructor uses a `Ref` for the response ID and a `WeakSet<object>` for tracking sent prompt parts. After this refactor, `get`, `set`, and `hasPart` are removed from the public interface. The `Ref` and `WeakSet` are replaced by a single `WeakMap<object, string>` mapping each sent prompt part to the response ID from that request. `set` merges into `markParts`, which now accepts a `responseId` parameter. `prepare` returns `Option<{ previousResponseId, prompt }>`, subsumes the external use cases of `get` and `hasPart`. The `ServiceMap.Service` class and `layer` export are removed — the tracker is created per client and passed as a value, not resolved from context.
+
+`LanguageModel.ts` contains `computeIncrementalPrompt` and `IncrementalResult` as standalone entities (lines 557-604), but they are currently voided (not wired into the orchestrator).
+
 ## Proposed Design
 
 ### Step 1: Add Fields to `ProviderOptions`
@@ -83,7 +93,7 @@ Both consume the same request body shape (`Generated.CreateResponse.Encoded`). A
 Add two optional fields to `LanguageModel.ProviderOptions`:
 
 ```ts
-// LanguageModel.ts:571
+// LanguageModel.ts:621
 export interface ProviderOptions {
   readonly prompt: Prompt.Prompt
   readonly tools: ReadonlyArray<Tool.Any>
@@ -101,205 +111,310 @@ export interface ProviderOptions {
 
 Providers that support incremental input use `incrementalPrompt` when available, falling back to `prompt` for retry or when `incrementalPrompt` is undefined. Providers that don't support incremental input ignore both new fields and use `prompt` as before. Adding optional fields to a parameter type is non-breaking.
 
-### Step 2: Create `ResponseIdTracker` Service
+### Step 2: Move Filtering Logic into `ResponseIdTracker.prepare`
 
-Create `packages/effect/src/unstable/ai/ResponseIdTracker.ts`:
+The `computeIncrementalPrompt` function and `IncrementalResult` type are deleted from
+`LanguageModel.ts`. Their logic is inlined into the `prepare` method on the tracker,
+which combines per-part response ID lookup with incremental prompt computation in a
+single call. No separate internal helper is needed since the `WeakMap` serves as both
+the part-tracking set and the response ID store.
+
+#### Updated Service Interface
 
 ```ts
-import * as Effect from "../../Effect.ts"
-import * as Option from "../../Option.ts"
-import * as Ref from "../../Ref.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
-
-export class ResponseIdTracker extends ServiceMap.Service<ResponseIdTracker, Service>()(
-  "effect/unstable/ai/ResponseIdTracker"
-) {}
-
 export interface Service {
-  readonly get: Effect.Effect<Option.Option<string>>
-  readonly set: (id: string) => Effect.Effect<void>
   readonly clear: Effect.Effect<void>
   readonly onSessionDrop: Effect.Effect<void>
-  readonly markParts: (parts: ReadonlyArray<object>) => void
-  readonly hasPart: (part: object) => boolean
+  readonly markParts: (parts: ReadonlyArray<object>, responseId: string) => void
+  readonly prepare: (prompt: Prompt.Prompt) => Effect.Effect<Option.Option<{
+    readonly previousResponseId: string
+    readonly prompt: Prompt.Prompt
+  }>>
 }
-
-export const make: Effect.Effect<Service> = Effect.sync(() => {
-  const ref = Ref.makeUnsafe<Option.Option<string>>(Option.none())
-  const sentParts = new WeakSet<object>()
-  return {
-    get: Ref.get(ref),
-    set: (id: string) => Ref.set(ref, Option.some(id)),
-    clear: Ref.set(ref, Option.none()),
-    onSessionDrop: Ref.set(ref, Option.none()),
-    markParts: (parts) => {
-      for (const part of parts) {
-        sentParts.add(part)
-      }
-    },
-    hasPart: (part) => sentParts.has(part)
-  }
-})
-
-export const layer: Layer.Layer<ResponseIdTracker> =
-  Layer.effect(ResponseIdTracker, make)
 ```
 
-A `Ref` holding `Option<string>` for the response ID, plus a `WeakSet<object>` tracking which prompt parts have been sent. The `WeakSet` enables the core to detect when sent context has changed (e.g., system prompt replaced) by checking object identity — since prompt parts are immutable, a new object means new content.
+**Removed from previous interface:**
 
-`markParts` and `hasPart` are synchronous because `WeakSet.add`/`WeakSet.has` are pure data structure operations with no async behavior.
+- `get` — subsumed by `prepare`, which reads response IDs from the `WeakMap` internally.
+  No external consumer needs the raw `Option<string>`.
+- `set` — merged into `markParts`. The response ID is now stored per-part in the
+  `WeakMap` when parts are marked, rather than in a separate `Ref`. This enables a
+  single tracker to be shared across multiple conversations since each conversation's
+  parts map to their own response IDs.
+- `hasPart` — `prepare` accesses the `WeakMap` directly. No external code checks
+  individual parts.
 
-`onSessionDrop` is semantically identical to `clear` but exists as a separate method to make the intent explicit at call sites: transports call `onSessionDrop` when a connection is lost, while `clear` is used for error recovery and manual resets. Both reset the response ID ref to `None`. Neither clears the `WeakSet` — this is intentional. The `WeakSet` doesn't need clearing because: (1) after the response ID is cleared, the next request sends the full prompt regardless, (2) after that request succeeds all current parts are re-marked, and (3) stale entries in the `WeakSet` are garbage-collected when the part objects are no longer referenced by any prompt.
+#### `prepare` Return Type
 
-**Session drop contract:** Any transport layer that manages a persistent session (e.g., WebSocket) MUST call `onSessionDrop` when the session is lost. This proactively invalidates the stale response ID so the next request uses the full prompt immediately, avoiding a wasted round-trip that would fail with `previous_response_not_found`. For stateless transports (HTTP), there is no session to drop — a future `previous_response_not_found` retry mechanism (deferred to the provider consumption spec) will serve as the safety net.
+`prepare` returns `Option<{ previousResponseId: string; prompt: Prompt.Prompt }>`:
 
-**Concurrency note:** `Ref` is fiber-safe. The tracker stores a single "last response ID" — if two calls run concurrently, the tracker holds whichever was written last. This is acceptable: `Chat` serializes via semaphore, and concurrent use of the same LanguageModel instance for the same conversation is unusual.
+- `Some({ previousResponseId, prompt })` — prompt parts before the last assistant turn are tracked in the `WeakMap` and the prompt extends beyond it. Contains the response ID (from the `WeakMap`) and the filtered prompt (messages after the last assistant turn).
+- `None` — any non-incremental case: no tracked parts (first turn, post-clear, post-session-drop), diverged prefix (system prompt replaced, message edited), no assistant turn, or no new content after the last assistant turn. The caller sends the full prompt with no `previousResponseId`.
 
-### Step 3: Core Prompt Filtering in `LanguageModel.make`
+Using `Option` instead of a discriminated union reflects the fact that all non-incremental cases are handled identically — send full prompt, no `previousResponseId`, no tracker clear. The distinction between "diverged" and "no tracked parts" is not actionable.
 
-This is the key architectural decision: **prompt filtering lives in the core, not in providers.** The `LanguageModel.make` orchestrator computes `incrementalPrompt` before calling the provider.
+#### `prepare` Implementation
 
-#### Filtering Algorithm
-
-The algorithm uses the tracker's `WeakSet` to determine which parts the server has already seen. Since prompt parts are immutable objects, object identity in the `WeakSet` reliably indicates whether the server has that exact content.
+The filtering logic is inlined into `prepare` rather than delegated to a separate
+helper. The `WeakMap` serves as both the part-tracking set and the response ID store.
 
 ```ts
-type IncrementalResult =
-  | { readonly _tag: "Incremental"; readonly prompt: Prompt.Prompt }
-  | { readonly _tag: "Diverged" }   // context changed, must clear tracker and send full
-  | { readonly _tag: "None" }       // no new content
+prepare: (prompt) =>
+  Effect.sync(() => {
+    const messages = prompt.content
 
-const computeIncrementalPrompt = (
-  prompt: Prompt.Prompt,
-  tracker: Service
-): IncrementalResult => {
-  const parts = prompt.content
-
-  // Find the last assistant message — this is the boundary of what
-  // the server generated in the previous turn
-  let lastAssistantIndex = -1
-  for (let i = parts.length - 1; i >= 0; i--) {
-    if (parts[i].role === "assistant") {
-      lastAssistantIndex = i
-      break
+    // Quick check: if no prompt parts are tracked at all, no prior context exists
+    let anyTracked = false
+    for (const msg of messages) {
+      if (sentParts.has(msg)) {
+        anyTracked = true
+        break
+      }
     }
-  }
-
-  // No assistant message → first turn, no incremental
-  if (lastAssistantIndex === -1) {
-    return { _tag: "None" }
-  }
-
-  // Verify all parts BEFORE the last assistant message are in the WeakSet.
-  // These are parts that were sent in prior requests. If any is missing,
-  // it means the context has changed (e.g., system prompt replaced, user
-  // message edited) and the server's cached context is stale.
-  // The last assistant part itself is NOT checked — it was generated by
-  // the server, not sent by us, so it won't be in the WeakSet.
-  for (let i = 0; i < lastAssistantIndex; i++) {
-    if (!tracker.hasPart(parts[i])) {
-      return { _tag: "Diverged" }
+    if (!anyTracked) {
+      return Option.none()
     }
-  }
 
-  // Parts after the last assistant message are new content to send
-  const newParts = parts.slice(lastAssistantIndex + 1)
-  if (newParts.length === 0) {
-    return { _tag: "None" }
-  }
+    // Find last assistant message
+    let lastAssistantIndex = -1
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "assistant") {
+        lastAssistantIndex = i
+        break
+      }
+    }
+    if (lastAssistantIndex === -1) {
+      return Option.none()
+    }
 
-  return { _tag: "Incremental", prompt: Prompt.fromMessages(newParts) }
-}
+    // Verify all parts before last assistant are tracked; extract response ID
+    let responseId: string | undefined
+    for (let i = 0; i < lastAssistantIndex; i++) {
+      const id = sentParts.get(messages[i])
+      if (id === undefined) {
+        // Diverged: untracked part in prefix (system prompt changed, message edited).
+        // Return None — same action as no tracked parts. Old parts naturally GC'd.
+        return Option.none()
+      }
+      responseId = id
+    }
+    if (responseId === undefined) {
+      return Option.none()
+    }
+
+    const partsAfterLastAssistant = messages.slice(lastAssistantIndex + 1)
+    if (partsAfterLastAssistant.length === 0) {
+      return Option.none()
+    }
+
+    return Option.some({
+      previousResponseId: responseId,
+      prompt: Prompt.fromMessages(partsAfterLastAssistant)
+    })
+  })
 ```
 
-**Why check parts before the last assistant message, not including it?** The last assistant message corresponds to the response the server generated for `previousResponseId`. The server inherently has it — we never sent it. It won't be in the `WeakSet` because only parts from the *sent prompt* are marked. Everything before it was part of a prompt we sent in a prior request and should be in the `WeakSet` if the context hasn't changed.
+**`anyTracked` guard:** Distinguishes "never tracked / post-clear" from
+"tracked but prefix is broken" at the logging level, though both return `Option.none()`.
+Without this guard, a cleared tracker whose prompt still contains an assistant turn
+would hit the per-part check and waste cycles scanning parts that can't possibly be
+in the `WeakMap`.
 
-**Automatic system prompt change detection:** A changed system prompt is a new object that won't be in the `WeakSet`, so `computeIncrementalPrompt` returns `Diverged` automatically. The orchestrator clears the tracker and sends the full prompt — no caller awareness needed.
+**Why check parts before the last assistant message, not including it?** The last assistant message corresponds to the response the server generated for `previousResponseId`. The server inherently has it — we never sent it. It won't be in the `WeakMap` because only parts from the *sent prompt* are marked. Everything before it was part of a prompt we sent in a prior request and should be in the `WeakMap` if the context hasn't changed.
+
+**Automatic system prompt change detection:** A changed system prompt is a new object that won't be in the `WeakMap`, so `prepare` returns `None` automatically. The orchestrator sends the full prompt — no caller awareness needed. After the re-send, `markParts` populates the new parts.
+
+**Multi-conversation safety:** Since the `WeakMap` keys on object identity, parts from different conversations are naturally isolated. Conversation A's parts map to conversation A's response IDs, and conversation B's parts map to conversation B's. A single tracker instance can be shared across conversations without interference.
 
 **Boundary cases:**
 
 | Scenario | Result |
 |----------|--------|
-| First turn: `[sys, user1]` | `None` (no assistant turn yet) |
-| Simple follow-up: `[sys, user1, asst1, user2]` | `Incremental([user2])` — `sys`, `user1` in WeakSet ✓ |
-| Tool results: `[sys, user1, asst1(calls), tool(results)]` | `Incremental([tool(results)])` |
-| Multi-step: `[..., asst(calls), tool(results), user2]` | `Incremental([tool(results), user2])` |
-| No new messages after assistant: `[sys, user1, asst1]` | `None` |
-| Multi-turn, no new: `[sys, user1, asst1, user2, asst2]` | `None` (server already has everything) |
-| System prompt changed: `[sys_new, user1, asst1, user2]` | `Diverged` — `sys_new` not in WeakSet |
-| Middle user message edited: `[sys, user1_edited, asst1, user2]` | `Diverged` — `user1_edited` not in WeakSet |
-| Multiple edits: `[sys_new, user1_edited, asst1, user2]` | `Diverged` — `sys_new` not in WeakSet (first miss short-circuits) |
-| After session drop + reconnect (fresh full send): `[sys, user1, asst1, user2]` | `Incremental([user2])` — all pre-assistant parts re-marked by the full send |
+| First turn: `[sys, user1]` | `None` (no parts tracked, no assistant turn) |
+| No parts tracked (fresh/post-clear) | `None` (`anyTracked` is false) |
+| Simple follow-up: `[sys, user1, asst1, user2]` | `Some({ previousResponseId: "resp_1", prompt: [user2] })` |
+| Tool results: `[sys, user1, asst1(calls), tool(results)]` | `Some({ previousResponseId: "resp_1", prompt: [tool(results)] })` |
+| Multi-step: `[..., asst(calls), tool(results), user2]` | `Some({ previousResponseId: "resp_1", prompt: [tool(results), user2] })` |
+| No new messages after assistant: `[sys, user1, asst1]` | `None` (server already has everything) |
+| Multi-turn, no new: `[sys, user1, asst1, user2, asst2]` | `None` (nothing after last assistant) |
+| System prompt changed: `[sys_new, user1, asst1, user2]` | `None` — `sys_new` not in WeakMap (diverged) |
+| Middle user message edited: `[sys, user1_edited, asst1, user2]` | `None` — `user1_edited` not in WeakMap (diverged) |
+| Multiple edits: `[sys_new, user1_edited, asst1, user2]` | `None` — `sys_new` not in WeakMap (first miss short-circuits) |
+| After session drop + reconnect (fresh full send): `[sys, user1, asst1, user2]` | `Some` — all pre-assistant parts re-marked by the full send |
+| Multi-conversation: conv A `[sysA, u1A, asst1A, u2A]`, conv B `[sysB, u1B]` on shared tracker | Conv A → `Some` (parts map to A's ID); Conv B → `None` (no assistant yet) |
+
+#### Updated `ResponseIdTracker.ts` (Full File)
+
+```ts
+import * as Effect from "../../Effect.ts"
+import * as Option from "../../Option.ts"
+import * as Prompt from "./Prompt.ts"
+
+export interface PrepareResult {
+  readonly previousResponseId: string
+  readonly prompt: Prompt.Prompt
+}
+
+export interface Service {
+  readonly clear: Effect.Effect<void>
+  readonly onSessionDrop: Effect.Effect<void>
+  readonly markParts: (parts: ReadonlyArray<object>, responseId: string) => void
+  readonly prepare: (prompt: Prompt.Prompt) => Effect.Effect<Option.Option<PrepareResult>>
+}
+
+// -- constructor -------------------------------------------------------------
+
+export const make: Effect.Effect<Service> = Effect.sync(() => {
+  let sentParts = new WeakMap<object, string>()
+
+  const clear = Effect.sync(() => {
+    sentParts = new WeakMap()
+  })
+
+  return {
+    clear,
+    onSessionDrop: clear,
+    markParts: (parts, responseId) => {
+      for (const part of parts) {
+        sentParts.set(part, responseId)
+      }
+    },
+    prepare: (prompt) =>
+      Effect.sync(() => {
+        const messages = prompt.content
+
+        let anyTracked = false
+        for (const msg of messages) {
+          if (sentParts.has(msg)) {
+            anyTracked = true
+            break
+          }
+        }
+        if (!anyTracked) {
+          return Option.none()
+        }
+
+        let lastAssistantIndex = -1
+        for (let i = messages.length - 1; i >= 0; i--) {
+          if (messages[i].role === "assistant") {
+            lastAssistantIndex = i
+            break
+          }
+        }
+        if (lastAssistantIndex === -1) {
+          return Option.none()
+        }
+
+        let responseId: string | undefined
+        for (let i = 0; i < lastAssistantIndex; i++) {
+          const id = sentParts.get(messages[i])
+          if (id === undefined) {
+            return Option.none()
+          }
+          responseId = id
+        }
+        if (responseId === undefined) {
+          return Option.none()
+        }
+
+        const partsAfterLastAssistant = messages.slice(lastAssistantIndex + 1)
+        if (partsAfterLastAssistant.length === 0) {
+          return Option.none()
+        }
+
+        return Option.some({
+          previousResponseId: responseId,
+          prompt: Prompt.fromMessages(partsAfterLastAssistant)
+        })
+      })
+  }
+})
+```
+
+### Step 3: Core Integration in `LanguageModel.make`
+
+With filtering logic moved into the tracker, the `LanguageModel.make` orchestrator
+becomes simpler. The `computeIncrementalPrompt` function and `IncrementalResult`
+type are **removed** from `LanguageModel.ts` (including the `void computeIncrementalPrompt`
+suppression line). The `type` import of `ResponseIdTracker` is removed entirely —
+the tracker is received as a constructor parameter, not resolved from context.
+
+#### `ConstructorParams` Change
+
+Add an optional `tracker` field:
+
+```ts
+export interface ConstructorParams {
+  readonly generateText: ...
+  readonly streamText: ...
+  readonly tracker?: ResponseIdTracker.Service  // NEW
+}
+```
+
+When `tracker` is provided, `LanguageModel.make` calls `tracker.prepare` and
+`tracker.markParts`. When omitted, tracking is skipped — `previousResponseId`
+and `incrementalPrompt` stay `undefined`.
 
 #### Integration in `LanguageModel.make`
 
 ```ts
 export const make: (params: ConstructorParams) => Effect.Effect<Service> =
   Effect.fnUntraced(function*(params) {
-    const tracker = yield* ResponseIdTracker
+    const tracker = params.tracker
     // ... existing setup ...
   })
 ```
 
 **All three methods (`generateText`, `generateObject`, `streamText`):**
 
-Both `generateText` and `generateObject` delegate to the shared `generateContent` helper (`LanguageModel.ts:882`), which constructs `ProviderOptions` and calls `params.generateText(providerOptions)`. The tracker logic should be placed at the `generateContent` level — not duplicated in each call site. `streamText` has its own path via `streamContent` (`LanguageModel.ts:1043`).
+Both `generateText` and `generateObject` delegate to the shared `generateContent` helper (`LanguageModel.ts:932`), which constructs `ProviderOptions` and calls `params.generateText(providerOptions)`. The tracker logic should be placed at the `generateContent` level — not duplicated in each call site. `streamText` has its own path via `streamContent` (`LanguageModel.ts:1093`).
 
-Before calling the provider, read the tracker and compute `incrementalPrompt`:
+`tracker.prepare` must be called **after** tool approval resolution, because
+`generateContent` may mutate `providerOptions.prompt` during approval resolution
+(`LanguageModel.ts:1006-1049`), appending tool result messages and stripping
+resolved approval artifacts. The `prepare` call must see the final prompt.
+
+In `generateContent`, the call goes immediately before the provider invocation
+(after line ~1049, after approval resolution and prompt stripping):
 
 ```ts
-let previousResponseId: string | undefined = undefined
-let incrementalPrompt: Prompt.Prompt | undefined = undefined
+// ... tool approval resolution and prompt stripping above ...
 
-const storedId = yield* tracker.get.pipe(Effect.map(Option.getOrUndefined))
-
-if (storedId !== undefined) {
-  const result = computeIncrementalPrompt(prompt, tracker)
-  switch (result._tag) {
-    case "Incremental":
-      previousResponseId = storedId
-      incrementalPrompt = result.prompt
-      break
-    case "Diverged":
-      // Context changed (e.g., system prompt replaced) — server's
-      // cached context is stale. Clear the tracker and send full.
-      yield* tracker.clear
-      break
-    case "None":
-      // No new content after the last assistant turn.
-      // Keep previousResponseId undefined — nothing to send.
-      break
+if (tracker) {
+  const prepared = yield* tracker.prepare(providerOptions.prompt)
+  if (Option.isSome(prepared)) {
+    providerOptions.previousResponseId = prepared.value.previousResponseId
+    providerOptions.incrementalPrompt = prepared.value.prompt
   }
 }
 
-const providerOptions: ProviderOptions = {
-  prompt,
-  tools: [],
-  toolChoice: "none",
-  responseFormat: { type: "text" },
-  span,
-  previousResponseId,
-  incrementalPrompt
-}
+// ... provider invocation below (params.generateText(providerOptions)) ...
 ```
 
-**Note on tool approval resolution:** `generateContent` may mutate `providerOptions.prompt` during tool approval resolution (`LanguageModel.ts:979-998`), appending tool result messages. This happens *after* the initial `incrementalPrompt` computation but *before* the provider is called with the mutated prompt. Since tool approval adds new messages to the *end* of the prompt, and `incrementalPrompt` already captures messages after the last assistant turn, the approval-added messages will be part of what the provider sees via `prompt`. However, `incrementalPrompt` will not contain them. The correct approach: recompute `incrementalPrompt` from the (potentially mutated) `prompt` immediately before calling the provider, not at initial construction. The pseudo-code above shows the initial computation for clarity; the implementation should recompute after approval resolution.
+The same pattern applies in `streamContent` (after approval resolution, before
+`params.streamText(providerOptions)`).
 
-After the provider returns, mark sent parts in the `WeakSet` and store the response ID:
+**`None` handling:** When `prepare` returns `None` — whether because no parts are
+tracked, the prefix diverged, or there's nothing new after the last assistant turn
+— the orchestrator sends the full prompt with no `previousResponseId`. The tracker
+is never cleared on divergence because the `WeakMap` is shared across conversations;
+clearing would wipe all conversations' tracked parts. Old diverged parts are naturally
+GC'd by the `WeakMap` when no longer referenced. After the full re-send succeeds,
+`markParts` populates the new parts. When `tracker` is not provided (e.g., Anthropic),
+all tracking is skipped and `ProviderOptions` fields stay `undefined`.
+
+After the provider returns, mark sent parts in the `WeakMap` with the response ID:
 
 **Non-streaming (`generateText`, `generateObject`):**
 
 ```ts
 const content = yield* generateContent(options, providerOptions)
 
-// Mark all prompt parts as "server has seen" in the WeakSet.
-// This includes parts already in the set (no-op) and any new parts
-// (e.g., tool results appended during approval resolution).
-tracker.markParts(providerOptions.prompt.content)
-
-const metadataPart = content.find((p) => p.type === "response-metadata")
-if (metadataPart && metadataPart.id) {
-  yield* tracker.set(metadataPart.id)
+if (tracker) {
+  const metadataPart = content.find((p) => p.type === "response-metadata")
+  if (metadataPart && metadataPart.id) {
+    tracker.markParts(providerOptions.prompt.content, metadataPart.id)
+  }
 }
 ```
 
@@ -308,44 +423,82 @@ if (metadataPart && metadataPart.id) {
 ```ts
 const stream = yield* streamContent(options, providerOptions)
 
-// Mark prompt parts immediately — the request has been sent
-tracker.markParts(providerOptions.prompt.content)
-
 return stream.pipe(
   Stream.mapArrayEffect((part) => {
-    if (part.type === "response-metadata" && part.id) {
-      return tracker.set(part.id).pipe(Effect.as(part))
+    if (tracker && part.type === "response-metadata" && part.id) {
+      tracker.markParts(providerOptions.prompt.content, part.id)
     }
     return Effect.succeed(part)
   })
 )
 ```
 
-**Note on `markParts` timing:** Parts are marked after the request succeeds (non-streaming) or after the stream is established (streaming). If the request fails, parts are not marked, which is correct — the server never saw them.
+**Note on `markParts` timing:** Parts are marked after the response ID is known — non-streaming after the response completes, streaming when the `response-metadata` part arrives. If the request fails or no response ID is emitted, parts are not marked, which is correct — the server context can't be resumed.
 
-### Step 4: Provide Tracker in Provider Layers
+### Step 4: Create Tracker Per Client
 
-`OpenAiLanguageModel.make` creates and provides a tracker per instance:
+The `ResponseIdTracker` is created once per `OpenAiClient` instance and exposed as
+a field on the client's service interface. `OpenAiLanguageModel.make` reads it from
+the client and passes it to `LanguageModel.make` via the `tracker` constructor param.
+
+#### `OpenAiClient` Changes
+
+Add a `tracker` field to the `OpenAiClient` service interface:
+
+```ts
+export interface Service {
+  readonly createResponse: ...
+  readonly createResponseStream: ...
+  readonly tracker: ResponseIdTracker.Service  // NEW
+}
+```
+
+In the client's Layer/constructor, create the tracker alongside the HTTP client:
+
+```ts
+const tracker = yield* ResponseIdTracker.make
+
+return {
+  createResponse,
+  createResponseStream,
+  tracker
+}
+```
+
+Every `OpenAiClient` instance gets its own tracker. The tracker lifecycle is tied
+to the client — all `OpenAiLanguageModel` instances sharing the same client share
+the same tracker, which matches server-side state (one response chain per API key /
+connection context).
+
+The same change applies to the OpenAI compat client (`packages/ai/openai-compat`).
+
+#### `OpenAiLanguageModel.make` Changes
 
 ```ts
 export const make = Effect.fnUntraced(function*({ model, config: providerConfig }) {
   const client = yield* OpenAiClient
-  const trackerService = yield* ResponseIdTracker.make
 
   // ... existing makeConfig, makeRequest, etc. ...
 
-  return yield* LanguageModel.make({ generateText, streamText }).pipe(
-    Effect.provideService(ResponseIdTracker, trackerService),
-    // ... existing providers
-  )
+  return yield* LanguageModel.make({
+    generateText,
+    streamText,
+    tracker: client.tracker  // NEW — pass client's tracker
+  })
 })
 ```
 
-Every `OpenAiLanguageModel` instance gets its own tracker. The tracker lifecycle is tied to the LanguageModel instance.
+No `Effect.provideService` needed. The tracker flows as a plain value.
+
+#### Anthropic / OpenRouter — No Changes
+
+These providers don't support `previous_response_id`. Since `tracker` is optional
+in `ConstructorParams`, they simply don't pass it. No dummy tracker, no type
+satisfaction boilerplate.
 
 **No provider behavior changes.** The OpenAI provider continues to use `options.prompt` (the full prompt) for all requests. The new `ProviderOptions` fields (`previousResponseId`, `incrementalPrompt`) are populated by the core but ignored by all providers for now. A future spec will wire these fields into the provider's `prepareMessages` and `makeRequest` to enable incremental input and `previous_response_not_found` retry.
 
-The `trackerService` reference is also available to the transport layer. A future WebSocket transport receives the tracker and calls `trackerService.onSessionDrop` whenever the connection closes (network error, 60-min limit, explicit server close). For the current HTTP transport, no session lifecycle exists, so no wiring is needed.
+The tracker reference on the client is also available to the transport layer. A future WebSocket transport reads `client.tracker` and calls `tracker.onSessionDrop` whenever the connection closes (network error, 60-min limit, explicit server close). For the current HTTP transport, no session lifecycle exists, so no wiring is needed.
 
 ## WebSocket Mode Compatibility
 
@@ -365,31 +518,31 @@ This design is explicitly structured to enable a future WebSocket transport with
 
 | WebSocket need | Provided by this spec |
 |----------------|----------------------|
-| `previous_response_id` | `ProviderOptions.previousResponseId` + `ResponseIdTracker` |
-| Incremental input items | `ProviderOptions.incrementalPrompt` computed by core |
+| `previous_response_id` | `ProviderOptions.previousResponseId` via `tracker.prepare` |
+| Incremental input items | `ProviderOptions.incrementalPrompt` via `tracker.prepare` |
 | `previous_response_not_found` recovery | `tracker.clear` + `ProviderOptions.prompt` (full) available for future retry logic |
-| Session drop / reconnect | `tracker.onSessionDrop` clears stale ID; next request sends full prompt |
+| Session drop / reconnect | `client.tracker.onSessionDrop` clears stale ID; next request sends full prompt |
 | Same request body shape | `makeRequest` produces transport-neutral `CreateResponse.Encoded` body |
-| Sequential processing | `Chat` serializes via semaphore; tracker stores single ID |
+| Sequential processing | `Chat` serializes via semaphore; tracker resolves per-part IDs |
 
 ### What a future WebSocket spec adds (not in this spec)
 
 - **WebSocket transport service**: An alternative to `OpenAiClient.createResponse`/`createResponseStream` that wraps the request body in `{ type: "response.create", ...body }` and sends over WebSocket.
-- **Connection lifecycle**: Connect, reconnect on 60-min limit, handle `websocket_connection_limit_reached`. On any connection close, call `tracker.onSessionDrop` before reconnecting.
+- **Connection lifecycle**: Connect, reconnect on 60-min limit, handle `websocket_connection_limit_reached`. On any connection close, call `client.tracker.onSessionDrop` before reconnecting.
 - **Error normalization**: WebSocket error events (`{ "type": "error", ... }`) must be normalized to the same `AiError` shape so `isPreviousResponseNotFound` works unchanged.
 - **`generate: false` warmup**: Pre-warm server state by sending `response.create` with `generate: false`. Returns a response ID storable in the tracker.
 - **Compaction integration**: After standalone `/responses/compact`, start a new chain with compacted input by clearing the tracker and sending full compacted prompt.
 
 ### Reconnection and tracker behavior
 
-When a session or connection drops, the transport MUST call `tracker.onSessionDrop` immediately. This proactively clears the stale response ID so the next request sends the full prompt without first attempting (and failing with) the old ID.
+When a session or connection drops, the transport MUST call `client.tracker.onSessionDrop` immediately. This proactively clears the stale response ID so the next request sends the full prompt without first attempting (and failing with) the old ID.
 
 **WebSocket reconnection flow:**
 1. WebSocket connection drops (network error, 60-min limit, server close).
-2. Transport detects the close event and calls `tracker.onSessionDrop`.
-3. Tracker resets to `None`.
+2. Transport detects the close event and calls `client.tracker.onSessionDrop`.
+3. Tracker replaces `WeakMap` with a fresh instance (all tracked parts forgotten).
 4. Transport establishes a new connection.
-5. Next request sees no `previousResponseId` → sends full prompt → server processes normally.
+5. Next `prepare` call sees no tracked parts → returns `None` → caller sends full prompt.
 6. Response ID from the new response is stored in the tracker, resuming the chain on the new connection.
 
 **HTTP transport:** No persistent session exists, so there is no session drop to detect. If the server evicts a cached response between HTTP requests, a future `previous_response_not_found` retry mechanism (deferred to the provider consumption spec) will handle recovery.
@@ -400,24 +553,30 @@ When a session or connection drops, the transport MUST call `tracker.onSessionDr
 
 ### Core
 
-- `packages/effect/src/unstable/ai/LanguageModel.ts` — Add `previousResponseId` and `incrementalPrompt` to `ProviderOptions`; add `computeIncrementalPrompt` utility; read/update tracker in all three methods inside `make`.
-- `packages/effect/src/unstable/ai/ResponseIdTracker.ts` — **New file.** `ResponseIdTracker` service.
+- `packages/effect/src/unstable/ai/ResponseIdTracker.ts` — Replace `Ref<Option<string>>` + `WeakSet<object>` with `WeakMap<object, string>`. Remove `set` from service interface. Update `markParts` to accept `responseId` parameter. Add `prepare` method returning `Option<PrepareResult>` and `PrepareResult` interface. Replace `Ref` import with `Option` import. Add `Prompt` import. Remove `ServiceMap.Service` class and `layer` export.
+- `packages/effect/src/unstable/ai/LanguageModel.ts` — Add `previousResponseId` and `incrementalPrompt` to `ProviderOptions`. Add optional `tracker` field to `ConstructorParams`. Remove `computeIncrementalPrompt`, `IncrementalResult`, and the void suppression line. Remove `import type * as ResponseIdTracker`. Guard tracker calls on `params.tracker` presence in `generateContent`/`streamContent`.
+
+### OpenAI Client
+
+- `packages/ai/openai/src/OpenAiClient.ts` — Add `tracker: ResponseIdTracker.Service` field to the client service interface. Create tracker via `ResponseIdTracker.make` in the client's Layer constructor.
+- `packages/ai/openai-compat/src/OpenAiClient.ts` — Same as OpenAI client: add `tracker` field, create in Layer.
 
 ### OpenAI Provider
 
-- `packages/ai/openai/src/OpenAiLanguageModel.ts` — Create and provide tracker in `make`. No changes to request construction or prompt handling.
+- `packages/ai/openai/src/OpenAiLanguageModel.ts` — Pass `client.tracker` to `LanguageModel.make` via the `tracker` constructor param. No `Effect.provideService` needed.
 
 ### OpenAI Compat Provider
 
-- `packages/ai/openai-compat/src/OpenAiLanguageModel.ts` — Same as OpenAI provider: create and provide tracker.
+- `packages/ai/openai-compat/src/OpenAiLanguageModel.ts` — Same as OpenAI provider: pass `client.tracker` to `LanguageModel.make`.
 
 ### Unaffected
 
-- `packages/ai/anthropic/src/AnthropicLanguageModel.ts` — No changes.
-- `packages/ai/openrouter/src/OpenRouterLanguageModel.ts` — No changes.
+- `packages/ai/anthropic/src/AnthropicLanguageModel.ts` — No changes. `tracker` is optional; Anthropic doesn't pass one.
+- `packages/ai/openrouter/src/OpenRouterLanguageModel.ts` — No changes. OpenRouter doesn't pass a tracker.
 - `packages/effect/src/unstable/ai/Prompt.ts` — No changes.
 - `packages/effect/src/unstable/ai/Response.ts` — No changes.
 - `packages/effect/src/unstable/ai/Chat.ts` — No changes. Implicitly benefits.
+- `packages/effect/test/unstable/ai/utils.ts` — No changes. Test helper doesn't need to provide a tracker since it's an optional constructor param.
 
 ### Barrel Files
 
@@ -425,22 +584,37 @@ When a session or connection drops, the transport MUST call `tracker.onSessionDr
 
 ## Implementation Plan (PR Sequence)
 
-### PR 1: Foundation (Steps 1 + 2)
-- Add `previousResponseId` and `incrementalPrompt` to `ProviderOptions`
-- Create `ResponseIdTracker` module
-- Add `computeIncrementalPrompt` utility in `LanguageModel`
-- Run `pnpm codegen` for barrel files
-- Unit tests for `ResponseIdTracker` and `computeIncrementalPrompt`
-- **Risk:** Low. Purely additive.
+### PR 1: Refactor ResponseIdTracker to WeakMap + Add ProviderOptions Fields
 
-### PR 2: Core Integration (Steps 3 + 4)
-- Thread tracker through `LanguageModel.make` for all three methods
-- Compute `incrementalPrompt` and pass in `ProviderOptions`
-- Write response ID to tracker after provider returns
-- Mark sent parts in the `WeakSet` after provider returns
-- Wire tracker creation into `OpenAiLanguageModel.make` and `OpenAiCompatLanguageModel.make`
-- Integration tests verifying tracker lifecycle, prompt filtering, and context divergence detection
-- **Risk:** Medium. Modifies core orchestration.
+- Replace `Ref<Option<string>>` + `WeakSet<object>` with `WeakMap<object, string>` in `ResponseIdTracker.ts`
+- Remove `set`, `get`, `hasPart` from `Service` interface
+- Remove `ServiceMap.Service` class and `layer` export — tracker is a plain value, not a context service
+- Update `markParts` signature to `(parts: ReadonlyArray<object>, responseId: string) => void`
+- Add `PrepareResult` interface and `prepare` method returning `Option<PrepareResult>` to `Service` interface
+- Implement `prepare` in the `make` constructor (inlined filtering logic)
+- Replace `Ref` import with `Option` import in `ResponseIdTracker.ts`; add `Prompt` import. Remove `Layer` and `ServiceMap` imports.
+- Move `computeIncrementalPrompt` and `IncrementalResult` from `LanguageModel.ts` (they are now inlined in `prepare`, so simply delete them)
+- Remove `void computeIncrementalPrompt` suppression line from `LanguageModel.ts`
+- Remove the now-unused `import type * as ResponseIdTracker` from `LanguageModel.ts` (linter will flag this)
+- Add `previousResponseId` and `incrementalPrompt` to `ProviderOptions`
+- Add optional `tracker` field to `ConstructorParams`
+- Update all three `providerOptions` construction sites in `LanguageModel.make` to include the new fields (set to `undefined`): `generateText` (line 751), `generateObject` (line 811), `streamText` (line 883)
+- Run `pnpm codegen` for barrel files
+- Unit tests for `ResponseIdTracker.prepare` covering all boundary cases (including divergence returning `None`)
+- Unit tests for `ResponseIdTracker` basic operations (markParts/clear/onSessionDrop verified via `prepare`)
+- **Risk:** Low. Additive changes to `ProviderOptions` and `ConstructorParams` are non-breaking; filtering logic is moved, not changed.
+
+### PR 2: Core Integration (Wire Tracker Through Clients)
+
+- Add `tracker: ResponseIdTracker.Service` field to `OpenAiClient` service interface
+- Create tracker via `ResponseIdTracker.make` in `OpenAiClient`'s Layer constructor
+- Same for `openai-compat` client
+- Pass `client.tracker` to `LanguageModel.make` in `OpenAiLanguageModel.make` (both `openai` and `openai-compat` packages)
+- Guard `tracker.prepare` and `tracker.markParts` calls on `params.tracker` presence in `generateContent` and `streamContent`
+- Populate `ProviderOptions.previousResponseId` and `ProviderOptions.incrementalPrompt` when `Option.isSome`
+- Mark sent parts via `tracker.markParts(prompt.content, responseId)` after provider returns (non-streaming) or when `response-metadata` part arrives (streaming)
+- Integration tests verifying tracker lifecycle, prompt filtering, divergence recovery (full prompt re-send), and multi-conversation isolation
+- **Risk:** Medium. Modifies client service interfaces and core orchestration. Anthropic/OpenRouter are unaffected.
 
 ### Future: Provider Consumption (separate spec)
 - Wire `incrementalPrompt` and `previousResponseId` into OpenAI provider's `prepareMessages` and `makeRequest`
@@ -458,57 +632,76 @@ When a session or connection drops, the transport MUST call `tracker.onSessionDr
 
 ## Test Plan
 
-### `computeIncrementalPrompt` Unit Tests
+### `ResponseIdTracker.prepare` Unit Tests
 
-All tests below assume a tracker whose `WeakSet` has been populated by prior `markParts` calls as noted.
+All tests below assume a tracker whose `WeakMap` has been populated by prior `markParts` calls as noted.
 
-- `[sys, user1]`, no parts marked → `None` (no assistant, first turn)
-- `[sys, user1, asst1, user2]`, `{sys, user1}` marked → `Incremental([user2])`
-- `[sys, user1, asst1(tool-calls), tool(results)]`, `{sys, user1}` marked → `Incremental([tool(results)])`
-- `[..., asst(calls), tool(results), user2]`, prior parts marked → `Incremental([tool(results), user2])`
-- `[sys, user1, asst1]`, `{sys, user1}` marked → `None` (no new messages)
-- `[sys, user1, asst1, user2, asst2]`, `{sys, user1, asst1, user2}` marked → `None` (multi-turn, no new messages after last assistant)
+- No parts tracked, `[sys, user1]` → `None` (first turn, `anyTracked` is false)
+- `markParts([sys, user1], "resp_1")`, `[sys, user1]` (no assistant message) → `None`
+- `markParts([sys, user1], "resp_1")`, `[sys, user1, asst1, user2]` → `Some({ previousResponseId: "resp_1", prompt: [user2] })`
+- `markParts([sys, user1], "resp_1")`, `[sys, user1, asst1(tool-calls), tool(results)]` → `Some({ previousResponseId: "resp_1", prompt: [tool(results)] })`
+- `markParts([..prior..], "resp_1")`, `[..., asst(calls), tool(results), user2]` → `Some({ previousResponseId: "resp_1", prompt: [tool(results), user2] })`
+- `markParts([sys, user1], "resp_1")`, `[sys, user1, asst1]` → `None` (no new messages)
+- `markParts([sys, user1, asst1, user2], "resp_2")`, `[sys, user1, asst1, user2, asst2]` → `None` (multi-turn, no new messages after last assistant)
 - Empty messages → `None`
 
 **Context divergence (system prompt / message edits):**
 
-- `[sys_new, user1, asst1, user2]`, `{sys, user1}` marked (sys ≠ sys_new) → `Diverged`
-- `[sys, user1_edited, asst1, user2]`, `{sys, user1}` marked (user1 ≠ user1_edited) → `Diverged`
-- `[sys_new, user1_edited, asst1, user2]`, `{sys, user1}` marked → `Diverged` (first miss short-circuits)
+- `markParts([sys, user1], "resp_1")`, `[sys_new, user1, asst1, user2]` (sys ≠ sys_new) → `None` (diverged prefix)
+- `markParts([sys, user1], "resp_1")`, `[sys, user1_edited, asst1, user2]` (user1 ≠ user1_edited) → `None` (diverged prefix)
+- `markParts([sys, user1], "resp_1")`, `[sys_new, user1_edited, asst1, user2]` → `None` (first miss short-circuits)
 
 **After divergence recovery:**
 
-- `[sys_new, user1, asst1, user2]`, `{sys_new, user1}` marked (after full re-send) → `Incremental([user2])`
+- `markParts([sys_new, user1], "resp_2")` (after full re-send), `[sys_new, user1, asst1, user2]` → `Some({ previousResponseId: "resp_2", prompt: [user2] })`
 
-### ResponseIdTracker Unit Tests
-- `make` starts with `None`
-- `set("resp_123")` → `get` returns `Some("resp_123")`
-- `set("resp_123")` → `clear` → `get` returns `None`
-- `set("resp_1")` → `set("resp_2")` → `get` returns `Some("resp_2")`
-- `set("resp_123")` → `onSessionDrop` → `get` returns `None` (session drop clears tracker)
-- `set("resp_123")` → `onSessionDrop` → `set("resp_456")` → `get` returns `Some("resp_456")` (tracker resumes after reconnect)
-- Concurrent `set`/`clear` from two fibers does not corrupt state (verifies `Ref` safety)
+**Full lifecycle (`markParts` → `prepare` → `markParts` → `prepare`):**
+
+- Fresh tracker → `markParts([sys, user1], "resp_1")` → `prepare([sys, user1, asst1, user2])` → `Some({ previousResponseId: "resp_1", prompt: [user2] })`
+- Continue: `markParts([sys, user1, asst1, user2], "resp_2")` → `prepare([sys, user1, asst1, user2, asst2, user3])` → `Some({ previousResponseId: "resp_2", prompt: [user3] })`
+
+**Identity-based divergence (WeakMap invariant):**
+
+- `markParts([msg1], "resp_1")` where `msg1 = makeMessage("user", ...)` → create `msg1Copy` with identical content but different reference → `prepare` with `[msg1Copy, asst1, user2]` → `None` (msg1Copy ≠ msg1 by identity, so prefix diverged)
+
+**`prepare` after explicit `clear`:**
+
+- `markParts([sys, user1], "resp_1")` → `clear` → `prepare([sys, user1, asst1, user2])` → `None` (clear replaced WeakMap; old entries gone)
+
+**Multi-conversation isolation:**
+
+- `markParts([sysA, u1A], "resp_A1")` → `markParts([sysB, u1B], "resp_B1")` → `prepare([sysA, u1A, asstA, u2A])` → `Some({ previousResponseId: "resp_A1", prompt: [u2A] })` (conversation A's parts unaffected by B)
+- Same tracker, `prepare([sysB, u1B, asstB, u2B])` → `Some({ previousResponseId: "resp_B1", prompt: [u2B] })` (conversation B's parts isolated)
+
+### ResponseIdTracker Basic Unit Tests
+- Fresh tracker → `prepare([msg1])` → `None` (no parts tracked)
+- `markParts([msg1], "resp_123")` → `prepare([msg1, asst, msg2])` → `Some` with `previousResponseId: "resp_123"`
+- `markParts([msg1], "resp_123")` → `clear` → `markParts([msg1_new], "resp_456")` → `prepare([msg1_new, asst, msg2])` → `Some` with `previousResponseId: "resp_456"` (clear replaced WeakMap; new markParts works)
+- `markParts([msg1], "resp_1")` → `markParts([msg1], "resp_2")` → `prepare([msg1, asst, msg2])` → `Some` with `previousResponseId: "resp_2"` (later markParts overwrites)
+- `markParts([msg1], "resp_123")` → `onSessionDrop` → `prepare([msg1, asst, msg2])` → `None` (session drop replaced WeakMap)
+- `markParts([msg1], "resp_123")` → `onSessionDrop` → `markParts([msg1_new], "resp_456")` → `prepare([msg1_new, asst, msg2])` → `Some` with `previousResponseId: "resp_456"` (tracker resumes after reconnect)
+- Concurrent `markParts`/`clear` from two fibers does not corrupt state
 
 ### LanguageModel Integration Tests
-- `generateText`: extracts response ID, stores in tracker, passes `incrementalPrompt` on next call
-- `generateObject`: extracts response ID via shared `generateContent` path, stores in tracker, passes `incrementalPrompt` on next call
-- `streamText`: stores response ID when `response-metadata` part is emitted
-- First call: `incrementalPrompt` is `undefined`, `previousResponseId` is `undefined`
-- Second call: `incrementalPrompt` contains only new messages, `previousResponseId` is set
-- Tool approval adds messages → `incrementalPrompt` is recomputed after approval resolution
+- `generateText` with `tracker` param: extracts response ID, marks parts via `markParts(prompt, id)`, `prepare` returns `Some` on next call
+- `generateObject` with `tracker` param: extracts response ID via shared `generateContent` path, marks parts, `prepare` returns `Some` on next call
+- `streamText` with `tracker` param: marks parts when `response-metadata` part is emitted with response ID
+- With `tracker`: first call → `incrementalPrompt` is `undefined`, `previousResponseId` is `undefined`; second call → `incrementalPrompt` contains only new messages, `previousResponseId` is set
+- Without `tracker` (omitted): `incrementalPrompt` and `previousResponseId` are always `undefined`
+- Tool approval adds messages → `prepare` is called after approval resolution with mutated prompt
 
 ### Chat Implicit Integration
 - `Chat.generateText` tracks response IDs across sequential turns (implicit via LanguageModel)
 
 ### Session Drop / Reconnect Tests
-- After `onSessionDrop`, next `generateText` sends full prompt with no `previousResponseId`
-- After `onSessionDrop`, next `streamText` sends full prompt with no `previousResponseId`
+- After `onSessionDrop`, next `prepare` returns `None` → full prompt with no `previousResponseId`
+- After `onSessionDrop` + new successful request, `prepare` returns `Some` again
 - `onSessionDrop` during idle (no in-flight request): next request uses full prompt
-- `onSessionDrop` racing with in-flight request: request completes normally or fails (no stale ID used on next request either way)
-- Full cycle: track ID → session drop → full prompt → new ID tracked → incremental prompt resumes
+- Full cycle: track ID → session drop → full prompt → new ID tracked → `prepare` returns `Some`
 
 ## Validation
 
 - `pnpm lint-fix`
 - `pnpm test <affected_test_files>`
 - `pnpm check:tsgo` (run `pnpm clean` if check fails)
+- `pnpm docgen` — ensure JSDoc examples compile. New exports (`PrepareResult`, `prepare`) need `@since 4.0.0` annotations.
