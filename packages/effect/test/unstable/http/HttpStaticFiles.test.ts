@@ -4,10 +4,15 @@ import { afterAll, beforeAll, describe, test } from "@effect/vitest"
 import { deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import { Effect, Layer, PlatformError } from "effect"
 import { HttpPlatform, HttpRouter, HttpServerResponse, HttpStaticFiles } from "effect/unstable/http"
-import { mkdir, mkdtemp, readFile, rm, stat, utimes, writeFile } from "node:fs/promises"
+import { copyFile, cp, mkdtemp, readFile, rm, stat, utimes, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import * as NodePath from "node:path"
+import { fileURLToPath } from "node:url"
 
+const fixturesRoot = fileURLToPath(new URL("./fixtures/http-static-files", import.meta.url))
+const fixturesOutsideFile = fileURLToPath(new URL("./fixtures/http-static-files-outside.txt", import.meta.url))
+
+let temporaryRoot = ""
 let root = ""
 let outsideFile = ""
 
@@ -66,30 +71,19 @@ const makeHandler = (options: Omit<Parameters<typeof HttpStaticFiles.make>[0], "
 
 describe.sequential("HttpStaticFiles", () => {
   beforeAll(async () => {
-    root = await mkdtemp(NodePath.join(tmpdir(), "effect-http-static-files-"))
-    outsideFile = NodePath.join(NodePath.dirname(root), `${NodePath.basename(root)}-outside.txt`)
-
-    await mkdir(NodePath.join(root, "docs"), { recursive: true })
-    await mkdir(NodePath.join(root, "custom"), { recursive: true })
+    temporaryRoot = await mkdtemp(NodePath.join(tmpdir(), "effect-http-static-files-"))
+    root = NodePath.join(temporaryRoot, "root")
+    outsideFile = NodePath.join(temporaryRoot, NodePath.basename(fixturesOutsideFile))
 
     await Promise.all([
-      writeFile(NodePath.join(root, "index.html"), "<html><body>root index</body></html>"),
-      writeFile(NodePath.join(root, "hello.txt"), "hello static file"),
-      writeFile(NodePath.join(root, "docs", "index.html"), "<html><body>docs index</body></html>"),
-      writeFile(NodePath.join(root, "custom", "home.html"), "<html><body>custom home</body></html>"),
-      writeFile(NodePath.join(root, "range.txt"), "0123456789abcdefghijklmnopqrstuvwxyz"),
-      writeFile(NodePath.join(root, "conditional.txt"), "initial conditional body"),
-      writeFile(NodePath.join(root, "file.binx"), "binary-ish"),
-      writeFile(outsideFile, "outside root")
+      cp(fixturesRoot, root, { recursive: true }),
+      copyFile(fixturesOutsideFile, outsideFile)
     ])
   })
 
   afterAll(async () => {
-    if (root !== "") {
-      await rm(root, { recursive: true, force: true })
-    }
-    if (outsideFile !== "") {
-      await rm(outsideFile, { force: true })
+    if (temporaryRoot !== "") {
+      await rm(temporaryRoot, { recursive: true, force: true })
     }
   })
 
