@@ -5793,6 +5793,15 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       strictEqual(err.name, "TaggedErrorName")
     })
 
+    it("name matches identifier", () => {
+      class E extends Schema.TaggedErrorClass<E>("effect/TaggedErrorName")("TaggedErrorName", {
+        id: Schema.Number
+      }) {}
+
+      const err = new E({ id: 1 })
+      strictEqual(err.name, "effect/TaggedErrorName")
+    })
+
     it("zero-field TaggedErrorClass allows omitting props argument", () => {
       class NotFoundError extends Schema.TaggedErrorClass<NotFoundError>()("NotFoundError", {}) {}
 

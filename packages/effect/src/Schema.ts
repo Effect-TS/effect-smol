@@ -8318,7 +8318,9 @@ export const ErrorClass: {
   annotations?: Annotations.Declaration<Self, readonly [Struct<Struct.Fields>]>
 ): ErrorClass<Self, Struct<Struct.Fields>, Cause_.YieldableError & Brand> => {
   const struct = isStruct(schema) ? schema : Struct(schema)
-  return makeClass(core.Error, identifier, struct, annotations)
+  const self = makeClass(core.Error, identifier, struct, annotations)
+  ;(self.prototype as any).name = identifier
+  return self
 }
 
 /**
@@ -8347,7 +8349,7 @@ export const TaggedErrorClass: {
     schema: Struct.Fields | Struct<Struct.Fields>,
     annotations?: Annotations.Declaration<any, readonly [Struct<Struct.Fields>]>
   ): any => {
-    const self = ErrorClass(identifier ?? tagValue)(
+    return ErrorClass(identifier ?? tagValue)(
       isStruct(schema) ?
         schema.mapFields((fields) => ({ _tag: tag(tagValue), ...fields }), {
           unsafePreserveChecks: true
@@ -8355,8 +8357,6 @@ export const TaggedErrorClass: {
         TaggedStruct(tagValue, schema),
       annotations
     )
-    ;(self.prototype as any).name = tagValue
-    return self
   }
 }
 
