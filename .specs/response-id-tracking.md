@@ -129,7 +129,7 @@ export interface Service {
   readonly prepareUnsafe: (prompt: Prompt.Prompt) => Option.Option<{
     readonly previousResponseId: string
     readonly prompt: Prompt.Prompt
-  }>>
+  }>
 }
 ```
 
@@ -334,8 +334,9 @@ export const make: Effect.Effect<Service> = Effect.sync(() => {
 With filtering logic moved into the tracker, the `LanguageModel.make` orchestrator
 becomes simpler. The `computeIncrementalPrompt` function and `IncrementalResult`
 type are **removed** from `LanguageModel.ts` (including the `void computeIncrementalPrompt`
-suppression line). The `type` import of `ResponseIdTracker` is removed entirely —
-the tracker is received as a constructor parameter, not resolved from context.
+suppression line). Tracker access is no longer resolved from context inside
+`LanguageModel.make`; it is received via constructor params. A type-only
+`ResponseIdTracker` import remains for `ConstructorParams`.
 
 #### `ConstructorParams` Change
 
@@ -552,7 +553,7 @@ When a session or connection drops, the transport MUST call `client.tracker.onSe
 ### Core
 
 - `packages/effect/src/unstable/ai/ResponseIdTracker.ts` — Replace `Ref<Option<string>>` + `WeakSet<object>` with `WeakMap<object, string>`. Remove `set` from service interface. Update `markParts` to accept `responseId` parameter. Add `prepareUnsafe` method returning `Option<PrepareResult>` and `PrepareResult` interface. Replace `Ref` import with `Option` import. Add `Prompt` import. Remove `ServiceMap.Service` class and `layer` export.
-- `packages/effect/src/unstable/ai/LanguageModel.ts` — Add `previousResponseId` and `incrementalPrompt` to `ProviderOptions`. Add optional `tracker` field to `ConstructorParams`. Remove `computeIncrementalPrompt`, `IncrementalResult`, and the void suppression line. Remove `import type * as ResponseIdTracker`. Guard tracker calls on `params.tracker` presence in `generateContent`/`streamContent`.
+- `packages/effect/src/unstable/ai/LanguageModel.ts` — Add `previousResponseId` and `incrementalPrompt` to `ProviderOptions`. Add optional `tracker` field to `ConstructorParams` (with a type-only `ResponseIdTracker` import). Remove `computeIncrementalPrompt`, `IncrementalResult`, and the void suppression line. Guard tracker calls on `params.tracker` presence in `generateContent`/`streamContent`.
 
 ### OpenAI Client
 
@@ -593,7 +594,7 @@ When a session or connection drops, the transport MUST call `client.tracker.onSe
 - Replace `Ref` import with `Option` import in `ResponseIdTracker.ts`; add `Prompt` import. Remove `Layer` and `ServiceMap` imports.
 - Move `computeIncrementalPrompt` and `IncrementalResult` from `LanguageModel.ts` (they are now inlined in `prepareUnsafe`, so simply delete them)
 - Remove `void computeIncrementalPrompt` suppression line from `LanguageModel.ts`
-- Remove the now-unused `import type * as ResponseIdTracker` from `LanguageModel.ts` (linter will flag this)
+- Add a type-only `import type * as ResponseIdTracker` in `LanguageModel.ts` for the optional `tracker` constructor parameter
 - Add `previousResponseId` and `incrementalPrompt` to `ProviderOptions`
 - Add optional `tracker` field to `ConstructorParams`
 - Update all three `providerOptions` construction sites in `LanguageModel.make` to include the new fields (set to `undefined`): `generateText` (line 751), `generateObject` (line 811), `streamText` (line 883)
