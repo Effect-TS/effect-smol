@@ -1,6 +1,8 @@
-import { describe, test } from "@effect/vitest"
-import { deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import { Effect, FileSystem, Path, PlatformError } from "effect"
+import { assert, describe, it } from "@effect/vitest"
+import * as Effect from "effect/Effect"
+import * as FileSystem from "effect/FileSystem"
+import * as Path from "effect/Path"
+import * as PlatformError from "effect/PlatformError"
 import { HttpEffect, HttpPlatform, HttpServerResponse, HttpStaticFiles } from "effect/unstable/http"
 
 const root = "/root"
@@ -66,53 +68,31 @@ const makeHandler = async () => {
 }
 
 describe("HttpStaticFiles", () => {
-  test("304 with If-None-Match exact, weak, and wildcard", async () => {
+  it("304 with If-None-Match exact, weak, and wildcard", async () => {
     const handler = await makeHandler()
     const warmupResponse = await handler(new Request("http://localhost/file.txt"))
     const etag = warmupResponse.headers.get("etag")
-    strictEqual(etag, "\"etag-value\"")
+    assert.strictEqual(etag, "\"etag-value\"")
     if (etag === null) {
       throw new Error("expected ETag header")
     }
 
-    const exact = await handler(
-      new Request("http://localhost/file.txt", {
-        headers: {
-          "If-None-Match": etag
-        }
-      })
-    )
-    const weak = await handler(
-      new Request("http://localhost/file.txt", {
-        headers: {
-          "If-None-Match": `W/${etag}`
-        }
-      })
-    )
+    const exact = await handler(new Request("http://localhost/file.txt", { headers: { "If-None-Match": etag } }))
+    const weak = await handler(new Request("http://localhost/file.txt", { headers: { "If-None-Match": `W/${etag}` } }))
     const list = await handler(
-      new Request("http://localhost/file.txt", {
-        headers: {
-          "If-None-Match": `"other", W/${etag}`
-        }
-      })
+      new Request("http://localhost/file.txt", { headers: { "If-None-Match": `"other", W/${etag}` } })
     )
-    const any = await handler(
-      new Request("http://localhost/file.txt", {
-        headers: {
-          "If-None-Match": "*"
-        }
-      })
-    )
+    const any = await handler(new Request("http://localhost/file.txt", { headers: { "If-None-Match": "*" } }))
 
-    deepStrictEqual([exact.status, weak.status, list.status, any.status], [304, 304, 304, 304])
-    strictEqual(exact.headers.get("etag"), "\"etag-value\"")
-    strictEqual(exact.headers.get("cache-control"), "public, max-age=60")
-    strictEqual(exact.headers.get("last-modified"), lastModified)
-    strictEqual(exact.headers.get("content-type"), null)
-    strictEqual(exact.headers.get("content-length"), null)
+    assert.deepStrictEqual([exact.status, weak.status, list.status, any.status], [304, 304, 304, 304])
+    assert.strictEqual(exact.headers.get("etag"), "\"etag-value\"")
+    assert.strictEqual(exact.headers.get("cache-control"), "public, max-age=60")
+    assert.strictEqual(exact.headers.get("last-modified"), lastModified)
+    assert.strictEqual(exact.headers.get("content-type"), null)
+    assert.strictEqual(exact.headers.get("content-length"), null)
   })
 
-  test("304 with If-Modified-Since and no If-None-Match", async () => {
+  it("304 with If-Modified-Since and no If-None-Match", async () => {
     const handler = await makeHandler()
 
     const notModified = await handler(
@@ -137,12 +117,12 @@ describe("HttpStaticFiles", () => {
       })
     )
 
-    strictEqual(notModified.status, 304)
-    strictEqual(modified.status, 200)
-    strictEqual(invalidDate.status, 200)
+    assert.strictEqual(notModified.status, 304)
+    assert.strictEqual(modified.status, 200)
+    assert.strictEqual(invalidDate.status, 200)
   })
 
-  test("If-None-Match takes precedence over If-Modified-Since", async () => {
+  it("If-None-Match takes precedence over If-Modified-Since", async () => {
     const handler = await makeHandler()
 
     const response = await handler(
@@ -154,10 +134,10 @@ describe("HttpStaticFiles", () => {
       })
     )
 
-    strictEqual(response.status, 200)
+    assert.strictEqual(response.status, 200)
   })
 
-  test("matched If-None-Match takes precedence over Range", async () => {
+  it("matched If-None-Match takes precedence over Range", async () => {
     const handler = await makeHandler()
 
     const response = await handler(
@@ -169,13 +149,13 @@ describe("HttpStaticFiles", () => {
       })
     )
 
-    strictEqual(response.status, 304)
-    strictEqual(response.headers.get("etag"), "\"etag-value\"")
-    strictEqual(response.headers.get("cache-control"), "public, max-age=60")
-    strictEqual(response.headers.get("last-modified"), lastModified)
-    strictEqual(response.headers.get("content-range"), null)
-    strictEqual(response.headers.get("accept-ranges"), null)
-    strictEqual(response.headers.get("content-type"), null)
-    strictEqual(response.headers.get("content-length"), null)
+    assert.strictEqual(response.status, 304)
+    assert.strictEqual(response.headers.get("etag"), "\"etag-value\"")
+    assert.strictEqual(response.headers.get("cache-control"), "public, max-age=60")
+    assert.strictEqual(response.headers.get("last-modified"), lastModified)
+    assert.strictEqual(response.headers.get("content-range"), null)
+    assert.strictEqual(response.headers.get("accept-ranges"), null)
+    assert.strictEqual(response.headers.get("content-type"), null)
+    assert.strictEqual(response.headers.get("content-length"), null)
   })
 })
