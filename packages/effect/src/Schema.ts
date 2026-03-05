@@ -52,8 +52,8 @@ import * as Transformation from "./SchemaTransformation.ts"
 import type { Assign, Lambda, Mutable, Simplify } from "./Struct.ts"
 import * as Struct_ from "./Struct.ts"
 import * as FastCheck from "./testing/FastCheck.ts"
-import type { Unify } from "./Unify.ts"
 import type { UnionToIntersection } from "./Types.ts"
+import type { Unify } from "./Unify.ts"
 
 const TypeId = InternalSchema.TypeId
 
@@ -3232,15 +3232,13 @@ type TaggedUnionUtils<
     >(
       value: Members[number]["Type"],
       cases: Cases
-    ): Cases[keyof Cases] extends (value: any) => infer R
-      ? Unify<R>
+    ): Cases[keyof Cases] extends (value: any) => infer R ? Unify<R>
       : never
     <
       Cases extends { [M in Flattened[number] as M["Type"][Tag]]: (value: M["Type"]) => any }
     >(
       cases: Cases
-    ): (value: Members[number]["Type"]) => Cases[keyof Cases] extends (value: any) => infer R
-      ? Unify<R>
+    ): (value: Members[number]["Type"]) => Cases[keyof Cases] extends (value: any) => infer R ? Unify<R>
       : never
   }
 }
