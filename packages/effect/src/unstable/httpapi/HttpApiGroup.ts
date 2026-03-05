@@ -112,6 +112,7 @@ export interface Any {
   readonly [TypeId]: typeof TypeId
   readonly identifier: string
   readonly key: string
+  readonly endpoints: Record.ReadonlyRecord<string, HttpApiEndpoint.Any>
 }
 
 /**

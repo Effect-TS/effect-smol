@@ -69,7 +69,7 @@ export interface AtomHttpApiClient<Self, Id extends string, Groups extends HttpA
         }
       >,
       WithResponse extends true ? [_Success["Type"], HttpClientResponse] : _Success["Type"],
-      _Error["Type"] | HttpClientError.HttpClientError | SchemaError
+      _Error["Type"]
     >
     : never
 
@@ -126,7 +126,7 @@ export interface AtomHttpApiClient<Self, Id extends string, Groups extends HttpA
   ] ? Atom.Atom<
       AsyncResult.AsyncResult<
         WithResponse extends true ? [_Success["Type"], HttpClientResponse] : _Success["Type"],
-        _Error["Type"] | HttpClientError.HttpClientError | SchemaError
+        _Error["Type"]
       >
     >
     : never
@@ -171,8 +171,8 @@ export const Service = <Self>() =>
   const runtimeFactory = options.runtime ?? Atom.runtime
   self.runtime = runtimeFactory(self.layer)
 
-  const mutationFamily = Atom.family(({ endpoint, group, withResponse }: MutationKey) =>
-    self.runtime.fn<{
+  const mutationFamily = Atom.family(({ endpoint, group, withResponse }: MutationKey) => {
+    const atom = self.runtime.fn<{
       params: any
       query: any
       headers: any
@@ -190,7 +190,18 @@ export const Service = <Self>() =>
           : effect
       })
     )
-  ) as any
+    if (withResponse === false) {
+      const definition = options.api.groups[group]!.endpoints[endpoint]! as HttpApiEndpoint.AnyWithProps
+      return Atom.serializable(atom, {
+        key: `AtomHttpApi:mutation:${group}:${endpoint}`,
+        schema: AsyncResult.Schema({
+          success: Schema.Union(HttpApiEndpoint.getSuccessSchemas(definition)),
+          error: Schema.Union(HttpApiEndpoint.getErrorSchemas(definition))
+        }) as any
+      })
+    }
+    return atom
+  }) as any
 
   self.mutation = ((group: string, endpoint: string, options?: {
     readonly withResponse?: boolean | undefined
@@ -201,24 +212,25 @@ export const Service = <Self>() =>
       withResponse: options?.withResponse ?? false
     })) as any
 
+  const catchErrors = Effect.catch((e: unknown) =>
+    Schema.isSchemaError(e) || HttpClientError.isHttpClientError(e) ? Effect.die(e) : Effect.fail(e)
+  )
+
   const queryFamily = Atom.family((opts: QueryKey) => {
     let atom = self.runtime.atom(self.use((client_) => {
       const client = client_ as any
-      return client[opts.group][opts.endpoint](opts) as Effect.Effect<any>
+      return catchErrors(client[opts.group][opts.endpoint](opts) as Effect.Effect<
+        any,
+        HttpClientError.HttpClientError | SchemaError
+      >)
     }))
-    const group = (options.api.groups as any)[opts.group] as HttpApiGroup.AnyWithProps | undefined
-    const endpoint = group?.endpoints[opts.endpoint] as HttpApiEndpoint.AnyWithProps | undefined
-    if (endpoint && opts.withResponse === false) {
-      const payloadSchemas = HttpApiEndpoint.getPayloadSchemas(endpoint)
+    if (opts.withResponse === false) {
+      const endpoint = options.api.groups[opts.group]!.endpoints[opts.endpoint]! as HttpApiEndpoint.AnyWithProps
       atom = Atom.serializable(atom, {
-        key: makeSerializableKey(id, options.api.identifier, endpoint, opts, payloadSchemas),
+        key: makeSerializableKey(opts),
         schema: AsyncResult.Schema({
-          success: toSchema(HttpApiEndpoint.getSuccessSchemas(endpoint)),
-          error: toSchema([
-            ...HttpApiEndpoint.getErrorSchemas(endpoint),
-            HttpClientError.HttpClientErrorSchema,
-            Schema.Unknown
-          ])
+          success: Schema.Union(HttpApiEndpoint.getSuccessSchemas(endpoint)),
+          error: Schema.Union(HttpApiEndpoint.getErrorSchemas(endpoint))
         }) as any
       })
     }
@@ -280,40 +292,6 @@ interface QueryKey {
   timeToLive?: Duration.Duration | undefined
 }
 
-const toSchema = (schemas: ReadonlyArray<Schema.Top>): Schema.Top =>
-  schemas.length === 1 ? schemas[0]! : Schema.Union(schemas)
-
-const encodeBySchema = (schema: Schema.Top | undefined, value: unknown): unknown =>
-  schema === undefined || value === undefined
-    ? value
-    : (() => {
-      try {
-        return Schema.encodeSync(Schema.toCodecJson(schema as any) as any)(value as any)
-      } catch {
-        return value
-      }
-    })()
-
 const makeSerializableKey = (
-  id: string,
-  apiId: string,
-  endpoint: HttpApiEndpoint.AnyWithProps,
-  opts: QueryKey,
-  payloadSchemas: ReadonlyArray<Schema.Top>
-): string => {
-  const payloadSchema = payloadSchemas.length === 0
-    ? undefined
-    : payloadSchemas.length === 1
-    ? payloadSchemas[0]!
-    : Schema.Union(payloadSchemas)
-  return `AtomHttpApi:${id}:${apiId}:${opts.group}:${opts.endpoint}:${
-    Hash.hash({
-      params: encodeBySchema(endpoint.params, opts.params),
-      query: encodeBySchema(endpoint.query, opts.query),
-      headers: encodeBySchema(endpoint.headers, opts.headers),
-      payload: encodeBySchema(payloadSchema, opts.payload),
-      reactivityKeys: opts.reactivityKeys,
-      timeToLive: opts.timeToLive ? Duration.toMillis(opts.timeToLive) : undefined
-    })
-  }`
-}
+  key: QueryKey
+): string => `AtomHttpApi:${key.group}:${key.endpoint}:${Hash.hash(key)}`
