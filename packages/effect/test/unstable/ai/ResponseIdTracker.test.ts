@@ -68,6 +68,7 @@ describe("ResponseIdTracker", () => {
       assert.isTrue(Option.isSome(prepared))
       if (Option.isSome(prepared)) {
         assert.strictEqual(prepared.value.previousResponseId, "resp_2")
+        assert.deepStrictEqual(prepared.value.prompt, Prompt.fromMessages([msg2]))
       }
     }))
 
@@ -110,9 +111,23 @@ describe("ResponseIdTracker", () => {
       const tracker = yield* ResponseIdTracker.make
       const raceMessage = userMessage("race")
 
+      const markPartsRace = Effect.gen(function*() {
+        for (let i = 0; i < 200; i++) {
+          tracker.markParts([raceMessage], "resp_race")
+          yield* Effect.yieldNow
+        }
+      })
+
+      const clearRace = Effect.gen(function*() {
+        for (let i = 0; i < 200; i++) {
+          yield* tracker.clear
+          yield* Effect.yieldNow
+        }
+      })
+
       yield* Effect.all([
-        Effect.repeat(Effect.sync(() => tracker.markParts([raceMessage], "resp_race")), { times: 200 }),
-        Effect.repeat(tracker.clear, { times: 200 })
+        markPartsRace,
+        clearRace
       ], {
         concurrency: "unbounded",
         discard: true
@@ -127,6 +142,7 @@ describe("ResponseIdTracker", () => {
       assert.isTrue(Option.isSome(prepared))
       if (Option.isSome(prepared)) {
         assert.strictEqual(prepared.value.previousResponseId, "resp_final")
+        assert.deepStrictEqual(prepared.value.prompt, Prompt.fromMessages([msg2]))
       }
     }))
 })
