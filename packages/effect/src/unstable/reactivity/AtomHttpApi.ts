@@ -5,17 +5,18 @@ import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
 import type { ReadonlyRecord } from "../../Record.ts"
+import * as Schema from "../../Schema.ts"
 import type { SchemaError } from "../../Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { Mutable, Simplify } from "../../Types.ts"
 import type * as HttpClient from "../http/HttpClient.ts"
-import type * as HttpClientError from "../http/HttpClientError.ts"
+import * as HttpClientError from "../http/HttpClientError.ts"
 import type { HttpClientResponse } from "../http/HttpClientResponse.ts"
 import type * as HttpApi from "../httpapi/HttpApi.ts"
 import * as HttpApiClient from "../httpapi/HttpApiClient.ts"
-import type * as HttpApiEndpoint from "../httpapi/HttpApiEndpoint.ts"
+import * as HttpApiEndpoint from "../httpapi/HttpApiEndpoint.ts"
 import type * as HttpApiGroup from "../httpapi/HttpApiGroup.ts"
-import type * as AsyncResult from "./AsyncResult.ts"
+import * as AsyncResult from "./AsyncResult.ts"
 import * as Atom from "./Atom.ts"
 import * as Reactivity from "./Reactivity.ts"
 
@@ -204,6 +205,22 @@ export const Service = <Self>() =>
       const client = client_ as any
       return client[opts.group][opts.endpoint](opts) as Effect.Effect<any>
     }))
+    const group = (options.api.groups as any)[opts.group] as HttpApiGroup.AnyWithProps | undefined
+    const endpoint = group?.endpoints[opts.endpoint] as HttpApiEndpoint.AnyWithProps | undefined
+    if (endpoint && opts.withResponse === false) {
+      const payloadSchemas = HttpApiEndpoint.getPayloadSchemas(endpoint)
+      atom = Atom.serializable(atom, {
+        key: makeSerializableKey(id, options.api.identifier, endpoint, opts, payloadSchemas),
+        schema: AsyncResult.Schema({
+          success: toSchema(HttpApiEndpoint.getSuccessSchemas(endpoint)),
+          error: toSchema([
+            ...HttpApiEndpoint.getErrorSchemas(endpoint),
+            HttpClientError.HttpClientErrorSchema,
+            Schema.Unknown
+          ])
+        }) as any
+      })
+    }
     if (opts.timeToLive) {
       atom = Duration.isFinite(opts.timeToLive)
         ? Atom.setIdleTTL(atom, opts.timeToLive)
@@ -260,4 +277,42 @@ interface QueryKey {
   withResponse: boolean
   reactivityKeys?: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
   timeToLive?: Duration.Duration | undefined
+}
+
+const toSchema = (schemas: ReadonlyArray<Schema.Top>): Schema.Top =>
+  schemas.length === 1 ? schemas[0]! : Schema.Union(schemas)
+
+const encodeBySchema = (schema: Schema.Top | undefined, value: unknown): unknown =>
+  schema === undefined || value === undefined
+    ? value
+    : (() => {
+      try {
+        return Schema.encodeSync(Schema.toCodecJson(schema as any) as any)(value as any)
+      } catch {
+        return value
+      }
+    })()
+
+const makeSerializableKey = (
+  id: string,
+  apiId: string,
+  endpoint: HttpApiEndpoint.AnyWithProps,
+  opts: QueryKey,
+  payloadSchemas: ReadonlyArray<Schema.Top>
+): string => {
+  const payloadSchema = payloadSchemas.length === 0
+    ? undefined
+    : payloadSchemas.length === 1
+    ? payloadSchemas[0]!
+    : Schema.Union(payloadSchemas)
+  return `AtomHttpApi:${id}:${apiId}:${opts.group}:${opts.endpoint}:${
+    JSON.stringify({
+      params: encodeBySchema(endpoint.params, opts.params),
+      query: encodeBySchema(endpoint.query, opts.query),
+      headers: encodeBySchema(endpoint.headers, opts.headers),
+      payload: encodeBySchema(payloadSchema, opts.payload),
+      reactivityKeys: opts.reactivityKeys,
+      timeToLive: opts.timeToLive ? Duration.toMillis(opts.timeToLive) : undefined
+    }, (_, value) => typeof value === "bigint" ? value.toString() : value)
+  }`
 }

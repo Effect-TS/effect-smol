@@ -5,6 +5,7 @@ import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
 import type { ReadonlyRecord } from "../../Record.ts"
+import * as Schema from "../../Schema.ts"
 import type { Scope } from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
@@ -16,7 +17,7 @@ import type { RpcClientError } from "../rpc/RpcClientError.ts"
 import type * as RpcGroup from "../rpc/RpcGroup.ts"
 import type { RequestId } from "../rpc/RpcMessage.ts"
 import * as RpcSchema from "../rpc/RpcSchema.ts"
-import type * as AsyncResult from "./AsyncResult.ts"
+import * as AsyncResult from "./AsyncResult.ts"
 import * as Atom from "./Atom.ts"
 import * as Reactivity from "./Reactivity.ts"
 
@@ -175,6 +176,8 @@ export const Service = <Self>() =>
   const queryFamily = Atom.family(
     ({ headers, payload, reactivityKeys, tag, timeToLive }: QueryKey) => {
       const rpc = options.group.requests.get(tag)! as any as Rpc.AnyWithProps
+      const streamSchemas = RpcSchema.getStreamSchemas(rpc.successSchema)
+      const errorSchema = makeErrorSchema(rpc, streamSchemas?.error)
       let atom = RpcSchema.isStreamSchema(rpc.successSchema)
         ? self.runtime.pull(
           Stream.unwrap(
@@ -188,6 +191,24 @@ export const Service = <Self>() =>
         : self.runtime.atom(
           self.use((client) => client(tag, payload, { headers } as any)) as any
         )
+      atom = Atom.serializable(atom, {
+        key: makeSerializableKey(id, rpc, {
+          tag,
+          payload,
+          headers,
+          reactivityKeys,
+          timeToLive
+        }),
+        schema: AsyncResult.Schema({
+          success: streamSchemas
+            ? Schema.Struct({
+              done: Schema.Boolean,
+              items: Schema.NonEmptyArray(streamSchemas.success)
+            })
+            : rpc.successSchema,
+          error: errorSchema
+        }) as any
+      })
       if (timeToLive) {
         atom = Duration.isFinite(timeToLive)
           ? Atom.setIdleTTL(atom, timeToLive)
@@ -235,4 +256,31 @@ interface QueryKey {
     | ReadonlyRecord<string, ReadonlyArray<unknown>>
     | undefined
   timeToLive?: Duration.Duration | undefined
+}
+
+const makeErrorSchema = (rpc: Rpc.AnyWithProps, streamError: Schema.Top | undefined): Schema.Top =>
+  Schema.Union([
+    rpc.errorSchema,
+    ...Array.from(rpc.middlewares, (middleware) => middleware.error),
+    ...(streamError ? [streamError] : []),
+    Schema.Unknown
+  ])
+
+const makeSerializableKey = (id: string, rpc: Rpc.AnyWithProps, key: QueryKey): string => {
+  return `AtomRpc:${id}:${rpc.key}:${
+    JSON.stringify({
+      payload: encodeBySchema(rpc.payloadSchema, key.payload),
+      headers: key.headers ? encodeBySchema(Headers.HeadersSchema, key.headers) : undefined,
+      reactivityKeys: key.reactivityKeys,
+      timeToLive: key.timeToLive ? Duration.toMillis(key.timeToLive) : undefined
+    }, (_, value) => typeof value === "bigint" ? value.toString() : value)
+  }`
+}
+
+const encodeBySchema = (schema: Schema.Top, value: unknown): unknown => {
+  try {
+    return Schema.encodeSync(Schema.toCodecJson(schema as any) as any)(value as any)
+  } catch {
+    return value
+  }
 }
