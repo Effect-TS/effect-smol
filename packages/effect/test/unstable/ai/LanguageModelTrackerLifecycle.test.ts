@@ -98,6 +98,7 @@ describe("LanguageModel tracker lifecycle integration", () => {
       }).pipe(provideModel)
 
       const thirdSentPrompt = providerOptions[2]!.prompt
+      const expectedPostDropFullPrompt = Prompt.fromMessages([...secondSentPrompt.content, assistant2, user3])
 
       yield* LanguageModel.generateText({
         prompt: Prompt.fromMessages([...thirdSentPrompt.content, assistant3, user4])
@@ -110,6 +111,7 @@ describe("LanguageModel tracker lifecycle integration", () => {
       assert.deepStrictEqual(providerOptions[1]!.incrementalPrompt, Prompt.fromMessages([user2]))
       assert.strictEqual(providerOptions[2]!.previousResponseId, undefined)
       assert.strictEqual(providerOptions[2]!.incrementalPrompt, undefined)
+      assert.deepStrictEqual(providerOptions[2]!.prompt, expectedPostDropFullPrompt)
       assert.strictEqual(providerOptions[3]!.previousResponseId, "resp_3")
       assert.deepStrictEqual(providerOptions[3]!.incrementalPrompt, Prompt.fromMessages([user4]))
     }))
