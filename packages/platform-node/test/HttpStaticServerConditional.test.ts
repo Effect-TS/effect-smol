@@ -3,7 +3,7 @@ import * as Effect from "effect/Effect"
 import * as FileSystem from "effect/FileSystem"
 import * as Path from "effect/Path"
 import * as PlatformError from "effect/PlatformError"
-import { HttpEffect, HttpPlatform, HttpServerResponse, HttpStaticFiles } from "effect/unstable/http"
+import { HttpEffect, HttpPlatform, HttpServerResponse, HttpStaticServer } from "effect/unstable/http"
 
 const root = "/root"
 const filePath = `${root}/file.txt`
@@ -54,7 +54,7 @@ const makeHandler = async () => {
   })
 
   const app = await Effect.runPromise(
-    HttpStaticFiles.make({
+    HttpStaticServer.make({
       root,
       cacheControl: "public, max-age=60"
     }).pipe(
@@ -67,7 +67,7 @@ const makeHandler = async () => {
   return HttpEffect.toWebHandler(app)
 }
 
-describe("HttpStaticFiles", () => {
+describe("HttpStaticServer", () => {
   it("304 with If-None-Match exact, weak, and wildcard", async () => {
     const handler = await makeHandler()
     const warmupResponse = await handler(new Request("http://localhost/file.txt"))

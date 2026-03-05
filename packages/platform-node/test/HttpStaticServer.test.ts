@@ -3,7 +3,7 @@ import * as NodeHttpPlatform from "@effect/platform-node/NodeHttpPlatform"
 import * as NodePathLayer from "@effect/platform-node/NodePath"
 import { assert, describe, it } from "@effect/vitest"
 import * as Layer from "effect/Layer"
-import { HttpRouter, HttpStaticFiles } from "effect/unstable/http"
+import { HttpRouter, HttpStaticServer } from "effect/unstable/http"
 import { copyFile, cp, mkdtemp, rm, utimes, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import * as NodePath from "node:path"
@@ -20,10 +20,10 @@ const staticFilesLayer = Layer.mergeAll(
 
 const makeHandler = (
   root: string,
-  options: Omit<Parameters<typeof HttpStaticFiles.make>[0], "root"> = {}
+  options: Omit<Parameters<typeof HttpStaticServer.make>[0], "root"> = {}
 ) =>
   HttpRouter.toWebHandler(
-    HttpStaticFiles.layer({
+    HttpStaticServer.layer({
       root,
       ...options
     }).pipe(Layer.provideMerge(staticFilesLayer)),
@@ -36,9 +36,9 @@ const withStaticFiles = async (
     readonly root: string
     readonly outsideFile: string
   }) => Promise<void>,
-  options: Omit<Parameters<typeof HttpStaticFiles.make>[0], "root"> = {}
+  options: Omit<Parameters<typeof HttpStaticServer.make>[0], "root"> = {}
 ) => {
-  const temporaryRoot = await mkdtemp(NodePath.join(tmpdir(), "effect-http-static-files-"))
+  const temporaryRoot = await mkdtemp(NodePath.join(tmpdir(), "effect-http-static-server-"))
   const root = NodePath.join(temporaryRoot, "root")
   const outsideFile = NodePath.join(temporaryRoot, NodePath.basename(fixturesOutsideFile))
 
@@ -56,7 +56,7 @@ const withStaticFiles = async (
   }
 }
 
-describe("HttpStaticFiles", () => {
+describe("HttpStaticServer", () => {
   it("serves files with expected content type and body", async () => {
     await withStaticFiles(async ({ handler }) => {
       const response = await handler(new Request("http://localhost/hello.txt"))

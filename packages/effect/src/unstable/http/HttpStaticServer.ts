@@ -19,10 +19,10 @@ import * as HttpServerResponse from "./HttpServerResponse.ts"
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import * as HttpStaticFiles from "effect/unstable/http/HttpStaticFiles"
+ * import * as HttpStaticServer from "effect/unstable/http/HttpStaticServer"
  *
  * const program = Effect.gen(function*() {
- *   const app = yield* HttpStaticFiles.make({ root: "./public" })
+ *   const app = yield* HttpStaticServer.make({ root: "./public" })
  *   return app
  * })
  * ```
@@ -173,11 +173,11 @@ export const make: (options: {
  * import { Layer } from "effect"
  * import * as HttpRouter from "effect/unstable/http/HttpRouter"
  * import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
- * import * as HttpStaticFiles from "effect/unstable/http/HttpStaticFiles"
+ * import * as HttpStaticServer from "effect/unstable/http/HttpStaticServer"
  *
  * const ApiLayer = HttpRouter.add("GET", "/health", HttpServerResponse.text("ok"))
  *
- * const StaticFilesLayer = HttpStaticFiles.layer({
+ * const StaticFilesLayer = HttpStaticServer.layer({
  *   root: "./public",
  *   prefix: "/static"
  * })
