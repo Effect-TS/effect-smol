@@ -53,9 +53,7 @@ import type * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
 import * as AiError from "./AiError.ts"
-import { CurrentCodecTransformer } from "./internal/codec-transformer.ts"
-import type { CodecTransformer } from "./LanguageModel.ts"
-import * as Tool from "./Tool.ts"
+import type * as Tool from "./Tool.ts"
 
 const TypeId = "~effect/ai/Toolkit" as const
 
@@ -298,24 +296,18 @@ const Proto = {
         readonly encodeResult: (u: unknown) => Effect.Effect<unknown, Schema.SchemaError>
       }>()
 
-      const getSchemas = (tool: Tool.Any, transformer: CodecTransformer) => {
+      const getSchemas = (tool: Tool.Any) => {
         let schemas = schemasCache.get(tool)
         if (Predicate.isUndefined(schemas)) {
           const handler = services.mapUnsafe.get(tool.id)! as Tool.Handler<any>
           const resultSchema = tool.failureMode === "return"
             ? Schema.Union([tool.successSchema, tool.failureSchema, AiError.AiError])
             : tool.successSchema
-          // Do not apply the codec transformation to provider defined tools,
-          // as these are defined internal to the Effect AI SDK and should
-          // already have valid schemas
-          const transformedResultSchema = Tool.isProviderDefined(tool)
-            ? resultSchema
-            : transformer(resultSchema).codec
           const decodeParameters = Schema.isSchema(tool.parametersSchema)
             ? Schema.decodeUnknownEffect(tool.parametersSchema) as any
             : (u: unknown) => Effect.succeed(u)
-          const decodeResult = Schema.decodeUnknownEffect(transformedResultSchema) as any
-          const encodeResult = Schema.encodeUnknownEffect(transformedResultSchema) as any
+          const decodeResult = Schema.decodeUnknownEffect(resultSchema) as any
+          const encodeResult = Schema.encodeUnknownEffect(resultSchema) as any
           schemas = {
             services: handler.services,
             handler: handler.handler,
@@ -349,8 +341,7 @@ const Proto = {
         }
 
         // Fetch cached schemas / handlers for the tool
-        const codecTransformer = yield* CurrentCodecTransformer
-        const schemas = getSchemas(tool, codecTransformer)
+        const schemas = getSchemas(tool)
 
         // Decode the tool call parameters which will be passed to the handler
         const decodedParams = yield* schemas.decodeParameters(params).pipe(

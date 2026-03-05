@@ -3,6 +3,7 @@ import { assertFalse, assertTrue, deepStrictEqual, strictEqual } from "@effect/v
 import { DateTime, Effect, Fiber, identity, Latch, Schema, Stream } from "effect"
 import { TestClock } from "effect/testing"
 import { AiError, LanguageModel, Response, Tool, Toolkit } from "effect/unstable/ai"
+import { toCodecOpenAI } from "effect/unstable/ai/OpenAiStructuredOutput"
 import * as TestUtils from "./utils.ts"
 
 describe("Tool", () => {
@@ -205,6 +206,47 @@ describe("Tool", () => {
               method: "FailureModeReturn.handle",
               reason: { _tag: "RateLimitError", metadata: {} }
             }
+          })
+        ])
+      }))
+
+    it.effect("should support failureMode return with OpenAI codec transformer", () =>
+      Effect.gen(function*() {
+        const toolkit = Toolkit.make(FailureModeReturn)
+
+        const toolResult = { testFailure: "failure-mode-return-tool" }
+        const handlers = toolkit.toLayer({
+          FailureModeReturn: () => Effect.fail(toolResult)
+        })
+
+        const toolCallId = "tool-123"
+        const toolName = "FailureModeReturn"
+
+        const response = yield* LanguageModel.generateText({
+          prompt: "Test",
+          toolkit
+        }).pipe(
+          TestUtils.withLanguageModel({
+            generateText: [{
+              type: "tool-call",
+              id: toolCallId,
+              name: toolName,
+              params: { testParam: "test-param" }
+            }]
+          }),
+          Effect.provide(handlers),
+          Effect.provideService(LanguageModel.CurrentCodecTransformer, toCodecOpenAI)
+        )
+
+        deepStrictEqual(response.toolResults, [
+          Response.makePart("tool-result", {
+            id: toolCallId,
+            name: toolName,
+            isFailure: true,
+            result: toolResult,
+            encodedResult: toolResult,
+            providerExecuted: false,
+            preliminary: false
           })
         ])
       }))
