@@ -20,3 +20,4 @@ This directory contains specifications for all major features and enhancements i
 - [filter-separate-apis.md](filter-separate-apis.md) - Reverse overloaded Filter consolidation: separate predicate/Filter APIs, convert Option-based filterMap to Filter.
 - [http-static-files.md](http-static-files.md) - Add static file serving for unstable HTTP (implemented as `HttpStaticServer`, originally specified as `HttpStaticFiles`) with MIME types, conditional requests, range requests, and SPA fallback.
 - [revert-option-unboxing.md](revert-option-unboxing.md) - Revert APIs from `A | undefined` back to `Option<A>` across effect, cluster, cli, and platform packages.
+- [response-id-tracking.md](response-id-tracking.md) - Add per-client response ID tracking for incremental input mode in OpenAI providers.
