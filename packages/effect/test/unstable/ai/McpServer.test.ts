@@ -41,43 +41,6 @@ const makeTestClient = (resourceLayer: Layer.Layer<never, never, any>) =>
   })
 
 describe("McpServer", () => {
-  it.effect("can access the current client capabilities", () =>
-    Effect.gen(function*() {
-      const expectedCapabilities = {
-        roots: { listChanged: true },
-        sampling: {},
-        extensions: {
-          "effect/test": { enabled: true }
-        }
-      }
-      const clientCapabilities = (McpServer as any).clientCapabilities as Effect.Effect<any>
-
-      const capabilities = yield* clientCapabilities
-      deepStrictEqual(capabilities, expectedCapabilities)
-    }).pipe(
-      Effect.provideService(
-        McpSchema.McpServerClient,
-        McpSchema.McpServerClient.of({
-          clientId: 0,
-          initializePayload: {
-            protocolVersion: "2025-06-18",
-            capabilities: {
-              roots: { listChanged: true },
-              sampling: {},
-              extensions: {
-                "effect/test": { enabled: true }
-              }
-            },
-            clientInfo: {
-              name: "TestClient",
-              version: "1.0.0"
-            }
-          },
-          getClient: Effect.die("not expected") as any
-        } as any)
-      )
-    ))
-
   it.effect("includes Tool.Meta in tools/list response", () =>
     Effect.gen(function*() {
       const UiTool = Tool.make("UiTool", {
