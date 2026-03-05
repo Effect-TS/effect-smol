@@ -198,6 +198,80 @@ const handlePlatformError = <A>(
 const acceptsHtml = (accept: string | undefined): boolean =>
   accept !== undefined && accept.toLowerCase().includes("text/html")
 
+const stripWeakEtagPrefix = (value: string): string => {
+  const trimmed = value.trim()
+  return /^w\//i.test(trimmed) ? trimmed.slice(2) : trimmed
+}
+
+const matchesIfNoneMatch = (ifNoneMatch: string, etag: string | undefined): boolean => {
+  const normalizedEtag = etag === undefined ? undefined : stripWeakEtagPrefix(etag)
+  for (const candidate of ifNoneMatch.split(",")) {
+    const value = candidate.trim()
+    if (value === "") {
+      continue
+    }
+    if (value === "*") {
+      return true
+    }
+    if (normalizedEtag !== undefined && stripWeakEtagPrefix(value) === normalizedEtag) {
+      return true
+    }
+  }
+  return false
+}
+
+const isNotModifiedSince = (ifModifiedSince: string, lastModified: string | undefined): boolean => {
+  if (lastModified === undefined) {
+    return false
+  }
+  const ifModifiedSinceMs = Date.parse(ifModifiedSince)
+  if (Number.isNaN(ifModifiedSinceMs)) {
+    return false
+  }
+  const lastModifiedMs = Date.parse(lastModified)
+  if (Number.isNaN(lastModifiedMs)) {
+    return false
+  }
+  return lastModifiedMs <= ifModifiedSinceMs
+}
+
+const notModifiedResponse = (
+  response: HttpServerResponse.HttpServerResponse
+): HttpServerResponse.HttpServerResponse => {
+  const headers: Record<string, string> = {}
+  const etag = response.headers["etag"]
+  if (etag !== undefined) {
+    headers["ETag"] = etag
+  }
+  const cacheControl = response.headers["cache-control"]
+  if (cacheControl !== undefined) {
+    headers["Cache-Control"] = cacheControl
+  }
+  const lastModified = response.headers["last-modified"]
+  if (lastModified !== undefined) {
+    headers["Last-Modified"] = lastModified
+  }
+  return HttpServerResponse.empty({
+    status: 304,
+    headers
+  })
+}
+
+const evaluateConditionalRequest = (
+  request: HttpServerRequest.HttpServerRequest,
+  response: HttpServerResponse.HttpServerResponse
+): HttpServerResponse.HttpServerResponse | undefined => {
+  const ifNoneMatch = request.headers["if-none-match"]
+  if (ifNoneMatch !== undefined) {
+    return matchesIfNoneMatch(ifNoneMatch, response.headers["etag"]) ? notModifiedResponse(response) : undefined
+  }
+  const ifModifiedSince = request.headers["if-modified-since"]
+  if (ifModifiedSince !== undefined && isNotModifiedSince(ifModifiedSince, response.headers["last-modified"])) {
+    return notModifiedResponse(response)
+  }
+  return undefined
+}
+
 /**
  * Creates an `HttpApp` that serves files from a directory.
  *
@@ -237,6 +311,20 @@ export const make: (options: Options) => Effect.Effect<
     ...options.mimeTypes
   }
 
+  const setFileHeaders = (
+    response: HttpServerResponse.HttpServerResponse,
+    filePath: string
+  ): HttpServerResponse.HttpServerResponse => {
+    let currentResponse = HttpServerResponse.setHeaders(response, {
+      "Content-Type": resolveMimeType(path, filePath, mimeTypes),
+      "Accept-Ranges": "bytes"
+    })
+    if (cacheControl !== undefined) {
+      currentResponse = HttpServerResponse.setHeader(currentResponse, "Cache-Control", cacheControl)
+    }
+    return currentResponse
+  }
+
   const serveFile: (
     request: HttpServerRequest.HttpServerRequest,
     filePath: string,
@@ -244,50 +332,59 @@ export const make: (options: Options) => Effect.Effect<
   ) => Effect.Effect<HttpServerResponse.HttpServerResponse, HttpServerError.RouteNotFound> = Effect.fnUntraced(
     function*(request, filePath, fileSize) {
       const rangeHeader = request.headers["range"]
+      const shouldEvaluateConditionals = request.headers["if-none-match"] !== undefined ||
+        request.headers["if-modified-since"] !== undefined
+
+      let fullResponse: HttpServerResponse.HttpServerResponse | undefined
+      if (shouldEvaluateConditionals) {
+        fullResponse = setFileHeaders(yield* handlePlatformError(request, platform.fileResponse(filePath)), filePath)
+        const conditionalResponse = evaluateConditionalRequest(request, fullResponse)
+        if (conditionalResponse !== undefined) {
+          return conditionalResponse
+        }
+        if (rangeHeader === undefined) {
+          return fullResponse
+        }
+      }
+
       const resolvedFileSize = rangeHeader === undefined
-        ? fileSize
+        ? undefined
         : fileSize ?? Number((yield* handlePlatformError(request, fileSystem.stat(filePath))).size)
       const parsedRange = rangeHeader === undefined || resolvedFileSize === undefined
         ? undefined
         : parseRange(rangeHeader, resolvedFileSize)
 
+      if (parsedRange === undefined) {
+        return fullResponse ??
+          setFileHeaders(yield* handlePlatformError(request, platform.fileResponse(filePath)), filePath)
+      }
+
       if (parsedRange === "unsatisfiable") {
         return HttpServerResponse.empty({
           status: 416,
           headers: {
-            "Content-Range": `bytes */${resolvedFileSize!}`
+            "Content-Range": `bytes */${resolvedFileSize}`
           }
         })
       }
 
-      const range = parsedRange
+      let response = setFileHeaders(
+        yield* handlePlatformError(
+          request,
+          platform.fileResponse(filePath, {
+            status: 206,
+            offset: parsedRange.start,
+            bytesToRead: parsedRange.end - parsedRange.start + 1
+          })
+        ),
+        filePath
+      )
 
-      const responseOptions = range === undefined
-        ? undefined
-        : {
-          status: 206,
-          offset: range.start,
-          bytesToRead: range.end - range.start + 1
-        }
-
-      let response = yield* handlePlatformError(request, platform.fileResponse(filePath, responseOptions))
-
-      response = HttpServerResponse.setHeaders(response, {
-        "Content-Type": resolveMimeType(path, filePath, mimeTypes),
-        "Accept-Ranges": "bytes"
-      })
-
-      if (range !== undefined && resolvedFileSize !== undefined) {
-        response = HttpServerResponse.setHeader(
-          response,
-          "Content-Range",
-          `bytes ${range.start}-${range.end}/${resolvedFileSize}`
-        )
-      }
-
-      if (cacheControl !== undefined) {
-        response = HttpServerResponse.setHeader(response, "Cache-Control", cacheControl)
-      }
+      response = HttpServerResponse.setHeader(
+        response,
+        "Content-Range",
+        `bytes ${parsedRange.start}-${parsedRange.end}/${resolvedFileSize}`
+      )
 
       return response
     }
