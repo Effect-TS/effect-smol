@@ -396,12 +396,15 @@ export const make: (options: Options) => Effect.Effect<
       return Effect.fail(toRouteNotFound(request))
     }
 
-    return handlePlatformError(request, fileSystem.stat(resolvedPath)).pipe(
+    return fileSystem.stat(resolvedPath).pipe(
       Effect.matchEffect({
-        onFailure: (routeNotFound) =>
-          spa && index !== undefined && path.extname(resolvedPath) === "" && acceptsHtml(request.headers["accept"])
+        onFailure: (error) =>
+          error.reason._tag === "NotFound" &&
+            spa && index !== undefined && path.extname(resolvedPath) === "" && acceptsHtml(request.headers["accept"])
             ? serveFile(request, path.join(resolvedRoot, index))
-            : Effect.fail(routeNotFound),
+            : error.reason._tag === "NotFound"
+            ? Effect.fail(toRouteNotFound(request))
+            : Effect.die(error),
         onSuccess: (info) => {
           if (info.type === "File") {
             return serveFile(request, resolvedPath, Number(info.size))
