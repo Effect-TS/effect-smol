@@ -464,6 +464,68 @@ describe("LanguageModel", () => {
         strictEqual(markedResponseId, "resp_next")
       }))
 
+    it("uses tracker prepare and markParts in streamText with empty toolkit", () =>
+      Effect.gen(function*() {
+        let capturedOptions: LanguageModel.ProviderOptions | undefined
+        let preparedPrompt: LanguageModel.ProviderOptions["prompt"] | undefined
+        let markedParts: ReadonlyArray<object> | undefined
+        let markedResponseId: string | undefined
+
+        const incrementalPrompt = Prompt.make([
+          Prompt.userMessage({ content: [Prompt.textPart({ text: "incremental" })] })
+        ])
+
+        const tracker: NonNullable<LanguageModel.ConstructorParams["tracker"]> = {
+          clear: Effect.void,
+          onSessionDrop: Effect.void,
+          markParts: (parts, responseId) => {
+            markedParts = parts
+            markedResponseId = responseId
+          },
+          prepare: (prompt) =>
+            Effect.sync(() => {
+              preparedPrompt = prompt
+              return Option.some({
+                previousResponseId: "resp_prev",
+                prompt: incrementalPrompt
+              })
+            })
+        }
+
+        yield* LanguageModel.streamText({
+          prompt: [Prompt.userMessage({ content: [Prompt.textPart({ text: "hello" })] })],
+          toolkit: Toolkit.empty
+        }).pipe(
+          Stream.runDrain,
+          Effect.provideServiceEffect(
+            LanguageModel.LanguageModel,
+            LanguageModel.make({
+              generateText: () => Effect.succeed([]),
+              streamText: (options) => {
+                capturedOptions = options
+                return Stream.fromIterable([
+                  {
+                    type: "response-metadata",
+                    id: "resp_next"
+                  },
+                  finishPart
+                ])
+              },
+              tracker
+            })
+          )
+        )
+
+        assertDefined(capturedOptions)
+        assertDefined(preparedPrompt)
+        strictEqual(preparedPrompt, capturedOptions.prompt)
+        strictEqual(capturedOptions.previousResponseId, "resp_prev")
+        strictEqual(capturedOptions.incrementalPrompt, incrementalPrompt)
+        assertDefined(markedParts)
+        strictEqual(markedParts, capturedOptions.prompt.content)
+        strictEqual(markedResponseId, "resp_next")
+      }))
+
     it("calls tracker.prepare after stripping resolved approvals in streamText toolkit flow", () =>
       Effect.gen(function*() {
         const toolCallId = "call-tracker-stream"
@@ -551,6 +613,113 @@ describe("LanguageModel", () => {
         }
         assertDefined(markedParts)
         strictEqual(markedParts, preparedPrompt.content)
+      }))
+
+    it("uses tracker prepare and markParts when disableToolCallResolution is true", () =>
+      Effect.gen(function*() {
+        const toolCallId = "call-tracker-stream-disable"
+        const approvalId = "approval-tracker-stream-disable"
+
+        let capturedOptions: LanguageModel.ProviderOptions | undefined
+        let preparedPrompt: LanguageModel.ProviderOptions["prompt"] | undefined
+        let markedParts: ReadonlyArray<object> | undefined
+        let markedResponseId: string | undefined
+
+        const incrementalPrompt = Prompt.make([
+          Prompt.userMessage({ content: [Prompt.textPart({ text: "incremental" })] })
+        ])
+
+        const tracker: NonNullable<LanguageModel.ConstructorParams["tracker"]> = {
+          clear: Effect.void,
+          onSessionDrop: Effect.void,
+          markParts: (parts, responseId) => {
+            markedParts = parts
+            markedResponseId = responseId
+          },
+          prepare: (prompt) =>
+            Effect.sync(() => {
+              preparedPrompt = prompt
+              return Option.some({
+                previousResponseId: "resp_prev",
+                prompt: incrementalPrompt
+              })
+            })
+        }
+
+        const prompt: Array<Prompt.Message> = [
+          Prompt.assistantMessage({
+            content: [
+              Prompt.makePart("tool-call", {
+                id: toolCallId,
+                name: "ApprovalTool",
+                params: { action: "delete" },
+                providerExecuted: false
+              }),
+              Prompt.makePart("tool-approval-request", {
+                approvalId,
+                toolCallId
+              })
+            ]
+          }),
+          Prompt.toolMessage({
+            content: [
+              Prompt.toolApprovalResponsePart({
+                approvalId,
+                approved: true
+              }),
+              Prompt.toolResultPart({
+                id: toolCallId,
+                name: "ApprovalTool",
+                result: { result: "approved-result" },
+                isFailure: false
+              })
+            ]
+          }),
+          Prompt.userMessage({ content: [Prompt.textPart({ text: "continue" })] })
+        ]
+
+        yield* LanguageModel.streamText({
+          prompt,
+          toolkit: ApprovalToolkit,
+          disableToolCallResolution: true
+        }).pipe(
+          Stream.runDrain,
+          Effect.provideServiceEffect(
+            LanguageModel.LanguageModel,
+            LanguageModel.make({
+              generateText: () => Effect.succeed([]),
+              streamText: (options) => {
+                capturedOptions = options
+                return Stream.fromIterable([
+                  {
+                    type: "response-metadata",
+                    id: "resp_next"
+                  },
+                  finishPart
+                ])
+              },
+              tracker
+            })
+          ),
+          Effect.provide(ApprovalToolkitLayer)
+        )
+
+        assertDefined(capturedOptions)
+        assertDefined(preparedPrompt)
+        strictEqual(preparedPrompt, capturedOptions.prompt)
+        strictEqual(capturedOptions.previousResponseId, "resp_prev")
+        strictEqual(capturedOptions.incrementalPrompt, incrementalPrompt)
+        for (const msg of preparedPrompt.content) {
+          if (msg.role === "assistant") {
+            strictEqual(msg.content.filter((p) => p.type === "tool-approval-request").length, 0)
+          }
+          if (msg.role === "tool") {
+            strictEqual(msg.content.filter((p) => p.type === "tool-approval-response").length, 0)
+          }
+        }
+        assertDefined(markedParts)
+        strictEqual(markedParts, capturedOptions.prompt.content)
+        strictEqual(markedResponseId, "resp_next")
       }))
   })
 
