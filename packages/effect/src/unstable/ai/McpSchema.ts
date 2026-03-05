@@ -2122,3 +2122,16 @@ export function param<const Name extends string, S extends Schema.Top>(
 ): Param<Name, S> {
   return Schema.make(schema.ast, { [ParamSchemaTypeId]: ParamSchemaTypeId, name, schema })
 }
+
+/**
+ * Annotation to conditionally enable or disable tools based on client
+ * information.
+ *
+ * @since 4.0.0
+ * @category annotations
+ */
+export class EnabledWhen
+  extends ServiceMap.Service<EnabledWhen, Predicate.Predicate<typeof Initialize.payloadSchema.Type>>()(
+    "effect/unstable/ai/McpSchema/EnabledWhen"
+  )
+{}
