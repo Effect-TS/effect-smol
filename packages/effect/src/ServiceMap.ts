@@ -62,7 +62,7 @@ export interface Key<in out Identifier, in out Shape> extends Pipeable, Inspecta
 export interface Service<in out Identifier, in out Shape>
   extends Key<Identifier, Shape>, Yieldable<Service<Identifier, Shape>, Shape, never, Identifier>
 {
-  of(self: Shape): Shape
+  of(this: void, self: Shape): Shape
   serviceMap(self: Shape): ServiceMap<Identifier>
   use<A, E, R>(f: (service: Shape) => Effect<A, E, R>): Effect<A, E, R | Identifier>
   useSync<A>(f: (service: Shape) => A): Effect<A, never, Identifier>
@@ -204,7 +204,7 @@ const ServiceProto: any = {
     const fn = this.asEffect = constant(withFiber((fiber) => exitSucceed(get(fiber.services, this))))
     return fn()
   },
-  of<Service>(self: Service): Service {
+  of<Service>(this: void, self: Service): Service {
     return self
   },
   serviceMap<Identifier, Shape>(
