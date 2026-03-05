@@ -596,11 +596,11 @@ const computeIncrementalPrompt = (
   prompt: Prompt.Prompt,
   tracker: ResponseIdTracker.Service
 ): IncrementalResult => {
-  const parts = prompt.content
+  const messages = prompt.content
 
   let lastAssistantIndex = -1
-  for (let i = parts.length - 1; i >= 0; i--) {
-    if (parts[i].role === "assistant") {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === "assistant") {
       lastAssistantIndex = i
       break
     }
@@ -611,19 +611,19 @@ const computeIncrementalPrompt = (
   }
 
   for (let i = 0; i < lastAssistantIndex; i++) {
-    if (!tracker.hasPart(parts[i])) {
+    if (!tracker.hasPart(messages[i])) {
       return { _tag: "Diverged" }
     }
   }
 
-  const incremental = parts.slice(lastAssistantIndex + 1)
-  if (incremental.length === 0) {
+  const partsAfterLastAssistant = messages.slice(lastAssistantIndex + 1)
+  if (partsAfterLastAssistant.length === 0) {
     return { _tag: "None" }
   }
 
   return {
     _tag: "Incremental",
-    prompt: Prompt.fromMessages(incremental)
+    prompt: Prompt.fromMessages(partsAfterLastAssistant)
   }
 }
 
