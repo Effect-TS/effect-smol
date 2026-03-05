@@ -3,6 +3,7 @@
  */
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
+import * as Hash from "../../Hash.ts"
 import * as Layer from "../../Layer.ts"
 import type { ReadonlyRecord } from "../../Record.ts"
 import * as Schema from "../../Schema.ts"
@@ -268,12 +269,12 @@ const makeErrorSchema = (rpc: Rpc.AnyWithProps, streamError: Schema.Top | undefi
 
 const makeSerializableKey = (id: string, rpc: Rpc.AnyWithProps, key: QueryKey): string => {
   return `AtomRpc:${id}:${rpc.key}:${
-    JSON.stringify({
+    Hash.hash({
       payload: encodeBySchema(rpc.payloadSchema, key.payload),
       headers: key.headers ? encodeBySchema(Headers.HeadersSchema, key.headers) : undefined,
       reactivityKeys: key.reactivityKeys,
       timeToLive: key.timeToLive ? Duration.toMillis(key.timeToLive) : undefined
-    }, (_, value) => typeof value === "bigint" ? value.toString() : value)
+    })
   }`
 }
 

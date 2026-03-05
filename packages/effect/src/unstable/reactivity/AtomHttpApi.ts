@@ -3,6 +3,7 @@
  */
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
+import * as Hash from "../../Hash.ts"
 import * as Layer from "../../Layer.ts"
 import type { ReadonlyRecord } from "../../Record.ts"
 import * as Schema from "../../Schema.ts"
@@ -306,13 +307,13 @@ const makeSerializableKey = (
     ? payloadSchemas[0]!
     : Schema.Union(payloadSchemas)
   return `AtomHttpApi:${id}:${apiId}:${opts.group}:${opts.endpoint}:${
-    JSON.stringify({
+    Hash.hash({
       params: encodeBySchema(endpoint.params, opts.params),
       query: encodeBySchema(endpoint.query, opts.query),
       headers: encodeBySchema(endpoint.headers, opts.headers),
       payload: encodeBySchema(payloadSchema, opts.payload),
       reactivityKeys: opts.reactivityKeys,
       timeToLive: opts.timeToLive ? Duration.toMillis(opts.timeToLive) : undefined
-    }, (_, value) => typeof value === "bigint" ? value.toString() : value)
+    })
   }`
 }

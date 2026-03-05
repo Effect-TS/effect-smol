@@ -54,8 +54,15 @@ describe("AtomHttpApi", () => {
         assert.fail("expected query atom to be serializable")
       }
       const key = atom[Atom.SerializableTypeId].key
-      assert.include(key, "\"id\":\"1\"")
-      assert.include(key, "\"page\":\"2\"")
+
+      const atomFromEncodedInput = (Client.query as any)("group", "get", {
+        params: { id: "1" },
+        query: { page: "2" }
+      })
+      if (!Atom.isSerializable(atomFromEncodedInput)) {
+        assert.fail("expected query atom from encoded input to be serializable")
+      }
+      assert.strictEqual(atomFromEncodedInput[Atom.SerializableTypeId].key, key)
 
       const registry = AtomRegistry.make()
       const unmount = registry.mount(atom)
