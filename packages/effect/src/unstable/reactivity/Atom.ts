@@ -1623,11 +1623,11 @@ export const swr: {
       }
       return current
     }
-    return isWritable(self)
+    return (isWritable(self)
       ? writable(read, (ctx, value) => {
         ctx.set(self, value)
       }, refresh)
-      : readable(read, refresh)
+      : readable(read, refresh)).pipe(removeTtl)
   }
 ) as any
 
