@@ -32,22 +32,23 @@ export interface Service {
  * @since 4.0.0
  * @category constructors
  */
-export const make: Effect.Effect<ResponseIdTracker["Service"]> = Effect.sync(() => {
+export const make: Effect.Effect<Service> = Effect.sync(() => {
   const ref = Ref.makeUnsafe<Option.Option<string>>(Option.none())
   const sentParts = new WeakSet<object>()
+  const clear = Ref.set(ref, Option.none())
 
-  return ResponseIdTracker.of({
+  return {
     get: Ref.get(ref),
     set: (id) => Ref.set(ref, Option.some(id)),
-    clear: Ref.set(ref, Option.none()),
-    onSessionDrop: Ref.set(ref, Option.none()),
+    clear,
+    onSessionDrop: clear,
     markParts: (parts) => {
       for (const part of parts) {
         sentParts.add(part)
       }
     },
     hasPart: (part) => sentParts.has(part)
-  })
+  }
 })
 
 /**
