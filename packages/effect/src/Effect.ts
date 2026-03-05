@@ -7907,7 +7907,7 @@ export const withParentSpan: {
  * )
  *
  * const program = Effect.gen(function*() {
- *   const name = yield* Effect.request(GetUser({ id: 1 }), Effect.succeed(resolver))
+ *   const name = yield* Effect.request(GetUser({ id: 1 }), resolver)
  *   yield* Console.log(name)
  * })
  * ```
