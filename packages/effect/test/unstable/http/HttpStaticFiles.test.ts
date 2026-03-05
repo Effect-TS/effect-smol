@@ -9,6 +9,7 @@ import { tmpdir } from "node:os"
 import * as NodePath from "node:path"
 
 let root = ""
+let outsideFile = ""
 
 const toPlatformError = (method: string, path: string, cause: unknown) => {
   const error = typeof cause === "object" && cause !== null ?
@@ -66,6 +67,7 @@ const makeHandler = (options: Omit<HttpStaticFiles.Options, "root"> = {}) =>
 describe("HttpStaticFiles", () => {
   beforeAll(async () => {
     root = await mkdtemp(NodePath.join(tmpdir(), "effect-http-static-files-"))
+    outsideFile = NodePath.join(NodePath.dirname(root), `${NodePath.basename(root)}-outside.txt`)
 
     await mkdir(NodePath.join(root, "docs"), { recursive: true })
     await mkdir(NodePath.join(root, "custom"), { recursive: true })
@@ -77,13 +79,17 @@ describe("HttpStaticFiles", () => {
       writeFile(NodePath.join(root, "custom", "home.html"), "<html><body>custom home</body></html>"),
       writeFile(NodePath.join(root, "range.txt"), "0123456789abcdefghijklmnopqrstuvwxyz"),
       writeFile(NodePath.join(root, "conditional.txt"), "initial conditional body"),
-      writeFile(NodePath.join(root, "file.binx"), "binary-ish")
+      writeFile(NodePath.join(root, "file.binx"), "binary-ish"),
+      writeFile(outsideFile, "outside root")
     ])
   })
 
   afterAll(async () => {
     if (root !== "") {
       await rm(root, { recursive: true, force: true })
+    }
+    if (outsideFile !== "") {
+      await rm(outsideFile, { force: true })
     }
   })
 
@@ -254,8 +260,15 @@ describe("HttpStaticFiles", () => {
     try {
       const plainTraversal = await handler(new Request("http://localhost/../../../etc/passwd"))
       const encodedTraversal = await handler(new Request("http://localhost/..%2F..%2Fetc%2Fpasswd"))
+      const encodedExistingParentFileTraversal = await handler(
+        new Request(`http://localhost/..%2F${encodeURIComponent(NodePath.basename(outsideFile))}`)
+      )
 
-      deepStrictEqual([plainTraversal.status, encodedTraversal.status], [404, 404])
+      deepStrictEqual([plainTraversal.status, encodedTraversal.status, encodedExistingParentFileTraversal.status], [
+        404,
+        404,
+        404
+      ])
     } finally {
       await dispose()
     }
