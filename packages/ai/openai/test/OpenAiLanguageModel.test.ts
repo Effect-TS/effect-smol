@@ -2,7 +2,7 @@ import { Generated, OpenAiClient, OpenAiLanguageModel, OpenAiTool } from "@effec
 import { assert, describe, it } from "@effect/vitest"
 import { deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import { Array, Effect, Layer, Redacted, Ref, Schema, ServiceMap, Stream } from "effect"
-import { LanguageModel, Prompt, Tool, Toolkit } from "effect/unstable/ai"
+import { LanguageModel, Prompt, ResponseIdTracker, Tool, Toolkit } from "effect/unstable/ai"
 import { HttpClient, type HttpClientError, HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 
 describe("OpenAiLanguageModel", () => {
@@ -915,14 +915,17 @@ const makeStreamTestLayer = (events: ReadonlyArray<typeof Generated.ResponseStre
     })
   )
 
-  return Layer.succeed(
+  return Layer.effect(
     OpenAiClient.OpenAiClient,
-    OpenAiClient.OpenAiClient.of({
-      client: undefined as any,
-      tracker: undefined as any,
-      createResponse: () => Effect.die(new Error("unexpected createResponse call")),
-      createResponseStream: () => Effect.succeed([response, Stream.fromIterable(events)]),
-      createEmbedding: () => Effect.die(new Error("unexpected createEmbedding call"))
+    Effect.gen(function*() {
+      const tracker = yield* ResponseIdTracker.make
+      return OpenAiClient.OpenAiClient.of({
+        client: undefined as any,
+        tracker,
+        createResponse: () => Effect.die(new Error("unexpected createResponse call")),
+        createResponseStream: () => Effect.succeed([response, Stream.fromIterable(events)]),
+        createEmbedding: () => Effect.die(new Error("unexpected createEmbedding call"))
+      })
     })
   )
 }
