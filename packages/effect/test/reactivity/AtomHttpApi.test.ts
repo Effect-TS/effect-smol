@@ -55,9 +55,9 @@ describe("AtomHttpApi", () => {
       }
       const key = atom[Atom.SerializableTypeId].key
 
-      const atomFromEncodedInput = (Client.query as any)("group", "get", {
-        params: { id: "1" },
-        query: { page: "2" }
+      const atomFromEncodedInput = Client.query("group", "get", {
+        params: { id: 1 },
+        query: { page: 2 }
       })
       if (!Atom.isSerializable(atomFromEncodedInput)) {
         assert.fail("expected query atom from encoded input to be serializable")
@@ -71,9 +71,7 @@ describe("AtomHttpApi", () => {
       yield* Effect.yieldNow
 
       const request = yield* Ref.get(requestRef)
-      if (request === undefined) {
-        assert.fail("expected query request to execute")
-      }
+      assert(request !== undefined)
       assert.strictEqual(request.url, "/users/1")
       assert.deepStrictEqual(request.urlParams, [["page", "2"]])
 

@@ -45,14 +45,12 @@ describe("AtomRpc", () => {
       }
       const key = atom[Atom.SerializableTypeId].key
 
-      const atomFromEncodedPayload = (Client.query as any)("getUser", { id: "1" }, {
+      const atomFromEncodedPayload = Client.query("getUser", { id: 1 }, {
         headers: {
           "x-id": "abc"
         }
       })
-      if (!Atom.isSerializable(atomFromEncodedPayload)) {
-        assert.fail("expected query atom from encoded payload to be serializable")
-      }
+      assert(Atom.isSerializable(atomFromEncodedPayload), "expected query atom from encoded payload to be serializable")
       assert.strictEqual(atomFromEncodedPayload[Atom.SerializableTypeId].key, key)
 
       const registry = AtomRegistry.make()
