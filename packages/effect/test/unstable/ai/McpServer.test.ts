@@ -1,6 +1,6 @@
 import { describe, it } from "@effect/vitest"
 import { deepStrictEqual } from "@effect/vitest/utils"
-import { Effect, Layer, Schema } from "effect"
+import { Effect, Layer, Schema, ServiceMap } from "effect"
 import { Tool, Toolkit } from "effect/unstable/ai"
 import * as McpSchema from "effect/unstable/ai/McpSchema"
 import * as McpServer from "effect/unstable/ai/McpServer"
@@ -141,6 +141,81 @@ describe("McpServer", () => {
       })
 
       deepStrictEqual(completeResult.completion.values, ["1", "2", "3"])
+      yield* Effect.promise(() => dispose())
+    }).pipe(Effect.scoped))
+
+  it.effect("persists client capabilities across HTTP requests", () =>
+    Effect.gen(function*() {
+      const serverLayer = McpServer.layerHttp({
+        name: "TestServer",
+        version: "1.0.0",
+        path: "/mcp"
+      }).pipe(
+        Layer.provideMerge(RpcSerialization.layerJsonRpc())
+      )
+      const registerLayer = Layer.effectDiscard(Effect.gen(function*() {
+        const server = yield* McpServer.McpServer
+        yield* server.addTool({
+          tool: new McpSchema.Tool({
+            name: "CapabilitiesTool",
+            inputSchema: {}
+          }),
+          annotations: ServiceMap.empty(),
+          handle: () =>
+            Effect.gen(function*() {
+              const capabilities = yield* McpServer.clientCapabilities
+              return new McpSchema.CallToolResult({
+                content: [{
+                  type: "text",
+                  text: "ok"
+                }],
+                structuredContent: { hasRootsCapability: capabilities.roots !== undefined }
+              })
+            })
+        })
+      })).pipe(
+        Layer.provide(serverLayer)
+      )
+      const appLayer = serverLayer.pipe(
+        Layer.merge(registerLayer)
+      )
+
+      const { handler, dispose } = HttpRouter.toWebHandler(appLayer as any, { disableLogger: true })
+
+      const customFetch: typeof fetch = (input, init) => {
+        const request = input instanceof Request ? input : new Request(input, init)
+        return handler(request)
+      }
+
+      const clientLayer = RpcClient.layerProtocolHttp({ url: "http://localhost/mcp" }).pipe(
+        Layer.provideMerge(RpcSerialization.layerJsonRpc()),
+        Layer.provideMerge(FetchHttpClient.layer),
+        Layer.provideMerge(Layer.succeed(FetchHttpClient.Fetch, customFetch))
+      )
+      const client = yield* RpcClient.make(McpSchema.ClientRpcs).pipe(
+        Effect.provide(clientLayer)
+      )
+
+      yield* client.initialize({
+        protocolVersion: "2025-06-18",
+        capabilities: {
+          roots: {
+            listChanged: true
+          }
+        },
+        clientInfo: {
+          name: "TestClient",
+          version: "1.0.0"
+        }
+      })
+
+      const result = yield* client["tools/call"]({
+        name: "CapabilitiesTool",
+        arguments: {}
+      })
+
+      deepStrictEqual(result.isError, undefined)
+      deepStrictEqual(result.structuredContent, { hasRootsCapability: true })
       yield* Effect.promise(() => dispose())
     }).pipe(Effect.scoped))
 })

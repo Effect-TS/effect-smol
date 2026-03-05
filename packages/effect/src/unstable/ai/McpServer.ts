@@ -335,6 +335,7 @@ export const run: (options: {
   const protocol = yield* RpcServer.Protocol
   const handlers = yield* Layer.build(layerHandlers(options))
   const server = yield* McpServer
+  const initializedClientSessions = new Map<string, typeof Initialize.payloadSchema["Type"]>()
 
   const clients = yield* RcMap.make({
     lookup: Effect.fnUntraced(function*(clientId: number) {
@@ -392,6 +393,17 @@ export const run: (options: {
           | RpcMessage.FromClientEncoded
         switch (request._tag) {
           case "Request": {
+            const headers = Headers.fromInput(request.headers)
+            const sessionId = Headers.get(headers, RpcClient.httpClientIdHeader)
+            if (sessionId !== undefined) {
+              const initializePayload = initializedClientSessions.get(sessionId)
+              if (initializePayload !== undefined) {
+                server.initializedClients.set(clientId, initializePayload)
+              }
+              if (request.tag === "initialize") {
+                initializedClientSessions.set(sessionId, request.payload as typeof Initialize.payloadSchema["Type"])
+              }
+            }
             const rpc = ClientNotificationRpcs.requests.get(request.tag)
             if (rpc) {
               if (request.tag === "notifications/cancelled") {
@@ -406,7 +418,7 @@ export const run: (options: {
                   rpc,
                   requestId: RpcMessage.RequestId(request.id),
                   clientId,
-                  headers: Headers.fromInput(request.headers)
+                  headers
                 }) as Effect.Effect<void>
                 : Effect.void
             }
