@@ -3,7 +3,6 @@
  */
 import * as Effect from "../../Effect.ts"
 import * as FileSystem from "../../FileSystem.ts"
-import { constant } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import * as Path from "../../Path.ts"
 import type { PlatformError } from "../../PlatformError.ts"
@@ -11,6 +10,7 @@ import * as HttpPlatform from "./HttpPlatform.ts"
 import * as HttpRouter from "./HttpRouter.ts"
 import * as HttpServerError from "./HttpServerError.ts"
 import * as HttpServerRequest from "./HttpServerRequest.ts"
+import * as HttpServerRespondable from "./HttpServerRespondable.ts"
 import * as HttpServerResponse from "./HttpServerResponse.ts"
 
 /**
@@ -39,7 +39,7 @@ export const make: (options: {
 }) => Effect.Effect<
   Effect.Effect<
     HttpServerResponse.HttpServerResponse,
-    HttpServerError.RouteNotFound,
+    HttpServerError.HttpServerError,
     HttpServerRequest.HttpServerRequest
   >,
   PlatformError,
@@ -76,7 +76,7 @@ export const make: (options: {
     request: HttpServerRequest.HttpServerRequest,
     filePath: string,
     fileSize?: number
-  ) => Effect.Effect<HttpServerResponse.HttpServerResponse, HttpServerError.RouteNotFound> = Effect.fnUntraced(
+  ) => Effect.Effect<HttpServerResponse.HttpServerResponse, HttpServerError.HttpServerError> = Effect.fnUntraced(
     function*(request, filePath, fileSize) {
       const rangeHeader = request.headers["range"]
       const shouldEvaluateConditionals = request.headers["if-none-match"] !== undefined ||
@@ -141,7 +141,7 @@ export const make: (options: {
   return HttpServerRequest.HttpServerRequest.use((request) => {
     const resolvedPath = resolveFilePath(path, resolvedRoot, request.url)
     if (resolvedPath === undefined) {
-      return Effect.fail(toRouteNotFound(request))
+      return Effect.fail(toRouteNotFoundError(request))
     }
 
     return Effect.matchEffect(fileSystem.stat(resolvedPath), {
@@ -150,8 +150,8 @@ export const make: (options: {
           spa && index !== undefined && path.extname(resolvedPath) === "" && acceptsHtml(request.headers["accept"])
           ? serveFile(request, path.join(resolvedRoot, index))
           : error.reason._tag === "NotFound"
-          ? Effect.fail(toRouteNotFound(request))
-          : Effect.die(error),
+          ? Effect.fail(toRouteNotFoundError(request))
+          : Effect.fail(toInternalServerError(request, error)),
       onSuccess(info) {
         if (info.type === "File") {
           return serveFile(request, resolvedPath, Number(info.size))
@@ -159,7 +159,7 @@ export const make: (options: {
         if (info.type === "Directory" && index !== undefined) {
           return serveFile(request, path.join(resolvedPath, index))
         }
-        return Effect.fail(toRouteNotFound(request))
+        return Effect.fail(toRouteNotFoundError(request))
       }
     })
   })
@@ -203,7 +203,7 @@ export const layer = (options: {
   Layer.effectDiscard(Effect.gen(function*() {
     const router = yield* HttpRouter.HttpRouter
     const handler = (yield* make(options)).pipe(
-      Effect.catch(constant(Effect.succeed(HttpServerResponse.empty({ status: 404 }))))
+      Effect.catch(HttpServerRespondable.toResponse)
     )
     if (options.prefix !== undefined) {
       yield* router.prefixed(options.prefix).add("GET", "/*", handler)
@@ -361,17 +361,21 @@ const resolveFilePath = (path: Path.Path, root: string, url: string): string | u
   return resolvedPath
 }
 
-const toRouteNotFound = (request: HttpServerRequest.HttpServerRequest) => new HttpServerError.RouteNotFound({ request })
+const toRouteNotFoundError = (request: HttpServerRequest.HttpServerRequest) =>
+  new HttpServerError.HttpServerError({ reason: new HttpServerError.RouteNotFound({ request }) })
+
+const toInternalServerError = (request: HttpServerRequest.HttpServerRequest, cause: unknown) =>
+  new HttpServerError.HttpServerError({ reason: new HttpServerError.InternalError({ request, cause }) })
 
 const handlePlatformError = <A>(
   request: HttpServerRequest.HttpServerRequest,
   self: Effect.Effect<A, PlatformError>
-): Effect.Effect<A, HttpServerError.RouteNotFound> =>
+): Effect.Effect<A, HttpServerError.HttpServerError> =>
   Effect.catchIf(
     self,
     (error): error is PlatformError => error.reason._tag === "NotFound",
-    () => Effect.fail(toRouteNotFound(request)),
-    (e) => Effect.die(e)
+    () => Effect.fail(toRouteNotFoundError(request)),
+    (error) => Effect.fail(toInternalServerError(request, error))
   )
 
 const acceptsHtml = (accept: string | undefined): boolean =>
