@@ -12,40 +12,56 @@ import { fromReadable } from "./NodeStream.ts"
  * @category Layers
  * @since 1.0.0
  */
-export const layer: Layer.Layer<Stdio.Stdio> = Layer.succeed(
+export const layer: Layer.Layer<Stdio.Stdio> = Layer.effect(
   Stdio.Stdio,
-  Stdio.make({
-    args: Effect.sync(() => process.argv.slice(2)),
-    stdout: fromWritable({
-      evaluate: () => process.stdout,
-      onError: (cause) =>
-        systemError({
-          module: "Stdio",
-          method: "stdout",
-          _tag: "Unknown",
-          cause
-        })
-    }),
-    stderr: fromWritable({
-      evaluate: () => process.stderr,
-      onError: (cause) =>
-        systemError({
-          module: "Stdio",
-          method: "stderr",
-          _tag: "Unknown",
-          cause
-        })
-    }),
-    stdin: fromReadable({
-      evaluate: () => process.stdin,
-      onError: (cause) =>
-        systemError({
-          module: "Stdio",
-          method: "stdin",
-          _tag: "Unknown",
-          cause
-        }),
-      closeOnDone: false
+  Effect.gen(function* () {
+    yield* Effect.addFinalizer(() =>
+      Effect.callback<void>((resume) => {
+        process.stdout.once("finish", () => resume(Effect.void))
+        process.stdout.end()
+      })
+    )
+    yield* Effect.addFinalizer(() =>
+      Effect.callback<void>((resume) => {
+        process.stderr.once("finish", () => resume(Effect.void))
+        process.stderr.end()
+      })
+    )
+    return Stdio.make({
+      args: Effect.sync(() => process.argv.slice(2)),
+      stdout: fromWritable({
+        evaluate: () => process.stdout,
+        onError: (cause) =>
+          systemError({
+            module: "Stdio",
+            method: "stdout",
+            _tag: "Unknown",
+            cause
+          }),
+        endOnDone: false
+      }),
+      stderr: fromWritable({
+        evaluate: () => process.stderr,
+        onError: (cause) =>
+          systemError({
+            module: "Stdio",
+            method: "stderr",
+            _tag: "Unknown",
+            cause
+          }),
+        endOnDone: false
+      }),
+      stdin: fromReadable({
+        evaluate: () => process.stdin,
+        onError: (cause) =>
+          systemError({
+            module: "Stdio",
+            method: "stdin",
+            _tag: "Unknown",
+            cause
+          }),
+        closeOnDone: false
+      })
     })
   })
 )
