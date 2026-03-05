@@ -1,9 +1,18 @@
 import { assert, describe, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import * as FileSystem from "effect/FileSystem"
+import * as Layer from "effect/Layer"
 import * as Path from "effect/Path"
 import * as PlatformError from "effect/PlatformError"
-import { HttpEffect, HttpPlatform, HttpServerResponse, HttpStaticServer } from "effect/unstable/http"
+import {
+  HttpEffect,
+  HttpPlatform,
+  HttpRouter,
+  HttpServerError,
+  HttpServerRequest,
+  HttpServerResponse,
+  HttpStaticServer
+} from "effect/unstable/http"
 
 const root = "/root"
 const filePath = `${root}/file.txt`
@@ -16,6 +25,15 @@ const notFoundError = (path: string) =>
     module: "FileSystem",
     method: "stat",
     description: "No such file or directory",
+    pathOrDescriptor: path
+  })
+
+const permissionDeniedError = (path: string) =>
+  PlatformError.systemError({
+    _tag: "PermissionDenied",
+    module: "FileSystem",
+    method: "stat",
+    description: "Operation not permitted",
     pathOrDescriptor: path
   })
 
@@ -65,6 +83,76 @@ const makeHandler = async () => {
   )
 
   return HttpEffect.toWebHandler(app)
+}
+
+const makeFailingApp = async (options: {
+  readonly statError?: PlatformError.PlatformError
+  readonly fileResponseError?: PlatformError.PlatformError
+}) => {
+  const fileSystem = FileSystem.makeNoop({
+    stat: (path) => {
+      if (options.statError !== undefined) {
+        return Effect.fail(options.statError)
+      }
+      return path === filePath ? Effect.succeed(fileInfo) : Effect.fail(notFoundError(path))
+    }
+  })
+
+  const httpPlatform = HttpPlatform.HttpPlatform.of({
+    fileResponse: (_path, fileOptions) => {
+      if (options.fileResponseError !== undefined) {
+        return Effect.fail(options.fileResponseError)
+      }
+      return Effect.succeed(HttpServerResponse.text(fileBody, {
+        status: fileOptions?.status,
+        headers: {
+          ETag: "\"etag-value\"",
+          "Last-Modified": lastModified
+        }
+      }))
+    },
+    fileWebResponse: () => Effect.die("not implemented")
+  })
+
+  return Effect.runPromise(
+    HttpStaticServer.make({ root }).pipe(
+      Effect.provide(Path.layer),
+      Effect.provideService(FileSystem.FileSystem, fileSystem),
+      Effect.provideService(HttpPlatform.HttpPlatform, httpPlatform)
+    )
+  )
+}
+
+const makeLayerHandler = (options: {
+  readonly statError?: PlatformError.PlatformError
+  readonly fileResponseError?: PlatformError.PlatformError
+}) => {
+  const fileSystem = FileSystem.makeNoop({
+    stat: (path) => {
+      if (options.statError !== undefined) {
+        return Effect.fail(options.statError)
+      }
+      return path === filePath ? Effect.succeed(fileInfo) : Effect.fail(notFoundError(path))
+    }
+  })
+  const httpPlatform = HttpPlatform.HttpPlatform.of({
+    fileResponse: () =>
+      options.fileResponseError !== undefined
+        ? Effect.fail(options.fileResponseError)
+        : Effect.succeed(HttpServerResponse.text(fileBody)),
+    fileWebResponse: () => Effect.die("not implemented")
+  })
+
+  const dependencies = Layer.mergeAll(
+    Path.layer,
+    Layer.succeed(FileSystem.FileSystem, fileSystem),
+    Layer.succeed(HttpPlatform.HttpPlatform, httpPlatform)
+  )
+
+  return HttpRouter.toWebHandler(
+    HttpStaticServer.layer({ root }).pipe(Layer.provideMerge(dependencies)),
+    { disableLogger: true }
+  )
 }
 
 describe("HttpStaticServer", () => {
@@ -157,5 +245,51 @@ describe("HttpStaticServer", () => {
     assert.strictEqual(response.headers.get("accept-ranges"), null)
     assert.strictEqual(response.headers.get("content-type"), null)
     assert.strictEqual(response.headers.get("content-length"), null)
+  })
+
+  it("wraps missing routes as HttpServerError RouteNotFound", async () => {
+    const app = await makeFailingApp({})
+    const error = await Effect.runPromise(
+      app.pipe(
+        Effect.provideService(
+          HttpServerRequest.HttpServerRequest,
+          HttpServerRequest.fromWeb(new Request("http://localhost/missing.txt"))
+        ),
+        Effect.flip
+      )
+    )
+
+    assert.instanceOf(error, HttpServerError.HttpServerError)
+    assert.strictEqual(error.reason._tag, "RouteNotFound")
+  })
+
+  it("maps non-NotFound platform failures to HttpServerError InternalError", async () => {
+    const statError = permissionDeniedError(filePath)
+    const app = await makeFailingApp({ statError })
+    const error = await Effect.runPromise(
+      app.pipe(
+        Effect.provideService(
+          HttpServerRequest.HttpServerRequest,
+          HttpServerRequest.fromWeb(new Request("http://localhost/file.txt"))
+        ),
+        Effect.flip
+      )
+    )
+
+    assert.instanceOf(error, HttpServerError.HttpServerError)
+    assert.strictEqual(error.reason._tag, "InternalError")
+    assert.strictEqual(error.reason.cause, statError)
+  })
+
+  it("layer renders InternalError responses as 500", async () => {
+    const { handler, dispose } = makeLayerHandler({
+      fileResponseError: permissionDeniedError(filePath)
+    })
+    try {
+      const response = await handler(new Request("http://localhost/file.txt"))
+      assert.strictEqual(response.status, 500)
+    } finally {
+      await dispose()
+    }
   })
 })
