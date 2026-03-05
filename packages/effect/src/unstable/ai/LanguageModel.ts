@@ -962,11 +962,24 @@ export const make: (params: {
           })
         })
       }
+      if (Predicate.isNotUndefined(params.tracker)) {
+        const prepared = yield* params.tracker.prepare(providerOptions.prompt)
+        if (Option.isSome(prepared)) {
+          providerOptions.previousResponseId = prepared.value.previousResponseId
+          providerOptions.incrementalPrompt = prepared.value.prompt
+        }
+      }
       const ResponseSchema = Schema.mutable(
         Schema.Array(Response.Part(Toolkit.empty))
       )
       const rawContent = yield* params.generateText(providerOptions)
       const content = yield* Schema.decodeEffect(ResponseSchema)(rawContent)
+      if (Predicate.isNotUndefined(params.tracker)) {
+        const responseMetadata = content.find((part) => part.type === "response-metadata")
+        if (Predicate.isNotUndefined(responseMetadata) && Predicate.isNotUndefined(responseMetadata.id)) {
+          params.tracker.markParts(providerOptions.prompt.content, responseMetadata.id)
+        }
+      }
       return content as Array<Response.Part<Tools>>
     }
 
@@ -987,11 +1000,24 @@ export const make: (params: {
           })
         })
       }
+      if (Predicate.isNotUndefined(params.tracker)) {
+        const prepared = yield* params.tracker.prepare(providerOptions.prompt)
+        if (Option.isSome(prepared)) {
+          providerOptions.previousResponseId = prepared.value.previousResponseId
+          providerOptions.incrementalPrompt = prepared.value.prompt
+        }
+      }
       const ResponseSchema = Schema.mutable(
         Schema.Array(Response.Part(Toolkit.empty))
       )
       const rawContent = yield* params.generateText(providerOptions)
       const content = yield* Schema.decodeEffect(ResponseSchema)(rawContent)
+      if (Predicate.isNotUndefined(params.tracker)) {
+        const responseMetadata = content.find((part) => part.type === "response-metadata")
+        if (Predicate.isNotUndefined(responseMetadata) && Predicate.isNotUndefined(responseMetadata.id)) {
+          params.tracker.markParts(providerOptions.prompt.content, responseMetadata.id)
+        }
+      }
       return content as Array<Response.Part<Tools>>
     }
 
@@ -1047,6 +1073,14 @@ export const make: (params: {
     providerOptions.tools = tools
     providerOptions.toolChoice = toolChoice
 
+    if (Predicate.isNotUndefined(params.tracker)) {
+      const prepared = yield* params.tracker.prepare(providerOptions.prompt)
+      if (Option.isSome(prepared)) {
+        providerOptions.previousResponseId = prepared.value.previousResponseId
+        providerOptions.incrementalPrompt = prepared.value.prompt
+      }
+    }
+
     // Construct the response schema with the tools from the toolkit
     const ResponseSchema = Schema.mutable(
       Schema.Array(Response.Part(toolkit))
@@ -1057,6 +1091,12 @@ export const make: (params: {
     if (options.disableToolCallResolution === true) {
       const rawContent = yield* params.generateText(providerOptions)
       const content = yield* Schema.decodeEffect(ResponseSchema)(rawContent)
+      if (Predicate.isNotUndefined(params.tracker)) {
+        const responseMetadata = content.find((part) => part.type === "response-metadata")
+        if (Predicate.isNotUndefined(responseMetadata) && Predicate.isNotUndefined(responseMetadata.id)) {
+          params.tracker.markParts(providerOptions.prompt.content, responseMetadata.id)
+        }
+      }
       return content as Array<Response.Part<Tools>>
     }
 
@@ -1078,6 +1118,13 @@ export const make: (params: {
     )
 
     const content = yield* Schema.decodeEffect(ResponseSchema)(rawContent)
+
+    if (Predicate.isNotUndefined(params.tracker)) {
+      const responseMetadata = content.find((part) => part.type === "response-metadata")
+      if (Predicate.isNotUndefined(responseMetadata) && Predicate.isNotUndefined(responseMetadata.id)) {
+        params.tracker.markParts(providerOptions.prompt.content, responseMetadata.id)
+      }
+    }
 
     // Return the content merged with the tool call results
     return [...content, ...toolResults] as Array<Response.Part<Tools>>
