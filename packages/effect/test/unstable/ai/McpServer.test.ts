@@ -1,6 +1,6 @@
-import { assert, describe, expect, it } from "@effect/vitest"
+import { describe, expect, it } from "@effect/vitest"
 import { deepStrictEqual } from "@effect/vitest/utils"
-import { Effect, Layer, Schema, ServiceMap } from "effect"
+import { Effect, Layer, Option, Schema, ServiceMap } from "effect"
 import { Tool, Toolkit } from "effect/unstable/ai"
 import * as McpSchema from "effect/unstable/ai/McpSchema"
 import * as McpServer from "effect/unstable/ai/McpServer"
@@ -205,6 +205,109 @@ describe("McpServer", () => {
       expect(result.capabilities.extensions).toEqual(
         expect.objectContaining({ "io.modelcontextprotocol/ui": {} })
       )
+      yield* Effect.promise(() => dispose())
+    }).pipe(Effect.scoped))
+
+  it.effect("filters tools list based on client capabilities", () =>
+    Effect.gen(function*() {
+      const UiTool = Tool.make("UiTool", {
+        description: "ui tool",
+        parameters: Schema.Record(Schema.String, Schema.Never),
+        success: Schema.Struct({ ok: Schema.Boolean })
+      }).annotate(Tool.Meta, { ui: { resourceUri: "ui://example/ui" } })
+
+      const UiToolkit = Toolkit.make(UiTool)
+
+      const McpLayer = McpServer.layerHttp({
+        name: "TestServer",
+        version: "1.0.0",
+        path: "/mcp"
+      }).pipe(
+        Layer.provideMerge(RpcSerialization.layerJsonRpc())
+      )
+
+      const TransformerLayer = McpServer.toolsTransform((items, ctx) => {
+        const hasUISupport = ctx.pipe(
+          Option.flatMap((value) =>
+            Option.fromNullishOr(value.capabilities.extensions?.["io.modelcontextprotocol/ui"])
+          ),
+          Option.map((value) =>
+            typeof value == "object" && "mimeTypes" in value &&
+            Array.isArray(value.mimeTypes) &&
+            value.mimeTypes?.includes("text/html;profile=mcp-app")
+          ),
+          Option.getOrNull
+        )
+        return Effect.succeed(hasUISupport ? items : [])
+      })
+
+      const ToolsLayer = McpServer.toolkit(UiToolkit).pipe(
+        Layer.provide(UiToolkit.toLayer({
+          UiTool: () => Effect.succeed({ ok: true })
+        }))
+      )
+
+      const McpLayerLive = Layer.mergeAll(McpLayer, ToolsLayer, TransformerLayer)
+
+      const { handler, dispose } = HttpRouter.toWebHandler(McpLayerLive)
+
+      const sendBatch = (messages: ReadonlyArray<unknown>) =>
+        Effect.promise(() =>
+          handler(
+            new Request("http://localhost/mcp", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify(messages)
+            })
+          ).then((response) => response.json())
+        )
+
+      const basicResult = yield* sendBatch([
+        {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "initialize",
+          params: {
+            protocolVersion: "2025-06-18",
+            clientInfo: { name: "test-client", version: "1.0.0" },
+            capabilities: {}
+          }
+        },
+        {
+          jsonrpc: "2.0",
+          id: 2,
+          method: "tools/list",
+          params: {}
+        }
+      ])
+
+      const basicUiList = basicResult.find((item: any) => item.id === 2)?.result
+      expect(basicUiList.tools).toHaveLength(0)
+
+      const capableResult = yield* sendBatch([
+        {
+          jsonrpc: "2.0",
+          id: 3,
+          method: "initialize",
+          params: {
+            protocolVersion: "2025-06-18",
+            clientInfo: { name: "ui-client", version: "1.0.0" },
+            capabilities: {
+              extensions: { "io.modelcontextprotocol/ui": { mimeTypes: ["text/html;profile=mcp-app"] } }
+            }
+          }
+        },
+        {
+          jsonrpc: "2.0",
+          id: 4,
+          method: "tools/list",
+          params: {}
+        }
+      ])
+
+      const capableUiList = capableResult.find((item: any) => item.id === 4)?.result
+      expect(capableUiList.tools).toHaveLength(1)
+      expect(capableUiList.tools.at(0)?.name).toBe("UiTool")
       yield* Effect.promise(() => dispose())
     }).pipe(Effect.scoped))
 })

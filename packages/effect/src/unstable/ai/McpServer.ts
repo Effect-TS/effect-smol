@@ -132,6 +132,12 @@ export class McpServer extends ServiceMap.Service<McpServer, {
 
   readonly serverExtensions: Record<string, Schema.Json>
   readonly addServerExtensions: (extensions: Record<string, Schema.Json>) => Effect.Effect<void>
+  readonly toolsTransforms: ReadonlyArray<ToolsTransformer>
+  readonly addToolsTransform: (transform: ToolsTransformer) => Effect.Effect<void>
+  readonly resourcesTransforms: ReadonlyArray<ResourcesTransformer>
+  readonly addResourcesTransform: (transform: ResourcesTransformer) => Effect.Effect<void>
+  readonly promptsTransforms: ReadonlyArray<PromptsTransformer>
+  readonly addPromptsTransform: (transform: PromptsTransformer) => Effect.Effect<void>
 }>()("effect/ai/McpServer") {
   /**
    * @since 4.0.0
@@ -164,6 +170,9 @@ export class McpServer extends ServiceMap.Service<McpServer, {
     >()
     const clientInitialize = new Map<number, typeof Initialize.payloadSchema.Type>()
     const serverExtensions: Record<string, Schema.Json> = {}
+    const toolsTransforms: Array<ToolsTransformer> = []
+    const resourcesTransforms: Array<ResourcesTransformer> = []
+    const promptsTransforms: Array<PromptsTransformer> = []
     const notificationsQueue = yield* Queue.make<RpcMessage.Request<any>>()
     const listChangedHandles = new Map<string, any>()
     const notifications = yield* RpcClient.makeNoSerialization(ServerNotificationRpcs, {
@@ -292,6 +301,21 @@ export class McpServer extends ServiceMap.Service<McpServer, {
       addServerExtensions: (extensions) =>
         Effect.sync(() => {
           Object.assign(serverExtensions, extensions)
+        }),
+      toolsTransforms,
+      addToolsTransform: (transform) =>
+        Effect.sync(() => {
+          toolsTransforms.push(transform)
+        }),
+      resourcesTransforms,
+      addResourcesTransform: (transform) =>
+        Effect.sync(() => {
+          resourcesTransforms.push(transform)
+        }),
+      promptsTransforms,
+      addPromptsTransform: (transform) =>
+        Effect.sync(() => {
+          promptsTransforms.push(transform)
         })
     })
   })
@@ -645,6 +669,127 @@ export const registerServerExtensions = (
     const server = yield* McpServer
     yield* server.addServerExtensions(extensions)
   })
+
+/**
+ * Register MCP server extension capabilities.
+ *
+ * @since 4.0.0
+ * @category server
+ */
+export const serverExtensions = (
+  extensions: Record<string, Schema.Json>
+): Layer.Layer<never, never, never> =>
+  Layer.effectDiscard(registerServerExtensions(extensions)).pipe(
+    Layer.provide(McpServer.layer)
+  )
+
+/**
+ * @since 4.0.0
+ * @category server
+ */
+export type ToolsTransformer = (
+  items: ReadonlyArray<McpTool>,
+  init: Option.Option<typeof Initialize.payloadSchema.Type>
+) => Effect.Effect<ReadonlyArray<McpTool>, never, never>
+
+/**
+ * @since 4.0.0
+ * @category server
+ */
+export type ResourcesTransformer = (
+  items: ReadonlyArray<Resource>,
+  init: Option.Option<typeof Initialize.payloadSchema.Type>
+) => Effect.Effect<ReadonlyArray<Resource>, never, never>
+
+/**
+ * @since 4.0.0
+ * @category server
+ */
+export type PromptsTransformer = (
+  items: ReadonlyArray<Prompt>,
+  init: Option.Option<typeof Initialize.payloadSchema.Type>
+) => Effect.Effect<ReadonlyArray<Prompt>, never, never>
+
+/**
+ * Register a list transform for tools/resources/prompts.
+ *
+ * @since 4.0.0
+ * @category server
+ */
+export const registerToolsTransform = (
+  transform: ToolsTransformer
+): Effect.Effect<void, never, McpServer> =>
+  Effect.gen(function*() {
+    const server = yield* McpServer
+    yield* server.addToolsTransform(transform)
+  })
+
+/**
+ * Register a tools list transform with the McpServer.
+ *
+ * @since 4.0.0
+ * @category server
+ */
+export const toolsTransform = (
+  transform: ToolsTransformer
+): Layer.Layer<never, never, never> =>
+  Layer.effectDiscard(registerToolsTransform(transform)).pipe(
+    Layer.provide(McpServer.layer)
+  )
+
+/**
+ * Register a resource list transform.
+ *
+ * @since 4.0.0
+ * @category server
+ */
+export const registerResourcesTransform = (
+  transform: ResourcesTransformer
+): Effect.Effect<void, never, McpServer> =>
+  Effect.gen(function*() {
+    const server = yield* McpServer
+    yield* server.addResourcesTransform(transform)
+  })
+
+/**
+ * Register a resources list transform with the McpServer.
+ *
+ * @since 4.0.0
+ * @category server
+ */
+export const resourcesTransform = (
+  transform: ResourcesTransformer
+): Layer.Layer<never, never, never> =>
+  Layer.effectDiscard(registerResourcesTransform(transform)).pipe(
+    Layer.provide(McpServer.layer)
+  )
+
+/**
+ * Register a prompt list transform.
+ *
+ * @since 4.0.0
+ * @category server
+ */
+export const registerPromptsTransform = (
+  transform: PromptsTransformer
+): Effect.Effect<void, never, McpServer> =>
+  Effect.gen(function*() {
+    const server = yield* McpServer
+    yield* server.addPromptsTransform(transform)
+  })
+
+/**
+ * Register a prompts list transform with the McpServer.
+ *
+ * @since 4.0.0
+ * @category server
+ */
+export const promptsTransform = (
+  transform: PromptsTransformer
+): Layer.Layer<never, never, never> =>
+  Layer.effectDiscard(registerPromptsTransform(transform)).pipe(
+    Layer.provide(McpServer.layer)
+  )
 
 /**
  * Register an AiToolkit with the McpServer.
@@ -1164,8 +1309,22 @@ const layerHandlers = (serverInfo: {
           server.getPromptResult(r).pipe(
             Effect.provideService(CurrentLogLevel, currentLogLevel)
           ),
-        "prompts/list": () => Effect.sync(() => new ListPromptsResult({ prompts: server.prompts })),
-        "resources/list": () => Effect.sync(() => new ListResourcesResult({ resources: server.resources })),
+        "prompts/list": (_r, { clientId }) => {
+          const init = server.getClientInitialize(clientId)
+          const result = server.promptsTransforms.reduce(
+            (acc, transform) => acc.pipe(Effect.flatMap((items) => transform(items, init))),
+            Effect.succeed(server.prompts)
+          )
+          return Effect.map(result, (prompts) => new ListPromptsResult({ prompts }))
+        },
+        "resources/list": (_r, { clientId }) => {
+          const init = server.getClientInitialize(clientId)
+          const result = server.resourcesTransforms.reduce(
+            (acc, transform) => acc.pipe(Effect.flatMap((items) => transform(items, init))),
+            Effect.succeed(server.resources)
+          )
+          return Effect.map(result, (resources) => new ListResourcesResult({ resources }))
+        },
         "resources/read": ({ uri }) =>
           server.findResource(uri).pipe(
             Effect.provideService(CurrentLogLevel, currentLogLevel)
@@ -1178,7 +1337,14 @@ const layerHandlers = (serverInfo: {
           server.callTool(r).pipe(
             Effect.provideService(CurrentLogLevel, currentLogLevel)
           ),
-        "tools/list": () => Effect.sync(() => new ListToolsResult({ tools: server.tools })),
+        "tools/list": (_r, { clientId }) => {
+          const init = server.getClientInitialize(clientId)
+          const result = server.toolsTransforms.reduce(
+            (acc, transform) => acc.pipe(Effect.flatMap((items) => transform(items, init))),
+            Effect.succeed(server.tools)
+          )
+          return Effect.map(result, (tools) => new ListToolsResult({ tools }))
+        },
 
         // Notifications
         "notifications/cancelled": (_) => Effect.void,
