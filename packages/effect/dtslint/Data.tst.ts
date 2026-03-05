@@ -114,8 +114,8 @@ describe("Data", () => {
       }
 
       const { A, B } = Data.taggedEnum<TEDefinition>()
-      expect<typeof A>().type.toBe<<A>(args: { readonly a: A; }) => { readonly _tag: "A"; readonly a: A; }>()
-      expect<typeof B>().type.toBe<<B>(args: { readonly b?: B; }) => { readonly _tag: "B"; readonly b?: B; }>()
+      expect<typeof A>().type.toBe<(<A>(args: { readonly a: A }) => { readonly _tag: "A"; readonly a: A })>()
+      expect<typeof B>().type.toBe<(<B>(args: { readonly b?: B }) => { readonly _tag: "B"; readonly b?: B })>()
     })
   })
 })
