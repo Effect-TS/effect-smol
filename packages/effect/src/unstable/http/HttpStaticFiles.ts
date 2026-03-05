@@ -293,32 +293,30 @@ export const make: (options: Options) => Effect.Effect<
     }
   )
 
-  return HttpServerRequest.HttpServerRequest.asEffect().pipe(
-    Effect.flatMap((request) => {
-      const resolvedPath = resolveFilePath(path, resolvedRoot, request.url)
-      if (resolvedPath === undefined) {
-        return Effect.fail(toRouteNotFound(request))
-      }
+  return HttpServerRequest.HttpServerRequest.use((request) => {
+    const resolvedPath = resolveFilePath(path, resolvedRoot, request.url)
+    if (resolvedPath === undefined) {
+      return Effect.fail(toRouteNotFound(request))
+    }
 
-      return handlePlatformError(request, fileSystem.stat(resolvedPath)).pipe(
-        Effect.matchEffect({
-          onFailure: (routeNotFound) =>
-            spa && index !== undefined && path.extname(resolvedPath) === "" && acceptsHtml(request.headers["accept"])
-              ? serveFile(request, path.join(resolvedRoot, index))
-              : Effect.fail(routeNotFound),
-          onSuccess: (info) => {
-            if (info.type === "File") {
-              return serveFile(request, resolvedPath, Number(info.size))
-            }
-            if (info.type === "Directory" && index !== undefined) {
-              return serveFile(request, path.join(resolvedPath, index))
-            }
-            return Effect.fail(toRouteNotFound(request))
+    return handlePlatformError(request, fileSystem.stat(resolvedPath)).pipe(
+      Effect.matchEffect({
+        onFailure: (routeNotFound) =>
+          spa && index !== undefined && path.extname(resolvedPath) === "" && acceptsHtml(request.headers["accept"])
+            ? serveFile(request, path.join(resolvedRoot, index))
+            : Effect.fail(routeNotFound),
+        onSuccess: (info) => {
+          if (info.type === "File") {
+            return serveFile(request, resolvedPath, Number(info.size))
           }
-        })
-      )
-    })
-  )
+          if (info.type === "Directory" && index !== undefined) {
+            return serveFile(request, path.join(resolvedPath, index))
+          }
+          return Effect.fail(toRouteNotFound(request))
+        }
+      })
+    )
+  })
 })
 
 /**
