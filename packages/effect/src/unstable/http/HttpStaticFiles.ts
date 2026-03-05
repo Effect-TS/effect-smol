@@ -86,6 +86,78 @@ const resolveMimeType = (path: Path.Path, filePath: string, mimeTypes: Record<st
   return mimeTypes[extension.slice(1)] ?? "application/octet-stream"
 }
 
+const parseInteger = (value: string): number | undefined => {
+  if (!/^\d+$/.test(value)) {
+    return undefined
+  }
+  const parsed = Number(value)
+  return Number.isSafeInteger(parsed) ? parsed : undefined
+}
+
+const parseRange = (
+  header: string,
+  fileSize: number
+):
+  | { readonly start: number; readonly end: number }
+  | "unsatisfiable"
+  | undefined =>
+{
+  const value = header.trim()
+  if (!value.toLowerCase().startsWith("bytes=")) {
+    return undefined
+  }
+  const rangeValue = value.slice(6).trim()
+  if (rangeValue.length === 0 || rangeValue.includes(",")) {
+    return undefined
+  }
+  const separatorIndex = rangeValue.indexOf("-")
+  if (separatorIndex === -1) {
+    return undefined
+  }
+  const startPart = rangeValue.slice(0, separatorIndex).trim()
+  const endPart = rangeValue.slice(separatorIndex + 1).trim()
+  if (startPart === "" && endPart === "") {
+    return undefined
+  }
+  if (startPart === "") {
+    const suffixLength = parseInteger(endPart)
+    if (suffixLength === undefined) {
+      return undefined
+    }
+    if (suffixLength === 0 || fileSize === 0) {
+      return "unsatisfiable"
+    }
+    return {
+      start: Math.max(fileSize - suffixLength, 0),
+      end: fileSize - 1
+    }
+  }
+  const start = parseInteger(startPart)
+  if (start === undefined) {
+    return undefined
+  }
+  if (endPart === "") {
+    if (start >= fileSize) {
+      return "unsatisfiable"
+    }
+    return {
+      start,
+      end: fileSize - 1
+    }
+  }
+  const end = parseInteger(endPart)
+  if (end === undefined) {
+    return undefined
+  }
+  if (start > end || start >= fileSize) {
+    return "unsatisfiable"
+  }
+  return {
+    start,
+    end: Math.min(end, fileSize - 1)
+  }
+}
+
 const resolveFilePath = (path: Path.Path, root: string, url: string): string | undefined => {
   const urlPath = stripQueryString(url)
   let decodedPath: string
@@ -167,20 +239,58 @@ export const make: (options: Options) => Effect.Effect<
 
   const serveFile = (
     request: HttpServerRequest.HttpServerRequest,
-    filePath: string
+    filePath: string,
+    fileSize?: number
   ): Effect.Effect<HttpServerResponse.HttpServerResponse, HttpServerError.RouteNotFound> =>
-    handlePlatformError(request, platform.fileResponse(filePath)).pipe(
-      Effect.map((response) => {
-        response = HttpServerResponse.setHeaders(response, {
-          "Content-Type": resolveMimeType(path, filePath, mimeTypes),
-          "Accept-Ranges": "bytes"
+    Effect.gen(function*() {
+      const rangeHeader = request.headers["range"]
+      const resolvedFileSize = rangeHeader === undefined
+        ? fileSize
+        : fileSize ?? Number((yield* handlePlatformError(request, fileSystem.stat(filePath))).size)
+      const parsedRange = rangeHeader === undefined || resolvedFileSize === undefined
+        ? undefined
+        : parseRange(rangeHeader, resolvedFileSize)
+
+      if (parsedRange === "unsatisfiable") {
+        return HttpServerResponse.empty({
+          status: 416,
+          headers: {
+            "Content-Range": `bytes */${resolvedFileSize!}`
+          }
         })
-        if (cacheControl !== undefined) {
-          response = HttpServerResponse.setHeader(response, "Cache-Control", cacheControl)
+      }
+
+      const range = parsedRange
+
+      const responseOptions = range === undefined
+        ? undefined
+        : {
+          status: 206,
+          offset: range.start,
+          bytesToRead: range.end - range.start + 1
         }
-        return response
+
+      let response = yield* handlePlatformError(request, platform.fileResponse(filePath, responseOptions))
+
+      response = HttpServerResponse.setHeaders(response, {
+        "Content-Type": resolveMimeType(path, filePath, mimeTypes),
+        "Accept-Ranges": "bytes"
       })
-    )
+
+      if (range !== undefined && resolvedFileSize !== undefined) {
+        response = HttpServerResponse.setHeader(
+          response,
+          "Content-Range",
+          `bytes ${range.start}-${range.end}/${resolvedFileSize}`
+        )
+      }
+
+      if (cacheControl !== undefined) {
+        response = HttpServerResponse.setHeader(response, "Cache-Control", cacheControl)
+      }
+
+      return response
+    })
 
   return HttpServerRequest.HttpServerRequest.asEffect().pipe(
     Effect.flatMap((request) => {
@@ -197,7 +307,7 @@ export const make: (options: Options) => Effect.Effect<
               : Effect.fail(routeNotFound),
           onSuccess: (info) => {
             if (info.type === "File") {
-              return serveFile(request, resolvedPath)
+              return serveFile(request, resolvedPath, Number(info.size))
             }
             if (info.type === "Directory" && index !== undefined) {
               return serveFile(request, path.join(resolvedPath, index))
