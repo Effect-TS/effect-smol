@@ -313,16 +313,6 @@ describe("Types", () => {
     })
   })
 
-  describe("MatchRecord", () => {
-    it("should yield 1 when matching a record type", () => {
-      expect<Types.MatchRecord<{ [x: string]: number }, 1, 0>>().type.toBe<1>()
-    })
-
-    it("should yield 0 when not matching a record type", () => {
-      expect<Types.MatchRecord<{ a: number }, 1, 0>>().type.toBe<0>()
-    })
-  })
-
   describe("ReasonOf", () => {
     it("extracts reason type from error with reason field", () => {
       type RateLimitError = { readonly _tag: "RateLimitError"; readonly retryAfter: number }
@@ -364,5 +354,11 @@ describe("Types", () => {
       type AiError = { readonly _tag: "AiError"; readonly reason: RateLimitError }
       expect<Types.ExtractReason<AiError, "Invalid">>().type.toBe<never>()
     })
+  })
+
+  it("VoidIfEmpty", () => {
+    expect<Types.VoidIfEmpty<{ a: number }>>().type.toBe<{ a: number }>()
+    expect<Types.VoidIfEmpty<{ a?: number }>>().type.toBe<{ a?: number }>()
+    expect<Types.VoidIfEmpty<{}>>().type.toBe<void>()
   })
 })

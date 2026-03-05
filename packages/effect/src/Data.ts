@@ -353,8 +353,7 @@ export declare namespace TaggedEnum {
     E = Extract<A, { readonly _tag: K }>
   > = {
     readonly [K in keyof E as K extends "_tag" ? never : K]: E[K]
-  } extends infer T ? {} extends T ? void
-    : T
+  } extends infer T ? Types.VoidIfEmpty<T>
     : never
 
   /**

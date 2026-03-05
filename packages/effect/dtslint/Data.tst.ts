@@ -57,4 +57,65 @@ describe("Data", () => {
       >()
     })
   })
+
+  describe("TaggedEnum", () => {
+    it("should be able to create a tagged enum", () => {
+      type TE = Data.TaggedEnum<{
+        A: { readonly required: string }
+        B: { readonly optional?: number }
+      }>
+      expect<Extract<TE, { _tag: "A" }>>().type.toBe<
+        { readonly _tag: "A"; readonly required: string }
+      >()
+      expect<Extract<TE, { _tag: "B" }>>().type.toBe<
+        { readonly _tag: "B"; readonly optional?: number }
+      >()
+    })
+
+    it("should raise an error if one of the variants has a _tag property", () => {
+      // @ts-expect-error: It looks like you're trying to create a tagged enum, but one or more of its members already has a `_tag` property.
+      type TE = Data.TaggedEnum<{
+        A: { readonly _tag: "A" }
+        B: { readonly b: number }
+      }>
+    })
+  })
+
+  describe("taggedEnum", () => {
+    it("should be able to create a concrete tagged enum", () => {
+      type TE = Data.TaggedEnum<{
+        A: { readonly required: string }
+        B: { readonly optional?: number }
+      }>
+
+      const { A, B, $is } = Data.taggedEnum<TE>()
+      expect<Parameters<typeof A>>().type.toBe<[{ readonly required: string }]>()
+      expect<ReturnType<typeof A>>().type.toBe<{ readonly _tag: "A"; readonly required: string }>()
+      expect<Parameters<typeof B>>().type.toBe<[{ readonly optional?: number }]>()
+      expect<ReturnType<typeof B>>().type.toBe<{ readonly _tag: "B"; readonly optional?: number }>()
+      const isA = $is("A")
+      expect(isA).type.toBe<
+        (u: unknown) => u is { readonly _tag: "A"; readonly required: string }
+      >()
+      const isB = $is("B")
+      expect(isB).type.toBe<
+        (u: unknown) => u is { readonly _tag: "B"; readonly optional?: number }
+      >()
+    })
+
+    it("should be able to create a generic tagged enum", () => {
+      type TE<T> = Data.TaggedEnum<{
+        A: { a: T }
+        B: { b?: T }
+      }>
+
+      interface TEDefinition extends Data.TaggedEnum.WithGenerics<1> {
+        readonly taggedEnum: TE<this["A"]>
+      }
+
+      const { A, B } = Data.taggedEnum<TEDefinition>()
+      expect<typeof A>().type.toBe<<A>(args: { readonly a: A; }) => { readonly _tag: "A"; readonly a: A; }>()
+      expect<typeof B>().type.toBe<<B>(args: { readonly b?: B; }) => { readonly _tag: "B"; readonly b?: B; }>()
+    })
+  })
 })

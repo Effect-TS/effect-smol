@@ -708,35 +708,13 @@ export declare namespace Contravariant {
 }
 
 /**
- * Conditional type that checks if `S` is an empty object type.
- *
- * - Returns `onTrue` if `S` matches `{}` (i.e., has no required properties).
- * - Returns `onFalse` otherwise.
- * - Useful for branching type-level logic based on whether a service/context
- *   type has requirements.
- *
- * **Example** (Branching on empty record)
- *
- * ```ts
- * import type { Types } from "effect"
- *
- * type A = Types.MatchRecord<{}, "empty", "not empty"> // "empty"
- * type B = Types.MatchRecord<{ a: number }, "empty", "not empty"> // "not empty"
- * ```
- *
- * @since 2.0.0
- * @category types
- */
-export type MatchRecord<S, onTrue, onFalse> = {} extends S ? onTrue : onFalse
-
-/**
  * Conditional type that returns `void` if `S` is an empty object type,
  * otherwise returns `S`.
  *
  * @since 4.0.0
  * @category types
  */
-export type VoidIfEmpty<S> = MatchRecord<S, void, S>
+export type VoidIfEmpty<S> = keyof S extends never ? void : S
 
 /**
  * Excludes function types from a union, keeping only non-function members.
