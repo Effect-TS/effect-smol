@@ -1,6 +1,6 @@
 import { describe, it } from "@effect/vitest"
 import { assertDefined, assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import { Effect, Latch, Schema, Stream } from "effect"
+import { Effect, Latch, Option, Schema, Stream } from "effect"
 import { TestClock } from "effect/testing"
 import { LanguageModel, Prompt, Response, Tool, Toolkit } from "effect/unstable/ai"
 import * as TestUtils from "./utils.ts"
@@ -202,6 +202,205 @@ describe("LanguageModel", () => {
         assertDefined(capturedOptions)
         strictEqual(capturedOptions.previousResponseId, undefined)
         strictEqual(capturedOptions.incrementalPrompt, undefined)
+      }))
+
+    it("uses tracker prepare and markParts in generateText without toolkit", () =>
+      Effect.gen(function*() {
+        let capturedOptions: LanguageModel.ProviderOptions | undefined
+        let preparedPrompt: LanguageModel.ProviderOptions["prompt"] | undefined
+        let markedParts: ReadonlyArray<object> | undefined
+        let markedResponseId: string | undefined
+
+        const incrementalPrompt = Prompt.make([
+          Prompt.userMessage({ content: [Prompt.textPart({ text: "incremental" })] })
+        ])
+
+        const tracker: NonNullable<LanguageModel.ConstructorParams["tracker"]> = {
+          clear: Effect.void,
+          onSessionDrop: Effect.void,
+          markParts: (parts, responseId) => {
+            markedParts = parts
+            markedResponseId = responseId
+          },
+          prepare: (prompt) =>
+            Effect.sync(() => {
+              preparedPrompt = prompt
+              return Option.some({
+                previousResponseId: "resp_prev",
+                prompt: incrementalPrompt
+              })
+            })
+        }
+
+        yield* LanguageModel.generateText({
+          prompt: [Prompt.userMessage({ content: [Prompt.textPart({ text: "hello" })] })]
+        }).pipe(
+          Effect.provideServiceEffect(
+            LanguageModel.LanguageModel,
+            LanguageModel.make({
+              generateText: (options) => {
+                capturedOptions = options
+                return Effect.succeed([
+                  {
+                    type: "response-metadata",
+                    id: "resp_next"
+                  },
+                  finishPart
+                ])
+              },
+              streamText: () => Stream.empty,
+              tracker
+            })
+          )
+        )
+
+        assertDefined(capturedOptions)
+        assertDefined(preparedPrompt)
+        strictEqual(preparedPrompt, capturedOptions.prompt)
+        strictEqual(capturedOptions.previousResponseId, "resp_prev")
+        strictEqual(capturedOptions.incrementalPrompt, incrementalPrompt)
+        assertDefined(markedParts)
+        strictEqual(markedParts, capturedOptions.prompt.content)
+        strictEqual(markedResponseId, "resp_next")
+      }))
+
+    it("uses tracker prepare and markParts in generateText with empty toolkit", () =>
+      Effect.gen(function*() {
+        let capturedOptions: LanguageModel.ProviderOptions | undefined
+        let prepareCalls = 0
+        let markCalls = 0
+
+        const tracker: NonNullable<LanguageModel.ConstructorParams["tracker"]> = {
+          clear: Effect.void,
+          onSessionDrop: Effect.void,
+          markParts: () => {
+            markCalls++
+          },
+          prepare: () =>
+            Effect.sync(() => {
+              prepareCalls++
+              return Option.some({
+                previousResponseId: "resp_prev",
+                prompt: Prompt.make([])
+              })
+            })
+        }
+
+        yield* LanguageModel.generateText({
+          prompt: [Prompt.userMessage({ content: [Prompt.textPart({ text: "hello" })] })],
+          toolkit: Toolkit.empty
+        }).pipe(
+          Effect.provideServiceEffect(
+            LanguageModel.LanguageModel,
+            LanguageModel.make({
+              generateText: (options) => {
+                capturedOptions = options
+                return Effect.succeed([
+                  {
+                    type: "response-metadata",
+                    id: "resp_next"
+                  },
+                  finishPart
+                ])
+              },
+              streamText: () => Stream.empty,
+              tracker
+            })
+          )
+        )
+
+        assertDefined(capturedOptions)
+        strictEqual(capturedOptions.previousResponseId, "resp_prev")
+        strictEqual(prepareCalls, 1)
+        strictEqual(markCalls, 1)
+      }))
+
+    it("calls tracker.prepare after stripping resolved approvals in toolkit flow", () =>
+      Effect.gen(function*() {
+        const toolCallId = "call-tracker"
+        const approvalId = "approval-tracker"
+
+        let preparedPrompt: LanguageModel.ProviderOptions["prompt"] | undefined
+        let markedParts: ReadonlyArray<object> | undefined
+
+        const tracker: NonNullable<LanguageModel.ConstructorParams["tracker"]> = {
+          clear: Effect.void,
+          onSessionDrop: Effect.void,
+          markParts: (parts) => {
+            markedParts = parts
+          },
+          prepare: (prompt) =>
+            Effect.sync(() => {
+              preparedPrompt = prompt
+              return Option.none()
+            })
+        }
+
+        const prompt: Array<Prompt.Message> = [
+          Prompt.assistantMessage({
+            content: [
+              Prompt.makePart("tool-call", {
+                id: toolCallId,
+                name: "ApprovalTool",
+                params: { action: "delete" },
+                providerExecuted: false
+              }),
+              Prompt.makePart("tool-approval-request", {
+                approvalId,
+                toolCallId
+              })
+            ]
+          }),
+          Prompt.toolMessage({
+            content: [
+              Prompt.toolApprovalResponsePart({
+                approvalId,
+                approved: true
+              }),
+              Prompt.toolResultPart({
+                id: toolCallId,
+                name: "ApprovalTool",
+                result: { result: "approved-result" },
+                isFailure: false
+              })
+            ]
+          }),
+          Prompt.userMessage({ content: [Prompt.textPart({ text: "continue" })] })
+        ]
+
+        yield* LanguageModel.generateText({
+          prompt,
+          toolkit: ApprovalToolkit
+        }).pipe(
+          Effect.provideServiceEffect(
+            LanguageModel.LanguageModel,
+            LanguageModel.make({
+              generateText: () =>
+                Effect.succeed([
+                  {
+                    type: "response-metadata",
+                    id: "resp_next"
+                  },
+                  finishPart
+                ]),
+              streamText: () => Stream.empty,
+              tracker
+            })
+          ),
+          Effect.provide(ApprovalToolkitLayer)
+        )
+
+        assertDefined(preparedPrompt)
+        for (const msg of preparedPrompt.content) {
+          if (msg.role === "assistant") {
+            strictEqual(msg.content.filter((p) => p.type === "tool-approval-request").length, 0)
+          }
+          if (msg.role === "tool") {
+            strictEqual(msg.content.filter((p) => p.type === "tool-approval-response").length, 0)
+          }
+        }
+        assertDefined(markedParts)
+        strictEqual(markedParts, preparedPrompt.content)
       }))
   })
 
