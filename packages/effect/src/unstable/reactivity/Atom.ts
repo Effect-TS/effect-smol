@@ -1437,22 +1437,24 @@ export const transform: {
 } = dual(
   2,
   (<A, B>(self: Atom<A>, f: (get: Context, atom: Atom<A>) => B): Atom<B> =>
-    isWritable(self)
-      ? writable(
-        (get) => f(get, self),
-        function(ctx, value) {
-          ctx.set(self, value)
-        },
-        self.refresh ?? function(refresh) {
-          refresh(self)
-        }
-      )
-      : readable(
-        (get) => f(get, self),
-        self.refresh ?? function(refresh) {
-          refresh(self)
-        }
-      )) as any
+    removeTtl(
+      isWritable(self)
+        ? writable(
+          (get) => f(get, self),
+          function(ctx, value) {
+            ctx.set(self, value)
+          },
+          self.refresh ?? function(refresh) {
+            refresh(self)
+          }
+        )
+        : readable(
+          (get) => f(get, self),
+          self.refresh ?? function(refresh) {
+            refresh(self)
+          }
+        )
+    )) as any
 )
 
 /**
@@ -1594,10 +1596,7 @@ export const swr: {
     }
   ): Atom<AsyncResult.AsyncResult<A, E>> => {
     const staleTime = Duration.toMillis(Duration.fromInputUnsafe(options.staleTime))
-    const refresh = self.refresh ?? function(f: <A>(atom: Atom<A>) => void) {
-      f(self)
-    }
-    function read(get: Context) {
+    return transform(self, (get) => {
       const current = get.once(self)
       get.subscribe(self, (value) => {
         get.setSelf(value)
@@ -1622,12 +1621,7 @@ export const swr: {
         get.refresh(self)
       }
       return current
-    }
-    return (isWritable(self)
-      ? writable(read, (ctx, value) => {
-        ctx.set(self, value)
-      }, refresh)
-      : readable(read, refresh)).pipe(removeTtl)
+    })
   }
 ) as any
 
