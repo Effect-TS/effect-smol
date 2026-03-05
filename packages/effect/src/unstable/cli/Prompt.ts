@@ -2483,6 +2483,11 @@ const processNumberBackspace = (state: NumberState) => {
   }))
 }
 
+const processNumberClear = (state: NumberState) =>
+  Effect.succeed(Action.NextFrame({
+    state: { ...state, cursor: 0, value: "", error: undefined }
+  }))
+
 const defaultIntProcessor = (input: string, state: NumberState) => {
   if (state.value.length === 0 && input === "-") {
     return Effect.succeed(Action.NextFrame({
@@ -2536,6 +2541,9 @@ const handleRenderInteger = (options: IntegerOptionsReq) => {
 
 const handleProcessInteger = (options: IntegerOptionsReq) => {
   return (input: Terminal.UserInput, state: NumberState) => {
+    if (input.key.ctrl && input.key.name === "u") {
+      return processNumberClear(state)
+    }
     switch (input.key.name) {
       case "backspace": {
         return processNumberBackspace(state)
@@ -2606,6 +2614,9 @@ const handleRenderFloat = (options: FloatOptionsReq) => {
 
 const handleProcessFloat = (options: FloatOptionsReq) => {
   return (input: Terminal.UserInput, state: NumberState) => {
+    if (input.key.ctrl && input.key.name === "u") {
+      return processNumberClear(state)
+    }
     switch (input.key.name) {
       case "backspace": {
         return processNumberBackspace(state)
@@ -2956,6 +2967,9 @@ const processAutoCompleteBackspace = <A>(state: AutoCompleteState, options: Auto
   return Effect.succeed(Action.NextFrame({ state: updateAutoCompleteState(state, options, query) }))
 }
 
+const processAutoCompleteClear = <A>(state: AutoCompleteState, options: AutoCompleteOptionsReq<A>) =>
+  Effect.succeed(Action.NextFrame({ state: updateAutoCompleteState(state, options, "") }))
+
 const processAutoCompleteInput = <A>(input: string, state: AutoCompleteState, options: AutoCompleteOptionsReq<A>) => {
   if (input.length === 0) {
     return Effect.succeed(Action.Beep())
@@ -3039,6 +3053,9 @@ const handleSelectProcess = <A>(options: SelectOptionsReq<A>) => {
 
 const handleAutoCompleteProcess = <A>(options: AutoCompleteOptionsReq<A>) => {
   return (input: Terminal.UserInput, state: AutoCompleteState) => {
+    if (input.key.ctrl && input.key.name === "u") {
+      return processAutoCompleteClear(state, options)
+    }
     switch (input.key.name) {
       case "k":
       case "up": {
@@ -3211,6 +3228,13 @@ const processTextBackspace = (state: TextState) => {
   )
 }
 
+const processTextClear = (state: TextState) =>
+  Effect.succeed(
+    Action.NextFrame({
+      state: { ...state, cursor: 0, value: "", error: undefined }
+    })
+  )
+
 const processTextCursorLeft = (state: TextState) => {
   if (state.cursor <= 0) {
     return Effect.succeed(Action.Beep())
@@ -3272,6 +3296,9 @@ const handleTextRender = (options: TextOptionsReq) => {
 
 const handleTextProcess = (options: TextOptionsReq) => {
   return (input: Terminal.UserInput, state: TextState) => {
+    if (input.key.ctrl && input.key.name === "u") {
+      return processTextClear(state)
+    }
     switch (input.key.name) {
       case "backspace": {
         return processTextBackspace(state)

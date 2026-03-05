@@ -64,6 +64,19 @@ describe("Prompt.float", () => {
       assert.isTrue(rendered.includes("12.5"))
       assert.isFalse(rendered.includes("parsed"))
     }).pipe(Effect.provide(TestLayer)))
+
+  it.effect("clears the current input on ctrl-u", () =>
+    Effect.gen(function*() {
+      const prompt = Prompt.float({ message: "Rate" })
+
+      yield* MockTerminal.inputText("12.5")
+      yield* MockTerminal.inputKey("u", { ctrl: true })
+      yield* MockTerminal.inputText("7.25")
+      yield* MockTerminal.inputKey("enter")
+
+      const result = yield* Prompt.run(prompt)
+      assert.strictEqual(result, 7.25)
+    }).pipe(Effect.provide(TestLayer)))
 })
 
 describe("Prompt.text", () => {
@@ -79,6 +92,22 @@ describe("Prompt.text", () => {
 
       const result = yield* Prompt.run(prompt)
       assert.strictEqual(result, "Jane Doe")
+    }).pipe(Effect.provide(TestLayer)))
+
+  it.effect("clears the current input on ctrl-u", () =>
+    Effect.gen(function*() {
+      const prompt = Prompt.text({
+        message: "Name",
+        default: "Jane"
+      })
+
+      yield* MockTerminal.inputText(" Doe")
+      yield* MockTerminal.inputKey("u", { ctrl: true })
+      yield* MockTerminal.inputText("John")
+      yield* MockTerminal.inputKey("enter")
+
+      const result = yield* Prompt.run(prompt)
+      assert.strictEqual(result, "John")
     }).pipe(Effect.provide(TestLayer)))
 })
 
@@ -152,6 +181,35 @@ describe("Prompt.autoComplete", () => {
       assert.isTrue(expandedFrame !== undefined)
       assert.isFalse(narrowedFrame?.includes("Beta"))
       assert.isTrue(expandedFrame?.includes("Beta"))
+    }).pipe(Effect.provide(TestLayer)))
+
+  it.effect("clears the filter input on ctrl-u", () =>
+    Effect.gen(function*() {
+      const prompt = Prompt.autoComplete({
+        message: "Pick item",
+        choices: [
+          { title: "Alpha", value: "alpha" },
+          { title: "Beta", value: "beta" },
+          { title: "Delta", value: "delta" }
+        ]
+      })
+
+      yield* MockTerminal.inputText("al")
+      yield* MockTerminal.inputKey("u", { ctrl: true })
+      yield* MockTerminal.inputKey("enter")
+
+      const result = yield* Prompt.run(prompt)
+      assert.strictEqual(result, "alpha")
+
+      const output = yield* TestConsole.logLines
+      const frames = toFrames(output)
+      const narrowedFrame = findFrame(frames, "[filter: al]")
+      const clearedFrame = findFrame(frames, "[filter: type to filter]")
+
+      assert.isTrue(narrowedFrame !== undefined)
+      assert.isTrue(clearedFrame !== undefined)
+      assert.isFalse(narrowedFrame?.includes("Beta"))
+      assert.isTrue(clearedFrame?.includes("Beta"))
     }).pipe(Effect.provide(TestLayer)))
 
   it.effect("renders empty message and beeps on submit with no matches", () =>
