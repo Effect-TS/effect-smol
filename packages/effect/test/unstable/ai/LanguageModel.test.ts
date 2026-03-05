@@ -39,6 +39,15 @@ const ApprovalToolkitLayer = ApprovalToolkit.toLayer({
 })
 
 describe("LanguageModel", () => {
+  const finishPart: Response.FinishPartEncoded = {
+    type: "finish",
+    reason: "stop",
+    usage: {
+      inputTokens: { uncached: 5, total: 5, cacheRead: undefined, cacheWrite: undefined },
+      outputTokens: { total: 5, text: undefined, reasoning: undefined }
+    }
+  }
+
   describe("streamText", () => {
     it("should emit tool calls before executing tool handlers", () =>
       Effect.gen(function*() {
@@ -123,6 +132,76 @@ describe("LanguageModel", () => {
         if (error.reason._tag === "StructuredOutputError") {
           strictEqual(error.reason.responseText, "{\"count\":\"oops\"}")
         }
+      }))
+  })
+
+  describe("provider options", () => {
+    it("initialize incremental fields as undefined in generateText", () =>
+      Effect.gen(function*() {
+        let capturedOptions: LanguageModel.ProviderOptions | undefined
+
+        yield* LanguageModel.generateText({
+          prompt: []
+        }).pipe(
+          TestUtils.withLanguageModel({
+            generateText: (options) => {
+              capturedOptions = options
+              return Effect.succeed([finishPart])
+            }
+          })
+        )
+
+        assertDefined(capturedOptions)
+        strictEqual(capturedOptions.previousResponseId, undefined)
+        strictEqual(capturedOptions.incrementalPrompt, undefined)
+      }))
+
+    it("initialize incremental fields as undefined in generateObject", () =>
+      Effect.gen(function*() {
+        let capturedOptions: LanguageModel.ProviderOptions | undefined
+
+        yield* LanguageModel.generateObject({
+          prompt: [],
+          schema: Schema.Struct({ count: Schema.Number })
+        }).pipe(
+          TestUtils.withLanguageModel({
+            generateText: (options) => {
+              capturedOptions = options
+              return Effect.succeed([
+                {
+                  type: "text",
+                  text: "{\"count\":1}"
+                },
+                finishPart
+              ])
+            }
+          })
+        )
+
+        assertDefined(capturedOptions)
+        strictEqual(capturedOptions.previousResponseId, undefined)
+        strictEqual(capturedOptions.incrementalPrompt, undefined)
+      }))
+
+    it("initialize incremental fields as undefined in streamText", () =>
+      Effect.gen(function*() {
+        let capturedOptions: LanguageModel.ProviderOptions | undefined
+
+        yield* LanguageModel.streamText({
+          prompt: []
+        }).pipe(
+          Stream.runDrain,
+          TestUtils.withLanguageModel({
+            streamText: (options) => {
+              capturedOptions = options
+              return [finishPart]
+            }
+          })
+        )
+
+        assertDefined(capturedOptions)
+        strictEqual(capturedOptions.previousResponseId, undefined)
+        strictEqual(capturedOptions.incrementalPrompt, undefined)
       }))
   })
 
