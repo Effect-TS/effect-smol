@@ -804,9 +804,6 @@ export class Protocol extends ServiceMap.Service<Protocol, {
   static make = withRun<Protocol["Service"]>()
 }
 
-/** @internal */
-export const httpClientIdHeader = "x-effect-rpc-client-id"
-
 /**
  * @since 4.0.0
  * @category protocol
@@ -819,11 +816,6 @@ export const makeProtocolHttp = (client: HttpClient.HttpClient): Effect.Effect<
   Protocol.make(Effect.fnUntraced(function*(writeResponse) {
     const serialization = yield* RpcSerialization.RpcSerialization
     const isFramed = serialization.includesFraming
-    const clientId = globalThis.crypto.randomUUID()
-    const clientWithId = HttpClient.mapRequest(
-      client,
-      HttpClientRequest.setHeader(httpClientIdHeader, clientId)
-    )
 
     const send = (request: FromClientEncoded): Effect.Effect<void, RpcClientError> => {
       if (request._tag !== "Request") {
@@ -838,7 +830,7 @@ export const makeProtocolHttp = (client: HttpClient.HttpClient): Effect.Effect<
         HttpBody.uint8Array(encoded, serialization.contentType)
 
       if (!isFramed) {
-        return clientWithId.post("", { body }).pipe(
+        return client.post("", { body }).pipe(
           Effect.flatMap((r) => r.text),
           Effect.mapError((cause) =>
             new RpcClientError({
@@ -860,7 +852,7 @@ export const makeProtocolHttp = (client: HttpClient.HttpClient): Effect.Effect<
         )
       }
 
-      return clientWithId.post("", { body }).pipe(
+      return client.post("", { body }).pipe(
         Effect.flatMap((r) =>
           Stream.runForEachArray(r.stream, (chunk) => {
             const responses = chunk.flatMap(parser.decode) as Array<FromServerEncoded>

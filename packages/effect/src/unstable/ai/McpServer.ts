@@ -315,6 +315,7 @@ const SUPPORTED_PROTOCOL_VERSIONS = [
   "2024-11-05",
   "2024-10-07"
 ]
+const mcpSessionIdHeader = "mcp-session-id"
 
 /**
  * @since 4.0.0
@@ -394,7 +395,7 @@ export const run: (options: {
         switch (request._tag) {
           case "Request": {
             const headers = Headers.fromInput(request.headers)
-            const sessionId = Headers.get(headers, RpcClient.httpClientIdHeader)
+            const sessionId = Headers.get(headers, mcpSessionIdHeader)
             if (sessionId !== undefined) {
               const initializePayload = initializedClientSessions.get(sessionId)
               if (initializePayload !== undefined) {

@@ -195,24 +195,31 @@ describe("McpServer", () => {
       const client = yield* RpcClient.make(McpSchema.ClientRpcs).pipe(
         Effect.provide(clientLayer)
       )
+      const sessionHeaders = { "Mcp-Session-Id": "session-1" }
 
-      yield* client.initialize({
-        protocolVersion: "2025-06-18",
-        capabilities: {
-          roots: {
-            listChanged: true
+      yield* RpcClient.withHeaders(
+        client.initialize({
+          protocolVersion: "2025-06-18",
+          capabilities: {
+            roots: {
+              listChanged: true
+            }
+          },
+          clientInfo: {
+            name: "TestClient",
+            version: "1.0.0"
           }
-        },
-        clientInfo: {
-          name: "TestClient",
-          version: "1.0.0"
-        }
-      })
+        }),
+        sessionHeaders
+      )
 
-      const result = yield* client["tools/call"]({
-        name: "CapabilitiesTool",
-        arguments: {}
-      })
+      const result = yield* RpcClient.withHeaders(
+        client["tools/call"]({
+          name: "CapabilitiesTool",
+          arguments: {}
+        }),
+        sessionHeaders
+      )
 
       deepStrictEqual(result.isError, undefined)
       deepStrictEqual(result.structuredContent, { hasRootsCapability: true })
