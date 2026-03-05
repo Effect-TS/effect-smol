@@ -749,10 +749,12 @@ export const map: {
  * **Example** (Mapping over an error)
  *
  * ```ts
- * import { Exit } from "effect"
+ * import { Data, Exit } from "effect"
+ * 
+ * class ExitError extends Data.TaggedError("ExitError")<{ readonly input: string }> {}
  *
  * const exit = Exit.fail("bad input")
- * const mapped = Exit.mapError(exit, (e) => new Error(e))
+ * const mapped = Exit.mapError(exit, (e) => new ExitError({ input: e }))
  * console.log(Exit.isFailure(mapped)) // true
  * ```
  *
@@ -781,12 +783,14 @@ export const mapError: {
  * **Example** (Mapping both channels)
  *
  * ```ts
- * import { Exit } from "effect"
+ * import { Data, Exit } from "effect"
+ * 
+ * class ExitError extends Data.TaggedError("ExitError")<{ readonly input: string }> {}
  *
  * const exit = Exit.succeed(42)
  * const mapped = Exit.mapBoth(exit, {
  *   onSuccess: (x) => String(x),
- *   onFailure: (e: string) => new Error(e)
+ *   onFailure: (e: string) => new ExitError({ input: e })
  * })
  * console.log(Exit.isSuccess(mapped) && mapped.value) // "42"
  * ```

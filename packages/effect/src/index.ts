@@ -956,12 +956,14 @@ export * as Duration from "./Duration.ts"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Data, Effect } from "effect"
+ *
+ * class DivisionByZeroError extends Data.TaggedError("DivisionByZeroError")<{}> {}
  *
  * // Effect that may fail
  * const divide = (a: number, b: number) =>
  *   b === 0
- *     ? Effect.fail(new Error("Division by zero"))
+ *     ? Effect.fail(new DivisionByZeroError())
  *     : Effect.succeed(a / b)
  *
  * // Error handling
