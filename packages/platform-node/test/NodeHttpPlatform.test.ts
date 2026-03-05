@@ -31,4 +31,21 @@ describe("NodeHttpPlatform", () => {
       const text = yield* readStream(body)
       assert.strictEqual(text, "ipsum")
     }).pipe(Effect.provide(NodeHttpPlatform.layer)))
+
+  it.effect("fileResponse supports zero bytesToRead", () =>
+    Effect.gen(function*() {
+      const platform = yield* HttpPlatform.HttpPlatform
+      const response = yield* platform.fileResponse(`${__dirname}/fixtures/text.txt`, {
+        offset: 6,
+        bytesToRead: 0
+      })
+
+      assert.strictEqual(response.headers["content-length"], "0")
+      assert.strictEqual(response.body._tag, "Raw")
+      const body = (response.body as HttpBody.Raw).body
+      assert(body instanceof Readable)
+
+      const text = yield* readStream(body)
+      assert.strictEqual(text, "")
+    }).pipe(Effect.provide(NodeHttpPlatform.layer)))
 })
