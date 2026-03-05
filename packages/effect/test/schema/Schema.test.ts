@@ -5784,6 +5784,15 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       deepStrictEqual(Object.keys(E.fields).sort(), ["_tag", "id"])
     })
 
+    it("name matches tag", () => {
+      class E extends Schema.TaggedErrorClass<E>()("TaggedErrorName", {
+        id: Schema.Number
+      }) {}
+
+      const err = new E({ id: 1 })
+      strictEqual(err.name, "TaggedErrorName")
+    })
+
     it("zero-field TaggedErrorClass allows omitting props argument", () => {
       class NotFoundError extends Schema.TaggedErrorClass<NotFoundError>()("NotFoundError", {}) {}
 
