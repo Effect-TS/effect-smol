@@ -750,7 +750,7 @@ export const map: {
  *
  * ```ts
  * import { Data, Exit } from "effect"
- * 
+ *
  * class ExitError extends Data.TaggedError("ExitError")<{ readonly input: string }> {}
  *
  * const exit = Exit.fail("bad input")
@@ -784,7 +784,7 @@ export const mapError: {
  *
  * ```ts
  * import { Data, Exit } from "effect"
- * 
+ *
  * class ExitError extends Data.TaggedError("ExitError")<{ readonly input: string }> {}
  *
  * const exit = Exit.succeed(42)

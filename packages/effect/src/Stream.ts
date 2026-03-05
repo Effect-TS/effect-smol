@@ -1255,7 +1255,7 @@ export const fromPubSubTake = <A, E>(pubsub: PubSub.PubSub<Take.Take<A, E>>): St
  * @example
  * ```ts
  * import { Console, Data, Effect, Stream } from "effect"
- * 
+ *
  * class StreamError extends Data.TaggedError("StreamError")<{ readonly cause: unknown }> {}
  *
  * const readableStream = new ReadableStream({
@@ -1313,7 +1313,7 @@ export const fromReadableStream = <A, E>(
  * @example
  * ```ts
  * import { Console, Data, Effect, Stream } from "effect"
- * 
+ *
  * class StreamError extends Data.TaggedError("StreamError")<{ readonly cause: unknown }> {}
  *
  * const iterable = (async function*() {

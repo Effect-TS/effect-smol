@@ -1139,7 +1139,7 @@ export const promise: <A>(
  * import { Data, Effect } from "effect"
  *
  * class TodoFetchError extends Data.TaggedError("TodoFetchError")<{ readonly cause: unknown }> {}
- * 
+ *
  * const getTodo = (id: number) =>
  *   Effect.tryPromise({
  *     try: () => fetch(`https://jsonplaceholder.typicode.com/todos/${id}`),
@@ -1539,7 +1539,7 @@ export const bind: {
  * @example
  * ```ts
  * import { Data, Effect } from "effect"
- * 
+ *
  * class DiscountRateError extends Data.TaggedError("DiscountRateError")<{}> {}
  *
  * const addServiceCharge = (amount: number) => amount + 1
@@ -1808,7 +1808,7 @@ export {
    * @example Custom Error Handling
    * ```ts
    * import { Data, Effect } from "effect"
-   * 
+   *
    * class JsonParsingError extends Data.TaggedError("JsonParsingError")<{ readonly cause: unknown }> {}
    *
    * const parseJSON = (input: string) =>
@@ -3487,7 +3487,7 @@ export const catchCauseFilter: {
  * @example
  * ```ts
  * import { Data, Effect } from "effect"
- * 
+ *
  * class TaskError extends Data.TaggedError("TaskError")<{ readonly message: string }> {}
  *
  * //      ┌─── Effect<number, string, never>
@@ -3523,7 +3523,7 @@ export const mapError: {
  * @example
  * ```ts
  * import { Data, Effect } from "effect"
- * 
+ *
  * class TaskError extends Data.TaggedError("TaskError")<{ readonly message: string }> {}
  *
  * //      ┌─── Effect<number, string, never>
@@ -3573,7 +3573,7 @@ export const mapBoth: {
  * ```ts
  * // Title: Propagating an Error as a Defect
  * import { Data, Effect } from "effect"
- * 
+ *
  * class DivideByZeroError extends Data.TaggedError("DivideByZeroError")<{}> {}
  *
  * const divide = (a: number, b: number) =>
@@ -13542,7 +13542,7 @@ export const trackSuccesses: {
  * import { Data, Effect, Metric } from "effect"
  *
  * class ConnectionFailedError extends Data.TaggedError("ConnectionFailedError")<{}> {}
- * 
+ *
  * // Track error types using frequency metric
  * const errorTypeFrequency = Metric.frequency("error_types")
  *
@@ -14395,7 +14395,7 @@ export const satisfiesSuccessType = <A>() => <A2 extends A, E, R>(effect: Effect
  * import { Data, Effect } from "effect"
  *
  * class ValidationError extends Data.TaggedError("ValidationError")<{}> {}
- * 
+ *
  * // Define a constraint that the error type must be a ValidationError
  * const satisfiesError = Effect.satisfiesErrorType<ValidationError>()
  *
