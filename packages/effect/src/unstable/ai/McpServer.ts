@@ -42,6 +42,7 @@ import {
   ListResourceTemplatesResult,
   ListToolsResult,
   McpServerClient,
+  McpServerClientContext,
   McpServerClientMiddleware,
   Prompt,
   Resource,
@@ -56,6 +57,7 @@ import type {
   CallTool,
   Complete,
   GetPrompt,
+  Initialize,
   Param,
   PromptArgument,
   PromptMessage,
@@ -73,6 +75,9 @@ export class McpServer extends ServiceMap.Service<McpServer, {
   readonly notifications: RpcClient.RpcClient<RpcGroup.Rpcs<typeof ServerNotificationRpcs>>
   readonly notificationsQueue: Queue.Dequeue<RpcMessage.Request<any>>
   readonly initializedClients: Set<number>
+  readonly getClientInitialize: (clientId: number) => Option.Option<typeof Initialize.payloadSchema.Type>
+  readonly setClientInitialize: (clientId: number, init: typeof Initialize.payloadSchema.Type) => Effect.Effect<void>
+  readonly clearClientInitialize: (clientId: number) => Effect.Effect<void>
 
   readonly tools: ReadonlyArray<McpTool>
   readonly addTool: (options: {
@@ -154,6 +159,7 @@ export class McpServer extends ServiceMap.Service<McpServer, {
       string,
       (input: string) => Effect.Effect<CompleteResult, InternalError, McpServerClient>
     >()
+    const clientInitialize = new Map<number, typeof Initialize.payloadSchema.Type>()
     const notificationsQueue = yield* Queue.make<RpcMessage.Request<any>>()
     const listChangedHandles = new Map<string, any>()
     const notifications = yield* RpcClient.makeNoSerialization(ServerNotificationRpcs, {
@@ -190,6 +196,15 @@ export class McpServer extends ServiceMap.Service<McpServer, {
       notifications: notifications.client,
       notificationsQueue,
       initializedClients: new Set<number>(),
+      getClientInitialize: (clientId) => Option.fromNullishOr(clientInitialize.get(clientId)),
+      setClientInitialize: (clientId, init) =>
+        Effect.sync(() => {
+          clientInitialize.set(clientId, init)
+        }),
+      clearClientInitialize: (clientId) =>
+        Effect.sync(() => {
+          clientInitialize.delete(clientId)
+        }),
       get tools() {
         return tools
       },
@@ -339,13 +354,20 @@ export const run: (
 
   const clientMiddleware = McpServerClientMiddleware.of((effect, { clientId }) =>
     Effect.provideService(
-      effect,
-      McpServerClient,
-      McpServerClient.of({
+      Effect.provideService(
+        effect,
+        McpServerClient,
+        McpServerClient.of({
+          clientId,
+          getClient: RcMap.get(clients, clientId).pipe(
+            Effect.map(({ client }) => client)
+          )
+        })
+      ),
+      McpServerClientContext,
+      McpServerClientContext.of({
         clientId,
-        getClient: RcMap.get(clients, clientId).pipe(
-          Effect.map(({ client }) => client)
-        )
+        getInitialize: Effect.sync(() => server.getClientInitialize(clientId))
       })
     )
   )
@@ -412,6 +434,7 @@ export const run: (
       for (const clientId of server.initializedClients) {
         if (!clientIds.has(clientId)) {
           server.initializedClients.delete(clientId)
+          yield* server.clearClientInitialize(clientId)
           continue
         }
         yield* patchedProtocol.send(clientId, message as any)
@@ -1074,13 +1097,15 @@ const layerHandlers = (serverInfo: {
             capabilities.prompts = { listChanged: true }
           }
           server.initializedClients.add(clientId)
-          return Effect.succeed({
-            capabilities,
-            serverInfo,
-            protocolVersion: SUPPORTED_PROTOCOL_VERSIONS.includes(requestedVersion)
-              ? requestedVersion
-              : LATEST_PROTOCOL_VERSION
-          })
+          return server.setClientInitialize(clientId, params).pipe(
+            Effect.as({
+              capabilities,
+              serverInfo,
+              protocolVersion: SUPPORTED_PROTOCOL_VERSIONS.includes(requestedVersion)
+                ? requestedVersion
+                : LATEST_PROTOCOL_VERSION
+            })
+          )
         },
         "completion/complete": (r) =>
           server.completion(r).pipe(

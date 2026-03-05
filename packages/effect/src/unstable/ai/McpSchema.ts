@@ -1851,6 +1851,15 @@ export class McpServerClient extends ServiceMap.Service<McpServerClient, {
 
 /**
  * @since 4.0.0
+ * @category client
+ */
+export class McpServerClientContext extends ServiceMap.Service<McpServerClientContext, {
+  readonly clientId: number
+  readonly getInitialize: Effect.Effect<Option.Option<typeof Initialize.payloadSchema.Type>>
+}>()("effect/ai/McpSchema/McpServerClientContext") {}
+
+/**
+ * @since 4.0.0
  * @category middleware
  */
 export class McpServerClientMiddleware extends RpcMiddleware.Service<McpServerClientMiddleware, {

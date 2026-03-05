@@ -1,6 +1,6 @@
-import { describe, it } from "@effect/vitest"
+import { assert, describe, expect, it } from "@effect/vitest"
 import { deepStrictEqual } from "@effect/vitest/utils"
-import { Effect, Layer, Schema } from "effect"
+import { Effect, Layer, Schema, ServiceMap } from "effect"
 import { Tool, Toolkit } from "effect/unstable/ai"
 import * as McpSchema from "effect/unstable/ai/McpSchema"
 import * as McpServer from "effect/unstable/ai/McpServer"
@@ -131,7 +131,7 @@ describe("McpServer", () => {
       const { client, dispose } = yield* makeTestClient(TestTemplate)
 
       const templates = (yield* client["resources/templates/list"]({}))
-        .resourceTemplates as ReadonlyArray<{ uriTemplate: string }>
+        .resourceTemplates
       const uriTemplate = templates[0].uriTemplate
 
       // Completions use the param name from the URI template
@@ -142,5 +142,30 @@ describe("McpServer", () => {
 
       deepStrictEqual(completeResult.completion.values, ["1", "2", "3"])
       yield* Effect.promise(() => dispose())
+    }).pipe(Effect.scoped))
+
+  it.effect("stores initialize payload per client", () =>
+    Effect.gen(function*() {
+      const McpLayer = McpServer.layerHttp({
+        name: "TestServer",
+        version: "1.0.0",
+        path: "/mcp"
+      }).pipe(
+        Layer.provideMerge(RpcSerialization.layerJsonRpc())
+      )
+
+      const serverContext = yield* Layer.build(Layer.provideMerge(McpLayer, HttpRouter.layer))
+
+      const server = ServiceMap.get(serverContext, McpServer.McpServer)
+      yield* server.setClientInitialize(42, {
+        protocolVersion: "2025-06-18",
+        clientInfo: { name: "test-client", version: "1.0.0" },
+        capabilities: {
+          extensions: { "io.modelcontextprotocol/ui": { mimeTypes: ["text/html;profile=mcp-app"] } }
+        }
+      })
+
+      const stored = server.getClientInitialize(42)
+      expect(Option.isSome(stored)).toBe(true)
     }).pipe(Effect.scoped))
 })
