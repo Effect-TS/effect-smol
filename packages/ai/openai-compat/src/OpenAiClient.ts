@@ -855,10 +855,12 @@ export type ChatCompletionRequest = {
   readonly tools?: ReadonlyArray<ChatCompletionTool> | undefined
   readonly tool_choice?: ChatCompletionToolChoice | undefined
   readonly service_tier?: string | undefined
+  readonly reasoning?: unknown
   readonly stream?: boolean | undefined
   readonly stream_options?: {
     readonly include_usage?: boolean | undefined
   } | undefined
+  readonly [x: string]: unknown
 }
 /**
  * @since 1.0.0

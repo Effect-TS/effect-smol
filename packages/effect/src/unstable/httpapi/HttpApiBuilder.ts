@@ -743,6 +743,9 @@ function getResponseEncode<E>(
   switch (encoding._tag) {
     case "Json": {
       return ((e) => {
+        if (e === undefined) {
+          return Effect.succeed(Response.empty({ status }))
+        }
         try {
           const s = JSON.stringify(e)
           return Effect.succeed(Response.text(s, { status, contentType: encoding.contentType }))

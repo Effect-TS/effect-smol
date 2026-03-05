@@ -3689,7 +3689,7 @@ export const FiberRuntimeMetricsImpl: FiberRuntimeMetricsService = {
  *     Effect.gen(function*() {
  *       yield* Effect.sleep(`${50 + id * 10} millis`)
  *       if (id % 7 === 0) {
- *         yield* Effect.fail(new AppError({ operation: `fetch-user-${id}` }))
+ *         return yield* new AppError({ operation: `fetch-user-${id}` })
  *       }
  *       return { id, name: `User ${id}`, email: `user${id}@example.com` }
  *     })
@@ -3828,9 +3828,7 @@ export const disableRuntimeMetricsLayer = Layer.succeed(FiberRuntimeMetrics)(und
  *         yield* Effect.sleep(`${100 + i * 50} millis`)
  *         if (i % 4 === 0) {
  *           // Simulate some failures
- *           yield* Effect.fail(
- *             new RuntimeMetricsError({ operation: `task-${i}` })
- *           )
+ *           return yield* new RuntimeMetricsError({ operation: `task-${i}` })
  *         }
  *         return `Task ${i} completed`
  *       }).pipe(

@@ -490,6 +490,39 @@ export const setCookie: {
  * @since 4.0.0
  * @category combinators
  */
+export const expireCookie: {
+  (
+    name: string,
+    options?: Omit<NonNullable<Cookies.Cookie["options"]>, "expires" | "maxAge">
+  ): (
+    self: HttpServerResponse
+  ) => Effect.Effect<HttpServerResponse, Cookies.CookiesError>
+  (
+    self: HttpServerResponse,
+    name: string,
+    options?: Omit<NonNullable<Cookies.Cookie["options"]>, "expires" | "maxAge">
+  ): Effect.Effect<HttpServerResponse, Cookies.CookiesError>
+} = dual(
+  (args) => isHttpServerResponse(args[0]),
+  (
+    self: HttpServerResponse,
+    name: string,
+    options?: Omit<NonNullable<Cookies.Cookie["options"]>, "expires" | "maxAge">
+  ): Effect.Effect<HttpServerResponse, Cookies.CookiesError> =>
+    Effect.map(
+      Cookies.expireCookie(self.cookies, name, options).asEffect(),
+      (cookies) =>
+        makeResponse({
+          ...self,
+          cookies
+        })
+    )
+)
+
+/**
+ * @since 4.0.0
+ * @category combinators
+ */
 export const setCookieUnsafe: {
   (
     name: string,
@@ -513,6 +546,33 @@ export const setCookieUnsafe: {
     makeResponse({
       ...self,
       cookies: Cookies.setUnsafe(self.cookies, name, value, options)
+    })
+)
+
+/**
+ * @since 4.0.0
+ * @category combinators
+ */
+export const expireCookieUnsafe: {
+  (
+    name: string,
+    options?: Omit<NonNullable<Cookies.Cookie["options"]>, "expires" | "maxAge">
+  ): (self: HttpServerResponse) => HttpServerResponse
+  (
+    self: HttpServerResponse,
+    name: string,
+    options?: Omit<NonNullable<Cookies.Cookie["options"]>, "expires" | "maxAge">
+  ): HttpServerResponse
+} = dual(
+  (args) => isHttpServerResponse(args[0]),
+  (
+    self: HttpServerResponse,
+    name: string,
+    options?: Omit<NonNullable<Cookies.Cookie["options"]>, "expires" | "maxAge">
+  ): HttpServerResponse =>
+    makeResponse({
+      ...self,
+      cookies: Cookies.expireCookieUnsafe(self.cookies, name, options)
     })
 )
 

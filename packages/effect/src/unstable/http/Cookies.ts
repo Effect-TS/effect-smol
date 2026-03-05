@@ -591,6 +591,66 @@ export const setUnsafe: {
 )
 
 /**
+ * Add an expired cookie to a Cookies object
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const expireCookie: {
+  (
+    name: string,
+    options?: Omit<NonNullable<Cookie["options"]>, "expires" | "maxAge">
+  ): (self: Cookies) => Result.Result<Cookies, CookiesError>
+  (
+    self: Cookies,
+    name: string,
+    options?: Omit<NonNullable<Cookie["options"]>, "expires" | "maxAge">
+  ): Result.Result<Cookies, CookiesError>
+} = dual(
+  (args) => isCookies(args[0]),
+  (
+    self: Cookies,
+    name: string,
+    options?: Omit<NonNullable<Cookie["options"]>, "expires" | "maxAge">
+  ) =>
+    set(self, name, "", {
+      ...options,
+      maxAge: 0,
+      expires: new Date(0)
+    })
+)
+
+/**
+ * Add an expired cookie to a Cookies object, throwing an error if invalid
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const expireCookieUnsafe: {
+  (
+    name: string,
+    options?: Omit<NonNullable<Cookie["options"]>, "expires" | "maxAge">
+  ): (self: Cookies) => Cookies
+  (
+    self: Cookies,
+    name: string,
+    options?: Omit<NonNullable<Cookie["options"]>, "expires" | "maxAge">
+  ): Cookies
+} = dual(
+  (args) => isCookies(args[0]),
+  (
+    self: Cookies,
+    name: string,
+    options?: Omit<NonNullable<Cookie["options"]>, "expires" | "maxAge">
+  ): Cookies =>
+    setUnsafe(self, name, "", {
+      ...options,
+      maxAge: 0,
+      expires: new Date(0)
+    })
+)
+
+/**
  * Add multiple cookies to a Cookies object
  *
  * @since 4.0.0

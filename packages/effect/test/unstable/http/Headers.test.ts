@@ -34,6 +34,24 @@ describe("Headers", () => {
     deepStrictEqual(keys, ["foo"])
   })
 
+  it("remove", () => {
+    const headers = Headers.fromInput({ foo: "bar", baz: "qux", hello: "world" })
+    const result = Headers.remove(headers, "baz")
+    deepStrictEqual({ ...result }, { foo: "bar", hello: "world" })
+  })
+
+  it("removeMany", () => {
+    const headers = Headers.fromInput({ foo: "bar", baz: "qux", hello: "world" })
+    const result = Headers.removeMany(headers, ["baz", "hello"])
+    deepStrictEqual({ ...result }, { foo: "bar" })
+  })
+
+  it("removeMany normalizes keys to lowercase", () => {
+    const headers = Headers.fromInput({ "Content-Type": "text/plain", "X-Custom": "value", keep: "me" })
+    const result = Headers.removeMany(headers, ["Content-Type", "X-CUSTOM"])
+    deepStrictEqual({ ...result }, { keep: "me" })
+  })
+
   it("works with for..in based headers polyfills", () => {
     const effectHeaders = Headers.fromInput({ foo: "bar" })
     const nativeHeaders = new globalThis.Headers()

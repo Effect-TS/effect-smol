@@ -260,6 +260,24 @@ export const remove: {
  * @since 4.0.0
  * @category combinators
  */
+export const removeMany: {
+  (keys: Iterable<string>): (self: Headers) => Headers
+  (self: Headers, keys: Iterable<string>): Headers
+} = dual<
+  (keys: Iterable<string>) => (self: Headers) => Headers,
+  (self: Headers, keys: Iterable<string>) => Headers
+>(2, (self, keys) => {
+  const out = make(self)
+  for (const key of keys) {
+    delete out[key.toLowerCase()]
+  }
+  return out
+})
+
+/**
+ * @since 4.0.0
+ * @category combinators
+ */
 export const redact: {
   (
     key: string | RegExp | ReadonlyArray<string | RegExp>

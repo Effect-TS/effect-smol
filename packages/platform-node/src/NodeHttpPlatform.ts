@@ -18,7 +18,9 @@ import * as NodeFileSystem from "./NodeFileSystem.ts"
  */
 export const make = Platform.make({
   fileResponse(path, status, statusText, headers, start, end, contentLength) {
-    const stream = Fs.createReadStream(path, { start, end })
+    const stream = contentLength === 0
+      ? Readable.from([])
+      : Fs.createReadStream(path, { start, end: end === undefined ? undefined : end - 1 })
     return ServerResponse.raw(stream, {
       headers: {
         ...headers,

@@ -1,11 +1,11 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Effect } from "effect"
-import { MixedScheduler } from "effect/Scheduler"
+import * as Scheduler from "effect/Scheduler"
 
 describe("Scheduler", () => {
   it.effect("MixedScheduler orders by priority (sync)", () =>
     Effect.sync(() => {
-      const scheduler = new MixedScheduler("sync")
+      const scheduler = new Scheduler.MixedScheduler("sync")
       const order: Array<string> = []
 
       scheduler.scheduleTask(() => order.push("p0-1"), 0)
@@ -29,7 +29,7 @@ describe("Scheduler", () => {
 
   it.effect("MixedScheduler is FIFO within a priority", () =>
     Effect.sync(() => {
-      const scheduler = new MixedScheduler("sync")
+      const scheduler = new Scheduler.MixedScheduler("sync")
       const order: Array<number> = []
 
       scheduler.scheduleTask(() => order.push(1), 5)
@@ -39,5 +39,32 @@ describe("Scheduler", () => {
       scheduler.flush()
 
       assert.deepStrictEqual(order, [1, 2, 3])
+    }))
+
+  it.effect("PreventSchedulerYield disables shouldYield checks", () =>
+    Effect.gen(function*() {
+      let calls = 0
+      const scheduler: Scheduler.Scheduler = {
+        executionMode: "sync",
+        scheduleTask: (task) => {
+          task()
+        },
+        shouldYield: () => {
+          calls++
+          return false
+        }
+      }
+
+      yield* Effect.sync(() => undefined).pipe(
+        Effect.provideService(Scheduler.Scheduler, scheduler)
+      )
+      assert.strictEqual(calls > 0, true)
+
+      calls = 0
+      yield* Effect.sync(() => undefined).pipe(
+        Effect.provideService(Scheduler.Scheduler, scheduler),
+        Effect.provideService(Scheduler.PreventSchedulerYield, true)
+      )
+      assert.strictEqual(calls, 0)
     }))
 })

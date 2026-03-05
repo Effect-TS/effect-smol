@@ -13,7 +13,7 @@
 import { constTrue, constUndefined } from "./Function.ts"
 import type { LogLevel, Severity } from "./LogLevel.ts"
 import type { ReadonlyRecord } from "./Record.ts"
-import { MaxOpsBeforeYield } from "./Scheduler.ts"
+import { MaxOpsBeforeYield, PreventSchedulerYield } from "./Scheduler.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 import { CurrentTraceLevel, DisablePropagation, MinimumTraceLevel, type SpanLink, Tracer } from "./Tracer.ts"
 
@@ -38,6 +38,11 @@ export {
    * @category references
    */
   MinimumTraceLevel,
+  /**
+   * @since 4.0.0
+   * @category references
+   */
+  PreventSchedulerYield,
   /**
    * @since 4.0.0
    * @category references

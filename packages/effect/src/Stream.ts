@@ -1254,7 +1254,9 @@ export const fromPubSubTake = <A, E>(pubsub: PubSub.PubSub<Take.Take<A, E>>): St
  *
  * @example
  * ```ts
- * import { Console, Effect, Stream } from "effect"
+ * import { Console, Data, Effect, Stream } from "effect"
+ *
+ * class StreamError extends Data.TaggedError("StreamError")<{ readonly cause: unknown }> {}
  *
  * const readableStream = new ReadableStream({
  *   start(controller) {
@@ -1268,7 +1270,7 @@ export const fromPubSubTake = <A, E>(pubsub: PubSub.PubSub<Take.Take<A, E>>): St
  * const program = Effect.gen(function*() {
  *   const stream = Stream.fromReadableStream({
  *     evaluate: () => readableStream,
- *     onError: (error) => new Error(String(error))
+ *     onError: (cause) => new StreamError({ cause })
  *   })
  *   const values = yield* Stream.runCollect(stream)
  *   yield* Console.log(values)
@@ -1310,7 +1312,9 @@ export const fromReadableStream = <A, E>(
  *
  * @example
  * ```ts
- * import { Console, Effect, Stream } from "effect"
+ * import { Console, Data, Effect, Stream } from "effect"
+ *
+ * class StreamError extends Data.TaggedError("StreamError")<{ readonly cause: unknown }> {}
  *
  * const iterable = (async function*() {
  *   yield 1
@@ -1319,7 +1323,7 @@ export const fromReadableStream = <A, E>(
  * })()
  *
  * const program = Effect.gen(function*() {
- *   const stream = Stream.fromAsyncIterable(iterable, (error) => new Error(String(error)))
+ *   const stream = Stream.fromAsyncIterable(iterable, (cause) => new StreamError({ cause }))
  *   const values = yield* Stream.runCollect(stream)
  *   yield* Console.log(values)
  * })

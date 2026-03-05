@@ -39,7 +39,7 @@
  *
  * // Opt in to error reporting with Effect.withErrorReporting
  * const program = Effect.gen(function*() {
- *   yield* new RateLimitError({ retryAfter: 60 })
+ *   return yield* new RateLimitError({ retryAfter: 60 })
  * }).pipe(
  *   Effect.withErrorReporting,
  *   Effect.provide(ErrorReporter.layer([consoleReporter]))
@@ -200,9 +200,7 @@ export const CurrentErrorReporters: ServiceMap.Reference<ReadonlySet<ErrorReport
  *   { mergeWithExisting: true }
  * )
  *
- * const program = Effect.gen(function*() {
- *   yield* Effect.fail("boom")
- * }).pipe(
+ * const program = Effect.fail("boom").pipe(
  *   Effect.withErrorReporting,
  *   Effect.provide(ReporterLive)
  * )

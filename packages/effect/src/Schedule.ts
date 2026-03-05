@@ -72,7 +72,7 @@ const randomNext: Effect<number> = random.Random.useSync((random) => random.next
  * const program = Effect.gen(function*() {
  *   // Using retry schedule
  *   const result1 = yield* Effect.retry(
- *     Effect.fail("temporary error"),
+ *     Effect.suspend(() => Math.random() > 0.5 ? Effect.fail("temporary error") : Effect.succeed("Success")),
  *     retrySchedule
  *   )
  *
@@ -200,7 +200,7 @@ export const CurrentMetadata = ServiceMap.Reference<Metadata>("effect/Schedule/C
  *     Effect.gen(function*() {
  *       attempt++
  *       if (attempt < 3) {
- *         yield* Effect.fail(`Attempt ${attempt} failed`)
+ *         return yield* Effect.fail(`Attempt ${attempt} failed`)
  *       }
  *       return `Success on attempt ${attempt}`
  *     }),
@@ -523,7 +523,9 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
  *
  * @example
  * ```ts
- * import { Console, Duration, Effect, Schedule } from "effect"
+ * import { Console, Data, Duration, Effect, Schedule } from "effect"
+ *
+ * class RetryAttemptError extends Data.TaggedError("RetryAttemptError")<{ readonly message: string }> {}
  *
  * // Add random jitter to schedule delays
  * const jitteredSchedule = Schedule.addDelay(
@@ -619,7 +621,7 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
  *     Effect.gen(function*() {
  *       attempt++
  *       if (attempt < 5) {
- *         yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
+ *         return yield* Effect.fail(new RetryAttemptError({ message: `Attempt ${attempt} failed` }))
  *       }
  *       return `Success on attempt ${attempt}`
  *     }),
@@ -660,7 +662,9 @@ export const addDelay: {
  *
  * @example
  * ```ts
- * import { Console, Effect, Schedule } from "effect"
+ * import { Console, Data, Effect, Schedule } from "effect"
+ *
+ * class RetryAttemptError extends Data.TaggedError("RetryAttemptError")<{ readonly message: string }> {}
  *
  * // First retry 3 times quickly, then switch to slower retries
  * const quickRetries = Schedule.exponential("100 millis").pipe(
@@ -679,7 +683,7 @@ export const addDelay: {
  *       attempt++
  *       yield* Console.log(`Attempt ${attempt}`)
  *       if (attempt < 6) {
- *         yield* Effect.fail(new Error(`Failure ${attempt}`))
+ *         return yield* Effect.fail(new RetryAttemptError({ message: `Failure ${attempt}` }))
  *       }
  *       return `Success on attempt ${attempt}`
  *     }),
@@ -813,7 +817,9 @@ export const andThenResult: {
  *
  * @example
  * ```ts
- * import { Console, Effect, Schedule } from "effect"
+ * import { Console, Data, Effect, Schedule } from "effect"
+ *
+ * class RetryAttemptError extends Data.TaggedError("RetryAttemptError")<{ readonly message: string }> {}
  *
  * // Both schedules must want to continue for the combined schedule to continue
  * const timeLimit = Schedule.spaced("1 second").pipe(Schedule.take(5)) // max 5 times
@@ -855,7 +861,7 @@ export const andThenResult: {
  *       yield* Console.log(`Retry attempt ${attempt}`)
  *
  *       if (attempt < 3) {
- *         yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
+ *         return yield* Effect.fail(new RetryAttemptError({ message: `Attempt ${attempt} failed` }))
  *       }
  *
  *       return `Success on attempt ${attempt}`
@@ -1068,7 +1074,9 @@ export const bothWith: {
  *
  * @example
  * ```ts
- * import { Console, Effect, Schedule } from "effect"
+ * import { Console, Data, Effect, Schedule } from "effect"
+ *
+ * class RetryAttemptError extends Data.TaggedError("RetryAttemptError")<{ readonly message: string }> {}
  *
  * // Compose a quick retry phase followed by slower retry phase
  * const fastRetries = Schedule.exponential("100 millis").pipe(
@@ -1092,7 +1100,7 @@ export const bothWith: {
  *       yield* Console.log(`Attempt ${attempt}`)
  *
  *       if (attempt < 7) { // Needs both phases to succeed
- *         yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
+ *         return yield* Effect.fail(new RetryAttemptError({ message: `Attempt ${attempt} failed` }))
  *       }
  *
  *       return `Success on attempt ${attempt}`
@@ -1337,7 +1345,9 @@ export const collectWhile: {
  *
  * @example
  * ```ts
- * import { Console, Effect, Schedule } from "effect"
+ * import { Console, Data, Effect, Schedule } from "effect"
+ *
+ * class ScheduledTaskError extends Data.TaggedError("ScheduledTaskError")<{ readonly message: string }> {}
  *
  * // Run every minute
  * const everyMinute = Schedule.cron("* * * * *")
@@ -1438,7 +1448,7 @@ export const collectWhile: {
  *       yield* Console.log("Complex scheduled task...")
  *       // Simulate occasional failures
  *       if (Math.random() < 0.3) {
- *         yield* Effect.fail(new Error("Scheduled task failed"))
+ *         return yield* Effect.fail(new ScheduledTaskError({ message: "Scheduled task failed" }))
  *       }
  *       return "success"
  *     }),
@@ -1586,7 +1596,9 @@ export const duration = (durationInput: Duration.Input): Schedule<Duration.Durat
  *
  * @example
  * ```ts
- * import { Console, Effect, Schedule } from "effect"
+ * import { Console, Data, Effect, Schedule } from "effect"
+ *
+ * class RetryAttemptError extends Data.TaggedError("RetryAttemptError")<{ readonly message: string }> {}
  *
  * // Run a task for exactly 5 seconds, regardless of how many iterations
  * const fiveSecondSchedule = Schedule.during("5 seconds")
@@ -1648,7 +1660,7 @@ export const duration = (durationInput: Duration.Input): Schedule<Duration.Durat
  *       yield* Console.log(`Retry attempt ${attempt}`)
  *
  *       if (Math.random() < 0.8) { // 80% failure rate
- *         yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
+ *         return yield* Effect.fail(new RetryAttemptError({ message: `Attempt ${attempt} failed` }))
  *       }
  *
  *       return `Success on attempt ${attempt}`
@@ -1678,7 +1690,9 @@ export const during = (duration: Duration.Input): Schedule<Duration.Duration> =>
  *
  * @example
  * ```ts
- * import { Console, Effect, Schedule } from "effect"
+ * import { Console, Data, Effect, Schedule } from "effect"
+ *
+ * class RetryAttemptError extends Data.TaggedError("RetryAttemptError")<{ readonly message: string }> {}
  *
  * // Either continues as long as at least one schedule wants to continue
  * const timeBasedSchedule = Schedule.spaced("2 seconds").pipe(Schedule.take(3))
@@ -1722,7 +1736,7 @@ export const during = (duration: Duration.Input): Schedule<Duration.Duration> =>
  *       yield* Console.log(`Retry attempt ${attempt}`)
  *
  *       if (attempt < 6) {
- *         yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
+ *         return yield* Effect.fail(new RetryAttemptError({ message: `Attempt ${attempt} failed` }))
  *       }
  *
  *       return `Success on attempt ${attempt}`
@@ -1983,7 +1997,9 @@ export const elapsed: Schedule<Duration.Duration> = fromStepWithMetadata(
  *
  * @example
  * ```ts
- * import { Console, Effect, Schedule } from "effect"
+ * import { Console, Data, Effect, Schedule } from "effect"
+ *
+ * class RetryFailure extends Data.TaggedError("RetryFailure")<{ readonly message: string }> {}
  *
  * // Basic exponential backoff with default factor of 2
  * const basicExponential = Schedule.exponential("100 millis")
@@ -2006,7 +2022,7 @@ export const elapsed: Schedule<Duration.Duration> = fromStepWithMetadata(
  *       attempt++
  *       if (attempt < 4) {
  *         yield* Console.log(`Attempt ${attempt} failed, retrying...`)
- *         yield* Effect.fail(new Error(`Failure ${attempt}`))
+ *         return yield* Effect.fail(new RetryFailure({ message: `Failure ${attempt}` }))
  *       }
  *       return `Success on attempt ${attempt}`
  *     }),
@@ -2040,7 +2056,9 @@ export const exponential = (
  *
  * @example
  * ```ts
- * import { Console, Effect, Schedule } from "effect"
+ * import { Console, Data, Effect, Schedule } from "effect"
+ *
+ * class RetryAttemptError extends Data.TaggedError("RetryAttemptError")<{ readonly message: string }> {}
  *
  * // Basic fibonacci schedule starting with 100ms
  * const fibSchedule = Schedule.fibonacci("100 millis")
@@ -2056,7 +2074,7 @@ export const exponential = (
  *       yield* Console.log(`Attempt ${attempt}`)
  *
  *       if (attempt < 5) {
- *         yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
+ *         return yield* Effect.fail(new RetryAttemptError({ message: `Attempt ${attempt} failed` }))
  *       }
  *
  *       return `Success on attempt ${attempt}`
@@ -2400,7 +2418,9 @@ export const passthrough = <Output, Input, Error, Env>(
  *
  * @example
  * ```ts
- * import { Console, Effect, Schedule } from "effect"
+ * import { Console, Data, Effect, Schedule } from "effect"
+ *
+ * class RetryAttemptError extends Data.TaggedError("RetryAttemptError")<{ readonly message: string }> {}
  *
  * // Basic recurs - retry at most 3 times
  * const maxThreeAttempts = Schedule.recurs(3)
@@ -2415,7 +2435,7 @@ export const passthrough = <Output, Input, Error, Env>(
  *       yield* Console.log(`Attempt ${attempt}`)
  *
  *       if (attempt < 4) {
- *         yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
+ *         return yield* Effect.fail(new RetryAttemptError({ message: `Attempt ${attempt} failed` }))
  *       }
  *
  *       return `Success on attempt ${attempt}`
@@ -2663,12 +2683,14 @@ export const spaced = (duration: Duration.Input): Schedule<number> => {
  *
  * @example
  * ```ts
- * import { Console, Effect, Schedule } from "effect"
+ * import { Console, Data, Effect, Schedule } from "effect"
+ *
+ * class RetryError extends Data.TaggedError("RetryError")<{ readonly message: string }> {}
  *
  * // Log retry errors for debugging
  * const errorLoggingSchedule = Schedule.exponential("100 millis").pipe(
  *   Schedule.take(3),
- *   Schedule.tapInput((error: Error) =>
+ *   Schedule.tapInput((error: RetryError) =>
  *     Console.log(`Retry triggered by error: ${String(error)}`)
  *   )
  * )
@@ -2680,7 +2702,7 @@ export const spaced = (duration: Duration.Input): Schedule<number> => {
  *     Effect.gen(function*() {
  *       attempt++
  *       if (attempt < 4) {
- *         yield* Effect.fail(new Error(`Network timeout on attempt ${attempt}`))
+ *         return yield* Effect.fail(new RetryError({ message: `Network timeout on attempt ${attempt}` }))
  *       }
  *       return `Success on attempt ${attempt}`
  *     }),
@@ -2729,7 +2751,7 @@ export const spaced = (duration: Duration.Input): Schedule<number> => {
  * // Conditional alerting based on input
  * const alertingSchedule = Schedule.exponential("200 millis").pipe(
  *   Schedule.take(6),
- *   Schedule.tapInput((error: Error) =>
+ *   Schedule.tapInput((error: RetryError) =>
  *     Effect.gen(function*() {
  *       if (String(error).includes("critical")) {
  *         yield* Console.log(`🚨 CRITICAL ERROR: ${String(error)}`)
@@ -2751,7 +2773,7 @@ export const spaced = (duration: Duration.Input): Schedule<number> => {
  *       const errorType = isCritical
  *         ? "critical database failure"
  *         : "temporary network issue"
- *       yield* Effect.fail(new Error(errorType))
+ *       return yield* Effect.fail(new RetryError({ message: errorType }))
  *     }),
  *     alertingSchedule
  *   ).pipe(
@@ -2764,10 +2786,10 @@ export const spaced = (duration: Duration.Input): Schedule<number> => {
  * // Chain multiple input taps for different purposes
  * const comprehensiveSchedule = Schedule.fibonacci("100 millis").pipe(
  *   Schedule.take(5),
- *   Schedule.tapInput((error: Error) =>
- *     Console.log(`Error occurred: ${error.name}`)
+ *   Schedule.tapInput((error: RetryError) =>
+ *     Console.log(`Error occurred: ${error._tag}`)
  *   ),
- *   Schedule.tapInput((error: Error) =>
+ *   Schedule.tapInput((error: RetryError) =>
  *     String(error).length > 20
  *       ? Console.log("📝 Long error message detected")
  *       : Effect.void
@@ -2804,7 +2826,9 @@ export const tapInput: {
  *
  * @example
  * ```ts
- * import { Console, Effect, Schedule } from "effect"
+ * import { Console, Data, Effect, Schedule } from "effect"
+ *
+ * class RetryAttemptError extends Data.TaggedError("RetryAttemptError")<{ readonly message: string }> {}
  *
  * // Log schedule outputs for debugging/monitoring
  * const monitoredSchedule = Schedule.exponential("100 millis").pipe(
@@ -2819,7 +2843,7 @@ export const tapInput: {
  *     Effect.gen(function*() {
  *       attempt++
  *       if (attempt < 4) {
- *         yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
+ *         return yield* Effect.fail(new RetryAttemptError({ message: `Attempt ${attempt} failed` }))
  *       }
  *       return `Success on attempt ${attempt}`
  *     }),
@@ -2906,7 +2930,9 @@ export const tapOutput: {
  *
  * @example
  * ```ts
- * import { Console, Effect, Schedule } from "effect"
+ * import { Console, Data, Effect, Schedule } from "effect"
+ *
+ * class RetryAttemptError extends Data.TaggedError("RetryAttemptError")<{ readonly message: string }> {}
  *
  * // Limit an infinite schedule to run only 5 times
  * const limitedHeartbeat = Schedule.spaced("1 second").pipe(
@@ -2939,7 +2965,7 @@ export const tapOutput: {
  *       yield* Console.log(`Attempt ${attempt}`)
  *
  *       if (attempt < 5) { // Will fail more than 3 times
- *         yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
+ *         return yield* Effect.fail(new RetryAttemptError({ message: `Attempt ${attempt} failed` }))
  *       }
  *
  *       return `Success on attempt ${attempt}`

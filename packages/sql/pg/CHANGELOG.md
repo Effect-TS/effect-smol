@@ -1,5 +1,12 @@
 # @effect/sql-pg
 
+## 4.0.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [[`903a839`](https://github.com/Effect-TS/effect-smol/commit/903a839e94239e6ec4568315af28e405bcad95f4), [`91a0168`](https://github.com/Effect-TS/effect-smol/commit/91a016836680a6669308ecf464d3584bcc4ae1b7), [`c890f9a`](https://github.com/Effect-TS/effect-smol/commit/c890f9a1b3a989ed22528bd5a43326342e05b142), [`1e985f2`](https://github.com/Effect-TS/effect-smol/commit/1e985f237d250b51b91de22dde77160c1e778ce7)]:
+  - effect@4.0.0-beta.27
+
 ## 4.0.0-beta.26
 
 ### Patch Changes

@@ -280,3 +280,15 @@ export class MixedScheduler implements Scheduler {
 export const MaxOpsBeforeYield = ServiceMap.Reference<number>("effect/Scheduler/MaxOpsBeforeYield", {
   defaultValue: () => 2048
 })
+
+/**
+ * A service reference that controls whether the runtime should bypass scheduler
+ * yield checks. When set to `true`, the fiber run loop won't call
+ * `Scheduler.shouldYield`.
+ *
+ * @since 4.0.0
+ * @category references
+ */
+export const PreventSchedulerYield = ServiceMap.Reference<boolean>("effect/Scheduler/PreventSchedulerYield", {
+  defaultValue: () => false
+})

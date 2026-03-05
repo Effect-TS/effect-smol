@@ -108,7 +108,7 @@ export type CliError =
  * // In CLI parsing context
  * const parseCommand = Effect.gen(function*() {
  *   // If parsing encounters unknown flag
- *   return yield* Effect.fail(unrecognizedError)
+ *   return yield* unrecognizedError
  * })
  * ```
  *
@@ -201,7 +201,7 @@ export class DuplicateOption extends Schema.ErrorClass(`${TypeId}/DuplicateOptio
  *   Effect.gen(function*() {
  *     const apiKey = options["api-key"]
  *     if (!apiKey) {
- *       return yield* Effect.fail(missingOptionError)
+ *       return yield* missingOptionError
  *     }
  *     return apiKey
  *   })
@@ -246,7 +246,7 @@ export class MissingOption extends Schema.ErrorClass(`${TypeId}/MissingOption`)(
  * const parseArguments = (args: Array<string>) =>
  *   Effect.gen(function*() {
  *     if (args.length === 0) {
- *       return yield* Effect.fail(missingArgError)
+ *       return yield* missingArgError
  *     }
  *     return args[0]
  *   })
@@ -354,7 +354,7 @@ export class InvalidValue extends Schema.ErrorClass(`${TypeId}/InvalidValue`)({
  *   Effect.gen(function*() {
  *     const validCommands = ["deploy", "destroy", "status"]
  *     if (!validCommands.includes(subcommand)) {
- *       return yield* Effect.fail(unknownSubcommandError)
+ *       return yield* unknownSubcommandError
  *     }
  *     return subcommand
  *   })

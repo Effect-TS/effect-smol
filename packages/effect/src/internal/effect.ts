@@ -537,6 +537,7 @@ export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
   currentStackFrame: StackFrame | undefined
   runtimeMetrics: Metric.FiberRuntimeMetricsService | undefined
   maxOpsBeforeYield!: number
+  currentPreventYield!: boolean
 
   getRef<X>(ref: ServiceMap.Reference<X>): X {
     return ServiceMap.getReferenceUnsafe(this.services, ref)
@@ -615,6 +616,7 @@ export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
         this.currentOpCount++
         if (
           !yielding &&
+          !this.currentPreventYield &&
           this.currentScheduler.shouldYield(this as any)
         ) {
           yielding = true
@@ -678,6 +680,7 @@ export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
     this.minimumLogLevel = this.getRef(MinimumLogLevel)
     this.currentStackFrame = services.mapUnsafe.get(CurrentStackFrame.key)
     this.maxOpsBeforeYield = this.getRef(Scheduler.MaxOpsBeforeYield)
+    this.currentPreventYield = this.getRef(Scheduler.PreventSchedulerYield)
     this.runtimeMetrics = services.mapUnsafe.get(InternalMetric.FiberRuntimeMetricsKey)
     const currentTracer = services.mapUnsafe.get(Tracer.TracerKey)
     this.currentTracerContext = currentTracer ? currentTracer["context"] : undefined

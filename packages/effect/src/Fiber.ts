@@ -128,6 +128,7 @@ export interface Fiber<out A, out E = never> extends Pipeable {
   readonly minimumLogLevel: LogLevel
   readonly currentStackFrame?: StackFrame | undefined
   readonly maxOpsBeforeYield: number
+  readonly currentPreventYield: boolean
   readonly addObserver: (cb: (exit: Exit<A, E>) => void) => () => void
   readonly interruptUnsafe: (
     fiberId?: number | undefined,

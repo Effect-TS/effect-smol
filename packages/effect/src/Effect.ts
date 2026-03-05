@@ -40,12 +40,14 @@
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Data, Effect } from "effect"
+ *
+ * class DiscountRateError extends Data.TaggedError("DiscountRateError")<{}> {}
  *
  * // Effect that may fail
  * const divide = (a: number, b: number) =>
  *   b === 0
- *     ? Effect.fail(new Error("Division by zero"))
+ *     ? Effect.fail(new DiscountRateError())
  *     : Effect.succeed(a / b)
  *
  * // Error handling
@@ -146,13 +148,15 @@ const TypeId = core.EffectTypeId
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Data, Effect } from "effect"
+ *
+ * class TaskError extends Data.TaggedError("TaskError")<{ readonly message: string }> {}
  *
  * // A simple effect that succeeds with a value
  * const success = Effect.succeed(42)
  *
- * // An effect that may fail
- * const risky = Effect.fail(new Error("Something went wrong"))
+ * // An effect that will always fail
+ * const risky = Effect.fail(new TaskError({ message: "Something went wrong" }))
  *
  * // Effects can be composed using generator functions
  * const program = Effect.gen(function*() {
@@ -433,13 +437,15 @@ export declare namespace All {
    * @category Models
    * @example
    * ```ts
-   * import { Effect } from "effect"
+   * import { Data, Effect } from "effect"
+   *
+   * class OopsError extends Data.TaggedError("OopsError")<{}> {}
    *
    * // EffectAny represents an Effect with any type parameters
    * const effects: Array<Effect.All.EffectAny> = [
    *   Effect.succeed(42),
    *   Effect.succeed("hello"),
-   *   Effect.fail(new Error("oops"))
+   *   Effect.fail(new OopsError())
    * ]
    * ```
    */
@@ -1130,16 +1136,18 @@ export const promise: <A>(
  *
  * @example Custom Error Handling
  * ```ts
- * import { Effect } from "effect"
+ * import { Data, Effect } from "effect"
+ *
+ * class TodoFetchError extends Data.TaggedError("TodoFetchError")<{ readonly cause: unknown }> {}
  *
  * const getTodo = (id: number) =>
  *   Effect.tryPromise({
  *     try: () => fetch(`https://jsonplaceholder.typicode.com/todos/${id}`),
  *     // remap the error
- *     catch: (unknown) => new Error(`something went wrong ${unknown}`)
+ *     catch: (cause) => new TodoFetchError({ cause })
  *   })
  *
- * //      ┌─── Effect<Response, Error, never>
+ * //      ┌─── Effect<Response, TodoFetchError, never>
  * //      ▼
  * const program = getTodo(1)
  * ```
@@ -1530,16 +1538,18 @@ export const bind: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Data, Effect } from "effect"
+ *
+ * class DiscountRateError extends Data.TaggedError("DiscountRateError")<{}> {}
  *
  * const addServiceCharge = (amount: number) => amount + 1
  *
  * const applyDiscount = (
  *   total: number,
  *   discountRate: number
- * ): Effect.Effect<number, Error> =>
+ * ): Effect.Effect<number, DiscountRateError> =>
  *   discountRate === 0
- *     ? Effect.fail(new Error("Discount rate cannot be zero"))
+ *     ? Effect.fail(new DiscountRateError())
  *     : Effect.succeed(total - (total * discountRate) / 100)
  *
  * const fetchTransactionAmount = Effect.promise(() => Promise.resolve(100))
@@ -1615,12 +1625,14 @@ export namespace gen {
  * @example
  * ```ts
  * // Title: Creating a Failed Effect
- * import { Effect } from "effect"
+ * import { Data, Effect } from "effect"
  *
- * //      ┌─── Effect<never, Error, never>
+ * class OperationFailedError extends Data.TaggedError("OperationFailedError")<{}> {}
+ *
+ * //      ┌─── Effect<never, OperationFailedError, never>
  * //      ▼
  * const failure = Effect.fail(
- *   new Error("Operation failed due to network error")
+ *   new OperationFailedError()
  * )
  * ```
  *
@@ -1637,9 +1649,11 @@ export const fail: <E>(error: E) => Effect<never, E> = internal.fail
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Data, Effect } from "effect"
  *
- * const program = Effect.failSync(() => new Error("Something went wrong"))
+ * class ProgramError extends Data.TaggedError("ProgramError")<{ readonly failedAt: Date }> {}
+ *
+ * const program = Effect.failSync(() => new ProgramError({ failedAt: new Date() }))
  *
  * Effect.runPromiseExit(program).then(console.log)
  * // Output: { _id: 'Exit', _tag: 'Failure', cause: ... }
@@ -1793,12 +1807,14 @@ export {
    *
    * @example Custom Error Handling
    * ```ts
-   * import { Effect } from "effect"
+   * import { Data, Effect } from "effect"
+   *
+   * class JsonParsingError extends Data.TaggedError("JsonParsingError")<{ readonly cause: unknown }> {}
    *
    * const parseJSON = (input: string) =>
    *   Effect.try({
    *     try: () => JSON.parse(input),
-   *     catch: (error) => new Error(`JSON parsing failed: ${error}`)
+   *     catch: (cause) => new JsonParsingError({ cause })
    *   })
    *
    * Effect.runPromiseExit(parseJSON("invalid json")).then(console.log)
@@ -1935,17 +1951,17 @@ export const fromOption: <A>(
  * ```ts
  * import { Console, Effect } from "effect"
  *
- * const input: string | null = null
- *
- * const program = Effect.gen(function*() {
+ * const program = Effect.fn(function*(input: string | null) {
  *   const value = yield* Effect.fromNullishOr(input)
  *   yield* Console.log(value)
- * }).pipe(
+ * },
  *   Effect.catch(() => Console.log("missing"))
  * )
  *
- * Effect.runPromise(program)
+ * Effect.runPromise(program(null))
  * // Output: missing
+ * Effect.runPromise(program("hello"))
+ * // Output: hello
  * ```
  *
  * @since 4.0.0
@@ -2014,15 +2030,17 @@ export const fromYieldable: <Self extends Yieldable.Any, A, E, R>(
  *
  * @example
  * ```ts
- * import { Effect, pipe } from "effect"
+ * import { Data, Effect, pipe } from "effect"
+ *
+ * class DiscountRateError extends Data.TaggedError("DiscountRateError")<{}> {}
  *
  * // Function to apply a discount safely to a transaction amount
  * const applyDiscount = (
  *   total: number,
  *   discountRate: number
- * ): Effect.Effect<number, Error> =>
+ * ): Effect.Effect<number, DiscountRateError> =>
  *   discountRate === 0
- *     ? Effect.fail(new Error("Discount rate cannot be zero"))
+ *     ? Effect.fail(new DiscountRateError())
  *     : Effect.succeed(total - (total * discountRate) / 100)
  *
  * // Simulated asynchronous task to fetch a transaction amount from database
@@ -2117,15 +2135,17 @@ export const flatten: <A, E, R, E2, R2>(self: Effect<Effect<A, E, R>, E2, R2>) =
  *
  * @example Applying a Discount Based on Fetched Amount
  * ```ts
- * import { Effect, pipe } from "effect"
+ * import { Data, Effect, pipe } from "effect"
+ *
+ * class DiscountRateError extends Data.TaggedError("DiscountRateError")<{}> {}
  *
  * // Function to apply a discount safely to a transaction amount
  * const applyDiscount = (
  *   total: number,
  *   discountRate: number
- * ): Effect.Effect<number, Error> =>
+ * ): Effect.Effect<number, DiscountRateError> =>
  *   discountRate === 0
- *     ? Effect.fail(new Error("Discount rate cannot be zero"))
+ *     ? Effect.fail(new DiscountRateError())
  *     : Effect.succeed(total - (total * discountRate) / 100)
  *
  * // Simulated asynchronous task to fetch a transaction amount from database
@@ -2198,16 +2218,18 @@ export const andThen: {
  * @example
  * ```ts
  * // Title: Logging a step in a pipeline
- * import { Effect, pipe } from "effect"
+ * import { Data, Effect, pipe } from "effect"
  * import { Console } from "effect"
+ *
+ * class DiscountRateError extends Data.TaggedError("DiscountRateError")<{}> {}
  *
  * // Function to apply a discount safely to a transaction amount
  * const applyDiscount = (
  *   total: number,
  *   discountRate: number
- * ): Effect.Effect<number, Error> =>
+ * ): Effect.Effect<number, DiscountRateError> =>
  *   discountRate === 0
- *     ? Effect.fail(new Error("Discount rate cannot be zero"))
+ *     ? Effect.fail(new DiscountRateError())
  *     : Effect.succeed(total - (total * discountRate) / 100)
  *
  * // Simulated asynchronous task to fetch a transaction amount from database
@@ -3464,17 +3486,19 @@ export const catchCauseFilter: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Data, Effect } from "effect"
+ *
+ * class TaskError extends Data.TaggedError("TaskError")<{ readonly message: string }> {}
  *
  * //      ┌─── Effect<number, string, never>
  * //      ▼
  * const simulatedTask = Effect.fail("Oh no!").pipe(Effect.as(1))
  *
- * //      ┌─── Effect<number, Error, never>
+ * //      ┌─── Effect<number, TaskError, never>
  * //      ▼
  * const mapped = Effect.mapError(
  *   simulatedTask,
- *   (message) => new Error(message)
+ *   (message) => new TaskError({ message })
  * )
  * ```
  *
@@ -3498,16 +3522,18 @@ export const mapError: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Data, Effect } from "effect"
+ *
+ * class TaskError extends Data.TaggedError("TaskError")<{ readonly message: string }> {}
  *
  * //      ┌─── Effect<number, string, never>
  * //      ▼
  * const simulatedTask = Effect.fail("Oh no!").pipe(Effect.as(1))
  *
- * //      ┌─── Effect<boolean, Error, never>
+ * //      ┌─── Effect<boolean, TaskError, never>
  * //      ▼
  * const modified = Effect.mapBoth(simulatedTask, {
- *   onFailure: (message) => new Error(message),
+ *   onFailure: (message) => new TaskError({ message }),
  *   onSuccess: (n) => n > 0
  * })
  * ```
@@ -3546,11 +3572,13 @@ export const mapBoth: {
  * @example
  * ```ts
  * // Title: Propagating an Error as a Defect
- * import { Effect } from "effect"
+ * import { Data, Effect } from "effect"
+ *
+ * class DivideByZeroError extends Data.TaggedError("DivideByZeroError")<{}> {}
  *
  * const divide = (a: number, b: number) =>
  *   b === 0
- *     ? Effect.fail(new Error("Cannot divide by zero"))
+ *     ? Effect.fail(new DivideByZeroError())
  *     : Effect.succeed(a / b)
  *
  * //      ┌─── Effect<number, never, never>
@@ -3559,7 +3587,7 @@ export const mapBoth: {
  *
  * Effect.runPromise(program).catch(console.error)
  * // Output:
- * // (FiberFailure) Error: Cannot divide by zero
+ * // (FiberFailure) DivideByZeroError
  * //   ...stack trace...
  * ```
  *
@@ -3835,7 +3863,7 @@ export const tapDefect: {
  *   attempts++
  *   yield* Console.log(`Attempt ${attempts}`)
  *   if (attempts < 3) {
- *     yield* Effect.fail("Not ready")
+ *     return yield* Effect.fail("Not ready")
  *   }
  *   return "Ready"
  * })
@@ -3962,13 +3990,15 @@ export declare namespace Retry {
  *
  * @example
  * ```ts
- * import { Effect, Schedule } from "effect"
+ * import { Data, Effect, Schedule } from "effect"
+ *
+ * class AttemptError extends Data.TaggedError("AttemptError")<{ readonly attempt: number }> {}
  *
  * let attempt = 0
- * const task = Effect.callback<string, Error>((resume) => {
+ * const task = Effect.callback<string, AttemptError>((resume) => {
  *   attempt++
  *   if (attempt <= 2) {
- *     resume(Effect.fail(new Error(`Attempt ${attempt} failed`)))
+ *     resume(Effect.fail(new AttemptError({ attempt })))
  *   } else {
  *     resume(Effect.succeed("Success!"))
  *   }
@@ -4030,14 +4060,16 @@ export const retry: {
  *
  * @example
  * ```ts
- * import { Console, Effect, Schedule } from "effect"
+ * import { Console, Data, Effect, Schedule } from "effect"
+ *
+ * class NetworkTimeoutError extends Data.TaggedError("NetworkTimeoutError")<{}> {}
  *
  * let attempt = 0
  * const networkRequest = Effect.gen(function*() {
  *   attempt++
  *   yield* Console.log(`Network attempt ${attempt}`)
  *   if (attempt < 3) {
- *     return yield* Effect.fail(new Error("Network timeout"))
+ *     return yield* Effect.fail(new NetworkTimeoutError())
  *   }
  *   return "Network data"
  * })
@@ -4221,7 +4253,10 @@ export const ignoreCause: <
  *
  * const fetchUrl = Effect.gen(function*() {
  *   const endpoint = yield* Effect.service(Endpoint)
- *   return endpoint.url === "bad" ? yield* Effect.fail("Unavailable") : endpoint.url
+ *   if (endpoint.url === "bad") {
+ *     return yield* Effect.fail("Unavailable")
+ *   }
+ *   return endpoint.url
  * })
  *
  * const plan = ExecutionPlan.make(
@@ -5070,9 +5105,11 @@ export const when: {
  * @example
  * ```ts
  * // Title: Handling Both Success and Failure Cases
- * import { Effect } from "effect"
+ * import { Data, Effect } from "effect"
  *
- * const success: Effect.Effect<number, Error> = Effect.succeed(42)
+ * class ExampleError extends Data.TaggedError("ExampleError")<{ readonly message: string }> {}
+ *
+ * const success: Effect.Effect<number, ExampleError> = Effect.succeed(42)
  *
  * const program1 = Effect.match(success, {
  *   onFailure: (error) => `failure: ${error.message}`,
@@ -5083,8 +5120,8 @@ export const when: {
  * Effect.runPromise(program1).then(console.log)
  * // Output: "success: 42"
  *
- * const failure: Effect.Effect<number, Error> = Effect.fail(
- *   new Error("Uh oh!")
+ * const failure: Effect.Effect<number, ExampleError> = Effect.fail(
+ *   new ExampleError({ message: "Uh oh!" })
  * )
  *
  * const program2 = Effect.match(failure, {
@@ -5295,9 +5332,11 @@ export const matchCauseEffectEager: {
  *
  * @example
  * ```ts
- * import { Cause, Console, Effect, Result } from "effect"
+ * import { Cause, Console, Data, Effect, Result } from "effect"
  *
- * const task = Effect.fail(new Error("Task failed"))
+ * class TaskError extends Data.TaggedError("TaskError")<{ readonly message: string }> {}
+ *
+ * const task = Effect.fail(new TaskError({ message: "Task failed" }))
  *
  * const program = Effect.matchCauseEffect(task, {
  *   onFailure: (cause) =>
@@ -5366,11 +5405,13 @@ export const matchCauseEffect: {
  * @example
  * ```ts
  * // Title: Handling Both Success and Failure Cases with Side Effects
- * import { Effect } from "effect"
+ * import { Data, Effect } from "effect"
  *
- * const success: Effect.Effect<number, Error> = Effect.succeed(42)
- * const failure: Effect.Effect<number, Error> = Effect.fail(
- *   new Error("Uh oh!")
+ * class ExampleError extends Data.TaggedError("ExampleError")<{ readonly message: string }> {}
+ *
+ * const success: Effect.Effect<number, ExampleError> = Effect.succeed(42)
+ * const failure: Effect.Effect<number, ExampleError> = Effect.fail(
+ *   new ExampleError({ message: "Uh oh!" })
  * )
  *
  * const program1 = Effect.matchEffect(success, {
@@ -5584,7 +5625,7 @@ export const servicesWith: <R, A, E, R2>(
  * const Database = ServiceMap.Service<Database>("Database")
  *
  * const DatabaseLive = Layer.succeed(Database)({
- *   query: (sql: string) => Effect.succeed(`Result for: ${sql}`)
+ *   query: Effect.fn("Database.query")((sql: string) => Effect.succeed(`Result for: ${sql}`))
  * })
  *
  * const program = Effect.gen(function*() {
@@ -6369,9 +6410,11 @@ export const ensuring: {
  *
  * @example
  * ```ts
- * import { Cause, Console, Effect } from "effect"
+ * import { Cause, Data, Console, Effect } from "effect"
  *
- * const task = Effect.fail(new Error("Something went wrong"))
+ * class TaskError extends Data.TaggedError("TaskError")<{ readonly message: string }> {}
+ *
+ * const task = Effect.fail(new TaskError({ message: "Something went wrong" }))
  *
  * const program = Effect.onError(
  *   task,
@@ -6380,8 +6423,8 @@ export const ensuring: {
  *
  * Effect.runPromise(program).catch(console.error)
  * // Output:
- * // Cleanup on error: Error: Something went wrong
- * // Error: Something went wrong
+ * // Cleanup on error: TaskError: Something went wrong
+ * // TaskError: Something went wrong
  * ```
  *
  * @since 2.0.0
@@ -6777,8 +6820,8 @@ export const cachedInvalidateWithTTL: {
  * import { Effect } from "effect"
  *
  * const program = Effect.gen(function*() {
- *   yield* Effect.interrupt
- *   yield* Effect.succeed("This won't execute")
+ *   return yield* Effect.interrupt
+ *   yield* Effect.succeed("This won't execute and is unreachable")
  * })
  *
  * Effect.runPromise(program).catch(console.error)
@@ -7185,7 +7228,7 @@ export const repeat: {
  *   attempt++
  *   if (attempt <= 2) {
  *     yield* Console.log(`Attempt ${attempt} failed`)
- *     yield* Effect.fail(`Error ${attempt}`)
+ *     return yield* Effect.fail(`Error ${attempt}`)
  *   }
  *   yield* Console.log(`Attempt ${attempt} succeeded`)
  *   return "success"
@@ -7904,7 +7947,7 @@ export const withParentSpan: {
  * )
  *
  * const program = Effect.gen(function*() {
- *   const name = yield* Effect.request(GetUser({ id: 1 }), Effect.succeed(resolver))
+ *   const name = yield* Effect.request(GetUser({ id: 1 }), resolver)
  *   yield* Console.log(name)
  * })
  * ```
@@ -13496,18 +13539,20 @@ export const trackSuccesses: {
  *
  * @example
  * ```ts
- * import { Effect, Metric } from "effect"
+ * import { Data, Effect, Metric } from "effect"
+ *
+ * class ConnectionFailedError extends Data.TaggedError("ConnectionFailedError")<{}> {}
  *
  * // Track error types using frequency metric
  * const errorTypeFrequency = Metric.frequency("error_types")
  *
- * const program = Effect.fail(new Error("Connection failed")).pipe(
- *   Effect.trackErrors(errorTypeFrequency, (error: Error) => error.name)
+ * const program = Effect.fail(new ConnectionFailedError()).pipe(
+ *   Effect.trackErrors(errorTypeFrequency, (error: ConnectionFailedError) => error._tag)
  * )
  *
  * Effect.runPromiseExit(program).then(() =>
  *   Effect.runPromise(Metric.value(errorTypeFrequency)).then(console.log)
- *   // Output: { occurrences: Map(1) { "Error" => 1 } }
+ *   // Output: { occurrences: Map(1) { "ConnectionFailedError" => 1 } }
  * )
  * ```
  *
@@ -14347,18 +14392,20 @@ export const satisfiesSuccessType = <A>() => <A2 extends A, E, R>(effect: Effect
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Data, Effect } from "effect"
  *
- * // Define a constraint that the error type must be an Error
- * const satisfiesError = Effect.satisfiesErrorType<Error>()
+ * class ValidationError extends Data.TaggedError("ValidationError")<{}> {}
  *
- * // This works - Effect<number, TypeError, never> extends Effect<number, Error, never>
- * const validEffect = satisfiesError(Effect.fail(new TypeError("Invalid type")))
+ * // Define a constraint that the error type must be a ValidationError
+ * const satisfiesError = Effect.satisfiesErrorType<ValidationError>()
+ *
+ * // This works - Effect<number, ValidationError, never> extends the constrained type
+ * const validEffect = satisfiesError(Effect.fail(new ValidationError()))
  *
  * // This would cause a TypeScript compilation error:
  * // const invalidEffect = satisfiesError(Effect.fail("string error"))
  * //                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
- * // Type 'string' is not assignable to type 'Error'
+ * // Type 'string' is not assignable to type 'ValidationError'
  * ```
  *
  * @since 4.0.0

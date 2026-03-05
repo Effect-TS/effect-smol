@@ -645,7 +645,7 @@ export const keyValuePair: Primitive<Record<string, string>> = makePrimitive(
  *
  * const program = Effect.gen(function*() {
  *   // This will always fail - useful for boolean flags
- *   const result = yield* Primitive.none.parse("any-value")
+ *   return yield* Primitive.none.parse("any-value")
  * })
  *
  * // The above effect will fail with "This option does not accept values"
