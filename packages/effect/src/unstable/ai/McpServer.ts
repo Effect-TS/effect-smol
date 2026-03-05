@@ -320,9 +320,11 @@ const SUPPORTED_PROTOCOL_VERSIONS = [
  * @since 4.0.0
  * @category constructors
  */
-export const run: (
-  options: { readonly name: string; readonly version: string }
-) => Effect.Effect<
+export const run: (options: {
+  readonly name: string
+  readonly version: string
+  readonly extensions?: Record<`${string}/${string}`, unknown> | undefined
+}) => Effect.Effect<
   never,
   never,
   McpServer | RpcServer.Protocol
@@ -470,6 +472,7 @@ export const run: (
 export const layer = (options: {
   readonly name: string
   readonly version: string
+  readonly extensions?: Record<`${string}/${string}`, unknown> | undefined
 }): Layer.Layer<McpServer | McpServerClient, never, RpcServer.Protocol> =>
   Layer.effectDiscard(Effect.forkScoped(run(options))).pipe(
     Layer.provideMerge(McpServer.layer)
@@ -535,6 +538,7 @@ export const layer = (options: {
 export const layerStdio = (options: {
   readonly name: string
   readonly version: string
+  readonly extensions?: Record<`${string}/${string}`, unknown> | undefined
 }): Layer.Layer<McpServer | McpServerClient, never, Stdio> =>
   layer(options).pipe(
     Layer.provide(RpcServer.layerProtocolStdio),
@@ -551,6 +555,7 @@ export const layerHttp = (options: {
   readonly name: string
   readonly version: string
   readonly path: HttpRouter.PathInput
+  readonly extensions?: Record<`${string}/${string}`, unknown> | undefined
 }): Layer.Layer<McpServer | McpServerClient, never, HttpRouter.HttpRouter> =>
   layer(options).pipe(
     Layer.provide(RpcServer.layerProtocolHttp(options)),
@@ -1107,6 +1112,7 @@ const compileUriTemplate = (segments: TemplateStringsArray, ...schemas: Readonly
 const layerHandlers = (serverInfo: {
   readonly name: string
   readonly version: string
+  readonly extensions?: Record<`${string}/${string}`, unknown> | undefined
 }) =>
   ClientRpcs.toLayer(
     Effect.gen(function*() {
@@ -1132,6 +1138,9 @@ const layerHandlers = (serverInfo: {
           }
           if (server.prompts.length > 0) {
             capabilities.prompts = { listChanged: true }
+          }
+          if (serverInfo.extensions) {
+            capabilities.extensions = serverInfo.extensions as any
           }
           server.initializedClients.set(clientId, params)
           return Effect.succeed({
