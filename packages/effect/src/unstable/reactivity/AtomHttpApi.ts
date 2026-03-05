@@ -171,6 +171,10 @@ export const Service = <Self>() =>
   const runtimeFactory = options.runtime ?? Atom.runtime
   self.runtime = runtimeFactory(self.layer)
 
+  const catchErrors = Effect.catch((e: unknown) =>
+    Schema.isSchemaError(e) || HttpClientError.isHttpClientError(e) ? Effect.die(e) : Effect.fail(e)
+  )
+
   const mutationFamily = Atom.family(({ endpoint, group, withResponse }: MutationKey) => {
     const atom = self.runtime.fn<{
       params: any
@@ -181,10 +185,10 @@ export const Service = <Self>() =>
     }>()(
       Effect.fnUntraced(function*(opts) {
         const client = (yield* self) as any
-        const effect = client[group][endpoint]({
+        const effect = catchErrors(client[group][endpoint]({
           ...opts,
           withResponse
-        }) as Effect.Effect<any>
+        }) as Effect.Effect<any>)
         return yield* opts.reactivityKeys
           ? Reactivity.mutation(effect, opts.reactivityKeys)
           : effect
@@ -211,10 +215,6 @@ export const Service = <Self>() =>
       endpoint,
       withResponse: options?.withResponse ?? false
     })) as any
-
-  const catchErrors = Effect.catch((e: unknown) =>
-    Schema.isSchemaError(e) || HttpClientError.isHttpClientError(e) ? Effect.die(e) : Effect.fail(e)
-  )
 
   const queryFamily = Atom.family((opts: QueryKey) => {
     let atom = self.runtime.atom(self.use((client_) => {
