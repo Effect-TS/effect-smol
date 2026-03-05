@@ -389,6 +389,11 @@ export * as Prompt from "./Prompt.ts"
 export * as Response from "./Response.ts"
 
 /**
+ * @since 4.0.0
+ */
+export * as ResponseIdTracker from "./ResponseIdTracker.ts"
+
+/**
  * The `Telemetry` module provides OpenTelemetry integration for operations
  * performed against a large language model provider by defining telemetry
  * attributes and utilities that follow the OpenTelemetry GenAI semantic
