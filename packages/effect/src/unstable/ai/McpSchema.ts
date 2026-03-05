@@ -1842,6 +1842,7 @@ export class ElicitationDeclined
  */
 export class McpServerClient extends ServiceMap.Service<McpServerClient, {
   readonly clientId: number
+  readonly initializePayload: typeof Initialize.payloadSchema["Type"]
   readonly getClient: Effect.Effect<
     RpcClient.RpcClient<RpcGroup.Rpcs<typeof ServerRequestRpcs>, RpcClientError>,
     never,

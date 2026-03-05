@@ -54,8 +54,10 @@ import {
 import type {
   Annotations,
   CallTool,
+  ClientCapabilities,
   Complete,
   GetPrompt,
+  Initialize,
   Param,
   PromptArgument,
   PromptMessage,
@@ -72,7 +74,7 @@ import type * as Toolkit from "./Toolkit.ts"
 export class McpServer extends ServiceMap.Service<McpServer, {
   readonly notifications: RpcClient.RpcClient<RpcGroup.Rpcs<typeof ServerNotificationRpcs>>
   readonly notificationsQueue: Queue.Dequeue<RpcMessage.Request<any>>
-  readonly initializedClients: Set<number>
+  readonly initializedClients: Map<number, typeof Initialize.payloadSchema["Type"]>
 
   readonly tools: ReadonlyArray<McpTool>
   readonly addTool: (options: {
@@ -189,7 +191,7 @@ export class McpServer extends ServiceMap.Service<McpServer, {
     return McpServer.of({
       notifications: notifications.client,
       notificationsQueue,
-      initializedClients: new Set<number>(),
+      initializedClients: new Map(),
       get tools() {
         return tools
       },
@@ -343,6 +345,7 @@ export const run: (
       McpServerClient,
       McpServerClient.of({
         clientId,
+        initializePayload: server.initializedClients.get(clientId)!,
         getClient: RcMap.get(clients, clientId).pipe(
           Effect.map(({ client }) => client)
         )
@@ -409,7 +412,7 @@ export const run: (
         payload: encoded
       } as any
       const clientIds = yield* patchedProtocol.clientIds
-      for (const clientId of server.initializedClients) {
+      for (const clientId of server.initializedClients.keys()) {
         if (!clientIds.has(clientId)) {
           server.initializedClients.delete(clientId)
           continue
@@ -998,6 +1001,18 @@ export const elicit: <S extends Schema.Encoder<Record<string, unknown>, unknown>
   }
 }, Effect.scoped)
 
+/**
+ * Access the current client's capabilities.
+ *
+ * @since 4.0.0
+ * @category capabilities
+ */
+export const clientCapabilities: Effect.Effect<
+  ClientCapabilities,
+  never,
+  McpServerClient
+> = McpServerClient.useSync((_) => _.initializePayload.capabilities)
+
 // -----------------------------------------------------------------------------
 // Internal
 // -----------------------------------------------------------------------------
@@ -1073,7 +1088,7 @@ const layerHandlers = (serverInfo: {
           if (server.prompts.length > 0) {
             capabilities.prompts = { listChanged: true }
           }
-          server.initializedClients.add(clientId)
+          server.initializedClients.set(clientId, params)
           return Effect.succeed({
             capabilities,
             serverInfo,
