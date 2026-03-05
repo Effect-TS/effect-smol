@@ -102,10 +102,10 @@ describe.sequential("HttpStaticFiles", () => {
   test("serves default index file for directory paths", async () => {
     const { handler, dispose } = makeHandler()
     try {
-      const response = await handler(new Request("http://localhost/docs"))
+      const response = await handler(new Request("http://localhost/guide"))
       strictEqual(response.status, 200)
       strictEqual(response.headers.get("content-type"), "text/html; charset=utf-8")
-      strictEqual(await response.text(), "<html><body>docs index</body></html>")
+      strictEqual(await response.text(), "<html><body>guide index</body></html>")
     } finally {
       await dispose()
     }
