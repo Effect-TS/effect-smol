@@ -431,7 +431,8 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
             return response
           })
         )
-    )
+    ),
+    tracker: client.tracker
   })
 })
 
