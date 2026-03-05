@@ -174,6 +174,7 @@ describe("HttpStaticFiles", () => {
     strictEqual(response.headers.get("cache-control"), "public, max-age=60")
     strictEqual(response.headers.get("last-modified"), lastModified)
     strictEqual(response.headers.get("content-range"), null)
+    strictEqual(response.headers.get("accept-ranges"), null)
     strictEqual(response.headers.get("content-type"), null)
     strictEqual(response.headers.get("content-length"), null)
   })
