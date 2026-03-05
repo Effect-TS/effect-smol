@@ -204,7 +204,7 @@ describe("LanguageModel", () => {
         strictEqual(capturedOptions.incrementalPrompt, undefined)
       }))
 
-    it("uses tracker prepare and markParts in generateText without toolkit", () =>
+    it("uses tracker prepareUnsafe and markParts in generateText without toolkit", () =>
       Effect.gen(function*() {
         let capturedOptions: LanguageModel.ProviderOptions | undefined
         let preparedPrompt: LanguageModel.ProviderOptions["prompt"] | undefined
@@ -263,7 +263,7 @@ describe("LanguageModel", () => {
         strictEqual(markedResponseId, "resp_next")
       }))
 
-    it("uses tracker prepare and markParts in generateText with empty toolkit", () =>
+    it("uses tracker prepareUnsafe and markParts in generateText with empty toolkit", () =>
       Effect.gen(function*() {
         let capturedOptions: LanguageModel.ProviderOptions | undefined
         let prepareCalls = 0
@@ -400,7 +400,7 @@ describe("LanguageModel", () => {
         strictEqual(markedParts, preparedPrompt.content)
       }))
 
-    it("uses tracker prepare and markParts in streamText without toolkit", () =>
+    it("uses tracker prepareUnsafe and markParts in streamText without toolkit", () =>
       Effect.gen(function*() {
         let capturedOptions: LanguageModel.ProviderOptions | undefined
         let preparedPrompt: LanguageModel.ProviderOptions["prompt"] | undefined
@@ -460,7 +460,7 @@ describe("LanguageModel", () => {
         strictEqual(markedResponseId, "resp_next")
       }))
 
-    it("uses tracker prepare and markParts in streamText with empty toolkit", () =>
+    it("uses tracker prepareUnsafe and markParts in streamText with empty toolkit", () =>
       Effect.gen(function*() {
         let capturedOptions: LanguageModel.ProviderOptions | undefined
         let preparedPrompt: LanguageModel.ProviderOptions["prompt"] | undefined
@@ -609,7 +609,7 @@ describe("LanguageModel", () => {
         strictEqual(markedParts, preparedPrompt.content)
       }))
 
-    it("uses tracker prepare and markParts when disableToolCallResolution is true", () =>
+    it("uses tracker prepareUnsafe and markParts when disableToolCallResolution is true", () =>
       Effect.gen(function*() {
         const toolCallId = "call-tracker-stream-disable"
         const approvalId = "approval-tracker-stream-disable"
