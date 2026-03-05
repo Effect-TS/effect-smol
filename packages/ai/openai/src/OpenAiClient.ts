@@ -16,6 +16,7 @@ import * as Redacted from "effect/Redacted"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"
 import type * as AiError from "effect/unstable/ai/AiError"
+import * as ResponseIdTracker from "effect/unstable/ai/ResponseIdTracker"
 import * as Sse from "effect/unstable/encoding/Sse"
 import * as Headers from "effect/unstable/http/Headers"
 import * as HttpBody from "effect/unstable/http/HttpBody"
@@ -41,6 +42,11 @@ export interface Service {
    * The underlying generated OpenAI client.
    */
   readonly client: Generated.OpenAiClient
+
+  /**
+   * Response ID tracker shared by language models for this client.
+   */
+  readonly tracker: ResponseIdTracker.Service
 
   /**
    * Create a response using the OpenAI responses endpoint.
@@ -144,6 +150,7 @@ const RedactedOpenAiHeaders = {
 export const make = Effect.fnUntraced(
   function*(options: Options): Effect.fn.Return<Service, never, HttpClient.HttpClient> {
     const baseClient = yield* HttpClient.HttpClient
+    const tracker = yield* ResponseIdTracker.make
 
     const httpClient = baseClient.pipe(
       HttpClient.mapRequest((request) =>
@@ -246,6 +253,7 @@ export const make = Effect.fnUntraced(
 
     return OpenAiClient.of({
       client,
+      tracker,
       createResponse,
       createResponseStream,
       createEmbedding
