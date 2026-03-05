@@ -124,11 +124,13 @@ describe("Schema", () => {
       expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<string & Brand.Brand<"a">, string, never, never>>()
     })
 
-    it("opaqueBrand", () => {
-      const schema = Schema.String.pipe(Schema.opaqueBrand("a"))
-      expect(schema.makeUnsafe).type.toBe<MakeUnsafe<string, Brand.Brand<"a">>>()
-      expect(schema).type.toBe<Schema.opaqueBrand<Schema.String, "a">>()
-      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<Brand.Brand<"a">, string, never, never>>()
+    it("newtype", () => {
+      const schema = Schema.String.pipe(Schema.newtype("a"))
+      expect(schema.makeUnsafe).type.toBe<MakeUnsafe<string, Schema.NewtypeBrand<"a", string>>>()
+      expect(schema).type.toBe<Schema.newtype<Schema.String, "a">>()
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<Schema.NewtypeBrand<"a", string>, string, never, never>
+      >()
     })
 
     it("refine", () => {
@@ -1346,28 +1348,28 @@ describe("Schema", () => {
     })
   })
 
-  describe("opaqueBrand", () => {
-    it("brand", () => {
-      const schema = Schema.Number.pipe(Schema.opaqueBrand("MyBrand"))
+  describe("newtype", () => {
+    it("basic", () => {
+      const schema = Schema.Number.pipe(Schema.newtype("MyBrand"))
       expect(Schema.revealCodec(schema)).type.toBe<
-        Schema.Codec<Brand.Brand<"MyBrand">, number, never, never>
+        Schema.Codec<Schema.NewtypeBrand<"MyBrand", number>, number, never, never>
       >()
-      expect(schema).type.toBe<Schema.opaqueBrand<Schema.Number, "MyBrand">>()
-      expect(schema.annotate({})).type.toBe<Schema.opaqueBrand<Schema.Number, "MyBrand">>()
+      expect(schema).type.toBe<Schema.newtype<Schema.Number, "MyBrand">>()
+      expect(schema.annotate({})).type.toBe<Schema.newtype<Schema.Number, "MyBrand">>()
     })
 
-    it("rebrands existing brands", () => {
-      const schema = Schema.Number.pipe(Schema.brand("MyBrand"), Schema.opaqueBrand("MyBrand2"))
+    it("over existing brand", () => {
+      const schema = Schema.Number.pipe(Schema.brand("MyBrand"), Schema.newtype("MyBrand2"))
       expect(Schema.revealCodec(schema)).type.toBe<
-        Schema.Codec<Brand.Brand<"MyBrand2">, number, never, never>
+        Schema.Codec<Schema.NewtypeBrand<"MyBrand2", number & Brand.Brand<"MyBrand">>, number, never, never>
       >()
       expect(schema).type.toBe<
-        Schema.opaqueBrand<Schema.brand<Schema.Number, "MyBrand">, "MyBrand2">
+        Schema.newtype<Schema.brand<Schema.Number, "MyBrand">, "MyBrand2">
       >()
     })
 
     it("is not assignable to stringly APIs", () => {
-      const WorkspaceIdSchema = Schema.String.pipe(Schema.opaqueBrand("WorkspaceId"))
+      const WorkspaceIdSchema = Schema.String.pipe(Schema.newtype("WorkspaceId"))
       type WorkspaceId = typeof WorkspaceIdSchema.Type
 
       const takesWorkspaceId = (workspaceId: WorkspaceId) => workspaceId
@@ -1376,6 +1378,12 @@ describe("Schema", () => {
       expect(takesWorkspaceId).type.toBeCallableWith(WorkspaceIdSchema.makeUnsafe("workspace_1"))
       expect(takesWorkspaceId).type.not.toBeCallableWith("directory_1")
       expect(takesDirectoryId).type.not.toBeCallableWith(WorkspaceIdSchema.makeUnsafe("workspace_1"))
+    })
+
+    it("NewtypeFrom extracts the original type", () => {
+      const schema = Schema.String.pipe(Schema.newtype("UserId"))
+      type UserId = typeof schema.Type
+      expect<Schema.NewtypeFrom<UserId>>().type.toBe<string>()
     })
   })
 

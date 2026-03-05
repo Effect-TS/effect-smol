@@ -25,6 +25,9 @@ export const resolveDescription = resolveAt<string>("description")
 export const resolveBrands = resolveAt<ReadonlyArray<string>>("brands")
 
 /** @internal */
+export const resolveNewtypes = resolveAt<ReadonlyArray<string>>("newtypes")
+
+/** @internal */
 export const getExpected = memoize((ast: AST.AST): string => {
   const identifier = resolveIdentifier(ast)
   if (typeof identifier === "string") return identifier
@@ -34,4 +37,9 @@ export const getExpected = memoize((ast: AST.AST): string => {
 /** @internal */
 export function collectBrands(annotations: Schema.Annotations.Annotations | undefined): ReadonlyArray<string> {
   return annotations !== undefined && Array.isArray(annotations.brands) ? annotations.brands : []
+}
+
+/** @internal */
+export function collectNewtypes(annotations: Schema.Annotations.Annotations | undefined): ReadonlyArray<string> {
+  return annotations !== undefined && Array.isArray(annotations.newtypes) ? annotations.newtypes : []
 }

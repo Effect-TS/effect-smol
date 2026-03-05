@@ -2,4 +2,4 @@
 "effect": minor
 ---
 
-Add `Schema.opaqueBrand` for fully opaque primitive types. It keeps `Schema.brand` runtime behavior while returning an opaque `Brand.Brand<B>` type instead of exposing the primitive base type.
+Add `Schema.newtype` for fully opaque types with `NewtypeBrand<K, From>` carrier. Unlike `Schema.brand`, which exposes the underlying type, `newtype` produces a fully opaque type while carrying the original type as a phantom for recovery via `NewtypeFrom<T>`. Uses a separate `newtypes` annotation independent of `brands`.

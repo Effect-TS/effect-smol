@@ -2687,18 +2687,46 @@ export function brand<B extends string>(identifier: B) {
 /**
  * @since 4.0.0
  */
-export interface opaqueBrand<S extends Top, B extends string> extends
+export const NewtypeTypeId = "effect/Schema/Newtype" as const
+
+/**
+ * @since 4.0.0
+ */
+export type NewtypeTypeId = typeof NewtypeTypeId
+
+/**
+ * A phantom type that carries both the newtype key `K` and the original type `From`.
+ * Unlike `Brand.Brand<B>`, which only carries the brand key, `NewtypeBrand` lets
+ * tooling recover the original type via `NewtypeFrom<T>`.
+ *
+ * @since 4.0.0
+ */
+export interface NewtypeBrand<in out Key extends string, out From> {
+  readonly [NewtypeTypeId]: { readonly key: Key; readonly from: From }
+}
+
+/**
+ * Extracts the original type from a `NewtypeBrand`.
+ *
+ * @since 4.0.0
+ */
+export type NewtypeFrom<N> = N extends NewtypeBrand<any, infer A> ? A : never
+
+/**
+ * @since 4.0.0
+ */
+export interface newtype<S extends Top, B extends string> extends
   Bottom<
-    Brand.Brand<B>,
+    NewtypeBrand<B, S["Type"]>,
     S["Encoded"],
     S["DecodingServices"],
     S["EncodingServices"],
     S["ast"],
-    opaqueBrand<S, B>,
+    newtype<S, B>,
     S["~type.make.in"],
-    Brand.Brand<B>,
+    NewtypeBrand<B, S["Type"]>,
     S["~type.parameters"],
-    Brand.Brand<B>,
+    NewtypeBrand<B, S["Type"]>,
     S["~type.mutability"],
     S["~type.optionality"],
     S["~type.constructor.default"],
@@ -2712,14 +2740,14 @@ export interface opaqueBrand<S extends Top, B extends string> extends
 }
 
 /**
- * Adds an opaque brand to a schema.
+ * Adds a newtype wrapper to a schema, producing a fully opaque type.
  *
  * @category Branding
  * @since 4.0.0
  */
-export function opaqueBrand<B extends string>(identifier: B) {
-  return <S extends Top>(schema: S): opaqueBrand<S["~rebuild.out"], B> =>
-    make(AST.brand(schema.ast, identifier), { schema, identifier })
+export function newtype<B extends string>(identifier: B) {
+  return <S extends Top>(schema: S): newtype<S["~rebuild.out"], B> =>
+    make(AST.newtype(schema.ast, identifier), { schema, identifier })
 }
 
 /**
@@ -9302,6 +9330,10 @@ export declare namespace Annotations {
      * Accumulated brands when multiple brands are added with `Schema.brand`.
      */
     readonly brands?: ReadonlyArray<string> | undefined
+    /**
+     * Accumulated newtypes when multiple newtypes are added with `Schema.newtype`.
+     */
+    readonly newtypes?: ReadonlyArray<string> | undefined
     readonly toArbitrary?:
       | ToArbitrary.Declaration<T, TypeParameters>
       | undefined

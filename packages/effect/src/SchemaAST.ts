@@ -2725,6 +2725,13 @@ export function brand(ast: AST, brand: string): AST {
   return annotate(ast, { brands })
 }
 
+/** @internal */
+export function newtype(ast: AST, identifier: string): AST {
+  const existing = InternalAnnotations.resolveNewtypes(ast)
+  const newtypes = existing ? [...existing, identifier] : [identifier]
+  return annotate(ast, { newtypes })
+}
+
 /**
  * Maps over the array but will return the original array if no changes occur.
  * @internal

@@ -7540,9 +7540,9 @@ describe("Check", () => {
       deepStrictEqual(schema.ast.annotations?.brands, ["Positive", "Int"])
     })
 
-    it("opaque brand", async () => {
-      const schema = Schema.String.pipe(Schema.opaqueBrand("Positive"))
-      deepStrictEqual(schema.ast.annotations?.brands, ["Positive"])
+    it("newtype", async () => {
+      const schema = Schema.String.pipe(Schema.newtype("Positive"))
+      deepStrictEqual(schema.ast.annotations?.newtypes, ["Positive"])
     })
 
     it("override the default identifier", async () => {
