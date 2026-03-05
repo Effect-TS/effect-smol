@@ -156,4 +156,25 @@ describe("HttpStaticFiles", () => {
 
     strictEqual(response.status, 200)
   })
+
+  test("matched If-None-Match takes precedence over Range", async () => {
+    const handler = await makeHandler()
+
+    const response = await handler(
+      new Request("http://localhost/file.txt", {
+        headers: {
+          "If-None-Match": "\"etag-value\"",
+          Range: "bytes=1000-1001"
+        }
+      })
+    )
+
+    strictEqual(response.status, 304)
+    strictEqual(response.headers.get("etag"), "\"etag-value\"")
+    strictEqual(response.headers.get("cache-control"), "public, max-age=60")
+    strictEqual(response.headers.get("last-modified"), lastModified)
+    strictEqual(response.headers.get("content-range"), null)
+    strictEqual(response.headers.get("content-type"), null)
+    strictEqual(response.headers.get("content-length"), null)
+  })
 })
