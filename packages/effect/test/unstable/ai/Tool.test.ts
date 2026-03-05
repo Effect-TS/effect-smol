@@ -3,7 +3,6 @@ import { assertFalse, assertTrue, deepStrictEqual, strictEqual } from "@effect/v
 import { DateTime, Effect, Fiber, identity, Latch, Schema, Stream } from "effect"
 import { TestClock } from "effect/testing"
 import { AiError, LanguageModel, Response, Tool, Toolkit } from "effect/unstable/ai"
-import { toCodecOpenAI } from "effect/unstable/ai/OpenAiStructuredOutput"
 import * as TestUtils from "./utils.ts"
 
 describe("Tool", () => {
@@ -112,8 +111,7 @@ describe("Tool", () => {
               params: { testParam: "test-param" }
             }]
           }),
-          Effect.provide(handlers),
-          Effect.provideService(LanguageModel.CurrentCodecTransformer, toCodecOpenAI)
+          Effect.provide(handlers)
         )
 
         deepStrictEqual(response.toolResults, [

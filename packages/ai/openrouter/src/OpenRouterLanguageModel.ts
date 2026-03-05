@@ -273,6 +273,7 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
   )
 
   return yield* LanguageModel.make({
+    codecTransformer: toCodecOpenAI,
     generateText: Effect.fnUntraced(
       function*(options) {
         const config = yield* makeConfig
@@ -300,10 +301,7 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
           })
         )
     )
-  }).pipe(Effect.provideService(
-    LanguageModel.CurrentCodecTransformer,
-    codecTransformer
-  ))
+  })
 })
 
 /**

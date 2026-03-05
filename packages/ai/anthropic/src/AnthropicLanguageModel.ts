@@ -469,6 +469,7 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
   )
 
   return yield* LanguageModel.make({
+    codecTransformer: toCodecAnthropic,
     generateText: Effect.fnUntraced(function*(options) {
       const config = yield* makeConfig
       const toolNameMapper = new Tool.NameMapper(options.tools)
@@ -493,10 +494,7 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
           return response
         })
       ))
-  }).pipe(Effect.provideService(
-    LanguageModel.CurrentCodecTransformer,
-    toCodecAnthropic
-  ))
+  })
 })
 
 /**

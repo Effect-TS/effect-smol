@@ -181,22 +181,6 @@ export type CodecTransformer = <T, E, RD, RE>(schema: Schema.Codec<T, E, RD, RE>
 }
 
 /**
- * A `ServiceMap.Reference` that holds the current `CodecTransformer` used by
- * `LanguageModel.generateObject` to adapt structured output schemas for the
- * active provider.
- *
- * By default, this is the identity function (no transformation). Provider
- * packages (e.g. `@effect/ai-anthropic`) override this reference with a
- * provider-specific transformer so that schemas are automatically rewritten
- * before being sent to the model as well as before decoding the generated value.
- *
- * @since 4.0.0
- * @category services
- */
-export const CurrentCodecTransformer: ServiceMap.Reference<CodecTransformer> =
-  InternalCodecTransformer.CurrentCodecTransformer
-
-/**
  * The default codec transformer that passes schemas through without
  * provider-specific rewrites.
  *
@@ -625,12 +609,15 @@ export interface ProviderOptions {
 }
 
 /**
- * Parameters required to construct a LanguageModel service.
+ * Creates a LanguageModel service from provider-specific implementations.
+ *
+ * This constructor takes provider-specific implementations for text generation
+ * and streaming text generation and returns a LanguageModel service.
  *
  * @since 4.0.0
- * @category models
+ * @category constructors
  */
-export interface ConstructorParams {
+export const make: (params: {
   /**
    * A method which requests text generation from the large language model
    * provider.
@@ -651,19 +638,14 @@ export interface ConstructorParams {
   readonly streamText: (
     options: ProviderOptions
   ) => Stream.Stream<Response.StreamPartEncoded, AiError.AiError, IdGenerator>
-}
 
-/**
- * Creates a LanguageModel service from provider-specific implementations.
- *
- * This constructor takes provider-specific implementations for text generation
- * and streaming text generation and returns a LanguageModel service.
- *
- * @since 4.0.0
- * @category constructors
- */
-export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effect.fnUntraced(function*(params) {
-  const codecTransformer = yield* InternalCodecTransformer.CurrentCodecTransformer
+  /**
+   * A function that transforms a `Schema.Codec` into a provider-compatible form
+   * for structured output generation.
+   */
+  readonly codecTransformer?: CodecTransformer | undefined
+}) => Effect.Effect<Service> = Effect.fnUntraced(function*(params) {
+  const codecTransformer = params.codecTransformer ?? defaultCodecTransformer
 
   const parentSpanTransformer = yield* Effect.serviceOption(
     CurrentSpanTransformer
@@ -724,8 +706,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
             })
           )),
         (effect, span) => Effect.withParentSpan(effect, span, { captureStackTrace: false }),
-        Effect.provideService(IdGenerator, idGenerator),
-        Effect.provideService(InternalCodecTransformer.CurrentCodecTransformer, codecTransformer)
+        Effect.provideService(IdGenerator, idGenerator)
       )
     ) as any
 
@@ -803,8 +784,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
             })
           )),
         (effect, span) => Effect.withParentSpan(effect, span, { captureStackTrace: false }),
-        Effect.provideService(IdGenerator, idGenerator),
-        Effect.provideService(InternalCodecTransformer.CurrentCodecTransformer, codecTransformer)
+        Effect.provideService(IdGenerator, idGenerator)
       )
     ) as any
   }
@@ -875,8 +855,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
         })
         : error
     ),
-    Stream.provideService(IdGenerator, idGenerator),
-    Stream.provideService(InternalCodecTransformer.CurrentCodecTransformer, codecTransformer)
+    Stream.provideService(IdGenerator, idGenerator)
   ) as any
 
   const generateContent: <

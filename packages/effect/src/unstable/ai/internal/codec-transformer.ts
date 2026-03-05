@@ -1,5 +1,4 @@
 import * as Schema from "../../../Schema.ts"
-import * as ServiceMap from "../../../ServiceMap.ts"
 import type { CodecTransformer } from "../LanguageModel.ts"
 
 /** @internal */
@@ -11,9 +10,3 @@ export const defaultCodecTransformer: CodecTransformer = (codec) => {
   }
   return { codec, jsonSchema }
 }
-
-/** @internal */
-export const CurrentCodecTransformer = ServiceMap.Reference(
-  "effect/unstable/ai/CodecTransformer",
-  { defaultValue: (): CodecTransformer => defaultCodecTransformer }
-)
