@@ -144,6 +144,50 @@ describe("McpServer", () => {
       yield* Effect.promise(() => dispose())
     }).pipe(Effect.scoped))
 
+  it.effect("echoes Mcp-Session-Id on HTTP initialize responses", () =>
+    Effect.gen(function*() {
+      const serverLayer = McpServer.layerHttp({
+        name: "TestServer",
+        version: "1.0.0",
+        path: "/mcp"
+      }).pipe(
+        Layer.provideMerge(RpcSerialization.layerJsonRpc())
+      )
+      const { handler, dispose } = HttpRouter.toWebHandler(serverLayer as any, { disableLogger: true })
+
+      const response = yield* Effect.promise(() =>
+        handler(
+          new Request("http://localhost/mcp", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Mcp-Session-Id": "session-1"
+            },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              id: 1,
+              method: "initialize",
+              params: {
+                protocolVersion: "2025-06-18",
+                capabilities: {
+                  roots: {
+                    listChanged: true
+                  }
+                },
+                clientInfo: {
+                  name: "TestClient",
+                  version: "1.0.0"
+                }
+              }
+            })
+          })
+        )
+      )
+
+      deepStrictEqual(response.headers.get("Mcp-Session-Id"), "session-1")
+      yield* Effect.promise(() => dispose())
+    }).pipe(Effect.scoped))
+
   it.effect("persists client capabilities across HTTP requests", () =>
     Effect.gen(function*() {
       const serverLayer = McpServer.layerHttp({
