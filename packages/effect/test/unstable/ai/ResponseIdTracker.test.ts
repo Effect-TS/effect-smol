@@ -401,4 +401,24 @@ describe("ResponseIdTracker", () => {
       const preparedB = yield* tracker.prepare(Prompt.fromMessages([sysB, userB1, asstB1, userB2]))
       assertPreparedSome(preparedB, "resp_B1", Prompt.fromMessages([userB2]))
     }))
+
+  it.effect("does not leak tracked state across conversations without assistant turns", () =>
+    Effect.gen(function*() {
+      const tracker = yield* ResponseIdTracker.make
+      const sysA = systemMessage("sysA")
+      const userA1 = userMessage("userA1")
+      const asstA1 = assistantMessage("asstA1")
+      const userA2 = userMessage("userA2")
+      const sysB = systemMessage("sysB")
+      const userB1 = userMessage("userB1")
+
+      tracker.markParts([sysA, userA1], "resp_A1")
+      tracker.markParts([sysB, userB1], "resp_B1")
+
+      const preparedA = yield* tracker.prepare(Prompt.fromMessages([sysA, userA1, asstA1, userA2]))
+      assertPreparedSome(preparedA, "resp_A1", Prompt.fromMessages([userA2]))
+
+      const preparedB = yield* tracker.prepare(Prompt.fromMessages([sysB, userB1]))
+      assert.isTrue(Option.isNone(preparedB))
+    }))
 })
