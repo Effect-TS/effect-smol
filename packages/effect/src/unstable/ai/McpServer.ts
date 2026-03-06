@@ -1300,7 +1300,7 @@ const getInitializedClient = (
   clientId: number,
   headers: Headers.Headers
 ) => {
-  const sessionId = headers[mcpSessionIdHeader]
+  const sessionId = Headers.get(headers, mcpSessionIdHeader)
   if (sessionId === undefined) {
     return sessions.get(String(clientId))
   }
