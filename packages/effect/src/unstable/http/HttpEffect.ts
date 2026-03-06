@@ -173,6 +173,14 @@ export const appendPreResponseHandler = (handler: PreResponseHandler): Effect.Ef
     return Effect.void
   })
 
+export {
+  /**
+   * @since 4.0.0
+   * @category fiber refs
+   */
+  appendPreResponseHandlerUnsafe
+}
+
 /**
  * @since 4.0.0
  * @category fiber refs

@@ -30,7 +30,7 @@ export const withRun = <
           write = f
 
           for (const [args, context] of buffer) {
-            yield* Effect.provide(write(...args), context)
+            yield* Effect.provideServices(Effect.suspend(() => f(...args)), context)
           }
           buffer = []
 

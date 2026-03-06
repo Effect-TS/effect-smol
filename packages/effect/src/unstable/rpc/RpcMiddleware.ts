@@ -109,7 +109,8 @@ export interface ServiceClass<
   Provides,
   E extends Schema.Top,
   ClientError,
-  Requires
+  Requires,
+  RequiredForClient extends boolean
 > extends ServiceMap.Service<Self, RpcMiddleware<Provides, E["Type"], Requires>> {
   new(_: never): ServiceMap.ServiceClass.Shape<Name, RpcMiddleware<Provides, E["Type"], Requires>> & {
     readonly [TypeId]: {
@@ -121,7 +122,7 @@ export interface ServiceClass<
   }
   readonly [TypeId]: typeof TypeId
   readonly error: E
-  readonly requiredForClient: boolean
+  readonly requiredForClient: RequiredForClient
   readonly "~ClientError": ClientError
 }
 
@@ -201,16 +202,20 @@ export const Service = <
     requires?: any
     provides?: any
     clientError?: any
-  } = { requires: never; provides: never; clientError: never }
+  } = {
+    requires: never
+    provides: never
+    clientError: never
+  }
 >(): <
   const Name extends string,
   Error extends Schema.Top = Schema.Never,
-  RequiredForClient extends boolean = false
+  const RequiredForClient extends boolean = false
 >(
   id: Name,
   options?: {
     readonly error?: Error | undefined
-    readonly requiredForClient: RequiredForClient | undefined
+    readonly requiredForClient?: RequiredForClient | undefined
   } | undefined
 ) => ServiceClass<
   Self,
@@ -218,7 +223,8 @@ export const Service = <
   "provides" extends keyof Config ? Config["provides"] : never,
   Error,
   "clientError" extends keyof Config ? Config["clientError"] : never,
-  "requires" extends keyof Config ? Config["requires"] : never
+  "requires" extends keyof Config ? Config["requires"] : never,
+  RequiredForClient
 > =>
 (
   id: string,

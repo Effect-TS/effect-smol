@@ -406,9 +406,7 @@ export type MiddlewareClient<R> = R extends Rpc<
   infer _Error,
   infer _Middleware,
   infer _Requires
-> ?
-  _Middleware extends { readonly requiredForClient: true }
-    ? RpcMiddleware.ForClient<ServiceMap.Service.Identifier<_Middleware>>
+> ? _Middleware extends { readonly requiredForClient: true } ? RpcMiddleware.ForClient<_Middleware["Identifier"]>
   : never
   : never
 
