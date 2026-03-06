@@ -17,6 +17,7 @@ import * as Stream from "../../Stream.ts"
 import * as Socket from "../socket/Socket.ts"
 import * as Cookies from "./Cookies.ts"
 import * as Headers from "./Headers.ts"
+import type * as HttpClientRequest from "./HttpClientRequest.ts"
 import * as HttpIncomingMessage from "./HttpIncomingMessage.ts"
 import { hasBody, type HttpMethod } from "./HttpMethod.ts"
 import { HttpServerError, type RequestError, RequestParseError } from "./HttpServerError.ts"
@@ -283,6 +284,38 @@ export const schemaBodyFormJson = <A, I, RD, RE>(
 export const fromWeb = (request: globalThis.Request): HttpServerRequest =>
   new ServerRequestImpl(request, removeHost(request.url))
 
+/**
+ * @since 4.0.0
+ * @category conversions
+ */
+export const fromClientRequest = (
+  request: HttpClientRequest.HttpClientRequest,
+  options?: {
+    readonly services?: ServiceMap.ServiceMap<never> | undefined
+  }
+): HttpServerRequest => {
+  const url = new URL(request.url, clientRequestBaseUrl)
+  for (let i = 0; i < request.urlParams.params.length; i++) {
+    const [key, value] = request.urlParams.params[i]
+    url.searchParams.append(key, value)
+  }
+  if (request.hash !== undefined) {
+    url.hash = request.hash
+  }
+  const webRequest = new Request(url, toWebRequestInit(request, options))
+  return new ServerRequestImpl(
+    {
+      method: request.method,
+      url: isAbsoluteClientUrl(request.url) ? url.toString() : removeHost(url.toString()),
+      headers: webRequest.headers,
+      body: webRequest.body,
+      text: webRequest.text.bind(webRequest),
+      arrayBuffer: webRequest.arrayBuffer.bind(webRequest)
+    },
+    removeHost(url.toString())
+  )
+}
+
 const removeHost = (url: string) => {
   if (url[0] === "/") {
     return url
@@ -291,16 +324,53 @@ const removeHost = (url: string) => {
   return index === -1 ? "/" : url.slice(index)
 }
 
+const clientRequestBaseUrl = "http://effect-http.invalid"
+
+const isAbsoluteClientUrl = (url: string) => /^[A-Za-z][A-Za-z\d+.-]*:/.test(url)
+
+const toWebRequestInit = (
+  request: HttpClientRequest.HttpClientRequest,
+  options?: {
+    readonly services?: ServiceMap.ServiceMap<never> | undefined
+  }
+): RequestInit => {
+  const requestInit: RequestInit = {
+    method: request.body._tag !== "Empty" && !hasBody(request.method) ? "POST" : request.method,
+    headers: request.headers
+  }
+  switch (request.body._tag) {
+    case "Empty": {
+      return requestInit
+    }
+    case "Raw":
+    case "Uint8Array": {
+      requestInit.body = request.body.body as BodyInit
+      return requestInit
+    }
+    case "FormData": {
+      requestInit.body = request.body.formData
+      return requestInit
+    }
+    case "Stream": {
+      requestInit.body = Stream.toReadableStreamWith(request.body.stream, options?.services ?? ServiceMap.empty())
+      ;(requestInit as any).duplex = "half"
+      return requestInit
+    }
+  }
+}
+
+type ServerRequestSource = Pick<Request, "method" | "url" | "headers" | "body" | "text" | "arrayBuffer">
+
 class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
   readonly [TypeId]: typeof TypeId
   readonly [HttpIncomingMessage.TypeId]: typeof HttpIncomingMessage.TypeId
-  readonly source: Request
+  readonly source: ServerRequestSource
   readonly url: string
   public headersOverride?: Headers.Headers | undefined
   private remoteAddressOverride?: string | undefined
 
   constructor(
-    source: Request,
+    source: ServerRequestSource,
     url: string,
     headersOverride?: Headers.Headers,
     remoteAddressOverride?: string
