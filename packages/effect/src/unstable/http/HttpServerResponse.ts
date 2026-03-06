@@ -5,7 +5,7 @@ import * as Effect from "../../Effect.ts"
 import * as ErrorReporter from "../../ErrorReporter.ts"
 import type * as FileSystem from "../../FileSystem.ts"
 import { dual } from "../../Function.ts"
-import type * as Inspectable from "../../Inspectable.ts"
+import * as Inspectable from "../../Inspectable.ts"
 import { PipeInspectableProto } from "../../internal/core.ts"
 import type { Pipeable } from "../../Pipeable.ts"
 import type { PlatformError } from "../../PlatformError.ts"
@@ -19,8 +19,10 @@ import type { Mutable } from "../../Types.ts"
 import * as Cookies from "./Cookies.ts"
 import * as Headers from "./Headers.ts"
 import * as Body from "./HttpBody.ts"
+import * as HttpClientError from "./HttpClientError.ts"
 import * as HttpClientRequest from "./HttpClientRequest.ts"
 import * as HttpClientResponse from "./HttpClientResponse.ts"
+import * as HttpIncomingMessage from "./HttpIncomingMessage.ts"
 import type { HttpPlatform } from "./HttpPlatform.ts"
 import * as Template from "./Template.ts"
 import * as UrlParams from "./UrlParams.ts"
@@ -825,10 +827,171 @@ export const toClientResponse = (
     readonly services?: ServiceMap.ServiceMap<never> | undefined
   }
 ): HttpClientResponse.HttpClientResponse =>
-  HttpClientResponse.fromWeb(
+  new ServerHttpClientResponse(
     options?.request ?? HttpClientRequest.empty,
-    toWeb(response, options)
+    response,
+    options
   )
+
+class ServerHttpClientResponse extends Inspectable.Class implements HttpClientResponse.HttpClientResponse {
+  readonly [HttpIncomingMessage.TypeId]: typeof HttpIncomingMessage.TypeId
+  readonly [HttpClientResponse.TypeId]: typeof HttpClientResponse.TypeId
+
+  readonly request: HttpClientRequest.HttpClientRequest
+  private readonly response: HttpServerResponse
+  private readonly withoutBody: boolean | undefined
+  private readonly services: ServiceMap.ServiceMap<never> | undefined
+
+  constructor(
+    request: HttpClientRequest.HttpClientRequest,
+    response: HttpServerResponse,
+    options?: {
+      readonly withoutBody?: boolean | undefined
+      readonly services?: ServiceMap.ServiceMap<never> | undefined
+    }
+  ) {
+    super()
+    this.request = request
+    this.response = response
+    this.withoutBody = options?.withoutBody
+    this.services = options?.services
+    this[HttpIncomingMessage.TypeId] = HttpIncomingMessage.TypeId
+    this[HttpClientResponse.TypeId] = HttpClientResponse.TypeId
+  }
+
+  toJSON(): unknown {
+    return HttpIncomingMessage.inspect(this, {
+      _id: "HttpClientResponse",
+      request: this.request.toJSON(),
+      status: this.status
+    })
+  }
+
+  private cachedResponse?: globalThis.Response
+  private get source(): globalThis.Response {
+    return this.cachedResponse ??= toWeb(this.response, {
+      withoutBody: this.withoutBody,
+      services: this.services
+    })
+  }
+
+  get status(): number {
+    return this.source.status
+  }
+
+  private cachedHeaders?: Headers.Headers
+  get headers(): Headers.Headers {
+    return this.cachedHeaders ??= Headers.fromInput(this.source.headers)
+  }
+
+  private cachedCookies?: Cookies.Cookies
+  get cookies(): Cookies.Cookies {
+    return this.cachedCookies ??= Cookies.fromSetCookie(this.source.headers.getSetCookie())
+  }
+
+  get remoteAddress(): string | undefined {
+    return undefined
+  }
+
+  get stream(): Stream.Stream<Uint8Array, HttpClientError.HttpClientError> {
+    return this.source.body
+      ? Stream.fromReadableStream({
+        evaluate: () => this.source.body!,
+        onError: (cause) =>
+          new HttpClientError.HttpClientError({
+            reason: new HttpClientError.DecodeError({
+              request: this.request,
+              response: this,
+              cause
+            })
+          })
+      })
+      : Stream.fail(
+        new HttpClientError.HttpClientError({
+          reason: new HttpClientError.EmptyBodyError({
+            request: this.request,
+            response: this,
+            description: "can not create stream from empty body"
+          })
+        })
+      )
+  }
+
+  get json(): Effect.Effect<unknown, HttpClientError.HttpClientError> {
+    return Effect.flatMap(this.text, (text) =>
+      Effect.try({
+        try: () => text === "" ? null : JSON.parse(text) as unknown,
+        catch: (cause) =>
+          new HttpClientError.HttpClientError({
+            reason: new HttpClientError.DecodeError({
+              request: this.request,
+              response: this,
+              cause
+            })
+          })
+      }))
+  }
+
+  private textBody?: Effect.Effect<string, HttpClientError.HttpClientError>
+  get text(): Effect.Effect<string, HttpClientError.HttpClientError> {
+    return this.textBody ??= Effect.tryPromise({
+      try: () => this.source.text(),
+      catch: (cause) =>
+        new HttpClientError.HttpClientError({
+          reason: new HttpClientError.DecodeError({
+            request: this.request,
+            response: this,
+            cause
+          })
+        })
+    }).pipe(Effect.cached, Effect.runSync)
+  }
+
+  get urlParamsBody(): Effect.Effect<UrlParams.UrlParams, HttpClientError.HttpClientError> {
+    return Effect.flatMap(this.text, (_) =>
+      Effect.try({
+        try: () => UrlParams.fromInput(new URLSearchParams(_)),
+        catch: (cause) =>
+          new HttpClientError.HttpClientError({
+            reason: new HttpClientError.DecodeError({
+              request: this.request,
+              response: this,
+              cause
+            })
+          })
+      }))
+  }
+
+  private formDataBody?: Effect.Effect<FormData, HttpClientError.HttpClientError>
+  get formData(): Effect.Effect<FormData, HttpClientError.HttpClientError> {
+    return this.formDataBody ??= Effect.tryPromise({
+      try: () => this.source.formData(),
+      catch: (cause) =>
+        new HttpClientError.HttpClientError({
+          reason: new HttpClientError.DecodeError({
+            request: this.request,
+            response: this,
+            cause
+          })
+        })
+    }).pipe(Effect.cached, Effect.runSync)
+  }
+
+  private arrayBufferBody?: Effect.Effect<ArrayBuffer, HttpClientError.HttpClientError>
+  get arrayBuffer(): Effect.Effect<ArrayBuffer, HttpClientError.HttpClientError> {
+    return this.arrayBufferBody ??= Effect.tryPromise({
+      try: () => this.source.arrayBuffer(),
+      catch: (cause) =>
+        new HttpClientError.HttpClientError({
+          reason: new HttpClientError.DecodeError({
+            request: this.request,
+            response: this,
+            cause
+          })
+        })
+    }).pipe(Effect.cached, Effect.runSync)
+  }
+}
 
 const Proto: Omit<
   HttpServerResponse,
