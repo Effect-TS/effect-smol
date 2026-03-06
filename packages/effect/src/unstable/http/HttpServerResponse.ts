@@ -19,6 +19,8 @@ import type { Mutable } from "../../Types.ts"
 import * as Cookies from "./Cookies.ts"
 import * as Headers from "./Headers.ts"
 import * as Body from "./HttpBody.ts"
+import * as HttpClientRequest from "./HttpClientRequest.ts"
+import * as HttpClientResponse from "./HttpClientResponse.ts"
 import type { HttpPlatform } from "./HttpPlatform.ts"
 import * as Template from "./Template.ts"
 import * as UrlParams from "./UrlParams.ts"
@@ -810,6 +812,23 @@ export const toWeb = (
     }
   }
 }
+
+/**
+ * @since 4.0.0
+ * @category conversions
+ */
+export const toClientResponse = (
+  response: HttpServerResponse,
+  options?: {
+    readonly request?: HttpClientRequest.HttpClientRequest | undefined
+    readonly withoutBody?: boolean | undefined
+    readonly services?: ServiceMap.ServiceMap<never> | undefined
+  }
+): HttpClientResponse.HttpClientResponse =>
+  HttpClientResponse.fromWeb(
+    options?.request ?? HttpClientRequest.empty,
+    toWeb(response, options)
+  )
 
 const Proto: Omit<
   HttpServerResponse,
