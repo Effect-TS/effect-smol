@@ -27,11 +27,15 @@ describe("HttpServerResponse", () => {
           Stream.map(String),
           Stream.encodeText
         )
-      ),
-      { services: References.CurrentConcurrency.serviceMap(420) }
+      )
     )
 
-    strictEqual(await Effect.runPromise(clientResponse.text), "420")
+    strictEqual(
+      await Effect.runPromise(clientResponse.text.pipe(
+        Effect.provideService(References.CurrentConcurrency, 420)
+      )),
+      "420"
+    )
   })
 
   test("toClientResponse formData", async () => {
@@ -43,15 +47,5 @@ describe("HttpServerResponse", () => {
     )
 
     strictEqual((await Effect.runPromise(clientResponse.formData)).get("foo"), "bar")
-  })
-
-  test("toClientResponse withoutBody", async () => {
-    const clientResponse = HttpServerResponse.toClientResponse(
-      HttpServerResponse.text("ignored"),
-      { withoutBody: true }
-    )
-
-    strictEqual(await Effect.runPromise(clientResponse.text), "")
-    deepStrictEqual(await Effect.runPromise(clientResponse.json), null)
   })
 })

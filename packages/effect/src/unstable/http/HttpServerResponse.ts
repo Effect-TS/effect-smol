@@ -823,14 +823,11 @@ export const toClientResponse = (
   response: HttpServerResponse,
   options?: {
     readonly request?: HttpClientRequest.HttpClientRequest | undefined
-    readonly withoutBody?: boolean | undefined
-    readonly services?: ServiceMap.ServiceMap<never> | undefined
   }
 ): HttpClientResponse.HttpClientResponse =>
   new ServerHttpClientResponse(
     options?.request ?? HttpClientRequest.empty,
-    response,
-    options
+    response
   )
 
 class ServerHttpClientResponse extends Inspectable.Class implements HttpClientResponse.HttpClientResponse {
@@ -839,22 +836,14 @@ class ServerHttpClientResponse extends Inspectable.Class implements HttpClientRe
 
   readonly request: HttpClientRequest.HttpClientRequest
   private readonly response: HttpServerResponse
-  private readonly withoutBody: boolean | undefined
-  private readonly services: ServiceMap.ServiceMap<never> | undefined
 
   constructor(
     request: HttpClientRequest.HttpClientRequest,
-    response: HttpServerResponse,
-    options?: {
-      readonly withoutBody?: boolean | undefined
-      readonly services?: ServiceMap.ServiceMap<never> | undefined
-    }
+    response: HttpServerResponse
   ) {
     super()
     this.request = request
     this.response = response
-    this.withoutBody = options?.withoutBody
-    this.services = options?.services
     this[HttpIncomingMessage.TypeId] = HttpIncomingMessage.TypeId
     this[HttpClientResponse.TypeId] = HttpClientResponse.TypeId
   }
@@ -865,10 +854,6 @@ class ServerHttpClientResponse extends Inspectable.Class implements HttpClientRe
       request: this.request.toJSON(),
       status: this.status
     })
-  }
-
-  private get body(): Body.HttpBody {
-    return this.withoutBody ? Body.empty : this.response.body
   }
 
   get status(): number {
@@ -888,16 +873,13 @@ class ServerHttpClientResponse extends Inspectable.Class implements HttpClientRe
   }
 
   get stream(): Stream.Stream<Uint8Array, HttpClientError.HttpClientError> {
-    const body = this.body
+    const body = this.response.body
     switch (body._tag) {
       case "Empty": {
-        return this.emptyBodyStream
+        return Stream.empty
       }
       case "Stream": {
-        return Stream.mapError(
-          Stream.provideServices(body.stream, this.services ?? ServiceMap.empty()),
-          (cause) => this.decodeError(cause)
-        )
+        return Stream.mapError(body.stream, (cause) => this.decodeError(cause))
       }
       case "Uint8Array": {
         return Stream.succeed(body.body)
@@ -910,7 +892,7 @@ class ServerHttpClientResponse extends Inspectable.Class implements HttpClientRe
               evaluate: () => rawBody.body!,
               onError: (cause) => this.decodeError(cause)
             })
-            : this.emptyBodyStream
+            : Stream.empty
         }
         if (isReadableStream(rawBody)) {
           return Stream.fromReadableStream({
@@ -927,7 +909,10 @@ class ServerHttpClientResponse extends Inspectable.Class implements HttpClientRe
         return Stream.unwrap(Effect.map(this.bytes, Stream.succeed))
       }
       case "FormData": {
-        return Stream.unwrap(Effect.map(this.bytes, Stream.succeed))
+        return Stream.fromReadableStream({
+          evaluate: () => new Response(body.formData, { headers: this.headers }).body!,
+          onError: (cause) => this.decodeError(cause)
+        })
       }
     }
   }
@@ -947,13 +932,8 @@ class ServerHttpClientResponse extends Inspectable.Class implements HttpClientRe
       }))
   }
 
-  private bytesBody?: Effect.Effect<Uint8Array, HttpClientError.HttpClientError>
   private get bytes(): Effect.Effect<Uint8Array, HttpClientError.HttpClientError> {
-    return this.bytesBody ??= this.makeBytes.pipe(Effect.cached, Effect.runSync)
-  }
-
-  private get makeBytes(): Effect.Effect<Uint8Array, HttpClientError.HttpClientError> {
-    const body = this.body
+    const body = this.response.body
     switch (body._tag) {
       case "Empty": {
         return Effect.succeed(new Uint8Array(0))
@@ -962,36 +942,32 @@ class ServerHttpClientResponse extends Inspectable.Class implements HttpClientRe
         return Effect.succeed(body.body)
       }
       case "Stream": {
-        return Stream.mkUint8Array(
-          Stream.provideServices(body.stream, this.services ?? ServiceMap.empty())
-        ).pipe(Effect.mapError((cause) => this.decodeError(cause)))
+        return Stream.mkUint8Array(this.stream)
       }
       case "Raw": {
         const rawBody = body.body
         if (rawBody instanceof Response) {
           return Effect.tryPromise({
-            try: () => rawBody.arrayBuffer().then((buffer: ArrayBuffer) => new Uint8Array(buffer)),
+            try: () => rawBody.arrayBuffer().then((buffer) => new Uint8Array(buffer)),
             catch: (cause) => this.decodeError(cause)
           })
         }
         return Effect.tryPromise({
-          try: () => new Response(rawBody as any).arrayBuffer().then((buffer: ArrayBuffer) => new Uint8Array(buffer)),
+          try: () => new Response(rawBody as any).arrayBuffer().then((buffer) => new Uint8Array(buffer)),
           catch: (cause) => this.decodeError(cause)
         })
       }
       case "FormData": {
         return Effect.tryPromise({
-          try: () =>
-            new Response(body.formData as any).arrayBuffer().then((buffer: ArrayBuffer) => new Uint8Array(buffer)),
+          try: () => new Response(body.formData).arrayBuffer().then((buffer) => new Uint8Array(buffer)),
           catch: (cause) => this.decodeError(cause)
         })
       }
     }
   }
 
-  private textBody?: Effect.Effect<string, HttpClientError.HttpClientError>
   get text(): Effect.Effect<string, HttpClientError.HttpClientError> {
-    return this.textBody ??= Effect.map(this.bytes, (bytes) => textDecoder.decode(bytes))
+    return Effect.map(this.bytes, (bytes) => textDecoder.decode(bytes))
   }
 
   get urlParamsBody(): Effect.Effect<UrlParams.UrlParams, HttpClientError.HttpClientError> {
@@ -1009,34 +985,22 @@ class ServerHttpClientResponse extends Inspectable.Class implements HttpClientRe
       }))
   }
 
-  private formDataBody?: Effect.Effect<FormData, HttpClientError.HttpClientError>
   get formData(): Effect.Effect<FormData, HttpClientError.HttpClientError> {
-    const body = this.body
+    const body = this.response.body
     if (body._tag === "FormData") {
       return Effect.succeed(body.formData)
     }
-    return this.formDataBody ??= Effect.flatMap(this.bytes, (bytes) =>
-      Effect.tryPromise({
-        try: () => new Response(bytes as any, { headers: this.headers as any }).formData(),
+    return Effect.servicesWith((services: ServiceMap.ServiceMap<never>) => {
+      const readableStream = Stream.toReadableStreamWith(this.stream, services)
+      return Effect.tryPromise({
+        try: () => new Response(readableStream, { headers: this.headers }).formData(),
         catch: (cause) => this.decodeError(cause)
-      })).pipe(Effect.cached, Effect.runSync)
-  }
-
-  private arrayBufferBody?: Effect.Effect<ArrayBuffer, HttpClientError.HttpClientError>
-  get arrayBuffer(): Effect.Effect<ArrayBuffer, HttpClientError.HttpClientError> {
-    return this.arrayBufferBody ??= Effect.map(this.bytes, (bytes) => bytes.slice().buffer)
-  }
-
-  private get emptyBodyStream(): Stream.Stream<Uint8Array, HttpClientError.HttpClientError> {
-    return Stream.fail(
-      new HttpClientError.HttpClientError({
-        reason: new HttpClientError.EmptyBodyError({
-          request: this.request,
-          response: this,
-          description: "can not create stream from empty body"
-        })
       })
-    )
+    })
+  }
+
+  get arrayBuffer(): Effect.Effect<ArrayBuffer, HttpClientError.HttpClientError> {
+    return Effect.map(this.bytes, (bytes) => bytes.slice().buffer)
   }
 
   private decodeError(cause: unknown): HttpClientError.HttpClientError {
