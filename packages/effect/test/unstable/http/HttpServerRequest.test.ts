@@ -19,6 +19,7 @@ describe("HttpServerRequest", () => {
 
         const serverRequest = HttpServerRequest.fromClientRequest(request)
 
+        strictEqual(serverRequest.source instanceof Request, false)
         strictEqual(serverRequest.method, "POST")
         strictEqual(serverRequest.url, "/users?page=1&filter=a&filter=b#details")
         strictEqual(serverRequest.originalUrl, "/users?page=1&filter=a&filter=b#details")
@@ -43,7 +44,7 @@ describe("HttpServerRequest", () => {
         strictEqual(yield* serverRequest.text, "query=effect")
       }))
 
-    it.effect("encodes form data and streams through a web request", () =>
+    it.effect("encodes form data and streams", () =>
       Effect.gen(function*() {
         const formRequest = HttpClientRequest.post("/upload").pipe(
           HttpClientRequest.bodyFormDataRecord({ file: "contents" })

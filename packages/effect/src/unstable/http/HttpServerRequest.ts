@@ -302,16 +302,13 @@ export const fromClientRequest = (
   if (request.hash !== undefined) {
     url.hash = request.hash
   }
-  const webRequest = new Request(url, toWebRequestInit(request, options))
   return new ServerRequestImpl(
-    {
-      method: request.method,
-      url: isAbsoluteClientUrl(request.url) ? url.toString() : removeHost(url.toString()),
-      headers: webRequest.headers,
-      body: webRequest.body,
-      text: webRequest.text.bind(webRequest),
-      arrayBuffer: webRequest.arrayBuffer.bind(webRequest)
-    },
+    new ClientRequestSource(
+      request,
+      url,
+      isAbsoluteClientUrl(request.url) ? url.toString() : removeHost(url.toString()),
+      options?.services ?? ServiceMap.empty()
+    ),
     removeHost(url.toString())
   )
 }
@@ -359,7 +356,65 @@ const toWebRequestInit = (
   }
 }
 
-type ServerRequestSource = Pick<Request, "method" | "url" | "headers" | "body" | "text" | "arrayBuffer">
+interface ServerRequestSource {
+  readonly method: string
+  readonly url: string
+  readonly headers: Headers.Headers | globalThis.Headers
+  readonly body: ReadableStream<globalThis.Uint8Array> | null
+  text(): Promise<string>
+  arrayBuffer(): Promise<ArrayBuffer>
+}
+
+class ClientRequestSource implements ServerRequestSource {
+  readonly method: HttpMethod
+  readonly url: string
+  private readonly request: HttpClientRequest.HttpClientRequest
+  private readonly webUrl: URL
+  private readonly services: ServiceMap.ServiceMap<never>
+  private webRequestCache: Request | undefined
+
+  constructor(
+    request: HttpClientRequest.HttpClientRequest,
+    webUrl: URL,
+    url: string,
+    services: ServiceMap.ServiceMap<never>
+  ) {
+    this.request = request
+    this.webUrl = webUrl
+    this.method = request.method
+    this.url = url
+    this.services = services
+  }
+
+  get headers(): Headers.Headers | globalThis.Headers {
+    return this.request.body._tag === "FormData" ? this.webRequest.headers : this.request.headers
+  }
+
+  get body(): ReadableStream<globalThis.Uint8Array> | null {
+    return this.request.body._tag === "Empty" ? null : this.webRequest.body
+  }
+
+  text(): Promise<string> {
+    return this.request.body._tag === "Empty" ? Promise.resolve("") : this.webRequest.text()
+  }
+
+  arrayBuffer(): Promise<ArrayBuffer> {
+    return this.request.body._tag === "Empty" ? Promise.resolve(new ArrayBuffer(0)) : this.webRequest.arrayBuffer()
+  }
+
+  private get webRequest(): Request {
+    if (this.webRequestCache) {
+      return this.webRequestCache
+    }
+    this.webRequestCache = new Request(
+      this.webUrl,
+      toWebRequestInit(this.request, {
+        services: this.services
+      })
+    )
+    return this.webRequestCache
+  }
+}
 
 class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
   readonly [TypeId]: typeof TypeId
