@@ -25,7 +25,7 @@ import * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
 import * as SubscriptionRef from "../../SubscriptionRef.ts"
-import type { NoInfer } from "../../Types.ts"
+import type { Mutable, NoInfer } from "../../Types.ts"
 import * as KeyValueStore from "../persistence/KeyValueStore.ts"
 import * as AsyncResult from "./AsyncResult.ts"
 import { AtomRegistry } from "./AtomRegistry.ts"
@@ -56,6 +56,7 @@ export interface Atom<A> extends Pipeable, Inspectable.Inspectable {
   readonly refresh?: (f: <A>(atom: Atom<A>) => void) => void
   readonly label?: readonly [name: string, stack: string]
   readonly idleTTL?: number
+  readonly initialValueTarget?: Atom<A>
 }
 
 /**
@@ -95,12 +96,6 @@ export type WithoutSerializable<T extends Atom<any>> = T extends Writable<infer 
  * @category type ids
  */
 export const WritableTypeId: WritableTypeId = "~effect/reactivity/Atom/Writable"
-
-const InitialValueTargetTypeId = Symbol.for("effect/reactivity/atom/Atom/InitialValueTarget")
-
-type InitialValueTarget<A> = Atom<A> & {
-  [InitialValueTargetTypeId]?: Atom<any> | undefined
-}
 
 /**
  * @since 4.0.0
@@ -316,13 +311,6 @@ const WritableProto = {
  * @category refinements
  */
 export const isWritable = <R, W>(atom: Atom<R>): atom is Writable<R, W> => WritableTypeId in atom
-
-const getInitialValueTarget = <A>(self: Atom<A>): Atom<A> =>
-  (self as InitialValueTarget<A>)[InitialValueTargetTypeId] ?? self
-
-const setInitialValueTarget = (self: Atom<any>, target: Atom<any>): void => {
-  ;(self as InitialValueTarget<any>)[InitialValueTargetTypeId] = getInitialValueTarget(target)
-}
 
 /**
  * @since 4.0.0
@@ -722,7 +710,7 @@ export const context: (options: {
   factory.withReactivity =
     (keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>) =>
     <A extends Atom<any>>(atom: A): A =>
-      transformInternal(atom, (get) => {
+      transform(atom, (get) => {
         const reactivity = AsyncResult.getOrThrow(get(reactivityAtom))
         get.addFinalizer(reactivity.registerUnsafe(keys, () => {
           get.refresh(atom)
@@ -1433,7 +1421,7 @@ export const initialValue: {
 } = dual<
   <A>(initialValue: A) => (self: Atom<A>) => readonly [Atom<A>, A],
   <A>(self: Atom<A>, initialValue: A) => readonly [Atom<A>, A]
->(2, (self, initialValue) => [getInitialValueTarget(self), initialValue])
+>(2, (self, initialValue) => [self, initialValue])
 
 /**
  * @since 4.0.0
@@ -1441,47 +1429,53 @@ export const initialValue: {
  */
 export const transform: {
   <R extends Atom<any>, B>(
-    f: (get: Context, atom: R) => B
+    f: (get: Context, atom: R) => B,
+    options?: {
+      readonly initialValueTarget?: Atom<B> | undefined
+    }
   ): (self: R) => [R] extends [Writable<infer _, infer RW>] ? Writable<B, RW> : Atom<B>
   <R extends Atom<any>, B>(
     self: R,
-    f: (get: Context, atom: R) => B
+    f: (get: Context, atom: R) => B,
+    options?: {
+      readonly initialValueTarget?: Atom<B> | undefined
+    }
   ): [R] extends [Writable<infer _, infer RW>] ? Writable<B, RW> : Atom<B>
 } = dual(
-  2,
-  (<A, B>(self: Atom<A>, f: (get: Context, atom: Atom<A>) => B): Atom<B> => transformInternal(self, f)) as any
+  (args) => isAtom(args[0]),
+  (<A, B>(
+    self: Atom<A>,
+    f: (get: Context, atom: Atom<A>, options?: {
+      readonly initialValueTarget?: Atom<B> | undefined
+    }) => B,
+    options?: {
+      readonly initialValueTarget?: Atom<B> | undefined
+    }
+  ): Atom<B> => {
+    const atom = removeTtl(
+      isWritable(self)
+        ? writable(
+          (get) => f(get, self),
+          function(ctx, value) {
+            ctx.set(self, value)
+          },
+          self.refresh ?? function(refresh) {
+            refresh(self)
+          }
+        )
+        : readable(
+          (get) => f(get, self),
+          self.refresh ?? function(refresh) {
+            refresh(self)
+          }
+        )
+    )
+    if (options?.initialValueTarget) {
+      ;(atom as Mutable<Atom<B>>).initialValueTarget = options.initialValueTarget
+    }
+    return atom
+  }) as any
 )
-
-const transformInternal = <A, B>(
-  self: Atom<A>,
-  f: (get: Context, atom: Atom<A>) => B,
-  options?: {
-    readonly initialValueTarget?: Atom<A> | undefined
-  }
-): Atom<B> => {
-  const transformed = removeTtl(
-    isWritable(self)
-      ? writable(
-        (get) => f(get, self),
-        function(ctx, value) {
-          ctx.set(self, value)
-        },
-        self.refresh ?? function(refresh) {
-          refresh(self)
-        }
-      )
-      : readable(
-        (get) => f(get, self),
-        self.refresh ?? function(refresh) {
-          refresh(self)
-        }
-      )
-  )
-  if (options?.initialValueTarget !== undefined) {
-    setInitialValueTarget(transformed, options.initialValueTarget)
-  }
-  return transformed
-}
 
 /**
  * @since 4.0.0

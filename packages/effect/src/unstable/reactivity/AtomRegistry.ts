@@ -262,7 +262,8 @@ class RegistryImpl implements AtomRegistry {
     }
     if (initialValues !== undefined) {
       for (const [atom, value] of initialValues) {
-        this.ensureNode(atom).setValue(value)
+        const target = atom.initialValueTarget ?? atom
+        this.ensureNode(target).setValue(value)
       }
     }
   }

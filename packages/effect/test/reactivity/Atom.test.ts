@@ -2088,12 +2088,15 @@ describe.sequential("Atom", () => {
         }),
         { reactivityKeys: ["counter"] }
       )
+      r.mount(atom)
 
       assert.strictEqual(r.get(atom), 10)
       assert.strictEqual(rebuilds, 0)
 
       value = 11
       r.set(fn, void 0)
+
+      await Effect.runPromise(Effect.yieldNow)
 
       assert.strictEqual(r.get(atom), 11)
       assert.strictEqual(rebuilds, 1)
