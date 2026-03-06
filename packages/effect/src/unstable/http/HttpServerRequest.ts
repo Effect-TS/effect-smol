@@ -179,7 +179,8 @@ export const schemaBodyJson = <A, I, RD, RE>(
 }
 
 const isMultipart = (request: HttpServerRequest) =>
-  request.headers["content-type"]?.toLowerCase().includes("multipart/form-data")
+  request.headers["content-type"]?.toLowerCase().includes("multipart/form-data") === true ||
+  getFormDataBody(request) !== undefined
 
 /**
  * @since 4.0.0
@@ -277,6 +278,16 @@ export const schemaBodyFormJson = <A, I, RD, RE>(
     )
   }
 }
+
+/**
+ * @since 4.0.0
+ * @category conversions
+ */
+export const fromClientRequest = (request: HttpClientRequest.HttpClientRequest): HttpServerRequest =>
+  new ClientRequestImpl(
+    request,
+    makeClientRequestOriginalUrl(request)
+  )
 
 /**
  * @since 4.0.0
@@ -521,6 +532,412 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
     )
   }
 }
+
+class ClientRequestImpl extends Inspectable.Class implements HttpServerRequest {
+  readonly [TypeId]: typeof TypeId
+  readonly [HttpIncomingMessage.TypeId]: typeof HttpIncomingMessage.TypeId
+  readonly source: HttpClientRequest.HttpClientRequest
+  readonly originalUrl: string
+  public headersOverride?: Headers.Headers | undefined
+  private remoteAddressOverride?: string | undefined
+  private urlOverride?: string | undefined
+
+  constructor(
+    source: HttpClientRequest.HttpClientRequest,
+    originalUrl: string,
+    urlOverride?: string,
+    headersOverride?: Headers.Headers,
+    remoteAddressOverride?: string
+  ) {
+    super()
+    this[TypeId] = TypeId
+    this[HttpIncomingMessage.TypeId] = HttpIncomingMessage.TypeId
+    this.source = source
+    this.originalUrl = originalUrl
+    this.urlOverride = urlOverride
+    this.headersOverride = headersOverride
+    this.remoteAddressOverride = remoteAddressOverride
+  }
+
+  toJSON(): unknown {
+    return HttpIncomingMessage.inspect(this, {
+      _id: "HttpServerRequest",
+      method: this.method,
+      url: this.originalUrl
+    })
+  }
+
+  modify(
+    options: {
+      readonly url?: string | undefined
+      readonly headers?: Headers.Headers | undefined
+      readonly remoteAddress?: string | undefined
+    }
+  ) {
+    return new ClientRequestImpl(
+      this.source,
+      this.originalUrl,
+      options.url ?? this.url,
+      options.headers ?? this.headersOverride,
+      options.remoteAddress ?? this.remoteAddressOverride
+    )
+  }
+
+  get method(): HttpMethod {
+    return this.source.method
+  }
+
+  get url(): string {
+    return this.urlOverride ?? removeHost(this.originalUrl)
+  }
+
+  get remoteAddress(): string | undefined {
+    return this.remoteAddressOverride ? this.remoteAddressOverride : undefined
+  }
+
+  get headers(): Headers.Headers {
+    return this.headersOverride ??= this.source.headers
+  }
+
+  private cachedCookies: ReadonlyRecord<string, string> | undefined
+  get cookies() {
+    if (this.cachedCookies) {
+      return this.cachedCookies
+    }
+    return this.cachedCookies = Cookies.parseHeader(this.headers.cookie ?? "")
+  }
+
+  get stream(): Stream.Stream<Uint8Array, HttpServerError> {
+    const body = this.source.body
+    switch (body._tag) {
+      case "Empty": {
+        return Stream.fail(requestParseError(this, "can not create stream from empty body"))
+      }
+      case "Uint8Array": {
+        return Stream.succeed(body.body)
+      }
+      case "Stream": {
+        return Stream.mapError(body.stream, (cause) => requestParseError(this, undefined, cause))
+      }
+      case "FormData": {
+        return streamFromReadable(this, new Response(body.formData).body)
+      }
+      case "Raw": {
+        return rawBodyStream(this, body.body)
+      }
+    }
+  }
+
+  private bytesEffect: Effect.Effect<Uint8Array, HttpServerError> | undefined
+  private get bytes(): Effect.Effect<Uint8Array, HttpServerError> {
+    if (this.bytesEffect) {
+      return this.bytesEffect
+    }
+    const body = this.source.body
+    let effect: Effect.Effect<Uint8Array, HttpServerError>
+    switch (body._tag) {
+      case "Empty": {
+        effect = Effect.succeed(new Uint8Array(0))
+        break
+      }
+      case "Uint8Array": {
+        effect = Effect.succeed(body.body)
+        break
+      }
+      case "FormData": {
+        effect = bytesFromBodyInit(this, body.formData)
+        break
+      }
+      case "Stream": {
+        effect = Stream.mkUint8Array(this.stream)
+        break
+      }
+      case "Raw": {
+        effect = rawBodyBytes(this, body.body)
+        break
+      }
+    }
+    this.bytesEffect = Effect.runSync(Effect.cached(effect))
+    return this.bytesEffect
+  }
+
+  get text(): Effect.Effect<string, HttpServerError> {
+    return Effect.map(this.bytes, (bytes) => textDecoder.decode(bytes))
+  }
+
+  get json(): Effect.Effect<unknown, HttpServerError> {
+    return Effect.flatMap(this.text, (text) =>
+      Effect.try({
+        try: () => text === "" ? null : JSON.parse(text) as unknown,
+        catch: (cause) => requestParseError(this, undefined, cause)
+      }))
+  }
+
+  get urlParamsBody(): Effect.Effect<UrlParams.UrlParams, HttpServerError> {
+    return Effect.flatMap(this.text, (_) =>
+      Effect.try({
+        try: () => UrlParams.fromInput(new URLSearchParams(_)),
+        catch: (cause) => requestParseError(this, undefined, cause)
+      }))
+  }
+
+  private multipartEffect:
+    | Effect.Effect<
+      Multipart.Persisted,
+      Multipart.MultipartError,
+      Scope.Scope | FileSystem.FileSystem | Path.Path
+    >
+    | undefined
+  get multipart(): Effect.Effect<
+    Multipart.Persisted,
+    Multipart.MultipartError,
+    Scope.Scope | FileSystem.FileSystem | Path.Path
+  > {
+    if (this.multipartEffect) {
+      return this.multipartEffect
+    }
+    this.multipartEffect = Effect.runSync(Effect.cached(
+      Multipart.toPersisted(this.multipartStream)
+    ))
+    return this.multipartEffect
+  }
+
+  get multipartStream(): Stream.Stream<Multipart.Part, Multipart.MultipartError> {
+    const formData = getFormDataBody(this)
+    if (formData !== undefined) {
+      return Stream.fromIterable(formDataToParts(formData))
+    }
+    return Stream.pipeThroughChannel(
+      Stream.mapError(this.stream, (cause) => Multipart.MultipartError.fromReason("InternalError", cause)),
+      Multipart.makeChannel(this.headers)
+    )
+  }
+
+  get arrayBuffer(): Effect.Effect<ArrayBuffer, HttpServerError> {
+    return Effect.map(this.bytes, (bytes) => bytes.slice().buffer)
+  }
+
+  get upgrade(): Effect.Effect<Socket.Socket, HttpServerError> {
+    return Effect.fail(requestParseError(this, "Not an upgradeable ServerRequest"))
+  }
+}
+
+const makeClientRequestOriginalUrl = (request: HttpClientRequest.HttpClientRequest): string => {
+  const url = HttpClientRequest.toUrl(request)
+  if (url !== undefined) {
+    return url.toString()
+  }
+  let out = request.url
+  const search = UrlParams.toString(request.urlParams)
+  if (search !== "") {
+    out += `${out.includes("?") ? "&" : "?"}${search}`
+  }
+  if (request.hash !== undefined && !out.includes("#")) {
+    out += `#${request.hash}`
+  }
+  return out
+}
+
+const getFormDataBody = (request: HttpServerRequest): FormData | undefined => {
+  if (!HttpClientRequest.isHttpClientRequest(request.source)) {
+    return undefined
+  }
+  const body = request.source.body
+  if (body._tag === "FormData") {
+    return body.formData
+  }
+  if (body._tag === "Raw" && isFormData(body.body)) {
+    return body.body
+  }
+  return undefined
+}
+
+const rawBodyStream = (request: HttpServerRequest, body: unknown): Stream.Stream<Uint8Array, HttpServerError> => {
+  if (body instanceof Uint8Array) {
+    return Stream.succeed(body)
+  }
+  if (body instanceof ArrayBuffer) {
+    return Stream.succeed(new Uint8Array(body))
+  }
+  if (ArrayBuffer.isView(body)) {
+    return Stream.succeed(new Uint8Array(body.buffer, body.byteOffset, body.byteLength))
+  }
+  if (typeof body === "string") {
+    return Stream.succeed(textEncoder.encode(body))
+  }
+  if (body instanceof URLSearchParams) {
+    return Stream.succeed(textEncoder.encode(body.toString()))
+  }
+  if (body instanceof Blob) {
+    return streamFromReadable(request, body.stream())
+  }
+  if (body instanceof Response) {
+    return streamFromReadable(request, body.body)
+  }
+  if (body instanceof Request) {
+    return streamFromReadable(request, body.body)
+  }
+  if (isFormData(body)) {
+    return streamFromReadable(request, new Response(body).body)
+  }
+  if (isReadableStream(body)) {
+    return streamFromReadable(request, body)
+  }
+  return Stream.unwrap(Effect.map(rawBodyBytes(request, body), Stream.succeed))
+}
+
+const rawBodyBytes = (request: HttpServerRequest, body: unknown): Effect.Effect<Uint8Array, HttpServerError> => {
+  if (body instanceof Uint8Array) {
+    return Effect.succeed(body)
+  }
+  if (body instanceof ArrayBuffer) {
+    return Effect.succeed(new Uint8Array(body))
+  }
+  if (ArrayBuffer.isView(body)) {
+    return Effect.succeed(new Uint8Array(body.buffer, body.byteOffset, body.byteLength).slice())
+  }
+  if (typeof body === "string") {
+    return Effect.succeed(textEncoder.encode(body))
+  }
+  if (body instanceof URLSearchParams) {
+    return Effect.succeed(textEncoder.encode(body.toString()))
+  }
+  if (body instanceof Blob) {
+    return bytesFromBodyInit(request, body)
+  }
+  if (body instanceof Response) {
+    return Effect.tryPromise({
+      try: () => body.arrayBuffer().then((buffer) => new Uint8Array(buffer)),
+      catch: (cause) => requestParseError(request, undefined, cause)
+    })
+  }
+  if (body instanceof Request) {
+    return Effect.tryPromise({
+      try: () => body.arrayBuffer().then((buffer) => new Uint8Array(buffer)),
+      catch: (cause) => requestParseError(request, undefined, cause)
+    })
+  }
+  if (isFormData(body)) {
+    return bytesFromBodyInit(request, body)
+  }
+  if (isReadableStream(body)) {
+    return Stream.mkUint8Array(streamFromReadable(request, body))
+  }
+  return bytesFromBodyInit(request, body as BodyInit)
+}
+
+const bytesFromBodyInit = (request: HttpServerRequest, body: BodyInit): Effect.Effect<Uint8Array, HttpServerError> =>
+  Effect.tryPromise({
+    try: () => new Response(body).arrayBuffer().then((buffer) => new Uint8Array(buffer)),
+    catch: (cause) => requestParseError(request, undefined, cause)
+  })
+
+const streamFromReadable = (
+  request: HttpServerRequest,
+  body: ReadableStream<Uint8Array> | null | undefined
+): Stream.Stream<Uint8Array, HttpServerError> =>
+  body
+    ? Stream.fromReadableStream({
+      evaluate: () => body,
+      onError: (cause) => requestParseError(request, undefined, cause)
+    })
+    : Stream.fail(requestParseError(request, "can not create stream from empty body"))
+
+const requestParseError = (
+  request: HttpServerRequest,
+  description?: string,
+  cause?: unknown
+) =>
+  new HttpServerError({
+    reason: new RequestParseError({
+      request,
+      ...(description === undefined ? undefined : { description }),
+      ...(cause === undefined ? undefined : { cause })
+    })
+  })
+
+const formDataToParts = (formData: FormData): Array<Multipart.Part> => {
+  const parts: Array<Multipart.Part> = []
+  for (const [key, value] of formData.entries()) {
+    parts.push(typeof value === "string" ? new MultipartFieldPart(key, value) : new MultipartFilePart(key, value))
+  }
+  return parts
+}
+
+class MultipartFieldPart extends Inspectable.Class implements Multipart.Field {
+  readonly [Multipart.TypeId]: typeof Multipart.TypeId
+  readonly _tag = "Field"
+  readonly contentType = "text/plain"
+  readonly key: string
+  readonly value: string
+
+  constructor(
+    key: string,
+    value: string
+  ) {
+    super()
+    this[Multipart.TypeId] = Multipart.TypeId
+    this.key = key
+    this.value = value
+  }
+
+  toJSON(): unknown {
+    return {
+      _id: "@effect/platform/Multipart/Part",
+      _tag: "Field",
+      key: this.key,
+      contentType: this.contentType,
+      value: this.value
+    }
+  }
+}
+
+class MultipartFilePart extends Inspectable.Class implements Multipart.File {
+  readonly [Multipart.TypeId]: typeof Multipart.TypeId
+  readonly _tag = "File"
+  readonly key: string
+  readonly name: string
+  readonly contentType: string
+  readonly content: Stream.Stream<Uint8Array, Multipart.MultipartError>
+  readonly contentEffect: Effect.Effect<Uint8Array, Multipart.MultipartError>
+
+  constructor(
+    key: string,
+    file: File
+  ) {
+    super()
+    this[Multipart.TypeId] = Multipart.TypeId
+    this.key = key
+    this.name = file.name
+    this.contentType = file.type
+    this.content = Stream.fromReadableStream({
+      evaluate: () => file.stream() as ReadableStream<Uint8Array>,
+      onError: (cause) => Multipart.MultipartError.fromReason("InternalError", cause)
+    })
+    this.contentEffect = Effect.tryPromise({
+      try: () => file.arrayBuffer().then((buffer) => new Uint8Array(buffer)),
+      catch: (cause) => Multipart.MultipartError.fromReason("InternalError", cause)
+    })
+  }
+
+  toJSON(): unknown {
+    return {
+      _id: "@effect/platform/Multipart/Part",
+      _tag: "File",
+      key: this.key,
+      name: this.name,
+      contentType: this.contentType
+    }
+  }
+}
+
+const isReadableStream = (u: unknown): u is ReadableStream<Uint8Array> =>
+  typeof ReadableStream !== "undefined" && u instanceof ReadableStream
+
+const isFormData = (u: unknown): u is FormData => typeof FormData !== "undefined" && u instanceof FormData
+
+const textEncoder = new TextEncoder()
+const textDecoder = new TextDecoder()
 
 /**
  * @since 4.0.0

@@ -1,10 +1,10 @@
-import { describe, test } from "@effect/vitest"
+import { assert, describe, it } from "@effect/vitest"
 import { deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import { Effect, Stream } from "effect"
 import { HttpClientRequest, HttpServerRequest } from "effect/unstable/http"
 
 describe("HttpServerRequest", () => {
-  test("toClientRequest", async () => {
+  it("toClientRequest", async () => {
     const serverRequest = HttpServerRequest.fromWeb(
       new Request("http://localhost:3000/todos/1?a=1&a=2#top", {
         method: "POST",
@@ -40,7 +40,7 @@ describe("HttpServerRequest", () => {
     }
   })
 
-  test("toClientRequest keeps empty bodies empty", () => {
+  it("toClientRequest keeps empty bodies empty", () => {
     const clientRequest = HttpServerRequest.toClientRequest(
       HttpServerRequest.fromWeb(
         new Request("http://localhost:3000/todos/1", {
@@ -57,4 +57,54 @@ describe("HttpServerRequest", () => {
     strictEqual(clientRequest.headers["content-type"], "application/json")
     strictEqual(clientRequest.headers["x-test"], "ok")
   })
+
+  it.effect("fromClientRequest preserves request metadata and body accessors", () =>
+    Effect.gen(function*() {
+      const clientRequest = HttpClientRequest.post(new URL("http://localhost:3000/items?existing=1#top")).pipe(
+        HttpClientRequest.appendUrlParam("page", "1"),
+        HttpClientRequest.setHeader("cookie", "session=123"),
+        HttpClientRequest.bodyJsonUnsafe({ foo: "bar" })
+      )
+
+      const request = HttpServerRequest.fromClientRequest(clientRequest)
+      const arrayBuffer = yield* request.arrayBuffer
+
+      assert.strictEqual(request.source, clientRequest)
+      assert.strictEqual(request.method, "POST")
+      assert.strictEqual(request.originalUrl, "http://localhost:3000/items?existing=1&page=1#top")
+      assert.strictEqual(request.url, "/items?existing=1&page=1#top")
+      assert.strictEqual(request.headers["content-type"], "application/json")
+      assert.strictEqual(request.cookies.session, "123")
+      assert.deepStrictEqual(yield* request.json, { foo: "bar" })
+      assert.strictEqual(yield* request.text, "{\"foo\":\"bar\"}")
+      assert.strictEqual(new TextDecoder().decode(new Uint8Array(arrayBuffer)), "{\"foo\":\"bar\"}")
+    }))
+
+  it.effect("fromClientRequest exposes FormData bodies as multipart parts", () =>
+    Effect.gen(function*() {
+      const formData = new FormData()
+      formData.append("name", "alice")
+      formData.append("file", new Blob(["hello"], { type: "text/plain" }), "hello.txt")
+
+      const request = HttpServerRequest.fromClientRequest(
+        HttpClientRequest.post("/upload").pipe(
+          HttpClientRequest.bodyFormData(formData)
+        )
+      )
+      const parts = yield* Stream.runCollect(request.multipartStream)
+
+      assert.strictEqual(parts.length, 2)
+      assert.strictEqual(parts[0]?._tag, "Field")
+      if (parts[0]?._tag === "Field") {
+        assert.strictEqual(parts[0].key, "name")
+        assert.strictEqual(parts[0].value, "alice")
+      }
+      assert.strictEqual(parts[1]?._tag, "File")
+      if (parts[1]?._tag === "File") {
+        assert.strictEqual(parts[1].key, "file")
+        assert.strictEqual(parts[1].name, "hello.txt")
+        assert.strictEqual(parts[1].contentType, "text/plain")
+        assert.strictEqual(new TextDecoder().decode(yield* parts[1].contentEffect), "hello")
+      }
+    }))
 })
