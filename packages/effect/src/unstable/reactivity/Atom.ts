@@ -98,6 +98,10 @@ export const WritableTypeId: WritableTypeId = "~effect/reactivity/Atom/Writable"
 
 const InitialValueTargetTypeId = Symbol.for("effect/reactivity/atom/Atom/InitialValueTarget")
 
+type InitialValueTarget<A> = Atom<A> & {
+  [InitialValueTargetTypeId]?: Atom<any> | undefined
+}
+
 /**
  * @since 4.0.0
  * @category type ids
@@ -314,7 +318,11 @@ const WritableProto = {
 export const isWritable = <R, W>(atom: Atom<R>): atom is Writable<R, W> => WritableTypeId in atom
 
 const getInitialValueTarget = <A>(self: Atom<A>): Atom<A> =>
-  InitialValueTargetTypeId in self ? (self as any)[InitialValueTargetTypeId] : self
+  (self as InitialValueTarget<A>)[InitialValueTargetTypeId] ?? self
+
+const setInitialValueTarget = (self: Atom<any>, target: Atom<any>): void => {
+  ;(self as InitialValueTarget<any>)[InitialValueTargetTypeId] = getInitialValueTarget(target)
+}
 
 /**
  * @since 4.0.0
@@ -713,18 +721,15 @@ export const context: (options: {
   ))
   factory.withReactivity =
     (keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>) =>
-    <A extends Atom<any>>(atom: A): A => {
-      const self = transform(atom, (get) => {
+    <A extends Atom<any>>(atom: A): A =>
+      transformInternal(atom, (get) => {
         const reactivity = AsyncResult.getOrThrow(get(reactivityAtom))
         get.addFinalizer(reactivity.registerUnsafe(keys, () => {
           get.refresh(atom)
         }))
         get.subscribe(atom, (value) => get.setSelf(value))
         return get.once(atom)
-      }) as any as A
-      ;(self as any)[InitialValueTargetTypeId] = getInitialValueTarget(atom)
-      return self
-    }
+      }, { initialValueTarget: atom }) as any as A
   return factory
 }
 
@@ -1444,26 +1449,39 @@ export const transform: {
   ): [R] extends [Writable<infer _, infer RW>] ? Writable<B, RW> : Atom<B>
 } = dual(
   2,
-  (<A, B>(self: Atom<A>, f: (get: Context, atom: Atom<A>) => B): Atom<B> =>
-    removeTtl(
-      isWritable(self)
-        ? writable(
-          (get) => f(get, self),
-          function(ctx, value) {
-            ctx.set(self, value)
-          },
-          self.refresh ?? function(refresh) {
-            refresh(self)
-          }
-        )
-        : readable(
-          (get) => f(get, self),
-          self.refresh ?? function(refresh) {
-            refresh(self)
-          }
-        )
-    )) as any
+  (<A, B>(self: Atom<A>, f: (get: Context, atom: Atom<A>) => B): Atom<B> => transformInternal(self, f)) as any
 )
+
+const transformInternal = <A, B>(
+  self: Atom<A>,
+  f: (get: Context, atom: Atom<A>) => B,
+  options?: {
+    readonly initialValueTarget?: Atom<A> | undefined
+  }
+): Atom<B> => {
+  const transformed = removeTtl(
+    isWritable(self)
+      ? writable(
+        (get) => f(get, self),
+        function(ctx, value) {
+          ctx.set(self, value)
+        },
+        self.refresh ?? function(refresh) {
+          refresh(self)
+        }
+      )
+      : readable(
+        (get) => f(get, self),
+        self.refresh ?? function(refresh) {
+          refresh(self)
+        }
+      )
+  )
+  if (options?.initialValueTarget !== undefined) {
+    setInitialValueTarget(transformed, options.initialValueTarget)
+  }
+  return transformed
+}
 
 /**
  * @since 4.0.0
