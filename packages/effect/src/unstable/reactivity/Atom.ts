@@ -96,6 +96,8 @@ export type WithoutSerializable<T extends Atom<any>> = T extends Writable<infer 
  */
 export const WritableTypeId: WritableTypeId = "~effect/reactivity/Atom/Writable"
 
+const InitialValueTargetTypeId = Symbol.for("effect/reactivity/atom/Atom/InitialValueTarget")
+
 /**
  * @since 4.0.0
  * @category type ids
@@ -310,6 +312,9 @@ const WritableProto = {
  * @category refinements
  */
 export const isWritable = <R, W>(atom: Atom<R>): atom is Writable<R, W> => WritableTypeId in atom
+
+const getInitialValueTarget = <A>(self: Atom<A>): Atom<A> =>
+  InitialValueTargetTypeId in self ? (self as any)[InitialValueTargetTypeId] : self
 
 /**
  * @since 4.0.0
@@ -708,8 +713,8 @@ export const context: (options: {
   ))
   factory.withReactivity =
     (keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>) =>
-    <A extends Atom<any>>(atom: A): A =>
-      transform(atom, (get) => {
+    <A extends Atom<any>>(atom: A): A => {
+      const self = transform(atom, (get) => {
         const reactivity = AsyncResult.getOrThrow(get(reactivityAtom))
         get.addFinalizer(reactivity.registerUnsafe(keys, () => {
           get.refresh(atom)
@@ -717,6 +722,9 @@ export const context: (options: {
         get.subscribe(atom, (value) => get.setSelf(value))
         return get.once(atom)
       }) as any as A
+      ;(self as any)[InitialValueTargetTypeId] = getInitialValueTarget(atom)
+      return self
+    }
   return factory
 }
 
@@ -1420,7 +1428,7 @@ export const initialValue: {
 } = dual<
   <A>(initialValue: A) => (self: Atom<A>) => readonly [Atom<A>, A],
   <A>(self: Atom<A>, initialValue: A) => readonly [Atom<A>, A]
->(2, (self, initialValue) => [self, initialValue])
+>(2, (self, initialValue) => [getInitialValueTarget(self), initialValue])
 
 /**
  * @since 4.0.0

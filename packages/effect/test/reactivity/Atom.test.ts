@@ -2071,6 +2071,33 @@ describe.sequential("Atom", () => {
       r.set(fn, void 0)
       assert.strictEqual(r.get(atom), 3)
     })
+
+    it("rebuilds on mutation with a registry initial value", async () => {
+      let rebuilds = 0
+      let value = 0
+      const atom = Atom.make(() => {
+        rebuilds++
+        return value
+      }).pipe(
+        Atom.withReactivity(["counter"]),
+        Atom.keepAlive
+      )
+      const r = AtomRegistry.make({ initialValues: [Atom.initialValue(atom, 10)] })
+      const fn = counterRuntime.fn(
+        Effect.fn(function*() {
+        }),
+        { reactivityKeys: ["counter"] }
+      )
+
+      assert.strictEqual(r.get(atom), 10)
+      assert.strictEqual(rebuilds, 0)
+
+      value = 11
+      r.set(fn, void 0)
+
+      assert.strictEqual(r.get(atom), 11)
+      assert.strictEqual(rebuilds, 1)
+    })
   })
 
   it("Atom.Interrupt", async () => {
