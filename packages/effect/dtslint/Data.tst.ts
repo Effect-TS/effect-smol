@@ -90,7 +90,9 @@ describe("Data", () => {
 
       const { A, B, $is } = Data.taggedEnum<TE>()
       expect(A).type.toBe<(args: { readonly required: string }) => { readonly _tag: "A"; readonly required: string }>()
-      expect(B).type.toBe<(args: { readonly optional?: number }) => { readonly _tag: "B"; readonly optional?: number }>()
+      expect(B).type.toBe<
+        (args: { readonly optional?: number }) => { readonly _tag: "B"; readonly optional?: number }
+      >()
       const isA = $is("A")
       expect(isA).type.toBe<
         (u: unknown) => u is { readonly _tag: "A"; readonly required: string }
