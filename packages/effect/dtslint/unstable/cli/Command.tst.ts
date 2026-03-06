@@ -1,6 +1,6 @@
 import { Effect } from "effect"
 import { Argument, Command, Flag, GlobalFlag } from "effect/unstable/cli"
-import { describe, expect, it } from "tstyche"
+import { describe, expect, it, when } from "tstyche"
 
 describe("Command", () => {
   describe("withSharedFlags", () => {
@@ -41,9 +41,7 @@ describe("Command", () => {
         Effect.gen(function*() {
           const parent = yield* root
           expect(parent).type.toBe<{ readonly verbose: boolean }>()
-          // @ts-expect-error!
-          const workspace = parent.workspace
-          void workspace
+          expect(parent).type.not.toHaveProperty("workspace")
           return
         }))
 
@@ -69,19 +67,15 @@ describe("Command", () => {
             | { readonly verbose: boolean }
           >()
           expect(input.verbose).type.toBe<boolean>()
-          // @ts-expect-error!
-          const local = input.local
-          void local
+          expect(input).type.not.toHaveProperty("local")
           return Effect.void
         })
       )
     })
+
     it("accepts only flags", () => {
-      Command.make("root").pipe(
-        Command.withSharedFlags({
-          // @ts-expect-error!
-          file: Argument.string("file")
-        })
+      when(Command.make("root").pipe).isCalledWith(
+        expect(Command.withSharedFlags).type.not.toBeCallableWith({ file: Argument.string("file") })
       )
     })
   })
