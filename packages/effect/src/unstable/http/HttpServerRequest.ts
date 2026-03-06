@@ -283,11 +283,10 @@ export const schemaBodyFormJson = <A, I, RD, RE>(
  * @since 4.0.0
  * @category conversions
  */
-export const fromClientRequest = (request: HttpClientRequest.HttpClientRequest): HttpServerRequest =>
-  new ClientRequestImpl(
-    request,
-    makeClientRequestOriginalUrl(request)
-  )
+export const fromClientRequest = (request: HttpClientRequest.HttpClientRequest): HttpServerRequest => {
+  const url = HttpClientRequest.toUrl(request)?.toString() ?? request.url
+  return new ClientRequestImpl(request, url)
+}
 
 /**
  * @since 4.0.0
@@ -537,7 +536,7 @@ class ClientRequestImpl extends Inspectable.Class implements HttpServerRequest {
   readonly [TypeId]: typeof TypeId
   readonly [HttpIncomingMessage.TypeId]: typeof HttpIncomingMessage.TypeId
   readonly source: HttpClientRequest.HttpClientRequest
-  readonly originalUrl: string
+  public originalUrl: string
   public headersOverride?: Headers.Headers | undefined
   private remoteAddressOverride?: string | undefined
   private urlOverride?: string | undefined
@@ -611,7 +610,7 @@ class ClientRequestImpl extends Inspectable.Class implements HttpServerRequest {
     const body = this.source.body
     switch (body._tag) {
       case "Empty": {
-        return Stream.fail(requestParseError(this, "can not create stream from empty body"))
+        return Stream.empty
       }
       case "Uint8Array": {
         return Stream.succeed(body.body)
@@ -703,8 +702,8 @@ class ClientRequestImpl extends Inspectable.Class implements HttpServerRequest {
   }
 
   get multipartStream(): Stream.Stream<Multipart.Part, Multipart.MultipartError> {
-    const formData = getFormDataBody(this)
-    if (formData !== undefined) {
+    const formData = this.source.body._tag === "FormData" && this.source.body.formData
+    if (formData) {
       return Stream.fromIterable(formDataToParts(formData))
     }
     return Stream.pipeThroughChannel(
@@ -722,22 +721,6 @@ class ClientRequestImpl extends Inspectable.Class implements HttpServerRequest {
   }
 }
 
-const makeClientRequestOriginalUrl = (request: HttpClientRequest.HttpClientRequest): string => {
-  const url = HttpClientRequest.toUrl(request)
-  if (url !== undefined) {
-    return url.toString()
-  }
-  let out = request.url
-  const search = UrlParams.toString(request.urlParams)
-  if (search !== "") {
-    out += `${out.includes("?") ? "&" : "?"}${search}`
-  }
-  if (request.hash !== undefined && !out.includes("#")) {
-    out += `#${request.hash}`
-  }
-  return out
-}
-
 const getFormDataBody = (request: HttpServerRequest): FormData | undefined => {
   if (!HttpClientRequest.isHttpClientRequest(request.source)) {
     return undefined
@@ -753,27 +736,6 @@ const getFormDataBody = (request: HttpServerRequest): FormData | undefined => {
 }
 
 const rawBodyStream = (request: HttpServerRequest, body: unknown): Stream.Stream<Uint8Array, HttpServerError> => {
-  if (body instanceof Uint8Array) {
-    return Stream.succeed(body)
-  }
-  if (body instanceof ArrayBuffer) {
-    return Stream.succeed(new Uint8Array(body))
-  }
-  if (ArrayBuffer.isView(body)) {
-    return Stream.succeed(new Uint8Array(body.buffer, body.byteOffset, body.byteLength))
-  }
-  if (typeof body === "string") {
-    return Stream.succeed(textEncoder.encode(body))
-  }
-  if (body instanceof URLSearchParams) {
-    return Stream.succeed(textEncoder.encode(body.toString()))
-  }
-  if (body instanceof Blob) {
-    return streamFromReadable(request, body.stream())
-  }
-  if (body instanceof Response) {
-    return streamFromReadable(request, body.body)
-  }
   if (body instanceof Request) {
     return streamFromReadable(request, body.body)
   }
@@ -783,33 +745,12 @@ const rawBodyStream = (request: HttpServerRequest, body: unknown): Stream.Stream
   if (isReadableStream(body)) {
     return streamFromReadable(request, body)
   }
-  return Stream.unwrap(Effect.map(rawBodyBytes(request, body), Stream.succeed))
+  return Stream.fail(requestParseError(request, "Unsupported body type"))
 }
 
 const rawBodyBytes = (request: HttpServerRequest, body: unknown): Effect.Effect<Uint8Array, HttpServerError> => {
-  if (body instanceof Uint8Array) {
-    return Effect.succeed(body)
-  }
-  if (body instanceof ArrayBuffer) {
-    return Effect.succeed(new Uint8Array(body))
-  }
-  if (ArrayBuffer.isView(body)) {
-    return Effect.succeed(new Uint8Array(body.buffer, body.byteOffset, body.byteLength).slice())
-  }
-  if (typeof body === "string") {
-    return Effect.succeed(textEncoder.encode(body))
-  }
-  if (body instanceof URLSearchParams) {
-    return Effect.succeed(textEncoder.encode(body.toString()))
-  }
   if (body instanceof Blob) {
     return bytesFromBodyInit(request, body)
-  }
-  if (body instanceof Response) {
-    return Effect.tryPromise({
-      try: () => body.arrayBuffer().then((buffer) => new Uint8Array(buffer)),
-      catch: (cause) => requestParseError(request, undefined, cause)
-    })
   }
   if (body instanceof Request) {
     return Effect.tryPromise({
@@ -817,13 +758,7 @@ const rawBodyBytes = (request: HttpServerRequest, body: unknown): Effect.Effect<
       catch: (cause) => requestParseError(request, undefined, cause)
     })
   }
-  if (isFormData(body)) {
-    return bytesFromBodyInit(request, body)
-  }
-  if (isReadableStream(body)) {
-    return Stream.mkUint8Array(streamFromReadable(request, body))
-  }
-  return bytesFromBodyInit(request, body as BodyInit)
+  return Effect.fail(requestParseError(request, "Unsupported body type"))
 }
 
 const bytesFromBodyInit = (request: HttpServerRequest, body: BodyInit): Effect.Effect<Uint8Array, HttpServerError> =>
@@ -841,7 +776,7 @@ const streamFromReadable = (
       evaluate: () => body,
       onError: (cause) => requestParseError(request, undefined, cause)
     })
-    : Stream.fail(requestParseError(request, "can not create stream from empty body"))
+    : Stream.empty
 
 const requestParseError = (
   request: HttpServerRequest,
@@ -936,7 +871,6 @@ const isReadableStream = (u: unknown): u is ReadableStream<Uint8Array> =>
 
 const isFormData = (u: unknown): u is FormData => typeof FormData !== "undefined" && u instanceof FormData
 
-const textEncoder = new TextEncoder()
 const textDecoder = new TextDecoder()
 
 /**
