@@ -302,14 +302,11 @@ export const fromClientRequest = (
   if (request.hash !== undefined) {
     url.hash = request.hash
   }
-  return new ServerRequestImpl(
-    new ClientRequestSource(
-      request,
-      url,
-      isAbsoluteClientUrl(request.url) ? url.toString() : removeHost(url.toString()),
-      options?.services ?? ServiceMap.empty()
-    ),
-    removeHost(url.toString())
+  return new ClientRequestServerRequestImpl(
+    request,
+    removeHost(url.toString()),
+    isAbsoluteClientUrl(request.url) ? url.toString() : removeHost(url.toString()),
+    options?.services ?? ServiceMap.empty()
   )
 }
 
@@ -325,107 +322,30 @@ const clientRequestBaseUrl = "http://effect-http.invalid"
 
 const isAbsoluteClientUrl = (url: string) => /^[A-Za-z][A-Za-z\d+.-]*:/.test(url)
 
-const toWebRequestInit = (
-  request: HttpClientRequest.HttpClientRequest,
-  options?: {
-    readonly services?: ServiceMap.ServiceMap<never> | undefined
+const requestParseError = (
+  request: HttpServerRequest,
+  options: {
+    readonly cause?: unknown
+    readonly description?: string
   }
-): RequestInit => {
-  const requestInit: RequestInit = {
-    method: request.body._tag !== "Empty" && !hasBody(request.method) ? "POST" : request.method,
-    headers: request.headers
-  }
-  switch (request.body._tag) {
-    case "Empty": {
-      return requestInit
-    }
-    case "Raw":
-    case "Uint8Array": {
-      requestInit.body = request.body.body as BodyInit
-      return requestInit
-    }
-    case "FormData": {
-      requestInit.body = request.body.formData
-      return requestInit
-    }
-    case "Stream": {
-      requestInit.body = Stream.toReadableStreamWith(request.body.stream, options?.services ?? ServiceMap.empty())
-      ;(requestInit as any).duplex = "half"
-      return requestInit
-    }
-  }
-}
+): HttpServerError =>
+  new HttpServerError({
+    reason: new RequestParseError({
+      request,
+      ...(options.cause === undefined ? undefined : { cause: options.cause }),
+      ...(options.description === undefined ? undefined : { description: options.description })
+    })
+  })
 
-interface ServerRequestSource {
-  readonly method: string
-  readonly url: string
-  readonly headers: Headers.Headers | globalThis.Headers
-  readonly body: ReadableStream<globalThis.Uint8Array> | null
-  text(): Promise<string>
-  arrayBuffer(): Promise<ArrayBuffer>
-}
-
-class ClientRequestSource implements ServerRequestSource {
-  readonly method: HttpMethod
-  readonly url: string
-  private readonly request: HttpClientRequest.HttpClientRequest
-  private readonly webUrl: URL
-  private readonly services: ServiceMap.ServiceMap<never>
-  private webRequestCache: Request | undefined
-
-  constructor(
-    request: HttpClientRequest.HttpClientRequest,
-    webUrl: URL,
-    url: string,
-    services: ServiceMap.ServiceMap<never>
-  ) {
-    this.request = request
-    this.webUrl = webUrl
-    this.method = request.method
-    this.url = url
-    this.services = services
-  }
-
-  get headers(): Headers.Headers | globalThis.Headers {
-    return this.request.body._tag === "FormData" ? this.webRequest.headers : this.request.headers
-  }
-
-  get body(): ReadableStream<globalThis.Uint8Array> | null {
-    return this.request.body._tag === "Empty" ? null : this.webRequest.body
-  }
-
-  text(): Promise<string> {
-    return this.request.body._tag === "Empty" ? Promise.resolve("") : this.webRequest.text()
-  }
-
-  arrayBuffer(): Promise<ArrayBuffer> {
-    return this.request.body._tag === "Empty" ? Promise.resolve(new ArrayBuffer(0)) : this.webRequest.arrayBuffer()
-  }
-
-  private get webRequest(): Request {
-    if (this.webRequestCache) {
-      return this.webRequestCache
-    }
-    this.webRequestCache = new Request(
-      this.webUrl,
-      toWebRequestInit(this.request, {
-        services: this.services
-      })
-    )
-    return this.webRequestCache
-  }
-}
-
-class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
+abstract class BaseServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
   readonly [TypeId]: typeof TypeId
   readonly [HttpIncomingMessage.TypeId]: typeof HttpIncomingMessage.TypeId
-  readonly source: ServerRequestSource
+  abstract readonly source: object
   readonly url: string
-  public headersOverride?: Headers.Headers | undefined
-  private remoteAddressOverride?: string | undefined
+  protected headersOverride?: Headers.Headers | undefined
+  protected remoteAddressOverride?: string | undefined
 
   constructor(
-    source: ServerRequestSource,
     url: string,
     headersOverride?: Headers.Headers,
     remoteAddressOverride?: string
@@ -433,7 +353,6 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
     super()
     this[TypeId] = TypeId
     this[HttpIncomingMessage.TypeId] = HttpIncomingMessage.TypeId
-    this.source = source
     this.url = url
     this.headersOverride = headersOverride
     this.remoteAddressOverride = remoteAddressOverride
@@ -445,31 +364,24 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
       url: this.originalUrl
     })
   }
-  modify(
+  abstract modify(
     options: {
       readonly url?: string | undefined
       readonly headers?: Headers.Headers | undefined
       readonly remoteAddress?: string | undefined
     }
-  ) {
-    return new ServerRequestImpl(
-      this.source,
-      options.url ?? this.url,
-      options.headers ?? this.headersOverride,
-      options.remoteAddress ?? this.remoteAddressOverride
-    )
-  }
-  get method(): HttpMethod {
-    return this.source.method.toUpperCase() as HttpMethod
-  }
-  get originalUrl() {
-    return this.source.url
-  }
+  ): HttpServerRequest
+  abstract get method(): HttpMethod
+  abstract get originalUrl(): string
+  protected abstract get sourceHeaders(): Headers.Headers | globalThis.Headers
+  protected abstract get sourceStream(): Stream.Stream<Uint8Array, HttpServerError> | undefined
+  protected abstract sourceText(): Promise<string>
+  protected abstract sourceArrayBuffer(): Promise<ArrayBuffer>
   get remoteAddress(): string | undefined {
     return this.remoteAddressOverride ? this.remoteAddressOverride : undefined
   }
   get headers(): Headers.Headers {
-    this.headersOverride ??= Headers.fromInput(this.source.headers as any)
+    this.headersOverride ??= Headers.fromInput(this.sourceHeaders as any)
     return this.headersOverride
   }
 
@@ -482,25 +394,9 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
   }
 
   get stream(): Stream.Stream<Uint8Array, HttpServerError> {
-    return this.source.body
-      ? Stream.fromReadableStream({
-        evaluate: () => this.source.body as any,
-        onError: (cause) =>
-          new HttpServerError({
-            reason: new RequestParseError({
-              request: this,
-              cause
-            })
-          })
-      })
-      : Stream.fail(
-        new HttpServerError({
-          reason: new RequestParseError({
-            request: this,
-            description: "can not create stream from empty body"
-          })
-        })
-      )
+    return this.sourceStream ?? Stream.fail(requestParseError(this, {
+      description: "can not create stream from empty body"
+    }))
   }
 
   private textEffect: Effect.Effect<string, HttpServerError> | undefined
@@ -510,14 +406,8 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
     }
     this.textEffect = Effect.runSync(Effect.cached(
       Effect.tryPromise({
-        try: () => this.source.text(),
-        catch: (cause) =>
-          new HttpServerError({
-            reason: new RequestParseError({
-              request: this,
-              cause
-            })
-          })
+        try: () => this.sourceText(),
+        catch: (cause) => requestParseError(this, { cause })
       })
     ))
     return this.textEffect
@@ -541,13 +431,7 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
     return Effect.flatMap(this.text, (_) =>
       Effect.try({
         try: () => UrlParams.fromInput(new URLSearchParams(_)),
-        catch: (cause) =>
-          new HttpServerError({
-            reason: new RequestParseError({
-              request: this,
-              cause
-            })
-          })
+        catch: (cause) => requestParseError(this, { cause })
       }))
   }
 
@@ -586,28 +470,172 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
     }
     this.arrayBufferEffect = Effect.runSync(Effect.cached(
       Effect.tryPromise({
-        try: () => this.source.arrayBuffer(),
-        catch: (cause) =>
-          new HttpServerError({
-            reason: new RequestParseError({
-              request: this,
-              cause
-            })
-          })
+        try: () => this.sourceArrayBuffer(),
+        catch: (cause) => requestParseError(this, { cause })
       })
     ))
     return this.arrayBufferEffect
   }
 
   get upgrade(): Effect.Effect<Socket.Socket, HttpServerError> {
-    return Effect.fail(
-      new HttpServerError({
-        reason: new RequestParseError({
-          request: this,
-          description: "Not an upgradeable ServerRequest"
-        })
-      })
+    return Effect.fail(requestParseError(this, {
+      description: "Not an upgradeable ServerRequest"
+    }))
+  }
+}
+
+class ServerRequestImpl extends BaseServerRequestImpl {
+  readonly source: Request
+
+  constructor(
+    source: Request,
+    url: string,
+    headersOverride?: Headers.Headers,
+    remoteAddressOverride?: string
+  ) {
+    super(url, headersOverride, remoteAddressOverride)
+    this.source = source
+  }
+  modify(
+    options: {
+      readonly url?: string | undefined
+      readonly headers?: Headers.Headers | undefined
+      readonly remoteAddress?: string | undefined
+    }
+  ) {
+    return new ServerRequestImpl(
+      this.source,
+      options.url ?? this.url,
+      options.headers ?? this.headersOverride,
+      options.remoteAddress ?? this.remoteAddressOverride
     )
+  }
+  get method(): HttpMethod {
+    return this.source.method.toUpperCase() as HttpMethod
+  }
+  get originalUrl() {
+    return this.source.url
+  }
+  protected get sourceHeaders(): globalThis.Headers {
+    return this.source.headers
+  }
+  protected get sourceStream(): Stream.Stream<Uint8Array, HttpServerError> | undefined {
+    return this.source.body ?
+      Stream.fromReadableStream({
+        evaluate: () => this.source.body as any,
+        onError: (cause) => requestParseError(this, { cause })
+      }) :
+      undefined
+  }
+  protected sourceText(): Promise<string> {
+    return this.source.text()
+  }
+  protected sourceArrayBuffer(): Promise<ArrayBuffer> {
+    return this.source.arrayBuffer()
+  }
+}
+
+class ClientRequestServerRequestImpl extends BaseServerRequestImpl {
+  readonly source: HttpClientRequest.HttpClientRequest
+  readonly originalUrl: string
+  private readonly services: ServiceMap.ServiceMap<never>
+  private bodyResponseCache: Response | undefined
+
+  constructor(
+    source: HttpClientRequest.HttpClientRequest,
+    url: string,
+    originalUrl: string,
+    services: ServiceMap.ServiceMap<never>,
+    headersOverride?: Headers.Headers,
+    remoteAddressOverride?: string
+  ) {
+    super(url, headersOverride, remoteAddressOverride)
+    this.source = source
+    this.originalUrl = originalUrl
+    this.services = services
+  }
+  modify(
+    options: {
+      readonly url?: string | undefined
+      readonly headers?: Headers.Headers | undefined
+      readonly remoteAddress?: string | undefined
+    }
+  ) {
+    return new ClientRequestServerRequestImpl(
+      this.source,
+      options.url ?? this.url,
+      this.originalUrl,
+      this.services,
+      options.headers ?? this.headersOverride,
+      options.remoteAddress ?? this.remoteAddressOverride
+    )
+  }
+  get method(): HttpMethod {
+    return this.source.method
+  }
+  protected get sourceHeaders(): Headers.Headers | globalThis.Headers {
+    return this.source.body._tag === "FormData" ? this.bodyResponse.headers : this.source.headers
+  }
+  protected get sourceStream(): Stream.Stream<Uint8Array, HttpServerError> | undefined {
+    switch (this.source.body._tag) {
+      case "Empty": {
+        return undefined
+      }
+      case "Stream": {
+        return Stream.mapError(this.source.body.stream, (cause) => requestParseError(this, { cause }))
+      }
+      default: {
+        const body = this.bodyResponse.body
+        return body ?
+          Stream.fromReadableStream({
+            evaluate: () => body as any,
+            onError: (cause) => requestParseError(this, { cause })
+          }) :
+          undefined
+      }
+    }
+  }
+  protected sourceText(): Promise<string> {
+    return this.source.body._tag === "Empty" ? Promise.resolve("") : this.bodyResponse.text()
+  }
+  protected sourceArrayBuffer(): Promise<ArrayBuffer> {
+    return this.source.body._tag === "Empty" ? Promise.resolve(new ArrayBuffer(0)) : this.bodyResponse.arrayBuffer()
+  }
+
+  private get bodyResponse(): Response {
+    if (this.bodyResponseCache) {
+      return this.bodyResponseCache
+    }
+    switch (this.source.body._tag) {
+      case "Empty": {
+        this.bodyResponseCache = new Response(undefined, {
+          headers: this.source.headers
+        })
+        return this.bodyResponseCache
+      }
+      case "Raw":
+      case "Uint8Array": {
+        this.bodyResponseCache = new Response(this.source.body.body as any, {
+          headers: this.source.headers
+        })
+        return this.bodyResponseCache
+      }
+      case "FormData": {
+        this.bodyResponseCache = new Response(this.source.body.formData, {
+          headers: this.source.headers
+        })
+        return this.bodyResponseCache
+      }
+      case "Stream": {
+        this.bodyResponseCache = new Response(
+          Stream.toReadableStreamWith(this.source.body.stream, this.services),
+          {
+            headers: this.source.headers
+          }
+        )
+        return this.bodyResponseCache
+      }
+    }
   }
 }
 

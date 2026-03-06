@@ -20,6 +20,7 @@ describe("HttpServerRequest", () => {
         const serverRequest = HttpServerRequest.fromClientRequest(request)
 
         strictEqual(serverRequest.source instanceof Request, false)
+        strictEqual(serverRequest.source, request)
         strictEqual(serverRequest.method, "POST")
         strictEqual(serverRequest.url, "/users?page=1&filter=a&filter=b#details")
         strictEqual(serverRequest.originalUrl, "/users?page=1&filter=a&filter=b#details")
