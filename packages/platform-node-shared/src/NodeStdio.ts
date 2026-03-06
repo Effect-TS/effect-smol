@@ -26,7 +26,7 @@ export const layer: Layer.Layer<Stdio.Stdio> = Layer.succeed(
             _tag: "Unknown",
             cause
           }),
-        endOnDone: options?.endOnDone ?? true
+        endOnDone: options?.endOnDone ?? false
       }),
     stderr: (options) =>
       fromWritable({
@@ -38,7 +38,7 @@ export const layer: Layer.Layer<Stdio.Stdio> = Layer.succeed(
             _tag: "Unknown",
             cause
           }),
-        endOnDone: options?.endOnDone ?? true
+        endOnDone: options?.endOnDone ?? false
       }),
     stdin: fromReadable({
       evaluate: () => process.stdin,
