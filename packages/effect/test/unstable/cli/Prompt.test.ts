@@ -109,6 +109,27 @@ describe("Prompt.text", () => {
       const result = yield* Prompt.run(prompt)
       assert.strictEqual(result, "John")
     }).pipe(Effect.provide(TestLayer)))
+
+  it.effect("does not render or submit the cleared default value", () =>
+    Effect.gen(function*() {
+      const prompt = Prompt.text({
+        message: "Name",
+        default: "Jane"
+      })
+
+      yield* MockTerminal.inputKey("u", { ctrl: true })
+      yield* MockTerminal.inputKey("enter")
+
+      const result = yield* Prompt.run(prompt)
+      assert.strictEqual(result, "")
+
+      const output = yield* TestConsole.logLines
+      const frames = toFrames(output)
+      const lastFrame = frames.at(-1)
+
+      assert.isTrue(lastFrame !== undefined)
+      assert.isFalse(lastFrame?.includes("Jane"))
+    }).pipe(Effect.provide(TestLayer)))
 })
 
 describe("Prompt.password", () => {
@@ -124,6 +145,20 @@ describe("Prompt.password", () => {
 
       const result = yield* Prompt.run(prompt)
       assert.strictEqual(Redacted.value(result), "secret123")
+    }).pipe(Effect.provide(TestLayer)))
+
+  it.effect("does not submit the cleared default value", () =>
+    Effect.gen(function*() {
+      const prompt = Prompt.password({
+        message: "Password",
+        default: "secret"
+      })
+
+      yield* MockTerminal.inputKey("u", { ctrl: true })
+      yield* MockTerminal.inputKey("enter")
+
+      const result = yield* Prompt.run(prompt)
+      assert.strictEqual(Redacted.value(result), "")
     }).pipe(Effect.provide(TestLayer)))
 })
 

@@ -3102,10 +3102,6 @@ interface TextState {
   readonly error: string | undefined
 }
 
-const getValue = (state: TextState, options: TextOptionsReq): string => {
-  return state.value.length > 0 ? state.value : options.default
-}
-
 const renderClearScreen = Effect.fnUntraced(function*(state: TextState, options: TextOptionsReq) {
   const terminal = yield* Terminal.Terminal
   const columns = yield* terminal.columns
@@ -3126,7 +3122,7 @@ const renderTextInput = (
   submitted: boolean,
   renderOptions?: RenderOptions | undefined
 ) => {
-  const text = getValue(nextState, options)
+  const text = nextState.value
   if (renderOptions?.plain === true) {
     switch (options.type) {
       case "hidden": {
@@ -3263,11 +3259,10 @@ const processTab = (state: TextState, options: TextOptionsReq) => {
   if (state.value === options.default) {
     return Effect.succeed(Action.Beep())
   }
-  const value = getValue(state, options)
-  const cursor = value.length
+  const value = state.value.length === 0 ? options.default : state.value
   return Effect.succeed(
     Action.NextFrame({
-      state: { ...state, value, cursor, error: undefined }
+      state: { ...state, value, cursor: value.length, error: undefined }
     })
   )
 }
@@ -3311,7 +3306,7 @@ const handleTextProcess = (options: TextOptionsReq) => {
       }
       case "enter":
       case "return": {
-        const value = getValue(state, options)
+        const value = state.value
         return Effect.match(options.validate(value), {
           onFailure: (error) =>
             Action.NextFrame({
