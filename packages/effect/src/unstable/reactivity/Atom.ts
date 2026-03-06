@@ -1471,11 +1471,19 @@ export const transform: {
         )
     )
     if (options?.initialValueTarget) {
-      ;(atom as Mutable<Atom<B>>).initialValueTarget = options.initialValueTarget
+      ;(atom as Mutable<Atom<B>>).initialValueTarget = getInitialValueTarget(options.initialValueTarget)
     }
     return atom
   }) as any
 )
+
+const getInitialValueTarget = <A>(atom: Atom<A>): Atom<A> => {
+  let target = atom
+  while (target.initialValueTarget) {
+    target = target.initialValueTarget
+  }
+  return target
+}
 
 /**
  * @since 4.0.0
@@ -1546,7 +1554,7 @@ export const debounce: {
         timeout = setTimeout(update, millis) as any
       })
       return value
-    })
+    }, { initialValueTarget: self })
   }
 )
 
@@ -1568,7 +1576,7 @@ export const withRefresh: {
       const handle = setTimeout(() => get.refresh(self), millis) as any
       get.addFinalizer(() => clearTimeout(handle))
       return get(self)
-    })
+    }, { initialValueTarget: self })
   }
 )
 
@@ -1641,7 +1649,7 @@ export const swr: {
         get.refresh(self)
       }
       return current
-    })
+    }, { initialValueTarget: self })
   }
 ) as any
 
@@ -1860,7 +1868,7 @@ export const makeRefreshOnSignal = <_>(signal: Atom<_>) => <A extends Atom<any>>
     get.subscribe(signal, (_) => get.refresh(self))
     get.subscribe(self, (value) => get.setSelf(value))
     return get.once(self)
-  }) as any
+  }, { initialValueTarget: self }) as any
 
 /**
  * @since 4.0.0

@@ -262,8 +262,11 @@ class RegistryImpl implements AtomRegistry {
     }
     if (initialValues !== undefined) {
       for (const [atom, value] of initialValues) {
-        const target = atom.initialValueTarget ?? atom
-        this.ensureNode(target).setValue(value)
+        let target = atom
+        while (target.initialValueTarget) {
+          target = target.initialValueTarget
+        }
+        this.ensureNode(target).setInitialValue(value)
       }
     }
   }
@@ -504,6 +507,7 @@ class NodeImpl<A> {
   state: NodeState = NodeState.uninitialized
   lifetime: Lifetime<A> | undefined
   writeContext: WriteContextImpl<A>
+  preserveInitialValueOnBuild = false
 
   parents: Array<NodeImpl<any>> = []
   previousParents: Array<NodeImpl<any>> | undefined
@@ -534,7 +538,12 @@ class NodeImpl<A> {
       this.lifetime = makeLifetime(this)
       const value = this.atom.read(this.lifetime)
       if ((this.state & NodeFlags.waitingForValue) !== 0) {
-        this.setValue(value)
+        if (this.preserveInitialValueOnBuild) {
+          this.preserveInitialValueOnBuild = false
+          this.state = NodeState.valid
+        } else {
+          this.setValue(value)
+        }
       }
 
       if (this.previousParents) {
@@ -557,6 +566,24 @@ class NodeImpl<A> {
       return Option.none()
     }
     return Option.some(this._value)
+  }
+
+  setInitialValue(value: A): void {
+    if ((this.state & NodeFlags.initialized) === 0) {
+      this.preserveInitialValueOnBuild = true
+      this.state = NodeState.stale
+      this._value = value
+
+      if (batchState.phase === BatchPhase.collect) {
+        batchState.notify.add(this)
+      } else {
+        this.notify()
+      }
+
+      return
+    }
+
+    this.setValue(value)
   }
 
   setValue(value: A): void {

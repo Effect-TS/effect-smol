@@ -860,6 +860,26 @@ describe.sequential("Atom", () => {
     expect(r.get(state)).toEqual(0)
   })
 
+  it("map with initialValue still rerenders when source changes", () => {
+    const state = Atom.make(0).pipe(Atom.keepAlive)
+    const mapped = state.pipe(
+      Atom.map((n) => n + 1),
+      Atom.keepAlive
+    )
+    const r = AtomRegistry.make({
+      initialValues: [
+        Atom.initialValue(mapped, 10)
+      ]
+    })
+    r.mount(mapped)
+
+    assert.strictEqual(r.get(mapped), 10)
+
+    r.set(state, 1)
+
+    assert.strictEqual(r.get(mapped), 2)
+  })
+
   it("idleTTL", async () => {
     const state = Atom.make(0)
     const state2 = Atom.make(0).pipe(
@@ -1237,6 +1257,80 @@ describe.sequential("Atom", () => {
     assert.strictEqual(rebuilds, 1)
 
     r.set(signal, 1)
+    assert.strictEqual(rebuilds, 2)
+  })
+
+  test(`refreshOnSignal uses registry initial values as source state`, () => {
+    let rebuilds = 0
+    let value = 0
+    const signal = Atom.make(0)
+    const source = Atom.make(() => {
+      rebuilds++
+      return value
+    }).pipe(Atom.keepAlive)
+    const atom = source.pipe(
+      Atom.makeRefreshOnSignal(signal),
+      Atom.keepAlive
+    )
+    const r = AtomRegistry.make({ initialValues: [Atom.initialValue(atom, 10)] })
+    r.mount(atom)
+
+    assert.strictEqual(r.get(atom), 10)
+    assert.strictEqual(r.get(source), 10)
+    assert.strictEqual(rebuilds, 1)
+
+    value = 11
+    r.set(signal, 1)
+
+    assert.strictEqual(r.get(atom), 11)
+    assert.strictEqual(r.get(source), 11)
+    assert.strictEqual(rebuilds, 2)
+  })
+
+  test(`debounce uses registry initial values as source state`, async () => {
+    const source = Atom.make(0).pipe(Atom.keepAlive)
+    const atom = source.pipe(
+      Atom.debounce(100),
+      Atom.keepAlive
+    )
+    const r = AtomRegistry.make({ initialValues: [Atom.initialValue(atom, 10)] })
+    r.mount(atom)
+
+    assert.strictEqual(r.get(atom), 10)
+    assert.strictEqual(r.get(source), 10)
+
+    r.set(source, 11)
+    assert.strictEqual(r.get(atom), 10)
+
+    await vitest.advanceTimersByTimeAsync(100)
+
+    assert.strictEqual(r.get(atom), 11)
+    assert.strictEqual(r.get(source), 11)
+  })
+
+  test(`withRefresh uses registry initial values as source state`, async () => {
+    let rebuilds = 0
+    let value = 0
+    const source = Atom.make(() => {
+      rebuilds++
+      return value
+    }).pipe(Atom.keepAlive)
+    const atom = source.pipe(
+      Atom.withRefresh(100),
+      Atom.keepAlive
+    )
+    const r = AtomRegistry.make({ initialValues: [Atom.initialValue(atom, 10)] })
+    r.mount(atom)
+
+    assert.strictEqual(r.get(atom), 10)
+    assert.strictEqual(r.get(source), 10)
+    assert.strictEqual(rebuilds, 1)
+
+    value = 11
+    await vitest.advanceTimersByTimeAsync(100)
+
+    assert.strictEqual(r.get(atom), 11)
+    assert.strictEqual(r.get(source), 11)
     assert.strictEqual(rebuilds, 2)
   })
 
@@ -1768,6 +1862,29 @@ describe.sequential("Atom", () => {
     unmount()
   })
 
+  test(`swr uses registry initial values as source state`, () => {
+    let runs = 0
+    const source = Atom.make(Effect.sync(() => ++runs)).pipe(Atom.keepAlive)
+    const atom = source.pipe(
+      Atom.swr({ staleTime: 1_000, revalidateOnMount: false }),
+      Atom.keepAlive
+    )
+    const initial = AsyncResult.success(10)
+    const r = AtomRegistry.make({ initialValues: [Atom.initialValue(atom, initial)] })
+    r.mount(atom)
+
+    assert.deepStrictEqual(r.get(atom), initial)
+    assert.deepStrictEqual(r.get(source), initial)
+    assert.strictEqual(runs, 1)
+
+    r.refresh(atom)
+
+    const result = r.get(atom)
+    assert(AsyncResult.isSuccess(result))
+    assert.strictEqual(result.value, 2)
+    assert.strictEqual(runs, 2)
+  })
+
   // it("dehydrate", async () => {
   //   const r = AtomRegistry.make()
   //   const notSerializable = Atom.make(0)
@@ -2091,13 +2208,13 @@ describe.sequential("Atom", () => {
       r.mount(atom)
 
       assert.strictEqual(r.get(atom), 10)
-      assert.strictEqual(rebuilds, 0)
+      assert.strictEqual(rebuilds, 1)
 
       value = 11
       r.set(fn, void 0)
 
       assert.strictEqual(r.get(atom), 11)
-      assert.strictEqual(rebuilds, 1)
+      assert.strictEqual(rebuilds, 2)
     })
   })
 
