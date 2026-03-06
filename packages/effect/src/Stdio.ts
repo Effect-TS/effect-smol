@@ -27,8 +27,12 @@ export const TypeId: TypeId = "~effect/Stdio"
 export interface Stdio {
   readonly [TypeId]: TypeId
   readonly args: Effect.Effect<ReadonlyArray<string>>
-  readonly stdout: Sink.Sink<void, string | Uint8Array, never, PlatformError>
-  readonly stderr: Sink.Sink<void, string | Uint8Array, never, PlatformError>
+  stdout(options?: {
+    readonly endOnDone?: boolean | undefined
+  }): Sink.Sink<void, string | Uint8Array, never, PlatformError>
+  stderr(options?: {
+    readonly endOnDone?: boolean | undefined
+  }): Sink.Sink<void, string | Uint8Array, never, PlatformError>
   readonly stdin: Stream.Stream<Uint8Array, PlatformError>
 }
 /**
@@ -55,8 +59,8 @@ export const layerTest = (impl: Partial<Stdio>): Layer.Layer<Stdio> =>
     Stdio,
     make({
       args: Effect.succeed([]),
-      stdout: Sink.drain,
-      stderr: Sink.drain,
+      stdout: () => Sink.drain,
+      stderr: () => Sink.drain,
       stdin: Stream.empty,
       ...impl
     })

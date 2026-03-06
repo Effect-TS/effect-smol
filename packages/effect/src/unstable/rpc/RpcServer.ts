@@ -1181,7 +1181,7 @@ export const makeProtocolStdio = Effect.gen(function*() {
     )
 
     yield* Stream.fromQueue(queue).pipe(
-      Stream.run(stdio.stdout),
+      Stream.run(stdio.stdout()),
       Effect.retry(Schedule.spaced(500)),
       Effect.forkScoped
     )
