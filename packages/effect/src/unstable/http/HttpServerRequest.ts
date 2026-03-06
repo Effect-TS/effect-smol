@@ -17,6 +17,8 @@ import * as Stream from "../../Stream.ts"
 import * as Socket from "../socket/Socket.ts"
 import * as Cookies from "./Cookies.ts"
 import * as Headers from "./Headers.ts"
+import * as HttpBody from "./HttpBody.ts"
+import * as HttpClientRequest from "./HttpClientRequest.ts"
 import * as HttpIncomingMessage from "./HttpIncomingMessage.ts"
 import { hasBody, type HttpMethod } from "./HttpMethod.ts"
 import { HttpServerError, type RequestError, RequestParseError } from "./HttpServerError.ts"
@@ -282,6 +284,93 @@ export const schemaBodyFormJson = <A, I, RD, RE>(
  */
 export const fromWeb = (request: globalThis.Request): HttpServerRequest =>
   new ServerRequestImpl(request, removeHost(request.url))
+
+const HttpClientRequestProto = Object.getPrototypeOf(HttpClientRequest.empty)
+
+const parseClientRequestUrl = (url: string): URL | undefined => {
+  try {
+    return new URL(url, "http://localhost")
+  } catch {
+    return undefined
+  }
+}
+
+const hasClientRequestBody = (request: HttpServerRequest): boolean => {
+  if (!hasBody(request.method)) {
+    return false
+  }
+  if (request.source instanceof Request) {
+    return request.source.body !== null
+  }
+  return request.headers["transfer-encoding"] !== undefined ||
+    parseContentLength(request.headers["content-length"]) !== 0
+}
+
+const parseContentLength = (contentLength: string | undefined): number | undefined => {
+  if (contentLength === undefined) {
+    return undefined
+  }
+  const parsed = Number.parseInt(contentLength, 10)
+  return Number.isNaN(parsed) ? undefined : parsed
+}
+
+const isAbsoluteUrl = (url: string): boolean => /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(url)
+
+const toClientBody = (request: HttpServerRequest): HttpBody.HttpBody =>
+  hasClientRequestBody(request)
+    ? HttpBody.stream(
+      request.stream,
+      request.headers["content-type"],
+      parseContentLength(request.headers["content-length"])
+    )
+    : HttpBody.empty
+
+/**
+ * @since 4.0.0
+ * @category conversions
+ */
+export const toClientRequest = (request: HttpServerRequest): HttpClientRequest.HttpClientRequest => {
+  const url = parseClientRequestUrl(request.url)
+  let body: HttpBody.HttpBody | undefined
+  const clientRequest = Object.create(HttpClientRequestProto)
+
+  Object.defineProperties(clientRequest, {
+    method: {
+      enumerable: true,
+      get: () => request.method
+    },
+    url: {
+      enumerable: true,
+      get: () =>
+        url === undefined
+          ? request.url
+          : isAbsoluteUrl(request.url)
+          ? `${url.origin}${url.pathname}`
+          : url.pathname
+    },
+    urlParams: {
+      enumerable: true,
+      get: () => url === undefined ? UrlParams.empty : UrlParams.fromInput(url.searchParams)
+    },
+    hash: {
+      enumerable: true,
+      get: () => url?.hash ? url.hash.slice(1) : undefined
+    },
+    headers: {
+      enumerable: true,
+      get: () => request.headers
+    },
+    body: {
+      enumerable: true,
+      get: () => {
+        body ??= toClientBody(request)
+        return body
+      }
+    }
+  })
+
+  return clientRequest
+}
 
 const removeHost = (url: string) => {
   if (url[0] === "/") {
