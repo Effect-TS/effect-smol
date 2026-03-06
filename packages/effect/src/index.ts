@@ -10,7 +10,7 @@ export {
   /**
    * @since 2.0.0
    */
-  coerceUnsafe,
+  cast,
   /**
    * @since 2.0.0
    */
@@ -958,12 +958,12 @@ export * as Duration from "./Duration.ts"
  * ```ts
  * import { Data, Effect } from "effect"
  *
- * class DivisionByZeroError extends Data.TaggedError("DivisionByZeroError")<{}> {}
+ * class DiscountRateError extends Data.TaggedError("DiscountRateError")<{}> {}
  *
  * // Effect that may fail
  * const divide = (a: number, b: number) =>
  *   b === 0
- *     ? Effect.fail(new DivisionByZeroError())
+ *     ? Effect.fail(new DiscountRateError())
  *     : Effect.succeed(a / b)
  *
  * // Error handling
@@ -2313,6 +2313,73 @@ export * as MutableList from "./MutableList.ts"
  * @category data-structures
  */
 export * as MutableRef from "./MutableRef.ts"
+
+/**
+ * Lightweight wrapper types that prevent accidental mixing of structurally
+ * identical values (e.g. `UserId` vs `OrderId`, both `string` at runtime).
+ *
+ * **Mental model**
+ *
+ * - **Newtype** — a compile-time wrapper around a **carrier** type (the
+ *   underlying primitive or object). At runtime the value is unchanged; the
+ *   tag exists only in the type system.
+ * - **Key** — a unique string literal that distinguishes one newtype from
+ *   another (e.g. `"Label"`, `"UserId"`).
+ * - **Carrier** — the underlying type the newtype wraps (e.g. `string`,
+ *   `number`).
+ * - **Iso** — a lossless two-way conversion between a newtype and its carrier,
+ *   created with {@link makeIso}. Use `iso.set(carrier)` to wrap and
+ *   `iso.get(newtype)` to unwrap.
+ *
+ * **Common tasks**
+ *
+ * - Define a newtype → declare an `interface` extending
+ *   `Newtype.Newtype<Key, Carrier>`
+ * - Wrap / unwrap values → {@link makeIso} (returns an `Optic.Iso`)
+ * - Unwrap only → {@link value}
+ * - Lift an `Equivalence` → {@link makeEquivalence}
+ * - Lift an `Order` → {@link makeOrder}
+ * - Lift a `Combiner` → {@link makeCombiner}
+ * - Lift a `Reducer` → {@link makeReducer}
+ *
+ * **Gotchas**
+ *
+ * - Newtypes are **purely compile-time**. There is zero runtime overhead;
+ *   `value` and `makeIso` use identity casts.
+ * - Two newtypes sharing the same key string will be assignable to each other.
+ *   Choose unique key strings.
+ * - A newtype value is **not** assignable to its carrier type without
+ *   explicitly unwrapping via {@link value} or an iso.
+ *
+ * **Quickstart**
+ *
+ * **Example** (defining and using a newtype)
+ *
+ * ```ts
+ * import { Newtype } from "effect"
+ *
+ * // 1. Define a newtype
+ * interface Label extends Newtype.Newtype<"Label", string> {}
+ *
+ * // 2. Create an iso for wrapping/unwrapping
+ * const labelIso = Newtype.makeIso<Label>()
+ *
+ * // 3. Wrap a raw string
+ * const myLabel: Label = labelIso.set("hello")
+ *
+ * // 4. Unwrap back to string
+ * const raw: string = labelIso.get(myLabel) // "hello"
+ * ```
+ *
+ * **See also**
+ *
+ * - {@link Newtype} (the tagged interface)
+ * - {@link makeIso} (wrap and unwrap)
+ * - {@link value} (unwrap only)
+ *
+ * @since 4.0.0
+ */
+export * as Newtype from "./Newtype.ts"
 
 /**
  * @since 2.0.0

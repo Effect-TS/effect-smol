@@ -250,18 +250,10 @@ export const satisfies = <A>() => <B extends A>(b: B) => b
 /**
  * Casts the result to the specified type.
  *
- * @example
- * ```ts
- * import { coerceUnsafe, identity } from "effect/Function"
- * import * as assert from "node:assert"
- *
- * assert.deepStrictEqual(coerceUnsafe, identity)
- * ```
- *
  * @category type utils
  * @since 2.0.0
  */
-export const coerceUnsafe: <A, B>(a: A) => B = identity as any
+export const cast: <A, B>(a: A) => B = identity as any
 
 /**
  * Creates a constant value that never changes.
@@ -1204,7 +1196,7 @@ export function flow(
  * @category utilities
  * @since 2.0.0
  */
-export const hole: <T>() => T = coerceUnsafe(absurd)
+export const hole: <T>() => T = cast(absurd)
 
 /**
  * The SK combinator, also known as the "S-K combinator" or "S-combinator", is a fundamental combinator in the

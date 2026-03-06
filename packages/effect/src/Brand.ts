@@ -12,7 +12,7 @@ import * as AST from "./SchemaAST.ts"
 import type * as Issue from "./SchemaIssue.ts"
 import type * as Types from "./Types.ts"
 
-const TypeId = "~effect/data/Brand"
+const TypeId = "~effect/Brand"
 
 /**
  * A generic interface that defines a branded type.
