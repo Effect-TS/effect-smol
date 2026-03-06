@@ -19,10 +19,9 @@ const makeTestClient = Effect.gen(function*() {
     name: "TestServer",
     version: "1.0.0",
     path: "/mcp"
-  }).pipe(
-    Layer.provideMerge(RpcSerialization.layerJsonRpc())
-  )
-  const { handler, dispose } = HttpRouter.toWebHandler(serverLayer as any, { disableLogger: true })
+  })
+  const { handler, dispose } = HttpRouter.toWebHandler(serverLayer, { disableLogger: true })
+  yield* Effect.addFinalizer(() => Effect.promise(() => dispose()))
 
   const customFetch: typeof fetch = async (input, init) => {
     const request = input instanceof Request ? input : new Request(input, init)
@@ -44,13 +43,13 @@ const makeTestClient = Effect.gen(function*() {
     Effect.provide(clientLayer)
   )
 
-  return { client, requests, responseSessionIds, dispose }
+  return { client, requests, responseSessionIds }
 })
 
 describe("McpServer", () => {
   it.effect("replays MCP session and negotiated protocol headers after initialize", () =>
     Effect.gen(function*() {
-      const { client, requests, responseSessionIds, dispose } = yield* makeTestClient
+      const { client, requests, responseSessionIds } = yield* makeTestClient
 
       const initializeResult = yield* client.initialize({
         protocolVersion: "9999-01-01",
@@ -69,7 +68,5 @@ describe("McpServer", () => {
       strictEqual(typeof responseSessionIds[0], "string")
       strictEqual(requests[1].mcpSessionId, responseSessionIds[0])
       strictEqual(requests[1].mcpProtocolVersion, initializeResult.protocolVersion)
-
-      yield* Effect.promise(() => dispose())
     }).pipe(Effect.scoped))
 })
