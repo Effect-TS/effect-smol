@@ -860,8 +860,11 @@ class ServerHttpClientResponse extends Inspectable.Class implements HttpClientRe
     return this.response.status
   }
 
+  private cachedHeaders?: Headers.Headers
   get headers(): Headers.Headers {
-    return this.response.headers
+    return this.cachedHeaders ??= this.response.body._tag === "FormData"
+      ? Headers.merge(this.response.headers, Headers.fromInput(this.getFormDataResponse().headers))
+      : this.response.headers
   }
 
   get cookies(): Cookies.Cookies {
@@ -909,8 +912,9 @@ class ServerHttpClientResponse extends Inspectable.Class implements HttpClientRe
         return Stream.unwrap(Effect.map(this.bytes, Stream.succeed))
       }
       case "FormData": {
+        const response = this.getFormDataResponse()
         return Stream.fromReadableStream({
-          evaluate: () => new Response(body.formData, { headers: this.headers }).body!,
+          evaluate: () => response.body!,
           onError: (cause) => this.decodeError(cause)
         })
       }
@@ -1012,12 +1016,51 @@ class ServerHttpClientResponse extends Inspectable.Class implements HttpClientRe
       })
     })
   }
+
+  private formDataResponse?: Response
+  private getFormDataResponse(): Response {
+    return this.formDataResponse ??= new Response((this.response.body as Body.FormData).formData)
+  }
 }
 
 const textDecoder = new TextDecoder()
 
+/**
+ * @since 4.0.0
+ * @category conversions
+ */
+export const fromClientResponse = (
+  response: HttpClientResponse.HttpClientResponse
+): HttpServerResponse => {
+  const headers = Headers.remove(response.headers, "set-cookie")
+  return makeResponse({
+    status: response.status,
+    headers,
+    cookies: response.cookies,
+    body: Body.stream(
+      Stream.catchIf(response.stream, isEmptyBodyError, () => Stream.empty),
+      Headers.get(headers, "content-type"),
+      getContentLength(headers)
+    )
+  })
+}
+
 const isReadableStream = (u: unknown): u is ReadableStream<Uint8Array> =>
   typeof ReadableStream !== "undefined" && u instanceof ReadableStream
+
+const isEmptyBodyError = (
+  error: HttpClientError.HttpClientError
+): error is HttpClientError.HttpClientError =>
+  HttpClientError.isHttpClientError(error) && error.reason._tag === "EmptyBodyError"
+
+const getContentLength = (headers: Headers.Headers): number | undefined => {
+  const contentLength = Headers.get(headers, "content-length")
+  if (contentLength === undefined) {
+    return undefined
+  }
+  const parsed = Number(contentLength)
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined
+}
 
 const Proto: Omit<
   HttpServerResponse,
