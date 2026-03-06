@@ -89,10 +89,8 @@ describe("Data", () => {
       }>
 
       const { A, B, $is } = Data.taggedEnum<TE>()
-      expect<Parameters<typeof A>>().type.toBe<[{ readonly required: string }]>()
-      expect<ReturnType<typeof A>>().type.toBe<{ readonly _tag: "A"; readonly required: string }>()
-      expect<Parameters<typeof B>>().type.toBe<[{ readonly optional?: number }]>()
-      expect<ReturnType<typeof B>>().type.toBe<{ readonly _tag: "B"; readonly optional?: number }>()
+      expect(A).type.toBe<(args: { readonly required: string }) => { readonly _tag: "A"; readonly required: string }>()
+      expect(B).type.toBe<(args: { readonly optional?: number }) => { readonly _tag: "B"; readonly optional?: number }>()
       const isA = $is("A")
       expect(isA).type.toBe<
         (u: unknown) => u is { readonly _tag: "A"; readonly required: string }
@@ -114,8 +112,8 @@ describe("Data", () => {
       }
 
       const { A, B } = Data.taggedEnum<TEDefinition>()
-      expect<typeof A>().type.toBe<(<A>(args: { readonly a: A }) => { readonly _tag: "A"; readonly a: A })>()
-      expect<typeof B>().type.toBe<(<B>(args: { readonly b?: B }) => { readonly _tag: "B"; readonly b?: B })>()
+      expect(A).type.toBe<(<A>(args: { readonly a: A }) => { readonly _tag: "A"; readonly a: A })>()
+      expect(B).type.toBe<(<B>(args: { readonly b?: B }) => { readonly _tag: "B"; readonly b?: B })>()
     })
   })
 })
