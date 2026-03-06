@@ -2096,8 +2096,6 @@ describe.sequential("Atom", () => {
       value = 11
       r.set(fn, void 0)
 
-      await Effect.runPromise(Effect.yieldNow)
-
       assert.strictEqual(r.get(atom), 11)
       assert.strictEqual(rebuilds, 1)
     })
