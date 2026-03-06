@@ -867,26 +867,20 @@ class ServerHttpClientResponse extends Inspectable.Class implements HttpClientRe
     })
   }
 
-  private cachedResponse?: globalThis.Response
-  private get source(): globalThis.Response {
-    return this.cachedResponse ??= toWeb(this.response, {
-      withoutBody: this.withoutBody,
-      services: this.services
-    })
+  private get body(): Body.HttpBody {
+    return this.withoutBody ? Body.empty : this.response.body
   }
 
   get status(): number {
-    return this.source.status
+    return this.response.status
   }
 
-  private cachedHeaders?: Headers.Headers
   get headers(): Headers.Headers {
-    return this.cachedHeaders ??= Headers.fromInput(this.source.headers)
+    return this.response.headers
   }
 
-  private cachedCookies?: Cookies.Cookies
   get cookies(): Cookies.Cookies {
-    return this.cachedCookies ??= Cookies.fromSetCookie(this.source.headers.getSetCookie())
+    return this.response.cookies
   }
 
   get remoteAddress(): string | undefined {
@@ -894,27 +888,48 @@ class ServerHttpClientResponse extends Inspectable.Class implements HttpClientRe
   }
 
   get stream(): Stream.Stream<Uint8Array, HttpClientError.HttpClientError> {
-    return this.source.body
-      ? Stream.fromReadableStream({
-        evaluate: () => this.source.body!,
-        onError: (cause) =>
-          new HttpClientError.HttpClientError({
-            reason: new HttpClientError.DecodeError({
-              request: this.request,
-              response: this,
-              cause
+    const body = this.body
+    switch (body._tag) {
+      case "Empty": {
+        return this.emptyBodyStream
+      }
+      case "Stream": {
+        return Stream.mapError(
+          Stream.provideServices(body.stream, this.services ?? ServiceMap.empty()),
+          (cause) => this.decodeError(cause)
+        )
+      }
+      case "Uint8Array": {
+        return Stream.succeed(body.body)
+      }
+      case "Raw": {
+        const rawBody = body.body
+        if (rawBody instanceof Response) {
+          return rawBody.body
+            ? Stream.fromReadableStream({
+              evaluate: () => rawBody.body!,
+              onError: (cause) => this.decodeError(cause)
             })
+            : this.emptyBodyStream
+        }
+        if (isReadableStream(rawBody)) {
+          return Stream.fromReadableStream({
+            evaluate: () => rawBody,
+            onError: (cause) => this.decodeError(cause)
           })
-      })
-      : Stream.fail(
-        new HttpClientError.HttpClientError({
-          reason: new HttpClientError.EmptyBodyError({
-            request: this.request,
-            response: this,
-            description: "can not create stream from empty body"
+        }
+        if (rawBody instanceof Blob) {
+          return Stream.fromReadableStream({
+            evaluate: () => rawBody.stream(),
+            onError: (cause) => this.decodeError(cause)
           })
-        })
-      )
+        }
+        return Stream.unwrap(Effect.map(this.bytes, Stream.succeed))
+      }
+      case "FormData": {
+        return Stream.unwrap(Effect.map(this.bytes, Stream.succeed))
+      }
+    }
   }
 
   get json(): Effect.Effect<unknown, HttpClientError.HttpClientError> {
@@ -932,19 +947,51 @@ class ServerHttpClientResponse extends Inspectable.Class implements HttpClientRe
       }))
   }
 
+  private bytesBody?: Effect.Effect<Uint8Array, HttpClientError.HttpClientError>
+  private get bytes(): Effect.Effect<Uint8Array, HttpClientError.HttpClientError> {
+    return this.bytesBody ??= this.makeBytes.pipe(Effect.cached, Effect.runSync)
+  }
+
+  private get makeBytes(): Effect.Effect<Uint8Array, HttpClientError.HttpClientError> {
+    const body = this.body
+    switch (body._tag) {
+      case "Empty": {
+        return Effect.succeed(new Uint8Array(0))
+      }
+      case "Uint8Array": {
+        return Effect.succeed(body.body)
+      }
+      case "Stream": {
+        return Stream.mkUint8Array(
+          Stream.provideServices(body.stream, this.services ?? ServiceMap.empty())
+        ).pipe(Effect.mapError((cause) => this.decodeError(cause)))
+      }
+      case "Raw": {
+        const rawBody = body.body
+        if (rawBody instanceof Response) {
+          return Effect.tryPromise({
+            try: () => rawBody.arrayBuffer().then((buffer: ArrayBuffer) => new Uint8Array(buffer)),
+            catch: (cause) => this.decodeError(cause)
+          })
+        }
+        return Effect.tryPromise({
+          try: () => new Response(rawBody as any).arrayBuffer().then((buffer: ArrayBuffer) => new Uint8Array(buffer)),
+          catch: (cause) => this.decodeError(cause)
+        })
+      }
+      case "FormData": {
+        return Effect.tryPromise({
+          try: () =>
+            new Response(body.formData as any).arrayBuffer().then((buffer: ArrayBuffer) => new Uint8Array(buffer)),
+          catch: (cause) => this.decodeError(cause)
+        })
+      }
+    }
+  }
+
   private textBody?: Effect.Effect<string, HttpClientError.HttpClientError>
   get text(): Effect.Effect<string, HttpClientError.HttpClientError> {
-    return this.textBody ??= Effect.tryPromise({
-      try: () => this.source.text(),
-      catch: (cause) =>
-        new HttpClientError.HttpClientError({
-          reason: new HttpClientError.DecodeError({
-            request: this.request,
-            response: this,
-            cause
-          })
-        })
-    }).pipe(Effect.cached, Effect.runSync)
+    return this.textBody ??= Effect.map(this.bytes, (bytes) => textDecoder.decode(bytes))
   }
 
   get urlParamsBody(): Effect.Effect<UrlParams.UrlParams, HttpClientError.HttpClientError> {
@@ -964,34 +1011,49 @@ class ServerHttpClientResponse extends Inspectable.Class implements HttpClientRe
 
   private formDataBody?: Effect.Effect<FormData, HttpClientError.HttpClientError>
   get formData(): Effect.Effect<FormData, HttpClientError.HttpClientError> {
-    return this.formDataBody ??= Effect.tryPromise({
-      try: () => this.source.formData(),
-      catch: (cause) =>
-        new HttpClientError.HttpClientError({
-          reason: new HttpClientError.DecodeError({
-            request: this.request,
-            response: this,
-            cause
-          })
-        })
-    }).pipe(Effect.cached, Effect.runSync)
+    const body = this.body
+    if (body._tag === "FormData") {
+      return Effect.succeed(body.formData)
+    }
+    return this.formDataBody ??= Effect.flatMap(this.bytes, (bytes) =>
+      Effect.tryPromise({
+        try: () => new Response(bytes as any, { headers: this.headers as any }).formData(),
+        catch: (cause) => this.decodeError(cause)
+      })).pipe(Effect.cached, Effect.runSync)
   }
 
   private arrayBufferBody?: Effect.Effect<ArrayBuffer, HttpClientError.HttpClientError>
   get arrayBuffer(): Effect.Effect<ArrayBuffer, HttpClientError.HttpClientError> {
-    return this.arrayBufferBody ??= Effect.tryPromise({
-      try: () => this.source.arrayBuffer(),
-      catch: (cause) =>
-        new HttpClientError.HttpClientError({
-          reason: new HttpClientError.DecodeError({
-            request: this.request,
-            response: this,
-            cause
-          })
+    return this.arrayBufferBody ??= Effect.map(this.bytes, (bytes) => bytes.slice().buffer)
+  }
+
+  private get emptyBodyStream(): Stream.Stream<Uint8Array, HttpClientError.HttpClientError> {
+    return Stream.fail(
+      new HttpClientError.HttpClientError({
+        reason: new HttpClientError.EmptyBodyError({
+          request: this.request,
+          response: this,
+          description: "can not create stream from empty body"
         })
-    }).pipe(Effect.cached, Effect.runSync)
+      })
+    )
+  }
+
+  private decodeError(cause: unknown): HttpClientError.HttpClientError {
+    return new HttpClientError.HttpClientError({
+      reason: new HttpClientError.DecodeError({
+        request: this.request,
+        response: this,
+        cause
+      })
+    })
   }
 }
+
+const textDecoder = new TextDecoder()
+
+const isReadableStream = (u: unknown): u is ReadableStream<Uint8Array> =>
+  typeof ReadableStream !== "undefined" && u instanceof ReadableStream
 
 const Proto: Omit<
   HttpServerResponse,

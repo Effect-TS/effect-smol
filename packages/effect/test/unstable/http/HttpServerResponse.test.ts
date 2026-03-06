@@ -33,4 +33,25 @@ describe("HttpServerResponse", () => {
 
     strictEqual(await Effect.runPromise(clientResponse.text), "420")
   })
+
+  test("toClientResponse formData", async () => {
+    const formData = new FormData()
+    formData.set("foo", "bar")
+
+    const clientResponse = HttpServerResponse.toClientResponse(
+      HttpServerResponse.formData(formData)
+    )
+
+    strictEqual((await Effect.runPromise(clientResponse.formData)).get("foo"), "bar")
+  })
+
+  test("toClientResponse withoutBody", async () => {
+    const clientResponse = HttpServerResponse.toClientResponse(
+      HttpServerResponse.text("ignored"),
+      { withoutBody: true }
+    )
+
+    strictEqual(await Effect.runPromise(clientResponse.text), "")
+    deepStrictEqual(await Effect.runPromise(clientResponse.json), null)
+  })
 })
