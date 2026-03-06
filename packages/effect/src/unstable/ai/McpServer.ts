@@ -19,6 +19,8 @@ import * as Stream from "../../Stream.ts"
 import type * as Types from "../../Types.ts"
 import * as FindMyWay from "../http/FindMyWay.ts"
 import * as Headers from "../http/Headers.ts"
+import * as HttpClient from "../http/HttpClient.ts"
+import * as HttpClientRequest from "../http/HttpClientRequest.ts"
 import { appendPreResponseHandlerUnsafe } from "../http/HttpEffect.ts"
 import type * as HttpRouter from "../http/HttpRouter.ts"
 import * as HttpServerRequest from "../http/HttpServerRequest.ts"
@@ -319,6 +321,7 @@ const SUPPORTED_PROTOCOL_VERSIONS = [
   "2024-10-07"
 ]
 const mcpSessionIdHeader = "Mcp-Session-Id"
+const mcpProtocolVersionHeader = "MCP-Protocol-Version"
 
 /**
  * @since 4.0.0
@@ -571,6 +574,60 @@ export const layerHttp = (options: {
     Layer.provide(RpcServer.layerProtocolHttp(options)),
     Layer.provide(RpcSerialization.layerJsonRpc())
   )
+
+/**
+ * Construct the client protocol layer for HTTP MCP.
+ *
+ * @since 4.0.0
+ * @category layers
+ */
+export const layerClientProtocolHttp = (options: {
+  readonly url: string
+  readonly transformClient?: <E, R>(client: HttpClient.HttpClient.With<E, R>) => HttpClient.HttpClient.With<E, R>
+}): Layer.Layer<RpcClient.Protocol, never, HttpClient.HttpClient> =>
+  Layer.effectServices(Effect.gen(function*() {
+    let sessionId: string | undefined
+    let protocolVersion: string | undefined
+
+    let client = yield* HttpClient.HttpClient
+    client = HttpClient.mapRequest(client, HttpClientRequest.prependUrl(options.url))
+    client = HttpClient.mapRequest(client, (request) => {
+      let headers = request.headers
+      if (sessionId !== undefined) {
+        headers = Headers.set(headers, mcpSessionIdHeader, sessionId)
+      }
+      if (protocolVersion !== undefined) {
+        headers = Headers.set(headers, mcpProtocolVersionHeader, protocolVersion)
+      }
+      return headers === request.headers ? request : HttpClientRequest.setHeaders(request, headers)
+    })
+    if (options.transformClient) {
+      client = options.transformClient(client)
+    }
+    client = HttpClient.tap(client, (response) => {
+      const nextSessionId = Headers.get(response.headers, mcpSessionIdHeader)
+      if (nextSessionId === undefined) {
+        return Effect.void
+      }
+      return response.text.pipe(
+        Effect.catch(() => Effect.succeed("")),
+        Effect.tap((text) =>
+          Effect.sync(() => {
+            sessionId = nextSessionId
+            const nextProtocolVersion = getProtocolVersionFromJsonRpcBody(text)
+            if (nextProtocolVersion !== undefined) {
+              protocolVersion = nextProtocolVersion
+            }
+          })
+        )
+      )
+    })
+
+    const protocol = yield* RpcClient.makeProtocolHttp(client).pipe(
+      Effect.provideService(RpcSerialization.RpcSerialization, RpcSerialization.jsonRpc())
+    )
+    return ServiceMap.make(RpcClient.Protocol, protocol)
+  }))
 
 /**
  * Register a `Toolkit` with the `McpServer`.
@@ -1305,4 +1362,28 @@ const getInitializedClient = (
     return sessions.get(String(clientId))
   }
   return sessions.get(sessionId)
+}
+
+const getProtocolVersionFromJsonRpcBody = (body: string): string | undefined => {
+  try {
+    const messages = JSON.parse(body) as unknown
+    const items = Array.isArray(messages) ? messages : [messages]
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+      if (
+        typeof item === "object" &&
+        item !== null &&
+        "result" in item &&
+        typeof item.result === "object" &&
+        item.result !== null &&
+        "protocolVersion" in item.result &&
+        typeof item.result.protocolVersion === "string"
+      ) {
+        return item.result.protocolVersion
+      }
+    }
+  } catch {
+    return undefined
+  }
+  return undefined
 }

@@ -6,7 +6,6 @@ import * as McpServer from "effect/unstable/ai/McpServer"
 import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient"
 import * as HttpRouter from "effect/unstable/http/HttpRouter"
 import * as RpcClient from "effect/unstable/rpc/RpcClient"
-import * as RpcSerialization from "effect/unstable/rpc/RpcSerialization"
 
 const makeTestClient = Effect.gen(function*() {
   const requests: Array<{
@@ -34,8 +33,7 @@ const makeTestClient = Effect.gen(function*() {
     return response
   }
 
-  const clientLayer = RpcClient.layerProtocolHttp({ url: "http://localhost/mcp" }).pipe(
-    Layer.provideMerge(RpcSerialization.layerJsonRpc()),
+  const clientLayer = McpServer.layerClientProtocolHttp({ url: "http://localhost/mcp" }).pipe(
     Layer.provideMerge(FetchHttpClient.layer),
     Layer.provideMerge(Layer.succeed(FetchHttpClient.Fetch, customFetch))
   )

@@ -816,41 +816,6 @@ export const makeProtocolHttp = (client: HttpClient.HttpClient): Effect.Effect<
   Protocol.make(Effect.fnUntraced(function*(writeResponse) {
     const serialization = yield* RpcSerialization.RpcSerialization
     const isFramed = serialization.includesFraming
-    let mcpTransportHeaders = Headers.empty
-
-    const storeMcpTransportHeaders = (
-      request: Extract<FromClientEncoded, { readonly _tag: "Request" }>,
-      responseHeaders: Headers.Headers,
-      responses: ReadonlyArray<unknown>
-    ) => {
-      if (request.tag !== "initialize") {
-        return
-      }
-
-      let nextHeaders = mcpTransportHeaders
-      const sessionId = Headers.get(responseHeaders, "Mcp-Session-Id")
-      if (sessionId !== undefined) {
-        nextHeaders = Headers.set(nextHeaders, "Mcp-Session-Id", sessionId)
-      }
-
-      for (let i = 0; i < responses.length; i++) {
-        const response = responses[i] as FromServerEncoded
-        if (
-          response._tag === "Exit" &&
-          response.requestId === request.id &&
-          response.exit._tag === "Success" &&
-          typeof response.exit.value === "object" &&
-          response.exit.value !== null &&
-          "protocolVersion" in response.exit.value &&
-          typeof response.exit.value.protocolVersion === "string"
-        ) {
-          nextHeaders = Headers.set(nextHeaders, "MCP-Protocol-Version", response.exit.value.protocolVersion)
-          break
-        }
-      }
-
-      mcpTransportHeaders = nextHeaders
-    }
 
     const send = (request: FromClientEncoded): Effect.Effect<void, RpcClientError> => {
       if (request._tag !== "Request") {
@@ -863,26 +828,20 @@ export const makeProtocolHttp = (client: HttpClient.HttpClient): Effect.Effect<
       const body = typeof encoded === "string" ?
         HttpBody.text(encoded, serialization.contentType) :
         HttpBody.uint8Array(encoded, serialization.contentType)
-      const headers = request.tag === "initialize" ? undefined : mcpTransportHeaders
 
       if (!isFramed) {
-        return client.post("", { body, headers }).pipe(
-          Effect.flatMap((r) =>
-            r.text.pipe(
-              Effect.map((text) => ({ text, headers: r.headers }))
-            )
-          ),
+        return client.post("", { body }).pipe(
+          Effect.flatMap((r) => r.text),
           Effect.mapError((cause) =>
             new RpcClientError({
               reason: HttpClientErrorSchema.fromHttpClientError(cause)
             })
           ),
-          Effect.flatMap(({ text, headers }) => {
+          Effect.flatMap((text) => {
             const u = parser.decode(text)
             if (!Array.isArray(u)) {
               return Effect.die(`Expected an array of responses, but got: ${u}`)
             }
-            storeMcpTransportHeaders(request, headers, u)
             let i = 0
             return Effect.whileLoop({
               while: () => i < u.length,
@@ -893,12 +852,11 @@ export const makeProtocolHttp = (client: HttpClient.HttpClient): Effect.Effect<
         )
       }
 
-      return client.post("", { body, headers }).pipe(
+      return client.post("", { body }).pipe(
         Effect.flatMap((r) =>
           Stream.runForEachArray(r.stream, (chunk) => {
             const responses = chunk.flatMap(parser.decode) as Array<FromServerEncoded>
             if (responses.length === 0) return Effect.void
-            storeMcpTransportHeaders(request, r.headers, responses)
             let i = 0
             return Effect.whileLoop({
               while: () => i < responses.length,
