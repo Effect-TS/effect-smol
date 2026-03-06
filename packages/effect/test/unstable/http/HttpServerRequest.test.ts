@@ -9,6 +9,7 @@ describe("HttpServerRequest", () => {
       new Request("http://localhost:3000/todos/1?a=1&a=2#top", {
         method: "POST",
         headers: {
+          "host": "localhost:3000",
           "content-type": "application/json",
           "content-length": "13",
           "x-test": "ok"
@@ -20,7 +21,7 @@ describe("HttpServerRequest", () => {
 
     strictEqual(HttpClientRequest.isHttpClientRequest(clientRequest), true)
     strictEqual(clientRequest.method, "POST")
-    strictEqual(clientRequest.url, "/todos/1")
+    strictEqual(clientRequest.url, "http://localhost:3000/todos/1")
     strictEqual(clientRequest.hash, "top")
     strictEqual(clientRequest.headers["content-type"], "application/json")
     strictEqual(clientRequest.headers["content-length"], "13")
