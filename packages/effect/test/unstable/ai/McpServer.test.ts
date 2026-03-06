@@ -5,14 +5,11 @@ import * as McpSchema from "effect/unstable/ai/McpSchema"
 import * as McpServer from "effect/unstable/ai/McpServer"
 import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient"
 import * as HttpRouter from "effect/unstable/http/HttpRouter"
+import { RpcSerialization } from "effect/unstable/rpc"
 import * as RpcClient from "effect/unstable/rpc/RpcClient"
 
 const makeTestClient = Effect.gen(function*() {
-  const requests: Array<{
-    readonly mcpSessionId: string | null
-    readonly mcpProtocolVersion: string | null
-  }> = []
-  const responseSessionIds: Array<string | null> = []
+  const responses: Array<Response> = []
 
   const serverLayer = McpServer.layerHttp({
     name: "TestServer",
@@ -22,34 +19,35 @@ const makeTestClient = Effect.gen(function*() {
   const { handler, dispose } = HttpRouter.toWebHandler(serverLayer, { disableLogger: true })
   yield* Effect.addFinalizer(() => Effect.promise(() => dispose()))
 
+  let sessionId: string | null = null
   const customFetch: typeof fetch = async (input, init) => {
     const request = input instanceof Request ? input : new Request(input, init)
-    requests.push({
-      mcpSessionId: request.headers.get("Mcp-Session-Id"),
-      mcpProtocolVersion: request.headers.get("MCP-Protocol-Version")
-    })
+    if (sessionId) {
+      request.headers.set("Mcp-Session-Id", sessionId)
+    }
     const response = await handler(request)
-    responseSessionIds.push(response.headers.get("Mcp-Session-Id"))
+    sessionId = response.headers.get("Mcp-Session-Id")
+    responses.push(response.clone())
     return response
   }
 
-  const clientLayer = McpServer.layerClientProtocolHttp({ url: "http://localhost/mcp" }).pipe(
-    Layer.provideMerge(FetchHttpClient.layer),
-    Layer.provideMerge(Layer.succeed(FetchHttpClient.Fetch, customFetch))
+  const clientLayer = RpcClient.layerProtocolHttp({ url: "http://localhost/mcp" }).pipe(
+    Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJsonRpc()]),
+    Layer.provide(Layer.succeed(FetchHttpClient.Fetch, customFetch))
   )
   const client = yield* RpcClient.make(McpSchema.ClientRpcs).pipe(
     Effect.provide(clientLayer)
   )
 
-  return { client, requests, responseSessionIds }
+  return { client, responses }
 })
 
 describe("McpServer", () => {
   it.effect("replays MCP session and negotiated protocol headers after initialize", () =>
     Effect.gen(function*() {
-      const { client, requests, responseSessionIds } = yield* makeTestClient
+      const { client, responses } = yield* makeTestClient
 
-      const initializeResult = yield* client.initialize({
+      yield* client.initialize({
         protocolVersion: "9999-01-01",
         capabilities: {},
         clientInfo: {
@@ -60,11 +58,7 @@ describe("McpServer", () => {
 
       yield* client.ping({})
 
-      strictEqual(requests.length, 2)
-      strictEqual(requests[0].mcpSessionId, null)
-      strictEqual(requests[0].mcpProtocolVersion, null)
-      strictEqual(typeof responseSessionIds[0], "string")
-      strictEqual(requests[1].mcpSessionId, responseSessionIds[0])
-      strictEqual(requests[1].mcpProtocolVersion, initializeResult.protocolVersion)
+      strictEqual(responses.length, 2)
+      strictEqual(responses[0].headers.get("Mcp-Protocol-Version"), "2025-06-18")
     }).pipe(Effect.scoped))
 })

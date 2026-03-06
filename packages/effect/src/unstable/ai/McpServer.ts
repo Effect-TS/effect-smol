@@ -5,6 +5,7 @@ import * as Arr from "../../Array.ts"
 import * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
+import * as Fiber from "../../Fiber.ts"
 import * as Layer from "../../Layer.ts"
 import * as Option from "../../Option.ts"
 import * as Queue from "../../Queue.ts"
@@ -19,10 +20,8 @@ import * as Stream from "../../Stream.ts"
 import type * as Types from "../../Types.ts"
 import * as FindMyWay from "../http/FindMyWay.ts"
 import * as Headers from "../http/Headers.ts"
-import * as HttpClient from "../http/HttpClient.ts"
-import * as HttpClientRequest from "../http/HttpClientRequest.ts"
 import { appendPreResponseHandlerUnsafe } from "../http/HttpEffect.ts"
-import type * as HttpRouter from "../http/HttpRouter.ts"
+import * as HttpRouter from "../http/HttpRouter.ts"
 import * as HttpServerRequest from "../http/HttpServerRequest.ts"
 import * as HttpServerResponse from "../http/HttpServerResponse.ts"
 import type * as Rpc from "../rpc/Rpc.ts"
@@ -320,8 +319,8 @@ const SUPPORTED_PROTOCOL_VERSIONS = [
   "2024-11-05",
   "2024-10-07"
 ]
-const mcpSessionIdHeader = "Mcp-Session-Id"
-const mcpProtocolVersionHeader = "MCP-Protocol-Version"
+const mcpSessionIdHeader = "mcp-session-id"
+const mcpProtocolVersionHeader = "mcp-protocol-version"
 
 /**
  * @since 4.0.0
@@ -341,6 +340,7 @@ export const run: (options: {
 }) {
   const protocol = yield* RpcServer.Protocol
   const server = yield* McpServer
+  const isHttp = Option.isSome(yield* Effect.serviceOption(HttpRouter.HttpRouter))
   const clientSessions = new Map<string, typeof Initialize.payloadSchema.Type>()
   const handlers = yield* Layer.build(layerHandlers(options, { clientSessions }))
 
@@ -405,6 +405,17 @@ export const run: (options: {
           | RpcMessage.FromClientEncoded
         switch (request._tag) {
           case "Request": {
+            if (isHttp) {
+              const fiber = Fiber.getCurrent()!
+              const httpRequest = ServiceMap.getUnsafe(fiber.services, HttpServerRequest.HttpServerRequest)
+              const client = getInitializedClient(clientSessions, clientId, httpRequest.headers)
+              if (client) {
+                appendPreResponseHandlerUnsafe(httpRequest, (_, res) =>
+                  Effect.succeed(
+                    HttpServerResponse.setHeader(res, mcpProtocolVersionHeader, client.protocolVersion)
+                  ))
+              }
+            }
             const rpc = ClientNotificationRpcs.requests.get(request.tag)
             if (rpc) {
               if (request.tag === "notifications/cancelled") {
@@ -574,60 +585,6 @@ export const layerHttp = (options: {
     Layer.provide(RpcServer.layerProtocolHttp(options)),
     Layer.provide(RpcSerialization.layerJsonRpc())
   )
-
-/**
- * Construct the client protocol layer for HTTP MCP.
- *
- * @since 4.0.0
- * @category layers
- */
-export const layerClientProtocolHttp = (options: {
-  readonly url: string
-  readonly transformClient?: <E, R>(client: HttpClient.HttpClient.With<E, R>) => HttpClient.HttpClient.With<E, R>
-}): Layer.Layer<RpcClient.Protocol, never, HttpClient.HttpClient> =>
-  Layer.effectServices(Effect.gen(function*() {
-    let sessionId: string | undefined
-    let protocolVersion: string | undefined
-
-    let client = yield* HttpClient.HttpClient
-    client = HttpClient.mapRequest(client, HttpClientRequest.prependUrl(options.url))
-    client = HttpClient.mapRequest(client, (request) => {
-      let headers = request.headers
-      if (sessionId !== undefined) {
-        headers = Headers.set(headers, mcpSessionIdHeader, sessionId)
-      }
-      if (protocolVersion !== undefined) {
-        headers = Headers.set(headers, mcpProtocolVersionHeader, protocolVersion)
-      }
-      return headers === request.headers ? request : HttpClientRequest.setHeaders(request, headers)
-    })
-    if (options.transformClient) {
-      client = options.transformClient(client)
-    }
-    client = HttpClient.tap(client, (response) => {
-      const nextSessionId = Headers.get(response.headers, mcpSessionIdHeader)
-      if (nextSessionId === undefined) {
-        return Effect.void
-      }
-      return response.text.pipe(
-        Effect.catch(() => Effect.succeed("")),
-        Effect.tap((text) =>
-          Effect.sync(() => {
-            sessionId = nextSessionId
-            const nextProtocolVersion = getProtocolVersionFromJsonRpcBody(text)
-            if (nextProtocolVersion !== undefined) {
-              protocolVersion = nextProtocolVersion
-            }
-          })
-        )
-      )
-    })
-
-    const protocol = yield* RpcClient.makeProtocolHttp(client).pipe(
-      Effect.provideService(RpcSerialization.RpcSerialization, RpcSerialization.jsonRpc())
-    )
-    return ServiceMap.make(RpcClient.Protocol, protocol)
-  }))
 
 /**
  * Register a `Toolkit` with the `McpServer`.
@@ -1192,7 +1149,15 @@ const layerHandlers = (serverInfo: {
         // Requests
         ping: () => Effect.succeed({}),
         initialize(params, { clientId }) {
-          const requestedVersion = params.protocolVersion
+          const requestedVersion = SUPPORTED_PROTOCOL_VERSIONS.includes(params.protocolVersion)
+            ? params.protocolVersion
+            : LATEST_PROTOCOL_VERSION
+          if (requestedVersion !== params.protocolVersion) {
+            params = {
+              ...params,
+              protocolVersion: requestedVersion
+            }
+          }
           const capabilities: Types.DeepMutable<typeof ServerCapabilities.Type> = {
             completions: {}
           }
@@ -1217,16 +1182,17 @@ const layerHandlers = (serverInfo: {
               const sessionId = crypto.randomUUID()
               options.clientSessions.set(sessionId, params)
               appendPreResponseHandlerUnsafe(httpRequest, (_req, res) =>
-                Effect.succeed(HttpServerResponse.setHeader(res, mcpSessionIdHeader, sessionId)))
+                Effect.succeed(HttpServerResponse.setHeaders(res, {
+                  [mcpSessionIdHeader]: sessionId,
+                  [mcpProtocolVersionHeader]: requestedVersion
+                })))
             } else {
               options.clientSessions.set(String(clientId), params)
             }
             return Effect.succeed({
               capabilities,
               serverInfo,
-              protocolVersion: SUPPORTED_PROTOCOL_VERSIONS.includes(requestedVersion)
-                ? requestedVersion
-                : LATEST_PROTOCOL_VERSION
+              protocolVersion: requestedVersion
             })
           })
         },
@@ -1277,7 +1243,8 @@ const layerHandlers = (serverInfo: {
           ),
         "resources/subscribe": () =>
           InternalError.notImplemented.asEffect(),
-        "resources/unsubscribe": () => InternalError.notImplemented.asEffect(),
+        "resources/unsubscribe": () =>
+          InternalError.notImplemented.asEffect(),
         "resources/templates/list": (_, { clientId, headers }) =>
           Effect.sync(() => {
             const client = getInitializedClient(options.clientSessions, clientId, headers)
@@ -1357,33 +1324,9 @@ const getInitializedClient = (
   clientId: number,
   headers: Headers.Headers
 ) => {
-  const sessionId = Headers.get(headers, mcpSessionIdHeader)
+  const sessionId = headers[mcpSessionIdHeader]
   if (sessionId === undefined) {
     return sessions.get(String(clientId))
   }
   return sessions.get(sessionId)
-}
-
-const getProtocolVersionFromJsonRpcBody = (body: string): string | undefined => {
-  try {
-    const messages = JSON.parse(body) as unknown
-    const items = Array.isArray(messages) ? messages : [messages]
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i]
-      if (
-        typeof item === "object" &&
-        item !== null &&
-        "result" in item &&
-        typeof item.result === "object" &&
-        item.result !== null &&
-        "protocolVersion" in item.result &&
-        typeof item.result.protocolVersion === "string"
-      ) {
-        return item.result.protocolVersion
-      }
-    }
-  } catch {
-    return undefined
-  }
-  return undefined
 }
