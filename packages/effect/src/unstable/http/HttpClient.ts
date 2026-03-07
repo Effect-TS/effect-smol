@@ -6,7 +6,6 @@ import * as Cause from "../../Cause.ts"
 import { Clock } from "../../Clock.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
-import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
 import { constant, constFalse, constTrue, dual, flow, identity } from "../../Function.ts"
 import * as Inspectable from "../../Inspectable.ts"
@@ -1469,12 +1468,12 @@ class InterruptibleResponse implements HttpClientResponse.HttpClientResponse {
   get stream() {
     return Stream.suspend(() => {
       responseRegistry.unregister(this.original)
-      return Stream.onExit(this.original.stream, (exit) => {
-        if (Exit.hasInterrupts(exit)) {
+      return Stream.ensuring(
+        this.original.stream,
+        Effect.sync(() => {
           this.controller.abort()
-        }
-        return Effect.void
-      })
+        })
+      )
     })
   }
 

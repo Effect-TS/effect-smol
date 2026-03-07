@@ -1,6 +1,6 @@
-import { describe, it } from "@effect/vitest"
+import { assert, describe, it } from "@effect/vitest"
 import { strictEqual } from "@effect/vitest/utils"
-import { Effect, Fiber, Layer, Ref } from "effect"
+import { Effect, Fiber, Layer, Ref, Stream } from "effect"
 import { TestClock } from "effect/testing"
 import { HttpClient, HttpClientResponse } from "effect/unstable/http"
 import { RateLimiter } from "effect/unstable/persistence"
@@ -34,6 +34,38 @@ describe("HttpClient", () => {
         const retryClient = client.pipe(HttpClient.retryTransient({ retryOn: "errors-only", times: 2 }))
         yield* retryClient.get("http://test/").pipe(Effect.ignore)
         strictEqual(yield* Ref.get(attempts), 1)
+      }))
+  })
+
+  describe("stream", () => {
+    it.effect("aborts the request when the response stream ends early", () =>
+      Effect.gen(function*() {
+        let signal: AbortSignal | undefined
+        const client = HttpClient.make((request, _url, requestSignal) =>
+          Effect.sync(() => {
+            signal = requestSignal
+            return HttpClientResponse.fromWeb(
+              request,
+              new Response(
+                new ReadableStream<Uint8Array>({
+                  pull(controller) {
+                    controller.enqueue(Uint8Array.of(1))
+                  }
+                }),
+                { status: 200 }
+              )
+            )
+          })
+        )
+
+        const response = yield* client.get("http://test/")
+        const chunks = yield* response.stream.pipe(
+          Stream.take(5),
+          Stream.runCollect
+        )
+
+        assert.strictEqual(Array.from(chunks).length, 5)
+        assert.isTrue(signal!.aborted)
       }))
   })
 
