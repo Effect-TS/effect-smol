@@ -3206,10 +3206,7 @@ export const bigIntString = appendChecks(string, [isStringBigInt()])
 
 const bigIntToString = new Link(
   bigIntString,
-  new Transformation.Transformation(
-    Getter.transform(globalThis.BigInt),
-    Getter.String()
-  )
+  Transformation.bigintFromString
 )
 
 const REGEXP_PATTERN = "Symbol\\((.*)\\)"
