@@ -1038,7 +1038,7 @@ describe("toJsonSchemaDocument", () => {
 
       it("isUUID", () => {
         assertJsonSchemaDocument(
-          Schema.String.annotate({ description: "description" }).check(Schema.isUUID(undefined)),
+          Schema.String.annotate({ description: "description" }).check(Schema.isUUID()),
           {
             schema: {
               "type": "string",

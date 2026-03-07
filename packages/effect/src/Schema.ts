@@ -3590,7 +3590,7 @@ const getUUIDRegExp = (version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8): globalThis.RegE
  * @category String checks
  * @since 4.0.0
  */
-export function isUUID(version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | undefined, annotations?: Annotations.Filter) {
+export function isUUID(version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8, annotations?: Annotations.Filter) {
   const regExp = getUUIDRegExp(version)
   return isPattern(
     regExp,
