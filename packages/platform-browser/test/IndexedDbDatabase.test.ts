@@ -148,7 +148,7 @@ describe.sequential("IndexedDbDatabase", () => {
     const Table2 = IndexedDbTable.make({
       name: "todo",
       schema: Schema.Struct({
-        uuid: Schema.UUID,
+        uuid: Schema.String.check(Schema.isUUID(4)),
         title: Schema.String,
         completed: Schema.Boolean,
       }),
@@ -235,13 +235,11 @@ describe.sequential("IndexedDbDatabase", () => {
       Effect.fnUntraced(function* (from, to) {
         yield* from.deleteObjectStore("todo");
         yield* to.createObjectStore("user");
-        yield* to
-          .from("user")
-          .insert({
-            userId: 1,
-            name: "John Doe",
-            email: "john.doe@example.com",
-          });
+        yield* to.from("user").insert({
+          userId: 1,
+          name: "John Doe",
+          email: "john.doe@example.com",
+        });
       }),
     ) {}
 

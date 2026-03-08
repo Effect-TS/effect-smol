@@ -12,6 +12,7 @@ const YieldableProto = {
   },
 };
 import * as Schema from "effect/Schema";
+import * as Struct from "effect/Struct";
 import * as IndexedDb from "./IndexedDb.js";
 import type * as IndexedDbDatabase from "./IndexedDbDatabase.js";
 import type * as IndexedDbTable from "./IndexedDbTable.js";
@@ -807,7 +808,7 @@ const getReadSchema = (from: IndexedDbQuery.From<any>) => {
   const keyPath = from.table.keyPath;
   const tableSchema = (from.table as IndexedDbTable.AnyWithProps).tableSchema;
   return keyPath === undefined
-    ? tableSchema.pipe(Schema.fieldsAssign({ key: IndexedDb.IDBValidKey }))
+    ? tableSchema.mapFields(Struct.assign({ key: IndexedDb.IDBValidKey }))
     : tableSchema;
 };
 

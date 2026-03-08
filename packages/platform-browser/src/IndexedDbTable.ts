@@ -47,7 +47,17 @@ export interface IndexedDbTable<
  * @since 1.0.0
  * @category models
  */
-export type AnySchemaStruct = Schema.Struct<Schema.Struct.Fields>;
+export type AnySchemaStruct = Schema.Top & {
+  readonly fields: Schema.Struct.Fields;
+  mapFields<To extends Schema.Struct.Fields>(
+    f: (fields: Schema.Struct.Fields) => To,
+    options?:
+      | {
+          readonly unsafePreserveChecks?: boolean | undefined;
+        }
+      | undefined,
+  ): Schema.Struct<To>;
+};
 
 /**
  * @since 1.0.0
