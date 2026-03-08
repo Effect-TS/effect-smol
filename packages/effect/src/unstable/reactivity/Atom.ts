@@ -1634,7 +1634,7 @@ export const swr: {
       readonly revalidateOnFocus?: boolean | "always" | undefined
       readonly focusSignal?: Atom<any> | undefined
     }
-  ): <R extends Atom<AsyncResult.AsyncResult<any, any>>>(self: R) => WithoutSerializable<R>
+  ): <R extends Atom<AsyncResult.AsyncResult<any, any>>>(self: R) => WithoutSerializable<R> & SWR
   <R extends Atom<AsyncResult.AsyncResult<any, any>>>(
     self: R,
     options: {
@@ -1643,7 +1643,7 @@ export const swr: {
       readonly revalidateOnFocus?: boolean | "always" | undefined
       readonly focusSignal?: Atom<any> | undefined
     }
-  ): WithoutSerializable<R>
+  ): WithoutSerializable<R> & SWR
 } = dual(
   2,
   <A, E>(
