@@ -3,11 +3,16 @@
  */
 import * as Data from "effect/Data";
 import * as Effect from "effect/Effect";
-import { CommitPrototype } from "effect/Effectable";
+import { SingleShotGen } from "effect/Utils";
+
+const YieldableProto = {
+  [Symbol.iterator]() {
+    return new SingleShotGen(this);
+  },
+};
 import * as Fiber from "effect/Fiber";
 import * as Layer from "effect/Layer";
 import { type Pipeable, pipeArguments } from "effect/Pipeable";
-import * as Runtime from "effect/Runtime";
 import { MixedScheduler } from "effect/Scheduler";
 import * as ServiceMap from "effect/ServiceMap";
 import * as IndexedDb from "./IndexedDb.js";
@@ -223,7 +228,7 @@ export const make = <
   init: (toQuery: Transaction<InitialVersion>) => Effect.Effect<void, Error>,
 ): IndexedDbSchema<never, InitialVersion, Error> => {
   function IndexedDbDatabaseImpl() {}
-  Object.assign(IndexedDbDatabaseImpl, CommitPrototype);
+  Object.assign(IndexedDbDatabaseImpl, YieldableProto);
   IndexedDbDatabaseImpl.pipe = function () {
     return pipeArguments(this, arguments);
   };
@@ -254,7 +259,7 @@ export const make = <
       transaction: undefined,
     });
   });
-  IndexedDbDatabaseImpl.commit = function () {
+  IndexedDbDatabaseImpl.asEffect = function () {
     return this.getQueryBuilder;
   };
 
@@ -281,7 +286,7 @@ const makeProto = <
   ) => Effect.Effect<void, Error>;
 }): IndexedDbSchema<FromVersion, ToVersion, Error> => {
   function IndexedDbDatabaseImpl() {}
-  Object.assign(IndexedDbDatabaseImpl, CommitPrototype);
+  Object.assign(IndexedDbDatabaseImpl, YieldableProto);
   IndexedDbDatabaseImpl.pipe = options.previous.pipe;
   IndexedDbDatabaseImpl.previous = options.previous;
   IndexedDbDatabaseImpl.fromVersion = options.fromVersion;
@@ -298,7 +303,7 @@ const makeProto = <
       transaction: undefined,
     });
   });
-  IndexedDbDatabaseImpl.commit = function () {
+  IndexedDbDatabaseImpl.asEffect = function () {
     return this.getQueryBuilder;
   };
 
@@ -313,11 +318,12 @@ const layer = <DatabaseName extends string>(
   databaseName: DatabaseName,
   migration: Any,
 ) =>
-  Layer.scoped(
+  Layer.effect(
     IndexedDbDatabase,
     Effect.gen(function* () {
       const { IDBKeyRange, indexedDB } = yield* IndexedDb.IndexedDb;
-      const runtime = yield* Effect.runtime();
+      const serviceMap = yield* Effect.services();
+      const runForkWith = Effect.runForkWith(serviceMap);
 
       let oldVersion = 0;
       const migrations: Array<Any> = [];
@@ -357,9 +363,7 @@ const layer = <DatabaseName extends string>(
               );
             };
 
-            let fiber:
-              | Fiber.RuntimeFiber<void, IndexedDbDatabaseError>
-              | undefined;
+            let fiber: Fiber.Fiber<void, IndexedDbDatabaseError> | undefined;
             request.onupgradeneeded = (event) => {
               const idbRequest = event.target as IDBRequest<IDBDatabase>;
               const database = idbRequest.result;
@@ -447,7 +451,7 @@ const layer = <DatabaseName extends string>(
                 ),
               );
               const scheduler = new MixedScheduler("sync");
-              fiber = Runtime.runFork(runtime, effect, { scheduler });
+              fiber = runForkWith(effect, { scheduler });
               scheduler.flush();
             };
 
