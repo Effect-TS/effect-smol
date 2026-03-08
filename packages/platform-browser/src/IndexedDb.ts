@@ -70,7 +70,7 @@ export const layerWindow: Layer.Layer<IndexedDb, Config.ConfigError> =
           new Config.ConfigError(
             new Schema.SchemaError(
               new SchemaIssue.MissingKey({
-                message: "window.indexedDB is not available",
+                messageMissingKey: "window.indexedDB is not available",
               }),
             ),
           ),
@@ -85,7 +85,9 @@ export const layerWindow: Layer.Layer<IndexedDb, Config.ConfigError> =
  * @since 1.0.0
  * @category schemas
  */
-export const AutoIncrement = Schema.Number.annotate({
+export const AutoIncrement = Schema.Int.check(
+  Schema.isBetween({ minimum: 1, maximum: 2 ** 53 }),
+).annotate({
   identifier: "AutoIncrement",
   title: "autoIncrement",
   description: "Defines a valid autoIncrement key path for the IndexedDb table",
@@ -94,11 +96,12 @@ export const AutoIncrement = Schema.Number.annotate({
 /** @internal */
 const IDBFlatKey = Schema.Union([
   Schema.String,
-  Schema.Number,
-  Schema.Date,
+  Schema.Number.check(Schema.makeFilter((input) => !Number.isNaN(input))),
+  Schema.DateValid,
   Schema.declare(
     (input): input is BufferSource =>
-      input instanceof ArrayBuffer || ArrayBuffer.isView(input),
+      input instanceof ArrayBuffer ||
+      (ArrayBuffer.isView(input) && input.buffer instanceof ArrayBuffer),
   ),
 ]);
 

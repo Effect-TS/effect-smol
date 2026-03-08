@@ -4,7 +4,13 @@
 import type { NonEmptyReadonlyArray } from "effect/Array";
 import * as Data from "effect/Data";
 import * as Effect from "effect/Effect";
-import * as Effectable from "effect/Effectable";
+import { SingleShotGen } from "effect/Utils";
+
+const YieldableProto = {
+  [Symbol.iterator]() {
+    return new SingleShotGen(this);
+  },
+};
 import * as Schema from "effect/Schema";
 import * as IndexedDb from "./IndexedDb.js";
 import type * as IndexedDbDatabase from "./IndexedDbDatabase.js";
@@ -201,7 +207,7 @@ export declare namespace IndexedDbQuery {
    */
   export type SourceTableSelectSchemaType<
     Table extends IndexedDbTable.AnyWithProps,
-  > = Schema.Struct.Constructor<IndexedDbTable.TableSchema<Table>["fields"]> &
+  > = Schema.Struct.MakeIn<IndexedDbTable.TableSchema<Table>["fields"]> &
     ([IndexedDbTable.KeyPath<Table>] extends [undefined]
       ? {
           key: (typeof IndexedDb.IDBValidKey)["Type"];
@@ -216,18 +222,22 @@ export declare namespace IndexedDbQuery {
     Table extends IndexedDbTable.AnyWithProps,
   > = (IndexedDbTable.AutoIncrement<Table> extends true
     ? {
-        [key in keyof Schema.Struct.Constructor<
+        [key in keyof Schema.Struct.MakeIn<
           Omit<
             IndexedDbTable.TableSchema<Table>["fields"],
             IndexedDbTable.KeyPath<Table>
           >
-        >]: Schema.Struct.Constructor<
+        >]: key extends keyof Schema.Struct.MakeIn<
           IndexedDbTable.TableSchema<Table>["fields"]
-        >[key];
+        >
+          ? Schema.Struct.MakeIn<
+              IndexedDbTable.TableSchema<Table>["fields"]
+            >[key]
+          : never;
       } & {
         [key in IndexedDbTable.KeyPath<Table>]?: number | undefined;
       }
-    : Schema.Struct.Constructor<IndexedDbTable.TableSchema<Table>["fields"]>) &
+    : Schema.Struct.MakeIn<IndexedDbTable.TableSchema<Table>["fields"]>) &
     ([IndexedDbTable.KeyPath<Table>] extends [undefined]
       ? {
           key: IDBValidKey;
@@ -1209,7 +1219,7 @@ const fromMakeProto = <
   readonly IDBKeyRange: typeof globalThis.IDBKeyRange;
   readonly transaction: globalThis.IDBTransaction | undefined;
 }): IndexedDbQuery.From<Table> => {
-  const self = Object.create(Effectable.CommitPrototype);
+  const self = Object.create(YieldableProto);
   self.table = options.table;
   self.database = options.database;
   self.IDBKeyRange = options.IDBKeyRange;
@@ -1346,13 +1356,13 @@ const deleteMakeProto = <
 >(options: {
   readonly delete: IndexedDbQuery.DeletePartial<Table, Index>;
   readonly limitValue?: number | undefined;
-  readonly only?: IndexedDbQuery.ExtractIndexType<Table, Index>;
-  readonly lowerBound?: IndexedDbQuery.ExtractIndexType<Table, Index>;
-  readonly upperBound?: IndexedDbQuery.ExtractIndexType<Table, Index>;
-  readonly excludeLowerBound?: boolean;
-  readonly excludeUpperBound?: boolean;
+  readonly only?: IndexedDbQuery.ExtractIndexType<Table, Index> | undefined;
+  readonly lowerBound?: IndexedDbQuery.ExtractIndexType<Table, Index> | undefined;
+  readonly upperBound?: IndexedDbQuery.ExtractIndexType<Table, Index> | undefined;
+  readonly excludeLowerBound?: boolean | undefined;
+  readonly excludeUpperBound?: boolean | undefined;
 }): IndexedDbQuery.Delete<Table, Index> => {
-  const self = Object.create(Effectable.CommitPrototype);
+  const self = Object.create(YieldableProto);
 
   const limit = (limit: number): IndexedDbQuery.Delete<Table, Index> =>
     deleteMakeProto({
@@ -1428,7 +1438,7 @@ const deleteMakeProto = <
       limitValue: options.limitValue,
     });
 
-  self.commit = function (this: IndexedDbQuery.Delete<any, never>) {
+  self.asEffect = function (this: IndexedDbQuery.Delete<any, never>) {
     return applyDelete(this);
   };
   self.delete = options.delete;
@@ -1455,13 +1465,13 @@ const countMakeProto = <
   readonly from: IndexedDbQuery.From<Table>;
   readonly index: Index | undefined;
   readonly limitValue?: number | undefined;
-  readonly only?: IndexedDbQuery.ExtractIndexType<Table, Index>;
-  readonly lowerBound?: IndexedDbQuery.ExtractIndexType<Table, Index>;
-  readonly upperBound?: IndexedDbQuery.ExtractIndexType<Table, Index>;
-  readonly excludeLowerBound?: boolean;
-  readonly excludeUpperBound?: boolean;
+  readonly only?: IndexedDbQuery.ExtractIndexType<Table, Index> | undefined;
+  readonly lowerBound?: IndexedDbQuery.ExtractIndexType<Table, Index> | undefined;
+  readonly upperBound?: IndexedDbQuery.ExtractIndexType<Table, Index> | undefined;
+  readonly excludeLowerBound?: boolean | undefined;
+  readonly excludeUpperBound?: boolean | undefined;
 }): IndexedDbQuery.Count<Table, Index> => {
-  const self = Object.create(Effectable.CommitPrototype);
+  const self = Object.create(YieldableProto);
 
   const limit = (limit: number): IndexedDbQuery.Count<Table, Index> =>
     countMakeProto({
@@ -1544,7 +1554,7 @@ const countMakeProto = <
       limitValue: options.limitValue,
     });
 
-  self.commit = function (this: IndexedDbQuery.Count<any, never>) {
+  self.asEffect = function (this: IndexedDbQuery.Count<any, never>) {
     return getCount(this);
   };
   self.from = options.from;
@@ -1572,13 +1582,13 @@ const selectMakeProto = <
   readonly from: IndexedDbQuery.From<Table>;
   readonly index: Index | undefined;
   readonly limitValue?: number | undefined;
-  readonly only?: IndexedDbQuery.ExtractIndexType<Table, Index>;
-  readonly lowerBound?: IndexedDbQuery.ExtractIndexType<Table, Index>;
-  readonly upperBound?: IndexedDbQuery.ExtractIndexType<Table, Index>;
-  readonly excludeLowerBound?: boolean;
-  readonly excludeUpperBound?: boolean;
+  readonly only?: IndexedDbQuery.ExtractIndexType<Table, Index> | undefined;
+  readonly lowerBound?: IndexedDbQuery.ExtractIndexType<Table, Index> | undefined;
+  readonly upperBound?: IndexedDbQuery.ExtractIndexType<Table, Index> | undefined;
+  readonly excludeLowerBound?: boolean | undefined;
+  readonly excludeUpperBound?: boolean | undefined;
 }): IndexedDbQuery.Select<Table, Index> => {
-  const self = Object.create(Effectable.CommitPrototype);
+  const self = Object.create(YieldableProto);
 
   const limit = (limit: number): IndexedDbQuery.Select<Table, Index> =>
     selectMakeProto({
@@ -1664,7 +1674,7 @@ const selectMakeProto = <
   const first = (): IndexedDbQuery.First<Table, Index> =>
     firstMakeProto({ select: self as any });
 
-  self.commit = function (this: IndexedDbQuery.Select<any, never>) {
+  self.asEffect = function (this: IndexedDbQuery.Select<any, never>) {
     return getSelect(this);
   };
   self.from = options.from;
@@ -1692,8 +1702,8 @@ const firstMakeProto = <
 >(options: {
   readonly select: IndexedDbQuery.Select<Table, Index>;
 }): IndexedDbQuery.First<Table, Index> => {
-  const self = Object.create(Effectable.CommitPrototype);
-  self.commit = function (this: IndexedDbQuery.First<any, never>) {
+  const self = Object.create(YieldableProto);
+  self.asEffect = function (this: IndexedDbQuery.First<any, never>) {
     return getFirst(this);
   };
   self.select = options.select;
@@ -1705,8 +1715,8 @@ const modifyMakeProto = <Table extends IndexedDbTable.AnyWithProps>(options: {
   readonly value: IndexedDbTable.TableSchema<Table>["Type"];
   readonly operation: "add" | "put";
 }): IndexedDbQuery.Modify<Table> => {
-  const self = Object.create(Effectable.CommitPrototype);
-  self.commit = function (this: IndexedDbQuery.Modify<any>) {
+  const self = Object.create(YieldableProto);
+  self.asEffect = function (this: IndexedDbQuery.Modify<any>) {
     return applyModify({ query: this, value: options.value });
   };
   self.from = options.from;
@@ -1722,8 +1732,8 @@ const modifyAllMakeProto = <
   readonly values: Array<IndexedDbTable.TableSchema<Table>["Type"]>;
   readonly operation: "add" | "put";
 }): IndexedDbQuery.Modify<Table> => {
-  const self = Object.create(Effectable.CommitPrototype);
-  self.commit = function (this: IndexedDbQuery.ModifyAll<any>) {
+  const self = Object.create(YieldableProto);
+  self.asEffect = function (this: IndexedDbQuery.ModifyAll<any>) {
     return applyModifyAll({ query: this, values: options.values });
   };
   self.from = options.from;

@@ -3,7 +3,6 @@
  */
 import { type Pipeable, pipeArguments } from "effect/Pipeable";
 import type * as Schema from "effect/Schema";
-import type * as AST from "effect/SchemaAST";
 import type { NoInfer } from "effect/Types";
 import type * as IndexedDbQueryBuilder from "./IndexedDbQueryBuilder.js";
 
@@ -48,16 +47,7 @@ export interface IndexedDbTable<
  * @since 1.0.0
  * @category models
  */
-export interface AnySchemaStruct extends Pipeable {
-  readonly [Schema.TypeId]: any;
-  readonly Type: any;
-  readonly Encoded: any;
-  readonly Context: any;
-  readonly make?: (params: any, ...rest: ReadonlyArray<any>) => any;
-  readonly ast: AST.AST;
-  readonly annotations: any;
-  readonly fields: Schema.Struct.Fields;
-}
+export type AnySchemaStruct = Schema.Struct<Schema.Struct.Fields>;
 
 /**
  * @since 1.0.0
@@ -152,7 +142,7 @@ export type Context<Table extends Any> =
     infer _KeyPath,
     infer _AutoIncrement
   >
-    ? _Schema["Context"]
+    ? _Schema["DecodingServices"]
     : never;
 
 /**
