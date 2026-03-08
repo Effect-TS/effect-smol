@@ -1885,7 +1885,7 @@ describe.sequential("Atom", () => {
     assert.strictEqual(runs, 2)
   })
 
-  test(`swr markStale triggers refresh on next remount`, () => {
+  test(`swr markStale triggers refresh on next remount`, async () => {
     const r = AtomRegistry.make()
     let runs = 0
     const base = Atom.make(Effect.sync(() => ++runs)).pipe(Atom.keepAlive)
@@ -1897,6 +1897,8 @@ describe.sequential("Atom", () => {
     assert.strictEqual(result.value, 1)
     assert.strictEqual(runs, 1)
     unmount1()
+
+    await Effect.runPromise(Effect.yieldNow)
 
     assert(Atom.isSWR(atom))
     atom[Atom.SWRTypeId].markStale()
