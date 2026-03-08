@@ -1,3 +1,4 @@
+import type * as Generated from "@effect/ai-openai/Generated"
 import * as Errors from "@effect/ai-openai/internal/errors"
 import * as OpenAiClient from "@effect/ai-openai/OpenAiClient"
 import { assert, describe, it } from "@effect/vitest"
@@ -29,6 +30,21 @@ const makeMockResponse = (options: {
   )
 }
 
+const makeMockStreamResponse = (options: {
+  readonly events: ReadonlyArray<unknown>
+  readonly request?: HttpClientRequest.HttpClientRequest
+}): HttpClientResponse.HttpClientResponse => {
+  const request = HttpClientRequest.get(options.request?.url ?? "/")
+  const body = options.events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join("")
+  return HttpClientResponse.fromWeb(
+    request,
+    new Response(body, {
+      status: 200,
+      headers: { "content-type": "text/event-stream" }
+    })
+  )
+}
+
 const makeMockHttpClient = (
   handler: (
     request: HttpClientRequest.HttpClientRequest
@@ -43,6 +59,37 @@ const makeMockHttpClient = (
       >,
     Effect.succeed
   )
+
+const makeOutputMessage = (
+  content: ReadonlyArray<typeof Generated.OutputMessageContent.Encoded>
+): typeof Generated.OutputMessage.Encoded => ({
+  id: "msg_123",
+  type: "message",
+  role: "assistant",
+  content,
+  status: "completed"
+})
+
+const makeResponseBody = (
+  overrides: Partial<typeof Generated.Response.Encoded> = {}
+): typeof Generated.Response.Encoded => ({
+  id: "resp_test123",
+  object: "response",
+  created_at: 1,
+  model: "gpt-4o-mini",
+  status: "completed",
+  output: [],
+  metadata: null,
+  temperature: null,
+  top_p: null,
+  tools: [],
+  tool_choice: "auto",
+  error: null,
+  incomplete_details: null,
+  instructions: null,
+  parallel_tool_calls: false,
+  ...overrides
+})
 
 // =============================================================================
 // Tests
@@ -455,6 +502,33 @@ describe("OpenAiClient", () => {
       }))
   })
 
+  describe("createResponse", () => {
+    it.effect("accepts keep_alive content parts in response output", () =>
+      Effect.gen(function*() {
+        const mockClient = makeMockHttpClient((request) =>
+          Effect.succeed(makeMockResponse({
+            status: 200,
+            body: makeResponseBody({
+              output: [makeOutputMessage([{ type: "keep_alive" }])]
+            }),
+            request
+          }))
+        )
+
+        const client = yield* OpenAiClient.make({
+          apiKey: Redacted.make("test-key")
+        }).pipe(Effect.provide(Layer.succeed(HttpClient.HttpClient, mockClient)))
+
+        const [body] = yield* client.createResponse({ model: "gpt-4o", input: "test" })
+        const output = body.output[0]
+
+        assert.strictEqual(output.type, "message")
+        if (output.type === "message") {
+          assert.deepStrictEqual(output.content, [{ type: "keep_alive" }])
+        }
+      }))
+  })
+
   describe("createEmbedding", () => {
     it.effect("maps 400 error to AiError", () =>
       Effect.gen(function*() {
@@ -505,6 +579,91 @@ describe("OpenAiClient", () => {
   })
 
   describe("createResponseStream", () => {
+    it.effect("accepts keep_alive content part stream events", () => {
+      const message = makeOutputMessage([])
+
+      const mockClient = makeMockHttpClient((request) =>
+        Effect.succeed(makeMockStreamResponse({
+          request,
+          events: [
+            {
+              type: "response.created",
+              sequence_number: 1,
+              response: makeResponseBody({
+                id: "resp_stream",
+                status: "in_progress",
+                output: [message]
+              })
+            },
+            {
+              type: "response.content_part.added",
+              sequence_number: 2,
+              item_id: message.id,
+              output_index: 0,
+              content_index: 0,
+              part: { type: "keep_alive" }
+            },
+            {
+              type: "response.content_part.done",
+              sequence_number: 3,
+              item_id: message.id,
+              output_index: 0,
+              content_index: 0,
+              part: { type: "keep_alive" }
+            },
+            {
+              type: "response.completed",
+              sequence_number: 4,
+              response: makeResponseBody({
+                id: "resp_stream",
+                output: [makeOutputMessage([{ type: "keep_alive" }])]
+              })
+            }
+          ]
+        }))
+      )
+
+      const HttpClientLayer = Layer.succeed(HttpClient.HttpClient, mockClient)
+
+      const MainLayer = OpenAiClient.layer({
+        apiKey: Redacted.make("test-key")
+      }).pipe(Layer.provide(HttpClientLayer))
+
+      return Effect.gen(function*() {
+        const client = yield* OpenAiClient.OpenAiClient
+
+        const [_, stream] = yield* client.createResponseStream({
+          model: "gpt-4o",
+          input: "test"
+        })
+
+        const events = yield* Stream.runCollect(stream)
+        const parts = globalThis.Array.from(events)
+
+        assert.strictEqual(parts.length, 4)
+        const contentPartAdded = parts[1]
+        assert.strictEqual(contentPartAdded.type, "response.content_part.added")
+        if (contentPartAdded.type === "response.content_part.added") {
+          assert.deepStrictEqual(contentPartAdded.part, { type: "keep_alive" })
+        }
+
+        const contentPartDone = parts[2]
+        assert.strictEqual(contentPartDone.type, "response.content_part.done")
+        if (contentPartDone.type === "response.content_part.done") {
+          assert.deepStrictEqual(contentPartDone.part, { type: "keep_alive" })
+        }
+
+        assert.strictEqual(parts[3].type, "response.completed")
+        if (parts[3].type === "response.completed") {
+          const output = parts[3].response.output[0]
+          assert.strictEqual(output.type, "message")
+          if (output.type === "message") {
+            assert.deepStrictEqual(output.content, [{ type: "keep_alive" }])
+          }
+        }
+      }).pipe(Effect.provide(MainLayer))
+    })
+
     it.effect("maps HTTP error before stream starts", () => {
       const mockClient = makeMockHttpClient((request) =>
         Effect.succeed(makeMockResponse({

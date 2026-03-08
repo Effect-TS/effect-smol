@@ -7950,6 +7950,15 @@ export const RefusalContent = Schema.Struct({
   "type": Schema.Literal("refusal").annotate({ "description": "The type of the refusal. Always `refusal`." }),
   "refusal": Schema.String.annotate({ "description": "The refusal explanation from the model." })
 }).annotate({ "title": "Refusal", "description": "A refusal from the model." })
+export type KeepAliveContent = { readonly "type": "keep_alive" }
+export const KeepAliveContent = Schema.Struct({
+  "type": Schema.Literal("keep_alive").annotate({
+    "description": "The type of the keep-alive content. Always `keep_alive`."
+  })
+}).annotate({
+  "title": "Keep alive",
+  "description": "A keep-alive content part emitted during long-running responses."
+})
 export type InputImageContent = {
   readonly "type": "input_image"
   readonly "image_url"?: string | null
@@ -19333,14 +19342,16 @@ export const EvalItemContent = Schema.Union([EvalItemContentItem, EvalItemConten
   "description":
     "Inputs to the model - can contain template strings. Supports text, output text, input images, and input audio, either as a single item or an array of items.\n"
 })
-export type OutputMessageContent = OutputTextContent | RefusalContent
-export const OutputMessageContent = Schema.Union([OutputTextContent, RefusalContent], { mode: "oneOf" })
+export type OutputMessageContent = OutputTextContent | RefusalContent | KeepAliveContent
+export const OutputMessageContent = Schema.Union([OutputTextContent, RefusalContent, KeepAliveContent], {
+  mode: "oneOf"
+})
 export type ResponseContentPartAddedEvent = {
   readonly "type": "response.content_part.added"
   readonly "item_id": string
   readonly "output_index": number
   readonly "content_index": number
-  readonly "part": OutputTextContent | RefusalContent | ReasoningTextContent
+  readonly "part": OutputTextContent | RefusalContent | ReasoningTextContent | KeepAliveContent
   readonly "sequence_number": number
 }
 export const ResponseContentPartAddedEvent = Schema.Struct({
@@ -19356,9 +19367,8 @@ export const ResponseContentPartAddedEvent = Schema.Struct({
   "content_index": Schema.Number.annotate({ "description": "The index of the content part that was added.\n" }).check(
     Schema.isInt()
   ),
-  "part": Schema.Union([OutputTextContent, RefusalContent, ReasoningTextContent], { mode: "oneOf" }).annotate({
-    "description": "The content part that was added.\n"
-  }),
+  "part": Schema.Union([OutputTextContent, RefusalContent, ReasoningTextContent, KeepAliveContent], { mode: "oneOf" })
+    .annotate({ "description": "The content part that was added.\n" }),
   "sequence_number": Schema.Number.annotate({ "description": "The sequence number of this event." }).check(
     Schema.isInt()
   )
@@ -19369,7 +19379,7 @@ export type ResponseContentPartDoneEvent = {
   readonly "output_index": number
   readonly "content_index": number
   readonly "sequence_number": number
-  readonly "part": OutputTextContent | RefusalContent | ReasoningTextContent
+  readonly "part": OutputTextContent | RefusalContent | ReasoningTextContent | KeepAliveContent
 }
 export const ResponseContentPartDoneEvent = Schema.Struct({
   "type": Schema.Literal("response.content_part.done").annotate({
@@ -19387,9 +19397,8 @@ export const ResponseContentPartDoneEvent = Schema.Struct({
   "sequence_number": Schema.Number.annotate({ "description": "The sequence number of this event." }).check(
     Schema.isInt()
   ),
-  "part": Schema.Union([OutputTextContent, RefusalContent, ReasoningTextContent], { mode: "oneOf" }).annotate({
-    "description": "The content part that is done.\n"
-  })
+  "part": Schema.Union([OutputTextContent, RefusalContent, ReasoningTextContent, KeepAliveContent], { mode: "oneOf" })
+    .annotate({ "description": "The content part that is done.\n" })
 }).annotate({ "description": "Emitted when a content part is done." })
 export type Message = {
   readonly "type": "message"
@@ -19403,6 +19412,7 @@ export type Message = {
     | SummaryTextContent
     | ReasoningTextContent
     | RefusalContent
+    | KeepAliveContent
     | InputImageContent
     | ComputerScreenshotContent
     | InputFileContent
@@ -19428,6 +19438,7 @@ export const Message = Schema.Struct({
       SummaryTextContent,
       ReasoningTextContent,
       RefusalContent,
+      KeepAliveContent,
       InputImageContent,
       ComputerScreenshotContent,
       InputFileContent
