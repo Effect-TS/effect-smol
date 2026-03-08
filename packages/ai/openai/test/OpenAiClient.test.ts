@@ -60,16 +60,6 @@ const makeMockHttpClient = (
     Effect.succeed
   )
 
-const makeOutputMessage = (
-  content: ReadonlyArray<typeof Generated.OutputMessageContent.Encoded>
-): typeof Generated.OutputMessage.Encoded => ({
-  id: "msg_123",
-  type: "message",
-  role: "assistant",
-  content,
-  status: "completed"
-})
-
 const makeResponseBody = (
   overrides: Partial<typeof Generated.Response.Encoded> = {}
 ): typeof Generated.Response.Encoded => ({
@@ -502,33 +492,6 @@ describe("OpenAiClient", () => {
       }))
   })
 
-  describe("createResponse", () => {
-    it.effect("accepts keep_alive content parts in response output", () =>
-      Effect.gen(function*() {
-        const mockClient = makeMockHttpClient((request) =>
-          Effect.succeed(makeMockResponse({
-            status: 200,
-            body: makeResponseBody({
-              output: [makeOutputMessage([{ type: "keep_alive" }])]
-            }),
-            request
-          }))
-        )
-
-        const client = yield* OpenAiClient.make({
-          apiKey: Redacted.make("test-key")
-        }).pipe(Effect.provide(Layer.succeed(HttpClient.HttpClient, mockClient)))
-
-        const [body] = yield* client.createResponse({ model: "gpt-4o", input: "test" })
-        const output = body.output[0]
-
-        assert.strictEqual(output.type, "message")
-        if (output.type === "message") {
-          assert.deepStrictEqual(output.content, [{ type: "keep_alive" }])
-        }
-      }))
-  })
-
   describe("createEmbedding", () => {
     it.effect("maps 400 error to AiError", () =>
       Effect.gen(function*() {
@@ -579,9 +542,7 @@ describe("OpenAiClient", () => {
   })
 
   describe("createResponseStream", () => {
-    it.effect("accepts keep_alive content part stream events", () => {
-      const message = makeOutputMessage([])
-
+    it.effect("accepts keepalive stream events", () => {
       const mockClient = makeMockHttpClient((request) =>
         Effect.succeed(makeMockStreamResponse({
           request,
@@ -591,32 +552,18 @@ describe("OpenAiClient", () => {
               sequence_number: 1,
               response: makeResponseBody({
                 id: "resp_stream",
-                status: "in_progress",
-                output: [message]
+                status: "in_progress"
               })
             },
             {
-              type: "response.content_part.added",
-              sequence_number: 2,
-              item_id: message.id,
-              output_index: 0,
-              content_index: 0,
-              part: { type: "keep_alive" }
-            },
-            {
-              type: "response.content_part.done",
-              sequence_number: 3,
-              item_id: message.id,
-              output_index: 0,
-              content_index: 0,
-              part: { type: "keep_alive" }
+              type: "keepalive",
+              sequence_number: 2
             },
             {
               type: "response.completed",
-              sequence_number: 4,
+              sequence_number: 3,
               response: makeResponseBody({
-                id: "resp_stream",
-                output: [makeOutputMessage([{ type: "keep_alive" }])]
+                id: "resp_stream"
               })
             }
           ]
@@ -640,26 +587,16 @@ describe("OpenAiClient", () => {
         const events = yield* Stream.runCollect(stream)
         const parts = globalThis.Array.from(events)
 
-        assert.strictEqual(parts.length, 4)
-        const contentPartAdded = parts[1]
-        assert.strictEqual(contentPartAdded.type, "response.content_part.added")
-        if (contentPartAdded.type === "response.content_part.added") {
-          assert.deepStrictEqual(contentPartAdded.part, { type: "keep_alive" })
+        assert.strictEqual(parts.length, 3)
+        const keepAlive = parts[1]
+        assert.strictEqual(keepAlive.type, "keepalive")
+        if (keepAlive.type === "keepalive") {
+          assert.strictEqual(keepAlive.sequence_number, 2)
         }
 
-        const contentPartDone = parts[2]
-        assert.strictEqual(contentPartDone.type, "response.content_part.done")
-        if (contentPartDone.type === "response.content_part.done") {
-          assert.deepStrictEqual(contentPartDone.part, { type: "keep_alive" })
-        }
-
-        assert.strictEqual(parts[3].type, "response.completed")
-        if (parts[3].type === "response.completed") {
-          const output = parts[3].response.output[0]
-          assert.strictEqual(output.type, "message")
-          if (output.type === "message") {
-            assert.deepStrictEqual(output.content, [{ type: "keep_alive" }])
-          }
+        assert.strictEqual(parts[2].type, "response.completed")
+        if (parts[2].type === "response.completed") {
+          assert.strictEqual(parts[2].response.id, "resp_stream")
         }
       }).pipe(Effect.provide(MainLayer))
     })
