@@ -7,7 +7,7 @@ import type * as FileSystem from "../../FileSystem.ts"
 import { dual } from "../../Function.ts"
 import * as Inspectable from "../../Inspectable.ts"
 import { PipeInspectableProto } from "../../internal/core.ts"
-import type { Pipeable } from "../../Pipeable.ts"
+import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import type { PlatformError } from "../../PlatformError.ts"
 import { hasProperty } from "../../Predicate.ts"
 import { redact } from "../../Redactable.ts"
@@ -830,7 +830,7 @@ export const toClientResponse = (
     response
   )
 
-class ServerHttpClientResponse extends Inspectable.Class implements HttpClientResponse.HttpClientResponse {
+class ServerHttpClientResponse extends Inspectable.Class implements HttpClientResponse.HttpClientResponse, Pipeable {
   readonly [HttpIncomingMessage.TypeId]: typeof HttpIncomingMessage.TypeId
   readonly [HttpClientResponse.TypeId]: typeof HttpClientResponse.TypeId
 
@@ -1020,6 +1020,10 @@ class ServerHttpClientResponse extends Inspectable.Class implements HttpClientRe
   private formDataResponse?: Response
   private getFormDataResponse(): Response {
     return this.formDataResponse ??= new Response((this.response.body as Body.FormData).formData)
+  }
+
+  pipe() {
+    return pipeArguments(this, arguments)
   }
 }
 

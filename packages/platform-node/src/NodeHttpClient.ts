@@ -8,6 +8,7 @@ import * as Layer from "effect/Layer"
 import type * as Scope from "effect/Scope"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"
+import { type Pipeable, pipeArguments } from "effect/Pipeable"
 import * as Cookies from "effect/unstable/http/Cookies"
 import * as Headers from "effect/unstable/http/Headers"
 import type * as Body from "effect/unstable/http/HttpBody"
@@ -150,7 +151,7 @@ function convertBody(
 
 function noopErrorHandler(_: any) {}
 
-class UndiciResponse extends Inspectable.Class implements HttpClientResponse {
+class UndiciResponse extends Inspectable.Class implements HttpClientResponse, Pipeable {
   readonly [IncomingMessage.TypeId]: typeof IncomingMessage.TypeId
   readonly [Response.TypeId]: typeof Response.TypeId
   readonly request: HttpClientRequest
@@ -288,6 +289,10 @@ class UndiciResponse extends Inspectable.Class implements HttpClientResponse {
       request: this.request.toJSON(),
       status: this.status
     })
+  }
+
+  pipe() {
+    return pipeArguments(this, arguments)
   }
 }
 
@@ -490,7 +495,7 @@ const waitForFinish = (nodeRequest: Http.ClientRequest, request: HttpClientReque
     })
   })
 
-class NodeHttpResponse extends NodeHttpIncomingMessage<Error.HttpClientError> implements HttpClientResponse {
+class NodeHttpResponse extends NodeHttpIncomingMessage<Error.HttpClientError> implements HttpClientResponse, Pipeable {
   readonly [Response.TypeId]: typeof Response.TypeId
   readonly request: HttpClientRequest
 
@@ -554,6 +559,10 @@ class NodeHttpResponse extends NodeHttpIncomingMessage<Error.HttpClientError> im
       request: this.request.toJSON(),
       status: this.status
     })
+  }
+
+  pipe() {
+    return pipeArguments(this, arguments)
   }
 }
 

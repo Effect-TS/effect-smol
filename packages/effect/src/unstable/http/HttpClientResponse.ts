@@ -4,6 +4,7 @@
 import * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"
 import * as Inspectable from "../../Inspectable.ts"
+import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Schema from "../../Schema.ts"
 import type { ParseOptions } from "../../SchemaAST.ts"
 import * as Stream from "../../Stream.ts"
@@ -43,7 +44,7 @@ export const TypeId = "~effect/http/HttpClientResponse"
  * @since 4.0.0
  * @category models
  */
-export interface HttpClientResponse extends HttpIncomingMessage.HttpIncomingMessage<Error.HttpClientError> {
+export interface HttpClientResponse extends HttpIncomingMessage.HttpIncomingMessage<Error.HttpClientError>, Pipeable {
   readonly [TypeId]: typeof TypeId
   readonly request: HttpClientRequest.HttpClientRequest
   readonly status: number
@@ -213,7 +214,7 @@ export const filterStatusOk = (self: HttpClientResponse): Effect.Effect<HttpClie
 // internal
 // -----------------------------------------------------------------------------
 
-class WebHttpClientResponse extends Inspectable.Class implements HttpClientResponse {
+class WebHttpClientResponse extends Inspectable.Class implements HttpClientResponse, Pipeable {
   readonly [HttpIncomingMessage.TypeId]: typeof HttpIncomingMessage.TypeId
   readonly [TypeId]: typeof TypeId
 
@@ -356,5 +357,9 @@ class WebHttpClientResponse extends Inspectable.Class implements HttpClientRespo
           })
         })
     }).pipe(Effect.cached, Effect.runSync)
+  }
+
+  pipe() {
+    return pipeArguments(this, arguments)
   }
 }

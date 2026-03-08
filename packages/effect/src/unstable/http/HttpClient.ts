@@ -1397,7 +1397,7 @@ const responseRegistry = (() => {
 
 const scopedRequests = new WeakMap<HttpClientRequest.HttpClientRequest, AbortController>()
 
-class InterruptibleResponse implements HttpClientResponse.HttpClientResponse {
+class InterruptibleResponse implements HttpClientResponse.HttpClientResponse, Pipeable {
   readonly original: HttpClientResponse.HttpClientResponse
   readonly controller: AbortController
 
@@ -1483,6 +1483,10 @@ class InterruptibleResponse implements HttpClientResponse.HttpClientResponse {
 
   [Inspectable.NodeInspectSymbol]() {
     return this.original[Inspectable.NodeInspectSymbol]()
+  }
+
+  pipe() {
+    return pipeArguments(this, arguments)
   }
 }
 

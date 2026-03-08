@@ -18,6 +18,7 @@ import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
 import * as HttpIncomingMessage from "effect/unstable/http/HttpIncomingMessage"
 import * as UrlParams from "effect/unstable/http/UrlParams"
 import * as HeaderParser from "multipasta/HeadersParser"
+import { type Pipeable, pipeArguments } from "effect/Pipeable"
 
 // =============================================================================
 // Fetch
@@ -334,7 +335,7 @@ abstract class IncomingMessageImpl<E> extends Inspectable.Class implements HttpI
 }
 
 class ClientResponseImpl extends IncomingMessageImpl<HttpClientError.HttpClientError>
-  implements HttpClientResponse.HttpClientResponse
+  implements HttpClientResponse.HttpClientResponse, Pipeable
 {
   readonly [HttpClientResponse.TypeId]: typeof HttpClientResponse.TypeId
   readonly request: HttpClientRequest.HttpClientRequest
@@ -373,6 +374,10 @@ class ClientResponseImpl extends IncomingMessageImpl<HttpClientError.HttpClientE
       request: this.request.toJSON(),
       status: this.status
     })
+  }
+
+  pipe() {
+    return pipeArguments(this, arguments)
   }
 }
 
