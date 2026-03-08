@@ -1580,6 +1580,38 @@ export const withRefresh: {
   }
 )
 
+// -----------------------------------------------------------------------------
+// SWR
+// -----------------------------------------------------------------------------
+
+/**
+ * @since 4.0.0
+ * @category SWR
+ */
+export const SWRTypeId: SWRTypeId = "~effect/reactivity/Atom/SWR"
+
+/**
+ * @since 4.0.0
+ * @category SWR
+ */
+export type SWRTypeId = "~effect/reactivity/Atom/SWR"
+
+/**
+ * @since 4.0.0
+ * @category SWR
+ */
+export interface SWR {
+  readonly [SWRTypeId]: {
+    readonly markStale: () => void
+  }
+}
+
+/**
+ * @since 4.0.0
+ * @category SWR
+ */
+export const isSWR = (self: Atom<any>): self is Atom<any> & SWR => SWRTypeId in self
+
 /**
  * Adds stale-while-revalidate refresh behavior to an async result atom.
  *
@@ -1624,9 +1656,12 @@ export const swr: {
     }
   ): Atom<AsyncResult.AsyncResult<A, E>> => {
     const staleTime = Duration.toMillis(Duration.fromInputUnsafe(options.staleTime))
-    return transform(self, (get) => {
+    let forceStale = false
+
+    const atom = transform(self, (get) => {
       const current = get.once(self)
       get.subscribe(self, (value) => {
+        if (!value.waiting) forceStale = false
         get.setSelf(value)
       })
       if (options.revalidateOnFocus && options.focusSignal) {
@@ -1635,7 +1670,8 @@ export const swr: {
           options.focusSignal,
           options.revalidateOnFocus === "always" ? () => get.refresh(self) : () => {
             const current = get.once(self)
-            if (shouldRevalidateSWR(current, staleTime)) {
+            if (forceStale || shouldRevalidateSWR(current, staleTime)) {
+              forceStale = false
               get.refresh(self)
             }
           }
@@ -1645,11 +1681,21 @@ export const swr: {
       if (firstRead && options.revalidateOnMount === false) {
         return current
       }
-      if (shouldRevalidateSWR(current, staleTime)) {
+      if (forceStale || shouldRevalidateSWR(current, staleTime)) {
+        forceStale = false
         get.refresh(self)
       }
       return current
     }, { initialValueTarget: self })
+
+    return Object.assign(Object.create(Object.getPrototypeOf(atom)), {
+      ...atom,
+      [SWRTypeId]: {
+        markStale: () => {
+          forceStale = true
+        }
+      }
+    })
   }
 ) as any
 
