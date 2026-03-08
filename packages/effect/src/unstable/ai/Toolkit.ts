@@ -57,6 +57,8 @@ import type * as Tool from "./Tool.ts"
 
 const TypeId = "~effect/ai/Toolkit" as const
 
+type ToolRecord = Record<string, Tool.Any>
+
 /**
  * Represents a collection of tools which can be used to enhance the
  * capabilities of a large language model.
@@ -97,7 +99,7 @@ const TypeId = "~effect/ai/Toolkit" as const
  * @since 1.0.0
  * @category models
  */
-export interface Toolkit<in out Tools extends Record<string, Tool.Any>> extends
+export interface Toolkit<in out Tools extends ToolRecord> extends
   Effect.Yieldable<
     Toolkit<Tools>,
     WithHandler<Tools>,
@@ -120,6 +122,16 @@ export interface Toolkit<in out Tools extends Record<string, Tool.Any>> extends
    * A helper method which can be used for type-safe handler declarations.
    */
   of<Handlers extends HandlersFrom<Tools>>(handlers: Handlers): Handlers
+
+  /**
+   * Merges this toolkit with one or more other toolkits.
+   *
+   * If there are naming conflicts, tools from later toolkits override tools
+   * from earlier ones.
+   */
+  merge<const Toolkits extends ReadonlyArray<Any>>(
+    ...toolkits: Toolkits
+  ): Toolkit<MergedToolsWith<Tools, Toolkits>>
 
   /**
    * Converts a toolkit into a `ServiceMap` containing handlers for each tool
@@ -165,7 +177,7 @@ export interface HandlerContext<Tool extends Tool.Any> {
  */
 export interface Any {
   readonly [TypeId]: typeof TypeId
-  readonly tools: Record<string, Tool.Any>
+  readonly tools: ToolRecord
 }
 
 /**
@@ -175,7 +187,7 @@ export interface Any {
  * @since 1.0.0
  * @category utility types
  */
-export type Tools<T> = T extends Toolkit<infer Tools> ? Tools : never
+export type Tools<T> = T extends Toolkit<infer Tools extends ToolRecord> ? Tools : never
 
 /**
  * A utility type which transforms either a record or an array of tools into
@@ -198,7 +210,7 @@ export type ToolsByName<Tools> = Tools extends Record<string, Tool.Any> ?
  * @since 1.0.0
  * @category utility types
  */
-export type HandlersFrom<Tools extends Record<string, Tool.Any>> = {
+export type HandlersFrom<Tools extends ToolRecord> = {
   readonly [Name in keyof Tools as Tool.RequiresHandler<Tools[Name]> extends true ? Name : never]: (
     params: Tool.Parameters<Tools[Name]>,
     context: HandlerContext<Tools[Name]>
@@ -215,7 +227,7 @@ export type HandlersFrom<Tools extends Record<string, Tool.Any>> = {
  * @since 1.0.0
  * @category models
  */
-export interface WithHandler<in out Tools extends Record<string, Tool.Any>> {
+export interface WithHandler<in out Tools extends ToolRecord> {
   /**
    * The tools available in this toolkit instance.
    */
@@ -261,8 +273,11 @@ const Proto = {
   ...PipeInspectableProto,
   [TypeId]: TypeId,
   of: identity,
+  merge(this: Toolkit<ToolRecord>, ...toolkits: ReadonlyArray<Any>) {
+    return mergeToolkits(this, ...toolkits)
+  },
   toHandlers(
-    this: Toolkit<Record<string, Tool.Any>>,
+    this: Toolkit<ToolRecord>,
     build: Record<string, (params: any) => any> | Effect.Effect<Record<string, (params: any) => any>>
   ) {
     return Effect.gen({ self: this }, function*() {
@@ -277,12 +292,12 @@ const Proto = {
     })
   },
   toLayer(
-    this: Toolkit<Record<string, Tool.Any>>,
+    this: Toolkit<ToolRecord>,
     build: Record<string, (params: any) => any> | Effect.Effect<Record<string, (params: any) => any>>
   ) {
     return Layer.effectServices(this.toHandlers(build))
   },
-  asEffect(this: Toolkit<Record<string, Tool.Any>>) {
+  asEffect(this: Toolkit<ToolRecord>) {
     return Effect.gen({ self: this }, function*() {
       const tools = this.tools
 
@@ -450,7 +465,7 @@ const Proto = {
   }
 }
 
-const makeProto = <Tools extends Record<string, Tool.Any>>(tools: Tools): Toolkit<Tools> =>
+const makeProto = <Tools extends ToolRecord>(tools: Tools): Toolkit<Tools> =>
   Object.assign(function() {}, Proto, { tools }) as any
 
 const resolveInput = <Tools extends ReadonlyArray<Tool.Any>>(
@@ -467,7 +482,7 @@ const resolveInput = <Tools extends ReadonlyArray<Tool.Any>>(
  * An empty toolkit with no tools.
  *
  * Useful as a starting point for building toolkits or as a default value. Can
- * be extended using the merge function to add tools.
+ * be extended using `Toolkit.merge(...)` or `.merge(...)` to add tools.
  *
  * @since 1.0.0
  * @category constructors
@@ -516,20 +531,35 @@ export const make = <Tools extends ReadonlyArray<Tool.Any>>(
  * @since 1.0.0
  * @category utility types
  */
-export type SimplifyRecord<T> = { [K in keyof T]: T[K] } & {}
+export type SimplifyRecord<T extends ToolRecord> =
+  & {
+    readonly [K in Extract<keyof T, string>]: Extract<T[K], Tool.Any>
+  }
+  & {}
 
 /**
- * A utility type which merges a union of tool records into a single record.
+ * A utility type which merges a tuple of tool records into a single record.
+ *
+ * Later records override earlier ones for duplicate tool names.
  *
  * @since 1.0.0
  * @category utility types
  */
-export type MergeRecords<U> = {
-  readonly [K in Extract<U extends unknown ? keyof U : never, string>]: Extract<
-    U extends Record<K, infer V> ? V : never,
-    Tool.Any
-  >
-}
+export type MergeRecords<
+  Records extends ReadonlyArray<ToolRecord>,
+  Acc extends ToolRecord = {}
+> = Records extends readonly [
+  infer Head extends ToolRecord,
+  ...infer Tail extends ReadonlyArray<ToolRecord>
+] ? MergeRecords<Tail, SimplifyRecord<Omit<Acc, keyof Head> & Head>>
+  : SimplifyRecord<Acc>
+
+type MergedToolsWith<
+  Self extends ToolRecord,
+  Toolkits extends ReadonlyArray<Any>
+> = Toolkits extends readonly [infer Head extends Any, ...infer Tail extends ReadonlyArray<Any>] ?
+  MergedToolsWith<SimplifyRecord<Omit<Self, keyof Tools<Head>> & Tools<Head>>, Tail>
+  : SimplifyRecord<Self>
 
 /**
  * A utility type which merges the tools from multiple toolkits into a single
@@ -538,9 +568,17 @@ export type MergeRecords<U> = {
  * @since 1.0.0
  * @category utility types
  */
-export type MergedTools<Toolkits extends ReadonlyArray<Any>> = SimplifyRecord<
-  MergeRecords<Tools<Toolkits[number]>>
->
+export type MergedTools<Toolkits extends ReadonlyArray<Any>> = MergedToolsWith<{}, Toolkits>
+
+const mergeToolkits = (...toolkits: ReadonlyArray<Any>): Toolkit<ToolRecord> => {
+  const tools = {} as ToolRecord
+  for (const toolkit of toolkits) {
+    for (const [name, tool] of Object.entries(toolkit.tools)) {
+      tools[name] = tool
+    }
+  }
+  return makeProto(tools)
+}
 
 /**
  * Merges multiple toolkits into a single toolkit.
@@ -575,12 +613,4 @@ export const merge = <const Toolkits extends ReadonlyArray<Any>>(
    * The toolkits to merge together.
    */
   ...toolkits: Toolkits
-): Toolkit<MergedTools<Toolkits>> => {
-  const tools = {} as Record<string, any>
-  for (const toolkit of toolkits) {
-    for (const [name, tool] of Object.entries(toolkit.tools)) {
-      tools[name] = tool
-    }
-  }
-  return makeProto(tools) as any
-}
+): Toolkit<MergedTools<Toolkits>> => mergeToolkits(...toolkits) as any
