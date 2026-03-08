@@ -49,7 +49,7 @@ class User extends Schema.Class<User>("User")({
   id: Schema.Number,
   name: Schema.String,
   email: Schema.String,
-  createdAt: Schema.DateTimeUtcFromNumber,
+  createdAt: Schema.DateTimeUtc,
 }) {}
 
 class ProductSchema extends Schema.Class<ProductSchema>("ProductSchema")({
@@ -633,7 +633,7 @@ describe("IndexedDbQueryBuilder", () => {
 
       return Effect.gen(function* () {
         const api = yield* Db.getQueryBuilder;
-        const createdAt = DateTime.unsafeNow();
+        const createdAt = DateTime.nowUnsafe();
         const addedKey = yield* api.from("user").insert({
           id: 10,
           name: "insert1",
