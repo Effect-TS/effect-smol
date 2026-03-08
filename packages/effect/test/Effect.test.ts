@@ -1487,15 +1487,16 @@ describe("Effect", () => {
   })
 
   describe("Effect.ignore", () => {
-    type IgnoreOptions = { readonly log?: boolean | LogLevel.Severity }
+    type IgnoreOptions = { readonly log?: boolean | LogLevel.Severity; readonly message?: string }
 
     const makeTestLogger = () => {
       const capturedLogs: Array<{
         readonly logLevel: LogLevel.LogLevel
         readonly cause: Cause.Cause<unknown>
+        readonly message: unknown
       }> = []
       const testLogger = Logger.make<unknown, void>((options) => {
-        capturedLogs.push({ logLevel: options.logLevel, cause: options.cause })
+        capturedLogs.push({ logLevel: options.logLevel, cause: options.cause, message: options.message })
       })
       return { capturedLogs, testLogger }
     }
@@ -1541,18 +1542,27 @@ describe("Effect", () => {
         assert.strictEqual(logs[0].logLevel, "Error")
         assertCauseFail(logs[0].cause, "boom")
       }))
+
+    it.effect("prepends the provided message when logging", () =>
+      Effect.gen(function*() {
+        const logs = yield* runIgnore({ log: true, message: "Ignoring failure" })
+        assert.strictEqual(logs.length, 1)
+        assert.deepStrictEqual(logs[0].message, ["Ignoring failure"])
+        assertCauseFail(logs[0].cause, "boom")
+      }))
   })
 
   describe("Effect.ignoreCause", () => {
-    type IgnoreCauseOptions = { readonly log?: boolean | LogLevel.Severity }
+    type IgnoreCauseOptions = { readonly log?: boolean | LogLevel.Severity; readonly message?: string }
 
     const makeTestLogger = () => {
       const capturedLogs: Array<{
         readonly logLevel: LogLevel.LogLevel
         readonly cause: Cause.Cause<unknown>
+        readonly message: unknown
       }> = []
       const testLogger = Logger.make<unknown, void>((options) => {
-        capturedLogs.push({ logLevel: options.logLevel, cause: options.cause })
+        capturedLogs.push({ logLevel: options.logLevel, cause: options.cause, message: options.message })
       })
       return { capturedLogs, testLogger }
     }
@@ -1608,6 +1618,14 @@ describe("Effect", () => {
         const logs = yield* runIgnoreCause({ log: "Error" }, "Warn")
         assert.strictEqual(logs.length, 1)
         assert.strictEqual(logs[0].logLevel, "Error")
+        assertCauseFail(logs[0].cause, "boom")
+      }))
+
+    it.effect("prepends the provided message when logging", () =>
+      Effect.gen(function*() {
+        const logs = yield* runIgnoreCause({ log: true, message: "Ignoring cause" })
+        assert.strictEqual(logs.length, 1)
+        assert.deepStrictEqual(logs[0].message, ["Ignoring cause"])
         assertCauseFail(logs[0].cause, "boom")
       }))
   })

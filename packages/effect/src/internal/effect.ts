@@ -3182,13 +3182,16 @@ export const eventually = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect
 export const ignore: <
   Arg extends Effect.Effect<any, any, any> | {
     readonly log?: boolean | LogLevel.Severity | undefined
+    readonly message?: string | undefined
   } | undefined = {
     readonly log?: boolean | LogLevel.Severity | undefined
+    readonly message?: string | undefined
   }
 >(
   effectOrOptions: Arg,
   options?: {
     readonly log?: boolean | LogLevel.Severity | undefined
+    readonly message?: string | undefined
   } | undefined
 ) => [Arg] extends [Effect.Effect<infer _A, infer _E, infer _R>] ? Effect.Effect<void, never, _R>
   : <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<void, never, R> = dual(
@@ -3197,6 +3200,7 @@ export const ignore: <
       self: Effect.Effect<A, E, R>,
       options?: {
         readonly log?: boolean | LogLevel.Severity | undefined
+        readonly message?: string | undefined
       } | undefined
     ): Effect.Effect<void, never, R> => {
       if (!options?.log) {
@@ -3206,7 +3210,11 @@ export const ignore: <
       return matchCauseEffect(self, {
         onFailure(cause) {
           const failure = findFail(cause)
-          return Result.isFailure(failure) ? failCause(failure.failure) : logEffect(cause)
+          return Result.isFailure(failure)
+            ? failCause(failure.failure)
+            : options.message === undefined
+            ? logEffect(cause)
+            : logEffect(options.message, cause)
         },
         onSuccess: (_) => void_
       })
@@ -3217,13 +3225,16 @@ export const ignore: <
 export const ignoreCause: <
   Arg extends Effect.Effect<any, any, any> | {
     readonly log?: boolean | LogLevel.Severity | undefined
+    readonly message?: string | undefined
   } | undefined = {
     readonly log?: boolean | LogLevel.Severity | undefined
+    readonly message?: string | undefined
   }
 >(
   effectOrOptions: Arg,
   options?: {
     readonly log?: boolean | LogLevel.Severity | undefined
+    readonly message?: string | undefined
   } | undefined
 ) => [Arg] extends [Effect.Effect<infer _A, infer _E, infer _R>] ? Effect.Effect<void, never, _R>
   : <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<void, never, R> = dual(
@@ -3232,13 +3243,17 @@ export const ignoreCause: <
       self: Effect.Effect<A, E, R>,
       options?: {
         readonly log?: boolean | LogLevel.Severity | undefined
+        readonly message?: string | undefined
       } | undefined
     ): Effect.Effect<void, never, R> => {
       if (!options?.log) {
         return matchCauseEffect(self, { onFailure: (_) => void_, onSuccess: (_) => void_ })
       }
       const logEffect = logWithLevel(options.log === true ? undefined : options.log)
-      return matchCauseEffect(self, { onFailure: logEffect, onSuccess: (_) => void_ })
+      return matchCauseEffect(self, {
+        onFailure: (cause) => options.message === undefined ? logEffect(cause) : logEffect(options.message, cause),
+        onSuccess: (_) => void_
+      })
     }
   )
 
