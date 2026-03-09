@@ -216,7 +216,8 @@ export const causeInterruptors = <E>(self: Cause.Cause<E>): ReadonlySet<number> 
 const emptySet = new Set<number>()
 
 /** @internal */
-export const hasInterruptsOnly = <E>(self: Cause.Cause<E>): boolean => self.reasons.every(isInterruptReason)
+export const hasInterruptsOnly = <E>(self: Cause.Cause<E>): boolean =>
+  self.reasons.length > 0 && self.reasons.every(isInterruptReason)
 
 /** @internal */
 export const reasonAnnotations = <E>(
