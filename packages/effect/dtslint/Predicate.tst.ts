@@ -59,13 +59,13 @@ describe("Predicate", () => {
     expect(anys.filter(Predicate.isTagged("a"))).type.toBe<Array<{ _tag: "a" }>>()
   })
 
-  it.skip("isNullish", () => {
+  it("isNullish", () => {
     expect(numberOrNull.filter(Predicate.isNullish)).type.toBe<Array<null>>()
     expect(numberOrUndefined.filter(Predicate.isNullish)).type.toBe<Array<undefined>>()
     expect(numberOrNullOrUndefined.filter(Predicate.isNullish)).type.toBe<Array<null | undefined>>()
 
     if (Predicate.isNullish(u)) {
-      expect(u).type.toBe<null | undefined>()
+      expect.skip(u).type.toBe<null | undefined>()
     }
   })
 
@@ -246,9 +246,6 @@ describe("Predicate", () => {
   })
 
   it("isUint8Array", () => {
-    // @tstyche if { target: ">=5.7" } -- Before TypeScript 5.7, 'Uint8Array' was not generic
-    expect(unknowns.filter(Predicate.isUint8Array)).type.toBe<Array<Uint8Array<ArrayBufferLike>>>()
-    // @tstyche if { target: "<5.7" }
     expect(unknowns.filter(Predicate.isUint8Array)).type.toBe<Array<Uint8Array>>()
   })
 })
