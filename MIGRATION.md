@@ -76,4 +76,4 @@ minimal Effect program bundles to ~6.3 KB (minified + gzipped). With Schema,
 
 ### Modules
 
-- [Schema v4 Migration Guide](./packages/effect/SCHEMA.md)
+- [Schema v4 Migration Guide](./migration/schema.md)
