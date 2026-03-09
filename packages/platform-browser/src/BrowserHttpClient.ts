@@ -6,6 +6,7 @@ import * as Effect from "effect/Effect"
 import type { LazyArg } from "effect/Function"
 import * as Inspectable from "effect/Inspectable"
 import type * as Layer from "effect/Layer"
+import { type Pipeable, pipeArguments } from "effect/Pipeable"
 import * as Queue from "effect/Queue"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"
@@ -18,7 +19,6 @@ import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
 import * as HttpIncomingMessage from "effect/unstable/http/HttpIncomingMessage"
 import * as UrlParams from "effect/unstable/http/UrlParams"
 import * as HeaderParser from "multipasta/HeadersParser"
-import { type Pipeable, pipeArguments } from "effect/Pipeable"
 
 // =============================================================================
 // Fetch
