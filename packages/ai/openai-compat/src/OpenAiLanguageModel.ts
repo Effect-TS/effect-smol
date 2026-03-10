@@ -979,11 +979,13 @@ const makeStreamResponse = Effect.fnUntraced(
           hasToolCalls = hasToolCalls || choice.delta.tool_calls.length > 0
           choice.delta.tool_calls.forEach((deltaTool, indexInChunk) => {
             const toolIndex = deltaTool.index ?? indexInChunk
-            const toolId = deltaTool.id ?? `${event.id}_tool_${toolIndex}`
-            const providerToolName = deltaTool.function?.name
-            const toolName = toolNameMapper.getCustomName(providerToolName ?? "unknown_tool")
-            const argumentsDelta = deltaTool.function?.arguments ?? ""
             const activeToolCall = activeToolCalls[toolIndex]
+            const toolId = activeToolCall?.id ?? deltaTool.id ?? `${event.id}_tool_${toolIndex}`
+            const providerToolName = deltaTool.function?.name
+            const toolName = providerToolName !== undefined
+              ? toolNameMapper.getCustomName(providerToolName)
+              : activeToolCall?.name ?? toolNameMapper.getCustomName("unknown_tool")
+            const argumentsDelta = deltaTool.function?.arguments ?? ""
 
             if (Predicate.isUndefined(activeToolCall)) {
               activeToolCalls[toolIndex] = {

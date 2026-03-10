@@ -896,11 +896,23 @@ const ChatCompletionToolFunction = Schema.Struct({
   arguments: Schema.optionalKey(Schema.String)
 })
 
+const ChatCompletionToolFunctionDelta = Schema.Struct({
+  name: Schema.optionalKey(Schema.String),
+  arguments: Schema.optionalKey(Schema.String)
+})
+
 const ChatCompletionToolCall = Schema.Struct({
   id: Schema.optionalKey(Schema.String),
   index: Schema.optionalKey(Schema.Number),
   type: Schema.optionalKey(Schema.String),
   function: Schema.optionalKey(ChatCompletionToolFunction)
+})
+
+const ChatCompletionToolCallDelta = Schema.Struct({
+  id: Schema.optionalKey(Schema.String),
+  index: Schema.optionalKey(Schema.Number),
+  type: Schema.optionalKey(Schema.String),
+  function: Schema.optionalKey(ChatCompletionToolFunctionDelta)
 })
 
 const ChatCompletionMessage = Schema.Struct({
@@ -912,7 +924,7 @@ const ChatCompletionMessage = Schema.Struct({
 const ChatCompletionDelta = Schema.Struct({
   role: Schema.optionalKey(Schema.String),
   content: Schema.optionalKey(Schema.NullOr(Schema.String)),
-  tool_calls: Schema.optionalKey(Schema.Array(ChatCompletionToolCall))
+  tool_calls: Schema.optionalKey(Schema.Array(ChatCompletionToolCallDelta))
 })
 
 const ChatCompletionChoice = Schema.Struct({
