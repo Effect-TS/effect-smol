@@ -211,7 +211,7 @@ describe("Data", () => {
 
     it("toJSON includes fields", () => {
       const e = new MyError({ code: 1, message: "test" })
-      const json = e.toJSON() as any
+      const json = (e as any).toJSON()
       assert.strictEqual(json.code, 1)
       assert.strictEqual(json.message, "test")
     })
