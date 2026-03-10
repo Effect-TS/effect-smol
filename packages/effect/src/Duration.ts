@@ -35,6 +35,9 @@ const bigint60 = BigInt(60)
 const bigint1e3 = BigInt(1_000)
 const bigint1e6 = BigInt(1_000_000)
 const bigint1e9 = BigInt(1_000_000_000)
+const bigint3600 = BigInt(3_600)
+const bigint86400 = BigInt(86_400)
+const bigint604800 = BigInt(604_800)
 
 /**
  * Represents a span of time with high precision, supporting operations from
@@ -85,6 +88,33 @@ export type Unit =
   | "weeks"
 
 /**
+ * An object with optional duration components that can be combined to create
+ * a Duration. All fields are optional and additive.
+ *
+ * @example
+ * ```ts
+ * import { Duration } from "effect"
+ *
+ * Duration.fromInputUnsafe({ seconds: 30 })
+ * Duration.fromInputUnsafe({ days: 1 })
+ * Duration.fromInputUnsafe({ seconds: 1, nanos: 500 })
+ * ```
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export interface DurationObject {
+  readonly weeks?: number
+  readonly days?: number
+  readonly hours?: number
+  readonly minutes?: number
+  readonly seconds?: number
+  readonly millis?: number
+  readonly micros?: number
+  readonly nanos?: number
+}
+
+/**
  * Valid input types that can be converted to a Duration.
  *
  * @since 2.0.0
@@ -96,6 +126,7 @@ export type Input =
   | bigint // nanos
   | readonly [seconds: number, nanos: number]
   | `${number} ${Unit}`
+  | DurationObject
 
 const DURATION_REGEXP = /^(-?\d+(?:\.\d+)?)\s+(nanos?|micros?|millis?|seconds?|minutes?|hours?|days?|weeks?)$/
 
@@ -167,6 +198,29 @@ export const fromInputUnsafe = (input: Input): Duration => {
           return weeks(value)
       }
     }
+  }
+  if (typeof input === "object" && input !== null) {
+    const obj = input as DurationObject
+    if (obj.micros !== undefined || obj.nanos !== undefined) {
+      let total = bigint0
+      if (obj.weeks !== undefined) total += BigInt(obj.weeks) * bigint604800 * bigint1e9
+      if (obj.days !== undefined) total += BigInt(obj.days) * bigint86400 * bigint1e9
+      if (obj.hours !== undefined) total += BigInt(obj.hours) * bigint3600 * bigint1e9
+      if (obj.minutes !== undefined) total += BigInt(obj.minutes) * bigint60 * bigint1e9
+      if (obj.seconds !== undefined) total += BigInt(obj.seconds) * bigint1e9
+      if (obj.millis !== undefined) total += BigInt(obj.millis) * bigint1e6
+      if (obj.micros !== undefined) total += BigInt(obj.micros) * bigint1e3
+      if (obj.nanos !== undefined) total += BigInt(obj.nanos)
+      return make(total)
+    }
+    let total = 0
+    if (obj.weeks !== undefined) total += obj.weeks * 604_800_000
+    if (obj.days !== undefined) total += obj.days * 86_400_000
+    if (obj.hours !== undefined) total += obj.hours * 3_600_000
+    if (obj.minutes !== undefined) total += obj.minutes * 60_000
+    if (obj.seconds !== undefined) total += obj.seconds * 1_000
+    if (obj.millis !== undefined) total += obj.millis
+    return make(total)
   }
   throw new Error(`Invalid Input: ${input}`)
 }

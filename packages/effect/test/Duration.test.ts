@@ -39,6 +39,35 @@ describe("Duration", () => {
     deepStrictEqual(Duration.fromInputUnsafe([0, Infinity]), Duration.infinity)
     deepStrictEqual(Duration.fromInputUnsafe([0, -Infinity]), Duration.negativeInfinity)
     deepStrictEqual(Duration.fromInputUnsafe([0, NaN]), Duration.zero)
+
+    // object input
+    deepStrictEqual(Duration.fromInputUnsafe({}), Duration.zero)
+    deepStrictEqual(Duration.fromInputUnsafe({ hours: 2 }), Duration.hours(2))
+    deepStrictEqual(Duration.fromInputUnsafe({ weeks: 1 }), Duration.weeks(1))
+    deepStrictEqual(Duration.fromInputUnsafe({ days: 3 }), Duration.days(3))
+    deepStrictEqual(Duration.fromInputUnsafe({ minutes: 45 }), Duration.minutes(45))
+    deepStrictEqual(Duration.fromInputUnsafe({ seconds: 30 }), Duration.seconds(30))
+    deepStrictEqual(Duration.fromInputUnsafe({ millis: 500 }), Duration.millis(500))
+    deepStrictEqual(
+      Duration.fromInputUnsafe({ hours: 1, minutes: 30 }),
+      Duration.sum(Duration.hours(1), Duration.minutes(30))
+    )
+    deepStrictEqual(Duration.fromInputUnsafe({ hours: -1 }), Duration.hours(-1))
+    deepStrictEqual(
+      Duration.fromInputUnsafe({ seconds: 1, nanos: 500 }),
+      Duration.nanos(1_000_000_500n)
+    )
+    deepStrictEqual(
+      Duration.fromInputUnsafe({ micros: 100 }),
+      Duration.micros(100n)
+    )
+    deepStrictEqual(
+      Duration.fromInputUnsafe({ days: 1, hours: 2, minutes: 30, seconds: 15 }),
+      Duration.sum(
+        Duration.sum(Duration.days(1), Duration.hours(2)),
+        Duration.sum(Duration.minutes(30), Duration.seconds(15))
+      )
+    )
   })
 
   it("fromInput", () => {
