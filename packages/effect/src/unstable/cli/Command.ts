@@ -838,15 +838,15 @@ export const withGlobalFlags: {
 
 // Type extractors for subcommand arrays - T[number] gives union of all elements
 type ExtractGlobalFlagContext<T extends ReadonlyArray<GlobalFlag.GlobalFlag<any>>> = T[number] extends infer F
-  ? F extends GlobalFlag.Setting<infer Id, any> ? GlobalFlag.Setting.Identifier<Id>
+  ? F extends GlobalFlag.Setting<infer Id, infer _A> ? GlobalFlag.Setting.Identifier<Id>
   : never
   : never
-type ExtractSubcommand<T> = T extends Command<any, any, any, any, any> ? T
+type ExtractSubcommand<T> = T extends Command<infer _Name, infer _Input, infer _CI, infer _E, infer _R> ? T
   : T extends Command.SubcommandGroup<infer Commands> ? Commands[number]
   : never
 type ExtractSubcommandErrors<T extends ReadonlyArray<Command.SubcommandEntry>> = Error<ExtractSubcommand<T[number]>>
 type ExtractSubcommandContext<T extends ReadonlyArray<Command.SubcommandEntry>> = ExtractSubcommand<T[number]> extends
-  Command<any, any, any, any, infer R> ? R : never
+  Command<infer _Name, infer _Input, infer _CI, infer _E, infer _R> ? _R : never
 
 /**
  * Sets the description for a command.
