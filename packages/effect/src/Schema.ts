@@ -328,17 +328,6 @@ export interface Top extends
 export type Type<S> = S extends Top ? S["Type"] : never
 
 /**
- * @since 4.0.0
- */
-export declare namespace Schema {
-  /**
-   * @deprecated Use `Schema.Type` instead.
-   * @since 4.0.0
-   */
-  export type Type<S> = S extends Top ? S["Type"] : never
-}
-
-/**
  * A typed view of a schema that tracks the decoded (output) type `T`.
  *
  * When to use:
