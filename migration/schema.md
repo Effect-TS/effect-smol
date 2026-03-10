@@ -28,6 +28,8 @@ This document maps v3 Schema APIs to their v4 equivalents. Simple renames and ar
 | `URLFromSelf`                                   | `URL`                                                                         | rename            |
 | `RedactedFromSelf`                              | `Redacted`                                                                    | rename            |
 | `Redacted`                                      | `RedactedFromValue`                                                           | rename            |
+| `EitherFromSelf`                                | `Result`                                                                      | rename            |
+| `TaggedError`                                   | `TaggedErrorClass`                                                            | rename            |
 | `decodeUnknown`                                 | `decodeUnknownEffect`                                                         | rename            |
 | `decode`                                        | `decodeEffect`                                                                | rename            |
 | `decodeUnknownEither`                           | `decodeUnknownExit`                                                           | rename            |
@@ -65,6 +67,7 @@ This document maps v3 Schema APIs to their v4 equivalents. Simple renames and ar
 | `NonEmptyArrayEnsure`                           | —                                                                             | removed           |
 | `withDefaults`                                  | —                                                                             | removed           |
 | `fromKey`                                       | —                                                                             | removed           |
+| `Data(schema)`                                  | —                                                                             | removed           |
 | `optionalWith(schema, opts)`                    | varies by options (see [optionalWith](#optionalwith))                         | manual            |
 | `optionalToOptional`                            | see [optional field transformations](#optional-field-transformations)         | manual            |
 | `optionalToRequired`                            | see [optional field transformations](#optional-field-transformations)         | manual            |
@@ -73,6 +76,26 @@ This document maps v3 Schema APIs to their v4 equivalents. Simple renames and ar
 | `rename({ a: "c" })`                            | see [rename](#rename)                                                         | manual            |
 | `format(schema)`                                | see [format](#format)                                                         | manual            |
 | `declare`                                       | see [declare](#declare)                                                       | manual            |
+
+## Additional rename notes
+
+### `*FromSelf` renames
+
+The following `*FromSelf` schemas have been renamed to drop the suffix:
+
+`DateFromSelf` → `Date`, `DurationFromSelf` → `Duration`, `ChunkFromSelf` → `Chunk`, `ReadonlyMapFromSelf` → `ReadonlyMap`, `ReadonlySetFromSelf` → `ReadonlySet`, `HashMapFromSelf` → `HashMap`, `HashSetFromSelf` → `HashSet`, `BigDecimalFromSelf` → `BigDecimal`, `CauseFromSelf` → `Cause`, `ExitFromSelf` → `Exit`, `OptionFromSelf` → `Option`, `RegExpFromSelf` → `RegExp`
+
+### Filter renames
+
+All filters have been renamed with an `is` prefix and now use `check(...)` or `pipe(Schema.check(...))`:
+
+`greaterThan` → `isGreaterThan`, `greaterThanOrEqualTo` → `isGreaterThanOrEqualTo`, `lessThan` → `isLessThan`, `lessThanOrEqualTo` → `isLessThanOrEqualTo`, `between` → `isBetween`, `int` → `isInt`, `multipleOf` → `isMultipleOf`, `finite` → `isFinite`, `minLength` → `isMinLength`, `maxLength` → `isMaxLength`, `length` → `isLengthBetween`
+
+Note: `positive`, `negative`, `nonNegative`, `nonPositive` have been removed in v4.
+
+### Utility renames
+
+`equivalence` → `toEquivalence`, `arbitrary` → `toArbitrary`, `pretty` → `toFormatter`, `standardSchemaV1` → `toStandardSchemaV1`
 
 ## Detailed migrations
 
@@ -89,6 +112,12 @@ import { Schema } from "effect"
 // v4:
 const validateSync = Schema.decodeSync(Schema.toType(Schema.String))
 ```
+
+### Data removal
+
+**Migration: removed**
+
+`Schema.Data` has no v4 equivalent. Remove it. `Equal.equals` performs deep structural comparison on objects by default in v4, so `Schema.Data` is unnecessary.
 
 ### pickLiterals
 
@@ -826,33 +855,5 @@ function split(separator: string) {
 ## Not covered
 
 The following v3 APIs are not yet documented in this migration guide. If you encounter them, check the v4 source or open an issue.
-
-### `*FromSelf` renames
-
-All `*FromSelf` schemas have been renamed to drop the suffix (same pattern as `BigIntFromSelf` → `BigInt`):
-
-`DateFromSelf`, `DurationFromSelf`, `ChunkFromSelf`, `ReadonlyMapFromSelf`, `ReadonlySetFromSelf`, `HashMapFromSelf`, `HashSetFromSelf`, `BigDecimalFromSelf`, `CauseFromSelf`, `ExitFromSelf`, `OptionFromSelf`, `EitherFromSelf`, `RegExpFromSelf`
-
-### Filter renames
-
-All filters have been renamed with `is` prefix and now use `check(...)` or `pipe(Schema.check(...))`:
-
-`greaterThan` → `isGreaterThan`, `greaterThanOrEqualTo` → `isGreaterThanOrEqualTo`, `lessThan` → `isLessThan`, `lessThanOrEqualTo` → `isLessThanOrEqualTo`, `between` → `isBetween`, `int` → `isInt`, `multipleOf` → `isMultipleOf`, `finite` → `isFinite`, `minLength` → `isMinLength`, `maxLength` → `isMaxLength`, `length` → `isLengthBetween`
-
-Note: `positive`, `negative`, `nonNegative`, `nonPositive` have been removed in v4.
-
-### Utility renames
-
-`equivalence` → `toEquivalence`, `arbitrary` → `toArbitrary`, `pretty` → `toFormatter`, `standardSchemaV1` → `toStandardSchemaV1`
-
-### Either → Result
-
-`Schema.Either` / `Schema.EitherFromSelf` have been renamed to `Schema.Result`.
-
-### Class-based APIs
-
-`Schema.Class`, `Schema.TaggedClass`, `Schema.TaggedErrorClass` (formerly `Schema.TaggedError`) — significantly restructured in v4.
-
-### Other APIs
 
 `suspend`, `brand` / `fromBrand`, `Enum`, `instanceOf`, `is` / `asserts`, `mutable`, `TaggedStruct`, `withConstructorDefault`
