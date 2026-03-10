@@ -83,7 +83,7 @@ import type { Predicate, Refinement } from "./Predicate.ts"
 import { isFunction } from "./Predicate.ts"
 import type { Covariant, NoInfer, NotFunction } from "./Types.ts"
 import type * as Unify from "./Unify.ts"
-import * as Gen from "./Utils.ts"
+import type * as Gen from "./Utils.ts"
 
 const TypeId = "~effect/data/Result"
 
@@ -1412,9 +1412,7 @@ export const gen: Gen.Gen<ResultTypeLambda> = (...args) => {
   const iterator = f()
   let state: IteratorResult<any> = iterator.next()
   while (!state.done) {
-    const current = Gen.isGenKind(state.value)
-      ? state.value.value
-      : state.value
+    const current = state.value
     if (isFailure(current)) {
       return current
     }

@@ -94,7 +94,7 @@ import * as Reducer from "./Reducer.ts"
 import type { Result } from "./Result.ts"
 import type { Covariant, NoInfer, NotFunction } from "./Types.ts"
 import type * as Unify from "./Unify.ts"
-import * as Gen from "./Utils.ts"
+import type * as Gen from "./Utils.ts"
 
 const TypeId = "~effect/data/Option"
 
@@ -2550,9 +2550,7 @@ export const gen: Gen.Gen<OptionTypeLambda> = (...args) => {
   const iterator = f()
   let state: IteratorResult<any> = iterator.next()
   while (!state.done) {
-    const current = Gen.isGenKind(state.value)
-      ? state.value.value
-      : state.value
+    const current = state.value
     if (isNone(current)) {
       return current
     }

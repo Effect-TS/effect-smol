@@ -4167,6 +4167,62 @@ export * as UndefinedOr from "./UndefinedOr.ts"
 export * as Unify from "./Unify.ts"
 
 /**
+ * Internal utilities for the Effect ecosystem's generator-based syntax and
+ * higher-kinded type machinery.
+ *
+ * ## Mental model
+ *
+ * - **SingleShotGen** — an `IterableIterator` wrapper that yields its value
+ *   exactly once. Used internally by `[Symbol.iterator]()` on Effect, Option,
+ *   Result, and other yieldable types so they work inside generator functions.
+ * - **Gen** — a type-level signature for generator-based monadic composition
+ *   (`gen` functions). Parametric over any `TypeLambda` so each module
+ *   (Effect, Option, Result, ...) can expose its own `gen` with correct types.
+ * - **Variance** — a type-level marker that encodes the variance (covariant,
+ *   contravariant, invariant) of a `TypeLambda`'s type parameters.
+ *   Used by {@link Gen} for type inference.
+ *
+ * ## Common tasks
+ *
+ * - Make a type yieldable in generators -> implement `[Symbol.iterator]()` returning a {@link SingleShotGen}
+ * - Define a generator-based API for a new TypeLambda -> type it as {@link Gen}`<MyTypeLambda>`
+ * - Encode variance for a higher-kinded type -> use {@link Variance}
+ *
+ * ## Gotchas
+ *
+ * - {@link SingleShotGen} yields its value only on the first `.next()` call.
+ *   Calling `.next()` again returns `{ done: true }`. Iterating the same
+ *   instance twice will skip the value on the second pass; call
+ *   `[Symbol.iterator]()` to get a fresh iterator.
+ * - {@link Gen} and {@link Variance} are pure type-level constructs — they
+ *   have no runtime representation.
+ *
+ * ## Quickstart
+ *
+ * **Example** (Using SingleShotGen to make a type yieldable)
+ *
+ * ```ts
+ * import { Utils } from "effect"
+ *
+ * class MyWrapper<A> {
+ *   constructor(readonly value: A) {}
+ *   [Symbol.iterator]() {
+ *     return new Utils.SingleShotGen<MyWrapper<A>, A>(this)
+ *   }
+ * }
+ *
+ * const w = new MyWrapper(42)
+ * const iter = w[Symbol.iterator]()
+ * console.log(iter.next(undefined as any))
+ * // { value: MyWrapper { value: 42 }, done: false }
+ * console.log(iter.next(42))
+ * // { value: 42, done: true }
+ * ```
+ *
+ * @see {@link SingleShotGen}
+ * @see {@link Gen}
+ * @see {@link Variance}
+ *
  * @since 2.0.0
  */
 export * as Utils from "./Utils.ts"
