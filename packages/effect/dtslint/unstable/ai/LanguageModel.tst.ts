@@ -1,5 +1,4 @@
-import type { Effect } from "effect"
-import { Schema } from "effect"
+import { Effect, Schema, ServiceMap } from "effect"
 import { type AiError, LanguageModel, Tool, Toolkit } from "effect/unstable/ai"
 import { describe, expect, it } from "tstyche"
 
@@ -15,6 +14,24 @@ const FailureModeErrorTool = Tool.make("FailureModeErrorTool", {
   })
 })
 
+class RequestContext extends ServiceMap.Service<RequestContext, {
+  readonly requestId: string
+}>()("RequestContext") {}
+
+class ToolkitContext extends ServiceMap.Service<ToolkitContext, {
+  readonly tenantId: string
+}>()("ToolkitContext") {}
+
+const ToolWithRequestContext = Tool.make("ToolWithRequestContext", {
+  parameters: Schema.Struct({
+    input: Schema.String
+  }),
+  success: Schema.Struct({
+    output: Schema.String
+  }),
+  dependencies: [RequestContext]
+})
+
 describe("LanguageModel", () => {
   describe("generateText", () => {
     it("tool handlers do not leak AiErrorReason into the error channel", () => {
@@ -28,6 +45,56 @@ describe("LanguageModel", () => {
 
       expect<ProgramError>().type.toBe<AiError.AiError | { readonly message: string }>()
       expect<Extract<ProgramError, AiError.AiErrorReason>>().type.toBe<never>()
+    })
+
+    it("includes tool request dependencies when a toolkit is provided", () => {
+      const toolkit = Toolkit.make(ToolWithRequestContext)
+      const program = LanguageModel.generateText({
+        prompt: "hello",
+        toolkit
+      })
+
+      type ProgramRequirements = typeof program extends Effect.Effect<any, any, infer R> ? R : never
+
+      expect<ProgramRequirements>().type.toBe<
+        LanguageModel.LanguageModel | RequestContext | Tool.HandlersFor<Toolkit.Tools<typeof toolkit>>
+      >()
+    })
+
+    it("includes tool request dependencies for resolved toolkits with handlers", () => {
+      const toolkit: Toolkit.WithHandler<{
+        readonly ToolWithRequestContext: typeof ToolWithRequestContext
+      }> = {
+        tools: {
+          ToolWithRequestContext
+        },
+        handle: () => Effect.die("not implemented")
+      }
+      const program = LanguageModel.generateText({
+        prompt: "hello",
+        toolkit
+      })
+
+      type ProgramRequirements = typeof program extends Effect.Effect<any, any, infer R> ? R : never
+
+      expect<ProgramRequirements>().type.toBe<LanguageModel.LanguageModel | RequestContext>()
+    })
+
+    it("includes yieldable toolkit requirements and tool request dependencies", () => {
+      type ToolWithRequestContextTools = {
+        readonly ToolWithRequestContext: typeof ToolWithRequestContext
+      }
+
+      type YieldableToolkit = Effect.Yieldable<
+        Toolkit.Toolkit<ToolWithRequestContextTools>,
+        Toolkit.WithHandler<ToolWithRequestContextTools>,
+        never,
+        ToolkitContext
+      >
+
+      expect<LanguageModel.ExtractServices<{ readonly toolkit: YieldableToolkit }>>().type.toBe<
+        RequestContext | ToolkitContext
+      >()
     })
   })
 })

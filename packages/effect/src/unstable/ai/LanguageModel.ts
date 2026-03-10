@@ -518,7 +518,7 @@ export type ExtractServices<Options> = Options extends {
   }
   // Required for tool call execution
     ?
-      | Tool.ResultEncodingServices<_Tools[keyof _Tools]>
+      | Tool.HandlerServices<_Tools[keyof _Tools]>
       // Required for decoding large language model responses
       | Tool.ResultDecodingServices<_Tools[keyof _Tools]>
   : Options extends {
@@ -531,7 +531,7 @@ export type ExtractServices<Options> = Options extends {
   }
   // Required for tool call execution
     ?
-      | Tool.ResultEncodingServices<_Tools[keyof _Tools]>
+      | Tool.HandlerServices<_Tools[keyof _Tools]>
       // Required for decoding large language model responses
       | Tool.ResultDecodingServices<_Tools[keyof _Tools]>
       | _R
