@@ -321,10 +321,18 @@ export interface Top extends
 {}
 
 /**
+ * Extracts the decoded type from a schema-like value.
+ *
+ * @since 4.0.0
+ */
+export type Type<S> = S extends Top ? S["Type"] : never
+
+/**
  * @since 4.0.0
  */
 export declare namespace Schema {
   /**
+   * @deprecated Use `Schema.Type` instead.
    * @since 4.0.0
    */
   export type Type<S> = S extends Top ? S["Type"] : never

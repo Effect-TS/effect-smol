@@ -16,7 +16,7 @@ export const SpanStatusStarted = Schema.Struct({
  * @since 4.0.0
  * @category schemas
  */
-export type SpanStatusStarted = Schema.Schema.Type<typeof SpanStatusStarted>
+export type SpanStatusStarted = Schema.Type<typeof SpanStatusStarted>
 
 /**
  * @since 4.0.0
@@ -32,7 +32,7 @@ export const SpanStatusEnded = Schema.Struct({
  * @since 4.0.0
  * @category schemas
  */
-export type SpanStatusEnded = Schema.Schema.Type<typeof SpanStatusEnded>
+export type SpanStatusEnded = Schema.Type<typeof SpanStatusEnded>
 
 /**
  * @since 4.0.0
@@ -44,7 +44,7 @@ export const SpanStatus = Schema.Union([SpanStatusStarted, SpanStatusEnded])
  * @since 4.0.0
  * @category schemas
  */
-export type SpanStatus = Schema.Schema.Type<typeof SpanStatus>
+export type SpanStatus = Schema.Type<typeof SpanStatus>
 
 /**
  * @since 4.0.0
@@ -115,7 +115,7 @@ export const SpanEvent = Schema.Struct({
  * @since 4.0.0
  * @category schemas
  */
-export type SpanEvent = Schema.Schema.Type<typeof SpanEvent>
+export type SpanEvent = Schema.Type<typeof SpanEvent>
 
 /**
  * @since 4.0.0
@@ -141,7 +141,7 @@ export const Ping = Schema.Struct({
  * @since 4.0.0
  * @category schemas
  */
-export type Ping = Schema.Schema.Type<typeof Ping>
+export type Ping = Schema.Type<typeof Ping>
 
 /**
  * @since 4.0.0
@@ -155,7 +155,7 @@ export const Pong = Schema.Struct({
  * @since 4.0.0
  * @category schemas
  */
-export type Pong = Schema.Schema.Type<typeof Pong>
+export type Pong = Schema.Type<typeof Pong>
 
 /**
  * @since 4.0.0
@@ -169,7 +169,7 @@ export const MetricsRequest = Schema.Struct({
  * @since 4.0.0
  * @category schemas
  */
-export type MetricsRequest = Schema.Schema.Type<typeof MetricsRequest>
+export type MetricsRequest = Schema.Type<typeof MetricsRequest>
 
 /**
  * @since 4.0.0
@@ -184,7 +184,7 @@ export const MetricLabel = Schema.Struct({
  * @since 4.0.0
  * @category schemas
  */
-export type MetricLabel = Schema.Schema.Type<typeof MetricLabel>
+export type MetricLabel = Schema.Type<typeof MetricLabel>
 
 const metric = <Type extends string, State extends Schema.Top>(type: Type, state: State) =>
   Schema.Struct({
@@ -211,7 +211,7 @@ export const Counter = metric(
  * @since 4.0.0
  * @category schemas
  */
-export type Counter = Schema.Schema.Type<typeof Counter>
+export type Counter = Schema.Type<typeof Counter>
 
 /**
  * @since 4.0.0
@@ -228,7 +228,7 @@ export const Frequency = metric(
  * @since 4.0.0
  * @category schemas
  */
-export type Frequency = Schema.Schema.Type<typeof Frequency>
+export type Frequency = Schema.Type<typeof Frequency>
 
 /**
  * @since 4.0.0
@@ -245,7 +245,7 @@ export const Gauge = metric(
  * @since 4.0.0
  * @category schemas
  */
-export type Gauge = Schema.Schema.Type<typeof Gauge>
+export type Gauge = Schema.Type<typeof Gauge>
 
 /**
  * @since 4.0.0
@@ -266,7 +266,7 @@ export const Histogram = metric(
  * @since 4.0.0
  * @category schemas
  */
-export type Histogram = Schema.Schema.Type<typeof Histogram>
+export type Histogram = Schema.Type<typeof Histogram>
 
 /**
  * @since 4.0.0
@@ -287,7 +287,7 @@ export const Summary = metric(
  * @since 4.0.0
  * @category schemas
  */
-export type Summary = Schema.Schema.Type<typeof Summary>
+export type Summary = Schema.Type<typeof Summary>
 
 /**
  * @since 4.0.0
@@ -299,7 +299,7 @@ export const Metric = Schema.Union([Counter, Frequency, Gauge, Histogram, Summar
  * @since 4.0.0
  * @category schemas
  */
-export type Metric = Schema.Schema.Type<typeof Metric>
+export type Metric = Schema.Type<typeof Metric>
 
 /**
  * @since 4.0.0
@@ -314,7 +314,7 @@ export const MetricsSnapshot = Schema.Struct({
  * @since 4.0.0
  * @category schemas
  */
-export type MetricsSnapshot = Schema.Schema.Type<typeof MetricsSnapshot>
+export type MetricsSnapshot = Schema.Type<typeof MetricsSnapshot>
 
 /**
  * @since 4.0.0
@@ -326,7 +326,7 @@ export const Request = Schema.Union([Ping, Span, SpanEvent, MetricsSnapshot])
  * @since 4.0.0
  * @category schemas
  */
-export type Request = Schema.Schema.Type<typeof Request>
+export type Request = Schema.Type<typeof Request>
 
 /**
  * @since 4.0.0
@@ -350,7 +350,7 @@ export const Response = Schema.Union([Pong, MetricsRequest])
  * @since 4.0.0
  * @category schemas
  */
-export type Response = Schema.Schema.Type<typeof Response>
+export type Response = Schema.Type<typeof Response>
 
 /**
  * @since 4.0.0

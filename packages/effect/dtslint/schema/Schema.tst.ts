@@ -56,7 +56,7 @@ describe("Schema", () => {
     it("Schema", () => {
       function f<S extends Schema.Schema<unknown>>(_s: S) {
         // @ts-expect-error Type 'null' is not assignable to type 'Type<S>'
-        const Type: Schema.Schema.Type<S> = null
+        const Type: Schema.Type<S> = null
         return Type
       }
       f(Schema.String)

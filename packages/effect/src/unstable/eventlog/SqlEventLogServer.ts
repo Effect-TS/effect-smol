@@ -210,7 +210,7 @@ const EncryptedRemoteEntrySql = Schema.Struct({
   encrypted_entry: Schema.Uint8Array
 })
 
-type EncryptedRemoteEntrySql = Schema.Schema.Type<typeof EncryptedRemoteEntrySql>
+type EncryptedRemoteEntrySql = Schema.Type<typeof EncryptedRemoteEntrySql>
 
 const decodeEntryRows = Schema.decodeUnknownEffect(Schema.Array(EncryptedRemoteEntrySql))
 

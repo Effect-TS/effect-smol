@@ -22,7 +22,7 @@ export const EncryptedEntry = Schema.Struct({
  * @since 4.0.0
  * @category models
  */
-export interface EncryptedRemoteEntry extends Schema.Schema.Type<typeof EncryptedRemoteEntry> {}
+export interface EncryptedRemoteEntry extends Schema.Type<typeof EncryptedRemoteEntry> {}
 
 /**
  * @since 4.0.0

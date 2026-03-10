@@ -59,7 +59,7 @@ export const makeHandler: Effect.Effect<
       >()
       let latestSequence = -1
 
-      const write = Effect.fnUntraced(function*(response: Schema.Schema.Type<typeof ProtocolResponse>) {
+      const write = Effect.fnUntraced(function*(response: Schema.Type<typeof ProtocolResponse>) {
         const data = yield* encodeResponse(response)
         if (response._tag !== "Changes" || data.byteLength <= constChunkSize) {
           return yield* writeRaw(data)
@@ -72,7 +72,7 @@ export const makeHandler: Effect.Effect<
 
       yield* Effect.forkChild(Effect.orDie(write(new Hello({ remoteId }))))
 
-      const handleRequest = (request: Schema.Schema.Type<typeof ProtocolRequest>): Effect.Effect<void> => {
+      const handleRequest = (request: Schema.Type<typeof ProtocolRequest>): Effect.Effect<void> => {
         switch (request._tag) {
           case "Ping": {
             return Effect.orDie(write(new Pong({ id: request.id })))
