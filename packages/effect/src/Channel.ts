@@ -5978,7 +5978,7 @@ export const decodeText = <Err, Done>(encoding?: string, options?: TextDecoderOp
   Arr.NonEmptyReadonlyArray<string>,
   Err,
   Done,
-  Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+  Arr.NonEmptyReadonlyArray<Uint8Array>,
   Err,
   Done
 > =>
@@ -5994,7 +5994,7 @@ export const decodeText = <Err, Done>(encoding?: string, options?: TextDecoderOp
  * @category String manipulation
  */
 export const encodeText = <Err, Done>(): Channel<
-  Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+  Arr.NonEmptyReadonlyArray<Uint8Array>,
   Err,
   Done,
   Arr.NonEmptyReadonlyArray<string>,
@@ -6004,7 +6004,7 @@ export const encodeText = <Err, Done>(): Channel<
   fromTransform((upstream, _scope) =>
     Effect.sync(() => {
       const encoder = new TextEncoder()
-      return Effect.map(upstream, Arr.map((line) => encoder.encode(line) as Uint8Array<ArrayBuffer>))
+      return Effect.map(upstream, Arr.map((line) => encoder.encode(line)))
     })
   )
 

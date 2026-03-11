@@ -61,13 +61,13 @@ export const encodeString = <IE = never, Done = unknown>(): Channel.Channel<
  * @category constructors
  */
 export const encode = <IE = never, Done = unknown>(): Channel.Channel<
-  Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+  Arr.NonEmptyReadonlyArray<Uint8Array>,
   IE | NdjsonError,
   Done,
   Arr.NonEmptyReadonlyArray<unknown>,
   IE,
   Done
-> => Channel.map(encodeString(), Arr.map((_) => encoder.encode(_) as Uint8Array<ArrayBuffer>))
+> => Channel.map(encodeString(), Arr.map((_) => encoder.encode(_)))
 
 /**
  * @since 4.0.0
@@ -77,7 +77,7 @@ export const encodeSchema = <S extends Schema.Top>(
   schema: S
 ) =>
 <IE = never, Done = unknown>(): Channel.Channel<
-  Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+  Arr.NonEmptyReadonlyArray<Uint8Array>,
   NdjsonError | Schema.SchemaError | IE,
   Done,
   Arr.NonEmptyReadonlyArray<S["Type"]>,
@@ -141,7 +141,7 @@ export const decode = <IE = never, Done = unknown>(options?: {
   Arr.NonEmptyReadonlyArray<unknown>,
   IE | NdjsonError,
   Done,
-  Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+  Arr.NonEmptyReadonlyArray<Uint8Array>,
   IE,
   Done
 > => {
@@ -161,7 +161,7 @@ export const decodeSchema = <S extends Schema.Top>(
   Arr.NonEmptyReadonlyArray<S["Type"]>,
   Schema.SchemaError | NdjsonError | IE,
   Done,
-  Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+  Arr.NonEmptyReadonlyArray<Uint8Array>,
   IE,
   Done,
   S["DecodingServices"]
@@ -195,10 +195,10 @@ export const duplex: {
     readonly ignoreEmptyLines?: boolean | undefined
   }): <R, IE, OE, OutDone, InDone>(
     self: Channel.Channel<
-      Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+      Arr.NonEmptyReadonlyArray<Uint8Array>,
       OE,
       OutDone,
-      Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+      Arr.NonEmptyReadonlyArray<Uint8Array>,
       IE | NdjsonError,
       InDone,
       R
@@ -214,10 +214,10 @@ export const duplex: {
   >
   <R, IE, OE, OutDone, InDone>(
     self: Channel.Channel<
-      Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+      Arr.NonEmptyReadonlyArray<Uint8Array>,
       OE,
       OutDone,
-      Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+      Arr.NonEmptyReadonlyArray<Uint8Array>,
       IE | NdjsonError,
       InDone,
       R
@@ -236,10 +236,10 @@ export const duplex: {
   >
 } = dual((args) => Channel.isChannel(args[0]), <R, IE, OE, OutDone, InDone>(
   self: Channel.Channel<
-    Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+    Arr.NonEmptyReadonlyArray<Uint8Array>,
     OE,
     OutDone,
-    Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+    Arr.NonEmptyReadonlyArray<Uint8Array>,
     IE | NdjsonError,
     InDone,
     R
@@ -349,10 +349,10 @@ export const duplexSchema: {
     }
   ): <OutErr, OutDone, InErr, InDone, R>(
     self: Channel.Channel<
-      Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+      Arr.NonEmptyReadonlyArray<Uint8Array>,
       OutErr,
       OutDone,
-      Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+      Arr.NonEmptyReadonlyArray<Uint8Array>,
       NdjsonError | Schema.SchemaError | InErr,
       InDone,
       R
@@ -368,10 +368,10 @@ export const duplexSchema: {
   >
   <Out extends Schema.Top, In extends Schema.Top, OutErr, OutDone, InErr, InDone, R>(
     self: Channel.Channel<
-      Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+      Arr.NonEmptyReadonlyArray<Uint8Array>,
       OutErr,
       OutDone,
-      Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+      Arr.NonEmptyReadonlyArray<Uint8Array>,
       NdjsonError | Schema.SchemaError | InErr,
       InDone,
       R
@@ -392,10 +392,10 @@ export const duplexSchema: {
   >
 } = dual(2, <Out extends Schema.Top, In extends Schema.Top, OutErr, OutDone, InErr, InDone, R>(
   self: Channel.Channel<
-    Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+    Arr.NonEmptyReadonlyArray<Uint8Array>,
     OutErr,
     OutDone,
-    Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+    Arr.NonEmptyReadonlyArray<Uint8Array>,
     NdjsonError | Schema.SchemaError | InErr,
     InDone,
     R
