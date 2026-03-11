@@ -31,8 +31,9 @@ describe("HttpApiEndpoint", () => {
     })
 
     it("should not accept schema that doesn't encode to Record<string, string | ReadonlyArray<string> | undefined>", () => {
+      // @ts-expect-error Type 'Struct<{ readonly id: Number; }>' is not assignable to type 'ParamsConstraint | undefined'.
       HttpApiEndpoint.get("a", "/a", {
-        // @ts-expect-error Type 'Struct<{ readonly id: Number; }>' is not assignable to type 'ParamsConstraint | undefined'.
+        useCodecs: false,
         params: Schema.Struct({ id: Schema.Number })
       })
     })
@@ -75,8 +76,8 @@ describe("HttpApiEndpoint", () => {
     })
 
     it("should not accept schema that doesn't encode to Record<string, string | ReadonlyArray<string> | undefined>", () => {
+      // @ts-expect-error Type 'Struct<{ readonly id: Number; }>' is not assignable to type 'QueryConstraint | undefined'.
       HttpApiEndpoint.get("a", "/a", {
-        // @ts-expect-error Type 'Struct<{ readonly id: Number; }>' is not assignable to type 'QueryConstraint | undefined'.
         query: Schema.Struct({ id: Schema.Number })
       })
     })
@@ -110,8 +111,8 @@ describe("HttpApiEndpoint", () => {
     })
 
     it("should not accept schema that doesn't encode to Record<string, string | ReadonlyArray<string> | undefined>", () => {
+      // @ts-expect-error Type 'Struct<{ readonly id: Number; }>' is not assignable to type 'HeadersConstraint | undefined'.
       HttpApiEndpoint.get("a", "/a", {
-        // @ts-expect-error Type 'Struct<{ readonly id: Number; }>' is not assignable to type 'HeadersConstraint | undefined'.
         headers: Schema.Struct({ id: Schema.Number })
       })
     })

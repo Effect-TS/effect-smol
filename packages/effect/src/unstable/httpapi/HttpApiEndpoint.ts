@@ -1114,8 +1114,8 @@ function transformResponse(schema: Schema.Top): Schema.Top {
     case "Json":
       return Schema.toCodecJson(schema)
     case "FormUrlEncoded":
-    case "Text":
       return Schema.toCodecStringTree(schema)
+    case "Text":
     case "Uint8Array":
       return schema
   }
@@ -1127,8 +1127,8 @@ function transformPayload(schema: Schema.Top, method: HttpMethod): Schema.Top {
     case "Json":
       return Schema.toCodecJson(schema)
     case "FormUrlEncoded":
-    case "Text":
       return Schema.toCodecStringTree(schema)
+    case "Text":
     case "Uint8Array":
     case "Multipart":
       return schema
