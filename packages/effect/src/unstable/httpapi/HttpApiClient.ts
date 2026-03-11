@@ -273,7 +273,7 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
         const payloadSchemas = HttpApiEndpoint.getPayloadSchemas(endpoint)
         const encodePayload = Arr.isArrayNonEmpty(payloadSchemas) ?
           HttpMethod.hasBody(endpoint.method)
-            ? Schema.encodeUnknownEffect(getEncodePayloadSchema(payloadSchemas))
+            ? Schema.encodeUnknownEffect(getEncodePayloadSchema(payloadSchemas, endpoint.method))
             : Schema.encodeUnknownEffect(Schema.Union(payloadSchemas)) :
           undefined
 
@@ -666,21 +666,25 @@ const statusOrElse = (response: HttpClientResponse.HttpClientResponse) =>
 
 const $HttpBody = Schema.declare(HttpBody.isHttpBody)
 
-function getEncodePayloadSchema(schemas: readonly [Schema.Top, ...Array<Schema.Top>]): Schema.Top {
-  return Schema.Union(schemas.map(getEncodePayloadSchemaFromBody))
+function getEncodePayloadSchema(
+  schemas: readonly [Schema.Top, ...Array<Schema.Top>],
+  method: HttpMethod.HttpMethod
+): Schema.Top {
+  return Schema.Union(schemas.map((s) => getEncodePayloadSchemaFromBody(s, method)))
 }
 
 const bodyFromPayloadCache = new WeakMap<AST.AST, Schema.Top>()
 
 function getEncodePayloadSchemaFromBody(
-  schema: Schema.Top
+  schema: Schema.Top,
+  method: HttpMethod.HttpMethod
 ): Schema.Top {
   const ast = schema.ast
   const cached = bodyFromPayloadCache.get(ast)
   if (cached !== undefined) {
     return cached
   }
-  const encoding = HttpApiSchema.getPayloadEncoding(ast)
+  const encoding = HttpApiSchema.getPayloadEncoding(ast, method)
   const out = $HttpBody.pipe(Schema.decodeTo(
     schema,
     Transformation.transformOrFail({
