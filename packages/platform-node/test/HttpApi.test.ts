@@ -1430,7 +1430,6 @@ const HttpUsersLive = HttpApiBuilder.group(
   })
 ).pipe(
   Layer.provide([
-    DateTime.layerCurrentZoneOffset(0),
     UserRepo.Live,
     AuthorizationLive
   ])
@@ -1489,5 +1488,6 @@ const HttpLive = HttpRouter.serve(HttpApiLive, {
   disableListenLog: true,
   disableLogger: true
 }).pipe(
-  Layer.provideMerge(NodeHttpServer.layerTest)
+  Layer.provideMerge(NodeHttpServer.layerTest),
+  Layer.provide(DateTime.layerCurrentZoneOffset(0))
 )
