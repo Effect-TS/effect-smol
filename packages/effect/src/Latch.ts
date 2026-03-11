@@ -2,6 +2,7 @@
  * @since 3.8.0
  */
 import type * as Effect from "./Effect.ts"
+import { dual } from "./Function.ts"
 import * as internal from "./internal/effect.ts"
 
 /**
@@ -110,3 +111,66 @@ export const makeUnsafe: (open?: boolean | undefined) => Latch = internal.makeLa
  * @since 3.8.0
  */
 export const make: (open?: boolean | undefined) => Effect.Effect<Latch> = internal.makeLatch
+
+/**
+ * Opens the latch, releasing all fibers waiting on it.
+ *
+ * @category combinators
+ * @since 4.0.0
+ */
+export const open = (self: Latch): Effect.Effect<boolean> => self.open
+
+/**
+ * Opens the latch, releasing all fibers waiting on it.
+ *
+ * @category unsafe
+ * @since 4.0.0
+ */
+export const openUnsafe = (self: Latch): boolean => self.openUnsafe()
+
+/**
+ * Releases all fibers waiting on the latch, without opening it.
+ *
+ * @category combinators
+ * @since 4.0.0
+ */
+export const release = (self: Latch): Effect.Effect<boolean> => self.release
+
+const _await = (self: Latch): Effect.Effect<void> => self.await
+
+export {
+  /**
+   * Waits for the latch to be opened.
+   *
+   * @category getters
+   * @since 4.0.0
+   */
+  _await as await
+}
+
+/**
+ * Closes the latch.
+ *
+ * @category combinators
+ * @since 4.0.0
+ */
+export const close = (self: Latch): Effect.Effect<boolean> => self.close
+
+/**
+ * Closes the latch.
+ *
+ * @category unsafe
+ * @since 4.0.0
+ */
+export const closeUnsafe = (self: Latch): boolean => self.closeUnsafe()
+
+/**
+ * Runs the given effect only when the latch is open.
+ *
+ * @category combinators
+ * @since 4.0.0
+ */
+export const whenOpen: {
+  <A, E, R>(effect: Effect.Effect<A, E, R>): (self: Latch) => Effect.Effect<A, E, R>
+  <A, E, R>(self: Latch, effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R>
+} = dual(2, <A, E, R>(self: Latch, effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> => self.whenOpen(effect))

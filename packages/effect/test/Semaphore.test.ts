@@ -299,6 +299,31 @@ describe("Semaphore", () => {
       assert.isTrue(Option.isSome(result))
     }))
 
+  it.effect("module-level combinators delegate to the instance api", () =>
+    Effect.gen(function*() {
+      const sem = yield* Semaphore.make(1)
+
+      const taken = yield* Semaphore.take(sem, 1)
+      assert.strictEqual(taken, 1)
+
+      const released = yield* Semaphore.release(sem, 1)
+      assert.strictEqual(released, 1)
+
+      yield* Semaphore.resize(sem, 2)
+
+      const value = yield* Semaphore.withPermit(sem, Effect.succeed(1))
+      assert.strictEqual(value, 1)
+
+      const value2 = yield* Semaphore.withPermits(sem, 2, Effect.succeed(2))
+      assert.strictEqual(value2, 2)
+
+      const available = yield* Semaphore.withPermitsIfAvailable(sem, 1, Effect.succeed("ok"))
+      assert.deepStrictEqual(available, Option.some("ok"))
+
+      const releasedAll = yield* Semaphore.releaseAll(sem)
+      assert.strictEqual(releasedAll, 2)
+    }))
+
   it.effect("exact permit match", () =>
     Effect.gen(function*() {
       const sem = yield* Semaphore.makePartitioned({ permits: 4 })
