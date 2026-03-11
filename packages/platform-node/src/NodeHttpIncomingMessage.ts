@@ -3,6 +3,7 @@
  */
 import * as Effect from "effect/Effect"
 import * as Inspectable from "effect/Inspectable"
+import type * as Schema from "effect/Schema"
 import type * as Stream from "effect/Stream"
 import * as Headers from "effect/unstable/http/Headers"
 import * as IncomingMessage from "effect/unstable/http/HttpIncomingMessage"
@@ -67,15 +68,15 @@ export abstract class NodeHttpIncomingMessage<E> extends Inspectable.Class
     return Effect.runSync(this.text)
   }
 
-  get json(): Effect.Effect<unknown, E> {
+  get json(): Effect.Effect<Schema.Json, E> {
     return Effect.flatMap(this.text, (text) =>
       Effect.try({
-        try: () => text === "" ? null : JSON.parse(text) as unknown,
+        try: () => text === "" ? null : JSON.parse(text),
         catch: this.onError
       }))
   }
 
-  get jsonUnsafe(): unknown {
+  get jsonUnsafe(): Schema.Json {
     return Effect.runSync(this.json)
   }
 

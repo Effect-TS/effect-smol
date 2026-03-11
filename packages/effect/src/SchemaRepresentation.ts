@@ -1646,7 +1646,7 @@ export const fromASTs: (asts: readonly [AST.AST, ...Array<AST.AST>]) => MultiDoc
  *
  * @since 4.0.0
  */
-export const DocumentFromJson: Schema.Codec<Document, unknown> = Schema.toCodecJson($Document)
+export const DocumentFromJson: Schema.Codec<Document, Schema.Json> = Schema.toCodecJson($Document)
 
 /**
  * Schema codec that decodes a {@link MultiDocument} from JSON and encodes it
@@ -1657,7 +1657,7 @@ export const DocumentFromJson: Schema.Codec<Document, unknown> = Schema.toCodecJ
  *
  * @since 4.0.0
  */
-export const MultiDocumentFromJson: Schema.Codec<MultiDocument, unknown> = Schema.toCodecJson($MultiDocument)
+export const MultiDocumentFromJson: Schema.Codec<MultiDocument, Schema.Json> = Schema.toCodecJson($MultiDocument)
 
 /**
  * Wraps a single {@link Document} as a {@link MultiDocument} with one

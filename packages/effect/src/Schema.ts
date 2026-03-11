@@ -10464,7 +10464,7 @@ export function toJsonSchemaDocument(schema: Top, options?: ToJsonSchemaOptions)
  * @category Canonical Codecs
  * @since 4.0.0
  */
-export function toCodecJson<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T, unknown, RD, RE> {
+export function toCodecJson<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T, Json, RD, RE> {
   return make(InternalToCodec.toCodecJson(schema.ast))
 }
 
@@ -10901,7 +10901,7 @@ export function overrideToCodecIso<S extends Top, Iso>(
  * @since 4.0.0
  */
 export function toDifferJsonPatch<T, E>(schema: Codec<T, E>): Differ<T, JsonPatch.JsonPatch> {
-  const serializer = toCodecJson(schema) as Codec<T, Json, never, never> // TODO: remove this cast
+  const serializer = toCodecJson(schema)
   const get = Parser.encodeSync(serializer)
   const set = Parser.decodeSync(serializer)
   return {

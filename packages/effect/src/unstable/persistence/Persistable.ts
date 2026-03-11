@@ -194,5 +194,5 @@ export const deserializeExit = <A extends Schema.Top, E extends Schema.Top>(
   A["DecodingServices"] | E["DecodingServices"]
 > => {
   const schema = Schema.toCodecJson(exitSchema(self))
-  return Schema.decodeEffect(schema)(encoded)
+  return Schema.decodeUnknownEffect(schema)(encoded)
 }

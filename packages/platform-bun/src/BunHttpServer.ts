@@ -15,6 +15,7 @@ import * as Inspectable from "effect/Inspectable"
 import * as Layer from "effect/Layer"
 import type * as Path from "effect/Path"
 import type * as Record from "effect/Record"
+import type * as Schema from "effect/Schema"
 import type * as Scope from "effect/Scope"
 import * as Semaphore from "effect/Semaphore"
 import * as ServiceMap from "effect/ServiceMap"
@@ -388,10 +389,10 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
     return this.textEffect
   }
 
-  get json(): Effect.Effect<unknown, Error.HttpServerError> {
+  get json(): Effect.Effect<Schema.Json, Error.HttpServerError> {
     return Effect.flatMap(this.text, (_) =>
       Effect.try({
-        try: () => JSON.parse(_) as unknown,
+        try: () => JSON.parse(_) as Schema.Json,
         catch: (cause) =>
           new Error.HttpServerError({
             reason: new Error.RequestParseError({

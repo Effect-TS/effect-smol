@@ -33,7 +33,7 @@ export interface HttpIncomingMessage<E = unknown> extends Inspectable.Inspectabl
   readonly [TypeId]: typeof TypeId
   readonly headers: Headers.Headers
   readonly remoteAddress: string | undefined
-  readonly json: Effect.Effect<unknown, E>
+  readonly json: Effect.Effect<Schema.Json, E>
   readonly text: Effect.Effect<string, E>
   readonly urlParamsBody: Effect.Effect<UrlParams.UrlParams, E>
   readonly arrayBuffer: Effect.Effect<ArrayBuffer, E>

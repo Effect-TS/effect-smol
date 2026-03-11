@@ -284,10 +284,10 @@ class WebHttpClientResponse extends Inspectable.Class implements HttpClientRespo
       )
   }
 
-  get json(): Effect.Effect<unknown, Error.HttpClientError> {
+  get json(): Effect.Effect<Schema.Json, Error.HttpClientError> {
     return Effect.flatMap(this.text, (text) =>
       Effect.try({
-        try: () => text === "" ? null : JSON.parse(text) as unknown,
+        try: () => text === "" ? null : JSON.parse(text),
         catch: (cause) =>
           new Error.HttpClientError({
             reason: new Error.DecodeError({

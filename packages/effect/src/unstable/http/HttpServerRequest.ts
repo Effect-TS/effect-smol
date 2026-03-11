@@ -444,10 +444,10 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
     return this.textEffect
   }
 
-  get json(): Effect.Effect<unknown, HttpServerError> {
+  get json(): Effect.Effect<Schema.Json, HttpServerError> {
     return Effect.flatMap(this.text, (text) =>
       Effect.try({
-        try: () => JSON.parse(text) as unknown,
+        try: () => JSON.parse(text) as Schema.Json,
         catch: (cause) =>
           new HttpServerError({
             reason: new RequestParseError({
@@ -664,10 +664,10 @@ class ClientRequestImpl extends Inspectable.Class implements HttpServerRequest {
     return Effect.map(this.bytes, (bytes) => textDecoder.decode(bytes))
   }
 
-  get json(): Effect.Effect<unknown, HttpServerError> {
+  get json(): Effect.Effect<Schema.Json, HttpServerError> {
     return Effect.flatMap(this.text, (text) =>
       Effect.try({
-        try: () => text === "" ? null : JSON.parse(text) as unknown,
+        try: () => text === "" ? null : JSON.parse(text),
         catch: (cause) => requestParseError(this, undefined, cause)
       }))
   }

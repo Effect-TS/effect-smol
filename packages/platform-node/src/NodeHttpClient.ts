@@ -6,6 +6,7 @@ import { flow } from "effect/Function"
 import * as Inspectable from "effect/Inspectable"
 import * as Layer from "effect/Layer"
 import { type Pipeable, pipeArguments } from "effect/Pipeable"
+import type * as Schema from "effect/Schema"
 import type * as Scope from "effect/Scope"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"
@@ -208,10 +209,10 @@ class UndiciResponse extends Inspectable.Class implements HttpClientResponse, Pi
     })
   }
 
-  get json(): Effect.Effect<unknown, Error.HttpClientError> {
+  get json(): Effect.Effect<Schema.Json, Error.HttpClientError> {
     return Effect.flatMap(this.text, (text) =>
       Effect.try({
-        try: () => text === "" ? null : JSON.parse(text) as unknown,
+        try: () => text === "" ? null : JSON.parse(text),
         catch: (cause) =>
           new Error.HttpClientError({
             reason: new Error.DecodeError({

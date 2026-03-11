@@ -374,7 +374,7 @@ export const make = Effect.gen(function*() {
         id: ""
       })
       if (!reply) return undefined
-      const exit = yield* (Schema.decodeEffect(exitSchema)(reply.exit) as Effect.Effect<
+      const exit = yield* (Schema.decodeUnknownEffect(exitSchema)(reply.exit) as Effect.Effect<
         Exit.Exit<any, any>,
         Schema.SchemaError
       >)
