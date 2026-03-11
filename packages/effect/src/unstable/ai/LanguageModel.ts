@@ -205,15 +205,7 @@ export interface GenerateTextOptions<Tools extends Record<string, Tool.Any>> {
    * A toolkit containing both the tools and the tool call handler to use to
    * augment text generation.
    */
-  readonly toolkit?:
-    | Toolkit.WithHandler<Tools>
-    | Effect.Yieldable<
-      Toolkit.Toolkit<Tools>,
-      Toolkit.WithHandler<Tools>,
-      never,
-      any
-    >
-    | undefined
+  readonly toolkit?: ToolkitOption<Tools> | undefined
 
   /**
    * The tool choice mode for the language model.
@@ -468,6 +460,89 @@ export class GenerateObjectResponse<
 // =============================================================================
 
 /**
+ * The supported toolkit option shapes for language model operations.
+ *
+ * @since 4.0.0
+ * @category utility types
+ */
+export type ToolkitOption<
+  Tools extends Record<string, Tool.Any>,
+  E = never,
+  R = any
+> = Tools extends any ? (
+    | Toolkit.WithHandler<Tools>
+    | Effect.Yieldable<
+      Toolkit.Toolkit<Tools>,
+      Toolkit.WithHandler<Tools>,
+      E,
+      R
+    >
+  )
+  : never
+
+type ExtractToolsFromToolkitOption<ToolkitValue> = ToolkitValue extends Toolkit.WithHandler<infer Tools> ? Tools
+  : ToolkitValue extends Effect.Yieldable<
+    Toolkit.Toolkit<infer Tools>,
+    Toolkit.WithHandler<infer _Tools>,
+    infer _E,
+    infer _R
+  > ? Tools
+  : never
+
+/**
+ * Utility type that extracts the toolset from LanguageModel options.
+ *
+ * @since 4.0.0
+ * @category utility types
+ */
+export type ExtractTools<Options> = Options extends {
+  readonly toolkit: infer ToolkitValue
+} ? ExtractToolsFromToolkitOption<Exclude<ToolkitValue, undefined>>
+  : {}
+
+type ExtractErrorFromToolkitOption<ToolkitValue, DisableToolCallResolution extends boolean> = ToolkitValue extends
+  Toolkit.WithHandler<infer Tools> ?
+    | AiError.AiError
+    | (DisableToolCallResolution extends true ? never : Tool.HandlerError<Tools[keyof Tools]>)
+  : ToolkitValue extends Effect.Yieldable<
+    Toolkit.Toolkit<infer Tools>,
+    Toolkit.WithHandler<infer _Tools>,
+    infer E,
+    infer _R
+  > ? AiError.AiError | E | (DisableToolCallResolution extends true ? never : Tool.HandlerError<Tools[keyof Tools]>)
+  : AiError.AiError
+
+type ExtractServicesFromToolkitOption<ToolkitValue> = ToolkitValue extends Toolkit.WithHandler<infer Tools> ?
+    | Tool.HandlerServices<Tools[keyof Tools]>
+    | Tool.ResultDecodingServices<Tools[keyof Tools]>
+  : ToolkitValue extends Effect.Yieldable<
+    Toolkit.Toolkit<infer Tools>,
+    Toolkit.WithHandler<infer _Tools>,
+    infer _E,
+    infer R
+  > ?
+      | Tool.HandlerServices<Tools[keyof Tools]>
+      | Tool.ResultDecodingServices<Tools[keyof Tools]>
+      | R
+  : never
+
+type ExtractToolkitResolutionError<ToolkitValue> = ToolkitValue extends Effect.Yieldable<
+  Toolkit.Toolkit<infer _Tools>,
+  Toolkit.WithHandler<infer _Tools>,
+  infer E,
+  infer _R
+> ? E
+  : never
+
+type ExtractToolkitResolutionServices<ToolkitValue> = ToolkitValue extends Effect.Yieldable<
+  Toolkit.Toolkit<infer _Tools>,
+  Toolkit.WithHandler<infer _Tools>,
+  infer _E,
+  infer R
+> ? R
+  : never
+
+/**
  * Utility type that extracts the error type from LanguageModel options.
  *
  * Automatically infers the possible error types based on toolkit configuration
@@ -477,29 +552,15 @@ export class GenerateObjectResponse<
  * @category utility types
  */
 export type ExtractError<Options> = Options extends {
-  readonly toolkit: Toolkit.WithHandler<infer _Tools>
   readonly disableToolCallResolution: true
-} ? AiError.AiError
+  readonly toolkit: infer ToolkitValue
+} ? ExtractErrorFromToolkitOption<Exclude<ToolkitValue, undefined>, true>
   : Options extends {
-    readonly toolkit: Effect.Yieldable<
-      Toolkit.Toolkit<infer _Tools>,
-      Toolkit.WithHandler<infer _Tools>,
-      infer _E,
-      infer _R
-    >
+    readonly toolkit: infer ToolkitValue
+  } ? ExtractErrorFromToolkitOption<Exclude<ToolkitValue, undefined>, false>
+  : Options extends {
     readonly disableToolCallResolution: true
-  } ? AiError.AiError | _E
-  : Options extends {
-    readonly toolkit: Toolkit.WithHandler<infer _Tools>
-  } ? AiError.AiError | Tool.HandlerError<_Tools[keyof _Tools]>
-  : Options extends {
-    readonly toolkit: Effect.Yieldable<
-      Toolkit.Toolkit<infer _Tools>,
-      Toolkit.WithHandler<infer _Tools>,
-      infer _E,
-      infer _R
-    >
-  } ? AiError.AiError | Tool.HandlerError<_Tools[keyof _Tools]> | _E
+  } ? AiError.AiError
   : AiError.AiError
 
 /**
@@ -514,27 +575,8 @@ export type ExtractServices<Options> = Options extends {
   readonly disableToolCallResolution: true
 } ? never
   : Options extends {
-    readonly toolkit: Toolkit.WithHandler<infer _Tools>
-  }
-  // Required for tool call execution
-    ?
-      | Tool.HandlerServices<_Tools[keyof _Tools]>
-      // Required for decoding large language model responses
-      | Tool.ResultDecodingServices<_Tools[keyof _Tools]>
-  : Options extends {
-    readonly toolkit: Effect.Yieldable<
-      Toolkit.Toolkit<infer _Tools>,
-      Toolkit.WithHandler<infer _Tools>,
-      infer _E,
-      infer _R
-    >
-  }
-  // Required for tool call execution
-    ?
-      | Tool.HandlerServices<_Tools[keyof _Tools]>
-      // Required for decoding large language model responses
-      | Tool.ResultDecodingServices<_Tools[keyof _Tools]>
-      | _R
+    readonly toolkit: infer Toolkit
+  } ? ExtractServicesFromToolkitOption<Exclude<Toolkit, undefined>>
   : never
 
 // =============================================================================
@@ -1031,21 +1073,11 @@ export const make: (params: {
       AiError.AiError | Schema.SchemaError,
       IdGenerator
     >,
-    Options extends {
-      readonly toolkit: Effect.Effect<
-        Toolkit.WithHandler<Tools>,
-        infer _E,
-        infer _R
-      >
-    } ? _E
+    Options extends { readonly toolkit: infer ToolkitValue } ?
+      ExtractToolkitResolutionError<Exclude<ToolkitValue, undefined>>
       : never,
-    Options extends {
-      readonly toolkit: Effect.Effect<
-        Toolkit.WithHandler<Tools>,
-        infer _E,
-        infer _R
-      >
-    } ? _R
+    Options extends { readonly toolkit: infer ToolkitValue } ?
+      ExtractToolkitResolutionServices<Exclude<ToolkitValue, undefined>>
       : never
   > = Effect.fnUntraced(function*<
     Tools extends Record<string, Tool.Any>,
@@ -1090,9 +1122,7 @@ export const make: (params: {
     }
 
     // If there is a toolkit resolve and apply it to the provider options
-    const toolkit = "asEffect" in options.toolkit
-      ? yield* options.toolkit
-      : options.toolkit
+    const toolkit = yield* resolveToolkit<Tools, any, any>(options.toolkit)
 
     // If the toolkit is empty, return immediately
     if (Object.values(toolkit.tools).length === 0) {
@@ -1335,20 +1365,27 @@ export const make: (params: {
  * @since 4.0.0
  * @category text generation
  */
-export const generateText = <
-  Options extends NoExcessProperties<GenerateTextOptions<any>, Options>,
-  Tools extends Record<string, Tool.Any> = {}
+export function generateText<
+  Options extends NoExcessProperties<GenerateTextOptions<any>, Options>
 >(
-  options: Options & GenerateTextOptions<Tools>
+  options: Options & GenerateTextOptions<ExtractTools<Options>>
 ): Effect.Effect<
-  GenerateTextResponse<Tools>,
+  GenerateTextResponse<ExtractTools<Options>>,
   ExtractError<Options>,
   LanguageModel | ExtractServices<Options>
-> =>
-  Effect.flatMap(
+>
+export function generateText(
+  options: GenerateTextOptions<any>
+): Effect.Effect<
+  GenerateTextResponse<any>,
+  AiError.AiError,
+  LanguageModel
+> {
+  return Effect.flatMap(
     Effect.service(LanguageModel),
-    (model) => model.generateText(options)
+    (model) => model.generateText(options as any)
   )
+}
 
 /**
  * Generate a structured object from a schema using a language model.
@@ -1382,25 +1419,32 @@ export const generateText = <
  * @since 4.0.0
  * @category object generation
  */
-export const generateObject = <
+export function generateObject<
   ObjectEncoded extends Record<string, any>,
   StructuredOutputSchema extends Schema.Encoder<ObjectEncoded, unknown>,
   Options extends NoExcessProperties<
     GenerateObjectOptions<any, StructuredOutputSchema>,
     Options
-  >,
-  Tools extends Record<string, Tool.Any> = {}
+  >
 >(
-  options: Options & GenerateObjectOptions<Tools, StructuredOutputSchema>
+  options: Options & GenerateObjectOptions<ExtractTools<Options>, StructuredOutputSchema>
 ): Effect.Effect<
-  GenerateObjectResponse<Tools, StructuredOutputSchema["Type"]>,
+  GenerateObjectResponse<ExtractTools<Options>, StructuredOutputSchema["Type"]>,
   ExtractError<Options>,
   ExtractServices<Options> | StructuredOutputSchema["DecodingServices"] | LanguageModel
-> =>
-  Effect.flatMap(
+>
+export function generateObject(
+  options: GenerateObjectOptions<any, Schema.Top>
+): Effect.Effect<
+  GenerateObjectResponse<any, any>,
+  AiError.AiError,
+  LanguageModel
+> {
+  return Effect.flatMap(
     Effect.service(LanguageModel),
-    (model) => model.generateObject(options)
-  )
+    (model) => model.generateObject(options as any)
+  ) as any
+}
 
 /**
  * Generate text using a language model with streaming output.
@@ -1426,20 +1470,27 @@ export const generateObject = <
  * @since 4.0.0
  * @category text generation
  */
-export const streamText = <
-  Options extends NoExcessProperties<GenerateTextOptions<any>, Options>,
-  Tools extends Record<string, Tool.Any> = {}
+export function streamText<
+  Options extends NoExcessProperties<GenerateTextOptions<any>, Options>
 >(
-  options: Options & GenerateTextOptions<Tools>
+  options: Options & GenerateTextOptions<ExtractTools<Options>>
 ): Stream.Stream<
-  Response.StreamPart<Tools>,
+  Response.StreamPart<ExtractTools<Options>>,
   ExtractError<Options>,
   ExtractServices<Options> | LanguageModel
-> =>
-  Stream.unwrap(Effect.map(
+>
+export function streamText(
+  options: GenerateTextOptions<any>
+): Stream.Stream<
+  Response.StreamPart<any>,
+  AiError.AiError,
+  LanguageModel
+> {
+  return Stream.unwrap(Effect.map(
     Effect.service(LanguageModel),
-    (model) => model.streamText(options)
-  ))
+    (model) => model.streamText(options as any)
+  )) as any
+}
 
 // =============================================================================
 // Tool Approval Helpers
@@ -1816,11 +1867,11 @@ const resolveToolCalls = <Tools extends Record<string, Tool.Any>>(
 // =============================================================================
 
 const resolveToolkit = <Tools extends Record<string, Tool.Any>, E, R>(
-  toolkit:
-    | Toolkit.WithHandler<Tools>
-    | Effect.Yieldable<Toolkit.Toolkit<any>, Toolkit.WithHandler<Tools>, E, R>
+  toolkit: ToolkitOption<Tools, E, R>
 ): Effect.Effect<Toolkit.WithHandler<Tools>, E, R> =>
-  "asEffect" in toolkit ? toolkit.asEffect() : Effect.succeed(toolkit)
+  ("asEffect" in toolkit
+    ? toolkit.asEffect()
+    : Effect.succeed(toolkit as unknown as Toolkit.WithHandler<Tools>)) as any
 
 /** @internal */
 export const getObjectName = <StructuredOutputSchema extends Schema.Top>(

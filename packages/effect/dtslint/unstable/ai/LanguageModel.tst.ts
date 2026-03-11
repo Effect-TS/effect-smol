@@ -96,5 +96,48 @@ describe("LanguageModel", () => {
         RequestContext | ToolkitContext
       >()
     })
+
+    it("supports toolkit unions in options", () => {
+      const toolkitA = Toolkit.make(ToolWithRequestContext)
+      const toolkitB = Toolkit.make(FailureModeErrorTool)
+      const cond = Math.random() > 0.5
+      const toolkit = cond ? toolkitA : toolkitB
+      type ToolkitUnionHandlers =
+        | Tool.Handler<"ToolWithRequestContext">
+        | Tool.Handler<"FailureModeErrorTool">
+
+      const program = LanguageModel.generateText({
+        prompt: "hello",
+        toolkit
+      })
+
+      type ProgramError = typeof program extends Effect.Effect<any, infer E, any> ? E : never
+      type ProgramRequirements = typeof program extends Effect.Effect<any, any, infer R> ? R : never
+
+      expect<ProgramError>().type.toBe<AiError.AiError | { readonly message: string }>()
+      expect<ProgramRequirements>().type.toBe<
+        LanguageModel.LanguageModel | RequestContext | ToolkitUnionHandlers
+      >()
+    })
+
+    it("extracts services and tools from toolkit unions", () => {
+      const toolkitA = Toolkit.make(ToolWithRequestContext)
+      const toolkitB = Toolkit.make(FailureModeErrorTool)
+
+      type ToolkitUnion = typeof toolkitA | typeof toolkitB
+      type ToolkitUnionHandlers =
+        | Tool.Handler<"ToolWithRequestContext">
+        | Tool.Handler<"FailureModeErrorTool">
+      type ToolkitUnionTools =
+        | { readonly ToolWithRequestContext: typeof ToolWithRequestContext }
+        | { readonly FailureModeErrorTool: typeof FailureModeErrorTool }
+
+      expect<LanguageModel.ExtractServices<{ readonly toolkit: ToolkitUnion }>>().type.toBe<
+        RequestContext | ToolkitUnionHandlers
+      >()
+      expect<LanguageModel.ExtractTools<{ readonly toolkit: ToolkitUnion }>>().type.toBe<
+        ToolkitUnionTools
+      >()
+    })
   })
 })
