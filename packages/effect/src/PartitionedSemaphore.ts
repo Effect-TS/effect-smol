@@ -38,6 +38,9 @@ export interface PartitionedSemaphore<in K> {
     permits: number
   ) => <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
   readonly withPermit: (key: K) => <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
+  readonly withPermitsIfAvailable: (
+    permits: number
+  ) => <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<Option.Option<A>, E, R>
 }
 
 /**
@@ -65,7 +68,8 @@ export const makeUnsafe = <K = unknown>(options: {
       take: () => Effect.void,
       release: () => Effect.succeed(maxPermits),
       withPermits: () => (effect) => effect,
-      withPermit: () => (effect) => effect
+      withPermit: () => (effect) => effect,
+      withPermitsIfAvailable: () => (effect) => Effect.asSome(effect)
     }
   }
 
@@ -195,6 +199,19 @@ export const makeUnsafe = <K = unknown>(options: {
       )
     }
 
+  const tryTake = (permits: number): boolean => {
+    if (permits <= 0) {
+      return true
+    }
+
+    if (maxPermits < permits || totalPermits < permits) {
+      return false
+    }
+
+    totalPermits -= permits
+    return true
+  }
+
   return {
     [PartitionedTypeId]: PartitionedTypeId,
     capacity: maxPermits,
@@ -202,7 +219,26 @@ export const makeUnsafe = <K = unknown>(options: {
     take,
     release: (permits) => Effect.sync(() => releaseUnsafe(permits)),
     withPermits,
-    withPermit: (key) => withPermits(key, 1)
+    withPermit: (key) => withPermits(key, 1),
+    withPermitsIfAvailable:
+      (permits) => <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<Option.Option<A>, E, R> => {
+        if (permits <= 0) {
+          return Effect.asSome(effect)
+        }
+
+        return Effect.suspend(() => {
+          if (!tryTake(permits)) {
+            return Effect.succeed(Option.none())
+          }
+
+          return Effect.ensuring(
+            Effect.asSome(effect),
+            Effect.sync(() => {
+              releaseUnsafe(permits)
+            })
+          )
+        })
+      }
   }
 }
 
@@ -295,4 +331,29 @@ export const withPermit: {
   3,
   <K, A, E, R>(self: PartitionedSemaphore<K>, key: K, effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
     self.withPermit(key)(effect)
+)
+
+/**
+ * Runs an effect only if the permits are immediately available.
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const withPermitsIfAvailable: {
+  <A, E, R>(
+    permits: number,
+    effect: Effect.Effect<A, E, R>
+  ): <K>(self: PartitionedSemaphore<K>) => Effect.Effect<Option.Option<A>, E, R>
+  <K, A, E, R>(
+    self: PartitionedSemaphore<K>,
+    permits: number,
+    effect: Effect.Effect<A, E, R>
+  ): Effect.Effect<Option.Option<A>, E, R>
+} = dual(
+  3,
+  <K, A, E, R>(
+    self: PartitionedSemaphore<K>,
+    permits: number,
+    effect: Effect.Effect<A, E, R>
+  ): Effect.Effect<Option.Option<A>, E, R> => self.withPermitsIfAvailable(permits)(effect)
 )
