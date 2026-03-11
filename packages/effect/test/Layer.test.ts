@@ -270,6 +270,28 @@ describe("Layer", () => {
           )
         )
       }))
+
+    it.effect("allows passing partial service in dual form", () =>
+      Effect.gen(function*() {
+        class Service1 extends ServiceMap.Service<Service1, {
+          one: Effect.Effect<number>
+          two(): Effect.Effect<number>
+        }>()("Service1") {}
+        yield* Effect.gen(function*() {
+          const service = yield* Service1
+          assert.strictEqual(yield* service.one, 123)
+          yield* service.two().pipe(
+            Effect.catchDefect(Effect.fail),
+            Effect.flip
+          )
+        }).pipe(
+          Effect.provide(
+            Layer.mock(Service1, {
+              one: Effect.succeed(123)
+            })
+          )
+        )
+      }))
   })
 
   describe("MemoMap", () => {

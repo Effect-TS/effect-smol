@@ -1733,7 +1733,7 @@ export type PartialEffectful<A extends object> = Types.Simplify<
  * }>()("UserService") {}
  *
  * // Create a partial mock - only implement what you need for testing
- * const testUserLayer = Layer.mock(UserService)({
+ * const testUserLayer = Layer.mock(UserService, {
  *   config: { apiUrl: "https://test-api.com" }, // Required - non-Effect property
  *   getUser: (id: string) => Effect.succeed({ id, name: "Test User" }) // Mock implementation
  *   // deleteUser and updateUser are omitted - will throw UnimplementedError if called
@@ -1757,24 +1757,33 @@ export type PartialEffectful<A extends object> = Types.Simplify<
  * @since 4.0.0
  * @category Testing
  */
-export const mock =
-  <I, S extends object>(service: ServiceMap.Key<I, S>) => (implementation: PartialEffectful<S>): Layer<I> =>
-    succeed(service)(
-      new Proxy({ ...implementation as object } as S, {
-        get(target, prop, _receiver) {
-          if (prop in target) {
-            return target[prop as keyof S]
-          }
-          const prevLimit = (Error as ErrorWithStackTraceLimit).stackTraceLimit
-          ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = 2
-          const error = new Error(`${service.key}: Unimplemented method "${prop.toString()}"`)
-          ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = prevLimit
-          error.name = "UnimplementedError"
-          return makeUnimplemented(error)
-        },
-        has: constTrue
-      })
-    )
+export const mock: {
+  <I, S extends object>(service: ServiceMap.Key<I, S>): (implementation: PartialEffectful<S>) => Layer<I>
+  <I, S extends object>(service: ServiceMap.Key<I, S>, implementation: Types.NoInfer<PartialEffectful<S>>): Layer<I>
+} = function() {
+  if (arguments.length === 1) {
+    return (implementation: any) => mockImpl(arguments[0], implementation)
+  }
+  return mockImpl(arguments[0], arguments[1])
+} as any
+
+const mockImpl = <I, S extends object>(service: ServiceMap.Key<I, S>, implementation: PartialEffectful<S>): Layer<I> =>
+  succeed(service)(
+    new Proxy({ ...implementation as object } as S, {
+      get(target, prop, _receiver) {
+        if (prop in target) {
+          return target[prop as keyof S]
+        }
+        const prevLimit = (Error as ErrorWithStackTraceLimit).stackTraceLimit
+        ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = 2
+        const error = new Error(`${service.key}: Unimplemented method "${prop.toString()}"`)
+        ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = prevLimit
+        error.name = "UnimplementedError"
+        return makeUnimplemented(error)
+      },
+      has: constTrue
+    })
+  )
 
 const makeUnimplemented = (error: globalThis.Error) => {
   const dead = internalEffect.die(error)
