@@ -184,8 +184,8 @@ export type HandlersServices<Rpcs extends Rpc.Any, Handlers> = keyof Handlers ex
  * @since 4.0.0
  * @category groups
  */
-export type HandlerServices<Rpcs extends Rpc.Any, K extends Rpcs["_tag"], Handler> = [Rpc.IsStream<Rpcs, K>] extends
-  [true] ? Handler extends (...args: any) =>
+export type HandlerServices<Rpcs extends Rpc.Any, K extends Rpcs["_tag"], Handler> = true extends
+  Rpc.IsStream<Rpcs, K> ? Handler extends (...args: any) =>
     | Stream.Stream<infer _A, infer _E, infer _R>
     | Rpc.Wrapper<Stream.Stream<infer _A, infer _E, infer _R>>
     | Effect.Effect<
@@ -204,7 +204,7 @@ export type HandlerServices<Rpcs extends Rpc.Any, K extends Rpcs["_tag"], Handle
   Handler extends (
     ...args: any
   ) => Effect.Effect<infer _A, infer _E, infer _R> | Rpc.Wrapper<Effect.Effect<infer _A, infer _E, infer _R>> ?
-    Rpc.ExcludeProvides<_R, Rpcs, K> | Rpc.ExtractRequires<Rpcs, K>
+    Exclude<Rpc.ExcludeProvides<_R, Rpcs, K>, Scope> | Rpc.ExtractRequires<Rpcs, K>
   : never
 
 /**
