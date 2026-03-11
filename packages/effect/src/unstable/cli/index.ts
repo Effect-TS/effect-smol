@@ -27,6 +27,11 @@ export * as Command from "./Command.ts"
 /**
  * @since 4.0.0
  */
+export * as Completions from "./Completions.ts"
+
+/**
+ * @since 4.0.0
+ */
 export * as Flag from "./Flag.ts"
 
 /**

@@ -124,8 +124,8 @@ let settingIdCounter = 0
 /* Built-in Flag References                                                   */
 /* ========================================================================== */
 
+import * as CompletionsModule from "./Completions.ts"
 import * as CommandDescriptor from "./internal/completions/CommandDescriptor.ts"
-import * as CompletionsInternal from "./internal/completions/Completions.ts"
 import * as HelpInternal from "./internal/help.ts"
 
 /**
@@ -185,7 +185,7 @@ export const Completions: Action<Option.Option<"bash" | "zsh" | "fish">> = actio
       if (Option.isNone(shell)) return
       const descriptor = CommandDescriptor.fromCommand(command)
       yield* Console.log(
-        CompletionsInternal.generate(command.name, shell.value, descriptor)
+        CompletionsModule.generate(command.name, shell.value, descriptor)
       )
     })
 })
