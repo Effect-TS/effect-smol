@@ -1,5 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Exit, Scope } from "effect"
+import * as Cause from "effect/Cause"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Logger from "effect/Logger"
@@ -84,5 +85,20 @@ describe("Logger", () => {
         annotations,
         [{ outer: "program" }, { outer: "program", inner: "scope" }, {}]
       )
+    }))
+
+  it.effect("default logger preserves message item order when logging a cause", () =>
+    Effect.gen(function*() {
+      yield* Effect.log("first", Cause.fail("boom"), "second")
+
+      const result = yield* TestConsole.logLines
+
+      assert.match(
+        result[0] as string,
+        /\[\d{2}:\d{2}:\d{2}\.\d{3}\]\sINFO\s\(#\d+\):/
+      )
+      assert.strictEqual(result[1], "first")
+      assert.strictEqual(result[2], "second")
+      assert.match(result[3] as string, /boom/)
     }))
 })

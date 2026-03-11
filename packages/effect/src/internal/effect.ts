@@ -6195,7 +6195,7 @@ const prettyLoggerBrowser = (options: {
 export const defaultLogger = loggerMake<unknown, void>(({ cause, date, fiber, logLevel, message }) => {
   const message_ = Array.isArray(message) ? message.slice() : [message]
   if (cause.reasons.length > 0) {
-    message_.unshift(causePretty(cause))
+    message_.push(causePretty(cause))
   }
   const now = date.getTime()
   const spans = fiber.getRef(CurrentLogSpans)
