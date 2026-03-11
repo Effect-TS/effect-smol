@@ -39,10 +39,10 @@ const ProtoUtc = {
   ...Proto,
   _tag: "Utc",
   [Hash.symbol](this: DateTime.Utc) {
-    return Hash.number(this.epochMillis)
+    return Hash.number(this.epochMilliseconds)
   },
   [Equal.symbol](this: DateTime.Utc, that: unknown) {
-    return isDateTime(that) && that._tag === "Utc" && this.epochMillis === that.epochMillis
+    return isDateTime(that) && that._tag === "Utc" && this.epochMilliseconds === that.epochMilliseconds
   },
   toString(this: DateTime.Utc) {
     return `DateTime.Utc(${toDateUtc(this).toJSON()})`
@@ -53,10 +53,10 @@ const ProtoZoned = {
   ...Proto,
   _tag: "Zoned",
   [Hash.symbol](this: DateTime.Zoned) {
-    return Hash.combine(Hash.number(this.epochMillis))(Hash.hash(this.zone))
+    return Hash.combine(Hash.number(this.epochMilliseconds))(Hash.hash(this.zone))
   },
   [Equal.symbol](this: DateTime.Zoned, that: unknown) {
-    return isDateTime(that) && that._tag === "Zoned" && this.epochMillis === that.epochMillis &&
+    return isDateTime(that) && that._tag === "Zoned" && this.epochMilliseconds === that.epochMilliseconds &&
       Equal.equals(this.zone, that.zone)
   },
   toString(this: DateTime.Zoned) {
@@ -120,7 +120,7 @@ export const makeZonedProto = (
   partsUtc?: DateTime.DateTime.PartsWithWeekday
 ): DateTime.Zoned => {
   const self = Object.create(ProtoZoned)
-  self.epochMillis = epochMillis
+  self.epochMilliseconds = epochMillis
   self.zone = zone
   Object.defineProperty(self, "partsUtc", {
     value: partsUtc,
@@ -169,11 +169,13 @@ export const isZoned = (self: DateTime.DateTime): self is DateTime.Zoned => self
 // =============================================================================
 
 /** @internal */
-export const Equivalence: Equ.Equivalence<DateTime.DateTime> = Equ.make((a, b) => a.epochMillis === b.epochMillis)
+export const Equivalence: Equ.Equivalence<DateTime.DateTime> = Equ.make((a, b) =>
+  a.epochMilliseconds === b.epochMilliseconds
+)
 
 /** @internal */
 export const Order: order.Order<DateTime.DateTime> = order.make((self, that) =>
-  self.epochMillis < that.epochMillis ? -1 : self.epochMillis > that.epochMillis ? 1 : 0
+  self.epochMilliseconds < that.epochMilliseconds ? -1 : self.epochMilliseconds > that.epochMilliseconds ? 1 : 0
 )
 
 /** @internal */
@@ -193,7 +195,7 @@ export const clamp: {
 
 const makeUtc = (epochMillis: number): DateTime.Utc => {
   const self = Object.create(ProtoUtc)
-  self.epochMillis = epochMillis
+  self.epochMilliseconds = epochMillis
   Object.defineProperty(self, "partsUtc", {
     value: undefined,
     enumerable: false,
@@ -218,6 +220,9 @@ export const makeUnsafe = <A extends DateTime.DateTime.Input>(input: A): DateTim
   } else if (input instanceof Date) {
     return fromDateUnsafe(input) as DateTime.DateTime.PreserveZone<A>
   } else if (typeof input === "object") {
+    if ("epochMilliseconds" in input) {
+      return makeUtc(input.epochMilliseconds) as DateTime.DateTime.PreserveZone<A>
+    }
     const date = new Date(0)
     setPartsDate(date, input)
     return fromDateUnsafe(date) as DateTime.DateTime.PreserveZone<A>
@@ -238,32 +243,36 @@ export const makeZonedUnsafe = (input: DateTime.DateTime.Input, options?: {
   readonly adjustForTimeZone?: boolean | undefined
   readonly disambiguation?: DateTime.Disambiguation | undefined
 }): DateTime.Zoned => {
-  if (options?.timeZone === undefined && isDateTime(input) && isZoned(input)) {
+  let timeZoneOption = options?.timeZone
+  if (timeZoneOption === undefined && isDateTime(input) && isZoned(input)) {
     return input
   }
   const self = makeUnsafe(input)
-  if (self.epochMillis < minEpochMillis || self.epochMillis > maxEpochMillis) {
-    throw new RangeError(`Epoch millis out of range: ${self.epochMillis}`)
+  if (self.epochMilliseconds < minEpochMillis || self.epochMilliseconds > maxEpochMillis) {
+    throw new RangeError(`Epoch millis out of range: ${self.epochMilliseconds}`)
+  }
+  if (timeZoneOption === undefined && typeof input === "object" && "timeZoneId" in input) {
+    timeZoneOption = input.timeZoneId
   }
   let zone: DateTime.TimeZone
-  if (options?.timeZone === undefined) {
-    const offset = new Date(self.epochMillis).getTimezoneOffset() * -60 * 1000
+  if (timeZoneOption === undefined) {
+    const offset = new Date(self.epochMilliseconds).getTimezoneOffset() * -60 * 1000
     zone = zoneMakeOffset(offset)
-  } else if (isTimeZone(options?.timeZone)) {
-    zone = options.timeZone
-  } else if (typeof options?.timeZone === "number") {
-    zone = zoneMakeOffset(options.timeZone)
+  } else if (isTimeZone(timeZoneOption)) {
+    zone = timeZoneOption
+  } else if (typeof timeZoneOption === "number") {
+    zone = zoneMakeOffset(timeZoneOption)
   } else {
-    const parsedZone = zoneFromString(options.timeZone)
+    const parsedZone = zoneFromString(timeZoneOption)
     if (parsedZone === undefined) {
-      throw new IllegalArgumentError(`Invalid time zone: ${options.timeZone}`)
+      throw new IllegalArgumentError(`Invalid time zone: ${timeZoneOption}`)
     }
     zone = parsedZone
   }
   if (options?.adjustForTimeZone !== true) {
-    return makeZonedProto(self.epochMillis, zone, self.partsUtc)
+    return makeZonedProto(self.epochMilliseconds, zone, self.partsUtc)
   }
-  return makeZonedFromAdjusted(self.epochMillis, zone, options?.disambiguation ?? "compatible")
+  return makeZonedFromAdjusted(self.epochMilliseconds, zone, options?.disambiguation ?? "compatible")
 }
 
 /** @internal */
@@ -307,7 +316,7 @@ export const nowUnsafe: LazyArg<DateTime.Utc> = () => makeUtc(Date.now())
 // =============================================================================
 
 /** @internal */
-export const toUtc = (self: DateTime.DateTime): DateTime.Utc => makeUtc(self.epochMillis)
+export const toUtc = (self: DateTime.DateTime): DateTime.Utc => makeUtc(self.epochMilliseconds)
 
 /** @internal */
 export const setZone: {
@@ -324,8 +333,8 @@ export const setZone: {
   readonly disambiguation?: DateTime.Disambiguation | undefined
 }): DateTime.Zoned =>
   options?.adjustForTimeZone === true
-    ? makeZonedFromAdjusted(self.epochMillis, zone, options?.disambiguation ?? "compatible")
-    : makeZonedProto(self.epochMillis, zone, self.partsUtc))
+    ? makeZonedFromAdjusted(self.epochMilliseconds, zone, options?.disambiguation ?? "compatible")
+    : makeZonedProto(self.epochMilliseconds, zone, self.partsUtc))
 
 /** @internal */
 export const setZoneOffset: {
@@ -533,18 +542,18 @@ export const isPastUnsafe = (self: DateTime.DateTime): boolean => isGreaterThan(
 // =============================================================================
 
 /** @internal */
-export const toDateUtc = (self: DateTime.DateTime): Date => new Date(self.epochMillis)
+export const toDateUtc = (self: DateTime.DateTime): Date => new Date(self.epochMilliseconds)
 
 /** @internal */
 export const toDate = (self: DateTime.DateTime): Date => {
   if (self._tag === "Utc") {
-    return new Date(self.epochMillis)
+    return new Date(self.epochMilliseconds)
   } else if (self.zone._tag === "Offset") {
-    return new Date(self.epochMillis + self.zone.offset)
-  } else if (self.adjustedEpochMillis !== undefined) {
-    return new Date(self.adjustedEpochMillis)
+    return new Date(self.epochMilliseconds + self.zone.offset)
+  } else if (self.adjustedEpochMilliseconds !== undefined) {
+    return new Date(self.adjustedEpochMilliseconds)
   }
-  const parts = self.zone.format.formatToParts(self.epochMillis).filter((_) => _.type !== "literal")
+  const parts = self.zone.format.formatToParts(self.epochMilliseconds).filter((_) => _.type !== "literal")
   const date = new Date(0)
   date.setUTCFullYear(
     Number(parts[2].value),
@@ -557,7 +566,7 @@ export const toDate = (self: DateTime.DateTime): Date => {
     Number(parts[5].value),
     Number(parts[6].value)
   )
-  self.adjustedEpochMillis = date.getTime()
+  self.adjustedEpochMilliseconds = date.getTime()
   return date
 }
 
@@ -582,7 +591,7 @@ const offsetToString = (offset: number): string => {
 export const zonedOffsetIso = (self: DateTime.Zoned): string => offsetToString(zonedOffset(self))
 
 /** @internal */
-export const toEpochMillis = (self: DateTime.DateTime): number => self.epochMillis
+export const toEpochMillis = (self: DateTime.DateTime): number => self.epochMilliseconds
 
 /** @internal */
 export const removeTime = (self: DateTime.DateTime): DateTime.Utc =>
@@ -596,10 +605,10 @@ export const removeTime = (self: DateTime.DateTime): DateTime.Utc =>
 // =============================================================================
 
 const dateToParts = (date: Date): DateTime.DateTime.PartsWithWeekday => ({
-  millis: date.getUTCMilliseconds(),
-  seconds: date.getUTCSeconds(),
-  minutes: date.getUTCMinutes(),
-  hours: date.getUTCHours(),
+  millisecond: date.getUTCMilliseconds(),
+  second: date.getUTCSeconds(),
+  minute: date.getUTCMinutes(),
+  hour: date.getUTCHours(),
   day: date.getUTCDate(),
   weekDay: date.getUTCDay(),
   month: date.getUTCMonth() + 1,
@@ -652,17 +661,17 @@ const setPartsDate = (date: Date, parts: Partial<DateTime.DateTime.PartsWithWeek
     const diff = parts.weekDay - date.getUTCDay()
     date.setUTCDate(date.getUTCDate() + diff)
   }
-  if (parts.hours !== undefined) {
-    date.setUTCHours(parts.hours)
+  if (parts.hour !== undefined) {
+    date.setUTCHours(parts.hour)
   }
-  if (parts.minutes !== undefined) {
-    date.setUTCMinutes(parts.minutes)
+  if (parts.minute !== undefined) {
+    date.setUTCMinutes(parts.minute)
   }
-  if (parts.seconds !== undefined) {
-    date.setUTCSeconds(parts.seconds)
+  if (parts.second !== undefined) {
+    date.setUTCSeconds(parts.second)
   }
-  if (parts.millis !== undefined) {
-    date.setUTCMilliseconds(parts.millis)
+  if (parts.millisecond !== undefined) {
+    date.setUTCMilliseconds(parts.millisecond)
   }
 }
 
@@ -925,8 +934,8 @@ export const add: {
   2,
   (self: DateTime.DateTime, parts: Partial<DateTime.DateTime.PartsForMath>): DateTime.DateTime =>
     mutate(self, (date) => {
-      if (parts.millis) {
-        addMillis(date, parts.millis)
+      if (parts.milliseconds) {
+        addMillis(date, parts.milliseconds)
       }
       if (parts.seconds) {
         addMillis(date, parts.seconds * 1000)
@@ -1100,7 +1109,7 @@ export const nearest: {
   readonly weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | undefined
 }): DateTime.DateTime =>
   mutate(self, (date) => {
-    if (part === "milli") return
+    if (part === "millisecond") return
     const millis = date.getTime()
     const start = new Date(millis)
     startOfDate(start, part, options)
@@ -1157,7 +1166,7 @@ export const format: {
     return new Intl.DateTimeFormat(options?.locale, {
       timeZone: self._tag === "Utc" ? "UTC" : intlTimeZone(self.zone),
       ...options
-    }).format(self.epochMillis)
+    }).format(self.epochMilliseconds)
   } catch {
     return new Intl.DateTimeFormat(options?.locale, {
       timeZone: "UTC",
@@ -1190,7 +1199,7 @@ export const formatLocal: {
       readonly locale?: Intl.LocalesArgument
     }
     | undefined
-): string => new Intl.DateTimeFormat(options?.locale, options).format(self.epochMillis))
+): string => new Intl.DateTimeFormat(options?.locale, options).format(self.epochMilliseconds))
 
 /** @internal */
 export const formatUtc: {
@@ -1220,13 +1229,13 @@ export const formatUtc: {
   new Intl.DateTimeFormat(options?.locale, {
     ...options,
     timeZone: "UTC"
-  }).format(self.epochMillis))
+  }).format(self.epochMilliseconds))
 
 /** @internal */
 export const formatIntl: {
   (format: Intl.DateTimeFormat): (self: DateTime.DateTime) => string
   (self: DateTime.DateTime, format: Intl.DateTimeFormat): string
-} = dual(2, (self: DateTime.DateTime, format: Intl.DateTimeFormat): string => format.format(self.epochMillis))
+} = dual(2, (self: DateTime.DateTime, format: Intl.DateTimeFormat): string => format.format(self.epochMilliseconds))
 
 /** @internal */
 export const formatIso = (self: DateTime.DateTime): string => toDateUtc(self).toISOString()

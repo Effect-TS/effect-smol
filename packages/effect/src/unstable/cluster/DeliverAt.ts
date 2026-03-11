@@ -30,7 +30,7 @@ export const isDeliverAt = (self: unknown): self is DeliverAt => hasProperty(sel
  */
 export const toMillis = (self: unknown): number | null => {
   if (isDeliverAt(self)) {
-    return self[symbol]().epochMillis
+    return self[symbol]().epochMilliseconds
   }
   return null
 }

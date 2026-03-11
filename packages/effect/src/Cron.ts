@@ -531,15 +531,15 @@ export const match = (cron: Cron, date: DateTime.DateTime.Input): boolean => {
     timeZone: cron.tz
   }).pipe(dateTime.toParts)
 
-  if (cron.seconds.size !== 0 && !cron.seconds.has(parts.seconds)) {
+  if (cron.seconds.size !== 0 && !cron.seconds.has(parts.second)) {
     return false
   }
 
-  if (cron.minutes.size !== 0 && !cron.minutes.has(parts.minutes)) {
+  if (cron.minutes.size !== 0 && !cron.minutes.has(parts.minute)) {
     return false
   }
 
-  if (cron.hours.size !== 0 && !cron.hours.has(parts.hours)) {
+  if (cron.hours.size !== 0 && !cron.hours.has(parts.hour)) {
     return false
   }
 

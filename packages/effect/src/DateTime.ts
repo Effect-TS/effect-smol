@@ -57,7 +57,7 @@ export type DateTime = Utc | Zoned
  */
 export interface Utc extends DateTime.Proto {
   readonly _tag: "Utc"
-  readonly epochMillis: number
+  readonly epochMilliseconds: number
   partsUtc: DateTime.PartsWithWeekday | undefined
 }
 
@@ -82,9 +82,9 @@ export interface Utc extends DateTime.Proto {
  */
 export interface Zoned extends DateTime.Proto {
   readonly _tag: "Zoned"
-  readonly epochMillis: number
+  readonly epochMilliseconds: number
   readonly zone: TimeZone
-  adjustedEpochMillis: number | undefined
+  adjustedEpochMilliseconds: number | undefined
   partsAdjusted: DateTime.PartsWithWeekday | undefined
   partsUtc: DateTime.PartsWithWeekday | undefined
 }
@@ -117,7 +117,7 @@ export declare namespace DateTime {
    * @since 3.6.0
    * @category models
    */
-  export type Input = DateTime | Partial<Parts> | Date | number | string
+  export type Input = DateTime | Partial<Parts> | Instant | InstantWithZone | Date | number | string
 
   /**
    * @since 3.6.0
@@ -136,7 +136,7 @@ export declare namespace DateTime {
    * @category models
    */
   export type UnitSingular =
-    | "milli"
+    | "millisecond"
     | "second"
     | "minute"
     | "hour"
@@ -150,7 +150,7 @@ export declare namespace DateTime {
    * @category models
    */
   export type UnitPlural =
-    | "millis"
+    | "milliseconds"
     | "seconds"
     | "minutes"
     | "hours"
@@ -164,10 +164,10 @@ export declare namespace DateTime {
    * @category models
    */
   export interface PartsWithWeekday {
-    readonly millis: number
-    readonly seconds: number
-    readonly minutes: number
-    readonly hours: number
+    readonly millisecond: number
+    readonly second: number
+    readonly minute: number
+    readonly hour: number
     readonly day: number
     readonly weekDay: number
     readonly month: number
@@ -179,10 +179,10 @@ export declare namespace DateTime {
    * @category models
    */
   export interface Parts {
-    readonly millis: number
-    readonly seconds: number
-    readonly minutes: number
-    readonly hours: number
+    readonly millisecond: number
+    readonly second: number
+    readonly minute: number
+    readonly hour: number
     readonly day: number
     readonly month: number
     readonly year: number
@@ -193,7 +193,7 @@ export declare namespace DateTime {
    * @category models
    */
   export interface PartsForMath {
-    readonly millis: number
+    readonly milliseconds: number
     readonly seconds: number
     readonly minutes: number
     readonly hours: number
@@ -201,6 +201,23 @@ export declare namespace DateTime {
     readonly weeks: number
     readonly months: number
     readonly years: number
+  }
+
+  /**
+   * @since 4.0.0
+   * @category models
+   */
+  export interface Instant {
+    readonly epochMilliseconds: number
+  }
+
+  /**
+   * @since 4.0.0
+   * @category models
+   */
+  export interface InstantWithZone {
+    readonly timeZoneId: string
+    readonly epochMilliseconds: number
   }
 
   /**
