@@ -9,7 +9,10 @@ import * as Option from "../../Option.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as CliOutput from "./CliOutput.ts"
 import type * as Command from "./Command.ts"
+import * as Completions_ from "./Completions.ts"
 import * as Flag from "./Flag.ts"
+import * as CommandDescriptor from "./internal/completions/CommandDescriptor.ts"
+import * as HelpInternal from "./internal/help.ts"
 
 /* ========================================================================== */
 /* Types                                                                      */
@@ -124,10 +127,6 @@ let settingIdCounter = 0
 /* Built-in Flag References                                                   */
 /* ========================================================================== */
 
-import * as CompletionsModule from "./Completions.ts"
-import * as CommandDescriptor from "./internal/completions/CommandDescriptor.ts"
-import * as HelpInternal from "./internal/help.ts"
-
 /**
  * The `--help` / `-h` global flag.
  * Shows help documentation for the command.
@@ -185,7 +184,7 @@ export const Completions: Action<Option.Option<"bash" | "zsh" | "fish">> = actio
       if (Option.isNone(shell)) return
       const descriptor = CommandDescriptor.fromCommand(command)
       yield* Console.log(
-        CompletionsModule.generate(command.name, shell.value, descriptor)
+        Completions_.generate(command.name, shell.value, descriptor)
       )
     })
 })
