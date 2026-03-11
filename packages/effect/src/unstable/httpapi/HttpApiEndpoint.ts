@@ -917,40 +917,6 @@ export const make = <Method extends HttpMethod>(method: Method): {
   <
     const Name extends string,
     const Path extends HttpRouter.PathInput,
-    Params extends ParamsConstraint = never,
-    Query extends QueryConstraint = never,
-    Payload extends PayloadConstraint<Method> = never,
-    Headers extends HeadersConstraint = never,
-    const Success extends SuccessConstraint = HttpApiSchema.NoContent,
-    const Error extends ErrorConstraint = never
-  >(
-    name: Name,
-    path: Path,
-    options?: {
-      readonly useCodecs?: false | undefined
-      readonly params?: Params | undefined
-      readonly query?: Query | undefined
-      readonly headers?: Headers | undefined
-      readonly payload?: Payload | undefined
-      readonly success?: Success | undefined
-      readonly error?: Error | undefined
-    }
-  ): HttpApiEndpoint<
-    Name,
-    Method,
-    Path,
-    Params extends Schema.Struct.Fields ? Schema.Struct<Params> : Params,
-    Query extends Schema.Struct.Fields ? Schema.Struct<Query> : Query,
-    Payload extends Schema.Struct.Fields ? Schema.Struct<Payload>
-      : Payload extends ReadonlyArray<Schema.Top> ? Payload[number]
-      : Payload,
-    Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers,
-    Success extends ReadonlyArray<Schema.Top> ? Success[number] : Success,
-    (Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error) | typeof BadRequestNoContent
-  >
-  <
-    const Name extends string,
-    const Path extends HttpRouter.PathInput,
     Params extends Schema.Top | Schema.Struct.Fields = never,
     Query extends Schema.Top | Schema.Struct.Fields = never,
     Payload extends PayloadConstraintCodecs<Method> = never,
@@ -961,7 +927,7 @@ export const make = <Method extends HttpMethod>(method: Method): {
     name: Name,
     path: Path,
     options?: {
-      readonly useCodecs: true
+      readonly disableCodecs?: false | undefined
       readonly params?: Params | undefined
       readonly query?: Query | undefined
       readonly headers?: Headers | undefined
@@ -984,6 +950,40 @@ export const make = <Method extends HttpMethod>(method: Method): {
     Json<Success extends ReadonlyArray<Schema.Top> ? Success[number] : Success>,
     Json<(Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error) | typeof BadRequestNoContent>
   >
+  <
+    const Name extends string,
+    const Path extends HttpRouter.PathInput,
+    Params extends ParamsConstraint = never,
+    Query extends QueryConstraint = never,
+    Payload extends PayloadConstraint<Method> = never,
+    Headers extends HeadersConstraint = never,
+    const Success extends SuccessConstraint = HttpApiSchema.NoContent,
+    const Error extends ErrorConstraint = never
+  >(
+    name: Name,
+    path: Path,
+    options?: {
+      readonly disableCodecs: true
+      readonly params?: Params | undefined
+      readonly query?: Query | undefined
+      readonly headers?: Headers | undefined
+      readonly payload?: Payload | undefined
+      readonly success?: Success | undefined
+      readonly error?: Error | undefined
+    }
+  ): HttpApiEndpoint<
+    Name,
+    Method,
+    Path,
+    Params extends Schema.Struct.Fields ? Schema.Struct<Params> : Params,
+    Query extends Schema.Struct.Fields ? Schema.Struct<Query> : Query,
+    Payload extends Schema.Struct.Fields ? Schema.Struct<Payload>
+      : Payload extends ReadonlyArray<Schema.Top> ? Payload[number]
+      : Payload,
+    Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers,
+    Success extends ReadonlyArray<Schema.Top> ? Success[number] : Success,
+    (Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error) | typeof BadRequestNoContent
+  >
 } =>
 <
   const Name extends string,
@@ -998,7 +998,7 @@ export const make = <Method extends HttpMethod>(method: Method): {
   name: Name,
   path: Path,
   options?: {
-    readonly useCodecs?: boolean | undefined
+    readonly disableCodecs?: boolean | undefined
     readonly params?: Params | undefined
     readonly query?: Query | undefined
     readonly headers?: Headers | undefined
@@ -1019,18 +1019,18 @@ export const make = <Method extends HttpMethod>(method: Method): {
   Success extends ReadonlyArray<Schema.Top> ? Success[number] : Success,
   (Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error) | typeof BadRequestNoContent
 > => {
-  const useCodecs = options?.useCodecs ?? false
-  const strings = useCodecs ? Schema.toCodecStringTree : identity
+  const disableCodecs = options?.disableCodecs ?? false
+  const transformStringTree = disableCodecs ? identity : Schema.toCodecStringTree
   return makeProto({
     name,
     path,
     method,
-    params: ensureStruct(options?.params, strings),
-    query: ensureStruct(options?.query, strings),
-    headers: ensureStruct(options?.headers, strings),
-    payload: getPayload(options?.payload, method, useCodecs),
-    success: getResponse(options?.success, useCodecs),
-    error: getResponse(options?.error, useCodecs),
+    params: ensureStruct(options?.params, transformStringTree),
+    query: ensureStruct(options?.query, transformStringTree),
+    headers: ensureStruct(options?.headers, transformStringTree),
+    payload: getPayload(options?.payload, method, disableCodecs),
+    success: getResponse(options?.success, disableCodecs),
+    error: getResponse(options?.error, disableCodecs),
     annotations: ServiceMap.empty(),
     middlewares: new Set()
   })
@@ -1069,7 +1069,7 @@ function ensureStruct(
 function getPayload(
   payload: Schema.Top | ReadonlyArray<Schema.Top> | Schema.Struct.Fields | undefined,
   method: HttpMethod,
-  useCodecs: boolean
+  disableCodecs: boolean
 ): PayloadMap {
   const result: Map<string, { encoding: HttpApiSchema.PayloadEncoding; schemas: [Schema.Top, ...Array<Schema.Top>] }> =
     new Map()
@@ -1079,7 +1079,7 @@ function getPayload(
     : Schema.isSchema(payload)
     ? [payload]
     : [(Schema.Struct(payload as any)).pipe(HttpApiSchema.asFormUrlEncoded())]
-  const transform = useCodecs ? transformPayload : identity
+  const transform = disableCodecs ? identity : transformPayload
 
   for (const schema of schemas) {
     const encoding = HttpApiSchema.getPayloadEncoding(schema.ast, method)
@@ -1101,10 +1101,10 @@ function getPayload(
 
 function getResponse(
   success: Schema.Top | ReadonlyArray<Schema.Top> | undefined,
-  useCodecs: boolean
+  disableCodecs: boolean
 ): Set<Schema.Top> {
   if (success === undefined) return new Set()
-  const transform = useCodecs ? transformResponse : identity
+  const transform = disableCodecs ? identity : transformResponse
   return new Set(Array.isArray(success) ? success.map(transform) : [transform(success as Schema.Top)])
 }
 
