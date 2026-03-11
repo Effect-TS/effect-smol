@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Option, PartitionedSemaphore } from "effect"
+import { Effect, PartitionedSemaphore } from "effect"
 
 describe("PartitionedSemaphore", () => {
   it.effect("module-level combinators delegate to the instance api", () =>
@@ -20,9 +20,6 @@ describe("PartitionedSemaphore", () => {
 
       const value2 = yield* PartitionedSemaphore.withPermits(sem, "b", 2, Effect.succeed(2))
       assert.strictEqual(value2, 2)
-
-      const available = yield* PartitionedSemaphore.withPermitsIfAvailable(sem, "c", 1, Effect.succeed("ok"))
-      assert.deepStrictEqual(available, Option.some("ok"))
     }))
 
   it.effect("zero permits run immediately", () =>
