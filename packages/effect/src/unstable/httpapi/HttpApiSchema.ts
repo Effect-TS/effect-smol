@@ -31,6 +31,7 @@ import { constVoid, type LazyArg } from "../../Function.ts"
 import * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
+import { hasBody, type HttpMethod } from "../http/HttpMethod.ts"
 import type * as Multipart_ from "../http/Multipart.ts"
 
 declare module "../../Schema.ts" {
@@ -341,14 +342,20 @@ const defaultJsonEncoding: Encoding = {
   _tag: "Json",
   contentType: "application/json"
 }
+const defaultUrlEncodedEncoding: Encoding = {
+  _tag: "FormUrlEncoded",
+  contentType: "application/x-www-form-urlencoded"
+}
 
 function getEncoding(ast: AST.AST): Encoding {
   return resolveHttpApiEncoding(ast) ?? defaultJsonEncoding
 }
 
 /** @internal */
-export function getPayloadEncoding(ast: AST.AST): PayloadEncoding {
-  return getEncoding(ast)
+export function getPayloadEncoding(ast: AST.AST, method: HttpMethod): PayloadEncoding {
+  const encoding = resolveHttpApiEncoding(ast)
+  if (encoding) return encoding
+  return hasBody(method) ? defaultJsonEncoding : defaultUrlEncodedEncoding
 }
 
 /** @internal */

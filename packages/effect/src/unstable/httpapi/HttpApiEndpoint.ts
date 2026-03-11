@@ -4,6 +4,7 @@
 import * as Arr from "../../Array.ts"
 import type { Brand } from "../../Brand.ts"
 import type { Effect } from "../../Effect.ts"
+import { identity } from "../../Function.ts"
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
@@ -892,6 +893,14 @@ export type PayloadConstraint<Method extends HttpMethod> = Method extends HttpMe
  * @since 4.0.0
  * @category constraints
  */
+export type PayloadConstraintCodecs<Method extends HttpMethod> = Method extends HttpMethod.NoBody ?
+  Record<string, Schema.Top> :
+  Schema.Top
+
+/**
+ * @since 4.0.0
+ * @category constraints
+ */
 export type SuccessConstraint = Schema.Top | ReadonlyArray<Schema.Top>
 
 /**
@@ -904,7 +913,78 @@ export type ErrorConstraint = Schema.Top | ReadonlyArray<Schema.Top>
  * @since 4.0.0
  * @category constructors
  */
-export const make = <Method extends HttpMethod>(method: Method) =>
+export const make = <Method extends HttpMethod>(method: Method): {
+  <
+    const Name extends string,
+    const Path extends HttpRouter.PathInput,
+    Params extends ParamsConstraint = never,
+    Query extends QueryConstraint = never,
+    Payload extends PayloadConstraint<Method> = never,
+    Headers extends HeadersConstraint = never,
+    const Success extends SuccessConstraint = HttpApiSchema.NoContent,
+    const Error extends ErrorConstraint = never
+  >(
+    name: Name,
+    path: Path,
+    options?: {
+      readonly useCodecs?: false | undefined
+      readonly params?: Params | undefined
+      readonly query?: Query | undefined
+      readonly headers?: Headers | undefined
+      readonly payload?: Payload | undefined
+      readonly success?: Success | undefined
+      readonly error?: Error | undefined
+    }
+  ): HttpApiEndpoint<
+    Name,
+    Method,
+    Path,
+    Params extends Schema.Struct.Fields ? Schema.Struct<Params> : Params,
+    Query extends Schema.Struct.Fields ? Schema.Struct<Query> : Query,
+    Payload extends Schema.Struct.Fields ? Schema.Struct<Payload>
+      : Payload extends ReadonlyArray<Schema.Top> ? Payload[number]
+      : Payload,
+    Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers,
+    Success extends ReadonlyArray<Schema.Top> ? Success[number] : Success,
+    (Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error) | typeof BadRequestNoContent
+  >
+  <
+    const Name extends string,
+    const Path extends HttpRouter.PathInput,
+    Params extends Schema.Top | Schema.Struct.Fields = never,
+    Query extends Schema.Top | Schema.Struct.Fields = never,
+    Payload extends PayloadConstraintCodecs<Method> = never,
+    Headers extends Schema.Top | Schema.Struct.Fields = never,
+    const Success extends Schema.Top = HttpApiSchema.NoContent,
+    const Error extends Schema.Top = never
+  >(
+    name: Name,
+    path: Path,
+    options?: {
+      readonly useCodecs: true
+      readonly params?: Params | undefined
+      readonly query?: Query | undefined
+      readonly headers?: Headers | undefined
+      readonly payload?: Payload | undefined
+      readonly success?: Success | undefined
+      readonly error?: Error | undefined
+    }
+  ): HttpApiEndpoint<
+    Name,
+    Method,
+    Path,
+    StringTree<Params extends Schema.Struct.Fields ? Schema.Struct<Params> : Params>,
+    StringTree<Query extends Schema.Struct.Fields ? Schema.Struct<Query> : Query>,
+    Json<
+      Payload extends Schema.Struct.Fields ? Schema.Struct<Payload>
+        : Payload extends ReadonlyArray<Schema.Top> ? Payload[number]
+        : Payload
+    >,
+    StringTree<Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers>,
+    Json<Success extends ReadonlyArray<Schema.Top> ? Success[number] : Success>,
+    Json<(Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error) | typeof BadRequestNoContent>
+  >
+} =>
 <
   const Name extends string,
   const Path extends HttpRouter.PathInput,
@@ -918,6 +998,7 @@ export const make = <Method extends HttpMethod>(method: Method) =>
   name: Name,
   path: Path,
   options?: {
+    readonly useCodecs?: boolean | undefined
     readonly params?: Params | undefined
     readonly query?: Query | undefined
     readonly headers?: Headers | undefined
@@ -938,42 +1019,57 @@ export const make = <Method extends HttpMethod>(method: Method) =>
   Success extends ReadonlyArray<Schema.Top> ? Success[number] : Success,
   (Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error) | typeof BadRequestNoContent
 > => {
+  const useCodecs = options?.useCodecs ?? false
+  const strings = useCodecs ? Schema.toCodecStringTree : identity
   return makeProto({
     name,
     path,
     method,
-    params: getParams(options?.params),
-    query: getQuery(options?.query),
-    headers: getHeaders(options?.headers),
-    payload: getPayload(options?.payload),
-    success: getSuccess(options?.success),
-    error: getError(options?.error),
+    params: ensureStruct(options?.params, strings),
+    query: ensureStruct(options?.query, strings),
+    headers: ensureStruct(options?.headers, strings),
+    payload: getPayload(options?.payload, method, useCodecs),
+    success: getResponse(options?.success, useCodecs),
+    error: getResponse(options?.error, useCodecs),
     annotations: ServiceMap.empty(),
     middlewares: new Set()
   })
 }
 
-function getParams(params: ParamsConstraint | undefined): Schema.Top | undefined {
+/**
+ * @since 4.0.0
+ * @category Codecs
+ */
+export interface Json<S extends Schema.Top>
+  extends Schema.Codec<S["Type"], unknown, S["DecodingServices"], S["EncodingServices"]>
+{}
+
+/**
+ * @since 4.0.0
+ * @category Codecs
+ */
+export interface StringTree<S extends Schema.Top> extends
+  Schema.Codec<
+    S["Type"],
+    Schema.StringTree,
+    S["DecodingServices"],
+    S["EncodingServices"]
+  >
+{}
+
+function ensureStruct(
+  params: Schema.Struct.Fields | Schema.Top | undefined,
+  transform: typeof Schema.toCodecJson
+): Schema.Top | undefined {
   if (params === undefined) return undefined
-  if (Schema.isSchema(params)) return params
-  return Schema.Struct(params)
-}
-
-function getQuery(query: QueryConstraint | undefined): Schema.Top | undefined {
-  if (query === undefined) return undefined
-  if (Schema.isSchema(query)) return query
-  return Schema.Struct(query)
-}
-
-// all keys should be lowercase
-function getHeaders(headers: HeadersConstraint | undefined): Schema.Top | undefined {
-  if (headers === undefined) return undefined
-  if (Schema.isSchema(headers)) return headers
-  return Schema.Struct(headers)
+  if (Schema.isSchema(params)) return transform(params)
+  return transform(Schema.Struct(params))
 }
 
 function getPayload(
-  payload: Schema.Top | ReadonlyArray<Schema.Top> | Schema.Struct.Fields | undefined
+  payload: Schema.Top | ReadonlyArray<Schema.Top> | Schema.Struct.Fields | undefined,
+  method: HttpMethod,
+  useCodecs: boolean
 ): PayloadMap {
   const result: Map<string, { encoding: HttpApiSchema.PayloadEncoding; schemas: [Schema.Top, ...Array<Schema.Top>] }> =
     new Map()
@@ -982,9 +1078,11 @@ function getPayload(
     ? payload
     : Schema.isSchema(payload)
     ? [payload]
-    : [Schema.Struct(payload as any).pipe(HttpApiSchema.asFormUrlEncoded())]
+    : [(Schema.Struct(payload as any)).pipe(HttpApiSchema.asFormUrlEncoded())]
+  const transform = useCodecs ? transformPayload : identity
+
   for (const schema of schemas) {
-    const encoding = HttpApiSchema.getPayloadEncoding(schema.ast)
+    const encoding = HttpApiSchema.getPayloadEncoding(schema.ast, method)
     const existing = result.get(encoding.contentType)
     if (existing) {
       if (existing.encoding._tag !== encoding._tag) {
@@ -993,24 +1091,48 @@ function getPayload(
       if (existing.encoding._tag === "Multipart") {
         throw new Error(`Multiple multipart payloads for content-type: ${encoding.contentType}`)
       }
-      existing.schemas.push(schema)
+      existing.schemas.push(transform(schema, method))
     } else {
-      result.set(encoding.contentType, { encoding, schemas: [schema] })
+      result.set(encoding.contentType, { encoding, schemas: [transform(schema, method)] })
     }
   }
   return result
 }
 
-function getSuccess(
-  success: Schema.Top | ReadonlyArray<Schema.Top> | undefined
+function getResponse(
+  success: Schema.Top | ReadonlyArray<Schema.Top> | undefined,
+  useCodecs: boolean
 ): Set<Schema.Top> {
   if (success === undefined) return new Set()
-  return new Set(Array.isArray(success) ? success : [success])
+  const transform = useCodecs ? transformResponse : identity
+  return new Set(Array.isArray(success) ? success.map(transform) : [transform(success as Schema.Top)])
 }
 
-function getError(error: Schema.Top | ReadonlyArray<Schema.Top> | undefined): Set<Schema.Top> {
-  if (error === undefined) return new Set()
-  return new Set(Array.isArray(error) ? error : [error])
+function transformResponse(schema: Schema.Top): Schema.Top {
+  const encoding = HttpApiSchema.getResponseEncoding(schema.ast)
+  switch (encoding._tag) {
+    case "Json":
+      return Schema.toCodecJson(schema)
+    case "FormUrlEncoded":
+    case "Text":
+      return Schema.toCodecStringTree(schema)
+    case "Uint8Array":
+      return schema
+  }
+}
+
+function transformPayload(schema: Schema.Top, method: HttpMethod): Schema.Top {
+  const encoding = HttpApiSchema.getPayloadEncoding(schema.ast, method)
+  switch (encoding._tag) {
+    case "Json":
+      return Schema.toCodecJson(schema)
+    case "FormUrlEncoded":
+    case "Text":
+      return Schema.toCodecStringTree(schema)
+    case "Uint8Array":
+    case "Multipart":
+      return schema
+  }
 }
 
 /**

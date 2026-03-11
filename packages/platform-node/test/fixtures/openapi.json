@@ -375,6 +375,9 @@
             "name": "page",
             "in": "header",
             "schema": {
+              "allOf": [{
+                "pattern": "^[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?$"
+              }],
               "type": "string"
             },
             "required": false
@@ -409,7 +412,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/User"
+                    "$ref": "#/components/schemas/User1"
                   }
                 }
               }
@@ -642,6 +645,36 @@
         "additionalProperties": false
       },
       "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "uuid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "User1": {
         "type": "object",
         "properties": {
           "id": {

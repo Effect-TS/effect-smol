@@ -1543,8 +1543,9 @@ class UsersApi extends HttpApiGroup.make("users")
       error: [UserError, UserError]
     }),
     HttpApiEndpoint.get("list", "/", {
+      useCodecs: true,
       headers: {
-        page: Schema.FiniteFromString.pipe(
+        page: Schema.Finite.pipe(
           Schema.optionalKey,
           Schema.decode({
             decode: SchemaGetter.withDefault(() => 1),
