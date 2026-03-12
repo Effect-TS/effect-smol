@@ -1558,8 +1558,7 @@ export * as Inspectable from "./Inspectable.ts"
  *
  * @example
  * ```ts
- * import { Iterable } from "effect"
- * import * as Option from "effect/Option"
+ * import { Iterable, Option } from "effect"
  *
  * // Create iterables
  * const numbers = Iterable.range(1, 5)
@@ -2515,37 +2514,6 @@ export * as Newtype from "./Newtype.ts"
 export * as NonEmptyIterable from "./NonEmptyIterable.ts"
 
 /**
- * This module provides small, allocation-free utilities for working with values of type
- * `A | null`, where `null` means "no value".
- *
- * Why not `Option<A>`?
- * In TypeScript, `Option<A>` is often unnecessary. If `null` already models absence
- * in your domain, using `A | null` keeps types simple, avoids extra wrappers, and
- * reduces overhead. The key is that `A` itself must not include `null`; in this
- * module `null` is reserved to mean "no value".
- *
- * When to use `A | null`:
- * - Absence can be represented by `null` in your domain model.
- * - You do not need to distinguish between "no value" and "value is null".
- * - You want straightforward ergonomics and zero extra allocations.
- *
- * When to prefer `Option<A>`:
- * - You must distinguish `None` from `Some(null)` (that is, `null` is a valid
- *   payload and carries meaning on its own).
- * - You need a tagged representation for serialization or pattern matching across
- *   boundaries where `null` would be ambiguous.
- * - You want the richer `Option` API and are comfortable with the extra wrapper.
- *
- * Lawfulness note:
- * All helpers treat `null` as absence. Do not use these utilities with payloads
- * where `A` can itself be `null`, or you will lose information. If you need to
- * carry `null` as a valid payload, use `Option<A>` instead.
- *
- * @since 4.0.0
- */
-export * as NullOr from "./NullOr.ts"
-
-/**
  * This module provides utility functions and type class instances for working with the `number` type in TypeScript.
  * It includes functions for basic arithmetic operations.
  *
@@ -3274,6 +3242,88 @@ export * as Schedule from "./Schedule.ts"
 export * as Scheduler from "./Scheduler.ts"
 
 /**
+ * Define data shapes, validate unknown input, and transform values between formats.
+ *
+ * ## Mental model
+ *
+ * - **Schema** — a description of a data shape. Every schema carries a decoded
+ *   *Type* (the value you work with) and an *Encoded* representation (the
+ *   serialized form, e.g. JSON).
+ * - **Decoding** — turning unknown external data (API responses, form
+ *   submissions, config files) into typed, validated values.
+ * - **Encoding** — turning typed values back into a serializable format.
+ * - **Codec** — a schema that tracks both Type and Encoded, so it can decode
+ *   *and* encode. Most concrete schemas are Codecs.
+ * - **Check / Filter** — a constraint attached to a schema (e.g. `isMinLength`,
+ *   `isGreaterThan`). Attach them with `.check(...)`.
+ * - **Transformation** — a pair of functions (decode + encode) that convert
+ *   values between two schemas. Created with {@link decodeTo} / {@link encodeTo}.
+ * - **Annotation** — metadata attached to a schema (title, description, custom
+ *   keys). Attach with `.annotate(...)`.
+ *
+ * ## Common tasks
+ *
+ * - Define a struct: {@link Struct}
+ * - Define a union: {@link Union}, {@link TaggedUnion}, {@link Literals}
+ * - Define an array: {@link Array}, {@link NonEmptyArray}
+ * - Define a record: {@link Record}
+ * - Define a tuple: {@link Tuple}, {@link TupleWithRest}
+ * - Validate unknown data synchronously: {@link decodeUnknownSync}
+ * - Validate unknown data (Effect): {@link decodeUnknownEffect}
+ * - Encode a value: {@link encodeUnknownSync}, {@link encodeUnknownEffect}
+ * - Type guard: {@link is}
+ * - Assertion: {@link asserts}
+ * - Add constraints: `.check(...)` with filters like {@link isMinLength},
+ *   {@link isGreaterThan}, {@link isPattern}, {@link isUUID}
+ * - Transform between schemas: {@link decodeTo}, {@link encodeTo}
+ * - Add a default for missing keys: {@link withDecodingDefault}, {@link withDecodingDefaultKey}
+ * - Create branded types: {@link brand}
+ * - Define classes with validation: {@link Class}, {@link TaggedClass}
+ * - Define error classes: {@link ErrorClass}, {@link TaggedErrorClass}
+ * - Generate JSON Schema: {@link toJsonSchemaDocument}
+ * - Generate test data: {@link toArbitrary}
+ * - Derive equivalence: {@link toEquivalence}
+ *
+ * ## Gotchas
+ *
+ * - `Schema.optional` creates `T | undefined` (key can be missing *or*
+ *   `undefined`). Use `Schema.optionalKey` for exact optional properties.
+ * - `decodeTo` is curried: use `from.pipe(Schema.decodeTo(to, ...))`.
+ * - `decodeUnknownSync` throws on failure. Use `decodeUnknownExit` or
+ *   `decodeUnknownOption` for non-throwing alternatives.
+ * - Filters do not change the TypeScript type. Use {@link refine} or
+ *   {@link brand} to narrow the type.
+ * - Recursive schemas require {@link suspend} to avoid infinite loops.
+ *
+ * ## Quickstart
+ *
+ * **Example** (Validate a user object)
+ *
+ * ```ts
+ * import { Schema } from "effect"
+ *
+ * const User = Schema.Struct({
+ *   name: Schema.String.check(Schema.isMinLength(1)),
+ *   age: Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)),
+ *   email: Schema.optionalKey(Schema.String)
+ * })
+ *
+ * // Decode unknown input — throws on failure
+ * const user = Schema.decodeUnknownSync(User)({
+ *   name: "Alice",
+ *   age: 30
+ * })
+ *
+ * console.log(user)
+ * // { name: "Alice", age: 30 }
+ * ```
+ *
+ * @see {@link Schema} — type-level view tracking only the decoded Type
+ * @see {@link Codec} — type-level view tracking both Type and Encoded
+ * @see {@link Struct} — define object shapes
+ * @see {@link decodeUnknownSync} — synchronous validation
+ * @see {@link decodeTo} — schema transformations
+ *
  * @since 4.0.0
  */
 export * as Schema from "./Schema.ts"
