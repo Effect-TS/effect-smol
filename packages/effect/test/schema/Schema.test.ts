@@ -2602,6 +2602,74 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     await encoding.succeed({ a: Option.some(1) }, { a: "1" })
   })
 
+  describe("OptionFromOptionalNullOr", () => {
+    it("default (missing)", async () => {
+      const schema = Schema.Struct({
+        a: Schema.OptionFromOptionalNullOr(Schema.FiniteFromString)
+      })
+      const asserts = new TestSchema.Asserts(schema)
+
+      if (verifyGeneration) {
+        const arbitrary = asserts.arbitrary()
+        arbitrary.verifyGeneration()
+      }
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({}, { a: Option.none() })
+      await decoding.succeed({ a: null }, { a: Option.none() })
+      await decoding.succeed({ a: undefined }, { a: Option.none() })
+      await decoding.succeed({ a: "1" }, { a: Option.some(1) })
+      await decoding.fail(
+        { a: "a" },
+        `Expected a finite number, got NaN
+  at ["a"]`
+      )
+
+      const encoding = asserts.encoding()
+      await encoding.succeed({ a: Option.none() }, {})
+      await encoding.succeed({ a: Option.some(1) }, { a: "1" })
+      await encoding.fail(
+        { a: null },
+        `Expected Option, got null
+  at ["a"]`
+      )
+    })
+
+    it("onNoneEncoding: null", async () => {
+      const schema = Schema.Struct({
+        a: Schema.OptionFromOptionalNullOr(Schema.FiniteFromString, { onNoneEncoding: null })
+      })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({}, { a: Option.none() })
+      await decoding.succeed({ a: null }, { a: Option.none() })
+      await decoding.succeed({ a: undefined }, { a: Option.none() })
+      await decoding.succeed({ a: "1" }, { a: Option.some(1) })
+
+      const encoding = asserts.encoding()
+      await encoding.succeed({ a: Option.none() }, { a: null })
+      await encoding.succeed({ a: Option.some(1) }, { a: "1" })
+    })
+
+    it("onNoneEncoding: undefined", async () => {
+      const schema = Schema.Struct({
+        a: Schema.OptionFromOptionalNullOr(Schema.FiniteFromString, { onNoneEncoding: undefined })
+      })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({}, { a: Option.none() })
+      await decoding.succeed({ a: null }, { a: Option.none() })
+      await decoding.succeed({ a: undefined }, { a: Option.none() })
+      await decoding.succeed({ a: "1" }, { a: Option.some(1) })
+
+      const encoding = asserts.encoding()
+      await encoding.succeed({ a: Option.none() }, { a: undefined })
+      await encoding.succeed({ a: Option.some(1) }, { a: "1" })
+    })
+  })
+
   describe("Result", () => {
     it("should expose the values", () => {
       const schema = Schema.Result(Schema.String, Schema.Number)

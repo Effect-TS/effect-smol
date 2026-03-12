@@ -6999,6 +6999,54 @@ export function OptionFromOptional<S extends Top>(schema: S): OptionFromOptional
 }
 
 /**
+ * Schema type for {@link OptionFromOptionalNullOr}.
+ *
+ * @category Option
+ * @since 4.0.0
+ */
+export interface OptionFromOptionalNullOr<S extends Top> extends decodeTo<Option<toType<S>>, optional<NullOr<S>>> {}
+
+/**
+ * Decodes an optional or `null` or `undefined` value `A` to a required `Option<A>`
+ * value.
+ *
+ * Decoding:
+ * - a missing key is decoded as `None`
+ * - a present key with an `undefined` value is decoded as `None`
+ * - a present key with a `null` value is decoded as `None`
+ * - all other values are decoded as `Some`
+ *
+ * Encoding (controlled by `options.onNoneEncoding`):
+ * - `"missing"` (default): `None` is encoded as a missing key
+ * - `null`: `None` is encoded as `null`
+ * - `undefined`: `None` is encoded as `undefined`
+ * - `Some` is always encoded as the value
+ *
+ * @category Option
+ * @since 4.0.0
+ */
+export function OptionFromOptionalNullOr<S extends Top>(
+  schema: S,
+  options?: {
+    readonly onNoneEncoding: "missing" | null | undefined
+  }
+): OptionFromOptionalNullOr<S> {
+  const onNoneEncoding = options === undefined ? "missing" : options.onNoneEncoding
+  const noneValue = onNoneEncoding === null
+    ? null as S["Type"] | null | undefined
+    : undefined as S["Type"] | null | undefined
+  return optional(NullOr(schema)).pipe(decodeTo(
+    Option(toType(schema)),
+    Transformation.transformOptional<Option_.Option<S["Type"]>, S["Type"] | null | undefined>({
+      decode: (oe) => oe.pipe(Option_.filter(Predicate.isNotNullish), Option_.some),
+      encode: onNoneEncoding === "missing"
+        ? Option_.flatten
+        : (ot) => Option_.some(Option_.getOrElse(Option_.flatten(ot), () => noneValue))
+    })
+  ))
+}
+
+/**
  * Schema for the `Result<A, E>` type, representing a computation that either
  * succeeds with `A` or fails with `E`.
  *
