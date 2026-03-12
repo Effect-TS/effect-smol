@@ -744,18 +744,10 @@ console.log(Schema.decodeUnknownSync(Product)({ quantity: "2" }))
 #### Optional Property with Nullability
 
 ```ts
-import { Option, Predicate, Schema, SchemaTransformation } from "effect"
+import { Schema } from "effect"
 
 const Product = Schema.Struct({
-  quantity: Schema.optional(Schema.NullOr(Schema.FiniteFromString)).pipe(
-    Schema.decodeTo(
-      Schema.Option(Schema.Number),
-      SchemaTransformation.transformOptional({
-        decode: (oe) => oe.pipe(Option.filter(Predicate.isNotNullish), Option.some),
-        encode: Option.flatten
-      })
-    )
-  )
+  quantity: Schema.OptionFromOptionalNullOr(Schema.FiniteFromString)
 })
 
 //     ┌─── { readonly quantity?: string | null | undefined; }
@@ -764,7 +756,7 @@ type Encoded = typeof Product.Encoded
 
 //     ┌─── { readonly quantity: Option<number>; }
 //     ▼
-export type Type = typeof Product.Type
+type Type = typeof Product.Type
 
 console.log(Schema.decodeUnknownSync(Product)({}))
 // Output: { quantity: { _id: 'Option', _tag: 'None' } }
