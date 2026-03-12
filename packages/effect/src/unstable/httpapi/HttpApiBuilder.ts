@@ -72,10 +72,16 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
       | Path
     >()
     const routes: Array<HttpRouter.Route<any, any>> = []
+    const availableGroups = Array.from(services.mapUnsafe.keys()).filter((key) =>
+      key.startsWith("effect/httpapi/HttpApiGroup/")
+    )
     for (const group of Object.values(api.groups)) {
       const groupRoutes = services.mapUnsafe.get(group.key) as Array<HttpRouter.Route<any, any>>
       if (groupRoutes === undefined) {
-        return yield* Effect.die(`HttpApiGroup "${group.key}" not found`)
+        const available = availableGroups.length === 0 ? "none" : availableGroups.join(", ")
+        return yield* Effect.die(
+          `HttpApiGroup "${group.identifier}" not found (key: "${group.key}"). Did you forget to provide HttpApiBuilder.group(api, "${group.identifier}", ...)? Available groups: ${available}`
+        )
       }
       routes.push(...groupRoutes)
     }
@@ -630,13 +636,13 @@ const getRequestMediaType = (request: HttpServerRequest): string => {
 const applyMiddleware = <A extends Effect.Effect<any, any, any>>(
   group: HttpApiGroup.AnyWithProps,
   endpoint: HttpApiEndpoint.AnyWithProps,
-  services: ServiceMap.ServiceMap<never>,
+  services: ServiceMap.ServiceMap<any>,
   handler: A
 ) => {
   const options = { group, endpoint }
   for (const key_ of endpoint.middlewares) {
     const key = key_ as any as HttpApiMiddleware.AnyService
-    const service = services.mapUnsafe.get(key_.key) as HttpApiMiddleware.HttpApiMiddleware<any, any, any>
+    const service = ServiceMap.getUnsafe(services, key as any) as HttpApiMiddleware.HttpApiMiddleware<any, any, any>
     const apply = HttpApiMiddleware.isSecurity(key)
       ? makeSecurityMiddleware(key, service as any)
       : service

@@ -2,6 +2,7 @@ import { NodeHttpServer } from "@effect/platform-node"
 import { assert, describe, it } from "@effect/vitest"
 import {
   Array,
+  Cause,
   DateTime,
   Effect,
   Equal,
@@ -434,6 +435,158 @@ describe("HttpApi", () => {
         assert.strictEqual(yield* authedClient.group.a(), "token")
       }).pipe(Effect.provide(ApiLive))
     })
+
+    it.effect("addHttpApi + middleware works across merged groups", () => {
+      class M1 extends HttpApiMiddleware.Service<M1>()("Http/M1") {}
+      class M2 extends HttpApiMiddleware.Service<M2>()("Http/M2") {}
+
+      const calls: Array<string> = []
+
+      const V0 = HttpApi.make("v0").add(
+        HttpApiGroup.make("users").add(
+          HttpApiEndpoint.get("list", "/users", {
+            success: Schema.String
+          })
+        )
+      )
+      const Api = HttpApi.make("api")
+        .add(
+          HttpApiGroup.make("health").add(
+            HttpApiEndpoint.get("health", "/health", {
+              success: Schema.String
+            })
+          )
+        )
+        .addHttpApi(V0)
+        .middleware(M1)
+        .middleware(M2)
+
+      const HealthLive = HttpApiBuilder.group(
+        Api,
+        "health",
+        (handlers) => handlers.handle("health", () => Effect.succeed("ok"))
+      )
+      const UsersLive = HttpApiBuilder.group(
+        Api,
+        "users",
+        (handlers) => handlers.handle("list", () => Effect.succeed("ok"))
+      )
+      const M1Live = Layer.succeed(
+        M1,
+        (effect, { endpoint, group }) =>
+          Effect.sync(() => calls.push(`m1:${group.identifier}.${endpoint.name}`)).pipe(
+            Effect.flatMap(() => effect)
+          )
+      )
+      const M2Live = Layer.succeed(
+        M2,
+        (effect, { endpoint, group }) =>
+          Effect.sync(() => calls.push(`m2:${group.identifier}.${endpoint.name}`)).pipe(
+            Effect.flatMap(() => effect)
+          )
+      )
+
+      const ApiLive = HttpRouter.serve(
+        HttpApiBuilder.layer(Api).pipe(
+          Layer.provide(HealthLive),
+          Layer.provide(UsersLive),
+          Layer.provide(M1Live),
+          Layer.provide(M2Live)
+        ),
+        { disableListenLog: true, disableLogger: true }
+      ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
+
+      return Effect.gen(function*() {
+        yield* assertServerJson(yield* HttpClient.get("/health"), 200, "ok")
+        yield* assertServerJson(yield* HttpClient.get("/users"), 200, "ok")
+        assert.deepStrictEqual(calls, [
+          "m2:health.health",
+          "m1:health.health",
+          "m2:users.list",
+          "m1:users.list"
+        ])
+      }).pipe(Effect.provide(ApiLive))
+    })
+
+    it.effect("missing middleware layer fails with service not found error", () => {
+      class M extends HttpApiMiddleware.Service<M>()("Server/MissingMiddleware") {}
+
+      const Api = HttpApi.make("api").add(
+        HttpApiGroup.make("group")
+          .add(
+            HttpApiEndpoint.get("a", "/a", {
+              success: Schema.String
+            })
+          )
+          .middleware(M)
+      )
+      const GroupLive = HttpApiBuilder.group(
+        Api,
+        "group",
+        (handlers) => handlers.handle("a", () => Effect.succeed("ok"))
+      )
+      const ApiLive = HttpRouter.serve(
+        HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive)),
+        { disableListenLog: true, disableLogger: true }
+      ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
+
+      return HttpClient.get("/a").pipe(
+        Effect.provide(ApiLive),
+        Effect.sandbox,
+        Effect.flip,
+        Effect.flatMap((cause) =>
+          Effect.sync(() => {
+            const defect = Cause.squash(cause)
+            assert.instanceOf(defect, Error)
+            assert.include(defect.message, "Service not found: Server/MissingMiddleware")
+            assert.isFalse(defect.message.includes("is not a function"))
+          })
+        )
+      ) as Effect.Effect<void, HttpClientResponse.HttpClientResponse>
+    })
+  })
+
+  it.effect("missing addHttpApi group layer has actionable error", () => {
+    const HealthApi = HttpApiGroup.make("health").add(
+      HttpApiEndpoint.get("health", "/health", {
+        success: Schema.String
+      })
+    )
+    const V0 = HttpApi.make("v0").add(
+      HttpApiGroup.make("users").add(
+        HttpApiEndpoint.get("list", "/users", {
+          success: Schema.String
+        })
+      )
+    )
+    const Api = HttpApi.make("api")
+      .add(HealthApi)
+      .addHttpApi(V0)
+
+    const UsersLive = HttpApiBuilder.group(
+      Api,
+      "users",
+      (handlers) => handlers.handle("list", () => Effect.succeed("ok"))
+    )
+    const ApiLive = HttpRouter.serve(
+      HttpApiBuilder.layer(Api).pipe(Layer.provide(UsersLive)),
+      { disableListenLog: true, disableLogger: true }
+    ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
+
+    return HttpClient.get("/users").pipe(
+      Effect.provide(ApiLive),
+      Effect.sandbox,
+      Effect.flip,
+      Effect.flatMap((cause) =>
+        Effect.sync(() => {
+          const defect = Cause.squash(cause)
+          assert.strictEqual(typeof defect, "string")
+          assert.include(defect, "HttpApiGroup \"health\" not found")
+          assert.include(defect, "HttpApiBuilder.group(api, \"health\", ...)")
+          assert.include(defect, "Available groups: effect/httpapi/HttpApiGroup/users")
+        })
+      )
+    ) as Effect.Effect<void, HttpClientResponse.HttpClientResponse>
   })
 
   describe("payload option", () => {
