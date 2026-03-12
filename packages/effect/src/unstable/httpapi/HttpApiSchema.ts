@@ -27,9 +27,13 @@
  *
  * @since 4.0.0
  */
+import * as Effect from "../../Effect.ts"
 import { constVoid, type LazyArg } from "../../Function.ts"
+import * as Option from "../../Option.ts"
+import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
+import * as Issue from "../../SchemaIssue.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
 import type * as Multipart_ from "../http/Multipart.ts"
 
@@ -368,4 +372,25 @@ export function getStatusSuccess(self: AST.AST): number {
 /** @internal */
 export function getStatusError(self: AST.AST): number {
   return resolveHttpApiStatus(self) ?? 500
+}
+
+/** @internal */
+export function schemaForEncoding(schema: Schema.Top): Schema.Top {
+  const ast = schema.ast
+  if (ast._tag === "Declaration" && ast.annotations?.[AST.ClassTypeId] !== undefined) {
+    return Schema.make(
+      new AST.Declaration(
+        ast.typeParameters,
+        () => (input, declAst) =>
+          Predicate.isObject(input)
+            ? Effect.succeed(input)
+            : Effect.fail(new Issue.InvalidType(declAst, Option.some(input))),
+        ast.annotations,
+        ast.checks,
+        ast.encoding,
+        ast.context
+      )
+    )
+  }
+  return schema
 }

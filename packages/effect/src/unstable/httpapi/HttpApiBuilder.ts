@@ -716,7 +716,7 @@ function toResponseSchema(getStatus: (ast: AST.AST) => number) {
       return cached as any
     }
     const responseSchema = $HttpServerResponse.pipe(
-      Schema.decodeTo(schema, getResponseTransformation(getStatus, schema))
+      Schema.decodeTo(HttpApiSchema.schemaForEncoding(schema), getResponseTransformation(getStatus, schema))
     )
     cache.set(responseSchema.ast, responseSchema)
     return responseSchema
