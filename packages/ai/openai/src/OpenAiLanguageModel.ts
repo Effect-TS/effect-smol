@@ -1136,13 +1136,17 @@ const makeResponse = Effect.fnUntraced(
             ? (approvalRequests.get(part.approval_request_id) ?? part.id)
             : part.id
 
-          const toolName = `mcp.${part.name}`
+          const { toolName, params } = yield* normalizeMcpToolCall({
+            toolNameMapper,
+            toolParams: part.arguments,
+            method: "makeResponse"
+          })
 
           parts.push({
             type: "tool-call",
             id: toolId,
             name: toolName,
-            params: part.arguments,
+            params,
             providerExecuted: true
           })
 
@@ -1153,7 +1157,7 @@ const makeResponse = Effect.fnUntraced(
             isFailure: false,
             providerExecuted: true,
             result: {
-              type: "call",
+              type: "mcp_call",
               name: part.name,
               arguments: part.arguments,
               server_label: part.server_label,
@@ -1174,25 +1178,11 @@ const makeResponse = Effect.fnUntraced(
         case "mcp_approval_request": {
           const approvalRequestId = (part as any).approval_request_id ?? part.id
           const toolId = yield* idGenerator.generateId()
-          const toolName = `mcp.${part.name}`
 
-          const params = yield* Effect.try({
-            try: () =>
-              Tool.unsafeSecureJsonParse(
-                typeof part.arguments === "string"
-                  ? part.arguments
-                  : JSON.stringify(part.arguments)
-              ),
-            catch: (cause) =>
-              AiError.make({
-                module: "OpenAiLanguageModel",
-                method: "makeResponse",
-                reason: new AiError.ToolParameterValidationError({
-                  toolName,
-                  toolParams: {},
-                  description: `Failed securely JSON parse tool parameters: ${cause}`
-                })
-              })
+          const { toolName, params } = yield* normalizeMcpToolCall({
+            toolNameMapper,
+            toolParams: part.arguments,
+            method: "makeResponse"
           })
 
           parts.push({
@@ -1881,13 +1871,17 @@ const makeStreamResponse = Effect.fnUntraced(
                     event.item.id)
                   : event.item.id
 
-                const toolName = `mcp.${event.item.name}`
+                const { toolName, params } = yield* normalizeMcpToolCall({
+                  toolNameMapper,
+                  toolParams: event.item.arguments,
+                  method: "makeStreamResponse"
+                })
 
                 parts.push({
                   type: "tool-call",
                   id: toolId,
                   name: toolName,
-                  params: event.item.arguments,
+                  params,
                   providerExecuted: true
                 })
 
@@ -1898,7 +1892,7 @@ const makeStreamResponse = Effect.fnUntraced(
                   isFailure: false,
                   providerExecuted: true,
                   result: {
-                    type: "call",
+                    type: "mcp_call",
                     name: event.item.name,
                     arguments: event.item.arguments,
                     server_label: event.item.server_label,
@@ -1920,12 +1914,16 @@ const makeStreamResponse = Effect.fnUntraced(
                 const toolId = yield* idGenerator.generateId()
                 const approvalRequestId = (event.item as any).approval_request_id ?? event.item.id
                 streamApprovalRequests.set(approvalRequestId, toolId)
-                const toolName = `mcp.${event.item.name}`
+                const { toolName, params } = yield* normalizeMcpToolCall({
+                  toolNameMapper,
+                  toolParams: event.item.arguments,
+                  method: "makeStreamResponse"
+                })
                 parts.push({
                   type: "tool-call",
                   id: toolId,
                   name: toolName,
-                  params: event.item.arguments,
+                  params,
                   providerExecuted: true
                 })
                 parts.push({
@@ -2730,7 +2728,42 @@ const getApprovalRequestIdMapping = (prompt: Prompt.Prompt): ReadonlyMap<string,
   return mapping
 }
 
-const getUsage = (usage: OpenAiSchema.ResponseUsage | null | undefined): Response.Usage => {
+const normalizeMcpToolCall = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Tool.Any>>({
+  toolNameMapper,
+  toolParams,
+  method
+}: {
+  readonly toolNameMapper: Tool.NameMapper<Tools>
+  readonly toolParams: unknown
+  readonly method: string
+}): Effect.fn.Return<{
+  readonly toolName: string
+  readonly params: unknown
+}, AiError.AiError> {
+  const toolName = toolNameMapper.getCustomName("mcp")
+
+  if (typeof toolParams !== "string") {
+    return { toolName, params: toolParams }
+  }
+
+  const params = yield* Effect.try({
+    try: () => Tool.unsafeSecureJsonParse(toolParams),
+    catch: (cause) =>
+      AiError.make({
+        module: "OpenAiLanguageModel",
+        method,
+        reason: new AiError.ToolParameterValidationError({
+          toolName,
+          toolParams,
+          description: `Failed to securely JSON parse tool parameters: ${cause}`
+        })
+      })
+  })
+
+  return { toolName, params }
+})
+
+const getUsage = (usage: Generated.ResponseUsage | null | undefined): Response.Usage => {
   if (Predicate.isNullish(usage)) {
     return {
       inputTokens: {
