@@ -314,7 +314,7 @@ export const fileParse = (
  */
 export const fileSchema = <A>(
   name: string,
-  schema: Schema.Codec<A, string>,
+  schema: Schema.Decoder<A>,
   options?: Primitive.FileSchemaOptions | undefined
 ): Flag<A> => Param.fileSchema(Param.flagKind, name, schema, options)
 

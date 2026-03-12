@@ -575,7 +575,7 @@ export type FileSchemaOptions = Struct.Simplify<
  * @category constructors
  */
 export const fileSchema = <A>(
-  schema: Schema.Codec<A, string>,
+  schema: Schema.Decoder<A>,
   options?: FileSchemaOptions | undefined
 ): Primitive<A> => {
   const decode = Schema.decodeUnknownEffect(schema)
