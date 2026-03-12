@@ -11,6 +11,20 @@ const responseExitSuccess = (requestId: string, value: unknown) => ({
 })
 
 describe("RpcSerialization", () => {
+  it("json decode keeps array payloads flat", () => {
+    const parser = RpcSerialization.json.makeUnsafe()
+    const decoded = parser.decode("[1,2,3]")
+    assert.strictEqual(decoded.length, 3)
+    assert.deepStrictEqual(decoded, [1, 2, 3])
+  })
+
+  it("json decode wraps non-array payloads", () => {
+    const parser = RpcSerialization.json.makeUnsafe()
+    const decoded = parser.decode("{\"a\":1}")
+    assert.strictEqual(decoded.length, 1)
+    assert.deepStrictEqual(decoded, [{ a: 1 }])
+  })
+
   it("jsonRpc encodes a non-batched single response array as an object", () => {
     const parser = RpcSerialization.jsonRpc().makeUnsafe()
     const decoded = parser.decode("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"users.get\"}")

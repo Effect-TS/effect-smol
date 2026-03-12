@@ -37,7 +37,10 @@ export const json: RpcSerialization["Service"] = RpcSerialization.of({
   makeUnsafe: () => {
     const decoder = new TextDecoder()
     return {
-      decode: (bytes) => [JSON.parse(typeof bytes === "string" ? bytes : decoder.decode(bytes))],
+      decode: (bytes) => {
+        const decoded = JSON.parse(typeof bytes === "string" ? bytes : decoder.decode(bytes))
+        return Array.isArray(decoded) ? decoded : [decoded]
+      },
       encode: (response) => JSON.stringify(response)
     }
   }
