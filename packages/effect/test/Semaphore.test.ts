@@ -314,10 +314,10 @@ describe("Semaphore", () => {
       const value = yield* Semaphore.withPermit(sem, Effect.succeed(1))
       assert.strictEqual(value, 1)
 
-      const value2 = yield* Semaphore.withPermits(sem, Effect.succeed(2), 2)
+      const value2 = yield* Semaphore.withPermits(sem, 2, Effect.succeed(2))
       assert.strictEqual(value2, 2)
 
-      const available = yield* Semaphore.withPermitsIfAvailable(sem, Effect.succeed("ok"), 1)
+      const available = yield* Semaphore.withPermitsIfAvailable(sem, 1, Effect.succeed("ok"))
       assert.deepStrictEqual(available, Option.some("ok"))
 
       const piped = yield* Effect.succeed(3).pipe(Semaphore.withPermit(sem))

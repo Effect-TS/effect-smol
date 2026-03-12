@@ -12,16 +12,16 @@ describe("PartitionedSemaphore", () => {
       yield* PartitionedSemaphore.take(sem, "a", 1)
       assert.strictEqual(yield* PartitionedSemaphore.available(sem), 1)
 
-      const value = yield* PartitionedSemaphore.withPermit(sem, Effect.succeed(1), "a")
+      const value = yield* PartitionedSemaphore.withPermit(sem, "a", Effect.succeed(1))
       assert.strictEqual(value, 1)
 
       const released = yield* PartitionedSemaphore.release(sem, 1)
       assert.strictEqual(released, 2)
 
-      const value2 = yield* PartitionedSemaphore.withPermits(sem, Effect.succeed(2), "b", 2)
+      const value2 = yield* PartitionedSemaphore.withPermits(sem, "b", 2, Effect.succeed(2))
       assert.strictEqual(value2, 2)
 
-      const available = yield* PartitionedSemaphore.withPermitsIfAvailable(sem, Effect.succeed("ok"), 1)
+      const available = yield* PartitionedSemaphore.withPermitsIfAvailable(sem, 1, Effect.succeed("ok"))
       assert.deepStrictEqual(available, Option.some("ok"))
 
       const piped = yield* Effect.succeed(3).pipe(PartitionedSemaphore.withPermit(sem, "c"))
@@ -41,11 +41,11 @@ describe("PartitionedSemaphore", () => {
 
       yield* PartitionedSemaphore.withPermits(
         sem,
+        "a",
+        0,
         Effect.sync(() => {
           executed = true
-        }),
-        "a",
-        0
+        })
       )
 
       assert.isTrue(executed)
@@ -61,11 +61,11 @@ describe("PartitionedSemaphore", () => {
 
       const result = yield* PartitionedSemaphore.withPermitsIfAvailable(
         sem,
+        1,
         Effect.sync(() => {
           executed = true
           return "ok"
-        }),
-        1
+        })
       )
 
       assert.deepStrictEqual(result, Option.none())

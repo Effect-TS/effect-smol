@@ -304,16 +304,16 @@ export const withPermits: {
   ): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
   <K, A, E, R>(
     self: PartitionedSemaphore<K>,
-    effect: Effect.Effect<A, E, R>,
     key: K,
-    permits: number
+    permits: number,
+    effect: Effect.Effect<A, E, R>
   ): Effect.Effect<A, E, R>
 } = ((...args: Array<any>) => {
   if (args.length === 3) {
     const [self, key, permits] = args
     return (effect: Effect.Effect<any, any, any>) => self.withPermits(key, permits)(effect)
   }
-  const [self, effect, key, permits] = args
+  const [self, key, permits, effect] = args
   return self.withPermits(key, permits)(effect)
 }) as any
 
@@ -327,15 +327,15 @@ export const withPermit: {
   <K>(self: PartitionedSemaphore<K>, key: K): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
   <K, A, E, R>(
     self: PartitionedSemaphore<K>,
-    effect: Effect.Effect<A, E, R>,
-    key: K
+    key: K,
+    effect: Effect.Effect<A, E, R>
   ): Effect.Effect<A, E, R>
 } = ((...args: Array<any>) => {
   if (args.length === 2) {
     const [self, key] = args
     return (effect: Effect.Effect<any, any, any>) => self.withPermit(key)(effect)
   }
-  const [self, effect, key] = args
+  const [self, key, effect] = args
   return self.withPermit(key)(effect)
 }) as any
 
@@ -352,14 +352,14 @@ export const withPermitsIfAvailable: {
   ): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<Option.Option<A>, E, R>
   <K, A, E, R>(
     self: PartitionedSemaphore<K>,
-    effect: Effect.Effect<A, E, R>,
-    permits: number
+    permits: number,
+    effect: Effect.Effect<A, E, R>
   ): Effect.Effect<Option.Option<A>, E, R>
 } = ((...args: Array<any>) => {
   if (args.length === 2) {
     const [self, permits] = args
     return (effect: Effect.Effect<any, any, any>) => self.withPermitsIfAvailable(permits)(effect)
   }
-  const [self, effect, permits] = args
+  const [self, permits, effect] = args
   return self.withPermitsIfAvailable(permits)(effect)
 }) as any

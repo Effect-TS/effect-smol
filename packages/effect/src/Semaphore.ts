@@ -184,13 +184,13 @@ export const resize: {
  */
 export const withPermits: {
   (self: Semaphore, permits: number): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
-  <A, E, R>(self: Semaphore, effect: Effect.Effect<A, E, R>, permits: number): Effect.Effect<A, E, R>
+  <A, E, R>(self: Semaphore, permits: number, effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R>
 } = ((...args: Array<any>) => {
   if (args.length === 2) {
     const [self, permits] = args
     return (effect: Effect.Effect<any, any, any>) => self.withPermits(permits)(effect)
   }
-  const [self, effect, permits] = args
+  const [self, permits, effect] = args
   return self.withPermits(permits)(effect)
 }) as any
 
@@ -224,15 +224,15 @@ export const withPermitsIfAvailable: {
   (self: Semaphore, permits: number): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<Option.Option<A>, E, R>
   <A, E, R>(
     self: Semaphore,
-    effect: Effect.Effect<A, E, R>,
-    permits: number
+    permits: number,
+    effect: Effect.Effect<A, E, R>
   ): Effect.Effect<Option.Option<A>, E, R>
 } = ((...args: Array<any>) => {
   if (args.length === 2) {
     const [self, permits] = args
     return (effect: Effect.Effect<any, any, any>) => self.withPermitsIfAvailable(permits)(effect)
   }
-  const [self, effect, permits] = args
+  const [self, permits, effect] = args
   return self.withPermitsIfAvailable(permits)(effect)
 }) as any
 

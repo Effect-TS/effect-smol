@@ -472,12 +472,12 @@ export const withPermit: {
  *   // Execute batch operation with 3 permits
  *   const results = yield* TxSemaphore.withPermits(
  *     semaphore,
+ *     3,
  *     Effect.gen(function*() {
  *       yield* Console.log("3 permits acquired, processing batch...")
  *       yield* Effect.sleep("200 millis") // Simulate batch processing
  *       return ["result1", "result2", "result3"]
- *     }),
- *     3
+ *     })
  *   )
  *
  *   yield* Console.log(`Batch results: ${results.join(", ")}`)
@@ -486,8 +486,8 @@ export const withPermit: {
  * ```
  *
  * @param self - The TxSemaphore to acquire permits from
- * @param effect - The effect to execute with the permits
  * @param n - The number of permits to acquire (must be positive)
+ * @param effect - The effect to execute with the permits
  * @returns Effect that succeeds with the result of the provided effect
  *
  * @since 4.0.0
@@ -495,7 +495,7 @@ export const withPermit: {
  */
 export const withPermits: {
   (self: TxSemaphore, n: number): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
-  <A, E, R>(self: TxSemaphore, effect: Effect.Effect<A, E, R>, n: number): Effect.Effect<A, E, R>
+  <A, E, R>(self: TxSemaphore, n: number, effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R>
 } = ((...args: Array<any>) => {
   if (args.length === 2) {
     const [self, n] = args
@@ -506,7 +506,7 @@ export const withPermits: {
         () => Effect.transaction(releaseN(self, n))
       )
   }
-  const [self, effect, n] = args
+  const [self, n, effect] = args
   return Effect.acquireUseRelease(
     Effect.transaction(acquireN(self, n)),
     () => effect,

@@ -133,12 +133,12 @@ describe("TxSemaphore", () => {
 
         const result = yield* TxSemaphore.withPermits(
           semaphore,
+          3,
           Effect.gen(function*() {
             const available = yield* Effect.transaction(TxSemaphore.available(semaphore))
             assert.strictEqual(available, 2) // Three permits acquired
             return ["result1", "result2", "result3"]
-          }),
-          3
+          })
         )
 
         assert.deepStrictEqual(result, ["result1", "result2", "result3"])
