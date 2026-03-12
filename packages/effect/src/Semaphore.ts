@@ -184,12 +184,15 @@ export const resize: {
  */
 export const withPermits: {
   (self: Semaphore, permits: number): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
-  <A, E, R>(effect: Effect.Effect<A, E, R>, self: Semaphore, permits: number): Effect.Effect<A, E, R>
-} = dual(
-  3,
-  <A, E, R>(effect: Effect.Effect<A, E, R>, self: Semaphore, permits: number): Effect.Effect<A, E, R> =>
-    self.withPermits(permits)(effect)
-)
+  <A, E, R>(self: Semaphore, effect: Effect.Effect<A, E, R>, permits: number): Effect.Effect<A, E, R>
+} = ((...args: Array<any>) => {
+  if (args.length === 2) {
+    const [self, permits] = args
+    return (effect: Effect.Effect<any, any, any>) => self.withPermits(permits)(effect)
+  }
+  const [self, effect, permits] = args
+  return self.withPermits(permits)(effect)
+}) as any
 
 /**
  * Runs an effect with a single permit and releases the permit when the effect
@@ -200,11 +203,15 @@ export const withPermits: {
  */
 export const withPermit: {
   (self: Semaphore): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
-  <A, E, R>(effect: Effect.Effect<A, E, R>, self: Semaphore): Effect.Effect<A, E, R>
-} = dual(
-  2,
-  <A, E, R>(effect: Effect.Effect<A, E, R>, self: Semaphore): Effect.Effect<A, E, R> => self.withPermit(effect)
-)
+  <A, E, R>(self: Semaphore, effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R>
+} = ((...args: Array<any>) => {
+  if (args.length === 1) {
+    const [self] = args
+    return (effect: Effect.Effect<any, any, any>) => self.withPermit(effect)
+  }
+  const [self, effect] = args
+  return self.withPermit(effect)
+}) as any
 
 /**
  * Runs an effect only if the specified number of permits are immediately
@@ -216,18 +223,18 @@ export const withPermit: {
 export const withPermitsIfAvailable: {
   (self: Semaphore, permits: number): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<Option.Option<A>, E, R>
   <A, E, R>(
-    effect: Effect.Effect<A, E, R>,
     self: Semaphore,
+    effect: Effect.Effect<A, E, R>,
     permits: number
   ): Effect.Effect<Option.Option<A>, E, R>
-} = dual(
-  3,
-  <A, E, R>(
-    effect: Effect.Effect<A, E, R>,
-    self: Semaphore,
-    permits: number
-  ): Effect.Effect<Option.Option<A>, E, R> => self.withPermitsIfAvailable(permits)(effect)
-)
+} = ((...args: Array<any>) => {
+  if (args.length === 2) {
+    const [self, permits] = args
+    return (effect: Effect.Effect<any, any, any>) => self.withPermitsIfAvailable(permits)(effect)
+  }
+  const [self, effect, permits] = args
+  return self.withPermitsIfAvailable(permits)(effect)
+}) as any
 
 /**
  * Acquires the specified number of permits and returns the resulting available

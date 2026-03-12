@@ -112,12 +112,12 @@ describe("TxSemaphore", () => {
         const semaphore = yield* Effect.transaction(TxSemaphore.make(2))
 
         const result = yield* TxSemaphore.withPermit(
+          semaphore,
           Effect.gen(function*() {
             const available = yield* Effect.transaction(TxSemaphore.available(semaphore))
             assert.strictEqual(available, 1) // One permit acquired
             return "success"
-          }),
-          semaphore
+          })
         )
 
         assert.strictEqual(result, "success")
@@ -132,12 +132,12 @@ describe("TxSemaphore", () => {
         const semaphore = yield* Effect.transaction(TxSemaphore.make(5))
 
         const result = yield* TxSemaphore.withPermits(
+          semaphore,
           Effect.gen(function*() {
             const available = yield* Effect.transaction(TxSemaphore.available(semaphore))
             assert.strictEqual(available, 2) // Three permits acquired
             return ["result1", "result2", "result3"]
           }),
-          semaphore,
           3
         )
 
@@ -239,15 +239,15 @@ describe("TxSemaphore", () => {
         const semaphore = yield* Effect.transaction(TxSemaphore.make(3))
 
         const fiber1 = yield* Effect.forkChild(
-          TxSemaphore.withPermit(Effect.succeed(1), semaphore)
+          TxSemaphore.withPermit(semaphore, Effect.succeed(1))
         )
 
         const fiber2 = yield* Effect.forkChild(
-          TxSemaphore.withPermit(Effect.succeed(2), semaphore)
+          TxSemaphore.withPermit(semaphore, Effect.succeed(2))
         )
 
         const fiber3 = yield* Effect.forkChild(
-          TxSemaphore.withPermit(Effect.succeed(3), semaphore)
+          TxSemaphore.withPermit(semaphore, Effect.succeed(3))
         )
 
         const [result1, result2, result3] = yield* Effect.all([

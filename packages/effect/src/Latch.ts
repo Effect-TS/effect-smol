@@ -2,7 +2,6 @@
  * @since 3.8.0
  */
 import type * as Effect from "./Effect.ts"
-import { dual } from "./Function.ts"
 import * as internal from "./internal/effect.ts"
 
 /**
@@ -172,5 +171,12 @@ export const closeUnsafe = (self: Latch): boolean => self.closeUnsafe()
  */
 export const whenOpen: {
   (self: Latch): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
-  <A, E, R>(effect: Effect.Effect<A, E, R>, self: Latch): Effect.Effect<A, E, R>
-} = dual(2, <A, E, R>(effect: Effect.Effect<A, E, R>, self: Latch): Effect.Effect<A, E, R> => self.whenOpen(effect))
+  <A, E, R>(self: Latch, effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R>
+} = ((...args: Array<any>) => {
+  if (args.length === 1) {
+    const [self] = args
+    return (effect: Effect.Effect<any, any, any>) => self.whenOpen(effect)
+  }
+  const [self, effect] = args
+  return self.whenOpen(effect)
+}) as any

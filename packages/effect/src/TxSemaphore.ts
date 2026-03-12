@@ -3,7 +3,6 @@
  */
 
 import * as Effect from "./Effect.ts"
-import { dual } from "./Function.ts"
 import type { Inspectable } from "./Inspectable.ts"
 import { NodeInspectSymbol, toJson } from "./Inspectable.ts"
 import type { Pipeable } from "./Pipeable.ts"
@@ -413,13 +412,13 @@ export const releaseN = (self: TxSemaphore, n: number): Effect.Effect<void, neve
  *
  *   // Execute database operation with automatic permit management
  *   const result = yield* TxSemaphore.withPermit(
+ *     semaphore,
  *     Effect.gen(function*() {
  *       yield* Console.log("Permit acquired, accessing database...")
  *       yield* Effect.sleep("100 millis") // Simulate database work
  *       yield* Console.log("Database operation complete")
  *       return "query result"
- *     }),
- *     semaphore
+ *     })
  *   )
  *
  *   yield* Console.log(`Result: ${result}`)
@@ -427,8 +426,8 @@ export const releaseN = (self: TxSemaphore, n: number): Effect.Effect<void, neve
  * })
  * ```
  *
- * @param effect - The effect to execute with the permit
  * @param self - The TxSemaphore to acquire a permit from
+ * @param effect - The effect to execute with the permit
  * @returns Effect that succeeds with the result of the provided effect
  *
  * @since 4.0.0
@@ -436,16 +435,24 @@ export const releaseN = (self: TxSemaphore, n: number): Effect.Effect<void, neve
  */
 export const withPermit: {
   (self: TxSemaphore): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
-  <A, E, R>(effect: Effect.Effect<A, E, R>, self: TxSemaphore): Effect.Effect<A, E, R>
-} = dual(
-  2,
-  <A, E, R>(effect: Effect.Effect<A, E, R>, self: TxSemaphore): Effect.Effect<A, E, R> =>
-    Effect.acquireUseRelease(
-      Effect.transaction(acquire(self)),
-      () => effect,
-      () => Effect.transaction(release(self))
-    )
-)
+  <A, E, R>(self: TxSemaphore, effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R>
+} = ((...args: Array<any>) => {
+  if (args.length === 1) {
+    const [self] = args
+    return (effect: Effect.Effect<any, any, any>) =>
+      Effect.acquireUseRelease(
+        Effect.transaction(acquire(self)),
+        () => effect,
+        () => Effect.transaction(release(self))
+      )
+  }
+  const [self, effect] = args
+  return Effect.acquireUseRelease(
+    Effect.transaction(acquire(self)),
+    () => effect,
+    () => Effect.transaction(release(self))
+  )
+}) as any
 
 /**
  * Executes an effect with the specified number of permits from the semaphore.
@@ -464,12 +471,12 @@ export const withPermit: {
  *
  *   // Execute batch operation with 3 permits
  *   const results = yield* TxSemaphore.withPermits(
+ *     semaphore,
  *     Effect.gen(function*() {
  *       yield* Console.log("3 permits acquired, processing batch...")
  *       yield* Effect.sleep("200 millis") // Simulate batch processing
  *       return ["result1", "result2", "result3"]
  *     }),
- *     semaphore,
  *     3
  *   )
  *
@@ -478,8 +485,8 @@ export const withPermit: {
  * })
  * ```
  *
- * @param effect - The effect to execute with the permits
  * @param self - The TxSemaphore to acquire permits from
+ * @param effect - The effect to execute with the permits
  * @param n - The number of permits to acquire (must be positive)
  * @returns Effect that succeeds with the result of the provided effect
  *
@@ -488,16 +495,24 @@ export const withPermit: {
  */
 export const withPermits: {
   (self: TxSemaphore, n: number): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
-  <A, E, R>(effect: Effect.Effect<A, E, R>, self: TxSemaphore, n: number): Effect.Effect<A, E, R>
-} = dual(
-  3,
-  <A, E, R>(effect: Effect.Effect<A, E, R>, self: TxSemaphore, n: number): Effect.Effect<A, E, R> =>
-    Effect.acquireUseRelease(
-      Effect.transaction(acquireN(self, n)),
-      () => effect,
-      () => Effect.transaction(releaseN(self, n))
-    )
-)
+  <A, E, R>(self: TxSemaphore, effect: Effect.Effect<A, E, R>, n: number): Effect.Effect<A, E, R>
+} = ((...args: Array<any>) => {
+  if (args.length === 2) {
+    const [self, n] = args
+    return (effect: Effect.Effect<any, any, any>) =>
+      Effect.acquireUseRelease(
+        Effect.transaction(acquireN(self, n)),
+        () => effect,
+        () => Effect.transaction(releaseN(self, n))
+      )
+  }
+  const [self, effect, n] = args
+  return Effect.acquireUseRelease(
+    Effect.transaction(acquireN(self, n)),
+    () => effect,
+    () => Effect.transaction(releaseN(self, n))
+  )
+}) as any
 
 /**
  * Acquires a single permit from the semaphore in a scoped manner. The permit

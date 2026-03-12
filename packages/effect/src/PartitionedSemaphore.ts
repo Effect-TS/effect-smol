@@ -303,20 +303,19 @@ export const withPermits: {
     permits: number
   ): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
   <K, A, E, R>(
-    effect: Effect.Effect<A, E, R>,
     self: PartitionedSemaphore<K>,
+    effect: Effect.Effect<A, E, R>,
     key: K,
     permits: number
   ): Effect.Effect<A, E, R>
-} = dual(
-  4,
-  <K, A, E, R>(
-    effect: Effect.Effect<A, E, R>,
-    self: PartitionedSemaphore<K>,
-    key: K,
-    permits: number
-  ): Effect.Effect<A, E, R> => self.withPermits(key, permits)(effect)
-)
+} = ((...args: Array<any>) => {
+  if (args.length === 3) {
+    const [self, key, permits] = args
+    return (effect: Effect.Effect<any, any, any>) => self.withPermits(key, permits)(effect)
+  }
+  const [self, effect, key, permits] = args
+  return self.withPermits(key, permits)(effect)
+}) as any
 
 /**
  * Runs an effect with a single permit for a partition.
@@ -327,18 +326,18 @@ export const withPermits: {
 export const withPermit: {
   <K>(self: PartitionedSemaphore<K>, key: K): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
   <K, A, E, R>(
-    effect: Effect.Effect<A, E, R>,
     self: PartitionedSemaphore<K>,
+    effect: Effect.Effect<A, E, R>,
     key: K
   ): Effect.Effect<A, E, R>
-} = dual(
-  3,
-  <K, A, E, R>(
-    effect: Effect.Effect<A, E, R>,
-    self: PartitionedSemaphore<K>,
-    key: K
-  ): Effect.Effect<A, E, R> => self.withPermit(key)(effect)
-)
+} = ((...args: Array<any>) => {
+  if (args.length === 2) {
+    const [self, key] = args
+    return (effect: Effect.Effect<any, any, any>) => self.withPermit(key)(effect)
+  }
+  const [self, effect, key] = args
+  return self.withPermit(key)(effect)
+}) as any
 
 /**
  * Runs an effect only if the permits are immediately available.
@@ -352,15 +351,15 @@ export const withPermitsIfAvailable: {
     permits: number
   ): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<Option.Option<A>, E, R>
   <K, A, E, R>(
-    effect: Effect.Effect<A, E, R>,
     self: PartitionedSemaphore<K>,
+    effect: Effect.Effect<A, E, R>,
     permits: number
   ): Effect.Effect<Option.Option<A>, E, R>
-} = dual(
-  3,
-  <K, A, E, R>(
-    effect: Effect.Effect<A, E, R>,
-    self: PartitionedSemaphore<K>,
-    permits: number
-  ): Effect.Effect<Option.Option<A>, E, R> => self.withPermitsIfAvailable(permits)(effect)
-)
+} = ((...args: Array<any>) => {
+  if (args.length === 2) {
+    const [self, permits] = args
+    return (effect: Effect.Effect<any, any, any>) => self.withPermitsIfAvailable(permits)(effect)
+  }
+  const [self, effect, permits] = args
+  return self.withPermitsIfAvailable(permits)(effect)
+}) as any
