@@ -2603,7 +2603,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   })
 
   describe("OptionFromOptionalNullOr", () => {
-    it("default (missing)", async () => {
+    it("default (omit)", async () => {
       const schema = Schema.Struct({
         a: Schema.OptionFromOptionalNullOr(Schema.FiniteFromString)
       })
