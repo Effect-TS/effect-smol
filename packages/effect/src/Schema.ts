@@ -7017,7 +7017,7 @@ export interface OptionFromOptionalNullOr<S extends Top> extends decodeTo<Option
  * - all other values are decoded as `Some`
  *
  * Encoding (controlled by `options.onNoneEncoding`):
- * - `"missing"` (default): `None` is encoded as a missing key
+ * - `"omit"` (default): `None` is encoded as a missing key
  * - `null`: `None` is encoded as `null`
  * - `undefined`: `None` is encoded as `undefined`
  * - `Some` is always encoded as the value
@@ -7028,10 +7028,10 @@ export interface OptionFromOptionalNullOr<S extends Top> extends decodeTo<Option
 export function OptionFromOptionalNullOr<S extends Top>(
   schema: S,
   options?: {
-    readonly onNoneEncoding: "missing" | null | undefined
+    readonly onNoneEncoding: "omit" | null | undefined
   }
 ): OptionFromOptionalNullOr<S> {
-  const onNoneEncoding = options === undefined ? "missing" : options.onNoneEncoding
+  const onNoneEncoding = options === undefined ? "omit" : options.onNoneEncoding
   const noneValue = onNoneEncoding === null
     ? null as S["Type"] | null | undefined
     : undefined as S["Type"] | null | undefined
@@ -7039,7 +7039,7 @@ export function OptionFromOptionalNullOr<S extends Top>(
     Option(toType(schema)),
     Transformation.transformOptional<Option_.Option<S["Type"]>, S["Type"] | null | undefined>({
       decode: (oe) => oe.pipe(Option_.filter(Predicate.isNotNullish), Option_.some),
-      encode: onNoneEncoding === "missing"
+      encode: onNoneEncoding === "omit"
         ? Option_.flatten
         : (ot) => Option_.some(Option_.getOrElse(Option_.flatten(ot), () => noneValue))
     })
