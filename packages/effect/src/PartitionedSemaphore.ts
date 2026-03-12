@@ -297,24 +297,24 @@ export const release: {
  * @category combinators
  */
 export const withPermits: {
-  <K, A, E, R>(
-    key: K,
-    permits: number,
-    effect: Effect.Effect<A, E, R>
-  ): (self: PartitionedSemaphore<K>) => Effect.Effect<A, E, R>
-  <K, A, E, R>(
+  <K>(
     self: PartitionedSemaphore<K>,
     key: K,
-    permits: number,
-    effect: Effect.Effect<A, E, R>
+    permits: number
+  ): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
+  <K, A, E, R>(
+    effect: Effect.Effect<A, E, R>,
+    self: PartitionedSemaphore<K>,
+    key: K,
+    permits: number
   ): Effect.Effect<A, E, R>
 } = dual(
   4,
   <K, A, E, R>(
+    effect: Effect.Effect<A, E, R>,
     self: PartitionedSemaphore<K>,
     key: K,
-    permits: number,
-    effect: Effect.Effect<A, E, R>
+    permits: number
   ): Effect.Effect<A, E, R> => self.withPermits(key, permits)(effect)
 )
 
@@ -325,12 +325,19 @@ export const withPermits: {
  * @category combinators
  */
 export const withPermit: {
-  <K, A, E, R>(key: K, effect: Effect.Effect<A, E, R>): (self: PartitionedSemaphore<K>) => Effect.Effect<A, E, R>
-  <K, A, E, R>(self: PartitionedSemaphore<K>, key: K, effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R>
+  <K>(self: PartitionedSemaphore<K>, key: K): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
+  <K, A, E, R>(
+    effect: Effect.Effect<A, E, R>,
+    self: PartitionedSemaphore<K>,
+    key: K
+  ): Effect.Effect<A, E, R>
 } = dual(
   3,
-  <K, A, E, R>(self: PartitionedSemaphore<K>, key: K, effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
-    self.withPermit(key)(effect)
+  <K, A, E, R>(
+    effect: Effect.Effect<A, E, R>,
+    self: PartitionedSemaphore<K>,
+    key: K
+  ): Effect.Effect<A, E, R> => self.withPermit(key)(effect)
 )
 
 /**
@@ -340,20 +347,20 @@ export const withPermit: {
  * @category combinators
  */
 export const withPermitsIfAvailable: {
-  <A, E, R>(
-    permits: number,
-    effect: Effect.Effect<A, E, R>
-  ): <K>(self: PartitionedSemaphore<K>) => Effect.Effect<Option.Option<A>, E, R>
-  <K, A, E, R>(
+  <K>(
     self: PartitionedSemaphore<K>,
-    permits: number,
-    effect: Effect.Effect<A, E, R>
+    permits: number
+  ): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<Option.Option<A>, E, R>
+  <K, A, E, R>(
+    effect: Effect.Effect<A, E, R>,
+    self: PartitionedSemaphore<K>,
+    permits: number
   ): Effect.Effect<Option.Option<A>, E, R>
 } = dual(
   3,
   <K, A, E, R>(
+    effect: Effect.Effect<A, E, R>,
     self: PartitionedSemaphore<K>,
-    permits: number,
-    effect: Effect.Effect<A, E, R>
+    permits: number
   ): Effect.Effect<Option.Option<A>, E, R> => self.withPermitsIfAvailable(permits)(effect)
 )

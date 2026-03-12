@@ -183,11 +183,11 @@ export const resize: {
  * @category combinators
  */
 export const withPermits: {
-  <A, E, R>(permits: number, effect: Effect.Effect<A, E, R>): (self: Semaphore) => Effect.Effect<A, E, R>
-  <A, E, R>(self: Semaphore, permits: number, effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R>
+  (self: Semaphore, permits: number): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
+  <A, E, R>(effect: Effect.Effect<A, E, R>, self: Semaphore, permits: number): Effect.Effect<A, E, R>
 } = dual(
   3,
-  <A, E, R>(self: Semaphore, permits: number, effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
+  <A, E, R>(effect: Effect.Effect<A, E, R>, self: Semaphore, permits: number): Effect.Effect<A, E, R> =>
     self.withPermits(permits)(effect)
 )
 
@@ -199,11 +199,11 @@ export const withPermits: {
  * @category combinators
  */
 export const withPermit: {
-  <A, E, R>(effect: Effect.Effect<A, E, R>): (self: Semaphore) => Effect.Effect<A, E, R>
-  <A, E, R>(self: Semaphore, effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R>
+  (self: Semaphore): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
+  <A, E, R>(effect: Effect.Effect<A, E, R>, self: Semaphore): Effect.Effect<A, E, R>
 } = dual(
   2,
-  <A, E, R>(self: Semaphore, effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> => self.withPermit(effect)
+  <A, E, R>(effect: Effect.Effect<A, E, R>, self: Semaphore): Effect.Effect<A, E, R> => self.withPermit(effect)
 )
 
 /**
@@ -214,15 +214,19 @@ export const withPermit: {
  * @category combinators
  */
 export const withPermitsIfAvailable: {
+  (self: Semaphore, permits: number): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<Option.Option<A>, E, R>
   <A, E, R>(
-    permits: number,
-    effect: Effect.Effect<A, E, R>
-  ): (self: Semaphore) => Effect.Effect<Option.Option<A>, E, R>
-  <A, E, R>(self: Semaphore, permits: number, effect: Effect.Effect<A, E, R>): Effect.Effect<Option.Option<A>, E, R>
+    effect: Effect.Effect<A, E, R>,
+    self: Semaphore,
+    permits: number
+  ): Effect.Effect<Option.Option<A>, E, R>
 } = dual(
   3,
-  <A, E, R>(self: Semaphore, permits: number, effect: Effect.Effect<A, E, R>): Effect.Effect<Option.Option<A>, E, R> =>
-    self.withPermitsIfAvailable(permits)(effect)
+  <A, E, R>(
+    effect: Effect.Effect<A, E, R>,
+    self: Semaphore,
+    permits: number
+  ): Effect.Effect<Option.Option<A>, E, R> => self.withPermitsIfAvailable(permits)(effect)
 )
 
 /**

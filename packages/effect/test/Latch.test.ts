@@ -9,8 +9,11 @@ describe("Latch", () => {
       const opened = yield* Latch.open(latch)
       assert.isTrue(opened)
 
-      const value = yield* Latch.whenOpen(latch, Effect.succeed("ok"))
+      const value = yield* Latch.whenOpen(Effect.succeed("ok"), latch)
       assert.strictEqual(value, "ok")
+
+      const piped = yield* Effect.succeed("pipe").pipe(Latch.whenOpen(latch))
+      assert.strictEqual(piped, "pipe")
 
       const closed = yield* Latch.close(latch)
       assert.isTrue(closed)

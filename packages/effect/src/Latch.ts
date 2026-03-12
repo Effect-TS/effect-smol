@@ -171,6 +171,6 @@ export const closeUnsafe = (self: Latch): boolean => self.closeUnsafe()
  * @since 4.0.0
  */
 export const whenOpen: {
-  <A, E, R>(effect: Effect.Effect<A, E, R>): (self: Latch) => Effect.Effect<A, E, R>
-  <A, E, R>(self: Latch, effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R>
-} = dual(2, <A, E, R>(self: Latch, effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> => self.whenOpen(effect))
+  (self: Latch): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
+  <A, E, R>(effect: Effect.Effect<A, E, R>, self: Latch): Effect.Effect<A, E, R>
+} = dual(2, <A, E, R>(effect: Effect.Effect<A, E, R>, self: Latch): Effect.Effect<A, E, R> => self.whenOpen(effect))

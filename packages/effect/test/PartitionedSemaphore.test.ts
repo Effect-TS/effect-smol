@@ -12,17 +12,26 @@ describe("PartitionedSemaphore", () => {
       yield* PartitionedSemaphore.take(sem, "a", 1)
       assert.strictEqual(yield* PartitionedSemaphore.available(sem), 1)
 
-      const value = yield* PartitionedSemaphore.withPermit(sem, "a", Effect.succeed(1))
+      const value = yield* PartitionedSemaphore.withPermit(Effect.succeed(1), sem, "a")
       assert.strictEqual(value, 1)
 
       const released = yield* PartitionedSemaphore.release(sem, 1)
       assert.strictEqual(released, 2)
 
-      const value2 = yield* PartitionedSemaphore.withPermits(sem, "b", 2, Effect.succeed(2))
+      const value2 = yield* PartitionedSemaphore.withPermits(Effect.succeed(2), sem, "b", 2)
       assert.strictEqual(value2, 2)
 
-      const available = yield* PartitionedSemaphore.withPermitsIfAvailable(sem, 1, Effect.succeed("ok"))
+      const available = yield* PartitionedSemaphore.withPermitsIfAvailable(Effect.succeed("ok"), sem, 1)
       assert.deepStrictEqual(available, Option.some("ok"))
+
+      const piped = yield* Effect.succeed(3).pipe(PartitionedSemaphore.withPermit(sem, "c"))
+      assert.strictEqual(piped, 3)
+
+      const piped2 = yield* Effect.succeed(4).pipe(PartitionedSemaphore.withPermits(sem, "c", 1))
+      assert.strictEqual(piped2, 4)
+
+      const pipedAvailable = yield* Effect.succeed("pipe").pipe(PartitionedSemaphore.withPermitsIfAvailable(sem, 1))
+      assert.deepStrictEqual(pipedAvailable, Option.some("pipe"))
     }))
 
   it.effect("zero permits run immediately", () =>
@@ -31,12 +40,12 @@ describe("PartitionedSemaphore", () => {
       let executed = false
 
       yield* PartitionedSemaphore.withPermits(
-        sem,
-        "a",
-        0,
         Effect.sync(() => {
           executed = true
-        })
+        }),
+        sem,
+        "a",
+        0
       )
 
       assert.isTrue(executed)
@@ -51,12 +60,12 @@ describe("PartitionedSemaphore", () => {
       yield* PartitionedSemaphore.take(sem, "a", 1)
 
       const result = yield* PartitionedSemaphore.withPermitsIfAvailable(
-        sem,
-        1,
         Effect.sync(() => {
           executed = true
           return "ok"
-        })
+        }),
+        sem,
+        1
       )
 
       assert.deepStrictEqual(result, Option.none())
