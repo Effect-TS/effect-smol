@@ -304,7 +304,7 @@ export const fileParse = (
  * const ConfigSchema = Schema.Struct({
  *   port: Schema.Number,
  *   host: Schema.String
- * }).pipe(Schema.fromJsonString)
+ * })
  *
  * const config = Flag.fileSchema("config", ConfigSchema, { format: "json" })
  * ```

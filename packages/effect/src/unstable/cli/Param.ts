@@ -734,7 +734,7 @@ export const fileParse = <Kind extends ParamKind>(
  * const configSchema = Schema.Struct({
  *   port: Schema.Number,
  *   host: Schema.String
- * }).pipe(Schema.fromJsonString)
+ * })
  *
  * const config = Param.fileSchema(Param.flagKind, "config", configSchema, {
  *   format: "json"

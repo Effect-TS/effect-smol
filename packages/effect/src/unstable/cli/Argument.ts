@@ -226,9 +226,7 @@ export const fileParse = (
  *   host: Schema.String
  * })
  *
- * const JsonConfigSchema = Schema.fromJsonString(ConfigSchema)
- *
- * const config = Argument.fileSchema("config", JsonConfigSchema)
+ * const config = Argument.fileSchema("config", ConfigSchema)
  * ```
  *
  * @since 4.0.0
