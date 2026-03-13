@@ -371,6 +371,7 @@ export interface ServiceMap<in Services> extends Equal.Equal, Pipeable, Inspecta
     readonly _Services: Types.Contravariant<Services>
   }
   readonly mapUnsafe: ReadonlyMap<string, any>
+  mutable: boolean
 }
 
 /**
@@ -392,10 +393,11 @@ export interface ServiceMap<in Services> extends Equal.Equal, Pipeable, Inspecta
 export const makeUnsafe = <Services = never>(mapUnsafe: ReadonlyMap<string, any>): ServiceMap<Services> => {
   const self = Object.create(Proto)
   self.mapUnsafe = mapUnsafe
+  self.mutable = false
   return self
 }
 
-const Proto: Omit<ServiceMap<never>, "mapUnsafe"> = {
+const Proto: Omit<ServiceMap<never>, "mapUnsafe" | "mutable"> = {
   ...PipeInspectableProto,
   [TypeId]: {
     _Services: (_: never) => _
@@ -558,11 +560,10 @@ export const add: {
   self: ServiceMap<Services>,
   key: Key<I, S>,
   service: Types.NoInfer<S>
-): ServiceMap<Services | I> => {
-  const map = new Map(self.mapUnsafe)
-  map.set(key.key, service)
-  return makeUnsafe(map)
-})
+): ServiceMap<Services | I> =>
+  withMapUnsafe(self, (map) => {
+    map.set(key.key, service)
+  }))
 
 /**
  * @since 4.0.0
@@ -582,15 +583,14 @@ export const addOrOmit: {
   self: ServiceMap<Services>,
   key: Key<I, S>,
   service: Option.Option<Types.NoInfer<S>>
-): ServiceMap<Services | I> => {
-  const map = new Map(self.mapUnsafe)
-  if (service._tag === "None") {
-    map.delete(key.key)
-  } else {
-    map.set(key.key, service.value)
-  }
-  return makeUnsafe(map)
-})
+): ServiceMap<Services | I> =>
+  withMapUnsafe(self, (map) => {
+    if (service._tag === "None") {
+      map.delete(key.key)
+    } else {
+      map.set(key.key, service.value)
+    }
+  }))
 
 /**
  * Get a service from the context that corresponds to the given key, or
@@ -844,9 +844,9 @@ export const merge: {
 } = dual(2, <Services, R1>(self: ServiceMap<Services>, that: ServiceMap<R1>): ServiceMap<Services | R1> => {
   if (self.mapUnsafe.size === 0) return that as any
   if (that.mapUnsafe.size === 0) return self as any
-  const map = new Map(self.mapUnsafe)
-  that.mapUnsafe.forEach((value, key) => map.set(key, value))
-  return makeUnsafe(map)
+  return withMapUnsafe(self, (map) => {
+    that.mapUnsafe.forEach((value, key) => map.set(key, value))
+  })
 })
 
 /**
@@ -924,16 +924,15 @@ export const mergeAll = <T extends Array<unknown>>(
 export const pick = <S extends ReadonlyArray<Key<any, any>>>(
   ...services: S
 ) =>
-<Services>(self: ServiceMap<Services>): ServiceMap<Services & Service.Identifier<S[number]>> => {
-  const map = new Map<string, any>()
-  const keySet = new Set(services.map((key) => key.key))
-  self.mapUnsafe.forEach((value, key) => {
-    if (keySet.has(key)) {
-      map.set(key, value)
-    }
+<Services>(self: ServiceMap<Services>): ServiceMap<Services & Service.Identifier<S[number]>> =>
+  withMapUnsafe(self, (map) => {
+    const keySet = new Set(services.map((key) => key.key))
+    self.mapUnsafe.forEach((value, key) => {
+      if (keySet.has(key)) {
+        map.set(key, value)
+      }
+    })
   })
-  return makeUnsafe(map)
-}
 
 /**
  * @example
@@ -964,11 +963,43 @@ export const pick = <S extends ReadonlyArray<Key<any, any>>>(
 export const omit = <S extends ReadonlyArray<Key<any, any>>>(
   ...keys: S
 ) =>
-<Services>(self: ServiceMap<Services>): ServiceMap<Exclude<Services, Service.Identifier<S[number]>>> => {
-  const map = new Map(self.mapUnsafe)
-  for (let i = 0; i < keys.length; i++) {
-    map.delete(keys[i].key)
+<Services>(self: ServiceMap<Services>): ServiceMap<Exclude<Services, Service.Identifier<S[number]>>> =>
+  withMapUnsafe(self, (map) => {
+    for (let i = 0; i < keys.length; i++) {
+      map.delete(keys[i].key)
+    }
+  })
+
+/**
+ * Perform a series of mutations on a `ServiceMap`. Prevents unnecessary copying
+ * of the underlying map when multiple mutations are needed.
+ *
+ * @since 4.0.0
+ * @category Utils
+ */
+export const mutate: {
+  <Services, B>(
+    f: (serviceMap: ServiceMap<Services>) => ServiceMap<B>
+  ): <Services>(self: ServiceMap<Services>) => ServiceMap<B>
+  <Services, B>(self: ServiceMap<Services>, f: (serviceMap: ServiceMap<Services>) => ServiceMap<B>): ServiceMap<B>
+} = dual(
+  2,
+  <Services, B>(self: ServiceMap<Services>, f: (serviceMap: ServiceMap<Services>) => ServiceMap<B>): ServiceMap<B> => {
+    const next = makeUnsafe<Services>(new Map(self.mapUnsafe))
+    next.mutable = true
+    const result = f(next)
+    result.mutable = false
+    return result
   }
+)
+
+const withMapUnsafe = <Services, B>(self: ServiceMap<Services>, f: (map: Map<string, any>) => void): ServiceMap<B> => {
+  if (self.mutable) {
+    f(self.mapUnsafe as any)
+    return self as any
+  }
+  const map = new Map(self.mapUnsafe)
+  f(map)
   return makeUnsafe(map)
 }
 
