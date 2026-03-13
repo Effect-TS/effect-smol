@@ -2,10 +2,10 @@
  * @since 4.0.0
  */
 import * as Cause from "../../Cause.ts"
-import * as Result from "../../Result.ts"
-import * as Redacted from "../../Redacted.ts"
-import * as UrlParams from "./UrlParams.js"
 import { dual } from "../../Function.ts"
+import * as Redacted from "../../Redacted.ts"
+import * as Result from "../../Result.ts"
+import * as UrlParams from "./UrlParams.ts"
 
 /**
  * Parses a URL string into a `URL` object, returning an `Result` type for safe

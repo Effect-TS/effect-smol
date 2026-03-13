@@ -1,10 +1,8 @@
-
-
 import { describe, it } from "@effect/vitest"
 import { Cause, Redacted } from "effect"
 
-import { UrlParams, Url } from "effect/unstable/http"
-import { assertSuccess, assertFailure, assertTrue, deepStrictEqual, strictEqual } from "../../utils/assert.ts"
+import { Url, UrlParams } from "effect/unstable/http"
+import { assertFailure, assertSuccess, assertTrue, deepStrictEqual, strictEqual } from "../../utils/assert.ts"
 
 describe("Url", () => {
   const testURL = new URL("https://example.com/test")
