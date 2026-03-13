@@ -83,6 +83,7 @@ export const make = Effect.fnUntraced(
           ws.data.run(message)
         },
         close(ws, code, closeReason) {
+          code = code ?? 1001
           Deferred.doneUnsafe(
             ws.data.closeDeferred,
             Socket.defaultCloseCodeIsError(code)
