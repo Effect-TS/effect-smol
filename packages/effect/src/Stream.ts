@@ -2863,7 +2863,7 @@ export const merge: {
     } | undefined
   ): Stream<A | A2, E | E2, R | R2>
 } = dual(
-  2,
+  (args) => isStream(args[0]) && isStream(args[1]),
   <A, E, R, A2, E2, R2>(
     self: Stream<A, E, R>,
     that: Stream<A2, E2, R2>,
