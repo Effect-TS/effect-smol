@@ -524,10 +524,11 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
           services: services as any,
           concurrency: options?.concurrency ?? 1,
           build: entity.protocol.toHandlers(handlers as any).pipe(
-            Effect.provideServices(services.pipe(
-              ServiceMap.add(CurrentRunnerAddress, runnerAddress),
-              ServiceMap.omit(Scope)
-            ))
+            Effect.provideServices(ServiceMap.mutate(services, (services) =>
+              services.pipe(
+                ServiceMap.add(CurrentRunnerAddress, runnerAddress),
+                ServiceMap.omit(Scope)
+              )))
           ) as any
         })
         return Effect.void

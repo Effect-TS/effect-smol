@@ -155,12 +155,13 @@ export const make = Effect.fnUntraced(function*<
         // Initiate the behavior for the entity
         const handlers = yield* (entity.protocol.toHandlers(buildHandlers as any).pipe(
           Effect.provideService(CurrentLogAnnotations, {}),
-          Effect.provideServices(services.pipe(
-            ServiceMap.add(CurrentAddress, address),
-            ServiceMap.add(CurrentRunnerAddress, options.runnerAddress),
-            ServiceMap.add(KeepAliveLatch, keepAliveLatch),
-            ServiceMap.add(Scope.Scope, scope)
-          ))
+          Effect.provideServices(ServiceMap.mutate(services, (services) =>
+            services.pipe(
+              ServiceMap.add(CurrentAddress, address),
+              ServiceMap.add(CurrentRunnerAddress, options.runnerAddress),
+              ServiceMap.add(KeepAliveLatch, keepAliveLatch),
+              ServiceMap.add(Scope.Scope, scope)
+            )))
         ) as Effect.Effect<ServiceMap.ServiceMap<Rpc.ToHandler<Rpcs>>>)
 
         const server = yield* RpcServer.makeNoSerialization(entity.protocol, {

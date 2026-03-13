@@ -215,9 +215,11 @@ export const makeWithTransaction = <I, S>(options: {
                 Effect.flatMap(() =>
                   Effect.provideServices(
                     restore(effect),
-                    ServiceMap.add(services, options.transactionService, [conn, id]).pipe(
-                      ServiceMap.add(Tracer.ParentSpan, span)
-                    )
+                    ServiceMap.mutate(services, (services) =>
+                      services.pipe(
+                        ServiceMap.add(options.transactionService, [conn, id]),
+                        ServiceMap.add(Tracer.ParentSpan, span)
+                      ))
                   )
                 ),
                 Effect.exit,
