@@ -36,6 +36,7 @@ export class HttpServer extends ServiceMap.Service<HttpServer, {
       Exclude<R, HttpServerRequest> | Scope.Scope
     >
   }
+
   readonly address: Address
 }>()("effect/http/HttpServer") {}
 
@@ -115,10 +116,7 @@ export const serve: {
   HttpServer | Exclude<Effect.Services<App>, HttpServerRequest | Scope.Scope>
 > =>
   Layer.effectDiscard(
-    Effect.flatMap(
-      HttpServer.asEffect(),
-      (server) => server.serve(effect, middleware!)
-    )
+    HttpServer.use((server) => server.serve(effect, middleware!))
   ) as any)
 
 /**
@@ -156,11 +154,7 @@ export const serveEffect: {
   void,
   never,
   Scope.Scope | HttpServer | Exclude<Effect.Services<App>, HttpServerRequest>
-> =>
-  Effect.flatMap(
-    HttpServer.asEffect(),
-    (server) => server.serve(effect, middleware!)
-  ) as any)
+> => HttpServer.use((server) => server.serve(effect, middleware!)) as any)
 
 /**
  * @since 4.0.0

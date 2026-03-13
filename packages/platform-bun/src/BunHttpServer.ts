@@ -5,6 +5,7 @@ import type { Server as BunServer, ServerWebSocket } from "bun"
 import * as Config from "effect/Config"
 import type { ConfigError } from "effect/Config"
 import * as Deferred from "effect/Deferred"
+import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
@@ -59,8 +60,12 @@ export type ServeOptions<R extends string> =
  */
 export const make = Effect.fnUntraced(
   function*<R extends string>(
-    options: ServeOptions<R>
+    options: ServeOptions<R> & {
+      readonly disablePreemptiveShutdown?: boolean | undefined
+      readonly gracefulShutdownTimeout?: Duration.Input | undefined
+    }
   ) {
+    const scope = yield* Effect.scope
     const handlerStack: Array<(request: Request, server: BunServer<WebSocketContext>) => Response | Promise<Response>> =
       [
         function(_request, _server) {
@@ -92,13 +97,20 @@ export const make = Effect.fnUntraced(
       }
     })
 
-    yield* Effect.addFinalizer(() => Effect.promise(() => server.stop()))
+    const shutdown = yield* Effect.promise(() => server.stop()).pipe(
+      Effect.cached
+    )
+    const preemptiveShutdown = options.disablePreemptiveShutdown ? Effect.void : Effect.timeoutOrElse(shutdown, {
+      duration: options.gracefulShutdownTimeout ?? Duration.seconds(20),
+      onTimeout: () => Effect.void
+    })
+
+    yield* Effect.addFinalizer(() => shutdown)
 
     return Server.make({
       address: { _tag: "TcpAddress", port: server.port!, hostname: server.hostname! },
       serve: Effect.fnUntraced(function*(httpApp, middleware) {
         const parent = yield* Effect.fiber
-        const scope = yield* Effect.scope
         const services = parent.services
         const httpEffect = HttpEffect.toHandled(httpApp, (request, response) =>
           Effect.sync(() => {
@@ -125,9 +137,10 @@ export const make = Effect.fnUntraced(
             server.reload({ fetch: handler })
           }),
           () =>
-            Effect.sync(() => {
+            Effect.suspend(() => {
               handlerStack.pop()
               server.reload({ fetch: handlerStack[handlerStack.length - 1] })
+              return preemptiveShutdown
             })
         )
       })

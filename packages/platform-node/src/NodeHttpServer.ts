@@ -3,6 +3,7 @@
  */
 import * as Cause from "effect/Cause"
 import * as Config from "effect/Config"
+import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import * as Fiber from "effect/Fiber"
 import type * as FileSystem from "effect/FileSystem"
@@ -56,25 +57,35 @@ import { NodeWS } from "./NodeSocket.ts"
  */
 export const make = Effect.fnUntraced(function*(
   evaluate: LazyArg<Http.Server>,
-  options: Net.ListenOptions
+  options: Net.ListenOptions & {
+    readonly disablePreemptiveShutdown?: boolean | undefined
+    readonly gracefulShutdownTimeout?: Duration.Input | undefined
+  }
 ) {
   const scope = yield* Effect.scope
   const server = evaluate()
-  yield* Scope.addFinalizer(
-    scope,
-    Effect.callback<void>((resume) => {
-      if (!server.listening) {
-        return resume(Effect.void)
+
+  const shutdown = yield* Effect.callback<void>((resume) => {
+    if (!server.listening) {
+      return resume(Effect.void)
+    }
+    server.close((error) => {
+      if (error) {
+        resume(Effect.die(error))
+      } else {
+        resume(Effect.void)
       }
-      server.close((error) => {
-        if (error) {
-          resume(Effect.die(error))
-        } else {
-          resume(Effect.void)
-        }
-      })
     })
-  )
+  }).pipe(Effect.cached)
+
+  const preemptiveShutdown = options.disablePreemptiveShutdown ?
+    Effect.void :
+    Effect.timeoutOrElse(shutdown, {
+      duration: options.gracefulShutdownTimeout ?? Duration.seconds(20),
+      onTimeout: () => Effect.void
+    })
+
+  yield* Scope.addFinalizer(scope, shutdown)
 
   yield* Effect.callback<void, ServeError>((resume) => {
     function onError(cause: Error) {
@@ -112,7 +123,7 @@ export const make = Effect.fnUntraced(function*(
         port: address.port
       },
     serve: Effect.fnUntraced(function*(httpApp, middleware) {
-      const scope = yield* Effect.scope
+      const serveScope = yield* Effect.scope
       const handler = yield* (makeHandler(httpApp, {
         middleware: middleware as any,
         scope
@@ -121,12 +132,11 @@ export const make = Effect.fnUntraced(function*(
         middleware: middleware as any,
         scope
       })
-      yield* Effect.addFinalizer(() =>
-        Effect.sync(() => {
-          server.off("request", handler)
-          server.off("upgrade", upgradeHandler)
-        })
-      )
+      yield* Scope.addFinalizerExit(serveScope, () => {
+        server.off("request", handler)
+        server.off("upgrade", upgradeHandler)
+        return preemptiveShutdown
+      })
       server.on("request", handler)
       server.on("upgrade", upgradeHandler)
     })
