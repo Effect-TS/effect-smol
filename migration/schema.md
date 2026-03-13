@@ -75,6 +75,7 @@ This document maps v3 Schema APIs to their v4 equivalents. Simple renames and ar
 | `filterEffect`                                  | see [filterEffect](#filtereffect)                                             | manual            |
 | `rename({ a: "c" })`                            | see [rename](#rename)                                                         | manual            |
 | `format(schema)`                                | see [format](#format)                                                         | manual            |
+| `ParseResult.ArrayFormatter.formatError(error)` | see [ParseResult formatters](#parseresult-formatters)                         | manual            |
 | `declare`                                       | see [declare](#declare)                                                       | manual            |
 
 ## Additional rename notes
@@ -187,6 +188,67 @@ const multi = SchemaRepresentation.toMultiDocument(doc)
 const codeDoc = SchemaRepresentation.toCodeDocument(multi)
 console.log(codeDoc.codes[0].Type)
 // string
+```
+
+### ParseResult formatters
+
+**Migration: manual**
+
+**New imports:** `SchemaIssue`
+
+In v4, schema parsing fails with `Schema.SchemaError`, which contains a nested `SchemaIssue` in its `issue` field.
+
+Use `SchemaIssue.makeFormatterStandardSchemaV1()(error.issue).issues` for the v3 `ParseResult.ArrayFormatter.formatError(error)` equivalent.
+
+v3
+
+```ts
+import { Either, ParseResult, Schema } from "effect"
+
+const Person = Schema.Struct({
+  name: Schema.String,
+  age: Schema.Number
+})
+
+const decode = Schema.decodeUnknownEither(Person)
+
+const result = decode({})
+if (Either.isLeft(result)) {
+  console.error("Decoding failed:")
+  console.error(ParseResult.ArrayFormatter.formatErrorSync(result.left))
+}
+/*
+Decoding failed:
+[ { _tag: 'Missing', path: [ 'name' ], message: 'is missing' } ]
+*/
+```
+
+v4
+
+```ts
+import { Schema, SchemaIssue } from "effect"
+
+const Person = Schema.Struct({
+  name: Schema.String,
+  age: Schema.Number
+})
+
+const decode = Schema.decodeUnknownSync(Person)
+
+try {
+  decode({})
+} catch (error) {
+  if (error instanceof Error) {
+    console.error("Decoding failed:")
+    if (SchemaIssue.isIssue(error.cause)) {
+      console.error(SchemaIssue.makeFormatterStandardSchemaV1()(error.cause).issues)
+    }
+  }
+}
+/*
+Decoding failed:
+[ { path: [ 'name' ], message: 'Missing key' } ]
+*/
 ```
 
 ### Record
