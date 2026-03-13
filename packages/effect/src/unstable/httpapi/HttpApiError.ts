@@ -1,11 +1,27 @@
 /**
  * @since 4.0.0
  */
+import * as Effect from "../../Effect.ts"
 import * as ErrorReporter from "../../ErrorReporter.ts"
 import { identity } from "../../Function.ts"
 import * as Schema from "../../Schema.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
+import * as HttpServerRespondable from "../http/HttpServerRespondable.ts"
+import * as HttpServerResponse from "../http/HttpServerResponse.ts"
 import * as HttpApiSchema from "./HttpApiSchema.ts"
+
+const badRequestResponse = HttpServerResponse.empty({ status: 400 })
+const unauthorizedResponse = HttpServerResponse.empty({ status: 401 })
+const forbiddenResponse = HttpServerResponse.empty({ status: 403 })
+const notFoundResponse = HttpServerResponse.empty({ status: 404 })
+const methodNotAllowedResponse = HttpServerResponse.empty({ status: 405 })
+const notAcceptableResponse = HttpServerResponse.empty({ status: 406 })
+const requestTimeoutResponse = HttpServerResponse.empty({ status: 408 })
+const conflictResponse = HttpServerResponse.empty({ status: 409 })
+const goneResponse = HttpServerResponse.empty({ status: 410 })
+const internalServerErrorResponse = HttpServerResponse.empty({ status: 500 })
+const notImplementedResponse = HttpServerResponse.empty({ status: 501 })
+const serviceUnavailableResponse = HttpServerResponse.empty({ status: 503 })
 
 /**
  * @category Built-in errors
@@ -17,7 +33,10 @@ export class BadRequest extends Schema.ErrorClass<BadRequest>("effect/HttpApiErr
   description: "BadRequest",
   httpApiStatus: 400
 }) {
-  override readonly [ErrorReporter.ignore] = true
+  override readonly [ErrorReporter.ignore] = true;
+  [HttpServerRespondable.symbol]() {
+    return Effect.succeed(badRequestResponse)
+  }
   static readonly singleton = new BadRequest()
 }
 
@@ -59,7 +78,10 @@ export class Unauthorized extends Schema.ErrorClass<Unauthorized>("effect/HttpAp
   description: "Unauthorized",
   httpApiStatus: 401
 }) {
-  override readonly [ErrorReporter.ignore] = true
+  override readonly [ErrorReporter.ignore] = true;
+  [HttpServerRespondable.symbol]() {
+    return Effect.succeed(unauthorizedResponse)
+  }
 }
 
 /**
@@ -80,7 +102,10 @@ export class Forbidden extends Schema.ErrorClass<Forbidden>("effect/HttpApiError
   description: "Forbidden",
   httpApiStatus: 403
 }) {
-  override readonly [ErrorReporter.ignore] = true
+  override readonly [ErrorReporter.ignore] = true;
+  [HttpServerRespondable.symbol]() {
+    return Effect.succeed(forbiddenResponse)
+  }
 }
 
 /**
@@ -101,7 +126,10 @@ export class NotFound extends Schema.ErrorClass<NotFound>("effect/HttpApiError/N
   description: "NotFound",
   httpApiStatus: 404
 }) {
-  override readonly [ErrorReporter.ignore] = true
+  override readonly [ErrorReporter.ignore] = true;
+  [HttpServerRespondable.symbol]() {
+    return Effect.succeed(notFoundResponse)
+  }
 }
 
 /**
@@ -122,7 +150,10 @@ export class MethodNotAllowed extends Schema.ErrorClass<MethodNotAllowed>("effec
   description: "MethodNotAllowed",
   httpApiStatus: 405
 }) {
-  override readonly [ErrorReporter.ignore] = true
+  override readonly [ErrorReporter.ignore] = true;
+  [HttpServerRespondable.symbol]() {
+    return Effect.succeed(methodNotAllowedResponse)
+  }
 }
 
 /**
@@ -143,7 +174,10 @@ export class NotAcceptable extends Schema.ErrorClass<NotAcceptable>("effect/Http
   description: "NotAcceptable",
   httpApiStatus: 406
 }) {
-  override readonly [ErrorReporter.ignore] = true
+  override readonly [ErrorReporter.ignore] = true;
+  [HttpServerRespondable.symbol]() {
+    return Effect.succeed(notAcceptableResponse)
+  }
 }
 
 /**
@@ -164,7 +198,10 @@ export class RequestTimeout extends Schema.ErrorClass<RequestTimeout>("effect/Ht
   description: "RequestTimeout",
   httpApiStatus: 408
 }) {
-  override readonly [ErrorReporter.ignore] = true
+  override readonly [ErrorReporter.ignore] = true;
+  [HttpServerRespondable.symbol]() {
+    return Effect.succeed(requestTimeoutResponse)
+  }
 }
 
 /**
@@ -185,7 +222,10 @@ export class Conflict extends Schema.ErrorClass<Conflict>("effect/HttpApiError/C
   description: "Conflict",
   httpApiStatus: 409
 }) {
-  override readonly [ErrorReporter.ignore] = true
+  override readonly [ErrorReporter.ignore] = true;
+  [HttpServerRespondable.symbol]() {
+    return Effect.succeed(conflictResponse)
+  }
 }
 
 /**
@@ -206,7 +246,10 @@ export class Gone extends Schema.ErrorClass<Gone>("effect/HttpApiError/Gone")({
   description: "Gone",
   httpApiStatus: 410
 }) {
-  override readonly [ErrorReporter.ignore] = true
+  override readonly [ErrorReporter.ignore] = true;
+  [HttpServerRespondable.symbol]() {
+    return Effect.succeed(goneResponse)
+  }
 }
 
 /**
@@ -228,7 +271,11 @@ export class InternalServerError
     description: "InternalServerError",
     httpApiStatus: 500
   })
-{}
+{
+  [HttpServerRespondable.symbol]() {
+    return Effect.succeed(internalServerErrorResponse)
+  }
+}
 
 /**
  * @category NoContent errors
@@ -247,7 +294,11 @@ export class NotImplemented extends Schema.ErrorClass<NotImplemented>("effect/Ht
 }, {
   description: "NotImplemented",
   httpApiStatus: 501
-}) {}
+}) {
+  [HttpServerRespondable.symbol]() {
+    return Effect.succeed(notImplementedResponse)
+  }
+}
 
 /**
  * @category NoContent errors
@@ -268,7 +319,11 @@ export class ServiceUnavailable
     description: "ServiceUnavailable",
     httpApiStatus: 503
   })
-{}
+{
+  [HttpServerRespondable.symbol]() {
+    return Effect.succeed(serviceUnavailableResponse)
+  }
+}
 
 /**
  * @category NoContent errors

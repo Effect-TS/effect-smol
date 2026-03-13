@@ -23,6 +23,7 @@ import {
   Multipart,
   UrlParams
 } from "effect/unstable/http"
+import * as HttpApiError from "effect/unstable/httpapi/HttpApiError"
 import * as Buffer from "node:buffer"
 
 const Todo = Schema.Struct({
@@ -527,6 +528,21 @@ describe("HttpServer", () => {
         assert.strictEqual(res.status, 599)
         const err = yield* HttpClientResponse.schemaBodyJson(CustomError)(res)
         assert.deepStrictEqual(err, new CustomError({ name: "test" }))
+      }).pipe(Effect.provide(NodeHttpServer.layerTest)))
+
+    it.effect("httpapi error", () =>
+      Effect.gen(function*() {
+        yield* HttpRouter.add(
+          "GET",
+          "/home",
+          new HttpApiError.BadRequest({}).asEffect()
+        ).pipe(
+          HttpRouter.serve,
+          Layer.build
+        )
+        const client = yield* HttpClient.HttpClient
+        const res = yield* client.get("/home")
+        assert.strictEqual(res.status, 400)
       }).pipe(Effect.provide(NodeHttpServer.layerTest)))
   })
 
