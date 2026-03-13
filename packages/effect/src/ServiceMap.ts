@@ -927,10 +927,9 @@ export const pick = <S extends ReadonlyArray<Key<any, any>>>(
 <Services>(self: ServiceMap<Services>): ServiceMap<Services & Service.Identifier<S[number]>> =>
   withMapUnsafe(self, (map) => {
     const keySet = new Set(services.map((key) => key.key))
-    self.mapUnsafe.forEach((value, key) => {
-      if (keySet.has(key)) {
-        map.set(key, value)
-      }
+    map.forEach((_, key) => {
+      if (keySet.has(key)) return
+      map.delete(key)
     })
   })
 
