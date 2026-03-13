@@ -565,7 +565,7 @@ export declare namespace Schema {
    * import { Schema } from "effect"
    *
    * const Person = Schema.Struct({ name: Schema.String, age: Schema.Number })
-   * type Person = Schema.Schema.Type<typeof Person>
+   * type Person = Schema.Type<typeof Person>
    * // { readonly name: string; readonly age: number }
    * ```
    *
@@ -573,6 +573,23 @@ export declare namespace Schema {
    */
   export type Type<S> = S extends Top ? S["Type"] : never
 }
+
+/**
+ * Extracts the decoded `Type` from a schema.
+ *
+ * **Example** (Extracting the decoded type)
+ *
+ * ```ts
+ * import { Schema } from "effect"
+ *
+ * const Person = Schema.Struct({ name: Schema.String, age: Schema.Number })
+ * type Person = Schema.Type<typeof Person>
+ * // { readonly name: string; readonly age: number }
+ * ```
+ *
+ * @since 4.0.0
+ */
+export type Type<S> = Schema.Type<S>
 
 /**
  * A typed view of a schema that tracks only the decoded (output) type `T`.
@@ -621,7 +638,7 @@ export declare namespace Codec {
    * import { Schema } from "effect"
    *
    * const schema = Schema.NumberFromString
-   * type Enc = Schema.Codec.Encoded<typeof schema>
+   * type Enc = Schema.Encoded<typeof schema>
    * // string
    * ```
    *
@@ -637,7 +654,7 @@ export declare namespace Codec {
    * import { Schema } from "effect"
    *
    * const schema = Schema.String
-   * type RD = Schema.Codec.DecodingServices<typeof schema>
+   * type RD = Schema.DecodingServices<typeof schema>
    * // never
    * ```
    *
@@ -653,7 +670,7 @@ export declare namespace Codec {
    * import { Schema } from "effect"
    *
    * const schema = Schema.String
-   * type RE = Schema.Codec.EncodingServices<typeof schema>
+   * type RE = Schema.EncodingServices<typeof schema>
    * // never
    * ```
    *
@@ -673,6 +690,57 @@ export declare namespace Codec {
     input: I
   ) => asserts input is I & S["Type"]
 }
+
+/**
+ * Extracts the encoded (`Encoded`) type from a schema.
+ *
+ * **Example** (Extracting the encoded type)
+ *
+ * ```ts
+ * import { Schema } from "effect"
+ *
+ * const schema = Schema.NumberFromString
+ * type Enc = Schema.Encoded<typeof schema>
+ * // string
+ * ```
+ *
+ * @since 4.0.0
+ */
+export type Encoded<S> = Codec.Encoded<S>
+
+/**
+ * Extracts the Effect services required during *decoding* from a schema.
+ *
+ * **Example** (Checking decoding service requirements)
+ *
+ * ```ts
+ * import { Schema } from "effect"
+ *
+ * const schema = Schema.String
+ * type RD = Schema.DecodingServices<typeof schema>
+ * // never
+ * ```
+ *
+ * @since 4.0.0
+ */
+export type DecodingServices<S> = Codec.DecodingServices<S>
+
+/**
+ * Extracts the Effect services required during *encoding* from a schema.
+ *
+ * **Example** (Checking encoding service requirements)
+ *
+ * ```ts
+ * import { Schema } from "effect"
+ *
+ * const schema = Schema.String
+ * type RE = Schema.EncodingServices<typeof schema>
+ * // never
+ * ```
+ *
+ * @since 4.0.0
+ */
+export type EncodingServices<S> = Codec.EncodingServices<S>
 
 /**
  * A schema that additionally supports optic (lens/prism) operations.
