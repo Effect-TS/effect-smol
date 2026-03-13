@@ -176,7 +176,14 @@ export function getErrorSchemas(endpoint: AnyWithProps): [Schema.Top, ...Array<S
   for (const middleware of endpoint.middlewares) {
     const key = middleware as any as HttpApiMiddleware.AnyService
     if (key.error !== undefined) {
-      schemas.add(key.error)
+      const ast = key.error.ast
+      if (ast._tag === "Union") {
+        for (const member of ast.types) {
+          schemas.add(Schema.make(member))
+        }
+      } else {
+        schemas.add(key.error)
+      }
     }
   }
   return Arr.append(Array.from(schemas), BadRequestFromSchemaError)
