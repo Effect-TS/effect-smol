@@ -371,7 +371,10 @@ class ServerRequestImpl extends NodeHttpIncomingMessage<HttpServerError> impleme
  */
 export const layerServer: (
   evaluate: LazyArg<Http.Server<typeof Http.IncomingMessage, typeof Http.ServerResponse>>,
-  options: Net.ListenOptions
+  options: Net.ListenOptions & {
+    readonly disablePreemptiveShutdown?: boolean | undefined
+    readonly gracefulShutdownTimeout?: Duration.Input | undefined
+  }
 ) => Layer.Layer<HttpServer.HttpServer, ServeError> = flow(make, Layer.effect(HttpServer.HttpServer))
 
 /**
@@ -392,7 +395,10 @@ export const layerHttpServices: Layer.Layer<
  */
 export const layer = (
   evaluate: LazyArg<Http.Server>,
-  options: Net.ListenOptions
+  options: Net.ListenOptions & {
+    readonly disablePreemptiveShutdown?: boolean | undefined
+    readonly gracefulShutdownTimeout?: Duration.Input | undefined
+  }
 ): Layer.Layer<
   HttpServer.HttpServer | NodeServices.NodeServices | HttpPlatform.HttpPlatform | Etag.Generator,
   ServeError
@@ -408,7 +414,12 @@ export const layer = (
  */
 export const layerConfig = (
   evaluate: LazyArg<Http.Server>,
-  options: Config.Wrap<Net.ListenOptions>
+  options: Config.Wrap<
+    Net.ListenOptions & {
+      readonly disablePreemptiveShutdown?: boolean | undefined
+      readonly gracefulShutdownTimeout?: Duration.Input | undefined
+    }
+  >
 ): Layer.Layer<
   HttpServer.HttpServer | FileSystem.FileSystem | Path.Path | HttpPlatform.HttpPlatform | Etag.Generator,
   ServeError | Config.ConfigError

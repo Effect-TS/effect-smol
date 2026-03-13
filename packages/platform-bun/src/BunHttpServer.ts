@@ -213,7 +213,10 @@ const makeResponse = (
  * @category Layers
  */
 export const layerServer: <R extends string>(
-  options: ServeOptions<R>
+  options: ServeOptions<R> & {
+    readonly disablePreemptiveShutdown?: boolean | undefined
+    readonly gracefulShutdownTimeout?: Duration.Input | undefined
+  }
 ) => Layer.Layer<Server.HttpServer> = flow(make, Layer.effect(Server.HttpServer)) as any
 
 /**
@@ -235,7 +238,10 @@ export const layerHttpServices: Layer.Layer<
  * @category Layers
  */
 export const layer = <R extends string>(
-  options: ServeOptions<R>
+  options: ServeOptions<R> & {
+    readonly disablePreemptiveShutdown?: boolean | undefined
+    readonly gracefulShutdownTimeout?: Duration.Input | undefined
+  }
 ): Layer.Layer<
   | Server.HttpServer
   | HttpPlatform
@@ -261,7 +267,12 @@ export const layerTest: Layer.Layer<
  * @category Layers
  */
 export const layerConfig = <R extends string>(
-  options: Config.Wrap<ServeOptions<R>>
+  options: Config.Wrap<
+    ServeOptions<R> & {
+      readonly disablePreemptiveShutdown?: boolean | undefined
+      readonly gracefulShutdownTimeout?: Duration.Input | undefined
+    }
+  >
 ): Layer.Layer<
   Server.HttpServer | HttpPlatform | FileSystem.FileSystem | Etag.Generator | Path.Path,
   ConfigError
