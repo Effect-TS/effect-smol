@@ -18,7 +18,7 @@ import * as Option from "effect/Option"
 import type * as Path from "effect/Path"
 import type * as Record from "effect/Record"
 import type * as Schema from "effect/Schema"
-import type * as Scope from "effect/Scope"
+import * as Scope from "effect/Scope"
 import * as Semaphore from "effect/Semaphore"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"
@@ -105,13 +105,16 @@ export const make = Effect.fnUntraced(
       onTimeout: () => Effect.void
     })
 
-    yield* Effect.addFinalizer(() => shutdown)
+    yield* Scope.addFinalizer(scope, shutdown)
 
     return Server.make({
       address: { _tag: "TcpAddress", port: server.port!, hostname: server.hostname! },
       serve: Effect.fnUntraced(function*(httpApp, middleware) {
         const parent = yield* Effect.fiber
         const services = parent.services
+        const serveScope = ServiceMap.getUnsafe(services, Scope.Scope)
+        const scope = Scope.forkUnsafe(serveScope, "parallel")
+
         const httpEffect = HttpEffect.toHandled(httpApp, (request, response) =>
           Effect.sync(() => {
             ;(request as BunServerRequest).resolve(makeResponse(request, response, services, scope))
@@ -131,18 +134,13 @@ export const make = Effect.fnUntraced(
           })
         }
 
-        yield* Effect.acquireRelease(
-          Effect.sync(() => {
-            handlerStack.push(handler)
-            server.reload({ fetch: handler })
-          }),
-          () =>
-            Effect.suspend(() => {
-              handlerStack.pop()
-              server.reload({ fetch: handlerStack[handlerStack.length - 1] })
-              return preemptiveShutdown
-            })
-        )
+        yield* Scope.addFinalizerExit(serveScope, () => {
+          handlerStack.pop()
+          server.reload({ fetch: handlerStack[handlerStack.length - 1] })
+          return preemptiveShutdown
+        })
+        handlerStack.push(handler)
+        server.reload({ fetch: handler })
       })
     })
   }

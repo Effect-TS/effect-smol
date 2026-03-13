@@ -124,6 +124,7 @@ export const make = Effect.fnUntraced(function*(
       },
     serve: Effect.fnUntraced(function*(httpApp, middleware) {
       const serveScope = yield* Effect.scope
+      const scope = Scope.forkUnsafe(serveScope, "parallel")
       const handler = yield* (makeHandler(httpApp, {
         middleware: middleware as any,
         scope
