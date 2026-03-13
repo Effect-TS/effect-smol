@@ -10,7 +10,7 @@ import type { SqliteRemoteDatabase } from "drizzle-orm/sqlite-proxy";
 import { drizzle } from "drizzle-orm/sqlite-proxy";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
-import { ServiceMap } from "effect";
+import * as ServiceMap from "effect/ServiceMap";
 import { makeRemoteCallback, patch } from "./internal/patch.ts";
 
 /**

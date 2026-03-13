@@ -10,7 +10,7 @@ import { drizzle } from "drizzle-orm/pg-proxy";
 import { QueryPromise } from "drizzle-orm/query-promise";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
-import { ServiceMap } from "effect";
+import * as ServiceMap from "effect/ServiceMap";
 import { makeRemoteCallback, patch } from "./internal/patch.ts";
 
 /**
