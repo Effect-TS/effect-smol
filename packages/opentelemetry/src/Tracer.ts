@@ -102,21 +102,22 @@ export const makeExternalSpan = (options: {
   readonly traceState?: string | Otel.TraceState | undefined
 }): Tracer.ExternalSpan => {
   const annotations = ServiceMap.mutate(ServiceMap.empty(), (annotations) => {
+    let next = annotations
     if (options.traceFlags !== undefined) {
-      ServiceMap.add(annotations, OtelTraceFlags, options.traceFlags)
+      next = ServiceMap.add(next, OtelTraceFlags, options.traceFlags)
     }
 
     if (typeof options.traceState === "string") {
       try {
-        ServiceMap.add(annotations, OtelTraceState, Otel.createTraceState(options.traceState))
+        next = ServiceMap.add(next, OtelTraceState, Otel.createTraceState(options.traceState))
       } catch {
         //
       }
     } else if (options.traceState) {
-      ServiceMap.add(annotations, OtelTraceState, options.traceState)
+      next = ServiceMap.add(next, OtelTraceState, options.traceState)
     }
 
-    return annotations
+    return next
   })
 
   return {
