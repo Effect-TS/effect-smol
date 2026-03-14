@@ -5,7 +5,7 @@ import * as Scheduler from "effect/Scheduler"
 describe("Scheduler", () => {
   it.effect("MixedScheduler orders by priority (sync)", () =>
     Effect.sync(() => {
-      const scheduler = new Scheduler.MixedScheduler("sync")
+      const scheduler = new Scheduler.MixedScheduler("sync").makeDispatcher()
       const order: Array<string> = []
 
       scheduler.scheduleTask(() => order.push("p0-1"), 0)
@@ -29,7 +29,7 @@ describe("Scheduler", () => {
 
   it.effect("MixedScheduler is FIFO within a priority", () =>
     Effect.sync(() => {
-      const scheduler = new Scheduler.MixedScheduler("sync")
+      const scheduler = new Scheduler.MixedScheduler("sync").makeDispatcher()
       const order: Array<number> = []
 
       scheduler.scheduleTask(() => order.push(1), 5)
@@ -46,12 +46,12 @@ describe("Scheduler", () => {
       let calls = 0
       const scheduler: Scheduler.Scheduler = {
         executionMode: "sync",
-        scheduleTask: (task) => {
-          task()
-        },
         shouldYield: () => {
           calls++
           return false
+        },
+        makeDispatcher() {
+          return {} as any
         }
       }
 

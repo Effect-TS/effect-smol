@@ -260,8 +260,14 @@ describe("Semaphore", () => {
       let shouldYield = false
       const scheduler: Scheduler.Scheduler = {
         executionMode: "async",
-        scheduleTask: (task) => {
-          tasks.push(task)
+        makeDispatcher() {
+          return {
+            scheduleTask(task, _priority) {
+              tasks.push(task)
+            },
+            flush() {
+            }
+          }
         },
         shouldYield: () => {
           if (shouldYield) {

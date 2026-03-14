@@ -968,7 +968,7 @@ export function toStandardSchemaV1<
       }),
       { scheduler }
     )
-    scheduler.flush()
+    fiber.currentDispatcher?.flush()
     const exit = fiber.pollUnsafe()
     if (exit) {
       return makeStandardResult(exit)

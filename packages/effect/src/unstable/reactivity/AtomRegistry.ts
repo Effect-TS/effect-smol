@@ -9,7 +9,7 @@ import * as Layer from "../../Layer.ts"
 import * as Option from "../../Option.ts"
 import { hasProperty } from "../../Predicate.ts"
 import * as Queue from "../../Queue.ts"
-import type { Scheduler } from "../../Scheduler.ts"
+import type { SchedulerDispatcher } from "../../Scheduler.ts"
 import { MixedScheduler } from "../../Scheduler.ts"
 import * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -41,8 +41,8 @@ export const isAtomRegistry = (u: unknown): u is AtomRegistry => hasProperty(u, 
  */
 export interface AtomRegistry {
   readonly [TypeId]: TypeId
-  readonly scheduler: Scheduler
-  readonly schedulerAsync: Scheduler
+  readonly scheduler: SchedulerDispatcher
+  readonly schedulerAsync: SchedulerDispatcher
   readonly getNodes: () => ReadonlyMap<Atom.Atom<any> | string, Node<any>>
   readonly get: <A>(atom: Atom.Atom<A>) => A
   readonly mount: <A>(atom: Atom.Atom<A>) => () => void
@@ -239,8 +239,8 @@ class RegistryImpl implements AtomRegistry {
   readonly [TypeId]: TypeId
   readonly timeoutResolution: number
   readonly defaultIdleTTL: number | undefined
-  readonly scheduler: Scheduler
-  readonly schedulerAsync: Scheduler
+  readonly scheduler: SchedulerDispatcher
+  readonly schedulerAsync: SchedulerDispatcher
   onNodeAdded?: ((node: Node<any>) => void) | undefined
   onNodeRemoved?: ((node: Node<any>) => void) | undefined
 
@@ -251,8 +251,8 @@ class RegistryImpl implements AtomRegistry {
     defaultIdleTTL?: number
   ) {
     this[TypeId] = TypeId
-    this.scheduler = new MixedScheduler("sync", scheduleTask)
-    this.schedulerAsync = new MixedScheduler("async", scheduleTask)
+    this.scheduler = new MixedScheduler("sync", scheduleTask).makeDispatcher()
+    this.schedulerAsync = new MixedScheduler("async", scheduleTask).makeDispatcher()
     this.defaultIdleTTL = defaultIdleTTL
 
     if (timeoutResolution === undefined && defaultIdleTTL !== undefined) {

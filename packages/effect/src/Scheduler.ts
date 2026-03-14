@@ -19,8 +19,17 @@ import * as ServiceMap from "./ServiceMap.ts"
  */
 export interface Scheduler {
   readonly executionMode: "sync" | "async"
-  readonly scheduleTask: (task: () => void, priority: number) => void
-  readonly shouldYield: (fiber: Fiber.Fiber<unknown, unknown>) => boolean
+  shouldYield(fiber: Fiber.Fiber<unknown, unknown>): boolean
+  makeDispatcher(): SchedulerDispatcher
+}
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export interface SchedulerDispatcher {
+  scheduleTask(task: () => void, priority: number): void
+  flush(): void
 }
 
 /**
@@ -114,8 +123,6 @@ class PriorityBuckets {
  * @category schedulers
  */
 export class MixedScheduler implements Scheduler {
-  private tasks = new PriorityBuckets()
-  private running: (() => void) | undefined = undefined
   readonly executionMode: "sync" | "async"
   readonly setImmediate: (f: () => void) => () => void
 
@@ -124,6 +131,32 @@ export class MixedScheduler implements Scheduler {
     setImmediateFn: (f: () => void) => () => void = setImmediate
   ) {
     this.executionMode = executionMode
+    this.setImmediate = setImmediateFn
+  }
+
+  /**
+   * @since 2.0.0
+   */
+  shouldYield(fiber: Fiber.Fiber<unknown, unknown>) {
+    return fiber.currentOpCount >= fiber.maxOpsBeforeYield
+  }
+
+  /**
+   * @since 2.0.0
+   */
+  makeDispatcher() {
+    return new MixedSchedulerRunner(this.setImmediate)
+  }
+}
+
+class MixedSchedulerRunner implements SchedulerDispatcher {
+  private tasks = new PriorityBuckets()
+  private running: (() => void) | undefined = undefined
+  readonly setImmediate: (f: () => void) => () => void
+
+  constructor(
+    setImmediateFn: (f: () => void) => () => void = setImmediate
+  ) {
     this.setImmediate = setImmediateFn
   }
 
@@ -156,13 +189,6 @@ export class MixedScheduler implements Scheduler {
         toRun[j]()
       }
     }
-  }
-
-  /**
-   * @since 2.0.0
-   */
-  shouldYield(fiber: Fiber.Fiber<unknown, unknown>) {
-    return fiber.currentOpCount >= fiber.maxOpsBeforeYield
   }
 
   /**

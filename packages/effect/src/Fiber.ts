@@ -81,7 +81,7 @@ import type { LogLevel } from "./LogLevel.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
 import type { StackFrame } from "./References.ts"
-import type { Scheduler } from "./Scheduler.ts"
+import type { Scheduler, SchedulerDispatcher } from "./Scheduler.ts"
 import type { Scope } from "./Scope.ts"
 import type * as ServiceMap from "./ServiceMap.ts"
 import type { AnySpan } from "./Tracer.ts"
@@ -123,6 +123,7 @@ export interface Fiber<out A, out E = never> extends Pipeable {
   readonly services: ServiceMap.ServiceMap<never>
   setServices(services: ServiceMap.ServiceMap<never>): void
   readonly currentScheduler: Scheduler
+  readonly currentDispatcher: SchedulerDispatcher | undefined
   readonly currentSpan?: AnySpan | undefined
   readonly currentLogLevel: LogLevel
   readonly minimumLogLevel: LogLevel

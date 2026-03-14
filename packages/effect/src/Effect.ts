@@ -13899,7 +13899,6 @@ export const transactionWith = <A, E, R>(
   withFiber((fiber) => {
     // Always create a new transaction state, never compose with parent
     const state: Transaction["Service"] = { journal: new Map(), retry: false }
-    const scheduler = fiber.currentScheduler
     let result: Exit.Exit<A, E> | undefined
     return uninterruptibleMask((restore) =>
       flatMap(
@@ -13920,7 +13919,7 @@ export const transactionWith = <A, E, R>(
               return clearTransaction(state)
             }
             if (Exit.isSuccess(exit)) {
-              commitTransaction(scheduler, state)
+              commitTransaction(fiber, state)
             } else {
               clearTransaction(state)
             }
@@ -13962,14 +13961,14 @@ const awaitPendingTransaction = (state: Transaction["Service"]) =>
     })
   })
 
-function commitTransaction(scheduler: Scheduler, state: Transaction["Service"]) {
+function commitTransaction(fiber: Fiber<unknown, unknown>, state: Transaction["Service"]) {
   for (const [ref, { value }] of state.journal) {
     if (value !== ref.value) {
       ref.version = ref.version + 1
       ref.value = value
     }
     for (const pending of ref.pending.values()) {
-      scheduler.scheduleTask(pending, 0)
+      fiber.scheduleTask(pending, 0)
     }
     ref.pending.clear()
   }
