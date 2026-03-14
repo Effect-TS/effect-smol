@@ -136,6 +136,7 @@ export interface Fiber<out A, out E = never> extends Pipeable {
     annotations?: ServiceMap.ServiceMap<never> | undefined
   ) => void
   readonly pollUnsafe: () => Exit<A, E> | undefined
+  readonly scheduleTask: (task: () => void, priority: number) => void
 }
 
 /**

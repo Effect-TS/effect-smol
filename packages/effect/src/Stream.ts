@@ -437,7 +437,10 @@ export const fromEffectSchedule = <A, E, R, X, AS extends A, ES, RS>(
     let s = yield* Effect.provideService(effect, Schedule.CurrentMetadata, Schedule.CurrentMetadata.defaultValue())
     let initial = true
     const pull = Effect.suspend(() => step(s as AS)).pipe(
-      Effect.flatMap((meta) => Effect.provideService(effect, Schedule.CurrentMetadata, meta)),
+      Effect.flatMap((meta) => {
+        console.log(meta)
+          return Effect.provideService(effect, Schedule.CurrentMetadata, meta)
+      }),
       Effect.map((next) => {
         s = next
         return Arr.of(next)
