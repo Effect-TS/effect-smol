@@ -546,10 +546,7 @@ export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
     return ServiceMap.getReferenceUnsafe(this.services, ref)
   }
   scheduleTask(task: () => void, priority: number): void {
-    if (!this.currentDispatcher) {
-      this.currentDispatcher = this.currentScheduler.makeDispatcher()
-    }
-    this.currentDispatcher.scheduleTask(task, priority)
+    ;(this.currentDispatcher ??= this.currentScheduler.makeDispatcher()).scheduleTask(task, priority)
   }
   addObserver(cb: (exit: Exit.Exit<A, E>) => void): () => void {
     if (this._exit) {
@@ -683,7 +680,11 @@ export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
   }
   setServices(services: ServiceMap.ServiceMap<never>): void {
     this.services = services
-    this.currentScheduler = this.getRef(Scheduler.Scheduler)
+    const scheduler = this.getRef(Scheduler.Scheduler)
+    if (scheduler !== this.currentScheduler) {
+      this.currentScheduler = scheduler
+      this.currentDispatcher = undefined
+    }
     this.currentSpan = services.mapUnsafe.get(Tracer.ParentSpanKey)
     this.currentLogLevel = this.getRef(CurrentLogLevel)
     this.minimumLogLevel = this.getRef(MinimumLogLevel)
