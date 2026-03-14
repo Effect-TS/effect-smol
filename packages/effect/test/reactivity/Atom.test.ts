@@ -3,12 +3,14 @@ import {
   Array as Arr,
   Cause,
   Effect,
+  Exit,
   Hash,
   Latch,
   Layer,
   Option,
   Result,
   Schema,
+  Scope,
   ServiceMap,
   Stream,
   SubscriptionRef
@@ -1100,25 +1102,35 @@ describe.sequential("Atom", () => {
 
   it("SubscriptionRef", async () => {
     vitest.useRealTimers()
-    const ref = SubscriptionRef.make(123).pipe(Effect.runSync)
+    const scope = Scope.make().pipe(Effect.runSync)
+    const ref = SubscriptionRef.make(123).pipe(Scope.provide(scope), Effect.runSync)
     const atom = Atom.subscriptionRef(ref)
     const r = AtomRegistry.make()
-    assert.deepStrictEqual(r.get(atom), 123)
-    await Effect.runPromise(SubscriptionRef.update(ref, (a) => a + 1))
-    assert.deepStrictEqual(r.get(atom), 124)
+    try {
+      assert.deepStrictEqual(r.get(atom), 123)
+      await Effect.runPromise(SubscriptionRef.update(ref, (a) => a + 1))
+      assert.deepStrictEqual(r.get(atom), 124)
+    } finally {
+      await Effect.runPromise(Scope.close(scope, Exit.void))
+    }
   })
 
   it("SubscriptionRef", async () => {
     vitest.useRealTimers()
-    const ref = SubscriptionRef.make(0).pipe(Effect.runSync)
+    const scope = Scope.make().pipe(Effect.runSync)
+    const ref = SubscriptionRef.make(0).pipe(Scope.provide(scope), Effect.runSync)
     const atom = Atom.subscriptionRef(ref)
     const r = AtomRegistry.make()
-    const unmount = r.mount(atom)
-    assert.deepStrictEqual(r.get(atom), 0)
-    r.set(atom, 1)
-    await new Promise((resolve) => resolve(null))
-    assert.deepStrictEqual(r.get(atom), 1)
-    unmount()
+    try {
+      const unmount = r.mount(atom)
+      assert.deepStrictEqual(r.get(atom), 0)
+      r.set(atom, 1)
+      await new Promise((resolve) => resolve(null))
+      assert.deepStrictEqual(r.get(atom), 1)
+      unmount()
+    } finally {
+      await Effect.runPromise(Scope.close(scope, Exit.void))
+    }
   })
 
   it("SubscriptionRef/effect", async () => {

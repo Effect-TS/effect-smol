@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Array, Effect, Exit, Fiber, Latch, Number, Pull, Random, Stream, SubscriptionRef } from "effect"
+import { Array, Effect, Exit, Fiber, Latch, Number, Pull, Random, Scope, Stream, SubscriptionRef } from "effect"
 
 describe("SubscriptionRef", () => {
   it.effect("multiple subscribers can receive changes", () =>
@@ -71,6 +71,19 @@ describe("SubscriptionRef", () => {
       yield* Fiber.interrupt(producer)
       assert.deepStrictEqual(result1, Array.sort(Number.Order)(result1))
       assert.deepStrictEqual(result2, Array.sort(Number.Order)(result2))
+    }))
+
+  it.effect("interacting with a closed ref interrupts", () =>
+    Effect.gen(function*() {
+      const scope = yield* Scope.make()
+      const ref = yield* SubscriptionRef.make(0).pipe(Scope.provide(scope))
+      yield* Scope.close(scope, Exit.void)
+      const getExit = yield* Effect.exit(SubscriptionRef.get(ref))
+      const setExit = yield* Effect.exit(SubscriptionRef.set(ref, 1))
+      const changesExit = yield* Effect.exit(SubscriptionRef.changes(ref).pipe(Stream.take(1), Stream.runCollect))
+      assert.isTrue(Exit.hasInterrupts(getExit))
+      assert.isTrue(Exit.hasInterrupts(setExit))
+      assert.isTrue(Exit.hasInterrupts(changesExit))
     }))
 })
 
