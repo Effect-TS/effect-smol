@@ -151,7 +151,7 @@ export declare namespace Enqueue {
 export interface Dequeue<out A, out E = never> extends Inspectable {
   readonly [DequeueTypeId]: Dequeue.Variance<A, E>
   readonly strategy: "suspend" | "dropping" | "sliding"
-  readonly scheduler: SchedulerDispatcher
+  readonly dispatcher: SchedulerDispatcher
   capacity: number
   messages: MutableList.MutableList<any>
   state: Queue.State<any, any>
@@ -341,7 +341,7 @@ export const make = <A, E = never>(
 ): Effect<Queue<A, E>> =>
   core.withFiber((fiber) => {
     const self = Object.create(QueueProto)
-    self.scheduler = fiber.currentDispatcher
+    self.dispatcher = fiber.currentDispatcher
     self.capacity = options?.capacity ?? Number.POSITIVE_INFINITY
     self.strategy = options?.strategy ?? "suspend"
     self.messages = MutableList.make()
