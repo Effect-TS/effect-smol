@@ -22,6 +22,7 @@ import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
+import * as Tool from "./Tool.ts"
 
 /**
  * Transforms a `Schema.Codec` into a form compatible with Anthropic's
@@ -225,6 +226,9 @@ function recur(ast: AST.AST): AST.AST {
         }
       } else if (ast.indexSignatures.length === 1 && ast.propertySignatures.length === 0) {
         const is = ast.indexSignatures[0]
+        if (Tool.isEmptyParamsRecord(is)) {
+          return ast
+        }
         // records are not supported by Anthropic, so we translate them to arrays of key-value pairs
         if (annotations !== undefined && typeof annotations.description === "string") {
           annotations.description = `${RECORD_DESCRIPTION}; ${annotations.description}`

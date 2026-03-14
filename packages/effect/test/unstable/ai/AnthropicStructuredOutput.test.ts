@@ -2,6 +2,7 @@ import { assert, describe, it } from "@effect/vitest"
 import { type JsonSchema, Schema } from "effect"
 import { TestSchema } from "effect/testing"
 import { toCodecAnthropic } from "effect/unstable/ai/AnthropicStructuredOutput"
+import * as Tool from "effect/unstable/ai/Tool"
 
 function assertJsonSchema(schema: Schema.Top, expected: JsonSchema.JsonSchema) {
   assert.deepStrictEqual(toCodecAnthropic(schema).jsonSchema, expected)
@@ -464,6 +465,17 @@ describe("toCodecAnthropic", () => {
   })
 
   describe("Record", () => {
+    it("EmptyParams", async () => {
+      assertJsonSchema(Tool.EmptyParams, {
+        "type": "object",
+        "additionalProperties": false
+      })
+      assertJsonSchema(Schema.Record(Schema.String, Schema.Never), {
+        "type": "object",
+        "additionalProperties": false
+      })
+    })
+
     it("Record(String, Finite)", async () => {
       const schema = Schema.Record(Schema.String, Schema.Finite)
       assertJsonSchema(schema, {
