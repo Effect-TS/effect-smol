@@ -4858,7 +4858,7 @@ export const forkUnsafe = <FA, FE, A, E, R>(
   if (immediate) {
     child.evaluate(effect as any)
   } else {
-    parent.scheduleTask(() => child.evaluate(effect as any), 0)
+    parent.currentDispatcher.scheduleTask(() => child.evaluate(effect as any), 0)
   }
   if (!daemon && !child._exit) {
     parent.children().add(child)
