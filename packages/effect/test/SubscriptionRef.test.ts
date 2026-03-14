@@ -117,17 +117,17 @@ describe("SubscriptionRef", () => {
       assert.strictEqual(yield* SubscriptionRef.get(ref), 2)
     }))
 
-  it.effect("interacting with a closed ref interrupts", () =>
+  it.effect("mutating a closed ref interrupts", () =>
     Effect.gen(function*() {
       const scope = yield* Scope.make()
       const ref = yield* SubscriptionRef.make(0).pipe(Scope.provide(scope))
       yield* Scope.close(scope, Exit.void)
-      const getExit = yield* Effect.exit(SubscriptionRef.get(ref))
+      const getExit = yield* SubscriptionRef.get(ref)
       const setExit = yield* Effect.exit(SubscriptionRef.set(ref, 1))
-      const changesExit = yield* Effect.exit(SubscriptionRef.changes(ref).pipe(Stream.take(1), Stream.runCollect))
-      assert.isTrue(Exit.hasInterrupts(getExit))
+      const changesExit = yield* SubscriptionRef.changes(ref).pipe(Stream.take(1), Stream.runCollect)
+      assert.strictEqual(getExit, 0)
       assert.isTrue(Exit.hasInterrupts(setExit))
-      assert.isTrue(Exit.hasInterrupts(changesExit))
+      assert.deepStrictEqual(changesExit, [0])
     }))
 })
 
