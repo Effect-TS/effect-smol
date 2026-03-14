@@ -1,5 +1,18 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Array, Effect, Exit, Fiber, Latch, Number, Pull, Random, Scope, Stream, SubscriptionRef } from "effect"
+import {
+  Array,
+  Deferred,
+  Effect,
+  Exit,
+  Fiber,
+  Latch,
+  Number,
+  Pull,
+  Random,
+  Scope,
+  Stream,
+  SubscriptionRef
+} from "effect"
 
 describe("SubscriptionRef", () => {
   it.effect("multiple subscribers can receive changes", () =>
@@ -71,6 +84,37 @@ describe("SubscriptionRef", () => {
       yield* Fiber.interrupt(producer)
       assert.deepStrictEqual(result1, Array.sort(Number.Order)(result1))
       assert.deepStrictEqual(result2, Array.sort(Number.Order)(result2))
+    }))
+
+  it.effect("effectful mutations are synchronized", () =>
+    Effect.gen(function*() {
+      const ref = yield* SubscriptionRef.make(0)
+      const started = yield* Deferred.make<void>()
+      const release = yield* Deferred.make<void>()
+      const secondDone = yield* Deferred.make<void>()
+
+      const first = yield* SubscriptionRef.updateEffect(ref, (n) =>
+        Effect.gen(function*() {
+          assert.strictEqual(n, 0)
+          yield* Deferred.succeed(started, undefined)
+          yield* Deferred.await(release)
+          return n + 1
+        })).pipe(Effect.forkScoped)
+
+      yield* Deferred.await(started)
+
+      const second = yield* SubscriptionRef.updateEffect(ref, (n) => Effect.succeed(n + 1)).pipe(
+        Effect.tap(() => Deferred.succeed(secondDone, undefined)),
+        Effect.forkScoped
+      )
+
+      assert.isFalse(yield* Deferred.isDone(secondDone))
+
+      yield* Deferred.succeed(release, undefined)
+      yield* Fiber.join(first)
+      yield* Fiber.join(second)
+
+      assert.strictEqual(yield* SubscriptionRef.get(ref), 2)
     }))
 
   it.effect("interacting with a closed ref interrupts", () =>
