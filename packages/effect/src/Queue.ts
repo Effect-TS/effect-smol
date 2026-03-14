@@ -96,7 +96,7 @@ export const asDequeue: <A, E>(self: Queue<A, E>) => Dequeue<A, E> = identity
 export interface Enqueue<in A, in E = never> extends Inspectable {
   readonly [EnqueueTypeId]: Enqueue.Variance<A, E>
   readonly strategy: "suspend" | "dropping" | "sliding"
-  readonly scheduler: SchedulerDispatcher
+  readonly dispatcher: SchedulerDispatcher
   capacity: number
   messages: MutableList.MutableList<any>
   state: Queue.State<any, any>
@@ -1563,7 +1563,7 @@ const scheduleReleaseTaker = <A, E>(self: Enqueue<A, E>) => {
     return
   }
   self.scheduleRunning = true
-  self.scheduler.scheduleTask(() => releaseTakers(self), 0)
+  self.dispatcher.scheduleTask(() => releaseTakers(self), 0)
 }
 
 const takeBetweenUnsafe = <A, E>(
