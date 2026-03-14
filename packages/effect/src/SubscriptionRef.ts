@@ -102,7 +102,7 @@ const withOpen = <A, B, E, R>(
 const withOpenSync = <A, B>(
   self: SubscriptionRef<A>,
   f: (state: OpenState<A>) => B
-): Effect.Effect<B> => withOpen((state) => Effect.succeed(f(state)))
+): Effect.Effect<B> => withOpen(self, (state) => Effect.succeed(f(state)))
 
 const verifyOpen = <A, B>(
   self: SubscriptionRef<A>,
