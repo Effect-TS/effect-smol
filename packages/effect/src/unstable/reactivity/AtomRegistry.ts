@@ -9,7 +9,7 @@ import * as Layer from "../../Layer.ts"
 import * as Option from "../../Option.ts"
 import { hasProperty } from "../../Predicate.ts"
 import * as Queue from "../../Queue.ts"
-import type { SchedulerDispatcher } from "../../Scheduler.ts"
+import type { Scheduler, SchedulerDispatcher } from "../../Scheduler.ts"
 import { MixedScheduler } from "../../Scheduler.ts"
 import * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -41,8 +41,8 @@ export const isAtomRegistry = (u: unknown): u is AtomRegistry => hasProperty(u, 
  */
 export interface AtomRegistry {
   readonly [TypeId]: TypeId
-  readonly scheduler: SchedulerDispatcher
-  readonly schedulerAsync: SchedulerDispatcher
+  readonly scheduler: Scheduler
+  readonly schedulerAsync: Scheduler
   readonly getNodes: () => ReadonlyMap<Atom.Atom<any> | string, Node<any>>
   readonly get: <A>(atom: Atom.Atom<A>) => A
   readonly mount: <A>(atom: Atom.Atom<A>) => () => void
@@ -239,8 +239,10 @@ class RegistryImpl implements AtomRegistry {
   readonly [TypeId]: TypeId
   readonly timeoutResolution: number
   readonly defaultIdleTTL: number | undefined
-  readonly scheduler: SchedulerDispatcher
-  readonly schedulerAsync: SchedulerDispatcher
+  readonly scheduler: Scheduler
+  readonly schedulerAsync: Scheduler
+  readonly schedulerDispatcher: SchedulerDispatcher
+  readonly schedulerAsyncDispatcher: SchedulerDispatcher
   onNodeAdded?: ((node: Node<any>) => void) | undefined
   onNodeRemoved?: ((node: Node<any>) => void) | undefined
 
@@ -251,8 +253,10 @@ class RegistryImpl implements AtomRegistry {
     defaultIdleTTL?: number
   ) {
     this[TypeId] = TypeId
-    this.scheduler = new MixedScheduler("sync", scheduleTask).makeDispatcher()
-    this.schedulerAsync = new MixedScheduler("async", scheduleTask).makeDispatcher()
+    this.scheduler = new MixedScheduler("sync", scheduleTask)
+    this.schedulerAsync = new MixedScheduler("async", scheduleTask)
+    this.schedulerDispatcher = this.scheduler.makeDispatcher()
+    this.schedulerAsyncDispatcher = this.schedulerAsync.makeDispatcher()
     this.defaultIdleTTL = defaultIdleTTL
 
     if (timeoutResolution === undefined && defaultIdleTTL !== undefined) {
@@ -372,7 +376,7 @@ class RegistryImpl implements AtomRegistry {
   }
 
   scheduleAtomRemoval(atom: Atom.Atom<any>): void {
-    this.schedulerAsync.scheduleTask(() => {
+    this.schedulerAsyncDispatcher.scheduleTask(() => {
       const node = this.nodes.get(atomKey(atom))
       if (node !== undefined && node.canBeRemoved) {
         this.removeNode(node)
@@ -381,7 +385,7 @@ class RegistryImpl implements AtomRegistry {
   }
 
   scheduleNodeRemoval(node: NodeImpl<any>): void {
-    this.schedulerAsync.scheduleTask(() => {
+    this.schedulerAsyncDispatcher.scheduleTask(() => {
       if (node.canBeRemoved) {
         this.removeNode(node)
       }
