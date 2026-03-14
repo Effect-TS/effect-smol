@@ -102,14 +102,7 @@ const withOpen = <A, B, E, R>(
 const withOpenSync = <A, B>(
   self: SubscriptionRef<A>,
   f: (state: OpenState<A>) => B
-): Effect.Effect<B> =>
-  Effect.suspend(() => {
-    const state = self.state
-    if (state._tag === "Closed") {
-      return Effect.interrupt
-    }
-    return Effect.sync(() => f(state))
-  })
+): Effect.Effect<B> => withOpen((state) => Effect.succeed(f(state)))
 
 const verifyOpen = <A, B>(
   self: SubscriptionRef<A>,
