@@ -13968,7 +13968,7 @@ function commitTransaction(fiber: Fiber<unknown, unknown>, state: Transaction["S
       ref.value = value
     }
     for (const pending of ref.pending.values()) {
-      fiber.scheduleTask(pending, 0)
+      fiber.currentDispatcher.scheduleTask(pending, 0)
     }
     ref.pending.clear()
   }

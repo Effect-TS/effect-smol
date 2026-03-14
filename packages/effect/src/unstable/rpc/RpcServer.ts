@@ -1245,7 +1245,7 @@ export const makeProtocolWorkerRunner: Effect.Effect<
     Effect.tapCause(Effect.logError),
     Effect.onExit(() =>
       Effect.sync(() => {
-        fiber.scheduleTask(() => fiber.interruptUnsafe(fiber.id), 0)
+        fiber.currentDispatcher.scheduleTask(() => fiber.interruptUnsafe(fiber.id), 0)
       })
     ),
     Effect.forkScoped

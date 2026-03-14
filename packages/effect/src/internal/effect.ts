@@ -540,13 +540,13 @@ export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
   maxOpsBeforeYield!: number
   currentPreventYield!: boolean
 
-  currentDispatcher: Scheduler.SchedulerDispatcher | undefined = undefined
+  _dispatcher: Scheduler.SchedulerDispatcher | undefined = undefined
+  get currentDispatcher(): Scheduler.SchedulerDispatcher {
+    return this._dispatcher ??= this.currentScheduler.makeDispatcher()
+  }
 
   getRef<X>(ref: ServiceMap.Reference<X>): X {
     return ServiceMap.getReferenceUnsafe(this.services, ref)
-  }
-  scheduleTask(task: () => void, priority: number): void {
-    ;(this.currentDispatcher ??= this.currentScheduler.makeDispatcher()).scheduleTask(task, priority)
   }
   addObserver(cb: (exit: Exit.Exit<A, E>) => void): () => void {
     if (this._exit) {
@@ -683,7 +683,7 @@ export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
     const scheduler = this.getRef(Scheduler.Scheduler)
     if (scheduler !== this.currentScheduler) {
       this.currentScheduler = scheduler
-      this.currentDispatcher = undefined
+      this._dispatcher = undefined
     }
     this.currentSpan = services.mapUnsafe.get(Tracer.ParentSpanKey)
     this.currentLogLevel = this.getRef(CurrentLogLevel)
@@ -912,7 +912,7 @@ export const yieldNowWith: (priority?: number) => Effect.Effect<void> = makePrim
   op: "Yield",
   [evaluate](fiber) {
     let resumed = false
-    fiber.scheduleTask(() => {
+    fiber.currentDispatcher.scheduleTask(() => {
       if (resumed) return
       fiber.evaluate(exitVoid as any)
     }, this[args] ?? 0)
@@ -5186,7 +5186,7 @@ class Semaphore {
   updateTakenUnsafe(fiber: Fiber.Fiber<any, any>, f: (n: number) => number): Effect.Effect<number> {
     this.taken = f(this.taken)
     if (this.waiters.size > 0) {
-      fiber.scheduleTask(() => {
+      fiber.currentDispatcher.scheduleTask(() => {
         const iter = this.waiters.values()
         let item = iter.next()
         while (item.done === false && this.free > 0) {
@@ -5262,7 +5262,7 @@ class Latch implements _Latch.Latch {
       return succeedTrue
     }
     this.scheduled = true
-    fiber.scheduleTask(this.flushWaiters, 0)
+    fiber.currentDispatcher.scheduleTask(this.flushWaiters, 0)
     return succeedTrue
   }
   private flushWaiters = () => {

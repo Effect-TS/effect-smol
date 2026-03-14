@@ -123,7 +123,7 @@ export interface Fiber<out A, out E = never> extends Pipeable {
   readonly services: ServiceMap.ServiceMap<never>
   setServices(services: ServiceMap.ServiceMap<never>): void
   readonly currentScheduler: Scheduler
-  readonly currentDispatcher: SchedulerDispatcher | undefined
+  readonly currentDispatcher: SchedulerDispatcher
   readonly currentSpan?: AnySpan | undefined
   readonly currentLogLevel: LogLevel
   readonly minimumLogLevel: LogLevel
@@ -136,7 +136,6 @@ export interface Fiber<out A, out E = never> extends Pipeable {
     annotations?: ServiceMap.ServiceMap<never> | undefined
   ) => void
   readonly pollUnsafe: () => Exit<A, E> | undefined
-  readonly scheduleTask: (task: () => void, priority: number) => void
 }
 
 /**

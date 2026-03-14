@@ -148,7 +148,7 @@ export const tracer: <E, R>(
     return Effect.onExitPrimitive(httpApp, (exit) => {
       fiber.setServices(prevServices)
       const endTime = fiber.getRef(Clock).currentTimeNanosUnsafe()
-      fiber.scheduleTask(() => {
+      fiber.currentDispatcher.scheduleTask(() => {
         const url = Request.toURL(request)
         if (Option.isSome(url) && (url.value.username !== "" || url.value.password !== "")) {
           url.value.username = "REDACTED"
