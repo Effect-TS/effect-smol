@@ -8,6 +8,7 @@ import * as Option from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import * as PubSub from "./PubSub.ts"
 import * as Ref from "./Ref.ts"
+import type * as Scope from "./Scope.ts"
 import * as Semaphore from "./Semaphore.ts"
 import * as Stream from "./Stream.ts"
 import type { Invariant } from "./Types.ts"
@@ -77,6 +78,16 @@ export const make = <A>(value: A): Effect.Effect<SubscriptionRef<A>> =>
     PubSub.publishUnsafe(self.pubsub, value)
     return self
   })
+
+/**
+ * Constructs a new `SubscriptionRef` from an initial value and shuts down the
+ * underlying `PubSub` when the scope is closed.
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const makeScoped = <A>(value: A): Effect.Effect<SubscriptionRef<A>, never, Scope.Scope> =>
+  Effect.acquireRelease(make(value), (self) => PubSub.shutdown(self.pubsub))
 
 /**
  * Creates a stream that emits the current value and all subsequent changes to

@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Array, Effect, Exit, Fiber, Latch, Number, Pull, Random, Stream, SubscriptionRef } from "effect"
+import { Array, Effect, Exit, Fiber, Latch, Number, PubSub, Pull, Random, Stream, SubscriptionRef } from "effect"
 
 describe("SubscriptionRef", () => {
   it.effect("multiple subscribers can receive changes", () =>
@@ -71,6 +71,12 @@ describe("SubscriptionRef", () => {
       yield* Fiber.interrupt(producer)
       assert.deepStrictEqual(result1, Array.sort(Number.Order)(result1))
       assert.deepStrictEqual(result2, Array.sort(Number.Order)(result2))
+    }))
+
+  it.effect("makeScoped shuts down the underlying PubSub on scope release", () =>
+    Effect.gen(function*() {
+      const pubsub = yield* Effect.scoped(Effect.map(SubscriptionRef.makeScoped(0), (ref) => ref.pubsub))
+      assert.isTrue(yield* PubSub.isShutdown(pubsub))
     }))
 })
 
