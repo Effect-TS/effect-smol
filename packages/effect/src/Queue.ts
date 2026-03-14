@@ -341,7 +341,14 @@ export const make = <A, E = never>(
 ): Effect<Queue<A, E>> =>
   core.withFiber((fiber) => {
     const self = Object.create(QueueProto)
-    self.scheduler = fiber.currentScheduler.makeDispatcher()
+    self.scheduler = {
+      scheduleTask(task: () => void, priority: number) {
+        fiber.scheduleTask(task, priority)
+      },
+      flush() {
+        fiber.currentDispatcher?.flush()
+      }
+    }
     self.capacity = options?.capacity ?? Number.POSITIVE_INFINITY
     self.strategy = options?.strategy ?? "suspend"
     self.messages = MutableList.make()

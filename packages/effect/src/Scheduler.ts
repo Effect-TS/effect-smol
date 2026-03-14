@@ -95,7 +95,6 @@ class PriorityBuckets {
  * @category schedulers
  */
 export class MixedScheduler implements Scheduler {
-  private dispatcher: SchedulerDispatcher | undefined = undefined
   readonly executionMode: "sync" | "async"
   readonly setImmediate: (f: () => void) => () => void
 
@@ -118,7 +117,7 @@ export class MixedScheduler implements Scheduler {
    * @since 2.0.0
    */
   makeDispatcher() {
-    return (this.dispatcher ??= new MixedSchedulerDispatcher(this.setImmediate))
+    return new MixedSchedulerDispatcher(this.setImmediate)
   }
 }
 
