@@ -116,6 +116,7 @@ class PriorityBuckets {
 export class MixedScheduler implements Scheduler {
   private tasks = new PriorityBuckets()
   private running: (() => void) | undefined = undefined
+  private flushing = false
   readonly executionMode: "sync" | "async"
   readonly setImmediate: (f: () => void) => () => void
 
@@ -132,8 +133,15 @@ export class MixedScheduler implements Scheduler {
    */
   scheduleTask(task: () => void, priority: number) {
     this.tasks.scheduleTask(task, priority)
-    if (this.running === undefined) {
-      this.running = this.setImmediate(this.afterScheduled)
+    if (!this.flushing && this.running === undefined) {
+      let invoked = false
+      const cancel = this.setImmediate(() => {
+        invoked = true
+        this.afterScheduled()
+      })
+      if (!invoked) {
+        this.running = cancel
+      }
     }
   }
 
@@ -142,18 +150,26 @@ export class MixedScheduler implements Scheduler {
    */
   afterScheduled = () => {
     this.running = undefined
-    this.runTasks()
+    this.flushing = true
+    try {
+      this.runTasks()
+    } finally {
+      this.flushing = false
+    }
   }
 
   /**
    * @since 2.0.0
    */
   runTasks() {
-    const buckets = this.tasks.drain()
-    for (let i = 0; i < buckets.length; i++) {
-      const toRun = buckets[i][1]
-      for (let j = 0; j < toRun.length; j++) {
-        toRun[j]()
+    while (true) {
+      const buckets = this.tasks.drain()
+      if (buckets.length === 0) break
+      for (let i = 0; i < buckets.length; i++) {
+        const toRun = buckets[i][1]
+        for (let j = 0; j < toRun.length; j++) {
+          toRun[j]()
+        }
       }
     }
   }
@@ -174,7 +190,7 @@ export class MixedScheduler implements Scheduler {
         this.running()
         this.running = undefined
       }
-      this.runTasks()
+      this.afterScheduled()
     }
   }
 }

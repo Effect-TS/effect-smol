@@ -20,6 +20,7 @@ import {
   References,
   Result,
   Schedule,
+  Scheduler,
   Sink,
   Stream
 } from "effect"
@@ -3624,6 +3625,20 @@ describe("Stream", () => {
   })
 
   describe("repeat", () => {
+    it.effect("fromEffectSchedule - works with synchronous scheduler task callbacks", () =>
+      Effect.gen(function*() {
+        const scheduler = new Scheduler.MixedScheduler("async", (task) => {
+          task()
+          return constVoid
+        })
+        const result = yield* Stream.fromEffectSchedule(Effect.succeed(1), Schedule.forever).pipe(
+          Stream.take(10_000),
+          Stream.runFold(() => 0, (acc, n) => acc + n),
+          Effect.provideService(Scheduler.Scheduler, scheduler)
+        )
+        strictEqual(result, 10_000)
+      }))
+
     it.effect("repeat", () =>
       Effect.gen(function*() {
         const result = yield* pipe(
