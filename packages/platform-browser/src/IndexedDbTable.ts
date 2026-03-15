@@ -1,27 +1,15 @@
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 import { type Pipeable, pipeArguments } from "effect/Pipeable";
 import type * as Schema from "effect/Schema";
 import type { NoInfer } from "effect/Types";
 import type * as IndexedDbQueryBuilder from "./IndexedDbQueryBuilder.js";
 
-/**
- * @since 1.0.0
- * @category type ids
- */
-export const TypeId: unique symbol = Symbol.for(
-  "@effect/platform-browser/IndexedDbTable",
-);
+const TypeId = "~effect/platform-browser/IndexedDbTable";
 
 /**
- * @since 1.0.0
- * @category type ids
- */
-export type TypeId = typeof TypeId;
-
-/**
- * @since 1.0.0
+ * @since 4.0.0
  * @category interface
  */
 export interface IndexedDbTable<
@@ -35,7 +23,7 @@ export interface IndexedDbTable<
   out AutoIncrement extends boolean,
 > extends Pipeable {
   new (_: never): {};
-  readonly [TypeId]: TypeId;
+  readonly [TypeId]: typeof TypeId;
   readonly tableName: Name;
   readonly tableSchema: TableSchema;
   readonly keyPath: KeyPath;
@@ -44,7 +32,7 @@ export interface IndexedDbTable<
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export type AnySchemaStruct = Schema.Top & {
@@ -60,16 +48,16 @@ export type AnySchemaStruct = Schema.Top & {
 };
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export interface Any {
-  readonly [TypeId]: TypeId;
+  readonly [TypeId]: typeof TypeId;
   readonly tableName: string;
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export type AnyWithProps = IndexedDbTable<
@@ -81,7 +69,7 @@ export type AnyWithProps = IndexedDbTable<
 >;
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export type TableName<Table extends Any> =
@@ -96,7 +84,7 @@ export type TableName<Table extends Any> =
     : never;
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export type KeyPath<Table extends Any> =
@@ -111,7 +99,7 @@ export type KeyPath<Table extends Any> =
     : never;
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export type AutoIncrement<Table extends Any> =
@@ -126,7 +114,7 @@ export type AutoIncrement<Table extends Any> =
     : never;
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export type TableSchema<Table extends Any> =
@@ -141,7 +129,7 @@ export type TableSchema<Table extends Any> =
     : never;
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export type Context<Table extends Any> =
@@ -156,7 +144,7 @@ export type Context<Table extends Any> =
     : never;
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export type Indexes<Table extends Any> =
@@ -171,7 +159,7 @@ export type Indexes<Table extends Any> =
     : never;
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export type WithName<Table extends Any, TableName extends string> = Extract<
@@ -201,19 +189,21 @@ const makeProto = <
   readonly keyPath: KeyPath;
   readonly indexes: Indexes;
   readonly autoIncrement: AutoIncrement;
-}): IndexedDbTable<Name, TableSchema, Indexes, KeyPath, AutoIncrement> => {
-  function IndexedDbTable() {}
-  Object.setPrototypeOf(IndexedDbTable, Proto);
-  IndexedDbTable.tableName = options.tableName;
-  IndexedDbTable.tableSchema = options.tableSchema;
-  IndexedDbTable.keyPath = options.keyPath;
-  IndexedDbTable.indexes = options.indexes;
-  IndexedDbTable.autoIncrement = options.autoIncrement;
-  return IndexedDbTable as any;
-};
+}): IndexedDbTable<Name, TableSchema, Indexes, KeyPath, AutoIncrement> =>
+  (function () {
+    // oxlint-disable-next-line typescript/no-extraneous-class
+    class Table {}
+    Object.assign(Table, Proto);
+    (Table as any).tableName = options.tableName;
+    (Table as any).tableSchema = options.tableSchema;
+    (Table as any).keyPath = options.keyPath;
+    (Table as any).indexes = options.indexes;
+    (Table as any).autoIncrement = options.autoIncrement;
+    return Table as any;
+  })();
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category constructors
  */
 export const make = <

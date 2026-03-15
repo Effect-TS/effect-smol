@@ -1,5 +1,5 @@
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
@@ -8,50 +8,70 @@ import * as Schema from "effect/Schema";
 import * as SchemaIssue from "effect/SchemaIssue";
 import * as ServiceMap from "effect/ServiceMap";
 
-/**
- * @since 1.0.0
- * @category type ids
- */
-export const TypeId: unique symbol = Symbol.for(
-  "@effect/platform-browser/IndexedDb",
-);
+const TypeId = "~effect/platform-browser/IndexedDb";
 
 /**
- * @since 1.0.0
- * @category type ids
- */
-export type TypeId = typeof TypeId;
-
-/**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export interface IndexedDb {
-  readonly [TypeId]: TypeId;
+  readonly [TypeId]: typeof TypeId;
   readonly indexedDB: globalThis.IDBFactory;
   readonly IDBKeyRange: typeof globalThis.IDBKeyRange;
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category tag
  */
 export const IndexedDb: ServiceMap.Service<IndexedDb, IndexedDb> =
-  ServiceMap.Service<IndexedDb, IndexedDb>(
-    "@effect/platform-browser/IndexedDb",
-  );
+  ServiceMap.Service<IndexedDb, IndexedDb>(TypeId);
+
+/** @internal */
+const IDBFlatKey = Schema.Union([
+  Schema.String,
+  Schema.Number.check(Schema.makeFilter((input) => !Number.isNaN(input))),
+  Schema.DateValid,
+  Schema.declare(
+    (input): input is BufferSource =>
+      input instanceof ArrayBuffer ||
+      (ArrayBuffer.isView(input) && input.buffer instanceof ArrayBuffer),
+  ),
+]);
 
 /**
- * @since 1.0.0
+ * Schema for `IDBValidKey` (`number | string | Date | BufferSource | IDBValidKey[]`).
+ *
+ * @since 4.0.0
+ * @category schemas
+ */
+export const IDBValidKey = Schema.Union([IDBFlatKey, Schema.Array(IDBFlatKey)]);
+
+/**
+ * Schema for `autoIncrement` key path (`number`).
+ *
+ * @since 4.0.0
+ * @category schemas
+ */
+export const AutoIncrement = Schema.Int.check(
+  Schema.isBetween({ minimum: 1, maximum: 2 ** 53 }),
+).annotate({
+  identifier: "AutoIncrement",
+  title: "autoIncrement",
+  description: "Defines a valid autoIncrement key path for the IndexedDb table",
+});
+
+/**
+ * @since 4.0.0
  * @category constructor
  */
-export const make = (impl: Omit<IndexedDb, TypeId>): IndexedDb =>
-  IndexedDb.of({ ...impl, [TypeId]: TypeId });
+export const make = (impl: Omit<IndexedDb, typeof TypeId>): IndexedDb =>
+  IndexedDb.of({ [TypeId]: TypeId, ...impl });
 
 /**
  * Instance of IndexedDb from the `window` object.
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category constructors
  */
 export const layerWindow: Layer.Layer<IndexedDb, Config.ConfigError> =
@@ -78,37 +98,3 @@ export const layerWindow: Layer.Layer<IndexedDb, Config.ConfigError> =
       }
     }),
   );
-
-/**
- * Schema for `autoIncrement` key path (`number`).
- *
- * @since 1.0.0
- * @category schemas
- */
-export const AutoIncrement = Schema.Int.check(
-  Schema.isBetween({ minimum: 1, maximum: 2 ** 53 }),
-).annotate({
-  identifier: "AutoIncrement",
-  title: "autoIncrement",
-  description: "Defines a valid autoIncrement key path for the IndexedDb table",
-});
-
-/** @internal */
-const IDBFlatKey = Schema.Union([
-  Schema.String,
-  Schema.Number.check(Schema.makeFilter((input) => !Number.isNaN(input))),
-  Schema.DateValid,
-  Schema.declare(
-    (input): input is BufferSource =>
-      input instanceof ArrayBuffer ||
-      (ArrayBuffer.isView(input) && input.buffer instanceof ArrayBuffer),
-  ),
-]);
-
-/**
- * Schema for `IDBValidKey` (`number | string | Date | BufferSource | IDBValidKey[]`).
- *
- * @since 1.0.0
- * @category schemas
- */
-export const IDBValidKey = Schema.Union([IDBFlatKey, Schema.Array(IDBFlatKey)]);
