@@ -3921,29 +3921,22 @@ export declare namespace Retry {
    */
   export type Return<R, E, A, O extends Options<E>> = Effect<
     A,
-    | (O extends { schedule: Schedule<infer _O, infer _I, infer _E1, infer _R> } ? E | _E1
+    | (O extends { schedule: Schedule<infer _O, infer _I, infer _E1, infer _R> } ? E
       : O extends { until: Predicate.Refinement<E, infer E2> } ? E2
+      : O extends { while: Predicate.Refinement<E, infer E2> } ? Exclude<E, E2>
       : E)
     | (O extends { schedule: Schedule<infer _O, infer _I, infer E, infer _R> } ? E
       : never)
-    | (O extends {
-      while: (...args: Array<any>) => Effect<infer _A, infer E, infer _R>
-    } ? E
+    | (O extends { while: (...args: Array<any>) => Effect<infer _A, infer E, infer _R> } ? E
       : never)
-    | (O extends {
-      until: (...args: Array<any>) => Effect<infer _A, infer E, infer _R>
-    } ? E
+    | (O extends { until: (...args: Array<any>) => Effect<infer _A, infer E, infer _R> } ? E
       : never),
     | R
     | (O extends { schedule: Schedule<infer _O, infer _I, infer _E1, infer R> } ? R
       : never)
-    | (O extends {
-      while: (...args: Array<any>) => Effect<infer _A, infer _E, infer R>
-    } ? R
+    | (O extends { while: (...args: Array<any>) => Effect<infer _A, infer _E, infer R> } ? R
       : never)
-    | (O extends {
-      until: (...args: Array<any>) => Effect<infer _A, infer _E, infer R>
-    } ? R
+    | (O extends { until: (...args: Array<any>) => Effect<infer _A, infer _E, infer R> } ? R
       : never)
   > extends infer Z ? Z
     : never
@@ -7034,17 +7027,14 @@ export declare namespace Repeat {
   export type Return<R, E, A, O extends Options<A>> = Effect<
     O extends { schedule: Schedule<infer Out, infer _I, infer _E, infer _R> } ? Out
       : O extends { until: Predicate.Refinement<A, infer B> } ? B
+      : O extends { while: Predicate.Refinement<A, infer B> } ? Exclude<A, B>
       : A,
     | E
     | (O extends { schedule: Schedule<infer _Out, infer _I, infer E, infer _R> } ? E
       : never)
-    | (O extends {
-      while: (...args: Array<any>) => Effect<infer _A, infer E, infer _R>
-    } ? E
+    | (O extends { while: (...args: Array<any>) => Effect<infer _A, infer E, infer _R> } ? E
       : never)
-    | (O extends {
-      until: (...args: Array<any>) => Effect<infer _A, infer E, infer _R>
-    } ? E
+    | (O extends { until: (...args: Array<any>) => Effect<infer _A, infer E, infer _R> } ? E
       : never),
     | R
     | (O extends { schedule: Schedule<infer _O, infer _I, infer _E, infer R> } ? R
