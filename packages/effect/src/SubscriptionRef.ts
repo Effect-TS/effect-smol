@@ -7,7 +7,6 @@ import { PipeInspectableProto } from "./internal/core.ts"
 import * as Option from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import * as PubSub from "./PubSub.ts"
-import * as Ref from "./Ref.ts"
 import * as Semaphore from "./Semaphore.ts"
 import * as Stream from "./Stream.ts"
 import type { Invariant } from "./Types.ts"
@@ -19,7 +18,7 @@ const TypeId = "~effect/SubscriptionRef"
  * @category models
  */
 export interface SubscriptionRef<in out A> extends SubscriptionRef.Variance<A>, Pipeable {
-  readonly backing: Ref.Ref<A>
+  value: A
   readonly semaphore: Semaphore.Semaphore
   readonly pubsub: PubSub.PubSub<A>
 }
@@ -57,7 +56,7 @@ const Proto = {
   toJSON(this: SubscriptionRef<unknown>) {
     return {
       _id: "SubscriptionRef",
-      value: this.backing.ref.current
+      value: this.value
     }
   }
 }
@@ -72,7 +71,7 @@ export const make = <A>(value: A): Effect.Effect<SubscriptionRef<A>> =>
   Effect.map(PubSub.unbounded<A>({ replay: 1 }), (pubsub) => {
     const self = Object.create(Proto)
     self.semaphore = Semaphore.makeUnsafe(1)
-    self.backing = Ref.makeUnsafe(value)
+    self.value = value
     self.pubsub = pubsub
     PubSub.publishUnsafe(self.pubsub, value)
     return self
@@ -131,7 +130,7 @@ export const changes = <A>(self: SubscriptionRef<A>): Stream.Stream<A> => Stream
  * @since 2.0.0
  * @category getters
  */
-export const getUnsafe = <A>(self: SubscriptionRef<A>): A => self.backing.ref.current
+export const getUnsafe = <A>(self: SubscriptionRef<A>): A => self.value
 
 /**
  * Retrieves the current value of the `SubscriptionRef`.
@@ -151,7 +150,7 @@ export const getUnsafe = <A>(self: SubscriptionRef<A>): A => self.backing.ref.cu
  * @since 2.0.0
  * @category getters
  */
-export const get = <A>(self: SubscriptionRef<A>): Effect.Effect<A> => Effect.sync(() => getUnsafe(self))
+export const get = <A>(self: SubscriptionRef<A>): Effect.Effect<A> => Effect.sync(() => self.value)
 
 /**
  * Atomically retrieves the current value and sets a new value, notifying
@@ -179,10 +178,16 @@ export const getAndSet: {
   <A>(value: A): (self: SubscriptionRef<A>) => Effect.Effect<A>
   <A>(self: SubscriptionRef<A>, value: A): Effect.Effect<A>
 } = dual(2, <A>(self: SubscriptionRef<A>, value: A) =>
-  self.semaphore.withPermit(Effect.flatMap(
-    Ref.getAndSet(self.backing, value),
-    (oldValue) => Effect.as(PubSub.publish(self.pubsub, value), oldValue)
-  )))
+  self.semaphore.withPermit(Effect.sync(() => {
+    const current = self.value
+    setUnsafe(self, value)
+    return current
+  })))
+
+const setUnsafe = <A>(self: SubscriptionRef<A>, value: A) => {
+  self.value = value
+  PubSub.publishUnsafe(self.pubsub, value)
+}
 
 /**
  * Atomically retrieves the current value and updates it with the result of
@@ -210,11 +215,11 @@ export const getAndUpdate: {
   <A>(update: (a: A) => A): (self: SubscriptionRef<A>) => Effect.Effect<A>
   <A>(self: SubscriptionRef<A>, update: (a: A) => A): Effect.Effect<A>
 } = dual(2, <A>(self: SubscriptionRef<A>, update: (a: A) => A) =>
-  self.semaphore.withPermit(Effect.suspend(() => {
-    const current = self.backing.ref.current
+  self.semaphore.withPermit(Effect.sync(() => {
+    const current = self.value
     const newValue = update(current)
-    self.backing.ref.current = newValue
-    return Effect.as(PubSub.publish(self.pubsub, newValue), current)
+    setUnsafe(self, newValue)
+    return current
   })))
 
 /**
@@ -249,11 +254,11 @@ export const getAndUpdateEffect: {
   self: SubscriptionRef<A>,
   update: (a: A) => Effect.Effect<A, E, R>
 ) =>
-  self.semaphore.withPermit(Effect.suspend(() => {
-    const current = self.backing.ref.current
-    return Effect.flatMap(update(current), (newValue) => {
-      self.backing.ref.current = newValue
-      return Effect.as(PubSub.publish(self.pubsub, newValue), current)
+  self.semaphore.withPermit(Effect.sync(() => {
+    const current = self.value
+    return Effect.map(update(current), (newValue) => {
+      setUnsafe(self, newValue)
+      return current
     })
   })))
 
@@ -290,14 +295,14 @@ export const getAndUpdateSome: {
   self: SubscriptionRef<A>,
   update: (a: A) => Option.Option<A>
 ) =>
-  self.semaphore.withPermit(Effect.suspend(() => {
-    const current = self.backing.ref.current
+  self.semaphore.withPermit(Effect.sync(() => {
+    const current = self.value
     const option = update(current)
     if (Option.isNone(option)) {
       return Effect.succeed(current)
     }
-    self.backing.ref.current = option.value
-    return Effect.map(PubSub.publish(self.pubsub, option.value), () => current)
+    setUnsafe(self, option.value)
+    return current
   })))
 
 /**
@@ -339,13 +344,11 @@ export const getAndUpdateSomeEffect: {
   update: (a: A) => Effect.Effect<Option.Option<A>, E, R>
 ) =>
   self.semaphore.withPermit(Effect.suspend(() => {
-    const current = self.backing.ref.current
-    return Effect.flatMap(update(current), (option) => {
-      if (Option.isNone(option)) {
-        return Effect.succeed(current)
-      }
-      self.backing.ref.current = option.value
-      return Effect.as(PubSub.publish(self.pubsub, option.value), current)
+    const current = self.value
+    return Effect.map(update(current), (option) => {
+      if (Option.isNone(option)) return current
+      setUnsafe(self, option.value)
+      return current
     })
   })))
 
@@ -381,10 +384,10 @@ export const modify: {
   self: SubscriptionRef<A>,
   modify: (a: A) => readonly [B, A]
 ) =>
-  self.semaphore.withPermit(Effect.suspend(() => {
-    const [b, newValue] = modify(self.backing.ref.current)
-    self.backing.ref.current = newValue
-    return Effect.as(PubSub.publish(self.pubsub, newValue), b)
+  self.semaphore.withPermit(Effect.sync(() => {
+    const [b, newValue] = modify(self.value)
+    setUnsafe(self, newValue)
+    return b
   })))
 
 /**
@@ -425,13 +428,12 @@ export const modifyEffect: {
   self: SubscriptionRef<A>,
   modify: (a: A) => Effect.Effect<readonly [B, A], E, R>
 ): Effect.Effect<B, E, R> =>
-  self.semaphore.withPermit(Effect.suspend(() => {
-    const current = self.backing.ref.current
-    return Effect.flatMap(modify(current), ([b, newValue]) => {
-      self.backing.ref.current = newValue
-      return Effect.as(PubSub.publish(self.pubsub, newValue), b)
+  self.semaphore.withPermit(Effect.suspend(() =>
+    Effect.map(modify(self.value), ([b, newValue]) => {
+      setUnsafe(self, newValue)
+      return b
     })
-  })))
+  )))
 
 /**
  * Atomically modifies the `SubscriptionRef` with a function that computes a
@@ -472,13 +474,11 @@ export const modifySome: {
   self: SubscriptionRef<A>,
   modify: (a: A) => readonly [B, Option.Option<A>]
 ) =>
-  self.semaphore.withPermit(Effect.suspend(() => {
-    const [b, option] = modify(self.backing.ref.current)
-    if (Option.isNone(option)) {
-      return Effect.succeed(b)
-    }
-    self.backing.ref.current = option.value
-    return Effect.as(PubSub.publish(self.pubsub, option.value), b)
+  self.semaphore.withPermit(Effect.sync(() => {
+    const [b, option] = modify(self.value)
+    if (Option.isNone(option)) return b
+    setUnsafe(self, option.value)
+    return b
   })))
 
 /**
@@ -524,16 +524,13 @@ export const modifySomeEffect: {
   self: SubscriptionRef<A>,
   modify: (a: A) => Effect.Effect<readonly [B, Option.Option<A>], E, R>
 ) =>
-  self.semaphore.withPermit(Effect.suspend(() => {
-    const current = self.backing.ref.current
-    return Effect.flatMap(modify(current), ([b, option]) => {
-      if (Option.isNone(option)) {
-        return Effect.succeed(b)
-      }
-      self.backing.ref.current = option.value
-      return Effect.as(PubSub.publish(self.pubsub, option.value), b)
+  self.semaphore.withPermit(Effect.suspend(() =>
+    Effect.map(modify(self.value), ([b, option]) => {
+      if (Option.isNone(option)) return b
+      setUnsafe(self, option.value)
+      return b
     })
-  })))
+  )))
 
 /**
  * Sets the value of the `SubscriptionRef`, notifying all subscribers of the
@@ -559,11 +556,10 @@ export const modifySomeEffect: {
 export const set: {
   <A>(value: A): (self: SubscriptionRef<A>) => Effect.Effect<void>
   <A>(self: SubscriptionRef<A>, value: A): Effect.Effect<void>
-} = dual(2, <A>(self: SubscriptionRef<A>, value: A) =>
-  self.semaphore.withPermit(Effect.suspend(() => {
-    self.backing.ref.current = value
-    return Effect.asVoid(PubSub.publish(self.pubsub, value))
-  })))
+} = dual(
+  2,
+  <A>(self: SubscriptionRef<A>, value: A) => self.semaphore.withPermit(Effect.sync(() => setUnsafe(self, value)))
+)
 
 /**
  * Sets the value of the `SubscriptionRef` and returns the new value,
@@ -588,9 +584,9 @@ export const setAndGet: {
   <A>(value: A): (self: SubscriptionRef<A>) => Effect.Effect<A>
   <A>(self: SubscriptionRef<A>, value: A): Effect.Effect<A>
 } = dual(2, <A>(self: SubscriptionRef<A>, value: A) =>
-  self.semaphore.withPermit(Effect.suspend(() => {
-    self.backing.ref.current = value
-    return Effect.map(PubSub.publish(self.pubsub, value), () => value)
+  self.semaphore.withPermit(Effect.sync(() => {
+    setUnsafe(self, value)
+    return value
   })))
 
 /**
@@ -617,12 +613,11 @@ export const setAndGet: {
 export const update: {
   <A>(update: (a: A) => A): (self: SubscriptionRef<A>) => Effect.Effect<void>
   <A>(self: SubscriptionRef<A>, update: (a: A) => A): Effect.Effect<void>
-} = dual(2, <A>(self: SubscriptionRef<A>, update: (a: A) => A) =>
-  self.semaphore.withPermit(Effect.suspend(() => {
-    const newValue = update(self.backing.ref.current)
-    self.backing.ref.current = newValue
-    return Effect.asVoid(PubSub.publish(self.pubsub, newValue))
-  })))
+} = dual(
+  2,
+  <A>(self: SubscriptionRef<A>, update: (a: A) => A) =>
+    self.semaphore.withPermit(Effect.sync(() => setUnsafe(self, update(self.value))))
+)
 
 /**
  * Updates the value of the `SubscriptionRef` with the result of applying an
@@ -652,13 +647,9 @@ export const updateEffect: {
   self: SubscriptionRef<A>,
   update: (a: A) => Effect.Effect<A, E, R>
 ) =>
-  self.semaphore.withPermit(Effect.suspend(() => {
-    const current = self.backing.ref.current
-    return Effect.flatMap(update(current), (newValue) => {
-      self.backing.ref.current = newValue
-      return Effect.asVoid(PubSub.publish(self.pubsub, newValue))
-    })
-  })))
+  self.semaphore.withPermit(
+    Effect.suspend(() => Effect.map(update(self.value), (newValue) => setUnsafe(self, newValue)))
+  ))
 
 /**
  * Updates the value of the `SubscriptionRef` with the result of applying a
@@ -683,10 +674,10 @@ export const updateAndGet: {
   <A>(update: (a: A) => A): (self: SubscriptionRef<A>) => Effect.Effect<A>
   <A>(self: SubscriptionRef<A>, update: (a: A) => A): Effect.Effect<A>
 } = dual(2, <A>(self: SubscriptionRef<A>, update: (a: A) => A) =>
-  self.semaphore.withPermit(Effect.suspend(() => {
-    const newValue = update(self.backing.ref.current)
-    self.backing.ref.current = newValue
-    return Effect.as(PubSub.publish(self.pubsub, newValue), newValue)
+  self.semaphore.withPermit(Effect.sync(() => {
+    const newValue = update(self.value)
+    setUnsafe(self, newValue)
+    return newValue
   })))
 
 /**
@@ -719,13 +710,12 @@ export const updateAndGetEffect: {
   self: SubscriptionRef<A>,
   update: (a: A) => Effect.Effect<A, E, R>
 ) =>
-  self.semaphore.withPermit(Effect.suspend(() => {
-    const current = self.backing.ref.current
-    return Effect.flatMap(update(current), (newValue) => {
-      self.backing.ref.current = newValue
-      return Effect.as(PubSub.publish(self.pubsub, newValue), newValue)
+  self.semaphore.withPermit(Effect.suspend(() =>
+    Effect.map(update(self.value), (newValue) => {
+      setUnsafe(self, newValue)
+      return newValue
     })
-  })))
+  )))
 
 /**
  * Optionally updates the value of the `SubscriptionRef` with the result of
@@ -759,13 +749,10 @@ export const updateSome: {
   self: SubscriptionRef<A>,
   update: (a: A) => Option.Option<A>
 ) =>
-  self.semaphore.withPermit(Effect.suspend(() => {
-    const option = update(self.backing.ref.current)
-    if (Option.isNone(option)) {
-      return Effect.void
-    }
-    self.backing.ref.current = option.value
-    return Effect.asVoid(PubSub.publish(self.pubsub, option.value))
+  self.semaphore.withPermit(Effect.sync(() => {
+    const option = update(self.value)
+    if (Option.isNone(option)) return
+    setUnsafe(self, option.value)
   })))
 
 /**
@@ -805,16 +792,12 @@ export const updateSomeEffect: {
   self: SubscriptionRef<A>,
   update: (a: A) => Effect.Effect<Option.Option<A>, E, R>
 ) =>
-  self.semaphore.withPermit(Effect.suspend(() => {
-    const current = self.backing.ref.current
-    return Effect.flatMap(update(current), (option) => {
-      if (Option.isNone(option)) {
-        return Effect.void
-      }
-      self.backing.ref.current = option.value
-      return Effect.asVoid(PubSub.publish(self.pubsub, option.value))
+  self.semaphore.withPermit(Effect.suspend(() =>
+    Effect.map(update(self.value), (option) => {
+      if (Option.isNone(option)) return
+      setUnsafe(self, option.value)
     })
-  })))
+  )))
 
 /**
  * Optionally updates the value of the `SubscriptionRef` with the result of
@@ -846,14 +829,12 @@ export const updateSomeAndGet: {
   self: SubscriptionRef<A>,
   update: (a: A) => Option.Option<A>
 ) =>
-  self.semaphore.withPermit(Effect.suspend(() => {
-    const current = self.backing.ref.current
+  self.semaphore.withPermit(Effect.sync(() => {
+    const current = self.value
     const option = update(current)
-    if (Option.isNone(option)) {
-      return Effect.succeed(current)
-    }
-    self.backing.ref.current = option.value
-    return Effect.as(PubSub.publish(self.pubsub, option.value), option.value)
+    if (Option.isNone(option)) return current
+    setUnsafe(self, option.value)
+    return option.value
   })))
 
 /**
@@ -889,12 +870,10 @@ export const updateSomeAndGetEffect: {
   update: (a: A) => Effect.Effect<Option.Option<A>, E, R>
 ) =>
   self.semaphore.withPermit(Effect.suspend(() => {
-    const current = self.backing.ref.current
-    return Effect.flatMap(update(current), (option) => {
-      if (Option.isNone(option)) {
-        return Effect.succeed(current)
-      }
-      self.backing.ref.current = option.value
-      return Effect.as(PubSub.publish(self.pubsub, option.value), option.value)
+    const current = self.value
+    return Effect.map(update(current), (option) => {
+      if (Option.isNone(option)) return current
+      setUnsafe(self, option.value)
+      return option.value
     })
   })))
