@@ -14,6 +14,8 @@ describe("IndexedDbTable", () => {
       keyPath: "id",
     }) {}
 
+    console.log(Table);
+
     assert.equal(Table.tableName, "todo");
     assert.equal(Table.autoIncrement, false);
     assert.deepStrictEqual(Table.tableSchema.fields.id, Schema.Number);

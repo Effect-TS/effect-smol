@@ -1,41 +1,57 @@
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Data from "effect/Data";
 import * as Effect from "effect/Effect";
-import { SingleShotGen } from "effect/Utils";
-
-const YieldableProto = {
-  [Symbol.iterator]() {
-    return new SingleShotGen(this);
-  },
-};
 import * as Fiber from "effect/Fiber";
+import { format } from "effect/Formatter";
+import type { Inspectable } from "effect/Inspectable";
+import { NodeInspectSymbol } from "effect/Inspectable";
 import * as Layer from "effect/Layer";
 import { type Pipeable, pipeArguments } from "effect/Pipeable";
 import { MixedScheduler } from "effect/Scheduler";
 import * as ServiceMap from "effect/ServiceMap";
+import * as Utils from "effect/Utils";
 import * as IndexedDb from "./IndexedDb.js";
 import * as IndexedDbQueryBuilder from "./IndexedDbQueryBuilder.js";
 import type * as IndexedDbTable from "./IndexedDbTable.js";
 import type * as IndexedDbVersion from "./IndexedDbVersion.js";
 
-/**
- * @since 1.0.0
- * @category type ids
- */
-export const ErrorTypeId: unique symbol = Symbol.for(
-  "@effect/platform-browser/IndexedDbDatabase/Error",
-);
+const TypeId = "~effect/platform-browser/IndexedDbDatabase";
+const ErrorTypeId =
+  "~effect/platform-browser/IndexedDbDatabase/IndexedDbDatabaseError";
+
+const YieldableProto = {
+  [Symbol.iterator]() {
+    return new Utils.SingleShotGen(this) as any;
+  },
+};
+
+const PipeInspectableProto = {
+  pipe() {
+    return pipeArguments(this, arguments);
+  },
+  toJSON(this: any) {
+    return { ...this };
+  },
+  toString() {
+    return format(this, { ignoreToString: true });
+  },
+  [NodeInspectSymbol]() {
+    return this.toJSON();
+  },
+};
+
+const CommonProto = {
+  [TypeId]: {
+    _A: (_: never) => _,
+  },
+  ...PipeInspectableProto,
+  ...YieldableProto,
+};
 
 /**
- * @since 1.0.0
- * @category type ids
- */
-export type ErrorTypeId = typeof ErrorTypeId;
-
-/**
- * @since 1.0.0
+ * @since 4.0.0
  * @category errors
  */
 export type ErrorReason =
@@ -48,7 +64,7 @@ export type ErrorReason =
   | "MissingIndex";
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category errors
  */
 export class IndexedDbDatabaseError extends Data.TaggedError(
@@ -58,13 +74,13 @@ export class IndexedDbDatabaseError extends Data.TaggedError(
   cause: unknown;
 }> {
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    */
-  readonly [ErrorTypeId]: ErrorTypeId = ErrorTypeId;
+  readonly [ErrorTypeId]: typeof ErrorTypeId = ErrorTypeId;
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export class IndexedDbDatabase extends ServiceMap.Service<
@@ -73,10 +89,10 @@ export class IndexedDbDatabase extends ServiceMap.Service<
     readonly database: globalThis.IDBDatabase;
     readonly IDBKeyRange: typeof globalThis.IDBKeyRange;
   }
->()("@effect/platform-browser/IndexedDbDatabase") {}
+>()(TypeId) {}
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export interface IndexedDbSchema<
@@ -86,7 +102,8 @@ export interface IndexedDbSchema<
 >
   extends
     Pipeable,
-    Effect.Effect<
+    Inspectable,
+    Effect.Yieldable<
       IndexedDbQueryBuilder.IndexedDbQueryBuilder<ToVersion>,
       never,
       IndexedDbDatabase
@@ -130,7 +147,7 @@ export interface IndexedDbSchema<
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export interface Transaction<
@@ -170,7 +187,7 @@ export interface Transaction<
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export type IndexFromTable<Table extends IndexedDbTable.AnyWithProps> =
@@ -181,7 +198,7 @@ export type IndexFromTable<Table extends IndexedDbTable.AnyWithProps> =
     : never;
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export type IndexFromTableName<
@@ -192,7 +209,7 @@ export type IndexFromTableName<
 >;
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export interface Any {
@@ -207,7 +224,7 @@ export interface Any {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export type AnySchema = IndexedDbSchema<
@@ -217,7 +234,7 @@ export type AnySchema = IndexedDbSchema<
 >;
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category constructors
  */
 export const make = <
@@ -226,49 +243,49 @@ export const make = <
 >(
   initialVersion: InitialVersion,
   init: (toQuery: Transaction<InitialVersion>) => Effect.Effect<void, Error>,
-): IndexedDbSchema<never, InitialVersion, Error> => {
-  function IndexedDbDatabaseImpl() {}
-  Object.assign(IndexedDbDatabaseImpl, YieldableProto);
-  IndexedDbDatabaseImpl.pipe = function () {
-    return pipeArguments(this, arguments);
-  };
-  IndexedDbDatabaseImpl.version = initialVersion;
-  IndexedDbDatabaseImpl.migrate = init;
-  IndexedDbDatabaseImpl._tag = "Initial";
+): IndexedDbSchema<never, InitialVersion, Error> =>
+  (function () {
+    // oxlint-disable-next-line typescript/no-extraneous-class
+    class Initial {}
+    Object.assign(Initial, CommonProto);
+    (Initial as any).version = initialVersion;
+    (Initial as any).migrate = init;
+    (Initial as any)._tag = "Initial";
 
-  IndexedDbDatabaseImpl.add = <Version extends IndexedDbVersion.AnyWithProps>(
-    version: Version,
-    migrate: (
-      fromQuery: Transaction<InitialVersion>,
-      toQuery: Transaction<Version>,
-    ) => Effect.Effect<void, Error>,
-  ) =>
-    makeProto({
-      fromVersion: initialVersion,
-      version,
-      migrate,
-      previous: IndexedDbDatabaseImpl as any,
+    (Initial as any).add = <Version extends IndexedDbVersion.AnyWithProps>(
+      version: Version,
+      migrate: (
+        fromQuery: Transaction<InitialVersion>,
+        toQuery: Transaction<Version>,
+      ) => Effect.Effect<void, Error>,
+    ) =>
+      makeProto({
+        fromVersion: initialVersion,
+        version,
+        migrate,
+        previous: Initial as any,
+      });
+
+    (Initial as any).getQueryBuilder = Effect.gen(function* () {
+      const { IDBKeyRange, database } = yield* IndexedDbDatabase;
+      return IndexedDbQueryBuilder.make({
+        database,
+        IDBKeyRange,
+        tables: initialVersion.tables,
+        transaction: undefined,
+      });
     });
 
-  IndexedDbDatabaseImpl.getQueryBuilder = Effect.gen(function* () {
-    const { IDBKeyRange, database } = yield* IndexedDbDatabase;
-    return IndexedDbQueryBuilder.make({
-      database,
-      IDBKeyRange,
-      tables: initialVersion.tables,
-      transaction: undefined,
-    });
-  });
-  IndexedDbDatabaseImpl.asEffect = function () {
-    return this.getQueryBuilder;
-  };
+    (Initial as any).asEffect = function () {
+      return this.getQueryBuilder;
+    };
 
-  IndexedDbDatabaseImpl.layer = <DatabaseName extends string>(
-    databaseName: DatabaseName,
-  ) => layer(databaseName, IndexedDbDatabaseImpl as any);
+    (Initial as any).layer = <DatabaseName extends string>(
+      databaseName: DatabaseName,
+    ) => layer(databaseName, Initial as any);
 
-  return IndexedDbDatabaseImpl as any;
-};
+    return Initial as any;
+  })();
 
 const makeProto = <
   FromVersion extends IndexedDbVersion.AnyWithProps,
@@ -284,35 +301,36 @@ const makeProto = <
     fromQuery: Transaction<FromVersion>,
     toQuery: Transaction<ToVersion>,
   ) => Effect.Effect<void, Error>;
-}): IndexedDbSchema<FromVersion, ToVersion, Error> => {
-  function IndexedDbDatabaseImpl() {}
-  Object.assign(IndexedDbDatabaseImpl, YieldableProto);
-  IndexedDbDatabaseImpl.pipe = options.previous.pipe;
-  IndexedDbDatabaseImpl.previous = options.previous;
-  IndexedDbDatabaseImpl.fromVersion = options.fromVersion;
-  IndexedDbDatabaseImpl.version = options.version;
-  IndexedDbDatabaseImpl.migrate = options.migrate;
-  IndexedDbDatabaseImpl._tag = "Migration";
+}): IndexedDbSchema<FromVersion, ToVersion, Error> =>
+  (function () {
+    // oxlint-disable-next-line typescript/no-extraneous-class
+    class Migration {}
+    Object.assign(Migration, CommonProto);
+    (Migration as any).previous = options.previous;
+    (Migration as any).fromVersion = options.fromVersion;
+    (Migration as any).version = options.version;
+    (Migration as any).migrate = options.migrate;
+    (Migration as any)._tag = "Migration";
 
-  IndexedDbDatabaseImpl.getQueryBuilder = Effect.gen(function* () {
-    const { IDBKeyRange, database } = yield* IndexedDbDatabase;
-    return IndexedDbQueryBuilder.make({
-      database,
-      IDBKeyRange,
-      tables: options.version.tables,
-      transaction: undefined,
+    (Migration as any).getQueryBuilder = Effect.gen(function* () {
+      const { IDBKeyRange, database } = yield* IndexedDbDatabase;
+      return IndexedDbQueryBuilder.make({
+        database,
+        IDBKeyRange,
+        tables: options.version.tables,
+        transaction: undefined,
+      });
     });
-  });
-  IndexedDbDatabaseImpl.asEffect = function () {
-    return this.getQueryBuilder;
-  };
+    (Migration as any).asEffect = function () {
+      return this.getQueryBuilder;
+    };
 
-  IndexedDbDatabaseImpl.layer = <DatabaseName extends string>(
-    databaseName: DatabaseName,
-  ) => layer(databaseName, IndexedDbDatabaseImpl as any);
+    (Migration as any).layer = <DatabaseName extends string>(
+      databaseName: DatabaseName,
+    ) => layer(databaseName, Migration as any);
 
-  return IndexedDbDatabaseImpl as any;
-};
+    return Migration as any;
+  })();
 
 const layer = <DatabaseName extends string>(
   databaseName: DatabaseName,
@@ -495,16 +513,15 @@ const makeTransactionProto = <Source extends IndexedDbVersion.AnyWithProps>({
   readonly tables: ReadonlyMap<string, IndexedDbVersion.Tables<Source>>;
   readonly transaction: globalThis.IDBTransaction;
 }): Transaction<Source> => {
-  const IndexedDbMigration = IndexedDbQueryBuilder.make({
+  const migration = IndexedDbQueryBuilder.make({
     database,
     IDBKeyRange,
     tables,
     transaction,
   }) as any;
-  IndexedDbMigration.transaction = transaction;
-  IndexedDbMigration.createObjectStore = Effect.fnUntraced(function* (
-    table: string,
-  ) {
+
+  migration.transaction = transaction;
+  migration.createObjectStore = Effect.fnUntraced(function* (table: string) {
     const createTable = yield* Effect.fromNullishOr(tables.get(table)).pipe(
       Effect.mapError(
         (cause) =>
@@ -529,9 +546,7 @@ const makeTransactionProto = <Source extends IndexedDbVersion.AnyWithProps>({
     });
   });
 
-  IndexedDbMigration.deleteObjectStore = Effect.fnUntraced(function* (
-    table: string,
-  ) {
+  migration.deleteObjectStore = Effect.fnUntraced(function* (table: string) {
     const createTable = yield* Effect.fromNullishOr(tables.get(table)).pipe(
       Effect.mapError(
         (cause) =>
@@ -552,7 +567,7 @@ const makeTransactionProto = <Source extends IndexedDbVersion.AnyWithProps>({
     });
   });
 
-  IndexedDbMigration.createIndex = Effect.fnUntraced(function* (
+  migration.createIndex = Effect.fnUntraced(function* (
     table: string,
     indexName: string,
     options?: IDBIndexParameters,
@@ -582,7 +597,7 @@ const makeTransactionProto = <Source extends IndexedDbVersion.AnyWithProps>({
     });
   });
 
-  IndexedDbMigration.deleteIndex = (table: string, indexName: string) =>
+  migration.deleteIndex = (table: string, indexName: string) =>
     Effect.try({
       try: () => transaction.objectStore(table).deleteIndex(indexName),
       catch: (cause) =>
@@ -592,5 +607,5 @@ const makeTransactionProto = <Source extends IndexedDbVersion.AnyWithProps>({
         }),
     });
 
-  return IndexedDbMigration as any;
+  return migration;
 };

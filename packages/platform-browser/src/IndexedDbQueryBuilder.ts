@@ -1,113 +1,57 @@
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type { NonEmptyReadonlyArray } from "effect/Array";
 import * as Data from "effect/Data";
 import * as Effect from "effect/Effect";
-import { SingleShotGen } from "effect/Utils";
-
-const YieldableProto = {
-  [Symbol.iterator]() {
-    return new SingleShotGen(this);
-  },
-};
+import { format } from "effect/Formatter";
+import type { Inspectable } from "effect/Inspectable";
+import { NodeInspectSymbol } from "effect/Inspectable";
+import type { Pipeable } from "effect/Pipeable";
+import { pipeArguments } from "effect/Pipeable";
 import * as Schema from "effect/Schema";
 import * as Struct from "effect/Struct";
+import * as Utils from "effect/Utils";
 import * as IndexedDb from "./IndexedDb.js";
 import type * as IndexedDbDatabase from "./IndexedDbDatabase.js";
 import type * as IndexedDbTable from "./IndexedDbTable.js";
 import type * as IndexedDbVersion from "./IndexedDbVersion.js";
 
-/**
- * @since 1.0.0
- * @category constructors
- */
-export const make = <Source extends IndexedDbVersion.AnyWithProps>({
-  IDBKeyRange,
-  database,
-  tables,
-  transaction,
-}: {
-  readonly database: globalThis.IDBDatabase;
-  readonly IDBKeyRange: typeof globalThis.IDBKeyRange;
-  readonly tables: ReadonlyMap<string, IndexedDbVersion.Tables<Source>>;
-  readonly transaction: globalThis.IDBTransaction | undefined;
-}): IndexedDbQueryBuilder<Source> => {
-  const self: any = {
-    tables,
-    database,
-    IDBKeyRange,
-  };
+const TypeId = "~effect/platform-browser/IndexedDbQueryBuilder";
+const ErrorTypeId =
+  "~effect/platform-browser/IndexedDbQueryBuilder/IndexedDbQueryError";
 
-  self.use = <A>(f: (database: globalThis.IDBDatabase) => Promise<A>) =>
-    Effect.tryPromise({
-      try: () => f(database),
-      catch: (error) =>
-        new IndexedDbQueryError({
-          reason: "UnknownError",
-          cause: error,
-        }),
-    });
+const YieldableProto = {
+  [Symbol.iterator]() {
+    return new Utils.SingleShotGen(this) as any;
+  },
+};
 
-  self.from = <
-    A extends IndexedDbTable.TableName<IndexedDbVersion.Tables<Source>>,
-  >(
-    table: A,
-  ) =>
-    fromMakeProto({
-      database,
-      IDBKeyRange,
-      table: tables.get(table)!,
-      transaction,
-    });
+const PipeInspectableProto = {
+  pipe() {
+    return pipeArguments(this, arguments);
+  },
+  toJSON(this: any) {
+    return { ...this };
+  },
+  toString() {
+    return format(this, { ignoreToString: true });
+  },
+  [NodeInspectSymbol]() {
+    return this.toJSON();
+  },
+};
 
-  self.clearAll = applyClearAll({ database, transaction });
-
-  self.transaction = Effect.fnUntraced(function* <E, R>(
-    transactionTables: Array<
-      IndexedDbTable.TableName<IndexedDbVersion.Tables<Source>>
-    >,
-    mode: globalThis.IDBTransactionMode,
-    callback: (api: {
-      readonly from: <
-        Name extends IndexedDbTable.TableName<IndexedDbVersion.Tables<Source>>,
-      >(
-        table: Name,
-      ) => IndexedDbQuery.From<IndexedDbVersion.TableWithName<Source, Name>>;
-    }) => Effect.Effect<void, E, R>,
-    options?: globalThis.IDBTransactionOptions,
-  ) {
-    const transaction = database.transaction(transactionTables, mode, options);
-    return yield* callback({
-      from: (table) =>
-        fromMakeProto({
-          database,
-          IDBKeyRange,
-          table: tables.get(table) as any,
-          transaction,
-        }),
-    });
-  });
-
-  return self;
+const CommonProto = {
+  [TypeId]: {
+    _A: (_: never) => _,
+  },
+  ...PipeInspectableProto,
+  ...YieldableProto,
 };
 
 /**
- * @since 1.0.0
- * @category type ids
- */
-export const ErrorTypeId: unique symbol = Symbol.for(
-  "@effect/platform-browser/IndexedDbQueryBuilder/Error",
-);
-
-/**
- * @since 1.0.0
- * @category type ids
- */
-export type ErrorTypeId = typeof ErrorTypeId;
-
-/**
- * @since 1.0.0
+ * @since 4.0.0
  * @category errors
  */
 export type ErrorReason =
@@ -118,7 +62,7 @@ export type ErrorReason =
   | "TransactionError";
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category errors
  */
 export class IndexedDbQueryError extends Data.TaggedError(
@@ -128,18 +72,26 @@ export class IndexedDbQueryError extends Data.TaggedError(
   cause: unknown;
 }> {
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    */
-  readonly [ErrorTypeId]: ErrorTypeId = ErrorTypeId;
+  readonly [ErrorTypeId]: typeof ErrorTypeId = ErrorTypeId;
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export interface IndexedDbQueryBuilder<
   Source extends IndexedDbVersion.AnyWithProps,
-> {
+>
+  extends
+    Pipeable,
+    Inspectable,
+    Effect.Yieldable<
+      IndexedDbQueryBuilder<Source>,
+      never,
+      IndexedDbQueryError
+    > {
   readonly tables: ReadonlyMap<string, IndexedDbVersion.Tables<Source>>;
   readonly database: globalThis.IDBDatabase;
 
@@ -182,7 +134,7 @@ export interface IndexedDbQueryBuilder<
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export type KeyPath<TableSchema extends IndexedDbTable.AnySchemaStruct> =
@@ -190,7 +142,7 @@ export type KeyPath<TableSchema extends IndexedDbTable.AnySchemaStruct> =
   | NonEmptyReadonlyArray<IndexedDbValidKeys<TableSchema>>;
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export type KeyPathNumber<TableSchema extends IndexedDbTable.AnySchemaStruct> =
@@ -198,12 +150,12 @@ export type KeyPathNumber<TableSchema extends IndexedDbTable.AnySchemaStruct> =
   | NonEmptyReadonlyArray<IndexedDbValidNumberKeys<TableSchema>>;
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export declare namespace IndexedDbQuery {
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category models
    */
   export type SourceTableSelectSchemaType<
@@ -216,7 +168,7 @@ export declare namespace IndexedDbQuery {
       : {});
 
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category models
    */
   export type SourceTableModifySchemaType<
@@ -246,7 +198,7 @@ export declare namespace IndexedDbQuery {
       : {});
 
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category models
    */
   export type ExtractIndexType<
@@ -261,14 +213,14 @@ export declare namespace IndexedDbQuery {
       >[IndexedDbTable.Indexes<Table>[Index]];
 
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category models
    */
   export type ModifyWithKey<Table extends IndexedDbTable.AnyWithProps> =
     SourceTableModifySchemaType<Table>;
 
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category models
    */
   export interface From<Table extends IndexedDbTable.AnyWithProps> {
@@ -311,23 +263,23 @@ export declare namespace IndexedDbQuery {
   }
 
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category models
    */
   export interface Clear<
     Table extends IndexedDbTable.AnyWithProps,
-  > extends Effect.Effect<void, IndexedDbQueryError> {
+  > extends Effect.YieldableClass<void, IndexedDbQueryError> {
     readonly from: From<Table>;
   }
 
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category models
    */
   export interface Count<
     Table extends IndexedDbTable.AnyWithProps,
     Index extends IndexedDbDatabase.IndexFromTable<Table>,
-  > extends Effect.Effect<number, IndexedDbQueryError> {
+  > extends Effect.YieldableClass<number, IndexedDbQueryError> {
     readonly from: From<Table>;
     readonly index?: Index;
     readonly only?: ExtractIndexType<Table, Index>;
@@ -382,7 +334,7 @@ export declare namespace IndexedDbQuery {
   }
 
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category models
    */
   export interface DeletePartial<
@@ -445,13 +397,13 @@ export declare namespace IndexedDbQuery {
   }
 
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category models
    */
   export interface Delete<
     Table extends IndexedDbTable.AnyWithProps,
     Index extends IndexedDbDatabase.IndexFromTable<Table>,
-  > extends Effect.Effect<void, IndexedDbQueryError> {
+  > extends Effect.YieldableClass<void, IndexedDbQueryError> {
     readonly delete: DeletePartial<Table, Index>;
     readonly index?: Index;
     readonly limitValue?: number;
@@ -514,13 +466,13 @@ export declare namespace IndexedDbQuery {
   }
 
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category models
    */
   export interface Select<
     Table extends IndexedDbTable.AnyWithProps,
     Index extends IndexedDbDatabase.IndexFromTable<Table>,
-  > extends Effect.Effect<
+  > extends Effect.YieldableClass<
     Array<SourceTableSelectSchemaType<Table>>,
     IndexedDbQueryError,
     IndexedDbTable.Context<Table>
@@ -589,13 +541,13 @@ export declare namespace IndexedDbQuery {
   }
 
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category models
    */
   export interface First<
     Table extends IndexedDbTable.AnyWithProps,
     Index extends IndexedDbDatabase.IndexFromTable<Table>,
-  > extends Effect.Effect<
+  > extends Effect.YieldableClass<
     SourceTableSelectSchemaType<Table>,
     IndexedDbQueryError,
     IndexedDbTable.Context<Table>
@@ -604,7 +556,7 @@ export declare namespace IndexedDbQuery {
   }
 
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category models
    */
   export interface Modify<
@@ -620,12 +572,12 @@ export declare namespace IndexedDbQuery {
   }
 
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category models
    */
   export interface ModifyAll<
     Table extends IndexedDbTable.AnyWithProps,
-  > extends Effect.Effect<
+  > extends Effect.YieldableClass<
     Array<globalThis.IDBValidKey>,
     IndexedDbQueryError,
     IndexedDbTable.Context<Table>
@@ -1220,7 +1172,7 @@ const fromMakeProto = <
   readonly IDBKeyRange: typeof globalThis.IDBKeyRange;
   readonly transaction: globalThis.IDBTransaction | undefined;
 }): IndexedDbQuery.From<Table> => {
-  const self = Object.create(YieldableProto);
+  const self = Object.create(CommonProto);
   self.table = options.table;
   self.database = options.database;
   self.IDBKeyRange = options.IDBKeyRange;
@@ -1280,7 +1232,7 @@ const deletePartialMakeProto = <
   readonly from: IndexedDbQuery.From<Table>;
   readonly index: Index | undefined;
 }): IndexedDbQuery.DeletePartial<Table, Index> => {
-  const self: any = {};
+  const self = Object.create(CommonProto);
 
   const limit = (limit: number): IndexedDbQuery.Delete<Table, Index> =>
     deleteMakeProto({ delete: self as any, limitValue: limit });
@@ -1358,12 +1310,16 @@ const deleteMakeProto = <
   readonly delete: IndexedDbQuery.DeletePartial<Table, Index>;
   readonly limitValue?: number | undefined;
   readonly only?: IndexedDbQuery.ExtractIndexType<Table, Index> | undefined;
-  readonly lowerBound?: IndexedDbQuery.ExtractIndexType<Table, Index> | undefined;
-  readonly upperBound?: IndexedDbQuery.ExtractIndexType<Table, Index> | undefined;
+  readonly lowerBound?:
+    | IndexedDbQuery.ExtractIndexType<Table, Index>
+    | undefined;
+  readonly upperBound?:
+    | IndexedDbQuery.ExtractIndexType<Table, Index>
+    | undefined;
   readonly excludeLowerBound?: boolean | undefined;
   readonly excludeUpperBound?: boolean | undefined;
 }): IndexedDbQuery.Delete<Table, Index> => {
-  const self = Object.create(YieldableProto);
+  const self = Object.create(CommonProto);
 
   const limit = (limit: number): IndexedDbQuery.Delete<Table, Index> =>
     deleteMakeProto({
@@ -1467,12 +1423,16 @@ const countMakeProto = <
   readonly index: Index | undefined;
   readonly limitValue?: number | undefined;
   readonly only?: IndexedDbQuery.ExtractIndexType<Table, Index> | undefined;
-  readonly lowerBound?: IndexedDbQuery.ExtractIndexType<Table, Index> | undefined;
-  readonly upperBound?: IndexedDbQuery.ExtractIndexType<Table, Index> | undefined;
+  readonly lowerBound?:
+    | IndexedDbQuery.ExtractIndexType<Table, Index>
+    | undefined;
+  readonly upperBound?:
+    | IndexedDbQuery.ExtractIndexType<Table, Index>
+    | undefined;
   readonly excludeLowerBound?: boolean | undefined;
   readonly excludeUpperBound?: boolean | undefined;
 }): IndexedDbQuery.Count<Table, Index> => {
-  const self = Object.create(YieldableProto);
+  const self = Object.create(CommonProto);
 
   const limit = (limit: number): IndexedDbQuery.Count<Table, Index> =>
     countMakeProto({
@@ -1584,12 +1544,16 @@ const selectMakeProto = <
   readonly index: Index | undefined;
   readonly limitValue?: number | undefined;
   readonly only?: IndexedDbQuery.ExtractIndexType<Table, Index> | undefined;
-  readonly lowerBound?: IndexedDbQuery.ExtractIndexType<Table, Index> | undefined;
-  readonly upperBound?: IndexedDbQuery.ExtractIndexType<Table, Index> | undefined;
+  readonly lowerBound?:
+    | IndexedDbQuery.ExtractIndexType<Table, Index>
+    | undefined;
+  readonly upperBound?:
+    | IndexedDbQuery.ExtractIndexType<Table, Index>
+    | undefined;
   readonly excludeLowerBound?: boolean | undefined;
   readonly excludeUpperBound?: boolean | undefined;
 }): IndexedDbQuery.Select<Table, Index> => {
-  const self = Object.create(YieldableProto);
+  const self = Object.create(CommonProto);
 
   const limit = (limit: number): IndexedDbQuery.Select<Table, Index> =>
     selectMakeProto({
@@ -1703,7 +1667,7 @@ const firstMakeProto = <
 >(options: {
   readonly select: IndexedDbQuery.Select<Table, Index>;
 }): IndexedDbQuery.First<Table, Index> => {
-  const self = Object.create(YieldableProto);
+  const self = Object.create(CommonProto);
   self.asEffect = function (this: IndexedDbQuery.First<any, never>) {
     return getFirst(this);
   };
@@ -1716,10 +1680,9 @@ const modifyMakeProto = <Table extends IndexedDbTable.AnyWithProps>(options: {
   readonly value: IndexedDbTable.TableSchema<Table>["Type"];
   readonly operation: "add" | "put";
 }): IndexedDbQuery.Modify<Table> => {
-  const self = Object.create(YieldableProto);
-  self.asEffect = function (this: IndexedDbQuery.Modify<any>) {
-    return applyModify({ query: this, value: options.value });
-  };
+  const self: any = Effect.suspend(() =>
+    applyModify({ query: self, value: options.value }),
+  );
   self.from = options.from;
   self.value = options.value;
   self.operation = options.operation;
@@ -1733,7 +1696,7 @@ const modifyAllMakeProto = <
   readonly values: Array<IndexedDbTable.TableSchema<Table>["Type"]>;
   readonly operation: "add" | "put";
 }): IndexedDbQuery.Modify<Table> => {
-  const self = Object.create(YieldableProto);
+  const self = Object.create(CommonProto);
   self.asEffect = function (this: IndexedDbQuery.ModifyAll<any>) {
     return applyModifyAll({ query: this, values: options.values });
   };
@@ -1741,4 +1704,78 @@ const modifyAllMakeProto = <
   self.values = options.values;
   self.operation = options.operation;
   return self as any;
+};
+
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const make = <Source extends IndexedDbVersion.AnyWithProps>({
+  IDBKeyRange,
+  database,
+  tables,
+  transaction,
+}: {
+  readonly database: globalThis.IDBDatabase;
+  readonly IDBKeyRange: typeof globalThis.IDBKeyRange;
+  readonly tables: ReadonlyMap<string, IndexedDbVersion.Tables<Source>>;
+  readonly transaction: globalThis.IDBTransaction | undefined;
+}): IndexedDbQueryBuilder<Source> => {
+  const self: any = {
+    tables,
+    database,
+    IDBKeyRange,
+  };
+
+  self.use = <A>(f: (database: globalThis.IDBDatabase) => Promise<A>) =>
+    Effect.tryPromise({
+      try: () => f(database),
+      catch: (error) =>
+        new IndexedDbQueryError({
+          reason: "UnknownError",
+          cause: error,
+        }),
+    });
+
+  self.from = <
+    A extends IndexedDbTable.TableName<IndexedDbVersion.Tables<Source>>,
+  >(
+    table: A,
+  ) =>
+    fromMakeProto({
+      database,
+      IDBKeyRange,
+      table: tables.get(table)!,
+      transaction,
+    });
+
+  self.clearAll = applyClearAll({ database, transaction });
+
+  self.transaction = Effect.fnUntraced(function* <E, R>(
+    transactionTables: Array<
+      IndexedDbTable.TableName<IndexedDbVersion.Tables<Source>>
+    >,
+    mode: globalThis.IDBTransactionMode,
+    callback: (api: {
+      readonly from: <
+        Name extends IndexedDbTable.TableName<IndexedDbVersion.Tables<Source>>,
+      >(
+        table: Name,
+      ) => IndexedDbQuery.From<IndexedDbVersion.TableWithName<Source, Name>>;
+    }) => Effect.Effect<void, E, R>,
+    options?: globalThis.IDBTransactionOptions,
+  ) {
+    const transaction = database.transaction(transactionTables, mode, options);
+    return yield* callback({
+      from: (table) =>
+        fromMakeProto({
+          database,
+          IDBKeyRange,
+          table: tables.get(table) as any,
+          transaction,
+        }),
+    });
+  });
+
+  return self;
 };

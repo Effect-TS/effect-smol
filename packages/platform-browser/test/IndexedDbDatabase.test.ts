@@ -112,7 +112,6 @@ describe.sequential("IndexedDbDatabase", () => {
 
     return Effect.gen(function* () {
       const api = yield* Migration.getQueryBuilder;
-
       yield* api.transaction(["todo"], "readwrite", (api) =>
         api
           .from("todo")
@@ -121,7 +120,6 @@ describe.sequential("IndexedDbDatabase", () => {
       );
 
       const todo = yield* api.from("todo").select();
-
       assert.deepStrictEqual(todo, [
         { id: 1, title: "test", completed: false },
         {

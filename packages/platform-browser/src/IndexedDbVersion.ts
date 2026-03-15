@@ -1,60 +1,48 @@
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type { NonEmptyReadonlyArray } from "effect/Array";
 import type { Pipeable } from "effect/Pipeable";
 import { pipeArguments } from "effect/Pipeable";
 import type * as IndexedDbTable from "./IndexedDbTable.js";
 
-/**
- * @since 1.0.0
- * @category type ids
- */
-export const TypeId: unique symbol = Symbol.for(
-  "@effect/platform-browser/IndexedDbVersion",
-);
+const TypeId = "~effect/platform-browser/IndexedDbVersion";
 
 /**
- * @since 1.0.0
- * @category type ids
- */
-export type TypeId = typeof TypeId;
-
-/**
- * @since 1.0.0
+ * @since 4.0.0
  * @category interface
  */
 export interface IndexedDbVersion<
   out Tables extends IndexedDbTable.AnyWithProps,
 > extends Pipeable {
   new (_: never): {};
-  readonly [TypeId]: TypeId;
+  readonly [TypeId]: typeof TypeId;
   readonly tables: ReadonlyMap<string, Tables>;
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export interface Any {
-  readonly [TypeId]: TypeId;
+  readonly [TypeId]: typeof TypeId;
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export type AnyWithProps = IndexedDbVersion<IndexedDbTable.AnyWithProps>;
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export type Tables<Db extends Any> =
   Db extends IndexedDbVersion<infer _Tables> ? _Tables : never;
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export type TableWithName<
@@ -63,7 +51,7 @@ export type TableWithName<
 > = IndexedDbTable.WithName<Tables<Db>, TableName>;
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export type SchemaWithName<
@@ -81,14 +69,15 @@ const Proto = {
 const makeProto = <Tables extends IndexedDbTable.AnyWithProps>(options: {
   readonly tables: ReadonlyMap<string, Tables>;
 }): IndexedDbVersion<Tables> => {
-  function IndexedDbVersion() {}
-  Object.setPrototypeOf(IndexedDbVersion, Proto);
-  IndexedDbVersion.tables = options.tables;
-  return IndexedDbVersion as any;
+  // oxlint-disable-next-line typescript/no-extraneous-class
+  class Version {}
+  Object.assign(Version, Proto);
+  (Version as any).tables = options.tables;
+  return Version as any;
 };
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category constructors
  */
 export const make = <
