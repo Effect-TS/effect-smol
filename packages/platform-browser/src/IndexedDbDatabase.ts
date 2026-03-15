@@ -103,7 +103,7 @@ export interface IndexedDbSchema<
   extends
     Pipeable,
     Inspectable,
-    Effect.Yieldable<
+    Effect.YieldableClass<
       IndexedDbQueryBuilder.IndexedDbQueryBuilder<ToVersion>,
       never,
       IndexedDbDatabase

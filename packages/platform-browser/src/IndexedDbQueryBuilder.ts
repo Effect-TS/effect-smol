@@ -909,8 +909,13 @@ const applyModify = Effect.fnUntraced(function* ({
 
   const encodedValue = yield* Schema.encodeUnknownEffect(
     autoIncrement && value[keyPath] === undefined
-      ? schema.omit(keyPath)
-      : schema,
+      ? schema.mapFields(
+          Struct.omit([
+            // @ts-expect-error - keyPath is a string
+            keyPath,
+          ]),
+        )
+      : Schema.Struct(schema.fields),
   )(value).pipe(
     Effect.mapError(
       (error) =>
@@ -977,8 +982,13 @@ const applyModifyAll = Effect.fnUntraced(function* ({
     values.map((value) =>
       Schema.encodeUnknownEffect(
         autoIncrement && value[keyPath] === undefined
-          ? schema.omit(keyPath)
-          : schema,
+          ? schema.mapFields(
+              Struct.omit([
+                // @ts-expect-error - keyPath is a string
+                keyPath,
+              ]),
+            )
+          : Schema.Struct(schema.fields),
       )(value).pipe(
         Effect.mapError(
           (error) =>
@@ -1108,7 +1118,7 @@ const applyClearAll = (options: {
     const tables = database.objectStoreNames;
 
     const transaction =
-      options.transaction ?? database.transaction(tables, "readwrite");
+      options.transaction ?? database.transaction([...tables], "readwrite");
 
     for (let t = 0; t < tables.length; t++) {
       const objectStore = transaction.objectStore(tables[t]);
