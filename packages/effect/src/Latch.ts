@@ -36,7 +36,7 @@ export interface Latch {
   /** close the latch */
   closeUnsafe(this: Latch): boolean
   /** only run the given effect when the latch is open */
-  whenOpen<A, E, R>(this: Latch, self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R>
+  whenOpen<A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R>
 }
 
 /**

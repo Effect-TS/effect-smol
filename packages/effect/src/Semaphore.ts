@@ -166,7 +166,7 @@ class SemaphoreImpl implements Semaphore {
     return take
   }
 
-  updateTakenUnsafe(fiber: Fiber<any, any>, f: (n: number) => number): Effect.Effect<number> {
+  updateTakenUnsafe(fiber: Fiber<any, any>, f: (n: number) => number): number {
     this.taken = f(this.taken)
     if (this.waiters.size > 0) {
       fiber.currentDispatcher.scheduleTask(() => {
@@ -178,21 +178,20 @@ class SemaphoreImpl implements Semaphore {
         }
       }, 0)
     }
-    return internal.succeed(this.free)
+    return this.free
   }
 
   updateTaken(f: (n: number) => number): Effect.Effect<number> {
-    return core.withFiber((fiber) => this.updateTakenUnsafe(fiber, f))
+    return core.withFiber((fiber) => internal.succeed(this.updateTakenUnsafe(fiber, f)))
   }
 
   resize(permits: number) {
-    return internal.asVoid(
-      core.withFiber((fiber) => {
-        this.permits = permits
-        if (this.free < 0) return internal.void
-        return this.updateTakenUnsafe(fiber, (taken) => taken)
-      })
-    )
+    return core.withFiber((fiber) => {
+      this.permits = permits
+      if (this.free < 0) return internal.void
+      this.updateTakenUnsafe(fiber, (taken) => taken)
+      return internal.void
+    })
   }
 
   release(n: number): Effect.Effect<number> {
@@ -208,7 +207,15 @@ class SemaphoreImpl implements Semaphore {
       internal.uninterruptibleMask((restore) =>
         internal.flatMap(
           restore(this.take(n)),
-          (permits) => internal.onExitPrimitive(restore(self), () => this.release(permits), true)
+          (permits) =>
+            internal.onExitPrimitive(
+              restore(self),
+              () => {
+                this.updateTakenUnsafe(internal.getCurrentFiber()!, (taken) => taken - permits)
+                return undefined
+              },
+              true
+            )
         )
       )
   }
@@ -222,7 +229,10 @@ class SemaphoreImpl implements Semaphore {
       internal.uninterruptibleMask((restore) => {
         if (this.free < n) return internal.succeedNone
         this.taken += n
-        return internal.onExitPrimitive(restore(internal.asSome(self)), () => this.release(n), true)
+        return internal.onExitPrimitive(restore(internal.asSome(self)), () => {
+          this.updateTakenUnsafe(internal.getCurrentFiber()!, (taken) => taken - n)
+          return undefined
+        }, true)
       })
   }
 }

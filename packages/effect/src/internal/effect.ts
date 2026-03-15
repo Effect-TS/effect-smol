@@ -5202,9 +5202,7 @@ class Latch implements _Latch.Latch {
     return true
   }
   close = sync(() => this.closeUnsafe())
-  whenOpen<A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> {
-    return flatMap(this.await, () => self)
-  }
+  whenOpen = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> => flatMap(this.await, () => self)
 }
 
 /** @internal */
