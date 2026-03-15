@@ -495,6 +495,7 @@ export const fromWebSocket = <RO>(
           )
         }
         function onClose(event: globalThis.CloseEvent) {
+          const code = typeof event.code === "number" ? event.code : 1001
           ws.removeEventListener("message", onMessage)
           ws.removeEventListener("error", onError)
           Deferred.doneUnsafe(
@@ -502,7 +503,7 @@ export const fromWebSocket = <RO>(
             Effect.fail(
               new SocketError({
                 reason: new SocketCloseError({
-                  code: event.code,
+                  code,
                   closeReason: event.reason
                 })
               })

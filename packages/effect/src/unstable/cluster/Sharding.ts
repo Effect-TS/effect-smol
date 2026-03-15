@@ -1279,11 +1279,12 @@ const make = Effect.gen(function*() {
         runnerAddress,
         sharding
       }).pipe(
-        Effect.provideServices(services.pipe(
-          ServiceMap.add(EntityReaper, reaper),
-          ServiceMap.add(Scope.Scope, scope),
-          ServiceMap.add(Snowflake.Generator, snowflakeGen)
-        ))
+        Effect.provideServices(ServiceMap.mutate(services, (services) =>
+          services.pipe(
+            ServiceMap.add(EntityReaper, reaper),
+            ServiceMap.add(Scope.Scope, scope),
+            ServiceMap.add(Snowflake.Generator, snowflakeGen)
+          )))
       ) as Effect.Effect<EntityManager.EntityManager>
       const state: EntityManagerState = {
         entity,

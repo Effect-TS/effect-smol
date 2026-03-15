@@ -1310,6 +1310,88 @@ export const flatMap: {
   ))
 
 /**
+ * Performs the specified effect if this layer succeeds.
+ *
+ * @since 4.0.0
+ * @category sequencing
+ */
+export const tap: {
+  <ROut, XR extends ROut, RIn2, E2, X>(
+    f: (context: ServiceMap.ServiceMap<XR>) => Effect<X, E2, RIn2>
+  ): <RIn, E>(self: Layer<ROut, E, RIn>) => Layer<ROut, E | E2, RIn | Exclude<RIn2, Scope.Scope>>
+  <RIn, E, ROut, XR extends ROut, RIn2, E2, X>(
+    self: Layer<ROut, E, RIn>,
+    f: (context: ServiceMap.ServiceMap<XR>) => Effect<X, E2, RIn2>
+  ): Layer<ROut, E | E2, RIn | Exclude<RIn2, Scope.Scope>>
+} = dual(2, <RIn, E, ROut, XR extends ROut, RIn2, E2, X>(
+  self: Layer<ROut, E, RIn>,
+  f: (context: ServiceMap.ServiceMap<XR>) => Effect<X, E2, RIn2>
+): Layer<ROut, E | E2, RIn | Exclude<RIn2, Scope.Scope>> =>
+  fromBuild((memoMap, scope) =>
+    internalEffect.flatMap(
+      self.build(memoMap, scope),
+      (context) => Scope.provide(internalEffect.as(f(context as ServiceMap.ServiceMap<XR>), context), scope)
+    )
+  ))
+
+/**
+ * Performs the specified effect if this layer fails.
+ *
+ * @since 4.0.0
+ * @category sequencing
+ */
+export const tapError: {
+  <E, XE extends E, RIn2, E2, X>(
+    f: (e: XE) => Effect<X, E2, RIn2>
+  ): <RIn, ROut>(self: Layer<ROut, E, RIn>) => Layer<ROut, E | E2, RIn | Exclude<RIn2, Scope.Scope>>
+  <RIn, E, XE extends E, ROut, RIn2, E2, X>(
+    self: Layer<ROut, E, RIn>,
+    f: (e: XE) => Effect<X, E2, RIn2>
+  ): Layer<ROut, E | E2, RIn | Exclude<RIn2, Scope.Scope>>
+} = dual(2, <RIn, E, XE extends E, ROut, RIn2, E2, X>(
+  self: Layer<ROut, E, RIn>,
+  f: (e: XE) => Effect<X, E2, RIn2>
+): Layer<ROut, E | E2, RIn | Exclude<RIn2, Scope.Scope>> =>
+  fromBuild((memoMap, scope) =>
+    internalEffect.catch_(
+      self.build(memoMap, scope),
+      (error) => Scope.provide(internalEffect.andThen(f(error as XE), internalEffect.fail(error)), scope)
+    )
+  ))
+
+/**
+ * Performs the specified effect if this layer fails.
+ *
+ * **Previously Known As**
+ *
+ * This API replaces the following from Effect 3.x:
+ *
+ * - `Layer.tapErrorCause`
+ *
+ * @since 4.0.0
+ * @category sequencing
+ */
+export const tapCause: {
+  <E, XE extends E, RIn2, E2, X>(
+    f: (cause: Cause.Cause<XE>) => Effect<X, E2, RIn2>
+  ): <RIn, ROut>(self: Layer<ROut, E, RIn>) => Layer<ROut, E | E2, RIn | Exclude<RIn2, Scope.Scope>>
+  <RIn, E, XE extends E, ROut, RIn2, E2, X>(
+    self: Layer<ROut, E, RIn>,
+    f: (cause: Cause.Cause<XE>) => Effect<X, E2, RIn2>
+  ): Layer<ROut, E | E2, RIn | Exclude<RIn2, Scope.Scope>>
+} = dual(2, <RIn, E, XE extends E, ROut, RIn2, E2, X>(
+  self: Layer<ROut, E, RIn>,
+  f: (cause: Cause.Cause<XE>) => Effect<X, E2, RIn2>
+): Layer<ROut, E | E2, RIn | Exclude<RIn2, Scope.Scope>> =>
+  fromBuild((memoMap, scope) =>
+    internalEffect.catchCause(
+      self.build(memoMap, scope),
+      (cause) =>
+        Scope.provide(internalEffect.andThen(f(cause as Cause.Cause<XE>), internalEffect.failCause(cause)), scope)
+    )
+  ))
+
+/**
  * Translates effect failure into death of the fiber, making all failures
  * unchecked and not a part of the type of the layer.
  *

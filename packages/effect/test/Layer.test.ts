@@ -1,5 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Fiber, ServiceMap } from "effect"
+import * as Cause from "effect/Cause"
 import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
@@ -88,6 +89,60 @@ describe("Layer", () => {
       )
       yield* Effect.scoped(env)
       assert.deepStrictEqual(arr, [acquire1, release1, acquire2, release2])
+    }))
+
+  it.effect("tap - executes effect with success services and preserves output", () =>
+    Effect.gen(function*() {
+      const arr: Array<string> = []
+      const env = makeLayer1(arr).pipe(
+        Layer.tap((context) =>
+          Effect.sync(() => {
+            arr.push(`tap:${ServiceMap.get(context, Service1Tag).constructor.name}`)
+          })
+        ),
+        Layer.build
+      )
+      const context = yield* Effect.scoped(env)
+      const service = ServiceMap.get(context, Service1Tag)
+      assert.strictEqual(yield* service.one(), 1)
+      assert.deepStrictEqual(arr, [acquire1, "tap:Service1", release1])
+    }))
+
+  it.effect("tapError - executes effect and preserves original error", () =>
+    Effect.gen(function*() {
+      const arr: Array<string> = []
+      const error = yield* Layer.effectDiscard(Effect.fail("failed!")).pipe(
+        Layer.tapError((e) =>
+          Effect.sync(() => {
+            arr.push(`tapError:${e}`)
+          })
+        ),
+        Layer.build,
+        Effect.scoped,
+        Effect.flip
+      )
+      assert.strictEqual(error, "failed!")
+      assert.deepStrictEqual(arr, ["tapError:failed!"])
+    }))
+
+  it.effect("tapCause - executes effect and preserves original cause", () =>
+    Effect.gen(function*() {
+      const arr: Array<string> = []
+      const exit = yield* Layer.effectDiscard(Effect.die("boom")).pipe(
+        Layer.tapCause((cause) =>
+          Effect.sync(() => {
+            arr.push(`tapCause:${Cause.hasDies(cause)}`)
+          })
+        ),
+        Layer.build,
+        Effect.scoped,
+        Effect.exit
+      )
+      assert.strictEqual(exit._tag, "Failure")
+      if (exit._tag === "Failure") {
+        assert.isTrue(Cause.hasDies(exit.cause))
+      }
+      assert.deepStrictEqual(arr, ["tapCause:true"])
     }))
 
   it.effect("fresh with merge", () =>
