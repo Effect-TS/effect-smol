@@ -5143,108 +5143,6 @@ export const runSyncWith = <R>(services: ServiceMap.ServiceMap<R>) => {
 /** @internal */
 export const runSync: <A, E>(effect: Effect.Effect<A, E>) => A = runSyncWith(ServiceMap.empty())
 
-// ----------------------------------------------------------------------------
-// Semaphore
-// ----------------------------------------------------------------------------
-
-/** @internal */
-class Semaphore {
-  public waiters = new Set<() => void>()
-  public taken = 0
-  public permits: number
-
-  constructor(permits: number) {
-    this.permits = permits
-  }
-
-  get free() {
-    return this.permits - this.taken
-  }
-
-  readonly take = (n: number): Effect.Effect<number> => {
-    const take: Effect.Effect<number> = suspend(() => {
-      if (this.free < n) {
-        return callback((resume) => {
-          if (this.free >= n) return resume(take)
-          const observer = () => {
-            if (this.free < n) return
-            this.waiters.delete(observer)
-            resume(take)
-          }
-          this.waiters.add(observer)
-          return sync(() => {
-            this.waiters.delete(observer)
-          })
-        })
-      }
-      this.taken += n
-      return succeed(n)
-    })
-    return take
-  }
-
-  updateTakenUnsafe(fiber: Fiber.Fiber<any, any>, f: (n: number) => number): Effect.Effect<number> {
-    this.taken = f(this.taken)
-    if (this.waiters.size > 0) {
-      fiber.currentDispatcher.scheduleTask(() => {
-        const iter = this.waiters.values()
-        let item = iter.next()
-        while (item.done === false && this.free > 0) {
-          item.value()
-          item = iter.next()
-        }
-      }, 0)
-    }
-    return succeed(this.free)
-  }
-
-  updateTaken(f: (n: number) => number): Effect.Effect<number> {
-    return withFiber((fiber) => this.updateTakenUnsafe(fiber, f))
-  }
-
-  readonly resize = (permits: number) =>
-    asVoid(
-      withFiber((fiber) => {
-        this.permits = permits
-        if (this.free < 0) {
-          return void_
-        }
-        return this.updateTakenUnsafe(fiber, (taken) => taken)
-      })
-    )
-
-  readonly release = (n: number): Effect.Effect<number> => this.updateTaken((taken) => taken - n)
-
-  readonly releaseAll: Effect.Effect<number> = this.updateTaken((_) => 0)
-
-  readonly withPermits = (n: number) => <A, E, R>(self: Effect.Effect<A, E, R>) =>
-    uninterruptibleMask((restore) =>
-      flatMap(
-        restore(this.take(n)),
-        (permits) => onExitPrimitive(restore(self), () => this.release(permits), true)
-      )
-    )
-
-  readonly withPermit = this.withPermits(1)
-
-  readonly withPermitsIfAvailable = (n: number) => <A, E, R>(self: Effect.Effect<A, E, R>) =>
-    uninterruptibleMask((restore) =>
-      suspend(() => {
-        if (this.free < n) {
-          return succeedNone
-        }
-        this.taken += n
-        return ensuring(restore(asSome(self)), this.release(n))
-      })
-    )
-}
-
-/** @internal */
-export const makeSemaphoreUnsafe = (permits: number): Semaphore => new Semaphore(permits)
-
-/** @internal */
-export const makeSemaphore = (permits: number) => sync(() => makeSemaphoreUnsafe(permits))
-
 const succeedTrue = succeed(true)
 const succeedFalse = succeed(false)
 
@@ -5304,7 +5202,9 @@ class Latch implements _Latch.Latch {
     return true
   }
   close = sync(() => this.closeUnsafe())
-  whenOpen = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> => andThen(this.await, self)
+  whenOpen<A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> {
+    return flatMap(this.await, () => self)
+  }
 }
 
 /** @internal */

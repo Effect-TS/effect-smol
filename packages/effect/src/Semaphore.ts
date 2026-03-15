@@ -2,10 +2,11 @@
  * @since 2.0.0
  */
 import type * as Effect from "./Effect.ts"
+import type { Fiber } from "./Fiber.ts"
 import { dual } from "./Function.ts"
+import * as core from "./internal/core.ts"
 import * as internal from "./internal/effect.ts"
 import type * as Option from "./Option.ts"
-import * as PartitionedSemaphore from "./PartitionedSemaphore.ts"
 
 /**
  * @category models
@@ -28,7 +29,7 @@ export interface Semaphore {
   /**
    * Adjusts the number of permits available in the semaphore.
    */
-  resize(permits: number): Effect.Effect<void>
+  resize(this: Semaphore, permits: number): Effect.Effect<void>
 
   /**
    * Runs an effect with the given number of permits and releases the permits
@@ -41,7 +42,7 @@ export interface Semaphore {
    * If insufficient permits are available, the function will wait until they
    * are released by other tasks.
    */
-  withPermits(permits: number): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
+  withPermits(this: Semaphore, permits: number): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
 
   /**
    * Runs an effect with the given number of permits and releases the permits
@@ -54,7 +55,7 @@ export interface Semaphore {
    * If insufficient permits are available, the function will wait until they
    * are released by other tasks.
    */
-  withPermit<A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R>
+  withPermit<A, E, R>(this: Semaphore, self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R>
 
   /**
    * Runs an effect only if the specified number of permits are immediately
@@ -68,6 +69,7 @@ export interface Semaphore {
    * the result is `Option.none`.
    */
   withPermitsIfAvailable(
+    this: Semaphore,
     permits: number
   ): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<Option.Option<A>, E, R>
 
@@ -76,18 +78,18 @@ export interface Semaphore {
    * available permits, suspending the task if they are not yet available.
    * Concurrent pending `take` calls are processed in a first-in, first-out manner.
    */
-  take(permits: number): Effect.Effect<number>
+  take(this: Semaphore, permits: number): Effect.Effect<number>
 
   /**
    * Releases the specified number of permits and returns the resulting
    * available permits.
    */
-  release(permits: number): Effect.Effect<number>
+  release(this: Semaphore, permits: number): Effect.Effect<number>
 
   /**
    * Releases all permits held by this semaphore and returns the resulting available permits.
    */
-  releaseAll: Effect.Effect<number>
+  readonly releaseAll: Effect.Effect<number>
 }
 
 /**
@@ -127,7 +129,103 @@ export interface Semaphore {
  * @since 2.0.0
  * @category constructors
  */
-export const makeUnsafe: (permits: number) => Semaphore = internal.makeSemaphoreUnsafe
+export const makeUnsafe = (permits: number): Semaphore => new SemaphoreImpl(permits)
+
+class SemaphoreImpl implements Semaphore {
+  public waiters = new Set<() => void>()
+  public taken = 0
+  public permits: number
+
+  constructor(permits: number) {
+    this.permits = permits
+  }
+
+  get free() {
+    return this.permits - this.taken
+  }
+
+  take(n: number): Effect.Effect<number> {
+    const take: Effect.Effect<number> = internal.suspend(() => {
+      if (this.free < n) {
+        return internal.callback((resume) => {
+          if (this.free >= n) return resume(take)
+          const observer = () => {
+            if (this.free < n) return
+            this.waiters.delete(observer)
+            resume(take)
+          }
+          this.waiters.add(observer)
+          return internal.sync(() => {
+            this.waiters.delete(observer)
+          })
+        })
+      }
+      this.taken += n
+      return internal.succeed(n)
+    })
+    return take
+  }
+
+  updateTakenUnsafe(fiber: Fiber<any, any>, f: (n: number) => number): Effect.Effect<number> {
+    this.taken = f(this.taken)
+    if (this.waiters.size > 0) {
+      fiber.currentDispatcher.scheduleTask(() => {
+        const iter = this.waiters.values()
+        let item = iter.next()
+        while (item.done === false && this.free > 0) {
+          item.value()
+          item = iter.next()
+        }
+      }, 0)
+    }
+    return internal.succeed(this.free)
+  }
+
+  updateTaken(f: (n: number) => number): Effect.Effect<number> {
+    return core.withFiber((fiber) => this.updateTakenUnsafe(fiber, f))
+  }
+
+  resize(permits: number) {
+    return internal.asVoid(
+      core.withFiber((fiber) => {
+        this.permits = permits
+        if (this.free < 0) return internal.void
+        return this.updateTakenUnsafe(fiber, (taken) => taken)
+      })
+    )
+  }
+
+  release(n: number): Effect.Effect<number> {
+    return this.updateTaken((taken) => taken - n)
+  }
+
+  get releaseAll(): Effect.Effect<number> {
+    return this.updateTaken((_) => 0)
+  }
+
+  withPermits(n: number) {
+    return <A, E, R>(self: Effect.Effect<A, E, R>) =>
+      internal.uninterruptibleMask((restore) =>
+        internal.flatMap(
+          restore(this.take(n)),
+          (permits) => internal.onExitPrimitive(restore(self), () => this.release(permits), true)
+        )
+      )
+  }
+
+  get withPermit(): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R> {
+    return this.withPermits(1)
+  }
+
+  withPermitsIfAvailable(n: number) {
+    return <A, E, R>(self: Effect.Effect<A, E, R>) =>
+      internal.uninterruptibleMask((restore) => {
+        if (this.free < n) return internal.succeedNone
+        this.taken += n
+        return internal.onExitPrimitive(restore(internal.asSome(self)), () => this.release(n), true)
+      })
+  }
+}
 
 /**
  * Creates a new Semaphore.
@@ -162,7 +260,7 @@ export const makeUnsafe: (permits: number) => Semaphore = internal.makeSemaphore
  * @since 2.0.0
  * @category constructors
  */
-export const make: (permits: number) => Effect.Effect<Semaphore> = internal.makeSemaphore
+export const make = (permits: number): Effect.Effect<Semaphore> => internal.sync(() => new SemaphoreImpl(permits))
 
 /**
  * Adjusts the number of permits available in the semaphore.
@@ -185,13 +283,9 @@ export const resize: {
 export const withPermits: {
   (self: Semaphore, permits: number): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
   <A, E, R>(self: Semaphore, permits: number, effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R>
-} = ((...args: Array<any>) => {
-  if (args.length === 2) {
-    const [self, permits] = args
-    return (effect: Effect.Effect<any, any, any>) => self.withPermits(permits)(effect)
-  }
-  const [self, permits, effect] = args
-  return self.withPermits(permits)(effect)
+} = ((self: Semaphore, permits: number, effect?: Effect.Effect<any, any, any>) => {
+  const withPermits = self.withPermits(permits)
+  return effect ? withPermits(effect) : withPermits
 }) as any
 
 /**
@@ -204,12 +298,8 @@ export const withPermits: {
 export const withPermit: {
   (self: Semaphore): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
   <A, E, R>(self: Semaphore, effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R>
-} = ((...args: Array<any>) => {
-  if (args.length === 1) {
-    const [self] = args
-    return (effect: Effect.Effect<any, any, any>) => self.withPermit(effect)
-  }
-  const [self, effect] = args
+} = ((self: Semaphore, effect?: Effect.Effect<any, any, any>) => {
+  if (!effect) return self.withPermit
   return self.withPermit(effect)
 }) as any
 
@@ -227,13 +317,9 @@ export const withPermitsIfAvailable: {
     permits: number,
     effect: Effect.Effect<A, E, R>
   ): Effect.Effect<Option.Option<A>, E, R>
-} = ((...args: Array<any>) => {
-  if (args.length === 2) {
-    const [self, permits] = args
-    return (effect: Effect.Effect<any, any, any>) => self.withPermitsIfAvailable(permits)(effect)
-  }
-  const [self, permits, effect] = args
-  return self.withPermitsIfAvailable(permits)(effect)
+} = ((self: Semaphore, permits: number, effect?: Effect.Effect<any, any, any>) => {
+  const withPermits = self.withPermitsIfAvailable(permits)
+  return effect ? withPermits(effect) : withPermits
 }) as any
 
 /**
@@ -268,33 +354,3 @@ export const release: {
  * @category combinators
  */
 export const releaseAll = (self: Semaphore): Effect.Effect<number> => self.releaseAll
-
-/**
- * @since 3.19.4
- * @category models
- */
-export const PartitionedTypeId: PartitionedTypeId = PartitionedSemaphore.PartitionedTypeId
-
-/**
- * @since 3.19.4
- * @category models
- */
-export type PartitionedTypeId = PartitionedSemaphore.PartitionedTypeId
-
-/**
- * @since 3.19.4
- * @category models
- */
-export interface Partitioned<in K> extends PartitionedSemaphore.PartitionedSemaphore<K> {}
-
-/**
- * @since 3.19.4
- * @category constructors
- */
-export const makePartitionedUnsafe = PartitionedSemaphore.makeUnsafe
-
-/**
- * @since 3.19.4
- * @category constructors
- */
-export const makePartitioned = PartitionedSemaphore.make

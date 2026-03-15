@@ -26,7 +26,7 @@ export interface Latch {
   /** open the latch, releasing all fibers waiting on it */
   readonly open: Effect.Effect<boolean>
   /** open the latch, releasing all fibers waiting on it */
-  readonly openUnsafe: () => boolean
+  openUnsafe(this: Latch): boolean
   /** release all fibers waiting on the latch, without opening it */
   readonly release: Effect.Effect<boolean>
   /** wait for the latch to be opened */
@@ -34,9 +34,9 @@ export interface Latch {
   /** close the latch */
   readonly close: Effect.Effect<boolean>
   /** close the latch */
-  readonly closeUnsafe: () => boolean
+  closeUnsafe(this: Latch): boolean
   /** only run the given effect when the latch is open */
-  readonly whenOpen: <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
+  whenOpen<A, E, R>(this: Latch, self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R>
 }
 
 /**
