@@ -49,7 +49,7 @@ class User extends Schema.Class<User>("User")({
   id: Schema.Number,
   name: Schema.String,
   email: Schema.String,
-  createdAt: Schema.DateTimeUtc,
+  createdAt: Schema.DateTimeUtcFromMillis,
 }) {}
 
 class ProductSchema extends Schema.Class<ProductSchema>("ProductSchema")({
