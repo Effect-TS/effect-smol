@@ -229,15 +229,6 @@ declare module "effect/unstable/ai/Prompt" {
       readonly cacheControl?: typeof Generated.CacheControlEphemeral.Encoded | null
     } | null
   }
-
-  export interface ToolApprovalResponsePartOptions extends ProviderOptions {
-    readonly anthropic?: {
-      /**
-       * A breakpoint which marks the end of reusable content eligible for caching.
-       */
-      readonly cacheControl?: typeof Generated.CacheControlEphemeral.Encoded | null
-    } | null
-  }
 }
 
 declare module "effect/unstable/ai/Response" {
