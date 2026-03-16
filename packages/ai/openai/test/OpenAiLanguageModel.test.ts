@@ -919,8 +919,6 @@ const makeStreamTestLayer = (events: ReadonlyArray<typeof Generated.ResponseStre
     OpenAiClient.OpenAiClient,
     OpenAiClient.OpenAiClient.of({
       client: undefined as any,
-      apiUrl: "https://api.openai.com/v1",
-      apiKey: Redacted.make("sk-test-key"),
       createResponse: () => Effect.die(new Error("unexpected createResponse call")),
       createResponseStream: () => Effect.succeed([response, Stream.fromIterable(events)]),
       createEmbedding: () => Effect.die(new Error("unexpected createEmbedding call"))
