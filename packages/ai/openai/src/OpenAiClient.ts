@@ -473,13 +473,12 @@ const makeSocket = Effect.gen(function*() {
             ) :
             Effect.void
         }),
-        Effect.retry(
+        Effect.repeat(
           Schedule.exponential(100, 1.5).pipe(
             Schedule.either(Schedule.spaced({ seconds: 5 })),
             Schedule.jittered
           )
         ),
-        Effect.orDie,
         Effect.forkScoped
       )
 
