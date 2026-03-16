@@ -142,6 +142,54 @@ describe("HttpApi", () => {
       }).pipe(Effect.provide(ApiLive))
     })
 
+    it.effect("error array", () => {
+      class M extends HttpApiMiddleware.Service<M>()("Http/Auth", {
+        error: [HttpApiError.UnauthorizedNoContent, HttpApiError.ForbiddenNoContent]
+      }) {}
+
+      const Api = HttpApi.make("api").add(
+        HttpApiGroup.make("group")
+          .add(
+            HttpApiEndpoint.get("unauthorized", "/unauthorized", {
+              success: Schema.String
+            }),
+            HttpApiEndpoint.get("forbidden", "/forbidden", {
+              success: Schema.String
+            })
+          )
+          .middleware(M)
+      )
+      const GroupLive = HttpApiBuilder.group(
+        Api,
+        "group",
+        (handlers) =>
+          handlers
+            .handle("unauthorized", () => Effect.succeed("ok"))
+            .handle("forbidden", () => Effect.succeed("ok"))
+      )
+      const MLive = Layer.succeed(
+        M,
+        (_, { endpoint }) =>
+          endpoint.name === "unauthorized"
+            ? Effect.fail(new HttpApiError.Unauthorized({}))
+            : Effect.fail(new HttpApiError.Forbidden({}))
+      )
+
+      const ApiLive = HttpRouter.serve(
+        HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive), Layer.provide(MLive)),
+        { disableListenLog: true, disableLogger: true }
+      ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
+
+      return Effect.gen(function*() {
+        yield* assertServerText(yield* HttpClient.get("/unauthorized"), 401, "")
+        yield* assertServerText(yield* HttpClient.get("/forbidden"), 403, "")
+
+        const client = yield* HttpApiClient.make(Api)
+        yield* assertClientError(client.group.unauthorized(), new HttpApiError.Unauthorized({}))
+        yield* assertClientError(client.group.forbidden(), new HttpApiError.Forbidden({}))
+      }).pipe(Effect.provide(ApiLive))
+    })
+
     it.effect("client middleware modifies request and receives metadata", () => {
       class M extends HttpApiMiddleware.Service<M>()("Client/Metadata", {
         requiredForClient: true

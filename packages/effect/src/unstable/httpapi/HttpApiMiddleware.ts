@@ -27,17 +27,23 @@ const SecurityTypeId = "~effect/httpapi/HttpApiMiddleware/Security"
  */
 export const isSecurity = (u: AnyService): u is AnyServiceSecurity => hasProperty(u, SecurityTypeId)
 
+type ErrorConstraint = Schema.Top | ReadonlyArray<Schema.Top>
+
+type ErrorSchemaFromConstraint<E> = E extends ReadonlyArray<Schema.Top> ? E[number]
+  : E extends Schema.Top ? E
+  : never
+
 /**
  * @since 4.0.0
  * @category models
  */
-export type HttpApiMiddleware<Provides, E extends Schema.Top, Requires> = (
+export type HttpApiMiddleware<Provides, E extends ErrorConstraint, Requires> = (
   httpEffect: Effect.Effect<HttpServerResponse, unhandled, Provides>,
   options: {
     readonly endpoint: HttpApiEndpoint.AnyWithProps
     readonly group: HttpApiGroup.AnyWithProps
   }
-) => Effect.Effect<HttpServerResponse, unhandled | E["Type"], Requires | HttpRouter.Provided>
+) => Effect.Effect<HttpServerResponse, unhandled | ErrorSchemaFromConstraint<E>["Type"], Requires | HttpRouter.Provided>
 
 /**
  * @since 4.0.0
@@ -46,7 +52,7 @@ export type HttpApiMiddleware<Provides, E extends Schema.Top, Requires> = (
 export type HttpApiMiddlewareSecurity<
   Security extends Record<string, HttpApiSecurity.HttpApiSecurity>,
   Provides,
-  E extends Schema.Top,
+  E extends ErrorConstraint,
   Requires
 > = {
   readonly [K in keyof Security]: (
@@ -56,7 +62,11 @@ export type HttpApiMiddlewareSecurity<
       readonly endpoint: HttpApiEndpoint.AnyWithProps
       readonly group: HttpApiGroup.AnyWithProps
     }
-  ) => Effect.Effect<HttpServerResponse, unhandled | E["Type"], Requires | HttpRouter.Provided>
+  ) => Effect.Effect<
+    HttpServerResponse,
+    unhandled | ErrorSchemaFromConstraint<E>["Type"],
+    Requires | HttpRouter.Provided
+  >
 }
 
 /**
@@ -90,7 +100,7 @@ export interface ForClient<Id> {
 export interface AnyService extends ServiceMap.Key<any, any> {
   readonly [TypeId]: typeof TypeId
   readonly provides: any
-  readonly error: Schema.Top
+  readonly error: ErrorConstraint
   readonly requiredForClient: boolean
   readonly "~ClientError": any
 }
@@ -112,7 +122,7 @@ export interface AnyId {
   readonly [TypeId]: {
     readonly provides: any
     readonly requires: any
-    readonly error: Schema.Top
+    readonly error: ErrorConstraint
     readonly clientError: any
     readonly requiredForClient: boolean
   }
@@ -140,8 +150,7 @@ export type ApplyServices<A extends AnyId, R> = Exclude<R, Provides<A>> | Requir
  * @since 4.0.0
  * @category models
  */
-export type ErrorSchema<A> = A extends { readonly [TypeId]: { readonly error: infer E } }
-  ? E extends Schema.Top ? E : never
+export type ErrorSchema<A> = A extends { readonly [TypeId]: { readonly error: infer E } } ? ErrorSchemaFromConstraint<E>
   : never
 
 /**
@@ -195,7 +204,7 @@ export type ServiceClass<
   Config extends {
     requires: any
     provides: any
-    error: Schema.Top
+    error: ErrorConstraint
     clientError: any
     requiredForClient: boolean
     security: Record<string, HttpApiSecurity.HttpApiSecurity>
@@ -238,7 +247,7 @@ export const Service = <
   } = { requires: never; provides: never; clientError: never }
 >(): <
   const Id extends string,
-  Error extends Schema.Top = never,
+  const Error extends ErrorConstraint = never,
   const Security extends Record<string, HttpApiSecurity.HttpApiSecurity> = never,
   RequiredForClient extends boolean = false
 >(
@@ -260,7 +269,7 @@ export const Service = <
   id: string,
   options?: {
     readonly security?: Record<string, HttpApiSecurity.HttpApiSecurity> | undefined
-    readonly error?: Schema.Top | undefined
+    readonly error?: ErrorConstraint | undefined
     readonly requiredForClient?: boolean | undefined
   } | undefined
 ) => {
@@ -317,12 +326,16 @@ export const Service = <
  * @since 4.0.0
  * @category SchemaError transform
  */
-export const layerSchemaErrorTransform = <Id, E extends Schema.Top, Requires>(
+export const layerSchemaErrorTransform = <Id, E extends ErrorConstraint, Requires>(
   service: ServiceMap.Service<Id, HttpApiMiddleware<never, E, Requires>>,
   transform: (
     error: Schema.SchemaError,
     context: { readonly endpoint: HttpApiEndpoint.AnyWithProps; readonly group: HttpApiGroup.AnyWithProps }
-  ) => Effect.Effect<HttpServerResponse, E["Type"] | Schema.SchemaError, Requires | HttpRouter.Provided>
+  ) => Effect.Effect<
+    HttpServerResponse,
+    ErrorSchemaFromConstraint<E>["Type"] | Schema.SchemaError,
+    Requires | HttpRouter.Provided
+  >
 ): Layer.Layer<Id> =>
   Layer.succeed(
     service,
@@ -331,7 +344,7 @@ export const layerSchemaErrorTransform = <Id, E extends Schema.Top, Requires>(
         httpEffect,
         (e): Effect.Effect<
           HttpServerResponse,
-          unhandled | Schema.SchemaError | E["Type"],
+          unhandled | Schema.SchemaError | ErrorSchemaFromConstraint<E>["Type"],
           Requires | HttpRouter.Provided
         > => Schema.isSchemaError(e) ? transform(e, options) : Effect.fail(e)
       )
@@ -344,9 +357,9 @@ export const layerSchemaErrorTransform = <Id, E extends Schema.Top, Requires>(
 export const layerClient = <Id extends AnyId, S, R, EX = never, RX = never>(
   tag: ServiceMap.Key<Id, S>,
   service:
-    | HttpApiMiddlewareClient<Id[typeof TypeId]["error"]["Type"], Id[typeof TypeId]["clientError"], R>
+    | HttpApiMiddlewareClient<Error<Id>, Id[typeof TypeId]["clientError"], R>
     | Effect.Effect<
-      HttpApiMiddlewareClient<Id[typeof TypeId]["error"]["Type"], Id[typeof TypeId]["clientError"], R>,
+      HttpApiMiddlewareClient<Error<Id>, Id[typeof TypeId]["clientError"], R>,
       EX,
       RX
     >

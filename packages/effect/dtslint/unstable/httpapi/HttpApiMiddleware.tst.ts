@@ -1,5 +1,5 @@
 import { Schema } from "effect"
-import { HttpApiMiddleware, HttpApiSecurity } from "effect/unstable/httpapi"
+import { HttpApiEndpoint, HttpApiError, HttpApiMiddleware, HttpApiSecurity } from "effect/unstable/httpapi"
 import { describe, expect, it } from "tstyche"
 
 describe("HttpApiMiddleware", () => {
@@ -37,6 +37,21 @@ describe("HttpApiMiddleware", () => {
       }) {}
       expect(M.error).type.toBe<Schema.String>()
       expect(M.security).type.toBe<{ readonly cookie: HttpApiSecurity.ApiKey }>()
+    })
+
+    it("error array", () => {
+      class M extends HttpApiMiddleware.Service<M>()("Http/Auth", {
+        error: [HttpApiError.UnauthorizedNoContent, HttpApiError.ForbiddenNoContent] as const
+      }) {}
+      const endpoint = HttpApiEndpoint.get("a", "/a", {
+        success: Schema.String
+      }).middleware(M)
+      expect(M.error).type.toBe<
+        readonly [typeof HttpApiError.UnauthorizedNoContent, typeof HttpApiError.ForbiddenNoContent]
+      >()
+      expect<HttpApiEndpoint.MiddlewareError<typeof endpoint>>().type.toBe<
+        HttpApiError.Unauthorized | HttpApiError.Forbidden
+      >()
     })
   })
 })
