@@ -53,13 +53,6 @@ export interface Service {
   readonly client: Generated.OpenAiClient
 
   /**
-   * The base URL for the OpenAI API, used for constructing request URLs in
-   * streaming
-   */
-  readonly apiUrl: string
-  readonly apiKey: Redacted.Redacted<string> | undefined
-
-  /**
    * Create a response using the OpenAI responses endpoint.
    */
   readonly createResponse: (
@@ -164,7 +157,6 @@ export const make = Effect.fnUntraced(
   ): Effect.fn.Return<Service, never, HttpClient.HttpClient> {
     const baseClient = yield* HttpClient.HttpClient
     const apiUrl = options.apiUrl ?? "https://api.openai.com/v1"
-    const apiKey = options.apiKey
 
     const httpClient = baseClient.pipe(
       HttpClient.mapRequest(Function.flow(
@@ -269,8 +261,6 @@ export const make = Effect.fnUntraced(
 
     return OpenAiClient.of({
       client,
-      apiUrl: options.apiUrl ?? "https://api.openai.com/v1",
-      apiKey,
       createResponse,
       createResponseStream,
       createEmbedding
@@ -385,15 +375,12 @@ export class OpenAiSocket extends ServiceMap.Service<OpenAiSocket, {
 const makeSocket = Effect.gen(function*() {
   const client = yield* OpenAiClient
   const tracker = yield* ResponseIdTracker.make
+  const request = yield* Effect.orDie(client.client.httpClient.preprocess(HttpClientRequest.post("/responses")))
 
-  const socket = yield* Socket.makeWebSocket(`${client.apiUrl.replace(/^http/, "ws")}/responses`).pipe(
+  const socket = yield* Socket.makeWebSocket(request.url.replace(/^http/, "ws")).pipe(
     Effect.updateService(Socket.WebSocketConstructor, (f) => (url) =>
       f(url, {
-        headers: client.apiKey
-          ? {
-            Authorization: `Bearer ${Redacted.value(client.apiKey)}`
-          }
-          : undefined
+        headers: request.headers
       } as any))
   )
 
@@ -422,10 +409,10 @@ const makeSocket = Effect.gen(function*() {
                 reason: "TransportError",
                 request: {
                   method: "POST",
-                  url: `${client.apiUrl}/responses`,
+                  url: request.url,
                   urlParams: [],
                   hash: undefined,
-                  headers: {}
+                  headers: request.headers
                 },
                 description: "Failed to send message over WebSocket"
               })
@@ -452,10 +439,10 @@ const makeSocket = Effect.gen(function*() {
                   reason: "TransportError",
                   request: {
                     method: "POST",
-                    url: `${client.apiUrl}/responses`,
+                    url: request.url,
                     urlParams: [],
                     hash: undefined,
-                    headers: {}
+                    headers: request.headers
                   },
                   description: Cause.pretty(cause)
                 })
@@ -496,10 +483,7 @@ const makeSocket = Effect.gen(function*() {
       }).pipe(Stream.unwrap)
 
       return Effect.succeed([
-        HttpClientResponse.fromWeb(
-          HttpClientRequest.post(`${client.apiUrl}/responses`),
-          new Response()
-        ),
+        HttpClientResponse.fromWeb(request, new Response()),
         stream
       ])
     }
