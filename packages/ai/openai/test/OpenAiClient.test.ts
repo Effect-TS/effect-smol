@@ -3,11 +3,14 @@ import * as Errors from "@effect/ai-openai/internal/errors"
 import * as OpenAiClient from "@effect/ai-openai/OpenAiClient"
 import { assert, describe, it } from "@effect/vitest"
 import { Config, ConfigProvider, Effect, Layer, Redacted, Schema, Stream } from "effect"
+import * as Fiber from "effect/Fiber"
 import type * as AiError from "effect/unstable/ai/AiError"
 import * as HttpClient from "effect/unstable/http/HttpClient"
 import * as HttpClientError from "effect/unstable/http/HttpClientError"
 import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
 import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
+import * as Socket from "effect/unstable/socket/Socket"
+import { WS } from "vitest-websocket-mock"
 
 // =============================================================================
 // Mock Helpers
@@ -630,6 +633,57 @@ describe("OpenAiClient", () => {
         assert.strictEqual(result._tag, "AiError")
         assert.strictEqual(result.reason._tag, "InternalProviderError")
       }).pipe(Effect.provide(MainLayer))
+    })
+
+    it.effect("sends response.cancel on interrupt in websocket mode", () => {
+      const port = 42345
+      const apiUrl = `http://localhost:${port}/v1`
+      const serverUrl = `ws://localhost:${port}/v1/responses`
+
+      const HttpClientLayer = Layer.succeed(
+        HttpClient.HttpClient,
+        makeMockHttpClient((request) => Effect.succeed(makeMockResponse({ status: 200, body: {}, request })))
+      )
+
+      const MainLayer = OpenAiClient.layer({
+        apiKey: Redacted.make("test-key"),
+        apiUrl
+      }).pipe(Layer.provide(HttpClientLayer))
+
+      return Effect.gen(function*() {
+        const server = yield* Effect.acquireRelease(
+          Effect.sync(() => new WS(serverUrl, { jsonProtocol: true })),
+          (server) =>
+            Effect.sync(() => {
+              server.close()
+              WS.clean()
+            })
+        )
+
+        const client = yield* OpenAiClient.OpenAiClient
+        const fiber = yield* Effect.forkScoped(
+          OpenAiClient.withWebSocketMode(
+            client.createResponseStream({
+              model: "gpt-4o",
+              input: "test"
+            }).pipe(
+              Effect.andThen(([_, stream]) => Stream.runDrain(stream))
+            )
+          ),
+          { startImmediately: true }
+        )
+
+        const createEvent = yield* Effect.promise(() => server.nextMessage as Promise<any>)
+        assert.strictEqual(createEvent.type, "response.create")
+
+        yield* Fiber.interrupt(fiber)
+
+        const cancelEvent = yield* Effect.promise(() => server.nextMessage as Promise<any>)
+        assert.deepStrictEqual(cancelEvent, { type: "response.cancel" })
+      }).pipe(
+        Effect.provide(MainLayer),
+        Effect.provideService(Socket.WebSocketConstructor, (url) => new globalThis.WebSocket(url))
+      )
     })
   })
 })
