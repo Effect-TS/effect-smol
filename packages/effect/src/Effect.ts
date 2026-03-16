@@ -6236,8 +6236,9 @@ export const scopedWith: <A, E, R>(
  */
 export const acquireRelease: <A, E, R>(
   acquire: Effect<A, E, R>,
-  release: (a: A, exit: Exit.Exit<unknown, unknown>) => Effect<unknown>
-) => Effect<A, E, R | Scope> = internal.acquireRelease
+  release: (a: A, exit: Exit.Exit<unknown, unknown>) => Effect<unknown>,
+  options?: { readonly interruptible?: boolean }
+) => Effect<A, E, Scope | R> = internal.acquireRelease
 
 /**
  * This function is used to ensure that an `Effect` value that represents the

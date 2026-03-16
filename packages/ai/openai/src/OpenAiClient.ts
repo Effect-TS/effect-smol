@@ -10,6 +10,7 @@ import * as Array from "effect/Array"
 import * as Cause from "effect/Cause"
 import type * as Config from "effect/Config"
 import * as Effect from "effect/Effect"
+import * as Exit from "effect/Exit"
 import { identity } from "effect/Function"
 import * as Function from "effect/Function"
 import * as Layer from "effect/Layer"
@@ -491,7 +492,8 @@ const makeSocket = Effect.gen(function*() {
       const stream = Effect.gen(function*() {
         yield* Effect.acquireRelease(
           semaphore.take(1),
-          () => semaphore.release(1)
+          () => semaphore.release(1),
+          { interruptible: true }
         )
         const { send, cancel } = yield* RcRef.get(queueRef)
         const incoming = yield* Queue.unbounded<ResponseStreamEvent, AiError.AiError | Cause.Done>()
@@ -499,7 +501,12 @@ const makeSocket = Effect.gen(function*() {
 
         yield* Effect.acquireRelease(
           send(incoming, options),
-          () => done ? Effect.void : cancel
+          (_, exit) => {
+            if (Exit.isFailure(exit) && !Exit.hasInterrupts(exit)) return Effect.void
+            else if (done) return Effect.void
+            return cancel
+          },
+          { interruptible: true }
         ).pipe(
           Effect.forkScoped({ startImmediately: true })
         )

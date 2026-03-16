@@ -3794,11 +3794,18 @@ export const scopedWith = <A, E, R>(
 /** @internal */
 export const acquireRelease = <A, E, R>(
   acquire: Effect.Effect<A, E, R>,
-  release: (a: A, exit: Exit.Exit<unknown, unknown>) => Effect.Effect<unknown>
+  release: (a: A, exit: Exit.Exit<unknown, unknown>) => Effect.Effect<unknown>,
+  options?: { readonly interruptible?: boolean }
 ): Effect.Effect<A, E, R | Scope.Scope> =>
-  uninterruptible(
-    flatMap(scope, (scope) =>
-      tap(acquire, (a) => scopeAddFinalizerExit(scope, (exit) => internalCall(() => release(a, exit)))))
+  uninterruptibleMask((restore) =>
+    flatMap(
+      scope,
+      (scope) =>
+        tap(
+          options?.interruptible ? restore(acquire) : acquire,
+          (a) => scopeAddFinalizerExit(scope, (exit) => release(a, exit))
+        )
+    )
   )
 
 /** @internal */
