@@ -1,5 +1,11 @@
 # effect
 
+## 4.0.0-beta.33
+
+### Patch Changes
+
+- [#1754](https://github.com/Effect-TS/effect-smol/pull/1754) [`571447d`](https://github.com/Effect-TS/effect-smol/commit/571447da67334449f8ae3d6ecb3d77ea4e0c4295) Thanks @tim-smart! - narrow types for Effect.retry/repeat while option
+
 ## 4.0.0-beta.32
 
 ### Patch Changes

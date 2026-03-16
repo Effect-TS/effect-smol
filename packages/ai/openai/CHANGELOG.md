@@ -1,5 +1,14 @@
 # @effect/ai-openai
 
+## 4.0.0-beta.33
+
+### Patch Changes
+
+- [#1638](https://github.com/Effect-TS/effect-smol/pull/1638) [`e198fea`](https://github.com/Effect-TS/effect-smol/commit/e198fea76c89a36c6f05ea7b7d11d222cf5a240c) Thanks @tim-smart! - add OpenAiClient.withWebSocketMode
+
+- Updated dependencies [[`571447d`](https://github.com/Effect-TS/effect-smol/commit/571447da67334449f8ae3d6ecb3d77ea4e0c4295)]:
+  - effect@4.0.0-beta.33
+
 ## 4.0.0-beta.32
 
 ### Patch Changes
