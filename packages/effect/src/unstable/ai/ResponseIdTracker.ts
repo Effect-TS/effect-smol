@@ -38,16 +38,16 @@ export class ResponseIdTracker
  * @category constructors
  */
 export const make: Effect.Effect<Service> = Effect.sync(() => {
-  let sentParts = new WeakMap<object, string>()
+  const sentParts = new Map<object, string>()
 
   const none = () => {
-    sentParts = new WeakMap<object, string>()
+    sentParts.clear()
     return Option.none<PrepareResult>()
   }
 
   return {
     clearUnsafe() {
-      sentParts = new WeakMap<object, string>()
+      sentParts.clear()
     },
     markParts(parts, responseId) {
       for (let i = 0; i < parts.length; i++) {
