@@ -535,3 +535,23 @@ export const withWebSocketMode = <A, E, R>(
       (services) => Effect.provideServices(effect, services)
     )
   )
+
+/**
+ * Uses OpenAI's websocket mode for all responses that use the Layer.
+ *
+ * Note: This only works with the following WebSocket constructor layers:
+ *
+ * - `NodeSocket.layerWebSocketConstructorWS`
+ * - `BunSocket.layerWebSocketConstructor`
+ *
+ * This is because it needs to use non-standard options for setting the
+ * Authorization header.
+ *
+ * @since 1.0.0
+ * @category Websocket mode
+ */
+export const layerWebSocketMode: Layer.Layer<
+  OpenAiSocket | ResponseIdTracker.ResponseIdTracker,
+  never,
+  OpenAiClient | Socket.WebSocketConstructor
+> = Layer.effectServices(makeSocket)
