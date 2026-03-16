@@ -1,8 +1,8 @@
 import { Generated, OpenAiClient, OpenAiLanguageModel, OpenAiTool } from "@effect/ai-openai"
 import { assert, describe, it } from "@effect/vitest"
 import { deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import { Array, Effect, Layer, Option, Redacted, Ref, Schema, ServiceMap, Stream } from "effect"
-import { LanguageModel, Prompt, ResponseIdTracker, Tool, Toolkit } from "effect/unstable/ai"
+import { Array, Effect, Layer, Redacted, Ref, Schema, ServiceMap, Stream } from "effect"
+import { LanguageModel, Prompt, Tool, Toolkit } from "effect/unstable/ai"
 import { HttpClient, type HttpClientError, HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 
 describe("OpenAiLanguageModel", () => {
@@ -27,33 +27,6 @@ describe("OpenAiLanguageModel", () => {
         const metadata = result.content.find((part) => part.type === "response-metadata")
         strictEqual(metadata?.modelId, "ft:gpt-4o-mini:custom")
       }).pipe(Effect.provide(makeTestLayer({ body: { model: "ft:gpt-4o-mini:custom" as any } }))))
-
-    it.effect("wires client tracker through LanguageModel.make", () =>
-      Effect.gen(function*() {
-        const user1 = Prompt.make([{ role: "user", content: "Hello" }]).content[0]
-        assert.isDefined(user1)
-
-        yield* LanguageModel.generateText({
-          prompt: Prompt.fromMessages([user1])
-        }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
-
-        const assistant = Prompt.make([{
-          role: "assistant",
-          content: [Prompt.textPart({ text: "Hi" })]
-        }]).content[0]
-        const user2 = Prompt.make([{ role: "user", content: "Follow up" }]).content[0]
-        assert.isDefined(assistant)
-        assert.isDefined(user2)
-
-        const client = yield* OpenAiClient.OpenAiClient
-        const prepared = client.tracker.prepareUnsafe(Prompt.fromMessages([user1, assistant, user2]))
-
-        assert.isTrue(Option.isSome(prepared))
-        if (Option.isSome(prepared)) {
-          strictEqual(prepared.value.previousResponseId, "resp_test123")
-          deepStrictEqual(prepared.value.prompt, Prompt.fromMessages([user2]))
-        }
-      }).pipe(Effect.provide(makeTestLayer())))
   })
 
   describe("generateText", () => {
@@ -942,17 +915,15 @@ const makeStreamTestLayer = (events: ReadonlyArray<typeof Generated.ResponseStre
     })
   )
 
-  return Layer.effect(
+  return Layer.succeed(
     OpenAiClient.OpenAiClient,
-    Effect.gen(function*() {
-      const tracker = yield* ResponseIdTracker.make
-      return OpenAiClient.OpenAiClient.of({
-        client: undefined as any,
-        tracker,
-        createResponse: () => Effect.die(new Error("unexpected createResponse call")),
-        createResponseStream: () => Effect.succeed([response, Stream.fromIterable(events)]),
-        createEmbedding: () => Effect.die(new Error("unexpected createEmbedding call"))
-      })
+    OpenAiClient.OpenAiClient.of({
+      client: undefined as any,
+      apiUrl: "https://api.openai.com/v1",
+      apiKey: Redacted.make("sk-test-key"),
+      createResponse: () => Effect.die(new Error("unexpected createResponse call")),
+      createResponseStream: () => Effect.succeed([response, Stream.fromIterable(events)]),
+      createEmbedding: () => Effect.die(new Error("unexpected createEmbedding call"))
     })
   )
 }

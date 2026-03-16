@@ -77,7 +77,7 @@ describe("ResponseIdTracker", () => {
       const msg2 = userMessage("msg2")
 
       tracker.markParts([msg1], "resp_123")
-      yield* tracker.clear
+      tracker.clearUnsafe()
       tracker.markParts([msg1New], "resp_456")
       const prepared = tracker.prepareUnsafe(Prompt.fromMessages([msg1New, asst, msg2]))
 
@@ -98,7 +98,7 @@ describe("ResponseIdTracker", () => {
       assertPreparedSome(prepared, "resp_2", Prompt.fromMessages([msg2]))
     }))
 
-  it.effect("returns None after onSessionDrop", () =>
+  it.effect("returns None after clear", () =>
     Effect.gen(function*() {
       const tracker = yield* ResponseIdTracker.make
       const msg1 = userMessage("msg1")
@@ -106,13 +106,13 @@ describe("ResponseIdTracker", () => {
       const msg2 = userMessage("msg2")
 
       tracker.markParts([msg1], "resp_123")
-      yield* tracker.onSessionDrop
+      tracker.clearUnsafe()
       const prepared = tracker.prepareUnsafe(Prompt.fromMessages([msg1, asst, msg2]))
 
       assert.isTrue(Option.isNone(prepared))
     }))
 
-  it.effect("recovers after onSessionDrop with new marks", () =>
+  it.effect("recovers after clear with new marks", () =>
     Effect.gen(function*() {
       const tracker = yield* ResponseIdTracker.make
       const msg1 = userMessage("msg1")
@@ -121,7 +121,7 @@ describe("ResponseIdTracker", () => {
       const msg2 = userMessage("msg2")
 
       tracker.markParts([msg1], "resp_123")
-      yield* tracker.onSessionDrop
+      tracker.clearUnsafe()
       tracker.markParts([msg1New], "resp_456")
       const prepared = tracker.prepareUnsafe(Prompt.fromMessages([msg1New, asst, msg2]))
 
@@ -142,7 +142,7 @@ describe("ResponseIdTracker", () => {
 
       const clearRace = Effect.gen(function*() {
         for (let i = 0; i < 200; i++) {
-          yield* tracker.clear
+          tracker.clearUnsafe()
           yield* Effect.yieldNow
         }
       })
@@ -374,7 +374,7 @@ describe("ResponseIdTracker", () => {
       const user2 = userMessage("user2")
 
       tracker.markParts([sys, user1], "resp_1")
-      yield* tracker.clear
+      tracker.clearUnsafe()
       const prepared = tracker.prepareUnsafe(Prompt.fromMessages([sys, user1, asst1, user2]))
 
       assert.isTrue(Option.isNone(prepared))

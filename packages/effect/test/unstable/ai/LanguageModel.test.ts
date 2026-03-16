@@ -2,7 +2,7 @@ import { describe, it } from "@effect/vitest"
 import { assertDefined, assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import { Effect, Latch, Option, Schema, Stream } from "effect"
 import { TestClock } from "effect/testing"
-import { LanguageModel, Prompt, Response, Tool, Toolkit } from "effect/unstable/ai"
+import { LanguageModel, Prompt, Response, ResponseIdTracker, Tool, Toolkit } from "effect/unstable/ai"
 import * as TestUtils from "./utils.ts"
 
 const MyTool = Tool.make("MyTool", {
@@ -215,22 +215,6 @@ describe("LanguageModel", () => {
           Prompt.userMessage({ content: [Prompt.textPart({ text: "incremental" })] })
         ])
 
-        const tracker: NonNullable<LanguageModel.ConstructorParams["tracker"]> = {
-          clear: Effect.void,
-          onSessionDrop: Effect.void,
-          markParts: (parts, responseId) => {
-            markedParts = parts
-            markedResponseId = responseId
-          },
-          prepareUnsafe: (prompt) => {
-            preparedPrompt = prompt
-            return Option.some({
-              previousResponseId: "resp_prev",
-              prompt: incrementalPrompt
-            })
-          }
-        }
-
         yield* LanguageModel.generateText({
           prompt: [Prompt.userMessage({ content: [Prompt.textPart({ text: "hello" })] })]
         }).pipe(
@@ -247,10 +231,23 @@ describe("LanguageModel", () => {
                   finishPart
                 ])
               },
-              streamText: () => Stream.empty,
-              tracker
+              streamText: () => Stream.empty
             })
-          )
+          ),
+          Effect.provideService(ResponseIdTracker.ResponseIdTracker, {
+            clearUnsafe() {},
+            markParts: (parts, responseId) => {
+              markedParts = parts
+              markedResponseId = responseId
+            },
+            prepareUnsafe: (prompt) => {
+              preparedPrompt = prompt
+              return Option.some({
+                previousResponseId: "resp_prev",
+                prompt: incrementalPrompt
+              })
+            }
+          })
         )
 
         assertDefined(capturedOptions)
@@ -269,21 +266,6 @@ describe("LanguageModel", () => {
         let prepareCalls = 0
         let markCalls = 0
 
-        const tracker: NonNullable<LanguageModel.ConstructorParams["tracker"]> = {
-          clear: Effect.void,
-          onSessionDrop: Effect.void,
-          markParts: () => {
-            markCalls++
-          },
-          prepareUnsafe: () => {
-            prepareCalls++
-            return Option.some({
-              previousResponseId: "resp_prev",
-              prompt: Prompt.make([])
-            })
-          }
-        }
-
         yield* LanguageModel.generateText({
           prompt: [Prompt.userMessage({ content: [Prompt.textPart({ text: "hello" })] })],
           toolkit: Toolkit.empty
@@ -301,10 +283,22 @@ describe("LanguageModel", () => {
                   finishPart
                 ])
               },
-              streamText: () => Stream.empty,
-              tracker
+              streamText: () => Stream.empty
             })
-          )
+          ),
+          Effect.provideService(ResponseIdTracker.ResponseIdTracker, {
+            clearUnsafe() {},
+            markParts: () => {
+              markCalls++
+            },
+            prepareUnsafe: () => {
+              prepareCalls++
+              return Option.some({
+                previousResponseId: "resp_prev",
+                prompt: Prompt.make([])
+              })
+            }
+          })
         )
 
         assertDefined(capturedOptions)
@@ -320,18 +314,6 @@ describe("LanguageModel", () => {
 
         let preparedPrompt: LanguageModel.ProviderOptions["prompt"] | undefined
         let markedParts: ReadonlyArray<object> | undefined
-
-        const tracker: NonNullable<LanguageModel.ConstructorParams["tracker"]> = {
-          clear: Effect.void,
-          onSessionDrop: Effect.void,
-          markParts: (parts) => {
-            markedParts = parts
-          },
-          prepareUnsafe: (prompt) => {
-            preparedPrompt = prompt
-            return Option.none()
-          }
-        }
 
         const prompt: Array<Prompt.Message> = [
           Prompt.assistantMessage({
@@ -380,10 +362,19 @@ describe("LanguageModel", () => {
                   },
                   finishPart
                 ]),
-              streamText: () => Stream.empty,
-              tracker
+              streamText: () => Stream.empty
             })
           ),
+          Effect.provideService(ResponseIdTracker.ResponseIdTracker, {
+            clearUnsafe() {},
+            markParts(parts) {
+              markedParts = parts
+            },
+            prepareUnsafe(prompt) {
+              preparedPrompt = prompt
+              return Option.none()
+            }
+          }),
           Effect.provide(ApprovalToolkitLayer)
         )
 
@@ -411,22 +402,6 @@ describe("LanguageModel", () => {
           Prompt.userMessage({ content: [Prompt.textPart({ text: "incremental" })] })
         ])
 
-        const tracker: NonNullable<LanguageModel.ConstructorParams["tracker"]> = {
-          clear: Effect.void,
-          onSessionDrop: Effect.void,
-          markParts: (parts, responseId) => {
-            markedParts = parts
-            markedResponseId = responseId
-          },
-          prepareUnsafe: (prompt) => {
-            preparedPrompt = prompt
-            return Option.some({
-              previousResponseId: "resp_prev",
-              prompt: incrementalPrompt
-            })
-          }
-        }
-
         yield* LanguageModel.streamText({
           prompt: [Prompt.userMessage({ content: [Prompt.textPart({ text: "hello" })] })]
         }).pipe(
@@ -444,10 +419,23 @@ describe("LanguageModel", () => {
                   },
                   finishPart
                 ])
-              },
-              tracker
+              }
             })
-          )
+          ),
+          Effect.provideService(ResponseIdTracker.ResponseIdTracker, {
+            clearUnsafe() {},
+            markParts: (parts, responseId) => {
+              markedParts = parts
+              markedResponseId = responseId
+            },
+            prepareUnsafe: (prompt) => {
+              preparedPrompt = prompt
+              return Option.some({
+                previousResponseId: "resp_prev",
+                prompt: incrementalPrompt
+              })
+            }
+          })
         )
 
         assertDefined(capturedOptions)
@@ -471,22 +459,6 @@ describe("LanguageModel", () => {
           Prompt.userMessage({ content: [Prompt.textPart({ text: "incremental" })] })
         ])
 
-        const tracker: NonNullable<LanguageModel.ConstructorParams["tracker"]> = {
-          clear: Effect.void,
-          onSessionDrop: Effect.void,
-          markParts: (parts, responseId) => {
-            markedParts = parts
-            markedResponseId = responseId
-          },
-          prepareUnsafe: (prompt) => {
-            preparedPrompt = prompt
-            return Option.some({
-              previousResponseId: "resp_prev",
-              prompt: incrementalPrompt
-            })
-          }
-        }
-
         yield* LanguageModel.streamText({
           prompt: [Prompt.userMessage({ content: [Prompt.textPart({ text: "hello" })] })],
           toolkit: Toolkit.empty
@@ -505,10 +477,23 @@ describe("LanguageModel", () => {
                   },
                   finishPart
                 ])
-              },
-              tracker
+              }
             })
-          )
+          ),
+          Effect.provideService(ResponseIdTracker.ResponseIdTracker, {
+            clearUnsafe() {},
+            markParts: (parts, responseId) => {
+              markedParts = parts
+              markedResponseId = responseId
+            },
+            prepareUnsafe: (prompt) => {
+              preparedPrompt = prompt
+              return Option.some({
+                previousResponseId: "resp_prev",
+                prompt: incrementalPrompt
+              })
+            }
+          })
         )
 
         assertDefined(capturedOptions)
@@ -528,18 +513,6 @@ describe("LanguageModel", () => {
 
         let preparedPrompt: LanguageModel.ProviderOptions["prompt"] | undefined
         let markedParts: ReadonlyArray<object> | undefined
-
-        const tracker: NonNullable<LanguageModel.ConstructorParams["tracker"]> = {
-          clear: Effect.void,
-          onSessionDrop: Effect.void,
-          markParts: (parts) => {
-            markedParts = parts
-          },
-          prepareUnsafe: (prompt) => {
-            preparedPrompt = prompt
-            return Option.none()
-          }
-        }
 
         const prompt: Array<Prompt.Message> = [
           Prompt.assistantMessage({
@@ -589,10 +562,19 @@ describe("LanguageModel", () => {
                     id: "resp_next"
                   },
                   finishPart
-                ]),
-              tracker
+                ])
             })
           ),
+          Effect.provideService(ResponseIdTracker.ResponseIdTracker, {
+            clearUnsafe() {},
+            markParts: (parts) => {
+              markedParts = parts
+            },
+            prepareUnsafe: (prompt) => {
+              preparedPrompt = prompt
+              return Option.none()
+            }
+          }),
           Effect.provide(ApprovalToolkitLayer)
         )
 
@@ -622,22 +604,6 @@ describe("LanguageModel", () => {
         const incrementalPrompt = Prompt.make([
           Prompt.userMessage({ content: [Prompt.textPart({ text: "incremental" })] })
         ])
-
-        const tracker: NonNullable<LanguageModel.ConstructorParams["tracker"]> = {
-          clear: Effect.void,
-          onSessionDrop: Effect.void,
-          markParts: (parts, responseId) => {
-            markedParts = parts
-            markedResponseId = responseId
-          },
-          prepareUnsafe: (prompt) => {
-            preparedPrompt = prompt
-            return Option.some({
-              previousResponseId: "resp_prev",
-              prompt: incrementalPrompt
-            })
-          }
-        }
 
         const prompt: Array<Prompt.Message> = [
           Prompt.assistantMessage({
@@ -690,10 +656,23 @@ describe("LanguageModel", () => {
                   },
                   finishPart
                 ])
-              },
-              tracker
+              }
             })
           ),
+          Effect.provideService(ResponseIdTracker.ResponseIdTracker, {
+            markParts: (parts, responseId) => {
+              markedParts = parts
+              markedResponseId = responseId
+            },
+            prepareUnsafe: (prompt) => {
+              preparedPrompt = prompt
+              return Option.some({
+                previousResponseId: "resp_prev",
+                prompt: incrementalPrompt
+              })
+            },
+            clearUnsafe() {}
+          }),
           Effect.provide(ApprovalToolkitLayer)
         )
 

@@ -30,6 +30,16 @@ export const layerWebSocketConstructor: Layer.Layer<
  * @since 1.0.0
  * @category layers
  */
+export const layerWebSocketConstructorWS: Layer.Layer<
+  Socket.WebSocketConstructor
+> = Layer.succeed(Socket.WebSocketConstructor)(
+  (url, protocols) => new WS.WebSocket(url, protocols) as unknown as globalThis.WebSocket
+)
+
+/**
+ * @since 1.0.0
+ * @category layers
+ */
 export const layerWebSocket: (
   url: string | Effect.Effect<string>,
   options?: {

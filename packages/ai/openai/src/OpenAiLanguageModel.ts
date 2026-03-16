@@ -383,8 +383,9 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
           verbosity: config.text?.verbosity ?? null,
           format: responseFormat
         },
-        ...(Predicate.isNotUndefined(tools) ? { tools } : undefined),
-        ...(Predicate.isNotUndefined(toolChoice) ? { tool_choice: toolChoice } : undefined)
+        ...(tools ? { tools } : undefined),
+        ...(toolChoice ? { tool_choice: toolChoice } : undefined),
+        ...(options.previousResponseId ? { previous_response_id: options.previousResponseId } : undefined)
       }
       return request
     }
@@ -431,8 +432,7 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
             return response
           })
         )
-    ),
-    tracker: client.tracker
+    )
   })
 })
 
@@ -529,16 +529,17 @@ const prepareMessages = Effect.fnUntraced(
     if (config.store === false && capabilities.isReasoningModel) {
       include.add("reasoning.encrypted_content")
     }
-    if (Predicate.isNotUndefined(codeInterpreterTool)) {
+    if (codeInterpreterTool) {
       include.add("code_interpreter_call.outputs")
     }
-    if (Predicate.isNotUndefined(webSearchTool) || Predicate.isNotUndefined(webSearchPreviewTool)) {
+    if (webSearchTool || webSearchPreviewTool) {
       include.add("web_search_call.action.sources")
     }
 
     const messages: Array<typeof Generated.InputItem.Encoded> = []
+    const prompt = options.incrementalPrompt ?? options.prompt
 
-    for (const message of options.prompt.content) {
+    for (const message of prompt.content) {
       switch (message.role) {
         case "system": {
           messages.push({

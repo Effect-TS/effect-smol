@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Schema, Stream } from "effect"
+import { Effect, flow, Schema, Stream } from "effect"
 import { LanguageModel, Prompt, type Response, ResponseIdTracker, Tool, Toolkit } from "effect/unstable/ai"
 
 const finishPart: Response.FinishPartEncoded = {
@@ -64,8 +64,7 @@ describe("LanguageModel tracker lifecycle integration", () => {
               finishPart
             ]
           }),
-        streamText: () => Stream.empty,
-        tracker
+        streamText: () => Stream.empty
       })
 
       const provideModel = Effect.provideService(LanguageModel.LanguageModel, languageModel)
@@ -81,28 +80,28 @@ describe("LanguageModel tracker lifecycle integration", () => {
 
       yield* LanguageModel.generateText({
         prompt: Prompt.fromMessages([system, user1])
-      }).pipe(provideModel)
+      }).pipe(provideModel, Effect.provideService(ResponseIdTracker.ResponseIdTracker, tracker))
 
       const firstSentPrompt = providerOptions[0]!.prompt
 
       yield* LanguageModel.generateText({
         prompt: Prompt.fromMessages([...firstSentPrompt.content, assistant1, user2])
-      }).pipe(provideModel)
+      }).pipe(provideModel, Effect.provideService(ResponseIdTracker.ResponseIdTracker, tracker))
 
-      yield* tracker.onSessionDrop
+      tracker.clearUnsafe()
 
       const secondSentPrompt = providerOptions[1]!.prompt
 
       yield* LanguageModel.generateText({
         prompt: Prompt.fromMessages([...secondSentPrompt.content, assistant2, user3])
-      }).pipe(provideModel)
+      }).pipe(provideModel, Effect.provideService(ResponseIdTracker.ResponseIdTracker, tracker))
 
       const thirdSentPrompt = providerOptions[2]!.prompt
       const expectedPostDropFullPrompt = Prompt.fromMessages([...secondSentPrompt.content, assistant2, user3])
 
       yield* LanguageModel.generateText({
         prompt: Prompt.fromMessages([...thirdSentPrompt.content, assistant3, user4])
-      }).pipe(provideModel)
+      }).pipe(provideModel, Effect.provideService(ResponseIdTracker.ResponseIdTracker, tracker))
 
       assert.strictEqual(providerOptions.length, 4)
       assert.strictEqual(providerOptions[0]!.previousResponseId, undefined)
@@ -135,11 +134,13 @@ describe("LanguageModel tracker lifecycle integration", () => {
               finishPart
             ]
           }),
-        streamText: () => Stream.empty,
-        tracker
+        streamText: () => Stream.empty
       })
 
-      const provideModel = Effect.provideService(LanguageModel.LanguageModel, languageModel)
+      const provideModel = flow(
+        Effect.provideService(LanguageModel.LanguageModel, languageModel),
+        Effect.provideService(ResponseIdTracker.ResponseIdTracker, tracker)
+      )
       const schema = Schema.Struct({ count: Schema.Number })
 
       const system = Prompt.systemMessage({ content: "system" })
@@ -183,11 +184,13 @@ describe("LanguageModel tracker lifecycle integration", () => {
             responseMetadataPart(responseId),
             finishPart
           ])
-        },
-        tracker
+        }
       })
 
-      const provideModel = Effect.provideService(LanguageModel.LanguageModel, languageModel)
+      const provideModel = flow(
+        Effect.provideService(LanguageModel.LanguageModel, languageModel),
+        Effect.provideService(ResponseIdTracker.ResponseIdTracker, tracker)
+      )
 
       const system = Prompt.systemMessage({ content: "system" })
       const user1 = userMessage("user1")
@@ -305,11 +308,13 @@ describe("LanguageModel tracker lifecycle integration", () => {
               finishPart
             ]
           }),
-        streamText: () => Stream.empty,
-        tracker
+        streamText: () => Stream.empty
       })
 
-      const provideModel = Effect.provideService(LanguageModel.LanguageModel, languageModel)
+      const provideModel = flow(
+        Effect.provideService(LanguageModel.LanguageModel, languageModel),
+        Effect.provideService(ResponseIdTracker.ResponseIdTracker, tracker)
+      )
 
       const system = Prompt.systemMessage({ content: "system" })
       const user1 = userMessage("user1")

@@ -710,7 +710,7 @@ export const offerAllUnsafe = <A, E>(self: Enqueue<A, E>, messages: Iterable<A>)
  * @category Completion
  * @since 4.0.0
  */
-export const fail = <A, E>(self: Queue<A, E>, error: E) => failCause(self, core.causeFail(error))
+export const fail = <A, E>(self: Enqueue<A, E>, error: E) => failCause(self, core.causeFail(error))
 
 /**
  * Fail the queue with a cause. If the queue is already done, `false` is

@@ -214,7 +214,7 @@ export type SocketErrorReason =
  * @since 4.0.0
  * @category errors
  */
-export class SocketError extends Schema.ErrorClass<SocketError>(SocketErrorTypeId)({
+export class SocketError extends Schema.TaggedErrorClass<SocketError>(SocketErrorTypeId)("SocketError", {
   _tag: Schema.tag("SocketError"),
   reason: SocketErrorReason
 }) {
@@ -243,6 +243,8 @@ export class SocketError extends Schema.ErrorClass<SocketError>(SocketErrorTypeI
   static is(u: unknown): u is SocketError {
     return isSocketError(u)
   }
+
+  override readonly message = this.reason.message
 }
 
 /**
@@ -421,14 +423,16 @@ export const makeWebSocket = (url: string | Effect.Effect<string>, options?: {
   readonly openTimeout?: Duration.Input | undefined
   readonly protocols?: string | Array<string> | undefined
 }): Effect.Effect<Socket, never, WebSocketConstructor> =>
-  fromWebSocket(
-    Effect.acquireRelease(
-      (typeof url === "string" ? Effect.succeed(url) : url).pipe(
-        Effect.flatMap((url) => Effect.map(WebSocketConstructor.asEffect(), (f) => f(url, options?.protocols)))
+  WebSocketConstructor.use((makeWs) =>
+    fromWebSocket(
+      Effect.acquireRelease(
+        (typeof url === "string" ? Effect.succeed(url) : url).pipe(
+          Effect.map((url) => makeWs(url, options?.protocols))
+        ),
+        (ws) => Effect.sync(() => ws.close(1000))
       ),
-      (ws) => Effect.sync(() => ws.close(1000))
-    ),
-    options
+      options
+    )
   )
 
 /**
