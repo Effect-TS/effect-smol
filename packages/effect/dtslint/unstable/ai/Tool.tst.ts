@@ -1,4 +1,4 @@
-import { Schema } from "effect"
+import type { Schema } from "effect"
 import { Tool } from "effect/unstable/ai"
 import { describe, expect, it } from "tstyche"
 
