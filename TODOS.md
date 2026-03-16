@@ -15,12 +15,13 @@ Releases are snapshot only
 - [x] Add opentelemetry package
 - [x] Add Atom package
 - [x] Use Predicate for filtering functions
-- [ ] Add AI provider packages
+- [x] Add AI provider packages
 
 ## Beta
 
 Pre-releases to npm from smol repo
 
+- [ ] Add AI Embeddings module
 - [ ] Comprehensive JSDoc on every exported function
 - [ ] Codemod CLI for v3 migration
 
