@@ -424,6 +424,9 @@ const makeSocket = Effect.gen(function*() {
       const cancel = Effect.suspend(() => write(JSON.stringify({ type: "response.cancel" }))).pipe(
         Effect.ignore
       )
+      const reset = () => {
+        currentQueue = null
+      }
 
       const decoder = new TextDecoder()
       yield* socket.runRaw((msg) => {
@@ -480,7 +483,7 @@ const makeSocket = Effect.gen(function*() {
         Effect.forkScoped
       )
 
-      return { send, cancel } as const
+      return { send, cancel, reset } as const
     })
   })
 
@@ -495,13 +498,14 @@ const makeSocket = Effect.gen(function*() {
           () => semaphore.release(1),
           { interruptible: true }
         )
-        const { send, cancel } = yield* RcRef.get(queueRef)
+        const { send, cancel, reset } = yield* RcRef.get(queueRef)
         const incoming = yield* Queue.unbounded<ResponseStreamEvent, AiError.AiError | Cause.Done>()
         let done = false
 
         yield* Effect.acquireRelease(
           send(incoming, options),
           (_, exit) => {
+            reset()
             if (Exit.isFailure(exit) && !Exit.hasInterrupts(exit)) return Effect.void
             else if (done) return Effect.void
             return cancel
