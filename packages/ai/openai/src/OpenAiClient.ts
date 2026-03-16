@@ -425,7 +425,9 @@ const makeSocket = Effect.gen(function*() {
       yield* socket.runRaw((msg) => {
         if (!currentQueue) return
         const text = typeof msg === "string" ? msg : decoder.decode(msg)
-        Queue.offerUnsafe(currentQueue, decode(text))
+        try {
+          Queue.offerUnsafe(currentQueue, decode(text))
+        } catch {}
       }).pipe(
         Effect.catchCause((cause) => {
           tracker.clearUnsafe()
