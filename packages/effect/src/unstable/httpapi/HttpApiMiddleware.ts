@@ -323,11 +323,18 @@ export const layerSchemaErrorTransform = <Id, E extends Schema.Top, Requires>(
     error: Schema.SchemaError,
     context: { readonly endpoint: HttpApiEndpoint.AnyWithProps; readonly group: HttpApiGroup.AnyWithProps }
   ) => Effect.Effect<HttpServerResponse, E["Type"] | Schema.SchemaError, Requires | HttpRouter.Provided>
-) =>
+): Layer.Layer<Id> =>
   Layer.succeed(
     service,
     (httpEffect, options) =>
-      Effect.catch(httpEffect, (e) => Schema.isSchemaError(e) ? transform(e, options) : Effect.fail(e))
+      Effect.catch(
+        httpEffect,
+        (e): Effect.Effect<
+          HttpServerResponse,
+          unhandled | Schema.SchemaError | E["Type"],
+          Requires | HttpRouter.Provided
+        > => Schema.isSchemaError(e) ? transform(e, options) : Effect.fail(e)
+      )
   )
 
 /**
