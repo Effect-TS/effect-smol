@@ -476,7 +476,7 @@ const makeSocket = Effect.gen(function*() {
         )
         const { send } = yield* RcRef.get(queueRef)
         const incoming = yield* Queue.unbounded<ResponseStreamEvent, AiError.AiError | Cause.Done>()
-        yield* send(incoming, options)
+        yield* Effect.forkScoped(send(incoming, options), { startImmediately: true })
         return Stream.fromQueue(incoming).pipe(
           Stream.takeUntil((e) => e.type === "response.completed" || e.type === "response.incomplete")
         )
