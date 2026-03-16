@@ -425,12 +425,25 @@ const makeSocket = Effect.gen(function*() {
       )
 
       const decoder = new TextDecoder()
-      const decode = Schema.decodeUnknownSync(Schema.fromJsonString(Generated.ResponseStreamEvent))
       yield* socket.runRaw((msg) => {
         if (!currentQueue) return
         const text = typeof msg === "string" ? msg : decoder.decode(msg)
         try {
-          Queue.offerUnsafe(currentQueue, decode(text))
+          const event = decodeEvent(text)
+          if (event.type === "error" && "status" in event) {
+            return Queue.fail(
+              currentQueue,
+              AiError.make({
+                module: "OpenAiClient",
+                method: "createResponseStream",
+                reason: AiError.reasonFromHttpStatus({
+                  status: event.status,
+                  metadata: event.error
+                })
+              })
+            )
+          }
+          Queue.offerUnsafe(currentQueue, event)
         } catch {}
       }).pipe(
         Effect.catchCause((cause) => {
@@ -507,6 +520,18 @@ const makeSocket = Effect.gen(function*() {
     ServiceMap.add(ResponseIdTracker.ResponseIdTracker, tracker)
   )
 })
+
+const ErrorEvent = Schema.Struct({
+  type: Schema.Literal("error"),
+  status: Schema.Number,
+  error: Schema.Struct({
+    type: Schema.String,
+    message: Schema.String
+  })
+})
+
+const AllEvents = Schema.Union([Generated.ResponseStreamEvent, ErrorEvent])
+const decodeEvent = Schema.decodeUnknownSync(Schema.fromJsonString(AllEvents))
 
 /**
  * Uses OpenAI's websocket mode for all responses within the provided effect.
