@@ -4,7 +4,7 @@
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
 import { hasProperty } from "../../Predicate.ts"
-import type * as Schema from "../../Schema.ts"
+import * as Schema from "../../Schema.ts"
 import { Scope } from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { unhandled } from "../../Types.ts"
@@ -291,6 +291,44 @@ export const Service = <
   }
   return self
 }
+
+/**
+ * Implement a middleware Layer that transforms `SchemaError`'s.
+ *
+ * ```ts
+ * import { Effect, Schema } from "effect"
+ * import { HttpApiMiddleware } from "effect/unstable/httpapi"
+ *
+ * export class CustomError extends Schema.TaggedErrorClass<CustomError>()("CustomError", {}) {}
+ *
+ * export class ErrorHandler extends HttpApiMiddleware.Service<ErrorHandler>()("api/ErrorHandler", {
+ *   error: CustomError
+ * }) {}
+ *
+ * export const ErrorHandlerLayer = HttpApiMiddleware.layerSchemaErrorTransform(
+ *   ErrorHandler,
+ *   (schemaError) =>
+ *     Effect.log("Got SchemaError", schemaError).pipe(
+ *       Effect.andThen(Effect.fail(new CustomError()))
+ *     )
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category SchemaError transform
+ */
+export const layerSchemaErrorTransform = <Id, E extends Schema.Top, Requires>(
+  service: ServiceMap.Service<Id, HttpApiMiddleware<never, E, Requires>>,
+  transform: (
+    error: Schema.SchemaError,
+    context: { readonly endpoint: HttpApiEndpoint.AnyWithProps; readonly group: HttpApiGroup.AnyWithProps }
+  ) => Effect.Effect<HttpServerResponse, E["Type"] | Schema.SchemaError, Requires | HttpRouter.Provided>
+) =>
+  Layer.succeed(
+    service,
+    (httpEffect, options) =>
+      Effect.catch(httpEffect, (e) => Schema.isSchemaError(e) ? transform(e, options) : Effect.fail(e))
+  )
 
 /**
  * @since 4.0.0
