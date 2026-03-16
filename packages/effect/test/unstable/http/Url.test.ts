@@ -21,7 +21,7 @@ describe("Url", () => {
 
     it("failure", () => {
       const error = Url.fromString("??")
-      assertFailure(error, new Cause.IllegalArgumentError("Invalid URL"))
+      assertFailure(error, new Cause.IllegalArgumentError("Invalid URL: \"??\""))
     })
   })
 

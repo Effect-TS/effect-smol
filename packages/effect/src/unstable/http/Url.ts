@@ -62,8 +62,8 @@ export const fromString: {
 } = (url, base) =>
   Result.try({
     try: () => new URL(url, base),
-    catch: (cause) =>
-      new Cause.IllegalArgumentError(cause instanceof globalThis.Error ? cause.message : "Invalid input")
+    catch: () =>
+      new Cause.IllegalArgumentError(`Invalid URL: "${url}"${base !== undefined ? ` with base "${base}"` : ""}`)
   })
 
 /**
