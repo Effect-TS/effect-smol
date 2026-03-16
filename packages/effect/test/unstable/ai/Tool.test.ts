@@ -1065,6 +1065,18 @@ describe("Dynamic", () => {
   })
 
   describe("getJsonSchema", () => {
+    it.effect("Tool.make EmptyParams produces same output as omitting parameters", () =>
+      Effect.gen(function*() {
+        const withEmpty = Tool.make("A", { parameters: Tool.EmptyParams })
+        const withoutParams = Tool.make("B")
+        const withEmptyJsonSchema = Tool.getJsonSchema(withEmpty)
+        deepStrictEqual(withEmptyJsonSchema, Tool.getJsonSchema(withoutParams))
+        deepStrictEqual(withEmptyJsonSchema, {
+          "type": "object",
+          "additionalProperties": false
+        })
+      }))
+
     it.effect("derives JSON Schema from Effect Schema parameters", () =>
       Effect.gen(function*() {
         const tool = Tool.dynamic("TestTool", {

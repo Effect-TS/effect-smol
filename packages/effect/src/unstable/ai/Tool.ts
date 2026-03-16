@@ -1149,7 +1149,7 @@ const dynamicProto = <
  */
 export const make = <
   const Name extends string,
-  Parameters extends Schema.Top = typeof Schema.Void,
+  Parameters extends Schema.Top = typeof EmptyParams,
   Success extends Schema.Top = typeof Schema.Void,
   Failure extends Schema.Top = typeof Schema.Never,
   Mode extends FailureMode | undefined = undefined,
@@ -1210,7 +1210,7 @@ export const make = <
   return userDefinedProto({
     name,
     description: options?.description,
-    parametersSchema: options?.parameters ?? Schema.Void,
+    parametersSchema: options?.parameters ?? EmptyParams,
     successSchema,
     failureSchema,
     failureMode: options?.failureMode ?? "error",
