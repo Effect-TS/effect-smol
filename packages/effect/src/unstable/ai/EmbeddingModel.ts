@@ -33,6 +33,16 @@ export class EmbeddingModel extends ServiceMap.Service<EmbeddingModel, Service>(
 ) {}
 
 /**
+ * Service tag that provides the current embedding dimensions.
+ *
+ * @since 4.0.0
+ * @category services
+ */
+export class ModelDimensions extends ServiceMap.Service<ModelDimensions, number>()(
+  "effect/unstable/ai/EmbeddingModel/ModelDimensions"
+) {}
+
+/**
  * Token usage metadata for embedding operations.
  *
  * @since 4.0.0

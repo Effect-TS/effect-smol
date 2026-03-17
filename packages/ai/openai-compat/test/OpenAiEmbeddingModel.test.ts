@@ -5,6 +5,15 @@ import { EmbeddingModel } from "effect/unstable/ai"
 import { HttpClient, type HttpClientError, type HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 
 describe("OpenAiEmbeddingModel", () => {
+  it.effect("model provides dimensions service", () =>
+    Effect.gen(function*() {
+      const dimensions = yield* EmbeddingModel.ModelDimensions
+      assert.strictEqual(dimensions, 1536)
+    }).pipe(
+      Effect.provide(OpenAiEmbeddingModel.model("text-embedding-3-small", { dimensions: 1536 })),
+      Effect.provideService(OpenAiClient.OpenAiClient, noopOpenAiClient)
+    ))
+
   it.effect("reorders embeddings by provider index", () =>
     Effect.gen(function*() {
       let capturedRequest: HttpClientRequest.HttpClientRequest | undefined
@@ -198,3 +207,10 @@ const getRequestBody = (request: HttpClientRequest.HttpClientRequest) =>
     }
     return yield* Effect.die(new Error("Expected Uint8Array body"))
   })
+
+const noopOpenAiClient: OpenAiClient.Service = {
+  client: undefined as unknown as OpenAiClient.Service["client"],
+  createResponse: () => Effect.die(new Error("noop")),
+  createResponseStream: () => Effect.die(new Error("noop")),
+  createEmbedding: () => Effect.die(new Error("noop"))
+}

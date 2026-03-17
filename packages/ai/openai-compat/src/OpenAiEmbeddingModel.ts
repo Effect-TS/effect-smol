@@ -49,9 +49,25 @@ export class Config extends ServiceMap.Service<
  */
 export const model = (
   model: string,
-  config?: Omit<typeof Config.Service, "model">
-): AiModel.Model<"openai", EmbeddingModel.EmbeddingModel, OpenAiClient> =>
-  AiModel.make("openai", model, layer({ model, config }))
+  options: {
+    readonly dimensions: number
+    readonly config?: Omit<typeof Config.Service, "model" | "dimensions">
+  }
+): AiModel.Model<"openai", EmbeddingModel.EmbeddingModel | EmbeddingModel.ModelDimensions, OpenAiClient> =>
+  AiModel.make(
+    "openai",
+    model,
+    Layer.merge(
+      layer({
+        model,
+        config: {
+          ...options.config,
+          dimensions: options.dimensions
+        }
+      }),
+      Layer.succeed(EmbeddingModel.ModelDimensions, options.dimensions)
+    )
+  )
 
 /**
  * Creates an OpenAI embedding model service.
