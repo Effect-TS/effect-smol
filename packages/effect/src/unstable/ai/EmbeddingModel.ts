@@ -38,8 +38,8 @@ export class EmbeddingModel extends ServiceMap.Service<EmbeddingModel, Service>(
  * @since 4.0.0
  * @category services
  */
-export class ModelDimensions extends ServiceMap.Service<ModelDimensions, number>()(
-  "effect/unstable/ai/EmbeddingModel/ModelDimensions"
+export class Dimensions extends ServiceMap.Service<Dimensions, number>()(
+  "effect/unstable/ai/EmbeddingModel/Dimensions"
 ) {}
 
 /**

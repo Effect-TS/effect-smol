@@ -7,7 +7,7 @@ import { HttpClient, type HttpClientError, type HttpClientRequest, HttpClientRes
 describe("OpenAiEmbeddingModel", () => {
   it.effect("model provides dimensions service", () =>
     Effect.gen(function*() {
-      const dimensions = yield* EmbeddingModel.ModelDimensions
+      const dimensions = yield* EmbeddingModel.Dimensions
       assert.strictEqual(dimensions, 1536)
     }).pipe(
       Effect.provide(OpenAiEmbeddingModel.model("text-embedding-3-small", { dimensions: 1536 })),

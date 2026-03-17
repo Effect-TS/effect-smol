@@ -53,7 +53,7 @@ export const model = (
     readonly dimensions: number
     readonly config?: Omit<typeof Config.Service, "model" | "dimensions">
   }
-): AiModel.Model<"openai", EmbeddingModel.EmbeddingModel | EmbeddingModel.ModelDimensions, OpenAiClient> =>
+): AiModel.Model<"openai", EmbeddingModel.EmbeddingModel | EmbeddingModel.Dimensions, OpenAiClient> =>
   AiModel.make(
     "openai",
     model,
@@ -65,7 +65,7 @@ export const model = (
           dimensions: options.dimensions
         }
       }),
-      Layer.succeed(EmbeddingModel.ModelDimensions, options.dimensions)
+      Layer.succeed(EmbeddingModel.Dimensions, options.dimensions)
     )
   )
 
