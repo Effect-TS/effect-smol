@@ -154,6 +154,24 @@ export * as AnthropicStructuredOutput from "./AnthropicStructuredOutput.ts"
 export * as Chat from "./Chat.ts"
 
 /**
+ * The `EmbeddingModel` module provides provider-agnostic text embedding capabilities.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import * as EmbeddingModel from "effect/unstable/ai/EmbeddingModel"
+ *
+ * const program = Effect.gen(function*() {
+ *   const model = yield* EmbeddingModel.EmbeddingModel
+ *   return yield* model.embed("hello world")
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ */
+export * as EmbeddingModel from "./EmbeddingModel.ts"
+
+/**
  * The `IdGenerator` module provides a pluggable system for generating unique identifiers
  * for tool calls and other items in the Effect AI SDKs.
  *
