@@ -80,24 +80,13 @@ export interface ProviderOptions {
 }
 
 /**
- * Provider embedding result mapped to the original input index.
- *
- * @since 4.0.0
- * @category models
- */
-export interface ProviderResult {
-  readonly index: number
-  readonly vector: Array<number>
-}
-
-/**
  * Provider response for batch embedding requests.
  *
  * @since 4.0.0
  * @category models
  */
 export interface ProviderResponse {
-  readonly results: Array<ProviderResult>
+  readonly results: Array<Array<number>>
   readonly usage: {
     readonly inputTokens: number | undefined
   }
@@ -134,37 +123,6 @@ const invalidProviderResponse = (description: string): AiError.AiError =>
     reason: new AiError.InvalidOutputError({ description })
   })
 
-const mapProviderResults = (
-  inputLength: number,
-  results: ReadonlyArray<ProviderResult>
-): Effect.Effect<Array<EmbedResponse>, AiError.AiError> =>
-  Effect.gen(function*() {
-    const embeddings = new Array<EmbedResponse>(inputLength)
-    for (let i = 0; i < results.length; i++) {
-      const result = results[i]
-      const index = result.index
-      if (!Number.isInteger(index) || index < 0 || index >= inputLength) {
-        return yield* Effect.fail(
-          invalidProviderResponse("Provider returned out-of-bounds embedding index " + index)
-        )
-      }
-      if (embeddings[index] !== undefined) {
-        return yield* Effect.fail(
-          invalidProviderResponse("Provider returned duplicate embedding index " + index)
-        )
-      }
-      embeddings[index] = new EmbedResponse({ vector: result.vector })
-    }
-    for (let i = 0; i < embeddings.length; i++) {
-      if (embeddings[i] === undefined) {
-        return yield* Effect.fail(
-          invalidProviderResponse("Provider response missing embedding for input index " + i)
-        )
-      }
-    }
-    return embeddings
-  })
-
 /**
  * Creates an EmbeddingModel service from a provider embedMany implementation.
  *
@@ -175,35 +133,19 @@ export const make: (params: {
   readonly embedMany: (options: ProviderOptions) => Effect.Effect<ProviderResponse, AiError.AiError>
 }) => Effect.Effect<Service> = Effect.fnUntraced(function*(params) {
   const resolver = RequestResolver.make<EmbeddingRequest>((entries) =>
-    params.embedMany({
-      inputs: entries.map((entry) => entry.request.input)
-    }).pipe(
-      Effect.matchEffect({
-        onFailure: (error) =>
-          Effect.sync(() => {
-            for (let i = 0; i < entries.length; i++) {
-              entries[i].completeUnsafe(Exit.fail(error))
-            }
-          }),
-        onSuccess: (response) =>
-          mapProviderResults(entries.length, response.results).pipe(
-            Effect.matchEffect({
-              onFailure: (error) =>
-                Effect.sync(() => {
-                  for (let i = 0; i < entries.length; i++) {
-                    entries[i].completeUnsafe(Exit.fail(error))
-                  }
-                }),
-              onSuccess: (embeddings) =>
-                Effect.sync(() => {
-                  for (let i = 0; i < entries.length; i++) {
-                    entries[i].completeUnsafe(Exit.succeed(embeddings[i]))
-                  }
-                })
-            })
-          )
-      })
+    Effect.flatMap(
+      params.embedMany({
+        inputs: entries.map((entry) => entry.request.input)
+      }),
+      (response) =>
+        Effect.map(mapProviderResults(entries.length, response.results), (embeddings) => {
+          for (let i = 0; i < entries.length; i++) {
+            entries[i].completeUnsafe(Exit.succeed(embeddings[i]))
+          }
+        })
     )
+  ).pipe(
+    RequestResolver.withSpan("EmbeddingModel.resolver")
   )
 
   return EmbeddingModel.of({
@@ -217,7 +159,7 @@ export const make: (params: {
         ? Effect.succeed(
           new EmbedManyResponse({
             embeddings: [],
-            usage: new EmbeddingUsage({ inputTokens: undefined })
+            usage: new EmbeddingUsage({ inputTokens: 0 })
           })
         )
         : params.embedMany({ inputs: input }).pipe(
@@ -236,3 +178,22 @@ export const make: (params: {
         )).pipe(Effect.withSpan("EmbeddingModel.embedMany"))
   })
 })
+
+const mapProviderResults = (
+  inputLength: number,
+  results: Array<Array<number>>
+): Effect.Effect<Array<EmbedResponse>, AiError.AiError> => {
+  const embeddings = new Array<EmbedResponse>(inputLength)
+  if (results.length !== inputLength) {
+    return Effect.fail(
+      invalidProviderResponse(
+        `Provider returned ${results.length} embeddings but expected ${inputLength}`
+      )
+    )
+  }
+  for (let i = 0; i < results.length; i++) {
+    const vector = results[i]
+    embeddings[i] = new EmbedResponse({ vector })
+  }
+  return Effect.succeed(embeddings)
+}
