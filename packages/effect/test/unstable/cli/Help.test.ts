@@ -74,6 +74,28 @@ describe("Command help output", () => {
       `)
     }).pipe(Effect.provide(TestLayer)))
 
+  it.effect("aligns flag descriptions when flag names are long", () =>
+    Effect.gen(function*() {
+      const command = Command.make("tool", {
+        short: Flag.string("short").pipe(Flag.withDescription("Short flag description")),
+        veryLong: Flag.string("this-is-a-very-very-long-flag-name").pipe(
+          Flag.withDescription("Long flag description")
+        )
+      })
+      const run = Command.runWith(command, { version: "1.0.0" })
+
+      yield* run(["--help"])
+
+      const helpText = (yield* TestConsole.logLines).join("\n")
+      const lines = helpText.split("\n")
+      const shortLine = lines.find((line) => line.includes("--short"))
+      const longLine = lines.find((line) => line.includes("--this-is-a-very-very-long-flag-name"))
+
+      expect(shortLine).toBeDefined()
+      expect(longLine).toBeDefined()
+      expect(shortLine!.indexOf("Short flag description")).toBe(longLine!.indexOf("Long flag description"))
+    }).pipe(Effect.provide(TestLayer)))
+
   it.effect("command help renders examples", () =>
     Effect.gen(function*() {
       const command = Command.make("login").pipe(

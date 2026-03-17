@@ -406,8 +406,9 @@ interface Row {
  * Renders a table with aligned columns.
  * @internal
  */
-const renderTable = (rows: ReadonlyArray<Row>, widthCap: number) => {
-  const col = Math.min(Math.max(...rows.map((r) => visualLength(r.left))) + 4, widthCap)
+const renderTable = (rows: ReadonlyArray<Row>, widthCap?: number) => {
+  const maxColumn = Math.max(...rows.map((r) => visualLength(r.left))) + 4
+  const col = widthCap === undefined ? maxColumn : Math.min(maxColumn, widthCap)
   return rows.map(({ left, right }) => `  ${pad(left, col)}${right}`).join("\n")
 }
 
@@ -497,7 +498,7 @@ const formatHelpDocImpl = (doc: HelpDoc, colors: ColorFunctions): string => {
       }
     })
 
-    sections.push(renderTable(flagRows, 30))
+    sections.push(renderTable(flagRows))
     sections.push("")
   }
 
@@ -525,7 +526,7 @@ const formatHelpDocImpl = (doc: HelpDoc, colors: ColorFunctions): string => {
       }
     })
 
-    sections.push(renderTable(globalFlagRows, 30))
+    sections.push(renderTable(globalFlagRows))
     sections.push("")
   }
 
