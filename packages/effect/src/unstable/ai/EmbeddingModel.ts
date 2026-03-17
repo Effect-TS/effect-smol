@@ -4,7 +4,7 @@
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import * as EmbeddingModel from "effect/unstable/ai/EmbeddingModel"
+ * import { EmbeddingModel } from "effect/unstable/ai"
  *
  * const program = Effect.gen(function*() {
  *   const model = yield* EmbeddingModel.EmbeddingModel

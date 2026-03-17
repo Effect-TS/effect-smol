@@ -1,7 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Effect, Layer } from "effect"
+import { EmbeddingModel } from "effect/unstable/ai"
 import * as AiError from "effect/unstable/ai/AiError"
-import * as EmbeddingModel from "effect/unstable/ai/EmbeddingModel"
 
 const makeLayer = (
   embedMany: (
