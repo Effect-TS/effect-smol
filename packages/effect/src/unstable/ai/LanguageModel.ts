@@ -1251,6 +1251,14 @@ export const make: (params: {
       const decodeParts = Schema.decodeEffect(schema)
       return pipe(
         params.streamText(providerOptions),
+        providerOptions.incrementalPrompt ?
+          Stream.catchReason("AiError", "InvalidRequestError", (_) =>
+            params.streamText({
+              ...providerOptions,
+              incrementalPrompt: undefined,
+              previousResponseId: undefined
+            })) :
+          identity,
         Stream.mapArrayEffect((parts) =>
           decodeParts(parts).pipe(
             tracker ?
