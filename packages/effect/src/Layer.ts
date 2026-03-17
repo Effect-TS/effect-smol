@@ -19,6 +19,7 @@
  */
 import type { NonEmptyArray, NonEmptyReadonlyArray } from "./Array.ts"
 import type * as Cause from "./Cause.ts"
+import type * as Channel from "./Channel.ts"
 import * as Deferred from "./Deferred.ts"
 import type { Effect } from "./Effect.ts"
 import type * as Exit from "./Exit.ts"
@@ -33,6 +34,7 @@ import { hasProperty } from "./Predicate.ts"
 import { CurrentStackFrame } from "./References.ts"
 import * as Scope from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
+import type * as Stream from "./Stream.ts"
 import * as Tracer from "./Tracer.ts"
 import type * as Types from "./Types.ts"
 
@@ -1780,18 +1782,20 @@ export const launch = <RIn, E, ROut>(self: Layer<ROut, E, RIn>): Effect<never, E
  */
 export type PartialEffectful<A extends object> = Types.Simplify<
   & {
-    [
-      K in keyof A as A[K] extends Effect<any, any, any> | ((...args: any) => Effect<any, any, any>) ? K
-        : never
-    ]?: A[K]
+    [K in keyof A as A[K] extends AnyEffectOrStream ? K : never]?: A[K]
   }
   & {
-    [
-      K in keyof A as A[K] extends Effect<any, any, any> | ((...args: any) => Effect<any, any, any>) ? never
-        : K
-    ]: A[K]
+    [K in keyof A as A[K] extends AnyEffectOrStream ? never : K]: A[K]
   }
 >
+
+type AnyEffectOrStream =
+  | Effect<any, any, any>
+  | Stream.Stream<any, any, any>
+  | Channel.Channel<any, any, any, any, any, any, any>
+  | ((...args: any) => Effect<any, any, any>)
+  | ((...args: any) => Stream.Stream<any, any, any>)
+  | ((...args: any) => Channel.Channel<any, any, any, any, any, any, any>)
 
 /**
  * Creates a mock layer for testing purposes. You can provide a partial
@@ -1868,7 +1872,18 @@ const mockImpl = <I, S extends object>(service: ServiceMap.Key<I, S>, implementa
   )
 
 const makeUnimplemented = (error: globalThis.Error) => {
-  const dead = internalEffect.die(error)
+  const dead = Object.assign(internalEffect.die(error), {
+    [StreamTypeId]: StreamTypeId,
+    channel: {
+      [ChannelTypeId]: ChannelTypeId,
+      transform: () => internalEffect.succeed(dead),
+      pipe() {
+        return pipeArguments(this, arguments)
+      }
+    },
+    [ChannelTypeId]: ChannelTypeId,
+    transform: () => internalEffect.succeed(dead)
+  })
   function unimplemented() {
     return dead
   }
@@ -1877,6 +1892,9 @@ const makeUnimplemented = (error: globalThis.Error) => {
   Object.setPrototypeOf(unimplemented, Object.getPrototypeOf(dead))
   return unimplemented
 }
+
+const StreamTypeId: Stream.TypeId = "~effect/Stream"
+const ChannelTypeId: Channel.TypeId = "~effect/Channel"
 
 // -----------------------------------------------------------------------------
 // Type constraints

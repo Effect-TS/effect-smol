@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Fiber, ServiceMap } from "effect"
+import { Fiber, ServiceMap, Stream } from "effect"
 import * as Cause from "effect/Cause"
 import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
@@ -309,12 +309,18 @@ describe("Layer", () => {
         class Service1 extends ServiceMap.Service<Service1, {
           one: Effect.Effect<number>
           two(): Effect.Effect<number>
+          three: Stream.Stream<number>
         }>()("Service1") {}
         yield* Effect.gen(function*() {
           const service = yield* Service1
           assert.strictEqual(yield* service.one, 123)
           yield* service.two().pipe(
             Effect.catchDefect(Effect.fail),
+            Effect.flip
+          )
+          yield* service.three.pipe(
+            Stream.catchCause(Stream.fail),
+            Stream.runDrain,
             Effect.flip
           )
         }).pipe(

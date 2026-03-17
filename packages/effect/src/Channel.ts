@@ -92,7 +92,17 @@ import { ParentSpan, type SpanOptions } from "./Tracer.ts"
 import type * as Types from "./Types.ts"
 import type * as Unify from "./Unify.ts"
 
-const TypeId = "~effect/Channel"
+/**
+ * @since 4.0.0
+ * @category Type Identifiers
+ */
+export type TypeId = "~effect/Channel"
+
+/**
+ * @since 4.0.0
+ * @category Type Identifiers
+ */
+export const TypeId: TypeId = "~effect/Channel"
 
 /**
  * Tests if a value is a `Channel`.
