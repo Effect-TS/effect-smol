@@ -15,10 +15,9 @@ AI modules have been consolidated into the core `effect` package under
 `effect/unstable/ai`, following new patterns:
 
 - Services use `ServiceMap.Service` (not `Context.Tag`)
-- `Model.make` provides unified provider wrapping
 - `RequestResolver` natively supports data loader patterns via `setDelay`/`batchN`
 - Caching is handled via `RequestResolver.withCache`/`asCache`
-- Telemetry already includes `"embeddings"` as a `WellKnownOperationName`
+- Providers can expose the service via `Layer.effect`
 
 ## Goals
 
@@ -28,8 +27,8 @@ AI modules have been consolidated into the core `effect` package under
   `LanguageModel.GenerateTextResponse`
 - Use `RequestResolver` for batching; let users compose caching/delay via
   resolver combinators
-- Integrate with `Model.make` for provider wrapping
-- Add OpenTelemetry spans with `"embeddings"` operation name
+- Keep the provider API minimal: batch inputs in, vectors out
+- Add spans around the resolver and service methods
 - Keep the module focused and simple compared to `LanguageModel`
 
 ## Non-goals
@@ -37,7 +36,6 @@ AI modules have been consolidated into the core `effect` package under
 - Streaming embeddings (not a standard pattern)
 - Token array inputs (only string inputs)
 - Built-in caching in the constructor (composable via `RequestResolver` APIs)
-- Provider implementations (those belong in `@effect/ai-openai` etc.)
 - Image or multimodal embeddings
 
 ## Requirements
@@ -56,7 +54,7 @@ export class EmbeddingModel extends ServiceMap.Service<EmbeddingModel, Service>(
 
 ```ts
 export interface Service {
-  readonly resolver: RequestResolver.RequestResolver<EmbeddingRequest, AiError.AiError>
+  readonly resolver: RequestResolver.RequestResolver<EmbeddingRequest>
 
   readonly embed: (
     input: string
@@ -85,7 +83,7 @@ persistence, and devtools.
 export class EmbeddingUsage extends Schema.Class<EmbeddingUsage>(
   "effect/ai/EmbeddingModel/EmbeddingUsage"
 )({
-  inputTokens: Schema.UndefinedOr(Schema.Number)
+  inputTokens: Schema.UndefinedOr(Schema.Finite)
 }) {}
 ```
 
@@ -101,7 +99,7 @@ report token counts.
 export class EmbedResponse extends Schema.Class<EmbedResponse>(
   "effect/ai/EmbeddingModel/EmbedResponse"
 )({
-  vector: Schema.Array(Schema.Number)
+  vector: Schema.Array(Schema.Finite)
 }) {}
 ```
 
@@ -131,14 +129,8 @@ export interface ProviderOptions {
   readonly inputs: ReadonlyArray<string>
 }
 
-export interface ProviderResult {
-  /** Position in the original `inputs` array this result corresponds to. */
-  readonly index: number
-  readonly vector: Array<number>
-}
-
 export interface ProviderResponse {
-  readonly results: Array<ProviderResult>
+  readonly results: Array<Array<number>>
   readonly usage: {
     readonly inputTokens: number | undefined
   }
@@ -147,9 +139,9 @@ export interface ProviderResponse {
 
 `ProviderOptions` does not include a `span` field. The resolver batches
 requests from multiple concurrent `embed` callers, so there is no single
-natural parent span. Telemetry spans are managed by the service methods
-(`embed`/`embedMany`), not the provider callback. Provider implementations
-should add their own spans and `Telemetry.addGenAIAnnotations` internally.
+natural parent span. Spans are managed by the resolver and service methods,
+not the provider callback. Provider implementations can add their own spans
+internally if they need more detail.
 
 ### Constructor
 
@@ -167,20 +159,18 @@ export const make: (params: {
 **Internal behavior using v4 `RequestResolver.make` pattern:**
 
 1. Create a `RequestResolver` using `RequestResolver.make`. The resolver
-   callback receives `NonEmptyArray<Request.Entry<EmbeddingRequest>>` and a
-   batch key:
+   callback receives the current batch of `Request.Entry<EmbeddingRequest>`:
 
    ```ts
    const resolver = RequestResolver.make(
-     (entries: NonEmptyArray<Request.Entry<EmbeddingRequest>>) => {
-       // 1. Collect inputs from entries
-       const inputs = entries.map((e) => e.request.input)
-       // 2. Call provider's embedMany
-        // 3. On success: distribute results to entries via entry.completeUnsafe
-        //    matching ProviderResult.index to the entry position
-        // 4. On error: complete all entries with entry.completeUnsafe
-     }
-   )
+      (entries) => {
+        // 1. Collect inputs from entries
+        const inputs = entries.map((e) => e.request.input)
+        // 2. Call provider's embedMany
+        // 3. Validate the provider returned one vector per input
+        // 4. Complete entries by index order
+      }
+    )
    ```
 
 2. For each entry in the batch, extract `entry.request.input` to build the
@@ -188,17 +178,16 @@ export const make: (params: {
 
 3. Call the provider's `embedMany({ inputs })`.
 
- 4. On success, iterate `response.results` and complete each entry:
-    ```ts
-    entries[result.index].completeUnsafe(Exit.succeed(new EmbedResponse({
-      vector: result.vector
-    })))
-    ```
+ 4. On success, validate `response.results.length === inputs.length`, then
+    iterate the returned vectors and complete each entry by index:
+     ```ts
+     entries[i].completeUnsafe(
+       Exit.succeed(new EmbedResponse({ vector: response.results[i] }))
+     )
+     ```
 
- 5. On error, complete all entries with the error:
-    ```ts
-    entries.forEach((entry) => entry.completeUnsafe(Exit.fail(error)))
-    ```
+ 5. If the provider returns the wrong number of vectors, fail with an
+    `AiError.InvalidOutputError` describing the mismatch.
 
  6. `embed(input)` creates a single `EmbeddingRequest` and resolves it via
     `Effect.request(new EmbeddingRequest({ input }), resolver)`, wrapped in
@@ -209,8 +198,8 @@ export const make: (params: {
     and wraps in `Effect.withSpan("EmbeddingModel.embedMany")`.
 
  8. **Empty array handling:** `embedMany([])` returns immediately with an empty
-    `EmbedManyResponse` (empty embeddings array, usage with `undefined` tokens).
-    The provider is never called.
+     `EmbedManyResponse` (empty embeddings array, usage with `inputTokens: 0`).
+     The provider is never called.
 
 **Provider integration with `Layer`:**
 
@@ -225,8 +214,6 @@ const layer = Layer.effect(
   })
 )
 
-// With Model.make for unified provider wrapping
-const model = Model.make("openai", "text-embedding-3-small", layer)
 ```
 
 ### Request Type
@@ -244,17 +231,13 @@ export class EmbeddingRequest extends Request.TaggedClass("EmbeddingRequest")<
 
 ### Telemetry
 
-Span hierarchy:
+Span behavior:
 
-- `embed` creates span `"EmbeddingModel.embed"`. The resolver runs within
-  this span context. When multiple `embed` calls are batched, each has its own
-  span, and the resolver may execute under any one of them.
-- `embedMany` creates a single outer span `"EmbeddingModel.embedMany"`. The
-  individual `embed` requests dispatched internally via `Effect.forEach` do
-  NOT create individual sub-spans -- only the outer span exists.
-- Provider implementations should add their own spans (e.g.,
-  `"OpenAiEmbeddingModel.embedMany"`) and use
-  `Telemetry.addGenAIAnnotations` with `operation.name: "embeddings"`.
+- `embed` is wrapped in `Effect.withSpan("EmbeddingModel.embed")`.
+- The shared resolver is wrapped in `RequestResolver.withSpan("EmbeddingModel.resolver")`.
+- `embedMany` is wrapped in `Effect.withSpan("EmbeddingModel.embedMany")`.
+- Provider callbacks stay focused on data conversion; provider-specific
+  telemetry is optional and local to the provider implementation.
 
 ### Module JSDoc
 
@@ -295,7 +278,11 @@ Use `@effect/vitest` with `it.effect` pattern. Use `assert` (not `expect`).
    right tag and reason.
 
 5. **`embedMany` with empty array** -- Call `embedMany([])`. Assert it returns
-   an `EmbedManyResponse` with empty embeddings and undefined usage.
+   an `EmbedManyResponse` with empty embeddings and `inputTokens: 0` usage.
+
+6. **Invalid provider result count** -- Create a mock provider that returns
+   fewer vectors than requested. Assert `embed` and `embedMany` fail with
+   `AiError.InvalidOutputError`.
 
 ## Validation
 
@@ -313,8 +300,9 @@ After implementation, run in order:
 - `embed` and `embedMany` methods on the service interface
 - `EmbedResponse`, `EmbedManyResponse`, and `EmbeddingUsage` response classes
 - `make` constructor wraps provider's `embedMany` with `RequestResolver`
+- Provider responses return vectors in positional order via `results`
 - Automatic batching when multiple `embed` calls are concurrent
-- OpenTelemetry spans on `embed` and `embedMany`
+- Spans on `resolver`, `embed`, and `embedMany`
 - All errors typed as `AiError.AiError`
 - Module exported from `effect/unstable/ai` barrel
 - Tests pass covering core functionality, batching, and error propagation
@@ -328,14 +316,15 @@ Create `packages/effect/src/unstable/ai/EmbeddingModel.ts` containing:
 
 - `EmbeddingModel` service class (`ServiceMap.Service`)
 - `Service` interface with `embed` and `embedMany`
-- `EmbedResponse`, `EmbedManyResponse`, `EmbeddingUsage` plain classes
-- `ProviderOptions`, `ProviderResult`, `ProviderResponse` interfaces
+- `EmbedResponse`, `EmbedManyResponse`, `EmbeddingUsage` schema-based classes
+- `ProviderOptions` and `ProviderResponse` interfaces
 - Internal `EmbeddingRequest` tagged request class
 - `make` constructor that:
   - Creates a `RequestResolver` using `RequestResolver.make` with the v4
     entry-based API
   - Implements `embed` using `Effect.request` + the resolver
-  - Implements `embedMany` using `Effect.forEach` with `{ batching: true }`
+  - Implements `embedMany` by calling the provider directly
+  - Validates provider result counts before constructing responses
   - Wraps both in `Effect.withSpan`
 
 Then run `pnpm codegen` to add the barrel export to

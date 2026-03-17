@@ -31,7 +31,7 @@ describe("EmbeddingModel", () => {
           Effect.sync(() => {
             calls.push(inputs)
             return {
-              results: [{ index: 0, vector: [1, 2, 3] }],
+              results: [[1, 2, 3]],
               usage: { inputTokens: 5 }
             }
           })
@@ -58,10 +58,7 @@ describe("EmbeddingModel", () => {
         makeLayer(({ inputs }) => {
           calls.push(inputs)
           return Effect.succeed({
-            results: [
-              { index: 1, vector: [3, 4] },
-              { index: 0, vector: [1, 2] }
-            ],
+            results: [[1, 2], [3, 4]],
             usage: { inputTokens: 9 }
           })
         })
@@ -93,10 +90,7 @@ describe("EmbeddingModel", () => {
           calls++
           batches.push(inputs)
           return Effect.succeed({
-            results: inputs.map((input, index) => ({
-              index,
-              vector: [input.charCodeAt(0)]
-            })),
+            results: inputs.map((input) => [input.charCodeAt(0)]),
             usage: { inputTokens: undefined }
           })
         })
@@ -171,7 +165,7 @@ describe("EmbeddingModel", () => {
       Effect.provide(
         makeLayer(() =>
           Effect.succeed({
-            results: [{ index: 0, vector: [1, 2, 3] }],
+            results: [[1, 2, 3]],
             usage: { inputTokens: 3 }
           })
         )
@@ -187,7 +181,7 @@ describe("EmbeddingModel", () => {
 
       assert.strictEqual(calls, 0)
       assert.deepStrictEqual(response.embeddings, [])
-      assert.strictEqual(response.usage.inputTokens, undefined)
+      assert.strictEqual(response.usage.inputTokens, 0)
     }).pipe(
       Effect.provide(
         makeLayer(() => {
