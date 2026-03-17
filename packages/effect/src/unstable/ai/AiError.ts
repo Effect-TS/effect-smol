@@ -1396,10 +1396,8 @@ export class AiError extends Schema.ErrorClass<AiError>(
   method: Schema.String,
   reason: AiErrorReason
 }) {
-  /**
-   * @since 1.0.0
-   */
   readonly [TypeId] = TypeId
+  override readonly cause = this.reason
 
   /**
    * Delegates to the underlying reason's `isRetryable` getter.

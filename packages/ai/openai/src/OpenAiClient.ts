@@ -434,6 +434,9 @@ const makeSocket = Effect.gen(function*() {
         const text = typeof msg === "string" ? msg : decoder.decode(msg)
         try {
           const event = decodeEvent(text)
+          if (event.type === "error") {
+            tracker.clearUnsafe()
+          }
           if (event.type === "error" && "status" in event) {
             return Queue.fail(
               currentQueue,
@@ -442,7 +445,10 @@ const makeSocket = Effect.gen(function*() {
                 method: "createResponseStream",
                 reason: AiError.reasonFromHttpStatus({
                   status: event.status,
-                  metadata: event.error
+                  metadata: {
+                    ...event.error,
+                    description: event.error.message
+                  }
                 })
               })
             )

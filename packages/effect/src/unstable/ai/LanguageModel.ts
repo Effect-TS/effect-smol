@@ -1096,7 +1096,16 @@ export const make: (params: {
       return content as Array<Response.Part<Tools>>
     }
 
-    const rawContent = yield* params.generateText(providerOptions)
+    const rawContent = yield* params.generateText(providerOptions).pipe(
+      providerOptions.incrementalPrompt ?
+        Effect.catchReason("AiError", "InvalidRequestError", (_) =>
+          params.generateText({
+            ...providerOptions,
+            incrementalPrompt: undefined,
+            previousResponseId: undefined
+          })) :
+        identity
+    )
 
     // Resolve the generated tool calls
     const toolResults = yield* resolveToolCalls(
@@ -1185,6 +1194,14 @@ export const make: (params: {
       const decodeParts = Schema.decodeEffect(schema)
       return pipe(
         params.streamText(providerOptions),
+        providerOptions.incrementalPrompt ?
+          Stream.catchReason("AiError", "InvalidRequestError", (_) =>
+            params.streamText({
+              ...providerOptions,
+              incrementalPrompt: undefined,
+              previousResponseId: undefined
+            })) :
+          identity,
         Stream.mapArrayEffect((parts) =>
           decodeParts(parts).pipe(
             tracker ?
