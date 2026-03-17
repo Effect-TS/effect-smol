@@ -25,6 +25,15 @@ export * as OpenAiClient from "./OpenAiClient.ts"
 export * as OpenAiConfig from "./OpenAiConfig.ts"
 
 /**
+ * OpenAI Embedding Model implementation.
+ *
+ * Provides an EmbeddingModel implementation for OpenAI's embeddings API.
+ *
+ * @since 1.0.0
+ */
+export * as OpenAiEmbeddingModel from "./OpenAiEmbeddingModel.ts"
+
+/**
  * OpenAI error metadata augmentation.
  *
  * Provides OpenAI-specific metadata fields for AI error types through module
