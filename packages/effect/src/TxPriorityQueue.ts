@@ -532,5 +532,4 @@ export const toArray = <A>(self: TxPriorityQueue<A>): Effect.Effect<Array<A>, ne
  * @since 4.0.0
  * @category guards
  */
-export const isTxPriorityQueue = (u: unknown): u is TxPriorityQueue<unknown> =>
-  hasProperty(u, TypeId)
+export const isTxPriorityQueue = (u: unknown): u is TxPriorityQueue<unknown> => hasProperty(u, TypeId)

@@ -78,8 +78,7 @@ export interface MutableHashMap<out K, out V> extends Iterable<[K, V]>, Pipeable
  * @category refinements
  * @since 4.0.0
  */
-export const isMutableHashMap = <K, V>(value: unknown): value is MutableHashMap<K, V> =>
-  hasProperty(value, TypeId)
+export const isMutableHashMap = <K, V>(value: unknown): value is MutableHashMap<K, V> => hasProperty(value, TypeId)
 
 const MutableHashMapProto: Omit<MutableHashMap<unknown, unknown>, "backing" | "buckets" | "bucketsSize"> = {
   [TypeId]: TypeId,

@@ -75,8 +75,7 @@ export interface MutableHashSet<out V> extends Iterable<V>, Pipeable, Inspectabl
  * @category refinements
  * @since 4.0.0
  */
-export const isMutableHashSet = <V>(value: unknown): value is MutableHashSet<V> =>
-  hasProperty(value, TypeId)
+export const isMutableHashSet = <V>(value: unknown): value is MutableHashSet<V> => hasProperty(value, TypeId)
 
 const MutableHashSetProto: Omit<MutableHashSet<unknown>, "keyMap"> = {
   [TypeId]: TypeId,

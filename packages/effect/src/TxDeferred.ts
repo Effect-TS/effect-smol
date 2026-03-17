@@ -271,5 +271,4 @@ export const fail: {
  * @since 4.0.0
  * @category guards
  */
-export const isTxDeferred = (u: unknown): u is TxDeferred<unknown, unknown> =>
-  hasProperty(u, TypeId)
+export const isTxDeferred = (u: unknown): u is TxDeferred<unknown, unknown> => hasProperty(u, TypeId)
