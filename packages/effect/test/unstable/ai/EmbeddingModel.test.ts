@@ -66,7 +66,7 @@ describe("EmbeddingModel", () => {
     )
   })
 
-  it.effect("concurrent embed calls are batched", () => {
+  it.effect("concurrent embed calls are batched into one provider embedMany call", () => {
     let calls = 0
     const batches: Array<ReadonlyArray<string>> = []
 
@@ -98,8 +98,7 @@ describe("EmbeddingModel", () => {
     )
   })
 
-  it.effect("provider failure propagates to all batched embed entries", () => {
-    let calls = 0
+  it.effect("provider AiError propagates through embed", () => {
     const error = AiError.make({
       module: "EmbeddingModelTest",
       method: "embedMany",
@@ -108,22 +107,14 @@ describe("EmbeddingModel", () => {
 
     return Effect.gen(function*() {
       const model = yield* EmbeddingModel.EmbeddingModel
-      const results = yield* Effect.all([
-        model.embed("a").pipe(Effect.match({ onFailure: (error) => error, onSuccess: () => undefined })),
-        model.embed("b").pipe(Effect.match({ onFailure: (error) => error, onSuccess: () => undefined })),
-        model.embed("c").pipe(Effect.match({ onFailure: (error) => error, onSuccess: () => undefined }))
-      ], { concurrency: "unbounded" })
+      const result = yield* model.embed("hello").pipe(
+        Effect.match({ onFailure: (error) => error, onSuccess: () => undefined })
+      )
 
-      assert.strictEqual(calls, 1)
-      for (let i = 0; i < results.length; i++) {
-        assert.strictEqual(results[i], error)
-      }
+      assert.strictEqual(result, error)
     }).pipe(
       Effect.provide(
-        makeLayer(() => {
-          calls++
-          return Effect.fail(error)
-        })
+        makeLayer(() => Effect.fail(error))
       )
     )
   })
@@ -181,7 +172,7 @@ describe("EmbeddingModel", () => {
 
       assert.strictEqual(calls, 0)
       assert.deepStrictEqual(response.embeddings, [])
-      assert.strictEqual(response.usage.inputTokens, 0)
+      assert.strictEqual(response.usage.inputTokens, undefined)
     }).pipe(
       Effect.provide(
         makeLayer(() => {

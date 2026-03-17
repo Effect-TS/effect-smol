@@ -159,7 +159,7 @@ export const make: (params: {
         ? Effect.succeed(
           new EmbedManyResponse({
             embeddings: [],
-            usage: new EmbeddingUsage({ inputTokens: 0 })
+            usage: new EmbeddingUsage({ inputTokens: undefined })
           })
         )
         : params.embedMany({ inputs: input }).pipe(
