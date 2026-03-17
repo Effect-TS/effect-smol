@@ -40,7 +40,7 @@ export class EmbeddingModel extends ServiceMap.Service<EmbeddingModel, Service>(
 export class EmbeddingUsage extends Schema.Class<EmbeddingUsage>(
   "effect/ai/EmbeddingModel/EmbeddingUsage"
 )({
-  inputTokens: Schema.UndefinedOr(Schema.Number)
+  inputTokens: Schema.UndefinedOr(Schema.Finite)
 }) {}
 
 /**
@@ -52,7 +52,7 @@ export class EmbeddingUsage extends Schema.Class<EmbeddingUsage>(
 export class EmbedResponse extends Schema.Class<EmbedResponse>(
   "effect/ai/EmbeddingModel/EmbedResponse"
 )({
-  vector: Schema.Array(Schema.Number)
+  vector: Schema.Array(Schema.Finite)
 }) {}
 
 /**
