@@ -137,6 +137,71 @@ describe("OpenAiEmbeddingModel", () => {
       assert.strictEqual(error._tag, "AiError")
       assert.strictEqual(error.reason._tag, "InvalidOutputError")
     }))
+
+  it.effect("fails with InvalidOutputError when provider returns out-of-range indices", () =>
+    Effect.gen(function*() {
+      const clientLayer = OpenAiClient.layer({ apiKey: Redacted.make("sk-test-key") }).pipe(
+        Layer.provide(Layer.succeed(
+          HttpClient.HttpClient,
+          makeHttpClient((request) =>
+            Effect.succeed(jsonResponse(request, {
+              data: [
+                { index: 0, embedding: [1], object: "embedding" },
+                { index: 2, embedding: [2], object: "embedding" }
+              ],
+              model: "text-embedding-3-small",
+              object: "list",
+              usage: {
+                prompt_tokens: 2,
+                total_tokens: 2
+              }
+            }))
+          )
+        ))
+      )
+
+      const error = yield* Effect.gen(function*() {
+        const model = yield* EmbeddingModel.EmbeddingModel
+        return yield* model.embedMany(["a", "b"]).pipe(Effect.flip)
+      }).pipe(
+        Effect.provide(OpenAiEmbeddingModel.layer({ model: "text-embedding-3-small" })),
+        Effect.provide(clientLayer)
+      )
+
+      assert.strictEqual(error._tag, "AiError")
+      assert.strictEqual(error.reason._tag, "InvalidOutputError")
+    }))
+
+  it.effect("fails with InvalidOutputError when provider returns wrong embedding count", () =>
+    Effect.gen(function*() {
+      const clientLayer = OpenAiClient.layer({ apiKey: Redacted.make("sk-test-key") }).pipe(
+        Layer.provide(Layer.succeed(
+          HttpClient.HttpClient,
+          makeHttpClient((request) =>
+            Effect.succeed(jsonResponse(request, {
+              data: [{ index: 0, embedding: [1], object: "embedding" }],
+              model: "text-embedding-3-small",
+              object: "list",
+              usage: {
+                prompt_tokens: 1,
+                total_tokens: 1
+              }
+            }))
+          )
+        ))
+      )
+
+      const error = yield* Effect.gen(function*() {
+        const model = yield* EmbeddingModel.EmbeddingModel
+        return yield* model.embedMany(["a", "b"]).pipe(Effect.flip)
+      }).pipe(
+        Effect.provide(OpenAiEmbeddingModel.layer({ model: "text-embedding-3-small" })),
+        Effect.provide(clientLayer)
+      )
+
+      assert.strictEqual(error._tag, "AiError")
+      assert.strictEqual(error.reason._tag, "InvalidOutputError")
+    }))
 })
 
 const makeHttpClient = (
