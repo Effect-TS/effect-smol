@@ -134,6 +134,50 @@ describe("EmbeddingModel", () => {
     )
   })
 
+  it.effect("embed fails with InvalidOutputError when provider misses results", () =>
+    Effect.gen(function*() {
+      const model = yield* EmbeddingModel.EmbeddingModel
+      const error = yield* model.embed("hello").pipe(
+        Effect.match({ onFailure: (error) => error, onSuccess: () => undefined })
+      )
+
+      assert.notStrictEqual(error, undefined)
+      if (error !== undefined) {
+        assert.strictEqual(error.reason._tag, "InvalidOutputError")
+      }
+    }).pipe(
+      Effect.provide(
+        makeLayer(() =>
+          Effect.succeed({
+            results: [],
+            usage: { inputTokens: 0 }
+          })
+        )
+      )
+    ))
+
+  it.effect("embedMany fails with InvalidOutputError when provider misses results", () =>
+    Effect.gen(function*() {
+      const model = yield* EmbeddingModel.EmbeddingModel
+      const error = yield* model.embedMany(["hello", "world"]).pipe(
+        Effect.match({ onFailure: (error) => error, onSuccess: () => undefined })
+      )
+
+      assert.notStrictEqual(error, undefined)
+      if (error !== undefined) {
+        assert.strictEqual(error.reason._tag, "InvalidOutputError")
+      }
+    }).pipe(
+      Effect.provide(
+        makeLayer(() =>
+          Effect.succeed({
+            results: [{ index: 0, vector: [1, 2, 3] }],
+            usage: { inputTokens: 3 }
+          })
+        )
+      )
+    ))
+
   it.effect("embedMany([]) bypasses provider", () => {
     let calls = 0
 

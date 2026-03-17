@@ -20,7 +20,7 @@ import * as Request from "../../Request.ts"
 import * as RequestResolver from "../../RequestResolver.ts"
 import * as Schema from "../../Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
-import type * as AiError from "./AiError.ts"
+import * as AiError from "./AiError.ts"
 
 /**
  * Service tag for embedding model operations.
@@ -127,6 +127,44 @@ export interface Service {
   readonly embedMany: (input: ReadonlyArray<string>) => Effect.Effect<EmbedManyResponse, AiError.AiError>
 }
 
+const invalidProviderResponse = (description: string): AiError.AiError =>
+  AiError.make({
+    module: "EmbeddingModel",
+    method: "embedMany",
+    reason: new AiError.InvalidOutputError({ description })
+  })
+
+const mapProviderResults = (
+  inputLength: number,
+  results: ReadonlyArray<ProviderResult>
+): Effect.Effect<Array<EmbedResponse>, AiError.AiError> =>
+  Effect.gen(function*() {
+    const embeddings = new Array<EmbedResponse>(inputLength)
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i]
+      const index = result.index
+      if (!Number.isInteger(index) || index < 0 || index >= inputLength) {
+        return yield* Effect.fail(
+          invalidProviderResponse("Provider returned out-of-bounds embedding index " + index)
+        )
+      }
+      if (embeddings[index] !== undefined) {
+        return yield* Effect.fail(
+          invalidProviderResponse("Provider returned duplicate embedding index " + index)
+        )
+      }
+      embeddings[index] = new EmbedResponse({ vector: result.vector })
+    }
+    for (let i = 0; i < embeddings.length; i++) {
+      if (embeddings[i] === undefined) {
+        return yield* Effect.fail(
+          invalidProviderResponse("Provider response missing embedding for input index " + i)
+        )
+      }
+    }
+    return embeddings
+  })
+
 /**
  * Creates an EmbeddingModel service from a provider embedMany implementation.
  *
@@ -148,15 +186,22 @@ export const make: (params: {
             }
           }),
         onSuccess: (response) =>
-          Effect.sync(() => {
-            for (let i = 0; i < response.results.length; i++) {
-              const result = response.results[i]
-              const entry = entries[result.index]
-              if (entry !== undefined) {
-                entry.completeUnsafe(Exit.succeed(new EmbedResponse({ vector: result.vector })))
-              }
-            }
-          })
+          mapProviderResults(entries.length, response.results).pipe(
+            Effect.matchEffect({
+              onFailure: (error) =>
+                Effect.sync(() => {
+                  for (let i = 0; i < entries.length; i++) {
+                    entries[i].completeUnsafe(Exit.fail(error))
+                  }
+                }),
+              onSuccess: (embeddings) =>
+                Effect.sync(() => {
+                  for (let i = 0; i < entries.length; i++) {
+                    entries[i].completeUnsafe(Exit.succeed(embeddings[i]))
+                  }
+                })
+            })
+          )
       })
     )
   )
@@ -176,19 +221,18 @@ export const make: (params: {
           })
         )
         : params.embedMany({ inputs: input }).pipe(
-          Effect.map((response) => {
-            const embeddings = new Array<EmbedResponse>(input.length)
-            for (let i = 0; i < response.results.length; i++) {
-              const result = response.results[i]
-              embeddings[result.index] = new EmbedResponse({ vector: result.vector })
-            }
-            return new EmbedManyResponse({
-              embeddings,
-              usage: new EmbeddingUsage({
-                inputTokens: response.usage.inputTokens
-              })
-            })
-          })
+          Effect.flatMap((response) =>
+            mapProviderResults(input.length, response.results).pipe(
+              Effect.map((embeddings) =>
+                new EmbedManyResponse({
+                  embeddings,
+                  usage: new EmbeddingUsage({
+                    inputTokens: response.usage.inputTokens
+                  })
+                })
+              )
+            )
+          )
         )).pipe(Effect.withSpan("EmbeddingModel.embedMany"))
   })
 })
