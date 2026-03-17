@@ -937,6 +937,20 @@ export const make: (params: {
     const tracker = Option.getOrUndefined(yield* Effect.serviceOption(ResponseIdTracker.ResponseIdTracker))
     const toolChoice = options.toolChoice ?? "auto"
 
+    const withNonIncrementalFallback = <R>(
+      effect: Effect.Effect<Array<Response.PartEncoded>, AiError.AiError, R>
+    ): Effect.Effect<Array<Response.PartEncoded>, AiError.AiError, R | IdGenerator> =>
+      providerOptions.incrementalPrompt ?
+        effect.pipe(
+          Effect.catchReason("AiError", "InvalidRequestError", (_) =>
+            params.generateText({
+              ...providerOptions,
+              incrementalPrompt: undefined,
+              previousResponseId: undefined
+            }))
+        ) :
+        effect
+
     // Check for pending approvals that need resolution
     const { approved, denied } = collectToolApprovals(
       providerOptions.prompt.content,
@@ -968,7 +982,7 @@ export const make: (params: {
       const ResponseSchema = Schema.mutable(
         Schema.Array(Response.Part(Toolkit.empty))
       )
-      const rawContent = yield* params.generateText(providerOptions)
+      const rawContent = yield* withNonIncrementalFallback(params.generateText(providerOptions))
       const content = yield* Schema.decodeEffect(ResponseSchema)(rawContent)
       if (tracker) {
         const responseMetadata = content.find((part) => part.type === "response-metadata")
@@ -1006,7 +1020,7 @@ export const make: (params: {
       const ResponseSchema = Schema.mutable(
         Schema.Array(Response.Part(Toolkit.empty))
       )
-      const rawContent = yield* params.generateText(providerOptions)
+      const rawContent = yield* withNonIncrementalFallback(params.generateText(providerOptions))
       const content = yield* Schema.decodeEffect(ResponseSchema)(rawContent)
       if (tracker) {
         const responseMetadata = content.find((part) => part.type === "response-metadata")
@@ -1085,7 +1099,7 @@ export const make: (params: {
     // If tool call resolution is disabled, return the response without
     // resolving the tool calls that were generated
     if (options.disableToolCallResolution === true) {
-      const rawContent = yield* params.generateText(providerOptions)
+      const rawContent = yield* withNonIncrementalFallback(params.generateText(providerOptions))
       const content = yield* Schema.decodeEffect(ResponseSchema)(rawContent)
       if (tracker) {
         const responseMetadata = content.find((part) => part.type === "response-metadata")
@@ -1096,16 +1110,7 @@ export const make: (params: {
       return content as Array<Response.Part<Tools>>
     }
 
-    const rawContent = yield* params.generateText(providerOptions).pipe(
-      providerOptions.incrementalPrompt ?
-        Effect.catchReason("AiError", "InvalidRequestError", (_) =>
-          params.generateText({
-            ...providerOptions,
-            incrementalPrompt: undefined,
-            previousResponseId: undefined
-          })) :
-        identity
-    )
+    const rawContent = yield* withNonIncrementalFallback(params.generateText(providerOptions))
 
     // Resolve the generated tool calls
     const toolResults = yield* resolveToolCalls(
@@ -1163,6 +1168,20 @@ export const make: (params: {
     const tracker = Option.getOrUndefined(yield* Effect.serviceOption(ResponseIdTracker.ResponseIdTracker))
     const toolChoice = options.toolChoice ?? "auto"
 
+    const withNonIncrementalFallback = <R>(
+      stream: Stream.Stream<Response.StreamPartEncoded, AiError.AiError, R>
+    ): Stream.Stream<Response.StreamPartEncoded, AiError.AiError, R | IdGenerator> =>
+      providerOptions.incrementalPrompt ?
+        stream.pipe(
+          Stream.catchReason("AiError", "InvalidRequestError", (_) =>
+            params.streamText({
+              ...providerOptions,
+              incrementalPrompt: undefined,
+              previousResponseId: undefined
+            }))
+        ) :
+        stream
+
     // Check for pending approvals that need resolution
     const { approved: pendingApproved, denied: pendingDenied } = collectToolApprovals(providerOptions.prompt.content, {
       excludeResolved: true
@@ -1194,14 +1213,7 @@ export const make: (params: {
       const decodeParts = Schema.decodeEffect(schema)
       return pipe(
         params.streamText(providerOptions),
-        providerOptions.incrementalPrompt ?
-          Stream.catchReason("AiError", "InvalidRequestError", (_) =>
-            params.streamText({
-              ...providerOptions,
-              incrementalPrompt: undefined,
-              previousResponseId: undefined
-            })) :
-          identity,
+        withNonIncrementalFallback,
         Stream.mapArrayEffect((parts) =>
           decodeParts(parts).pipe(
             tracker ?
@@ -1251,14 +1263,7 @@ export const make: (params: {
       const decodeParts = Schema.decodeEffect(schema)
       return pipe(
         params.streamText(providerOptions),
-        providerOptions.incrementalPrompt ?
-          Stream.catchReason("AiError", "InvalidRequestError", (_) =>
-            params.streamText({
-              ...providerOptions,
-              incrementalPrompt: undefined,
-              previousResponseId: undefined
-            })) :
-          identity,
+        withNonIncrementalFallback,
         Stream.mapArrayEffect((parts) =>
           decodeParts(parts).pipe(
             tracker ?
@@ -1365,6 +1370,7 @@ export const make: (params: {
       const schema = Schema.NonEmptyArray(Response.StreamPart(toolkit))
       const decodeParts = Schema.decodeEffect(schema)
       return params.streamText(providerOptions).pipe(
+        withNonIncrementalFallback,
         Stream.mapArrayEffect((parts) =>
           decodeParts(parts).pipe(
             tracker ?
@@ -1444,6 +1450,7 @@ export const make: (params: {
     })
 
     yield* params.streamText(providerOptions).pipe(
+      withNonIncrementalFallback,
       Stream.runForEachArray(
         Effect.fnUntraced(function*(chunk) {
           const parts = yield* decodeParts(chunk)
