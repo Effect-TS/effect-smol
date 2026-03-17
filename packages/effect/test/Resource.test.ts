@@ -8,6 +8,13 @@ import * as Schedule from "effect/Schedule"
 import * as TestClock from "effect/testing/TestClock"
 
 describe("Resource", () => {
+  it.effect("isResource", () =>
+    Effect.gen(function*() {
+      const resource = yield* Resource.manual(Effect.succeed(0))
+      assert.isTrue(Resource.isResource(resource))
+      assert.isFalse(Resource.isResource(new Set([0])))
+    }))
+
   it.effect("manual", () =>
     Effect.gen(function*() {
       const ref = yield* Ref.make(0)

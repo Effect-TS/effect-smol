@@ -16,7 +16,7 @@ import * as O from "./Option.ts"
 import type { Order } from "./Order.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import { pipeArguments } from "./Pipeable.ts"
-import type { Predicate } from "./Predicate.ts"
+import { hasProperty, type Predicate } from "./Predicate.ts"
 import * as TxRef from "./TxRef.ts"
 
 const TypeId = "~effect/transactions/TxPriorityQueue"
@@ -533,4 +533,4 @@ export const toArray = <A>(self: TxPriorityQueue<A>): Effect.Effect<Array<A>, ne
  * @category guards
  */
 export const isTxPriorityQueue = (u: unknown): u is TxPriorityQueue<unknown> =>
-  typeof u === "object" && u !== null && TypeId in u
+  hasProperty(u, TypeId)

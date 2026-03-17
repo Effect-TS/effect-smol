@@ -35,6 +35,11 @@ function value(c: number, d: number): Value {
 }
 
 describe("MutableHashMap", () => {
+  it("isMutableHashMap", () => {
+    assertTrue(HM.isMutableHashMap(HM.make([0, "a"], [1, "b"])))
+    assertFalse(HM.isMutableHashMap(new Map([[0, "a"]])))
+  })
+
   it("toString", () => {
     const map = HM.make(
       [0, "a"],

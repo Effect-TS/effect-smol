@@ -7,6 +7,7 @@ import type { Inspectable } from "./Inspectable.ts"
 import { NodeInspectSymbol, toJson } from "./Inspectable.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import { pipeArguments } from "./Pipeable.ts"
+import { hasProperty } from "./Predicate.ts"
 import type * as Scope from "./Scope.ts"
 import * as TxRef from "./TxRef.ts"
 
@@ -584,4 +585,4 @@ export const withPermitScoped = (self: TxSemaphore): Effect.Effect<void, never, 
  * @since 4.0.0
  * @category guards
  */
-export const isTxSemaphore = (u: unknown): u is TxSemaphore => typeof u === "object" && u !== null && TypeId in u
+export const isTxSemaphore = (u: unknown): u is TxSemaphore => hasProperty(u, TypeId)

@@ -372,7 +372,7 @@ export declare namespace Yieldable {
  * @since 2.0.0
  * @category Guards
  */
-export const isEffect = (u: unknown): u is Effect<any, any, any> => typeof u === "object" && u !== null && TypeId in u
+export const isEffect: (u: unknown) => u is Effect<any, any, any> = core.isEffect
 
 /**
  * Iterator interface for Effect generators, enabling Effect values to work with generator functions.
@@ -13270,7 +13270,7 @@ export const annotateLogs = dual<
     ): Effect<A, E, R>
   }
 >(
-  (args) => core.isEffect(args[0]),
+  (args) => isEffect(args[0]),
   <A, E, R>(
     effect: Effect<A, E, R>,
     ...args: [Record<string, unknown>] | [key: string, value: unknown]

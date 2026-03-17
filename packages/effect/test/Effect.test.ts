@@ -27,6 +27,11 @@ import { assertCauseFail } from "./utils/assert.ts"
 class ATag extends ServiceMap.Service<ATag, "A">()("ATag") {}
 
 describe("Effect", () => {
+  it("isEffect", () => {
+    assert.isTrue(Effect.isEffect(Effect.succeed(0)))
+    assert.isFalse(Effect.isEffect([0]))
+  })
+
   describe("structural compare", () => {
     it("should pass structural comparison", () => {
       assert.deepEqual(Effect.succeed(0), Effect.succeed(0))

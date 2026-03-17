@@ -2,6 +2,13 @@ import { assert, describe, it } from "@effect/vitest"
 import { Array, Effect, Exit, Fiber, Latch, Number, Pull, Random, Stream, SubscriptionRef } from "effect"
 
 describe("SubscriptionRef", () => {
+  it.effect("isSubscriptionRef", () =>
+    Effect.gen(function*() {
+      const ref = yield* SubscriptionRef.make(0)
+      assert.isTrue(SubscriptionRef.isSubscriptionRef(ref))
+      assert.isFalse(SubscriptionRef.isSubscriptionRef([0]))
+    }))
+
   it.effect("multiple subscribers can receive changes", () =>
     Effect.gen(function*() {
       const ref = yield* SubscriptionRef.make(0)

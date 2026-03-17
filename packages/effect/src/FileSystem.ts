@@ -43,6 +43,7 @@ import { pipe } from "./Function.ts"
 import * as Layer from "./Layer.ts"
 import * as Option from "./Option.ts"
 import { badArgument, type PlatformError, systemError } from "./PlatformError.ts"
+import { hasProperty } from "./Predicate.ts"
 import type * as Pull from "./Pull.ts"
 import type { Scope } from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
@@ -999,7 +1000,7 @@ export const FileTypeId = "~effect/platform/FileSystem/File"
  * @since 4.0.0
  * @category File
  */
-export const isFile = (u: unknown): u is File => typeof u === "object" && u !== null && FileTypeId in u
+export const isFile = (u: unknown): u is File => hasProperty(u, FileTypeId)
 
 /**
  * Interface representing an open file handle.

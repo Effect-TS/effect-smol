@@ -30,6 +30,7 @@ import { type Inspectable, NodeInspectSymbol, toJson } from "./Inspectable.ts"
 import * as MutableHashMap from "./MutableHashMap.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import { pipeArguments } from "./Pipeable.ts"
+import { hasProperty } from "./Predicate.ts"
 
 const TypeId = "~effect/collections/MutableHashSet"
 
@@ -67,6 +68,15 @@ export interface MutableHashSet<out V> extends Iterable<V>, Pipeable, Inspectabl
   readonly [TypeId]: typeof TypeId
   readonly keyMap: MutableHashMap.MutableHashMap<V, boolean>
 }
+
+/**
+ * Checks if the specified value is a `MutableHashSet`, `false` otherwise.
+ *
+ * @category refinements
+ * @since 4.0.0
+ */
+export const isMutableHashSet = <V>(value: unknown): value is MutableHashSet<V> =>
+  hasProperty(value, TypeId)
 
 const MutableHashSetProto: Omit<MutableHashSet<unknown>, "keyMap"> = {
   [TypeId]: TypeId,

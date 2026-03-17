@@ -131,6 +131,7 @@ describe("TxDeferred", () => {
         assert.isFalse(TxDeferred.isTxDeferred({ some: "object" }))
         assert.isFalse(TxDeferred.isTxDeferred(null))
         assert.isFalse(TxDeferred.isTxDeferred(undefined))
+        assert.isFalse(TxDeferred.isTxDeferred([1]))
       })))
   })
 

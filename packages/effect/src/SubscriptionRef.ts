@@ -6,6 +6,7 @@ import { dual, identity } from "./Function.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
 import * as Option from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
+import { hasProperty } from "./Predicate.ts"
 import * as PubSub from "./PubSub.ts"
 import * as Semaphore from "./Semaphore.ts"
 import * as Stream from "./Stream.ts"
@@ -29,7 +30,7 @@ export interface SubscriptionRef<in out A> extends SubscriptionRef.Variance<A>, 
  */
 export const isSubscriptionRef: (u: unknown) => u is SubscriptionRef<unknown> = (
   u: unknown
-): u is SubscriptionRef<unknown> => typeof u === "object" && u != null && TypeId in u
+): u is SubscriptionRef<unknown> => hasProperty(u, TypeId)
 
 /**
  * The `SynchronizedRef` namespace containing type definitions and utilities.

@@ -230,6 +230,7 @@ describe("TxSemaphore", () => {
         assert.isFalse(TxSemaphore.isTxSemaphore(notSemaphore))
         assert.isFalse(TxSemaphore.isTxSemaphore(null))
         assert.isFalse(TxSemaphore.isTxSemaphore(undefined))
+        assert.isFalse(TxSemaphore.isTxSemaphore([5]))
       })))
   })
 

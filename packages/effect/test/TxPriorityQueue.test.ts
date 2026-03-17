@@ -154,6 +154,7 @@ describe("TxPriorityQueue", () => {
         assert.isTrue(TxPriorityQueue.isTxPriorityQueue(pq))
         assert.isFalse(TxPriorityQueue.isTxPriorityQueue(null))
         assert.isFalse(TxPriorityQueue.isTxPriorityQueue({ some: "object" }))
+        assert.isFalse(TxPriorityQueue.isTxPriorityQueue([1, 2, 3]))
       })))
   })
 

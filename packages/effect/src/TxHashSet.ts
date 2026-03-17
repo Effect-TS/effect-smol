@@ -10,7 +10,7 @@ import type { Inspectable } from "./Inspectable.ts"
 import { NodeInspectSymbol, toJson } from "./Inspectable.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import { pipeArguments } from "./Pipeable.ts"
-import type { Predicate, Refinement } from "./Predicate.ts"
+import { hasProperty, type Predicate, type Refinement } from "./Predicate.ts"
 import * as TxRef from "./TxRef.ts"
 import type { NoInfer } from "./Types.ts"
 
@@ -286,7 +286,7 @@ export const fromHashSet = <V>(hashSet: HashSet.HashSet<V>): Effect.Effect<TxHas
  * @since 2.0.0
  * @category guards
  */
-export const isTxHashSet = (u: unknown): u is TxHashSet<unknown> => typeof u === "object" && u !== null && TypeId in u
+export const isTxHashSet = (u: unknown): u is TxHashSet<unknown> => hasProperty(u, TypeId)
 
 /**
  * Adds a value to the TxHashSet. If the value already exists, the operation has no effect.

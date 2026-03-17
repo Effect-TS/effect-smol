@@ -11,6 +11,7 @@ import { NodeInspectSymbol, toJson } from "./Inspectable.ts"
 import * as Option from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import { pipeArguments } from "./Pipeable.ts"
+import { hasProperty } from "./Predicate.ts"
 import type { Result } from "./Result.ts"
 import * as TxRef from "./TxRef.ts"
 
@@ -1158,7 +1159,7 @@ export const setMany: {
  * @category guards
  */
 export const isTxHashMap = <K, V>(value: unknown): value is TxHashMap<K, V> => {
-  return typeof value === "object" && value !== null && TypeId in value
+  return hasProperty(value, TypeId)
 }
 
 /**

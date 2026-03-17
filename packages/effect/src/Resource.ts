@@ -6,6 +6,7 @@ import * as Exit from "./Exit.ts"
 import { identity } from "./Function.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
 import type { Pipeable } from "./Pipeable.ts"
+import { hasProperty } from "./Predicate.ts"
 import type * as Schedule from "./Schedule.ts"
 import type * as Scope from "./Scope.ts"
 import * as ScopedRef from "./ScopedRef.ts"
@@ -32,7 +33,7 @@ export interface Resource<in out A, in out E = never> extends Pipeable {
  */
 export const isResource: (u: unknown) => u is Resource<unknown, unknown> = (
   u: unknown
-): u is Resource<unknown, unknown> => typeof u === "object" && u !== null && TypeId in u
+): u is Resource<unknown, unknown> => hasProperty(u, TypeId)
 
 const Proto = {
   ...PipeInspectableProto,

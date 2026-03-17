@@ -11,6 +11,7 @@ import { NodeInspectSymbol } from "./Inspectable.ts"
 import * as Option from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import { pipeArguments } from "./Pipeable.ts"
+import { hasProperty } from "./Predicate.ts"
 import type { Mutable } from "./Types.ts"
 
 const TypeId = "~effect/collections/Graph"
@@ -222,7 +223,7 @@ const missingNode = (node: number) => new GraphError({ message: `Node ${node} do
  * @since 4.0.0
  * @category Guards
  */
-export const isGraph = (u: unknown): u is Graph<unknown, unknown> => typeof u === "object" && u !== null && TypeId in u
+export const isGraph = (u: unknown): u is Graph<unknown, unknown> => hasProperty(u, TypeId)
 
 /**
  * Creates a directed graph, optionally with initial mutations.
