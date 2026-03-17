@@ -14,9 +14,10 @@
  *
  * @since 4.0.0
  */
-import type * as Effect from "../../Effect.ts"
+import * as Effect from "../../Effect.ts"
+import * as Exit from "../../Exit.ts"
 import * as Request from "../../Request.ts"
-import type * as RequestResolver from "../../RequestResolver.ts"
+import * as RequestResolver from "../../RequestResolver.ts"
 import * as Schema from "../../Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type * as AiError from "./AiError.ts"
@@ -125,3 +126,69 @@ export interface Service {
   readonly embed: (input: string) => Effect.Effect<EmbedResponse, AiError.AiError>
   readonly embedMany: (input: ReadonlyArray<string>) => Effect.Effect<EmbedManyResponse, AiError.AiError>
 }
+
+/**
+ * Creates an EmbeddingModel service from a provider embedMany implementation.
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const make: (params: {
+  readonly embedMany: (options: ProviderOptions) => Effect.Effect<ProviderResponse, AiError.AiError>
+}) => Effect.Effect<Service> = Effect.fnUntraced(function*(params) {
+  const resolver = RequestResolver.make<EmbeddingRequest>((entries) =>
+    params.embedMany({
+      inputs: entries.map((entry) => entry.request.input)
+    }).pipe(
+      Effect.matchEffect({
+        onFailure: (error) =>
+          Effect.sync(() => {
+            for (let i = 0; i < entries.length; i++) {
+              entries[i].completeUnsafe(Exit.fail(error))
+            }
+          }),
+        onSuccess: (response) =>
+          Effect.sync(() => {
+            for (let i = 0; i < response.results.length; i++) {
+              const result = response.results[i]
+              const entry = entries[result.index]
+              if (entry !== undefined) {
+                entry.completeUnsafe(Exit.succeed(new EmbedResponse({ vector: result.vector })))
+              }
+            }
+          })
+      })
+    )
+  )
+
+  return EmbeddingModel.of({
+    resolver,
+    embed: (input) =>
+      Effect.request(new EmbeddingRequest({ input }), resolver).pipe(
+        Effect.withSpan("EmbeddingModel.embed")
+      ),
+    embedMany: (input) =>
+      (input.length === 0
+        ? Effect.succeed(
+          new EmbedManyResponse({
+            embeddings: [],
+            usage: new EmbeddingUsage({ inputTokens: undefined })
+          })
+        )
+        : params.embedMany({ inputs: input }).pipe(
+          Effect.map((response) => {
+            const embeddings = new Array<EmbedResponse>(input.length)
+            for (let i = 0; i < response.results.length; i++) {
+              const result = response.results[i]
+              embeddings[result.index] = new EmbedResponse({ vector: result.vector })
+            }
+            return new EmbedManyResponse({
+              embeddings,
+              usage: new EmbeddingUsage({
+                inputTokens: response.usage.inputTokens
+              })
+            })
+          })
+        )).pipe(Effect.withSpan("EmbeddingModel.embedMany"))
+  })
+})
