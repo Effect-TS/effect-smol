@@ -1,4 +1,4 @@
-import { Effect, Option, Result, SchemaGetter } from "effect"
+import { DateTime, Effect, Option, Result, SchemaGetter } from "effect"
 import { describe, it } from "vitest"
 import { assertSome, deepStrictEqual } from "../utils/assert.ts"
 
@@ -19,6 +19,14 @@ describe("SchemaGetter", () => {
     const getter = SchemaGetter.succeed(1).map((t) => t + 1)
     const result = Effect.runSync(getter.run(Option.some(1), {}))
     assertSome(result, 2)
+  })
+
+  it("dateTimeUtcFromInput", async () => {
+    const decoding = makeAsserts(SchemaGetter.dateTimeUtcFromInput<string>())
+    await decoding("2024-01-01 01:00:00", DateTime.makeUnsafe("2024-01-01T01:00:00.000Z"))
+    await decoding("2020-02-01T11:17:00+1100", DateTime.makeUnsafe("2020-02-01T00:17:00.000Z"))
+    // should support strings with explicit GMT zone
+    await decoding("Tue, 27 Jan 2026 17:14:06 GMT", DateTime.makeUnsafe("2026-01-27T17:14:06.000Z"))
   })
 
   describe("decodeFormData / encodeFormData", () => {

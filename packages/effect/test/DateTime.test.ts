@@ -457,11 +457,23 @@ describe("DateTime", () => {
 
   describe("makeUnsafe", () => {
     it("treats strings without zone info as UTC", () => {
-      let dt = DateTime.makeUnsafe("2024-01-01 01:00:00")
+      const dt = DateTime.makeUnsafe("2024-01-01 01:00:00")
       strictEqual(dt.toJSON(), "2024-01-01T01:00:00.000Z")
+    })
 
-      dt = DateTime.makeUnsafe("2020-02-01T11:17:00+1100")
+    it("does not append Z to strings ending with Z", () => {
+      const dt = DateTime.makeUnsafe("2026-01-27T17:14:06.000Z")
+      strictEqual(dt.toJSON(), "2026-01-27T17:14:06.000Z")
+    })
+
+    it("does not append Z to strings with explicit offset", () => {
+      const dt = DateTime.makeUnsafe("2020-02-01T11:17:00+1100")
       strictEqual(dt.toJSON(), "2020-02-01T00:17:00.000Z")
+    })
+
+    it("does not append Z to strings containing GMT", () => {
+      const dt = DateTime.makeUnsafe("Tue, 27 Jan 2026 17:14:06 GMT")
+      strictEqual(dt.toJSON(), "2026-01-27T17:14:06.000Z")
     })
   })
 

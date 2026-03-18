@@ -232,7 +232,14 @@ export const makeUnsafe = <A extends DateTime.DateTime.Input>(input: A): DateTim
   return fromDateUnsafe(new Date(input)) as DateTime.DateTime.PreserveZone<A>
 }
 
-const hasZone = (input: string): boolean => /Z|[+-]\d{2}$|[+-]\d{2}:?\d{2}$|\]$/.test(input)
+/**
+ * Detects whether a date string already contains timezone info.
+ * Without a zone, `new Date("2024-01-01T12:00:00")` is parsed as local time,
+ * so `makeUnsafe` appends "Z" to force UTC interpretation.
+ * This check prevents appending "Z" to strings that already have a zone
+ * (e.g. "2024-01-01T12:00:00Z", "...+05:30", "...GMT"), which would produce invalid dates.
+ */
+const hasZone = (input: string): boolean => /Z|GMT|[+-]\d{2}$|[+-]\d{2}:?\d{2}$|\]$/.test(input)
 
 const minEpochMillis = -8640000000000000 + (12 * 60 * 60 * 1000)
 const maxEpochMillis = 8640000000000000 - (14 * 60 * 60 * 1000)
