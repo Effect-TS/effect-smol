@@ -150,4 +150,21 @@ describe("Equivalence", () => {
       assertFalse(eq({ a: 1 }, { a: 1, [b]: 2 }))
     })
   })
+
+  it("Date", () => {
+    const d1 = new Date("2020-01-01T00:00:00.000Z")
+    const d2 = new Date("2020-01-01T00:00:00.000Z")
+    const d3 = new Date("2021-01-01T00:00:00.000Z")
+
+    assertTrue(Equivalence.Date(d1, d2))
+    assertFalse(Equivalence.Date(d1, d3))
+    assertTrue(Equivalence.Date(d1, d1))
+
+    const invalid1 = new Date("foo")
+    const invalid2 = new Date("bar")
+
+    assertTrue(Equivalence.Date(invalid1, invalid2))
+    assertFalse(Equivalence.Date(invalid1, d1))
+    assertFalse(Equivalence.Date(d1, invalid2))
+  })
 })
