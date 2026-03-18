@@ -100,7 +100,7 @@ export interface ForClient<Id> {
 export interface AnyService extends ServiceMap.Key<any, any> {
   readonly [TypeId]: typeof TypeId
   readonly provides: any
-  readonly error: ErrorConstraint
+  readonly error: ReadonlySet<Schema.Top>
   readonly requiredForClient: boolean
   readonly "~ClientError": any
 }
@@ -225,7 +225,7 @@ export type ServiceClass<
       }
     }
     readonly [TypeId]: typeof TypeId
-    readonly error: Config["error"]
+    readonly error: ReadonlySet<Schema.Top>
     readonly requiredForClient: Config["requiredForClient"]
     readonly "~ClientError": Config["clientError"]
   }
@@ -287,10 +287,8 @@ export const Service = <
     }
   })
   self[TypeId] = TypeId
+  self.error = getError(options?.error)
   self.requiredForClient = options?.requiredForClient ?? false
-  if (options?.error !== undefined) {
-    self.error = options.error
-  }
   if (options?.security !== undefined) {
     if (Object.keys(options.security).length === 0) {
       throw new Error("HttpApiMiddleware.Service: security object must not be empty")
@@ -299,6 +297,11 @@ export const Service = <
     self.security = options.security
   }
   return self
+}
+
+function getError(error: ErrorConstraint | undefined): ReadonlySet<Schema.Top> {
+  if (error === undefined) return new Set()
+  return new Set(Array.isArray(error) ? error : [error])
 }
 
 /**

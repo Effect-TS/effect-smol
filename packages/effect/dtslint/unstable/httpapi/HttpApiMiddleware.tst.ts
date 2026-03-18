@@ -8,7 +8,11 @@ describe("HttpApiMiddleware", () => {
       class M extends HttpApiMiddleware.Service<M>()("Http/Logger", {
         error: Schema.String
       }) {}
-      expect(M.error).type.toBe<Schema.String>()
+      const endpoint = HttpApiEndpoint.get("a", "/a", {
+        success: Schema.String
+      }).middleware(M)
+      expect(M.error).type.toBe<ReadonlySet<Schema.Top>>()
+      expect<HttpApiEndpoint.MiddlewareError<typeof endpoint>>().type.toBe<string>()
       expect(M.security).type.toBe<never>()
     })
 
@@ -21,7 +25,11 @@ describe("HttpApiMiddleware", () => {
           })
         }
       }) {}
-      expect(M.error).type.toBe<never>()
+      const endpoint = HttpApiEndpoint.get("a", "/a", {
+        success: Schema.String
+      }).middleware(M)
+      expect(M.error).type.toBe<ReadonlySet<Schema.Top>>()
+      expect<HttpApiEndpoint.MiddlewareError<typeof endpoint>>().type.toBe<never>()
       expect(M.security).type.toBe<{ readonly cookie: HttpApiSecurity.ApiKey }>()
     })
 
@@ -35,20 +43,22 @@ describe("HttpApiMiddleware", () => {
           })
         }
       }) {}
-      expect(M.error).type.toBe<Schema.String>()
+      const endpoint = HttpApiEndpoint.get("a", "/a", {
+        success: Schema.String
+      }).middleware(M)
+      expect(M.error).type.toBe<ReadonlySet<Schema.Top>>()
+      expect<HttpApiEndpoint.MiddlewareError<typeof endpoint>>().type.toBe<string>()
       expect(M.security).type.toBe<{ readonly cookie: HttpApiSecurity.ApiKey }>()
     })
 
     it("error array", () => {
       class M extends HttpApiMiddleware.Service<M>()("Http/Auth", {
-        error: [HttpApiError.UnauthorizedNoContent, HttpApiError.ForbiddenNoContent] as const
+        error: [HttpApiError.UnauthorizedNoContent, HttpApiError.ForbiddenNoContent]
       }) {}
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         success: Schema.String
       }).middleware(M)
-      expect(M.error).type.toBe<
-        readonly [typeof HttpApiError.UnauthorizedNoContent, typeof HttpApiError.ForbiddenNoContent]
-      >()
+      expect(M.error).type.toBe<ReadonlySet<Schema.Top>>()
       expect<HttpApiEndpoint.MiddlewareError<typeof endpoint>>().type.toBe<
         HttpApiError.Unauthorized | HttpApiError.Forbidden
       >()
