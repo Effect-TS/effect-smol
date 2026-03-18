@@ -557,6 +557,28 @@ describe("Effect", () => {
         yield* Fiber.await(fiber)
         assert.strictEqual(release, true)
       }).pipe(Effect.runPromise))
+
+    it.effect("supports release dependencies", () =>
+      Effect.gen(function*() {
+        let release = false
+        const scope = yield* Scope.make()
+        yield* Scope.provide(scope)(
+          Effect.provideService(
+            Effect.acquireRelease(
+              Effect.succeed("foo"),
+              () =>
+                Effect.flatMap(Effect.service(ATag), () =>
+                  Effect.sync(() => {
+                    release = true
+                  }))
+            ),
+            ATag,
+            "A"
+          )
+        )
+        yield* Scope.close(scope, Exit.void)
+        assert.strictEqual(release, true)
+      }))
   })
 
   it.effect("raceAll", () =>

@@ -3792,19 +3792,21 @@ export const scopedWith = <A, E, R>(
   })
 
 /** @internal */
-export const acquireRelease = <A, E, R>(
+export const acquireRelease = <A, E, R, R2>(
   acquire: Effect.Effect<A, E, R>,
-  release: (a: A, exit: Exit.Exit<unknown, unknown>) => Effect.Effect<unknown>,
+  release: (a: A, exit: Exit.Exit<unknown, unknown>) => Effect.Effect<unknown, never, R2>,
   options?: { readonly interruptible?: boolean }
-): Effect.Effect<A, E, R | Scope.Scope> =>
-  uninterruptibleMask((restore) =>
-    flatMap(
-      scope,
-      (scope) =>
-        tap(
-          options?.interruptible ? restore(acquire) : acquire,
-          (a) => scopeAddFinalizerExit(scope, (exit) => release(a, exit))
-        )
+): Effect.Effect<A, E, R | R2 | Scope.Scope> =>
+  servicesWith((services: ServiceMap.ServiceMap<R2>) =>
+    uninterruptibleMask((restore) =>
+      flatMap(
+        scope,
+        (scope) =>
+          tap(
+            options?.interruptible ? restore(acquire) : acquire,
+            (a) => scopeAddFinalizerExit(scope, (exit) => provideServices(release(a, exit), services))
+          )
+      )
     )
   )
 

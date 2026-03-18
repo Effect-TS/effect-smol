@@ -1,16 +1,5 @@
 /** @effect-diagnostics floatingEffect:skip-file */
-import {
-  type Cause,
-  Data,
-  Effect,
-  Fiber,
-  type Option,
-  pipe,
-  Result,
-  type Scope,
-  type ServiceMap,
-  type Types
-} from "effect"
+import { type Cause, Data, Effect, Fiber, type Option, pipe, Result, type Scope, ServiceMap, type Types } from "effect"
 import { describe, expect, it } from "tstyche"
 
 // Fixtures
@@ -48,6 +37,10 @@ declare const string: Effect.Effect<string, "err-1", "dep-1">
 declare const number: Effect.Effect<number, "err-2", "dep-2">
 declare const stringArray: Array<Effect.Effect<string, "err-3", "dep-3">>
 declare const numberRecord: Record<string, Effect.Effect<number, "err-4", "dep-4">>
+
+class AcquireReleaseDependency extends ServiceMap.Service<AcquireReleaseDependency, string>()(
+  "AcquireReleaseDependency"
+) {}
 
 describe("Types", () => {
   describe("ReasonOf", () => {
@@ -336,6 +329,16 @@ describe("Effect.forkScoped", () => {
       Effect.flatMap(Fiber.join)
     )
     expect(result).type.toBe<Effect.Effect<string, "err-1", "dep-1" | Scope.Scope>>()
+  })
+})
+
+describe("Effect.acquireRelease", () => {
+  it("supports dependencies in the release finalizer", () => {
+    const result = Effect.acquireRelease(
+      Effect.succeed("resource"),
+      () => Effect.service(AcquireReleaseDependency)
+    )
+    expect(result).type.toBe<Effect.Effect<string, never, AcquireReleaseDependency | Scope.Scope>>()
   })
 })
 

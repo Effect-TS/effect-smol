@@ -6234,11 +6234,11 @@ export const scopedWith: <A, E, R>(
  * @since 2.0.0
  * @category Resource Management & Finalization
  */
-export const acquireRelease: <A, E, R>(
+export const acquireRelease: <A, E, R, R2>(
   acquire: Effect<A, E, R>,
-  release: (a: A, exit: Exit.Exit<unknown, unknown>) => Effect<unknown>,
+  release: (a: A, exit: Exit.Exit<unknown, unknown>) => Effect<unknown, never, R2>,
   options?: { readonly interruptible?: boolean }
-) => Effect<A, E, Scope | R> = internal.acquireRelease
+) => Effect<A, E, R | R2 | Scope> = internal.acquireRelease
 
 /**
  * This function is used to ensure that an `Effect` value that represents the
