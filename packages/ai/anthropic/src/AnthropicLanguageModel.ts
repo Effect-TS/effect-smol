@@ -1001,9 +1001,9 @@ const prepareTools = Effect.fnUntraced(
     const providerTools: Array<AnthropicProviderDefinedTool> = []
 
     for (const tool of options.tools) {
-      if (Tool.isUserDefined(tool)) {
+      if (Tool.isUserDefined(tool) || Tool.isDynamic(tool)) {
         const description = Tool.getDescription(tool)
-        const input_schema = yield* tryJsonSchema(tool.parametersSchema, "prepareTools")
+        const input_schema = yield* tryToolJsonSchema(tool, "prepareTools")
         const toolStrict = Tool.getStrictMode(tool)
         const strict = capabilities.supportsStructuredOutput
           ? (toolStrict ?? config.strictJsonSchema ?? true)
@@ -2737,6 +2737,12 @@ const tryCodecTransform = <S extends Schema.Top>(schema: S, method: string) =>
 const tryJsonSchema = <S extends Schema.Top>(schema: S, method: string) =>
   Effect.try({
     try: () => Tool.getJsonSchemaFromSchema(schema, { transformer: toCodecAnthropic }),
+    catch: (error) => unsupportedSchemaError(error, method)
+  })
+
+const tryToolJsonSchema = <T extends Tool.Any | Tool.AnyDynamic>(tool: T, method: string) =>
+  Effect.try({
+    try: () => Tool.getJsonSchema(tool, { transformer: toCodecAnthropic }),
     catch: (error) => unsupportedSchemaError(error, method)
   })
 

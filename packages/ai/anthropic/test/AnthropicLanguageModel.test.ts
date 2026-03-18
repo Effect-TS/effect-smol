@@ -112,6 +112,79 @@ describe("AnthropicLanguageModel", () => {
         assert.deepStrictEqual(toolCall.params, toolParams)
       }))
   })
+
+  describe("generateText", () => {
+    it.effect("encodes dynamic tools", () =>
+      Effect.gen(function*() {
+        let capturedRequest: HttpClientRequest.HttpClientRequest | undefined = undefined
+        const layer = AnthropicClient.layer({ apiKey: Redacted.make("sk-test-key") }).pipe(
+          Layer.provide(Layer.succeed(
+            HttpClient.HttpClient,
+            makeHttpClient((request) => {
+              capturedRequest = request
+              return Effect.succeed(jsonResponse(request, {
+                id: "msg_test_1",
+                type: "message",
+                role: "assistant",
+                model: "claude-sonnet-4-20250514",
+                content: [{ type: "text", text: "Done" }],
+                stop_reason: "end_turn",
+                stop_sequence: null,
+                usage: {
+                  cache_creation: null,
+                  cache_creation_input_tokens: null,
+                  cache_read_input_tokens: null,
+                  inference_geo: null,
+                  input_tokens: 10,
+                  output_tokens: 5,
+                  service_tier: null
+                }
+              }))
+            })
+          ))
+        )
+
+        const inputSchema = {
+          type: "object",
+          properties: {
+            query: { type: "string" },
+            limit: { type: "number" }
+          },
+          required: ["query"],
+          additionalProperties: false
+        } as const
+
+        const DynamicTool = Tool.dynamic("DynamicTool", {
+          description: "A dynamic tool",
+          parameters: inputSchema
+        })
+
+        yield* LanguageModel.generateText({
+          prompt: "Use the dynamic tool",
+          toolkit: Toolkit.make(DynamicTool),
+          disableToolCallResolution: true
+        }).pipe(
+          Effect.provide(AnthropicLanguageModel.model("claude-sonnet-4-20250514")),
+          Effect.provide(layer)
+        )
+
+        assert.isDefined(capturedRequest)
+        if (capturedRequest === undefined) {
+          return
+        }
+
+        const body = yield* getRequestBody(capturedRequest)
+        const dynamicTool = body.tools.find((tool: any) => tool.name === "DynamicTool")
+
+        assert.isDefined(dynamicTool)
+        if (dynamicTool === undefined) {
+          return
+        }
+
+        assert.strictEqual(dynamicTool.description, "A dynamic tool")
+        assert.deepStrictEqual(dynamicTool.input_schema, inputSchema)
+      }))
+  })
 })
 
 const makeHttpClient = (
@@ -140,6 +213,29 @@ const sseResponse = (
       }
     })
   )
+
+const jsonResponse = (
+  request: HttpClientRequest.HttpClientRequest,
+  body: unknown
+): HttpClientResponse.HttpClientResponse =>
+  HttpClientResponse.fromWeb(
+    request,
+    new Response(JSON.stringify(body), {
+      status: 200,
+      headers: {
+        "content-type": "application/json"
+      }
+    })
+  )
+
+const getRequestBody = (request: HttpClientRequest.HttpClientRequest) =>
+  Effect.gen(function*() {
+    const body = request.body
+    if (body._tag !== "Uint8Array") {
+      return yield* Effect.die(new Error("Expected Uint8Array body"))
+    }
+    return JSON.parse(new TextDecoder().decode(body.body))
+  })
 
 const toSseBody = (events: ReadonlyArray<unknown>): string =>
   events.map((event) => `event: message_stream\ndata: ${JSON.stringify(event)}\n\n`).join("")
