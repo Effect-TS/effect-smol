@@ -445,11 +445,9 @@ const makeSocket = Effect.gen(function*() {
                 module: "OpenAiClient",
                 method: "createResponseStream",
                 reason: AiError.reasonFromHttpStatus({
+                  description: json,
                   status: event.status,
-                  metadata: {
-                    ...event.error,
-                    description: json
-                  },
+                  metadata: event.error,
                   http: {
                     body: json,
                     request: {

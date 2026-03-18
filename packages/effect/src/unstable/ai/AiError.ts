@@ -1532,11 +1532,13 @@ export const reasonFromHttpStatus = (params: {
   readonly body?: unknown
   readonly http?: typeof HttpContext.Type
   readonly metadata?: typeof ProviderMetadata.Type
+  readonly description?: string | undefined
 }): AiErrorReason => {
-  const { status, http, metadata } = params
+  const { status, http, metadata, description } = params
   const common = {
     http,
-    ...(Predicate.isNotUndefined(metadata) ? { metadata } : {})
+    ...(metadata ? { metadata } : undefined),
+    ...(description ? { description } : undefined)
   }
   switch (status) {
     case 400:
