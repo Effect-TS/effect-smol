@@ -175,7 +175,7 @@ function decodeJsonRpcRaw(
     }
     return messages
   }
-  return Array.isArray(decoded) ? decoded.map(decodeJsonRpcMessage) : [decodeJsonRpcMessage(decoded)]
+  return [decodeJsonRpcMessage(decoded)]
 }
 
 function decodeJsonRpcMessage(decoded: JsonRpcMessage): RpcMessage.FromClientEncoded | RpcMessage.FromServerEncoded {
