@@ -394,6 +394,46 @@ describe("OpenAiLanguageModel", () => {
             strictEqual(toolOutput.call_id, "call_abc")
             strictEqual(toolOutput.output, JSON.stringify({ output: "result" }))
           }).pipe(Effect.provide([makeTestLayer(), TestToolkitLayer])))
+
+        it.effect("converts undefined tool results to null output", () =>
+          Effect.gen(function*() {
+            yield* LanguageModel.generateText({
+              prompt: Prompt.make([
+                { role: "user", content: "Use the tool" },
+                {
+                  role: "assistant",
+                  content: [
+                    Prompt.toolCallPart({
+                      id: "call_abc",
+                      name: "TestTool",
+                      params: { input: "test" },
+                      providerExecuted: false
+                    })
+                  ]
+                },
+                {
+                  role: "tool",
+                  content: [
+                    Prompt.toolResultPart({
+                      id: "call_abc",
+                      name: "TestTool",
+                      isFailure: false,
+                      result: undefined
+                    })
+                  ]
+                }
+              ]),
+              toolkit: TestToolkit
+            }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+            const requests = yield* MockHttpClient.requests
+            const body = yield* getRequestBody(requests[0])
+
+            const toolOutput = body.input.find((m: any) => m.type === "function_call_output")
+            assert.isDefined(toolOutput)
+            strictEqual(toolOutput.call_id, "call_abc")
+            strictEqual(toolOutput.output, "null")
+          }).pipe(Effect.provide([makeTestLayer(), TestToolkitLayer])))
       })
     })
 

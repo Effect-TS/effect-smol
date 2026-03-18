@@ -880,7 +880,7 @@ const prepareMessages = Effect.fnUntraced(
             messages.push({
               type: "function_call_output",
               call_id: part.id,
-              output: JSON.stringify(part.result),
+              output: stringifyJson(part.result),
               ...(Predicate.isNotNull(status) ? { status } : {})
             })
           }
@@ -2476,6 +2476,11 @@ const makeItemIdMetadata = (itemId: string | undefined) => Predicate.isNotUndefi
 
 const makeEncryptedContentMetadata = (encryptedContent: string | null | undefined) =>
   Predicate.isNotNullish(encryptedContent) ? { encryptedContent } : undefined
+
+const stringifyJson = (value: unknown): string =>
+  typeof value === "string"
+    ? value
+    : JSON.stringify(value) ?? "null"
 
 const unsupportedSchemaError = (error: unknown, method: string): AiError.AiError =>
   AiError.make({
