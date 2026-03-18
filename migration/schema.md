@@ -425,21 +425,21 @@ const schema = Schema.Struct({
 
 #### Decision tree
 
-| v3 options                                 | v4 pattern                                                                       |
-| ------------------------------------------ | -------------------------------------------------------------------------------- |
-| `{ exact: true }`                          | `optionalKey(schema)`                                                            |
-| `{ default }`                              | `optional(schema)` + `decodeTo(toType(schema), { decode: withDefault(...) })`    |
-| `{ exact: true, default }`                 | `optionalKey(schema)` + `decodeTo(toType(schema), { decode: withDefault(...) })` |
-| `{ nullable: true }`                       | `optional(NullOr(schema))` + `decodeTo` + filter null                            |
-| `{ nullable: true, exact: true }`          | `optionalKey(NullOr(schema))` + `decodeTo` + filter null                         |
-| `{ nullable: true, default }`              | `optional(NullOr(schema))` + `decodeTo` + filter null + `orElseSome`             |
-| `{ nullable: true, exact: true, default }` | `optionalKey(NullOr(schema))` + `decodeTo` + filter null + `orElseSome`          |
+| v3 options                                 | v4 pattern                                                              |
+| ------------------------------------------ | ----------------------------------------------------------------------- |
+| `{ exact: true }`                          | `optionalKey(schema)`                                                   |
+| `{ default }`                              | `schema.pipe(withDecodingDefault(...))`                                 |
+| `{ exact: true, default }`                 | `schema.pipe(withDecodingDefaultKey(...))`                              |
+| `{ nullable: true }`                       | `optional(NullOr(schema))` + `decodeTo` + filter null                   |
+| `{ nullable: true, exact: true }`          | `optionalKey(NullOr(schema))` + `decodeTo` + filter null                |
+| `{ nullable: true, default }`              | `optional(NullOr(schema))` + `decodeTo` + filter null + `orElseSome`    |
+| `{ nullable: true, exact: true, default }` | `optionalKey(NullOr(schema))` + `decodeTo` + filter null + `orElseSome` |
 
 Key rules:
 
 - `exact: true` → use `optionalKey` instead of `optional`
 - `nullable: true` → wrap inner schema in `NullOr` and filter nulls via `Option.filter(Predicate.isNotNull)`
-- `default` → use `SchemaGetter.withDefault(defaultValue)` and decode to non-optional type
+- `default` → use `withDecodingDefault` (or `withDecodingDefaultKey` with `exact: true`)
 
 #### Example: `{ exact: true }` (simplest case)
 
@@ -463,6 +463,50 @@ const schema = Schema.Struct({
 })
 ```
 
+#### Example: `{ default }`
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.optionalWith(Schema.String, { default: () => "" })
+})
+```
+
+v4
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.String.pipe(Schema.withDecodingDefault(() => ""))
+})
+```
+
+#### Example: `{ exact: true, default }`
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.optionalWith(Schema.String, { exact: true, default: () => "" })
+})
+```
+
+v4
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.String.pipe(Schema.withDecodingDefaultKey(() => ""))
+})
+```
+
 #### Example: `{ nullable: true, exact: true, default }` (most complex case)
 
 v3
@@ -482,7 +526,7 @@ import { Option, Predicate, Schema, SchemaGetter } from "effect"
 
 const schema = Schema.Struct({
   a: Schema.optionalKey(Schema.NullOr(Schema.NumberFromString)).pipe(
-    Schema.decodeTo(Schema.toType(Schema.NumberFromString), {
+    Schema.decodeTo(Schema.Number, {
       decode: SchemaGetter.transformOptional((o) =>
         o.pipe(Option.filter(Predicate.isNotNull), Option.orElseSome(() => -1))
       ),
