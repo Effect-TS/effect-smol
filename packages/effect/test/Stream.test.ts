@@ -754,6 +754,16 @@ describe("Stream", () => {
         })
         assert.deepStrictEqual(result1, result2)
       }))
+
+    it.effect("scanEffect", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.make(1, 2, 3, 4, 5).pipe(
+          Stream.scanEffect(0, (acc, curr) => Effect.succeed(acc + curr)),
+          Stream.runCollect
+        )
+
+        assert.deepStrictEqual(result, Array.scan([1, 2, 3, 4, 5], 0, (acc, curr) => acc + curr))
+      }))
   })
 
   describe("grouping", () => {

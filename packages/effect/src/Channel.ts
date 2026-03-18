@@ -3580,17 +3580,19 @@ export const scanEffect: {
     Effect.map(toTransform(self)(upstream, scope), (pull) => {
       let state = initial
       let isFirst = true
-      if (isFirst) {
-        isFirst = false
-        return Effect.succeed(state)
-      }
-      return Effect.map(
-        Effect.flatMap(pull, (a) => f(state, a)),
-        (newState) => {
-          state = newState
-          return state
+      return Effect.suspend(() => {
+        if (isFirst) {
+          isFirst = false
+          return Effect.succeed(state)
         }
-      )
+        return Effect.map(
+          Effect.flatMap(pull, (a) => f(state, a)),
+          (newState) => {
+            state = newState
+            return state
+          }
+        )
+      })
     })
   ))
 
