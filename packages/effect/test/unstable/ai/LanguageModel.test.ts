@@ -2,7 +2,7 @@ import { describe, it } from "@effect/vitest"
 import { assertDefined, assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import { Effect, Latch, Option, Schema, Stream } from "effect"
 import { TestClock } from "effect/testing"
-import { LanguageModel, Prompt, Response, ResponseIdTracker, Tool, Toolkit } from "effect/unstable/ai"
+import { AiError, LanguageModel, Prompt, Response, ResponseIdTracker, Tool, Toolkit } from "effect/unstable/ai"
 import * as TestUtils from "./utils.ts"
 
 const MyTool = Tool.make("MyTool", {
@@ -202,6 +202,121 @@ describe("LanguageModel", () => {
         assertDefined(capturedOptions)
         strictEqual(capturedOptions.previousResponseId, undefined)
         strictEqual(capturedOptions.incrementalPrompt, undefined)
+      }))
+
+    it("falls back to full prompt in generateText when incremental request fails", () =>
+      Effect.gen(function*() {
+        const fullPrompt = Prompt.make([
+          Prompt.systemMessage({ content: "system" }),
+          Prompt.userMessage({ content: [Prompt.textPart({ text: "user" })] }),
+          Prompt.assistantMessage({ content: [Prompt.textPart({ text: "assistant" })] }),
+          Prompt.userMessage({ content: [Prompt.textPart({ text: "next" })] })
+        ])
+
+        const incrementalPrompt = Prompt.make([
+          Prompt.userMessage({ content: [Prompt.textPart({ text: "next" })] })
+        ])
+
+        const calls: Array<LanguageModel.ProviderOptions> = []
+
+        yield* LanguageModel.generateText({
+          prompt: fullPrompt
+        }).pipe(
+          Effect.provideServiceEffect(
+            LanguageModel.LanguageModel,
+            LanguageModel.make({
+              generateText: (options) => {
+                calls.push(options)
+                if (calls.length === 1) {
+                  ;(options as any).prompt = options.incrementalPrompt ?? options.prompt
+                  return Effect.fail(AiError.make({
+                    module: "LanguageModelTest",
+                    method: "generateText",
+                    reason: new AiError.InvalidRequestError({
+                      description: "invalid previous response id"
+                    })
+                  }))
+                }
+                return Effect.succeed([finishPart])
+              },
+              streamText: () => Stream.empty
+            })
+          ),
+          Effect.provideService(ResponseIdTracker.ResponseIdTracker, {
+            clearUnsafe() {},
+            markParts() {},
+            prepareUnsafe: () =>
+              Option.some({
+                previousResponseId: "resp_prev",
+                prompt: incrementalPrompt
+              })
+          })
+        )
+
+        strictEqual(calls.length, 2)
+        strictEqual(calls[0]!.previousResponseId, "resp_prev")
+        strictEqual(calls[0]!.incrementalPrompt, incrementalPrompt)
+        strictEqual(calls[1]!.previousResponseId, undefined)
+        strictEqual(calls[1]!.incrementalPrompt, undefined)
+        deepStrictEqual(calls[1]!.prompt, fullPrompt)
+      }))
+
+    it("falls back to full prompt in streamText when incremental request fails", () =>
+      Effect.gen(function*() {
+        const fullPrompt = Prompt.make([
+          Prompt.systemMessage({ content: "system" }),
+          Prompt.userMessage({ content: [Prompt.textPart({ text: "user" })] }),
+          Prompt.assistantMessage({ content: [Prompt.textPart({ text: "assistant" })] }),
+          Prompt.userMessage({ content: [Prompt.textPart({ text: "next" })] })
+        ])
+
+        const incrementalPrompt = Prompt.make([
+          Prompt.userMessage({ content: [Prompt.textPart({ text: "next" })] })
+        ])
+
+        const calls: Array<LanguageModel.ProviderOptions> = []
+
+        yield* LanguageModel.streamText({
+          prompt: fullPrompt
+        }).pipe(
+          Stream.runDrain,
+          Effect.provideServiceEffect(
+            LanguageModel.LanguageModel,
+            LanguageModel.make({
+              generateText: () => Effect.succeed([finishPart]),
+              streamText: (options) => {
+                calls.push(options)
+                if (calls.length === 1) {
+                  ;(options as any).prompt = options.incrementalPrompt ?? options.prompt
+                  return Stream.fail(AiError.make({
+                    module: "LanguageModelTest",
+                    method: "streamText",
+                    reason: new AiError.InvalidRequestError({
+                      description: "invalid previous response id"
+                    })
+                  }))
+                }
+                return Stream.fromIterable([finishPart])
+              }
+            })
+          ),
+          Effect.provideService(ResponseIdTracker.ResponseIdTracker, {
+            clearUnsafe() {},
+            markParts() {},
+            prepareUnsafe: () =>
+              Option.some({
+                previousResponseId: "resp_prev",
+                prompt: incrementalPrompt
+              })
+          })
+        )
+
+        strictEqual(calls.length, 2)
+        strictEqual(calls[0]!.previousResponseId, "resp_prev")
+        strictEqual(calls[0]!.incrementalPrompt, incrementalPrompt)
+        strictEqual(calls[1]!.previousResponseId, undefined)
+        strictEqual(calls[1]!.incrementalPrompt, undefined)
+        deepStrictEqual(calls[1]!.prompt, fullPrompt)
       }))
 
     it("uses tracker prepareUnsafe and markParts in generateText without toolkit", () =>
