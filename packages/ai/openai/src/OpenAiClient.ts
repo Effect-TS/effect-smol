@@ -438,6 +438,7 @@ const makeSocket = Effect.gen(function*() {
             tracker.clearUnsafe()
           }
           if (event.type === "error" && "status" in event) {
+            const json = JSON.stringify(event.error)
             return Queue.fail(
               currentQueue,
               AiError.make({
@@ -447,7 +448,17 @@ const makeSocket = Effect.gen(function*() {
                   status: event.status,
                   metadata: {
                     ...event.error,
-                    description: event.error.message
+                    description: json
+                  },
+                  http: {
+                    body: json,
+                    request: {
+                      method: "POST",
+                      url: request.url,
+                      urlParams: [],
+                      hash: undefined,
+                      headers: request.headers
+                    }
                   }
                 })
               })
