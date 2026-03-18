@@ -469,6 +469,11 @@ export const option = <A>(self: Config<A>): Config<Option.Option<A>> =>
   self.pipe(map(Option.some), withDefault(Option.none()))
 
 /**
+ * @since 3.0.0
+ */
+export type Success<T> = [T] extends [Config<infer A>] ? A : never
+
+/**
  * Utility type that recursively replaces primitives with `Config` in a nested
  * structure.
  *

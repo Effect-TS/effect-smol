@@ -14,4 +14,11 @@ describe("Config", () => {
     const c3 = c.pipe(Config.withDefault("c"))
     expect(c3).type.toBe<Config.Config<"a" | "b" | "c">>()
   })
+
+  it("type level helpers", () => {
+    const c = Config.schema(Schema.Literals(["a", "b"]))
+
+    type S = Config.Success<typeof c>
+    expect<S>().type.toBe<"a" | "b">()
+  })
 })
