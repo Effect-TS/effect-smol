@@ -940,6 +940,28 @@ Unexpected key with value "c"
     })
   })
 
+  it("ArrayEnsure", async () => {
+    const schema = Schema.ArrayEnsure(Schema.FiniteFromString)
+    const asserts = new TestSchema.Asserts(schema)
+
+    const decoding = asserts.decoding()
+    await decoding.succeed("1", [1])
+    await decoding.succeed(["1", "2"], [1, 2])
+    await decoding.succeed([], [])
+    await decoding.fail(null, `Expected string | array, got null`)
+    await decoding.fail("a", `Expected a finite number, got NaN`)
+    await decoding.fail(
+      ["a"],
+      `Expected a finite number, got NaN
+  at [0]`
+    )
+
+    const encoding = asserts.encoding()
+    await encoding.succeed([], [])
+    await encoding.succeed([1], "1")
+    await encoding.succeed([1, 2], ["1", "2"])
+  })
+
   describe("NonEmptyArray", () => {
     it("should expose the item schema", () => {
       const schema = Schema.NonEmptyArray(Schema.String)

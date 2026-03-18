@@ -3263,6 +3263,36 @@ export const NonEmptyArray = Struct_.lambda<NonEmptyArrayLambda>((schema) =>
 )
 
 /**
+ * @category Arrays
+ * @since 4.0.0
+ */
+export interface ArrayEnsure<S extends Top> extends decodeTo<$Array<toType<S>>, Union<readonly [S, $Array<S>]>> {}
+
+/**
+ * Decodes a single value or an array of values into an array.
+ *
+ * Decoding:
+ * - a single value is decoded as a one-element array
+ * - an array is decoded as-is
+ *
+ * Encoding:
+ * - a one-element array is encoded as a single value
+ * - arrays with more than one element are encoded as arrays
+ *
+ * @category Arrays
+ * @since 4.0.0
+ */
+export function ArrayEnsure<S extends Top>(schema: S): ArrayEnsure<S> {
+  return Union([schema, Array(schema)]).pipe(decodeTo(
+    Array(toType(schema)),
+    Transformation.transform({
+      decode: Arr.ensure,
+      encode: (array) => array.length === 1 ? array[0] : array
+    })
+  ))
+}
+
+/**
  * Schema type for an array with unique elements. Produced by {@link UniqueArray}.
  *
  * @since 4.0.0
