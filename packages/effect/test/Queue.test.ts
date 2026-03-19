@@ -271,6 +271,31 @@ describe("Queue", () => {
       assert.strictEqual(yield* Queue.offer(queue, 10), false)
     }))
 
+  it.effect("shutdown interrupts suspended takers", () =>
+    Effect.gen(function*() {
+      const queue = yield* Queue.bounded<number>(2)
+      const fiber = yield* Effect.forkChild(Queue.take(queue))
+
+      yield* Effect.yieldNow
+      assert.isUndefined(fiber.pollUnsafe())
+
+      yield* Queue.shutdown(queue)
+      yield* Effect.yieldNow
+
+      const exit = fiber.pollUnsafe()
+      assert.isDefined(exit)
+      assert.isTrue(Exit.hasInterrupts(exit!))
+    }))
+
+  it.effect("take interrupts after shutdown", () =>
+    Effect.gen(function*() {
+      const queue = yield* Queue.bounded<number>(2)
+      yield* Queue.shutdown(queue)
+
+      const exit = yield* Effect.exit(Queue.take(queue))
+      assert.isTrue(Exit.hasInterrupts(exit))
+    }))
+
   it.effect("fail doesnt drop items", () =>
     Effect.gen(function*() {
       const queue = yield* Queue.bounded<number, string>(2)

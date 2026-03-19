@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Cause, Effect, Fiber, Option, Result, TxQueue } from "effect"
+import { Cause, Effect, Exit, Fiber, Option, Result, TxQueue } from "effect"
 
 describe("TxQueue", () => {
   describe("interfaces", () => {
@@ -682,6 +682,22 @@ describe("TxQueue", () => {
         const maybe = yield* TxQueue.poll(queue)
         assert.deepStrictEqual(maybe, Option.none())
       })))
+
+    it.effect("shutdown interrupts suspended takers", () =>
+      Effect.gen(function*() {
+        const queue = yield* Effect.transaction(TxQueue.bounded<number>(10))
+        const fiber = yield* Effect.forkChild(Effect.transaction(TxQueue.take(queue)))
+
+        yield* Effect.yieldNow
+        assert.isUndefined(fiber.pollUnsafe())
+
+        yield* Effect.transaction(TxQueue.shutdown(queue))
+        yield* Effect.yieldNow
+
+        const exit = fiber.pollUnsafe()
+        assert.isDefined(exit)
+        assert.isTrue(Exit.hasInterrupts(exit!))
+      }))
   })
 
   describe("dropping strategy", () => {

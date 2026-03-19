@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Array, Effect, Fiber, Latch, PubSub } from "effect"
+import { Array, Effect, Exit, Fiber, Latch, PubSub } from "effect"
 import { pipe } from "effect/Function"
 
 describe("PubSub", () => {
@@ -397,6 +397,78 @@ describe("PubSub", () => {
       yield* PubSub.publishAll(pubsub, [1, 2])
       assert.deepStrictEqual(PubSub.sizeUnsafe(pubsub), 0)
     }))
+
+  it.effect("shutdown interrupts suspended subscribers", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const pubsub = yield* PubSub.unbounded<number>()
+        const subscription = yield* PubSub.subscribe(pubsub)
+        const fiber = yield* Effect.forkChild(PubSub.take(subscription))
+
+        yield* Effect.yieldNow
+        assert.isUndefined(fiber.pollUnsafe())
+
+        yield* PubSub.shutdown(pubsub)
+        yield* Effect.yieldNow
+
+        const exit = fiber.pollUnsafe()
+        assert.isDefined(exit)
+        assert.isTrue(Exit.hasInterrupts(exit!))
+      })
+    ))
+
+  it.effect("shutdown interrupts suspended takeAll subscribers", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const pubsub = yield* PubSub.unbounded<number>()
+        const subscription = yield* PubSub.subscribe(pubsub)
+        const fiber = yield* Effect.forkChild(PubSub.takeAll(subscription))
+
+        yield* Effect.yieldNow
+        assert.isUndefined(fiber.pollUnsafe())
+
+        yield* PubSub.shutdown(pubsub)
+        yield* Effect.yieldNow
+
+        const exit = fiber.pollUnsafe()
+        assert.isDefined(exit)
+        assert.isTrue(Exit.hasInterrupts(exit!))
+      })
+    ))
+
+  it.effect("take interrupts after pubsub shutdown", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const pubsub = yield* PubSub.unbounded<number>()
+        const subscription = yield* PubSub.subscribe(pubsub)
+
+        yield* PubSub.shutdown(pubsub)
+
+        const fiber = yield* Effect.forkChild(PubSub.take(subscription))
+        yield* Effect.yieldNow
+
+        const exit = fiber.pollUnsafe()
+        assert.isDefined(exit)
+        assert.isTrue(Exit.hasInterrupts(exit!))
+      })
+    ))
+
+  it.effect("takeAll interrupts after pubsub shutdown", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const pubsub = yield* PubSub.unbounded<number>()
+        const subscription = yield* PubSub.subscribe(pubsub)
+
+        yield* PubSub.shutdown(pubsub)
+
+        const fiber = yield* Effect.forkChild(PubSub.takeAll(subscription))
+        yield* Effect.yieldNow
+
+        const exit = fiber.pollUnsafe()
+        assert.isDefined(exit)
+        assert.isTrue(Exit.hasInterrupts(exit!))
+      })
+    ))
 
   describe("replay", () => {
     it.effect("unbounded", () =>
