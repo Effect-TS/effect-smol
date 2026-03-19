@@ -517,18 +517,20 @@ describe("PubSub", () => {
       })
     ))
 
-  it.effect("Stream.fromPubSub completes after shutdown", () =>
+  it.effect("Stream.fromPubSub interrupts on shutdown", () =>
     Effect.gen(function*() {
       const pubsub = yield* PubSub.unbounded<number>()
-      const fiber = yield* Effect.forkChild(Stream.runCollect(Stream.fromPubSub(pubsub)))
+      const fiber = yield* Effect.forkChild(
+        Effect.exit(Stream.runCollect(Stream.fromPubSub(pubsub)))
+      )
 
       yield* Effect.yieldNow
       assert.isUndefined(fiber.pollUnsafe())
 
       yield* PubSub.shutdown(pubsub)
 
-      const result = yield* Fiber.join(fiber)
-      assert.deepStrictEqual(result, [])
+      const exit = yield* Fiber.join(fiber)
+      assert.isTrue(Exit.hasInterrupts(exit))
     }))
 
   it.effect("publish interrupts after shutdown", () =>

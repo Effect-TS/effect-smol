@@ -1229,7 +1229,11 @@ export const identity = <Elem, Err, Done>(): Channel<Elem, Err, Done, Elem, Err,
  */
 export const fromSubscription = <A>(
   subscription: PubSub.Subscription<A>
-): Channel<A> => fromPull(Effect.succeed(Effect.onInterrupt(PubSub.take(subscription), () => Cause.done())))
+): Channel<A> =>
+  fromPull(Effect.succeed(Effect.onInterrupt(
+    PubSub.take(subscription),
+    () => subscription.pubsubShutdownFlag.current ? Effect.void : Cause.done()
+  )))
 
 /**
  * Create a channel from a PubSub subscription that outputs arrays of values.
@@ -1337,7 +1341,10 @@ export const fromSubscription = <A>(
 export const fromSubscriptionArray = <A>(
   subscription: PubSub.Subscription<A>
 ): Channel<Arr.NonEmptyReadonlyArray<A>> =>
-  fromPull(Effect.succeed(Effect.onInterrupt(PubSub.takeAll(subscription), () => Cause.done())))
+  fromPull(Effect.succeed(Effect.onInterrupt(
+    PubSub.takeAll(subscription),
+    () => subscription.pubsubShutdownFlag.current ? Effect.void : Cause.done()
+  )))
 
 /**
  * Create a channel from a PubSub that outputs individual values.

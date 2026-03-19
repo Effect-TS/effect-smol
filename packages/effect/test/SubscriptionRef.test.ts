@@ -64,7 +64,7 @@ describe("SubscriptionRef", () => {
       assert.deepStrictEqual(result2, [1, 2])
     }))
 
-  it.effect("changes terminates when backing pubsub is shutdown", () =>
+  it.effect("changes interrupts when backing pubsub is shutdown", () =>
     Effect.gen(function*() {
       const ref = yield* SubscriptionRef.make(0)
       const latch = yield* Latch.make()
@@ -72,14 +72,15 @@ describe("SubscriptionRef", () => {
         Stream.tap(() => latch.open),
         Stream.take(2),
         Stream.runCollect,
+        Effect.exit,
         Effect.forkScoped
       )
 
       yield* latch.await
       yield* PubSub.shutdown(ref.pubsub)
 
-      const result = yield* Fiber.join(fiber)
-      assert.deepStrictEqual(result, [0])
+      const exit = yield* Fiber.join(fiber)
+      assert.isTrue(Exit.hasInterrupts(exit))
     }))
 
   it.effect("concurrent subscribes and unsubscribes are handled correctly", () =>
