@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Array, Effect, Exit, Fiber, Latch, PubSub } from "effect"
+import { Array, Effect, Exit, Fiber, Latch, PubSub, Stream } from "effect"
 import { pipe } from "effect/Function"
 
 describe("PubSub", () => {
@@ -516,6 +516,20 @@ describe("PubSub", () => {
         assert.isTrue(Exit.hasInterrupts(fiber2.pollUnsafe()!))
       })
     ))
+
+  it.effect("Stream.fromPubSub completes after shutdown", () =>
+    Effect.gen(function*() {
+      const pubsub = yield* PubSub.unbounded<number>()
+      const fiber = yield* Effect.forkChild(Stream.runCollect(Stream.fromPubSub(pubsub)))
+
+      yield* Effect.yieldNow
+      assert.isUndefined(fiber.pollUnsafe())
+
+      yield* PubSub.shutdown(pubsub)
+
+      const result = yield* Fiber.join(fiber)
+      assert.deepStrictEqual(result, [])
+    }))
 
   it.effect("publish interrupts after shutdown", () =>
     Effect.scoped(

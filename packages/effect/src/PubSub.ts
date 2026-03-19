@@ -1117,11 +1117,6 @@ const pollForItem = <A>(self: Subscription<A>) => {
     self.subscription,
     self.pollers
   )
-  if (isSubscriptionShutdown(self)) {
-    MutableList.remove(self.pollers, deferred)
-    removeSubscribers(self.subscribers, self.subscription, self.pollers)
-    return Effect.interrupt
-  }
   return Effect.onInterrupt(
     Deferred.await(deferred),
     () => {
@@ -1398,29 +1393,22 @@ const isSubscriptionShutdown = <A>(self: Subscription<A>): boolean =>
 const interruptSubscribers = <A>(
   subscribers: PubSub.Subscribers<A>,
   fiberId: number
-): Effect.Effect<void> =>
-  Effect.forEach(
-    Arr.fromIterable(subscribers),
-    ([subscription, pollersSet]) =>
-      Effect.forEach(
-        Arr.fromIterable(pollersSet),
-        (pollers) =>
-          Effect.forEach(
-            MutableList.takeAll(pollers),
-            (deferred) => Deferred.interruptWith(deferred, fiberId),
-            { discard: true, concurrency: "unbounded" }
-          ),
-        { discard: true, concurrency: "unbounded" }
-      ).pipe(
-        Effect.tap(() =>
-          Effect.sync(() => {
-            subscription.unsubscribe()
-            subscribers.delete(subscription)
-          })
-        )
-      ),
-    { discard: true, concurrency: "unbounded" }
-  )
+): Effect.Effect<void> => {
+  const deferreds: Array<Deferred.Deferred<A>> = []
+  for (const [subscription, pollersSet] of subscribers) {
+    for (const pollers of pollersSet) {
+      for (const deferred of MutableList.takeAll(pollers)) {
+        deferreds.push(deferred)
+      }
+    }
+    subscription.unsubscribe()
+  }
+  subscribers.clear()
+  return Effect.forEach(deferreds, (deferred) => Deferred.interruptWith(deferred, fiberId), {
+    discard: true,
+    concurrency: "unbounded"
+  })
+}
 
 class BoundedPubSubArb<in out A> implements PubSub.Atomic<A> {
   array: Array<A>
