@@ -2605,6 +2605,35 @@ describe("Effect", () => {
       }))
   })
 
+  describe("cachedWithTTL", () => {
+    it.effect("starts ttl from value creation", () =>
+      Effect.gen(function*() {
+        let count = 0
+        const cached = yield* Effect.cachedWithTTL(
+          Effect.sleep("2 seconds").pipe(
+            Effect.flatMap(() =>
+              Effect.sync(() => {
+                count += 1
+                return count
+              })
+            )
+          ),
+          "1 second"
+        )
+
+        const firstFiber = yield* Effect.forkChild(cached)
+        yield* Effect.yieldNow
+        yield* TestClock.adjust("2 seconds")
+        assert.strictEqual(yield* Fiber.join(firstFiber), 1)
+
+        const secondFiber = yield* Effect.forkChild(cached)
+        yield* Effect.yieldNow
+        yield* TestClock.adjust("2 seconds")
+        assert.strictEqual(yield* Fiber.join(secondFiber), 1)
+        assert.strictEqual(count, 1)
+      }))
+  })
+
   describe("provide", () => {
     class MyNumber extends ServiceMap.Service<MyNumber, number>()("MyNumber") {}
 

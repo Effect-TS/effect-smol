@@ -4071,7 +4071,7 @@ export const cachedInvalidateWithTTL: {
         return onExit(self, (exit_) =>
           sync(() => {
             running = false
-            expiresAt = now + ttlMillis
+            expiresAt = fiber.getRef(ClockRef).currentTimeMillisUnsafe() + ttlMillis
             exit = exit_
             latch.openUnsafe()
           }))
