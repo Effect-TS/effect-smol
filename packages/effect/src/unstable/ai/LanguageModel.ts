@@ -1497,9 +1497,7 @@ export const make: (params: {
         )
       ),
       Effect.andThen(
-        deferredFinishParts.length > 0
-          ? Queue.offerAll(queue, deferredFinishParts)
-          : Effect.void
+        Queue.offerAll(queue, deferredFinishParts)
       ),
       // And then end the queue
       Effect.andThen(Queue.end(queue)),

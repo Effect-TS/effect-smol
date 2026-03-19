@@ -220,6 +220,27 @@ describe("LanguageModel tracker lifecycle integration", () => {
       assert.deepStrictEqual(providerOptions[1]!.incrementalPrompt, Prompt.fromMessages([user2]))
     }))
 
+  it.effect("emits finish parts in streamText when toolkit is provided and no tool calls are returned", () =>
+    Effect.gen(function*() {
+      const languageModel = yield* LanguageModel.make({
+        generateText: () => Effect.succeed([]),
+        streamText: () => Stream.fromIterable([finishPart])
+      })
+
+      const parts = yield* LanguageModel.streamText({
+        prompt: [userMessage("hello")],
+        toolkit: ApprovalToolkit
+      }).pipe(
+        Stream.runCollect,
+        Effect.map((parts) => Array.from(parts)),
+        Effect.provideService(LanguageModel.LanguageModel, languageModel),
+        Effect.provide(ApprovalToolkitLayer)
+      )
+
+      assert.strictEqual(parts.length, 1)
+      assert.strictEqual(parts[0]?.type, "finish")
+    }))
+
   it.effect("keeps incremental provider fields undefined when tracker is omitted", () =>
     Effect.gen(function*() {
       const generateTextOptions: Array<LanguageModel.ProviderOptions> = []
