@@ -54,7 +54,7 @@ describe("Model", () => {
     const select = Model.extract(User, "select")
     const json = Model.extract(User, "json")
 
-    expect<Schema.Codec.Encoded<typeof select>>().type.toBe<{ readonly active: 0 | 1 }>()
-    expect<Schema.Codec.Encoded<typeof json>>().type.toBe<{ readonly active: boolean }>()
+    expect<Schema.Encoded<typeof select>>().type.toBe<{ readonly active: 0 | 1 }>()
+    expect<Schema.Encoded<typeof json>>().type.toBe<{ readonly active: boolean }>()
   })
 })

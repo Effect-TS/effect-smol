@@ -551,28 +551,21 @@ export interface Top extends
 {}
 
 /**
- * Namespace of type-level helpers for {@link Schema}.
+ * Extracts the decoded `Type` from a schema.
+ *
+ * **Example** (Extracting the decoded type)
+ *
+ * ```ts
+ * import { Schema } from "effect"
+ *
+ * const Person = Schema.Struct({ name: Schema.String, age: Schema.Number })
+ * type Person = Schema.Type<typeof Person>
+ * // { readonly name: string; readonly age: number }
+ * ```
  *
  * @since 4.0.0
  */
-export declare namespace Schema {
-  /**
-   * Extracts the decoded `Type` from a schema.
-   *
-   * **Example** (Extracting the decoded type)
-   *
-   * ```ts
-   * import { Schema } from "effect"
-   *
-   * const Person = Schema.Struct({ name: Schema.String, age: Schema.Number })
-   * type Person = Schema.Schema.Type<typeof Person>
-   * // { readonly name: string; readonly age: number }
-   * ```
-   *
-   * @since 4.0.0
-   */
-  export type Type<S> = S extends Top ? S["Type"] : never
-}
+export type Type<S> = S extends Top ? S["Type"] : never
 
 /**
  * A typed view of a schema that tracks only the decoded (output) type `T`.
@@ -597,7 +590,7 @@ export declare namespace Schema {
  * ```
  *
  * @see {@link Codec} — also tracks Encoded, DecodingServices, EncodingServices
- * @see {@link Schema.Type} — extract the decoded type at the type level
+ * @see {@link Type} — extract the decoded type at the type level
  *
  * @since 4.0.0
  */
@@ -607,72 +600,68 @@ export interface Schema<out T> extends Top {
 }
 
 /**
- * Namespace of type-level helpers for {@link Codec}.
+ * Extracts the encoded (`Encoded`) type from a schema.
+ *
+ * **Example** (Extracting the encoded type)
+ *
+ * ```ts
+ * import { Schema } from "effect"
+ *
+ * const schema = Schema.NumberFromString
+ * type Enc = Schema.Encoded<typeof schema>
+ * // string
+ * ```
  *
  * @since 4.0.0
  */
-export declare namespace Codec {
-  /**
-   * Extracts the encoded (`Encoded`) type from a schema.
-   *
-   * **Example** (Extracting the encoded type)
-   *
-   * ```ts
-   * import { Schema } from "effect"
-   *
-   * const schema = Schema.NumberFromString
-   * type Enc = Schema.Codec.Encoded<typeof schema>
-   * // string
-   * ```
-   *
-   * @since 4.0.0
-   */
-  export type Encoded<S> = S extends Top ? S["Encoded"] : never
-  /**
-   * Extracts the Effect services required during *decoding* from a schema.
-   *
-   * **Example** (Checking decoding service requirements)
-   *
-   * ```ts
-   * import { Schema } from "effect"
-   *
-   * const schema = Schema.String
-   * type RD = Schema.Codec.DecodingServices<typeof schema>
-   * // never
-   * ```
-   *
-   * @since 4.0.0
-   */
-  export type DecodingServices<S> = S extends Top ? S["DecodingServices"] : never
-  /**
-   * Extracts the Effect services required during *encoding* from a schema.
-   *
-   * **Example** (Checking encoding service requirements)
-   *
-   * ```ts
-   * import { Schema } from "effect"
-   *
-   * const schema = Schema.String
-   * type RE = Schema.Codec.EncodingServices<typeof schema>
-   * // never
-   * ```
-   *
-   * @since 4.0.0
-   */
-  export type EncodingServices<S> = S extends Top ? S["EncodingServices"] : never
-  /**
-   * Converts a schema type into an assertion function signature. The resulting
-   * function narrows its argument to `I & S["Type"]`. Only schemas with
-   * `DecodingServices: never` (i.e. no required services) can be used here.
-   *
-   * Produced by {@link asserts}.
-   *
-   * @since 4.0.0
-   */
-  export type ToAsserts<S extends Top & { readonly DecodingServices: never }> = <I>(
-    input: I
-  ) => asserts input is I & S["Type"]
-}
+export type Encoded<S> = S extends Top ? S["Encoded"] : never
+
+/**
+ * Extracts the Effect services required during *decoding* from a schema.
+ *
+ * **Example** (Checking decoding service requirements)
+ *
+ * ```ts
+ * import { Schema } from "effect"
+ *
+ * const schema = Schema.String
+ * type RD = Schema.DecodingServices<typeof schema>
+ * // never
+ * ```
+ *
+ * @since 4.0.0
+ */
+export type DecodingServices<S> = S extends Top ? S["DecodingServices"] : never
+
+/**
+ * Extracts the Effect services required during *encoding* from a schema.
+ *
+ * **Example** (Checking encoding service requirements)
+ *
+ * ```ts
+ * import { Schema } from "effect"
+ *
+ * const schema = Schema.String
+ * type RE = Schema.EncodingServices<typeof schema>
+ * // never
+ * ```
+ *
+ * @since 4.0.0
+ */
+export type EncodingServices<S> = S extends Top ? S["EncodingServices"] : never
+
+/**
+ * Converts a schema type into an assertion function signature. The resulting
+ * function narrows its argument to `I & S["Type"]`. Only schemas with
+ * `DecodingServices: never` (i.e. no required services) can be used here.
+ *
+ * Produced by {@link asserts}.
+ *
+ * @since 4.0.0
+ */
+export type ToAsserts<S extends Top & { readonly DecodingServices: never }> = <I>(
+  input: I
+) => asserts input is I & S["Type"]
 
 /**
  * A schema that additionally supports optic (lens/prism) operations.
@@ -719,9 +708,9 @@ export interface Optic<out T, out Iso> extends Schema<T> {
  * serialize(Schema.NumberFromString) // ok — decodes number, encoded as string
  * ```
  *
- * @see {@link Codec.Encoded} — extract the encoded type
- * @see {@link Codec.DecodingServices} — extract required decoding services
- * @see {@link Codec.EncodingServices} — extract required encoding services
+ * @see {@link Encoded} — extract the encoded type
+ * @see {@link DecodingServices} — extract required decoding services
+ * @see {@link EncodingServices} — extract required encoding services
  * @see {@link revealCodec} — helper to make TypeScript infer the full Codec type
  *
  * @since 4.0.0

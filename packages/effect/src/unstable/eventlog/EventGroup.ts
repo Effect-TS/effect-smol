@@ -52,7 +52,7 @@ export interface EventGroup<
     Error extends Schema.Top = typeof Schema.Never
   >(options: {
     readonly tag: Tag
-    readonly primaryKey: (payload: Schema.Schema.Type<Payload>) => string
+    readonly primaryKey: (payload: Schema.Type<Payload>) => string
     readonly payload?: Payload
     readonly success?: Success
     readonly error?: Error
@@ -124,7 +124,7 @@ const makeProto = <
       this: EventGroup<Events>,
       addOptions: {
         readonly tag: Tag
-        readonly primaryKey: (payload: Schema.Schema.Type<Payload>) => string
+        readonly primaryKey: (payload: Schema.Type<Payload>) => string
         readonly payload?: Payload
         readonly success?: Success
         readonly error?: Error

@@ -3492,7 +3492,7 @@ export type Encoded = (typeof Category)["Encoded"]
 ```ts
 import { Schema } from "effect"
 
-interface CategoryEncoded extends Schema.Codec.Encoded<typeof Category> {}
+interface CategoryEncoded extends Schema.Encoded<typeof Category> {}
 
 export class Category extends Schema.Opaque<Category>()(
   Schema.Struct({
@@ -4014,7 +4014,7 @@ import { Schema } from "effect"
 
 // Define the encoded representation for Category separately.
 // This is useful when the Encoded type differs from the Type type.
-interface CategoryEncoded extends Schema.Codec.Encoded<typeof Category> {}
+interface CategoryEncoded extends Schema.Encoded<typeof Category> {}
 
 // The runtime type is Category; the encoded form is CategoryEncoded.
 // "name" is decoded from a string to a finite number to show that

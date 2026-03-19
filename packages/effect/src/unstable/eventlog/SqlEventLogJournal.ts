@@ -272,7 +272,7 @@ const EntryRow = Schema.Struct({
 
 const EntryRowArray = Schema.Array(EntryRow)
 
-type EntryRow = Schema.Schema.Type<typeof EntryRow>
+type EntryRow = Schema.Type<typeof EntryRow>
 
 const toEntry = (row: EntryRow): EventJournal.Entry =>
   new EventJournal.Entry({

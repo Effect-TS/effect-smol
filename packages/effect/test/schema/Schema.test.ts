@@ -6494,7 +6494,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   describe("asserts", () => {
     it("FiniteFromString", () => {
       const schema = Schema.FiniteFromString
-      const asserts: Schema.Codec.ToAsserts<typeof schema> = Schema.asserts(schema)
+      const asserts: Schema.ToAsserts<typeof schema> = Schema.asserts(schema)
       try {
         asserts(1)
       } catch {
