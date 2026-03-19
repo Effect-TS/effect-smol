@@ -110,6 +110,51 @@ describe("LanguageModel", () => {
 
         deepStrictEqual(parts, [toolCallPart, toolResultPart])
       }))
+
+    it("emits finish after resolved tool results", () =>
+      Effect.gen(function*() {
+        const parts: Array<Response.StreamPart<Toolkit.Tools<typeof MyToolkit>>> = []
+        const latch = yield* Latch.make()
+
+        yield* LanguageModel.streamText({
+          prompt: [],
+          toolkit: MyToolkit
+        }).pipe(
+          Stream.runForEach((part) =>
+            Effect.andThen(
+              latch.open,
+              Effect.sync(() => {
+                parts.push(part)
+              })
+            )
+          ),
+          TestUtils.withLanguageModel({
+            streamText: [
+              {
+                type: "tool-call",
+                id: "tool-finish-order",
+                name: "MyTool",
+                params: { testParam: "test-param" }
+              },
+              finishPart
+            ]
+          }),
+          Effect.provide(MyToolkitLayer),
+          Effect.forkScoped
+        )
+
+        yield* latch.await
+
+        strictEqual(parts[0]?.type, "tool-call")
+        strictEqual(parts.some((part) => part.type === "finish"), false)
+
+        yield* TestClock.adjust("10 seconds")
+
+        strictEqual(parts.length, 3)
+        strictEqual(parts[0]?.type, "tool-call")
+        strictEqual(parts[1]?.type, "tool-result")
+        strictEqual(parts[2]?.type, "finish")
+      }))
   })
 
   describe("generateObject", () => {

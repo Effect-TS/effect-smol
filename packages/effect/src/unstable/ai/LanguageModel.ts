@@ -1407,6 +1407,7 @@ export const make: (params: {
       | Cause.Done
       | Schema.SchemaError
     >()
+    const deferredFinishParts: Array<Response.StreamPart<Tools>> = []
 
     // Emit pre-resolved tool results so Chat.streamText persists them to
     // history. This ensures collectToolApprovals({ excludeResolved }) can
@@ -1465,8 +1466,19 @@ export const make: (params: {
               }
             }
           }
-          // Add decoded response parts to the output queue
-          yield* Queue.offerAll(queue, parts)
+          // Defer finish parts until all tool handlers complete. This guarantees
+          // tool results are emitted before finish in streaming mode.
+          const immediateParts: Array<Response.StreamPart<Tools>> = []
+          for (const part of parts) {
+            if (part.type === "finish") {
+              deferredFinishParts.push(part)
+            } else {
+              immediateParts.push(part)
+            }
+          }
+          if (immediateParts.length > 0) {
+            yield* Queue.offerAll(queue, immediateParts)
+          }
           // Fork tool call handlers - use the raw chunk for encoded params
           for (const part of chunk) {
             if (part.type === "tool-call" && part.providerExecuted !== true) {
@@ -1483,6 +1495,11 @@ export const make: (params: {
           FiberSet.join(toolCallFibers),
           FiberSet.awaitEmpty(toolCallFibers)
         )
+      ),
+      Effect.andThen(
+        deferredFinishParts.length > 0
+          ? Queue.offerAll(queue, deferredFinishParts)
+          : Effect.void
       ),
       // And then end the queue
       Effect.andThen(Queue.end(queue)),
