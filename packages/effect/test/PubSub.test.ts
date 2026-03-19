@@ -470,6 +470,88 @@ describe("PubSub", () => {
       })
     ))
 
+  it.effect("takeUpTo interrupts after pubsub shutdown", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const pubsub = yield* PubSub.unbounded<number>()
+        const subscription = yield* PubSub.subscribe(pubsub)
+
+        yield* PubSub.shutdown(pubsub)
+
+        const exit = yield* Effect.exit(PubSub.takeUpTo(subscription, 5))
+        assert.isTrue(Exit.hasInterrupts(exit))
+      })
+    ))
+
+  it.effect("remaining interrupts after pubsub shutdown", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const pubsub = yield* PubSub.unbounded<number>()
+        const subscription = yield* PubSub.subscribe(pubsub)
+
+        yield* PubSub.shutdown(pubsub)
+
+        const exit = yield* Effect.exit(PubSub.remaining(subscription))
+        assert.isTrue(Exit.hasInterrupts(exit))
+      })
+    ))
+
+  it.effect("shutdown interrupts multiple suspended subscribers", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const pubsub = yield* PubSub.unbounded<number>()
+        const sub1 = yield* PubSub.subscribe(pubsub)
+        const sub2 = yield* PubSub.subscribe(pubsub)
+        const fiber1 = yield* Effect.forkChild(PubSub.take(sub1))
+        const fiber2 = yield* Effect.forkChild(PubSub.take(sub2))
+
+        yield* Effect.yieldNow
+        assert.isUndefined(fiber1.pollUnsafe())
+        assert.isUndefined(fiber2.pollUnsafe())
+
+        yield* PubSub.shutdown(pubsub)
+        yield* Effect.yieldNow
+
+        assert.isTrue(Exit.hasInterrupts(fiber1.pollUnsafe()!))
+        assert.isTrue(Exit.hasInterrupts(fiber2.pollUnsafe()!))
+      })
+    ))
+
+  it.effect("publish interrupts after shutdown", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const pubsub = yield* PubSub.unbounded<number>()
+
+        yield* PubSub.shutdown(pubsub)
+
+        const exit = yield* Effect.exit(PubSub.publish(pubsub, 1))
+        assert.isTrue(Exit.hasInterrupts(exit))
+      })
+    ))
+
+  it.effect("isShutdown reflects shutdown state", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const pubsub = yield* PubSub.unbounded<number>()
+        assert.isFalse(yield* PubSub.isShutdown(pubsub))
+
+        yield* PubSub.shutdown(pubsub)
+        assert.isTrue(yield* PubSub.isShutdown(pubsub))
+      })
+    ))
+
+  it.effect("shutdown is idempotent", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const pubsub = yield* PubSub.unbounded<number>()
+
+        yield* PubSub.shutdown(pubsub)
+        yield* PubSub.shutdown(pubsub)
+
+        assert.isTrue(yield* PubSub.isShutdown(pubsub))
+      })
+    ))
+
   describe("replay", () => {
     it.effect("unbounded", () =>
       Effect.gen(function*() {

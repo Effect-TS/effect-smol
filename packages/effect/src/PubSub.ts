@@ -246,6 +246,7 @@ export interface Subscription<out A> extends Pipeable {
   readonly pollers: MutableList.MutableList<Deferred.Deferred<any>>
   readonly shutdownHook: Latch.Latch
   readonly shutdownFlag: MutableRef.MutableRef<boolean>
+  readonly pubsubShutdownFlag: MutableRef.MutableRef<boolean>
   readonly strategy: PubSub.Strategy<any>
   readonly replayWindow: PubSub.ReplayWindow<A>
 }
@@ -673,7 +674,8 @@ export const isEmpty = <A>(self: PubSub<A>): Effect.Effect<boolean> => Effect.ma
 export const shutdown = <A>(self: PubSub<A>): Effect.Effect<void> =>
   Effect.uninterruptible(Effect.withFiber((fiber) => {
     MutableRef.set(self.shutdownFlag, true)
-    return Scope.close(self.scope, Exit.interrupt(fiber.id)).pipe(
+    return interruptSubscribers(self.subscribers, fiber.id).pipe(
+      Effect.andThen(Scope.close(self.scope, Exit.interrupt(fiber.id))),
       Effect.andThen(self.strategy.shutdown),
       Effect.when(self.shutdownHook.open),
       Effect.asVoid
@@ -972,7 +974,7 @@ export const publishAll: {
  */
 export const subscribe = <A>(self: PubSub<A>): Effect.Effect<Subscription<A>, never, Scope.Scope> =>
   Effect.acquireRelease(
-    Effect.sync(() => makeSubscriptionUnsafe(self.pubsub, self.subscribers, self.strategy)),
+    Effect.sync(() => makeSubscriptionUnsafe(self.pubsub, self.subscribers, self.shutdownFlag, self.strategy)),
     unsubscribe
   )
 
@@ -1032,7 +1034,7 @@ const unsubscribe = <A>(self: Subscription<A>): Effect.Effect<void> =>
  */
 export const take = <A>(self: Subscription<A>): Effect.Effect<A> =>
   Effect.suspend(() => {
-    if (self.shutdownFlag.current) {
+    if (isSubscriptionShutdown(self)) {
       return Effect.interrupt
     }
     if (self.replayWindow.remaining > 0) {
@@ -1079,7 +1081,7 @@ export const take = <A>(self: Subscription<A>): Effect.Effect<A> =>
  */
 export const takeAll = <A>(self: Subscription<A>): Effect.Effect<Arr.NonEmptyArray<A>> =>
   Effect.suspend(function loop(value?: [A]): Effect.Effect<Arr.NonEmptyArray<A>> {
-    if (self.shutdownFlag.current) {
+    if (isSubscriptionShutdown(self)) {
       return Effect.interrupt
     }
     let as = self.pollers.length === 0
@@ -1098,6 +1100,9 @@ export const takeAll = <A>(self: Subscription<A>): Effect.Effect<Arr.NonEmptyArr
   })
 
 const pollForItem = <A>(self: Subscription<A>) => {
+  if (isSubscriptionShutdown(self)) {
+    return Effect.interrupt
+  }
   const deferred = Deferred.makeUnsafe<A>()
   let set = self.subscribers.get(self.subscription)
   if (!set) {
@@ -1112,10 +1117,16 @@ const pollForItem = <A>(self: Subscription<A>) => {
     self.subscription,
     self.pollers
   )
+  if (isSubscriptionShutdown(self)) {
+    MutableList.remove(self.pollers, deferred)
+    removeSubscribers(self.subscribers, self.subscription, self.pollers)
+    return Effect.interrupt
+  }
   return Effect.onInterrupt(
     Deferred.await(deferred),
     () => {
       MutableList.remove(self.pollers, deferred)
+      removeSubscribers(self.subscribers, self.subscription, self.pollers)
       return Effect.void
     }
   )
@@ -1161,7 +1172,7 @@ export const takeUpTo: {
   <A>(self: Subscription<A>, max: number): Effect.Effect<Array<A>>
 } = dual(2, <A>(self: Subscription<A>, max: number): Effect.Effect<Array<A>> =>
   Effect.suspend(() => {
-    if (self.shutdownFlag.current) return Effect.interrupt
+    if (isSubscriptionShutdown(self)) return Effect.interrupt
     let replay: Array<A> | undefined = undefined
     if (self.replayWindow.remaining >= max) {
       return Effect.succeed(self.replayWindow.takeN(max))
@@ -1285,7 +1296,7 @@ const takeRemainderLoop = <A>(
  */
 export const remaining = <A>(self: Subscription<A>): Effect.Effect<number> =>
   Effect.suspend(() =>
-    self.shutdownFlag.current
+    isSubscriptionShutdown(self)
       ? Effect.interrupt
       : Effect.succeed(self.subscription.size() + self.replayWindow.remaining)
   )
@@ -1317,7 +1328,7 @@ export const remaining = <A>(self: Subscription<A>): Effect.Effect<number> =>
  * @category getters
  */
 export const remainingUnsafe = <A>(self: Subscription<A>): Option.Option<number> => {
-  if (self.shutdownFlag.current) {
+  if (isSubscriptionShutdown(self)) {
     return Option.none()
   }
   return Option.some(self.subscription.size() + self.replayWindow.remaining)
@@ -1360,17 +1371,55 @@ const removeSubscribers = <A>(
 const makeSubscriptionUnsafe = <A>(
   pubsub: PubSub.Atomic<A>,
   subscribers: PubSub.Subscribers<A>,
+  pubsubShutdownFlag: MutableRef.MutableRef<boolean>,
   strategy: PubSub.Strategy<A>
-): Subscription<A> =>
-  new SubscriptionImpl(
+): Subscription<A> => {
+  const subscription = new SubscriptionImpl(
     pubsub,
     subscribers,
     pubsub.subscribe(),
     MutableList.make<Deferred.Deferred<A>>(),
     Latch.makeUnsafe(false),
     MutableRef.make(false),
+    pubsubShutdownFlag,
     strategy,
     pubsub.replayWindow()
+  )
+  if (pubsubShutdownFlag.current) {
+    MutableRef.set(subscription.shutdownFlag, true)
+    subscription.subscription.unsubscribe()
+  }
+  return subscription
+}
+
+const isSubscriptionShutdown = <A>(self: Subscription<A>): boolean =>
+  self.shutdownFlag.current || self.pubsubShutdownFlag.current
+
+const interruptSubscribers = <A>(
+  subscribers: PubSub.Subscribers<A>,
+  fiberId: number
+): Effect.Effect<void> =>
+  Effect.forEach(
+    Arr.fromIterable(subscribers),
+    ([subscription, pollersSet]) =>
+      Effect.forEach(
+        Arr.fromIterable(pollersSet),
+        (pollers) =>
+          Effect.forEach(
+            MutableList.takeAll(pollers),
+            (deferred) => Deferred.interruptWith(deferred, fiberId),
+            { discard: true, concurrency: "unbounded" }
+          ),
+        { discard: true, concurrency: "unbounded" }
+      ).pipe(
+        Effect.tap(() =>
+          Effect.sync(() => {
+            subscription.unsubscribe()
+            subscribers.delete(subscription)
+          })
+        )
+      ),
+    { discard: true, concurrency: "unbounded" }
   )
 
 class BoundedPubSubArb<in out A> implements PubSub.Atomic<A> {
@@ -2114,6 +2163,7 @@ class SubscriptionImpl<in out A> implements Subscription<A> {
   readonly pollers: MutableList.MutableList<Deferred.Deferred<A>>
   readonly shutdownHook: Latch.Latch
   readonly shutdownFlag: MutableRef.MutableRef<boolean>
+  readonly pubsubShutdownFlag: MutableRef.MutableRef<boolean>
   readonly strategy: PubSub.Strategy<A>
   readonly replayWindow: PubSub.ReplayWindow<A>
 
@@ -2124,6 +2174,7 @@ class SubscriptionImpl<in out A> implements Subscription<A> {
     pollers: MutableList.MutableList<Deferred.Deferred<A>>,
     shutdownHook: Latch.Latch,
     shutdownFlag: MutableRef.MutableRef<boolean>,
+    pubsubShutdownFlag: MutableRef.MutableRef<boolean>,
     strategy: PubSub.Strategy<A>,
     replayWindow: PubSub.ReplayWindow<A>
   ) {
@@ -2133,6 +2184,7 @@ class SubscriptionImpl<in out A> implements Subscription<A> {
     this.pollers = pollers
     this.shutdownHook = shutdownHook
     this.shutdownFlag = shutdownFlag
+    this.pubsubShutdownFlag = pubsubShutdownFlag
     this.strategy = strategy
     this.replayWindow = replayWindow
   }
