@@ -296,6 +296,48 @@ describe("Queue", () => {
       assert.isTrue(Exit.hasInterrupts(exit))
     }))
 
+  it.effect("takeAll interrupts after shutdown", () =>
+    Effect.gen(function*() {
+      const queue = yield* Queue.bounded<number>(2)
+      yield* Queue.shutdown(queue)
+
+      const exit = yield* Effect.exit(Queue.takeAll(queue))
+      assert.isTrue(Exit.hasInterrupts(exit))
+    }))
+
+  it.effect("peek interrupts after shutdown", () =>
+    Effect.gen(function*() {
+      const queue = yield* Queue.bounded<number>(2)
+      yield* Queue.shutdown(queue)
+
+      const exit = yield* Effect.exit(Queue.peek(queue))
+      assert.isTrue(Exit.hasInterrupts(exit))
+    }))
+
+  it.effect("offer returns false after shutdown", () =>
+    Effect.gen(function*() {
+      const queue = yield* Queue.bounded<number>(2)
+      yield* Queue.shutdown(queue)
+
+      assert.strictEqual(yield* Queue.offer(queue, 1), false)
+    }))
+
+  it.effect("size returns 0 after shutdown", () =>
+    Effect.gen(function*() {
+      const queue = yield* Queue.bounded<number>(2)
+      yield* Queue.offer(queue, 1)
+      yield* Queue.shutdown(queue)
+
+      assert.strictEqual(yield* Queue.size(queue), 0)
+    }))
+
+  it.effect("shutdown is idempotent", () =>
+    Effect.gen(function*() {
+      const queue = yield* Queue.bounded<number>(2)
+      assert.isTrue(yield* Queue.shutdown(queue))
+      assert.isTrue(yield* Queue.shutdown(queue))
+    }))
+
   it.effect("fail doesnt drop items", () =>
     Effect.gen(function*() {
       const queue = yield* Queue.bounded<number, string>(2)
