@@ -312,3 +312,74 @@ describe("Prompt.autoComplete", () => {
       assert.isTrue(findFrame(frames, "No matches") !== undefined)
     }).pipe(Effect.provide(TestLayer)))
 })
+
+describe("Prompt.file", () => {
+  const FilePromptLayer = Layer.mergeAll(
+    ConsoleLayer,
+    FileSystem.layerNoop({
+      exists: () => Effect.succeed(true),
+      readDirectory: (directory) =>
+        Effect.succeed(
+          directory === "/workspace"
+            ? ["alpha.txt", "banana.txt", "basket.txt"]
+            : []
+        ),
+      stat: (path) =>
+        Effect.succeed(
+          path.endsWith(".txt")
+            ? ({ type: "File" } as any)
+            : ({ type: "Directory" } as any)
+        )
+    }),
+    PathLayer,
+    TerminalLayer
+  )
+
+  it.effect("filters files as you type", () =>
+    Effect.gen(function*() {
+      const prompt = Prompt.file({
+        message: "Pick file",
+        startingPath: "/workspace"
+      })
+
+      yield* MockTerminal.inputText("ban")
+      yield* MockTerminal.inputKey("enter")
+
+      const result = yield* Prompt.run(prompt)
+      assert.strictEqual(result, "/workspace/banana.txt")
+
+      const output = yield* TestConsole.logLines
+      const frames = toFrames(output)
+      const filteredFrame = findFrame(frames, "[filter: ban]")
+
+      assert.isTrue(filteredFrame !== undefined)
+      assert.isTrue(filteredFrame?.includes("banana.txt"))
+      assert.isFalse(filteredFrame?.includes("alpha.txt"))
+      assert.isFalse(filteredFrame?.includes("basket.txt"))
+    }).pipe(Effect.provide(FilePromptLayer)))
+
+  it.effect("removes the last character on backspace", () =>
+    Effect.gen(function*() {
+      const prompt = Prompt.file({
+        message: "Pick file",
+        startingPath: "/workspace"
+      })
+
+      yield* MockTerminal.inputText("ban")
+      yield* MockTerminal.inputKey("backspace")
+      yield* MockTerminal.inputKey("enter")
+
+      const result = yield* Prompt.run(prompt)
+      assert.strictEqual(result, "/workspace/banana.txt")
+
+      const output = yield* TestConsole.logLines
+      const frames = toFrames(output)
+      const narrowedFrame = findFrame(frames, "[filter: ban]")
+      const expandedFrame = findFrame(frames, "[filter: ba]")
+
+      assert.isTrue(narrowedFrame !== undefined)
+      assert.isTrue(expandedFrame !== undefined)
+      assert.isFalse(narrowedFrame?.includes("basket.txt"))
+      assert.isTrue(expandedFrame?.includes("basket.txt"))
+    }).pipe(Effect.provide(FilePromptLayer)))
+})
