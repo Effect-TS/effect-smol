@@ -275,7 +275,7 @@ export type ErrorSchema<R> = R extends Rpc<
  * @since 4.0.0
  * @category models
  */
-export type Error<R> = Schema.Schema.Type<ErrorSchema<R>>
+export type Error<R> = Schema.Type<ErrorSchema<R>>
 
 /**
  * @since 4.0.0
@@ -565,7 +565,7 @@ export type ResultFrom<R extends Any, Services> = R extends Rpc<
       >
       | Effect<
         Queue.Dequeue<_SA["Type"], _SE["Type"] | _Error["Type"] | Cause.Done>,
-        _SE["Type"] | Schema.Schema.Type<_Error>,
+        _SE["Type"] | Schema.Type<_Error>,
         Services
       > :
   Effect<

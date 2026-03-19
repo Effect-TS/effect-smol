@@ -29,7 +29,7 @@ describe("decoding / encoding API", () => {
 
   it("asserts", () => {
     const schema = Schema.String
-    const asserts: Schema.Codec.ToAsserts<typeof schema> = Schema.asserts(schema)
+    const asserts: Schema.ToAsserts<typeof schema> = Schema.asserts(schema)
     const u = hole<unknown>()
     {
       asserts(u)
@@ -41,7 +41,7 @@ describe("decoding / encoding API", () => {
       expect(sn).type.toBe<string>()
     }
     const struct = Schema.Struct({ a: Schema.String })
-    const assertsStruct: Schema.Codec.ToAsserts<typeof struct> = Schema.asserts(struct)
+    const assertsStruct: Schema.ToAsserts<typeof struct> = Schema.asserts(struct)
     const s = hole<{ b: string }>()
     {
       assertsStruct(s)

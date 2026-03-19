@@ -39,7 +39,7 @@ export interface Event<
   readonly [TypeId]: TypeId
   readonly tag: Tag
   readonly key: string
-  readonly primaryKey: (payload: Schema.Schema.Type<Payload>) => string
+  readonly primaryKey: (payload: Schema.Type<Payload>) => string
   readonly payload: Payload
   readonly payloadMsgPack: Msgpack.schema<Payload>
   readonly success: Success
@@ -116,7 +116,7 @@ export type ErrorSchema<A extends Any> = A extends Event<
  * @since 4.0.0
  * @category models
  */
-export type Error<A extends Any> = Schema.Schema.Type<ErrorSchema<A>>
+export type Error<A extends Any> = Schema.Type<ErrorSchema<A>>
 
 /**
  * @since 4.0.0
@@ -158,7 +158,7 @@ export type PayloadSchemaWithTag<A extends Any, Tag extends string> = A extends 
  * @since 4.0.0
  * @category models
  */
-export type Payload<A extends Any> = Schema.Schema.Type<PayloadSchema<A>>
+export type Payload<A extends Any> = Schema.Type<PayloadSchema<A>>
 
 /**
  * @since 4.0.0
@@ -171,7 +171,7 @@ export type TaggedPayload<A extends Any> = A extends Event<
   infer _Error
 > ? {
     readonly _tag: _Tag
-    readonly payload: Schema.Schema.Type<_Payload>
+    readonly payload: Schema.Type<_Payload>
   }
   : never
 
@@ -191,7 +191,7 @@ export type SuccessSchema<A extends Any> = A extends Event<
  * @since 4.0.0
  * @category models
  */
-export type Success<A extends Any> = Schema.Schema.Type<SuccessSchema<A>>
+export type Success<A extends Any> = Schema.Type<SuccessSchema<A>>
 
 /**
  * @since 4.0.0
@@ -295,14 +295,14 @@ export function make<
   Error extends Schema.Top = typeof Schema.Never
 >(options: {
   readonly tag: Tag
-  readonly primaryKey: (payload: Schema.Schema.Type<Payload>) => string
+  readonly primaryKey: (payload: Schema.Type<Payload>) => string
   readonly payload?: Payload | undefined
   readonly success?: Success | undefined
   readonly error?: Error | undefined
 }): Event<Tag, Payload, Success, Error>
 export function make(options: {
   readonly tag: string
-  readonly primaryKey: (payload: Schema.Schema.Type<Schema.Top>) => string
+  readonly primaryKey: (payload: Schema.Type<Schema.Top>) => string
   readonly payload?: Schema.Top | undefined
   readonly success?: Schema.Top | undefined
   readonly error?: Schema.Top | undefined

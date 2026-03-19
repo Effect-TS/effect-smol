@@ -141,7 +141,7 @@ describe("Union", () => {
         expect(handler).type.toBeCallableWith({ _tag: "A", a: "a" })
         expect(handler).type.toBeCallableWith({ _tag: "B", b: 1 })
         expect(handler).type.toBeAssignableTo<
-          (value: Schema.Schema.Type<typeof schema>) => Effect.Effect<"ok", "nope", never>
+          (value: Schema.Type<typeof schema>) => Effect.Effect<"ok", "nope", never>
         >()
       })
     })
