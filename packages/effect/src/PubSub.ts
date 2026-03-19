@@ -41,6 +41,7 @@ import { nextPow2 } from "./Number.ts"
 import * as Option from "./Option.ts"
 import { type Pipeable, pipeArguments } from "./Pipeable.ts"
 import * as Scope from "./Scope.ts"
+import * as ServiceMap from "./ServiceMap.ts"
 import type { Covariant, Invariant } from "./Types.ts"
 
 const TypeId = "~effect/PubSub"
@@ -971,9 +972,16 @@ export const publishAll: {
  * @category subscription
  */
 export const subscribe = <A>(self: PubSub<A>): Effect.Effect<Subscription<A>, never, Scope.Scope> =>
-  Effect.acquireRelease(
-    Effect.sync(() => makeSubscriptionUnsafe(self.pubsub, self.subscribers, self.strategy)),
-    unsubscribe
+  Effect.uninterruptible(
+    Effect.servicesWith((services) => {
+      const localScope = ServiceMap.get(services, Scope.Scope)
+      const scope = Scope.forkUnsafe(self.scope)
+      const subscription = makeSubscriptionUnsafe(self.pubsub, self.subscribers, self.strategy)
+      return Scope.addFinalizer(scope, unsubscribe(subscription)).pipe(
+        Effect.andThen(Scope.addFinalizerExit(localScope, (exit) => Scope.close(scope, exit))),
+        Effect.as(subscription)
+      )
+    })
   )
 
 const unsubscribe = <A>(self: Subscription<A>): Effect.Effect<void> =>
