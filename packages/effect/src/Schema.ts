@@ -2300,7 +2300,7 @@ export declare namespace Struct {
   /**
    * @since 4.0.0
    */
-  export type Type<F extends Fields> = Type_<F>
+  export type Type<F extends Fields> = Simplify<Type_<F>>
 
   type Iso_<
     F extends Fields,
@@ -2315,7 +2315,7 @@ export declare namespace Struct {
   /**
    * @since 4.0.0
    */
-  export type Iso<F extends Fields> = Iso_<F>
+  export type Iso<F extends Fields> = Simplify<Iso_<F>>
 
   type EncodedOptionalKeys<Fields extends Struct.Fields> = {
     [K in keyof Fields]: Fields[K] extends { readonly "~encoded.optionality": "optional" } ? K
@@ -2340,7 +2340,7 @@ export declare namespace Struct {
   /**
    * @since 4.0.0
    */
-  export type Encoded<F extends Fields> = Encoded_<F>
+  export type Encoded<F extends Fields> = Simplify<Encoded_<F>>
 
   /**
    * @since 4.0.0
@@ -2367,7 +2367,7 @@ export declare namespace Struct {
   /**
    * @since 4.0.0
    */
-  export type MakeIn<F extends Fields> = MakeIn_<F>
+  export type MakeIn<F extends Fields> = Simplify<MakeIn_<F>>
 }
 
 /**
@@ -2375,14 +2375,14 @@ export declare namespace Struct {
  */
 export interface Struct<Fields extends Struct.Fields> extends
   Bottom<
-    Simplify<Struct.Type<Fields>>,
-    Simplify<Struct.Encoded<Fields>>,
+    Struct.Type<Fields>,
+    Struct.Encoded<Fields>,
     Struct.DecodingServices<Fields>,
     Struct.EncodingServices<Fields>,
     AST.Objects,
     Struct<Fields>,
-    Simplify<Struct.MakeIn<Fields>>,
-    Simplify<Struct.Iso<Fields>>
+    Struct.MakeIn<Fields>,
+    Struct.Iso<Fields>
   >
 {
   readonly "~rebuild.out": this
