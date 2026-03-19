@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Array, Effect, Exit, Fiber, Latch, Number, Pull, Random, Stream, SubscriptionRef } from "effect"
+import { Array, Effect, Exit, Fiber, Latch, Number, PubSub, Pull, Random, Stream, SubscriptionRef } from "effect"
 
 describe("SubscriptionRef", () => {
   it.effect("isSubscriptionRef", () =>
@@ -62,6 +62,24 @@ describe("SubscriptionRef", () => {
       const result2 = yield* Fiber.join(fiber2)
       assert.isTrue(Exit.isFailure(result1) && Pull.isDoneCause(result1.cause))
       assert.deepStrictEqual(result2, [1, 2])
+    }))
+
+  it.effect("changes terminates when backing pubsub is shutdown", () =>
+    Effect.gen(function*() {
+      const ref = yield* SubscriptionRef.make(0)
+      const latch = yield* Latch.make()
+      const fiber = yield* SubscriptionRef.changes(ref).pipe(
+        Stream.tap(() => latch.open),
+        Stream.take(2),
+        Stream.runCollect,
+        Effect.forkScoped
+      )
+
+      yield* latch.await
+      yield* PubSub.shutdown(ref.pubsub)
+
+      const result = yield* Fiber.join(fiber)
+      assert.deepStrictEqual(result, [0])
     }))
 
   it.effect("concurrent subscribes and unsubscribes are handled correctly", () =>
