@@ -13,6 +13,7 @@ import {
   Logger,
   type LogLevel,
   Option,
+  Ref,
   References,
   Result,
   Schedule,
@@ -51,6 +52,93 @@ describe("Effect", () => {
         const annotations = Cause.annotations(cause)
         const trace = ServiceMap.getUnsafe(annotations, Cause.StackTrace)
         assert.strictEqual(trace.name, "test span")
+      }))
+  })
+
+  describe("Cache", () => {
+    it.effect("returns new instances after duration", () =>
+      Effect.gen(function*() {
+        const ref = yield* Ref.make(0)
+        const cached = yield* pipe(
+          Ref.updateAndGet(ref, (n) => n + 1),
+          Effect.cachedWithTTL(Duration.minutes(60))
+        )
+
+        const a = yield* cached
+        yield* TestClock.adjust(Duration.minutes(59))
+        const b = yield* cached
+        yield* TestClock.adjust(Duration.minutes(1))
+        const c = yield* cached
+        yield* TestClock.adjust(Duration.minutes(59))
+        const d = yield* cached
+
+        assert.strictEqual(a, b)
+        assert.isTrue(b !== c)
+        assert.strictEqual(c, d)
+      }))
+
+    it.effect("correctly handles an infinite duration time to live", () =>
+      Effect.gen(function*() {
+        const ref = yield* Ref.make(0)
+        const cached = yield* pipe(
+          Ref.modify(ref, (curr) => [curr, curr + 1]),
+          Effect.cachedWithTTL(Duration.infinity)
+        )
+
+        const a = yield* cached
+        const b = yield* cached
+        const c = yield* cached
+
+        assert.strictEqual(a, 0)
+        assert.strictEqual(b, 0)
+        assert.strictEqual(c, 0)
+      }))
+
+    it.effect("cachedInvalidate - returns new instances after duration", () =>
+      Effect.gen(function*() {
+        const ref = yield* Ref.make(0)
+        const [cached, invalidate] = yield* pipe(
+          Ref.updateAndGet(ref, (n) => n + 1),
+          Effect.cachedInvalidateWithTTL(Duration.minutes(60))
+        )
+
+        const a = yield* cached
+        yield* TestClock.adjust(Duration.minutes(59))
+        const b = yield* cached
+        yield* invalidate
+        const c = yield* cached
+        yield* TestClock.adjust(Duration.minutes(1))
+        const d = yield* cached
+        yield* TestClock.adjust(Duration.minutes(59))
+        const e = yield* cached
+
+        assert.strictEqual(a, b)
+        assert.isTrue(b !== c)
+        assert.strictEqual(c, d)
+        assert.isTrue(d !== e)
+      }))
+
+    it.effect("cachedInvalidate - starts ttl when the computation completes", () =>
+      Effect.gen(function*() {
+        let runs = 0
+        const [cached] = yield* Effect.cachedInvalidateWithTTL(
+          Effect.sync(() => ++runs).pipe(Effect.delay("10 seconds")),
+          "1 minute"
+        )
+
+        const first = yield* cached.pipe(Effect.forkChild)
+        yield* TestClock.adjust("10 seconds")
+        assert.deepStrictEqual(yield* Fiber.await(first), Exit.succeed(1))
+
+        yield* TestClock.adjust("55 seconds")
+        assert.strictEqual(yield* cached, 1)
+        assert.strictEqual(runs, 1)
+
+        yield* TestClock.adjust("6 seconds")
+        const second = yield* cached.pipe(Effect.forkChild)
+        yield* TestClock.adjust("10 seconds")
+        assert.deepStrictEqual(yield* Fiber.await(second), Exit.succeed(2))
+        assert.strictEqual(runs, 2)
       }))
   })
 
