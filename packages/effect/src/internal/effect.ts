@@ -4063,7 +4063,8 @@ export const cachedInvalidateWithTTL: {
     const wait = flatMap(latch.await, () => exit!)
     return [
       withFiber((fiber) => {
-        const now = isFinite ? fiber.getRef(ClockRef).currentTimeMillisUnsafe() : 0
+        const clock = fiber.getRef(ClockRef)
+        const now = isFinite ? clock.currentTimeMillisUnsafe() : 0
         if (running || now < expiresAt) return exit ?? wait
         running = true
         latch.closeUnsafe()
@@ -4071,7 +4072,7 @@ export const cachedInvalidateWithTTL: {
         return onExit(self, (exit_) =>
           sync(() => {
             running = false
-            expiresAt = fiber.getRef(ClockRef).currentTimeMillisUnsafe() + ttlMillis
+            expiresAt = clock.currentTimeMillisUnsafe() + ttlMillis
             exit = exit_
             latch.openUnsafe()
           }))
