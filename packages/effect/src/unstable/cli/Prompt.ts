@@ -3356,6 +3356,20 @@ const processTextCursorRight = (state: TextState) => {
   )
 }
 
+const processTextCursorStart = (state: TextState) =>
+  Effect.succeed(
+    Action.NextFrame({
+      state: { ...state, cursor: 0, error: Option.none() }
+    })
+  )
+
+const processTextCursorEnd = (state: TextState) =>
+  Effect.succeed(
+    Action.NextFrame({
+      state: { ...state, cursor: state.value.length, error: Option.none() }
+    })
+  )
+
 const processTab = (state: TextState, options: TextOptionsReq) => {
   if (state.value === options.default) {
     return Effect.succeed(Action.Beep())
@@ -3392,8 +3406,18 @@ const handleTextRender = (options: TextOptionsReq) => {
 
 const handleTextProcess = (options: TextOptionsReq) => {
   return (input: Terminal.UserInput, state: TextState) => {
-    if (input.key.ctrl && input.key.name === "u") {
-      return processTextClear(state)
+    if (input.key.ctrl) {
+      switch (input.key.name) {
+        case "u": {
+          return processTextClear(state)
+        }
+        case "a": {
+          return processTextCursorStart(state)
+        }
+        case "e": {
+          return processTextCursorEnd(state)
+        }
+      }
     }
     switch (input.key.name) {
       case "backspace": {
@@ -3404,6 +3428,12 @@ const handleTextProcess = (options: TextOptionsReq) => {
       }
       case "right": {
         return processTextCursorRight(state)
+      }
+      case "home": {
+        return processTextCursorStart(state)
+      }
+      case "end": {
+        return processTextCursorEnd(state)
       }
       case "enter":
       case "return": {
