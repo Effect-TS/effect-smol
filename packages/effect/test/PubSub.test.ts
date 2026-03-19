@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Array, Effect, Fiber, Latch, PubSub } from "effect"
+import { Array, Effect, Exit, Fiber, Latch, PubSub, Stream } from "effect"
 import { pipe } from "effect/Function"
 
 describe("PubSub", () => {
@@ -396,6 +396,37 @@ describe("PubSub", () => {
       const pubsub = yield* PubSub.dropping<number>(2)
       yield* PubSub.publishAll(pubsub, [1, 2])
       assert.deepStrictEqual(PubSub.sizeUnsafe(pubsub), 0)
+    }))
+
+  // BUG: Stream.fromPubSub hangs on shutdown because PubSub.shutdown
+  // does not interrupt suspended subscribers. Stream.fromQueue works
+  // because Queue.shutdown actively interrupts takers via finalize().
+  //
+  // Once PubSub.shutdown is fixed to interrupt subscribers, this test
+  // should be updated. Note: even after the fix, Stream.fromPubSub will
+  // complete gracefully (not interrupt) because Channel.fromSubscriptionArray
+  // wraps the pull with onInterrupt(() => Cause.done()), converting
+  // interrupts to Done. This differs from Stream.fromQueue which
+  // propagates the interrupt. The reason is that subscription scope
+  // closure and PubSub shutdown both use fiber-level interruption, so
+  // the channel can't distinguish them. Queue doesn't have this problem
+  // because it stores an interrupt Exit in state and resumes takers with
+  // it as a return value, not via fiber interruption.
+  it.effect("Stream.fromPubSub does not complete on shutdown (known bug)", () =>
+    Effect.gen(function*() {
+      const pubsub = yield* PubSub.unbounded<number>()
+      const fiber = yield* Effect.forkChild(
+        Stream.runCollect(Stream.fromPubSub(pubsub))
+      )
+
+      yield* Effect.yieldNow
+      assert.isUndefined(fiber.pollUnsafe())
+
+      yield* PubSub.shutdown(pubsub)
+      yield* Effect.yieldNow
+
+      // The fiber is still suspended — shutdown didn't reach it
+      assert.isUndefined(fiber.pollUnsafe())
     }))
 
   describe("replay", () => {
