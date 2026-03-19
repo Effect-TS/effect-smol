@@ -492,7 +492,6 @@ export const invalidate: {
     if (o._tag === "None") return
     const entry = o.value
     MutableHashMap.remove(self.state.map, key)
-    if (entry.refCount > 0) return
     if (entry.fiber) yield* Fiber.interrupt(entry.fiber)
     yield* Scope.close(entry.scope, Exit.void)
   }, Effect.uninterruptible)

@@ -234,4 +234,30 @@ describe("RcMap", () => {
       yield* TestClock.adjust(250)
       assert.deepStrictEqual(released, ["short:a"])
     }))
+
+  it.effect("invalidate with active consumer closes scope", () =>
+    Effect.gen(function*() {
+      const acquired: Array<string> = []
+      const released: Array<string> = []
+      const map = yield* RcMap.make({
+        lookup: (key: string) =>
+          Effect.acquireRelease(
+            Effect.sync(() => {
+              acquired.push(key)
+              return key
+            }),
+            () => Effect.sync(() => released.push(key))
+          )
+      })
+
+      const scope = yield* Scope.make()
+      yield* RcMap.get(map, "foo").pipe(Scope.provide(scope))
+      assert.deepStrictEqual(acquired, ["foo"])
+      assert.deepStrictEqual(released, [])
+
+      // Invalidate while consumer still holds a ref.
+      // Should close scope and run finalizer (like ScopedCache.invalidate).
+      yield* RcMap.invalidate(map, "foo")
+      assert.deepStrictEqual(released, ["foo"])
+    }))
 })
