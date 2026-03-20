@@ -285,9 +285,7 @@ export class SqlError extends Schema.TaggedErrorClass<SqlError>("effect/sql/SqlE
 /**
  * @since 4.0.0
  */
-export const isSqlError = (u: unknown): u is SqlError =>
-  Predicate.hasProperty(u, TypeId)
-  && Predicate.isTagged(u, "SqlError")
+export const isSqlError = (u: unknown): u is SqlError => Predicate.hasProperty(u, TypeId)
 
 /**
  * @since 4.0.0
@@ -386,11 +384,6 @@ export class ResultLengthMismatch
     actual: Schema.Number
   })
 {
-  /**
-   * @since 4.0.0
-   */
-  readonly [TypeId] = TypeId
-
   /**
    * @since 4.0.0
    */
