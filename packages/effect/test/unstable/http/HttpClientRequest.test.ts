@@ -1,5 +1,6 @@
 import { describe, it } from "@effect/vitest"
-import { assertNone, assertSome, strictEqual } from "@effect/vitest/utils"
+import { assertNone, assertSome, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
+import { Effect, Stream } from "effect"
 import * as Option from "effect/Option"
 import { HttpClientRequest } from "effect/unstable/http"
 
@@ -105,6 +106,59 @@ describe("HttpClientRequest", () => {
         HttpClientRequest.setUrl("http://[::1")
       )
       assertNone(HttpClientRequest.toUrl(request))
+    })
+  })
+
+  describe("web conversions", () => {
+    it.effect("fromWeb", () =>
+      Effect.gen(function*() {
+        const webRequest = new Request("http://localhost:3000/todos/1?a=1&a=2#top", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "content-length": "13",
+            "x-test": "ok"
+          },
+          body: "{\"foo\":\"bar\"}"
+        })
+        const request = HttpClientRequest.fromWeb(webRequest)
+
+        strictEqual(request.method, "POST")
+        strictEqual(request.url, "http://localhost:3000/todos/1")
+        assertSome(request.hash, "top")
+        strictEqual(request.headers["content-type"], "application/json")
+        strictEqual(request.headers["content-length"], "13")
+        strictEqual(request.headers["x-test"], "ok")
+        deepStrictEqual([...request.urlParams], [["a", "1"], ["a", "2"]])
+        strictEqual(request.body._tag, "Raw")
+
+        const webRequest2 = yield* HttpClientRequest.toWeb(request)
+        strictEqual(yield* Effect.promise(() => webRequest2.text()), "{\"foo\":\"bar\"}")
+      }))
+
+    it.effect("toWeb stream body", () =>
+      Effect.gen(function*() {
+        const body = new Uint8Array([104, 101, 108, 108, 111])
+        const request = HttpClientRequest.post("http://localhost:3000/stream").pipe(
+          HttpClientRequest.bodyStream(Stream.succeed(body), {
+            contentType: "text/plain",
+            contentLength: body.length
+          })
+        )
+        const webRequest = yield* HttpClientRequest.toWeb(request)
+
+        strictEqual(webRequest.method, "POST")
+        strictEqual(webRequest.url, "http://localhost:3000/stream")
+        strictEqual(yield* Effect.promise(() => webRequest.text()), "hello")
+      }))
+
+    it("toWebResult returns failure for invalid url", () => {
+      const request = HttpClientRequest.get("http://localhost").pipe(
+        HttpClientRequest.setUrl("http://[::1")
+      )
+      const result = HttpClientRequest.toWebResult(request)
+
+      strictEqual(result._tag, "Failure")
     })
   })
 })
