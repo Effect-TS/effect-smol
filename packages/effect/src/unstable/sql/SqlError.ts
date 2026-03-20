@@ -271,8 +271,7 @@ export class SqlError extends Schema.TaggedErrorClass<SqlError>("effect/sql/SqlE
    * @since 4.0.0
    */
   override get message(): string {
-    const message = Object.prototype.hasOwnProperty.call(this.reason, "message") ? this.reason.message : undefined
-    return message ?? this.reason._tag
+    return this.reason.message || this.reason._tag
   }
 
   /**
