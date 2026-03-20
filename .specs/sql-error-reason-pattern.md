@@ -447,7 +447,7 @@ to pass.
 
 - [x] Core `SqlError.ts` reason-pattern refactor (items 1-9) completed.
 - [x] Driver updates (items 10-12) completed across all 11 SQL driver packages.
-- [ ] Tests and changesets (items 13-16) in progress (core SqlError smoke tests added; exhaustive matrix + changesets pending).
+- [ ] Tests and changesets (items 13-16) in progress (item 13 now completed with exhaustive SqlError reason coverage; driver shape assertions + changesets pending).
 - [ ] Full monorepo validation (items 17-21) in progress (codegen / lint / typecheck / docgen completed; full `pnpm test` sweep pending).
 
 #### Discoveries / Issues
@@ -467,6 +467,10 @@ to pass.
 - Added per-driver `classifyError` helpers for pg / mysql2 / mssql /
   clickhouse with SQLSTATE / errno / number / code mappings from this spec and
   `UnknownError` fallback for unmapped native errors.
+- Expanded `packages/effect/test/unstable/sql/SqlError.test.ts` with exhaustive
+  assertions for all 10 reason classes, wrapper delegation checks for
+  `message` / `cause` / `isRetryable`, and schema encode/decode round-trips for
+  `SqlError` wrapping each reason.
 
 **Core changes** (`packages/effect/src/unstable/sql/SqlError.ts`):
 
@@ -540,6 +544,5 @@ to pass.
 ## Review Follow-up Tasks
 
 - Add targeted driver tests that assert native error code classification in pg / mysql2 / mssql / clickhouse and unknown fallbacks for D1 / Durable Objects.
-- Expand `SqlError.test.ts` to cover all 10 reason classes and schema encode/decode round-trips.
 - Add required changesets for `effect` and affected SQL driver packages once migration lands.
 - Run full monorepo `pnpm test` sweep (beyond targeted suites) before merge.
