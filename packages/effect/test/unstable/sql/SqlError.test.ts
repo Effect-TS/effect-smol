@@ -12,7 +12,7 @@ type ReasonCase = {
   }) => SqlError.SqlErrorReason
 }
 
-const reasonCases: ReadonlyArray<ReasonCase> = [
+const reasonCases = [
   { tag: "ConnectionError", isRetryable: true, ctor: SqlError.ConnectionError },
   { tag: "AuthenticationError", isRetryable: false, ctor: SqlError.AuthenticationError },
   { tag: "AuthorizationError", isRetryable: false, ctor: SqlError.AuthorizationError },
@@ -23,7 +23,7 @@ const reasonCases: ReadonlyArray<ReasonCase> = [
   { tag: "LockTimeoutError", isRetryable: true, ctor: SqlError.LockTimeoutError },
   { tag: "StatementTimeoutError", isRetryable: true, ctor: SqlError.StatementTimeoutError },
   { tag: "UnknownError", isRetryable: false, ctor: SqlError.UnknownError }
-]
+] as const satisfies ReadonlyArray<ReasonCase>
 
 describe("SqlError", () => {
   it("reason classes expose expected tags and retryability", () => {
@@ -52,8 +52,13 @@ describe("SqlError", () => {
         message: `${reasonCase.tag} custom`,
         operation: "execute"
       })
+      const withEmptyMessage = new reasonCase.ctor({
+        cause: { tag: `${reasonCase.tag}-empty` },
+        message: ""
+      })
       const fallbackError = new SqlError.SqlError({ reason: withoutMessage })
       const explicitMessageError = new SqlError.SqlError({ reason: withMessage })
+      const emptyMessageError = new SqlError.SqlError({ reason: withEmptyMessage })
 
       assert.strictEqual(fallbackError.message, reasonCase.tag)
       assert.strictEqual(fallbackError.cause, withoutMessage)
@@ -62,6 +67,10 @@ describe("SqlError", () => {
       assert.strictEqual(explicitMessageError.message, `${reasonCase.tag} custom`)
       assert.strictEqual(explicitMessageError.cause, withMessage)
       assert.strictEqual(explicitMessageError.isRetryable, reasonCase.isRetryable)
+
+      assert.strictEqual(emptyMessageError.message, reasonCase.tag)
+      assert.strictEqual(emptyMessageError.cause, withEmptyMessage)
+      assert.strictEqual(emptyMessageError.isRetryable, reasonCase.isRetryable)
     }
   })
 
