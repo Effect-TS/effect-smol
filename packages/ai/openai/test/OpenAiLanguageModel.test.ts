@@ -904,6 +904,77 @@ describe("OpenAiLanguageModel", () => {
         const toolParamsEnd = parts.find((part) => part.type === "tool-params-end" && part.id === "call_1")
         assert.isDefined(toolParamsEnd)
       }))
+
+    it.effect("handles reasoning summary events when reasoning state is missing", () =>
+      Effect.gen(function*() {
+        const streamEvents = [
+          {
+            type: "response.created",
+            sequence_number: 1,
+            response: makeDefaultResponse({
+              id: "resp_reasoning_missing_state",
+              status: "in_progress",
+              output: []
+            })
+          },
+          {
+            type: "response.reasoning_summary_part.added",
+            sequence_number: 2,
+            output_index: 0,
+            item_id: "rs_missing",
+            summary_index: 1
+          },
+          {
+            type: "response.reasoning_summary_text.delta",
+            sequence_number: 3,
+            output_index: 0,
+            item_id: "rs_missing",
+            summary_index: 1,
+            delta: "thinking"
+          },
+          {
+            type: "response.reasoning_summary_part.done",
+            sequence_number: 4,
+            output_index: 0,
+            item_id: "rs_missing",
+            summary_index: 1
+          },
+          {
+            type: "response.output_item.done",
+            sequence_number: 5,
+            output_index: 0,
+            item: makeReasoningOutput(["thinking"], { id: "rs_missing" })
+          },
+          {
+            type: "response.output_item.done",
+            sequence_number: 6,
+            output_index: 1,
+            item: makeReasoningOutput([], { id: "rs_done_only" })
+          },
+          {
+            type: "response.completed",
+            sequence_number: 7,
+            response: makeDefaultResponse({
+              id: "resp_reasoning_missing_state",
+              status: "completed",
+              output: []
+            })
+          }
+        ] as unknown as ReadonlyArray<typeof Generated.ResponseStreamEvent.Type>
+
+        const partsChunk = yield* LanguageModel.streamText({
+          prompt: "reason"
+        }).pipe(
+          Stream.runCollect,
+          Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")),
+          Effect.provide(makeStreamTestLayer(streamEvents))
+        )
+
+        const parts = globalThis.Array.from(partsChunk)
+        assert.isDefined(parts.find((part) => part.type === "reasoning-start" && part.id === "rs_missing:1"))
+        assert.isDefined(parts.find((part) => part.type === "reasoning-end" && part.id === "rs_missing:1"))
+        assert.isDefined(parts.find((part) => part.type === "finish"))
+      }))
   })
 
   describe("withConfigOverride", () => {

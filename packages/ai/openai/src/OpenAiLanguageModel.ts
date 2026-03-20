@@ -1357,11 +1357,34 @@ const makeStreamResponse = Effect.fnUntraced(
     // Track annotations for current message to include in text-end metadata
     const activeAnnotations: Array<typeof Generated.Annotation.Encoded> = []
 
+    type ReasoningSummaryPartStatus = "active" | "can-conclude" | "concluded"
+    type ReasoningPart = {
+      encryptedContent: string | undefined
+      summaryParts: Record<number, ReasoningSummaryPartStatus>
+    }
+
     // Track active reasoning items with state machine for proper concluding logic
-    const activeReasoning: Record<string, {
-      readonly encryptedContent: string | undefined
-      readonly summaryParts: Record<number, "active" | "can-conclude" | "concluded">
-    }> = {}
+    const activeReasoning: Record<string, ReasoningPart> = {}
+
+    const getOrCreateReasoningPart = (
+      itemId: string,
+      encryptedContent?: string | null
+    ): ReasoningPart => {
+      const activePart = activeReasoning[itemId]
+      if (Predicate.isNotUndefined(activePart)) {
+        if (Predicate.isNotNullish(encryptedContent)) {
+          activePart.encryptedContent = encryptedContent
+        }
+        return activePart
+      }
+
+      const reasoningPart: ReasoningPart = {
+        encryptedContent: Predicate.isNotNullish(encryptedContent) ? encryptedContent : undefined,
+        summaryParts: {}
+      }
+      activeReasoning[itemId] = reasoningPart
+      return reasoningPart
+    }
 
     // Track active tool calls with optional provider-specific state
     const activeToolCalls: Record<number, {
@@ -1563,21 +1586,20 @@ const makeStreamResponse = Effect.fnUntraced(
               }
 
               case "reasoning": {
-                const encryptedContent = event.item.encrypted_content ?? undefined
-                activeReasoning[event.item.id] = {
-                  encryptedContent,
-                  summaryParts: { 0: "active" }
-                }
-                parts.push({
-                  type: "reasoning-start",
-                  id: `${event.item.id}:0`,
-                  metadata: {
-                    openai: {
-                      ...makeItemIdMetadata(event.item.id),
-                      ...makeEncryptedContentMetadata(event.item.encrypted_content)
+                const reasoningPart = getOrCreateReasoningPart(event.item.id, event.item.encrypted_content)
+                if (Predicate.isUndefined(reasoningPart.summaryParts[0])) {
+                  reasoningPart.summaryParts[0] = "active"
+                  parts.push({
+                    type: "reasoning-start",
+                    id: `${event.item.id}:0`,
+                    metadata: {
+                      openai: {
+                        ...makeItemIdMetadata(event.item.id),
+                        ...makeEncryptedContentMetadata(reasoningPart.encryptedContent)
+                      }
                     }
-                  }
-                })
+                  })
+                }
                 break
               }
 
@@ -1866,7 +1888,7 @@ const makeStreamResponse = Effect.fnUntraced(
               }
 
               case "reasoning": {
-                const reasoningPart = activeReasoning[event.item.id]
+                const reasoningPart = getOrCreateReasoningPart(event.item.id, event.item.encrypted_content)
                 for (const [summaryIndex, status] of Object.entries(reasoningPart.summaryParts)) {
                   if (status === "active" || status === "can-conclude") {
                     parts.push({
@@ -1875,7 +1897,7 @@ const makeStreamResponse = Effect.fnUntraced(
                       metadata: {
                         openai: {
                           ...makeItemIdMetadata(event.item.id),
-                          ...makeEncryptedContentMetadata(event.item.encrypted_content)
+                          ...makeEncryptedContentMetadata(reasoningPart.encryptedContent)
                         }
                       }
                     })
@@ -2141,28 +2163,28 @@ const makeStreamResponse = Effect.fnUntraced(
           }
 
           case "response.reasoning_summary_part.added": {
-            // The first reasoning start is pushed in the `response.output_item.added` block
+            const reasoningPart = getOrCreateReasoningPart(event.item_id)
             if (event.summary_index > 0) {
-              const reasoningPart = activeReasoning[event.item_id]
-              if (Predicate.isNotUndefined(reasoningPart)) {
-                // Conclude all can-conclude parts before starting new one
-                for (const [summaryIndex, status] of Object.entries(reasoningPart.summaryParts)) {
-                  if (status === "can-conclude") {
-                    parts.push({
-                      type: "reasoning-end",
-                      id: `${event.item_id}:${summaryIndex}`,
-                      metadata: {
-                        openai: {
-                          ...makeItemIdMetadata(event.item_id),
-                          ...makeEncryptedContentMetadata(reasoningPart.encryptedContent)
-                        }
+              // Conclude all can-conclude parts before starting new one
+              for (const [summaryIndex, status] of Object.entries(reasoningPart.summaryParts)) {
+                if (status === "can-conclude") {
+                  parts.push({
+                    type: "reasoning-end",
+                    id: `${event.item_id}:${summaryIndex}`,
+                    metadata: {
+                      openai: {
+                        ...makeItemIdMetadata(event.item_id),
+                        ...makeEncryptedContentMetadata(reasoningPart.encryptedContent)
                       }
-                    })
-                    reasoningPart.summaryParts[Number(summaryIndex)] = "concluded"
-                  }
+                    }
+                  })
+                  reasoningPart.summaryParts[Number(summaryIndex)] = "concluded"
                 }
-                reasoningPart.summaryParts[event.summary_index] = "active"
               }
+            }
+
+            if (Predicate.isUndefined(reasoningPart.summaryParts[event.summary_index])) {
+              reasoningPart.summaryParts[event.summary_index] = "active"
               parts.push({
                 type: "reasoning-start",
                 id: `${event.item_id}:${event.summary_index}`,
@@ -2188,6 +2210,7 @@ const makeStreamResponse = Effect.fnUntraced(
           }
 
           case "response.reasoning_summary_part.done": {
+            const reasoningPart = getOrCreateReasoningPart(event.item_id)
             // When OpenAI stores message data, we can immediately conclude the
             // reasoning part given that we do not need the encrypted content
             if (config.store === true) {
@@ -2197,11 +2220,11 @@ const makeStreamResponse = Effect.fnUntraced(
                 metadata: { openai: { ...makeItemIdMetadata(event.item_id) } }
               })
               // Mark the summary part concluded
-              activeReasoning[event.item_id].summaryParts[event.summary_index] = "concluded"
+              reasoningPart.summaryParts[event.summary_index] = "concluded"
             } else {
               // Mark the summary part as can-conclude given we still need a
               // final summary part with the encrypted content
-              activeReasoning[event.item_id].summaryParts[event.summary_index] = "can-conclude"
+              reasoningPart.summaryParts[event.summary_index] = "can-conclude"
             }
             break
           }
