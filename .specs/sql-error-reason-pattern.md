@@ -443,6 +443,19 @@ done together to maintain a passing build.
 This is a single atomic task. All changes must land together for the build
 to pass.
 
+#### Task State (core checkpoint)
+
+- [x] Core `SqlError.ts` reason-pattern refactor (items 1-9) completed.
+- [ ] Driver updates (items 10-12) pending.
+- [ ] Tests and changesets (items 13-16) pending.
+- [ ] Full monorepo validation (items 17-21) pending until driver migration.
+
+#### Discoveries / Issues
+
+- The repository still has all 62 SQL driver `new SqlError({ cause, message })`
+  call sites in old shape. After the core refactor, full monorepo type checking
+  will fail until those call sites are migrated to `reason` constructors.
+
 **Core changes** (`packages/effect/src/unstable/sql/SqlError.ts`):
 
 1. Add `ReasonTypeId` constant.
