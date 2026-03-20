@@ -271,7 +271,8 @@ export class SqlError extends Schema.TaggedErrorClass<SqlError>("effect/sql/SqlE
    * @since 4.0.0
    */
   override get message(): string {
-    return this.reason.message ?? this.reason._tag
+    const message = Object.prototype.hasOwnProperty.call(this.reason, "message") ? this.reason.message : undefined
+    return message ?? this.reason._tag
   }
 
   /**
@@ -285,7 +286,9 @@ export class SqlError extends Schema.TaggedErrorClass<SqlError>("effect/sql/SqlE
 /**
  * @since 4.0.0
  */
-export const isSqlError = (u: unknown): u is SqlError => Predicate.hasProperty(u, TypeId)
+export const isSqlError = (u: unknown): u is SqlError =>
+  Predicate.hasProperty(u, TypeId)
+  && Predicate.isTagged(u, "SqlError")
 
 /**
  * @since 4.0.0

@@ -447,7 +447,7 @@ to pass.
 
 - [x] Core `SqlError.ts` reason-pattern refactor (items 1-9) completed.
 - [ ] Driver updates (items 10-12) pending.
-- [ ] Tests and changesets (items 13-16) pending.
+- [ ] Tests and changesets (items 13-16) in progress (core SqlError smoke tests added; exhaustive matrix + changesets pending).
 - [ ] Full monorepo validation (items 17-21) pending until driver migration.
 
 #### Discoveries / Issues
@@ -455,6 +455,12 @@ to pass.
 - The repository still has all 62 SQL driver `new SqlError({ cause, message })`
   call sites in old shape. After the core refactor, full monorepo type checking
   will fail until those call sites are migrated to `reason` constructors.
+- `ResultLengthMismatch` shares the SqlError module TypeId brand, so
+  `isSqlError` must also check `_tag === "SqlError"` to avoid false
+  positives.
+- Added core smoke tests in `packages/effect/test/unstable/sql/SqlError.test.ts`
+  for wrapper delegation, guards, and `classifySqliteError` string/numeric
+  mappings.
 
 **Core changes** (`packages/effect/src/unstable/sql/SqlError.ts`):
 
@@ -524,3 +530,10 @@ to pass.
 - `pnpm check:tsgo` (run `pnpm clean` if check fails)
 - `pnpm test <affected_test_file.ts>`
 - `pnpm docgen`
+
+## Review Follow-up Tasks
+
+- Migrate all SQL drivers to construct `SqlError` with `reason` instances and add per-driver classification helpers.
+- Expand `SqlError.test.ts` to cover all 10 reason classes and schema encode/decode round-trips.
+- Add required changesets for `effect` and affected SQL driver packages once migration lands.
+- Run full validation loop after driver migration: `pnpm lint-fix`, `pnpm check:tsgo`, `pnpm docgen`, and full affected test suites.
