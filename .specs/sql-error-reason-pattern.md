@@ -448,7 +448,7 @@ to pass.
 - [x] Core `SqlError.ts` reason-pattern refactor (items 1-9) completed.
 - [x] Driver updates (items 10-12) completed across all 11 SQL driver packages.
 - [x] Tests and changesets (items 13-16) completed (core and targeted driver classification tests landed; pending minor changesets added for `effect` and all affected SQL driver packages).
-- [ ] Full monorepo validation (items 17-21) in progress (codegen / lint / typecheck / docgen completed; full `pnpm test` sweep pending).
+- [x] Full monorepo validation (items 17-21) completed (`pnpm codegen`, `pnpm lint-fix`, `pnpm check:tsgo`, `pnpm docgen`, and full `pnpm test` sweep all pass).
 
 #### Discoveries / Issues
 
@@ -495,6 +495,11 @@ to pass.
   `pnpm check:tsgo`, and `pnpm docgen`.
 - Review verification: targeted suites pass via `pnpm test` for pg / mysql2 /
   mssql / clickhouse / d1 / sqlite-do classification test files.
+- Full monorepo `pnpm test` initially failed in `@effect/sql-libsql` due
+  transient testcontainer connectivity (`ECONNREFUSED`) in this environment.
+  `packages/sql/libsql/test/util.ts` now uses `container.getHost()` (instead of
+  hardcoded `localhost`) and waits for server readiness after container start,
+  stabilizing libsql integration tests while preserving SqlError behavior.
 
 **Core changes** (`packages/effect/src/unstable/sql/SqlError.ts`):
 
