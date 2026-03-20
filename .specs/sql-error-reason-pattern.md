@@ -486,6 +486,8 @@ to pass.
   - `packages/sql/d1/test/Client.test.ts` and
     `packages/sql/sqlite-do/test/Client.test.ts` now assert `UnknownError`
     fallback when native errors do not expose stable SQLite codes.
+- Review verification: targeted suites pass via `pnpm test` for pg / mysql2 /
+  mssql / clickhouse / d1 / sqlite-do classification test files.
 
 **Core changes** (`packages/effect/src/unstable/sql/SqlError.ts`):
 
@@ -558,6 +560,5 @@ to pass.
 
 ## Review Follow-up Tasks
 
-- Add targeted driver tests that assert native error code classification in pg / mysql2 / mssql / clickhouse and unknown fallbacks for D1 / Durable Objects.
 - Add required changesets for `effect` and affected SQL driver packages once migration lands.
 - Run full monorepo `pnpm test` sweep (beyond targeted suites) before merge.
