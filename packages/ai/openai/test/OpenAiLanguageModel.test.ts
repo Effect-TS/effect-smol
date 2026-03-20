@@ -828,6 +828,82 @@ describe("OpenAiLanguageModel", () => {
           }
         })
       }))
+
+    it.effect("emits tool call from function_call_arguments.done when output_item.done is missing", () =>
+      Effect.gen(function*() {
+        const streamEvents = [
+          {
+            type: "response.created",
+            sequence_number: 1,
+            response: makeDefaultResponse({
+              id: "resp_function_call_done",
+              status: "in_progress",
+              output: []
+            })
+          },
+          {
+            type: "response.output_item.added",
+            sequence_number: 2,
+            output_index: 0,
+            item: {
+              type: "function_call",
+              id: "fc_1",
+              call_id: "call_1",
+              name: "TestTool",
+              arguments: "",
+              status: "in_progress"
+            }
+          },
+          {
+            type: "response.function_call_arguments.delta",
+            sequence_number: 3,
+            output_index: 0,
+            item_id: "fc_1",
+            delta: "{\"input\":\"hel"
+          },
+          {
+            type: "response.function_call_arguments.done",
+            sequence_number: 4,
+            output_index: 0,
+            item_id: "fc_1",
+            name: "TestTool",
+            arguments: "{\"input\":\"hello\"}"
+          },
+          {
+            type: "response.completed",
+            sequence_number: 5,
+            response: makeDefaultResponse({
+              id: "resp_function_call_done",
+              status: "completed",
+              output: []
+            })
+          }
+        ] as unknown as ReadonlyArray<typeof Generated.ResponseStreamEvent.Type>
+
+        const partsChunk = yield* LanguageModel.streamText({
+          prompt: "Use the test tool",
+          toolkit: TestToolkit,
+          disableToolCallResolution: true
+        }).pipe(
+          Stream.runCollect,
+          Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")),
+          Effect.provide(makeStreamTestLayer(streamEvents)),
+          Effect.provide(TestToolkitLayer)
+        )
+
+        const parts = globalThis.Array.from(partsChunk)
+        const toolCalls = parts.filter((part) => part.type === "tool-call" && part.id === "call_1")
+        strictEqual(toolCalls.length, 1)
+        const toolCall = toolCalls[0]
+        assert.isDefined(toolCall)
+        if (toolCall?.type === "tool-call") {
+          strictEqual(toolCall.name, "TestTool")
+          deepStrictEqual(toolCall.params, { input: "hello" })
+        }
+
+        const toolParamsEnd = parts.find((part) => part.type === "tool-params-end" && part.id === "call_1")
+        assert.isDefined(toolParamsEnd)
+      }))
   })
 
   describe("withConfigOverride", () => {

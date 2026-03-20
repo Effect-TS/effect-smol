@@ -1367,6 +1367,9 @@ const makeStreamResponse = Effect.fnUntraced(
     const activeToolCalls: Record<number, {
       readonly id: string
       readonly name: string
+      readonly functionCall?: {
+        emitted: boolean
+      }
       readonly applyPatch?: {
         hasDiff: boolean
         endEmitted: boolean
@@ -1516,7 +1519,8 @@ const makeStreamResponse = Effect.fnUntraced(
               case "function_call": {
                 activeToolCalls[event.output_index] = {
                   id: event.item.call_id,
-                  name: event.item.name
+                  name: event.item.name,
+                  functionCall: { emitted: false }
                 }
                 parts.push({
                   type: "tool-params-start",
@@ -1716,6 +1720,11 @@ const makeStreamResponse = Effect.fnUntraced(
               }
 
               case "function_call": {
+                const toolCall = activeToolCalls[event.output_index]
+                if (Predicate.isNotUndefined(toolCall?.functionCall?.emitted) && toolCall.functionCall.emitted) {
+                  delete activeToolCalls[event.output_index]
+                  break
+                }
                 delete activeToolCalls[event.output_index]
 
                 hasToolCalls = true
@@ -1997,6 +2006,48 @@ const makeStreamResponse = Effect.fnUntraced(
                 id: toolCallPart.id,
                 delta: event.delta
               })
+            }
+            break
+          }
+
+          case "response.function_call_arguments.done": {
+            const toolCall = activeToolCalls[event.output_index]
+            if (
+              Predicate.isNotUndefined(toolCall?.functionCall) &&
+              !toolCall.functionCall.emitted
+            ) {
+              hasToolCalls = true
+
+              const toolParams = yield* Effect.try({
+                try: () => Tool.unsafeSecureJsonParse(event.arguments),
+                catch: (cause) =>
+                  AiError.make({
+                    module: "OpenAiLanguageModel",
+                    method: "makeStreamResponse",
+                    reason: new AiError.ToolParameterValidationError({
+                      toolName: toolCall.name,
+                      toolParams: {},
+                      description: `Failed securely JSON parse tool parameters: ${cause}`
+                    })
+                  })
+              })
+
+              const params = yield* transformToolCallParams(options.tools, toolCall.name, toolParams)
+
+              parts.push({
+                type: "tool-params-end",
+                id: toolCall.id
+              })
+
+              parts.push({
+                type: "tool-call",
+                id: toolCall.id,
+                name: toolCall.name,
+                params,
+                metadata: { openai: { ...makeItemIdMetadata(event.item_id) } }
+              })
+
+              toolCall.functionCall.emitted = true
             }
             break
           }
