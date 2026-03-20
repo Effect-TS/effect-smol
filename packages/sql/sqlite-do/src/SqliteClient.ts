@@ -14,10 +14,13 @@ import * as Stream from "effect/Stream"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import * as Client from "effect/unstable/sql/SqlClient"
 import type { Connection } from "effect/unstable/sql/SqlConnection"
-import { SqlError } from "effect/unstable/sql/SqlError"
+import { classifySqliteError, SqlError } from "effect/unstable/sql/SqlError"
 import * as Statement from "effect/unstable/sql/Statement"
 
 const ATTR_DB_SYSTEM_NAME = "db.system.name"
+
+const classifyError = (cause: unknown, message: string, operation: string) =>
+  classifySqliteError(cause, { message, operation })
 
 /**
  * @category type ids
@@ -99,7 +102,7 @@ export const make = (
       ): Effect.Effect<ReadonlyArray<any>, SqlError, never> =>
         Effect.try({
           try: () => Array.from(runIterator(sql, params)),
-          catch: (cause) => new SqlError({ cause, message: `Failed to execute statement` })
+          catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to execute statement", "execute") })
         })
 
       const runValues = (
@@ -117,7 +120,7 @@ export const make = (
               }
               return row
             }),
-          catch: (cause) => new SqlError({ cause, message: `Failed to execute statement` })
+          catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to execute statement", "execute") })
         })
 
       return identity<Connection>({

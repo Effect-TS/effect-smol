@@ -446,21 +446,27 @@ to pass.
 #### Task State (core checkpoint)
 
 - [x] Core `SqlError.ts` reason-pattern refactor (items 1-9) completed.
-- [ ] Driver updates (items 10-12) pending.
+- [x] Driver updates (items 10-12) completed across all 11 SQL driver packages.
 - [ ] Tests and changesets (items 13-16) in progress (core SqlError smoke tests added; exhaustive matrix + changesets pending).
-- [ ] Full monorepo validation (items 17-21) pending until driver migration.
+- [ ] Full monorepo validation (items 17-21) in progress (codegen / lint / typecheck / docgen completed; full `pnpm test` sweep pending).
 
 #### Discoveries / Issues
 
-- The repository still has all 62 SQL driver `new SqlError({ cause, message })`
-  call sites in old shape. After the core refactor, full monorepo type checking
-  will fail until those call sites are migrated to `reason` constructors.
+- The previous 62 SQL driver `new SqlError({ cause, message })` call sites were
+  migrated to `new SqlError({ reason: ... })` with per-driver classification.
 - `ResultLengthMismatch` shares the SqlError module TypeId brand, so
   `isSqlError` must also check `_tag === "SqlError"` to avoid false
   positives.
 - Added core smoke tests in `packages/effect/test/unstable/sql/SqlError.test.ts`
   for wrapper delegation, guards, and `classifySqliteError` string/numeric
   mappings.
+- SQLite-based drivers now use `classifySqliteError` with canonical operations
+  (`prepare`, `execute`, `openDatabase`, `export`, `import`, `backup`,
+  `loadExtension`, `stream`); D1 intentionally defaults to `UnknownError`
+  because native D1 errors do not expose stable SQLite result codes.
+- Added per-driver `classifyError` helpers for pg / mysql2 / mssql /
+  clickhouse with SQLSTATE / errno / number / code mappings from this spec and
+  `UnknownError` fallback for unmapped native errors.
 
 **Core changes** (`packages/effect/src/unstable/sql/SqlError.ts`):
 

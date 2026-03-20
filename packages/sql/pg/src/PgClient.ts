@@ -20,7 +20,19 @@ import * as Stream from "effect/Stream"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import * as Client from "effect/unstable/sql/SqlClient"
 import type { Connection } from "effect/unstable/sql/SqlConnection"
-import { SqlError } from "effect/unstable/sql/SqlError"
+import {
+  AuthenticationError,
+  AuthorizationError,
+  ConnectionError,
+  ConstraintError,
+  DeadlockError,
+  LockTimeoutError,
+  SerializationError,
+  SqlError,
+  SqlSyntaxError,
+  StatementTimeoutError,
+  UnknownError
+} from "effect/unstable/sql/SqlError"
 import type { Custom, Fragment } from "effect/unstable/sql/Statement"
 import * as Statement from "effect/unstable/sql/Statement"
 import type { Duplex } from "node:stream"
@@ -33,6 +45,53 @@ const ATTR_DB_SYSTEM_NAME = "db.system.name"
 const ATTR_DB_NAMESPACE = "db.namespace"
 const ATTR_SERVER_ADDRESS = "server.address"
 const ATTR_SERVER_PORT = "server.port"
+
+const pgCodeFromCause = (cause: unknown): string | undefined => {
+  if (typeof cause !== "object" || cause === null || !("code" in cause)) {
+    return undefined
+  }
+  const code = cause.code
+  return typeof code === "string" ? code : undefined
+}
+
+const classifyError = (
+  cause: unknown,
+  message: string,
+  operation: string
+) => {
+  const props = { cause, message, operation }
+  const code = pgCodeFromCause(cause)
+  if (code !== undefined) {
+    if (code.startsWith("08")) {
+      return new ConnectionError(props)
+    }
+    if (code.startsWith("28")) {
+      return new AuthenticationError(props)
+    }
+    if (code === "42501") {
+      return new AuthorizationError(props)
+    }
+    if (code.startsWith("42")) {
+      return new SqlSyntaxError(props)
+    }
+    if (code.startsWith("23")) {
+      return new ConstraintError(props)
+    }
+    if (code === "40P01") {
+      return new DeadlockError(props)
+    }
+    if (code === "40001") {
+      return new SerializationError(props)
+    }
+    if (code === "55P03") {
+      return new LockTimeoutError(props)
+    }
+    if (code === "57014") {
+      return new StatementTimeoutError(props)
+    }
+  }
+  return new UnknownError(props)
+}
 
 /**
  * @category type ids
@@ -136,7 +195,7 @@ export const make = (
       yield* Effect.acquireRelease(
         Effect.tryPromise({
           try: () => pool.query("SELECT 1"),
-          catch: (cause) => new SqlError({ cause, message: "PgClient: Failed to connect" })
+          catch: (cause) => new SqlError({ reason: classifyError(cause, "PgClient: Failed to connect", "connect") })
         }),
         () =>
           Effect.promise(() => pool.end()).pipe(
@@ -148,8 +207,11 @@ export const make = (
           onTimeout: () =>
             Effect.fail(
               new SqlError({
-                cause: new Error("Connection timed out"),
-                message: "PgClient: Connection timed out"
+                reason: new ConnectionError({
+                  cause: new Error("Connection timed out"),
+                  message: "PgClient: Connection timed out",
+                  operation: "connect"
+                })
               })
             )
         })
@@ -208,7 +270,7 @@ export const fromPool = Effect.fnUntraced(function*(
         let client: Pg.PoolClient | undefined = undefined
         function onError(cause: Error) {
           cleanup(cause)
-          resume(Effect.fail(new SqlError({ cause, message: "Connection error" })))
+          resume(Effect.fail(new SqlError({ reason: classifyError(cause, "Connection error", "acquireConnection") })))
         }
         function cleanup(cause?: Error) {
           if (!done) client?.release(cause)
@@ -217,11 +279,23 @@ export const fromPool = Effect.fnUntraced(function*(
         }
         pool.connect((cause, client_) => {
           if (cause) {
-            return resume(Effect.fail(new SqlError({ cause, message: "Failed to acquire connection" })))
+            return resume(
+              Effect.fail(
+                new SqlError({
+                  reason: classifyError(cause, "Failed to acquire connection", "acquireConnection")
+                })
+              )
+            )
           } else if (!client_) {
             return resume(
               Effect.fail(
-                new SqlError({ message: "Failed to acquire connection", cause: new Error("No client returned") })
+                new SqlError({
+                  reason: new ConnectionError({
+                    message: "Failed to acquire connection",
+                    cause: new Error("No client returned"),
+                    operation: "acquireConnection"
+                  })
+                })
               )
             )
           } else if (done) {
@@ -250,7 +324,9 @@ export const fromPool = Effect.fnUntraced(function*(
       return this.runWithClient<ReadonlyArray<any>>((client, resume) => {
         client.query(query, params as any, (err, result) => {
           if (err) {
-            resume(Effect.fail(new SqlError({ cause: err, message: "Failed to execute statement" })))
+            resume(
+              Effect.fail(new SqlError({ reason: classifyError(err, "Failed to execute statement", "execute") }))
+            )
           } else {
             // Multi-statement queries return an array of results
             resume(Effect.succeed(
@@ -276,7 +352,9 @@ export const fromPool = Effect.fnUntraced(function*(
       return this.runWithClient<Pg.Result>((client, resume) => {
         client.query(sql, params as any, (err, result) => {
           if (err) {
-            resume(Effect.fail(new SqlError({ cause: err, message: "Failed to execute statement" })))
+            resume(
+              Effect.fail(new SqlError({ reason: classifyError(err, "Failed to execute statement", "execute") }))
+            )
           } else {
             resume(Effect.succeed(result))
           }
@@ -296,7 +374,9 @@ export const fromPool = Effect.fnUntraced(function*(
           },
           (err, result) => {
             if (err) {
-              resume(Effect.fail(new SqlError({ cause: err, message: "Failed to execute statement" })))
+              resume(
+                Effect.fail(new SqlError({ reason: classifyError(err, "Failed to execute statement", "execute") }))
+              )
             } else {
               resume(Effect.succeed(result.rows))
             }
@@ -326,7 +406,7 @@ export const fromPool = Effect.fnUntraced(function*(
         return Effect.callback<Arr.NonEmptyReadonlyArray<any>, SqlError | Cause.Done>((resume) => {
           cursor.read(128, (err, rows) => {
             if (err) {
-              resume(Effect.fail(new SqlError({ cause: err, message: "Failed to execute statement" })))
+              resume(Effect.fail(new SqlError({ reason: classifyError(err, "Failed to execute statement", "stream") })))
             } else if (Arr.isArrayNonEmpty(rows)) {
               resume(Effect.succeed(transformRows ? transformRows(rows) as any : rows))
             } else {
@@ -344,7 +424,17 @@ export const fromPool = Effect.fnUntraced(function*(
     let cause: Error | undefined = undefined
     pool.connect((err, client, release) => {
       if (err) {
-        resume(Effect.fail(new SqlError({ cause: err, message: "Failed to acquire connection for transaction" })))
+        resume(
+          Effect.fail(
+            new SqlError({
+              reason: classifyError(
+                err,
+                "Failed to acquire connection for transaction",
+                "acquireConnection"
+              )
+            })
+          )
+        )
       } else {
         resume(Effect.as(
           Scope.addFinalizer(
@@ -431,7 +521,7 @@ export const fromPool = Effect.fnUntraced(function*(
           )
           yield* Effect.tryPromise({
             try: () => client.query(`LISTEN ${Pg.escapeIdentifier(channel)}`),
-            catch: (cause) => new SqlError({ cause, message: "Failed to listen" })
+            catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to listen", "listen") })
           })
           client.on("notification", onNotification)
         })),
@@ -439,7 +529,7 @@ export const fromPool = Effect.fnUntraced(function*(
         Effect.callback<void, SqlError>((resume) => {
           pool.query(`NOTIFY ${Pg.escapeIdentifier(channel)}, $1`, [payload], (err) => {
             if (err) {
-              resume(Effect.fail(new SqlError({ cause: err, message: "Failed to notify" })))
+              resume(Effect.fail(new SqlError({ reason: classifyError(err, "Failed to notify", "notify") })))
             } else {
               resume(Effect.void)
             }
