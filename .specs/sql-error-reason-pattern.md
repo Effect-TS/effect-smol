@@ -447,7 +447,7 @@ to pass.
 
 - [x] Core `SqlError.ts` reason-pattern refactor (items 1-9) completed.
 - [x] Driver updates (items 10-12) completed across all 11 SQL driver packages.
-- [ ] Tests and changesets (items 13-16) in progress (items 13-14 now completed, including targeted driver-native classification coverage in pg / mysql2 / mssql / clickhouse plus UnknownError fallback assertions in d1 / sqlite-do; changesets pending).
+- [x] Tests and changesets (items 13-16) completed (core and targeted driver classification tests landed; pending minor changesets added for `effect` and all affected SQL driver packages).
 - [ ] Full monorepo validation (items 17-21) in progress (codegen / lint / typecheck / docgen completed; full `pnpm test` sweep pending).
 
 #### Discoveries / Issues
@@ -486,6 +486,13 @@ to pass.
   - `packages/sql/d1/test/Client.test.ts` and
     `packages/sql/sqlite-do/test/Client.test.ts` now assert `UnknownError`
     fallback when native errors do not expose stable SQLite codes.
+- Added 12 pending minor changesets for the SqlError reason-pattern migration:
+  one for `effect` and one per affected SQL driver package
+  (pg / mysql2 / mssql / sqlite-node / sqlite-bun / sqlite-wasm / sqlite-do /
+  sqlite-react-native / d1 / libsql / clickhouse).
+- Post-changeset validation rerun completed: `pnpm lint-fix`,
+  `pnpm test packages/effect/test/unstable/sql/SqlError.test.ts`,
+  `pnpm check:tsgo`, and `pnpm docgen`.
 - Review verification: targeted suites pass via `pnpm test` for pg / mysql2 /
   mssql / clickhouse / d1 / sqlite-do classification test files.
 
@@ -560,5 +567,4 @@ to pass.
 
 ## Review Follow-up Tasks
 
-- Add required changesets for `effect` and affected SQL driver packages once migration lands.
 - Run full monorepo `pnpm test` sweep (beyond targeted suites) before merge.
