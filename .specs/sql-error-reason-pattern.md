@@ -539,7 +539,7 @@ to pass.
 
 ## Review Follow-up Tasks
 
-- Migrate all SQL drivers to construct `SqlError` with `reason` instances and add per-driver classification helpers.
+- Add targeted driver tests that assert native error code classification in pg / mysql2 / mssql / clickhouse and unknown fallbacks for D1 / Durable Objects.
 - Expand `SqlError.test.ts` to cover all 10 reason classes and schema encode/decode round-trips.
 - Add required changesets for `effect` and affected SQL driver packages once migration lands.
-- Run full validation loop after driver migration: `pnpm lint-fix`, `pnpm check:tsgo`, `pnpm docgen`, and full affected test suites.
+- Run full monorepo `pnpm test` sweep (beyond targeted suites) before merge.
