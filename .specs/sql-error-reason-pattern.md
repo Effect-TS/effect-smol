@@ -572,4 +572,7 @@ to pass.
 
 ## Review Follow-up Tasks
 
-- Run full monorepo `pnpm test` sweep (beyond targeted suites) before merge.
+- [x] Run full monorepo `pnpm test` sweep (beyond targeted suites) before merge.
+- Monitor CI stability for `@effect/sql-libsql` container startup timing; if
+  flakiness persists, replace ad-hoc readiness polling with a dedicated
+  testcontainers wait strategy / healthcheck endpoint.
