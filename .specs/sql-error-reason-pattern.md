@@ -447,7 +447,7 @@ to pass.
 
 - [x] Core `SqlError.ts` reason-pattern refactor (items 1-9) completed.
 - [x] Driver updates (items 10-12) completed across all 11 SQL driver packages.
-- [ ] Tests and changesets (items 13-16) in progress (item 13 now completed with exhaustive SqlError reason coverage; driver shape assertions + changesets pending).
+- [ ] Tests and changesets (items 13-16) in progress (items 13-14 now completed, including targeted driver-native classification coverage in pg / mysql2 / mssql / clickhouse plus UnknownError fallback assertions in d1 / sqlite-do; changesets pending).
 - [ ] Full monorepo validation (items 17-21) in progress (codegen / lint / typecheck / docgen completed; full `pnpm test` sweep pending).
 
 #### Discoveries / Issues
@@ -471,6 +471,21 @@ to pass.
   assertions for all 10 reason classes, wrapper delegation checks for
   `message` / `cause` / `isRetryable`, and schema encode/decode round-trips for
   `SqlError` wrapping each reason.
+- Added targeted driver classification suites:
+  - `packages/sql/pg/test/SqlErrorClassification.test.ts` verifies SQLSTATE
+    precedence (`42501` before generic `42*`) and unknown fallback.
+  - `packages/sql/mysql2/test/SqlErrorClassification.test.ts` verifies errno
+    mapping for connection / auth / authz / syntax / constraint / deadlock /
+    lock-timeout / statement-timeout plus unknown fallback.
+  - `packages/sql/mssql/test/SqlErrorClassification.test.ts` verifies `number`
+    mapping for connection / auth / authz / syntax / constraint / deadlock /
+    serialization / lock-timeout plus unknown fallback.
+  - `packages/sql/clickhouse/test/SqlErrorClassification.test.ts` verifies
+    `code` mapping for auth / authz / syntax / statement-timeout and unknown
+    fallback on execute.
+  - `packages/sql/d1/test/Client.test.ts` and
+    `packages/sql/sqlite-do/test/Client.test.ts` now assert `UnknownError`
+    fallback when native errors do not expose stable SQLite codes.
 
 **Core changes** (`packages/effect/src/unstable/sql/SqlError.ts`):
 
