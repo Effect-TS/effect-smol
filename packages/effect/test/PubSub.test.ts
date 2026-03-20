@@ -515,4 +515,24 @@ describe("PubSub", () => {
       const result = yield* Fiber.join(fiber)
       assert.deepStrictEqual(result, [])
     }))
+
+  it.effect("publish returns false after shutdown", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const pubsub = yield* PubSub.unbounded<number>()
+        yield* PubSub.shutdown(pubsub)
+
+        assert.strictEqual(yield* PubSub.publish(pubsub, 1), false)
+      })
+    ))
+
+  it.effect("publishAll returns false after shutdown", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const pubsub = yield* PubSub.unbounded<number>()
+        yield* PubSub.shutdown(pubsub)
+
+        assert.strictEqual(yield* PubSub.publishAll(pubsub, [1, 2, 3]), false)
+      })
+    ))
 })

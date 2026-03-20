@@ -810,7 +810,7 @@ export const publish: {
 } = dual(2, <A>(self: PubSub<A>, value: A): Effect.Effect<boolean> =>
   Effect.suspend(() => {
     if (self.shutdownFlag.current) {
-      return Effect.interrupt
+      return Effect.succeed(false)
     }
 
     if (self.pubsub.publish(value)) {
@@ -909,7 +909,7 @@ export const publishAll: {
 } = dual(2, <A>(self: PubSub<A>, elements: Iterable<A>): Effect.Effect<boolean> =>
   Effect.suspend(() => {
     if (self.shutdownFlag.current) {
-      return Effect.interrupt
+      return Effect.succeed(false)
     }
     const surplus = self.pubsub.publishAll(elements)
     self.strategy.completeSubscribersUnsafe(self.pubsub, self.subscribers)
