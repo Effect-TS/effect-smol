@@ -8,6 +8,9 @@ const match = (input: Cron.Cron | string, date: DateTime.DateTime.Input) =>
 const next = (input: Cron.Cron | string, after?: DateTime.DateTime.Input) =>
   Cron.next(Cron.isCron(input) ? input : Cron.parseUnsafe(input), after)
 
+const prev = (input: Cron.Cron | string, after?: DateTime.DateTime.Input) =>
+  Cron.prev(Cron.isCron(input) ? input : Cron.parseUnsafe(input), after)
+
 describe("Cron", () => {
   it("isCronParseError", () => {
     const result = Cron.parse("")
@@ -164,6 +167,139 @@ describe("Cron", () => {
 
     deepStrictEqual(next(Cron.parseUnsafe("5 0 8 2 *", london), after), DateTime.toDateUtc(londonTime))
     deepStrictEqual(next(Cron.parseUnsafe("5 0 8 2 *", london), after), DateTime.toDateUtc(amsterdamTime))
+  })
+
+  it("prev", () => {
+    const utc = DateTime.zoneMakeNamedUnsafe("UTC")
+    const before = new Date("2024-01-04T16:21:00Z")
+    deepStrictEqual(prev(Cron.parseUnsafe("5 0 8 2 *", utc), before), new Date("2023-02-08T00:05:00.000Z"))
+    deepStrictEqual(prev(Cron.parseUnsafe("15 14 1 * *", utc), before), new Date("2024-01-01T14:15:00.000Z"))
+    deepStrictEqual(prev(Cron.parseUnsafe("23 0-20/2 * * * 0", utc), before), new Date("2023-12-31T23:20:23.000Z"))
+    deepStrictEqual(prev(Cron.parseUnsafe("5 4 * * SUN", utc), before), new Date("2023-12-31T04:05:00.000Z"))
+    deepStrictEqual(prev(Cron.parseUnsafe("5 4 * DEC SUN", utc), before), new Date("2023-12-31T04:05:00.000Z"))
+    deepStrictEqual(prev(Cron.parseUnsafe("30 5 0 8 2 *", utc), before), new Date("2023-02-08T00:05:30.000Z"))
+
+    const wednesday = new Date("2025-10-22T01:00:00.000Z")
+    deepStrictEqual(prev(Cron.parseUnsafe("0 1 * * MON", utc), wednesday), new Date("2025-10-20T01:00:00.000Z"))
+    deepStrictEqual(next(Cron.parseUnsafe("0 1 * * MON", utc), wednesday), new Date("2025-10-27T01:00:00.000Z"))
+    deepStrictEqual(prev(Cron.parseUnsafe("0 1 * * TUE", utc), wednesday), new Date("2025-10-21T01:00:00.000Z"))
+    deepStrictEqual(next(Cron.parseUnsafe("0 1 * * TUE", utc), wednesday), new Date("2025-10-28T01:00:00.000Z"))
+  })
+
+  it("returns the latest second when rolling back a minute", () => {
+    const utc = DateTime.zoneMakeNamedUnsafe("UTC")
+    const expr = Cron.parseUnsafe("10,30 * * * * *", utc)
+    const before = new Date("2024-01-01T00:00:05.000Z")
+    deepStrictEqual(prev(expr, before), new Date("2023-12-31T23:59:30.000Z"))
+  })
+
+  it("forward and reverse sequences stay aligned", () => {
+    const cases = [
+      ["5 2 * * 1", "2020-01-01T00:00:01Z", "2021-01-01T00:00:01Z"],
+      ["0 12 1 * *", "2020-01-01T00:00:01Z", "2021-01-01T00:00:01Z"],
+      ["10,30 * * * * *", "2024-01-01T00:00:00Z", "2024-01-02T00:00:00Z"]
+    ] as const
+
+    const gatherForward = (cron: Cron.Cron, lower: Date, upper: Date) => {
+      const dates: Array<Date> = []
+      let current = lower
+      while (true) {
+        current = Cron.next(cron, current)
+        if (current >= upper) {
+          return dates
+        }
+        dates.push(current)
+      }
+    }
+
+    const gatherReverse = (cron: Cron.Cron, lower: Date, upper: Date) => {
+      const dates: Array<Date> = []
+      let current = upper
+      while (true) {
+        current = Cron.prev(cron, current)
+        if (current <= lower) {
+          return dates.reverse()
+        }
+        dates.push(current)
+      }
+    }
+
+    for (const [expr, lowerStr, upperStr] of cases) {
+      const lower = new Date(lowerStr)
+      const upper = new Date(upperStr)
+      const cron = Cron.parseUnsafe(expr, DateTime.zoneMakeNamedUnsafe("UTC"))
+
+      deepStrictEqual(gatherForward(cron, lower, upper), gatherReverse(cron, lower, upper))
+    }
+  })
+
+  it("prev prefers the latest matching day within the previous month", () => {
+    const cron = Cron.parseUnsafe("0 0 8 5,20 * *", DateTime.zoneMakeNamedUnsafe("UTC"))
+    const before = new Date("2024-06-03T00:00:00.000Z")
+    deepStrictEqual(prev(cron, before), new Date("2024-05-20T08:00:00.000Z"))
+  })
+
+  it("prev wraps weekday using the last allowed value", () => {
+    const cron = Cron.parseUnsafe("0 1 * * MON,FRI", DateTime.zoneMakeNamedUnsafe("UTC"))
+    const sunday = new Date("2025-10-19T12:00:00.000Z")
+    deepStrictEqual(prev(cron, sunday), new Date("2025-10-17T01:00:00.000Z"))
+  })
+
+  it("prev chooses the preferred occurrence in DST fall-back", () => {
+    const make = (s: string): DateTime.Zoned => Option.getOrThrow(DateTime.makeZonedFromString(s))
+    const cron = Cron.parseUnsafe("0 30 2 * * *", "Europe/Berlin")
+    const before = make("2024-10-27T03:30:00.000+01:00[Europe/Berlin]")
+    const result = DateTime.makeZonedUnsafe(prev(cron, before), { timeZone: "Europe/Berlin" })
+    deepStrictEqual(result.pipe(DateTime.formatIsoZoned), "2024-10-27T02:30:00.000+02:00[Europe/Berlin]")
+  })
+
+  it("prev respects combined day-of-month and weekday constraints", () => {
+    const tz = DateTime.zoneMakeNamedUnsafe("UTC")
+    const cron = Cron.parseUnsafe("0 0 9 1,15 * MON", tz)
+    const before = new Date("2024-04-02T12:00:00.000Z")
+    deepStrictEqual(prev(cron, before), new Date("2024-04-01T09:00:00.000Z"))
+  })
+
+  it("prev handles step expressions across day boundary", () => {
+    const tz = DateTime.zoneMakeNamedUnsafe("UTC")
+    const cron = Cron.parseUnsafe("0 */7 8-10 * * *", tz)
+    const before = new Date("2024-01-01T08:01:00.000Z")
+    deepStrictEqual(prev(cron, before), new Date("2024-01-01T08:00:00.000Z"))
+  })
+
+  it("prev works with fixed offset time zones", () => {
+    const offset = DateTime.zoneMakeOffset(2 * 60 * 60 * 1000)
+    const cron = Cron.parseUnsafe("0 0 10 * * *", offset)
+    const before = new Date("2024-05-01T07:00:00.000Z")
+    deepStrictEqual(prev(cron, before), new Date("2024-04-30T08:00:00.000Z"))
+  })
+
+  it("prev wraps across year boundary", () => {
+    const tz = DateTime.zoneMakeNamedUnsafe("UTC")
+    const cron = Cron.parseUnsafe("0 0 1 1 *", tz)
+    const from = new Date("2024-01-01T00:00:00.000Z")
+    deepStrictEqual(prev(cron, from), new Date("2023-01-01T00:00:00.000Z"))
+  })
+
+  it("prev handles day 31 skipping months without it", () => {
+    const tz = DateTime.zoneMakeNamedUnsafe("UTC")
+    const cron = Cron.parseUnsafe("0 0 31 * *", tz)
+    const from = new Date("2024-03-01T00:00:00.000Z")
+    deepStrictEqual(prev(cron, from), new Date("2024-01-31T00:00:00.000Z"))
+  })
+
+  it("prev clamps to the last valid day when rolling back a month with only month constraints", () => {
+    const tz = DateTime.zoneMakeNamedUnsafe("UTC")
+    const cron = Cron.parseUnsafe("0 0 0 * FEB *", tz)
+    const from = new Date("2024-03-31T12:00:00.000Z")
+    deepStrictEqual(prev(cron, from), new Date("2024-02-29T00:00:00.000Z"))
+  })
+
+  it("prev with multiple months specified", () => {
+    const tz = DateTime.zoneMakeNamedUnsafe("UTC")
+    const cron = Cron.parseUnsafe("0 0 15 1,4,7,10 *", tz)
+    const from = new Date("2024-05-01T00:00:00.000Z")
+    deepStrictEqual(prev(cron, from), new Date("2024-04-15T00:00:00.000Z"))
   })
 
   it("sequence", () => {

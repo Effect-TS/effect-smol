@@ -100,7 +100,25 @@ export interface Cron extends Pipeable, Equal.Equal, Inspectable {
     readonly weekday: number
   }
   /** @internal */
+  readonly last: {
+    readonly second: number
+    readonly minute: number
+    readonly hour: number
+    readonly day: number
+    readonly month: number
+    readonly weekday: number
+  }
+  /** @internal */
   readonly next: {
+    readonly second: ReadonlyArray<number | undefined>
+    readonly minute: ReadonlyArray<number | undefined>
+    readonly hour: ReadonlyArray<number | undefined>
+    readonly day: ReadonlyArray<number | undefined>
+    readonly month: ReadonlyArray<number | undefined>
+    readonly weekday: ReadonlyArray<number | undefined>
+  }
+  /** @internal */
+  readonly prev: {
     readonly second: ReadonlyArray<number | undefined>
     readonly minute: ReadonlyArray<number | undefined>
     readonly hour: ReadonlyArray<number | undefined>
@@ -325,31 +343,64 @@ export const make = (values: {
     weekday: weekdays[0] ?? 0
   }
 
+  o.last = {
+    second: seconds[seconds.length - 1] ?? 59,
+    minute: minutes[minutes.length - 1] ?? 59,
+    hour: hours[hours.length - 1] ?? 23,
+    day: days[days.length - 1] ?? 31,
+    month: (months[months.length - 1] ?? 12) - 1,
+    weekday: weekdays[weekdays.length - 1] ?? 6
+  }
+
   o.next = {
-    second: nextLookupTable(seconds, 60),
-    minute: nextLookupTable(minutes, 60),
-    hour: nextLookupTable(hours, 24),
-    day: nextLookupTable(days, 32),
-    month: nextLookupTable(months, 13),
-    weekday: nextLookupTable(weekdays, 7)
+    second: lookupTable(seconds, 60, "next"),
+    minute: lookupTable(minutes, 60, "next"),
+    hour: lookupTable(hours, 24, "next"),
+    day: lookupTable(days, 32, "next"),
+    month: lookupTable(months, 13, "next"),
+    weekday: lookupTable(weekdays, 7, "next")
+  }
+
+  o.prev = {
+    second: lookupTable(seconds, 60, "prev"),
+    minute: lookupTable(minutes, 60, "prev"),
+    hour: lookupTable(hours, 24, "prev"),
+    day: lookupTable(days, 32, "prev"),
+    month: lookupTable(months, 13, "prev"),
+    weekday: lookupTable(weekdays, 7, "prev")
   }
 
   return o
 }
 
-const nextLookupTable = (values: ReadonlyArray<number>, size: number): Array<number | undefined> => {
+const lookupTable = (
+  values: ReadonlyArray<number>,
+  size: number,
+  dir: "next" | "prev"
+): Array<number | undefined> => {
   const result = new Array(size).fill(undefined)
   if (values.length === 0) {
     return result
   }
 
   let current: number | undefined = undefined
-  let index = values.length - 1
-  for (let i = size - 1; i >= 0; i--) {
-    while (index >= 0 && values[index] >= i) {
-      current = values[index--]
+
+  if (dir === "next") {
+    let index = values.length - 1
+    for (let i = size - 1; i >= 0; i--) {
+      while (index >= 0 && values[index] >= i) {
+        current = values[index--]
+      }
+      result[i] = current
     }
-    result[i] = current
+  } else {
+    let index = 0
+    for (let i = 0; i < size; i++) {
+      while (index < values.length && values[index] <= i) {
+        current = values[index++]
+      }
+      result[i] = current
+    }
   }
 
   return result
@@ -587,38 +638,61 @@ const daysInMonth = (date: Date): number =>
  * @category utils
  */
 export const next = (cron: Cron, now?: DateTime.DateTime.Input): Date => {
+  return stepCron(cron, now, "next")
+}
+
+/**
+ * Returns the previous scheduled date/time for the given Cron instance.
+ *
+ * @since 4.0.0
+ * @category utils
+ */
+export const prev = (cron: Cron, now?: DateTime.DateTime.Input): Date => {
+  return stepCron(cron, now, "prev")
+}
+
+const stepCron = (cron: Cron, now: DateTime.DateTime.Input | undefined, direction: "next" | "prev"): Date => {
   const tz = Option.getOrUndefined(cron.tz)
   const zoned = dateTime.makeZonedUnsafe(now ?? new Date(), {
     timeZone: tz
   })
 
+  const reverse = direction === "prev"
+  const tick = reverse ? -1 : 1
+  const table = cron[direction]
+  const boundary = reverse ? cron.last : cron.first
+
+  const needsStep = reverse ?
+    (next: number, current: number) => next < current :
+    (next: number, current: number) => next > current
+
   const utc = tz !== undefined && dateTime.isTimeZoneNamed(tz) && tz.id === "UTC"
   const adjustDst = utc ? constVoid : (current: Date) => {
     const adjusted = dateTime.makeZonedUnsafe(current, {
       timeZone: zoned.zone,
-      adjustForTimeZone: true
+      adjustForTimeZone: true,
+      disambiguation: reverse ? "later" : undefined
     }).pipe(dateTime.toDate)
 
-    // TODO: This implementation currently only skips forward when transitioning into daylight savings time.
     const drift = current.getTime() - adjusted.getTime()
-    if (drift > 0) {
-      current.setTime(current.getTime() + drift)
+    if (reverse ? drift !== 0 : drift > 0) {
+      current.setTime(reverse ? adjusted.getTime() : current.getTime() + drift)
     }
   }
 
   const result = dateTime.mutate(zoned, (current) => {
-    current.setUTCSeconds(current.getUTCSeconds() + 1, 0)
+    current.setUTCSeconds(current.getUTCSeconds() + tick, 0)
 
     for (let i = 0; i < 10_000; i++) {
       if (cron.seconds.size !== 0) {
         const currentSecond = current.getUTCSeconds()
-        const nextSecond = cron.next.second[currentSecond]
+        const nextSecond = table.second[currentSecond]
         if (nextSecond === undefined) {
-          current.setUTCMinutes(current.getUTCMinutes() + 1, cron.first.second)
+          current.setUTCMinutes(current.getUTCMinutes() + tick, boundary.second)
           adjustDst(current)
           continue
         }
-        if (nextSecond > currentSecond) {
+        if (needsStep(nextSecond, currentSecond)) {
           current.setUTCSeconds(nextSecond)
           adjustDst(current)
           continue
@@ -627,14 +701,14 @@ export const next = (cron: Cron, now?: DateTime.DateTime.Input): Date => {
 
       if (cron.minutes.size !== 0) {
         const currentMinute = current.getUTCMinutes()
-        const nextMinute = cron.next.minute[currentMinute]
+        const nextMinute = table.minute[currentMinute]
         if (nextMinute === undefined) {
-          current.setUTCHours(current.getUTCHours() + 1, cron.first.minute, cron.first.second)
+          current.setUTCHours(current.getUTCHours() + tick, boundary.minute, boundary.second)
           adjustDst(current)
           continue
         }
-        if (nextMinute > currentMinute) {
-          current.setUTCMinutes(nextMinute, cron.first.second)
+        if (needsStep(nextMinute, currentMinute)) {
+          current.setUTCMinutes(nextMinute, boundary.second)
           adjustDst(current)
           continue
         }
@@ -642,40 +716,55 @@ export const next = (cron: Cron, now?: DateTime.DateTime.Input): Date => {
 
       if (cron.hours.size !== 0) {
         const currentHour = current.getUTCHours()
-        const nextHour = cron.next.hour[currentHour]
+        const nextHour = table.hour[currentHour]
         if (nextHour === undefined) {
-          current.setUTCDate(current.getUTCDate() + 1)
-          current.setUTCHours(cron.first.hour, cron.first.minute, cron.first.second)
+          current.setUTCDate(current.getUTCDate() + tick)
+          current.setUTCHours(boundary.hour, boundary.minute, boundary.second)
           adjustDst(current)
           continue
         }
-        if (nextHour > currentHour) {
-          current.setUTCHours(nextHour, cron.first.minute, cron.first.second)
+        if (needsStep(nextHour, currentHour)) {
+          current.setUTCHours(nextHour, boundary.minute, boundary.second)
           adjustDst(current)
           continue
         }
       }
 
       if (cron.weekdays.size !== 0 || cron.days.size !== 0) {
-        let a: number = Infinity
-        let b: number = Infinity
+        let a: number = reverse ? -Infinity : Infinity
+        let b: number = reverse ? -Infinity : Infinity
 
         if (cron.weekdays.size !== 0) {
           const currentWeekday = current.getUTCDay()
-          const nextWeekday = cron.next.weekday[currentWeekday]
-          a = nextWeekday === undefined ? 7 - currentWeekday + cron.first.weekday : nextWeekday - currentWeekday
+          const nextWeekday = table.weekday[currentWeekday]
+          if (nextWeekday === undefined) {
+            a = reverse ?
+              currentWeekday - 7 + boundary.weekday :
+              7 - currentWeekday + boundary.weekday
+          } else {
+            a = nextWeekday - currentWeekday
+          }
         }
 
         if (cron.days.size !== 0 && a !== 0) {
           const currentDay = current.getUTCDate()
-          const nextDay = cron.next.day[currentDay]
-          b = nextDay === undefined ? daysInMonth(current) - currentDay + cron.first.day : nextDay - currentDay
+          const nextDay = table.day[currentDay]
+          if (nextDay === undefined) {
+            if (reverse) {
+              const prevMonthDays = daysInMonth(new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth(), 0)))
+              b = -(currentDay + (prevMonthDays - boundary.day))
+            } else {
+              b = daysInMonth(current) - currentDay + boundary.day
+            }
+          } else {
+            b = nextDay - currentDay
+          }
         }
 
-        const addDays = Math.min(a, b)
+        const addDays = reverse ? Math.max(a, b) : Math.min(a, b)
         if (addDays !== 0) {
           current.setUTCDate(current.getUTCDate() + addDays)
-          current.setUTCHours(cron.first.hour, cron.first.minute, cron.first.second)
+          current.setUTCHours(boundary.hour, boundary.minute, boundary.second)
           adjustDst(current)
           continue
         }
@@ -683,17 +772,25 @@ export const next = (cron: Cron, now?: DateTime.DateTime.Input): Date => {
 
       if (cron.months.size !== 0) {
         const currentMonth = current.getUTCMonth() + 1
-        const nextMonth = cron.next.month[currentMonth]
+        const nextMonth = table.month[currentMonth]
+        const clampBoundaryDay = (targetMonthIndex: number): number => {
+          if (cron.days.size !== 0) {
+            return boundary.day
+          }
+          const maxDayInMonth = daysInMonth(new Date(Date.UTC(current.getUTCFullYear(), targetMonthIndex + 1, 0)))
+          return Math.min(boundary.day, maxDayInMonth)
+        }
         if (nextMonth === undefined) {
-          current.setUTCFullYear(current.getUTCFullYear() + 1)
-          current.setUTCMonth(cron.first.month, cron.first.day)
-          current.setUTCHours(cron.first.hour, cron.first.minute, cron.first.second)
+          current.setUTCFullYear(current.getUTCFullYear() + tick)
+          current.setUTCMonth(boundary.month, clampBoundaryDay(boundary.month))
+          current.setUTCHours(boundary.hour, boundary.minute, boundary.second)
           adjustDst(current)
           continue
         }
-        if (nextMonth > currentMonth) {
-          current.setUTCMonth(nextMonth - 1, cron.first.day)
-          current.setUTCHours(cron.first.hour, cron.first.minute, cron.first.second)
+        if (needsStep(nextMonth, currentMonth)) {
+          const targetMonthIndex = nextMonth - 1
+          current.setUTCMonth(targetMonthIndex, clampBoundaryDay(targetMonthIndex))
+          current.setUTCHours(boundary.hour, boundary.minute, boundary.second)
           adjustDst(current)
           continue
         }
@@ -702,7 +799,7 @@ export const next = (cron: Cron, now?: DateTime.DateTime.Input): Date => {
       return
     }
 
-    throw new Error("Unable to find next cron date")
+    throw new Error("Unable to find " + direction + " cron date")
   })
 
   return dateTime.toDateUtc(result)
