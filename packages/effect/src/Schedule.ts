@@ -2194,14 +2194,26 @@ export const fibonacci = (one: Duration.Input): Schedule<Duration.Duration> => {
  */
 export const fixed = (interval: Duration.Input): Schedule<number> => {
   const window = Duration.toMillis(Duration.fromInputUnsafe(interval))
-  return fromStepWithMetadata(effect.succeed((meta) =>
-    effect.succeed([
-      meta.attempt - 1,
-      window === 0
-        ? Duration.zero
-        : Duration.millis(window - (meta.elapsed % window))
-    ])
-  ))
+  return fromStepWithMetadata(effect.sync(() => {
+    let start = 0
+    let lastRun = 0
+    return (meta) =>
+      effect.sync(() => {
+        if (window === 0) {
+          return [meta.attempt - 1, Duration.zero] as const
+        }
+        if (meta.attempt === 1) {
+          start = meta.now
+          lastRun = meta.now + window
+          return [0, Duration.millis(window)] as const
+        }
+        const runningBehind = meta.now > (lastRun + window)
+        const boundary = window - ((meta.now - start) % window)
+        const delay = runningBehind ? 0 : boundary === 0 ? window : boundary
+        lastRun = runningBehind ? meta.now : meta.now + delay
+        return [meta.attempt - 1, Duration.millis(delay)] as const
+      })
+  }))
 }
 
 /**
