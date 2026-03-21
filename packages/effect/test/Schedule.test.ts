@@ -242,7 +242,7 @@ describe("Schedule", () => {
         ])
       }))
 
-    it.effect("runs immediately when action duration exceeds the interval", () =>
+    it.effect("matches effect v3 when action duration exceeds the interval", () =>
       Effect.gen(function*() {
         const delays: Array<Duration.Duration> = []
         const schedule = Schedule.fixed("1 seconds").pipe(
