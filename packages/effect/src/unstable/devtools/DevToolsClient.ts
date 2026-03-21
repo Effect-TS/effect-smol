@@ -4,6 +4,7 @@
 import * as Cause from "../../Cause.ts"
 import * as Deferred from "../../Deferred.ts"
 import * as Effect from "../../Effect.ts"
+import * as Fiber from "../../Fiber.ts"
 import * as Layer from "../../Layer.ts"
 import * as Metric from "../../Metric.ts"
 import * as Queue from "../../Queue.ts"
@@ -23,9 +24,14 @@ const ResponseSchema = Schema.toCodecJson(DevToolsSchema.Response)
  * @since 4.0.0
  * @category tags
  */
-export class DevToolsClient extends ServiceMap.Service<DevToolsClient, {
-  readonly sendUnsafe: (_: DevToolsSchema.Span | DevToolsSchema.SpanEvent) => void
-}>()("effect/devtools/DevToolsClient") {}
+export class DevToolsClient extends ServiceMap.Service<
+  DevToolsClient,
+  {
+    readonly sendUnsafe: (
+      _: DevToolsSchema.Span | DevToolsSchema.SpanEvent
+    ) => void
+  }
+>()("effect/devtools/DevToolsClient") {}
 
 const makeEffect = Effect.gen(function*() {
   const socket = yield* Socket.Socket
@@ -37,7 +43,9 @@ const makeEffect = Effect.gen(function*() {
     Queue.offerUnsafe(requests, toMetricsSnapshot(services))
   })
 
-  const handleResponse = (response: DevToolsSchema.Response): Effect.Effect<void> => {
+  const handleResponse = (
+    response: DevToolsSchema.Response
+  ): Effect.Effect<void> => {
     switch (response._tag) {
       case "MetricsRequest": {
         return offerMetricsSnapshot
@@ -48,7 +56,7 @@ const makeEffect = Effect.gen(function*() {
     }
   }
 
-  yield* Stream.fromQueue(requests).pipe(
+  const fiber = yield* Stream.fromQueue(requests).pipe(
     Stream.pipeThroughChannel(
       Ndjson.duplexSchemaString(Socket.toChannelString(socket), {
         inputSchema: RequestSchema,
@@ -57,12 +65,16 @@ const makeEffect = Effect.gen(function*() {
     ),
     Stream.onFirst(() => Deferred.completeWith(connected, Effect.void)),
     Stream.runForEach(handleResponse),
-    Effect.forkScoped
+    Effect.forkChild
   )
 
   yield* Effect.addFinalizer(() =>
     offerMetricsSnapshot.pipe(
-      Effect.andThen(Effect.flatMap(Effect.fiberId, (id) => Queue.failCause(requests, Cause.interrupt(id))))
+      Effect.andThen(
+        Effect.flatMap(Effect.fiberId, (id) => Queue.failCause(requests, Cause.interrupt(id)))
+      ),
+      Effect.andThen(Fiber.await(fiber)),
+      Effect.asVoid
     )
   )
 
@@ -84,7 +96,9 @@ const makeEffect = Effect.gen(function*() {
   })
 })
 
-const toMetricsSnapshot = (services: ServiceMap.ServiceMap<never>): DevToolsSchema.MetricsSnapshot => ({
+const toMetricsSnapshot = (
+  services: ServiceMap.ServiceMap<never>
+): DevToolsSchema.MetricsSnapshot => ({
   _tag: "MetricsSnapshot",
   metrics: Metric.snapshotUnsafe(services)
 })
@@ -108,11 +122,7 @@ export const make: Effect.Effect<
  * @since 4.0.0
  * @category layers
  */
-export const layer: Layer.Layer<
-  DevToolsClient,
-  never,
-  Socket.Socket
-> = Layer.effect(DevToolsClient, make)
+export const layer: Layer.Layer<DevToolsClient, never, Socket.Socket> = Layer.effect(DevToolsClient, make)
 
 const makeTracerEffect = Effect.gen(function*() {
   const client = yield* DevToolsClient
@@ -162,10 +172,6 @@ export const makeTracer: Effect.Effect<Tracer.Tracer, never, DevToolsClient> = m
  * @since 4.0.0
  * @category layers
  */
-export const layerTracer: Layer.Layer<
-  never,
-  never,
-  Socket.Socket
-> = Layer.effect(Tracer.Tracer, makeTracer).pipe(
+export const layerTracer: Layer.Layer<never, never, Socket.Socket> = Layer.effect(Tracer.Tracer, makeTracer).pipe(
   Layer.provide(layer)
 )
