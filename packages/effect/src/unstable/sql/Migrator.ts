@@ -236,11 +236,13 @@ export const make = <RD = never>({
       if (required.length > 0) {
         yield* pipe(
           insertMigrations(required.map(([id, name]) => [id, name])),
-          Effect.mapError((_) =>
-            new MigrationError({
-              kind: "Locked",
-              message: "Migrations already running"
-            })
+          Effect.mapError((error) =>
+            isDuplicateMigrationIdError(error)
+              ? new MigrationError({
+                kind: "Locked",
+                message: "Migrations already running"
+              })
+              : error
           )
         )
       }
@@ -294,6 +296,29 @@ export const make = <RD = never>({
   })
 
 const migrationOrder = Order.make<ResolvedMigration>(([a], [b]) => Order.Number(a, b))
+
+const isDuplicateMigrationIdError = (error: SqlError): boolean => {
+  const cause = error.cause
+  if (typeof cause !== "object" || cause === null) {
+    return false
+  }
+
+  const code = (cause as { readonly code?: unknown }).code
+  if (typeof code === "string") {
+    if (code === "23505" || code === "ER_DUP_ENTRY" || code.startsWith("SQLITE_CONSTRAINT")) {
+      return true
+    }
+  }
+
+  const errno = (cause as { readonly errno?: unknown }).errno
+  if (errno === 1062 || errno === 2601 || errno === 2627) {
+    return true
+  }
+
+  const message = (cause as { readonly message?: unknown }).message
+  return typeof message === "string" &&
+    /duplicate|unique\s+constraint|UNIQUE\s+constraint\s+failed|PRIMARY\s+KEY\s+constraint/i.test(message)
+}
 
 /**
  * @since 4.0.0
