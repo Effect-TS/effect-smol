@@ -236,11 +236,13 @@ export const make = <RD = never>({
       if (required.length > 0) {
         yield* pipe(
           insertMigrations(required.map(([id, name]) => [id, name])),
-          Effect.mapError((_) =>
-            new MigrationError({
-              kind: "Locked",
-              message: "Migrations already running"
-            })
+          Effect.mapError((error): MigrationError | SqlError =>
+            error.reason._tag === "ConstraintError"
+              ? new MigrationError({
+                kind: "Locked",
+                message: "Migrations already running"
+              })
+              : error
           )
         )
       }
