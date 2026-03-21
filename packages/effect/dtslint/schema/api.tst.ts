@@ -49,16 +49,6 @@ describe("decoding / encoding API", () => {
     }
   })
 
-  it("is should not be callable with a schema with DecodingServices", () => {
-    const schema = hole<Schema.Codec<string, string, {}, never>>()
-    expect(Schema.is).type.not.toBeCallableWith(schema)
-  })
-
-  it("asserts should not be callable with a schema with DecodingServices", () => {
-    const schema = hole<Schema.Codec<string, string, {}, never>>()
-    expect(Schema.asserts).type.not.toBeCallableWith(schema)
-  })
-
   it("decodeUnknownSync should not be callable with a schema with DecodingServices", () => {
     const schema = hole<Schema.Codec<string, string, {}, never>>()
     expect(Schema.decodeUnknownSync).type.not.toBeCallableWith(schema)
@@ -67,6 +57,16 @@ describe("decoding / encoding API", () => {
   it("decodeSync should not be callable with a schema with DecodingServices", () => {
     const schema = hole<Schema.Codec<string, string, {}, never>>()
     expect(Schema.decodeSync).type.not.toBeCallableWith(schema)
+  })
+
+  it("decodeUnknownResult should not be callable with a schema with DecodingServices", () => {
+    const schema = hole<Schema.Codec<string, string, {}, never>>()
+    expect(Schema.decodeUnknownResult).type.not.toBeCallableWith(schema)
+  })
+
+  it("decodeResult should not be callable with a schema with DecodingServices", () => {
+    const schema = hole<Schema.Codec<string, string, {}, never>>()
+    expect(Schema.decodeResult).type.not.toBeCallableWith(schema)
   })
 
   it("decodeUnknownExit should not be callable with a schema with DecodingServices", () => {
@@ -107,6 +107,16 @@ describe("decoding / encoding API", () => {
   it("encodeSync should not be callable with a schema with EncodingServices", () => {
     const schema = hole<Schema.Codec<string, string, never, {}>>()
     expect(Schema.encodeSync).type.not.toBeCallableWith(schema)
+  })
+
+  it("encodeUnknownResult should not be callable with a schema with EncodingServices", () => {
+    const schema = hole<Schema.Codec<string, string, never, {}>>()
+    expect(Schema.encodeUnknownResult).type.not.toBeCallableWith(schema)
+  })
+
+  it("encodeResult should not be callable with a schema with EncodingServices", () => {
+    const schema = hole<Schema.Codec<string, string, never, {}>>()
+    expect(Schema.encodeResult).type.not.toBeCallableWith(schema)
   })
 
   it("encodeUnknownExit should not be callable with a schema with EncodingServices", () => {

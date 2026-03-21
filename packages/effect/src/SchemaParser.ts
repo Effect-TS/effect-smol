@@ -84,10 +84,8 @@ export function makeUnsafe<S extends Schema.Top>(schema: S) {
  * @category Asserting
  * @since 4.0.0
  */
-export function is<S extends Schema.Top & { readonly DecodingServices: never }>(
-  schema: S
-): <I>(input: I) => input is I & S["Type"] {
-  return _is<S["Type"]>(schema.ast)
+export function is<T>(schema: Schema.Schema<T>): <I>(input: I) => input is I & T {
+  return _is<T>(schema.ast)
 }
 
 /** @internal */
@@ -113,11 +111,9 @@ export function _issue<T>(ast: AST.AST) {
  * @category Asserting
  * @since 4.0.0
  */
-export function asserts<S extends Schema.Top & { readonly DecodingServices: never }>(
-  schema: S
-) {
-  const parser = asExit(run<S["Type"], never>(AST.toType(schema.ast)))
-  return <I>(input: I): asserts input is I & S["Type"] => {
+export function asserts<T>(schema: Schema.Schema<T>) {
+  const parser = asExit(run<T, never>(AST.toType(schema.ast)))
+  return <I>(input: I): asserts input is I & T => {
     const exit = parser(input, AST.defaultParseOptions)
     if (Exit.isFailure(exit)) {
       const issue = Cause.findError(exit.cause)
@@ -152,7 +148,7 @@ export const decodeEffect: <S extends Schema.Top>(
  * @category Decoding
  * @since 4.0.0
  */
-export function decodeUnknownPromise<S extends Schema.Top & { readonly DecodingServices: never }>(
+export function decodeUnknownPromise<S extends Schema.Decoder<unknown>>(
   schema: S
 ): (input: unknown, options?: AST.ParseOptions) => Promise<S["Type"]> {
   return asPromise(decodeUnknownEffect(schema))
@@ -162,7 +158,7 @@ export function decodeUnknownPromise<S extends Schema.Top & { readonly DecodingS
  * @category Decoding
  * @since 4.0.0
  */
-export function decodePromise<S extends Schema.Top & { readonly DecodingServices: never }>(
+export function decodePromise<S extends Schema.Decoder<unknown>>(
   schema: S
 ): (input: S["Encoded"], options?: AST.ParseOptions) => Promise<S["Type"]> {
   return asPromise(decodeEffect(schema))
@@ -172,7 +168,7 @@ export function decodePromise<S extends Schema.Top & { readonly DecodingServices
  * @category Decoding
  * @since 4.0.0
  */
-export function decodeUnknownExit<S extends Schema.Top & { readonly DecodingServices: never }>(
+export function decodeUnknownExit<S extends Schema.Decoder<unknown>>(
   schema: S
 ): (input: unknown, options?: AST.ParseOptions) => Exit.Exit<S["Type"], Issue.Issue> {
   return asExit(decodeUnknownEffect(schema))
@@ -182,7 +178,7 @@ export function decodeUnknownExit<S extends Schema.Top & { readonly DecodingServ
  * @category Decoding
  * @since 4.0.0
  */
-export const decodeExit: <S extends Schema.Top & { readonly DecodingServices: never }>(
+export const decodeExit: <S extends Schema.Decoder<unknown>>(
   schema: S
 ) => (input: S["Encoded"], options?: AST.ParseOptions) => Exit.Exit<S["Type"], Issue.Issue> = decodeUnknownExit
 
@@ -190,7 +186,7 @@ export const decodeExit: <S extends Schema.Top & { readonly DecodingServices: ne
  * @category Decoding
  * @since 4.0.0
  */
-export function decodeUnknownOption<S extends Schema.Top & { readonly DecodingServices: never }>(
+export function decodeUnknownOption<S extends Schema.Decoder<unknown>>(
   schema: S
 ): (input: unknown, options?: AST.ParseOptions) => Option.Option<S["Type"]> {
   return asOption(decodeUnknownEffect(schema))
@@ -200,7 +196,7 @@ export function decodeUnknownOption<S extends Schema.Top & { readonly DecodingSe
  * @category Decoding
  * @since 4.0.0
  */
-export const decodeOption: <S extends Schema.Top & { readonly DecodingServices: never }>(
+export const decodeOption: <S extends Schema.Decoder<unknown>>(
   schema: S
 ) => (input: S["Encoded"], options?: AST.ParseOptions) => Option.Option<S["Type"]> = decodeUnknownOption
 
@@ -208,7 +204,7 @@ export const decodeOption: <S extends Schema.Top & { readonly DecodingServices: 
  * @category Decoding
  * @since 4.0.0
  */
-export function decodeUnknownResult<S extends Schema.Top & { readonly DecodingServices: never }>(
+export function decodeUnknownResult<S extends Schema.Decoder<unknown>>(
   schema: S
 ): (input: unknown, options?: AST.ParseOptions) => Result.Result<S["Type"], Issue.Issue> {
   return asResult(decodeUnknownEffect(schema))
@@ -218,7 +214,7 @@ export function decodeUnknownResult<S extends Schema.Top & { readonly DecodingSe
  * @category Decoding
  * @since 4.0.0
  */
-export const decodeResult: <S extends Schema.Top & { readonly DecodingServices: never }>(
+export const decodeResult: <S extends Schema.Decoder<unknown>>(
   schema: S
 ) => (input: S["Encoded"], options?: AST.ParseOptions) => Result.Result<S["Type"], Issue.Issue> = decodeUnknownResult
 
@@ -226,7 +222,7 @@ export const decodeResult: <S extends Schema.Top & { readonly DecodingServices: 
  * @category Decoding
  * @since 4.0.0
  */
-export function decodeUnknownSync<S extends Schema.Top & { readonly DecodingServices: never }>(
+export function decodeUnknownSync<S extends Schema.Decoder<unknown>>(
   schema: S
 ): (input: unknown, options?: AST.ParseOptions) => S["Type"] {
   return asSync(decodeUnknownEffect(schema))
@@ -236,7 +232,7 @@ export function decodeUnknownSync<S extends Schema.Top & { readonly DecodingServ
  * @category Decoding
  * @since 4.0.0
  */
-export const decodeSync: <S extends Schema.Top & { readonly DecodingServices: never }>(
+export const decodeSync: <S extends Schema.Decoder<unknown>>(
   schema: S
 ) => (input: S["Encoded"], options?: AST.ParseOptions) => S["Type"] = decodeUnknownSync
 
@@ -263,7 +259,7 @@ export const encodeEffect: <S extends Schema.Top>(
  * @category Encoding
  * @since 4.0.0
  */
-export const encodeUnknownPromise = <S extends Schema.Top & { readonly EncodingServices: never }>(
+export const encodeUnknownPromise = <S extends Schema.Encoder<unknown>>(
   schema: S
 ): (input: unknown, options?: AST.ParseOptions) => Promise<S["Encoded"]> => asPromise(encodeUnknownEffect(schema))
 
@@ -271,7 +267,7 @@ export const encodeUnknownPromise = <S extends Schema.Top & { readonly EncodingS
  * @category Encoding
  * @since 4.0.0
  */
-export const encodePromise: <S extends Schema.Top & { readonly EncodingServices: never }>(
+export const encodePromise: <S extends Schema.Encoder<unknown>>(
   schema: S
 ) => (input: S["Type"], options?: AST.ParseOptions) => Promise<S["Encoded"]> = encodeUnknownPromise
 
@@ -279,7 +275,7 @@ export const encodePromise: <S extends Schema.Top & { readonly EncodingServices:
  * @category Encoding
  * @since 4.0.0
  */
-export function encodeUnknownExit<S extends Schema.Top & { readonly EncodingServices: never }>(
+export function encodeUnknownExit<S extends Schema.Encoder<unknown>>(
   schema: S
 ): (input: unknown, options?: AST.ParseOptions) => Exit.Exit<S["Encoded"], Issue.Issue> {
   return asExit(encodeUnknownEffect(schema))
@@ -289,7 +285,7 @@ export function encodeUnknownExit<S extends Schema.Top & { readonly EncodingServ
  * @category Encoding
  * @since 4.0.0
  */
-export const encodeExit: <S extends Schema.Top & { readonly EncodingServices: never }>(
+export const encodeExit: <S extends Schema.Encoder<unknown>>(
   schema: S
 ) => (input: S["Type"], options?: AST.ParseOptions) => Exit.Exit<S["Encoded"], Issue.Issue> = encodeUnknownExit
 
@@ -297,7 +293,7 @@ export const encodeExit: <S extends Schema.Top & { readonly EncodingServices: ne
  * @category Encoding
  * @since 4.0.0
  */
-export function encodeUnknownOption<S extends Schema.Top & { readonly EncodingServices: never }>(
+export function encodeUnknownOption<S extends Schema.Encoder<unknown>>(
   schema: S
 ): (input: unknown, options?: AST.ParseOptions) => Option.Option<S["Encoded"]> {
   return asOption(encodeUnknownEffect(schema))
@@ -307,7 +303,7 @@ export function encodeUnknownOption<S extends Schema.Top & { readonly EncodingSe
  * @category Encoding
  * @since 4.0.0
  */
-export const encodeOption: <S extends Schema.Top & { readonly EncodingServices: never }>(
+export const encodeOption: <S extends Schema.Encoder<unknown>>(
   schema: S
 ) => (input: S["Type"], options?: AST.ParseOptions) => Option.Option<S["Encoded"]> = encodeUnknownOption
 
@@ -315,7 +311,7 @@ export const encodeOption: <S extends Schema.Top & { readonly EncodingServices: 
  * @category Encoding
  * @since 4.0.0
  */
-export function encodeUnknownResult<S extends Schema.Top & { readonly EncodingServices: never }>(
+export function encodeUnknownResult<S extends Schema.Encoder<unknown>>(
   schema: S
 ): (input: unknown, options?: AST.ParseOptions) => Result.Result<S["Encoded"], Issue.Issue> {
   return asResult(encodeUnknownEffect(schema))
@@ -325,7 +321,7 @@ export function encodeUnknownResult<S extends Schema.Top & { readonly EncodingSe
  * @category Encoding
  * @since 4.0.0
  */
-export const encodeResult: <S extends Schema.Top & { readonly EncodingServices: never }>(
+export const encodeResult: <S extends Schema.Encoder<unknown>>(
   schema: S
 ) => (input: S["Type"], options?: AST.ParseOptions) => Result.Result<S["Encoded"], Issue.Issue> = encodeUnknownResult
 
@@ -333,7 +329,7 @@ export const encodeResult: <S extends Schema.Top & { readonly EncodingServices: 
  * @category Encoding
  * @since 4.0.0
  */
-export function encodeUnknownSync<S extends Schema.Top & { readonly EncodingServices: never }>(
+export function encodeUnknownSync<S extends Schema.Encoder<unknown>>(
   schema: S
 ): (input: unknown, options?: AST.ParseOptions) => S["Encoded"] {
   return asSync(encodeUnknownEffect(schema))
@@ -343,7 +339,7 @@ export function encodeUnknownSync<S extends Schema.Top & { readonly EncodingServ
  * @category Encoding
  * @since 4.0.0
  */
-export const encodeSync: <S extends Schema.Top & { readonly EncodingServices: never }>(
+export const encodeSync: <S extends Schema.Encoder<unknown>>(
   schema: S
 ) => (input: S["Type"], options?: AST.ParseOptions) => S["Encoded"] = encodeUnknownSync
 

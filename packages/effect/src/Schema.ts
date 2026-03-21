@@ -669,9 +669,7 @@ export declare namespace Codec {
    *
    * @since 4.0.0
    */
-  export type ToAsserts<S extends Top & { readonly DecodingServices: never }> = <I>(
-    input: I
-  ) => asserts input is I & S["Type"]
+  export type ToAsserts<S extends Top> = <I>(input: I) => asserts input is I & S["Type"]
 }
 
 /**
@@ -943,9 +941,7 @@ function makeStandardResult<A>(exit: Exit_.Exit<StandardSchemaV1.Result<A>>): St
  * @category Standard Schema
  * @since 4.0.0
  */
-export function toStandardSchemaV1<
-  S extends Top & { readonly DecodingServices: never }
->(
+export function toStandardSchemaV1<S extends Decoder<unknown>>(
   self: S,
   options?: {
     readonly leafHook?: Issue.LeafHook | undefined
@@ -1157,7 +1153,7 @@ export const decodeEffect: <S extends Top>(
  * @category Decoding
  * @since 4.0.0
  */
-export function decodeUnknownExit<S extends Top & { readonly DecodingServices: never }>(schema: S) {
+export function decodeUnknownExit<S extends Decoder<unknown>>(schema: S) {
   const parser = Parser.decodeUnknownExit(schema)
   return (input: unknown, options?: AST.ParseOptions): Exit_.Exit<S["Type"], SchemaError> => {
     return Exit_.mapError(parser(input, options), (issue) => new SchemaError(issue))
@@ -1174,7 +1170,7 @@ export function decodeUnknownExit<S extends Top & { readonly DecodingServices: n
  * @category Decoding
  * @since 4.0.0
  */
-export const decodeExit: <S extends Top & { readonly DecodingServices: never }>(
+export const decodeExit: <S extends Decoder<unknown>>(
   schema: S
 ) => (input: S["Encoded"], options?: AST.ParseOptions) => Exit_.Exit<S["Type"], SchemaError> = decodeUnknownExit
 
@@ -1327,7 +1323,7 @@ export const encodeEffect: <S extends Top>(
  * @category Encoding
  * @since 4.0.0
  */
-export function encodeUnknownExit<S extends Top & { readonly EncodingServices: never }>(schema: S) {
+export function encodeUnknownExit<S extends Encoder<unknown>>(schema: S) {
   const parser = Parser.encodeUnknownExit(schema)
   return (input: unknown, options?: AST.ParseOptions): Exit_.Exit<S["Encoded"], SchemaError> => {
     return Exit_.mapError(parser(input, options), (issue) => new SchemaError(issue))
@@ -1344,7 +1340,7 @@ export function encodeUnknownExit<S extends Top & { readonly EncodingServices: n
  * @category Encoding
  * @since 4.0.0
  */
-export const encodeExit: <S extends Top & { readonly EncodingServices: never }>(
+export const encodeExit: <S extends Encoder<unknown>>(
   schema: S
 ) => (input: S["Type"], options?: AST.ParseOptions) => Exit_.Exit<S["Encoded"], SchemaError> = encodeUnknownExit
 
