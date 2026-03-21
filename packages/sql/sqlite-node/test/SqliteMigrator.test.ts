@@ -45,4 +45,27 @@ describe("SqliteMigrator", () => {
       assert(SqlError.isSqlError(error))
       assert.strictEqual(error.reason._tag, "LockTimeoutError")
     }))
+
+  it.effect("does not swallow non-lock constraint errors", () =>
+    Effect.gen(function*() {
+      const { migratorClient } = yield* makeClients
+
+      yield* migratorClient`CREATE TABLE effect_sql_migrations (
+  migration_id integer PRIMARY KEY NOT NULL,
+  created_at datetime NOT NULL DEFAULT current_timestamp,
+  name VARCHAR(255) NOT NULL CHECK(name = 'allowed')
+)`
+
+      const error = yield* Effect.flip(
+        SqliteMigrator.run({
+          loader: SqliteMigrator.fromRecord({
+            "1_test": Effect.void
+          })
+        }).pipe(Effect.provideService(SqlClient.SqlClient, migratorClient))
+      )
+
+      assert.strictEqual(error._tag, "SqlError")
+      assert(SqlError.isSqlError(error))
+      assert.strictEqual(error.reason._tag, "ConstraintError")
+    }))
 })

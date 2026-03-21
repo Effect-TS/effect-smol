@@ -67,6 +67,65 @@ export class MigrationError extends Data.TaggedError("MigrationError")<{
   readonly message: string
 }> {}
 
+const getCauseString = (cause: unknown, key: string): string | undefined => {
+  if (typeof cause !== "object" || cause === null || !(key in cause)) {
+    return
+  }
+  const value = (cause as Record<string, unknown>)[key]
+  return typeof value === "string" ? value : undefined
+}
+
+const getCauseNumber = (cause: unknown, key: string): number | undefined => {
+  if (typeof cause !== "object" || cause === null || !(key in cause)) {
+    return
+  }
+  const value = (cause as Record<string, unknown>)[key]
+  return typeof value === "number" ? value : undefined
+}
+
+const isDuplicateMigrationInsert = (table: string, error: SqlError): boolean => {
+  if (error.reason._tag !== "ConstraintError") {
+    return false
+  }
+
+  const cause = error.reason.cause
+  const code = getCauseString(cause, "code")
+  const errno = getCauseNumber(cause, "errno")
+  const number = getCauseNumber(cause, "number")
+  const duplicateCode = code === "23505" ||
+    code === "ER_DUP_ENTRY" ||
+    code?.startsWith("SQLITE_CONSTRAINT_PRIMARYKEY") === true ||
+    code?.startsWith("SQLITE_CONSTRAINT_UNIQUE") === true ||
+    errno === 1062 ||
+    errno === 1555 ||
+    errno === 2067 ||
+    number === 2601 ||
+    number === 2627
+
+  const searchable = [
+    getCauseString(cause, "message"),
+    getCauseString(cause, "detail"),
+    getCauseString(cause, "constraint"),
+    getCauseString(cause, "column"),
+    getCauseString(cause, "sqlMessage")
+  ].filter((_) => _ !== undefined)
+    .join(" ")
+    .toLowerCase()
+
+  const mentionsDuplicate = searchable.includes("duplicate") ||
+    searchable.includes("already exists") ||
+    searchable.includes("unique constraint") ||
+    searchable.includes("primary key")
+
+  const tableLower = table.toLowerCase()
+  const targetsMigrationId = searchable.includes("migration_id") ||
+    searchable.includes(`${tableLower}_pkey`) ||
+    searchable.includes(`${tableLower}.primary`) ||
+    searchable.includes("primary key")
+
+  return targetsMigrationId && (duplicateCode || mentionsDuplicate)
+}
+
 /**
  * @category constructor
  * @since 4.0.0
@@ -237,7 +296,7 @@ export const make = <RD = never>({
         yield* pipe(
           insertMigrations(required.map(([id, name]) => [id, name])),
           Effect.mapError((error): MigrationError | SqlError =>
-            error.reason._tag === "ConstraintError"
+            isDuplicateMigrationInsert(table, error)
               ? new MigrationError({
                 kind: "Locked",
                 message: "Migrations already running"
