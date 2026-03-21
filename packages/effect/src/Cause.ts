@@ -79,6 +79,7 @@
  */
 import type * as Effect from "./Effect.ts"
 import type { Equal } from "./Equal.ts"
+import type { Fiber } from "./Fiber.ts"
 import type { Inspectable } from "./Inspectable.ts"
 import * as core from "./internal/core.ts"
 import * as effect from "./internal/effect.ts"
@@ -1470,6 +1471,40 @@ export interface ExceededCapacityError extends YieldableError {
  * @since 4.0.0
  */
 export const ExceededCapacityError: new(message?: string) => ExceededCapacityError = effect.ExceededCapacityError
+
+/**
+ * Unique brand for {@link AsyncFiberError}.
+ *
+ * @since 4.0.0
+ * @category symbols
+ */
+export const AsyncFiberErrorTypeId: "~effect/Cause/AsyncFiberError" = effect.AsyncFiberErrorTypeId
+
+/**
+ * @category guards
+ * @since 4.0.0
+ */
+export const isAsyncFiberError: (u: unknown) => u is AsyncFiberError = effect.isAsyncFiberError
+
+/**
+ * An error that occurs when trying to run an async fiber with Effect.runSync.
+ *
+ * @since 4.0.0
+ * @category errors
+ */
+export interface AsyncFiberError extends YieldableError {
+  readonly [AsyncFiberErrorTypeId]: typeof AsyncFiberErrorTypeId
+  readonly _tag: "AsyncFiberError"
+  readonly fiber: Fiber<unknown, unknown>
+}
+
+/**
+ * An error that occurs when trying to run an async fiber with Effect.runSync.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const AsyncFiberError: new(fiber: Fiber<unknown, unknown>) => AsyncFiberError = effect.AsyncFiberError
 
 /**
  * Unique brand for {@link UnknownError}.

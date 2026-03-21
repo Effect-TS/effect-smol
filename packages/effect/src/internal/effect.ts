@@ -5131,7 +5131,7 @@ export const runSyncExitWith = <R>(services: ServiceMap.ServiceMap<R>) => {
     const scheduler = new Scheduler.MixedScheduler("sync")
     const fiber = runFork(effect, { scheduler })
     fiber.currentDispatcher?.flush()
-    return (fiber as FiberImpl<A, E>)._exit ?? exitDie(fiber)
+    return (fiber as FiberImpl<A, E>)._exit ?? exitDie(new AsyncFiberError(fiber))
   }
 }
 
@@ -5709,6 +5709,28 @@ export class ExceededCapacityError extends TaggedError("ExceededCapacityError") 
 }
 
 /** @internal */
+export const AsyncFiberErrorTypeId = "~effect/Cause/AsyncFiberError"
+
+/** @internal */
+export const isAsyncFiberError = (
+  u: unknown
+): u is Cause.AsyncFiberError => hasProperty(u, AsyncFiberErrorTypeId)
+
+/** @internal */
+export class AsyncFiberError extends TaggedError("AsyncFiberError")<{
+  fiber: Fiber.Fiber<unknown, unknown>
+  message: string
+}> {
+  readonly [AsyncFiberErrorTypeId] = AsyncFiberErrorTypeId
+  constructor(fiber: Fiber.Fiber<unknown, unknown>) {
+    super({
+      message: "An asynchronous Effect was executed with Effect.runSync",
+      fiber
+    })
+  }
+}
+
+/** @internal */
 export const UnknownErrorTypeId = "~effect/Cause/UnknownError"
 
 /** @internal */
@@ -5717,7 +5739,10 @@ export const isUnknownError = (
 ): u is Cause.UnknownError => hasProperty(u, UnknownErrorTypeId)
 
 /** @internal */
-export class UnknownError extends TaggedError("UnknownError") {
+export class UnknownError extends TaggedError("UnknownError")<{
+  cause: unknown
+  message?: string | undefined
+}> {
   readonly [UnknownErrorTypeId] = UnknownErrorTypeId
   constructor(cause: unknown, message?: string) {
     super({ message, cause } as any)
