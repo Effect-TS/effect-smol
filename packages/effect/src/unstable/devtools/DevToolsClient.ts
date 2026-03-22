@@ -65,7 +65,7 @@ const makeEffect = Effect.gen(function*() {
     ),
     Stream.onFirst(() => Deferred.completeWith(connected, Effect.void)),
     Stream.runForEach(handleResponse),
-    Effect.forkChild
+    Effect.forkDetach
   )
 
   yield* Effect.addFinalizer(() =>
@@ -73,8 +73,7 @@ const makeEffect = Effect.gen(function*() {
       Effect.andThen(
         Effect.flatMap(Effect.fiberId, (id) => Queue.failCause(requests, Cause.interrupt(id)))
       ),
-      Effect.andThen(Fiber.await(fiber)),
-      Effect.asVoid
+      Effect.andThen(Fiber.await(fiber))
     )
   )
 
