@@ -455,8 +455,31 @@ export const fromPool = Effect.fnUntraced(function*(
   })
   const reserve = Effect.map(reserveRaw, (client) => new ConnectionImpl(client))
 
+  const onListenClientError = (_: Error) => {
+  }
+
   const listenClient = yield* RcRef.make({
-    acquire: reserveRaw
+    acquire: Effect.acquireRelease(
+      Effect.tryPromise({
+        try: async () => {
+          const client = new Pg.Client(pool.options)
+          await client.connect()
+          client.on("error", onListenClientError)
+          return client
+        },
+        catch: (cause) =>
+          new SqlError({
+            reason: classifyError(cause, "Failed to acquire connection for listen", "acquireConnection")
+          })
+      }),
+      (client) =>
+        Effect.promise(() => {
+          client.off("error", onListenClientError)
+          return client.end()
+        }).pipe(
+          Effect.timeoutOption(1000)
+        )
+    )
   })
 
   let config: PgClientConfig = {

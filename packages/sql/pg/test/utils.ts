@@ -36,4 +36,14 @@ export class PgContainer extends ServiceMap.Service<PgContainer>()("test/PgConta
       })
     })
   ).pipe(Layer.provide(this.layer))
+
+  static layerClientSingleConnection = Layer.unwrap(
+    Effect.gen(function*() {
+      const container = yield* PgContainer
+      return PgClient.layer({
+        url: Redacted.make(container.getConnectionUri()),
+        maxConnections: 1
+      })
+    })
+  ).pipe(Layer.provide(this.layer))
 }
