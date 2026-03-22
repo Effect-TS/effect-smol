@@ -347,4 +347,27 @@ it.layer(PgContainer.layerClientSingleConnection, { timeout: "30 seconds" })("Pg
       )
       expect(Array.from(payloads)).toEqual(["payload"])
     }).pipe(TestClock.withLive), 20_000)
+
+  it.effect("notify sends payload", () =>
+    Effect.gen(function*() {
+      const sql = yield* PgClient.PgClient
+      const channel = "pool_connection_notify"
+
+      const listenFiber = yield* sql.listen(channel).pipe(
+        Stream.take(1),
+        Stream.runCollect,
+        Effect.forkScoped
+      )
+
+      yield* Effect.sleep("250 millis")
+      yield* sql.notify(channel, "payload")
+
+      const payloads = yield* Fiber.join(listenFiber).pipe(
+        Effect.timeoutOrElse({
+          duration: "3 seconds",
+          onTimeout: () => Effect.fail(new Error("listener did not receive notification in time"))
+        })
+      )
+      expect(Array.from(payloads)).toEqual(["payload"])
+    }).pipe(TestClock.withLive), 20_000)
 })

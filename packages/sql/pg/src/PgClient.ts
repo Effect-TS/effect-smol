@@ -550,7 +550,7 @@ export const fromPool = Effect.fnUntraced(function*(
         })),
       notify: (channel: string, payload: string) =>
         Effect.callback<void, SqlError>((resume) => {
-          pool.query(`NOTIFY ${Pg.escapeIdentifier(channel)}, $1`, [payload], (err) => {
+          pool.query("SELECT pg_notify($1, $2)", [channel, payload], (err) => {
             if (err) {
               resume(Effect.fail(new SqlError({ reason: classifyError(err, "Failed to notify", "notify") })))
             } else {
