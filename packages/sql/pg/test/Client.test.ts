@@ -338,7 +338,7 @@ it.layer(PgContainer.layerClientSingleConnection, { timeout: "30 seconds" })("Pg
       )
       expect(rows).toEqual([{ value: 1 }])
 
-      yield* sql`SELECT pg_notify(${channel}, ${"payload"})`
+      yield* sql.notify(channel, "payload")
       const payloads = yield* Fiber.join(listenFiber).pipe(
         Effect.timeoutOrElse({
           duration: "3 seconds",
