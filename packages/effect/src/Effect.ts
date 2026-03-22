@@ -173,7 +173,7 @@ export interface Effect<out A, out E = never, out R = never> extends Pipeable, Y
   readonly [TypeId]: Variance<A, E, R>
   [Unify.typeSymbol]?: unknown
   [Unify.unifySymbol]?: EffectUnify<this>
-  [Unify.ignoreSymbol]?: EffectUnifyIgnore
+  [Unify.ignoreSymbol]?: {}
 }
 
 /**

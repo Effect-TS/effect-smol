@@ -1,5 +1,5 @@
 /** @effect-diagnostics floatingEffect:skip-file */
-import { type Cause, Data, Effect, Fiber, type Option, pipe, Result, type Scope, ServiceMap, type Types } from "effect"
+import { type Cause, Data, Effect, Fiber, type Option, pipe, Result, type Scope, ServiceMap, type Types, Unify } from "effect"
 import { describe, expect, it } from "tstyche"
 
 // Fixtures
@@ -35,6 +35,7 @@ declare const onlyNoSuch: Effect.Effect<number, Cause.NoSuchElementError>
 
 declare const string: Effect.Effect<string, "err-1", "dep-1">
 declare const number: Effect.Effect<number, "err-2", "dep-2">
+declare const stringOrNumber: Effect.Effect<string, "err-1", "dep-1"> | Effect.Effect<number, "err-2", "dep-2">
 declare const stringArray: Array<Effect.Effect<string, "err-3", "dep-3">>
 declare const numberRecord: Record<string, Effect.Effect<number, "err-4", "dep-4">>
 
@@ -539,6 +540,13 @@ describe("Effect.findFirstFilter", () => {
       Effect.findFirstFilter((n, i) => Effect.succeed(i > 0 ? Result.succeed(n.toString()) : Result.failVoid))
     )
     expect(result).type.toBe<Effect.Effect<Option.Option<string>, never, never>>()
+  })
+})
+
+describe("Unify.unify", () => {
+  it("unifies effect unions", () => {
+    const result = Unify.unify(stringOrNumber)
+    expect(result).type.toBe<Effect.Effect<string | number, "err-1" | "err-2", "dep-1" | "dep-2">>()
   })
 })
 
