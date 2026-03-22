@@ -200,7 +200,8 @@ export interface ChannelUnify<A extends { [Unify.typeSymbol]?: any }> extends Ef
  * @category models
  * @since 2.0.0
  */
-export interface ChannelUnifyIgnore extends Effect.EffectUnifyIgnore {
+export interface ChannelUnifyIgnore {
+  Effect?: true
   Channel?: true
 }
 

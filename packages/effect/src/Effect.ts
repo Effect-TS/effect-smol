@@ -243,21 +243,6 @@ export interface EffectUnify<A extends { [Unify.typeSymbol]?: any }> {
 }
 
 /**
- * @category Models
- * @since 2.0.0
- * @example
- * ```ts
- * import type { Effect } from "effect"
- *
- * // EffectUnifyIgnore is used internally to control type unification
- * // It prevents certain types from being unified with Effect types
- * declare const ignored: Effect.EffectUnifyIgnore
- * ```
- */
-export interface EffectUnifyIgnore {
-  Effect?: true
-}
-/**
  * @category Type Lambdas
  * @since 2.0.0
  * @example

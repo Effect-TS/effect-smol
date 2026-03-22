@@ -122,7 +122,8 @@ export interface SinkUnify<A extends { [Unify.typeSymbol]?: any }> extends Effec
  * @category models
  * @since 2.0.0
  */
-export interface SinkUnifyIgnore extends Effect.EffectUnifyIgnore {
+export interface SinkUnifyIgnore {
+  Effect?: true
   Sink?: true
 }
 

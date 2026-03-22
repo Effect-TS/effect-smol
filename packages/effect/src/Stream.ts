@@ -142,7 +142,7 @@ export interface StreamUnify<A extends { [Unify.typeSymbol]?: any }> extends Eff
  * @category Models
  * @since 2.0.0
  */
-export interface StreamUnifyIgnore extends Effect.EffectUnifyIgnore {
+export interface StreamUnifyIgnore {
   Effect?: true
 }
 

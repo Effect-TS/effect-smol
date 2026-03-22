@@ -1,5 +1,17 @@
 /** @effect-diagnostics floatingEffect:skip-file */
-import { type Cause, Data, Effect, Fiber, type Option, pipe, Result, type Scope, ServiceMap, type Types, Unify } from "effect"
+import {
+  type Cause,
+  Data,
+  Effect,
+  Fiber,
+  type Option,
+  pipe,
+  Result,
+  type Scope,
+  ServiceMap,
+  type Types,
+  Unify
+} from "effect"
 import { describe, expect, it } from "tstyche"
 
 // Fixtures
