@@ -579,19 +579,25 @@ describe("Unify.unify", () => {
     expect(result).type.toBe<Stream.Stream<string | number, "err-1" | "err-2", "dep-1" | "dep-2">>()
   })
 
-  it("preserves sink unions", () => {
+  it("unifies sink unions", () => {
     const result = Unify.unify(sinkStringOrNumber)
     expect(result).type.toBe<
-      | Sink.Sink<string, string, "left-1", "err-1", "dep-1">
-      | Sink.Sink<number, string, "left-2", "err-2", "dep-2">
+      Sink.Sink<string | number, string, "left-1" | "left-2", "err-1" | "err-2", "dep-1" | "dep-2">
     >()
   })
 
-  it("preserves channel unions", () => {
+  it("unifies channel unions", () => {
     const result = Unify.unify(channelStringOrNumber)
     expect(result).type.toBe<
-      | Channel.Channel<string, "out-err-1", "out-done-1", string, "in-err", "in-done", "dep-1">
-      | Channel.Channel<number, "out-err-2", "out-done-2", string, "in-err", "in-done", "dep-2">
+      Channel.Channel<
+        string | number,
+        "out-err-1" | "out-err-2",
+        "out-done-1" | "out-done-2",
+        string,
+        "in-err",
+        "in-done",
+        "dep-1" | "dep-2"
+      >
     >()
   })
 

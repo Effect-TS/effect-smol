@@ -202,7 +202,6 @@ export interface ChannelUnify<A extends { [Unify.typeSymbol]?: any }> extends Ef
  */
 export interface ChannelUnifyIgnore {
   Effect?: true
-  Channel?: true
 }
 
 type TagsWithReason<E> = {
