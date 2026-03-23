@@ -265,9 +265,7 @@ describe("HttpApiClient", () => {
       const f = client.group.a
       expect<ReturnType<typeof f>>().type.toBe<
         Effect.Effect<
-          | { readonly a: number }
-          | [{ readonly a: number }, HttpClientResponse.HttpClientResponse]
-          | HttpClientResponse.HttpClientResponse,
+          { readonly a: number },
           HttpApiError.BadRequest | HttpClientError.HttpClientError | Schema.SchemaError
         >
       >()
@@ -295,14 +293,46 @@ describe("HttpApiClient", () => {
         Effect.Effect<
           | string
           | { readonly a: number }
-          | Uint8Array<ArrayBufferLike>
-          | [
-            string | { readonly a: number } | Uint8Array<ArrayBufferLike>,
-            HttpClientResponse.HttpClientResponse
-          ]
-          | HttpClientResponse.HttpClientResponse,
+          | Uint8Array<ArrayBufferLike>,
           HttpApiError.BadRequest | HttpClientError.HttpClientError | Schema.SchemaError
         >
+      >()
+    })
+
+    it("should infer return type from responseMode", () => {
+      const Api = HttpApi.make("Api")
+        .add(
+          HttpApiGroup.make("group")
+            .add(
+              HttpApiEndpoint.get("a", "/a", {
+                success: Schema.Struct({ a: Schema.FiniteFromString })
+              })
+            )
+        )
+      const client = Effect.runSync(
+        HttpApiClient.make(Api).pipe(Effect.provide(FetchHttpClient.layer))
+      )
+      const f = client.group.a
+
+      const decodedOnly = f({ responseMode: "decoded-only" })
+      expect<typeof decodedOnly>().type.toBe<
+        Effect.Effect<
+          { readonly a: number },
+          HttpApiError.BadRequest | HttpClientError.HttpClientError | Schema.SchemaError
+        >
+      >()
+
+      const decodedAndResponse = f({ responseMode: "decoded-and-response" })
+      expect<typeof decodedAndResponse>().type.toBe<
+        Effect.Effect<
+          [{ readonly a: number }, HttpClientResponse.HttpClientResponse],
+          HttpApiError.BadRequest | HttpClientError.HttpClientError | Schema.SchemaError
+        >
+      >()
+
+      const responseOnly = f({ responseMode: "response-only" })
+      expect<typeof responseOnly>().type.toBe<
+        Effect.Effect<HttpClientResponse.HttpClientResponse, HttpApiError.BadRequest | HttpClientError.HttpClientError>
       >()
     })
   })
@@ -322,7 +352,7 @@ describe("HttpApiClient", () => {
       const f = client.group.a
       expect<ReturnType<typeof f>>().type.toBe<
         Effect.Effect<
-          void | [void, HttpClientResponse.HttpClientResponse] | HttpClientResponse.HttpClientResponse,
+          void,
           | HttpApiError.BadRequest
           | HttpClientError.HttpClientError
           | Schema.SchemaError
@@ -346,7 +376,7 @@ describe("HttpApiClient", () => {
       const f = client.group.a
       expect<ReturnType<typeof f>>().type.toBe<
         Effect.Effect<
-          void | [void, HttpClientResponse.HttpClientResponse] | HttpClientResponse.HttpClientResponse,
+          void,
           | { readonly a: number }
           | HttpApiError.BadRequest
           | HttpClientError.HttpClientError
@@ -402,7 +432,7 @@ describe("HttpApiClient", () => {
       const f = client.group.a
       expect<ReturnType<typeof f>>().type.toBe<
         Effect.Effect<
-          string | [string, HttpClientResponse.HttpClientResponse] | HttpClientResponse.HttpClientResponse,
+          string,
           | RequiredClientError
           | HttpApiError.BadRequest
           | HttpClientError.HttpClientError
@@ -471,7 +501,7 @@ describe("HttpApiClient", () => {
 
       expect<ReturnType<typeof fromClient>>().type.toBe<
         Effect.Effect<
-          string | [string, HttpClientResponse.HttpClientResponse] | HttpClientResponse.HttpClientResponse,
+          string,
           | RequiredClientError
           | HttpApiError.BadRequest
           | HttpClientError.HttpClientError
@@ -481,7 +511,7 @@ describe("HttpApiClient", () => {
 
       expect<ReturnType<typeof fromGroup>>().type.toBe<
         Effect.Effect<
-          string | [string, HttpClientResponse.HttpClientResponse] | HttpClientResponse.HttpClientResponse,
+          string,
           | RequiredClientError
           | HttpApiError.BadRequest
           | HttpClientError.HttpClientError
@@ -491,7 +521,7 @@ describe("HttpApiClient", () => {
 
       expect<ReturnType<typeof fromEndpoint>>().type.toBe<
         Effect.Effect<
-          string | [string, HttpClientResponse.HttpClientResponse] | HttpClientResponse.HttpClientResponse,
+          string,
           | RequiredClientError
           | HttpApiError.BadRequest
           | HttpClientError.HttpClientError
