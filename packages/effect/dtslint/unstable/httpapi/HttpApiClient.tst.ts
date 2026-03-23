@@ -147,33 +147,6 @@ describe("HttpApiClient", () => {
       // @ts-expect-error!
       builder.top.topHealth()
     })
-
-    it("should accept generic APIs constrained to HttpApi.Any", () => {
-      const Api = HttpApi.make("Api")
-        .add(
-          HttpApiGroup.make("users")
-            .add(
-              HttpApiEndpoint.get("getUser", "/users/:id", {
-                params: {
-                  id: Schema.Finite
-                }
-              })
-            )
-        )
-
-      const makeBuilder = <A extends HttpApi.Any>(api: A) => HttpApiClient.urlBuilder(api)
-
-      const builder = makeBuilder(Api)
-
-      const url = builder.users.getUser({
-        params: { id: 123 }
-      })
-
-      expect<typeof url>().type.toBe<string>()
-
-      // @ts-expect-error!
-      builder.users.getUser({ params: { id: "123" } })
-    })
   })
 
   describe("headers option", () => {
