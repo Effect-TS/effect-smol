@@ -484,6 +484,81 @@ describe("HttpApi", () => {
       }).pipe(Effect.provide(ApiLive))
     })
 
+    it("security middleware cache does not reuse the first service impl", async () => {
+      class CurrentMarker extends ServiceMap.Service<CurrentMarker, string>()("CurrentMarker") {}
+
+      class M extends HttpApiMiddleware.Service<M, {
+        provides: CurrentMarker
+      }>()("Server/Security/Repro", {
+        security: {
+          apiKey: HttpApiSecurity.apiKey({
+            in: "header",
+            key: "authorization"
+          })
+        }
+      }) {}
+
+      const Api = HttpApi.make("api").add(
+        HttpApiGroup.make("group")
+          .add(HttpApiEndpoint.get("a", "/a", {
+            success: Schema.Struct({
+              marker: Schema.String
+            })
+          }))
+          .middleware(M)
+      )
+
+      const makeWebHandler = (marker: string) => {
+        const GroupLive = HttpApiBuilder.group(
+          Api,
+          "group",
+          (handlers) => handlers.handle("a", () => Effect.map(CurrentMarker.asEffect(), (marker) => ({ marker })))
+        )
+        const MLive = Layer.succeed(M)({
+          apiKey: (effect) => Effect.provideService(effect, CurrentMarker, marker)
+        })
+
+        return HttpRouter.toWebHandler(
+          Layer.mergeAll(
+            HttpApiBuilder.layer(Api).pipe(
+              Layer.provide(GroupLive),
+              Layer.provide(MLive),
+              Layer.provide(HttpServer.layerServices)
+            )
+          ),
+          { disableLogger: true }
+        )
+      }
+
+      const first = makeWebHandler("first")
+      const second = makeWebHandler("second")
+
+      try {
+        const firstResponse = await first.handler(
+          new Request("http://localhost/a", {
+            headers: {
+              authorization: "token"
+            }
+          })
+        )
+        assert.strictEqual(firstResponse.status, 200)
+        assert.deepStrictEqual(await firstResponse.json(), { marker: "first" })
+
+        const secondResponse = await second.handler(
+          new Request("http://localhost/a", {
+            headers: {
+              authorization: "token"
+            }
+          })
+        )
+        assert.strictEqual(secondResponse.status, 200)
+        assert.deepStrictEqual(await secondResponse.json(), { marker: "second" })
+      } finally {
+        await first.dispose()
+        await second.dispose()
+      }
+    })
+
     it.effect("addHttpApi + middleware works across merged groups", () => {
       class M1 extends HttpApiMiddleware.Service<M1>()("Http/M1") {}
       class M2 extends HttpApiMiddleware.Service<M2>()("Http/M2") {}
