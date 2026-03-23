@@ -477,7 +477,7 @@ export type ClientRequest<
   Query extends Schema.Top,
   Payload extends Schema.Top,
   Headers extends Schema.Top,
-  WithResponse extends boolean
+  ResponseMode extends ClientResponseMode
 > = (
   & ([Params["Type"]] extends [never] ? {} : { readonly params: Params["Type"] })
   & ([Query["Type"]] extends [never] ? {} : { readonly query: Query["Type"] })
@@ -488,9 +488,15 @@ export type ClientRequest<
         ? { readonly payload: FormData }
       : { readonly payload: Payload["Type"] }
     : { readonly payload: Payload["Type"] })
-) extends infer Req ? keyof Req extends never ? (void | { readonly withResponse?: WithResponse }) :
-  Req & { readonly withResponse?: WithResponse } :
+) extends infer Req ? keyof Req extends never ? (void | { readonly responseMode?: ResponseMode }) :
+  Req & { readonly responseMode?: ResponseMode } :
   void
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type ClientResponseMode = "decoded-only" | "decoded-and-response" | "response-only"
 
 /**
  * @since 4.0.0

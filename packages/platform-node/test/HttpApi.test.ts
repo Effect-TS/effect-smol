@@ -1313,20 +1313,59 @@ describe("HttpApi", () => {
         }).pipe(Effect.provide(HttpLive)))
     })
 
-    it.effect("client withResponse", () =>
+    it.effect("client responseMode decoded-and-response", () =>
       Effect.gen(function*() {
         const client = yield* HttpApiClient.make(Api)
-        const [users, response] = yield* client.users.list({ headers: { page: 1 }, query: {}, withResponse: true })
+        const [users, response] = yield* client.users.list({
+          headers: { page: 1 },
+          query: {},
+          responseMode: "decoded-and-response"
+        })
         assert.strictEqual(users[0].name, "page 1")
         assert.strictEqual(response.status, 200)
       }).pipe(Effect.provide(HttpLive)))
+
+    it.effect("client responseMode response-only skips decoding", () => {
+      const Api = HttpApi.make("api").add(
+        HttpApiGroup.make("group").add(
+          HttpApiEndpoint.get("bad", "/bad", {
+            success: Schema.Struct({
+              value: Schema.Finite
+            })
+          })
+        )
+      )
+
+      const GroupLive = HttpApiBuilder.group(
+        Api,
+        "group",
+        (handlers) => handlers.handleRaw("bad", () => Effect.succeed(HttpServerResponse.text("not-json")))
+      )
+
+      const ApiLive = HttpRouter.serve(
+        HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive)),
+        { disableListenLog: true, disableLogger: true }
+      ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
+
+      return Effect.gen(function*() {
+        const client = yield* HttpApiClient.make(Api)
+
+        yield* Effect.flip(client.group.bad())
+
+        const response = yield* client.group.bad({
+          responseMode: "response-only"
+        })
+        assert.strictEqual(response.status, 200)
+        assert.strictEqual(yield* response.text, "not-json")
+      }).pipe(Effect.provide(ApiLive))
+    })
 
     it.effect("multiple payload types", () =>
       Effect.gen(function*() {
         const client = yield* HttpApiClient.make(Api)
         let [group, response] = yield* client.groups.create({
           payload: { name: "Some group" },
-          withResponse: true
+          responseMode: "decoded-and-response"
         })
         assert.deepStrictEqual(group, new Group({ id: 1, name: "Some group" }))
         assert.strictEqual(response.status, 200)
@@ -1335,7 +1374,7 @@ describe("HttpApi", () => {
         data.set("name", "Some group")
         ;[group, response] = yield* client.groups.create({
           payload: data,
-          withResponse: true
+          responseMode: "decoded-and-response"
         })
         assert.deepStrictEqual(group, new Group({ id: 1, name: "Some group" }))
         assert.strictEqual(response.status, 200)

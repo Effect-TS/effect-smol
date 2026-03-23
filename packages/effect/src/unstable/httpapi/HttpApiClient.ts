@@ -63,6 +63,21 @@ export declare namespace Client {
    * @since 4.0.0
    * @category models
    */
+  export type ResponseMode = HttpApiEndpoint.ClientResponseMode
+
+  /**
+   * @since 4.0.0
+   * @category models
+   */
+  export type Response<Success, Mode extends ResponseMode> = Mode extends "decoded-and-response"
+    ? [Success, HttpClientResponse.HttpClientResponse]
+    : Mode extends "response-only" ? HttpClientResponse.HttpClientResponse
+    : Success
+
+  /**
+   * @since 4.0.0
+   * @category models
+   */
   export type Group<Groups extends HttpApiGroup.Any, GroupName extends Groups["identifier"], E, R> =
     [HttpApiGroup.WithName<Groups, GroupName>] extends [HttpApiGroup.HttpApiGroup<infer _GroupName, infer _Endpoints>] ?
       {
@@ -88,23 +103,21 @@ export declare namespace Client {
       infer _Middleware,
       infer _MR
     >
-  ] ? <WithResponse extends boolean = false>(
-      request: Simplify<HttpApiEndpoint.ClientRequest<_Params, _Query, _Payload, _Headers, WithResponse>>
+  ] ? <Mode extends ResponseMode = "decoded-only">(
+      request: Simplify<HttpApiEndpoint.ClientRequest<_Params, _Query, _Payload, _Headers, Mode>>
     ) => Effect.Effect<
-      WithResponse extends true ? [_Success["Type"], HttpClientResponse.HttpClientResponse] : _Success["Type"],
-      | _Error["Type"]
+      Response<_Success["Type"], Mode>,
       | HttpApiMiddleware.Error<_Middleware>
       | HttpApiMiddleware.ClientError<_Middleware>
       | E
       | HttpClientError.HttpClientError
-      | Schema.SchemaError,
+      | (Mode extends "response-only" ? never : _Error["Type"] | Schema.SchemaError),
       | R
       | _Params["EncodingServices"]
       | _Query["EncodingServices"]
       | _Payload["EncodingServices"]
       | _Headers["EncodingServices"]
-      | _Success["DecodingServices"]
-      | _Error["DecodingServices"]
+      | (Mode extends "response-only" ? never : _Success["DecodingServices"] | _Error["DecodingServices"])
     > :
     never
 
@@ -288,7 +301,7 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
             readonly query: unknown
             readonly payload: unknown
             readonly headers: Record<string, string> | undefined
-            readonly withResponse?: boolean
+            readonly responseMode?: HttpApiEndpoint.ClientResponseMode
           } | undefined
         ) {
           let httpRequest = HttpClientRequest.make(endpoint.method)(endpoint.path)
@@ -336,11 +349,15 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
             middlewareKeys.length - 1
           )
 
+          if (request?.responseMode === "response-only") {
+            return response
+          }
+
           const value = yield* (options.transformResponse === undefined
             ? decodeResponse(response)
             : options.transformResponse(decodeResponse(response)))
 
-          return request?.withResponse === true ? [value, response] : value
+          return request?.responseMode === "decoded-and-response" ? [value, response] : value
         })
 
         options.onEndpoint({
