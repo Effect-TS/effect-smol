@@ -10,9 +10,7 @@
  *
  * @since 4.0.0
  */
-import type { ErrorReporter } from "./ErrorReporter.ts"
 import { constTrue, constUndefined } from "./Function.ts"
-import type { Logger } from "./Logger.ts"
 import type { LogLevel, Severity } from "./LogLevel.ts"
 import type { ReadonlyRecord } from "./Record.ts"
 import { MaxOpsBeforeYield, PreventSchedulerYield } from "./Scheduler.ts"
@@ -93,17 +91,6 @@ export {
 export const CurrentConcurrency = ServiceMap.Reference<"unbounded" | number>("effect/References/CurrentConcurrency", {
   defaultValue: () => "unbounded"
 })
-
-/**
- * A `ServiceMap.Reference` holding the set of active `ErrorReporter`s for the
- * current fiber. Defaults to an empty set (no reporting).
- *
- * @since 4.0.0
- * @category references
- */
-export const CurrentErrorReporters: ServiceMap.Reference<ReadonlySet<ErrorReporter>> = ServiceMap.Reference<
-  ReadonlySet<ErrorReporter>
->("effect/ErrorReporter/CurrentErrorReporters", { defaultValue: () => new Set() })
 
 export {
   /**
@@ -368,22 +355,6 @@ export const TracerSpanAnnotations = ServiceMap.Reference<ReadonlyRecord<string,
  */
 export const TracerSpanLinks = ServiceMap.Reference<ReadonlyArray<SpanLink>>("effect/References/TracerSpanLinks", {
   defaultValue: () => []
-})
-
-/**
- * @since 4.0.0
- * @category references
- */
-export const CurrentLoggers: ServiceMap.Reference<ReadonlySet<Logger<unknown, any>>> = ServiceMap.Reference<
-  ReadonlySet<Logger<unknown, any>>
->("effect/Loggers/CurrentLoggers", { defaultValue: () => new Set() })
-
-/**
- * @since 4.0.0
- * @category references
- */
-export const LogToStderr: ServiceMap.Reference<boolean> = ServiceMap.Reference("effect/Logger/LogToStderr", {
-  defaultValue: () => false
 })
 
 /**
