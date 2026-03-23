@@ -1,6 +1,6 @@
 import { PgClient } from "@effect/sql-pg"
 import { assert, expect, it } from "@effect/vitest"
-import { Effect, Fiber, Redacted, Stream, String } from "effect"
+import { Deferred, Effect, Fiber, Option, Redacted, Stream, String } from "effect"
 import { TestClock } from "effect/testing"
 import { SqlClient } from "effect/unstable/sql"
 import * as Statement from "effect/unstable/sql/Statement"
@@ -360,6 +360,86 @@ it.layer(PgContainer.layerClientSingleConnection, { timeout: "30 seconds" })("Pg
       )
 
       yield* Effect.sleep("250 millis")
+      yield* sql.notify(channel, "payload")
+
+      const payloads = yield* Fiber.join(listenFiber).pipe(
+        Effect.timeoutOrElse({
+          duration: "3 seconds",
+          onTimeout: () => Effect.fail(new Error("listener did not receive notification in time"))
+        })
+      )
+      expect(Array.from(payloads)).toEqual(["payload"])
+    }).pipe(TestClock.withLive), 20_000)
+})
+
+it.layer(PgContainer.layerSingleClient, { timeout: "30 seconds" })("PgClient single client", (it) => {
+  it.effect("supports queries and populates config", () =>
+    Effect.gen(function*() {
+      const sql = yield* PgClient.PgClient
+
+      const rows = yield* sql<{ value: number }>`SELECT 1 as value`
+      expect(rows).toEqual([{ value: 1 }])
+
+      assert.isDefined(sql.config.url)
+
+      const parsedConfig = parsePgConnectionString(Redacted.value(sql.config.url))
+
+      expect(sql.config.host).toEqual(parsedConfig.host)
+      assert.isNotNull(parsedConfig.port)
+      assert.isDefined(parsedConfig.port)
+      expect(sql.config.port).toEqual(parseInt(parsedConfig.port))
+      expect(sql.config.username).toEqual(parsedConfig.user)
+      assert.isDefined(sql.config.password)
+      expect(Redacted.value(sql.config.password)).toEqual(parsedConfig.password)
+      expect(sql.config.database).toEqual(parsedConfig.database)
+    }))
+
+  it.effect("serializes concurrent work while a transaction is open", () =>
+    Effect.gen(function*() {
+      const sql = yield* PgClient.PgClient
+      const started = yield* Deferred.make<void>()
+
+      const txFiber = yield* sql.withTransaction(
+        Effect.gen(function*() {
+          yield* Deferred.succeed(started, void 0)
+          yield* sql`SELECT pg_sleep(0.5)`
+        })
+      ).pipe(Effect.forkScoped)
+
+      yield* Deferred.await(started)
+
+      const blocked = yield* sql<{ value: number }>`SELECT 1 as value`.pipe(
+        Effect.timeoutOption("100 millis")
+      )
+      expect(blocked).toEqual(Option.none())
+
+      yield* Fiber.join(txFiber)
+
+      const rows = yield* sql<{ value: number }>`SELECT 1 as value`
+      expect(rows).toEqual([{ value: 1 }])
+    }).pipe(TestClock.withLive), 20_000)
+
+  it.effect("listen does not block queries", () =>
+    Effect.gen(function*() {
+      const sql = yield* PgClient.PgClient
+      const channel = "single_client_listen"
+
+      const listenFiber = yield* sql.listen(channel).pipe(
+        Stream.take(1),
+        Stream.runCollect,
+        Effect.forkScoped
+      )
+
+      yield* Effect.sleep("250 millis")
+
+      const rows = yield* sql<{ value: number }>`SELECT 1 as value`.pipe(
+        Effect.timeoutOrElse({
+          duration: "3 seconds",
+          onTimeout: () => Effect.fail(new Error("query timed out while listener was active"))
+        })
+      )
+      expect(rows).toEqual([{ value: 1 }])
+
       yield* sql.notify(channel, "payload")
 
       const payloads = yield* Fiber.join(listenFiber).pipe(

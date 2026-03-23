@@ -15,6 +15,7 @@ import * as Queue from "effect/Queue"
 import * as RcRef from "effect/RcRef"
 import * as Redacted from "effect/Redacted"
 import * as Scope from "effect/Scope"
+import * as Semaphore from "effect/Semaphore"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
@@ -160,6 +161,17 @@ export interface PgClientConfig {
  * @category constructors
  * @since 1.0.0
  */
+export interface PgSingleClientConfig extends
+  Omit<
+    PgClientConfig,
+    "idleTimeout" | "maxConnections" | "minConnections" | "connectionTTL"
+  >
+{}
+
+/**
+ * @category constructors
+ * @since 1.0.0
+ */
 export const make = (
   options: PgClientConfig
 ): Effect.Effect<PgClient, SqlError, Scope.Scope | Reactivity.Reactivity> =>
@@ -218,6 +230,66 @@ export const make = (
       )
 
       return pool
+    })
+  })
+
+/**
+ * @category constructors
+ * @since 1.0.0
+ */
+export const makeClient = (
+  options: PgSingleClientConfig
+): Effect.Effect<PgClient, SqlError, Scope.Scope | Reactivity.Reactivity> =>
+  fromClient({
+    ...options,
+    acquire: Effect.gen(function*() {
+      const client = new Pg.Client({
+        connectionString: options.url ? Redacted.value(options.url) : undefined,
+        user: options.username,
+        host: options.host,
+        database: options.database,
+        password: options.password ? Redacted.value(options.password) : undefined,
+        ssl: options.ssl,
+        port: options.port,
+        ...(options.stream ? { stream: options.stream } : {}),
+        connectionTimeoutMillis: options.connectTimeout
+          ? Duration.toMillis(Duration.fromInputUnsafe(options.connectTimeout))
+          : undefined,
+        application_name: options.applicationName ?? "@effect/sql-pg",
+        types: options.types
+      })
+
+      client.on("error", (_err) => {})
+
+      yield* Effect.acquireRelease(
+        Effect.tryPromise({
+          try: () => client.connect(),
+          catch: (cause) =>
+            new SqlError({
+              reason: classifyError(cause, "PgClient: Failed to connect", "connect")
+            })
+        }),
+        () =>
+          Effect.promise(() => client.end()).pipe(
+            Effect.timeoutOption(1000)
+          )
+      ).pipe(
+        Effect.timeoutOrElse({
+          duration: options.connectTimeout ?? Duration.seconds(5),
+          onTimeout: () =>
+            Effect.fail(
+              new SqlError({
+                reason: new ConnectionError({
+                  cause: new Error("Connection timed out"),
+                  message: "PgClient: Connection timed out",
+                  operation: "connect"
+                })
+              })
+            )
+        })
+      )
+
+      return client
     })
   })
 
@@ -562,6 +634,264 @@ export const fromPool = Effect.fnUntraced(function*(
   )
 })
 
+/**
+ * @category constructors
+ * @since 1.0.0
+ */
+export const fromClient = Effect.fnUntraced(function*(
+  options: {
+    readonly acquire: Effect.Effect<Pg.Client, SqlError, Scope.Scope>
+
+    readonly applicationName?: string | undefined
+    readonly spanAttributes?: Record<string, unknown> | undefined
+
+    readonly transformResultNames?: ((str: string) => string) | undefined
+    readonly transformQueryNames?: ((str: string) => string) | undefined
+    readonly transformJson?: boolean | undefined
+    readonly types?: Pg.CustomTypesConfig | undefined
+  }
+): Effect.fn.Return<PgClient, SqlError, Scope.Scope | Reactivity.Reactivity> {
+  const compiler = makeCompiler(
+    options.transformQueryNames,
+    options.transformJson
+  )
+  const transformRows = options.transformResultNames ?
+    Statement.defaultTransforms(
+      options.transformResultNames,
+      options.transformJson
+    ).array :
+    undefined
+
+  const baseClient = yield* options.acquire
+  const semaphore = yield* Semaphore.make(1)
+
+  class ConnectionImpl implements Connection {
+    readonly pg: Pg.Client | undefined
+    constructor(pg?: Pg.Client) {
+      this.pg = pg
+    }
+
+    private runWithClient<A>(f: (client: Pg.Client, resume: (_: Effect.Effect<A, SqlError>) => void) => void) {
+      const effect = Effect.callback<A, SqlError>((resume) => {
+        f(this.pg ?? baseClient, resume)
+      }).pipe(Effect.uninterruptible)
+      return this.pg !== undefined ? effect : semaphore.withPermits(1)(effect)
+    }
+
+    private run(query: string, params: ReadonlyArray<unknown>) {
+      return this.runWithClient<ReadonlyArray<any>>((client, resume) => {
+        client.query(query, params as any, (err, result) => {
+          if (err) {
+            resume(Effect.fail(new SqlError({ reason: classifyError(err, "Failed to execute statement", "execute") })))
+          } else {
+            // Multi-statement queries return an array of results
+            resume(Effect.succeed(
+              Array.isArray(result)
+                ? result.map((r) => r.rows ?? [])
+                : result.rows ?? []
+            ))
+          }
+        })
+      })
+    }
+
+    execute(
+      sql: string,
+      params: ReadonlyArray<unknown>,
+      transformRows: (<A extends object>(row: ReadonlyArray<A>) => ReadonlyArray<A>) | undefined
+    ) {
+      return transformRows
+        ? Effect.map(this.run(sql, params), transformRows)
+        : this.run(sql, params)
+    }
+    executeRaw(sql: string, params: ReadonlyArray<unknown>) {
+      return this.runWithClient<Pg.Result>((client, resume) => {
+        client.query(sql, params as any, (err, result) => {
+          if (err) {
+            resume(Effect.fail(new SqlError({ reason: classifyError(err, "Failed to execute statement", "execute") })))
+          } else {
+            resume(Effect.succeed(result))
+          }
+        })
+      })
+    }
+    executeWithoutTransform(sql: string, params: ReadonlyArray<unknown>) {
+      return this.run(sql, params)
+    }
+    executeValues(sql: string, params: ReadonlyArray<unknown>) {
+      return this.runWithClient<ReadonlyArray<any>>((client, resume) => {
+        client.query(
+          {
+            text: sql,
+            rowMode: "array",
+            values: params as Array<string>
+          },
+          (err, result) => {
+            if (err) {
+              resume(
+                Effect.fail(new SqlError({ reason: classifyError(err, "Failed to execute statement", "execute") }))
+              )
+            } else {
+              resume(Effect.succeed(result.rows))
+            }
+          }
+        )
+      })
+    }
+    executeUnprepared(
+      sql: string,
+      params: ReadonlyArray<unknown>,
+      transformRows: (<A extends object>(row: ReadonlyArray<A>) => ReadonlyArray<A>) | undefined
+    ) {
+      return this.execute(sql, params, transformRows)
+    }
+    executeStream(
+      sql: string,
+      params: ReadonlyArray<unknown>,
+      transformRows: (<A extends object>(row: ReadonlyArray<A>) => ReadonlyArray<A>) | undefined
+    ) {
+      // oxlint-disable-next-line @typescript-eslint/no-this-alias
+      const self = this
+      return Stream.fromChannel(Channel.fromTransform(Effect.fnUntraced(function*(_, scope) {
+        const client = self.pg ?? (yield* Effect.uninterruptibleMask((restore) =>
+          Effect.as(
+            Effect.tap(
+              restore(semaphore.take(1)),
+              () => Scope.addFinalizer(scope, semaphore.release(1))
+            ),
+            baseClient
+          )
+        ))
+        const cursor = client.query(new Cursor(sql, params as any))
+        yield* Scope.addFinalizer(scope, Effect.promise(() => cursor.close()))
+        // @effect-diagnostics-next-line returnEffectInGen:off
+        return Effect.callback<Arr.NonEmptyReadonlyArray<any>, SqlError | Cause.Done>((resume) => {
+          cursor.read(128, (err, rows) => {
+            if (err) {
+              resume(Effect.fail(new SqlError({ reason: classifyError(err, "Failed to execute statement", "stream") })))
+            } else if (Arr.isArrayNonEmpty(rows)) {
+              resume(Effect.succeed(transformRows ? transformRows(rows) as any : rows))
+            } else {
+              resume(Cause.done())
+            }
+          })
+        })
+      })))
+    }
+  }
+
+  const reserveRaw = Effect.uninterruptibleMask((restore) => {
+    const fiber = Fiber.getCurrent()!
+    const scope = ServiceMap.getUnsafe(fiber.services, Scope.Scope)
+    return Effect.as(
+      Effect.tap(
+        restore(semaphore.take(1)),
+        () => Scope.addFinalizer(scope, semaphore.release(1))
+      ),
+      baseClient
+    )
+  })
+  const reserve = Effect.map(reserveRaw, (client) => new ConnectionImpl(client))
+
+  const connectionParameters = (baseClient as Pg.Client & {
+    readonly connectionParameters: {
+      readonly connectionString?: string | undefined
+      readonly host?: string | undefined
+      readonly port?: number | undefined
+      readonly database?: string | undefined
+      readonly user?: string | undefined
+      readonly password?: string | undefined
+      readonly ssl?: Pg.ClientConfig["ssl"] | undefined
+      readonly application_name?: string | undefined
+      readonly types?: Pg.CustomTypesConfig | undefined
+    }
+  }).connectionParameters
+
+  let config: PgSingleClientConfig = {
+    url: connectionParameters.connectionString ? Redacted.make(connectionParameters.connectionString) : undefined,
+    host: connectionParameters.host,
+    port: connectionParameters.port,
+    database: connectionParameters.database,
+    username: connectionParameters.user,
+    password: connectionParameters.password ? Redacted.make(connectionParameters.password) : undefined,
+    ssl: connectionParameters.ssl,
+    applicationName: connectionParameters.application_name,
+    types: connectionParameters.types
+  }
+  if (connectionParameters.connectionString) {
+    // @effect-diagnostics-next-line tryCatchInEffectGen:off
+    try {
+      const parsed = PgConnString.parse(connectionParameters.connectionString)
+      config = {
+        ...config,
+        host: config.host ?? parsed.host ?? undefined,
+        port: config.port ?? (parsed.port ? Option.getOrUndefined(Number.parse(parsed.port)) : undefined),
+        username: config.username ?? parsed.user ?? undefined,
+        password: config.password ?? (parsed.password ? Redacted.make(parsed.password) : undefined),
+        database: config.database ?? parsed.database ?? undefined
+      }
+    } catch {
+      //
+    }
+  }
+
+  return Object.assign(
+    yield* Client.make({
+      acquirer: Effect.succeed(new ConnectionImpl()),
+      transactionAcquirer: reserve,
+      compiler,
+      spanAttributes: [
+        ...(options.spanAttributes ? Object.entries(options.spanAttributes) : []),
+        [ATTR_DB_SYSTEM_NAME, "postgresql"],
+        [ATTR_DB_NAMESPACE, config.database ?? config.username ?? "postgres"],
+        [ATTR_SERVER_ADDRESS, config.host ?? "localhost"],
+        [ATTR_SERVER_PORT, config.port ?? 5432]
+      ],
+      transformRows
+    }),
+    {
+      [TypeId]: TypeId as TypeId,
+      config,
+      json: (_: unknown) => Statement.fragment([PgJson(_)]),
+      listen: (channel: string) =>
+        Stream.callback<string, SqlError>(Effect.fnUntraced(function*(queue) {
+          function onNotification(msg: Pg.Notification) {
+            if (msg.channel === channel && msg.payload) {
+              Queue.offerUnsafe(queue, msg.payload)
+            }
+          }
+          yield* Effect.addFinalizer(() =>
+            semaphore.withPermits(1)(
+              Effect.promise(() => {
+                baseClient.off("notification", onNotification)
+                return baseClient.query(`UNLISTEN ${Pg.escapeIdentifier(channel)}`)
+              })
+            )
+          )
+          yield* semaphore.withPermits(1)(
+            Effect.tryPromise({
+              try: () => baseClient.query(`LISTEN ${Pg.escapeIdentifier(channel)}`),
+              catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to listen", "listen") })
+            })
+          )
+          baseClient.on("notification", onNotification)
+        })),
+      notify: (channel: string, payload: string) =>
+        semaphore.withPermits(1)(
+          Effect.callback<void, SqlError>((resume) => {
+            baseClient.query(`NOTIFY ${Pg.escapeIdentifier(channel)}, $1`, [payload], (err) => {
+              if (err) {
+                resume(Effect.fail(new SqlError({ reason: classifyError(err, "Failed to notify", "notify") })))
+              } else {
+                resume(Effect.void)
+              }
+            })
+          }).pipe(Effect.uninterruptible)
+        )
+    }
+  )
+})
+
 const cancelEffects = new WeakMap<Pg.PoolClient, Effect.Effect<void> | undefined>()
 const makeCancel = (pool: Pg.Pool, client: Pg.PoolClient) => {
   if (cancelEffects.has(client)) {
@@ -622,6 +952,20 @@ export const layer = (
  * @category layers
  * @since 1.0.0
  */
+export const layerClient = (
+  config: PgSingleClientConfig
+): Layer.Layer<PgClient | Client.SqlClient, SqlError> =>
+  Layer.effectServices(
+    Effect.map(makeClient(config), (client) =>
+      ServiceMap.make(PgClient, client).pipe(
+        ServiceMap.add(Client.SqlClient, client)
+      ))
+  ).pipe(Layer.provide(Reactivity.layer))
+
+/**
+ * @category layers
+ * @since 1.0.0
+ */
 export const layerFromPool = (options: {
   readonly acquire: Effect.Effect<Pg.Pool, SqlError, Scope.Scope>
 
@@ -635,6 +979,28 @@ export const layerFromPool = (options: {
 }): Layer.Layer<PgClient | Client.SqlClient, SqlError> =>
   Layer.effectServices(
     Effect.map(fromPool(options), (client) =>
+      ServiceMap.make(PgClient, client).pipe(
+        ServiceMap.add(Client.SqlClient, client)
+      ))
+  ).pipe(Layer.provide(Reactivity.layer))
+
+/**
+ * @category layers
+ * @since 1.0.0
+ */
+export const layerFromClient = (options: {
+  readonly acquire: Effect.Effect<Pg.Client, SqlError, Scope.Scope>
+
+  readonly applicationName?: string | undefined
+  readonly spanAttributes?: Record<string, unknown> | undefined
+
+  readonly transformResultNames?: ((str: string) => string) | undefined
+  readonly transformQueryNames?: ((str: string) => string) | undefined
+  readonly transformJson?: boolean | undefined
+  readonly types?: Pg.CustomTypesConfig | undefined
+}): Layer.Layer<PgClient | Client.SqlClient, SqlError> =>
+  Layer.effectServices(
+    Effect.map(fromClient(options), (client) =>
       ServiceMap.make(PgClient, client).pipe(
         ServiceMap.add(Client.SqlClient, client)
       ))
