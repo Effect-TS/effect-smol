@@ -367,7 +367,7 @@ export const groupCompaction = <Events extends Event.Any, R>(
                 Effect.orDie
               ) as any,
               primaryKey: event.primaryKey(payload)
-            }, { disableValidation: true })
+            }, { disableChecks: true })
             yield* write(entry)
           })
 

@@ -3078,6 +3078,15 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         })
       })
 
+      it("applies constructor default when disableChecks is true", () => {
+        class A extends Schema.Class<A>("A")({
+          a: Schema.String.pipe(Schema.withConstructorDefault(() => Option.some("default")))
+        }) {}
+
+        const instance = new A({}, { disableChecks: true })
+        deepStrictEqual(instance.a, "default")
+      })
+
       it("Struct & Effect sync", async () => {
         const schema = Schema.Struct({
           a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Effect.succeed(Option.some(-1))))

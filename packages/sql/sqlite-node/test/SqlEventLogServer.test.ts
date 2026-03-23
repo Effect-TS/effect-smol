@@ -15,7 +15,7 @@ const makeEntry = (value: number) =>
     event: "UserCreated",
     primaryKey: `user-${value}`,
     payload: new Uint8Array([value])
-  }, { disableValidation: true })
+  }, { disableChecks: true })
 
 const persistEntries = (
   encryption: EventLogEncryption.EventLogEncryption["Service"],

@@ -434,6 +434,12 @@ export interface ParseOptions {
    * default: "none"
    */
   readonly propertyOrder?: "none" | "original" | undefined
+
+  /**
+   * Whether to disable checks while still applying defaults and
+   * transformations.
+   */
+  readonly disableChecks?: boolean | undefined
 }
 
 /** @internal */

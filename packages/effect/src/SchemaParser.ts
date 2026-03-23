@@ -49,7 +49,12 @@ export function makeEffect<S extends Schema.Top>(schema: S) {
   const ast = recurDefaults(AST.toType(schema.ast))
   const parser = run<S["Type"], never>(ast)
   return (input: S["~type.make.in"], options?: Schema.MakeOptions): Effect.Effect<S["Type"], Issue.Issue> => {
-    return parser(input, options?.parseOptions)
+    return parser(
+      input,
+      options?.disableChecks
+        ? options?.parseOptions ? { ...options.parseOptions, disableChecks: true } : { disableChecks: true }
+        : options?.parseOptions
+    )
   }
 }
 
@@ -445,7 +450,7 @@ const recur = memoize(
       parser ??= ast.getParser(recur)
       let sroa = srou ? Effect.flatMapEager(srou, (ou) => parser(ou, options)) : parser(ou, options)
 
-      if (ast.checks) {
+      if (ast.checks && !options?.disableChecks) {
         const checks = ast.checks
         if (options?.errors === "all" && isStructural && Option.isSome(ou)) {
           sroa = Effect.catchEager(sroa, (issue) => {

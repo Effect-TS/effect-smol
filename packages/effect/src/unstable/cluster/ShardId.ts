@@ -8,7 +8,7 @@ import * as S from "../../Schema.ts"
 
 const TypeId = "~effect/cluster/ShardId"
 
-const constDisableValidation = { disableValidation: true }
+const constDisableChecks = { disableChecks: true }
 
 /**
  * @since 4.0.0
@@ -18,7 +18,7 @@ export const make = (group: string, id: number): ShardId => {
   const key = `${group}:${id}`
   let shardId = shardIdCache.get(key)
   if (!shardId) {
-    shardId = new ShardId({ group, id }, constDisableValidation)
+    shardId = new ShardId({ group, id }, constDisableChecks)
     shardIdCache.set(key, shardId)
   }
   return shardId

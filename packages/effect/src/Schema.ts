@@ -172,7 +172,7 @@ export type ConstructorDefault = "no-default" | "with-default"
  * Options for `makeUnsafe` and Class constructors.
  *
  * When to use:
- * - Pass `disableValidation: true` to skip validation when you trust the data.
+ * - Pass `disableChecks: true` to skip validation when you trust the data.
  * - Pass `parseOptions` to control error reporting behavior.
  *
  * @see {@link Bottom.makeUnsafe}
@@ -187,7 +187,7 @@ export interface MakeOptions {
   /**
    * Whether to disable validation for the schema.
    */
-  readonly disableValidation?: boolean | undefined
+  readonly disableChecks?: boolean | undefined
 }
 
 /**
@@ -9853,12 +9853,8 @@ function makeClass<
   return class extends Inherited {
     constructor(...[input, options]: ReadonlyArray<any>) {
       const props = input ?? {}
-      if (options?.disableValidation) {
-        super(props, options)
-      } else {
-        const validated = struct.makeUnsafe(props, options)
-        super({ ...props, ...validated }, { ...options, disableValidation: true })
-      }
+      const validated = struct.makeUnsafe(props, options)
+      super({ ...props, ...validated }, { ...options, disableChecks: true })
     }
 
     toString() {
@@ -10001,7 +9997,7 @@ function isStruct(schema: Struct.Fields | Struct<Struct.Fields>): schema is Stru
 /**
  * Creates a schema-backed class whose constructor validates input against a
  * {@link Struct} schema. Construction throws a {@link SchemaError} on invalid
- * input (unless `disableValidation` is set in the options).
+ * input (unless `disableChecks` is set in the options).
  *
  * Pass the desired class type as the first type parameter. The second optional
  * type parameter can be used to add nominal brands.

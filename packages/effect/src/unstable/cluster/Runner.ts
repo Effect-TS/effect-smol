@@ -93,4 +93,4 @@ export const make = (props: {
   readonly address: RunnerAddress
   readonly groups: ReadonlyArray<string>
   readonly weight: number
-}): Runner => new Runner(props, { disableValidation: true })
+}): Runner => new Runner(props, { disableChecks: true })

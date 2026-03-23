@@ -252,7 +252,7 @@ export const makeMemory: Effect.Effect<EventJournal["Service"]> = Effect.gen(fun
             event,
             primaryKey,
             payload
-          }, { disableValidation: true })
+          }, { disableChecks: true })
         ),
         effect,
         (entry, exit) =>
@@ -399,7 +399,7 @@ export const makeIndexedDb = (options?: {
             event,
             primaryKey,
             payload
-          }, { disableValidation: true })
+          }, { disableChecks: true })
           return restore(effect(entry)).pipe(
             Effect.tap(
               idbReq("write", () =>

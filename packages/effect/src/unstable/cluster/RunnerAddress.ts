@@ -63,4 +63,4 @@ export class RunnerAddress extends Schema.Class<RunnerAddress>(TypeId)({
  * @category constructors
  */
 export const make = (host: string, port: number): RunnerAddress =>
-  new RunnerAddress({ host, port }, { disableValidation: true })
+  new RunnerAddress({ host, port }, { disableChecks: true })

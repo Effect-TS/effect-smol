@@ -56,4 +56,4 @@ export const make = (options: {
   readonly shardId: ShardId
   readonly entityType: EntityType
   readonly entityId: EntityId
-}): EntityAddress => new EntityAddress(options, { disableValidation: true })
+}): EntityAddress => new EntityAddress(options, { disableChecks: true })
