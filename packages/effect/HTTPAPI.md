@@ -229,6 +229,8 @@ In particular:
 
 An endpoint definition describes everything the framework needs to know about a single HTTP route: which URL parameters it expects, what query strings and headers it reads, what the request body looks like, and what it can respond with (both successes and errors). All of these are optional.
 
+`HttpApiEndpoint` automatically coerces request and response schemas by default. Path / query / header schemas use `Schema.toCodecStringTree`, while JSON payload / success / error schemas use `Schema.toCodecJson`. This means you can define schemas in their natural domain types (for example `Schema.Int`), without manually adding string / JSON transformations.
+
 ```ts
 const User = Schema.Struct({
   id: Schema.String,
@@ -401,7 +403,7 @@ const Api = HttpApi.make("MyApi")
         }),
         HttpApiEndpoint.get("getUser", "/user/:id", {
           params: {
-            id: Schema.FiniteFromString.check(Schema.isInt())
+            id: Schema.Int
           },
           success: User
         }),
@@ -464,7 +466,7 @@ const User = Schema.Struct({
   name: Schema.String
 })
 
-const IdParam = Schema.FiniteFromString.check(Schema.isInt())
+const IdParam = Schema.Int
 
 const Api = HttpApi.make("MyApi")
   .add(
@@ -542,7 +544,7 @@ const User = Schema.Struct({
   name: Schema.String
 })
 
-const IdParam = Schema.FiniteFromString.check(Schema.isInt())
+const IdParam = Schema.Int
 
 const Api = HttpApi.make("MyApi")
   .add(
@@ -647,7 +649,7 @@ const Api = HttpApi.make("MyApi")
           params: {
             //  ┌─── schema for the "id" parameter
             //  ▼
-            id: Schema.FiniteFromString.check(Schema.isInt())
+            id: Schema.Int
           },
           success: User
         })
@@ -699,7 +701,7 @@ const User = Schema.Struct({
   name: Schema.String
 })
 
-const IdParam = Schema.FiniteFromString.check(Schema.isInt())
+const IdParam = Schema.Int
 
 const Api = HttpApi.make("MyApi")
   .add(
@@ -863,7 +865,7 @@ const User = Schema.Struct({
   name: Schema.String
 })
 
-const Page = Schema.FiniteFromString.check(Schema.isInt(), Schema.isGreaterThan(0))
+const Page = Schema.Int.check(Schema.isGreaterThan(0))
 
 const Api = HttpApi.make("MyApi")
   .add(
@@ -1138,7 +1140,7 @@ const Api = HttpApi.make("MyApi")
         HttpApiEndpoint.post("createUser", "/user", {
           // Set the request payload as a string encoded with query parameters
           payload: Schema.Struct({
-            id: Schema.FiniteFromString.check(Schema.isInt()), // must decode from a string
+            id: Schema.Int,
             name: Schema.String
           })
             // Specify the encoding as form url encoded
@@ -1788,7 +1790,7 @@ const Api = HttpApi.make("MyApi")
       .add(
         HttpApiEndpoint.get("getUser", "/user/:id", {
           params: {
-            id: Schema.FiniteFromString.check(Schema.isInt())
+            id: Schema.Int
           },
           success: User,
           error: [UserNotFound, Unauthorized /** etc. */]
@@ -1797,7 +1799,7 @@ const Api = HttpApi.make("MyApi")
       .add(
         HttpApiEndpoint.delete("deleteUser", "/user/:id", {
           params: {
-            id: Schema.FiniteFromString.check(Schema.isInt())
+            id: Schema.Int
           },
           error: [UserNotFound, Unauthorized /** etc. */]
         })
@@ -1875,7 +1877,7 @@ const Api = HttpApi.make("MyApi")
       .add(
         HttpApiEndpoint.get("getUser", "/user/:id", {
           params: {
-            id: Schema.FiniteFromString.check(Schema.isInt())
+            id: Schema.Int
           },
           success: User,
           error: [
@@ -1959,7 +1961,7 @@ const Api = HttpApi.make("MyApi")
       .add(
         HttpApiEndpoint.get("getUser", "/user/:id", {
           params: {
-            id: Schema.FiniteFromString.check(Schema.isInt())
+            id: Schema.Int
           },
           success: User,
           error: [
@@ -2035,7 +2037,7 @@ const Api = HttpApi.make("api").add(
   HttpApiGroup.make("group").add(
     HttpApiEndpoint.get("getUser", "/user/:id", {
       params: {
-        id: Schema.FiniteFromString.check(Schema.isInt())
+        id: Schema.Int
       },
       success: User
     })
@@ -2312,7 +2314,7 @@ const Api = HttpApi.make("MyApi")
       .add(
         HttpApiEndpoint.get("getUser", "/user/:id", {
           params: {
-            id: Schema.FiniteFromString.check(Schema.isInt())
+            id: Schema.Int
           },
           success: User
         })
@@ -2367,7 +2369,7 @@ const User = Schema.Struct({
   name: Schema.String
 })
 
-const IdParam = Schema.FiniteFromString.check(Schema.isInt())
+const IdParam = Schema.Int
 
 const Api = HttpApi.make("MyApi")
   .add(
