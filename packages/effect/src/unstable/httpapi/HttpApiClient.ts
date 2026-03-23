@@ -526,12 +526,12 @@ export const endpoint = <
  * @since 4.0.0
  * @category constructors
  */
-export const urlBuilder = <Api extends HttpApi.AnyWithProps>(api: Api, options?: {
+export const urlBuilder = <Api extends HttpApi.Any>(api: Api, options?: {
   readonly baseUrl?: URL | string | undefined
 }): UrlBuilder<Api> => {
   const builder: Record<string, any> = {}
 
-  HttpApi.reflect(api, {
+  HttpApi.reflect(api as unknown as HttpApi.AnyWithProps, {
     onGroup({ group }) {
       if (group.topLevel) return
       builder[group.identifier] = {}
