@@ -69,9 +69,9 @@ export declare namespace Client {
    * @since 4.0.0
    * @category models
    */
-  export type Response<Success, Mode extends ResponseMode> = Mode extends "decoded-and-response"
+  export type Response<Success, Mode extends ResponseMode> = [Mode] extends ["decoded-and-response"]
     ? [Success, HttpClientResponse.HttpClientResponse]
-    : Mode extends "response-only" ? HttpClientResponse.HttpClientResponse
+    : [Mode] extends ["response-only"] ? HttpClientResponse.HttpClientResponse
     : Success
 
   /**
@@ -103,7 +103,7 @@ export declare namespace Client {
       infer _Middleware,
       infer _MR
     >
-  ] ? <Mode extends ResponseMode = "decoded-only">(
+  ] ? <Mode extends ResponseMode = ResponseMode>(
       request: Simplify<HttpApiEndpoint.ClientRequest<_Params, _Query, _Payload, _Headers, Mode>>
     ) => Effect.Effect<
       Response<_Success["Type"], Mode>,
@@ -111,13 +111,13 @@ export declare namespace Client {
       | HttpApiMiddleware.ClientError<_Middleware>
       | E
       | HttpClientError.HttpClientError
-      | (Mode extends "response-only" ? never : _Error["Type"] | Schema.SchemaError),
+      | ([Mode] extends ["response-only"] ? never : _Error["Type"] | Schema.SchemaError),
       | R
       | _Params["EncodingServices"]
       | _Query["EncodingServices"]
       | _Payload["EncodingServices"]
       | _Headers["EncodingServices"]
-      | (Mode extends "response-only" ? never : _Success["DecodingServices"] | _Error["DecodingServices"])
+      | ([Mode] extends ["response-only"] ? never : _Success["DecodingServices"] | _Error["DecodingServices"])
     > :
     never
 
