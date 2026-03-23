@@ -1068,68 +1068,35 @@ export const bothWith: {
   )))
 
 /**
- * Returns a new `Schedule` that combines two schedules by running them
- * sequentially. First the current schedule runs to completion, then the
- * other schedule runs to completion. The output is a tuple of both results.
+ * Combines two schedules so they recur together.
+ *
+ * The resulting schedule recurs only while both schedules recur. For each
+ * step, the longer of the two delays is used, and the output is a tuple
+ * containing both schedule outputs.
+ *
+ * This is equivalent to `Schedule.both`.
  *
  * @example
  * ```ts
- * import { Console, Data, Effect, Schedule } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
- * class RetryAttemptError extends Data.TaggedError("RetryAttemptError")<{ readonly message: string }> {}
- *
- * // Compose a quick retry phase followed by slower retry phase
- * const fastRetries = Schedule.exponential("100 millis").pipe(
- *   Schedule.compose(Schedule.recurs(3)) // 3 fast retries
+ * const composed = Schedule.compose(
+ *   Schedule.spaced("1 second"),
+ *   Schedule.recurs(2)
  * )
  *
- * const slowRetries = Schedule.exponential("2 seconds").pipe(
- *   Schedule.compose(Schedule.recurs(2)) // 2 slow retries
- * )
- *
- * // Sequential composition: fast retries first, then slow retries
- * const composedRetry = Schedule.compose(fastRetries, slowRetries)
- * // Outputs: [number_from_fast_phase, number_from_slow_phase]
- *
- * const program = Effect.gen(function*() {
- *   let attempt = 0
- *
- *   const result = yield* Effect.retry(
- *     Effect.gen(function*() {
- *       attempt++
- *       yield* Console.log(`Attempt ${attempt}`)
- *
- *       if (attempt < 7) { // Needs both phases to succeed
- *         return yield* Effect.fail(new RetryAttemptError({ message: `Attempt ${attempt} failed` }))
- *       }
- *
- *       return `Success on attempt ${attempt}`
- *     }),
- *     composedRetry.pipe(
- *       Schedule.tapOutput(([fastResult, slowResult]) =>
- *         Console.log(`Fast phase: ${fastResult}, Slow phase: ${slowResult}`)
- *       )
+ * const program = Effect.repeat(
+ *   Console.log("Tick"),
+ *   composed.pipe(
+ *     Schedule.tapOutput(([interval, count]) =>
+ *       Console.log(`Interval: ${interval}, count: ${count}`)
  *     )
  *   )
- *
- *   yield* Console.log(`Final result: ${result}`)
- * })
- *
- * // Compose different schedule types
- * const warmupAndMaintenance = Schedule.compose(
- *   Schedule.fixed("500 millis").pipe(Schedule.take(5)), // 5 warmup cycles
- *   Schedule.spaced("5 seconds") // then regular maintenance
- * )
- *
- * // Progressive backoff: fixed first, then exponential
- * const progressiveBackoff = Schedule.compose(
- *   Schedule.fixed("100 millis").pipe(Schedule.take(3)), // Fixed: 100ms, 100ms, 100ms
- *   Schedule.exponential("500 millis").pipe(Schedule.take(3)) // Then exponential: 500ms, 1s, 2s
  * )
  * ```
  *
  * @since 2.0.0
- * @category sequencing
+ * @category utilities
  */
 export const compose: {
   <Output2, Input2, Error2, Env2>(
