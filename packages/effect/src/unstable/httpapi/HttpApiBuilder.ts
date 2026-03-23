@@ -652,16 +652,15 @@ const applyMiddleware = <A extends Effect.Effect<any, any, any>>(
 }
 
 const securityMiddlewareCache = new WeakMap<
-  any,
-  WeakMap<object, (effect: Effect.Effect<any, any, any>, options: any) => Effect.Effect<any, any, any>>
+  object,
+  (effect: Effect.Effect<any, any, any>, options: any) => Effect.Effect<any, any, any>
 >()
 
 const makeSecurityMiddleware = (
   key: HttpApiMiddleware.AnyServiceSecurity,
   service: HttpApiMiddleware.HttpApiMiddlewareSecurity<any, any, any, any>
 ): (effect: Effect.Effect<any, any, any>, options: any) => Effect.Effect<any, any, any> => {
-  let cache = securityMiddlewareCache.get(key)
-  const cached = cache?.get(service)
+  const cached = securityMiddlewareCache.get(service)
   if (cached !== undefined) {
     return cached
   }
@@ -696,11 +695,7 @@ const makeSecurityMiddleware = (
     return yield* lastResult!.asEffect()
   })
 
-  if (!cache) {
-    cache = new WeakMap()
-    securityMiddlewareCache.set(key, cache)
-  }
-  cache.set(service, middleware)
+  securityMiddlewareCache.set(service, middleware)
   return middleware
 }
 
