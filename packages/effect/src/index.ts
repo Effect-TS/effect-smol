@@ -3222,7 +3222,7 @@ export * as Runtime from "./Runtime.ts"
  *
  * // Retry with exponential backoff
  * const retryPolicy = Schedule.exponential("100 millis", 2.0)
- *   .pipe(Schedule.compose(Schedule.recurs(3)))
+ *   .pipe(Schedule.both(Schedule.recurs(3)))
  *
  * const program = Effect.gen(function*() {
  *   // This will retry up to 3 times with exponential backoff

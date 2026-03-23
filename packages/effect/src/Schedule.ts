@@ -12,7 +12,7 @@
  *
  * // Retry with exponential backoff
  * const retryPolicy = Schedule.exponential("100 millis", 2.0)
- *   .pipe(Schedule.compose(Schedule.recurs(3)))
+ *   .pipe(Schedule.both(Schedule.recurs(3)))
  *
  * const program = Effect.gen(function*() {
  *   // This will retry up to 3 times with exponential backoff
@@ -59,7 +59,7 @@ const randomNext: Effect<number> = random.Random.useSync((random) => random.next
  *
  * // Basic retry schedule - retry up to 3 times with exponential backoff
  * const retrySchedule = Schedule.exponential("100 millis").pipe(
- *   Schedule.compose(Schedule.recurs(3))
+ *   Schedule.both(Schedule.recurs(3))
  * )
  *
  * // Basic repeat schedule - repeat every 30 seconds forever
@@ -336,7 +336,7 @@ export const isSchedule = (u: unknown): u is Schedule<unknown, never, unknown, u
  *
  * // These can be combined and transformed as needed
  * const complexSchedule = simpleSchedule.pipe(
- *   Schedule.compose(Schedule.recurs(3))
+ *   Schedule.both(Schedule.recurs(3))
  * )
  * ```
  *
@@ -1066,52 +1066,6 @@ export const bothWith: {
         onFailure: effect.failCause
       })
   )))
-
-/**
- * Combines two schedules so they recur together.
- *
- * The resulting schedule recurs only while both schedules recur. For each
- * step, the longer of the two delays is used, and the output is a tuple
- * containing both schedule outputs.
- *
- * This is equivalent to `Schedule.both`.
- *
- * @example
- * ```ts
- * import { Console, Effect, Schedule } from "effect"
- *
- * const composed = Schedule.compose(
- *   Schedule.spaced("1 second"),
- *   Schedule.recurs(2)
- * )
- *
- * const program = Effect.repeat(
- *   Console.log("Tick"),
- *   composed.pipe(
- *     Schedule.tapOutput(([interval, count]) =>
- *       Console.log(`Interval: ${interval}, count: ${count}`)
- *     )
- *   )
- * )
- * ```
- *
- * @since 2.0.0
- * @category utilities
- */
-export const compose: {
-  <Output2, Input2, Error2, Env2>(
-    other: Schedule<Output2, Input2, Error2, Env2>
-  ): <Output, Input, Error, Env>(
-    self: Schedule<Output, Input, Error, Env>
-  ) => Schedule<[Output, Output2], Input & Input2, Error | Error2, Env | Env2>
-  <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
-    self: Schedule<Output, Input, Error, Env>,
-    other: Schedule<Output2, Input2, Error2, Env2>
-  ): Schedule<[Output, Output2], Input & Input2, Error | Error2, Env | Env2>
-} = dual(2, <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
-  self: Schedule<Output, Input, Error, Env>,
-  other: Schedule<Output2, Input2, Error2, Env2>
-): Schedule<[Output, Output2], Input & Input2, Error | Error2, Env | Env2> => both(self, other))
 
 /**
  * Returns a new `Schedule` that always recurs, collecting all inputs of the
@@ -1978,7 +1932,7 @@ export const elapsed: Schedule<Duration.Duration> = fromStepWithMetadata(
  *
  * // Retry with exponential backoff (limited to 5 attempts)
  * const retryPolicy = Schedule.exponential("50 millis").pipe(
- *   Schedule.compose(Schedule.recurs(5))
+ *   Schedule.both(Schedule.recurs(5))
  * )
  *
  * const program = Effect.gen(function*() {
@@ -2047,7 +2001,7 @@ export const exponential = (
  *       return `Success on attempt ${attempt}`
  *     }),
  *     Schedule.fibonacci("50 millis").pipe(
- *       Schedule.compose(Schedule.recurs(6)), // Maximum 6 retries
+ *       Schedule.both(Schedule.recurs(6)), // Maximum 6 retries
  *       Schedule.tapOutput((delay) => Console.log(`Next retry in ${delay}`))
  *     )
  *   )
@@ -2427,7 +2381,7 @@ export const passthrough = <Output, Input, Error, Env>(
  *
  * // Combining recurs with other schedules for sophisticated retry logic
  * const complexRetry = Schedule.exponential("100 millis").pipe(
- *   Schedule.compose(Schedule.recurs(3)) // At most 3 attempts
+ *   Schedule.both(Schedule.recurs(3)) // At most 3 attempts
  * )
  *
  * // Repeat an effect exactly 10 times
@@ -2632,7 +2586,7 @@ export const reduce: {
  *
  * // Simple spaced schedule with limited repetitions
  * const limitedSpaced = Schedule.spaced("100 millis").pipe(
- *   Schedule.compose(Schedule.recurs(5)) // at most 5 times
+ *   Schedule.both(Schedule.recurs(5)) // at most 5 times
  * )
  *
  * const program = Effect.gen(function*() {

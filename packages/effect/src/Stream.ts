@@ -1360,7 +1360,7 @@ export const fromAsyncIterable = <A, E>(
  *
  * const program = Effect.gen(function*() {
  *   const schedule = Schedule.spaced("50 millis").pipe(
- *     Schedule.compose(Schedule.recurs(2))
+ *     Schedule.both(Schedule.recurs(2))
  *   )
  *   const stream = Stream.fromSchedule(schedule)
  *   const values = yield* Stream.runCollect(stream)

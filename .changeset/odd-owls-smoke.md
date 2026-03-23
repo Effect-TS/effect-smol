@@ -2,4 +2,4 @@
 "effect": patch
 ---
 
-Fix the `Schedule.compose` API documentation to describe its actual behavior (equivalent to `Schedule.both`) instead of sequential composition.
+Remove `Schedule.compose` in favor of `Schedule.both`, and update schedule examples to use `Schedule.both`.
