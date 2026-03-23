@@ -1,3 +1,4 @@
+/** @effect-diagnostics missingEffectContext:skip-file */
 import { Effect, Schema } from "effect"
 import { FetchHttpClient, HttpClient, type HttpClientError, type HttpClientResponse } from "effect/unstable/http"
 import {
@@ -20,7 +21,7 @@ describe("HttpApiClient", () => {
             .add(
               HttpApiEndpoint.get("a", "/a", {
                 params: {
-                  id: Schema.FiniteFromString
+                  id: Schema.Finite
                 }
               })
             )
@@ -43,7 +44,7 @@ describe("HttpApiClient", () => {
             .add(
               HttpApiEndpoint.get("a", "/a", {
                 query: {
-                  id: Schema.FiniteFromString
+                  id: Schema.Finite
                 }
               })
             )
@@ -65,6 +66,7 @@ describe("HttpApiClient", () => {
           HttpApiGroup.make("users")
             .add(
               HttpApiEndpoint.get("getUser", "/users/:id", {
+                disableCodecs: true,
                 params: {
                   id: Schema.FiniteFromString
                 },
@@ -72,7 +74,9 @@ describe("HttpApiClient", () => {
                   page: Schema.FiniteFromString
                 }
               }),
-              HttpApiEndpoint.get("health", "/health")
+              HttpApiEndpoint.get("health", "/health", {
+                disableCodecs: true
+              })
             )
         )
 
@@ -107,6 +111,7 @@ describe("HttpApiClient", () => {
           HttpApiGroup.make("users")
             .add(
               HttpApiEndpoint.get("getUser", "/users/:id", {
+                disableCodecs: true,
                 params: {
                   id: Schema.FiniteFromString
                 }
@@ -271,7 +276,7 @@ describe("HttpApiClient", () => {
             .add(
               HttpApiEndpoint.get("a", "/a", {
                 success: [
-                  Schema.Struct({ a: Schema.FiniteFromString }), // application/json
+                  Schema.Struct({ a: Schema.Finite }), // application/json
                   Schema.String.pipe(HttpApiSchema.asText()), // text/plain
                   Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array()) // application/octet-stream
                 ]

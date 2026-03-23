@@ -11,11 +11,11 @@ describe("HttpApiClient", () => {
           .add(
             HttpApiEndpoint.get("getUser", "/users/:id", {
               params: {
-                id: Schema.FiniteFromString
+                id: Schema.Finite
               },
               query: {
-                page: Schema.FiniteFromString,
-                tags: Schema.Array(Schema.FiniteFromString)
+                page: Schema.Finite,
+                tags: Schema.Array(Schema.Finite)
               }
             }),
             HttpApiEndpoint.get("health", "/health")

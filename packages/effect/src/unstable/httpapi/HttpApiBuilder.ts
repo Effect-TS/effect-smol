@@ -735,7 +735,11 @@ function getResponseTransformation(
   schema: Schema.Top
 ): Transformation.Transformation<unknown, Response.HttpServerResponse> {
   const ast = schema.ast
-  const encode = getResponseEncode(getStatus(ast), HttpApiSchema.getResponseEncoding(ast))
+  const encode = getResponseEncode(
+    getStatus(ast),
+    HttpApiSchema.getResponseEncoding(ast),
+    HttpApiSchema.isNoContent(ast)
+  )
 
   return Transformation.transformOrFail({
     decode: (res) => Effect.fail(new Issue.Forbidden(Option.some(res), { message: "Encode only schema" })),
@@ -745,12 +749,13 @@ function getResponseTransformation(
 
 function getResponseEncode<E>(
   status: number,
-  encoding: HttpApiSchema.ResponseEncoding
+  encoding: HttpApiSchema.ResponseEncoding,
+  isNoContent: boolean
 ): (e: E) => Effect.Effect<Response.HttpServerResponse, Issue.InvalidValue, never> {
   switch (encoding._tag) {
     case "Json": {
       return ((e) => {
-        if (e === undefined) {
+        if (e === undefined || isNoContent) {
           return Effect.succeed(Response.empty({ status }))
         }
         try {

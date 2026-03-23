@@ -333,6 +333,17 @@ export function asUint8Array(options?: {
   return <S extends Schema.Top & { readonly Encoded: Uint8Array }>(self: S) =>
     asNonMultipartEncoding(self, { _tag: "Uint8Array", ...options })
 }
+/**
+ * @since 4.0.0
+ */
+export const isNoContent = (ast: AST.AST): boolean => {
+  if (AST.isVoid(ast)) return true
+  const encoded = AST.toEncoded(ast)
+  if (AST.isVoid(encoded)) return true
+  const target = ast.encoding?.[0].to
+  if (target === undefined) return false
+  return AST.isVoid(target)
+}
 
 const resolveHttpApiEncoding = AST.resolveAt<Encoding>("~httpApiEncoding")
 

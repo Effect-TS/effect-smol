@@ -895,7 +895,7 @@ export type PayloadConstraint<Method extends HttpMethod> = Method extends HttpMe
  */
 export type PayloadConstraintCodecs<Method extends HttpMethod> = Method extends HttpMethod.NoBody ?
   Record<string, Schema.Top> :
-  Schema.Top
+  Schema.Top | ReadonlyArray<Schema.Top>
 
 /**
  * @since 4.0.0
@@ -921,8 +921,8 @@ export const make = <Method extends HttpMethod>(method: Method): {
     Query extends Schema.Top | Schema.Struct.Fields = never,
     Payload extends PayloadConstraintCodecs<Method> = never,
     Headers extends Schema.Top | Schema.Struct.Fields = never,
-    const Success extends Schema.Top = HttpApiSchema.NoContent,
-    const Error extends Schema.Top = never
+    const Success extends Schema.Top | ReadonlyArray<Schema.Top> = HttpApiSchema.NoContent,
+    const Error extends Schema.Top | ReadonlyArray<Schema.Top> = never
   >(
     name: Name,
     path: Path,
@@ -941,11 +941,8 @@ export const make = <Method extends HttpMethod>(method: Method): {
     Path,
     StringTree<Params extends Schema.Struct.Fields ? Schema.Struct<Params> : Params>,
     StringTree<Query extends Schema.Struct.Fields ? Schema.Struct<Query> : Query>,
-    Json<
-      Payload extends Schema.Struct.Fields ? Schema.Struct<Payload>
-        : Payload extends ReadonlyArray<Schema.Top> ? Payload[number]
-        : Payload
-    >,
+    Method extends HttpMethod.WithBody ? Json<ExtractSchemaOrArray<Payload>>
+      : StringTree<ExtractSchemaOrArray<Payload>>,
     StringTree<Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers>,
     Json<Success extends ReadonlyArray<Schema.Top> ? Success[number] : Success>,
     Json<(Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error) | typeof BadRequestNoContent>
@@ -977,10 +974,8 @@ export const make = <Method extends HttpMethod>(method: Method): {
     Path,
     Params extends Schema.Struct.Fields ? Schema.Struct<Params> : Params,
     Query extends Schema.Struct.Fields ? Schema.Struct<Query> : Query,
-    Payload extends Schema.Struct.Fields ? Schema.Struct<Payload>
-      : Payload extends ReadonlyArray<Schema.Top> ? Payload[number]
-      : Payload,
-    Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers,
+    ExtractSchemaOrArray<Payload>,
+    ExtractSchemaOrArray<Headers>,
     Success extends ReadonlyArray<Schema.Top> ? Success[number] : Success,
     (Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error) | typeof BadRequestNoContent
   >
@@ -1036,12 +1031,17 @@ export const make = <Method extends HttpMethod>(method: Method): {
   })
 }
 
+type ExtractSchemaOrArray<S extends Schema.Struct.Fields | Schema.Top | ReadonlyArray<Schema.Top>> = S extends
+  Schema.Struct.Fields ? Schema.Struct<S>
+  : S extends ReadonlyArray<Schema.Top> ? S[number]
+  : S
+
 /**
  * @since 4.0.0
  * @category Codecs
  */
 export interface Json<S extends Schema.Top>
-  extends Schema.Codec<S["Type"], unknown, S["DecodingServices"], S["EncodingServices"]>
+  extends Schema.Codec<S["Type"], Schema.Json, S["DecodingServices"], S["EncodingServices"]>
 {}
 
 /**
@@ -1059,7 +1059,7 @@ export interface StringTree<S extends Schema.Top> extends
 
 function ensureStruct(
   params: Schema.Struct.Fields | Schema.Top | undefined,
-  transform: typeof Schema.toCodecJson
+  transform: typeof Schema.toCodecJson | typeof Schema.toCodecStringTree
 ): Schema.Top | undefined {
   if (params === undefined) return undefined
   if (Schema.isSchema(params)) return transform(params)

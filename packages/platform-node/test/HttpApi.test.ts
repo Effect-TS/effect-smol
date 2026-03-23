@@ -1,5 +1,5 @@
 import { NodeHttpServer } from "@effect/platform-node"
-import { assert, describe, it } from "@effect/vitest"
+import { assert, describe, expect, it } from "@effect/vitest"
 import {
   Array,
   Cause,
@@ -1376,7 +1376,7 @@ describe("HttpApi", () => {
     describe("OpenAPI spec", () => {
       it("fixture", () => {
         const spec = OpenApi.fromApi(Api)
-        assert.deepStrictEqual(spec, OpenApiFixture as any)
+        expect(spec).toMatchSnapshot()
       })
     })
 
@@ -1529,7 +1529,7 @@ class UsersApi extends HttpApiGroup.make("users")
   .add(
     HttpApiEndpoint.get("findById", "/:id", {
       params: {
-        id: Schema.FiniteFromString
+        id: Schema.Finite
       },
       success: User,
       error: UserError
@@ -1537,13 +1537,12 @@ class UsersApi extends HttpApiGroup.make("users")
     HttpApiEndpoint.post("create", "/", {
       payload: Schema.Struct(Struct.omit(User.fields, ["id", "createdAt"])),
       query: {
-        id: Schema.FiniteFromString
+        id: Schema.Finite
       },
       success: User,
       error: [UserError, UserError]
     }),
     HttpApiEndpoint.get("list", "/", {
-      useCodecs: true,
       headers: {
         page: Schema.Finite.pipe(
           Schema.optionalKey,

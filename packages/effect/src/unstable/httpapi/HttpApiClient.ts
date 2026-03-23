@@ -8,7 +8,7 @@ import { identity } from "../../Function.ts"
 import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
-import type * as AST from "../../SchemaAST.ts"
+import * as AST from "../../SchemaAST.ts"
 import * as Issue from "../../SchemaIssue.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
 import type * as ServiceMap from "../../ServiceMap.ts"
@@ -639,8 +639,19 @@ function toCodecArrayBuffer(schemas: readonly [Schema.Top, ...Array<Schema.Top>]
   function onSchema(schema: Schema.Top) {
     const encoding = HttpApiSchema.getResponseEncoding(schema.ast)
     switch (encoding._tag) {
-      case "Json":
-        return UnknownFromArrayBuffer.pipe(Schema.decodeTo(schema))
+      case "Json": {
+        // handle json codecs that transform void schemas to null
+        const encodedIsNull = AST.isNull(AST.toEncoded(schema.ast))
+        return UnknownFromArrayBuffer.pipe(Schema.decodeTo(
+          schema,
+          encodedIsNull ?
+            Transformation.transform({
+              decode: (a) => a === undefined ? null : a,
+              encode: (a) => a === null ? undefined : a
+            }) as any :
+            undefined
+        ))
+      }
       case "FormUrlEncoded":
         return StringFromArrayBuffer.pipe(
           Schema.decodeTo(UrlParams.schemaRecord),
