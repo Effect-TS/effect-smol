@@ -5,6 +5,7 @@ import type * as Console from "../Console.ts"
 import * as Duration from "../Duration.ts"
 import type * as Effect from "../Effect.ts"
 import * as Equal from "../Equal.ts"
+import type { ErrorReporter } from "../ErrorReporter.ts"
 import type * as Exit from "../Exit.ts"
 import type * as Fiber from "../Fiber.ts"
 import * as Filter from "../Filter.ts"
@@ -24,7 +25,19 @@ import { pipeArguments } from "../Pipeable.ts"
 import type * as Predicate from "../Predicate.ts"
 import { hasProperty, isIterable, isString, isTagged } from "../Predicate.ts"
 import { currentFiberTypeId, redact } from "../Redactable.ts"
-import type { StackFrame } from "../References.ts"
+import {
+  CurrentConcurrency,
+  CurrentLogAnnotations,
+  CurrentLogLevel,
+  CurrentLogSpans,
+  CurrentStackFrame,
+  MinimumLogLevel,
+  type StackFrame,
+  TracerEnabled,
+  TracerSpanAnnotations,
+  TracerSpanLinks,
+  TracerTimingEnabled
+} from "../References.ts"
 import * as Result from "../Result.ts"
 import * as Scheduler from "../Scheduler.ts"
 import type * as Scope from "../Scope.ts"
@@ -84,19 +97,6 @@ import {
 } from "./core.ts"
 import * as doNotation from "./doNotation.ts"
 import * as InternalMetric from "./metric.ts"
-import {
-  CurrentConcurrency,
-  CurrentErrorReporters,
-  CurrentLogAnnotations,
-  CurrentLogLevel,
-  CurrentLogSpans,
-  CurrentStackFrame,
-  MinimumLogLevel,
-  TracerEnabled,
-  TracerSpanAnnotations,
-  TracerSpanLinks,
-  TracerTimingEnabled
-} from "./references.ts"
 import { addSpanStackTrace, type ErrorWithStackTraceLimit, makeStackCleaner } from "./tracer.ts"
 import { version } from "./version.ts"
 
@@ -6191,6 +6191,13 @@ export { undefined_ as undefined }
 // ----------------------------------------------------------------------------
 // ErrorReporter
 // ----------------------------------------------------------------------------
+
+/** @internal */
+export const CurrentErrorReporters = ServiceMap.Reference<
+  ReadonlySet<ErrorReporter>
+>("effect/ErrorReporter/CurrentErrorReporters", {
+  defaultValue: () => new Set()
+})
 
 /** @internal */
 export const withErrorReporting: <
