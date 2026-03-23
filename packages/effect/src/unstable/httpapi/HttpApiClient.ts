@@ -120,24 +120,11 @@ export declare namespace Client {
       never
 }
 
-type ApiGroups<Api extends HttpApi.Any> = Api extends HttpApi.HttpApi<infer _ApiId, infer Groups> ? Groups : never
-
-type EndpointId<Endpoint extends HttpApiEndpoint.Any> = Endpoint extends {
-  readonly method: infer Method extends HttpMethod.HttpMethod
-  readonly path: infer Path extends string
-} ? `${Method} ${Path}`
-  : never
-
-type EndpointWithId<Endpoints extends HttpApiEndpoint.Any, Id extends string> = Id extends
-  `${infer Method extends HttpMethod.HttpMethod} ${infer Path extends string}` ?
-  Extract<Endpoints, { readonly method: Method; readonly path: Path }> :
-  never
-
 type UrlBuilderRequest<Endpoint extends HttpApiEndpoint.Any> = (
-  & ([HttpApiEndpoint.Params<Endpoint>["Encoded"]] extends [never] ? {}
-    : { readonly params: HttpApiEndpoint.Params<Endpoint>["Encoded"] })
-  & ([HttpApiEndpoint.Query<Endpoint>["Encoded"]] extends [never] ? {}
-    : { readonly query: HttpApiEndpoint.Query<Endpoint>["Encoded"] })
+  & ([HttpApiEndpoint.Params<Endpoint>["Type"]] extends [never] ? {}
+    : { readonly params: HttpApiEndpoint.Params<Endpoint>["Type"] })
+  & ([HttpApiEndpoint.Query<Endpoint>["Type"]] extends [never] ? {}
+    : { readonly query: HttpApiEndpoint.Query<Endpoint>["Type"] })
 ) extends infer Request ? keyof Request extends never ? void | undefined : Request
   : never
 
@@ -149,14 +136,32 @@ type UrlBuilderArgs<Endpoint extends HttpApiEndpoint.Any> = [UrlBuilderRequest<E
  * @since 4.0.0
  * @category models
  */
-export type UrlBuilder<Api extends HttpApi.Any> = <
-  const GroupName extends HttpApiGroup.Name<ApiGroups<Api>>,
-  const Id extends EndpointId<HttpApiGroup.EndpointsWithName<ApiGroups<Api>, GroupName>>
->(
-  group: GroupName,
-  endpoint: Id,
-  ...args: UrlBuilderArgs<EndpointWithId<HttpApiGroup.EndpointsWithName<ApiGroups<Api>, GroupName>, Id>>
+export type UrlBuilder<Api extends HttpApi.Any> = Api extends HttpApi.HttpApi<infer _ApiId, infer Groups> ? Simplify<
+    & {
+      readonly [Group in Extract<Groups, { readonly topLevel: false }> as HttpApiGroup.Name<Group>]: UrlBuilderGroup<
+        HttpApiGroup.Endpoints<Group>
+      >
+    }
+    & {
+      readonly [Method in UrlBuilderTopLevelMethods<Groups> as Method[0]]: Method[1]
+    }
+  >
+  : never
+
+type UrlBuilderGroup<Endpoints extends HttpApiEndpoint.Any> = {
+  readonly [Endpoint in Endpoints as HttpApiEndpoint.Name<Endpoint>]: UrlBuilderMethod<Endpoint>
+}
+
+type UrlBuilderMethod<Endpoint extends HttpApiEndpoint.Any> = (
+  ...args: UrlBuilderArgs<Endpoint>
 ) => string
+
+type UrlBuilderTopLevelMethods<Groups extends HttpApiGroup.Any> = Extract<Groups, { readonly topLevel: true }> extends
+  HttpApiGroup.HttpApiGroup<infer _Id, infer _Endpoints, infer _TopLevel> ?
+  _Endpoints extends infer Endpoint extends HttpApiEndpoint.Any ?
+    [HttpApiEndpoint.Name<Endpoint>, UrlBuilderMethod<Endpoint>]
+  : never :
+  never
 
 const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>(
   api: HttpApi.HttpApi<ApiId, Groups>,
@@ -477,7 +482,7 @@ export const endpoint = <
 }
 
 /**
- * Creates a type-safe URL builder keyed by `${method} ${path}`.
+ * Creates a type-safe URL builder that mirrors `HttpApiClient.make`.
  *
  * @example
  * ```ts
@@ -492,11 +497,11 @@ export const endpoint = <
  *   )
  * )
  *
- * const buildUrl = HttpApiClient.urlBuilder<typeof Api>({
+ * const buildUrl = HttpApiClient.urlBuilder(Api, {
  *   baseUrl: "https://api.example.com"
  * })
  *
- * buildUrl("users", "GET /users/:id", {
+ * buildUrl.users.getUser({
  *   params: { id: "123" }
  * })
  * //=> "https://api.example.com/users/123"
@@ -504,19 +509,45 @@ export const endpoint = <
  * @since 4.0.0
  * @category constructors
  */
-export const urlBuilder = <Api extends HttpApi.Any>(options?: {
+export const urlBuilder = <Api extends HttpApi.AnyWithProps>(api: Api, options?: {
   readonly baseUrl?: URL | string | undefined
 }): UrlBuilder<Api> => {
-  return ((_: string, endpoint: string, request?: {
-    readonly params?: Record<string, string | undefined> | undefined
-    readonly query?: UrlParams.Input | undefined
-  }) => {
-    const path = endpoint.slice(endpoint.indexOf(" ") + 1)
-    const withParams = request?.params === undefined ? path : compilePath(path)(request.params)
-    const query = request?.query === undefined ? "" : UrlParams.toString(UrlParams.fromInput(request.query))
-    const url = query === "" ? withParams : `${withParams}?${query}`
-    return options?.baseUrl === undefined ? url : new URL(url, options.baseUrl.toString()).toString()
-  }) as UrlBuilder<Api>
+  const builder: Record<string, any> = {}
+
+  HttpApi.reflect(api, {
+    onGroup({ group }) {
+      if (group.topLevel) return
+      builder[group.identifier] = {}
+    },
+    onEndpoint({ group, endpoint }) {
+      const makeUrl = compilePath(endpoint.path)
+      const encodeParams = endpoint.params === undefined
+        ? undefined
+        : Schema.encodeSync(endpoint.params as Schema.Encoder<unknown>)
+      const encodeQuery = endpoint.query === undefined
+        ? undefined
+        : Schema.encodeSync(endpoint.query as Schema.Encoder<unknown>)
+
+      const endpointBuilder = (request?: {
+        readonly params?: unknown
+        readonly query?: unknown
+      }) => {
+        const params = request?.params
+        const path = params === undefined
+          ? endpoint.path
+          : makeUrl((encodeParams === undefined ? params : encodeParams(params)) as Record<string, string | undefined>)
+        const queryInput = request?.query === undefined
+          ? undefined
+          : (encodeQuery === undefined ? request.query : encodeQuery(request.query)) as UrlParams.Input
+        const query = queryInput === undefined ? "" : UrlParams.toString(UrlParams.fromInput(queryInput))
+        const url = query === "" ? path : `${path}?${query}`
+        return options?.baseUrl === undefined ? url : new URL(url, options.baseUrl.toString()).toString()
+      }
+      ;(group.topLevel ? builder : builder[group.identifier])[endpoint.name] = endpointBuilder
+    }
+  })
+
+  return builder as UrlBuilder<Api>
 }
 
 // ----------------------------------------------------------------------------

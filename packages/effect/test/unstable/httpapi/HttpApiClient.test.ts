@@ -11,40 +11,57 @@ describe("HttpApiClient", () => {
           .add(
             HttpApiEndpoint.get("getUser", "/users/:id", {
               params: {
-                id: Schema.String
+                id: Schema.FiniteFromString
               },
               query: {
-                page: Schema.String,
-                tags: Schema.Array(Schema.String)
+                page: Schema.FiniteFromString,
+                tags: Schema.Array(Schema.FiniteFromString)
               }
             }),
             HttpApiEndpoint.get("health", "/health")
           )
       )
 
-    it("builds urls from endpoint method/path", () => {
-      const builder = HttpApiClient.urlBuilder<typeof Api>({
+    it("builds urls using endpoint schemas", () => {
+      const builder = HttpApiClient.urlBuilder(Api, {
         baseUrl: "https://api.example.com"
       })
 
       strictEqual(
-        builder("users", "GET /users/:id", {
+        builder.users.getUser({
           params: {
-            id: "123"
+            id: 123
           },
           query: {
-            page: "1",
-            tags: ["a", "b"]
+            page: 1,
+            tags: [1, 2]
           }
         }),
-        "https://api.example.com/users/123?page=1&tags=a&tags=b"
+        "https://api.example.com/users/123?page=1&tags=1&tags=2"
       )
     })
 
     it("returns relative urls when baseUrl is omitted", () => {
-      const builder = HttpApiClient.urlBuilder<typeof Api>()
+      const builder = HttpApiClient.urlBuilder(Api)
 
-      strictEqual(builder("users", "GET /health"), "/health")
+      strictEqual(builder.users.health(), "/health")
+    })
+
+    it("supports top-level endpoints", () => {
+      const TopLevelApi = HttpApi.make("Api")
+        .add(
+          HttpApiGroup.make("top", { topLevel: true })
+            .add(
+              HttpApiEndpoint.get("health", "/health")
+            )
+        )
+        .prefix("/v1")
+
+      const builder = HttpApiClient.urlBuilder(TopLevelApi, {
+        baseUrl: "https://api.example.com"
+      })
+
+      strictEqual(builder.health(), "https://api.example.com/v1/health")
     })
   })
 })

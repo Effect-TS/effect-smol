@@ -59,7 +59,7 @@ describe("HttpApiClient", () => {
   })
 
   describe("urlBuilder", () => {
-    it("should use method/path keys with encoded params and query", () => {
+    it("should mirror client shape and use schema input types", () => {
       const Api = HttpApi.make("Api")
         .add(
           HttpApiGroup.make("users")
@@ -76,32 +76,32 @@ describe("HttpApiClient", () => {
             )
         )
 
-      const builder = HttpApiClient.urlBuilder<typeof Api>({
+      const builder = HttpApiClient.urlBuilder(Api, {
         baseUrl: "https://api.example.com"
       })
 
-      const getUserUrl = builder("users", "GET /users/:id", {
-        params: { id: "123" },
-        query: { page: "1" }
+      const getUserUrl = builder.users.getUser({
+        params: { id: 123 },
+        query: { page: 1 }
       })
 
       expect<typeof getUserUrl>().type.toBe<string>()
 
-      const healthUrl = builder("users", "GET /health")
+      const healthUrl = builder.users.health()
 
       expect<typeof healthUrl>().type.toBe<string>()
 
       // @ts-expect-error!
-      builder("users", "GET /users/:id", { params: { id: 123 }, query: { page: "1" } })
+      builder.users.getUser({ params: { id: "123" }, query: { page: 1 } })
 
       // @ts-expect-error!
-      builder("users", "GET /users/:id", { params: { id: "123" }, query: { page: 1 } })
+      builder.users.getUser({ params: { id: 123 }, query: { page: "1" } })
 
       // @ts-expect-error!
-      builder("users", "POST /users/:id", { params: { id: "123" }, query: { page: "1" } })
+      builder.users.missing()
     })
 
-    it("should reflect api-level prefix in endpoint keys", () => {
+    it("should support prefixes and top-level endpoints", () => {
       const Api = HttpApi.make("Api")
         .add(
           HttpApiGroup.make("users")
@@ -110,21 +110,35 @@ describe("HttpApiClient", () => {
                 params: {
                   id: Schema.FiniteFromString
                 }
-              })
+              }),
+              HttpApiEndpoint.get("health", "/health")
+            )
+        )
+        .add(
+          HttpApiGroup.make("top", { topLevel: true })
+            .add(
+              HttpApiEndpoint.get("topHealth", "/top-health")
             )
         )
         .prefix("/v1")
 
-      const builder = HttpApiClient.urlBuilder<typeof Api>()
+      const builder = HttpApiClient.urlBuilder(Api)
 
-      const prefixedUrl = builder("users", "GET /v1/users/:id", {
-        params: { id: "123" }
+      const prefixedUrl = builder.users.getUser({
+        params: { id: 123 }
       })
 
       expect<typeof prefixedUrl>().type.toBe<string>()
 
+      const topLevelUrl = builder.topHealth()
+
+      expect<typeof topLevelUrl>().type.toBe<string>()
+
       // @ts-expect-error!
-      builder("users", "GET /users/:id", { params: { id: "123" } })
+      builder.users.getUser({ params: { id: "123" } })
+
+      // @ts-expect-error!
+      builder.top.topHealth()
     })
   })
 
