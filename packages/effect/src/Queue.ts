@@ -1084,7 +1084,7 @@ export const collect = <A, E>(self: Dequeue<A, E | Done>): Effect<Array<A>, Pull
  * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number>(10)
+ *   const queue = yield* Queue.bounded<number, Cause.Done>(10)
  *
  *   // Add several messages
  *   yield* Queue.offerAll(queue, [1, 2, 3, 4, 5, 6, 7])
@@ -1097,7 +1097,10 @@ export const collect = <A, E>(self: Dequeue<A, E | Done>): Effect<Array<A>, Pull
  *   const next2 = yield* Queue.takeN(queue, 2)
  *   console.log(next2) // [4, 5]
  *
- *   // Take remaining messages (will take 2, even though we asked for 5)
+ *   // End the queue before taking; now it can return fewer than requested
+ *   yield* Queue.end(queue)
+ *
+ *   // Take remaining messages (takes 2, even though we asked for 5)
  *   const remaining = yield* Queue.takeN(queue, 5)
  *   console.log(remaining) // [6, 7]
  * })
