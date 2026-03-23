@@ -1104,8 +1104,8 @@ function getResponse(
   disableCodecs: boolean
 ): Set<Schema.Top> {
   if (success === undefined) return new Set()
-  const transform = disableCodecs ? identity : transformResponse
-  return new Set(Array.isArray(success) ? success.map(transform) : [transform(success as Schema.Top)])
+  const arr = Arr.ensure(success)
+  return new Set(disableCodecs ? arr : arr.map(transformResponse))
 }
 
 function transformResponse(schema: Schema.Top): Schema.Top {
