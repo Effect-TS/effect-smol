@@ -52,6 +52,7 @@ import type * as Cause from "./Cause.ts"
 import * as Effect from "./Effect.ts"
 import type * as Fiber from "./Fiber.ts"
 import * as effect from "./internal/effect.ts"
+import * as references from "./internal/references.ts"
 import * as Layer from "./Layer.ts"
 import * as LogLevel from "./LogLevel.ts"
 import type { Severity } from "./LogLevel.ts"
@@ -164,7 +165,7 @@ export const make = (
  * @since 4.0.0
  * @category References
  */
-export const CurrentErrorReporters: ServiceMap.Reference<ReadonlySet<ErrorReporter>> = effect.CurrentErrorReporters
+export const CurrentErrorReporters: ServiceMap.Reference<ReadonlySet<ErrorReporter>> = references.CurrentErrorReporters
 
 /**
  * Creates a `Layer` that registers one or more `ErrorReporter`s.
@@ -226,7 +227,7 @@ export const layer = <
     CurrentErrorReporters,
     Effect.withFiber(Effect.fnUntraced(function*(fiber) {
       const currentReporters = new Set(
-        options?.mergeWithExisting === true ? fiber.getRef(effect.CurrentErrorReporters) : []
+        options?.mergeWithExisting === true ? fiber.getRef(references.CurrentErrorReporters) : []
       )
       for (const reporter of reporters) {
         currentReporters.add(Effect.isEffect(reporter) ? yield* reporter : reporter)
