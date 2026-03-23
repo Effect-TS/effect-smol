@@ -41,7 +41,6 @@ import {
   HttpApiSecurity,
   OpenApi
 } from "effect/unstable/httpapi"
-import OpenApiFixture from "./fixtures/openapi.json" with { type: "json" }
 
 function* assertServerText(res: HttpClientResponse.HttpClientResponse, status: number, text: string) {
   assert.strictEqual(res.status, status)
