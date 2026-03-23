@@ -41,7 +41,7 @@ export interface AtomHttpApiClient<Self, Id extends string, Groups extends HttpA
       HttpApiGroup.Endpoints<Group>,
       Name
     >,
-    const ResponseMode extends HttpApiEndpoint.ClientResponseMode = "decoded-only"
+    const ResponseMode extends HttpApiEndpoint.ClientResponseMode = HttpApiEndpoint.ClientResponseMode
   >(
     group: GroupName,
     endpoint: Name,
@@ -292,9 +292,9 @@ interface QueryKey {
   timeToLive?: Duration.Duration | undefined
 }
 
-type ResponseByMode<Success, ResponseMode extends HttpApiEndpoint.ClientResponseMode> = ResponseMode extends
-  "decoded-and-response" ? [Success, HttpClientResponse]
-  : ResponseMode extends "response-only" ? HttpClientResponse
+type ResponseByMode<Success, ResponseMode extends HttpApiEndpoint.ClientResponseMode> = [ResponseMode] extends
+  ["decoded-and-response"] ? [Success, HttpClientResponse]
+  : [ResponseMode] extends ["response-only"] ? HttpClientResponse
   : Success
 
 const makeSerializableKey = (
