@@ -468,10 +468,14 @@ Validation: `pnpm lint-fix`, `pnpm test packages/tools/openapi-generator/test/Op
 - Discovery: the CLI handler in `src/main.ts` was not wiring `onWarning`, so generator warnings were silently dropped. Task 5 now collects generator warnings and prints them to stderr via `Console.error` with stable `WARNING [code] ...` formatting.
 - Review hardening: CLI tests now also assert command exit status and explicit warning formatting on stderr, reducing the chance of false positives when command execution behavior changes.
 - Release bookkeeping: confirmed existing `@effect/openapi-generator` changeset coverage remains `major` and updated `.changeset/green-chips-wash.md` to document the complete public migration from `--type-only` to `--format` plus new `httpapi` output support.
+- Release-facing docs/metadata audit updates:
+  - updated `packages/tools/openapi-generator/package.json` description to describe HttpClient + HttpApi generation
+  - updated CLI `--format` flag help text to explicitly document `httpclient`, `httpclient-type-only`, and `httpapi` with default `httpclient`
+  - added CLI `--help` coverage asserting all format values and default text are surfaced in user-facing help output
+  - re-audited repository user-facing docs/examples and found no remaining legacy `--type-only` usage outside implementation-spec history notes
 
 ### Remaining Task 5 scope
 
-- Update package docs/examples and package description text where still needed.
 - Add a process-level (spawned CLI) integration check to complement `TestConsole` assertions for stdout/stderr separation.
 
 ## Implementation plan status
@@ -480,4 +484,4 @@ Validation: `pnpm lint-fix`, `pnpm test packages/tools/openapi-generator/test/Op
 - ✅ Task 2 — Introduce warnings and a richer parsed model
 - ✅ Task 3 — Add baseline HttpApi rendering for representable operations and opaque schema declarations
 - ✅ Task 4 — Add security placeholders and lossy-feature handling
-- 🚧 Task 5 — Finish CLI coverage, docs, and release bookkeeping (CLI coverage + warning surfacing + changeset coverage completed; docs/process-level integration follow-ups remain)
+- 🚧 Task 5 — Finish CLI coverage, docs, and release bookkeeping (CLI coverage + warning surfacing + changeset + docs/metadata updates completed; process-level integration follow-up remains)

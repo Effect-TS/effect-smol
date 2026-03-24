@@ -35,6 +35,19 @@ const runCli = Effect.fnUntraced(function*(args: ReadonlyArray<string>) {
 })
 
 describe("openapigen CLI", () => {
+  it.effect("documents --format values and default in --help", () =>
+    Effect.gen(function*() {
+      const result = yield* runCli(["--help"])
+
+      assert.isTrue(Exit.isSuccess(result.exit))
+      assert.include(result.stdout, "--format")
+      assert.include(result.stdout, "httpclient")
+      assert.include(result.stdout, "httpclient-type-only")
+      assert.include(result.stdout, "httpapi")
+      assert.include(result.stdout, "default: httpclient")
+      assert.strictEqual(result.stderr, "")
+    }))
+
   it.effect("routes --format values and defaults to httpclient", () =>
     Effect.gen(function*() {
       const spec = fixturePath("cli-basic-spec.json")

@@ -21,7 +21,9 @@ const name = Flag.string("name").pipe(
 
 const format = Flag.choice("format", ["httpclient", "httpclient-type-only", "httpapi"] as const).pipe(
   Flag.withAlias("f"),
-  Flag.withDescription("Output format to generate"),
+  Flag.withDescription(
+    "Output format to generate: httpclient | httpclient-type-only | httpapi (default: httpclient)"
+  ),
   Flag.withDefault("httpclient")
 )
 
