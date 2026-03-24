@@ -69,6 +69,49 @@ function assertHttpApiIncludes(spec: OpenAPISpec, includes: ReadonlyArray<string
   )
 }
 
+function assertHttpApiWithWarnings(
+  spec: OpenAPISpec,
+  options: {
+    readonly includes?: ReadonlyArray<string> | undefined
+    readonly excludes?: ReadonlyArray<string> | undefined
+    readonly warnings: ReadonlyArray<
+      Pick<OpenApiGenerator.OpenApiGeneratorWarning, "code" | "path" | "method" | "operationId">
+    >
+  }
+) {
+  return Effect.gen(function*() {
+    const generator = yield* OpenApiGenerator.OpenApiGenerator
+    const warnings: Array<OpenApiGenerator.OpenApiGeneratorWarning> = []
+
+    const result = yield* generator.generate(spec, {
+      name: "TestClient",
+      format: "httpapi",
+      onWarning: (warning) => {
+        warnings.push(warning)
+      }
+    })
+
+    for (const expected of options.includes ?? []) {
+      assert.include(result, expected)
+    }
+    for (const excluded of options.excludes ?? []) {
+      assert.notInclude(result, excluded)
+    }
+
+    assert.deepStrictEqual(
+      warnings.map((warning) => ({
+        code: warning.code,
+        path: warning.path,
+        method: warning.method,
+        operationId: warning.operationId
+      })),
+      options.warnings
+    )
+  }).pipe(
+    Effect.provide(OpenApiGenerator.layerTransformerSchema)
+  )
+}
+
 function assertRuntimeStableWithWarnings(
   spec: OpenAPISpec,
   expectedWarnings: ReadonlyArray<
@@ -747,7 +790,7 @@ export const TestClientError = <Tag extends string, E>(
           ]
         },
         [
-          `import { HttpApi, HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "effect/unstable/httpapi"`,
+          `import { HttpApi, HttpApiEndpoint, HttpApiGroup, HttpApiMiddleware, HttpApiSchema, HttpApiSecurity, OpenApi } from "effect/unstable/httpapi"`,
           `export class GetUserPathParams extends Schema.Class<GetUserPathParams>("GetUserPathParams")({ "id": Schema.String }) {}`,
           `const UsersGroup = HttpApiGroup.make("Users")`,
           `.annotate(OpenApi.Description, "User operations")`,
@@ -964,6 +1007,299 @@ export const TestClientError = <Tag extends string, E>(
           `payload: [HttpApiSchema.NoContent, CreatePayloadRequestJson, (CreatePayloadRequestFormData as any).pipe(HttpApiSchema.asMultipart()), (CreatePayloadRequestFormUrlEncoded as any).pipe(HttpApiSchema.asFormUrlEncoded()), (CreatePayloadRequestText as any).pipe(HttpApiSchema.asText()), (CreatePayloadRequestBinary as any).pipe(HttpApiSchema.asUint8Array())]`,
           `success: [CreatePayload200, (CreatePayload200Text as any).pipe(HttpApiSchema.asText()), (CreatePayload200Binary as any).pipe(HttpApiSchema.asUint8Array()), HttpApiSchema.Empty(201)]`
         ]
+      ))
+
+    it.effect("generates security declarations and middleware placeholders", () =>
+      assertHttpApiWithWarnings(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Security API",
+            version: "1.0.0"
+          },
+          paths: {
+            "/secure": {
+              get: {
+                operationId: "getSecure",
+                parameters: [],
+                responses: {
+                  200: {
+                    description: "Secure"
+                  }
+                },
+                tags: ["Security"],
+                security: [
+                  { apiKeyAuth: [] },
+                  { bearerAuth: [] },
+                  { apiKeyAuth: [], basicAuth: [] }
+                ]
+              }
+            },
+            "/public": {
+              get: {
+                operationId: "getPublic",
+                parameters: [],
+                responses: {
+                  200: {
+                    description: "Public"
+                  }
+                },
+                tags: ["Security"],
+                security: []
+              }
+            }
+          },
+          components: {
+            schemas: {},
+            securitySchemes: {
+              apiKeyAuth: {
+                type: "apiKey",
+                name: "x-api-key",
+                in: "header",
+                description: "API key"
+              },
+              bearerAuth: {
+                type: "http",
+                scheme: "bearer",
+                bearerFormat: "JWT",
+                description: "Bearer token"
+              },
+              basicAuth: {
+                type: "http",
+                scheme: "basic"
+              }
+            }
+          },
+          security: [],
+          tags: [{ name: "Security" }]
+        },
+        {
+          includes: [
+            `const ApiKeyAuthSecurity = HttpApiSecurity.apiKey({ key: "x-api-key", in: "header" }).pipe(HttpApiSecurity.annotate(OpenApi.Description, "API key"))`,
+            `const BearerAuthSecurity = HttpApiSecurity.bearer.pipe(HttpApiSecurity.annotate(OpenApi.Description, "Bearer token")).pipe(HttpApiSecurity.annotate(OpenApi.Format, "JWT"))`,
+            `const BasicAuthSecurity = HttpApiSecurity.basic`,
+            `class GetSecureSecurityMiddleware extends HttpApiMiddleware.Service<GetSecureSecurityMiddleware>()("GET /secure security", { security: { "apiKeyAuth": ApiKeyAuthSecurity, "bearerAuth": BearerAuthSecurity } }) {}`,
+            `class GetSecureSecurityAndMiddleware extends HttpApiMiddleware.Service<GetSecureSecurityAndMiddleware>()("GET /secure security-and-1") {}`,
+            `HttpApiEndpoint.get("getSecure", "/secure", { success: HttpApiSchema.Empty(200) })\n      .middleware(GetSecureSecurityMiddleware)\n      .middleware(GetSecureSecurityAndMiddleware)`,
+            `HttpApiEndpoint.get("getPublic", "/public", { success: HttpApiSchema.Empty(200) })`
+          ],
+          excludes: [
+            `HttpApiEndpoint.get("getPublic", "/public", { success: HttpApiSchema.Empty(200) })\n      .middleware(`
+          ],
+          warnings: [
+            {
+              code: "security-and-downgraded",
+              path: "/secure",
+              method: "get",
+              operationId: "getSecure"
+            }
+          ]
+        }
+      ))
+
+    it.effect("emits lossy warnings and skips unsupported httpapi operations", () =>
+      assertHttpApiWithWarnings(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Warnings API",
+            version: "1.0.0"
+          },
+          paths: {
+            "/cookies": {
+              get: {
+                operationId: "getCookie",
+                parameters: [
+                  {
+                    name: "session",
+                    in: "cookie",
+                    schema: { type: "string" },
+                    required: false
+                  }
+                ],
+                responses: {
+                  200: {
+                    description: "Cookie"
+                  }
+                },
+                tags: ["Warnings"],
+                security: []
+              }
+            },
+            "/tags": {
+              get: {
+                operationId: "getTagged",
+                parameters: [],
+                responses: {
+                  200: {
+                    description: "Tagged"
+                  }
+                },
+                tags: ["Warnings", "ExtraTag"],
+                security: []
+              }
+            },
+            "/sse": {
+              get: {
+                operationId: "streamEvents",
+                parameters: [],
+                responses: {
+                  200: {
+                    description: "Events",
+                    content: {
+                      "text/event-stream": {
+                        schema: {
+                          type: "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                tags: ["Warnings"],
+                security: []
+              }
+            },
+            "/headers": {
+              get: {
+                operationId: "getHeaders",
+                parameters: [],
+                responses: {
+                  200: {
+                    description: "Headers",
+                    headers: {
+                      "x-rate-limit": {
+                        schema: {
+                          type: "integer"
+                        }
+                      }
+                    }
+                  }
+                } as any,
+                tags: ["Warnings"],
+                security: []
+              }
+            },
+            "/default-success": {
+              get: {
+                operationId: "getDefaultSuccess",
+                parameters: [],
+                responses: {
+                  200: {
+                    description: "OK"
+                  },
+                  default: {
+                    description: "Fallback"
+                  }
+                } as any,
+                tags: ["Warnings"],
+                security: []
+              }
+            },
+            "/default-only": {
+              get: {
+                operationId: "getDefaultOnly",
+                parameters: [],
+                responses: {
+                  default: {
+                    description: "Fallback"
+                  }
+                } as any,
+                tags: ["Warnings"],
+                security: []
+              }
+            },
+            "/nobody": {
+              get: {
+                operationId: "getNoBody",
+                parameters: [],
+                requestBody: {
+                  required: true,
+                  content: {
+                    "application/json": {
+                      schema: {
+                        type: "object",
+                        properties: {
+                          a: { type: "string" }
+                        },
+                        required: ["a"],
+                        additionalProperties: false
+                      }
+                    }
+                  }
+                },
+                responses: {
+                  200: {
+                    description: "No body"
+                  }
+                },
+                tags: ["Warnings"],
+                security: []
+              }
+            }
+          },
+          components: {
+            schemas: {},
+            securitySchemes: {}
+          },
+          security: [],
+          tags: [{ name: "Warnings" }]
+        },
+        {
+          includes: [
+            `HttpApiEndpoint.get("getCookie", "/cookies", { success: HttpApiSchema.Empty(200) })`,
+            `HttpApiEndpoint.get("getHeaders", "/headers", { success: HttpApiSchema.Empty(200) })`,
+            `HttpApiEndpoint.get("getDefaultSuccess", "/default-success", { success: HttpApiSchema.Empty(200), error: HttpApiSchema.Empty(500) })`,
+            `HttpApiEndpoint.get("getDefaultOnly", "/default-only", { success: HttpApiSchema.Empty(200) })`
+          ],
+          excludes: [
+            `HttpApiEndpoint.get("streamEvents", "/sse"`,
+            `HttpApiEndpoint.get("getNoBody", "/nobody"`
+          ],
+          warnings: [
+            {
+              code: "cookie-parameter-dropped",
+              path: "/cookies",
+              method: "get",
+              operationId: "getCookie"
+            },
+            {
+              code: "additional-tags-dropped",
+              path: "/tags",
+              method: "get",
+              operationId: "getTagged"
+            },
+            {
+              code: "sse-operation-skipped",
+              path: "/sse",
+              method: "get",
+              operationId: "streamEvents"
+            },
+            {
+              code: "response-headers-ignored",
+              path: "/headers",
+              method: "get",
+              operationId: "getHeaders"
+            },
+            {
+              code: "default-response-remapped",
+              path: "/default-success",
+              method: "get",
+              operationId: "getDefaultSuccess"
+            },
+            {
+              code: "default-response-remapped",
+              path: "/default-only",
+              method: "get",
+              operationId: "getDefaultOnly"
+            },
+            {
+              code: "no-body-method-request-body-skipped",
+              path: "/nobody",
+              method: "get",
+              operationId: "getNoBody"
+            }
+          ]
+        }
       ))
   })
 

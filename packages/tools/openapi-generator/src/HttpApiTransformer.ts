@@ -1,5 +1,6 @@
 import type {
   ParsedOpenApi,
+  ParsedOpenApiSecurityScheme,
   ParsedOpenApiTag,
   ParsedOperation,
   ParsedOperationMediaTypeSchema,
@@ -15,12 +16,18 @@ interface GroupRenderModel {
   readonly constName: string
 }
 
+interface SecurityRenderModel {
+  readonly securityDeclarations: ReadonlyArray<string>
+  readonly middlewareDeclarations: ReadonlyArray<string>
+  readonly endpointMiddlewares: ReadonlyMap<string, ReadonlyArray<string>>
+}
+
 const fallbackGroupIdentifier = "default"
 
 export const imports = (importName: string): string =>
   [
     `import * as ${importName} from "effect/Schema"`,
-    `import { HttpApi, HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "effect/unstable/httpapi"`
+    `import { HttpApi, HttpApiEndpoint, HttpApiGroup, HttpApiMiddleware, HttpApiSchema, HttpApiSecurity, OpenApi } from "effect/unstable/httpapi"`
   ].join("\n")
 
 export const toImplementation = (
@@ -28,8 +35,9 @@ export const toImplementation = (
   name: string,
   parsed: ParsedOpenApi
 ): string => {
+  const security = buildSecurityRenderModel(parsed)
   const groups = groupOperations(parsed)
-  const groupSources = groups.map(renderGroup)
+  const groupSources = groups.map((group) => renderGroup(group, security.endpointMiddlewares))
   const metadataAnnotations = renderApiAnnotations(parsed)
 
   let apiValue = `export const ${name}Api = ${name}`
@@ -41,6 +49,8 @@ export const toImplementation = (
   }
 
   return [
+    ...security.securityDeclarations,
+    ...security.middlewareDeclarations,
     ...groupSources,
     `export class ${name} extends HttpApi.make(${JSON.stringify(name)}) {}`,
     apiValue
@@ -87,7 +97,10 @@ const groupOperations = (parsed: ParsedOpenApi): ReadonlyArray<GroupRenderModel>
   return groups
 }
 
-const renderGroup = (group: GroupRenderModel): string => {
+const renderGroup = (
+  group: GroupRenderModel,
+  endpointMiddlewares: ReadonlyMap<string, ReadonlyArray<string>>
+): string => {
   let source = `const ${group.constName} = HttpApiGroup.make(${JSON.stringify(group.identifier)}${
     group.topLevel ? ", { topLevel: true }" : ""
   })`
@@ -101,13 +114,23 @@ const renderGroup = (group: GroupRenderModel): string => {
 
   const allocateEndpointName = makeNameAllocator()
   for (const operation of group.operations) {
-    source += `\n  .add(${renderEndpoint(operation, allocateEndpointName(operation.id))})`
+    source += `\n  .add(${
+      renderEndpoint(
+        operation,
+        allocateEndpointName(operation.id),
+        endpointMiddlewares.get(toOperationKey(operation)) ?? []
+      )
+    })`
   }
 
   return source
 }
 
-const renderEndpoint = (operation: ParsedOperation, endpointName: string): string => {
+const renderEndpoint = (
+  operation: ParsedOperation,
+  endpointName: string,
+  endpointMiddlewares: ReadonlyArray<string>
+): string => {
   const options: Array<string> = []
   if (operation.pathSchema !== undefined) {
     options.push(`params: ${operation.pathSchema}`)
@@ -159,11 +182,14 @@ const renderEndpoint = (operation: ParsedOperation, endpointName: string): strin
     annotations.push(`annotate(OpenApi.ExternalDocs, ${JSON.stringify(operation.metadata.externalDocs)})`)
   }
 
-  if (annotations.length === 0) {
+  if (annotations.length === 0 && endpointMiddlewares.length === 0) {
     return endpoint
   }
 
   let out = endpoint
+  for (const middleware of endpointMiddlewares) {
+    out += `\n      .middleware(${middleware})`
+  }
   for (const annotation of annotations) {
     out += `\n      .${annotation}`
   }
@@ -284,6 +310,113 @@ const renderApiAnnotations = (parsed: ParsedOpenApi): ReadonlyArray<string> => {
 
   return annotations
 }
+
+const buildSecurityRenderModel = (parsed: ParsedOpenApi): SecurityRenderModel => {
+  const allocateName = makeNameAllocator()
+  const securityDeclarations: Array<string> = []
+  const middlewareDeclarations: Array<string> = []
+  const endpointMiddlewares = new Map<string, ReadonlyArray<string>>()
+  const schemeDeclarations = new Map<string, string>()
+
+  for (const securityScheme of parsed.securitySchemes) {
+    const baseName = ensureIdentifier(securityScheme.name, "Security")
+    const declarationName = allocateName(`${baseName}Security`)
+    schemeDeclarations.set(securityScheme.name, declarationName)
+    securityDeclarations.push(`const ${declarationName} = ${renderSecurityScheme(securityScheme)}`)
+  }
+
+  for (const operation of parsed.operations) {
+    if (operation.effectiveSecurity.length === 0) {
+      continue
+    }
+    if (operation.effectiveSecurity.some((requirement) => Object.keys(requirement).length === 0)) {
+      continue
+    }
+
+    const operationMiddlewareNames: Array<string> = []
+    const orSchemes: Array<readonly [string, string]> = []
+    const seenOrSchemes = new Set<string>()
+    const andRequirements: Array<ReadonlyArray<string>> = []
+
+    for (const requirement of operation.effectiveSecurity) {
+      const schemes = Object.keys(requirement)
+      if (schemes.length === 1) {
+        const schemeName = schemes[0]
+        const declarationName = schemeDeclarations.get(schemeName)
+        if (declarationName !== undefined && !seenOrSchemes.has(schemeName)) {
+          seenOrSchemes.add(schemeName)
+          orSchemes.push([schemeName, declarationName])
+        }
+      } else if (schemes.length > 1) {
+        andRequirements.push(schemes)
+      }
+    }
+
+    if (orSchemes.length > 0) {
+      const className = allocateName(`${ensureIdentifier(operation.id, "Operation")}SecurityMiddleware`)
+      const securityEntries = orSchemes.map(([name, declaration]) => `${JSON.stringify(name)}: ${declaration}`).join(
+        ", "
+      )
+      middlewareDeclarations.push(
+        `class ${className} extends HttpApiMiddleware.Service<${className}>()(${
+          JSON.stringify(`${operation.method.toUpperCase()} ${operation.path} security`)
+        }, { security: { ${securityEntries} } }) {}`
+      )
+      operationMiddlewareNames.push(className)
+    }
+
+    for (let i = 0; i < andRequirements.length; i++) {
+      const className = allocateName(`${ensureIdentifier(operation.id, "Operation")}SecurityAndMiddleware`)
+      middlewareDeclarations.push(
+        `class ${className} extends HttpApiMiddleware.Service<${className}>()(${
+          JSON.stringify(`${operation.method.toUpperCase()} ${operation.path} security-and-${i + 1}`)
+        }) {}`
+      )
+      operationMiddlewareNames.push(className)
+    }
+
+    if (operationMiddlewareNames.length > 0) {
+      endpointMiddlewares.set(toOperationKey(operation), operationMiddlewareNames)
+    }
+  }
+
+  return {
+    securityDeclarations,
+    middlewareDeclarations,
+    endpointMiddlewares
+  }
+}
+
+const renderSecurityScheme = (securityScheme: ParsedOpenApiSecurityScheme): string => {
+  let source: string
+  switch (securityScheme.type) {
+    case "basic": {
+      source = "HttpApiSecurity.basic"
+      break
+    }
+    case "bearer": {
+      source = "HttpApiSecurity.bearer"
+      break
+    }
+    case "apiKey": {
+      source = `HttpApiSecurity.apiKey({ key: ${JSON.stringify(securityScheme.key!)}, in: ${
+        JSON.stringify(securityScheme.in!)
+      } })`
+      break
+    }
+  }
+
+  if (securityScheme.description !== undefined) {
+    source += `.pipe(HttpApiSecurity.annotate(OpenApi.Description, ${JSON.stringify(securityScheme.description)}))`
+  }
+  if (securityScheme.type === "bearer" && securityScheme.bearerFormat !== undefined) {
+    source += `.pipe(HttpApiSecurity.annotate(OpenApi.Format, ${JSON.stringify(securityScheme.bearerFormat)}))`
+  }
+
+  return source
+}
+
+const toOperationKey = (operation: ParsedOperation): string => `${operation.method}:${operation.path}`
 
 const toHttpApiPath = (path: string): string => path.replace(/{([^}]+)}/g, ":$1")
 

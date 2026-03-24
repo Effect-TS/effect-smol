@@ -432,12 +432,32 @@ Validation: `pnpm lint-fix`, `pnpm test packages/tools/openapi-generator/test/Op
 ### Additional follow-up tasks
 
 - `OpenAPISpecRequestBody` typing currently models `required` as mandatory/`true` in this repository's OpenAPI type definitions; test fixtures use a local cast for optional request-body scenarios.
-- Baseline HttpApi response mapping currently ignores non-numeric response status keys; full default-response remapping behavior remains for Task 4.
+- Baseline HttpApi response mapping originally ignored non-numeric response status keys; Task 4 now remaps `default` responses to explicit status codes (200/500) with warnings.
+
+## Task 4 implementation notes
+
+- Added supported OpenAPI security-scheme parsing into the shared parsed model (`basic`, `bearer`, `apiKey`) and surfaced these as generated `HttpApiSecurity` declarations in `httpapi` output.
+- `httpapi` output now emits placeholder `HttpApiMiddleware.Service` classes for per-operation security:
+  - OR-compatible single-scheme requirements become one middleware with a `security` object.
+  - AND requirements are downgraded to plain placeholder middleware classes and emit `security-and-downgraded` warnings.
+  - `security: []` and requirement entries containing `{}` now result in no generated security middleware for that operation.
+- Implemented the Task 4 lossy warning behaviors for `httpapi` generation:
+  - `cookie-parameter-dropped`
+  - `additional-tags-dropped`
+  - `sse-operation-skipped`
+  - `response-headers-ignored`
+  - `default-response-remapped` (default -> `200` when no explicit success exists, otherwise `500`)
+  - `no-body-method-request-body-skipped`
+- Implemented `optional-request-body-approximated` warning emission when `httpapi` generation approximates optional request bodies with `HttpApiSchema.NoContent`.
+- Added focused `OpenApiGenerator.test.ts` coverage for security declaration/middleware generation, inherited vs cleared security behavior, security AND downgrade warnings, and all Task 4 lossy-warning/skip behaviors.
+
+### Additional follow-up tasks
+
+- Unsupported security-scheme types are currently ignored (not yet surfaced through a dedicated warning code); decide whether to introduce a new warning code in Task 5 or later.
 
 ## Implementation plan status
 
 - ✅ Task 1 — Migrate the API and CLI to `format` for existing HttpClient modes
 - ✅ Task 2 — Introduce warnings and a richer parsed model
 - ✅ Task 3 — Add baseline HttpApi rendering for representable operations and opaque schema declarations
-- ⏳ Task 4 — Add security placeholders and lossy-feature handling
-- ⏳ Task 5 — Finish CLI coverage, docs, and release bookkeeping
+- ✅ Task 4 — Add security placeholders and lossy-feature handling

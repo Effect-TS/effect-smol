@@ -4,7 +4,7 @@ import * as Layer from "effect/Layer"
 import * as Predicate from "effect/Predicate"
 import * as ServiceMap from "effect/ServiceMap"
 import * as String from "effect/String"
-import type { OpenAPISpec, OpenAPISpecMethodName } from "effect/unstable/httpapi/OpenApi"
+import type { OpenAPISecurityScheme, OpenAPISpec, OpenAPISpecMethodName } from "effect/unstable/httpapi/OpenApi"
 import SwaggerToOpenApi from "swagger2openapi"
 import * as HttpApiTransformer from "./HttpApiTransformer.ts"
 import * as JsonSchemaGenerator from "./JsonSchemaGenerator.ts"
@@ -150,6 +150,7 @@ const parseOpenApi = (
   const operations: Array<ParsedOperation.ParsedOperation> = []
   const reservedSchemaNames = new Set<string>(Object.keys(spec.components?.schemas ?? {}))
   const isHttpApi = format === "httpapi"
+  const securitySchemes = parseSecuritySchemes(spec, resolveRef)
 
   const addSchema = (
     baseName: string,
@@ -198,6 +199,14 @@ const parseOpenApi = (
       op.path = path
       op.operationId = Utils.nonEmptyString(operation.operationId)
       op.tags = [...(operation.tags ?? [])]
+      if (op.tags.length > 1) {
+        warnForOperation(emitWarning, op, {
+          code: "additional-tags-dropped",
+          message: `Additional tags (${op.tags.slice(1).join(", ")}) were dropped. Only the first tag ("${
+            op.tags[0]
+          }") is used for grouping.`
+        })
+      }
       op.metadata = {
         summary: Utils.nonEmptyString(operation.summary),
         description: Utils.nonEmptyString(operation.description),
@@ -205,6 +214,9 @@ const parseOpenApi = (
         externalDocs: operation.externalDocs
       }
       op.effectiveSecurity = cloneSecurityRequirements(operation.security ?? spec.security ?? [])
+      if (isHttpApi) {
+        warnForAndSecurityRequirements(emitWarning, op)
+      }
 
       const schemaId = Utils.identifier(operation.operationId ?? path)
 
@@ -237,11 +249,40 @@ const parseOpenApi = (
             op.parameters.cookie.push(parsedParameter)
             warnForOperation(emitWarning, op, {
               code: "cookie-parameter-dropped",
-              message: `Cookie parameter "${parameter.name}" is ignored by the current HttpClient outputs.`
+              message:
+                `Cookie parameter "${parameter.name}" was dropped because non-security cookie parameters are not supported.`
             })
             break
           }
         }
+      }
+
+      const requestBody = resolveReference(operation.requestBody, resolveRef)
+      if (isHttpApi && !methodSupportsRequestBody(op.method) && Predicate.isObject(requestBody)) {
+        warnForOperation(emitWarning, op, {
+          code: "no-body-method-request-body-skipped",
+          message: `Operation was skipped because ${op.method.toUpperCase()} does not support request bodies.`
+        })
+        continue
+      }
+
+      const resolvedResponses = Object.entries(operation.responses ?? {}).map(
+        ([status, response]) => [status, resolveReference(response, resolveRef)] as const
+      )
+      const hasExplicitSuccessResponse = resolvedResponses.some(([status]) => {
+        if (!/^\d{3}$/.test(status)) {
+          return false
+        }
+        return Number(status) < 400
+      })
+
+      if (isHttpApi && hasSuccessfulSseResponse(resolvedResponses, hasExplicitSuccessResponse)) {
+        warnForOperation(emitWarning, op, {
+          code: "sse-operation-skipped",
+          message:
+            "Operation was skipped because successful text/event-stream responses are not supported in HttpApi generation."
+        })
+        continue
       }
 
       const validParameters = parameters.filter(
@@ -283,7 +324,6 @@ const parseOpenApi = (
         }
       }
 
-      const requestBody = resolveReference(operation.requestBody, resolveRef)
       if (Predicate.isNotUndefined(requestBody) && Predicate.isObject(requestBody)) {
         const content = Predicate.isObject(requestBody.content)
           ? requestBody.content as Record<string, any>
@@ -292,6 +332,12 @@ const parseOpenApi = (
         op.requestBody = {
           required: requestBody.required === true,
           contentTypes: Object.keys(content)
+        }
+        if (isHttpApi && requestBody.required === false) {
+          warnForOperation(emitWarning, op, {
+            code: "optional-request-body-approximated",
+            message: "Optional request body was approximated by adding a no-content payload alternative."
+          })
         }
 
         if (Predicate.isNotUndefined(content["application/json"]?.schema)) {
@@ -335,15 +381,30 @@ const parseOpenApi = (
       }
 
       let defaultSchema: string | undefined
-      for (const [status, responseValue] of Object.entries(operation.responses ?? {})) {
-        const response = resolveReference(responseValue, resolveRef)
+      for (const [status, response] of resolvedResponses) {
         if (!Predicate.isObject(response)) {
           continue
+        }
+
+        const parsedStatus = isHttpApi
+          ? remapDefaultResponseStatusForHttpApi(status, hasExplicitSuccessResponse)
+          : status
+        if (isHttpApi && status === "default") {
+          warnForOperation(emitWarning, op, {
+            code: "default-response-remapped",
+            message: `Default response was remapped to status ${parsedStatus} for HttpApi generation.`
+          })
         }
 
         const content = Predicate.isObject(response.content)
           ? response.content as Record<string, any>
           : undefined
+        if (isHttpApi && Predicate.isNotUndefined(response.headers)) {
+          warnForOperation(emitWarning, op, {
+            code: "response-headers-ignored",
+            message: `Response headers on status ${status} were ignored in HttpApi generation.`
+          })
+        }
         const representable: Array<ParsedOperation.ParsedOperationMediaTypeSchema> = []
 
         let jsonSchemaName: string | undefined
@@ -386,7 +447,7 @@ const parseOpenApi = (
 
         const isEmptyResponse = Predicate.isUndefined(content) || Object.keys(content).length === 0
         const parsedResponse = {
-          status,
+          status: parsedStatus,
           description: Utils.nonEmptyString(response.description),
           contentTypes: Predicate.isNotUndefined(content) ? Object.keys(content) : [],
           hasHeaders: Predicate.isNotUndefined(response.headers),
@@ -401,13 +462,13 @@ const parseOpenApi = (
         if (Predicate.isNotUndefined(jsonSchemaName)) {
           const schemaName = jsonSchemaName
 
-          if (status === "default") {
+          if (status === "default" && !isHttpApi) {
             defaultSchema = schemaName
             continue
           }
 
-          const statusLower = status.toLowerCase()
-          const statusMajorNumber = Number(status[0])
+          const statusLower = parsedStatus.toLowerCase()
+          const statusMajorNumber = Number(parsedStatus[0])
           if (Number.isNaN(statusMajorNumber)) {
             continue
           }
@@ -420,22 +481,22 @@ const parseOpenApi = (
 
         const sseResponseSchema = content?.["text/event-stream"]?.schema
         if (Predicate.isUndefined(op.sseSchema) && Predicate.isNotUndefined(sseResponseSchema)) {
-          const statusMajorNumber = Number(status[0])
+          const statusMajorNumber = Number(parsedStatus[0])
           if (!Number.isNaN(statusMajorNumber) && statusMajorNumber < 4) {
             op.sseSchema = addSchema(`${schemaId}${status}Sse`, sseResponseSchema, op)
           }
         }
 
         if (Predicate.isNotUndefined(content?.["application/octet-stream"])) {
-          const statusMajorNumber = Number(status[0])
+          const statusMajorNumber = Number(parsedStatus[0])
           if (!Number.isNaN(statusMajorNumber) && statusMajorNumber < 4) {
             op.binaryResponse = true
           }
         }
 
         if (isEmptyResponse) {
-          if (status !== "default") {
-            op.voidSchemas.add(status.toLowerCase())
+          if (parsedStatus !== "default") {
+            op.voidSchemas.add(parsedStatus.toLowerCase())
           }
         }
       }
@@ -466,6 +527,7 @@ const parseOpenApi = (
       description: Utils.nonEmptyString(tag.description),
       externalDocs: tag.externalDocs
     })),
+    securitySchemes,
     operations
   }
 }
@@ -635,6 +697,113 @@ const cloneSecurityRequirements = (
       Object.entries(requirement).map(([name, scopes]) => [name, [...scopes]])
     )
   )
+
+const parseSecuritySchemes = (
+  spec: OpenAPISpec,
+  resolveRef: (ref: string) => unknown
+): Array<ParsedOperation.ParsedOpenApiSecurityScheme> => {
+  const securitySchemes = spec.components?.securitySchemes ?? {}
+  const parsed: Array<ParsedOperation.ParsedOpenApiSecurityScheme> = []
+
+  for (const [name, value] of Object.entries(securitySchemes)) {
+    const scheme = resolveReference(value, resolveRef) as OpenAPISecurityScheme | undefined
+    if (!Predicate.isObject(scheme)) {
+      continue
+    }
+
+    if (scheme.type === "http") {
+      const normalizedScheme = scheme.scheme.toLowerCase()
+      if (normalizedScheme === "basic") {
+        parsed.push({
+          name,
+          type: "basic",
+          description: Utils.nonEmptyString(scheme.description),
+          bearerFormat: undefined,
+          key: undefined,
+          in: undefined
+        })
+      } else if (normalizedScheme === "bearer") {
+        parsed.push({
+          name,
+          type: "bearer",
+          description: Utils.nonEmptyString(scheme.description),
+          bearerFormat: Utils.nonEmptyString(scheme.bearerFormat),
+          key: undefined,
+          in: undefined
+        })
+      }
+      continue
+    }
+
+    if (
+      scheme.type === "apiKey" &&
+      (scheme.in === "header" || scheme.in === "query" || scheme.in === "cookie") &&
+      typeof scheme.name === "string"
+    ) {
+      parsed.push({
+        name,
+        type: "apiKey",
+        description: Utils.nonEmptyString(scheme.description),
+        bearerFormat: undefined,
+        key: scheme.name,
+        in: scheme.in
+      })
+    }
+  }
+
+  return parsed
+}
+
+const warnForAndSecurityRequirements = (
+  emitWarning: WarningEmitter,
+  operation: ParsedOperation.ParsedOperation
+): void => {
+  if (operation.effectiveSecurity.some((requirement) => Object.keys(requirement).length === 0)) {
+    return
+  }
+  for (const requirement of operation.effectiveSecurity) {
+    const schemes = Object.keys(requirement)
+    if (schemes.length <= 1) {
+      continue
+    }
+    warnForOperation(emitWarning, operation, {
+      code: "security-and-downgraded",
+      message: `Security requirement requiring all of [${
+        schemes.join(", ")
+      }] was downgraded to a placeholder middleware.`
+    })
+  }
+}
+
+const hasSuccessfulSseResponse = (
+  responses: ReadonlyArray<readonly [string, unknown]>,
+  hasExplicitSuccessResponse: boolean
+): boolean => {
+  for (const [status, response] of responses) {
+    if (!Predicate.isObject(response)) {
+      continue
+    }
+    const content = Predicate.isObject(response.content)
+      ? response.content as Record<string, any>
+      : undefined
+    if (Predicate.isUndefined(content?.["text/event-stream"]?.schema)) {
+      continue
+    }
+
+    const remappedStatus = remapDefaultResponseStatusForHttpApi(status, hasExplicitSuccessResponse)
+    const statusCode = Number(remappedStatus)
+    if (!Number.isNaN(statusCode) && statusCode < 400) {
+      return true
+    }
+  }
+  return false
+}
+
+const remapDefaultResponseStatusForHttpApi = (status: string, hasExplicitSuccessResponse: boolean): string =>
+  status === "default" ? (hasExplicitSuccessResponse ? "500" : "200") : status
+
+const methodSupportsRequestBody = (method: OpenAPISpecMethodName): boolean =>
+  method !== "get" && method !== "head" && method !== "options" && method !== "trace"
 
 const warnForOperation = (
   emitWarning: WarningEmitter,

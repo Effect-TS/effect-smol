@@ -22,9 +22,19 @@ export interface ParsedOpenApiTag {
   readonly externalDocs: OpenAPISpecExternalDocs | undefined
 }
 
+export interface ParsedOpenApiSecurityScheme {
+  readonly name: string
+  readonly type: "basic" | "bearer" | "apiKey"
+  readonly description: string | undefined
+  readonly bearerFormat: string | undefined
+  readonly key: string | undefined
+  readonly in: "header" | "query" | "cookie" | undefined
+}
+
 export interface ParsedOpenApi {
   readonly metadata: ParsedOpenApiMetadata
   readonly tags: ReadonlyArray<ParsedOpenApiTag>
+  readonly securitySchemes: ReadonlyArray<ParsedOpenApiSecurityScheme>
   readonly operations: ReadonlyArray<ParsedOperation>
 }
 
