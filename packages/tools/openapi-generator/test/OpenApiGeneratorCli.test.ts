@@ -1,6 +1,7 @@
 import * as NodeServices from "@effect/platform-node/NodeServices"
 import { assert, describe, it } from "@effect/vitest"
 import { Effect, Layer, Stdio } from "effect"
+import * as Exit from "effect/Exit"
 import { TestConsole } from "effect/testing"
 import { CliOutput } from "effect/unstable/cli"
 
@@ -14,16 +15,22 @@ const makeLayer = (args: ReadonlyArray<string>) =>
 
 const fixturePath = (fileName: string) => `${import.meta.dirname}/fixtures/${fileName}`
 
+type CliMainModule = {
+  readonly run: Effect.Effect<void>
+}
+
 const runCli = Effect.fnUntraced(function*(args: ReadonlyArray<string>) {
-  const module = yield* Effect.promise(() => import(new URL("../src/main.ts", import.meta.url).href))
-  const run = module.run as Effect.Effect<void>
+  const module = (yield* Effect.promise(
+    () => import(new URL("../src/main.ts", import.meta.url).href)
+  )) as CliMainModule
+
   return yield* Effect.gen(function*() {
-    yield* run.pipe(Effect.ignore)
+    const exit = yield* Effect.exit(module.run)
     const stdoutLines = yield* TestConsole.logLines
     const stderrLines = yield* TestConsole.errorLines
     const stdout = stdoutLines.length > 0 ? String(stdoutLines[stdoutLines.length - 1]) : ""
     const stderr = stderrLines.map(String).join("\n")
-    return { stdout, stderr } as const
+    return { exit, stdout, stderr } as const
   }).pipe(Effect.provide(makeLayer(args)))
 })
 
@@ -58,6 +65,11 @@ describe("openapigen CLI", () => {
         "httpapi"
       ])
 
+      assert.isTrue(Exit.isSuccess(defaultResult.exit))
+      assert.isTrue(Exit.isSuccess(httpclientResult.exit))
+      assert.isTrue(Exit.isSuccess(typeOnlyResult.exit))
+      assert.isTrue(Exit.isSuccess(httpapiResult.exit))
+
       assert.strictEqual(defaultResult.stderr, "")
       assert.strictEqual(httpclientResult.stderr, "")
       assert.strictEqual(typeOnlyResult.stderr, "")
@@ -75,6 +87,7 @@ describe("openapigen CLI", () => {
       const spec = fixturePath("cli-basic-spec.json")
       const result = yield* runCli(["--spec", spec, "--name", "CliClient", "--type-only"])
 
+      assert.isTrue(Exit.isFailure(result.exit))
       assert.include(result.stdout, "USAGE")
       assert.include(result.stderr, "Unrecognized flag: --type-only")
     }))
@@ -84,7 +97,9 @@ describe("openapigen CLI", () => {
       const spec = fixturePath("cli-warning-spec.json")
       const result = yield* runCli(["--spec", spec, "--name", "CliClient"])
 
+      assert.isTrue(Exit.isSuccess(result.exit))
       assert.include(result.stdout, "export const make = (")
+      assert.include(result.stderr, "WARNING [cookie-parameter-dropped]")
       assert.include(result.stderr, "cookie-parameter-dropped")
       assert.notInclude(result.stdout, "cookie-parameter-dropped")
       assert.notInclude(result.stderr, "export const make = (")

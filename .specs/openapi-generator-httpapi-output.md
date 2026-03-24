@@ -466,11 +466,13 @@ Validation: `pnpm lint-fix`, `pnpm test packages/tools/openapi-generator/test/Op
   - `test/fixtures/cli-basic-spec.json`
   - `test/fixtures/cli-warning-spec.json`
 - Discovery: the CLI handler in `src/main.ts` was not wiring `onWarning`, so generator warnings were silently dropped. Task 5 now collects generator warnings and prints them to stderr via `Console.error` with stable `WARNING [code] ...` formatting.
+- Review hardening: CLI tests now also assert command exit status and explicit warning formatting on stderr, reducing the chance of false positives when command execution behavior changes.
 
 ### Remaining Task 5 scope
 
 - Update package docs/examples and package description text where still needed.
 - Add / confirm release changeset coverage for the final public CLI/API migration.
+- Add a process-level (spawned CLI) integration check to complement `TestConsole` assertions for stdout/stderr separation.
 
 ## Implementation plan status
 
