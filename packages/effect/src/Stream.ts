@@ -2583,6 +2583,147 @@ export const schedule: {
   ))
 
 /**
+ * Ends the stream if it does not produce a value within the specified duration,
+ * evaluating `orElse` when a timeout occurs.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const values = yield* Stream.never.pipe(
+ *     Stream.timeoutOrElse("1 second", () => Effect.succeed([0])),
+ *     Stream.runCollect
+ *   )
+ *   yield* Console.log(values)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [ 0 ]
+ * ```
+ *
+ * @since 4.0.0
+ * @category Rate Limiting
+ */
+export const timeoutOrElse: {
+  <A2, E2, R2>(
+    duration: Duration.Input,
+    orElse: LazyArg<Effect.Effect<Arr.NonEmptyReadonlyArray<A2>, E2, R2>>
+  ): <A, E, R>(self: Stream<A, E, R>) => Stream<A | A2, E | Pull.ExcludeDone<E2>, R | R2>
+  <A, E, R, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    duration: Duration.Input,
+    orElse: LazyArg<Effect.Effect<Arr.NonEmptyReadonlyArray<A2>, E2, R2>>
+  ): Stream<A | A2, E | Pull.ExcludeDone<E2>, R | R2>
+} = dual(
+  3,
+  <A, E, R, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    duration: Duration.Input,
+    orElse: LazyArg<Effect.Effect<Arr.NonEmptyReadonlyArray<A2>, E2, R2>>
+  ): Stream<A | A2, E | Pull.ExcludeDone<E2>, R | R2> =>
+    transformPull(
+      self,
+      Effect.fnUntraced(function*(pull, scope): Effect.fn.Return<
+        Pull.Pull<Arr.NonEmptyReadonlyArray<A | A2>, E | E2, void, R | R2>
+      > {
+        interface StartCommand {
+          readonly _tag: "Start"
+          readonly id: number
+          readonly fiber: Fiber.Fiber<Arr.NonEmptyReadonlyArray<A | A2>, E | Cause.Done>
+          readonly deadlineMs: number
+        }
+        interface ClearCommand {
+          readonly _tag: "Clear"
+          readonly id: number
+        }
+        type Command = StartCommand | ClearCommand
+
+        const timeoutSignal = Symbol()
+        const clock = yield* Clock
+        const durationMs = Duration.toMillis(Duration.fromInputUnsafe(duration))
+        const commands = yield* Queue.unbounded<Command>()
+        const pullInner = pull as Pull.Pull<Arr.NonEmptyReadonlyArray<A | A2>, E, void, R>
+        let commandId = 0
+        let timedOutId = -1
+        let timedOut = false
+
+        const timeoutLoop = Effect.suspend(function loop(
+          current: StartCommand | undefined = undefined
+        ): Effect.Effect<void> {
+          if (current === undefined) {
+            return Effect.flatMap(
+              Queue.take(commands),
+              (command) => command._tag === "Start" ? loop(command) : loop()
+            )
+          }
+
+          const remainingMs = current.deadlineMs - clock.currentTimeMillisUnsafe()
+          if (remainingMs <= 0) {
+            timedOutId = current.id
+            return Effect.flatMap(Fiber.interrupt(current.fiber), () => loop())
+          }
+
+          return Effect.flatMap(
+            Effect.raceFirst(
+              Queue.take(commands),
+              Effect.as(Effect.sleep(remainingMs), timeoutSignal)
+            ),
+            (event) => {
+              if (event === timeoutSignal) {
+                timedOutId = current.id
+                return Effect.flatMap(Fiber.interrupt(current.fiber), () => loop())
+              }
+              if (event._tag === "Start") {
+                return loop(event)
+              }
+              return event.id === current.id ? loop() : loop(current)
+            }
+          )
+        })
+
+        yield* Effect.forkIn(timeoutLoop, scope)
+
+        return Effect.suspend(() => {
+          if (timedOut) {
+            return Cause.done()
+          }
+
+          return Effect.gen(function*() {
+            const id = commandId++
+            const fiber = yield* Effect.forkIn(pullInner, scope)
+
+            if (durationMs <= 0) {
+              yield* Fiber.interrupt(fiber)
+              timedOut = true
+              return yield* orElse()
+            }
+
+            yield* Queue.offer(commands, {
+              _tag: "Start",
+              id,
+              fiber,
+              deadlineMs: clock.currentTimeMillisUnsafe() + durationMs
+            })
+
+            const exit = yield* Fiber.await(fiber)
+            yield* Queue.offer(commands, { _tag: "Clear", id })
+
+            if (Exit.isSuccess(exit)) {
+              return exit.value
+            }
+            if (timedOutId === id && Cause.hasInterruptsOnly(exit.cause)) {
+              timedOut = true
+              return yield* orElse()
+            }
+            return yield* Effect.failCause(exit.cause)
+          })
+        })
+      })
+    )
+)
+
+/**
  * Ends the stream if it does not produce a value within the specified duration.
  *
  * @example
@@ -2611,11 +2752,7 @@ export const timeout: {
 } = dual(
   2,
   <A, E, R>(self: Stream<A, E, R>, duration: Duration.Input): Stream<A, E, R> =>
-    transformPull(self, (pull, _scope) =>
-      Effect.succeed(Effect.timeoutOrElse(pull, {
-        duration,
-        onTimeout: () => Cause.done()
-      })))
+    timeoutOrElse(self, duration, () => Cause.done())
 )
 
 /**

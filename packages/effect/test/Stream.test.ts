@@ -4177,6 +4177,30 @@ describe("Stream", () => {
       }))
   })
 
+  describe("timeoutOrElse", () => {
+    it.effect("timeoutOrElse - uses fallback once", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.never,
+          Stream.timeoutOrElse(Duration.zero, () => Effect.succeed([0])),
+          Stream.take(2),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [0])
+      }))
+
+    it.effect("timeoutOrElse - fallback failure", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.never,
+          Stream.timeoutOrElse(Duration.zero, () => Effect.fail("timeout")),
+          Stream.runCollect,
+          Effect.exit
+        )
+        deepStrictEqual(result, Exit.fail("timeout"))
+      }))
+  })
+
   describe("when", () => {
     it.effect("when - returns the stream if the condition is satisfied", () =>
       Effect.gen(function*() {
