@@ -996,9 +996,13 @@ export const TestClientError = <Tag extends string, E>(
                       schema: {
                         type: "object",
                         properties: {
-                          file: { type: "string", format: "binary" }
+                          file: { type: "string", format: "binary" },
+                          files: {
+                            type: "array",
+                            items: { type: "string", format: "binary" }
+                          }
                         },
-                        required: ["file"],
+                        required: ["file", "files"],
                         additionalProperties: false
                       }
                     },
@@ -1069,11 +1073,18 @@ export const TestClientError = <Tag extends string, E>(
           tags: [{ name: "Payload" }]
         },
         [
+          `import { Multipart } from "effect/unstable/http"`,
+          `export type __HttpApiMultipartSingleFile = Multipart.PersistedFile
+export const __HttpApiMultipartSingleFile = Multipart.SingleFileSchema`,
+          `export type __HttpApiMultipartFiles = ReadonlyArray<Multipart.PersistedFile>
+export const __HttpApiMultipartFiles = Multipart.FilesSchema`,
+          `export type CreatePayloadRequestFormData = { readonly "file": __HttpApiMultipartSingleFile, readonly "files": __HttpApiMultipartFiles }`,
+          `export const CreatePayloadRequestFormData = Schema.Struct({ "file": __HttpApiMultipartSingleFile, "files": __HttpApiMultipartFiles })`,
           `export type CreatePayloadRequestJson = { readonly "a": string }`,
           `export type CreatePayloadRequestText = string
 export const CreatePayloadRequestText = Schema.String`,
-          `payload: [HttpApiSchema.NoContent, CreatePayloadRequestJson, (CreatePayloadRequestFormData as any).pipe(HttpApiSchema.asMultipart()), (CreatePayloadRequestFormUrlEncoded as any).pipe(HttpApiSchema.asFormUrlEncoded()), (CreatePayloadRequestText as any).pipe(HttpApiSchema.asText()), (CreatePayloadRequestBinary as any).pipe(HttpApiSchema.asUint8Array())]`,
-          `success: [CreatePayload200, (CreatePayload200Text as any).pipe(HttpApiSchema.asText()), (CreatePayload200Binary as any).pipe(HttpApiSchema.asUint8Array()), HttpApiSchema.Empty(201)]`
+          `payload: [HttpApiSchema.NoContent, CreatePayloadRequestJson, CreatePayloadRequestFormData.pipe(HttpApiSchema.asMultipart()), CreatePayloadRequestFormUrlEncoded.pipe(HttpApiSchema.asFormUrlEncoded()), CreatePayloadRequestText.pipe(HttpApiSchema.asText()), CreatePayloadRequestBinary.pipe(HttpApiSchema.asUint8Array())]`,
+          `success: [CreatePayload200, CreatePayload200Text.pipe(HttpApiSchema.asText()), CreatePayload200Binary.pipe(HttpApiSchema.asUint8Array()), HttpApiSchema.Empty(201)]`
         ],
         [
           "Schema.Opaque",

@@ -57,6 +57,11 @@ export interface OpenApiGenerateOptions {
   readonly onWarning?: ((warning: OpenApiGeneratorWarning) => void) | undefined
 }
 
+interface HttpApiMultipartSchemaRefs {
+  readonly singleFile: string
+  readonly files: string
+}
+
 const methodNames: ReadonlyArray<OpenAPISpecMethodName> = [
   "get",
   "put",
@@ -89,13 +94,24 @@ export const make = Effect.gen(function*() {
         return current
       }
 
-      const parsed = parseOpenApi(spec, generator, resolveRef, options.format, emitWarning)
+      const multipartSchemaRefs = options.format === "httpapi"
+        ? makeHttpApiMultipartSchemaRefs(spec.components?.schemas ?? {})
+        : undefined
+
+      const parsed = parseOpenApi(spec, generator, resolveRef, options.format, emitWarning, multipartSchemaRefs)
 
       // TODO: make a CLI option ?
       const importName = "Schema"
       const source = getDialect(spec)
       const generation = options.format === "httpapi"
-        ? generator.generateHttpApi(source, spec.components?.schemas ?? {}, { onEnter: options.onEnter })
+        ? generator.generateHttpApi(
+          source,
+          withHttpApiMultipartSchemas(spec.components?.schemas ?? {}, multipartSchemaRefs),
+          {
+            onEnter: options.onEnter,
+            multipartSchemaRefs
+          }
+        )
         : generator.generate(
           source,
           spec.components?.schemas ?? {},
@@ -106,8 +122,9 @@ export const make = Effect.gen(function*() {
         )
 
       if (options.format === "httpapi") {
+        const needsMultipartImport = generation.includes("Multipart.")
         return String.stripMargin(
-          `|${HttpApiTransformer.imports(importName)}
+          `|${HttpApiTransformer.imports(importName, { multipart: needsMultipartImport })}
            |${generation}
            |${HttpApiTransformer.toImplementation(importName, options.name, parsed)}`
         )
@@ -145,7 +162,8 @@ const parseOpenApi = (
   generator: ReturnType<typeof JsonSchemaGenerator.make>,
   resolveRef: (ref: string) => unknown,
   format: OpenApiGeneratorFormat,
-  emitWarning: WarningEmitter
+  emitWarning: WarningEmitter,
+  multipartSchemaRefs: HttpApiMultipartSchemaRefs | undefined
 ): ParsedOperation.ParsedOpenApi => {
   const operations: Array<ParsedOperation.ParsedOperation> = []
   const reservedSchemaNames = new Set<string>(Object.keys(spec.components?.schemas ?? {}))
@@ -347,7 +365,11 @@ const parseOpenApi = (
         }
 
         if (Predicate.isNotUndefined(content["multipart/form-data"]?.schema)) {
-          op.payload = addSchema(`${schemaId}RequestFormData`, content["multipart/form-data"].schema, op)
+          op.payload = addSchema(
+            `${schemaId}RequestFormData`,
+            transformMultipartSchema(content["multipart/form-data"].schema, multipartSchemaRefs),
+            op
+          )
           op.payloadFormData = true
           requestSchemaNames.set("multipart/form-data", op.payload)
         }
@@ -364,9 +386,12 @@ const parseOpenApi = (
             }
             let schemaName = requestSchemaNames.get(contentType)
             if (schemaName === undefined) {
+              const schema = encoding === "multipart"
+                ? transformMultipartSchema(mediaType.schema as JsonSchema.JsonSchema, multipartSchemaRefs)
+                : mediaType.schema as JsonSchema.JsonSchema
               schemaName = addSchema(
                 `${schemaId}Request${mediaTypeToSuffix(contentType)}`,
-                mediaType.schema as JsonSchema.JsonSchema,
+                schema,
                 op
               )
               requestSchemaNames.set(contentType, schemaName)
@@ -659,6 +684,98 @@ const mediaTypeToSuffix = (contentType: string): string => {
   }
   const suffix = Utils.identifier(contentType)
   return suffix.length > 0 ? suffix : "Body"
+}
+
+const makeHttpApiMultipartSchemaRefs = (definitions: JsonSchema.Definitions): HttpApiMultipartSchemaRefs => {
+  const names = new Set(Object.keys(definitions))
+  const allocate = (base: string): string => {
+    let candidate = base
+    let index = 2
+    while (names.has(candidate)) {
+      candidate = `${base}${index}`
+      index += 1
+    }
+    names.add(candidate)
+    return candidate
+  }
+  return {
+    singleFile: allocate("__HttpApiMultipartSingleFile"),
+    files: allocate("__HttpApiMultipartFiles")
+  }
+}
+
+const toDefinitionRef = (name: string): string => `#/$defs/${name.replaceAll("~", "~0").replaceAll("/", "~1")}`
+
+const withHttpApiMultipartSchemas = (
+  definitions: JsonSchema.Definitions,
+  multipartSchemaRefs: HttpApiMultipartSchemaRefs | undefined
+): JsonSchema.Definitions => {
+  if (multipartSchemaRefs === undefined) {
+    return definitions
+  }
+  return {
+    ...definitions,
+    [multipartSchemaRefs.singleFile]: {
+      type: "string",
+      format: "binary"
+    },
+    [multipartSchemaRefs.files]: {
+      type: "array",
+      items: {
+        $ref: toDefinitionRef(multipartSchemaRefs.singleFile)
+      }
+    }
+  }
+}
+
+const transformMultipartSchema = (
+  schema: JsonSchema.JsonSchema,
+  multipartSchemaRefs: HttpApiMultipartSchemaRefs | undefined
+): JsonSchema.JsonSchema => {
+  if (multipartSchemaRefs === undefined) {
+    return schema
+  }
+
+  const singleFileRef = toDefinitionRef(multipartSchemaRefs.singleFile)
+  const filesRef = toDefinitionRef(multipartSchemaRefs.files)
+
+  const visit = (value: unknown): unknown => {
+    if (Array.isArray(value)) {
+      return value.map(visit)
+    }
+    if (!Predicate.isObject(value)) {
+      return value
+    }
+    if (isMultipartBinaryFile(value)) {
+      return { $ref: singleFileRef }
+    }
+
+    const out: Record<string, unknown> = {}
+    for (const [key, current] of Object.entries(value)) {
+      out[key] = visit(current)
+    }
+
+    if (isMultipartBinaryFiles(out, singleFileRef)) {
+      return { $ref: filesRef }
+    }
+
+    return out
+  }
+
+  return visit(schema) as JsonSchema.JsonSchema
+}
+
+const isMultipartBinaryFile = (value: unknown): value is JsonSchema.JsonSchema =>
+  Predicate.isObject(value) &&
+  value.type === "string" &&
+  value.format === "binary"
+
+const isMultipartBinaryFiles = (value: Record<string, unknown>, singleFileRef: string): boolean => {
+  if (value.type !== "array") {
+    return false
+  }
+  const items = value.items
+  return isMultipartBinaryFile(items) || (Predicate.isObject(items) && items.$ref === singleFileRef)
 }
 
 const isJsonMediaType = (contentType: string): boolean =>

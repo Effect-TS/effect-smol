@@ -9,6 +9,13 @@ interface GenerateOptions {
   readonly onEnter?: ((js: JsonSchema.JsonSchema) => JsonSchema.JsonSchema) | undefined
 }
 
+interface GenerateHttpApiOptions extends GenerateOptions {
+  readonly multipartSchemaRefs?: {
+    readonly singleFile: string
+    readonly files: string
+  } | undefined
+}
+
 export function make() {
   const store: Record<string, JsonSchema.JsonSchema> = {}
 
@@ -84,7 +91,7 @@ export function make() {
   function generateHttpApi(
     source: Source,
     components: JsonSchema.Definitions,
-    options?: GenerateOptions
+    options?: GenerateHttpApiOptions
   ) {
     const generated = makeCodeDocument(source, components, options)
     if (generated === undefined) {
@@ -94,7 +101,9 @@ export function make() {
     const nonRecursiveReferences = generated.codeDocument.references.nonRecursives
     const recursiveReferences = Object.entries(generated.codeDocument.references.recursives)
 
-    const nonRecursives = nonRecursiveReferences.map(({ $ref, code }) => renderSchemaTypeAndRuntime($ref, code, false))
+    const nonRecursives = nonRecursiveReferences.map(({ $ref, code }) =>
+      renderSchemaTypeAndRuntime($ref, code, false, options?.multipartSchemaRefs)
+    )
 
     const recursivelyForwardReferenced = collectForwardReferencedRecursives(nonRecursiveReferences, recursiveReferences)
     const recursiveInternalNames = makeRecursiveInternalNameMap(
@@ -117,11 +126,11 @@ export function make() {
         continue
       }
 
-      recursives.push(renderSchemaTypeAndRuntime($ref, code, false))
+      recursives.push(renderSchemaTypeAndRuntime($ref, code, false, options?.multipartSchemaRefs))
     }
 
     const codes = generated.codeDocument.codes.map((code, i) =>
-      renderSchemaTypeAndRuntime(generated.nameMap[i], code, false)
+      renderSchemaTypeAndRuntime(generated.nameMap[i], code, false, options?.multipartSchemaRefs)
     )
 
     return render("recursive declarations", recursiveDeclarations) +
@@ -187,7 +196,30 @@ function fromSchemaOpenApi(source: Source, jsonSchema: JsonSchema.JsonSchema) {
   }
 }
 
-function renderSchemaTypeAndRuntime($ref: string, code: SchemaRepresentation.Code, typeOnly: boolean) {
+function renderSchemaTypeAndRuntime(
+  $ref: string,
+  code: SchemaRepresentation.Code,
+  typeOnly: boolean,
+  multipartSchemaRefs?: {
+    readonly singleFile: string
+    readonly files: string
+  }
+) {
+  if (!typeOnly && multipartSchemaRefs !== undefined) {
+    if ($ref === multipartSchemaRefs.singleFile) {
+      return [
+        `export type ${$ref} = Multipart.PersistedFile`,
+        `export const ${$ref} = Multipart.SingleFileSchema`
+      ].join("\n")
+    }
+    if ($ref === multipartSchemaRefs.files) {
+      return [
+        `export type ${$ref} = ReadonlyArray<Multipart.PersistedFile>`,
+        `export const ${$ref} = Multipart.FilesSchema`
+      ].join("\n")
+    }
+  }
+
   const strings = [`export type ${$ref} = ${code.Type}`]
   if (!typeOnly) {
     strings.push(`export const ${$ref} = ${code.runtime}`)

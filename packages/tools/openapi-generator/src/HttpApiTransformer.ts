@@ -24,9 +24,15 @@ interface SecurityRenderModel {
 
 const fallbackGroupIdentifier = "default"
 
-export const imports = (importName: string): string =>
+export const imports = (
+  importName: string,
+  options?: {
+    readonly multipart?: boolean | undefined
+  }
+): string =>
   [
     `import * as ${importName} from "effect/Schema"`,
+    ...(options?.multipart === true ? [`import { Multipart } from "effect/unstable/http"`] : []),
     `import { HttpApi, HttpApiEndpoint, HttpApiGroup, HttpApiMiddleware, HttpApiSchema, HttpApiSecurity, OpenApi } from "effect/unstable/httpapi"`
   ].join("\n")
 
