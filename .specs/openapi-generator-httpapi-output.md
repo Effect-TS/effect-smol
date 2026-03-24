@@ -455,10 +455,27 @@ Validation: `pnpm lint-fix`, `pnpm test packages/tools/openapi-generator/test/Op
 
 - Unsupported security-scheme types are currently ignored (not yet surfaced through a dedicated warning code); decide whether to introduce a new warning code in Task 5 or later.
 
+## Task 5 implementation notes
+
+- Added dedicated CLI-focused coverage in `packages/tools/openapi-generator/test/OpenApiGeneratorCli.test.ts` for:
+  - `--format` routing for `httpclient`, `httpclient-type-only`, and `httpapi`
+  - default format behavior (`--format` omitted => `httpclient`)
+  - rejection of legacy `--type-only`
+  - warning surfacing on stderr only while generated source remains on stdout
+- Added focused CLI fixtures:
+  - `test/fixtures/cli-basic-spec.json`
+  - `test/fixtures/cli-warning-spec.json`
+- Discovery: the CLI handler in `src/main.ts` was not wiring `onWarning`, so generator warnings were silently dropped. Task 5 now collects generator warnings and prints them to stderr via `Console.error` with stable `WARNING [code] ...` formatting.
+
+### Remaining Task 5 scope
+
+- Update package docs/examples and package description text where still needed.
+- Add / confirm release changeset coverage for the final public CLI/API migration.
+
 ## Implementation plan status
 
 - ✅ Task 1 — Migrate the API and CLI to `format` for existing HttpClient modes
 - ✅ Task 2 — Introduce warnings and a richer parsed model
 - ✅ Task 3 — Add baseline HttpApi rendering for representable operations and opaque schema declarations
 - ✅ Task 4 — Add security placeholders and lossy-feature handling
-- ⏳ Task 5 — Finish CLI coverage, docs, and release bookkeeping
+- 🚧 Task 5 — Finish CLI coverage, docs, and release bookkeeping (CLI coverage + warning surfacing completed; docs/release follow-ups remain)
