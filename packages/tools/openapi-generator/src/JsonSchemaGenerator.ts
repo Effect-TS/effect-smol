@@ -3,6 +3,12 @@ import * as JsonSchema from "effect/JsonSchema"
 import * as Rec from "effect/Record"
 import * as SchemaRepresentation from "effect/SchemaRepresentation"
 
+type Source = "openapi-3.0" | "openapi-3.1"
+
+interface GenerateOptions {
+  readonly onEnter?: ((js: JsonSchema.JsonSchema) => JsonSchema.JsonSchema) | undefined
+}
+
 export function make() {
   const store: Record<string, JsonSchema.JsonSchema> = {}
 
@@ -15,80 +21,174 @@ export function make() {
   }
 
   function generate(
-    source: "openapi-3.0" | "openapi-3.1",
+    source: Source,
     components: JsonSchema.Definitions,
     typeOnly: boolean,
-    options?: {
-      readonly onEnter?: ((js: JsonSchema.JsonSchema) => JsonSchema.JsonSchema) | undefined
-    }
+    options?: GenerateOptions
   ) {
+    const generated = makeCodeDocument(source, components, options)
+    if (generated === undefined) {
+      return ""
+    }
+
+    const nonRecursives = generated.codeDocument.references.nonRecursives.map(({ $ref, code }) =>
+      renderSchemaTypeAndRuntime($ref, code, typeOnly)
+    )
+    const recursives = Object.entries(generated.codeDocument.references.recursives).map(([$ref, code]) =>
+      renderSchemaTypeAndRuntime($ref, code, typeOnly)
+    )
+    const codes = generated.codeDocument.codes.map((code, i) =>
+      renderSchemaTypeAndRuntime(generated.nameMap[i], code, typeOnly)
+    )
+
+    return render("non-recursive definitions", nonRecursives) +
+      render("recursive definitions", recursives) +
+      render("schemas", codes)
+  }
+
+  function generateHttpApi(
+    source: Source,
+    components: JsonSchema.Definitions,
+    options?: GenerateOptions
+  ) {
+    const generated = makeCodeDocument(source, components, options)
+    if (generated === undefined) {
+      return ""
+    }
+
+    const nonRecursives = generated.codeDocument.references.nonRecursives.map(({ $ref, code }) =>
+      renderSchemaOpaqueOrClass($ref, code, generated.rawSchemaByName[$ref])
+    )
+    const recursives = Object.entries(generated.codeDocument.references.recursives).map(([$ref, code]) =>
+      renderSchemaTypeAndRuntime($ref, code, false)
+    )
+    const codes = generated.codeDocument.codes.map((code, i) =>
+      renderSchemaOpaqueOrClass(generated.nameMap[i], code, generated.rawSchemaByName[generated.nameMap[i]])
+    )
+
+    return render("non-recursive definitions", nonRecursives) +
+      render("recursive definitions", recursives) +
+      render("schemas", codes)
+  }
+
+  function makeCodeDocument(
+    source: Source,
+    components: JsonSchema.Definitions,
+    options?: GenerateOptions
+  ): {
+    readonly nameMap: Array<string>
+    readonly codeDocument: SchemaRepresentation.CodeDocument
+    readonly rawSchemaByName: Record<string, JsonSchema.JsonSchema>
+  } | undefined {
     const nameMap: Array<string> = []
     const schemas: Array<JsonSchema.JsonSchema> = []
+    const rawSchemaByName: Record<string, JsonSchema.JsonSchema> = { ...components }
 
     const definitions: JsonSchema.Definitions = Rec.map(
       components,
-      (js) => fromSchemaOpenApi(js).schema
+      (js) => fromSchemaOpenApi(source, js).schema
     )
 
     for (const [name, js] of Object.entries(store)) {
       nameMap.push(name)
-      schemas.push(fromSchemaOpenApi(js).schema)
+      rawSchemaByName[name] = js
+      schemas.push(fromSchemaOpenApi(source, js).schema)
     }
 
-    if (Arr.isArrayNonEmpty(schemas)) {
-      const multiDocument: SchemaRepresentation.MultiDocument = SchemaRepresentation.fromJsonSchemaMultiDocument({
-        dialect: "draft-2020-12",
-        schemas,
-        definitions
-      }, {
-        onEnter(js) {
-          const out = { ...js }
-          if (out.type === "object" && out.additionalProperties === undefined) {
-            out.additionalProperties = false
-          }
-          return options?.onEnter?.(out) ?? out
+    if (!Arr.isArrayNonEmpty(schemas)) {
+      return
+    }
+
+    const multiDocument: SchemaRepresentation.MultiDocument = SchemaRepresentation.fromJsonSchemaMultiDocument({
+      dialect: "draft-2020-12",
+      schemas,
+      definitions
+    }, {
+      onEnter(js) {
+        const out = { ...js }
+        if (out.type === "object" && out.additionalProperties === undefined) {
+          out.additionalProperties = false
         }
-      })
-
-      const codeDocument = SchemaRepresentation.toCodeDocument(multiDocument)
-
-      const nonRecursives = codeDocument.references.nonRecursives.map(({ $ref, code }) => renderSchema($ref, code))
-      const recursives = Object.entries(codeDocument.references.recursives).map(([$ref, code]) =>
-        renderSchema($ref, code)
-      )
-      const codes = codeDocument.codes.map((code, i) => renderSchema(nameMap[i], code))
-
-      const s = render("non-recursive definitions", nonRecursives) +
-        render("recursive definitions", recursives) +
-        render("schemas", codes)
-
-      return s
-    } else {
-      return ""
-    }
-
-    function fromSchemaOpenApi(jsonSchema: JsonSchema.JsonSchema) {
-      switch (source) {
-        case "openapi-3.1":
-          return JsonSchema.fromSchemaOpenApi3_1(jsonSchema)
-        case "openapi-3.0":
-          return JsonSchema.fromSchemaOpenApi3_0(jsonSchema)
+        return options?.onEnter?.(out) ?? out
       }
-    }
+    })
 
-    function renderSchema($ref: string, code: SchemaRepresentation.Code) {
-      const strings = [`export type ${$ref} = ${code.Type}`]
-      if (!typeOnly) {
-        strings.push(`export const ${$ref} = ${code.runtime}`)
-      }
-      return strings.join("\n")
-    }
-
-    function render(title: string, as: ReadonlyArray<string>) {
-      if (as.length === 0) return ""
-      return "// " + title + "\n" + as.join("\n") + "\n"
+    return {
+      nameMap,
+      rawSchemaByName,
+      codeDocument: SchemaRepresentation.toCodeDocument(multiDocument)
     }
   }
 
-  return { addSchema, generate } as const
+  return { addSchema, generate, generateHttpApi } as const
+}
+
+function fromSchemaOpenApi(source: Source, jsonSchema: JsonSchema.JsonSchema) {
+  switch (source) {
+    case "openapi-3.1":
+      return JsonSchema.fromSchemaOpenApi3_1(jsonSchema)
+    case "openapi-3.0":
+      return JsonSchema.fromSchemaOpenApi3_0(jsonSchema)
+  }
+}
+
+function renderSchemaTypeAndRuntime($ref: string, code: SchemaRepresentation.Code, typeOnly: boolean) {
+  const strings = [`export type ${$ref} = ${code.Type}`]
+  if (!typeOnly) {
+    strings.push(`export const ${$ref} = ${code.runtime}`)
+  }
+  return strings.join("\n")
+}
+
+function renderSchemaOpaqueOrClass(
+  $ref: string,
+  code: SchemaRepresentation.Code,
+  rawSchema: JsonSchema.JsonSchema | undefined
+) {
+  const classFields = extractStructFields(code.runtime)
+  if (isStructLike(rawSchema) && classFields !== undefined) {
+    return `export class ${$ref} extends Schema.Class<${$ref}>(${JSON.stringify($ref)})(${classFields}) {}`
+  }
+  return `export class ${$ref} extends Schema.Opaque<${$ref}>()(${code.runtime}) {}`
+}
+
+function isStructLike(schema: JsonSchema.JsonSchema | undefined): boolean {
+  if (schema === undefined || typeof schema !== "object" || schema === null || Array.isArray(schema)) {
+    return false
+  }
+  if (schema.type !== "object") {
+    return false
+  }
+  return "properties" in schema
+}
+
+function extractStructFields(runtime: string): string | undefined {
+  const prefix = "Schema.Struct("
+  const trimmed = runtime.trim()
+  if (!trimmed.startsWith(prefix)) {
+    return
+  }
+
+  const rest = trimmed.slice(prefix.length)
+  let depth = 1
+  for (let i = 0; i < rest.length; i++) {
+    const char = rest[i]
+    if (char === "(") {
+      depth += 1
+    } else if (char === ")") {
+      depth -= 1
+      if (depth === 0) {
+        if (i !== rest.length - 1) {
+          return
+        }
+        return rest.slice(0, i)
+      }
+    }
+  }
+  return
+}
+
+function render(title: string, as: ReadonlyArray<string>) {
+  if (as.length === 0) return ""
+  return "// " + title + "\n" + as.join("\n") + "\n"
 }

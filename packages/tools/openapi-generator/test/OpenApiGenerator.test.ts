@@ -52,6 +52,23 @@ function assertRuntimeIncludes(spec: OpenAPISpec, includes: ReadonlyArray<string
   )
 }
 
+function assertHttpApiIncludes(spec: OpenAPISpec, includes: ReadonlyArray<string>) {
+  return Effect.gen(function*() {
+    const generator = yield* OpenApiGenerator.OpenApiGenerator
+
+    const result = yield* generator.generate(spec, {
+      name: "TestClient",
+      format: "httpapi"
+    })
+
+    for (const expected of includes) {
+      assert.include(result, expected)
+    }
+  }).pipe(
+    Effect.provide(OpenApiGenerator.layerTransformerSchema)
+  )
+}
+
 function assertRuntimeStableWithWarnings(
   spec: OpenAPISpec,
   expectedWarnings: ReadonlyArray<
@@ -645,6 +662,257 @@ export const TestClientError = <Tag extends string, E>(
     response,
     request: response.request,
   }) as any`
+      ))
+  })
+
+  describe("httpapi", () => {
+    it.effect("generates tagged groups with endpoint annotations and representable parameters", () =>
+      assertHttpApiIncludes(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Test API",
+            version: "1.0.0",
+            summary: "Summary",
+            description: "Description"
+          },
+          paths: {
+            "/users/{id}": {
+              get: {
+                operationId: "getUser",
+                summary: "Get user",
+                description: "Read a user",
+                deprecated: true,
+                externalDocs: {
+                  url: "https://example.com/get-user"
+                },
+                parameters: [
+                  {
+                    name: "id",
+                    in: "path",
+                    schema: { type: "string" },
+                    required: true
+                  },
+                  {
+                    name: "filter",
+                    in: "query",
+                    schema: { type: "string" },
+                    required: false
+                  },
+                  {
+                    name: "trace-id",
+                    in: "header",
+                    schema: { type: "string" },
+                    required: false
+                  }
+                ],
+                responses: {
+                  200: {
+                    description: "User",
+                    content: {
+                      "application/json": {
+                        schema: {
+                          type: "object",
+                          properties: {
+                            id: { type: "string" }
+                          },
+                          required: ["id"],
+                          additionalProperties: false
+                        }
+                      }
+                    }
+                  },
+                  404: {
+                    description: "Not found"
+                  }
+                },
+                tags: ["Users"],
+                security: []
+              }
+            }
+          },
+          components: {
+            schemas: {},
+            securitySchemes: {}
+          },
+          security: [],
+          tags: [
+            {
+              name: "Users",
+              description: "User operations",
+              externalDocs: {
+                url: "https://example.com/users"
+              }
+            }
+          ]
+        },
+        [
+          `import { HttpApi, HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "effect/unstable/httpapi"`,
+          `export class GetUserPathParams extends Schema.Class<GetUserPathParams>("GetUserPathParams")({ "id": Schema.String }) {}`,
+          `const UsersGroup = HttpApiGroup.make("Users")`,
+          `.annotate(OpenApi.Description, "User operations")`,
+          `.annotate(OpenApi.ExternalDocs, {"url":"https://example.com/users"})`,
+          `HttpApiEndpoint.get("getUser", "/users/:id", { params: GetUserPathParams, query: GetUserQuery, headers: GetUserHeaders, success: GetUser200, error: HttpApiSchema.Empty(404) })`,
+          `.annotate(OpenApi.Identifier, "getUser")`,
+          `.annotate(OpenApi.Summary, "Get user")`,
+          `.annotate(OpenApi.Description, "Read a user")`,
+          `.annotate(OpenApi.Deprecated, true)`,
+          `.annotate(OpenApi.ExternalDocs, {"url":"https://example.com/get-user"})`,
+          `export class TestClient extends HttpApi.make("TestClient") {}`,
+          `export const TestClientApi = TestClient`,
+          `.annotate(OpenApi.Title, "Test API")`,
+          `.annotate(OpenApi.Version, "1.0.0")`,
+          `.annotate(OpenApi.Summary, "Summary")`,
+          `.annotate(OpenApi.Description, "Description")`,
+          `.add(UsersGroup)`
+        ]
+      ))
+
+    it.effect("creates top-level fallback group for untagged operations", () =>
+      assertHttpApiIncludes(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Test API",
+            version: "1.0.0"
+          },
+          paths: {
+            "/health": {
+              get: {
+                operationId: "getHealth",
+                parameters: [],
+                responses: {
+                  204: {
+                    description: "No content"
+                  }
+                },
+                tags: [] as any,
+                security: []
+              }
+            }
+          },
+          components: {
+            schemas: {},
+            securitySchemes: {}
+          },
+          security: [],
+          tags: []
+        },
+        [
+          `const DefaultGroup = HttpApiGroup.make("default", { topLevel: true })`,
+          `HttpApiEndpoint.get("getHealth", "/health", { success: HttpApiSchema.Empty(204) })`,
+          `.add(DefaultGroup)`
+        ]
+      ))
+
+    it.effect("maps request and response encodings including optional request body approximation", () =>
+      assertHttpApiIncludes(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Test API",
+            version: "1.0.0"
+          },
+          paths: {
+            "/payload": {
+              post: {
+                operationId: "createPayload",
+                parameters: [],
+                requestBody: {
+                  required: false,
+                  content: {
+                    "application/json": {
+                      schema: {
+                        type: "object",
+                        properties: {
+                          a: { type: "string" }
+                        },
+                        required: ["a"],
+                        additionalProperties: false
+                      }
+                    },
+                    "multipart/form-data": {
+                      schema: {
+                        type: "object",
+                        properties: {
+                          file: { type: "string", format: "binary" }
+                        },
+                        required: ["file"],
+                        additionalProperties: false
+                      }
+                    },
+                    "application/x-www-form-urlencoded": {
+                      schema: {
+                        type: "object",
+                        properties: {
+                          form: { type: "string" }
+                        },
+                        required: ["form"],
+                        additionalProperties: false
+                      }
+                    },
+                    "text/plain": {
+                      schema: {
+                        type: "string"
+                      }
+                    },
+                    "application/octet-stream": {
+                      schema: {
+                        type: "string",
+                        format: "binary"
+                      }
+                    }
+                  }
+                } as any,
+                responses: {
+                  200: {
+                    description: "Payload",
+                    content: {
+                      "application/json": {
+                        schema: {
+                          type: "object",
+                          properties: {
+                            ok: { type: "boolean" }
+                          },
+                          required: ["ok"],
+                          additionalProperties: false
+                        }
+                      },
+                      "text/plain": {
+                        schema: {
+                          type: "string"
+                        }
+                      },
+                      "application/octet-stream": {
+                        schema: {
+                          type: "string",
+                          format: "binary"
+                        }
+                      }
+                    }
+                  },
+                  201: {
+                    description: "Created"
+                  }
+                },
+                tags: ["Payload"],
+                security: []
+              }
+            }
+          },
+          components: {
+            schemas: {},
+            securitySchemes: {}
+          },
+          security: [],
+          tags: [{ name: "Payload" }]
+        },
+        [
+          `extends Schema.Class<CreatePayloadRequestJson>("CreatePayloadRequestJson")`,
+          `extends Schema.Opaque<CreatePayloadRequestText>()(Schema.String)`,
+          `payload: [HttpApiSchema.NoContent, CreatePayloadRequestJson, (CreatePayloadRequestFormData as any).pipe(HttpApiSchema.asMultipart()), (CreatePayloadRequestFormUrlEncoded as any).pipe(HttpApiSchema.asFormUrlEncoded()), (CreatePayloadRequestText as any).pipe(HttpApiSchema.asText()), (CreatePayloadRequestBinary as any).pipe(HttpApiSchema.asUint8Array())]`,
+          `success: [CreatePayload200, (CreatePayload200Text as any).pipe(HttpApiSchema.asText()), (CreatePayload200Binary as any).pipe(HttpApiSchema.asUint8Array()), HttpApiSchema.Empty(201)]`
+        ]
       ))
   })
 

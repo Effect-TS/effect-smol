@@ -401,10 +401,42 @@ Validation: `pnpm lint-fix`, `pnpm test packages/tools/openapi-generator/test/Op
 - Add focused regression coverage for `$ref`-heavy parameter/request-body scenarios to guard byte-for-byte HttpClient compatibility during future parser refactors.
 - Decide whether to include `pathItem.parameters` in the parsed intermediate model before wiring HttpApi rendering, and document any intentional compatibility constraints.
 
+## Task 3 implementation notes
+
+- Added a dedicated `HttpApiTransformer.ts` and wired `format: "httpapi"` dispatch in `OpenApiGenerator.generate`.
+- Added `JsonSchemaGenerator.generateHttpApi` for class/opaque schema declarations:
+  - non-recursive schemas now render as `Schema.Class` when struct-like and as `Schema.Opaque` otherwise
+  - recursive definitions currently fall back to the existing `type + const` style to avoid invalid self-references in class heritage expressions
+- Extended the parsed operation model with HttpApi-oriented data:
+  - per-location parameter schemas (`path`, `query`, `headers`)
+  - representable request-body media schema mappings
+  - representable response media schema mappings plus empty-response markers
+  - metadata for `license` and `servers`
+- Added deterministic schema name collision handling (with `Name2`, `Name3`, ... suffixes) via a reserved-name set that includes component schema names and generated operation schema names.
+- Implemented baseline HttpApi rendering behavior:
+  - first-tag group ownership and fallback `default` top-level group for untagged operations
+  - endpoint OpenAPI annotations (`Identifier`, `Summary`, `Description`, `Deprecated`, `ExternalDocs`)
+  - representable request/response mappings for json, multipart, form-urlencoded, text, binary, and empty responses
+  - optional request-body approximation via `HttpApiSchema.NoContent` payload alternative
+  - root API class declaration `export class <Name> extends HttpApi.make("<Name>") {}` with composed exported value `export const <Name>Api = <Name>...`
+- Added focused HttpApi happy-path tests in `packages/tools/openapi-generator/test/OpenApiGenerator.test.ts` covering:
+  - tagged group generation
+  - fallback top-level group generation
+  - endpoint annotations
+  - representable parameter mappings
+  - request/response encoding mappings
+  - optional request-body approximation
+  - class/opaque schema declaration presence
+
+### Additional follow-up tasks
+
+- `OpenAPISpecRequestBody` typing currently models `required` as mandatory/`true` in this repository's OpenAPI type definitions; test fixtures use a local cast for optional request-body scenarios.
+- Baseline HttpApi response mapping currently ignores non-numeric response status keys; full default-response remapping behavior remains for Task 4.
+
 ## Implementation plan status
 
 - ✅ Task 1 — Migrate the API and CLI to `format` for existing HttpClient modes
 - ✅ Task 2 — Introduce warnings and a richer parsed model
-- ⏳ Task 3 — Add baseline HttpApi rendering for representable operations and opaque schema declarations
+- ✅ Task 3 — Add baseline HttpApi rendering for representable operations and opaque schema declarations
 - ⏳ Task 4 — Add security placeholders and lossy-feature handling
 - ⏳ Task 5 — Finish CLI coverage, docs, and release bookkeeping

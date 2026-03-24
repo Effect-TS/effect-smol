@@ -2,7 +2,9 @@ import type * as Types from "effect/Types"
 import type {
   OpenAPISecurityRequirement,
   OpenAPISpecExternalDocs,
-  OpenAPISpecMethodName
+  OpenAPISpecLicense,
+  OpenAPISpecMethodName,
+  OpenAPISpecServer
 } from "effect/unstable/httpapi/OpenApi"
 
 export interface ParsedOpenApiMetadata {
@@ -10,6 +12,8 @@ export interface ParsedOpenApiMetadata {
   readonly version: string
   readonly summary: string | undefined
   readonly description: string | undefined
+  readonly license: OpenAPISpecLicense | undefined
+  readonly servers: ReadonlyArray<OpenAPISpecServer> | undefined
 }
 
 export interface ParsedOpenApiTag {
@@ -44,11 +48,26 @@ export interface ParsedOperationRequestBody {
   readonly contentTypes: Array<string>
 }
 
+export type ParsedOperationMediaTypeEncoding =
+  | "json"
+  | "multipart"
+  | "form-url-encoded"
+  | "text"
+  | "binary"
+
+export interface ParsedOperationMediaTypeSchema {
+  readonly contentType: string
+  readonly encoding: ParsedOperationMediaTypeEncoding
+  readonly schema: string
+}
+
 export interface ParsedOperationResponse {
   readonly status: string
   readonly description: string | undefined
   readonly contentTypes: Array<string>
   readonly hasHeaders: boolean
+  readonly isEmpty: boolean
+  readonly representable: ReadonlyArray<ParsedOperationMediaTypeSchema>
 }
 
 export type ParsedOperationSecurityRequirement = Readonly<OpenAPISecurityRequirement>
@@ -78,6 +97,12 @@ export interface ParsedOperation {
   readonly cookies: ReadonlyArray<string>
   readonly payload?: string
   readonly payloadFormData: boolean
+  readonly pathSchema: string | undefined
+  readonly querySchema: string | undefined
+  readonly querySchemaOptional: boolean
+  readonly headersSchema: string | undefined
+  readonly headersSchemaOptional: boolean
+  readonly requestBodyRepresentable: ReadonlyArray<ParsedOperationMediaTypeSchema>
   readonly pathIds: ReadonlyArray<string>
   readonly pathTemplate: string
   readonly successSchemas: ReadonlyMap<string, string>
@@ -120,6 +145,12 @@ export const makeDeepMutable = (options: {
   headers: [],
   cookies: [],
   payloadFormData: false,
+  pathSchema: undefined,
+  querySchema: undefined,
+  querySchemaOptional: true,
+  headersSchema: undefined,
+  headersSchemaOptional: true,
+  requestBodyRepresentable: [],
   successSchemas: new Map(),
   errorSchemas: new Map(),
   voidSchemas: new Set(),
