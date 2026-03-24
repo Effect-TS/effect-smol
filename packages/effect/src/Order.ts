@@ -605,6 +605,9 @@ export function Tuple<const Elements extends ReadonlyArray<Order<any>>>(
   })
 }
 
+/**
+ * @since 4.0.0
+ */
 function Array_<A>(O: Order<A>): Order<ReadonlyArray<A>> {
   return make((self, that) => {
     const aLen = self.length

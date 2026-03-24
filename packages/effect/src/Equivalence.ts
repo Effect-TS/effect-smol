@@ -582,6 +582,9 @@ export function Tuple<const Elements extends ReadonlyArray<Equivalence<any>>>(
   })
 }
 
+/**
+ * @since 4.0.0
+ */
 function Array_<A>(item: Equivalence<A>): Equivalence<ReadonlyArray<A>> {
   return make((self, that) => {
     if (self.length !== that.length) return false
