@@ -20,7 +20,7 @@ export type OpenApiGeneratorFormat = "httpclient" | "httpclient-type-only"
 
 export interface OpenApiGenerateOptions {
   /**
-   * The name to give to the generated client.
+   * The name to give to the generated output.
    */
   readonly name: string
   /**

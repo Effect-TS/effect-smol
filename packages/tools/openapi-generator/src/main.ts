@@ -10,12 +10,12 @@ import * as OpenApiPatch from "./OpenApiPatch.ts"
 
 const spec = Flag.fileParse("spec").pipe(
   Flag.withAlias("s"),
-  Flag.withDescription("The OpenAPI spec file to generate the client from")
+  Flag.withDescription("The OpenAPI spec file to generate output from")
 )
 
 const name = Flag.string("name").pipe(
   Flag.withAlias("n"),
-  Flag.withDescription("The name of the generated client"),
+  Flag.withDescription("The name of the generated output"),
   Flag.withDefault("Client")
 )
 

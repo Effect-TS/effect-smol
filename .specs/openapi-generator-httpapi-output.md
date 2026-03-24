@@ -371,8 +371,14 @@ Validation: `pnpm lint-fix`, `pnpm test packages/tools/openapi-generator/test/Op
 
 - `OpenApiGenerateOptions` now uses `format: "httpclient" | "httpclient-type-only"` and no longer accepts `typeOnly`.
 - CLI flag `--type-only` has been removed in favor of `--format` with default `httpclient`.
+- OpenAPI generator CLI help text now uses output-neutral wording for `--spec` and `--name`.
 - `packages/tools/ai-codegen` still exposes `typeOnly` in its own config schema for now, but now maps that value into `format` when calling `OpenApiGenerator.generate`.
 - There is no dedicated openapi-generator CLI test file yet; Task 5 should add explicit CLI coverage for format flag behavior.
+
+### Follow-up tasks
+
+- Add dedicated openapi-generator CLI tests that exercise `--format` routing (including default behavior).
+- Evaluate migrating `packages/tools/ai-codegen` provider config from `typeOnly` to a format enum once downstream config compatibility strategy is defined.
 
 ## Implementation plan status
 
