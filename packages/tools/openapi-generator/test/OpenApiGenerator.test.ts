@@ -824,6 +824,9 @@ export const TestClientError = <Tag extends string, E>(
           `.annotate(OpenApi.Summary, "Summary")`,
           `.annotate(OpenApi.Description, "Description")`,
           `.add(UsersGroup)`
+        ],
+        [
+          `export class GetUserPathParams extends Schema.Class<GetUserPathParams>("GetUserPathParams")({ "id": Schema.String }) {}`
         ]
       ))
 
@@ -869,6 +872,9 @@ export const TestClientError = <Tag extends string, E>(
           `export type GetApplicationPathParams = { readonly "application_id": string }`,
           `export const GetApplicationPathParams = Schema.Struct({ "application_id": Schema.String })`,
           `HttpApiEndpoint.get("getApplication", "/applications/:application_id", { params: GetApplicationPathParams, success: HttpApiSchema.Empty(200) })`
+        ],
+        [
+          `export class GetApplicationPathParams extends Schema.Class<GetApplicationPathParams>("GetApplicationPathParams")({ "application_id": Schema.String }) {}`
         ]
       ))
 
@@ -1069,7 +1075,10 @@ export const CreatePayloadRequestText = Schema.String`,
           `payload: [HttpApiSchema.NoContent, CreatePayloadRequestJson, (CreatePayloadRequestFormData as any).pipe(HttpApiSchema.asMultipart()), (CreatePayloadRequestFormUrlEncoded as any).pipe(HttpApiSchema.asFormUrlEncoded()), (CreatePayloadRequestText as any).pipe(HttpApiSchema.asText()), (CreatePayloadRequestBinary as any).pipe(HttpApiSchema.asUint8Array())]`,
           `success: [CreatePayload200, (CreatePayload200Text as any).pipe(HttpApiSchema.asText()), (CreatePayload200Binary as any).pipe(HttpApiSchema.asUint8Array()), HttpApiSchema.Empty(201)]`
         ],
-        ["Schema.Opaque"]
+        [
+          "Schema.Opaque",
+          `extends Schema.Class<CreatePayloadRequestJson>("CreatePayloadRequestJson")`
+        ]
       ))
 
     it.effect("generates security declarations and middleware placeholders", () =>

@@ -57,6 +57,30 @@ export const A = Schema.String.annotate({ "description": "desc", "examples": ["e
 `)
   })
 
+  it("generateHttpApi emits explicit type and const declarations", () => {
+    const generator = JsonSchemaGenerator.make()
+    generator.addSchema("A", { type: "string" })
+    generator.addSchema("B", {
+      type: "object",
+      properties: {
+        id: {
+          type: "string"
+        }
+      },
+      required: ["id"],
+      additionalProperties: false
+    })
+
+    const result = generator.generateHttpApi("openapi-3.1", {})
+
+    expect(result).toContain(`export type A = string
+export const A = Schema.String`)
+    expect(result).toContain(`export type B = { readonly "id": string }
+export const B = Schema.Struct({ "id": Schema.String })`)
+    expect(result).not.toContain("Schema.Class<")
+    expect(result).not.toContain("Schema.Opaque<")
+  })
+
   it("recursive schema", () => {
     const generator = JsonSchemaGenerator.make()
     generator.addSchema("A", { $ref: "#/components/schemas/B" })
