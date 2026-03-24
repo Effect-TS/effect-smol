@@ -380,10 +380,25 @@ Validation: `pnpm lint-fix`, `pnpm test packages/tools/openapi-generator/test/Op
 - Add dedicated openapi-generator CLI tests that exercise `--format` routing (including default behavior).
 - Evaluate migrating `packages/tools/ai-codegen` provider config from `typeOnly` to a format enum once downstream config compatibility strategy is defined.
 
+## Task 2 implementation notes
+
+- Added `OpenApiGeneratorWarning` / `OpenApiGeneratorWarningCode` to the generator public API and introduced `onWarning` in `OpenApiGenerateOptions`.
+- Parsing now produces a richer renderer-agnostic `ParsedOpenApi` model containing API metadata, tag metadata, and per-operation metadata.
+- Per-operation parsed data now includes:
+  - declared tags
+  - normalized per-location parameter collections (including cookies)
+  - request body content types
+  - response content types plus explicit `defaultResponse`
+  - effective per-operation security after inheritance/override
+- Added a centralized warning emission helper and routed parser warnings through it.
+- Current warning coverage in Task 2 is intentionally limited to already-lossy HttpClient behavior (`cookie-parameter-dropped` and `default-response-remapped`) while preserving generated source output.
+- `OpenApiTransformer` now renders from the richer parsed model while preserving existing HttpClient and HttpClient type-only output text.
+- Added regression tests verifying runtime and type-only outputs remain byte-stable when using the new `onWarning` option shape.
+
 ## Implementation plan status
 
 - ✅ Task 1 — Migrate the API and CLI to `format` for existing HttpClient modes
-- ⏳ Task 2 — Introduce warnings and a richer parsed model
+- ✅ Task 2 — Introduce warnings and a richer parsed model
 - ⏳ Task 3 — Add baseline HttpApi rendering for representable operations and opaque schema declarations
 - ⏳ Task 4 — Add security placeholders and lossy-feature handling
 - ⏳ Task 5 — Finish CLI coverage, docs, and release bookkeeping

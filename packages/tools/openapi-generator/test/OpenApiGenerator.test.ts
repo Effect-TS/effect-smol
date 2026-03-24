@@ -52,6 +52,150 @@ function assertRuntimeIncludes(spec: OpenAPISpec, includes: ReadonlyArray<string
   )
 }
 
+function assertRuntimeStableWithWarnings(
+  spec: OpenAPISpec,
+  expectedWarningCodes: ReadonlyArray<OpenApiGenerator.OpenApiGeneratorWarningCode>
+) {
+  return Effect.gen(function*() {
+    const generator = yield* OpenApiGenerator.OpenApiGenerator
+    const warnings: Array<OpenApiGenerator.OpenApiGeneratorWarning> = []
+
+    const baseline = yield* generator.generate(spec, {
+      name: "TestClient",
+      format: "httpclient"
+    })
+    const withWarnings = yield* generator.generate(spec, {
+      name: "TestClient",
+      format: "httpclient",
+      onWarning: (warning) => {
+        warnings.push(warning)
+      }
+    })
+
+    assert.strictEqual(withWarnings, baseline)
+    assert.deepStrictEqual(
+      warnings.map((warning) => warning.code),
+      expectedWarningCodes
+    )
+  }).pipe(
+    Effect.provide(OpenApiGenerator.layerTransformerSchema)
+  )
+}
+
+function assertTypeOnlyStableWithWarnings(
+  spec: OpenAPISpec,
+  expectedWarningCodes: ReadonlyArray<OpenApiGenerator.OpenApiGeneratorWarningCode>
+) {
+  return Effect.gen(function*() {
+    const generator = yield* OpenApiGenerator.OpenApiGenerator
+    const warnings: Array<OpenApiGenerator.OpenApiGeneratorWarning> = []
+
+    const baseline = yield* generator.generate(spec, {
+      name: "TestClient",
+      format: "httpclient-type-only"
+    })
+    const withWarnings = yield* generator.generate(spec, {
+      name: "TestClient",
+      format: "httpclient-type-only",
+      onWarning: (warning) => {
+        warnings.push(warning)
+      }
+    })
+
+    assert.strictEqual(withWarnings, baseline)
+    assert.deepStrictEqual(
+      warnings.map((warning) => warning.code),
+      expectedWarningCodes
+    )
+  }).pipe(
+    Effect.provide(OpenApiGenerator.layerTransformerTs)
+  )
+}
+
+const regressionSpec: OpenAPISpec = {
+  openapi: "3.1.0",
+  info: {
+    title: "Regression API",
+    version: "1.0.0"
+  },
+  paths: {
+    "/users/{id}": {
+      get: {
+        operationId: "getUser",
+        summary: "Get user",
+        description: "Read a user",
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            schema: {
+              type: "string"
+            },
+            required: true
+          },
+          {
+            name: "filter",
+            in: "query",
+            schema: {
+              type: "string"
+            },
+            required: false
+          },
+          {
+            name: "trace-id",
+            in: "header",
+            schema: {
+              type: "string"
+            },
+            required: false
+          },
+          {
+            name: "session",
+            in: "cookie",
+            schema: {
+              type: "string"
+            },
+            required: false
+          }
+        ],
+        responses: {
+          default: {
+            description: "Default user response",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    id: {
+                      type: "string"
+                    }
+                  },
+                  required: ["id"],
+                  additionalProperties: false
+                }
+              }
+            }
+          }
+        } as any,
+        tags: ["Users"],
+        security: [{ apiKey: [] }]
+      }
+    }
+  },
+  components: {
+    schemas: {},
+    securitySchemes: {
+      apiKey: {
+        type: "apiKey",
+        name: "x-api-key",
+        in: "header"
+      }
+    }
+  },
+  security: [],
+  tags: [{ name: "Users" }]
+}
+
 describe("OpenApiGenerator", () => {
   describe("schema", () => {
     it.effect("get operation", () =>
@@ -488,5 +632,19 @@ export const TestClientError = <Tag extends string, E>(
     request: response.request,
   }) as any`
       ))
+  })
+
+  describe("regression", () => {
+    it.effect("runtime output remains stable when using onWarning", () =>
+      assertRuntimeStableWithWarnings(regressionSpec, [
+        "cookie-parameter-dropped",
+        "default-response-remapped"
+      ]))
+
+    it.effect("type-only output remains stable when using onWarning", () =>
+      assertTypeOnlyStableWithWarnings(regressionSpec, [
+        "cookie-parameter-dropped",
+        "default-response-remapped"
+      ]))
   })
 })
