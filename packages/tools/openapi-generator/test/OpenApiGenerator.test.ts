@@ -52,7 +52,11 @@ function assertRuntimeIncludes(spec: OpenAPISpec, includes: ReadonlyArray<string
   )
 }
 
-function assertHttpApiIncludes(spec: OpenAPISpec, includes: ReadonlyArray<string>) {
+function assertHttpApiIncludes(
+  spec: OpenAPISpec,
+  includes: ReadonlyArray<string>,
+  excludes: ReadonlyArray<string> = []
+) {
   return Effect.gen(function*() {
     const generator = yield* OpenApiGenerator.OpenApiGenerator
 
@@ -63,6 +67,9 @@ function assertHttpApiIncludes(spec: OpenAPISpec, includes: ReadonlyArray<string
 
     for (const expected of includes) {
       assert.include(result, expected)
+    }
+    for (const excluded of excludes) {
+      assert.notInclude(result, excluded)
     }
   }).pipe(
     Effect.provide(OpenApiGenerator.layerTransformerSchema)
@@ -1059,7 +1066,8 @@ export const TestClientError = <Tag extends string, E>(
 export type CreatePayloadRequestText = typeof CreatePayloadRequestText.Type`,
           `payload: [HttpApiSchema.NoContent, CreatePayloadRequestJson, (CreatePayloadRequestFormData as any).pipe(HttpApiSchema.asMultipart()), (CreatePayloadRequestFormUrlEncoded as any).pipe(HttpApiSchema.asFormUrlEncoded()), (CreatePayloadRequestText as any).pipe(HttpApiSchema.asText()), (CreatePayloadRequestBinary as any).pipe(HttpApiSchema.asUint8Array())]`,
           `success: [CreatePayload200, (CreatePayload200Text as any).pipe(HttpApiSchema.asText()), (CreatePayload200Binary as any).pipe(HttpApiSchema.asUint8Array()), HttpApiSchema.Empty(201)]`
-        ]
+        ],
+        ["Schema.Opaque"]
       ))
 
     it.effect("generates security declarations and middleware placeholders", () =>
