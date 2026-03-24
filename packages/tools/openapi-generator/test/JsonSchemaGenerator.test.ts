@@ -143,7 +143,7 @@ export const A = B
     expect(httpApiResult).toContain(recursiveDeclaration)
     expect(httpApiResult).toContain("const __recursive_ErrorDetails =")
     expect(httpApiResult.indexOf(recursiveDeclaration)).toBeLessThan(
-      httpApiResult.indexOf("export class ErrorResponse")
+      httpApiResult.indexOf("export const ErrorResponse =")
     )
   })
 })

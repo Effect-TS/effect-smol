@@ -94,9 +94,7 @@ export function make() {
     const nonRecursiveReferences = generated.codeDocument.references.nonRecursives
     const recursiveReferences = Object.entries(generated.codeDocument.references.recursives)
 
-    const nonRecursives = nonRecursiveReferences.map(({ $ref, code }) =>
-      renderSchemaHttpApi($ref, code, generated.rawSchemaByName[$ref])
-    )
+    const nonRecursives = nonRecursiveReferences.map(({ $ref, code }) => renderSchemaTypeAndRuntime($ref, code, false))
 
     const recursivelyForwardReferenced = collectForwardReferencedRecursives(nonRecursiveReferences, recursiveReferences)
     const recursiveInternalNames = makeRecursiveInternalNameMap(
@@ -123,7 +121,7 @@ export function make() {
     }
 
     const codes = generated.codeDocument.codes.map((code, i) =>
-      renderSchemaHttpApi(generated.nameMap[i], code, generated.rawSchemaByName[generated.nameMap[i]])
+      renderSchemaTypeAndRuntime(generated.nameMap[i], code, false)
     )
 
     return render("recursive declarations", recursiveDeclarations) +
@@ -139,11 +137,9 @@ export function make() {
   ): {
     readonly nameMap: Array<string>
     readonly codeDocument: SchemaRepresentation.CodeDocument
-    readonly rawSchemaByName: Record<string, JsonSchema.JsonSchema>
   } | undefined {
     const nameMap: Array<string> = []
     const schemas: Array<JsonSchema.JsonSchema> = []
-    const rawSchemaByName: Record<string, JsonSchema.JsonSchema> = { ...components }
 
     const definitions: JsonSchema.Definitions = Rec.map(
       components,
@@ -152,7 +148,6 @@ export function make() {
 
     for (const [name, js] of Object.entries(store)) {
       nameMap.push(name)
-      rawSchemaByName[name] = js
       schemas.push(fromSchemaOpenApi(source, js).schema)
     }
 
@@ -176,7 +171,6 @@ export function make() {
 
     return {
       nameMap,
-      rawSchemaByName,
       codeDocument: SchemaRepresentation.toCodeDocument(multiDocument)
     }
   }
@@ -210,57 +204,6 @@ function renderRecursiveReferenceDeclaration(
     `export type ${$ref} = ${code.Type}`,
     `export const ${$ref} = Schema.suspend((): Schema.Codec<${$ref}> => ${internalName})`
   ].join("\n")
-}
-
-function renderSchemaHttpApi(
-  $ref: string,
-  code: SchemaRepresentation.Code,
-  rawSchema: JsonSchema.JsonSchema | undefined
-) {
-  const classFields = extractStructFields(code.runtime)
-  if (isStructLike(rawSchema) && classFields !== undefined) {
-    return `export class ${$ref} extends Schema.Class<${$ref}>(${JSON.stringify($ref)})(${classFields}) {}`
-  }
-  return [
-    `export const ${$ref} = ${code.runtime}`,
-    `export type ${$ref} = typeof ${$ref}.Type`
-  ].join("\n")
-}
-
-function isStructLike(schema: JsonSchema.JsonSchema | undefined): boolean {
-  if (schema === undefined || typeof schema !== "object" || schema === null || Array.isArray(schema)) {
-    return false
-  }
-  if (schema.type !== "object") {
-    return false
-  }
-  return "properties" in schema
-}
-
-function extractStructFields(runtime: string): string | undefined {
-  const prefix = "Schema.Struct("
-  const trimmed = runtime.trim()
-  if (!trimmed.startsWith(prefix)) {
-    return
-  }
-
-  const rest = trimmed.slice(prefix.length)
-  let depth = 1
-  for (let i = 0; i < rest.length; i++) {
-    const char = rest[i]
-    if (char === "(") {
-      depth += 1
-    } else if (char === ")") {
-      depth -= 1
-      if (depth === 0) {
-        if (i !== rest.length - 1) {
-          return
-        }
-        return rest.slice(0, i)
-      }
-    }
-  }
-  return
 }
 
 function render(title: string, as: ReadonlyArray<string>) {

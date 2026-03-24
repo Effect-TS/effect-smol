@@ -807,7 +807,8 @@ export const TestClientError = <Tag extends string, E>(
         },
         [
           `import { HttpApi, HttpApiEndpoint, HttpApiGroup, HttpApiMiddleware, HttpApiSchema, HttpApiSecurity, OpenApi } from "effect/unstable/httpapi"`,
-          `export class GetUserPathParams extends Schema.Class<GetUserPathParams>("GetUserPathParams")({ "id": Schema.String }) {}`,
+          `export type GetUserPathParams = { readonly "id": string }`,
+          `export const GetUserPathParams = Schema.Struct({ "id": Schema.String })`,
           `class UsersGroup extends HttpApiGroup.make("Users")`,
           `.annotate(OpenApi.Description, "User operations")`,
           `.annotate(OpenApi.ExternalDocs, {"url":"https://example.com/users"})`,
@@ -865,7 +866,8 @@ export const TestClientError = <Tag extends string, E>(
           tags: [{ name: "Applications" }]
         },
         [
-          `export class GetApplicationPathParams extends Schema.Class<GetApplicationPathParams>("GetApplicationPathParams")({ "application_id": Schema.String }) {}`,
+          `export type GetApplicationPathParams = { readonly "application_id": string }`,
+          `export const GetApplicationPathParams = Schema.Struct({ "application_id": Schema.String })`,
           `HttpApiEndpoint.get("getApplication", "/applications/:application_id", { params: GetApplicationPathParams, success: HttpApiSchema.Empty(200) })`
         ]
       ))
@@ -1061,9 +1063,9 @@ export const TestClientError = <Tag extends string, E>(
           tags: [{ name: "Payload" }]
         },
         [
-          `extends Schema.Class<CreatePayloadRequestJson>("CreatePayloadRequestJson")`,
-          `export const CreatePayloadRequestText = Schema.String
-export type CreatePayloadRequestText = typeof CreatePayloadRequestText.Type`,
+          `export type CreatePayloadRequestJson = { readonly "a": string }`,
+          `export type CreatePayloadRequestText = string
+export const CreatePayloadRequestText = Schema.String`,
           `payload: [HttpApiSchema.NoContent, CreatePayloadRequestJson, (CreatePayloadRequestFormData as any).pipe(HttpApiSchema.asMultipart()), (CreatePayloadRequestFormUrlEncoded as any).pipe(HttpApiSchema.asFormUrlEncoded()), (CreatePayloadRequestText as any).pipe(HttpApiSchema.asText()), (CreatePayloadRequestBinary as any).pipe(HttpApiSchema.asUint8Array())]`,
           `success: [CreatePayload200, (CreatePayload200Text as any).pipe(HttpApiSchema.asText()), (CreatePayload200Binary as any).pipe(HttpApiSchema.asUint8Array()), HttpApiSchema.Empty(201)]`
         ],
