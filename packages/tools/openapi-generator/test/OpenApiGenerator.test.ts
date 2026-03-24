@@ -74,6 +74,12 @@ function assertHttpApiWithWarnings(
   options: {
     readonly includes?: ReadonlyArray<string> | undefined
     readonly excludes?: ReadonlyArray<string> | undefined
+    readonly occurrences?:
+      | ReadonlyArray<{
+        readonly substring: string
+        readonly count: number
+      }>
+      | undefined
     readonly warnings: ReadonlyArray<
       Pick<OpenApiGenerator.OpenApiGeneratorWarning, "code" | "path" | "method" | "operationId">
     >
@@ -96,6 +102,9 @@ function assertHttpApiWithWarnings(
     }
     for (const excluded of options.excludes ?? []) {
       assert.notInclude(result, excluded)
+    }
+    for (const { substring, count } of options.occurrences ?? []) {
+      assert.strictEqual(result.split(substring).length - 1, count)
     }
 
     assert.deepStrictEqual(
@@ -1121,9 +1130,9 @@ export const TestClientError = <Tag extends string, E>(
             `const ApiKeyAuthSecurity = HttpApiSecurity.apiKey({ key: "x-api-key", in: "header" }).pipe(HttpApiSecurity.annotate(OpenApi.Description, "API key"))`,
             `const BearerAuthSecurity = HttpApiSecurity.bearer.pipe(HttpApiSecurity.annotate(OpenApi.Description, "Bearer token")).pipe(HttpApiSecurity.annotate(OpenApi.Format, "JWT"))`,
             `const BasicAuthSecurity = HttpApiSecurity.basic`,
-            `class GetSecureSecurityMiddleware extends HttpApiMiddleware.Service<GetSecureSecurityMiddleware>()("GET /secure security", { security: { "apiKeyAuth": ApiKeyAuthSecurity, "bearerAuth": BearerAuthSecurity } }) {}`,
-            `class GetSecureSecurityAndMiddleware extends HttpApiMiddleware.Service<GetSecureSecurityAndMiddleware>()("GET /secure security-and-1") {}`,
-            `HttpApiEndpoint.get("getSecure", "/secure", { success: HttpApiSchema.Empty(200) })\n      .middleware(GetSecureSecurityMiddleware)\n      .middleware(GetSecureSecurityAndMiddleware)`,
+            `class ApiKeyAuthOrBearerAuthSecurityMiddleware extends HttpApiMiddleware.Service<ApiKeyAuthOrBearerAuthSecurityMiddleware>()("apiKeyAuth | bearerAuth security", { security: { "apiKeyAuth": ApiKeyAuthSecurity, "bearerAuth": BearerAuthSecurity } }) {}`,
+            `class ApiKeyAuthAndBasicAuthSecurityMiddleware extends HttpApiMiddleware.Service<ApiKeyAuthAndBasicAuthSecurityMiddleware>()("apiKeyAuth & basicAuth security") {}`,
+            `HttpApiEndpoint.get("getSecure", "/secure", { success: HttpApiSchema.Empty(200) })\n      .middleware(ApiKeyAuthOrBearerAuthSecurityMiddleware)\n      .middleware(ApiKeyAuthAndBasicAuthSecurityMiddleware)`,
             `HttpApiEndpoint.get("getPublic", "/public", { success: HttpApiSchema.Empty(200) })`
           ],
           excludes: [
@@ -1156,6 +1165,18 @@ export const TestClientError = <Tag extends string, E>(
                 responses: {
                   200: {
                     description: "Inherited"
+                  }
+                },
+                tags: ["Security"]
+              } as any
+            },
+            "/inherited-two": {
+              get: {
+                operationId: "getInheritedTwo",
+                parameters: [],
+                responses: {
+                  200: {
+                    description: "Inherited two"
                   }
                 },
                 tags: ["Security"]
@@ -1220,16 +1241,24 @@ export const TestClientError = <Tag extends string, E>(
         },
         {
           includes: [
-            `class GetInheritedSecurityMiddleware extends HttpApiMiddleware.Service<GetInheritedSecurityMiddleware>()("GET /inherited security", { security: { "apiKeyAuth": ApiKeyAuthSecurity } }) {}`,
-            `class GetOverrideSecurityMiddleware extends HttpApiMiddleware.Service<GetOverrideSecurityMiddleware>()("GET /override security", { security: { "bearerAuth": BearerAuthSecurity } }) {}`,
-            `HttpApiEndpoint.get("getInherited", "/inherited", { success: HttpApiSchema.Empty(200) })\n      .middleware(GetInheritedSecurityMiddleware)`,
+            `class ApiKeyAuthSecurityMiddleware extends HttpApiMiddleware.Service<ApiKeyAuthSecurityMiddleware>()("apiKeyAuth security", { security: { "apiKeyAuth": ApiKeyAuthSecurity } }) {}`,
+            `class BearerAuthSecurityMiddleware extends HttpApiMiddleware.Service<BearerAuthSecurityMiddleware>()("bearerAuth security", { security: { "bearerAuth": BearerAuthSecurity } }) {}`,
+            `HttpApiEndpoint.get("getInherited", "/inherited", { success: HttpApiSchema.Empty(200) })\n      .middleware(ApiKeyAuthSecurityMiddleware)`,
+            `HttpApiEndpoint.get("getInheritedTwo", "/inherited-two", { success: HttpApiSchema.Empty(200) })\n      .middleware(ApiKeyAuthSecurityMiddleware)`,
             `HttpApiEndpoint.get("getCleared", "/cleared", { success: HttpApiSchema.Empty(200) })`,
             `HttpApiEndpoint.get("getAnonymous", "/anonymous", { success: HttpApiSchema.Empty(200) })`,
-            `HttpApiEndpoint.get("getOverride", "/override", { success: HttpApiSchema.Empty(200) })\n      .middleware(GetOverrideSecurityMiddleware)`
+            `HttpApiEndpoint.get("getOverride", "/override", { success: HttpApiSchema.Empty(200) })\n      .middleware(BearerAuthSecurityMiddleware)`
           ],
           excludes: [
             `HttpApiEndpoint.get("getCleared", "/cleared", { success: HttpApiSchema.Empty(200) })\n      .middleware(`,
             `HttpApiEndpoint.get("getAnonymous", "/anonymous", { success: HttpApiSchema.Empty(200) })\n      .middleware(`
+          ],
+          occurrences: [
+            {
+              substring:
+                `class ApiKeyAuthSecurityMiddleware extends HttpApiMiddleware.Service<ApiKeyAuthSecurityMiddleware>()("apiKeyAuth security", { security: { "apiKeyAuth": ApiKeyAuthSecurity } }) {}`,
+              count: 1
+            }
           ],
           warnings: []
         }

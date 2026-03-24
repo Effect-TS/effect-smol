@@ -320,12 +320,13 @@ const buildSecurityRenderModel = (parsed: ParsedOpenApi): SecurityRenderModel =>
   const middlewareDeclarations: Array<string> = []
   const endpointMiddlewares = new Map<string, ReadonlyArray<string>>()
   const schemeDeclarations = new Map<string, string>()
+  const middlewareNames = new Map<string, string>()
 
   for (const securityScheme of parsed.securitySchemes) {
     const baseName = ensureIdentifier(securityScheme.name, "Security")
     const declarationName = allocateName(`${baseName}Security`)
     schemeDeclarations.set(securityScheme.name, declarationName)
-    securityDeclarations.push(`const ${declarationName} = ${renderSecurityScheme(securityScheme)}`)
+    securityDeclarations.push(`export const ${declarationName} = ${renderSecurityScheme(securityScheme)}`)
   }
 
   for (const operation of parsed.operations) {
@@ -337,7 +338,6 @@ const buildSecurityRenderModel = (parsed: ParsedOpenApi): SecurityRenderModel =>
     }
 
     const operationMiddlewareNames: Array<string> = []
-    const orSchemes: Array<readonly [string, string]> = []
     const seenOrSchemes = new Set<string>()
     const andRequirements: Array<ReadonlyArray<string>> = []
 
@@ -345,36 +345,28 @@ const buildSecurityRenderModel = (parsed: ParsedOpenApi): SecurityRenderModel =>
       const schemes = Object.keys(requirement)
       if (schemes.length === 1) {
         const schemeName = schemes[0]
-        const declarationName = schemeDeclarations.get(schemeName)
-        if (declarationName !== undefined && !seenOrSchemes.has(schemeName)) {
+        if (schemeDeclarations.has(schemeName) && !seenOrSchemes.has(schemeName)) {
           seenOrSchemes.add(schemeName)
-          orSchemes.push([schemeName, declarationName])
         }
       } else if (schemes.length > 1) {
-        andRequirements.push(schemes)
+        andRequirements.push([...schemes].sort())
       }
     }
 
-    if (orSchemes.length > 0) {
-      const className = allocateName(`${ensureIdentifier(operation.id, "Operation")}SecurityMiddleware`)
-      const securityEntries = orSchemes.map(([name, declaration]) => `${JSON.stringify(name)}: ${declaration}`).join(
-        ", "
-      )
-      middlewareDeclarations.push(
-        `class ${className} extends HttpApiMiddleware.Service<${className}>()(${
-          JSON.stringify(`${operation.method.toUpperCase()} ${operation.path} security`)
-        }, { security: { ${securityEntries} } }) {}`
-      )
+    const orSchemeNames = Array.from(seenOrSchemes).sort()
+    if (orSchemeNames.length > 0) {
+      const className = getOrSecurityMiddlewareName(orSchemeNames)
       operationMiddlewareNames.push(className)
     }
 
-    for (let i = 0; i < andRequirements.length; i++) {
-      const className = allocateName(`${ensureIdentifier(operation.id, "Operation")}SecurityAndMiddleware`)
-      middlewareDeclarations.push(
-        `class ${className} extends HttpApiMiddleware.Service<${className}>()(${
-          JSON.stringify(`${operation.method.toUpperCase()} ${operation.path} security-and-${i + 1}`)
-        }) {}`
-      )
+    const seenAndRequirements = new Set<string>()
+    for (const requirement of andRequirements) {
+      const key = requirement.join("\u0000")
+      if (seenAndRequirements.has(key)) {
+        continue
+      }
+      seenAndRequirements.add(key)
+      const className = getAndSecurityMiddlewareName(requirement)
       operationMiddlewareNames.push(className)
     }
 
@@ -388,6 +380,51 @@ const buildSecurityRenderModel = (parsed: ParsedOpenApi): SecurityRenderModel =>
     middlewareDeclarations,
     endpointMiddlewares
   }
+
+  function getOrSecurityMiddlewareName(schemes: ReadonlyArray<string>): string {
+    const key = `or:${schemes.join("\u0000")}`
+    const existing = middlewareNames.get(key)
+    if (existing !== undefined) {
+      return existing
+    }
+
+    const className = allocateName(`${getSecurityMiddlewareBaseName(schemes, "Or")}SecurityMiddleware`)
+    const securityEntries = schemes.map((name) => `${JSON.stringify(name)}: ${schemeDeclarations.get(name)!}`).join(
+      ", "
+    )
+    middlewareDeclarations.push(
+      `export class ${className} extends HttpApiMiddleware.Service<${className}>()(${
+        JSON.stringify(`${schemes.join(" | ")} security`)
+      }, { security: { ${securityEntries} } }) {}`
+    )
+    middlewareNames.set(key, className)
+    return className
+  }
+
+  function getAndSecurityMiddlewareName(schemes: ReadonlyArray<string>): string {
+    const key = `and:${schemes.join("\u0000")}`
+    const existing = middlewareNames.get(key)
+    if (existing !== undefined) {
+      return existing
+    }
+
+    const className = allocateName(`${getSecurityMiddlewareBaseName(schemes, "And")}SecurityMiddleware`)
+    middlewareDeclarations.push(
+      `class ${className} extends HttpApiMiddleware.Service<${className}>()(${
+        JSON.stringify(`${schemes.join(" & ")} security`)
+      }) {}`
+    )
+    middlewareNames.set(key, className)
+    return className
+  }
+}
+
+const getSecurityMiddlewareBaseName = (
+  schemes: ReadonlyArray<string>,
+  joiner: "And" | "Or"
+): string => {
+  const [head, ...tail] = schemes.map((scheme) => ensureIdentifier(scheme, "Security"))
+  return tail.length === 0 ? head : [head, ...tail.map((scheme) => `${joiner}${scheme}`)].join("")
 }
 
 const renderSecurityScheme = (securityScheme: ParsedOpenApiSecurityScheme): string => {

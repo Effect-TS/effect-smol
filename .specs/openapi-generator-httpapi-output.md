@@ -222,8 +222,8 @@ Rules:
 
 - If a scheme has a description, preserve it with `HttpApiSecurity.annotate(OpenApi.Description, ...)`.
 - Resolve effective security per operation after inheritance / override.
-- For OR requirement sets made of single-scheme requirement objects, generate a placeholder security middleware class with a `security` object containing the referenced schemes, then attach that middleware to the endpoint.
-- For AND requirements (multiple schemes in one requirement object), generate a plain `HttpApiMiddleware.Service` placeholder without a `security` object and emit `security-and-downgraded`.
+- For OR requirement sets made of single-scheme requirement objects, generate one placeholder security middleware class per distinct effective security spec, with a `security` object containing the referenced schemes, and reuse that middleware across endpoints that share the same spec.
+- For AND requirements (multiple schemes in one requirement object), generate one plain `HttpApiMiddleware.Service` placeholder per distinct requirement spec, without a `security` object, and emit `security-and-downgraded`.
 - Do not generate any middleware implementation layer.
 
 ### 8. Naming rules
@@ -437,9 +437,9 @@ Validation: `pnpm lint-fix`, `pnpm test packages/tools/openapi-generator/test/Op
 ## Task 4 implementation notes
 
 - Added supported OpenAPI security-scheme parsing into the shared parsed model (`basic`, `bearer`, `apiKey`) and surfaced these as generated `HttpApiSecurity` declarations in `httpapi` output.
-- `httpapi` output now emits placeholder `HttpApiMiddleware.Service` classes for per-operation security:
-  - OR-compatible single-scheme requirements become one middleware with a `security` object.
-  - AND requirements are downgraded to plain placeholder middleware classes and emit `security-and-downgraded` warnings.
+- `httpapi` output now emits placeholder `HttpApiMiddleware.Service` classes for distinct security specs rather than duplicating them per operation:
+  - OR-compatible single-scheme requirements become one reusable middleware per distinct effective security spec, with a `security` object.
+  - AND requirements are downgraded to reusable plain placeholder middleware classes and emit `security-and-downgraded` warnings.
   - `security: []` and requirement entries containing `{}` now result in no generated security middleware for that operation.
 - Implemented the Task 4 lossy warning behaviors for `httpapi` generation:
   - `cookie-parameter-dropped`
