@@ -82,6 +82,9 @@ function rewriteOpenAI(schema: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
       out[k] = v
     }
   }
+  if (out.type === "object" && out.properties === undefined && out.additionalProperties === false) {
+    out.properties = {}
+  }
   return out
 }
 
