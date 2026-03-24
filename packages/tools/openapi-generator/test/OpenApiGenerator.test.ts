@@ -811,6 +811,50 @@ export const TestClientError = <Tag extends string, E>(
         ]
       ))
 
+    it.effect("includes path-level parameters in generated httpapi endpoints", () =>
+      assertHttpApiIncludes(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Discord-style API",
+            version: "1.0.0"
+          },
+          paths: {
+            "/applications/{application_id}": {
+              parameters: [
+                {
+                  name: "application_id",
+                  in: "path",
+                  schema: { type: "string" },
+                  required: true
+                }
+              ],
+              get: {
+                operationId: "getApplication",
+                parameters: [],
+                responses: {
+                  200: {
+                    description: "Application"
+                  }
+                },
+                tags: ["Applications"],
+                security: []
+              }
+            } as any
+          },
+          components: {
+            schemas: {},
+            securitySchemes: {}
+          },
+          security: [],
+          tags: [{ name: "Applications" }]
+        },
+        [
+          `export class GetApplicationPathParams extends Schema.Class<GetApplicationPathParams>("GetApplicationPathParams")({ "application_id": Schema.String }) {}`,
+          `HttpApiEndpoint.get("getApplication", "/applications/:application_id", { params: GetApplicationPathParams, success: HttpApiSchema.Empty(200) })`
+        ]
+      ))
+
     it.effect("creates top-level fallback group for untagged operations", () =>
       assertHttpApiIncludes(
         {

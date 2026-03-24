@@ -220,11 +220,15 @@ const parseOpenApi = (
 
       const schemaId = Utils.identifier(operation.operationId ?? path)
 
-      const parameters = (operation.parameters ?? []).map((parameter) => resolveReference(parameter, resolveRef))
+      const pathParameters = Predicate.isObject(methods) && Array.isArray((methods as any).parameters)
+        ? (methods as any).parameters as ReadonlyArray<unknown>
+        : undefined
+      const parameters = resolveOperationParameters(
+        pathParameters,
+        Array.isArray(operation.parameters) ? operation.parameters : undefined,
+        resolveRef
+      )
       for (const parameter of parameters) {
-        if (!isOpenApiParameter(parameter)) {
-          continue
-        }
         const parsedParameter: ParsedOperation.ParsedOperationParameter = {
           name: parameter.name,
           in: parameter.in,
@@ -285,10 +289,7 @@ const parseOpenApi = (
         continue
       }
 
-      const validParameters = parameters.filter(
-        (parameter): parameter is OpenApiParameter =>
-          isOpenApiParameter(parameter) && parameter.in !== "path" && parameter.in !== "cookie"
-      )
+      const validParameters = parameters.filter((parameter) => parameter.in !== "path" && parameter.in !== "cookie")
 
       const combinedParameterSchema = buildParameterSchema(validParameters, (parameter, added) => {
         if (parameter.in === "query") {
@@ -548,6 +549,36 @@ const isOpenApiParameter = (parameter: unknown): parameter is OpenApiParameter =
     typeof parameter.name === "string" &&
     (parameter.in === "path" || parameter.in === "query" || parameter.in === "header" || parameter.in === "cookie")
   )
+}
+
+const resolveOperationParameters = (
+  pathParameters: ReadonlyArray<unknown> | undefined,
+  operationParameters: ReadonlyArray<unknown> | undefined,
+  resolveRef: (ref: string) => unknown
+): Array<OpenApiParameter> => {
+  const resolved = new Map<string, OpenApiParameter>()
+  const add = (parameter: unknown): void => {
+    const current = resolveReference(parameter, resolveRef)
+    if (!isOpenApiParameter(current)) {
+      return
+    }
+
+    const key = `${current.in}:${current.name}`
+    if (resolved.has(key)) {
+      resolved.delete(key)
+    }
+    resolved.set(key, current)
+  }
+
+  for (const parameter of pathParameters ?? []) {
+    add(parameter)
+  }
+
+  for (const parameter of operationParameters ?? []) {
+    add(parameter)
+  }
+
+  return [...resolved.values()]
 }
 
 const buildParameterSchema = <
