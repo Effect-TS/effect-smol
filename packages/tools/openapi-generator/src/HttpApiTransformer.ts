@@ -40,19 +40,19 @@ export const toImplementation = (
   const groupSources = groups.map((group) => renderGroup(group, security.endpointMiddlewares))
   const metadataAnnotations = renderApiAnnotations(parsed)
 
-  let apiValue = `export const ${name}Api = ${name}`
+  let apiValue = `export class ${name} extends HttpApi.make(${JSON.stringify(name)})`
   for (const annotation of metadataAnnotations) {
     apiValue += `\n  .${annotation}`
   }
   if (groups.length > 0) {
     apiValue += `\n  .add(${groups.map((group) => group.constName).join(", ")})`
   }
+  apiValue += ` {}`
 
   return [
     ...security.securityDeclarations,
     ...security.middlewareDeclarations,
     ...groupSources,
-    `export class ${name} extends HttpApi.make(${JSON.stringify(name)}) {}`,
     apiValue
   ].join("\n\n")
 }
@@ -101,9 +101,21 @@ const renderGroup = (
   group: GroupRenderModel,
   endpointMiddlewares: ReadonlyMap<string, ReadonlyArray<string>>
 ): string => {
-  let source = `const ${group.constName} = HttpApiGroup.make(${JSON.stringify(group.identifier)}${
+  let source = `class ${group.constName} extends HttpApiGroup.make(${JSON.stringify(group.identifier)}${
     group.topLevel ? ", { topLevel: true }" : ""
   })`
+
+  const allocateEndpointName = makeNameAllocator()
+  const endpointSources = group.operations.map((operation) =>
+    renderEndpoint(
+      operation,
+      allocateEndpointName(operation.id),
+      endpointMiddlewares.get(toOperationKey(operation)) ?? []
+    )
+  )
+  if (endpointSources.length > 0) {
+    source += `\n  .add(${endpointSources.join(", \n    ")})`
+  }
 
   if (group.metadata?.description !== undefined) {
     source += `\n  .annotate(OpenApi.Description, ${JSON.stringify(group.metadata.description)})`
@@ -112,16 +124,7 @@ const renderGroup = (
     source += `\n  .annotate(OpenApi.ExternalDocs, ${JSON.stringify(group.metadata.externalDocs)})`
   }
 
-  const allocateEndpointName = makeNameAllocator()
-  for (const operation of group.operations) {
-    source += `\n  .add(${
-      renderEndpoint(
-        operation,
-        allocateEndpointName(operation.id),
-        endpointMiddlewares.get(toOperationKey(operation)) ?? []
-      )
-    })`
-  }
+  source += ` {}`
 
   return source
 }

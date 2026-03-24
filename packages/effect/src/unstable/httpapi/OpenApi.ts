@@ -745,6 +745,7 @@ export interface OpenAPISpecExternalDocs {
 export interface OpenAPISpecLicense {
   name: string
   url?: string
+  [key: string]: unknown
 }
 
 /**
