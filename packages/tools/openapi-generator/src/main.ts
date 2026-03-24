@@ -19,9 +19,10 @@ const name = Flag.string("name").pipe(
   Flag.withDefault("Client")
 )
 
-const typeOnly = Flag.boolean("type-only").pipe(
-  Flag.withAlias("t"),
-  Flag.withDescription("Generate a type-only client without schemas")
+const format = Flag.choice("format", ["httpclient", "httpclient-type-only"] as const).pipe(
+  Flag.withAlias("f"),
+  Flag.withDescription("Output format to generate"),
+  Flag.withDefault("httpclient")
 )
 
 const patch = Flag.string("patch").pipe(
@@ -34,8 +35,8 @@ const patch = Flag.string("patch").pipe(
   Flag.between(0, Infinity)
 )
 
-const root = Command.make("openapigen", { spec, typeOnly, name, patch }).pipe(
-  Command.withHandler(Effect.fnUntraced(function*({ name, spec, typeOnly, patch }) {
+const root = Command.make("openapigen", { spec, format, name, patch }).pipe(
+  Command.withHandler(Effect.fnUntraced(function*({ name, spec, format, patch }) {
     let patchedSpec: Schema.Json = spec as Schema.Json
 
     if (patch.length > 0) {
@@ -53,11 +54,11 @@ const root = Command.make("openapigen", { spec, typeOnly, name, patch }).pipe(
     }
 
     const generator = yield* OpenApiGenerator.OpenApiGenerator
-    const source = yield* generator.generate(patchedSpec as unknown as OpenAPISpec, { name, typeOnly })
+    const source = yield* generator.generate(patchedSpec as unknown as OpenAPISpec, { name, format })
     return yield* Console.log(source)
   })),
-  Command.provide(({ typeOnly }) =>
-    typeOnly
+  Command.provide(({ format }) =>
+    format === "httpclient-type-only"
       ? OpenApiGenerator.layerTransformerTs
       : OpenApiGenerator.layerTransformerSchema
   )

@@ -9,7 +9,7 @@ function assertRuntime(spec: OpenAPISpec, expected: string) {
 
     const result = yield* generator.generate(spec, {
       name: "TestClient",
-      typeOnly: false
+      format: "httpclient"
     })
 
     // console.log(result)
@@ -25,7 +25,7 @@ function assertTypeOnly(spec: OpenAPISpec, expected: string) {
 
     const result = yield* generator.generate(spec, {
       name: "TestClient",
-      typeOnly: true
+      format: "httpclient-type-only"
     })
 
     // console.log(result)
@@ -41,7 +41,7 @@ function assertRuntimeIncludes(spec: OpenAPISpec, includes: ReadonlyArray<string
 
     const result = yield* generator.generate(spec, {
       name: "TestClient",
-      typeOnly: false
+      format: "httpclient"
     })
 
     for (const expected of includes) {

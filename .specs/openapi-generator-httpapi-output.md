@@ -366,3 +366,18 @@ Validation: `pnpm lint-fix`, `pnpm test packages/tools/openapi-generator/test/Op
 - `HttpApi` has no endpoint-level cookie parameter model, so ordinary cookie params must be dropped.
 - `httpapi` format should prefer class-based schema declarations to keep decoded types opaque.
 - Global OpenAPI security should be normalized into per-operation attachments instead of using API-level middleware directly.
+
+## Task 1 implementation notes
+
+- `OpenApiGenerateOptions` now uses `format: "httpclient" | "httpclient-type-only"` and no longer accepts `typeOnly`.
+- CLI flag `--type-only` has been removed in favor of `--format` with default `httpclient`.
+- `packages/tools/ai-codegen` still exposes `typeOnly` in its own config schema for now, but now maps that value into `format` when calling `OpenApiGenerator.generate`.
+- There is no dedicated openapi-generator CLI test file yet; Task 5 should add explicit CLI coverage for format flag behavior.
+
+## Implementation plan status
+
+- ✅ Task 1 — Migrate the API and CLI to `format` for existing HttpClient modes
+- ⏳ Task 2 — Introduce warnings and a richer parsed model
+- ⏳ Task 3 — Add baseline HttpApi rendering for representable operations and opaque schema declarations
+- ⏳ Task 4 — Add security placeholders and lossy-feature handling
+- ⏳ Task 5 — Finish CLI coverage, docs, and release bookkeeping

@@ -147,7 +147,7 @@ export const layer: Layer.Layer<
     return yield* openApiGen
       .generate(patchedSpec as unknown as Parameters<typeof openApiGen.generate>[0], {
         name: provider.config.clientName,
-        typeOnly: provider.config.isTypeOnly,
+        format: provider.config.isTypeOnly ? "httpclient-type-only" : "httpclient",
         onEnter
       })
       .pipe(

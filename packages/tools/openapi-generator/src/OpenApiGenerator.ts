@@ -16,16 +16,17 @@ export class OpenApiGenerator extends ServiceMap.Service<
   { readonly generate: (spec: OpenAPISpec, options: OpenApiGenerateOptions) => Effect.Effect<string> }
 >()("OpenApiGenerator") {}
 
+export type OpenApiGeneratorFormat = "httpclient" | "httpclient-type-only"
+
 export interface OpenApiGenerateOptions {
   /**
    * The name to give to the generated client.
    */
   readonly name: string
   /**
-   * When `true`, will **only** generate types based on the provided OpenApi
-   * specification (without corresponding schemas).
+   * The output format to generate.
    */
-  readonly typeOnly: boolean
+  readonly format: OpenApiGeneratorFormat
   /**
    * Hook to transform each JSON Schema node before processing.
    */
@@ -243,9 +244,14 @@ export const make = Effect.gen(function*() {
       // TODO: make a CLI option ?
       const importName = "Schema"
       const source = getDialect(spec)
-      const generation = generator.generate(source, spec.components?.schemas ?? {}, options.typeOnly, {
-        onEnter: options.onEnter
-      })
+      const generation = generator.generate(
+        source,
+        spec.components?.schemas ?? {},
+        options.format === "httpclient-type-only",
+        {
+          onEnter: options.onEnter
+        }
+      )
 
       return String.stripMargin(
         `|${openApiTransformer.imports(importName, operations)}
@@ -259,7 +265,7 @@ export const make = Effect.gen(function*() {
       Effect.provideServiceEffect(
         effect,
         OpenApiTransformer.OpenApiTransformer,
-        options.typeOnly
+        options.format === "httpclient-type-only"
           ? Effect.sync(OpenApiTransformer.makeTransformerTs)
           : Effect.sync(OpenApiTransformer.makeTransformerSchema)
       )
