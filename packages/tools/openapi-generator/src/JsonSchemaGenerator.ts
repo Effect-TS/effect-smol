@@ -31,17 +31,52 @@ export function make() {
       return ""
     }
 
-    const nonRecursives = generated.codeDocument.references.nonRecursives.map(({ $ref, code }) =>
+    const nonRecursiveReferences = generated.codeDocument.references.nonRecursives
+    const recursiveReferences = Object.entries(generated.codeDocument.references.recursives)
+
+    const nonRecursives = nonRecursiveReferences.map(({ $ref, code }) =>
       renderSchemaTypeAndRuntime($ref, code, typeOnly)
     )
-    const recursives = Object.entries(generated.codeDocument.references.recursives).map(([$ref, code]) =>
-      renderSchemaTypeAndRuntime($ref, code, typeOnly)
-    )
+
+    const recursiveDeclarations: Array<string> = []
+    const recursives: Array<string> = []
+
+    if (typeOnly) {
+      for (const [$ref, code] of recursiveReferences) {
+        recursives.push(renderSchemaTypeAndRuntime($ref, code, true))
+      }
+    } else {
+      const recursivelyForwardReferenced = collectForwardReferencedRecursives(
+        nonRecursiveReferences,
+        recursiveReferences
+      )
+      const recursiveInternalNames = makeRecursiveInternalNameMap(
+        recursivelyForwardReferenced,
+        [
+          ...nonRecursiveReferences.map(({ $ref }) => $ref),
+          ...recursiveReferences.map(([$ref]) => $ref),
+          ...generated.nameMap
+        ]
+      )
+
+      for (const [$ref, code] of recursiveReferences) {
+        if (recursivelyForwardReferenced.has($ref)) {
+          const internalName = recursiveInternalNames.get($ref)!
+          recursiveDeclarations.push(renderRecursiveReferenceDeclaration($ref, code, internalName))
+          recursives.push(`const ${internalName} = ${code.runtime}`)
+          continue
+        }
+
+        recursives.push(renderSchemaTypeAndRuntime($ref, code, false))
+      }
+    }
+
     const codes = generated.codeDocument.codes.map((code, i) =>
       renderSchemaTypeAndRuntime(generated.nameMap[i], code, typeOnly)
     )
 
-    return render("non-recursive definitions", nonRecursives) +
+    return render("recursive declarations", recursiveDeclarations) +
+      render("non-recursive definitions", nonRecursives) +
       render("recursive definitions", recursives) +
       render("schemas", codes)
   }
@@ -56,17 +91,43 @@ export function make() {
       return ""
     }
 
-    const nonRecursives = generated.codeDocument.references.nonRecursives.map(({ $ref, code }) =>
+    const nonRecursiveReferences = generated.codeDocument.references.nonRecursives
+    const recursiveReferences = Object.entries(generated.codeDocument.references.recursives)
+
+    const nonRecursives = nonRecursiveReferences.map(({ $ref, code }) =>
       renderSchemaHttpApi($ref, code, generated.rawSchemaByName[$ref])
     )
-    const recursives = Object.entries(generated.codeDocument.references.recursives).map(([$ref, code]) =>
-      renderSchemaTypeAndRuntime($ref, code, false)
+
+    const recursivelyForwardReferenced = collectForwardReferencedRecursives(nonRecursiveReferences, recursiveReferences)
+    const recursiveInternalNames = makeRecursiveInternalNameMap(
+      recursivelyForwardReferenced,
+      [
+        ...nonRecursiveReferences.map(({ $ref }) => $ref),
+        ...recursiveReferences.map(([$ref]) => $ref),
+        ...generated.nameMap
+      ]
     )
+
+    const recursiveDeclarations: Array<string> = []
+    const recursives: Array<string> = []
+
+    for (const [$ref, code] of recursiveReferences) {
+      if (recursivelyForwardReferenced.has($ref)) {
+        const internalName = recursiveInternalNames.get($ref)!
+        recursiveDeclarations.push(renderRecursiveReferenceDeclaration($ref, code, internalName))
+        recursives.push(`const ${internalName} = ${code.runtime}`)
+        continue
+      }
+
+      recursives.push(renderSchemaTypeAndRuntime($ref, code, false))
+    }
+
     const codes = generated.codeDocument.codes.map((code, i) =>
       renderSchemaHttpApi(generated.nameMap[i], code, generated.rawSchemaByName[generated.nameMap[i]])
     )
 
-    return render("non-recursive definitions", nonRecursives) +
+    return render("recursive declarations", recursiveDeclarations) +
+      render("non-recursive definitions", nonRecursives) +
       render("recursive definitions", recursives) +
       render("schemas", codes)
   }
@@ -140,6 +201,17 @@ function renderSchemaTypeAndRuntime($ref: string, code: SchemaRepresentation.Cod
   return strings.join("\n")
 }
 
+function renderRecursiveReferenceDeclaration(
+  $ref: string,
+  code: SchemaRepresentation.Code,
+  internalName: string
+): string {
+  return [
+    `export type ${$ref} = ${code.Type}`,
+    `export const ${$ref} = Schema.suspend((): Schema.Codec<${$ref}> => ${internalName})`
+  ].join("\n")
+}
+
 function renderSchemaHttpApi(
   $ref: string,
   code: SchemaRepresentation.Code,
@@ -194,4 +266,47 @@ function extractStructFields(runtime: string): string | undefined {
 function render(title: string, as: ReadonlyArray<string>) {
   if (as.length === 0) return ""
   return "// " + title + "\n" + as.join("\n") + "\n"
+}
+
+const tokenPattern = /[A-Za-z_$][A-Za-z0-9_$]*/g
+
+function collectForwardReferencedRecursives(
+  nonRecursives: ReadonlyArray<{
+    readonly $ref: string
+    readonly code: SchemaRepresentation.Code
+  }>,
+  recursives: ReadonlyArray<readonly [string, SchemaRepresentation.Code]>
+): Set<string> {
+  const recursiveNames = new Set(recursives.map(([name]) => name))
+  const referenced = new Set<string>()
+
+  for (const { code } of nonRecursives) {
+    for (const token of code.runtime.matchAll(tokenPattern)) {
+      const identifier = token[0]
+      if (recursiveNames.has(identifier)) {
+        referenced.add(identifier)
+      }
+    }
+  }
+
+  return referenced
+}
+
+function makeRecursiveInternalNameMap(
+  recursiveNames: ReadonlySet<string>,
+  existingNames: ReadonlyArray<string>
+): Map<string, string> {
+  const usedNames = new Set(existingNames)
+  const internalNames = new Map<string, string>()
+
+  for (const name of recursiveNames) {
+    let candidate = `__recursive_${name}`
+    while (usedNames.has(candidate)) {
+      candidate = `_${candidate}`
+    }
+    usedNames.add(candidate)
+    internalNames.set(name, candidate)
+  }
+
+  return internalNames
 }
