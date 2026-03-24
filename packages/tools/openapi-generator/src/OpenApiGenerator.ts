@@ -270,7 +270,7 @@ const parseOpenApi = (
           ? requestBody.content as Record<string, any>
           : {}
         op.requestBody = {
-          required: requestBody.required !== false,
+          required: requestBody.required === true,
           contentTypes: Object.keys(content)
         }
 

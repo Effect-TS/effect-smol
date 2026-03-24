@@ -54,7 +54,9 @@ function assertRuntimeIncludes(spec: OpenAPISpec, includes: ReadonlyArray<string
 
 function assertRuntimeStableWithWarnings(
   spec: OpenAPISpec,
-  expectedWarningCodes: ReadonlyArray<OpenApiGenerator.OpenApiGeneratorWarningCode>
+  expectedWarnings: ReadonlyArray<
+    Pick<OpenApiGenerator.OpenApiGeneratorWarning, "code" | "path" | "method" | "operationId">
+  >
 ) {
   return Effect.gen(function*() {
     const generator = yield* OpenApiGenerator.OpenApiGenerator
@@ -74,8 +76,13 @@ function assertRuntimeStableWithWarnings(
 
     assert.strictEqual(withWarnings, baseline)
     assert.deepStrictEqual(
-      warnings.map((warning) => warning.code),
-      expectedWarningCodes
+      warnings.map((warning) => ({
+        code: warning.code,
+        path: warning.path,
+        method: warning.method,
+        operationId: warning.operationId
+      })),
+      expectedWarnings
     )
   }).pipe(
     Effect.provide(OpenApiGenerator.layerTransformerSchema)
@@ -84,7 +91,9 @@ function assertRuntimeStableWithWarnings(
 
 function assertTypeOnlyStableWithWarnings(
   spec: OpenAPISpec,
-  expectedWarningCodes: ReadonlyArray<OpenApiGenerator.OpenApiGeneratorWarningCode>
+  expectedWarnings: ReadonlyArray<
+    Pick<OpenApiGenerator.OpenApiGeneratorWarning, "code" | "path" | "method" | "operationId">
+  >
 ) {
   return Effect.gen(function*() {
     const generator = yield* OpenApiGenerator.OpenApiGenerator
@@ -104,8 +113,13 @@ function assertTypeOnlyStableWithWarnings(
 
     assert.strictEqual(withWarnings, baseline)
     assert.deepStrictEqual(
-      warnings.map((warning) => warning.code),
-      expectedWarningCodes
+      warnings.map((warning) => ({
+        code: warning.code,
+        path: warning.path,
+        method: warning.method,
+        operationId: warning.operationId
+      })),
+      expectedWarnings
     )
   }).pipe(
     Effect.provide(OpenApiGenerator.layerTransformerTs)
@@ -637,14 +651,34 @@ export const TestClientError = <Tag extends string, E>(
   describe("regression", () => {
     it.effect("runtime output remains stable when using onWarning", () =>
       assertRuntimeStableWithWarnings(regressionSpec, [
-        "cookie-parameter-dropped",
-        "default-response-remapped"
+        {
+          code: "cookie-parameter-dropped",
+          path: "/users/{id}",
+          method: "get",
+          operationId: "getUser"
+        },
+        {
+          code: "default-response-remapped",
+          path: "/users/{id}",
+          method: "get",
+          operationId: "getUser"
+        }
       ]))
 
     it.effect("type-only output remains stable when using onWarning", () =>
       assertTypeOnlyStableWithWarnings(regressionSpec, [
-        "cookie-parameter-dropped",
-        "default-response-remapped"
+        {
+          code: "cookie-parameter-dropped",
+          path: "/users/{id}",
+          method: "get",
+          operationId: "getUser"
+        },
+        {
+          code: "default-response-remapped",
+          path: "/users/{id}",
+          method: "get",
+          operationId: "getUser"
+        }
       ]))
   })
 })

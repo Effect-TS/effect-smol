@@ -394,6 +394,12 @@ Validation: `pnpm lint-fix`, `pnpm test packages/tools/openapi-generator/test/Op
 - Current warning coverage in Task 2 is intentionally limited to already-lossy HttpClient behavior (`cookie-parameter-dropped` and `default-response-remapped`) while preserving generated source output.
 - `OpenApiTransformer` now renders from the richer parsed model while preserving existing HttpClient and HttpClient type-only output text.
 - Added regression tests verifying runtime and type-only outputs remain byte-stable when using the new `onWarning` option shape.
+- Corrected parsed request-body metadata so `required` reflects OpenAPI semantics (`true` only when explicitly set), keeping HttpClient output unchanged.
+
+### Additional follow-up tasks
+
+- Add focused regression coverage for `$ref`-heavy parameter/request-body scenarios to guard byte-for-byte HttpClient compatibility during future parser refactors.
+- Decide whether to include `pathItem.parameters` in the parsed intermediate model before wiring HttpApi rendering, and document any intentional compatibility constraints.
 
 ## Implementation plan status
 
