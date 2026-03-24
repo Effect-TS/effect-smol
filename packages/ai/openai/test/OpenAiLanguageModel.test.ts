@@ -415,6 +415,35 @@ describe("OpenAiLanguageModel", () => {
           strictEqual(tool.strict, true)
         }).pipe(Effect.provide([makeTestLayer(), TestToolkitLayer])))
 
+      it.effect("empty object on properties for empty parameters", () =>
+        Effect.gen(function*() {
+          const EmptyTool = Tool.make("EmptyParamsTool", {
+            description: "Empty params tool",
+            parameters: Tool.EmptyParams,
+            success: Schema.String
+          })
+          const toolkit = Toolkit.make(EmptyTool)
+          const toolkitLayer = toolkit.toLayer({
+            EmptyParamsTool: () => Effect.succeed("ok")
+          })
+
+          yield* LanguageModel.generateText({
+            prompt: "Use the tool",
+            toolkit
+          }).pipe(Effect.provide([OpenAiLanguageModel.model("gpt-4o-mini"), toolkitLayer]))
+
+          const requests = yield* MockHttpClient.requests
+          const body = yield* getRequestBody(requests[0])
+
+          const tool = body.tools?.find((t: any) => t.type === "function" && t.name === "EmptyParamsTool")
+          assert.isDefined(tool)
+          deepStrictEqual(tool.parameters, {
+            type: "object",
+            properties: {},
+            additionalProperties: false
+          })
+        }).pipe(Effect.provide(makeTestLayer())))
+
       it.effect("handles tool choice auto", () =>
         Effect.gen(function*() {
           yield* LanguageModel.generateText({

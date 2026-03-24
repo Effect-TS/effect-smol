@@ -596,10 +596,12 @@ describe("toCodecOpenAI", () => {
     it("EmptyParams", async () => {
       assertJsonSchema(Tool.EmptyParams, {
         "type": "object",
+        "properties": {},
         "additionalProperties": false
       })
       assertJsonSchema(Schema.Record(Schema.String, Schema.Never), {
         "type": "object",
+        "properties": {},
         "additionalProperties": false
       })
     })
