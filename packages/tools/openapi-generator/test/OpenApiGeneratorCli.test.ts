@@ -1,9 +1,10 @@
 import * as NodeServices from "@effect/platform-node/NodeServices"
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Layer, Stdio } from "effect"
+import { Effect, Layer, Stdio, Stream } from "effect"
 import * as Exit from "effect/Exit"
 import { TestConsole } from "effect/testing"
 import { CliOutput } from "effect/unstable/cli"
+import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 
 const makeLayer = (args: ReadonlyArray<string>) =>
   Layer.mergeAll(
@@ -14,6 +15,7 @@ const makeLayer = (args: ReadonlyArray<string>) =>
   )
 
 const fixturePath = (fileName: string) => `${import.meta.dirname}/fixtures/${fileName}`
+const cliProcessPath = `${import.meta.dirname}/../src/bin.ts`
 
 type CliMainModule = {
   readonly run: Effect.Effect<void>
@@ -32,6 +34,15 @@ const runCli = Effect.fnUntraced(function*(args: ReadonlyArray<string>) {
     const stderr = stderrLines.map(String).join("\n")
     return { exit, stdout, stderr } as const
   }).pipe(Effect.provide(makeLayer(args)))
+})
+
+const runCliProcess = Effect.fnUntraced(function*(args: ReadonlyArray<string>) {
+  const handle = yield* ChildProcess.make("node", [cliProcessPath, ...args])
+  return yield* Effect.all({
+    exitCode: handle.exitCode,
+    stdout: Stream.mkString(Stream.decodeText(handle.stdout)),
+    stderr: Stream.mkString(Stream.decodeText(handle.stderr))
+  }, { concurrency: "unbounded" })
 })
 
 describe("openapigen CLI", () => {
@@ -117,4 +128,20 @@ describe("openapigen CLI", () => {
       assert.notInclude(result.stdout, "cookie-parameter-dropped")
       assert.notInclude(result.stderr, "export const make = (")
     }))
+
+  it.effect("separates generated source and warnings when spawned as a child process", () =>
+    Effect.gen(function*() {
+      const spec = fixturePath("cli-warning-spec.json")
+      const result = yield* runCliProcess(["--spec", spec, "--name", "CliClient"])
+
+      assert.strictEqual(result.exitCode, ChildProcessSpawner.ExitCode(0))
+      assert.include(result.stdout, "export const make = (")
+      assert.notInclude(result.stdout, "WARNING [")
+      assert.notInclude(result.stdout, "cookie-parameter-dropped")
+      assert.include(
+        result.stderr,
+        "WARNING [cookie-parameter-dropped] GET /users/{id} (getUser): Cookie parameter \"session\" was dropped because non-security cookie parameters are not supported."
+      )
+      assert.notInclude(result.stderr, "export const make = (")
+    }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
 })
