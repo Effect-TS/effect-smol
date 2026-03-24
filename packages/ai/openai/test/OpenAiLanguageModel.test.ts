@@ -444,6 +444,67 @@ describe("OpenAiLanguageModel", () => {
           })
         }).pipe(Effect.provide(makeTestLayer())))
 
+      it.effect("converts dynamic tools to function type", () =>
+        Effect.gen(function*() {
+          const inputSchema = {
+            type: "object",
+            properties: {
+              query: { type: "string" },
+              limit: { type: "number" }
+            },
+            required: ["query"],
+            additionalProperties: false
+          } as const
+
+          const DynamicTool = Tool.dynamic("DynamicTool", {
+            description: "A dynamic tool",
+            parameters: inputSchema
+          })
+
+          yield* LanguageModel.generateText({
+            prompt: "Use the dynamic tool",
+            toolkit: Toolkit.make(DynamicTool),
+            disableToolCallResolution: true
+          }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+          const requests = yield* MockHttpClient.requests
+          const body = yield* getRequestBody(requests[0])
+
+          const tool = body.tools?.find((entry: any) => entry.type === "function" && entry.name === "DynamicTool")
+          assert.isDefined(tool)
+          strictEqual(tool.description, "A dynamic tool")
+          deepStrictEqual(tool.parameters, inputSchema)
+        }).pipe(Effect.provide(makeTestLayer())))
+
+      it.effect("empty object on properties for empty parameters", () =>
+        Effect.gen(function*() {
+          const EmptyTool = Tool.make("EmptyParamsTool", {
+            description: "Empty params tool",
+            parameters: Tool.EmptyParams,
+            success: Schema.String
+          })
+          const toolkit = Toolkit.make(EmptyTool)
+          const toolkitLayer = toolkit.toLayer({
+            EmptyParamsTool: () => Effect.succeed("ok")
+          })
+
+          yield* LanguageModel.generateText({
+            prompt: "Use the tool",
+            toolkit
+          }).pipe(Effect.provide([OpenAiLanguageModel.model("gpt-4o-mini"), toolkitLayer]))
+
+          const requests = yield* MockHttpClient.requests
+          const body = yield* getRequestBody(requests[0])
+
+          const tool = body.tools?.find((t: any) => t.type === "function" && t.name === "EmptyParamsTool")
+          assert.isDefined(tool)
+          deepStrictEqual(tool.parameters, {
+            type: "object",
+            properties: {},
+            additionalProperties: false
+          })
+        }).pipe(Effect.provide(makeTestLayer())))
+
       it.effect("handles tool choice auto", () =>
         Effect.gen(function*() {
           yield* LanguageModel.generateText({
