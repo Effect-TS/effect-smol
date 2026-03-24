@@ -605,41 +605,7 @@ export function Tuple<const Elements extends ReadonlyArray<Order<any>>>(
   })
 }
 
-/**
- * Creates an `Order` for arrays by applying the given `Order` to each element, then comparing by length if all elements are equal.
- *
- * When to use this:
- * - When comparing arrays of the same element type
- * - When you want shorter arrays to be considered less than longer arrays
- * - When sorting collections of arrays
- *
- * Behavior:
- * - Pure function: does not mutate inputs
- * - Compares arrays element-by-element using the provided order
- * - Stops at the first non-zero comparison result
- * - If all elements are equal, shorter arrays are less than longer arrays
- * - Returns `0` only if arrays have the same length and all elements are equal
- *
- * **Example** (Array Element Ordering)
- *
- * ```ts
- * import { Order } from "effect"
- *
- * const arrayOrder = Order.Array(Order.Number)
- *
- * console.log(arrayOrder([1, 2], [1, 3])) // -1
- * console.log(arrayOrder([1, 2], [1, 2, 3])) // -1 (shorter array is less)
- * console.log(arrayOrder([1, 2, 3], [1, 2])) // 1 (longer array is greater)
- * console.log(arrayOrder([1, 2], [1, 2])) // 0
- * ```
- *
- * See also:
- * - {@link Tuple} - Type-safe tuple ordering
- *
- * @category combinators
- * @since 4.0.0
- */
-export function Array<A>(O: Order<A>): Order<ReadonlyArray<A>> {
+function Array_<A>(O: Order<A>): Order<ReadonlyArray<A>> {
   return make((self, that) => {
     const aLen = self.length
     const bLen = that.length
@@ -652,6 +618,44 @@ export function Array<A>(O: Order<A>): Order<ReadonlyArray<A>> {
     }
     return Number(aLen, bLen)
   })
+}
+
+export {
+  /**
+   * Creates an `Order` for arrays by applying the given `Order` to each element, then comparing by length if all elements are equal.
+   *
+   * When to use this:
+   * - When comparing arrays of the same element type
+   * - When you want shorter arrays to be considered less than longer arrays
+   * - When sorting collections of arrays
+   *
+   * Behavior:
+   * - Pure function: does not mutate inputs
+   * - Compares arrays element-by-element using the provided order
+   * - Stops at the first non-zero comparison result
+   * - If all elements are equal, shorter arrays are less than longer arrays
+   * - Returns `0` only if arrays have the same length and all elements are equal
+   *
+   * **Example** (Array Element Ordering)
+   *
+   * ```ts
+   * import { Order } from "effect"
+   *
+   * const arrayOrder = Order.Array(Order.Number)
+   *
+   * console.log(arrayOrder([1, 2], [1, 3])) // -1
+   * console.log(arrayOrder([1, 2], [1, 2, 3])) // -1 (shorter array is less)
+   * console.log(arrayOrder([1, 2, 3], [1, 2])) // 1 (longer array is greater)
+   * console.log(arrayOrder([1, 2], [1, 2])) // 0
+   * ```
+   *
+   * See also:
+   * - {@link Tuple} - Type-safe tuple ordering
+   *
+   * @category combinators
+   * @since 4.0.0
+   */
+  Array_ as Array
 }
 
 /**

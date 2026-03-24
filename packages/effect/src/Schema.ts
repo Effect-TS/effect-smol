@@ -22,7 +22,7 @@
  *
  * - Define a struct: {@link Struct}
  * - Define a union: {@link Union}, {@link TaggedUnion}, {@link Literals}
- * - Define an array: {@link Array}, {@link NonEmptyArray}
+ * - Define an array: {@link ArraySchema}, {@link NonEmptyArray}
  * - Define a record: {@link Record}
  * - Define a tuple: {@link Tuple}, {@link TupleWithRest}
  * - Validate unknown data synchronously: {@link decodeUnknownSync}
@@ -3189,7 +3189,7 @@ export function TupleWithRest<S extends Tuple<Tuple.Elements>, const Rest extend
 }
 
 /**
- * Schema type for a `ReadonlyArray`. Produced by {@link Array}.
+ * Schema type for a `ReadonlyArray`. Produced by {@link ArraySchema}.
  *
  * @since 4.0.0
  */
@@ -3214,25 +3214,29 @@ interface ArrayLambda extends Lambda {
   readonly "~lambda.out": this["~lambda.in"] extends Top ? $Array<this["~lambda.in"]> : never
 }
 
-/**
- * Defines a `ReadonlyArray` schema for a given element schema.
- *
- * **Example** (Array of strings)
- *
- * ```ts
- * import { Schema } from "effect"
- *
- * const schema = Schema.Array(Schema.String)
- *
- * const result = Schema.decodeUnknownSync(schema)(["a", "b", "c"])
- * console.log(result)
- * // [ 'a', 'b', 'c' ]
- * ```
- *
- * @category Constructors
- * @since 4.0.0
- */
-export const Array = Struct_.lambda<ArrayLambda>((schema) => make(new AST.Arrays(false, [], [schema.ast]), { schema }))
+const ArraySchema = Struct_.lambda<ArrayLambda>((schema) => make(new AST.Arrays(false, [], [schema.ast]), { schema }))
+
+export {
+  /**
+   * Defines a `ReadonlyArray` schema for a given element schema.
+   *
+   * **Example** (Array of strings)
+   *
+   * ```ts
+   * import { Schema } from "effect"
+   *
+   * const schema = Schema.Array(Schema.String)
+   *
+   * const result = Schema.decodeUnknownSync(schema)(["a", "b", "c"])
+   * console.log(result)
+   * // [ 'a', 'b', 'c' ]
+   * ```
+   *
+   * @category Constructors
+   * @since 4.0.0
+   */
+  ArraySchema as Array
+}
 
 /**
  * Schema type for a non-empty `ReadonlyArray`. Produced by {@link NonEmptyArray}.
@@ -3303,8 +3307,8 @@ export interface ArrayEnsure<S extends Top> extends decodeTo<$Array<toType<S>>, 
  * @since 4.0.0
  */
 export function ArrayEnsure<S extends Top>(schema: S): ArrayEnsure<S> {
-  return Union([schema, Array(schema)]).pipe(decodeTo(
-    Array(toType(schema)),
+  return Union([schema, ArraySchema(schema)]).pipe(decodeTo(
+    ArraySchema(toType(schema)),
     Transformation.transform({
       decode: Arr.ensure,
       encode: (array) => array.length === 1 ? array[0] : array
@@ -3329,7 +3333,7 @@ export interface UniqueArray<S extends Top> extends $Array<S> {}
  * @since 4.0.0
  */
 export function UniqueArray<S extends Top>(item: S): UniqueArray<S> {
-  return Array(item).check(isUnique())
+  return ArraySchema(item).check(isUnique())
 }
 
 /**
@@ -7529,7 +7533,7 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
   const schema = declareConstructor<Cause_.Cause<E["Type"]>, Cause_.Cause<E["Encoded"]>, CauseIso<E, D>>()(
     [error, defect],
     ([error, defect]) => {
-      const failures = Array(CauseReason(error, defect))
+      const failures = ArraySchema(CauseReason(error, defect))
       return (input, ast, options) => {
         if (!Cause_.isCause(input)) {
           return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
@@ -7552,7 +7556,7 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
       expected: "Cause",
       toCodec: ([error, defect]) =>
         link<Cause_.Cause<E["Encoded"]>>()(
-          Array(CauseReason(error, defect)),
+          ArraySchema(CauseReason(error, defect)),
           Transformation.transform({
             decode: Cause_.fromReasons,
             encode: ({ reasons: failures }) => failures
@@ -7890,7 +7894,7 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
   >()(
     [key, value],
     ([key, value]) => {
-      const array = Array(Tuple([key, value]))
+      const array = ArraySchema(Tuple([key, value]))
       return (input, ast, options) => {
         if (input instanceof globalThis.Map) {
           return Effect.mapBothEager(
@@ -7916,7 +7920,7 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
       expected: "ReadonlyMap",
       toCodec: ([key, value]) =>
         link<globalThis.Map<Key["Encoded"], Value["Encoded"]>>()(
-          Array(Tuple([key, value])),
+          ArraySchema(Tuple([key, value])),
           Transformation.transform({
             decode: (e) => new globalThis.Map(e),
             encode: (map) => [...map.entries()]
@@ -7983,7 +7987,7 @@ export function HashMap<Key extends Top, Value extends Top>(key: Key, value: Val
   >()(
     [key, value],
     ([key, value]) => {
-      const entries = Array(Tuple([key, value]))
+      const entries = ArraySchema(Tuple([key, value]))
       return (input, ast, options) => {
         if (HashMap_.isHashMap(input)) {
           return Effect.mapBothEager(
@@ -8010,7 +8014,7 @@ export function HashMap<Key extends Top, Value extends Top>(key: Key, value: Val
       expected: "HashMap",
       toCodec: ([key, value]) =>
         link<HashMap_.HashMap<Key["Encoded"], Value["Encoded"]>>()(
-          Array(Tuple([key, value])),
+          ArraySchema(Tuple([key, value])),
           Transformation.transform({
             decode: HashMap_.fromIterable,
             encode: HashMap_.toEntries
@@ -8072,7 +8076,7 @@ export function ReadonlySet<Value extends Top>(value: Value): $ReadonlySet<Value
   >()(
     [value],
     ([value]) => {
-      const array = Array(value)
+      const array = ArraySchema(value)
       return (input, ast, options) => {
         if (input instanceof globalThis.Set) {
           return Effect.mapBothEager(
@@ -8098,7 +8102,7 @@ export function ReadonlySet<Value extends Top>(value: Value): $ReadonlySet<Value
       expected: "ReadonlySet",
       toCodec: ([value]) =>
         link<globalThis.Set<Value["Encoded"]>>()(
-          Array(value),
+          ArraySchema(value),
           Transformation.transform({
             decode: (e) => new globalThis.Set(e),
             encode: (set) => [...set.values()]
@@ -8164,7 +8168,7 @@ export function HashSet<Value extends Top>(value: Value): HashSet<Value> {
   >()(
     [value],
     ([value]) => {
-      const values = Array(value)
+      const values = ArraySchema(value)
       return (input, ast, options) => {
         if (HashSet_.isHashSet(input)) {
           return Effect.mapBothEager(
@@ -8190,7 +8194,7 @@ export function HashSet<Value extends Top>(value: Value): HashSet<Value> {
       expected: "HashSet",
       toCodec: ([value]) =>
         link<HashSet_.HashSet<Value["Encoded"]>>()(
-          Array(value),
+          ArraySchema(value),
           Transformation.transform({
             decode: HashSet_.fromIterable,
             encode: Arr.fromIterable
@@ -8256,7 +8260,7 @@ export function Chunk<Value extends Top>(value: Value): Chunk<Value> {
   >()(
     [value],
     ([value]) => {
-      const values = Array(value)
+      const values = ArraySchema(value)
       return (input, ast, options) => {
         if (Chunk_.isChunk(input)) {
           return Effect.mapBothEager(
@@ -8282,7 +8286,7 @@ export function Chunk<Value extends Top>(value: Value): Chunk<Value> {
       expected: "Chunk",
       toCodec: ([value]) =>
         link<Chunk_.Chunk<Value["Encoded"]>>()(
-          Array(value),
+          ArraySchema(value),
           Transformation.transform({
             decode: Chunk_.fromIterable,
             encode: Arr.fromIterable
@@ -8902,7 +8906,7 @@ export const FormData: FormData = instanceOf(globalThis.FormData, {
   expected: "FormData",
   toCodecJson: () =>
     link<globalThis.FormData>()(
-      Array(
+      ArraySchema(
         Tuple([
           String,
           Union([
@@ -9277,9 +9281,9 @@ export const PropertyKey = Union([Finite, Symbol, String])
  * @since 4.0.0
  */
 export const StandardSchemaV1FailureResult = Struct({
-  issues: Array(Struct({
+  issues: ArraySchema(Struct({
     message: String,
-    path: optional(Array(Union([PropertyKey, Struct({ key: PropertyKey })])))
+    path: optional(ArraySchema(Union([PropertyKey, Struct({ key: PropertyKey })])))
   }))
 })
 
@@ -11044,7 +11048,7 @@ export function Tree<S extends Top>(node: S) {
   > => Tree)
   const Tree = Union([
     node,
-    Array(Tree$ref),
+    ArraySchema(Tree$ref),
     Record(String, Tree$ref)
   ])
   return Tree
