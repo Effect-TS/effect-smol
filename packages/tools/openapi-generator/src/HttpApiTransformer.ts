@@ -258,36 +258,30 @@ const renderMediaSchema = (media: ParsedOperationMediaTypeSchema): string => {
       if (media.contentType === "application/json") {
         return media.schema
       }
-      return `(${media.schema} as any).pipe(HttpApiSchema.asJson({ contentType: ${
-        JSON.stringify(media.contentType)
-      } }))`
+      return `${media.schema}.pipe(HttpApiSchema.asJson({ contentType: ${JSON.stringify(media.contentType)} }))`
     }
     case "multipart": {
-      return `(${media.schema} as any).pipe(HttpApiSchema.asMultipart())`
+      return `${media.schema}.pipe(HttpApiSchema.asMultipart())`
     }
     case "form-url-encoded": {
       if (media.contentType === "application/x-www-form-urlencoded") {
-        return `(${media.schema} as any).pipe(HttpApiSchema.asFormUrlEncoded())`
+        return `${media.schema}.pipe(HttpApiSchema.asFormUrlEncoded())`
       }
-      return `(${media.schema} as any).pipe(HttpApiSchema.asFormUrlEncoded({ contentType: ${
+      return `${media.schema}.pipe(HttpApiSchema.asFormUrlEncoded({ contentType: ${
         JSON.stringify(media.contentType)
       } }))`
     }
     case "text": {
       if (media.contentType === "text/plain") {
-        return `(${media.schema} as any).pipe(HttpApiSchema.asText())`
+        return `${media.schema}.pipe(HttpApiSchema.asText())`
       }
-      return `(${media.schema} as any).pipe(HttpApiSchema.asText({ contentType: ${
-        JSON.stringify(media.contentType)
-      } }))`
+      return `${media.schema}.pipe(HttpApiSchema.asText({ contentType: ${JSON.stringify(media.contentType)} }))`
     }
     case "binary": {
       if (media.contentType === "application/octet-stream") {
-        return `(${media.schema} as any).pipe(HttpApiSchema.asUint8Array())`
+        return `${media.schema}.pipe(HttpApiSchema.asUint8Array())`
       }
-      return `(${media.schema} as any).pipe(HttpApiSchema.asUint8Array({ contentType: ${
-        JSON.stringify(media.contentType)
-      } }))`
+      return `${media.schema}.pipe(HttpApiSchema.asUint8Array({ contentType: ${JSON.stringify(media.contentType)} }))`
     }
   }
 }

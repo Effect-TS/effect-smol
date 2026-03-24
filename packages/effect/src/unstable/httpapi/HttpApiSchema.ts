@@ -299,7 +299,7 @@ export function asJson(options?: {
 export function asFormUrlEncoded(options?: {
   readonly contentType?: string
 }) {
-  return <S extends Schema.Top & { readonly Encoded: Record<string, string | ReadonlyArray<string> | undefined> }>(
+  return <S extends Schema.Top>(
     self: S
   ) => asNonMultipartEncoding(self, { _tag: "FormUrlEncoded", ...options })
 }
