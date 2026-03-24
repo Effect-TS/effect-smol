@@ -1097,6 +1097,101 @@ export const TestClientError = <Tag extends string, E>(
         }
       ))
 
+    it.effect("inherits global security and respects operation-level clearing", () =>
+      assertHttpApiWithWarnings(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Security inheritance API",
+            version: "1.0.0"
+          },
+          paths: {
+            "/inherited": {
+              get: {
+                operationId: "getInherited",
+                parameters: [],
+                responses: {
+                  200: {
+                    description: "Inherited"
+                  }
+                },
+                tags: ["Security"]
+              } as any
+            },
+            "/cleared": {
+              get: {
+                operationId: "getCleared",
+                parameters: [],
+                responses: {
+                  200: {
+                    description: "Cleared"
+                  }
+                },
+                tags: ["Security"],
+                security: []
+              }
+            },
+            "/anonymous": {
+              get: {
+                operationId: "getAnonymous",
+                parameters: [],
+                responses: {
+                  200: {
+                    description: "Anonymous"
+                  }
+                },
+                tags: ["Security"],
+                security: [{}]
+              }
+            },
+            "/override": {
+              get: {
+                operationId: "getOverride",
+                parameters: [],
+                responses: {
+                  200: {
+                    description: "Override"
+                  }
+                },
+                tags: ["Security"],
+                security: [{ bearerAuth: [] }]
+              }
+            }
+          },
+          components: {
+            schemas: {},
+            securitySchemes: {
+              apiKeyAuth: {
+                type: "apiKey",
+                name: "x-api-key",
+                in: "header"
+              },
+              bearerAuth: {
+                type: "http",
+                scheme: "bearer"
+              }
+            }
+          },
+          security: [{ apiKeyAuth: [] }],
+          tags: [{ name: "Security" }]
+        },
+        {
+          includes: [
+            `class GetInheritedSecurityMiddleware extends HttpApiMiddleware.Service<GetInheritedSecurityMiddleware>()("GET /inherited security", { security: { "apiKeyAuth": ApiKeyAuthSecurity } }) {}`,
+            `class GetOverrideSecurityMiddleware extends HttpApiMiddleware.Service<GetOverrideSecurityMiddleware>()("GET /override security", { security: { "bearerAuth": BearerAuthSecurity } }) {}`,
+            `HttpApiEndpoint.get("getInherited", "/inherited", { success: HttpApiSchema.Empty(200) })\n      .middleware(GetInheritedSecurityMiddleware)`,
+            `HttpApiEndpoint.get("getCleared", "/cleared", { success: HttpApiSchema.Empty(200) })`,
+            `HttpApiEndpoint.get("getAnonymous", "/anonymous", { success: HttpApiSchema.Empty(200) })`,
+            `HttpApiEndpoint.get("getOverride", "/override", { success: HttpApiSchema.Empty(200) })\n      .middleware(GetOverrideSecurityMiddleware)`
+          ],
+          excludes: [
+            `HttpApiEndpoint.get("getCleared", "/cleared", { success: HttpApiSchema.Empty(200) })\n      .middleware(`,
+            `HttpApiEndpoint.get("getAnonymous", "/anonymous", { success: HttpApiSchema.Empty(200) })\n      .middleware(`
+          ],
+          warnings: []
+        }
+      ))
+
     it.effect("emits lossy warnings and skips unsupported httpapi operations", () =>
       assertHttpApiWithWarnings(
         {
@@ -1304,6 +1399,39 @@ export const TestClientError = <Tag extends string, E>(
   })
 
   describe("regression", () => {
+    it.effect("runtime warnings do not report additional-tags-dropped outside httpapi", () =>
+      assertRuntimeStableWithWarnings(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Warnings regression API",
+            version: "1.0.0"
+          },
+          paths: {
+            "/multi-tag": {
+              get: {
+                operationId: "getMultiTag",
+                parameters: [],
+                responses: {
+                  200: {
+                    description: "OK"
+                  }
+                },
+                tags: ["One", "Two"],
+                security: []
+              }
+            }
+          },
+          components: {
+            schemas: {},
+            securitySchemes: {}
+          },
+          security: [],
+          tags: [{ name: "One" }, { name: "Two" }]
+        },
+        []
+      ))
+
     it.effect("runtime output remains stable when using onWarning", () =>
       assertRuntimeStableWithWarnings(regressionSpec, [
         {

@@ -443,7 +443,7 @@ Validation: `pnpm lint-fix`, `pnpm test packages/tools/openapi-generator/test/Op
   - `security: []` and requirement entries containing `{}` now result in no generated security middleware for that operation.
 - Implemented the Task 4 lossy warning behaviors for `httpapi` generation:
   - `cookie-parameter-dropped`
-  - `additional-tags-dropped`
+  - `additional-tags-dropped` (only in `httpapi` mode, where extra tags are dropped for group ownership)
   - `sse-operation-skipped`
   - `response-headers-ignored`
   - `default-response-remapped` (default -> `200` when no explicit success exists, otherwise `500`)
@@ -461,3 +461,4 @@ Validation: `pnpm lint-fix`, `pnpm test packages/tools/openapi-generator/test/Op
 - ✅ Task 2 — Introduce warnings and a richer parsed model
 - ✅ Task 3 — Add baseline HttpApi rendering for representable operations and opaque schema declarations
 - ✅ Task 4 — Add security placeholders and lossy-feature handling
+- ⏳ Task 5 — Finish CLI coverage, docs, and release bookkeeping

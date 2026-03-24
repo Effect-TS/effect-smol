@@ -150,7 +150,7 @@ const parseOpenApi = (
   const operations: Array<ParsedOperation.ParsedOperation> = []
   const reservedSchemaNames = new Set<string>(Object.keys(spec.components?.schemas ?? {}))
   const isHttpApi = format === "httpapi"
-  const securitySchemes = parseSecuritySchemes(spec, resolveRef)
+  const securitySchemes = isHttpApi ? parseSecuritySchemes(spec, resolveRef) : []
 
   const addSchema = (
     baseName: string,
@@ -199,7 +199,7 @@ const parseOpenApi = (
       op.path = path
       op.operationId = Utils.nonEmptyString(operation.operationId)
       op.tags = [...(operation.tags ?? [])]
-      if (op.tags.length > 1) {
+      if (isHttpApi && op.tags.length > 1) {
         warnForOperation(emitWarning, op, {
           code: "additional-tags-dropped",
           message: `Additional tags (${op.tags.slice(1).join(", ")}) were dropped. Only the first tag ("${
