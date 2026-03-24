@@ -103,7 +103,7 @@ describe("openapigen CLI", () => {
       assert.include(httpclientResult.stdout, "import * as Schema from \"effect/Schema\"")
       assert.notInclude(typeOnlyResult.stdout, "import * as Schema from \"effect/Schema\"")
       assert.include(typeOnlyResult.stdout, "import type * as HttpClient from \"effect/unstable/http/HttpClient\"")
-      assert.include(httpapiResult.stdout, "export class CliClient extends HttpApi.make(\"CliClient\") {}")
+      assert.include(httpapiResult.stdout, "export class CliClient extends HttpApi.make(\"CliClient\")")
     }))
 
   it.effect("rejects legacy --type-only flag", () =>

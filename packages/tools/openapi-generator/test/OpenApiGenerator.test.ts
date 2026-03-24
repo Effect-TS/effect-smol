@@ -792,7 +792,7 @@ export const TestClientError = <Tag extends string, E>(
         [
           `import { HttpApi, HttpApiEndpoint, HttpApiGroup, HttpApiMiddleware, HttpApiSchema, HttpApiSecurity, OpenApi } from "effect/unstable/httpapi"`,
           `export class GetUserPathParams extends Schema.Class<GetUserPathParams>("GetUserPathParams")({ "id": Schema.String }) {}`,
-          `const UsersGroup = HttpApiGroup.make("Users")`,
+          `class UsersGroup extends HttpApiGroup.make("Users")`,
           `.annotate(OpenApi.Description, "User operations")`,
           `.annotate(OpenApi.ExternalDocs, {"url":"https://example.com/users"})`,
           `HttpApiEndpoint.get("getUser", "/users/:id", { params: GetUserPathParams, query: GetUserQuery, headers: GetUserHeaders, success: GetUser200, error: HttpApiSchema.Empty(404) })`,
@@ -801,8 +801,7 @@ export const TestClientError = <Tag extends string, E>(
           `.annotate(OpenApi.Description, "Read a user")`,
           `.annotate(OpenApi.Deprecated, true)`,
           `.annotate(OpenApi.ExternalDocs, {"url":"https://example.com/get-user"})`,
-          `export class TestClient extends HttpApi.make("TestClient") {}`,
-          `export const TestClientApi = TestClient`,
+          `export class TestClient extends HttpApi.make("TestClient")`,
           `.annotate(OpenApi.Title, "Test API")`,
           `.annotate(OpenApi.Version, "1.0.0")`,
           `.annotate(OpenApi.Summary, "Summary")`,
@@ -886,7 +885,7 @@ export const TestClientError = <Tag extends string, E>(
           tags: []
         },
         [
-          `const DefaultGroup = HttpApiGroup.make("default", { topLevel: true })`,
+          `class DefaultGroup extends HttpApiGroup.make("default", { topLevel: true })`,
           `HttpApiEndpoint.get("getHealth", "/health", { success: HttpApiSchema.Empty(204) })`,
           `.add(DefaultGroup)`
         ]
@@ -936,7 +935,7 @@ export const TestClientError = <Tag extends string, E>(
           tags: []
         },
         [
-          `const DefaultGroup = HttpApiGroup.make("default", { topLevel: true })`,
+          `class DefaultGroup extends HttpApiGroup.make("default", { topLevel: true })`,
           `HttpApiEndpoint.get("getTagged", "/tagged", { success: HttpApiSchema.Empty(200) })`,
           `HttpApiEndpoint.get("getUntagged", "/untagged", { success: HttpApiSchema.Empty(204) })`,
           `.add(DefaultGroup)`
