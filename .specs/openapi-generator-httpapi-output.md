@@ -109,7 +109,7 @@ Requirements:
 The `httpapi` format must generate one compilable module containing:
 
 1. imports for `Schema`, `HttpApi`, `HttpApiGroup`, `HttpApiEndpoint`, `HttpApiSchema`, `HttpApiSecurity`, `HttpApiMiddleware`, and `OpenApi`
-2. supporting schema class / opaque-schema declarations
+2. supporting schema class / runtime-schema declarations
 3. generated security scheme constants
 4. generated placeholder middleware classes
 5. group builders
@@ -119,14 +119,21 @@ The output should remain deterministic and string-testable, matching the style o
 
 ### Schema declaration style for `httpapi`
 
-To keep generated HttpApi types opaque, supporting schemas in `httpapi` format must use class-based schema declarations rather than `export type` + `export const` pairs.
+To keep generated HttpApi declarations ergonomic while avoiding `Schema.Opaque`, supporting schemas in `httpapi` format should use class declarations for struct-like schemas and runtime-schema declarations for non-struct schemas.
 
 Rules:
 
 - Prefer `class X extends Schema.Class<X>("X")({ ... }) {}` for object / struct-like schemas.
-- For non-struct schemas that cannot use `Schema.Class`, use a class-based opaque wrapper such as `class X extends Schema.Opaque<X>()(SomeSchema) {}`.
-- The generated HttpApi graph must reference these class values directly.
-- The generator should avoid exposing plain structural type aliases for HttpApi mode except where TypeScript or Schema APIs make a class-based wrapper impossible. Any fallback should be minimal and documented in tests.
+- For non-struct schemas that cannot use `Schema.Class`, emit a runtime schema declaration plus a paired type alias, for example:
+
+  ```ts
+  export const SomeType = Schema.Literals([1, 2, 3])
+  export type SomeType = typeof SomeType.Type
+  ```
+
+- `httpapi` generation must not emit `Schema.Opaque` wrappers.
+- The generated HttpApi graph must reference these runtime schema values directly.
+- The generator should avoid exposing plain structural type aliases in HttpApi mode beyond `typeof <Schema>.Type` aliases needed to bind names for declaration exports.
 
 ## Mapping specification
 
@@ -228,7 +235,7 @@ Rules:
 
 ### 8. Naming rules
 
-- Reuse the current schema naming strategy for generated supporting schema declarations, but emit them as classes / opaque wrappers in `httpapi` format.
+- Reuse the current schema naming strategy for generated supporting schema declarations, but emit them as `Schema.Class` declarations (struct-like) or runtime schema + `typeof ...Type` aliases (non-struct) in `httpapi` format.
 - Sanitize helper declaration names to valid TS identifiers.
 - Preserve original OpenAPI names inside runtime values where possible, such as group identifiers, original operation IDs, and security scheme keys.
 - On collisions after sanitization, append deterministic suffixes using `Name2`, `Name3`, and so on, and emit `naming-collision`.
@@ -239,7 +246,7 @@ Rules:
 1. Keep one `OpenApiGenerator.generate` entry point but convert it into a format dispatcher.
 2. Replace the current HttpClient-specific inline parse assumptions with a richer parsed model that carries tags, request bodies by content type, responses by status/content type, default responses, metadata, cookies, and effective security.
 3. Add a dedicated `HttpApiTransformer.ts` renderer rather than extending `OpenApiTransformer.ts` into a mixed-responsibility file. The renderer must emit the root API as `export class <Name> extends HttpApi.make("<Name>") {}` rather than `export const <Name> = ...`.
-3a. Extend schema rendering so `httpapi` format can emit class-based declarations (`Schema.Class` / `Schema.Opaque`) instead of the current type-and-const style.
+3a. Extend schema rendering so `httpapi` format can emit `Schema.Class` declarations for struct-like schemas and runtime-schema declarations + `typeof ...Type` aliases for non-struct schemas, instead of relying on `Schema.Opaque` wrappers.
 4. Route all lossy decisions through one warning helper that forwards structured warnings through `options.onWarning`. Warning emission must be stable and ordered by source traversal.
 5. Keep the existing HttpClient renderer behavior stable on top of the richer parsed model.
 6. Order generated output deterministically: imports, schema exports, security constants, middleware declarations, helper declarations, group/api assembly.
@@ -318,15 +325,15 @@ Why this task is atomic: it de-risks the feature without exposing incomplete Htt
 
 Validation: `pnpm lint-fix`, `pnpm test packages/tools/openapi-generator/test/OpenApiGenerator.test.ts`, `pnpm check:tsgo`, `pnpm docgen`.
 
-### Task 3 — Add baseline HttpApi rendering for representable operations and opaque schema declarations
+### Task 3 — Add baseline HttpApi rendering for representable operations and schema declarations
 
 Scope:
 
 - add `HttpApiTransformer.ts`
-- add class-based / opaque schema emission for `httpapi` format
+- add schema emission for `httpapi` format using `Schema.Class` for struct-like schemas and runtime-schema declarations for non-struct schemas
 - generate runtime schemas plus the exported root HttpApi class
 - generate groups from first-tag ownership with top-level fallback
-- generate endpoint annotations, parameters, supported request/response encodings, empty responses, optional request-body approximation, deterministic naming / collision handling, class-based opaque schema bindings, and the `export class <Name> extends HttpApi.make(...) {}` root declaration
+- generate endpoint annotations, parameters, supported request/response encodings, empty responses, optional request-body approximation, deterministic naming / collision handling, struct-class / runtime-schema bindings, and the `export class <Name> extends HttpApi.make(...) {}` root declaration
 - add tests for the supported happy path
 
 Why this task is atomic: it lands a usable `httpapi` mode for representable inputs without mixing in all lossy edge cases at the same time.
@@ -364,7 +371,7 @@ Validation: `pnpm lint-fix`, `pnpm test packages/tools/openapi-generator/test/Op
 ## Notes carried into implementation
 
 - `HttpApi` has no endpoint-level cookie parameter model, so ordinary cookie params must be dropped.
-- `httpapi` format should prefer class-based schema declarations to keep decoded types opaque.
+- `httpapi` format should prefer `Schema.Class` for struct-like schemas and runtime-schema declarations for non-struct schemas, without using `Schema.Opaque`.
 - Global OpenAPI security should be normalized into per-operation attachments instead of using API-level middleware directly.
 
 ## Task 1 implementation notes
@@ -404,8 +411,8 @@ Validation: `pnpm lint-fix`, `pnpm test packages/tools/openapi-generator/test/Op
 ## Task 3 implementation notes
 
 - Added a dedicated `HttpApiTransformer.ts` and wired `format: "httpapi"` dispatch in `OpenApiGenerator.generate`.
-- Added `JsonSchemaGenerator.generateHttpApi` for class/opaque schema declarations:
-  - non-recursive schemas now render as `Schema.Class` when struct-like and as `Schema.Opaque` otherwise
+- Added `JsonSchemaGenerator.generateHttpApi` for HttpApi schema declarations:
+  - non-recursive schemas render as `Schema.Class` when struct-like and as runtime-schema declarations with `typeof ...Type` aliases otherwise
   - recursive definitions currently fall back to the existing `type + const` style to avoid invalid self-references in class heritage expressions
 - Extended the parsed operation model with HttpApi-oriented data:
   - per-location parameter schemas (`path`, `query`, `headers`)
@@ -427,7 +434,7 @@ Validation: `pnpm lint-fix`, `pnpm test packages/tools/openapi-generator/test/Op
   - representable parameter mappings
   - request/response encoding mappings
   - optional request-body approximation
-  - class/opaque schema declaration presence
+  - struct-class / runtime-schema declaration presence
 
 ### Additional follow-up tasks
 
@@ -486,6 +493,14 @@ Validation: `pnpm lint-fix`, `pnpm test packages/tools/openapi-generator/test/Op
 
 - ✅ Task 1 — Migrate the API and CLI to `format` for existing HttpClient modes
 - ✅ Task 2 — Introduce warnings and a richer parsed model
-- ✅ Task 3 — Add baseline HttpApi rendering for representable operations and opaque schema declarations
+- ✅ Task 3 — Add baseline HttpApi rendering for representable operations and schema declarations
+
+## EFF-759 amendment — remove `Schema.Opaque` from HttpApi generation
+
+- `httpapi` generation must not emit `Schema.Opaque` in generated output.
+- For non-struct schemas, emit:
+  - `export const Name = <runtime schema>`
+  - `export type Name = typeof Name.Type`
+- Existing struct-like schemas should continue to use `Schema.Class` declarations.
 - ✅ Task 4 — Add security placeholders and lossy-feature handling
 - ✅ Task 5 — Finish CLI coverage, docs, and release bookkeeping

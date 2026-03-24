@@ -57,13 +57,13 @@ export function make() {
     }
 
     const nonRecursives = generated.codeDocument.references.nonRecursives.map(({ $ref, code }) =>
-      renderSchemaOpaqueOrClass($ref, code, generated.rawSchemaByName[$ref])
+      renderSchemaHttpApi($ref, code, generated.rawSchemaByName[$ref])
     )
     const recursives = Object.entries(generated.codeDocument.references.recursives).map(([$ref, code]) =>
       renderSchemaTypeAndRuntime($ref, code, false)
     )
     const codes = generated.codeDocument.codes.map((code, i) =>
-      renderSchemaOpaqueOrClass(generated.nameMap[i], code, generated.rawSchemaByName[generated.nameMap[i]])
+      renderSchemaHttpApi(generated.nameMap[i], code, generated.rawSchemaByName[generated.nameMap[i]])
     )
 
     return render("non-recursive definitions", nonRecursives) +
@@ -140,7 +140,7 @@ function renderSchemaTypeAndRuntime($ref: string, code: SchemaRepresentation.Cod
   return strings.join("\n")
 }
 
-function renderSchemaOpaqueOrClass(
+function renderSchemaHttpApi(
   $ref: string,
   code: SchemaRepresentation.Code,
   rawSchema: JsonSchema.JsonSchema | undefined
@@ -149,7 +149,10 @@ function renderSchemaOpaqueOrClass(
   if (isStructLike(rawSchema) && classFields !== undefined) {
     return `export class ${$ref} extends Schema.Class<${$ref}>(${JSON.stringify($ref)})(${classFields}) {}`
   }
-  return `export class ${$ref} extends Schema.Opaque<${$ref}>()(${code.runtime}) {}`
+  return [
+    `export const ${$ref} = ${code.runtime}`,
+    `export type ${$ref} = typeof ${$ref}.Type`
+  ].join("\n")
 }
 
 function isStructLike(schema: JsonSchema.JsonSchema | undefined): boolean {
