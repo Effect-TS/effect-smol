@@ -2348,10 +2348,10 @@ const prepareTools = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Too
 
   // Convert the tools in the toolkit to the provider-defined format
   for (const tool of allowedTools) {
-    if (Tool.isUserDefined(tool)) {
+    if (Tool.isUserDefined(tool) || Tool.isDynamic(tool)) {
       const strict = Tool.getStrictMode(tool) ?? config.strictJsonSchema ?? true
       const description = Tool.getDescription(tool)
-      const parameters = yield* tryJsonSchema(tool.parametersSchema, "prepareTools")
+      const parameters = yield* tryToolJsonSchema(tool, "prepareTools")
       tools.push({
         type: "function",
         name: tool.name,
@@ -2569,6 +2569,12 @@ const tryCodecTransform = <S extends Schema.Top>(schema: S, method: string) =>
 const tryJsonSchema = <S extends Schema.Top>(schema: S, method: string) =>
   Effect.try({
     try: () => Tool.getJsonSchemaFromSchema(schema, { transformer: toCodecOpenAI }),
+    catch: (error) => unsupportedSchemaError(error, method)
+  })
+
+const tryToolJsonSchema = <T extends Tool.Any>(tool: T, method: string) =>
+  Effect.try({
+    try: () => Tool.getJsonSchema(tool, { transformer: toCodecOpenAI }),
     catch: (error) => unsupportedSchemaError(error, method)
   })
 
