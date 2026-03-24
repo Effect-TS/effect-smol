@@ -4485,7 +4485,7 @@ export const timeoutOption: {
  * // Use cached data as fallback when timeout is reached
  * const program = Effect.timeoutOrElse(slowQuery, {
  *   duration: "2 seconds",
- *   onTimeout: () =>
+ *   orElse: () =>
  *     Effect.gen(function*() {
  *       yield* Console.log("Query timed out, using cached data")
  *       return "Cached result"
