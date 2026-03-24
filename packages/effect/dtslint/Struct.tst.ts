@@ -8,6 +8,7 @@ const cSym = Symbol.for("c")
 const dSym = Symbol.for("d")
 
 const stringKeys = hole<{ a: string; b: number; c: boolean }>()
+const readonlyStringKeys = hole<{ readonly a: string; readonly b: number; readonly c: boolean }>()
 const stringOptionalKeys = hole<{ a?: string; b?: number; c?: boolean }>()
 const symbolKeys = { [aSym]: "a", [bSym]: 1, [cSym]: true }
 const numberKeys = { 1: "a", 2: 1, 3: true }
@@ -103,6 +104,9 @@ describe("Struct", () => {
       expect(pipe(stringKeys, Struct.pick(["a", "b"]))).type.toBe<{ a: string; b: number }>()
       expect(Struct.pick(stringKeys, ["a", "b"])).type.toBe<{ a: string; b: number }>()
 
+      expect(pipe(readonlyStringKeys, Struct.pick(["a", "b"]))).type.toBe<{ readonly a: string; readonly b: number }>()
+      expect(Struct.pick(readonlyStringKeys, ["a", "b"])).type.toBe<{ readonly a: string; readonly b: number }>()
+
       expect(Struct.pick(symbolKeys, [aSym, bSym])).type.toBe<{ [aSym]: string; [bSym]: number }>()
       expect(pipe(symbolKeys, Struct.pick([aSym, bSym]))).type.toBe<{ [aSym]: string; [bSym]: number }>()
 
@@ -131,6 +135,9 @@ describe("Struct", () => {
     it("required properties", () => {
       expect(pipe(stringKeys, Struct.omit(["c"]))).type.toBe<{ a: string; b: number }>()
       expect(Struct.omit(stringKeys, ["c"])).type.toBe<{ a: string; b: number }>()
+
+      expect(pipe(readonlyStringKeys, Struct.omit(["c"]))).type.toBe<{ readonly a: string; readonly b: number }>()
+      expect(Struct.omit(readonlyStringKeys, ["c"])).type.toBe<{ readonly a: string; readonly b: number }>()
 
       expect(Struct.omit(symbolKeys, [cSym])).type.toBe<{ [aSym]: string; [bSym]: number }>()
       expect(pipe(symbolKeys, Struct.omit([cSym]))).type.toBe<{ [aSym]: string; [bSym]: number }>()
@@ -344,5 +351,33 @@ describe("Struct", () => {
       n: Number.ReducerSum,
       s: Str.ReducerConcat
     })).type.toBe<Reducer.Reducer<{ readonly n: number; readonly s: string }>>()
+  })
+
+  describe("assign", () => {
+    it("non overlapping fields", () => {
+      expect(Struct.assign(stringKeys, { d: 1 })).type.toBe<{ a: string; b: number; c: boolean; d: number }>()
+      expect(pipe(stringKeys, Struct.assign({ d: 1 }))).type.toBe<{ a: string; b: number; c: boolean; d: number }>()
+
+      expect(Struct.assign(readonlyStringKeys, { d: 1 })).type.toBe<
+        { readonly a: string; readonly b: number; readonly c: boolean; d: number }
+      >()
+      expect(pipe(readonlyStringKeys, Struct.assign({ d: 1 }))).type.toBe<
+        { readonly a: string; readonly b: number; readonly c: boolean; d: number }
+      >()
+    })
+
+    it("overlapping fields", () => {
+      expect(Struct.assign(stringKeys, { b: true, d: 1 })).type.toBe<{ a: string; b: boolean; c: boolean; d: number }>()
+      expect(pipe(stringKeys, Struct.assign({ b: true, d: 1 }))).type.toBe<
+        { a: string; b: boolean; c: boolean; d: number }
+      >()
+
+      expect(Struct.assign(readonlyStringKeys, { b: true, d: 1 })).type.toBe<
+        { readonly a: string; b: boolean; readonly c: boolean; d: number }
+      >()
+      expect(pipe(readonlyStringKeys, Struct.assign({ b: true, d: 1 }))).type.toBe<
+        { readonly a: string; b: boolean; readonly c: boolean; d: number }
+      >()
+    })
   })
 })
