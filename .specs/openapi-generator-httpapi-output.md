@@ -415,6 +415,7 @@ Validation: `pnpm lint-fix`, `pnpm test packages/tools/openapi-generator/test/Op
 - Added deterministic schema name collision handling (with `Name2`, `Name3`, ... suffixes) via a reserved-name set that includes component schema names and generated operation schema names.
 - Implemented baseline HttpApi rendering behavior:
   - first-tag group ownership and fallback `default` top-level group for untagged operations
+  - fallback group now remains top-level even when tagged `"default"` operations are encountered first in traversal order
   - endpoint OpenAPI annotations (`Identifier`, `Summary`, `Description`, `Deprecated`, `ExternalDocs`)
   - representable request/response mappings for json, multipart, form-urlencoded, text, binary, and empty responses
   - optional request-body approximation via `HttpApiSchema.NoContent` payload alternative

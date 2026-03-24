@@ -51,7 +51,7 @@ const groupOperations = (parsed: ParsedOpenApi): ReadonlyArray<GroupRenderModel>
   const tagMetadata = new Map(parsed.tags.map((tag) => [tag.name, tag]))
   const byIdentifier = new Map<string, {
     readonly identifier: string
-    readonly topLevel: boolean
+    topLevel: boolean
     readonly metadata: ParsedOpenApiTag | undefined
     readonly operations: Array<ParsedOperation>
   }>()
@@ -61,6 +61,9 @@ const groupOperations = (parsed: ParsedOpenApi): ReadonlyArray<GroupRenderModel>
     const topLevel = operation.tags.length === 0
     const existing = byIdentifier.get(identifier)
     if (existing) {
+      if (topLevel) {
+        existing.topLevel = true
+      }
       existing.operations.push(operation)
       continue
     }

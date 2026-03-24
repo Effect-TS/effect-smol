@@ -805,6 +805,57 @@ export const TestClientError = <Tag extends string, E>(
         ]
       ))
 
+    it.effect("keeps the fallback group top-level when tagged default operations are present", () =>
+      assertHttpApiIncludes(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Test API",
+            version: "1.0.0"
+          },
+          paths: {
+            "/tagged": {
+              get: {
+                operationId: "getTagged",
+                parameters: [],
+                responses: {
+                  200: {
+                    description: "Tagged"
+                  }
+                },
+                tags: ["default"],
+                security: []
+              }
+            },
+            "/untagged": {
+              get: {
+                operationId: "getUntagged",
+                parameters: [],
+                responses: {
+                  204: {
+                    description: "Untagged"
+                  }
+                },
+                tags: [] as any,
+                security: []
+              }
+            }
+          },
+          components: {
+            schemas: {},
+            securitySchemes: {}
+          },
+          security: [],
+          tags: []
+        },
+        [
+          `const DefaultGroup = HttpApiGroup.make("default", { topLevel: true })`,
+          `HttpApiEndpoint.get("getTagged", "/tagged", { success: HttpApiSchema.Empty(200) })`,
+          `HttpApiEndpoint.get("getUntagged", "/untagged", { success: HttpApiSchema.Empty(204) })`,
+          `.add(DefaultGroup)`
+        ]
+      ))
+
     it.effect("maps request and response encodings including optional request body approximation", () =>
       assertHttpApiIncludes(
         {
