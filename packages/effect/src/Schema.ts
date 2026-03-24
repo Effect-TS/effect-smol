@@ -3214,6 +3214,10 @@ interface ArrayLambda extends Lambda {
   readonly "~lambda.out": this["~lambda.in"] extends Top ? $Array<this["~lambda.in"]> : never
 }
 
+/**
+ * @category Constructors
+ * @since 4.0.0
+ */
 const ArraySchema = Struct_.lambda<ArrayLambda>((schema) => make(new AST.Arrays(false, [], [schema.ast]), { schema }))
 
 export {
