@@ -159,7 +159,7 @@ export const make = (options: PgPoolConfig): Effect.Effect<PgClient, SqlError, S
       ).pipe(
         Effect.timeoutOrElse({
           duration: options.connectTimeout ?? Duration.seconds(5),
-          onTimeout: () =>
+          orElse: () =>
             Effect.fail(
               new SqlError({
                 reason: new ConnectionError({
@@ -215,7 +215,7 @@ export const makeClient = (
       ).pipe(
         Effect.timeoutOrElse({
           duration: options.connectTimeout ?? Duration.seconds(5),
-          onTimeout: () =>
+          orElse: () =>
             Effect.fail(
               new SqlError({
                 reason: new ConnectionError({

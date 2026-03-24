@@ -103,7 +103,7 @@ export const make = Effect.fnUntraced(
     )
     const preemptiveShutdown = options.disablePreemptiveShutdown ? Effect.void : Effect.timeoutOrElse(shutdown, {
       duration: options.gracefulShutdownTimeout ?? Duration.seconds(20),
-      onTimeout: () => Effect.void
+      orElse: () => Effect.void
     })
 
     yield* Scope.addFinalizer(scope, shutdown)

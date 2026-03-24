@@ -528,7 +528,7 @@ export const fromWebSocket = <RO>(
           yield* Deferred.await(openDeferred).pipe(
             Effect.timeoutOrElse({
               duration: options?.openTimeout ?? 10000,
-              onTimeout: () =>
+              orElse: () =>
                 Effect.fail(
                   new SocketError({
                     reason: new SocketOpenError({

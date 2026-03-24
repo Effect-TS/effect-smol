@@ -113,7 +113,7 @@ export const fromDuplex = <RO>(
           options?.openTimeout ?
             Effect.timeoutOrElse({
               duration: options.openTimeout,
-              onTimeout: () =>
+              orElse: () =>
                 Effect.fail(
                   new Socket.SocketError({
                     reason: new Socket.SocketOpenError({ kind: "Timeout", cause: new Error("Connection timed out") })

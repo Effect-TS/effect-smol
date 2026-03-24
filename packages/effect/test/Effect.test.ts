@@ -988,7 +988,7 @@ describe("Effect", () => {
           Effect.sleep(5000),
           Effect.andThen(Effect.succeed(true)),
           Effect.timeoutOrElse({
-            onTimeout: () => Effect.die(error),
+            orElse: () => Effect.die(error),
             duration: 10
           }),
           Effect.sandbox,

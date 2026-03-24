@@ -155,7 +155,7 @@ export const make = (
     ).pipe(
       Effect.timeoutOrElse({
         duration: Duration.seconds(5),
-        onTimeout: () =>
+        orElse: () =>
           Effect.fail(
             new SqlError({
               reason: new ConnectionError({

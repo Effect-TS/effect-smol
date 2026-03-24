@@ -445,7 +445,7 @@ export const make = (
       Effect.scoped,
       Effect.timeoutOrElse({
         duration: options.connectTimeout ?? Duration.seconds(5),
-        onTimeout: () =>
+        orElse: () =>
           Effect.fail(
             new SqlError({
               reason: new ConnectionError({

@@ -374,7 +374,7 @@ const make = Effect.gen(function*() {
       ? kill(command, childProcess, killSignal)
       : Effect.timeoutOrElse(kill(command, childProcess, killSignal), {
         duration: options.forceKillAfter,
-        onTimeout: () => kill(command, childProcess, "SIGKILL")
+        orElse: () => kill(command, childProcess, "SIGKILL")
       })
   }
 

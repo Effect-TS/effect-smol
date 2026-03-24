@@ -152,6 +152,6 @@ const flaky = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   effect.pipe(
     Effect.timeoutOrElse({
       duration: "10 seconds",
-      onTimeout: () => Effect.void
+      orElse: () => Effect.void
     })
   )

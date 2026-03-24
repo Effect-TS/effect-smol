@@ -3536,7 +3536,7 @@ export const delay: {
 export const timeoutOrElse: {
   <A2, E2, R2>(options: {
     readonly duration: Duration.Input
-    readonly onTimeout: LazyArg<Effect.Effect<A2, E2, R2>>
+    readonly orElse: LazyArg<Effect.Effect<A2, E2, R2>>
   }): <A, E, R>(
     self: Effect.Effect<A, E, R>
   ) => Effect.Effect<A | A2, E | E2, R | R2>
@@ -3544,7 +3544,7 @@ export const timeoutOrElse: {
     self: Effect.Effect<A, E, R>,
     options: {
       readonly duration: Duration.Input
-      readonly onTimeout: LazyArg<Effect.Effect<A2, E2, R2>>
+      readonly orElse: LazyArg<Effect.Effect<A2, E2, R2>>
     }
   ): Effect.Effect<A | A2, E | E2, R | R2>
 } = dual(
@@ -3553,12 +3553,12 @@ export const timeoutOrElse: {
     self: Effect.Effect<A, E, R>,
     options: {
       readonly duration: Duration.Input
-      readonly onTimeout: LazyArg<Effect.Effect<A2, E2, R2>>
+      readonly orElse: LazyArg<Effect.Effect<A2, E2, R2>>
     }
   ): Effect.Effect<A | A2, E | E2, R | R2> =>
     raceFirst(
       self,
-      flatMap(sleep(options.duration), options.onTimeout)
+      flatMap(sleep(options.duration), options.orElse)
     )
 )
 
@@ -3581,7 +3581,7 @@ export const timeout: {
   ): Effect.Effect<A, E | TimeoutError, R> =>
     timeoutOrElse(self, {
       duration,
-      onTimeout: () => fail(new TimeoutError())
+      orElse: () => fail(new TimeoutError())
     })
 )
 

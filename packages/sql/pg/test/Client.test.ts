@@ -333,7 +333,7 @@ it.layer(PgContainer.layerClientSingleConnection, { timeout: "30 seconds" })("Pg
       const rows = yield* sql<{ value: number }>`SELECT 1 as value`.pipe(
         Effect.timeoutOrElse({
           duration: "3 seconds",
-          onTimeout: () => Effect.fail(new Error("query timed out while listener was active"))
+          orElse: () => Effect.fail(new Error("query timed out while listener was active"))
         })
       )
       expect(rows).toEqual([{ value: 1 }])
@@ -342,7 +342,7 @@ it.layer(PgContainer.layerClientSingleConnection, { timeout: "30 seconds" })("Pg
       const payloads = yield* Fiber.join(listenFiber).pipe(
         Effect.timeoutOrElse({
           duration: "3 seconds",
-          onTimeout: () => Effect.fail(new Error("listener did not receive notification in time"))
+          orElse: () => Effect.fail(new Error("listener did not receive notification in time"))
         })
       )
       expect(Array.from(payloads)).toEqual(["payload"])
@@ -365,7 +365,7 @@ it.layer(PgContainer.layerClientSingleConnection, { timeout: "30 seconds" })("Pg
       const payloads = yield* Fiber.join(listenFiber).pipe(
         Effect.timeoutOrElse({
           duration: "3 seconds",
-          onTimeout: () => Effect.fail(new Error("listener did not receive notification in time"))
+          orElse: () => Effect.fail(new Error("listener did not receive notification in time"))
         })
       )
       expect(Array.from(payloads)).toEqual(["payload"])

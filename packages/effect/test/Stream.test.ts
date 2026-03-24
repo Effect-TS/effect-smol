@@ -4155,6 +4155,52 @@ describe("Stream", () => {
   })
 
   describe("timeout", () => {
+    it.effect("timeoutOrElse - succeed", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.succeed(1),
+          Stream.timeoutOrElse({
+            duration: Duration.infinity,
+            orElse: () => Stream.succeed(-1)
+          }),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [1])
+      }))
+
+    it.effect("timeoutOrElse - should switch streams", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.range(0, 4),
+          Stream.tap(() => Effect.sleep(Duration.infinity)),
+          Stream.timeoutOrElse({
+            duration: Duration.zero,
+            orElse: () => Stream.succeed(4)
+          }),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [4])
+      }))
+
+    it.effect("timeoutOrElse - should not apply timeout after switch", () =>
+      Effect.gen(function*() {
+        const fiber = yield* pipe(
+          Stream.never,
+          Stream.timeoutOrElse({
+            duration: Duration.zero,
+            orElse: () =>
+              Stream.succeed(1).pipe(
+                Stream.tap(() => Effect.sleep(Duration.seconds(1)))
+              )
+          }),
+          Stream.runCollect,
+          Effect.forkChild({ startImmediately: true })
+        )
+        yield* TestClock.adjust(Duration.seconds(1))
+        const result = yield* Fiber.join(fiber)
+        deepStrictEqual(result, [1])
+      }))
+
     it.effect("timeout - succeed", () =>
       Effect.gen(function*() {
         const result = yield* pipe(

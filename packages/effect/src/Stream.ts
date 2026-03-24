@@ -2611,11 +2611,83 @@ export const timeout: {
 } = dual(
   2,
   <A, E, R>(self: Stream<A, E, R>, duration: Duration.Input): Stream<A, E, R> =>
-    transformPull(self, (pull, _scope) =>
-      Effect.succeed(Effect.timeoutOrElse(pull, {
-        duration,
-        onTimeout: () => Cause.done()
-      })))
+    timeoutOrElse(self, {
+      duration,
+      orElse: () => empty
+    })
+)
+
+/**
+ * @since 2.0.0
+ * @category Rate Limiting
+ */
+export const timeoutOrElse: {
+  <B, E2, R2>(options: {
+    readonly duration: Duration.Input
+    readonly orElse: () => Stream<B, E2, R2>
+  }): <A, E, R>(self: Stream<A, E, R>) => Stream<A | B, E | E2, R | R2>
+  <A, E, R, B, E2, R2>(
+    self: Stream<A, E, R>,
+    options: {
+      readonly duration: Duration.Input
+      readonly orElse: () => Stream<B, E2, R2>
+    }
+  ): Stream<A | B, E | E2, R | R2>
+} = dual(
+  2,
+  <A, E, R, B, E2, R2>(
+    self: Stream<A, E, R>,
+    options: {
+      readonly duration: Duration.Input
+      readonly orElse: () => Stream<B, E2, R2>
+    }
+  ): Stream<A | B, E | E2, R | R2> => {
+    const duration = Duration.fromInputUnsafe(options.duration)
+    if (!Duration.isFinite(duration)) return self
+    if (Duration.isZero(duration)) return suspend(options.orElse)
+    const timeoutSymbol = Symbol()
+    return catchCause(
+      suspend(() => {
+        const parent = Fiber.getCurrent()!
+        const clock = parent.getRef(Clock)
+        const durationMs = Duration.toMillis(duration)
+        let deadline: number | undefined = undefined
+        const latch = Latch.makeUnsafe(false)
+        return merge(
+          transformPull(self, (pull, _scope) =>
+            Effect.suspend(() => {
+              deadline = clock.currentTimeMillisUnsafe() + durationMs
+              latch.openUnsafe()
+              return pull
+            }).pipe(
+              Effect.map((arr) => {
+                latch.closeUnsafe()
+                deadline = undefined
+                return arr
+              }),
+              Effect.succeed
+            )),
+          fromEffectDrain(Effect.gen(function*() {
+            while (true) {
+              yield* latch.await
+              if (deadline === undefined) continue
+              yield* Effect.sleep(deadline - clock.currentTimeMillisUnsafe())
+              if (deadline === undefined) continue
+              const remaining = deadline - clock.currentTimeMillisUnsafe()
+              if (remaining > 0) continue
+              return yield* Effect.die(timeoutSymbol)
+            }
+          })),
+          { haltStrategy: "left" }
+        )
+      }),
+      (cause): Stream<B, E | E2, R2> => {
+        const isTimeout = cause.reasons.find((r) => r._tag === "Die" && r.defect === timeoutSymbol)
+        if (isTimeout) return options.orElse()
+        return failCause(cause as Cause.Cause<E>)
+      }
+    )
+  }
 )
 
 /**
