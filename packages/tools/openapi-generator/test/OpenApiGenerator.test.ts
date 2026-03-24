@@ -1092,6 +1092,75 @@ export const CreatePayloadRequestText = Schema.String`,
         ]
       ))
 
+    it.effect("maps multipart schemas referenced through components to Multipart file schemas", () =>
+      assertHttpApiIncludes(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Test API",
+            version: "1.0.0"
+          },
+          paths: {
+            "/upload": {
+              post: {
+                operationId: "upload",
+                parameters: [],
+                requestBody: {
+                  required: true,
+                  content: {
+                    "multipart/form-data": {
+                      schema: {
+                        $ref: "#/components/schemas/UploadBody"
+                      }
+                    }
+                  }
+                } as any,
+                responses: {
+                  200: {
+                    description: "Uploaded"
+                  }
+                },
+                tags: ["Payload"],
+                security: []
+              }
+            }
+          },
+          components: {
+            schemas: {
+              UploadBody: {
+                type: "object",
+                properties: {
+                  file: { type: "string", format: "binary" },
+                  files: {
+                    type: "array",
+                    items: { type: "string", format: "binary" }
+                  }
+                },
+                required: ["file", "files"],
+                additionalProperties: false
+              }
+            },
+            securitySchemes: {}
+          },
+          security: [],
+          tags: [{ name: "Payload" }]
+        },
+        [
+          `import { Multipart } from "effect/unstable/http"`,
+          `export type __HttpApiMultipartSingleFile = Multipart.PersistedFile
+export const __HttpApiMultipartSingleFile = Multipart.SingleFileSchema`,
+          `export type __HttpApiMultipartFiles = ReadonlyArray<Multipart.PersistedFile>
+export const __HttpApiMultipartFiles = Multipart.FilesSchema`,
+          `export type UploadRequestFormData = { readonly "file": __HttpApiMultipartSingleFile, readonly "files": __HttpApiMultipartFiles }`,
+          `export const UploadRequestFormData = Schema.Struct({ "file": __HttpApiMultipartSingleFile, "files": __HttpApiMultipartFiles })`,
+          `HttpApiEndpoint.post("upload", "/upload", { payload: UploadRequestFormData.pipe(HttpApiSchema.asMultipart()), success: HttpApiSchema.Empty(200) })`
+        ],
+        [
+          `Schema.String.annotate({ "format": "binary" })`,
+          `export type UploadBody =`
+        ]
+      ))
+
     it.effect("generates security declarations and middleware placeholders", () =>
       assertHttpApiWithWarnings(
         {

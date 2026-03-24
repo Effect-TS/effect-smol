@@ -367,7 +367,7 @@ const parseOpenApi = (
         if (Predicate.isNotUndefined(content["multipart/form-data"]?.schema)) {
           op.payload = addSchema(
             `${schemaId}RequestFormData`,
-            transformMultipartSchema(content["multipart/form-data"].schema, multipartSchemaRefs),
+            transformMultipartSchema(content["multipart/form-data"].schema, multipartSchemaRefs, resolveRef),
             op
           )
           op.payloadFormData = true
@@ -387,7 +387,7 @@ const parseOpenApi = (
             let schemaName = requestSchemaNames.get(contentType)
             if (schemaName === undefined) {
               const schema = encoding === "multipart"
-                ? transformMultipartSchema(mediaType.schema as JsonSchema.JsonSchema, multipartSchemaRefs)
+                ? transformMultipartSchema(mediaType.schema as JsonSchema.JsonSchema, multipartSchemaRefs, resolveRef)
                 : mediaType.schema as JsonSchema.JsonSchema
               schemaName = addSchema(
                 `${schemaId}Request${mediaTypeToSuffix(contentType)}`,
@@ -730,7 +730,8 @@ const withHttpApiMultipartSchemas = (
 
 const transformMultipartSchema = (
   schema: JsonSchema.JsonSchema,
-  multipartSchemaRefs: HttpApiMultipartSchemaRefs | undefined
+  multipartSchemaRefs: HttpApiMultipartSchemaRefs | undefined,
+  resolveRef: (ref: string) => unknown
 ): JsonSchema.JsonSchema => {
   if (multipartSchemaRefs === undefined) {
     return schema
@@ -738,6 +739,8 @@ const transformMultipartSchema = (
 
   const singleFileRef = toDefinitionRef(multipartSchemaRefs.singleFile)
   const filesRef = toDefinitionRef(multipartSchemaRefs.files)
+  const cache = new Map<string, unknown>()
+  const stack = new Set<string>()
 
   const visit = (value: unknown): unknown => {
     if (Array.isArray(value)) {
@@ -746,6 +749,22 @@ const transformMultipartSchema = (
     if (!Predicate.isObject(value)) {
       return value
     }
+
+    if (typeof value.$ref === "string" && value.$ref.startsWith("#/components/schemas/")) {
+      const cached = cache.get(value.$ref)
+      if (cached !== undefined) {
+        return cached
+      }
+      if (stack.has(value.$ref)) {
+        return value
+      }
+      stack.add(value.$ref)
+      const transformed = visit(resolveSchemaReference(value.$ref, resolveRef))
+      stack.delete(value.$ref)
+      cache.set(value.$ref, transformed)
+      return transformed
+    }
+
     if (isMultipartBinaryFile(value)) {
       return { $ref: singleFileRef }
     }
@@ -763,6 +782,19 @@ const transformMultipartSchema = (
   }
 
   return visit(schema) as JsonSchema.JsonSchema
+}
+
+const resolveSchemaReference = (ref: string, resolveRef: (ref: string) => unknown): unknown => {
+  let current: unknown = { $ref: ref }
+  const seen = new Set<string>()
+  while (Predicate.isObject(current) && typeof current.$ref === "string") {
+    if (seen.has(current.$ref)) {
+      return current
+    }
+    seen.add(current.$ref)
+    current = resolveRef(current.$ref)
+  }
+  return current
 }
 
 const isMultipartBinaryFile = (value: unknown): value is JsonSchema.JsonSchema =>
