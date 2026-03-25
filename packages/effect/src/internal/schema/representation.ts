@@ -537,7 +537,7 @@ export function toJsonSchemaMultiDocument(
   }
 
   // Collapses [{type:"string",enum:["a"]},{type:"string",enum:["b"]}] into {type:"string",enum:["a","b"]}.
-  // Returns undefined if members have different types, extra keys (e.g. title), or non-singleton enums.
+  // Returns undefined if members have different types, extra keys (e.g. title), or empty enums.
   function compactEnums(
     types: ReadonlyArray<JsonSchema.JsonSchema>
   ): JsonSchema.JsonSchema | undefined {
@@ -545,7 +545,7 @@ export function toJsonSchemaMultiDocument(
     const values: Array<unknown> = []
     for (const t of types) {
       const keys = Object.keys(t)
-      if (keys.length !== 2 || t.type === undefined || !Array.isArray(t.enum) || t.enum.length !== 1) {
+      if (keys.length !== 2 || t.type === undefined || !Array.isArray(t.enum) || t.enum.length === 0) {
         return undefined
       }
       if (sharedType === undefined) {
@@ -553,7 +553,9 @@ export function toJsonSchemaMultiDocument(
       } else if (t.type !== sharedType) {
         return undefined
       }
-      values.push(t.enum[0])
+      for (const v of t.enum) {
+        values.push(v)
+      }
     }
     return { type: sharedType, enum: values }
   }

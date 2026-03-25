@@ -1633,6 +1633,22 @@ describe("toJsonSchemaDocument", () => {
       )
     })
 
+    it("nested literals", () => {
+      const schema = Schema.Union([
+        Schema.Literal("a"),
+        Schema.Literals(["b", "c"])
+      ])
+      assertJsonSchemaDocument(
+        schema,
+        {
+          schema: {
+            "type": "string",
+            "enum": ["a", "b", "c"]
+          }
+        }
+      )
+    })
+
     it("strings & inner annotate", () => {
       const schema = Schema.Union([
         Schema.Literal("a"),
