@@ -18,6 +18,7 @@ const TestLayer = Layer.mergeAll(
 
 const escape = String.fromCharCode(27)
 const bell = String.fromCharCode(7)
+const cyanBright = `${escape}[96m`
 
 const stripAnsi = (text: string) => {
   let result = ""
@@ -358,6 +359,55 @@ describe("Prompt.autoComplete", () => {
       const frames = toFrames(output)
 
       assert.isTrue(findFrame(frames, "No matches") !== undefined)
+    }).pipe(Effect.provide(TestLayer)))
+})
+
+describe("Prompt.select", () => {
+  it.effect("highlights the selected choice title with cyan text", () =>
+    Effect.gen(function*() {
+      const prompt = Prompt.select({
+        message: "Pick mode",
+        choices: [
+          { title: "Slow", value: "slow" },
+          { title: "Fast", value: "fast" }
+        ]
+      })
+
+      yield* MockTerminal.inputKey("down")
+      yield* MockTerminal.inputKey("enter")
+
+      const result = yield* Prompt.run(prompt)
+      assert.strictEqual(result, "fast")
+
+      const output = yield* TestConsole.logLines
+      assert.isTrue(
+        output.some((line) => String(line).includes(`${cyanBright}Fast${escape}[0m`))
+      )
+    }).pipe(Effect.provide(TestLayer)))
+})
+
+describe("Prompt.multiSelect", () => {
+  it.effect("highlights the active choice title with cyan text", () =>
+    Effect.gen(function*() {
+      const prompt = Prompt.multiSelect({
+        message: "Pick features",
+        choices: [
+          { title: "Alpha", value: "alpha" },
+          { title: "Beta", value: "beta" }
+        ]
+      })
+
+      yield* MockTerminal.inputKey("down")
+      yield* MockTerminal.inputKey("down")
+      yield* MockTerminal.inputKey("enter")
+
+      const result = yield* Prompt.run(prompt)
+      assert.deepStrictEqual(result, [])
+
+      const output = yield* TestConsole.logLines
+      assert.isTrue(
+        output.some((line) => String(line).includes(`${cyanBright}Alpha${escape}[0m`))
+      )
     }).pipe(Effect.provide(TestLayer)))
 })
 

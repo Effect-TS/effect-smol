@@ -2350,7 +2350,9 @@ const renderMultiSelectChoices = <A>(
       const annotatedCheckbox = isHighlighted && renderOptions?.plain !== true
         ? Ansi.annotate(checkbox, Ansi.cyanBright)
         : checkbox
-      const title = choice.title
+      const title = isHighlighted && renderOptions?.plain !== true
+        ? Ansi.annotate(choice.title, Ansi.cyanBright)
+        : choice.title
       const description = renderChoiceDescription(choice as SelectChoice<A>, isHighlighted, renderOptions)
       documents.push(prefix + " " + annotatedCheckbox + " " + title + " " + description)
     }
