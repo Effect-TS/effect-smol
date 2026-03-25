@@ -164,10 +164,10 @@ export const make = <R, ER>(
   } | undefined
 ): ManagedRuntime<R, ER> => {
   const memoMap = options?.memoMap ?? Layer.makeMemoMapUnsafe()
-  const scope = Scope.makeUnsafe()
-  const fiberScope = Scope.forkUnsafe(scope, "parallel")
+  const scope = Scope.makeUnsafe("parallel")
+  const layerScope = Scope.forkUnsafe(scope, "sequential")
   const defaultRunOptions: Effect.RunOptions = {
-    onFiberStart: Fiber.runIn(fiberScope)
+    onFiberStart: Fiber.runIn(scope)
   }
   const mergeRunOptions = <O extends Effect.RunOptions>(options?: O): O =>
     options
@@ -184,18 +184,15 @@ export const make = <R, ER>(
   let buildFiber: Fiber.Fiber<ServiceMap.ServiceMap<R>, ER> | undefined
   const servicesEffect = Effect.withFiber<ServiceMap.ServiceMap<R>, ER>((fiber) => {
     if (!buildFiber) {
-      buildFiber = Fiber.runIn(
-        Effect.runFork(
-          Effect.tap(
-            Layer.buildWithMemoMap(layer, memoMap, scope),
-            (services) =>
-              Effect.sync(() => {
-                self.cachedServices = services
-              })
-          ),
-          { scheduler: fiber.currentScheduler }
+      buildFiber = Effect.runFork(
+        Effect.tap(
+          Layer.buildWithMemoMap(layer, memoMap, layerScope),
+          (services) =>
+            Effect.sync(() => {
+              self.cachedServices = services
+            })
         ),
-        scope
+        { ...defaultRunOptions, scheduler: fiber.currentScheduler }
       )
     }
     return Effect.flatten(Fiber.await(buildFiber))
