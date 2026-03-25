@@ -1161,6 +1161,71 @@ export const __HttpApiMultipartFiles = Multipart.FilesSchema`,
         ]
       ))
 
+    it.effect("maps multipart contentEncoding binary schemas to Multipart file schemas", () =>
+      assertHttpApiIncludes(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Test API",
+            version: "1.0.0"
+          },
+          paths: {
+            "/upload-content-encoding": {
+              post: {
+                operationId: "uploadWithContentEncoding",
+                parameters: [],
+                requestBody: {
+                  required: true,
+                  content: {
+                    "multipart/form-data": {
+                      schema: {
+                        $ref: "#/components/schemas/UploadBodyContentEncoding"
+                      }
+                    }
+                  }
+                } as any,
+                responses: {
+                  200: {
+                    description: "Uploaded"
+                  }
+                },
+                tags: ["Payload"],
+                security: []
+              }
+            }
+          },
+          components: {
+            schemas: {
+              UploadBodyContentEncoding: {
+                type: "object",
+                properties: {
+                  file: { type: "string", contentEncoding: "binary" },
+                  files: {
+                    type: "array",
+                    items: { type: "string", contentEncoding: "binary" }
+                  }
+                },
+                required: ["file", "files"],
+                additionalProperties: false
+              }
+            },
+            securitySchemes: {}
+          },
+          security: [],
+          tags: [{ name: "Payload" }]
+        },
+        [
+          `import { Multipart } from "effect/unstable/http"`,
+          `export type UploadWithContentEncodingRequestFormData = { readonly "file": __HttpApiMultipartSingleFile, readonly "files": __HttpApiMultipartFiles }`,
+          `export const UploadWithContentEncodingRequestFormData = Schema.Struct({ "file": __HttpApiMultipartSingleFile, "files": __HttpApiMultipartFiles })`,
+          `HttpApiEndpoint.post("uploadWithContentEncoding", "/upload-content-encoding", { payload: UploadWithContentEncodingRequestFormData.pipe(HttpApiSchema.asMultipart()), success: HttpApiSchema.Empty(200) })`
+        ],
+        [
+          `Schema.String.annotate({ "contentEncoding": "binary" })`,
+          `export type UploadBodyContentEncoding =`
+        ]
+      ))
+
     it.effect("generates security declarations and middleware placeholders", () =>
       assertHttpApiWithWarnings(
         {

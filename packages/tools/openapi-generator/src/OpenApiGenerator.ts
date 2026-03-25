@@ -800,7 +800,10 @@ const resolveSchemaReference = (ref: string, resolveRef: (ref: string) => unknow
 const isMultipartBinaryFile = (value: unknown): value is JsonSchema.JsonSchema =>
   Predicate.isObject(value) &&
   value.type === "string" &&
-  value.format === "binary"
+  (
+    (typeof value.format === "string" && value.format.toLowerCase() === "binary") ||
+    (typeof value.contentEncoding === "string" && value.contentEncoding.toLowerCase() === "binary")
+  )
 
 const isMultipartBinaryFiles = (value: Record<string, unknown>, singleFileRef: string): boolean => {
   if (value.type !== "array") {
