@@ -361,6 +361,32 @@ describe("Prompt.autoComplete", () => {
     }).pipe(Effect.provide(TestLayer)))
 })
 
+describe("Prompt.select", () => {
+  it.effect("uses ASCII-compatible pointer icons", () =>
+    Effect.gen(function*() {
+      const prompt = Prompt.select({
+        message: "Pick fruit",
+        choices: [
+          { title: "Apple", value: "apple" },
+          { title: "Banana", value: "banana" }
+        ]
+      })
+
+      yield* MockTerminal.inputKey("down")
+      yield* MockTerminal.inputKey("enter")
+
+      const result = yield* Prompt.run(prompt)
+      assert.strictEqual(result, "banana")
+
+      const output = yield* TestConsole.logLines
+      const rendered = toFrames(output).join("\n")
+
+      assert.isTrue(rendered.includes(">"))
+      assert.isFalse(rendered.includes("›"))
+      assert.isFalse(rendered.includes("❯"))
+    }).pipe(Effect.provide(TestLayer)))
+})
+
 describe("Prompt.file", () => {
   const FilePromptLayer = Layer.mergeAll(
     ConsoleLayer,

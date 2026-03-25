@@ -478,12 +478,12 @@ const defaultFigures = {
   radioOff: "◯",
   checkboxOn: "☒",
   checkboxOff: "☐",
-  tick: "✔",
+  tick: "√",
   cross: "✖",
-  ellipsis: "…",
-  pointerSmall: "›",
+  ellipsis: "...",
+  pointerSmall: ">",
   line: "─",
-  pointer: "❯"
+  pointer: ">"
 }
 
 const windowsFigures = {
@@ -498,7 +498,7 @@ const windowsFigures = {
   tick: "√",
   cross: "×",
   ellipsis: "...",
-  pointerSmall: "»",
+  pointerSmall: ">",
   line: "─",
   pointer: ">"
 }
