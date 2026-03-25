@@ -1161,7 +1161,7 @@ export const __HttpApiMultipartFiles = Multipart.FilesSchema`,
         ]
       ))
 
-    it.effect("maps multipart contentEncoding binary schemas to Multipart file schemas", () =>
+    it.effect("maps multipart contentEncoding binary schemas (case-insensitive) to Multipart file schemas", () =>
       assertHttpApiIncludes(
         {
           openapi: "3.1.0",
@@ -1199,10 +1199,10 @@ export const __HttpApiMultipartFiles = Multipart.FilesSchema`,
               UploadBodyContentEncoding: {
                 type: "object",
                 properties: {
-                  file: { type: "string", contentEncoding: "binary" },
+                  file: { type: "string", contentEncoding: "BINARY" },
                   files: {
                     type: "array",
-                    items: { type: "string", contentEncoding: "binary" }
+                    items: { type: "string", contentEncoding: "BINARY" }
                   }
                 },
                 required: ["file", "files"],
@@ -1221,7 +1221,7 @@ export const __HttpApiMultipartFiles = Multipart.FilesSchema`,
           `HttpApiEndpoint.post("uploadWithContentEncoding", "/upload-content-encoding", { payload: UploadWithContentEncodingRequestFormData.pipe(HttpApiSchema.asMultipart()), success: HttpApiSchema.Empty(200) })`
         ],
         [
-          `Schema.String.annotate({ "contentEncoding": "binary" })`,
+          `contentEncoding`,
           `export type UploadBodyContentEncoding =`
         ]
       ))
