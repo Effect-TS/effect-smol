@@ -199,25 +199,16 @@ export interface Service {
    * })
    * ```
    */
-  readonly generateText: {
-    <
-      Tools extends Record<string, Tool.Any>,
-      Options extends NoExcessProperties<LanguageModel.GenerateTextOptions<Tools>, Options>
-    >(
-      options: Options & LanguageModel.GenerateTextOptions<Tools>
-    ): Effect.Effect<
-      LanguageModel.GenerateTextResponse<Tools>,
-      LanguageModel.ExtractError<Options>,
-      LanguageModel.LanguageModel | LanguageModel.ExtractServices<Options>
-    >
-    <Options extends NoExcessProperties<LanguageModel.GenerateTextOptions<any>, Options>>(
-      options: Options & LanguageModel.GenerateTextOptions<LanguageModel.ExtractTools<Options>>
-    ): Effect.Effect<
-      LanguageModel.GenerateTextResponse<LanguageModel.ExtractTools<Options>>,
-      LanguageModel.ExtractError<Options>,
-      LanguageModel.LanguageModel | LanguageModel.ExtractServices<Options>
-    >
-  }
+  readonly generateText: <
+    Tools extends Record<string, Tool.Any>,
+    Options extends NoExcessProperties<LanguageModel.GenerateTextOptions<Tools>, Options>
+  >(
+    options: Options & LanguageModel.GenerateTextOptions<Tools>
+  ) => Effect.Effect<
+    LanguageModel.GenerateTextResponse<Tools>,
+    LanguageModel.ExtractError<Options>,
+    LanguageModel.LanguageModel | LanguageModel.ExtractServices<Options>
+  >
 
   /**
    * Generate text using a language model with streaming output.
@@ -244,25 +235,16 @@ export interface Service {
    * })
    * ```
    */
-  readonly streamText: {
-    <
-      Tools extends Record<string, Tool.Any>,
-      Options extends NoExcessProperties<LanguageModel.GenerateTextOptions<Tools>, Options>
-    >(
-      options: Options & LanguageModel.GenerateTextOptions<Tools>
-    ): Stream.Stream<
-      Response.StreamPart<Tools>,
-      LanguageModel.ExtractError<Options>,
-      LanguageModel.LanguageModel | LanguageModel.ExtractServices<Options>
-    >
-    <Options extends NoExcessProperties<LanguageModel.GenerateTextOptions<any>, Options>>(
-      options: Options & LanguageModel.GenerateTextOptions<LanguageModel.ExtractTools<Options>>
-    ): Stream.Stream<
-      Response.StreamPart<LanguageModel.ExtractTools<Options>>,
-      LanguageModel.ExtractError<Options>,
-      LanguageModel.LanguageModel | LanguageModel.ExtractServices<Options>
-    >
-  }
+  readonly streamText: <
+    Tools extends Record<string, Tool.Any>,
+    Options extends NoExcessProperties<LanguageModel.GenerateTextOptions<Tools>, Options>
+  >(
+    options: Options & LanguageModel.GenerateTextOptions<Tools>
+  ) => Stream.Stream<
+    Response.StreamPart<Tools>,
+    LanguageModel.ExtractError<Options>,
+    LanguageModel.LanguageModel | LanguageModel.ExtractServices<Options>
+  >
 
   /**
    * Generate a structured object using a language model and schema.
