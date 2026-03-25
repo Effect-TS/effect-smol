@@ -527,9 +527,35 @@ export function toJsonSchemaMultiDocument(
           // anyOf MUST be a non-empty array
           return { not: {} }
         }
+        if (types.length > 1) {
+          const compacted = compactEnums(types)
+          if (compacted) return compacted
+        }
         return schema.mode === "anyOf" ? { anyOf: types } : { oneOf: types }
       }
     }
+  }
+
+  // Collapses [{type:"string",enum:["a"]},{type:"string",enum:["b"]}] into {type:"string",enum:["a","b"]}.
+  // Returns undefined if members have different types, extra keys (e.g. title), or non-singleton enums.
+  function compactEnums(
+    types: ReadonlyArray<JsonSchema.JsonSchema>
+  ): JsonSchema.JsonSchema | undefined {
+    let sharedType: string | undefined
+    const values: Array<unknown> = []
+    for (const t of types) {
+      const keys = Object.keys(t)
+      if (keys.length !== 2 || t.type === undefined || !Array.isArray(t.enum) || t.enum.length !== 1) {
+        return undefined
+      }
+      if (sharedType === undefined) {
+        sharedType = t.type as string
+      } else if (t.type !== sharedType) {
+        return undefined
+      }
+      values.push(t.enum[0])
+    }
+    return { type: sharedType, enum: values }
   }
 
   function collectJsonSchemaAnnotations(
