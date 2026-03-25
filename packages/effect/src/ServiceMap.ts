@@ -22,7 +22,17 @@ import type { Pipeable } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
 import type * as Types from "./Types.ts"
 
-const ServiceTypeId = "~effect/ServiceMap/Service" as const
+/**
+ * @since 4.0.0
+ * @category Type Identifiers
+ */
+export type ServiceTypeId = "~effect/ServiceMap/Service"
+
+/**
+ * @since 4.0.0
+ * @category Type Identifiers
+ */
+export const ServiceTypeId: ServiceTypeId = "~effect/ServiceMap/Service"
 
 /**
  * The base type used for all ServiceMap keys.
@@ -30,11 +40,8 @@ const ServiceTypeId = "~effect/ServiceMap/Service" as const
  * @since 4.0.0
  * @category Models
  */
-export interface Key<in out Identifier, in out Shape> extends Pipeable, Inspectable {
-  readonly [ServiceTypeId]: {
-    readonly _Service: Types.Invariant<Shape>
-    readonly _Identifier: Types.Invariant<Identifier>
-  }
+export interface Key<out Identifier, out Shape> extends Pipeable, Inspectable {
+  readonly [ServiceTypeId]: ServiceTypeId
   readonly Service: Shape
   readonly Identifier: Identifier
   readonly key: string
