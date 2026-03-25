@@ -120,16 +120,25 @@ export interface Service {
   /**
    * Generate text using the language model.
    */
-  readonly generateText: <
-    Options extends NoExcessProperties<GenerateTextOptions<any>, Options>,
-    Tools extends Record<string, Tool.Any> = {}
-  >(
-    options: Options & GenerateTextOptions<Tools>
-  ) => Effect.Effect<
-    GenerateTextResponse<Tools>,
-    ExtractError<Options>,
-    ExtractServices<Options>
-  >
+  readonly generateText: {
+    <
+      Tools extends Record<string, Tool.Any>,
+      Options extends NoExcessProperties<GenerateTextOptions<Tools>, Options>
+    >(
+      options: Options & GenerateTextOptions<Tools>
+    ): Effect.Effect<
+      GenerateTextResponse<Tools>,
+      ExtractError<Options>,
+      ExtractServices<Options>
+    >
+    <Options extends NoExcessProperties<GenerateTextOptions<any>, Options>>(
+      options: Options & GenerateTextOptions<ExtractTools<Options>>
+    ): Effect.Effect<
+      GenerateTextResponse<ExtractTools<Options>>,
+      ExtractError<Options>,
+      ExtractServices<Options>
+    >
+  }
 
   /**
    * Generate a structured object from a schema using the language model.
@@ -153,16 +162,25 @@ export interface Service {
   /**
    * Generate text using the language model with streaming output.
    */
-  readonly streamText: <
-    Options extends NoExcessProperties<GenerateTextOptions<any>, Options>,
-    Tools extends Record<string, Tool.Any> = {}
-  >(
-    options: Options & GenerateTextOptions<Tools>
-  ) => Stream.Stream<
-    Response.StreamPart<Tools>,
-    ExtractError<Options>,
-    ExtractServices<Options>
-  >
+  readonly streamText: {
+    <
+      Tools extends Record<string, Tool.Any>,
+      Options extends NoExcessProperties<GenerateTextOptions<Tools>, Options>
+    >(
+      options: Options & GenerateTextOptions<Tools>
+    ): Stream.Stream<
+      Response.StreamPart<Tools>,
+      ExtractError<Options>,
+      ExtractServices<Options>
+    >
+    <Options extends NoExcessProperties<GenerateTextOptions<any>, Options>>(
+      options: Options & GenerateTextOptions<ExtractTools<Options>>
+    ): Stream.Stream<
+      Response.StreamPart<ExtractTools<Options>>,
+      ExtractError<Options>,
+      ExtractServices<Options>
+    >
+  }
 }
 
 /**
@@ -206,7 +224,7 @@ export interface GenerateTextOptions<Tools extends Record<string, Tool.Any>> {
    * A toolkit containing both the tools and the tool call handler to use to
    * augment text generation.
    */
-  readonly toolkit?: ToolkitOption<Tools> | undefined
+  readonly toolkit?: ToolkitInput<Tools> | undefined
 
   /**
    * The tool choice mode for the language model.
@@ -480,6 +498,30 @@ export type ToolkitOption<
     >
   )
   : never
+
+/**
+ * The supported toolkit input shapes for language model operation options.
+ *
+ * Unlike `ToolkitOption`, this type does not distribute over unions. It is
+ * intended for call-site assignability, while `ToolkitOption` remains the
+ * distributive helper used for extraction and inference.
+ *
+ * @since 4.0.0
+ * @category utility types
+ */
+export type ToolkitInput<
+  Tools extends Record<string, Tool.Any>,
+  E = never,
+  R = any
+> =
+  | ToolkitOption<Tools, E, R>
+  | Toolkit.WithHandler<Tools>
+  | Effect.Yieldable<
+    Toolkit.Toolkit<Tools>,
+    Toolkit.WithHandler<Tools>,
+    E,
+    R
+  >
 
 type ExtractToolsFromToolkitOption<ToolkitValue> = ToolkitValue extends Toolkit.WithHandler<infer Tools> ? Tools
   : ToolkitValue extends Effect.Yieldable<
@@ -1509,9 +1551,9 @@ export const make: (params: {
   }) as any
 
   return {
-    generateText,
+    generateText: generateText as Service["generateText"],
     generateObject,
-    streamText
+    streamText: streamText as Service["streamText"]
   } as const
 })
 
@@ -1543,6 +1585,16 @@ export const make: (params: {
  * @since 4.0.0
  * @category text generation
  */
+export function generateText<
+  Tools extends Record<string, Tool.Any>,
+  Options extends NoExcessProperties<GenerateTextOptions<Tools>, Options>
+>(
+  options: Options & GenerateTextOptions<Tools>
+): Effect.Effect<
+  GenerateTextResponse<Tools>,
+  ExtractError<Options>,
+  LanguageModel | ExtractServices<Options>
+>
 export function generateText<
   Options extends NoExcessProperties<GenerateTextOptions<any>, Options>
 >(
@@ -1648,6 +1700,16 @@ export function generateObject(
  * @since 4.0.0
  * @category text generation
  */
+export function streamText<
+  Tools extends Record<string, Tool.Any>,
+  Options extends NoExcessProperties<GenerateTextOptions<Tools>, Options>
+>(
+  options: Options & GenerateTextOptions<Tools>
+): Stream.Stream<
+  Response.StreamPart<Tools>,
+  ExtractError<Options>,
+  ExtractServices<Options> | LanguageModel
+>
 export function streamText<
   Options extends NoExcessProperties<GenerateTextOptions<any>, Options>
 >(
@@ -2045,7 +2107,7 @@ const resolveToolCalls = <Tools extends Record<string, Tool.Any>>(
 // =============================================================================
 
 const resolveToolkit = <Tools extends Record<string, Tool.Any>, E, R>(
-  toolkit: ToolkitOption<Tools, E, R>
+  toolkit: ToolkitInput<Tools, E, R>
 ): Effect.Effect<Toolkit.WithHandler<Tools>, E, R> =>
   ("asEffect" in toolkit
     ? toolkit.asEffect()
