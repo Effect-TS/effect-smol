@@ -165,6 +165,22 @@ export const make = <R, ER>(
 ): ManagedRuntime<R, ER> => {
   const memoMap = options?.memoMap ?? Layer.makeMemoMapUnsafe()
   const scope = Scope.makeUnsafe()
+  const fiberScope = Scope.forkUnsafe(scope, "parallel")
+  const defaultRunOptions: Effect.RunOptions = {
+    onFiberStart: Fiber.runIn(fiberScope)
+  }
+  const mergeRunOptions = <O extends Effect.RunOptions>(options?: O): O =>
+    options
+      ? {
+        ...options,
+        onFiberStart: options.onFiberStart ?
+          (fiber) => {
+            defaultRunOptions.onFiberStart!(fiber)
+            options.onFiberStart!(fiber)
+          } :
+          defaultRunOptions.onFiberStart
+      }
+      : defaultRunOptions as O
   let buildFiber: Fiber.Fiber<ServiceMap.ServiceMap<R>, ER> | undefined
   const servicesEffect = Effect.withFiber<ServiceMap.ServiceMap<R>, ER>((fiber) => {
     if (!buildFiber) {
@@ -205,8 +221,8 @@ export const make = <R, ER>(
     }),
     runFork<A, E>(effect: Effect.Effect<A, E, R>, options?: Effect.RunOptions): Fiber.Fiber<A, E | ER> {
       return self.cachedServices === undefined ?
-        Effect.runFork(provide(self, effect), options) :
-        Effect.runForkWith(self.cachedServices)(effect, options)
+        Effect.runFork(provide(self, effect), mergeRunOptions(options)) :
+        Effect.runForkWith(self.cachedServices)(effect, mergeRunOptions(options))
     },
     runCallback<A, E>(
       effect: Effect.Effect<A, E, R>,
@@ -215,8 +231,8 @@ export const make = <R, ER>(
       }
     ): (interruptor?: number | undefined) => void {
       return self.cachedServices === undefined ?
-        Effect.runCallback(provide(self, effect), options) :
-        Effect.runCallbackWith(self.cachedServices)(effect, options)
+        Effect.runCallback(provide(self, effect), mergeRunOptions(options)) :
+        Effect.runCallbackWith(self.cachedServices)(effect, mergeRunOptions(options))
     },
     runSyncExit<A, E>(effect: Effect.Effect<A, E, R>): Exit.Exit<A, E | ER> {
       return self.cachedServices === undefined ?
@@ -230,15 +246,15 @@ export const make = <R, ER>(
     },
     runPromiseExit<A, E>(effect: Effect.Effect<A, E, R>, options?: Effect.RunOptions): Promise<Exit.Exit<A, E | ER>> {
       return self.cachedServices === undefined ?
-        Effect.runPromiseExit(provide(self, effect), options) :
-        Effect.runPromiseExitWith(self.cachedServices)(effect, options)
+        Effect.runPromiseExit(provide(self, effect), mergeRunOptions(options)) :
+        Effect.runPromiseExitWith(self.cachedServices)(effect, mergeRunOptions(options))
     },
     runPromise<A, E>(effect: Effect.Effect<A, E, R>, options?: {
       readonly signal?: AbortSignal | undefined
     }): Promise<A> {
       return self.cachedServices === undefined ?
-        Effect.runPromise(provide(self, effect), options) :
-        Effect.runPromiseWith(self.cachedServices)(effect, options)
+        Effect.runPromise(provide(self, effect), mergeRunOptions(options)) :
+        Effect.runPromiseWith(self.cachedServices)(effect, mergeRunOptions(options))
     }
   }
   return self

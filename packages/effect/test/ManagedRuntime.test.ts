@@ -1,6 +1,6 @@
-import { describe, it, test } from "@effect/vitest"
+import { assert, describe, it, test } from "@effect/vitest"
 import { strictEqual } from "@effect/vitest/utils"
-import { Effect, Layer, ManagedRuntime, ServiceMap } from "effect"
+import { Effect, Exit, Layer, ManagedRuntime, ServiceMap } from "effect"
 
 describe("ManagedRuntime", () => {
   test("memoizes the layer build", async () => {
@@ -45,5 +45,14 @@ describe("ManagedRuntime", () => {
     const services = Effect.runSync(managedRuntime.servicesEffect)
     const result = ServiceMap.get(services, tag)
     strictEqual(result, "test")
+  })
+
+  it("fibers are interrupted on dispose", async () => {
+    const runtime = ManagedRuntime.make(Layer.empty)
+    const fiber = runtime.runFork(Effect.never)
+    await runtime.dispose()
+    const exit = fiber.pollUnsafe()
+    assert(exit)
+    assert.isTrue(Exit.hasInterrupts(exit))
   })
 })
