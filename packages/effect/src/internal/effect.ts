@@ -5025,6 +5025,9 @@ export const runForkWith = <R>(services: ServiceMap.ServiceMap<R>) =>
       fiber.addObserver(() => options.signal!.removeEventListener("abort", abort))
     }
   }
+  if (options?.scope) {
+    fiberRunIn(fiber, options.scope)
+  }
   return fiber
 }
 

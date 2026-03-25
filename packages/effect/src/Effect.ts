@@ -8260,6 +8260,7 @@ export const fiberId: Effect<number> = internal.fiberId
  * @category Running Effects
  */
 export interface RunOptions {
+  readonly scope?: Scope | undefined
   readonly signal?: AbortSignal | undefined
   readonly scheduler?: Scheduler | undefined
   readonly uninterruptible?: boolean | undefined

@@ -74,6 +74,24 @@ describe("Effect", () => {
     assert.strictEqual(result, 1)
   })
 
+  it.effect("runFork with scope option", () =>
+    Effect.gen(function*() {
+      const scope = yield* Scope.make()
+      const fiber = Effect.runFork(Effect.never, { scope })
+      yield* Scope.close(scope, Exit.void)
+      const exit = yield* Fiber.await(fiber)
+      assert.isTrue(Exit.hasInterrupts(exit))
+    }))
+
+  it.effect("runFork interrupts immediately when scope is already closed", () =>
+    Effect.gen(function*() {
+      const scope = yield* Scope.make()
+      yield* Scope.close(scope, Exit.void)
+      const fiber = Effect.runFork(Effect.never, { scope })
+      const exit = yield* Fiber.await(fiber)
+      assert.isTrue(Exit.hasInterrupts(exit))
+    }))
+
   it("acquireUseRelease interrupt", async () => {
     let acquire = false
     let use = false
