@@ -51,6 +51,10 @@ export interface Scope {
   readonly [TypeId]: typeof TypeId
   readonly strategy: "sequential" | "parallel"
   state: State.Open | State.Closed | State.Empty
+  /** @internal */
+  addFinalizerUnsafe(key: {}, finalizer: (exit: Exit<any, any>) => Effect<unknown>): void
+  /** @internal */
+  removeFinalizerUnsafe(key: {}): void
 }
 /**
  * A `Closeable` scope extends the base `Scope` interface with the ability
