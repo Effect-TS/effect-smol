@@ -127,7 +127,7 @@ export const make = Effect.fnUntraced(
         request.pipe(
           HttpClientRequest.prependUrl(options.apiUrl ?? "https://openrouter.ai/api/v1"),
           options.apiKey ? HttpClientRequest.bearerToken(options.apiKey) : identity,
-          options.siteReferrer ? HttpClientRequest.setHeader("HTTP-Referrer", options.siteReferrer) : identity,
+          options.siteReferrer ? HttpClientRequest.setHeader("HTTP-Referer", options.siteReferrer) : identity,
           options.siteTitle ? HttpClientRequest.setHeader("X-Title", options.siteTitle) : identity,
           HttpClientRequest.acceptJson
         )
