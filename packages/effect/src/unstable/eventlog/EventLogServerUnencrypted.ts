@@ -9,11 +9,18 @@ import * as Layer from "../../Layer.ts"
 import * as PubSub from "../../PubSub.ts"
 import * as Queue from "../../Queue.ts"
 import * as RcMap from "../../RcMap.ts"
+import * as Redacted from "../../Redacted.ts"
 import * as Schema from "../../Schema.ts"
 import type * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Persistence from "../persistence/Persistence.ts"
+import { Reactivity } from "../reactivity/Reactivity.ts"
+import * as ReactivityLayer from "../reactivity/Reactivity.ts"
+import type * as Event from "./Event.ts"
+import type * as EventGroup from "./EventGroup.ts"
+import * as EventJournal from "./EventJournal.ts"
 import { type Entry, makeRemoteIdUnsafe, RemoteEntry, type RemoteId } from "./EventJournal.ts"
+import * as EventLog from "./EventLog.ts"
 
 /**
  * @since 4.0.0
@@ -225,7 +232,67 @@ export class Storage extends ServiceMap.Service<Storage, {
   ) => Effect.Effect<Queue.Dequeue<RemoteEntry, Cause.Done>, never, Scope.Scope>
 }>()("effect/eventlog/EventLogServerUnencrypted/Storage") {}
 
+/**
+ * @since 4.0.0
+ * @category runtime
+ */
+export class EventLogServerUnencrypted extends ServiceMap.Service<EventLogServerUnencrypted, {
+  readonly ingest: (options: {
+    readonly publicKey: string
+    readonly entries: ReadonlyArray<Entry>
+  }) => Effect.Effect<{
+    readonly storeId: StoreId
+    readonly sequenceNumbers: ReadonlyArray<number>
+    readonly committed: ReadonlyArray<RemoteEntry>
+  }, EventLogServerAuthError | EventLogServerStoreError | EventJournal.EventJournalError>
+  readonly requestChanges: (
+    publicKey: string,
+    startSequence: number
+  ) => Effect.Effect<
+    Queue.Dequeue<RemoteEntry, Cause.Done>,
+    EventLogServerAuthError | EventLogServerStoreError,
+    Scope.Scope
+  >
+  readonly registerCompaction: (options: {
+    readonly events: ReadonlyArray<string>
+    readonly effect: (options: {
+      readonly entries: ReadonlyArray<Entry>
+      readonly write: (entry: Entry) => Effect.Effect<void>
+    }) => Effect.Effect<void>
+  }) => Effect.Effect<void, never, Scope.Scope>
+  readonly registerReactivity: (keys: Record<string, ReadonlyArray<string>>) => Effect.Effect<void, never, Scope.Scope>
+}>()("effect/eventlog/EventLogServerUnencrypted") {}
+
 const toStoreKey = (storeId: StoreId): string => storeId as string
+
+const makeStoreRemoteId = (storeId: StoreId): RemoteId => {
+  const bytes = new TextEncoder().encode(toStoreKey(storeId))
+
+  let a = 2166136261
+  let b = 2166136261 ^ 0x9e3779b9
+  for (let i = 0; i < bytes.length; i++) {
+    a ^= bytes[i]
+    a = Math.imul(a, 16777619) >>> 0
+
+    b ^= bytes[i]
+    b = Math.imul(b, 2246822519) >>> 0
+  }
+
+  const out = new Uint8Array(16)
+  const view = new DataView(out.buffer)
+  view.setUint32(0, a)
+  view.setUint32(4, b)
+  view.setUint32(8, a ^ 0xa5a5a5a5)
+  view.setUint32(12, b ^ 0x5a5a5a5a)
+  out[6] = (out[6] & 0x0f) | 0x40
+  out[8] = (out[8] & 0x3f) | 0x80
+  return out as RemoteId
+}
+
+const makeClientIdentity = (publicKey: string): EventLog.Identity["Service"] => ({
+  publicKey,
+  privateKey: Redacted.make(new Uint8Array(32))
+})
 
 const entriesAfter = (journal: Array<RemoteEntry>, startSequence: number): ReadonlyArray<RemoteEntry> =>
   journal.filter((entry) => entry.remoteSequence > startSequence)
@@ -343,3 +410,158 @@ export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.S
  * @category storage
  */
 export const layerStorageMemory: Layer.Layer<Storage> = Layer.effect(Storage)(makeStorageMemory)
+
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const make = Effect.gen(function*() {
+  const journal = yield* EventJournal.EventJournal
+  const storage = yield* Storage
+  const mapping = yield* StoreMapping
+  const auth = yield* EventLogServerAuth
+  const services = yield* Effect.services<never>()
+  const reactivity = yield* Reactivity
+
+  const compactors = new Map<string, {
+    readonly events: ReadonlySet<string>
+    readonly effect: (options: {
+      readonly entries: ReadonlyArray<Entry>
+      readonly write: (entry: Entry) => Effect.Effect<void>
+    }) => Effect.Effect<void>
+  }>()
+  const reactivityKeys: Record<string, ReadonlyArray<string>> = {}
+
+  const replayCommitted = Effect.fnUntraced(function*(options: {
+    readonly storeId: StoreId
+    readonly publicKey: string
+    readonly committed: ReadonlyArray<RemoteEntry>
+  }) {
+    if (options.committed.length === 0) {
+      return
+    }
+
+    const replayFromRemote = EventLog.makeReplayFromRemoteEffect({
+      services,
+      identity: makeClientIdentity(options.publicKey),
+      reactivity,
+      reactivityKeys,
+      logAnnotations: {
+        service: "EventLogServerUnencrypted",
+        effect: "writeFromRemote"
+      }
+    })
+
+    yield* journal.writeFromRemote({
+      remoteId: makeStoreRemoteId(options.storeId),
+      entries: options.committed,
+      effect: replayFromRemote
+    })
+  })
+
+  return EventLogServerUnencrypted.of({
+    ingest: Effect.fnUntraced(function*({ publicKey, entries }) {
+      const storeId = yield* mapping.resolve(publicKey)
+      yield* auth.authorizeWrite({
+        publicKey,
+        storeId,
+        entries
+      })
+
+      const persisted = yield* storage.write(storeId, entries)
+      yield* replayCommitted({
+        storeId,
+        publicKey,
+        committed: persisted.committed
+      })
+
+      return {
+        storeId,
+        sequenceNumbers: persisted.sequenceNumbers,
+        committed: persisted.committed
+      }
+    }),
+    requestChanges: Effect.fnUntraced(function*(publicKey: string, startSequence: number) {
+      const storeId = yield* mapping.resolve(publicKey)
+      yield* auth.authorizeRead({
+        publicKey,
+        storeId
+      })
+      return yield* storage.changes(storeId, startSequence)
+    }),
+    registerCompaction: (options) =>
+      Effect.acquireRelease(
+        Effect.sync(() => {
+          const events = new Set(options.events)
+          const compactor = {
+            events,
+            effect: options.effect
+          }
+          for (const event of options.events) {
+            compactors.set(event, compactor)
+          }
+        }),
+        () =>
+          Effect.sync(() => {
+            for (const event of options.events) {
+              compactors.delete(event)
+            }
+          })
+      ),
+    registerReactivity: (keys) =>
+      Effect.sync(() => {
+        Object.assign(reactivityKeys, keys)
+      })
+  })
+})
+
+/**
+ * @since 4.0.0
+ * @category reactivity
+ */
+export const groupReactivity = <Events extends Event.Any>(
+  group: EventGroup.EventGroup<Events>,
+  keys:
+    | { readonly [Tag in Event.Tag<Events>]?: ReadonlyArray<string> }
+    | ReadonlyArray<string>
+): Layer.Layer<never, never, EventLogServerUnencrypted> =>
+  Layer.effectDiscard(
+    Effect.gen(function*() {
+      const runtime = yield* EventLogServerUnencrypted
+      if (!Array.isArray(keys)) {
+        yield* runtime.registerReactivity(keys as Record<string, ReadonlyArray<string>>)
+        return
+      }
+
+      const all: Record<string, ReadonlyArray<string>> = {}
+      for (const tag in group.events) {
+        all[tag] = keys
+      }
+      yield* runtime.registerReactivity(all)
+    })
+  )
+
+const layerServerRuntime: Layer.Layer<
+  EventLogServerUnencrypted,
+  never,
+  EventJournal.EventJournal | Storage | StoreMapping | EventLogServerAuth
+> = Layer.effect(EventLogServerUnencrypted, make).pipe(
+  Layer.provide(ReactivityLayer.layer)
+)
+
+/**
+ * @since 4.0.0
+ * @category layers
+ */
+export const layer = <Groups extends EventGroup.Any>(
+  _schema: EventLog.EventLogSchema<Groups>
+): Layer.Layer<
+  EventLogServerUnencrypted,
+  never,
+  EventGroup.ToService<Groups> | EventJournal.EventJournal | Storage | StoreMapping | EventLogServerAuth
+> =>
+  layerServerRuntime as Layer.Layer<
+    EventLogServerUnencrypted,
+    never,
+    EventGroup.ToService<Groups> | EventJournal.EventJournal | Storage | StoreMapping | EventLogServerAuth
+  >

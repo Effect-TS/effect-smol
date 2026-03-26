@@ -1,8 +1,60 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Queue } from "effect"
+import { Effect, Layer, Queue, Ref, Schema } from "effect"
+import * as EventGroup from "effect/unstable/eventlog/EventGroup"
 import * as EventJournal from "effect/unstable/eventlog/EventJournal"
+import * as EventLog from "effect/unstable/eventlog/EventLog"
 import * as EventLogServerUnencrypted from "effect/unstable/eventlog/EventLogServerUnencrypted"
 import { Persistence } from "effect/unstable/persistence"
+import * as Reactivity from "effect/unstable/reactivity/Reactivity"
+
+const UserPayload = Schema.Struct({
+  id: Schema.String
+})
+
+const UserGroup = EventGroup.empty.add({
+  tag: "UserCreated",
+  primaryKey: (payload) => payload.id,
+  payload: UserPayload
+})
+
+const schema = EventLog.schema(UserGroup)
+
+const layerAuthAllowAll = Layer.succeed(
+  EventLogServerUnencrypted.EventLogServerAuth,
+  EventLogServerUnencrypted.EventLogServerAuth.of({
+    authorizeWrite: () => Effect.void,
+    authorizeRead: () => Effect.void
+  })
+)
+
+const handlerLayer = (handled: Ref.Ref<ReadonlyArray<string>>) =>
+  EventLog.group(
+    UserGroup,
+    (handlers) =>
+      handlers.handle("UserCreated", ({ payload }) => Ref.update(handled, (values) => [...values, payload.id]))
+  )
+
+const runtimeLayer = (handled: Ref.Ref<ReadonlyArray<string>>) =>
+  EventLogServerUnencrypted.layer(schema).pipe(
+    Layer.provideMerge(EventJournal.layerMemory),
+    Layer.provideMerge(EventLogServerUnencrypted.layerStorageMemory),
+    Layer.provideMerge(EventLogServerUnencrypted.layerStoreMappingMemory),
+    Layer.provideMerge(layerAuthAllowAll),
+    Layer.provideMerge(handlerLayer(handled))
+  )
+
+const makeUserCreatedEntry = (id: string): Effect.Effect<EventJournal.Entry> =>
+  Effect.gen(function*() {
+    const payload = yield* Schema.encodeUnknownEffect(UserGroup.events.UserCreated.payloadMsgPack)({ id }).pipe(
+      Effect.orDie
+    )
+    return new EventJournal.Entry({
+      id: EventJournal.makeEntryIdUnsafe(),
+      event: "UserCreated",
+      primaryKey: id,
+      payload
+    }, { disableChecks: true })
+  })
 
 const makeEntry = (primaryKey: string): EventJournal.Entry =>
   new EventJournal.Entry({
@@ -13,6 +65,144 @@ const makeEntry = (primaryKey: string): EventJournal.Entry =>
   })
 
 describe("EventLogServerUnencrypted", () => {
+  it.effect("accepted ingest runs handlers", () =>
+    Effect.gen(function*() {
+      const handled = yield* Ref.make<ReadonlyArray<string>>([])
+
+      yield* Effect.gen(function*() {
+        const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+        const mapping = yield* EventLogServerUnencrypted.StoreMapping
+        const storeId = "store-runtime-handler" as EventLogServerUnencrypted.StoreId
+
+        yield* mapping.assign({
+          publicKey: "public-key-handler",
+          storeId
+        })
+
+        const entry = yield* makeUserCreatedEntry("user-1")
+        const result = yield* runtime.ingest({
+          publicKey: "public-key-handler",
+          entries: [entry]
+        })
+
+        assert.strictEqual(result.storeId, storeId)
+        assert.deepStrictEqual(result.sequenceNumbers, [1])
+        assert.deepStrictEqual(result.committed.map((entry) => entry.remoteSequence), [1])
+
+        const seen = yield* Ref.get(handled)
+        assert.deepStrictEqual(seen, ["user-1"])
+      }).pipe(Effect.provide(runtimeLayer(handled)))
+    }))
+
+  it.effect("accepted ingest triggers Reactivity invalidation", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const handled = yield* Ref.make<ReadonlyArray<string>>([])
+        const invalidations = yield* Ref.make(0)
+
+        const runtimeLayerWithReactivity = Layer.effect(EventLogServerUnencrypted.EventLogServerUnencrypted)(
+          EventLogServerUnencrypted.make
+        ).pipe(
+          Layer.provideMerge(EventJournal.layerMemory),
+          Layer.provideMerge(EventLogServerUnencrypted.layerStorageMemory),
+          Layer.provideMerge(EventLogServerUnencrypted.layerStoreMappingMemory),
+          Layer.provideMerge(layerAuthAllowAll),
+          Layer.provideMerge(handlerLayer(handled)),
+          Layer.provideMerge(Reactivity.layer)
+        )
+
+        yield* Effect.gen(function*() {
+          const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+          const mapping = yield* EventLogServerUnencrypted.StoreMapping
+          const reactivity = yield* Reactivity.Reactivity
+
+          yield* mapping.assign({
+            publicKey: "public-key-reactivity",
+            storeId: "store-reactivity" as EventLogServerUnencrypted.StoreId
+          })
+          yield* runtime.registerReactivity({
+            UserCreated: ["users"]
+          })
+
+          const query = yield* reactivity.query(
+            { users: ["user-1"] },
+            Ref.updateAndGet(invalidations, (count) => count + 1)
+          )
+
+          const initial = yield* Queue.take(query)
+          assert.strictEqual(initial, 1)
+
+          const entry = yield* makeUserCreatedEntry("user-1")
+          yield* runtime.ingest({
+            publicKey: "public-key-reactivity",
+            entries: [entry]
+          })
+
+          const afterIngest = yield* Queue.take(query)
+          assert.strictEqual(afterIngest, 2)
+
+          const seen = yield* Ref.get(handled)
+          assert.deepStrictEqual(seen, ["user-1"])
+        }).pipe(Effect.provide(runtimeLayerWithReactivity))
+      })
+    ))
+
+  it.effect("two keys mapped to one store observe one combined feed with shared sequence space", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const handled = yield* Ref.make<ReadonlyArray<string>>([])
+
+        yield* Effect.gen(function*() {
+          const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+          const mapping = yield* EventLogServerUnencrypted.StoreMapping
+          const storeId = "store-shared-feed" as EventLogServerUnencrypted.StoreId
+
+          yield* mapping.assign({ publicKey: "public-key-a", storeId })
+          yield* mapping.assign({ publicKey: "public-key-b", storeId })
+
+          const entryA = yield* makeUserCreatedEntry("user-a")
+          const entryB = yield* makeUserCreatedEntry("user-b")
+
+          const ingestA = yield* runtime.ingest({
+            publicKey: "public-key-a",
+            entries: [entryA]
+          })
+          const ingestB = yield* runtime.ingest({
+            publicKey: "public-key-b",
+            entries: [entryB]
+          })
+
+          assert.deepStrictEqual(ingestA.sequenceNumbers, [1])
+          assert.deepStrictEqual(ingestB.sequenceNumbers, [2])
+
+          const changesA = yield* runtime.requestChanges("public-key-a", 0)
+          const firstForA = yield* Queue.take(changesA)
+          const secondForA = yield* Queue.take(changesA)
+          assert.deepStrictEqual(
+            [firstForA.remoteSequence, secondForA.remoteSequence],
+            [1, 2]
+          )
+
+          const changesB = yield* runtime.requestChanges("public-key-b", 0)
+          const firstForB = yield* Queue.take(changesB)
+          const secondForB = yield* Queue.take(changesB)
+          assert.deepStrictEqual(
+            [firstForB.remoteSequence, secondForB.remoteSequence],
+            [1, 2]
+          )
+
+          assert.deepStrictEqual(
+            [firstForA.entry.primaryKey, secondForA.entry.primaryKey],
+            ["user-a", "user-b"]
+          )
+          assert.deepStrictEqual(
+            [firstForB.entry.primaryKey, secondForB.entry.primaryKey],
+            ["user-a", "user-b"]
+          )
+        }).pipe(Effect.provide(runtimeLayer(handled)))
+      })
+    ))
+
   it.effect("store mapping memory resolves, supports shared stores, and supports reassignment", () =>
     Effect.gen(function*() {
       const mapping = yield* EventLogServerUnencrypted.StoreMapping

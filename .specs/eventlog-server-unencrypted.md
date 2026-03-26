@@ -924,7 +924,7 @@ its own.
 - [x] Task 1: Finish unencrypted protocol plumbing in `EventLogRemote`
 - [x] Task 2: Add store-scoped core types and transport storage
 - [x] Task 3: Add store mapping services and implementations
-- [ ] Task 4: Build store-aware ingest and shared replay helpers
+- [ ] Task 4: Build store-aware ingest and shared replay helpers (kickoff slice in progress)
 - [ ] Task 5: Add server-authored `write(..., storeId)` support
 - [ ] Task 6: Add read-time compaction over store-scoped outbound feeds
 - [ ] Task 7: Expose websocket / HTTP handlers and complete integration coverage
@@ -1082,6 +1082,33 @@ Validation for this task:
 - `pnpm codegen` if exports change
 
 ### Task 4: Build store-aware ingest and shared replay helpers
+
+### Task 4 kickoff implementation notes
+
+- Added the `EventLogServerUnencrypted` runtime service skeleton with
+  `ingest(...)`, `requestChanges(...)`, `registerCompaction(...)`, and
+  `registerReactivity(...)` plus `layer(schema)` wiring.
+- `ingest(...)` now performs the required store-aware pipeline:
+  `StoreMapping.resolve(publicKey)` -> `EventLogServerAuth.authorizeWrite(...)`
+  -> `Storage.write(storeId, entries)` -> replay of only `committed` entries to
+  `EventJournal.writeFromRemote(...)`.
+- Remote journal replay now uses a deterministic per-store `RemoteId` derived
+  from `StoreId`, ensuring one shared remote sequence namespace per store across
+  multiple mapped `publicKey`s.
+- Extracted shared replay logic from `EventLog` into
+  `EventLog.makeReplayFromRemoteEffect(...)` and reused it from both client and
+  server runtimes so handler execution + Reactivity invalidation stay aligned.
+- Added focused ingest tests covering:
+  - accepted ingest runs handlers
+  - accepted ingest triggers Reactivity invalidation
+  - two keys mapped to one store observe one combined feed with shared sequence
+    space
+
+Discovery / issue note:
+
+- The reconciliation path for persisted-but-unprocessed entries is still
+  pending and remains part of the remaining Task 4 work beyond this kickoff
+  slice.
 
 Scope:
 
