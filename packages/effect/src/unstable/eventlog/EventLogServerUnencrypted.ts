@@ -13,6 +13,7 @@ import * as RcMap from "../../RcMap.ts"
 import * as Redacted from "../../Redacted.ts"
 import * as Schema from "../../Schema.ts"
 import type * as Scope from "../../Scope.ts"
+import * as Semaphore from "../../Semaphore.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Persistence from "../persistence/Persistence.ts"
 import { Reactivity } from "../reactivity/Reactivity.ts"
@@ -420,6 +421,7 @@ export const make = Effect.gen(function*() {
   }>()
   const reactivityKeys: Record<string, ReadonlyArray<string>> = {}
   const reconciledStores = new Set<string>()
+  const journalSemaphore = yield* Semaphore.make(1)
 
   const replayCommitted = Effect.fnUntraced(function*(options: {
     readonly storeId: StoreId
@@ -441,11 +443,13 @@ export const make = Effect.gen(function*() {
       }
     })
 
-    yield* journal.writeFromRemote({
-      remoteId: makeStoreRemoteId(options.storeId),
-      entries: options.committed,
-      effect: replayFromRemote
-    })
+    yield* journalSemaphore.withPermits(1)(
+      journal.writeFromRemote({
+        remoteId: makeStoreRemoteId(options.storeId),
+        entries: options.committed,
+        effect: replayFromRemote
+      })
+    )
   })
 
   const reconcileStore = Effect.fnUntraced(function*(storeId: StoreId) {
