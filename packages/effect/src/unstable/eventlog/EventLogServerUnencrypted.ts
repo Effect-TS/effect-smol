@@ -7,6 +7,7 @@ import type * as Cause from "../../Cause.ts"
 import * as Data from "../../Data.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
+import * as FiberMap from "../../FiberMap.ts"
 import * as Layer from "../../Layer.ts"
 import * as PubSub from "../../PubSub.ts"
 import * as Queue from "../../Queue.ts"
@@ -16,9 +17,13 @@ import * as Schema from "../../Schema.ts"
 import type * as Scope from "../../Scope.ts"
 import * as Semaphore from "../../Semaphore.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
+import type * as HttpServerError from "../http/HttpServerError.ts"
+import * as HttpServerRequest from "../http/HttpServerRequest.ts"
+import * as HttpServerResponse from "../http/HttpServerResponse.ts"
 import * as Persistence from "../persistence/Persistence.ts"
 import { Reactivity } from "../reactivity/Reactivity.ts"
 import * as ReactivityLayer from "../reactivity/Reactivity.ts"
+import type * as Socket from "../socket/Socket.ts"
 import type * as Event from "./Event.ts"
 import type * as EventGroup from "./EventGroup.ts"
 import * as EventJournal from "./EventJournal.ts"
@@ -31,6 +36,20 @@ import {
   type RemoteId
 } from "./EventJournal.ts"
 import * as EventLog from "./EventLog.ts"
+import {
+  Ack,
+  ChangesUnencrypted,
+  ChunkedMessage,
+  decodeRequestUnencrypted,
+  encodeResponseUnencrypted,
+  ErrorUnencrypted,
+  Hello,
+  Pong,
+  type ProtocolRequestUnencrypted,
+  type ProtocolResponseUnencrypted
+} from "./EventLogRemote.ts"
+
+const constChunkSize = 512_000
 
 /**
  * @since 4.0.0
@@ -355,6 +374,7 @@ export class Storage extends ServiceMap.Service<Storage, {
  * @category runtime
  */
 export class EventLogServerUnencrypted extends ServiceMap.Service<EventLogServerUnencrypted, {
+  readonly getId: Effect.Effect<RemoteId>
   readonly ingest: (options: {
     readonly publicKey: string
     readonly entries: ReadonlyArray<Entry>
@@ -390,6 +410,41 @@ export class EventLogServerUnencrypted extends ServiceMap.Service<EventLogServer
 }>()("effect/eventlog/EventLogServerUnencrypted") {}
 
 const toStoreKey = (storeId: StoreId): string => storeId as string
+
+type ProtocolErrorCode = "Unauthorized" | "Forbidden" | "NotFound" | "InvalidRequest" | "InternalServerError"
+
+const toProtocolErrorCode = (
+  error: EventLogServerAuthError | EventLogServerStoreError
+): ProtocolErrorCode => {
+  if (error._tag === "EventLogServerAuthError") {
+    return error.reason
+  }
+
+  switch (error.reason) {
+    case "NotFound": {
+      return "NotFound"
+    }
+    case "PersistenceFailure": {
+      return "InternalServerError"
+    }
+  }
+}
+
+const toProtocolErrorMessage = (error: EventLogServerAuthError | EventLogServerStoreError): string => {
+  if (error.message !== undefined) {
+    return error.message
+  }
+
+  if (error._tag === "EventLogServerAuthError") {
+    return error.reason === "Unauthorized"
+      ? "Unauthorized request"
+      : "Forbidden request"
+  }
+
+  return error.reason === "NotFound"
+    ? "Store mapping not found"
+    : "Internal server error"
+}
 
 const storeRemoteNamespace = "9e2f4ec9-ea57-44cc-ad6f-0f97d7f59fb5"
 
@@ -843,6 +898,7 @@ export const make = Effect.gen(function*() {
   })
 
   return EventLogServerUnencrypted.of({
+    getId: storage.getId,
     ingest: Effect.fnUntraced(function*({ publicKey, entries }) {
       const storeId = yield* mapping.resolve(publicKey)
       yield* auth.authorizeWrite({
@@ -1078,3 +1134,186 @@ export const layer = <Groups extends EventGroup.Any>(
     never,
     EventGroup.ToService<Groups> | EventJournal.EventJournal | Storage | StoreMapping | EventLogServerAuth
   >
+
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const makeHandler: Effect.Effect<
+  (socket: Socket.Socket) => Effect.Effect<void, Socket.SocketError>,
+  never,
+  EventLogServerUnencrypted
+> = Effect.gen(function*() {
+  const runtime = yield* EventLogServerUnencrypted
+  const remoteId = yield* runtime.getId
+  let chunkId = 0
+
+  return Effect.fnUntraced(
+    function*(socket: Socket.Socket) {
+      const subscriptions = yield* FiberMap.make<string>()
+      const writeRaw = yield* socket.writer
+      const chunks = new Map<
+        number,
+        {
+          readonly parts: Array<Uint8Array>
+          count: number
+          bytes: number
+        }
+      >()
+
+      const write = Effect.fnUntraced(function*(response: Schema.Schema.Type<typeof ProtocolResponseUnencrypted>) {
+        const data = yield* encodeResponseUnencrypted(response)
+        if (response._tag !== "Changes" || data.byteLength <= constChunkSize) {
+          return yield* writeRaw(data)
+        }
+        const id = chunkId++
+        for (const part of ChunkedMessage.split(id, data)) {
+          yield* writeRaw(yield* encodeResponseUnencrypted(part))
+        }
+      })
+
+      const writeError = Effect.fnUntraced(function*(options: {
+        readonly requestTag: "WriteEntries" | "RequestChanges"
+        readonly id?: number | undefined
+        readonly publicKey?: string | undefined
+        readonly error: EventLogServerAuthError | EventLogServerStoreError
+      }) {
+        yield* Effect.orDie(write(
+          new ErrorUnencrypted({
+            requestTag: options.requestTag,
+            id: options.id,
+            publicKey: options.publicKey,
+            code: toProtocolErrorCode(options.error),
+            message: toProtocolErrorMessage(options.error)
+          })
+        ))
+      })
+
+      yield* Effect.forkChild(Effect.orDie(write(new Hello({ remoteId }))))
+
+      const handleRequest = (
+        request: Schema.Schema.Type<typeof ProtocolRequestUnencrypted>
+      ): Effect.Effect<void> => {
+        switch (request._tag) {
+          case "Ping": {
+            return Effect.orDie(write(new Pong({ id: request.id })))
+          }
+          case "WriteEntries": {
+            return runtime.ingest({
+              publicKey: request.publicKey,
+              entries: request.entries
+            }).pipe(
+              Effect.flatMap((persisted) =>
+                Effect.orDie(
+                  write(
+                    new Ack({
+                      id: request.id,
+                      sequenceNumbers: persisted.sequenceNumbers
+                    })
+                  )
+                )
+              ),
+              Effect.catchTag("EventLogServerAuthError", (error) =>
+                writeError({
+                  requestTag: "WriteEntries",
+                  id: request.id,
+                  publicKey: request.publicKey,
+                  error
+                })),
+              Effect.catchTag("EventLogServerStoreError", (error) =>
+                writeError({
+                  requestTag: "WriteEntries",
+                  id: request.id,
+                  publicKey: request.publicKey,
+                  error
+                }))
+            )
+          }
+          case "RequestChanges": {
+            return runtime.requestChanges(request.publicKey, request.startSequence).pipe(
+              Effect.flatMap((changes) =>
+                Queue.takeAll(changes).pipe(
+                  Effect.flatMap((entries) => {
+                    if (entries.length === 0) {
+                      return Effect.void
+                    }
+
+                    return Effect.orDie(
+                      write(
+                        new ChangesUnencrypted({
+                          publicKey: request.publicKey,
+                          entries
+                        })
+                      )
+                    )
+                  }),
+                  Effect.forever
+                )
+              ),
+              Effect.catchTag("EventLogServerAuthError", (error) =>
+                writeError({
+                  requestTag: "RequestChanges",
+                  publicKey: request.publicKey,
+                  error
+                })),
+              Effect.catchTag("EventLogServerStoreError", (error) =>
+                writeError({
+                  requestTag: "RequestChanges",
+                  publicKey: request.publicKey,
+                  error
+                })),
+              Effect.orDie,
+              Effect.scoped,
+              FiberMap.run(subscriptions, request.publicKey),
+              Effect.asVoid
+            )
+          }
+          case "StopChanges": {
+            return FiberMap.remove(subscriptions, request.publicKey)
+          }
+          case "ChunkedMessage": {
+            const data = ChunkedMessage.join(chunks, request)
+            if (!data) {
+              return Effect.void
+            }
+            return Effect.flatMap(Effect.orDie(decodeRequestUnencrypted(data)), handleRequest)
+          }
+        }
+      }
+
+      yield* socket.run((data) => Effect.flatMap(Effect.orDie(decodeRequestUnencrypted(data)), handleRequest)).pipe(
+        Effect.catchCause((cause) => Effect.logDebug(cause))
+      )
+    },
+    Effect.scoped,
+    Effect.annotateLogs({
+      module: "EventLogServerUnencrypted"
+    })
+  )
+})
+
+/**
+ * @since 4.0.0
+ * @category websockets
+ */
+export const makeHandlerHttp: Effect.Effect<
+  Effect.Effect<
+    HttpServerResponse.HttpServerResponse,
+    HttpServerError.HttpServerError | Socket.SocketError,
+    HttpServerRequest.HttpServerRequest | Scope.Scope
+  >,
+  never,
+  EventLogServerUnencrypted
+> = Effect.gen(function*() {
+  const handler = yield* makeHandler
+
+  // @effect-diagnostics-next-line returnEffectInGen:off
+  return Effect.gen(function*() {
+    const request = yield* HttpServerRequest.HttpServerRequest
+    const socket = yield* request.upgrade
+    yield* handler(socket)
+    return HttpServerResponse.empty()
+  }).pipe(Effect.annotateLogs({
+    module: "EventLogServerUnencrypted"
+  }))
+})
