@@ -93,6 +93,26 @@ describe("EventLogServerUnencrypted", () => {
       }).pipe(Effect.provide(Persistence.layerBackingMemory))
     ))
 
+  it.effect("store mapping persisted returns PersistenceFailure when stored payload is invalid", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const persistedStoreId = "eventlog-server-unencrypted-store-mapping-invalid-payload-test"
+        const backing = yield* Persistence.BackingPersistence
+        const storage = yield* backing.make(persistedStoreId)
+
+        yield* storage.set("corrupt-public-key", { storeId: 123 }, undefined)
+
+        const mapping = yield* EventLogServerUnencrypted.makeStoreMappingPersisted({
+          storeId: persistedStoreId
+        })
+
+        const error = yield* Effect.flip(mapping.resolve("corrupt-public-key"))
+        assert.instanceOf(error, EventLogServerUnencrypted.EventLogServerStoreError)
+        assert.strictEqual(error.reason, "PersistenceFailure")
+        assert.strictEqual(error.publicKey, "corrupt-public-key")
+      }).pipe(Effect.provide(Persistence.layerBackingMemory))
+    ))
+
   it.effect("uses one store-scoped sequence space for shared-store history", () =>
     Effect.scoped(
       Effect.gen(function*() {
