@@ -936,6 +936,9 @@ its own.
 - `fromSocketUnencrypted` now maps unencrypted `Error` frames to
   `EventLogRemoteError` for both pending writes and active change-subscription
   queues.
+- Request-change failures now invalidate the failed subscription slot so a
+  caller can re-issue `RequestChanges` for the same `publicKey` and receive a
+  fresh queue.
 - `EventLogRemote` queue / write signatures were widened to surface remote
   protocol failures (`Queue.Dequeue<RemoteEntry, EventLogRemoteError>` and
   `Effect<void, EventLogRemoteError>`).
@@ -1147,3 +1150,7 @@ kept in mind while designing the API:
   application-specific way
 - background snapshotting or server-driven compaction materialization for more
   aggressive backlog reduction
+- dedicated `EventLog.registerRemote(...)` integration coverage for fallible
+  remote change queues and rejection/recovery behavior
+- resolving the placeholder `EventLogServerUnencrypted.ts` scaffold so
+  `pnpm check:tsgo` is green again
