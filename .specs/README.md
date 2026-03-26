@@ -24,4 +24,4 @@ This directory contains specifications for all major features and enhancements i
 - [ai-embedding-model.md](ai-embedding-model.md) - Add `EmbeddingModel` module to `effect/unstable/ai` with batching via `RequestResolver` and telemetry.
 - [sql-error-reason-pattern.md](sql-error-reason-pattern.md) - Refactor SqlError to use the reason pattern with per-reason classes and best-effort error classification across all SQL drivers.
 - [openapi-generator-httpapi-output.md](openapi-generator-httpapi-output.md) - Add a new openapi-generator output mode that emits full HttpApi modules with supporting schemas, placeholder security declarations, and explicit lossy-conversion warnings.
-- [eventlog-server-unencrypted.md](eventlog-server-unencrypted.md) - Add an `EventLogServerUnencrypted` module with store-scoped feeds, persisted `publicKey -> StoreId` mapping, and server-authored event support.
+- [eventlog-server-unencrypted.md](eventlog-server-unencrypted.md) - Update `EventLogServerUnencrypted` with simplified resolver-based store mapping, a static shared-store helper, and `Effect.fnUntraced` cleanup guidance.
