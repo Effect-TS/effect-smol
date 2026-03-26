@@ -988,9 +988,16 @@ Validation for this task:
   sequence number for every submitted input entry.
 - Verified cursor compatibility with `remoteSequence > startSequence` behavior
   for both backlog reads and live change queues.
+- Tightened `changes(...)` handoff to avoid replay/live duplication by filtering
+  live subscription items at the backlog snapshot cutover sequence.
 - Added focused tests in
   `packages/effect/test/unstable/eventlog/EventLogServerUnencrypted.test.ts`
   covering shared store sequence space and store-scoped duplicate semantics.
+
+Follow-up task:
+
+- add a deterministic race test for `changes(storeId, startSequence)` replay/live
+  cutover so duplicate suppression is protected against future regressions.
 
 Scope:
 
