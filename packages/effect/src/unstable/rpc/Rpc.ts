@@ -171,6 +171,7 @@ export interface Any extends Pipeable {
   readonly [TypeId]: typeof TypeId
   readonly _tag: string
   readonly key: string
+  readonly annotations: ServiceMap.ServiceMap<never>
 }
 
 /**

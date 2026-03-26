@@ -22,7 +22,8 @@ import { RequestId } from "../../rpc/RpcMessage.ts"
 import * as RpcServer from "../../rpc/RpcServer.ts"
 import { AlreadyProcessingMessage, EntityNotAssignedToRunner, MailboxFull, MalformedMessage } from "../ClusterError.ts"
 import * as ClusterMetrics from "../ClusterMetrics.ts"
-import { isUninterruptibleForServer, Persisted } from "../ClusterSchema.ts"
+import { isUninterruptibleForServer, Persisted, WithTransaction } from "../ClusterSchema.ts"
+import * as ClusterSchema from "../ClusterSchema.ts"
 import type { Entity, HandlersFrom } from "../Entity.ts"
 import { CurrentAddress, CurrentRunnerAddress, KeepAliveLatch, KeepAliveRpc, Request } from "../Entity.ts"
 import type { EntityAddress } from "../EntityAddress.ts"
@@ -187,9 +188,9 @@ export const make = Effect.fnUntraced(function*<
                 // interrupt.
                 if (
                   storageEnabled &&
-                  ServiceMap.get(request.rpc.annotations, Persisted) &&
+                  ServiceMap.get(request.message.annotations, Persisted) &&
                   Exit.hasInterrupts(response.exit) &&
-                  (isShuttingDown || isUninterruptibleForServer(request.rpc.annotations))
+                  (isShuttingDown || isUninterruptibleForServer(request.message.annotations))
                 ) {
                   if (!isShuttingDown) {
                     return server.write(0, {
@@ -395,7 +396,7 @@ export const make = Effect.fnUntraced(function*<
               }
 
               const rpc = entityRpcs.get(message.envelope.tag)! as any as Rpc.AnyWithProps
-              if (!storageEnabled && ServiceMap.get(rpc.annotations, Persisted)) {
+              if (!storageEnabled && ServiceMap.get(message.annotations, Persisted)) {
                 return Effect.die(
                   "EntityManager.sendLocal: Cannot process a persisted message without MessageStorage"
                 )
@@ -448,7 +449,7 @@ export const make = Effect.fnUntraced(function*<
                 })
               }
               server.activeRequests.set(message.envelope.requestId, entry)
-              return server.write(0, {
+              let write = server.write(0, {
                 ...message.envelope,
                 id: RequestId(message.envelope.requestId),
                 payload: new Request({
@@ -459,6 +460,10 @@ export const make = Effect.fnUntraced(function*<
                   )
                 })
               })
+              if (ServiceMap.get(message.annotations, WithTransaction)) {
+                write = options.storage.withTransaction(write)
+              }
+              return write
             }
             case "IncomingEnvelope": {
               const entry = server.activeRequests.get(message.envelope.requestId)
@@ -558,6 +563,10 @@ export const make = Effect.fnUntraced(function*<
             const rpc = entityRpcs.get(decoded.envelope.tag)!
             return sendLocal(
               new Message.IncomingRequestLocal({
+                annotations: ServiceMap.get(rpc.annotations, ClusterSchema.Dynamic)(
+                  rpc.annotations,
+                  decoded.envelope as any
+                ),
                 envelope: decoded.envelope,
                 lastSentReply: decoded.lastSentReply,
                 respond: (reply) =>

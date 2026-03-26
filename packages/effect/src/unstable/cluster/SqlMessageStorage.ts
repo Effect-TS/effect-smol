@@ -9,7 +9,7 @@ import * as Schedule from "../../Schedule.ts"
 import * as Migrator from "../sql/Migrator.ts"
 import * as SqlClient from "../sql/SqlClient.ts"
 import type { Row } from "../sql/SqlConnection.ts"
-import type { SqlError } from "../sql/SqlError.ts"
+import { isSqlError, type SqlError } from "../sql/SqlError.ts"
 import { PersistenceError } from "./ClusterError.ts"
 import type * as Envelope from "./Envelope.ts"
 import * as MessageStorage from "./MessageStorage.ts"
@@ -592,6 +592,15 @@ export const make: (options?: {
         Effect.asVoid,
         PersistenceError.refail,
         withTracerDisabled
+      ),
+
+    withTransaction: (effect) =>
+      sql.withTransaction(effect).pipe(
+        Effect.retry({
+          while: (e) => isSqlError(e) && e.isRetryable,
+          times: 5
+        }),
+        Effect.catchIf(isSqlError, Effect.die)
       )
   })
 }, withTracerDisabled)

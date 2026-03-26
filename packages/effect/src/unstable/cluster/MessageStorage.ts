@@ -6,6 +6,7 @@ import { Clock } from "../../Clock.ts"
 import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
+import { identity } from "../../Function.ts"
 import * as Latch from "../../Latch.ts"
 import * as Layer from "../../Layer.ts"
 import * as Option from "../../Option.ts"
@@ -140,6 +141,13 @@ export class MessageStorage extends ServiceMap.Service<MessageStorage, {
   readonly clearAddress: (
     address: EntityAddress
   ) => Effect.Effect<void, PersistenceError>
+
+  /**
+   * Used to wrap requests with transactions.
+   */
+  readonly withTransaction: <A, E, R>(
+    effect: Effect.Effect<A, E, R>
+  ) => Effect.Effect<A, E, R>
 }>()("effect/cluster/MessageStorage") {}
 
 /**
@@ -315,6 +323,13 @@ export type Encoded = {
   readonly resetShards: (
     shardIds: Arr.NonEmptyArray<string>
   ) => Effect.Effect<void, PersistenceError>
+
+  /**
+   * Used to wrap requests with transactions.
+   */
+  readonly withTransaction: <A, E, R>(
+    effect: Effect.Effect<A, E, R>
+  ) => Effect.Effect<A, E, R>
 }
 
 /**
@@ -539,7 +554,8 @@ export const makeEncoded: (encoded: Encoded) => Effect.Effect<
       const shards = Array.from(shardIds, (id) => id.toString())
       if (!Arr.isArrayNonEmpty(shards)) return Effect.void
       return encoded.resetShards(shards)
-    }
+    },
+    withTransaction: encoded.withTransaction
   })
 
   const decodeMessages = (
@@ -659,7 +675,8 @@ export const noop: MessageStorage["Service"] = Effect.runSync(make({
   unprocessedMessagesById: () => Effect.succeed([]),
   resetAddress: () => Effect.void,
   clearAddress: () => Effect.void,
-  resetShards: () => Effect.void
+  resetShards: () => Effect.void,
+  withTransaction: identity
 }))
 
 /**
@@ -859,7 +876,8 @@ export class MemoryDriver extends ServiceMap.Service<MemoryDriver>()("effect/clu
             journal.splice(i, 1)
           }
         }),
-      resetShards: () => Effect.void
+      resetShards: () => Effect.void,
+      withTransaction: identity
     }
 
     const storage = yield* makeEncoded(encoded)

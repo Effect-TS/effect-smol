@@ -6,6 +6,7 @@ import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
+import { constFalse } from "../../Function.ts"
 import * as Latch from "../../Latch.ts"
 import * as Layer from "../../Layer.ts"
 import * as Option from "../../Option.ts"
@@ -66,7 +67,9 @@ export const make = Effect.gen(function*() {
       | Rpc.Rpc<"deferred", Schema.Struct<{ name: typeof Schema.String; exit: typeof ExitUnknown }>, typeof ExitUnknown>
       | Rpc.Rpc<
         "activity",
-        Schema.Struct<{ name: typeof Schema.String; attempt: typeof Schema.Number }>,
+        Schema.Struct<
+          { name: typeof Schema.String; attempt: typeof Schema.Number; withTransaction: typeof Schema.Boolean }
+        >,
         Schema.declare<Workflow.Result<any, any>>
       >
       | Rpc.Rpc<"resume", Schema.Struct<{}>>
@@ -435,7 +438,13 @@ export const make = Effect.gen(function*() {
               activityLatches.delete(activityId)
             }
           }
-          const result = yield* Effect.orDie(client.activity({ name: activity.name, attempt }))
+          const result = yield* Effect.orDie(
+            client.activity({
+              name: activity.name,
+              attempt,
+              withTransaction: ServiceMap.get(activity.annotations, ClusterSchema.WithTransaction)
+            })
+          )
           // If the activity has suspended and did not execute, we need to resume
           // it by resetting the attempt and re-executing.
           if (result._tag === "Suspended" && (activities.has(activityId) || interruptedActivities.has(activityId))) {
@@ -532,7 +541,10 @@ const ExitUnknown = Schema.Exit(AnyOrVoid, AnyOrVoid, Schema.Any)
 const ActivityRpc = Rpc.make("activity", {
   payload: {
     name: Schema.String,
-    attempt: Schema.Number
+    attempt: Schema.Number,
+    withTransaction: Schema.Boolean.pipe(
+      Schema.withDecodingDefault(constFalse)
+    )
   },
   primaryKey: ({ attempt, name }) => activityPrimaryKey(name, attempt),
   success: Workflow.Result({
@@ -541,6 +553,13 @@ const ActivityRpc = Rpc.make("activity", {
   })
 })
   .annotate(ClusterSchema.Persisted, true)
+  .annotate(
+    ClusterSchema.Dynamic,
+    (annotations, request) =>
+      (request.payload as any).withTransaction
+        ? ServiceMap.add(annotations, ClusterSchema.WithTransaction, true)
+        : annotations
+  )
 
 const DeferredRpc = Rpc.make("deferred", {
   payload: {
