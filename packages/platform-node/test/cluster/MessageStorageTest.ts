@@ -119,6 +119,7 @@ export const makeRequest = Effect.fnUntraced(function*(options?: {
       sampled: false,
       headers: Headers.empty
     }),
+    annotations: rpc.annotations,
     services: ServiceMap.empty() as any,
     rpc,
     lastReceivedReply: Option.none(),
