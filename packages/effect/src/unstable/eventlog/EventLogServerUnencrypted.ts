@@ -194,10 +194,13 @@ export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.S
         const pubsub = yield* RcMap.get(pubsubs, storeKey)
         const subscription = yield* PubSub.subscribe(pubsub)
 
-        yield* Queue.offerAll(queue, entriesAfter(ensureJournal(storeId), startSequence))
+        const backlog = entriesAfter(ensureJournal(storeId), startSequence)
+        const replayedUpTo = backlog.length > 0 ? backlog[backlog.length - 1].remoteSequence : startSequence
+
+        yield* Queue.offerAll(queue, backlog)
         yield* PubSub.takeAll(subscription).pipe(
           Effect.flatMap((chunk) =>
-            Queue.offerAll(queue, chunk.filter((entry) => entry.remoteSequence > startSequence))
+            Queue.offerAll(queue, chunk.filter((entry) => entry.remoteSequence > replayedUpTo))
           ),
           Effect.forever,
           Effect.forkScoped
