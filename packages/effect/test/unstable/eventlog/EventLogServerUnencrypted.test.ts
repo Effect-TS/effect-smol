@@ -41,18 +41,29 @@ const handlerLayer = (handled: Ref.Ref<ReadonlyArray<string>>) =>
 
 type StoreMappingMemoryOptions = Parameters<typeof EventLogServerUnencrypted.layerStoreMappingMemory>[0]
 
+const runtimeLayerWithStoreMapping = (options: {
+  readonly handled: Ref.Ref<ReadonlyArray<string>>
+  readonly storeMappingLayer: Layer.Layer<EventLogServerUnencrypted.StoreMapping>
+  readonly authLayer?: Layer.Layer<EventLogServerUnencrypted.EventLogServerAuth> | undefined
+}) =>
+  EventLogServerUnencrypted.layer(schema).pipe(
+    Layer.provideMerge(EventJournal.layerMemory),
+    Layer.provideMerge(EventLogServerUnencrypted.layerStorageMemory),
+    Layer.provideMerge(options.storeMappingLayer),
+    Layer.provideMerge(options.authLayer ?? layerAuthAllowAll),
+    Layer.provideMerge(handlerLayer(options.handled))
+  )
+
 const runtimeLayerWithAuth = (options: {
   readonly handled: Ref.Ref<ReadonlyArray<string>>
   readonly authLayer: Layer.Layer<EventLogServerUnencrypted.EventLogServerAuth>
   readonly storeMappingOptions?: StoreMappingMemoryOptions | undefined
 }) =>
-  EventLogServerUnencrypted.layer(schema).pipe(
-    Layer.provideMerge(EventJournal.layerMemory),
-    Layer.provideMerge(EventLogServerUnencrypted.layerStorageMemory),
-    Layer.provideMerge(EventLogServerUnencrypted.layerStoreMappingMemory(options.storeMappingOptions)),
-    Layer.provideMerge(options.authLayer),
-    Layer.provideMerge(handlerLayer(options.handled))
-  )
+  runtimeLayerWithStoreMapping({
+    handled: options.handled,
+    authLayer: options.authLayer,
+    storeMappingLayer: EventLogServerUnencrypted.layerStoreMappingMemory(options.storeMappingOptions)
+  })
 
 const runtimeLayer = (
   handled: Ref.Ref<ReadonlyArray<string>>,
@@ -1135,6 +1146,144 @@ describe("EventLogServerUnencrypted", () => {
           assert.strictEqual(ran, 1)
           assert.strictEqual(response.status, 204)
         }).pipe(Effect.provide(runtimeLayer(handled)))
+      })
+    ))
+
+  it.effect("layerStoreMappingResolver resolves dynamically for ingest calls", () =>
+    Effect.gen(function*() {
+      const handled = yield* Ref.make<ReadonlyArray<string>>([])
+      const storeA = "store-resolver-a" as EventLogServerUnencrypted.StoreId
+      const storeB = "store-resolver-b" as EventLogServerUnencrypted.StoreId
+      const currentStore = yield* Ref.make<EventLogServerUnencrypted.StoreId>(storeA)
+
+      const dynamicMappingLayer = EventLogServerUnencrypted.layerStoreMappingResolver({
+        resolve: Effect.fnUntraced(function*(publicKey: string) {
+          if (publicKey !== "dynamic-public-key") {
+            return yield* Effect.fail(
+              new EventLogServerUnencrypted.EventLogServerStoreError({
+                reason: "NotFound",
+                publicKey,
+                message: `No store mapping found for public key: ${publicKey}`
+              })
+            )
+          }
+
+          return yield* Ref.get(currentStore)
+        }),
+        hasStore: Effect.fnUntraced(function*(storeId: EventLogServerUnencrypted.StoreId) {
+          return storeId === storeA || storeId === storeB
+        })
+      })
+
+      yield* Effect.gen(function*() {
+        const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+
+        const first = yield* runtime.ingest({
+          publicKey: "dynamic-public-key",
+          entries: [yield* makeUserCreatedEntry("resolver-user-a")]
+        })
+        assert.strictEqual(first.storeId, storeA)
+
+        yield* Ref.set(currentStore, storeB)
+
+        const second = yield* runtime.ingest({
+          publicKey: "dynamic-public-key",
+          entries: [yield* makeUserCreatedEntry("resolver-user-b")]
+        })
+        assert.strictEqual(second.storeId, storeB)
+      }).pipe(Effect.provide(runtimeLayerWithStoreMapping({
+        handled,
+        storeMappingLayer: dynamicMappingLayer
+      })))
+    }))
+
+  it.effect("layerStoreMappingResolver propagates resolver failures as EventLogServerStoreError", () =>
+    Effect.gen(function*() {
+      const handled = yield* Ref.make<ReadonlyArray<string>>([])
+      const resolverError = new EventLogServerUnencrypted.EventLogServerStoreError({
+        reason: "PersistenceFailure",
+        publicKey: "resolver-failing-key",
+        message: "resolver backend is unavailable"
+      })
+
+      const error = yield* Effect.flip(
+        Effect.gen(function*() {
+          const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+
+          yield* runtime.ingest({
+            publicKey: "resolver-failing-key",
+            entries: [yield* makeUserCreatedEntry("resolver-failure")]
+          })
+        }).pipe(
+          Effect.provide(runtimeLayerWithStoreMapping({
+            handled,
+            storeMappingLayer: EventLogServerUnencrypted.layerStoreMappingResolver({
+              resolve: Effect.fnUntraced(function*() {
+                return yield* Effect.fail(resolverError)
+              }),
+              hasStore: Effect.fnUntraced(function*() {
+                return false
+              })
+            })
+          }))
+        )
+      )
+
+      assert.instanceOf(error, EventLogServerUnencrypted.EventLogServerStoreError)
+      assert.strictEqual(error.reason, "PersistenceFailure")
+      assert.strictEqual(error.publicKey, "resolver-failing-key")
+      assert.strictEqual(error.message, "resolver backend is unavailable")
+    }))
+
+  it.effect("layerStoreMappingStatic resolves all public keys to one shared store and hasStore gates server writes", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const handled = yield* Ref.make<ReadonlyArray<string>>([])
+        const sharedStore = "store-static-shared" as EventLogServerUnencrypted.StoreId
+        const unknownStore = "store-static-unknown" as EventLogServerUnencrypted.StoreId
+
+        yield* Effect.gen(function*() {
+          const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+          const mapping = yield* EventLogServerUnencrypted.StoreMapping
+
+          assert.strictEqual(yield* mapping.resolve("static-public-key-a"), sharedStore)
+          assert.strictEqual(yield* mapping.resolve("static-public-key-b"), sharedStore)
+          assert.strictEqual(yield* mapping.hasStore(sharedStore), true)
+          assert.strictEqual(yield* mapping.hasStore(unknownStore), false)
+
+          yield* runtime.write({
+            schema,
+            storeId: sharedStore,
+            event: "UserCreated",
+            payload: { id: "static-shared-user" }
+          })
+
+          const changesA = yield* runtime.requestChanges("static-public-key-a", 0)
+          const changesB = yield* runtime.requestChanges("static-public-key-b", 0)
+          const changeA = yield* Queue.take(changesA)
+          const changeB = yield* Queue.take(changesB)
+
+          assert.strictEqual(changeA.entry.primaryKey, "static-shared-user")
+          assert.strictEqual(changeB.entry.primaryKey, "static-shared-user")
+
+          const writeError = yield* Effect.flip(
+            runtime.write({
+              schema,
+              storeId: unknownStore,
+              event: "UserCreated",
+              payload: { id: "static-write-denied" }
+            })
+          )
+
+          assert.instanceOf(writeError, EventLogServerUnencrypted.EventLogServerStoreError)
+          assert.strictEqual(writeError.reason, "NotFound")
+          assert.strictEqual(writeError.storeId, unknownStore)
+        }).pipe(Effect.provide(runtimeLayerWithStoreMapping({
+          handled,
+          storeMappingLayer: EventLogServerUnencrypted.layerStoreMappingStatic({
+            storeId: sharedStore
+          })
+        })))
       })
     ))
 

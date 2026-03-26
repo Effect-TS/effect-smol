@@ -543,7 +543,7 @@ Validation for this task:
 
 ### Task 2: Add the remaining ergonomic resolver, static, and seeded-memory store-mapping helpers
 
-Status: 🟡 In progress (seeded-memory helper portion completed as part of Task 1 migration)
+Status: ✅ Completed
 
 Scope:
 
@@ -610,6 +610,14 @@ Validation for this task:
 - Persisted mapping tests now seed `@mapping/*` and `@store/*` records directly
   through `Persistence` storage, which keeps `makeStoreMappingPersisted` aligned
   with the read-only `StoreMapping` contract.
+- Task 2 now exposes read-only resolver ergonomics through
+  `makeStoreMapping(...)`, `layerStoreMappingResolver(...)`, and
+  `layerStoreMappingStatic({ storeId })`, so applications can provide dynamic
+  or shared-store mapping without runtime mutation APIs.
+- Focused tests now cover dynamic resolver behavior through
+  `layerStoreMappingResolver`, propagation of resolver failures as
+  `EventLogServerStoreError`, and static shared-store resolution plus
+  `hasStore`-gated server writes.
 
 ## Open Follow-Ups
 

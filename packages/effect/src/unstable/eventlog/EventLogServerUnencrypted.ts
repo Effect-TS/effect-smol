@@ -201,6 +201,45 @@ export const makeStoreMappingMemory = (options?: {
  * @since 4.0.0
  * @category store
  */
+export const makeStoreMapping = Effect.fnUntraced(function*(options: {
+  readonly resolve: (publicKey: string) => Effect.Effect<StoreId, EventLogServerStoreError>
+  readonly hasStore: (storeId: StoreId) => Effect.Effect<boolean, EventLogServerStoreError>
+}) {
+  return StoreMapping.of({
+    resolve: options.resolve,
+    hasStore: options.hasStore
+  })
+})
+
+/**
+ * @since 4.0.0
+ * @category store
+ */
+export const layerStoreMappingResolver = (options: {
+  readonly resolve: (publicKey: string) => Effect.Effect<StoreId, EventLogServerStoreError>
+  readonly hasStore: (storeId: StoreId) => Effect.Effect<boolean, EventLogServerStoreError>
+}): Layer.Layer<StoreMapping> => Layer.effect(StoreMapping)(makeStoreMapping(options))
+
+/**
+ * @since 4.0.0
+ * @category store
+ */
+export const layerStoreMappingStatic = (options: {
+  readonly storeId: StoreId
+}): Layer.Layer<StoreMapping> =>
+  layerStoreMappingResolver({
+    resolve: Effect.fnUntraced(function*(_publicKey: string) {
+      return options.storeId
+    }),
+    hasStore: Effect.fnUntraced(function*(storeId: StoreId) {
+      return storeId === options.storeId
+    })
+  })
+
+/**
+ * @since 4.0.0
+ * @category store
+ */
 export const layerStoreMappingMemory = (options?: {
   readonly mappings?: Iterable<readonly [publicKey: string, storeId: StoreId]> | undefined
   readonly stores?: Iterable<StoreId> | undefined
