@@ -5,6 +5,7 @@ import * as EventJournal from "effect/unstable/eventlog/EventJournal"
 import * as EventLog from "effect/unstable/eventlog/EventLog"
 import * as EventLogRemote from "effect/unstable/eventlog/EventLogRemote"
 import * as EventLogServerUnencrypted from "effect/unstable/eventlog/EventLogServerUnencrypted"
+import * as HttpServerRequest from "effect/unstable/http/HttpServerRequest"
 import { Persistence } from "effect/unstable/persistence"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import * as Socket from "effect/unstable/socket/Socket"
@@ -1068,6 +1069,48 @@ describe("EventLogServerUnencrypted", () => {
         }).pipe(Effect.provide(runtimeLayerWithAuth({ handled, authLayer: layerAuthDenyRead })))
       })
     ))
+
+  it.effect("makeHandlerHttp upgrades requests through the websocket handler", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const handled = yield* Ref.make<ReadonlyArray<string>>([])
+
+        yield* Effect.gen(function*() {
+          const httpHandler = yield* EventLogServerUnencrypted.makeHandlerHttp
+          let upgraded = 0
+          let ran = 0
+
+          const socket: Socket.Socket = {
+            [Socket.TypeId]: Socket.TypeId,
+            run: () =>
+              Effect.sync(() => {
+                ran++
+              }),
+            runRaw: () =>
+              Effect.sync(() => {
+                ran++
+              }),
+            writer: Effect.succeed(() => Effect.void)
+          }
+
+          const request = {
+            upgrade: Effect.sync(() => {
+              upgraded++
+              return socket
+            })
+          } as unknown as HttpServerRequest.HttpServerRequest
+
+          const response = yield* httpHandler.pipe(
+            Effect.provideService(HttpServerRequest.HttpServerRequest, request)
+          )
+
+          assert.strictEqual(upgraded, 1)
+          assert.strictEqual(ran, 1)
+          assert.strictEqual(response.status, 204)
+        }).pipe(Effect.provide(runtimeLayer(handled)))
+      })
+    ))
+
   it.effect("store mapping memory resolves, supports shared stores, and supports reassignment", () =>
     Effect.gen(function*() {
       const mapping = yield* EventLogServerUnencrypted.StoreMapping
