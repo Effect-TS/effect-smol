@@ -620,6 +620,9 @@ These are out of scope for this feedback pass but should remain visible:
 - higher-level admin tooling for application-managed store provisioning
 - dedicated coverage for repository-owned persisted store-mapping conveniences,
   if those remain exported
+- evaluate whether changing `layerStoreMappingMemory` from a layer value to a
+  callable helper needs a compatibility shim or explicit migration note for
+  unstable consumers
 - returning explicit unencrypted `InvalidRequest` protocol errors for malformed
   or undecodable websocket frames instead of closing the connection on decode
   defects
