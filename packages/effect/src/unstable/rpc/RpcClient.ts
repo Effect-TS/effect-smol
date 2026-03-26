@@ -817,6 +817,16 @@ export const makeProtocolHttp = (client: HttpClient.HttpClient): Effect.Effect<
   Protocol.make(Effect.fnUntraced(function*(writeResponse) {
     const serialization = yield* RpcSerialization.RpcSerialization
     const isFramed = serialization.includesFraming
+    const httpClientError = (cause: any) =>
+      new RpcClientError({
+        reason: HttpClientErrorSchema.fromHttpClientError(cause)
+      })
+    const protocolDefect = (message: string, cause: unknown) =>
+      new RpcClientError({
+        reason: new RpcClientDefect({ message, cause })
+      })
+    const emptyResponseError = (request: FromClientEncoded) =>
+      protocolDefect("Received empty HTTP response from RPC server", request)
 
     const send = (request: FromClientEncoded): Effect.Effect<void, RpcClientError> => {
       if (request._tag !== "Request") {
@@ -831,47 +841,53 @@ export const makeProtocolHttp = (client: HttpClient.HttpClient): Effect.Effect<
         HttpBody.uint8Array(encoded, serialization.contentType)
 
       if (!isFramed) {
-        return client.post("", { body }).pipe(
-          Effect.flatMap((r) => r.text),
-          Effect.mapError((cause) =>
-            new RpcClientError({
-              reason: HttpClientErrorSchema.fromHttpClientError(cause)
-            })
-          ),
-          Effect.flatMap((text) => {
-            const u = parser.decode(text)
-            if (!Array.isArray(u)) {
-              return Effect.die(`Expected an array of responses, but got: ${u}`)
-            }
-            let i = 0
-            return Effect.whileLoop({
-              while: () => i < u.length,
-              body: () => writeResponse(u[i++]),
-              step: constVoid
-            })
+        return Effect.gen(function*() {
+          const response = yield* client.post("", { body }).pipe(Effect.mapError(httpClientError))
+          const text = yield* response.text.pipe(Effect.mapError(httpClientError))
+          const responses = yield* Effect.try({
+            try: () => parser.decode(text),
+            catch: (cause) => protocolDefect("Error decoding HTTP response", cause)
           })
-        )
+          if (!Array.isArray(responses)) {
+            return yield* Effect.fail(protocolDefect("Expected an array of responses", responses))
+          }
+          if (responses.length === 0) {
+            return yield* Effect.fail(emptyResponseError(request))
+          }
+          let i = 0
+          return yield* Effect.whileLoop({
+            while: () => i < responses.length,
+            body: () => writeResponse(responses[i++]),
+            step: constVoid
+          })
+        })
       }
 
-      return client.post("", { body }).pipe(
-        Effect.flatMap((r) =>
-          Stream.runForEachArray(r.stream, (chunk) => {
-            const responses = chunk.flatMap(parser.decode) as Array<FromServerEncoded>
-            if (responses.length === 0) return Effect.void
-            let i = 0
-            return Effect.whileLoop({
-              while: () => i < responses.length,
-              body: () => writeResponse(responses[i++]),
-              step: constVoid
+      return Effect.gen(function*() {
+        const response = yield* client.post("", { body }).pipe(Effect.mapError(httpClientError))
+        let hasResponse = false
+        yield* Stream.runForEachArray(response.stream, (chunk) =>
+          Effect.try({
+            try: () => chunk.flatMap(parser.decode) as Array<FromServerEncoded>,
+            catch: (cause) => protocolDefect("Error decoding HTTP response", cause)
+          }).pipe(
+            Effect.flatMap((responses) => {
+              if (responses.length === 0) return Effect.void
+              hasResponse = true
+              let i = 0
+              return Effect.whileLoop({
+                while: () => i < responses.length,
+                body: () => writeResponse(responses[i++]),
+                step: constVoid
+              })
             })
-          })
-        ),
-        Effect.mapError((cause) =>
-          new RpcClientError({
-            reason: HttpClientErrorSchema.fromHttpClientError(cause)
-          })
-        )
-      )
+          )).pipe(
+            Effect.mapError((cause) => cause instanceof RpcClientError ? cause : httpClientError(cause))
+          )
+        if (!hasResponse) {
+          return yield* Effect.fail(emptyResponseError(request))
+        }
+      })
     }
 
     return {
