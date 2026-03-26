@@ -919,6 +919,32 @@ The work should be broken into the following atomic, validation-safe tasks.
 Tasks are grouped so each step can pass linting, tests, and type checking on
 its own.
 
+### Implementation status snapshot
+
+- [x] Task 1: Finish unencrypted protocol plumbing in `EventLogRemote`
+- [ ] Task 2: Add store-scoped core types and transport storage
+- [ ] Task 3: Add store mapping services and implementations
+- [ ] Task 4: Build store-aware ingest and shared replay helpers
+- [ ] Task 5: Add server-authored `write(..., storeId)` support
+- [ ] Task 6: Add read-time compaction over store-scoped outbound feeds
+- [ ] Task 7: Expose websocket / HTTP handlers and complete integration coverage
+
+### Task 1 implementation notes
+
+- Added explicit unencrypted protocol error frames on the client side via
+  `EventLogRemote.ErrorUnencrypted`, including union encode/decode support.
+- `fromSocketUnencrypted` now maps unencrypted `Error` frames to
+  `EventLogRemoteError` for both pending writes and active change-subscription
+  queues.
+- `EventLogRemote` queue / write signatures were widened to surface remote
+  protocol failures (`Queue.Dequeue<RemoteEntry, EventLogRemoteError>` and
+  `Effect<void, EventLogRemoteError>`).
+- No misspelled unencrypted request encoder helper export was found in the
+  current tree (`encodeRequestUnencrypted` was already correctly named).
+- `pnpm check:tsgo` remains red due pre-existing unused imports in the
+  unfinished `EventLogServerUnencrypted.ts` stub (outside the scope of this
+  focused Task 1 change).
+
 ### Task 1: Finish unencrypted protocol plumbing in `EventLogRemote`
 
 Scope:
