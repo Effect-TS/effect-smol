@@ -303,10 +303,14 @@ const makeHandlers = (options: {
 export const group = <Events extends Event.Any, Return>(
   group: EventGroup.EventGroup<Events>,
   f: (handlers: Handlers<never, Events>) => Handlers.ValidateReturn<Return>
-): Layer.Layer<Event.ToService<Events>, Handlers.Error<Return>, Exclude<Handlers.Services<Return>, Scope.Scope>> =>
+): Layer.Layer<
+  Event.ToService<Events>,
+  Handlers.Error<Return>,
+  Exclude<Handlers.Services<Return>, Scope.Scope | Identity>
+> =>
   Layer.effectServices(
     Effect.gen(function*() {
-      const services = yield* Effect.services<Handlers.Services<Return>>()
+      const services = yield* Effect.services<Exclude<Handlers.Services<Return>, Scope.Scope | Identity>>()
       const result = f(makeHandlers({
         group: group as EventGroup.AnyWithProps,
         handlers: {},
@@ -570,6 +574,7 @@ const make = Effect.gen(function*() {
                       conflicts: decodedConflicts
                     })
                   ),
+                  Effect.provideService(Identity, identity),
                   Effect.updateServices((input) => ServiceMap.merge(handler.services, input)),
                   Effect.asVoid
                 ) as any
@@ -637,6 +642,7 @@ const make = Effect.gen(function*() {
           conflicts: []
         }).pipe(
           Effect.updateServices((input) => ServiceMap.merge(handler.services, input)),
+          Effect.provideService(Identity, identity),
           Effect.tap(() =>
             Effect.sync(() => {
               if (reactivityKeys[entry.event]) {
