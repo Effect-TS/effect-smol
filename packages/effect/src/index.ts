@@ -1086,7 +1086,7 @@ export * as Equal from "./Equal.ts"
  * - Using strict equality (`===`) → {@link strictEqual}
  * - Combining multiple equivalences (AND logic) → {@link combine}, {@link combineAll}
  * - Transforming input before comparison → {@link mapInput}
- * - Creating equivalences for structured types → {@link Struct}, {@link Tuple}, {@link Array}, {@link Record}
+ * - Creating equivalences for structured types → {@link Struct}, {@link Tuple}, {@link Array_}, {@link Record}
  *
  * ## Gotchas
  *
@@ -1114,7 +1114,7 @@ export * as Equal from "./Equal.ts"
  * ## See also
  *
  * - {@link Equal} - For structural equality (can convert to Equivalence)
- * - {@link Array.dedupeWith} - Remove duplicates using an equivalence
+ * - {@link Array_.dedupeWith} - Remove duplicates using an equivalence
  * - {@link Chunk} - Collections that use equivalences for operations
  *
  * @since 2.0.0
@@ -3270,7 +3270,7 @@ export * as Scheduler from "./Scheduler.ts"
  *
  * - Define a struct: {@link Struct}
  * - Define a union: {@link Union}, {@link TaggedUnion}, {@link Literals}
- * - Define an array: {@link Array}, {@link NonEmptyArray}
+ * - Define an array: {@link ArraySchema}, {@link NonEmptyArray}
  * - Define a record: {@link Record}
  * - Define a tuple: {@link Tuple}, {@link TupleWithRest}
  * - Validate unknown data synchronously: {@link decodeUnknownSync}

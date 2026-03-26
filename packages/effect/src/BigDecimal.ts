@@ -144,6 +144,7 @@ const bigint0 = BigInt(0)
 const bigint1 = BigInt(1)
 const bigint10 = BigInt(10)
 const zero = makeNormalizedUnsafe(bigint0, 0)
+const one = makeNormalizedUnsafe(bigint1, 0)
 
 /**
  * Normalizes a given `BigDecimal` by removing trailing zeros.
@@ -275,6 +276,31 @@ export const sum: {
 })
 
 /**
+ * Takes an `Iterable` of `BigDecimal`s and returns their sum as a single `BigDecimal`.
+ *
+ * @example
+ * ```ts
+ * import { fromStringUnsafe, sumAll } from "effect/BigDecimal"
+ * import * as assert from "node:assert"
+ *
+ * assert.deepStrictEqual(
+ *   sumAll([fromStringUnsafe("2"), fromStringUnsafe("3"), fromStringUnsafe("4")]),
+ *   fromStringUnsafe("9")
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category math
+ */
+export const sumAll = (collection: Iterable<BigDecimal>): BigDecimal => {
+  let out: BigDecimal = zero
+  for (const n of collection) {
+    out = sum(out, n)
+  }
+  return out
+}
+
+/**
  * Provides a multiplication operation on `BigDecimal`s.
  *
  * @example
@@ -301,6 +327,34 @@ export const multiply: {
 
   return make(self.value * that.value, self.scale + that.scale)
 })
+
+/**
+ * Takes an `Iterable` of `BigDecimal`s and returns their multiplication as a single `BigDecimal`.
+ *
+ * @example
+ * ```ts
+ * import { fromStringUnsafe, multiplyAll } from "effect/BigDecimal"
+ * import * as assert from "node:assert"
+ *
+ * assert.deepStrictEqual(
+ *   multiplyAll([fromStringUnsafe("2"), fromStringUnsafe("3"), fromStringUnsafe("4")]),
+ *   fromStringUnsafe("24")
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category math
+ */
+export const multiplyAll = (collection: Iterable<BigDecimal>): BigDecimal => {
+  let out: BigDecimal = one
+  for (const n of collection) {
+    if (n.value === bigint0) {
+      return zero
+    }
+    out = multiply(out, n)
+  }
+  return out
+}
 
 /**
  * Provides a subtraction operation on `BigDecimal`s.
