@@ -1121,12 +1121,23 @@ Validation for this task:
 - Discovered and fixed an `EventJournal.makeMemory` idempotency issue where
   `writeFromRemote(...)` committed remote entries into the ordered journal but
   did not populate `byId`, allowing duplicate reprocessing across replays.
+- Serialized server-side `EventJournal.writeFromRemote(...)` replay paths behind
+  a runtime semaphore to avoid duplicate handler / Reactivity execution when
+  multiple fibers concurrently trigger reconciliation or ingest replay for the
+  same runtime instance.
+- Extended reconciliation coverage to include a post-recovery runtime restart
+  check so re-running reconciliation with persisted journal state remains
+  idempotent (no duplicate handler execution or Reactivity invalidations).
 
 Follow-up tasks:
 
 - wire `registerCompaction(...)` into the store-scoped read path as part of
   Task 6 so compactors influence outbound feeds rather than being registration
   only
+- align `EventJournal.nextRemoteSequence(...)` semantics across memory /
+  indexeddb / SQL implementations ("last committed remote sequence" vs
+  "next sequence") so reconciliation can derive start cursors without
+  conservative replay windows
 
 Scope:
 

@@ -378,6 +378,43 @@ describe("EventLogServerUnencrypted", () => {
           assert.deepStrictEqual(yield* Ref.get(handled), ["user-backlog"])
           assert.strictEqual(yield* Ref.get(invalidations), invalidationsBeforeSecondRead)
         }).pipe(Effect.provide(secondRuntimeLayer))
+
+        const thirdRuntimeLayer = runtimeLayerFromServices({
+          handled,
+          journal,
+          storage,
+          mapping
+        })
+
+        yield* Effect.gen(function*() {
+          const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+          const reactivity = yield* Reactivity.Reactivity
+
+          yield* runtime.registerReactivity({
+            UserCreated: ["users"]
+          })
+
+          const invalidationsBeforeQuery = yield* Ref.get(invalidations)
+          const query = yield* reactivity.query(
+            { users: ["user-backlog"] },
+            Ref.updateAndGet(invalidations, (count) => count + 1)
+          )
+
+          const initial = yield* Queue.take(query)
+          assert.strictEqual(initial, invalidationsBeforeQuery + 1)
+
+          const beforeRestartRead = yield* Ref.get(invalidations)
+          yield* runtime.requestChanges("public-key-reconciliation", 0)
+
+          for (let i = 0; i < 10; i++) {
+            yield* Effect.yieldNow
+          }
+
+          const restartDuplicateInvalidation = yield* Queue.poll(query)
+          assert.strictEqual(restartDuplicateInvalidation._tag, "None")
+          assert.deepStrictEqual(yield* Ref.get(handled), ["user-backlog"])
+          assert.strictEqual(yield* Ref.get(invalidations), beforeRestartRead)
+        }).pipe(Effect.provide(thirdRuntimeLayer))
       })
     ))
 
