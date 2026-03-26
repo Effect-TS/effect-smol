@@ -199,16 +199,43 @@ export interface Service {
    * })
    * ```
    */
-  readonly generateText: <
-    Tools extends Record<string, Tool.Any>,
-    Options extends NoExcessProperties<LanguageModel.GenerateTextOptions<Tools>, Options>
-  >(
-    options: Options & LanguageModel.GenerateTextOptions<Tools>
-  ) => Effect.Effect<
-    LanguageModel.GenerateTextResponse<Tools>,
-    LanguageModel.ExtractError<Options>,
-    LanguageModel.LanguageModel | LanguageModel.ExtractServices<Options>
-  >
+  readonly generateText: {
+    <Options extends NoExcessProperties<LanguageModel.GenerateTextOptions<{}>, Options>>(
+      options: Options & { readonly toolkit?: undefined } & LanguageModel.GenerateTextOptions<{}>
+    ): Effect.Effect<
+      LanguageModel.GenerateTextResponse<{}>,
+      LanguageModel.ExtractError<Options>,
+      LanguageModel.LanguageModel | LanguageModel.ExtractServices<Options>
+    >
+    <
+      Tools extends Record<string, Tool.Any>,
+      Options extends NoExcessProperties<
+        LanguageModel.GenerateTextOptions<Tools> & { readonly toolkit: LanguageModel.ToolkitInput<Tools> },
+        Options
+      >
+    >(
+      options: Options & LanguageModel.GenerateTextOptions<Tools> & {
+        readonly toolkit: LanguageModel.ToolkitInput<Tools>
+      }
+    ): Effect.Effect<
+      LanguageModel.GenerateTextResponse<Tools>,
+      LanguageModel.ExtractError<Options>,
+      LanguageModel.LanguageModel | LanguageModel.ExtractServices<Options>
+    >
+    <
+      Options extends {
+        readonly toolkit: LanguageModel.ToolkitOption<any>
+      } & NoExcessProperties<LanguageModel.GenerateTextOptions<any>, Options>
+    >(
+      options: Options & LanguageModel.GenerateTextOptions<LanguageModel.ExtractTools<Options>> & {
+        readonly toolkit: Options["toolkit"]
+      }
+    ): Effect.Effect<
+      LanguageModel.GenerateTextResponse<LanguageModel.ExtractTools<Options>>,
+      LanguageModel.ExtractError<Options>,
+      LanguageModel.LanguageModel | LanguageModel.ExtractServices<Options>
+    >
+  }
 
   /**
    * Generate text using a language model with streaming output.
@@ -235,16 +262,43 @@ export interface Service {
    * })
    * ```
    */
-  readonly streamText: <
-    Tools extends Record<string, Tool.Any>,
-    Options extends NoExcessProperties<LanguageModel.GenerateTextOptions<Tools>, Options>
-  >(
-    options: Options & LanguageModel.GenerateTextOptions<Tools>
-  ) => Stream.Stream<
-    Response.StreamPart<Tools>,
-    LanguageModel.ExtractError<Options>,
-    LanguageModel.LanguageModel | LanguageModel.ExtractServices<Options>
-  >
+  readonly streamText: {
+    <Options extends NoExcessProperties<LanguageModel.GenerateTextOptions<{}>, Options>>(
+      options: Options & { readonly toolkit?: undefined } & LanguageModel.GenerateTextOptions<{}>
+    ): Stream.Stream<
+      Response.StreamPart<{}>,
+      LanguageModel.ExtractError<Options>,
+      LanguageModel.LanguageModel | LanguageModel.ExtractServices<Options>
+    >
+    <
+      Tools extends Record<string, Tool.Any>,
+      Options extends NoExcessProperties<
+        LanguageModel.GenerateTextOptions<Tools> & { readonly toolkit: LanguageModel.ToolkitInput<Tools> },
+        Options
+      >
+    >(
+      options: Options & LanguageModel.GenerateTextOptions<Tools> & {
+        readonly toolkit: LanguageModel.ToolkitInput<Tools>
+      }
+    ): Stream.Stream<
+      Response.StreamPart<Tools>,
+      LanguageModel.ExtractError<Options>,
+      LanguageModel.LanguageModel | LanguageModel.ExtractServices<Options>
+    >
+    <
+      Options extends {
+        readonly toolkit: LanguageModel.ToolkitOption<any>
+      } & NoExcessProperties<LanguageModel.GenerateTextOptions<any>, Options>
+    >(
+      options: Options & LanguageModel.GenerateTextOptions<LanguageModel.ExtractTools<Options>> & {
+        readonly toolkit: Options["toolkit"]
+      }
+    ): Stream.Stream<
+      Response.StreamPart<LanguageModel.ExtractTools<Options>>,
+      LanguageModel.ExtractError<Options>,
+      LanguageModel.LanguageModel | LanguageModel.ExtractServices<Options>
+    >
+  }
 
   /**
    * Generate a structured object using a language model and schema.

@@ -1,6 +1,9 @@
-import { Effect, Schema, ServiceMap } from "effect"
+import { Effect, Schema, ServiceMap, type Stream } from "effect"
 import { type AiError, LanguageModel, Tool, Toolkit } from "effect/unstable/ai"
+import type * as Response from "effect/unstable/ai/Response"
 import { describe, expect, it } from "tstyche"
+
+type IsExact<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false
 
 const FailureModeErrorTool = Tool.make("FailureModeErrorTool", {
   parameters: Schema.Struct({
@@ -34,6 +37,17 @@ const ToolWithRequestContext = Tool.make("ToolWithRequestContext", {
 
 describe("LanguageModel", () => {
   describe("generateText", () => {
+    it("returns an empty tool record when no toolkit is provided", () => {
+      const program = LanguageModel.generateText({
+        prompt: "hello"
+      })
+
+      type ProgramSuccess = typeof program extends Effect.Effect<infer A, any, any> ? A : never
+
+      expect<ProgramSuccess>().type.toBe<LanguageModel.GenerateTextResponse<{}>>()
+      expect<IsExact<ProgramSuccess, LanguageModel.GenerateTextResponse<{}>>>().type.toBe<true>()
+    })
+
     it("tool handlers do not leak AiErrorReason into the error channel", () => {
       const toolkit = Toolkit.make(FailureModeErrorTool)
       const program = LanguageModel.generateText({
@@ -137,6 +151,61 @@ describe("LanguageModel", () => {
       >()
       expect<LanguageModel.ExtractTools<{ readonly toolkit: ToolkitUnion }>>().type.toBe<
         ToolkitUnionTools
+      >()
+    })
+
+    it("preserves generic toolkit tool records", () => {
+      const helper = <Tools extends Record<string, Tool.Any>>(toolkit: Toolkit.WithHandler<Tools>) =>
+        LanguageModel.generateText({
+          prompt: "hello",
+          toolkit
+        })
+
+      type ProgramSuccess = ReturnType<
+        typeof helper<{
+          readonly ToolWithRequestContext: typeof ToolWithRequestContext
+        }>
+      > extends Effect.Effect<infer A, any, any> ? A
+        : never
+
+      expect<ProgramSuccess>().type.toBe<
+        LanguageModel.GenerateTextResponse<{
+          readonly ToolWithRequestContext: typeof ToolWithRequestContext
+        }>
+      >()
+    })
+  })
+
+  describe("streamText", () => {
+    it("returns an empty tool record when no toolkit is provided", () => {
+      const stream = LanguageModel.streamText({
+        prompt: "hello"
+      })
+
+      type StreamPart = typeof stream extends Stream.Stream<infer A, any, any> ? A : never
+
+      expect<StreamPart>().type.toBe<Response.StreamPart<{}>>()
+      expect<IsExact<StreamPart, Response.StreamPart<{}>>>().type.toBe<true>()
+    })
+
+    it("preserves generic toolkit tool records", () => {
+      const helper = <Tools extends Record<string, Tool.Any>>(toolkit: Toolkit.WithHandler<Tools>) =>
+        LanguageModel.streamText({
+          prompt: "hello",
+          toolkit
+        })
+
+      type StreamPart = ReturnType<
+        typeof helper<{
+          readonly ToolWithRequestContext: typeof ToolWithRequestContext
+        }>
+      > extends Stream.Stream<infer A, any, any> ? A
+        : never
+
+      expect<StreamPart>().type.toBe<
+        Response.StreamPart<{
+          readonly ToolWithRequestContext: typeof ToolWithRequestContext
+        }>
       >()
     })
   })
