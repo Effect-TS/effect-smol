@@ -927,7 +927,7 @@ its own.
 - [x] Task 4: Build store-aware ingest and shared replay helpers
 - [x] Task 5: Add server-authored `write(..., storeId)` support
 - [x] Task 6: Add read-time compaction over store-scoped outbound feeds
-- [ ] Task 7: Expose websocket / HTTP handlers and complete integration coverage
+- [x] Task 7: Expose websocket / HTTP handlers and complete integration coverage
 
 ### Task 1 implementation notes
 
@@ -1294,6 +1294,38 @@ Validation for this task:
 - `pnpm check:tsgo`
 - `pnpm docgen` if public docs are affected
 - `pnpm codegen` if exports change
+
+### Task 7 implementation notes
+
+- Added `makeHandler` to wire websocket request handling directly to the
+  `EventLogServerUnencrypted` runtime service.
+  - `WriteEntriesUnencrypted` now goes through `runtime.ingest(...)`, returning
+    `Ack` on success and structured `ErrorUnencrypted` frames on auth/store
+    failures.
+  - `RequestChanges` now uses `runtime.requestChanges(...)`, streaming
+    `ChangesUnencrypted` frames over the socket and returning structured
+    `ErrorUnencrypted` frames on auth/store failures.
+  - request chunk reassembly and large outbound change chunking now mirror the
+    behavior in `EventLogServer`.
+- Added `makeHandlerHttp` to expose HTTP upgrade wiring through the websocket
+  handler.
+- Extended the runtime service with `getId` so transport handlers can emit a
+  stable `Hello.remoteId` while depending only on
+  `EventLogServerUnencrypted`.
+- Added integration tests in
+  `packages/effect/test/unstable/eventlog/EventLogServerUnencrypted.test.ts`
+  covering:
+  - websocket write + subscription end-to-end flow,
+  - successful `Ack.sequenceNumbers` length matching submitted write length,
+  - structured write errors for missing mappings and unauthorized writes,
+  - structured read errors for missing mappings and unauthorized
+    `RequestChanges` calls.
+
+Discovery / issue note:
+
+- To keep transport handlers runtime-only (without adding a direct `Storage`
+  dependency), the runtime needed to expose a stable remote id used by the
+  websocket `Hello` frame.
 
 ### Task 7: Expose websocket / HTTP handlers and complete integration coverage
 

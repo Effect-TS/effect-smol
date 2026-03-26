@@ -3,9 +3,11 @@ import { Effect, Layer, Queue, Ref, Schema } from "effect"
 import * as EventGroup from "effect/unstable/eventlog/EventGroup"
 import * as EventJournal from "effect/unstable/eventlog/EventJournal"
 import * as EventLog from "effect/unstable/eventlog/EventLog"
+import * as EventLogRemote from "effect/unstable/eventlog/EventLogRemote"
 import * as EventLogServerUnencrypted from "effect/unstable/eventlog/EventLogServerUnencrypted"
 import { Persistence } from "effect/unstable/persistence"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
+import * as Socket from "effect/unstable/socket/Socket"
 
 const UserPayload = Schema.Struct({
   id: Schema.String
@@ -19,12 +21,14 @@ const UserGroup = EventGroup.empty.add({
 
 const schema = EventLog.schema(UserGroup)
 
+const authAllowAll = EventLogServerUnencrypted.EventLogServerAuth.of({
+  authorizeWrite: () => Effect.void,
+  authorizeRead: () => Effect.void
+})
+
 const layerAuthAllowAll = Layer.succeed(
   EventLogServerUnencrypted.EventLogServerAuth,
-  EventLogServerUnencrypted.EventLogServerAuth.of({
-    authorizeWrite: () => Effect.void,
-    authorizeRead: () => Effect.void
-  })
+  authAllowAll
 )
 
 const handlerLayer = (handled: Ref.Ref<ReadonlyArray<string>>) =>
@@ -34,14 +38,23 @@ const handlerLayer = (handled: Ref.Ref<ReadonlyArray<string>>) =>
       handlers.handle("UserCreated", ({ payload }) => Ref.update(handled, (values) => [...values, payload.id]))
   )
 
-const runtimeLayer = (handled: Ref.Ref<ReadonlyArray<string>>) =>
+const runtimeLayerWithAuth = (options: {
+  readonly handled: Ref.Ref<ReadonlyArray<string>>
+  readonly authLayer: Layer.Layer<EventLogServerUnencrypted.EventLogServerAuth>
+}) =>
   EventLogServerUnencrypted.layer(schema).pipe(
     Layer.provideMerge(EventJournal.layerMemory),
     Layer.provideMerge(EventLogServerUnencrypted.layerStorageMemory),
     Layer.provideMerge(EventLogServerUnencrypted.layerStoreMappingMemory),
-    Layer.provideMerge(layerAuthAllowAll),
-    Layer.provideMerge(handlerLayer(handled))
+    Layer.provideMerge(options.authLayer),
+    Layer.provideMerge(handlerLayer(options.handled))
   )
+
+const runtimeLayer = (handled: Ref.Ref<ReadonlyArray<string>>) =>
+  runtimeLayerWithAuth({
+    handled,
+    authLayer: layerAuthAllowAll
+  })
 
 const runtimeLayerFromServices = (options: {
   readonly handled: Ref.Ref<ReadonlyArray<string>>
@@ -117,6 +130,57 @@ const makeEntry = (primaryKey: string): EventJournal.Entry =>
     primaryKey,
     payload: new Uint8Array([1, 2, 3])
   })
+
+const makeSocketHarness = Effect.gen(function*() {
+  const inbound = yield* Queue.unbounded<Uint8Array>()
+  const outbound = yield* Queue.unbounded<Uint8Array>()
+  const encoder = new TextEncoder()
+
+  const runLoop = <A, E, R>(
+    handler: (_: Uint8Array) => Effect.Effect<A, E, R> | void,
+    options?: {
+      readonly onOpen?: Effect.Effect<void> | undefined
+    }
+  ): Effect.Effect<void, E, R> =>
+    Effect.gen(function*() {
+      if (options?.onOpen) {
+        yield* options.onOpen
+      }
+
+      while (true) {
+        const data = yield* Queue.take(inbound)
+        const effect = handler(data)
+        if (Effect.isEffect(effect)) {
+          yield* effect
+        }
+      }
+    })
+
+  const socket: Socket.Socket = {
+    [Socket.TypeId]: Socket.TypeId,
+    run: (handler, options) => runLoop(handler, options),
+    runRaw: (handler, options) => runLoop((data) => handler(data), options),
+    writer: Effect.succeed((chunk) => {
+      if (chunk instanceof Uint8Array) {
+        return Queue.offer(outbound, chunk).pipe(Effect.asVoid)
+      }
+      if (typeof chunk === "string") {
+        return Queue.offer(outbound, encoder.encode(chunk)).pipe(Effect.asVoid)
+      }
+      return Effect.void
+    })
+  }
+
+  return {
+    socket,
+    sendRequest: (request: typeof EventLogRemote.ProtocolRequestUnencrypted.Type) =>
+      EventLogRemote.encodeRequestUnencrypted(request).pipe(
+        Effect.flatMap((data) => Queue.offer(inbound, data)),
+        Effect.asVoid
+      ),
+    takeResponse: Queue.take(outbound).pipe(Effect.flatMap(EventLogRemote.decodeResponseUnencrypted))
+  }
+})
 
 describe("EventLogServerUnencrypted", () => {
   it.effect("accepted ingest runs handlers", () =>
@@ -755,6 +819,255 @@ describe("EventLogServerUnencrypted", () => {
       })
     ))
 
+  it.effect("makeHandler processes unencrypted writes and requestChanges end-to-end", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const handled = yield* Ref.make<ReadonlyArray<string>>([])
+
+        yield* Effect.gen(function*() {
+          const handler = yield* EventLogServerUnencrypted.makeHandler
+          const mapping = yield* EventLogServerUnencrypted.StoreMapping
+          const harness = yield* makeSocketHarness
+
+          const publicKey = "public-key-handler-socket-success"
+          const storeId = "store-handler-socket-success" as EventLogServerUnencrypted.StoreId
+
+          yield* mapping.assign({
+            publicKey,
+            storeId
+          })
+
+          yield* handler(harness.socket).pipe(Effect.forkScoped)
+
+          const hello = yield* harness.takeResponse
+          assert.strictEqual(hello._tag, "Hello")
+
+          const firstEntry = yield* makeUserCreatedEntry("socket-user-1")
+          const secondEntry = yield* makeUserCreatedEntry("socket-user-2")
+
+          yield* harness.sendRequest(
+            new EventLogRemote.RequestChanges({
+              publicKey,
+              startSequence: 0
+            })
+          )
+          yield* harness.sendRequest(
+            new EventLogRemote.WriteEntriesUnencrypted({
+              publicKey,
+              id: 42,
+              entries: [firstEntry, secondEntry]
+            })
+          )
+
+          const firstResponse = yield* harness.takeResponse
+          const secondResponse = yield* harness.takeResponse
+
+          const ack = firstResponse._tag === "Ack"
+            ? firstResponse
+            : secondResponse._tag === "Ack"
+            ? secondResponse
+            : undefined
+          const changes = firstResponse._tag === "Changes"
+            ? firstResponse
+            : secondResponse._tag === "Changes"
+            ? secondResponse
+            : undefined
+
+          if (ack === undefined) {
+            throw new Error("Expected Ack response from websocket write")
+          }
+          if (changes === undefined) {
+            throw new Error("Expected Changes response from websocket subscription")
+          }
+
+          assert.strictEqual(ack.id, 42)
+          assert.strictEqual(ack.sequenceNumbers.length, 2)
+          assert.deepStrictEqual(changes.entries.map((entry) => entry.entry.primaryKey), [
+            "socket-user-1",
+            "socket-user-2"
+          ])
+          assert.deepStrictEqual(yield* Ref.get(handled), ["socket-user-1", "socket-user-2"])
+        }).pipe(Effect.provide(runtimeLayer(handled)))
+      })
+    ))
+
+  it.effect("makeHandler returns ErrorUnencrypted for missing mapping writes", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const handled = yield* Ref.make<ReadonlyArray<string>>([])
+
+        yield* Effect.gen(function*() {
+          const handler = yield* EventLogServerUnencrypted.makeHandler
+          const harness = yield* makeSocketHarness
+
+          yield* handler(harness.socket).pipe(Effect.forkScoped)
+          const hello = yield* harness.takeResponse
+          assert.strictEqual(hello._tag, "Hello")
+
+          const request = new EventLogRemote.WriteEntriesUnencrypted({
+            publicKey: "missing-mapping-write",
+            id: 7,
+            entries: [yield* makeUserCreatedEntry("missing-user")]
+          })
+
+          yield* harness.sendRequest(request)
+
+          const response = yield* harness.takeResponse
+          assert.strictEqual(response._tag, "Error")
+          if (response._tag !== "Error") {
+            throw new Error("Expected Error response")
+          }
+
+          assert.strictEqual(response.requestTag, "WriteEntries")
+          assert.strictEqual(response.id, request.id)
+          assert.strictEqual(response.publicKey, request.publicKey)
+          assert.strictEqual(response.code, "NotFound")
+        }).pipe(Effect.provide(runtimeLayer(handled)))
+      })
+    ))
+
+  it.effect("makeHandler returns ErrorUnencrypted for unauthorized writes", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const handled = yield* Ref.make<ReadonlyArray<string>>([])
+        const layerAuthDenyWrite = Layer.succeed(
+          EventLogServerUnencrypted.EventLogServerAuth,
+          EventLogServerUnencrypted.EventLogServerAuth.of({
+            authorizeWrite: ({ publicKey, storeId }) =>
+              Effect.fail(
+                new EventLogServerUnencrypted.EventLogServerAuthError({
+                  reason: "Unauthorized",
+                  publicKey,
+                  storeId,
+                  message: "write unauthorized"
+                })
+              ),
+            authorizeRead: () => Effect.void
+          })
+        )
+
+        yield* Effect.gen(function*() {
+          const handler = yield* EventLogServerUnencrypted.makeHandler
+          const mapping = yield* EventLogServerUnencrypted.StoreMapping
+          const harness = yield* makeSocketHarness
+
+          const publicKey = "public-key-write-forbidden"
+          yield* mapping.assign({
+            publicKey,
+            storeId: "store-write-forbidden" as EventLogServerUnencrypted.StoreId
+          })
+
+          yield* handler(harness.socket).pipe(Effect.forkScoped)
+          const hello = yield* harness.takeResponse
+          assert.strictEqual(hello._tag, "Hello")
+
+          const request = new EventLogRemote.WriteEntriesUnencrypted({
+            publicKey,
+            id: 8,
+            entries: [yield* makeUserCreatedEntry("forbidden-user")]
+          })
+
+          yield* harness.sendRequest(request)
+
+          const response = yield* harness.takeResponse
+          assert.strictEqual(response._tag, "Error")
+          if (response._tag !== "Error") {
+            throw new Error("Expected Error response")
+          }
+
+          assert.strictEqual(response.requestTag, "WriteEntries")
+          assert.strictEqual(response.id, request.id)
+          assert.strictEqual(response.publicKey, request.publicKey)
+          assert.strictEqual(response.code, "Unauthorized")
+        }).pipe(Effect.provide(runtimeLayerWithAuth({ handled, authLayer: layerAuthDenyWrite })))
+      })
+    ))
+
+  it.effect("makeHandler returns ErrorUnencrypted for missing mapping RequestChanges", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const handled = yield* Ref.make<ReadonlyArray<string>>([])
+
+        yield* Effect.gen(function*() {
+          const handler = yield* EventLogServerUnencrypted.makeHandler
+          const harness = yield* makeSocketHarness
+
+          yield* handler(harness.socket).pipe(Effect.forkScoped)
+          const hello = yield* harness.takeResponse
+          assert.strictEqual(hello._tag, "Hello")
+
+          yield* harness.sendRequest(
+            new EventLogRemote.RequestChanges({
+              publicKey: "missing-mapping-read",
+              startSequence: 0
+            })
+          )
+
+          const response = yield* harness.takeResponse
+          assert.strictEqual(response._tag, "Error")
+          if (response._tag !== "Error") {
+            throw new Error("Expected Error response")
+          }
+          assert.strictEqual(response.requestTag, "RequestChanges")
+          assert.strictEqual(response.publicKey, "missing-mapping-read")
+          assert.strictEqual(response.code, "NotFound")
+        }).pipe(Effect.provide(runtimeLayer(handled)))
+      })
+    ))
+
+  it.effect("makeHandler returns ErrorUnencrypted for unauthorized RequestChanges", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const handled = yield* Ref.make<ReadonlyArray<string>>([])
+        const layerAuthDenyRead = Layer.succeed(
+          EventLogServerUnencrypted.EventLogServerAuth,
+          EventLogServerUnencrypted.EventLogServerAuth.of({
+            authorizeWrite: () => Effect.void,
+            authorizeRead: ({ publicKey, storeId }) =>
+              Effect.fail(
+                new EventLogServerUnencrypted.EventLogServerAuthError({
+                  reason: "Forbidden",
+                  publicKey,
+                  storeId,
+                  message: "read forbidden"
+                })
+              )
+          })
+        )
+
+        yield* Effect.gen(function*() {
+          const handler = yield* EventLogServerUnencrypted.makeHandler
+          const mapping = yield* EventLogServerUnencrypted.StoreMapping
+          const harness = yield* makeSocketHarness
+
+          const publicKey = "public-key-read-forbidden"
+          yield* mapping.assign({
+            publicKey,
+            storeId: "store-read-forbidden" as EventLogServerUnencrypted.StoreId
+          })
+
+          yield* handler(harness.socket).pipe(Effect.forkScoped)
+          const hello = yield* harness.takeResponse
+          assert.strictEqual(hello._tag, "Hello")
+
+          yield* harness.sendRequest(
+            new EventLogRemote.RequestChanges({
+              publicKey,
+              startSequence: 0
+            })
+          )
+
+          const response = yield* harness.takeResponse
+          assert.strictEqual(response._tag, "Error")
+          if (response._tag !== "Error") {
+            throw new Error("Expected Error response")
+          }
+          assert.strictEqual(response.requestTag, "RequestChanges")
+          assert.strictEqual(response.publicKey, publicKey)
+          assert.strictEqual(response.code, "Forbidden")
+        }).pipe(Effect.provide(runtimeLayerWithAuth({ handled, authLayer: layerAuthDenyRead })))
+      })
+    ))
   it.effect("store mapping memory resolves, supports shared stores, and supports reassignment", () =>
     Effect.gen(function*() {
       const mapping = yield* EventLogServerUnencrypted.StoreMapping
