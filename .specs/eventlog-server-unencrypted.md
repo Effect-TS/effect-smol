@@ -12,8 +12,6 @@ feature direction:
    - provide their own dynamic resolver from `publicKey -> StoreId`
    - use one static shared `StoreId` for every user
    - seed an in-memory mapping for tests and local development
-3. update touched functions that currently return `Effect.gen(...)` so they use
-   `Effect.fnUntraced` instead
 
 The rest of the existing direction remains the same:
 
@@ -49,8 +47,6 @@ The specification reflects the following clarified requirements:
     dynamic `publicKey -> StoreId` lookup
 13. a first-class helper should exist for the common case where all users share
     one static `StoreId`
-14. any touched code that currently returns `Effect.gen(...)` should be
-    rewritten to use `Effect.fnUntraced`
 
 ## Goals
 
@@ -60,8 +56,6 @@ The specification reflects the following clarified requirements:
 - Remove the unused `StoreMapping.assign(...)` mutation API.
 - Keep server-authored writes working through `hasStore(storeId)` validation.
 - Preserve the current auth, replay, compaction, and Reactivity semantics.
-- Align touched implementation code with repository guidance to prefer
-  `Effect.fnUntraced` over functions that return `Effect.gen(...)`.
 
 ## Non-Goals
 
@@ -83,8 +77,6 @@ The specification reflects the following clarified requirements:
 
 - `packages/effect/src/unstable/eventlog/EventLogRemote.ts` only if a store
   mapping API rename affects tests or examples
-- `packages/effect/src/unstable/eventlog/EventLog.ts` only if shared replay
-  helpers touched by this work also need `Effect.fnUntraced` cleanup
 - tests in `packages/effect/test/unstable/eventlog/EventLogServerUnencrypted.test.ts`
 
 ## Current Implementation Status
@@ -111,8 +103,6 @@ addressed:
 - add ergonomic resolver-based and static shared-store layer helpers
 - revise the in-memory mapping helper to use seeded inputs instead of runtime
   mutation
-- finish the remaining `Effect.gen` -> `Effect.fnUntraced` cleanup in the
-  touched server code
 
 ## Public API
 
@@ -398,35 +388,6 @@ The compaction model does not change:
 - preserve cursor monotonicity via representative sequences
 - keep recent entries raw
 
-## Effect Construction Guidance
-
-Any touched implementation in this work that currently returns
-`Effect.gen(function*() { ... })` should be rewritten to use
-`Effect.fnUntraced` or a more specific constructor such as `Effect.sync` or
-`Effect.suspend`.
-
-This applies in particular to the remaining raw `Effect.gen(...)` call sites
-in `EventLogServerUnencrypted.ts` that are still present in the current tree:
-
-- `makeStorageMemory`
-- `make`
-- `makeHandler`
-- `makeHandlerHttp`
-- nested returned functions inside those helpers that still use `Effect.gen(...)`
-
-Already-compliant helpers such as `makeStoreMappingMemory` and
-`makeStoreMappingPersisted` should stay aligned with this style, but they are
-not the focus of the remaining cleanup.
-
-Rules:
-
-- prefer `Effect.fnUntraced(function*(...) { ... })` for functions returning an
-  effect
-- prefer `Effect.sync` when the work is fully synchronous
-- do not change runtime behavior while performing this cleanup
-- if a helper returns another function that returns an effect, that returned
-  function should also prefer `Effect.fnUntraced`
-
 ## Testing Requirements
 
 Add or update focused tests that follow existing repository patterns.
@@ -467,11 +428,6 @@ Keep or update tests covering at minimum:
 13. resolver changes affect only new subscriptions when a dynamic resolver layer
     returns a different store for later calls
 
-### Effect-construction cleanup coverage
-
-No dedicated new behavior tests are required for the `Effect.fnUntraced`
-cleanup, but every touched runtime / transport / mapping path must continue to
-pass its existing targeted coverage.
 
 ## Migration Notes
 
@@ -554,8 +510,6 @@ Scope:
   seeded options instead of exposing a mutation workflow
 - add or update tests covering dynamic resolution, static shared-store
   resolution, seeded store existence, and error propagation
-- ensure any new effect-returning helper introduced in this task already uses
-  `Effect.fnUntraced` rather than waiting for cleanup later
 
 Why this task is grouped:
 
@@ -571,33 +525,6 @@ Validation for this task:
 - `pnpm check:tsgo`
 - `pnpm docgen`
 - `pnpm codegen` if exports change
-
-### Task 3: Replace touched `Effect.gen`-returning helpers with `Effect.fnUntraced`
-
-Status: ⬜ Not started
-
-Scope:
-
-- convert the remaining raw `Effect.gen(...)` helper and returned-function
-  call sites in `EventLogServerUnencrypted.ts` to `Effect.fnUntraced` where
-  appropriate
-- apply the same cleanup to any directly touched supporting files only if this
-  feedback pass modifies them and they still return `Effect.gen(...)`
-- keep behavior, error surfaces, and resource lifetimes unchanged
-
-Why this task is grouped:
-
-- this is largely a mechanical cleanup, but it should ship with targeted
-  regression coverage proving no semantic changes were introduced
-- keeping it separate from the API changes reduces review risk
-
-Validation for this task:
-
-- `pnpm lint-fix`
-- `pnpm test packages/effect/test/unstable/eventlog/EventLogServerUnencrypted.test.ts`
-- any other targeted tests for touched files
-- `pnpm check:tsgo`
-- `pnpm docgen`
 
 ## Discoveries During Implementation
 
