@@ -189,11 +189,12 @@ export const makeStoreMappingPersisted = Effect.fnUntraced(function*(options: {
 }) {
   const backing = yield* Persistence.BackingPersistence
   const storage = yield* backing.make(options.storeId)
+  const toPersistedMappingKey = (publicKey: string): string => `@mapping/${publicKey}`
   const toStoreProvisionKey = (storeId: StoreId): string => `@store/${toStoreKey(storeId)}`
 
   return StoreMapping.of({
     resolve: Effect.fnUntraced(function*(publicKey: string) {
-      const encoded = yield* storage.get(publicKey).pipe(
+      const encoded = yield* storage.get(toPersistedMappingKey(publicKey)).pipe(
         Effect.mapError(
           toPersistenceFailure({
             publicKey,
@@ -201,11 +202,22 @@ export const makeStoreMappingPersisted = Effect.fnUntraced(function*(options: {
           })
         )
       )
-      if (encoded === undefined) {
+      const legacyEncoded = encoded === undefined
+        ? yield* storage.get(publicKey).pipe(
+          Effect.mapError(
+            toPersistenceFailure({
+              publicKey,
+              message: `Failed to resolve legacy store mapping for public key: ${publicKey}`
+            })
+          )
+        )
+        : undefined
+      const encodedMapping = encoded ?? legacyEncoded
+      if (encodedMapping === undefined) {
         return yield* Effect.fail(toNotFoundError(publicKey))
       }
 
-      const decoded = yield* decodePersistedStoreMapping(encoded).pipe(
+      const decoded = yield* decodePersistedStoreMapping(encodedMapping).pipe(
         Effect.mapError(
           toPersistenceFailure({
             publicKey,
@@ -214,24 +226,47 @@ export const makeStoreMappingPersisted = Effect.fnUntraced(function*(options: {
         )
       )
 
-      yield* storage.set(
-        toStoreProvisionKey(decoded.storeId),
-        new PersistedStoreProvision({ provisioned: true }),
-        undefined
-      ).pipe(
+      yield* storage.get(toStoreProvisionKey(decoded.storeId)).pipe(
         Effect.mapError(
           toPersistenceFailure({
             publicKey,
             storeId: decoded.storeId,
-            message: `Failed to backfill store provisioning for public key: ${publicKey}`
+            message: `Failed to resolve store provisioning for public key: ${publicKey}`
           })
+        )
+      ).pipe(
+        Effect.flatMap((encoded) =>
+          encoded === undefined
+            ? storage.set(
+              toStoreProvisionKey(decoded.storeId),
+              new PersistedStoreProvision({ provisioned: true }),
+              undefined
+            ).pipe(
+              Effect.mapError(
+                toPersistenceFailure({
+                  publicKey,
+                  storeId: decoded.storeId,
+                  message: `Failed to backfill store provisioning for public key: ${publicKey}`
+                })
+              ),
+              Effect.asVoid
+            )
+            : decodePersistedStoreProvision(encoded).pipe(
+              Effect.mapError(
+                toPersistenceFailure({
+                  publicKey,
+                  storeId: decoded.storeId,
+                  message: `Failed to decode store provisioning for public key: ${publicKey}`
+                })
+              )
+            )
         )
       )
 
       return decoded.storeId
     }),
     assign: Effect.fnUntraced(function*({ publicKey, storeId }) {
-      yield* storage.set(publicKey, new PersistedStoreMapping({ storeId }), undefined).pipe(
+      yield* storage.set(toPersistedMappingKey(publicKey), new PersistedStoreMapping({ storeId }), undefined).pipe(
         Effect.mapError(
           toPersistenceFailure({
             publicKey,
