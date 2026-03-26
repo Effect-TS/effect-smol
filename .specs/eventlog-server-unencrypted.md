@@ -536,6 +536,24 @@ Any implementation produced from this spec must run:
 
 The work should be split into the following validation-safe tasks.
 
+### Status
+
+- [x] Task 1: Extend `Storage` to own processing progress
+- [ ] Task 2: Switch runtime internals to storage-backed processing
+- [ ] Task 3: Remove the public `EventJournal` runtime dependency from the layer API
+
+### Task 1 Notes
+
+- `Storage` now includes `processedSequence(storeId)` and
+  `markProcessed(storeId, remoteSequence)`.
+- `makeStorageMemory` persists a per-store processed checkpoint alongside
+  history, deduplication ids, and pubsub-backed change streaming state.
+- Focused storage tests now cover initial checkpoint `0`, monotonic and
+  idempotent checkpoint advancement, and checkpoint coexistence with
+  `entries` / `changes` behavior.
+- Runtime reconciliation still depends on `EventJournal` at this stage (by
+  design for Task 1).
+
 ### Task 1: Extend `Storage` to own processing progress
 
 Scope:
