@@ -2,6 +2,7 @@ import { assert, describe, it } from "@effect/vitest"
 import { Effect, Queue } from "effect"
 import * as EventJournal from "effect/unstable/eventlog/EventJournal"
 import * as EventLogServerUnencrypted from "effect/unstable/eventlog/EventLogServerUnencrypted"
+import { Persistence } from "effect/unstable/persistence"
 
 const makeEntry = (primaryKey: string): EventJournal.Entry =>
   new EventJournal.Entry({
@@ -12,6 +13,86 @@ const makeEntry = (primaryKey: string): EventJournal.Entry =>
   })
 
 describe("EventLogServerUnencrypted", () => {
+  it.effect("store mapping memory resolves, supports shared stores, and supports reassignment", () =>
+    Effect.gen(function*() {
+      const mapping = yield* EventLogServerUnencrypted.StoreMapping
+      const storeA = "store-a" as EventLogServerUnencrypted.StoreId
+      const storeB = "store-b" as EventLogServerUnencrypted.StoreId
+
+      yield* mapping.assign({
+        publicKey: "public-key-1",
+        storeId: storeA
+      })
+      yield* mapping.assign({
+        publicKey: "public-key-2",
+        storeId: storeA
+      })
+
+      const resolvedOne = yield* mapping.resolve("public-key-1")
+      const resolvedTwo = yield* mapping.resolve("public-key-2")
+      assert.strictEqual(resolvedOne, storeA)
+      assert.strictEqual(resolvedTwo, storeA)
+
+      yield* mapping.assign({
+        publicKey: "public-key-1",
+        storeId: storeB
+      })
+
+      const reassigned = yield* mapping.resolve("public-key-1")
+      assert.strictEqual(reassigned, storeB)
+    }).pipe(Effect.provide(EventLogServerUnencrypted.layerStoreMappingMemory)))
+
+  it.effect("store mapping resolve fails with NotFound for unknown public keys", () =>
+    Effect.gen(function*() {
+      const mapping = yield* EventLogServerUnencrypted.StoreMapping
+
+      const error = yield* Effect.flip(mapping.resolve("missing-public-key"))
+      assert.instanceOf(error, EventLogServerUnencrypted.EventLogServerStoreError)
+      assert.strictEqual(error.reason, "NotFound")
+      assert.strictEqual(error.publicKey, "missing-public-key")
+    }).pipe(Effect.provide(EventLogServerUnencrypted.layerStoreMappingMemory)))
+
+  it.effect("store mapping persisted survives service recreation", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const persistedStoreId = "eventlog-server-unencrypted-store-mapping-test"
+
+        const mappingV1 = yield* EventLogServerUnencrypted.makeStoreMappingPersisted({
+          storeId: persistedStoreId
+        })
+
+        const firstStore = "shared-store" as EventLogServerUnencrypted.StoreId
+        const secondStore = "reassigned-store" as EventLogServerUnencrypted.StoreId
+
+        yield* mappingV1.assign({
+          publicKey: "persistent-public-key",
+          storeId: firstStore
+        })
+
+        const fromFirstService = yield* mappingV1.resolve("persistent-public-key")
+        assert.strictEqual(fromFirstService, firstStore)
+
+        const mappingV2 = yield* EventLogServerUnencrypted.makeStoreMappingPersisted({
+          storeId: persistedStoreId
+        })
+
+        const fromSecondService = yield* mappingV2.resolve("persistent-public-key")
+        assert.strictEqual(fromSecondService, firstStore)
+
+        yield* mappingV2.assign({
+          publicKey: "persistent-public-key",
+          storeId: secondStore
+        })
+
+        const mappingV3 = yield* EventLogServerUnencrypted.makeStoreMappingPersisted({
+          storeId: persistedStoreId
+        })
+
+        const fromThirdService = yield* mappingV3.resolve("persistent-public-key")
+        assert.strictEqual(fromThirdService, secondStore)
+      }).pipe(Effect.provide(Persistence.layerBackingMemory))
+    ))
+
   it.effect("uses one store-scoped sequence space for shared-store history", () =>
     Effect.scoped(
       Effect.gen(function*() {

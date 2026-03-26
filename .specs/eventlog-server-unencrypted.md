@@ -923,7 +923,7 @@ its own.
 
 - [x] Task 1: Finish unencrypted protocol plumbing in `EventLogRemote`
 - [x] Task 2: Add store-scoped core types and transport storage
-- [ ] Task 3: Add store mapping services and implementations
+- [x] Task 3: Add store mapping services and implementations
 - [ ] Task 4: Build store-aware ingest and shared replay helpers
 - [ ] Task 5: Add server-authored `write(..., storeId)` support
 - [ ] Task 6: Add read-time compaction over store-scoped outbound feeds
@@ -1024,6 +1024,31 @@ Validation for this task:
 - `pnpm codegen` if exports change
 
 ### Task 3: Add store mapping services and implementations
+
+### Task 3 implementation notes
+
+- Added `StoreMapping` service to
+  `EventLogServerUnencrypted.ts` with explicit `resolve(publicKey)` and
+  `assign({ publicKey, storeId })` upsert behavior.
+- Added `makeStoreMappingMemory` and `layerStoreMappingMemory` for test and
+  local-dev use.
+- Added a durable adapter path via `makeStoreMappingPersisted` and
+  `layerStoreMappingPersisted`, backed by
+  `Persistence.BackingPersistence.make(storeId)`, so mappings survive service
+  recreation / restart against the same backing store.
+- Added targeted mapping coverage to
+  `packages/effect/test/unstable/eventlog/EventLogServerUnencrypted.test.ts`
+  for:
+  - assign + resolve behavior
+  - many public keys sharing one store
+  - reassignment semantics
+  - `NotFound` error shape for unknown keys
+  - persistence across mapping-service recreation using backing persistence
+
+Discovery / issue note:
+
+- `Schema.decodeUnknown` is not available in the current codebase API; decoding
+  for persisted mappings uses `Schema.decodeUnknownEffect`.
 
 Scope:
 
