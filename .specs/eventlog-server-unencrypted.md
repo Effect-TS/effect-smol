@@ -1371,3 +1371,6 @@ kept in mind while designing the API:
   remote change queues and rejection/recovery behavior
 - resolving the placeholder `EventLogServerUnencrypted.ts` scaffold so
   `pnpm check:tsgo` is green again
+- returning explicit unencrypted `InvalidRequest` protocol errors for malformed
+  / undecodable websocket frames instead of closing the connection on decode
+  defects
