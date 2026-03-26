@@ -649,6 +649,37 @@ describe("EventLogServerUnencrypted", () => {
       }).pipe(Effect.provide(Persistence.layerBackingMemory))
     ))
 
+  it.effect("store mapping persisted supports metadata-like public keys and legacy mapping records", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const persistedStoreId = "eventlog-server-unencrypted-store-mapping-compatibility-test"
+        const backing = yield* Persistence.BackingPersistence
+        const storage = yield* backing.make(persistedStoreId)
+        const legacyStore = "legacy-store" as EventLogServerUnencrypted.StoreId
+
+        yield* storage.set("legacy-public-key", { storeId: legacyStore }, undefined)
+
+        const mapping = yield* EventLogServerUnencrypted.makeStoreMappingPersisted({
+          storeId: persistedStoreId
+        })
+
+        const resolvedLegacy = yield* mapping.resolve("legacy-public-key")
+        assert.strictEqual(resolvedLegacy, legacyStore)
+        assert.strictEqual(yield* mapping.hasStore(legacyStore), true)
+
+        const metadataLikePublicKey = "@store/store-metadata-like"
+        const metadataStore = "store-metadata-like" as EventLogServerUnencrypted.StoreId
+        yield* mapping.assign({
+          publicKey: metadataLikePublicKey,
+          storeId: metadataStore
+        })
+
+        const resolvedMetadataLike = yield* mapping.resolve(metadataLikePublicKey)
+        assert.strictEqual(resolvedMetadataLike, metadataStore)
+        assert.strictEqual(yield* mapping.hasStore(metadataStore), true)
+      }).pipe(Effect.provide(Persistence.layerBackingMemory))
+    ))
+
   it.effect("store mapping persisted returns PersistenceFailure when stored payload is invalid", () =>
     Effect.scoped(
       Effect.gen(function*() {

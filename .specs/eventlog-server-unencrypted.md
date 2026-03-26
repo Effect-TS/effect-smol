@@ -1182,11 +1182,17 @@ Validation for this task:
 - `makeStoreMappingPersisted` now persists store-provision markers and
   backfills those markers when resolving legacy mapping records so existing
   persisted mappings remain compatible.
+- Persisted mapping records are now written under a dedicated `@mapping/`
+  namespace and `resolve(publicKey)` falls back to legacy raw public-key
+  records, avoiding metadata-key collisions while preserving backward
+  compatibility.
 - Added focused server-write tests covering:
   - shared-store fan-out visibility
   - explicit `entryId` idempotent retry behavior
   - duplicate-entry first-write-wins semantics
   - unknown-store `NotFound` failure
+  - persisted mapping compatibility for metadata-like public keys and legacy
+    raw-key records
 
 Discovery / issue note:
 
@@ -1194,6 +1200,12 @@ Discovery / issue note:
   include explicit store provisioning records. The runtime now backfills the
   marker on successful `resolve(publicKey)` so legacy persisted mappings can be
   upgraded lazily without manual migration.
+
+Follow-up task:
+
+- add an explicit migration / provisioning workflow for legacy persisted
+  mappings so server-authored `write({ storeId, ... })` succeeds even before any
+  `resolve(publicKey)` call has occurred for that store.
 
 ### Task 5: Add server-authored `write(..., storeId)` support
 
