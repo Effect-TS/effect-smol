@@ -50,12 +50,53 @@ export function toCodecOpenAI<T, E, RD, RE>(
   const from = recurOpenAI(AST.toEncoded(to))
   const codec = from === to ? schema : Schema.make<typeof schema>(AST.decodeTo(from, to, Transformation.passthrough()))
   const document = Schema.toJsonSchemaDocument(codec)
-  const jsonSchema = rewriteOpenAI(document.schema)
-  if (Object.keys(document.definitions).length > 0) {
-    jsonSchema.$defs = Rec.map(document.definitions, rewriteOpenAI)
+  const definitions = Object.keys(document.definitions).length > 0
+    ? Rec.map(document.definitions, rewriteOpenAI)
+    : undefined
+  const jsonSchema = resolveRootRef({
+    schema: rewriteOpenAI(document.schema),
+    definitions
+  })
+  if (definitions !== undefined) {
+    jsonSchema.$defs = definitions
   }
   return { codec, jsonSchema }
 }
+
+function resolveRootRef({
+  schema,
+  definitions
+}: {
+  readonly schema: JsonSchema.JsonSchema
+  readonly definitions: Record<string, JsonSchema.JsonSchema> | undefined
+}): JsonSchema.JsonSchema {
+  if (definitions === undefined) {
+    return schema
+  }
+
+  let current = schema
+  const visited = new Set<string>()
+
+  while (Object.keys(current).length === 1 && typeof current.$ref === "string") {
+    const ref = decodeDefRef(current.$ref)
+    if (ref === undefined || visited.has(ref)) {
+      break
+    }
+    const definition = definitions[ref]
+    if (definition === undefined) {
+      break
+    }
+    visited.add(ref)
+    current = definition
+  }
+
+  return current === schema ? schema : { ...current }
+}
+
+const decodeDefRef = (ref: string): string | undefined =>
+  ref.startsWith("#/$defs/")
+    ? ref.slice("#/$defs/".length).replaceAll("~1", "/").replaceAll("~0", "~")
+    : undefined
 
 /**
  * Post-processes the JSON schema produced by `Schema.toJsonSchemaDocument`,

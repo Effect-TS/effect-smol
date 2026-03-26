@@ -556,6 +556,28 @@ describe("OpenAiLanguageModel", () => {
             output: [makeTextOutput(JSON.stringify({ name: "John", age: 30 }))]
           }
         }))))
+
+      it.effect("uses object schema at the top level for identified schemas", () =>
+        Effect.gen(function*() {
+          class ThreadSummary extends Schema.Class<ThreadSummary>("ThreadSummary")({
+            summary: Schema.String
+          }) {}
+
+          yield* LanguageModel.generateObject({
+            prompt: "Summarize the thread",
+            schema: ThreadSummary
+          }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+          const requests = yield* MockHttpClient.requests
+          const body = yield* getRequestBody(requests[0])
+
+          strictEqual(body.text?.format?.type, "json_schema")
+          strictEqual(body.text?.format?.schema.type, "object")
+        }).pipe(Effect.provide(makeTestLayer({
+          body: {
+            output: [makeTextOutput(JSON.stringify({ summary: "Thread summary" }))]
+          }
+        }))))
     })
 
     describe("response handling", () => {

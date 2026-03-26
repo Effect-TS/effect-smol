@@ -149,6 +149,28 @@ describe("toCodecOpenAI", () => {
     })
   })
 
+  it("dereferences top-level refs for identified object schemas", () => {
+    class ThreadSummary extends Schema.Class<ThreadSummary>("ThreadSummary")({
+      summary: Schema.String
+    }) {}
+
+    const objectSchema = {
+      "type": "object",
+      "properties": {
+        "summary": { "type": "string" }
+      },
+      "required": ["summary"],
+      "additionalProperties": false
+    }
+
+    assertJsonSchema(ThreadSummary, {
+      ...objectSchema,
+      "$defs": {
+        "ThreadSummary": objectSchema
+      }
+    })
+  })
+
   it("Null", () => {
     assertJsonSchema(Schema.Null, {
       "type": "null"
