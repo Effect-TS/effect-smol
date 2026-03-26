@@ -505,6 +505,45 @@ describe("EventLogServerUnencrypted", () => {
       assert.strictEqual(error.storeId, "unprovisioned-store")
     }))
 
+  it.effect("server-authored write does not infer store existence from persisted history", () =>
+    Effect.gen(function*() {
+      const handled = yield* Ref.make<ReadonlyArray<string>>([])
+      const storeId = "store-history-only" as EventLogServerUnencrypted.StoreId
+      const mapping = EventLogServerUnencrypted.StoreMapping.of({
+        resolve: Effect.fnUntraced(function*() {
+          return storeId
+        }),
+        hasStore: Effect.fnUntraced(function*() {
+          return false
+        })
+      })
+      const storage = yield* EventLogServerUnencrypted.makeStorageMemory
+      const journal = yield* EventJournal.makeMemory
+
+      const writeError = yield* Effect.flip(
+        Effect.gen(function*() {
+          const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+
+          yield* runtime.ingest({
+            publicKey: "public-key-history-only",
+            entries: [yield* makeUserCreatedEntry("seed-history-only")]
+          })
+
+          yield* runtime.write({
+            schema,
+            storeId,
+            event: "UserCreated",
+            payload: { id: "server-write-history-only" }
+          })
+        }).pipe(Effect.provide(runtimeLayerFromServices({ handled, journal, mapping, storage })))
+      )
+
+      assert.instanceOf(writeError, EventLogServerUnencrypted.EventLogServerStoreError)
+      assert.strictEqual(writeError.reason, "NotFound")
+      assert.strictEqual(writeError.storeId, storeId)
+      assert.deepStrictEqual(yield* Ref.get(handled), ["seed-history-only"])
+    }))
+
   it.effect("requestChanges compacts only backlog entries older than olderThan while keeping newer entries raw", () =>
     Effect.scoped(
       Effect.gen(function*() {
