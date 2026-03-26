@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import * as Uuid from "uuid"
 import type { Brand } from "../../Brand.ts"
 import type * as Cause from "../../Cause.ts"
 import * as Data from "../../Data.ts"
@@ -265,29 +266,10 @@ export class EventLogServerUnencrypted extends ServiceMap.Service<EventLogServer
 
 const toStoreKey = (storeId: StoreId): string => storeId as string
 
-const makeStoreRemoteId = (storeId: StoreId): RemoteId => {
-  const bytes = new TextEncoder().encode(toStoreKey(storeId))
+const storeRemoteNamespace = "9e2f4ec9-ea57-44cc-ad6f-0f97d7f59fb5"
 
-  let a = 2166136261
-  let b = 2166136261 ^ 0x9e3779b9
-  for (let i = 0; i < bytes.length; i++) {
-    a ^= bytes[i]
-    a = Math.imul(a, 16777619) >>> 0
-
-    b ^= bytes[i]
-    b = Math.imul(b, 2246822519) >>> 0
-  }
-
-  const out = new Uint8Array(16)
-  const view = new DataView(out.buffer)
-  view.setUint32(0, a)
-  view.setUint32(4, b)
-  view.setUint32(8, a ^ 0xa5a5a5a5)
-  view.setUint32(12, b ^ 0x5a5a5a5a)
-  out[6] = (out[6] & 0x0f) | 0x40
-  out[8] = (out[8] & 0x3f) | 0x80
-  return out as RemoteId
-}
+const makeStoreRemoteId = (storeId: StoreId): RemoteId =>
+  Uuid.v5(toStoreKey(storeId), storeRemoteNamespace, new Uint8Array(16)) as RemoteId
 
 const makeClientIdentity = (publicKey: string): EventLog.Identity["Service"] => ({
   publicKey,

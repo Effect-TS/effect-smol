@@ -203,6 +203,42 @@ describe("EventLogServerUnencrypted", () => {
       })
     ))
 
+  it.effect("different stores replay independently even with overlapping sequence numbers", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const handled = yield* Ref.make<ReadonlyArray<string>>([])
+
+        yield* Effect.gen(function*() {
+          const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+          const mapping = yield* EventLogServerUnencrypted.StoreMapping
+
+          yield* mapping.assign({
+            publicKey: "public-key-store-a",
+            storeId: "store-a" as EventLogServerUnencrypted.StoreId
+          })
+          yield* mapping.assign({
+            publicKey: "public-key-store-b",
+            storeId: "store-b" as EventLogServerUnencrypted.StoreId
+          })
+
+          const ingestA = yield* runtime.ingest({
+            publicKey: "public-key-store-a",
+            entries: [yield* makeUserCreatedEntry("user-a")]
+          })
+          const ingestB = yield* runtime.ingest({
+            publicKey: "public-key-store-b",
+            entries: [yield* makeUserCreatedEntry("user-b")]
+          })
+
+          assert.deepStrictEqual(ingestA.sequenceNumbers, [1])
+          assert.deepStrictEqual(ingestB.sequenceNumbers, [1])
+
+          const seen = yield* Ref.get(handled)
+          assert.deepStrictEqual(seen, ["user-a", "user-b"])
+        }).pipe(Effect.provide(runtimeLayer(handled)))
+      })
+    ))
+
   it.effect("store mapping memory resolves, supports shared stores, and supports reassignment", () =>
     Effect.gen(function*() {
       const mapping = yield* EventLogServerUnencrypted.StoreMapping

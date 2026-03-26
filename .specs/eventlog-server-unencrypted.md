@@ -1093,8 +1093,9 @@ Validation for this task:
   -> `Storage.write(storeId, entries)` -> replay of only `committed` entries to
   `EventJournal.writeFromRemote(...)`.
 - Remote journal replay now uses a deterministic per-store `RemoteId` derived
-  from `StoreId`, ensuring one shared remote sequence namespace per store across
-  multiple mapped `publicKey`s.
+  from `StoreId` using UUID v5 (stable namespace), reducing collision risk
+  while ensuring one shared remote sequence namespace per store across multiple
+  mapped `publicKey`s.
 - Extracted shared replay logic from `EventLog` into
   `EventLog.makeReplayFromRemoteEffect(...)` and reused it from both client and
   server runtimes so handler execution + Reactivity invalidation stay aligned.
@@ -1103,12 +1104,22 @@ Validation for this task:
   - accepted ingest triggers Reactivity invalidation
   - two keys mapped to one store observe one combined feed with shared sequence
     space
+  - two distinct stores replay independently even when each starts at sequence
+    `1`
 
 Discovery / issue note:
 
 - The reconciliation path for persisted-but-unprocessed entries is still
   pending and remains part of the remaining Task 4 work beyond this kickoff
   slice.
+
+Follow-up tasks:
+
+- finish Task 4 reconciliation for persisted-but-unprocessed entries so runtime
+  restart cannot skip handler / Reactivity replay for committed backlog
+- wire `registerCompaction(...)` into the store-scoped read path as part of
+  Task 6 so compactors influence outbound feeds rather than being registration
+  only
 
 Scope:
 
