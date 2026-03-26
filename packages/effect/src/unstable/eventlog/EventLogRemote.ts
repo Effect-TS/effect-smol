@@ -14,7 +14,7 @@ import type * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Msgpack from "../encoding/Msgpack.ts"
 import * as Socket from "../socket/Socket.ts"
-import { type Entry, EntryId, RemoteEntry, RemoteId } from "./EventJournal.ts"
+import { Entry, EntryId, RemoteEntry, RemoteId } from "./EventJournal.ts"
 import type { Identity } from "./EventLog.ts"
 import { EncryptedEntry, EncryptedRemoteEntry, EventLogEncryption, layerSubtle } from "./EventLogEncryption.ts"
 
@@ -123,6 +123,19 @@ export class WriteEntries extends Schema.Class<WriteEntries>("effect/eventlog/Ev
  * @since 4.0.0
  * @category protocol
  */
+export class WriteEntriesUnencrypted extends Schema.Class<WriteEntriesUnencrypted>(
+  "effect/eventlog/EventLogRemote/WriteEntriesUnencrypted"
+)({
+  _tag: Schema.tag("WriteEntries"),
+  publicKey: Schema.String,
+  id: Schema.Number,
+  entries: Schema.Array(Entry)
+}) {}
+
+/**
+ * @since 4.0.0
+ * @category protocol
+ */
 export class Ack extends Schema.Class<Ack>("effect/eventlog/EventLogRemote/Ack")({
   _tag: Schema.tag("Ack"),
   id: Schema.Number,
@@ -147,6 +160,18 @@ export class Changes extends Schema.Class<Changes>("effect/eventlog/EventLogRemo
   _tag: Schema.tag("Changes"),
   publicKey: Schema.String,
   entries: Schema.Array(EncryptedRemoteEntry)
+}) {}
+
+/**
+ * @since 4.0.0
+ * @category protocol
+ */
+export class ChangesUnencrypted extends Schema.Class<ChangesUnencrypted>(
+  "effect/eventlog/EventLogRemote/ChangesUnencrypted"
+)({
+  _tag: Schema.tag("Changes"),
+  publicKey: Schema.String,
+  entries: Schema.Array(RemoteEntry)
 }) {}
 
 /**
@@ -186,7 +211,25 @@ export const ProtocolRequest = Schema.Union([WriteEntries, RequestChanges, StopC
  * @since 4.0.0
  * @category protocol
  */
+export const ProtocolRequestUnencrypted = Schema.Union([
+  WriteEntriesUnencrypted,
+  RequestChanges,
+  StopChanges,
+  ChunkedMessage,
+  Ping
+])
+
+/**
+ * @since 4.0.0
+ * @category protocol
+ */
 export const ProtocolRequestMsgpack = Msgpack.schema(ProtocolRequest)
+
+/**
+ * @since 4.0.0
+ * @category protocol
+ */
+export const ProtocolRequestUnencryptedMsgpack = Msgpack.schema(ProtocolRequestUnencrypted)
 
 /**
  * @since 4.0.0
@@ -199,6 +242,18 @@ export const decodeRequest = Schema.decodeUnknownEffect(ProtocolRequestMsgpack)
  * @category protocol
  */
 export const encodeRequest = Schema.encodeUnknownEffect(ProtocolRequestMsgpack)
+
+/**
+ * @since 4.0.0
+ * @category protocol
+ */
+export const decodeRequestUnencrypted = Schema.decodeUnknownEffect(ProtocolRequestUnencryptedMsgpack)
+
+/**
+ * @since 4.0.0
+ * @category protocol
+ */
+export const encodeRequestUnsencrypted = Schema.encodeUnknownEffect(ProtocolRequestUnencryptedMsgpack)
 
 /**
  * @since 4.0.0
@@ -223,6 +278,30 @@ export const decodeResponse = Schema.decodeUnknownEffect(ProtocolResponseMsgpack
  * @category protocol
  */
 export const encodeResponse = Schema.encodeUnknownEffect(ProtocolResponseMsgpack)
+
+/**
+ * @since 4.0.0
+ * @category protocol
+ */
+export const ProtocolResponseUnencrypted = Schema.Union([Hello, Ack, ChangesUnencrypted, ChunkedMessage, Pong])
+
+/**
+ * @since 4.0.0
+ * @category protocol
+ */
+export const ProtocolResponseUnencryptedMsgpack = Msgpack.schema(ProtocolResponseUnencrypted)
+
+/**
+ * @since 4.0.0
+ * @category protocol
+ */
+export const decodeResponseUnencrypted = Schema.decodeUnknownEffect(ProtocolResponseUnencryptedMsgpack)
+
+/**
+ * @since 4.0.0
+ * @category protocol
+ */
+export const encodeResponseUnencrypted = Schema.encodeUnknownEffect(ProtocolResponseUnencryptedMsgpack)
 
 /**
  * @since 4.0.0
@@ -255,7 +334,7 @@ export const RemoteEntryChange = Schema.Tuple([RemoteId, Schema.Array(EntryId)])
  * @category constructors
  */
 export const fromSocket = (options?: {
-  readonly disablePing?: boolean
+  readonly disablePing?: boolean | undefined
 }): Effect.Effect<EventLogRemote["Service"], never, Scope.Scope | EventLogEncryption | Socket.Socket> =>
   Effect.gen(function*() {
     const socket = yield* Socket.Socket
@@ -433,29 +512,206 @@ export const fromSocket = (options?: {
  * @since 4.0.0
  * @category constructors
  */
-export const fromWebSocket = (
+export const fromSocketUnencrypted = Effect.fnUntraced(function*(options?: {
+  readonly disablePing?: boolean | undefined
+}): Effect.fn.Return<EventLogRemote["Service"], never, Scope.Scope | Socket.Socket> {
+  const socket = yield* Socket.Socket
+  const writeRaw = yield* socket.writer
+
+  const writeRequest = (request: typeof ProtocolRequestUnencrypted.Type) =>
+    Effect.gen(function*() {
+      const data = yield* encodeRequest(request)
+      if (request._tag !== "WriteEntries" || data.byteLength <= constChunkSize) {
+        return yield* writeRaw(data)
+      }
+      const id = request.id
+      for (const part of ChunkedMessage.split(id, data)) {
+        yield* writeRaw(yield* encodeRequest(part))
+      }
+    })
+
+  let pendingCounter = 0
+  const pending = new Map<number, {
+    readonly entries: ReadonlyArray<Entry>
+    readonly deferred: Deferred.Deferred<void>
+    readonly publicKey: string
+  }>()
+  const chunks = new Map<number, {
+    readonly parts: Array<Uint8Array>
+    count: number
+    bytes: number
+  }>()
+
+  const subscriptions = yield* RcMap.make({
+    lookup: (publicKey: string) =>
+      Effect.acquireRelease(
+        Queue.make<RemoteEntry>(),
+        (queue) =>
+          Queue.shutdown(queue).pipe(
+            Effect.andThen(Effect.ignore(writeRequest(new StopChanges({ publicKey }))))
+          )
+      )
+  })
+  const identities = new Map<string, Identity["Service"]>()
+  const badPing = yield* Deferred.make<never, Error>()
+  const remoteId = yield* Deferred.make<RemoteId>()
+
+  let latestPing = 0
+  let latestPong = 0
+
+  if (options?.disablePing !== true) {
+    yield* Effect.suspend(() => {
+      if (latestPing !== latestPong) {
+        return Deferred.fail(badPing, new Error("Ping timeout"))
+      }
+      return writeRequest(new Ping({ id: ++latestPing }))
+    }).pipe(
+      Effect.delay("10 seconds"),
+      Effect.ignore,
+      Effect.forever,
+      Effect.interruptible,
+      Effect.forkScoped
+    )
+  }
+
+  const handleMessage = (res: typeof ProtocolResponseUnencrypted.Type): Effect.Effect<void, unknown, Scope.Scope> => {
+    switch (res._tag) {
+      case "Hello": {
+        return Deferred.succeed(remoteId, res.remoteId).pipe(Effect.asVoid)
+      }
+      case "Ack": {
+        return Effect.gen(function*() {
+          const entry = pending.get(res.id)
+          if (!entry) return
+          pending.delete(res.id)
+          const { deferred, entries, publicKey } = entry
+          const remoteEntries = res.sequenceNumbers.map((sequenceNumber, i) => {
+            const entry = entries[i]
+            return new RemoteEntry({
+              remoteSequence: sequenceNumber,
+              entry
+            })
+          })
+          const queue = yield* RcMap.get(subscriptions, publicKey)
+          yield* Queue.offerAll(queue, remoteEntries)
+          yield* Deferred.done(deferred, Exit.void)
+        }).pipe(Effect.scoped)
+      }
+      case "Pong": {
+        latestPong = res.id
+        if (res.id === latestPing) {
+          return Effect.void
+        }
+        return Deferred.fail(badPing, new Error("Pong id mismatch")).pipe(
+          Effect.asVoid
+        )
+      }
+      case "Changes": {
+        return Effect.gen(function*() {
+          const queue = yield* RcMap.get(subscriptions, res.publicKey)
+          const identity = identities.get(res.publicKey)
+          if (!identity) {
+            return
+          }
+          yield* Queue.offerAll(queue, res.entries)
+        }).pipe(Effect.scoped)
+      }
+      case "ChunkedMessage": {
+        const data = ChunkedMessage.join(chunks, res)
+        if (!data) return Effect.void
+        return Effect.scoped(
+          Effect.flatMap(decodeResponseUnencrypted(data), handleMessage)
+        )
+      }
+    }
+  }
+
+  yield* socket.run((data) => Effect.flatMap(decodeResponseUnencrypted(data), handleMessage)).pipe(
+    Effect.raceFirst(Deferred.await(badPing)),
+    Effect.tapCause(Effect.logDebug),
+    Effect.retry({
+      schedule: Schedule.exponential(100).pipe(
+        Schedule.either(Schedule.spaced(5000))
+      )
+    }),
+    Effect.annotateLogs({
+      service: "EventLogRemote",
+      method: "fromSocketUnencrypted"
+    }),
+    Effect.forkScoped,
+    Effect.interruptible
+  )
+
+  const id = yield* Deferred.await(remoteId)
+
+  return {
+    id,
+    write: (identity, entries) =>
+      Effect.gen(function*() {
+        const deferred = yield* Deferred.make<void>()
+        const id = pendingCounter++
+        pending.set(id, {
+          entries,
+          deferred,
+          publicKey: identity.publicKey
+        })
+        yield* Effect.orDie(writeRequest(
+          new WriteEntriesUnencrypted({
+            publicKey: identity.publicKey,
+            id,
+            entries
+          })
+        ))
+        yield* Deferred.await(deferred)
+      }),
+    changes: (identity, startSequence) =>
+      Effect.gen(function*() {
+        const queue = yield* RcMap.get(subscriptions, identity.publicKey)
+        identities.set(identity.publicKey, identity)
+        yield* Effect.orDie(writeRequest(
+          new RequestChanges({
+            publicKey: identity.publicKey,
+            startSequence
+          })
+        ))
+        return queue
+      })
+  }
+})
+
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const fromWebSocket = <const Unencrypted extends boolean = false>(
   url: string,
   options?: {
-    readonly disablePing?: boolean
+    readonly disablePing?: boolean | undefined
+    readonly unencrypted?: Unencrypted | undefined
   }
-): Effect.Effect<EventLogRemote["Service"], never, Scope.Scope | EventLogEncryption | Socket.WebSocketConstructor> =>
+): Effect.Effect<
+  EventLogRemote["Service"],
+  never,
+  Scope.Scope | (Unencrypted extends true ? never : EventLogEncryption) | Socket.WebSocketConstructor
+> =>
   Effect.gen(function*() {
     const socket = yield* Socket.makeWebSocket(url)
-    return yield* fromSocket(options).pipe(
+    return yield* (options?.unencrypted ? fromSocketUnencrypted(options) : fromSocket(options)).pipe(
       Effect.provideService(Socket.Socket, socket)
     )
-  })
+  }) as any
 
 /**
  * @since 4.0.0
  * @category layers
  */
-export const layerWebSocket = (
+export const layerWebSocket = <const Unencrypted extends boolean = false>(
   url: string,
   options?: {
-    readonly disablePing?: boolean
+    readonly disablePing?: boolean | undefined
+    readonly unencrypted?: Unencrypted | undefined
   }
-): Layer.Layer<never, never, Socket.WebSocketConstructor | EventLogEncryption> =>
+): Layer.Layer<never, never, Socket.WebSocketConstructor | (Unencrypted extends true ? never : EventLogEncryption)> =>
   Layer.effectDiscard(fromWebSocket(url, options))
 
 /**
@@ -465,7 +721,8 @@ export const layerWebSocket = (
 export const layerWebSocketBrowser = (
   url: string,
   options?: {
-    readonly disablePing?: boolean
+    readonly disablePing?: boolean | undefined
+    readonly unencrypted?: boolean | undefined
   }
 ): Layer.Layer<never> =>
   layerWebSocket(url, options).pipe(
