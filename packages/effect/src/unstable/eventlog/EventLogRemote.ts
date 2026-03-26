@@ -27,8 +27,11 @@ export class EventLogRemote extends ServiceMap.Service<EventLogRemote, {
   readonly changes: (
     identity: Identity["Service"],
     startSequence: number
-  ) => Effect.Effect<Queue.Dequeue<RemoteEntry>, never, Scope.Scope>
-  readonly write: (identity: Identity["Service"], entries: ReadonlyArray<Entry>) => Effect.Effect<void>
+  ) => Effect.Effect<Queue.Dequeue<RemoteEntry, EventLogRemoteError>, never, Scope.Scope>
+  readonly write: (
+    identity: Identity["Service"],
+    entries: ReadonlyArray<Entry>
+  ) => Effect.Effect<void, EventLogRemoteError>
 }>()("effect/eventlog/EventLogRemote") {}
 
 /**
@@ -205,6 +208,21 @@ export class Pong extends Schema.Class<Pong>("effect/eventlog/EventLogRemote/Pon
  * @since 4.0.0
  * @category protocol
  */
+export class ErrorUnencrypted extends Schema.Class<ErrorUnencrypted>(
+  "effect/eventlog/EventLogRemote/ErrorUnencrypted"
+)({
+  _tag: Schema.tag("Error"),
+  requestTag: Schema.String,
+  id: Schema.optional(Schema.Number),
+  publicKey: Schema.optional(Schema.String),
+  code: Schema.Literals(["Unauthorized", "Forbidden", "NotFound", "InvalidRequest", "InternalServerError"]),
+  message: Schema.String
+}) {}
+
+/**
+ * @since 4.0.0
+ * @category protocol
+ */
 export const ProtocolRequest = Schema.Union([WriteEntries, RequestChanges, StopChanges, ChunkedMessage, Ping])
 
 /**
@@ -283,7 +301,14 @@ export const encodeResponse = Schema.encodeUnknownEffect(ProtocolResponseMsgpack
  * @since 4.0.0
  * @category protocol
  */
-export const ProtocolResponseUnencrypted = Schema.Union([Hello, Ack, ChangesUnencrypted, ChunkedMessage, Pong])
+export const ProtocolResponseUnencrypted = Schema.Union([
+  Hello,
+  Ack,
+  ChangesUnencrypted,
+  ChunkedMessage,
+  Pong,
+  ErrorUnencrypted
+])
 
 /**
  * @since 4.0.0
@@ -533,7 +558,7 @@ export const fromSocketUnencrypted = Effect.fnUntraced(function*(options?: {
   let pendingCounter = 0
   const pending = new Map<number, {
     readonly entries: ReadonlyArray<Entry>
-    readonly deferred: Deferred.Deferred<void>
+    readonly deferred: Deferred.Deferred<void, EventLogRemoteError>
     readonly publicKey: string
   }>()
   const chunks = new Map<number, {
@@ -545,7 +570,7 @@ export const fromSocketUnencrypted = Effect.fnUntraced(function*(options?: {
   const subscriptions = yield* RcMap.make({
     lookup: (publicKey: string) =>
       Effect.acquireRelease(
-        Queue.make<RemoteEntry>(),
+        Queue.make<RemoteEntry, EventLogRemoteError>(),
         (queue) =>
           Queue.shutdown(queue).pipe(
             Effect.andThen(Effect.ignore(writeRequest(new StopChanges({ publicKey }))))
@@ -623,6 +648,36 @@ export const fromSocketUnencrypted = Effect.fnUntraced(function*(options?: {
           Effect.flatMap(decodeResponseUnencrypted(data), handleMessage)
         )
       }
+      case "Error": {
+        if (res.requestTag === "WriteEntries" && res.id !== undefined) {
+          const entry = pending.get(res.id)
+          if (!entry) {
+            return Effect.void
+          }
+          pending.delete(res.id)
+          return Deferred.fail(
+            entry.deferred,
+            new EventLogRemoteError({
+              method: "write",
+              cause: res
+            })
+          ).pipe(Effect.asVoid)
+        }
+        if (res.requestTag === "RequestChanges" && res.publicKey !== undefined) {
+          const publicKey = res.publicKey
+          return Effect.gen(function*() {
+            const queue = yield* RcMap.get(subscriptions, publicKey)
+            yield* Queue.fail(
+              queue,
+              new EventLogRemoteError({
+                method: "changes",
+                cause: res
+              })
+            )
+          }).pipe(Effect.scoped)
+        }
+        return Effect.void
+      }
     }
   }
 
@@ -648,7 +703,7 @@ export const fromSocketUnencrypted = Effect.fnUntraced(function*(options?: {
     id,
     write: (identity, entries) =>
       Effect.gen(function*() {
-        const deferred = yield* Deferred.make<void>()
+        const deferred = yield* Deferred.make<void, EventLogRemoteError>()
         const id = pendingCounter++
         pending.set(id, {
           entries,
