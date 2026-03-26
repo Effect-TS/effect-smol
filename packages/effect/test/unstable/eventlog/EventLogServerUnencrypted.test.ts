@@ -460,24 +460,17 @@ describe("EventLogServerUnencrypted", () => {
             storeId
           })
 
-          yield* runtime.registerCompaction({
-            events: ["UserCreated"],
-            olderThan: "5 seconds",
-            effect: Effect.fnUntraced(function*({ entries, write }) {
-              const payload = yield* Schema.encodeUnknownEffect(UserGroup.events.UserCreated.payloadMsgPack)({
+          yield* EventLogServerUnencrypted.groupCompaction(
+            UserGroup,
+            { olderThan: "5 seconds" },
+            ({ entries, write }) =>
+              write("UserCreated", {
                 id: `${entries[0]!.primaryKey}-compacted`
-              }).pipe(Effect.orDie)
-
-              yield* write(
-                new EventJournal.Entry({
-                  id: EventJournal.makeEntryIdUnsafe({ msecs: entries[0]!.createdAtMillis }),
-                  event: "UserCreated",
-                  primaryKey: `${entries[0]!.primaryKey}-compacted`,
-                  payload
-                }, { disableChecks: true })
-              )
-            })
-          })
+              })
+          ).pipe(
+            Layer.build,
+            Effect.asVoid
+          )
 
           yield* runtime.ingest({
             publicKey: "public-key-compaction-cutoff",
@@ -520,35 +513,22 @@ describe("EventLogServerUnencrypted", () => {
             storeId
           })
 
-          yield* runtime.registerCompaction({
-            events: ["UserCreated"],
-            olderThan: "5 seconds",
-            effect: Effect.fnUntraced(function*({ entries, write }) {
-              const payloadFirst = yield* Schema.encodeUnknownEffect(UserGroup.events.UserCreated.payloadMsgPack)({
-                id: `${entries[0]!.primaryKey}-snapshot-1`
-              }).pipe(Effect.orDie)
-              const payloadSecond = yield* Schema.encodeUnknownEffect(UserGroup.events.UserCreated.payloadMsgPack)({
-                id: `${entries[0]!.primaryKey}-snapshot-2`
-              }).pipe(Effect.orDie)
-
-              yield* write(
-                new EventJournal.Entry({
-                  id: EventJournal.makeEntryIdUnsafe({ msecs: entries[0]!.createdAtMillis }),
-                  event: "UserCreated",
-                  primaryKey: `${entries[0]!.primaryKey}-snapshot-1`,
-                  payload: payloadFirst
-                }, { disableChecks: true })
-              )
-              yield* write(
-                new EventJournal.Entry({
-                  id: EventJournal.makeEntryIdUnsafe({ msecs: entries[entries.length - 1]!.createdAtMillis }),
-                  event: "UserCreated",
-                  primaryKey: `${entries[0]!.primaryKey}-snapshot-2`,
-                  payload: payloadSecond
-                }, { disableChecks: true })
-              )
-            })
-          })
+          yield* EventLogServerUnencrypted.groupCompaction(
+            UserGroup,
+            { olderThan: "5 seconds" },
+            ({ entries, write }) =>
+              Effect.gen(function*() {
+                yield* write("UserCreated", {
+                  id: `${entries[0]!.primaryKey}-snapshot-1`
+                })
+                yield* write("UserCreated", {
+                  id: `${entries[0]!.primaryKey}-snapshot-2`
+                })
+              })
+          ).pipe(
+            Layer.build,
+            Effect.asVoid
+          )
 
           yield* runtime.ingest({
             publicKey: "public-key-compaction-cursor",
@@ -599,24 +579,17 @@ describe("EventLogServerUnencrypted", () => {
           yield* mapping.assign({ publicKey: "public-key-compaction-a", storeId })
           yield* mapping.assign({ publicKey: "public-key-compaction-b", storeId })
 
-          yield* runtime.registerCompaction({
-            events: ["UserCreated"],
-            olderThan: "5 seconds",
-            effect: Effect.fnUntraced(function*({ entries, write }) {
-              const payload = yield* Schema.encodeUnknownEffect(UserGroup.events.UserCreated.payloadMsgPack)({
+          yield* EventLogServerUnencrypted.groupCompaction(
+            UserGroup,
+            { olderThan: "5 seconds" },
+            ({ entries, write }) =>
+              write("UserCreated", {
                 id: `${entries[0]!.primaryKey}-shared-compacted`
-              }).pipe(Effect.orDie)
-
-              yield* write(
-                new EventJournal.Entry({
-                  id: EventJournal.makeEntryIdUnsafe({ msecs: entries[0]!.createdAtMillis }),
-                  event: "UserCreated",
-                  primaryKey: `${entries[0]!.primaryKey}-shared-compacted`,
-                  payload
-                }, { disableChecks: true })
-              )
-            })
-          })
+              })
+          ).pipe(
+            Layer.build,
+            Effect.asVoid
+          )
 
           yield* runtime.ingest({
             publicKey: "public-key-compaction-a",
