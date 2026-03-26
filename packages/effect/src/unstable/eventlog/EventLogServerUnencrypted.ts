@@ -12,6 +12,7 @@ import * as RcMap from "../../RcMap.ts"
 import * as Schema from "../../Schema.ts"
 import type * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
+import * as Persistence from "../persistence/Persistence.ts"
 import { type Entry, makeRemoteIdUnsafe, RemoteEntry, type RemoteId } from "./EventJournal.ts"
 
 /**
@@ -75,6 +76,131 @@ export class EventLogServerAuth extends ServiceMap.Service<EventLogServerAuth, {
     readonly storeId: StoreId
   }) => Effect.Effect<void, EventLogServerAuthError>
 }>()("effect/eventlog/EventLogServerUnencrypted/EventLogServerAuth") {}
+
+/**
+ * @since 4.0.0
+ * @category context
+ */
+export class StoreMapping extends ServiceMap.Service<StoreMapping, {
+  readonly resolve: (publicKey: string) => Effect.Effect<StoreId, EventLogServerStoreError>
+  readonly assign: (options: {
+    readonly publicKey: string
+    readonly storeId: StoreId
+  }) => Effect.Effect<void, EventLogServerStoreError>
+}>()("effect/eventlog/EventLogServerUnencrypted/StoreMapping") {}
+
+class PersistedStoreMapping extends Schema.Class<PersistedStoreMapping>(
+  "effect/eventlog/EventLogServerUnencrypted/PersistedStoreMapping"
+)({
+  storeId: StoreId
+}) {}
+
+const decodePersistedStoreMapping = Schema.decodeUnknownEffect(PersistedStoreMapping)
+
+const toNotFoundError = (publicKey: string) =>
+  new EventLogServerStoreError({
+    reason: "NotFound",
+    publicKey,
+    message: `No store mapping found for public key: ${publicKey}`
+  })
+
+const toPersistenceFailure = (options: {
+  readonly publicKey?: string | undefined
+  readonly storeId?: StoreId | undefined
+  readonly message: string
+}) =>
+(cause: unknown) =>
+  new EventLogServerStoreError({
+    reason: "PersistenceFailure",
+    publicKey: options.publicKey,
+    storeId: options.storeId,
+    message: cause instanceof Error ? `${options.message}: ${cause.message}` : options.message
+  })
+
+/**
+ * @since 4.0.0
+ * @category store
+ */
+export const makeStoreMappingMemory: Effect.Effect<StoreMapping["Service"]> = Effect.sync(() => {
+  const mappings = new Map<string, StoreId>()
+
+  return StoreMapping.of({
+    resolve: Effect.fnUntraced(function*(publicKey: string) {
+      const storeId = mappings.get(publicKey)
+      if (storeId !== undefined) {
+        return storeId
+      }
+      return yield* Effect.fail(toNotFoundError(publicKey))
+    }),
+    assign: Effect.fnUntraced(function*({ publicKey, storeId }) {
+      mappings.set(publicKey, storeId)
+    })
+  })
+})
+
+/**
+ * @since 4.0.0
+ * @category store
+ */
+export const layerStoreMappingMemory: Layer.Layer<StoreMapping> = Layer.effect(StoreMapping)(makeStoreMappingMemory)
+
+/**
+ * @since 4.0.0
+ * @category store
+ */
+export const makeStoreMappingPersisted = Effect.fnUntraced(function*(options: {
+  readonly storeId: string
+}) {
+  const backing = yield* Persistence.BackingPersistence
+  const storage = yield* backing.make(options.storeId)
+
+  return StoreMapping.of({
+    resolve: Effect.fnUntraced(function*(publicKey: string) {
+      const encoded = yield* storage.get(publicKey).pipe(
+        Effect.mapError(
+          toPersistenceFailure({
+            publicKey,
+            message: `Failed to resolve store mapping for public key: ${publicKey}`
+          })
+        )
+      )
+      if (encoded === undefined) {
+        return yield* Effect.fail(toNotFoundError(publicKey))
+      }
+
+      const decoded = yield* decodePersistedStoreMapping(encoded).pipe(
+        Effect.mapError(
+          toPersistenceFailure({
+            publicKey,
+            message: `Failed to decode store mapping for public key: ${publicKey}`
+          })
+        )
+      )
+
+      return decoded.storeId
+    }),
+    assign: Effect.fnUntraced(function*({ publicKey, storeId }) {
+      yield* storage.set(publicKey, new PersistedStoreMapping({ storeId }), undefined).pipe(
+        Effect.mapError(
+          toPersistenceFailure({
+            publicKey,
+            storeId,
+            message: `Failed to assign store mapping for public key: ${publicKey}`
+          })
+        )
+      )
+    })
+  })
+})
+
+/**
+ * @since 4.0.0
+ * @category store
+ */
+export const layerStoreMappingPersisted = (options: {
+  readonly storeId: string
+}): Layer.Layer<StoreMapping, never, Persistence.BackingPersistence> =>
+  Layer.effect(StoreMapping)(makeStoreMappingPersisted(options))
 
 /**
  * @since 4.0.0
