@@ -5,6 +5,7 @@ import * as Uuid from "uuid"
 import type { Brand } from "../../Brand.ts"
 import type * as Cause from "../../Cause.ts"
 import * as Data from "../../Data.ts"
+import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
 import * as PubSub from "../../PubSub.ts"
@@ -22,7 +23,7 @@ import type * as Event from "./Event.ts"
 import type * as EventGroup from "./EventGroup.ts"
 import * as EventJournal from "./EventJournal.ts"
 import {
-  type Entry,
+  Entry,
   type EntryId,
   makeEntryIdUnsafe,
   makeRemoteIdUnsafe,
@@ -379,6 +380,7 @@ export class EventLogServerUnencrypted extends ServiceMap.Service<EventLogServer
   >
   readonly registerCompaction: (options: {
     readonly events: ReadonlyArray<string>
+    readonly olderThan: Duration.Input
     readonly effect: (options: {
       readonly entries: ReadonlyArray<Entry>
       readonly write: (entry: Entry) => Effect.Effect<void>
@@ -410,6 +412,144 @@ const toReconciliationStartSequence = (nextRemoteSequence: number): number =>
 
 const entriesAfter = (journal: Array<RemoteEntry>, startSequence: number): ReadonlyArray<RemoteEntry> =>
   journal.filter((entry) => entry.remoteSequence > startSequence)
+
+type RegisteredCompactor = {
+  readonly events: ReadonlySet<string>
+  readonly olderThanMillis: number
+  readonly effect: (options: {
+    readonly entries: ReadonlyArray<Entry>
+    readonly write: (entry: Entry) => Effect.Effect<void>
+  }) => Effect.Effect<void>
+}
+
+const isEligibleForCompaction = (options: {
+  readonly remoteEntry: RemoteEntry
+  readonly nowMillis: number
+  readonly olderThanMillis: number
+}): boolean => options.remoteEntry.entry.createdAtMillis <= options.nowMillis - options.olderThanMillis
+
+const representativeSequences = (options: {
+  readonly remoteEntries: ReadonlyArray<RemoteEntry>
+  readonly compactedCount: number
+}): ReadonlyArray<number> | undefined => {
+  if (options.compactedCount === 0) {
+    return []
+  }
+  if (options.compactedCount > options.remoteEntries.length) {
+    return undefined
+  }
+
+  const maxSequence = options.remoteEntries[options.remoteEntries.length - 1]!.remoteSequence
+  if (options.compactedCount === 1) {
+    return [maxSequence]
+  }
+
+  const selected = options.remoteEntries
+    .slice(0, options.compactedCount - 1)
+    .map((entry) => entry.remoteSequence)
+  selected.push(maxSequence)
+  for (let i = 1; i < selected.length; i++) {
+    if (selected[i]! <= selected[i - 1]!) {
+      return undefined
+    }
+  }
+  return selected
+}
+
+const toCompactedRemoteEntries = (options: {
+  readonly compacted: ReadonlyArray<Entry>
+  readonly remoteEntries: ReadonlyArray<RemoteEntry>
+}): ReadonlyArray<RemoteEntry> | undefined => {
+  const sequences = representativeSequences({
+    remoteEntries: options.remoteEntries,
+    compactedCount: options.compacted.length
+  })
+  if (sequences === undefined) {
+    return undefined
+  }
+
+  return options.compacted.map((entry, index) =>
+    new RemoteEntry({
+      remoteSequence: sequences[index]!,
+      entry
+    }, { disableChecks: true })
+  )
+}
+
+const compactBacklog = Effect.fnUntraced(function*(options: {
+  readonly remoteEntries: ReadonlyArray<RemoteEntry>
+  readonly compactors: ReadonlyMap<string, RegisteredCompactor>
+  readonly nowMillis: number
+}) {
+  if (options.compactors.size === 0 || options.remoteEntries.length === 0) {
+    return options.remoteEntries
+  }
+
+  const compactedRemoteEntries: Array<RemoteEntry> = []
+  let index = 0
+
+  while (index < options.remoteEntries.length) {
+    const remoteEntry = options.remoteEntries[index]!
+    const compactor = options.compactors.get(remoteEntry.entry.event)
+    if (
+      compactor === undefined ||
+      !isEligibleForCompaction({
+        remoteEntry,
+        nowMillis: options.nowMillis,
+        olderThanMillis: compactor.olderThanMillis
+      })
+    ) {
+      compactedRemoteEntries.push(remoteEntry)
+      index++
+      continue
+    }
+
+    const entries: Array<Entry> = [remoteEntry.entry]
+    const remoteGroup: Array<RemoteEntry> = [remoteEntry]
+    const compacted: Array<Entry> = []
+    index++
+
+    while (index < options.remoteEntries.length) {
+      const nextRemoteEntry = options.remoteEntries[index]!
+      const nextCompactor = options.compactors.get(nextRemoteEntry.entry.event)
+      if (
+        nextCompactor !== compactor ||
+        !isEligibleForCompaction({
+          remoteEntry: nextRemoteEntry,
+          nowMillis: options.nowMillis,
+          olderThanMillis: compactor.olderThanMillis
+        })
+      ) {
+        break
+      }
+      entries.push(nextRemoteEntry.entry)
+      remoteGroup.push(nextRemoteEntry)
+      index++
+    }
+
+    yield* compactor.effect({
+      entries,
+      write(entry) {
+        return Effect.sync(() => {
+          compacted.push(entry)
+        })
+      }
+    }).pipe(Effect.orDie)
+
+    const projected = toCompactedRemoteEntries({
+      compacted,
+      remoteEntries: remoteGroup
+    })
+
+    if (projected === undefined) {
+      compactedRemoteEntries.push(...remoteGroup)
+      continue
+    }
+    compactedRemoteEntries.push(...projected)
+  }
+
+  return compactedRemoteEntries
+})
 
 /**
  * @since 4.0.0
@@ -537,13 +677,7 @@ export const make = Effect.gen(function*() {
   const services = yield* Effect.services<never>()
   const reactivity = yield* Reactivity
 
-  const compactors = new Map<string, {
-    readonly events: ReadonlySet<string>
-    readonly effect: (options: {
-      readonly entries: ReadonlyArray<Entry>
-      readonly write: (entry: Entry) => Effect.Effect<void>
-    }) => Effect.Effect<void>
-  }>()
+  const compactors = new Map<string, RegisteredCompactor>()
   const reactivityKeys: Record<string, ReadonlyArray<string>> = {}
   const reconciledStores = new Set<string>()
   const journalSemaphore = yield* Semaphore.make(1)
@@ -739,14 +873,42 @@ export const make = Effect.gen(function*() {
 
       yield* reconcileStore(storeId)
 
-      return yield* storage.changes(storeId, startSequence)
+      const backlog = yield* storage.entries(storeId, 0)
+      const projectedBacklog = yield* compactBacklog({
+        remoteEntries: backlog,
+        compactors,
+        nowMillis: Date.now()
+      }).pipe(
+        Effect.map((entries) => entries.filter((entry) => entry.remoteSequence > startSequence))
+      )
+
+      const queue = yield* Queue.make<RemoteEntry>()
+      yield* Queue.offerAll(queue, projectedBacklog)
+
+      const backlogSequence = backlog.length > 0 ? backlog[backlog.length - 1]!.remoteSequence : 0
+      const liveChanges = yield* storage.changes(storeId, backlogSequence)
+      yield* Queue.takeAll(liveChanges).pipe(
+        Effect.flatMap((entries) =>
+          Queue.offerAll(queue, entries.filter((entry) => entry.remoteSequence > startSequence))
+        ),
+        Effect.forever,
+        Effect.forkScoped
+      )
+
+      yield* Effect.addFinalizer(() => Queue.shutdown(queue))
+      return Queue.asDequeue(queue)
     }),
     registerCompaction: (options) =>
       Effect.acquireRelease(
         Effect.sync(() => {
+          const olderThanMillis = Math.max(
+            Duration.toMillis(Duration.fromInputUnsafe(options.olderThan)),
+            0
+          )
           const events = new Set(options.events)
           const compactor = {
             events,
+            olderThanMillis,
             effect: options.effect
           }
           for (const event of options.events) {
@@ -790,6 +952,105 @@ export const groupReactivity = <Events extends Event.Any>(
         all[tag] = keys
       }
       yield* runtime.registerReactivity(all)
+    })
+  )
+
+/**
+ * @since 4.0.0
+ * @category compaction
+ */
+export const groupCompaction = <Events extends Event.Any, R>(
+  group: EventGroup.EventGroup<Events>,
+  options: {
+    readonly olderThan: Duration.Input
+  },
+  effect: (options: {
+    readonly primaryKey: string
+    readonly entries: ReadonlyArray<Entry>
+    readonly events: ReadonlyArray<Event.TaggedPayload<Events>>
+    readonly write: <Tag extends Event.Tag<Events>>(
+      tag: Tag,
+      payload: Event.PayloadWithTag<Events, Tag>
+    ) => Effect.Effect<void, never, Event.PayloadSchemaWithTag<Events, Tag>["EncodingServices"]>
+  }) => Effect.Effect<void, never, R>
+): Layer.Layer<
+  never,
+  never,
+  EventLogServerUnencrypted | R | Event.PayloadSchema<Events>["DecodingServices"]
+> =>
+  Layer.effectDiscard(
+    Effect.gen(function*() {
+      const runtime = yield* EventLogServerUnencrypted
+      const services = yield* Effect.services<R | Event.PayloadSchema<Events>["DecodingServices"]>()
+
+      yield* runtime.registerCompaction({
+        events: Object.keys(group.events),
+        olderThan: options.olderThan,
+        effect: Effect.fnUntraced(function*({ entries, write }): Effect.fn.Return<void> {
+          const isEventTag = (tag: string): tag is Event.Tag<Events> => tag in group.events
+          const decodePayload = <Tag extends Event.Tag<Events>>(tag: Tag, payload: Uint8Array) =>
+            Schema.decodeUnknownEffect(group.events[tag].payloadMsgPack)(payload).pipe(
+              Effect.updateServices((input) => ServiceMap.merge(services, input)),
+              Effect.orDie
+            ) as unknown as Effect.Effect<Event.PayloadWithTag<Events, Tag>>
+          const writePayload = Effect.fnUntraced(function*<Tag extends Event.Tag<Events>>(
+            timestamp: number,
+            tag: Tag,
+            payload: Event.PayloadWithTag<Events, Tag>
+          ): Effect.fn.Return<void, never, Event.PayloadSchemaWithTag<Events, Tag>["EncodingServices"]> {
+            const event = group.events[tag]
+            const entry = new Entry({
+              id: makeEntryIdUnsafe({ msecs: timestamp }),
+              event: tag,
+              payload: yield* Schema.encodeUnknownEffect(event.payloadMsgPack)(payload).pipe(
+                Effect.orDie
+              ) as any,
+              primaryKey: event.primaryKey(payload)
+            }, { disableChecks: true })
+            yield* write(entry)
+          })
+
+          const byPrimaryKey = new Map<
+            string,
+            {
+              readonly entries: Array<Entry>
+              readonly taggedPayloads: Array<Event.TaggedPayload<Events>>
+            }
+          >()
+          for (const entry of entries) {
+            if (!isEventTag(entry.event)) {
+              continue
+            }
+            const payload = yield* decodePayload(entry.event, entry.payload)
+            const record = byPrimaryKey.get(entry.primaryKey)
+            const taggedPayload = { _tag: entry.event, payload } as unknown as Event.TaggedPayload<Events>
+            if (record) {
+              record.entries.push(entry)
+              record.taggedPayloads.push(taggedPayload)
+            } else {
+              byPrimaryKey.set(entry.primaryKey, {
+                entries: [entry],
+                taggedPayloads: [taggedPayload]
+              })
+            }
+          }
+
+          for (const [primaryKey, { entries, taggedPayloads }] of byPrimaryKey) {
+            yield* Effect.orDie(
+              effect({
+                primaryKey,
+                entries,
+                events: taggedPayloads,
+                write(tag, payload) {
+                  return Effect.orDie(writePayload(entries[0].createdAtMillis, tag, payload))
+                }
+              }).pipe(
+                Effect.updateServices((input) => ServiceMap.merge(services, input))
+              )
+            ) as any
+          }
+        })
+      })
     })
   )
 

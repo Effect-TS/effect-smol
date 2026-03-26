@@ -926,7 +926,7 @@ its own.
 - [x] Task 3: Add store mapping services and implementations
 - [x] Task 4: Build store-aware ingest and shared replay helpers
 - [x] Task 5: Add server-authored `write(..., storeId)` support
-- [ ] Task 6: Add read-time compaction over store-scoped outbound feeds
+- [x] Task 6: Add read-time compaction over store-scoped outbound feeds
 - [ ] Task 7: Expose websocket / HTTP handlers and complete integration coverage
 
 ### Task 1 implementation notes
@@ -1235,6 +1235,40 @@ Validation for this task:
 - `pnpm codegen` if exports change
 
 ### Task 6: Add read-time compaction over store-scoped outbound feeds
+
+### Task 6 implementation notes
+
+- `EventLogServerUnencrypted.requestChanges(...)` now performs read-time
+  projection of the store-scoped historical backlog before applying
+  `startSequence` filtering:
+  - compactors are applied to backlog entries read from
+    `Storage.entries(storeId, 0)`
+  - representative `remoteSequence` values are assigned from the consumed raw
+    sequence range to remain strictly increasing and cursor-safe
+  - only entries with `entry.createdAtMillis <= now - olderThan` are eligible;
+    newer entries remain raw
+  - live entries are streamed from `Storage.changes(storeId, backlogMaxSequence)`
+    without compaction in this pass, preserving the historical-only compaction
+    behavior requested for Task 6
+- Extended server runtime compactor registration to carry
+  `olderThan: Duration.Input` and normalized that value to milliseconds at
+  registration time.
+- Added server-local `groupCompaction(group, { olderThan }, effect)` mirroring
+  `EventLog.groupCompaction(...)` decode/group/write semantics while targeting
+  `EventLogServerUnencrypted.registerCompaction(...)`.
+- Added focused read-time compaction tests in
+  `packages/effect/test/unstable/eventlog/EventLogServerUnencrypted.test.ts`
+  covering:
+  1. only entries older than the cutoff are compacted,
+  2. emitted representative sequences remain monotonic and cursor-safe, and
+  3. two public keys mapped to one `StoreId` observe compatible compacted
+     cursors.
+
+Discovery / issue note:
+
+- The `Duration` module in this repository exports `Duration.Input` (not
+  `Duration.DurationInput`) for public duration-accepting APIs. Task 6 now uses
+  `Duration.Input` consistently in server compaction signatures.
 
 Scope:
 
