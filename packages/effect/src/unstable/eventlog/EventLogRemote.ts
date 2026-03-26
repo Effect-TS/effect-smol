@@ -253,7 +253,7 @@ export const decodeRequestUnencrypted = Schema.decodeUnknownEffect(ProtocolReque
  * @since 4.0.0
  * @category protocol
  */
-export const encodeRequestUnsencrypted = Schema.encodeUnknownEffect(ProtocolRequestUnencryptedMsgpack)
+export const encodeRequestUnencrypted = Schema.encodeUnknownEffect(ProtocolRequestUnencryptedMsgpack)
 
 /**
  * @since 4.0.0
@@ -520,13 +520,13 @@ export const fromSocketUnencrypted = Effect.fnUntraced(function*(options?: {
 
   const writeRequest = (request: typeof ProtocolRequestUnencrypted.Type) =>
     Effect.gen(function*() {
-      const data = yield* encodeRequest(request)
+      const data = yield* encodeRequestUnencrypted(request)
       if (request._tag !== "WriteEntries" || data.byteLength <= constChunkSize) {
         return yield* writeRaw(data)
       }
       const id = request.id
       for (const part of ChunkedMessage.split(id, data)) {
-        yield* writeRaw(yield* encodeRequest(part))
+        yield* writeRaw(yield* encodeRequestUnencrypted(part))
       }
     })
 
