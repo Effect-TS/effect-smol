@@ -924,7 +924,7 @@ its own.
 - [x] Task 1: Finish unencrypted protocol plumbing in `EventLogRemote`
 - [x] Task 2: Add store-scoped core types and transport storage
 - [x] Task 3: Add store mapping services and implementations
-- [ ] Task 4: Build store-aware ingest and shared replay helpers (kickoff slice in progress)
+- [x] Task 4: Build store-aware ingest and shared replay helpers
 - [ ] Task 5: Add server-authored `write(..., storeId)` support
 - [ ] Task 6: Add read-time compaction over store-scoped outbound feeds
 - [ ] Task 7: Expose websocket / HTTP handlers and complete integration coverage
@@ -1083,7 +1083,7 @@ Validation for this task:
 
 ### Task 4: Build store-aware ingest and shared replay helpers
 
-### Task 4 kickoff implementation notes
+### Task 4 implementation notes
 
 - Added the `EventLogServerUnencrypted` runtime service skeleton with
   `ingest(...)`, `requestChanges(...)`, `registerCompaction(...)`, and
@@ -1107,16 +1107,23 @@ Validation for this task:
   - two distinct stores replay independently even when each starts at sequence
     `1`
 
-Discovery / issue note:
-
-- The reconciliation path for persisted-but-unprocessed entries is still
-  pending and remains part of the remaining Task 4 work beyond this kickoff
-  slice.
+- Completed per-store reconciliation for persisted-but-unprocessed transport
+  entries by comparing deterministic store `RemoteId` journal sequence state
+  (`EventJournal.nextRemoteSequence`) against persisted transport history and
+  replaying `Storage.entries(storeId, startSequence)` gaps before serving reads
+  or accepting new writes for that store.
+- Added an in-memory reconciliation cache (`reconciledStores`) so each runtime
+  instance only reconciles a store once unless an ingest replay failure marks the
+  store dirty again.
+- Added focused reconciliation coverage proving backlog recovery replays
+  committed entries after restart/failure and that subsequent reads do not
+  duplicate handler execution or Reactivity invalidation work.
+- Discovered and fixed an `EventJournal.makeMemory` idempotency issue where
+  `writeFromRemote(...)` committed remote entries into the ordered journal but
+  did not populate `byId`, allowing duplicate reprocessing across replays.
 
 Follow-up tasks:
 
-- finish Task 4 reconciliation for persisted-but-unprocessed entries so runtime
-  restart cannot skip handler / Reactivity replay for committed backlog
 - wire `registerCompaction(...)` into the store-scoped read path as part of
   Task 6 so compactors influence outbound feeds rather than being registration
   only
