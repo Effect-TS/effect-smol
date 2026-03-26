@@ -473,6 +473,70 @@ export class EventLog extends ServiceMap.Service<EventLog, {
   readonly destroy: Effect.Effect<void, EventJournalError>
 }>()("effect/eventlog/EventLog") {}
 
+/**
+ * @since 4.0.0
+ * @category handlers
+ */
+export const makeReplayFromRemoteEffect = (options: {
+  readonly services: ServiceMap.ServiceMap<never>
+  readonly identity: Identity["Service"]
+  readonly reactivity: Reactivity["Service"]
+  readonly reactivityKeys: Record<string, ReadonlyArray<string>>
+  readonly logAnnotations: {
+    readonly service: string
+    readonly effect: string
+  }
+}) =>
+  Effect.fnUntraced(
+    function*({ conflicts, entry }): Effect.fn.Return<void, Schema.SchemaError> {
+      const handler = options.services.mapUnsafe.get(Event.serviceKey(entry.event)) as Handlers.Item<any> | undefined
+      if (!handler) {
+        return yield* Effect.logDebug(`Event handler not found for: "${entry.event}"`)
+      }
+
+      const decodePayload = Schema.decodeUnknownEffect(handler.event.payloadMsgPack)
+      const decodedConflicts: Array<{ entry: Entry; payload: unknown }> = new Array(conflicts.length)
+      for (let i = 0; i < conflicts.length; i++) {
+        decodedConflicts[i] = {
+          entry: conflicts[i],
+          payload: yield* decodePayload(conflicts[i].payload).pipe(
+            Effect.updateServices((input) => ServiceMap.merge(handler.services, input))
+          ) as any
+        }
+      }
+
+      yield* decodePayload(entry.payload).pipe(
+        Effect.flatMap((payload) =>
+          handler.handler({
+            payload,
+            entry,
+            conflicts: decodedConflicts
+          })
+        ),
+        Effect.provideService(Identity, options.identity),
+        Effect.updateServices((input) => ServiceMap.merge(handler.services, input)),
+        Effect.asVoid
+      ) as any
+
+      const keys = options.reactivityKeys[entry.event]
+      if (keys) {
+        for (const key of keys) {
+          yield* Effect.sync(() =>
+            options.reactivity.invalidateUnsafe({
+              [key]: [entry.primaryKey]
+            })
+          )
+        }
+      }
+    },
+    Effect.catchCause(Effect.logError),
+    (effect, { entry }) =>
+      Effect.annotateLogs(effect, {
+        ...options.logAnnotations,
+        entryId: entry.idString
+      })
+  )
+
 const make = Effect.gen(function*() {
   const identity = yield* Identity
   const journal = yield* EventJournal
@@ -490,6 +554,16 @@ const make = Effect.gen(function*() {
 
   const reactivity = yield* Reactivity
   const reactivityKeys: Record<string, ReadonlyArray<string>> = {}
+  const replayFromRemote = makeReplayFromRemoteEffect({
+    services,
+    identity,
+    reactivity,
+    reactivityKeys,
+    logAnnotations: {
+      service: "EventLog",
+      effect: "writeFromRemote"
+    }
+  })
 
   const runRemote = Effect.fnUntraced(
     function*(remote: EventLogRemote["Service"]) {
@@ -550,52 +624,7 @@ const make = Effect.gen(function*() {
                 return brackets
               })
               : undefined,
-            effect: Effect.fnUntraced(
-              function*({ conflicts, entry }): Effect.fn.Return<void, Schema.SchemaError> {
-                const handler = services.mapUnsafe.get(Event.serviceKey(entry.event)) as Handlers.Item<any> | undefined
-                if (!handler) {
-                  return yield* Effect.logDebug(`Event handler not found for: "${entry.event}"`)
-                }
-                const decodePayload = Schema.decodeUnknownEffect(handler.event.payloadMsgPack)
-                const decodedConflicts: Array<{ entry: Entry; payload: unknown }> = new Array(conflicts.length)
-                for (let i = 0; i < conflicts.length; i++) {
-                  decodedConflicts[i] = {
-                    entry: conflicts[i],
-                    payload: yield* decodePayload(conflicts[i].payload).pipe(
-                      Effect.updateServices((input) => ServiceMap.merge(handler.services, input))
-                    ) as any
-                  }
-                }
-                yield* decodePayload(entry.payload).pipe(
-                  Effect.flatMap((payload) =>
-                    handler.handler({
-                      payload,
-                      entry,
-                      conflicts: decodedConflicts
-                    })
-                  ),
-                  Effect.provideService(Identity, identity),
-                  Effect.updateServices((input) => ServiceMap.merge(handler.services, input)),
-                  Effect.asVoid
-                ) as any
-                if (reactivityKeys[entry.event]) {
-                  for (const key of reactivityKeys[entry.event]) {
-                    yield* Effect.sync(() =>
-                      reactivity.invalidateUnsafe({
-                        [key]: [entry.primaryKey]
-                      })
-                    )
-                  }
-                }
-              },
-              Effect.catchCause(Effect.logError),
-              (effect, { entry }) =>
-                Effect.annotateLogs(effect, {
-                  service: "EventLog",
-                  effect: "writeFromRemote",
-                  entryId: entry.idString
-                })
-            )
+            effect: replayFromRemote
           }).pipe(journalSemaphore.withPermits(1))
         ),
         Effect.catchCause(Effect.logError),
