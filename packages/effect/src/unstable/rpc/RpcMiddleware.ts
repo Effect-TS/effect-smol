@@ -31,7 +31,7 @@ export interface RpcMiddleware<Provides, E, Requires> {
   (
     effect: Effect.Effect<SuccessValue, E | unhandled, Provides>,
     options: {
-      readonly clientId: number
+      readonly client: Rpc.ServerClient
       readonly requestId: RequestId
       readonly rpc: Rpc.AnyWithProps
       readonly payload: unknown
@@ -77,7 +77,7 @@ export interface Any {
   (
     effect: Effect.Effect<SuccessValue, any, any>,
     options: {
-      readonly clientId: number
+      readonly client: Rpc.ServerClient
       readonly requestId: RequestId
       readonly rpc: Rpc.AnyWithProps
       readonly payload: unknown

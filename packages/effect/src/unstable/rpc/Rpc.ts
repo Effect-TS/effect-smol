@@ -13,6 +13,7 @@ import type * as Queue from "../../Queue.ts"
 import * as Schema from "../../Schema.ts"
 import type { Stream } from "../../Stream.ts"
 import type * as Struct from "../../Struct.ts"
+import type { NoInfer } from "../../Types.ts"
 import type { Headers } from "../http/Headers.ts"
 import type { RequestId } from "./RpcMessage.ts"
 import type * as RpcMiddleware from "./RpcMiddleware.ts"
@@ -134,7 +135,7 @@ export interface Rpc<
    */
   annotate<I, S>(
     tag: Context.Key<I, S>,
-    value: S
+    value: NoInfer<S>
   ): Rpc<Tag, Payload, Success, Error, Middleware, Requires>
 
   /**
@@ -143,6 +144,26 @@ export interface Rpc<
   annotateMerge<I>(
     annotations: Context.Context<I>
   ): Rpc<Tag, Payload, Success, Error, Middleware, Requires>
+}
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export class ServerClient {
+  readonly id: number
+  annotations: Context.Context<never>
+  constructor(id: number) {
+    this.id = id
+    this.annotations = Context.empty()
+  }
+  annotate<I, S>(
+    tag: Context.Key<I, S>,
+    value: NoInfer<S>
+  ): ServerClient {
+    this.annotations = Context.add(this.annotations, tag, value)
+    return this
+  }
 }
 
 /**
@@ -155,7 +176,7 @@ export interface Handler<Tag extends string> {
   readonly _: unique symbol
   readonly tag: Tag
   readonly handler: (request: any, options: {
-    readonly clientId: number
+    readonly client: ServerClient
     readonly requestId: RequestId
     readonly headers: Headers
     readonly rpc: Any
@@ -475,7 +496,7 @@ export type ToHandler<R extends Any> = R extends Rpc<
 export type ToHandlerFn<Current extends Any, R = any> = (
   payload: Payload<Current>,
   options: {
-    readonly clientId: number
+    readonly client: ServerClient
     readonly requestId: RequestId
     readonly headers: Headers
     readonly rpc: Current

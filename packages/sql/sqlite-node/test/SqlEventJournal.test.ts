@@ -2,18 +2,18 @@ import { SqliteClient } from "@effect/sql-sqlite-node"
 import { assert, describe, it } from "@effect/vitest"
 import { Effect } from "effect"
 import * as EventJournal from "effect/unstable/eventlog/EventJournal"
-import * as SqlEventLogJournal from "effect/unstable/eventlog/SqlEventLogJournal"
+import * as SqlEventJournal from "effect/unstable/eventlog/SqlEventJournal"
 import { Reactivity } from "effect/unstable/reactivity"
 import * as SqlClient from "effect/unstable/sql/SqlClient"
 
 const makeJournal = Effect.gen(function*() {
   const sql = yield* SqliteClient.make({ filename: ":memory:" })
-  return yield* SqlEventLogJournal.make().pipe(
+  return yield* SqlEventJournal.make().pipe(
     Effect.provideService(SqlClient.SqlClient, sql)
   )
 }).pipe(Effect.provide(Reactivity.layer))
 
-describe("SqlEventLogJournal", () => {
+describe("SqlEventJournal", () => {
   it.effect("writes and reads entries", () =>
     Effect.gen(function*() {
       const journal = yield* makeJournal

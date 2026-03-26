@@ -8,10 +8,13 @@ import * as Data from "../../Data.ts"
 import * as DateTime from "../../DateTime.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
+import * as Order from "../../Order.ts"
 import * as PubSub from "../../PubSub.ts"
 import * as Schema from "../../Schema.ts"
 import type { Scope } from "../../Scope.ts"
+import * as Semaphore from "../../Semaphore.ts"
 import * as Msgpack from "../encoding/Msgpack.ts"
+import type { StoreId } from "./EventLogMessage.ts"
 
 /**
  * @since 4.0.0
@@ -54,7 +57,9 @@ export class EventJournal extends Context.Service<EventJournal, {
         readonly conflicts: ReadonlyArray<Entry>
       }) => Effect.Effect<void, EventJournalError>
     }
-  ) => Effect.Effect<void, EventJournalError>
+  ) => Effect.Effect<{
+    readonly duplicateEntries: ReadonlyArray<Entry>
+  }, EventJournalError>
 
   /**
    * Return the uncommitted entries for a remote source.
@@ -78,6 +83,11 @@ export class EventJournal extends Context.Service<EventJournal, {
    * Remove all data
    */
   readonly destroy: Effect.Effect<void, EventJournalError>
+
+  /**
+   * Run an effect with a lock on the journal.
+   */
+  readonly withLock: (storeId: StoreId) => <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
 }>()("effect/eventlog/EventJournal") {}
 
 const TypeId = "effect/eventlog/EventJournal/EventJournalError" as const
@@ -142,13 +152,28 @@ export type EntryIdTypeId = "effect/eventlog/EventJournal/EntryId"
  * @since 4.0.0
  * @category entry
  */
-export type EntryId = Uint8Array & Brand<EntryIdTypeId>
+export type EntryId = Uint8Array<ArrayBuffer> & Brand<EntryIdTypeId>
 
 /**
  * @since 4.0.0
  * @category entry
  */
-export const EntryId = Schema.Uint8Array.pipe(Schema.brand(EntryIdTypeId))
+export const EntryId = (Schema.Uint8Array as Schema.instanceOf<Uint8Array<ArrayBuffer>>).pipe(
+  Schema.brand(EntryIdTypeId)
+)
+
+/**
+ * @since 4.0.0
+ * @category entry
+ */
+export const EntryIdOrder = Order.make<EntryId>((a, b) => {
+  for (let i = 0; i < 16; i++) {
+    if (a[i] !== b[i]) {
+      return (a[i] - b[i]) < 0 ? -1 : 1
+    }
+  }
+  return 0
+})
 
 /**
  * @since 4.0.0
@@ -195,6 +220,11 @@ export class Entry extends Schema.Class<Entry>("effect/eventlog/EventJournal/Ent
   /**
    * @since 4.0.0
    */
+  static Order = Order.make<Entry>((a, b) => EntryIdOrder(a.id, b.id))
+
+  /**
+   * @since 4.0.0
+   */
   get idString(): string {
     return Uuid.stringify(this.id)
   }
@@ -232,6 +262,15 @@ export const makeMemory: Effect.Effect<EventJournal["Service"]> = Effect.gen(fun
   const byId = new Map<string, Entry>()
   const remotes = new Map<string, { sequence: number; missing: Array<Entry> }>()
   const pubsub = yield* PubSub.unbounded<Entry>()
+  const storeSemaphores = new Map<StoreId, Semaphore.Semaphore>()
+  const withLock = (storeId: StoreId) => {
+    let semaphore = storeSemaphores.get(storeId)
+    if (!semaphore) {
+      semaphore = Semaphore.makeUnsafe(1)
+      storeSemaphores.set(storeId, semaphore)
+    }
+    return semaphore.withPermit
+  }
 
   const ensureRemote = (remoteId: RemoteId) => {
     const remoteIdString = Uuid.stringify(remoteId)
@@ -271,8 +310,10 @@ export const makeMemory: Effect.Effect<EventJournal["Service"]> = Effect.gen(fun
       const remote = ensureRemote(options.remoteId)
       const uncommittedRemotes: Array<RemoteEntry> = []
       const uncommitted: Array<Entry> = []
+      const duplicateEntries: Array<Entry> = []
       for (const remoteEntry of options.entries) {
         if (byId.has(remoteEntry.entry.idString)) {
+          duplicateEntries.push(remoteEntry.entry)
           if (remoteEntry.remoteSequence > remote.sequence) {
             remote.sequence = remoteEntry.remoteSequence
           }
@@ -307,11 +348,15 @@ export const makeMemory: Effect.Effect<EventJournal["Service"]> = Effect.gen(fun
         }
         for (const remoteEntry of remoteEntries) {
           journal.push(remoteEntry.entry)
+          byId.set(remoteEntry.entry.idString, remoteEntry.entry)
           if (remoteEntry.remoteSequence > remote.sequence) {
             remote.sequence = remoteEntry.remoteSequence
           }
         }
         journal.sort((a, b) => a.createdAtMillis - b.createdAtMillis)
+      }
+      return {
+        duplicateEntries
       }
     }),
     withRemoteUncommited: (remoteId, f) =>
@@ -338,7 +383,8 @@ export const makeMemory: Effect.Effect<EventJournal["Service"]> = Effect.gen(fun
       journal.length = 0
       byId.clear()
       remotes.clear()
-    })
+    }),
+    withLock
   })
 })
 
@@ -413,6 +459,7 @@ export const makeIndexedDb = (options?: {
       writeFromRemote: Effect.fnUntraced(function*(options) {
         const uncommitted: Array<Entry> = []
         const uncommittedRemotes: Array<RemoteEntry> = []
+        const duplicateEntries: Array<Entry> = []
 
         yield* Effect.callback<void, EventJournalError>((resume) => {
           const tx = db.transaction(["entries", "remotes"], "readwrite")
@@ -426,6 +473,7 @@ export const makeIndexedDb = (options?: {
             const entryIdKey = entry.id as IDBValidKey
             entries.get(entryIdKey).onsuccess = (event) => {
               if (event.target && "result" in event.target && event.target.result) {
+                duplicateEntries.push(entry)
                 remotes.put({
                   remoteId: options.remoteId,
                   entryId: entry.id,
@@ -497,6 +545,9 @@ export const makeIndexedDb = (options?: {
               resume(Effect.fail(new EventJournalError({ method: "writeFromRemote", cause: tx.error })))
             return Effect.sync(() => tx.abort())
           })
+        }
+        return {
+          duplicateEntries
         }
       }),
       withRemoteUncommited: (remoteId, f) =>
@@ -570,9 +621,34 @@ export const makeIndexedDb = (options?: {
       changes: PubSub.subscribe(pubsub),
       destroy: Effect.sync(() => {
         indexedDB.deleteDatabase(database)
-      })
+      }),
+      withLock: yield* makeBrowserWithLock(database)
     })
   })
+
+const makeBrowserWithLock = Effect.fnUntraced(function*(key: string) {
+  if (typeof navigator !== "undefined" && "locks" in navigator) {
+    return (storeId: StoreId) => <A, E, R>(self: Effect.Effect<A, E, R>) =>
+      Effect.callback<A, E, R>((resume, signal) => {
+        navigator.locks.request(`${key}/${storeId}`, { signal }, () =>
+          new Promise<void>((resolve) => {
+            resume(Effect.onExit(self, () => {
+              resolve()
+              return Effect.void
+            }))
+          })).catch((defect) => resume(Effect.die(defect)))
+      })
+  }
+  const semaphores = new Map<StoreId, Semaphore.Semaphore>()
+  return (storeId: StoreId) => {
+    let semaphore = semaphores.get(storeId)
+    if (!semaphore) {
+      semaphore = Semaphore.makeUnsafe(1)
+      semaphores.set(storeId, semaphore)
+    }
+    return semaphore.withPermit
+  }
+})
 
 const decodeEntryIdb = Schema.decodeSync(Entry)
 const encodeEntryIdb = Schema.encodeSync(Entry)

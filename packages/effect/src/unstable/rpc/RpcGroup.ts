@@ -119,7 +119,7 @@ export interface RpcGroup<in out R extends Rpc.Any> extends Pipeable {
     (
       payload: Rpc.Payload<Extract<R, { readonly _tag: Tag }>>,
       options: {
-        readonly clientId: number
+        readonly client: Rpc.ServerClient
         readonly requestId: RequestId
         readonly headers: Headers
       }

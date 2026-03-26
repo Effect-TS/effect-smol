@@ -30,7 +30,6 @@ export interface AtomHttpApiClient<Self, Id extends string, Groups extends HttpA
 {
   new(_: never): Context.ServiceClass.Shape<Id, HttpApiClient.Client<Groups, never, never>>
 
-  readonly layer: Layer.Layer<Self>
   readonly runtime: Atom.AtomRuntime<Self>
 
   readonly mutation: <
@@ -147,10 +146,15 @@ export const Service = <Self>() =>
   id: Id,
   options: {
     readonly api: HttpApi.HttpApi<ApiId, Groups>
-    readonly httpClient: Layer.Layer<
-      | HttpApiGroup.ClientServices<Groups>
-      | HttpClient.HttpClient
-    >
+    readonly httpClient:
+      | Layer.Layer<
+        | HttpApiGroup.ClientServices<Groups>
+        | HttpClient.HttpClient
+      >
+      | ((get: Atom.AtomContext) => Layer.Layer<
+        | HttpApiGroup.ClientServices<Groups>
+        | HttpClient.HttpClient
+      >)
     readonly transformClient?: ((client: HttpClient.HttpClient) => HttpClient.HttpClient) | undefined
     readonly transformResponse?:
       | ((effect: Effect.Effect<unknown, unknown, unknown>) => Effect.Effect<unknown, unknown, unknown>)
@@ -164,12 +168,23 @@ export const Service = <Self>() =>
     HttpApiClient.Client<Groups, never, never>
   >()(id) as any
 
-  self.layer = Layer.effect(
+  const layer = Layer.effect(
     self,
     HttpApiClient.make(options.api, options)
-  ).pipe(Layer.provide(options.httpClient)) as Layer.Layer<Self>
+  )
   const runtimeFactory = options.runtime ?? Atom.runtime
-  self.runtime = runtimeFactory(self.layer)
+  self.runtime = runtimeFactory(
+    typeof options.httpClient === "function" ?
+      (get) =>
+        Layer.provide(
+          layer,
+          (options.httpClient as (get: Atom.AtomContext) => Layer.Layer<
+            | HttpApiGroup.ClientServices<Groups>
+            | HttpClient.HttpClient
+          >)(get)
+        ) as Layer.Layer<Self> :
+      Layer.provide(layer, options.httpClient) as Layer.Layer<Self>
+  )
 
   const catchErrors = Effect.catch((e: unknown) =>
     Schema.isSchemaError(e) || HttpClientError.isHttpClientError(e) ? Effect.die(e) : Effect.fail(e)
