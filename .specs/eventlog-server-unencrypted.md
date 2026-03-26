@@ -922,7 +922,7 @@ its own.
 ### Implementation status snapshot
 
 - [x] Task 1: Finish unencrypted protocol plumbing in `EventLogRemote`
-- [ ] Task 2: Add store-scoped core types and transport storage
+- [x] Task 2: Add store-scoped core types and transport storage
 - [ ] Task 3: Add store mapping services and implementations
 - [ ] Task 4: Build store-aware ingest and shared replay helpers
 - [ ] Task 5: Add server-authored `write(..., storeId)` support
@@ -975,6 +975,22 @@ Validation for this task:
 - `pnpm codegen` if exports change
 
 ### Task 2: Add store-scoped core types and transport storage
+
+### Task 2 implementation notes
+
+- Implemented `StoreId` branding and `EventLogServerStoreError` in
+  `EventLogServerUnencrypted.ts`, alongside `EventLogServerAuth` /
+  `EventLogServerAuthError` signatures that now carry resolved `storeId`.
+- Refactored unencrypted `Storage` to use store-scoped keys for
+  `write(entries)`, `entries(startSequence)`, and `changes(startSequence)`.
+- `makeStorageMemory` now keeps sequence numbers per store (starting at `1`),
+  deduplicates by `entry.id` within the target store, and returns one ack
+  sequence number for every submitted input entry.
+- Verified cursor compatibility with `remoteSequence > startSequence` behavior
+  for both backlog reads and live change queues.
+- Added focused tests in
+  `packages/effect/test/unstable/eventlog/EventLogServerUnencrypted.test.ts`
+  covering shared store sequence space and store-scoped duplicate semantics.
 
 Scope:
 
