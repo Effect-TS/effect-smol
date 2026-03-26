@@ -1414,6 +1414,62 @@ describe("EventLogServerUnencrypted", () => {
       }).pipe(Effect.provide(Persistence.layerBackingMemory))
     ))
 
+  it.effect("processedSequence starts at 0 for each store", () =>
+    Effect.gen(function*() {
+      const storage = yield* EventLogServerUnencrypted.Storage
+      const storeA = "store-processed-a" as EventLogServerUnencrypted.StoreId
+      const storeB = "store-processed-b" as EventLogServerUnencrypted.StoreId
+
+      assert.strictEqual(yield* storage.processedSequence(storeA), 0)
+      assert.strictEqual(yield* storage.processedSequence(storeB), 0)
+    }).pipe(Effect.provide(EventLogServerUnencrypted.layerStorageMemory)))
+
+  it.effect("markProcessed advances monotonically and is idempotent", () =>
+    Effect.gen(function*() {
+      const storage = yield* EventLogServerUnencrypted.Storage
+      const storeId = "store-processed-monotonic" as EventLogServerUnencrypted.StoreId
+
+      yield* storage.markProcessed(storeId, 2)
+      assert.strictEqual(yield* storage.processedSequence(storeId), 2)
+
+      yield* storage.markProcessed(storeId, 2)
+      assert.strictEqual(yield* storage.processedSequence(storeId), 2)
+
+      yield* storage.markProcessed(storeId, 1)
+      assert.strictEqual(yield* storage.processedSequence(storeId), 2)
+
+      yield* storage.markProcessed(storeId, 5)
+      assert.strictEqual(yield* storage.processedSequence(storeId), 5)
+    }).pipe(Effect.provide(EventLogServerUnencrypted.layerStorageMemory)))
+
+  it.effect("processed checkpoints coexist with entries and changes APIs", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const storage = yield* EventLogServerUnencrypted.Storage
+        const storeId = "store-processed-history" as EventLogServerUnencrypted.StoreId
+
+        yield* storage.write(storeId, [
+          makeEntry("user-1"),
+          makeEntry("user-2")
+        ])
+        yield* storage.markProcessed(storeId, 2)
+
+        const entries = yield* storage.entries(storeId, 0)
+        assert.deepStrictEqual(entries.map((entry) => entry.remoteSequence), [1, 2])
+        assert.strictEqual(yield* storage.processedSequence(storeId), 2)
+
+        const changes = yield* storage.changes(storeId, 0)
+        const backlogFirst = yield* Queue.take(changes)
+        const backlogSecond = yield* Queue.take(changes)
+        assert.deepStrictEqual([backlogFirst.remoteSequence, backlogSecond.remoteSequence], [1, 2])
+
+        yield* storage.write(storeId, [makeEntry("user-3")])
+
+        const live = yield* Queue.take(changes)
+        assert.strictEqual(live.remoteSequence, 3)
+      }).pipe(Effect.provide(EventLogServerUnencrypted.layerStorageMemory))
+    ))
+
   it.effect("uses one store-scoped sequence space for shared-store history", () =>
     Effect.scoped(
       Effect.gen(function*() {

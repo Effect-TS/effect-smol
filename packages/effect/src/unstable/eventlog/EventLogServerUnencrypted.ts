@@ -350,6 +350,11 @@ export class Storage extends ServiceMap.Service<Storage, {
     storeId: StoreId,
     startSequence: number
   ) => Effect.Effect<Queue.Dequeue<RemoteEntry, Cause.Done>, never, Scope.Scope>
+  readonly processedSequence: (storeId: StoreId) => Effect.Effect<number>
+  readonly markProcessed: (
+    storeId: StoreId,
+    remoteSequence: number
+  ) => Effect.Effect<void>
 }>()("effect/eventlog/EventLogServerUnencrypted/Storage") {}
 
 /**
@@ -596,6 +601,7 @@ const compactBacklog = Effect.fnUntraced(function*(options: {
 export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.Scope> = Effect.gen(function*() {
   const knownIds = new Map<string, Map<string, number>>()
   const journals = new Map<string, Array<RemoteEntry>>()
+  const processedSequences = new Map<string, number>()
   const remoteId = makeRemoteIdUnsafe()
 
   const ensureKnownIds = (storeId: StoreId): Map<string, number> => {
@@ -689,7 +695,16 @@ export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.S
 
       yield* Effect.addFinalizer(() => Queue.shutdown(queue))
       return Queue.asDequeue(queue)
-    })
+    }),
+    processedSequence: (storeId) => Effect.sync(() => processedSequences.get(toStoreKey(storeId)) ?? 0),
+    markProcessed: (storeId, remoteSequence) =>
+      Effect.sync(() => {
+        const storeKey = toStoreKey(storeId)
+        const current = processedSequences.get(storeKey) ?? 0
+        if (remoteSequence > current) {
+          processedSequences.set(storeKey, remoteSequence)
+        }
+      })
   })
 })
 
