@@ -6,7 +6,6 @@ import * as EventLog from "effect/unstable/eventlog/EventLog"
 import * as EventLogRemote from "effect/unstable/eventlog/EventLogRemote"
 import * as EventLogServerUnencrypted from "effect/unstable/eventlog/EventLogServerUnencrypted"
 import * as HttpServerRequest from "effect/unstable/http/HttpServerRequest"
-import { Persistence } from "effect/unstable/persistence"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import * as Socket from "effect/unstable/socket/Socket"
 
@@ -1169,13 +1168,11 @@ describe("EventLogServerUnencrypted", () => {
       const dynamicMappingLayer = EventLogServerUnencrypted.layerStoreMappingResolver({
         resolve: Effect.fnUntraced(function*(publicKey: string) {
           if (publicKey !== "dynamic-public-key") {
-            return yield* Effect.fail(
-              new EventLogServerUnencrypted.EventLogServerStoreError({
-                reason: "NotFound",
-                publicKey,
-                message: `No store mapping found for public key: ${publicKey}`
-              })
-            )
+            return yield* new EventLogServerUnencrypted.EventLogServerStoreError({
+              reason: "NotFound",
+              publicKey,
+              message: `No store mapping found for public key: ${publicKey}`
+            })
           }
 
           return yield* Ref.get(currentStore)
@@ -1229,7 +1226,7 @@ describe("EventLogServerUnencrypted", () => {
             handled,
             storeMappingLayer: EventLogServerUnencrypted.layerStoreMappingResolver({
               resolve: Effect.fnUntraced(function*() {
-                return yield* Effect.fail(resolverError)
+                return yield* resolverError
               }),
               hasStore: Effect.fnUntraced(function*() {
                 return false
@@ -1330,99 +1327,6 @@ describe("EventLogServerUnencrypted", () => {
       assert.strictEqual(error.reason, "NotFound")
       assert.strictEqual(error.publicKey, "missing-public-key")
     }).pipe(Effect.provide(EventLogServerUnencrypted.layerStoreMappingMemory())))
-
-  it.effect("store mapping persisted survives service recreation", () =>
-    Effect.scoped(
-      Effect.gen(function*() {
-        const persistedStoreId = "eventlog-server-unencrypted-store-mapping-test"
-        const backing = yield* Persistence.BackingPersistence
-        const storage = yield* backing.make(persistedStoreId)
-        const mappingKey = (publicKey: string) => `@mapping/${publicKey}`
-        const storeKey = (storeId: EventLogServerUnencrypted.StoreId) => `@store/${storeId}`
-
-        const firstStore = "shared-store" as EventLogServerUnencrypted.StoreId
-        const secondStore = "reassigned-store" as EventLogServerUnencrypted.StoreId
-
-        yield* storage.set(mappingKey("persistent-public-key"), { storeId: firstStore }, undefined)
-        yield* storage.set(storeKey(firstStore), { provisioned: true }, undefined)
-
-        const mappingV1 = yield* EventLogServerUnencrypted.makeStoreMappingPersisted({
-          storeId: persistedStoreId
-        })
-
-        const fromFirstService = yield* mappingV1.resolve("persistent-public-key")
-        assert.strictEqual(fromFirstService, firstStore)
-
-        const mappingV2 = yield* EventLogServerUnencrypted.makeStoreMappingPersisted({
-          storeId: persistedStoreId
-        })
-
-        const fromSecondService = yield* mappingV2.resolve("persistent-public-key")
-        assert.strictEqual(fromSecondService, firstStore)
-
-        yield* storage.set(mappingKey("persistent-public-key"), { storeId: secondStore }, undefined)
-        yield* storage.set(storeKey(secondStore), { provisioned: true }, undefined)
-
-        const mappingV3 = yield* EventLogServerUnencrypted.makeStoreMappingPersisted({
-          storeId: persistedStoreId
-        })
-
-        const fromThirdService = yield* mappingV3.resolve("persistent-public-key")
-        assert.strictEqual(fromThirdService, secondStore)
-      }).pipe(Effect.provide(Persistence.layerBackingMemory))
-    ))
-
-  it.effect("store mapping persisted supports metadata-like public keys and legacy mapping records", () =>
-    Effect.scoped(
-      Effect.gen(function*() {
-        const persistedStoreId = "eventlog-server-unencrypted-store-mapping-compatibility-test"
-        const backing = yield* Persistence.BackingPersistence
-        const storage = yield* backing.make(persistedStoreId)
-        const legacyStore = "legacy-store" as EventLogServerUnencrypted.StoreId
-        const mappingKey = (publicKey: string) => `@mapping/${publicKey}`
-        const storeKey = (storeId: EventLogServerUnencrypted.StoreId) => `@store/${storeId}`
-
-        yield* storage.set("legacy-public-key", { storeId: legacyStore }, undefined)
-        yield* storage.set(storeKey(legacyStore), { provisioned: true }, undefined)
-
-        const mapping = yield* EventLogServerUnencrypted.makeStoreMappingPersisted({
-          storeId: persistedStoreId
-        })
-
-        const resolvedLegacy = yield* mapping.resolve("legacy-public-key")
-        assert.strictEqual(resolvedLegacy, legacyStore)
-        assert.strictEqual(yield* mapping.hasStore(legacyStore), true)
-
-        const metadataLikePublicKey = "@store/store-metadata-like"
-        const metadataStore = "store-metadata-like" as EventLogServerUnencrypted.StoreId
-        yield* storage.set(mappingKey(metadataLikePublicKey), { storeId: metadataStore }, undefined)
-        yield* storage.set(storeKey(metadataStore), { provisioned: true }, undefined)
-
-        const resolvedMetadataLike = yield* mapping.resolve(metadataLikePublicKey)
-        assert.strictEqual(resolvedMetadataLike, metadataStore)
-        assert.strictEqual(yield* mapping.hasStore(metadataStore), true)
-      }).pipe(Effect.provide(Persistence.layerBackingMemory))
-    ))
-
-  it.effect("store mapping persisted returns PersistenceFailure when stored payload is invalid", () =>
-    Effect.scoped(
-      Effect.gen(function*() {
-        const persistedStoreId = "eventlog-server-unencrypted-store-mapping-invalid-payload-test"
-        const backing = yield* Persistence.BackingPersistence
-        const storage = yield* backing.make(persistedStoreId)
-
-        yield* storage.set("corrupt-public-key", { storeId: 123 }, undefined)
-
-        const mapping = yield* EventLogServerUnencrypted.makeStoreMappingPersisted({
-          storeId: persistedStoreId
-        })
-
-        const error = yield* Effect.flip(mapping.resolve("corrupt-public-key"))
-        assert.instanceOf(error, EventLogServerUnencrypted.EventLogServerStoreError)
-        assert.strictEqual(error.reason, "PersistenceFailure")
-        assert.strictEqual(error.publicKey, "corrupt-public-key")
-      }).pipe(Effect.provide(Persistence.layerBackingMemory))
-    ))
 
   it.effect("processedSequence starts at 0 for each store", () =>
     Effect.gen(function*() {

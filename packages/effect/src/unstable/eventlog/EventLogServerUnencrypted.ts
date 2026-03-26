@@ -7,6 +7,7 @@ import * as Data from "../../Data.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as FiberMap from "../../FiberMap.ts"
+import { identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import * as PubSub from "../../PubSub.ts"
 import * as Queue from "../../Queue.ts"
@@ -19,7 +20,6 @@ import * as ServiceMap from "../../ServiceMap.ts"
 import type * as HttpServerError from "../http/HttpServerError.ts"
 import * as HttpServerRequest from "../http/HttpServerRequest.ts"
 import * as HttpServerResponse from "../http/HttpServerResponse.ts"
-import * as Persistence from "../persistence/Persistence.ts"
 import { Reactivity } from "../reactivity/Reactivity.ts"
 import * as ReactivityLayer from "../reactivity/Reactivity.ts"
 import type * as Socket from "../socket/Socket.ts"
@@ -121,21 +121,6 @@ export class StoreMapping extends ServiceMap.Service<StoreMapping, {
   readonly hasStore: (storeId: StoreId) => Effect.Effect<boolean, EventLogServerStoreError>
 }>()("effect/eventlog/EventLogServerUnencrypted/StoreMapping") {}
 
-class PersistedStoreMapping extends Schema.Class<PersistedStoreMapping>(
-  "effect/eventlog/EventLogServerUnencrypted/PersistedStoreMapping"
-)({
-  storeId: StoreId
-}) {}
-
-class PersistedStoreProvision extends Schema.Class<PersistedStoreProvision>(
-  "effect/eventlog/EventLogServerUnencrypted/PersistedStoreProvision"
-)({
-  provisioned: Schema.Literal(true)
-}) {}
-
-const decodePersistedStoreMapping = Schema.decodeUnknownEffect(PersistedStoreMapping)
-const decodePersistedStoreProvision = Schema.decodeUnknownEffect(PersistedStoreProvision)
-
 const toNotFoundError = (publicKey: string) =>
   new EventLogServerStoreError({
     reason: "NotFound",
@@ -148,19 +133,6 @@ const toStoreNotFoundError = (storeId: StoreId) =>
     reason: "NotFound",
     storeId,
     message: `No provisioned store found for store id: ${storeId}`
-  })
-
-const toPersistenceFailure = (options: {
-  readonly publicKey?: string | undefined
-  readonly storeId?: StoreId | undefined
-  readonly message: string
-}) =>
-(cause: unknown) =>
-  new EventLogServerStoreError({
-    reason: "PersistenceFailure",
-    publicKey: options.publicKey,
-    storeId: options.storeId,
-    message: cause instanceof Error ? `${options.message}: ${cause.message}` : options.message
   })
 
 /**
@@ -188,7 +160,7 @@ export const makeStoreMappingMemory = (options?: {
         if (storeId !== undefined) {
           return storeId
         }
-        return yield* Effect.fail(toNotFoundError(publicKey))
+        return yield* toNotFoundError(publicKey)
       }),
       hasStore: Effect.fnUntraced(function*(storeId: StoreId) {
         return knownStores.has(toStoreKey(storeId))
@@ -246,90 +218,6 @@ export const layerStoreMappingMemory = (options?: {
 
 /**
  * @since 4.0.0
- * @category store
- */
-export const makeStoreMappingPersisted = Effect.fnUntraced(function*(options: {
-  readonly storeId: string
-}) {
-  const backing = yield* Persistence.BackingPersistence
-  const storage = yield* backing.make(options.storeId)
-  const toPersistedMappingKey = (publicKey: string): string => `@mapping/${publicKey}`
-  const toStoreProvisionKey = (storeId: StoreId): string => `@store/${toStoreKey(storeId)}`
-
-  return StoreMapping.of({
-    resolve: Effect.fnUntraced(function*(publicKey: string) {
-      const encoded = yield* storage.get(toPersistedMappingKey(publicKey)).pipe(
-        Effect.mapError(
-          toPersistenceFailure({
-            publicKey,
-            message: `Failed to resolve store mapping for public key: ${publicKey}`
-          })
-        )
-      )
-      const legacyEncoded = encoded === undefined
-        ? yield* storage.get(publicKey).pipe(
-          Effect.mapError(
-            toPersistenceFailure({
-              publicKey,
-              message: `Failed to resolve legacy store mapping for public key: ${publicKey}`
-            })
-          )
-        )
-        : undefined
-      const encodedMapping = encoded ?? legacyEncoded
-      if (encodedMapping === undefined) {
-        return yield* Effect.fail(toNotFoundError(publicKey))
-      }
-
-      const decoded = yield* decodePersistedStoreMapping(encodedMapping).pipe(
-        Effect.mapError(
-          toPersistenceFailure({
-            publicKey,
-            message: `Failed to decode store mapping for public key: ${publicKey}`
-          })
-        )
-      )
-
-      return decoded.storeId
-    }),
-    hasStore: Effect.fnUntraced(function*(storeId: StoreId) {
-      const encoded = yield* storage.get(toStoreProvisionKey(storeId)).pipe(
-        Effect.mapError(
-          toPersistenceFailure({
-            storeId,
-            message: `Failed to resolve store provisioning for store id: ${storeId}`
-          })
-        )
-      )
-      if (encoded === undefined) {
-        return false
-      }
-
-      const decoded = yield* decodePersistedStoreProvision(encoded).pipe(
-        Effect.mapError(
-          toPersistenceFailure({
-            storeId,
-            message: `Failed to decode store provisioning for store id: ${storeId}`
-          })
-        )
-      )
-
-      return decoded.provisioned
-    })
-  })
-})
-
-/**
- * @since 4.0.0
- * @category store
- */
-export const layerStoreMappingPersisted = (options: {
-  readonly storeId: string
-}): Layer.Layer<StoreMapping, never, Persistence.BackingPersistence> =>
-  Layer.effect(StoreMapping)(makeStoreMappingPersisted(options))
-
-/**
- * @since 4.0.0
  * @category storage
  */
 export class Storage extends ServiceMap.Service<Storage, {
@@ -354,6 +242,7 @@ export class Storage extends ServiceMap.Service<Storage, {
     storeId: StoreId,
     remoteSequence: number
   ) => Effect.Effect<void>
+  readonly withTransaction: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
 }>()("effect/eventlog/EventLogServerUnencrypted/Storage") {}
 
 /**
@@ -729,7 +618,8 @@ export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.S
         if (remoteSequence > current) {
           processedSequences.set(storeKey, remoteSequence)
         }
-      })
+      }),
+    withTransaction: identity
   })
 })
 
@@ -862,13 +752,14 @@ export const make = Effect.gen(function*() {
     return yield* storeState.semaphore.withPermits(1)(effect(storeState))
   })
 
-  const persistAndReplay = Effect.fnUntraced(function*(options: {
+  const persistAndReplay = (options: {
     readonly storeId: StoreId
     readonly publicKey: string
     readonly entries: ReadonlyArray<Entry>
-  }) {
-    return yield* withStoreProcessingLock(options.storeId, (storeState) =>
-      Effect.gen(function*() {
+  }) =>
+    withStoreProcessingLock(
+      options.storeId,
+      Effect.fnUntraced(function*(storeState) {
         yield* processStoreFromStorage({
           storeId: options.storeId,
           publicKey: makeRecoveryIdentityPublicKey(options.storeId),
@@ -884,8 +775,8 @@ export const make = Effect.gen(function*() {
         })
 
         return persisted
-      }))
-  })
+      })
+    )
 
   const findSchemaEvent = <Groups extends EventGroup.Any>(
     schema: EventLog.EventLogSchema<Groups>,
@@ -907,7 +798,7 @@ export const make = Effect.gen(function*() {
       return
     }
 
-    return yield* Effect.fail(toStoreNotFoundError(storeId))
+    return yield* toStoreNotFoundError(storeId)
   })
 
   const serverWrite = Effect.fnUntraced(function*(options: {
