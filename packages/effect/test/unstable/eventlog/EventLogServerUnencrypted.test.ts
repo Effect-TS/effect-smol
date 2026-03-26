@@ -43,6 +43,53 @@ const runtimeLayer = (handled: Ref.Ref<ReadonlyArray<string>>) =>
     Layer.provideMerge(handlerLayer(handled))
   )
 
+const runtimeLayerFromServices = (options: {
+  readonly handled: Ref.Ref<ReadonlyArray<string>>
+  readonly journal: EventJournal.EventJournal["Service"]
+  readonly storage: EventLogServerUnencrypted.Storage["Service"]
+  readonly mapping: EventLogServerUnencrypted.StoreMapping["Service"]
+  readonly reactivity?: Reactivity.Reactivity["Service"] | undefined
+}) =>
+  Layer.effect(EventLogServerUnencrypted.EventLogServerUnencrypted)(
+    EventLogServerUnencrypted.make
+  ).pipe(
+    Layer.provideMerge(Layer.succeed(EventJournal.EventJournal, options.journal)),
+    Layer.provideMerge(Layer.succeed(EventLogServerUnencrypted.Storage, options.storage)),
+    Layer.provideMerge(Layer.succeed(EventLogServerUnencrypted.StoreMapping, options.mapping)),
+    Layer.provideMerge(layerAuthAllowAll),
+    Layer.provideMerge(handlerLayer(options.handled)),
+    Layer.provideMerge(
+      options.reactivity
+        ? Layer.succeed(Reactivity.Reactivity, options.reactivity)
+        : Reactivity.layer
+    )
+  )
+
+const makeJournalFailingFirstRemoteWrite: Effect.Effect<EventJournal.EventJournal["Service"]> = Effect.gen(
+  function*() {
+    const journal = yield* EventJournal.makeMemory
+    let failNextWriteFromRemote = true
+
+    return EventJournal.EventJournal.of({
+      ...journal,
+      writeFromRemote: (options) =>
+        Effect.suspend(() => {
+          if (!failNextWriteFromRemote) {
+            return journal.writeFromRemote(options)
+          }
+
+          failNextWriteFromRemote = false
+          return Effect.fail(
+            new EventJournal.EventJournalError({
+              method: "writeFromRemote",
+              cause: new Error("simulated writeFromRemote failure")
+            })
+          )
+        })
+    })
+  }
+)
+
 const makeUserCreatedEntry = (id: string): Effect.Effect<EventJournal.Entry> =>
   Effect.gen(function*() {
     const payload = yield* Schema.encodeUnknownEffect(UserGroup.events.UserCreated.payloadMsgPack)({ id }).pipe(
@@ -236,6 +283,101 @@ describe("EventLogServerUnencrypted", () => {
           const seen = yield* Ref.get(handled)
           assert.deepStrictEqual(seen, ["user-a", "user-b"])
         }).pipe(Effect.provide(runtimeLayer(handled)))
+      })
+    ))
+
+  it.effect("reconciliation replays persisted backlog exactly once without duplicate handler or Reactivity execution", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const handled = yield* Ref.make<ReadonlyArray<string>>([])
+        const invalidations = yield* Ref.make(0)
+        const storage = yield* EventLogServerUnencrypted.makeStorageMemory
+        const mapping = yield* EventLogServerUnencrypted.makeStoreMappingMemory
+        const journal = yield* makeJournalFailingFirstRemoteWrite
+        const storeId = "store-reconciliation" as EventLogServerUnencrypted.StoreId
+
+        yield* mapping.assign({
+          publicKey: "public-key-reconciliation",
+          storeId
+        })
+
+        const firstRuntimeLayer = runtimeLayerFromServices({
+          handled,
+          journal,
+          storage,
+          mapping
+        })
+
+        const replayFailure = yield* Effect.flip(
+          Effect.gen(function*() {
+            const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+            const entry = yield* makeUserCreatedEntry("user-backlog")
+            yield* runtime.ingest({
+              publicKey: "public-key-reconciliation",
+              entries: [entry]
+            })
+          }).pipe(Effect.provide(firstRuntimeLayer))
+        )
+        assert.instanceOf(replayFailure, EventJournal.EventJournalError)
+
+        const persistedBacklog = yield* storage.entries(storeId, 0)
+        assert.deepStrictEqual(persistedBacklog.map((entry) => entry.remoteSequence), [1])
+        assert.deepStrictEqual(yield* Ref.get(handled), [])
+
+        const secondRuntimeLayer = runtimeLayerFromServices({
+          handled,
+          journal,
+          storage,
+          mapping
+        })
+
+        yield* Effect.gen(function*() {
+          const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+          const reactivity = yield* Reactivity.Reactivity
+
+          yield* runtime.registerReactivity({
+            UserCreated: ["users"]
+          })
+
+          const query = yield* reactivity.query(
+            { users: ["user-backlog"] },
+            Ref.updateAndGet(invalidations, (count) => count + 1)
+          )
+
+          const initial = yield* Queue.take(query)
+          assert.strictEqual(initial, 1)
+
+          yield* runtime.requestChanges("public-key-reconciliation", 0)
+          const afterRecovery = yield* Queue.take(query)
+          assert.strictEqual(afterRecovery, 2)
+
+          assert.deepStrictEqual(yield* Ref.get(handled), ["user-backlog"])
+
+          for (let i = 0; i < 10; i++) {
+            yield* Effect.yieldNow
+          }
+
+          while (true) {
+            const next = yield* Queue.poll(query)
+            if (next._tag === "None") {
+              break
+            }
+          }
+
+          const invalidationsBeforeSecondRead = yield* Ref.get(invalidations)
+
+          yield* runtime.requestChanges("public-key-reconciliation", 0)
+
+          for (let i = 0; i < 10; i++) {
+            yield* Effect.yieldNow
+          }
+
+          const duplicateInvalidation = yield* Queue.poll(query)
+          assert.strictEqual(duplicateInvalidation._tag, "None")
+
+          assert.deepStrictEqual(yield* Ref.get(handled), ["user-backlog"])
+          assert.strictEqual(yield* Ref.get(invalidations), invalidationsBeforeSecondRead)
+        }).pipe(Effect.provide(secondRuntimeLayer))
       })
     ))
 

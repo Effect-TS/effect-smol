@@ -251,7 +251,7 @@ export class EventLogServerUnencrypted extends ServiceMap.Service<EventLogServer
     startSequence: number
   ) => Effect.Effect<
     Queue.Dequeue<RemoteEntry, Cause.Done>,
-    EventLogServerAuthError | EventLogServerStoreError,
+    EventLogServerAuthError | EventLogServerStoreError | EventJournal.EventJournalError,
     Scope.Scope
   >
   readonly registerCompaction: (options: {
@@ -275,6 +275,12 @@ const makeClientIdentity = (publicKey: string): EventLog.Identity["Service"] => 
   publicKey,
   privateKey: Redacted.make(new Uint8Array(32))
 })
+
+const makeRecoveryIdentityPublicKey = (storeId: StoreId): string =>
+  `effect-eventlog-server-recovery:${toStoreKey(storeId)}`
+
+const toReconciliationStartSequence = (nextRemoteSequence: number): number =>
+  nextRemoteSequence <= 0 ? 0 : nextRemoteSequence - 1
 
 const entriesAfter = (journal: Array<RemoteEntry>, startSequence: number): ReadonlyArray<RemoteEntry> =>
   journal.filter((entry) => entry.remoteSequence > startSequence)
@@ -413,6 +419,7 @@ export const make = Effect.gen(function*() {
     }) => Effect.Effect<void>
   }>()
   const reactivityKeys: Record<string, ReadonlyArray<string>> = {}
+  const reconciledStores = new Set<string>()
 
   const replayCommitted = Effect.fnUntraced(function*(options: {
     readonly storeId: StoreId
@@ -441,6 +448,60 @@ export const make = Effect.gen(function*() {
     })
   })
 
+  const reconcileStore = Effect.fnUntraced(function*(storeId: StoreId) {
+    const storeKey = toStoreKey(storeId)
+    if (reconciledStores.has(storeKey)) {
+      return
+    }
+
+    const remoteId = makeStoreRemoteId(storeId)
+    const nextRemoteSequence = yield* journal.nextRemoteSequence(remoteId)
+    const startSequence = toReconciliationStartSequence(nextRemoteSequence)
+    const missing = yield* storage.entries(storeId, startSequence)
+
+    if (missing.length === 0) {
+      yield* Effect.sync(() => {
+        reconciledStores.add(storeKey)
+      })
+      return
+    }
+
+    yield* replayCommitted({
+      storeId,
+      publicKey: makeRecoveryIdentityPublicKey(storeId),
+      committed: missing
+    })
+
+    yield* Effect.sync(() => {
+      reconciledStores.add(storeKey)
+    })
+  })
+
+  const markStoreNeedsReconciliation = (storeId: StoreId): Effect.Effect<void> =>
+    Effect.sync(() => {
+      reconciledStores.delete(toStoreKey(storeId))
+    })
+
+  const markStoreReconciled = (storeId: StoreId): Effect.Effect<void> =>
+    Effect.sync(() => {
+      reconciledStores.add(toStoreKey(storeId))
+    })
+
+  const replayCommittedForIngest = Effect.fnUntraced(function*(options: {
+    readonly storeId: StoreId
+    readonly publicKey: string
+    readonly committed: ReadonlyArray<RemoteEntry>
+  }) {
+    if (options.committed.length === 0) {
+      return
+    }
+
+    yield* replayCommitted(options).pipe(
+      Effect.tapError(() => markStoreNeedsReconciliation(options.storeId))
+    )
+    yield* markStoreReconciled(options.storeId)
+  })
+
   return EventLogServerUnencrypted.of({
     ingest: Effect.fnUntraced(function*({ publicKey, entries }) {
       const storeId = yield* mapping.resolve(publicKey)
@@ -450,8 +511,10 @@ export const make = Effect.gen(function*() {
         entries
       })
 
+      yield* reconcileStore(storeId)
+
       const persisted = yield* storage.write(storeId, entries)
-      yield* replayCommitted({
+      yield* replayCommittedForIngest({
         storeId,
         publicKey,
         committed: persisted.committed
@@ -469,6 +532,9 @@ export const make = Effect.gen(function*() {
         publicKey,
         storeId
       })
+
+      yield* reconcileStore(storeId)
+
       return yield* storage.changes(storeId, startSequence)
     }),
     registerCompaction: (options) =>
