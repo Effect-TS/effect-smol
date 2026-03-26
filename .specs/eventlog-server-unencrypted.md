@@ -512,10 +512,7 @@ Migration expectations:
 
 Illustrative direction:
 
-- before:
-  `EventLogServerUnencrypted.layer(schema).pipe(Layer.provideMerge(EventJournal.layerMemory), ...)`
-- after:
-  `EventLogServerUnencrypted.layer(schema).pipe(Layer.provideMerge(EventLogServerUnencrypted.layerStorageMemory), ...)`
+- `EventLogServerUnencrypted.layer(schema).pipe(Layer.provideMerge(EventLogServerUnencrypted.layerStorageMemory), ...)`
 
 `EventJournal` remains available for the rest of the codebase and is not being
 removed by this change.
@@ -540,7 +537,7 @@ The work should be split into the following validation-safe tasks.
 
 - [x] Task 1: Extend `Storage` to own processing progress
 - [x] Task 2: Switch runtime internals to storage-backed processing
-- [ ] Task 3: Remove the public `EventJournal` runtime dependency from the layer API
+- [x] Task 3: Remove the public `EventJournal` runtime dependency from the layer API
 
 ### Task 1 Notes
 
@@ -577,6 +574,21 @@ The work should be split into the following validation-safe tasks.
   failure simulation (rather than `EventJournal` write failures), and now
   assert checkpoint progression (`processedSequence`) across retries and runtime
   recreation.
+
+### Task 3 Notes
+
+- `EventLogServerUnencrypted.make` no longer pulls `EventJournal.EventJournal`
+  from the environment; server runtime wiring now depends only on `Storage`,
+  `StoreMapping`, `EventLogServerAuth`, handler services, and `Reactivity`.
+- `EventLogServerUnencrypted.layer(schema)` now exposes
+  `EventGroup.ToService<Groups> | Storage | StoreMapping | EventLogServerAuth`
+  as its full input environment (no public `EventJournal` requirement).
+- Eventlog test runtime helpers were simplified to stop providing
+  `EventJournal.layerMemory` or `Layer.succeed(EventJournal.EventJournal, ...)`
+  when constructing `EventLogServerUnencrypted` layers.
+- Important discovery: the only migration/example snippet still showing
+  `EventJournal` provisioning for this server lived in this spec file and has
+  been updated to the storage-only layer wiring.
 
 ### Task 1: Extend `Storage` to own processing progress
 

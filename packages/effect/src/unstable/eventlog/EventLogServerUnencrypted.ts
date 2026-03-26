@@ -744,7 +744,6 @@ export const layerStorageMemory: Layer.Layer<Storage> = Layer.effect(Storage)(ma
  * @category constructors
  */
 export const make = Effect.gen(function*() {
-  yield* EventJournal.EventJournal
   const storage = yield* Storage
   const mapping = yield* StoreMapping
   const auth = yield* EventLogServerAuth
@@ -1164,7 +1163,7 @@ export const groupCompaction = <Events extends Event.Any, R>(
 const layerServerRuntime: Layer.Layer<
   EventLogServerUnencrypted,
   never,
-  EventJournal.EventJournal | Storage | StoreMapping | EventLogServerAuth
+  Storage | StoreMapping | EventLogServerAuth
 > = Layer.effect(EventLogServerUnencrypted, make).pipe(
   Layer.provide(ReactivityLayer.layer)
 )
@@ -1178,12 +1177,12 @@ export const layer = <Groups extends EventGroup.Any>(
 ): Layer.Layer<
   EventLogServerUnencrypted,
   never,
-  EventGroup.ToService<Groups> | EventJournal.EventJournal | Storage | StoreMapping | EventLogServerAuth
+  EventGroup.ToService<Groups> | Storage | StoreMapping | EventLogServerAuth
 > =>
   layerServerRuntime as Layer.Layer<
     EventLogServerUnencrypted,
     never,
-    EventGroup.ToService<Groups> | EventJournal.EventJournal | Storage | StoreMapping | EventLogServerAuth
+    EventGroup.ToService<Groups> | Storage | StoreMapping | EventLogServerAuth
   >
 
 /**

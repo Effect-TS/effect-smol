@@ -47,7 +47,6 @@ const runtimeLayerWithStoreMapping = (options: {
   readonly authLayer?: Layer.Layer<EventLogServerUnencrypted.EventLogServerAuth> | undefined
 }) =>
   EventLogServerUnencrypted.layer(schema).pipe(
-    Layer.provideMerge(EventJournal.layerMemory),
     Layer.provideMerge(EventLogServerUnencrypted.layerStorageMemory),
     Layer.provideMerge(options.storeMappingLayer),
     Layer.provideMerge(options.authLayer ?? layerAuthAllowAll),
@@ -77,7 +76,6 @@ const runtimeLayer = (
 
 const runtimeLayerFromServices = (options: {
   readonly handled: Ref.Ref<ReadonlyArray<string>>
-  readonly journal: EventJournal.EventJournal["Service"]
   readonly storage: EventLogServerUnencrypted.Storage["Service"]
   readonly mapping: EventLogServerUnencrypted.StoreMapping["Service"]
   readonly reactivity?: Reactivity.Reactivity["Service"] | undefined
@@ -85,7 +83,6 @@ const runtimeLayerFromServices = (options: {
   Layer.effect(EventLogServerUnencrypted.EventLogServerUnencrypted)(
     EventLogServerUnencrypted.make
   ).pipe(
-    Layer.provideMerge(Layer.succeed(EventJournal.EventJournal, options.journal)),
     Layer.provideMerge(Layer.succeed(EventLogServerUnencrypted.Storage, options.storage)),
     Layer.provideMerge(Layer.succeed(EventLogServerUnencrypted.StoreMapping, options.mapping)),
     Layer.provideMerge(layerAuthAllowAll),
@@ -251,7 +248,6 @@ describe("EventLogServerUnencrypted", () => {
         const runtimeLayerWithReactivity = Layer.effect(EventLogServerUnencrypted.EventLogServerUnencrypted)(
           EventLogServerUnencrypted.make
         ).pipe(
-          Layer.provideMerge(EventJournal.layerMemory),
           Layer.provideMerge(EventLogServerUnencrypted.layerStorageMemory),
           Layer.provideMerge(EventLogServerUnencrypted.layerStoreMappingMemory({
             mappings: [["public-key-reactivity", "store-reactivity" as EventLogServerUnencrypted.StoreId]]
@@ -544,7 +540,6 @@ describe("EventLogServerUnencrypted", () => {
         })
       })
       const storage = yield* EventLogServerUnencrypted.makeStorageMemory
-      const journal = yield* EventJournal.makeMemory
 
       const writeError = yield* Effect.flip(
         Effect.gen(function*() {
@@ -561,7 +556,7 @@ describe("EventLogServerUnencrypted", () => {
             event: "UserCreated",
             payload: { id: "server-write-history-only" }
           })
-        }).pipe(Effect.provide(runtimeLayerFromServices({ handled, journal, mapping, storage })))
+        }).pipe(Effect.provide(runtimeLayerFromServices({ handled, mapping, storage })))
       )
 
       assert.instanceOf(writeError, EventLogServerUnencrypted.EventLogServerStoreError)
@@ -752,7 +747,6 @@ describe("EventLogServerUnencrypted", () => {
 
         const firstRuntimeLayer = runtimeLayerFromServices({
           handled,
-          journal: yield* EventJournal.makeMemory,
           storage,
           mapping
         })
@@ -776,7 +770,6 @@ describe("EventLogServerUnencrypted", () => {
 
         const secondRuntimeLayer = runtimeLayerFromServices({
           handled,
-          journal: yield* EventJournal.makeMemory,
           storage,
           mapping
         })
@@ -833,7 +826,6 @@ describe("EventLogServerUnencrypted", () => {
 
         const thirdRuntimeLayer = runtimeLayerFromServices({
           handled,
-          journal: yield* EventJournal.makeMemory,
           storage,
           mapping
         })
