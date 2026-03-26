@@ -510,6 +510,8 @@ handler work is already in place and is not repeated here as new scope.
 
 ### Task 1: Simplify `StoreMapping` and migrate existing call sites
 
+Status: ✅ Completed
+
 Scope:
 
 - remove `assign(...)` from the `StoreMapping` service
@@ -541,6 +543,8 @@ Validation for this task:
 
 ### Task 2: Add the remaining ergonomic resolver, static, and seeded-memory store-mapping helpers
 
+Status: 🟡 In progress (seeded-memory helper portion completed as part of Task 1 migration)
+
 Scope:
 
 - add `makeStoreMapping(...)`
@@ -570,6 +574,8 @@ Validation for this task:
 
 ### Task 3: Replace touched `Effect.gen`-returning helpers with `Effect.fnUntraced`
 
+Status: ⬜ Not started
+
 Scope:
 
 - convert the remaining raw `Effect.gen(...)` helper and returned-function
@@ -592,6 +598,18 @@ Validation for this task:
 - any other targeted tests for touched files
 - `pnpm check:tsgo`
 - `pnpm docgen`
+
+## Discoveries During Implementation
+
+- Removing `StoreMapping.assign(...)` required migrating runtime test setup to
+  seeded `layerStoreMappingMemory({ mappings, stores })` inputs, so tests no
+  longer mutate mapping state at runtime.
+- Server-authored `write({ storeId, ... })` now gates exclusively on
+  `StoreMapping.hasStore(storeId)`; the previous fallback that inferred
+  existence from storage history was removed.
+- Persisted mapping tests now seed `@mapping/*` and `@store/*` records directly
+  through `Persistence` storage, which keeps `makeStoreMappingPersisted` aligned
+  with the read-only `StoreMapping` contract.
 
 ## Open Follow-Ups
 

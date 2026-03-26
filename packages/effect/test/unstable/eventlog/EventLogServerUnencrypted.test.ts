@@ -39,22 +39,29 @@ const handlerLayer = (handled: Ref.Ref<ReadonlyArray<string>>) =>
       handlers.handle("UserCreated", ({ payload }) => Ref.update(handled, (values) => [...values, payload.id]))
   )
 
+type StoreMappingMemoryOptions = Parameters<typeof EventLogServerUnencrypted.layerStoreMappingMemory>[0]
+
 const runtimeLayerWithAuth = (options: {
   readonly handled: Ref.Ref<ReadonlyArray<string>>
   readonly authLayer: Layer.Layer<EventLogServerUnencrypted.EventLogServerAuth>
+  readonly storeMappingOptions?: StoreMappingMemoryOptions | undefined
 }) =>
   EventLogServerUnencrypted.layer(schema).pipe(
     Layer.provideMerge(EventJournal.layerMemory),
     Layer.provideMerge(EventLogServerUnencrypted.layerStorageMemory),
-    Layer.provideMerge(EventLogServerUnencrypted.layerStoreMappingMemory),
+    Layer.provideMerge(EventLogServerUnencrypted.layerStoreMappingMemory(options.storeMappingOptions)),
     Layer.provideMerge(options.authLayer),
     Layer.provideMerge(handlerLayer(options.handled))
   )
 
-const runtimeLayer = (handled: Ref.Ref<ReadonlyArray<string>>) =>
+const runtimeLayer = (
+  handled: Ref.Ref<ReadonlyArray<string>>,
+  storeMappingOptions?: StoreMappingMemoryOptions | undefined
+) =>
   runtimeLayerWithAuth({
     handled,
-    authLayer: layerAuthAllowAll
+    authLayer: layerAuthAllowAll,
+    storeMappingOptions
   })
 
 const runtimeLayerFromServices = (options: {
@@ -190,13 +197,7 @@ describe("EventLogServerUnencrypted", () => {
 
       yield* Effect.gen(function*() {
         const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
-        const mapping = yield* EventLogServerUnencrypted.StoreMapping
         const storeId = "store-runtime-handler" as EventLogServerUnencrypted.StoreId
-
-        yield* mapping.assign({
-          publicKey: "public-key-handler",
-          storeId
-        })
 
         const entry = yield* makeUserCreatedEntry("user-1")
         const result = yield* runtime.ingest({
@@ -210,7 +211,9 @@ describe("EventLogServerUnencrypted", () => {
 
         const seen = yield* Ref.get(handled)
         assert.deepStrictEqual(seen, ["user-1"])
-      }).pipe(Effect.provide(runtimeLayer(handled)))
+      }).pipe(Effect.provide(runtimeLayer(handled, {
+        mappings: [["public-key-handler", "store-runtime-handler" as EventLogServerUnencrypted.StoreId]]
+      })))
     }))
 
   it.effect("accepted ingest triggers Reactivity invalidation", () =>
@@ -224,7 +227,9 @@ describe("EventLogServerUnencrypted", () => {
         ).pipe(
           Layer.provideMerge(EventJournal.layerMemory),
           Layer.provideMerge(EventLogServerUnencrypted.layerStorageMemory),
-          Layer.provideMerge(EventLogServerUnencrypted.layerStoreMappingMemory),
+          Layer.provideMerge(EventLogServerUnencrypted.layerStoreMappingMemory({
+            mappings: [["public-key-reactivity", "store-reactivity" as EventLogServerUnencrypted.StoreId]]
+          })),
           Layer.provideMerge(layerAuthAllowAll),
           Layer.provideMerge(handlerLayer(handled)),
           Layer.provideMerge(Reactivity.layer)
@@ -232,13 +237,7 @@ describe("EventLogServerUnencrypted", () => {
 
         yield* Effect.gen(function*() {
           const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
-          const mapping = yield* EventLogServerUnencrypted.StoreMapping
           const reactivity = yield* Reactivity.Reactivity
-
-          yield* mapping.assign({
-            publicKey: "public-key-reactivity",
-            storeId: "store-reactivity" as EventLogServerUnencrypted.StoreId
-          })
           yield* runtime.registerReactivity({
             UserCreated: ["users"]
           })
@@ -273,11 +272,6 @@ describe("EventLogServerUnencrypted", () => {
 
         yield* Effect.gen(function*() {
           const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
-          const mapping = yield* EventLogServerUnencrypted.StoreMapping
-          const storeId = "store-shared-feed" as EventLogServerUnencrypted.StoreId
-
-          yield* mapping.assign({ publicKey: "public-key-a", storeId })
-          yield* mapping.assign({ publicKey: "public-key-b", storeId })
 
           const entryA = yield* makeUserCreatedEntry("user-a")
           const entryB = yield* makeUserCreatedEntry("user-b")
@@ -318,7 +312,12 @@ describe("EventLogServerUnencrypted", () => {
             [firstForB.entry.primaryKey, secondForB.entry.primaryKey],
             ["user-a", "user-b"]
           )
-        }).pipe(Effect.provide(runtimeLayer(handled)))
+        }).pipe(Effect.provide(runtimeLayer(handled, {
+          mappings: [
+            ["public-key-a", "store-shared-feed" as EventLogServerUnencrypted.StoreId],
+            ["public-key-b", "store-shared-feed" as EventLogServerUnencrypted.StoreId]
+          ]
+        })))
       })
     ))
 
@@ -329,16 +328,6 @@ describe("EventLogServerUnencrypted", () => {
 
         yield* Effect.gen(function*() {
           const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
-          const mapping = yield* EventLogServerUnencrypted.StoreMapping
-
-          yield* mapping.assign({
-            publicKey: "public-key-store-a",
-            storeId: "store-a" as EventLogServerUnencrypted.StoreId
-          })
-          yield* mapping.assign({
-            publicKey: "public-key-store-b",
-            storeId: "store-b" as EventLogServerUnencrypted.StoreId
-          })
 
           const ingestA = yield* runtime.ingest({
             publicKey: "public-key-store-a",
@@ -354,7 +343,12 @@ describe("EventLogServerUnencrypted", () => {
 
           const seen = yield* Ref.get(handled)
           assert.deepStrictEqual(seen, ["user-a", "user-b"])
-        }).pipe(Effect.provide(runtimeLayer(handled)))
+        }).pipe(Effect.provide(runtimeLayer(handled, {
+          mappings: [
+            ["public-key-store-a", "store-a" as EventLogServerUnencrypted.StoreId],
+            ["public-key-store-b", "store-b" as EventLogServerUnencrypted.StoreId]
+          ]
+        })))
       })
     ))
 
@@ -365,11 +359,7 @@ describe("EventLogServerUnencrypted", () => {
 
         yield* Effect.gen(function*() {
           const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
-          const mapping = yield* EventLogServerUnencrypted.StoreMapping
           const storeId = "store-server-fanout" as EventLogServerUnencrypted.StoreId
-
-          yield* mapping.assign({ publicKey: "fanout-public-key-a", storeId })
-          yield* mapping.assign({ publicKey: "fanout-public-key-b", storeId })
 
           yield* runtime.write({
             schema,
@@ -391,7 +381,12 @@ describe("EventLogServerUnencrypted", () => {
 
           const seen = yield* Ref.get(handled)
           assert.deepStrictEqual(seen, ["user-server-fanout"])
-        }).pipe(Effect.provide(runtimeLayer(handled)))
+        }).pipe(Effect.provide(runtimeLayer(handled, {
+          mappings: [
+            ["fanout-public-key-a", "store-server-fanout" as EventLogServerUnencrypted.StoreId],
+            ["fanout-public-key-b", "store-server-fanout" as EventLogServerUnencrypted.StoreId]
+          ]
+        })))
       })
     ))
 
@@ -402,11 +397,8 @@ describe("EventLogServerUnencrypted", () => {
 
         yield* Effect.gen(function*() {
           const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
-          const mapping = yield* EventLogServerUnencrypted.StoreMapping
           const storeId = "store-server-idempotent" as EventLogServerUnencrypted.StoreId
           const entryId = EventJournal.makeEntryIdUnsafe()
-
-          yield* mapping.assign({ publicKey: "idempotent-public-key", storeId })
 
           yield* runtime.write({
             schema,
@@ -436,7 +428,9 @@ describe("EventLogServerUnencrypted", () => {
 
           const seen = yield* Ref.get(handled)
           assert.deepStrictEqual(seen, ["user-server-idempotent"])
-        }).pipe(Effect.provide(runtimeLayer(handled)))
+        }).pipe(Effect.provide(runtimeLayer(handled, {
+          mappings: [["idempotent-public-key", "store-server-idempotent" as EventLogServerUnencrypted.StoreId]]
+        })))
       })
     ))
 
@@ -447,11 +441,8 @@ describe("EventLogServerUnencrypted", () => {
 
         yield* Effect.gen(function*() {
           const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
-          const mapping = yield* EventLogServerUnencrypted.StoreMapping
           const storeId = "store-server-duplicate-semantics" as EventLogServerUnencrypted.StoreId
           const duplicateEntryId = EventJournal.makeEntryIdUnsafe()
-
-          yield* mapping.assign({ publicKey: "duplicate-semantics-public-key", storeId })
 
           yield* runtime.write({
             schema,
@@ -483,7 +474,12 @@ describe("EventLogServerUnencrypted", () => {
 
           const seen = yield* Ref.get(handled)
           assert.deepStrictEqual(seen, ["first-accepted"])
-        }).pipe(Effect.provide(runtimeLayer(handled)))
+        }).pipe(Effect.provide(runtimeLayer(handled, {
+          mappings: [[
+            "duplicate-semantics-public-key",
+            "store-server-duplicate-semantics" as EventLogServerUnencrypted.StoreId
+          ]]
+        })))
       })
     ))
 
@@ -516,14 +512,7 @@ describe("EventLogServerUnencrypted", () => {
 
         yield* Effect.gen(function*() {
           const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
-          const mapping = yield* EventLogServerUnencrypted.StoreMapping
-          const storeId = "store-compaction-cutoff" as EventLogServerUnencrypted.StoreId
           const now = Date.now()
-
-          yield* mapping.assign({
-            publicKey: "public-key-compaction-cutoff",
-            storeId
-          })
 
           yield* EventLogServerUnencrypted.groupCompaction(
             UserGroup,
@@ -558,7 +547,9 @@ describe("EventLogServerUnencrypted", () => {
             [first.entry.primaryKey, second.entry.primaryKey],
             ["old-user-compacted", "recent-user"]
           )
-        }).pipe(Effect.provide(runtimeLayer(handled)))
+        }).pipe(Effect.provide(runtimeLayer(handled, {
+          mappings: [["public-key-compaction-cutoff", "store-compaction-cutoff" as EventLogServerUnencrypted.StoreId]]
+        })))
       })
     ))
 
@@ -569,14 +560,7 @@ describe("EventLogServerUnencrypted", () => {
 
         yield* Effect.gen(function*() {
           const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
-          const mapping = yield* EventLogServerUnencrypted.StoreMapping
-          const storeId = "store-compaction-cursor" as EventLogServerUnencrypted.StoreId
           const now = Date.now()
-
-          yield* mapping.assign({
-            publicKey: "public-key-compaction-cursor",
-            storeId
-          })
 
           yield* EventLogServerUnencrypted.groupCompaction(
             UserGroup,
@@ -626,7 +610,9 @@ describe("EventLogServerUnencrypted", () => {
           const fromThree = yield* runtime.requestChanges("public-key-compaction-cursor", 3)
           const fromThreeOnly = yield* Queue.take(fromThree)
           assert.strictEqual(fromThreeOnly.remoteSequence, 4)
-        }).pipe(Effect.provide(runtimeLayer(handled)))
+        }).pipe(Effect.provide(runtimeLayer(handled, {
+          mappings: [["public-key-compaction-cursor", "store-compaction-cursor" as EventLogServerUnencrypted.StoreId]]
+        })))
       })
     ))
 
@@ -637,12 +623,7 @@ describe("EventLogServerUnencrypted", () => {
 
         yield* Effect.gen(function*() {
           const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
-          const mapping = yield* EventLogServerUnencrypted.StoreMapping
-          const storeId = "store-compaction-shared-cursor" as EventLogServerUnencrypted.StoreId
           const now = Date.now()
-
-          yield* mapping.assign({ publicKey: "public-key-compaction-a", storeId })
-          yield* mapping.assign({ publicKey: "public-key-compaction-b", storeId })
 
           yield* EventLogServerUnencrypted.groupCompaction(
             UserGroup,
@@ -684,7 +665,12 @@ describe("EventLogServerUnencrypted", () => {
           assert.strictEqual(fromACursorOnly.remoteSequence, 3)
           assert.strictEqual(fromBCursorOnly.entry.primaryKey, "shared-recent")
           assert.strictEqual(fromACursorOnly.entry.primaryKey, "shared-recent")
-        }).pipe(Effect.provide(runtimeLayer(handled)))
+        }).pipe(Effect.provide(runtimeLayer(handled, {
+          mappings: [
+            ["public-key-compaction-a", "store-compaction-shared-cursor" as EventLogServerUnencrypted.StoreId],
+            ["public-key-compaction-b", "store-compaction-shared-cursor" as EventLogServerUnencrypted.StoreId]
+          ]
+        })))
       })
     ))
 
@@ -694,14 +680,11 @@ describe("EventLogServerUnencrypted", () => {
         const handled = yield* Ref.make<ReadonlyArray<string>>([])
         const invalidations = yield* Ref.make(0)
         const storage = yield* EventLogServerUnencrypted.makeStorageMemory
-        const mapping = yield* EventLogServerUnencrypted.makeStoreMappingMemory
+        const mapping = yield* EventLogServerUnencrypted.makeStoreMappingMemory({
+          mappings: [["public-key-reconciliation", "store-reconciliation" as EventLogServerUnencrypted.StoreId]]
+        })
         const journal = yield* makeJournalFailingFirstRemoteWrite
         const storeId = "store-reconciliation" as EventLogServerUnencrypted.StoreId
-
-        yield* mapping.assign({
-          publicKey: "public-key-reconciliation",
-          storeId
-        })
 
         const firstRuntimeLayer = runtimeLayerFromServices({
           handled,
@@ -827,16 +810,8 @@ describe("EventLogServerUnencrypted", () => {
 
         yield* Effect.gen(function*() {
           const handler = yield* EventLogServerUnencrypted.makeHandler
-          const mapping = yield* EventLogServerUnencrypted.StoreMapping
           const harness = yield* makeSocketHarness
-
           const publicKey = "public-key-handler-socket-success"
-          const storeId = "store-handler-socket-success" as EventLogServerUnencrypted.StoreId
-
-          yield* mapping.assign({
-            publicKey,
-            storeId
-          })
 
           yield* handler(harness.socket).pipe(Effect.forkScoped)
 
@@ -888,7 +863,12 @@ describe("EventLogServerUnencrypted", () => {
             "socket-user-2"
           ])
           assert.deepStrictEqual(yield* Ref.get(handled), ["socket-user-1", "socket-user-2"])
-        }).pipe(Effect.provide(runtimeLayer(handled)))
+        }).pipe(Effect.provide(runtimeLayer(handled, {
+          mappings: [[
+            "public-key-handler-socket-success",
+            "store-handler-socket-success" as EventLogServerUnencrypted.StoreId
+          ]]
+        })))
       })
     ))
 
@@ -949,14 +929,9 @@ describe("EventLogServerUnencrypted", () => {
 
         yield* Effect.gen(function*() {
           const handler = yield* EventLogServerUnencrypted.makeHandler
-          const mapping = yield* EventLogServerUnencrypted.StoreMapping
           const harness = yield* makeSocketHarness
 
           const publicKey = "public-key-write-forbidden"
-          yield* mapping.assign({
-            publicKey,
-            storeId: "store-write-forbidden" as EventLogServerUnencrypted.StoreId
-          })
 
           yield* handler(harness.socket).pipe(Effect.forkScoped)
           const hello = yield* harness.takeResponse
@@ -980,7 +955,16 @@ describe("EventLogServerUnencrypted", () => {
           assert.strictEqual(response.id, request.id)
           assert.strictEqual(response.publicKey, request.publicKey)
           assert.strictEqual(response.code, "Unauthorized")
-        }).pipe(Effect.provide(runtimeLayerWithAuth({ handled, authLayer: layerAuthDenyWrite })))
+        }).pipe(Effect.provide(runtimeLayerWithAuth({
+          handled,
+          authLayer: layerAuthDenyWrite,
+          storeMappingOptions: {
+            mappings: [[
+              "public-key-write-forbidden",
+              "store-write-forbidden" as EventLogServerUnencrypted.StoreId
+            ]]
+          }
+        })))
       })
     ))
 
@@ -1038,14 +1022,9 @@ describe("EventLogServerUnencrypted", () => {
 
         yield* Effect.gen(function*() {
           const handler = yield* EventLogServerUnencrypted.makeHandler
-          const mapping = yield* EventLogServerUnencrypted.StoreMapping
           const harness = yield* makeSocketHarness
 
           const publicKey = "public-key-read-forbidden"
-          yield* mapping.assign({
-            publicKey,
-            storeId: "store-read-forbidden" as EventLogServerUnencrypted.StoreId
-          })
 
           yield* handler(harness.socket).pipe(Effect.forkScoped)
           const hello = yield* harness.takeResponse
@@ -1066,7 +1045,16 @@ describe("EventLogServerUnencrypted", () => {
           assert.strictEqual(response.requestTag, "RequestChanges")
           assert.strictEqual(response.publicKey, publicKey)
           assert.strictEqual(response.code, "Forbidden")
-        }).pipe(Effect.provide(runtimeLayerWithAuth({ handled, authLayer: layerAuthDenyRead })))
+        }).pipe(Effect.provide(runtimeLayerWithAuth({
+          handled,
+          authLayer: layerAuthDenyRead,
+          storeMappingOptions: {
+            mappings: [[
+              "public-key-read-forbidden",
+              "store-read-forbidden" as EventLogServerUnencrypted.StoreId
+            ]]
+          }
+        })))
       })
     ))
 
@@ -1111,34 +1099,29 @@ describe("EventLogServerUnencrypted", () => {
       })
     ))
 
-  it.effect("store mapping memory resolves, supports shared stores, and supports reassignment", () =>
+  it.effect("store mapping memory resolves seeded mappings, supports shared stores, and tracks seeded stores", () =>
     Effect.gen(function*() {
       const mapping = yield* EventLogServerUnencrypted.StoreMapping
       const storeA = "store-a" as EventLogServerUnencrypted.StoreId
       const storeB = "store-b" as EventLogServerUnencrypted.StoreId
-
-      yield* mapping.assign({
-        publicKey: "public-key-1",
-        storeId: storeA
-      })
-      yield* mapping.assign({
-        publicKey: "public-key-2",
-        storeId: storeA
-      })
+      const storeC = "store-c" as EventLogServerUnencrypted.StoreId
 
       const resolvedOne = yield* mapping.resolve("public-key-1")
       const resolvedTwo = yield* mapping.resolve("public-key-2")
-      assert.strictEqual(resolvedOne, storeA)
+      assert.strictEqual(resolvedOne, storeB)
       assert.strictEqual(resolvedTwo, storeA)
 
-      yield* mapping.assign({
-        publicKey: "public-key-1",
-        storeId: storeB
-      })
-
-      const reassigned = yield* mapping.resolve("public-key-1")
-      assert.strictEqual(reassigned, storeB)
-    }).pipe(Effect.provide(EventLogServerUnencrypted.layerStoreMappingMemory)))
+      assert.strictEqual(yield* mapping.hasStore(storeA), true)
+      assert.strictEqual(yield* mapping.hasStore(storeB), true)
+      assert.strictEqual(yield* mapping.hasStore(storeC), true)
+    }).pipe(Effect.provide(EventLogServerUnencrypted.layerStoreMappingMemory({
+      mappings: [
+        ["public-key-1", "store-a" as EventLogServerUnencrypted.StoreId],
+        ["public-key-2", "store-a" as EventLogServerUnencrypted.StoreId],
+        ["public-key-1", "store-b" as EventLogServerUnencrypted.StoreId]
+      ],
+      stores: ["store-c" as EventLogServerUnencrypted.StoreId]
+    }))))
 
   it.effect("store mapping resolve fails with NotFound for unknown public keys", () =>
     Effect.gen(function*() {
@@ -1148,23 +1131,25 @@ describe("EventLogServerUnencrypted", () => {
       assert.instanceOf(error, EventLogServerUnencrypted.EventLogServerStoreError)
       assert.strictEqual(error.reason, "NotFound")
       assert.strictEqual(error.publicKey, "missing-public-key")
-    }).pipe(Effect.provide(EventLogServerUnencrypted.layerStoreMappingMemory)))
+    }).pipe(Effect.provide(EventLogServerUnencrypted.layerStoreMappingMemory())))
 
   it.effect("store mapping persisted survives service recreation", () =>
     Effect.scoped(
       Effect.gen(function*() {
         const persistedStoreId = "eventlog-server-unencrypted-store-mapping-test"
-
-        const mappingV1 = yield* EventLogServerUnencrypted.makeStoreMappingPersisted({
-          storeId: persistedStoreId
-        })
+        const backing = yield* Persistence.BackingPersistence
+        const storage = yield* backing.make(persistedStoreId)
+        const mappingKey = (publicKey: string) => `@mapping/${publicKey}`
+        const storeKey = (storeId: EventLogServerUnencrypted.StoreId) => `@store/${storeId}`
 
         const firstStore = "shared-store" as EventLogServerUnencrypted.StoreId
         const secondStore = "reassigned-store" as EventLogServerUnencrypted.StoreId
 
-        yield* mappingV1.assign({
-          publicKey: "persistent-public-key",
-          storeId: firstStore
+        yield* storage.set(mappingKey("persistent-public-key"), { storeId: firstStore }, undefined)
+        yield* storage.set(storeKey(firstStore), { provisioned: true }, undefined)
+
+        const mappingV1 = yield* EventLogServerUnencrypted.makeStoreMappingPersisted({
+          storeId: persistedStoreId
         })
 
         const fromFirstService = yield* mappingV1.resolve("persistent-public-key")
@@ -1177,10 +1162,8 @@ describe("EventLogServerUnencrypted", () => {
         const fromSecondService = yield* mappingV2.resolve("persistent-public-key")
         assert.strictEqual(fromSecondService, firstStore)
 
-        yield* mappingV2.assign({
-          publicKey: "persistent-public-key",
-          storeId: secondStore
-        })
+        yield* storage.set(mappingKey("persistent-public-key"), { storeId: secondStore }, undefined)
+        yield* storage.set(storeKey(secondStore), { provisioned: true }, undefined)
 
         const mappingV3 = yield* EventLogServerUnencrypted.makeStoreMappingPersisted({
           storeId: persistedStoreId
@@ -1198,8 +1181,11 @@ describe("EventLogServerUnencrypted", () => {
         const backing = yield* Persistence.BackingPersistence
         const storage = yield* backing.make(persistedStoreId)
         const legacyStore = "legacy-store" as EventLogServerUnencrypted.StoreId
+        const mappingKey = (publicKey: string) => `@mapping/${publicKey}`
+        const storeKey = (storeId: EventLogServerUnencrypted.StoreId) => `@store/${storeId}`
 
         yield* storage.set("legacy-public-key", { storeId: legacyStore }, undefined)
+        yield* storage.set(storeKey(legacyStore), { provisioned: true }, undefined)
 
         const mapping = yield* EventLogServerUnencrypted.makeStoreMappingPersisted({
           storeId: persistedStoreId
@@ -1211,10 +1197,8 @@ describe("EventLogServerUnencrypted", () => {
 
         const metadataLikePublicKey = "@store/store-metadata-like"
         const metadataStore = "store-metadata-like" as EventLogServerUnencrypted.StoreId
-        yield* mapping.assign({
-          publicKey: metadataLikePublicKey,
-          storeId: metadataStore
-        })
+        yield* storage.set(mappingKey(metadataLikePublicKey), { storeId: metadataStore }, undefined)
+        yield* storage.set(storeKey(metadataStore), { provisioned: true }, undefined)
 
         const resolvedMetadataLike = yield* mapping.resolve(metadataLikePublicKey)
         assert.strictEqual(resolvedMetadataLike, metadataStore)
