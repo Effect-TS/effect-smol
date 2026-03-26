@@ -1,7 +1,6 @@
 /**
  * @since 4.0.0
  */
-import * as Uuid from "uuid"
 import type { Brand } from "../../Brand.ts"
 import type * as Cause from "../../Cause.ts"
 import * as Data from "../../Data.ts"
@@ -434,11 +433,6 @@ const toProtocolErrorMessage = (error: EventLogServerAuthError | EventLogServerS
     : "Internal server error"
 }
 
-const storeRemoteNamespace = "9e2f4ec9-ea57-44cc-ad6f-0f97d7f59fb5"
-
-const makeStoreRemoteId = (storeId: StoreId): RemoteId =>
-  Uuid.v5(toStoreKey(storeId), storeRemoteNamespace, new Uint8Array(16)) as RemoteId
-
 const makeClientIdentity = (publicKey: string): EventLog.Identity["Service"] => ({
   publicKey,
   privateKey: Redacted.make(new Uint8Array(32))
@@ -450,11 +444,42 @@ const makeRecoveryIdentityPublicKey = (storeId: StoreId): string =>
 const makeServerWriteIdentityPublicKey = (storeId: StoreId): string =>
   `effect-eventlog-server-write:${toStoreKey(storeId)}`
 
-const toReconciliationStartSequence = (nextRemoteSequence: number): number =>
-  nextRemoteSequence <= 0 ? 0 : nextRemoteSequence - 1
-
 const entriesAfter = (journal: Array<RemoteEntry>, startSequence: number): ReadonlyArray<RemoteEntry> =>
   journal.filter((entry) => entry.remoteSequence > startSequence)
+
+type StoreProcessingState = {
+  readonly semaphore: Semaphore.Semaphore
+  loadedProcessedSequence: number
+  readonly processedEntriesByCreatedAt: Array<Entry>
+}
+
+const insertEntryByCreatedAt = (history: Array<Entry>, entry: Entry): void => {
+  let index = history.length
+  while (index > 0 && history[index - 1]!.createdAtMillis > entry.createdAtMillis) {
+    index--
+  }
+  history.splice(index, 0, entry)
+}
+
+const toConflicts = (history: ReadonlyArray<Entry>, originEntry: Entry): ReadonlyArray<Entry> => {
+  for (let i = history.length - 1; i >= -1; i--) {
+    const entry = history[i]
+    if (entry !== undefined && entry.createdAtMillis > originEntry.createdAtMillis) {
+      continue
+    }
+
+    const conflicts: Array<Entry> = []
+    for (let j = i + 2; j < history.length; j++) {
+      const scannedEntry = history[j]!
+      if (scannedEntry.event === originEntry.event && scannedEntry.primaryKey === originEntry.primaryKey) {
+        conflicts.push(scannedEntry)
+      }
+    }
+    return conflicts
+  }
+
+  return []
+}
 
 type RegisteredCompactor = {
   readonly events: ReadonlySet<string>
@@ -719,7 +744,7 @@ export const layerStorageMemory: Layer.Layer<Storage> = Layer.effect(Storage)(ma
  * @category constructors
  */
 export const make = Effect.gen(function*() {
-  const journal = yield* EventJournal.EventJournal
+  yield* EventJournal.EventJournal
   const storage = yield* Storage
   const mapping = yield* StoreMapping
   const auth = yield* EventLogServerAuth
@@ -728,15 +753,73 @@ export const make = Effect.gen(function*() {
 
   const compactors = new Map<string, RegisteredCompactor>()
   const reactivityKeys: Record<string, ReadonlyArray<string>> = {}
-  const reconciledStores = new Set<string>()
-  const journalSemaphore = yield* Semaphore.make(1)
+  const storeProcessingState = new Map<string, StoreProcessingState>()
+  const storeProcessingStateSemaphore = yield* Semaphore.make(1)
 
-  const replayCommitted = Effect.fnUntraced(function*(options: {
+  const getStoreProcessingState = Effect.fnUntraced(function*(storeId: StoreId) {
+    const storeKey = toStoreKey(storeId)
+    const existing = storeProcessingState.get(storeKey)
+    if (existing !== undefined) {
+      return existing
+    }
+
+    return yield* storeProcessingStateSemaphore.withPermits(1)(
+      Effect.gen(function*() {
+        const inLock = storeProcessingState.get(storeKey)
+        if (inLock !== undefined) {
+          return inLock
+        }
+
+        const created: StoreProcessingState = {
+          semaphore: yield* Semaphore.make(1),
+          loadedProcessedSequence: 0,
+          processedEntriesByCreatedAt: []
+        }
+        yield* Effect.sync(() => {
+          storeProcessingState.set(storeKey, created)
+        })
+        return created
+      })
+    )
+  })
+
+  const processStoreFromStorage = Effect.fnUntraced(function*(options: {
     readonly storeId: StoreId
     readonly publicKey: string
-    readonly committed: ReadonlyArray<RemoteEntry>
+    readonly storeState: StoreProcessingState
   }) {
-    if (options.committed.length === 0) {
+    const checkpoint = yield* storage.processedSequence(options.storeId)
+
+    if (options.storeState.loadedProcessedSequence > checkpoint) {
+      const replayed = yield* storage.entries(options.storeId, 0)
+      yield* Effect.sync(() => {
+        options.storeState.processedEntriesByCreatedAt.length = 0
+        options.storeState.loadedProcessedSequence = 0
+        for (const remoteEntry of replayed) {
+          if (remoteEntry.remoteSequence > checkpoint) {
+            break
+          }
+          insertEntryByCreatedAt(options.storeState.processedEntriesByCreatedAt, remoteEntry.entry)
+          options.storeState.loadedProcessedSequence = remoteEntry.remoteSequence
+        }
+      })
+    } else if (options.storeState.loadedProcessedSequence < checkpoint) {
+      const replayed = yield* storage.entries(options.storeId, options.storeState.loadedProcessedSequence)
+      yield* Effect.sync(() => {
+        for (const remoteEntry of replayed) {
+          if (remoteEntry.remoteSequence > checkpoint) {
+            break
+          }
+          insertEntryByCreatedAt(options.storeState.processedEntriesByCreatedAt, remoteEntry.entry)
+          options.storeState.loadedProcessedSequence = remoteEntry.remoteSequence
+        }
+      })
+    }
+
+    const pending = (yield* storage.entries(options.storeId, checkpoint)).slice().sort((a, b) =>
+      a.remoteSequence - b.remoteSequence
+    )
+    if (pending.length === 0) {
       return
     }
 
@@ -751,67 +834,33 @@ export const make = Effect.gen(function*() {
       }
     })
 
-    yield* journalSemaphore.withPermits(1)(
-      journal.writeFromRemote({
-        remoteId: makeStoreRemoteId(options.storeId),
-        entries: options.committed,
-        effect: replayFromRemote
+    const newlyProcessed: Array<RemoteEntry> = []
+    for (const remoteEntry of pending) {
+      const conflicts = toConflicts(options.storeState.processedEntriesByCreatedAt, remoteEntry.entry)
+      yield* replayFromRemote({
+        entry: remoteEntry.entry,
+        conflicts
       })
-    )
-  })
-
-  const reconcileStore = Effect.fnUntraced(function*(storeId: StoreId) {
-    const storeKey = toStoreKey(storeId)
-    if (reconciledStores.has(storeKey)) {
-      return
+      yield* storage.markProcessed(options.storeId, remoteEntry.remoteSequence)
+      newlyProcessed.push(remoteEntry)
     }
-
-    const remoteId = makeStoreRemoteId(storeId)
-    const nextRemoteSequence = yield* journal.nextRemoteSequence(remoteId)
-    const startSequence = toReconciliationStartSequence(nextRemoteSequence)
-    const missing = yield* storage.entries(storeId, startSequence)
-
-    if (missing.length === 0) {
-      yield* Effect.sync(() => {
-        reconciledStores.add(storeKey)
-      })
-      return
-    }
-
-    yield* replayCommitted({
-      storeId,
-      publicKey: makeRecoveryIdentityPublicKey(storeId),
-      committed: missing
-    })
 
     yield* Effect.sync(() => {
-      reconciledStores.add(storeKey)
+      for (const remoteEntry of newlyProcessed) {
+        insertEntryByCreatedAt(options.storeState.processedEntriesByCreatedAt, remoteEntry.entry)
+        if (remoteEntry.remoteSequence > options.storeState.loadedProcessedSequence) {
+          options.storeState.loadedProcessedSequence = remoteEntry.remoteSequence
+        }
+      }
     })
   })
 
-  const markStoreNeedsReconciliation = (storeId: StoreId): Effect.Effect<void> =>
-    Effect.sync(() => {
-      reconciledStores.delete(toStoreKey(storeId))
-    })
-
-  const markStoreReconciled = (storeId: StoreId): Effect.Effect<void> =>
-    Effect.sync(() => {
-      reconciledStores.add(toStoreKey(storeId))
-    })
-
-  const replayCommittedForIngest = Effect.fnUntraced(function*(options: {
-    readonly storeId: StoreId
-    readonly publicKey: string
-    readonly committed: ReadonlyArray<RemoteEntry>
-  }) {
-    if (options.committed.length === 0) {
-      return
-    }
-
-    yield* replayCommitted(options).pipe(
-      Effect.tapError(() => markStoreNeedsReconciliation(options.storeId))
-    )
-    yield* markStoreReconciled(options.storeId)
+  const withStoreProcessingLock = Effect.fnUntraced(function*<A, E, R>(
+    storeId: StoreId,
+    effect: (storeState: StoreProcessingState) => Effect.Effect<A, E, R>
+  ): Effect.fn.Return<A, E, R> {
+    const storeState = yield* getStoreProcessingState(storeId)
+    return yield* storeState.semaphore.withPermits(1)(effect(storeState))
   })
 
   const persistAndReplay = Effect.fnUntraced(function*(options: {
@@ -819,16 +868,24 @@ export const make = Effect.gen(function*() {
     readonly publicKey: string
     readonly entries: ReadonlyArray<Entry>
   }) {
-    yield* reconcileStore(options.storeId)
+    return yield* withStoreProcessingLock(options.storeId, (storeState) =>
+      Effect.gen(function*() {
+        yield* processStoreFromStorage({
+          storeId: options.storeId,
+          publicKey: makeRecoveryIdentityPublicKey(options.storeId),
+          storeState
+        })
 
-    const persisted = yield* storage.write(options.storeId, options.entries)
-    yield* replayCommittedForIngest({
-      storeId: options.storeId,
-      publicKey: options.publicKey,
-      committed: persisted.committed
-    })
+        const persisted = yield* storage.write(options.storeId, options.entries)
 
-    return persisted
+        yield* processStoreFromStorage({
+          storeId: options.storeId,
+          publicKey: options.publicKey,
+          storeState
+        })
+
+        return persisted
+      }))
   })
 
   const findSchemaEvent = <Groups extends EventGroup.Any>(
@@ -916,7 +973,12 @@ export const make = Effect.gen(function*() {
         storeId
       })
 
-      yield* reconcileStore(storeId)
+      yield* withStoreProcessingLock(storeId, (storeState) =>
+        processStoreFromStorage({
+          storeId,
+          publicKey: makeRecoveryIdentityPublicKey(storeId),
+          storeState
+        }))
 
       const backlog = yield* storage.entries(storeId, 0)
       const projectedBacklog = yield* compactBacklog({
