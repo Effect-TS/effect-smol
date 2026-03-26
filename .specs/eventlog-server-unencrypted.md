@@ -925,7 +925,7 @@ its own.
 - [x] Task 2: Add store-scoped core types and transport storage
 - [x] Task 3: Add store mapping services and implementations
 - [x] Task 4: Build store-aware ingest and shared replay helpers
-- [ ] Task 5: Add server-authored `write(..., storeId)` support
+- [x] Task 5: Add server-authored `write(..., storeId)` support
 - [ ] Task 6: Add read-time compaction over store-scoped outbound feeds
 - [ ] Task 7: Expose websocket / HTTP handlers and complete integration coverage
 
@@ -1167,6 +1167,33 @@ Validation for this task:
 - `pnpm check:tsgo`
 - `pnpm docgen` if public docs are affected
 - `pnpm codegen` if exports change
+
+### Task 5 implementation notes
+
+- Added `EventLogServerUnencrypted.write({ schema, storeId, event, payload, entryId? })`
+  to the runtime service.
+- Server-authored writes now use the same store-aware persistence + replay
+  pipeline as ingest (`reconcile -> storage.write -> writeFromRemote replay`).
+- Unknown / unprovisioned store writes now fail with
+  `EventLogServerStoreError({ reason: "NotFound", storeId })`.
+- Extended `StoreMapping` with `hasStore(storeId)` so runtime write validation
+  can distinguish provisioned stores.
+- `makeStoreMappingMemory` now tracks provisioned stores from `assign(...)`.
+- `makeStoreMappingPersisted` now persists store-provision markers and
+  backfills those markers when resolving legacy mapping records so existing
+  persisted mappings remain compatible.
+- Added focused server-write tests covering:
+  - shared-store fan-out visibility
+  - explicit `entryId` idempotent retry behavior
+  - duplicate-entry first-write-wins semantics
+  - unknown-store `NotFound` failure
+
+Discovery / issue note:
+
+- Persisted mapping data created before store-provision markers existed may not
+  include explicit store provisioning records. The runtime now backfills the
+  marker on successful `resolve(publicKey)` so legacy persisted mappings can be
+  upgraded lazily without manual migration.
 
 ### Task 5: Add server-authored `write(..., storeId)` support
 

@@ -21,7 +21,14 @@ import * as ReactivityLayer from "../reactivity/Reactivity.ts"
 import type * as Event from "./Event.ts"
 import type * as EventGroup from "./EventGroup.ts"
 import * as EventJournal from "./EventJournal.ts"
-import { type Entry, makeRemoteIdUnsafe, RemoteEntry, type RemoteId } from "./EventJournal.ts"
+import {
+  type Entry,
+  type EntryId,
+  makeEntryIdUnsafe,
+  makeRemoteIdUnsafe,
+  RemoteEntry,
+  type RemoteId
+} from "./EventJournal.ts"
 import * as EventLog from "./EventLog.ts"
 
 /**
@@ -96,6 +103,7 @@ export class StoreMapping extends ServiceMap.Service<StoreMapping, {
     readonly publicKey: string
     readonly storeId: StoreId
   }) => Effect.Effect<void, EventLogServerStoreError>
+  readonly hasStore: (storeId: StoreId) => Effect.Effect<boolean, EventLogServerStoreError>
 }>()("effect/eventlog/EventLogServerUnencrypted/StoreMapping") {}
 
 class PersistedStoreMapping extends Schema.Class<PersistedStoreMapping>(
@@ -104,13 +112,27 @@ class PersistedStoreMapping extends Schema.Class<PersistedStoreMapping>(
   storeId: StoreId
 }) {}
 
+class PersistedStoreProvision extends Schema.Class<PersistedStoreProvision>(
+  "effect/eventlog/EventLogServerUnencrypted/PersistedStoreProvision"
+)({
+  provisioned: Schema.Literal(true)
+}) {}
+
 const decodePersistedStoreMapping = Schema.decodeUnknownEffect(PersistedStoreMapping)
+const decodePersistedStoreProvision = Schema.decodeUnknownEffect(PersistedStoreProvision)
 
 const toNotFoundError = (publicKey: string) =>
   new EventLogServerStoreError({
     reason: "NotFound",
     publicKey,
     message: `No store mapping found for public key: ${publicKey}`
+  })
+
+const toStoreNotFoundError = (storeId: StoreId) =>
+  new EventLogServerStoreError({
+    reason: "NotFound",
+    storeId,
+    message: `No provisioned store found for store id: ${storeId}`
   })
 
 const toPersistenceFailure = (options: {
@@ -132,6 +154,7 @@ const toPersistenceFailure = (options: {
  */
 export const makeStoreMappingMemory: Effect.Effect<StoreMapping["Service"]> = Effect.sync(() => {
   const mappings = new Map<string, StoreId>()
+  const knownStores = new Set<string>()
 
   return StoreMapping.of({
     resolve: Effect.fnUntraced(function*(publicKey: string) {
@@ -143,6 +166,10 @@ export const makeStoreMappingMemory: Effect.Effect<StoreMapping["Service"]> = Ef
     }),
     assign: Effect.fnUntraced(function*({ publicKey, storeId }) {
       mappings.set(publicKey, storeId)
+      knownStores.add(toStoreKey(storeId))
+    }),
+    hasStore: Effect.fnUntraced(function*(storeId: StoreId) {
+      return knownStores.has(toStoreKey(storeId))
     })
   })
 })
@@ -162,6 +189,7 @@ export const makeStoreMappingPersisted = Effect.fnUntraced(function*(options: {
 }) {
   const backing = yield* Persistence.BackingPersistence
   const storage = yield* backing.make(options.storeId)
+  const toStoreProvisionKey = (storeId: StoreId): string => `@store/${toStoreKey(storeId)}`
 
   return StoreMapping.of({
     resolve: Effect.fnUntraced(function*(publicKey: string) {
@@ -186,6 +214,20 @@ export const makeStoreMappingPersisted = Effect.fnUntraced(function*(options: {
         )
       )
 
+      yield* storage.set(
+        toStoreProvisionKey(decoded.storeId),
+        new PersistedStoreProvision({ provisioned: true }),
+        undefined
+      ).pipe(
+        Effect.mapError(
+          toPersistenceFailure({
+            publicKey,
+            storeId: decoded.storeId,
+            message: `Failed to backfill store provisioning for public key: ${publicKey}`
+          })
+        )
+      )
+
       return decoded.storeId
     }),
     assign: Effect.fnUntraced(function*({ publicKey, storeId }) {
@@ -198,6 +240,44 @@ export const makeStoreMappingPersisted = Effect.fnUntraced(function*(options: {
           })
         )
       )
+
+      yield* storage.set(
+        toStoreProvisionKey(storeId),
+        new PersistedStoreProvision({ provisioned: true }),
+        undefined
+      ).pipe(
+        Effect.mapError(
+          toPersistenceFailure({
+            publicKey,
+            storeId,
+            message: `Failed to persist store provisioning for public key: ${publicKey}`
+          })
+        )
+      )
+    }),
+    hasStore: Effect.fnUntraced(function*(storeId: StoreId) {
+      const encoded = yield* storage.get(toStoreProvisionKey(storeId)).pipe(
+        Effect.mapError(
+          toPersistenceFailure({
+            storeId,
+            message: `Failed to resolve store provisioning for store id: ${storeId}`
+          })
+        )
+      )
+      if (encoded === undefined) {
+        return false
+      }
+
+      const decoded = yield* decodePersistedStoreProvision(encoded).pipe(
+        Effect.mapError(
+          toPersistenceFailure({
+            storeId,
+            message: `Failed to decode store provisioning for store id: ${storeId}`
+          })
+        )
+      )
+
+      return decoded.provisioned
     })
   })
 })
@@ -247,6 +327,13 @@ export class EventLogServerUnencrypted extends ServiceMap.Service<EventLogServer
     readonly sequenceNumbers: ReadonlyArray<number>
     readonly committed: ReadonlyArray<RemoteEntry>
   }, EventLogServerAuthError | EventLogServerStoreError | EventJournal.EventJournalError>
+  readonly write: <Groups extends EventGroup.Any, Tag extends Event.Tag<EventGroup.Events<Groups>>>(options: {
+    readonly schema: EventLog.EventLogSchema<Groups>
+    readonly storeId: StoreId
+    readonly event: Tag
+    readonly payload: Event.PayloadWithTag<EventGroup.Events<Groups>, Tag>
+    readonly entryId?: EntryId | undefined
+  }) => Effect.Effect<void, EventLogServerStoreError | EventJournal.EventJournalError>
   readonly requestChanges: (
     publicKey: string,
     startSequence: number
@@ -279,6 +366,9 @@ const makeClientIdentity = (publicKey: string): EventLog.Identity["Service"] => 
 
 const makeRecoveryIdentityPublicKey = (storeId: StoreId): string =>
   `effect-eventlog-server-recovery:${toStoreKey(storeId)}`
+
+const makeServerWriteIdentityPublicKey = (storeId: StoreId): string =>
+  `effect-eventlog-server-write:${toStoreKey(storeId)}`
 
 const toReconciliationStartSequence = (nextRemoteSequence: number): number =>
   nextRemoteSequence <= 0 ? 0 : nextRemoteSequence - 1
@@ -506,6 +596,83 @@ export const make = Effect.gen(function*() {
     yield* markStoreReconciled(options.storeId)
   })
 
+  const persistAndReplay = Effect.fnUntraced(function*(options: {
+    readonly storeId: StoreId
+    readonly publicKey: string
+    readonly entries: ReadonlyArray<Entry>
+  }) {
+    yield* reconcileStore(options.storeId)
+
+    const persisted = yield* storage.write(options.storeId, options.entries)
+    yield* replayCommittedForIngest({
+      storeId: options.storeId,
+      publicKey: options.publicKey,
+      committed: persisted.committed
+    })
+
+    return persisted
+  })
+
+  const findSchemaEvent = <Groups extends EventGroup.Any>(
+    schema: EventLog.EventLogSchema<Groups>,
+    event: string
+  ): Event.AnyWithProps | undefined => {
+    for (const group of schema.groups as unknown as ReadonlyArray<EventGroup.EventGroup<Event.Any>>) {
+      const schemaEvent = group.events[event]
+      if (schemaEvent !== undefined) {
+        return schemaEvent
+      }
+    }
+
+    return undefined
+  }
+
+  const ensureStoreExists = Effect.fnUntraced(function*(storeId: StoreId) {
+    const provisioned = yield* mapping.hasStore(storeId)
+    if (provisioned) {
+      return
+    }
+
+    const existing = yield* storage.entries(storeId, 0)
+    if (existing.length > 0) {
+      return
+    }
+
+    return yield* Effect.fail(toStoreNotFoundError(storeId))
+  })
+
+  const serverWrite = Effect.fnUntraced(function*(options: {
+    readonly schema: EventLog.EventLogSchema<any>
+    readonly storeId: StoreId
+    readonly event: string
+    readonly payload: unknown
+    readonly entryId?: EntryId | undefined
+  }) {
+    yield* ensureStoreExists(options.storeId)
+
+    const schemaEvent = findSchemaEvent(options.schema, options.event)
+    if (schemaEvent === undefined) {
+      return yield* Effect.die(`Event schema not found for: "${options.event}"`)
+    }
+
+    const payload = yield* Schema.encodeUnknownEffect(schemaEvent.payloadMsgPack)(options.payload).pipe(
+      Effect.orDie
+    )
+
+    const entry = new EventJournal.Entry({
+      id: options.entryId ?? makeEntryIdUnsafe(),
+      event: options.event,
+      primaryKey: schemaEvent.primaryKey(options.payload),
+      payload
+    }, { disableChecks: true })
+
+    yield* persistAndReplay({
+      storeId: options.storeId,
+      publicKey: makeServerWriteIdentityPublicKey(options.storeId),
+      entries: [entry]
+    })
+  })
+
   return EventLogServerUnencrypted.of({
     ingest: Effect.fnUntraced(function*({ publicKey, entries }) {
       const storeId = yield* mapping.resolve(publicKey)
@@ -515,13 +682,10 @@ export const make = Effect.gen(function*() {
         entries
       })
 
-      yield* reconcileStore(storeId)
-
-      const persisted = yield* storage.write(storeId, entries)
-      yield* replayCommittedForIngest({
+      const persisted = yield* persistAndReplay({
         storeId,
         publicKey,
-        committed: persisted.committed
+        entries
       })
 
       return {
@@ -530,6 +694,7 @@ export const make = Effect.gen(function*() {
         committed: persisted.committed
       }
     }),
+    write: serverWrite as EventLogServerUnencrypted["Service"]["write"],
     requestChanges: Effect.fnUntraced(function*(publicKey: string, startSequence: number) {
       const storeId = yield* mapping.resolve(publicKey)
       yield* auth.authorizeRead({
