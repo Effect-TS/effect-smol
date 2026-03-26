@@ -676,6 +676,13 @@ Validation for this task:
 These are not part of this request, but they may become easier after the
 cleanup:
 
+- add a deterministic concurrency-focused regression test that drives two
+  simultaneous catch-up paths for the same `StoreId` and proves handler /
+  Reactivity execution remains exactly-once under overlap
+- document and evaluate whether multi-runtime deployments need storage-level
+  coordination (for example, a distributed lock or compare-and-set checkpoint
+  primitive) to guarantee exactly-once processing across processes
+
 - adding a persisted `Storage` implementation that carries both entries and
   processing checkpoints
 - extracting more shared event-processing utilities between
