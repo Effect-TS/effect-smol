@@ -500,7 +500,7 @@ describe.concurrent("Sharding", () => {
       expect(state.layerBuilds.current).toEqual(2)
     }).pipe(Effect.provide(TestSharding)))
 
-  it.effect.only("WithTransaction is propagated to the entity handler", () =>
+  it.effect("WithTransaction is propagated to the entity handler", () =>
     Effect.gen(function*() {
       let isTransaction = false
       yield* Effect.gen(function*() {
