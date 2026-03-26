@@ -666,7 +666,13 @@ export const fromSocketUnencrypted = Effect.fnUntraced(function*(options?: {
         if (res.requestTag === "RequestChanges" && res.publicKey !== undefined) {
           const publicKey = res.publicKey
           return Effect.gen(function*() {
+            const hasSubscription = yield* RcMap.has(subscriptions, publicKey)
+            if (!hasSubscription) {
+              return
+            }
             const queue = yield* RcMap.get(subscriptions, publicKey)
+            identities.delete(publicKey)
+            yield* RcMap.invalidate(subscriptions, publicKey)
             yield* Queue.fail(
               queue,
               new EventLogRemoteError({

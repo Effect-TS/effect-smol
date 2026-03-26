@@ -158,6 +158,51 @@ describe("EventLogRemote", () => {
       })
     ))
 
+  it.effect("fromSocketUnencrypted can re-subscribe after a RequestChanges error", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const { harness, remote } = yield* makeRemoteHarness
+        const identity = EventLog.makeIdentityUnsafe()
+
+        const firstQueue = yield* remote.changes(identity, 0)
+        const firstRequest = yield* harness.takeRequestRaw.pipe(Effect.flatMap(EventLogRemote.decodeRequestUnencrypted))
+        if (firstRequest._tag !== "RequestChanges") {
+          throw new Error(`Expected RequestChanges, got ${firstRequest._tag}`)
+        }
+
+        yield* harness.sendResponse(
+          new EventLogRemote.ErrorUnencrypted({
+            requestTag: "RequestChanges",
+            publicKey: identity.publicKey,
+            code: "Unauthorized",
+            message: "read rejected"
+          })
+        )
+
+        yield* Queue.takeAll(firstQueue).pipe(Effect.flip)
+
+        const secondQueue = yield* remote.changes(identity, 0)
+        const secondRequest = yield* harness.takeRequestRaw.pipe(
+          Effect.flatMap(EventLogRemote.decodeRequestUnencrypted)
+        )
+        if (secondRequest._tag !== "RequestChanges") {
+          throw new Error(`Expected RequestChanges, got ${secondRequest._tag}`)
+        }
+
+        const entry = makeEntry()
+        yield* harness.sendResponse(
+          new EventLogRemote.ChangesUnencrypted({
+            publicKey: identity.publicKey,
+            entries: [new EventJournal.RemoteEntry({ remoteSequence: 1, entry })]
+          })
+        )
+
+        const changes = yield* Queue.takeAll(secondQueue)
+        assert.strictEqual(changes.length, 1)
+        assert.strictEqual(changes[0].entry.idString, entry.idString)
+      })
+    ))
+
   it.effect("chunked unencrypted Changes messages round-trip through fromSocketUnencrypted", () =>
     Effect.scoped(
       Effect.gen(function*() {
