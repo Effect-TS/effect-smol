@@ -1044,11 +1044,19 @@ Validation for this task:
   - reassignment semantics
   - `NotFound` error shape for unknown keys
   - persistence across mapping-service recreation using backing persistence
+  - invalid persisted payload decode mapped to
+    `EventLogServerStoreError({ reason: "PersistenceFailure" })`
 
 Discovery / issue note:
 
 - `Schema.decodeUnknown` is not available in the current codebase API; decoding
   for persisted mappings uses `Schema.decodeUnknownEffect`.
+
+Follow-up task:
+
+- add a deterministic test that injects backing-store read/write failures for
+  `makeStoreMappingPersisted` (beyond decode failures) so
+  `PersistenceFailure` mapping is covered for I/O-level errors too.
 
 Scope:
 
