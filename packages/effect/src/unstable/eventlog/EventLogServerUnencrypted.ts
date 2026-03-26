@@ -627,73 +627,69 @@ export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.S
 
   return Storage.of({
     getId: Effect.succeed(remoteId),
-    write: (storeId, entries) =>
-      Effect.gen(function*() {
-        const storeKey = toStoreKey(storeId)
-        const active = yield* RcMap.keys(pubsubs)
-        let pubsub: PubSub.PubSub<RemoteEntry> | undefined
-        for (const key of active) {
-          if (key === storeKey) {
-            pubsub = yield* RcMap.get(pubsubs, storeKey)
-            break
-          }
+    write: Effect.fnUntraced(function*(storeId, entries) {
+      const storeKey = toStoreKey(storeId)
+      const active = yield* RcMap.keys(pubsubs)
+      let pubsub: PubSub.PubSub<RemoteEntry> | undefined
+      for (const key of active) {
+        if (key === storeKey) {
+          pubsub = yield* RcMap.get(pubsubs, storeKey)
+          break
+        }
+      }
+
+      const knownIds = ensureKnownIds(storeId)
+      const journal = ensureJournal(storeId)
+      const sequenceNumbers: Array<number> = []
+      const committed: Array<RemoteEntry> = []
+
+      for (const entry of entries) {
+        const existing = knownIds.get(entry.idString)
+        if (existing !== undefined) {
+          sequenceNumbers.push(existing)
+          continue
         }
 
-        const knownIds = ensureKnownIds(storeId)
-        const journal = ensureJournal(storeId)
-        const sequenceNumbers: Array<number> = []
-        const committed: Array<RemoteEntry> = []
+        const remoteEntry = new RemoteEntry({
+          remoteSequence: journal.length + 1,
+          entry
+        }, { disableChecks: true })
 
-        for (const entry of entries) {
-          const existing = knownIds.get(entry.idString)
-          if (existing !== undefined) {
-            sequenceNumbers.push(existing)
-            continue
-          }
+        knownIds.set(entry.idString, remoteEntry.remoteSequence)
+        journal.push(remoteEntry)
+        sequenceNumbers.push(remoteEntry.remoteSequence)
+        committed.push(remoteEntry)
 
-          const remoteEntry = new RemoteEntry({
-            remoteSequence: journal.length + 1,
-            entry
-          }, { disableChecks: true })
-
-          knownIds.set(entry.idString, remoteEntry.remoteSequence)
-          journal.push(remoteEntry)
-          sequenceNumbers.push(remoteEntry.remoteSequence)
-          committed.push(remoteEntry)
-
-          if (pubsub) {
-            yield* PubSub.publish(pubsub, remoteEntry)
-          }
+        if (pubsub) {
+          yield* PubSub.publish(pubsub, remoteEntry)
         }
+      }
 
-        return {
-          sequenceNumbers,
-          committed
-        }
-      }).pipe(Effect.scoped),
+      return {
+        sequenceNumbers,
+        committed
+      }
+    }, Effect.scoped),
     entries: (storeId, startSequence) => Effect.sync(() => entriesAfter(ensureJournal(storeId), startSequence)),
-    changes: (storeId, startSequence) =>
-      Effect.gen(function*() {
-        const storeKey = toStoreKey(storeId)
-        const queue = yield* Queue.make<RemoteEntry>()
-        const pubsub = yield* RcMap.get(pubsubs, storeKey)
-        const subscription = yield* PubSub.subscribe(pubsub)
+    changes: Effect.fnUntraced(function*(storeId, startSequence) {
+      const storeKey = toStoreKey(storeId)
+      const queue = yield* Queue.make<RemoteEntry>()
+      const pubsub = yield* RcMap.get(pubsubs, storeKey)
+      const subscription = yield* PubSub.subscribe(pubsub)
 
-        const backlog = entriesAfter(ensureJournal(storeId), startSequence)
-        const replayedUpTo = backlog.length > 0 ? backlog[backlog.length - 1].remoteSequence : startSequence
+      const backlog = entriesAfter(ensureJournal(storeId), startSequence)
+      const replayedUpTo = backlog.length > 0 ? backlog[backlog.length - 1].remoteSequence : startSequence
 
-        yield* Queue.offerAll(queue, backlog)
-        yield* PubSub.takeAll(subscription).pipe(
-          Effect.flatMap((chunk) =>
-            Queue.offerAll(queue, chunk.filter((entry) => entry.remoteSequence > replayedUpTo))
-          ),
-          Effect.forever,
-          Effect.forkScoped
-        )
+      yield* Queue.offerAll(queue, backlog)
+      yield* PubSub.takeAll(subscription).pipe(
+        Effect.flatMap((chunk) => Queue.offerAll(queue, chunk.filter((entry) => entry.remoteSequence > replayedUpTo))),
+        Effect.forever,
+        Effect.forkScoped
+      )
 
-        yield* Effect.addFinalizer(() => Queue.shutdown(queue))
-        return Queue.asDequeue(queue)
-      })
+      yield* Effect.addFinalizer(() => Queue.shutdown(queue))
+      return Queue.asDequeue(queue)
+    })
   })
 })
 
