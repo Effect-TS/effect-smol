@@ -90,13 +90,20 @@ const makeJournalFailingFirstRemoteWrite: Effect.Effect<EventJournal.EventJourna
   }
 )
 
-const makeUserCreatedEntry = (id: string): Effect.Effect<EventJournal.Entry> =>
+const makeUserCreatedEntry = (
+  id: string,
+  options?: {
+    readonly createdAtMillis?: number | undefined
+  }
+): Effect.Effect<EventJournal.Entry> =>
   Effect.gen(function*() {
     const payload = yield* Schema.encodeUnknownEffect(UserGroup.events.UserCreated.payloadMsgPack)({ id }).pipe(
       Effect.orDie
     )
     return new EventJournal.Entry({
-      id: EventJournal.makeEntryIdUnsafe(),
+      id: EventJournal.makeEntryIdUnsafe(
+        options?.createdAtMillis === undefined ? undefined : { msecs: options.createdAtMillis }
+      ),
       event: "UserCreated",
       primaryKey: id,
       payload
@@ -436,6 +443,212 @@ describe("EventLogServerUnencrypted", () => {
       assert.strictEqual(error.reason, "NotFound")
       assert.strictEqual(error.storeId, "unprovisioned-store")
     }))
+
+  it.effect("requestChanges compacts only backlog entries older than olderThan while keeping newer entries raw", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const handled = yield* Ref.make<ReadonlyArray<string>>([])
+
+        yield* Effect.gen(function*() {
+          const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+          const mapping = yield* EventLogServerUnencrypted.StoreMapping
+          const storeId = "store-compaction-cutoff" as EventLogServerUnencrypted.StoreId
+          const now = Date.now()
+
+          yield* mapping.assign({
+            publicKey: "public-key-compaction-cutoff",
+            storeId
+          })
+
+          yield* runtime.registerCompaction({
+            events: ["UserCreated"],
+            olderThan: "5 seconds",
+            effect: Effect.fnUntraced(function*({ entries, write }) {
+              const payload = yield* Schema.encodeUnknownEffect(UserGroup.events.UserCreated.payloadMsgPack)({
+                id: `${entries[0]!.primaryKey}-compacted`
+              }).pipe(Effect.orDie)
+
+              yield* write(
+                new EventJournal.Entry({
+                  id: EventJournal.makeEntryIdUnsafe({ msecs: entries[0]!.createdAtMillis }),
+                  event: "UserCreated",
+                  primaryKey: `${entries[0]!.primaryKey}-compacted`,
+                  payload
+                }, { disableChecks: true })
+              )
+            })
+          })
+
+          yield* runtime.ingest({
+            publicKey: "public-key-compaction-cutoff",
+            entries: [
+              yield* makeUserCreatedEntry("old-user", { createdAtMillis: now - 20_000 }),
+              yield* makeUserCreatedEntry("old-user", { createdAtMillis: now - 15_000 }),
+              yield* makeUserCreatedEntry("recent-user", { createdAtMillis: now - 1_000 })
+            ]
+          })
+
+          const fromStart = yield* runtime.requestChanges("public-key-compaction-cutoff", 0)
+          const first = yield* Queue.take(fromStart)
+          const second = yield* Queue.take(fromStart)
+
+          assert.deepStrictEqual(
+            [first.remoteSequence, second.remoteSequence],
+            [2, 3]
+          )
+          assert.deepStrictEqual(
+            [first.entry.primaryKey, second.entry.primaryKey],
+            ["old-user-compacted", "recent-user"]
+          )
+        }).pipe(Effect.provide(runtimeLayer(handled)))
+      })
+    ))
+
+  it.effect("requestChanges emits strictly monotonic representative sequences that remain cursor-safe", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const handled = yield* Ref.make<ReadonlyArray<string>>([])
+
+        yield* Effect.gen(function*() {
+          const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+          const mapping = yield* EventLogServerUnencrypted.StoreMapping
+          const storeId = "store-compaction-cursor" as EventLogServerUnencrypted.StoreId
+          const now = Date.now()
+
+          yield* mapping.assign({
+            publicKey: "public-key-compaction-cursor",
+            storeId
+          })
+
+          yield* runtime.registerCompaction({
+            events: ["UserCreated"],
+            olderThan: "5 seconds",
+            effect: Effect.fnUntraced(function*({ entries, write }) {
+              const payloadFirst = yield* Schema.encodeUnknownEffect(UserGroup.events.UserCreated.payloadMsgPack)({
+                id: `${entries[0]!.primaryKey}-snapshot-1`
+              }).pipe(Effect.orDie)
+              const payloadSecond = yield* Schema.encodeUnknownEffect(UserGroup.events.UserCreated.payloadMsgPack)({
+                id: `${entries[0]!.primaryKey}-snapshot-2`
+              }).pipe(Effect.orDie)
+
+              yield* write(
+                new EventJournal.Entry({
+                  id: EventJournal.makeEntryIdUnsafe({ msecs: entries[0]!.createdAtMillis }),
+                  event: "UserCreated",
+                  primaryKey: `${entries[0]!.primaryKey}-snapshot-1`,
+                  payload: payloadFirst
+                }, { disableChecks: true })
+              )
+              yield* write(
+                new EventJournal.Entry({
+                  id: EventJournal.makeEntryIdUnsafe({ msecs: entries[entries.length - 1]!.createdAtMillis }),
+                  event: "UserCreated",
+                  primaryKey: `${entries[0]!.primaryKey}-snapshot-2`,
+                  payload: payloadSecond
+                }, { disableChecks: true })
+              )
+            })
+          })
+
+          yield* runtime.ingest({
+            publicKey: "public-key-compaction-cursor",
+            entries: [
+              yield* makeUserCreatedEntry("history-user", { createdAtMillis: now - 20_000 }),
+              yield* makeUserCreatedEntry("history-user", { createdAtMillis: now - 19_000 }),
+              yield* makeUserCreatedEntry("history-user", { createdAtMillis: now - 18_000 }),
+              yield* makeUserCreatedEntry("recent-user", { createdAtMillis: now - 1_000 })
+            ]
+          })
+
+          const fromStart = yield* runtime.requestChanges("public-key-compaction-cursor", 0)
+          const startFirst = yield* Queue.take(fromStart)
+          const startSecond = yield* Queue.take(fromStart)
+          const startThird = yield* Queue.take(fromStart)
+
+          assert.deepStrictEqual(
+            [startFirst.remoteSequence, startSecond.remoteSequence, startThird.remoteSequence],
+            [1, 3, 4]
+          )
+
+          const fromOne = yield* runtime.requestChanges("public-key-compaction-cursor", 1)
+          const fromOneFirst = yield* Queue.take(fromOne)
+          const fromOneSecond = yield* Queue.take(fromOne)
+          assert.deepStrictEqual(
+            [fromOneFirst.remoteSequence, fromOneSecond.remoteSequence],
+            [3, 4]
+          )
+
+          const fromThree = yield* runtime.requestChanges("public-key-compaction-cursor", 3)
+          const fromThreeOnly = yield* Queue.take(fromThree)
+          assert.strictEqual(fromThreeOnly.remoteSequence, 4)
+        }).pipe(Effect.provide(runtimeLayer(handled)))
+      })
+    ))
+
+  it.effect("public keys sharing one StoreId observe compatible compacted cursors", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const handled = yield* Ref.make<ReadonlyArray<string>>([])
+
+        yield* Effect.gen(function*() {
+          const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+          const mapping = yield* EventLogServerUnencrypted.StoreMapping
+          const storeId = "store-compaction-shared-cursor" as EventLogServerUnencrypted.StoreId
+          const now = Date.now()
+
+          yield* mapping.assign({ publicKey: "public-key-compaction-a", storeId })
+          yield* mapping.assign({ publicKey: "public-key-compaction-b", storeId })
+
+          yield* runtime.registerCompaction({
+            events: ["UserCreated"],
+            olderThan: "5 seconds",
+            effect: Effect.fnUntraced(function*({ entries, write }) {
+              const payload = yield* Schema.encodeUnknownEffect(UserGroup.events.UserCreated.payloadMsgPack)({
+                id: `${entries[0]!.primaryKey}-shared-compacted`
+              }).pipe(Effect.orDie)
+
+              yield* write(
+                new EventJournal.Entry({
+                  id: EventJournal.makeEntryIdUnsafe({ msecs: entries[0]!.createdAtMillis }),
+                  event: "UserCreated",
+                  primaryKey: `${entries[0]!.primaryKey}-shared-compacted`,
+                  payload
+                }, { disableChecks: true })
+              )
+            })
+          })
+
+          yield* runtime.ingest({
+            publicKey: "public-key-compaction-a",
+            entries: [yield* makeUserCreatedEntry("shared-history", { createdAtMillis: now - 20_000 })]
+          })
+          yield* runtime.ingest({
+            publicKey: "public-key-compaction-b",
+            entries: [yield* makeUserCreatedEntry("shared-history", { createdAtMillis: now - 19_000 })]
+          })
+          yield* runtime.ingest({
+            publicKey: "public-key-compaction-a",
+            entries: [yield* makeUserCreatedEntry("shared-recent", { createdAtMillis: now - 1_000 })]
+          })
+
+          const fromAStart = yield* runtime.requestChanges("public-key-compaction-a", 0)
+          const fromAFirst = yield* Queue.take(fromAStart)
+          const fromASecond = yield* Queue.take(fromAStart)
+          assert.deepStrictEqual([fromAFirst.remoteSequence, fromASecond.remoteSequence], [2, 3])
+
+          const fromBAtCursor = yield* runtime.requestChanges("public-key-compaction-b", fromAFirst.remoteSequence)
+          const fromBCursorOnly = yield* Queue.take(fromBAtCursor)
+
+          const fromAAtCursor = yield* runtime.requestChanges("public-key-compaction-a", fromAFirst.remoteSequence)
+          const fromACursorOnly = yield* Queue.take(fromAAtCursor)
+
+          assert.strictEqual(fromBCursorOnly.remoteSequence, 3)
+          assert.strictEqual(fromACursorOnly.remoteSequence, 3)
+          assert.strictEqual(fromBCursorOnly.entry.primaryKey, "shared-recent")
+          assert.strictEqual(fromACursorOnly.entry.primaryKey, "shared-recent")
+        }).pipe(Effect.provide(runtimeLayer(handled)))
+      })
+    ))
 
   it.effect("reconciliation replays persisted backlog exactly once without duplicate handler or Reactivity execution", () =>
     Effect.scoped(
