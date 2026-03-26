@@ -286,6 +286,157 @@ describe("EventLogServerUnencrypted", () => {
       })
     ))
 
+  it.effect("server-authored write broadcasts once to all subscribers mapped to a shared store", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const handled = yield* Ref.make<ReadonlyArray<string>>([])
+
+        yield* Effect.gen(function*() {
+          const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+          const mapping = yield* EventLogServerUnencrypted.StoreMapping
+          const storeId = "store-server-fanout" as EventLogServerUnencrypted.StoreId
+
+          yield* mapping.assign({ publicKey: "fanout-public-key-a", storeId })
+          yield* mapping.assign({ publicKey: "fanout-public-key-b", storeId })
+
+          yield* runtime.write({
+            schema,
+            storeId,
+            event: "UserCreated",
+            payload: { id: "user-server-fanout" }
+          })
+
+          const changesA = yield* runtime.requestChanges("fanout-public-key-a", 0)
+          const changesB = yield* runtime.requestChanges("fanout-public-key-b", 0)
+
+          const changeA = yield* Queue.take(changesA)
+          const changeB = yield* Queue.take(changesB)
+
+          assert.strictEqual(changeA.remoteSequence, 1)
+          assert.strictEqual(changeB.remoteSequence, 1)
+          assert.strictEqual(changeA.entry.primaryKey, "user-server-fanout")
+          assert.strictEqual(changeB.entry.primaryKey, "user-server-fanout")
+
+          const seen = yield* Ref.get(handled)
+          assert.deepStrictEqual(seen, ["user-server-fanout"])
+        }).pipe(Effect.provide(runtimeLayer(handled)))
+      })
+    ))
+
+  it.effect("server-authored write retries are idempotent when entryId is provided", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const handled = yield* Ref.make<ReadonlyArray<string>>([])
+
+        yield* Effect.gen(function*() {
+          const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+          const mapping = yield* EventLogServerUnencrypted.StoreMapping
+          const storeId = "store-server-idempotent" as EventLogServerUnencrypted.StoreId
+          const entryId = EventJournal.makeEntryIdUnsafe()
+
+          yield* mapping.assign({ publicKey: "idempotent-public-key", storeId })
+
+          yield* runtime.write({
+            schema,
+            storeId,
+            event: "UserCreated",
+            payload: { id: "user-server-idempotent" },
+            entryId
+          })
+          yield* runtime.write({
+            schema,
+            storeId,
+            event: "UserCreated",
+            payload: { id: "user-server-idempotent" },
+            entryId
+          })
+
+          const changes = yield* runtime.requestChanges("idempotent-public-key", 0)
+          const first = yield* Queue.take(changes)
+          assert.strictEqual(first.remoteSequence, 1)
+          assert.strictEqual(first.entry.primaryKey, "user-server-idempotent")
+
+          for (let i = 0; i < 10; i++) {
+            yield* Effect.yieldNow
+          }
+          const second = yield* Queue.poll(changes)
+          assert.strictEqual(second._tag, "None")
+
+          const seen = yield* Ref.get(handled)
+          assert.deepStrictEqual(seen, ["user-server-idempotent"])
+        }).pipe(Effect.provide(runtimeLayer(handled)))
+      })
+    ))
+
+  it.effect("server-authored duplicate entry ids keep first committed payload semantics", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const handled = yield* Ref.make<ReadonlyArray<string>>([])
+
+        yield* Effect.gen(function*() {
+          const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+          const mapping = yield* EventLogServerUnencrypted.StoreMapping
+          const storeId = "store-server-duplicate-semantics" as EventLogServerUnencrypted.StoreId
+          const duplicateEntryId = EventJournal.makeEntryIdUnsafe()
+
+          yield* mapping.assign({ publicKey: "duplicate-semantics-public-key", storeId })
+
+          yield* runtime.write({
+            schema,
+            storeId,
+            event: "UserCreated",
+            payload: { id: "first-accepted" },
+            entryId: duplicateEntryId
+          })
+          yield* runtime.write({
+            schema,
+            storeId,
+            event: "UserCreated",
+            payload: { id: "second-duplicate" },
+            entryId: duplicateEntryId
+          })
+
+          const changes = yield* runtime.requestChanges("duplicate-semantics-public-key", 0)
+          const first = yield* Queue.take(changes)
+          const decodedPayload = yield* Schema.decodeUnknownEffect(UserGroup.events.UserCreated.payloadMsgPack)(
+            first.entry.payload
+          ).pipe(Effect.orDie)
+          assert.deepStrictEqual(decodedPayload, { id: "first-accepted" })
+
+          for (let i = 0; i < 10; i++) {
+            yield* Effect.yieldNow
+          }
+          const second = yield* Queue.poll(changes)
+          assert.strictEqual(second._tag, "None")
+
+          const seen = yield* Ref.get(handled)
+          assert.deepStrictEqual(seen, ["first-accepted"])
+        }).pipe(Effect.provide(runtimeLayer(handled)))
+      })
+    ))
+
+  it.effect("server-authored write fails with NotFound for an unknown store", () =>
+    Effect.gen(function*() {
+      const handled = yield* Ref.make<ReadonlyArray<string>>([])
+
+      const error = yield* Effect.flip(
+        Effect.gen(function*() {
+          const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+
+          yield* runtime.write({
+            schema,
+            storeId: "unprovisioned-store" as EventLogServerUnencrypted.StoreId,
+            event: "UserCreated",
+            payload: { id: "unknown-store-write" }
+          })
+        }).pipe(Effect.provide(runtimeLayer(handled)))
+      )
+
+      assert.instanceOf(error, EventLogServerUnencrypted.EventLogServerStoreError)
+      assert.strictEqual(error.reason, "NotFound")
+      assert.strictEqual(error.storeId, "unprovisioned-store")
+    }))
+
   it.effect("reconciliation replays persisted backlog exactly once without duplicate handler or Reactivity execution", () =>
     Effect.scoped(
       Effect.gen(function*() {
