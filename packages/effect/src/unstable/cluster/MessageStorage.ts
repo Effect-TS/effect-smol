@@ -6,7 +6,7 @@ import { Clock } from "../../Clock.ts"
 import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
-import { identity } from "../../Function.ts"
+import { constFalse, identity } from "../../Function.ts"
 import * as Latch from "../../Latch.ts"
 import * as Layer from "../../Layer.ts"
 import * as Option from "../../Option.ts"
@@ -532,20 +532,22 @@ export const makeEncoded: (encoded: Encoded) => Effect.Effect<
       const primaryKey = Envelope.primaryKeyByAddress(options)
       return encoded.requestIdForPrimaryKey(primaryKey)
     },
-    unprocessedMessages: (shardIds) => {
+    unprocessedMessages(shardIds) {
+      const storage = this as MessageStorage["Service"]
       const shards = Array.from(shardIds, (id) => id.toString())
       if (!Arr.isArrayNonEmpty(shards)) return Effect.succeed([])
       return Effect.flatMap(
         Effect.suspend(() => encoded.unprocessedMessages(shards, clock.currentTimeMillisUnsafe())),
-        decodeMessages
+        (messages) => decodeMessages(storage, messages)
       )
     },
     unprocessedMessagesById(messageIds) {
+      const storage = this as MessageStorage["Service"]
       const ids = Array.from(messageIds)
       if (!Arr.isArrayNonEmpty(ids)) return Effect.succeed([])
       return Effect.flatMap(
         Effect.suspend(() => encoded.unprocessedMessagesById(ids, clock.currentTimeMillisUnsafe())),
-        decodeMessages
+        (messages) => decodeMessages(storage, messages)
       )
     },
     resetAddress: encoded.resetAddress,
@@ -559,6 +561,7 @@ export const makeEncoded: (encoded: Encoded) => Effect.Effect<
   })
 
   const decodeMessages = (
+    storage: MessageStorage["Service"],
     envelopes: Array<{
       readonly envelope: Envelope.Encoded
       readonly lastSentReply: Option.Option<Reply.Encoded>
@@ -689,6 +692,16 @@ export type MemoryEntry = {
   replies: Array<Reply.Encoded>
   deliverAt: number | null
 }
+
+/**
+ * Can be used in tests to simulate a transaction.
+ *
+ * @since 4.0.0
+ * @category Memory
+ */
+export const MemoryTransaction = ServiceMap.Reference<boolean>("effect/cluster/MessageStorage/MemoryTransaction", {
+  defaultValue: constFalse
+})
 
 /**
  * @since 4.0.0
@@ -877,7 +890,7 @@ export class MemoryDriver extends ServiceMap.Service<MemoryDriver>()("effect/clu
           }
         }),
       resetShards: () => Effect.void,
-      withTransaction: identity
+      withTransaction: Effect.provideService(MemoryTransaction, true)
     }
 
     const storage = yield* makeEncoded(encoded)
