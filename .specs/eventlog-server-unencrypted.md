@@ -539,7 +539,7 @@ The work should be split into the following validation-safe tasks.
 ### Status
 
 - [x] Task 1: Extend `Storage` to own processing progress
-- [ ] Task 2: Switch runtime internals to storage-backed processing
+- [x] Task 2: Switch runtime internals to storage-backed processing
 - [ ] Task 3: Remove the public `EventJournal` runtime dependency from the layer API
 
 ### Task 1 Notes
@@ -553,6 +553,30 @@ The work should be split into the following validation-safe tasks.
   `entries` / `changes` behavior.
 - Runtime reconciliation still depends on `EventJournal` at this stage (by
   design for Task 1).
+
+### Task 2 Notes
+
+- Runtime reconciliation now uses a storage-driven catch-up loop keyed by
+  `Storage.processedSequence(storeId)` and
+  `Storage.entries(storeId, processedSequence)`.
+- Catch-up now processes pending entries strictly in ascending
+  `remoteSequence` order and advances
+  `Storage.markProcessed(storeId, remoteSequence)` only after each entry is
+  processed.
+- Processing-critical work is serialized per store via runtime-managed
+  per-store semaphores, so concurrent `ingest`, `write`, and `requestChanges`
+  calls cannot double-process a store.
+- Handler replay and Reactivity invalidation now run directly from storage
+  entries through `EventLog.makeReplayFromRemoteEffect`; no
+  `EventJournal.nextRemoteSequence(...)`-driven reconciliation remains.
+- Important discovery: preserving existing conflict shape required a
+  runtime-derived per-store, created-at-sorted processed-history index (built
+  from storage checkpoints) and the same scan window logic used by
+  `EventJournal.writeFromRemote`.
+- Recovery tests were updated to use a storage-level post-commit catch-up
+  failure simulation (rather than `EventJournal` write failures), and now
+  assert checkpoint progression (`processedSequence`) across retries and runtime
+  recreation.
 
 ### Task 1: Extend `Storage` to own processing progress
 

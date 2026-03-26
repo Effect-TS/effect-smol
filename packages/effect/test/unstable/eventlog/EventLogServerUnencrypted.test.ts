@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Layer, Queue, Ref, Schema } from "effect"
+import { Effect, Layer, Queue, Ref, Schema, type Scope } from "effect"
 import * as EventGroup from "effect/unstable/eventlog/EventGroup"
 import * as EventJournal from "effect/unstable/eventlog/EventJournal"
 import * as EventLog from "effect/unstable/eventlog/EventLog"
@@ -97,30 +97,45 @@ const runtimeLayerFromServices = (options: {
     )
   )
 
-const makeJournalFailingFirstRemoteWrite: Effect.Effect<EventJournal.EventJournal["Service"]> = Effect.gen(
-  function*() {
-    const journal = yield* EventJournal.makeMemory
-    let failNextWriteFromRemote = true
+const makeStorageFailingFirstPostCommitCatchUp: Effect.Effect<
+  EventLogServerUnencrypted.Storage["Service"],
+  never,
+  Scope.Scope
+> = Effect
+  .gen(
+    function*() {
+      const storage = yield* EventLogServerUnencrypted.makeStorageMemory
+      let failNextEntriesRead = false
 
-    return EventJournal.EventJournal.of({
-      ...journal,
-      writeFromRemote: (options) =>
-        Effect.suspend(() => {
-          if (!failNextWriteFromRemote) {
-            return journal.writeFromRemote(options)
-          }
+      return EventLogServerUnencrypted.Storage.of({
+        ...storage,
+        write: (storeId, entries) =>
+          storage.write(storeId, entries).pipe(
+            Effect.tap(({ committed }) =>
+              Effect.sync(() => {
+                if (committed.length > 0) {
+                  failNextEntriesRead = true
+                }
+              })
+            )
+          ),
+        entries: ((storeId: EventLogServerUnencrypted.StoreId, startSequence: number) =>
+          Effect.suspend(() => {
+            if (!failNextEntriesRead) {
+              return storage.entries(storeId, startSequence)
+            }
 
-          failNextWriteFromRemote = false
-          return Effect.fail(
-            new EventJournal.EventJournalError({
-              method: "writeFromRemote",
-              cause: new Error("simulated writeFromRemote failure")
-            })
-          )
-        })
-    })
-  }
-)
+            failNextEntriesRead = false
+            return Effect.fail(
+              new EventJournal.EventJournalError({
+                method: "writeFromRemote",
+                cause: new Error("simulated storage catch-up read failure")
+              })
+            ) as any
+          })) as any
+      })
+    }
+  )
 
 const makeUserCreatedEntry = (
   id: string,
@@ -724,21 +739,20 @@ describe("EventLogServerUnencrypted", () => {
       })
     ))
 
-  it.effect("reconciliation replays persisted backlog exactly once without duplicate handler or Reactivity execution", () =>
+  it.effect("storage-backed catch-up replays persisted backlog exactly once without duplicate handler or Reactivity execution", () =>
     Effect.scoped(
       Effect.gen(function*() {
         const handled = yield* Ref.make<ReadonlyArray<string>>([])
         const invalidations = yield* Ref.make(0)
-        const storage = yield* EventLogServerUnencrypted.makeStorageMemory
+        const storage = yield* makeStorageFailingFirstPostCommitCatchUp
         const mapping = yield* EventLogServerUnencrypted.makeStoreMappingMemory({
           mappings: [["public-key-reconciliation", "store-reconciliation" as EventLogServerUnencrypted.StoreId]]
         })
-        const journal = yield* makeJournalFailingFirstRemoteWrite
         const storeId = "store-reconciliation" as EventLogServerUnencrypted.StoreId
 
         const firstRuntimeLayer = runtimeLayerFromServices({
           handled,
-          journal,
+          journal: yield* EventJournal.makeMemory,
           storage,
           mapping
         })
@@ -757,11 +771,12 @@ describe("EventLogServerUnencrypted", () => {
 
         const persistedBacklog = yield* storage.entries(storeId, 0)
         assert.deepStrictEqual(persistedBacklog.map((entry) => entry.remoteSequence), [1])
+        assert.strictEqual(yield* storage.processedSequence(storeId), 0)
         assert.deepStrictEqual(yield* Ref.get(handled), [])
 
         const secondRuntimeLayer = runtimeLayerFromServices({
           handled,
-          journal,
+          journal: yield* EventJournal.makeMemory,
           storage,
           mapping
         })
@@ -787,6 +802,7 @@ describe("EventLogServerUnencrypted", () => {
           assert.strictEqual(afterRecovery, 2)
 
           assert.deepStrictEqual(yield* Ref.get(handled), ["user-backlog"])
+          assert.strictEqual(yield* storage.processedSequence(storeId), 1)
 
           for (let i = 0; i < 10; i++) {
             yield* Effect.yieldNow
@@ -812,11 +828,12 @@ describe("EventLogServerUnencrypted", () => {
 
           assert.deepStrictEqual(yield* Ref.get(handled), ["user-backlog"])
           assert.strictEqual(yield* Ref.get(invalidations), invalidationsBeforeSecondRead)
+          assert.strictEqual(yield* storage.processedSequence(storeId), 1)
         }).pipe(Effect.provide(secondRuntimeLayer))
 
         const thirdRuntimeLayer = runtimeLayerFromServices({
           handled,
-          journal,
+          journal: yield* EventJournal.makeMemory,
           storage,
           mapping
         })
@@ -849,6 +866,7 @@ describe("EventLogServerUnencrypted", () => {
           assert.strictEqual(restartDuplicateInvalidation._tag, "None")
           assert.deepStrictEqual(yield* Ref.get(handled), ["user-backlog"])
           assert.strictEqual(yield* Ref.get(invalidations), beforeRestartRead)
+          assert.strictEqual(yield* storage.processedSequence(storeId), 1)
         }).pipe(Effect.provide(thirdRuntimeLayer))
       })
     ))
