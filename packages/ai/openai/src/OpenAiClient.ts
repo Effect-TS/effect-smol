@@ -463,7 +463,9 @@ const makeSocket = Effect.gen(function*() {
             )
           }
           Queue.offerUnsafe(currentQueue, event)
-        } catch {}
+        } catch (cause) {
+          return Effect.die(cause)
+        }
       }).pipe(
         Effect.catchCause((cause) => {
           tracker.clearUnsafe()
