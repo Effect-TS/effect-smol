@@ -927,6 +927,7 @@ describe("EventLogServerUnencrypted", () => {
         })
         const handledA = yield* Ref.make<ReadonlyArray<string>>([])
         const handledB = yield* Ref.make<ReadonlyArray<string>>([])
+        const subscriberReady = yield* Deferred.make<void>()
 
         const replicaALayer = runtimeLayerFromServices({
           handled: handledA,
@@ -944,18 +945,38 @@ describe("EventLogServerUnencrypted", () => {
 
           yield* runtime.ingest({
             publicKey: "shared-replica-a",
-            entries: [yield* makeUserCreatedEntry("shared-request-changes-user")]
+            entries: [yield* makeUserCreatedEntry("shared-request-changes-history")]
           })
         }).pipe(Effect.provide(replicaALayer))
 
-        const observed = yield* Effect.gen(function*() {
+        const observedFiber = yield* Effect.gen(function*() {
           const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
           const changes = yield* runtime.requestChanges("shared-replica-b", 0)
+          const history = yield* Queue.take(changes)
+          assert.strictEqual(history.remoteSequence, 1)
+          assert.strictEqual(history.entry.primaryKey, "shared-request-changes-history")
+          yield* Deferred.succeed(subscriberReady, undefined)
           return yield* Queue.take(changes)
-        }).pipe(Effect.provide(replicaBLayer))
+        }).pipe(
+          Effect.provide(replicaBLayer),
+          Effect.forkScoped
+        )
 
-        assert.strictEqual(observed.remoteSequence, 1)
-        assert.strictEqual(observed.entry.primaryKey, "shared-request-changes-user")
+        yield* Deferred.await(subscriberReady)
+
+        yield* Effect.gen(function*() {
+          const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+
+          yield* runtime.ingest({
+            publicKey: "shared-replica-a",
+            entries: [yield* makeUserCreatedEntry("shared-request-changes-live")]
+          })
+        }).pipe(Effect.provide(replicaALayer))
+
+        const observed = yield* Fiber.join(observedFiber)
+
+        assert.strictEqual(observed.remoteSequence, 2)
+        assert.strictEqual(observed.entry.primaryKey, "shared-request-changes-live")
       })
     ))
 

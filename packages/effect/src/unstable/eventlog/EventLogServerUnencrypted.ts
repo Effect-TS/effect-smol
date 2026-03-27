@@ -1045,12 +1045,13 @@ export const make = Effect.gen(function*() {
       })
       const queue = yield* Queue.make<RemoteEntry>()
       const ready = yield* Deferred.make<void>()
+      const feedStartSequence = compactors.size === 0 ? startSequence : 0
 
       yield* Effect.gen(function*() {
-        const committedChanges = yield* storage.changes(storeId, 0)
+        const committedChanges = yield* storage.changes(storeId, feedStartSequence)
         const backlog = yield* takeAvailable(committedChanges)
         const projectedBacklog = compactors.size === 0
-          ? backlog.filter((entry) => entry.remoteSequence > startSequence)
+          ? backlog
           : yield* compactBacklog({
             remoteEntries: backlog,
             compactors,

@@ -599,6 +599,10 @@ Any implementation produced from this spec must run:
   followed by `storage.changes(...)`; it now establishes a single shared-storage
   feed through `storage.changes(...)` and derives both backlog and live traffic
   from that feed.
+- When no compactor is registered, `requestChanges(...)` can start the shared
+  feed at the caller's `startSequence`; when compaction is active it must still
+  replay from sequence `0` so the initial backlog compaction window sees the
+  entire committed history before filtering by the caller cursor.
 - Preserving cursor-safe read-time compaction still requires replaying the full
   committed backlog before filtering by `startSequence`; compacting only the raw
   suffix after `startSequence` changes representative sequence selection and can
@@ -608,8 +612,12 @@ Any implementation produced from this spec must run:
   committed backlog first without losing a commit that lands during setup.
 - Added focused runtime tests proving:
   - a commit is not lost during the backlog-to-live transition
-  - one replica can read commits written by another replica through shared
-    storage-backed `requestChanges(...)`
+  - a live `requestChanges(...)` subscriber on one replica receives commits
+    produced later by another replica through shared storage
+- Follow-up required: if a future non-memory `Storage.changes(...)`
+  implementation cannot preserve a drainable initial backlog boundary for
+  `requestChanges(...)`, expand the storage contract with an explicit
+  backlog-to-live cutover signal instead of relying on immediate queue drains.
 
 ## Implementation Plan
 
