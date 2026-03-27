@@ -31,20 +31,19 @@ const UserNameSet = UserEvents.events.UserNameSet
 const encodePayload = Schema.encodeUnknownEffect(UserNameSet.payloadMsgPack)
 const decodePayload = Schema.decodeUnknownEffect(UserNameSet.payloadMsgPack)
 
-const makeEntry = (options: {
+const makeEntry = Effect.fnUntraced(function*(options: {
   readonly id?: EventJournal.EntryId | undefined
   readonly primaryKey?: string | undefined
   readonly name: string
-}) =>
-  Effect.gen(function*() {
-    const primaryKey = options.primaryKey ?? "user-1"
-    return new EventJournal.Entry({
-      id: options.id ?? EventJournal.makeEntryIdUnsafe(),
-      event: "UserNameSet",
-      primaryKey,
-      payload: yield* encodePayload({ id: primaryKey, name: options.name })
-    }, { disableChecks: true })
-  })
+}) {
+  const primaryKey = options.primaryKey ?? "user-1"
+  return new EventJournal.Entry({
+    id: options.id ?? EventJournal.makeEntryIdUnsafe(),
+    event: "UserNameSet",
+    primaryKey,
+    payload: yield* encodePayload({ id: primaryKey, name: options.name })
+  }, { disableChecks: true })
+})
 
 const handlerLayer = (seen: Ref.Ref<ReadonlyArray<SeenWrite>>) =>
   EventLog.group(
@@ -267,6 +266,43 @@ describe("EventLogServerUnencrypted", () => {
 
           assert.deepStrictEqual(response.sequenceNumbers, [1])
           assert.deepStrictEqual(yield* Ref.get(seen), [{ name: "Ada", publicKey: "client-1" }])
+        }).pipe(Effect.provide(makeServerLayer(seen)))
+      )
+    }))
+
+  it.effect("makeHandler reassembles chunked unencrypted write requests", () =>
+    Effect.gen(function*() {
+      const seen = yield* Ref.make<ReadonlyArray<SeenWrite>>([])
+
+      return yield* Effect.scoped(
+        Effect.gen(function*() {
+          const harness = yield* makeSocketHarness
+          const handler = yield* EventLogServerUnencrypted.makeHandler
+          const largeName = "x".repeat(700_000)
+          const request = new EventLogRemote.WriteEntriesUnencrypted({
+            publicKey: "client-1",
+            id: 1,
+            entries: [yield* makeEntry({ name: largeName })]
+          })
+          const encoded = yield* EventLogRemote.encodeRequestUnencrypted(request)
+          const parts = EventLogRemote.ChunkedMessage.split(request.id, encoded)
+
+          assert.strictEqual(parts.length > 1, true)
+
+          yield* handler(harness.socket).pipe(Effect.forkScoped)
+          yield* harness.takeResponse
+
+          for (const part of parts) {
+            yield* harness.sendRequest(part)
+          }
+
+          const response = yield* harness.takeResponse
+          if (response._tag !== "Ack") {
+            throw new Error(`Expected Ack, got ${response._tag}`)
+          }
+
+          assert.deepStrictEqual(response.sequenceNumbers, [1])
+          assert.deepStrictEqual(yield* Ref.get(seen), [{ name: largeName, publicKey: "client-1" }])
         }).pipe(Effect.provide(makeServerLayer(seen)))
       )
     }))
