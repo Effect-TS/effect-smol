@@ -832,6 +832,133 @@ describe("EventLogServerUnencrypted", () => {
       })
     ))
 
+  it.effect("requestChanges does not lose a commit during the backlog-to-live transition", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const storage = yield* EventLogServerUnencrypted.makeStorageMemory
+        const mapping = yield* EventLogServerUnencrypted.makeStoreMappingMemory({
+          mappings: [
+            ["cutover-replica-a", "store-cutover" as EventLogServerUnencrypted.StoreId],
+            ["cutover-replica-b", "store-cutover" as EventLogServerUnencrypted.StoreId]
+          ]
+        })
+        const handledA = yield* Ref.make<ReadonlyArray<string>>([])
+        const handledB = yield* Ref.make<ReadonlyArray<string>>([])
+        const compactionStarted = yield* Deferred.make<void>()
+        const allowCompaction = yield* Deferred.make<void>()
+
+        const replicaALayer = runtimeLayerFromServices({
+          handled: handledA,
+          storage,
+          mapping
+        })
+        const replicaBLayer = runtimeLayerFromServices({
+          handled: handledB,
+          storage,
+          mapping
+        })
+
+        yield* Effect.gen(function*() {
+          const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+
+          yield* runtime.ingest({
+            publicKey: "cutover-replica-a",
+            entries: [yield* makeUserCreatedEntry("cutover-history", { createdAtMillis: Date.now() - 20_000 })]
+          })
+        }).pipe(Effect.provide(replicaALayer))
+
+        const changesFiber = yield* Effect.gen(function*() {
+          const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+
+          yield* runtime.registerCompaction({
+            events: ["UserCreated"],
+            olderThan: "5 seconds",
+            effect: Effect.fnUntraced(function*({ entries, write }) {
+              assert.deepStrictEqual(entries.map((entry) => entry.primaryKey), ["cutover-history"])
+              yield* Deferred.succeed(compactionStarted, undefined)
+              yield* Deferred.await(allowCompaction)
+              yield* write(
+                yield* makeUserCreatedEntry("cutover-history-compacted", {
+                  createdAtMillis: entries[entries.length - 1]!.createdAtMillis
+                })
+              )
+            })
+          })
+
+          return yield* runtime.requestChanges("cutover-replica-b", 0)
+        }).pipe(
+          Effect.provide(replicaBLayer),
+          Effect.forkScoped
+        )
+
+        yield* Deferred.await(compactionStarted)
+
+        yield* Effect.gen(function*() {
+          const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+
+          yield* runtime.ingest({
+            publicKey: "cutover-replica-a",
+            entries: [yield* makeUserCreatedEntry("cutover-live")]
+          })
+        }).pipe(Effect.provide(replicaALayer))
+
+        yield* Deferred.succeed(allowCompaction, undefined)
+
+        const changes = yield* Fiber.join(changesFiber)
+        const compactedBacklog = yield* Queue.take(changes)
+        const liveCommit = yield* Queue.take(changes)
+
+        assert.strictEqual(compactedBacklog.remoteSequence, 1)
+        assert.strictEqual(compactedBacklog.entry.primaryKey, "cutover-history-compacted")
+        assert.strictEqual(liveCommit.remoteSequence, 2)
+        assert.strictEqual(liveCommit.entry.primaryKey, "cutover-live")
+      })
+    ))
+
+  it.effect("a requestChanges subscriber on one replica observes commits produced by another replica", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const storage = yield* EventLogServerUnencrypted.makeStorageMemory
+        const mapping = yield* EventLogServerUnencrypted.makeStoreMappingMemory({
+          mappings: [
+            ["shared-replica-a", "shared-request-changes-store" as EventLogServerUnencrypted.StoreId],
+            ["shared-replica-b", "shared-request-changes-store" as EventLogServerUnencrypted.StoreId]
+          ]
+        })
+        const handledA = yield* Ref.make<ReadonlyArray<string>>([])
+        const handledB = yield* Ref.make<ReadonlyArray<string>>([])
+
+        const replicaALayer = runtimeLayerFromServices({
+          handled: handledA,
+          storage,
+          mapping
+        })
+        const replicaBLayer = runtimeLayerFromServices({
+          handled: handledB,
+          storage,
+          mapping
+        })
+
+        yield* Effect.gen(function*() {
+          const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+
+          yield* runtime.ingest({
+            publicKey: "shared-replica-a",
+            entries: [yield* makeUserCreatedEntry("shared-request-changes-user")]
+          })
+        }).pipe(Effect.provide(replicaALayer))
+
+        const observed = yield* Effect.gen(function*() {
+          const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+          const changes = yield* runtime.requestChanges("shared-replica-b", 0)
+          return yield* Queue.take(changes)
+        }).pipe(Effect.provide(replicaBLayer))
+
+        assert.strictEqual(observed.remoteSequence, 1)
+        assert.strictEqual(observed.entry.primaryKey, "shared-request-changes-user")
+      })
+    ))
+
   it.effect("concurrent replicas writing to the same store share one ordered sequence space", () =>
     Effect.scoped(
       Effect.gen(function*() {
