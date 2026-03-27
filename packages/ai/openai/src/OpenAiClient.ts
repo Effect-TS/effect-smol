@@ -379,13 +379,11 @@ const makeSocket = Effect.gen(function*() {
   const queueRef: RcRef.RcRef<
     {
       readonly send: (message: typeof Generated.CreateResponse.Encoded) => Effect.Effect<void, AiError.AiError>
-      readonly incoming: Queue.Dequeue<ResponseStreamEvent, AiError.AiError | Cause.Done>
+      readonly incoming: Queue.Dequeue<ResponseStreamEvent, AiError.AiError>
     }
   > = yield* RcRef.make({
     idleTimeToLive: 60_000,
     acquire: Effect.gen(function*() {
-      yield* Effect.log("Acquiring socket")
-      yield* Effect.addFinalizer(() => Effect.log("Releasing socket"))
       const request = yield* Effect.orDie(client.client.httpClient.preprocess(HttpClientRequest.post("/responses")))
       const socket = yield* Socket.makeWebSocket(request.url.replace(/^http/, "ws")).pipe(
         Effect.updateService(Socket.WebSocketConstructor, (f) => (url) =>
@@ -394,8 +392,9 @@ const makeSocket = Effect.gen(function*() {
           } as any))
       )
       const write = yield* socket.writer
+      tracker.clearUnsafe()
 
-      let incoming = yield* Queue.unbounded<ResponseStreamEvent, AiError.AiError | Cause.Done>()
+      let incoming = yield* Queue.unbounded<ResponseStreamEvent, AiError.AiError>()
       const send = (message: typeof Generated.CreateResponse.Encoded) =>
         write(JSON.stringify({
           type: "response.create",
@@ -455,9 +454,8 @@ const makeSocket = Effect.gen(function*() {
           Queue.offerUnsafe(incoming, event)
         } catch {}
       }).pipe(
-        Effect.catchCause((cause) => {
-          tracker.clearUnsafe()
-          return Queue.fail(
+        Effect.catchCause((cause) =>
+          Queue.fail(
             incoming,
             AiError.make({
               module: "OpenAiClient",
@@ -475,7 +473,7 @@ const makeSocket = Effect.gen(function*() {
               })
             })
           )
-        }),
+        ),
         Effect.ensuring(RcRef.invalidate(queueRef)),
         Effect.forkScoped({ startImmediately: true })
       )
