@@ -1,9 +1,7 @@
-import { SqliteClient } from "@effect/sql-sqlite-node"
 import * as SqlEventLogServerUnencryptedStorageTest from "effect-test/unstable/eventlog/SqlEventLogServerUnencryptedStorageTest"
+import { MysqlContainer } from "./utils.ts"
 
 SqlEventLogServerUnencryptedStorageTest.suite(
-  "sql-sqlite-node",
-  SqliteClient.layer({
-    filename: ":memory:"
-  })
+  "sql-mysql2",
+  MysqlContainer.layerClient
 )
