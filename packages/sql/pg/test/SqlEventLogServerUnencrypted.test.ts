@@ -1,9 +1,7 @@
-import { SqliteClient } from "@effect/sql-sqlite-node"
 import * as SqlEventLogServerUnencryptedStorageTest from "effect-test/unstable/eventlog/SqlEventLogServerUnencryptedStorageTest"
+import { PgContainer } from "./utils.ts"
 
 SqlEventLogServerUnencryptedStorageTest.suite(
-  "sql-sqlite-node",
-  SqliteClient.layer({
-    filename: ":memory:"
-  })
+  "sql-pg",
+  PgContainer.layerClient
 )

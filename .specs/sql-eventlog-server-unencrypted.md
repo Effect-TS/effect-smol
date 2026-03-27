@@ -319,7 +319,25 @@ Scope:
 
 Why this is one task: these behaviors depend on one another and should land together so the service semantics remain internally consistent and type-safe.
 
-### [ ] Task 3 — Add reusable integration coverage and driver runners
+### [x] Task 3 — Add reusable integration coverage and driver runners
+
+Status:
+
+- completed in this change
+- added `packages/effect/test/unstable/eventlog/SqlEventLogServerUnencryptedStorageTest.ts` as the shared SQL integration suite and switched sqlite-node to the same runner style used by the persistence suites
+- important discovery: to verify remote-id persistence across multiple storage instances against the same database, the shared suite needs a shared `SqlClient` layer rather than a prebuilt `Storage` layer, so each test can instantiate multiple storages over the same backing database handle
+- each test now uses unique SQL table names so the suite can safely share one driver client layer across all test cases without cross-test data leakage
+- added postgres and mysql2 runner files alongside the sqlite-node runner, all pointing at the shared suite
+- the suite covers remote-id reuse, per-store sequencing, in-call and cross-call idempotency, strict `entries(..., startSequence)` semantics, backlog + live `changes`, a startup-race stress case, transactional commit / rollback behavior with sequence reuse, store isolation, and allowing the same `EntryId` in different stores
+
+Validation result after this task:
+
+- `pnpm lint-fix` ✅
+- `pnpm test packages/sql/sqlite-node/test/SqlEventLogServerUnencrypted.test.ts` ✅
+- `pnpm test packages/sql/pg/test/SqlEventLogServerUnencrypted.test.ts` ✅
+- `pnpm test packages/sql/mysql2/test/SqlEventLogServerUnencrypted.test.ts` ✅
+- `pnpm check:tsgo` ✅
+- `pnpm docgen` ✅
 
 Validation target after this task:
 
@@ -338,7 +356,23 @@ Scope:
 
 Why this is one task: the reusable suite and the driver runners need to land together so validations exercise real SQL backends immediately. Splitting them would either leave dead test code with no runner or runner files with missing shared coverage.
 
-### [ ] Task 4 — Add release metadata and perform the final validation pass
+### [x] Task 4 — Add release metadata and perform the final validation pass
+
+Status:
+
+- completed in this change
+- reused the existing scaffold changeset at `.changeset/sql-eventlog-server-unencrypted-scaffold.md`; no additional changeset file was required for this follow-up task
+- important discovery from cross-driver validation: PostgreSQL and MySQL return `BIGINT` result columns as strings in this setup, so SQL eventlog storage decoding now accepts both `number` and `NumberFromString` for persisted `sequence` / `next_sequence` values
+- final validation pass completed cleanly across lint, the three SQL integration runners, typechecking, and doc generation
+
+Validation result after this task:
+
+- `pnpm lint-fix` ✅
+- `pnpm test packages/sql/sqlite-node/test/SqlEventLogServerUnencrypted.test.ts` ✅
+- `pnpm test packages/sql/pg/test/SqlEventLogServerUnencrypted.test.ts` ✅
+- `pnpm test packages/sql/mysql2/test/SqlEventLogServerUnencrypted.test.ts` ✅
+- `pnpm check:tsgo` ✅
+- `pnpm docgen` ✅
 
 Validation target after this task:
 

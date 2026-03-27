@@ -510,15 +510,17 @@ const EntrySql = Schema.Struct({
 
 type EntrySql = Schema.Schema.Type<typeof EntrySql>
 
+const SqlNumber = Schema.Union([Schema.Number, Schema.NumberFromString])
+
 const RemoteEntrySql = Schema.Struct({
   ...EntrySql.fields,
-  sequence: Schema.Number
+  sequence: SqlNumber
 })
 
 type RemoteEntrySql = Schema.Schema.Type<typeof RemoteEntrySql>
 
 const StoreSequenceSql = Schema.Struct({
-  next_sequence: Schema.Number
+  next_sequence: SqlNumber
 })
 
 const decodeRemoteEntryRows = Schema.decodeUnknownEffect(Schema.Array(RemoteEntrySql))
