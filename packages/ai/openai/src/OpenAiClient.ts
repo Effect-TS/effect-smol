@@ -443,8 +443,7 @@ const makeSocket = Effect.gen(function*() {
           }
           if (event.type === "error" && "status" in event) {
             const json = JSON.stringify(event.error)
-            return Queue.fail(
-              currentQueue,
+            return Effect.fail(
               AiError.make({
                 module: "OpenAiClient",
                 method: "createResponseStream",
