@@ -1,16 +1,14 @@
 /**
  * @since 4.0.0
  */
+import * as Arr from "../../Array.ts"
 import type { Brand } from "../../Brand.ts"
-import type * as Cause from "../../Cause.ts"
+import * as Cause from "../../Cause.ts"
 import * as Data from "../../Data.ts"
-import * as Deferred from "../../Deferred.ts"
-import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
-import * as Exit from "../../Exit.ts"
 import * as FiberMap from "../../FiberMap.ts"
-import { identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
+import * as Option from "../../Option.ts"
 import * as PubSub from "../../PubSub.ts"
 import * as Queue from "../../Queue.ts"
 import * as RcMap from "../../RcMap.ts"
@@ -123,13 +121,6 @@ export class StoreMapping extends ServiceMap.Service<StoreMapping, {
   readonly hasStore: (storeId: StoreId) => Effect.Effect<boolean, EventLogServerStoreError>
 }>()("effect/eventlog/EventLogServerUnencrypted/StoreMapping") {}
 
-const toNotFoundError = (publicKey: string) =>
-  new EventLogServerStoreError({
-    reason: "NotFound",
-    publicKey,
-    message: `No store mapping found for public key: ${publicKey}`
-  })
-
 const toStoreNotFoundError = (storeId: StoreId) =>
   new EventLogServerStoreError({
     reason: "NotFound",
@@ -141,82 +132,13 @@ const toStoreNotFoundError = (storeId: StoreId) =>
  * @since 4.0.0
  * @category store
  */
-export const makeStoreMappingMemory = (options?: {
-  readonly mappings?: Iterable<readonly [publicKey: string, storeId: StoreId]> | undefined
-  readonly stores?: Iterable<StoreId> | undefined
-}): Effect.Effect<StoreMapping["Service"]> =>
-  Effect.sync(() => {
-    const mappings = new Map(options?.mappings)
-    const knownStores = new Set<string>()
-
-    for (const storeId of options?.stores ?? []) {
-      knownStores.add(toStoreKey(storeId))
-    }
-    for (const storeId of mappings.values()) {
-      knownStores.add(toStoreKey(storeId))
-    }
-
-    return StoreMapping.of({
-      resolve: Effect.fnUntraced(function*(publicKey: string) {
-        const storeId = mappings.get(publicKey)
-        if (storeId !== undefined) {
-          return storeId
-        }
-        return yield* toNotFoundError(publicKey)
-      }),
-      hasStore: Effect.fnUntraced(function*(storeId: StoreId) {
-        return knownStores.has(toStoreKey(storeId))
-      })
-    })
-  })
-
-/**
- * @since 4.0.0
- * @category store
- */
-export const makeStoreMapping = Effect.fnUntraced(function*(options: {
-  readonly resolve: (publicKey: string) => Effect.Effect<StoreId, EventLogServerStoreError>
-  readonly hasStore: (storeId: StoreId) => Effect.Effect<boolean, EventLogServerStoreError>
-}) {
-  return StoreMapping.of({
-    resolve: options.resolve,
-    hasStore: options.hasStore
-  })
-})
-
-/**
- * @since 4.0.0
- * @category store
- */
-export const layerStoreMappingResolver = (options: {
-  readonly resolve: (publicKey: string) => Effect.Effect<StoreId, EventLogServerStoreError>
-  readonly hasStore: (storeId: StoreId) => Effect.Effect<boolean, EventLogServerStoreError>
-}): Layer.Layer<StoreMapping> => Layer.effect(StoreMapping)(makeStoreMapping(options))
-
-/**
- * @since 4.0.0
- * @category store
- */
 export const layerStoreMappingStatic = (options: {
   readonly storeId: StoreId
 }): Layer.Layer<StoreMapping> =>
-  layerStoreMappingResolver({
-    resolve: Effect.fnUntraced(function*(_publicKey: string) {
-      return options.storeId
-    }),
-    hasStore: Effect.fnUntraced(function*(storeId: StoreId) {
-      return storeId === options.storeId
-    })
+  Layer.succeed(StoreMapping, {
+    resolve: (_publicKey: string) => Effect.succeed(options.storeId),
+    hasStore: (storeId: StoreId) => Effect.succeed(storeId === options.storeId)
   })
-
-/**
- * @since 4.0.0
- * @category store
- */
-export const layerStoreMappingMemory = (options?: {
-  readonly mappings?: Iterable<readonly [publicKey: string, storeId: StoreId]> | undefined
-  readonly stores?: Iterable<StoreId> | undefined
-}): Layer.Layer<StoreMapping> => Layer.effect(StoreMapping)(makeStoreMappingMemory(options))
 
 /**
  * @since 4.0.0
@@ -224,10 +146,6 @@ export const layerStoreMappingMemory = (options?: {
  */
 export class Storage extends ServiceMap.Service<Storage, {
   readonly getId: Effect.Effect<RemoteId>
-  readonly withStoreTransaction: <A, E, R>(
-    storeId: StoreId,
-    effect: Effect.Effect<A, E, R>
-  ) => Effect.Effect<A, E | EventLogServerStoreError, R>
   readonly write: (
     storeId: StoreId,
     entries: ReadonlyArray<Entry>
@@ -243,11 +161,6 @@ export class Storage extends ServiceMap.Service<Storage, {
     storeId: StoreId,
     startSequence: number
   ) => Effect.Effect<Queue.Dequeue<RemoteEntry, Cause.Done>, never, Scope.Scope>
-  readonly processedSequence: (storeId: StoreId) => Effect.Effect<number>
-  readonly markProcessed: (
-    storeId: StoreId,
-    remoteSequence: number
-  ) => Effect.Effect<void>
   readonly withTransaction: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
 }>()("effect/eventlog/EventLogServerUnencrypted/Storage") {}
 
@@ -264,34 +177,30 @@ export class EventLogServerUnencrypted extends ServiceMap.Service<EventLogServer
     readonly storeId: StoreId
     readonly sequenceNumbers: ReadonlyArray<number>
     readonly committed: ReadonlyArray<RemoteEntry>
-  }, EventLogServerAuthError | EventLogServerStoreError | EventJournal.EventJournalError>
+  }, EventLogServerAuthError | EventLogServerStoreError>
   readonly write: <Groups extends EventGroup.Any, Tag extends Event.Tag<EventGroup.Events<Groups>>>(options: {
     readonly schema: EventLog.EventLogSchema<Groups>
     readonly storeId: StoreId
     readonly event: Tag
     readonly payload: Event.PayloadWithTag<EventGroup.Events<Groups>, Tag>
     readonly entryId?: EntryId | undefined
-  }) => Effect.Effect<void, EventLogServerStoreError | EventJournal.EventJournalError>
+  }) => Effect.Effect<void, EventLogServerStoreError>
   readonly requestChanges: (
     publicKey: string,
     startSequence: number
   ) => Effect.Effect<
     Queue.Dequeue<RemoteEntry, Cause.Done>,
-    EventLogServerAuthError | EventLogServerStoreError | EventJournal.EventJournalError,
+    EventLogServerAuthError | EventLogServerStoreError,
     Scope.Scope
   >
   readonly registerCompaction: (options: {
     readonly events: ReadonlyArray<string>
-    readonly olderThan: Duration.Input
     readonly effect: (options: {
       readonly entries: ReadonlyArray<Entry>
       readonly write: (entry: Entry) => Effect.Effect<void>
     }) => Effect.Effect<void>
   }) => Effect.Effect<void, never, Scope.Scope>
-  readonly registerReactivity: (keys: Record<string, ReadonlyArray<string>>) => Effect.Effect<void, never, Scope.Scope>
 }>()("effect/eventlog/EventLogServerUnencrypted") {}
-
-const toStoreKey = (storeId: StoreId): string => storeId as string
 
 type ProtocolErrorCode = "Unauthorized" | "Forbidden" | "NotFound" | "InvalidRequest" | "InternalServerError"
 
@@ -333,8 +242,7 @@ const makeClientIdentity = (publicKey: string): EventLog.Identity["Service"] => 
   privateKey: Redacted.make(new Uint8Array(32))
 })
 
-const makeServerWriteIdentityPublicKey = (storeId: StoreId): string =>
-  `effect-eventlog-server-write:${toStoreKey(storeId)}`
+const makeServerWriteIdentityPublicKey = (storeId: StoreId): string => `effect-eventlog-server-write:${storeId}`
 
 const entriesAfter = (journal: Array<RemoteEntry>, startSequence: number): ReadonlyArray<RemoteEntry> =>
   journal.filter((entry) => entry.remoteSequence > startSequence)
@@ -369,18 +277,11 @@ const toConflicts = (history: ReadonlyArray<Entry>, originEntry: Entry): Readonl
 
 type RegisteredCompactor = {
   readonly events: ReadonlySet<string>
-  readonly olderThanMillis: number
   readonly effect: (options: {
     readonly entries: ReadonlyArray<Entry>
     readonly write: (entry: Entry) => Effect.Effect<void>
   }) => Effect.Effect<void>
 }
-
-const isEligibleForCompaction = (options: {
-  readonly remoteEntry: RemoteEntry
-  readonly nowMillis: number
-  readonly olderThanMillis: number
-}): boolean => options.remoteEntry.entry.createdAtMillis <= options.nowMillis - options.olderThanMillis
 
 const representativeSequences = (options: {
   readonly remoteEntries: ReadonlyArray<RemoteEntry>
@@ -433,7 +334,6 @@ const toCompactedRemoteEntries = (options: {
 const compactBacklog = Effect.fnUntraced(function*(options: {
   readonly remoteEntries: ReadonlyArray<RemoteEntry>
   readonly compactors: ReadonlyMap<string, RegisteredCompactor>
-  readonly nowMillis: number
 }) {
   if (options.compactors.size === 0 || options.remoteEntries.length === 0) {
     return options.remoteEntries
@@ -445,14 +345,7 @@ const compactBacklog = Effect.fnUntraced(function*(options: {
   while (index < options.remoteEntries.length) {
     const remoteEntry = options.remoteEntries[index]!
     const compactor = options.compactors.get(remoteEntry.entry.event)
-    if (
-      compactor === undefined ||
-      !isEligibleForCompaction({
-        remoteEntry,
-        nowMillis: options.nowMillis,
-        olderThanMillis: compactor.olderThanMillis
-      })
-    ) {
+    if (compactor === undefined) {
       compactedRemoteEntries.push(remoteEntry)
       index++
       continue
@@ -466,14 +359,7 @@ const compactBacklog = Effect.fnUntraced(function*(options: {
     while (index < options.remoteEntries.length) {
       const nextRemoteEntry = options.remoteEntries[index]!
       const nextCompactor = options.compactors.get(nextRemoteEntry.entry.event)
-      if (
-        nextCompactor !== compactor ||
-        !isEligibleForCompaction({
-          remoteEntry: nextRemoteEntry,
-          nowMillis: options.nowMillis,
-          olderThanMillis: compactor.olderThanMillis
-        })
-      ) {
+      if (nextCompactor !== compactor) {
         break
       }
       entries.push(nextRemoteEntry.entry)
@@ -510,204 +396,25 @@ const compactBacklog = Effect.fnUntraced(function*(options: {
  * @category storage
  */
 export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.Scope> = Effect.gen(function*() {
-  type StoreTransactionState = {
-    readonly storeId: StoreId
-    readonly storeKey: string
-    readonly baseJournalLength: number
-    readonly stagedKnownIds: Map<string, number>
-    readonly stagedCommitted: Array<RemoteEntry>
-  }
-
   const knownIds = new Map<string, Map<string, number>>()
   const journals = new Map<string, Array<RemoteEntry>>()
-  const processedSequences = new Map<string, number>()
-  const storeSemaphores = new Map<string, Semaphore.Semaphore>()
-  const transactionsByFiber = new Map<number, Map<string, StoreTransactionState>>()
   const remoteId = makeRemoteIdUnsafe()
-  const storeSemaphoresLock = yield* Semaphore.make(1)
 
   const ensureKnownIds = (storeId: StoreId): Map<string, number> => {
-    const key = toStoreKey(storeId)
-    let storeKnownIds = knownIds.get(key)
+    let storeKnownIds = knownIds.get(storeId)
     if (storeKnownIds) return storeKnownIds
     storeKnownIds = new Map()
-    knownIds.set(key, storeKnownIds)
+    knownIds.set(storeId, storeKnownIds)
     return storeKnownIds
   }
 
   const ensureJournal = (storeId: StoreId): Array<RemoteEntry> => {
-    const key = toStoreKey(storeId)
-    let journal = journals.get(key)
+    let journal = journals.get(storeId)
     if (journal) return journal
     journal = []
-    journals.set(key, journal)
+    journals.set(storeId, journal)
     return journal
   }
-
-  const getStoreSemaphore = Effect.fnUntraced(function*(storeId: StoreId) {
-    const storeKey = toStoreKey(storeId)
-    const existing = storeSemaphores.get(storeKey)
-    if (existing !== undefined) {
-      return existing
-    }
-
-    return yield* storeSemaphoresLock.withPermits(1)(
-      Effect.gen(function*() {
-        const inLock = storeSemaphores.get(storeKey)
-        if (inLock !== undefined) {
-          return inLock
-        }
-
-        const created = yield* Semaphore.make(1)
-        yield* Effect.sync(() => {
-          storeSemaphores.set(storeKey, created)
-        })
-        return created
-      })
-    )
-  })
-
-  const activePubsub = Effect.fnUntraced(function*(storeKey: string) {
-    const active = yield* RcMap.keys(pubsubs)
-    for (const key of active) {
-      if (key === storeKey) {
-        return yield* RcMap.get(pubsubs, storeKey)
-      }
-    }
-    return undefined
-  })
-
-  const currentStoreTransaction = Effect.fnUntraced(function*(storeId: StoreId) {
-    const storeKey = toStoreKey(storeId)
-    const fiberId = yield* Effect.fiberId
-    return transactionsByFiber.get(fiberId)?.get(storeKey)
-  })
-
-  const writeToTransaction = (transaction: StoreTransactionState, entries: ReadonlyArray<Entry>) =>
-    Effect.sync(() => {
-      const sequenceNumbers: Array<number> = []
-      const committed: Array<RemoteEntry> = []
-      const storeKnownIds = ensureKnownIds(transaction.storeId)
-
-      for (const entry of entries) {
-        const existingCommitted = storeKnownIds.get(entry.idString)
-        if (existingCommitted !== undefined) {
-          sequenceNumbers.push(existingCommitted)
-          continue
-        }
-
-        const existingStaged = transaction.stagedKnownIds.get(entry.idString)
-        if (existingStaged !== undefined) {
-          sequenceNumbers.push(existingStaged)
-          continue
-        }
-
-        const remoteEntry = new RemoteEntry({
-          remoteSequence: transaction.baseJournalLength + transaction.stagedCommitted.length + 1,
-          entry
-        }, { disableChecks: true })
-
-        transaction.stagedKnownIds.set(entry.idString, remoteEntry.remoteSequence)
-        transaction.stagedCommitted.push(remoteEntry)
-        sequenceNumbers.push(remoteEntry.remoteSequence)
-        committed.push(remoteEntry)
-      }
-
-      return {
-        sequenceNumbers,
-        committed
-      }
-    })
-
-  const commitTransaction = Effect.fnUntraced(function*(transaction: StoreTransactionState) {
-    if (transaction.stagedCommitted.length === 0) {
-      return
-    }
-
-    const journal = ensureJournal(transaction.storeId)
-    const storeKnownIds = ensureKnownIds(transaction.storeId)
-
-    yield* Effect.sync(() => {
-      if (journal.length !== transaction.baseJournalLength) {
-        throw new Error(
-          `Concurrent commit detected for store "${transaction.storeKey}" while transaction was active`
-        )
-      }
-
-      for (const remoteEntry of transaction.stagedCommitted) {
-        storeKnownIds.set(remoteEntry.entry.idString, remoteEntry.remoteSequence)
-        journal.push(remoteEntry)
-      }
-    })
-
-    const pubsub = yield* activePubsub(transaction.storeKey)
-    if (pubsub === undefined) {
-      return
-    }
-
-    for (const remoteEntry of transaction.stagedCommitted) {
-      yield* PubSub.publish(pubsub, remoteEntry)
-    }
-  })
-
-  const withStoreTransactionMemory = Effect.fnUntraced(function*<A, E, R>(
-    storeId: StoreId,
-    effect: Effect.Effect<A, E, R>
-  ): Effect.fn.Return<A, E, R> {
-    const existing = yield* currentStoreTransaction(storeId)
-    if (existing !== undefined) {
-      return yield* effect
-    }
-
-    const storeSemaphore = yield* getStoreSemaphore(storeId)
-    return yield* Effect.scoped(
-      storeSemaphore.withPermits(1)(
-        Effect.flatMap(Effect.fiberId, (fiberId) =>
-          Effect.acquireUseRelease(
-            Effect.sync(() => {
-              const byStore = transactionsByFiber.get(fiberId)
-              const transaction: StoreTransactionState = {
-                storeId,
-                storeKey: toStoreKey(storeId),
-                baseJournalLength: ensureJournal(storeId).length,
-                stagedKnownIds: new Map(),
-                stagedCommitted: []
-              }
-
-              if (byStore !== undefined) {
-                byStore.set(transaction.storeKey, transaction)
-              } else {
-                transactionsByFiber.set(fiberId, new Map([[transaction.storeKey, transaction]]))
-              }
-
-              return {
-                fiberId,
-                transaction
-              }
-            }),
-            () => effect,
-            ({ fiberId, transaction }, exit) =>
-              (Exit.isSuccess(exit)
-                ? commitTransaction(transaction)
-                : Effect.void).pipe(
-                  Effect.ensuring(
-                    Effect.sync(() => {
-                      const byStore = transactionsByFiber.get(fiberId)
-                      if (byStore === undefined) {
-                        return
-                      }
-
-                      byStore.delete(transaction.storeKey)
-                      if (byStore.size === 0) {
-                        transactionsByFiber.delete(fiberId)
-                      }
-                    })
-                  )
-                )
-          ))
-      )
-    )
-  })
 
   const pubsubs = yield* RcMap.make({
     lookup: (_storeId: string) =>
@@ -718,30 +425,52 @@ export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.S
     idleTimeToLive: 60000
   })
 
-  return Storage.of({
-    getId: Effect.succeed(remoteId),
-    withStoreTransaction: withStoreTransactionMemory,
-    write: Effect.fnUntraced(function*(storeId, entries) {
-      const transaction = yield* currentStoreTransaction(storeId)
-      if (transaction !== undefined) {
-        return yield* writeToTransaction(transaction, entries)
+  const write = Effect.fnUntraced(function*(storeId: StoreId, entries: ReadonlyArray<Entry>) {
+    const pubsub = yield* RcMap.get(pubsubs, storeId)
+    const sequenceNumbers: Array<number> = []
+    const committed: Array<RemoteEntry> = []
+    const storeKnownIds = ensureKnownIds(storeId)
+    const journal = ensureJournal(storeId)
+    let lastSequenceNumber = Arr.last(journal).pipe(
+      Option.map((entry) => entry.remoteSequence),
+      Option.getOrElse(() => 0)
+    )
+
+    for (const entry of entries) {
+      const existingCommitted = storeKnownIds.get(entry.idString)
+      if (existingCommitted !== undefined) {
+        sequenceNumbers.push(existingCommitted)
+        continue
       }
 
-      return yield* withStoreTransactionMemory(
-        storeId,
-        Effect.flatMap(currentStoreTransaction(storeId), (inTransaction) => {
-          if (inTransaction === undefined) {
-            return Effect.die("Expected active store transaction in makeStorageMemory.write")
-          }
-          return writeToTransaction(inTransaction, entries)
-        })
-      )
-    }, Effect.scoped),
+      const remoteEntry = new RemoteEntry({
+        remoteSequence: ++lastSequenceNumber,
+        entry
+      }, { disableChecks: true })
+
+      sequenceNumbers.push(remoteEntry.remoteSequence)
+      committed.push(remoteEntry)
+      journal.push(remoteEntry)
+      storeKnownIds.set(entry.idString, remoteEntry.remoteSequence)
+    }
+
+    yield* PubSub.publishAll(pubsub, committed)
+
+    return {
+      sequenceNumbers,
+      committed
+    }
+  }, Effect.scoped)
+
+  const transactionSemaphore = yield* Semaphore.make(1)
+
+  return Storage.of({
+    getId: Effect.succeed(remoteId),
+    write,
     entries: (storeId, startSequence) => Effect.sync(() => entriesAfter(ensureJournal(storeId), startSequence)),
     changes: Effect.fnUntraced(function*(storeId, startSequence) {
-      const storeKey = toStoreKey(storeId)
       const queue = yield* Queue.make<RemoteEntry>()
-      const pubsub = yield* RcMap.get(pubsubs, storeKey)
+      const pubsub = yield* RcMap.get(pubsubs, storeId)
       const subscription = yield* PubSub.subscribe(pubsub)
 
       const backlog = entriesAfter(ensureJournal(storeId), startSequence)
@@ -763,16 +492,7 @@ export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.S
       yield* Effect.addFinalizer(() => Queue.shutdown(queue))
       return Queue.asDequeue(queue)
     }),
-    processedSequence: (storeId) => Effect.sync(() => processedSequences.get(toStoreKey(storeId)) ?? 0),
-    markProcessed: (storeId, remoteSequence) =>
-      Effect.sync(() => {
-        const storeKey = toStoreKey(storeId)
-        const current = processedSequences.get(storeKey) ?? 0
-        if (remoteSequence > current) {
-          processedSequences.set(storeKey, remoteSequence)
-        }
-      }),
-    withTransaction: identity
+    withTransaction: transactionSemaphore.withPermits(1)
   })
 })
 
@@ -800,7 +520,7 @@ export const make = Effect.gen(function*() {
       readonly publicKey: string
       readonly entry: Entry
       readonly conflicts: ReadonlyArray<Entry>
-    }): Effect.fn.Return<void, EventJournal.EventJournalError> {
+    }): Effect.fn.Return<void> {
       const handler = services.mapUnsafe.get(Event.serviceKey(options.entry.event)) as
         | EventLog.Handlers.Item<any>
         | undefined
@@ -833,14 +553,15 @@ export const make = Effect.gen(function*() {
         Effect.asVoid
       ) as any
     },
-    Effect.catchCause((cause) =>
-      Effect.fail(
-        new EventJournal.EventJournalError({
-          method: "writeFromRemote",
-          cause
-        })
-      )
-    ),
+    (effect, options) =>
+      Effect.catchCause(effect, (cause) =>
+        Effect.fail(
+          new EventLogServerStoreError({
+            reason: "PersistenceFailure",
+            publicKey: options.publicKey,
+            message: Cause.pretty(cause)
+          })
+        )),
     (effect, options) =>
       Effect.annotateLogs(effect, {
         service: "EventLogServerUnencrypted",
@@ -871,19 +592,16 @@ export const make = Effect.gen(function*() {
     readonly publicKey: string
     readonly entries: ReadonlyArray<Entry>
   }) =>
-    storage.withStoreTransaction(
-      options.storeId,
+    storage.withTransaction(
       Effect.gen(function*() {
         const committedHistory = yield* storage.entries(options.storeId, 0)
         const committedSequenceById = new Map<string, number>()
         const processedEntriesByCreatedAt: Array<Entry> = []
 
-        yield* Effect.sync(() => {
-          for (const remoteEntry of committedHistory) {
-            committedSequenceById.set(remoteEntry.entry.idString, remoteEntry.remoteSequence)
-            insertEntryByCreatedAt(processedEntriesByCreatedAt, remoteEntry.entry)
-          }
-        })
+        for (const remoteEntry of committedHistory) {
+          committedSequenceById.set(remoteEntry.entry.idString, remoteEntry.remoteSequence)
+          insertEntryByCreatedAt(processedEntriesByCreatedAt, remoteEntry.entry)
+        }
 
         const acceptedEntries: Array<Entry> = []
         const acceptedEntryIds = new Set<string>()
@@ -1032,68 +750,48 @@ export const make = Effect.gen(function*() {
         storeId
       })
 
-      const takeAvailable = Effect.fnUntraced(function*(queue: Queue.Dequeue<RemoteEntry, Cause.Done>) {
-        const entries: Array<RemoteEntry> = []
-
-        while (true) {
-          const next = yield* Queue.poll(queue)
-          if (next._tag === "None") {
-            return entries
-          }
-          entries.push(next.value)
-        }
-      })
       const queue = yield* Queue.make<RemoteEntry>()
-      const ready = yield* Deferred.make<void>()
-      const feedStartSequence = compactors.size === 0 ? startSequence : 0
 
       yield* Effect.gen(function*() {
-        const committedChanges = yield* storage.changes(storeId, feedStartSequence)
-        const backlog = yield* takeAvailable(committedChanges)
-        const projectedBacklog = compactors.size === 0
-          ? backlog
-          : yield* compactBacklog({
-            remoteEntries: backlog,
-            compactors,
-            nowMillis: Date.now()
-          }).pipe(
-            Effect.map((entries) => entries.filter((entry) => entry.remoteSequence > startSequence))
-          )
-
-        yield* Queue.offerAll(queue, projectedBacklog)
-        yield* Deferred.succeed(ready, undefined)
+        let sequence = startSequence
+        const committedChanges = yield* storage.changes(storeId, sequence)
 
         while (true) {
-          const first = yield* Queue.take(committedChanges)
-          if (first === undefined) {
-            return
+          const entries = yield* Queue.takeAll(committedChanges)
+          let toOffer = Arr.empty<RemoteEntry>()
+
+          for (let i = 0; i < entries.length; i++) {
+            const entry = entries[i]
+            if (entry.remoteSequence <= sequence) {
+              continue
+            }
+            toOffer.push(entry)
+            sequence = entry.remoteSequence
           }
 
-          const rest = yield* takeAvailable(committedChanges)
           yield* Queue.offerAll(
             queue,
-            [first, ...rest].filter((entry) => entry.remoteSequence > startSequence)
+            toOffer.length > 1 ?
+              yield* compactBacklog({
+                remoteEntries: toOffer,
+                compactors
+              }) :
+              toOffer
           )
         }
       }).pipe(
         Effect.forkScoped
       )
 
-      yield* Deferred.await(ready)
       yield* Effect.addFinalizer(() => Queue.shutdown(queue))
       return Queue.asDequeue(queue)
     }),
     registerCompaction: (options) =>
       Effect.acquireRelease(
         Effect.sync(() => {
-          const olderThanMillis = Math.max(
-            Duration.toMillis(Duration.fromInputUnsafe(options.olderThan)),
-            0
-          )
           const events = new Set(options.events)
           const compactor = {
             events,
-            olderThanMillis,
             effect: options.effect
           }
           for (const event of options.events) {
@@ -1106,39 +804,9 @@ export const make = Effect.gen(function*() {
               compactors.delete(event)
             }
           })
-      ),
-    registerReactivity: (keys) =>
-      Effect.sync(() => {
-        Object.assign(reactivityKeys, keys)
-      })
+      )
   })
 })
-
-/**
- * @since 4.0.0
- * @category reactivity
- */
-export const groupReactivity = <Events extends Event.Any>(
-  group: EventGroup.EventGroup<Events>,
-  keys:
-    | { readonly [Tag in Event.Tag<Events>]?: ReadonlyArray<string> }
-    | ReadonlyArray<string>
-): Layer.Layer<never, never, EventLogServerUnencrypted> =>
-  Layer.effectDiscard(
-    Effect.gen(function*() {
-      const runtime = yield* EventLogServerUnencrypted
-      if (!Array.isArray(keys)) {
-        yield* runtime.registerReactivity(keys as Record<string, ReadonlyArray<string>>)
-        return
-      }
-
-      const all: Record<string, ReadonlyArray<string>> = {}
-      for (const tag in group.events) {
-        all[tag] = keys
-      }
-      yield* runtime.registerReactivity(all)
-    })
-  )
 
 /**
  * @since 4.0.0
@@ -1146,9 +814,6 @@ export const groupReactivity = <Events extends Event.Any>(
  */
 export const groupCompaction = <Events extends Event.Any, R>(
   group: EventGroup.EventGroup<Events>,
-  options: {
-    readonly olderThan: Duration.Input
-  },
   effect: (options: {
     readonly primaryKey: string
     readonly entries: ReadonlyArray<Entry>
@@ -1170,7 +835,6 @@ export const groupCompaction = <Events extends Event.Any, R>(
 
       yield* runtime.registerCompaction({
         events: Object.keys(group.events),
-        olderThan: options.olderThan,
         effect: Effect.fnUntraced(function*({ entries, write }): Effect.fn.Return<void> {
           const isEventTag = (tag: string): tag is Event.Tag<Events> => tag in group.events
           const decodePayload = <Tag extends Event.Tag<Events>>(tag: Tag, payload: Uint8Array) =>
