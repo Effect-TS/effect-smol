@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Deferred, Effect, Fiber, Layer, Queue, Ref, Schema, type Scope } from "effect"
+import { Deferred, Effect, Fiber, Layer, Queue, Ref, Schema } from "effect"
 import * as EventGroup from "effect/unstable/eventlog/EventGroup"
 import * as EventJournal from "effect/unstable/eventlog/EventJournal"
 import * as EventLog from "effect/unstable/eventlog/EventLog"
@@ -91,46 +91,6 @@ const runtimeLayerFromServices = (options: {
         ? Layer.succeed(Reactivity.Reactivity, options.reactivity)
         : Reactivity.layer
     )
-  )
-
-const makeStorageFailingFirstPostCommitCatchUp: Effect.Effect<
-  EventLogServerUnencrypted.Storage["Service"],
-  never,
-  Scope.Scope
-> = Effect
-  .gen(
-    function*() {
-      const storage = yield* EventLogServerUnencrypted.makeStorageMemory
-      let failNextEntriesRead = false
-
-      return EventLogServerUnencrypted.Storage.of({
-        ...storage,
-        write: (storeId, entries) =>
-          storage.write(storeId, entries).pipe(
-            Effect.tap(({ committed }) =>
-              Effect.sync(() => {
-                if (committed.length > 0) {
-                  failNextEntriesRead = true
-                }
-              })
-            )
-          ),
-        entries: ((storeId: EventLogServerUnencrypted.StoreId, startSequence: number) =>
-          Effect.suspend(() => {
-            if (!failNextEntriesRead) {
-              return storage.entries(storeId, startSequence)
-            }
-
-            failNextEntriesRead = false
-            return Effect.fail(
-              new EventJournal.EventJournalError({
-                method: "writeFromRemote",
-                cause: new Error("simulated storage catch-up read failure")
-              })
-            ) as any
-          })) as any
-      })
-    }
   )
 
 const makeUserCreatedEntry = (
@@ -733,132 +693,285 @@ describe("EventLogServerUnencrypted", () => {
       })
     ))
 
-  it.effect("storage-backed catch-up replays persisted backlog exactly once without duplicate handler or Reactivity execution", () =>
+  it.effect("failed handlers roll back the full batch without publishing changes or Reactivity invalidation", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const storage = yield* EventLogServerUnencrypted.makeStorageMemory
+        const mapping = yield* EventLogServerUnencrypted.makeStoreMappingMemory({
+          mappings: [["public-key-rollback", "store-rollback" as EventLogServerUnencrypted.StoreId]]
+        })
+        const reactivity = yield* Reactivity.make
+        const invalidations = yield* Ref.make(0)
+        const storeId = "store-rollback" as EventLogServerUnencrypted.StoreId
+
+        const runtimeLayerWithFailingHandler = Layer.effect(EventLogServerUnencrypted.EventLogServerUnencrypted)(
+          EventLogServerUnencrypted.make
+        ).pipe(
+          Layer.provideMerge(Layer.succeed(EventLogServerUnencrypted.Storage, storage)),
+          Layer.provideMerge(Layer.succeed(EventLogServerUnencrypted.StoreMapping, mapping)),
+          Layer.provideMerge(layerAuthAllowAll),
+          Layer.provideMerge(
+            EventLog.group(
+              UserGroup,
+              (handlers) =>
+                handlers.handle("UserCreated", ({ payload }) =>
+                  payload.id === "rollback-fail"
+                    ? Effect.die(new Error("simulated handler failure"))
+                    : Effect.void)
+            )
+          ),
+          Layer.provideMerge(Layer.succeed(Reactivity.Reactivity, reactivity))
+        )
+
+        yield* Effect.gen(function*() {
+          const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+          const reactivity = yield* Reactivity.Reactivity
+
+          yield* runtime.registerReactivity({
+            UserCreated: ["users"]
+          })
+
+          const query = yield* reactivity.query(
+            { users: ["rollback-user"] },
+            Ref.updateAndGet(invalidations, (count) => count + 1)
+          )
+          assert.strictEqual(yield* Queue.take(query), 1)
+
+          const rollbackEntry = yield* makeUserCreatedEntry("rollback-user")
+          const failingEntry = yield* makeUserCreatedEntry("rollback-fail")
+
+          const error = yield* Effect.flip(
+            runtime.ingest({
+              publicKey: "public-key-rollback",
+              entries: [rollbackEntry, failingEntry]
+            })
+          )
+
+          assert.instanceOf(error, EventJournal.EventJournalError)
+          assert.deepStrictEqual(yield* storage.entries(storeId, 0), [])
+
+          const changes = yield* runtime.requestChanges("public-key-rollback", 0)
+          const unpublished = yield* Queue.poll(changes)
+          assert.strictEqual(unpublished._tag, "None")
+
+          for (let i = 0; i < 10; i++) {
+            yield* Effect.yieldNow
+          }
+          const duplicateInvalidation = yield* Queue.poll(query)
+          assert.strictEqual(duplicateInvalidation._tag, "None")
+          assert.strictEqual(yield* Ref.get(invalidations), 1)
+
+          const retry = yield* runtime.ingest({
+            publicKey: "public-key-rollback",
+            entries: [rollbackEntry]
+          })
+          assert.deepStrictEqual(retry.sequenceNumbers, [1])
+          assert.deepStrictEqual(retry.committed.map((entry) => entry.remoteSequence), [1])
+        }).pipe(Effect.provide(runtimeLayerWithFailingHandler))
+      })
+    ))
+
+  it.effect("requestChanges cannot observe an in-flight write before the transaction commits", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const storage = yield* EventLogServerUnencrypted.makeStorageMemory
+        const mapping = yield* EventLogServerUnencrypted.makeStoreMappingMemory({
+          mappings: [["public-key-visibility", "store-visibility" as EventLogServerUnencrypted.StoreId]]
+        })
+        const enteredHandler = yield* Deferred.make<void>()
+        const allowCommit = yield* Deferred.make<void>()
+        const storeId = "store-visibility" as EventLogServerUnencrypted.StoreId
+
+        const runtimeLayerWithBlockingHandler = Layer.effect(EventLogServerUnencrypted.EventLogServerUnencrypted)(
+          EventLogServerUnencrypted.make
+        ).pipe(
+          Layer.provideMerge(Layer.succeed(EventLogServerUnencrypted.Storage, storage)),
+          Layer.provideMerge(Layer.succeed(EventLogServerUnencrypted.StoreMapping, mapping)),
+          Layer.provideMerge(layerAuthAllowAll),
+          Layer.provideMerge(
+            EventLog.group(
+              UserGroup,
+              (handlers) =>
+                handlers.handle("UserCreated", ({ payload }) =>
+                  payload.id === "visibility-user"
+                    ? Deferred.succeed(enteredHandler, undefined).pipe(
+                      Effect.andThen(Deferred.await(allowCommit))
+                    )
+                    : Effect.void)
+            )
+          ),
+          Layer.provideMerge(Reactivity.layer)
+        )
+
+        yield* Effect.gen(function*() {
+          const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+
+          const ingestFiber = yield* runtime.ingest({
+            publicKey: "public-key-visibility",
+            entries: [yield* makeUserCreatedEntry("visibility-user")]
+          }).pipe(Effect.forkScoped)
+
+          yield* Deferred.await(enteredHandler)
+
+          assert.deepStrictEqual(yield* storage.entries(storeId, 0), [])
+
+          yield* Deferred.succeed(allowCommit, undefined)
+          yield* Fiber.join(ingestFiber)
+
+          assert.deepStrictEqual((yield* storage.entries(storeId, 0)).map((entry) => entry.remoteSequence), [1])
+
+          const changesAfterCommit = yield* runtime.requestChanges("public-key-visibility", 0)
+          const committedEntry = yield* Queue.take(changesAfterCommit)
+          assert.strictEqual(committedEntry.remoteSequence, 1)
+          assert.strictEqual(committedEntry.entry.primaryKey, "visibility-user")
+        }).pipe(Effect.provide(runtimeLayerWithBlockingHandler))
+      })
+    ))
+
+  it.effect("concurrent replicas writing to the same store share one ordered sequence space", () =>
     Effect.scoped(
       Effect.gen(function*() {
         const handled = yield* Ref.make<ReadonlyArray<string>>([])
-        const invalidations = yield* Ref.make(0)
-        const storage = yield* makeStorageFailingFirstPostCommitCatchUp
+        const storage = yield* EventLogServerUnencrypted.makeStorageMemory
         const mapping = yield* EventLogServerUnencrypted.makeStoreMappingMemory({
-          mappings: [["public-key-reconciliation", "store-reconciliation" as EventLogServerUnencrypted.StoreId]]
+          mappings: [
+            ["same-store-replica-a", "same-store" as EventLogServerUnencrypted.StoreId],
+            ["same-store-replica-b", "same-store" as EventLogServerUnencrypted.StoreId]
+          ]
         })
-        const storeId = "store-reconciliation" as EventLogServerUnencrypted.StoreId
 
-        const firstRuntimeLayer = runtimeLayerFromServices({
+        const replicaALayer = runtimeLayerFromServices({
+          handled,
+          storage,
+          mapping
+        })
+        const replicaBLayer = runtimeLayerFromServices({
           handled,
           storage,
           mapping
         })
 
-        const replayFailure = yield* Effect.flip(
-          Effect.gen(function*() {
-            const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
-            const entry = yield* makeUserCreatedEntry("user-backlog")
-            yield* runtime.ingest({
-              publicKey: "public-key-reconciliation",
-              entries: [entry]
-            })
-          }).pipe(Effect.provide(firstRuntimeLayer))
+        const replicaAFiber = yield* Effect.gen(function*() {
+          const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+          return yield* runtime.ingest({
+            publicKey: "same-store-replica-a",
+            entries: [yield* makeUserCreatedEntry("same-store-user-a")]
+          })
+        }).pipe(
+          Effect.provide(replicaALayer),
+          Effect.forkScoped
         )
-        assert.instanceOf(replayFailure, EventJournal.EventJournalError)
 
-        const persistedBacklog = yield* storage.entries(storeId, 0)
-        assert.deepStrictEqual(persistedBacklog.map((entry) => entry.remoteSequence), [1])
-        assert.strictEqual(yield* storage.processedSequence(storeId), 0)
-        assert.deepStrictEqual(yield* Ref.get(handled), [])
-
-        const secondRuntimeLayer = runtimeLayerFromServices({
-          handled,
-          storage,
-          mapping
-        })
-
-        yield* Effect.gen(function*() {
+        const replicaBFiber = yield* Effect.gen(function*() {
           const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
-          const reactivity = yield* Reactivity.Reactivity
-
-          yield* runtime.registerReactivity({
-            UserCreated: ["users"]
+          return yield* runtime.ingest({
+            publicKey: "same-store-replica-b",
+            entries: [yield* makeUserCreatedEntry("same-store-user-b")]
           })
+        }).pipe(
+          Effect.provide(replicaBLayer),
+          Effect.forkScoped
+        )
 
-          const query = yield* reactivity.query(
-            { users: ["user-backlog"] },
-            Ref.updateAndGet(invalidations, (count) => count + 1)
-          )
+        const resultA = yield* Fiber.join(replicaAFiber)
+        const resultB = yield* Fiber.join(replicaBFiber)
+        assert.deepStrictEqual(
+          [resultA.sequenceNumbers[0], resultB.sequenceNumbers[0]].sort((a, b) => a - b),
+          [1, 2]
+        )
 
-          const initial = yield* Queue.take(query)
-          assert.strictEqual(initial, 1)
+        const committed = yield* storage.entries("same-store" as EventLogServerUnencrypted.StoreId, 0)
+        assert.deepStrictEqual(committed.map((entry) => entry.remoteSequence), [1, 2])
+        assert.deepStrictEqual(
+          committed.map((entry) => entry.entry.primaryKey).sort(),
+          ["same-store-user-a", "same-store-user-b"]
+        )
+        assert.deepStrictEqual((yield* Ref.get(handled)).slice().sort(), ["same-store-user-a", "same-store-user-b"])
+      })
+    ))
 
-          yield* runtime.requestChanges("public-key-reconciliation", 0)
-          const afterRecovery = yield* Queue.take(query)
-          assert.strictEqual(afterRecovery, 2)
-
-          assert.deepStrictEqual(yield* Ref.get(handled), ["user-backlog"])
-          assert.strictEqual(yield* storage.processedSequence(storeId), 1)
-
-          for (let i = 0; i < 10; i++) {
-            yield* Effect.yieldNow
-          }
-
-          while (true) {
-            const next = yield* Queue.poll(query)
-            if (next._tag === "None") {
-              break
-            }
-          }
-
-          const invalidationsBeforeSecondRead = yield* Ref.get(invalidations)
-
-          yield* runtime.requestChanges("public-key-reconciliation", 0)
-
-          for (let i = 0; i < 10; i++) {
-            yield* Effect.yieldNow
-          }
-
-          const duplicateInvalidation = yield* Queue.poll(query)
-          assert.strictEqual(duplicateInvalidation._tag, "None")
-
-          assert.deepStrictEqual(yield* Ref.get(handled), ["user-backlog"])
-          assert.strictEqual(yield* Ref.get(invalidations), invalidationsBeforeSecondRead)
-          assert.strictEqual(yield* storage.processedSequence(storeId), 1)
-        }).pipe(Effect.provide(secondRuntimeLayer))
-
-        const thirdRuntimeLayer = runtimeLayerFromServices({
-          handled,
-          storage,
-          mapping
+  it.effect("concurrent replica writes stay isolated across different stores", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const storage = yield* EventLogServerUnencrypted.makeStorageMemory
+        const mapping = yield* EventLogServerUnencrypted.makeStoreMappingMemory({
+          mappings: [
+            ["isolation-replica-a", "store-isolation-a" as EventLogServerUnencrypted.StoreId],
+            ["isolation-replica-b", "store-isolation-b" as EventLogServerUnencrypted.StoreId]
+          ]
         })
+        const enteredStoreAHandler = yield* Deferred.make<void>()
+        const allowStoreACommit = yield* Deferred.make<void>()
 
-        yield* Effect.gen(function*() {
+        const blockingHandlerLayer = EventLog.group(
+          UserGroup,
+          (handlers) =>
+            handlers.handle("UserCreated", ({ payload }) =>
+              payload.id === "store-a-blocking"
+                ? Deferred.succeed(enteredStoreAHandler, undefined).pipe(
+                  Effect.andThen(Deferred.await(allowStoreACommit))
+                )
+                : Effect.void)
+        )
+
+        const replicaALayer = Layer.effect(EventLogServerUnencrypted.EventLogServerUnencrypted)(
+          EventLogServerUnencrypted.make
+        ).pipe(
+          Layer.provideMerge(Layer.succeed(EventLogServerUnencrypted.Storage, storage)),
+          Layer.provideMerge(Layer.succeed(EventLogServerUnencrypted.StoreMapping, mapping)),
+          Layer.provideMerge(layerAuthAllowAll),
+          Layer.provideMerge(blockingHandlerLayer),
+          Layer.provideMerge(Reactivity.layer)
+        )
+
+        const replicaBLayer = Layer.effect(EventLogServerUnencrypted.EventLogServerUnencrypted)(
+          EventLogServerUnencrypted.make
+        ).pipe(
+          Layer.provideMerge(Layer.succeed(EventLogServerUnencrypted.Storage, storage)),
+          Layer.provideMerge(Layer.succeed(EventLogServerUnencrypted.StoreMapping, mapping)),
+          Layer.provideMerge(layerAuthAllowAll),
+          Layer.provideMerge(blockingHandlerLayer),
+          Layer.provideMerge(Reactivity.layer)
+        )
+
+        const storeAFiber = yield* Effect.gen(function*() {
           const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
-          const reactivity = yield* Reactivity.Reactivity
-
-          yield* runtime.registerReactivity({
-            UserCreated: ["users"]
+          return yield* runtime.ingest({
+            publicKey: "isolation-replica-a",
+            entries: [yield* makeUserCreatedEntry("store-a-blocking")]
           })
+        }).pipe(
+          Effect.provide(replicaALayer),
+          Effect.forkScoped
+        )
 
-          const invalidationsBeforeQuery = yield* Ref.get(invalidations)
-          const query = yield* reactivity.query(
-            { users: ["user-backlog"] },
-            Ref.updateAndGet(invalidations, (count) => count + 1)
-          )
+        yield* Deferred.await(enteredStoreAHandler)
 
-          const initial = yield* Queue.take(query)
-          assert.strictEqual(initial, invalidationsBeforeQuery + 1)
+        const storeBFiber = yield* Effect.gen(function*() {
+          const runtime = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+          return yield* runtime.ingest({
+            publicKey: "isolation-replica-b",
+            entries: [yield* makeUserCreatedEntry("store-b-fast")]
+          })
+        }).pipe(
+          Effect.provide(replicaBLayer),
+          Effect.forkScoped
+        )
 
-          const beforeRestartRead = yield* Ref.get(invalidations)
-          yield* runtime.requestChanges("public-key-reconciliation", 0)
+        const storeBResult = yield* Fiber.join(storeBFiber)
+        assert.deepStrictEqual(storeBResult.sequenceNumbers, [1])
 
-          for (let i = 0; i < 10; i++) {
-            yield* Effect.yieldNow
-          }
+        const storeABeforeRelease = yield* Effect.sync(() => storeAFiber.pollUnsafe())
+        assert.strictEqual(storeABeforeRelease, undefined)
 
-          const restartDuplicateInvalidation = yield* Queue.poll(query)
-          assert.strictEqual(restartDuplicateInvalidation._tag, "None")
-          assert.deepStrictEqual(yield* Ref.get(handled), ["user-backlog"])
-          assert.strictEqual(yield* Ref.get(invalidations), beforeRestartRead)
-          assert.strictEqual(yield* storage.processedSequence(storeId), 1)
-        }).pipe(Effect.provide(thirdRuntimeLayer))
+        yield* Deferred.succeed(allowStoreACommit, undefined)
+        const storeAResult = yield* Fiber.join(storeAFiber)
+        assert.deepStrictEqual(storeAResult.sequenceNumbers, [1])
+
+        const storeAEntries = yield* storage.entries("store-isolation-a" as EventLogServerUnencrypted.StoreId, 0)
+        const storeBEntries = yield* storage.entries("store-isolation-b" as EventLogServerUnencrypted.StoreId, 0)
+        assert.deepStrictEqual(storeAEntries.map((entry) => entry.entry.primaryKey), ["store-a-blocking"])
+        assert.deepStrictEqual(storeBEntries.map((entry) => entry.entry.primaryKey), ["store-b-fast"])
       })
     ))
 
