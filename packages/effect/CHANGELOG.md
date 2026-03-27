@@ -1,5 +1,21 @@
 # effect
 
+## 4.0.0-beta.42
+
+### Patch Changes
+
+- [#1897](https://github.com/Effect-TS/effect-smol/pull/1897) [`924e216`](https://github.com/Effect-TS/effect-smol/commit/924e216caa7e0bbf22e994a0cd2ce8b1f0f0b3ee) Thanks @IMax153! - Append concrete choice values to CLI flag help descriptions so generated help shows valid command-line inputs.
+
+- [#1894](https://github.com/Effect-TS/effect-smol/pull/1894) [`80e7f0c`](https://github.com/Effect-TS/effect-smol/commit/80e7f0cd9116e811e97b0ce30a77a8d1ecd072aa) Thanks @tim-smart! - Fix `MutableList.appendAll` / `appendAllUnsafe` so empty arrays are treated as a no-op instead of leaving behind an empty internal bucket.
+
+- [#1895](https://github.com/Effect-TS/effect-smol/pull/1895) [`f8328bf`](https://github.com/Effect-TS/effect-smol/commit/f8328bf0314da3dc7f31d314f94a5840e8d5217f) Thanks @tim-smart! - Changed socket close handling so all close codes are treated as errors by default unless `closeCodeIsError` is overridden.
+
+- [#1899](https://github.com/Effect-TS/effect-smol/pull/1899) [`66d1c06`](https://github.com/Effect-TS/effect-smol/commit/66d1c06039079129707a230f7ad8c676439d7133) Thanks @gcanti! - SchemaRepresentation: support `anyOf`/`oneOf` with sibling keywords in `fromJsonSchemaMultiDocument`
+
+- [#1893](https://github.com/Effect-TS/effect-smol/pull/1893) [`bee800b`](https://github.com/Effect-TS/effect-smol/commit/bee800bf285192a01bec72a7b7b51bc1159434e6) Thanks @gcanti! - `Number.remainder`: fix incorrect results for small floats in scientific notation (e.g. `1e-7`).
+
+- [#1898](https://github.com/Effect-TS/effect-smol/pull/1898) [`8930441`](https://github.com/Effect-TS/effect-smol/commit/8930441dee6f94c59c583d18d3ebd677cf1f2623) Thanks @mikearnaldi! - Rename `Effect.transaction` to `Effect.tx` and `Effect.retryTransaction` to `Effect.txRetry`, remove `Effect.transactionWith` / `Effect.withTxState`, make nested `Effect.tx` calls compose into the active transaction, and make the public `Tx*` APIs establish atomic transactions without requiring `Transaction` in common usage.
+
 ## 4.0.0-beta.41
 
 ### Patch Changes

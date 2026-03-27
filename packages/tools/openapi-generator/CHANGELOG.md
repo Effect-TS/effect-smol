@@ -1,5 +1,13 @@
 # @effect/openapi-generator
 
+## 4.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [[`924e216`](https://github.com/Effect-TS/effect-smol/commit/924e216caa7e0bbf22e994a0cd2ce8b1f0f0b3ee), [`80e7f0c`](https://github.com/Effect-TS/effect-smol/commit/80e7f0cd9116e811e97b0ce30a77a8d1ecd072aa), [`f8328bf`](https://github.com/Effect-TS/effect-smol/commit/f8328bf0314da3dc7f31d314f94a5840e8d5217f), [`66d1c06`](https://github.com/Effect-TS/effect-smol/commit/66d1c06039079129707a230f7ad8c676439d7133), [`bee800b`](https://github.com/Effect-TS/effect-smol/commit/bee800bf285192a01bec72a7b7b51bc1159434e6), [`8930441`](https://github.com/Effect-TS/effect-smol/commit/8930441dee6f94c59c583d18d3ebd677cf1f2623)]:
+  - effect@4.0.0-beta.42
+  - @effect/platform-node@4.0.0-beta.42
+
 ## 4.0.0-beta.41
 
 ### Patch Changes
