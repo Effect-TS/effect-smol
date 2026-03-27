@@ -2340,6 +2340,25 @@ describe("Effect", () => {
 
           assert.strictEqual(transactionValue, 20)
         }))
+
+      it.effect("should support isolated nested transactions", () =>
+        Effect.gen(function*() {
+          const ref1 = TxRef.makeUnsafe(0)
+          const ref2 = TxRef.makeUnsafe(0)
+
+          const txError = yield* Effect.tx(Effect.gen(function*() {
+            yield* TxRef.set(ref1, 10)
+            yield* Effect.tx(TxRef.set(ref2, 20), { isolated: true })
+            return yield* Effect.fail("outer failed")
+          })).pipe(Effect.flip)
+
+          const val1 = yield* Effect.tx(TxRef.get(ref1))
+          const val2 = yield* Effect.tx(TxRef.get(ref2))
+
+          assert.strictEqual(txError, "outer failed")
+          assert.strictEqual(val1, 0)
+          assert.strictEqual(val2, 20)
+        }))
     })
   })
 

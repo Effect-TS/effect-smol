@@ -13778,7 +13778,8 @@ export class Transaction extends ServiceMap.Service<
  * made to transactional values (i.e. TxRef) that occur within the transaction body.
  *
  * If called inside an active transaction, `tx` composes with the current transaction and reuses
- * its journal and retry state instead of creating a nested boundary.
+ * its journal and retry state instead of creating a nested boundary. Pass
+ * `{ isolated: true }` to force a new nested transaction boundary.
  *
  * In Effect transactions are optimistic with retry, that means transactions are retried when:
  *
@@ -13807,6 +13808,9 @@ export class Transaction extends ServiceMap.Service<
  *     console.log(`Transaction sum: ${sum}`)
  *   }))
  *
+ *   // Force an isolated nested transaction if needed
+ *   yield* Effect.tx(TxRef.set(ref2, 30), { isolated: true })
+ *
  *   console.log(`Final ref1: ${yield* Effect.tx(TxRef.get(ref1))}`) // 10
  *   console.log(`Final ref2: ${yield* Effect.tx(TxRef.get(ref2))}`) // 20
  * })
@@ -13815,46 +13819,69 @@ export class Transaction extends ServiceMap.Service<
  * @since 4.0.0
  * @category Transactions
  */
-export const tx = <A, E, R>(
-  effect: Effect<A, E, R>
-): Effect<A, E, Exclude<R, Transaction>> =>
-  withFiber((fiber) => {
-    if (fiber.services.mapUnsafe.has(Transaction.key)) {
-      return effect as Effect<A, E, Exclude<R, Transaction>>
-    }
-    // Create transaction state only at the outermost boundary
-    const state: Transaction["Service"] = { journal: new Map(), retry: false }
-    let result: Exit.Exit<A, E> | undefined
-    return uninterruptibleMask((restore) =>
-      flatMap(
-        whileLoop({
-          while: () => !result,
-          body: constant(
-            restore(effect).pipe(
-              provideService(Transaction, state),
-              tapCause(() => {
-                if (!state.retry) return void_
-                return restore(awaitPendingTransaction(state))
-              }),
-              exit
-            )
-          ),
-          step(exit: Exit.Exit<A, E>) {
-            if (state.retry || !isTransactionConsistent(state)) {
-              return clearTransaction(state)
-            }
-            if (Exit.isSuccess(exit)) {
-              commitTransaction(fiber, state)
-            } else {
-              clearTransaction(state)
-            }
-            result = exit
-          }
-        }),
-        () => result!
-      )
-    )
-  })
+export const tx: <
+  Arg extends Effect<any, any, any> | tx.Options | undefined = tx.Options
+>(
+  effectOrOptions?: Arg,
+  options?: tx.Options | undefined
+) => [Arg] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<_A, _E, Exclude<_R, Transaction>>
+  : <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, Transaction>> = ((
+    effectOrOptions?: Effect<any, any, any> | tx.Options,
+    options?: tx.Options
+  ) =>
+    isEffect(effectOrOptions)
+      ? withFiber((fiber) => {
+        if (!options?.isolated && fiber.services.mapUnsafe.has(Transaction.key)) {
+          return effectOrOptions as Effect<any, any, Exclude<any, Transaction>>
+        }
+        // Create transaction state only at the outermost boundary
+        const state: Transaction["Service"] = { journal: new Map(), retry: false }
+        let result: Exit.Exit<any, any> | undefined
+        return uninterruptibleMask((restore) =>
+          flatMap(
+            whileLoop({
+              while: () => !result,
+              body: constant(
+                restore(effectOrOptions).pipe(
+                  provideService(Transaction, state),
+                  tapCause(() => {
+                    if (!state.retry) return void_
+                    return restore(awaitPendingTransaction(state))
+                  }),
+                  exit
+                )
+              ),
+              step(exit: Exit.Exit<any, any>) {
+                if (state.retry || !isTransactionConsistent(state)) {
+                  return clearTransaction(state)
+                }
+                if (Exit.isSuccess(exit)) {
+                  commitTransaction(fiber, state)
+                } else {
+                  clearTransaction(state)
+                }
+                result = exit
+              }
+            }),
+            () => result!
+          )
+        )
+      })
+      : <A, E, R>(self: Effect<A, E, R>) => tx(self, effectOrOptions)) as any
+
+/**
+ * @since 4.0.0
+ * @category Models
+ */
+export declare namespace tx {
+  /**
+   * @since 4.0.0
+   * @category Models
+   */
+  export interface Options {
+    readonly isolated?: boolean | undefined
+  }
+}
 
 const isTransactionConsistent = (state: Transaction["Service"]) => {
   for (const [ref, { version }] of state.journal) {
