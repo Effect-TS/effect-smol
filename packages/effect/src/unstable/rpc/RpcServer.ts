@@ -351,11 +351,24 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
     }
     if (Effect.isEffect(stream)) {
       return stream.pipe(
-        Effect.flatMap((queue) =>
-          Effect.whileLoop({
+        Effect.flatMap((queueOrStream) => {
+          if (Stream.isStream(queueOrStream)) {
+            return Stream.runForEachArray(queueOrStream as any as Stream.Stream<any, any>, (values) => {
+              const write = options.onFromServer({
+                _tag: "Chunk",
+                clientId: client.id,
+                requestId: request.id,
+                values
+              })
+              if (!latch) return write
+              latch.closeUnsafe()
+              return Effect.andThen(write, latch.await)
+            })
+          }
+          return Effect.whileLoop({
             while: constTrue,
             body: constant(
-              Effect.flatMap(Queue.takeAll(queue), (values) => {
+              Effect.flatMap(Queue.takeAll(queueOrStream), (values) => {
                 const write = options.onFromServer({
                   _tag: "Chunk",
                   clientId: client.id,
@@ -369,7 +382,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
             ),
             step: constVoid
           })
-        ),
+        }),
         Pull.catchDone(() => Effect.void),
         Effect.scoped
       )
