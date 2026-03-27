@@ -262,7 +262,14 @@ Notes:
 
 ## Detailed implementation plan
 
-### Task 1 — Add the module scaffold, DDL, and export plumbing
+### [x] Task 1 — Add the module scaffold, DDL, and export plumbing
+
+Status:
+
+- completed in this change
+- remote id persistence now uses a singleton-key SQL table row so concurrent initializers converge on one persisted id after an insert/re-read race
+- constructor-time DDL now creates the remote id table, the shared entries table, and the internal `<entriesTable>_stores` helper table
+- `write`, `entries`, and `changes` are still scaffold implementations and remain scheduled for Task 2
 
 Validation target after this task:
 
@@ -282,7 +289,7 @@ Scope:
 
 Why this is one task: it establishes the public API and schema footprint in a form that can compile, typecheck, and be exported independently.
 
-### Task 2 — Implement core storage behavior
+### [ ] Task 2 — Implement core storage behavior
 
 Validation target after this task:
 
@@ -301,7 +308,7 @@ Scope:
 
 Why this is one task: these behaviors depend on one another and should land together so the service semantics remain internally consistent and type-safe.
 
-### Task 3 — Add reusable integration coverage and driver runners
+### [ ] Task 3 — Add reusable integration coverage and driver runners
 
 Validation target after this task:
 
@@ -320,7 +327,7 @@ Scope:
 
 Why this is one task: the reusable suite and the driver runners need to land together so validations exercise real SQL backends immediately. Splitting them would either leave dead test code with no runner or runner files with missing shared coverage.
 
-### Task 4 — Add release metadata and perform the final validation pass
+### [ ] Task 4 — Add release metadata and perform the final validation pass
 
 Validation target after this task:
 
