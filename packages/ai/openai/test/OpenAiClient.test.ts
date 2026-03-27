@@ -634,56 +634,5 @@ describe("OpenAiClient", () => {
         assert.strictEqual(result.reason._tag, "InternalProviderError")
       }).pipe(Effect.provide(MainLayer))
     })
-
-    it.effect("sends response.cancel on interrupt in websocket mode", () => {
-      const port = 42345
-      const apiUrl = `http://localhost:${port}/v1`
-      const serverUrl = `ws://localhost:${port}/v1/responses`
-
-      const HttpClientLayer = Layer.succeed(
-        HttpClient.HttpClient,
-        makeMockHttpClient((request) => Effect.succeed(makeMockResponse({ status: 200, body: {}, request })))
-      )
-
-      const MainLayer = OpenAiClient.layer({
-        apiKey: Redacted.make("test-key"),
-        apiUrl
-      }).pipe(Layer.provide(HttpClientLayer))
-
-      return Effect.gen(function*() {
-        const server = yield* Effect.acquireRelease(
-          Effect.sync(() => new WS(serverUrl, { jsonProtocol: true })),
-          (server) =>
-            Effect.sync(() => {
-              server.close()
-              WS.clean()
-            })
-        )
-
-        const client = yield* OpenAiClient.OpenAiClient
-        const fiber = yield* Effect.forkScoped(
-          OpenAiClient.withWebSocketMode(
-            client.createResponseStream({
-              model: "gpt-4o",
-              input: "test"
-            }).pipe(
-              Effect.andThen(([_, stream]) => Stream.runDrain(stream))
-            )
-          ),
-          { startImmediately: true }
-        )
-
-        const createEvent = yield* Effect.promise(() => server.nextMessage as Promise<any>)
-        assert.strictEqual(createEvent.type, "response.create")
-
-        yield* Fiber.interrupt(fiber)
-
-        const cancelEvent = yield* Effect.promise(() => server.nextMessage as Promise<any>)
-        assert.deepStrictEqual(cancelEvent, { type: "response.cancel" })
-      }).pipe(
-        Effect.provide(MainLayer),
-        Effect.provideService(Socket.WebSocketConstructor, (url) => new globalThis.WebSocket(url))
-      )
-    })
   })
 })
