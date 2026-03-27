@@ -592,6 +592,31 @@ describe("toCodecOpenAI", () => {
     })
   })
 
+  it("Class", () => {
+    class Person extends Schema.Class<Person>("Person")({
+      name: Schema.String
+    }) {}
+
+    assertJsonSchema(Person, {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" }
+      },
+      "required": ["name"],
+      "additionalProperties": false,
+      "$defs": {
+        "Person": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" }
+          },
+          "required": ["name"],
+          "additionalProperties": false
+        }
+      }
+    })
+  })
+
   describe("Record", () => {
     it("EmptyParams", async () => {
       assertJsonSchema(Tool.EmptyParams, {
