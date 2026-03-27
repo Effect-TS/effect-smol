@@ -13797,8 +13797,8 @@ export class Transaction extends ServiceMap.Service<
  * import { Effect, TxRef } from "effect"
  *
  * const program = Effect.gen(function*() {
- *   const ref1 = yield* Effect.tx(TxRef.make(0))
- *   const ref2 = yield* Effect.tx(TxRef.make(0))
+ *   const ref1 = yield* TxRef.make(0)
+ *   const ref2 = yield* TxRef.make(0)
  *
  *   // Nested tx calls compose into the same transaction
  *   yield* Effect.tx(Effect.gen(function*() {
@@ -13811,8 +13811,8 @@ export class Transaction extends ServiceMap.Service<
  *   // Force an isolated nested transaction if needed
  *   yield* Effect.tx(TxRef.set(ref2, 30), { isolated: true })
  *
- *   console.log(`Final ref1: ${yield* Effect.tx(TxRef.get(ref1))}`) // 10
- *   console.log(`Final ref2: ${yield* Effect.tx(TxRef.get(ref2))}`) // 20
+ *   console.log(`Final ref1: ${yield* TxRef.get(ref1)}`) // 10
+ *   console.log(`Final ref2: ${yield* TxRef.get(ref2)}`) // 20
  * })
  * ```
  *
@@ -13946,7 +13946,7 @@ function clearTransaction(state: Transaction["Service"]) {
  *
  * const program = Effect.gen(function*() {
  *   // create a transactional reference
- *   const ref = yield* Effect.tx(TxRef.make(0))
+ *   const ref = yield* TxRef.make(0)
  *
  *   // forks a fiber that increases the value of `ref` every 100 millis
  *   yield* Effect.forkChild(Effect.forever(

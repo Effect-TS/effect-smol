@@ -40,7 +40,7 @@ const TypeId = "~effect/transactions/TxRef"
  *     yield* TxRef.set(ref, current + 1)
  *   }))
  *
- *   const final = yield* Effect.tx(TxRef.get(ref))
+ *   const final = yield* TxRef.get(ref)
  *   console.log(final) // 1
  * })
  * ```
@@ -64,8 +64,8 @@ export interface TxRef<in out A> extends Pipeable {
  *
  * const program = Effect.gen(function*() {
  *   // Create a transactional reference with initial value
- *   const counter = yield* Effect.tx(TxRef.make(0))
- *   const name = yield* Effect.tx(TxRef.make("Alice"))
+ *   const counter = yield* TxRef.make(0)
+ *   const name = yield* TxRef.make("Alice")
  *
  *   // Use in transactions
  *   yield* Effect.tx(Effect.gen(function*() {
@@ -73,8 +73,8 @@ export interface TxRef<in out A> extends Pipeable {
  *     yield* TxRef.set(name, "Bob")
  *   }))
  *
- *   console.log(yield* Effect.tx(TxRef.get(counter))) // 42
- *   console.log(yield* Effect.tx(TxRef.get(name))) // "Bob"
+ *   console.log(yield* TxRef.get(counter)) // 42
+ *   console.log(yield* TxRef.get(name)) // "Bob"
  * })
  * ```
  */
@@ -124,7 +124,7 @@ export const makeUnsafe = <A>(initial: A): TxRef<A> => ({
  *   const result = yield* TxRef.modify(counter, (current) => [current * 2, current + 1])
  *
  *   console.log(result) // 0 (the return value: current * 2)
- *   console.log(yield* Effect.tx(TxRef.get(counter))) // 1 (the new value: current + 1)
+ *   console.log(yield* TxRef.get(counter)) // 1 (the new value: current + 1)
  * })
  * ```
  */
@@ -167,7 +167,7 @@ export const modify: {
  *     TxRef.update(counter, (current) => current * 2)
  *   )
  *
- *   console.log(yield* Effect.tx(TxRef.get(counter))) // 20
+ *   console.log(yield* TxRef.get(counter)) // 20
  * })
  * ```
  */
@@ -219,7 +219,7 @@ export const get = <A>(self: TxRef<A>): Effect.Effect<A> => modify(self, (curren
  *     TxRef.set(counter, 100)
  *   )
  *
- *   console.log(yield* Effect.tx(TxRef.get(counter))) // 100
+ *   console.log(yield* TxRef.get(counter)) // 100
  * })
  * ```
  */
