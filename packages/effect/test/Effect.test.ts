@@ -2198,6 +2198,17 @@ describe("Effect", () => {
           assert.strictEqual(val2, 200)
         }))
 
+      it.effect("should allow TxRef.modify outside an existing transaction", () =>
+        Effect.gen(function*() {
+          const ref = TxRef.makeUnsafe(0)
+
+          const result = yield* TxRef.modify(ref, (current) => [current + 1, current + 10])
+          const value = yield* Effect.tx(TxRef.get(ref))
+
+          assert.strictEqual(result, 1)
+          assert.strictEqual(value, 10)
+        }))
+
       it.effect("should roll back nested changes when the outer transaction fails", () =>
         Effect.gen(function*() {
           const ref1 = TxRef.makeUnsafe(0)

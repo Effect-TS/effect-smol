@@ -78,13 +78,7 @@ export interface TxRef<in out A> extends Pipeable {
  * })
  * ```
  */
-export const make = <A>(initial: A) =>
-  Effect.flatMap(Effect.Transaction.asEffect(), (state) =>
-    Effect.sync(() => {
-      const ref = makeUnsafe(initial)
-      state.journal.set(ref, { version: ref.version, value: ref.value })
-      return ref
-    }))
+export const make = <A>(initial: A) => Effect.sync(() => makeUnsafe(initial))
 
 /**
  * Creates a new `TxRef` with the specified initial value.
@@ -127,9 +121,7 @@ export const makeUnsafe = <A>(initial: A): TxRef<A> => ({
  *   const counter = yield* TxRef.make(0)
  *
  *   // Modify and return both old and new value
- *   const result = yield* Effect.tx(
- *     TxRef.modify(counter, (current) => [current * 2, current + 1])
- *   )
+ *   const result = yield* TxRef.modify(counter, (current) => [current * 2, current + 1])
  *
  *   console.log(result) // 0 (the return value: current * 2)
  *   console.log(yield* Effect.tx(TxRef.get(counter))) // 1 (the new value: current + 1)
@@ -137,17 +129,14 @@ export const makeUnsafe = <A>(initial: A): TxRef<A> => ({
  * ```
  */
 export const modify: {
-  <A, R>(
-    f: (current: NoInfer<A>) => [returnValue: R, newValue: A]
-  ): (self: TxRef<A>) => Effect.Effect<R, never, Effect.Transaction>
-  <A, R>(self: TxRef<A>, f: (current: A) => [returnValue: R, newValue: A]): Effect.Effect<R, never, Effect.Transaction>
-} = dual(
-  2,
-  <A, R>(
-    self: TxRef<A>,
-    f: (current: A) => [returnValue: R, newValue: A]
-  ): Effect.Effect<R, never, Effect.Transaction> =>
-    Effect.flatMap(Effect.Transaction.asEffect(), (state) =>
+  <A, R>(f: (current: NoInfer<A>) => [returnValue: R, newValue: A]): (self: TxRef<A>) => Effect.Effect<R>
+  <A, R>(self: TxRef<A>, f: (current: A) => [returnValue: R, newValue: A]): Effect.Effect<R>
+} = dual(2, <A, R>(
+  self: TxRef<A>,
+  f: (current: A) => [returnValue: R, newValue: A]
+): Effect.Effect<R> =>
+  Effect.Transaction.asEffect().pipe(
+    Effect.flatMap((state) =>
       Effect.sync(() => {
         if (!state.journal.has(self)) {
           state.journal.set(self, { version: self.version, value: self.value })
@@ -156,8 +145,10 @@ export const modify: {
         const [returnValue, next] = f(current.value)
         current.value = next
         return returnValue
-      }))
-)
+      })
+    ),
+    Effect.tx
+  ))
 
 /**
  * Updates the value of the `TxRef` using the provided function.
@@ -181,13 +172,12 @@ export const modify: {
  * ```
  */
 export const update: {
-  <A>(f: (current: NoInfer<A>) => A): (self: TxRef<A>) => Effect.Effect<void, never, Effect.Transaction>
-  <A>(self: TxRef<A>, f: (current: A) => A): Effect.Effect<void, never, Effect.Transaction>
-} = dual(
-  2,
-  <A>(self: TxRef<A>, f: (current: A) => A): Effect.Effect<void, never, Effect.Transaction> =>
-    modify(self, (current) => [void 0, f(current)])
-)
+  <A>(f: (current: NoInfer<A>) => A): (self: TxRef<A>) => Effect.Effect<void>
+  <A>(self: TxRef<A>, f: (current: A) => A): Effect.Effect<void>
+} = dual(2, <A>(
+  self: TxRef<A>,
+  f: (current: A) => A
+): Effect.Effect<void> => modify(self, (current) => [void 0, f(current)]))
 
 /**
  * Reads the current value of the `TxRef`.
@@ -210,8 +200,7 @@ export const update: {
  * })
  * ```
  */
-export const get = <A>(self: TxRef<A>): Effect.Effect<A, never, Effect.Transaction> =>
-  modify(self, (current) => [current, current])
+export const get = <A>(self: TxRef<A>): Effect.Effect<A> => modify(self, (current) => [current, current])
 
 /**
  * Sets the value of the `TxRef`.
@@ -235,6 +224,9 @@ export const get = <A>(self: TxRef<A>): Effect.Effect<A, never, Effect.Transacti
  * ```
  */
 export const set: {
-  <A>(value: A): (self: TxRef<A>) => Effect.Effect<void, never, Effect.Transaction>
-  <A>(self: TxRef<A>, value: A): Effect.Effect<void, never, Effect.Transaction>
-} = dual(2, <A>(self: TxRef<A>, value: A): Effect.Effect<void, never, Effect.Transaction> => update(self, () => value))
+  <A>(value: A): (self: TxRef<A>) => Effect.Effect<void>
+  <A>(self: TxRef<A>, value: A): Effect.Effect<void>
+} = dual(2, <A>(
+  self: TxRef<A>,
+  value: A
+): Effect.Effect<void> => update(self, () => value))

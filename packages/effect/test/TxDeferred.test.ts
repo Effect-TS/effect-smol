@@ -138,7 +138,7 @@ describe("TxDeferred", () => {
   describe("transactional behavior", () => {
     it.effect("succeed + await composed in Effect.tx works", () =>
       Effect.gen(function*() {
-        const deferred = yield* Effect.tx(TxDeferred.make<number>())
+        const deferred = yield* TxDeferred.make<number>()
         const value = yield* Effect.tx(
           Effect.gen(function*() {
             yield* TxDeferred.succeed(deferred, 42)
@@ -150,16 +150,16 @@ describe("TxDeferred", () => {
 
     it.effect("two deferreds modified atomically", () =>
       Effect.gen(function*() {
-        const d1 = yield* Effect.tx(TxDeferred.make<number>())
-        const d2 = yield* Effect.tx(TxDeferred.make<string>())
+        const d1 = yield* TxDeferred.make<number>()
+        const d2 = yield* TxDeferred.make<string>()
         yield* Effect.tx(
           Effect.gen(function*() {
             yield* TxDeferred.succeed(d1, 42)
             yield* TxDeferred.succeed(d2, "hello")
           })
         )
-        const v1 = yield* Effect.tx(TxDeferred.await(d1))
-        const v2 = yield* Effect.tx(TxDeferred.await(d2))
+        const v1 = yield* TxDeferred.await(d1)
+        const v2 = yield* TxDeferred.await(d2)
         assert.strictEqual(v1, 42)
         assert.strictEqual(v2, "hello")
       }))
