@@ -593,6 +593,24 @@ Any implementation produced from this spec must run:
   - same-store concurrent replica writes sharing one ordered sequence space
   - different-store isolation under concurrent replica writes
 
+## Task 3 Implementation Notes (Current Branch)
+
+- `requestChanges(...)` no longer stitches together `storage.entries(...)`
+  followed by `storage.changes(...)`; it now establishes a single shared-storage
+  feed through `storage.changes(...)` and derives both backlog and live traffic
+  from that feed.
+- Preserving cursor-safe read-time compaction still requires replaying the full
+  committed backlog before filtering by `startSequence`; compacting only the raw
+  suffix after `startSequence` changes representative sequence selection and can
+  break existing cursor behavior.
+- `makeStorageMemory.changes(...)` now yields once before draining pubsub live
+  notifications so a caller can deterministically drain the already-queued
+  committed backlog first without losing a commit that lands during setup.
+- Added focused runtime tests proving:
+  - a commit is not lost during the backlog-to-live transition
+  - one replica can read commits written by another replica through shared
+    storage-backed `requestChanges(...)`
+
 ## Implementation Plan
 
 The work should be split into the following validation-safe tasks.
@@ -666,7 +684,7 @@ Validation for this task:
 
 ### Task 3: Remove obsolete checkpoint-based processing and finish migration cleanup
 
-Status: ⏳ Not started
+Status: ✅ Completed
 
 Scope:
 
