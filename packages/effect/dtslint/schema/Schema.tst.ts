@@ -1442,24 +1442,43 @@ describe("Schema", () => {
     })
   })
 
-  it("encodeKeys", () => {
-    const schema = Schema.Struct({
-      a: Schema.FiniteFromString,
-      b: Schema.String
-    }).pipe(Schema.encodeKeys({ a: "c" }))
+  describe("encodeKeys", () => {
+    it("should rename keys in the encoded form", () => {
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString,
+        b: Schema.String
+      }).pipe(Schema.encodeKeys({ a: "c" }))
 
-    expect(schema).type.toBe<
-      Schema.decodeTo<
-        Schema.Struct<{
-          readonly a: Schema.FiniteFromString
-          readonly b: Schema.String
-        }>,
-        Schema.Struct<{
-          readonly c: Schema.toEncoded<Schema.FiniteFromString>
-          readonly b: Schema.toEncoded<Schema.String>
-        }>
-      >
-    >()
+      expect(schema).type.toBe<
+        Schema.decodeTo<
+          Schema.Struct<{
+            readonly a: Schema.FiniteFromString
+            readonly b: Schema.String
+          }>,
+          Schema.Struct<{
+            readonly c: Schema.toEncoded<Schema.FiniteFromString>
+            readonly b: Schema.toEncoded<Schema.String>
+          }>
+        >
+      >()
+    })
+
+    it("should ignore encoded key mappings for missing decoded fields", () => {
+      const schema = Schema.Struct({
+        a: Schema.String
+      }).pipe(Schema.encodeKeys({ a: "c", b: "d" }))
+
+      expect(schema).type.toBe<
+        Schema.decodeTo<
+          Schema.Struct<{
+            readonly a: Schema.String
+          }>,
+          Schema.Struct<{
+            readonly c: Schema.toEncoded<Schema.String>
+          }>
+        >
+      >()
+    })
   })
 
   it("tag", () => {
