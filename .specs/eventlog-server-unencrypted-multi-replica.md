@@ -593,11 +593,33 @@ Any implementation produced from this spec must run:
 - `pnpm codegen` if exports or barrels change
 - add a changeset for the unstable eventlog package changes
 
+## Task 1 Implementation Notes (Current Branch)
+
+- `Storage` now exposes additive `withStoreTransaction(storeId, effect)` while
+  keeping `withTransaction(...)`, `processedSequence(...)`, and
+  `markProcessed(...)` in place for compatibility with the current runtime path.
+- `makeStorageMemory` now stages writes in a transaction-local buffer and only
+  mutates journal / dedupe maps and publishes `changes(...)` notifications after
+  successful transaction commit.
+- Rollback path leaves committed journal state, dedupe state, and active change
+  subscribers untouched.
+- Store transaction coordination is now per-store via per-store semaphores,
+  allowing different stores to proceed concurrently while serializing same-store
+  transactions.
+- For backward compatibility, `storage.write(...)` when called outside an
+  explicit store transaction now runs in an implicit store transaction.
+- Important implementation constraint discovered: transaction context is
+  fiber-local in the memory model. Writes issued from forked child fibers are
+  not automatically enrolled in the parent transaction unless they explicitly
+  call `withStoreTransaction(...)`.
+
 ## Implementation Plan
 
 The work should be split into the following validation-safe tasks.
 
 ### Task 1: Introduce transactional storage primitives and a rollback-safe memory model
+
+Status: ✅ Completed
 
 Scope:
 
@@ -629,6 +651,8 @@ Validation for this task:
 - add or update a changeset if this task lands as its own PR
 
 ### Task 2: Refactor runtime writes to process before persist inside store transactions
+
+Status: ⏳ Not started
 
 Scope:
 
@@ -663,6 +687,8 @@ Validation for this task:
 - add or update a changeset if this task lands as its own PR
 
 ### Task 3: Remove obsolete checkpoint-based processing and finish migration cleanup
+
+Status: ⏳ Not started
 
 Scope:
 

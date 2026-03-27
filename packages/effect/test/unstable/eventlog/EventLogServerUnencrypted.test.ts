@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Layer, Queue, Ref, Schema, type Scope } from "effect"
+import { Deferred, Effect, Fiber, Layer, Queue, Ref, Schema, type Scope } from "effect"
 import * as EventGroup from "effect/unstable/eventlog/EventGroup"
 import * as EventJournal from "effect/unstable/eventlog/EventJournal"
 import * as EventLog from "effect/unstable/eventlog/EventLog"
@@ -1327,6 +1327,170 @@ describe("EventLogServerUnencrypted", () => {
       assert.strictEqual(error.reason, "NotFound")
       assert.strictEqual(error.publicKey, "missing-public-key")
     }).pipe(Effect.provide(EventLogServerUnencrypted.layerStoreMappingMemory())))
+
+  it.effect("store transactions keep writes invisible until commit and changes stays gap-free across backlog + live", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const storage = yield* EventLogServerUnencrypted.Storage
+        const storeId = "store-transaction-visibility" as EventLogServerUnencrypted.StoreId
+        const initialEntry = makeEntry("visibility-initial")
+
+        yield* storage.write(storeId, [initialEntry])
+
+        const changes = yield* storage.changes(storeId, 0)
+        const backlog = yield* Queue.take(changes)
+        assert.strictEqual(backlog.remoteSequence, 1)
+        assert.strictEqual(backlog.entry.primaryKey, "visibility-initial")
+
+        const stagedEntry = makeEntry("visibility-staged")
+        const enteredTransaction = yield* Deferred.make<void>()
+        const allowCommit = yield* Deferred.make<void>()
+
+        const transactionFiber = yield* storage.withStoreTransaction(
+          storeId,
+          Effect.gen(function*() {
+            const writeResult = yield* storage.write(storeId, [stagedEntry])
+            assert.deepStrictEqual(writeResult.sequenceNumbers, [2])
+            assert.deepStrictEqual(writeResult.committed.map((entry) => entry.remoteSequence), [2])
+
+            yield* Deferred.succeed(enteredTransaction, undefined)
+            yield* Deferred.await(allowCommit)
+          })
+        ).pipe(Effect.forkScoped)
+
+        yield* Deferred.await(enteredTransaction)
+
+        const beforeCommitEntries = yield* storage.entries(storeId, 0)
+        assert.deepStrictEqual(beforeCommitEntries.map((entry) => entry.remoteSequence), [1])
+
+        const beforeCommitChange = yield* Queue.poll(changes)
+        assert.strictEqual(beforeCommitChange._tag, "None")
+
+        yield* Deferred.succeed(allowCommit, undefined)
+        yield* Fiber.join(transactionFiber)
+
+        const afterCommitEntries = yield* storage.entries(storeId, 0)
+        assert.deepStrictEqual(afterCommitEntries.map((entry) => entry.remoteSequence), [1, 2])
+
+        const live = yield* Queue.take(changes)
+        assert.strictEqual(live.remoteSequence, 2)
+        assert.strictEqual(live.entry.primaryKey, "visibility-staged")
+      }).pipe(Effect.provide(EventLogServerUnencrypted.layerStorageMemory))
+    ))
+
+  it.effect("rolled back store transactions leave journal, dedupe state, and subscribers unchanged", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const storage = yield* EventLogServerUnencrypted.Storage
+        const storeId = "store-transaction-rollback" as EventLogServerUnencrypted.StoreId
+        const entry = makeEntry("rollback-entry")
+        const changes = yield* storage.changes(storeId, 0)
+
+        const error = yield* Effect.flip(
+          storage.withStoreTransaction(
+            storeId,
+            Effect.gen(function*() {
+              const writeResult = yield* storage.write(storeId, [entry])
+              assert.deepStrictEqual(writeResult.sequenceNumbers, [1])
+              return yield* Effect.fail("rollback")
+            })
+          )
+        )
+
+        assert.strictEqual(error, "rollback")
+        assert.deepStrictEqual(yield* storage.entries(storeId, 0), [])
+
+        const noPublishedChange = yield* Queue.poll(changes)
+        assert.strictEqual(noPublishedChange._tag, "None")
+
+        const retry = yield* storage.write(storeId, [entry])
+        assert.deepStrictEqual(retry.sequenceNumbers, [1])
+        assert.deepStrictEqual(retry.committed.map((committed) => committed.remoteSequence), [1])
+
+        const committedEntries = yield* storage.entries(storeId, 0)
+        assert.deepStrictEqual(committedEntries.map((committed) => committed.remoteSequence), [1])
+      }).pipe(Effect.provide(EventLogServerUnencrypted.layerStorageMemory))
+    ))
+
+  it.effect("store transactions deduplicate against transaction-local staged entries", () =>
+    Effect.gen(function*() {
+      const storage = yield* EventLogServerUnencrypted.Storage
+      const storeId = "store-transaction-dedupe" as EventLogServerUnencrypted.StoreId
+      const duplicate = makeEntry("transaction-duplicate")
+
+      const result = yield* storage.withStoreTransaction(
+        storeId,
+        Effect.gen(function*() {
+          const firstWrite = yield* storage.write(storeId, [duplicate, duplicate])
+          const secondWrite = yield* storage.write(storeId, [duplicate])
+
+          assert.deepStrictEqual(firstWrite.sequenceNumbers, [1, 1])
+          assert.deepStrictEqual(firstWrite.committed.map((entry) => entry.remoteSequence), [1])
+          assert.deepStrictEqual(secondWrite.sequenceNumbers, [1])
+          assert.strictEqual(secondWrite.committed.length, 0)
+
+          const whileInTransaction = yield* storage.entries(storeId, 0)
+          assert.deepStrictEqual(whileInTransaction, [])
+
+          return {
+            firstWrite,
+            secondWrite
+          }
+        })
+      )
+
+      assert.deepStrictEqual(result.firstWrite.sequenceNumbers, [1, 1])
+      assert.deepStrictEqual(result.secondWrite.sequenceNumbers, [1])
+
+      const committed = yield* storage.entries(storeId, 0)
+      assert.deepStrictEqual(committed.map((entry) => entry.remoteSequence), [1])
+    }).pipe(Effect.provide(EventLogServerUnencrypted.layerStorageMemory)))
+
+  it.effect("store transaction coordination serializes same-store work and allows different stores concurrently", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const storage = yield* EventLogServerUnencrypted.Storage
+        const storeA = "store-transaction-contention-a" as EventLogServerUnencrypted.StoreId
+        const storeB = "store-transaction-contention-b" as EventLogServerUnencrypted.StoreId
+
+        const storeAFirstStarted = yield* Deferred.make<void>()
+        const allowStoreAFirstCommit = yield* Deferred.make<void>()
+        const storeASecondStarted = yield* Deferred.make<void>()
+        const storeBStarted = yield* Deferred.make<void>()
+
+        const storeAFirstFiber = yield* storage.withStoreTransaction(
+          storeA,
+          Effect.gen(function*() {
+            yield* Deferred.succeed(storeAFirstStarted, undefined)
+            yield* Deferred.await(allowStoreAFirstCommit)
+          })
+        ).pipe(Effect.forkScoped)
+
+        yield* Deferred.await(storeAFirstStarted)
+
+        const storeASecondFiber = yield* storage.withStoreTransaction(
+          storeA,
+          Deferred.succeed(storeASecondStarted, undefined)
+        ).pipe(Effect.forkScoped)
+
+        const storeBFiber = yield* storage.withStoreTransaction(
+          storeB,
+          Deferred.succeed(storeBStarted, undefined)
+        ).pipe(Effect.forkScoped)
+
+        yield* Deferred.await(storeBStarted)
+
+        const storeASecondBeforeRelease = yield* Deferred.poll(storeASecondStarted)
+        assert.strictEqual(storeASecondBeforeRelease._tag, "None")
+
+        yield* Deferred.succeed(allowStoreAFirstCommit, undefined)
+
+        yield* Deferred.await(storeASecondStarted)
+        yield* Fiber.join(storeAFirstFiber)
+        yield* Fiber.join(storeASecondFiber)
+        yield* Fiber.join(storeBFiber)
+      }).pipe(Effect.provide(EventLogServerUnencrypted.layerStorageMemory))
+    ))
 
   it.effect("processedSequence starts at 0 for each store", () =>
     Effect.gen(function*() {
