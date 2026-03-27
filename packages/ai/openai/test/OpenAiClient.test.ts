@@ -3,14 +3,11 @@ import * as Errors from "@effect/ai-openai/internal/errors"
 import * as OpenAiClient from "@effect/ai-openai/OpenAiClient"
 import { assert, describe, it } from "@effect/vitest"
 import { Config, ConfigProvider, Effect, Layer, Redacted, Schema, Stream } from "effect"
-import * as Fiber from "effect/Fiber"
 import type * as AiError from "effect/unstable/ai/AiError"
 import * as HttpClient from "effect/unstable/http/HttpClient"
 import * as HttpClientError from "effect/unstable/http/HttpClientError"
 import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
 import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
-import * as Socket from "effect/unstable/socket/Socket"
-import { WS } from "vitest-websocket-mock"
 
 // =============================================================================
 // Mock Helpers
