@@ -1,5 +1,17 @@
 # @effect/openapi-generator
 
+## 4.0.0-beta.41
+
+### Patch Changes
+
+- [#1852](https://github.com/Effect-TS/effect-smol/pull/1852) [`54769ed`](https://github.com/Effect-TS/effect-smol/commit/54769ed9aa8ee513bbdc4a15d51e2e4042e67394) Thanks @tim-smart! - Finalize the OpenAPI generator public migration by replacing the `typeOnly` option and `--type-only` CLI flag with the `format` option and `--format` flag, and by adding `httpapi` as a supported output alongside `httpclient` and `httpclient-type-only`.
+
+- [#1852](https://github.com/Effect-TS/effect-smol/pull/1852) [`54769ed`](https://github.com/Effect-TS/effect-smol/commit/54769ed9aa8ee513bbdc4a15d51e2e4042e67394) Thanks @tim-smart! - Fix generated schema declaration ordering when non-recursive schemas reference recursive schemas, preventing TypeScript use-before-declaration errors in generated clients and HttpApi modules.
+
+- Updated dependencies [[`36f5c21`](https://github.com/Effect-TS/effect-smol/commit/36f5c2174d31ab42c4598bf81f178f40d0802283), [`d8ce758`](https://github.com/Effect-TS/effect-smol/commit/d8ce758669d6297ae932ac3251d83e7b49b22f30), [`11aab4c`](https://github.com/Effect-TS/effect-smol/commit/11aab4c6d37d5691adafc2d33da1a631b28ce814), [`3bc1efb`](https://github.com/Effect-TS/effect-smol/commit/3bc1efb53dd75b4a40de46f1f80c7f8a7d50af86), [`70e724e`](https://github.com/Effect-TS/effect-smol/commit/70e724e604604d4be1061cd8da0d360494998c84), [`738dee7`](https://github.com/Effect-TS/effect-smol/commit/738dee7edfd70af82dc4d2376db3a8ebe603eb48), [`2111963`](https://github.com/Effect-TS/effect-smol/commit/2111963f19b4c28c800664a8fac9590c1321885f), [`198a553`](https://github.com/Effect-TS/effect-smol/commit/198a553d9ce45f6a00bfc4d65ed0640669602d95)]:
+  - effect@4.0.0-beta.41
+  - @effect/platform-node@4.0.0-beta.41
+
 ## 4.0.0-beta.40
 
 ### Patch Changes
