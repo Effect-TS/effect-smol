@@ -772,8 +772,11 @@ export const layerWebSocket = <const Unencrypted extends boolean = false>(
     readonly disablePing?: boolean | undefined
     readonly unencrypted?: Unencrypted | undefined
   }
-): Layer.Layer<never, never, Socket.WebSocketConstructor | (Unencrypted extends true ? never : EventLogEncryption)> =>
-  Layer.effectDiscard(fromWebSocket(url, options))
+): Layer.Layer<
+  EventLogRemote,
+  never,
+  Socket.WebSocketConstructor | (Unencrypted extends true ? never : EventLogEncryption)
+> => Layer.effect(EventLogRemote, fromWebSocket(url, options))
 
 /**
  * @since 4.0.0
@@ -785,7 +788,7 @@ export const layerWebSocketBrowser = (
     readonly disablePing?: boolean | undefined
     readonly unencrypted?: boolean | undefined
   }
-): Layer.Layer<never> =>
+): Layer.Layer<EventLogRemote> =>
   layerWebSocket(url, options).pipe(
     Layer.provide([layerSubtle, Socket.layerWebSocketConstructorGlobal])
   )

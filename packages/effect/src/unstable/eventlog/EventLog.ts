@@ -2,9 +2,9 @@
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"
-import * as FiberMap from "../../FiberMap.ts"
 import { identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
+import * as Option from "../../Option.ts"
 import type { Pipeable } from "../../Pipeable.ts"
 import { pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
@@ -21,15 +21,8 @@ import { Reactivity } from "../reactivity/Reactivity.ts"
 import * as ReactivityLayer from "../reactivity/Reactivity.ts"
 import * as Event from "./Event.ts"
 import type * as EventGroup from "./EventGroup.ts"
-import {
-  Entry,
-  EventJournal,
-  type EventJournalError,
-  makeEntryIdUnsafe,
-  type RemoteEntry,
-  type RemoteId
-} from "./EventJournal.ts"
-import type { EventLogRemote } from "./EventLogRemote.ts"
+import { Entry, EventJournal, type EventJournalError, makeEntryIdUnsafe, type RemoteEntry } from "./EventJournal.ts"
+import { EventLogRemote } from "./EventLogRemote.ts"
 
 /**
  * @since 4.0.0
@@ -460,7 +453,6 @@ export class EventLog extends ServiceMap.Service<EventLog, {
     Event.SuccessWithTag<EventGroup.Events<Groups>, Tag>,
     Event.ErrorWithTag<EventGroup.Events<Groups>, Tag> | EventJournalError
   >
-  readonly registerRemote: (remote: EventLogRemote["Service"]) => Effect.Effect<void, never, Scope.Scope>
   readonly registerCompaction: (options: {
     readonly events: ReadonlyArray<string>
     readonly effect: (options: {
@@ -542,7 +534,6 @@ const make = Effect.gen(function*() {
   const journal = yield* EventJournal
   const services = yield* Effect.services<never>()
 
-  const remotes = yield* FiberMap.make<RemoteId>()
   const compactors = new Map<string, {
     readonly events: ReadonlySet<string>
     readonly effect: (options: {
@@ -699,14 +690,14 @@ const make = Effect.gen(function*() {
     return writeHandler(handler, options)
   }
 
+  const remote = yield* Effect.serviceOption(EventLogRemote)
+  if (Option.isSome(remote)) {
+    yield* Effect.forkScoped(runRemote(remote.value))
+  }
+
   return EventLog.of({
     write: eventLogWrite as EventLog["Service"]["write"],
     entries: journal.entries,
-    registerRemote: (remote) =>
-      Effect.acquireRelease(
-        FiberMap.run(remotes, remote.id, runRemote(remote)),
-        () => FiberMap.remove(remotes, remote.id)
-      ).pipe(Effect.asVoid),
     registerCompaction: (options) =>
       Effect.acquireRelease(
         Effect.sync(() => {
