@@ -67,7 +67,7 @@
     "rulesync": "^6.2.0",
     "terser": "^5.46.0",
     "ts-patch": "^3.3.0",
-    "tstyche": "^6.2.0",
+    "tstyche": "7.0.0-rc.0",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
     "vite-tsconfig-paths": "^6.0.5",
