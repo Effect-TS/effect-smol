@@ -4,6 +4,7 @@ This directory contains specifications for all major features and enhancements i
 
 ## Contents
 
+- [sql-eventlog-server-unencrypted.md](sql-eventlog-server-unencrypted.md) - Add a SQL-backed `EventLogServerUnencrypted.Storage` module with a shared `store_id` journal table, per-store sequencing, change streaming, and reusable cross-driver integration tests.
 - [worker-error-reason-pattern.md](worker-error-reason-pattern.md) - Refactor WorkerError to use the reason pattern with structured reasons.
 - [http-client-error-reason-pattern.md](http-client-error-reason-pattern.md) - Refactor HttpClientError to a reason-based wrapper with per-reason classes.
 - [http-server-error-reason-pattern.md](http-server-error-reason-pattern.md) - Refactor HttpServerError to use the reason pattern with per-reason classes.
