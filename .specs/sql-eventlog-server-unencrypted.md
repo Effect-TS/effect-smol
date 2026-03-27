@@ -289,7 +289,18 @@ Scope:
 
 Why this is one task: it establishes the public API and schema footprint in a form that can compile, typecheck, and be exported independently.
 
-### [ ] Task 2 — Implement core storage behavior
+### [x] Task 2 — Implement core storage behavior
+
+Status:
+
+- completed in this change
+- SQL row decoding now reconstructs `Entry` and `RemoteEntry` values through local `Schema.Struct` helpers for `entry_id`, `event`, `primary_key`, `payload`, and per-store `sequence`
+- per-store sequence allocation now initializes `<entriesTable>_stores` rows with dialect-specific upsert / merge statements and reserves contiguous ranges inside the SQL transaction via a locked helper-row read followed by an update
+- `write` now deduplicates by first-seen `EntryId`, aligns returned `sequenceNumbers` with the original input array, batches inserts, and only records newly committed rows in the `committed` result
+- post-commit publication is now delayed until the outermost storage transaction commits by threading a private `PendingPublications` service through nested `withTransaction` scopes
+- `entries` now uses strict `sequence > startSequence` reads and `changes` now replays backlog first, drains any already-buffered live rows with a watermark filter, then streams live rows for the same store without startup duplicates
+- important discovery: `Queue.offerAll(queue, [])` leaves an empty internal bucket in the current queue implementation, which makes the next `take` / `poll` observe `undefined`; `changes` now guards backlog replay so empty replays do not poison the queue
+- added focused sqlite coverage in `packages/sql/sqlite-node/test/SqlEventLogServerUnencrypted.test.ts` for remote-id reuse, per-store sequencing + idempotency, backlog/live change delivery, and rollback-safe publication / sequence reuse
 
 Validation target after this task:
 
