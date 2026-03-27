@@ -10,7 +10,6 @@ import * as Array from "effect/Array"
 import * as Cause from "effect/Cause"
 import type * as Config from "effect/Config"
 import * as Effect from "effect/Effect"
-import * as Exit from "effect/Exit"
 import { identity } from "effect/Function"
 import * as Function from "effect/Function"
 import * as Layer from "effect/Layer"
@@ -18,7 +17,6 @@ import * as Predicate from "effect/Predicate"
 import * as Queue from "effect/Queue"
 import * as RcRef from "effect/RcRef"
 import * as Redacted from "effect/Redacted"
-import * as Schedule from "effect/Schedule"
 import * as Schema from "effect/Schema"
 import * as Scope from "effect/Scope"
 import * as Semaphore from "effect/Semaphore"
@@ -377,39 +375,32 @@ const makeSocket = Effect.gen(function*() {
   const client = yield* OpenAiClient
   const tracker = yield* ResponseIdTracker.make
   const request = yield* Effect.orDie(client.client.httpClient.preprocess(HttpClientRequest.post("/responses")))
-
-  const socket = yield* Socket.makeWebSocket(request.url.replace(/^http/, "ws")).pipe(
-    Effect.updateService(Socket.WebSocketConstructor, (f) => (url) =>
-      f(url, {
-        headers: request.headers
-      } as any))
-  )
-
+  const decoder = new TextDecoder()
   const queueRef: RcRef.RcRef<
     {
-      readonly send: (
-        queue: Queue.Enqueue<ResponseStreamEvent, AiError.AiError | Cause.Done>,
-        message: typeof Generated.CreateResponse.Encoded
-      ) => Effect.Effect<void, AiError.AiError>
-      readonly reset: () => void
+      readonly send: (message: typeof Generated.CreateResponse.Encoded) => Effect.Effect<void, AiError.AiError>
+      readonly incoming: Queue.Dequeue<ResponseStreamEvent, AiError.AiError | Cause.Done>
     }
   > = yield* RcRef.make({
     idleTimeToLive: 60_000,
     acquire: Effect.gen(function*() {
+      yield* Effect.log("Acquiring socket")
+      yield* Effect.addFinalizer(() => Effect.log("Releasing socket"))
+      const request = yield* Effect.orDie(client.client.httpClient.preprocess(HttpClientRequest.post("/responses")))
+      const socket = yield* Socket.makeWebSocket(request.url.replace(/^http/, "ws")).pipe(
+        Effect.updateService(Socket.WebSocketConstructor, (f) => (url) =>
+          f(url, {
+            headers: request.headers
+          } as any))
+      )
       const write = yield* socket.writer
 
-      let currentQueue: Queue.Enqueue<ResponseStreamEvent, AiError.AiError | Cause.Done> | null = null
-      const send = (
-        queue: Queue.Enqueue<ResponseStreamEvent, AiError.AiError | Cause.Done>,
-        message: typeof Generated.CreateResponse.Encoded
-      ) =>
-        Effect.suspend(() => {
-          currentQueue = queue
-          return write(JSON.stringify({
-            type: "response.create",
-            ...message
-          }))
-        }).pipe(
+      let incoming = yield* Queue.unbounded<ResponseStreamEvent, AiError.AiError | Cause.Done>()
+      const send = (message: typeof Generated.CreateResponse.Encoded) =>
+        write(JSON.stringify({
+          type: "response.create",
+          ...message
+        })).pipe(
           Effect.mapError((_error) =>
             AiError.make({
               module: "OpenAiClient",
@@ -428,13 +419,9 @@ const makeSocket = Effect.gen(function*() {
             })
           )
         )
-      const reset = () => {
-        currentQueue = null
-      }
 
-      const decoder = new TextDecoder()
       yield* socket.runRaw((msg) => {
-        if (!currentQueue) return
+        if (!incoming) return
         const text = typeof msg === "string" ? msg : decoder.decode(msg)
         try {
           const event = decodeEvent(text)
@@ -465,44 +452,39 @@ const makeSocket = Effect.gen(function*() {
               })
             )
           }
-          Queue.offerUnsafe(currentQueue, event)
+          Queue.offerUnsafe(incoming, event)
         } catch {}
       }).pipe(
         Effect.catchCause((cause) => {
           tracker.clearUnsafe()
-          return currentQueue ?
-            Queue.fail(
-              currentQueue,
-              AiError.make({
-                module: "OpenAiClient",
-                method: "createResponseStream",
-                reason: new AiError.NetworkError({
-                  reason: "TransportError",
-                  request: {
-                    method: "POST",
-                    url: request.url,
-                    urlParams: [],
-                    hash: undefined,
-                    headers: request.headers
-                  },
-                  description: Cause.pretty(cause)
-                })
+          return Queue.fail(
+            incoming,
+            AiError.make({
+              module: "OpenAiClient",
+              method: "createResponseStream",
+              reason: new AiError.NetworkError({
+                reason: "TransportError",
+                request: {
+                  method: "POST",
+                  url: request.url,
+                  urlParams: [],
+                  hash: undefined,
+                  headers: request.headers
+                },
+                description: Cause.pretty(cause)
               })
-            ) :
-            Effect.void
-        }),
-        Effect.repeat(
-          Schedule.exponential(100, 1.5).pipe(
-            Schedule.either(Schedule.spaced({ seconds: 5 })),
-            Schedule.jittered
+            })
           )
-        ),
-        Effect.forkScoped
+        }),
+        Effect.ensuring(RcRef.invalidate(queueRef)),
+        Effect.forkScoped({ startImmediately: true })
       )
 
-      return { send, reset } as const
+      return { send, incoming } as const
     })
   })
+
+  yield* Effect.forkScoped(RcRef.get(queueRef))
 
   // Websocket mode only allows one request at a time
   const semaphore = Semaphore.makeUnsafe(1)
@@ -515,16 +497,13 @@ const makeSocket = Effect.gen(function*() {
           () => semaphore.release(1),
           { interruptible: true }
         )
-        const { send, reset } = yield* RcRef.get(queueRef)
-        const incoming = yield* Queue.unbounded<ResponseStreamEvent, AiError.AiError | Cause.Done>()
+        const { send, incoming } = yield* RcRef.get(queueRef)
         let done = false
 
         yield* Effect.acquireRelease(
-          send(incoming, options),
-          (_, exit) => {
-            reset()
-            if (Exit.isFailure(exit) && !Exit.hasInterrupts(exit)) return Effect.void
-            else if (done) return Effect.void
+          send(options),
+          () => {
+            if (done) return Effect.void
             return RcRef.invalidate(queueRef)
           },
           { interruptible: true }
