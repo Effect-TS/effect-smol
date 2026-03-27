@@ -63,16 +63,15 @@ This document maps v3 Schema APIs to their v4 equivalents. Simple renames and ar
 | `attachPropertySignature("k", "v")`             | `mapFields(f => ({...f, k: tagDefaultOmit("v")}))`                            | restructure       |
 | `validate*`                                     | removed (use `decode*` + `toType`)                                            | removed           |
 | `keyof`                                         | —                                                                             | removed           |
-| `ArrayEnsure`                                   | —                                                                             | removed           |
 | `NonEmptyArrayEnsure`                           | —                                                                             | removed           |
 | `withDefaults`                                  | —                                                                             | removed           |
-| `fromKey`                                       | —                                                                             | removed           |
 | `Data(schema)`                                  | —                                                                             | removed           |
 | `optionalWith(schema, opts)`                    | varies by options (see [optionalWith](#optionalwith))                         | manual            |
 | `optionalToOptional`                            | see [optional field transformations](#optional-field-transformations)         | manual            |
 | `optionalToRequired`                            | see [optional field transformations](#optional-field-transformations)         | manual            |
 | `requiredToOptional`                            | see [optional field transformations](#optional-field-transformations)         | manual            |
 | `filterEffect`                                  | see [filterEffect](#filtereffect)                                             | manual            |
+| `fromKey`                                       | see [rename](#rename)                                                         | manual            |
 | `rename({ a: "c" })`                            | see [rename](#rename)                                                         | manual            |
 | `format(schema)`                                | see [format](#format)                                                         | manual            |
 | `ParseResult.ArrayFormatter.formatError(error)` | see [ParseResult formatters](#parseresult-formatters)                         | manual            |

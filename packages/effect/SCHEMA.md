@@ -899,6 +899,38 @@ type Encoded = {
 type Encoded = typeof schema.Encoded
 ```
 
+### Renaming Encoded Keys
+
+Use `Schema.encodeKeys` to rename one or more keys only in the encoded representation of a struct.
+
+Pass a mapping of `{ decodedKey: encodedKey }`. During decoding, the schema expects the mapped encoded keys. During encoding, it produces those keys. Keys not in the mapping are left unchanged.
+
+Unlike `Struct.renameKeys`, this does not rename the struct's own field names. It only remaps keys at the encoding / decoding boundary.
+
+**Example** (Using snake_case keys in the encoded form)
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Struct({
+  userId: Schema.FiniteFromString,
+  accountName: Schema.String
+}).pipe(
+  Schema.encodeKeys({
+    userId: "user_id",
+    accountName: "account_name"
+  })
+)
+
+console.log(Schema.decodeUnknownSync(schema)({ user_id: "1", account_name: "alice" }))
+// { userId: 1, accountName: "alice" }
+
+console.log(Schema.encodeUnknownSync(schema)({ userId: 1, accountName: "alice" }))
+// { user_id: "1", account_name: "alice" }
+```
+
+If you are building a struct from reused fields or `Schema.fieldsAssign`, apply `Schema.encodeKeys` after defining the full struct.
+
 ### Reusing Fields
 
 Every `Schema.Struct` exposes a `.fields` property containing its field definitions. You can spread these fields into a new struct to reuse them, similar to how TypeScript interfaces use `extends`.
