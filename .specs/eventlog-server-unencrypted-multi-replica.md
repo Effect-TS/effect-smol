@@ -617,6 +617,27 @@ Any implementation produced from this spec must run:
   structured concurrent writes cannot deadlock when joined by the parent
   transaction fiber.
 
+## Task 2 Implementation Notes (Current Branch)
+
+- Replaced runtime `persistAndReplay(...)` with a transactional
+  `processBeforePersist(...)` flow that executes handlers and conflict
+  reconstruction before `storage.write(...)` and does all mutating work inside
+  `storage.withStoreTransaction(storeId, ...)`.
+- Batch handling is now all-or-nothing for mutating server paths: if any
+  handler fails, `storage.write(...)` is not reached and the store transaction
+  rolls back with no committed entries.
+- Reactivity invalidation now runs strictly post-commit via an explicit
+  `Effect.tap` phase over committed entries. Invalidations are best-effort and
+  logged on failure without changing write success after commit.
+- Removed mutating-path dependency on checkpoint replay locks
+  (`processStoreFromStorage`, `withStoreProcessingLock`) and removed
+  `requestChanges(...)` pre-read catch-up invocation.
+- Added focused runtime tests for:
+  - rollback visibility and retry semantics after handler failure
+  - commit visibility timing (entries stay invisible until transaction commit)
+  - same-store concurrent replica writes sharing one ordered sequence space
+  - different-store isolation under concurrent replica writes
+
 ## Implementation Plan
 
 The work should be split into the following validation-safe tasks.
@@ -656,7 +677,7 @@ Validation for this task:
 
 ### Task 2: Refactor runtime writes to process before persist inside store transactions
 
-Status: ⏳ Not started
+Status: ✅ Completed
 
 Scope:
 
