@@ -2180,17 +2180,15 @@ describe("Effect", () => {
       }))
   })
 
-  describe("transaction (isolated transactions)", () => {
-    describe("basic isolation", () => {
-      it.effect("should create isolated transaction boundaries", () =>
+  describe("transaction (composable transactions)", () => {
+    describe("basic behavior", () => {
+      it.effect("should create transaction boundaries when no transaction is active", () =>
         Effect.gen(function*() {
           const ref1 = TxRef.makeUnsafe(0)
           const ref2 = TxRef.makeUnsafe(100)
 
-          // Each Effect.tx creates an isolated boundary
           yield* Effect.tx(TxRef.set(ref1, 10))
 
-          // Another isolated transaction
           yield* Effect.tx(TxRef.set(ref2, 200))
 
           const val1 = yield* Effect.tx(TxRef.get(ref1))
@@ -2200,19 +2198,16 @@ describe("Effect", () => {
           assert.strictEqual(val2, 200)
         }))
 
-      it.effect("should isolate failures between parent and child transactions", () =>
+      it.effect("should roll back nested changes when the outer transaction fails", () =>
         Effect.gen(function*() {
           const ref1 = TxRef.makeUnsafe(0)
           const ref2 = TxRef.makeUnsafe(100)
 
-          // Parent transaction that will fail
           const parentError = yield* Effect.tx(Effect.gen(function*() {
             yield* TxRef.set(ref1, 10)
 
-            // Child isolated transaction should commit independently
             yield* Effect.tx(TxRef.set(ref2, 200))
 
-            // This will cause parent transaction to fail
             return yield* Effect.fail("parent failed")
           })).pipe(Effect.flip)
 
@@ -2220,42 +2215,38 @@ describe("Effect", () => {
           const val2 = yield* Effect.tx(TxRef.get(ref2))
 
           assert.strictEqual(parentError, "parent failed")
-          assert.strictEqual(val1, 0) // Parent transaction rolled back
-          assert.strictEqual(val2, 200) // Child transaction committed independently
+          assert.strictEqual(val1, 0)
+          assert.strictEqual(val2, 100)
         }))
 
-      it.effect("should isolate failures from child to parent transactions", () =>
+      it.effect("should allow catching nested failures in the same transaction", () =>
         Effect.gen(function*() {
           const ref1 = TxRef.makeUnsafe(0)
           const ref2 = TxRef.makeUnsafe(100)
 
-          // Parent transaction should succeed
           yield* Effect.tx(Effect.gen(function*() {
             yield* TxRef.set(ref1, 10)
 
-            // Child isolated transaction that fails
             const childResult = yield* Effect.tx(Effect.gen(function*() {
               yield* TxRef.set(ref2, 200)
               return yield* Effect.fail("child failed")
             })).pipe(Effect.result)
 
-            // Parent continues despite child failure
             yield* TxRef.set(ref1, 20)
 
-            // Verify child failed
             assert.strictEqual(Result.isFailure(childResult), true)
           }))
 
           const val1 = yield* Effect.tx(TxRef.get(ref1))
           const val2 = yield* Effect.tx(TxRef.get(ref2))
 
-          assert.strictEqual(val1, 20) // Parent transaction committed
-          assert.strictEqual(val2, 100) // Child transaction rolled back
+          assert.strictEqual(val1, 20)
+          assert.strictEqual(val2, 200)
         }))
     })
 
     describe("transaction nesting", () => {
-      it.effect("should handle multiple levels of nested isolated transactions", () =>
+      it.effect("should handle multiple levels of nested composed transactions", () =>
         Effect.gen(function*() {
           const ref1 = TxRef.makeUnsafe(0)
           const ref2 = TxRef.makeUnsafe(0)
@@ -2281,8 +2272,8 @@ describe("Effect", () => {
         }))
     })
 
-    describe("transaction isolation behavior", () => {
-      it.effect("should maintain isolation when nested in transaction blocks", () =>
+    describe("transaction composition behavior", () => {
+      it.effect("should compose nested tx calls into the same transaction", () =>
         Effect.gen(function*() {
           const ref1 = TxRef.makeUnsafe(0)
           const ref2 = TxRef.makeUnsafe(0)
@@ -2300,15 +2291,13 @@ describe("Effect", () => {
           assert.strictEqual(val2, 20)
         }))
 
-      it.effect("should rollback entire transaction on failure", () =>
+      it.effect("should rollback the entire composed transaction on failure", () =>
         Effect.gen(function*() {
           const ref = TxRef.makeUnsafe(0)
 
-          // Transaction failure rolls back all changes
           const txError = yield* Effect.tx(Effect.gen(function*() {
             yield* TxRef.set(ref, 10)
 
-            // Nested transaction fails independently
             return yield* Effect.tx(Effect.gen(function*() {
               yield* TxRef.set(ref, 20)
               return yield* Effect.fail("nested failure")
@@ -2318,32 +2307,27 @@ describe("Effect", () => {
           const valueAfterFailure = yield* Effect.tx(TxRef.get(ref))
 
           assert.strictEqual(txError, "nested failure")
-          // Outer transaction rolled back because the nested failure propagated
           assert.strictEqual(valueAfterFailure, 0)
         }))
 
-      it.effect("should isolate nested transaction failure when caught", () =>
+      it.effect("should preserve nested writes when nested failure is caught", () =>
         Effect.gen(function*() {
           const ref = TxRef.makeUnsafe(0)
 
-          // Parent transaction succeeds, child failure is caught
           yield* Effect.tx(Effect.gen(function*() {
             yield* TxRef.set(ref, 10)
 
-            // This isolated transaction fails but doesn't affect parent
             const childError = yield* Effect.tx(Effect.gen(function*() {
               yield* TxRef.set(ref, 20)
               return yield* Effect.fail("transaction nested failure")
             })).pipe(Effect.flip)
 
-            // Verify child failed
             assert.strictEqual(childError, "transaction nested failure")
           }))
 
           const transactionValue = yield* Effect.tx(TxRef.get(ref))
 
-          // Parent committed despite nested failure (which was caught)
-          assert.strictEqual(transactionValue, 10)
+          assert.strictEqual(transactionValue, 20)
         }))
     })
   })

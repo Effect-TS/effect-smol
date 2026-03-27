@@ -13777,6 +13777,9 @@ export class Transaction extends ServiceMap.Service<
  * Defines a transaction boundary. Transactions are "all or nothing" with respect to changes
  * made to transactional values (i.e. TxRef) that occur within the transaction body.
  *
+ * If called inside an active transaction, `tx` composes with the current transaction and reuses
+ * its journal and retry state instead of creating a nested boundary.
+ *
  * In Effect transactions are optimistic with retry, that means transactions are retried when:
  *
  * - the body of the transaction explicitely calls to `Effect.txRetry` and any of the
@@ -13785,8 +13788,8 @@ export class Transaction extends ServiceMap.Service<
  * - any of the accessed transactional values change during the execution of the transaction
  *   due to a different transaction committing before the current.
  *
- * Each call to `tx` always creates a new isolated transaction boundary with its own
- * journal and retry logic.
+ * The outermost `tx` call creates the transaction boundary and commits or rolls back the full
+ * composed transaction.
  *
  * @example
  * ```ts
@@ -13796,10 +13799,10 @@ export class Transaction extends ServiceMap.Service<
  *   const ref1 = yield* Effect.tx(TxRef.make(0))
  *   const ref2 = yield* Effect.tx(TxRef.make(0))
  *
- *   // All operations within transaction block succeed or fail together
+ *   // Nested tx calls compose into the same transaction
  *   yield* Effect.tx(Effect.gen(function*() {
  *     yield* TxRef.set(ref1, 10)
- *     yield* TxRef.set(ref2, 20)
+ *     yield* Effect.tx(TxRef.set(ref2, 20))
  *     const sum = (yield* TxRef.get(ref1)) + (yield* TxRef.get(ref2))
  *     console.log(`Transaction sum: ${sum}`)
  *   }))
@@ -13816,7 +13819,10 @@ export const tx = <A, E, R>(
   effect: Effect<A, E, R>
 ): Effect<A, E, Exclude<R, Transaction>> =>
   withFiber((fiber) => {
-    // Always create a new transaction state, never compose with parent
+    if (fiber.services.mapUnsafe.has(Transaction.key)) {
+      return effect as Effect<A, E, Exclude<R, Transaction>>
+    }
+    // Create transaction state only at the outermost boundary
     const state: Transaction["Service"] = { journal: new Map(), retry: false }
     let result: Exit.Exit<A, E> | undefined
     return uninterruptibleMask((restore) =>
