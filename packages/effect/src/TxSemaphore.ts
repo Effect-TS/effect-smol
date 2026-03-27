@@ -206,7 +206,7 @@ export const acquire = (self: TxSemaphore): Effect.Effect<void, never, Effect.Tr
   Effect.gen(function*() {
     const permits = yield* TxRef.get(self.permitsRef)
     if (permits <= 0) {
-      return yield* Effect.retryTransaction
+      return yield* Effect.txRetry
     }
     yield* TxRef.set(self.permitsRef, permits - 1)
   })
@@ -245,7 +245,7 @@ export const acquireN = (self: TxSemaphore, n: number): Effect.Effect<void, neve
   return Effect.gen(function*() {
     const permits = yield* TxRef.get(self.permitsRef)
     if (permits < n) {
-      return yield* Effect.retryTransaction
+      return yield* Effect.txRetry
     }
     yield* TxRef.set(self.permitsRef, permits - n)
   })
@@ -442,16 +442,16 @@ export const withPermit: {
     const [self] = args
     return (effect: Effect.Effect<any, any, any>) =>
       Effect.acquireUseRelease(
-        Effect.transaction(acquire(self)),
+        Effect.tx(acquire(self)),
         () => effect,
-        () => Effect.transaction(release(self))
+        () => Effect.tx(release(self))
       )
   }
   const [self, effect] = args
   return Effect.acquireUseRelease(
-    Effect.transaction(acquire(self)),
+    Effect.tx(acquire(self)),
     () => effect,
-    () => Effect.transaction(release(self))
+    () => Effect.tx(release(self))
   )
 }) as any
 
@@ -502,16 +502,16 @@ export const withPermits: {
     const [self, n] = args
     return (effect: Effect.Effect<any, any, any>) =>
       Effect.acquireUseRelease(
-        Effect.transaction(acquireN(self, n)),
+        Effect.tx(acquireN(self, n)),
         () => effect,
-        () => Effect.transaction(releaseN(self, n))
+        () => Effect.tx(releaseN(self, n))
       )
   }
   const [self, n, effect] = args
   return Effect.acquireUseRelease(
-    Effect.transaction(acquireN(self, n)),
+    Effect.tx(acquireN(self, n)),
     () => effect,
-    () => Effect.transaction(releaseN(self, n))
+    () => Effect.tx(releaseN(self, n))
   )
 }) as any
 
@@ -556,8 +556,8 @@ export const withPermits: {
  */
 export const withPermitScoped = (self: TxSemaphore): Effect.Effect<void, never, Scope.Scope> =>
   Effect.acquireRelease(
-    Effect.transaction(acquire(self)),
-    () => Effect.transaction(release(self))
+    Effect.tx(acquire(self)),
+    () => Effect.tx(release(self))
   )
 
 /**

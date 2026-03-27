@@ -247,7 +247,7 @@ export const peek = <A>(self: TxPriorityQueue<A>): Effect.Effect<A, never, Effec
     const chunk = yield* TxRef.get(self.ref)
     const head = C.head(chunk)
     if (O.isNone(head)) {
-      return yield* Effect.retryTransaction
+      return yield* Effect.txRetry
     }
     return head.value
   })
@@ -353,7 +353,7 @@ export const take = <A>(self: TxPriorityQueue<A>): Effect.Effect<A, never, Effec
     const chunk = yield* TxRef.get(self.ref)
     const head = C.head(chunk)
     if (O.isNone(head)) {
-      return yield* Effect.retryTransaction
+      return yield* Effect.txRetry
     }
     yield* TxRef.set(self.ref, C.drop(chunk, 1))
     return head.value

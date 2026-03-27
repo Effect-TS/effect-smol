@@ -139,7 +139,7 @@ export const acquireRead = (self: TxReentrantLock): Effect.Effect<number, never,
 
       // If another fiber holds the write lock, retry
       if (Option.isSome(state.writer) && state.writer.value[0] !== fiberId) {
-        return yield* Effect.retryTransaction
+        return yield* Effect.txRetry
       }
 
       // Grant read lock
@@ -182,13 +182,13 @@ export const acquireWrite = (self: TxReentrantLock): Effect.Effect<number, never
 
       // If another fiber holds the write lock, retry
       if (Option.isSome(state.writer) && state.writer.value[0] !== fiberId) {
-        return yield* Effect.retryTransaction
+        return yield* Effect.txRetry
       }
 
       // If other fibers hold read locks, retry
       for (const [readerId] of state.readers) {
         if (readerId !== fiberId && Option.getOrElse(HashMap.get(state.readers, readerId), () => 0) > 0) {
-          return yield* Effect.retryTransaction
+          return yield* Effect.txRetry
         }
       }
 
@@ -313,8 +313,8 @@ export const releaseWrite = (self: TxReentrantLock): Effect.Effect<number, never
  */
 export const readLock = (self: TxReentrantLock): Effect.Effect<number, never, Scope.Scope> =>
   Effect.acquireRelease(
-    Effect.transaction(acquireRead(self)),
-    () => Effect.transaction(releaseRead(self))
+    Effect.tx(acquireRead(self)),
+    () => Effect.tx(releaseRead(self))
   )
 
 /**
@@ -343,8 +343,8 @@ export const readLock = (self: TxReentrantLock): Effect.Effect<number, never, Sc
  */
 export const writeLock = (self: TxReentrantLock): Effect.Effect<number, never, Scope.Scope> =>
   Effect.acquireRelease(
-    Effect.transaction(acquireWrite(self)),
-    () => Effect.transaction(releaseWrite(self))
+    Effect.tx(acquireWrite(self)),
+    () => Effect.tx(releaseWrite(self))
   )
 
 /**
@@ -400,16 +400,16 @@ export const withReadLock: {
     const [effect] = args
     return (self: TxReentrantLock) =>
       Effect.acquireUseRelease(
-        Effect.transaction(acquireRead(self)),
+        Effect.tx(acquireRead(self)),
         () => effect,
-        () => Effect.transaction(releaseRead(self))
+        () => Effect.tx(releaseRead(self))
       )
   }
   const [self, effect] = args
   return Effect.acquireUseRelease(
-    Effect.transaction(acquireRead(self)),
+    Effect.tx(acquireRead(self)),
     () => effect,
-    () => Effect.transaction(releaseRead(self))
+    () => Effect.tx(releaseRead(self))
   )
 }) as any
 
@@ -442,16 +442,16 @@ export const withWriteLock: {
     const [effect] = args
     return (self: TxReentrantLock) =>
       Effect.acquireUseRelease(
-        Effect.transaction(acquireWrite(self)),
+        Effect.tx(acquireWrite(self)),
         () => effect,
-        () => Effect.transaction(releaseWrite(self))
+        () => Effect.tx(releaseWrite(self))
       )
   }
   const [self, effect] = args
   return Effect.acquireUseRelease(
-    Effect.transaction(acquireWrite(self)),
+    Effect.tx(acquireWrite(self)),
     () => effect,
-    () => Effect.transaction(releaseWrite(self))
+    () => Effect.tx(releaseWrite(self))
   )
 }) as any
 

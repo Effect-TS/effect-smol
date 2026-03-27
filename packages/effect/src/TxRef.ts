@@ -3,7 +3,7 @@
  *
  * Accessed values are tracked by the transaction in order to detect conflicts and in order to
  * track changes, a transaction will retry whenever a conflict is detected or whenever the
- * transaction explicitely calls to `Effect.retryTransaction` and any of the accessed TxRef values
+ * transaction explicitely calls to `Effect.txRetry` and any of the accessed TxRef values
  * change.
  *
  * @since 4.0.0
@@ -21,7 +21,7 @@ const TypeId = "~effect/transactions/TxRef"
  *
  * Accessed values are tracked by the transaction in order to detect conflicts and in order to
  * track changes, a transaction will retry whenever a conflict is detected or whenever the
- * transaction explicitely calls to `Effect.retryTransaction` and any of the accessed TxRef values
+ * transaction explicitely calls to `Effect.txRetry` and any of the accessed TxRef values
  * change.
  *
  * @since 4.0.0
@@ -35,12 +35,12 @@ const TypeId = "~effect/transactions/TxRef"
  *   const ref: TxRef.TxRef<number> = yield* TxRef.make(0)
  *
  *   // Use within a transaction
- *   yield* Effect.transaction(Effect.gen(function*() {
+ *   yield* Effect.tx(Effect.gen(function*() {
  *     const current = yield* TxRef.get(ref)
  *     yield* TxRef.set(ref, current + 1)
  *   }))
  *
- *   const final = yield* Effect.transaction(TxRef.get(ref))
+ *   const final = yield* Effect.tx(TxRef.get(ref))
  *   console.log(final) // 1
  * })
  * ```
@@ -64,28 +64,27 @@ export interface TxRef<in out A> extends Pipeable {
  *
  * const program = Effect.gen(function*() {
  *   // Create a transactional reference with initial value
- *   const counter = yield* Effect.transaction(TxRef.make(0))
- *   const name = yield* Effect.transaction(TxRef.make("Alice"))
+ *   const counter = yield* Effect.tx(TxRef.make(0))
+ *   const name = yield* Effect.tx(TxRef.make("Alice"))
  *
  *   // Use in transactions
- *   yield* Effect.transaction(Effect.gen(function*() {
+ *   yield* Effect.tx(Effect.gen(function*() {
  *     yield* TxRef.set(counter, 42)
  *     yield* TxRef.set(name, "Bob")
  *   }))
  *
- *   console.log(yield* Effect.transaction(TxRef.get(counter))) // 42
- *   console.log(yield* Effect.transaction(TxRef.get(name))) // "Bob"
+ *   console.log(yield* Effect.tx(TxRef.get(counter))) // 42
+ *   console.log(yield* Effect.tx(TxRef.get(name))) // "Bob"
  * })
  * ```
  */
 export const make = <A>(initial: A) =>
-  Effect.withTxState((state) =>
+  Effect.flatMap(Effect.Transaction.asEffect(), (state) =>
     Effect.sync(() => {
       const ref = makeUnsafe(initial)
       state.journal.set(ref, { version: ref.version, value: ref.value })
       return ref
-    })
-  )
+    }))
 
 /**
  * Creates a new `TxRef` with the specified initial value.
@@ -128,12 +127,12 @@ export const makeUnsafe = <A>(initial: A): TxRef<A> => ({
  *   const counter = yield* TxRef.make(0)
  *
  *   // Modify and return both old and new value
- *   const result = yield* Effect.transaction(
+ *   const result = yield* Effect.tx(
  *     TxRef.modify(counter, (current) => [current * 2, current + 1])
  *   )
  *
  *   console.log(result) // 0 (the return value: current * 2)
- *   console.log(yield* Effect.transaction(TxRef.get(counter))) // 1 (the new value: current + 1)
+ *   console.log(yield* Effect.tx(TxRef.get(counter))) // 1 (the new value: current + 1)
  * })
  * ```
  */
@@ -148,7 +147,7 @@ export const modify: {
     self: TxRef<A>,
     f: (current: A) => [returnValue: R, newValue: A]
   ): Effect.Effect<R, never, Effect.Transaction> =>
-    Effect.withTxState((state) =>
+    Effect.flatMap(Effect.Transaction.asEffect(), (state) =>
       Effect.sync(() => {
         if (!state.journal.has(self)) {
           state.journal.set(self, { version: self.version, value: self.value })
@@ -157,8 +156,7 @@ export const modify: {
         const [returnValue, next] = f(current.value)
         current.value = next
         return returnValue
-      })
-    )
+      }))
 )
 
 /**
@@ -174,11 +172,11 @@ export const modify: {
  *   const counter = yield* TxRef.make(10)
  *
  *   // Update the value using a function
- *   yield* Effect.transaction(
+ *   yield* Effect.tx(
  *     TxRef.update(counter, (current) => current * 2)
  *   )
  *
- *   console.log(yield* Effect.transaction(TxRef.get(counter))) // 20
+ *   console.log(yield* Effect.tx(TxRef.get(counter))) // 20
  * })
  * ```
  */
@@ -204,7 +202,7 @@ export const update: {
  *   const counter = yield* TxRef.make(42)
  *
  *   // Read the value within a transaction
- *   const value = yield* Effect.transaction(
+ *   const value = yield* Effect.tx(
  *     TxRef.get(counter)
  *   )
  *
@@ -228,11 +226,11 @@ export const get = <A>(self: TxRef<A>): Effect.Effect<A, never, Effect.Transacti
  *   const counter = yield* TxRef.make(0)
  *
  *   // Set a new value within a transaction
- *   yield* Effect.transaction(
+ *   yield* Effect.tx(
  *     TxRef.set(counter, 100)
  *   )
  *
- *   console.log(yield* Effect.transaction(TxRef.get(counter))) // 100
+ *   console.log(yield* Effect.tx(TxRef.get(counter))) // 100
  * })
  * ```
  */

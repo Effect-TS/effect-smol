@@ -1086,7 +1086,7 @@ export * as Equal from "./Equal.ts"
  * - Using strict equality (`===`) → {@link strictEqual}
  * - Combining multiple equivalences (AND logic) → {@link combine}, {@link combineAll}
  * - Transforming input before comparison → {@link mapInput}
- * - Creating equivalences for structured types → {@link Struct}, {@link Tuple}, {@link Array}, {@link Record}
+ * - Creating equivalences for structured types → {@link Struct}, {@link Tuple}, {@link Array_}, {@link Record}
  *
  * ## Gotchas
  *
@@ -1114,7 +1114,7 @@ export * as Equal from "./Equal.ts"
  * ## See also
  *
  * - {@link Equal} - For structural equality (can convert to Equivalence)
- * - {@link Array.dedupeWith} - Remove duplicates using an equivalence
+ * - {@link Array_.dedupeWith} - Remove duplicates using an equivalence
  * - {@link Chunk} - Collections that use equivalences for operations
  *
  * @since 2.0.0
@@ -3270,7 +3270,7 @@ export * as Scheduler from "./Scheduler.ts"
  *
  * - Define a struct: {@link Struct}
  * - Define a union: {@link Union}, {@link TaggedUnion}, {@link Literals}
- * - Define an array: {@link Array}, {@link NonEmptyArray}
+ * - Define an array: {@link ArraySchema}, {@link NonEmptyArray}
  * - Define a record: {@link Record}
  * - Define a tuple: {@link Tuple}, {@link TupleWithRest}
  * - Validate unknown data synchronously: {@link decodeUnknownSync}
@@ -4039,7 +4039,7 @@ export * as Tuple from "./Tuple.ts"
  *
  * Accessed values are tracked by the transaction in order to detect conflicts and to track changes.
  * A transaction will retry whenever a conflict is detected or whenever the transaction explicitly
- * calls `Effect.retryTransaction` and any of the accessed TxChunk values change.
+ * calls `Effect.txRetry` and any of the accessed TxChunk values change.
  *
  * @since 4.0.0
  */
@@ -4089,7 +4089,7 @@ export * as TxPubSub from "./TxPubSub.ts"
  *
  * Accessed values are tracked by the transaction in order to detect conflicts and to track changes.
  * A transaction will retry whenever a conflict is detected or whenever the transaction explicitly
- * calls `Effect.retryTransaction` and any of the accessed TxQueue values change.
+ * calls `Effect.txRetry` and any of the accessed TxQueue values change.
  *
  * @since 4.0.0
  */
@@ -4110,7 +4110,7 @@ export * as TxReentrantLock from "./TxReentrantLock.ts"
  *
  * Accessed values are tracked by the transaction in order to detect conflicts and in order to
  * track changes, a transaction will retry whenever a conflict is detected or whenever the
- * transaction explicitely calls to `Effect.retryTransaction` and any of the accessed TxRef values
+ * transaction explicitely calls to `Effect.txRetry` and any of the accessed TxRef values
  * change.
  *
  * @since 4.0.0

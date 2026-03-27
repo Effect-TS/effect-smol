@@ -41,7 +41,7 @@ All new modules must follow these patterns:
 - **Dual functions**: all functions with `self` parameter use `dual(arity, impl)`
 - **Transactions**: single-ref ops delegate to `TxRef.modify/update/get/set`;
   multi-ref ops wrap in `Effect.atomic(Effect.gen(function*() { ... }))`
-- **Blocking**: use `Effect.retryTransaction` for operations that should retry
+- **Blocking**: use `Effect.txRetry` for operations that should retry
   until a condition is met
 - **JSDoc**: `@since 4.0.0`, `@category` tags, `@example` blocks with runnable
   code
@@ -82,7 +82,7 @@ TxRef<Option<Either<A, E>>>
 
 ### Behavior
 
-- `await`: reads the ref; if `None`, calls `Effect.retryTransaction`; if
+- `await`: reads the ref; if `None`, calls `Effect.txRetry`; if
   `Some(Right(a))`, returns `a`; if `Some(Left(e))`, fails with `e`
 - `done`/`succeed`/`fail`: if ref is `None`, sets it and returns `true`;
   if already `Some`, returns `false` (no-op)

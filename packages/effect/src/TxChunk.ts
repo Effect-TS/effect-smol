@@ -5,7 +5,7 @@
  *
  * Accessed values are tracked by the transaction in order to detect conflicts and to track changes.
  * A transaction will retry whenever a conflict is detected or whenever the transaction explicitly
- * calls `Effect.retryTransaction` and any of the accessed TxChunk values change.
+ * calls `Effect.txRetry` and any of the accessed TxChunk values change.
  *
  * @since 4.0.0
  */
@@ -28,7 +28,7 @@ const TypeId = "~effect/transactions/TxChunk"
  *
  * Accessed values are tracked by the transaction in order to detect conflicts and to track changes.
  * A transaction will retry whenever a conflict is detected or whenever the transaction explicitly
- * calls `Effect.retryTransaction` and any of the accessed TxChunk values change.
+ * calls `Effect.txRetry` and any of the accessed TxChunk values change.
  *
  * @example
  * ```ts
@@ -48,7 +48,7 @@ const TypeId = "~effect/transactions/TxChunk"
  *   console.log(Chunk.toReadonlyArray(result)) // [1, 2, 3, 4]
  *
  *   // Multi-step atomic operation - use explicit transaction
- *   yield* Effect.transaction(
+ *   yield* Effect.tx(
  *     Effect.gen(function*() {
  *       yield* TxChunk.prepend(txChunk, 0)
  *       yield* TxChunk.append(txChunk, 5)
@@ -164,7 +164,7 @@ export const empty = <A = never>(): Effect.Effect<TxChunk<A>, never, Effect.Tran
  *   console.log(Chunk.toReadonlyArray(chunk)) // [1, 2, 3, 4, 5]
  *
  *   // Multi-step atomic modification - use explicit transaction
- *   yield* Effect.transaction(
+ *   yield* Effect.tx(
  *     Effect.gen(function*() {
  *       yield* TxChunk.append(txChunk, 6)
  *       yield* TxChunk.prepend(txChunk, 0)

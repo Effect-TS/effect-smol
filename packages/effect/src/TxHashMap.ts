@@ -55,7 +55,7 @@ const TxHashMapProto = {
  *   console.log(user) // Option.some("Alice")
  *
  *   // Multi-step atomic operations
- *   yield* Effect.transaction(
+ *   yield* Effect.tx(
  *     Effect.gen(function*() {
  *       const currentUser = yield* TxHashMap.get(txMap, "user1")
  *       if (currentUser._tag === "Some") {

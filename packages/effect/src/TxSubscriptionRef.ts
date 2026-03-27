@@ -347,7 +347,7 @@ export const changes = <A>(
   self: TxSubscriptionRef<A>
 ): Effect.Effect<TxQueue.TxQueue<A>, never, Scope.Scope> =>
   Effect.acquireRelease(
-    Effect.transaction(
+    Effect.tx(
       Effect.gen(function*() {
         const sub = yield* TxPubSub.acquireSubscriber(self.pubsub)
         const current = yield* TxRef.get(self.ref)
@@ -355,7 +355,7 @@ export const changes = <A>(
         return sub
       })
     ),
-    (queue) => Effect.transaction(TxPubSub.releaseSubscriber(self.pubsub, queue))
+    (queue) => Effect.tx(TxPubSub.releaseSubscriber(self.pubsub, queue))
   )
 
 /**
@@ -385,7 +385,7 @@ export const changesStream = <A>(self: TxSubscriptionRef<A>): Stream.Stream<A, n
   Stream.unwrap(
     Effect.map(
       changes(self),
-      (sub) => Stream.fromEffectRepeat(Effect.transaction(TxQueue.take(sub)))
+      (sub) => Stream.fromEffectRepeat(Effect.tx(TxQueue.take(sub)))
     )
   )
 

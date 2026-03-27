@@ -119,7 +119,7 @@ const await_ = <A, E>(self: TxDeferred<A, E>): Effect.Effect<A, E, Effect.Transa
   Effect.gen(function*() {
     const option = yield* TxRef.get(self.ref)
     if (O.isNone(option)) {
-      return yield* Effect.retryTransaction
+      return yield* Effect.txRetry
     }
     return Res.isSuccess(option.value)
       ? option.value.success

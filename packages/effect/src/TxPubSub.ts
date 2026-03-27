@@ -489,8 +489,8 @@ export const publishAll: {
  */
 export const subscribe = <A>(self: TxPubSub<A>): Effect.Effect<TxQueue.TxQueue<A>, never, Scope.Scope> =>
   Effect.acquireRelease(
-    Effect.transaction(acquireSubscriber(self)),
-    (queue) => Effect.transaction(releaseSubscriber(self, queue))
+    Effect.tx(acquireSubscriber(self)),
+    (queue) => Effect.tx(releaseSubscriber(self, queue))
   )
 
 /**
@@ -610,7 +610,7 @@ export const awaitShutdown = <A>(self: TxPubSub<A>): Effect.Effect<void, never, 
   Effect.gen(function*() {
     const shut = yield* TxRef.get(self.shutdownRef)
     if (shut) return
-    return yield* Effect.retryTransaction
+    return yield* Effect.txRetry
   })
 
 // =============================================================================

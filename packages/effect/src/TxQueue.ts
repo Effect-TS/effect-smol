@@ -5,7 +5,7 @@
  *
  * Accessed values are tracked by the transaction in order to detect conflicts and to track changes.
  * A transaction will retry whenever a conflict is detected or whenever the transaction explicitly
- * calls `Effect.retryTransaction` and any of the accessed TxQueue values change.
+ * calls `Effect.txRetry` and any of the accessed TxQueue values change.
  *
  * @since 4.0.0
  */
@@ -610,7 +610,7 @@ export const offer: {
       }
 
       // bounded strategy - block until space is available
-      return yield* Effect.retryTransaction
+      return yield* Effect.txRetry
     })
 )
 
@@ -698,14 +698,14 @@ export const take = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E, Effect.Tr
 
     // If no items available, retry transaction
     if (yield* isEmpty(self)) {
-      return yield* Effect.retryTransaction
+      return yield* Effect.txRetry
     }
 
     // Take item from queue
     const chunk = yield* TxChunk.get(self.items)
     const head = Chunk.head(chunk)
     if (Option.isNone(head)) {
-      return yield* Effect.retryTransaction
+      return yield* Effect.txRetry
     }
 
     yield* TxChunk.drop(self.items, 1)
@@ -809,7 +809,7 @@ export const takeAll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Arr.NonEmpty
 
     // Wait if empty - same pattern as take()
     if (yield* isEmpty(self)) {
-      return yield* Effect.retryTransaction
+      return yield* Effect.txRetry
     }
 
     const chunk = yield* TxChunk.get(self.items)
@@ -903,7 +903,7 @@ export const takeN: {
         }
 
         // Queue is still open but not enough items - retry transaction
-        return yield* Effect.retryTransaction
+        return yield* Effect.txRetry
       }
 
       // Take the determined number of items
@@ -987,7 +987,7 @@ export const takeBetween: {
         }
 
         // Queue is still open but not enough items - retry transaction
-        return yield* Effect.retryTransaction
+        return yield* Effect.txRetry
       }
 
       // We have at least the minimum, take up to the maximum
@@ -1050,7 +1050,7 @@ export const peek = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E, Effect.Tr
     const chunk = yield* TxChunk.get(self.items)
     const head = Chunk.head(chunk)
     if (Option.isNone(head)) {
-      return yield* Effect.retryTransaction
+      return yield* Effect.txRetry
     }
 
     return head.value
@@ -1511,5 +1511,5 @@ export const awaitCompletion = (self: TxQueueState): Effect.Effect<void, never, 
     }
 
     // Not done yet, retry transaction
-    return yield* Effect.retryTransaction
+    return yield* Effect.txRetry
   })
