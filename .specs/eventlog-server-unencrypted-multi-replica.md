@@ -612,6 +612,10 @@ Any implementation produced from this spec must run:
   fiber-local in the memory model. Writes issued from forked child fibers are
   not automatically enrolled in the parent transaction unless they explicitly
   call `withStoreTransaction(...)`.
+- Follow-up required: migrate transaction context tracking from ad-hoc
+  fiber-id bookkeeping to a context model that propagates to child fibers so
+  structured concurrent writes cannot deadlock when joined by the parent
+  transaction fiber.
 
 ## Implementation Plan
 
@@ -718,6 +722,9 @@ Validation for this task:
 
 ## Out-Of-Scope Follow-Ups
 
+- make transactional context propagation fiber-inherited in memory storage (and
+  future durable backends) so child-fiber writes can safely participate in the
+  parent store transaction without implicit lock contention / deadlocks
 - evaluate a dedicated SQL-backed `Storage` implementation that uses real
   database row locks or advisory locks for store-scoped transactions
 - revisit long-running handler guidance if transaction duration becomes a
