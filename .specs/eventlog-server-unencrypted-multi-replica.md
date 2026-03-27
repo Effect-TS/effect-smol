@@ -167,29 +167,6 @@ As a result:
 
 ## Transaction Model
 
-### 1. Store-scoped mutual exclusion
-
-`Storage.withTransaction(...)` is the low-level primitive the user has already
-added, but the final public server contract should standardize on an explicit
-store-scoped transactional helper.
-
-Normative API direction:
-
-- `Storage` should expose `withStoreTransaction(storeId, effect)`
-- `withStoreTransaction(...)` runs `effect` with exclusive ownership of that
-  store for the duration of the transaction
-- all dedupe checks, sequence assignment, committed-history reads, and writes
-  for mutating server flows happen inside that store transaction
-
-Normative requirement:
-
-- two replicas must not be able to concurrently commit overlapping writes for
-  the same store in a way that double-runs handlers or emits duplicate
-  invalidations
-
-Cross-store concurrency should remain possible. The final architecture must not
-serialize unrelated stores behind one global lock.
-
 ### 2. Batch atomicity
 
 For one `ingest(...)` or server-authored `write(...)` call:
@@ -239,7 +216,7 @@ Within one store transaction:
 
 Clarification:
 
-- reads from storage inside `withStoreTransaction(...)` are against the
+- reads from storage inside `withTransaction` are against the
   transaction's committed store view
 - same-batch visibility before `storage.write(...)` is runtime-derived in memory
   from earlier successful entries in that batch, not from prematurely persisted
@@ -278,10 +255,6 @@ Normative direction:
 export class Storage extends ServiceMap.Service<Storage, {
   readonly getId: Effect.Effect<RemoteId>
   readonly withTransaction: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
-  readonly withStoreTransaction: <A, E, R>(
-    storeId: StoreId,
-    effect: Effect.Effect<A, E, R>
-  ) => Effect.Effect<A, E | EventLogServerStoreError, R>
   readonly write: (
     storeId: StoreId,
     entries: ReadonlyArray<Entry>
@@ -302,10 +275,6 @@ export class Storage extends ServiceMap.Service<Storage, {
 
 Notes:
 
-- `withStoreTransaction(...)` is the recommended required API shape for this
-  server module
-- `withTransaction(...)` remains useful as the lower-level primitive used by
-  storage implementations to build `withStoreTransaction(...)`
 - `processedSequence(...)` and `markProcessed(...)` are expected to be removed
   or made obsolete by the final architecture
 
@@ -595,9 +564,6 @@ Any implementation produced from this spec must run:
 
 ## Task 1 Implementation Notes (Current Branch)
 
-- `Storage` now exposes additive `withStoreTransaction(storeId, effect)` while
-  keeping `withTransaction(...)`, `processedSequence(...)`, and
-  `markProcessed(...)` in place for compatibility with the current runtime path.
 - `makeStorageMemory` now stages writes in a transaction-local buffer and only
   mutates journal / dedupe maps and publishes `changes(...)` notifications after
   successful transaction commit.
@@ -608,10 +574,6 @@ Any implementation produced from this spec must run:
   transactions.
 - For backward compatibility, `storage.write(...)` when called outside an
   explicit store transaction now runs in an implicit store transaction.
-- Important implementation constraint discovered: transaction context is
-  fiber-local in the memory model. Writes issued from forked child fibers are
-  not automatically enrolled in the parent transaction unless they explicitly
-  call `withStoreTransaction(...)`.
 - Follow-up required: migrate transaction context tracking from ad-hoc
   fiber-id bookkeeping to a context model that propagates to child fibers so
   structured concurrent writes cannot deadlock when joined by the parent
@@ -619,19 +581,12 @@ Any implementation produced from this spec must run:
 
 ## Task 2 Implementation Notes (Current Branch)
 
-- Replaced runtime `persistAndReplay(...)` with a transactional
-  `processBeforePersist(...)` flow that executes handlers and conflict
-  reconstruction before `storage.write(...)` and does all mutating work inside
-  `storage.withStoreTransaction(storeId, ...)`.
 - Batch handling is now all-or-nothing for mutating server paths: if any
   handler fails, `storage.write(...)` is not reached and the store transaction
   rolls back with no committed entries.
 - Reactivity invalidation now runs strictly post-commit via an explicit
   `Effect.tap` phase over committed entries. Invalidations are best-effort and
   logged on failure without changing write success after commit.
-- Removed mutating-path dependency on checkpoint replay locks
-  (`processStoreFromStorage`, `withStoreProcessingLock`) and removed
-  `requestChanges(...)` pre-read catch-up invocation.
 - Added focused runtime tests for:
   - rollback visibility and retry semantics after handler failure
   - commit visibility timing (entries stay invisible until transaction commit)
@@ -649,8 +604,6 @@ Status: ✅ Completed
 Scope:
 
 - finalize the `Storage` contract needed for store-scoped transactional writes
-- add `withStoreTransaction(storeId, effect)` as an additive API while keeping
-  the existing checkpoint-era APIs available for now
 - implement the new transaction semantics in `makeStorageMemory`
 - make in-memory commit visibility and `changes(...)` semantics transaction-aware
   only for the new transactional path, without breaking the current runtime path
