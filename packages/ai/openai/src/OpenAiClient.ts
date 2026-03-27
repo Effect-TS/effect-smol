@@ -463,9 +463,7 @@ const makeSocket = Effect.gen(function*() {
             )
           }
           Queue.offerUnsafe(currentQueue, event)
-        } catch (cause) {
-          return Effect.die(cause)
-        }
+        } catch {}
       }).pipe(
         Effect.catchCause((cause) => {
           tracker.clearUnsafe()
@@ -550,14 +548,16 @@ const makeSocket = Effect.gen(function*() {
 
 const ErrorEvent = Schema.Struct({
   type: Schema.Literal("error"),
-  status: Schema.Number,
+  status: Schema.Number.pipe(
+    Schema.withDecodingDefault(() => 500)
+  ),
   error: Schema.Struct({
     type: Schema.String,
     message: Schema.String
   })
 })
 
-const AllEvents = Schema.Union([Generated.ResponseStreamEvent, ErrorEvent])
+const AllEvents = Schema.Union([ErrorEvent, Generated.ResponseStreamEvent])
 const decodeEvent = Schema.decodeUnknownSync(Schema.fromJsonString(AllEvents))
 
 /**
