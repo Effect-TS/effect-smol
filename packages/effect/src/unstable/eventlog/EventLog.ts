@@ -632,7 +632,6 @@ const make = Effect.gen(function*() {
       yield* write
       const changesSub = yield* journal.changes
       return yield* PubSub.takeAll(changesSub).pipe(
-        Effect.andThen(Effect.sleep("500 millis")),
         Effect.andThen(write),
         Effect.catchCause(Effect.logError),
         Effect.forever
