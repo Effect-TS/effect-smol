@@ -8,6 +8,7 @@
 import * as Arr from "../../../Array.ts"
 import * as Effect from "../../../Effect.ts"
 import { YieldableProto } from "../../../internal/core.ts"
+import * as Option from "../../../Option.ts"
 import { pipeArguments } from "../../../Pipeable.ts"
 import * as Predicate from "../../../Predicate.ts"
 import * as ServiceMap from "../../../ServiceMap.ts"
@@ -228,9 +229,23 @@ export const toFlagDoc = (single: Param.Single<typeof Param.flagKind, unknown>):
     name: single.name,
     aliases: formattedAliases,
     type: single.typeName ?? Primitive.getTypeName(single.primitiveType),
-    description: single.description,
+    description: appendChoiceKeys(single.description, Primitive.getChoiceKeys(single.primitiveType)),
     required: single.primitiveType._tag !== "Boolean"
   }
+}
+
+const appendChoiceKeys = (
+  description: Option.Option<string>,
+  choiceKeys: ReadonlyArray<string> | undefined
+): Option.Option<string> => {
+  if (choiceKeys === undefined || choiceKeys.length === 0) {
+    return description
+  }
+  const choiceSuffix = `(choices: ${choiceKeys.join(", ")})`
+  return Option.match(description, {
+    onNone: () => Option.some(choiceSuffix),
+    onSome: (value) => Option.some(`${value} ${choiceSuffix}`)
+  })
 }
 
 /**
