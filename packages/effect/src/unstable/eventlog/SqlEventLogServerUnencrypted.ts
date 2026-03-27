@@ -11,7 +11,7 @@ import * as Schema from "../../Schema.ts"
 import type * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as SqlClient from "../sql/SqlClient.ts"
-import type * as SqlError from "../sql/SqlError.ts"
+import * as SqlError from "../sql/SqlError.ts"
 import { Entry, EntryId, makeRemoteIdUnsafe, RemoteEntry, type RemoteId } from "./EventJournal.ts"
 import * as EventLogServerUnencrypted from "./EventLogServerUnencrypted.ts"
 
@@ -197,17 +197,14 @@ export const makeStorage = (options?: {
       Effect.scoped
     )
 
-    const flushPendingPublications = Effect.fnUntraced(
-      function*(pending: ReadonlyArray<PendingPublication>) {
-        for (const publication of pending) {
-          yield* publishCommitted(publication)
-        }
-      },
-      Effect.scoped
-    )
+    const flushPendingPublications = Effect.fnUntraced(function*(pending: ReadonlyArray<PendingPublication>) {
+      for (const publication of pending) {
+        yield* publishCommitted(publication)
+      }
+    })
 
-    const withTransaction: EventLogServerUnencrypted.Storage["Service"]["withTransaction"] = ((effect) =>
-      Effect.gen(function*() {
+    const withTransaction: EventLogServerUnencrypted.Storage["Service"]["withTransaction"] = Effect.fnUntraced(
+      function*(effect) {
         const pendingOption = yield* Effect.serviceOption(PendingPublications)
         if (Option.isSome(pendingOption)) {
           return yield* sql.withTransaction(effect)
@@ -219,7 +216,9 @@ export const makeStorage = (options?: {
         )
         yield* flushPendingPublications(pending)
         return result
-      })) as EventLogServerUnencrypted.Storage["Service"]["withTransaction"]
+      },
+      Effect.catchIf(SqlError.isSqlError, Effect.die)
+    )
 
     const ensureStore = (storeId: string) =>
       sql.onDialectOrElse({
@@ -428,8 +427,7 @@ export const makeStorage = (options?: {
         Effect.orDie,
         Effect.scoped
       ),
-      entries: (storeId, startSequence) =>
-        selectEntriesAfter(storeId, startSequence).pipe(Effect.orDie),
+      entries: (storeId, startSequence) => selectEntriesAfter(storeId, startSequence).pipe(Effect.orDie),
       changes: Effect.fnUntraced(function*(storeId, startSequence) {
         const queue = yield* Queue.make<RemoteEntry>()
         const pubsub = yield* RcMap.get(pubsubs, storeId)
