@@ -385,14 +385,19 @@ const makeSocket = Effect.gen(function*() {
     idleTimeToLive: 60_000,
     acquire: Effect.gen(function*() {
       const request = yield* Effect.orDie(client.client.httpClient.preprocess(HttpClientRequest.post("/responses")))
-      const socket = yield* Socket.makeWebSocket(request.url.replace(/^http/, "ws")).pipe(
+      const socket = yield* Socket.makeWebSocket(request.url.replace(/^http/, "ws"), {
+        closeCodeIsError: Function.constTrue
+      }).pipe(
         Effect.updateService(Socket.WebSocketConstructor, (f) => (url) =>
           f(url, {
             headers: request.headers
           } as any))
       )
       const write = yield* socket.writer
-      tracker.clearUnsafe()
+      yield* Effect.addFinalizer(() => {
+        tracker.clearUnsafe()
+        return Effect.void
+      })
 
       let incoming = yield* Queue.unbounded<ResponseStreamEvent, AiError.AiError>()
       const send = (message: typeof Generated.CreateResponse.Encoded) =>
