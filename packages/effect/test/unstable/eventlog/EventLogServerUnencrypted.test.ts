@@ -813,6 +813,10 @@ describe("EventLogServerUnencrypted", () => {
 
           yield* Deferred.await(enteredHandler)
 
+          const changesBeforeCommit = yield* runtime.requestChanges("public-key-visibility", 0)
+          const beforeCommitFromChanges = yield* Queue.poll(changesBeforeCommit)
+          assert.strictEqual(beforeCommitFromChanges._tag, "None")
+
           assert.deepStrictEqual(yield* storage.entries(storeId, 0), [])
 
           yield* Deferred.succeed(allowCommit, undefined)
