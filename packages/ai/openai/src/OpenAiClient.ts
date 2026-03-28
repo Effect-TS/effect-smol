@@ -7,7 +7,6 @@
  * @since 1.0.0
  */
 import * as Array from "effect/Array"
-import * as Cause from "effect/Cause"
 import type * as Config from "effect/Config"
 import * as Effect from "effect/Effect"
 import { identity } from "effect/Function"
@@ -459,26 +458,23 @@ const makeSocket = Effect.gen(function*() {
           Queue.offerUnsafe(incoming, event)
         } catch {}
       }).pipe(
-        Effect.catchCause((cause) =>
-          Queue.fail(
-            incoming,
-            AiError.make({
-              module: "OpenAiClient",
-              method: "createResponseStream",
-              reason: new AiError.NetworkError({
-                reason: "TransportError",
-                request: {
-                  method: "POST",
-                  url: request.url,
-                  urlParams: [],
-                  hash: undefined,
-                  headers: request.headers
-                },
-                description: Cause.pretty(cause)
-              })
+        Effect.catchTag("SocketError", (error) =>
+          AiError.make({
+            module: "OpenAiClient",
+            method: "createResponseStream",
+            reason: new AiError.NetworkError({
+              reason: "TransportError",
+              request: {
+                method: "POST",
+                url: request.url,
+                urlParams: [],
+                hash: undefined,
+                headers: request.headers
+              },
+              description: error.message
             })
-          )
-        ),
+          }).asEffect()),
+        Effect.catchCause((cause) => Queue.failCause(incoming, cause)),
         Effect.ensuring(Effect.forkIn(RcRef.invalidate(queueRef), socketScope, {
           startImmediately: true
         })),
