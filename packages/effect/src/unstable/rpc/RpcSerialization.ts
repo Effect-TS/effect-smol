@@ -180,7 +180,7 @@ function decodeJsonRpcRaw(
 
 function decodeJsonRpcMessage(decoded: JsonRpcMessage): RpcMessage.FromClientEncoded | RpcMessage.FromServerEncoded {
   if ("method" in decoded) {
-    if (decoded.id == null && decoded.method.startsWith("@effect/rpc/")) {
+    if (Predicate.isNullish(decoded.id) && decoded.method.startsWith("@effect/rpc/")) {
       const tag = decoded.method.slice("@effect/rpc/".length) as
         | RpcMessage.FromServerEncoded["_tag"]
         | Exclude<RpcMessage.FromClientEncoded["_tag"], "Request">
@@ -194,7 +194,7 @@ function decodeJsonRpcMessage(decoded: JsonRpcMessage): RpcMessage.FromClientEnc
     }
     return {
       _tag: "Request",
-      id: decoded.id != null ? String(decoded.id) : "",
+      id: Predicate.isNotNullish(decoded.id) ? String(decoded.id) : "",
       tag: decoded.method,
       payload: decoded.params ?? null,
       headers: decoded.headers ?? [],
@@ -308,7 +308,7 @@ function encodeJsonRpcMessage(response: RpcMessage.FromServerEncoded | RpcMessag
         jsonrpc: "2.0",
         method: response.tag,
         params: response.payload,
-        id: response.id !== "" && Number(response.id),
+        id: response.id !== "" ? Number(response.id) : "",
         headers: response.headers,
         traceId: response.traceId,
         spanId: response.spanId,
