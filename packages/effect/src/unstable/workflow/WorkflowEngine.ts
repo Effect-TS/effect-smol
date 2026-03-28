@@ -112,6 +112,15 @@ export class WorkflowEngine extends ServiceMap.Service<
     ) => Effect.Effect<void>
 
     /**
+     * Unsafely interrupt a registered workflow, potentially ignoring
+     * compensation finalizers and orphaning child workflows.
+     */
+    readonly interruptUnsafe: (
+      workflow: Workflow.Any,
+      executionId: string
+    ) => Effect.Effect<void>
+
+    /**
      * Resume a registered workflow.
      */
     readonly resume: (
@@ -282,6 +291,10 @@ export interface Encoded {
     workflow: Workflow.Any,
     executionId: string
   ) => Effect.Effect<void>
+  readonly interruptUnsafe: (
+    workflow: Workflow.Any,
+    executionId: string
+  ) => Effect.Effect<void>
   readonly resume: (
     workflow: Workflow.Any,
     executionId: string
@@ -416,6 +429,7 @@ export const makeUnsafe = (options: Encoded): WorkflowEngine["Service"] =>
     }),
     poll: options.poll,
     interrupt: options.interrupt,
+    interruptUnsafe: options.interruptUnsafe,
     resume: options.resume,
     activityExecute: Effect.fnUntraced(function*<
       Success extends Schema.Top,
@@ -616,6 +630,14 @@ export const layerMemory: Layer.Layer<WorkflowEngine> = Layer.effect(WorkflowEng
         if (!state) return
         state.instance.interrupted = true
         yield* resume(executionId)
+      }),
+      interruptUnsafe: Effect.fnUntraced(function*(_workflow, executionId) {
+        const state = executions.get(executionId)
+        if (!state) return
+        state.instance.interrupted = true
+        if (state.fiber) {
+          yield* Fiber.interrupt(state.fiber)
+        }
       }),
       resume(_workflow, executionId) {
         return resume(executionId)
