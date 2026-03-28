@@ -4,6 +4,7 @@ This directory contains specifications for all major features and enhancements i
 
 ## Contents
 
+- [eventlog-rotating-session-auth.md](eventlog-rotating-session-auth.md) - Add a breaking rotating challenge session-auth handshake for EventLogRemote / EventLogServer using deterministic proof-of-secret continuity, TOFU bootstrap, and per-session identity binding.
 - [sql-eventlog-server-unencrypted.md](sql-eventlog-server-unencrypted.md) - Add a SQL-backed `EventLogServerUnencrypted.Storage` module with a shared `store_id` journal table, per-store sequencing, change streaming, and reusable cross-driver integration tests.
 - [worker-error-reason-pattern.md](worker-error-reason-pattern.md) - Refactor WorkerError to use the reason pattern with structured reasons.
 - [http-client-error-reason-pattern.md](http-client-error-reason-pattern.md) - Refactor HttpClientError to a reason-based wrapper with per-reason classes.
@@ -24,4 +25,3 @@ This directory contains specifications for all major features and enhancements i
 - [response-id-tracking.md](response-id-tracking.md) - Add per-client response ID tracking with `prepareUnsafe` method for incremental input mode in OpenAI providers.
 - [ai-embedding-model.md](ai-embedding-model.md) - Add `EmbeddingModel` module to `effect/unstable/ai` with batching via `RequestResolver` and telemetry.
 - [sql-error-reason-pattern.md](sql-error-reason-pattern.md) - Refactor SqlError to use the reason pattern with per-reason classes and best-effort error classification across all SQL drivers.
-- [openapi-generator-httpapi-output.md](openapi-generator-httpapi-output.md) - Add a new openapi-generator output mode that emits full HttpApi modules with supporting schemas, placeholder security declarations, and explicit lossy-conversion warnings.
