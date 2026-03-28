@@ -571,19 +571,20 @@ const make = Effect.gen(function*() {
     }
   })
 
-  const invalidateReactivityEntries = (entries: ReadonlyArray<Entry>) => Effect.sync(() => {
-    for (const entry of entries) {
-      const keys = reactivityKeys[entry.event]
-      if (!keys) {
-        continue
-      }
-      for (const key of keys) {
+  const invalidateReactivityEntries = (entries: ReadonlyArray<Entry>) =>
+    Effect.sync(() => {
+      for (const entry of entries) {
+        const keys = reactivityKeys[entry.event]
+        if (!keys) {
+          continue
+        }
+        for (const key of keys) {
           reactivity.invalidateUnsafe({
             [key]: [entry.primaryKey]
           })
+        }
       }
-    }
-  })
+    })
 
   const runRemote = Effect.fnUntraced(
     function*(remote: EventLogRemote["Service"]) {
@@ -694,18 +695,16 @@ const make = Effect.gen(function*() {
         }).pipe(
           Effect.updateServices((input) => ServiceMap.merge(handler.services, input)),
           Effect.provideService(Identity, identity),
-          Effect.tap(() =>
-            {
-              if (reactivityKeys[entry.event]) {
-                for (const key of reactivityKeys[entry.event]) {
-                  reactivity.invalidateUnsafe({
-                    [key]: [entry.primaryKey]
-                  })
-                }
+          Effect.tap(() => {
+            if (reactivityKeys[entry.event]) {
+              for (const key of reactivityKeys[entry.event]) {
+                reactivity.invalidateUnsafe({
+                  [key]: [entry.primaryKey]
+                })
               }
-              return Effect.void
             }
-          )
+            return Effect.void
+          })
         )
     }))
   })
