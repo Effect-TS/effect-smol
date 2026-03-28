@@ -1885,6 +1885,63 @@ describe.sequential("Atom", () => {
     assert.strictEqual(runs, 2)
   })
 
+  test(`swr markStale triggers refresh on next remount`, async () => {
+    const r = AtomRegistry.make()
+    let runs = 0
+    const base = Atom.make(Effect.sync(() => ++runs)).pipe(Atom.keepAlive)
+    const atom = base.pipe(Atom.swr({ staleTime: 10_000, revalidateOnMount: true }))
+
+    const unmount1 = r.mount(atom)
+    let result = r.get(atom)
+    assert(AsyncResult.isSuccess(result))
+    assert.strictEqual(result.value, 1)
+    assert.strictEqual(runs, 1)
+    unmount1()
+
+    await Effect.runPromise(Effect.yieldNow)
+
+    assert(Atom.isSWR(atom))
+    atom[Atom.SWRTypeId].markStale()
+
+    const unmount2 = r.mount(atom)
+    result = r.get(atom)
+    assert(AsyncResult.isSuccess(result))
+    assert.strictEqual(result.value, 2)
+    assert.strictEqual(runs, 2)
+    unmount2()
+  })
+
+  test(`swr markStale triggers refresh on focus signal`, () => {
+    const r = AtomRegistry.make()
+    const focusSignal = Atom.make(0)
+    let focus = 0
+    const emitFocus = () => r.set(focusSignal, ++focus)
+    let runs = 0
+    const atom = Atom.make(Effect.sync(() => ++runs)).pipe(
+      Atom.swr({ staleTime: 10_000, revalidateOnFocus: true, focusSignal })
+    )
+    const unmount = r.mount(atom)
+
+    let result = r.get(atom)
+    assert(AsyncResult.isSuccess(result))
+    assert.strictEqual(result.value, 1)
+    assert.strictEqual(runs, 1)
+
+    emitFocus()
+    result = r.get(atom)
+    assert.strictEqual(runs, 1)
+
+    assert(Atom.isSWR(atom))
+    atom[Atom.SWRTypeId].markStale()
+    emitFocus()
+    result = r.get(atom)
+    assert(AsyncResult.isSuccess(result))
+    assert.strictEqual(result.value, 2)
+    assert.strictEqual(runs, 2)
+
+    unmount()
+  })
+
   // it("dehydrate", async () => {
   //   const r = AtomRegistry.make()
   //   const notSerializable = Atom.make(0)
