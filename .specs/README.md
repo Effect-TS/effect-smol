@@ -4,7 +4,7 @@ This directory contains specifications for all major features and enhancements i
 
 ## Contents
 
-- [eventlog-rotating-session-auth.md](eventlog-rotating-session-auth.md) - Add a breaking rotating challenge session-auth handshake for EventLogRemote / EventLogServer using deterministic proof-of-secret continuity, TOFU bootstrap, and per-session identity binding.
+- [eventlog-rotating-session-auth.md](eventlog-rotating-session-auth.md) - Add a breaking asymmetric challenge-signature session-auth handshake for EventLogRemote / EventLogServer using Ed25519 proof-of-possession, pre-provisioned persistent key binding, and per-session identity binding.
 - [sql-eventlog-server-unencrypted.md](sql-eventlog-server-unencrypted.md) - Add a SQL-backed `EventLogServerUnencrypted.Storage` module with a shared `store_id` journal table, per-store sequencing, change streaming, and reusable cross-driver integration tests.
 - [worker-error-reason-pattern.md](worker-error-reason-pattern.md) - Refactor WorkerError to use the reason pattern with structured reasons.
 - [http-client-error-reason-pattern.md](http-client-error-reason-pattern.md) - Refactor HttpClientError to a reason-based wrapper with per-reason classes.
