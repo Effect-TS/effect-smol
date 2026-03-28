@@ -268,7 +268,9 @@ const toProtocolErrorMessage = (error: EventLogServerAuthError | EventLogServerS
 
 const makeClientIdentity = (publicKey: string): EventLog.Identity["Service"] => ({
   publicKey,
-  privateKey: Redacted.make(new Uint8Array(32))
+  privateKey: Redacted.make(new Uint8Array(32)),
+  signingPublicKey: new Uint8Array(32),
+  signingPrivateKey: Redacted.make(new Uint8Array(32))
 })
 
 const makeServerWriteIdentityPublicKey = (storeId: StoreId): string => `effect-eventlog-server-write:${storeId}`

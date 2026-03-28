@@ -146,7 +146,7 @@ describe("EventLogRemote", () => {
   it.effect("fromSocketUnencrypted authenticates before first write", () =>
     Effect.gen(function*() {
       const harness = yield* makeRemoteHarnessUnencrypted
-      const identity = EventLog.makeIdentityUnsafe()
+      const identity = yield* EventLog.makeIdentity
       const entry = makeEntry()
 
       const writeFiber = yield* harness.remote.write(identity, [entry]).pipe(Effect.forkScoped)
@@ -163,12 +163,12 @@ describe("EventLogRemote", () => {
 
       yield* harness.sendResponse(new EventLogRemote.Ack({ id: request.id, sequenceNumbers: [1] }))
       yield* Fiber.join(writeFiber)
-    }))
+    }).pipe(Effect.provide(EventLogEncryption.layerSubtle)))
 
   it.effect("authenticate Forbidden maps to EventLogRemoteError with method authenticate", () =>
     Effect.gen(function*() {
       const harness = yield* makeRemoteHarnessUnencrypted
-      const identity = EventLog.makeIdentityUnsafe()
+      const identity = yield* EventLog.makeIdentity
 
       const writeFiber = yield* harness.remote.write(identity, [makeEntry()]).pipe(Effect.forkScoped)
       const auth = yield* harness.takeRequest
@@ -188,12 +188,12 @@ describe("EventLogRemote", () => {
       const error = yield* Fiber.join(writeFiber).pipe(Effect.flip)
       assert.strictEqual(error._tag, "EventLogRemoteError")
       assert.strictEqual(error.method, "authenticate")
-    }))
+    }).pipe(Effect.provide(EventLogEncryption.layerSubtle)))
 
   it.effect("fromSocketUnencrypted write errors still fail pending writes", () =>
     Effect.gen(function*() {
       const harness = yield* makeRemoteHarnessUnencrypted
-      const identity = EventLog.makeIdentityUnsafe()
+      const identity = yield* EventLog.makeIdentity
       const entry = makeEntry()
 
       const writeFiber = yield* harness.remote.write(identity, [entry]).pipe(Effect.forkScoped)
@@ -217,12 +217,12 @@ describe("EventLogRemote", () => {
       const error = yield* Fiber.join(writeFiber).pipe(Effect.flip)
       assert.strictEqual(error._tag, "EventLogRemoteError")
       assert.strictEqual(error.method, "write")
-    }))
+    }).pipe(Effect.provide(EventLogEncryption.layerSubtle)))
 
   it.effect("fromSocket authenticates before encrypted write", () =>
     Effect.gen(function*() {
       const harness = yield* makeRemoteHarnessEncrypted
-      const identity = EventLog.makeIdentityUnsafe()
+      const identity = yield* EventLog.makeIdentity
 
       const writeFiber = yield* harness.remote.write(identity, [makeEntry()]).pipe(Effect.forkScoped)
       yield* authenticateEncrypted({ harness, publicKey: identity.publicKey })
@@ -237,5 +237,5 @@ describe("EventLogRemote", () => {
 
       yield* harness.sendResponse(new EventLogRemote.Ack({ id: request.id, sequenceNumbers: [1] }))
       yield* Fiber.join(writeFiber)
-    }))
+    }).pipe(Effect.provide(EventLogEncryption.layerSubtle)))
 })
