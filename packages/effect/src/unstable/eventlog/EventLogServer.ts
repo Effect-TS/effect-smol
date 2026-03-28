@@ -70,12 +70,20 @@ export const makeHandler: Effect.Effect<
         }
       })
 
-      yield* Effect.forkChild(Effect.orDie(write(new Hello({ remoteId }))))
+      yield* Effect.forkChild(Effect.orDie(write(
+        new Hello({
+          remoteId,
+          challenge: new Uint8Array(32)
+        })
+      )))
 
       const handleRequest = (request: Schema.Schema.Type<typeof ProtocolRequest>): Effect.Effect<void> => {
         switch (request._tag) {
           case "Ping": {
             return Effect.orDie(write(new Pong({ id: request.id })))
+          }
+          case "Authenticate": {
+            return Effect.void
           }
           case "WriteEntries": {
             if (request.encryptedEntries.length === 0) {
