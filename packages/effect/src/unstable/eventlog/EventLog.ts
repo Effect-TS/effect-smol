@@ -218,9 +218,9 @@ export class Identity extends ServiceMap.Service<Identity, {
  */
 export const IdentitySchema = Schema.Struct({
   publicKey: Schema.String,
-  privateKey: Schema.Redacted(Schema.Uint8ArrayFromBase64),
+  privateKey: Schema.RedactedFromValue(Schema.Uint8ArrayFromBase64),
   signingPublicKey: Schema.Uint8ArrayFromBase64,
-  signingPrivateKey: Schema.Redacted(Schema.Uint8ArrayFromBase64)
+  signingPrivateKey: Schema.RedactedFromValue(Schema.Uint8ArrayFromBase64)
 })
 
 const IdentityEncodedSchema = Schema.Struct({
