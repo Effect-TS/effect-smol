@@ -844,9 +844,10 @@ export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E,
   effectServices(internalEffect.as(effect, ServiceMap.empty()))
 
 /**
- * Lazily constructs a layer from the specified layer.
+ * Lazily constructs a layer using the specified factory.
  *
- * The layer factory is evaluated each time the layer is built.
+ * The factory is evaluated only when the suspended layer is first built, and
+ * the result is memoized with normal layer sharing semantics.
  *
  * @example
  * ```ts
