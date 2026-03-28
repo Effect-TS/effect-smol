@@ -22,6 +22,7 @@ import * as ReactivityLayer from "../reactivity/Reactivity.ts"
 import * as Event from "./Event.ts"
 import type * as EventGroup from "./EventGroup.ts"
 import { Entry, EventJournal, type EventJournalError, makeEntryIdUnsafe, type RemoteEntry } from "./EventJournal.ts"
+import * as EventLogEncryption from "./EventLogEncryption.ts"
 import { EventLogRemote } from "./EventLogRemote.ts"
 
 /**
@@ -207,6 +208,8 @@ export declare namespace Handlers {
 export class Identity extends ServiceMap.Service<Identity, {
   readonly publicKey: string
   readonly privateKey: Redacted.Redacted<Uint8Array>
+  readonly signingPublicKey: Uint8Array
+  readonly signingPrivateKey: Redacted.Redacted<Uint8Array>
 }>()("effect/eventlog/EventLog/Identity") {}
 
 /**
@@ -215,12 +218,16 @@ export class Identity extends ServiceMap.Service<Identity, {
  */
 export const IdentitySchema = Schema.Struct({
   publicKey: Schema.String,
-  privateKey: Schema.Redacted(Schema.Uint8ArrayFromBase64)
+  privateKey: Schema.Redacted(Schema.Uint8ArrayFromBase64),
+  signingPublicKey: Schema.Uint8ArrayFromBase64,
+  signingPrivateKey: Schema.Redacted(Schema.Uint8ArrayFromBase64)
 })
 
 const IdentityEncodedSchema = Schema.Struct({
   publicKey: Schema.String,
-  privateKey: Schema.Uint8ArrayFromBase64
+  privateKey: Schema.Uint8ArrayFromBase64,
+  signingPublicKey: Schema.Uint8ArrayFromBase64,
+  signingPrivateKey: Schema.Uint8ArrayFromBase64
 })
 
 const IdentityStringSchema = Schema.fromJsonString(IdentityEncodedSchema)
@@ -233,7 +240,9 @@ export const decodeIdentityString = (value: string): Identity["Service"] => {
   const decoded = Schema.decodeUnknownSync(IdentityStringSchema)(value)
   return {
     publicKey: decoded.publicKey,
-    privateKey: Redacted.make(decoded.privateKey)
+    privateKey: Redacted.make(decoded.privateKey),
+    signingPublicKey: decoded.signingPublicKey,
+    signingPrivateKey: Redacted.make(decoded.signingPrivateKey)
   }
 }
 
@@ -244,17 +253,17 @@ export const decodeIdentityString = (value: string): Identity["Service"] => {
 export const encodeIdentityString = (identity: Identity["Service"]): string =>
   Schema.encodeSync(IdentityStringSchema)({
     publicKey: identity.publicKey,
-    privateKey: Redacted.value(identity.privateKey)
+    privateKey: Redacted.value(identity.privateKey),
+    signingPublicKey: identity.signingPublicKey,
+    signingPrivateKey: Redacted.value(identity.signingPrivateKey)
   })
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const makeIdentityUnsafe = (): Identity["Service"] => ({
-  publicKey: globalThis.crypto.randomUUID(),
-  privateKey: Redacted.make(globalThis.crypto.getRandomValues(new Uint8Array(32)))
-})
+export const makeIdentity: Effect.Effect<Identity["Service"], never, EventLogEncryption.EventLogEncryption> =
+  EventLogEncryption.EventLogEncryption.use((_) => _.generateIdentity)
 
 const handlersProto = {
   [HandlersTypeId]: {

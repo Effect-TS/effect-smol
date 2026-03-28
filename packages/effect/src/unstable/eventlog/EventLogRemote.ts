@@ -381,14 +381,6 @@ export class EventLogRemoteError extends Data.TaggedError("EventLogRemoteError")
   readonly cause: unknown
 }> {}
 
-interface SessionAuthSigningCredentials {
-  readonly signingPublicKey: Uint8Array
-  readonly signingPrivateKey: Uint8Array
-}
-
-const generatedSessionAuthSigningCredentials = new WeakMap<Identity["Service"], SessionAuthSigningCredentials>()
-const inFlightSessionAuthSigningCredentials = new WeakMap<Identity["Service"], Promise<SessionAuthSigningCredentials>>()
-
 const makeRemoteError = (method: string, cause: unknown): EventLogRemoteError =>
   new EventLogRemoteError({
     method,
@@ -396,88 +388,6 @@ const makeRemoteError = (method: string, cause: unknown): EventLogRemoteError =>
   })
 
 const makeAuthenticateError = (cause: unknown): EventLogRemoteError => makeRemoteError("authenticate", cause)
-
-const extractSigningPrivateKey = (value: unknown): Uint8Array | undefined => {
-  if (value instanceof Uint8Array) {
-    return value
-  }
-  if (Redacted.isRedacted(value)) {
-    const unwrapped = Redacted.value(value as Redacted.Redacted<Uint8Array>)
-    return unwrapped instanceof Uint8Array ? unwrapped : undefined
-  }
-  return undefined
-}
-
-const extractSessionAuthSigningCredentials = (
-  identity: Identity["Service"]
-): SessionAuthSigningCredentials | undefined => {
-  const signingPublicKey = (identity as {
-    readonly signingPublicKey?: unknown
-  }).signingPublicKey
-  const signingPrivateKey = extractSigningPrivateKey(
-    (identity as {
-      readonly signingPrivateKey?: unknown
-    }).signingPrivateKey
-  )
-
-  if (!(signingPublicKey instanceof Uint8Array) || signingPrivateKey === undefined) {
-    return
-  }
-
-  return {
-    signingPublicKey,
-    signingPrivateKey
-  }
-}
-
-const generateSessionAuthSigningCredentials = (
-  identity: Identity["Service"]
-): Promise<SessionAuthSigningCredentials> => {
-  const cached = generatedSessionAuthSigningCredentials.get(identity)
-  if (cached !== undefined) {
-    return Promise.resolve(cached)
-  }
-
-  const inFlight = inFlightSessionAuthSigningCredentials.get(identity)
-  if (inFlight !== undefined) {
-    return inFlight
-  }
-
-  const subtle = globalThis.crypto?.subtle
-  if (subtle === undefined) {
-    return Promise.reject(new Error("globalThis.crypto.subtle is not available"))
-  }
-
-  const generated = subtle.generateKey({ name: "Ed25519" }, true, ["sign", "verify"]).then(
-    async ({ privateKey, publicKey }) => ({
-      signingPublicKey: new Uint8Array(await subtle.exportKey("raw", publicKey)),
-      signingPrivateKey: new Uint8Array(await subtle.exportKey("pkcs8", privateKey))
-    })
-  ).then((credentials) => {
-    generatedSessionAuthSigningCredentials.set(identity, credentials)
-    inFlightSessionAuthSigningCredentials.delete(identity)
-    return credentials
-  }, (cause) => {
-    inFlightSessionAuthSigningCredentials.delete(identity)
-    throw cause
-  })
-
-  inFlightSessionAuthSigningCredentials.set(identity, generated)
-  return generated
-}
-
-const resolveSessionAuthSigningCredentials = (
-  identity: Identity["Service"]
-): Effect.Effect<SessionAuthSigningCredentials, EventLogRemoteError> => {
-  const credentials = extractSessionAuthSigningCredentials(identity)
-  if (credentials !== undefined) {
-    return Effect.succeed(credentials)
-  }
-
-  return Effect.promise(() => generateSessionAuthSigningCredentials(identity)).pipe(
-    Effect.mapError(makeAuthenticateError)
-  )
-}
 
 const makeSessionResetError = () =>
   makeAuthenticateError(
@@ -589,16 +499,15 @@ const makeSessionAuth = (options: {
       }
 
       const authenticateAttempt = Effect.gen(function*() {
-        const credentials = yield* resolveSessionAuthSigningCredentials(identity)
         const payload = yield* encodeSessionAuthPayload({
           remoteId: currentRemoteId,
           challenge: currentChallenge,
           publicKey: currentIdentity,
-          signingPublicKey: credentials.signingPublicKey
+          signingPublicKey: identity.signingPublicKey
         })
         const signature = yield* signSessionAuthPayloadBytes({
           payload,
-          signingPrivateKey: credentials.signingPrivateKey
+          signingPrivateKey: Redacted.value(identity.signingPrivateKey)
         })
 
         if (inFlightAuthenticate?.deferred !== deferred) {
@@ -608,7 +517,7 @@ const makeSessionAuth = (options: {
         yield* options.writeAuthenticate(
           new Authenticate({
             publicKey: currentIdentity,
-            signingPublicKey: credentials.signingPublicKey,
+            signingPublicKey: identity.signingPublicKey,
             signature,
             algorithm: "Ed25519"
           })
