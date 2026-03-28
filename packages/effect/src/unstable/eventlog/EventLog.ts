@@ -2,9 +2,9 @@
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"
-import * as FiberMap from "../../FiberMap.ts"
 import { identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
+import * as Option from "../../Option.ts"
 import type { Pipeable } from "../../Pipeable.ts"
 import { pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
@@ -13,6 +13,7 @@ import * as Queue from "../../Queue.ts"
 import type * as Record from "../../Record.ts"
 import * as Redacted from "../../Redacted.ts"
 import * as Schema from "../../Schema.ts"
+import * as SchemaGetter from "../../SchemaGetter.ts"
 import type * as Scope from "../../Scope.ts"
 import * as Semaphore from "../../Semaphore.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -21,15 +22,9 @@ import { Reactivity } from "../reactivity/Reactivity.ts"
 import * as ReactivityLayer from "../reactivity/Reactivity.ts"
 import * as Event from "./Event.ts"
 import type * as EventGroup from "./EventGroup.ts"
-import {
-  Entry,
-  EventJournal,
-  type EventJournalError,
-  makeEntryIdUnsafe,
-  type RemoteEntry,
-  type RemoteId
-} from "./EventJournal.ts"
-import type { EventLogRemote } from "./EventLogRemote.ts"
+import { Entry, EventJournal, type EventJournalError, makeEntryIdUnsafe, type RemoteEntry } from "./EventJournal.ts"
+import * as EventLogEncryption from "./EventLogEncryption.ts"
+import { EventLogRemote } from "./EventLogRemote.ts"
 
 /**
  * @since 4.0.0
@@ -214,7 +209,16 @@ export declare namespace Handlers {
 export class Identity extends ServiceMap.Service<Identity, {
   readonly publicKey: string
   readonly privateKey: Redacted.Redacted<Uint8Array>
+  readonly signingPublicKey: Uint8Array
+  readonly signingPrivateKey: Redacted.Redacted<Uint8Array>
 }>()("effect/eventlog/EventLog/Identity") {}
+
+const RedactedUint8Array = Schema.Uint8ArrayFromBase64.pipe(
+  Schema.decodeTo(Schema.Redacted(Schema.Uint8Array), {
+    decode: SchemaGetter.transform((value) => Redacted.make(value)),
+    encode: SchemaGetter.transform((value) => Redacted.value(value))
+  })
+)
 
 /**
  * @since 4.0.0
@@ -222,12 +226,16 @@ export class Identity extends ServiceMap.Service<Identity, {
  */
 export const IdentitySchema = Schema.Struct({
   publicKey: Schema.String,
-  privateKey: Schema.Redacted(Schema.Uint8ArrayFromBase64)
+  privateKey: RedactedUint8Array,
+  signingPublicKey: Schema.Uint8ArrayFromBase64,
+  signingPrivateKey: RedactedUint8Array
 })
 
 const IdentityEncodedSchema = Schema.Struct({
   publicKey: Schema.String,
-  privateKey: Schema.Uint8ArrayFromBase64
+  privateKey: Schema.Uint8ArrayFromBase64,
+  signingPublicKey: Schema.Uint8ArrayFromBase64,
+  signingPrivateKey: Schema.Uint8ArrayFromBase64
 })
 
 const IdentityStringSchema = Schema.fromJsonString(IdentityEncodedSchema)
@@ -240,7 +248,9 @@ export const decodeIdentityString = (value: string): Identity["Service"] => {
   const decoded = Schema.decodeUnknownSync(IdentityStringSchema)(value)
   return {
     publicKey: decoded.publicKey,
-    privateKey: Redacted.make(decoded.privateKey)
+    privateKey: Redacted.make(decoded.privateKey),
+    signingPublicKey: decoded.signingPublicKey,
+    signingPrivateKey: Redacted.make(decoded.signingPrivateKey)
   }
 }
 
@@ -251,17 +261,17 @@ export const decodeIdentityString = (value: string): Identity["Service"] => {
 export const encodeIdentityString = (identity: Identity["Service"]): string =>
   Schema.encodeSync(IdentityStringSchema)({
     publicKey: identity.publicKey,
-    privateKey: Redacted.value(identity.privateKey)
+    privateKey: Redacted.value(identity.privateKey),
+    signingPublicKey: identity.signingPublicKey,
+    signingPrivateKey: Redacted.value(identity.signingPrivateKey)
   })
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const makeIdentityUnsafe = (): Identity["Service"] => ({
-  publicKey: globalThis.crypto.randomUUID(),
-  privateKey: Redacted.make(globalThis.crypto.getRandomValues(new Uint8Array(32)))
-})
+export const makeIdentity: Effect.Effect<Identity["Service"], never, EventLogEncryption.EventLogEncryption> =
+  EventLogEncryption.EventLogEncryption.use((_) => _.generateIdentity)
 
 const handlersProto = {
   [HandlersTypeId]: {
@@ -303,10 +313,14 @@ const makeHandlers = (options: {
 export const group = <Events extends Event.Any, Return>(
   group: EventGroup.EventGroup<Events>,
   f: (handlers: Handlers<never, Events>) => Handlers.ValidateReturn<Return>
-): Layer.Layer<Event.ToService<Events>, Handlers.Error<Return>, Exclude<Handlers.Services<Return>, Scope.Scope>> =>
+): Layer.Layer<
+  Event.ToService<Events>,
+  Handlers.Error<Return>,
+  Exclude<Handlers.Services<Return>, Scope.Scope | Identity>
+> =>
   Layer.effectServices(
     Effect.gen(function*() {
-      const services = yield* Effect.services<Handlers.Services<Return>>()
+      const services = yield* Effect.services<Exclude<Handlers.Services<Return>, Scope.Scope | Identity>>()
       const result = f(makeHandlers({
         group: group as EventGroup.AnyWithProps,
         handlers: {},
@@ -456,7 +470,6 @@ export class EventLog extends ServiceMap.Service<EventLog, {
     Event.SuccessWithTag<EventGroup.Events<Groups>, Tag>,
     Event.ErrorWithTag<EventGroup.Events<Groups>, Tag> | EventJournalError
   >
-  readonly registerRemote: (remote: EventLogRemote["Service"]) => Effect.Effect<void, never, Scope.Scope>
   readonly registerCompaction: (options: {
     readonly events: ReadonlyArray<string>
     readonly effect: (options: {
@@ -469,12 +482,75 @@ export class EventLog extends ServiceMap.Service<EventLog, {
   readonly destroy: Effect.Effect<void, EventJournalError>
 }>()("effect/eventlog/EventLog") {}
 
+/**
+ * @since 4.0.0
+ * @category handlers
+ */
+export const makeReplayFromRemoteEffect = (options: {
+  readonly services: ServiceMap.ServiceMap<never>
+  readonly identity: Identity["Service"]
+  readonly reactivity: Reactivity["Service"]
+  readonly reactivityKeys: Record<string, ReadonlyArray<string>>
+  readonly logAnnotations: {
+    readonly service: string
+    readonly effect: string
+  }
+}) =>
+  Effect.fnUntraced(
+    function*({ conflicts, entry }): Effect.fn.Return<void, Schema.SchemaError> {
+      const handler = options.services.mapUnsafe.get(Event.serviceKey(entry.event)) as Handlers.Item<any> | undefined
+      if (!handler) {
+        return yield* Effect.logDebug(`Event handler not found for: "${entry.event}"`)
+      }
+
+      const decodePayload = Schema.decodeUnknownEffect(handler.event.payloadMsgPack)
+      const decodedConflicts: Array<{ entry: Entry; payload: unknown }> = new Array(conflicts.length)
+      for (let i = 0; i < conflicts.length; i++) {
+        decodedConflicts[i] = {
+          entry: conflicts[i],
+          payload: yield* decodePayload(conflicts[i].payload).pipe(
+            Effect.updateServices((input) => ServiceMap.merge(handler.services, input))
+          ) as any
+        }
+      }
+
+      yield* decodePayload(entry.payload).pipe(
+        Effect.flatMap((payload) =>
+          handler.handler({
+            payload,
+            entry,
+            conflicts: decodedConflicts
+          })
+        ),
+        Effect.provideService(Identity, options.identity),
+        Effect.updateServices((input) => ServiceMap.merge(handler.services, input)),
+        Effect.asVoid
+      ) as any
+
+      const keys = options.reactivityKeys[entry.event]
+      if (keys) {
+        for (const key of keys) {
+          yield* Effect.sync(() =>
+            options.reactivity.invalidateUnsafe({
+              [key]: [entry.primaryKey]
+            })
+          )
+        }
+      }
+    },
+    Effect.catchCause(Effect.logError),
+    (effect, { entry }) =>
+      Effect.annotateLogs(effect, {
+        ...options.logAnnotations,
+        entryId: entry.idString
+      })
+  )
+
 const make = Effect.gen(function*() {
   const identity = yield* Identity
   const journal = yield* EventJournal
   const services = yield* Effect.services<never>()
 
-  const remotes = yield* FiberMap.make<RemoteId>()
   const compactors = new Map<string, {
     readonly events: ReadonlySet<string>
     readonly effect: (options: {
@@ -486,6 +562,16 @@ const make = Effect.gen(function*() {
 
   const reactivity = yield* Reactivity
   const reactivityKeys: Record<string, ReadonlyArray<string>> = {}
+  const replayFromRemote = makeReplayFromRemoteEffect({
+    services,
+    identity,
+    reactivity,
+    reactivityKeys,
+    logAnnotations: {
+      service: "EventLog",
+      effect: "writeFromRemote"
+    }
+  })
 
   const runRemote = Effect.fnUntraced(
     function*(remote: EventLogRemote["Service"]) {
@@ -546,51 +632,7 @@ const make = Effect.gen(function*() {
                 return brackets
               })
               : undefined,
-            effect: Effect.fnUntraced(
-              function*({ conflicts, entry }): Effect.fn.Return<void, Schema.SchemaError> {
-                const handler = services.mapUnsafe.get(Event.serviceKey(entry.event)) as Handlers.Item<any> | undefined
-                if (!handler) {
-                  return yield* Effect.logDebug(`Event handler not found for: "${entry.event}"`)
-                }
-                const decodePayload = Schema.decodeUnknownEffect(handler.event.payloadMsgPack)
-                const decodedConflicts: Array<{ entry: Entry; payload: unknown }> = new Array(conflicts.length)
-                for (let i = 0; i < conflicts.length; i++) {
-                  decodedConflicts[i] = {
-                    entry: conflicts[i],
-                    payload: yield* decodePayload(conflicts[i].payload).pipe(
-                      Effect.updateServices((input) => ServiceMap.merge(handler.services, input))
-                    ) as any
-                  }
-                }
-                yield* decodePayload(entry.payload).pipe(
-                  Effect.flatMap((payload) =>
-                    handler.handler({
-                      payload,
-                      entry,
-                      conflicts: decodedConflicts
-                    })
-                  ),
-                  Effect.updateServices((input) => ServiceMap.merge(handler.services, input)),
-                  Effect.asVoid
-                ) as any
-                if (reactivityKeys[entry.event]) {
-                  for (const key of reactivityKeys[entry.event]) {
-                    yield* Effect.sync(() =>
-                      reactivity.invalidateUnsafe({
-                        [key]: [entry.primaryKey]
-                      })
-                    )
-                  }
-                }
-              },
-              Effect.catchCause(Effect.logError),
-              (effect, { entry }) =>
-                Effect.annotateLogs(effect, {
-                  service: "EventLog",
-                  effect: "writeFromRemote",
-                  entryId: entry.idString
-                })
-            )
+            effect: replayFromRemote
           }).pipe(journalSemaphore.withPermits(1))
         ),
         Effect.catchCause(Effect.logError),
@@ -607,7 +649,6 @@ const make = Effect.gen(function*() {
       yield* write
       const changesSub = yield* journal.changes
       return yield* PubSub.takeAll(changesSub).pipe(
-        Effect.andThen(Effect.sleep("500 millis")),
         Effect.andThen(write),
         Effect.catchCause(Effect.logError),
         Effect.forever
@@ -637,6 +678,7 @@ const make = Effect.gen(function*() {
           conflicts: []
         }).pipe(
           Effect.updateServices((input) => ServiceMap.merge(handler.services, input)),
+          Effect.provideService(Identity, identity),
           Effect.tap(() =>
             Effect.sync(() => {
               if (reactivityKeys[entry.event]) {
@@ -664,14 +706,14 @@ const make = Effect.gen(function*() {
     return writeHandler(handler, options)
   }
 
+  const remote = yield* Effect.serviceOption(EventLogRemote)
+  if (Option.isSome(remote)) {
+    yield* Effect.forkScoped(runRemote(remote.value))
+  }
+
   return EventLog.of({
     write: eventLogWrite as EventLog["Service"]["write"],
     entries: journal.entries,
-    registerRemote: (remote) =>
-      Effect.acquireRelease(
-        FiberMap.run(remotes, remote.id, runRemote(remote)),
-        () => FiberMap.remove(remotes, remote.id)
-      ).pipe(Effect.asVoid),
     registerCompaction: (options) =>
       Effect.acquireRelease(
         Effect.sync(() => {

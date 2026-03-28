@@ -307,6 +307,7 @@ export const makeMemory: Effect.Effect<EventJournal["Service"]> = Effect.gen(fun
         }
         for (const remoteEntry of remoteEntries) {
           journal.push(remoteEntry.entry)
+          byId.set(remoteEntry.entry.idString, remoteEntry.entry)
           if (remoteEntry.remoteSequence > remote.sequence) {
             remote.sequence = remoteEntry.remoteSequence
           }

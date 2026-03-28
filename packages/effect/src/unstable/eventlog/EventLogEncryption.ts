@@ -61,6 +61,7 @@ export class EventLogEncryption extends ServiceMap.Service<EventLogEncryption, {
   ) => Effect.Effect<Array<RemoteEntry>>
   readonly sha256String: (data: Uint8Array) => Effect.Effect<string>
   readonly sha256: (data: Uint8Array) => Effect.Effect<Uint8Array>
+  readonly generateIdentity: Effect.Effect<Identity["Service"]>
 }>()("effect/eventlog/EventLogEncryption") {}
 
 /**
@@ -141,7 +142,24 @@ export const makeEncryptionSubtle = (crypto: Crypto): Effect.Effect<EventLogEncr
               .join("")
             return hashHex
           }
+        ),
+      generateIdentity: Effect.gen(function*() {
+        const [publicKey, privateKey] = yield* Effect.promise(() =>
+          crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign", "verify"]).then((key_) => {
+            const key = key_ as CryptoKeyPair
+            return Promise.all([
+              crypto.subtle.exportKey("raw", key.publicKey),
+              crypto.subtle.exportKey("pkcs8", key.privateKey)
+            ])
+          })
         )
+        return {
+          publicKey: crypto.randomUUID(),
+          privateKey: Redacted.make(globalThis.crypto.getRandomValues(new Uint8Array(32))),
+          signingPublicKey: new Uint8Array(publicKey),
+          signingPrivateKey: Redacted.make(new Uint8Array(privateKey))
+        }
+      })
     })
   })
 
