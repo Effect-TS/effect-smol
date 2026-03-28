@@ -518,11 +518,16 @@ Feature is complete when:
 - Added shared `EventLogSessionAuth` helpers for canonical length-prefixed payload encoding/decoding plus Ed25519 sign/verify wrappers.
 - Canonical payload signing and verification now share one implementation path (`encodeSessionAuthPayload` + `signSessionAuthPayloadBytes` / `verifySessionAuthPayloadBytes`) to avoid future client/server duplication when wiring `Authenticate` handling.
 - Helper validation rejects malformed signing public keys, malformed signature lengths, and malformed canonical payload bytes prior to cryptographic verification.
+- Client remotes now keep per-socket auth state (latest Hello remoteId/challenge, authenticated publicKey, failed-forbidden marker, and in-flight auth deferred) and force Authenticate before the first write/changes request.
+- Concurrent auth attempts are serialized per socket: same publicKey shares one in-flight auth effect, different publicKeys fail locally with `EventLogRemoteError({ method: "authenticate" })`.
+- Receiving a new Hello resets the current authenticated binding and clears in-flight auth for the previous session challenge.
+- For backward compatibility with existing `Identity` values that do not yet carry signing keys, the client currently derives and caches an Ed25519 keypair per identity instance when explicit signing keys are missing.
+- This task validated the client changes with: `pnpm lint-fix`, `pnpm test packages/effect/test/unstable/eventlog/EventLogRemote.test.ts`, `pnpm check:tsgo`, and `pnpm docgen`.
 
 ### Phase 2 — handshake execution and trust binding (pending)
 
 - [x] add canonical auth payload encode + Ed25519 sign/verify helpers
-- [ ] add client session-auth flow to `fromSocket` and `fromSocketUnencrypted`
+- [x] add client session-auth flow to `fromSocket` and `fromSocketUnencrypted`
 - [ ] add server auth gating / signature verification in `EventLogServer.makeHandler` and `EventLogServerUnencrypted.makeHandler`
 - [ ] add trust-on-first-auth binding load/store integration via each server `Storage` service
 - [ ] enforce server-type first-bind behavior difference (unencrypted pre-bind auth read check; encrypted none)
