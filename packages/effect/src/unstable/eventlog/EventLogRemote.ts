@@ -545,108 +545,96 @@ const makeSessionAuth = (options: {
         }
         return Deferred.fail(inFlight.deferred, mapped).pipe(Effect.asVoid)
       }),
-    ensureAuthenticated: (identity: Identity["Service"]): Effect.Effect<void, EventLogRemoteError> =>
-      Effect.suspend(() => {
-        if (authenticatedPublicKey !== undefined) {
-          if (authenticatedPublicKey === identity.publicKey) {
-            return Effect.void
-          }
-          return Effect.fail(
-            makeAuthenticateError(
-              new Error(
-                `Socket session already authenticated for publicKey: ${authenticatedPublicKey}`
-              )
-            )
-          )
+    ensureAuthenticated: Effect.fnUntraced(function*(identity: Identity["Service"]) {
+      if (authenticatedPublicKey !== undefined) {
+        if (authenticatedPublicKey === identity.publicKey) {
+          return
         }
-
-        if (failedAuthenticate !== undefined) {
-          return Effect.fail(failedAuthenticate)
-        }
-
-        const inFlight = inFlightAuthenticate
-        if (inFlight !== undefined) {
-          if (inFlight.publicKey === identity.publicKey) {
-            return Deferred.await(inFlight.deferred)
-          }
-          return Effect.fail(
-            makeAuthenticateError(
-              new Error(
-                `Concurrent socket authentication conflict: in-flight for ${inFlight.publicKey}, received ${identity.publicKey}`
-              )
-            )
+        return yield* makeAuthenticateError(
+          new Error(
+            `Socket session already authenticated for publicKey: ${authenticatedPublicKey}`
           )
+        )
+      }
+
+      if (failedAuthenticate !== undefined) {
+        return yield* failedAuthenticate
+      }
+
+      const inFlight = inFlightAuthenticate
+      if (inFlight !== undefined) {
+        if (inFlight.publicKey === identity.publicKey) {
+          return yield* Deferred.await(inFlight.deferred)
         }
-
-        if (latestRemoteId === undefined || latestChallenge === undefined) {
-          return Effect.fail(
-            makeAuthenticateError(
-              new Error("Cannot authenticate before receiving Hello(remoteId, challenge)")
-            )
+        return yield* makeAuthenticateError(
+          new Error(
+            `Concurrent socket authentication conflict: in-flight for ${inFlight.publicKey}, received ${identity.publicKey}`
           )
-        }
+        )
+      }
 
-        return Effect.gen(function*() {
-          const deferred = yield* Deferred.make<void, EventLogRemoteError>()
-          const currentRemoteId = latestRemoteId!
-          const currentChallenge = latestChallenge!
-          const currentIdentity = identity.publicKey
-          inFlightAuthenticate = {
-            publicKey: currentIdentity,
-            deferred
-          }
+      if (latestRemoteId === undefined || latestChallenge === undefined) {
+        return yield* makeAuthenticateError(
+          new Error("Cannot authenticate before receiving Hello(remoteId, challenge)")
+        )
+      }
 
-          const authenticateAttempt = Effect.gen(function*() {
-            const credentials = yield* resolveSessionAuthSigningCredentials(identity)
-            const payload = encodeSessionAuthPayload({
-              remoteId: currentRemoteId as unknown as string,
-              challenge: currentChallenge,
-              publicKey: currentIdentity,
-              signingPublicKey: credentials.signingPublicKey
-            })
-            const signature = yield* Effect.promise(() =>
-              signSessionAuthPayloadBytes({
-                payload,
-                signingPrivateKey: credentials.signingPrivateKey
-              })
-            ).pipe(
-              Effect.mapError(makeAuthenticateError)
-            )
+      const deferred = yield* Deferred.make<void, EventLogRemoteError>()
+      const currentRemoteId = latestRemoteId!
+      const currentChallenge = latestChallenge!
+      const currentIdentity = identity.publicKey
+      inFlightAuthenticate = {
+        publicKey: currentIdentity,
+        deferred
+      }
 
-            if (inFlightAuthenticate?.deferred !== deferred) {
-              return yield* Deferred.await(deferred)
-            }
-
-            yield* options.writeAuthenticate(
-              new Authenticate({
-                publicKey: currentIdentity,
-                signingPublicKey: credentials.signingPublicKey,
-                signature,
-                algorithm: "Ed25519"
-              })
-            ).pipe(
-              Effect.mapError(makeAuthenticateError)
-            )
-
-            yield* Deferred.await(deferred)
-          }).pipe(
-            Effect.catch((error) =>
-              Deferred.fail(deferred, error).pipe(
-                Effect.andThen(Effect.fail(error))
-              )
-            ),
-            Effect.ensuring(
-              Effect.sync(() => {
-                if (inFlightAuthenticate?.deferred === deferred) {
-                  inFlightAuthenticate = undefined
-                }
-              })
-            )
-          )
-
-          return yield* authenticateAttempt
+      const authenticateAttempt = Effect.gen(function*() {
+        const credentials = yield* resolveSessionAuthSigningCredentials(identity)
+        const payload = yield* encodeSessionAuthPayload({
+          remoteId: currentRemoteId as unknown as string,
+          challenge: currentChallenge,
+          publicKey: currentIdentity,
+          signingPublicKey: credentials.signingPublicKey
         })
-      }),
+        const signature = yield* signSessionAuthPayloadBytes({
+          payload,
+          signingPrivateKey: credentials.signingPrivateKey
+        })
+
+        if (inFlightAuthenticate?.deferred !== deferred) {
+          return yield* Deferred.await(deferred)
+        }
+
+        yield* options.writeAuthenticate(
+          new Authenticate({
+            publicKey: currentIdentity,
+            signingPublicKey: credentials.signingPublicKey,
+            signature,
+            algorithm: "Ed25519"
+          })
+        ).pipe(
+          Effect.mapError(makeAuthenticateError)
+        )
+
+        yield* Deferred.await(deferred)
+      }).pipe(
+        Effect.mapError(makeAuthenticateError),
+        Effect.catch((error) =>
+          Deferred.fail(deferred, error).pipe(
+            Effect.andThen(Effect.fail(error))
+          )
+        ),
+        Effect.ensuring(
+          Effect.sync(() => {
+            if (inFlightAuthenticate?.deferred === deferred) {
+              inFlightAuthenticate = undefined
+            }
+          })
+        )
+      )
+
+      return yield* authenticateAttempt
+    }),
     isAuthenticated: (publicKey: string): boolean => authenticatedPublicKey === publicKey
   }
 }
@@ -661,242 +649,240 @@ export const RemoteEntryChange = Schema.Tuple([RemoteId, Schema.Array(EntryId)])
  * @since 4.0.0
  * @category constructors
  */
-export const fromSocket = (options?: {
+export const fromSocket = Effect.fnUntraced(function*(options?: {
   readonly disablePing?: boolean | undefined
-}): Effect.Effect<EventLogRemote["Service"], never, Scope.Scope | EventLogEncryption | Socket.Socket> =>
-  Effect.gen(function*() {
-    const socket = yield* Socket.Socket
-    const encryption = yield* EventLogEncryption
-    const writeRaw = yield* socket.writer
+}): Effect.fn.Return<EventLogRemote["Service"], never, Scope.Scope | EventLogEncryption | Socket.Socket> {
+  const socket = yield* Socket.Socket
+  const encryption = yield* EventLogEncryption
+  const writeRaw = yield* socket.writer
 
-    const writeRequest = (request: typeof ProtocolRequest.Type) =>
-      Effect.gen(function*() {
-        const data = yield* encodeRequest(request)
-        if (request._tag !== "WriteEntries" || data.byteLength <= constChunkSize) {
-          return yield* writeRaw(data)
-        }
-        const id = request.id
-        for (const part of ChunkedMessage.split(id, data)) {
-          yield* writeRaw(yield* encodeRequest(part))
-        }
-      })
-
-    const sessionAuth = makeSessionAuth({
-      writeAuthenticate: writeRequest
+  const writeRequest = (request: typeof ProtocolRequest.Type) =>
+    Effect.gen(function*() {
+      const data = yield* encodeRequest(request)
+      if (request._tag !== "WriteEntries" || data.byteLength <= constChunkSize) {
+        return yield* writeRaw(data)
+      }
+      const id = request.id
+      for (const part of ChunkedMessage.split(id, data)) {
+        yield* writeRaw(yield* encodeRequest(part))
+      }
     })
 
-    let pendingCounter = 0
-    const pending = new Map<number, {
-      readonly entries: ReadonlyArray<Entry>
-      readonly deferred: Deferred.Deferred<void, EventLogRemoteError>
-      readonly publicKey: string
-    }>()
-    const chunks = new Map<number, {
-      readonly parts: Array<Uint8Array>
-      count: number
-      bytes: number
-    }>()
+  const sessionAuth = makeSessionAuth({
+    writeAuthenticate: writeRequest
+  })
 
-    const subscriptions = yield* RcMap.make({
-      lookup: (publicKey: string) =>
-        Effect.acquireRelease(
-          Queue.make<RemoteEntry, EventLogRemoteError>(),
-          (queue) =>
-            Queue.shutdown(queue).pipe(
-              Effect.andThen(
-                Effect.suspend(() =>
-                  sessionAuth.isAuthenticated(publicKey)
-                    ? Effect.ignore(writeRequest(new StopChanges({ publicKey })))
-                    : Effect.void
-                )
+  let pendingCounter = 0
+  const pending = new Map<number, {
+    readonly entries: ReadonlyArray<Entry>
+    readonly deferred: Deferred.Deferred<void, EventLogRemoteError>
+    readonly publicKey: string
+  }>()
+  const chunks = new Map<number, {
+    readonly parts: Array<Uint8Array>
+    count: number
+    bytes: number
+  }>()
+
+  const subscriptions = yield* RcMap.make({
+    lookup: (publicKey: string) =>
+      Effect.acquireRelease(
+        Queue.make<RemoteEntry, EventLogRemoteError>(),
+        (queue) =>
+          Queue.shutdown(queue).pipe(
+            Effect.andThen(
+              Effect.suspend(() =>
+                sessionAuth.isAuthenticated(publicKey)
+                  ? Effect.ignore(writeRequest(new StopChanges({ publicKey })))
+                  : Effect.void
               )
             )
-        )
-    })
-    const identities = new Map<string, Identity["Service"]>()
-    const badPing = yield* Deferred.make<never, Error>()
-    const remoteId = yield* Deferred.make<RemoteId>()
-
-    let latestPing = 0
-    let latestPong = 0
-
-    if (options?.disablePing !== true) {
-      yield* Effect.suspend(() => {
-        if (latestPing !== latestPong) {
-          return Deferred.fail(badPing, new Error("Ping timeout"))
-        }
-        return writeRequest(new Ping({ id: ++latestPing }))
-      }).pipe(
-        Effect.delay("10 seconds"),
-        Effect.ignore,
-        Effect.forever,
-        Effect.interruptible,
-        Effect.forkScoped
+          )
       )
-    }
+  })
+  const identities = new Map<string, Identity["Service"]>()
+  const badPing = yield* Deferred.make<never, Error>()
+  const remoteId = yield* Deferred.make<RemoteId>()
 
-    const handleMessage = (res: typeof ProtocolResponse.Type): Effect.Effect<void, unknown, Scope.Scope> => {
+  let latestPing = 0
+  let latestPong = 0
+
+  if (options?.disablePing !== true) {
+    yield* Effect.suspend(() => {
+      if (latestPing !== latestPong) {
+        return Deferred.fail(badPing, new Error("Ping timeout"))
+      }
+      return writeRequest(new Ping({ id: ++latestPing }))
+    }).pipe(
+      Effect.delay("10 seconds"),
+      Effect.ignore,
+      Effect.forever,
+      Effect.interruptible,
+      Effect.forkScoped
+    )
+  }
+
+  const handleMessage = Effect.fnUntraced(
+    function*(res: typeof ProtocolResponse.Type): Effect.fn.Return<void, Schema.SchemaError, Scope.Scope> {
       switch (res._tag) {
         case "Hello": {
-          return Effect.gen(function*() {
-            yield* sessionAuth.onHello(res)
-            yield* Deferred.succeed(remoteId, res.remoteId)
-          }).pipe(Effect.asVoid)
+          yield* sessionAuth.onHello(res)
+          yield* Deferred.succeed(remoteId, res.remoteId)
+          return
         }
         case "Authenticated": {
-          return sessionAuth.onAuthenticated(res)
+          return yield* sessionAuth.onAuthenticated(res)
         }
         case "Ack": {
-          return Effect.gen(function*() {
-            const entry = pending.get(res.id)
-            if (!entry) return
-            pending.delete(res.id)
-            const { deferred, entries, publicKey } = entry
-            const remoteEntries = res.sequenceNumbers.map((sequenceNumber, i) => {
-              const entry = entries[i]
-              return new RemoteEntry({
-                remoteSequence: sequenceNumber,
-                entry
-              })
+          const entry = pending.get(res.id)
+          if (!entry) return
+          pending.delete(res.id)
+          const { deferred, entries, publicKey } = entry
+          const remoteEntries = res.sequenceNumbers.map((sequenceNumber, i) => {
+            const entry = entries[i]
+            return new RemoteEntry({
+              remoteSequence: sequenceNumber,
+              entry
             })
-            const queue = yield* RcMap.get(subscriptions, publicKey)
-            yield* Queue.offerAll(queue, remoteEntries)
-            yield* Deferred.done(deferred, Exit.void)
-          }).pipe(Effect.scoped)
+          })
+          const queue = yield* RcMap.get(subscriptions, publicKey)
+          yield* Queue.offerAll(queue, remoteEntries)
+          yield* Deferred.done(deferred, Exit.void)
+          return
         }
         case "Pong": {
           latestPong = res.id
           if (res.id === latestPing) {
-            return Effect.void
+            return
           }
-          return Deferred.fail(badPing, new Error("Pong id mismatch")).pipe(
-            Effect.asVoid
-          )
+          yield* Deferred.fail(badPing, new Error("Pong id mismatch"))
+          return
         }
         case "Changes": {
-          return Effect.gen(function*() {
-            const queue = yield* RcMap.get(subscriptions, res.publicKey)
-            const identity = identities.get(res.publicKey)
-            if (!identity) {
-              return
-            }
-            const entries = yield* encryption.decrypt(identity, res.entries)
-            yield* Queue.offerAll(queue, entries)
-          }).pipe(Effect.scoped)
+          const queue = yield* RcMap.get(subscriptions, res.publicKey)
+          const identity = identities.get(res.publicKey)
+          if (!identity) {
+            return
+          }
+          const entries = yield* encryption.decrypt(identity, res.entries)
+          yield* Queue.offerAll(queue, entries)
+          return
         }
         case "ChunkedMessage": {
           const data = ChunkedMessage.join(chunks, res)
-          if (!data) return Effect.void
-          return Effect.scoped(
-            Effect.flatMap(decodeResponse(data), handleMessage)
-          )
+          if (!data) return
+          const decoded = yield* decodeResponse(data)
+          return yield* handleMessage(decoded)
         }
         case "Error": {
           if (res.requestTag === "Authenticate") {
-            return sessionAuth.onAuthenticateError(res)
+            return yield* sessionAuth.onAuthenticateError(res)
           }
           if (res.requestTag === "WriteEntries" && res.id !== undefined) {
             const entry = pending.get(res.id)
             if (!entry) {
-              return Effect.void
+              return
             }
             pending.delete(res.id)
-            return Deferred.fail(
+            yield* Deferred.fail(
               entry.deferred,
               makeRemoteError("write", res)
-            ).pipe(Effect.asVoid)
+            )
+            return
           }
           if (res.requestTag === "RequestChanges" && res.publicKey !== undefined) {
             const publicKey = res.publicKey
-            return Effect.gen(function*() {
-              const hasSubscription = yield* RcMap.has(subscriptions, publicKey)
-              if (!hasSubscription) {
-                return
-              }
-              const queue = yield* RcMap.get(subscriptions, publicKey)
-              identities.delete(publicKey)
-              yield* RcMap.invalidate(subscriptions, publicKey)
-              yield* Queue.fail(
-                queue,
-                makeRemoteError("changes", res)
-              )
-            }).pipe(Effect.scoped)
+            const hasSubscription = yield* RcMap.has(subscriptions, publicKey)
+            if (!hasSubscription) {
+              return
+            }
+            const queue = yield* RcMap.get(subscriptions, publicKey)
+            identities.delete(publicKey)
+            yield* RcMap.invalidate(subscriptions, publicKey)
+            yield* Queue.fail(
+              queue,
+              makeRemoteError("changes", res)
+            )
+            return
           }
-          return Effect.void
+          return
         }
       }
-    }
+    },
+    Effect.scoped
+  )
 
-    yield* socket.run((data) => Effect.flatMap(decodeResponse(data), handleMessage)).pipe(
-      Effect.raceFirst(Deferred.await(badPing)),
-      Effect.tapCause(Effect.logDebug),
-      Effect.retry({
-        schedule: Schedule.exponential(100).pipe(
-          Schedule.either(Schedule.spaced(5000))
-        )
-      }),
-      Effect.annotateLogs({
-        service: "EventLogRemote",
-        method: "fromSocket"
-      }),
-      Effect.forkScoped,
-      Effect.interruptible
-    )
+  yield* socket.run((data) => Effect.flatMap(decodeResponse(data), handleMessage)).pipe(
+    Effect.raceFirst(Deferred.await(badPing)),
+    Effect.tapCause(Effect.logDebug),
+    Effect.retry({
+      schedule: Schedule.exponential(100).pipe(
+        Schedule.either(Schedule.spaced(5000))
+      )
+    }),
+    Effect.annotateLogs({
+      service: "EventLogRemote",
+      method: "fromSocket"
+    }),
+    Effect.forkScoped,
+    Effect.interruptible
+  )
 
-    const id = yield* Deferred.await(remoteId)
+  const id = yield* Deferred.await(remoteId)
 
-    return {
-      id,
-      write: (identity, entries) =>
-        Effect.gen(function*() {
-          yield* sessionAuth.ensureAuthenticated(identity)
-          const encrypted = yield* encryption.encrypt(identity, entries)
-          const deferred = yield* Deferred.make<void, EventLogRemoteError>()
-          const id = pendingCounter++
-          pending.set(id, {
-            entries,
-            deferred,
-            publicKey: identity.publicKey
-          })
-          yield* Effect.orDie(writeRequest(
-            new WriteEntries({
-              publicKey: identity.publicKey,
-              id,
-              iv: encrypted.iv,
-              encryptedEntries: encrypted.encryptedEntries.map((encryptedEntry, i) => ({
-                entryId: entries[i].id,
-                encryptedEntry
-              }))
-            })
-          ))
-          yield* Deferred.await(deferred)
-        }),
-      changes: (identity, startSequence) =>
-        Effect.gen(function*() {
-          const queue = yield* RcMap.get(subscriptions, identity.publicKey)
-          const authenticated = yield* sessionAuth.ensureAuthenticated(identity).pipe(
-            Effect.as(true),
-            Effect.catch((error) =>
-              Queue.fail(queue, error).pipe(
-                Effect.as(false)
-              )
-            )
-          )
-          if (!authenticated) {
-            identities.delete(identity.publicKey)
-            return queue
-          }
-          identities.set(identity.publicKey, identity)
-          yield* Effect.orDie(writeRequest(
-            new RequestChanges({
-              publicKey: identity.publicKey,
-              startSequence
-            })
-          ))
-          return queue
+  return {
+    id,
+    write: Effect.fnUntraced(function*(identity, entries) {
+      yield* sessionAuth.ensureAuthenticated(identity).pipe(
+        Effect.mapError((cause) => makeRemoteError("authenticate", cause))
+      )
+      const encrypted = yield* encryption.encrypt(identity, entries)
+      const deferred = yield* Deferred.make<void, EventLogRemoteError>()
+      const id = pendingCounter++
+      pending.set(id, {
+        entries,
+        deferred,
+        publicKey: identity.publicKey
+      })
+      yield* Effect.orDie(writeRequest(
+        new WriteEntries({
+          publicKey: identity.publicKey,
+          id,
+          iv: encrypted.iv,
+          encryptedEntries: encrypted.encryptedEntries.map((encryptedEntry, i) => ({
+            entryId: entries[i].id,
+            encryptedEntry
+          }))
         })
-    }
-  })
+      ))
+      yield* Deferred.await(deferred)
+    }),
+    changes: Effect.fnUntraced(function*(identity, startSequence) {
+      const queue = yield* RcMap.get(subscriptions, identity.publicKey)
+      const authenticated = yield* sessionAuth.ensureAuthenticated(identity).pipe(
+        Effect.mapError((cause) => makeRemoteError("changes", cause)),
+        Effect.as(true),
+        Effect.catch((error) =>
+          Queue.fail(queue, error).pipe(
+            Effect.as(false)
+          )
+        )
+      )
+      if (!authenticated) {
+        identities.delete(identity.publicKey)
+        return queue
+      }
+      identities.set(identity.publicKey, identity)
+      yield* Effect.orDie(writeRequest(
+        new RequestChanges({
+          publicKey: identity.publicKey,
+          startSequence
+        })
+      ))
+      return queue
+    })
+  }
+})
 
 /**
  * @since 4.0.0
@@ -1085,49 +1071,50 @@ export const fromSocketUnencrypted = Effect.fnUntraced(function*(options?: {
 
   return {
     id,
-    write: (identity, entries) =>
-      Effect.gen(function*() {
-        yield* sessionAuth.ensureAuthenticated(identity)
-        const deferred = yield* Deferred.make<void, EventLogRemoteError>()
-        const id = pendingCounter++
-        pending.set(id, {
-          entries,
-          deferred,
-          publicKey: identity.publicKey
+    write: Effect.fnUntraced(function*(identity, entries) {
+      yield* sessionAuth.ensureAuthenticated(identity).pipe(
+        Effect.mapError((cause) => makeRemoteError("authenticate", cause))
+      )
+      const deferred = yield* Deferred.make<void, EventLogRemoteError>()
+      const id = pendingCounter++
+      pending.set(id, {
+        entries,
+        deferred,
+        publicKey: identity.publicKey
+      })
+      yield* Effect.orDie(writeRequest(
+        new WriteEntriesUnencrypted({
+          publicKey: identity.publicKey,
+          id,
+          entries
         })
-        yield* Effect.orDie(writeRequest(
-          new WriteEntriesUnencrypted({
-            publicKey: identity.publicKey,
-            id,
-            entries
-          })
-        ))
-        yield* Deferred.await(deferred)
-      }),
-    changes: (identity, startSequence) =>
-      Effect.gen(function*() {
-        const queue = yield* RcMap.get(subscriptions, identity.publicKey)
-        const authenticated = yield* sessionAuth.ensureAuthenticated(identity).pipe(
-          Effect.as(true),
-          Effect.catch((error) =>
-            Queue.fail(queue, error).pipe(
-              Effect.as(false)
-            )
+      ))
+      yield* Deferred.await(deferred)
+    }),
+    changes: Effect.fnUntraced(function*(identity, startSequence) {
+      const queue = yield* RcMap.get(subscriptions, identity.publicKey)
+      const authenticated = yield* sessionAuth.ensureAuthenticated(identity).pipe(
+        Effect.mapError((cause) => makeRemoteError("changes", cause)),
+        Effect.as(true),
+        Effect.catch((error) =>
+          Queue.fail(queue, error).pipe(
+            Effect.as(false)
           )
         )
-        if (!authenticated) {
-          identities.delete(identity.publicKey)
-          return queue
-        }
-        identities.set(identity.publicKey, identity)
-        yield* Effect.orDie(writeRequest(
-          new RequestChanges({
-            publicKey: identity.publicKey,
-            startSequence
-          })
-        ))
+      )
+      if (!authenticated) {
+        identities.delete(identity.publicKey)
         return queue
-      })
+      }
+      identities.set(identity.publicKey, identity)
+      yield* Effect.orDie(writeRequest(
+        new RequestChanges({
+          publicKey: identity.publicKey,
+          startSequence
+        })
+      ))
+      return queue
+    })
   }
 })
 

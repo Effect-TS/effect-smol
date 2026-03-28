@@ -31,12 +31,12 @@ describe("EventLogSessionAuth", () => {
       }
 
       const payload = makePayload(signingPublicKey)
-      const encodedA = EventLogSessionAuth.encodeSessionAuthPayload(payload)
-      const encodedB = EventLogSessionAuth.encodeSessionAuthPayload(payload)
+      const encodedA = yield* EventLogSessionAuth.encodeSessionAuthPayload(payload)
+      const encodedB = yield* EventLogSessionAuth.encodeSessionAuthPayload(payload)
 
       assert.deepStrictEqual(encodedA, encodedB)
 
-      const decoded = EventLogSessionAuth.decodeSessionAuthPayload(encodedA)
+      const decoded = yield* EventLogSessionAuth.decodeSessionAuthPayload(encodedA)
       assert.strictEqual(decoded.remoteId, payload.remoteId)
       assert.strictEqual(decoded.publicKey, payload.publicKey)
       assert.deepStrictEqual(decoded.challenge, payload.challenge)
@@ -48,21 +48,17 @@ describe("EventLogSessionAuth", () => {
       const keyPair = yield* makeSigningKeyPair
       const payload = makePayload(keyPair.signingPublicKey)
 
-      const signature = yield* Effect.promise(() =>
-        EventLogSessionAuth.signSessionAuthPayload({
-          ...payload,
-          signingPrivateKey: keyPair.signingPrivateKey
-        })
-      )
+      const signature = yield* EventLogSessionAuth.signSessionAuthPayload({
+        ...payload,
+        signingPrivateKey: keyPair.signingPrivateKey
+      })
 
       assert.strictEqual(signature.byteLength, EventLogSessionAuth.Ed25519SignatureLength)
 
-      const verified = yield* Effect.promise(() =>
-        EventLogSessionAuth.verifySessionAuthPayload({
-          ...payload,
-          signature
-        })
-      )
+      const verified = yield* EventLogSessionAuth.verifySessionAuthPayload({
+        ...payload,
+        signature
+      })
 
       assert.strictEqual(verified, true)
     }))
@@ -72,23 +68,19 @@ describe("EventLogSessionAuth", () => {
       const keyPair = yield* makeSigningKeyPair
       const payload = makePayload(keyPair.signingPublicKey)
 
-      const signature = yield* Effect.promise(() =>
-        EventLogSessionAuth.signSessionAuthPayload({
-          ...payload,
-          signingPrivateKey: keyPair.signingPrivateKey
-        })
-      )
+      const signature = yield* EventLogSessionAuth.signSessionAuthPayload({
+        ...payload,
+        signingPrivateKey: keyPair.signingPrivateKey
+      })
 
       const challenge = payload.challenge.slice()
       challenge[0] = challenge[0] ^ 0xff
 
-      const verified = yield* Effect.promise(() =>
-        EventLogSessionAuth.verifySessionAuthPayload({
-          ...payload,
-          challenge,
-          signature
-        })
-      )
+      const verified = yield* EventLogSessionAuth.verifySessionAuthPayload({
+        ...payload,
+        challenge,
+        signature
+      })
 
       assert.strictEqual(verified, false)
     }))
@@ -98,55 +90,41 @@ describe("EventLogSessionAuth", () => {
       const keyPair = yield* makeSigningKeyPair
       const payload = makePayload(keyPair.signingPublicKey)
 
-      const error = yield* Effect.tryPromise({
-        try: () =>
-          EventLogSessionAuth.verifySessionAuthPayload({
-            ...payload,
-            signature: new Uint8Array(EventLogSessionAuth.Ed25519SignatureLength - 1)
-          }),
-        catch: (cause) => cause
+      const error = yield* EventLogSessionAuth.verifySessionAuthPayload({
+        ...payload,
+        signature: new Uint8Array(EventLogSessionAuth.Ed25519SignatureLength - 1)
       }).pipe(Effect.flip)
 
-      assert.strictEqual((error as any)._tag, "EventLogSessionAuthError")
-      assert.strictEqual((error as any).reason, "InvalidSignatureLength")
+      assert.strictEqual(error._tag, "EventLogSessionAuthError")
+      assert.strictEqual(error.reason, "InvalidSignatureLength")
     }))
 
   it.effect("rejects malformed signing public key length", () =>
-    Effect.sync(() => {
-      let error: unknown = undefined
-      try {
-        EventLogSessionAuth.encodeSessionAuthPayload({
-          remoteId: "remote-123",
-          challenge: new Uint8Array(32),
-          publicKey: "client-public-key",
-          signingPublicKey: new Uint8Array(EventLogSessionAuth.Ed25519PublicKeyLength - 1)
-        })
-      } catch (cause) {
-        error = cause
-      }
-
-      assert.strictEqual((error as any)?._tag, "EventLogSessionAuthError")
-      assert.strictEqual((error as any)?.reason, "InvalidSigningPublicKeyLength")
+    Effect.gen(function*() {
+      const error = yield* EventLogSessionAuth.encodeSessionAuthPayload({
+        remoteId: "remote-123",
+        challenge: new Uint8Array(32),
+        publicKey: "client-public-key",
+        signingPublicKey: new Uint8Array(EventLogSessionAuth.Ed25519PublicKeyLength - 1)
+      }).pipe(Effect.flip)
+      assert.strictEqual(error._tag, "EventLogSessionAuthError")
+      assert.strictEqual(error.reason, "InvalidSigningPublicKeyLength")
     }))
 
   it.effect("rejects invalid canonical payload bytes", () =>
     Effect.gen(function*() {
       const keyPair = yield* makeSigningKeyPair
       const payload = makePayload(keyPair.signingPublicKey)
-      const encoded = EventLogSessionAuth.encodeSessionAuthPayload(payload)
+      const encoded = yield* EventLogSessionAuth.encodeSessionAuthPayload(payload)
       const malformed = encoded.slice(0, encoded.byteLength - 1)
 
-      const error = yield* Effect.tryPromise({
-        try: () =>
-          EventLogSessionAuth.verifySessionAuthPayloadBytes({
-            payload: malformed,
-            signingPublicKey: payload.signingPublicKey,
-            signature: new Uint8Array(EventLogSessionAuth.Ed25519SignatureLength)
-          }),
-        catch: (cause) => cause
+      const error = yield* EventLogSessionAuth.verifySessionAuthPayloadBytes({
+        payload: malformed,
+        signingPublicKey: payload.signingPublicKey,
+        signature: new Uint8Array(EventLogSessionAuth.Ed25519SignatureLength)
       }).pipe(Effect.flip)
 
-      assert.strictEqual((error as any)._tag, "EventLogSessionAuthError")
-      assert.strictEqual((error as any).reason, "InvalidPayload")
+      assert.strictEqual(error._tag, "EventLogSessionAuthError")
+      assert.strictEqual(error.reason, "InvalidPayload")
     }))
 })
