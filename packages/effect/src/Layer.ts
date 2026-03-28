@@ -844,6 +844,32 @@ export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E,
   effectServices(internalEffect.as(effect, ServiceMap.empty()))
 
 /**
+ * Lazily constructs a layer from the specified layer.
+ *
+ * The layer factory is evaluated each time the layer is built.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Layer, ServiceMap } from "effect"
+ *
+ * class Database extends ServiceMap.Service<Database, {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }>()("Database") {}
+ *
+ * const layer = Layer.suspend(() =>
+ *   Layer.succeed(Database)({
+ *     query: Effect.fn("Database.query")((sql: string) => Effect.succeed(`Query: ${sql}`))
+ *   })
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const suspend = <A, E, R>(evaluate: LazyArg<Layer<A, E, R>>): Layer<A, E, R> =>
+  fromBuildMemo((memoMap, scope) => internalEffect.suspend(() => evaluate().build(memoMap, scope)))
+
+/**
  * Unwraps a Layer from an Effect, flattening the nested structure.
  *
  * This is useful when you have an Effect that produces a Layer, and you want to
