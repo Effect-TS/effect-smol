@@ -439,21 +439,17 @@ export const verifySessionAuthenticateRequest = Effect.fnUntraced(function*(opti
   readonly nowMillis?: number | undefined
 }) {
   if (options.algorithm !== "Ed25519") {
-    return yield* Effect.fail(
-      new EventLogSessionAuthError({
-        reason: "InvalidAlgorithm",
-        message: `Unsupported session auth algorithm: ${options.algorithm}`
-      })
-    )
+    return yield* new EventLogSessionAuthError({
+      reason: "InvalidAlgorithm",
+      message: `Unsupported session auth algorithm: ${options.algorithm}`
+    })
   }
 
   if (options.challengeAlreadyUsed) {
-    return yield* Effect.fail(
-      new EventLogSessionAuthError({
-        reason: "ChallengeAlreadyUsed",
-        message: "Session auth challenge has already been used"
-      })
-    )
+    return yield* new EventLogSessionAuthError({
+      reason: "ChallengeAlreadyUsed",
+      message: "Session auth challenge has already been used"
+    })
   }
 
   if (
@@ -463,12 +459,10 @@ export const verifySessionAuthenticateRequest = Effect.fnUntraced(function*(opti
       nowMillis: options.nowMillis
     })
   ) {
-    return yield* Effect.fail(
-      new EventLogSessionAuthError({
-        reason: "ChallengeExpired",
-        message: "Session auth challenge has expired"
-      })
-    )
+    return yield* new EventLogSessionAuthError({
+      reason: "ChallengeExpired",
+      message: "Session auth challenge has expired"
+    })
   }
 
   const verified = yield* verifySessionAuthPayload({
@@ -483,10 +477,8 @@ export const verifySessionAuthenticateRequest = Effect.fnUntraced(function*(opti
     return
   }
 
-  return yield* Effect.fail(
-    new EventLogSessionAuthError({
-      reason: "InvalidSignature",
-      message: "Session auth signature verification failed"
-    })
-  )
+  return yield* new EventLogSessionAuthError({
+    reason: "InvalidSignature",
+    message: "Session auth signature verification failed"
+  })
 })
