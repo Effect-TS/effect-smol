@@ -363,4 +363,163 @@ describe("EventLogServer", () => {
         assert.strictEqual(stopMismatch.code, "Forbidden")
       }).pipe(Effect.provide(serverLayer))
     ))
+
+  it.effect("makeHandler persists first trusted signing keys across handler restarts", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const storage = yield* EventLogServer.makeStorageMemory
+        const trustedKeyPair = yield* makeSessionAuthKeyPair
+        const mismatchedKeyPair = yield* makeSessionAuthKeyPair
+
+        const firstHarness = yield* makeSocketHarness
+        const firstHandler = yield* EventLogServer.makeHandler.pipe(
+          Effect.provideService(EventLogServer.Storage, storage)
+        )
+
+        yield* firstHandler(firstHarness.socket).pipe(Effect.forkScoped)
+
+        const firstHello = yield* firstHarness.takeResponse
+        if (firstHello._tag !== "Hello") {
+          throw new Error(`Expected Hello, got ${firstHello._tag}`)
+        }
+
+        yield* firstHarness.sendRequest(
+          yield* makeAuthenticateRequest({
+            hello: firstHello,
+            publicKey: "client-1",
+            keyPair: trustedKeyPair
+          })
+        )
+
+        const firstAuthenticated = yield* firstHarness.takeResponse
+        if (firstAuthenticated._tag !== "Authenticated") {
+          throw new Error(`Expected Authenticated, got ${firstAuthenticated._tag}`)
+        }
+
+        const persistedAfterFirstAuth = yield* storage.getSessionAuthBinding("client-1")
+        if (persistedAfterFirstAuth === undefined) {
+          throw new Error("Expected persisted binding after first successful Authenticate")
+        }
+        assert.deepStrictEqual(persistedAfterFirstAuth, trustedKeyPair.signingPublicKey)
+
+        const restartedHarness = yield* makeSocketHarness
+        const restartedHandler = yield* EventLogServer.makeHandler.pipe(
+          Effect.provideService(EventLogServer.Storage, storage)
+        )
+
+        yield* restartedHandler(restartedHarness.socket).pipe(Effect.forkScoped)
+
+        const restartedHello = yield* restartedHarness.takeResponse
+        if (restartedHello._tag !== "Hello") {
+          throw new Error(`Expected Hello, got ${restartedHello._tag}`)
+        }
+
+        yield* restartedHarness.sendRequest(
+          yield* makeAuthenticateRequest({
+            hello: restartedHello,
+            publicKey: "client-1",
+            keyPair: mismatchedKeyPair
+          })
+        )
+
+        const restartedResponse = yield* restartedHarness.takeResponse
+        if (restartedResponse._tag !== "Error") {
+          throw new Error(`Expected Error, got ${restartedResponse._tag}`)
+        }
+
+        assert.strictEqual(restartedResponse.requestTag, "Authenticate")
+        assert.strictEqual(restartedResponse.code, "Forbidden")
+
+        const persistedAfterRestart = yield* storage.getSessionAuthBinding("client-1")
+        if (persistedAfterRestart === undefined) {
+          throw new Error("Expected persisted binding after restart mismatch")
+        }
+        assert.deepStrictEqual(persistedAfterRestart, trustedKeyPair.signingPublicKey)
+      })
+    ))
+
+  it.effect("makeHandler allows only one winner for concurrent first-bind mismatches", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const storage = yield* EventLogServer.makeStorageMemory
+        const firstKeyPair = yield* makeSessionAuthKeyPair
+        const secondKeyPair = yield* makeSessionAuthKeyPair
+        const firstHarness = yield* makeSocketHarness
+        const secondHarness = yield* makeSocketHarness
+        const handler = yield* EventLogServer.makeHandler.pipe(
+          Effect.provideService(EventLogServer.Storage, storage)
+        )
+
+        yield* handler(firstHarness.socket).pipe(Effect.forkScoped)
+        yield* handler(secondHarness.socket).pipe(Effect.forkScoped)
+
+        const firstHello = yield* firstHarness.takeResponse
+        const secondHello = yield* secondHarness.takeResponse
+        if (firstHello._tag !== "Hello") {
+          throw new Error(`Expected Hello, got ${firstHello._tag}`)
+        }
+        if (secondHello._tag !== "Hello") {
+          throw new Error(`Expected Hello, got ${secondHello._tag}`)
+        }
+
+        const firstAuthenticate = yield* makeAuthenticateRequest({
+          hello: firstHello,
+          publicKey: "client-1",
+          keyPair: firstKeyPair
+        })
+        const secondAuthenticate = yield* makeAuthenticateRequest({
+          hello: secondHello,
+          publicKey: "client-1",
+          keyPair: secondKeyPair
+        })
+
+        yield* Effect.all([
+          firstHarness.sendRequest(firstAuthenticate),
+          secondHarness.sendRequest(secondAuthenticate)
+        ], { concurrency: "unbounded" })
+
+        const [firstResponse, secondResponse] = yield* Effect.all([
+          firstHarness.takeResponse,
+          secondHarness.takeResponse
+        ], { concurrency: "unbounded" })
+
+        let winnerSigningPublicKey: Uint8Array | undefined
+
+        if (firstResponse._tag === "Authenticated") {
+          winnerSigningPublicKey = firstKeyPair.signingPublicKey
+          assert.strictEqual(firstResponse.publicKey, "client-1")
+        } else {
+          if (firstResponse._tag !== "Error") {
+            throw new Error(`Expected Error, got ${firstResponse._tag}`)
+          }
+          assert.strictEqual(firstResponse.requestTag, "Authenticate")
+          assert.strictEqual(firstResponse.code, "Forbidden")
+        }
+
+        if (secondResponse._tag === "Authenticated") {
+          if (winnerSigningPublicKey !== undefined) {
+            throw new Error("Expected only one concurrent Authenticate winner")
+          }
+          winnerSigningPublicKey = secondKeyPair.signingPublicKey
+          assert.strictEqual(secondResponse.publicKey, "client-1")
+        } else {
+          if (secondResponse._tag !== "Error") {
+            throw new Error(`Expected Error, got ${secondResponse._tag}`)
+          }
+          assert.strictEqual(secondResponse.requestTag, "Authenticate")
+          assert.strictEqual(secondResponse.code, "Forbidden")
+        }
+
+        if (winnerSigningPublicKey === undefined) {
+          throw new Error("Expected one Authenticate winner")
+        }
+
+        const persisted = yield* storage.getSessionAuthBinding("client-1")
+        if (persisted === undefined) {
+          throw new Error("Expected persisted key-binding winner")
+        }
+
+        assert.deepStrictEqual(persisted, winnerSigningPublicKey)
+      })
+    ))
 })
