@@ -72,4 +72,64 @@ describe("RpcSerialization", () => {
       }
     ])
   })
+
+  it("jsonRpc preserves id 0 across decode and encode", () => {
+    const parser = RpcSerialization.jsonRpc().makeUnsafe()
+    const decoded = parser.decode("{\"jsonrpc\":\"2.0\",\"id\":0,\"method\":\"users.get\"}")
+    assert.deepStrictEqual(decoded, [{
+      _tag: "Request",
+      id: "0",
+      tag: "users.get",
+      payload: null,
+      headers: []
+    }])
+
+    const encoded = parser.encode({
+      _tag: "Request",
+      id: "0",
+      tag: "users.get",
+      payload: null,
+      headers: []
+    })
+    assert.strictEqual(
+      encoded,
+      "{\"jsonrpc\":\"2.0\",\"method\":\"users.get\",\"params\":null,\"id\":0,\"headers\":[]}"
+    )
+  })
+
+  it("jsonRpc maps null id to internal notification sentinel", () => {
+    const parser = RpcSerialization.jsonRpc().makeUnsafe()
+    const decoded = parser.decode("{\"jsonrpc\":\"2.0\",\"id\":null,\"method\":\"users.get\"}")
+    assert.deepStrictEqual(decoded, [{
+      _tag: "Request",
+      id: "",
+      tag: "users.get",
+      payload: null,
+      headers: []
+    }])
+  })
+
+  it("jsonRpc preserves empty string id across decode and encode", () => {
+    const parser = RpcSerialization.jsonRpc().makeUnsafe()
+    const decoded = parser.decode("{\"jsonrpc\":\"2.0\",\"id\":\"\",\"method\":\"users.get\"}")
+    assert.deepStrictEqual(decoded, [{
+      _tag: "Request",
+      id: "",
+      tag: "users.get",
+      payload: null,
+      headers: []
+    }])
+
+    const encoded = parser.encode({
+      _tag: "Request",
+      id: "",
+      tag: "users.get",
+      payload: null,
+      headers: []
+    })
+    assert.strictEqual(
+      encoded,
+      "{\"jsonrpc\":\"2.0\",\"method\":\"users.get\",\"params\":null,\"id\":\"\",\"headers\":[]}"
+    )
+  })
 })
