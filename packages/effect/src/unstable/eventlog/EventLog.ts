@@ -530,11 +530,9 @@ export const makeReplayFromRemoteEffect = (options: {
       const keys = options.reactivityKeys[entry.event]
       if (keys) {
         for (const key of keys) {
-          yield* Effect.sync(() =>
-            options.reactivity.invalidateUnsafe({
-              [key]: [entry.primaryKey]
-            })
-          )
+          options.reactivity.invalidateUnsafe({
+            [key]: [entry.primaryKey]
+          })
         }
       }
     },
@@ -570,6 +568,20 @@ const make = Effect.gen(function*() {
     logAnnotations: {
       service: "EventLog",
       effect: "writeFromRemote"
+    }
+  })
+
+  const invalidateReactivityEntries = (entries: ReadonlyArray<Entry>) => Effect.sync(() => {
+    for (const entry of entries) {
+      const keys = reactivityKeys[entry.event]
+      if (!keys) {
+        continue
+      }
+      for (const key of keys) {
+          reactivity.invalidateUnsafe({
+            [key]: [entry.primaryKey]
+          })
+      }
     }
   })
 
@@ -633,7 +645,10 @@ const make = Effect.gen(function*() {
               })
               : undefined,
             effect: replayFromRemote
-          }).pipe(journalSemaphore.withPermits(1))
+          }).pipe(
+            Effect.tap(({ duplicateEntries }) => invalidateReactivityEntries(duplicateEntries)),
+            journalSemaphore.withPermits(1)
+          )
         ),
         Effect.catchCause(Effect.logError),
         Effect.forever,
@@ -680,7 +695,7 @@ const make = Effect.gen(function*() {
           Effect.updateServices((input) => ServiceMap.merge(handler.services, input)),
           Effect.provideService(Identity, identity),
           Effect.tap(() =>
-            Effect.sync(() => {
+            {
               if (reactivityKeys[entry.event]) {
                 for (const key of reactivityKeys[entry.event]) {
                   reactivity.invalidateUnsafe({
@@ -688,7 +703,8 @@ const make = Effect.gen(function*() {
                   })
                 }
               }
-            })
+              return Effect.void
+            }
           )
         )
     }))

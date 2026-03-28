@@ -74,4 +74,30 @@ describe("EventLog", () => {
       assert.strictEqual(decrypted.length, 1)
       assert.strictEqual(decrypted[0].entry.idString, entry.idString)
     }).pipe(Effect.provide(EventLogEncryption.layerSubtle)))
+
+  it.effect("writeFromRemote reports duplicate entries for downstream reactivity invalidation", () =>
+    Effect.gen(function*() {
+      const remoteId = EventJournal.makeRemoteIdUnsafe()
+      const journal = yield* EventJournal.EventJournal
+      const entry = new EventJournal.Entry({
+        id: EventJournal.makeEntryIdUnsafe(),
+        event: "UserCreated",
+        primaryKey: "user-1",
+        payload: new Uint8Array([1])
+      }, { disableChecks: true })
+
+      const first = yield* journal.writeFromRemote({
+        remoteId,
+        entries: [new EventJournal.RemoteEntry({ remoteSequence: 1, entry })],
+        effect: () => Effect.void
+      })
+      const second = yield* journal.writeFromRemote({
+        remoteId,
+        entries: [new EventJournal.RemoteEntry({ remoteSequence: 2, entry })],
+        effect: () => Effect.void
+      })
+
+      assert.deepStrictEqual(first.duplicateEntries, [])
+      assert.deepStrictEqual(second.duplicateEntries.map((_) => _.idString), [entry.idString])
+    }).pipe(Effect.provide(EventJournal.layerMemory)))
 })

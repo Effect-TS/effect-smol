@@ -54,7 +54,9 @@ export class EventJournal extends ServiceMap.Service<EventJournal, {
         readonly conflicts: ReadonlyArray<Entry>
       }) => Effect.Effect<void, EventJournalError>
     }
-  ) => Effect.Effect<void, EventJournalError>
+  ) => Effect.Effect<{
+    readonly duplicateEntries: ReadonlyArray<Entry>
+  }, EventJournalError>
 
   /**
    * Return the uncommitted entries for a remote source.
@@ -271,8 +273,10 @@ export const makeMemory: Effect.Effect<EventJournal["Service"]> = Effect.gen(fun
       const remote = ensureRemote(options.remoteId)
       const uncommittedRemotes: Array<RemoteEntry> = []
       const uncommitted: Array<Entry> = []
+      const duplicateEntries: Array<Entry> = []
       for (const remoteEntry of options.entries) {
         if (byId.has(remoteEntry.entry.idString)) {
+          duplicateEntries.push(remoteEntry.entry)
           if (remoteEntry.remoteSequence > remote.sequence) {
             remote.sequence = remoteEntry.remoteSequence
           }
@@ -313,6 +317,9 @@ export const makeMemory: Effect.Effect<EventJournal["Service"]> = Effect.gen(fun
           }
         }
         journal.sort((a, b) => a.createdAtMillis - b.createdAtMillis)
+      }
+      return {
+        duplicateEntries
       }
     }),
     withRemoteUncommited: (remoteId, f) =>
@@ -414,6 +421,7 @@ export const makeIndexedDb = (options?: {
       writeFromRemote: Effect.fnUntraced(function*(options) {
         const uncommitted: Array<Entry> = []
         const uncommittedRemotes: Array<RemoteEntry> = []
+        const duplicateEntries: Array<Entry> = []
 
         yield* Effect.callback<void, EventJournalError>((resume) => {
           const tx = db.transaction(["entries", "remotes"], "readwrite")
@@ -427,6 +435,7 @@ export const makeIndexedDb = (options?: {
             const entryIdKey = entry.id as IDBValidKey
             entries.get(entryIdKey).onsuccess = (event) => {
               if (event.target && "result" in event.target && event.target.result) {
+                duplicateEntries.push(entry)
                 remotes.put({
                   remoteId: options.remoteId,
                   entryId: entry.id,
@@ -498,6 +507,9 @@ export const makeIndexedDb = (options?: {
               resume(Effect.fail(new EventJournalError({ method: "writeFromRemote", cause: tx.error })))
             return Effect.sync(() => tx.abort())
           })
+        }
+        return {
+          duplicateEntries
         }
       }),
       withRemoteUncommited: (remoteId, f) =>

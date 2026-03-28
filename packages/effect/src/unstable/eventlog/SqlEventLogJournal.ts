@@ -129,7 +129,9 @@ export const make = (options?: {
     const pubsub = yield* PubSub.unbounded<EventJournal.Entry>()
 
     const writeFromRemote = Effect.fnUntraced(function*(options: WriteFromRemoteOptions): Effect.fn.Return<
-      void,
+      {
+        readonly duplicateEntries: ReadonlyArray<EventJournal.Entry>
+      },
       EventJournal.EventJournalError | Schema.SchemaError | SqlError.SqlError
     > {
       const entries = options.entries.map((remoteEntry) => remoteEntry.entry)
@@ -164,6 +166,9 @@ export const make = (options?: {
       }
 
       const uncommitted = options.entries.filter((entry) => !existingIds.has(entry.entry.idString))
+      const duplicateEntries = options.entries
+        .filter((entry) => existingIds.has(entry.entry.idString))
+        .map((entry) => entry.entry)
       const brackets: ReadonlyArray<RemoteBracket> = options.compact
         ? yield* options.compact(uncommitted)
         : [[uncommitted.map((remoteEntry) => remoteEntry.entry), uncommitted] as const]
@@ -183,6 +188,10 @@ export const make = (options?: {
           )
           yield* options.effect({ entry, conflicts })
         }
+      }
+
+      return {
+        duplicateEntries
       }
     })
 
