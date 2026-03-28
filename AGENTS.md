@@ -44,6 +44,13 @@ class MyService extends ServiceMap.Service<MyService, {
 }>()("MyService") {}
 ```
 
+## Never use async / await or try / catch
+
+Instead use `Effect` apis like `Effect.fnUntraced`, `Effect.gen`,
+`Effect.tryPromise` etc.
+
+Look at existing code in the repository to learn and follow established patterns
+
 ## Barrel files
 
 The `index.ts` files are automatically generated. Do not manually edit them. Use
