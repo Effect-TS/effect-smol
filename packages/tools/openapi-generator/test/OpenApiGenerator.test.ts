@@ -35,6 +35,23 @@ function assertTypeOnly(spec: OpenAPISpec, expected: string) {
   )
 }
 
+function assertTypeOnlyIncludes(spec: OpenAPISpec, includes: ReadonlyArray<string>) {
+  return Effect.gen(function*() {
+    const generator = yield* OpenApiGenerator.OpenApiGenerator
+
+    const result = yield* generator.generate(spec, {
+      name: "TestClient",
+      format: "httpclient-type-only"
+    })
+
+    for (const expected of includes) {
+      assert.include(result, expected)
+    }
+  }).pipe(
+    Effect.provide(OpenApiGenerator.layerTransformerTs)
+  )
+}
+
 function assertRuntimeIncludes(spec: OpenAPISpec, includes: ReadonlyArray<string>) {
   return Effect.gen(function*() {
     const generator = yield* OpenApiGenerator.OpenApiGenerator
@@ -523,6 +540,214 @@ export const TestClientError = <Tag extends string, E>(
           `sseRequest(StreamEvents200Sse)`
         ]
       ))
+
+    it.effect("binary success response generates decodeBinary handler in matchStatus", () =>
+      assertRuntimeIncludes(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Test API",
+            version: "1.0.0"
+          },
+          paths: {
+            "/files/{id}/download": {
+              get: {
+                operationId: "downloadFile",
+                parameters: [
+                  {
+                    name: "id",
+                    in: "path",
+                    required: true,
+                    schema: { type: "string" }
+                  }
+                ],
+                responses: {
+                  "200": {
+                    description: "File downloaded successfully",
+                    content: {
+                      "application/octet-stream": {
+                        schema: {
+                          type: "string",
+                          format: "binary"
+                        }
+                      }
+                    }
+                  },
+                  "404": {
+                    description: "File not found",
+                    content: {
+                      "application/json": {
+                        schema: {
+                          type: "object",
+                          properties: {
+                            message: { type: "string" }
+                          },
+                          required: ["message"]
+                        }
+                      }
+                    }
+                  }
+                },
+                tags: ["Files"],
+                security: []
+              }
+            }
+          },
+          components: {
+            schemas: {},
+            securitySchemes: {}
+          },
+          security: [],
+          tags: []
+        },
+        [
+          // Type includes Uint8Array as success type
+          `WithOptionalResponse<Uint8Array, Config>`,
+          // matchStatus has decodeBinary handler for success
+          `"2xx": decodeBinary`,
+          // Error handler for 404
+          `"404": decodeError("DownloadFile404", DownloadFile404)`,
+          // decodeBinary helper is generated
+          `const decodeBinary = (response: HttpClientResponse.HttpClientResponse) =>`,
+          `Effect.map(response.arrayBuffer, (buffer) => new Uint8Array(buffer))`,
+          // Streaming companion is also generated
+          `readonly "downloadFileStream"`,
+          `Stream.Stream<Uint8Array, HttpClientError.HttpClientError>`
+        ]
+      ))
+
+    it.effect("binary success response with json success at different status", () =>
+      assertRuntimeIncludes(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Test API",
+            version: "1.0.0"
+          },
+          paths: {
+            "/export": {
+              post: {
+                operationId: "exportData",
+                parameters: [],
+                responses: {
+                  "200": {
+                    description: "Export metadata",
+                    content: {
+                      "application/json": {
+                        schema: {
+                          type: "object",
+                          properties: {
+                            url: { type: "string" }
+                          },
+                          required: ["url"]
+                        }
+                      }
+                    }
+                  },
+                  "202": {
+                    description: "Export binary data",
+                    content: {
+                      "application/octet-stream": {
+                        schema: {
+                          type: "string",
+                          format: "binary"
+                        }
+                      }
+                    }
+                  }
+                },
+                tags: ["Export"],
+                security: []
+              }
+            }
+          },
+          components: {
+            schemas: {},
+            securitySchemes: {}
+          },
+          security: [],
+          tags: []
+        },
+        [
+          // Both JSON and binary success types in union
+          `typeof ExportData200.Type | Uint8Array`,
+          // Specific status codes (not 2xx) since there are multiple success types
+          `"200": decodeSuccess(ExportData200)`,
+          `"202": decodeBinary`
+        ]
+      ))
+
+    it.effect("binary detection works for application/zip and image/* media types", () =>
+      assertRuntimeIncludes(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Test API",
+            version: "1.0.0"
+          },
+          paths: {
+            "/archive": {
+              get: {
+                operationId: "downloadArchive",
+                parameters: [],
+                responses: {
+                  "200": {
+                    description: "Archive downloaded",
+                    content: {
+                      "application/zip": {
+                        schema: {
+                          type: "string",
+                          format: "binary"
+                        }
+                      }
+                    }
+                  }
+                },
+                tags: ["Archives"],
+                security: []
+              }
+            },
+            "/avatar": {
+              get: {
+                operationId: "getAvatar",
+                parameters: [],
+                responses: {
+                  "200": {
+                    description: "Avatar image",
+                    content: {
+                      "image/png": {
+                        schema: {
+                          type: "string",
+                          format: "binary"
+                        }
+                      }
+                    }
+                  }
+                },
+                tags: ["Users"],
+                security: []
+              }
+            }
+          },
+          components: {
+            schemas: {},
+            securitySchemes: {}
+          },
+          security: [],
+          tags: []
+        },
+        [
+          // application/zip triggers binary handler
+          `readonly "downloadArchive"`,
+          `WithOptionalResponse<Uint8Array, Config>`,
+          `"downloadArchiveStream"`,
+          // image/png triggers binary handler
+          `readonly "getAvatar"`,
+          `readonly "getAvatarStream"`,
+          // decodeBinary is generated
+          `const decodeBinary`
+        ]
+      ))
   })
 
   describe("type-only", () => {
@@ -721,6 +946,64 @@ export const TestClientError = <Tag extends string, E>(
     response,
     request: response.request,
   }) as any`
+      ))
+
+    it.effect("binary success response generates decodeBinary in type-only mode", () =>
+      assertTypeOnlyIncludes(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Test API",
+            version: "1.0.0"
+          },
+          paths: {
+            "/files/{id}/download": {
+              get: {
+                operationId: "downloadFile",
+                parameters: [
+                  {
+                    name: "id",
+                    in: "path",
+                    required: true,
+                    schema: { type: "string" }
+                  }
+                ],
+                responses: {
+                  "200": {
+                    description: "File downloaded successfully",
+                    content: {
+                      "application/octet-stream": {
+                        schema: {
+                          type: "string",
+                          format: "binary"
+                        }
+                      }
+                    }
+                  }
+                },
+                tags: ["Files"],
+                security: []
+              }
+            }
+          },
+          components: {
+            schemas: {},
+            securitySchemes: {}
+          },
+          security: [],
+          tags: []
+        },
+        [
+          // Type includes Uint8Array
+          `WithOptionalResponse<Uint8Array, Config>`,
+          // decodeBinary helper exists
+          `const decodeBinary = (response: HttpClientResponse.HttpClientResponse) =>`,
+          // Binary codes passed to onRequest
+          `["2xx"]`,
+          // Streaming companion generated
+          `readonly "downloadFileStream"`,
+          `Stream.Stream<Uint8Array, HttpClientError.HttpClientError>`
+        ]
       ))
   })
 

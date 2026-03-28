@@ -513,10 +513,16 @@ const parseOpenApi = (
           }
         }
 
-        if (Predicate.isNotUndefined(content?.["application/octet-stream"])) {
-          const statusMajorNumber = Number(parsedStatus[0])
-          if (!Number.isNaN(statusMajorNumber) && statusMajorNumber < 4) {
-            op.binaryResponse = true
+        if (Predicate.isNotUndefined(content)) {
+          for (const contentType of Object.keys(content)) {
+            if (isBinaryMediaType(contentType.toLowerCase())) {
+              const statusMajorNumber = Number(parsedStatus[0])
+              if (!Number.isNaN(statusMajorNumber) && statusMajorNumber < 4) {
+                op.binaryResponse = true
+                op.binarySuccessStatuses.add(parsedStatus.toLowerCase())
+              }
+              break
+            }
           }
         }
 
@@ -821,6 +827,12 @@ const isTextMediaType = (contentType: string): boolean => contentType.startsWith
 
 const isBinaryMediaType = (contentType: string): boolean =>
   contentType === "application/octet-stream" ||
+  contentType === "application/zip" ||
+  contentType === "application/gzip" ||
+  contentType === "application/pdf" ||
+  contentType.startsWith("image/") ||
+  contentType.startsWith("audio/") ||
+  contentType.startsWith("video/") ||
   (contentType.startsWith("application/") && (contentType.includes("binary") || contentType.endsWith("+octet-stream")))
 
 const getRequestMediaTypeEncoding = (
