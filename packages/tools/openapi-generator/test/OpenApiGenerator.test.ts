@@ -523,6 +523,70 @@ export const TestClientError = <Tag extends string, E>(
           `sseRequest(StreamEvents200Sse)`
         ]
       ))
+
+    it.effect("form-urlencoded request body generates bodyUrlParams", () =>
+      assertRuntimeIncludes(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Test API",
+            version: "1.0.0"
+          },
+          paths: {
+            "/auth/token": {
+              post: {
+                operationId: "issueToken",
+                parameters: [],
+                requestBody: {
+                  required: true,
+                  content: {
+                    "application/x-www-form-urlencoded": {
+                      schema: {
+                        type: "object",
+                        properties: {
+                          grant_type: { type: "string" },
+                          client_id: { type: "string" }
+                        },
+                        required: ["grant_type", "client_id"],
+                        additionalProperties: false
+                      }
+                    }
+                  }
+                } as any,
+                responses: {
+                  200: {
+                    description: "Token response",
+                    content: {
+                      "application/json": {
+                        schema: {
+                          type: "object",
+                          properties: {
+                            access_token: { type: "string" }
+                          },
+                          required: ["access_token"],
+                          additionalProperties: false
+                        }
+                      }
+                    }
+                  }
+                },
+                tags: ["Auth"],
+                security: []
+              }
+            }
+          },
+          components: {
+            schemas: {},
+            securitySchemes: {}
+          },
+          security: [],
+          tags: []
+        },
+        [
+          `HttpClientRequest.bodyUrlParams(options.payload as any)`,
+          `readonly payload: typeof IssueTokenRequestFormUrlEncoded.Encoded`
+        ]
+      ))
   })
 
   describe("type-only", () => {

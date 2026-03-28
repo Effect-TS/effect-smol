@@ -269,6 +269,8 @@ export const make = (
     const payloadVarName = "options.payload"
     if (operation.payloadFormData) {
       pipeline.push(`HttpClientRequest.bodyFormData(${payloadVarName} as any)`)
+    } else if (operation.payloadFormUrlEncoded) {
+      pipeline.push(`HttpClientRequest.bodyUrlParams(${payloadVarName} as any)`)
     } else if (operation.payload) {
       pipeline.push(`HttpClientRequest.bodyJsonUnsafe(${payloadVarName})`)
     }

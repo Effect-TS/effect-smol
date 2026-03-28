@@ -374,6 +374,16 @@ const parseOpenApi = (
           requestSchemaNames.set("multipart/form-data", op.payload)
         }
 
+        if (Predicate.isNotUndefined(content["application/x-www-form-urlencoded"]?.schema)) {
+          op.payload = addSchema(
+            `${schemaId}RequestFormUrlEncoded`,
+            content["application/x-www-form-urlencoded"].schema,
+            op
+          )
+          op.payloadFormUrlEncoded = true
+          requestSchemaNames.set("application/x-www-form-urlencoded", op.payload)
+        }
+
         if (isHttpApi) {
           const representableRequestBody: Array<ParsedOperation.ParsedOperationMediaTypeSchema> = []
           for (const [contentType, mediaType] of Object.entries(content)) {
