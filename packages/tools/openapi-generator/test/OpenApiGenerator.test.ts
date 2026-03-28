@@ -523,6 +523,240 @@ export const TestClientError = <Tag extends string, E>(
           `sseRequest(StreamEvents200Sse)`
         ]
       ))
+
+    it.effect("binary response with application/zip triggers stream variant", () =>
+      assertRuntimeIncludes(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Test API",
+            version: "1.0.0"
+          },
+          paths: {
+            "/archive": {
+              get: {
+                operationId: "downloadArchive",
+                parameters: [],
+                responses: {
+                  200: {
+                    description: "Archive downloaded",
+                    content: {
+                      "application/zip": {
+                        schema: {
+                          type: "string",
+                          format: "binary"
+                        }
+                      }
+                    }
+                  }
+                },
+                tags: ["Files"],
+                security: []
+              }
+            }
+          },
+          components: {
+            schemas: {},
+            securitySchemes: {}
+          },
+          security: [],
+          tags: []
+        },
+        [
+          `import * as Stream from "effect/Stream"`,
+          `readonly "downloadArchiveStream": () => Stream.Stream<Uint8Array, HttpClientError.HttpClientError>`,
+          `"downloadArchiveStream": () => HttpClientRequest.get(\`/archive\`).pipe(`,
+          `binaryRequest`
+        ]
+      ))
+
+    it.effect("binary response detected via schema format:binary even for unknown MIME type", () =>
+      assertRuntimeIncludes(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Test API",
+            version: "1.0.0"
+          },
+          paths: {
+            "/export": {
+              get: {
+                operationId: "exportData",
+                parameters: [],
+                responses: {
+                  200: {
+                    description: "Export",
+                    content: {
+                      "application/x-custom-binary": {
+                        schema: {
+                          type: "string",
+                          format: "binary"
+                        }
+                      }
+                    }
+                  }
+                },
+                tags: ["Export"],
+                security: []
+              }
+            }
+          },
+          components: {
+            schemas: {},
+            securitySchemes: {}
+          },
+          security: [],
+          tags: []
+        },
+        [
+          `readonly "exportDataStream": () => Stream.Stream<Uint8Array, HttpClientError.HttpClientError>`,
+          `binaryRequest`
+        ]
+      ))
+
+    it.effect("application/problem+json error response is decoded", () =>
+      assertRuntimeIncludes(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Test API",
+            version: "1.0.0"
+          },
+          paths: {
+            "/items/{id}": {
+              get: {
+                operationId: "getItem",
+                parameters: [
+                  {
+                    name: "id",
+                    in: "path",
+                    schema: { type: "string" },
+                    required: true
+                  }
+                ],
+                responses: {
+                  200: {
+                    description: "Item",
+                    content: {
+                      "application/json": {
+                        schema: {
+                          type: "object",
+                          properties: {
+                            id: { type: "string" },
+                            name: { type: "string" }
+                          },
+                          required: ["id", "name"],
+                          additionalProperties: false
+                        }
+                      }
+                    }
+                  },
+                  404: {
+                    description: "Not found",
+                    content: {
+                      "application/problem+json": {
+                        schema: {
+                          type: "object",
+                          properties: {
+                            type: { type: "string" },
+                            title: { type: "string" },
+                            status: { type: "integer" },
+                            detail: { type: "string" }
+                          },
+                          required: ["type", "title", "status"],
+                          additionalProperties: false
+                        }
+                      }
+                    }
+                  }
+                },
+                tags: ["Items"],
+                security: []
+              }
+            }
+          },
+          components: {
+            schemas: {},
+            securitySchemes: {}
+          },
+          security: [],
+          tags: []
+        },
+        [
+          `export const GetItem404 = Schema.Struct`,
+          `"404": decodeError("GetItem404", GetItem404)`
+        ]
+      ))
+
+    it.effect("application/zip binary + application/problem+json error in same operation", () =>
+      assertRuntimeIncludes(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Test API",
+            version: "1.0.0"
+          },
+          paths: {
+            "/download/{id}": {
+              get: {
+                operationId: "download",
+                parameters: [
+                  {
+                    name: "id",
+                    in: "path",
+                    schema: { type: "string" },
+                    required: true
+                  }
+                ],
+                responses: {
+                  200: {
+                    description: "File",
+                    content: {
+                      "application/zip": {
+                        schema: {
+                          type: "string",
+                          format: "binary"
+                        }
+                      }
+                    }
+                  },
+                  404: {
+                    description: "Not found",
+                    content: {
+                      "application/problem+json": {
+                        schema: {
+                          type: "object",
+                          properties: {
+                            type: { type: "string" },
+                            title: { type: "string" },
+                            status: { type: "integer" }
+                          },
+                          required: ["type", "title", "status"],
+                          additionalProperties: false
+                        }
+                      }
+                    }
+                  }
+                },
+                tags: ["Downloads"],
+                security: []
+              }
+            }
+          },
+          components: {
+            schemas: {},
+            securitySchemes: {}
+          },
+          security: [],
+          tags: []
+        },
+        [
+          `readonly "downloadStream": (id: string) => Stream.Stream<Uint8Array, HttpClientError.HttpClientError>`,
+          `binaryRequest`,
+          `export const Download404 = Schema.Struct`,
+          `"404": decodeError("Download404", Download404)`
+        ]
+      ))
   })
 
   describe("type-only", () => {
