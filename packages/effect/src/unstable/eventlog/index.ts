@@ -47,6 +47,11 @@ export * as EventLogServerUnencrypted from "./EventLogServerUnencrypted.ts"
 /**
  * @since 4.0.0
  */
+export * as EventLogSessionAuth from "./EventLogSessionAuth.ts"
+
+/**
+ * @since 4.0.0
+ */
 export * as SqlEventLogJournal from "./SqlEventLogJournal.ts"
 
 /**

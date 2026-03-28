@@ -515,10 +515,13 @@ Feature is complete when:
 - Introducing `Authenticate` / `Authenticated` / `ProtocolError` into shared unions required temporary no-op branches in existing client/server request-response switches so type checking remains exhaustive before handshake execution logic is implemented.
 - `Hello.challenge` is now schema-required; current handlers/harnesses send a placeholder 32-byte challenge value. Fresh random challenge generation and challenge lifecycle enforcement are deferred to the handshake-logic phase.
 - The validation command listed for `packages/effect/test/unstable/eventlog/EventLogServer.test.ts` currently targets a non-existent file in this repository. For this task, validation used the existing eventlog suites (`EventLogRemote.test.ts`, `EventLogServerUnencrypted.test.ts`, and `EventLog.test.ts`).
+- Added shared `EventLogSessionAuth` helpers for canonical length-prefixed payload encoding/decoding plus Ed25519 sign/verify wrappers.
+- Canonical payload signing and verification now share one implementation path (`encodeSessionAuthPayload` + `signSessionAuthPayloadBytes` / `verifySessionAuthPayloadBytes`) to avoid future client/server duplication when wiring `Authenticate` handling.
+- Helper validation rejects malformed signing public keys, malformed signature lengths, and malformed canonical payload bytes prior to cryptographic verification.
 
 ### Phase 2 — handshake execution and trust binding (pending)
 
-- [ ] add canonical auth payload encode + Ed25519 sign/verify helpers
+- [x] add canonical auth payload encode + Ed25519 sign/verify helpers
 - [ ] add client session-auth flow to `fromSocket` and `fromSocketUnencrypted`
 - [ ] add server auth gating / signature verification in `EventLogServer.makeHandler` and `EventLogServerUnencrypted.makeHandler`
 - [ ] add trust-on-first-auth binding load/store integration via each server `Storage` service
@@ -543,5 +546,6 @@ Feature is complete when:
 - [x] pnpm test packages/effect/test/unstable/eventlog/EventLogServer.test.ts (attempted; file currently not present)
 - [x] pnpm test packages/effect/test/unstable/eventlog/EventLogServerUnencrypted.test.ts
 - [x] pnpm test packages/effect/test/unstable/eventlog/EventLog.test.ts (additional related coverage)
+- [x] pnpm test packages/effect/test/unstable/eventlog/EventLogSessionAuth.test.ts
 - [x] pnpm check:tsgo
 - [x] pnpm docgen
