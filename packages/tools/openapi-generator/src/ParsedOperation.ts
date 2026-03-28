@@ -107,6 +107,7 @@ export interface ParsedOperation {
   readonly cookies: ReadonlyArray<string>
   readonly payload?: string
   readonly payloadFormData: boolean
+  readonly payloadFormUrlEncoded: boolean
   readonly pathSchema: string | undefined
   readonly querySchema: string | undefined
   readonly querySchemaOptional: boolean
@@ -155,6 +156,7 @@ export const makeDeepMutable = (options: {
   headers: [],
   cookies: [],
   payloadFormData: false,
+  payloadFormUrlEncoded: false,
   pathSchema: undefined,
   querySchema: undefined,
   querySchemaOptional: true,
