@@ -122,6 +122,8 @@ export interface ParsedOperation {
   readonly sseSchema?: string
   // Binary stream response (application/octet-stream)
   readonly binaryResponse: boolean
+  // Status codes with binary success responses (for matchStatus handlers)
+  readonly binarySuccessStatuses: ReadonlySet<string>
 }
 
 export const makeDeepMutable = (options: {
@@ -165,5 +167,6 @@ export const makeDeepMutable = (options: {
   errorSchemas: new Map(),
   voidSchemas: new Set(),
   paramsOptional: true,
-  binaryResponse: false
+  binaryResponse: false,
+  binarySuccessStatuses: new Set()
 })

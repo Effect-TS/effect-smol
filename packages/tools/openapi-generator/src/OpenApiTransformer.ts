@@ -16,11 +16,13 @@ export class OpenApiTransformer extends ServiceMap.Service<
 interface ImportRequirements {
   readonly eventStream: boolean
   readonly octetStream: boolean
+  readonly binarySuccess: boolean
 }
 
 const computeImportRequirements = (operations: ReadonlyArray<ParsedOperation>): ImportRequirements => {
   let eventStream = false
   let octetStream = false
+  let binarySuccess = false
   for (const op of operations) {
     if (op.sseSchema) {
       eventStream = true
@@ -28,8 +30,11 @@ const computeImportRequirements = (operations: ReadonlyArray<ParsedOperation>): 
     if (op.binaryResponse) {
       octetStream = true
     }
+    if (op.binarySuccessStatuses.size > 0) {
+      binarySuccess = true
+    }
   }
-  return { eventStream, octetStream }
+  return { eventStream, octetStream, binarySuccess }
 }
 
 const requiresStreaming = (requirements: ImportRequirements): boolean =>
@@ -87,10 +92,13 @@ ${clientErrorSource(name)}`
     }
 
     let success = "void"
-    if (operation.successSchemas.size > 0) {
-      success = Array.from(operation.successSchemas.values())
-        .map((schema) => `typeof ${schema}.Type`)
-        .join(" | ")
+    const successTypes: Array<string> = Array.from(operation.successSchemas.values())
+      .map((schema) => `typeof ${schema}.Type`)
+    if (operation.binarySuccessStatuses.size > 0) {
+      successTypes.push("Uint8Array")
+    }
+    if (successTypes.length > 0) {
+      success = successTypes.join(" | ")
     }
     const errors = ["HttpClientError.HttpClientError", "SchemaError"]
     if (operation.errorSchemas.size > 0) {
@@ -195,6 +203,9 @@ ${clientErrorSource(name)}`
     if (requirements.octetStream) {
       helpers.push(binaryRequestSource)
     }
+    if (requirements.binarySuccess) {
+      helpers.push(decodeBinarySource)
+    }
 
     return `export interface OperationConfig {
   /**
@@ -274,10 +285,15 @@ export const make = (
     }
 
     const decodes: Array<string> = []
-    const singleSuccessCode = operation.successSchemas.size === 1
+    const singleSuccessCode = operation.successSchemas.size === 1 && operation.binarySuccessStatuses.size === 0
     operation.successSchemas.forEach((schema, status) => {
       const statusCode = singleSuccessCode && status.startsWith("2") ? "2xx" : status
       decodes.push(`"${statusCode}": decodeSuccess(${schema})`)
+    })
+    const singleBinaryCode = operation.binarySuccessStatuses.size === 1 && operation.successSchemas.size === 0
+    operation.binarySuccessStatuses.forEach((status) => {
+      const statusCode = singleBinaryCode && status.startsWith("2") ? "2xx" : status
+      decodes.push(`"${statusCode}": decodeBinary`)
     })
     operation.errorSchemas.forEach((schema, status) => {
       decodes.push(`"${status}": decodeError("${schema}", ${schema})`)
@@ -470,8 +486,12 @@ ${clientErrorSource(name)}`
     }
 
     let success = "void"
-    if (operation.successSchemas.size > 0) {
-      success = Array.from(operation.successSchemas.values()).join(" | ")
+    const successTypes: Array<string> = Array.from(operation.successSchemas.values())
+    if (operation.binarySuccessStatuses.size > 0) {
+      successTypes.push("Uint8Array")
+    }
+    if (successTypes.length > 0) {
+      success = successTypes.join(" | ")
     }
 
     const errors = ["HttpClientError.HttpClientError"]
@@ -573,6 +593,9 @@ ${clientErrorSource(name)}`
     if (requirements.octetStream) {
       helpers.push(binaryRequestSourceTs)
     }
+    if (requirements.binarySuccess) {
+      helpers.push(decodeBinarySource)
+    }
 
     return `export interface OperationConfig {
   /**
@@ -621,18 +644,24 @@ export const make = (
       )
   const onRequest = <Config extends OperationConfig>(config: Config | undefined) => (
     successCodes: ReadonlyArray<string>,
-    errorCodes?: Record<string, string>,
+    errorCodes?: Record<string, string>,${requirements.binarySuccess ? `
+    binaryCodes?: ReadonlyArray<string>,` : ""}
   ) => {
     const cases: any = { orElse: unexpectedStatus }
     for (const code of successCodes) {
       cases[code] = decodeSuccess
-    }
+    }${requirements.binarySuccess ? `
+    if (binaryCodes) {
+      for (const code of binaryCodes) {
+        cases[code] = decodeBinary
+      }
+    }` : ""}
     if (errorCodes) {
       for (const [code, tag] of Object.entries(errorCodes)) {
         cases[code] = decodeError(tag)
       }
     }
-    if (successCodes.length === 0) {
+    if (successCodes.length === 0${requirements.binarySuccess ? ` && (!binaryCodes || binaryCodes.length === 0)` : ""}) {
       cases["2xx"] = decodeVoid
     }
     return withResponse(config)(HttpClientResponse.matchStatus(cases) as any)
@@ -678,14 +707,20 @@ export const make = (
     const successCodes = successCodesRaw
       .map((_) => JSON.stringify(_))
       .join(", ")
-    const singleSuccessCode = successCodesRaw.length === 1 && successCodesRaw[0].startsWith("2")
+    const singleSuccessCode = successCodesRaw.length === 1 && successCodesRaw[0].startsWith("2") && operation.binarySuccessStatuses.size === 0
+    const binaryCodesRaw = Array.from(operation.binarySuccessStatuses)
+    const singleBinaryCode = binaryCodesRaw.length === 1 && binaryCodesRaw[0].startsWith("2") && operation.successSchemas.size === 0
+    const binaryCodes = binaryCodesRaw
+      .map((c) => singleBinaryCode ? `"2xx"` : JSON.stringify(c))
+      .join(", ")
     const errorCodes = operation.errorSchemas.size > 0 &&
       Object.fromEntries(operation.errorSchemas.entries())
     const configAccessor = resolveConfigAccessor(operation, "options", "config")
+    const hasBinary = binaryCodesRaw.length > 0
+    const errorCodesArg = errorCodes ? `, ${JSON.stringify(errorCodes)}` : hasBinary ? `, undefined` : ""
+    const binaryCodesArg = hasBinary ? `, [${binaryCodes}]` : ""
     pipeline.push(
-      `onRequest(${configAccessor})([${singleSuccessCode ? `"2xx"` : successCodes}]${
-        errorCodes ? `, ${JSON.stringify(errorCodes)}` : ""
-      })`
+      `onRequest(${configAccessor})([${singleSuccessCode ? `"2xx"` : successCodes}]${errorCodesArg}${binaryCodesArg})`
     )
 
     return (
@@ -883,6 +918,10 @@ const binaryRequestSourceTs =
       Effect.map((response) => response.stream),
       Stream.unwrap
     )`
+
+const decodeBinarySource =
+  `const decodeBinary = (response: HttpClientResponse.HttpClientResponse) =>
+    Effect.map(response.arrayBuffer, (buffer) => new Uint8Array(buffer))`
 
 const clientErrorSource = (
   name: string
