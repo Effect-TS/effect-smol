@@ -144,106 +144,98 @@ const authenticateEncrypted = Effect.fnUntraced(function*(options: {
 
 describe("EventLogRemote", () => {
   it.effect("fromSocketUnencrypted authenticates before first write", () =>
-    Effect.scoped(
-      Effect.gen(function*() {
-        const harness = yield* makeRemoteHarnessUnencrypted
-        const identity = EventLog.makeIdentityUnsafe()
-        const entry = makeEntry()
+    Effect.gen(function*() {
+      const harness = yield* makeRemoteHarnessUnencrypted
+      const identity = EventLog.makeIdentityUnsafe()
+      const entry = makeEntry()
 
-        const writeFiber = yield* harness.remote.write(identity, [entry]).pipe(Effect.forkScoped)
-        yield* authenticateUnencrypted({ harness, publicKey: identity.publicKey })
+      const writeFiber = yield* harness.remote.write(identity, [entry]).pipe(Effect.forkScoped)
+      yield* authenticateUnencrypted({ harness, publicKey: identity.publicKey })
 
-        const request = yield* harness.takeRequest
-        if (request._tag !== "WriteEntries") {
-          throw new Error(`Expected WriteEntries, got ${request._tag}`)
-        }
+      const request = yield* harness.takeRequest
+      if (request._tag !== "WriteEntries") {
+        throw new Error(`Expected WriteEntries, got ${request._tag}`)
+      }
 
-        assert.strictEqual(request.publicKey, identity.publicKey)
-        assert.strictEqual(request.entries.length, 1)
-        assert.strictEqual(request.entries[0].idString, entry.idString)
+      assert.strictEqual(request.publicKey, identity.publicKey)
+      assert.strictEqual(request.entries.length, 1)
+      assert.strictEqual(request.entries[0].idString, entry.idString)
 
-        yield* harness.sendResponse(new EventLogRemote.Ack({ id: request.id, sequenceNumbers: [1] }))
-        yield* Fiber.join(writeFiber)
-      })
-    ))
+      yield* harness.sendResponse(new EventLogRemote.Ack({ id: request.id, sequenceNumbers: [1] }))
+      yield* Fiber.join(writeFiber)
+    }))
 
   it.effect("authenticate Forbidden maps to EventLogRemoteError with method authenticate", () =>
-    Effect.scoped(
-      Effect.gen(function*() {
-        const harness = yield* makeRemoteHarnessUnencrypted
-        const identity = EventLog.makeIdentityUnsafe()
+    Effect.gen(function*() {
+      const harness = yield* makeRemoteHarnessUnencrypted
+      const identity = EventLog.makeIdentityUnsafe()
 
-        const writeFiber = yield* harness.remote.write(identity, [makeEntry()]).pipe(Effect.forkScoped)
-        const auth = yield* harness.takeRequest
-        if (auth._tag !== "Authenticate") {
-          throw new Error(`Expected Authenticate, got ${auth._tag}`)
-        }
+      const writeFiber = yield* harness.remote.write(identity, [makeEntry()]).pipe(Effect.forkScoped)
+      const auth = yield* harness.takeRequest
+      if (auth._tag !== "Authenticate") {
+        throw new Error(`Expected Authenticate, got ${auth._tag}`)
+      }
 
-        yield* harness.sendResponse(
-          new EventLogRemote.ProtocolError({
-            requestTag: "Authenticate",
-            publicKey: identity.publicKey,
-            code: "Forbidden",
-            message: "auth denied"
-          })
-        )
+      yield* harness.sendResponse(
+        new EventLogRemote.ProtocolError({
+          requestTag: "Authenticate",
+          publicKey: identity.publicKey,
+          code: "Forbidden",
+          message: "auth denied"
+        })
+      )
 
-        const error = yield* Fiber.join(writeFiber).pipe(Effect.flip)
-        assert.strictEqual(error._tag, "EventLogRemoteError")
-        assert.strictEqual(error.method, "authenticate")
-      })
-    ))
+      const error = yield* Fiber.join(writeFiber).pipe(Effect.flip)
+      assert.strictEqual(error._tag, "EventLogRemoteError")
+      assert.strictEqual(error.method, "authenticate")
+    }))
 
   it.effect("fromSocketUnencrypted write errors still fail pending writes", () =>
-    Effect.scoped(
-      Effect.gen(function*() {
-        const harness = yield* makeRemoteHarnessUnencrypted
-        const identity = EventLog.makeIdentityUnsafe()
-        const entry = makeEntry()
+    Effect.gen(function*() {
+      const harness = yield* makeRemoteHarnessUnencrypted
+      const identity = EventLog.makeIdentityUnsafe()
+      const entry = makeEntry()
 
-        const writeFiber = yield* harness.remote.write(identity, [entry]).pipe(Effect.forkScoped)
-        yield* authenticateUnencrypted({ harness, publicKey: identity.publicKey })
+      const writeFiber = yield* harness.remote.write(identity, [entry]).pipe(Effect.forkScoped)
+      yield* authenticateUnencrypted({ harness, publicKey: identity.publicKey })
 
-        const request = yield* harness.takeRequest
-        if (request._tag !== "WriteEntries") {
-          throw new Error(`Expected WriteEntries, got ${request._tag}`)
-        }
+      const request = yield* harness.takeRequest
+      if (request._tag !== "WriteEntries") {
+        throw new Error(`Expected WriteEntries, got ${request._tag}`)
+      }
 
-        yield* harness.sendResponse(
-          new EventLogRemote.ProtocolError({
-            requestTag: "WriteEntries",
-            id: request.id,
-            publicKey: request.publicKey,
-            code: "Forbidden",
-            message: "write rejected"
-          })
-        )
+      yield* harness.sendResponse(
+        new EventLogRemote.ProtocolError({
+          requestTag: "WriteEntries",
+          id: request.id,
+          publicKey: request.publicKey,
+          code: "Forbidden",
+          message: "write rejected"
+        })
+      )
 
-        const error = yield* Fiber.join(writeFiber).pipe(Effect.flip)
-        assert.strictEqual(error._tag, "EventLogRemoteError")
-        assert.strictEqual(error.method, "write")
-      })
-    ))
+      const error = yield* Fiber.join(writeFiber).pipe(Effect.flip)
+      assert.strictEqual(error._tag, "EventLogRemoteError")
+      assert.strictEqual(error.method, "write")
+    }))
 
   it.effect("fromSocket authenticates before encrypted write", () =>
-    Effect.scoped(
-      Effect.gen(function*() {
-        const harness = yield* makeRemoteHarnessEncrypted
-        const identity = EventLog.makeIdentityUnsafe()
+    Effect.gen(function*() {
+      const harness = yield* makeRemoteHarnessEncrypted
+      const identity = EventLog.makeIdentityUnsafe()
 
-        const writeFiber = yield* harness.remote.write(identity, [makeEntry()]).pipe(Effect.forkScoped)
-        yield* authenticateEncrypted({ harness, publicKey: identity.publicKey })
+      const writeFiber = yield* harness.remote.write(identity, [makeEntry()]).pipe(Effect.forkScoped)
+      yield* authenticateEncrypted({ harness, publicKey: identity.publicKey })
 
-        const request = yield* harness.takeRequest
-        if (request._tag !== "WriteEntries") {
-          throw new Error(`Expected WriteEntries, got ${request._tag}`)
-        }
+      const request = yield* harness.takeRequest
+      if (request._tag !== "WriteEntries") {
+        throw new Error(`Expected WriteEntries, got ${request._tag}`)
+      }
 
-        assert.strictEqual(request.publicKey, identity.publicKey)
-        assert.strictEqual(request.encryptedEntries.length, 1)
+      assert.strictEqual(request.publicKey, identity.publicKey)
+      assert.strictEqual(request.encryptedEntries.length, 1)
 
-        yield* harness.sendResponse(new EventLogRemote.Ack({ id: request.id, sequenceNumbers: [1] }))
-        yield* Fiber.join(writeFiber)
-      })
-    ))
+      yield* harness.sendResponse(new EventLogRemote.Ack({ id: request.id, sequenceNumbers: [1] }))
+      yield* Fiber.join(writeFiber)
+    }))
 })
