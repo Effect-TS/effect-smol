@@ -145,12 +145,13 @@ export const makeEncryptionSubtle = (crypto: Crypto): Effect.Effect<EventLogEncr
         ),
       generateIdentity: Effect.gen(function*() {
         const [publicKey, privateKey] = yield* Effect.promise(() =>
-          crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign", "verify"]).then((key) =>
-            Promise.all([
+          crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign", "verify"]).then((key_) => {
+            const key = key_ as CryptoKeyPair
+            return Promise.all([
               crypto.subtle.exportKey("raw", key.publicKey),
               crypto.subtle.exportKey("pkcs8", key.privateKey)
             ])
-          )
+          })
         )
         return {
           publicKey: crypto.randomUUID(),

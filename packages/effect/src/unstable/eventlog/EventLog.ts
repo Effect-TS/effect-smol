@@ -13,6 +13,7 @@ import * as Queue from "../../Queue.ts"
 import type * as Record from "../../Record.ts"
 import * as Redacted from "../../Redacted.ts"
 import * as Schema from "../../Schema.ts"
+import * as SchemaGetter from "../../SchemaGetter.ts"
 import type * as Scope from "../../Scope.ts"
 import * as Semaphore from "../../Semaphore.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -212,15 +213,22 @@ export class Identity extends ServiceMap.Service<Identity, {
   readonly signingPrivateKey: Redacted.Redacted<Uint8Array>
 }>()("effect/eventlog/EventLog/Identity") {}
 
+const RedactedUint8Array = Schema.Uint8ArrayFromBase64.pipe(
+  Schema.decodeTo(Schema.Redacted(Schema.Uint8Array), {
+    decode: SchemaGetter.transform((value) => Redacted.make(value)),
+    encode: SchemaGetter.transform((value) => Redacted.value(value))
+  })
+)
+
 /**
  * @since 4.0.0
  * @category schema
  */
 export const IdentitySchema = Schema.Struct({
   publicKey: Schema.String,
-  privateKey: Schema.RedactedFromValue(Schema.Uint8ArrayFromBase64),
+  privateKey: RedactedUint8Array,
   signingPublicKey: Schema.Uint8ArrayFromBase64,
-  signingPrivateKey: Schema.RedactedFromValue(Schema.Uint8ArrayFromBase64)
+  signingPrivateKey: RedactedUint8Array
 })
 
 const IdentityEncodedSchema = Schema.Struct({
