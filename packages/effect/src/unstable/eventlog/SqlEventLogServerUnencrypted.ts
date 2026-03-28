@@ -15,6 +15,12 @@ import * as SqlError from "../sql/SqlError.ts"
 import { Entry, EntryId, makeRemoteIdUnsafe, RemoteEntry, type RemoteId } from "./EventJournal.ts"
 import * as EventLogServerUnencrypted from "./EventLogServerUnencrypted.ts"
 
+const copyUint8Array = (bytes: Uint8Array): Uint8Array => {
+  const copy = new Uint8Array(bytes.byteLength)
+  copy.set(bytes)
+  return copy
+}
+
 /**
  * @since 4.0.0
  * @category constructors
@@ -35,10 +41,12 @@ export const makeStorage = (options?: {
     const remoteIdTable = options?.remoteIdTable ?? "effect_remote_id"
     const insertBatchSize = options?.insertBatchSize ?? 200
     const storesTable = `${entriesTable}_stores`
+    const sessionAuthBindingsTable = `${entriesTable}_session_auth_bindings`
 
     const remoteIdTableSql = sql(remoteIdTable)
     const entriesTableSql = sql(entriesTable)
     const storesTableSql = sql(storesTable)
+    const sessionAuthBindingsTableSql = sql(sessionAuthBindingsTable)
 
     yield* sql.onDialectOrElse({
       pg: () =>
@@ -142,6 +150,33 @@ export const makeStorage = (options?: {
           CREATE TABLE IF NOT EXISTS ${storesTableSql} (
             store_id TEXT PRIMARY KEY,
             next_sequence INTEGER NOT NULL
+          )`
+    })
+
+    yield* sql.onDialectOrElse({
+      pg: () =>
+        sql`
+          CREATE TABLE IF NOT EXISTS ${sessionAuthBindingsTableSql} (
+            public_key TEXT PRIMARY KEY,
+            signing_public_key BYTEA NOT NULL
+          )`,
+      mysql: () =>
+        sql`
+          CREATE TABLE IF NOT EXISTS ${sessionAuthBindingsTableSql} (
+            public_key VARCHAR(191) PRIMARY KEY,
+            signing_public_key BINARY(32) NOT NULL
+          )`,
+      mssql: () =>
+        sql`
+          CREATE TABLE IF NOT EXISTS ${sessionAuthBindingsTableSql} (
+            public_key NVARCHAR(191) PRIMARY KEY,
+            signing_public_key VARBINARY(32) NOT NULL
+          )`,
+      orElse: () =>
+        sql`
+          CREATE TABLE IF NOT EXISTS ${sessionAuthBindingsTableSql} (
+            public_key TEXT PRIMARY KEY,
+            signing_public_key BLOB NOT NULL
           )`
     })
 
@@ -315,6 +350,43 @@ export const makeStorage = (options?: {
 
     return EventLogServerUnencrypted.Storage.of({
       getId: Effect.succeed(remoteId),
+      loadSessionAuthBindings: sql`
+        SELECT public_key, signing_public_key
+        FROM ${sessionAuthBindingsTableSql}
+      `.pipe(
+        Effect.flatMap(decodeSessionAuthBindings),
+        Effect.map((rows) =>
+          new Map(
+            rows.map((row) => [row.public_key, copyUint8Array(row.signing_public_key)] as const)
+          )
+        ),
+        Effect.orDie
+      ),
+      getSessionAuthBinding: (publicKey) =>
+        sql`
+          SELECT public_key, signing_public_key
+          FROM ${sessionAuthBindingsTableSql}
+          WHERE public_key = ${publicKey}
+        `.pipe(
+          Effect.flatMap(decodeSessionAuthBindings),
+          Effect.map((rows) => {
+            const row = rows[0]
+            return row === undefined ? undefined : copyUint8Array(row.signing_public_key)
+          }),
+          Effect.orDie
+        ),
+      putSessionAuthBindingIfAbsent: (publicKey, signingPublicKey) =>
+        sql`
+          INSERT INTO ${sessionAuthBindingsTableSql} (public_key, signing_public_key)
+          VALUES (${publicKey}, ${signingPublicKey})
+        `.pipe(
+          Effect.as(true),
+          Effect.catchIf(
+            (error: SqlError.SqlError) => error.reason._tag === "ConstraintError",
+            () => Effect.succeed(false)
+          ),
+          Effect.orDie
+        ),
       write: Effect.fnUntraced(
         function*(storeId, entries) {
           if (entries.length === 0) {
@@ -521,8 +593,16 @@ const StoreSequenceSql = Schema.Struct({
   next_sequence: SqlNumber
 })
 
+const SessionAuthBindingSql = Schema.Struct({
+  public_key: Schema.String,
+  signing_public_key: Schema.Uint8Array
+})
+
+type SessionAuthBindingSql = Schema.Schema.Type<typeof SessionAuthBindingSql>
+
 const decodeRemoteEntryRows = Schema.decodeUnknownEffect(Schema.Array(RemoteEntrySql))
 const decodeStoreSequenceRows = Schema.decodeUnknownEffect(Schema.Array(StoreSequenceSql))
+const decodeSessionAuthBindingRows = Schema.decodeUnknownEffect(Schema.Array(SessionAuthBindingSql))
 
 const toEntry = (row: EntrySql): Entry =>
   new Entry({
@@ -555,3 +635,7 @@ const decodeStoreSequence = (rows: unknown): Effect.Effect<number, Schema.Schema
       return Effect.succeed(row.next_sequence)
     })
   )
+
+const decodeSessionAuthBindings = (
+  rows: unknown
+): Effect.Effect<ReadonlyArray<SessionAuthBindingSql>, Schema.SchemaError> => decodeSessionAuthBindingRows(rows)

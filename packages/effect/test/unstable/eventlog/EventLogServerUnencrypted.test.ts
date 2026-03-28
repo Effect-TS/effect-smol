@@ -62,27 +62,6 @@ const allowAllAuthLayer = Layer.succeed(EventLogServerUnencrypted.EventLogServer
   authorizeRead: () => Effect.void
 })
 
-const rejectingAuthLayer = Layer.succeed(EventLogServerUnencrypted.EventLogServerAuth, {
-  authorizeWrite: ({ publicKey, storeId }) =>
-    Effect.fail(
-      new EventLogServerUnencrypted.EventLogServerAuthError({
-        reason: "Forbidden",
-        publicKey,
-        storeId,
-        message: "write rejected"
-      })
-    ),
-  authorizeRead: ({ publicKey, storeId }) =>
-    Effect.fail(
-      new EventLogServerUnencrypted.EventLogServerAuthError({
-        reason: "Unauthorized",
-        publicKey,
-        storeId,
-        message: "read rejected"
-      })
-    )
-})
-
 const makeServerLayer = (
   seen: Ref.Ref<ReadonlyArray<SeenWrite>>,
   auth: Layer.Layer<EventLogServerUnencrypted.EventLogServerAuth> = allowAllAuthLayer
@@ -92,6 +71,18 @@ const makeServerLayer = (
     Layer.provideMerge(EventLogServerUnencrypted.layerStoreMappingStatic({ storeId })),
     Layer.provideMerge(auth),
     Layer.provideMerge(handlerLayer(seen))
+  )
+
+const makeServerLayerWithStorage = (options: {
+  readonly seen: Ref.Ref<ReadonlyArray<SeenWrite>>
+  readonly storage: EventLogServerUnencrypted.Storage["Service"]
+  readonly auth?: Layer.Layer<EventLogServerUnencrypted.EventLogServerAuth> | undefined
+}) =>
+  EventLogServerUnencrypted.layer(schema).pipe(
+    Layer.provideMerge(Layer.succeed(EventLogServerUnencrypted.Storage, options.storage)),
+    Layer.provideMerge(EventLogServerUnencrypted.layerStoreMappingStatic({ storeId })),
+    Layer.provideMerge(options.auth ?? allowAllAuthLayer),
+    Layer.provideMerge(handlerLayer(options.seen))
   )
 
 const makeSocketHarness = Effect.gen(function*() {
@@ -669,6 +660,33 @@ describe("EventLogServerUnencrypted", () => {
   it.effect("makeHandler returns unencrypted protocol errors for authorization failures", () =>
     Effect.gen(function*() {
       const seen = yield* Ref.make<ReadonlyArray<SeenWrite>>([])
+      const authorizeReadCalls = yield* Ref.make(0)
+      const authLayer = Layer.succeed(EventLogServerUnencrypted.EventLogServerAuth, {
+        authorizeWrite: ({ publicKey, storeId }) =>
+          Effect.fail(
+            new EventLogServerUnencrypted.EventLogServerAuthError({
+              reason: "Forbidden",
+              publicKey,
+              storeId,
+              message: "write rejected"
+            })
+          ),
+        authorizeRead: ({ publicKey, storeId }) =>
+          Ref.get(authorizeReadCalls).pipe(
+            Effect.flatMap((calls) =>
+              calls === 0
+                ? Ref.update(authorizeReadCalls, (value) => value + 1)
+                : Effect.fail(
+                  new EventLogServerUnencrypted.EventLogServerAuthError({
+                    reason: "Unauthorized",
+                    publicKey,
+                    storeId,
+                    message: "read rejected"
+                  })
+                )
+            )
+          )
+      })
 
       return yield* Effect.scoped(
         Effect.gen(function*() {
@@ -725,7 +743,7 @@ describe("EventLogServerUnencrypted", () => {
           assert.strictEqual(readError.requestTag, "RequestChanges")
           assert.strictEqual(readError.code, "Unauthorized")
           assert.strictEqual(readError.message, "read rejected")
-        }).pipe(Effect.provide(makeServerLayer(seen, rejectingAuthLayer)))
+        }).pipe(Effect.provide(makeServerLayer(seen, authLayer)))
       )
     }))
 
@@ -807,6 +825,189 @@ describe("EventLogServerUnencrypted", () => {
             name: largeName
           })
         }).pipe(Effect.provide(makeServerLayer(seen)))
+      )
+    }))
+
+  it.effect("makeHandler persists trusted signing keys and skips pre-bind auth read checks for known bindings", () =>
+    Effect.gen(function*() {
+      const seen = yield* Ref.make<ReadonlyArray<SeenWrite>>([])
+      const readAuthCalls = yield* Ref.make(0)
+      const authLayer = Layer.succeed(EventLogServerUnencrypted.EventLogServerAuth, {
+        authorizeWrite: () => Effect.void,
+        authorizeRead: () => Ref.update(readAuthCalls, (calls) => calls + 1)
+      })
+
+      return yield* Effect.scoped(
+        Effect.gen(function*() {
+          const storage = yield* EventLogServerUnencrypted.makeStorageMemory
+          const trustedKeyPair = yield* makeSessionAuthKeyPair
+          const mismatchedKeyPair = yield* makeSessionAuthKeyPair
+
+          const firstHarness = yield* makeSocketHarness
+          const firstHandler = yield* EventLogServerUnencrypted.makeHandler.pipe(
+            Effect.provide(makeServerLayerWithStorage({
+              seen,
+              storage,
+              auth: authLayer
+            }))
+          )
+
+          yield* firstHandler(firstHarness.socket).pipe(Effect.forkScoped)
+
+          const firstHello = yield* firstHarness.takeResponse
+          if (firstHello._tag !== "Hello") {
+            throw new Error(`Expected Hello, got ${firstHello._tag}`)
+          }
+
+          yield* firstHarness.sendRequest(
+            yield* makeAuthenticateRequest({
+              hello: firstHello,
+              publicKey: "client-1",
+              keyPair: trustedKeyPair
+            })
+          )
+
+          const firstAuthenticated = yield* firstHarness.takeResponse
+          if (firstAuthenticated._tag !== "Authenticated") {
+            throw new Error(`Expected Authenticated, got ${firstAuthenticated._tag}`)
+          }
+
+          assert.strictEqual(yield* Ref.get(readAuthCalls), 1)
+
+          const restartedHarness = yield* makeSocketHarness
+          const restartedHandler = yield* EventLogServerUnencrypted.makeHandler.pipe(
+            Effect.provide(makeServerLayerWithStorage({
+              seen,
+              storage,
+              auth: authLayer
+            }))
+          )
+
+          yield* restartedHandler(restartedHarness.socket).pipe(Effect.forkScoped)
+
+          const restartedHello = yield* restartedHarness.takeResponse
+          if (restartedHello._tag !== "Hello") {
+            throw new Error(`Expected Hello, got ${restartedHello._tag}`)
+          }
+
+          yield* restartedHarness.sendRequest(
+            yield* makeAuthenticateRequest({
+              hello: restartedHello,
+              publicKey: "client-1",
+              keyPair: mismatchedKeyPair
+            })
+          )
+
+          const restartedResponse = yield* restartedHarness.takeResponse
+          if (restartedResponse._tag !== "Error") {
+            throw new Error(`Expected Error, got ${restartedResponse._tag}`)
+          }
+
+          assert.strictEqual(restartedResponse.requestTag, "Authenticate")
+          assert.strictEqual(restartedResponse.code, "Forbidden")
+          assert.strictEqual(yield* Ref.get(readAuthCalls), 1)
+
+          const persistedBinding = yield* storage.getSessionAuthBinding("client-1")
+          if (persistedBinding === undefined) {
+            throw new Error("Expected persisted key binding")
+          }
+
+          assert.deepStrictEqual(persistedBinding, trustedKeyPair.signingPublicKey)
+        })
+      )
+    }))
+
+  it.effect("makeHandler allows only one winner for concurrent first-bind mismatches", () =>
+    Effect.gen(function*() {
+      const seen = yield* Ref.make<ReadonlyArray<SeenWrite>>([])
+
+      return yield* Effect.scoped(
+        Effect.gen(function*() {
+          const storage = yield* EventLogServerUnencrypted.makeStorageMemory
+          const firstHarness = yield* makeSocketHarness
+          const secondHarness = yield* makeSocketHarness
+          const firstKeyPair = yield* makeSessionAuthKeyPair
+          const secondKeyPair = yield* makeSessionAuthKeyPair
+
+          const handler = yield* EventLogServerUnencrypted.makeHandler.pipe(
+            Effect.provide(makeServerLayerWithStorage({
+              seen,
+              storage
+            }))
+          )
+
+          yield* handler(firstHarness.socket).pipe(Effect.forkScoped)
+          yield* handler(secondHarness.socket).pipe(Effect.forkScoped)
+
+          const firstHello = yield* firstHarness.takeResponse
+          const secondHello = yield* secondHarness.takeResponse
+          if (firstHello._tag !== "Hello") {
+            throw new Error(`Expected Hello, got ${firstHello._tag}`)
+          }
+          if (secondHello._tag !== "Hello") {
+            throw new Error(`Expected Hello, got ${secondHello._tag}`)
+          }
+
+          yield* Effect.all([
+            firstHarness.sendRequest(
+              yield* makeAuthenticateRequest({
+                hello: firstHello,
+                publicKey: "client-1",
+                keyPair: firstKeyPair
+              })
+            ),
+            secondHarness.sendRequest(
+              yield* makeAuthenticateRequest({
+                hello: secondHello,
+                publicKey: "client-1",
+                keyPair: secondKeyPair
+              })
+            )
+          ], { concurrency: "unbounded" })
+
+          const [firstResponse, secondResponse] = yield* Effect.all([
+            firstHarness.takeResponse,
+            secondHarness.takeResponse
+          ], { concurrency: "unbounded" })
+
+          let winnerSigningPublicKey: Uint8Array | undefined
+
+          if (firstResponse._tag === "Authenticated") {
+            winnerSigningPublicKey = firstKeyPair.signingPublicKey
+            assert.strictEqual(firstResponse.publicKey, "client-1")
+          } else {
+            if (firstResponse._tag !== "Error") {
+              throw new Error(`Expected Error, got ${firstResponse._tag}`)
+            }
+            assert.strictEqual(firstResponse.requestTag, "Authenticate")
+            assert.strictEqual(firstResponse.code, "Forbidden")
+          }
+
+          if (secondResponse._tag === "Authenticated") {
+            if (winnerSigningPublicKey !== undefined) {
+              throw new Error("Expected only one Authenticate winner")
+            }
+            winnerSigningPublicKey = secondKeyPair.signingPublicKey
+            assert.strictEqual(secondResponse.publicKey, "client-1")
+          } else {
+            if (secondResponse._tag !== "Error") {
+              throw new Error(`Expected Error, got ${secondResponse._tag}`)
+            }
+            assert.strictEqual(secondResponse.requestTag, "Authenticate")
+            assert.strictEqual(secondResponse.code, "Forbidden")
+          }
+
+          if (winnerSigningPublicKey === undefined) {
+            throw new Error("Expected one Authenticate winner")
+          }
+
+          const persistedBinding = yield* storage.getSessionAuthBinding("client-1")
+          if (persistedBinding === undefined) {
+            throw new Error("Expected persisted key-binding winner")
+          }
+
+          assert.deepStrictEqual(persistedBinding, winnerSigningPublicKey)
+        })
       )
     }))
 })

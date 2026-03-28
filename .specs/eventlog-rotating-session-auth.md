@@ -523,16 +523,21 @@ Feature is complete when:
 - For backward compatibility with existing `Identity` values that do not yet carry signing keys, the client currently derives and caches an Ed25519 keypair per identity instance when explicit signing keys are missing.
 - Server handlers now generate fresh random Hello challenges, enforce pre-auth request gating (Ping + Authenticate only), emit `ProtocolError(Authenticate, Forbidden)` for auth failures, and enforce one-publicKey-per-socket after auth in both encrypted and unencrypted handlers.
 - Added dedicated encrypted-server protocol tests (`EventLogServer.test.ts`) and expanded unencrypted-server tests to cover pre-auth gating, successful Authenticate unlocks, invalid signature/expired challenge rejection, and post-auth publicKey mismatch rejection.
-- This task validated with: `pnpm lint-fix`, `pnpm test packages/effect/test/unstable/eventlog/EventLogServer.test.ts`, `pnpm test packages/effect/test/unstable/eventlog/EventLogServerUnencrypted.test.ts`, `pnpm test packages/effect/test/unstable/eventlog/EventLogRemote.test.ts`, `pnpm test packages/effect/test/unstable/eventlog/EventLogSessionAuth.test.ts`, `pnpm check:tsgo`, and `pnpm docgen`.
+- `EventLogServer.Storage` / `EventLogServerUnencrypted.Storage` now expose persistent session-auth binding primitives (`loadSessionAuthBindings`, `getSessionAuthBinding`, `putSessionAuthBindingIfAbsent`) implemented by both memory and SQL storage layers.
+- Encrypted and unencrypted handlers now preload persisted bindings at construction time and enforce strict `publicKey -> signingPublicKey` matching during Authenticate; mismatches always emit `ProtocolError({ requestTag: Authenticate, code: Forbidden })`.
+- First-bind races now use atomic `put-if-absent` persistence plus reload-on-conflict mismatch checks so only one signing key can win concurrent first-auth attempts.
+- `EventLogServerUnencrypted.make` now centralizes TOFU binding policy in `authenticateSession`: unknown keys run the pre-bind `authorizeRead` check before persistence, while known-key mismatches are rejected without re-binding.
+- Added server tests covering restart persistence and conflicting concurrent first-bind attempts for both encrypted and unencrypted handlers, plus an unencrypted authorization-failure regression path that still allows first Authenticate before post-auth request denials.
+- This task validated with: `pnpm lint-fix`, `pnpm test packages/effect/test/unstable/eventlog/EventLogServer.test.ts`, `pnpm test packages/effect/test/unstable/eventlog/EventLogServerUnencrypted.test.ts`, `pnpm check:tsgo`, and `pnpm docgen`.
 
 ### Phase 2 — handshake execution and trust binding (pending)
 
 - [x] add canonical auth payload encode + Ed25519 sign/verify helpers
 - [x] add client session-auth flow to `fromSocket` and `fromSocketUnencrypted`
 - [x] add server auth gating / signature verification in `EventLogServer.makeHandler` and `EventLogServerUnencrypted.makeHandler`
-- [ ] add trust-on-first-auth binding load/store integration via each server `Storage` service
-- [ ] enforce server-type first-bind behavior difference (unencrypted pre-bind auth read check; encrypted none)
-- [ ] add remaining remote/server handshake tests and hardening coverage
+- [x] add trust-on-first-auth binding load/store integration via each server `Storage` service
+- [x] enforce server-type first-bind behavior difference (unencrypted pre-bind auth read check; encrypted none)
+- [x] add remaining remote/server handshake tests and hardening coverage
 
 ### Phase 3 — validation and cleanup
 

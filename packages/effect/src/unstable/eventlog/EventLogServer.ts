@@ -35,6 +35,26 @@ import * as EventLogSessionAuth from "./EventLogSessionAuth.ts"
 
 const constChunkSize = 512_000
 
+const copyUint8Array = (bytes: Uint8Array): Uint8Array => {
+  const copy = new Uint8Array(bytes.byteLength)
+  copy.set(bytes)
+  return copy
+}
+
+const equalsUint8Array = (left: Uint8Array, right: Uint8Array): boolean => {
+  if (left.byteLength !== right.byteLength) {
+    return false
+  }
+
+  for (let index = 0; index < left.byteLength; index++) {
+    if (left[index] !== right[index]) {
+      return false
+    }
+  }
+
+  return true
+}
+
 /**
  * @since 4.0.0
  * @category constructors
@@ -46,7 +66,36 @@ export const makeHandler: Effect.Effect<
 > = Effect.gen(function*() {
   const storage = yield* Storage
   const remoteId = yield* storage.getId
+  const trustedSessionAuthBindings = new Map<string, Uint8Array>()
+  const persistedSessionAuthBindings = yield* storage.loadSessionAuthBindings
+  for (const [publicKey, signingPublicKey] of persistedSessionAuthBindings) {
+    trustedSessionAuthBindings.set(publicKey, copyUint8Array(signingPublicKey))
+  }
   let chunkId = 0
+
+  const ensureTrustedSessionAuthBinding = Effect.fnUntraced(function*(options: {
+    readonly publicKey: string
+    readonly signingPublicKey: Uint8Array
+  }) {
+    const trustedSigningPublicKey = trustedSessionAuthBindings.get(options.publicKey)
+    if (trustedSigningPublicKey !== undefined) {
+      return equalsUint8Array(trustedSigningPublicKey, options.signingPublicKey)
+    }
+
+    const created = yield* storage.putSessionAuthBindingIfAbsent(options.publicKey, options.signingPublicKey)
+    if (created) {
+      trustedSessionAuthBindings.set(options.publicKey, copyUint8Array(options.signingPublicKey))
+      return true
+    }
+
+    const persistedSigningPublicKey = yield* storage.getSessionAuthBinding(options.publicKey)
+    if (persistedSigningPublicKey === undefined) {
+      return false
+    }
+
+    trustedSessionAuthBindings.set(options.publicKey, copyUint8Array(persistedSigningPublicKey))
+    return equalsUint8Array(persistedSigningPublicKey, options.signingPublicKey)
+  })
 
   return Effect.fnUntraced(
     function*(socket: Socket.Socket) {
@@ -124,6 +173,17 @@ export const makeHandler: Effect.Effect<
           )
 
           if (!verified) {
+            return yield* writeForbidden({
+              requestTag: "Authenticate",
+              publicKey: request.publicKey
+            })
+          }
+
+          const trusted = yield* ensureTrustedSessionAuthBinding({
+            publicKey: request.publicKey,
+            signingPublicKey: request.signingPublicKey
+          })
+          if (!trusted) {
             return yield* writeForbidden({
               requestTag: "Authenticate",
               publicKey: request.publicKey
@@ -304,6 +364,9 @@ export class PersistedEntry extends Schema.Class<PersistedEntry>(
  */
 export class Storage extends ServiceMap.Service<Storage, {
   readonly getId: Effect.Effect<RemoteId>
+  readonly loadSessionAuthBindings: Effect.Effect<ReadonlyMap<string, Uint8Array>>
+  readonly getSessionAuthBinding: (publicKey: string) => Effect.Effect<Uint8Array | undefined>
+  readonly putSessionAuthBindingIfAbsent: (publicKey: string, signingPublicKey: Uint8Array) => Effect.Effect<boolean>
   readonly write: (
     publicKey: string,
     entries: ReadonlyArray<PersistedEntry>
@@ -325,6 +388,7 @@ export class Storage extends ServiceMap.Service<Storage, {
 export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.Scope> = Effect.gen(function*() {
   const knownIds = new Map<string, number>()
   const journals = new Map<string, Array<EncryptedRemoteEntry>>()
+  const sessionAuthBindings = new Map<string, Uint8Array>()
   const remoteId = makeRemoteIdUnsafe()
   const ensureJournal = (publicKey: string) => {
     let journal = journals.get(publicKey)
@@ -344,6 +408,25 @@ export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.S
 
   return Storage.of({
     getId: Effect.succeed(remoteId),
+    loadSessionAuthBindings: Effect.sync(() =>
+      new Map(
+        Array.from(sessionAuthBindings, ([publicKey, signingPublicKey]) =>
+          [publicKey, copyUint8Array(signingPublicKey)] as const)
+      )
+    ),
+    getSessionAuthBinding: (publicKey) =>
+      Effect.sync(() => {
+        const signingPublicKey = sessionAuthBindings.get(publicKey)
+        return signingPublicKey === undefined ? undefined : copyUint8Array(signingPublicKey)
+      }),
+    putSessionAuthBindingIfAbsent: (publicKey, signingPublicKey) =>
+      Effect.sync(() => {
+        if (sessionAuthBindings.has(publicKey)) {
+          return false
+        }
+        sessionAuthBindings.set(publicKey, copyUint8Array(signingPublicKey))
+        return true
+      }),
     write: (publicKey, entries) =>
       Effect.gen(function*() {
         const active = yield* RcMap.keys(pubsubs)
