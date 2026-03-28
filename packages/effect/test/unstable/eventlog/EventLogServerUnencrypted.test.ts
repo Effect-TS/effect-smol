@@ -5,6 +5,7 @@ import * as EventJournal from "effect/unstable/eventlog/EventJournal"
 import * as EventLog from "effect/unstable/eventlog/EventLog"
 import * as EventLogRemote from "effect/unstable/eventlog/EventLogRemote"
 import * as EventLogServerUnencrypted from "effect/unstable/eventlog/EventLogServerUnencrypted"
+import * as EventLogSessionAuth from "effect/unstable/eventlog/EventLogSessionAuth"
 import * as Socket from "effect/unstable/socket/Socket"
 
 const UserNamePayload = Schema.Struct({
@@ -144,6 +145,81 @@ const makeSocketHarness = Effect.gen(function*() {
   }
 })
 
+type SessionAuthKeyPair = {
+  readonly signingPublicKey: Uint8Array
+  readonly signingPrivateKey: Uint8Array
+}
+
+const makeSessionAuthKeyPair = Effect.promise<SessionAuthKeyPair>(() =>
+  globalThis.crypto.subtle.generateKey("Ed25519", true, ["sign", "verify"]).then((keyPair) => {
+    if (!("privateKey" in keyPair) || !("publicKey" in keyPair)) {
+      throw new Error("Expected Ed25519 CryptoKeyPair")
+    }
+
+    return Promise.all([
+      globalThis.crypto.subtle.exportKey("raw", keyPair.publicKey),
+      globalThis.crypto.subtle.exportKey("pkcs8", keyPair.privateKey)
+    ]).then(([signingPublicKey, signingPrivateKey]) => ({
+      signingPublicKey: new Uint8Array(signingPublicKey),
+      signingPrivateKey: new Uint8Array(signingPrivateKey)
+    }))
+  })
+)
+
+const makeAuthenticateRequest = Effect.fnUntraced(function*(options: {
+  readonly hello: EventLogRemote.Hello
+  readonly publicKey: string
+  readonly keyPair?: SessionAuthKeyPair | undefined
+  readonly signature?: Uint8Array | undefined
+}) {
+  const keyPair = options.keyPair ?? (yield* makeSessionAuthKeyPair)
+  const signature = options.signature ?? (yield* EventLogSessionAuth.signSessionAuthPayload({
+    remoteId: options.hello.remoteId,
+    challenge: options.hello.challenge,
+    publicKey: options.publicKey,
+    signingPublicKey: keyPair.signingPublicKey,
+    signingPrivateKey: keyPair.signingPrivateKey
+  }))
+
+  if (options.signature === undefined) {
+    const verified = yield* EventLogSessionAuth.verifySessionAuthPayload({
+      remoteId: options.hello.remoteId,
+      challenge: options.hello.challenge,
+      publicKey: options.publicKey,
+      signingPublicKey: keyPair.signingPublicKey,
+      signature
+    })
+
+    if (!verified) {
+      throw new Error("Expected locally signed Authenticate payload to verify")
+    }
+  }
+
+  return new EventLogRemote.Authenticate({
+    publicKey: options.publicKey,
+    signingPublicKey: keyPair.signingPublicKey,
+    signature,
+    algorithm: "Ed25519"
+  })
+})
+
+const withDateNow = <A, E, R>(
+  nowMillis: number,
+  effect: Effect.Effect<A, E, R>
+): Effect.Effect<A, E, R> =>
+  Effect.acquireUseRelease(
+    Effect.sync(() => {
+      const original = Date.now
+      Date.now = () => nowMillis
+      return original
+    }),
+    () => effect,
+    (original) =>
+      Effect.sync(() => {
+        Date.now = original
+      })
+  )
+
 describe("EventLogServerUnencrypted", () => {
   it.effect("ingest deduplicates entry ids within and across requests", () =>
     Effect.gen(function*() {
@@ -206,7 +282,22 @@ describe("EventLogServerUnencrypted", () => {
           })
 
           yield* handler(harness.socket).pipe(Effect.forkScoped)
-          yield* harness.takeResponse
+          const hello = yield* harness.takeResponse
+          if (hello._tag !== "Hello") {
+            throw new Error(`Expected Hello, got ${hello._tag}`)
+          }
+
+          yield* harness.sendRequest(
+            yield* makeAuthenticateRequest({
+              hello,
+              publicKey: "client-1"
+            })
+          )
+
+          const authenticated = yield* harness.takeResponse
+          if (authenticated._tag !== "Authenticated") {
+            throw new Error(`Expected Authenticated, got ${authenticated._tag}`)
+          }
 
           yield* harness.sendRequest(
             new EventLogRemote.RequestChanges({
@@ -252,6 +343,18 @@ describe("EventLogServerUnencrypted", () => {
           }
 
           yield* harness.sendRequest(
+            yield* makeAuthenticateRequest({
+              hello,
+              publicKey: "client-1"
+            })
+          )
+
+          const authenticated = yield* harness.takeResponse
+          if (authenticated._tag !== "Authenticated") {
+            throw new Error(`Expected Authenticated, got ${authenticated._tag}`)
+          }
+
+          yield* harness.sendRequest(
             new EventLogRemote.WriteEntriesUnencrypted({
               publicKey: "client-1",
               id: 1,
@@ -266,6 +369,247 @@ describe("EventLogServerUnencrypted", () => {
 
           assert.deepStrictEqual(response.sequenceNumbers, [1])
           assert.deepStrictEqual(yield* Ref.get(seen), [{ name: "Ada", publicKey: "client-1" }])
+        }).pipe(Effect.provide(makeServerLayer(seen)))
+      )
+    }))
+
+  it.effect("makeHandler gates write/read/stop requests before Authenticate", () =>
+    Effect.gen(function*() {
+      const seen = yield* Ref.make<ReadonlyArray<SeenWrite>>([])
+
+      return yield* Effect.scoped(
+        Effect.gen(function*() {
+          const harness = yield* makeSocketHarness
+          const handler = yield* EventLogServerUnencrypted.makeHandler
+
+          yield* handler(harness.socket).pipe(Effect.forkScoped)
+
+          const hello = yield* harness.takeResponse
+          if (hello._tag !== "Hello") {
+            throw new Error(`Expected Hello, got ${hello._tag}`)
+          }
+
+          yield* harness.sendRequest(
+            new EventLogRemote.WriteEntriesUnencrypted({
+              publicKey: "client-1",
+              id: 1,
+              entries: [yield* makeEntry({ name: "Ada" })]
+            })
+          )
+
+          const writeError = yield* harness.takeResponse
+          if (writeError._tag !== "Error") {
+            throw new Error(`Expected Error, got ${writeError._tag}`)
+          }
+          assert.strictEqual(writeError.requestTag, "WriteEntries")
+          assert.strictEqual(writeError.code, "Forbidden")
+
+          yield* harness.sendRequest(
+            new EventLogRemote.RequestChanges({
+              publicKey: "client-1",
+              startSequence: 0
+            })
+          )
+
+          const requestChangesError = yield* harness.takeResponse
+          if (requestChangesError._tag !== "Error") {
+            throw new Error(`Expected Error, got ${requestChangesError._tag}`)
+          }
+          assert.strictEqual(requestChangesError.requestTag, "RequestChanges")
+          assert.strictEqual(requestChangesError.code, "Forbidden")
+
+          yield* harness.sendRequest(
+            new EventLogRemote.StopChanges({
+              publicKey: "client-1"
+            })
+          )
+
+          const stopChangesError = yield* harness.takeResponse
+          if (stopChangesError._tag !== "Error") {
+            throw new Error(`Expected Error, got ${stopChangesError._tag}`)
+          }
+          assert.strictEqual(stopChangesError.requestTag, "StopChanges")
+          assert.strictEqual(stopChangesError.code, "Forbidden")
+        }).pipe(Effect.provide(makeServerLayer(seen)))
+      )
+    }))
+
+  it.effect("makeHandler unlocks requests after successful Authenticate", () =>
+    Effect.gen(function*() {
+      const seen = yield* Ref.make<ReadonlyArray<SeenWrite>>([])
+
+      return yield* Effect.scoped(
+        Effect.gen(function*() {
+          const harness = yield* makeSocketHarness
+          const handler = yield* EventLogServerUnencrypted.makeHandler
+
+          yield* handler(harness.socket).pipe(Effect.forkScoped)
+
+          const hello = yield* harness.takeResponse
+          if (hello._tag !== "Hello") {
+            throw new Error(`Expected Hello, got ${hello._tag}`)
+          }
+
+          const authenticate = yield* makeAuthenticateRequest({
+            hello,
+            publicKey: "client-1"
+          })
+          yield* harness.sendRequest(authenticate)
+
+          const authenticated = yield* harness.takeResponse
+          if (authenticated._tag !== "Authenticated") {
+            throw new Error(`Expected Authenticated, got ${authenticated._tag}`)
+          }
+          assert.strictEqual(authenticated.publicKey, "client-1")
+
+          yield* harness.sendRequest(
+            new EventLogRemote.WriteEntriesUnencrypted({
+              publicKey: "client-1",
+              id: 1,
+              entries: [yield* makeEntry({ name: "Ada" })]
+            })
+          )
+
+          const response = yield* harness.takeResponse
+          if (response._tag !== "Ack") {
+            throw new Error(`Expected Ack, got ${response._tag}`)
+          }
+
+          assert.deepStrictEqual(response.sequenceNumbers, [1])
+          assert.deepStrictEqual(yield* Ref.get(seen), [{ name: "Ada", publicKey: "client-1" }])
+        }).pipe(Effect.provide(makeServerLayer(seen)))
+      )
+    }))
+
+  it.effect("makeHandler returns Forbidden when Authenticate signature is invalid", () =>
+    Effect.gen(function*() {
+      const seen = yield* Ref.make<ReadonlyArray<SeenWrite>>([])
+
+      return yield* Effect.scoped(
+        Effect.gen(function*() {
+          const harness = yield* makeSocketHarness
+          const handler = yield* EventLogServerUnencrypted.makeHandler
+
+          yield* handler(harness.socket).pipe(Effect.forkScoped)
+
+          const hello = yield* harness.takeResponse
+          if (hello._tag !== "Hello") {
+            throw new Error(`Expected Hello, got ${hello._tag}`)
+          }
+
+          const authenticate = yield* makeAuthenticateRequest({
+            hello,
+            publicKey: "client-1",
+            signature: new Uint8Array(EventLogSessionAuth.Ed25519SignatureLength)
+          })
+          yield* harness.sendRequest(authenticate)
+
+          const response = yield* harness.takeResponse
+          if (response._tag !== "Error") {
+            throw new Error(`Expected Error, got ${response._tag}`)
+          }
+
+          assert.strictEqual(response.requestTag, "Authenticate")
+          assert.strictEqual(response.code, "Forbidden")
+        }).pipe(Effect.provide(makeServerLayer(seen)))
+      )
+    }))
+
+  it.effect("makeHandler returns Forbidden when Authenticate challenge expires", () =>
+    Effect.gen(function*() {
+      const seen = yield* Ref.make<ReadonlyArray<SeenWrite>>([])
+
+      return yield* Effect.scoped(
+        Effect.gen(function*() {
+          const harness = yield* makeSocketHarness
+          const handler = yield* EventLogServerUnencrypted.makeHandler
+
+          yield* handler(harness.socket).pipe(Effect.forkScoped)
+
+          const hello = yield* harness.takeResponse
+          if (hello._tag !== "Hello") {
+            throw new Error(`Expected Hello, got ${hello._tag}`)
+          }
+
+          const authenticate = yield* makeAuthenticateRequest({
+            hello,
+            publicKey: "client-1"
+          })
+
+          const expiredNow = Date.now() + EventLogSessionAuth.SessionAuthChallengeTimeToLiveMillis + 1
+          const response = yield* withDateNow(
+            expiredNow,
+            Effect.gen(function*() {
+              yield* harness.sendRequest(authenticate)
+              return yield* harness.takeResponse
+            })
+          )
+
+          if (response._tag !== "Error") {
+            throw new Error(`Expected Error, got ${response._tag}`)
+          }
+
+          assert.strictEqual(response.requestTag, "Authenticate")
+          assert.strictEqual(response.code, "Forbidden")
+        }).pipe(Effect.provide(makeServerLayer(seen)))
+      )
+    }))
+
+  it.effect("makeHandler returns Forbidden for post-auth publicKey mismatches", () =>
+    Effect.gen(function*() {
+      const seen = yield* Ref.make<ReadonlyArray<SeenWrite>>([])
+
+      return yield* Effect.scoped(
+        Effect.gen(function*() {
+          const harness = yield* makeSocketHarness
+          const handler = yield* EventLogServerUnencrypted.makeHandler
+
+          yield* handler(harness.socket).pipe(Effect.forkScoped)
+
+          const hello = yield* harness.takeResponse
+          if (hello._tag !== "Hello") {
+            throw new Error(`Expected Hello, got ${hello._tag}`)
+          }
+
+          yield* harness.sendRequest(
+            yield* makeAuthenticateRequest({
+              hello,
+              publicKey: "client-1"
+            })
+          )
+
+          const authenticated = yield* harness.takeResponse
+          if (authenticated._tag !== "Authenticated") {
+            throw new Error(`Expected Authenticated, got ${authenticated._tag}`)
+          }
+
+          yield* harness.sendRequest(
+            new EventLogRemote.WriteEntriesUnencrypted({
+              publicKey: "client-2",
+              id: 1,
+              entries: [yield* makeEntry({ name: "Ada" })]
+            })
+          )
+
+          const writeMismatch = yield* harness.takeResponse
+          if (writeMismatch._tag !== "Error") {
+            throw new Error(`Expected Error, got ${writeMismatch._tag}`)
+          }
+          assert.strictEqual(writeMismatch.requestTag, "WriteEntries")
+          assert.strictEqual(writeMismatch.code, "Forbidden")
+
+          yield* harness.sendRequest(
+            new EventLogRemote.StopChanges({
+              publicKey: "client-2"
+            })
+          )
+
+          const stopMismatch = yield* harness.takeResponse
+          if (stopMismatch._tag !== "Error") {
+            throw new Error(`Expected Error, got ${stopMismatch._tag}`)
+          }
+          assert.strictEqual(stopMismatch.requestTag, "StopChanges")
+          assert.strictEqual(stopMismatch.code, "Forbidden")
         }).pipe(Effect.provide(makeServerLayer(seen)))
       )
     }))
@@ -290,7 +634,22 @@ describe("EventLogServerUnencrypted", () => {
           assert.strictEqual(parts.length > 1, true)
 
           yield* handler(harness.socket).pipe(Effect.forkScoped)
-          yield* harness.takeResponse
+          const hello = yield* harness.takeResponse
+          if (hello._tag !== "Hello") {
+            throw new Error(`Expected Hello, got ${hello._tag}`)
+          }
+
+          yield* harness.sendRequest(
+            yield* makeAuthenticateRequest({
+              hello,
+              publicKey: "client-1"
+            })
+          )
+
+          const authenticated = yield* harness.takeResponse
+          if (authenticated._tag !== "Authenticated") {
+            throw new Error(`Expected Authenticated, got ${authenticated._tag}`)
+          }
 
           for (const part of parts) {
             yield* harness.sendRequest(part)
@@ -317,7 +676,22 @@ describe("EventLogServerUnencrypted", () => {
           const handler = yield* EventLogServerUnencrypted.makeHandler
 
           yield* handler(harness.socket).pipe(Effect.forkScoped)
-          yield* harness.takeResponse
+          const hello = yield* harness.takeResponse
+          if (hello._tag !== "Hello") {
+            throw new Error(`Expected Hello, got ${hello._tag}`)
+          }
+
+          yield* harness.sendRequest(
+            yield* makeAuthenticateRequest({
+              hello,
+              publicKey: "client-1"
+            })
+          )
+
+          const authenticated = yield* harness.takeResponse
+          if (authenticated._tag !== "Authenticated") {
+            throw new Error(`Expected Authenticated, got ${authenticated._tag}`)
+          }
 
           yield* harness.sendRequest(
             new EventLogRemote.WriteEntriesUnencrypted({
@@ -366,7 +740,22 @@ describe("EventLogServerUnencrypted", () => {
           const handler = yield* EventLogServerUnencrypted.makeHandler
 
           yield* handler(harness.socket).pipe(Effect.forkScoped)
-          yield* harness.takeResponse
+          const hello = yield* harness.takeResponse
+          if (hello._tag !== "Hello") {
+            throw new Error(`Expected Hello, got ${hello._tag}`)
+          }
+
+          yield* harness.sendRequest(
+            yield* makeAuthenticateRequest({
+              hello,
+              publicKey: "client-1"
+            })
+          )
+
+          const authenticated = yield* harness.takeResponse
+          if (authenticated._tag !== "Authenticated") {
+            throw new Error(`Expected Authenticated, got ${authenticated._tag}`)
+          }
 
           const largeName = "x".repeat(700_000)
           yield* server.write({

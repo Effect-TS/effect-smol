@@ -591,7 +591,7 @@ const makeSessionAuth = (options: {
       const authenticateAttempt = Effect.gen(function*() {
         const credentials = yield* resolveSessionAuthSigningCredentials(identity)
         const payload = yield* encodeSessionAuthPayload({
-          remoteId: currentRemoteId as unknown as string,
+          remoteId: currentRemoteId,
           challenge: currentChallenge,
           publicKey: currentIdentity,
           signingPublicKey: credentials.signingPublicKey

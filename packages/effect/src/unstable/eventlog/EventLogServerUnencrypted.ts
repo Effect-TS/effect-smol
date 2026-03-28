@@ -37,6 +37,7 @@ import {
 import * as EventLog from "./EventLog.ts"
 import {
   Ack,
+  Authenticated,
   ChangesUnencrypted,
   ChunkedMessage,
   decodeRequestUnencrypted,
@@ -47,6 +48,7 @@ import {
   type ProtocolRequestUnencrypted,
   type ProtocolResponseUnencrypted
 } from "./EventLogRemote.ts"
+import * as EventLogSessionAuth from "./EventLogSessionAuth.ts"
 
 const constChunkSize = 512_000
 
@@ -953,6 +955,10 @@ export const makeHandler: Effect.Effect<
           bytes: number
         }
       >()
+      const sessionChallenge = yield* EventLogSessionAuth.makeSessionAuthChallenge.pipe(Effect.orDie)
+      const sessionChallengeIssuedAt = Date.now()
+      let sessionChallengeUsed = false
+      let authenticatedPublicKey: string | undefined
 
       const write = Effect.fnUntraced(function*(response: Schema.Schema.Type<typeof ProtocolResponseUnencrypted>) {
         const data = yield* encodeResponseUnencrypted(response)
@@ -965,27 +971,101 @@ export const makeHandler: Effect.Effect<
         }
       })
 
-      const writeError = Effect.fnUntraced(function*(options: {
-        readonly requestTag: "WriteEntries" | "RequestChanges"
+      const writeProtocolError = Effect.fnUntraced(function*(options: {
+        readonly requestTag: "Authenticate" | "WriteEntries" | "RequestChanges" | "StopChanges"
         readonly id?: number | undefined
         readonly publicKey?: string | undefined
-        readonly error: EventLogServerAuthError | EventLogServerStoreError
+        readonly code: ProtocolErrorCode
+        readonly message: string
       }) {
         yield* Effect.orDie(write(
           new ProtocolError({
             requestTag: options.requestTag,
             id: options.id,
             publicKey: options.publicKey,
-            code: toProtocolErrorCode(options.error),
-            message: toProtocolErrorMessage(options.error)
+            code: options.code,
+            message: options.message
           })
         ))
       })
 
+      const writeError = Effect.fnUntraced(function*(options: {
+        readonly requestTag: "WriteEntries" | "RequestChanges"
+        readonly id?: number | undefined
+        readonly publicKey?: string | undefined
+        readonly error: EventLogServerAuthError | EventLogServerStoreError
+      }) {
+        yield* writeProtocolError({
+          requestTag: options.requestTag,
+          id: options.id,
+          publicKey: options.publicKey,
+          code: toProtocolErrorCode(options.error),
+          message: toProtocolErrorMessage(options.error)
+        })
+      })
+
+      const writeForbidden = Effect.fnUntraced(function*(options: {
+        readonly requestTag: "Authenticate" | "WriteEntries" | "RequestChanges" | "StopChanges"
+        readonly id?: number | undefined
+        readonly publicKey?: string | undefined
+      }) {
+        yield* writeProtocolError({
+          requestTag: options.requestTag,
+          id: options.id,
+          publicKey: options.publicKey,
+          code: "Forbidden",
+          message: "Forbidden request"
+        })
+      })
+
+      const handleAuthenticate = Effect.fnUntraced(
+        function*(
+          request: Extract<Schema.Schema.Type<typeof ProtocolRequestUnencrypted>, { readonly _tag: "Authenticate" }>
+        ) {
+          if (authenticatedPublicKey !== undefined) {
+            if (authenticatedPublicKey === request.publicKey) {
+              return yield* Effect.orDie(write(new Authenticated({ publicKey: request.publicKey })))
+            }
+
+            return yield* writeForbidden({
+              requestTag: "Authenticate",
+              publicKey: request.publicKey
+            })
+          }
+
+          const challengeAlreadyUsed = sessionChallengeUsed
+          sessionChallengeUsed = true
+
+          const verified = yield* EventLogSessionAuth.verifySessionAuthenticateRequest({
+            remoteId,
+            challenge: sessionChallenge,
+            challengeIssuedAtMillis: sessionChallengeIssuedAt,
+            challengeAlreadyUsed,
+            publicKey: request.publicKey,
+            signingPublicKey: request.signingPublicKey,
+            signature: request.signature,
+            algorithm: request.algorithm
+          }).pipe(
+            Effect.as(true),
+            Effect.catchTag("EventLogSessionAuthError", () => Effect.succeed(false))
+          )
+
+          if (!verified) {
+            return yield* writeForbidden({
+              requestTag: "Authenticate",
+              publicKey: request.publicKey
+            })
+          }
+
+          authenticatedPublicKey = request.publicKey
+          return yield* Effect.orDie(write(new Authenticated({ publicKey: request.publicKey })))
+        }
+      )
+
       yield* Effect.forkChild(Effect.orDie(write(
         new Hello({
           remoteId,
-          challenge: new Uint8Array(32)
+          challenge: sessionChallenge
         })
       )))
 
@@ -997,9 +1077,17 @@ export const makeHandler: Effect.Effect<
             return Effect.orDie(write(new Pong({ id: request.id })))
           }
           case "Authenticate": {
-            return Effect.void
+            return handleAuthenticate(request)
           }
           case "WriteEntries": {
+            if (authenticatedPublicKey !== request.publicKey) {
+              return writeForbidden({
+                requestTag: "WriteEntries",
+                id: request.id,
+                publicKey: request.publicKey
+              })
+            }
+
             return runtime.ingest({
               publicKey: request.publicKey,
               entries: request.entries
@@ -1031,6 +1119,13 @@ export const makeHandler: Effect.Effect<
             )
           }
           case "RequestChanges": {
+            if (authenticatedPublicKey !== request.publicKey) {
+              return writeForbidden({
+                requestTag: "RequestChanges",
+                publicKey: request.publicKey
+              })
+            }
+
             return runtime.requestChanges(request.publicKey, request.startSequence).pipe(
               Effect.flatMap((changes) =>
                 Queue.takeAll(changes).pipe(
@@ -1070,6 +1165,13 @@ export const makeHandler: Effect.Effect<
             )
           }
           case "StopChanges": {
+            if (authenticatedPublicKey !== request.publicKey) {
+              return writeForbidden({
+                requestTag: "StopChanges",
+                publicKey: request.publicKey
+              })
+            }
+
             return FiberMap.remove(subscriptions, request.publicKey)
           }
           case "ChunkedMessage": {

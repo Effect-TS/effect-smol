@@ -2,7 +2,7 @@
  * @since 4.0.0
  */
 import * as Data from "../../Data.ts"
-import { Effect } from "../../index.ts"
+import * as Effect from "../../Effect.ts"
 
 const textEncoder = new TextEncoder()
 const textDecoder = new TextDecoder("utf-8", { fatal: true })
@@ -29,10 +29,22 @@ export const Ed25519SignatureLength = 64
 
 /**
  * @since 4.0.0
+ * @category constants
+ */
+export const SessionAuthChallengeLength = 32
+
+/**
+ * @since 4.0.0
+ * @category constants
+ */
+export const SessionAuthChallengeTimeToLiveMillis = 30_000
+
+/**
+ * @since 4.0.0
  * @category model
  */
 export interface SessionAuthPayload {
-  readonly remoteId: string
+  readonly remoteId: string | Uint8Array
   readonly challenge: Uint8Array
   readonly publicKey: string
   readonly signingPublicKey: Uint8Array
@@ -46,8 +58,12 @@ export class EventLogSessionAuthError extends Data.TaggedError("EventLogSessionA
   readonly reason:
     | "InvalidPayload"
     | "InvalidContext"
+    | "InvalidAlgorithm"
     | "InvalidSigningPublicKeyLength"
     | "InvalidSignatureLength"
+    | "ChallengeAlreadyUsed"
+    | "ChallengeExpired"
+    | "InvalidSignature"
     | "InvalidSigningPrivateKey"
     | "CryptoUnavailable"
     | "CryptoFailure"
@@ -104,6 +120,19 @@ const getSubtle = Effect.suspend(() => {
     )
   }
   return Effect.succeed(subtle)
+})
+
+const getCrypto = Effect.suspend(() => {
+  const crypto = globalThis.crypto
+  if (crypto === undefined) {
+    return Effect.fail(
+      new EventLogSessionAuthError({
+        reason: "CryptoUnavailable",
+        message: "globalThis.crypto is not available"
+      })
+    )
+  }
+  return Effect.succeed(crypto)
 })
 
 const writeLength = (
@@ -166,6 +195,19 @@ const readField = (
   return Effect.succeed(field)
 }
 
+const bytesToHex = (bytes: Uint8Array): string => {
+  let hex = ""
+  for (const byte of bytes) {
+    hex += byte.toString(16).padStart(2, "0")
+  }
+  return hex
+}
+
+const encodeRemoteIdField = (remoteId: string | Uint8Array): Uint8Array =>
+  typeof remoteId === "string"
+    ? textEncoder.encode(remoteId)
+    : textEncoder.encode(bytesToHex(remoteId))
+
 /**
  * Canonical payload format uses ordered big-endian length-prefixed fields:
  *
@@ -183,7 +225,7 @@ export const encodeSessionAuthPayload = Effect.fnUntraced(function*(payload: Ses
 
   const fields = [
     textEncoder.encode(AuthPayloadContext),
-    textEncoder.encode(payload.remoteId),
+    encodeRemoteIdField(payload.remoteId),
     payload.challenge,
     textEncoder.encode(payload.publicKey),
     payload.signingPublicKey
@@ -354,3 +396,97 @@ export const verifySessionAuthPayload = (
       })
     )
   )
+
+/**
+ * @since 4.0.0
+ * @category challenge
+ */
+export const makeSessionAuthChallenge: Effect.Effect<Uint8Array, EventLogSessionAuthError> = Effect.gen(function*() {
+  const crypto = yield* getCrypto
+  const challenge = new Uint8Array(SessionAuthChallengeLength)
+  crypto.getRandomValues(challenge)
+  return challenge
+})
+
+/**
+ * @since 4.0.0
+ * @category challenge
+ */
+export const isSessionAuthChallengeExpired = (options: {
+  readonly challengeIssuedAtMillis: number
+  readonly nowMillis?: number | undefined
+  readonly challengeTimeToLiveMillis?: number | undefined
+}): boolean => {
+  const now = options.nowMillis ?? Date.now()
+  const timeToLive = options.challengeTimeToLiveMillis ?? SessionAuthChallengeTimeToLiveMillis
+  return now - options.challengeIssuedAtMillis > timeToLive
+}
+
+/**
+ * @since 4.0.0
+ * @category verification
+ */
+export const verifySessionAuthenticateRequest = Effect.fnUntraced(function*(options: {
+  readonly remoteId: string | Uint8Array
+  readonly challenge: Uint8Array
+  readonly challengeIssuedAtMillis: number
+  readonly challengeAlreadyUsed: boolean
+  readonly publicKey: string
+  readonly signingPublicKey: Uint8Array
+  readonly signature: Uint8Array
+  readonly algorithm: string
+  readonly challengeTimeToLiveMillis?: number | undefined
+  readonly nowMillis?: number | undefined
+}) {
+  if (options.algorithm !== "Ed25519") {
+    return yield* Effect.fail(
+      new EventLogSessionAuthError({
+        reason: "InvalidAlgorithm",
+        message: `Unsupported session auth algorithm: ${options.algorithm}`
+      })
+    )
+  }
+
+  if (options.challengeAlreadyUsed) {
+    return yield* Effect.fail(
+      new EventLogSessionAuthError({
+        reason: "ChallengeAlreadyUsed",
+        message: "Session auth challenge has already been used"
+      })
+    )
+  }
+
+  if (
+    isSessionAuthChallengeExpired({
+      challengeIssuedAtMillis: options.challengeIssuedAtMillis,
+      challengeTimeToLiveMillis: options.challengeTimeToLiveMillis,
+      nowMillis: options.nowMillis
+    })
+  ) {
+    return yield* Effect.fail(
+      new EventLogSessionAuthError({
+        reason: "ChallengeExpired",
+        message: "Session auth challenge has expired"
+      })
+    )
+  }
+
+  const verified = yield* verifySessionAuthPayload({
+    remoteId: options.remoteId,
+    challenge: options.challenge,
+    publicKey: options.publicKey,
+    signingPublicKey: options.signingPublicKey,
+    signature: options.signature
+  })
+
+  if (verified) {
+    return
+  }
+
+  return yield* Effect.fail(
+    new EventLogSessionAuthError({
+      reason: "InvalidSignature",
+      message: "Session auth signature verification failed"
+    })
+  )
+})

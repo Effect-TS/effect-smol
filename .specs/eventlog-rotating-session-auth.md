@@ -512,23 +512,24 @@ Feature is complete when:
 
 ### Discovery / implementation notes (current task)
 
-- Introducing `Authenticate` / `Authenticated` / `ProtocolError` into shared unions required temporary no-op branches in existing client/server request-response switches so type checking remains exhaustive before handshake execution logic is implemented.
-- `Hello.challenge` is now schema-required; current handlers/harnesses send a placeholder 32-byte challenge value. Fresh random challenge generation and challenge lifecycle enforcement are deferred to the handshake-logic phase.
-- The validation command listed for `packages/effect/test/unstable/eventlog/EventLogServer.test.ts` currently targets a non-existent file in this repository. For this task, validation used the existing eventlog suites (`EventLogRemote.test.ts`, `EventLogServerUnencrypted.test.ts`, and `EventLog.test.ts`).
 - Added shared `EventLogSessionAuth` helpers for canonical length-prefixed payload encoding/decoding plus Ed25519 sign/verify wrappers.
 - Canonical payload signing and verification now share one implementation path (`encodeSessionAuthPayload` + `signSessionAuthPayloadBytes` / `verifySessionAuthPayloadBytes`) to avoid future client/server duplication when wiring `Authenticate` handling.
 - Helper validation rejects malformed signing public keys, malformed signature lengths, and malformed canonical payload bytes prior to cryptographic verification.
+- Session-auth helpers now also provide server-side challenge utilities (`makeSessionAuthChallenge`, default TTL constant, expiry checks) and one-call request verification (`verifySessionAuthenticateRequest`) that enforces algorithm, challenge TTL, single-use, and canonical signature verification.
+- Canonical encoding now normalizes `remoteId` bytes to a hex string before signing to keep signatures stable across `Uint8Array` / `Buffer` runtime representations.
 - Client remotes now keep per-socket auth state (latest Hello remoteId/challenge, authenticated publicKey, failed-forbidden marker, and in-flight auth deferred) and force Authenticate before the first write/changes request.
 - Concurrent auth attempts are serialized per socket: same publicKey shares one in-flight auth effect, different publicKeys fail locally with `EventLogRemoteError({ method: "authenticate" })`.
 - Receiving a new Hello resets the current authenticated binding and clears in-flight auth for the previous session challenge.
 - For backward compatibility with existing `Identity` values that do not yet carry signing keys, the client currently derives and caches an Ed25519 keypair per identity instance when explicit signing keys are missing.
-- This task validated the client changes with: `pnpm lint-fix`, `pnpm test packages/effect/test/unstable/eventlog/EventLogRemote.test.ts`, `pnpm check:tsgo`, and `pnpm docgen`.
+- Server handlers now generate fresh random Hello challenges, enforce pre-auth request gating (Ping + Authenticate only), emit `ProtocolError(Authenticate, Forbidden)` for auth failures, and enforce one-publicKey-per-socket after auth in both encrypted and unencrypted handlers.
+- Added dedicated encrypted-server protocol tests (`EventLogServer.test.ts`) and expanded unencrypted-server tests to cover pre-auth gating, successful Authenticate unlocks, invalid signature/expired challenge rejection, and post-auth publicKey mismatch rejection.
+- This task validated with: `pnpm lint-fix`, `pnpm test packages/effect/test/unstable/eventlog/EventLogServer.test.ts`, `pnpm test packages/effect/test/unstable/eventlog/EventLogServerUnencrypted.test.ts`, `pnpm test packages/effect/test/unstable/eventlog/EventLogRemote.test.ts`, `pnpm test packages/effect/test/unstable/eventlog/EventLogSessionAuth.test.ts`, `pnpm check:tsgo`, and `pnpm docgen`.
 
 ### Phase 2 — handshake execution and trust binding (pending)
 
 - [x] add canonical auth payload encode + Ed25519 sign/verify helpers
 - [x] add client session-auth flow to `fromSocket` and `fromSocketUnencrypted`
-- [ ] add server auth gating / signature verification in `EventLogServer.makeHandler` and `EventLogServerUnencrypted.makeHandler`
+- [x] add server auth gating / signature verification in `EventLogServer.makeHandler` and `EventLogServerUnencrypted.makeHandler`
 - [ ] add trust-on-first-auth binding load/store integration via each server `Storage` service
 - [ ] enforce server-type first-bind behavior difference (unencrypted pre-bind auth read check; encrypted none)
 - [ ] add remaining remote/server handshake tests and hardening coverage
@@ -538,8 +539,8 @@ Feature is complete when:
 - [x] run `pnpm lint-fix`
 - [x] run `pnpm test packages/effect/test/unstable/eventlog/EventLogRemote.test.ts`
 - [x] run `pnpm test packages/effect/test/unstable/eventlog/EventLogServerUnencrypted.test.ts`
-- [x] run `pnpm test packages/effect/test/unstable/eventlog/EventLog.test.ts` (existing related suite)
-- [x] run `pnpm test packages/effect/test/unstable/eventlog/EventLogServer.test.ts` (attempted; file currently not present)
+- [x] run `pnpm test packages/effect/test/unstable/eventlog/EventLogServer.test.ts`
+- [x] run `pnpm test packages/effect/test/unstable/eventlog/EventLogSessionAuth.test.ts`
 - [x] run `pnpm check:tsgo`
 - [x] run `pnpm docgen`
 - [x] refresh protocol docs and inline comments where needed
@@ -548,9 +549,8 @@ Feature is complete when:
 
 - [x] pnpm lint-fix
 - [x] pnpm test packages/effect/test/unstable/eventlog/EventLogRemote.test.ts
-- [x] pnpm test packages/effect/test/unstable/eventlog/EventLogServer.test.ts (attempted; file currently not present)
+- [x] pnpm test packages/effect/test/unstable/eventlog/EventLogServer.test.ts
 - [x] pnpm test packages/effect/test/unstable/eventlog/EventLogServerUnencrypted.test.ts
-- [x] pnpm test packages/effect/test/unstable/eventlog/EventLog.test.ts (additional related coverage)
 - [x] pnpm test packages/effect/test/unstable/eventlog/EventLogSessionAuth.test.ts
 - [x] pnpm check:tsgo
 - [x] pnpm docgen
