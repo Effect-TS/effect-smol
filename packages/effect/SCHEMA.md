@@ -2233,6 +2233,8 @@ While `Schema.declare` works for fixed types like `URL` or `File`, some types ar
 
 `Schema.declareConstructor` handles this by letting you define a **schema factory**: a function that takes schemas for the type parameters and returns a schema for the full type.
 
+> **Important:** `declareConstructor` is for types where the **container shape is the same** on both sides: only the inner type parameter changes (e.g. `Box<Encoded>` to `Box<Type>`). If you need to convert a structurally different type into your declared type (e.g. `T` to `Box<T>`), first declare `Box` with `declareConstructor`, then define a separate transformation schema to express the conversion.
+
 ### How the two-step call works
 
 `declareConstructor` uses a curried (two-step) call pattern:
