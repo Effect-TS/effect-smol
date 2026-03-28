@@ -2,7 +2,7 @@
 
 ## Summary
 
-Define an asymmetric session-auth handshake for EventLogRemote and EventLogServerUnencrypted with a single authentication path.
+Define an asymmetric session-auth handshake for EventLogRemote, EventLogServer, and EventLogServerUnencrypted with a single authentication path.
 
 Protocol behavior:
 
@@ -12,14 +12,16 @@ Protocol behavior:
 - the server verifies the signature and uses a trust-on-first-auth publicKey -> signingPublicKey binding.
 - handshake failures use Forbidden.
 - the protocol has no public-key-only fallback.
-- first successful auth for an unknown publicKey persists its signingPublicKey binding.
+- first successful auth for an unknown publicKey persists its signingPublicKey binding after signature/challenge verification.
+- EventLogServerUnencrypted additionally requires an auth read check before that first-bind persistence.
 
 ## Security baseline
 
 The baseline is strict and uniform:
 
 - authentication requires a valid Ed25519 challenge signature plus a persistent key binding.
-- first successful auth for an unknown publicKey creates and persists its key binding.
+- first successful auth for an unknown publicKey creates and persists its key binding after signature/challenge verification.
+- EventLogServerUnencrypted requires an auth read check before first-bind persistence; EventLogServer does not.
 - existing publicKey bindings must match exactly and are never silently replaced during Authenticate.
 - key-binding state is persistent and fail-closed when durable storage is required.
 - challenge values are single-use and short-lived.
@@ -33,23 +35,24 @@ This repository exposes:
 - two client transport constructors:
   - EventLogRemote.fromSocket
   - EventLogRemote.fromSocketUnencrypted
-- one server-side handler/runtime path:
+- two server-side handler/runtime paths:
+  - EventLogServer.make / EventLogServer.makeHandler
   - EventLogServerUnencrypted.make / EventLogServerUnencrypted.makeHandler
 
 In this design:
 
 - wire protocol additions are shared across both client transport variants.
-- concrete server-side enforcement lands in EventLogServerUnencrypted.makeHandler and the shared runtime created by EventLogServerUnencrypted.make.
+- concrete server-side enforcement lands in EventLogServer.makeHandler and EventLogServerUnencrypted.makeHandler, plus shared runtime state created by each make.
 - trusted key bindings are stored via the Storage service used by each concrete server type.
 - storage implementations, including SQL-backed storage, provide binding persistence for their server type but do not reimplement protocol authentication.
-- any dedicated encrypted server handler uses the same handshake semantics and protocol message shapes defined here.
+- EventLogServer and EventLogServerUnencrypted share protocol message shapes and handshake semantics, with one difference: EventLogServerUnencrypted runs a pre-bind auth read check for unknown publicKey first-auth, while EventLogServer does not.
 
 ## Context
 
 Protocol context:
 
 - EventLogRemote.fromSocket and EventLogRemote.fromSocketUnencrypted send the caller publicKey on requests.
-- EventLogServerUnencrypted.makeHandler accepts requests by publicKey and delegates read/write authorization to EventLogServerAuth.
+- EventLogServer.makeHandler and EventLogServerUnencrypted.makeHandler accept requests by publicKey and delegate read/write authorization to EventLogServerAuth.
 - session authentication requires cryptographic proof-of-possession for identity key material.
 
 Relevant code:
@@ -57,13 +60,14 @@ Relevant code:
 - packages/effect/src/unstable/eventlog/EventLog.ts defines Identity.
 - packages/effect/src/unstable/eventlog/EventLogEncryption.ts defines payload encryption behavior.
 - packages/effect/src/unstable/eventlog/EventLogRemote.ts defines wire protocols and client transports.
-- packages/effect/src/unstable/eventlog/EventLogServerUnencrypted.ts defines the server handler and authorization hooks.
+- packages/effect/src/unstable/eventlog/EventLogServer.ts defines the encrypted server handler and authorization hooks.
+- packages/effect/src/unstable/eventlog/EventLogServerUnencrypted.ts defines the unencrypted server handler and authorization hooks.
 
 ## Goals
 
 1. Require session-level cryptographic identity proof beyond publicKey.
 2. Apply one handshake design across both remote transport variants.
-3. Enforce handshake completion in EventLogServerUnencrypted.makeHandler before read/write requests.
+3. Enforce handshake completion in EventLogServer.makeHandler and EventLogServerUnencrypted.makeHandler before read/write requests.
 4. Keep read/write authorization semantics separate from identity proof.
 5. Use direct asymmetric signature verification.
 6. Enforce one trust path: trust-on-first-auth publicKey -> signingPublicKey binding.
@@ -153,7 +157,9 @@ Binding model:
 
 - trusted state maps publicKey -> signingPublicKey.
 - if a binding already exists, Authenticate must match it exactly.
-- if no binding exists, the first successful Authenticate atomically creates it.
+- if no binding exists, Authenticate atomically creates the first binding after signature/challenge verification.
+- EventLogServerUnencrypted requires a pre-bind auth read check for unknown publicKey first-auth.
+- EventLogServer does not run that pre-bind auth read check.
 - Authenticate never changes an existing binding.
 - mismatched signingPublicKey is Forbidden.
 - concurrent first-bind races for the same publicKey are resolved by the first persisted binding; losing conflicting attempts are Forbidden.
@@ -162,7 +168,7 @@ Operational requirements:
 
 - trusted bindings are persisted across restarts through the Storage service for the active server type.
 - loading bindings from Storage must fail closed (server refuses startup when required binding source is unavailable in production mode).
-- first binding creation happens during successful Authenticate; key rotation is an explicit administrative action outside normal Authenticate request handling.
+- first binding creation happens during successful Authenticate; in EventLogServerUnencrypted this occurs only after the auth read check passes. key rotation is an explicit administrative action outside normal Authenticate request handling.
 - first-bind, bind, and bind-mismatch events are audit logged.
 
 ### Transport security requirements
@@ -307,7 +313,7 @@ Payload encryption semantics are independent from session authentication.
 
 ### Runtime state
 
-EventLogServerUnencrypted.make holds shared trusted key-binding state for all handlers in the runtime:
+EventLogServer.make and EventLogServerUnencrypted.make each hold shared trusted key-binding state for all handlers in their runtime:
 
 - Map<publicKey, signingPublicKey>
 
@@ -316,7 +322,7 @@ Persistence requirement:
 - trusted bindings must be loaded from and persisted to the Storage service for that server type so first-auth trust survives restarts.
 - in-memory trusted bindings are test/local only and require explicit unsafe enable flag.
 
-Per-socket state in makeHandler:
+Per-socket state in each makeHandler:
 
 - sessionChallenge: Uint8Array
 - sessionChallengeIssuedAt: timestamp
@@ -346,11 +352,15 @@ Required behavior:
 5. verify signature with Ed25519.
    - verification failure => Forbidden.
 6. load trusted binding for request.publicKey.
-   - no trusted binding => atomically persist request.signingPublicKey as the trusted binding for request.publicKey through the server type's Storage service.
+7. if no trusted binding exists:
+   - EventLogServerUnencrypted: run an auth read check for request.publicKey via EventLogServerAuth.
+   - EventLogServerUnencrypted: auth read check failure => Forbidden and do not persist a binding.
+   - EventLogServer: skip pre-bind auth read check.
+   - atomically persist request.signingPublicKey as the trusted binding for request.publicKey through the server type's Storage service.
    - if that first-bind persistence fails because another binding won a concurrent race, reload and continue mismatch handling.
-   - trusted binding differs from request.signingPublicKey => Forbidden.
-7. mark socket authenticated for request.publicKey.
-8. return Authenticated.
+8. if trusted binding differs from request.signingPublicKey => Forbidden.
+9. mark socket authenticated for request.publicKey.
+10. return Authenticated.
 
 Failure hardening:
 
@@ -379,14 +389,17 @@ This prevents authorization/store side effects before identity proof.
 Authorization is separate from handshake proof:
 
 - do not add signature fields to authorizeWrite / authorizeRead.
-- run handshake checks first.
+- run signature/challenge handshake checks first.
+- EventLogServerUnencrypted runs authorizeRead as a pre-bind auth read check for unknown publicKey first-auth.
+- EventLogServer does not run a pre-bind auth read check.
 - post-auth authorization behavior follows the authorization contract.
 - handshake failures use Forbidden.
 
 ## Behavioral edge cases
 
 1. Unknown publicKey (no trusted binding yet)
-   - first valid Authenticate creates the binding and succeeds.
+   - EventLogServer: first valid Authenticate creates the binding and succeeds.
+   - EventLogServerUnencrypted: first valid Authenticate runs auth read check, then creates the binding and succeeds.
 2. Known publicKey with different signingPublicKey
    - Forbidden.
 3. Invalid signature with valid-looking payload
@@ -417,22 +430,24 @@ Feature is complete when:
 3. shared ProtocolError exists in both protocol variants.
 4. fromSocket authenticates once per socket session before encrypted requests.
 5. fromSocketUnencrypted authenticates once per socket session before unencrypted requests.
-6. makeHandler forbids reads/writes before auth.
+6. EventLogServer.makeHandler and EventLogServerUnencrypted.makeHandler both forbid reads/writes before auth.
 7. Authenticate verifies Ed25519 signature over canonical payload.
-8. server creates and persists publicKey -> signingPublicKey binding on first successful Authenticate for an unknown publicKey via the Storage service for that server type.
-9. existing bindings must match exactly; mismatches are rejected (Forbidden).
-10. binding persistence via Storage is required for production mode.
-11. challenge TTL and single-use rules are enforced.
-12. one socket session binds to one publicKey.
-13. read/write authorization is separate from handshake proof.
-14. handshake failures use Forbidden.
-15. request payload schemas for reads/writes contain no handshake-specific fields.
+8. EventLogServerUnencrypted runs an auth read check before creating and persisting publicKey -> signingPublicKey binding on first successful Authenticate for an unknown publicKey.
+9. EventLogServer creates and persists publicKey -> signingPublicKey binding on first successful Authenticate for an unknown publicKey without a pre-bind auth read check.
+10. existing bindings must match exactly; mismatches are rejected (Forbidden).
+11. binding persistence via Storage is required for production mode.
+12. challenge TTL and single-use rules are enforced.
+13. one socket session binds to one publicKey.
+14. read/write authorization remains separate from handshake proof; only EventLogServerUnencrypted performs the pre-bind auth read check for unknown publicKey first-auth.
+15. handshake failures use Forbidden.
+16. request payload schemas for reads/writes contain no handshake-specific fields.
 
 ## Testing strategy
 
 ### Test files
 
 - packages/effect/test/unstable/eventlog/EventLogRemote.test.ts
+- packages/effect/test/unstable/eventlog/EventLogServer.test.ts
 - packages/effect/test/unstable/eventlog/EventLogServerUnencrypted.test.ts
 
 ### Required test coverage
@@ -456,21 +471,30 @@ Feature is complete when:
 1. Hello includes challenge.
 2. non-auth requests before Authenticate receive Forbidden.
 3. unauthenticated StopChanges receives Forbidden.
-4. valid first-time Authenticate signature for an unknown publicKey creates a trusted binding and unlocks requests on that session.
-5. valid Authenticate signature with a matching trusted binding succeeds and unlocks requests on that session.
-6. invalid signature returns Forbidden.
-7. mismatched signingPublicKey for known publicKey returns Forbidden.
-8. concurrent first-auth attempts for the same publicKey with different signingPublicKey values allow only one binding to win.
-9. challenge TTL expiry returns Forbidden.
-10. replayed signature from older challenge returns Forbidden.
-11. authenticated socket rejects read/write with different publicKey.
-12. authorizeWrite / authorizeRead are not called before auth succeeds.
-13. post-auth authorization behavior follows the authorization contract.
-14. production mode refuses startup when the required Storage-backed binding persistence is unavailable.
+4. valid Authenticate signature with a matching trusted binding succeeds and unlocks requests on that session.
+5. invalid signature returns Forbidden.
+6. mismatched signingPublicKey for known publicKey returns Forbidden.
+7. concurrent first-auth attempts for the same publicKey with different signingPublicKey values allow only one binding to win.
+8. challenge TTL expiry returns Forbidden.
+9. replayed signature from older challenge returns Forbidden.
+10. authenticated socket rejects read/write with different publicKey.
+11. post-auth authorization behavior follows the authorization contract.
+12. production mode refuses startup when the required Storage-backed binding persistence is unavailable.
+
+#### EventLogServerUnencrypted-specific tests
+
+1. valid first-time Authenticate signature for an unknown publicKey runs auth read check, creates a trusted binding, and unlocks requests on that session.
+2. failed auth read check for an unknown publicKey returns Forbidden and does not persist a trusted binding.
+3. authorizeWrite is not called before auth succeeds, and authorizeRead is only called pre-auth for the unknown-key first-bind auth read check.
+
+#### EventLogServer-specific tests
+
+1. valid first-time Authenticate signature for an unknown publicKey creates a trusted binding without a pre-bind auth read check and unlocks requests on that session.
+2. authorizeWrite and authorizeRead are not called before auth succeeds, including unknown-key first-bind Authenticate handling.
 
 ### Test helper guidance
 
-- use existing socket harness style in both eventlog test files.
+- use existing socket harness style in eventlog server test files.
 - add shared helpers for canonical payload encoding and Ed25519 test signing.
 - keep tests in it.effect style.
 
@@ -482,12 +506,14 @@ Feature is complete when:
    - add Identity signing key fields and constructors/codecs
    - add client session-auth logic to fromSocket and fromSocketUnencrypted
    - add server signature verification, request gating, trust-on-first-auth binding creation/checks, and Storage-service integration hooks for each server type
+   - enforce the server-type difference for unknown publicKey first-bind: EventLogServerUnencrypted runs pre-bind auth read check, EventLogServer does not
    - add server config for safe defaults (Storage-backed binding persistence required in production, unsafe unencrypted mode opt-in)
    - add remote/server tests for handshake correctness and hardening behaviors
 
 2. Validation and cleanup
    - run pnpm lint-fix
    - run pnpm test packages/effect/test/unstable/eventlog/EventLogRemote.test.ts
+   - run pnpm test packages/effect/test/unstable/eventlog/EventLogServer.test.ts
    - run pnpm test packages/effect/test/unstable/eventlog/EventLogServerUnencrypted.test.ts
    - run pnpm check:tsgo
    - run pnpm docgen
@@ -497,6 +523,7 @@ Feature is complete when:
 
 - pnpm lint-fix
 - pnpm test packages/effect/test/unstable/eventlog/EventLogRemote.test.ts
+- pnpm test packages/effect/test/unstable/eventlog/EventLogServer.test.ts
 - pnpm test packages/effect/test/unstable/eventlog/EventLogServerUnencrypted.test.ts
 - pnpm check:tsgo
 - pnpm docgen
