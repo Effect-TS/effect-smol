@@ -40,7 +40,29 @@ export class EventLogRemote extends ServiceMap.Service<EventLogRemote, {
  */
 export class Hello extends Schema.Class<Hello>("effect/eventlog/EventLogRemote/Hello")({
   _tag: Schema.tag("Hello"),
-  remoteId: RemoteId
+  remoteId: RemoteId,
+  challenge: Schema.Uint8Array
+}) {}
+
+/**
+ * @since 4.0.0
+ * @category protocol
+ */
+export class Authenticate extends Schema.Class<Authenticate>("effect/eventlog/EventLogRemote/Authenticate")({
+  _tag: Schema.tag("Authenticate"),
+  publicKey: Schema.String,
+  signingPublicKey: Schema.Uint8Array,
+  signature: Schema.Uint8Array,
+  algorithm: Schema.Literal("Ed25519")
+}) {}
+
+/**
+ * @since 4.0.0
+ * @category protocol
+ */
+export class Authenticated extends Schema.Class<Authenticated>("effect/eventlog/EventLogRemote/Authenticated")({
+  _tag: Schema.tag("Authenticated"),
+  publicKey: Schema.String
 }) {}
 
 /**
@@ -208,8 +230,8 @@ export class Pong extends Schema.Class<Pong>("effect/eventlog/EventLogRemote/Pon
  * @since 4.0.0
  * @category protocol
  */
-export class ErrorUnencrypted extends Schema.Class<ErrorUnencrypted>(
-  "effect/eventlog/EventLogRemote/ErrorUnencrypted"
+export class ProtocolError extends Schema.Class<ProtocolError>(
+  "effect/eventlog/EventLogRemote/ProtocolError"
 )({
   _tag: Schema.tag("Error"),
   requestTag: Schema.String,
@@ -223,13 +245,21 @@ export class ErrorUnencrypted extends Schema.Class<ErrorUnencrypted>(
  * @since 4.0.0
  * @category protocol
  */
-export const ProtocolRequest = Schema.Union([WriteEntries, RequestChanges, StopChanges, ChunkedMessage, Ping])
+export const ProtocolRequest = Schema.Union([
+  Authenticate,
+  WriteEntries,
+  RequestChanges,
+  StopChanges,
+  ChunkedMessage,
+  Ping
+])
 
 /**
  * @since 4.0.0
  * @category protocol
  */
 export const ProtocolRequestUnencrypted = Schema.Union([
+  Authenticate,
   WriteEntriesUnencrypted,
   RequestChanges,
   StopChanges,
@@ -277,7 +307,7 @@ export const encodeRequestUnencrypted = Schema.encodeUnknownEffect(ProtocolReque
  * @since 4.0.0
  * @category protocol
  */
-export const ProtocolResponse = Schema.Union([Hello, Ack, Changes, ChunkedMessage, Pong])
+export const ProtocolResponse = Schema.Union([Hello, Authenticated, Ack, Changes, ChunkedMessage, Pong, ProtocolError])
 
 /**
  * @since 4.0.0
@@ -303,11 +333,12 @@ export const encodeResponse = Schema.encodeUnknownEffect(ProtocolResponseMsgpack
  */
 export const ProtocolResponseUnencrypted = Schema.Union([
   Hello,
+  Authenticated,
   Ack,
   ChangesUnencrypted,
   ChunkedMessage,
   Pong,
-  ErrorUnencrypted
+  ProtocolError
 ])
 
 /**
@@ -427,6 +458,9 @@ export const fromSocket = (options?: {
         case "Hello": {
           return Deferred.succeed(remoteId, res.remoteId).pipe(Effect.asVoid)
         }
+        case "Authenticated": {
+          return Effect.void
+        }
         case "Ack": {
           return Effect.gen(function*() {
             const entry = pending.get(res.id)
@@ -471,6 +505,9 @@ export const fromSocket = (options?: {
           return Effect.scoped(
             Effect.flatMap(decodeResponse(data), handleMessage)
           )
+        }
+        case "Error": {
+          return Effect.void
         }
       }
     }
@@ -603,6 +640,9 @@ export const fromSocketUnencrypted = Effect.fnUntraced(function*(options?: {
     switch (res._tag) {
       case "Hello": {
         return Deferred.succeed(remoteId, res.remoteId).pipe(Effect.asVoid)
+      }
+      case "Authenticated": {
+        return Effect.void
       }
       case "Ack": {
         return Effect.gen(function*() {

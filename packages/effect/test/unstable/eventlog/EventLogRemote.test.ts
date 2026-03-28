@@ -70,7 +70,12 @@ const makeSocketHarness = Effect.gen(function*() {
 const makeRemoteHarness = Effect.gen(function*() {
   const harness = yield* makeSocketHarness
   const remoteId = EventJournal.makeRemoteIdUnsafe()
-  yield* harness.sendResponse(new EventLogRemote.Hello({ remoteId }))
+  yield* harness.sendResponse(
+    new EventLogRemote.Hello({
+      remoteId,
+      challenge: new Uint8Array(32)
+    })
+  )
   const remote = yield* EventLogRemote.fromSocketUnencrypted({ disablePing: true }).pipe(
     Effect.provideService(Socket.Socket, harness.socket)
   )
@@ -115,7 +120,7 @@ describe("EventLogRemote", () => {
         }
 
         yield* harness.sendResponse(
-          new EventLogRemote.ErrorUnencrypted({
+          new EventLogRemote.ProtocolError({
             requestTag: "WriteEntries",
             id: request.id,
             publicKey: request.publicKey,
@@ -144,7 +149,7 @@ describe("EventLogRemote", () => {
         }
 
         yield* harness.sendResponse(
-          new EventLogRemote.ErrorUnencrypted({
+          new EventLogRemote.ProtocolError({
             requestTag: "RequestChanges",
             publicKey: identity.publicKey,
             code: "Unauthorized",
@@ -171,7 +176,7 @@ describe("EventLogRemote", () => {
         }
 
         yield* harness.sendResponse(
-          new EventLogRemote.ErrorUnencrypted({
+          new EventLogRemote.ProtocolError({
             requestTag: "RequestChanges",
             publicKey: identity.publicKey,
             code: "Unauthorized",

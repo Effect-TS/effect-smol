@@ -41,9 +41,9 @@ import {
   ChunkedMessage,
   decodeRequestUnencrypted,
   encodeResponseUnencrypted,
-  ErrorUnencrypted,
   Hello,
   Pong,
+  ProtocolError,
   type ProtocolRequestUnencrypted,
   type ProtocolResponseUnencrypted
 } from "./EventLogRemote.ts"
@@ -972,7 +972,7 @@ export const makeHandler: Effect.Effect<
         readonly error: EventLogServerAuthError | EventLogServerStoreError
       }) {
         yield* Effect.orDie(write(
-          new ErrorUnencrypted({
+          new ProtocolError({
             requestTag: options.requestTag,
             id: options.id,
             publicKey: options.publicKey,
@@ -982,7 +982,12 @@ export const makeHandler: Effect.Effect<
         ))
       })
 
-      yield* Effect.forkChild(Effect.orDie(write(new Hello({ remoteId }))))
+      yield* Effect.forkChild(Effect.orDie(write(
+        new Hello({
+          remoteId,
+          challenge: new Uint8Array(32)
+        })
+      )))
 
       const handleRequest = (
         request: Schema.Schema.Type<typeof ProtocolRequestUnencrypted>
@@ -990,6 +995,9 @@ export const makeHandler: Effect.Effect<
         switch (request._tag) {
           case "Ping": {
             return Effect.orDie(write(new Pong({ id: request.id })))
+          }
+          case "Authenticate": {
+            return Effect.void
           }
           case "WriteEntries": {
             return runtime.ingest({

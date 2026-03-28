@@ -500,30 +500,48 @@ Feature is complete when:
 
 ## Implementation plan
 
-1. Implement asymmetric session-auth protocol end-to-end in one atomic commit
-   - add Hello.challenge, Authenticate, Authenticated, shared ProtocolError protocol types and codec changes
-   - add canonical payload encode + Ed25519 sign/verify helpers
-   - add Identity signing key fields and constructors/codecs
-   - add client session-auth logic to fromSocket and fromSocketUnencrypted
-   - add server signature verification, request gating, trust-on-first-auth binding creation/checks, and Storage-service integration hooks for each server type
-   - enforce the server-type difference for unknown publicKey first-bind: EventLogServerUnencrypted runs pre-bind auth read check, EventLogServer does not
-   - add server config for safe defaults (Storage-backed binding persistence required in production, unsafe unencrypted mode opt-in)
-   - add remote/server tests for handshake correctness and hardening behaviors
+### Phase 1 — protocol schema and union wiring
 
-2. Validation and cleanup
-   - run pnpm lint-fix
-   - run pnpm test packages/effect/test/unstable/eventlog/EventLogRemote.test.ts
-   - run pnpm test packages/effect/test/unstable/eventlog/EventLogServer.test.ts
-   - run pnpm test packages/effect/test/unstable/eventlog/EventLogServerUnencrypted.test.ts
-   - run pnpm check:tsgo
-   - run pnpm docgen
-   - refresh protocol docs and inline comments where needed
+- [x] add `Hello.challenge` to `EventLogRemote.Hello`
+- [x] add shared `Authenticate` request schema
+- [x] add shared `Authenticated` response schema
+- [x] replace unencrypted-only error schema with shared `ProtocolError`
+- [x] wire `Authenticate` into both request unions
+- [x] wire `Authenticated` + `ProtocolError` into both response unions
+- [x] update immediate call sites/tests impacted by the union changes (constructor fields and discriminated-union switch coverage)
+
+### Discovery / implementation notes (current task)
+
+- Introducing `Authenticate` / `Authenticated` / `ProtocolError` into shared unions required temporary no-op branches in existing client/server request-response switches so type checking remains exhaustive before handshake execution logic is implemented.
+- `Hello.challenge` is now schema-required; current handlers/harnesses send a placeholder 32-byte challenge value. Fresh random challenge generation and challenge lifecycle enforcement are deferred to the handshake-logic phase.
+- The validation command listed for `packages/effect/test/unstable/eventlog/EventLogServer.test.ts` currently targets a non-existent file in this repository. For this task, validation used the existing eventlog suites (`EventLogRemote.test.ts`, `EventLogServerUnencrypted.test.ts`, and `EventLog.test.ts`).
+
+### Phase 2 — handshake execution and trust binding (pending)
+
+- [ ] add canonical auth payload encode + Ed25519 sign/verify helpers
+- [ ] add client session-auth flow to `fromSocket` and `fromSocketUnencrypted`
+- [ ] add server auth gating / signature verification in `EventLogServer.makeHandler` and `EventLogServerUnencrypted.makeHandler`
+- [ ] add trust-on-first-auth binding load/store integration via each server `Storage` service
+- [ ] enforce server-type first-bind behavior difference (unencrypted pre-bind auth read check; encrypted none)
+- [ ] add remaining remote/server handshake tests and hardening coverage
+
+### Phase 3 — validation and cleanup
+
+- [x] run `pnpm lint-fix`
+- [x] run `pnpm test packages/effect/test/unstable/eventlog/EventLogRemote.test.ts`
+- [x] run `pnpm test packages/effect/test/unstable/eventlog/EventLogServerUnencrypted.test.ts`
+- [x] run `pnpm test packages/effect/test/unstable/eventlog/EventLog.test.ts` (existing related suite)
+- [x] run `pnpm test packages/effect/test/unstable/eventlog/EventLogServer.test.ts` (attempted; file currently not present)
+- [x] run `pnpm check:tsgo`
+- [x] run `pnpm docgen`
+- [x] refresh protocol docs and inline comments where needed
 
 ## Validation checklist
 
-- pnpm lint-fix
-- pnpm test packages/effect/test/unstable/eventlog/EventLogRemote.test.ts
-- pnpm test packages/effect/test/unstable/eventlog/EventLogServer.test.ts
-- pnpm test packages/effect/test/unstable/eventlog/EventLogServerUnencrypted.test.ts
-- pnpm check:tsgo
-- pnpm docgen
+- [x] pnpm lint-fix
+- [x] pnpm test packages/effect/test/unstable/eventlog/EventLogRemote.test.ts
+- [x] pnpm test packages/effect/test/unstable/eventlog/EventLogServer.test.ts (attempted; file currently not present)
+- [x] pnpm test packages/effect/test/unstable/eventlog/EventLogServerUnencrypted.test.ts
+- [x] pnpm test packages/effect/test/unstable/eventlog/EventLog.test.ts (additional related coverage)
+- [x] pnpm check:tsgo
+- [x] pnpm docgen
