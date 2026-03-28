@@ -849,18 +849,42 @@ export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E,
  * The factory is evaluated only when the suspended layer is first built, and
  * the result is memoized with normal layer sharing semantics.
  *
+ * This is useful for defining lazy `defaultLayer` values that wire together
+ * other layers.
+ *
  * @example
  * ```ts
  * import { Effect, Layer, ServiceMap } from "effect"
  *
- * class Database extends ServiceMap.Service<Database, {
- *   readonly query: (sql: string) => Effect.Effect<string>
- * }>()("Database") {}
+ * class Config extends ServiceMap.Service<Config, {
+ *   readonly baseUrl: string
+ * }>()("Config") {}
  *
- * const layer = Layer.suspend(() =>
- *   Layer.succeed(Database)({
- *     query: Effect.fn("Database.query")((sql: string) => Effect.succeed(`Query: ${sql}`))
+ * class Plugin extends ServiceMap.Service<Plugin, {
+ *   readonly enabled: boolean
+ * }>()("Plugin") {}
+ *
+ * class Registry extends ServiceMap.Service<Registry, {
+ *   readonly list: Effect.Effect<ReadonlyArray<string>>
+ * }>()("Registry") {}
+ *
+ * const registryLayer = Layer.effect(
+ *   Registry,
+ *   Effect.gen(function*() {
+ *     const config = yield* Config
+ *     const plugin = yield* Plugin
+ *
+ *     return Registry.of({
+ *       list: Effect.succeed(plugin.enabled ? [config.baseUrl] : [])
+ *     })
  *   })
+ * )
+ *
+ * const defaultLayer = Layer.suspend(() =>
+ *   registryLayer.pipe(
+ *     Layer.provide(Layer.succeed(Config)({ baseUrl: "https://example.com" })),
+ *     Layer.provide(Layer.succeed(Plugin)({ enabled: true }))
+ *   )
  * )
  * ```
  *
