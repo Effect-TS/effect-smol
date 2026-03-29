@@ -8,6 +8,7 @@ import * as Inspectable from "effect/Inspectable"
 import * as Layer from "effect/Layer"
 import * as Pipeable from "effect/Pipeable"
 import * as ServiceMap from "effect/ServiceMap"
+import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import * as Utils from "effect/Utils"
 import * as IndexedDb from "./IndexedDb.ts"
 import * as IndexedDbQueryBuilder from "./IndexedDbQueryBuilder.ts"
@@ -78,6 +79,7 @@ export class IndexedDbDatabase extends ServiceMap.Service<
   {
     readonly database: globalThis.IDBDatabase
     readonly IDBKeyRange: typeof globalThis.IDBKeyRange
+    readonly reactivity: Reactivity.Reactivity["Service"]
   }
 >()(TypeId) {}
 
@@ -248,12 +250,13 @@ export const make = <
         previous: Initial as any
       })
     ;(Initial as any).getQueryBuilder = Effect.gen(function*() {
-      const { IDBKeyRange, database } = yield* IndexedDbDatabase
+      const { IDBKeyRange, database, reactivity } = yield* IndexedDbDatabase
       return IndexedDbQueryBuilder.make({
         database,
         IDBKeyRange,
         tables: initialVersion.tables,
-        transaction: undefined
+        transaction: undefined,
+        reactivity
       })
     })
     ;(Initial as any).asEffect = function() {
@@ -291,12 +294,13 @@ const makeProto = <
     ;(Migration as any).migrate = options.migrate
     ;(Migration as any)._tag = "Migration"
     ;(Migration as any).getQueryBuilder = Effect.gen(function*() {
-      const { IDBKeyRange, database } = yield* IndexedDbDatabase
+      const { IDBKeyRange, database, reactivity } = yield* IndexedDbDatabase
       return IndexedDbQueryBuilder.make({
         database,
         IDBKeyRange,
         tables: options.version.tables,
-        transaction: undefined
+        transaction: undefined,
+        reactivity
       })
     })
     ;(Migration as any).asEffect = function() {
@@ -317,6 +321,7 @@ const layer = <DatabaseName extends string>(
     IndexedDbDatabase,
     Effect.gen(function*() {
       const { IDBKeyRange, indexedDB } = yield* IndexedDb.IndexedDb
+      const reactivity = yield* Reactivity.Reactivity
       const serviceMap = yield* Effect.services()
       const runForkWith = Effect.runForkWith(serviceMap)
 
@@ -407,7 +412,8 @@ const layer = <DatabaseName extends string>(
                       database,
                       IDBKeyRange,
                       tables: migration.version.tables,
-                      transaction
+                      transaction,
+                      reactivity
                     })
                     return (migration as any).migrate(api) as Effect.Effect<
                       void,
@@ -419,13 +425,15 @@ const layer = <DatabaseName extends string>(
                       database,
                       IDBKeyRange,
                       tables: migration.fromVersion.tables,
-                      transaction
+                      transaction,
+                      reactivity
                     })
                     const toApi = makeTransactionProto({
                       database,
                       IDBKeyRange,
                       tables: migration.version.tables,
-                      transaction
+                      transaction,
+                      reactivity
                     })
                     return migration.migrate(fromApi, toApi) as Effect.Effect<
                       void,
@@ -464,8 +472,10 @@ const layer = <DatabaseName extends string>(
         (database) => Effect.sync(() => database.close())
       )
 
-      return { database, IDBKeyRange }
+      return IndexedDbDatabase.of({ database, IDBKeyRange, reactivity })
     })
+  ).pipe(
+    Layer.provide(Reactivity.layer)
   )
 
 // -----------------------------------------------------------------------------
@@ -480,18 +490,21 @@ const makeTransactionProto = <Source extends IndexedDbVersion.AnyWithProps>({
   IDBKeyRange,
   database,
   tables,
-  transaction
+  transaction,
+  reactivity
 }: {
   readonly database: globalThis.IDBDatabase
   readonly IDBKeyRange: typeof globalThis.IDBKeyRange
   readonly tables: ReadonlyMap<string, IndexedDbVersion.Tables<Source>>
   readonly transaction: globalThis.IDBTransaction
+  readonly reactivity: Reactivity.Reactivity["Service"]
 }): Transaction<Source> => {
   const migration = IndexedDbQueryBuilder.make({
     database,
     IDBKeyRange,
     tables,
-    transaction
+    transaction,
+    reactivity
   }) as any
 
   migration.transaction = transaction

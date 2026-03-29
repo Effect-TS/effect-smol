@@ -1,6 +1,6 @@
 import { IndexedDb, IndexedDbDatabase, IndexedDbTable, IndexedDbVersion } from "@effect/platform-browser"
 import { afterEach, assert, describe, it } from "@effect/vitest"
-import { DateTime, Effect, Layer, Option, Schema, SchemaGetter, SchemaIssue, ServiceMap } from "effect"
+import { DateTime, Effect, Fiber, Layer, Option, Schema, SchemaGetter, SchemaIssue, ServiceMap, Stream } from "effect"
 import { IDBKeyRange, indexedDB } from "fake-indexeddb"
 
 const databaseName = "db"
@@ -1287,6 +1287,33 @@ describe.sequential("IndexedDbQueryBuilder", () => {
         count: 2,
         completed: false
       }])
+    }).pipe(provideDb(Db))
+  })
+
+  it.effect("reactive", () => {
+    class Db extends IndexedDbDatabase.make(
+      V1,
+      Effect.fn(function*(api) {
+        yield* api.createObjectStore("todo")
+        yield* api.createIndex("todo", "titleIndex")
+        yield* api.createIndex("todo", "countIndex")
+        yield* api.from("todo").insertAll([
+          { id: 1, title: "test1", count: 1, completed: false },
+          { id: 2, title: "test2", count: 2, completed: false },
+          { id: 3, title: "test3", count: 3, completed: false }
+        ])
+      })
+    ) {}
+
+    return Effect.gen(function*() {
+      const api = yield* Db
+      const data = yield* api.from("todo").select().reactive(["todos"]).pipe(
+        Stream.take(2),
+        Stream.runCollect,
+        Effect.forkChild({ startImmediately: true })
+      )
+      yield* api.from("todo").insert({ id: 4, title: "test4", count: 4, completed: false }).invalidate(["todos"])
+      yield* Fiber.join(data)
     }).pipe(provideDb(Db))
   })
 })

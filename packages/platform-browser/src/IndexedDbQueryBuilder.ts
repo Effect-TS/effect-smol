@@ -7,9 +7,14 @@ import * as Effect from "effect/Effect"
 import type { Inspectable } from "effect/Inspectable"
 import { BaseProto } from "effect/Inspectable"
 import * as Pipeable from "effect/Pipeable"
+import type * as Queue from "effect/Queue"
+import type * as Record from "effect/Record"
 import * as Schema from "effect/Schema"
 import * as SchemaIssue from "effect/SchemaIssue"
 import * as SchemaParser from "effect/SchemaParser"
+import type * as Scope from "effect/Scope"
+import type * as Stream from "effect/Stream"
+import type * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import * as Utils from "effect/Utils"
 import type * as IndexedDb from "./IndexedDb.ts"
 import type * as IndexedDbDatabase from "./IndexedDbDatabase.ts"
@@ -69,6 +74,7 @@ export interface IndexedDbQueryBuilder<
 > extends Pipeable.Pipeable, Inspectable {
   readonly tables: ReadonlyMap<string, IndexedDbVersion.Tables<Source>>
   readonly database: globalThis.IDBDatabase
+  readonly reactivity: Reactivity.Reactivity["Service"]
   readonly IDBKeyRange: typeof globalThis.IDBKeyRange
   readonly IDBTransaction: globalThis.IDBTransaction | undefined
 
@@ -202,6 +208,7 @@ export declare namespace IndexedDbQuery {
     readonly database: globalThis.IDBDatabase
     readonly IDBKeyRange: typeof globalThis.IDBKeyRange
     readonly transaction?: globalThis.IDBTransaction
+    readonly reactivity: Reactivity.Reactivity["Service"]
 
     readonly clear: Effect.Effect<void, IndexedDbQueryError>
 
@@ -443,6 +450,10 @@ export declare namespace IndexedDbQuery {
     readonly filter: (
       f: (value: IndexedDbTable.Encoded<Table>) => boolean
     ) => Delete<Table, Index>
+
+    readonly invalidate: (
+      keys: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>>
+    ) => Effect.Effect<void, IndexedDbQueryError, IndexedDbTable.Context<Table>>
   }
 
   /**
@@ -526,6 +537,21 @@ export declare namespace IndexedDbQuery {
     ) => Select<Table, Index>
 
     readonly first: () => First<Table, Index>
+
+    readonly reactive: (
+      keys: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>>
+    ) => Stream.Stream<
+      Array<SourceTableSelectSchemaType<Table>>,
+      IndexedDbQueryError,
+      IndexedDbTable.Context<Table>
+    >
+    readonly reactiveQueue: (
+      keys: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>>
+    ) => Effect.Effect<
+      Queue.Dequeue<Array<SourceTableSelectSchemaType<Table>>, IndexedDbQueryError>,
+      never,
+      Scope.Scope | IndexedDbTable.Context<Table>
+    >
   }
 
   /**
@@ -585,6 +611,9 @@ export declare namespace IndexedDbQuery {
     readonly operation: "add" | "put"
     readonly from: From<Table>
     readonly value: ModifyWithKey<Table>
+    readonly invalidate: (
+      keys: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>>
+    ) => Effect.Effect<globalThis.IDBValidKey, IndexedDbQueryError, IndexedDbTable.Context<Table>>
   }
 
   /**
@@ -604,6 +633,9 @@ export declare namespace IndexedDbQuery {
     readonly operation: "add" | "put"
     readonly from: From<Table>
     readonly values: Array<ModifyWithKey<Table>>
+    readonly invalidate: (
+      keys: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>>
+    ) => Effect.Effect<Array<globalThis.IDBValidKey>, IndexedDbQueryError, IndexedDbTable.Context<Table>>
   }
 }
 
@@ -1194,6 +1226,7 @@ const FromProto: Omit<
   | "database"
   | "IDBKeyRange"
   | "transaction"
+  | "reactivity"
 > = {
   ...CommonProto,
   select<Index extends IndexedDbDatabase.IndexFromTable<any>>(
@@ -1252,12 +1285,14 @@ const makeFrom = <
   readonly database: globalThis.IDBDatabase
   readonly IDBKeyRange: typeof globalThis.IDBKeyRange
   readonly transaction: globalThis.IDBTransaction | undefined
+  readonly reactivity: Reactivity.Reactivity["Service"]
 }): IndexedDbQuery.From<Table> => {
   const self = Object.create(FromProto)
   self.table = options.table
   self.database = options.database
   self.IDBKeyRange = options.IDBKeyRange
   self.transaction = options.transaction
+  self.reactivity = options.reactivity
   return self
 }
 
@@ -1422,6 +1457,12 @@ const DeleteProto: Omit<
       delete: this.delete,
       predicate: prev ? (item) => prev(item) && filter(item) : filter
     })
+  },
+  invalidate(
+    this: IndexedDbQuery.Delete<any, never>,
+    keys: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>>
+  ) {
+    return this.delete.from.reactivity.mutation(keys, this.asEffect())
   }
 }
 
@@ -1606,11 +1647,9 @@ const SelectProto: Omit<
   },
   lt(this: IndexedDbQuery.Select<any, never>, value: IndexedDbQuery.ExtractIndexType<any, never>) {
     return makeSelect({
-      from: this.from,
-      index: this.index,
+      ...this,
       upperBound: value,
-      excludeUpperBound: true,
-      limitValue: this.limitValue
+      excludeUpperBound: true
     })
   },
   between(
@@ -1639,6 +1678,18 @@ const SelectProto: Omit<
   },
   asEffect(this: IndexedDbQuery.Select<any, never>) {
     return getSelect(this) as any
+  },
+  reactive(
+    this: IndexedDbQuery.Select<any, never>,
+    keys: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>>
+  ) {
+    return this.from.reactivity.stream(keys, this.asEffect())
+  },
+  reactiveQueue(
+    this: IndexedDbQuery.Select<any, never>,
+    keys: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>>
+  ) {
+    return this.from.reactivity.query(keys, this.asEffect())
   }
 }
 
@@ -1703,6 +1754,12 @@ const ModifyProto: Omit<
   ...CommonProto,
   asEffect(this: IndexedDbQuery.Modify<any>) {
     return applyModify({ query: this, value: this.value }) as any
+  },
+  invalidate(
+    this: IndexedDbQuery.Modify<any>,
+    keys: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>>
+  ) {
+    return this.from.reactivity.mutation(keys, this.asEffect())
   }
 }
 
@@ -1727,6 +1784,12 @@ const ModifyAllProto: Omit<
   ...CommonProto,
   asEffect(this: IndexedDbQuery.ModifyAll<any>) {
     return applyModifyAll({ query: this, values: this.values }) as any
+  },
+  invalidate(
+    this: IndexedDbQuery.ModifyAll<any>,
+    keys: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>>
+  ) {
+    return this.from.reactivity.mutation(keys, this.asEffect())
   }
 }
 
@@ -1750,6 +1813,7 @@ const QueryBuilderProto: Omit<
   | "database"
   | "IDBKeyRange"
   | "IDBTransaction"
+  | "reactivity"
 > = {
   ...CommonProto,
   use(this: IndexedDbQueryBuilder<any>, f: (database: globalThis.IDBDatabase) => Promise<any>) {
@@ -1767,7 +1831,8 @@ const QueryBuilderProto: Omit<
       database: this.database,
       IDBKeyRange: this.IDBKeyRange,
       table: this.tables.get(table)!,
-      transaction: this.IDBTransaction
+      transaction: this.IDBTransaction,
+      reactivity: this.reactivity
     }) as any
   },
   get clearAll() {
@@ -1796,7 +1861,8 @@ const QueryBuilderProto: Omit<
           database: this.database,
           IDBKeyRange: this.IDBKeyRange,
           table: this.tables.get(table) as any,
-          transaction
+          transaction,
+          reactivity: this.reactivity
         })
     })
   }) as any
@@ -1810,16 +1876,19 @@ export const make = <Source extends IndexedDbVersion.AnyWithProps>({
   IDBKeyRange,
   database,
   tables,
-  transaction
+  transaction,
+  reactivity
 }: {
   readonly database: globalThis.IDBDatabase
   readonly IDBKeyRange: typeof globalThis.IDBKeyRange
   readonly tables: ReadonlyMap<string, IndexedDbVersion.Tables<Source>>
   readonly transaction: globalThis.IDBTransaction | undefined
+  readonly reactivity: Reactivity.Reactivity["Service"]
 }): IndexedDbQueryBuilder<Source> => {
   const self = Object.create(QueryBuilderProto)
   self.tables = tables
   self.database = database
+  self.reactivity = reactivity
   self.IDBKeyRange = IDBKeyRange
   self.IDBTransaction = transaction
   return self
