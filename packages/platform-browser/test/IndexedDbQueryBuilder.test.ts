@@ -1063,19 +1063,21 @@ describe.sequential("IndexedDbQueryBuilder", () => {
           yield* api.createIndex("todo", "countIndex")
           yield* api.from("todo").insertAll([
             { id: 10, title: "insert1", count: 10, completed: true },
-            { id: 11, title: "insert2", count: 11, completed: true }
+            { id: 11, title: "insert2", count: 11, completed: true },
+            { id: 12, title: "insert3", count: 12, completed: true }
           ])
         })
       ) {}
 
       return Effect.gen(function*() {
         const api = yield* Db.getQueryBuilder
-        yield* api.from("todo").delete().limit(1)
+        yield* api.from("todo").delete().limit(2)
         const data = yield* api.from("todo").select()
+        console.log(data)
 
         assert.equal(data.length, 1)
         assert.deepStrictEqual(data, [
-          { id: 11, title: "insert2", count: 11, completed: true }
+          { id: 12, title: "insert3", count: 12, completed: true }
         ])
       }).pipe(provideDb(Db))
     })

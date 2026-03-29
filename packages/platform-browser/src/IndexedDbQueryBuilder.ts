@@ -18,21 +18,19 @@ import type * as IndexedDbDatabase from "./IndexedDbDatabase.ts"
 import type * as IndexedDbTable from "./IndexedDbTable.ts"
 import type * as IndexedDbVersion from "./IndexedDbVersion.ts"
 
-const TypeId = "~@effect/platform-browser/IndexedDbQueryBuilder"
 const ErrorTypeId = "~@effect/platform-browser/IndexedDbQueryBuilder/IndexedDbQueryError"
 
-const YieldableProto = {
+const CommonProto = {
   [Symbol.iterator]() {
     return new Utils.SingleShotGen(this) as any
-  }
-}
-
-const PipeInspectableProto = {
+  },
   pipe() {
     return pipeArguments(this, arguments)
   },
   toJSON(this: any) {
-    return { ...this }
+    return {
+      _id: "IndexedDbQueryBuilder"
+    }
   },
   toString() {
     return format(this, { ignoreToString: true })
@@ -40,14 +38,6 @@ const PipeInspectableProto = {
   [NodeInspectSymbol]() {
     return this.toJSON()
   }
-}
-
-const CommonProto = {
-  [TypeId]: {
-    _A: (_: never) => _
-  },
-  ...PipeInspectableProto,
-  ...YieldableProto
 }
 
 /**
@@ -406,6 +396,7 @@ export declare namespace IndexedDbQuery {
     readonly upperBound?: ExtractIndexType<Table, Index>
     readonly excludeLowerBound?: boolean
     readonly excludeUpperBound?: boolean
+    readonly predicate?: (item: IndexedDbTable.Encoded<Table>) => boolean
 
     readonly equals: (
       value: ExtractIndexType<Table, Index>
@@ -457,6 +448,10 @@ export declare namespace IndexedDbQuery {
       Delete<Table, Index>,
       "limit" | "equals" | "gte" | "lte" | "gt" | "lt" | "between"
     >
+
+    readonly filter: (
+      f: (value: IndexedDbTable.Encoded<Table>) => boolean
+    ) => Delete<Table, Index>
   }
 
   /**
@@ -643,11 +638,10 @@ const applyDelete = (query: IndexedDbQuery.Delete<any, never>) =>
   Effect.callback<any, IndexedDbQueryError>((resume) => {
     const database = query.delete.from.database
     const IDBKeyRange = query.delete.from.IDBKeyRange
-    const transaction = query.delete.from.transaction
-    const objectStore = (
-      transaction ??
-        database.transaction([query.delete.from.table.tableName], "readwrite")
-    ).objectStore(query.delete.from.table.tableName)
+    let transaction = query.delete.from.transaction
+    transaction ??= database.transaction([query.delete.from.table.tableName], "readwrite")
+    const objectStore = transaction.objectStore(query.delete.from.table.tableName)
+    const predicate = query.predicate
 
     let keyRange: globalThis.IDBKeyRange | undefined = undefined
 
@@ -677,7 +671,7 @@ const applyDelete = (query: IndexedDbQuery.Delete<any, never>) =>
 
     let request: globalThis.IDBRequest
 
-    if (query.limitValue !== undefined) {
+    if (query.limitValue !== undefined || predicate) {
       const cursorRequest = objectStore.openCursor()
       let count = 0
 
@@ -694,9 +688,12 @@ const applyDelete = (query: IndexedDbQuery.Delete<any, never>) =>
 
       cursorRequest.onsuccess = () => {
         const cursor = cursorRequest.result
-        if (cursor !== null) {
-          const deleteRequest = cursor.delete()
+        if (cursor === null) {
+          return resume(Effect.void)
+        }
 
+        if (predicate === undefined || predicate(cursor.value)) {
+          const deleteRequest = cursor.delete()
           deleteRequest.onerror = () => {
             resume(
               Effect.fail(
@@ -707,11 +704,11 @@ const applyDelete = (query: IndexedDbQuery.Delete<any, never>) =>
               )
             )
           }
-
           count += 1
-          if (count > query.limitValue!) {
-            cursor.continue()
-          }
+        }
+
+        if (query.limitValue === undefined || count < query.limitValue) {
+          return cursor.continue()
         }
 
         resume(Effect.void)
@@ -1366,6 +1363,7 @@ const DeleteProto: Omit<
   | "upperBound"
   | "excludeLowerBound"
   | "excludeUpperBound"
+  | "predicate"
 > = {
   ...CommonProto,
   asEffect(this: IndexedDbQuery.Delete<any, never>) {
@@ -1435,6 +1433,13 @@ const DeleteProto: Omit<
       excludeUpperBound: queryOptions?.excludeUpperBound ?? false,
       limitValue: this.limitValue
     })
+  },
+  filter(this: IndexedDbQuery.Delete<any, never>, filter: (value: IndexedDbTable.Encoded<any>) => boolean) {
+    const prev = this.predicate
+    return makeDelete({
+      delete: this.delete,
+      predicate: prev ? (item) => prev(item) && filter(item) : filter
+    })
   }
 }
 
@@ -1453,6 +1458,7 @@ const makeDelete = <
     | undefined
   readonly excludeLowerBound?: boolean | undefined
   readonly excludeUpperBound?: boolean | undefined
+  readonly predicate?: ((item: IndexedDbTable.Encoded<Table>) => boolean) | undefined
 }): IndexedDbQuery.Delete<Table, Index> => {
   const self = Object.create(DeleteProto)
   self.delete = options.delete
@@ -1462,6 +1468,7 @@ const makeDelete = <
   self.upperBound = options.upperBound
   self.excludeLowerBound = options.excludeLowerBound
   self.excludeUpperBound = options.excludeUpperBound
+  self.predicate = options.predicate
   return self
 }
 
@@ -1762,8 +1769,7 @@ const QueryBuilderProto: Omit<
   | "IDBKeyRange"
   | "IDBTransaction"
 > = {
-  ...PipeInspectableProto,
-  ...YieldableProto,
+  ...CommonProto,
   use(this: IndexedDbQueryBuilder<any>, f: (database: globalThis.IDBDatabase) => Promise<any>) {
     return Effect.tryPromise({
       try: () => f(this.database),
