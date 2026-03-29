@@ -50,9 +50,9 @@
     }
   },
   "scripts": {
-    "build": "tsc -b tsconfig.json && pnpm babel",
-    "build:tsgo": "tsgo -b tsconfig.json && pnpm babel",
-    "babel": "babel dist --plugins annotate-pure-calls --out-dir dist --source-maps",
+    "build": "tsc -b tsconfig.json && pnpm annotate",
+    "build:tsgo": "tsgo -b tsconfig.json && pnpm annotate",
+    "annotate": "node ../../../scripts/annotate-pure.mjs",
     "check": "tsc -b tsconfig.json",
     "test": "vitest",
     "coverage": "vitest --coverage"

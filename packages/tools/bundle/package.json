@@ -27,9 +27,9 @@
     "dist/**/*.d.ts.map"
   ],
   "scripts": {
-    "build": "tsc -b tsconfig.src.json && pnpm babel",
-    "build:tsgo": "tsgo -b tsconfig.src.json && pnpm babel",
-    "babel": "babel dist --plugins annotate-pure-calls --out-dir dist --source-maps",
+    "build": "tsc -b tsconfig.src.json && pnpm annotate",
+    "build:tsgo": "tsgo -b tsconfig.src.json && pnpm annotate",
+    "annotate": "node ../../../scripts/annotate-pure.mjs",
     "check": "tsc -b tsconfig.json",
     "compare": "node src/bin.ts compare",
     "report": "node src/bin.ts report",
