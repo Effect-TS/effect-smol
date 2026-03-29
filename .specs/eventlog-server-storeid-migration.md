@@ -70,6 +70,11 @@ Implementation discovery during Task 2:
 
 - importing the `StoreId` schema value from `EventLog.ts` in `EventLogRemote.ts` introduced a module initialization cycle (`EventLog.ts` imports `EventLogRemote.ts`), causing schema construction failures at runtime; `EventLogRemote.ts` now defines a local branded `StoreId` schema to avoid the cycle while preserving protocol shape.
 
+Implementation discovery during Task 3:
+
+- `EventLogServer.makeHandler` previously tracked one socket-global `latestSequence`; once `(publicKey, storeId)` storage scoping was introduced, that global watermark caused lower-sequence replay/live entries from other stores to be incorrectly filtered out.
+- the encrypted handler now tracks replay/live de-duplication per active `(publicKey, storeId)` subscription fiber, and handler-side `StopChanges` routing now uses the same encrypted scope key helper as storage.
+
 ## User-confirmed decisions
 
 These decisions are confirmed and should be treated as requirements.
@@ -495,7 +500,7 @@ Task validation:
 - `pnpm test packages/effect/test/unstable/eventlog/EventLogRemote.test.ts`
 - `pnpm check:tsgo`
 
-### Task 3: Encrypted handler multi-store routing ⏳ Pending
+### Task 3: Encrypted handler multi-store routing ✅ Completed
 
 Scope:
 
@@ -521,7 +526,7 @@ Task validation:
 - `pnpm lint-fix`
 - `pnpm test packages/effect/test/unstable/eventlog/EventLogServer.test.ts`
 - `pnpm test packages/sql/sqlite-node/test/SqlEventLogServer.test.ts`
-- `pnpm check:tsgo`
+- `pnpm check:tsgo` *(currently blocked by pre-existing Task 4 unencrypted migration compile errors in `EventLogServerUnencrypted*` files)*
 
 ### Task 4: Unencrypted mapping and handler/runtime migration ⏳ Pending
 

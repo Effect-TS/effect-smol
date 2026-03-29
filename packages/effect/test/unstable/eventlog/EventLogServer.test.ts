@@ -379,6 +379,164 @@ describe("EventLogServer", () => {
       }).pipe(Effect.provide(serverLayer))
     ))
 
+  it.effect("makeHandler keeps replay sequencing isolated per encrypted store subscription", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const harness = yield* makeSocketHarness
+        const handler = yield* EventLogServer.makeHandler
+        const storage = yield* EventLogServer.Storage
+
+        yield* handler(harness.socket).pipe(Effect.forkScoped)
+
+        const hello = yield* harness.takeResponse
+        if (hello._tag !== "Hello") {
+          throw new Error(`Expected Hello, got ${hello._tag}`)
+        }
+
+        yield* harness.sendRequest(
+          yield* makeAuthenticateRequest({
+            hello,
+            publicKey: "client-1"
+          })
+        )
+
+        const authenticated = yield* harness.takeResponse
+        if (authenticated._tag !== "Authenticated") {
+          throw new Error(`Expected Authenticated, got ${authenticated._tag}`)
+        }
+
+        yield* harness.sendRequest(makeWriteRequest("client-1", 1, storeIdA))
+        const firstAck = yield* harness.takeResponse
+        if (firstAck._tag !== "Ack") {
+          throw new Error(`Expected Ack, got ${firstAck._tag}`)
+        }
+        assert.deepStrictEqual(firstAck.sequenceNumbers, [0])
+
+        yield* harness.sendRequest(makeWriteRequest("client-1", 2, storeIdA))
+        const secondAck = yield* harness.takeResponse
+        if (secondAck._tag !== "Ack") {
+          throw new Error(`Expected Ack, got ${secondAck._tag}`)
+        }
+        assert.deepStrictEqual(secondAck.sequenceNumbers, [1])
+
+        yield* storage.write("client-1", storeIdB, [makePersistedEntry(1)])
+
+        yield* harness.sendRequest(
+          new EventLogRemote.RequestChanges({
+            publicKey: "client-1",
+            storeId: storeIdB,
+            startSequence: 0
+          })
+        )
+
+        const replayed = yield* harness.takeResponse.pipe(Effect.timeout("1 second"))
+        if (replayed._tag !== "Changes") {
+          throw new Error(`Expected Changes, got ${replayed._tag}`)
+        }
+
+        assert.strictEqual(replayed.publicKey, "client-1")
+        assert.strictEqual(replayed.storeId, storeIdB)
+        assert.deepStrictEqual(replayed.entries.map((entry) => entry.sequence), [0])
+      }).pipe(Effect.provide(serverLayer))
+    ))
+
+  it.effect("makeHandler allows multi-store subscriptions to coexist and StopChanges only interrupts targeted store", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const harness = yield* makeSocketHarness
+        const handler = yield* EventLogServer.makeHandler
+        const storage = yield* EventLogServer.Storage
+
+        yield* handler(harness.socket).pipe(Effect.forkScoped)
+
+        const hello = yield* harness.takeResponse
+        if (hello._tag !== "Hello") {
+          throw new Error(`Expected Hello, got ${hello._tag}`)
+        }
+
+        yield* harness.sendRequest(
+          yield* makeAuthenticateRequest({
+            hello,
+            publicKey: "client-1"
+          })
+        )
+
+        const authenticated = yield* harness.takeResponse
+        if (authenticated._tag !== "Authenticated") {
+          throw new Error(`Expected Authenticated, got ${authenticated._tag}`)
+        }
+
+        yield* harness.sendRequest(
+          new EventLogRemote.RequestChanges({
+            publicKey: "client-1",
+            storeId: storeIdA,
+            startSequence: 0
+          })
+        )
+
+        yield* harness.sendRequest(
+          new EventLogRemote.RequestChanges({
+            publicKey: "client-1",
+            storeId: storeIdB,
+            startSequence: 0
+          })
+        )
+
+        yield* storage.write("client-1", storeIdA, [makePersistedEntry(1)])
+        const initialStoreA = yield* harness.takeResponse.pipe(Effect.timeout("1 second"))
+        if (initialStoreA._tag !== "Changes") {
+          throw new Error(`Expected Changes, got ${initialStoreA._tag}`)
+        }
+        assert.strictEqual(initialStoreA.storeId, storeIdA)
+        assert.deepStrictEqual(initialStoreA.entries.map((entry) => entry.sequence), [0])
+
+        yield* storage.write("client-1", storeIdB, [makePersistedEntry(2)])
+        const initialStoreB = yield* harness.takeResponse.pipe(Effect.timeout("1 second"))
+        if (initialStoreB._tag !== "Changes") {
+          throw new Error(`Expected Changes, got ${initialStoreB._tag}`)
+        }
+        assert.strictEqual(initialStoreB.storeId, storeIdB)
+        assert.deepStrictEqual(initialStoreB.entries.map((entry) => entry.sequence), [0])
+
+        yield* harness.sendRequest(
+          new EventLogRemote.StopChanges({
+            publicKey: "client-1",
+            storeId: storeIdA
+          })
+        )
+
+        yield* harness.sendRequest(new EventLogRemote.Ping({ id: 777 }))
+        const pong = yield* harness.takeResponse.pipe(Effect.timeout("1 second"))
+        if (pong._tag !== "Pong") {
+          throw new Error(`Expected Pong, got ${pong._tag}`)
+        }
+        assert.strictEqual(pong.id, 777)
+
+        yield* storage.write("client-1", storeIdA, [makePersistedEntry(3)])
+        yield* storage.write("client-1", storeIdB, [makePersistedEntry(4)])
+
+        yield* harness.sendRequest(new EventLogRemote.Ping({ id: 778 }))
+
+        const storeIdsAfterStop: Array<EventLog.StoreId> = []
+
+        while (true) {
+          const response = yield* harness.takeResponse
+          if (response._tag === "Pong") {
+            assert.strictEqual(response.id, 778)
+            break
+          }
+
+          if (response._tag !== "Changes") {
+            throw new Error(`Expected Changes, got ${response._tag}`)
+          }
+
+          storeIdsAfterStop.push(response.storeId)
+        }
+
+        assert.deepStrictEqual(storeIdsAfterStop, [storeIdB])
+      }).pipe(Effect.provide(serverLayer))
+    ))
+
   it.effect("makeHandler persists first trusted signing keys across handler restarts", () =>
     Effect.scoped(
       Effect.gen(function*() {

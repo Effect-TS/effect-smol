@@ -111,7 +111,6 @@ export const makeHandler: Effect.Effect<
           bytes: number
         }
       >()
-      let latestSequence = -1
       const sessionChallenge = yield* EventLogSessionAuth.makeSessionAuthChallenge.pipe(Effect.orDie)
       const sessionChallengeIssuedAt = Date.now()
       let sessionChallengeUsed = false
@@ -240,7 +239,6 @@ export const makeHandler: Effect.Effect<
                 })
               )
               const encrypted = yield* storage.write(request.publicKey, request.storeId, entries)
-              latestSequence = encrypted[encrypted.length - 1].sequence
               return yield* Effect.orDie(
                 write(
                   new Ack({
@@ -259,7 +257,13 @@ export const makeHandler: Effect.Effect<
               })
             }
 
+            const subscriptionKey = makeEncryptedScopeKey({
+              publicKey: request.publicKey,
+              storeId: request.storeId
+            })
+
             return Effect.gen(function*() {
+              let latestSequence = request.startSequence - 1
               const changes = yield* storage.changes(request.publicKey, request.storeId, request.startSequence)
               return yield* Queue.takeAll(changes).pipe(
                 Effect.flatMap((entries) => {
@@ -284,7 +288,7 @@ export const makeHandler: Effect.Effect<
               )
             }).pipe(
               Effect.scoped,
-              FiberMap.run(subscriptions, request.publicKey)
+              FiberMap.run(subscriptions, subscriptionKey)
             )
           }
           case "StopChanges": {
@@ -295,7 +299,13 @@ export const makeHandler: Effect.Effect<
               })
             }
 
-            return FiberMap.remove(subscriptions, request.publicKey)
+            return FiberMap.remove(
+              subscriptions,
+              makeEncryptedScopeKey({
+                publicKey: request.publicKey,
+                storeId: request.storeId
+              })
+            )
           }
           case "ChunkedMessage": {
             const data = ChunkedMessage.join(chunks, request)
