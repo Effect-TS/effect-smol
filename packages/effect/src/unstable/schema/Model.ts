@@ -598,10 +598,10 @@ export const JsonFromString = <S extends Schema.Top>(
  */
 export interface UuidV4Insert<B extends string> extends
   VariantSchema.Field<{
-    readonly select: Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
-    readonly insert: VariantSchema.Overrideable<Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>>
-    readonly update: Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
-    readonly json: Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
+    readonly select: Schema.brand<Schema.instanceOf<Uint8Array>, B>
+    readonly insert: VariantSchema.Overrideable<Schema.brand<Schema.instanceOf<Uint8Array>, B>>
+    readonly update: Schema.brand<Schema.instanceOf<Uint8Array>, B>
+    readonly json: Schema.brand<Schema.instanceOf<Uint8Array>, B>
   }>
 {}
 
@@ -609,8 +609,8 @@ export interface UuidV4Insert<B extends string> extends
  * @since 4.0.0
  * @category Uint8Array
  */
-export const Uint8Array: Schema.instanceOf<Uint8Array<ArrayBuffer>> = Schema.Uint8Array as Schema.instanceOf<
-  globalThis.Uint8Array<ArrayBuffer>
+export const Uint8Array: Schema.instanceOf<Uint8Array> = Schema.Uint8Array as Schema.instanceOf<
+  globalThis.Uint8Array
 >
 
 /**
@@ -618,8 +618,8 @@ export const Uint8Array: Schema.instanceOf<Uint8Array<ArrayBuffer>> = Schema.Uin
  * @category uuid
  */
 export const UuidV4WithGenerate = <B extends string>(
-  schema: Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
-): VariantSchema.Overrideable<Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>> =>
+  schema: Schema.brand<Schema.instanceOf<Uint8Array>, B>
+): VariantSchema.Overrideable<Schema.brand<Schema.instanceOf<Uint8Array>, B>> =>
   VariantSchema.Overrideable(schema, {
     defaultValue: Effect.sync(() => Uuid.v4({}, new globalThis.Uint8Array(16)))
   })
@@ -631,7 +631,7 @@ export const UuidV4WithGenerate = <B extends string>(
  * @category uuid
  */
 export const UuidV4Insert = <const B extends string>(
-  schema: Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
+  schema: Schema.brand<Schema.instanceOf<Uint8Array>, B>
 ): UuidV4Insert<B> =>
   Field({
     select: schema,
