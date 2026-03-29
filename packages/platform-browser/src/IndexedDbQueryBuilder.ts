@@ -742,11 +742,8 @@ const getReadonlyObjectStore = (
 ) => {
   const database = query.from.database
   const IDBKeyRange = query.from.IDBKeyRange
-  const transaction = query.from.transaction
-  const objectStore = (
-    transaction ??
-      database.transaction([query.from.table.tableName], "readonly")
-  ).objectStore(query.from.table.tableName)
+  const transaction = query.from.transaction ?? database.transaction([query.from.table.tableName], "readonly")
+  const objectStore = transaction.objectStore(query.from.table.tableName)
 
   let keyRange: globalThis.IDBKeyRange | undefined = undefined
   let store: globalThis.IDBObjectStore | globalThis.IDBIndex
@@ -964,11 +961,8 @@ const applyModify = Effect.fnUntraced(function*({
 
   return yield* Effect.callback<any, IndexedDbQueryError>((resume) => {
     const database = query.from.database
-    const transaction = query.from.transaction
-    const objectStore = (
-      transaction ??
-        database.transaction([query.from.table.tableName], "readwrite")
-    ).objectStore(query.from.table.tableName)
+    const transaction = query.from.transaction ?? database.transaction([query.from.table.tableName], "readwrite")
+    const objectStore = transaction.objectStore(query.from.table.tableName)
 
     let request: globalThis.IDBRequest<IDBValidKey>
 
@@ -1119,10 +1113,8 @@ const applyClear = (options: {
 }) =>
   Effect.callback<void, IndexedDbQueryError>((resume) => {
     const database = options.database
-    const transaction = options.transaction
-    const objectStore = (
-      transaction ?? database.transaction([options.table], "readwrite")
-    ).objectStore(options.table)
+    const transaction = options.transaction ?? database.transaction([options.table], "readwrite")
+    const objectStore = transaction.objectStore(options.table)
 
     const request = objectStore.clear()
 
@@ -1149,7 +1141,6 @@ const applyClearAll = (options: {
   Effect.callback<void, IndexedDbQueryError>((resume) => {
     const database = options.database
     const tables = database.objectStoreNames
-
     const transaction = options.transaction ?? database.transaction([...tables], "readwrite")
 
     for (let t = 0; t < tables.length; t++) {
