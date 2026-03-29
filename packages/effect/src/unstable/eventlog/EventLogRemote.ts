@@ -16,7 +16,7 @@ import * as ServiceMap from "../../ServiceMap.ts"
 import * as Msgpack from "../encoding/Msgpack.ts"
 import * as Socket from "../socket/Socket.ts"
 import { Entry, EntryId, RemoteEntry, RemoteId } from "./EventJournal.ts"
-import type { Identity } from "./EventLog.ts"
+import { type Identity, StoreId } from "./EventLog.js"
 import { EncryptedEntry, EncryptedRemoteEntry, EventLogEncryption, layerSubtle } from "./EventLogEncryption.ts"
 import { encodeSessionAuthPayload, signSessionAuthPayloadBytes } from "./EventLogSessionAuth.ts"
 
@@ -26,14 +26,16 @@ import { encodeSessionAuthPayload, signSessionAuthPayloadBytes } from "./EventLo
  */
 export class EventLogRemote extends ServiceMap.Service<EventLogRemote, {
   readonly id: RemoteId
-  readonly changes: (
-    identity: Identity["Service"],
-    startSequence: number
-  ) => Effect.Effect<Queue.Dequeue<RemoteEntry, EventLogRemoteError>, never, Scope.Scope>
-  readonly write: (
-    identity: Identity["Service"],
-    entries: ReadonlyArray<Entry>
-  ) => Effect.Effect<void, EventLogRemoteError>
+  readonly changes: (options: {
+    readonly identity: Identity["Service"]
+    readonly storeId: StoreId
+    readonly startSequence: number
+  }) => Effect.Effect<Queue.Dequeue<RemoteEntry, EventLogRemoteError>, never, Scope.Scope>
+  readonly write: (options: {
+    readonly identity: Identity["Service"]
+    readonly storeId: StoreId
+    readonly entries: ReadonlyArray<Entry>
+  }) => Effect.Effect<void, EventLogRemoteError>
 }>()("effect/eventlog/EventLogRemote") {}
 
 /**
@@ -141,6 +143,7 @@ export class ChunkedMessage extends Schema.Class<ChunkedMessage>("effect/eventlo
 export class WriteEntries extends Schema.Class<WriteEntries>("effect/eventlog/EventLogRemote/WriteEntries")({
   _tag: Schema.tag("WriteEntries"),
   publicKey: Schema.String,
+  storeId: StoreId,
   id: Schema.Number,
   iv: Schema.Uint8Array,
   encryptedEntries: Schema.Array(EncryptedEntry)
@@ -155,6 +158,7 @@ export class WriteEntriesUnencrypted extends Schema.Class<WriteEntriesUnencrypte
 )({
   _tag: Schema.tag("WriteEntries"),
   publicKey: Schema.String,
+  storeId: StoreId,
   id: Schema.Number,
   entries: Schema.Array(Entry)
 }) {}
@@ -176,6 +180,7 @@ export class Ack extends Schema.Class<Ack>("effect/eventlog/EventLogRemote/Ack")
 export class RequestChanges extends Schema.Class<RequestChanges>("effect/eventlog/EventLogRemote/RequestChanges")({
   _tag: Schema.tag("RequestChanges"),
   publicKey: Schema.String,
+  storeId: StoreId,
   startSequence: Schema.Number
 }) {}
 
@@ -186,6 +191,7 @@ export class RequestChanges extends Schema.Class<RequestChanges>("effect/eventlo
 export class Changes extends Schema.Class<Changes>("effect/eventlog/EventLogRemote/Changes")({
   _tag: Schema.tag("Changes"),
   publicKey: Schema.String,
+  storeId: StoreId,
   entries: Schema.Array(EncryptedRemoteEntry)
 }) {}
 
@@ -198,6 +204,7 @@ export class ChangesUnencrypted extends Schema.Class<ChangesUnencrypted>(
 )({
   _tag: Schema.tag("Changes"),
   publicKey: Schema.String,
+  storeId: StoreId,
   entries: Schema.Array(RemoteEntry)
 }) {}
 
@@ -586,6 +593,7 @@ export const fromSocket = Effect.fnUntraced(function*(options?: {
     readonly entries: ReadonlyArray<Entry>
     readonly deferred: Deferred.Deferred<void, EventLogRemoteError>
     readonly publicKey: string
+    readonly storeId: StoreId
   }>()
   const chunks = new Map<number, {
     readonly parts: Array<Uint8Array>
@@ -741,32 +749,34 @@ export const fromSocket = Effect.fnUntraced(function*(options?: {
 
   return {
     id,
-    write: Effect.fnUntraced(function*(identity, entries) {
-      yield* sessionAuth.ensureAuthenticated(identity).pipe(
+    write: Effect.fnUntraced(function*(options) {
+      yield* sessionAuth.ensureAuthenticated(options.identity).pipe(
         Effect.mapError((cause) => makeRemoteError("authenticate", cause))
       )
-      const encrypted = yield* encryption.encrypt(identity, entries)
+      const encrypted = yield* encryption.encrypt(options.identity, options.entries)
       const deferred = yield* Deferred.make<void, EventLogRemoteError>()
       const id = pendingCounter++
       pending.set(id, {
-        entries,
+        entries: options.entries,
         deferred,
-        publicKey: identity.publicKey
+        publicKey: options.identity.publicKey,
+        storeId: options.storeId
       })
       yield* Effect.orDie(writeRequest(
         new WriteEntries({
-          publicKey: identity.publicKey,
+          publicKey: options.identity.publicKey,
+          storeId: options.storeId,
           id,
           iv: encrypted.iv,
           encryptedEntries: encrypted.encryptedEntries.map((encryptedEntry, i) => ({
-            entryId: entries[i].id,
+            entryId: options.entries[i].id,
             encryptedEntry
           }))
         })
       ))
       yield* Deferred.await(deferred)
     }),
-    changes: Effect.fnUntraced(function*(identity, startSequence) {
+    changes: Effect.fnUntraced(function*({ identity, storeId, startSequence }) {
       const queue = yield* RcMap.get(subscriptions, identity.publicKey)
       const authenticated = yield* sessionAuth.ensureAuthenticated(identity).pipe(
         Effect.mapError((cause) => makeRemoteError("changes", cause)),
@@ -785,6 +795,7 @@ export const fromSocket = Effect.fnUntraced(function*(options?: {
       yield* Effect.orDie(writeRequest(
         new RequestChanges({
           publicKey: identity.publicKey,
+          storeId,
           startSequence
         })
       ))
@@ -980,7 +991,7 @@ export const fromSocketUnencrypted = Effect.fnUntraced(function*(options?: {
 
   return {
     id,
-    write: Effect.fnUntraced(function*(identity, entries) {
+    write: Effect.fnUntraced(function*({ identity, storeId, entries }) {
       yield* sessionAuth.ensureAuthenticated(identity).pipe(
         Effect.mapError((cause) => makeRemoteError("authenticate", cause))
       )
@@ -994,13 +1005,14 @@ export const fromSocketUnencrypted = Effect.fnUntraced(function*(options?: {
       yield* Effect.orDie(writeRequest(
         new WriteEntriesUnencrypted({
           publicKey: identity.publicKey,
+          storeId,
           id,
           entries
         })
       ))
       yield* Deferred.await(deferred)
     }),
-    changes: Effect.fnUntraced(function*(identity, startSequence) {
+    changes: Effect.fnUntraced(function*({ identity, storeId, startSequence }) {
       const queue = yield* RcMap.get(subscriptions, identity.publicKey)
       const authenticated = yield* sessionAuth.ensureAuthenticated(identity).pipe(
         Effect.mapError((cause) => makeRemoteError("changes", cause)),
@@ -1018,6 +1030,7 @@ export const fromSocketUnencrypted = Effect.fnUntraced(function*(options?: {
       identities.set(identity.publicKey, identity)
       yield* Effect.orDie(writeRequest(
         new RequestChanges({
+          storeId,
           publicKey: identity.publicKey,
           startSequence
         })

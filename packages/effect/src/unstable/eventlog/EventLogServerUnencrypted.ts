@@ -2,7 +2,6 @@
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"
-import type { Brand } from "../../Brand.ts"
 import * as Cause from "../../Cause.ts"
 import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
@@ -74,36 +73,12 @@ const equalsUint8Array = (left: Uint8Array, right: Uint8Array): boolean => {
 
 /**
  * @since 4.0.0
- * @category store
- */
-export type StoreIdTypeId = "effect/eventlog/EventLogServerUnencrypted/StoreId"
-
-/**
- * @since 4.0.0
- * @category store
- */
-export const StoreIdTypeId: StoreIdTypeId = "effect/eventlog/EventLogServerUnencrypted/StoreId"
-
-/**
- * @since 4.0.0
- * @category store
- */
-export type StoreId = string & Brand<StoreIdTypeId>
-
-/**
- * @since 4.0.0
- * @category store
- */
-export const StoreId = Schema.String.pipe(Schema.brand(StoreIdTypeId))
-
-/**
- * @since 4.0.0
  * @category errors
  */
 export class EventLogServerStoreError extends Data.TaggedError("EventLogServerStoreError")<{
   readonly reason: "NotFound" | "PersistenceFailure"
   readonly publicKey?: string | undefined
-  readonly storeId?: StoreId | undefined
+  readonly storeId?: EventLog.StoreId | undefined
   readonly message?: string | undefined
 }> {}
 
@@ -114,7 +89,7 @@ export class EventLogServerStoreError extends Data.TaggedError("EventLogServerSt
 export class EventLogServerAuthError extends Data.TaggedError("EventLogServerAuthError")<{
   readonly reason: "Unauthorized" | "Forbidden"
   readonly publicKey: string
-  readonly storeId?: StoreId | undefined
+  readonly storeId?: EventLog.StoreId | undefined
   readonly message?: string | undefined
 }> {}
 
@@ -125,12 +100,12 @@ export class EventLogServerAuthError extends Data.TaggedError("EventLogServerAut
 export class EventLogServerAuth extends ServiceMap.Service<EventLogServerAuth, {
   readonly authorizeWrite: (options: {
     readonly publicKey: string
-    readonly storeId: StoreId
+    readonly storeId: EventLog.StoreId
     readonly entries: ReadonlyArray<Entry>
   }) => Effect.Effect<void, EventLogServerAuthError>
   readonly authorizeRead: (options: {
     readonly publicKey: string
-    readonly storeId: StoreId
+    readonly storeId: EventLog.StoreId
   }) => Effect.Effect<void, EventLogServerAuthError>
 }>()("effect/eventlog/EventLogServerUnencrypted/EventLogServerAuth") {}
 
@@ -139,11 +114,11 @@ export class EventLogServerAuth extends ServiceMap.Service<EventLogServerAuth, {
  * @category context
  */
 export class StoreMapping extends ServiceMap.Service<StoreMapping, {
-  readonly resolve: (publicKey: string) => Effect.Effect<StoreId, EventLogServerStoreError>
-  readonly hasStore: (storeId: StoreId) => Effect.Effect<boolean, EventLogServerStoreError>
+  readonly resolve: (publicKey: string) => Effect.Effect<EventLog.StoreId, EventLogServerStoreError>
+  readonly hasStore: (storeId: EventLog.StoreId) => Effect.Effect<boolean, EventLogServerStoreError>
 }>()("effect/eventlog/EventLogServerUnencrypted/StoreMapping") {}
 
-const toStoreNotFoundError = (storeId: StoreId) =>
+const toStoreNotFoundError = (storeId: EventLog.StoreId) =>
   new EventLogServerStoreError({
     reason: "NotFound",
     storeId,
@@ -155,11 +130,11 @@ const toStoreNotFoundError = (storeId: StoreId) =>
  * @category store
  */
 export const layerStoreMappingStatic = (options: {
-  readonly storeId: StoreId
+  readonly storeId: EventLog.StoreId
 }): Layer.Layer<StoreMapping> =>
   Layer.succeed(StoreMapping, {
     resolve: (_publicKey: string) => Effect.succeed(options.storeId),
-    hasStore: (storeId: StoreId) => Effect.succeed(storeId === options.storeId)
+    hasStore: (storeId: EventLog.StoreId) => Effect.succeed(storeId === options.storeId)
   })
 
 /**
@@ -172,18 +147,18 @@ export class Storage extends ServiceMap.Service<Storage, {
   readonly getSessionAuthBinding: (publicKey: string) => Effect.Effect<Uint8Array | undefined>
   readonly putSessionAuthBindingIfAbsent: (publicKey: string, signingPublicKey: Uint8Array) => Effect.Effect<boolean>
   readonly write: (
-    storeId: StoreId,
+    storeId: EventLog.StoreId,
     entries: ReadonlyArray<Entry>
   ) => Effect.Effect<{
     readonly sequenceNumbers: ReadonlyArray<number>
     readonly committed: ReadonlyArray<RemoteEntry>
   }>
   readonly entries: (
-    storeId: StoreId,
+    storeId: EventLog.StoreId,
     startSequence: number
   ) => Effect.Effect<ReadonlyArray<RemoteEntry>>
   readonly changes: (
-    storeId: StoreId,
+    storeId: EventLog.StoreId,
     startSequence: number
   ) => Effect.Effect<Queue.Dequeue<RemoteEntry, Cause.Done>, never, Scope.Scope>
   readonly withTransaction: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
@@ -203,13 +178,13 @@ export class EventLogServerUnencrypted extends ServiceMap.Service<EventLogServer
     readonly publicKey: string
     readonly entries: ReadonlyArray<Entry>
   }) => Effect.Effect<{
-    readonly storeId: StoreId
+    readonly storeId: EventLog.StoreId
     readonly sequenceNumbers: ReadonlyArray<number>
     readonly committed: ReadonlyArray<RemoteEntry>
   }, EventLogServerAuthError | EventLogServerStoreError>
   readonly write: <Groups extends EventGroup.Any, Tag extends Event.Tag<EventGroup.Events<Groups>>>(options: {
     readonly schema: EventLog.EventLogSchema<Groups>
-    readonly storeId: StoreId
+    readonly storeId: EventLog.StoreId
     readonly event: Tag
     readonly payload: Event.PayloadWithTag<EventGroup.Events<Groups>, Tag>
     readonly entryId?: EntryId | undefined
@@ -273,7 +248,8 @@ const makeClientIdentity = (publicKey: string): EventLog.Identity["Service"] => 
   signingPrivateKey: Redacted.make(new Uint8Array(32))
 })
 
-const makeServerWriteIdentityPublicKey = (storeId: StoreId): string => `effect-eventlog-server-write:${storeId}`
+const makeServerWriteIdentityPublicKey = (storeId: EventLog.StoreId): string =>
+  `effect-eventlog-server-write:${storeId}`
 
 const entriesAfter = (journal: Array<RemoteEntry>, startSequence: number): ReadonlyArray<RemoteEntry> =>
   journal.filter((entry) => entry.remoteSequence > startSequence)
@@ -432,7 +408,7 @@ export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.S
   const sessionAuthBindings = new Map<string, Uint8Array>()
   const remoteId = makeRemoteIdUnsafe()
 
-  const ensureKnownIds = (storeId: StoreId): Map<string, number> => {
+  const ensureKnownIds = (storeId: EventLog.StoreId): Map<string, number> => {
     let storeKnownIds = knownIds.get(storeId)
     if (storeKnownIds) return storeKnownIds
     storeKnownIds = new Map()
@@ -440,7 +416,7 @@ export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.S
     return storeKnownIds
   }
 
-  const ensureJournal = (storeId: StoreId): Array<RemoteEntry> => {
+  const ensureJournal = (storeId: EventLog.StoreId): Array<RemoteEntry> => {
     let journal = journals.get(storeId)
     if (journal) return journal
     journal = []
@@ -457,7 +433,7 @@ export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.S
     idleTimeToLive: 60000
   })
 
-  const write = Effect.fnUntraced(function*(storeId: StoreId, entries: ReadonlyArray<Entry>) {
+  const write = Effect.fnUntraced(function*(storeId: EventLog.StoreId, entries: ReadonlyArray<Entry>) {
     const pubsub = yield* RcMap.get(pubsubs, storeId)
     const sequenceNumbers: Array<number> = []
     const committed: Array<RemoteEntry> = []
@@ -645,7 +621,7 @@ export const make = Effect.gen(function*() {
   })
 
   const processBeforePersist = (options: {
-    readonly storeId: StoreId
+    readonly storeId: EventLog.StoreId
     readonly publicKey: string
     readonly entries: ReadonlyArray<Entry>
   }) =>
@@ -736,7 +712,7 @@ export const make = Effect.gen(function*() {
     return undefined
   }
 
-  const ensureStoreExists = Effect.fnUntraced(function*(storeId: StoreId) {
+  const ensureStoreExists = Effect.fnUntraced(function*(storeId: EventLog.StoreId) {
     const provisioned = yield* mapping.hasStore(storeId)
     if (provisioned) {
       return
@@ -777,7 +753,7 @@ export const make = Effect.gen(function*() {
 
   const serverWrite = Effect.fnUntraced(function*(options: {
     readonly schema: EventLog.EventLogSchema<any>
-    readonly storeId: StoreId
+    readonly storeId: EventLog.StoreId
     readonly event: string
     readonly payload: unknown
     readonly entryId?: EntryId | undefined
@@ -1238,6 +1214,7 @@ export const makeHandler: Effect.Effect<
                     return Effect.orDie(
                       write(
                         new ChangesUnencrypted({
+                          storeId,
                           publicKey: request.publicKey,
                           entries
                         })

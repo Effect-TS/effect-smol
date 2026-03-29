@@ -1,8 +1,9 @@
 /**
  * @since 4.0.0
  */
+import type { Brand } from "../../Brand.ts"
 import * as Effect from "../../Effect.ts"
-import { identity } from "../../Function.ts"
+import { constant, identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import * as Option from "../../Option.ts"
 import type { Pipeable } from "../../Pipeable.ts"
@@ -69,6 +70,30 @@ export const schema = <Groups extends ReadonlyArray<EventGroup.Any>>(
 
 /**
  * @since 4.0.0
+ * @category store
+ */
+export type StoreIdTypeId = "effect/eventlog/EventLog/StoreId"
+
+/**
+ * @since 4.0.0
+ * @category store
+ */
+export const StoreIdTypeId: StoreIdTypeId = "effect/eventlog/EventLog/StoreId"
+
+/**
+ * @since 4.0.0
+ * @category store
+ */
+export type StoreId = string & Brand<StoreIdTypeId>
+
+/**
+ * @since 4.0.0
+ * @category store
+ */
+export const StoreId = Schema.String.pipe(Schema.brand(StoreIdTypeId))
+
+/**
+ * @since 4.0.0
  * @category handlers
  */
 export type HandlersTypeId = "~effect/eventlog/EventLog/Handlers"
@@ -101,16 +126,15 @@ export interface Handlers<
    */
   handle<Tag extends Event.Tag<Events>, R1>(
     name: Tag,
-    handler: (
-      options: {
-        readonly payload: Event.PayloadWithTag<Events, Tag>
+    handler: (options: {
+      readonly storeId: StoreId
+      readonly payload: Event.PayloadWithTag<Events, Tag>
+      readonly entry: Entry
+      readonly conflicts: ReadonlyArray<{
         readonly entry: Entry
-        readonly conflicts: ReadonlyArray<{
-          readonly entry: Entry
-          readonly payload: Event.PayloadWithTag<Events, Tag>
-        }>
-      }
-    ) => Effect.Effect<Event.SuccessWithTag<Events, Tag>, Event.ErrorWithTag<Events, Tag>, R1>
+        readonly payload: Event.PayloadWithTag<Events, Tag>
+      }>
+    }) => Effect.Effect<Event.SuccessWithTag<Events, Tag>, Event.ErrorWithTag<Events, Tag>, R1>
   ): Handlers<
     R | R1,
     Event.ExcludeTag<Events, Tag>
@@ -138,6 +162,7 @@ export declare namespace Handlers {
     readonly event: Event.AnyWithProps
     readonly services: ServiceMap.ServiceMap<R>
     readonly handler: (options: {
+      readonly storeId: StoreId
       readonly payload: unknown
       readonly entry: Entry
       readonly conflicts: ReadonlyArray<{
@@ -211,6 +236,14 @@ export class Identity extends ServiceMap.Service<Identity, {
   readonly signingPublicKey: Uint8Array
   readonly signingPrivateKey: Redacted.Redacted<Uint8Array>
 }>()("effect/eventlog/EventLog/Identity") {}
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export class CurrentStoreId extends ServiceMap.Reference<StoreId>("effect/eventlog/EventLog/CurrentStoreId", {
+  defaultValue: constant(StoreId.makeUnsafe("default"))
+}) {}
 
 const RedactedUint8Array = Schema.Uint8ArrayFromBase64.pipe(
   Schema.decodeTo(Schema.Redacted(Schema.Uint8Array), {
@@ -485,8 +518,9 @@ export class EventLog extends ServiceMap.Service<EventLog, {
  * @since 4.0.0
  * @category handlers
  */
-export const makeReplayFromRemoteEffect = (options: {
+export const makeReplayFromRemote = (options: {
   readonly services: ServiceMap.ServiceMap<never>
+  readonly storeId: StoreId
   readonly identity: Identity["Service"]
   readonly reactivity: Reactivity["Service"]
   readonly reactivityKeys: Record<string, ReadonlyArray<string>>
@@ -516,6 +550,7 @@ export const makeReplayFromRemoteEffect = (options: {
       yield* decodePayload(entry.payload).pipe(
         Effect.flatMap((payload) =>
           handler.handler({
+            storeId: options.storeId,
             payload,
             entry,
             conflicts: decodedConflicts
@@ -544,6 +579,7 @@ export const makeReplayFromRemoteEffect = (options: {
   )
 
 const make = Effect.gen(function*() {
+  const storeId = yield* CurrentStoreId
   const identity = yield* Identity
   const journal = yield* EventJournal
   const services = yield* Effect.services<never>()
@@ -558,8 +594,9 @@ const make = Effect.gen(function*() {
 
   const reactivity = yield* Reactivity
   const reactivityKeys: Record<string, ReadonlyArray<string>> = {}
-  const replayFromRemote = makeReplayFromRemoteEffect({
+  const replayFromRemote = makeReplayFromRemote({
     services,
+    storeId,
     identity,
     reactivity,
     reactivityKeys,
@@ -587,7 +624,7 @@ const make = Effect.gen(function*() {
   const runRemote = Effect.fnUntraced(
     function*(remote: EventLogRemote["Service"]) {
       const startSequence = yield* journal.nextRemoteSequence(remote.id)
-      const changes = yield* remote.changes(identity, startSequence)
+      const changes = yield* remote.changes({ identity, startSequence, storeId })
 
       yield* Queue.takeAll(changes).pipe(
         Effect.flatMap((entries) =>
@@ -658,7 +695,7 @@ const make = Effect.gen(function*() {
         Effect.forkScoped
       )
 
-      const write = journal.withRemoteUncommited(remote.id, (entries) => remote.write(identity, entries))
+      const write = journal.withRemoteUncommited(remote.id, (entries) => remote.write({ identity, entries, storeId }))
       yield* Effect.addFinalizer(() => Effect.ignore(write))
       yield* write
       const changesSub = yield* journal.changes
@@ -687,6 +724,7 @@ const make = Effect.gen(function*() {
       payload,
       effect: (entry) =>
         handler.handler({
+          storeId,
           payload: options.payload,
           entry,
           conflicts: []
