@@ -11,6 +11,7 @@ import type * as Scope from "../../Scope.ts"
 import * as SqlClient from "../sql/SqlClient.ts"
 import type * as SqlError from "../sql/SqlError.ts"
 import { EntryId, makeRemoteIdUnsafe, type RemoteId } from "./EventJournal.ts"
+import { makeEncryptedScopeKey } from "./EventLogEncryptedScope.ts"
 import * as EventLogEncryption from "./EventLogEncryption.ts"
 import * as EventLogServer from "./EventLogServer.ts"
 
@@ -109,9 +110,9 @@ export const makeStorage = (options?: {
     )
 
     const resources = yield* RcMap.make({
-      lookup: Effect.fnUntraced(function*(publicKey: string) {
-        const publicKeyHash = (yield* encryptions.sha256String(new TextEncoder().encode(publicKey))).slice(0, 16)
-        const table = `${tablePrefix}_${publicKeyHash}`
+      lookup: Effect.fnUntraced(function*(scopeKey: string) {
+        const scopeHash = (yield* encryptions.sha256String(new TextEncoder().encode(scopeKey))).slice(0, 16)
+        const table = `${tablePrefix}_${scopeHash}`
         const tableSql = sql(table)
 
         yield* sql.onDialectOrElse({
@@ -198,9 +199,10 @@ export const makeStorage = (options?: {
           Effect.orDie
         ),
       write: Effect.fnUntraced(
-        function*(publicKey, entries) {
+        function*(publicKey, storeId, entries) {
           if (entries.length === 0) return []
-          const { pubsub, table } = yield* RcMap.get(resources, publicKey)
+          const scopeKey = makeEncryptedScopeKey({ publicKey, storeId })
+          const { pubsub, table } = yield* RcMap.get(resources, scopeKey)
           const forInsert: Array<{
             readonly ids: Array<EntryId>
             readonly entries: Array<{
@@ -243,8 +245,9 @@ export const makeStorage = (options?: {
         Effect.scoped
       ),
       entries: Effect.fnUntraced(
-        function*(publicKey, startSequence) {
-          const { table } = yield* RcMap.get(resources, publicKey)
+        function*(publicKey, storeId, startSequence) {
+          const scopeKey = makeEncryptedScopeKey({ publicKey, storeId })
+          const { table } = yield* RcMap.get(resources, scopeKey)
           return yield* sql`SELECT * FROM ${sql(table)} WHERE sequence >= ${startSequence} ORDER BY sequence ASC`.pipe(
             Effect.flatMap(decodeEntries)
           )
@@ -252,8 +255,9 @@ export const makeStorage = (options?: {
         Effect.orDie,
         Effect.scoped
       ),
-      changes: Effect.fnUntraced(function*(publicKey, startSequence) {
-        const { pubsub, table } = yield* RcMap.get(resources, publicKey)
+      changes: Effect.fnUntraced(function*(publicKey, storeId, startSequence) {
+        const scopeKey = makeEncryptedScopeKey({ publicKey, storeId })
+        const { pubsub, table } = yield* RcMap.get(resources, scopeKey)
         const queue = yield* Queue.make<EventLogEncryption.EncryptedRemoteEntry>()
         const subscription = yield* PubSub.subscribe(pubsub)
         const initial = yield* sql`

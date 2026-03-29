@@ -1,10 +1,14 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Effect, Queue } from "effect"
 import * as EventJournal from "effect/unstable/eventlog/EventJournal"
+import type * as EventLog from "effect/unstable/eventlog/EventLog"
 import * as EventLogRemote from "effect/unstable/eventlog/EventLogRemote"
 import * as EventLogServer from "effect/unstable/eventlog/EventLogServer"
 import * as EventLogSessionAuth from "effect/unstable/eventlog/EventLogSessionAuth"
 import * as Socket from "effect/unstable/socket/Socket"
+
+const storeIdA = "store-a" as EventLog.StoreId
+const storeIdB = "store-b" as EventLog.StoreId
 
 const makeSocketHarness = Effect.gen(function*() {
   const inbound = yield* Queue.unbounded<Uint8Array>()
@@ -142,9 +146,10 @@ const withDateNow = <A, E, R>(
       })
   )
 
-const makeWriteRequest = (publicKey: string, id: number) =>
+const makeWriteRequest = (publicKey: string, id: number, storeId: EventLog.StoreId = storeIdA) =>
   new EventLogRemote.WriteEntries({
     publicKey,
+    storeId,
     id,
     iv: new Uint8Array(12),
     encryptedEntries: [
@@ -153,6 +158,13 @@ const makeWriteRequest = (publicKey: string, id: number) =>
         encryptedEntry: Uint8Array.of(1, 2, 3)
       }
     ]
+  })
+
+const makePersistedEntry = (index: number, entryId = EventJournal.makeEntryIdUnsafe()) =>
+  new EventLogServer.PersistedEntry({
+    entryId,
+    iv: new Uint8Array(12),
+    encryptedEntry: Uint8Array.of(index)
   })
 
 const serverLayer = EventLogServer.layerStorageMemory
@@ -183,6 +195,7 @@ describe("EventLogServer", () => {
         yield* harness.sendRequest(
           new EventLogRemote.RequestChanges({
             publicKey: "client-1",
+            storeId: storeIdA,
             startSequence: 0
           })
         )
@@ -196,6 +209,7 @@ describe("EventLogServer", () => {
 
         yield* harness.sendRequest(
           new EventLogRemote.StopChanges({
+            storeId: storeIdA,
             publicKey: "client-1"
           })
         )
@@ -243,7 +257,7 @@ describe("EventLogServer", () => {
         }
         assert.deepStrictEqual(ack.sequenceNumbers, [0])
 
-        const persisted = yield* storage.entries("client-1", 0)
+        const persisted = yield* storage.entries("client-1", storeIdA, 0)
         assert.strictEqual(persisted.length, 1)
       }).pipe(Effect.provide(serverLayer))
     ))
@@ -351,6 +365,7 @@ describe("EventLogServer", () => {
 
         yield* harness.sendRequest(
           new EventLogRemote.StopChanges({
+            storeId: storeIdA,
             publicKey: "client-2"
           })
         )
@@ -520,6 +535,60 @@ describe("EventLogServer", () => {
         }
 
         assert.deepStrictEqual(persisted, winnerSigningPublicKey)
+      })
+    ))
+
+  it.effect("makeStorageMemory isolates same publicKey across storeIds", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const storage = yield* EventLogServer.makeStorageMemory
+
+        yield* storage.write("client-1", storeIdA, [makePersistedEntry(1)])
+        yield* storage.write("client-1", storeIdB, [makePersistedEntry(2)])
+
+        const storeAEntries = yield* storage.entries("client-1", storeIdA, 0)
+        const storeBEntries = yield* storage.entries("client-1", storeIdB, 0)
+
+        assert.deepStrictEqual(storeAEntries.map((entry) => entry.sequence), [0])
+        assert.deepStrictEqual(storeBEntries.map((entry) => entry.sequence), [0])
+      })
+    ))
+
+  it.effect("makeStorageMemory isolates same storeId across publicKeys", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const storage = yield* EventLogServer.makeStorageMemory
+
+        yield* storage.write("client-1", storeIdA, [makePersistedEntry(1)])
+        yield* storage.write("client-2", storeIdA, [makePersistedEntry(2)])
+
+        const clientOneEntries = yield* storage.entries("client-1", storeIdA, 0)
+        const clientTwoEntries = yield* storage.entries("client-2", storeIdA, 0)
+
+        assert.deepStrictEqual(clientOneEntries.map((entry) => entry.sequence), [0])
+        assert.deepStrictEqual(clientTwoEntries.map((entry) => entry.sequence), [0])
+      })
+    ))
+
+  it.effect("makeStorageMemory keeps deduplication isolated per encrypted scope", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const storage = yield* EventLogServer.makeStorageMemory
+        const sharedEntryId = EventJournal.makeEntryIdUnsafe()
+
+        const first = yield* storage.write("client-1", storeIdA, [makePersistedEntry(1, sharedEntryId)])
+        const duplicate = yield* storage.write("client-1", storeIdA, [makePersistedEntry(2, sharedEntryId)])
+        const samePublicDifferentStore = yield* storage.write("client-1", storeIdB, [
+          makePersistedEntry(3, sharedEntryId)
+        ])
+        const differentPublicSameStore = yield* storage.write("client-2", storeIdA, [
+          makePersistedEntry(4, sharedEntryId)
+        ])
+
+        assert.deepStrictEqual(first.map((entry) => entry.sequence), [0])
+        assert.strictEqual(duplicate.length, 0)
+        assert.deepStrictEqual(samePublicDifferentStore.map((entry) => entry.sequence), [0])
+        assert.deepStrictEqual(differentPublicSameStore.map((entry) => entry.sequence), [0])
       })
     ))
 })

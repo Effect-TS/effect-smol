@@ -17,6 +17,8 @@ import * as HttpServerRequest from "../http/HttpServerRequest.ts"
 import * as HttpServerResponse from "../http/HttpServerResponse.ts"
 import type * as Socket from "../socket/Socket.ts"
 import { EntryId, makeRemoteIdUnsafe, type RemoteId } from "./EventJournal.ts"
+import type * as EventLog from "./EventLog.ts"
+import { makeEncryptedScopeKey } from "./EventLogEncryptedScope.ts"
 import type { EncryptedRemoteEntry } from "./EventLogEncryption.ts"
 import {
   Ack,
@@ -237,7 +239,7 @@ export const makeHandler: Effect.Effect<
                   encryptedEntry
                 })
               )
-              const encrypted = yield* storage.write(request.publicKey, entries)
+              const encrypted = yield* storage.write(request.publicKey, request.storeId, entries)
               latestSequence = encrypted[encrypted.length - 1].sequence
               return yield* Effect.orDie(
                 write(
@@ -258,7 +260,7 @@ export const makeHandler: Effect.Effect<
             }
 
             return Effect.gen(function*() {
-              const changes = yield* storage.changes(request.publicKey, request.startSequence)
+              const changes = yield* storage.changes(request.publicKey, request.storeId, request.startSequence)
               return yield* Queue.takeAll(changes).pipe(
                 Effect.flatMap((entries) => {
                   const latestEntries: Array<EncryptedRemoteEntry> = []
@@ -272,6 +274,7 @@ export const makeHandler: Effect.Effect<
                     write(
                       new Changes({
                         publicKey: request.publicKey,
+                        storeId: request.storeId,
                         entries: latestEntries
                       })
                     )
@@ -369,14 +372,17 @@ export class Storage extends ServiceMap.Service<Storage, {
   readonly putSessionAuthBindingIfAbsent: (publicKey: string, signingPublicKey: Uint8Array) => Effect.Effect<boolean>
   readonly write: (
     publicKey: string,
+    storeId: EventLog.StoreId,
     entries: ReadonlyArray<PersistedEntry>
   ) => Effect.Effect<ReadonlyArray<EncryptedRemoteEntry>>
   readonly entries: (
     publicKey: string,
+    storeId: EventLog.StoreId,
     startSequence: number
   ) => Effect.Effect<ReadonlyArray<EncryptedRemoteEntry>>
   readonly changes: (
     publicKey: string,
+    storeId: EventLog.StoreId,
     startSequence: number
   ) => Effect.Effect<Queue.Dequeue<EncryptedRemoteEntry, Cause.Done>, never, Scope.Scope>
 }>()("effect/eventlog/EventLogServer/Storage") {}
@@ -386,19 +392,26 @@ export class Storage extends ServiceMap.Service<Storage, {
  * @category storage
  */
 export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.Scope> = Effect.gen(function*() {
-  const knownIds = new Map<string, number>()
+  const knownIds = new Map<string, Map<string, number>>()
   const journals = new Map<string, Array<EncryptedRemoteEntry>>()
   const sessionAuthBindings = new Map<string, Uint8Array>()
   const remoteId = makeRemoteIdUnsafe()
-  const ensureJournal = (publicKey: string) => {
-    let journal = journals.get(publicKey)
+  const ensureKnownIds = (scopeKey: string): Map<string, number> => {
+    let storeKnownIds = knownIds.get(scopeKey)
+    if (storeKnownIds) return storeKnownIds
+    storeKnownIds = new Map<string, number>()
+    knownIds.set(scopeKey, storeKnownIds)
+    return storeKnownIds
+  }
+  const ensureJournal = (scopeKey: string) => {
+    let journal = journals.get(scopeKey)
     if (journal) return journal
     journal = []
-    journals.set(publicKey, journal)
+    journals.set(scopeKey, journal)
     return journal
   }
   const pubsubs = yield* RcMap.make({
-    lookup: (_publicKey: string) =>
+    lookup: (_scopeKey: string) =>
       Effect.acquireRelease(
         PubSub.unbounded<EncryptedRemoteEntry>(),
         PubSub.shutdown
@@ -427,21 +440,23 @@ export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.S
         sessionAuthBindings.set(publicKey, copyUint8Array(signingPublicKey))
         return true
       }),
-    write: (publicKey, entries) =>
+    write: (publicKey, storeId, entries) =>
       Effect.gen(function*() {
+        const scopeKey = makeEncryptedScopeKey({ publicKey, storeId })
         const active = yield* RcMap.keys(pubsubs)
         let pubsub: PubSub.PubSub<EncryptedRemoteEntry> | undefined
         for (const key of active) {
-          if (key === publicKey) {
-            pubsub = yield* RcMap.get(pubsubs, publicKey)
+          if (key === scopeKey) {
+            pubsub = yield* RcMap.get(pubsubs, scopeKey)
             break
           }
         }
-        const journal = ensureJournal(publicKey)
+        const storeKnownIds = ensureKnownIds(scopeKey)
+        const journal = ensureJournal(scopeKey)
         const encryptedEntries: Array<EncryptedRemoteEntry> = []
         for (const entry of entries) {
           const idString = entry.entryIdString
-          if (knownIds.has(idString)) continue
+          if (storeKnownIds.has(idString)) continue
           const encrypted: EncryptedRemoteEntry = {
             sequence: journal.length,
             entryId: entry.entryId,
@@ -449,7 +464,7 @@ export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.S
             encryptedEntry: entry.encryptedEntry
           }
           encryptedEntries.push(encrypted)
-          knownIds.set(idString, encrypted.sequence)
+          storeKnownIds.set(idString, encrypted.sequence)
           journal.push(encrypted)
           if (pubsub) {
             yield* PubSub.publish(pubsub, encrypted)
@@ -457,13 +472,15 @@ export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.S
         }
         return encryptedEntries
       }).pipe(Effect.scoped),
-    entries: (publicKey, startSequence) => Effect.sync(() => ensureJournal(publicKey).slice(startSequence)),
-    changes: (publicKey, startSequence) =>
+    entries: (publicKey, storeId, startSequence) =>
+      Effect.sync(() => ensureJournal(makeEncryptedScopeKey({ publicKey, storeId })).slice(startSequence)),
+    changes: (publicKey, storeId, startSequence) =>
       Effect.gen(function*() {
+        const scopeKey = makeEncryptedScopeKey({ publicKey, storeId })
         const queue = yield* Queue.make<EncryptedRemoteEntry>()
-        const pubsub = yield* RcMap.get(pubsubs, publicKey)
+        const pubsub = yield* RcMap.get(pubsubs, scopeKey)
         const subscription = yield* PubSub.subscribe(pubsub)
-        yield* Queue.offerAll(queue, ensureJournal(publicKey).slice(startSequence))
+        yield* Queue.offerAll(queue, ensureJournal(scopeKey).slice(startSequence))
         yield* PubSub.takeAll(subscription).pipe(
           Effect.flatMap((chunk) => Queue.offerAll(queue, chunk)),
           Effect.forever,

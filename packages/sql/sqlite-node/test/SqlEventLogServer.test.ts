@@ -9,6 +9,9 @@ import * as SqlEventLogServer from "effect/unstable/eventlog/SqlEventLogServer"
 import { Reactivity } from "effect/unstable/reactivity"
 import * as SqlClient from "effect/unstable/sql/SqlClient"
 
+const storeIdA = "store-a" as EventLog.StoreId
+const storeIdB = "store-b" as EventLog.StoreId
+
 const makeEntry = (value: number) =>
   new EventJournal.Entry({
     id: EventJournal.makeEntryIdUnsafe(),
@@ -31,6 +34,13 @@ const persistEntries = (
         encryptedEntry
       })
     )
+  })
+
+const makePersistedEntry = (index: number, entryId = EventJournal.makeEntryIdUnsafe()) =>
+  new EventLogServer.PersistedEntry({
+    entryId,
+    iv: new Uint8Array(12),
+    encryptedEntry: Uint8Array.of(index)
   })
 
 describe("SqlEventLogServer", () => {
@@ -58,22 +68,74 @@ describe("SqlEventLogServer", () => {
       const identity = yield* encryption.generateIdentity
       const entries = [makeEntry(1), makeEntry(2)]
       const persisted = yield* persistEntries(encryption, identity, entries)
-      const written = yield* storage.write(identity.publicKey, persisted)
+      const written = yield* storage.write(identity.publicKey, storeIdA, persisted)
       assert.deepStrictEqual(written.map((entry) => entry.sequence), [1, 2])
 
-      const stored = yield* storage.entries(identity.publicKey, 0)
+      const stored = yield* storage.entries(identity.publicKey, storeIdA, 0)
       assert.deepStrictEqual(stored.map((entry) => entry.sequence), [1, 2])
 
-      const changes = yield* storage.changes(identity.publicKey, 0)
+      const changes = yield* storage.changes(identity.publicKey, storeIdA, 0)
       const initial = yield* Queue.takeAll(changes)
       assert.deepStrictEqual(initial.map((entry) => entry.sequence), [1, 2])
 
       const nextEntry = makeEntry(3)
       const nextPersisted = yield* persistEntries(encryption, identity, [nextEntry])
-      const updated = yield* storage.write(identity.publicKey, nextPersisted)
+      const updated = yield* storage.write(identity.publicKey, storeIdA, nextPersisted)
       assert.deepStrictEqual(updated.map((entry) => entry.sequence), [3])
 
       const next = yield* Queue.take(changes)
       assert.strictEqual(next.sequence, 3)
+    }).pipe(Effect.provide([Reactivity.layer, EventLogEncryption.layerSubtle])))
+
+  it.effect("isolates same publicKey across storeIds", () =>
+    Effect.gen(function*() {
+      const sql = yield* SqliteClient.make({ filename: ":memory:" })
+      const storage = yield* SqlEventLogServer.makeStorage().pipe(
+        Effect.provideService(SqlClient.SqlClient, sql)
+      )
+
+      yield* storage.write("client-1", storeIdA, [makePersistedEntry(1)])
+      yield* storage.write("client-1", storeIdB, [makePersistedEntry(2)])
+
+      const storeAEntries = yield* storage.entries("client-1", storeIdA, 0)
+      const storeBEntries = yield* storage.entries("client-1", storeIdB, 0)
+
+      assert.deepStrictEqual(storeAEntries.map((entry) => entry.sequence), [1])
+      assert.deepStrictEqual(storeBEntries.map((entry) => entry.sequence), [1])
+    }).pipe(Effect.provide([Reactivity.layer, EventLogEncryption.layerSubtle])))
+
+  it.effect("isolates same storeId across publicKeys", () =>
+    Effect.gen(function*() {
+      const sql = yield* SqliteClient.make({ filename: ":memory:" })
+      const storage = yield* SqlEventLogServer.makeStorage().pipe(
+        Effect.provideService(SqlClient.SqlClient, sql)
+      )
+
+      yield* storage.write("client-1", storeIdA, [makePersistedEntry(1)])
+      yield* storage.write("client-2", storeIdA, [makePersistedEntry(2)])
+
+      const clientOneEntries = yield* storage.entries("client-1", storeIdA, 0)
+      const clientTwoEntries = yield* storage.entries("client-2", storeIdA, 0)
+
+      assert.deepStrictEqual(clientOneEntries.map((entry) => entry.sequence), [1])
+      assert.deepStrictEqual(clientTwoEntries.map((entry) => entry.sequence), [1])
+    }).pipe(Effect.provide([Reactivity.layer, EventLogEncryption.layerSubtle])))
+
+  it.effect("keeps deduplication isolated per encrypted scope", () =>
+    Effect.gen(function*() {
+      const sql = yield* SqliteClient.make({ filename: ":memory:" })
+      const storage = yield* SqlEventLogServer.makeStorage().pipe(
+        Effect.provideService(SqlClient.SqlClient, sql)
+      )
+      const sharedEntryId = EventJournal.makeEntryIdUnsafe()
+
+      yield* storage.write("client-1", storeIdA, [makePersistedEntry(1, sharedEntryId)])
+      yield* storage.write("client-1", storeIdA, [makePersistedEntry(2, sharedEntryId)])
+      yield* storage.write("client-1", storeIdB, [makePersistedEntry(3, sharedEntryId)])
+      yield* storage.write("client-2", storeIdA, [makePersistedEntry(4, sharedEntryId)])
+
+      assert.deepStrictEqual((yield* storage.entries("client-1", storeIdA, 0)).map((entry) => entry.sequence), [1])
+      assert.deepStrictEqual((yield* storage.entries("client-1", storeIdB, 0)).map((entry) => entry.sequence), [1])
+      assert.deepStrictEqual((yield* storage.entries("client-2", storeIdA, 0)).map((entry) => entry.sequence), [1])
     }).pipe(Effect.provide([Reactivity.layer, EventLogEncryption.layerSubtle])))
 })

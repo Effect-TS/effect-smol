@@ -16,7 +16,7 @@ import * as ServiceMap from "../../ServiceMap.ts"
 import * as Msgpack from "../encoding/Msgpack.ts"
 import * as Socket from "../socket/Socket.ts"
 import { Entry, EntryId, RemoteEntry, RemoteId } from "./EventJournal.ts"
-import { type Identity, StoreId } from "./EventLog.js"
+import { type Identity, StoreId } from "./EventLog.ts"
 import { EncryptedEntry, EncryptedRemoteEntry, EventLogEncryption, layerSubtle } from "./EventLogEncryption.ts"
 import { encodeSessionAuthPayload, signSessionAuthPayloadBytes } from "./EventLogSessionAuth.ts"
 

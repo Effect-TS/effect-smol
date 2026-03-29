@@ -63,8 +63,8 @@ All of those message types already include `storeId`.
 
 - `fromSocket` keys `subscriptions` and `identities` by `publicKey`
 - `fromSocketUnencrypted` keys `subscriptions` and `identities` by `publicKey`
-- `StopChanges` currently has only `publicKey`
-- `ProtocolError` currently has `requestTag`, `id`, and `publicKey`, but no `storeId`
+- `StopChanges` now carries both `publicKey` and `storeId`
+- `ProtocolError` now supports optional `storeId`
 
 That means multiple active change streams for different store ids under the same public key cannot be demultiplexed correctly yet.
 
@@ -437,7 +437,7 @@ A PR implementing this specification must also include a changeset.
 
 The tasks below are grouped so each task can land with passing validation on its own.
 
-### Task 1: Encrypted storage scoping
+### Task 1: Encrypted storage scoping ✅ Completed
 
 Scope:
 
@@ -464,7 +464,7 @@ Task validation:
 - encrypted storage-focused tests
 - `pnpm check:tsgo`
 
-### Task 2: Shared multiplexed change-stream protocol/runtime plumbing
+### Task 2: Shared multiplexed change-stream protocol/runtime plumbing ⏳ Pending
 
 Scope:
 
@@ -493,7 +493,7 @@ Task validation:
 - focused eventlog protocol/runtime tests
 - `pnpm check:tsgo`
 
-### Task 3: Encrypted handler multi-store routing
+### Task 3: Encrypted handler multi-store routing ⏳ Pending
 
 Scope:
 
@@ -521,7 +521,7 @@ Task validation:
 - `pnpm test packages/sql/sqlite-node/test/SqlEventLogServer.test.ts`
 - `pnpm check:tsgo`
 
-### Task 4: Unencrypted mapping and handler/runtime migration
+### Task 4: Unencrypted mapping and handler/runtime migration ⏳ Pending
 
 Scope:
 
@@ -553,7 +553,7 @@ Task validation:
 - `pnpm test packages/effect/test/unstable/eventlog/EventLogServerUnencrypted.test.ts`
 - `pnpm check:tsgo`
 
-### Task 5: Final validation and release metadata
+### Task 5: Final validation and release metadata ⏳ Pending
 
 Scope:
 
