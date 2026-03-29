@@ -4,11 +4,9 @@
 import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
 import * as Fiber from "effect/Fiber"
-import { format } from "effect/Formatter"
-import type { Inspectable } from "effect/Inspectable"
-import { NodeInspectSymbol } from "effect/Inspectable"
+import * as Inspectable from "effect/Inspectable"
 import * as Layer from "effect/Layer"
-import { type Pipeable, pipeArguments } from "effect/Pipeable"
+import * as Pipeable from "effect/Pipeable"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Utils from "effect/Utils"
 import * as IndexedDb from "./IndexedDb.ts"
@@ -26,17 +24,10 @@ const YieldableProto = {
 }
 
 const PipeInspectableProto = {
-  pipe() {
-    return pipeArguments(this, arguments)
-  },
+  ...Pipeable.Prototype,
+  ...Inspectable.BaseProto,
   toJSON(this: any) {
-    return { ...this }
-  },
-  toString() {
-    return format(this, { ignoreToString: true })
-  },
-  [NodeInspectSymbol]() {
-    return this.toJSON()
+    return { _id: "IndexedDbDatabase" }
   }
 }
 
@@ -99,8 +90,8 @@ export interface IndexedDbSchema<
   in out ToVersion extends IndexedDbVersion.AnyWithProps,
   out Error = never
 > extends
-  Pipeable,
-  Inspectable,
+  Pipeable.Pipeable,
+  Inspectable.Inspectable,
   Effect.YieldableClass<
     IndexedDbQueryBuilder.IndexedDbQueryBuilder<ToVersion>,
     never,
@@ -149,7 +140,7 @@ export interface IndexedDbSchema<
  */
 export interface Transaction<
   Source extends IndexedDbVersion.AnyWithProps = never
-> extends Pipeable, Omit<IndexedDbQueryBuilder.IndexedDbQueryBuilder<Source>, "transaction"> {
+> extends Pipeable.Pipeable, Omit<IndexedDbQueryBuilder.IndexedDbQueryBuilder<Source>, "transaction"> {
   readonly transaction: globalThis.IDBTransaction
 
   readonly createObjectStore: <

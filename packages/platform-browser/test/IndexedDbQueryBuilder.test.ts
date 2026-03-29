@@ -1073,7 +1073,6 @@ describe.sequential("IndexedDbQueryBuilder", () => {
         const api = yield* Db.getQueryBuilder
         yield* api.from("todo").delete().limit(2)
         const data = yield* api.from("todo").select()
-        console.log(data)
 
         assert.equal(data.length, 1)
         assert.deepStrictEqual(data, [

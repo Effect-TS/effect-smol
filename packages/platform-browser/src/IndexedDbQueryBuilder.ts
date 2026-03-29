@@ -4,11 +4,9 @@
 import type { NonEmptyReadonlyArray } from "effect/Array"
 import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
-import { format } from "effect/Formatter"
 import type { Inspectable } from "effect/Inspectable"
-import { NodeInspectSymbol } from "effect/Inspectable"
-import type { Pipeable } from "effect/Pipeable"
-import { pipeArguments } from "effect/Pipeable"
+import { BaseProto } from "effect/Inspectable"
+import * as Pipeable from "effect/Pipeable"
 import * as Schema from "effect/Schema"
 import * as SchemaIssue from "effect/SchemaIssue"
 import * as SchemaParser from "effect/SchemaParser"
@@ -24,19 +22,12 @@ const CommonProto = {
   [Symbol.iterator]() {
     return new Utils.SingleShotGen(this) as any
   },
-  pipe() {
-    return pipeArguments(this, arguments)
-  },
+  ...Pipeable.Prototype,
+  ...BaseProto,
   toJSON(this: any) {
     return {
       _id: "IndexedDbQueryBuilder"
     }
-  },
-  toString() {
-    return format(this, { ignoreToString: true })
-  },
-  [NodeInspectSymbol]() {
-    return this.toJSON()
   }
 }
 
@@ -75,7 +66,7 @@ export class IndexedDbQueryError extends Data.TaggedError(
  */
 export interface IndexedDbQueryBuilder<
   Source extends IndexedDbVersion.AnyWithProps
-> extends Pipeable, Inspectable {
+> extends Pipeable.Pipeable, Inspectable {
   readonly tables: ReadonlyMap<string, IndexedDbVersion.Tables<Source>>
   readonly database: globalThis.IDBDatabase
   readonly IDBKeyRange: typeof globalThis.IDBKeyRange
@@ -251,7 +242,7 @@ export declare namespace IndexedDbQuery {
    */
   export interface Clear<
     Table extends IndexedDbTable.AnyWithProps
-  > extends Pipeable, Effect.YieldableClass<void, IndexedDbQueryError> {
+  > extends Pipeable.Pipeable, Effect.YieldableClass<void, IndexedDbQueryError> {
     readonly from: From<Table>
   }
 
@@ -262,7 +253,7 @@ export declare namespace IndexedDbQuery {
   export interface Count<
     Table extends IndexedDbTable.AnyWithProps,
     Index extends IndexedDbDatabase.IndexFromTable<Table>
-  > extends Pipeable, Effect.YieldableClass<number, IndexedDbQueryError> {
+  > extends Pipeable.Pipeable, Effect.YieldableClass<number, IndexedDbQueryError> {
     readonly from: From<Table>
     readonly index?: Index
     readonly only?: ExtractIndexType<Table, Index>
@@ -387,7 +378,7 @@ export declare namespace IndexedDbQuery {
   export interface Delete<
     Table extends IndexedDbTable.AnyWithProps,
     Index extends IndexedDbDatabase.IndexFromTable<Table>
-  > extends Pipeable, Effect.YieldableClass<void, IndexedDbQueryError> {
+  > extends Pipeable.Pipeable, Effect.YieldableClass<void, IndexedDbQueryError> {
     readonly delete: DeletePartial<Table, Index>
     readonly index?: Index
     readonly limitValue?: number
@@ -462,7 +453,7 @@ export declare namespace IndexedDbQuery {
     Table extends IndexedDbTable.AnyWithProps,
     Index extends IndexedDbDatabase.IndexFromTable<Table>
   > extends
-    Pipeable,
+    Pipeable.Pipeable,
     Effect.YieldableClass<
       Array<SourceTableSelectSchemaType<Table>>,
       IndexedDbQueryError,
@@ -545,7 +536,7 @@ export declare namespace IndexedDbQuery {
     Table extends IndexedDbTable.AnyWithProps,
     Index extends IndexedDbDatabase.IndexFromTable<Table>
   > extends
-    Pipeable,
+    Pipeable.Pipeable,
     Effect.YieldableClass<
       SourceTableSelectSchemaType<Table>,
       IndexedDbQueryError,
@@ -563,7 +554,7 @@ export declare namespace IndexedDbQuery {
     Table extends IndexedDbTable.AnyWithProps,
     Index extends IndexedDbDatabase.IndexFromTable<Table>
   > extends
-    Pipeable,
+    Pipeable.Pipeable,
     Effect.YieldableClass<
       Array<SourceTableSelectSchemaType<Table>>,
       IndexedDbQueryError,
@@ -584,7 +575,7 @@ export declare namespace IndexedDbQuery {
   export interface Modify<
     Table extends IndexedDbTable.AnyWithProps
   > extends
-    Pipeable,
+    Pipeable.Pipeable,
     Effect.YieldableClass<
       globalThis.IDBValidKey,
       IndexedDbQueryError,
@@ -603,7 +594,7 @@ export declare namespace IndexedDbQuery {
   export interface ModifyAll<
     Table extends IndexedDbTable.AnyWithProps
   > extends
-    Pipeable,
+    Pipeable.Pipeable,
     Effect.YieldableClass<
       Array<globalThis.IDBValidKey>,
       IndexedDbQueryError,
