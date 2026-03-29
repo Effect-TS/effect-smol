@@ -75,6 +75,11 @@ Implementation discovery during Task 3:
 - `EventLogServer.makeHandler` previously tracked one socket-global `latestSequence`; once `(publicKey, storeId)` storage scoping was introduced, that global watermark caused lower-sequence replay/live entries from other stores to be incorrectly filtered out.
 - the encrypted handler now tracks replay/live de-duplication per active `(publicKey, storeId)` subscription fiber, and handler-side `StopChanges` routing now uses the same encrypted scope key helper as storage.
 
+Implementation discovery during Task 4:
+
+- `Authenticate` remains publicKey-scoped while normal routing became pair-aware; to preserve first-bind behavior without weakening pre-bind checks, `StoreMapping.resolve(...)` now accepts either `(publicKey, storeId)` for normal routing or `publicKey` alone for first-bind Authenticate checks.
+- tests that cast to `EventLogServerUnencrypted.StoreId` were relying on a non-exported type; they now use `EventLog.StoreId` directly.
+
 ## User-confirmed decisions
 
 These decisions are confirmed and should be treated as requirements.
@@ -528,7 +533,7 @@ Task validation:
 - `pnpm test packages/sql/sqlite-node/test/SqlEventLogServer.test.ts`
 - `pnpm check:tsgo` *(currently blocked by pre-existing Task 4 unencrypted migration compile errors in `EventLogServerUnencrypted*` files)*
 
-### Task 4: Unencrypted mapping and handler/runtime migration ⏳ Pending
+### Task 4: Unencrypted mapping and handler/runtime migration ✅ Completed
 
 Scope:
 
@@ -558,7 +563,9 @@ Task validation:
 
 - `pnpm lint-fix`
 - `pnpm test packages/effect/test/unstable/eventlog/EventLogServerUnencrypted.test.ts`
+- `pnpm test packages/sql/sqlite-node/test/SqlEventLogServerUnencrypted.test.ts`
 - `pnpm check:tsgo`
+- `pnpm docgen`
 
 ### Task 5: Final validation and release metadata ⏳ Pending
 

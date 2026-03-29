@@ -20,8 +20,9 @@ const UserEvents = EventGroup.empty.add({
 })
 
 const schema = EventLog.schema(UserEvents)
-const storeId = "store-1" as EventLogServerUnencrypted.StoreId
-const serverWritePublicKey = `effect-eventlog-server-write:${storeId}`
+const storeIdA = "store-a" as EventLog.StoreId
+const storeIdB = "store-b" as EventLog.StoreId
+const serverWritePublicKey = `effect-eventlog-server-write:${storeIdA}`
 
 type SeenWrite = {
   readonly name: string
@@ -64,11 +65,14 @@ const allowAllAuthLayer = Layer.succeed(EventLogServerUnencrypted.EventLogServer
 
 const makeServerLayer = (
   seen: Ref.Ref<ReadonlyArray<SeenWrite>>,
-  auth: Layer.Layer<EventLogServerUnencrypted.EventLogServerAuth> = allowAllAuthLayer
+  auth: Layer.Layer<EventLogServerUnencrypted.EventLogServerAuth> = allowAllAuthLayer,
+  mapping: Layer.Layer<EventLogServerUnencrypted.StoreMapping> = EventLogServerUnencrypted.layerStoreMappingStatic({
+    storeId: storeIdA
+  })
 ) =>
   EventLogServerUnencrypted.layer(schema).pipe(
     Layer.provideMerge(EventLogServerUnencrypted.layerStorageMemory),
-    Layer.provideMerge(EventLogServerUnencrypted.layerStoreMappingStatic({ storeId })),
+    Layer.provideMerge(mapping),
     Layer.provideMerge(auth),
     Layer.provideMerge(handlerLayer(seen))
   )
@@ -77,13 +81,48 @@ const makeServerLayerWithStorage = (options: {
   readonly seen: Ref.Ref<ReadonlyArray<SeenWrite>>
   readonly storage: EventLogServerUnencrypted.Storage["Service"]
   readonly auth?: Layer.Layer<EventLogServerUnencrypted.EventLogServerAuth> | undefined
+  readonly mapping?: Layer.Layer<EventLogServerUnencrypted.StoreMapping> | undefined
 }) =>
   EventLogServerUnencrypted.layer(schema).pipe(
     Layer.provideMerge(Layer.succeed(EventLogServerUnencrypted.Storage, options.storage)),
-    Layer.provideMerge(EventLogServerUnencrypted.layerStoreMappingStatic({ storeId })),
+    Layer.provideMerge(options.mapping ?? EventLogServerUnencrypted.layerStoreMappingStatic({ storeId: storeIdA })),
     Layer.provideMerge(options.auth ?? allowAllAuthLayer),
     Layer.provideMerge(handlerLayer(options.seen))
   )
+
+const makePairAwareStoreMappingLayer = (pairs: ReadonlyArray<readonly [string, EventLog.StoreId]>) => {
+  const pairMap = new Map(pairs.map(([publicKey, storeId]) => [JSON.stringify([publicKey, storeId]), storeId] as const))
+
+  return Layer.succeed(EventLogServerUnencrypted.StoreMapping, {
+    resolve: (request) => {
+      if (typeof request === "string") {
+        const first = pairs.find(([publicKey]) => publicKey === request)
+        return first === undefined
+          ? Effect.fail(
+            new EventLogServerUnencrypted.EventLogServerStoreError({
+              reason: "NotFound",
+              publicKey: request,
+              message: `No store mapping found for public key: ${request}`
+            })
+          )
+          : Effect.succeed(first[1])
+      }
+
+      const resolved = pairMap.get(JSON.stringify([request.publicKey, request.storeId]))
+      return resolved === undefined
+        ? Effect.fail(
+          new EventLogServerUnencrypted.EventLogServerStoreError({
+            reason: "NotFound",
+            publicKey: request.publicKey,
+            storeId: request.storeId,
+            message: `No store mapping found for pair: ${request.publicKey}/${request.storeId}`
+          })
+        )
+        : Effect.succeed(resolved)
+    },
+    hasStore: ({ storeId }) => Effect.succeed(pairs.some(([, candidateStoreId]) => candidateStoreId === storeId))
+  })
+}
 
 const makeSocketHarness = Effect.gen(function*() {
   const inbound = yield* Queue.unbounded<Uint8Array>()
@@ -222,20 +261,102 @@ describe("EventLogServerUnencrypted", () => {
 
         const first = yield* server.ingest({
           publicKey: "client-1",
+          storeId: storeIdA,
           entries: [entry, entry]
         })
         const second = yield* server.ingest({
           publicKey: "client-1",
+          storeId: storeIdA,
           entries: [entry]
         })
 
-        assert.strictEqual(first.storeId, storeId)
+        assert.strictEqual(first.storeId, storeIdA)
         assert.deepStrictEqual(first.sequenceNumbers, [1, 1])
         assert.strictEqual(first.committed.length, 1)
         assert.deepStrictEqual(second.sequenceNumbers, [1])
         assert.strictEqual(second.committed.length, 0)
         assert.deepStrictEqual(yield* Ref.get(seen), [{ name: "Ada", publicKey: "client-1" }])
       }).pipe(Effect.provide(makeServerLayer(seen)))
+    }))
+
+  it.effect("layerStoreMappingStatic rejects mismatched requested store ids", () =>
+    Effect.gen(function*() {
+      const seen = yield* Ref.make<ReadonlyArray<SeenWrite>>([])
+
+      return yield* Effect.scoped(
+        Effect.gen(function*() {
+          const server = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+
+          const ingestError = yield* server.ingest({
+            publicKey: "client-1",
+            storeId: storeIdB,
+            entries: [yield* makeEntry({ name: "Ada" })]
+          }).pipe(Effect.flip)
+
+          assert.strictEqual(ingestError.reason, "NotFound")
+          assert.strictEqual(ingestError.publicKey, "client-1")
+          assert.strictEqual(ingestError.storeId, storeIdB)
+
+          const requestChangesError = yield* server.requestChanges("client-1", storeIdB, 0).pipe(
+            Effect.scoped,
+            Effect.flip
+          )
+
+          assert.strictEqual(requestChangesError.reason, "NotFound")
+          assert.strictEqual(requestChangesError.publicKey, "client-1")
+          assert.strictEqual(requestChangesError.storeId, storeIdB)
+        }).pipe(Effect.provide(makeServerLayer(seen)))
+      )
+    }))
+
+  it.effect("ingest and requestChanges route by (publicKey, storeId)", () =>
+    Effect.gen(function*() {
+      const seen = yield* Ref.make<ReadonlyArray<SeenWrite>>([])
+      const mapping = makePairAwareStoreMappingLayer([
+        ["client-1", storeIdA],
+        ["client-1", storeIdB],
+        ["client-2", storeIdB]
+      ])
+
+      return yield* Effect.scoped(
+        Effect.gen(function*() {
+          const server = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+          const entryA = yield* makeEntry({ name: "Ada", primaryKey: "user-a" })
+          const entryB = yield* makeEntry({ name: "Grace", primaryKey: "user-b" })
+
+          const persistedA = yield* server.ingest({
+            publicKey: "client-1",
+            storeId: storeIdA,
+            entries: [entryA]
+          })
+          const persistedB = yield* server.ingest({
+            publicKey: "client-1",
+            storeId: storeIdB,
+            entries: [entryB]
+          })
+
+          assert.strictEqual(persistedA.storeId, storeIdA)
+          assert.strictEqual(persistedB.storeId, storeIdB)
+
+          const storeAChanges = yield* server.requestChanges("client-1", storeIdA, 0)
+          const storeBChanges = yield* server.requestChanges("client-1", storeIdB, 0)
+          const replayedA = yield* Queue.takeAll(storeAChanges)
+          const replayedB = yield* Queue.takeAll(storeBChanges)
+
+          assert.deepStrictEqual(replayedA.map((entry) => entry.entry.idString), [entryA.idString])
+          assert.deepStrictEqual(replayedB.map((entry) => entry.entry.idString), [entryB.idString])
+
+          const rejected = yield* server.ingest({
+            publicKey: "client-2",
+            storeId: storeIdA,
+            entries: [yield* makeEntry({ name: "Mallory", primaryKey: "user-c" })]
+          }).pipe(Effect.flip)
+
+          assert.strictEqual(rejected.reason, "NotFound")
+          assert.strictEqual(rejected.publicKey, "client-2")
+          assert.strictEqual(rejected.storeId, storeIdA)
+        }).pipe(Effect.provide(makeServerLayer(seen, allowAllAuthLayer, mapping)))
+      )
     }))
 
   it.effect("requestChanges compacts registered backlog entries", () =>
@@ -255,19 +376,19 @@ describe("EventLogServerUnencrypted", () => {
 
           yield* server.write({
             schema,
-            storeId,
+            storeId: storeIdA,
             event: "UserNameSet",
             payload: { id: "user-1", name: "Ada" }
           })
           yield* server.write({
             schema,
-            storeId,
+            storeId: storeIdA,
             event: "UserNameSet",
             payload: { id: "user-1", name: "Grace" }
           })
           yield* server.write({
             schema,
-            storeId,
+            storeId: storeIdA,
             event: "UserNameSet",
             payload: { id: "user-1", name: "Margaret" }
           })
@@ -293,6 +414,7 @@ describe("EventLogServerUnencrypted", () => {
           yield* harness.sendRequest(
             new EventLogRemote.RequestChanges({
               publicKey: "client-1",
+              storeId: storeIdA,
               startSequence: 0
             })
           )
@@ -348,6 +470,7 @@ describe("EventLogServerUnencrypted", () => {
           yield* harness.sendRequest(
             new EventLogRemote.WriteEntriesUnencrypted({
               publicKey: "client-1",
+              storeId: storeIdA,
               id: 1,
               entries: [yield* makeEntry({ name: "Ada" })]
             })
@@ -383,6 +506,7 @@ describe("EventLogServerUnencrypted", () => {
           yield* harness.sendRequest(
             new EventLogRemote.WriteEntriesUnencrypted({
               publicKey: "client-1",
+              storeId: storeIdA,
               id: 1,
               entries: [yield* makeEntry({ name: "Ada" })]
             })
@@ -394,10 +518,12 @@ describe("EventLogServerUnencrypted", () => {
           }
           assert.strictEqual(writeError.requestTag, "WriteEntries")
           assert.strictEqual(writeError.code, "Forbidden")
+          assert.strictEqual(writeError.storeId, storeIdA)
 
           yield* harness.sendRequest(
             new EventLogRemote.RequestChanges({
               publicKey: "client-1",
+              storeId: storeIdA,
               startSequence: 0
             })
           )
@@ -408,9 +534,11 @@ describe("EventLogServerUnencrypted", () => {
           }
           assert.strictEqual(requestChangesError.requestTag, "RequestChanges")
           assert.strictEqual(requestChangesError.code, "Forbidden")
+          assert.strictEqual(requestChangesError.storeId, storeIdA)
 
           yield* harness.sendRequest(
             new EventLogRemote.StopChanges({
+              storeId: storeIdA,
               publicKey: "client-1"
             })
           )
@@ -421,6 +549,7 @@ describe("EventLogServerUnencrypted", () => {
           }
           assert.strictEqual(stopChangesError.requestTag, "StopChanges")
           assert.strictEqual(stopChangesError.code, "Forbidden")
+          assert.strictEqual(stopChangesError.storeId, storeIdA)
         }).pipe(Effect.provide(makeServerLayer(seen)))
       )
     }))
@@ -456,6 +585,7 @@ describe("EventLogServerUnencrypted", () => {
           yield* harness.sendRequest(
             new EventLogRemote.WriteEntriesUnencrypted({
               publicKey: "client-1",
+              storeId: storeIdA,
               id: 1,
               entries: [yield* makeEntry({ name: "Ada" })]
             })
@@ -577,6 +707,7 @@ describe("EventLogServerUnencrypted", () => {
           yield* harness.sendRequest(
             new EventLogRemote.WriteEntriesUnencrypted({
               publicKey: "client-2",
+              storeId: storeIdA,
               id: 1,
               entries: [yield* makeEntry({ name: "Ada" })]
             })
@@ -588,9 +719,11 @@ describe("EventLogServerUnencrypted", () => {
           }
           assert.strictEqual(writeMismatch.requestTag, "WriteEntries")
           assert.strictEqual(writeMismatch.code, "Forbidden")
+          assert.strictEqual(writeMismatch.storeId, storeIdA)
 
           yield* harness.sendRequest(
             new EventLogRemote.StopChanges({
+              storeId: storeIdA,
               publicKey: "client-2"
             })
           )
@@ -601,6 +734,7 @@ describe("EventLogServerUnencrypted", () => {
           }
           assert.strictEqual(stopMismatch.requestTag, "StopChanges")
           assert.strictEqual(stopMismatch.code, "Forbidden")
+          assert.strictEqual(stopMismatch.storeId, storeIdA)
         }).pipe(Effect.provide(makeServerLayer(seen)))
       )
     }))
@@ -616,6 +750,7 @@ describe("EventLogServerUnencrypted", () => {
           const largeName = "x".repeat(700_000)
           const request = new EventLogRemote.WriteEntriesUnencrypted({
             publicKey: "client-1",
+            storeId: storeIdA,
             id: 1,
             entries: [yield* makeEntry({ name: largeName })]
           })
@@ -714,6 +849,7 @@ describe("EventLogServerUnencrypted", () => {
           yield* harness.sendRequest(
             new EventLogRemote.WriteEntriesUnencrypted({
               publicKey: "client-1",
+              storeId: storeIdA,
               id: 1,
               entries: [yield* makeEntry({ name: "Ada" })]
             })
@@ -727,10 +863,12 @@ describe("EventLogServerUnencrypted", () => {
           assert.strictEqual(writeError.requestTag, "WriteEntries")
           assert.strictEqual(writeError.code, "Forbidden")
           assert.strictEqual(writeError.message, "write rejected")
+          assert.strictEqual(writeError.storeId, storeIdA)
 
           yield* harness.sendRequest(
             new EventLogRemote.RequestChanges({
               publicKey: "client-1",
+              storeId: storeIdA,
               startSequence: 0
             })
           )
@@ -743,6 +881,7 @@ describe("EventLogServerUnencrypted", () => {
           assert.strictEqual(readError.requestTag, "RequestChanges")
           assert.strictEqual(readError.code, "Unauthorized")
           assert.strictEqual(readError.message, "read rejected")
+          assert.strictEqual(readError.storeId, storeIdA)
         }).pipe(Effect.provide(makeServerLayer(seen, authLayer)))
       )
     }))
@@ -778,7 +917,7 @@ describe("EventLogServerUnencrypted", () => {
           const largeName = "x".repeat(700_000)
           yield* server.write({
             schema,
-            storeId,
+            storeId: storeIdA,
             event: "UserNameSet",
             payload: { id: "user-1", name: largeName }
           })
@@ -786,6 +925,7 @@ describe("EventLogServerUnencrypted", () => {
           yield* harness.sendRequest(
             new EventLogRemote.RequestChanges({
               publicKey: "client-1",
+              storeId: storeIdA,
               startSequence: 0
             })
           )
@@ -818,6 +958,7 @@ describe("EventLogServerUnencrypted", () => {
           }
 
           assert.strictEqual(response.publicKey, "client-1")
+          assert.strictEqual(response.storeId, storeIdA)
           assert.strictEqual(response.entries.length, 1)
           assert.strictEqual(response.entries[0].remoteSequence, 1)
           assert.deepStrictEqual(yield* decodePayload(response.entries[0].entry.payload), {
@@ -825,6 +966,105 @@ describe("EventLogServerUnencrypted", () => {
             name: largeName
           })
         }).pipe(Effect.provide(makeServerLayer(seen)))
+      )
+    }))
+
+  it.effect("makeHandler supports concurrent multi-store subscriptions and selective StopChanges", () =>
+    Effect.gen(function*() {
+      const harness = yield* makeSocketHarness
+      const activeSubscriptions = yield* Ref.make<ReadonlyArray<string>>([])
+      const scopeKey = (publicKey: string, storeId: EventLog.StoreId) => JSON.stringify([publicKey, storeId])
+
+      const runtime = EventLogServerUnencrypted.EventLogServerUnencrypted.of({
+        getId: Effect.succeed(EventJournal.makeRemoteIdUnsafe()),
+        authenticateSession: () => Effect.succeed(true),
+        ingest: ({ storeId }) =>
+          Effect.succeed({
+            storeId,
+            sequenceNumbers: [] as ReadonlyArray<number>,
+            committed: [] as ReadonlyArray<EventJournal.RemoteEntry>
+          }),
+        write: (() => Effect.void) as EventLogServerUnencrypted.EventLogServerUnencrypted["Service"]["write"],
+        requestChanges: (publicKey, storeId) =>
+          Effect.acquireRelease(
+            Effect.gen(function*() {
+              const key = scopeKey(publicKey, storeId)
+              yield* Ref.update(activeSubscriptions, (keys) => keys.includes(key) ? keys : [...keys, key])
+              return yield* Queue.make<EventJournal.RemoteEntry>().pipe(Effect.map(Queue.asDequeue))
+            }),
+            () => Ref.update(activeSubscriptions, (keys) => keys.filter((key) => key !== scopeKey(publicKey, storeId)))
+          ),
+        registerCompaction: () => Effect.void
+      })
+
+      return yield* Effect.scoped(
+        Effect.gen(function*() {
+          const handler = yield* EventLogServerUnencrypted.makeHandler
+
+          yield* handler(harness.socket).pipe(Effect.forkScoped)
+
+          const hello = yield* harness.takeResponse
+          if (hello._tag !== "Hello") {
+            throw new Error(`Expected Hello, got ${hello._tag}`)
+          }
+
+          yield* harness.sendRequest(
+            yield* makeAuthenticateRequest({
+              hello,
+              publicKey: "client-1"
+            })
+          )
+
+          const authenticated = yield* harness.takeResponse
+          if (authenticated._tag !== "Authenticated") {
+            throw new Error(`Expected Authenticated, got ${authenticated._tag}`)
+          }
+
+          yield* harness.sendRequest(
+            new EventLogRemote.RequestChanges({
+              publicKey: "client-1",
+              storeId: storeIdA,
+              startSequence: 0
+            })
+          )
+
+          yield* harness.sendRequest(
+            new EventLogRemote.RequestChanges({
+              publicKey: "client-1",
+              storeId: storeIdB,
+              startSequence: 0
+            })
+          )
+
+          yield* Effect.yieldNow
+          assert.deepStrictEqual(
+            yield* Ref.get(activeSubscriptions),
+            [scopeKey("client-1", storeIdA), scopeKey("client-1", storeIdB)]
+          )
+
+          yield* harness.sendRequest(
+            new EventLogRemote.StopChanges({
+              publicKey: "client-1",
+              storeId: storeIdA
+            })
+          )
+
+          yield* Effect.yieldNow
+          assert.deepStrictEqual(
+            yield* Ref.get(activeSubscriptions),
+            [scopeKey("client-1", storeIdB)]
+          )
+
+          yield* harness.sendRequest(
+            new EventLogRemote.StopChanges({
+              publicKey: "client-1",
+              storeId: storeIdB
+            })
+          )
+
+          yield* Effect.yieldNow
+          assert.deepStrictEqual(yield* Ref.get(activeSubscriptions), [])
+        }).pipe(Effect.provideService(EventLogServerUnencrypted.EventLogServerUnencrypted, runtime))
       )
     }))
 

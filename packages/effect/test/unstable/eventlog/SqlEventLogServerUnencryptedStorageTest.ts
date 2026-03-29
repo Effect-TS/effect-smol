@@ -1,7 +1,7 @@
 import { assert, it } from "@effect/vitest"
 import { Effect, Exit, Fiber, Layer, Option, Queue } from "effect"
 import * as EventJournal from "effect/unstable/eventlog/EventJournal"
-import type * as EventLogServerUnencrypted from "effect/unstable/eventlog/EventLogServerUnencrypted"
+import type * as EventLog from "effect/unstable/eventlog/EventLog"
 import * as SqlEventLogServerUnencrypted from "effect/unstable/eventlog/SqlEventLogServerUnencrypted"
 import { Reactivity } from "effect/unstable/reactivity"
 import type * as SqlClient from "effect/unstable/sql/SqlClient"
@@ -19,7 +19,7 @@ const makeOptions = (prefix: string) => {
   }
 }
 
-const makeStoreId = (prefix: string) => `${uniqueNamespace(prefix)}_store` as EventLogServerUnencrypted.StoreId
+const makeStoreId = (prefix: string) => `${uniqueNamespace(prefix)}_store` as EventLog.StoreId
 
 const makeEntry = (
   name: string,

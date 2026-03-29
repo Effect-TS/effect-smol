@@ -114,15 +114,29 @@ export class EventLogServerAuth extends ServiceMap.Service<EventLogServerAuth, {
  * @category context
  */
 export class StoreMapping extends ServiceMap.Service<StoreMapping, {
-  readonly resolve: (publicKey: string) => Effect.Effect<EventLog.StoreId, EventLogServerStoreError>
-  readonly hasStore: (storeId: EventLog.StoreId) => Effect.Effect<boolean, EventLogServerStoreError>
+  readonly resolve: (
+    options: {
+      readonly publicKey: string
+      readonly storeId: EventLog.StoreId
+    } | string
+  ) => Effect.Effect<EventLog.StoreId, EventLogServerStoreError>
+  readonly hasStore: (options: {
+    readonly publicKey: string
+    readonly storeId: EventLog.StoreId
+  }) => Effect.Effect<boolean, EventLogServerStoreError>
 }>()("effect/eventlog/EventLogServerUnencrypted/StoreMapping") {}
 
-const toStoreNotFoundError = (storeId: EventLog.StoreId) =>
+const toStoreNotFoundError = (options: {
+  readonly storeId: EventLog.StoreId
+  readonly publicKey?: string | undefined
+}) =>
   new EventLogServerStoreError({
     reason: "NotFound",
-    storeId,
-    message: `No provisioned store found for store id: ${storeId}`
+    publicKey: options.publicKey,
+    storeId: options.storeId,
+    message: options.publicKey === undefined
+      ? `No provisioned store found for store id: ${options.storeId}`
+      : `No provisioned store found for public key: ${options.publicKey} and store id: ${options.storeId}`
   })
 
 /**
@@ -133,8 +147,16 @@ export const layerStoreMappingStatic = (options: {
   readonly storeId: EventLog.StoreId
 }): Layer.Layer<StoreMapping> =>
   Layer.succeed(StoreMapping, {
-    resolve: (_publicKey: string) => Effect.succeed(options.storeId),
-    hasStore: (storeId: EventLog.StoreId) => Effect.succeed(storeId === options.storeId)
+    resolve: (request) => {
+      if (typeof request === "string") {
+        return Effect.succeed(options.storeId)
+      }
+      if (request.storeId === options.storeId) {
+        return Effect.succeed(options.storeId)
+      }
+      return Effect.fail(toStoreNotFoundError(request))
+    },
+    hasStore: (request) => Effect.succeed(request.storeId === options.storeId)
   })
 
 /**
@@ -176,6 +198,7 @@ export class EventLogServerUnencrypted extends ServiceMap.Service<EventLogServer
   }) => Effect.Effect<boolean>
   readonly ingest: (options: {
     readonly publicKey: string
+    readonly storeId: EventLog.StoreId
     readonly entries: ReadonlyArray<Entry>
   }) => Effect.Effect<{
     readonly storeId: EventLog.StoreId
@@ -191,6 +214,7 @@ export class EventLogServerUnencrypted extends ServiceMap.Service<EventLogServer
   }) => Effect.Effect<void, EventLogServerStoreError>
   readonly requestChanges: (
     publicKey: string,
+    storeId: EventLog.StoreId,
     startSequence: number
   ) => Effect.Effect<
     Queue.Dequeue<RemoteEntry, Cause.Done>,
@@ -250,6 +274,11 @@ const makeClientIdentity = (publicKey: string): EventLog.Identity["Service"] => 
 
 const makeServerWriteIdentityPublicKey = (storeId: EventLog.StoreId): string =>
   `effect-eventlog-server-write:${storeId}`
+
+const makeStoreScopeKey = (options: {
+  readonly publicKey: string
+  readonly storeId: EventLog.StoreId
+}): string => JSON.stringify([options.publicKey, options.storeId])
 
 const entriesAfter = (journal: Array<RemoteEntry>, startSequence: number): ReadonlyArray<RemoteEntry> =>
   journal.filter((entry) => entry.remoteSequence > startSequence)
@@ -551,6 +580,7 @@ export const make = Effect.gen(function*() {
   const replayFromRemote = Effect.fnUntraced(
     function*(options: {
       readonly publicKey: string
+      readonly storeId: EventLog.StoreId
       readonly entry: Entry
       readonly conflicts: ReadonlyArray<Entry>
     }): Effect.fn.Return<void> {
@@ -576,6 +606,7 @@ export const make = Effect.gen(function*() {
       yield* decodePayload(options.entry.payload).pipe(
         Effect.flatMap((payload) =>
           handler.handler({
+            storeId: options.storeId,
             payload,
             entry: options.entry,
             conflicts: decodedConflicts
@@ -592,6 +623,7 @@ export const make = Effect.gen(function*() {
           new EventLogServerStoreError({
             reason: "PersistenceFailure",
             publicKey: options.publicKey,
+            storeId: options.storeId,
             message: Cause.pretty(cause)
           })
         )),
@@ -650,6 +682,7 @@ export const make = Effect.gen(function*() {
           const conflicts = toConflicts(processedEntriesByCreatedAt, entry)
           yield* replayFromRemote({
             publicKey: options.publicKey,
+            storeId: options.storeId,
             entry,
             conflicts
           })
@@ -712,13 +745,16 @@ export const make = Effect.gen(function*() {
     return undefined
   }
 
-  const ensureStoreExists = Effect.fnUntraced(function*(storeId: EventLog.StoreId) {
-    const provisioned = yield* mapping.hasStore(storeId)
+  const ensureStoreExists = Effect.fnUntraced(function*(options: {
+    readonly publicKey: string
+    readonly storeId: EventLog.StoreId
+  }) {
+    const provisioned = yield* mapping.hasStore(options)
     if (provisioned) {
       return
     }
 
-    return yield* toStoreNotFoundError(storeId)
+    return yield* toStoreNotFoundError(options)
   })
 
   const ensureTrustedSessionAuthBinding = Effect.fnUntraced(function*(options: {
@@ -758,7 +794,11 @@ export const make = Effect.gen(function*() {
     readonly payload: unknown
     readonly entryId?: EntryId | undefined
   }) {
-    yield* ensureStoreExists(options.storeId)
+    const publicKey = makeServerWriteIdentityPublicKey(options.storeId)
+    yield* ensureStoreExists({
+      publicKey,
+      storeId: options.storeId
+    })
 
     const schemaEvent = findSchemaEvent(options.schema, options.event)
     if (schemaEvent === undefined) {
@@ -778,7 +818,7 @@ export const make = Effect.gen(function*() {
 
     yield* processBeforePersist({
       storeId: options.storeId,
-      publicKey: makeServerWriteIdentityPublicKey(options.storeId),
+      publicKey,
       entries: [entry]
     })
   })
@@ -790,39 +830,45 @@ export const make = Effect.gen(function*() {
         Effect.catchTag("EventLogServerAuthError", () => Effect.succeed(false)),
         Effect.catchTag("EventLogServerStoreError", () => Effect.succeed(false))
       ),
-    ingest: Effect.fnUntraced(function*({ publicKey, entries }) {
-      const storeId = yield* mapping.resolve(publicKey)
+    ingest: Effect.fnUntraced(function*({ publicKey, storeId, entries }) {
+      const resolvedStoreId = yield* mapping.resolve({
+        publicKey,
+        storeId
+      })
       yield* auth.authorizeWrite({
         publicKey,
-        storeId,
+        storeId: resolvedStoreId,
         entries
       })
 
       const persisted = yield* processBeforePersist({
-        storeId,
+        storeId: resolvedStoreId,
         publicKey,
         entries
       })
 
       return {
-        storeId,
+        storeId: resolvedStoreId,
         sequenceNumbers: persisted.sequenceNumbers,
         committed: persisted.committed
       }
     }),
     write: serverWrite as EventLogServerUnencrypted["Service"]["write"],
-    requestChanges: Effect.fnUntraced(function*(publicKey: string, startSequence: number) {
-      const storeId = yield* mapping.resolve(publicKey)
-      yield* auth.authorizeRead({
+    requestChanges: Effect.fnUntraced(function*(publicKey: string, storeId: EventLog.StoreId, startSequence: number) {
+      const resolvedStoreId = yield* mapping.resolve({
         publicKey,
         storeId
+      })
+      yield* auth.authorizeRead({
+        publicKey,
+        storeId: resolvedStoreId
       })
 
       const queue = yield* Queue.make<RemoteEntry>()
 
       yield* Effect.gen(function*() {
         let sequence = startSequence
-        const committedChanges = yield* storage.changes(storeId, sequence)
+        const committedChanges = yield* storage.changes(resolvedStoreId, sequence)
 
         while (true) {
           const entries = yield* Queue.takeAll(committedChanges)
@@ -1041,6 +1087,7 @@ export const makeHandler: Effect.Effect<
         readonly requestTag: "Authenticate" | "WriteEntries" | "RequestChanges" | "StopChanges"
         readonly id?: number | undefined
         readonly publicKey?: string | undefined
+        readonly storeId?: EventLog.StoreId | undefined
         readonly code: ProtocolErrorCode
         readonly message: string
       }) {
@@ -1049,6 +1096,7 @@ export const makeHandler: Effect.Effect<
             requestTag: options.requestTag,
             id: options.id,
             publicKey: options.publicKey,
+            storeId: options.storeId,
             code: options.code,
             message: options.message
           })
@@ -1059,12 +1107,14 @@ export const makeHandler: Effect.Effect<
         readonly requestTag: "WriteEntries" | "RequestChanges"
         readonly id?: number | undefined
         readonly publicKey?: string | undefined
+        readonly storeId?: EventLog.StoreId | undefined
         readonly error: EventLogServerAuthError | EventLogServerStoreError
       }) {
         yield* writeProtocolError({
           requestTag: options.requestTag,
           id: options.id,
           publicKey: options.publicKey,
+          storeId: options.storeId ?? options.error.storeId,
           code: toProtocolErrorCode(options.error),
           message: toProtocolErrorMessage(options.error)
         })
@@ -1074,11 +1124,13 @@ export const makeHandler: Effect.Effect<
         readonly requestTag: "Authenticate" | "WriteEntries" | "RequestChanges" | "StopChanges"
         readonly id?: number | undefined
         readonly publicKey?: string | undefined
+        readonly storeId?: EventLog.StoreId | undefined
       }) {
         yield* writeProtocolError({
           requestTag: options.requestTag,
           id: options.id,
           publicKey: options.publicKey,
+          storeId: options.storeId,
           code: "Forbidden",
           message: "Forbidden request"
         })
@@ -1161,12 +1213,14 @@ export const makeHandler: Effect.Effect<
               return writeForbidden({
                 requestTag: "WriteEntries",
                 id: request.id,
-                publicKey: request.publicKey
+                publicKey: request.publicKey,
+                storeId: request.storeId
               })
             }
 
             return runtime.ingest({
               publicKey: request.publicKey,
+              storeId: request.storeId,
               entries: request.entries
             }).pipe(
               Effect.flatMap((persisted) =>
@@ -1184,6 +1238,7 @@ export const makeHandler: Effect.Effect<
                   requestTag: "WriteEntries",
                   id: request.id,
                   publicKey: request.publicKey,
+                  storeId: request.storeId,
                   error
                 })),
               Effect.catchTag("EventLogServerStoreError", (error) =>
@@ -1191,6 +1246,7 @@ export const makeHandler: Effect.Effect<
                   requestTag: "WriteEntries",
                   id: request.id,
                   publicKey: request.publicKey,
+                  storeId: request.storeId,
                   error
                 }))
             )
@@ -1199,11 +1255,17 @@ export const makeHandler: Effect.Effect<
             if (authenticatedPublicKey !== request.publicKey) {
               return writeForbidden({
                 requestTag: "RequestChanges",
-                publicKey: request.publicKey
+                publicKey: request.publicKey,
+                storeId: request.storeId
               })
             }
 
-            return runtime.requestChanges(request.publicKey, request.startSequence).pipe(
+            const subscriptionKey = makeStoreScopeKey({
+              publicKey: request.publicKey,
+              storeId: request.storeId
+            })
+
+            return runtime.requestChanges(request.publicKey, request.storeId, request.startSequence).pipe(
               Effect.flatMap((changes) =>
                 Queue.takeAll(changes).pipe(
                   Effect.flatMap((entries) => {
@@ -1214,7 +1276,7 @@ export const makeHandler: Effect.Effect<
                     return Effect.orDie(
                       write(
                         new ChangesUnencrypted({
-                          storeId,
+                          storeId: request.storeId,
                           publicKey: request.publicKey,
                           entries
                         })
@@ -1228,17 +1290,19 @@ export const makeHandler: Effect.Effect<
                 writeError({
                   requestTag: "RequestChanges",
                   publicKey: request.publicKey,
+                  storeId: request.storeId,
                   error
                 })),
               Effect.catchTag("EventLogServerStoreError", (error) =>
                 writeError({
                   requestTag: "RequestChanges",
                   publicKey: request.publicKey,
+                  storeId: request.storeId,
                   error
                 })),
               Effect.orDie,
               Effect.scoped,
-              FiberMap.run(subscriptions, request.publicKey),
+              FiberMap.run(subscriptions, subscriptionKey),
               Effect.asVoid
             )
           }
@@ -1246,11 +1310,18 @@ export const makeHandler: Effect.Effect<
             if (authenticatedPublicKey !== request.publicKey) {
               return writeForbidden({
                 requestTag: "StopChanges",
-                publicKey: request.publicKey
+                publicKey: request.publicKey,
+                storeId: request.storeId
               })
             }
 
-            return FiberMap.remove(subscriptions, request.publicKey)
+            return FiberMap.remove(
+              subscriptions,
+              makeStoreScopeKey({
+                publicKey: request.publicKey,
+                storeId: request.storeId
+              })
+            )
           }
           case "ChunkedMessage": {
             const data = ChunkedMessage.join(chunks, request)
