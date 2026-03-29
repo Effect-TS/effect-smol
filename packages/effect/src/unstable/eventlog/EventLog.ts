@@ -15,7 +15,6 @@ import * as Redacted from "../../Redacted.ts"
 import * as Schema from "../../Schema.ts"
 import * as SchemaGetter from "../../SchemaGetter.ts"
 import type * as Scope from "../../Scope.ts"
-import * as Semaphore from "../../Semaphore.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { Covariant } from "../../Types.ts"
 import { Reactivity } from "../reactivity/Reactivity.ts"
@@ -556,7 +555,6 @@ const make = Effect.gen(function*() {
       readonly write: (entry: Entry) => Effect.Effect<void>
     }) => Effect.Effect<void>
   }>()
-  const journalSemaphore = yield* Semaphore.make(1)
 
   const reactivity = yield* Reactivity
   const reactivityKeys: Record<string, ReadonlyArray<string>> = {}
@@ -648,7 +646,7 @@ const make = Effect.gen(function*() {
             effect: replayFromRemote
           }).pipe(
             Effect.tap(({ duplicateEntries }) => invalidateReactivityEntries(duplicateEntries)),
-            journalSemaphore.withPermits(1)
+            journal.withLock
           )
         ),
         Effect.catchCause(Effect.logError),
@@ -683,7 +681,7 @@ const make = Effect.gen(function*() {
     const payload = yield* Schema.encodeUnknownEffect(handler.event.payloadMsgPack)(options.payload).pipe(
       Effect.orDie
     )
-    return yield* journalSemaphore.withPermits(1)(journal.write({
+    return yield* journal.withLock(journal.write({
       event: options.event,
       primaryKey: handler.event.primaryKey(options.payload as never),
       payload,

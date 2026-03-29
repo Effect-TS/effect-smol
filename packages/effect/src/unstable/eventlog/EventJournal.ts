@@ -6,6 +6,8 @@ import type { Brand } from "../../Brand.ts"
 import * as Data from "../../Data.ts"
 import * as DateTime from "../../DateTime.ts"
 import * as Effect from "../../Effect.ts"
+import * as Fiber from "../../Fiber.ts"
+import { Semaphore } from "../../index.ts"
 import * as Layer from "../../Layer.ts"
 import * as PubSub from "../../PubSub.ts"
 import * as Schema from "../../Schema.ts"
@@ -80,6 +82,11 @@ export class EventJournal extends ServiceMap.Service<EventJournal, {
    * Remove all data
    */
   readonly destroy: Effect.Effect<void, EventJournalError>
+
+  /**
+   * Run an effect with a lock on the journal.
+   */
+  readonly withLock: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
 }>()("effect/eventlog/EventJournal") {}
 
 const TypeId = "effect/eventlog/EventJournal/EventJournalError" as const
@@ -234,6 +241,7 @@ export const makeMemory: Effect.Effect<EventJournal["Service"]> = Effect.gen(fun
   const byId = new Map<string, Entry>()
   const remotes = new Map<string, { sequence: number; missing: Array<Entry> }>()
   const pubsub = yield* PubSub.unbounded<Entry>()
+  const withLock = Semaphore.makeUnsafe(1).withPermit
 
   const ensureRemote = (remoteId: RemoteId) => {
     const remoteIdString = Uuid.stringify(remoteId)
@@ -346,7 +354,8 @@ export const makeMemory: Effect.Effect<EventJournal["Service"]> = Effect.gen(fun
       journal.length = 0
       byId.clear()
       remotes.clear()
-    })
+    }),
+    withLock
   })
 })
 
@@ -583,9 +592,24 @@ export const makeIndexedDb = (options?: {
       changes: PubSub.subscribe(pubsub),
       destroy: Effect.sync(() => {
         indexedDB.deleteDatabase(database)
-      })
+      }),
+      withLock: yield* makeBrowserWithLock(database)
     })
   })
+
+const makeBrowserWithLock = Effect.fnUntraced(function*(key: string) {
+  if (typeof navigator !== "undefined" && "locks" in navigator) {
+    return <A, E, R>(self: Effect.Effect<A, E, R>) =>
+      Effect.callback<A, E, R>((resume, signal) => {
+        const fiber = Fiber.getCurrent()!
+        const runPromiseExit = Effect.runPromiseExitWith<R>(fiber.services as any)
+        navigator.locks.request(key, { signal }, () => runPromiseExit(self, { signal }).then(resume)).catch((defect) =>
+          resume(Effect.die(defect))
+        )
+      })
+  }
+  return Semaphore.makeUnsafe(1).withPermit
+})
 
 const decodeEntryIdb = Schema.decodeSync(Entry)
 const encodeEntryIdb = Schema.encodeSync(Entry)
