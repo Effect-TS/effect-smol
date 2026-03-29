@@ -18,7 +18,6 @@ import * as HttpServerResponse from "../http/HttpServerResponse.ts"
 import type * as Socket from "../socket/Socket.ts"
 import { EntryId, makeRemoteIdUnsafe, type RemoteId } from "./EventJournal.ts"
 import type * as EventLog from "./EventLog.ts"
-import { makeEncryptedScopeKey } from "./EventLogEncryptedScope.ts"
 import type { EncryptedRemoteEntry } from "./EventLogEncryption.ts"
 import {
   Ack,
@@ -507,3 +506,10 @@ export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.S
  * @category storage
  */
 export const layerStorageMemory: Layer.Layer<Storage> = Layer.effect(Storage)(makeStorageMemory)
+
+const makeEncryptedScopeKey = ({ publicKey, storeId }: {
+  readonly publicKey: string
+  readonly storeId: EventLog.StoreId
+}): string => {
+  return `${publicKey}/${storeId}`
+}

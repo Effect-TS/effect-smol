@@ -11,7 +11,6 @@ import type * as Scope from "../../Scope.ts"
 import * as SqlClient from "../sql/SqlClient.ts"
 import type * as SqlError from "../sql/SqlError.ts"
 import { EntryId, makeRemoteIdUnsafe, type RemoteId } from "./EventJournal.ts"
-import { makeEncryptedScopeKey } from "./EventLogEncryptedScope.ts"
 import * as EventLogEncryption from "./EventLogEncryption.ts"
 import * as EventLogServer from "./EventLogServer.ts"
 
@@ -201,7 +200,7 @@ export const makeStorage = (options?: {
       write: Effect.fnUntraced(
         function*(publicKey, storeId, entries) {
           if (entries.length === 0) return []
-          const scopeKey = makeEncryptedScopeKey({ publicKey, storeId })
+          const scopeKey = makeEncryptedScopeKey(publicKey, storeId)
           const { pubsub, table } = yield* RcMap.get(resources, scopeKey)
           const forInsert: Array<{
             readonly ids: Array<EntryId>
@@ -246,7 +245,7 @@ export const makeStorage = (options?: {
       ),
       entries: Effect.fnUntraced(
         function*(publicKey, storeId, startSequence) {
-          const scopeKey = makeEncryptedScopeKey({ publicKey, storeId })
+          const scopeKey = makeEncryptedScopeKey(publicKey, storeId)
           const { table } = yield* RcMap.get(resources, scopeKey)
           return yield* sql`SELECT * FROM ${sql(table)} WHERE sequence >= ${startSequence} ORDER BY sequence ASC`.pipe(
             Effect.flatMap(decodeEntries)
@@ -256,7 +255,7 @@ export const makeStorage = (options?: {
         Effect.scoped
       ),
       changes: Effect.fnUntraced(function*(publicKey, storeId, startSequence) {
-        const scopeKey = makeEncryptedScopeKey({ publicKey, storeId })
+        const scopeKey = makeEncryptedScopeKey(publicKey, storeId)
         const { pubsub, table } = yield* RcMap.get(resources, scopeKey)
         const queue = yield* Queue.make<EventLogEncryption.EncryptedRemoteEntry>()
         const subscription = yield* PubSub.subscribe(pubsub)
@@ -340,3 +339,8 @@ export const layerStorageSubtle = (options?: {
   layerStorage(options).pipe(
     Layer.provide(EventLogEncryption.layerSubtle)
   )
+
+const makeEncryptedScopeKey = (
+  publicKey: string,
+  storeId: string
+): string => `${publicKey}/${storeId}`
