@@ -31,7 +31,8 @@
     "./package.json": "./package.json",
     "./oxlint": "./src/oxlint/index.ts",
     "./oxlint/rules/*": "./src/oxlint/rules/*.ts",
-    "./oxlintrc.json": "./oxlintrc.json"
+    "./oxlintrc.json": "./oxlintrc.json",
+    "./rolldown-plugin-pure-annotations": "./src/rolldown-plugin-pure-annotations.ts"
   },
   "files": [
     "oxlintrc.json",
@@ -47,19 +48,22 @@
       "./package.json": "./package.json",
       "./oxlint": "./dist/oxlint/index.js",
       "./oxlint/rules/*": "./dist/oxlint/rules/*.js",
-      "./oxlintrc.json": "./oxlintrc.json"
+      "./oxlintrc.json": "./oxlintrc.json",
+      "./rolldown-plugin-pure-annotations": "./dist/rolldown-plugin-pure-annotations.js"
     }
   },
   "scripts": {
-    "build": "tsc -b tsconfig.json && pnpm babel",
-    "build:tsgo": "tsgo -b tsconfig.json && pnpm babel",
-    "babel": "babel dist --plugins annotate-pure-calls --out-dir dist --source-maps",
+    "build": "tsdown",
+    "build:tsgo": "tsdown",
     "check": "tsc -b tsconfig.json",
     "test": "vitest",
     "coverage": "vitest --coverage"
   },
   "devDependencies": {
     "@types/node": "^25.2.0",
+    "magic-string": "^0.30.21",
+    "oxc-parser": "^0.121.0",
+    "rolldown": "1.0.0-rc.12",
     "vitest": "^4.0.18"
   }
 }

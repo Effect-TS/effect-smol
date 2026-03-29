@@ -7,8 +7,8 @@ import * as Layer from "effect/Layer"
 import * as Path from "effect/Path"
 import * as ServiceMap from "effect/ServiceMap"
 import { Fixtures } from "./Fixtures.ts"
-import type { BundleStats } from "./Rollup.ts"
-import { Rollup } from "./Rollup.ts"
+import type { BundleStats } from "./Rolldown.ts"
+import { Rolldown } from "./Rolldown.ts"
 
 /**
  * @since 1.0.0
@@ -53,7 +53,7 @@ export class Reporter extends ServiceMap.Service<Reporter>()(
     make: Effect.gen(function*() {
       const path = yield* Path.Path
       const { fixtures, fixturesDir } = yield* Fixtures
-      const rollup = yield* Rollup
+      const rolldown = yield* Rolldown
 
       const calculateDifference = (current: BundleStats, previous: BundleStats) => {
         const currSize = current.sizeInBytes
@@ -117,10 +117,10 @@ export class Reporter extends ServiceMap.Service<Reporter>()(
           yield* Effect.logInfo(`Found ${fixtures.length} files to bundle`)
 
           const [currentStats, previousStats] = yield* Effect.all([
-            rollup.bundleAll({
+            rolldown.bundleAll({
               paths: fixtures.map((fixture) => path.join(fixturesDir, fixture))
             }),
-            rollup.bundleAll({
+            rolldown.bundleAll({
               paths: fixtures.map((fixture) => path.join(options.baseDirectory, fixture))
             })
           ], { concurrency: 2 })
@@ -133,7 +133,7 @@ export class Reporter extends ServiceMap.Service<Reporter>()(
 
       const visualize = Effect.fn("Reporter.visualize")(
         function*(options: VisualizeOptions) {
-          yield* rollup.bundleAll({
+          yield* rolldown.bundleAll({
             paths: options.paths,
             outputDirectory: options.outputDirectory,
             visualize: true
@@ -144,7 +144,7 @@ export class Reporter extends ServiceMap.Service<Reporter>()(
       const reportSelected = Effect.fn("Reporter.reportSelected")(
         function*(options: ReportSelectedOptions) {
           yield* Effect.logInfo(`Found ${options.paths.length} files to bundle`)
-          const stats = yield* rollup.bundleAll({ paths: options.paths })
+          const stats = yield* rolldown.bundleAll({ paths: options.paths })
           yield* Effect.logInfo("Bundling complete! Generating bundle size report...")
           return createSelectedReport(stats)
         }
@@ -160,6 +160,6 @@ export class Reporter extends ServiceMap.Service<Reporter>()(
 ) {
   static readonly layer = Layer.effect(this, this.make).pipe(
     Layer.provide(Fixtures.layer),
-    Layer.provide(Rollup.layer)
+    Layer.provide(Rolldown.layer)
   )
 }
