@@ -6,12 +6,11 @@ import type { Brand } from "../../Brand.ts"
 import * as Data from "../../Data.ts"
 import * as DateTime from "../../DateTime.ts"
 import * as Effect from "../../Effect.ts"
-import * as Fiber from "../../Fiber.ts"
-import { Semaphore } from "../../index.ts"
 import * as Layer from "../../Layer.ts"
 import * as PubSub from "../../PubSub.ts"
 import * as Schema from "../../Schema.ts"
 import type { Scope } from "../../Scope.ts"
+import * as Semaphore from "../../Semaphore.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Msgpack from "../encoding/Msgpack.ts"
 
@@ -601,11 +600,13 @@ const makeBrowserWithLock = Effect.fnUntraced(function*(key: string) {
   if (typeof navigator !== "undefined" && "locks" in navigator) {
     return <A, E, R>(self: Effect.Effect<A, E, R>) =>
       Effect.callback<A, E, R>((resume, signal) => {
-        const fiber = Fiber.getCurrent()!
-        const runPromiseExit = Effect.runPromiseExitWith<R>(fiber.services as any)
-        navigator.locks.request(key, { signal }, () => runPromiseExit(self, { signal }).then(resume)).catch((defect) =>
-          resume(Effect.die(defect))
-        )
+        navigator.locks.request(key, { signal }, () =>
+          new Promise<void>((resolve) => {
+            resume(Effect.onExit(self, () => {
+              resolve()
+              return Effect.void
+            }))
+          })).catch((defect) => resume(Effect.die(defect)))
       })
   }
   return Semaphore.makeUnsafe(1).withPermit

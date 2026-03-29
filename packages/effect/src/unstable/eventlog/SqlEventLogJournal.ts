@@ -7,7 +7,7 @@ import * as Layer from "../../Layer.ts"
 import * as PubSub from "../../PubSub.ts"
 import * as Schema from "../../Schema.ts"
 import * as SqlClient from "../sql/SqlClient.ts"
-import type * as SqlError from "../sql/SqlError.ts"
+import * as SqlError from "../sql/SqlError.ts"
 import * as SqlSchema from "../sql/SqlSchema.ts"
 import * as EventJournal from "./EventJournal.ts"
 
@@ -214,12 +214,10 @@ export const make = (options?: {
           yield* PubSub.publish(pubsub, entry)
           return value
         },
-        sql.withTransaction,
         Effect.mapError((cause) => new EventJournal.EventJournalError({ cause, method: "write" }))
       ),
       writeFromRemote: (options) =>
         writeFromRemote(options).pipe(
-          sql.withTransaction,
           Effect.catchIf(
             (e) => e._tag !== "EventJournalError",
             (cause) => Effect.fail(new EventJournal.EventJournalError({ cause, method: "writeFromRemote" }))
@@ -238,7 +236,6 @@ export const make = (options?: {
           )
           return yield* f(entries)
         },
-        sql.withTransaction,
         Effect.mapError((cause) => new EventJournal.EventJournalError({ cause, method: "withRemoteUncommited" }))
       ),
       nextRemoteSequence: (remoteId) =>
@@ -257,7 +254,12 @@ export const make = (options?: {
         yield* sql`DROP TABLE ${remotesTableSql}`
       }).pipe(
         Effect.mapError((cause) => new EventJournal.EventJournalError({ cause, method: "destroy" }))
-      )
+      ),
+      withLock(effect) {
+        return sql.withTransaction(effect).pipe(
+          Effect.catchIf(SqlError.isSqlError, Effect.die)
+        )
+      }
     })
   })
 
