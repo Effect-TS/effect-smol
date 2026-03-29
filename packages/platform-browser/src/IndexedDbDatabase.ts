@@ -9,7 +9,6 @@ import type { Inspectable } from "effect/Inspectable"
 import { NodeInspectSymbol } from "effect/Inspectable"
 import * as Layer from "effect/Layer"
 import { type Pipeable, pipeArguments } from "effect/Pipeable"
-import { MixedScheduler } from "effect/Scheduler"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Utils from "effect/Utils"
 import * as IndexedDb from "./IndexedDb.ts"
@@ -454,9 +453,8 @@ const layer = <DatabaseName extends string>(
                     })
                 )
               )
-              const scheduler = new MixedScheduler("sync")
-              fiber = runForkWith(effect, { scheduler })
-              scheduler.flush()
+              fiber = runForkWith(effect)
+              fiber.currentDispatcher.flush()
             }
 
             request.onsuccess = (event) => {

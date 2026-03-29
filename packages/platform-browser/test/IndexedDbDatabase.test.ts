@@ -110,7 +110,10 @@ describe.sequential("IndexedDbDatabase", () => {
         api
           .from("todo")
           .insert({ id: 2, title: "test2", completed: false })
-          .pipe(Effect.orDie))
+          .pipe(
+            Effect.fromYieldable,
+            Effect.orDie
+          ))
 
       const todo = yield* api.from("todo").select()
       assert.deepStrictEqual(todo, [

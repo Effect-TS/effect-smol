@@ -737,7 +737,7 @@ describe.sequential("IndexedDbQueryBuilder", () => {
 
         assert.equal(addedKey, 10)
         assert.equal(data.length, 1)
-        assert.deepStrictEqual(data, [{ key: 10, name: "insert1", price: 10 }])
+        assert.deepStrictEqual(data, [new ProductSchema({ key: 10, name: "insert1", price: 10 })])
       }).pipe(provideDb(Db))
     })
 
@@ -814,7 +814,7 @@ describe.sequential("IndexedDbQueryBuilder", () => {
           assert.equal(addedKey, 12)
           assert.equal(data.length, 1)
           assert.deepStrictEqual(data, [
-            { name: "insert1", price: 12, key: 10 }
+            new ProductSchema({ key: 10, name: "insert1", price: 12 })
           ])
         }).pipe(provideDb(Db))
       }

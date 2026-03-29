@@ -2,7 +2,7 @@
  * @since 4.0.0
  */
 import { type Pipeable, pipeArguments } from "effect/Pipeable"
-import type * as Schema from "effect/Schema"
+import * as Schema from "effect/Schema"
 import * as Struct from "effect/Struct"
 import type { NoInfer } from "effect/Types"
 import * as IndexedDb from "./IndexedDb.ts"
@@ -29,6 +29,8 @@ export interface IndexedDbTable<
   readonly tableName: Name
   readonly tableSchema: TableSchema
   readonly readSchema: Schema.Top
+  readonly autoincrementSchema: Schema.Top
+  readonly arraySchema: Schema.Top
   readonly keyPath: KeyPath
   readonly indexes: Indexes
   readonly autoIncrement: AutoIncrement
@@ -217,14 +219,19 @@ export const make = <
   // oxlint-disable-next-line typescript/no-extraneous-class
   class Table {}
   Object.assign(Table, Proto)
+  const readSchema = options.keyPath === undefined
+    ? (options.schema as Schema.Struct<{}>).mapFields(Struct.assign({ key: IndexedDb.IDBValidKey }))
+    : options.schema
   ;(Table as any).tableName = options.name
   ;(Table as any).tableSchema = options.schema
-  ;(Table as any).readSchema = options.keyPath === undefined
-    ? (options.schema as Schema.Struct<{}>).mapFields(Struct.assign({ key: IndexedDb.IDBValidKey }))
+  ;(Table as any).readSchema = readSchema
+  ;(Table as any).arraySchema = Schema.Array(readSchema as any)
+  ;(Table as any).autoincrementSchema = options.autoIncrement
+    ? (options.schema as Schema.Struct<{}>).mapFields(Struct.omit([options.keyPath!] as any))
     : options.schema
   ;(Table as any).keyPath = options.keyPath
   ;(Table as any).indexes = options.indexes
-  ;(Table as any).autoIncrement = options.autoIncrement
+  ;(Table as any).autoIncrement = options.autoIncrement === true
   return Table as any
 }
 

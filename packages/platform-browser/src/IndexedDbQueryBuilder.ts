@@ -10,7 +10,8 @@ import { NodeInspectSymbol } from "effect/Inspectable"
 import type { Pipeable } from "effect/Pipeable"
 import { pipeArguments } from "effect/Pipeable"
 import * as Schema from "effect/Schema"
-import * as Struct from "effect/Struct"
+import * as SchemaIssue from "effect/SchemaIssue"
+import * as SchemaParser from "effect/SchemaParser"
 import * as Utils from "effect/Utils"
 import type * as IndexedDb from "./IndexedDb.ts"
 import type * as IndexedDbDatabase from "./IndexedDbDatabase.ts"
@@ -74,6 +75,8 @@ export class IndexedDbQueryError extends Data.TaggedError(
    * @since 4.0.0
    */
   readonly [ErrorTypeId]: typeof ErrorTypeId = ErrorTypeId
+
+  override readonly message = this.reason
 }
 
 /**
@@ -258,7 +261,7 @@ export declare namespace IndexedDbQuery {
    */
   export interface Clear<
     Table extends IndexedDbTable.AnyWithProps
-  > extends Effect.YieldableClass<void, IndexedDbQueryError> {
+  > extends Pipeable, Effect.YieldableClass<void, IndexedDbQueryError> {
     readonly from: From<Table>
   }
 
@@ -269,7 +272,7 @@ export declare namespace IndexedDbQuery {
   export interface Count<
     Table extends IndexedDbTable.AnyWithProps,
     Index extends IndexedDbDatabase.IndexFromTable<Table>
-  > extends Effect.YieldableClass<number, IndexedDbQueryError> {
+  > extends Pipeable, Effect.YieldableClass<number, IndexedDbQueryError> {
     readonly from: From<Table>
     readonly index?: Index
     readonly only?: ExtractIndexType<Table, Index>
@@ -394,7 +397,7 @@ export declare namespace IndexedDbQuery {
   export interface Delete<
     Table extends IndexedDbTable.AnyWithProps,
     Index extends IndexedDbDatabase.IndexFromTable<Table>
-  > extends Effect.YieldableClass<void, IndexedDbQueryError> {
+  > extends Pipeable, Effect.YieldableClass<void, IndexedDbQueryError> {
     readonly delete: DeletePartial<Table, Index>
     readonly index?: Index
     readonly limitValue?: number
@@ -464,6 +467,7 @@ export declare namespace IndexedDbQuery {
     Table extends IndexedDbTable.AnyWithProps,
     Index extends IndexedDbDatabase.IndexFromTable<Table>
   > extends
+    Pipeable,
     Effect.YieldableClass<
       Array<SourceTableSelectSchemaType<Table>>,
       IndexedDbQueryError,
@@ -546,6 +550,7 @@ export declare namespace IndexedDbQuery {
     Table extends IndexedDbTable.AnyWithProps,
     Index extends IndexedDbDatabase.IndexFromTable<Table>
   > extends
+    Pipeable,
     Effect.YieldableClass<
       SourceTableSelectSchemaType<Table>,
       IndexedDbQueryError,
@@ -563,6 +568,7 @@ export declare namespace IndexedDbQuery {
     Table extends IndexedDbTable.AnyWithProps,
     Index extends IndexedDbDatabase.IndexFromTable<Table>
   > extends
+    Pipeable,
     Effect.YieldableClass<
       Array<SourceTableSelectSchemaType<Table>>,
       IndexedDbQueryError,
@@ -583,6 +589,7 @@ export declare namespace IndexedDbQuery {
   export interface Modify<
     Table extends IndexedDbTable.AnyWithProps
   > extends
+    Pipeable,
     Effect.YieldableClass<
       globalThis.IDBValidKey,
       IndexedDbQueryError,
@@ -601,6 +608,7 @@ export declare namespace IndexedDbQuery {
   export interface ModifyAll<
     Table extends IndexedDbTable.AnyWithProps
   > extends
+    Pipeable,
     Effect.YieldableClass<
       Array<globalThis.IDBValidKey>,
       IndexedDbQueryError,
@@ -803,25 +811,24 @@ const getSelect = Effect.fnUntraced(function*(
 
       cursorRequest.onsuccess = () => {
         const cursor = cursorRequest.result
-
-        if (cursor !== null) {
-          if (predicate === undefined || predicate(cursor.value)) {
-            results.push(
-              keyPath === undefined
-                ? { ...cursor.value, key: cursor.key }
-                : cursor.value
-            )
-            count += 1
-          }
-
-          if (query.limitValue === undefined || count < query.limitValue) {
-            cursor.continue()
-          } else {
-            resume(Effect.succeed(results))
-          }
-        } else {
-          resume(Effect.succeed(results))
+        if (cursor === null) {
+          return resume(Effect.succeed(results))
         }
+
+        if (predicate === undefined || predicate(cursor.value)) {
+          results.push(
+            keyPath === undefined
+              ? { ...cursor.value, key: cursor.key }
+              : cursor.value
+          )
+          count += 1
+        }
+
+        if (query.limitValue === undefined || count < query.limitValue) {
+          return cursor.continue()
+        }
+
+        resume(Effect.succeed(results))
       }
     }) :
     yield* Effect.callback<any, IndexedDbQueryError>((resume) => {
@@ -842,7 +849,7 @@ const getSelect = Effect.fnUntraced(function*(
       }
     })
 
-  const tableSchema = Schema.Array((query.from.table as IndexedDbTable.AnyWithProps).readSchema)
+  const tableSchema = (query.from.table as IndexedDbTable.AnyWithProps).arraySchema
 
   return yield* Schema.decodeUnknownEffect(tableSchema)(data).pipe(
     Effect.mapError(
@@ -938,18 +945,17 @@ const applyModify = Effect.fnUntraced(function*({
 }) {
   const autoIncrement = query.from.table.autoIncrement as boolean
   const keyPath = query.from.table.keyPath
-  const schema = query.from.table.tableSchema
+  const table = query.from.table
+  const schema = autoIncrement && value[keyPath] === undefined
+    ? table.autoincrementSchema
+    : table.tableSchema
 
-  const encodedValue = yield* Schema.encodeUnknownEffect(
+  const encodedValue = yield* SchemaParser.makeEffect(
     autoIncrement && value[keyPath] === undefined
-      ? schema.mapFields(
-        Struct.omit([
-          // @ts-expect-error - keyPath is a string
-          keyPath
-        ])
-      )
-      : Schema.Struct(schema.fields)
+      ? table.autoincrementSchema
+      : table.tableSchema
   )(value).pipe(
+    Effect.flatMap(Schema.encodeUnknownEffect(schema)),
     Effect.mapError(
       (error) =>
         new IndexedDbQueryError({
@@ -1000,117 +1006,114 @@ const applyModify = Effect.fnUntraced(function*({
   })
 })
 
-const applyModifyAll = Effect.fnUntraced(function*({
-  query,
-  values
-}: {
-  query: IndexedDbQuery.ModifyAll<any>
-  values: Array<any>
-}) {
-  const autoIncrement = query.from.table.autoIncrement as boolean
-  const keyPath = query.from.table.keyPath
-  const schema = query.from.table.tableSchema
+const applyModifyAll = Effect.fnUntraced(
+  function*({
+    query,
+    values
+  }: {
+    query: IndexedDbQuery.ModifyAll<any>
+    values: Array<any>
+  }) {
+    const autoIncrement = query.from.table.autoIncrement as boolean
+    const keyPath = query.from.table.keyPath
+    const schema = query.from.table.tableSchema
+    const encodedValues = new Array(values.length)
+    const makeValue = SchemaParser.makeEffect(schema)
+    const encodeValue = SchemaParser.encodeUnknownEffect(schema)
+    const makeValueAutoincrement = SchemaParser.makeEffect(query.from.table.autoincrementSchema)
+    const encodeValueAutoincrement = SchemaParser.encodeUnknownEffect(query.from.table.autoincrementSchema)
 
-  const encodedValues = yield* Effect.all(
-    values.map((value) =>
-      Schema.encodeUnknownEffect(
-        autoIncrement && value[keyPath] === undefined
-          ? schema.mapFields(
-            Struct.omit([
-              // @ts-expect-error - keyPath is a string
-              keyPath
-            ])
+    for (let i = 0; i < values.length; i++) {
+      const value = values[i]
+      if (autoIncrement && value[keyPath] === undefined) {
+        encodedValues[i] = yield* encodeValueAutoincrement(yield* makeValueAutoincrement(value))
+      } else {
+        encodedValues[i] = yield* encodeValue(yield* makeValue(value))
+      }
+    }
+
+    return yield* Effect.callback<
+      Array<globalThis.IDBValidKey>,
+      IndexedDbQueryError
+    >((resume) => {
+      const database = query.from.database
+      const transaction = query.from.transaction
+      const objectStore = (
+        transaction ??
+          database.transaction([query.from.table.tableName], "readwrite")
+      ).objectStore(query.from.table.tableName)
+
+      const results: Array<globalThis.IDBValidKey> = []
+
+      if (query.operation === "add") {
+        for (let i = 0; i < encodedValues.length; i++) {
+          const request = objectStore.add(
+            encodedValues[i],
+            keyPath === undefined ? values[i]["key"] : undefined
           )
-          : Schema.Struct(schema.fields)
-      )(value).pipe(
-        Effect.mapError(
-          (error) =>
+
+          request.onerror = () => {
+            resume(
+              Effect.fail(
+                new IndexedDbQueryError({
+                  reason: "TransactionError",
+                  cause: request.error
+                })
+              )
+            )
+          }
+
+          request.onsuccess = () => {
+            results.push(request.result)
+          }
+        }
+      } else if (query.operation === "put") {
+        for (let i = 0; i < encodedValues.length; i++) {
+          const request = objectStore.put(
+            encodedValues[i],
+            keyPath === undefined ? values[i]["key"] : undefined
+          )
+
+          request.onerror = () => {
+            resume(
+              Effect.fail(
+                new IndexedDbQueryError({
+                  reason: "TransactionError",
+                  cause: request.error
+                })
+              )
+            )
+          }
+
+          request.onsuccess = () => {
+            results.push(request.result)
+          }
+        }
+      } else {
+        return resume(Effect.die(new Error("Invalid modify all operation")))
+      }
+
+      objectStore.transaction.onerror = () => {
+        resume(
+          Effect.fail(
             new IndexedDbQueryError({
-              reason: "EncodeError",
-              cause: error
+              reason: "TransactionError",
+              cause: objectStore.transaction.error
             })
+          )
         )
-      )
-    )
+      }
+
+      objectStore.transaction.oncomplete = () => {
+        resume(Effect.succeed(results))
+      }
+    })
+  },
+  Effect.catchIf(
+    SchemaIssue.isIssue,
+    (issue) => Effect.fail(new IndexedDbQueryError({ reason: "EncodeError", cause: new Schema.SchemaError(issue) }))
   )
-
-  return yield* Effect.callback<
-    Array<globalThis.IDBValidKey>,
-    IndexedDbQueryError
-  >((resume) => {
-    const database = query.from.database
-    const transaction = query.from.transaction
-    const objectStore = (
-      transaction ??
-        database.transaction([query.from.table.tableName], "readwrite")
-    ).objectStore(query.from.table.tableName)
-
-    const results: Array<globalThis.IDBValidKey> = []
-
-    if (query.operation === "add") {
-      for (let i = 0; i < encodedValues.length; i++) {
-        const request = objectStore.add(
-          encodedValues[i],
-          keyPath === undefined ? values[i]["key"] : undefined
-        )
-
-        request.onerror = () => {
-          resume(
-            Effect.fail(
-              new IndexedDbQueryError({
-                reason: "TransactionError",
-                cause: request.error
-              })
-            )
-          )
-        }
-
-        request.onsuccess = () => {
-          results.push(request.result)
-        }
-      }
-    } else if (query.operation === "put") {
-      for (let i = 0; i < encodedValues.length; i++) {
-        const request = objectStore.put(
-          encodedValues[i],
-          keyPath === undefined ? values[i]["key"] : undefined
-        )
-
-        request.onerror = () => {
-          resume(
-            Effect.fail(
-              new IndexedDbQueryError({
-                reason: "TransactionError",
-                cause: request.error
-              })
-            )
-          )
-        }
-
-        request.onsuccess = () => {
-          results.push(request.result)
-        }
-      }
-    } else {
-      return resume(Effect.die(new Error("Invalid modify all operation")))
-    }
-
-    objectStore.transaction.onerror = () => {
-      resume(
-        Effect.fail(
-          new IndexedDbQueryError({
-            reason: "TransactionError",
-            cause: objectStore.transaction.error
-          })
-        )
-      )
-    }
-
-    objectStore.transaction.oncomplete = () => {
-      resume(Effect.succeed(results))
-    }
-  })
-})
+)
 
 const applyClear = (options: {
   readonly database: globalThis.IDBDatabase
