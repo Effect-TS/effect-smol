@@ -1,5 +1,14 @@
 # @effect/platform-browser
 
+## 4.0.0-beta.43
+
+### Patch Changes
+
+- [#1240](https://github.com/Effect-TS/effect-smol/pull/1240) [`583ea00`](https://github.com/Effect-TS/effect-smol/commit/583ea002fdccc58fd2110a36c6d103e63152dcb3) Thanks @SandroMaglione! - add IndexedDb modules
+
+- Updated dependencies [[`2ae33d0`](https://github.com/Effect-TS/effect-smol/commit/2ae33d050914915f7cb9c25ab0a020901e08d596), [`979811a`](https://github.com/Effect-TS/effect-smol/commit/979811a4c3f7ed21ed18ef560c49fb7f5569e80e), [`eb7dbef`](https://github.com/Effect-TS/effect-smol/commit/eb7dbeffa883386ad912815e62c0820cac1fdf8e), [`cf50eb4`](https://github.com/Effect-TS/effect-smol/commit/cf50eb49cb04706dae5185f624708117c413dee8), [`1d046fe`](https://github.com/Effect-TS/effect-smol/commit/1d046fe484560e23f3e22cb23eec6433f8f1fa02)]:
+  - effect@4.0.0-beta.43
+
 ## 4.0.0-beta.42
 
 ### Patch Changes
