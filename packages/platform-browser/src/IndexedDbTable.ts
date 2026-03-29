@@ -58,7 +58,14 @@ export type AnySchemaStruct = Schema.Top & {
  */
 export interface Any {
   readonly [TypeId]: typeof TypeId
+  readonly keyPath: any
   readonly tableName: string
+  readonly tableSchema: Schema.Top
+  readonly readSchema: Schema.Top
+  readonly autoincrementSchema: Schema.Top
+  readonly arraySchema: Schema.Top
+  readonly autoIncrement: boolean
+  readonly indexes: any
 }
 
 /**
@@ -77,92 +84,43 @@ export type AnyWithProps = IndexedDbTable<
  * @since 4.0.0
  * @category models
  */
-export type TableName<Table extends Any> = Table extends IndexedDbTable<
-  infer _Name,
-  infer _Schema,
-  infer _Indexes,
-  infer _KeyPath,
-  infer _AutoIncrement
-> ? _Name
-  : never
+export type TableName<Table extends Any> = Table["tableName"]
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type KeyPath<Table extends Any> = Table["keyPath"]
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type KeyPath<Table extends Any> = Table extends IndexedDbTable<
-  infer _Name,
-  infer _Schema,
-  infer _Indexes,
-  infer _KeyPath,
-  infer _AutoIncrement
-> ? _KeyPath
-  : never
+export type AutoIncrement<Table extends Any> = Table["autoIncrement"]
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type AutoIncrement<Table extends Any> = Table extends IndexedDbTable<
-  infer _Name,
-  infer _Schema,
-  infer _Indexes,
-  infer _KeyPath,
-  infer _AutoIncrement
-> ? _AutoIncrement
-  : never
+export type TableSchema<Table extends Any> = Table["tableSchema"]
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type Context<Table extends Any> =
+  | Table["tableSchema"]["DecodingServices"]
+  | Table["tableSchema"]["EncodingServices"]
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type TableSchema<Table extends Any> = Table extends IndexedDbTable<
-  infer _Name,
-  infer _Schema,
-  infer _Indexes,
-  infer _KeyPath,
-  infer _AutoIncrement
-> ? _Schema
-  : never
+export type Encoded<Table extends Any> = Table["tableSchema"]["Encoded"]
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type Context<Table extends Any> = Table extends IndexedDbTable<
-  infer _Name,
-  infer _Schema,
-  infer _Indexes,
-  infer _KeyPath,
-  infer _AutoIncrement
-> ? _Schema["DecodingServices"]
-  : never
-
-/**
- * @since 4.0.0
- * @category models
- */
-export type Encoded<Table extends Any> = Table extends IndexedDbTable<
-  infer _Name,
-  infer _Schema,
-  infer _Indexes,
-  infer _KeyPath,
-  infer _AutoIncrement
-> ? _Schema["Encoded"]
-  : never
-
-/**
- * @since 4.0.0
- * @category models
- */
-export type Indexes<Table extends Any> = Table extends IndexedDbTable<
-  infer _Name,
-  infer _Schema,
-  infer _Indexes,
-  infer _KeyPath,
-  infer _AutoIncrement
-> ? _Indexes
-  : never
+export type Indexes<Table extends Any> = Table["indexes"]
 
 /**
  * @since 4.0.0

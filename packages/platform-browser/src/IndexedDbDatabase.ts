@@ -16,8 +16,8 @@ import * as IndexedDbQueryBuilder from "./IndexedDbQueryBuilder.ts"
 import type * as IndexedDbTable from "./IndexedDbTable.ts"
 import type * as IndexedDbVersion from "./IndexedDbVersion.ts"
 
-const TypeId = "~effect/platform-browser/IndexedDbDatabase"
-const ErrorTypeId = "~effect/platform-browser/IndexedDbDatabase/IndexedDbDatabaseError"
+const TypeId = "~@effect/platform-browser/IndexedDbDatabase"
+const ErrorTypeId = "~@effect/platform-browser/IndexedDbDatabase/IndexedDbDatabaseError"
 
 const YieldableProto = {
   [Symbol.iterator]() {
@@ -75,6 +75,7 @@ export class IndexedDbDatabaseError extends Data.TaggedError(
    * @since 4.0.0
    */
   readonly [ErrorTypeId]: typeof ErrorTypeId = ErrorTypeId
+  override readonly message = this.reason
 }
 
 /**

@@ -8,7 +8,7 @@ import * as Schema from "effect/Schema"
 import * as SchemaIssue from "effect/SchemaIssue"
 import * as ServiceMap from "effect/ServiceMap"
 
-const TypeId = "~effect/platform-browser/IndexedDb"
+const TypeId = "~@effect/platform-browser/IndexedDb"
 
 /**
  * @since 4.0.0

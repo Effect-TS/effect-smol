@@ -6,7 +6,7 @@ import type { Pipeable } from "effect/Pipeable"
 import { pipeArguments } from "effect/Pipeable"
 import type * as IndexedDbTable from "./IndexedDbTable.ts"
 
-const TypeId = "~effect/platform-browser/IndexedDbVersion"
+const TypeId = "~@effect/platform-browser/IndexedDbVersion"
 
 /**
  * @since 4.0.0
