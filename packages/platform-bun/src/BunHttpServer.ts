@@ -131,6 +131,7 @@ export const make = Effect.fnUntraced(
             const fiber = Fiber.runIn(Effect.runForkWith(ServiceMap.makeUnsafe<any>(map))(httpEffect), scope)
             request.signal.addEventListener("abort", () => {
               fiber.interruptUnsafe(parent.id, Error.ClientAbort.annotation)
+              resolve(new Response(null, { status: 499 }))
             }, { once: true })
           })
         }
