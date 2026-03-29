@@ -16,9 +16,11 @@ import * as ServiceMap from "../../ServiceMap.ts"
 import * as Msgpack from "../encoding/Msgpack.ts"
 import * as Socket from "../socket/Socket.ts"
 import { Entry, EntryId, RemoteEntry, RemoteId } from "./EventJournal.ts"
-import { type Identity, StoreId } from "./EventLog.ts"
+import type { Identity, StoreId } from "./EventLog.ts"
 import { EncryptedEntry, EncryptedRemoteEntry, EventLogEncryption, layerSubtle } from "./EventLogEncryption.ts"
 import { encodeSessionAuthPayload, signSessionAuthPayloadBytes } from "./EventLogSessionAuth.ts"
+
+const StoreIdSchema = Schema.String.pipe(Schema.brand("effect/eventlog/EventLog/StoreId" as const))
 
 /**
  * @since 4.0.0
@@ -143,7 +145,7 @@ export class ChunkedMessage extends Schema.Class<ChunkedMessage>("effect/eventlo
 export class WriteEntries extends Schema.Class<WriteEntries>("effect/eventlog/EventLogRemote/WriteEntries")({
   _tag: Schema.tag("WriteEntries"),
   publicKey: Schema.String,
-  storeId: StoreId,
+  storeId: StoreIdSchema,
   id: Schema.Number,
   iv: Schema.Uint8Array,
   encryptedEntries: Schema.Array(EncryptedEntry)
@@ -158,7 +160,7 @@ export class WriteEntriesUnencrypted extends Schema.Class<WriteEntriesUnencrypte
 )({
   _tag: Schema.tag("WriteEntries"),
   publicKey: Schema.String,
-  storeId: StoreId,
+  storeId: StoreIdSchema,
   id: Schema.Number,
   entries: Schema.Array(Entry)
 }) {}
@@ -180,7 +182,7 @@ export class Ack extends Schema.Class<Ack>("effect/eventlog/EventLogRemote/Ack")
 export class RequestChanges extends Schema.Class<RequestChanges>("effect/eventlog/EventLogRemote/RequestChanges")({
   _tag: Schema.tag("RequestChanges"),
   publicKey: Schema.String,
-  storeId: StoreId,
+  storeId: StoreIdSchema,
   startSequence: Schema.Number
 }) {}
 
@@ -191,7 +193,7 @@ export class RequestChanges extends Schema.Class<RequestChanges>("effect/eventlo
 export class Changes extends Schema.Class<Changes>("effect/eventlog/EventLogRemote/Changes")({
   _tag: Schema.tag("Changes"),
   publicKey: Schema.String,
-  storeId: StoreId,
+  storeId: StoreIdSchema,
   entries: Schema.Array(EncryptedRemoteEntry)
 }) {}
 
@@ -204,7 +206,7 @@ export class ChangesUnencrypted extends Schema.Class<ChangesUnencrypted>(
 )({
   _tag: Schema.tag("Changes"),
   publicKey: Schema.String,
-  storeId: StoreId,
+  storeId: StoreIdSchema,
   entries: Schema.Array(RemoteEntry)
 }) {}
 
@@ -214,7 +216,7 @@ export class ChangesUnencrypted extends Schema.Class<ChangesUnencrypted>(
  */
 export class StopChanges extends Schema.Class<StopChanges>("effect/eventlog/EventLogRemote/StopChanges")({
   _tag: Schema.tag("StopChanges"),
-  storeId: StoreId,
+  storeId: StoreIdSchema,
   publicKey: Schema.String
 }) {}
 
@@ -247,7 +249,7 @@ export class ProtocolError extends Schema.Class<ProtocolError>(
   requestTag: Schema.String,
   id: Schema.optional(Schema.Number),
   publicKey: Schema.optional(Schema.String),
-  storeId: Schema.optional(StoreId),
+  storeId: Schema.optional(StoreIdSchema),
   code: Schema.Literals(["Unauthorized", "Forbidden", "NotFound", "InvalidRequest", "InternalServerError"]),
   message: Schema.String
 }) {}
@@ -380,6 +382,13 @@ export class RemoteAdditions extends Schema.Class<RemoteAdditions>("effect/event
 }) {}
 
 const constChunkSize = 512_000
+
+type SubscriptionKey = {
+  readonly publicKey: string
+  readonly storeId: StoreId
+}
+
+const subscriptionIdentityKey = (key: SubscriptionKey): string => `${key.publicKey}::${key.storeId}`
 
 /**
  * @since 4.0.0
@@ -602,6 +611,7 @@ export const fromSocket = Effect.fnUntraced(function*(options?: {
     count: number
     bytes: number
   }>()
+  const identities = new Map<string, Identity["Service"]>()
 
   const subscriptions = yield* RcMap.make({
     lookup: (options: {
@@ -613,18 +623,18 @@ export const fromSocket = Effect.fnUntraced(function*(options?: {
         (queue) =>
           Queue.shutdown(queue).pipe(
             Effect.andThen(
-              Effect.suspend(() =>
-                sessionAuth.isAuthenticated(options.publicKey)
+              Effect.suspend(() => {
+                identities.delete(subscriptionIdentityKey(options))
+                return sessionAuth.isAuthenticated(options.publicKey)
                   ? Effect.ignore(writeRequest(
                     new StopChanges(options)
                   ))
                   : Effect.void
-              )
+              })
             )
           )
       )
   })
-  const identities = new Map<string, Identity["Service"]>()
   const badPing = yield* Deferred.make<never, Error>()
   const remoteId = yield* Deferred.make<RemoteId>()
 
@@ -682,8 +692,13 @@ export const fromSocket = Effect.fnUntraced(function*(options?: {
           return
         }
         case "Changes": {
-          const queue = yield* RcMap.get(subscriptions, { publicKey: res.publicKey, storeId: res.storeId })
-          const identity = identities.get(res.publicKey)
+          const key = { publicKey: res.publicKey, storeId: res.storeId }
+          const hasSubscription = yield* RcMap.has(subscriptions, key)
+          if (!hasSubscription) {
+            return
+          }
+          const queue = yield* RcMap.get(subscriptions, key)
+          const identity = identities.get(subscriptionIdentityKey(key))
           if (!identity) {
             return
           }
@@ -720,12 +735,12 @@ export const fromSocket = Effect.fnUntraced(function*(options?: {
               return
             }
             const queue = yield* RcMap.get(subscriptions, key)
-            identities.delete(res.publicKey)
-            yield* RcMap.invalidate(subscriptions, key)
+            identities.delete(subscriptionIdentityKey(key))
             yield* Queue.fail(
               queue,
               makeRemoteError("changes", res)
             )
+            yield* RcMap.invalidate(subscriptions, key)
             return
           }
           return
@@ -782,7 +797,9 @@ export const fromSocket = Effect.fnUntraced(function*(options?: {
       yield* Deferred.await(deferred)
     }),
     changes: Effect.fnUntraced(function*({ identity, storeId, startSequence }) {
-      const queue = yield* RcMap.get(subscriptions, { publicKey: identity.publicKey, storeId })
+      const key = { publicKey: identity.publicKey, storeId }
+      const identityKey = subscriptionIdentityKey(key)
+      const queue = yield* RcMap.get(subscriptions, key)
       const authenticated = yield* sessionAuth.ensureAuthenticated(identity).pipe(
         Effect.mapError((cause) => makeRemoteError("changes", cause)),
         Effect.as(true),
@@ -793,10 +810,10 @@ export const fromSocket = Effect.fnUntraced(function*(options?: {
         )
       )
       if (!authenticated) {
-        identities.delete(identity.publicKey)
+        identities.delete(identityKey)
         return queue
       }
-      identities.set(identity.publicKey, identity)
+      identities.set(identityKey, identity)
       yield* Effect.orDie(writeRequest(
         new RequestChanges({
           publicKey: identity.publicKey,
@@ -847,6 +864,7 @@ export const fromSocketUnencrypted = Effect.fnUntraced(function*(options?: {
     count: number
     bytes: number
   }>()
+  const identities = new Map<string, true>()
 
   const subscriptions = yield* RcMap.make({
     lookup: (options: {
@@ -858,16 +876,16 @@ export const fromSocketUnencrypted = Effect.fnUntraced(function*(options?: {
         (queue) =>
           Queue.shutdown(queue).pipe(
             Effect.andThen(
-              Effect.suspend(() =>
-                sessionAuth.isAuthenticated(options.publicKey)
+              Effect.suspend(() => {
+                identities.delete(subscriptionIdentityKey(options))
+                return sessionAuth.isAuthenticated(options.publicKey)
                   ? Effect.ignore(writeRequest(new StopChanges(options)))
                   : Effect.void
-              )
+              })
             )
           )
       )
   })
-  const identities = new Map<string, Identity["Service"]>()
   const badPing = yield* Deferred.make<never, Error>()
   const remoteId = yield* Deferred.make<RemoteId>()
 
@@ -926,11 +944,12 @@ export const fromSocketUnencrypted = Effect.fnUntraced(function*(options?: {
           return
         }
         case "Changes": {
-          const queue = yield* RcMap.get(subscriptions, { publicKey: res.publicKey, storeId: res.storeId })
-          const identity = identities.get(res.publicKey)
-          if (!identity) {
+          const key = { publicKey: res.publicKey, storeId: res.storeId }
+          const hasSubscription = yield* RcMap.has(subscriptions, key)
+          if (!hasSubscription || !identities.has(subscriptionIdentityKey(key))) {
             return
           }
+          const queue = yield* RcMap.get(subscriptions, key)
           yield* Queue.offerAll(queue, res.entries)
           return
         }
@@ -965,12 +984,12 @@ export const fromSocketUnencrypted = Effect.fnUntraced(function*(options?: {
               return
             }
             const queue = yield* RcMap.get(subscriptions, key)
-            identities.delete(publicKey)
-            yield* RcMap.invalidate(subscriptions, key)
+            identities.delete(subscriptionIdentityKey(key))
             yield* Queue.fail(
               queue,
               makeRemoteError("changes", res)
             )
+            yield* RcMap.invalidate(subscriptions, key)
             return
           }
           return
@@ -1021,7 +1040,9 @@ export const fromSocketUnencrypted = Effect.fnUntraced(function*(options?: {
       yield* Deferred.await(deferred)
     }),
     changes: Effect.fnUntraced(function*({ identity, storeId, startSequence }) {
-      const queue = yield* RcMap.get(subscriptions, { publicKey: identity.publicKey, storeId })
+      const key = { publicKey: identity.publicKey, storeId }
+      const identityKey = subscriptionIdentityKey(key)
+      const queue = yield* RcMap.get(subscriptions, key)
       const authenticated = yield* sessionAuth.ensureAuthenticated(identity).pipe(
         Effect.mapError((cause) => makeRemoteError("changes", cause)),
         Effect.as(true),
@@ -1032,10 +1053,10 @@ export const fromSocketUnencrypted = Effect.fnUntraced(function*(options?: {
         )
       )
       if (!authenticated) {
-        identities.delete(identity.publicKey)
+        identities.delete(identityKey)
         return queue
       }
-      identities.set(identity.publicKey, identity)
+      identities.set(identityKey, true)
       yield* Effect.orDie(writeRequest(
         new RequestChanges({
           storeId,

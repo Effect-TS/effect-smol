@@ -59,14 +59,16 @@ All of those message types already include `storeId`.
 
 ### Current client/runtime behavior relevant to the migration
 
-`packages/effect/src/unstable/eventlog/EventLogRemote.ts` already sends `storeId` on write and change requests, but it still keys subscriptions only by `publicKey`:
+`packages/effect/src/unstable/eventlog/EventLogRemote.ts` now has store-aware multiplexing behavior for change streams:
 
-- `fromSocket` keys `subscriptions` and `identities` by `publicKey`
-- `fromSocketUnencrypted` keys `subscriptions` and `identities` by `publicKey`
-- `StopChanges` now carries both `publicKey` and `storeId`
-- `ProtocolError` now supports optional `storeId`
+- `fromSocket` and `fromSocketUnencrypted` key subscriptions and subscription identity tracking by `(publicKey, storeId)`
+- `StopChanges` carries both `publicKey` and `storeId`, and subscription finalization sends store-scoped stop requests
+- `ProtocolError` supports optional `storeId` for request-scoped change-subscription routing
+- focused runtime tests in `packages/effect/test/unstable/eventlog/EventLogRemote.test.ts` cover demultiplexing and selective failure / stop behavior
 
-That means multiple active change streams for different store ids under the same public key cannot be demultiplexed correctly yet.
+Implementation discovery during Task 2:
+
+- importing the `StoreId` schema value from `EventLog.ts` in `EventLogRemote.ts` introduced a module initialization cycle (`EventLog.ts` imports `EventLogRemote.ts`), causing schema construction failures at runtime; `EventLogRemote.ts` now defines a local branded `StoreId` schema to avoid the cycle while preserving protocol shape.
 
 ## User-confirmed decisions
 
@@ -464,7 +466,7 @@ Task validation:
 - encrypted storage-focused tests
 - `pnpm check:tsgo`
 
-### Task 2: Shared multiplexed change-stream protocol/runtime plumbing ⏳ Pending
+### Task 2: Shared multiplexed change-stream protocol/runtime plumbing ✅ Completed
 
 Scope:
 
@@ -490,7 +492,7 @@ Why this is atomic:
 Task validation:
 
 - `pnpm lint-fix`
-- focused eventlog protocol/runtime tests
+- `pnpm test packages/effect/test/unstable/eventlog/EventLogRemote.test.ts`
 - `pnpm check:tsgo`
 
 ### Task 3: Encrypted handler multi-store routing ⏳ Pending

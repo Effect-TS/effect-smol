@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Fiber, Queue } from "effect"
+import { Deferred, Effect, Fiber, Queue } from "effect"
 import * as EventJournal from "effect/unstable/eventlog/EventJournal"
 import * as EventLog from "effect/unstable/eventlog/EventLog"
 import * as EventLogEncryption from "effect/unstable/eventlog/EventLogEncryption"
@@ -15,6 +15,17 @@ const makeEntry = (options?: {
     event: "UserCreated",
     primaryKey: options?.primaryKey ?? "user-1",
     payload: new Uint8Array(options?.payloadSize ?? 4).fill(1)
+  })
+
+const defaultStoreId = EventLog.StoreId.makeUnsafe("default")
+
+const makeRemoteEntry = (options: {
+  readonly remoteSequence: number
+  readonly primaryKey: string
+}): EventJournal.RemoteEntry =>
+  new EventJournal.RemoteEntry({
+    remoteSequence: options.remoteSequence,
+    entry: makeEntry({ primaryKey: options.primaryKey })
   })
 
 const makeSocketHarness = Effect.gen(function*() {
@@ -149,7 +160,11 @@ describe("EventLogRemote", () => {
       const identity = yield* EventLog.makeIdentity
       const entry = makeEntry()
 
-      const writeFiber = yield* harness.remote.write(identity, [entry]).pipe(Effect.forkScoped)
+      const writeFiber = yield* harness.remote.write({
+        identity,
+        storeId: defaultStoreId,
+        entries: [entry]
+      }).pipe(Effect.forkScoped)
       yield* authenticateUnencrypted({ harness, publicKey: identity.publicKey })
 
       const request = yield* harness.takeRequest
@@ -158,6 +173,7 @@ describe("EventLogRemote", () => {
       }
 
       assert.strictEqual(request.publicKey, identity.publicKey)
+      assert.strictEqual(request.storeId, defaultStoreId)
       assert.strictEqual(request.entries.length, 1)
       assert.strictEqual(request.entries[0].idString, entry.idString)
 
@@ -170,7 +186,11 @@ describe("EventLogRemote", () => {
       const harness = yield* makeRemoteHarnessUnencrypted
       const identity = yield* EventLog.makeIdentity
 
-      const writeFiber = yield* harness.remote.write(identity, [makeEntry()]).pipe(Effect.forkScoped)
+      const writeFiber = yield* harness.remote.write({
+        identity,
+        storeId: defaultStoreId,
+        entries: [makeEntry()]
+      }).pipe(Effect.forkScoped)
       const auth = yield* harness.takeRequest
       if (auth._tag !== "Authenticate") {
         throw new Error(`Expected Authenticate, got ${auth._tag}`)
@@ -196,7 +216,11 @@ describe("EventLogRemote", () => {
       const identity = yield* EventLog.makeIdentity
       const entry = makeEntry()
 
-      const writeFiber = yield* harness.remote.write(identity, [entry]).pipe(Effect.forkScoped)
+      const writeFiber = yield* harness.remote.write({
+        identity,
+        storeId: defaultStoreId,
+        entries: [entry]
+      }).pipe(Effect.forkScoped)
       yield* authenticateUnencrypted({ harness, publicKey: identity.publicKey })
 
       const request = yield* harness.takeRequest
@@ -219,12 +243,165 @@ describe("EventLogRemote", () => {
       assert.strictEqual(error.method, "write")
     }).pipe(Effect.provide(EventLogEncryption.layerSubtle)))
 
+  it.effect("fromSocketUnencrypted demultiplexes changes and request failures by (publicKey, storeId)", () =>
+    Effect.gen(function*() {
+      const harness = yield* makeRemoteHarnessUnencrypted
+      const identity = yield* EventLog.makeIdentity
+      const storeA = EventLog.StoreId.makeUnsafe("store-a")
+      const storeB = EventLog.StoreId.makeUnsafe("store-b")
+
+      const changesAFiber = yield* harness.remote.changes({
+        identity,
+        storeId: storeA,
+        startSequence: 0
+      }).pipe(Effect.forkScoped)
+
+      yield* authenticateUnencrypted({ harness, publicKey: identity.publicKey })
+
+      const requestA = yield* harness.takeRequest
+      if (requestA._tag !== "RequestChanges") {
+        throw new Error(`Expected RequestChanges, got ${requestA._tag}`)
+      }
+      assert.strictEqual(requestA.publicKey, identity.publicKey)
+      assert.strictEqual(requestA.storeId, storeA)
+
+      const queueA = yield* Fiber.join(changesAFiber)
+      const queueB = yield* harness.remote.changes({
+        identity,
+        storeId: storeB,
+        startSequence: 0
+      })
+
+      const requestB = yield* harness.takeRequest
+      if (requestB._tag !== "RequestChanges") {
+        throw new Error(`Expected RequestChanges, got ${requestB._tag}`)
+      }
+      assert.strictEqual(requestB.publicKey, identity.publicKey)
+      assert.strictEqual(requestB.storeId, storeB)
+
+      const entryA = makeRemoteEntry({ remoteSequence: 1, primaryKey: "user-a" })
+      yield* harness.sendResponse(
+        new EventLogRemote.ChangesUnencrypted({
+          publicKey: identity.publicKey,
+          storeId: storeA,
+          entries: [entryA]
+        })
+      )
+
+      const receivedA = yield* Queue.take(queueA).pipe(
+        Effect.timeout("1 second")
+      )
+      assert.strictEqual(receivedA.entry.primaryKey, entryA.entry.primaryKey)
+
+      yield* harness.sendResponse(
+        new EventLogRemote.ProtocolError({
+          requestTag: "RequestChanges",
+          publicKey: identity.publicKey,
+          storeId: storeA,
+          code: "Forbidden",
+          message: "store-a denied"
+        })
+      )
+
+      const storeAError = yield* Queue.take(queueA).pipe(
+        Effect.flip,
+        Effect.timeout("1 second")
+      )
+      assert.strictEqual(storeAError._tag, "EventLogRemoteError")
+      assert.strictEqual(storeAError.method, "changes")
+
+      const entryB = makeRemoteEntry({ remoteSequence: 2, primaryKey: "user-b" })
+      yield* harness.sendResponse(
+        new EventLogRemote.ChangesUnencrypted({
+          publicKey: identity.publicKey,
+          storeId: storeB,
+          entries: [entryB]
+        })
+      )
+
+      const receivedB = yield* Queue.take(queueB).pipe(
+        Effect.timeout("1 second")
+      )
+      assert.strictEqual(receivedB.entry.primaryKey, entryB.entry.primaryKey)
+    }).pipe(Effect.provide(EventLogEncryption.layerSubtle)))
+
+  it.effect("fromSocketUnencrypted finalization sends store-scoped StopChanges without affecting other stores", () =>
+    Effect.gen(function*() {
+      const harness = yield* makeRemoteHarnessUnencrypted
+      const identity = yield* EventLog.makeIdentity
+      const storeA = EventLog.StoreId.makeUnsafe("store-a")
+      const storeB = EventLog.StoreId.makeUnsafe("store-b")
+      const queueADeferred = yield* Deferred.make<
+        Queue.Dequeue<EventJournal.RemoteEntry, EventLogRemote.EventLogRemoteError>
+      >()
+
+      const storeAFiber = yield* Effect.gen(function*() {
+        const queue = yield* harness.remote.changes({
+          identity,
+          storeId: storeA,
+          startSequence: 0
+        })
+        yield* Deferred.succeed(queueADeferred, queue)
+        yield* Effect.never
+      }).pipe(
+        Effect.scoped,
+        Effect.forkScoped
+      )
+
+      yield* authenticateUnencrypted({ harness, publicKey: identity.publicKey })
+
+      const requestA = yield* harness.takeRequest
+      if (requestA._tag !== "RequestChanges") {
+        throw new Error(`Expected RequestChanges, got ${requestA._tag}`)
+      }
+      assert.strictEqual(requestA.storeId, storeA)
+
+      yield* Deferred.await(queueADeferred)
+
+      const queueB = yield* harness.remote.changes({
+        identity,
+        storeId: storeB,
+        startSequence: 0
+      })
+
+      const requestB = yield* harness.takeRequest
+      if (requestB._tag !== "RequestChanges") {
+        throw new Error(`Expected RequestChanges, got ${requestB._tag}`)
+      }
+      assert.strictEqual(requestB.storeId, storeB)
+
+      yield* Fiber.interrupt(storeAFiber)
+
+      const stopA = yield* harness.takeRequest
+      if (stopA._tag !== "StopChanges") {
+        throw new Error(`Expected StopChanges, got ${stopA._tag}`)
+      }
+      assert.strictEqual(stopA.publicKey, identity.publicKey)
+      assert.strictEqual(stopA.storeId, storeA)
+
+      const entryB = makeRemoteEntry({ remoteSequence: 3, primaryKey: "user-b" })
+      yield* harness.sendResponse(
+        new EventLogRemote.ChangesUnencrypted({
+          publicKey: identity.publicKey,
+          storeId: storeB,
+          entries: [entryB]
+        })
+      )
+
+      const receivedB = yield* Queue.take(queueB)
+      assert.strictEqual(receivedB.entry.primaryKey, entryB.entry.primaryKey)
+    }).pipe(Effect.provide(EventLogEncryption.layerSubtle)))
+
   it.effect("fromSocket authenticates before encrypted write", () =>
     Effect.gen(function*() {
       const harness = yield* makeRemoteHarnessEncrypted
       const identity = yield* EventLog.makeIdentity
 
-      const writeFiber = yield* harness.remote.write(identity, [makeEntry()]).pipe(Effect.forkScoped)
+      const writeFiber = yield* harness.remote.write({
+        identity,
+        storeId: defaultStoreId,
+        entries: [makeEntry()]
+      }).pipe(Effect.forkScoped)
       yield* authenticateEncrypted({ harness, publicKey: identity.publicKey })
 
       const request = yield* harness.takeRequest
@@ -233,6 +410,7 @@ describe("EventLogRemote", () => {
       }
 
       assert.strictEqual(request.publicKey, identity.publicKey)
+      assert.strictEqual(request.storeId, defaultStoreId)
       assert.strictEqual(request.encryptedEntries.length, 1)
 
       yield* harness.sendResponse(new EventLogRemote.Ack({ id: request.id, sequenceNumbers: [1] }))
