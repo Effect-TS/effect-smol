@@ -7,73 +7,74 @@
 /**
  * @since 1.0.0
  */
-export * as BrowserHttpClient from "./BrowserHttpClient.ts";
+export * as BrowserHttpClient from "./BrowserHttpClient.ts"
 
 /**
  * @since 1.0.0
  */
-export * as BrowserKeyValueStore from "./BrowserKeyValueStore.ts";
+export * as BrowserKeyValueStore from "./BrowserKeyValueStore.ts"
 
 /**
  * @since 1.0.0
  */
-export * as BrowserRuntime from "./BrowserRuntime.ts";
+export * as BrowserRuntime from "./BrowserRuntime.ts"
 
 /**
  * @since 1.0.0
  */
-export * as BrowserSocket from "./BrowserSocket.ts";
+export * as BrowserSocket from "./BrowserSocket.ts"
 
 /**
  * @since 1.0.0
  */
-export * as BrowserStream from "./BrowserStream.ts";
+export * as BrowserStream from "./BrowserStream.ts"
 
 /**
  * @since 1.0.0
  */
-export * as BrowserWorker from "./BrowserWorker.ts";
+export * as BrowserWorker from "./BrowserWorker.ts"
 
 /**
  * @since 1.0.0
  */
-export * as BrowserWorkerRunner from "./BrowserWorkerRunner.ts";
+export * as BrowserWorkerRunner from "./BrowserWorkerRunner.ts"
 
 /**
  * @since 1.0.0
  */
-export * as Clipboard from "./Clipboard.ts";
+export * as Clipboard from "./Clipboard.ts"
 
 /**
  * @since 1.0.0
  */
-export * as Geolocation from "./Geolocation.ts";
+export * as Geolocation from "./Geolocation.ts"
+
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
-export * as IndexedDb from "./IndexedDb.js";
+export * as IndexedDb from "./IndexedDb.ts"
+
+/**
+ * @since 4.0.0
+ */
+export * as IndexedDbDatabase from "./IndexedDbDatabase.ts"
+
+/**
+ * @since 4.0.0
+ */
+export * as IndexedDbQueryBuilder from "./IndexedDbQueryBuilder.ts"
+
+/**
+ * @since 4.0.0
+ */
+export * as IndexedDbTable from "./IndexedDbTable.ts"
+
+/**
+ * @since 4.0.0
+ */
+export * as IndexedDbVersion from "./IndexedDbVersion.ts"
 
 /**
  * @since 1.0.0
  */
-export * as IndexedDbDatabase from "./IndexedDbDatabase.js";
-
-/**
- * @since 1.0.0
- */
-export * as IndexedDbQueryBuilder from "./IndexedDbQueryBuilder.js";
-
-/**
- * @since 1.0.0
- */
-export * as IndexedDbTable from "./IndexedDbTable.js";
-
-/**
- * @since 1.0.0
- */
-export * as IndexedDbVersion from "./IndexedDbVersion.js";
-
-/**
- * @since 1.0.0
- */
-export * as Permissions from "./Permissions.ts";
+export * as Permissions from "./Permissions.ts"
