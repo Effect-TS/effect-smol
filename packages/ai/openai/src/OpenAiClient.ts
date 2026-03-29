@@ -7,7 +7,6 @@
  * @since 1.0.0
  */
 import * as Array from "effect/Array"
-import * as Cause from "effect/Cause"
 import type * as Config from "effect/Config"
 import * as Effect from "effect/Effect"
 import { identity } from "effect/Function"
@@ -374,8 +373,12 @@ export class OpenAiSocket extends ServiceMap.Service<OpenAiSocket, {
 const makeSocket = Effect.gen(function*() {
   const client = yield* OpenAiClient
   const tracker = yield* ResponseIdTracker.make
-  const request = yield* Effect.orDie(client.client.httpClient.preprocess(HttpClientRequest.post("/responses")))
+  const socketScope = yield* Effect.scope
+  const makeRequest = Effect.orDie(client.client.httpClient.preprocess(HttpClientRequest.post("/responses")))
+  const makeWebSocket = yield* Socket.WebSocketConstructor
+
   const decoder = new TextDecoder()
+
   const queueRef: RcRef.RcRef<
     {
       readonly send: (message: typeof Generated.CreateResponse.Encoded) => Effect.Effect<void, AiError.AiError>
@@ -384,18 +387,22 @@ const makeSocket = Effect.gen(function*() {
   > = yield* RcRef.make({
     idleTimeToLive: 60_000,
     acquire: Effect.gen(function*() {
-      const request = yield* Effect.orDie(client.client.httpClient.preprocess(HttpClientRequest.post("/responses")))
-      const socket = yield* Socket.makeWebSocket(request.url.replace(/^http/, "ws"), {
-        closeCodeIsError: Function.constTrue
-      }).pipe(
-        Effect.updateService(Socket.WebSocketConstructor, (f) => (url) =>
-          f(url, {
+      const scope = yield* Effect.scope
+      const request = yield* makeRequest
+      const socket = yield* Socket.makeWebSocket(request.url.replace(/^http/, "ws")).pipe(
+        Effect.provideService(Socket.WebSocketConstructor, (url) =>
+          makeWebSocket(url, {
             headers: request.headers
           } as any))
       )
       const write = yield* socket.writer
 
-      let incoming = yield* Queue.unbounded<ResponseStreamEvent, AiError.AiError>()
+      yield* Scope.addFinalizerExit(scope, () => {
+        tracker.clearUnsafe()
+        return Effect.void
+      })
+
+      const incoming = yield* Queue.unbounded<ResponseStreamEvent, AiError.AiError>()
       const send = (message: typeof Generated.CreateResponse.Encoded) =>
         write(JSON.stringify({
           type: "response.create",
@@ -421,13 +428,9 @@ const makeSocket = Effect.gen(function*() {
         )
 
       yield* socket.runRaw((msg) => {
-        if (!incoming) return
         const text = typeof msg === "string" ? msg : decoder.decode(msg)
         try {
           const event = decodeEvent(text)
-          if (event.type === "error") {
-            tracker.clearUnsafe()
-          }
           if (event.type === "error" && "status" in event) {
             const json = JSON.stringify(event.error)
             return Effect.fail(
@@ -455,27 +458,26 @@ const makeSocket = Effect.gen(function*() {
           Queue.offerUnsafe(incoming, event)
         } catch {}
       }).pipe(
-        Effect.catchCause((cause) =>
-          Queue.fail(
-            incoming,
-            AiError.make({
-              module: "OpenAiClient",
-              method: "createResponseStream",
-              reason: new AiError.NetworkError({
-                reason: "TransportError",
-                request: {
-                  method: "POST",
-                  url: request.url,
-                  urlParams: [],
-                  hash: undefined,
-                  headers: request.headers
-                },
-                description: Cause.pretty(cause)
-              })
+        Effect.catchTag("SocketError", (error) =>
+          AiError.make({
+            module: "OpenAiClient",
+            method: "createResponseStream",
+            reason: new AiError.NetworkError({
+              reason: "TransportError",
+              request: {
+                method: "POST",
+                url: request.url,
+                urlParams: [],
+                hash: undefined,
+                headers: request.headers
+              },
+              description: error.message
             })
-          )
-        ),
-        Effect.ensuring(RcRef.invalidate(queueRef)),
+          }).asEffect()),
+        Effect.catchCause((cause) => Queue.failCause(incoming, cause)),
+        Effect.ensuring(Effect.forkIn(RcRef.invalidate(queueRef), socketScope, {
+          startImmediately: true
+        })),
         Effect.forkScoped({ startImmediately: true })
       )
 
@@ -483,14 +485,17 @@ const makeSocket = Effect.gen(function*() {
     })
   })
 
-  yield* Effect.forkScoped(RcRef.get(queueRef))
+  // Prime the websocket
+  yield* Effect.scoped(RcRef.get(queueRef))
 
   // Websocket mode only allows one request at a time
   const semaphore = Semaphore.makeUnsafe(1)
+  const request = yield* makeRequest
 
   return OpenAiSocket.serviceMap({
     createResponseStream(options) {
-      const stream = Effect.gen(function*() {
+      const stream = Stream.unwrap(Effect.gen(function*() {
+        const scope = yield* Effect.scope
         yield* Effect.acquireRelease(
           semaphore.take(1),
           () => semaphore.release(1),
@@ -499,24 +504,22 @@ const makeSocket = Effect.gen(function*() {
         const { send, incoming } = yield* RcRef.get(queueRef)
         let done = false
 
-        yield* Effect.acquireRelease(
-          send(options),
-          () => {
-            if (done) return Effect.void
-            tracker.clearUnsafe()
-            return RcRef.invalidate(queueRef)
-          },
-          { interruptible: true }
-        ).pipe(
+        yield* Scope.addFinalizerExit(
+          scope,
+          () => done ? Effect.void : RcRef.invalidate(queueRef)
+        )
+
+        yield* send(options).pipe(
           Effect.forkScoped({ startImmediately: true })
         )
+
         return Stream.fromQueue(incoming).pipe(
           Stream.takeUntil((e) => {
             done = e.type === "response.completed" || e.type === "response.incomplete"
             return done
           })
         )
-      }).pipe(Stream.unwrap)
+      }))
 
       return Effect.succeed([
         HttpClientResponse.fromWeb(request, new Response()),
