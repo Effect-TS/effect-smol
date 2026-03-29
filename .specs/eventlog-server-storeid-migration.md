@@ -80,6 +80,11 @@ Implementation discovery during Task 4:
 - `Authenticate` remains publicKey-scoped while normal routing became pair-aware; to preserve first-bind behavior without weakening pre-bind checks, `StoreMapping.resolve(...)` now accepts either `(publicKey, storeId)` for normal routing or `publicKey` alone for first-bind Authenticate checks.
 - tests that cast to `EventLogServerUnencrypted.StoreId` were relying on a non-exported type; they now use `EventLog.StoreId` directly.
 
+Implementation discovery during Task 5:
+
+- full integration validation passed for linting, targeted encrypted/unencrypted/sql eventlog tests, type checking, and doc generation with no additional migration regressions observed.
+- repository status remained unchanged after validation, confirming no barrel/export modifications were introduced in this final pass, so `pnpm codegen` was not required.
+
 ## User-confirmed decisions
 
 These decisions are confirmed and should be treated as requirements.
@@ -567,7 +572,7 @@ Task validation:
 - `pnpm check:tsgo`
 - `pnpm docgen`
 
-### Task 5: Final validation and release metadata ⏳ Pending
+### Task 5: Final validation and release metadata ✅ Completed
 
 Scope:
 
@@ -580,6 +585,18 @@ Deliverables:
 - run the full validation checklist
 - run `pnpm codegen` if exports changed
 - add a changeset for the server StoreId migration
+
+Status notes:
+
+- completed final validation pass:
+  - `pnpm lint-fix`
+  - `pnpm test packages/effect/test/unstable/eventlog/EventLogServer.test.ts`
+  - `pnpm test packages/effect/test/unstable/eventlog/EventLogServerUnencrypted.test.ts`
+  - `pnpm test packages/sql/sqlite-node/test/SqlEventLogServer.test.ts`
+  - `pnpm check:tsgo`
+  - `pnpm docgen`
+- no public exports changed in this task, so `pnpm codegen` was not run.
+- release metadata changeset added for the StoreId migration.
 
 Why this is atomic:
 
