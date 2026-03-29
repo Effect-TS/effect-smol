@@ -47,6 +47,45 @@ describe("Queue", () => {
       assert.isTrue(Queue.isDequeue(dequeue))
     }))
 
+  it.effect("drain returns available items without blocking on empty", () =>
+    Effect.gen(function*() {
+      const queue = yield* Queue.unbounded<string>()
+      yield* Queue.offerAll(queue, ["a", "b"])
+      const items = yield* Queue.drain(queue)
+      assert.deepStrictEqual(items, ["a", "b"])
+
+      const empty = yield* Queue.drain(queue)
+      assert.deepStrictEqual(empty, [])
+    }))
+
+  it.effect("drain returns [] after end", () =>
+    Effect.gen(function*() {
+      const queue = yield* Queue.bounded<number, Cause.Done>(5)
+      yield* Queue.offerAll(queue, [1, 2])
+      yield* Queue.end(queue)
+      const items = yield* Queue.drain(queue)
+      assert.deepStrictEqual(items, [1, 2])
+      const empty = yield* Queue.drain(queue)
+      assert.deepStrictEqual(empty, [])
+    }))
+
+  it.effect("drain fails on non-Done error", () =>
+    Effect.gen(function*() {
+      const queue = yield* Queue.bounded<number, string>(5)
+      yield* Queue.fail(queue, "boom")
+      const error = yield* Queue.drain(queue).pipe(Effect.flip)
+      assert.deepStrictEqual(error, "boom")
+    }))
+
+  it.effect("drain on zero-capacity queue with pending offer", () =>
+    Effect.gen(function*() {
+      const queue = yield* Queue.bounded<number>(0)
+      yield* Queue.offer(queue, 1).pipe(Effect.forkChild)
+      yield* Effect.yieldNow
+      const items = yield* Queue.drain(queue)
+      assert.deepStrictEqual(items, [1])
+    }))
+
   it.effect("offerAll with capacity", () =>
     Effect.gen(function*() {
       const queue = yield* Queue.bounded<number>(2)

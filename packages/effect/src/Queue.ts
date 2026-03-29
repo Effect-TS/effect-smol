@@ -1029,6 +1029,45 @@ export const takeAll = <A, E>(self: Dequeue<A, E>): Effect<Arr.NonEmptyArray<A>,
   takeBetween(self, 1, Number.POSITIVE_INFINITY) as any
 
 /**
+ * Take all available messages from the queue without blocking.
+ *
+ * Returns whatever is currently in the queue, including an empty array if the
+ * queue has no messages. Unlike `takeAll`, this will not wait for items to
+ * become available.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Queue } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const queue = yield* Queue.unbounded<number>()
+ *   yield* Queue.offerAll(queue, [1, 2, 3])
+ *
+ *   const items = yield* Queue.drain(queue)
+ *   console.log(items) // [1, 2, 3]
+ *
+ *   const empty = yield* Queue.drain(queue)
+ *   console.log(empty) // []
+ * })
+ * ```
+ *
+ * @category Taking
+ * @since 4.0.0
+ */
+export const drain = <A, E>(self: Dequeue<A, E>): Effect<Array<A>, Pull.ExcludeDone<E>> =>
+  internalEffect.suspend(() => {
+    if (self.state._tag === "Done") {
+      if (Pull.isDoneCause(self.state.exit.cause)) {
+        return internalEffect.succeed([])
+      }
+      return self.state.exit
+    }
+    const messages = takeAllUnsafe(self)
+    releaseCapacity(self)
+    return internalEffect.succeed(messages)
+  }) as any
+
+/**
  * Take all messages from the queue, until the queue has errored or is done.
  *
  * @example
