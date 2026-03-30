@@ -1,6 +1,9 @@
+import * as Effect from "../../Effect.ts"
+import { flow } from "../../Function.ts"
 import * as Pipeable from "../../Pipeable.ts"
 import type * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
+import type { Issue } from "../../SchemaIssue.ts"
 import * as Parser from "../../SchemaParser.ts"
 
 /** @internal */
@@ -30,8 +33,27 @@ export function make<S extends Schema.Top>(ast: S["ast"], options?: object): S {
   }
   self.ast = ast
   self.rebuild = (ast: AST.AST) => make(ast, options)
-  self.makeEffect = Parser.makeEffect(self)
+  self.makeEffect = flow(Parser.makeEffect(self), Effect.mapErrorEager((issue) => new SchemaError(issue)))
   self.makeUnsafe = Parser.makeUnsafe(self)
   self.makeOption = Parser.makeOption(self)
   return self
+}
+
+/** @internal */
+export const SchemaErrorTypeId = "~effect/Schema/SchemaError"
+
+export class SchemaError {
+  readonly [SchemaErrorTypeId] = SchemaErrorTypeId
+  readonly _tag = "SchemaError"
+  readonly name: string = "SchemaError"
+  readonly issue: Issue
+  constructor(issue: Issue) {
+    this.issue = issue
+  }
+  get message() {
+    return this.issue.toString()
+  }
+  toString() {
+    return `SchemaError(${this.message})`
+  }
 }
