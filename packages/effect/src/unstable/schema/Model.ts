@@ -609,8 +609,8 @@ export interface UuidV4Insert<B extends string> extends
  * @since 4.0.0
  * @category Uint8Array
  */
-export const Uint8Array: Schema.instanceOf<Uint8Array> = Schema.Uint8Array as Schema.instanceOf<
-  globalThis.Uint8Array
+export const Uint8Array: Schema.instanceOf<Uint8Array<ArrayBuffer>> = Schema.Uint8Array as Schema.instanceOf<
+  globalThis.Uint8Array<ArrayBuffer>
 >
 
 /**
@@ -618,8 +618,8 @@ export const Uint8Array: Schema.instanceOf<Uint8Array> = Schema.Uint8Array as Sc
  * @category uuid
  */
 export const UuidV4WithGenerate = <B extends string>(
-  schema: Schema.brand<Schema.instanceOf<Uint8Array>, B>
-): Schema.withConstructorDefault<Schema.brand<Schema.instanceOf<Uint8Array>, B>> =>
+  schema: Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
+): Schema.withConstructorDefault<Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>> =>
   schema.pipe(Schema.withConstructorDefault(() => Option.some(Uuid.v4({}, new globalThis.Uint8Array(16)))))
 
 /**
@@ -629,7 +629,7 @@ export const UuidV4WithGenerate = <B extends string>(
  * @category uuid
  */
 export const UuidV4Insert = <const B extends string>(
-  schema: Schema.brand<Schema.instanceOf<Uint8Array>, B>
+  schema: Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
 ): UuidV4Insert<B> =>
   Field({
     select: schema,
