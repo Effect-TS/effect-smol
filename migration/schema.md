@@ -477,10 +477,10 @@ const schema = Schema.Struct({
 v4
 
 ```ts
-import { Schema } from "effect"
+import { Effect, Schema } from "effect"
 
 const schema = Schema.Struct({
-  a: Schema.String.pipe(Schema.withDecodingDefault(() => ""))
+  a: Schema.String.pipe(Schema.withDecodingDefault(Effect.succeed("")))
 })
 ```
 
@@ -499,10 +499,10 @@ const schema = Schema.Struct({
 v4
 
 ```ts
-import { Schema } from "effect"
+import { Effect, Schema } from "effect"
 
 const schema = Schema.Struct({
-  a: Schema.String.pipe(Schema.withDecodingDefaultKey(() => ""))
+  a: Schema.String.pipe(Schema.withDecodingDefaultKey(Effect.succeed("")))
 })
 ```
 
@@ -956,9 +956,3 @@ function split(separator: string) {
   )
 }
 ```
-
-## Not covered
-
-The following v3 APIs are not yet documented in this migration guide. If you encounter them, check the v4 source or open an issue.
-
-`suspend`, `brand` / `fromBrand`, `Enum`, `instanceOf`, `is` / `asserts`, `mutable`, `TaggedStruct`, `withConstructorDefault`

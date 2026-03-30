@@ -157,14 +157,14 @@ describe("Schema", () => {
 
       it("defaulted field", () => {
         const schema = Schema.Struct({
-          a: Schema.String.pipe(Schema.withConstructorDefault(() => Option.some("default")))
+          a: Schema.String.pipe(Schema.withConstructorDefault(Effect.succeed("default")))
         })
         expect(schema.makeUnsafe).type.toBe<MakeUnsafe<{ readonly a?: string }, { readonly a: string }>>()
       })
 
       it("branded defaulted field", () => {
         const schema = Schema.Struct({
-          a: Schema.String.pipe(Schema.brand("a"), Schema.withConstructorDefault(() => Option.some("default")))
+          a: Schema.String.pipe(Schema.brand("a"), Schema.withConstructorDefault(Effect.succeed("default")))
         })
         expect(schema.makeUnsafe).type.toBe<
           MakeUnsafe<{ readonly a?: string & Brand.Brand<"a"> }, { readonly a: string & Brand.Brand<"a"> }>
@@ -173,7 +173,7 @@ describe("Schema", () => {
 
       it("defaulted branded field", () => {
         const schema = Schema.Struct({
-          a: Schema.String.pipe(Schema.withConstructorDefault(() => Option.some("default")), Schema.brand("a"))
+          a: Schema.String.pipe(Schema.withConstructorDefault(Effect.succeed("default")), Schema.brand("a"))
         })
         expect(schema.makeUnsafe).type.toBe<
           MakeUnsafe<{ readonly a?: string & Brand.Brand<"a"> }, { readonly a: string & Brand.Brand<"a"> }>
@@ -183,8 +183,8 @@ describe("Schema", () => {
       it("nested defaulted fields", () => {
         const schema = Schema.Struct({
           a: Schema.Struct({
-            b: Schema.Finite.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
-          }).pipe(Schema.withConstructorDefault(() => Option.some({})))
+            b: Schema.Finite.pipe(Schema.withConstructorDefault(Effect.succeed(-1)))
+          }).pipe(Schema.withConstructorDefault(Effect.succeed({})))
         })
         expect(schema.makeUnsafe).type.toBe<
           MakeUnsafe<{ readonly a?: { readonly b?: number } }, { readonly a: { readonly b: number } }>
@@ -193,10 +193,10 @@ describe("Schema", () => {
 
       it("nested defaulted & branded field", () => {
         const A = Schema.Struct({
-          b: Schema.Finite.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
+          b: Schema.Finite.pipe(Schema.withConstructorDefault(Effect.succeed(-1)))
         }).pipe(Schema.brand("a"))
         const schema = Schema.Struct({
-          a: A.pipe(Schema.withConstructorDefault(() => Option.some(A.makeUnsafe({}))))
+          a: A.pipe(Schema.withConstructorDefault(Effect.succeed(A.makeUnsafe({}))))
         })
         expect(schema.makeUnsafe).type.toBe<
           MakeUnsafe<
@@ -221,7 +221,7 @@ describe("Schema", () => {
           a: Schema.String
         })) {}
         const schema = Schema.Struct({
-          a: A.pipe(Schema.withConstructorDefault(() => Option.some(new A({ a: "default" }))))
+          a: A.pipe(Schema.withConstructorDefault(Effect.succeed(new A({ a: "default" }))))
         })
         expect(schema.makeUnsafe).type.toBe<MakeUnsafe<{ readonly a?: A }, { readonly a: A }>>()
       })
@@ -241,7 +241,9 @@ describe("Schema", () => {
       })
 
       it("defaulted field", () => {
-        const schema = Schema.Tuple([Schema.String.pipe(Schema.withConstructorDefault(() => Option.some("default")))])
+        const schema = Schema.Tuple([
+          Schema.String.pipe(Schema.withConstructorDefault(Effect.succeed("default")))
+        ])
         expect(schema.makeUnsafe).type.toBe<MakeUnsafe<readonly [string?], readonly [string]>>()
       })
 
@@ -249,8 +251,8 @@ describe("Schema", () => {
         const schema = Schema.Tuple(
           [
             Schema.Struct({
-              b: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
-            }).pipe(Schema.withConstructorDefault(() => Option.some({})))
+              b: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(Effect.succeed(-1)))
+            }).pipe(Schema.withConstructorDefault(Effect.succeed({})))
           ]
         )
         expect(schema.makeUnsafe).type.toBe<
@@ -262,8 +264,8 @@ describe("Schema", () => {
         const schema = Schema.Tuple(
           [
             Schema.Tuple([
-              Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
-            ]).pipe(Schema.withConstructorDefault(() => Option.some([] as const)))
+              Schema.FiniteFromString.pipe(Schema.withConstructorDefault(Effect.succeed(-1)))
+            ]).pipe(Schema.withConstructorDefault(Effect.succeed([] as const)))
           ]
         )
         expect(schema.makeUnsafe).type.toBe<
@@ -276,8 +278,8 @@ describe("Schema", () => {
       it("nested defaulted fields", () => {
         class A extends Schema.Class<A, { readonly brand: unique symbol }>("A")(Schema.Struct({
           a: Schema.Struct({
-            b: Schema.Finite.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
-          }).pipe(Schema.withConstructorDefault(() => Option.some({})))
+            b: Schema.Finite.pipe(Schema.withConstructorDefault(Effect.succeed(-1)))
+          }).pipe(Schema.withConstructorDefault(Effect.succeed({})))
         })) {}
         expect(A.makeUnsafe).type.toBe<MakeUnsafe<{ readonly a?: { readonly b?: number } }, A>>()
         const schema = Schema.Struct({
@@ -381,7 +383,7 @@ describe("Schema", () => {
     it("Opaque", () => {
       class A extends Schema.Opaque<A>()(
         Schema.Struct({
-          b: Schema.FiniteFromString.pipe(Schema.brand("a"), Schema.withConstructorDefault(() => Option.some(-1)))
+          b: Schema.FiniteFromString.pipe(Schema.brand("a"), Schema.withConstructorDefault(Effect.succeed(-1)))
         })
       ) {}
       const schema = Schema.Struct({
@@ -749,7 +751,7 @@ describe("Schema", () => {
 
     it("Struct & withConstructorDefault", () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.withConstructorDefault(() => Option.some("c")))
+        a: Schema.String.pipe(Schema.withConstructorDefault(Effect.succeed("c")))
       })
       expect(schema.makeUnsafe).type.toBe<
         (input: { readonly a?: string }, options?: Schema.MakeOptions | undefined) => { readonly a: string }
@@ -1420,7 +1422,7 @@ describe("Schema", () => {
   describe("withConstructorDefault", () => {
     it("should be possible to access the original schema", () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.withConstructorDefault(() => Option.some("a")))
+        a: Schema.String.pipe(Schema.withConstructorDefault(Effect.succeed("a")))
       })
 
       expect(schema.fields.a.schema).type.toBe<Schema.String>()
@@ -1429,10 +1431,10 @@ describe("Schema", () => {
     it("effectful", () => {
       const service = hole<ServiceMap.Service<"Tag", "-">>()
 
-      const schema = Schema.String.pipe(Schema.withConstructorDefault(() =>
+      const schema = Schema.String.pipe(Schema.withConstructorDefault(
         Effect.gen(function*() {
           yield* Effect.serviceOption(service)
-          return Option.some("some-result")
+          return "some-result"
         })
       ))
 
@@ -1490,7 +1492,7 @@ describe("Schema", () => {
 
   it("withDecodingDefaultKey", () => {
     const schema = Schema.Struct({
-      a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultKey(() => "1"))
+      a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultKey(Effect.succeed("1")))
     })
 
     expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.withDecodingDefaultKey<Schema.FiniteFromString> }>>()
@@ -1501,7 +1503,7 @@ describe("Schema", () => {
 
   it("withDecodingDefault", () => {
     const schema = Schema.Struct({
-      a: Schema.FiniteFromString.pipe(Schema.withDecodingDefault(() => "1"))
+      a: Schema.FiniteFromString.pipe(Schema.withDecodingDefault(Effect.succeed("1")))
     })
 
     expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.withDecodingDefault<Schema.FiniteFromString> }>>()
