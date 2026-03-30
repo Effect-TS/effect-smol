@@ -1593,4 +1593,35 @@ describe("Schema", () => {
       ).type.not.toBeCallableWith(Tuple.map(Schema.fieldsAssign({ c: Schema.Number })))
     })
   })
+
+  describe("asClass", () => {
+    it("preserves schema Type", () => {
+      class A extends Schema.asClass(Schema.String) {}
+      expect(Schema.revealCodec(A)).type.toBe<Schema.Codec<string, string, never, never>>()
+
+      class B extends Schema.asClass(Schema.Struct({ name: Schema.String })) {}
+      expect(Schema.revealCodec(B)).type.toBe<
+        Schema.Codec<{ readonly name: string }, { readonly name: string }, never, never>
+      >()
+      expect(B.fields).type.toBe<{ readonly name: Schema.String }>()
+    })
+
+    it("annotate returns the original schema type", () => {
+      class A extends Schema.asClass(Schema.String) {}
+
+      expect(A.annotate({})).type.toBe<Schema.String>()
+    })
+
+    it("should support static methods", () => {
+      class A extends Schema.asClass(Schema.FiniteFromString) {
+        static readonly decodeUnknownSync = Schema.decodeUnknownSync(this)
+        static get encodeSync() {
+          return Schema.encodeSync(this)
+        }
+      }
+
+      expect(A.decodeUnknownSync("1")).type.toBe<number>()
+      expect(A.encodeSync(1)).type.toBe<string>()
+    })
+  })
 })

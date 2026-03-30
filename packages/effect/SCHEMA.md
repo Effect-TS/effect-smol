@@ -3679,6 +3679,61 @@ f(B.makeUnsafe({ a: "a" })) // error: Argument of type 'B' is not assignable to 
 g(A.makeUnsafe({ a: "a" })) // error: Argument of type 'A' is not assignable to parameter of type 'B'.
 ```
 
+## Schema as a Class
+
+`Schema.asClass` turns any schema into a class that can be extended with `extends`. The resulting class inherits the full schema API (e.g. `annotate`) and supports static methods that reference `this`.
+
+Unlike `Schema.Opaque`, it does **not** make the decoded type nominally distinct, and unlike `Schema.Class`, it does **not** add `Equal` or prototype-based features. It is a lightweight way to attach custom static helpers to a schema.
+
+### Wrapping a Primitive Schema
+
+```ts
+import { Schema } from "effect"
+
+class MyString extends Schema.asClass(Schema.String) {
+  static readonly decodeUnknownSync = Schema.decodeUnknownSync(this)
+}
+
+console.log(MyString.decodeUnknownSync("a"))
+// "a"
+```
+
+### Wrapping a Struct Schema
+
+```ts
+import { Schema } from "effect"
+
+class MyStruct extends Schema.asClass(
+  Schema.Struct({ name: Schema.String })
+) {
+  static readonly decodeUnknownSync = Schema.decodeUnknownSync(this)
+}
+
+console.log(MyStruct.decodeUnknownSync({ name: "a" }))
+// { name: "a" }
+```
+
+### Subclassing
+
+You can extend an `asClass` class to layer on more static helpers:
+
+```ts
+import { Schema } from "effect"
+
+class MyString extends Schema.asClass(Schema.FiniteFromString) {
+  static readonly decodeUnknownSync = Schema.decodeUnknownSync(this)
+}
+
+class MyString2 extends MyString {
+  static readonly encodeSync = Schema.encodeSync(this)
+}
+
+console.log(MyString2.decodeUnknownSync("1"))
+// 1
+console.log(MyString2.encodeSync(1))
+// "1"
+```
+
 ## Classes
 
 ### Existing Classes

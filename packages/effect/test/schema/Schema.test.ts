@@ -7840,4 +7840,67 @@ Missing key
   at ["c"]`
     )
   })
+
+  describe("asClass", () => {
+    it("wrapping a primitive schema", () => {
+      class A extends Schema.asClass(Schema.String) {}
+
+      strictEqual(Schema.decodeUnknownSync(A)("a"), "a")
+    })
+
+    it("static getter using this", () => {
+      class A extends Schema.asClass(Schema.String) {
+        static get decodeUnknownSync() {
+          return Schema.decodeUnknownSync(this)
+        }
+      }
+
+      strictEqual(A.decodeUnknownSync("a"), "a")
+    })
+
+    it("static property", () => {
+      class A extends Schema.asClass(Schema.String) {
+        static readonly decodeUnknownSync = Schema.decodeUnknownSync(this)
+      }
+
+      strictEqual(A.decodeUnknownSync("a"), "a")
+    })
+
+    it("static property using Schema.suspend", () => {
+      class A extends Schema.asClass(Schema.String) {
+        static readonly decodeUnknownSync = Schema.decodeUnknownSync(Schema.suspend(() => this))
+      }
+
+      strictEqual(A.decodeUnknownSync("a"), "a")
+    })
+
+    it("wrapping a Struct schema", () => {
+      const struct = Schema.Struct({
+        name: Schema.String
+      })
+      class A extends Schema.asClass(struct) {
+        static get decodeUnknownSync() {
+          return Schema.decodeUnknownSync(this)
+        }
+      }
+
+      deepStrictEqual(A.decodeUnknownSync({ name: "a" }), { name: "a" })
+      strictEqual(A.fields, struct.fields)
+    })
+
+    it("subclassing (double wrap)", () => {
+      class A extends Schema.asClass(Schema.FiniteFromString) {
+        static get decodeUnknownSync() {
+          return Schema.decodeUnknownSync(this)
+        }
+      }
+
+      class B extends A {
+        static encodeSync = Schema.encodeSync(this)
+      }
+
+      strictEqual(B.decodeUnknownSync("1"), 1)
+      strictEqual(B.encodeSync(1), "1")
+    })
+  })
 })

@@ -1440,6 +1440,32 @@ export const encodeSync = Parser.encodeSync
 export const make: <S extends Top>(ast: S["ast"], options?: object) => S = InternalSchema.make
 
 /**
+ * Transforms a schema into a class that can be extended with `extends`. The
+ * resulting class inherits the full schema API (e.g. `annotate`) and can define
+ * static methods that reference `this`.
+ *
+ * **Example** (Wrapping a primitive schema)
+ *
+ * ```ts
+ * import { Schema } from "effect"
+ *
+ * class MyString extends Schema.asClass(Schema.String) {
+ *   static readonly decodeUnknownSync = Schema.decodeUnknownSync(this)
+ * }
+ *
+ * console.log(MyString.decodeUnknownSync("a"))
+ * // "a"
+ * ```
+ *
+ * @since 4.0.0
+ */
+export function asClass<S extends Top>(schema: S): S & { new(_: never): {} } {
+  // oxlint-disable-next-line @typescript-eslint/no-extraneous-class
+  class Class {}
+  return Object.setPrototypeOf(Class, schema)
+}
+
+/**
  * Tests if a value is a `Schema`.
  *
  * @category Guards
