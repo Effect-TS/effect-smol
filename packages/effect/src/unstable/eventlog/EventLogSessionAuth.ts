@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import { Clock } from "../../Clock.ts"
 import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
 
@@ -414,10 +415,10 @@ export const makeSessionAuthChallenge: Effect.Effect<Uint8Array, EventLogSession
  */
 export const isSessionAuthChallengeExpired = (options: {
   readonly challengeIssuedAtMillis: number
-  readonly nowMillis?: number | undefined
+  readonly nowMillis: number
   readonly challengeTimeToLiveMillis?: number | undefined
 }): boolean => {
-  const now = options.nowMillis ?? Date.now()
+  const now = options.nowMillis
   const timeToLive = options.challengeTimeToLiveMillis ?? SessionAuthChallengeTimeToLiveMillis
   return now - options.challengeIssuedAtMillis > timeToLive
 }
@@ -438,6 +439,8 @@ export const verifySessionAuthenticateRequest = Effect.fnUntraced(function*(opti
   readonly challengeTimeToLiveMillis?: number | undefined
   readonly nowMillis?: number | undefined
 }) {
+  const clock = yield* Clock
+
   if (options.algorithm !== "Ed25519") {
     return yield* new EventLogSessionAuthError({
       reason: "InvalidAlgorithm",
@@ -456,7 +459,7 @@ export const verifySessionAuthenticateRequest = Effect.fnUntraced(function*(opti
     isSessionAuthChallengeExpired({
       challengeIssuedAtMillis: options.challengeIssuedAtMillis,
       challengeTimeToLiveMillis: options.challengeTimeToLiveMillis,
-      nowMillis: options.nowMillis
+      nowMillis: clock.currentTimeMillisUnsafe()
     })
   ) {
     return yield* new EventLogSessionAuthError({

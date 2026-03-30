@@ -1,5 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Effect, Layer, Queue, Ref, Schema } from "effect"
+import { Clock } from "effect/Clock"
+import { TestClock } from "effect/testing/index"
 import * as EventGroup from "effect/unstable/eventlog/EventGroup"
 import * as EventJournal from "effect/unstable/eventlog/EventJournal"
 import * as EventLog from "effect/unstable/eventlog/EventLog"
@@ -60,7 +62,8 @@ const handlerLayer = (seen: Ref.Ref<ReadonlyArray<SeenWrite>>) =>
 
 const allowAllAuthLayer = Layer.succeed(EventLogServerUnencrypted.EventLogServerAuth, {
   authorizeWrite: () => Effect.void,
-  authorizeRead: () => Effect.void
+  authorizeRead: () => Effect.void,
+  authorizeIdentity: () => Effect.void
 })
 
 const makeServerLayer = (
@@ -221,7 +224,11 @@ const makeAuthenticateRequest = Effect.fnUntraced(function*(options: {
     })
 
     if (!verified) {
-      throw new Error("Expected locally signed Authenticate payload to verify")
+      return yield* new EventLogServerUnencrypted.EventLogServerAuthError({
+        reason: "Forbidden",
+        publicKey: options.publicKey,
+        message: "Session auth signature verification failed"
+      })
     }
   }
 
@@ -232,23 +239,6 @@ const makeAuthenticateRequest = Effect.fnUntraced(function*(options: {
     algorithm: "Ed25519"
   })
 })
-
-const withDateNow = <A, E, R>(
-  nowMillis: number,
-  effect: Effect.Effect<A, E, R>
-): Effect.Effect<A, E, R> =>
-  Effect.acquireUseRelease(
-    Effect.sync(() => {
-      const original = Date.now
-      Date.now = () => nowMillis
-      return original
-    }),
-    () => effect,
-    (original) =>
-      Effect.sync(() => {
-        Date.now = original
-      })
-  )
 
 describe("EventLogServerUnencrypted", () => {
   it.effect("ingest deduplicates entry ids within and across requests", () =>
@@ -283,30 +273,28 @@ describe("EventLogServerUnencrypted", () => {
     Effect.gen(function*() {
       const seen = yield* Ref.make<ReadonlyArray<SeenWrite>>([])
 
-      return yield* Effect.scoped(
-        Effect.gen(function*() {
-          const server = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+      return yield* Effect.gen(function*() {
+        const server = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
 
-          const ingestError = yield* server.ingest({
-            publicKey: "client-1",
-            storeId: storeIdB,
-            entries: [yield* makeEntry({ name: "Ada" })]
-          }).pipe(Effect.flip)
+        const ingestError = yield* server.ingest({
+          publicKey: "client-1",
+          storeId: storeIdB,
+          entries: [yield* makeEntry({ name: "Ada" })]
+        }).pipe(Effect.flip)
 
-          assert.strictEqual(ingestError.reason, "NotFound")
-          assert.strictEqual(ingestError.publicKey, "client-1")
-          assert.strictEqual(ingestError.storeId, storeIdB)
+        assert.strictEqual(ingestError.reason, "NotFound")
+        assert.strictEqual(ingestError.publicKey, "client-1")
+        assert.strictEqual(ingestError.storeId, storeIdB)
 
-          const requestChangesError = yield* server.requestChanges("client-1", storeIdB, 0).pipe(
-            Effect.scoped,
-            Effect.flip
-          )
+        const requestChangesError = yield* server.requestChanges("client-1", storeIdB, 0).pipe(
+          Effect.scoped,
+          Effect.flip
+        )
 
-          assert.strictEqual(requestChangesError.reason, "NotFound")
-          assert.strictEqual(requestChangesError.publicKey, "client-1")
-          assert.strictEqual(requestChangesError.storeId, storeIdB)
-        }).pipe(Effect.provide(makeServerLayer(seen)))
-      )
+        assert.strictEqual(requestChangesError.reason, "NotFound")
+        assert.strictEqual(requestChangesError.publicKey, "client-1")
+        assert.strictEqual(requestChangesError.storeId, storeIdB)
+      }).pipe(Effect.provide(makeServerLayer(seen)))
     }))
 
   it.effect("ingest and requestChanges route by (publicKey, storeId)", () =>
@@ -318,483 +306,464 @@ describe("EventLogServerUnencrypted", () => {
         ["client-2", storeIdB]
       ])
 
-      return yield* Effect.scoped(
-        Effect.gen(function*() {
-          const server = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
-          const entryA = yield* makeEntry({ name: "Ada", primaryKey: "user-a" })
-          const entryB = yield* makeEntry({ name: "Grace", primaryKey: "user-b" })
+      return yield* Effect.gen(function*() {
+        const server = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+        const entryA = yield* makeEntry({ name: "Ada", primaryKey: "user-a" })
+        const entryB = yield* makeEntry({ name: "Grace", primaryKey: "user-b" })
 
-          const persistedA = yield* server.ingest({
-            publicKey: "client-1",
-            storeId: storeIdA,
-            entries: [entryA]
-          })
-          const persistedB = yield* server.ingest({
-            publicKey: "client-1",
-            storeId: storeIdB,
-            entries: [entryB]
-          })
+        const persistedA = yield* server.ingest({
+          publicKey: "client-1",
+          storeId: storeIdA,
+          entries: [entryA]
+        })
+        const persistedB = yield* server.ingest({
+          publicKey: "client-1",
+          storeId: storeIdB,
+          entries: [entryB]
+        })
 
-          assert.strictEqual(persistedA.storeId, storeIdA)
-          assert.strictEqual(persistedB.storeId, storeIdB)
+        assert.strictEqual(persistedA.storeId, storeIdA)
+        assert.strictEqual(persistedB.storeId, storeIdB)
 
-          const storeAChanges = yield* server.requestChanges("client-1", storeIdA, 0)
-          const storeBChanges = yield* server.requestChanges("client-1", storeIdB, 0)
-          const replayedA = yield* Queue.takeAll(storeAChanges)
-          const replayedB = yield* Queue.takeAll(storeBChanges)
+        const storeAChanges = yield* server.requestChanges("client-1", storeIdA, 0)
+        const storeBChanges = yield* server.requestChanges("client-1", storeIdB, 0)
+        const replayedA = yield* Queue.takeAll(storeAChanges)
+        const replayedB = yield* Queue.takeAll(storeBChanges)
 
-          assert.deepStrictEqual(replayedA.map((entry) => entry.entry.idString), [entryA.idString])
-          assert.deepStrictEqual(replayedB.map((entry) => entry.entry.idString), [entryB.idString])
+        assert.deepStrictEqual(replayedA.map((entry) => entry.entry.idString), [entryA.idString])
+        assert.deepStrictEqual(replayedB.map((entry) => entry.entry.idString), [entryB.idString])
 
-          const rejected = yield* server.ingest({
-            publicKey: "client-2",
-            storeId: storeIdA,
-            entries: [yield* makeEntry({ name: "Mallory", primaryKey: "user-c" })]
-          }).pipe(Effect.flip)
+        const rejected = yield* server.ingest({
+          publicKey: "client-2",
+          storeId: storeIdA,
+          entries: [yield* makeEntry({ name: "Mallory", primaryKey: "user-c" })]
+        }).pipe(Effect.flip)
 
-          assert.strictEqual(rejected.reason, "NotFound")
-          assert.strictEqual(rejected.publicKey, "client-2")
-          assert.strictEqual(rejected.storeId, storeIdA)
-        }).pipe(Effect.provide(makeServerLayer(seen, allowAllAuthLayer, mapping)))
-      )
+        assert.strictEqual(rejected.reason, "NotFound")
+        assert.strictEqual(rejected.publicKey, "client-2")
+        assert.strictEqual(rejected.storeId, storeIdA)
+      }).pipe(Effect.provide(makeServerLayer(seen, allowAllAuthLayer, mapping)))
     }))
 
   it.effect("requestChanges compacts registered backlog entries", () =>
     Effect.gen(function*() {
       const seen = yield* Ref.make<ReadonlyArray<SeenWrite>>([])
 
-      return yield* Effect.scoped(
-        Effect.gen(function*() {
-          const server = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
-          const harness = yield* makeSocketHarness
-          const handler = yield* EventLogServerUnencrypted.makeHandler
+      return yield* Effect.gen(function*() {
+        const server = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+        const harness = yield* makeSocketHarness
+        const handler = yield* EventLogServerUnencrypted.makeHandler
 
-          yield* server.registerCompaction({
-            events: ["UserNameSet"],
-            effect: ({ entries, write }) => write(entries[entries.length - 1]!)
+        yield* server.registerCompaction({
+          events: ["UserNameSet"],
+          effect: ({ entries, write }) => write(entries[entries.length - 1]!)
+        })
+
+        yield* server.write({
+          schema,
+          storeId: storeIdA,
+          event: "UserNameSet",
+          payload: { id: "user-1", name: "Ada" }
+        })
+        yield* server.write({
+          schema,
+          storeId: storeIdA,
+          event: "UserNameSet",
+          payload: { id: "user-1", name: "Grace" }
+        })
+        yield* server.write({
+          schema,
+          storeId: storeIdA,
+          event: "UserNameSet",
+          payload: { id: "user-1", name: "Margaret" }
+        })
+
+        yield* handler(harness.socket).pipe(Effect.forkScoped)
+        const hello = yield* harness.takeResponse
+        if (hello._tag !== "Hello") {
+          throw new Error(`Expected Hello, got ${hello._tag}`)
+        }
+
+        yield* harness.sendRequest(
+          yield* makeAuthenticateRequest({
+            hello,
+            publicKey: "client-1"
           })
+        )
 
-          yield* server.write({
-            schema,
+        const authenticated = yield* harness.takeResponse
+        if (authenticated._tag !== "Authenticated") {
+          throw new Error(`Expected Authenticated, got ${authenticated._tag}`)
+        }
+
+        yield* harness.sendRequest(
+          new EventLogRemote.RequestChanges({
+            publicKey: "client-1",
             storeId: storeIdA,
-            event: "UserNameSet",
-            payload: { id: "user-1", name: "Ada" }
+            startSequence: 0
           })
-          yield* server.write({
-            schema,
-            storeId: storeIdA,
-            event: "UserNameSet",
-            payload: { id: "user-1", name: "Grace" }
-          })
-          yield* server.write({
-            schema,
-            storeId: storeIdA,
-            event: "UserNameSet",
-            payload: { id: "user-1", name: "Margaret" }
-          })
+        )
 
-          yield* handler(harness.socket).pipe(Effect.forkScoped)
-          const hello = yield* harness.takeResponse
-          if (hello._tag !== "Hello") {
-            throw new Error(`Expected Hello, got ${hello._tag}`)
-          }
+        const response = yield* harness.takeResponse
+        if (response._tag !== "Changes") {
+          throw new Error(`Expected Changes, got ${response._tag}`)
+        }
 
-          yield* harness.sendRequest(
-            yield* makeAuthenticateRequest({
-              hello,
-              publicKey: "client-1"
-            })
-          )
-
-          const authenticated = yield* harness.takeResponse
-          if (authenticated._tag !== "Authenticated") {
-            throw new Error(`Expected Authenticated, got ${authenticated._tag}`)
-          }
-
-          yield* harness.sendRequest(
-            new EventLogRemote.RequestChanges({
-              publicKey: "client-1",
-              storeId: storeIdA,
-              startSequence: 0
-            })
-          )
-
-          const response = yield* harness.takeResponse
-          if (response._tag !== "Changes") {
-            throw new Error(`Expected Changes, got ${response._tag}`)
-          }
-
-          assert.strictEqual(response.entries.length, 1)
-          assert.strictEqual(response.entries[0].remoteSequence, 3)
-          assert.deepStrictEqual(yield* decodePayload(response.entries[0].entry.payload), {
-            id: "user-1",
-            name: "Margaret"
-          })
-          assert.deepStrictEqual(yield* Ref.get(seen), [
-            { name: "Ada", publicKey: serverWritePublicKey },
-            { name: "Grace", publicKey: serverWritePublicKey },
-            { name: "Margaret", publicKey: serverWritePublicKey }
-          ])
-        }).pipe(Effect.provide(makeServerLayer(seen)))
-      )
+        assert.strictEqual(response.entries.length, 1)
+        assert.strictEqual(response.entries[0].remoteSequence, 3)
+        assert.deepStrictEqual(yield* decodePayload(response.entries[0].entry.payload), {
+          id: "user-1",
+          name: "Margaret"
+        })
+        assert.deepStrictEqual(yield* Ref.get(seen), [
+          { name: "Ada", publicKey: serverWritePublicKey },
+          { name: "Grace", publicKey: serverWritePublicKey },
+          { name: "Margaret", publicKey: serverWritePublicKey }
+        ])
+      }).pipe(Effect.provide(makeServerLayer(seen)))
     }))
 
   it.effect("makeHandler acknowledges unencrypted writes", () =>
     Effect.gen(function*() {
       const seen = yield* Ref.make<ReadonlyArray<SeenWrite>>([])
 
-      return yield* Effect.scoped(
-        Effect.gen(function*() {
-          const harness = yield* makeSocketHarness
-          const handler = yield* EventLogServerUnencrypted.makeHandler
+      return yield* Effect.gen(function*() {
+        const harness = yield* makeSocketHarness
+        const handler = yield* EventLogServerUnencrypted.makeHandler
 
-          yield* handler(harness.socket).pipe(Effect.forkScoped)
+        yield* handler(harness.socket).pipe(Effect.forkScoped)
 
-          const hello = yield* harness.takeResponse
-          if (hello._tag !== "Hello") {
-            throw new Error(`Expected Hello, got ${hello._tag}`)
-          }
+        const hello = yield* harness.takeResponse
+        if (hello._tag !== "Hello") {
+          throw new Error(`Expected Hello, got ${hello._tag}`)
+        }
 
-          yield* harness.sendRequest(
-            yield* makeAuthenticateRequest({
-              hello,
-              publicKey: "client-1"
-            })
-          )
+        yield* harness.sendRequest(
+          yield* makeAuthenticateRequest({
+            hello,
+            publicKey: "client-1"
+          })
+        )
 
-          const authenticated = yield* harness.takeResponse
-          if (authenticated._tag !== "Authenticated") {
-            throw new Error(`Expected Authenticated, got ${authenticated._tag}`)
-          }
+        const authenticated = yield* harness.takeResponse
+        if (authenticated._tag !== "Authenticated") {
+          throw new Error(`Expected Authenticated, got ${authenticated._tag}`)
+        }
 
-          yield* harness.sendRequest(
-            new EventLogRemote.WriteEntriesUnencrypted({
-              publicKey: "client-1",
-              storeId: storeIdA,
-              id: 1,
-              entries: [yield* makeEntry({ name: "Ada" })]
-            })
-          )
+        yield* harness.sendRequest(
+          new EventLogRemote.WriteEntriesUnencrypted({
+            publicKey: "client-1",
+            storeId: storeIdA,
+            id: 1,
+            entries: [yield* makeEntry({ name: "Ada" })]
+          })
+        )
 
-          const response = yield* harness.takeResponse
-          if (response._tag !== "Ack") {
-            throw new Error(`Expected Ack, got ${response._tag}`)
-          }
+        const response = yield* harness.takeResponse
+        if (response._tag !== "Ack") {
+          throw new Error(`Expected Ack, got ${response._tag}`)
+        }
 
-          assert.deepStrictEqual(response.sequenceNumbers, [1])
-          assert.deepStrictEqual(yield* Ref.get(seen), [{ name: "Ada", publicKey: "client-1" }])
-        }).pipe(Effect.provide(makeServerLayer(seen)))
-      )
+        assert.deepStrictEqual(response.sequenceNumbers, [1])
+        assert.deepStrictEqual(yield* Ref.get(seen), [{ name: "Ada", publicKey: "client-1" }])
+      }).pipe(Effect.provide(makeServerLayer(seen)))
     }))
 
   it.effect("makeHandler gates write/read/stop requests before Authenticate", () =>
     Effect.gen(function*() {
       const seen = yield* Ref.make<ReadonlyArray<SeenWrite>>([])
 
-      return yield* Effect.scoped(
-        Effect.gen(function*() {
-          const harness = yield* makeSocketHarness
-          const handler = yield* EventLogServerUnencrypted.makeHandler
+      return yield* Effect.gen(function*() {
+        const harness = yield* makeSocketHarness
+        const handler = yield* EventLogServerUnencrypted.makeHandler
 
-          yield* handler(harness.socket).pipe(Effect.forkScoped)
+        yield* handler(harness.socket).pipe(Effect.forkScoped)
 
-          const hello = yield* harness.takeResponse
-          if (hello._tag !== "Hello") {
-            throw new Error(`Expected Hello, got ${hello._tag}`)
-          }
+        const hello = yield* harness.takeResponse
+        if (hello._tag !== "Hello") {
+          throw new Error(`Expected Hello, got ${hello._tag}`)
+        }
 
-          yield* harness.sendRequest(
-            new EventLogRemote.WriteEntriesUnencrypted({
-              publicKey: "client-1",
-              storeId: storeIdA,
-              id: 1,
-              entries: [yield* makeEntry({ name: "Ada" })]
-            })
-          )
+        yield* harness.sendRequest(
+          new EventLogRemote.WriteEntriesUnencrypted({
+            publicKey: "client-1",
+            storeId: storeIdA,
+            id: 1,
+            entries: [yield* makeEntry({ name: "Ada" })]
+          })
+        )
 
-          const writeError = yield* harness.takeResponse
-          if (writeError._tag !== "Error") {
-            throw new Error(`Expected Error, got ${writeError._tag}`)
-          }
-          assert.strictEqual(writeError.requestTag, "WriteEntries")
-          assert.strictEqual(writeError.code, "Forbidden")
-          assert.strictEqual(writeError.storeId, storeIdA)
+        const writeError = yield* harness.takeResponse
+        if (writeError._tag !== "Error") {
+          throw new Error(`Expected Error, got ${writeError._tag}`)
+        }
+        assert.strictEqual(writeError.requestTag, "WriteEntries")
+        assert.strictEqual(writeError.code, "Forbidden")
+        assert.strictEqual(writeError.storeId, storeIdA)
 
-          yield* harness.sendRequest(
-            new EventLogRemote.RequestChanges({
-              publicKey: "client-1",
-              storeId: storeIdA,
-              startSequence: 0
-            })
-          )
+        yield* harness.sendRequest(
+          new EventLogRemote.RequestChanges({
+            publicKey: "client-1",
+            storeId: storeIdA,
+            startSequence: 0
+          })
+        )
 
-          const requestChangesError = yield* harness.takeResponse
-          if (requestChangesError._tag !== "Error") {
-            throw new Error(`Expected Error, got ${requestChangesError._tag}`)
-          }
-          assert.strictEqual(requestChangesError.requestTag, "RequestChanges")
-          assert.strictEqual(requestChangesError.code, "Forbidden")
-          assert.strictEqual(requestChangesError.storeId, storeIdA)
+        const requestChangesError = yield* harness.takeResponse
+        if (requestChangesError._tag !== "Error") {
+          throw new Error(`Expected Error, got ${requestChangesError._tag}`)
+        }
+        assert.strictEqual(requestChangesError.requestTag, "RequestChanges")
+        assert.strictEqual(requestChangesError.code, "Forbidden")
+        assert.strictEqual(requestChangesError.storeId, storeIdA)
 
-          yield* harness.sendRequest(
-            new EventLogRemote.StopChanges({
-              storeId: storeIdA,
-              publicKey: "client-1"
-            })
-          )
+        yield* harness.sendRequest(
+          new EventLogRemote.StopChanges({
+            storeId: storeIdA,
+            publicKey: "client-1"
+          })
+        )
 
-          const stopChangesError = yield* harness.takeResponse
-          if (stopChangesError._tag !== "Error") {
-            throw new Error(`Expected Error, got ${stopChangesError._tag}`)
-          }
-          assert.strictEqual(stopChangesError.requestTag, "StopChanges")
-          assert.strictEqual(stopChangesError.code, "Forbidden")
-          assert.strictEqual(stopChangesError.storeId, storeIdA)
-        }).pipe(Effect.provide(makeServerLayer(seen)))
-      )
+        const stopChangesError = yield* harness.takeResponse
+        if (stopChangesError._tag !== "Error") {
+          throw new Error(`Expected Error, got ${stopChangesError._tag}`)
+        }
+        assert.strictEqual(stopChangesError.requestTag, "StopChanges")
+        assert.strictEqual(stopChangesError.code, "Forbidden")
+        assert.strictEqual(stopChangesError.storeId, storeIdA)
+      }).pipe(Effect.provide(makeServerLayer(seen)))
     }))
 
   it.effect("makeHandler unlocks requests after successful Authenticate", () =>
     Effect.gen(function*() {
       const seen = yield* Ref.make<ReadonlyArray<SeenWrite>>([])
 
-      return yield* Effect.scoped(
-        Effect.gen(function*() {
-          const harness = yield* makeSocketHarness
-          const handler = yield* EventLogServerUnencrypted.makeHandler
+      return yield* Effect.gen(function*() {
+        const harness = yield* makeSocketHarness
+        const handler = yield* EventLogServerUnencrypted.makeHandler
 
-          yield* handler(harness.socket).pipe(Effect.forkScoped)
+        yield* handler(harness.socket).pipe(Effect.forkScoped)
 
-          const hello = yield* harness.takeResponse
-          if (hello._tag !== "Hello") {
-            throw new Error(`Expected Hello, got ${hello._tag}`)
-          }
+        const hello = yield* harness.takeResponse
+        if (hello._tag !== "Hello") {
+          throw new Error(`Expected Hello, got ${hello._tag}`)
+        }
 
-          const authenticate = yield* makeAuthenticateRequest({
-            hello,
-            publicKey: "client-1"
+        const authenticate = yield* makeAuthenticateRequest({
+          hello,
+          publicKey: "client-1"
+        })
+        yield* harness.sendRequest(authenticate)
+
+        const authenticated = yield* harness.takeResponse
+        if (authenticated._tag !== "Authenticated") {
+          throw new Error(`Expected Authenticated, got ${authenticated._tag}`)
+        }
+        assert.strictEqual(authenticated.publicKey, "client-1")
+
+        yield* harness.sendRequest(
+          new EventLogRemote.WriteEntriesUnencrypted({
+            publicKey: "client-1",
+            storeId: storeIdA,
+            id: 1,
+            entries: [yield* makeEntry({ name: "Ada" })]
           })
-          yield* harness.sendRequest(authenticate)
+        )
 
-          const authenticated = yield* harness.takeResponse
-          if (authenticated._tag !== "Authenticated") {
-            throw new Error(`Expected Authenticated, got ${authenticated._tag}`)
-          }
-          assert.strictEqual(authenticated.publicKey, "client-1")
+        const response = yield* harness.takeResponse
+        if (response._tag !== "Ack") {
+          throw new Error(`Expected Ack, got ${response._tag}`)
+        }
 
-          yield* harness.sendRequest(
-            new EventLogRemote.WriteEntriesUnencrypted({
-              publicKey: "client-1",
-              storeId: storeIdA,
-              id: 1,
-              entries: [yield* makeEntry({ name: "Ada" })]
-            })
-          )
-
-          const response = yield* harness.takeResponse
-          if (response._tag !== "Ack") {
-            throw new Error(`Expected Ack, got ${response._tag}`)
-          }
-
-          assert.deepStrictEqual(response.sequenceNumbers, [1])
-          assert.deepStrictEqual(yield* Ref.get(seen), [{ name: "Ada", publicKey: "client-1" }])
-        }).pipe(Effect.provide(makeServerLayer(seen)))
-      )
+        assert.deepStrictEqual(response.sequenceNumbers, [1])
+        assert.deepStrictEqual(yield* Ref.get(seen), [{ name: "Ada", publicKey: "client-1" }])
+      }).pipe(Effect.provide(makeServerLayer(seen)))
     }))
 
   it.effect("makeHandler returns Forbidden when Authenticate signature is invalid", () =>
     Effect.gen(function*() {
       const seen = yield* Ref.make<ReadonlyArray<SeenWrite>>([])
 
-      return yield* Effect.scoped(
-        Effect.gen(function*() {
-          const harness = yield* makeSocketHarness
-          const handler = yield* EventLogServerUnencrypted.makeHandler
+      return yield* Effect.gen(function*() {
+        const harness = yield* makeSocketHarness
+        const handler = yield* EventLogServerUnencrypted.makeHandler
 
-          yield* handler(harness.socket).pipe(Effect.forkScoped)
+        yield* handler(harness.socket).pipe(Effect.forkScoped)
 
-          const hello = yield* harness.takeResponse
-          if (hello._tag !== "Hello") {
-            throw new Error(`Expected Hello, got ${hello._tag}`)
-          }
+        const hello = yield* harness.takeResponse
+        if (hello._tag !== "Hello") {
+          throw new Error(`Expected Hello, got ${hello._tag}`)
+        }
 
-          const authenticate = yield* makeAuthenticateRequest({
-            hello,
-            publicKey: "client-1",
-            signature: new Uint8Array(EventLogSessionAuth.Ed25519SignatureLength)
-          })
-          yield* harness.sendRequest(authenticate)
+        const authenticate = yield* makeAuthenticateRequest({
+          hello,
+          publicKey: "client-1",
+          signature: new Uint8Array(EventLogSessionAuth.Ed25519SignatureLength)
+        })
+        yield* harness.sendRequest(authenticate)
 
-          const response = yield* harness.takeResponse
-          if (response._tag !== "Error") {
-            throw new Error(`Expected Error, got ${response._tag}`)
-          }
+        const response = yield* harness.takeResponse
+        if (response._tag !== "Error") {
+          throw new Error(`Expected Error, got ${response._tag}`)
+        }
 
-          assert.strictEqual(response.requestTag, "Authenticate")
-          assert.strictEqual(response.code, "Forbidden")
-        }).pipe(Effect.provide(makeServerLayer(seen)))
-      )
+        assert.strictEqual(response.requestTag, "Authenticate")
+        assert.strictEqual(response.code, "Forbidden")
+      }).pipe(Effect.provide(makeServerLayer(seen)))
     }))
 
   it.effect("makeHandler returns Forbidden when Authenticate challenge expires", () =>
     Effect.gen(function*() {
       const seen = yield* Ref.make<ReadonlyArray<SeenWrite>>([])
 
-      return yield* Effect.scoped(
-        Effect.gen(function*() {
-          const harness = yield* makeSocketHarness
-          const handler = yield* EventLogServerUnencrypted.makeHandler
+      return yield* Effect.gen(function*() {
+        const clock = yield* Clock
+        const harness = yield* makeSocketHarness
+        const handler = yield* EventLogServerUnencrypted.makeHandler
 
-          yield* handler(harness.socket).pipe(Effect.forkScoped)
+        yield* handler(harness.socket).pipe(Effect.forkScoped)
 
-          const hello = yield* harness.takeResponse
-          if (hello._tag !== "Hello") {
-            throw new Error(`Expected Hello, got ${hello._tag}`)
-          }
+        const hello = yield* harness.takeResponse
+        if (hello._tag !== "Hello") {
+          throw new Error(`Expected Hello, got ${hello._tag}`)
+        }
 
-          const authenticate = yield* makeAuthenticateRequest({
-            hello,
-            publicKey: "client-1"
-          })
+        const authenticate = yield* makeAuthenticateRequest({
+          hello,
+          publicKey: "client-1"
+        })
 
-          const expiredNow = Date.now() + EventLogSessionAuth.SessionAuthChallengeTimeToLiveMillis + 1
-          const response = yield* withDateNow(
-            expiredNow,
-            Effect.gen(function*() {
-              yield* harness.sendRequest(authenticate)
-              return yield* harness.takeResponse
-            })
-          )
+        const expiredNow = clock.currentTimeMillisUnsafe() +
+          EventLogSessionAuth.SessionAuthChallengeTimeToLiveMillis + 1
+        yield* TestClock.setTime(expiredNow)
+        yield* harness.sendRequest(authenticate)
+        const response = yield* harness.takeResponse
 
-          if (response._tag !== "Error") {
-            throw new Error(`Expected Error, got ${response._tag}`)
-          }
+        if (response._tag !== "Error") {
+          throw new Error(`Expected Error, got ${response._tag}`)
+        }
 
-          assert.strictEqual(response.requestTag, "Authenticate")
-          assert.strictEqual(response.code, "Forbidden")
-        }).pipe(Effect.provide(makeServerLayer(seen)))
-      )
+        assert.strictEqual(response.requestTag, "Authenticate")
+        assert.strictEqual(response.code, "Forbidden")
+      }).pipe(Effect.provide(makeServerLayer(seen)))
     }))
 
   it.effect("makeHandler returns Forbidden for post-auth publicKey mismatches", () =>
     Effect.gen(function*() {
       const seen = yield* Ref.make<ReadonlyArray<SeenWrite>>([])
 
-      return yield* Effect.scoped(
-        Effect.gen(function*() {
-          const harness = yield* makeSocketHarness
-          const handler = yield* EventLogServerUnencrypted.makeHandler
+      return yield* Effect.gen(function*() {
+        const harness = yield* makeSocketHarness
+        const handler = yield* EventLogServerUnencrypted.makeHandler
 
-          yield* handler(harness.socket).pipe(Effect.forkScoped)
+        yield* handler(harness.socket).pipe(Effect.forkScoped)
 
-          const hello = yield* harness.takeResponse
-          if (hello._tag !== "Hello") {
-            throw new Error(`Expected Hello, got ${hello._tag}`)
-          }
+        const hello = yield* harness.takeResponse
+        if (hello._tag !== "Hello") {
+          throw new Error(`Expected Hello, got ${hello._tag}`)
+        }
 
-          yield* harness.sendRequest(
-            yield* makeAuthenticateRequest({
-              hello,
-              publicKey: "client-1"
-            })
-          )
+        yield* harness.sendRequest(
+          yield* makeAuthenticateRequest({
+            hello,
+            publicKey: "client-1"
+          })
+        )
 
-          const authenticated = yield* harness.takeResponse
-          if (authenticated._tag !== "Authenticated") {
-            throw new Error(`Expected Authenticated, got ${authenticated._tag}`)
-          }
+        const authenticated = yield* harness.takeResponse
+        if (authenticated._tag !== "Authenticated") {
+          throw new Error(`Expected Authenticated, got ${authenticated._tag}`)
+        }
 
-          yield* harness.sendRequest(
-            new EventLogRemote.WriteEntriesUnencrypted({
-              publicKey: "client-2",
-              storeId: storeIdA,
-              id: 1,
-              entries: [yield* makeEntry({ name: "Ada" })]
-            })
-          )
+        yield* harness.sendRequest(
+          new EventLogRemote.WriteEntriesUnencrypted({
+            publicKey: "client-2",
+            storeId: storeIdA,
+            id: 1,
+            entries: [yield* makeEntry({ name: "Ada" })]
+          })
+        )
 
-          const writeMismatch = yield* harness.takeResponse
-          if (writeMismatch._tag !== "Error") {
-            throw new Error(`Expected Error, got ${writeMismatch._tag}`)
-          }
-          assert.strictEqual(writeMismatch.requestTag, "WriteEntries")
-          assert.strictEqual(writeMismatch.code, "Forbidden")
-          assert.strictEqual(writeMismatch.storeId, storeIdA)
+        const writeMismatch = yield* harness.takeResponse
+        if (writeMismatch._tag !== "Error") {
+          throw new Error(`Expected Error, got ${writeMismatch._tag}`)
+        }
+        assert.strictEqual(writeMismatch.requestTag, "WriteEntries")
+        assert.strictEqual(writeMismatch.code, "Forbidden")
+        assert.strictEqual(writeMismatch.storeId, storeIdA)
 
-          yield* harness.sendRequest(
-            new EventLogRemote.StopChanges({
-              storeId: storeIdA,
-              publicKey: "client-2"
-            })
-          )
+        yield* harness.sendRequest(
+          new EventLogRemote.StopChanges({
+            storeId: storeIdA,
+            publicKey: "client-2"
+          })
+        )
 
-          const stopMismatch = yield* harness.takeResponse
-          if (stopMismatch._tag !== "Error") {
-            throw new Error(`Expected Error, got ${stopMismatch._tag}`)
-          }
-          assert.strictEqual(stopMismatch.requestTag, "StopChanges")
-          assert.strictEqual(stopMismatch.code, "Forbidden")
-          assert.strictEqual(stopMismatch.storeId, storeIdA)
-        }).pipe(Effect.provide(makeServerLayer(seen)))
-      )
+        const stopMismatch = yield* harness.takeResponse
+        if (stopMismatch._tag !== "Error") {
+          throw new Error(`Expected Error, got ${stopMismatch._tag}`)
+        }
+        assert.strictEqual(stopMismatch.requestTag, "StopChanges")
+        assert.strictEqual(stopMismatch.code, "Forbidden")
+        assert.strictEqual(stopMismatch.storeId, storeIdA)
+      }).pipe(Effect.provide(makeServerLayer(seen)))
     }))
 
   it.effect("makeHandler reassembles chunked unencrypted write requests", () =>
     Effect.gen(function*() {
       const seen = yield* Ref.make<ReadonlyArray<SeenWrite>>([])
 
-      return yield* Effect.scoped(
-        Effect.gen(function*() {
-          const harness = yield* makeSocketHarness
-          const handler = yield* EventLogServerUnencrypted.makeHandler
-          const largeName = "x".repeat(700_000)
-          const request = new EventLogRemote.WriteEntriesUnencrypted({
-            publicKey: "client-1",
-            storeId: storeIdA,
-            id: 1,
-            entries: [yield* makeEntry({ name: largeName })]
+      return yield* Effect.gen(function*() {
+        const harness = yield* makeSocketHarness
+        const handler = yield* EventLogServerUnencrypted.makeHandler
+        const largeName = "x".repeat(700_000)
+        const request = new EventLogRemote.WriteEntriesUnencrypted({
+          publicKey: "client-1",
+          storeId: storeIdA,
+          id: 1,
+          entries: [yield* makeEntry({ name: largeName })]
+        })
+        const encoded = yield* EventLogRemote.encodeRequestUnencrypted(request)
+        const parts = EventLogRemote.ChunkedMessage.split(request.id, encoded)
+
+        assert.strictEqual(parts.length > 1, true)
+
+        yield* handler(harness.socket).pipe(Effect.forkScoped)
+        const hello = yield* harness.takeResponse
+        if (hello._tag !== "Hello") {
+          throw new Error(`Expected Hello, got ${hello._tag}`)
+        }
+
+        yield* harness.sendRequest(
+          yield* makeAuthenticateRequest({
+            hello,
+            publicKey: "client-1"
           })
-          const encoded = yield* EventLogRemote.encodeRequestUnencrypted(request)
-          const parts = EventLogRemote.ChunkedMessage.split(request.id, encoded)
+        )
 
-          assert.strictEqual(parts.length > 1, true)
+        const authenticated = yield* harness.takeResponse
+        if (authenticated._tag !== "Authenticated") {
+          throw new Error(`Expected Authenticated, got ${authenticated._tag}`)
+        }
 
-          yield* handler(harness.socket).pipe(Effect.forkScoped)
-          const hello = yield* harness.takeResponse
-          if (hello._tag !== "Hello") {
-            throw new Error(`Expected Hello, got ${hello._tag}`)
-          }
+        for (const part of parts) {
+          yield* harness.sendRequest(part)
+        }
 
-          yield* harness.sendRequest(
-            yield* makeAuthenticateRequest({
-              hello,
-              publicKey: "client-1"
-            })
-          )
+        const response = yield* harness.takeResponse
+        if (response._tag !== "Ack") {
+          throw new Error(`Expected Ack, got ${response._tag}`)
+        }
 
-          const authenticated = yield* harness.takeResponse
-          if (authenticated._tag !== "Authenticated") {
-            throw new Error(`Expected Authenticated, got ${authenticated._tag}`)
-          }
-
-          for (const part of parts) {
-            yield* harness.sendRequest(part)
-          }
-
-          const response = yield* harness.takeResponse
-          if (response._tag !== "Ack") {
-            throw new Error(`Expected Ack, got ${response._tag}`)
-          }
-
-          assert.deepStrictEqual(response.sequenceNumbers, [1])
-          assert.deepStrictEqual(yield* Ref.get(seen), [{ name: largeName, publicKey: "client-1" }])
-        }).pipe(Effect.provide(makeServerLayer(seen)))
-      )
+        assert.deepStrictEqual(response.sequenceNumbers, [1])
+        assert.deepStrictEqual(yield* Ref.get(seen), [{ name: largeName, publicKey: "client-1" }])
+      }).pipe(Effect.provide(makeServerLayer(seen)))
     }))
 
   it.effect("makeHandler returns unencrypted protocol errors for authorization failures", () =>
     Effect.gen(function*() {
       const seen = yield* Ref.make<ReadonlyArray<SeenWrite>>([])
+      const identityAuthCalls = yield* Ref.make(0)
       const authorizeReadCalls = yield* Ref.make(0)
       const authLayer = Layer.succeed(EventLogServerUnencrypted.EventLogServerAuth, {
         authorizeWrite: ({ publicKey, storeId }) =>
@@ -820,153 +789,163 @@ describe("EventLogServerUnencrypted", () => {
                   })
                 )
             )
+          ),
+        authorizeIdentity: ({ publicKey }) =>
+          Ref.get(identityAuthCalls).pipe(
+            Effect.flatMap((calls) =>
+              calls === 0
+                ? Ref.update(authorizeReadCalls, (value) => value + 1)
+                : Effect.fail(
+                  new EventLogServerUnencrypted.EventLogServerAuthError({
+                    reason: "Unauthorized",
+                    publicKey,
+                    message: "identity rejected"
+                  })
+                )
+            )
           )
       })
 
-      return yield* Effect.scoped(
-        Effect.gen(function*() {
-          const harness = yield* makeSocketHarness
-          const handler = yield* EventLogServerUnencrypted.makeHandler
+      return yield* Effect.gen(function*() {
+        const harness = yield* makeSocketHarness
+        const handler = yield* EventLogServerUnencrypted.makeHandler
 
-          yield* handler(harness.socket).pipe(Effect.forkScoped)
-          const hello = yield* harness.takeResponse
-          if (hello._tag !== "Hello") {
-            throw new Error(`Expected Hello, got ${hello._tag}`)
-          }
+        yield* handler(harness.socket).pipe(Effect.forkScoped)
+        const hello = yield* harness.takeResponse
+        if (hello._tag !== "Hello") {
+          throw new Error(`Expected Hello, got ${hello._tag}`)
+        }
 
-          yield* harness.sendRequest(
-            yield* makeAuthenticateRequest({
-              hello,
-              publicKey: "client-1"
-            })
-          )
+        yield* harness.sendRequest(
+          yield* makeAuthenticateRequest({
+            hello,
+            publicKey: "client-1"
+          })
+        )
 
-          const authenticated = yield* harness.takeResponse
-          if (authenticated._tag !== "Authenticated") {
-            throw new Error(`Expected Authenticated, got ${authenticated._tag}`)
-          }
+        const authenticated = yield* harness.takeResponse
+        if (authenticated._tag !== "Authenticated") {
+          throw new Error(`Expected Authenticated, got ${authenticated._tag}`)
+        }
 
-          yield* harness.sendRequest(
-            new EventLogRemote.WriteEntriesUnencrypted({
-              publicKey: "client-1",
-              storeId: storeIdA,
-              id: 1,
-              entries: [yield* makeEntry({ name: "Ada" })]
-            })
-          )
+        yield* harness.sendRequest(
+          new EventLogRemote.WriteEntriesUnencrypted({
+            publicKey: "client-1",
+            storeId: storeIdA,
+            id: 1,
+            entries: [yield* makeEntry({ name: "Ada" })]
+          })
+        )
 
-          const writeError = yield* harness.takeResponse
-          if (writeError._tag !== "Error") {
-            throw new Error(`Expected Error, got ${writeError._tag}`)
-          }
+        const writeError = yield* harness.takeResponse
+        if (writeError._tag !== "Error") {
+          throw new Error(`Expected Error, got ${writeError._tag}`)
+        }
 
-          assert.strictEqual(writeError.requestTag, "WriteEntries")
-          assert.strictEqual(writeError.code, "Forbidden")
-          assert.strictEqual(writeError.message, "write rejected")
-          assert.strictEqual(writeError.storeId, storeIdA)
+        assert.strictEqual(writeError.requestTag, "WriteEntries")
+        assert.strictEqual(writeError.code, "Forbidden")
+        assert.strictEqual(writeError.message, "write rejected")
+        assert.strictEqual(writeError.storeId, storeIdA)
 
-          yield* harness.sendRequest(
-            new EventLogRemote.RequestChanges({
-              publicKey: "client-1",
-              storeId: storeIdA,
-              startSequence: 0
-            })
-          )
+        yield* harness.sendRequest(
+          new EventLogRemote.RequestChanges({
+            publicKey: "client-1",
+            storeId: storeIdA,
+            startSequence: 0
+          })
+        )
 
-          const readError = yield* harness.takeResponse
-          if (readError._tag !== "Error") {
-            throw new Error(`Expected Error, got ${readError._tag}`)
-          }
+        const readError = yield* harness.takeResponse
+        if (readError._tag !== "Error") {
+          throw new Error(`Expected Error, got ${readError._tag}`)
+        }
 
-          assert.strictEqual(readError.requestTag, "RequestChanges")
-          assert.strictEqual(readError.code, "Unauthorized")
-          assert.strictEqual(readError.message, "read rejected")
-          assert.strictEqual(readError.storeId, storeIdA)
-        }).pipe(Effect.provide(makeServerLayer(seen, authLayer)))
-      )
+        assert.strictEqual(readError.requestTag, "RequestChanges")
+        assert.strictEqual(readError.code, "Unauthorized")
+        assert.strictEqual(readError.message, "read rejected")
+        assert.strictEqual(readError.storeId, storeIdA)
+      }).pipe(Effect.provide(makeServerLayer(seen, authLayer)))
     }))
 
   it.effect("makeHandler chunks oversized Changes responses", () =>
     Effect.gen(function*() {
       const seen = yield* Ref.make<ReadonlyArray<SeenWrite>>([])
 
-      return yield* Effect.scoped(
-        Effect.gen(function*() {
-          const server = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
-          const harness = yield* makeSocketHarness
-          const handler = yield* EventLogServerUnencrypted.makeHandler
+      return yield* Effect.gen(function*() {
+        const server = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+        const harness = yield* makeSocketHarness
+        const handler = yield* EventLogServerUnencrypted.makeHandler
 
-          yield* handler(harness.socket).pipe(Effect.forkScoped)
-          const hello = yield* harness.takeResponse
-          if (hello._tag !== "Hello") {
-            throw new Error(`Expected Hello, got ${hello._tag}`)
-          }
+        yield* handler(harness.socket).pipe(Effect.forkScoped)
+        const hello = yield* harness.takeResponse
+        if (hello._tag !== "Hello") {
+          throw new Error(`Expected Hello, got ${hello._tag}`)
+        }
 
-          yield* harness.sendRequest(
-            yield* makeAuthenticateRequest({
-              hello,
-              publicKey: "client-1"
-            })
-          )
+        yield* harness.sendRequest(
+          yield* makeAuthenticateRequest({
+            hello,
+            publicKey: "client-1"
+          })
+        )
 
-          const authenticated = yield* harness.takeResponse
-          if (authenticated._tag !== "Authenticated") {
-            throw new Error(`Expected Authenticated, got ${authenticated._tag}`)
-          }
+        const authenticated = yield* harness.takeResponse
+        if (authenticated._tag !== "Authenticated") {
+          throw new Error(`Expected Authenticated, got ${authenticated._tag}`)
+        }
 
-          const largeName = "x".repeat(700_000)
-          yield* server.write({
-            schema,
+        const largeName = "x".repeat(700_000)
+        yield* server.write({
+          schema,
+          storeId: storeIdA,
+          event: "UserNameSet",
+          payload: { id: "user-1", name: largeName }
+        })
+
+        yield* harness.sendRequest(
+          new EventLogRemote.RequestChanges({
+            publicKey: "client-1",
             storeId: storeIdA,
-            event: "UserNameSet",
-            payload: { id: "user-1", name: largeName }
+            startSequence: 0
           })
+        )
 
-          yield* harness.sendRequest(
-            new EventLogRemote.RequestChanges({
-              publicKey: "client-1",
-              storeId: storeIdA,
-              startSequence: 0
-            })
-          )
+        const chunks = new Map<number, {
+          readonly parts: Array<Uint8Array>
+          count: number
+          bytes: number
+        }>()
+        let chunkCount = 0
+        let response: typeof EventLogRemote.ProtocolResponseUnencrypted.Type | undefined
 
-          const chunks = new Map<number, {
-            readonly parts: Array<Uint8Array>
-            count: number
-            bytes: number
-          }>()
-          let chunkCount = 0
-          let response: typeof EventLogRemote.ProtocolResponseUnencrypted.Type | undefined
-
-          while (response === undefined) {
-            const raw = yield* harness.takeRawResponse
-            const next = yield* EventLogRemote.decodeResponseUnencrypted(raw)
-            if (next._tag !== "ChunkedMessage") {
-              response = next
-              continue
-            }
-            chunkCount++
-            const joined = EventLogRemote.ChunkedMessage.join(chunks, next)
-            if (joined !== undefined) {
-              response = yield* EventLogRemote.decodeResponseUnencrypted(joined)
-            }
+        while (response === undefined) {
+          const raw = yield* harness.takeRawResponse
+          const next = yield* EventLogRemote.decodeResponseUnencrypted(raw)
+          if (next._tag !== "ChunkedMessage") {
+            response = next
+            continue
           }
-
-          assert.strictEqual(chunkCount > 1, true)
-          if (response._tag !== "Changes") {
-            throw new Error(`Expected Changes, got ${response._tag}`)
+          chunkCount++
+          const joined = EventLogRemote.ChunkedMessage.join(chunks, next)
+          if (joined !== undefined) {
+            response = yield* EventLogRemote.decodeResponseUnencrypted(joined)
           }
+        }
 
-          assert.strictEqual(response.publicKey, "client-1")
-          assert.strictEqual(response.storeId, storeIdA)
-          assert.strictEqual(response.entries.length, 1)
-          assert.strictEqual(response.entries[0].remoteSequence, 1)
-          assert.deepStrictEqual(yield* decodePayload(response.entries[0].entry.payload), {
-            id: "user-1",
-            name: largeName
-          })
-        }).pipe(Effect.provide(makeServerLayer(seen)))
-      )
+        assert.strictEqual(chunkCount > 1, true)
+        if (response._tag !== "Changes") {
+          throw new Error(`Expected Changes, got ${response._tag}`)
+        }
+
+        assert.strictEqual(response.publicKey, "client-1")
+        assert.strictEqual(response.storeId, storeIdA)
+        assert.strictEqual(response.entries.length, 1)
+        assert.strictEqual(response.entries[0].remoteSequence, 1)
+        assert.deepStrictEqual(yield* decodePayload(response.entries[0].entry.payload), {
+          id: "user-1",
+          name: largeName
+        })
+      }).pipe(Effect.provide(makeServerLayer(seen)))
     }))
 
   it.effect("makeHandler supports concurrent multi-store subscriptions and selective StopChanges", () =>
@@ -997,257 +976,253 @@ describe("EventLogServerUnencrypted", () => {
         registerCompaction: () => Effect.void
       })
 
-      return yield* Effect.scoped(
-        Effect.gen(function*() {
-          const handler = yield* EventLogServerUnencrypted.makeHandler
+      return yield* Effect.gen(function*() {
+        const handler = yield* EventLogServerUnencrypted.makeHandler
 
-          yield* handler(harness.socket).pipe(Effect.forkScoped)
+        yield* handler(harness.socket).pipe(Effect.forkScoped)
 
-          const hello = yield* harness.takeResponse
-          if (hello._tag !== "Hello") {
-            throw new Error(`Expected Hello, got ${hello._tag}`)
-          }
+        const hello = yield* harness.takeResponse
+        if (hello._tag !== "Hello") {
+          throw new Error(`Expected Hello, got ${hello._tag}`)
+        }
 
-          yield* harness.sendRequest(
-            yield* makeAuthenticateRequest({
-              hello,
-              publicKey: "client-1"
-            })
-          )
+        yield* harness.sendRequest(
+          yield* makeAuthenticateRequest({
+            hello,
+            publicKey: "client-1"
+          })
+        )
 
-          const authenticated = yield* harness.takeResponse
-          if (authenticated._tag !== "Authenticated") {
-            throw new Error(`Expected Authenticated, got ${authenticated._tag}`)
-          }
+        const authenticated = yield* harness.takeResponse
+        if (authenticated._tag !== "Authenticated") {
+          throw new Error(`Expected Authenticated, got ${authenticated._tag}`)
+        }
 
-          yield* harness.sendRequest(
-            new EventLogRemote.RequestChanges({
-              publicKey: "client-1",
-              storeId: storeIdA,
-              startSequence: 0
-            })
-          )
+        yield* harness.sendRequest(
+          new EventLogRemote.RequestChanges({
+            publicKey: "client-1",
+            storeId: storeIdA,
+            startSequence: 0
+          })
+        )
 
-          yield* harness.sendRequest(
-            new EventLogRemote.RequestChanges({
-              publicKey: "client-1",
-              storeId: storeIdB,
-              startSequence: 0
-            })
-          )
+        yield* harness.sendRequest(
+          new EventLogRemote.RequestChanges({
+            publicKey: "client-1",
+            storeId: storeIdB,
+            startSequence: 0
+          })
+        )
 
-          yield* Effect.yieldNow
-          assert.deepStrictEqual(
-            yield* Ref.get(activeSubscriptions),
-            [scopeKey("client-1", storeIdA), scopeKey("client-1", storeIdB)]
-          )
+        yield* Effect.yieldNow
+        assert.deepStrictEqual(
+          yield* Ref.get(activeSubscriptions),
+          [scopeKey("client-1", storeIdA), scopeKey("client-1", storeIdB)]
+        )
 
-          yield* harness.sendRequest(
-            new EventLogRemote.StopChanges({
-              publicKey: "client-1",
-              storeId: storeIdA
-            })
-          )
+        yield* harness.sendRequest(
+          new EventLogRemote.StopChanges({
+            publicKey: "client-1",
+            storeId: storeIdA
+          })
+        )
 
-          yield* Effect.yieldNow
-          assert.deepStrictEqual(
-            yield* Ref.get(activeSubscriptions),
-            [scopeKey("client-1", storeIdB)]
-          )
+        yield* Effect.yieldNow
+        assert.deepStrictEqual(
+          yield* Ref.get(activeSubscriptions),
+          [scopeKey("client-1", storeIdB)]
+        )
 
-          yield* harness.sendRequest(
-            new EventLogRemote.StopChanges({
-              publicKey: "client-1",
-              storeId: storeIdB
-            })
-          )
+        yield* harness.sendRequest(
+          new EventLogRemote.StopChanges({
+            publicKey: "client-1",
+            storeId: storeIdB
+          })
+        )
 
-          yield* Effect.yieldNow
-          assert.deepStrictEqual(yield* Ref.get(activeSubscriptions), [])
-        }).pipe(Effect.provideService(EventLogServerUnencrypted.EventLogServerUnencrypted, runtime))
-      )
+        yield* Effect.yieldNow
+        assert.deepStrictEqual(yield* Ref.get(activeSubscriptions), [])
+      }).pipe(Effect.provideService(EventLogServerUnencrypted.EventLogServerUnencrypted, runtime))
     }))
 
   it.effect("makeHandler persists trusted signing keys and skips pre-bind auth read checks for known bindings", () =>
     Effect.gen(function*() {
       const seen = yield* Ref.make<ReadonlyArray<SeenWrite>>([])
+      const identityAuthCalls = yield* Ref.make(0)
       const readAuthCalls = yield* Ref.make(0)
       const authLayer = Layer.succeed(EventLogServerUnencrypted.EventLogServerAuth, {
         authorizeWrite: () => Effect.void,
-        authorizeRead: () => Ref.update(readAuthCalls, (calls) => calls + 1)
+        authorizeRead: () => Ref.update(readAuthCalls, (calls) => calls + 1),
+        authorizeIdentity: () => Ref.update(identityAuthCalls, (calls) => calls + 1)
       })
 
-      return yield* Effect.scoped(
-        Effect.gen(function*() {
-          const storage = yield* EventLogServerUnencrypted.makeStorageMemory
-          const trustedKeyPair = yield* makeSessionAuthKeyPair
-          const mismatchedKeyPair = yield* makeSessionAuthKeyPair
+      return yield* Effect.gen(function*() {
+        const storage = yield* EventLogServerUnencrypted.makeStorageMemory
+        const trustedKeyPair = yield* makeSessionAuthKeyPair
+        const mismatchedKeyPair = yield* makeSessionAuthKeyPair
 
-          const firstHarness = yield* makeSocketHarness
-          const firstHandler = yield* EventLogServerUnencrypted.makeHandler.pipe(
-            Effect.provide(makeServerLayerWithStorage({
-              seen,
-              storage,
-              auth: authLayer
-            }))
-          )
+        const firstHarness = yield* makeSocketHarness
+        const firstHandler = yield* EventLogServerUnencrypted.makeHandler.pipe(
+          Effect.provide(makeServerLayerWithStorage({
+            seen,
+            storage,
+            auth: authLayer
+          }))
+        )
 
-          yield* firstHandler(firstHarness.socket).pipe(Effect.forkScoped)
+        yield* firstHandler(firstHarness.socket).pipe(Effect.forkScoped)
 
-          const firstHello = yield* firstHarness.takeResponse
-          if (firstHello._tag !== "Hello") {
-            throw new Error(`Expected Hello, got ${firstHello._tag}`)
-          }
+        const firstHello = yield* firstHarness.takeResponse
+        if (firstHello._tag !== "Hello") {
+          throw new Error(`Expected Hello, got ${firstHello._tag}`)
+        }
 
-          yield* firstHarness.sendRequest(
-            yield* makeAuthenticateRequest({
-              hello: firstHello,
-              publicKey: "client-1",
-              keyPair: trustedKeyPair
-            })
-          )
+        yield* firstHarness.sendRequest(
+          yield* makeAuthenticateRequest({
+            hello: firstHello,
+            publicKey: "client-1",
+            keyPair: trustedKeyPair
+          })
+        )
 
-          const firstAuthenticated = yield* firstHarness.takeResponse
-          if (firstAuthenticated._tag !== "Authenticated") {
-            throw new Error(`Expected Authenticated, got ${firstAuthenticated._tag}`)
-          }
+        const firstAuthenticated = yield* firstHarness.takeResponse
+        if (firstAuthenticated._tag !== "Authenticated") {
+          throw new Error(`Expected Authenticated, got ${firstAuthenticated._tag}`)
+        }
 
-          assert.strictEqual(yield* Ref.get(readAuthCalls), 1)
+        assert.strictEqual(yield* Ref.get(identityAuthCalls), 1)
 
-          const restartedHarness = yield* makeSocketHarness
-          const restartedHandler = yield* EventLogServerUnencrypted.makeHandler.pipe(
-            Effect.provide(makeServerLayerWithStorage({
-              seen,
-              storage,
-              auth: authLayer
-            }))
-          )
+        const restartedHarness = yield* makeSocketHarness
+        const restartedHandler = yield* EventLogServerUnencrypted.makeHandler.pipe(
+          Effect.provide(makeServerLayerWithStorage({
+            seen,
+            storage,
+            auth: authLayer
+          }))
+        )
 
-          yield* restartedHandler(restartedHarness.socket).pipe(Effect.forkScoped)
+        yield* restartedHandler(restartedHarness.socket).pipe(Effect.forkScoped)
 
-          const restartedHello = yield* restartedHarness.takeResponse
-          if (restartedHello._tag !== "Hello") {
-            throw new Error(`Expected Hello, got ${restartedHello._tag}`)
-          }
+        const restartedHello = yield* restartedHarness.takeResponse
+        if (restartedHello._tag !== "Hello") {
+          throw new Error(`Expected Hello, got ${restartedHello._tag}`)
+        }
 
-          yield* restartedHarness.sendRequest(
-            yield* makeAuthenticateRequest({
-              hello: restartedHello,
-              publicKey: "client-1",
-              keyPair: mismatchedKeyPair
-            })
-          )
+        yield* restartedHarness.sendRequest(
+          yield* makeAuthenticateRequest({
+            hello: restartedHello,
+            publicKey: "client-1",
+            keyPair: mismatchedKeyPair
+          })
+        )
 
-          const restartedResponse = yield* restartedHarness.takeResponse
-          if (restartedResponse._tag !== "Error") {
-            throw new Error(`Expected Error, got ${restartedResponse._tag}`)
-          }
+        const restartedResponse = yield* restartedHarness.takeResponse
+        if (restartedResponse._tag !== "Error") {
+          throw new Error(`Expected Error, got ${restartedResponse._tag}`)
+        }
 
-          assert.strictEqual(restartedResponse.requestTag, "Authenticate")
-          assert.strictEqual(restartedResponse.code, "Forbidden")
-          assert.strictEqual(yield* Ref.get(readAuthCalls), 1)
+        assert.strictEqual(restartedResponse.requestTag, "Authenticate")
+        assert.strictEqual(restartedResponse.code, "Forbidden")
+        assert.strictEqual(yield* Ref.get(identityAuthCalls), 1)
 
-          const persistedBinding = yield* storage.getSessionAuthBinding("client-1")
-          if (persistedBinding === undefined) {
-            throw new Error("Expected persisted key binding")
-          }
+        const persistedBinding = yield* storage.getSessionAuthBinding("client-1")
+        if (persistedBinding === undefined) {
+          throw new Error("Expected persisted key binding")
+        }
 
-          assert.deepStrictEqual(persistedBinding, trustedKeyPair.signingPublicKey)
-        })
-      )
+        assert.deepStrictEqual(persistedBinding, trustedKeyPair.signingPublicKey)
+      })
     }))
 
   it.effect("makeHandler allows only one winner for concurrent first-bind mismatches", () =>
     Effect.gen(function*() {
       const seen = yield* Ref.make<ReadonlyArray<SeenWrite>>([])
 
-      return yield* Effect.scoped(
-        Effect.gen(function*() {
-          const storage = yield* EventLogServerUnencrypted.makeStorageMemory
-          const firstHarness = yield* makeSocketHarness
-          const secondHarness = yield* makeSocketHarness
-          const firstKeyPair = yield* makeSessionAuthKeyPair
-          const secondKeyPair = yield* makeSessionAuthKeyPair
+      return yield* Effect.gen(function*() {
+        const storage = yield* EventLogServerUnencrypted.makeStorageMemory
+        const firstHarness = yield* makeSocketHarness
+        const secondHarness = yield* makeSocketHarness
+        const firstKeyPair = yield* makeSessionAuthKeyPair
+        const secondKeyPair = yield* makeSessionAuthKeyPair
 
-          const handler = yield* EventLogServerUnencrypted.makeHandler.pipe(
-            Effect.provide(makeServerLayerWithStorage({
-              seen,
-              storage
-            }))
+        const handler = yield* EventLogServerUnencrypted.makeHandler.pipe(
+          Effect.provide(makeServerLayerWithStorage({
+            seen,
+            storage
+          }))
+        )
+
+        yield* handler(firstHarness.socket).pipe(Effect.forkScoped)
+        yield* handler(secondHarness.socket).pipe(Effect.forkScoped)
+
+        const firstHello = yield* firstHarness.takeResponse
+        const secondHello = yield* secondHarness.takeResponse
+        if (firstHello._tag !== "Hello") {
+          throw new Error(`Expected Hello, got ${firstHello._tag}`)
+        }
+        if (secondHello._tag !== "Hello") {
+          throw new Error(`Expected Hello, got ${secondHello._tag}`)
+        }
+
+        yield* Effect.all([
+          firstHarness.sendRequest(
+            yield* makeAuthenticateRequest({
+              hello: firstHello,
+              publicKey: "client-1",
+              keyPair: firstKeyPair
+            })
+          ),
+          secondHarness.sendRequest(
+            yield* makeAuthenticateRequest({
+              hello: secondHello,
+              publicKey: "client-1",
+              keyPair: secondKeyPair
+            })
           )
+        ], { concurrency: "unbounded" })
 
-          yield* handler(firstHarness.socket).pipe(Effect.forkScoped)
-          yield* handler(secondHarness.socket).pipe(Effect.forkScoped)
+        const [firstResponse, secondResponse] = yield* Effect.all([
+          firstHarness.takeResponse,
+          secondHarness.takeResponse
+        ], { concurrency: "unbounded" })
 
-          const firstHello = yield* firstHarness.takeResponse
-          const secondHello = yield* secondHarness.takeResponse
-          if (firstHello._tag !== "Hello") {
-            throw new Error(`Expected Hello, got ${firstHello._tag}`)
+        let winnerSigningPublicKey: Uint8Array | undefined
+
+        if (firstResponse._tag === "Authenticated") {
+          winnerSigningPublicKey = firstKeyPair.signingPublicKey
+          assert.strictEqual(firstResponse.publicKey, "client-1")
+        } else {
+          if (firstResponse._tag !== "Error") {
+            throw new Error(`Expected Error, got ${firstResponse._tag}`)
           }
-          if (secondHello._tag !== "Hello") {
-            throw new Error(`Expected Hello, got ${secondHello._tag}`)
+          assert.strictEqual(firstResponse.requestTag, "Authenticate")
+          assert.strictEqual(firstResponse.code, "Forbidden")
+        }
+
+        if (secondResponse._tag === "Authenticated") {
+          if (winnerSigningPublicKey !== undefined) {
+            throw new Error("Expected only one Authenticate winner")
           }
-
-          yield* Effect.all([
-            firstHarness.sendRequest(
-              yield* makeAuthenticateRequest({
-                hello: firstHello,
-                publicKey: "client-1",
-                keyPair: firstKeyPair
-              })
-            ),
-            secondHarness.sendRequest(
-              yield* makeAuthenticateRequest({
-                hello: secondHello,
-                publicKey: "client-1",
-                keyPair: secondKeyPair
-              })
-            )
-          ], { concurrency: "unbounded" })
-
-          const [firstResponse, secondResponse] = yield* Effect.all([
-            firstHarness.takeResponse,
-            secondHarness.takeResponse
-          ], { concurrency: "unbounded" })
-
-          let winnerSigningPublicKey: Uint8Array | undefined
-
-          if (firstResponse._tag === "Authenticated") {
-            winnerSigningPublicKey = firstKeyPair.signingPublicKey
-            assert.strictEqual(firstResponse.publicKey, "client-1")
-          } else {
-            if (firstResponse._tag !== "Error") {
-              throw new Error(`Expected Error, got ${firstResponse._tag}`)
-            }
-            assert.strictEqual(firstResponse.requestTag, "Authenticate")
-            assert.strictEqual(firstResponse.code, "Forbidden")
+          winnerSigningPublicKey = secondKeyPair.signingPublicKey
+          assert.strictEqual(secondResponse.publicKey, "client-1")
+        } else {
+          if (secondResponse._tag !== "Error") {
+            throw new Error(`Expected Error, got ${secondResponse._tag}`)
           }
+          assert.strictEqual(secondResponse.requestTag, "Authenticate")
+          assert.strictEqual(secondResponse.code, "Forbidden")
+        }
 
-          if (secondResponse._tag === "Authenticated") {
-            if (winnerSigningPublicKey !== undefined) {
-              throw new Error("Expected only one Authenticate winner")
-            }
-            winnerSigningPublicKey = secondKeyPair.signingPublicKey
-            assert.strictEqual(secondResponse.publicKey, "client-1")
-          } else {
-            if (secondResponse._tag !== "Error") {
-              throw new Error(`Expected Error, got ${secondResponse._tag}`)
-            }
-            assert.strictEqual(secondResponse.requestTag, "Authenticate")
-            assert.strictEqual(secondResponse.code, "Forbidden")
-          }
+        if (winnerSigningPublicKey === undefined) {
+          throw new Error("Expected one Authenticate winner")
+        }
 
-          if (winnerSigningPublicKey === undefined) {
-            throw new Error("Expected one Authenticate winner")
-          }
+        const persistedBinding = yield* storage.getSessionAuthBinding("client-1")
+        if (persistedBinding === undefined) {
+          throw new Error("Expected persisted key-binding winner")
+        }
 
-          const persistedBinding = yield* storage.getSessionAuthBinding("client-1")
-          if (persistedBinding === undefined) {
-            throw new Error("Expected persisted key-binding winner")
-          }
-
-          assert.deepStrictEqual(persistedBinding, winnerSigningPublicKey)
-        })
-      )
+        assert.deepStrictEqual(persistedBinding, winnerSigningPublicKey)
+      })
     }))
 })

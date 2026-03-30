@@ -3,6 +3,7 @@
  */
 import * as Uuid from "uuid"
 import type * as Cause from "../../Cause.ts"
+import { Clock } from "../../Clock.ts"
 import * as Effect from "../../Effect.ts"
 import * as FiberMap from "../../FiberMap.ts"
 import * as Layer from "../../Layer.ts"
@@ -65,6 +66,7 @@ export const makeHandler: Effect.Effect<
   never,
   Storage
 > = Effect.gen(function*() {
+  const clock = yield* Clock
   const storage = yield* Storage
   const remoteId = yield* storage.getId
   const trustedSessionAuthBindings = new Map<string, Uint8Array>()
@@ -111,7 +113,7 @@ export const makeHandler: Effect.Effect<
         }
       >()
       const sessionChallenge = yield* EventLogSessionAuth.makeSessionAuthChallenge.pipe(Effect.orDie)
-      const sessionChallengeIssuedAt = Date.now()
+      const sessionChallengeIssuedAt = clock.currentTimeMillisUnsafe()
       let sessionChallengeUsed = false
       let authenticatedPublicKey: string | undefined
 

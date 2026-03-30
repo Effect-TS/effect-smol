@@ -1,5 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Effect, Queue } from "effect"
+import { TestClock } from "effect/testing/index"
 import * as EventJournal from "effect/unstable/eventlog/EventJournal"
 import type * as EventLog from "effect/unstable/eventlog/EventLog"
 import * as EventLogRemote from "effect/unstable/eventlog/EventLogRemote"
@@ -128,23 +129,6 @@ const makeAuthenticateRequest = Effect.fnUntraced(function*(options: {
     algorithm: "Ed25519"
   })
 })
-
-const withDateNow = <A, E, R>(
-  nowMillis: number,
-  effect: Effect.Effect<A, E, R>
-): Effect.Effect<A, E, R> =>
-  Effect.acquireUseRelease(
-    Effect.sync(() => {
-      const original = Date.now
-      Date.now = () => nowMillis
-      return original
-    }),
-    () => effect,
-    (original) =>
-      Effect.sync(() => {
-        Date.now = original
-      })
-  )
 
 const makeWriteRequest = (publicKey: string, id: number, storeId: EventLog.StoreId = storeIdA) =>
   new EventLogRemote.WriteEntries({
@@ -294,40 +278,33 @@ describe("EventLogServer", () => {
     ))
 
   it.effect("makeHandler returns Forbidden when Authenticate challenge expires", () =>
-    Effect.scoped(
-      Effect.gen(function*() {
-        const harness = yield* makeSocketHarness
-        const handler = yield* EventLogServer.makeHandler
+    Effect.gen(function*() {
+      const harness = yield* makeSocketHarness
+      const handler = yield* EventLogServer.makeHandler
 
-        yield* handler(harness.socket).pipe(Effect.forkScoped)
+      yield* handler(harness.socket).pipe(Effect.forkScoped)
 
-        const hello = yield* harness.takeResponse
-        if (hello._tag !== "Hello") {
-          throw new Error(`Expected Hello, got ${hello._tag}`)
-        }
+      const hello = yield* harness.takeResponse
+      if (hello._tag !== "Hello") {
+        throw new Error(`Expected Hello, got ${hello._tag}`)
+      }
 
-        const authenticate = yield* makeAuthenticateRequest({
-          hello,
-          publicKey: "client-1"
-        })
+      const authenticate = yield* makeAuthenticateRequest({
+        hello,
+        publicKey: "client-1"
+      })
 
-        const expiredNow = Date.now() + EventLogSessionAuth.SessionAuthChallengeTimeToLiveMillis + 1
-        const response = yield* withDateNow(
-          expiredNow,
-          Effect.gen(function*() {
-            yield* harness.sendRequest(authenticate)
-            return yield* harness.takeResponse
-          })
-        )
+      yield* TestClock.adjust(EventLogSessionAuth.SessionAuthChallengeTimeToLiveMillis + 1)
+      yield* harness.sendRequest(authenticate)
+      const response = yield* harness.takeResponse
 
-        if (response._tag !== "Error") {
-          throw new Error(`Expected Error, got ${response._tag}`)
-        }
+      if (response._tag !== "Error") {
+        throw new Error(`Expected Error, got ${response._tag}`)
+      }
 
-        assert.strictEqual(response.requestTag, "Authenticate")
-        assert.strictEqual(response.code, "Forbidden")
-      }).pipe(Effect.provide(serverLayer))
-    ))
+      assert.strictEqual(response.requestTag, "Authenticate")
+      assert.strictEqual(response.code, "Forbidden")
+    }).pipe(Effect.provide(serverLayer)))
 
   it.effect("makeHandler returns Forbidden for post-auth publicKey mismatches", () =>
     Effect.scoped(

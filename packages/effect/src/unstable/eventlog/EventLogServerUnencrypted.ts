@@ -3,6 +3,7 @@
  */
 import * as Arr from "../../Array.ts"
 import * as Cause from "../../Cause.ts"
+import { Clock } from "../../Clock.ts"
 import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
 import * as FiberMap from "../../FiberMap.ts"
@@ -107,6 +108,9 @@ export class EventLogServerAuth extends ServiceMap.Service<EventLogServerAuth, {
     readonly publicKey: string
     readonly storeId: EventLog.StoreId
   }) => Effect.Effect<void, EventLogServerAuthError>
+  readonly authorizeIdentity: (options: {
+    readonly publicKey: string
+  }) => Effect.Effect<void, EventLogServerAuthError>
 }>()("effect/eventlog/EventLogServerUnencrypted/EventLogServerAuth") {}
 
 /**
@@ -118,7 +122,7 @@ export class StoreMapping extends ServiceMap.Service<StoreMapping, {
     options: {
       readonly publicKey: string
       readonly storeId: EventLog.StoreId
-    } | string
+    }
   ) => Effect.Effect<EventLog.StoreId, EventLogServerStoreError>
   readonly hasStore: (options: {
     readonly publicKey: string
@@ -147,16 +151,13 @@ export const layerStoreMappingStatic = (options: {
   readonly storeId: EventLog.StoreId
 }): Layer.Layer<StoreMapping> =>
   Layer.succeed(StoreMapping, {
-    resolve: (request) => {
-      if (typeof request === "string") {
-        return Effect.succeed(options.storeId)
-      }
+    resolve(request) {
       if (request.storeId === options.storeId) {
         return Effect.succeed(options.storeId)
       }
       return Effect.fail(toStoreNotFoundError(request))
     },
-    hasStore: (request) => Effect.succeed(request.storeId === options.storeId)
+    hasStore: (_) => Effect.succeed(true)
   })
 
 /**
@@ -766,11 +767,7 @@ export const make = Effect.gen(function*() {
       return equalsUint8Array(trustedSigningPublicKey, options.signingPublicKey)
     }
 
-    const storeId = yield* mapping.resolve(options.publicKey)
-    yield* auth.authorizeRead({
-      publicKey: options.publicKey,
-      storeId
-    })
+    yield* auth.authorizeIdentity({ publicKey: options.publicKey })
 
     const created = yield* storage.putSessionAuthBindingIfAbsent(options.publicKey, options.signingPublicKey)
     if (created) {
@@ -1051,6 +1048,7 @@ export const makeHandler: Effect.Effect<
   never,
   EventLogServerUnencrypted
 > = Effect.gen(function*() {
+  const clock = yield* Clock
   const runtime = yield* EventLogServerUnencrypted
   const remoteId = yield* runtime.getId
   let chunkId = 0
@@ -1068,7 +1066,7 @@ export const makeHandler: Effect.Effect<
         }
       >()
       const sessionChallenge = yield* EventLogSessionAuth.makeSessionAuthChallenge.pipe(Effect.orDie)
-      const sessionChallengeIssuedAt = Date.now()
+      const sessionChallengeIssuedAt = clock.currentTimeMillisUnsafe()
       let sessionChallengeUsed = false
       let authenticatedPublicKey: string | undefined
 
@@ -1120,13 +1118,13 @@ export const makeHandler: Effect.Effect<
         })
       })
 
-      const writeForbidden = Effect.fnUntraced(function*(options: {
+      const writeForbidden = (options: {
         readonly requestTag: "Authenticate" | "WriteEntries" | "RequestChanges" | "StopChanges"
         readonly id?: number | undefined
         readonly publicKey?: string | undefined
         readonly storeId?: EventLog.StoreId | undefined
-      }) {
-        yield* writeProtocolError({
+      }) =>
+        writeProtocolError({
           requestTag: options.requestTag,
           id: options.id,
           publicKey: options.publicKey,
@@ -1134,7 +1132,6 @@ export const makeHandler: Effect.Effect<
           code: "Forbidden",
           message: "Forbidden request"
         })
-      })
 
       const handleAuthenticate = Effect.fnUntraced(
         function*(
