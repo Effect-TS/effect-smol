@@ -599,7 +599,7 @@ export const JsonFromString = <S extends Schema.Top>(
 export interface UuidV4Insert<B extends string> extends
   VariantSchema.Field<{
     readonly select: Schema.brand<Schema.instanceOf<Uint8Array>, B>
-    readonly insert: VariantSchema.Overrideable<Schema.brand<Schema.instanceOf<Uint8Array>, B>>
+    readonly insert: Schema.withConstructorDefault<Schema.brand<Schema.instanceOf<Uint8Array>, B>>
     readonly update: Schema.brand<Schema.instanceOf<Uint8Array>, B>
     readonly json: Schema.brand<Schema.instanceOf<Uint8Array>, B>
   }>
@@ -619,10 +619,8 @@ export const Uint8Array: Schema.instanceOf<Uint8Array> = Schema.Uint8Array as Sc
  */
 export const UuidV4WithGenerate = <B extends string>(
   schema: Schema.brand<Schema.instanceOf<Uint8Array>, B>
-): VariantSchema.Overrideable<Schema.brand<Schema.instanceOf<Uint8Array>, B>> =>
-  VariantSchema.Overrideable(schema, {
-    defaultValue: Effect.sync(() => Uuid.v4({}, new globalThis.Uint8Array(16)))
-  })
+): Schema.withConstructorDefault<Schema.brand<Schema.instanceOf<Uint8Array>, B>> =>
+  schema.pipe(Schema.withConstructorDefault(() => Option.some(Uuid.v4({}, new globalThis.Uint8Array(16)))))
 
 /**
  * A field that represents a binary UUID v4 that is generated on inserts.
