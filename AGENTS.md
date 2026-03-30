@@ -51,6 +51,10 @@ Instead use `Effect` apis like `Effect.fnUntraced`, `Effect.gen`,
 
 Look at existing code in the repository to learn and follow established patterns
 
+## Never use Date.now or new Date
+
+Instead use the `Clock` module, and `TestClock` for adjusting time in tests.
+
 ## Barrel files
 
 The `index.ts` files are automatically generated. Do not manually edit them. Use
