@@ -20,7 +20,7 @@ import * as ServiceMap from "../../ServiceMap.ts"
 import type { Covariant } from "../../Types.ts"
 import { Reactivity } from "../reactivity/Reactivity.ts"
 import * as ReactivityLayer from "../reactivity/Reactivity.ts"
-import * as Event from "./Event.ts"
+import type * as Event from "./Event.ts"
 import type * as EventGroup from "./EventGroup.ts"
 import { Entry, EventJournal, type EventJournalError, makeEntryIdUnsafe, type RemoteEntry } from "./EventJournal.ts"
 import * as EventLogEncryption from "./EventLogEncryption.ts"
@@ -499,6 +499,10 @@ export class EventLog extends ServiceMap.Service<EventLog, {
     Event.SuccessWithTag<EventGroup.Events<Groups>, Tag>,
     Event.ErrorWithTag<EventGroup.Events<Groups>, Tag> | EventJournalError
   >
+  readonly registerHandlerUnsafe: (options: {
+    readonly event: string
+    readonly handler: Handlers.Item<any>
+  }) => void
   readonly registerCompaction: (options: {
     readonly events: ReadonlyArray<string>
     readonly effect: (options: {
@@ -516,7 +520,7 @@ export class EventLog extends ServiceMap.Service<EventLog, {
  * @category handlers
  */
 export const makeReplayFromRemote = (options: {
-  readonly services: ServiceMap.ServiceMap<never>
+  readonly handlers: Map<string, Handlers.Item<any>>
   readonly storeId: StoreId
   readonly identity: Identity["Service"]
   readonly reactivity: Reactivity["Service"]
@@ -528,7 +532,7 @@ export const makeReplayFromRemote = (options: {
 }) =>
   Effect.fnUntraced(
     function*({ conflicts, entry }): Effect.fn.Return<void, Schema.SchemaError> {
-      const handler = options.services.mapUnsafe.get(Event.serviceKey(entry.event)) as Handlers.Item<any> | undefined
+      const handler = options.handlers.get(entry.event) as Handlers.Item<any> | undefined
       if (!handler) {
         return yield* Effect.logDebug(`Event handler not found for: "${entry.event}"`)
       }
@@ -579,7 +583,8 @@ const make = Effect.gen(function*() {
   const storeId = yield* CurrentStoreId
   const identity = yield* Identity
   const journal = yield* EventJournal
-  const services = yield* Effect.services<never>()
+
+  const handlers = new Map<string, Handlers.Item<any>>()
 
   const compactors = new Map<string, {
     readonly events: ReadonlySet<string>
@@ -592,7 +597,7 @@ const make = Effect.gen(function*() {
   const reactivity = yield* Reactivity
   const reactivityKeys: Record<string, ReadonlyArray<string>> = {}
   const replayFromRemote = makeReplayFromRemote({
-    services,
+    handlers,
     storeId,
     identity,
     reactivity,
@@ -747,7 +752,7 @@ const make = Effect.gen(function*() {
     readonly event: string
     readonly payload: unknown
   }) => {
-    const handler = services.mapUnsafe.get(Event.serviceKey(options.event)) as Handlers.Item<any> | undefined
+    const handler = handlers.get(options.event) as Handlers.Item<any> | undefined
     if (handler === undefined) {
       return Effect.die(`Event handler not found for: "${options.event}"`)
     }
@@ -762,6 +767,9 @@ const make = Effect.gen(function*() {
   return EventLog.of({
     write: eventLogWrite as EventLog["Service"]["write"],
     entries: journal.entries,
+    registerHandlerUnsafe(options) {
+      handlers.set(options.event, options.handler)
+    },
     registerCompaction: (options) =>
       Effect.acquireRelease(
         Effect.sync(() => {
@@ -805,7 +813,18 @@ export const layer = <Groups extends EventGroup.Any>(_schema: EventLogSchema<Gro
   EventLog,
   never,
   EventGroup.ToService<Groups> | EventJournal | Identity
-> => layerEventLog as Layer.Layer<EventLog, never, EventGroup.ToService<Groups> | EventJournal | Identity>
+> =>
+  Layer.effectDiscard(Effect.gen(function*() {
+    const log = yield* EventLog
+    const services = yield* Effect.services<EventGroup.ToService<Groups>>()
+    services.mapUnsafe.forEach((service, key) => {
+      if (!key.startsWith("effect/eventlog/Event/")) return
+      const handler = service as Handlers.Item<any>
+      log.registerHandlerUnsafe({ event: handler.event.tag, handler })
+    })
+  })).pipe(
+    Layer.provideMerge(layerEventLog)
+  )
 
 /**
  * @since 4.0.0
