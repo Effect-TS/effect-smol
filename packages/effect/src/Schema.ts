@@ -251,7 +251,7 @@ export interface Bottom<
   annotateKey(annotations: Annotations.Key<this["Type"]>): this["~rebuild.out"]
   check(...checks: readonly [AST.Check<this["Type"]>, ...Array<AST.Check<this["Type"]>>]): this["~rebuild.out"]
   rebuild(ast: this["ast"]): this["~rebuild.out"]
-  makeEffect(input: this["~type.make.in"], options?: MakeOptions): Effect.Effect<this["Type"], Issue.Issue>
+  makeEffect(input: this["~type.make.in"], options?: MakeOptions): Effect.Effect<this["Type"], SchemaError>
   /**
    * @throws {Error} The issue is contained in the error cause.
    */
@@ -1439,7 +1439,18 @@ export const encodeSync = Parser.encodeSync
  * @category Constructors
  * @since 4.0.0
  */
-export const make: <S extends Top>(ast: S["ast"], options?: object) => S = InternalSchema.make
+export const make: <S extends Top>(ast: S["ast"], options?: object) => S = <S extends Top>(
+  ast: S["ast"],
+  options?: object
+): S => {
+  const schema = InternalSchema.make<S>(ast, options)
+  const parser = Parser.makeEffect(schema)
+  schema.makeEffect = ((input, options) => {
+    return Effect.mapErrorEager(parser(input, options), (issue) => new SchemaError(issue))
+  }) as S["makeEffect"]
+  schema.rebuild = ((ast: S["ast"]) => make(ast, options)) as S["rebuild"]
+  return schema
+}
 
 /**
  * Tests if a value is a `Schema`.
@@ -9854,8 +9865,11 @@ function makeClass<
     static makeUnsafe(input: S["~type.make.in"], options?: MakeOptions): Self {
       return new this(input, options)
     }
-    static makeEffect(input: S["~type.make.in"], options?: MakeOptions): Effect.Effect<Self, Issue.Issue> {
-      return Parser.makeEffect(getClassSchema(this) as any)(input, options) as any
+    static makeEffect(input: S["~type.make.in"], options?: MakeOptions): Effect.Effect<Self, SchemaError> {
+      return Effect.mapErrorEager(
+        Parser.makeEffect(getClassSchema(this) as any)(input, options),
+        (issue) => new SchemaError(issue)
+      ) as any
     }
     static makeOption(input: S["~type.make.in"], options?: MakeOptions): Option_.Option<Self> {
       return Parser.makeOption(getClassSchema(this) as any)(input, options) as any

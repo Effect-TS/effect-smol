@@ -1,4 +1,4 @@
-import type { SchemaAST, SchemaIssue } from "effect"
+import type { SchemaAST } from "effect"
 import {
   Brand,
   Effect,
@@ -19,7 +19,7 @@ type MakeUnsafe<In, Out> = (input: In, options?: Schema.MakeOptions | undefined)
 type MakeEffect<In, Out> = (
   input: In,
   options?: Schema.MakeOptions | undefined
-) => Effect.Effect<Out, SchemaIssue.Issue>
+) => Effect.Effect<Out, Schema.SchemaError>
 
 const revealClass = <Self, S extends Schema.Struct<Schema.Struct.Fields>, Inherited>(
   klass: Schema.Class<Self, S, Inherited>

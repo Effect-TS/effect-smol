@@ -2983,8 +2983,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const success = await schema.makeEffect({ a: 1 }).pipe(Effect.result, Effect.runPromise)
       deepStrictEqual(success, Result.succeed({ a: 1 }))
 
-      const failure = await schema.makeEffect({ a: -1 }).pipe(Effect.result, Effect.runPromise)
-      ok(Result.isFailure(failure))
+      const failure = await schema.makeEffect({ a: -1 }).pipe(Effect.flip, Effect.runPromise)
+      assertTrue(Schema.isSchemaError(failure))
     })
 
     it("Class", async () => {
@@ -2993,8 +2993,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const success = await A.makeEffect({ a: 1 }).pipe(Effect.runPromise)
       deepStrictEqual(success, new A({ a: 1 }))
 
-      const failure = await A.makeEffect({ a: -1 }).pipe(Effect.option, Effect.runPromise)
-      deepStrictEqual(failure, Option.none())
+      const failure = await A.makeEffect({ a: -1 }).pipe(Effect.flip, Effect.runPromise)
+      assertTrue(Schema.isSchemaError(failure))
     })
   })
 
