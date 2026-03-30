@@ -10,7 +10,7 @@ This is the Effect library repository, focusing on functional programming patter
 
 ## Code Style Guidelines
 
-You **MUST** look at the `./.patterns/` directory as well as existing code in 
+You **MUST** look at the `./.patterns/` directory as well as existing code in
 the repository to learn and follow established patterns before writing new code.
 
 ## Prefer `Effect.fnUntraced` over functions that return `Effect.gen`
