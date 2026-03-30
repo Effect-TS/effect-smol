@@ -4741,6 +4741,11 @@ export function TaggedUnion<const CasesByTag extends Record<string, Struct.Field
 }
 
 /**
+ * @since 4.0.0
+ */
+export declare const OpaqueTypeId: unique symbol
+
+/**
  * The interface type for schemas created by {@link Opaque}.
  * Carries the same encoded/decoded shape as `S` but replaces `Type` with `Self & Brand`,
  * making the decoded value nominally distinct.
@@ -4768,7 +4773,7 @@ export interface Opaque<Self, S extends Top, Brand> extends
   >
 {
   // intentionally left without `readonly "~rebuild.out": this`
-  new(_: never): S["Type"] & Brand
+  new(_: never): (S["Type"] extends object ? S["Type"] : { readonly [OpaqueTypeId]: Self }) & Brand
 }
 
 /**
@@ -4776,7 +4781,7 @@ export interface Opaque<Self, S extends Top, Brand> extends
  * Useful for creating opaque types that are structurally identical to a base schema
  * but type-incompatible with it.
  *
- * **Example** (Opaque user ID)
+ * **Example** (Opaque struct)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -4789,10 +4794,35 @@ export interface Opaque<Self, S extends Top, Brand> extends
  * // id: UserId
  * ```
  *
+ * **Example** (Opaque scalar with class semantics)
+ *
+ * ```ts
+ * import { Schema } from "effect"
+ *
+ * class QuestionID extends Schema.Opaque<QuestionID>()("QuestionID", Schema.String) {
+ *   static make(id: string): QuestionID {
+ *     return this.makeUnsafe(id)
+ *   }
+ * }
+ *
+ * // QuestionID is a valid schema
+ * const id = Schema.decodeUnknownSync(QuestionID)("abc")
+ *
+ * // Nominally distinct from other scalar newtypes
+ * class OrderID extends Schema.Opaque<OrderID>()("OrderID", Schema.String) {}
+ * ```
+ *
  * @since 4.0.0
  */
-export function Opaque<Self, Brand = {}>() {
-  return <S extends Top>(schema: S): Opaque<Self, S, Brand> & Omit<S, "Type"> => {
+export function Opaque<Self, Brand = {}>(): {
+  <const Tag extends string, S extends Top>(
+    tag: Tag,
+    schema: S
+  ): Opaque<Self, S, Brand & { readonly [OpaqueTypeId]: Tag }> & Omit<S, "Type">
+  <S extends Top>(schema: S): Opaque<Self, S, Brand> & Omit<S, "Type">
+} {
+  return (...args: Array<any>) => {
+    const schema = typeof args[0] === "string" ? args[1] : args[0]
     // oxlint-disable-next-line @typescript-eslint/no-extraneous-class
     class Opaque {}
     Object.setPrototypeOf(Opaque, schema)
