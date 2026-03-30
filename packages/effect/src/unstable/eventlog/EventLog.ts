@@ -385,7 +385,7 @@ export const groupCompaction = <Events extends Event.Any, R>(
       payload: Event.PayloadWithTag<Events, Tag>
     ) => Effect.Effect<void, never, Event.PayloadSchemaWithTag<Events, Tag>["EncodingServices"]>
   }) => Effect.Effect<void, never, R>
-): Layer.Layer<never, never, Identity | EventJournal | R | Event.PayloadSchema<Events>["DecodingServices"]> =>
+): Layer.Layer<never, never, EventLog | R | Event.PayloadSchema<Events>["DecodingServices"]> =>
   Layer.effectDiscard(
     Effect.gen(function*() {
       const log = yield* EventLog
@@ -459,8 +459,6 @@ export const groupCompaction = <Events extends Event.Any, R>(
         })
       })
     })
-  ).pipe(
-    Layer.provide(layerEventLog)
   )
 
 /**
@@ -472,7 +470,7 @@ export const groupReactivity = <Events extends Event.Any>(
   keys:
     | { readonly [Tag in Event.Tag<Events>]?: ReadonlyArray<string> }
     | ReadonlyArray<string>
-): Layer.Layer<never, never, Identity | EventJournal> =>
+): Layer.Layer<never, never, EventLog> =>
   Effect.gen(function*() {
     const log = yield* EventLog
     if (!Array.isArray(keys)) {
@@ -485,8 +483,7 @@ export const groupReactivity = <Events extends Event.Any>(
     }
     yield* log.registerReactivity(obj)
   }).pipe(
-    Layer.effectDiscard,
-    Layer.provide(layerEventLog)
+    Layer.effectDiscard
   )
 
 /**
