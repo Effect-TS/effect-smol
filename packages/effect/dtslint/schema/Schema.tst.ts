@@ -93,7 +93,7 @@ describe("Schema", () => {
 
     it("Struct", () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.withConstructorDefault(() => Option.some("default")))
+        a: Schema.String.pipe(Schema.withConstructorDefault(Effect.succeed("default")))
       })
       expect(schema.makeEffect).type.toBe<MakeEffect<{ readonly a?: string }, { readonly a: string }>>()
     })
