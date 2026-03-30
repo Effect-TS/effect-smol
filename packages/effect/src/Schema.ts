@@ -4730,8 +4730,7 @@ export function Opaque<Self, Brand = {}>() {
   return <S extends Top>(schema: S): Opaque<Self, S, Brand> & Omit<S, "Type"> => {
     // oxlint-disable-next-line @typescript-eslint/no-extraneous-class
     class Opaque {}
-    Object.setPrototypeOf(Opaque, schema)
-    return Opaque as any
+    return Object.setPrototypeOf(Opaque, schema)
   }
 }
 
