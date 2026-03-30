@@ -1628,6 +1628,29 @@ describe("Stream", () => {
         assert.isUndefined(fiber.pollUnsafe())
       }))
 
+    it.effect("groupedWithin flushes final partial batch on upstream end without waiting for the schedule", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.make(1, 2, 3, 4, 5).pipe(
+          Stream.groupedWithin(3, "1 second"),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [[1, 2, 3], [4, 5]])
+      }))
+
+    it.effect("groupedWithin flushes partial batch when the schedule elapses while upstream is idle", () =>
+      Effect.gen(function*() {
+        const fiber = yield* Stream.make(1, 2, 3, 4, 5).pipe(
+          Stream.concat(Stream.never),
+          Stream.groupedWithin(3, "1 second"),
+          Stream.take(2),
+          Stream.runCollect,
+          Effect.forkChild({ startImmediately: true })
+        )
+        yield* TestClock.adjust("1 second")
+        const result = yield* Fiber.join(fiber)
+        deepStrictEqual(result, [[1, 2, 3], [4, 5]])
+      }))
+
     it.effect("simple example", () =>
       Effect.gen(function*() {
         const result = yield* pipe(

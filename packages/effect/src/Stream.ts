@@ -8075,11 +8075,9 @@ export const aggregateWithin: {
     })
 
     // upstream -> buffer
-    let hadChunk = false
     yield* pull.pipe(
       pullLatch.whenOpen,
       Effect.flatMap((arr) => {
-        hadChunk = true
         pullLatch.closeUnsafe()
         return Queue.offer(buffer, arr)
       }),
@@ -8091,10 +8089,11 @@ export const aggregateWithin: {
     // schedule -> buffer
     let lastOutput = Option.none<B>()
     let leftover: Arr.NonEmptyReadonlyArray<A2> | undefined
+    let sinkHasInput = false
     const step = yield* Schedule.toStepWithSleep(schedule)
     const stepToBuffer = Effect.suspend(function loop(): Pull.Pull<never, E3, void, R3> {
       return step(lastOutput).pipe(
-        Effect.flatMap(() => !hadChunk && leftover === undefined ? loop() : Queue.offer(buffer, scheduleStep)),
+        Effect.flatMap(() => !sinkHasInput ? loop() : Queue.offer(buffer, scheduleStep)),
         Effect.flatMap(() => Effect.never),
         Pull.catchDone(() => Cause.done())
       )
@@ -8105,22 +8104,28 @@ export const aggregateWithin: {
       Arr.NonEmptyReadonlyArray<A>,
       E
     > = Queue.take(buffer).pipe(
-      Effect.flatMap((arr) => arr === scheduleStep ? Cause.done() : Effect.succeed(arr))
+      Effect.flatMap((arr) => {
+        if (arr === scheduleStep) {
+          return Cause.done()
+        }
+        sinkHasInput = true
+        return Effect.succeed(arr)
+      })
     )
 
     const sinkUpstream = Effect.suspend((): Pull.Pull<Arr.NonEmptyReadonlyArray<A | A2>, E> => {
       if (leftover !== undefined) {
         const chunk = leftover
         leftover = undefined
+        sinkHasInput = true
         return Effect.succeed(chunk)
       }
-      hadChunk = false
       pullLatch.openUnsafe()
       return pullFromBuffer
     })
     const catchSinkHalt = Effect.flatMap(([value, leftover_]: Sink.End<B, A2>) => {
       // ignore the last output if the upstream only pulled a halt
-      if (!hadChunk && buffer.state._tag === "Done") return Cause.done()
+      if (!sinkHasInput && buffer.state._tag === "Done") return Cause.done()
       lastOutput = Option.some(value)
       leftover = leftover_
       return Effect.succeed(Arr.of(value))
@@ -8128,9 +8133,10 @@ export const aggregateWithin: {
 
     return Effect.suspend(() => {
       // if the buffer has exited and there is no more data to process
-      if (buffer.state._tag === "Done") {
+      if (buffer.state._tag === "Done" && leftover === undefined) {
         return buffer.state.exit as Exit.Exit<never, Cause.Done<void> | E>
       }
+      sinkHasInput = leftover !== undefined
       return Effect.succeed(Effect.suspend(() => sink.transform(sinkUpstream as any, scope)))
     }).pipe(
       Effect.flatMap((pull) => Effect.raceFirst(catchSinkHalt(pull), stepToBuffer))
