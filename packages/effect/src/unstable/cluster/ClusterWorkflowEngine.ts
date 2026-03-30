@@ -6,7 +6,6 @@ import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
-import { constFalse } from "../../Function.ts"
 import * as Latch from "../../Latch.ts"
 import * as Layer from "../../Layer.ts"
 import * as Option from "../../Option.ts"
@@ -582,7 +581,7 @@ const ActivityRpc = Rpc.make("activity", {
     name: Schema.String,
     attempt: Schema.Number,
     withTransaction: Schema.Boolean.pipe(
-      Schema.withDecodingDefault(constFalse)
+      Schema.withDecodingDefault(Effect.succeed(false))
     )
   },
   primaryKey: ({ attempt, name }) => activityPrimaryKey(name, attempt),

@@ -49,6 +49,36 @@ describe("Layer", () => {
       assert.strictEqual(result, service1)
     }))
 
+  it.effect("suspend is lazy", () =>
+    Effect.gen(function*() {
+      let evaluated = 0
+      const layer = Layer.suspend(() => {
+        evaluated++
+        return Layer.succeed(Service1Tag)(new Service1())
+      })
+
+      assert.strictEqual(evaluated, 0)
+      yield* Effect.scoped(Layer.build(layer))
+      assert.strictEqual(evaluated, 1)
+      yield* Effect.scoped(Layer.build(layer))
+      assert.strictEqual(evaluated, 2)
+    }))
+
+  it.effect("suspend preserves sharing", () =>
+    Effect.gen(function*() {
+      const array: Array<string> = []
+      let evaluated = 0
+      const layer = Layer.suspend(() => {
+        evaluated++
+        return makeLayer1(array)
+      })
+
+      yield* Effect.scoped(layer.pipe(Layer.merge(layer), Layer.build))
+
+      assert.strictEqual(evaluated, 1)
+      assert.deepStrictEqual(array, [acquire1, release1])
+    }))
+
   it.effect("finalizers", () =>
     Effect.gen(function*() {
       const arr: Array<string> = []
@@ -356,6 +386,30 @@ describe("Layer", () => {
   })
 
   describe("MemoMap", () => {
+    it.effect("memoizes suspend across builds", () =>
+      Effect.gen(function*() {
+        const arr: Array<string> = []
+        let evaluated = 0
+        const layer = Layer.suspend(() => {
+          evaluated++
+          return makeLayer1(arr)
+        })
+        const memoMap = Layer.makeMemoMapUnsafe()
+        const scope1 = yield* Scope.make()
+        const scope2 = yield* Scope.make()
+
+        yield* Layer.buildWithMemoMap(layer, memoMap, scope1)
+        yield* Layer.buildWithMemoMap(layer, memoMap, scope2)
+        yield* Scope.close(scope2, Exit.void)
+
+        assert.strictEqual(evaluated, 1)
+        assert.deepStrictEqual(arr, [acquire1])
+
+        yield* Scope.close(scope1, Exit.void)
+
+        assert.deepStrictEqual(arr, [acquire1, release1])
+      }))
+
     it.effect("memoizes layer across builds", () =>
       Effect.gen(function*() {
         const arr: Array<string> = []
