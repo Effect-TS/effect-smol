@@ -169,12 +169,13 @@ export type Mutability = "readonly" | "mutable"
 export type ConstructorDefault = "no-default" | "with-default"
 
 /**
- * Options for `makeUnsafe` and Class constructors.
+ * Options for `makeEffect`, `makeUnsafe`, and Class constructors.
  *
  * When to use:
  * - Pass `disableChecks: true` to skip validation when you trust the data.
  * - Pass `parseOptions` to control error reporting behavior.
  *
+ * @see {@link Bottom.makeEffect}
  * @see {@link Bottom.makeUnsafe}
  *
  * @since 4.0.0
@@ -250,6 +251,7 @@ export interface Bottom<
   annotateKey(annotations: Annotations.Key<this["Type"]>): this["~rebuild.out"]
   check(...checks: readonly [AST.Check<this["Type"]>, ...Array<AST.Check<this["Type"]>>]): this["~rebuild.out"]
   rebuild(ast: this["ast"]): this["~rebuild.out"]
+  makeEffect(input: this["~type.make.in"], options?: MakeOptions): Effect.Effect<this["Type"], Issue.Issue>
   /**
    * @throws {Error} The issue is contained in the error cause.
    */
@@ -9851,6 +9853,9 @@ function makeClass<
     }
     static makeUnsafe(input: S["~type.make.in"], options?: MakeOptions): Self {
       return new this(input, options)
+    }
+    static makeEffect(input: S["~type.make.in"], options?: MakeOptions): Effect.Effect<Self, Issue.Issue> {
+      return Parser.makeEffect(getClassSchema(this) as any)(input, options) as any
     }
     static makeOption(input: S["~type.make.in"], options?: MakeOptions): Option_.Option<Self> {
       return Parser.makeOption(getClassSchema(this) as any)(input, options) as any
