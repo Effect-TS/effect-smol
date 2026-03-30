@@ -355,6 +355,79 @@ export const fromEffect = <A, E, R>(effect: Effect.Effect<A, E, R>): Stream<A, E
   fromChannel(Channel.fromEffect(Effect.map(effect, Arr.of)))
 
 /**
+ * Accesses a service from the context and emits it as a single element.
+ *
+ * @example
+ * ```ts
+ * import { Effect, ServiceMap, Stream } from "effect"
+ *
+ * class Greeter extends ServiceMap.Service<Greeter, {
+ *   readonly greet: (name: string) => string
+ * }>()("Greeter") {}
+ *
+ * const stream = Stream.service(Greeter).pipe(
+ *   Stream.map((greeter) => greeter.greet("World"))
+ * )
+ *
+ * const program = Effect.gen(function*() {
+ *   return yield* stream.pipe(
+ *     Stream.provideService(Greeter, {
+ *       greet: (name) => `Hello, ${name}!`
+ *     }),
+ *     Stream.runCollect
+ *   )
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [ "Hello, World!" ]
+ * ```
+ *
+ * @since 4.0.0
+ * @category ServiceMap
+ */
+export const service = <I, S>(service: ServiceMap.Key<I, S>): Stream<S, never, I> => fromEffect(Effect.service(service))
+
+/**
+ * Optionally accesses a service from the context and emits the result as a
+ * single element.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Option, ServiceMap, Stream } from "effect"
+ *
+ * class Greeter extends ServiceMap.Service<Greeter, {
+ *   readonly greet: (name: string) => string
+ * }>()("Greeter") {}
+ *
+ * const stream = Stream.serviceOption(Greeter).pipe(
+ *   Stream.map((maybeGreeter) =>
+ *     Option.match(maybeGreeter, {
+ *       onNone: () => "No greeter",
+ *       onSome: (greeter) => greeter.greet("World")
+ *     })
+ *   )
+ * )
+ *
+ * const program = Effect.gen(function*() {
+ *   return yield* stream.pipe(
+ *     Stream.provideService(Greeter, {
+ *       greet: (name) => `Hello, ${name}!`
+ *     }),
+ *     Stream.runCollect
+ *   )
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [ "Hello, World!" ]
+ * ```
+ *
+ * @since 4.0.0
+ * @category ServiceMap
+ */
+export const serviceOption = <I, S>(service: ServiceMap.Key<I, S>): Stream<Option.Option<S>> =>
+  fromEffect(Effect.serviceOption(service))
+
+/**
  * Creates a stream that runs the effect and emits no elements.
  *
  * @example

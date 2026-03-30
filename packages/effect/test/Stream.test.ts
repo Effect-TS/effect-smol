@@ -20,6 +20,7 @@ import {
   References,
   Result,
   Schedule,
+  ServiceMap,
   Sink,
   Stream
 } from "effect"
@@ -131,10 +132,44 @@ describe("Stream", () => {
   })
 
   describe("constructors", () => {
+    class Greeter extends ServiceMap.Service<Greeter, {
+      readonly greet: (name: string) => string
+    }>()("Greeter") {}
+
     it.effect("range - min less than max", () =>
       Effect.gen(function*() {
         const result = yield* Stream.range(1, 3).pipe(Stream.runCollect)
         assert.deepStrictEqual(result, [1, 2, 3])
+      }))
+
+    it.effect("service", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.service(Greeter).pipe(
+          Stream.map((greeter) => greeter.greet("World")),
+          Stream.provideService(Greeter, {
+            greet: (name) => `Hello, ${name}!`
+          }),
+          Stream.runCollect
+        )
+        assert.deepStrictEqual(result, ["Hello, World!"])
+      }))
+
+    it.effect("serviceOption - some", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.serviceOption(Greeter).pipe(
+          Stream.map((option) => Option.map(option, (greeter) => greeter.greet("World"))),
+          Stream.provideService(Greeter, {
+            greet: (name) => `Hello, ${name}!`
+          }),
+          Stream.runCollect
+        )
+        assert.deepStrictEqual(result, [Option.some("Hello, World!")])
+      }))
+
+    it.effect("serviceOption - none", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.serviceOption(Greeter).pipe(Stream.runCollect)
+        assert.deepStrictEqual(result, [Option.none()])
       }))
 
     it.effect("range - min greater than max", () =>
