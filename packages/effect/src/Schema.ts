@@ -6758,6 +6758,7 @@ export interface Option<A extends Top> extends
     OptionIso<A>
   >
 {
+  readonly "~rebuild.out": Option<A>
   readonly value: A
 }
 
@@ -7051,6 +7052,7 @@ export interface Result<A extends Top, E extends Top> extends
     ResultIso<A, E>
   >
 {
+  readonly "~rebuild.out": Result<A, E>
   readonly success: A
   readonly failure: E
 }
@@ -7153,6 +7155,7 @@ export interface Redacted<S extends Top> extends
     readonly [S]
   >
 {
+  readonly "~rebuild.out": Redacted<S>
   readonly value: S
 }
 
@@ -7302,6 +7305,7 @@ export interface CauseReason<E extends Top, D extends Top> extends
     CauseReasonIso<E, D>
   >
 {
+  readonly "~rebuild.out": CauseReason<E, D>
   readonly error: E
   readonly defect: D
 }
@@ -7449,6 +7453,7 @@ export interface Cause<E extends Top, D extends Top> extends
     CauseIso<E, D>
   >
 {
+  readonly "~rebuild.out": Cause<E, D>
   readonly error: E
   readonly defect: D
 }
@@ -7674,6 +7679,7 @@ export interface Exit<A extends Top, E extends Top, D extends Top> extends
     ExitIso<A, E, D>
   >
 {
+  readonly "~rebuild.out": Exit<A, E, D>
   readonly value: A
   readonly error: E
   readonly defect: D
@@ -7805,6 +7811,7 @@ export interface $ReadonlyMap<Key extends Top, Value extends Top> extends
     ReadonlyMapIso<Key, Value>
   >
 {
+  readonly "~rebuild.out": $ReadonlyMap<Key, Value>
   readonly key: Key
   readonly value: Value
 }
@@ -7898,6 +7905,7 @@ export interface HashMap<Key extends Top, Value extends Top> extends
     HashMapIso<Key, Value>
   >
 {
+  readonly "~rebuild.out": HashMap<Key, Value>
   readonly key: Key
   readonly value: Value
 }
@@ -7991,6 +7999,7 @@ export interface $ReadonlySet<Value extends Top> extends
     ReadonlySetIso<Value>
   >
 {
+  readonly "~rebuild.out": $ReadonlySet<Value>
   readonly value: Value
 }
 
@@ -8080,6 +8089,7 @@ export interface HashSet<Value extends Top> extends
     HashSetIso<Value>
   >
 {
+  readonly "~rebuild.out": HashSet<Value>
   readonly value: Value
 }
 
@@ -8172,6 +8182,7 @@ export interface Chunk<Value extends Top> extends
     ChunkIso<Value>
   >
 {
+  readonly "~rebuild.out": Chunk<Value>
   readonly value: Value
 }
 
