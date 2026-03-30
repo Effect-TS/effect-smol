@@ -598,10 +598,10 @@ export const JsonFromString = <S extends Schema.Top>(
  */
 export interface UuidV4Insert<B extends string> extends
   VariantSchema.Field<{
-    readonly select: Schema.brand<Schema.instanceOf<Uint8Array>, B>
-    readonly insert: Schema.withConstructorDefault<Schema.brand<Schema.instanceOf<Uint8Array>, B>>
-    readonly update: Schema.brand<Schema.instanceOf<Uint8Array>, B>
-    readonly json: Schema.brand<Schema.instanceOf<Uint8Array>, B>
+    readonly select: Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
+    readonly insert: Schema.withConstructorDefault<Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>>
+    readonly update: Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
+    readonly json: Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
   }>
 {}
 
