@@ -670,16 +670,16 @@ export function omit<T>(): Getter<never, T> {
  * - A field may be `undefined` in the encoded input and should have a fallback.
  *
  * Behavior:
- * - If the input is `Some(undefined)` or `None`, produces `Some(defaultValue())`.
+ * - If the input is `Some(undefined)` or `None`, produces `Some(T)`.
  * - If the input is `Some(value)` where value is not `undefined`, passes it through.
- * - `defaultValue` is called lazily each time a default is needed.
+ * - `defaultValue` is an `Effect` that will be executed each time a default is needed.
  *
  * **Example** (Default value for optional field)
  *
  * ```ts
- * import { SchemaGetter } from "effect"
+ * import { Effect, SchemaGetter } from "effect"
  *
- * const withZero = SchemaGetter.withDefault(() => 0)
+ * const withZero = SchemaGetter.withDefault(Effect.succeed(0))
  * // Getter<number, number | undefined>
  * ```
  *
@@ -690,13 +690,11 @@ export function omit<T>(): Getter<never, T> {
  * @category Constructors
  * @since 4.0.0
  */
-export function withDefault<T>(defaultValue: () => T): Getter<T, T | undefined> {
-  return transformOptional((o) =>
-    o.pipe(
-      Option.filter(Predicate.isNotUndefined),
-      Option.orElseSome(defaultValue)
-    )
-  )
+export function withDefault<T>(defaultValue: Effect.Effect<T>): Getter<T, T | undefined> {
+  return new Getter((o) => {
+    const filtered = Option.filter(o, Predicate.isNotUndefined)
+    return Option.isSome(filtered) ? Effect.succeed(filtered) : Effect.map(defaultValue, Option.some)
+  })
 }
 
 /**

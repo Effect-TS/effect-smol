@@ -1,5 +1,5 @@
 import type { Options as AjvOptions } from "ajv"
-import { JsonSchema, Schema, SchemaGetter } from "effect"
+import { Effect, JsonSchema, Schema, SchemaGetter } from "effect"
 // import { FastCheck } from "effect/testing"
 import { describe, it } from "vitest"
 import { assertTrue, deepStrictEqual, throws } from "../utils/assert.ts"
@@ -2219,7 +2219,7 @@ describe("toJsonSchemaDocument", () => {
           Schema.Struct({
             a: Schema.optionalKey(Schema.String).pipe(Schema.encodeTo(Schema.String, {
               decode: SchemaGetter.passthrough(),
-              encode: SchemaGetter.withDefault(() => "")
+              encode: SchemaGetter.withDefault(Effect.succeed(""))
             }))
           }),
           {
@@ -2331,7 +2331,7 @@ describe("toJsonSchemaDocument", () => {
           Schema.Struct({
             a: Schema.optional(Schema.String).pipe(Schema.encodeTo(Schema.String, {
               decode: SchemaGetter.passthrough(),
-              encode: SchemaGetter.withDefault(() => "")
+              encode: SchemaGetter.withDefault(Effect.succeed(""))
             }))
           }),
           {
@@ -2831,7 +2831,7 @@ describe("toJsonSchemaDocument", () => {
           Schema.Tuple([
             Schema.optionalKey(Schema.String).pipe(Schema.encodeTo(Schema.String, {
               decode: SchemaGetter.passthrough(),
-              encode: SchemaGetter.withDefault(() => "")
+              encode: SchemaGetter.withDefault(Effect.succeed(""))
             }))
           ]),
           {
@@ -2851,7 +2851,7 @@ describe("toJsonSchemaDocument", () => {
         Schema.Tuple([
           Schema.optionalKey(Schema.String).pipe(Schema.encodeTo(Schema.String, {
             decode: SchemaGetter.passthrough(),
-            encode: SchemaGetter.withDefault(() => "")
+            encode: SchemaGetter.withDefault(Effect.succeed(""))
           }))
         ]),
         {

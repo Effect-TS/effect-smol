@@ -1,4 +1,4 @@
-import { Option, Schema, Tuple } from "effect"
+import { Effect, Schema, Tuple } from "effect"
 import { describe, expect, it } from "tstyche"
 
 describe("Tuple", () => {
@@ -12,7 +12,7 @@ describe("Tuple", () => {
   })
 
   it("defaulted element", () => {
-    const schema = Schema.Tuple([Schema.String.pipe(Schema.withConstructorDefault(() => Option.some("default")))])
+    const schema = Schema.Tuple([Schema.String.pipe(Schema.withConstructorDefault(Effect.succeed("default")))])
     expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<readonly [string], readonly [string]>>()
     expect(schema).type.toBe<Schema.Tuple<readonly [Schema.withConstructorDefault<Schema.String>]>>()
     expect(schema.annotate({})).type.toBe<Schema.Tuple<readonly [Schema.withConstructorDefault<Schema.String>]>>()

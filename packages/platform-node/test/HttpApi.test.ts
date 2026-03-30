@@ -1585,7 +1585,7 @@ class UsersApi extends HttpApiGroup.make("users")
         page: Schema.Finite.pipe(
           Schema.optionalKey,
           Schema.decode({
-            decode: SchemaGetter.withDefault(() => 1),
+            decode: SchemaGetter.withDefault(Effect.succeed(1)),
             encode: SchemaGetter.passthrough()
           })
         )
