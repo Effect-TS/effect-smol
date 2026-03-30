@@ -4263,23 +4263,18 @@ export interface withConstructorDefault<S extends Top & WithoutConstructorDefaul
 /**
  * Attaches a constructor default value to a schema field.
  *
- * The `defaultValue` function receives `Option.some(undefined)` when the field is
- * explicitly set to `undefined`, or `Option.none()` when the field is absent.
- * Return `Option.some(value)` to supply a default, or `Option.none()` to leave the
- * field required. An `Effect` may be returned for async or service-dependent defaults.
- *
- * Constructor defaults are applied only during `makeUnsafe` / `make`, not during
- * decoding or encoding.
+ * Constructor defaults are applied only during `make*`, not during decoding or
+ * encoding.
  *
  * **Example** (Optional field with a static default)
  *
  * ```ts
- * import { Option, Schema } from "effect"
+ * import { Effect, Schema } from "effect"
  *
  * const MySchema = Schema.Struct({
  *   name: Schema.String.pipe(
  *     Schema.optionalKey,
- *     Schema.withConstructorDefault(() => Option.some("anonymous"))
+ *     Schema.withConstructorDefault(Effect.succeed("anonymous"))
  *   )
  * })
  *
@@ -4290,18 +4285,12 @@ export interface withConstructorDefault<S extends Top & WithoutConstructorDefaul
  * @since 4.0.0
  */
 export function withConstructorDefault<S extends Top & WithoutConstructorDefault>(
-  defaultValue: (
-    input: Option_.Option<undefined>
-    // `S["~type.make.in"]` instead of `S["Type"]` is intentional here because
-    // it makes easier to define the default value if there are nested defaults
-  ) => Option_.Option<S["~type.make.in"]> | Effect.Effect<Option_.Option<S["~type.make.in"]>>
+  // `S["~type.make.in"]` instead of `S["Type"]` is intentional here because
+  // it makes easier to define the default value if there are nested defaults
+  defaultValue: Effect.Effect<S["~type.make.in"]>
 ) {
-  return (schema: S): withConstructorDefault<S> => {
-    return make(
-      AST.withConstructorDefault(schema.ast, defaultValue),
-      { schema }
-    )
-  }
+  return (schema: S): withConstructorDefault<S> =>
+    make(AST.withConstructorDefault(schema.ast, defaultValue), { schema })
 }
 
 /**
@@ -4342,10 +4331,10 @@ export type DecodingDefaultOptions = {
  * **Example** (Default for a missing struct key)
  *
  * ```ts
- * import { Schema } from "effect"
+ * import { Effect, Schema } from "effect"
  *
  * const MySchema = Schema.Struct({
- *   name: Schema.String.pipe(Schema.withDecodingDefaultKey(() => "anonymous"))
+ *   name: Schema.String.pipe(Schema.withDecodingDefaultKey(Effect.succeed("anonymous")))
  * })
  *
  * const result = Schema.decodeUnknownSync(MySchema)({})
@@ -4356,7 +4345,7 @@ export type DecodingDefaultOptions = {
  * @since 4.0.0
  */
 export function withDecodingDefaultKey<S extends Top>(
-  defaultValue: () => S["Encoded"],
+  defaultValue: Effect.Effect<S["Encoded"]>,
   options?: DecodingDefaultOptions
 ) {
   const encode = options?.encodingStrategy === "omit" ? Getter.omit() : Getter.passthrough()
@@ -4396,10 +4385,10 @@ export interface withDecodingDefault<S extends Top> extends decodeTo<S, optional
  * **Example** (Default for an optional field value)
  *
  * ```ts
- * import { Schema } from "effect"
+ * import { Effect, Schema } from "effect"
  *
  * const MySchema = Schema.Struct({
- *   name: Schema.String.pipe(Schema.optional, Schema.withDecodingDefault(() => "anonymous"))
+ *   name: Schema.String.pipe(Schema.optional, Schema.withDecodingDefault(Effect.succeed("anonymous")))
  * })
  *
  * const result = Schema.decodeUnknownSync(MySchema)({ name: undefined })
@@ -4410,7 +4399,7 @@ export interface withDecodingDefault<S extends Top> extends decodeTo<S, optional
  * @since 4.0.0
  */
 export function withDecodingDefault<S extends Top>(
-  defaultValue: () => S["Encoded"],
+  defaultValue: Effect.Effect<S["Encoded"]>,
   options?: DecodingDefaultOptions
 ) {
   const encode = options?.encodingStrategy === "omit" ? Getter.omit() : Getter.passthrough()
@@ -4454,7 +4443,7 @@ export interface tag<Tag extends AST.LiteralValue> extends withConstructorDefaul
  * @since 4.0.0
  */
 export function tag<Tag extends AST.LiteralValue>(literal: Tag): tag<Tag> {
-  return Literal(literal).pipe(withConstructorDefault(() => Option_.some(literal)))
+  return Literal(literal).pipe(withConstructorDefault(Effect.succeed(literal)))
 }
 
 /**
@@ -4481,7 +4470,7 @@ export function tag<Tag extends AST.LiteralValue>(literal: Tag): tag<Tag> {
  * @since 4.0.0
  */
 export function tagDefaultOmit<Tag extends AST.LiteralValue>(literal: Tag) {
-  return tag(literal).pipe(withDecodingDefaultKey(() => literal, { encodingStrategy: "omit" }))
+  return tag(literal).pipe(withDecodingDefaultKey(Effect.succeed(literal), { encodingStrategy: "omit" }))
 }
 
 /**
