@@ -570,6 +570,20 @@ export declare namespace IndexedDbQuery {
     >
   {
     readonly select: Select<Table, Index>
+    readonly reactive: (
+      keys: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>>
+    ) => Stream.Stream<
+      SourceTableSelectSchemaType<Table>,
+      IndexedDbQueryError,
+      IndexedDbTable.Context<Table>
+    >
+    readonly reactiveQueue: (
+      keys: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>>
+    ) => Effect.Effect<
+      Queue.Dequeue<SourceTableSelectSchemaType<Table>, IndexedDbQueryError>,
+      never,
+      Scope.Scope | IndexedDbTable.Context<Table>
+    >
   }
 
   /**
@@ -1731,6 +1745,18 @@ const FirstProto: Omit<
   ...CommonProto,
   asEffect(this: IndexedDbQuery.First<any, never>) {
     return getFirst(this) as any
+  },
+  reactive(
+    this: IndexedDbQuery.First<any, never>,
+    keys: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>>
+  ) {
+    return this.select.from.reactivity.stream(keys, this.asEffect())
+  },
+  reactiveQueue(
+    this: IndexedDbQuery.First<any, never>,
+    keys: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>>
+  ) {
+    return this.select.from.reactivity.query(keys, this.asEffect())
   }
 }
 
