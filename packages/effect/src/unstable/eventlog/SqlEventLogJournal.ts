@@ -255,10 +255,11 @@ export const make = (options?: {
       }).pipe(
         Effect.mapError((cause) => new EventJournal.EventJournalError({ cause, method: "destroy" }))
       ),
-      withLock(effect) {
-        return sql.withTransaction(effect).pipe(
-          Effect.catchIf(SqlError.isSqlError, Effect.die)
-        )
+      withLock(_storeId) {
+        return (effect) =>
+          sql.withTransaction(effect).pipe(
+            Effect.catchIf(SqlError.isSqlError, Effect.die)
+          )
       }
     })
   })

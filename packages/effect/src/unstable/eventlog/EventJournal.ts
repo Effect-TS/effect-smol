@@ -13,6 +13,7 @@ import type { Scope } from "../../Scope.ts"
 import * as Semaphore from "../../Semaphore.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Msgpack from "../encoding/Msgpack.ts"
+import type { StoreId } from "./EventLog.ts"
 
 /**
  * @since 4.0.0
@@ -85,7 +86,7 @@ export class EventJournal extends ServiceMap.Service<EventJournal, {
   /**
    * Run an effect with a lock on the journal.
    */
-  readonly withLock: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
+  readonly withLock: (storeId: StoreId) => <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
 }>()("effect/eventlog/EventJournal") {}
 
 const TypeId = "effect/eventlog/EventJournal/EventJournalError" as const
@@ -240,7 +241,15 @@ export const makeMemory: Effect.Effect<EventJournal["Service"]> = Effect.gen(fun
   const byId = new Map<string, Entry>()
   const remotes = new Map<string, { sequence: number; missing: Array<Entry> }>()
   const pubsub = yield* PubSub.unbounded<Entry>()
-  const withLock = Semaphore.makeUnsafe(1).withPermit
+  const storeSemaphores = new Map<StoreId, Semaphore.Semaphore>()
+  const withLock = (storeId: StoreId) => {
+    let semaphore = storeSemaphores.get(storeId)
+    if (!semaphore) {
+      semaphore = Semaphore.makeUnsafe(1)
+      storeSemaphores.set(storeId, semaphore)
+    }
+    return semaphore.withPermit
+  }
 
   const ensureRemote = (remoteId: RemoteId) => {
     const remoteIdString = Uuid.stringify(remoteId)
@@ -598,9 +607,9 @@ export const makeIndexedDb = (options?: {
 
 const makeBrowserWithLock = Effect.fnUntraced(function*(key: string) {
   if (typeof navigator !== "undefined" && "locks" in navigator) {
-    return <A, E, R>(self: Effect.Effect<A, E, R>) =>
+    return (storeId: StoreId) => <A, E, R>(self: Effect.Effect<A, E, R>) =>
       Effect.callback<A, E, R>((resume, signal) => {
-        navigator.locks.request(key, { signal }, () =>
+        navigator.locks.request(`${key}/${storeId}`, { signal }, () =>
           new Promise<void>((resolve) => {
             resume(Effect.onExit(self, () => {
               resolve()
@@ -609,7 +618,15 @@ const makeBrowserWithLock = Effect.fnUntraced(function*(key: string) {
           })).catch((defect) => resume(Effect.die(defect)))
       })
   }
-  return Semaphore.makeUnsafe(1).withPermit
+  const semaphores = new Map<StoreId, Semaphore.Semaphore>()
+  return (storeId: StoreId) => {
+    let semaphore = semaphores.get(storeId)
+    if (!semaphore) {
+      semaphore = Semaphore.makeUnsafe(1)
+      semaphores.set(storeId, semaphore)
+    }
+    return semaphore.withPermit
+  }
 })
 
 const decodeEntryIdb = Schema.decodeSync(Entry)

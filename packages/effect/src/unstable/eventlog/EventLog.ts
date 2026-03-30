@@ -686,7 +686,7 @@ const make = Effect.gen(function*() {
             effect: replayFromRemote
           }).pipe(
             Effect.tap(({ duplicateEntries }) => invalidateReactivityEntries(duplicateEntries)),
-            journal.withLock
+            journal.withLock(storeId)
           )
         ),
         Effect.catchCause(Effect.logError),
@@ -721,7 +721,7 @@ const make = Effect.gen(function*() {
     const payload = yield* Schema.encodeUnknownEffect(handler.event.payloadMsgPack)(options.payload).pipe(
       Effect.orDie
     )
-    return yield* journal.withLock(journal.write({
+    return yield* journal.withLock(storeId)(journal.write({
       event: options.event,
       primaryKey: handler.event.primaryKey(options.payload as never),
       payload,
