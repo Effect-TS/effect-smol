@@ -277,9 +277,7 @@ export interface declareConstructor<T, E, TypeParameters extends ReadonlyArray<T
     Iso,
     TypeParameters
   >
-{
-  readonly "~rebuild.out": this
-}
+{}
 
 /**
  * Creates a schema for a **parametric** type (a generic container such as
@@ -358,7 +356,9 @@ export function declareConstructor<T, E = T, Iso = T>() {
  * @category Constructors
  * @since 4.0.0
  */
-export interface declare<T, Iso = T> extends declareConstructor<T, T, readonly [], Iso> {}
+export interface declare<T, Iso = T> extends declareConstructor<T, T, readonly [], Iso> {
+  readonly "~rebuild.out": declare<T, Iso>
+}
 
 /**
  * Creates a schema for a **non-parametric** opaque type using a type-guard
@@ -1475,7 +1475,6 @@ export interface optionalKey<S extends Top> extends
     "optional"
   >
 {
-  readonly "~rebuild.out": this
   readonly schema: S
 }
 
@@ -1600,7 +1599,6 @@ export interface mutableKey<S extends Top> extends
     S["~encoded.optionality"]
   >
 {
-  readonly "~rebuild.out": this
   readonly schema: S
 }
 
@@ -1655,9 +1653,7 @@ export interface toType<S extends Top> extends
     S["~encoded.mutability"],
     S["~encoded.optionality"]
   >
-{
-  readonly "~rebuild.out": this
-}
+{}
 
 interface toTypeLambda extends Lambda {
   <S extends Top>(self: S): toType<S>
@@ -1696,9 +1692,7 @@ export interface toEncoded<S extends Top> extends
     S["~encoded.mutability"],
     S["~encoded.optionality"]
   >
-{
-  readonly "~rebuild.out": this
-}
+{}
 
 interface toEncodedLambda extends Lambda {
   <S extends Top>(self: S): toEncoded<S>
@@ -1740,7 +1734,6 @@ export interface flip<S extends Top> extends
     S["~type.optionality"]
   >
 {
-  readonly "~rebuild.out": this
   readonly [FlipTypeId]: typeof FlipTypeId
   readonly schema: S
 }
@@ -1780,7 +1773,6 @@ export function flip<S extends Top>(schema: S): flip<S> {
  * @since 4.0.0
  */
 export interface Literal<L extends AST.LiteralValue> extends Bottom<L, L, never, never, AST.Literal, Literal<L>> {
-  readonly "~rebuild.out": this
   readonly literal: L
   transform<L2 extends AST.LiteralValue>(to: L2): decodeTo<Literal<L2>, Literal<L>>
 }
@@ -1873,7 +1865,6 @@ export interface TemplateLiteral<Parts extends TemplateLiteral.Parts> extends
     TemplateLiteral<Parts>
   >
 {
-  readonly "~rebuild.out": this
   readonly parts: Parts
 }
 
@@ -1935,7 +1926,6 @@ export interface TemplateLiteralParser<Parts extends TemplateLiteral.Parts> exte
     TemplateLiteralParser<Parts>
   >
 {
-  readonly "~rebuild.out": this
   readonly parts: Parts
 }
 
@@ -1970,7 +1960,6 @@ export function TemplateLiteralParser<const Parts extends TemplateLiteral.Parts>
 export interface Enum<A extends { [x: string]: string | number }>
   extends Bottom<A[keyof A], A[keyof A], never, never, AST.Enum, Enum<A>>
 {
-  readonly "~rebuild.out": this
   readonly enums: A
 }
 
@@ -2009,9 +1998,7 @@ export function Enum<A extends { [x: string]: string | number }>(enums: A): Enum
  * @see {@link Never} for the schema value.
  * @since 4.0.0
  */
-export interface Never extends Bottom<never, never, never, never, AST.Never, Never> {
-  readonly "~rebuild.out": this
-}
+export interface Never extends Bottom<never, never, never, never, AST.Never, Never> {}
 
 /**
  * Schema for the `never` type. Always fails validation — no value satisfies it.
@@ -2026,9 +2013,7 @@ export const Never: Never = make(AST.never)
  * @see {@link Any} for the schema value.
  * @since 4.0.0
  */
-export interface Any extends Bottom<any, any, never, never, AST.Any, Any> {
-  readonly "~rebuild.out": this
-}
+export interface Any extends Bottom<any, any, never, never, AST.Any, Any> {}
 
 /**
  * Schema for the `any` type. Accepts any value without validation.
@@ -2044,9 +2029,7 @@ export const Any: Any = make(AST.any)
  * @see {@link Unknown} for the schema value.
  * @since 4.0.0
  */
-export interface Unknown extends Bottom<unknown, unknown, never, never, AST.Unknown, Unknown> {
-  readonly "~rebuild.out": this
-}
+export interface Unknown extends Bottom<unknown, unknown, never, never, AST.Unknown, Unknown> {}
 
 /**
  * Schema for the `unknown` type. Accepts any value without validation.
@@ -2062,9 +2045,7 @@ export const Unknown: Unknown = make(AST.unknown)
  * @see {@link Null} for the schema value.
  * @since 4.0.0
  */
-export interface Null extends Bottom<null, null, never, never, AST.Null, Null> {
-  readonly "~rebuild.out": this
-}
+export interface Null extends Bottom<null, null, never, never, AST.Null, Null> {}
 
 /**
  * Schema for the `null` literal. Validates that the input is strictly `null`.
@@ -2080,9 +2061,7 @@ export const Null: Null = make(AST.null)
  * @see {@link Undefined} for the schema value.
  * @since 4.0.0
  */
-export interface Undefined extends Bottom<undefined, undefined, never, never, AST.Undefined, Undefined> {
-  readonly "~rebuild.out": this
-}
+export interface Undefined extends Bottom<undefined, undefined, never, never, AST.Undefined, Undefined> {}
 
 /**
  * Schema for the `undefined` literal. Validates that the input is strictly `undefined`.
@@ -2098,9 +2077,7 @@ export const Undefined: Undefined = make(AST.undefined)
  * @see {@link String} for the schema value.
  * @since 4.0.0
  */
-export interface String extends Bottom<string, string, never, never, AST.String, String> {
-  readonly "~rebuild.out": this
-}
+export interface String extends Bottom<string, string, never, never, AST.String, String> {}
 
 /**
  * Schema for `string` values. Validates that the input is `typeof` `"string"`.
@@ -2115,9 +2092,7 @@ export const String: String = make(AST.string)
  * @see {@link Number} for the schema value.
  * @since 4.0.0
  */
-export interface Number extends Bottom<number, number, never, never, AST.Number, Number> {
-  readonly "~rebuild.out": this
-}
+export interface Number extends Bottom<number, number, never, never, AST.Number, Number> {}
 
 /**
  * Schema for `number` values, including `NaN`, `Infinity`, and `-Infinity`.
@@ -2138,9 +2113,7 @@ export const Number: Number = make(AST.number)
  * @see {@link Boolean} for the schema value.
  * @since 4.0.0
  */
-export interface Boolean extends Bottom<boolean, boolean, never, never, AST.Boolean, Boolean> {
-  readonly "~rebuild.out": this
-}
+export interface Boolean extends Bottom<boolean, boolean, never, never, AST.Boolean, Boolean> {}
 
 /**
  * Schema for `boolean` values. Validates that the input is `typeof` `"boolean"`.
@@ -2156,9 +2129,7 @@ export const Boolean: Boolean = make(AST.boolean)
  * @see {@link Symbol} for the schema value.
  * @since 4.0.0
  */
-export interface Symbol extends Bottom<symbol, symbol, never, never, AST.Symbol, Symbol> {
-  readonly "~rebuild.out": this
-}
+export interface Symbol extends Bottom<symbol, symbol, never, never, AST.Symbol, Symbol> {}
 
 /**
  * Schema for `symbol` values. Validates that the input is `typeof` `"symbol"`.
@@ -2174,9 +2145,7 @@ export const Symbol: Symbol = make(AST.symbol)
  * @see {@link BigInt} for the schema value.
  * @since 4.0.0
  */
-export interface BigInt extends Bottom<bigint, bigint, never, never, AST.BigInt, BigInt> {
-  readonly "~rebuild.out": this
-}
+export interface BigInt extends Bottom<bigint, bigint, never, never, AST.BigInt, BigInt> {}
 
 /**
  * Schema for `bigint` values. Validates that the input is `typeof` `"bigint"`.
@@ -2191,9 +2160,7 @@ export const BigInt: BigInt = make(AST.bigInt)
  * @see {@link Void} for the schema value.
  * @since 4.0.0
  */
-export interface Void extends Bottom<void, void, never, never, AST.Void, Void> {
-  readonly "~rebuild.out": this
-}
+export interface Void extends Bottom<void, void, never, never, AST.Void, Void> {}
 
 /**
  * Schema for the `void` type. Accepts `undefined` as the encoded value.
@@ -2208,9 +2175,7 @@ export const Void: Void = make(AST.void)
  * @see {@link ObjectKeyword} for the schema value.
  * @since 4.0.0
  */
-export interface ObjectKeyword extends Bottom<object, object, never, never, AST.ObjectKeyword, ObjectKeyword> {
-  readonly "~rebuild.out": this
-}
+export interface ObjectKeyword extends Bottom<object, object, never, never, AST.ObjectKeyword, ObjectKeyword> {}
 
 /**
  * Schema for the `object` type. Validates that the input is a non-null object or function
@@ -2228,9 +2193,7 @@ export const ObjectKeyword: ObjectKeyword = make(AST.objectKeyword)
  */
 export interface UniqueSymbol<sym extends symbol>
   extends Bottom<sym, sym, never, never, AST.UniqueSymbol, UniqueSymbol<sym>>
-{
-  readonly "~rebuild.out": this
-}
+{}
 
 /**
  * Creates a schema for a specific symbol. Only that exact symbol satisfies the schema.
@@ -2381,7 +2344,6 @@ export interface Struct<Fields extends Struct.Fields> extends
     Struct.Iso<Fields>
   >
 {
-  readonly "~rebuild.out": this
   /**
    * The field definitions of this struct. Spread them into a new struct to
    * reuse fields across schemas.
@@ -2726,7 +2688,6 @@ export interface $Record<Key extends Record.Key, Value extends Top> extends
     Record.Iso<Key, Value>
   >
 {
-  readonly "~rebuild.out": this
   readonly key: Key
   readonly value: Value
 }
@@ -2855,7 +2816,6 @@ export interface StructWithRest<
     Simplify<StructWithRest.Iso<S, Records>>
   >
 {
-  readonly "~rebuild.out": this
   readonly schema: S
   readonly records: Records
 }
@@ -2997,7 +2957,6 @@ export interface Tuple<Elements extends Tuple.Elements> extends
     Tuple.Iso<Elements>
   >
 {
-  readonly "~rebuild.out": this
   readonly elements: Elements
   /**
    * Returns a new tuple with the elements modified by the provided function.
@@ -3152,7 +3111,6 @@ export interface TupleWithRest<
     TupleWithRest.Iso<S["Iso"], Rest>
   >
 {
-  readonly "~rebuild.out": this
   readonly schema: S
   readonly rest: Rest
 }
@@ -3205,7 +3163,6 @@ export interface $Array<S extends Top> extends
     ReadonlyArray<S["Iso"]>
   >
 {
-  readonly "~rebuild.out": this
   readonly schema: S
 }
 
@@ -3259,7 +3216,6 @@ export interface NonEmptyArray<S extends Top> extends
     readonly [S["Iso"], ...Array<S["Iso"]>]
   >
 {
-  readonly "~rebuild.out": this
   readonly schema: S
 }
 
@@ -3366,7 +3322,6 @@ export interface mutable<S extends Top & { readonly "ast": AST.Arrays }> extends
     S["~encoded.optionality"]
   >
 {
-  readonly "~rebuild.out": this
   readonly schema: S
 }
 
@@ -3413,7 +3368,6 @@ export interface Union<Members extends ReadonlyArray<Top>> extends
     { [K in keyof Members]: Members[K]["Iso"] }[number]
   >
 {
-  readonly "~rebuild.out": this
   readonly members: Members
   /**
    * Returns a new union with the members modified by the provided function.
@@ -3497,7 +3451,6 @@ export function Union<const Members extends ReadonlyArray<Top>>(
 export interface Literals<L extends ReadonlyArray<AST.LiteralValue>>
   extends Bottom<L[number], L[number], never, never, AST.Union<AST.Literal>, Literals<L>>
 {
-  readonly "~rebuild.out": this
   readonly literals: L
   readonly members: { readonly [K in keyof L]: Literal<L[K]> }
   /**
@@ -3629,9 +3582,7 @@ export interface suspend<S extends Top> extends
     S["~encoded.mutability"],
     S["~encoded.optionality"]
   >
-{
-  readonly "~rebuild.out": this
-}
+{}
 
 /**
  * Creates a suspended schema that defers evaluation until needed. This is
@@ -3705,7 +3656,6 @@ export interface refine<T extends S["Type"], S extends Top> extends
     S["~encoded.optionality"]
   >
 {
-  readonly "~rebuild.out": this
   readonly schema: S
 }
 
@@ -3751,7 +3701,6 @@ export interface brand<S extends Top, B> extends
     S["~encoded.optionality"]
   >
 {
-  readonly "~rebuild.out": this
   readonly schema: S
   readonly identifier: string
 }
@@ -3811,7 +3760,6 @@ export interface middlewareDecoding<S extends Top, RD> extends
     S["~encoded.optionality"]
   >
 {
-  readonly "~rebuild.out": this
   readonly schema: S
 }
 
@@ -3878,7 +3826,6 @@ export interface middlewareEncoding<S extends Top, RE> extends
     S["~encoded.optionality"]
   >
 {
-  readonly "~rebuild.out": this
   readonly schema: S
 }
 
@@ -4009,7 +3956,6 @@ export interface decodeTo<To extends Top, From extends Top, RD = never, RE = nev
     From["~encoded.optionality"]
   >
 {
-  readonly "~rebuild.out": this
   readonly from: From
   readonly to: To
 }
@@ -4256,7 +4202,6 @@ export interface withConstructorDefault<S extends Top & WithoutConstructorDefaul
     S["~encoded.optionality"]
   >
 {
-  readonly "~rebuild.out": this
   readonly schema: S
 }
 
@@ -4673,7 +4618,6 @@ export interface TaggedUnion<Cases extends Record<string, Top>> extends
     { [K in keyof Cases]: Cases[K]["~type.make"] }[keyof Cases]
   >
 {
-  readonly "~rebuild.out": this
   readonly cases: Cases
   readonly isAnyOf: <const Keys>(
     keys: ReadonlyArray<Keys>
@@ -4756,7 +4700,6 @@ export interface Opaque<Self, S extends Top, Brand> extends
     S["~encoded.optionality"]
   >
 {
-  // intentionally left without `readonly "~rebuild.out": this`
   new(_: never): S["Type"] & Brand
 }
 
@@ -4796,7 +4739,7 @@ export function Opaque<Self, Brand = {}>() {
  * @since 4.0.0
  */
 export interface instanceOf<T, Iso = T> extends declare<T, Iso> {
-  readonly "~rebuild.out": this
+  readonly "~rebuild.out": instanceOf<T, Iso>
 }
 
 /**
@@ -9780,7 +9723,6 @@ export interface Class<Self, S extends Top & { readonly fields: Struct.Fields },
     S["~encoded.optionality"]
   >
 {
-  // intentionally left without `readonly "~rebuild.out": this`
   new(
     ...args: {} extends S["~type.make.in"] ? [props?: S["~type.make.in"], options?: MakeOptions]
       : [props: S["~type.make.in"], options?: MakeOptions]
@@ -10948,7 +10890,6 @@ export interface overrideToCodecIso<S extends Top, Iso> extends
     S["~encoded.optionality"]
   >
 {
-  readonly "~rebuild.out": this
   readonly schema: S
 }
 
