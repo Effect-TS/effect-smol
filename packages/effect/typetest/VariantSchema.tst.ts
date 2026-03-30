@@ -1,4 +1,4 @@
-import { Schema } from "effect"
+import { type Brand, type DateTime, Schema } from "effect"
 import { Model, VariantSchema } from "effect/unstable/schema"
 import { describe, expect, it } from "tstyche"
 
@@ -56,5 +56,21 @@ describe("Model", () => {
 
     expect<Schema.Codec.Encoded<typeof select>>().type.toBe<{ readonly active: 0 | 1 }>()
     expect<Schema.Codec.Encoded<typeof json>>().type.toBe<{ readonly active: boolean }>()
+  })
+
+  it("Overrideable fields are only optional for the constructor", () => {
+    const User = Model.Struct({
+      createdAt: Model.DateTimeInsertFromNumber
+    })
+    const select = Model.extract(User, "select")
+    const insert = Model.extract(User, "insert")
+
+    expect<Schema.Schema.Type<typeof select>>().type.toBe<{ readonly createdAt: DateTime.Utc }>()
+    expect<Schema.Schema.Type<typeof insert>>().type.toBe<
+      { readonly createdAt: DateTime.Utc & Brand.Brand<"Override"> }
+    >()
+    expect<Schema.Struct.MakeIn<typeof insert.fields>>().type.toBe<
+      { readonly createdAt?: DateTime.Utc & Brand.Brand<"Override"> | undefined }
+    >()
   })
 })
