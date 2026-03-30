@@ -2763,7 +2763,7 @@ const normalizeMcpToolCall = Effect.fnUntraced(function*<Tools extends ReadonlyA
   return { toolName, params }
 })
 
-const getUsage = (usage: Generated.ResponseUsage | null | undefined): Response.Usage => {
+const getUsage = (usage: OpenAiSchema.ResponseUsage | null | undefined): Response.Usage => {
   if (Predicate.isNullish(usage)) {
     return {
       inputTokens: {
