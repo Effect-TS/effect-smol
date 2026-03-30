@@ -620,7 +620,7 @@ export const Uint8Array: Schema.instanceOf<Uint8Array<ArrayBuffer>> = Schema.Uin
 export const UuidV4WithGenerate = <B extends string>(
   schema: Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
 ): Schema.withConstructorDefault<Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>> =>
-  schema.pipe(Schema.withConstructorDefault(() => Option.some(Uuid.v4({}, new globalThis.Uint8Array(16)))))
+  schema.pipe(Schema.withConstructorDefault(Effect.sync(() => Uuid.v4({}, new globalThis.Uint8Array(16)))))
 
 /**
  * A field that represents a binary UUID v4 that is generated on inserts.

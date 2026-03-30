@@ -4,7 +4,6 @@
 import type { Brand } from "../../Brand.ts"
 import * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"
-import * as Option from "../../Option.ts"
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
@@ -498,7 +497,7 @@ export const Overrideable = <S extends Schema.Top & Schema.WithoutConstructorDef
 ): Overrideable<S> =>
   schema.pipe(
     Schema.decodeTo(Schema.brand("Override")(Schema.toType(schema))),
-    Schema.withConstructorDefault(() => Effect.map(options.defaultValue, (a) => Option.some(Override(a))))
+    Schema.withConstructorDefault(Effect.map(options.defaultValue, Override))
   ) as any
 
 const StructProto = {
