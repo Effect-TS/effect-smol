@@ -204,34 +204,34 @@ export const makeHandler: Effect.Effect<
         })
       )))
 
-      const handleRequest = (request: Schema.Schema.Type<typeof ProtocolRequest>): Effect.Effect<void> => {
-        switch (request._tag) {
-          case "Ping": {
-            return Effect.orDie(write(new Pong({ id: request.id })))
-          }
-          case "Authenticate": {
-            return handleAuthenticate(request)
-          }
-          case "WriteEntries": {
-            if (authenticatedPublicKey !== request.publicKey) {
-              return writeForbidden({
-                requestTag: "WriteEntries",
-                id: request.id,
-                publicKey: request.publicKey
-              })
+      const handleRequest = Effect.fnUntraced(
+        function*(request: Schema.Schema.Type<typeof ProtocolRequest>): Effect.fn.Return<void> {
+          switch (request._tag) {
+            case "Ping": {
+              return yield* Effect.orDie(write(new Pong({ id: request.id })))
             }
+            case "Authenticate": {
+              return yield* handleAuthenticate(request)
+            }
+            case "WriteEntries": {
+              if (authenticatedPublicKey !== request.publicKey) {
+                return yield* writeForbidden({
+                  requestTag: "WriteEntries",
+                  id: request.id,
+                  publicKey: request.publicKey
+                })
+              }
 
-            if (request.encryptedEntries.length === 0) {
-              return Effect.orDie(
-                write(
-                  new Ack({
-                    id: request.id,
-                    sequenceNumbers: []
-                  })
+              if (request.encryptedEntries.length === 0) {
+                return yield* Effect.orDie(
+                  write(
+                    new Ack({
+                      id: request.id,
+                      sequenceNumbers: []
+                    })
+                  )
                 )
-              )
-            }
-            return Effect.gen(function*() {
+              }
               const entries = request.encryptedEntries.map(({ encryptedEntry, entryId }) =>
                 new PersistedEntry({
                   entryId,
@@ -239,82 +239,98 @@ export const makeHandler: Effect.Effect<
                   encryptedEntry
                 })
               )
-              const encrypted = yield* storage.write(request.publicKey, request.storeId, entries)
-              return yield* Effect.orDie(
-                write(
-                  new Ack({
-                    id: request.id,
-                    sequenceNumbers: encrypted.map((entry) => entry.sequence)
-                  })
-                )
-              )
-            })
-          }
-          case "RequestChanges": {
-            if (authenticatedPublicKey !== request.publicKey) {
-              return writeForbidden({
-                requestTag: "RequestChanges",
-                publicKey: request.publicKey
-              })
-            }
-
-            const subscriptionKey = makeEncryptedScopeKey({
-              publicKey: request.publicKey,
-              storeId: request.storeId
-            })
-
-            return Effect.gen(function*() {
-              let latestSequence = request.startSequence - 1
-              const changes = yield* storage.changes(request.publicKey, request.storeId, request.startSequence)
-              return yield* Queue.takeAll(changes).pipe(
-                Effect.flatMap((entries) => {
-                  const latestEntries: Array<EncryptedRemoteEntry> = []
-                  for (const entry of entries) {
-                    if (entry.sequence <= latestSequence) continue
-                    latestEntries.push(entry)
-                    latestSequence = entry.sequence
-                  }
-                  if (latestEntries.length === 0) return Effect.void
-                  return Effect.orDie(
+              return yield* storage.write(request.publicKey, request.storeId, entries).pipe(
+                Effect.matchCauseEffect({
+                  onFailure: (_) =>
                     write(
-                      new Changes({
+                      new ProtocolError({
+                        requestTag: "WriteEntries",
+                        id: request.id,
                         publicKey: request.publicKey,
                         storeId: request.storeId,
-                        entries: latestEntries
+                        code: "InternalServerError",
+                        message: "Persistence failure"
+                      })
+                    ),
+                  onSuccess: (encrypted) =>
+                    write(
+                      new Ack({
+                        id: request.id,
+                        sequenceNumbers: encrypted.map((entry) => entry.sequence)
                       })
                     )
-                  )
                 }),
-                Effect.forever
+                Effect.orDie
               )
-            }).pipe(
-              Effect.scoped,
-              FiberMap.run(subscriptions, subscriptionKey)
-            )
-          }
-          case "StopChanges": {
-            if (authenticatedPublicKey !== request.publicKey) {
-              return writeForbidden({
-                requestTag: "StopChanges",
-                publicKey: request.publicKey
-              })
             }
+            case "RequestChanges": {
+              if (authenticatedPublicKey !== request.publicKey) {
+                return yield* writeForbidden({
+                  requestTag: "RequestChanges",
+                  publicKey: request.publicKey
+                })
+              }
 
-            return FiberMap.remove(
-              subscriptions,
-              makeEncryptedScopeKey({
+              const subscriptionKey = makeEncryptedScopeKey({
                 publicKey: request.publicKey,
                 storeId: request.storeId
               })
-            )
-          }
-          case "ChunkedMessage": {
-            const data = ChunkedMessage.join(chunks, request)
-            if (!data) return Effect.void
-            return Effect.flatMap(Effect.orDie(decodeRequest(data)), handleRequest)
+
+              yield* Effect.gen(function*() {
+                let latestSequence = request.startSequence - 1
+                const changes = yield* storage.changes(request.publicKey, request.storeId, request.startSequence)
+                return yield* Queue.takeAll(changes).pipe(
+                  Effect.flatMap((entries) => {
+                    const latestEntries: Array<EncryptedRemoteEntry> = []
+                    for (const entry of entries) {
+                      if (entry.sequence <= latestSequence) continue
+                      latestEntries.push(entry)
+                      latestSequence = entry.sequence
+                    }
+                    if (latestEntries.length === 0) return Effect.void
+                    return Effect.orDie(
+                      write(
+                        new Changes({
+                          publicKey: request.publicKey,
+                          storeId: request.storeId,
+                          entries: latestEntries
+                        })
+                      )
+                    )
+                  }),
+                  Effect.forever
+                )
+              }).pipe(
+                Effect.scoped,
+                FiberMap.run(subscriptions, subscriptionKey)
+              )
+              return
+            }
+            case "StopChanges": {
+              if (authenticatedPublicKey !== request.publicKey) {
+                return yield* writeForbidden({
+                  requestTag: "StopChanges",
+                  publicKey: request.publicKey
+                })
+              }
+
+              return yield* FiberMap.remove(
+                subscriptions,
+                makeEncryptedScopeKey({
+                  publicKey: request.publicKey,
+                  storeId: request.storeId
+                })
+              )
+            }
+            case "ChunkedMessage": {
+              const data = ChunkedMessage.join(chunks, request)
+              if (!data) return
+              const decoded = yield* Effect.orDie(decodeRequest(data))
+              return yield* handleRequest(decoded)
+            }
           }
         }
-      }
+      )
 
       yield* socket.run((data) => Effect.flatMap(Effect.orDie(decodeRequest(data)), handleRequest)).pipe(
         Effect.catchCause((cause) => Effect.logDebug(cause))
