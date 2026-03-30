@@ -228,33 +228,32 @@ class NetworkError extends Data.TaggedError("NetworkError")<{
 }> {}
 
 // Use in operations
-const validateAndFetch = (url: string) =>
-  Effect.gen(function*() {
-    if (!url.startsWith("https://")) {
-      return yield* Effect.fail(
-        new ValidationError({
-          field: "url",
-          message: "URL must use HTTPS"
-        })
-      )
-    }
+const validateAndFetch = Effect.fn(function*(url: string) {
+  if (!url.startsWith("https://")) {
+    return yield* Effect.fail(
+      new ValidationError({
+        field: "url",
+        message: "URL must use HTTPS"
+      })
+    )
+  }
 
-    const response = yield* Effect.tryPromise({
-      try: () => fetch(url),
-      catch: () => new NetworkError({ status: 0, url })
-    })
-
-    if (!response.ok) {
-      return yield* Effect.fail(
-        new NetworkError({
-          status: response.status,
-          url
-        })
-      )
-    }
-
-    return response
+  const response = yield* Effect.tryPromise({
+    try: () => fetch(url),
+    catch: () => new NetworkError({ status: 0, url })
   })
+
+  if (!response.ok) {
+    return yield* Effect.fail(
+      new NetworkError({
+        status: response.status,
+        url
+      })
+    )
+  }
+
+  return response
+})
 ```
 
 ### Resource Management Pattern
@@ -265,7 +264,7 @@ Use `Effect.acquireUseRelease` for automatic resource cleanup:
 import { Console, Effect } from "effect"
 
 // Resource acquisition pattern
-const withDatabase = <A, E>(
+const withDatabase = Effect.fn(<A, E>(
   operation: (db: Database) => Effect.Effect<A, E, never>
 ): Effect.Effect<A, E | DatabaseError, never> =>
   Effect.acquireUseRelease(
@@ -278,39 +277,47 @@ const withDatabase = <A, E>(
     operation,
     // Release
     (db) => Effect.promise(() => db.close())
-  )
+  ))
 
 // Usage
-const queryUser = (id: string) =>
-  withDatabase((db) =>
-    Effect.gen(function*() {
-      const user = yield* Effect.tryPromise({
-        try: () => db.query("SELECT * FROM users WHERE id = ?", [id]),
-        catch: (error) => new QueryError({ query: "users", cause: error })
-      })
-
-      yield* Console.log(`Found user: ${user.name}`)
-      return user
+const queryUser = Effect.fn((id: string) =>
+  withDatabase(Effect.fnUntraced(function*(db) {
+    const user = yield* Effect.tryPromise({
+      try: () => db.query("SELECT * FROM users WHERE id = ?", [id]),
+      catch: (error) => new QueryError({ query: "users", cause: error })
     })
-  )
+
+    yield* Console.log(`Found user: ${user.name}`)
+    return user
+  }))
 ```
 
 ### Layer Composition Pattern
 
+Prefer the class syntax when working with `ServiceMap.Service`. For example:
+
+```ts
+import { ServiceMap } from "effect"
+
+class MyService extends ServiceMap.Service<MyService, {
+  readonly doSomething: (input: string) => number
+}>()("MyService") {}
+```
+
 Build applications using layered architecture:
 
 ```typescript
-import { Context, Effect, Layer } from "effect"
+import { Effect, Layer, ServiceMap } from "effect"
 
 // Define service interfaces
-class DatabaseService extends Context.Tag("DatabaseService")<
+class DatabaseService extends ServiceMap.Service("DatabaseService")<
   DatabaseService,
   {
     readonly query: (sql: string) => Effect.Effect<unknown[], DatabaseError, never>
   }
 >() {}
 
-class UserService extends Context.Tag("UserService")<
+class UserService extends ServiceMap.Service("UserService")<
   UserService,
   {
     readonly getUser: (id: string) => Effect.Effect<User, UserError, never>
@@ -402,24 +409,21 @@ interface FeatureConfig {
 }
 
 // Step 2: Core implementation
-const createFeature = (config: FeatureConfig) =>
-  Effect.gen(function*() {
-    // Basic implementation
-    yield* Console.log("Feature created")
-    return { config }
-  })
+const createFeature = Effect.fn(function*(config: FeatureConfig) {
+  // Basic implementation
+  yield* Console.log("Feature created")
+  return { config }
+})
 
 // Step 3: Add error handling
-const createFeatureWithValidation = (config: FeatureConfig) =>
-  Effect.gen(function*() {
-    if (config.option2 < 0) {
-      return yield* Effect.fail("Option2 must be positive")
-    }
+const createFeatureWithValidation = Effect.fn(function*(config: FeatureConfig) {
+  if (config.option2 < 0) {
+    return yield* Effect.fail("Option2 must be positive")
+  }
 
-    const feature = yield* createFeature(config)
-    return feature
-  })
-
+  const feature = yield* createFeature(config)
+  return feature
+})
 // Step 4: Add comprehensive functionality
 // ... continue building incrementally
 ```
@@ -528,5 +532,3 @@ describe("ModuleName", () => {
   })
 })
 ```
-
-This comprehensive set of patterns ensures consistent, high-quality development across the Effect library while maintaining type safety and functional programming principles.

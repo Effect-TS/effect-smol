@@ -3,7 +3,6 @@
   "type": "module",
   "packageManager": "pnpm@10.17.1",
   "scripts": {
-    "postinstall": "pnpm ai:rulesync",
     "clean": "node scripts/clean.mjs",
     "codegen": "pnpm --recursive --parallel --filter \"./packages/**/*\" run codegen",
     "codemod": "node scripts/codemod.mjs",
@@ -17,7 +16,6 @@
     "check-recursive": "pnpm --recursive --filter \"./packages/**/*\" exec tspc -b tsconfig.json",
     "lint": "oxlint && dprint check",
     "lint-fix": "oxlint --fix && dprint fmt",
-    "ai:rulesync": "rulesync generate --targets=claudecode,codexcli,opencode --features=commands,rules,skills",
     "docgen": "pnpm --recursive --filter \"./packages/**/*\" exec docgen && node scripts/docs.mjs",
     "ai-docgen": "effect-ai-docgen ai-docs/src -o LLMS.md",
     "ai-docgen:watch": "pnpm ai-docgen --watch",
@@ -64,7 +62,6 @@
     "rollup-plugin-bundle-stats": "^4.21.9",
     "rollup-plugin-esbuild": "^6.2.1",
     "rollup-plugin-visualizer": "^6.0.5",
-    "rulesync": "^6.2.0",
     "terser": "^5.46.0",
     "ts-patch": "^3.3.0",
     "tstyche": "7.0.0-rc.0",

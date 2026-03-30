@@ -1,10 +1,3 @@
----
-root: true
-targets: ["*"]
-description: "Core instructions for the Effect library repository"
-globs: ["**/*"]
----
-
 This is the Effect library repository, focusing on functional programming patterns and effect systems in TypeScript.
 
 - The git base branch is `main`
@@ -17,8 +10,8 @@ This is the Effect library repository, focusing on functional programming patter
 
 ## Code Style Guidelines
 
-**Always** look at existing code in the repository to learn and follow
-established patterns before writing new code.
+You **MUST** look at the `./.patterns/` directory as well as existing code in 
+the repository to learn and follow established patterns before writing new code.
 
 ## Prefer `Effect.fnUntraced` over functions that return `Effect.gen`
 

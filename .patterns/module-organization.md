@@ -10,12 +10,6 @@ Established patterns for organizing modules in the Effect library, based on anal
 
 ```
 packages/effect/src/
-├── encoding/             # Encoding utilities (Base64, Hex, etc.)
-│   ├── Base64.ts
-│   ├── Base64Url.ts
-│   ├── EncodingError.ts
-│   ├── Hex.ts
-│   └── index.ts
 ├── internal/             # Private implementation details (~27 files)
 │   ├── array.ts
 │   ├── concurrency.ts
@@ -44,7 +38,7 @@ packages/effect/src/
 │   ├── workflow/
 │   └── ...
 ├── index.ts              # Main export file
-└── [module].ts           # 122+ top-level modules (flat structure)
+└── [module].ts           # top-level modules (flat structure)
 ```
 
 ### Flat Module Structure
