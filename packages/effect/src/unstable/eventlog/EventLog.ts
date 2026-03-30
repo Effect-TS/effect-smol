@@ -470,7 +470,7 @@ export const groupReactivity = <Events extends Event.Any>(
   keys:
     | { readonly [Tag in Event.Tag<Events>]?: ReadonlyArray<string> }
     | ReadonlyArray<string>
-): Layer.Layer<never, never, EventLog> =>
+): Layer.Layer<never, never, Identity | EventJournal> =>
   Effect.gen(function*() {
     const log = yield* EventLog
     if (!Array.isArray(keys)) {
@@ -483,7 +483,8 @@ export const groupReactivity = <Events extends Event.Any>(
     }
     yield* log.registerReactivity(obj)
   }).pipe(
-    Layer.effectDiscard
+    Layer.effectDiscard,
+    Layer.provide(layerEventLog)
   )
 
 /**
