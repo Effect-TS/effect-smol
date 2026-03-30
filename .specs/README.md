@@ -17,6 +17,7 @@ This directory contains specifications for all major features and enhancements i
 - [ai-openai-compat.md](ai-openai-compat.md) - Add a minimal-schema OpenAI compat package for LanguageModel + embeddings.
 - [httpapi-client-middleware.md](httpapi-client-middleware.md) - Add client-side middleware support to HttpApi, mirroring Rpc's `RpcMiddleware.layerClient` pattern.
 - [ai-docs-comprehensive.md](ai-docs-comprehensive.md) - Comprehensive AI documentation covering 22 topics: running effects, streams, integration, HTTP servers, RPC, AI modules, cluster, workflows, observability, caching, scheduling, batching, testing, and more.
+- [ai-openai-mcp-tool-name-fix.md](ai-openai-mcp-tool-name-fix.md) - Fix OpenAI MCP response part naming so provider-defined `OpenAiMcp` decodes and approval flows work.
 - [filter-separate-apis.md](filter-separate-apis.md) - Reverse overloaded Filter consolidation: separate predicate/Filter APIs, convert Option-based filterMap to Filter.
 - [http-static-files.md](http-static-files.md) - Add static file serving for unstable HTTP (implemented as `HttpStaticServer`, originally specified as `HttpStaticFiles`) with MIME types, conditional requests, range requests, and SPA fallback.
 - [revert-option-unboxing.md](revert-option-unboxing.md) - Revert APIs from `A | undefined` back to `Option<A>` across effect, cluster, cli, and platform packages.
