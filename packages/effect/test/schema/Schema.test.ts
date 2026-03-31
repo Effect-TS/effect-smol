@@ -1947,6 +1947,27 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       )
     })
 
+    it("TimeZoneFromString", async () => {
+      const schema = Schema.TimeZoneFromString
+      const asserts = new TestSchema.Asserts(schema)
+
+      if (verifyGeneration) {
+        asserts.arbitrary().verifyGeneration()
+      }
+
+      const decoding = asserts.decoding()
+      await decoding.succeed("Europe/London", DateTime.zoneMakeNamedUnsafe("Europe/London"))
+      await decoding.succeed("+03:00", DateTime.zoneMakeOffset(3 * 60 * 60 * 1000))
+
+      const encoding = asserts.encoding()
+      await encoding.succeed(DateTime.zoneMakeNamedUnsafe("Europe/London"), "Europe/London")
+      await encoding.succeed(DateTime.zoneMakeOffset(3 * 60 * 60 * 1000), "+03:00")
+      await encoding.fail(
+        "a",
+        `Expected DateTime.TimeZone, got "a"`
+      )
+    })
+
     it("FiniteFromString & isGreaterThan", async () => {
       const schema = Schema.FiniteFromString.check(Schema.isGreaterThan(2))
       const asserts = new TestSchema.Asserts(schema)
