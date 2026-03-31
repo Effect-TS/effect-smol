@@ -74,10 +74,11 @@ const makeServerLayer = (
   })
 ) =>
   EventLogServerUnencrypted.layer(schema).pipe(
+    Layer.provide(handlerLayer(seen)),
+    Layer.provideMerge(EventLogServerUnencrypted.layerServer),
     Layer.provideMerge(EventLogServerUnencrypted.layerStorageMemory),
     Layer.provideMerge(mapping),
-    Layer.provideMerge(auth),
-    Layer.provideMerge(handlerLayer(seen))
+    Layer.provideMerge(auth)
   )
 
 const makeServerLayerWithStorage = (options: {
@@ -87,10 +88,11 @@ const makeServerLayerWithStorage = (options: {
   readonly mapping?: Layer.Layer<EventLogServerUnencrypted.StoreMapping> | undefined
 }) =>
   EventLogServerUnencrypted.layer(schema).pipe(
+    Layer.provide(handlerLayer(options.seen)),
+    Layer.provideMerge(EventLogServerUnencrypted.layerServer),
     Layer.provideMerge(Layer.succeed(EventLogServerUnencrypted.Storage, options.storage)),
     Layer.provideMerge(options.mapping ?? EventLogServerUnencrypted.layerStoreMappingStatic({ storeId: storeIdA })),
-    Layer.provideMerge(options.auth ?? allowAllAuthLayer),
-    Layer.provideMerge(handlerLayer(options.seen))
+    Layer.provideMerge(options.auth ?? allowAllAuthLayer)
   )
 
 const makePairAwareStoreMappingLayer = (pairs: ReadonlyArray<readonly [string, EventLog.StoreId]>) => {
@@ -351,10 +353,11 @@ describe("EventLogServerUnencrypted", () => {
 
       return yield* Effect.gen(function*() {
         const server = yield* EventLogServerUnencrypted.EventLogServerUnencrypted
+        const registry = yield* EventLog.Registry
         const harness = yield* makeSocketHarness
         const handler = yield* EventLogServerUnencrypted.makeHandler
 
-        yield* server.registerCompaction({
+        yield* registry.registerCompaction({
           events: ["UserNameSet"],
           effect: ({ entries, write }) => write(entries[entries.length - 1]!)
         })
@@ -972,8 +975,7 @@ describe("EventLogServerUnencrypted", () => {
               return yield* Queue.make<EventJournal.RemoteEntry>().pipe(Effect.map(Queue.asDequeue))
             }),
             () => Ref.update(activeSubscriptions, (keys) => keys.filter((key) => key !== scopeKey(publicKey, storeId)))
-          ),
-        registerCompaction: () => Effect.void
+          )
       })
 
       return yield* Effect.gen(function*() {

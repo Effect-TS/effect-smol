@@ -28,6 +28,106 @@ import { EventLogRemote } from "./EventLogRemote.ts"
 
 /**
  * @since 4.0.0
+ * @category tags
+ */
+export class EventLog extends ServiceMap.Service<EventLog, {
+  readonly write: <Groups extends EventGroup.Any, Tag extends Event.Tag<EventGroup.Events<Groups>>>(options: {
+    readonly schema: EventLogSchema<Groups>
+    readonly event: Tag
+    readonly payload: Event.PayloadWithTag<EventGroup.Events<Groups>, Tag>
+  }) => Effect.Effect<
+    Event.SuccessWithTag<EventGroup.Events<Groups>, Tag>,
+    Event.ErrorWithTag<EventGroup.Events<Groups>, Tag> | EventJournalError
+  >
+  readonly entries: Effect.Effect<ReadonlyArray<Entry>, EventJournalError>
+  readonly destroy: Effect.Effect<void, EventJournalError>
+}>()("effect/eventlog/EventLog") {}
+
+/**
+ * @since 4.0.0
+ * @category Registry
+ */
+export class Registry extends ServiceMap.Service<Registry, {
+  readonly registerHandlerUnsafe: (options: {
+    readonly event: string
+    readonly handler: Handlers.Item<any>
+  }) => void
+
+  readonly handlers: ReadonlyMap<string, Handlers.Item<any>>
+
+  readonly registerCompaction: (options: {
+    readonly events: ReadonlyArray<string>
+    readonly effect: (options: {
+      readonly entries: ReadonlyArray<Entry>
+      readonly write: (entry: Entry) => Effect.Effect<void>
+    }) => Effect.Effect<void>
+  }) => Effect.Effect<void, never, Scope.Scope>
+
+  readonly compactors: ReadonlyMap<string, {
+    readonly events: ReadonlySet<string>
+    readonly effect: (options: {
+      readonly entries: ReadonlyArray<Entry>
+      readonly write: (entry: Entry) => Effect.Effect<void>
+    }) => Effect.Effect<void>
+  }>
+
+  readonly registerReactivity: (keys: Record<string, ReadonlyArray<string>>) => Effect.Effect<void, never, Scope.Scope>
+
+  readonly reactivityKeys: Record<string, ReadonlyArray<string>>
+}>()("effect/unstable/eventlog/EventLog/Registry") {}
+
+/**
+ * @since 4.0.0
+ * @category Registry
+ */
+export const layerRegistry = Layer.sync(Registry, () => {
+  const handlers = new Map<string, Handlers.Item<any>>()
+  const compactors = new Map<string, {
+    readonly events: ReadonlySet<string>
+    readonly effect: (options: {
+      readonly entries: ReadonlyArray<Entry>
+      readonly write: (entry: Entry) => Effect.Effect<void>
+    }) => Effect.Effect<void>
+  }>()
+  const reactivityKeys: Record<string, ReadonlyArray<string>> = {}
+  return Registry.of({
+    registerHandlerUnsafe(options) {
+      handlers.set(options.event, options.handler)
+    },
+    handlers,
+    registerCompaction: (options) =>
+      Effect.sync(() => {
+        const events = new Set(options.events)
+        const compactor = {
+          events,
+          effect: options.effect
+        }
+        for (const event of options.events) {
+          compactors.set(event, compactor)
+        }
+      }),
+    compactors,
+    registerReactivity: (keys) =>
+      Effect.sync(() => {
+        Object.assign(reactivityKeys, keys)
+      }),
+    reactivityKeys
+  })
+})
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export class Identity extends ServiceMap.Service<Identity, {
+  readonly publicKey: string
+  readonly privateKey: Redacted.Redacted<Uint8Array>
+  readonly signingPublicKey: Uint8Array
+  readonly signingPrivateKey: Redacted.Redacted<Uint8Array>
+}>()("effect/eventlog/EventLog/Identity") {}
+
+/**
+ * @since 4.0.0
  * @category schema
  */
 export type SchemaTypeId = "~effect/eventlog/EventLog/Schema"
@@ -230,17 +330,6 @@ export declare namespace Handlers {
  * @since 4.0.0
  * @category models
  */
-export class Identity extends ServiceMap.Service<Identity, {
-  readonly publicKey: string
-  readonly privateKey: Redacted.Redacted<Uint8Array>
-  readonly signingPublicKey: Uint8Array
-  readonly signingPrivateKey: Redacted.Redacted<Uint8Array>
-}>()("effect/eventlog/EventLog/Identity") {}
-
-/**
- * @since 4.0.0
- * @category models
- */
 export class CurrentStoreId extends ServiceMap.Reference<StoreId>("effect/eventlog/EventLog/CurrentStoreId", {
   defaultValue: constant(StoreId.makeUnsafe("default"))
 }) {}
@@ -348,10 +437,11 @@ export const group = <Events extends Event.Any, Return>(
 ): Layer.Layer<
   Event.ToService<Events>,
   Handlers.Error<Return>,
-  Exclude<Handlers.Services<Return>, Scope.Scope | Identity>
+  Exclude<Handlers.Services<Return>, Scope.Scope | Identity> | Registry
 > =>
-  Layer.effectServices(
+  Layer.effectDiscard(
     Effect.gen(function*() {
+      const registry = yield* Registry
       const services = yield* Effect.services<Exclude<Handlers.Services<Return>, Scope.Scope | Identity>>()
       const result = f(makeHandlers({
         group: group as EventGroup.AnyWithProps,
@@ -361,14 +451,11 @@ export const group = <Events extends Event.Any, Return>(
       const handlers = Effect.isEffect(result)
         ? (yield* (result as unknown as Effect.Effect<Handlers<any>>))
         : (result as unknown as Handlers<any>)
-      const serviceMap = new Map<string, Handlers.Item<any>>()
       for (const tag in handlers.handlers) {
-        const handler = handlers.handlers[tag]
-        serviceMap.set(handler.event.key, handlers.handlers[tag])
+        registry.registerHandlerUnsafe({ event: tag, handler: handlers.handlers[tag] })
       }
-      return ServiceMap.makeUnsafe(serviceMap)
     })
-  )
+  ) as any
 
 /**
  * @since 4.0.0
@@ -385,13 +472,13 @@ export const groupCompaction = <Events extends Event.Any, R>(
       payload: Event.PayloadWithTag<Events, Tag>
     ) => Effect.Effect<void, never, Event.PayloadSchemaWithTag<Events, Tag>["EncodingServices"]>
   }) => Effect.Effect<void, never, R>
-): Layer.Layer<never, never, EventLog | R | Event.PayloadSchema<Events>["DecodingServices"]> =>
+): Layer.Layer<never, never, R | Event.PayloadSchema<Events>["DecodingServices"] | Registry> =>
   Layer.effectDiscard(
     Effect.gen(function*() {
-      const log = yield* EventLog
+      const registry = yield* Registry
       const services = yield* Effect.services<R | Event.PayloadSchema<Events>["DecodingServices"]>()
 
-      yield* log.registerCompaction({
+      yield* registry.registerCompaction({
         events: Object.keys(group.events),
         effect: Effect.fnUntraced(function*({ entries, write }): Effect.fn.Return<void> {
           const isEventTag = (tag: string): tag is Event.Tag<Events> => tag in group.events
@@ -470,58 +557,28 @@ export const groupReactivity = <Events extends Event.Any>(
   keys:
     | { readonly [Tag in Event.Tag<Events>]?: ReadonlyArray<string> }
     | ReadonlyArray<string>
-): Layer.Layer<never, never, Identity | EventJournal> =>
+): Layer.Layer<never, never, Registry> =>
   Effect.gen(function*() {
-    const log = yield* EventLog
+    const registry = yield* Registry
     if (!Array.isArray(keys)) {
-      yield* log.registerReactivity(keys as Record.ReadonlyRecord<string, ReadonlyArray<string>>)
+      yield* registry.registerReactivity(keys as Record.ReadonlyRecord<string, ReadonlyArray<string>>)
       return
     }
     const obj: Record<string, ReadonlyArray<string>> = {}
     for (const tag in group.events) {
       obj[tag] = keys
     }
-    yield* log.registerReactivity(obj)
+    yield* registry.registerReactivity(obj)
   }).pipe(
-    Layer.effectDiscard,
-    Layer.provide(layerEventLog)
+    Layer.effectDiscard
   )
-
-/**
- * @since 4.0.0
- * @category tags
- */
-export class EventLog extends ServiceMap.Service<EventLog, {
-  readonly write: <Groups extends EventGroup.Any, Tag extends Event.Tag<EventGroup.Events<Groups>>>(options: {
-    readonly schema: EventLogSchema<Groups>
-    readonly event: Tag
-    readonly payload: Event.PayloadWithTag<EventGroup.Events<Groups>, Tag>
-  }) => Effect.Effect<
-    Event.SuccessWithTag<EventGroup.Events<Groups>, Tag>,
-    Event.ErrorWithTag<EventGroup.Events<Groups>, Tag> | EventJournalError
-  >
-  readonly registerHandlerUnsafe: (options: {
-    readonly event: string
-    readonly handler: Handlers.Item<any>
-  }) => void
-  readonly registerCompaction: (options: {
-    readonly events: ReadonlyArray<string>
-    readonly effect: (options: {
-      readonly entries: ReadonlyArray<Entry>
-      readonly write: (entry: Entry) => Effect.Effect<void>
-    }) => Effect.Effect<void>
-  }) => Effect.Effect<void, never, Scope.Scope>
-  readonly registerReactivity: (keys: Record<string, ReadonlyArray<string>>) => Effect.Effect<void, never, Scope.Scope>
-  readonly entries: Effect.Effect<ReadonlyArray<Entry>, EventJournalError>
-  readonly destroy: Effect.Effect<void, EventJournalError>
-}>()("effect/eventlog/EventLog") {}
 
 /**
  * @since 4.0.0
  * @category handlers
  */
 export const makeReplayFromRemote = (options: {
-  readonly handlers: Map<string, Handlers.Item<any>>
+  readonly handlers: ReadonlyMap<string, Handlers.Item<any>>
   readonly storeId: StoreId
   readonly identity: Identity["Service"]
   readonly reactivity: Reactivity["Service"]
@@ -584,25 +641,15 @@ const make = Effect.gen(function*() {
   const storeId = yield* CurrentStoreId
   const identity = yield* Identity
   const journal = yield* EventJournal
-
-  const handlers = new Map<string, Handlers.Item<any>>()
-
-  const compactors = new Map<string, {
-    readonly events: ReadonlySet<string>
-    readonly effect: (options: {
-      readonly entries: ReadonlyArray<Entry>
-      readonly write: (entry: Entry) => Effect.Effect<void>
-    }) => Effect.Effect<void>
-  }>()
+  const registry = yield* Registry
 
   const reactivity = yield* Reactivity
-  const reactivityKeys: Record<string, ReadonlyArray<string>> = {}
   const replayFromRemote = makeReplayFromRemote({
-    handlers,
+    handlers: registry.handlers,
     storeId,
     identity,
     reactivity,
-    reactivityKeys,
+    reactivityKeys: registry.reactivityKeys,
     logAnnotations: {
       service: "EventLog",
       effect: "writeFromRemote"
@@ -612,7 +659,7 @@ const make = Effect.gen(function*() {
   const invalidateReactivityEntries = (entries: ReadonlyArray<Entry>) =>
     Effect.sync(() => {
       for (const entry of entries) {
-        const keys = reactivityKeys[entry.event]
+        const keys = registry.reactivityKeys[entry.event]
         if (!keys) {
           continue
         }
@@ -634,7 +681,7 @@ const make = Effect.gen(function*() {
           journal.writeFromRemote({
             remoteId: remote.id,
             entries: entries.flat(),
-            compact: compactors.size > 0
+            compact: registry.compactors.size > 0
               ? Effect.fnUntraced(function*(remoteEntries) {
                 const brackets: Array<[Array<Entry>, Array<RemoteEntry>]> = []
                 let uncompacted: Array<Entry> = []
@@ -642,7 +689,7 @@ const make = Effect.gen(function*() {
                 let index = 0
                 while (index < remoteEntries.length) {
                   const remoteEntry = remoteEntries[index]
-                  const compactor = compactors.get(remoteEntry.entry.event)
+                  const compactor = registry.compactors.get(remoteEntry.entry.event)
                   if (!compactor) {
                     uncompacted.push(remoteEntry.entry)
                     uncompactedRemote.push(remoteEntry)
@@ -735,8 +782,8 @@ const make = Effect.gen(function*() {
           Effect.updateServices((input) => ServiceMap.merge(handler.services, input)),
           Effect.provideService(Identity, identity),
           Effect.tap(() => {
-            if (reactivityKeys[entry.event]) {
-              for (const key of reactivityKeys[entry.event]) {
+            if (registry.reactivityKeys[entry.event]) {
+              for (const key of registry.reactivityKeys[entry.event]) {
                 reactivity.invalidateUnsafe({
                   [key]: [entry.primaryKey]
                 })
@@ -753,7 +800,7 @@ const make = Effect.gen(function*() {
     readonly event: string
     readonly payload: unknown
   }) => {
-    const handler = handlers.get(options.event) as Handlers.Item<any> | undefined
+    const handler = registry.handlers.get(options.event) as Handlers.Item<any> | undefined
     if (handler === undefined) {
       return Effect.die(`Event handler not found for: "${options.event}"`)
     }
@@ -768,32 +815,6 @@ const make = Effect.gen(function*() {
   return EventLog.of({
     write: eventLogWrite as EventLog["Service"]["write"],
     entries: journal.entries,
-    registerHandlerUnsafe(options) {
-      handlers.set(options.event, options.handler)
-    },
-    registerCompaction: (options) =>
-      Effect.acquireRelease(
-        Effect.sync(() => {
-          const events = new Set(options.events)
-          const compactor = {
-            events,
-            effect: options.effect
-          }
-          for (const event of options.events) {
-            compactors.set(event, compactor)
-          }
-        }),
-        () =>
-          Effect.sync(() => {
-            for (const event of options.events) {
-              compactors.delete(event)
-            }
-          })
-      ),
-    registerReactivity: (keys) =>
-      Effect.sync(() => {
-        Object.assign(reactivityKeys, keys)
-      }),
     destroy: journal.destroy
   })
 })
@@ -802,8 +823,12 @@ const make = Effect.gen(function*() {
  * @since 4.0.0
  * @category layers
  */
-export const layerEventLog: Layer.Layer<EventLog, never, EventJournal | Identity> = Layer.effect(EventLog, make).pipe(
-  Layer.provide(ReactivityLayer.layer)
+export const layerEventLog: Layer.Layer<EventLog | Registry, never, EventJournal | Identity> = Layer.effect(
+  EventLog,
+  make
+).pipe(
+  Layer.provide(ReactivityLayer.layer),
+  Layer.provideMerge(layerRegistry)
 )
 
 /**
@@ -811,21 +836,10 @@ export const layerEventLog: Layer.Layer<EventLog, never, EventJournal | Identity
  * @category layers
  */
 export const layer = <Groups extends EventGroup.Any>(_schema: EventLogSchema<Groups>): Layer.Layer<
-  EventLog,
   never,
-  EventGroup.ToService<Groups> | EventJournal | Identity
-> =>
-  Layer.effectDiscard(Effect.gen(function*() {
-    const log = yield* EventLog
-    const services = yield* Effect.services<EventGroup.ToService<Groups>>()
-    services.mapUnsafe.forEach((service, key) => {
-      if (!key.startsWith("effect/eventlog/Event/")) return
-      const handler = service as Handlers.Item<any>
-      log.registerHandlerUnsafe({ event: handler.event.tag, handler })
-    })
-  })).pipe(
-    Layer.provideMerge(layerEventLog)
-  )
+  never,
+  EventGroup.ToService<Groups> | EventLog
+> => Layer.empty as any
 
 /**
  * @since 4.0.0

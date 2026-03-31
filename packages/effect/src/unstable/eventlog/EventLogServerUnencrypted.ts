@@ -23,11 +23,11 @@ import * as HttpServerResponse from "../http/HttpServerResponse.ts"
 import { Reactivity } from "../reactivity/Reactivity.ts"
 import * as ReactivityLayer from "../reactivity/Reactivity.ts"
 import type * as Socket from "../socket/Socket.ts"
-import * as Event from "./Event.ts"
+import type * as Event from "./Event.ts"
 import type * as EventGroup from "./EventGroup.ts"
 import * as EventJournal from "./EventJournal.ts"
 import {
-  Entry,
+  type Entry,
   type EntryId,
   makeEntryIdUnsafe,
   makeRemoteIdUnsafe,
@@ -49,6 +49,43 @@ import {
   type ProtocolResponseUnencrypted
 } from "./EventLogRemote.ts"
 import * as EventLogSessionAuth from "./EventLogSessionAuth.ts"
+
+/**
+ * @since 4.0.0
+ * @category runtime
+ */
+export class EventLogServerUnencrypted extends ServiceMap.Service<EventLogServerUnencrypted, {
+  readonly getId: Effect.Effect<RemoteId>
+  readonly authenticateSession: (options: {
+    readonly publicKey: string
+    readonly signingPublicKey: Uint8Array
+  }) => Effect.Effect<boolean>
+  readonly ingest: (options: {
+    readonly publicKey: string
+    readonly storeId: EventLog.StoreId
+    readonly entries: ReadonlyArray<Entry>
+  }) => Effect.Effect<{
+    readonly storeId: EventLog.StoreId
+    readonly sequenceNumbers: ReadonlyArray<number>
+    readonly committed: ReadonlyArray<RemoteEntry>
+  }, EventLogServerAuthError | EventLogServerStoreError>
+  readonly write: <Groups extends EventGroup.Any, Tag extends Event.Tag<EventGroup.Events<Groups>>>(options: {
+    readonly schema: EventLog.EventLogSchema<Groups>
+    readonly storeId: EventLog.StoreId
+    readonly event: Tag
+    readonly payload: Event.PayloadWithTag<EventGroup.Events<Groups>, Tag>
+    readonly entryId?: EntryId | undefined
+  }) => Effect.Effect<void, EventLogServerStoreError>
+  readonly requestChanges: (
+    publicKey: string,
+    storeId: EventLog.StoreId,
+    startSequence: number
+  ) => Effect.Effect<
+    Queue.Dequeue<RemoteEntry, Cause.Done>,
+    EventLogServerAuthError | EventLogServerStoreError,
+    Scope.Scope
+  >
+}>()("effect/eventlog/EventLogServerUnencrypted") {}
 
 const constChunkSize = 512_000
 
@@ -186,50 +223,6 @@ export class Storage extends ServiceMap.Service<Storage, {
   ) => Effect.Effect<Queue.Dequeue<RemoteEntry, Cause.Done>, never, Scope.Scope>
   readonly withTransaction: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
 }>()("effect/eventlog/EventLogServerUnencrypted/Storage") {}
-
-/**
- * @since 4.0.0
- * @category runtime
- */
-export class EventLogServerUnencrypted extends ServiceMap.Service<EventLogServerUnencrypted, {
-  readonly getId: Effect.Effect<RemoteId>
-  readonly authenticateSession: (options: {
-    readonly publicKey: string
-    readonly signingPublicKey: Uint8Array
-  }) => Effect.Effect<boolean>
-  readonly ingest: (options: {
-    readonly publicKey: string
-    readonly storeId: EventLog.StoreId
-    readonly entries: ReadonlyArray<Entry>
-  }) => Effect.Effect<{
-    readonly storeId: EventLog.StoreId
-    readonly sequenceNumbers: ReadonlyArray<number>
-    readonly committed: ReadonlyArray<RemoteEntry>
-  }, EventLogServerAuthError | EventLogServerStoreError>
-  readonly write: <Groups extends EventGroup.Any, Tag extends Event.Tag<EventGroup.Events<Groups>>>(options: {
-    readonly schema: EventLog.EventLogSchema<Groups>
-    readonly storeId: EventLog.StoreId
-    readonly event: Tag
-    readonly payload: Event.PayloadWithTag<EventGroup.Events<Groups>, Tag>
-    readonly entryId?: EntryId | undefined
-  }) => Effect.Effect<void, EventLogServerStoreError>
-  readonly requestChanges: (
-    publicKey: string,
-    storeId: EventLog.StoreId,
-    startSequence: number
-  ) => Effect.Effect<
-    Queue.Dequeue<RemoteEntry, Cause.Done>,
-    EventLogServerAuthError | EventLogServerStoreError,
-    Scope.Scope
-  >
-  readonly registerCompaction: (options: {
-    readonly events: ReadonlyArray<string>
-    readonly effect: (options: {
-      readonly entries: ReadonlyArray<Entry>
-      readonly write: (entry: Entry) => Effect.Effect<void>
-    }) => Effect.Effect<void>
-  }) => Effect.Effect<void, never, Scope.Scope>
-}>()("effect/eventlog/EventLogServerUnencrypted") {}
 
 type ProtocolErrorCode = "Unauthorized" | "Forbidden" | "NotFound" | "InvalidRequest" | "InternalServerError"
 
@@ -567,7 +560,7 @@ export const make = Effect.gen(function*() {
   const storage = yield* Storage
   const mapping = yield* StoreMapping
   const auth = yield* EventLogServerAuth
-  const services = yield* Effect.services<never>()
+  const registry = yield* EventLog.Registry
   const reactivity = yield* Reactivity
   const trustedSessionAuthBindings = new Map<string, Uint8Array>()
   const persistedSessionAuthBindings = yield* storage.loadSessionAuthBindings
@@ -576,8 +569,6 @@ export const make = Effect.gen(function*() {
     trustedSessionAuthBindings.set(publicKey, copyUint8Array(signingPublicKey))
   }
 
-  const compactors = new Map<string, RegisteredCompactor>()
-  const reactivityKeys: Record<string, ReadonlyArray<string>> = {}
   const replayFromRemote = Effect.fnUntraced(
     function*(options: {
       readonly publicKey: string
@@ -585,9 +576,7 @@ export const make = Effect.gen(function*() {
       readonly entry: Entry
       readonly conflicts: ReadonlyArray<Entry>
     }): Effect.fn.Return<void> {
-      const handler = services.mapUnsafe.get(Event.serviceKey(options.entry.event)) as
-        | EventLog.Handlers.Item<any>
-        | undefined
+      const handler = registry.handlers.get(options.entry.event)
       if (handler === undefined) {
         return yield* Effect.logDebug(`Event handler not found for: "${options.entry.event}"`)
       }
@@ -638,7 +627,7 @@ export const make = Effect.gen(function*() {
 
   const invalidateCommittedEntries = Effect.fnUntraced(function*(committed: ReadonlyArray<RemoteEntry>) {
     for (const remoteEntry of committed) {
-      const keys = reactivityKeys[remoteEntry.entry.event]
+      const keys = registry.reactivityKeys[remoteEntry.entry.event]
       if (keys === undefined) {
         continue
       }
@@ -885,7 +874,7 @@ export const make = Effect.gen(function*() {
             toOffer.length > 1 ?
               yield* compactBacklog({
                 remoteEntries: toOffer,
-                compactors
+                compactors: registry.compactors
               }) :
               toOffer
           )
@@ -896,130 +885,21 @@ export const make = Effect.gen(function*() {
 
       yield* Effect.addFinalizer(() => Queue.shutdown(queue))
       return Queue.asDequeue(queue)
-    }),
-    registerCompaction: (options) =>
-      Effect.acquireRelease(
-        Effect.sync(() => {
-          const events = new Set(options.events)
-          const compactor = {
-            events,
-            effect: options.effect
-          }
-          for (const event of options.events) {
-            compactors.set(event, compactor)
-          }
-        }),
-        () =>
-          Effect.sync(() => {
-            for (const event of options.events) {
-              compactors.delete(event)
-            }
-          })
-      )
+    })
   })
 })
 
 /**
  * @since 4.0.0
- * @category compaction
+ * @category layers
  */
-export const groupCompaction = <Events extends Event.Any, R>(
-  group: EventGroup.EventGroup<Events>,
-  effect: (options: {
-    readonly primaryKey: string
-    readonly entries: ReadonlyArray<Entry>
-    readonly events: ReadonlyArray<Event.TaggedPayload<Events>>
-    readonly write: <Tag extends Event.Tag<Events>>(
-      tag: Tag,
-      payload: Event.PayloadWithTag<Events, Tag>
-    ) => Effect.Effect<void, never, Event.PayloadSchemaWithTag<Events, Tag>["EncodingServices"]>
-  }) => Effect.Effect<void, never, R>
-): Layer.Layer<
-  never,
-  never,
-  EventLogServerUnencrypted | R | Event.PayloadSchema<Events>["DecodingServices"]
-> =>
-  Layer.effectDiscard(
-    Effect.gen(function*() {
-      const runtime = yield* EventLogServerUnencrypted
-      const services = yield* Effect.services<R | Event.PayloadSchema<Events>["DecodingServices"]>()
-
-      yield* runtime.registerCompaction({
-        events: Object.keys(group.events),
-        effect: Effect.fnUntraced(function*({ entries, write }): Effect.fn.Return<void> {
-          const isEventTag = (tag: string): tag is Event.Tag<Events> => tag in group.events
-          const decodePayload = <Tag extends Event.Tag<Events>>(tag: Tag, payload: Uint8Array) =>
-            Schema.decodeUnknownEffect(group.events[tag].payloadMsgPack)(payload).pipe(
-              Effect.updateServices((input) => ServiceMap.merge(services, input)),
-              Effect.orDie
-            ) as unknown as Effect.Effect<Event.PayloadWithTag<Events, Tag>>
-          const writePayload = Effect.fnUntraced(function*<Tag extends Event.Tag<Events>>(
-            timestamp: number,
-            tag: Tag,
-            payload: Event.PayloadWithTag<Events, Tag>
-          ): Effect.fn.Return<void, never, Event.PayloadSchemaWithTag<Events, Tag>["EncodingServices"]> {
-            const event = group.events[tag]
-            const entry = new Entry({
-              id: makeEntryIdUnsafe({ msecs: timestamp }),
-              event: tag,
-              payload: yield* Schema.encodeUnknownEffect(event.payloadMsgPack)(payload).pipe(
-                Effect.orDie
-              ) as any,
-              primaryKey: event.primaryKey(payload)
-            }, { disableChecks: true })
-            yield* write(entry)
-          })
-
-          const byPrimaryKey = new Map<
-            string,
-            {
-              readonly entries: Array<Entry>
-              readonly taggedPayloads: Array<Event.TaggedPayload<Events>>
-            }
-          >()
-          for (const entry of entries) {
-            if (!isEventTag(entry.event)) {
-              continue
-            }
-            const payload = yield* decodePayload(entry.event, entry.payload)
-            const record = byPrimaryKey.get(entry.primaryKey)
-            const taggedPayload = { _tag: entry.event, payload } as unknown as Event.TaggedPayload<Events>
-            if (record) {
-              record.entries.push(entry)
-              record.taggedPayloads.push(taggedPayload)
-            } else {
-              byPrimaryKey.set(entry.primaryKey, {
-                entries: [entry],
-                taggedPayloads: [taggedPayload]
-              })
-            }
-          }
-
-          for (const [primaryKey, { entries, taggedPayloads }] of byPrimaryKey) {
-            yield* Effect.orDie(
-              effect({
-                primaryKey,
-                entries,
-                events: taggedPayloads,
-                write(tag, payload) {
-                  return Effect.orDie(writePayload(entries[0].createdAtMillis, tag, payload))
-                }
-              }).pipe(
-                Effect.updateServices((input) => ServiceMap.merge(services, input))
-              )
-            ) as any
-          }
-        })
-      })
-    })
-  )
-
-const layerServerRuntime: Layer.Layer<
-  EventLogServerUnencrypted,
+export const layerServer: Layer.Layer<
+  EventLogServerUnencrypted | EventLog.Registry,
   never,
   Storage | StoreMapping | EventLogServerAuth
 > = Layer.effect(EventLogServerUnencrypted, make).pipe(
-  Layer.provide(ReactivityLayer.layer)
+  Layer.provide(ReactivityLayer.layer),
+  Layer.provideMerge(EventLog.layerRegistry)
 )
 
 /**
@@ -1029,15 +909,10 @@ const layerServerRuntime: Layer.Layer<
 export const layer = <Groups extends EventGroup.Any>(
   _schema: EventLog.EventLogSchema<Groups>
 ): Layer.Layer<
-  EventLogServerUnencrypted,
   never,
-  EventGroup.ToService<Groups> | Storage | StoreMapping | EventLogServerAuth
-> =>
-  layerServerRuntime as Layer.Layer<
-    EventLogServerUnencrypted,
-    never,
-    EventGroup.ToService<Groups> | Storage | StoreMapping | EventLogServerAuth
-  >
+  never,
+  EventGroup.ToService<Groups> | EventLogServerUnencrypted
+> => Layer.empty as any
 
 /**
  * @since 4.0.0

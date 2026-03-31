@@ -22,17 +22,20 @@ const handlerLayer = (handled: Ref.Ref<ReadonlyArray<string>>) =>
     UserGroup,
     (handlers) =>
       handlers.handle("UserCreated", ({ payload }) => Ref.update(handled, (values) => [...values, payload.id]))
+  ).pipe(
+    Layer.provide(EventLog.layerRegistry)
   )
 
 const logLayer = (handled: Ref.Ref<ReadonlyArray<string>>) =>
   EventLog.layer(schema).pipe(
+    Layer.provide(handlerLayer(handled)),
+    Layer.provideMerge(EventLog.layerEventLog),
     Layer.provideMerge(EventJournal.layerMemory),
     Layer.provideMerge(
       Layer.effect(EventLog.Identity, EventLog.makeIdentity).pipe(
         Layer.provide(EventLogEncryption.layerSubtle)
       )
-    ),
-    Layer.provideMerge(handlerLayer(handled))
+    )
   )
 
 describe("EventLog", () => {
