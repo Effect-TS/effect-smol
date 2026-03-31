@@ -106,10 +106,10 @@ export namespace Vitest {
     readonly layer: <R2, E>(layer: Layer.Layer<R2, E, R>, options?: {
       readonly timeout?: Duration.Input
     }) => {
-      (f: (it: Vitest.MethodsNonLive<R | R2>) => void): void
+      (f: (it: Vitest.LayerMethods<R | R2>) => void): void
       (
         name: string,
-        f: (it: Vitest.MethodsNonLive<R | R2>) => void
+        f: (it: Vitest.LayerMethods<R | R2>) => void
       ): void
     }
 
@@ -142,6 +142,30 @@ export namespace Vitest {
   /**
    * @since 1.0.0
    */
+  export interface LayerMethods<R = never>
+    extends Omit<MethodsNonLive<R>, "beforeEach" | "afterEach" | "beforeAll" | "afterAll">
+  {
+    readonly beforeEach: <A, E>(
+      self: (ctx: V.TestContext) => Effect.Effect<A, E, R | Scope.Scope>,
+      timeout?: Duration.Input
+    ) => void
+    readonly afterEach: <A, E>(
+      self: (ctx: V.TestContext) => Effect.Effect<A, E, R | Scope.Scope>,
+      timeout?: Duration.Input
+    ) => void
+    readonly beforeAll: <A, E>(
+      self: Effect.Effect<A, E, R | Scope.Scope>,
+      timeout?: Duration.Input
+    ) => void
+    readonly afterAll: <A, E>(
+      self: Effect.Effect<A, E, R | Scope.Scope>,
+      timeout?: Duration.Input
+    ) => void
+  }
+
+  /**
+   * @since 1.0.0
+   */
   export interface Methods<R = never> extends MethodsNonLive<R> {
     readonly live: Vitest.Tester<Scope.Scope | R>
     readonly layer: <R2, E>(layer: Layer.Layer<R2, E, R>, options?: {
@@ -149,10 +173,10 @@ export namespace Vitest {
       readonly timeout?: Duration.Input
       readonly excludeTestServices?: boolean
     }) => {
-      (f: (it: Vitest.MethodsNonLive<R | R2>) => void): void
+      (f: (it: Vitest.LayerMethods<R | R2>) => void): void
       (
         name: string,
-        f: (it: Vitest.MethodsNonLive<R | R2>) => void
+        f: (it: Vitest.LayerMethods<R | R2>) => void
       ): void
     }
   }
@@ -195,6 +219,12 @@ export const live: Vitest.Tester<Scope.Scope> = internal.live
  * }
  *
  * layer(Foo.Live)("layer", (it) => {
+ *   it.beforeEach(() =>
+ *     Effect.gen(function*() {
+ *       const foo = yield* Foo
+ *       expect(foo).toEqual("foo")
+ *     }))
+ *
  *   it.effect("adds context", () =>
  *     Effect.gen(function*() {
  *       const foo = yield* Foo
@@ -221,8 +251,8 @@ export const layer: <R, E>(
     readonly excludeTestServices?: boolean
   }
 ) => {
-  (f: (it: Vitest.MethodsNonLive<R>) => void): void
-  (name: string, f: (it: Vitest.MethodsNonLive<R>) => void): void
+  (f: (it: Vitest.LayerMethods<R>) => void): void
+  (name: string, f: (it: Vitest.LayerMethods<R>) => void): void
 } = internal.layer
 
 /**

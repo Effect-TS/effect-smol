@@ -49,6 +49,10 @@ export const addEqualityTesters = () => {
 const testOptions = (timeout?: number | V.TestOptions) => typeof timeout === "number" ? { timeout } : timeout ?? {}
 
 /** @internal */
+const hookTimeout = (timeout?: Duration.Input) =>
+  timeout === undefined ? undefined : Duration.toMillis(Duration.fromInputUnsafe(timeout))
+
+/** @internal */
 const makeTester = <R>(
   mapEffect: <A, E>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, never>,
   it: V.TestAPI = V.it
@@ -180,20 +184,20 @@ export const layer = <R, E>(
     readonly excludeTestServices?: boolean
   }
 ): {
-  (f: (it: Vitest.Vitest.MethodsNonLive<R>) => void): void
+  (f: (it: Vitest.Vitest.LayerMethods<R>) => void): void
   (
     name: string,
-    f: (it: Vitest.Vitest.MethodsNonLive<R>) => void
+    f: (it: Vitest.Vitest.LayerMethods<R>) => void
   ): void
 } =>
 (
   ...args: [
     name: string,
     f: (
-      it: Vitest.Vitest.MethodsNonLive<R>
+      it: Vitest.Vitest.LayerMethods<R>
     ) => void
   ] | [
-    f: (it: Vitest.Vitest.MethodsNonLive<R>) => void
+    f: (it: Vitest.Vitest.LayerMethods<R>) => void
   ]
 ) => {
   const excludeTestServices = options?.excludeTestServices ?? false
@@ -207,18 +211,79 @@ export const layer = <R, E>(
     Effect.cached,
     Effect.runSync
   )
+  let beforeAllScope: Scope.Closeable | undefined
 
-  const makeIt = (it: V.TestAPI): Vitest.Vitest.MethodsNonLive<R> =>
+  const provideLayerContext = <A, E2>(effect: Effect.Effect<A, E2, R>) =>
+    Effect.flatMap(contextEffect, (context) => Effect.provide(effect, context))
+
+  const runScopedHook = <A, E2>(
+    effect: Effect.Effect<A, E2, R | Scope.Scope>,
+    scope: Scope.Closeable,
+    ctx?: V.TestContext
+  ) =>
+    runPromise(
+      provideLayerContext(
+        Effect.provideService(effect, Scope.Scope, scope)
+      ),
+      ctx
+    )
+
+  const makeIt = (it: V.TestAPI): Vitest.Vitest.LayerMethods<R> =>
     Object.assign(it, {
       effect: makeTester<R | Scope.Scope>(
-        (effect) =>
-          Effect.flatMap(contextEffect, (context) =>
-            effect.pipe(
-              Effect.scoped,
-              Effect.provide(context)
-            )),
+        (effect) => provideLayerContext(effect.pipe(Effect.scoped)),
         it
       ),
+      beforeEach<A, E2>(
+        self: (ctx: V.TestContext) => Effect.Effect<A, E2, R | Scope.Scope>,
+        timeout?: Duration.Input
+      ) {
+        return V.beforeEach(async (ctx) => {
+          const scope = Effect.runSync(Scope.make())
+          try {
+            await runScopedHook(self(ctx), scope, ctx)
+          } catch (error) {
+            await runPromise(Scope.close(scope, Exit.void), ctx)
+            throw error
+          }
+          return () => runPromise(Scope.close(scope, Exit.void), ctx)
+        }, hookTimeout(timeout))
+      },
+      afterEach<A, E2>(
+        self: (ctx: V.TestContext) => Effect.Effect<A, E2, R | Scope.Scope>,
+        timeout?: Duration.Input
+      ) {
+        return V.afterEach(async (ctx) => {
+          const scope = Effect.runSync(Scope.make())
+          try {
+            await runScopedHook(self(ctx), scope, ctx)
+          } finally {
+            await runPromise(Scope.close(scope, Exit.void), ctx)
+          }
+        }, hookTimeout(timeout))
+      },
+      beforeAll<A, E2>(
+        self: Effect.Effect<A, E2, R | Scope.Scope>,
+        timeout?: Duration.Input
+      ) {
+        return V.beforeAll(() => {
+          beforeAllScope ??= Effect.runSync(Scope.make())
+          return runScopedHook(self, beforeAllScope)
+        }, hookTimeout(timeout))
+      },
+      afterAll<A, E2>(
+        self: Effect.Effect<A, E2, R | Scope.Scope>,
+        timeout?: Duration.Input
+      ) {
+        return V.afterAll(async () => {
+          const scope = Effect.runSync(Scope.make())
+          try {
+            await runScopedHook(self, scope)
+          } finally {
+            await runPromise(Scope.close(scope, Exit.void))
+          }
+        }, hookTimeout(timeout))
+      },
       prop,
       flakyTest,
       layer<R2, E2>(nestedLayer: Layer.Layer<R2, E2, R>, options?: {
@@ -231,11 +296,15 @@ export const layer = <R, E>(
   if (args.length === 1) {
     V.beforeAll(
       () => runPromise(Effect.asVoid(contextEffect)),
-      options?.timeout ? Duration.toMillis(Duration.fromInputUnsafe(options.timeout)) : undefined
+      hookTimeout(options?.timeout)
+    )
+    V.afterAll(
+      () => beforeAllScope === undefined ? undefined : runPromise(Scope.close(beforeAllScope, Exit.void)),
+      hookTimeout(options?.timeout)
     )
     V.afterAll(
       () => runPromise(Scope.close(scope, Exit.void)),
-      options?.timeout ? Duration.toMillis(Duration.fromInputUnsafe(options.timeout)) : undefined
+      hookTimeout(options?.timeout)
     )
     return args[0](makeIt(V.it))
   }
@@ -243,11 +312,15 @@ export const layer = <R, E>(
   return V.describe(args[0], () => {
     V.beforeAll(
       () => runPromise(Effect.asVoid(contextEffect)),
-      options?.timeout ? Duration.toMillis(Duration.fromInputUnsafe(options.timeout)) : undefined
+      hookTimeout(options?.timeout)
+    )
+    V.afterAll(
+      () => beforeAllScope === undefined ? undefined : runPromise(Scope.close(beforeAllScope, Exit.void)),
+      hookTimeout(options?.timeout)
     )
     V.afterAll(
       () => runPromise(Scope.close(scope, Exit.void)),
-      options?.timeout ? Duration.toMillis(Duration.fromInputUnsafe(options.timeout)) : undefined
+      hookTimeout(options?.timeout)
     )
     return args[1](makeIt(V.it))
   })

@@ -64,7 +64,7 @@ it.live.fails("interrupts on timeout", (ctx) =>
   }), 1)
 
 class Foo extends ServiceMap.Service<Foo, "foo">()("Foo") {
-  static Live = Layer.succeed(Foo)("foo")
+  static layer = Layer.succeed(Foo)("foo")
 }
 
 class Bar extends ServiceMap.Service<Bar, "bar">()("Bar") {
@@ -86,7 +86,7 @@ class Sleeper extends ServiceMap.Service<Sleeper, {
 }
 
 describe("layer", () => {
-  layer(Foo.Live)((it) => {
+  layer(Foo.layer)((it) => {
     it.effect("adds context", () =>
       Effect.gen(function*() {
         const foo = yield* Foo
@@ -163,7 +163,7 @@ describe("layer", () => {
       }))
   })
 
-  layer(Foo.Live)("with a name", (it) => {
+  layer(Foo.layer)("with a name", (it) => {
     describe("with a nested describe", () => {
       it.effect("adds context", () =>
         Effect.gen(function*() {
@@ -172,6 +172,72 @@ describe("layer", () => {
         }))
     })
     it.effect("adds context", () =>
+      Effect.gen(function*() {
+        const foo = yield* Foo
+        expect(foo).toEqual("foo")
+      }))
+  })
+
+  layer(Foo.layer)("effectful hooks", (it) => {
+    let beforeEachCount = 0
+    let afterEachCount = 0
+    let beforeEachReleased = 0
+    let beforeAllCount = 0
+    let afterAllCount = 0
+    let beforeAllReleased = false
+
+    it.beforeEach(() =>
+      Effect.gen(function*() {
+        const foo = yield* Foo
+        expect(foo).toEqual("foo")
+        beforeEachCount += 1
+        return yield* Effect.acquireRelease(
+          Effect.succeed(beforeEachCount),
+          () => Effect.sync(() => beforeEachReleased += 1)
+        )
+      })
+    )
+
+    it.afterEach(() =>
+      Effect.gen(function*() {
+        const foo = yield* Foo
+        expect(foo).toEqual("foo")
+        afterEachCount += 1
+      })
+    )
+
+    it.beforeAll(Effect.gen(function*() {
+      const foo = yield* Foo
+      expect(foo).toEqual("foo")
+      beforeAllCount += 1
+      return yield* Effect.acquireRelease(
+        Effect.succeed("before-all"),
+        () => Effect.sync(() => beforeAllReleased = true)
+      )
+    }))
+
+    afterAll(() => {
+      expect(beforeEachCount).toEqual(2)
+      expect(afterEachCount).toEqual(2)
+      expect(beforeEachReleased).toEqual(2)
+      expect(beforeAllCount).toEqual(1)
+      expect(afterAllCount).toEqual(1)
+    })
+
+    it.afterAll(Effect.gen(function*() {
+      const foo = yield* Foo
+      expect(foo).toEqual("foo")
+      afterAllCount += 1
+      expect(beforeAllReleased).toEqual(false)
+    }))
+
+    it.effect("first hook test", () =>
+      Effect.gen(function*() {
+        const foo = yield* Foo
+        expect(foo).toEqual("foo")
+      }))
+
+    it.effect("second hook test", () =>
       Effect.gen(function*() {
         const foo = yield* Foo
         expect(foo).toEqual("foo")
