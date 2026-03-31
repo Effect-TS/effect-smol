@@ -1968,6 +1968,24 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       )
     })
 
+    it("DateTimeZonedFromString", async () => {
+      const schema = Schema.DateTimeZonedFromString
+      const asserts = new TestSchema.Asserts(schema)
+
+      if (verifyGeneration) {
+        asserts.arbitrary().verifyGeneration()
+      }
+
+      const zoned = DateTime.makeZonedUnsafe("2021-01-01T00:00:00.000Z", { timeZone: "Europe/London" })
+
+      const encoding = asserts.encoding()
+      await encoding.succeed(zoned, DateTime.formatIsoZoned(zoned))
+      await encoding.fail(
+        "a",
+        `Expected DateTime.Zoned, got "a"`
+      )
+    })
+
     it("FiniteFromString & isGreaterThan", async () => {
       const schema = Schema.FiniteFromString.check(Schema.isGreaterThan(2))
       const asserts = new TestSchema.Asserts(schema)

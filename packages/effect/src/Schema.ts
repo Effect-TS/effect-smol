@@ -9808,6 +9808,10 @@ export interface DateTimeZoned extends declare<DateTime.Zoned> {}
  * @category DateTime
  * @since 4.0.0
  */
+const DateTimeZonedString = String.annotate({
+  expected: "a zoned DateTime string (e.g. 2024-01-01T00:00:00.000+00:00[Europe/London])"
+})
+
 export const DateTimeZoned: DateTimeZoned = declare(
   (u) => DateTime.isDateTime(u) && DateTime.isZoned(u),
   {
@@ -9822,7 +9826,7 @@ export const DateTimeZoned: DateTimeZoned = declare(
     expected: "DateTime.Zoned",
     toCodecJson: () =>
       link<DateTime.Zoned>()(
-        String.annotate({ expected: "a zoned DateTime string (e.g. 2024-01-01T00:00:00.000+00:00[Europe/London])" }),
+        DateTimeZonedString,
         Transformation.dateTimeZonedFromString
       ),
     toArbitrary: () => (fc, ctx) =>
@@ -9838,6 +9842,30 @@ export const DateTimeZoned: DateTimeZoned = declare(
     toFormatter: () => (zoned) => DateTime.formatIsoZoned(zoned),
     toEquivalence: () => DateTime.Equivalence
   }
+)
+
+/**
+ * Schema type for {@link DateTimeZonedFromString}.
+ *
+ * @category DateTime
+ * @since 4.0.0
+ */
+export interface DateTimeZonedFromString extends decodeTo<DateTimeZoned, String> {}
+
+/**
+ * A transformation schema that parses a zoned DateTime string into a `DateTime.Zoned`.
+ *
+ * Decoding:
+ * - A `string` (e.g. `2024-01-01T00:00:00.000+00:00[Europe/London]`) is decoded as a `DateTime.Zoned`.
+ *
+ * Encoding:
+ * - A `DateTime.Zoned` is encoded as a `string`.
+ *
+ * @category DateTime
+ * @since 4.0.0
+ */
+export const DateTimeZonedFromString: DateTimeZonedFromString = DateTimeZonedString.pipe(
+  decodeTo(DateTimeZoned, Transformation.dateTimeZonedFromString)
 )
 
 // -----------------------------------------------------------------------------
