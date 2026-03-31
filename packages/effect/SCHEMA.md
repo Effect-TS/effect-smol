@@ -244,20 +244,9 @@ Schema.BigInt.check(isNonPositive)
 
 ## Dates
 
-The `Schema.Date` schema matches `Date` objects. You can combine it with a string encoding to decode date strings into `Date` instances.
+The `Schema.Date` schema matches `Date` objects (even invalid dates).
 
-```ts
-import { Schema, SchemaGetter } from "effect"
-
-Schema.Date
-
-const DateFromString = Schema.Date.pipe(
-  Schema.encodeTo(Schema.String, {
-    decode: SchemaGetter.Date(),
-    encode: SchemaGetter.String()
-  })
-)
-```
+If you want to validate only valid dates, use `Schema.DateValid` instead.
 
 ## Template literals
 

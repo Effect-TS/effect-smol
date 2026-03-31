@@ -35,6 +35,7 @@
  * - Trim/case strings → {@link trim}, {@link toLowerCase}, {@link toUpperCase}, {@link capitalize}, {@link uncapitalize}, {@link snakeToCamel}
  * - Parse key-value strings → {@link splitKeyValue}
  * - Coerce string ↔ number/bigint → {@link numberFromString}, {@link bigintFromString}
+ * - Coerce string ↔ Date → {@link dateFromString}
  * - Decode durations → {@link durationFromNanos}, {@link durationFromMillis}
  * - Wrap nullable/optional as Option → {@link optionFromNullOr}, {@link optionFromOptionalKey}, {@link optionFromOptional}
  * - Parse URLs → {@link urlFromString}
@@ -86,6 +87,7 @@ import * as BigDecimal from "./BigDecimal.ts"
 import * as DateTime from "./DateTime.ts"
 import * as Duration from "./Duration.ts"
 import * as Effect from "./Effect.ts"
+import { formatDate } from "./Formatter.ts"
 import * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
 import type * as AST from "./SchemaAST.ts"
@@ -876,6 +878,39 @@ export const numberFromString = new Transformation(
 export const bigintFromString = new Transformation(
   Getter.BigInt(),
   Getter.String()
+)
+
+/**
+ * Decodes a `string` into a `Date` and encodes a `Date` back to a `string`.
+ *
+ * When to use this:
+ * - Parsing ISO 8601 date strings from APIs or user input.
+ *
+ * Behavior:
+ * - Decode: creates a `Date` from the string (like `new Date(s)`).
+ * - Encode: converts the `Date` to an ISO string (like `date.toISOString()`),
+ *   returning `"Invalid Date"` for invalid dates.
+ *
+ * **Example** (Date from string)
+ *
+ * ```ts
+ * import { Schema, SchemaTransformation } from "effect"
+ *
+ * const schema = Schema.String.pipe(
+ *   Schema.decodeTo(Schema.Date, SchemaTransformation.dateFromString)
+ * )
+ * ```
+ *
+ * See also:
+ * - {@link numberFromString}
+ * - {@link dateTimeUtcFromString}
+ *
+ * @category Coercions
+ * @since 4.0.0
+ */
+export const dateFromString: Transformation<globalThis.Date, string> = new Transformation(
+  Getter.Date(),
+  Getter.transform(formatDate)
 )
 
 /**

@@ -102,7 +102,7 @@ import * as Equal from "./Equal.ts"
 import * as Equivalence from "./Equivalence.ts"
 import * as Exit_ from "./Exit.ts"
 import type { Formatter } from "./Formatter.ts"
-import { format, formatDate, formatPropertyKey } from "./Formatter.ts"
+import { format, formatPropertyKey } from "./Formatter.ts"
 import { identity } from "./Function.ts"
 import * as HashMap_ from "./HashMap.ts"
 import * as HashSet_ from "./HashSet.ts"
@@ -8452,10 +8452,7 @@ export const Date: Date = instanceOf(
     toCodecJson: () =>
       link<globalThis.Date>()(
         String.annotate({ expected: "a string in ISO 8601 format that will be decoded as a Date" }),
-        Transformation.transform({
-          decode: (s) => new globalThis.Date(s),
-          encode: formatDate
-        })
+        Transformation.dateFromString
       ),
     toArbitrary: () => (fc, ctx) => fc.date(ctx?.constraints?.date)
   }
