@@ -8656,6 +8656,8 @@ export interface BigDecimal extends declare<BigDecimal_.BigDecimal> {}
  *
  * @since 4.0.0
  */
+const BigDecimalString = String.annotate({ expected: "a string that will be decoded as a BigDecimal" })
+
 export const BigDecimal: BigDecimal = declare(
   BigDecimal_.isBigDecimal,
   {
@@ -8670,7 +8672,7 @@ export const BigDecimal: BigDecimal = declare(
     expected: "BigDecimal",
     toCodecJson: () =>
       link<BigDecimal_.BigDecimal>()(
-        String.annotate({ expected: "a string that will be decoded as a BigDecimal" }),
+        BigDecimalString,
         Transformation.bigDecimalFromString
       ),
     toArbitrary: () => (fc) =>
@@ -8679,6 +8681,29 @@ export const BigDecimal: BigDecimal = declare(
     toFormatter: () => (bd) => BigDecimal_.format(bd),
     toEquivalence: () => BigDecimal_.Equivalence
   }
+)
+
+/**
+ * Schema type for {@link BigDecimalFromString}.
+ *
+ * @category Schemas
+ * @since 4.0.0
+ */
+export interface BigDecimalFromString extends decodeTo<BigDecimal, String> {}
+
+/**
+ * A transformation schema that parses a string into a `BigDecimal`.
+ *
+ * Decoding:
+ * - A `string` is decoded as a `BigDecimal`.
+ *
+ * Encoding:
+ * - A `BigDecimal` is encoded as a `string`.
+ *
+ * @since 4.0.0
+ */
+export const BigDecimalFromString: BigDecimalFromString = BigDecimalString.pipe(
+  decodeTo(BigDecimal, Transformation.bigDecimalFromString)
 )
 
 /**

@@ -1915,6 +1915,28 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await encoding.succeed(0n, "0")
     })
 
+    it("BigDecimalFromString", async () => {
+      const schema = Schema.BigDecimalFromString
+      const asserts = new TestSchema.Asserts(schema)
+
+      if (verifyGeneration) {
+        const arbitrary = asserts.arbitrary()
+        arbitrary.verifyGeneration()
+      }
+
+      const decoding = asserts.decoding()
+      await decoding.succeed("0", Option.getOrThrow(BigDecimal.fromString("0")))
+      await decoding.succeed("123.456", Option.getOrThrow(BigDecimal.fromString("123.456")))
+
+      const encoding = asserts.encoding()
+      await encoding.succeed(BigDecimal.make(0n, 0), "0")
+      await encoding.succeed(BigDecimal.make(123456n, 3), "123.456")
+      await encoding.fail(
+        "a",
+        `Expected BigDecimal, got "a"`
+      )
+    })
+
     it("FiniteFromString & isGreaterThan", async () => {
       const schema = Schema.FiniteFromString.check(Schema.isGreaterThan(2))
       const asserts = new TestSchema.Asserts(schema)
