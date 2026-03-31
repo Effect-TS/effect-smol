@@ -9216,6 +9216,29 @@ export const FiniteFromString: FiniteFromString = String.annotate({
 }).pipe(decodeTo(Finite, Transformation.numberFromString))
 
 /**
+ * Schema type for {@link BigIntFromString}.
+ *
+ * @category Schemas
+ * @since 4.0.0
+ */
+export interface BigIntFromString extends decodeTo<BigInt, String> {}
+
+/**
+ * A transformation schema that parses a string into a `bigint`.
+ *
+ * Decoding:
+ * - A `string` is decoded as a `bigint`.
+ *
+ * Encoding:
+ * - A `bigint` is encoded as a `string`.
+ *
+ * @since 4.0.0
+ */
+export const BigIntFromString: BigIntFromString = make<String>(AST.bigIntString).pipe(
+  decodeTo(BigInt, Transformation.bigintFromString)
+)
+
+/**
  * Schema type for {@link Trimmed}.
  *
  * @category Schemas

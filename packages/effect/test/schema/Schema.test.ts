@@ -1895,6 +1895,26 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       )
     })
 
+    it("BigIntFromString", async () => {
+      const schema = Schema.BigIntFromString
+      const asserts = new TestSchema.Asserts(schema)
+
+      if (verifyGeneration) {
+        const arbitrary = asserts.arbitrary()
+        arbitrary.verifyGeneration()
+      }
+
+      const decoding = asserts.decoding()
+      await decoding.succeed("0", 0n)
+      await decoding.fail(
+        "a",
+        `Expected a string that will be decoded as a bigint, got "a"`
+      )
+
+      const encoding = asserts.encoding()
+      await encoding.succeed(0n, "0")
+    })
+
     it("FiniteFromString & isGreaterThan", async () => {
       const schema = Schema.FiniteFromString.check(Schema.isGreaterThan(2))
       const asserts = new TestSchema.Asserts(schema)
