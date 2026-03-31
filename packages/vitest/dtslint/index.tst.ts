@@ -1,5 +1,5 @@
-import { it, layer } from "@effect/vitest"
-import { Layer, ServiceMap } from "effect"
+import { it, layer, type TestContext } from "@effect/vitest"
+import { Effect, Layer, Scope, ServiceMap } from "effect"
 import { describe, expect, it as test } from "tstyche"
 
 class Foo extends ServiceMap.Service<Foo, "foo">()("Foo") {}
@@ -51,6 +51,26 @@ describe("layer", () => {
       expect(it.layer).type.not.toBeCallableWith(Layer.succeed(Bar, "bar"), {
         memoMap: undefined as any
       })
+    })
+  })
+
+  test("layer helper exposes effectful hooks", () => {
+    layer(Layer.succeed(Foo, "foo"))((it) => {
+      expect(it.beforeEach).type.toBeCallableWith(
+        (_ctx: TestContext) => Effect.succeed("ok"),
+        "1 second"
+      )
+      expect(it.afterEach).type.toBeCallableWith(
+        (_ctx: TestContext) => Effect.void,
+        1_000
+      )
+      expect(it.beforeAll).type.toBeCallableWith(
+        Scope.make(),
+        "1 second"
+      )
+      expect(it.afterAll).type.toBeCallableWith(
+        Effect.succeed(1)
+      )
     })
   })
 })

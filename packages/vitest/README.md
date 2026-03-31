@@ -36,6 +36,34 @@ This import enhances the standard `it` function from `vitest` with several power
 | `it.scopedLive` | Combines the features of `scoped` and `live`, using a live Effect environment that requires a `Scope`. |
 | `it.flakyTest`  | Facilitates the execution of tests that might occasionally fail.                                       |
 
+# Layer-Scoped Hooks
+
+The `layer` and `it.layer` helpers return an `it` value with effectful lifecycle hooks. These hooks run with the same provided layer context as `it.effect`.
+
+```ts
+import { expect, layer } from "@effect/vitest"
+import { Effect, Layer, ServiceMap } from "effect"
+
+class Database extends ServiceMap.Service<Database, {
+  readonly reset: Effect.Effect<void>
+}>()("Database") {}
+
+layer(DatabaseLive)("database", (it) => {
+  it.beforeEach(() =>
+    Effect.gen(function*() {
+      const database = yield* Database
+      return yield* database.reset
+    })
+  )
+
+  it.effect("uses layer services in hooks", () =>
+    Effect.gen(function*() {
+      const database = yield* Database
+      expect(database).toBeDefined()
+    }))
+})
+```
+
 # Writing Tests with `it.effect`
 
 Here's how to use `it.effect` to write your tests:
