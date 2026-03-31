@@ -1,0 +1,134 @@
+import { assert, describe, it } from "@effect/vitest"
+import { Effect, Schema } from "effect"
+import * as Machine from "effect/unstable/machine/Machine"
+
+describe("Machine", () => {
+  const User = Schema.Struct({
+    id: Schema.String,
+    email: Schema.String
+  })
+
+  class Create extends Schema.TaggedClass<Create, { readonly _: unique symbol }>()(
+    "Create",
+    { email: Schema.String }
+  ) {}
+
+  class Rename extends Schema.TaggedClass<Rename, { readonly _: unique symbol }>()(
+    "Rename",
+    { email: Schema.String }
+  ) {}
+
+  class Delete extends Schema.TaggedClass<Delete, { readonly _: unique symbol }>()(
+    "Delete",
+    {}
+  ) {}
+
+  class Uncreated extends Schema.TaggedClass<Uncreated, { readonly _: unique symbol }>()(
+    "Uncreated",
+    {}
+  ) {}
+
+  class Created extends Schema.TaggedClass<Created, { readonly _: unique symbol }>()(
+    "Created",
+    { user: User }
+  ) {}
+
+  class Deleted extends Schema.TaggedClass<Deleted, { readonly _: unique symbol }>()(
+    "Deleted",
+    { userId: Schema.String }
+  ) {}
+
+  const UserMachine = Machine.make({
+    id: "UserMachine",
+    events: [Create, Rename, Delete],
+    initial: new Uncreated({}),
+    states: [Uncreated, Created, Deleted]
+  }).handlers({
+    Uncreated: {
+      Create: ({ event }) => Effect.succeed(new Created({ user: { id: "user-1", email: event.email } }))
+    },
+    Created: {
+      Rename: ({ data, event }) => new Created({ user: { ...data.user, email: event.email } }),
+      Delete: ({ data }) => new Deleted({ userId: data.user.id })
+    }
+  })
+
+  it.effect("supports state-dependent snapshots", () =>
+    Effect.gen(function*() {
+      const initial = yield* Machine.initial(UserMachine)
+      const created = yield* Machine.next(UserMachine, initial, new Create({ email: "a@example.com" }))
+      const renamed = yield* Machine.next(UserMachine, created, new Rename({ email: "b@example.com" }))
+      const deleted = yield* Machine.next(UserMachine, renamed, new Delete({}))
+
+      assert.instanceOf(initial, Uncreated)
+      assert.strictEqual(initial._tag, "Uncreated")
+
+      assert.instanceOf(created, Created)
+      assert.strictEqual(created._tag, "Created")
+      assert.deepStrictEqual(created.user, {
+        id: "user-1",
+        email: "a@example.com"
+      })
+
+      assert.instanceOf(renamed, Created)
+      assert.strictEqual(renamed._tag, "Created")
+      assert.deepStrictEqual(renamed.user, {
+        id: "user-1",
+        email: "b@example.com"
+      })
+
+      assert.instanceOf(deleted, Deleted)
+      assert.strictEqual(deleted._tag, "Deleted")
+      assert.strictEqual(deleted.userId, "user-1")
+    }))
+
+  it.effect("returns enabled event tags for the current state", () =>
+    Effect.gen(function*() {
+      const initial = yield* Machine.initial(UserMachine)
+      const created = yield* Machine.next(UserMachine, initial, new Create({ email: "a@example.com" }))
+
+      assert.deepStrictEqual(yield* Machine.enabled(UserMachine, initial), ["Create"])
+      assert.deepStrictEqual(yield* Machine.enabled(UserMachine, created), ["Rename", "Delete"])
+    }))
+
+  it.effect("machine actor processes events sequentially", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const actor = yield* Machine.start(UserMachine)
+
+        yield* actor.send(new Create({ email: "a@example.com" }))
+        yield* actor.send(new Rename({ email: "b@example.com" }))
+
+        const snapshot = yield* actor.snapshot
+        assert.instanceOf(snapshot, Created)
+        assert.strictEqual(snapshot._tag, "Created")
+        assert.deepStrictEqual(snapshot.user, {
+          id: "user-1",
+          email: "b@example.com"
+        })
+      })
+    ))
+
+  it.effect("fails with UnhandledEventError for invalid events in the current state", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const initial = yield* Machine.initial(UserMachine)
+        const planError = yield* Effect.flip(Machine.next(UserMachine, initial, new Rename({ email: "x@example.com" })))
+
+        assert.instanceOf(planError, Machine.UnhandledEventError)
+        assert.strictEqual(planError._tag, "UnhandledEventError")
+        assert.strictEqual(planError.machineId, "UserMachine")
+        assert.strictEqual(planError.state, "Uncreated")
+        assert.strictEqual(planError.event, "Rename")
+
+        const actor = yield* Machine.start(UserMachine)
+        const sendError = yield* Effect.flip(actor.send(new Rename({ email: "x@example.com" })))
+
+        assert.instanceOf(sendError, Machine.UnhandledEventError)
+        assert.strictEqual(sendError._tag, "UnhandledEventError")
+        assert.strictEqual(sendError.machineId, "UserMachine")
+        assert.strictEqual(sendError.state, "Uncreated")
+        assert.strictEqual(sendError.event, "Rename")
+      })
+    ))
+})
