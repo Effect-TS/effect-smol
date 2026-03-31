@@ -5757,7 +5757,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const err = new E({ id: 1 })
 
-      strictEqual(String(err), `E({"id":1})`)
+      strictEqual(String(err), `E`)
       assertInclude(err.stack, "Schema.test.ts:")
       strictEqual(err.id, 1)
 
@@ -5774,7 +5774,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const err = new E({ id: 1 })
 
-      strictEqual(String(err), `E({"id":1})`)
+      strictEqual(String(err), `E`)
       assertInclude(err.stack, "Schema.test.ts:")
       strictEqual(err.id, 1)
 
@@ -5803,7 +5803,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const instance = new B({ a: "a", b: 2 })
 
-      strictEqual(String(instance), `B({"a":"a","b":2,"_a":1,"_b":2})`)
+      strictEqual(String(instance), `B`)
       assertInclude(instance.stack, "Schema.test.ts:")
 
       assertTrue(instance instanceof A)
@@ -5822,6 +5822,14 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const decoding = asserts.decoding()
       await decoding.succeed({ a: "a", b: 2 }, new B({ a: "a", b: 2 }))
+    })
+
+    it("`toString` to match native `Error` output format", async () => {
+      class E extends Schema.ErrorClass<E>("E")({
+        message: Schema.String
+      }) {}
+      const err = new E({ message: "my message" })
+      strictEqual(String(err), `E: my message`)
     })
   })
 
@@ -5872,12 +5880,24 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
 
     it("name matches identifier", () => {
-      class E extends Schema.TaggedErrorClass<E>("effect/TaggedErrorName")("TaggedErrorName", {
-        id: Schema.Number
+      class E extends Schema.TaggedErrorClass<E>("A")("B", {
+        a: Schema.Number
       }) {}
 
-      const err = new E({ id: 1 })
-      strictEqual(err.name, "effect/TaggedErrorName")
+      const err = new E({ a: 1 })
+      strictEqual(err.name, "A")
+    })
+
+    it("name matches identifier after extend", () => {
+      class E extends Schema.TaggedErrorClass<E>("A")("B", {
+        a: Schema.Number
+      }) {}
+      class E2 extends E.extend<E2>("C")({
+        b: Schema.String
+      }) {}
+
+      const err = new E2({ a: 1, b: "b" })
+      strictEqual(err.name, "C")
     })
 
     it("zero-field TaggedErrorClass allows omitting props argument", () => {
