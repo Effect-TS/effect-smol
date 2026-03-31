@@ -168,7 +168,7 @@ describe("Formatter", () => {
       class E extends Schema.ErrorClass<E>("E")({
         a: Schema.String
       }) {}
-      strictEqual(format(new E({ a: "a" })), `E({"a":"a"})`)
+      strictEqual(format(new E({ a: "a" })), `E`)
     })
 
     it("ServiceMap.Service", () => {
