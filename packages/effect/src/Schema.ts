@@ -8438,6 +8438,8 @@ export interface Date extends instanceOf<globalThis.Date> {}
  * @category Schemas
  * @since 4.0.0
  */
+const DateString = String.annotate({ expected: "a string in ISO 8601 format that will be decoded as a Date" })
+
 export const Date: Date = instanceOf(
   globalThis.Date,
   {
@@ -8451,12 +8453,33 @@ export const Date: Date = instanceOf(
     expected: "Date",
     toCodecJson: () =>
       link<globalThis.Date>()(
-        String.annotate({ expected: "a string in ISO 8601 format that will be decoded as a Date" }),
+        DateString,
         Transformation.dateFromString
       ),
     toArbitrary: () => (fc, ctx) => fc.date(ctx?.constraints?.date)
   }
 )
+
+/**
+ * Schema type for {@link DateFromString}.
+ *
+ * @category Schemas
+ * @since 4.0.0
+ */
+export interface DateFromString extends decodeTo<Date, String> {}
+
+/**
+ * A transformation schema that parses an ISO 8601 string into a `Date`.
+ *
+ * Decoding:
+ * - A `string` is decoded as a `Date`.
+ *
+ * Encoding:
+ * - A `Date` is encoded as a `string`.
+ *
+ * @since 4.0.0
+ */
+export const DateFromString: DateFromString = DateString.pipe(decodeTo(Date, Transformation.dateFromString))
 
 /**
  * Schema type for {@link DateValid}.

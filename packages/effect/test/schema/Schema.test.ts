@@ -1839,6 +1839,22 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       )
     })
 
+    it("DateFromString", async () => {
+      const schema = Schema.DateFromString
+      const asserts = new TestSchema.Asserts(schema)
+
+      if (verifyGeneration) {
+        const arbitrary = asserts.arbitrary()
+        arbitrary.verifyGeneration()
+      }
+
+      const decoding = asserts.decoding()
+      await decoding.succeed("2021-01-01T00:00:00.000Z", new Date("2021-01-01T00:00:00.000Z"))
+
+      const encoding = asserts.encoding()
+      await encoding.succeed(new Date("2021-01-01T00:00:00.000Z"), "2021-01-01T00:00:00.000Z")
+    })
+
     it("FiniteFromString", async () => {
       const schema = Schema.FiniteFromString
       const asserts = new TestSchema.Asserts(schema)
