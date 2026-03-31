@@ -8367,6 +8367,8 @@ export interface URL extends instanceOf<globalThis.URL> {}
  * @since 4.0.0
  * @category URL
  */
+const URLString = String.annotate({ expected: "a string that will be decoded as a URL" })
+
 export const URL: URL = instanceOf(
   globalThis.URL,
   {
@@ -8380,7 +8382,7 @@ export const URL: URL = instanceOf(
     expected: "URL",
     toCodecJson: () =>
       link<globalThis.URL>()(
-        String.annotate({ expected: "a string that will be decoded as a URL" }),
+        URLString,
         Transformation.urlFromString
       ),
     toArbitrary: () => (fc) => fc.webUrl().map((s) => new globalThis.URL(s)),
@@ -8408,8 +8410,7 @@ export interface URLFromString extends decodeTo<URL, String> {}
  * @category URL
  * @since 4.0.0
  */
-export const URLFromString: URLFromString = String.annotate({ expected: "a string that will be decoded as a URL" })
-  .pipe(decodeTo(URL, Transformation.urlFromString)) // TODO: remove duplication with URL schema
+export const URLFromString: URLFromString = URLString.pipe(decodeTo(URL, Transformation.urlFromString))
 
 /**
  * Schema type for {@link Date}.
