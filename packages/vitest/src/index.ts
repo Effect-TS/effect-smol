@@ -142,66 +142,74 @@ export namespace Vitest {
   /**
    * @since 1.0.0
    */
-  export type LayerMethods<R = never> = {
-    <ExtraContext extends {}>(name: string | Function, fn?: V.TestFunction<ExtraContext>, options?: number): void
-    <ExtraContext extends {}>(name: string | Function, options?: V.TestOptions, fn?: V.TestFunction<ExtraContext>): void
-  } & Omit<API, "beforeEach" | "afterEach" | "beforeAll" | "afterAll"> & {
-    readonly effect: Vitest.Tester<R | Scope.Scope>
-    readonly flakyTest: <A, E, R2>(
-      self: Effect.Effect<A, E, R2 | Scope.Scope>,
-      timeout?: Duration.Input
-    ) => Effect.Effect<A, never, R2>
-    readonly layer: <R2, E>(layer: Layer.Layer<R2, E, R>, options?: {
-      readonly timeout?: Duration.Input
-    }) => {
-      (f: (it: Vitest.LayerMethods<R | R2>) => void): void
-      (
-        name: string,
-        f: (it: Vitest.LayerMethods<R | R2>) => void
+  export type LayerMethods<R = never> =
+    & {
+      <ExtraContext extends {}>(name: string | Function, fn?: V.TestFunction<ExtraContext>, options?: number): void
+      <ExtraContext extends {}>(
+        name: string | Function,
+        options?: V.TestOptions,
+        fn?: V.TestFunction<ExtraContext>
       ): void
     }
+    & Omit<API, "beforeEach" | "afterEach" | "beforeAll" | "afterAll">
+    & {
+      readonly effect: Vitest.Tester<R | Scope.Scope>
+      readonly flakyTest: <A, E, R2>(
+        self: Effect.Effect<A, E, R2 | Scope.Scope>,
+        timeout?: Duration.Input
+      ) => Effect.Effect<A, never, R2>
+      readonly layer: <R2, E>(layer: Layer.Layer<R2, E, R>, options?: {
+        readonly timeout?: Duration.Input
+      }) => {
+        (f: (it: Vitest.LayerMethods<R | R2>) => void): void
+        (
+          name: string,
+          f: (it: Vitest.LayerMethods<R | R2>) => void
+        ): void
+      }
 
-    /**
-     * @since 1.0.0
-     */
-    readonly prop: <const Arbs extends Arbitraries>(
-      name: string,
-      arbitraries: Arbs,
-      self: (
-        properties: {
-          [K in keyof Arbs]: Arbs[K] extends FC.Arbitrary<infer T> ? T : Arbs[K] extends Schema.Schema<infer T> ? T
-          : never
-        },
-        ctx: V.TestContext
-      ) => void,
-      timeout?:
-        | number
-        | V.TestOptions & {
-          fastCheck?: FC.Parameters<
-            {
-              [K in keyof Arbs]: Arbs[K] extends FC.Arbitrary<infer T> ? T : Arbs[K] extends Schema.Schema<infer T> ? T
-              : never
-            }
-          >
-        }
-    ) => void
-    readonly beforeEach: <A, E>(
-      self: (ctx: V.TestContext) => Effect.Effect<A, E, R | Scope.Scope>,
-      timeout?: Duration.Input
-    ) => void
-    readonly afterEach: <A, E>(
-      self: (ctx: V.TestContext) => Effect.Effect<A, E, R | Scope.Scope>,
-      timeout?: Duration.Input
-    ) => void
-    readonly beforeAll: <A, E>(
-      self: Effect.Effect<A, E, R | Scope.Scope>,
-      timeout?: Duration.Input
-    ) => void
-    readonly afterAll: <A, E>(
-      self: Effect.Effect<A, E, R | Scope.Scope>,
-      timeout?: Duration.Input
-    ) => void
-  }
+      /**
+       * @since 1.0.0
+       */
+      readonly prop: <const Arbs extends Arbitraries>(
+        name: string,
+        arbitraries: Arbs,
+        self: (
+          properties: {
+            [K in keyof Arbs]: Arbs[K] extends FC.Arbitrary<infer T> ? T : Arbs[K] extends Schema.Schema<infer T> ? T
+            : never
+          },
+          ctx: V.TestContext
+        ) => void,
+        timeout?:
+          | number
+          | V.TestOptions & {
+            fastCheck?: FC.Parameters<
+              {
+                [K in keyof Arbs]: Arbs[K] extends FC.Arbitrary<infer T> ? T :
+                  Arbs[K] extends Schema.Schema<infer T> ? T
+                  : never
+              }
+            >
+          }
+      ) => void
+      readonly beforeEach: <A, E>(
+        self: (ctx: V.TestContext) => Effect.Effect<A, E, R | Scope.Scope>,
+        timeout?: Duration.Input
+      ) => void
+      readonly afterEach: <A, E>(
+        self: (ctx: V.TestContext) => Effect.Effect<A, E, R | Scope.Scope>,
+        timeout?: Duration.Input
+      ) => void
+      readonly beforeAll: <A, E>(
+        self: Effect.Effect<A, E, R | Scope.Scope>,
+        timeout?: Duration.Input
+      ) => void
+      readonly afterAll: <A, E>(
+        self: Effect.Effect<A, E, R | Scope.Scope>,
+        timeout?: Duration.Input
+      ) => void
+    }
 
   /**
    * @since 1.0.0
