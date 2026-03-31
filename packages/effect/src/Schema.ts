@@ -8357,6 +8357,8 @@ export const RegExp: RegExp = instanceOf(
  */
 export interface URL extends instanceOf<globalThis.URL> {}
 
+const URLString = String.annotate({ expected: "a string that will be decoded as a URL" })
+
 /**
  * A schema for JavaScript `URL` objects.
  *
@@ -8367,8 +8369,6 @@ export interface URL extends instanceOf<globalThis.URL> {}
  * @since 4.0.0
  * @category URL
  */
-const URLString = String.annotate({ expected: "a string that will be decoded as a URL" })
-
 export const URL: URL = instanceOf(
   globalThis.URL,
   {
@@ -8420,6 +8420,8 @@ export const URLFromString: URLFromString = URLString.pipe(decodeTo(URL, Transfo
  */
 export interface Date extends instanceOf<globalThis.Date> {}
 
+const DateString = String.annotate({ expected: "a string in ISO 8601 format that will be decoded as a Date" })
+
 /**
  * A schema for JavaScript `Date` objects.
  *
@@ -8439,8 +8441,6 @@ export interface Date extends instanceOf<globalThis.Date> {}
  * @category Schemas
  * @since 4.0.0
  */
-const DateString = String.annotate({ expected: "a string in ISO 8601 format that will be decoded as a Date" })
-
 export const Date: Date = instanceOf(
   globalThis.Date,
   {
@@ -8648,6 +8648,8 @@ export const DurationFromMillis: DurationFromMillis = Number.check(isGreaterThan
  */
 export interface BigDecimal extends declare<BigDecimal_.BigDecimal> {}
 
+const BigDecimalString = String.annotate({ expected: "a string that will be decoded as a BigDecimal" })
+
 /**
  * A schema for `BigDecimal` values.
  *
@@ -8657,8 +8659,6 @@ export interface BigDecimal extends declare<BigDecimal_.BigDecimal> {}
  *
  * @since 4.0.0
  */
-const BigDecimalString = String.annotate({ expected: "a string that will be decoded as a BigDecimal" })
-
 export const BigDecimal: BigDecimal = declare(
   BigDecimal_.isBigDecimal,
   {
@@ -9719,6 +9719,10 @@ export const TimeZoneNamedFromString: TimeZoneNamedFromString = TimeZoneNamedStr
  */
 export interface TimeZone extends declare<DateTime.TimeZone> {}
 
+const TimeZoneString = String.annotate({
+  expected: "a time zone string (IANA identifier or offset like +03:00)"
+})
+
 /**
  * A schema for `DateTime.TimeZone` values.
  *
@@ -9730,10 +9734,6 @@ export interface TimeZone extends declare<DateTime.TimeZone> {}
  * @category DateTime
  * @since 4.0.0
  */
-const TimeZoneString = String.annotate({
-  expected: "a time zone string (IANA identifier or offset like +03:00)"
-})
-
 export const TimeZone: TimeZone = declare(
   DateTime.isTimeZone,
   {
@@ -9797,6 +9797,10 @@ export const TimeZoneFromString: TimeZoneFromString = TimeZoneString.pipe(
  */
 export interface DateTimeZoned extends declare<DateTime.Zoned> {}
 
+const DateTimeZonedString = String.annotate({
+  expected: "a zoned DateTime string (e.g. 2024-01-01T00:00:00.000+00:00[Europe/London])"
+})
+
 /**
  * A schema for `DateTime.Zoned` values.
  *
@@ -9808,10 +9812,6 @@ export interface DateTimeZoned extends declare<DateTime.Zoned> {}
  * @category DateTime
  * @since 4.0.0
  */
-const DateTimeZonedString = String.annotate({
-  expected: "a zoned DateTime string (e.g. 2024-01-01T00:00:00.000+00:00[Europe/London])"
-})
-
 export const DateTimeZoned: DateTimeZoned = declare(
   (u) => DateTime.isDateTime(u) && DateTime.isZoned(u),
   {
