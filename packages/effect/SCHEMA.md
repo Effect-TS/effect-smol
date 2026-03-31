@@ -5025,6 +5025,64 @@ console.log(JSON.stringify(document, null, 2))
 */
 ```
 
+#### Annotating the Encoded Side of a Transformation
+
+When a schema includes a transformation (e.g. `Schema.Trim`), the generated JSON Schema corresponds to the encoded side. Calling `.annotate(...)` on a transformation annotates the decoded side, so the annotations won't appear in the JSON Schema output.
+
+To annotate the encoded side, use `Schema.flip` twice: flip to expose the encoded side, annotate it, then flip back.
+
+**Example** (Annotating the encoded side of `Trim`)
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Trim.pipe(
+  Schema.flip,
+  Schema.annotate({
+    description: "my description",
+    title: "my title"
+  }),
+  Schema.flip
+)
+
+console.log(JSON.stringify(Schema.toJsonSchemaDocument(schema), null, 2))
+/*
+{
+  "dialect": "draft-2020-12",
+  "schema": {
+    "type": "string",
+    "title": "my title",
+    "description": "my description"
+  },
+  "definitions": {}
+}
+*/
+```
+
+Alternatively, build a custom transformation using `Schema.decodeTo`:
+
+```ts
+import { Schema, SchemaTransformation } from "effect"
+
+const schema = Schema.String.annotate({
+  description: "my description",
+  title: "my title"
+}).pipe(Schema.decodeTo(Schema.Trimmed, SchemaTransformation.trim()))
+
+console.log(JSON.stringify(Schema.toJsonSchemaDocument(schema), null, 2))
+/*
+{
+  "dialect": "draft-2020-12",
+  "schema": {
+    "type": "string",
+    "title": "my title",
+    "description": "my description"
+  },
+  "definitions": {}
+}
+*/
+```
+
 #### Optional fields / elements
 
 Optional fields are converted to optional fields or elements in the JSON Schema.
