@@ -2,4 +2,4 @@
 "effect": minor
 ---
 
-Add `DateFromString`, `BigIntFromString`, and `BigDecimalFromString` schemas, closes #1941.
+Add `DateFromString`, `BigIntFromString`, `BigDecimalFromString`, and `TimeZoneNamedFromString` schemas, closes #1941.

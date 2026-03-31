@@ -9647,6 +9647,8 @@ export const TimeZoneOffset: TimeZoneOffset = declare(
  */
 export interface TimeZoneNamed extends declare<DateTime.TimeZone.Named> {}
 
+const TimeZoneNamedString = String.annotate({ expected: "an IANA time zone identifier" })
+
 /**
  * A schema for `DateTime.TimeZone.Named` values.
  *
@@ -9671,7 +9673,7 @@ export const TimeZoneNamed: TimeZoneNamed = declare(
     expected: "DateTime.TimeZone.Named",
     toCodecJson: () =>
       link<DateTime.TimeZone.Named>()(
-        String.annotate({ expected: "an IANA time zone identifier" }),
+        TimeZoneNamedString,
         Transformation.timeZoneNamedFromString
       ),
     toArbitrary: () => (fc) =>
@@ -9683,6 +9685,30 @@ export const TimeZoneNamed: TimeZoneNamed = declare(
     toFormatter: () => (tz) => DateTime.zoneToString(tz),
     toEquivalence: () => (a, b) => a.id === b.id
   }
+)
+
+/**
+ * Schema type for {@link TimeZoneNamedFromString}.
+ *
+ * @category DateTime
+ * @since 4.0.0
+ */
+export interface TimeZoneNamedFromString extends decodeTo<TimeZoneNamed, String> {}
+
+/**
+ * A transformation schema that parses an IANA time zone identifier string into a `DateTime.TimeZone.Named`.
+ *
+ * Decoding:
+ * - A `string` is decoded as a `DateTime.TimeZone.Named`.
+ *
+ * Encoding:
+ * - A `DateTime.TimeZone.Named` is encoded as a `string`.
+ *
+ * @category DateTime
+ * @since 4.0.0
+ */
+export const TimeZoneNamedFromString: TimeZoneNamedFromString = TimeZoneNamedString.pipe(
+  decodeTo(TimeZoneNamed, Transformation.timeZoneNamedFromString)
 )
 
 /**
