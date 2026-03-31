@@ -3198,7 +3198,7 @@ export function isStringBigInt(annotations?: Schema.Annotations.Filter) {
 
 /** @internal */
 export const bigIntString = appendChecks(string, [isStringBigInt({
-  expected: "a string that will be decoded as a bigint"
+  expected: "a string representing a bigint"
 })])
 
 const bigIntToString = new Link(

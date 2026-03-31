@@ -1900,7 +1900,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("0", 0n)
       await decoding.fail(
         "a",
-        `Expected a string that will be decoded as a bigint, got "a"`
+        `Expected a string representing a bigint, got "a"`
       )
 
       const encoding = asserts.encoding()
