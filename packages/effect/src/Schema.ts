@@ -11333,7 +11333,7 @@ export declare namespace Annotations {
    * const schema = Schema.String.annotate({ version: [1, 2, 0] })
    *
    * // const version: readonly [major: number, minor: number, patch: number] | undefined
-   * const version = Schema.resolveInto(schema)?.["version"]
+   * const version = Schema.resolveAnnotations(schema)?.["version"]
    *
    * if (version) {
    *   // Access individual parts of the version
