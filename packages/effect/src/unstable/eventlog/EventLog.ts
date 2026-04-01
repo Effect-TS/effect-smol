@@ -12,6 +12,7 @@ import * as PubSub from "../../PubSub.ts"
 import * as Queue from "../../Queue.ts"
 import type * as Record from "../../Record.ts"
 import * as Redacted from "../../Redacted.ts"
+import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../Schema.ts"
 import * as SchemaGetter from "../../SchemaGetter.ts"
 import type * as Scope from "../../Scope.ts"
@@ -703,7 +704,11 @@ const make = Effect.gen(function*() {
           )
         ),
         Effect.catchCause(Effect.logError),
-        Effect.forever,
+        Effect.repeat(
+          Schedule.exponential(200, 1.5).pipe(
+            Schedule.either(Schedule.spaced({ seconds: 10 }))
+          )
+        ),
         Effect.annotateLogs({
           service: "EventLog",
           effect: "runRemote consume"
