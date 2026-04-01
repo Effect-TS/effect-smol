@@ -318,7 +318,7 @@ export const make = Effect.gen(function*() {
                 if (payload[payloadParentKey]) {
                   parent = payload[payloadParentKey]
                 }
-                return execute(workflow.payloadSchema.makeUnsafe(payload) as object, executionId).pipe(
+                return execute(workflow.payloadSchema.make(payload) as object, executionId).pipe(
                   Effect.onExit((exit) => {
                     const suspendOnFailure = ServiceMap.get(workflow.annotations, Workflow.SuspendOnFailure)
                     if (!instance.suspended && !(suspendOnFailure && exit._tag === "Failure")) {

@@ -2382,7 +2382,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const flipped = schema.pipe(Schema.flip)
       const assertsFlipped = new TestSchema.Asserts(flipped)
-      throws(() => flipped.makeUnsafe({} as any))
+      throws(() => flipped.make({} as any))
       const makeFlipped = assertsFlipped.make()
       await makeFlipped.succeed({ a: "1" })
 
@@ -3146,9 +3146,9 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
           await make.succeed({ a: {} }, new A({ a: { b: -1 } }))
           await make.succeed({}, new A({ a: { b: -1 } }))
 
-          deepStrictEqual(A.makeUnsafe({ a: { b: 1 } }), new A({ a: { b: 1 } }))
-          deepStrictEqual(A.makeUnsafe({ a: {} }), new A({ a: { b: -1 } }))
-          deepStrictEqual(A.makeUnsafe({}), new A({ a: { b: -1 } }))
+          deepStrictEqual(A.make({ a: { b: 1 } }), new A({ a: { b: 1 } }))
+          deepStrictEqual(A.make({ a: {} }), new A({ a: { b: -1 } }))
+          deepStrictEqual(A.make({}), new A({ a: { b: -1 } }))
         })
       })
 
@@ -4369,7 +4369,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const schema = A
 
-      const instance = schema.makeUnsafe({ a: "a" })
+      const instance = schema.make({ a: "a" })
       strictEqual(instance.a, "a")
       deepStrictEqual(A.fields, { a: Schema.String })
     })
@@ -5590,11 +5590,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       strictEqual(A.name, "A")
 
       assertTrue(new A({ a: "a" }) instanceof A)
-      assertTrue(A.makeUnsafe({ a: "a" }) instanceof A)
+      assertTrue(A.make({ a: "a" }) instanceof A)
 
       // test additional fields
       strictEqual(new A({ a: "a" })._a, 1)
-      strictEqual(A.makeUnsafe({ a: "a" })._a, 1)
+      strictEqual(A.make({ a: "a" })._a, 1)
 
       // test Equal.equals
       assertTrue(Equal.equals(new A({ a: "a" }), new A({ a: "a" })))
@@ -5646,11 +5646,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       strictEqual(A.name, "A")
 
       assertTrue(new A({ a: "a" }) instanceof A)
-      assertTrue(A.makeUnsafe({ a: "a" }) instanceof A)
+      assertTrue(A.make({ a: "a" }) instanceof A)
 
       // test additional fields
       strictEqual(new A({ a: "a" })._a, 1)
-      strictEqual(A.makeUnsafe({ a: "a" })._a, 1)
+      strictEqual(A.make({ a: "a" })._a, 1)
 
       // test Equal.equals
       assertTrue(Equal.equals(new A({ a: "a" }), new A({ a: "a" })))
@@ -5696,7 +5696,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       // should expose the fields
       deepStrictEqual(Annotated.from.fields, { a: Schema.String })
 
-      assertTrue(Annotated.makeUnsafe(new A({ a: "a" })) instanceof A)
+      assertTrue(Annotated.make(new A({ a: "a" })) instanceof A)
     })
 
     describe("extend", () => {
@@ -5716,9 +5716,9 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         const instance = new B({ a: "a", b: 2 })
 
         assertTrue(instance instanceof A)
-        assertTrue(B.makeUnsafe({ a: "a", b: 2 }) instanceof A)
+        assertTrue(B.make({ a: "a", b: 2 }) instanceof A)
         assertTrue(instance instanceof B)
-        assertTrue(B.makeUnsafe({ a: "a", b: 2 }) instanceof B)
+        assertTrue(B.make({ a: "a", b: 2 }) instanceof B)
 
         strictEqual(instance.a, "a")
         strictEqual(instance._a, 1)
@@ -5864,9 +5864,9 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       assertInclude(instance.stack, "Schema.test.ts:")
 
       assertTrue(instance instanceof A)
-      assertTrue(B.makeUnsafe({ a: "a", b: 2 }) instanceof A)
+      assertTrue(B.make({ a: "a", b: 2 }) instanceof A)
       assertTrue(instance instanceof B)
-      assertTrue(B.makeUnsafe({ a: "a", b: 2 }) instanceof B)
+      assertTrue(B.make({ a: "a", b: 2 }) instanceof B)
 
       strictEqual(instance.a, "a")
       strictEqual(instance._a, 1)

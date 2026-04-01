@@ -170,14 +170,14 @@ export type Mutability = "readonly" | "mutable"
 export type ConstructorDefault = "no-default" | "with-default"
 
 /**
- * Options for `makeEffect`, `makeUnsafe`, and Class constructors.
+ * Options for `makeEffect`, `make`, and Class constructors.
  *
  * When to use:
  * - Pass `disableChecks: true` to skip validation when you trust the data.
  * - Pass `parseOptions` to control error reporting behavior.
  *
  * @see {@link Bottom.makeEffect}
- * @see {@link Bottom.makeUnsafe}
+ * @see {@link Bottom.make}
  *
  * @since 4.0.0
  */
@@ -252,12 +252,12 @@ export interface Bottom<
   annotateKey(annotations: Annotations.Key<this["Type"]>): this["~rebuild.out"]
   check(...checks: readonly [AST.Check<this["Type"]>, ...Array<AST.Check<this["Type"]>>]): this["~rebuild.out"]
   rebuild(ast: this["ast"]): this["~rebuild.out"]
-  makeEffect(input: this["~type.make.in"], options?: MakeOptions): Effect.Effect<this["Type"], SchemaError>
   /**
    * @throws {Error} The issue is contained in the error cause.
    */
-  makeUnsafe(input: this["~type.make.in"], options?: MakeOptions): this["Type"]
+  make(input: this["~type.make.in"], options?: MakeOptions): this["Type"]
   makeOption(input: this["~type.make.in"], options?: MakeOptions): Option_.Option<this["Type"]>
+  makeEffect(input: this["~type.make.in"], options?: MakeOptions): Effect.Effect<this["Type"], SchemaError>
 }
 
 /**
@@ -4238,7 +4238,7 @@ export interface withConstructorDefault<S extends Top & WithoutConstructorDefaul
  *   )
  * })
  *
- * const value = MySchema.makeUnsafe({})
+ * const value = MySchema.make({})
  * // value: { name: "anonymous" }
  * ```
  *
@@ -4383,7 +4383,7 @@ export interface tag<Tag extends AST.LiteralValue> extends withConstructorDefaul
 
 /**
  * Combines a {@link Literal} schema with {@link withConstructorDefault}, making it ideal
- * for discriminator fields in tagged unions. When constructing via `makeUnsafe`, the
+ * for discriminator fields in tagged unions. When constructing via `make`, the
  * `_tag` field can be omitted and will be filled automatically.
  *
  * **Example** (Discriminated union tag)
@@ -4393,8 +4393,8 @@ export interface tag<Tag extends AST.LiteralValue> extends withConstructorDefaul
  *
  * const A = Schema.Struct({ _tag: Schema.tag("A"), value: Schema.Number })
  *
- * // _tag is optional in makeUnsafe, auto-filled to "A"
- * const a = A.makeUnsafe({ value: 42 })
+ * // _tag is optional in make, auto-filled to "A"
+ * const a = A.make({ value: 42 })
  * // a: { _tag: "A", value: 42 }
  * ```
  *
@@ -4448,7 +4448,7 @@ export type TaggedStruct<Tag extends AST.LiteralValue, Fields extends Struct.Fie
  * to identify the specific variant of the object, which is especially useful
  * when working with union types.
  *
- * When using the `makeUnsafe` method, the `_tag` field is optional and will be
+ * When using the `make` method, the `_tag` field is optional and will be
  * added automatically. However, when decoding or encoding, the `_tag` field
  * must be present in the input.
  *
@@ -9963,7 +9963,7 @@ function makeClass<
   const out = class extends Inherited {
     constructor(...[input, options]: ReadonlyArray<any>) {
       const props = input ?? {}
-      const validated = struct.makeUnsafe(props, options)
+      const validated = struct.make(props, options)
       super({ ...props, ...validated }, { ...options, disableChecks: true })
     }
 
@@ -10005,7 +10005,7 @@ function makeClass<
     static rebuild(ast: AST.Declaration) {
       return getClassSchema(this).rebuild(ast)
     }
-    static makeUnsafe(input: S["~type.make.in"], options?: MakeOptions): Self {
+    static make(input: S["~type.make.in"], options?: MakeOptions): Self {
       return new this(input, options)
     }
     static makeEffect(input: S["~type.make.in"], options?: MakeOptions): Effect.Effect<Self, SchemaError> {

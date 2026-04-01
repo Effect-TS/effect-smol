@@ -270,7 +270,7 @@ it("getNativeClassSchema", () => {
   })
   class Err extends Data.Error<typeof Props.Type> {
     constructor(props: typeof Props.Type) {
-      super(Props.makeUnsafe(props))
+      super(Props.make(props))
     }
   }
   const schema = SchemaUtils.getNativeClassSchema(Err, { encoding: Props })

@@ -44,7 +44,7 @@ describe("Tuple", () => {
     expect(schema.annotate({})).type.toBe<
       Schema.mutable<Schema.Tuple<readonly [Schema.String, Schema.FiniteFromString]>>
     >()
-    expect(schema.makeUnsafe).type.toBe<
+    expect(schema.make).type.toBe<
       (input: readonly [string, number], options?: Schema.MakeOptions | undefined) => [string, number]
     >()
   })

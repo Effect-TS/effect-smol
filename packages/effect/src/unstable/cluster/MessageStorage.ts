@@ -843,7 +843,7 @@ export class MemoryDriver extends ServiceMap.Service<MemoryDriver>()("effect/clu
           }>()
           for (let index = 0; index < journal.length; index++) {
             const envelope = journal[index]
-            const shardId = ShardId.makeUnsafe(envelope.address.shardId)
+            const shardId = ShardId.make(envelope.address.shardId)
             if (!unprocessed.has(envelope as any) || !shardIds.includes(shardId.toString())) {
               continue
             }

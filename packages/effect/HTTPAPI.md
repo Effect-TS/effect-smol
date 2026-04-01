@@ -1814,14 +1814,14 @@ const GroupLive = HttpApiBuilder.group(
       .handle("getUser", (ctx) => {
         const id = ctx.params.id
         if (id === 1) {
-          return Effect.fail(UserNotFound.makeUnsafe({ message: "User not found" }))
+          return Effect.fail(UserNotFound.make({ message: "User not found" }))
         }
         return Effect.succeed({ id, name: `User ${id}` })
       })
       .handle("deleteUser", (ctx) => {
         const id = ctx.params.id
         if (id === 1) {
-          return Effect.fail(UserNotFound.makeUnsafe({ message: "User not found" }))
+          return Effect.fail(UserNotFound.make({ message: "User not found" }))
         }
         return Effect.succeed(void 0)
       })

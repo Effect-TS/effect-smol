@@ -15,7 +15,7 @@ import {
 import { immerable, produce } from "immer"
 import { describe, expect, it, when } from "tstyche"
 
-type MakeUnsafe<In, Out> = (input: In, options?: Schema.MakeOptions | undefined) => Out
+type Make<In, Out> = (input: In, options?: Schema.MakeOptions | undefined) => Out
 type MakeEffect<In, Out> = (
   input: In,
   options?: Schema.MakeOptions | undefined
@@ -107,57 +107,57 @@ describe("Schema", () => {
     })
   })
 
-  describe("makeUnsafe", () => {
+  describe("make", () => {
     it("Never", () => {
       const schema = Schema.Never
-      expect(schema.makeUnsafe).type.toBe<MakeUnsafe<never, never>>()
+      expect(schema.make).type.toBe<Make<never, never>>()
     })
 
     it("Unknown", () => {
       const schema = Schema.Unknown
-      expect(schema.makeUnsafe).type.toBe<MakeUnsafe<unknown, unknown>>()
+      expect(schema.make).type.toBe<Make<unknown, unknown>>()
     })
 
     it("Any", () => {
       const schema = Schema.Any
-      expect(schema.makeUnsafe).type.toBe<MakeUnsafe<any, any>>()
+      expect(schema.make).type.toBe<Make<any, any>>()
     })
 
     it("Null", () => {
       const schema = Schema.Null
-      expect(schema.makeUnsafe).type.toBe<MakeUnsafe<null, null>>()
+      expect(schema.make).type.toBe<Make<null, null>>()
     })
 
     it("Undefined", () => {
       const schema = Schema.Undefined
-      expect(schema.makeUnsafe).type.toBe<MakeUnsafe<undefined, undefined>>()
+      expect(schema.make).type.toBe<Make<undefined, undefined>>()
     })
 
     it("String", () => {
       const schema = Schema.String
-      expect(schema.makeUnsafe).type.toBe<MakeUnsafe<string, string>>()
+      expect(schema.make).type.toBe<Make<string, string>>()
     })
 
     it("Number", () => {
       const schema = Schema.Number
-      expect(schema.makeUnsafe).type.toBe<MakeUnsafe<number, number>>()
+      expect(schema.make).type.toBe<Make<number, number>>()
     })
 
     it("check", () => {
       const schema = Schema.String.check(Schema.isMinLength(1))
-      expect(schema.makeUnsafe).type.toBe<MakeUnsafe<string, string>>()
+      expect(schema.make).type.toBe<Make<string, string>>()
     })
 
     it("brand", () => {
       const schema = Schema.String.pipe(Schema.brand("a"))
-      expect(schema.makeUnsafe).type.toBe<MakeUnsafe<string, string & Brand.Brand<"a">>>()
+      expect(schema.make).type.toBe<Make<string, string & Brand.Brand<"a">>>()
       expect(schema).type.toBe<Schema.brand<Schema.String, "a">>()
       expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<string & Brand.Brand<"a">, string, never, never>>()
     })
 
     it("refine", () => {
       const schema = Schema.Option(Schema.String).pipe(Schema.refine(Option.isSome))
-      expect(schema.makeUnsafe).type.toBe<MakeUnsafe<Option.Option<string>, Option.Some<string>>>()
+      expect(schema.make).type.toBe<Make<Option.Option<string>, Option.Some<string>>>()
     })
 
     describe("Struct", () => {
@@ -165,15 +165,15 @@ describe("Schema", () => {
         const schema = Schema.Struct({
           a: Schema.String
         })
-        expect(schema.makeUnsafe).type.toBe<MakeUnsafe<{ readonly a: string }, { readonly a: string }>>()
+        expect(schema.make).type.toBe<Make<{ readonly a: string }, { readonly a: string }>>()
       })
 
       it("branded field", () => {
         const schema = Schema.Struct({
           a: Schema.String.pipe(Schema.brand("a"))
         })
-        expect(schema.makeUnsafe).type.toBe<
-          MakeUnsafe<{ readonly a: string & Brand.Brand<"a"> }, { readonly a: string & Brand.Brand<"a"> }>
+        expect(schema.make).type.toBe<
+          Make<{ readonly a: string & Brand.Brand<"a"> }, { readonly a: string & Brand.Brand<"a"> }>
         >()
       })
 
@@ -181,8 +181,8 @@ describe("Schema", () => {
         const schema = Schema.Struct({
           a: Schema.Option(Schema.String).pipe(Schema.refine(Option.isSome))
         })
-        expect(schema.makeUnsafe).type.toBe<
-          MakeUnsafe<{ readonly a: Option.Some<string> }, { readonly a: Option.Some<string> }>
+        expect(schema.make).type.toBe<
+          Make<{ readonly a: Option.Some<string> }, { readonly a: Option.Some<string> }>
         >()
       })
 
@@ -190,15 +190,15 @@ describe("Schema", () => {
         const schema = Schema.Struct({
           a: Schema.String.pipe(Schema.withConstructorDefault(Effect.succeed("default")))
         })
-        expect(schema.makeUnsafe).type.toBe<MakeUnsafe<{ readonly a?: string }, { readonly a: string }>>()
+        expect(schema.make).type.toBe<Make<{ readonly a?: string }, { readonly a: string }>>()
       })
 
       it("branded defaulted field", () => {
         const schema = Schema.Struct({
           a: Schema.String.pipe(Schema.brand("a"), Schema.withConstructorDefault(Effect.succeed("default")))
         })
-        expect(schema.makeUnsafe).type.toBe<
-          MakeUnsafe<{ readonly a?: string & Brand.Brand<"a"> }, { readonly a: string & Brand.Brand<"a"> }>
+        expect(schema.make).type.toBe<
+          Make<{ readonly a?: string & Brand.Brand<"a"> }, { readonly a: string & Brand.Brand<"a"> }>
         >()
       })
 
@@ -206,8 +206,8 @@ describe("Schema", () => {
         const schema = Schema.Struct({
           a: Schema.String.pipe(Schema.withConstructorDefault(Effect.succeed("default")), Schema.brand("a"))
         })
-        expect(schema.makeUnsafe).type.toBe<
-          MakeUnsafe<{ readonly a?: string & Brand.Brand<"a"> }, { readonly a: string & Brand.Brand<"a"> }>
+        expect(schema.make).type.toBe<
+          Make<{ readonly a?: string & Brand.Brand<"a"> }, { readonly a: string & Brand.Brand<"a"> }>
         >()
       })
 
@@ -217,8 +217,8 @@ describe("Schema", () => {
             b: Schema.Finite.pipe(Schema.withConstructorDefault(Effect.succeed(-1)))
           }).pipe(Schema.withConstructorDefault(Effect.succeed({})))
         })
-        expect(schema.makeUnsafe).type.toBe<
-          MakeUnsafe<{ readonly a?: { readonly b?: number } }, { readonly a: { readonly b: number } }>
+        expect(schema.make).type.toBe<
+          Make<{ readonly a?: { readonly b?: number } }, { readonly a: { readonly b: number } }>
         >()
       })
 
@@ -227,10 +227,10 @@ describe("Schema", () => {
           b: Schema.Finite.pipe(Schema.withConstructorDefault(Effect.succeed(-1)))
         }).pipe(Schema.brand("a"))
         const schema = Schema.Struct({
-          a: A.pipe(Schema.withConstructorDefault(Effect.succeed(A.makeUnsafe({}))))
+          a: A.pipe(Schema.withConstructorDefault(Effect.succeed(A.make({}))))
         })
-        expect(schema.makeUnsafe).type.toBe<
-          MakeUnsafe<
+        expect(schema.make).type.toBe<
+          Make<
             { readonly a?: { readonly b: number } & Brand.Brand<"a"> },
             { readonly a: { readonly b: number } & Brand.Brand<"a"> }
           >
@@ -244,7 +244,7 @@ describe("Schema", () => {
         const schema = Schema.Struct({
           a: A
         })
-        expect(schema.makeUnsafe).type.toBe<MakeUnsafe<{ readonly a: A }, { readonly a: A }>>()
+        expect(schema.make).type.toBe<Make<{ readonly a: A }, { readonly a: A }>>()
       })
 
       it("optional Class field", () => {
@@ -254,20 +254,20 @@ describe("Schema", () => {
         const schema = Schema.Struct({
           a: A.pipe(Schema.withConstructorDefault(Effect.succeed(new A({ a: "default" }))))
         })
-        expect(schema.makeUnsafe).type.toBe<MakeUnsafe<{ readonly a?: A }, { readonly a: A }>>()
+        expect(schema.make).type.toBe<Make<{ readonly a?: A }, { readonly a: A }>>()
       })
     })
 
     describe("Tuple", () => {
       it("simple element", () => {
         const schema = Schema.Tuple([Schema.String])
-        expect(schema.makeUnsafe).type.toBe<MakeUnsafe<readonly [string], readonly [string]>>()
+        expect(schema.make).type.toBe<Make<readonly [string], readonly [string]>>()
       })
 
       it("branded field", () => {
         const schema = Schema.Tuple([Schema.String.pipe(Schema.brand("a"))])
-        expect(schema.makeUnsafe).type.toBe<
-          MakeUnsafe<readonly [string & Brand.Brand<"a">], readonly [string & Brand.Brand<"a">]>
+        expect(schema.make).type.toBe<
+          Make<readonly [string & Brand.Brand<"a">], readonly [string & Brand.Brand<"a">]>
         >()
       })
 
@@ -275,7 +275,7 @@ describe("Schema", () => {
         const schema = Schema.Tuple([
           Schema.String.pipe(Schema.withConstructorDefault(Effect.succeed("default")))
         ])
-        expect(schema.makeUnsafe).type.toBe<MakeUnsafe<readonly [string?], readonly [string]>>()
+        expect(schema.make).type.toBe<Make<readonly [string?], readonly [string]>>()
       })
 
       it("nested defaults (Struct)", () => {
@@ -286,8 +286,8 @@ describe("Schema", () => {
             }).pipe(Schema.withConstructorDefault(Effect.succeed({})))
           ]
         )
-        expect(schema.makeUnsafe).type.toBe<
-          MakeUnsafe<readonly [{ readonly b?: number }?], readonly [{ readonly b: number }]>
+        expect(schema.make).type.toBe<
+          Make<readonly [{ readonly b?: number }?], readonly [{ readonly b: number }]>
         >()
       })
 
@@ -299,8 +299,8 @@ describe("Schema", () => {
             ]).pipe(Schema.withConstructorDefault(Effect.succeed([] as const)))
           ]
         )
-        expect(schema.makeUnsafe).type.toBe<
-          MakeUnsafe<readonly [(readonly [number?])?], readonly [readonly [number]]>
+        expect(schema.make).type.toBe<
+          Make<readonly [(readonly [number?])?], readonly [readonly [number]]>
         >()
       })
     })
@@ -312,22 +312,22 @@ describe("Schema", () => {
             b: Schema.Finite.pipe(Schema.withConstructorDefault(Effect.succeed(-1)))
           }).pipe(Schema.withConstructorDefault(Effect.succeed({})))
         })) {}
-        expect(A.makeUnsafe).type.toBe<MakeUnsafe<{ readonly a?: { readonly b?: number } }, A>>()
+        expect(A.make).type.toBe<Make<{ readonly a?: { readonly b?: number } }, A>>()
         const schema = Schema.Struct({
           a: A
         })
-        expect(schema.makeUnsafe).type.toBe<MakeUnsafe<{ readonly a: A }, { readonly a: A }>>()
+        expect(schema.make).type.toBe<Make<{ readonly a: A }, { readonly a: A }>>()
       })
     })
 
     it("toType", () => {
       const schema = Schema.toType(Schema.FiniteFromString)
-      expect(schema.makeUnsafe).type.toBe<MakeUnsafe<number, number>>()
+      expect(schema.make).type.toBe<Make<number, number>>()
     })
 
     it("toEncoded", () => {
       const schema = Schema.toEncoded(Schema.FiniteFromString)
-      expect(schema.makeUnsafe).type.toBe<MakeUnsafe<string, string>>()
+      expect(schema.make).type.toBe<Make<string, string>>()
     })
 
     it("flip", () => {
@@ -335,20 +335,20 @@ describe("Schema", () => {
         a: Schema.FiniteFromString
       })
       const flipped = Schema.flip(schema)
-      expect(flipped.makeUnsafe).type.toBe<MakeUnsafe<{ readonly a: string }, { readonly a: string }>>()
+      expect(flipped.make).type.toBe<Make<{ readonly a: string }, { readonly a: string }>>()
     })
 
     it("Array", () => {
       const schema = Schema.Array(Schema.FiniteFromString.pipe(Schema.brand("a")))
-      expect(schema.makeUnsafe).type.toBe<
-        MakeUnsafe<ReadonlyArray<number & Brand.Brand<"a">>, ReadonlyArray<number & Brand.Brand<"a">>>
+      expect(schema.make).type.toBe<
+        Make<ReadonlyArray<number & Brand.Brand<"a">>, ReadonlyArray<number & Brand.Brand<"a">>>
       >()
     })
 
     it("NonEmptyArray", () => {
       const schema = Schema.NonEmptyArray(Schema.FiniteFromString.pipe(Schema.brand("a")))
-      expect(schema.makeUnsafe).type.toBe<
-        MakeUnsafe<
+      expect(schema.make).type.toBe<
+        Make<
           readonly [number & Brand.Brand<"a">, ...Array<number & Brand.Brand<"a">>],
           readonly [number & Brand.Brand<"a">, ...Array<number & Brand.Brand<"a">>]
         >
@@ -361,8 +361,8 @@ describe("Schema", () => {
         Schema.FiniteFromString.pipe(Schema.brand("a"))
       )
 
-      expect(schema.makeUnsafe).type.toBe<
-        MakeUnsafe<
+      expect(schema.make).type.toBe<
+        Make<
           { readonly [x: string & Brand.Brand<"k">]: number & Brand.Brand<"a"> },
           { readonly [x: string & Brand.Brand<"k">]: number & Brand.Brand<"a"> }
         >
@@ -374,8 +374,8 @@ describe("Schema", () => {
         Schema.Struct({ a: Schema.FiniteFromString.pipe(Schema.brand("a")) }),
         [Schema.Record(Schema.String.pipe(Schema.brand("k")), Schema.FiniteFromString.pipe(Schema.brand("a")))]
       )
-      expect(schema.makeUnsafe).type.toBe<
-        MakeUnsafe<{
+      expect(schema.make).type.toBe<
+        Make<{
           readonly [x: string & Brand.Brand<"k">]: number & Brand.Brand<"a">
           readonly a: number & Brand.Brand<"a">
         }, {
@@ -390,8 +390,8 @@ describe("Schema", () => {
         Schema.Tuple([Schema.FiniteFromString.pipe(Schema.brand("a"))]),
         [Schema.FiniteFromString.pipe(Schema.brand("b")), Schema.FiniteFromString.pipe(Schema.brand("c"))]
       )
-      expect(schema.makeUnsafe).type.toBe<
-        MakeUnsafe<
+      expect(schema.make).type.toBe<
+        Make<
           readonly [number & Brand.Brand<"a">, ...Array<number & Brand.Brand<"b">>, number & Brand.Brand<"c">],
           readonly [number & Brand.Brand<"a">, ...Array<number & Brand.Brand<"b">>, number & Brand.Brand<"c">]
         >
@@ -403,8 +403,8 @@ describe("Schema", () => {
         Schema.Array(Schema.FiniteFromString.pipe(Schema.brand("a"))),
         Schema.FiniteFromString.pipe(Schema.brand("b"))
       ])
-      expect(schema.makeUnsafe).type.toBe<
-        MakeUnsafe<
+      expect(schema.make).type.toBe<
+        Make<
           ReadonlyArray<number & Brand.Brand<"a">> | number & Brand.Brand<"b">,
           ReadonlyArray<number & Brand.Brand<"a">> | number & Brand.Brand<"b">
         >
@@ -421,8 +421,8 @@ describe("Schema", () => {
         a: A
       })
 
-      expect(schema.makeUnsafe).type.toBe<
-        MakeUnsafe<{ readonly a: { readonly b?: number & Brand.Brand<"a"> } }, { readonly a: A }>
+      expect(schema.make).type.toBe<
+        Make<{ readonly a: { readonly b?: number & Brand.Brand<"a"> } }, { readonly a: A }>
       >()
     })
   })
@@ -784,12 +784,12 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(Schema.withConstructorDefault(Effect.succeed("c")))
       })
-      expect(schema.makeUnsafe).type.toBe<
+      expect(schema.make).type.toBe<
         (input: { readonly a?: string }, options?: Schema.MakeOptions | undefined) => { readonly a: string }
       >()
 
       const flipped = schema.pipe(Schema.flip)
-      expect(flipped.makeUnsafe).type.toBe<
+      expect(flipped.make).type.toBe<
         (input: { readonly a: string }, options?: Schema.MakeOptions | undefined) => { readonly a: string }
       >()
     })
@@ -890,7 +890,7 @@ describe("Schema", () => {
     expect(schema).type.toBe<Schema.instanceOf<MyError>>()
     expect(schema.annotate({})).type.toBe<Schema.instanceOf<MyError>>()
     expect(schema.ast).type.toBe<SchemaAST.Declaration>()
-    expect(schema.makeUnsafe).type.toBe<
+    expect(schema.make).type.toBe<
       (input: MyError, options?: Schema.MakeOptions | undefined) => MyError
     >()
   })
@@ -1123,7 +1123,7 @@ describe("Schema", () => {
       }) {}
 
       expect(new A({ a: "a" })).type.toBe<A>()
-      expect(A.makeUnsafe({ a: "a" })).type.toBe<A>()
+      expect(A.make({ a: "a" })).type.toBe<A>()
       expect(Schema.revealCodec(A)).type.toBe<Schema.Codec<A, { readonly a: string }>>()
       expect(revealClass(A)).type.toBe<
         Schema.Class<A, Schema.Struct<{ readonly a: Schema.String }>, A>
@@ -1148,7 +1148,7 @@ describe("Schema", () => {
       })) {}
 
       expect(new A({ a: "a" })).type.toBe<A>()
-      expect(A.makeUnsafe({ a: "a" })).type.toBe<A>()
+      expect(A.make({ a: "a" })).type.toBe<A>()
       expect(Schema.revealCodec(A)).type.toBe<Schema.Codec<A, { readonly a: string }>>()
       expect(revealClass(A)).type.toBe<
         Schema.Class<A, Schema.Struct<{ readonly a: Schema.String }>, A>
@@ -1170,7 +1170,7 @@ describe("Schema", () => {
       }) {}
 
       expect(A).type.not.toBeConstructableWith({ a: "a", b: "b" })
-      expect(A.makeUnsafe).type.not.toBeCallableWith({ a: "a", b: "b" })
+      expect(A.make).type.not.toBeCallableWith({ a: "a", b: "b" })
     })
 
     it("should be compatible with `immer`", () => {
@@ -1209,8 +1209,8 @@ describe("Schema", () => {
 
       const f = (a: A) => a
 
-      f(A.makeUnsafe({ a: "a" }))
-      f(B.makeUnsafe({ a: "a" }))
+      f(A.make({ a: "a" }))
+      f(B.make({ a: "a" }))
 
       class ABranded extends Schema.Class<ABranded, { readonly brand: unique symbol }>("ABranded")({
         a: Schema.String
@@ -1221,13 +1221,13 @@ describe("Schema", () => {
 
       const fABranded = (a: ABranded) => a
 
-      fABranded(ABranded.makeUnsafe({ a: "a" }))
-      when(fABranded).isCalledWith(expect(BBranded.makeUnsafe).type.not.toBeCallableWith({ a: "a" }))
+      fABranded(ABranded.make({ a: "a" }))
+      when(fABranded).isCalledWith(expect(BBranded.make).type.not.toBeCallableWith({ a: "a" }))
 
       const fBBranded = (a: BBranded) => a
 
-      fBBranded(BBranded.makeUnsafe({ a: "a" }))
-      when(fBBranded).isCalledWith(expect(ABranded.makeUnsafe).type.not.toBeCallableWith({ a: "a" }))
+      fBBranded(BBranded.make({ a: "a" }))
+      when(fBBranded).isCalledWith(expect(ABranded.make).type.not.toBeCallableWith({ a: "a" }))
     })
 
     it("branded (Brand module)", () => {
@@ -1240,13 +1240,13 @@ describe("Schema", () => {
 
       const fABranded = (a: ABranded) => a
 
-      fABranded(ABranded.makeUnsafe({ a: "a" }))
-      when(fABranded).isCalledWith(expect(BBranded.makeUnsafe).type.not.toBeCallableWith({ a: "a" }))
+      fABranded(ABranded.make({ a: "a" }))
+      when(fABranded).isCalledWith(expect(BBranded.make).type.not.toBeCallableWith({ a: "a" }))
 
       const fBBranded = (a: BBranded) => a
 
-      fBBranded(BBranded.makeUnsafe({ a: "a" }))
-      when(fBBranded).isCalledWith(expect(ABranded.makeUnsafe).type.not.toBeCallableWith({ a: "a" }))
+      fBBranded(BBranded.make({ a: "a" }))
+      when(fBBranded).isCalledWith(expect(ABranded.make).type.not.toBeCallableWith({ a: "a" }))
     })
 
     it("extend & static members", () => {
@@ -1274,13 +1274,13 @@ describe("Schema", () => {
 
       const f1 = (e1: E1) => e1
 
-      f1(E1.makeUnsafe({ a: "a", b: "b" }))
-      when(f1).isCalledWith(expect(E2.makeUnsafe).type.not.toBeCallableWith({ a: "a", b: "b" }))
+      f1(E1.make({ a: "a", b: "b" }))
+      when(f1).isCalledWith(expect(E2.make).type.not.toBeCallableWith({ a: "a", b: "b" }))
 
       const f2 = (e2: E2) => e2
 
-      f2(E2.makeUnsafe({ a: "a", b: "b" }))
-      when(f2).isCalledWith(expect(E1.makeUnsafe).type.not.toBeCallableWith({ a: "a", b: "b" }))
+      f2(E2.make({ a: "a", b: "b" }))
+      when(f2).isCalledWith(expect(E1.make).type.not.toBeCallableWith({ a: "a", b: "b" }))
     })
   })
 
@@ -1320,7 +1320,7 @@ describe("Schema", () => {
       }) {}
 
       expect(new E({ a: "a" })).type.toBe<E>()
-      expect(E.makeUnsafe({ a: "a" })).type.toBe<E>()
+      expect(E.make({ a: "a" })).type.toBe<E>()
       expect(Schema.revealCodec(E)).type.toBe<Schema.Codec<E, { readonly a: string }>>()
 
       expect(Effect.gen(function*() {
@@ -1334,7 +1334,7 @@ describe("Schema", () => {
       })) {}
 
       expect(new E({ a: "a" })).type.toBe<E>()
-      expect(E.makeUnsafe({ a: "a" })).type.toBe<E>()
+      expect(E.make({ a: "a" })).type.toBe<E>()
       expect(Schema.revealCodec(E)).type.toBe<Schema.Codec<E, { readonly a: string }>>()
 
       expect(Effect.gen(function*() {
@@ -1348,7 +1348,7 @@ describe("Schema", () => {
       }) {}
 
       expect(E).type.not.toBeConstructableWith({ a: "a", b: "b" })
-      expect(E.makeUnsafe).type.not.toBeCallableWith({ a: "a", b: "b" })
+      expect(E.make).type.not.toBeCallableWith({ a: "a", b: "b" })
     })
 
     it("mutable field", () => {
@@ -1481,7 +1481,7 @@ describe("Schema", () => {
         })
       ))
 
-      expect(schema.makeUnsafe).type.toBe<(input: string, options?: Schema.MakeOptions | undefined) => string>()
+      expect(schema.make).type.toBe<(input: string, options?: Schema.MakeOptions | undefined) => string>()
 
       expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<string, string, never, never>>()
     })

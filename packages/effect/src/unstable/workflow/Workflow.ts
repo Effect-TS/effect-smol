@@ -317,7 +317,7 @@ export const make = <
     },
     execute: Effect.fnUntraced(
       function*(fields: any, opts) {
-        const payload = self.payloadSchema.makeUnsafe(fields)
+        const payload = self.payloadSchema.make(fields)
         const engine = yield* EngineTag
         const executionId = yield* makeExecutionId(payload)
         yield* Effect.annotateCurrentSpan({ executionId })
@@ -376,7 +376,7 @@ export const make = <
       ),
     executionId: (payload) =>
       Effect.flatMap(
-        Effect.sync(() => self.payloadSchema.makeUnsafe(payload)),
+        Effect.sync(() => self.payloadSchema.make(payload)),
         makeExecutionId
       ),
     withCompensation

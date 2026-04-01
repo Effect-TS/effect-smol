@@ -211,7 +211,7 @@ describe.concurrent("ClusterWorkflowEngine", () => {
       assert(typeof token === "string")
 
       yield* DurableDeferred.done(ChildDeferred, {
-        token: DurableDeferred.Token.makeUnsafe(token),
+        token: DurableDeferred.Token.make(token),
         exit: Exit.void
       })
       yield* TestClock.adjust(5000)

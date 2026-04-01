@@ -136,7 +136,7 @@ describe("Struct", () => {
     }
 
     const schema = f(Schema.Struct({ a: Schema.String, c: Schema.String }))
-    expect(schema.makeUnsafe).type.toBe<
+    expect(schema.make).type.toBe<
       (
         input: { readonly a: string; readonly c: string; readonly b: string },
         options?: Schema.MakeOptions | undefined
@@ -548,7 +548,7 @@ describe("Struct", () => {
       expect<typeof A["Type"]>().type.toBe<A>()
       expect<typeof A["Encoded"]>().type.toBe<{ readonly a: string }>()
 
-      expect(A.makeUnsafe({ a: 1 })).type.toBe<A>()
+      expect(A.make({ a: 1 })).type.toBe<A>()
 
       expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<A, { readonly a: string }>>()
       expect(schema).type.toBe<typeof A>()
@@ -556,7 +556,7 @@ describe("Struct", () => {
         Schema.Struct<{ readonly a: Schema.decodeTo<Schema.Number, Schema.String> }>
       >()
       expect(schema.ast).type.toBe<SchemaAST.Objects>()
-      expect(schema.makeUnsafe).type.toBe<
+      expect(schema.make).type.toBe<
         (input: { readonly a: number }, options?: Schema.MakeOptions | undefined) => A
       >()
       expect(schema.fields).type.toBe<{ readonly a: Schema.decodeTo<Schema.Number, Schema.String> }>()
@@ -585,8 +585,8 @@ describe("Struct", () => {
 
       const f = (a: A) => a
 
-      f(A.makeUnsafe({ a: "a" }))
-      f(B.makeUnsafe({ a: "a" }))
+      f(A.make({ a: "a" }))
+      f(B.make({ a: "a" }))
 
       class ABranded extends Schema.Opaque<ABranded, { readonly brand: unique symbol }>()(Schema.Struct({
         a: Schema.String
@@ -597,13 +597,13 @@ describe("Struct", () => {
 
       const fABranded = (a: ABranded) => a
 
-      fABranded(ABranded.makeUnsafe({ a: "a" }))
-      when(fABranded).isCalledWith(expect(BBranded.makeUnsafe).type.not.toBeCallableWith({ a: "a" }))
+      fABranded(ABranded.make({ a: "a" }))
+      when(fABranded).isCalledWith(expect(BBranded.make).type.not.toBeCallableWith({ a: "a" }))
 
       const fBBranded = (a: BBranded) => a
 
-      fBBranded(BBranded.makeUnsafe({ a: "a" }))
-      when(fBBranded).isCalledWith(expect(ABranded.makeUnsafe).type.not.toBeCallableWith({ a: "a" }))
+      fBBranded(BBranded.make({ a: "a" }))
+      when(fBBranded).isCalledWith(expect(ABranded.make).type.not.toBeCallableWith({ a: "a" }))
     })
 
     it("branded (Brand module)", () => {
@@ -616,13 +616,13 @@ describe("Struct", () => {
 
       const fABranded = (a: ABranded) => a
 
-      fABranded(ABranded.makeUnsafe({ a: "a" }))
-      when(fABranded).isCalledWith(expect(BBranded.makeUnsafe).type.not.toBeCallableWith({ a: "a" }))
+      fABranded(ABranded.make({ a: "a" }))
+      when(fABranded).isCalledWith(expect(BBranded.make).type.not.toBeCallableWith({ a: "a" }))
 
       const fBBranded = (a: BBranded) => a
 
-      fBBranded(BBranded.makeUnsafe({ a: "a" }))
-      when(fBBranded).isCalledWith(expect(ABranded.makeUnsafe).type.not.toBeCallableWith({ a: "a" }))
+      fBBranded(BBranded.make({ a: "a" }))
+      when(fBBranded).isCalledWith(expect(ABranded.make).type.not.toBeCallableWith({ a: "a" }))
     })
   })
 

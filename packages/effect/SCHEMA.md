@@ -1271,7 +1271,7 @@ const schema = A.mapFields(
 
 A tagged struct is a struct that includes a `_tag` field. This field is used to identify the specific variant of the object, which is especially useful when working with union types.
 
-When using the `makeUnsafe` method, the `_tag` field is optional and will be added automatically. However, when decoding or encoding, the `_tag` field must be present in the input.
+When using the `make` method, the `_tag` field is optional and will be added automatically. However, when decoding or encoding, the `_tag` field must be present in the input.
 
 **Example** (Tagged struct as a shorthand for a struct with a `_tag` field)
 
@@ -2340,7 +2340,7 @@ console.log(String(Schema.decodeUnknownExit(schema)("")))
 
 ## Preserving Schema Type After Filtering
 
-Adding a filter does not change the schema's type. You can still use all schema-specific methods (like `.fields` on a struct or `.makeUnsafe`) after calling `.check(...)`.
+Adding a filter does not change the schema's type. You can still use all schema-specific methods (like `.fields` on a struct or `.make`) after calling `.check(...)`.
 
 **Example** (Chaining filters and annotations without losing type information)
 
@@ -2618,7 +2618,7 @@ export const makeGreaterThan = <T>(options: {
 
 # Constructors
 
-A constructor creates a value of the schema's type, running all validations at the time of creation. If the value does not satisfy the schema, the constructor throws an error. Every schema exposes a `makeUnsafe` method for this purpose.
+A constructor creates a value of the schema's type, running all validations at the time of creation. If the value does not satisfy the schema, the constructor throws an error. Every schema exposes a `make` method for this purpose.
 
 For a non-throwing alternative, use `Schema.makeOption` (or `SchemaParser.makeOption`), which returns `Option.Some` on success and `Option.None` on failure.
 
@@ -2644,15 +2644,15 @@ console.log(parse({ a: 1 }))
 
 ## Constructors in Composed Schemas
 
-To support constructing values from composed schemas, `makeUnsafe` is now available on all schemas, including unions.
+To support constructing values from composed schemas, `make` is now available on all schemas, including unions.
 
 ```ts
 import { Schema } from "effect"
 
 const schema = Schema.Union([Schema.Struct({ a: Schema.String }), Schema.Struct({ b: Schema.Number })])
 
-schema.makeUnsafe({ a: "hello" })
-schema.makeUnsafe({ b: 1 })
+schema.make({ a: "hello" })
+schema.make({ b: 1 })
 ```
 
 ## Branded Constructors
@@ -2664,8 +2664,8 @@ import { Schema } from "effect"
 
 const schema = Schema.String.pipe(Schema.brand<"a">())
 
-// makeUnsafe(input: string, options?: Schema.MakeOptions): string & Brand<"a">
-schema.makeUnsafe
+// make(input: string, options?: Schema.MakeOptions): string & Brand<"a">
+schema.make
 ```
 
 However, when a branded schema is part of a composite (such as a struct), you must pass a branded value.
@@ -2679,7 +2679,7 @@ const schema = Schema.Struct({
 })
 
 /*
-makeUnsafe(input: {
+make(input: {
     readonly a: string & Brand<"a">;
     readonly b: number;
 }, options?: Schema.MakeOptions): {
@@ -2687,7 +2687,7 @@ makeUnsafe(input: {
     readonly b: number;
 }
 */
-schema.makeUnsafe
+schema.make
 ```
 
 ## Refined Constructors
@@ -2699,8 +2699,8 @@ import { Option, Schema } from "effect"
 
 const schema = Schema.Option(Schema.String).pipe(Schema.refine(Option.isSome))
 
-// makeUnsafe(input: Option.Option<string>, options?: Schema.MakeOptions): Option.Some<string>
-schema.makeUnsafe
+// make(input: Option.Option<string>, options?: Schema.MakeOptions): Option.Some<string>
+schema.make
 ```
 
 As with branding, when used in a composite schema, the refined value must be provided.
@@ -2714,7 +2714,7 @@ const schema = Schema.Struct({
 })
 
 /*
-makeUnsafe(input: {
+make(input: {
     readonly a: Option.Some<string>;
     readonly b: number;
 }, options?: Schema.MakeOptions): {
@@ -2722,7 +2722,7 @@ makeUnsafe(input: {
     readonly b: number;
 }
 */
-schema.makeUnsafe
+schema.make
 ```
 
 ## Default Values in Constructors
@@ -2738,10 +2738,10 @@ const schema = Schema.Struct({
   a: Schema.Number.pipe(Schema.withConstructorDefault(Effect.succeed(-1)))
 })
 
-console.log(schema.makeUnsafe({ a: 5 }))
+console.log(schema.make({ a: 5 }))
 // { a: 5 }
 
-console.log(schema.makeUnsafe({}))
+console.log(schema.make({}))
 // { a: -1 }
 ```
 
@@ -2758,10 +2758,10 @@ const schema = Schema.Struct({
   a: Schema.Date.pipe(Schema.withConstructorDefault(Effect.sync(() => new Date(counter++))))
 })
 
-console.log(schema.makeUnsafe({}))
+console.log(schema.make({}))
 // { a: 1970-01-01T00:00:00.000Z }
 
-console.log(schema.makeUnsafe({}))
+console.log(schema.make({}))
 // { a: 1970-01-01T00:00:00.001Z }
 ```
 
@@ -2780,9 +2780,9 @@ const schema = Schema.Struct({
   }).pipe(Schema.withConstructorDefault(Effect.succeed({})))
 })
 
-console.log(schema.makeUnsafe({}))
+console.log(schema.make({}))
 // { a: { b: -1 } }
-console.log(schema.makeUnsafe({ a: {} }))
+console.log(schema.make({ a: {} }))
 // { a: { b: -1 } }
 ```
 
@@ -3359,8 +3359,8 @@ type Encoded = {
 */
 type Encoded = (typeof schema)["Encoded"]
 
-// makeUnsafe: { readonly a: string }  ──▶  { readonly a: string }
-Schema.flip(schema).makeUnsafe
+// make: { readonly a: string }  ──▶  { readonly a: string }
+Schema.flip(schema).make
 ```
 
 # Classes and Opaque Types
@@ -3402,7 +3402,7 @@ class Person extends Schema.Opaque<Person>()(
 const codec = Schema.revealCodec(Person)
 
 // const person: Person
-const person = Person.makeUnsafe({ name: "John" })
+const person = Person.make({ name: "John" })
 
 console.log(person.name)
 // "John"
@@ -3634,11 +3634,11 @@ class B extends Schema.Opaque<B, { readonly brand: unique symbol }>()(
 const f = (a: A) => a
 const g = (b: B) => b
 
-f(A.makeUnsafe({ a: "a" })) // ok
-g(B.makeUnsafe({ a: "a" })) // ok
+f(A.make({ a: "a" })) // ok
+g(B.make({ a: "a" })) // ok
 
-f(B.makeUnsafe({ a: "a" })) // error: Argument of type 'B' is not assignable to parameter of type 'A'.
-g(A.makeUnsafe({ a: "a" })) // error: Argument of type 'A' is not assignable to parameter of type 'B'.
+f(B.make({ a: "a" })) // error: Argument of type 'B' is not assignable to parameter of type 'A'.
+g(A.make({ a: "a" })) // error: Argument of type 'A' is not assignable to parameter of type 'B'.
 ```
 
 Like with branded classes, you can use the `Brand` module to create branded opaque structs.
@@ -3661,11 +3661,11 @@ class B extends Schema.Opaque<B, Brand.Brand<"B">>()(
 const f = (a: A) => a
 const g = (b: B) => b
 
-f(A.makeUnsafe({ a: "a" })) // ok
-g(B.makeUnsafe({ a: "a" })) // ok
+f(A.make({ a: "a" })) // ok
+g(B.make({ a: "a" })) // ok
 
-f(B.makeUnsafe({ a: "a" })) // error: Argument of type 'B' is not assignable to parameter of type 'A'.
-g(A.makeUnsafe({ a: "a" })) // error: Argument of type 'A' is not assignable to parameter of type 'B'.
+f(B.make({ a: "a" })) // error: Argument of type 'B' is not assignable to parameter of type 'A'.
+g(A.make({ a: "a" })) // error: Argument of type 'A' is not assignable to parameter of type 'B'.
 ```
 
 ## Schema as a Class
@@ -3741,7 +3741,7 @@ const PersonConstructorArguments = Schema.Tuple([Schema.String, Schema.Finite])
 // Existing class
 class Person {
   constructor(readonly name: string, readonly age: number) {
-    PersonConstructorArguments.makeUnsafe([name, age])
+    PersonConstructorArguments.make([name, age])
   }
 }
 
@@ -3767,7 +3767,7 @@ const PersonConstructorArguments = Schema.Tuple([Schema.String, Schema.Finite])
 
 class Person {
   constructor(readonly name: string, readonly age: number) {
-    PersonConstructorArguments.makeUnsafe([name, age])
+    PersonConstructorArguments.make([name, age])
   }
 }
 
@@ -3776,7 +3776,7 @@ const PersonWithEmailConstructorArguments = Schema.Tuple([Schema.String])
 class PersonWithEmail extends Person {
   constructor(name: string, age: number, readonly email: string) {
     // Only validate the additional argument
-    PersonWithEmailConstructorArguments.makeUnsafe([email])
+    PersonWithEmailConstructorArguments.make([email])
     super(name, age)
   }
 }
@@ -3875,7 +3875,7 @@ const Props = Schema.Struct({
 
 class Err extends Data.Error<typeof Props.Type> {
   constructor(props: typeof Props.Type) {
-    super(Props.makeUnsafe(props))
+    super(Props.make(props))
   }
 }
 
@@ -3935,7 +3935,7 @@ class A extends Schema.Class<A>("A")({
 
 console.log(new A({ a: "a" }))
 // A { a: 'a', _a: 1 }
-console.log(A.makeUnsafe({ a: "a" }))
+console.log(A.make({ a: "a" }))
 // A { a: 'a', _a: 1 }
 console.log(Schema.decodeUnknownSync(A)({ a: "a" }))
 // A { a: 'a', _a: 1 }
@@ -3994,9 +3994,9 @@ class B extends Schema.Class<B, { readonly brand: unique symbol }>("B")({
 // so they are not assignable to each other.
 
 // @ts-expect-error
-export const a: A = B.makeUnsafe({ a: "a" })
+export const a: A = B.make({ a: "a" })
 // @ts-expect-error
-export const b: B = A.makeUnsafe({ a: "a" })
+export const b: B = A.make({ a: "a" })
 ```
 
 **Example** (Using the Brand module)
@@ -4016,9 +4016,9 @@ class B extends Schema.Class<B, Brand.Brand<"B">>("B")({
 // Different named brands are still not assignable
 
 // @ts-expect-error
-export const a: A = B.makeUnsafe({ a: "a" })
+export const a: A = B.make({ a: "a" })
 // @ts-expect-error
-export const b: B = A.makeUnsafe({ a: "a" })
+export const b: B = A.make({ a: "a" })
 ```
 
 #### Annotations
@@ -4069,7 +4069,7 @@ class B extends A.extend<B>("B")({
 
 console.log(new B({ a: "a", b: 2 }))
 // B { a: 'a', _a: 1, _b: 2 }
-console.log(B.makeUnsafe({ a: "a", b: 2 }))
+console.log(B.make({ a: "a", b: 2 }))
 // B { a: 'a', _a: 1, _b: 2 }
 console.log(Schema.decodeUnknownSync(B)({ a: "a", b: 2 }))
 // B { a: 'a', _a: 1, _b: 2 }
@@ -6368,7 +6368,7 @@ export interface Bottom<
   /**
    * @throws {Error} The issue is contained in the error cause.
    */
-  makeUnsafe(input: this["~type.make.in"], options?: MakeOptions): this["Type"]
+  make(input: this["~type.make.in"], options?: MakeOptions): this["Type"]
 }
 ```
 
@@ -6380,7 +6380,7 @@ export interface Bottom<
 - `RE`: the type of the services required for encoding
 - `Ast`: the AST node type
 - `RebuildOut`: the type returned when modifying the schema (namely when you add annotations or checks)
-- `TypeMakeIn`: the type of the input to the `makeUnsafe` constructor
+- `TypeMakeIn`: the type of the input to the `make` constructor
 - `Iso`: the type of the focus of the default `Optic.Iso`
 - `TypeParameters`: the type of the type parameters
 
