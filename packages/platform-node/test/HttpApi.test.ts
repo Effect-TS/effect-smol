@@ -904,7 +904,7 @@ describe("HttpApi", () => {
         (handlers) =>
           handlers
             .handle("a", () => Effect.void)
-            .handle("b", () => Effect.succeed(HttpApiSchema.NoContent.makeUnsafe()))
+            .handle("b", () => Effect.succeed(HttpApiSchema.NoContent.make()))
             .handle("c", () => Effect.succeed("-"))
       )
 
@@ -1027,7 +1027,7 @@ describe("HttpApi", () => {
         (handlers) =>
           handlers
             .handle("a", () => Effect.fail(undefined))
-            .handle("b", () => Effect.fail(HttpApiSchema.NoContent.makeUnsafe()))
+            .handle("b", () => Effect.fail(HttpApiSchema.NoContent.make()))
             .handle("c", () => Effect.fail(""))
             .handle("d", () => Effect.fail(void 0))
             .handle("e", () => Effect.fail(new HttpApiError.Unauthorized({})))
