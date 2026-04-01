@@ -9928,12 +9928,12 @@ export interface Class<Self, S extends Top & { readonly fields: Struct.Fields },
     } | undefined
   ): Struct<Simplify<Readonly<To>>>
 
-  extend<Extended, Static = {}, Brand = {}>(
+  extend<Extended = never, Static = {}, Brand = {}>(
     identifier: string
   ): <NewFields extends Struct.Fields>(
     fields: NewFields,
     annotations?: Annotations.Declaration<Extended, readonly [Struct<Simplify<Assign<S["fields"], NewFields>>>]>
-  ) => InheritStaticMembers<
+  ) => [Extended] extends [never] ? MissingSelfGeneric<"Base.extend"> : InheritStaticMembers<
     Class<Extended, Struct<Simplify<Assign<S["fields"], NewFields>>>, Self & Brand>,
     Static
   >
@@ -10112,6 +10112,9 @@ function isStruct(schema: Struct.Fields | Struct<Struct.Fields>): schema is Stru
   return isSchema(schema)
 }
 
+type MissingSelfGeneric<Usage extends string> =
+  `Missing \`Self\` generic - use \`class Self extends ${Usage}<Self>(...)\``
+
 /**
  * Creates a schema-backed class whose constructor validates input against a
  * {@link Struct} schema. Construction throws a {@link SchemaError} on invalid
@@ -10157,21 +10160,21 @@ function isStruct(schema: Struct.Fields | Struct<Struct.Fields>): schema is Stru
  * @since 4.0.0
  */
 export const Class: {
-  <Self, Brand = {}>(identifier: string): {
+  <Self = never, Brand = {}>(identifier: string): {
     <const Fields extends Struct.Fields>(
       fields: Fields,
       annotations?: Annotations.Declaration<Self, readonly [Struct<Fields>]>
-    ): Class<Self, Struct<Fields>, Brand>
+    ): [Self] extends [never] ? MissingSelfGeneric<"Schema.Class"> : Class<Self, Struct<Fields>, Brand>
     <S extends Struct<Struct.Fields>>(
       schema: S,
       annotations?: Annotations.Declaration<Self, readonly [S]>
-    ): Class<Self, S, Brand>
+    ): [Self] extends [never] ? MissingSelfGeneric<"Schema.Class"> : Class<Self, S, Brand>
   }
 } = <Self, Brand = {}>(identifier: string) =>
 (
   schema: Struct.Fields | Struct<Struct.Fields>,
   annotations?: Annotations.Declaration<Self, readonly [Struct<Struct.Fields>]>
-): Class<Self, Struct<Struct.Fields>, Brand> => {
+): [Self] extends [never] ? MissingSelfGeneric<"Schema.Class"> : Class<Self, Struct<Struct.Fields>, Brand> => {
   const struct = isStruct(schema) ? schema : Struct(schema)
   return makeClass(
     Data.Class,
@@ -10212,12 +10215,12 @@ export const Class: {
  * @since 4.0.0
  */
 export const TaggedClass: {
-  <Self, Brand = {}>(identifier?: string): {
+  <Self = never, Brand = {}>(identifier?: string): {
     <Tag extends string, const Fields extends Struct.Fields>(
       tag: Tag,
       fields: Fields,
       annotations?: Annotations.Declaration<Self, readonly [TaggedStruct<Tag, Fields>]>
-    ): Class<Self, TaggedStruct<Tag, Fields>, Brand>
+    ): [Self] extends [never] ? MissingSelfGeneric<"Schema.TaggedClass"> : Class<Self, TaggedStruct<Tag, Fields>, Brand>
     <Tag extends string, S extends Struct<Struct.Fields>>(
       tag: Tag,
       schema: S,
@@ -10225,7 +10228,8 @@ export const TaggedClass: {
         Self,
         readonly [Struct<Simplify<{ readonly _tag: tag<Tag> } & S["fields"]>>]
       >
-    ): Class<Self, Struct<Simplify<{ readonly _tag: tag<Tag> } & S["fields"]>>, Brand>
+    ): [Self] extends [never] ? MissingSelfGeneric<"Schema.TaggedClass">
+      : Class<Self, Struct<Simplify<{ readonly _tag: tag<Tag> } & S["fields"]>>, Brand>
   }
 } = (identifier?: string) => {
   return (
@@ -10233,7 +10237,7 @@ export const TaggedClass: {
     schema: Struct.Fields | Struct<Struct.Fields>,
     annotations?: Annotations.Declaration<any, readonly [Struct<Struct.Fields>]>
   ): any => {
-    return Class(identifier ?? tagValue)(
+    return Class<any, {}>(identifier ?? tagValue)(
       isStruct(schema) ?
         schema.mapFields((fields) => ({ _tag: tag(tagValue), ...fields }), {
           unsafePreserveChecks: true
@@ -10279,21 +10283,24 @@ export interface ErrorClass<Self, S extends Top & { readonly fields: Struct.Fiel
  * @since 4.0.0
  */
 export const ErrorClass: {
-  <Self, Brand = {}>(identifier: string): {
+  <Self = never, Brand = {}>(identifier: string): {
     <const Fields extends Struct.Fields>(
       fields: Fields,
       annotations?: Annotations.Declaration<Self, readonly [Struct<Fields>]>
-    ): ErrorClass<Self, Struct<Fields>, Cause_.YieldableError & Brand>
+    ): [Self] extends [never] ? MissingSelfGeneric<"Schema.ErrorClass">
+      : Class<Self, Struct<Fields>, Cause_.YieldableError & Brand>
     <S extends Struct<Struct.Fields>>(
       schema: S,
       annotations?: Annotations.Declaration<Self, readonly [S]>
-    ): ErrorClass<Self, S, Cause_.YieldableError & Brand>
+    ): [Self] extends [never] ? MissingSelfGeneric<"Schema.ErrorClass"> : Class<Self, S, Cause_.YieldableError & Brand>
   }
 } = <Self, Brand = {}>(identifier: string) =>
 (
   schema: Struct.Fields | Struct<Struct.Fields>,
   annotations?: Annotations.Declaration<Self, readonly [Struct<Struct.Fields>]>
-): ErrorClass<Self, Struct<Struct.Fields>, Cause_.YieldableError & Brand> => {
+): [Self] extends [never] ? MissingSelfGeneric<"Schema.ErrorClass">
+  : Class<Self, Struct<Struct.Fields>, Cause_.YieldableError & Brand> =>
+{
   const struct = isStruct(schema) ? schema : Struct(schema)
   const self = makeClass(
     core.Error,
@@ -10330,12 +10337,13 @@ export const ErrorClass: {
  * @since 4.0.0
  */
 export const TaggedErrorClass: {
-  <Self, Brand = {}>(identifier?: string): {
+  <Self = never, Brand = {}>(identifier?: string): {
     <Tag extends string, const Fields extends Struct.Fields>(
       tag: Tag,
       fields: Fields,
       annotations?: Annotations.Declaration<Self, readonly [TaggedStruct<Tag, Fields>]>
-    ): ErrorClass<Self, TaggedStruct<Tag, Fields>, Cause_.YieldableError & Brand>
+    ): [Self] extends [never] ? MissingSelfGeneric<"Schema.TaggedErrorClass">
+      : Class<Self, TaggedStruct<Tag, Fields>, Cause_.YieldableError & Brand>
     <Tag extends string, S extends Struct<Struct.Fields>>(
       tag: Tag,
       schema: S,
@@ -10343,7 +10351,8 @@ export const TaggedErrorClass: {
         Self,
         readonly [Struct<Simplify<{ readonly _tag: tag<Tag> } & S["fields"]>>]
       >
-    ): ErrorClass<Self, Struct<Simplify<{ readonly _tag: tag<Tag> } & S["fields"]>>, Cause_.YieldableError & Brand>
+    ): [Self] extends [never] ? MissingSelfGeneric<"Schema.TaggedErrorClass">
+      : Class<Self, Struct<Simplify<{ readonly _tag: tag<Tag> } & S["fields"]>>, Cause_.YieldableError & Brand>
   }
 } = (identifier?: string) => {
   return (
@@ -10351,7 +10360,7 @@ export const TaggedErrorClass: {
     schema: Struct.Fields | Struct<Struct.Fields>,
     annotations?: Annotations.Declaration<any, readonly [Struct<Struct.Fields>]>
   ): any => {
-    return ErrorClass(identifier ?? tagValue)(
+    return ErrorClass<any, {}>(identifier ?? tagValue)(
       isStruct(schema) ?
         schema.mapFields((fields) => ({ _tag: tag(tagValue), ...fields }), {
           unsafePreserveChecks: true
