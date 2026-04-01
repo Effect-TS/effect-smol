@@ -940,8 +940,8 @@ describe("NodeChildProcessSpawner", () => {
             Effect.provide(NodeServices)
           )
 
-          const ref = yield* Scope.provide(scope)(handle.unref).pipe(Effect.provide(NodeServices))
-          yield* ref
+          const reref = yield* Scope.provide(scope)(handle.unref).pipe(Effect.provide(NodeServices))
+          yield* reref
           yield* Scope.close(scope, Exit.void)
           yield* TestClock.withLive(Effect.sleep("100 millis"))
 

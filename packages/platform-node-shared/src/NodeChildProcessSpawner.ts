@@ -485,7 +485,7 @@ const make = Effect.gen(function*() {
             killProcessGroupOnExit(childProcess, cmd.options.killSignal ?? "SIGTERM")
           }
         })
-        const ref = Effect.sync(() => {
+        const reref = Effect.sync(() => {
           if (!isReferenced) {
             childProcess.ref()
             isReferenced = true
@@ -498,7 +498,7 @@ const make = Effect.gen(function*() {
             isReferenced = false
             cleanupOnNonZeroExit = true
           }
-          return ref
+          return reref
         })
         const stdin = yield* setupChildStdin(cmd, childProcess, stdinConfig)
         const { all, stderr, stdout } = setupChildOutputStreams(cmd, childProcess, stdoutConfig, stderrConfig)
@@ -597,11 +597,11 @@ const make = Effect.gen(function*() {
 
         const handle = handles[handles.length - 1]
         const unref = Effect.gen(function*() {
-          const refs: Array<Effect.Effect<void, PlatformError.PlatformError>> = []
+          const rerefs: Array<Effect.Effect<void, PlatformError.PlatformError>> = []
           for (const handle of handles) {
-            refs.push(yield* handle.unref)
+            rerefs.push(yield* handle.unref)
           }
-          return Effect.forEach([...refs].reverse(), (ref) => ref, { discard: true })
+          return Effect.forEach([...rerefs].reverse(), (reref) => reref, { discard: true })
         })
 
         return makeHandle({

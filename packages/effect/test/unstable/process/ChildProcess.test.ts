@@ -19,7 +19,7 @@ const MockExecutorLayer = Layer.succeed(
       : "templated"
     const output = new TextEncoder().encode(`mock output for ${executable}`)
     let isReferenced = true
-    const ref = Effect.sync(() => {
+    const reref = Effect.sync(() => {
       if (!isReferenced) {
         isReferenced = true
       }
@@ -39,7 +39,7 @@ const MockExecutorLayer = Layer.succeed(
         if (isReferenced) {
           isReferenced = false
         }
-        return ref
+        return reref
       })
     })
   }))
@@ -115,19 +115,19 @@ describe("ChildProcess", () => {
         assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
       }).pipe(Effect.scoped, Effect.provide(MockExecutorLayer)))
 
-    it.effect("should unref a process and return a ref effect", () =>
+    it.effect("should unref a process and return a reref effect", () =>
       Effect.gen(function*() {
         const cmd = ChildProcess.make`echo test`
         const handle = yield* cmd
-        const ref = yield* handle.unref
-        assert.isDefined(ref)
-        yield* ref
+        const reref = yield* handle.unref
+        assert.isDefined(reref)
+        yield* reref
       }).pipe(Effect.scoped, Effect.provide(MockExecutorLayer)))
 
     it.effect("should allow restoring the reference within acquireRelease", () =>
       Effect.gen(function*() {
         const handle = yield* ChildProcess.make`echo test`
-        yield* Effect.acquireRelease(handle.unref, (ref) => Effect.ignore(ref))
+        yield* Effect.acquireRelease(handle.unref, (reref) => Effect.ignore(reref))
       }).pipe(Effect.provide(MockExecutorLayer)))
   })
 
