@@ -150,13 +150,20 @@ export interface Rpc<
  * @since 4.0.0
  * @category models
  */
-export interface ServerClient {
+export class ServerClient {
   readonly id: number
-  readonly annotations: ServiceMap.ServiceMap<never>
+  annotations: ServiceMap.ServiceMap<never>
+  constructor(id: number) {
+    this.id = id
+    this.annotations = ServiceMap.empty()
+  }
   annotate<I, S>(
     tag: ServiceMap.Key<I, S>,
     value: NoInfer<S>
-  ): ServerClient
+  ): ServerClient {
+    this.annotations = ServiceMap.add(this.annotations, tag, value)
+    return this
+  }
 }
 
 /**

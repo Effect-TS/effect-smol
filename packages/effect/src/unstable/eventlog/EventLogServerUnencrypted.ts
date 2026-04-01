@@ -93,21 +93,22 @@ export const layerRpcHandlers: Layer.Layer<
     readonly storeId: StoreId
     readonly entries: Arr.NonEmptyReadonlyArray<Entry>
   }) {
-    const sorted = Arr.sort(options.entries, Entry.Order)
-    const entries = yield* storage.filterEntries(options.storeId, sorted)
-    if (!Arr.isReadonlyArrayNonEmpty(entries)) return
-    const history = yield* storage.entriesAfter(options.storeId, entries[0])
+    const entries = Arr.sort(options.entries, Entry.Order)
+    let history = yield* storage.entriesAfter(options.storeId, entries[0])
+    const persistedEntries = Arr.empty<Entry>()
     for (const entry of entries) {
-      const conflicts = toConflicts(history, entry)
+      const [duplicate, conflicts, newHistory] = toConflicts(history, entry)
+      if (duplicate) continue
+      history = newHistory
       yield* handler({
         publicKey: options.publicKey,
         storeId: options.storeId,
         entry,
         conflicts
       })
-      insertEntryByCreatedAt(history, entry)
+      persistedEntries.push(entry)
     }
-    yield* storage.write(options.storeId, entries)
+    yield* storage.write(options.storeId, persistedEntries)
   }, storage.withTransaction)
 
   return EventLogServer.layerRpcHandlers({
@@ -292,10 +293,6 @@ export class Storage extends ServiceMap.Service<Storage, {
     publicKey: string,
     signingPublicKey: Uint8Array<ArrayBuffer>
   ) => Effect.Effect<Uint8Array<ArrayBuffer>>
-  readonly filterEntries: (
-    storeId: StoreId,
-    entryIds: Arr.NonEmptyReadonlyArray<Entry>
-  ) => Effect.Effect<Array<Entry>>
   readonly entriesAfter: (storeId: StoreId, entry: Entry) => Effect.Effect<Array<Entry>>
   readonly write: (
     storeId: StoreId,
@@ -323,32 +320,33 @@ const makeServerWriteIdentityPublicKey = (storeId: StoreId): string => `effect-e
 const entriesAfter = (journal: Array<RemoteEntry>, startSequence: number): ReadonlyArray<RemoteEntry> =>
   journal.filter((entry) => entry.remoteSequence > startSequence)
 
-const insertEntryByCreatedAt = (history: Array<Entry>, entry: Entry): void => {
-  let index = history.length
-  while (index > 0 && history[index - 1]!.createdAtMillis > entry.createdAtMillis) {
-    index--
-  }
-  history.splice(index, 0, entry)
-}
+const toConflicts = (
+  history: ReadonlyArray<Entry>,
+  originEntry: Entry
+): [duplicate: boolean, conflicts: Array<Entry>, newHistory: Array<Entry>] => {
+  let duplicate = false
 
-const toConflicts = (history: ReadonlyArray<Entry>, originEntry: Entry): ReadonlyArray<Entry> => {
-  for (let i = history.length - 1; i >= -1; i--) {
+  for (let i = 0; i < history.length; i++) {
     const entry = history[i]
-    if (entry !== undefined && entry.createdAtMillis > originEntry.createdAtMillis) {
+    if (entry.createdAtMillis < originEntry.createdAtMillis) {
+      continue
+    } else if (entry.idString === originEntry.idString) {
+      duplicate = true
       continue
     }
 
-    const conflicts: Array<Entry> = []
-    for (let j = i + 2; j < history.length; j++) {
+    const newHistory = history.slice(i)
+    let conflicts: Array<Entry> = []
+    for (let j = 0; j < newHistory.length; j++) {
       const scannedEntry = history[j]!
       if (scannedEntry.event === originEntry.event && scannedEntry.primaryKey === originEntry.primaryKey) {
         conflicts.push(scannedEntry)
       }
     }
-    return conflicts
+    return [duplicate, conflicts, newHistory]
   }
 
-  return []
+  return [duplicate, [], []]
 }
 
 type RegisteredCompactor = {
@@ -547,11 +545,6 @@ export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.S
         if (existing) return existing
         sessionAuthBindings.set(publicKey, signingPublicKey)
         return signingPublicKey
-      }),
-    filterEntries: (storeId, entries) =>
-      Effect.sync(() => {
-        const knownIds = ensureKnownIds(storeId)
-        return entries.filter((entry) => !knownIds.has(entry.idString))
       }),
     entriesAfter: (storeId, entry) =>
       Effect.sync(() => {

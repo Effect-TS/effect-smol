@@ -147,15 +147,6 @@ const defaultStoreId = EventLogMessage.StoreId.makeUnsafe("default")
 const remoteId = EventJournal.makeRemoteIdUnsafe()
 const challenge = new Uint8Array(16).fill(1)
 
-const makeRemoteEntry = (options: {
-  readonly remoteSequence: number
-  readonly primaryKey: string
-}): EventJournal.RemoteEntry =>
-  new EventJournal.RemoteEntry({
-    remoteSequence: options.remoteSequence,
-    entry: makeEntry({ primaryKey: options.primaryKey })
-  })
-
 const authenticate = Effect.fnUntraced(function*(options: {
   readonly harness: RemoteHarness["Service"]
   readonly publicKey: string

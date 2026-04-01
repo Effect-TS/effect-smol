@@ -1,15 +1,13 @@
 /**
  * @since 4.0.0
  */
+import * as Arr from "../../Array.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
-import * as Option from "../../Option.ts"
 import * as PubSub from "../../PubSub.ts"
-import * as Queue from "../../Queue.ts"
 import * as RcMap from "../../RcMap.ts"
 import * as Schema from "../../Schema.ts"
 import type * as Scope from "../../Scope.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
 import * as SqlClient from "../sql/SqlClient.ts"
 import * as SqlError from "../sql/SqlError.ts"
@@ -213,43 +211,6 @@ export const makeStorage = (options?: {
       idleTimeToLive: "5 minutes"
     })
 
-    const publishCommitted = Effect.fnUntraced(
-      function*(publication: PendingPublication) {
-        if (publication.committed.length === 0) {
-          return
-        }
-
-        const pubsub = yield* RcMap.get(pubsubs, publication.storeId)
-        for (const remoteEntry of publication.committed) {
-          yield* PubSub.publish(pubsub, remoteEntry)
-        }
-      },
-      Effect.scoped
-    )
-
-    const flushPendingPublications = Effect.fnUntraced(function*(pending: ReadonlyArray<PendingPublication>) {
-      for (const publication of pending) {
-        yield* publishCommitted(publication)
-      }
-    })
-
-    const withTransaction: EventLogServerUnencrypted.Storage["Service"]["withTransaction"] = Effect.fnUntraced(
-      function*(effect) {
-        const pendingOption = yield* Effect.serviceOption(PendingPublications)
-        if (Option.isSome(pendingOption)) {
-          return yield* sql.withTransaction(effect)
-        }
-
-        const pending: Array<PendingPublication> = []
-        const result = yield* sql.withTransaction(effect).pipe(
-          Effect.provideService(PendingPublications, { pending })
-        )
-        yield* flushPendingPublications(pending)
-        return result
-      },
-      Effect.catchIf(SqlError.isSqlError, Effect.die)
-    )
-
     const ensureStore = (storeId: string) =>
       sql.onDialectOrElse({
         pg: () =>
@@ -331,17 +292,6 @@ export const makeStorage = (options?: {
         Effect.flatMap(decodeRemoteEntries)
       )
 
-    const selectExistingEntries = (storeId: string, entryIds: ReadonlyArray<EntryId>) =>
-      entryIds.length === 0
-        ? Effect.succeed([] as ReadonlyArray<RemoteEntry>)
-        : sql`
-            SELECT sequence, entry_id, event, primary_key, payload
-            FROM ${entriesTableSql}
-            WHERE store_id = ${storeId} AND ${sql.in("entry_id", entryIds)}
-            ORDER BY sequence ASC
-          `.pipe(
-          Effect.flatMap(decodeRemoteEntries)
-        )
     const getSessionAuthBinding = (publicKey: string) =>
       sql`
         SELECT public_key, signing_public_key
@@ -365,15 +315,26 @@ export const makeStorage = (options?: {
             return existing
           }
           return yield* sql`
-          INSERT INTO ${sessionAuthBindingsTableSql} (public_key, signing_public_key)
-          VALUES (${publicKey}, ${signingPublicKey})
-        `.pipe(
+            INSERT INTO ${sessionAuthBindingsTableSql} (public_key, signing_public_key)
+            VALUES (${publicKey}, ${signingPublicKey})
+          `.pipe(
             Effect.as(signingPublicKey)
           )
         },
         sql.withTransaction,
         Effect.orDie
       ),
+      entriesAfter: (storeId, entry) =>
+        sql`
+          SELECT sequence, entry_id, event, primary_key, payload
+          FROM ${entriesTableSql}
+          WHERE store_id = ${storeId} AND entry_id > ${entry.id}
+          ORDER BY sequence ASC
+        `.pipe(
+          Effect.flatMap(decodeRemoteEntries),
+          Effect.map(Arr.map((r) => r.entry)),
+          Effect.orDie
+        ),
       write: Effect.fnUntraced(
         function*(storeId, entries) {
           if (entries.length === 0) {
@@ -411,15 +372,22 @@ export const makeStorage = (options?: {
               payload: entry.payload
             })
             if (rowsForInsert.length >= insertBatchSize) {
-              yield* sql`
-                INSERT INTO ${entriesTableSql} ${sql.insert(rowsForInsert)}
-              `
+              yield* sql`INSERT INTO ${entriesTableSql} ${sql.insert(rowsForInsert)}`
               rowsForInsert = []
             }
           }
+          if (rowsForInsert.length > 0) {
+            yield* sql`INSERT INTO ${entriesTableSql} ${sql.insert(rowsForInsert)}`
+          }
+          const nextSequence = currentNextSequence + entries.length
+          yield* setNextSequence(storeId, nextSequence)
+
+          const pubsub = yield* RcMap.get(pubsubs, storeId)
+          yield* PubSub.publishAll(pubsub, committed)
 
           return committed
         },
+        Effect.scoped,
         sql.withTransaction,
         Effect.orDie
       ),
@@ -443,7 +411,11 @@ export const makeStorage = (options?: {
         },
         Effect.orDie,
         Stream.unwrap
-      )
+      ),
+      withTransaction: (effect) =>
+        sql.withTransaction(effect).pipe(
+          Effect.catchIf(SqlError.isSqlError, Effect.die)
+        )
     })
   })
 
@@ -457,15 +429,6 @@ export const layerStorage = (options?: {
   readonly insertBatchSize?: number
 }): Layer.Layer<EventLogServerUnencrypted.Storage, SqlError.SqlError, SqlClient.SqlClient> =>
   Layer.effect(EventLogServerUnencrypted.Storage)(makeStorage(options))
-
-type PendingPublication = {
-  readonly storeId: string
-  readonly committed: ReadonlyArray<RemoteEntry>
-}
-
-class PendingPublications extends ServiceMap.Service<PendingPublications, {
-  readonly pending: Array<PendingPublication>
-}>()("effect/eventlog/SqlEventLogServerUnencrypted/PendingPublications") {}
 
 const EntrySql = Schema.Struct({
   entry_id: EntryId,
@@ -496,7 +459,7 @@ const SessionAuthBindingSql = Schema.Struct({
 
 type SessionAuthBindingSql = Schema.Schema.Type<typeof SessionAuthBindingSql>
 
-const decodeRemoteEntryRows = Schema.decodeUnknownEffect(Schema.Array(RemoteEntrySql))
+const decodeRemoteEntryRows = Schema.decodeUnknownEffect(Schema.mutable(Schema.Array(RemoteEntrySql)))
 const decodeStoreSequenceRows = Schema.decodeUnknownEffect(Schema.Array(StoreSequenceSql))
 const decodeSessionAuthBindingRows = Schema.decodeUnknownEffect(Schema.Array(SessionAuthBindingSql))
 
@@ -516,7 +479,7 @@ const toRemoteEntry = (row: RemoteEntrySql): RemoteEntry =>
 
 const decodeRemoteEntries = (
   rows: unknown
-): Effect.Effect<ReadonlyArray<RemoteEntry>, Schema.SchemaError> =>
+): Effect.Effect<Array<RemoteEntry>, Schema.SchemaError> =>
   decodeRemoteEntryRows(rows).pipe(
     Effect.map((rows) => rows.map(toRemoteEntry))
   )

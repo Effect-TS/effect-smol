@@ -110,7 +110,7 @@ export const suite = (name: string, layer: Layer.Layer<SqlClient.SqlClient, unkn
             compactors: new Map()
           }).pipe(
             Stream.toQueue({ capacity: "unbounded" }),
-            Effect.forkScoped
+            Effect.forkChild
           )
           yield* storage.write(storeId, [racedEntry])
           const changes = yield* Fiber.join(changesFiber)

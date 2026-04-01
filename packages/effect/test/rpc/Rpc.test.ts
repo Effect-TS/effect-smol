@@ -23,7 +23,9 @@ describe("Rpc", () => {
         client: {
           id: 1,
           annotations: ServiceMap.empty(),
-          annotate() {}
+          annotate() {
+            return this
+          }
         },
         requestId: RequestId(1n),
         headers: Headers.empty

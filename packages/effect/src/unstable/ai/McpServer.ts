@@ -24,7 +24,7 @@ import { appendPreResponseHandlerUnsafe } from "../http/HttpEffect.ts"
 import * as HttpRouter from "../http/HttpRouter.ts"
 import * as HttpServerRequest from "../http/HttpServerRequest.ts"
 import * as HttpServerResponse from "../http/HttpServerResponse.ts"
-import type * as Rpc from "../rpc/Rpc.ts"
+import * as Rpc from "../rpc/Rpc.ts"
 import * as RpcClient from "../rpc/RpcClient.ts"
 import type * as RpcGroup from "../rpc/RpcGroup.ts"
 import * as RpcMessage from "../rpc/RpcMessage.ts"
@@ -377,8 +377,8 @@ export const run: (options: {
     idleTimeToLive: 10000
   })
 
-  const clientMiddleware = McpServerClientMiddleware.of((effect, { clientId, headers, rpc }) => {
-    const initializePayload = getInitializedClient(clientSessions, clientId, headers)
+  const clientMiddleware = McpServerClientMiddleware.of((effect, { client, headers, rpc }) => {
+    const initializePayload = getInitializedClient(clientSessions, client.id, headers)
     const isInitialize = rpc._tag === "initialize"
     if (!isInitialize && !initializePayload) {
       return Effect.die(new Error(`Mcp-Session-Id does not exist`))
@@ -387,9 +387,9 @@ export const run: (options: {
       effect,
       McpServerClient,
       McpServerClient.of({
-        clientId,
+        clientId: client.id,
         initializePayload: initializePayload!,
-        getClient: RcMap.get(clients, clientId).pipe(
+        getClient: RcMap.get(clients, client.id).pipe(
           Effect.map(({ client }) => client)
         )
       })
@@ -429,7 +429,7 @@ export const run: (options: {
                 ? handler.handler(request.payload, {
                   rpc,
                   requestId: RpcMessage.RequestId(request.id),
-                  clientId,
+                  client: new Rpc.ServerClient(clientId),
                   headers: Headers.fromInput(request.headers)
                 }) as Effect.Effect<void>
                 : Effect.void
@@ -1148,7 +1148,7 @@ const layerHandlers = (serverInfo: {
       return ClientRpcs.of({
         // Requests
         ping: () => Effect.succeed({}),
-        initialize(params, { clientId }) {
+        initialize(params, { client }) {
           const requestedVersion = SUPPORTED_PROTOCOL_VERSIONS.includes(params.protocolVersion)
             ? params.protocolVersion
             : LATEST_PROTOCOL_VERSION
@@ -1187,7 +1187,7 @@ const layerHandlers = (serverInfo: {
                   [mcpProtocolVersionHeader]: requestedVersion
                 })))
             } else {
-              options.clientSessions.set(String(clientId), params)
+              options.clientSessions.set(String(client.id), params)
             }
             return Effect.succeed({
               capabilities,
@@ -1227,15 +1227,15 @@ const layerHandlers = (serverInfo: {
           server.getPromptResult(r).pipe(
             Effect.provideService(CurrentLogLevel, currentLogLevel)
           ),
-        "prompts/list": (_, { clientId, headers }) =>
+        "prompts/list": (_, { client, headers }) =>
           Effect.sync(() => {
-            const client = getInitializedClient(options.clientSessions, clientId, headers)
-            return new ListPromptsResult({ prompts: filterByClient(client, server.prompts, "prompt") })
+            const initialized = getInitializedClient(options.clientSessions, client.id, headers)
+            return new ListPromptsResult({ prompts: filterByClient(initialized, server.prompts, "prompt") })
           }),
-        "resources/list": (_, { clientId, headers }) =>
+        "resources/list": (_, { client, headers }) =>
           Effect.sync(() => {
-            const client = getInitializedClient(options.clientSessions, clientId, headers)
-            return new ListResourcesResult({ resources: filterByClient(client, server.resources, "resource") })
+            const initialized = getInitializedClient(options.clientSessions, client.id, headers)
+            return new ListResourcesResult({ resources: filterByClient(initialized, server.resources, "resource") })
           }),
         "resources/read": ({ uri }) =>
           server.findResource(uri).pipe(
@@ -1245,22 +1245,22 @@ const layerHandlers = (serverInfo: {
           InternalError.notImplemented.asEffect(),
         "resources/unsubscribe": () =>
           InternalError.notImplemented.asEffect(),
-        "resources/templates/list": (_, { clientId, headers }) =>
+        "resources/templates/list": (_, { client, headers }) =>
           Effect.sync(() => {
-            const client = getInitializedClient(options.clientSessions, clientId, headers)
+            const initialized = getInitializedClient(options.clientSessions, client.id, headers)
             return new ListResourceTemplatesResult({
-              resourceTemplates: filterByClient(client, server.resourceTemplates, "template")
+              resourceTemplates: filterByClient(initialized, server.resourceTemplates, "template")
             })
           }),
         "tools/call": (r) =>
           server.callTool(r).pipe(
             Effect.provideService(CurrentLogLevel, currentLogLevel)
           ),
-        "tools/list": (_, { clientId, headers }) =>
+        "tools/list": (_, { client, headers }) =>
           Effect.sync(() => {
-            const client = getInitializedClient(options.clientSessions, clientId, headers)
+            const initialized = getInitializedClient(options.clientSessions, client.id, headers)
             return new ListToolsResult({
-              tools: filterByClient(client, server.tools, "tool")
+              tools: filterByClient(initialized, server.tools, "tool")
             })
           }),
 

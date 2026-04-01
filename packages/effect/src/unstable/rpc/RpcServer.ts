@@ -159,7 +159,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
             latches: new Map(),
             fibers: new Map(),
             ended: false,
-            serverClient: new ServerClientImpl(clientId)
+            serverClient: new Rpc.ServerClient(clientId)
           }
           clients.set(clientId, client)
         } else if (client.ended) {
@@ -424,19 +424,6 @@ const applyMiddleware = <A, E, R>(
   }
 
   return handler
-}
-
-class ServerClientImpl implements Rpc.ServerClient {
-  readonly id: number
-  annotations: ServiceMap.ServiceMap<never>
-  constructor(id: number) {
-    this.id = id
-    this.annotations = ServiceMap.empty()
-  }
-  annotate<I, S>(tag: ServiceMap.Key<I, S>, value: NoInfer<S>) {
-    this.annotations = ServiceMap.add(this.annotations, tag, value)
-    return this
-  }
 }
 
 /**

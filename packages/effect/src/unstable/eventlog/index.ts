@@ -62,12 +62,12 @@ export * as EventLogSessionAuth from "./EventLogSessionAuth.ts"
 /**
  * @since 4.0.0
  */
-export * as SqlEventLogJournal from "./SqlEventLogJournal.ts"
+export * as SqlEventJournal from "./SqlEventJournal.ts"
 
 /**
  * @since 4.0.0
  */
-export * as SqlEventLogServer from "./SqlEventLogServer.ts"
+export * as SqlEventLogServerEncrypted from "./SqlEventLogServerEncrypted.ts"
 
 /**
  * @since 4.0.0
