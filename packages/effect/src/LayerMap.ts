@@ -134,12 +134,12 @@ export const make: <
     readonly idleTimeToLive?: IdleTimeToLiveInput<K> | undefined
   } | undefined
 ) {
-  const services = yield* Effect.services<never>()
+  const services = yield* Effect.context<never>()
   const memoMap = Layer.CurrentMemoMap.getOrCreate(services)
 
   const rcMap = yield* RcMap.make({
     lookup: (key: K) =>
-      Effect.servicesWith((_: Context.Context<Scope.Scope>) =>
+      Effect.contextWith((_: Context.Context<Scope.Scope>) =>
         Layer.buildWithMemoMap(lookup(key), memoMap, Context.get(_, Scope.Scope))
       ),
     idleTimeToLive: options?.idleTimeToLive

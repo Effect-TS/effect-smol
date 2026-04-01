@@ -101,7 +101,7 @@ export type AnySpan = Span | ExternalSpan
  * ```ts
  * import { Tracer } from "effect"
  *
- * // The key used to identify parent spans in the service map
+ * // The key used to identify parent spans in the context
  * console.log(Tracer.ParentSpanKey) // "effect/Tracer/ParentSpan"
  * ```
  */

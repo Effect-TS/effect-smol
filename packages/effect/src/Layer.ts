@@ -528,8 +528,8 @@ export const build = <RIn, E, ROut>(
   core.withFiber((fiber) =>
     buildWithMemoMap(
       self,
-      CurrentMemoMap.getOrCreate(fiber.services),
-      Context.getUnsafe(fiber.services, Scope.Scope)
+      CurrentMemoMap.getOrCreate(fiber.context),
+      Context.getUnsafe(fiber.context, Scope.Scope)
     )
   )
 
@@ -583,7 +583,7 @@ export const buildWithScope: {
   core.withFiber((fiber) =>
     buildWithMemoMap(
       self,
-      CurrentMemoMap.getOrCreate(fiber.services),
+      CurrentMemoMap.getOrCreate(fiber.context),
       scope
     )
   ))
@@ -1059,7 +1059,7 @@ const provideWith = (
         : (that as Layer<any, any, any>).build(memoMap, scope),
       (context) =>
         self.build(memoMap, scope).pipe(
-          internalEffect.provideServices(context),
+          internalEffect.provideContext(context),
           internalEffect.map((merged) => f(merged, context))
         )
     )

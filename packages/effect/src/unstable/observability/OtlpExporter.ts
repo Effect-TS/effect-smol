@@ -53,7 +53,7 @@ export const make: (
   never,
   HttpClient.HttpClient | Scope.Scope
 > = Effect.fnUntraced(function*(options) {
-  const services = yield* Effect.services<Scope.Scope | HttpClient.HttpClient>()
+  const services = yield* Effect.context<Scope.Scope | HttpClient.HttpClient>()
   const clock = Context.get(services, Clock)
   const scope = Context.get(services, Scope.Scope)
   const runFork = Effect.runForkWith(services)

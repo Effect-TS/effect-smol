@@ -184,7 +184,7 @@ export const into: {
     | Success["DecodingServices"]
     | Error["DecodingServices"]
   > =>
-    Effect.servicesWith(
+    Effect.contextWith(
       (services: Context.Context<WorkflowEngine | WorkflowInstance>) => {
         const engine = Context.get(services, EngineTag)
         const instance = Context.get(services, InstanceTag)

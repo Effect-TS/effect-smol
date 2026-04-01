@@ -64,8 +64,8 @@ const makeUnsafe = <A, E>(
 export const manual = <A, E, R>(
   acquire: Effect.Effect<A, E, R>
 ): Effect.Effect<Resource<A, E>, never, Scope.Scope | R> =>
-  Effect.servicesWith((services: Context.Context<R>) => {
-    const providedAcquire = Effect.updateServices(
+  Effect.contextWith((services: Context.Context<R>) => {
+    const providedAcquire = Effect.updateContext(
       acquire,
       (input: Context.Context<never>) => Context.merge(services, input)
     )

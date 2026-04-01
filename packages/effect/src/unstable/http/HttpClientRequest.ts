@@ -845,7 +845,7 @@ const isReadableStream = (u: unknown): u is ReadableStream<Uint8Array> =>
 export const toWeb = (self: HttpClientRequest, options?: {
   readonly signal?: AbortSignal | undefined
 }): Effect.Effect<Request, UrlParams.UrlParamsError> =>
-  Effect.servicesWith((services) =>
+  Effect.contextWith((services) =>
     toWebResult(self, {
       services,
       signal: options?.signal

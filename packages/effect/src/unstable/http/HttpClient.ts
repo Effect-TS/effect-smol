@@ -1354,11 +1354,11 @@ export const layerMergedServices = <E, R>(
   effect: Effect.Effect<HttpClient, E, R>
 ): Layer.Layer<HttpClient, E, R> =>
   Layer.effect(HttpClient)(
-    Effect.servicesWith((services: Context.Context<never>) =>
+    Effect.contextWith((services: Context.Context<never>) =>
       Effect.map(effect, (client) =>
         transformResponse(
           client,
-          Effect.updateServices((input: Context.Context<never>) => Context.merge(services, input))
+          Effect.updateContext((input: Context.Context<never>) => Context.merge(services, input))
         ))
     )
   )

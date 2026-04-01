@@ -144,7 +144,7 @@ export const toStream: {
     Stream.callback<A>((queue) =>
       Effect.suspend(() => {
         const fiber = Fiber.getCurrent()!
-        const scope = Context.getUnsafe(fiber.services, Scope.Scope)
+        const scope = Context.getUnsafe(fiber.context, Scope.Scope)
         const cancel = self.subscribe(atom, (value) => Queue.offerUnsafe(queue, value), {
           immediate: true
         })

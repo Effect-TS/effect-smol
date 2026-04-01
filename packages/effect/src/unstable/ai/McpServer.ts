@@ -407,7 +407,7 @@ export const run: (options: {
           case "Request": {
             if (isHttp) {
               const fiber = Fiber.getCurrent()!
-              const httpRequest = Context.getUnsafe(fiber.services, HttpServerRequest.HttpServerRequest)
+              const httpRequest = Context.getUnsafe(fiber.context, HttpServerRequest.HttpServerRequest)
               const client = getInitializedClient(clientSessions, clientId, httpRequest.headers)
               if (client) {
                 appendPreResponseHandlerUnsafe(httpRequest, (_, res) =>
@@ -607,7 +607,7 @@ export const registerToolkit: <Tools extends Record<string, Tool.Any>>(
     never,
     Exclude<Tool.HandlersFor<Tools>, McpServerClient>
   >)
-  const services = yield* Effect.services<never>()
+  const services = yield* Effect.context<never>()
   for (const tool of Object.values(built.tools)) {
     const annotations = tool.annotations
     const toolMeta = Context.getOrUndefined(annotations, Tool.Meta)
@@ -635,7 +635,7 @@ export const registerToolkit: <Tools extends Record<string, Tool.Any>>(
           Stream.unwrap,
           Stream.run(Sink.last()),
           Effect.flatMap(Effect.fromOption),
-          Effect.provideServices(services as Context.Context<any>),
+          Effect.provideContext(services as Context.Context<any>),
           Effect.matchCause({
             onFailure: (cause) =>
               new CallToolResult({
@@ -763,7 +763,7 @@ export const registerResource: {
       readonly annotations?: Context.Context<never> | undefined
     }
     return Effect.gen(function*() {
-      const services = yield* Effect.services<any>()
+      const services = yield* Effect.context<any>()
       const registry = yield* McpServer
       yield* registry.addResource({
         resource: new Resource({
@@ -771,7 +771,7 @@ export const registerResource: {
           annotations: options
         }),
         handle: options.content.pipe(
-          Effect.provideServices(services),
+          Effect.provideContext(services),
           Effect.map((content) => resolveResourceContent(options.uri, content)),
           Effect.catchCause((cause) => {
             const prettyError = Cause.prettyErrors(cause)[0]
@@ -802,7 +802,7 @@ export const registerResource: {
     >
     readonly annotations?: Context.Context<never> | undefined
   }) {
-    const services = yield* Effect.services<any>()
+    const services = yield* Effect.context<any>()
     const registry = yield* McpServer
     const decode = Schema.decodeUnknownEffect(schema)
     const template = new ResourceTemplate({
@@ -827,7 +827,7 @@ export const registerResource: {
             const prettyError = Cause.prettyErrors(cause)[0]
             return Effect.fail(new InternalError({ message: prettyError.message }))
           }),
-          Effect.provideServices(services)
+          Effect.provideContext(services)
         )
       completions[param] = handler
     }
@@ -848,7 +848,7 @@ export const registerResource: {
               })
             )
           ),
-          Effect.provideServices(services)
+          Effect.provideContext(services)
         )
     })
   })
@@ -957,7 +957,7 @@ export const registerPrompt = <
   const completion: Record<string, (input: string) => Effect.Effect<any>> = options.completion ?? {}
   return Effect.gen(function*() {
     const registry = yield* McpServer
-    const services = yield* Effect.services<Exclude<R | Schema.Struct.DecodingServices<Params>, McpServerClient>>()
+    const services = yield* Effect.context<Exclude<R | Schema.Struct.DecodingServices<Params>, McpServerClient>>()
     const completions: Record<
       string,
       (input: string) => Effect.Effect<CompleteResult, InternalError, McpServerClient>
@@ -1003,7 +1003,7 @@ export const registerPrompt = <
             const prettyError = Cause.prettyErrors(cause)[0]
             return Effect.fail(new InternalError({ message: prettyError.message }))
           }),
-          Effect.provideServices(services as Context.Context<unknown>)
+          Effect.provideContext(services as Context.Context<unknown>)
         )
     })
   })
@@ -1177,7 +1177,7 @@ const layerHandlers = (serverInfo: {
             capabilities.extensions = serverInfo.extensions as any
           }
           return Effect.withFiber((fiber) => {
-            const httpRequest = Context.getOrUndefined(fiber.services, HttpServerRequest.HttpServerRequest)
+            const httpRequest = Context.getOrUndefined(fiber.context, HttpServerRequest.HttpServerRequest)
             if (httpRequest) {
               const sessionId = crypto.randomUUID()
               options.clientSessions.set(sessionId, params)

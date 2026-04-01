@@ -207,7 +207,7 @@ const make = Effect.gen(function*() {
   const snowflakeGen = yield* Snowflake.Generator
   const shardingScope = yield* Effect.scope
   const isShutdown = MutableRef.make(false)
-  const services = Context.omit(Scope.Scope)(yield* Effect.services<ShardingConfig>())
+  const services = Context.omit(Scope.Scope)(yield* Effect.context<ShardingConfig>())
   const runFork = flow(
     Effect.runForkWith(services),
     Fiber.runIn(shardingScope)
@@ -1002,7 +1002,7 @@ const make = Effect.gen(function*() {
 
   type ClientRequestEntry = {
     readonly rpc: Rpc.AnyWithProps
-    readonly services: Context.Context<never>
+    readonly context: Context.Context<never>
     readonly message: Message.OutgoingRequest<any>
     lastChunkId?: Snowflake.Snowflake
   }
@@ -1047,7 +1047,7 @@ const make = Effect.gen(function*() {
               envelope,
               lastReceivedReply: Option.none(),
               rpc,
-              services: fiber.services as Context.Context<any>,
+              services: fiber.context as Context.Context<any>,
               respond: (reply) => respond(reply),
               annotations: Context.get(rpc.annotations, ClusterSchema.Dynamic)(
                 rpc.annotations,
@@ -1057,7 +1057,7 @@ const make = Effect.gen(function*() {
             if (!options.discard) {
               const entry: ClientRequestEntry = {
                 rpc: rpc as any,
-                services: fiber.currentContext,
+                context: fiber.currentContext,
                 message
               }
               clientRequests.set(id, entry)
@@ -1216,12 +1216,12 @@ const make = Effect.gen(function*() {
         return yield* Effect.die(`Singleton '${name}' is already registered`)
       }
 
-      const services = yield* Effect.services<never>()
+      const services = yield* Effect.context<never>()
       const wrappedRun = run.pipe(
         Effect.andThen(Effect.never),
         Effect.scoped,
         Effect.provideService(CurrentLogAnnotations, {}),
-        Effect.provideServices(services),
+        Effect.provideContext(services),
         Effect.orDie,
         Effect.interruptible
       ) as Effect.Effect<never>
@@ -1287,7 +1287,7 @@ const make = Effect.gen(function*() {
         runnerAddress,
         sharding
       }).pipe(
-        Effect.provideServices(Context.mutate(services, (services) =>
+        Effect.provideContext(Context.mutate(services, (services) =>
           services.pipe(
             Context.add(EntityReaper, reaper),
             Context.add(Scope.Scope, scope),

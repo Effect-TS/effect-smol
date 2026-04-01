@@ -1874,7 +1874,7 @@ const mapEffectConcurrent = <
       const queue = yield* Queue.bounded<OutElem2, OutErr | EX | Cause.Done<OutDone>>(0)
       yield* Scope.addFinalizer(forkedScope, Queue.shutdown(queue))
 
-      const runFork = Effect.runForkWith(yield* Effect.services<RX>())
+      const runFork = Effect.runForkWith(yield* Effect.context<RX>())
       const trackFiber = Fiber.runIn(forkedScope)
 
       if (options.unordered) {
@@ -6601,22 +6601,22 @@ const runWith = <
  * @since 2.0.0
  * @category Services
  */
-export const servicesWith = <Env, OutElem, OutErr, OutDone, InElem, InErr, InDone, Env2>(
+export const contextWith = <Env, OutElem, OutErr, OutDone, InElem, InErr, InDone, Env2>(
   f: (services: Context.Context<Env>) => Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env2>
 ): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env | Env2> =>
   fromTransform((upstream, scope) =>
-    Effect.servicesWith((services: Context.Context<Env>) => toTransform(f(services))(upstream, scope))
+    Effect.contextWith((services: Context.Context<Env>) => toTransform(f(services))(upstream, scope))
   )
 
 /**
- * Provides a layer or service map to the channel, removing the corresponding
+ * Provides a layer or context to the channel, removing the corresponding
  * service requirements. Use `options.local` to build the layer every time; by
  * default, layers are shared between provide calls.
  *
  * @since 4.0.0
  * @category Services
  */
-export const provideServices: {
+export const provideContext: {
   <R2>(
     services: Context.Context<R2>
   ): <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
@@ -6632,8 +6632,8 @@ export const provideServices: {
 ): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Exclude<Env, R2>> =>
   fromTransform((upstream, scope) =>
     Effect.map(
-      Effect.provideServices(toTransform(self)(upstream, scope), services),
-      Effect.provideServices(services)
+      Effect.provideContext(toTransform(self)(upstream, scope), services),
+      Effect.provideContext(services)
     )
   ))
 
@@ -6720,15 +6720,15 @@ export const provide: {
     readonly local?: boolean | undefined
   } | undefined
 ): Channel<OutElem, OutErr | E, OutDone, InElem, InErr, InDone, Exclude<Env, A> | R> =>
-  Context.isContext(layer) ? provideServices(self, layer) : fromTransform((upstream, scope) =>
+  Context.isContext(layer) ? provideContext(self, layer) : fromTransform((upstream, scope) =>
     Effect.flatMap(
       options?.local
         ? Layer.buildWithMemoMap(layer, Layer.makeMemoMapUnsafe(), scope)
         : Layer.buildWithScope(layer, scope),
       (services) =>
         Effect.map(
-          Effect.provideServices(toTransform(self)(upstream, scope), services),
-          Effect.provideServices(services)
+          Effect.provideContext(toTransform(self)(upstream, scope), services),
+          Effect.provideContext(services)
         )
     )
   ))
@@ -6737,7 +6737,7 @@ export const provide: {
  * @since 2.0.0
  * @category Services
  */
-export const updateServices: {
+export const updateContext: {
   <Env, R2>(
     f: (services: Context.Context<R2>) => Context.Context<Env>
   ): <OutElem, OutErr, OutDone, InElem, InErr, InDone>(
@@ -6752,9 +6752,9 @@ export const updateServices: {
   f: (services: Context.Context<R2>) => Context.Context<Env>
 ): Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, R2> =>
   fromTransform((upstream, scope) =>
-    Effect.servicesWith((services) => {
+    Effect.contextWith((services) => {
       const toProvide = f(services)
-      return toTransform(provideServices(self, toProvide))(upstream, scope)
+      return toTransform(provideContext(self, toProvide))(upstream, scope)
     })
   ))
 
@@ -6779,7 +6779,7 @@ export const updateService: {
   service: Context.Key<I, S>,
   f: (service: NoInfer<S>) => S
 ): Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Env | I> =>
-  updateServices(self, (services) =>
+  updateContext(self, (services) =>
     Context.add(
       services,
       service,
@@ -7367,11 +7367,11 @@ export const toPull: <OutElem, OutErr, OutDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
   ) {
     const semaphore = Semaphore.makeUnsafe(1)
-    const context = yield* Effect.services<Env | Scope.Scope>()
+    const context = yield* Effect.context<Env | Scope.Scope>()
     const scope = Context.get(context, Scope.Scope)
     const pull = yield* toTransform(self)(Cause.done(), scope)
     return pull.pipe(
-      Effect.provideServices(context),
+      Effect.provideContext(context),
       semaphore.withPermits(1)
     )
   },

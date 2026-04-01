@@ -107,7 +107,7 @@ export const make = Effect.fnUntraced(function*<
   const storageEnabled = options.storage !== MessageStorage.noop
   const mailboxCapacity = options.mailboxCapacity ?? config.entityMailboxCapacity
   const clock = yield* Clock
-  const services = yield* Effect.services<Rpc.Services<Rpcs> | Rpc.Middleware<Rpcs> | RX>()
+  const context = yield* Effect.context<Rpc.Services<Rpcs> | Rpc.Middleware<Rpcs> | RX>()
   const defectRetryPolicy = options.defectRetryPolicy
     ? Schedule.andThen(options.defectRetryPolicy, defaultRetryPolicy)
     : defaultRetryPolicy
@@ -157,7 +157,7 @@ export const make = Effect.fnUntraced(function*<
         // Initiate the behavior for the entity
         const handlers = yield* (entity.protocol.toHandlers(buildHandlers as any).pipe(
           Effect.provideService(CurrentLogAnnotations, {}),
-          Effect.provideServices(Context.mutate(services, (context) =>
+          Effect.provideContext(Context.mutate(context, (context) =>
             context.pipe(
               Context.add(CurrentAddress, address),
               Context.add(CurrentRunnerAddress, options.runnerAddress),
@@ -271,7 +271,7 @@ export const make = Effect.fnUntraced(function*<
           }
         }).pipe(
           Scope.provide(scope),
-          Effect.provideServices(handlers)
+          Effect.provideContext(handlers)
         )
 
         yield* Scope.addFinalizer(
@@ -501,7 +501,7 @@ export const make = Effect.fnUntraced(function*<
 
   const decodeMessage = makeMessageDecode(entity, entityRpcs)
 
-  const runFork = Effect.runForkWith(services)
+  const runFork = Effect.runForkWith(context)
 
   return identity<EntityManager>({
     interruptShard: (shardId: ShardId) =>
@@ -553,7 +553,7 @@ export const make = Effect.fnUntraced(function*<
                   exit: Exit.die(new MalformedMessage({ cause }))
                 }),
                 rpc: entityRpcs.get(message.envelope.tag)!,
-                services: services as any
+                services: context as any
               })
             ))
           },
@@ -578,14 +578,14 @@ export const make = Effect.fnUntraced(function*<
                     new Reply.ReplyWithContext({
                       reply,
                       rpc,
-                      services: services as any
+                      services: context as any
                     })
                   )
               })
             )
           }
         }),
-        Effect.provideServices(services as Context.Context<unknown>)
+        Effect.provideContext(context as Context.Context<unknown>)
       ),
     activeEntityCount: Effect.sync(() => activeServers.size)
   })

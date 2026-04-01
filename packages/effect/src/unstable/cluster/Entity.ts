@@ -530,12 +530,12 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
   const sharding = shardingTag.of({
     ...({} as Sharding["Service"]),
     registerEntity: (entity, handlers, options) =>
-      Effect.servicesWith((services) => {
+      Effect.contextWith((services) => {
         entityMap.set(entity.type, {
           services: services as any,
           concurrency: options?.concurrency ?? 1,
           build: entity.protocol.toHandlers(handlers as any).pipe(
-            Effect.provideServices(Context.mutate(services, (services) =>
+            Effect.provideContext(Context.mutate(services, (services) =>
               services.pipe(
                 Context.add(CurrentRunnerAddress, runnerAddress),
                 Context.omit(Scope)

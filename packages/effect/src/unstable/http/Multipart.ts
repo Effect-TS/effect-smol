@@ -260,7 +260,7 @@ export const makeConfig = (
   headers: Record<string, string>
 ): Effect.Effect<MP.BaseConfig> =>
   Effect.withFiber((fiber) => {
-    const mimeTypes = Context.get(fiber.services, FieldMimeTypes)
+    const mimeTypes = Context.get(fiber.context, FieldMimeTypes)
     return Effect.succeed<MP.BaseConfig>({
       headers,
       maxParts: fiber.getRef(MaxParts),

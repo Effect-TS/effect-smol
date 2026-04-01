@@ -322,7 +322,7 @@ export interface ConfigProvider extends Pipeable {
 }
 
 /**
- * The `ConfigProvider` service reference, registered in the service map with a
+ * The `ConfigProvider` service reference, registered in the context with a
  * default value of `fromEnv()`.
  *
  * Because it is a `Context.Reference`, it is available without explicit

@@ -266,7 +266,7 @@ const Proto = {
     build: Record<string, (params: any) => any> | Effect.Effect<Record<string, (params: any) => any>>
   ) {
     return Effect.gen({ self: this }, function*() {
-      const services = yield* Effect.services<never>()
+      const services = yield* Effect.context<never>()
       const handlers = Effect.isEffect(build) ? yield* build : build
       const context = new Map<string, unknown>()
       for (const [name, handler] of Object.entries(handlers)) {
@@ -286,10 +286,10 @@ const Proto = {
     return Effect.gen({ self: this }, function*() {
       const tools = this.tools
 
-      const services = yield* Effect.services<never>()
+      const services = yield* Effect.context<never>()
 
       const schemasCache = new WeakMap<any, {
-        readonly services: Context.Context<never>
+        readonly context: Context.Context<never>
         readonly handler: Tool.Handler<any>["handler"]
         readonly decodeParameters: (u: unknown) => Effect.Effect<unknown, Schema.SchemaError>
         readonly decodeResult: (u: unknown) => Effect.Effect<unknown, Schema.SchemaError>
@@ -309,7 +309,7 @@ const Proto = {
           const decodeResult = Schema.decodeUnknownEffect(resultSchema) as any
           const encodeResult = Schema.encodeUnknownEffect(resultSchema) as any
           schemas = {
-            services: handler.services,
+            context: handler.context,
             handler: handler.handler,
             decodeParameters,
             decodeResult,
@@ -375,7 +375,7 @@ const Proto = {
 
         const fiber = yield* schemas.handler(decodedParams, context).pipe(
           Effect.flatMap((result) => Queue.offer(queue, { result, isFailure: false, preliminary: false })),
-          Effect.updateServices((input) => Context.merge(schemas.services, input)),
+          Effect.updateContext((input) => Context.merge(schemas.context, input)),
           Effect.matchCauseEffect({
             onFailure: (cause) => Queue.failCause(queue, cause),
             onSuccess: () => Queue.end(queue)

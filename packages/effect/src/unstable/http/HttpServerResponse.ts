@@ -202,10 +202,10 @@ export const htmlStream = <
   Template.Interpolated.Context<A[number]>
 > =>
   Effect.map(
-    Effect.services<Template.Interpolated.Context<A[number]>>(),
+    Effect.context<Template.Interpolated.Context<A[number]>>(),
     (context) =>
       stream(
-        Stream.provideServices(
+        Stream.provideContext(
           Stream.encodeText(Template.stream(strings, ...args)),
           context
         ),
@@ -995,7 +995,7 @@ class ServerHttpClientResponse extends Inspectable.Class implements HttpClientRe
     if (body._tag === "FormData") {
       return Effect.succeed(body.formData)
     }
-    return Effect.servicesWith((services: Context.Context<never>) => {
+    return Effect.contextWith((services: Context.Context<never>) => {
       const readableStream = Stream.toReadableStreamWith(this.stream, services)
       return Effect.tryPromise({
         try: () => new Response(readableStream, { headers: this.headers }).formData(),

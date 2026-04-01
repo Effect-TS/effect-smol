@@ -204,7 +204,7 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
   }
 ): Effect.Effect<void, unknown, unknown> =>
   Effect.gen(function*() {
-    const services = yield* Effect.services<any>()
+    const services = yield* Effect.context<any>()
 
     const httpClient = options.httpClient.pipe(
       options?.baseUrl === undefined

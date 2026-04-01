@@ -167,7 +167,7 @@ export const serializeRequest = <Rpc extends Rpc.Any>(
 ): Effect.Effect<Envelope.PartialRequest, MalformedMessage> => {
   const rpc = self.rpc as any as Rpc.AnyWithProps
   return Schema.encodeEffect(Schema.toCodecJson(rpc.payloadSchema))(self.envelope.payload).pipe(
-    Effect.provideServices(self.services),
+    Effect.provideContext(self.services),
     MalformedMessage.refail,
     Effect.map((payload) => ({
       ...self.envelope,
@@ -196,7 +196,7 @@ export const deserializeLocal = <Rpc extends Rpc.Any>(
   }
   const rpc = self.rpc as any as Rpc.AnyWithProps
   return Schema.decodeEffect(Schema.toCodecJson(rpc.payloadSchema))(encoded.payload).pipe(
-    Effect.provideServices(self.services),
+    Effect.provideContext(self.services),
     MalformedMessage.refail,
     Effect.map((payload) => {
       const envelope = Envelope.makeRequest({

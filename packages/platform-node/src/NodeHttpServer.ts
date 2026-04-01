@@ -165,7 +165,7 @@ export const makeHandler = <
 > => {
   const handled = HttpEffect.toHandled(httpEffect, handleResponse, options.middleware as any)
   return Effect.withFiber((parent) => {
-    const services = parent.services
+    const services = parent.context
     return Effect.succeed(function handler(
       nodeRequest: Http.IncomingMessage,
       nodeResponse: Http.ServerResponse
@@ -204,7 +204,7 @@ export const makeUpgradeHandler = <
 > => {
   const handledApp = HttpEffect.toHandled(httpEffect, handleResponse, options.middleware as any)
   return Effect.withFiber((parent) => {
-    const services = parent.services
+    const services = parent.context
     return Effect.succeed(function handler(
       nodeRequest: Http.IncomingMessage,
       socket: Duplex,

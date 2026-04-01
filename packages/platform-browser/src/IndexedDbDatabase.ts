@@ -322,7 +322,7 @@ const layer = <DatabaseName extends string>(
     Effect.gen(function*() {
       const { IDBKeyRange, indexedDB } = yield* IndexedDb.IndexedDb
       const reactivity = yield* Reactivity.Reactivity
-      const context = yield* Effect.services()
+      const context = yield* Effect.context()
       const runForkWith = Effect.runForkWith(context)
 
       let oldVersion = 0

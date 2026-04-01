@@ -68,7 +68,7 @@ const stripSearchAndHash = (url: string): string => {
  */
 export const withLoggerDisabled = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R | HttpServerRequest> =>
   Effect.withFiber((fiber) => {
-    const request = Context.getUnsafe(fiber.services, HttpServerRequest)
+    const request = Context.getUnsafe(fiber.context, HttpServerRequest)
     loggerDisabledRequests.add(request.source)
     return self
   })
@@ -108,7 +108,7 @@ export const logger: <E, R>(
 ) => Effect.Effect<HttpServerResponse, E, HttpServerRequest | R> = make((httpApp) => {
   let counter = 0
   return Effect.withFiber((fiber) => {
-    const request = Context.getUnsafe(fiber.services, HttpServerRequest)
+    const request = Context.getUnsafe(fiber.context, HttpServerRequest)
     const path = stripSearchAndHash(request.url)
     return Effect.withLogSpan(
       Effect.flatMap(Effect.exit(httpApp), (exit) => {
@@ -147,7 +147,7 @@ export const tracer: <E, R>(
   httpApp: Effect.Effect<HttpServerResponse, E, HttpServerRequest | R>
 ) => Effect.Effect<HttpServerResponse, E, HttpServerRequest | R> = make((httpApp) =>
   Effect.withFiber((fiber) => {
-    const request = Context.getUnsafe(fiber.services, HttpServerRequest)
+    const request = Context.getUnsafe(fiber.context, HttpServerRequest)
     const disabled = !fiber.getRef(TracerEnabled) || fiber.getRef(TracerDisabledWhen)(request)
     if (disabled) {
       return httpApp
@@ -157,10 +157,10 @@ export const tracer: <E, R>(
       parent: Option.getOrUndefined(TraceContext.fromHeaders(request.headers)),
       kind: "server"
     })
-    const prevServices = fiber.services
-    fiber.setServices(Context.add(fiber.services, ParentSpan, span))
+    const prevServices = fiber.context
+    fiber.setContext(Context.add(fiber.context, ParentSpan, span))
     return Effect.onExitPrimitive(httpApp, (exit) => {
-      fiber.setServices(prevServices)
+      fiber.setContext(prevServices)
       const endTime = fiber.getRef(Clock).currentTimeNanosUnsafe()
       fiber.currentDispatcher.scheduleTask(() => {
         const url = Request.toURL(request)
@@ -228,7 +228,7 @@ export const searchParamsParser = <E, R>(
   httpApp: Effect.Effect<HttpServerResponse, E, R>
 ): Effect.Effect<Response.HttpServerResponse, E, HttpServerRequest | Exclude<R, Request.ParsedSearchParams>> =>
   Effect.withFiber((fiber) => {
-    const services = fiber.services
+    const services = fiber.context
     const request = Context.getUnsafe(services, HttpServerRequest)
     const params = Request.searchParamsFromURL(new URL(request.originalUrl))
     return Effect.provideService(
@@ -346,7 +346,7 @@ export const cors = (options?: {
     httpApp: Effect.Effect<HttpServerResponse, E, R>
   ): Effect.Effect<HttpServerResponse, E, R | HttpServerRequest> =>
     Effect.withFiber((fiber) => {
-      const request = Context.getUnsafe(fiber.services, HttpServerRequest)
+      const request = Context.getUnsafe(fiber.context, HttpServerRequest)
       if (request.method === "OPTIONS") {
         return Effect.succeed(Response.empty({
           status: 204,

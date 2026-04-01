@@ -50,7 +50,7 @@ class RcRefImpl<A, E> implements RcRef.RcRef<A, E> {
   state: State<A> = stateEmpty
   readonly semaphore = Semaphore.makeUnsafe(1)
   readonly acquire: Effect.Effect<A, E>
-  readonly services: Context.Context<never>
+  readonly context: Context.Context<never>
   readonly scope: Scope.Scope
   readonly idleTimeToLive: Duration.Duration | undefined
 
@@ -61,7 +61,7 @@ class RcRefImpl<A, E> implements RcRef.RcRef<A, E> {
     idleTimeToLive: Duration.Duration | undefined
   ) {
     this.acquire = acquire
-    this.services = services
+    this.context = services
     this.scope = scope
     this.idleTimeToLive = idleTimeToLive
   }
@@ -73,7 +73,7 @@ export const make = <A, E, R>(options: {
   readonly idleTimeToLive?: Duration.Input | undefined
 }) =>
   Effect.withFiber<RcRef.RcRef<A, E>, never, R | Scope.Scope>((fiber) => {
-    const services = fiber.services as Context.Context<R | Scope.Scope>
+    const services = fiber.context as Context.Context<R | Scope.Scope>
     const scope = Context.get(services, Scope.Scope)
     const ref = new RcRefImpl<A, E>(
       options.acquire as Effect.Effect<A, E>,
@@ -108,9 +108,9 @@ const getState = <A, E>(self: RcRefImpl<A, E>) =>
       case "Empty": {
         const scope = Scope.makeUnsafe()
         return self.semaphore.withPermits(1)(
-          restore(Effect.provideServices(
+          restore(Effect.provideContext(
             self.acquire as Effect.Effect<A, E>,
-            Context.add(self.services, Scope.Scope, scope)
+            Context.add(self.context, Scope.Scope, scope)
           )).pipe(Effect.map((value) => {
             const state: State.Acquired<A> = {
               _tag: "Acquired",
@@ -160,7 +160,7 @@ export const get = Effect.fnUntraced(function*<A, E>(
       Effect.ensuring(Effect.sync(() => {
         state.fiber = undefined
       })),
-      Effect.runForkWith(self.services),
+      Effect.runForkWith(self.context),
       Fiber.runIn(self.scope)
     )
     return Effect.void

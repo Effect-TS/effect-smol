@@ -64,7 +64,7 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
   | HttpApiGroup.ToService<Id, Groups>
 > =>
   HttpRouter.use(Effect.fnUntraced(function*(router) {
-    const services = yield* Effect.services<
+    const services = yield* Effect.context<
       | Etag.Generator
       | HttpRouter.HttpRouter
       | FileSystem
@@ -120,7 +120,7 @@ export const group = <
   Exclude<Handlers.Context<Return>, Scope.Scope>
 > =>
   Layer.effectServices(Effect.gen(function*() {
-    const services = yield* Effect.services<any>()
+    const services = yield* Effect.context<any>()
     const group = api.groups[groupName]!
     const result = build(makeHandlers(group))
     const handlers: Handlers<any, any> = Effect.isEffect(result)
@@ -330,7 +330,7 @@ export const endpoint = <
   | HttpPlatform
   | Path
 > =>
-  Effect.servicesWith((services: Context.Context<any>) => {
+  Effect.contextWith((services: Context.Context<any>) => {
     const group = api.groups[groupName] as unknown as HttpApiGroup.AnyWithProps
     const endpoint = group.endpoints[endpointName] as unknown as HttpApiEndpoint.AnyWithProps
     return Effect.succeed(handlerToHttpEffect(group, endpoint, services, handler as any, false))
@@ -521,14 +521,14 @@ function decodePayload(
         return Effect.flatMap(
           Effect.orDie(UndefinedOr.match(existing.limits, {
             onUndefined: () => httpRequest.multipart,
-            onDefined: (limits) => Effect.provideServices(httpRequest.multipart, Multipart.limitsServices(limits))
+            onDefined: (limits) => Effect.provideContext(httpRequest.multipart, Multipart.limitsServices(limits))
           })),
           decode
         )
       }
       return Effect.succeed(UndefinedOr.match(existing.limits, {
         onUndefined: () => httpRequest.multipartStream,
-        onDefined: (limits) => Stream.provideServices(httpRequest.multipartStream, Multipart.limitsServices(limits))
+        onDefined: (limits) => Stream.provideContext(httpRequest.multipartStream, Multipart.limitsServices(limits))
       }))
     }
     case "Json":
@@ -571,7 +571,7 @@ function handlerToHttpEffect(
     services,
     Effect.gen(function*() {
       const fiber = Fiber.getCurrent()!
-      const services = fiber.services
+      const services = fiber.context
       const httpRequest = Context.getUnsafe(services, HttpServerRequest)
       const routeContext = Context.getUnsafe(services, HttpRouter.RouteContext)
       const query = Context.getUnsafe(services, Request.ParsedSearchParams)
@@ -604,7 +604,7 @@ function handlerToHttpEffect(
   ).pipe(
     Effect.withErrorReporting,
     Effect.catch((error) => Effect.orDie(encodeError(error))),
-    Effect.provideServices(services)
+    Effect.provideContext(services)
   )
 }
 

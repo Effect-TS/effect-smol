@@ -18,7 +18,7 @@ export class OpenRouterConfig extends Context.Service<
    * @since 1.0.0
    */
   static readonly getOrUndefined: Effect.Effect<typeof OpenRouterConfig.Service | undefined> = Effect.map(
-    Effect.services<never>(),
+    Effect.context<never>(),
     (services) => services.mapUnsafe.get(OpenRouterConfig.key)
   )
 }

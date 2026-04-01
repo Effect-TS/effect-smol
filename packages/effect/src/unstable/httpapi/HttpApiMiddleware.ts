@@ -368,7 +368,7 @@ export const layerClient = <Id extends AnyId, S, R, EX = never, RX = never>(
     >
 ): Layer.Layer<ForClient<Id>, EX, R | Exclude<RX, Scope>> =>
   Layer.effectServices(Effect.gen(function*() {
-    const services = (yield* Effect.services<R | Scope>()).pipe(
+    const services = (yield* Effect.context<R | Scope>()).pipe(
       Context.omit(Scope)
     ) as Context.Context<R>
     const middleware = Effect.isEffect(service) ? yield* service : service
@@ -376,7 +376,7 @@ export const layerClient = <Id extends AnyId, S, R, EX = never, RX = never>(
       new Map([[
         `${tag.key}/Client`,
         (options: any) =>
-          Effect.updateServices(
+          Effect.updateContext(
             middleware(options),
             (requestContext) => Context.merge(services, requestContext)
           )

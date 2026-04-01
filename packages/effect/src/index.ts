@@ -523,7 +523,7 @@ export * as Combiner from "./Combiner.ts"
  * - **parse** – instance method on every `Config` that takes a provider and
  *   returns `Effect<T, ConfigError>`.
  * - **Yieldable** – every `Config` can be yielded inside `Effect.gen`. It
- *   automatically resolves the current `ConfigProvider` from the service map.
+ *   automatically resolves the current `ConfigProvider` from the context.
  *
  * ## Common tasks
  *

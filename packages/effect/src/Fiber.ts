@@ -120,8 +120,8 @@ export interface Fiber<out A, out E = never> extends Pipeable {
   readonly id: number
   readonly currentOpCount: number
   readonly getRef: <A>(ref: Context.Reference<A>) => A
-  readonly services: Context.Context<never>
-  setServices(services: Context.Context<never>): void
+  readonly context: Context.Context<never>
+  setContext(services: Context.Context<never>): void
   readonly currentScheduler: Scheduler
   readonly currentDispatcher: SchedulerDispatcher
   readonly currentSpan?: AnySpan | undefined

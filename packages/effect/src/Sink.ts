@@ -1639,7 +1639,7 @@ export const timed: Sink<Duration.Duration, unknown> = map(withDuration(drain), 
  * @since 4.0.0
  * @category Services
  */
-export const provideServices: {
+export const provideContext: {
   <Provided>(
     services: Context.Context<Provided>
   ): <A, In, L, E, R>(self: Sink<A, In, L, E, R>) => Sink<A, In, L, E, Exclude<R, Provided>>
@@ -1653,7 +1653,7 @@ export const provideServices: {
 ): Sink<A, In, L, E, Exclude<R, Provided>> =>
   fromTransform((upstream, scope) =>
     self.transform(upstream, scope).pipe(
-      Effect.provideServices(services)
+      Effect.provideContext(services)
     )
   ))
 

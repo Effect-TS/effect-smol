@@ -692,7 +692,7 @@ const runImpl = <K, A, E, R, XE extends E, XA extends A>(
     } else if (options?.onlyIfMissing === true && hasUnsafe(self, key)) {
       return Effect.sync(constInterruptedFiber)
     }
-    const fiber = Effect.runForkWith(parent.services as Context<R>)(effect)
+    const fiber = Effect.runForkWith(parent.context as Context<R>)(effect)
     setUnsafe(self, key, fiber, options)
     return Effect.succeed(fiber)
   })
@@ -743,7 +743,7 @@ export const runtime: <K, A, E>(
   R
 > = <K, A, E>(self: FiberMap<K, A, E>) => <R>() =>
   Effect.map(
-    Effect.services<R>(),
+    Effect.context<R>(),
     (services) => {
       const runFork = Effect.runForkWith(services)
       return <XE extends E, XA extends A>(

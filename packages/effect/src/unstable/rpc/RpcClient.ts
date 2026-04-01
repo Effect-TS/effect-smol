@@ -233,7 +233,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
   const disableTracing = options?.disableTracing ?? false
   const generateRequestId = options?.generateRequestId ?? (() => requestIdCounter++ as RequestId)
 
-  const services = yield* Effect.services<Rpc.MiddlewareClient<Rpcs> | Scope.Scope>()
+  const services = yield* Effect.context<Rpc.MiddlewareClient<Rpcs> | Scope.Scope>()
   const scope = Context.get(services, Scope.Scope)
 
   type ClientEntry = {
@@ -375,7 +375,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
           entries.set(id, entry)
           fiber = send.pipe(
             span ? Effect.withParentSpan(span, { captureStackTrace: false }) : identity,
-            Effect.runForkWith(parentFiber.services)
+            Effect.runForkWith(parentFiber.context)
           )
           fiber.addObserver((exit) => {
             if (exit._tag === "Failure") {
@@ -414,7 +414,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
     const fiber = Fiber.getCurrent()!
     const id = generateRequestId()
 
-    const scope = Context.getUnsafe(fiber.services, Scope.Scope)
+    const scope = Context.getUnsafe(fiber.context, Scope.Scope)
     yield* Scope.addFinalizerExit(
       scope,
       (exit) => {
@@ -518,7 +518,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
         discard: false
       }).pipe(
         Effect.timeout(1000),
-        Effect.runForkWith(parentFiber.services)
+        Effect.runForkWith(parentFiber.context)
       )
       fiber.addObserver(() => {
         resume(Effect.void)
@@ -636,13 +636,13 @@ export const make: <Rpcs extends Rpc.Any, const Flatten extends boolean = false>
 
           const entry: ClientEntry = {
             rpc,
-            context: collector ? Context.add(fiber.services, Transferable.Collector, collector) : fiber.services,
+            context: collector ? Context.add(fiber.context, Transferable.Collector, collector) : fiber.context,
             schemas: rpcSchemas(rpc)
           }
           entries.set(message.id, entry)
 
           return entry.schemas.encodePayload(message.payload).pipe(
-            Effect.provideServices(entry.context),
+            Effect.provideContext(entry.context),
             Effect.orDie,
             Effect.flatMap((payload) =>
               send({
@@ -685,7 +685,7 @@ export const make: <Rpcs extends Rpc.Any, const Flatten extends boolean = false>
         const entry = entries.get(requestId)
         if (!entry || Option.isNone(entry.schemas.decodeChunk)) return Effect.void
         return entry.schemas.decodeChunk.value(message.values).pipe(
-          Effect.provideServices(entry.context),
+          Effect.provideContext(entry.context),
           Effect.orDie,
           Effect.flatMap((chunk) =>
             write({ _tag: "Chunk", clientId: 0, requestId: RequestId(message.requestId), values: chunk })
@@ -706,7 +706,7 @@ export const make: <Rpcs extends Rpc.Any, const Flatten extends boolean = false>
         if (!entry) return Effect.void
         entries.delete(requestId)
         return entry.schemas.decodeExit(message.exit).pipe(
-          Effect.provideServices(entry.context),
+          Effect.provideContext(entry.context),
           Effect.orDie,
           Effect.matchCauseEffect({
             onSuccess: (exit) => write({ _tag: "Exit", clientId: 0, requestId, exit }),

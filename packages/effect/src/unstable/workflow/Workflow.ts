@@ -551,7 +551,7 @@ export const intoResult = <A, E, R>(
   never,
   Exclude<R, Scope.Scope> | WorkflowInstance
 > =>
-  Effect.servicesWith((services: Context.Context<WorkflowInstance>) => {
+  Effect.contextWith((services: Context.Context<WorkflowInstance>) => {
     const instance = Context.get(services, InstanceTag)
     const captureDefects = Context.get(instance.workflow.annotations, CaptureDefects)
     const suspendOnFailure = Context.get(instance.workflow.annotations, SuspendOnFailure)
@@ -601,7 +601,7 @@ export const wrapActivityResult = <A, E, R>(
   effect: Effect.Effect<A, E, R>,
   isSuspend: (value: A) => boolean
 ): Effect.Effect<A, E, R | WorkflowInstance> =>
-  Effect.servicesWith((services: Context.Context<WorkflowInstance>) => {
+  Effect.contextWith((services: Context.Context<WorkflowInstance>) => {
     const instance = Context.get(services, InstanceTag)
     const state = instance.activityState
     if (instance.suspended) {
@@ -691,8 +691,8 @@ export const addFinalizer: <R>(
   f: (exit: Exit.Exit<unknown, unknown>) => Effect.Effect<void, never, R>
 ) {
   const scope = (yield* InstanceTag).scope
-  const services = yield* Effect.services<R>()
-  yield* Scope.addFinalizerExit(scope, (exit) => Effect.provideServices(f(exit), services))
+  const services = yield* Effect.context<R>()
+  yield* Scope.addFinalizerExit(scope, (exit) => Effect.provideContext(f(exit), services))
 })
 
 /**

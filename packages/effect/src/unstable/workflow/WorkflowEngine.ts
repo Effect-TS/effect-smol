@@ -336,12 +336,12 @@ export interface Encoded {
 export const makeUnsafe = (options: Encoded): WorkflowEngine["Service"] =>
   WorkflowEngine.of({
     register: Effect.fnUntraced(function*(workflow, execute) {
-      const services = yield* Effect.services<WorkflowEngine>()
+      const services = yield* Effect.context<WorkflowEngine>()
       yield* options.register(workflow, (payload, executionId) =>
         Effect.suspend(() =>
           execute(payload, executionId)
         ).pipe(
-          Effect.updateServices(
+          Effect.updateContext(
             (input) => Context.merge(services, input) as Context.Context<any>
           )
         ))

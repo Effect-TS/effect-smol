@@ -1397,7 +1397,7 @@ export const runWith = <const Name extends string, Input, E, R, ContextInput>(
       })
 
       // 9. Run command handler with composed context
-      yield* Effect.provideServices(program, services)
+      yield* Effect.provideContext(program, services)
     },
     Effect.catchFilter(
       (error) =>

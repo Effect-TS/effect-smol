@@ -82,7 +82,7 @@ export const layerRpcHandlers = <
   entity: Entity.Entity<Type, Rpcs>
 ): Layer.Layer<RpcHandlers<Rpcs, Type>, never, Sharding | Rpc.ServicesServer<Rpcs>> =>
   Layer.effectServices(Effect.gen(function*() {
-    const services = yield* Effect.services<never>()
+    const services = yield* Effect.context<never>()
     const client = yield* entity.client
     const handlers = new Map<string, Rpc.Handler<string>>()
     for (const parentRpc_ of entity.protocol.requests.values()) {

@@ -44,7 +44,7 @@ export const make: Effect.Effect<
       fiberId: options.fiber.id
     }
 
-    const span = Context.getOrUndefined(options.fiber.services, Tracer.ParentSpan)
+    const span = Context.getOrUndefined(options.fiber.context, Tracer.ParentSpan)
 
     if (Predicate.isNotUndefined(span)) {
       attributes.spanId = span.spanId

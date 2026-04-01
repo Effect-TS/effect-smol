@@ -932,7 +932,7 @@ export const toWebResult = (self: HttpServerRequest, options?: {
 export const toWeb = (self: HttpServerRequest, options?: {
   readonly signal?: AbortSignal | undefined
 }): Effect.Effect<Request, RequestError> =>
-  Effect.servicesWith((services) =>
+  Effect.contextWith((services) =>
     toWebResult(self, {
       services,
       signal: options?.signal

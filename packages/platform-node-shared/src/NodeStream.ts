@@ -159,7 +159,7 @@ export const pipeThroughSimple: {
  */
 export const toReadable = <E, R>(stream: Stream.Stream<string | Uint8Array, E, R>): Effect.Effect<Readable, never, R> =>
   Effect.map(
-    Effect.services<R>(),
+    Effect.context<R>(),
     (context) => new StreamAdapter(context, stream)
   )
 
@@ -368,7 +368,7 @@ class StreamAdapter<E, R> extends Readable {
         }
       }))).pipe(
         this.readLatch.whenOpen,
-        Effect.provideServices(context),
+        Effect.provideContext(context),
         Effect.runFork
       )
     this.fiber.addObserver((exit) => {

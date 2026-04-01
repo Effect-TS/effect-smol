@@ -446,7 +446,7 @@ const runImpl = <A, E, R, XE extends E, XA extends A>(
     if (self.state._tag === "Closed") {
       return Effect.sync(constInterruptedFiber)
     }
-    const fiber = Effect.runForkWith(parent.services as Context<R>)(effect)
+    const fiber = Effect.runForkWith(parent.context as Context<R>)(effect)
     addUnsafe(self, fiber, options)
     return Effect.succeed(fiber)
   })
@@ -492,7 +492,7 @@ export const runtime: <A, E>(
   R
 > = <A, E>(self: FiberSet<A, E>) => <R>() =>
   Effect.map(
-    Effect.services<R>(),
+    Effect.context<R>(),
     (services) => {
       const runFork = Effect.runForkWith(services)
       return <XE extends E, XA extends A>(
