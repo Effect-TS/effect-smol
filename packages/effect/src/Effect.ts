@@ -7011,8 +7011,7 @@ export declare namespace Repeat {
    * ```
    */
   export type Return<R, E, A, O extends Options<A>> = Effect<
-    O extends { schedule: Schedule<infer Out, infer _I, infer _E, infer _R> } ? Out
-      : O extends { until: Predicate.Refinement<A, infer B> } ? B
+    O extends { until: Predicate.Refinement<A, infer B> } ? B
       : O extends { while: Predicate.Refinement<A, infer B> } ? Exclude<A, B>
       : A,
     | E

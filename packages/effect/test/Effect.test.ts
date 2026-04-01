@@ -733,7 +733,7 @@ describe("Effect", () => {
           until: (n) => n === 3
         })
         assert.strictEqual(n, 3)
-        assert.strictEqual(result, 2) // schedule result
+        assert.strictEqual(result, 3)
       }))
 
     it.effect("repeat/schedule - with while", () =>
@@ -745,7 +745,7 @@ describe("Effect", () => {
           while: (n) => n < 3
         })
         assert.strictEqual(n, 3)
-        assert.strictEqual(result, 2) // schedule result
+        assert.strictEqual(result, 3) // schedule result
       }))
   })
 
