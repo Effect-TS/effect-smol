@@ -296,7 +296,15 @@ The work is complete when all of the following are true:
 
 The tasks below are intentionally grouped so each task is independently shippable and can pass linting, tests, and typechecking on its own.
 
+### Task Status
+
+- [x] Task 1: Add internal root-secret derivation utilities
+- [ ] Task 2: Switch the public identity model to the two-field shape
+- [ ] Task 3: Apply optional safe server/storage cleanup
+
 ### Task 1: Add internal root-secret derivation utilities
+
+Status: ✅ Completed
 
 Scope:
 
@@ -324,7 +332,19 @@ Validation for this task:
 - `pnpm check:tsgo`
 - if a new non-internal module path unexpectedly affects generated barrels, run `pnpm codegen`
 
+Implementation discoveries:
+
+- Added `packages/effect/src/unstable/eventlog/internal/identityRootSecretDerivation.ts` with stable v1 labels:
+  - `effect/eventlog/identity/v1/encryption`
+  - `effect/eventlog/identity/v1/signing`
+- Implemented deterministic derivation as `SHA-256(label || 0x00 || rootSecret)`.
+- Implemented deterministic Ed25519 private key material by wrapping the derived 32-byte signing seed in RFC 8410 PKCS#8 bytes, then deriving the public key through WebCrypto key export.
+- Added a `WeakMap` cache keyed by identity instance to reuse derived/imported crypto material for repeated use of the same identity object.
+- Added focused test coverage in `packages/effect/test/unstable/eventlog/EventLogIdentityDerivation.test.ts` for determinism, domain separation, and cache reuse.
+
 ### Task 2: Switch the public identity model to the two-field shape
+
+Status: ⏳ Pending
 
 Scope:
 
@@ -357,6 +377,8 @@ Implementation notes for Task 2 validation:
 - `EventLogRemote.test.ts` should assert the authenticate request includes the derived `signingPublicKey` and a valid signature, not only the `publicKey` / algorithm fields.
 
 ### Task 3: Apply optional safe server/storage cleanup
+
+Status: ⏳ Pending
 
 Scope:
 
