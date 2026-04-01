@@ -5,10 +5,10 @@
  *
  * @since 1.0.0
  */
+import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import { dual } from "effect/Function"
 import * as Layer from "effect/Layer"
-import * as ServiceMap from "effect/ServiceMap"
 import type { Simplify } from "effect/Types"
 import * as AiError from "effect/unstable/ai/AiError"
 import * as EmbeddingModel from "effect/unstable/ai/EmbeddingModel"
@@ -28,7 +28,7 @@ export type Model = "text-embedding-ada-002" | "text-embedding-3-small" | "text-
  * @since 1.0.0
  * @category services
  */
-export class Config extends ServiceMap.Service<
+export class Config extends Context.Service<
   Config,
   Simplify<
     & Partial<

@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import type * as FileSystem from "../../FileSystem.ts"
 import type * as Inspectable from "../../Inspectable.ts"
@@ -9,7 +10,6 @@ import { hasProperty } from "../../Predicate.ts"
 import { redact } from "../../Redactable.ts"
 import * as Schema from "../../Schema.ts"
 import type { ParseOptions } from "../../SchemaAST.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Stream from "../../Stream.ts"
 import type * as Headers from "./Headers.ts"
 import * as UrlParams from "./UrlParams.ts"
@@ -90,7 +90,7 @@ export const schemaHeaders = <A, I extends Readonly<Record<string, string | unde
  * @since 4.0.0
  * @category References
  */
-export const MaxBodySize = ServiceMap.Reference<FileSystem.Size | undefined>(
+export const MaxBodySize = Context.Reference<FileSystem.Size | undefined>(
   "effect/http/HttpIncomingMessage/MaxBodySize",
   { defaultValue: () => undefined }
 )

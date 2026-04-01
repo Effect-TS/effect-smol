@@ -1,14 +1,14 @@
-import { Effect, Schema, ServiceMap } from "effect"
+import { Context, Effect, Schema } from "effect"
 import type * as Layer from "effect/Layer"
 import * as Rpc from "effect/unstable/rpc/Rpc"
 import * as RpcGroup from "effect/unstable/rpc/RpcGroup"
 import { describe, expect, it } from "tstyche"
 
-class Db extends ServiceMap.Service<Db, {
+class Db extends Context.Service<Db, {
   readonly value: string
 }>()("Db") {}
 
-class Metrics extends ServiceMap.Service<Metrics, {
+class Metrics extends Context.Service<Metrics, {
   readonly value: string
 }>()("Metrics") {}
 

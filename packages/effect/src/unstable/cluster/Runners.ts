@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Latch from "../../Latch.ts"
@@ -10,7 +11,6 @@ import * as Queue from "../../Queue.ts"
 import * as RcMap from "../../RcMap.ts"
 import * as Schema from "../../Schema.ts"
 import type { Scope } from "../../Scope.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import * as Rpc from "../rpc/Rpc.ts"
 import * as RpcClient_ from "../rpc/RpcClient.ts"
 import type { RpcClientError } from "../rpc/RpcClientError.ts"
@@ -31,7 +31,7 @@ import * as Snowflake from "./Snowflake.ts"
  * @since 1.0.0
  * @category context
  */
-export class Runners extends ServiceMap.Service<Runners, {
+export class Runners extends Context.Service<Runners, {
   /**
    * Checks if a Runner is responsive.
    */
@@ -132,7 +132,7 @@ export const make: (options: Omit<Runners["Service"], "sendLocal" | "notifyLocal
     afterPersist: (message: Message.Outgoing<any>, isDuplicate: boolean) => Effect.Effect<void, E>
   ): Effect.Effect<void, E | PersistenceError> {
     const rpc = message.rpc as any as Rpc.AnyWithProps
-    const persisted = ServiceMap.get(rpc.annotations, Persisted)
+    const persisted = Context.get(rpc.annotations, Persisted)
     if (!persisted) {
       return Effect.die("Runners.notify only supports persisted messages")
     }
@@ -505,7 +505,7 @@ export const makeRpc: Effect.Effect<
     },
     send({ address, message }) {
       const rpc = message.rpc as any as Rpc.AnyWithProps
-      const isPersisted = ServiceMap.get(rpc.annotations, Persisted)
+      const isPersisted = Context.get(rpc.annotations, Persisted)
       if (message._tag === "OutgoingEnvelope") {
         return RcMap.get(clients, address).pipe(
           Effect.flatMap((client) =>
@@ -615,7 +615,7 @@ export const layerRpc: Layer.Layer<
  * @since 1.0.0
  * @category Client
  */
-export class RpcClientProtocol extends ServiceMap.Service<
+export class RpcClientProtocol extends Context.Service<
   RpcClientProtocol,
   (address: RunnerAddress) => Effect.Effect<RpcClient_.Protocol["Service"], never, Scope>
 >()("effect/cluster/Runners/RpcClientProtocol") {}

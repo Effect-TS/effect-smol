@@ -1,9 +1,9 @@
 /**
  * @since 4.0.0
  */
+import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import type * as Layer from "../../Layer.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
 import * as Headers from "./Headers.ts"
 import * as HttpClient from "./HttpClient.ts"
@@ -14,7 +14,7 @@ import * as HttpClientResponse from "./HttpClientResponse.ts"
  * @since 4.0.0
  * @category tags
  */
-export const Fetch = ServiceMap.Reference<typeof globalThis.fetch>("effect/http/FetchHttpClient/Fetch", {
+export const Fetch = Context.Reference<typeof globalThis.fetch>("effect/http/FetchHttpClient/Fetch", {
   defaultValue: () => globalThis.fetch
 })
 
@@ -22,7 +22,7 @@ export const Fetch = ServiceMap.Reference<typeof globalThis.fetch>("effect/http/
  * @since 4.0.0
  * @category tags
  */
-export class RequestInit extends ServiceMap.Service<RequestInit, globalThis.RequestInit>()(
+export class RequestInit extends Context.Service<RequestInit, globalThis.RequestInit>()(
   "effect/http/FetchHttpClient/RequestInit"
 ) {}
 

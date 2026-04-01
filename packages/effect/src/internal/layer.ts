@@ -1,7 +1,7 @@
+import * as Context from "../Context.ts"
 import type { Effect } from "../Effect.ts"
 import { dual } from "../Function.ts"
 import * as Layer from "../Layer.ts"
-import * as ServiceMap from "../ServiceMap.ts"
 import { isEffect } from "./core.ts"
 import * as effect from "./effect.ts"
 
@@ -43,7 +43,7 @@ export const provide = dual<
         readonly local?: boolean | undefined
       } | undefined
     ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E | E2, RIn | Exclude<R, ROut>>
-    <R2>(services: ServiceMap.ServiceMap<R2>): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, R2>>
+    <R2>(services: Context.Context<R2>): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, R2>>
   },
   {
     <A, E, R, const Layers extends [Layer.Any, ...Array<Layer.Any>]>(
@@ -67,7 +67,7 @@ export const provide = dual<
     ): Effect<A, E | E2, RIn | Exclude<R, ROut>>
     <A, E, R, R2>(
       self: Effect<A, E, R>,
-      services: ServiceMap.ServiceMap<R2>
+      services: Context.Context<R2>
     ): Effect<A, E, Exclude<R, R2>>
   }
 >(
@@ -76,13 +76,13 @@ export const provide = dual<
     self: Effect<A, E, R>,
     source:
       | Layer.Layer<ROut, any, any>
-      | ServiceMap.ServiceMap<ROut>
+      | Context.Context<ROut>
       | Array<Layer.Any>,
     options?: {
       readonly local?: boolean | undefined
     } | undefined
   ): Effect<any, any, Exclude<R, ROut>> =>
-    ServiceMap.isServiceMap(source)
+    Context.isContext(source)
       ? effect.provideServices(self, source)
       : provideLayer(self, Array.isArray(source) ? Layer.mergeAll(...source as any) : source, options)
 )

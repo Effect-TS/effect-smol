@@ -1,4 +1,4 @@
-import { Effect, Schema, ServiceMap, type Stream } from "effect"
+import { Context, Effect, Schema, type Stream } from "effect"
 import { type AiError, LanguageModel, Tool, Toolkit } from "effect/unstable/ai"
 import type * as Response from "effect/unstable/ai/Response"
 import { describe, expect, it } from "tstyche"
@@ -17,11 +17,11 @@ const FailureModeErrorTool = Tool.make("FailureModeErrorTool", {
   })
 })
 
-class RequestContext extends ServiceMap.Service<RequestContext, {
+class RequestContext extends Context.Service<RequestContext, {
   readonly requestId: string
 }>()("RequestContext") {}
 
-class ToolkitContext extends ServiceMap.Service<ToolkitContext, {
+class ToolkitContext extends Context.Service<ToolkitContext, {
   readonly tenantId: string
 }>()("ToolkitContext") {}
 

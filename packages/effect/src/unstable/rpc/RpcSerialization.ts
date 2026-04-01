@@ -2,17 +2,17 @@
  * @since 4.0.0
  */
 import * as Msgpackr from "msgpackr"
+import * as Context from "../../Context.ts"
 import * as Layer from "../../Layer.ts"
 import * as Predicate from "../../Predicate.ts"
 import { hasProperty } from "../../Predicate.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import type * as RpcMessage from "./RpcMessage.ts"
 
 /**
  * @since 4.0.0
  * @category serialization
  */
-export class RpcSerialization extends ServiceMap.Service<RpcSerialization, {
+export class RpcSerialization extends Context.Service<RpcSerialization, {
   makeUnsafe(): Parser
   readonly contentType: string
   readonly includesFraming: boolean

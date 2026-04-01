@@ -4,6 +4,7 @@
 import * as Arr from "../../Array.ts"
 import * as Cause from "../../Cause.ts"
 import * as Channel from "../../Channel.ts"
+import * as Services from "../../Context.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
@@ -22,7 +23,6 @@ import type { ReadonlyRecord } from "../../Record.ts"
 import * as Scheduler from "../../Scheduler.ts"
 import * as Schema from "../../Schema.ts"
 import * as Scope from "../../Scope.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
 import * as SubscriptionRef from "../../SubscriptionRef.ts"
 import type { Mutable, NoInfer } from "../../Types.ts"
@@ -394,20 +394,20 @@ const makeRead: {
   <A, E>(effect: Effect.Effect<A, E, Scope.Scope | AtomRegistry>, options?: {
     readonly initialValue?: A
     readonly uninterruptible?: boolean | undefined
-  }): (get: Context, services?: ServiceMap.ServiceMap<any>) => AsyncResult.AsyncResult<A, E>
+  }): (get: Context, services?: Services.Context<any>) => AsyncResult.AsyncResult<A, E>
   <A, E>(create: (get: Context) => Effect.Effect<A, E, Scope.Scope | AtomRegistry>, options?: {
     readonly initialValue?: A
     readonly uninterruptible?: boolean | undefined
-  }): (get: Context, services?: ServiceMap.ServiceMap<any>) => AsyncResult.AsyncResult<A, E>
+  }): (get: Context, services?: Services.Context<any>) => AsyncResult.AsyncResult<A, E>
   <A, E>(stream: Stream.Stream<A, E, AtomRegistry>, options?: {
     readonly initialValue?: A
     readonly uninterruptible?: boolean | undefined
-  }): (get: Context, services?: ServiceMap.ServiceMap<any>) => AsyncResult.AsyncResult<A, E | Cause.NoSuchElementError>
+  }): (get: Context, services?: Services.Context<any>) => AsyncResult.AsyncResult<A, E | Cause.NoSuchElementError>
   <A, E>(create: (get: Context) => Stream.Stream<A, E, AtomRegistry>, options?: {
     readonly initialValue?: A
     readonly uninterruptible?: boolean | undefined
-  }): (get: Context, services?: ServiceMap.ServiceMap<any>) => AsyncResult.AsyncResult<A, E | Cause.NoSuchElementError>
-  <A>(create: (get: Context) => A): (get: Context, services?: ServiceMap.ServiceMap<any>) => A
+  }): (get: Context, services?: Services.Context<any>) => AsyncResult.AsyncResult<A, E | Cause.NoSuchElementError>
+  <A>(create: (get: Context) => A): (get: Context, services?: Services.Context<any>) => A
   <A>(initialValue: A): Writable<A>
 } = <A, E>(
   arg:
@@ -424,7 +424,7 @@ const makeRead: {
 ) => {
   if (typeof arg === "function" && !Effect.isEffect(arg) && !Stream.isStream(arg)) {
     const create = arg as (get: Context) => any
-    return function(get: Context, providedServices?: ServiceMap.ServiceMap<any>) {
+    return function(get: Context, providedServices?: Services.Context<any>) {
       const value = create(get)
       switch (typeof value) {
         case "function":
@@ -442,11 +442,11 @@ const makeRead: {
       }
     }
   } else if (Effect.isEffect(arg)) {
-    return function(get: Context, providedServices?: ServiceMap.ServiceMap<any>) {
+    return function(get: Context, providedServices?: Services.Context<any>) {
       return effect(get, arg as any, options, providedServices)
     }
   } else if (Stream.isStream(arg)) {
-    return function(get: Context, providedServices?: ServiceMap.ServiceMap<any>) {
+    return function(get: Context, providedServices?: Services.Context<any>) {
       return stream(get, arg as any, options, providedServices)
     }
   }
@@ -471,7 +471,7 @@ const effect = <A, E>(
     readonly initialValue?: A
     readonly uninterruptible?: boolean | undefined
   },
-  services?: ServiceMap.ServiceMap<any>
+  services?: Services.Context<any>
 ): AsyncResult.AsyncResult<A, E> => {
   const initialValue = options?.initialValue !== undefined
     ? AsyncResult.success<A, E>(options.initialValue)
@@ -483,7 +483,7 @@ function makeEffect<A, E>(
   ctx: Context,
   effect: Effect.Effect<A, E, Scope.Scope | AtomRegistry>,
   initialValue: AsyncResult.AsyncResult<A, E>,
-  services = ServiceMap.empty(),
+  services = Services.empty(),
   uninterruptible = false
 ): AsyncResult.AsyncResult<A, E> {
   const previous = ctx.self<AsyncResult.AsyncResult<A, E>>()
@@ -498,7 +498,7 @@ function makeEffect<A, E>(
   let syncResult: AsyncResult.AsyncResult<A, E> | undefined
   let isAsync = false
   const cancel = runCallbackSync(
-    ServiceMap.makeUnsafe<Scope.Scope | AtomRegistry>(servicesMap),
+    Services.makeUnsafe<Scope.Scope | AtomRegistry>(servicesMap),
     effect,
     function(exit) {
       syncResult = AsyncResult.fromExitWithPrevious(exit, previous)
@@ -521,7 +521,7 @@ function makeEffect<A, E>(
 }
 
 function runCallbackSync<R, A, E, ER = never>(
-  services: ServiceMap.ServiceMap<R>,
+  services: Services.Context<R>,
   effect: Effect.Effect<A, E, R>,
   onExit: (exit: Exit.Exit<A, E | ER>) => void,
   uninterruptible = false
@@ -556,7 +556,7 @@ function runCallbackSync<R, A, E, ER = never>(
  * @since 4.0.0
  * @category models
  */
-export interface AtomRuntime<R, ER = never> extends Atom<AsyncResult.AsyncResult<ServiceMap.ServiceMap<R>, ER>> {
+export interface AtomRuntime<R, ER = never> extends Atom<AsyncResult.AsyncResult<Services.Context<R>, ER>> {
   readonly factory: RuntimeFactory
 
   readonly layer: Atom<Layer.Layer<R, ER>>
@@ -698,10 +698,10 @@ export const context: (options: {
     globalLayer = Layer.provideMerge(globalLayer, Layer.provide(layer, Reactivity.layer))
   }
   const reactivityAtom = removeTtl(make(
-    Effect.servicesWith((services: ServiceMap.ServiceMap<Scope.Scope>) =>
-      Layer.buildWithMemoMap(Reactivity.layer, options.memoMap, ServiceMap.get(services, Scope.Scope))
+    Effect.servicesWith((services: Services.Context<Scope.Scope>) =>
+      Layer.buildWithMemoMap(Reactivity.layer, options.memoMap, Services.get(services, Scope.Scope))
     ).pipe(
-      Effect.map(ServiceMap.get(Reactivity.Reactivity))
+      Effect.map(Services.get(Reactivity.Reactivity))
     )
   ))
   factory.withReactivity =
@@ -751,7 +751,7 @@ const stream = <A, E>(
   options?: {
     readonly initialValue?: A
   },
-  services?: ServiceMap.ServiceMap<any>
+  services?: Services.Context<any>
 ): AsyncResult.AsyncResult<A, E | Cause.NoSuchElementError> => {
   const initialValue = options?.initialValue !== undefined
     ? AsyncResult.success<A, E>(options.initialValue)
@@ -763,10 +763,10 @@ function makeStream<A, E>(
   ctx: Context,
   stream: Stream.Stream<A, E, AtomRegistry>,
   initialValue: AsyncResult.AsyncResult<A, E | Cause.NoSuchElementError>,
-  services = ServiceMap.empty()
+  services = Services.empty()
 ): AsyncResult.AsyncResult<A, E | Cause.NoSuchElementError> {
   const previous = ctx.self<AsyncResult.AsyncResult<A, E | Cause.NoSuchElementError>>()
-  services = ServiceMap.add(services, AtomRegistry, ctx.registry)
+  services = Services.add(services, AtomRegistry, ctx.registry)
 
   const run = Effect.scopedWith((scope) =>
     Effect.flatMap(Channel.toPullScoped(stream.channel, scope), (pull) =>
@@ -808,7 +808,7 @@ function makeStream<A, E>(
   servicesMap.set(Scheduler.Scheduler.key, ctx.registry.scheduler)
 
   const cancel = runCallbackSync(
-    ServiceMap.makeUnsafe<AtomRegistry>(servicesMap),
+    Services.makeUnsafe<AtomRegistry>(servicesMap),
     run,
     constVoid,
     false
@@ -860,7 +860,7 @@ const readSubscriptionRef = (
   sub:
     | SubscriptionRef.SubscriptionRef<any>
     | AsyncResult.AsyncResult<SubscriptionRef.SubscriptionRef<any>, any>,
-  services = ServiceMap.empty()
+  services = Services.empty()
 ) => {
   if (SubscriptionRef.isSubscriptionRef(sub)) {
     get.addFinalizer(
@@ -1084,7 +1084,7 @@ function makeResultFn<Arg, E, A>(
 
   function read(
     get: Context,
-    services?: ServiceMap.ServiceMap<any>
+    services?: Services.Context<any>
   ): AsyncResult.AsyncResult<A, E | Cause.NoSuchElementError> {
     const fibers = fibersAtom ? get(fibersAtom) : undefined
     ;(get as any).isFn = true
@@ -1171,7 +1171,7 @@ const makeStreamPullEffect = <A, E>(
     Stream.toPull(typeof create === "function" ? create(get) : create),
     (pullChunk) => {
       const fiber = Fiber.getCurrent()!
-      const services = fiber.services as ServiceMap.ServiceMap<AtomRegistry | Scope.Scope>
+      const services = fiber.services as Services.Context<AtomRegistry | Scope.Scope>
       let acc: ReadonlyArray<A> = Arr.empty<A>()
       const pull: Effect.Effect<
         {

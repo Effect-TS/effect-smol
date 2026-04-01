@@ -1,6 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
 import type { Layer } from "effect"
-import { Data, Effect, Exit, Result, Schema, ServiceMap } from "effect"
+import { Context, Data, Effect, Exit, Result, Schema } from "effect"
 import { Persistable, PersistedCache, Persistence } from "effect/unstable/persistence"
 
 class User extends Schema.Class<User>("User")({
@@ -18,7 +18,7 @@ class TTLRequest extends Persistable.Class<{
 
 export class TransientError extends Data.TaggedError("TransientError") {}
 
-class LookupService extends ServiceMap.Service<LookupService, { readonly value: string }>()("LookupService") {}
+class LookupService extends Context.Service<LookupService, { readonly value: string }>()("LookupService") {}
 
 export const suite = (storeId: string, layer: Layer.Layer<Persistence.Persistence, unknown>) =>
   describe(`PersistedCache (${storeId})`, { timeout: 30_000 }, () => {

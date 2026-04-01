@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import * as FiberMap from "../../FiberMap.ts"
 import { identity } from "../../Function.ts"
@@ -15,7 +16,6 @@ import * as Redacted from "../../Redacted.ts"
 import * as Schema from "../../Schema.ts"
 import type * as Scope from "../../Scope.ts"
 import * as Semaphore from "../../Semaphore.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import type { Covariant } from "../../Types.ts"
 import { Reactivity } from "../reactivity/Reactivity.ts"
 import * as ReactivityLayer from "../reactivity/Reactivity.ts"
@@ -100,7 +100,7 @@ export interface Handlers<
   }
   readonly group: EventGroup.AnyWithProps
   readonly handlers: Record.ReadonlyRecord<string, Handlers.Item<R>>
-  readonly services: ServiceMap.ServiceMap<R>
+  readonly services: Context.Context<R>
 
   /**
    * Add the implementation for an `Event` to a `Handlers` group.
@@ -142,7 +142,7 @@ export declare namespace Handlers {
    */
   export type Item<R> = {
     readonly event: Event.AnyWithProps
-    readonly services: ServiceMap.ServiceMap<R>
+    readonly services: Context.Context<R>
     readonly handler: (options: {
       readonly payload: unknown
       readonly entry: Entry
@@ -211,7 +211,7 @@ export declare namespace Handlers {
  * @since 4.0.0
  * @category models
  */
-export class Identity extends ServiceMap.Service<Identity, {
+export class Identity extends Context.Service<Identity, {
   readonly publicKey: string
   readonly privateKey: Redacted.Redacted<Uint8Array>
 }>()("effect/eventlog/EventLog/Identity") {}
@@ -293,7 +293,7 @@ const handlersProto = {
 const makeHandlers = (options: {
   readonly group: EventGroup.AnyWithProps
   readonly handlers: Record.ReadonlyRecord<string, Handlers.Item<any>>
-  readonly services: ServiceMap.ServiceMap<any>
+  readonly services: Context.Context<any>
 }): Handlers<any, any> => Object.assign(Object.create(handlersProto), options)
 
 /**
@@ -315,12 +315,12 @@ export const group = <Events extends Event.Any, Return>(
       const handlers = Effect.isEffect(result)
         ? (yield* (result as unknown as Effect.Effect<Handlers<any>>))
         : (result as unknown as Handlers<any>)
-      const serviceMap = new Map<string, Handlers.Item<any>>()
+      const context = new Map<string, Handlers.Item<any>>()
       for (const tag in handlers.handlers) {
         const handler = handlers.handlers[tag]
-        serviceMap.set(handler.event.key, handlers.handlers[tag])
+        context.set(handler.event.key, handlers.handlers[tag])
       }
-      return ServiceMap.makeUnsafe(serviceMap)
+      return Context.makeUnsafe(context)
     })
   )
 
@@ -351,7 +351,7 @@ export const groupCompaction = <Events extends Event.Any, R>(
           const isEventTag = (tag: string): tag is Event.Tag<Events> => tag in group.events
           const decodePayload = <Tag extends Event.Tag<Events>>(tag: Tag, payload: Uint8Array) =>
             Schema.decodeUnknownEffect(group.events[tag].payloadMsgPack)(payload).pipe(
-              Effect.updateServices((input) => ServiceMap.merge(services, input)),
+              Effect.updateServices((input) => Context.merge(services, input)),
               Effect.orDie
             ) as unknown as Effect.Effect<Event.PayloadWithTag<Events, Tag>>
           const writePayload = Effect.fnUntraced(function*<Tag extends Event.Tag<Events>>(
@@ -406,7 +406,7 @@ export const groupCompaction = <Events extends Event.Any, R>(
                   return Effect.orDie(writePayload(entries[0].createdAtMillis, tag, payload))
                 }
               }).pipe(
-                Effect.updateServices((input) => ServiceMap.merge(services, input))
+                Effect.updateServices((input) => Context.merge(services, input))
               )
             ) as any
           }
@@ -447,7 +447,7 @@ export const groupReactivity = <Events extends Event.Any>(
  * @since 4.0.0
  * @category tags
  */
-export class EventLog extends ServiceMap.Service<EventLog, {
+export class EventLog extends Context.Service<EventLog, {
   readonly write: <Groups extends EventGroup.Any, Tag extends Event.Tag<EventGroup.Events<Groups>>>(options: {
     readonly schema: EventLogSchema<Groups>
     readonly event: Tag
@@ -558,7 +558,7 @@ const make = Effect.gen(function*() {
                   decodedConflicts[i] = {
                     entry: conflicts[i],
                     payload: yield* decodePayload(conflicts[i].payload).pipe(
-                      Effect.updateServices((input) => ServiceMap.merge(handler.services, input))
+                      Effect.updateServices((input) => Context.merge(handler.services, input))
                     ) as any
                   }
                 }
@@ -570,7 +570,7 @@ const make = Effect.gen(function*() {
                       conflicts: decodedConflicts
                     })
                   ),
-                  Effect.updateServices((input) => ServiceMap.merge(handler.services, input)),
+                  Effect.updateServices((input) => Context.merge(handler.services, input)),
                   Effect.asVoid
                 ) as any
                 if (reactivityKeys[entry.event]) {
@@ -636,7 +636,7 @@ const make = Effect.gen(function*() {
           entry,
           conflicts: []
         }).pipe(
-          Effect.updateServices((input) => ServiceMap.merge(handler.services, input)),
+          Effect.updateServices((input) => Context.merge(handler.services, input)),
           Effect.tap(() =>
             Effect.sync(() => {
               if (reactivityKeys[entry.event]) {

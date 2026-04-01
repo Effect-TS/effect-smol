@@ -1,7 +1,7 @@
 import { Generated, OpenAiClient, OpenAiLanguageModel, OpenAiTool } from "@effect/ai-openai"
 import { assert, describe, it } from "@effect/vitest"
 import { deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import { Array, Effect, Layer, Redacted, Ref, Schema, ServiceMap, Stream } from "effect"
+import { Array, Context, Effect, Layer, Redacted, Ref, Schema, Stream } from "effect"
 import { LanguageModel, Prompt, Tool, Toolkit } from "effect/unstable/ai"
 import { HttpClient, type HttpClientError, HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 
@@ -1100,13 +1100,13 @@ describe("OpenAiLanguageModel", () => {
 // Test Infrastructure
 // =============================================================================
 
-class MockOpenAiResponse extends ServiceMap.Service<MockOpenAiResponse, {
+class MockOpenAiResponse extends Context.Service<MockOpenAiResponse, {
   readonly status: number
   readonly body: Generated.Response
   readonly headers?: Record<string, string> | undefined
 }>()("MockOpenAiResponse") {}
 
-class MockHttpClient extends ServiceMap.Service<MockHttpClient, {
+class MockHttpClient extends Context.Service<MockHttpClient, {
   readonly requests: Effect.Effect<ReadonlyArray<HttpClientRequest.HttpClientRequest>>
 }>()("MockHttpClient") {
   static requests = Effect.service(MockHttpClient).pipe(
@@ -1136,8 +1136,8 @@ const makeHttpClient = Effect.gen(function*() {
     Effect.succeed as HttpClient.HttpClient.Preprocess<HttpClientError.HttpClientError, never>
   )
 
-  return ServiceMap.make(HttpClient.HttpClient, httpClient).pipe(
-    ServiceMap.add(MockHttpClient, MockHttpClient.of({ requests: Ref.get(capturedRequests) }))
+  return Context.make(HttpClient.HttpClient, httpClient).pipe(
+    Context.add(MockHttpClient, MockHttpClient.of({ requests: Ref.get(capturedRequests) }))
   )
 })
 

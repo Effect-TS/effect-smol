@@ -1,4 +1,5 @@
 import type { NonEmptyArray } from "../Array.ts"
+import * as Context from "../Context.ts"
 import type { Effect } from "../Effect.ts"
 import type { Exit } from "../Exit.ts"
 import type { Fiber } from "../Fiber.ts"
@@ -7,7 +8,6 @@ import type * as Request from "../Request.ts"
 import { makeEntry } from "../Request.ts"
 import type { RequestResolver } from "../RequestResolver.ts"
 import { Scheduler } from "../Scheduler.ts"
-import * as ServiceMap from "../ServiceMap.ts"
 import { exitDie, isEffect } from "./core.ts"
 import * as effect from "./effect.ts"
 
@@ -57,12 +57,12 @@ export const requestUnsafe = <A extends Request.Any>(
   options: {
     readonly resolver: RequestResolver<A>
     readonly onExit: (exit: Exit<Request.Success<A>, Request.Error<A>>) => void
-    readonly services: ServiceMap.ServiceMap<never>
+    readonly services: Context.Context<never>
   }
 ): () => void => {
   const entry = addEntry(options.resolver, self, options.onExit, {
     services: options.services,
-    currentScheduler: ServiceMap.get(options.services, Scheduler)
+    currentScheduler: Context.get(options.services, Scheduler)
   })
   return () => removeEntryUnsafe(options.resolver, entry)
 }
@@ -86,7 +86,7 @@ const addEntry = <A extends Request.Any>(
   request: A,
   resume: (exit: Exit<any, any>) => void,
   fiber: {
-    readonly services: ServiceMap.ServiceMap<never>
+    readonly services: Context.Context<never>
     readonly currentScheduler: Scheduler
     readonly id?: number
   }

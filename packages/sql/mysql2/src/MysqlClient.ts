@@ -2,12 +2,12 @@
  * @since 1.0.0
  */
 import * as Config from "effect/Config"
+import * as Context from "effect/Context"
 import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Redacted from "effect/Redacted"
 import type { Scope } from "effect/Scope"
-import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import * as Client from "effect/unstable/sql/SqlClient"
@@ -107,7 +107,7 @@ export interface MysqlClient extends Client.SqlClient {
  * @category tags
  * @since 1.0.0
  */
-export const MysqlClient = ServiceMap.Service<MysqlClient>("@effect/sql-mysql2/MysqlClient")
+export const MysqlClient = Context.Service<MysqlClient>("@effect/sql-mysql2/MysqlClient")
 
 /**
  * @category models
@@ -349,8 +349,8 @@ export const layerConfig = (
     Config.unwrap(config).asEffect().pipe(
       Effect.flatMap(make),
       Effect.map((client) =>
-        ServiceMap.make(MysqlClient, client).pipe(
-          ServiceMap.add(Client.SqlClient, client)
+        Context.make(MysqlClient, client).pipe(
+          Context.add(Client.SqlClient, client)
         )
       )
     )
@@ -365,8 +365,8 @@ export const layer = (
 ): Layer.Layer<MysqlClient | Client.SqlClient, Config.ConfigError | SqlError> =>
   Layer.effectServices(
     Effect.map(make(config), (client) =>
-      ServiceMap.make(MysqlClient, client).pipe(
-        ServiceMap.add(Client.SqlClient, client)
+      Context.make(MysqlClient, client).pipe(
+        Context.add(Client.SqlClient, client)
       ))
   ).pipe(Layer.provide(Reactivity.layer))
 

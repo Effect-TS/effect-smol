@@ -3,13 +3,13 @@
  */
 import type { NonEmptyReadonlyArray } from "../../Array.ts"
 import * as Cause from "../../Cause.ts"
+import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"
 import { PipeInspectableProto, YieldableProto } from "../../internal/core.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../Schema.ts"
 import type { Scope } from "../../Scope.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Types from "../../Types.ts"
 import * as DurableDeferred from "./DurableDeferred.ts"
 import { makeHashDigest } from "./internal/crypto.ts"
@@ -39,13 +39,13 @@ export interface Activity<
   readonly successSchema: Success
   readonly errorSchema: Error
   readonly exitSchema: Schema.Exit<Success, Error, Schema.Defect>
-  readonly annotations: ServiceMap.ServiceMap<never>
+  readonly annotations: Context.Context<never>
   annotate<I, S>(
-    key: ServiceMap.Key<I, S>,
+    key: Context.Key<I, S>,
     value: S
   ): Activity<Success, Error, R>
   annotateMerge<I>(
-    annotations: ServiceMap.ServiceMap<I>
+    annotations: Context.Context<I>
   ): Activity<Success, Error, R>
   readonly execute: Effect.Effect<
     Success["Type"],
@@ -81,7 +81,7 @@ export interface Any {
   readonly [TypeId]: typeof TypeId
   readonly name: string
   readonly executeEncoded: Effect.Effect<any, any, any>
-  readonly annotations: ServiceMap.ServiceMap<never>
+  readonly annotations: Context.Context<never>
 }
 
 /**
@@ -110,7 +110,7 @@ export const make = <
   readonly error?: Error | undefined
   readonly execute: Effect.Effect<Success["Type"], Error["Type"], R>
   readonly interruptRetryPolicy?: Schedule.Schedule<any, Cause.Cause<unknown>> | undefined
-  readonly annotations?: ServiceMap.ServiceMap<never> | undefined
+  readonly annotations?: Context.Context<never> | undefined
 }): Activity<Success, Error, Exclude<R, WorkflowInstance | WorkflowEngine | Scope>> => {
   const successSchema = options.success ?? (Schema.Void as any as Success)
   const errorSchema = options.error ?? (Schema.Never as any as Error)
@@ -130,17 +130,17 @@ export const make = <
     successSchema,
     errorSchema,
     exitSchema: Schema.Exit(successSchemaJson, errorSchemaJson, Schema.Defect),
-    annotations: options.annotations ?? ServiceMap.empty(),
-    annotate(tag: ServiceMap.Key<any, any>, value: any) {
+    annotations: options.annotations ?? Context.empty(),
+    annotate(tag: Context.Key<any, any>, value: any) {
       return make({
         ...options,
-        annotations: ServiceMap.add(self.annotations, tag, value)
+        annotations: Context.add(self.annotations, tag, value)
       })
     },
-    annotateMerge(context: ServiceMap.ServiceMap<any>) {
+    annotateMerge(context: Context.Context<any>) {
       return make({
         ...options,
-        annotations: ServiceMap.merge(self.annotations, context)
+        annotations: Context.merge(self.annotations, context)
       })
     },
     execute: executeWithoutInterrupt,
@@ -202,7 +202,7 @@ export const retry: {
  * @since 4.0.0
  * @category Attempts
  */
-export const CurrentAttempt = ServiceMap.Reference<number>(
+export const CurrentAttempt = Context.Reference<number>(
   "effect/workflow/Activity/CurrentAttempt",
   { defaultValue: () => 1 }
 )
@@ -260,10 +260,10 @@ export const raceAll = <const Activities extends NonEmptyReadonlyArray<Any>>(
 // internal
 // -----------------------------------------------------------------------------
 
-const EngineTag = ServiceMap.Service<WorkflowEngine, WorkflowEngine["Service"]>(
+const EngineTag = Context.Service<WorkflowEngine, WorkflowEngine["Service"]>(
   "effect/workflow/WorkflowEngine" satisfies typeof WorkflowEngine.key
 )
-const InstanceTag = ServiceMap.Service<WorkflowInstance, WorkflowInstance["Service"]>(
+const InstanceTag = Context.Service<WorkflowInstance, WorkflowInstance["Service"]>(
   "effect/workflow/WorkflowEngine/WorkflowInstance" satisfies typeof WorkflowInstance.key
 )
 

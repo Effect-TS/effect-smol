@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import * as Context from "../../Context.ts"
 import * as Data from "../../Data.ts"
 import * as Deferred from "../../Deferred.ts"
 import * as Effect from "../../Effect.ts"
@@ -11,7 +12,6 @@ import * as RcMap from "../../RcMap.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../Schema.ts"
 import type * as Scope from "../../Scope.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import * as Msgpack from "../encoding/Msgpack.ts"
 import * as Socket from "../socket/Socket.ts"
 import { type Entry, EntryId, RemoteEntry, RemoteId } from "./EventJournal.ts"
@@ -22,7 +22,7 @@ import { EncryptedEntry, EncryptedRemoteEntry, EventLogEncryption, layerSubtle }
  * @since 4.0.0
  * @category models
  */
-export class EventLogRemote extends ServiceMap.Service<EventLogRemote, {
+export class EventLogRemote extends Context.Service<EventLogRemote, {
   readonly id: RemoteId
   readonly changes: (
     identity: Identity["Service"],

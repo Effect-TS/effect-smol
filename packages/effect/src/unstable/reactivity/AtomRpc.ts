@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import * as Context from "../../Context.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Hash from "../../Hash.ts"
@@ -8,7 +9,6 @@ import * as Layer from "../../Layer.ts"
 import type { ReadonlyRecord } from "../../Record.ts"
 import * as Schema from "../../Schema.ts"
 import type { Scope } from "../../Scope.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
 import type { Mutable, NoInfer } from "../../Types.ts"
 import * as Headers from "../http/Headers.ts"
@@ -27,12 +27,12 @@ import * as Reactivity from "./Reactivity.ts"
  * @category Models
  */
 export interface AtomRpcClient<Self, Id extends string, Rpcs extends Rpc.Any> extends
-  ServiceMap.Service<
+  Context.Service<
     Self,
     RpcClient.RpcClient.Flat<Rpcs, RpcClientError>
   >
 {
-  new(_: never): ServiceMap.ServiceClass.Shape<
+  new(_: never): Context.ServiceClass.Shape<
     Id,
     RpcClient.RpcClient.Flat<Rpcs, RpcClientError>
   >
@@ -135,7 +135,7 @@ export const Service = <Self>() =>
     readonly runtime?: Atom.RuntimeFactory | undefined
   }
 ): AtomRpcClient<Self, Id, Rpcs> => {
-  const self: Mutable<AtomRpcClient<Self, Id, Rpcs>> = ServiceMap.Service<
+  const self: Mutable<AtomRpcClient<Self, Id, Rpcs>> = Context.Service<
     Self,
     RpcClient.RpcClient.Flat<Rpcs, RpcClientError>
   >()(id) as any

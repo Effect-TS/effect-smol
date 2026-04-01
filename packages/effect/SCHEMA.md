@@ -2813,10 +2813,10 @@ SchemaParser.makeEffect(schema)({}).pipe(Effect.runPromise).then(console.log)
 **Example** (Providing a default from an optional service)
 
 ```ts
-import { Effect, Option, Schema, SchemaParser, ServiceMap } from "effect"
+import { Context, Effect, Option, Schema, SchemaParser } from "effect"
 
 // Define a service that may provide a default value
-class ConstructorService extends ServiceMap.Service<ConstructorService, { defaultValue: Effect.Effect<number> }>()(
+class ConstructorService extends Context.Service<ConstructorService, { defaultValue: Effect.Effect<number> }>()(
   "ConstructorService"
 ) {}
 
@@ -6280,10 +6280,10 @@ You can use `Schema.catchDecodingWithContext` to get a fallback value from a ser
 **Example** (Retrieving a fallback value from a service)
 
 ```ts
-import { Effect, Option, Schema, ServiceMap } from "effect"
+import { Context, Effect, Option, Schema } from "effect"
 
 // Define a service that provides a fallback value
-class Service extends ServiceMap.Service<Service, { fallback: Effect.Effect<string> }>()("Service") {}
+class Service extends Context.Service<Service, { fallback: Effect.Effect<string> }>()("Service") {}
 
 //      ┌─── Codec<string, string, Service, never>
 //      ▼
@@ -6568,10 +6568,10 @@ This makes it easier to work with schemas in contexts where one direction has no
 
 ```ts
 import type { Effect } from "effect"
-import { Schema, ServiceMap } from "effect"
+import { Context, Schema } from "effect"
 
 // A service that retrieves full user info from an ID
-class UserDatabase extends ServiceMap.Service<
+class UserDatabase extends Context.Service<
   UserDatabase,
   {
     getUserById: (id: string) => Effect.Effect<{ readonly id: string; readonly name: string }>

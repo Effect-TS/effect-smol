@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import { constFalse, constTrue } from "../../Function.ts"
 import * as Option from "../../Option.ts"
@@ -8,7 +9,6 @@ import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
 import * as Getter from "../../SchemaGetter.ts"
 import type * as Scope from "../../Scope.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import * as Rpc from "../rpc/Rpc.ts"
 import type * as RpcClient from "../rpc/RpcClient.ts"
 import type { RpcClientError } from "../rpc/RpcClientError.ts"
@@ -1842,7 +1842,7 @@ export class ElicitationDeclined
  * @since 4.0.0
  * @category client
  */
-export class McpServerClient extends ServiceMap.Service<McpServerClient, {
+export class McpServerClient extends Context.Service<McpServerClient, {
   readonly clientId: number
   readonly initializePayload: typeof Initialize.payloadSchema["Type"]
   readonly getClient: Effect.Effect<
@@ -2133,7 +2133,7 @@ export function param<const Name extends string, S extends Schema.Top>(
  * @category annotations
  */
 export class EnabledWhen
-  extends ServiceMap.Service<EnabledWhen, Predicate.Predicate<typeof Initialize.payloadSchema.Type>>()(
+  extends Context.Service<EnabledWhen, Predicate.Predicate<typeof Initialize.payloadSchema.Type>>()(
     "effect/unstable/ai/McpSchema/EnabledWhen"
   )
 {}

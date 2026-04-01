@@ -27,10 +27,10 @@
  *
  * @since 4.0.0
  */
+import type * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
 import * as Metric from "../../Metric.ts"
-import type * as ServiceMap from "../../ServiceMap.ts"
 import * as HttpRouter from "../http/HttpRouter.ts"
 import * as HttpServerResponse from "../http/HttpServerResponse.ts"
 
@@ -129,7 +129,7 @@ export const format: (options?: FormatOptions | undefined) => Effect.Effect<stri
  * @category Formatting
  */
 export const formatUnsafe = (
-  services: ServiceMap.ServiceMap<never>,
+  services: Context.Context<never>,
   options?: FormatOptions | undefined
 ): string => {
   const snapshot = Metric.snapshotUnsafe(services)

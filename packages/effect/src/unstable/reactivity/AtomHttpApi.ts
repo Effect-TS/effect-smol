@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import * as Context from "../../Context.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Hash from "../../Hash.ts"
@@ -8,7 +9,6 @@ import * as Layer from "../../Layer.ts"
 import type { ReadonlyRecord } from "../../Record.ts"
 import * as Schema from "../../Schema.ts"
 import type { SchemaError } from "../../Schema.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import type { Mutable, Simplify } from "../../Types.ts"
 import type * as HttpClient from "../http/HttpClient.ts"
 import * as HttpClientError from "../http/HttpClientError.ts"
@@ -26,9 +26,9 @@ import * as Reactivity from "./Reactivity.ts"
  * @category Models
  */
 export interface AtomHttpApiClient<Self, Id extends string, Groups extends HttpApiGroup.Any>
-  extends ServiceMap.Service<Self, HttpApiClient.Client<Groups, never, never>>
+  extends Context.Service<Self, HttpApiClient.Client<Groups, never, never>>
 {
-  new(_: never): ServiceMap.ServiceClass.Shape<Id, HttpApiClient.Client<Groups, never, never>>
+  new(_: never): Context.ServiceClass.Shape<Id, HttpApiClient.Client<Groups, never, never>>
 
   readonly layer: Layer.Layer<Self>
   readonly runtime: Atom.AtomRuntime<Self>
@@ -159,7 +159,7 @@ export const Service = <Self>() =>
     readonly runtime?: Atom.RuntimeFactory | undefined
   }
 ): AtomHttpApiClient<Self, Id, Groups> => {
-  const self: Mutable<AtomHttpApiClient<Self, Id, Groups>> = ServiceMap.Service<
+  const self: Mutable<AtomHttpApiClient<Self, Id, Groups>> = Context.Service<
     Self,
     HttpApiClient.Client<Groups, never, never>
   >()(id) as any

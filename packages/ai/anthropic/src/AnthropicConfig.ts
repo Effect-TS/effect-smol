@@ -1,16 +1,16 @@
 /**
  * @since 1.0.0
  */
+import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import { dual } from "effect/Function"
-import * as ServiceMap from "effect/ServiceMap"
 import type { HttpClient } from "effect/unstable/http/HttpClient"
 
 /**
  * @since 1.0.0
  * @category services
  */
-export class AnthropicConfig extends ServiceMap.Service<
+export class AnthropicConfig extends Context.Service<
   AnthropicConfig,
   AnthropicConfig.Service
 >()("@effect/ai-anthropic/AnthropicConfig") {

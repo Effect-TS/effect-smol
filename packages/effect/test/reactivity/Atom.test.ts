@@ -2,6 +2,7 @@ import { addEqualityTesters, afterEach, assert, beforeEach, describe, expect, it
 import {
   Array as Arr,
   Cause,
+  Context,
   Effect,
   Hash,
   Latch,
@@ -9,7 +10,6 @@ import {
   Option,
   Result,
   Schema,
-  ServiceMap,
   Stream,
   SubscriptionRef
 } from "effect"
@@ -2479,7 +2479,7 @@ interface BuildCounter {
   readonly get: Effect.Effect<number>
   readonly inc: Effect.Effect<void>
 }
-const BuildCounter = ServiceMap.Service<BuildCounter>("BuildCounter")
+const BuildCounter = Context.Service<BuildCounter>("BuildCounter")
 const BuildCounterLive = Layer.sync(BuildCounter, () => {
   let count = 0
   return BuildCounter.of({
@@ -2494,7 +2494,7 @@ interface Counter {
   readonly get: Effect.Effect<number>
   readonly inc: Effect.Effect<void>
 }
-const Counter = ServiceMap.Service<Counter>("Counter")
+const Counter = Context.Service<Counter>("Counter")
 const CounterLive = Layer.effect(
   Counter,
   Effect.gen(function*() {
@@ -2532,7 +2532,7 @@ const CounterTest = Layer.effect(
 interface Multiplier {
   readonly times: (n: number) => Effect.Effect<number>
 }
-const Multiplier = ServiceMap.Service<Multiplier>("Multiplier")
+const Multiplier = Context.Service<Multiplier>("Multiplier")
 const MultiplierLive = Layer.effect(
   Multiplier,
   Effect.gen(function*() {

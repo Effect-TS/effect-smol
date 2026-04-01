@@ -3,6 +3,7 @@ import { assert, describe, expect, it } from "@effect/vitest"
 import {
   Array,
   Cause,
+  Context,
   DateTime,
   Effect,
   Equal,
@@ -13,7 +14,6 @@ import {
   Schema,
   SchemaGetter,
   SchemaTransformation,
-  ServiceMap,
   Stream,
   Struct
 } from "effect"
@@ -389,7 +389,7 @@ describe("HttpApi", () => {
     })
 
     it.effect("layerClient supports effectful construction", () => {
-      class HeaderValue extends ServiceMap.Service<HeaderValue, string>()("HeaderValue") {}
+      class HeaderValue extends Context.Service<HeaderValue, string>()("HeaderValue") {}
 
       class M extends HttpApiMiddleware.Service<M>()("Client/Effectful", {
         requiredForClient: true
@@ -435,7 +435,7 @@ describe("HttpApi", () => {
     })
 
     it.effect("security middleware can be implemented with layerClient", () => {
-      class CurrentToken extends ServiceMap.Service<CurrentToken, string>()("CurrentToken") {}
+      class CurrentToken extends Context.Service<CurrentToken, string>()("CurrentToken") {}
 
       class M extends HttpApiMiddleware.Service<M, {
         provides: CurrentToken
@@ -484,7 +484,7 @@ describe("HttpApi", () => {
     })
 
     it("security middleware cache does not reuse the first service impl", async () => {
-      class CurrentMarker extends ServiceMap.Service<CurrentMarker, string>()("CurrentMarker") {}
+      class CurrentMarker extends Context.Service<CurrentMarker, string>()("CurrentMarker") {}
 
       class M extends HttpApiMiddleware.Service<M, {
         provides: CurrentMarker
@@ -1502,7 +1502,7 @@ const securityQuery = HttpApiSecurity.apiKey({
   key: "api_key"
 })
 
-class CurrentUser extends ServiceMap.Service<CurrentUser, User>()("CurrentUser") {}
+class CurrentUser extends Context.Service<CurrentUser, User>()("CurrentUser") {}
 
 class Authorization extends HttpApiMiddleware.Service<Authorization, {
   provides: CurrentUser
@@ -1664,7 +1664,7 @@ class Api extends HttpApi.make("api")
 
 // impl
 
-class UserRepo extends ServiceMap.Service<UserRepo, {
+class UserRepo extends Context.Service<UserRepo, {
   readonly findById: (id: number) => Effect.Effect<User>
 }>()("UserRepo") {
   static Live = Layer.succeed(this)({

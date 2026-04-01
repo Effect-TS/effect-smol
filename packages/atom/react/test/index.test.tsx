@@ -1,6 +1,6 @@
 /// <reference types="@testing-library/jest-dom" />
 import { act, render, screen, waitFor } from "@testing-library/react"
-import { Cause, Effect, Latch, Layer, ServiceMap } from "effect"
+import { Cause, Context, Effect, Latch, Layer } from "effect"
 import * as Schema from "effect/Schema"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
@@ -23,7 +23,7 @@ describe("atom-react", () => {
 
   describe("runtime", () => {
     test("can inject test layers", () => {
-      class TheNumber extends ServiceMap.Service<TheNumber>()("TheNumber", {
+      class TheNumber extends Context.Service<TheNumber>()("TheNumber", {
         make: Effect.succeed({ n: 42 as number })
       }) {
         static readonly layer = Layer.effect(this, this.make)
