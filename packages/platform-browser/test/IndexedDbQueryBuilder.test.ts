@@ -1307,12 +1307,12 @@ describe.sequential("IndexedDbQueryBuilder", () => {
 
     return Effect.gen(function*() {
       const api = yield* Db
-      const data = yield* api.from("todo").select().reactive(["todos"]).pipe(
+      const data = yield* api.from("todo").select().reactive().pipe(
         Stream.take(2),
         Stream.runCollect,
         Effect.forkChild({ startImmediately: true })
       )
-      yield* api.from("todo").insert({ id: 4, title: "test4", count: 4, completed: false }).invalidate(["todos"])
+      yield* api.from("todo").insert({ id: 4, title: "test4", count: 4, completed: false }).invalidate()
       yield* Fiber.join(data)
     }).pipe(provideDb(Db))
   })
