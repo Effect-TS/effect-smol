@@ -4,6 +4,7 @@
 import * as Cache from "../../Cache.ts"
 import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
+import * as Latch from "../../Latch.ts"
 import * as Layer from "../../Layer.ts"
 import * as Queue from "../../Queue.ts"
 import * as Redacted from "../../Redacted.ts"
@@ -44,6 +45,7 @@ export class EventLogRemote extends ServiceMap.Service<EventLogRemote, {
     readonly storeId: StoreId
     readonly entries: ReadonlyArray<Entry>
   }) => Effect.Effect<void, EventLogRemoteError>
+  readonly whenAuthenticated: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R | Identity>
 }>()("effect/eventlog/EventLogRemote") {}
 
 /**
@@ -119,23 +121,37 @@ export const makeWith = Effect.fnUntraced(function*({ encodeWrite, decodeChanges
     Effect.mapError((cause) => new EventLogRemoteError({ method: "hello", cause }))
   )
 
-  const identities = new Map<string, Identity["Service"]>()
+  const identities = new Map<string, {
+    readonly identity: Identity["Service"]
+    readonly authLatch: Latch.Latch
+  }>()
+  const ensureIdentity = (identity: Identity["Service"]) => {
+    let entry = identities.get(identity.publicKey)
+    if (!entry) {
+      entry = {
+        identity,
+        authLatch: Latch.makeUnsafe(false)
+      }
+      identities.set(identity.publicKey, entry)
+    }
+    return entry
+  }
+
   const authCache = yield* Cache.make({
     lookup: Effect.fnUntraced(function*(publicKey: string) {
-      const identity = identities.get(publicKey)!
+      const { identity, authLatch } = identities.get(publicKey)!
       const authenticate = yield* makeAuthenticate({
         identity,
         hello
       })
       yield* client["EventLog.Authenticate"](authenticate)
+      yield* authLatch.open
     }, Effect.mapError((cause) => new EventLogRemoteError({ method: "authenticate", cause }))),
     capacity: Number.MAX_SAFE_INTEGER
   })
 
   const ensureAuthenticated = (identity: Identity["Service"]) => {
-    if (!identities.has(identity.publicKey)) {
-      identities.set(identity.publicKey, identity)
-    }
+    ensureIdentity(identity)
     return Cache.get(authCache, identity.publicKey)
   }
 
@@ -194,9 +210,18 @@ export const makeWith = Effect.fnUntraced(function*({ encodeWrite, decodeChanges
       )
 
       return outgoing
-    })
+    }),
+    whenAuthenticated: (effect) =>
+      IdentityService.use((identity) => {
+        const { authLatch } = ensureIdentity(identity)
+        return authLatch.whenOpen(effect)
+      })
   })
 })
+
+class IdentityService extends ServiceMap.Service<Identity, Identity["Service"]>()(
+  "effect/eventlog/EventLog/Identity" satisfies Identity["key"]
+) {}
 
 /**
  * @since 4.0.0
