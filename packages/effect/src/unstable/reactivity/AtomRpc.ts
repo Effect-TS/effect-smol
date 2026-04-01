@@ -37,7 +37,6 @@ export interface AtomRpcClient<Self, Id extends string, Rpcs extends Rpc.Any> ex
     RpcClient.RpcClient.Flat<Rpcs, RpcClientError>
   >
 
-  readonly layer: Layer.Layer<Self>
   readonly runtime: Atom.AtomRuntime<Self>
 
   readonly mutation: <Tag extends Rpc.Tag<Rpcs>>(
@@ -120,7 +119,9 @@ export const Service = <Self>() =>
   id: Id,
   options: {
     readonly group: RpcGroup.RpcGroup<Rpcs>
-    readonly protocol: Layer.Layer<Exclude<NoInfer<RM>, Scope>, ER>
+    readonly protocol:
+      | Layer.Layer<Exclude<NoInfer<RM>, Scope>, ER>
+      | ((get: Atom.Context) => Layer.Layer<Exclude<NoInfer<RM>, Scope>, ER>)
     readonly spanPrefix?: string | undefined
     readonly spanAttributes?: Record<string, unknown> | undefined
     readonly generateRequestId?: (() => RequestId) | undefined
@@ -140,7 +141,7 @@ export const Service = <Self>() =>
     RpcClient.RpcClient.Flat<Rpcs, RpcClientError>
   >()(id) as any
 
-  self.layer = Layer.effect(
+  const layer = Layer.effect(
     self,
     options.makeEffect ??
       (RpcClient.make(options.group, {
@@ -151,9 +152,17 @@ export const Service = <Self>() =>
         never,
         RM
       >)
-  ).pipe(Layer.provide(Layer.orDie(options.protocol)))
+  )
   const runtimeFactory = options.runtime ?? Atom.runtime
-  self.runtime = runtimeFactory(self.layer)
+  self.runtime = runtimeFactory(
+    typeof options.protocol === "function" ?
+      (get) =>
+        Layer.provide(
+          layer,
+          Layer.orDie((options.protocol as ((get: Atom.Context) => Layer.Layer<Exclude<NoInfer<RM>, Scope>, ER>))(get))
+        ) :
+      Layer.provide(layer, Layer.orDie(options.protocol))
+  )
 
   self.mutation = Atom.family(<Tag extends Rpc.Tag<Rpcs>>(tag: Tag) => {
     const rpc = options.group.requests.get(tag)! as any as Rpc.AnyWithProps
