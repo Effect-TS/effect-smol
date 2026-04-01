@@ -4,7 +4,7 @@
 import * as Effect from "../../Effect.ts"
 import * as Semaphore from "../../Semaphore.ts"
 import type * as ServiceMap from "../../ServiceMap.ts"
-import type { Protocol } from "./RpcClient.js"
+import type { Protocol } from "./RpcClient.ts"
 import type { FromServerEncoded } from "./RpcMessage.ts"
 
 /**
