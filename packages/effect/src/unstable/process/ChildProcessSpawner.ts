@@ -109,6 +109,29 @@ export interface ChildProcessHandle {
    * `Stream`.
    */
   readonly getOutputFd: (fd: number) => Stream.Stream<Uint8Array, PlatformError.PlatformError>
+  /**
+   * Allows the parent process to exit independently of this child process.
+   *
+   * Returns an `Effect` that restores the default behavior when run.
+   *
+   * @example
+   * ```ts
+   * import { NodeServices } from "@effect/platform-node"
+   * import { Effect } from "effect"
+   * import { ChildProcess } from "effect/unstable/process"
+   *
+   * const program = Effect.gen(function*() {
+   *   const handle = yield* ChildProcess.make`./server`
+   *   const ref = yield* handle.unref
+   *
+   *   yield* Effect.sleep("1 second")
+   *
+   *   yield* ref
+   *   return yield* handle.exitCode
+   * }).pipe(Effect.scoped, Effect.provide(NodeServices.layer))
+   * ```
+   */
+  readonly unref: Effect.Effect<Effect.Effect<void, PlatformError.PlatformError>, PlatformError.PlatformError>
 }
 
 const HandleProto = {
