@@ -432,7 +432,14 @@ export class UserError extends Schema.ErrorClass<UserError>(`${TypeId}/UserError
   readonly [TypeId] = TypeId
 }
 
-const NonShowHelpErrors: Schema.Union<
+/**
+ * Represents errors that should not trigger the display of the CLI's help
+ * documentation.
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export const NonShowHelpErrors: Schema.Union<
   readonly [
     typeof UnrecognizedOption,
     typeof DuplicateOption,
@@ -451,6 +458,12 @@ const NonShowHelpErrors: Schema.Union<
   UnknownSubcommand,
   UserError
 ])
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type NonShowHelpErrors = typeof NonShowHelpErrors.Type
 
 /**
  * Control flow indicator when help is requested via --help flag.
