@@ -27,11 +27,9 @@ const handlerLayer = (handled: Ref.Ref<ReadonlyArray<string>>) =>
   )
 
 const logLayer = (handled: Ref.Ref<ReadonlyArray<string>>) =>
-  EventLog.layer(schema).pipe(
-    Layer.provide(handlerLayer(handled)),
-    Layer.provideMerge(EventLog.layerEventLog),
-    Layer.provideMerge(EventJournal.layerMemory),
-    Layer.provideMerge(
+  EventLog.layer(schema, handlerLayer(handled)).pipe(
+    Layer.provide(EventJournal.layerMemory),
+    Layer.provide(
       Layer.effect(EventLog.Identity, EventLog.makeIdentity).pipe(
         Layer.provide(EventLogEncryption.layerSubtle)
       )
