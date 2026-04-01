@@ -1,13 +1,17 @@
 import { SqliteClient } from "@effect/sql-sqlite-node"
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Queue, Stream } from "effect"
+import { Effect, Layer, Queue, Redacted, Stream } from "effect"
 import * as EventJournal from "effect/unstable/eventlog/EventJournal"
-import type * as EventLog from "effect/unstable/eventlog/EventLog"
+import * as EventLog from "effect/unstable/eventlog/EventLog"
 import * as EventLogEncryption from "effect/unstable/eventlog/EventLogEncryption"
+import * as EventLogMessage from "effect/unstable/eventlog/EventLogMessage"
 import type { StoreId } from "effect/unstable/eventlog/EventLogMessage"
 import * as EventLogServer from "effect/unstable/eventlog/EventLogServerEncrypted"
+import * as EventLogSessionAuth from "effect/unstable/eventlog/EventLogSessionAuth"
+import { makeGetIdentityRootSecretMaterial } from "effect/unstable/eventlog/internal/identityRootSecretDerivation"
 import * as SqlEventLogServer from "effect/unstable/eventlog/SqlEventLogServerEncrypted"
 import { Reactivity } from "effect/unstable/reactivity"
+import * as RpcTest from "effect/unstable/rpc/RpcTest"
 import * as SqlClient from "effect/unstable/sql/SqlClient"
 
 const storeIdA = "store-a" as StoreId
@@ -44,6 +48,29 @@ const makePersistedEntry = (index: number, entryId = EventJournal.makeEntryIdUns
     encryptedEntry: Uint8Array.of(index)
   })
 
+const getIdentityRootSecretMaterial = makeGetIdentityRootSecretMaterial(globalThis.crypto)
+
+const makeAuthenticateRequest = Effect.fnUntraced(function*(options: {
+  readonly identity: EventLog.Identity["Service"]
+  readonly challenge: Uint8Array
+  readonly remoteId: EventJournal.RemoteId
+}) {
+  const rootSecretMaterial = yield* getIdentityRootSecretMaterial(options.identity)
+  const signature = yield* EventLogSessionAuth.signSessionAuthPayload({
+    remoteId: options.remoteId,
+    challenge: options.challenge,
+    publicKey: options.identity.publicKey,
+    signingPublicKey: rootSecretMaterial.signingPublicKey,
+    signingPrivateKey: Redacted.value(rootSecretMaterial.signingPrivateKey)
+  })
+  return new EventLogMessage.Authenticate({
+    publicKey: options.identity.publicKey,
+    signingPublicKey: rootSecretMaterial.signingPublicKey,
+    signature,
+    algorithm: "Ed25519"
+  })
+})
+
 describe("SqlEventLogServer", () => {
   it.effect("persists remote id across storage instances", () =>
     Effect.gen(function*() {
@@ -57,6 +84,57 @@ describe("SqlEventLogServer", () => {
       const idA = yield* storageA.getId
       const idB = yield* storageB.getId
       assert.deepStrictEqual(idA, idB)
+    }).pipe(Effect.provide([Reactivity.layer, EventLogEncryption.layerSubtle])))
+
+  it.effect("rejects session-auth rebinding for an existing publicKey", () =>
+    Effect.gen(function*() {
+      const sql = yield* SqliteClient.make({ filename: ":memory:" })
+      const storage = yield* SqlEventLogServer.makeStorage().pipe(
+        Effect.provideService(SqlClient.SqlClient, sql)
+      )
+      const rpcClient = yield* RpcTest.makeClient(EventLogMessage.EventLogRemoteRpcs).pipe(
+        Effect.provide(
+          EventLogServer.layerRpcHandlers.pipe(
+            Layer.provide(Layer.succeed(EventLogServer.Storage, storage))
+          )
+        )
+      )
+
+      const firstIdentity = yield* EventLog.makeIdentity
+      const secondIdentitySeed = yield* EventLog.makeIdentity
+      const secondIdentity: EventLog.Identity["Service"] = {
+        publicKey: firstIdentity.publicKey,
+        privateKey: secondIdentitySeed.privateKey
+      }
+
+      const firstMaterial = yield* getIdentityRootSecretMaterial(firstIdentity)
+      const secondMaterial = yield* getIdentityRootSecretMaterial(secondIdentity)
+      const sameSigningPublicKey =
+        firstMaterial.signingPublicKey.byteLength === secondMaterial.signingPublicKey.byteLength &&
+        firstMaterial.signingPublicKey.every((byte, index) => byte === secondMaterial.signingPublicKey[index])
+      assert.strictEqual(sameSigningPublicKey, false)
+
+      const firstHello = yield* rpcClient["EventLog.Hello"]()
+      yield* rpcClient["EventLog.Authenticate"](
+        yield* makeAuthenticateRequest({
+          identity: firstIdentity,
+          challenge: firstHello.challenge,
+          remoteId: firstHello.remoteId
+        })
+      )
+
+      const secondHello = yield* rpcClient["EventLog.Hello"]()
+      const error = yield* rpcClient["EventLog.Authenticate"](
+        yield* makeAuthenticateRequest({
+          identity: secondIdentity,
+          challenge: secondHello.challenge,
+          remoteId: secondHello.remoteId
+        })
+      ).pipe(Effect.flip)
+
+      assert.instanceOf(error, EventLogMessage.EventLogProtocolError)
+      assert.strictEqual(error.code, "Forbidden")
+      assert.strictEqual(error.message, "Session auth signature verification failed")
     }).pipe(Effect.provide([Reactivity.layer, EventLogEncryption.layerSubtle])))
 
   it.effect("writes entries and streams changes", () =>

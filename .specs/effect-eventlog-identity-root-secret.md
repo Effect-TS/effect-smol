@@ -300,7 +300,7 @@ The tasks below are intentionally grouped so each task is independently shippabl
 
 - [x] Task 1: Add internal root-secret derivation utilities
 - [x] Task 2: Switch the public identity model to the two-field shape
-- [ ] Task 3: Apply optional safe server/storage cleanup
+- [x] Task 3: Apply optional safe server/storage cleanup
 
 ### Task 1: Add internal root-secret derivation utilities
 
@@ -389,7 +389,7 @@ Implementation discoveries:
 
 ### Task 3: Apply optional safe server/storage cleanup
 
-Status: ⏳ Pending
+Status: ✅ Completed
 
 Scope:
 
@@ -410,6 +410,12 @@ Validation for this task:
 - targeted eventlog server tests covering the modified modules
 - `pnpm check:tsgo`
 - `pnpm docgen`
+
+Implementation discoveries:
+
+- Added focused sqlite-backed regression coverage that explicitly executes the server `Hello -> Authenticate` flow for both encrypted and unencrypted server layers.
+- New tests assert trust-on-first-auth behavior: first authenticate binds `publicKey` to signing key A, and a second authenticate using the same `publicKey` with signing key B is rejected with `Forbidden` (`Session auth signature verification failed`).
+- No wire-format changes were needed; tests use the existing `EventLogMessage.Authenticate` payload fields (`publicKey`, `signingPublicKey`, `signature`, `algorithm`).
 
 ## Test Plan
 
