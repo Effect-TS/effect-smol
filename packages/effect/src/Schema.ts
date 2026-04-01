@@ -9928,30 +9928,21 @@ export interface Class<Self, S extends Top & { readonly fields: Struct.Fields },
       readonly unsafePreserveChecks?: boolean | undefined
     } | undefined
   ): Struct<Simplify<Readonly<To>>>
-}
 
-type AddStaticMembers<C, Static> = C & Pick<Static, Exclude<keyof Static, keyof C>>
-
-/**
- * A {@link Class} that additionally exposes an `extend` method, allowing
- * subclasses to be derived with extra fields while inheriting all parent
- * fields and validation.
- *
- * @since 4.0.0
- */
-export interface ExtendableClass<Self, S extends Top & { readonly fields: Struct.Fields }, Inherited>
-  extends Class<Self, S, Inherited>
-{
   extend<Extended, Static = {}, Brand = {}>(
     identifier: string
   ): <NewFields extends Struct.Fields>(
     fields: NewFields,
     annotations?: Annotations.Declaration<Extended, readonly [Struct<Simplify<Assign<S["fields"], NewFields>>>]>
-  ) => AddStaticMembers<
-    ExtendableClass<Extended, Struct<Simplify<Assign<S["fields"], NewFields>>>, Self & Brand>,
+  ) => InheritStaticMembers<
+    Class<Extended, Struct<Simplify<Assign<S["fields"], NewFields>>>, Self & Brand>,
     Static
   >
 }
+
+// Merges custom static members from a parent class onto the extended class,
+// giving priority to the extended class's own members (e.g. schema-generated statics).
+type InheritStaticMembers<C, Static> = C & Pick<Static, Exclude<keyof Static, keyof C>>
 
 const immerable: unique symbol = globalThis.Symbol.for("immer-draftable") as any
 
@@ -10171,17 +10162,17 @@ export const Class: {
     <const Fields extends Struct.Fields>(
       fields: Fields,
       annotations?: Annotations.Declaration<Self, readonly [Struct<Fields>]>
-    ): ExtendableClass<Self, Struct<Fields>, Brand>
+    ): Class<Self, Struct<Fields>, Brand>
     <S extends Struct<Struct.Fields>>(
       schema: S,
       annotations?: Annotations.Declaration<Self, readonly [S]>
-    ): ExtendableClass<Self, S, Brand>
+    ): Class<Self, S, Brand>
   }
 } = <Self, Brand = {}>(identifier: string) =>
 (
   schema: Struct.Fields | Struct<Struct.Fields>,
   annotations?: Annotations.Declaration<Self, readonly [Struct<Struct.Fields>]>
-): ExtendableClass<Self, Struct<Struct.Fields>, Brand> => {
+): Class<Self, Struct<Struct.Fields>, Brand> => {
   const struct = isStruct(schema) ? schema : Struct(schema)
   return makeClass(
     Data.Class,
@@ -10227,7 +10218,7 @@ export const TaggedClass: {
       tag: Tag,
       fields: Fields,
       annotations?: Annotations.Declaration<Self, readonly [TaggedStruct<Tag, Fields>]>
-    ): ExtendableClass<Self, TaggedStruct<Tag, Fields>, Brand>
+    ): Class<Self, TaggedStruct<Tag, Fields>, Brand>
     <Tag extends string, S extends Struct<Struct.Fields>>(
       tag: Tag,
       schema: S,
@@ -10235,7 +10226,7 @@ export const TaggedClass: {
         Self,
         readonly [Struct<Simplify<{ readonly _tag: tag<Tag> } & S["fields"]>>]
       >
-    ): ExtendableClass<Self, Struct<Simplify<{ readonly _tag: tag<Tag> } & S["fields"]>>, Brand>
+    ): Class<Self, Struct<Simplify<{ readonly _tag: tag<Tag> } & S["fields"]>>, Brand>
   }
 } = (identifier?: string) => {
   return (
@@ -10256,13 +10247,13 @@ export const TaggedClass: {
 
 /**
  * Interface for schema-backed error classes created with {@link ErrorClass}.
- * Extends {@link ExtendableClass} and is also a `YieldableError`, so instances
+ * Extends {@link Class} and is also a `YieldableError`, so instances
  * can be yielded inside `Effect.gen` as failures.
  *
  * @since 4.0.0
  */
 export interface ErrorClass<Self, S extends Top & { readonly fields: Struct.Fields }, Inherited>
-  extends ExtendableClass<Self, S, Inherited>
+  extends Class<Self, S, Inherited>
 {}
 
 /**

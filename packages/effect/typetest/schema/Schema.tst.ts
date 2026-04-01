@@ -1249,6 +1249,18 @@ describe("Schema", () => {
       when(fBBranded).isCalledWith(expect(ABranded.makeUnsafe).type.not.toBeCallableWith({ a: "a" }))
     })
 
+    it("extend & static members", () => {
+      class A extends Schema.Class<A>("A")({
+        a: Schema.String
+      }) {
+        static readonly aStatic = "value"
+      }
+      class B extends A.extend<B, typeof A>("B")({
+        b: Schema.Number
+      }) {}
+      expect(B.aStatic).type.toBe<"value">()
+    })
+
     it("extend & branded (unique symbol)", () => {
       class Common extends Schema.Class<Common>("Common")({
         a: Schema.String
