@@ -811,11 +811,17 @@ export const layerEventLog: Layer.Layer<EventLog | Registry, never, EventJournal
  * @since 4.0.0
  * @category layers
  */
-export const layer = <Groups extends EventGroup.Any>(_schema: EventLogSchema<Groups>): Layer.Layer<
-  never,
-  never,
-  EventGroup.ToService<Groups> | EventLog
-> => Layer.empty as any
+export const layer = <Groups extends EventGroup.Any, E, R>(
+  _schema: EventLogSchema<Groups>,
+  layer: Layer.Layer<EventGroup.ToService<Groups>, E, R>
+): Layer.Layer<
+  EventLog | Registry,
+  E,
+  Exclude<R, EventLog | Registry> | EventJournal | Identity
+> =>
+  layer.pipe(
+    Layer.provideMerge(layerEventLog)
+  )
 
 /**
  * @since 4.0.0
