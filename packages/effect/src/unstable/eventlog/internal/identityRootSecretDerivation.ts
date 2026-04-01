@@ -75,9 +75,7 @@ const deriveSecretBytes = Effect.fnUntraced(function*(options: {
   derivationInput[labelBytes.byteLength] = 0
   derivationInput.set(options.rootSecret, labelBytes.byteLength + 1)
 
-  const digest = yield* Effect.orDie(
-    Effect.promise(() => options.crypto.subtle.digest("SHA-256", toArrayBuffer(derivationInput)))
-  )
+  const digest = yield* Effect.promise(() => options.crypto.subtle.digest("SHA-256", toArrayBuffer(derivationInput)))
 
   return new Uint8Array(digest)
 })
@@ -100,22 +98,16 @@ export const deriveIdentityRootSecretMaterial = Effect.fnUntraced(function*(opti
 
   const signingPrivateKeyBytes = makeEd25519Pkcs8FromSeed(signingSeed)
 
-  const encryptionKey = yield* Effect.orDie(
-    Effect.promise(() =>
-      options.crypto.subtle.importKey("raw", toArrayBuffer(encryptionKeyMaterial), "AES-GCM", true, [
-        "encrypt",
-        "decrypt"
-      ])
-    )
+  const encryptionKey = yield* Effect.promise(() =>
+    options.crypto.subtle.importKey("raw", toArrayBuffer(encryptionKeyMaterial), "AES-GCM", true, [
+      "encrypt",
+      "decrypt"
+    ])
   )
-  const signingPrivateKey = yield* Effect.orDie(
-    Effect.promise(() =>
-      options.crypto.subtle.importKey("pkcs8", toArrayBuffer(signingPrivateKeyBytes), "Ed25519", true, ["sign"])
-    )
+  const signingPrivateKey = yield* Effect.promise(() =>
+    options.crypto.subtle.importKey("pkcs8", toArrayBuffer(signingPrivateKeyBytes), "Ed25519", true, ["sign"])
   )
-  const signingJwk = yield* Effect.orDie(
-    Effect.promise(() => options.crypto.subtle.exportKey("jwk", signingPrivateKey))
-  )
+  const signingJwk = yield* Effect.promise(() => options.crypto.subtle.exportKey("jwk", signingPrivateKey))
 
   if (typeof signingJwk.x !== "string") {
     return yield* Effect.die(new Error("Unable to export deterministic Ed25519 public key"))
