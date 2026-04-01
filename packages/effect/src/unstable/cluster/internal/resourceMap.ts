@@ -30,7 +30,7 @@ export class ResourceMap<K, A, E> {
 
   static make = Effect.fnUntraced(function*<K, A, E, R>(lookup: (key: K) => Effect.Effect<A, E, R>) {
     const scope = yield* Effect.scope
-    const services = yield* Effect.services<R>()
+    const services = yield* Effect.context<R>()
     const isClosed = MutableRef.make(false)
 
     const entries = MutableHashMap.empty<K, {

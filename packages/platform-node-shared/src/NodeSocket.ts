@@ -41,7 +41,7 @@ export const makeNet = (
   }
 ): Effect.Effect<Socket.Socket> =>
   fromDuplex(
-    Effect.servicesWith((services: Context.Context<Scope.Scope>) => {
+    Effect.contextWith((services: Context.Context<Scope.Scope>) => {
       let conn: Net.Socket | undefined
       return Effect.flatMap(
         Scope.addFinalizer(
@@ -89,7 +89,7 @@ export const fromDuplex = <RO>(
   Effect.withFiber<Socket.Socket, never, Exclude<RO, Scope.Scope>>((fiber) => {
     let currentSocket: Duplex | undefined
     const latch = Latch.makeUnsafe(false)
-    const openServices = fiber.services as Context.Context<RO>
+    const openServices = fiber.context as Context.Context<RO>
 
     const run = <R, E, _>(handler: (_: Uint8Array) => Effect.Effect<_, E, R> | void, opts?: {
       readonly onOpen?: Effect.Effect<void> | undefined
@@ -166,7 +166,7 @@ export const fromDuplex = <RO>(
           )
         }
       })).pipe(
-        Effect.updateServices((input: Context.Context<R>) => Context.merge(openServices, input)),
+        Effect.updateContext((input: Context.Context<R>) => Context.merge(openServices, input)),
         Effect.onExit(() =>
           Effect.sync(() => {
             latch.closeUnsafe()

@@ -205,7 +205,7 @@ const ServiceProto: any = {
     }
   },
   asEffect(this: any) {
-    const fn = this.asEffect = constant(withFiber((fiber) => exitSucceed(get(fiber.services, this))))
+    const fn = this.asEffect = constant(withFiber((fiber) => exitSucceed(get(fiber.context, this))))
     return fn()
   },
   of<Service>(this: void, self: Service): Service {
@@ -218,10 +218,10 @@ const ServiceProto: any = {
     return make(this, self)
   },
   use<A, E, R>(this: Service<never, any>, f: (service: any) => Effect<A, E, R>): Effect<A, E, R> {
-    return withFiber((fiber) => f(get(fiber.services, this)))
+    return withFiber((fiber) => f(get(fiber.context, this)))
   },
   useSync<A>(this: Service<never, any>, f: (service: any) => A): Effect<A, never, never> {
-    return withFiber((fiber) => exitSucceed(f(get(fiber.services, this))))
+    return withFiber((fiber) => exitSucceed(f(get(fiber.context, this))))
   }
 }
 

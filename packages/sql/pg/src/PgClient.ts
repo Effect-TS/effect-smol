@@ -321,7 +321,7 @@ export const fromPool = Effect.fnUntraced(function*(
 
   const reserveRaw = Effect.callback<Pg.PoolClient, SqlError, Scope.Scope>((resume) => {
     const fiber = Fiber.getCurrent()!
-    const scope = Context.getUnsafe(fiber.services, Scope.Scope)
+    const scope = Context.getUnsafe(fiber.context, Scope.Scope)
     let cause: Error | undefined = undefined
     pool.connect((err, client, release) => {
       if (err) {

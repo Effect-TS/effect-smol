@@ -69,7 +69,7 @@ export const make = Effect.fnUntraced(function*(
 
   const run = Effect.fnUntraced(function*<R, E, _>(handler: (socket: Socket.Socket) => Effect.Effect<_, E, R>) {
     const scope = yield* Scope.make()
-    const services = Context.omit(Scope.Scope)(yield* Effect.services<R>()) as Context.Context<R>
+    const services = Context.omit(Scope.Scope)(yield* Effect.context<R>()) as Context.Context<R>
     const trackFiber = Fiber.runIn(scope)
     const prevOnConnection = onConnection
     onConnection = function(conn: Net.Socket) {
@@ -202,7 +202,7 @@ export const makeWebSocket: (
 
   const run = Effect.fnUntraced(function*<R, E, _>(handler: (socket: Socket.Socket) => Effect.Effect<_, E, R>) {
     const scope = yield* Scope.make()
-    const services = Context.omit(Scope.Scope)(yield* Effect.services<R>()) as Context.Context<R>
+    const services = Context.omit(Scope.Scope)(yield* Effect.context<R>()) as Context.Context<R>
     const trackFiber = Fiber.runIn(scope)
     const prevOnConnection = onConnection
     onConnection = function(conn: globalThis.WebSocket, req: Http.IncomingMessage) {

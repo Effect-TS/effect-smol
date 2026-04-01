@@ -480,12 +480,12 @@ describe.sequential("Atom", () => {
     Effect.gen(function*() {
       vitest.useRealTimers()
 
-      const services = yield* Effect.services<never>()
+      const services = yield* Effect.context<never>()
       const count = Atom.make(
         Stream.range(0, 2).pipe(
           Stream.tap(() => AtomRegistry.AtomRegistry.asEffect()),
           Stream.tap((_) => Effect.sleep(50)),
-          Stream.provideServices(services)
+          Stream.provideContext(services)
         )
       )
       const r = AtomRegistry.make()

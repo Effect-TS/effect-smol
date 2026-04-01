@@ -100,7 +100,7 @@ export interface Handlers<
   }
   readonly group: EventGroup.AnyWithProps
   readonly handlers: Record.ReadonlyRecord<string, Handlers.Item<R>>
-  readonly services: Context.Context<R>
+  readonly context: Context.Context<R>
 
   /**
    * Add the implementation for an `Event` to a `Handlers` group.
@@ -142,7 +142,7 @@ export declare namespace Handlers {
    */
   export type Item<R> = {
     readonly event: Event.AnyWithProps
-    readonly services: Context.Context<R>
+    readonly context: Context.Context<R>
     readonly handler: (options: {
       readonly payload: unknown
       readonly entry: Entry
@@ -274,12 +274,12 @@ const handlersProto = {
   ): Handlers<any, any> {
     return makeHandlers({
       group: this.group,
-      services: this.services,
+      context: this.context,
       handlers: {
         ...this.handlers,
         [tag]: {
           event: this.group.events[tag],
-          services: this.services,
+          context: this.context,
           handler
         }
       }
@@ -293,7 +293,7 @@ const handlersProto = {
 const makeHandlers = (options: {
   readonly group: EventGroup.AnyWithProps
   readonly handlers: Record.ReadonlyRecord<string, Handlers.Item<any>>
-  readonly services: Context.Context<any>
+  readonly context: Context.Context<any>
 }): Handlers<any, any> => Object.assign(Object.create(handlersProto), options)
 
 /**
@@ -306,21 +306,21 @@ export const group = <Events extends Event.Any, Return>(
 ): Layer.Layer<Event.ToService<Events>, Handlers.Error<Return>, Exclude<Handlers.Services<Return>, Scope.Scope>> =>
   Layer.effectServices(
     Effect.gen(function*() {
-      const services = yield* Effect.services<Handlers.Services<Return>>()
+      const context = yield* Effect.context<Handlers.Services<Return>>()
       const result = f(makeHandlers({
         group: group as EventGroup.AnyWithProps,
         handlers: {},
-        services
+        context
       }) as unknown as Handlers<never, Events>)
       const handlers = Effect.isEffect(result)
         ? (yield* (result as unknown as Effect.Effect<Handlers<any>>))
         : (result as unknown as Handlers<any>)
-      const context = new Map<string, Handlers.Item<any>>()
+      const contextMap = new Map<string, Handlers.Item<any>>()
       for (const tag in handlers.handlers) {
         const handler = handlers.handlers[tag]
-        context.set(handler.event.key, handlers.handlers[tag])
+        contextMap.set(handler.event.key, handlers.handlers[tag])
       }
-      return Context.makeUnsafe(context)
+      return Context.makeUnsafe(contextMap)
     })
   )
 
@@ -343,7 +343,7 @@ export const groupCompaction = <Events extends Event.Any, R>(
   Layer.effectDiscard(
     Effect.gen(function*() {
       const log = yield* EventLog
-      const services = yield* Effect.services<R | Event.PayloadSchema<Events>["DecodingServices"]>()
+      const services = yield* Effect.context<R | Event.PayloadSchema<Events>["DecodingServices"]>()
 
       yield* log.registerCompaction({
         events: Object.keys(group.events),
@@ -351,7 +351,7 @@ export const groupCompaction = <Events extends Event.Any, R>(
           const isEventTag = (tag: string): tag is Event.Tag<Events> => tag in group.events
           const decodePayload = <Tag extends Event.Tag<Events>>(tag: Tag, payload: Uint8Array) =>
             Schema.decodeUnknownEffect(group.events[tag].payloadMsgPack)(payload).pipe(
-              Effect.updateServices((input) => Context.merge(services, input)),
+              Effect.updateContext((input) => Context.merge(services, input)),
               Effect.orDie
             ) as unknown as Effect.Effect<Event.PayloadWithTag<Events, Tag>>
           const writePayload = Effect.fnUntraced(function*<Tag extends Event.Tag<Events>>(
@@ -406,7 +406,7 @@ export const groupCompaction = <Events extends Event.Any, R>(
                   return Effect.orDie(writePayload(entries[0].createdAtMillis, tag, payload))
                 }
               }).pipe(
-                Effect.updateServices((input) => Context.merge(services, input))
+                Effect.updateContext((input) => Context.merge(services, input))
               )
             ) as any
           }
@@ -472,7 +472,7 @@ export class EventLog extends Context.Service<EventLog, {
 const make = Effect.gen(function*() {
   const identity = yield* Identity
   const journal = yield* EventJournal
-  const services = yield* Effect.services<never>()
+  const services = yield* Effect.context<never>()
 
   const remotes = yield* FiberMap.make<RemoteId>()
   const compactors = new Map<string, {
@@ -558,7 +558,7 @@ const make = Effect.gen(function*() {
                   decodedConflicts[i] = {
                     entry: conflicts[i],
                     payload: yield* decodePayload(conflicts[i].payload).pipe(
-                      Effect.updateServices((input) => Context.merge(handler.services, input))
+                      Effect.updateContext((input) => Context.merge(handler.context, input))
                     ) as any
                   }
                 }
@@ -570,7 +570,7 @@ const make = Effect.gen(function*() {
                       conflicts: decodedConflicts
                     })
                   ),
-                  Effect.updateServices((input) => Context.merge(handler.services, input)),
+                  Effect.updateContext((input) => Context.merge(handler.context, input)),
                   Effect.asVoid
                 ) as any
                 if (reactivityKeys[entry.event]) {
@@ -636,7 +636,7 @@ const make = Effect.gen(function*() {
           entry,
           conflicts: []
         }).pipe(
-          Effect.updateServices((input) => Context.merge(handler.services, input)),
+          Effect.updateContext((input) => Context.merge(handler.context, input)),
           Effect.tap(() =>
             Effect.sync(() => {
               if (reactivityKeys[entry.event]) {

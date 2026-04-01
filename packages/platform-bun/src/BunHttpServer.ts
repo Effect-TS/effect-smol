@@ -112,7 +112,7 @@ export const make = Effect.fnUntraced(
       address: { _tag: "TcpAddress", port: server.port!, hostname: server.hostname! },
       serve: Effect.fnUntraced(function*(httpApp, middleware) {
         const parent = yield* Effect.fiber
-        const services = parent.services
+        const services = parent.context
         const serveScope = Context.getUnsafe(services, Scope.Scope)
         const scope = Scope.forkUnsafe(serveScope, "parallel")
 

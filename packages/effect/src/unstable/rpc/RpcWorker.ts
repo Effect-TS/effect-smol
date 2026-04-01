@@ -71,9 +71,9 @@ export const layerInitialMessage = <S extends Schema.Top, R2>(
   build: Effect.Effect<S["Type"], never, R2>
 ): Layer.Layer<InitialMessage, never, S["EncodingServices"] | R2> =>
   Layer.effect(InitialMessage)(
-    Effect.servicesWith((services: Context.Context<S["EncodingServices"] | R2>) =>
+    Effect.contextWith((services: Context.Context<S["EncodingServices"] | R2>) =>
       Effect.succeed(
-        Effect.provideServices(Effect.orDie(makeInitialMessage(schema, build)), services)
+        Effect.provideContext(Effect.orDie(makeInitialMessage(schema, build)), services)
       )
     )
   )

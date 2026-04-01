@@ -130,7 +130,7 @@ export const make = (
         raw: boolean
       ) =>
         Effect.withFiber<ReadonlyArray<any>, SqlError>((fiber) => {
-          if (Context.get(fiber.services, Client.SafeIntegers)) {
+          if (Context.get(fiber.context, Client.SafeIntegers)) {
             statement.safeIntegers(true)
           }
           try {
@@ -222,7 +222,7 @@ export const make = (
     const acquirer = semaphore.withPermits(1)(Effect.succeed(connection))
     const transactionAcquirer = Effect.uninterruptibleMask((restore) => {
       const fiber = Fiber.getCurrent()!
-      const scope = Context.getUnsafe(fiber.services, Scope.Scope)
+      const scope = Context.getUnsafe(fiber.context, Scope.Scope)
       return Effect.as(
         Effect.tap(
           restore(semaphore.take(1)),

@@ -230,7 +230,7 @@ export const makeMemory = (
     const acquirer = semaphore.withPermits(1)(Effect.succeed(connection))
     const transactionAcquirer = Effect.uninterruptibleMask((restore) => {
       const fiber = Fiber.getCurrent()!
-      const scope = Context.getUnsafe(fiber.services, Scope.Scope)
+      const scope = Context.getUnsafe(fiber.context, Scope.Scope)
       return Effect.as(
         Effect.tap(
           restore(semaphore.take(1)),
@@ -392,7 +392,7 @@ export const make = (
     const acquirer = semaphore.withPermits(1)(ScopedRef.get(connectionRef))
     const transactionAcquirer = Effect.uninterruptibleMask(Effect.fnUntraced(function*(restore) {
       const fiber = Fiber.getCurrent()!
-      const scope = Context.getUnsafe(fiber.services, Scope.Scope)
+      const scope = Context.getUnsafe(fiber.context, Scope.Scope)
       yield* restore(semaphore.take(1))
       yield* Scope.addFinalizer(scope, semaphore.release(1))
       return yield* ScopedRef.get(connectionRef)

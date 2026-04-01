@@ -199,7 +199,7 @@ export const makeWithTransaction = <I, S>(options: {
           for (const [key, value] of options.spanAttributes) {
             span.attribute(key, value)
           }
-          const services = fiber.services
+          const services = fiber.context
           const clock = fiber.getRef(Clock)
           const connOption = Context.getOption(services, options.transactionService)
           const conn = connOption._tag === "Some"
@@ -213,7 +213,7 @@ export const makeWithTransaction = <I, S>(options: {
             ) =>
               (id === 0 ? options.begin(conn) : options.savepoint(conn, id)).pipe(
                 Effect.flatMap(() =>
-                  Effect.provideServices(
+                  Effect.provideContext(
                     restore(effect),
                     Context.mutate(services, (services) =>
                       services.pipe(

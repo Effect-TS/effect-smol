@@ -118,7 +118,7 @@ export function redact(u: unknown): unknown {
  * @since 4.0.0
  */
 export function getRedacted(redactable: Redactable): unknown {
-  return redactable[symbolRedactable]((globalThis as any)[currentFiberTypeId]?.services ?? emptyContext)
+  return redactable[symbolRedactable]((globalThis as any)[currentFiberTypeId]?.context ?? emptyContext)
 }
 
 /** @internal */

@@ -35,7 +35,7 @@ export class DevToolsClient extends Context.Service<
 
 const makeEffect = Effect.gen(function*() {
   const socket = yield* Socket.Socket
-  const services = yield* Effect.services<never>()
+  const services = yield* Effect.context<never>()
   const requests = yield* Queue.unbounded<DevToolsSchema.Request>()
   const connected = yield* Deferred.make<void>()
 

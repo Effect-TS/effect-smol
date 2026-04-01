@@ -137,7 +137,7 @@ export interface HttpApiEndpoint<
   >
 
   /**
-   * Merge the annotations of the endpoint with the provided service map.
+   * Merge the annotations of the endpoint with the provided context.
    */
   annotateMerge<I>(
     annotations: Context.Context<I>

@@ -250,7 +250,7 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
   const codecTransformer = getCodecTransformer(model)
 
   const makeConfig = Effect.gen(function*() {
-    const services = yield* Effect.services<never>()
+    const services = yield* Effect.context<never>()
     return { model, ...providerConfig, ...services.mapUnsafe.get(Config.key) }
   })
 

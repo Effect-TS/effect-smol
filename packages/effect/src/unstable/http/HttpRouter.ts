@@ -100,7 +100,7 @@ export const make = Effect.gen(function*() {
     | Request.From<"Requires", Exclude<Route.Context<Routes[number]>, Provided>>
     | Request.From<"Error", Route.Error<Routes[number]>>
   > =>
-    Effect.servicesWith((services: Context.Context<never>) => {
+    Effect.contextWith((services: Context.Context<never>) => {
       const middleware = getMiddleware(services)
       const applyMiddleware = (effect: Effect.Effect<HttpServerResponse.HttpServerResponse>) => {
         for (let i = 0; i < middleware.length; i++) {
@@ -163,7 +163,7 @@ export const make = Effect.gen(function*() {
       }),
     asHttpEffect() {
       let handler = Effect.withFiber<HttpServerResponse.HttpServerResponse, unknown>((fiber) => {
-        const contextMap = new Map(fiber.services.mapUnsafe)
+        const contextMap = new Map(fiber.context.mapUnsafe)
         const request = contextMap.get(HttpServerRequest.HttpServerRequest.key) as HttpServerRequest.HttpServerRequest
         let result = router.find(request.method, request.url)
         if (result === undefined && request.method === "HEAD") {
@@ -190,7 +190,7 @@ export const make = Effect.gen(function*() {
         if (span && span._tag === "Span") {
           span.attribute("http.route", route.path)
         }
-        return Effect.provideServices(
+        return Effect.provideContext(
           (route.uninterruptible ?
             route.handler :
             Effect.interruptible(route.handler)) as Effect.Effect<
@@ -268,7 +268,7 @@ export const schemaJson = <
   HttpServerRequest.HttpServerRequest | HttpServerRequest.ParsedSearchParams | RouteContext | RD
 > => {
   const parse = Schema.decodeUnknownEffect(schema)
-  return Effect.servicesWith(
+  return Effect.contextWith(
     (
       services: Context.Context<
         HttpServerRequest.HttpServerRequest | HttpServerRequest.ParsedSearchParams | RouteContext
@@ -316,7 +316,7 @@ export const schemaNoBody = <
   HttpServerRequest.HttpServerRequest | HttpServerRequest.ParsedSearchParams | RouteContext | RD
 > => {
   const parse = Schema.decodeUnknownEffect(schema)
-  return Effect.servicesWith(
+  return Effect.contextWith(
     (
       services: Context.Context<
         HttpServerRequest.HttpServerRequest | HttpServerRequest.ParsedSearchParams | RouteContext
@@ -346,7 +346,7 @@ export const schemaParams = <A, I extends Readonly<Record<string, string | Reado
   options?: ParseOptions | undefined
 ): Effect.Effect<A, Schema.SchemaError, HttpServerRequest.ParsedSearchParams | RouteContext | RD> => {
   const parse = Schema.decodeUnknownEffect(schema)
-  return Effect.servicesWith((services: Context.Context<HttpServerRequest.ParsedSearchParams | RouteContext>) => {
+  return Effect.contextWith((services: Context.Context<HttpServerRequest.ParsedSearchParams | RouteContext>) => {
     const searchParams = Context.get(services, HttpServerRequest.ParsedSearchParams)
     const routeContext = Context.get(services, RouteContext)
     return parse({ ...searchParams, ...routeContext.params }, options)
@@ -829,7 +829,7 @@ class MiddlewareImpl<
     this.dependencies = dependencies
     const contextKey = `effect/http/HttpRouter/Middleware-${++middlewareId}` as const
     this.layer = Layer.effectServices(Effect.gen({ self: this }, function*() {
-      const context = yield* Effect.services<Scope.Scope>()
+      const context = yield* Effect.context<Scope.Scope>()
       const stack = [context.mapUnsafe.get(fnContextKey)]
       if (this.dependencies) {
         const memoMap = yield* Layer.CurrentMemoMap
@@ -1046,7 +1046,7 @@ export const provideRequest =
       middleware<{ provides: A2 }>()(Effect.gen(function*() {
         const services = yield* Layer.build(layer as Layer.Layer<A2>)
         return (effect) =>
-          Effect.provideServices(effect, services) as Effect.Effect<
+          Effect.provideContext(effect, services) as Effect.Effect<
             HttpServerResponse.HttpServerResponse,
             Types.unhandled
           >

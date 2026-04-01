@@ -449,7 +449,7 @@ export const fromWebSocket = <RO>(
   Effect.withFiber((fiber) => {
     let currentWS: globalThis.WebSocket | undefined
     const latch = Latch.makeUnsafe(false)
-    const acquireContext = fiber.services as Context.Context<RO>
+    const acquireContext = fiber.context as Context.Context<RO>
     const closeCodeIsError = options?.closeCodeIsError ?? defaultCloseCodeIsError
 
     const runRaw = <_, E, R>(handler: (_: string | Uint8Array) => Effect.Effect<_, E, R> | void, opts?: {
@@ -551,7 +551,7 @@ export const fromWebSocket = <RO>(
           () => Effect.void
         )
       })).pipe(
-        Effect.updateServices((input: Context.Context<R>) => Context.merge(acquireContext, input)),
+        Effect.updateContext((input: Context.Context<R>) => Context.merge(acquireContext, input)),
         Effect.ensuring(Effect.sync(() => {
           latch.closeUnsafe()
           currentWS = undefined
@@ -653,7 +653,7 @@ export const fromTransformStream = <R>(acquire: Effect.Effect<InputTransformStre
       readonly stream: InputTransformStream
       readonly fiberSet: FiberSet.FiberSet<any, any>
     } | undefined
-    const acquireServices = fiber.services as Context.Context<R>
+    const acquireServices = fiber.context as Context.Context<R>
     const closeCodeIsError = options?.closeCodeIsError ?? defaultCloseCodeIsError
     const runRaw = <_, E, R>(handler: (_: string | Uint8Array) => Effect.Effect<_, E, R> | void, opts?: {
       readonly onOpen?: Effect.Effect<void> | undefined
@@ -699,7 +699,7 @@ export const fromTransformStream = <R>(acquire: Effect.Effect<InputTransformStre
         )
       })).pipe(
         (_) => _,
-        Effect.updateServices((input: Context.Context<R>) => Context.merge(acquireServices, input)),
+        Effect.updateContext((input: Context.Context<R>) => Context.merge(acquireServices, input)),
         Effect.ensuring(Effect.sync(() => {
           latch.closeUnsafe()
           currentStream = undefined

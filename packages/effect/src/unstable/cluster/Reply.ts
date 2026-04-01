@@ -339,7 +339,7 @@ export const serialize = <R extends Rpc.Any>(
 ): Effect.Effect<Encoded, MalformedMessage> => {
   const schema = Reply(self.rpc)
   return MalformedMessage.refail(
-    Effect.provideServices(
+    Effect.provideContext(
       Schema.encodeEffect(schema)(self.reply),
       self.services
     )
@@ -359,7 +359,7 @@ export const serializeLastReceived = <R extends Rpc.Any>(
   }
   const schema = Reply(self.rpc)
   return MalformedMessage.refail(
-    Effect.provideServices(Schema.encodeEffect(schema)(lastReceivedReply.value), self.services)
+    Effect.provideContext(Schema.encodeEffect(schema)(lastReceivedReply.value), self.services)
   ).pipe(
     Effect.map(Option.some)
   )

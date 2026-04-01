@@ -195,9 +195,9 @@ export const makeWithStrategy = <A, E, R>(options: {
   readonly strategy: Strategy<A, E>
 }): Effect.Effect<Pool<A, E>, never, Scope.Scope | R> =>
   Effect.uninterruptibleMask(Effect.fnUntraced(function*(restore) {
-    const services = yield* Effect.services<R | Scope.Scope>()
+    const services = yield* Effect.context<R | Scope.Scope>()
     const scope = Context.get(services, Scope.Scope)
-    const acquire = Effect.updateServices(
+    const acquire = Effect.updateContext(
       options.acquire,
       (input) => Context.merge(services, input)
     ) as Effect.Effect<A, E, Scope.Scope>

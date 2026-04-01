@@ -361,7 +361,7 @@ export const make = Effect.gen(function*() {
                   contextMap.set(Activity.CurrentAttempt.key, payload.attempt)
                   contextMap.set(WorkflowEngine.WorkflowInstance.key, instance)
                   return yield* entry.activity.executeEncoded.pipe(
-                    Effect.provideServices(Context.makeUnsafe(contextMap))
+                    Effect.provideContext(Context.makeUnsafe(contextMap))
                   )
                 }).pipe(
                   Workflow.intoResult,
@@ -462,7 +462,7 @@ export const make = Effect.gen(function*() {
 
     activityExecute: Effect.fnUntraced(
       function*(activity, attempt) {
-        const services = yield* Effect.services<WorkflowEngine.WorkflowInstance>()
+        const services = yield* Effect.context<WorkflowEngine.WorkflowInstance>()
         const instance = Context.get(services, WorkflowEngine.WorkflowInstance)
         yield* Effect.annotateCurrentSpan("executionId", instance.executionId)
         const activityId = `${instance.executionId}/${activity.name}`

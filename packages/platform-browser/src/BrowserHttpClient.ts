@@ -91,7 +91,7 @@ const makeXmlHttpRequest = HttpClient.make(
   (request, url, signal, fiber) =>
     Effect.suspend(() => {
       const xhr = Context.getOrElse(
-        fiber.services,
+        fiber.context,
         XMLHttpRequest,
         () => makeXhrRequest
       )()

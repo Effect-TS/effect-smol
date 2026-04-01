@@ -109,7 +109,7 @@ export const make = (
       ) =>
         Effect.withFiber<Array<any>, SqlError>((fiber) => {
           const statement = db.query(sql)
-          const useSafeIntegers = Context.get(fiber.services, Client.SafeIntegers)
+          const useSafeIntegers = Context.get(fiber.context, Client.SafeIntegers)
           // @ts-ignore bun-types missing safeIntegers method, fixed in https://github.com/oven-sh/bun/pull/26627
           statement.safeIntegers(useSafeIntegers)
           try {
@@ -125,7 +125,7 @@ export const make = (
       ) =>
         Effect.withFiber<Array<any>, SqlError>((fiber) => {
           const statement = db.query(sql)
-          const useSafeIntegers = Context.get(fiber.services, Client.SafeIntegers)
+          const useSafeIntegers = Context.get(fiber.context, Client.SafeIntegers)
           // @ts-ignore bun-types missing safeIntegers method, fixed in https://github.com/oven-sh/bun/pull/26627
           statement.safeIntegers(useSafeIntegers)
           try {
@@ -172,7 +172,7 @@ export const make = (
     const acquirer = semaphore.withPermits(1)(Effect.succeed(connection))
     const transactionAcquirer = Effect.uninterruptibleMask((restore) => {
       const fiber = Fiber.getCurrent()!
-      const scope = Context.getUnsafe(fiber.services, Scope.Scope)
+      const scope = Context.getUnsafe(fiber.context, Scope.Scope)
       return Effect.as(
         Effect.tap(
           restore(semaphore.take(1)),

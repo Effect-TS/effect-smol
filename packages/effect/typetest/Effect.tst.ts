@@ -287,9 +287,9 @@ describe("Effect.catchNoSuchElement", () => {
   })
 })
 
-describe("Effect.services", () => {
+describe("Effect.context", () => {
   it("defaults R to never", () => {
-    const result = Effect.services()
+    const result = Effect.context()
     expect(result).type.toBe<Effect.Effect<Context.Context<never>, never, never>>()
   })
 })

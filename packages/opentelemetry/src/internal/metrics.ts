@@ -37,7 +37,7 @@ interface PreviousSummaryState {
 /** @internal */
 export class MetricProducerImpl implements MetricProducer {
   resource: Resources.Resource
-  services: Context.Context<never>
+  context: Context.Context<never>
   temporality: Metrics.TemporalityPreference
   startTimes: Map<string, HrTime>
   startTimeNanos: HrTime
@@ -49,11 +49,11 @@ export class MetricProducerImpl implements MetricProducer {
 
   constructor(
     resource: Resources.Resource,
-    services: Context.Context<never>,
+    context: Context.Context<never>,
     temporality: Metrics.TemporalityPreference = "cumulative"
   ) {
     this.resource = resource
-    this.services = services
+    this.context = context
     this.temporality = temporality
     this.startTimes = new Map()
     this.startTimeNanos = currentHrTime()
@@ -73,7 +73,7 @@ export class MetricProducerImpl implements MetricProducer {
   }
 
   collect(_options?: MetricCollectOptions): Promise<CollectionResult> {
-    const snapshot = Metric.snapshotUnsafe(this.services)
+    const snapshot = Metric.snapshotUnsafe(this.context)
     const hrTimeNow = currentHrTime()
     const metricData: Array<MetricData> = []
     const metricDataByName = new Map<string, MetricData>()

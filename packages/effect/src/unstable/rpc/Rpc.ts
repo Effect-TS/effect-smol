@@ -160,7 +160,7 @@ export interface Handler<Tag extends string> {
     readonly headers: Headers
     readonly rpc: Any
   }) => Effect<any, any> | Stream<any, any>
-  readonly services: Context.Context<never>
+  readonly context: Context.Context<never>
 }
 
 /**

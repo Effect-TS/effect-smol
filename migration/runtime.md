@@ -48,7 +48,7 @@ const main = Effect.gen(function*() {
 const fiber = Effect.runFork(main)
 ```
 
-In v4, use the same pattern with `Effect.services<R>()`, then run with
+In v4, use the same pattern with `Effect.context<R>()`, then run with
 `Effect.runForkWith(services)`:
 
 **v4**
@@ -66,10 +66,10 @@ const program = Effect.gen(function*() {
 })
 
 const main = Effect.gen(function*() {
-  const services = yield* Effect.services<Logger>()
+  const services = yield* Effect.context<Logger>()
   return Effect.runForkWith(services)(program)
 }).pipe(
-  Effect.provideServices(Context.make(Logger, {
+  Effect.provideContext(Context.make(Logger, {
     log: (message) => console.log(message)
   }))
 )

@@ -698,7 +698,7 @@ export const context: (options: {
     globalLayer = Layer.provideMerge(globalLayer, Layer.provide(layer, Reactivity.layer))
   }
   const reactivityAtom = removeTtl(make(
-    Effect.servicesWith((services: Services.Context<Scope.Scope>) =>
+    Effect.contextWith((services: Services.Context<Scope.Scope>) =>
       Layer.buildWithMemoMap(Reactivity.layer, options.memoMap, Services.get(services, Scope.Scope))
     ).pipe(
       Effect.map(Services.get(Reactivity.Reactivity))
@@ -1171,7 +1171,7 @@ const makeStreamPullEffect = <A, E>(
     Stream.toPull(typeof create === "function" ? create(get) : create),
     (pullChunk) => {
       const fiber = Fiber.getCurrent()!
-      const services = fiber.services as Services.Context<AtomRegistry | Scope.Scope>
+      const services = fiber.context as Services.Context<AtomRegistry | Scope.Scope>
       let acc: ReadonlyArray<A> = Arr.empty<A>()
       const pull: Effect.Effect<
         {

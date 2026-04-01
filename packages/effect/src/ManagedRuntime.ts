@@ -263,6 +263,6 @@ function provide<R, ER, A, E>(
 ): Effect.Effect<A, E | ER> {
   return Effect.flatMap(
     managed.servicesEffect,
-    (services) => Effect.provideServices(effect, services)
+    (services) => Effect.provideContext(effect, services)
   )
 }

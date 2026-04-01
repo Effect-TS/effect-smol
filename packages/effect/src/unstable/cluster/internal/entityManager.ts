@@ -107,7 +107,7 @@ export const make = Effect.fnUntraced(function*<
   const storageEnabled = options.storage !== MessageStorage.noop
   const mailboxCapacity = options.mailboxCapacity ?? config.entityMailboxCapacity
   const clock = yield* Clock
-  const services = yield* Effect.services<Rpc.Services<Rpcs> | Rpc.Middleware<Rpcs> | RX>()
+  const services = yield* Effect.context<Rpc.Services<Rpcs> | Rpc.Middleware<Rpcs> | RX>()
   const retryDriver = yield* Schedule.toStepWithSleep(
     options.defectRetryPolicy ? Schedule.andThen(options.defectRetryPolicy, defaultRetryPolicy) : defaultRetryPolicy
   )
@@ -156,7 +156,7 @@ export const make = Effect.fnUntraced(function*<
         // Initiate the behavior for the entity
         const handlers = yield* (entity.protocol.toHandlers(buildHandlers as any).pipe(
           Effect.provideService(CurrentLogAnnotations, {}),
-          Effect.provideServices(Context.mutate(services, (services) =>
+          Effect.provideContext(Context.mutate(services, (services) =>
             services.pipe(
               Context.add(CurrentAddress, address),
               Context.add(CurrentRunnerAddress, options.runnerAddress),
@@ -267,7 +267,7 @@ export const make = Effect.fnUntraced(function*<
           }
         }).pipe(
           Scope.provide(scope),
-          Effect.provideServices(handlers)
+          Effect.provideContext(handlers)
         )
 
         yield* Scope.addFinalizer(
@@ -581,7 +581,7 @@ export const make = Effect.fnUntraced(function*<
             )
           }
         }),
-        Effect.provideServices(services as Context.Context<unknown>)
+        Effect.provideContext(services as Context.Context<unknown>)
       ),
     activeEntityCount: Effect.sync(() => activeServers.size)
   })

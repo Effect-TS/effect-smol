@@ -62,7 +62,7 @@ export const make = Effect.sync(() => {
   const invalidate = (
     keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>
   ): Effect.Effect<void> =>
-    Effect.servicesWith((services) => {
+    Effect.contextWith((services) => {
       const pending = services.mapUnsafe.get(PendingInvalidation.key) as Set<string | number> | undefined
       if (pending) {
         keysToHashes(keys, (hash) => {
@@ -109,7 +109,7 @@ export const make = Effect.sync(() => {
     effect: Effect.Effect<A, E, R>
   ): Effect.Effect<Queue.Dequeue<A, E>, never, R | Scope.Scope> =>
     Effect.gen(function*() {
-      const services = yield* Effect.services<Scope.Scope | R>()
+      const services = yield* Effect.context<Scope.Scope | R>()
       const scope = Context.get(services, Scope.Scope)
       const results = yield* Queue.make<A, E>()
       const runFork = flow(Effect.runForkWith(services), Fiber.runIn(scope))

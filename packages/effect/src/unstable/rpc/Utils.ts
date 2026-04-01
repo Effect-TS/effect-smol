@@ -18,7 +18,7 @@ export const withRun = <
     const semaphore = Semaphore.makeUnsafe(1)
     let buffer: Array<[Array<any>, Context.Context<never>]> = []
     let write = (...args: Array<any>): Effect.Effect<void> =>
-      Effect.servicesWith((context) => {
+      Effect.contextWith((context) => {
         buffer.push([args, context])
         return Effect.void
       })
@@ -30,7 +30,7 @@ export const withRun = <
           write = f
 
           for (const [args, context] of buffer) {
-            yield* Effect.provideServices(Effect.suspend(() => f(...args)), context)
+            yield* Effect.provideContext(Effect.suspend(() => f(...args)), context)
           }
           buffer = []
 

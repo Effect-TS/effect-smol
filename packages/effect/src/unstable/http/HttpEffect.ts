@@ -36,7 +36,7 @@ export const toHandled = <E, R, EH, RH>(
     Effect.flatMapEager(causeResponse(cause), ([response, cause]) => {
       const fiber = Fiber.getCurrent()!
       reportCauseUnsafe(fiber, cause)
-      const request = Context.getUnsafe(fiber.services, HttpServerRequest)
+      const request = Context.getUnsafe(fiber.context, HttpServerRequest)
       const handler = requestPreResponseHandlers.get(request.source)
       const cont = cause.reasons.length === 0 ? Effect.succeed(response) : Effect.failCause(cause)
       if (handler === undefined) {
@@ -59,7 +59,7 @@ export const toHandled = <E, R, EH, RH>(
   const responded = Effect.matchCauseEffect(self, {
     onSuccess: (response) => {
       const fiber = Fiber.getCurrent()!
-      const request = Context.getUnsafe(fiber.services, HttpServerRequest)
+      const request = Context.getUnsafe(fiber.context, HttpServerRequest)
       const handler = requestPreResponseHandlers.get(request.source)
       if (handler === undefined) {
         ;(request as any)[handledSymbol] = true
@@ -83,7 +83,7 @@ export const toHandled = <E, R, EH, RH>(
       onFailure(cause): Effect.Effect<void, EH, RH> {
         const fiber = Fiber.getCurrent()!
         reportCauseUnsafe(fiber, cause)
-        const request = Context.getUnsafe(fiber.services, HttpServerRequest)
+        const request = Context.getUnsafe(fiber.context, HttpServerRequest)
         if (handledSymbol in request) return Effect.void
         return Effect.matchCauseEffectEager(causeResponse(cause), {
           onFailure(_) {
@@ -96,7 +96,7 @@ export const toHandled = <E, R, EH, RH>(
       },
       onSuccess(response): Effect.Effect<void, EH, RH> {
         const fiber = Fiber.getCurrent()!
-        const request = Context.getUnsafe(fiber.services, Request.HttpServerRequest)
+        const request = Context.getUnsafe(fiber.context, Request.HttpServerRequest)
         return handledSymbol in request ? Effect.void : handleResponse(request, response)
       }
     })
@@ -128,7 +128,7 @@ export const scopeTransferToStream = (
     return response
   }
   const fiber = Fiber.getCurrent()!
-  const scope = Context.getUnsafe(fiber.services, Scope.Scope) as Scope.Closeable
+  const scope = Context.getUnsafe(fiber.context, Scope.Scope) as Scope.Closeable
   scopeDisableClose(scope)
   return Response.setBody(
     response,
@@ -145,10 +145,10 @@ const scopeEjected = Symbol.for("effect/http/HttpEffect/scopeEjected")
 const scoped = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   Effect.withFiber((fiber) => {
     const scope = Scope.makeUnsafe()
-    const prevServices = fiber.services
-    fiber.setServices(Context.add(fiber.services, Scope.Scope, scope))
+    const prevServices = fiber.context
+    fiber.setContext(Context.add(fiber.context, Scope.Scope, scope))
     return Effect.onExitPrimitive(effect, (exit) => {
-      fiber.setServices(prevServices)
+      fiber.setContext(prevServices)
       if (scopeEjected in scope) return undefined
       return Scope.closeUnsafe(scope, exit)
     }, true)
@@ -343,10 +343,10 @@ export const fromWebHandler = (
 ): Effect.Effect<HttpServerResponse, HttpServerError, HttpServerRequest> =>
   Effect.callback((resume, signal) => {
     const fiber = Fiber.getCurrent()!
-    const request = Context.getUnsafe(fiber.services, HttpServerRequest)
+    const request = Context.getUnsafe(fiber.context, HttpServerRequest)
     const requestResult = Request.toWebResult(request, {
       signal,
-      services: fiber.services
+      services: fiber.context
     })
     if (requestResult._tag === "Failure") {
       return resume(Effect.fail(new HttpServerError({ reason: requestResult.failure })))

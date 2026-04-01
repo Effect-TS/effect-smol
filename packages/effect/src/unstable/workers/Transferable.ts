@@ -60,7 +60,7 @@ export const makeCollector: Effect.Effect<Collector["Service"]> = Effect.sync(ma
 export const addAll = (
   tranferables: Iterable<globalThis.Transferable>
 ): Effect.Effect<void> =>
-  Effect.servicesWith((services) => {
+  Effect.contextWith((services) => {
     const collector = Context.getOrUndefined(services, Collector)
     if (!collector) return Effect.void
     collector.addAllUnsafe(tranferables)
@@ -75,7 +75,7 @@ export const getterAddAll = <A>(
   f: (_: A) => Iterable<globalThis.Transferable>
 ): Getter.Getter<A, A> =>
   Getter.transformOrFail((e: A) =>
-    Effect.servicesWith((services) => {
+    Effect.contextWith((services) => {
       const collector = Context.getOrUndefined(services, Collector)
       if (!collector) return Effect.succeed(e)
       collector.addAllUnsafe(f(e))

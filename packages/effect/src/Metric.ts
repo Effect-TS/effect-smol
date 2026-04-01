@@ -2708,7 +2708,7 @@ export const value = <Input, State>(
   self: Metric<Input, State>
 ): Effect<State> =>
   InternalEffect.flatMap(
-    InternalEffect.services(),
+    InternalEffect.context(),
     (context) => InternalEffect.sync(() => self.valueUnsafe(context))
   )
 
@@ -2760,7 +2760,7 @@ export const modify: {
   <Input, State>(self: Metric<Input, State>, input: Input) => Effect<void>
 >(2, (self, input) =>
   InternalEffect.flatMap(
-    InternalEffect.services(),
+    InternalEffect.context(),
     (context) => InternalEffect.sync(() => self.modifyUnsafe(input, context))
   ))
 
@@ -2822,7 +2822,7 @@ export const update: {
 >(
   2,
   (self, input) =>
-    InternalEffect.servicesWith((services) => InternalEffect.sync(() => self.updateUnsafe(input, services)))
+    InternalEffect.contextWith((services) => InternalEffect.sync(() => self.updateUnsafe(input, services)))
 )
 
 /**
@@ -3056,7 +3056,7 @@ export const withAttributes: {
  * @category Snapshotting
  */
 export const snapshot: Effect<ReadonlyArray<Metric.Snapshot>> = InternalEffect.map(
-  InternalEffect.services(),
+  InternalEffect.context(),
   (context) => snapshotUnsafe(context)
 )
 
@@ -3114,7 +3114,7 @@ export const snapshot: Effect<ReadonlyArray<Metric.Snapshot>> = InternalEffect.m
  * @since 2.0.0
  * @category Debugging
  */
-export const dump: Effect<string> = InternalEffect.flatMap(InternalEffect.services(), (context) => {
+export const dump: Effect<string> = InternalEffect.flatMap(InternalEffect.context(), (context) => {
   const metrics = snapshotUnsafe(context)
   if (metrics.length > 0) {
     const maxNameLength = metrics.reduce((max, metric) => {
@@ -3180,7 +3180,7 @@ export const dump: Effect<string> = InternalEffect.flatMap(InternalEffect.servic
  *   yield* Metric.update(responseTime, 150)
  *
  *   // Get services context for unsafe operations
- *   const services = yield* Effect.services()
+ *   const services = yield* Effect.context()
  *
  *   // Use snapshotUnsafe for direct, synchronous access
  *   const snapshots = Metric.snapshotUnsafe(services)

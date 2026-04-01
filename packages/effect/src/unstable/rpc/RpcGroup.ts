@@ -256,7 +256,7 @@ const RpcGroupProto = {
     // oxlint-disable-next-line no-this-alias
     const self = this
     return Effect.gen(function*() {
-      const services = yield* Effect.services<never>()
+      const services = yield* Effect.context<never>()
       const handlers = Effect.isEffect(build) ? yield* build : build
       const contextMap = new Map<string, unknown>()
       for (const [tag, handler] of Object.entries(handlers)) {
@@ -289,28 +289,28 @@ const RpcGroupProto = {
     // oxlint-disable-next-line no-this-alias
     const self = this
     return Layer.effectServices(Effect.gen(function*() {
-      const services = yield* Effect.services<never>()
+      const services = yield* Effect.context<never>()
       const handler = Effect.isEffect(build) ? yield* build : build
       const contextMap = new Map<string, unknown>()
       const rpc = self.requests.get(service)!
       contextMap.set(rpc.key, {
         handler,
-        services
+        context: services
       })
       return Context.makeUnsafe(contextMap)
     }))
   },
   accessHandler(this: RpcGroup<any>, service: string) {
-    return Effect.servicesWith((parentServices: Context.Context<any>) => {
+    return Effect.contextWith((parentServices: Context.Context<any>) => {
       const rpc = this.requests.get(service)!
-      const { handler, services } = parentServices.mapUnsafe.get(rpc.key) as Rpc.Handler<any>
+      const { handler, context } = parentServices.mapUnsafe.get(rpc.key) as Rpc.Handler<any>
       return Effect.succeed((payload: Rpc.Payload<any>, options: any) => {
         options.rpc = rpc
         const result = handler(payload, options)
         const effectOrStream = Rpc.isWrapper(result) ? result.value : result
         return Effect.isEffect(effectOrStream)
-          ? Effect.provide(effectOrStream, services)
-          : Stream.provideServices(effectOrStream, services)
+          ? Effect.provide(effectOrStream, context)
+          : Stream.provideContext(effectOrStream, context)
       })
     })
   },

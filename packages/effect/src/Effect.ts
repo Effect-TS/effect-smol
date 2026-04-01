@@ -5513,7 +5513,7 @@ export const isSuccess: <A, E, R>(self: Effect<A, E, R>) => Effect<boolean, neve
 // -----------------------------------------------------------------------------
 
 /**
- * Returns the complete service map from the current context.
+ * Returns the complete context.
  *
  * This function allows you to access all services that are currently available
  * in the effect's environment. This can be useful for debugging, introspection,
@@ -5531,7 +5531,7 @@ export const isSuccess: <A, E, R>(self: Effect<A, E, R>) => Effect<boolean, neve
  * }>("Database")
  *
  * const program = Effect.gen(function*() {
- *   const allServices = yield* Effect.services()
+ *   const allServices = yield* Effect.context()
  *
  *   // Check if specific services are available
  *   const loggerOption = Context.getOption(allServices, Logger)
@@ -5544,18 +5544,18 @@ export const isSuccess: <A, E, R>(self: Effect<A, E, R>) => Effect<boolean, neve
  * const context = Context.make(Logger, { log: console.log })
  *   .pipe(Context.add(Database, { query: () => "result" }))
  *
- * const provided = Effect.provideServices(program, context)
+ * const provided = Effect.provideContext(program, context)
  * ```
  *
  * @since 2.0.0
  * @category Environment
  */
-export const services: <R = never>() => Effect<Context.Context<R>, never, R> = internal.services
+export const context: <R = never>() => Effect<Context.Context<R>, never, R> = internal.context
 
 /**
- * Transforms the current service map using the provided function.
+ * Transforms the current context using the provided function.
  *
- * This function allows you to access the complete service map and perform
+ * This function allows you to access the complete context and perform
  * computations based on all available services. This is useful when you need
  * to conditionally execute logic based on what services are available.
  *
@@ -5570,7 +5570,7 @@ export const services: <R = never>() => Effect<Context.Context<R>, never, R> = i
  *   get: (key: string) => string | null
  * }>("Cache")
  *
- * const program = Effect.servicesWith((services) => {
+ * const program = Effect.contextWith((services) => {
  *   const cacheOption = Context.getOption(services, Cache)
  *   const hasCache = Option.isSome(cacheOption)
  *
@@ -5596,9 +5596,9 @@ export const services: <R = never>() => Effect<Context.Context<R>, never, R> = i
  * @since 2.0.0
  * @category Environment
  */
-export const servicesWith: <R, A, E, R2>(
+export const contextWith: <R, A, E, R2>(
   f: (services: Context.Context<R>) => Effect<A, E, R2>
-) => Effect<A, E, R | R2> = internal.servicesWith
+) => Effect<A, E, R | R2> = internal.contextWith
 
 /**
  * Provides dependencies to an effect using layers or a context. Use `options.local`
@@ -5682,11 +5682,11 @@ export const provide: {
 } = internalLayer.provide
 
 /**
- * Provides a service map to an effect, fulfilling its service requirements.
+ * Provides a context to an effect, fulfilling its service requirements.
  *
  * **Details**
  *
- * This function provides multiple services at once by supplying a service map
+ * This function provides multiple services at once by supplying a context
  * that contains all the required services. It removes the provided services
  * from the effect's requirements, making them available to the effect.
  *
@@ -5702,7 +5702,7 @@ export const provide: {
  *   query: (sql: string) => string
  * }>("Database")
  *
- * // Create service map with multiple services
+ * // Create a context with multiple services
  * const context = Context.make(Logger, { log: console.log })
  *   .pipe(Context.add(Database, { query: () => "result" }))
  *
@@ -5714,13 +5714,13 @@ export const provide: {
  *   return db.query("SELECT * FROM users")
  * })
  *
- * const provided = Effect.provideServices(program, context)
+ * const provided = Effect.provideContext(program, context)
  * ```
  *
  * @since 2.0.0
  * @category Environment
  */
-export const provideServices: {
+export const provideContext: {
   <XR>(
     context: Context.Context<XR>
   ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, XR>>
@@ -5728,7 +5728,7 @@ export const provideServices: {
     self: Effect<A, E, R>,
     context: Context.Context<XR>
   ): Effect<A, E, Exclude<R, XR>>
-} = internal.provideServices
+} = internal.provideContext
 
 /**
  * Accesses a service from the context.
@@ -5816,7 +5816,7 @@ export const serviceOption: <I, S>(key: Context.Key<I, S>) => Effect<Option<S>> 
  *
  * // Transform services by providing Config while keeping Logger requirement
  * const configured = program.pipe(
- *   Effect.updateServices((services: Context.Context<typeof Logger>) =>
+ *   Effect.updateContext((services: Context.Context<typeof Logger>) =>
  *     Context.add(services, Config, { name: "World" })
  *   )
  * )
@@ -5830,7 +5830,7 @@ export const serviceOption: <I, S>(key: Context.Key<I, S>) => Effect<Option<S>> 
  * @since 4.0.0
  * @category Context
  */
-export const updateServices: {
+export const updateContext: {
   <R2, R>(
     f: (services: Context.Context<R2>) => Context.Context<NoInfer<R>>
   ): <A, E>(self: Effect<A, E, R>) => Effect<A, E, R2>
@@ -5838,7 +5838,7 @@ export const updateServices: {
     self: Effect<A, E, R>,
     f: (services: Context.Context<R2>) => Context.Context<NoInfer<R>>
   ): Effect<A, E, R2>
-} = internal.updateServices
+} = internal.updateContext
 
 /**
  * Updates the service with the required service entry.
@@ -7964,7 +7964,7 @@ export const requestUnsafe: <A extends Request.Any>(
   options: {
     readonly resolver: RequestResolver<A>
     readonly onExit: (exit: Exit.Exit<Request.Success<A>, Request.Error<A>>) => void
-    readonly services: Context.Context<never>
+    readonly context: Context.Context<never>
   }
 ) => () => void = internalRequest.requestUnsafe
 
@@ -13819,7 +13819,7 @@ export const tx = <A, E, R>(
   effect: Effect<A, E, R>
 ): Effect<A, E, Exclude<R, Transaction>> =>
   withFiber((fiber) => {
-    if (fiber.services.mapUnsafe.has(Transaction.key)) {
+    if (fiber.context.mapUnsafe.has(Transaction.key)) {
       return effect as Effect<A, E, Exclude<R, Transaction>>
     }
     // Create transaction state only at the outermost boundary

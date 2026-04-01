@@ -973,7 +973,7 @@ export const publishAll: {
  */
 export const subscribe = <A>(self: PubSub<A>): Effect.Effect<Subscription<A>, never, Scope.Scope> =>
   Effect.uninterruptible(
-    Effect.servicesWith((services) => {
+    Effect.contextWith((services) => {
       const localScope = Context.get(services, Scope.Scope)
       const scope = Scope.forkUnsafe(self.scope)
       const subscription = makeSubscriptionUnsafe(self.pubsub, self.subscribers, self.strategy)

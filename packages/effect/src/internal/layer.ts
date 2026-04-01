@@ -17,7 +17,7 @@ const provideLayer = <A, E, R, ROut, E2, RIn>(
       options?.local
         ? Layer.buildWithMemoMap(layer, Layer.makeMemoMapUnsafe(), scope)
         : Layer.buildWithScope(layer, scope),
-      (context) => effect.provideServices(self, context)
+      (context) => effect.provideContext(self, context)
     )
   )
 
@@ -83,6 +83,6 @@ export const provide = dual<
     } | undefined
   ): Effect<any, any, Exclude<R, ROut>> =>
     Context.isContext(source)
-      ? effect.provideServices(self, source)
+      ? effect.provideContext(self, source)
       : provideLayer(self, Array.isArray(source) ? Layer.mergeAll(...source as any) : source, options)
 )

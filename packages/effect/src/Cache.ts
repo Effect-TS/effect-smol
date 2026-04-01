@@ -186,10 +186,10 @@ export const makeWith = <
   never,
   "lookup" extends ServiceMode ? never : R
 > =>
-  effect.servicesWith((services: Context.Context<any>) => {
+  effect.contextWith((services: Context.Context<any>) => {
     const self = Object.create(Proto)
     self.lookup = (key: Key): Effect.Effect<A, E> =>
-      effect.updateServices(
+      effect.updateContext(
         options.lookup(key),
         (input) => Context.merge(services, input)
       )

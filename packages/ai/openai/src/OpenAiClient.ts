@@ -231,7 +231,7 @@ export const make = Effect.fnUntraced(
     }
 
     const createResponseStream: Service["createResponseStream"] = (payload) =>
-      Effect.servicesWith((services) => {
+      Effect.contextWith((services) => {
         const socket = Context.getOrUndefined(services, OpenAiSocket)
         if (socket) return socket.createResponseStream(payload)
         return httpClientOk.execute(
@@ -569,7 +569,7 @@ export const withWebSocketMode = <A, E, R>(
   Effect.scopedWith((scope) =>
     Effect.flatMap(
       Scope.provide(makeSocket, scope),
-      (services) => Effect.provideServices(effect, services)
+      (services) => Effect.provideContext(effect, services)
     )
   )
 

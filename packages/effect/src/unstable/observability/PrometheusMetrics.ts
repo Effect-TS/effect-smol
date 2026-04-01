@@ -114,7 +114,7 @@ export interface HttpOptions extends FormatOptions {
  */
 export const format: (options?: FormatOptions | undefined) => Effect.Effect<string> = Effect.fnUntraced(
   function*(options) {
-    const services = yield* Effect.services<never>()
+    const services = yield* Effect.context<never>()
     return formatUnsafe(services, options)
   }
 )
@@ -122,7 +122,7 @@ export const format: (options?: FormatOptions | undefined) => Effect.Effect<stri
 /**
  * Synchronously format all metrics in the registry to Prometheus exposition format.
  *
- * This is a low-level function that requires access to the service map.
+ * This is a low-level function that requires access to the context.
  * Most users should use `format` instead.
  *
  * @since 4.0.0

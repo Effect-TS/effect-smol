@@ -18,7 +18,7 @@ export class AnthropicConfig extends Context.Service<
    * @since 1.0.0
    */
   static readonly getOrUndefined: Effect.Effect<typeof AnthropicConfig.Service | undefined> = Effect.map(
-    Effect.services<never>(),
+    Effect.context<never>(),
     (services) => services.mapUnsafe.get(AnthropicConfig.key)
   )
 }

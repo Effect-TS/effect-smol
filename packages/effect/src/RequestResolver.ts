@@ -1071,7 +1071,7 @@ export const persisted: {
       ...self,
       runAll: Effect.fnUntraced(function*(entries, key) {
         const results = yield* (store.getMany(Iterable.map(entries, (_) => _.request)).pipe(
-          Effect.provideServices(entries[0].services)
+          Effect.provideContext(entries[0].services)
         ) as Effect.Effect<
           Array<Exit.Exit<unknown, unknown> | undefined>,
           Request.Error<A>
@@ -1107,7 +1107,7 @@ export const persisted: {
           return Effect.void
         })
         yield* (store.setMany(toPersist).pipe(
-          Effect.provideServices(entries[0].services)
+          Effect.provideContext(entries[0].services)
         ) as Effect.Effect<void, Request.Error<A>>)
       })
     })

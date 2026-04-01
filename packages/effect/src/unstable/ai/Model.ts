@@ -108,7 +108,7 @@ const Proto = {
     _RIn: identity
   },
   asEffect(this: Model<any, any, any>) {
-    return Effect.servicesWith((services: Context.Context<never>) =>
+    return Effect.contextWith((services: Context.Context<never>) =>
       Effect.succeed(Layer.provide(this, Layer.succeedServices(services)))
     )
   },

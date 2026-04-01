@@ -353,7 +353,7 @@ Convert Effect streams back to Node.js Readable streams:
 // packages/platform-node-shared/src/NodeStream.ts
 export const toReadable = <E, R>(stream: Stream.Stream<string | Uint8Array, E, R>): Effect.Effect<Readable, never, R> =>
   Effect.map(
-    Effect.services<R>(),
+    Effect.context<R>(),
     (context) => new StreamAdapter(context, stream)
   )
 

@@ -9294,7 +9294,7 @@ export const ensuring: {
 )
 
 /**
- * Provides a layer or service map to the stream, removing the corresponding
+ * Provides a layer or context to the stream, removing the corresponding
  * service requirements. Use `options.local` to build the layer every time; by
  * default, layers are shared between provide calls.
  *
@@ -9354,7 +9354,7 @@ export const provide: {
 ): Stream<A, E | EL, Exclude<R, AL> | RL> => fromChannel(Channel.provide(self.channel, layer, options)))
 
 /**
- * Provides multiple services to the stream using a service map.
+ * Provides multiple services to the stream using a context.
  *
  * @example
  * ```ts
@@ -9376,7 +9376,7 @@ export const provide: {
  * )
  *
  * const program = Effect.gen(function*() {
- *   const result = yield* Stream.runCollect(Stream.provideServices(stream, services))
+ *   const result = yield* Stream.runCollect(Stream.provideContext(stream, services))
  *   yield* Console.log(result)
  * })
  *
@@ -9387,13 +9387,13 @@ export const provide: {
  * @since 4.0.0
  * @category Services
  */
-export const provideServices: {
+export const provideContext: {
   <R2>(services: Context.Context<R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, Exclude<R, R2>>
   <A, E, R, R2>(self: Stream<A, E, R>, services: Context.Context<R2>): Stream<A, E, Exclude<R, R2>>
 } = dual(
   2,
   <A, E, R, R2>(self: Stream<A, E, R>, services: Context.Context<R2>): Stream<A, E, Exclude<R, R2>> =>
-    fromChannel(Channel.provideServices(self.channel, services))
+    fromChannel(Channel.provideContext(self.channel, services))
 )
 
 /**
@@ -9507,7 +9507,7 @@ export const provideServiceEffect: {
 ): Stream<A, E | ES, Exclude<R, I> | RS> => fromChannel(Channel.provideServiceEffect(self.channel, key, service)))
 
 /**
- * Transforms the stream's required services by mapping the current service map
+ * Transforms the stream's required services by mapping the current context
  * to a new one.
  *
  * @example
@@ -9526,7 +9526,7 @@ export const provideServiceEffect: {
  * )
  *
  * const updated = stream.pipe(
- *   Stream.updateServices((services: Context.Context<Logger>) =>
+ *   Stream.updateContext((services: Context.Context<Logger>) =>
  *     Context.add(services, Config, { name: "World" })
  *   )
  * )
@@ -9545,7 +9545,7 @@ export const provideServiceEffect: {
  * @since 2.0.0
  * @category Services
  */
-export const updateServices: {
+export const updateContext: {
   <R, R2>(
     f: (services: Context.Context<R2>) => Context.Context<R>
   ): <A, E>(
@@ -9558,7 +9558,7 @@ export const updateServices: {
 } = dual(2, <A, E, R, R2>(
   self: Stream<A, E, R>,
   f: (services: Context.Context<R2>) => Context.Context<R>
-): Stream<A, E, R2> => fromChannel(Channel.updateServices(self.channel, f)))
+): Stream<A, E, R2> => fromChannel(Channel.updateContext(self.channel, f)))
 
 /**
  * Updates a single service in the stream environment by applying a function.
@@ -9602,7 +9602,7 @@ export const updateService: {
   service: Context.Key<I, S>,
   f: (service: NoInfer<S>) => S
 ): Stream<A, E, R | I> =>
-  updateServices(self, (services) =>
+  updateContext(self, (services) =>
     Context.add(
       services,
       service,
@@ -10397,7 +10397,7 @@ export const toReadableStreamWith = dual<
 
     return new ReadableStream<A>({
       start(controller) {
-        fiber = Effect.runFork(Effect.provideServices(
+        fiber = Effect.runFork(Effect.provideContext(
           runForEachArray(self, (chunk) =>
             latch.whenOpen(Effect.sync(() => {
               latch.closeUnsafe()
@@ -10504,7 +10504,7 @@ export const toReadableStreamEffect: {
     options?: { readonly strategy?: QueuingStrategy<A> | undefined }
   ): Effect.Effect<ReadableStream<A>, never, R> =>
     Effect.map(
-      Effect.services<R>(),
+      Effect.context<R>(),
       (context) => toReadableStreamWith(self, context, options)
     )
 )
@@ -10607,7 +10607,7 @@ export const toAsyncIterableWith: {
  */
 export const toAsyncIterableEffect = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<AsyncIterable<A>, never, R> =>
   Effect.map(
-    Effect.services<R>(),
+    Effect.context<R>(),
     (services) => toAsyncIterableWith(self, services)
   )
 
