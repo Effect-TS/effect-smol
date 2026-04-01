@@ -7000,6 +7000,14 @@ export declare namespace Repeat {
   /**
    * @since 2.0.0
    * @category Repetition / Recursion
+   */
+  export type Output<A, O extends Options<A>> = O extends { until: Predicate.Refinement<A, infer B> } ? B
+    : O extends { while: Predicate.Refinement<A, infer B> } ? Exclude<A, B>
+    : A
+
+  /**
+   * @since 2.0.0
+   * @category Repetition / Recursion
    * @example
    * ```ts
    * import type { Effect } from "effect"
@@ -7011,10 +7019,10 @@ export declare namespace Repeat {
    * ```
    */
   export type Return<R, E, A, O extends Options<A>> = Effect<
-    O extends { schedule: Schedule<infer Out, infer _I, infer _E, infer _R> } ? Out
-      : O extends { until: Predicate.Refinement<A, infer B> } ? B
-      : O extends { while: Predicate.Refinement<A, infer B> } ? Exclude<A, B>
-      : A,
+    O extends { schedule: Schedule<infer Out, infer _I, infer _E, infer _R> }
+      ? O extends { passthrough: true } ? Output<A, O>
+      : Out
+      : Output<A, O>,
     | E
     | (O extends { schedule: Schedule<infer _Out, infer _I, infer E, infer _R> } ? E
       : never)
@@ -7048,7 +7056,8 @@ export declare namespace Repeat {
    * const repeatOptions: Effect.Repeat.Options<number> = {
    *   times: 5,
    *   schedule: Schedule.fixed("100 millis"),
-   *   while: (result) => result < 10
+   *   while: (result) => result < 10,
+   *   passthrough: true
    * }
    * ```
    */
@@ -7057,6 +7066,7 @@ export declare namespace Repeat {
     until?: ((_: A) => boolean | Effect<boolean, any, any>) | undefined
     times?: number | undefined
     schedule?: Schedule<any, A, any, any> | undefined
+    passthrough?: boolean | undefined
   }
 }
 
@@ -7121,6 +7131,10 @@ export const forever: <
  * for tasks like retrying operations with backoff, periodic execution, or
  * performing a series of dependent actions.
  *
+ * When using the options form, pass `{ passthrough: true }` to preserve the
+ * last successful effect result while still using the schedule for timing or
+ * limiting repetitions.
+ *
  * You can combine schedules for more advanced repetition logic, such as adding
  * delays, limiting recursions, or dynamically adjusting based on the outcome of
  * each execution.
@@ -7137,6 +7151,29 @@ export const forever: <
  * const program = Effect.repeat(action, policy)
  *
  * // Effect.runPromise(program).then((n) => console.log(`repetitions: ${n}`))
+ * ```
+ *
+ * @example
+ * ```ts
+ * // Poll until the response is no longer pending, keeping the final response
+ * import { Effect, Schedule } from "effect"
+ *
+ * const responses = [
+ *   { status: "pending" as const },
+ *   { status: "processing" as const },
+ *   { status: "valid" as const }
+ * ]
+ * let current = 0
+ *
+ * const poll = Effect.sync(() => responses[Math.min(current++, responses.length - 1)])
+ *
+ * const program = Effect.repeat(poll, {
+ *   schedule: Schedule.spaced("1 second"),
+ *   while: (response) => response.status === "pending" || response.status === "processing",
+ *   passthrough: true
+ * })
+ *
+ * // Effect.runPromise(program).then((response) => console.log(response.status))
  * ```
  *
  * @example

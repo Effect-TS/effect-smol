@@ -747,6 +747,46 @@ describe("Effect", () => {
         assert.strictEqual(n, 3)
         assert.strictEqual(result, 2) // schedule result
       }))
+
+    it.effect("repeat/schedule - with while + passthrough", () =>
+      Effect.gen(function*() {
+        const responses = [
+          { status: "pending" as const },
+          { status: "processing" as const },
+          { status: "valid" as const }
+        ]
+        let polls = 0
+        const poll = Effect.sync(() => responses[Math.min(polls++, responses.length - 1)])
+        const fiber = yield* Effect.repeat(poll, {
+          schedule: Schedule.spaced("1 second"),
+          while: (response) => response.status === "pending" || response.status === "processing",
+          passthrough: true
+        }).pipe(Effect.forkChild)
+        yield* TestClock.setTime(Number.POSITIVE_INFINITY)
+        const result = yield* Fiber.join(fiber)
+        assert.deepStrictEqual(result, { status: "valid" })
+        assert.strictEqual(polls, 3)
+      }))
+
+    it.effect("repeat/schedule - with until + passthrough", () =>
+      Effect.gen(function*() {
+        const responses = [
+          { status: "pending" as const },
+          { status: "processing" as const },
+          { status: "valid" as const }
+        ]
+        let polls = 0
+        const poll = Effect.sync(() => responses[Math.min(polls++, responses.length - 1)])
+        const fiber = yield* Effect.repeat(poll, {
+          schedule: Schedule.spaced("1 second"),
+          until: (response) => response.status === "valid",
+          passthrough: true
+        }).pipe(Effect.forkChild)
+        yield* TestClock.setTime(Number.POSITIVE_INFINITY)
+        const result = yield* Fiber.join(fiber)
+        assert.deepStrictEqual(result, { status: "valid" })
+        assert.strictEqual(polls, 3)
+      }))
   })
 
   describe("retry", () => {

@@ -225,8 +225,12 @@ export const buildFromOptions = <Input>(options: {
   while?: ((input: Input) => boolean | Effect<boolean, any, any>) | undefined
   until?: ((input: Input) => boolean | Effect<boolean, any, any>) | undefined
   times?: number | undefined
+  passthrough?: boolean | undefined
 }) => {
   let schedule: Schedule.Schedule<any, Input, any, any> = options.schedule ?? passthroughForever
+  if (options.passthrough) {
+    schedule = Schedule.passthrough(schedule)
+  }
   if (options.while) {
     schedule = Schedule.while(schedule, ({ input }) => {
       const applied = options.while!(input)
