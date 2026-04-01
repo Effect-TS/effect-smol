@@ -107,7 +107,7 @@ passing in the service interface as a type parameter.
 
 ```ts
 // file: src/db/Database.ts
-import { Effect, Layer, Schema, Context } from "effect"
+import { Context, Effect, Layer, Schema } from "effect"
 
 // Pass in the service class name as the first type parameter, and the service
 // interface as the second type parameter.
