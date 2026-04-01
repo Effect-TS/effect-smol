@@ -1,533 +1,215 @@
 /**
  * @since 4.0.0
  */
-import * as Uuid from "uuid"
-import type * as Cause from "../../Cause.ts"
-import { Clock } from "../../Clock.ts"
+import type { NonEmptyReadonlyArray } from "../../Array.ts"
+import * as Arr from "../../Array.ts"
+import * as Cache from "../../Cache.ts"
 import * as Effect from "../../Effect.ts"
-import * as FiberMap from "../../FiberMap.ts"
+import * as Equal from "../../Equal.ts"
+import * as Hash from "../../Hash.ts"
+import { Data } from "../../index.ts"
 import * as Layer from "../../Layer.ts"
-import * as PubSub from "../../PubSub.ts"
-import * as Queue from "../../Queue.ts"
-import * as RcMap from "../../RcMap.ts"
-import * as Schema from "../../Schema.ts"
-import type * as Scope from "../../Scope.ts"
+import * as Option from "../../Option.ts"
+import * as Redacted from "../../Redacted.ts"
+import type * as Schema from "../../Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
-import type * as HttpServerError from "../http/HttpServerError.ts"
-import * as HttpServerRequest from "../http/HttpServerRequest.ts"
-import * as HttpServerResponse from "../http/HttpServerResponse.ts"
-import type * as Socket from "../socket/Socket.ts"
-import { EntryId, makeRemoteIdUnsafe, type RemoteId } from "./EventJournal.ts"
-import type * as EventLog from "./EventLog.ts"
-import type { EncryptedRemoteEntry } from "./EventLogEncryption.ts"
+import * as Stream from "../../Stream.ts"
+import type * as Rpc from "../rpc/Rpc.ts"
+import type * as RpcGroup from "../rpc/RpcGroup.ts"
+import type { RemoteId } from "./EventJournal.ts"
+import * as EventLog from "./EventLog.ts"
 import {
-  Ack,
-  Authenticated,
-  Changes,
   ChunkedMessage,
-  decodeRequest,
-  encodeResponse,
-  Hello,
-  Pong,
-  ProtocolError,
-  type ProtocolRequest,
-  type ProtocolResponse
-} from "./EventLogRemote.ts"
+  EventLogAuthentication,
+  EventLogProtocolError,
+  EventLogRemoteRpcs,
+  HelloResponse,
+  SingleMessage,
+  type StoreId
+} from "./EventLogMessage.ts"
 import * as EventLogSessionAuth from "./EventLogSessionAuth.ts"
-
-const constChunkSize = 512_000
-
-const copyUint8Array = (bytes: Uint8Array): Uint8Array => {
-  const copy = new Uint8Array(bytes.byteLength)
-  copy.set(bytes)
-  return copy
-}
-
-const equalsUint8Array = (left: Uint8Array, right: Uint8Array): boolean => {
-  if (left.byteLength !== right.byteLength) {
-    return false
-  }
-
-  for (let index = 0; index < left.byteLength; index++) {
-    if (left[index] !== right[index]) {
-      return false
-    }
-  }
-
-  return true
-}
 
 /**
  * @since 4.0.0
- * @category constructors
+ * @category Layers
  */
-export const makeHandler: Effect.Effect<
-  (socket: Socket.Socket) => Effect.Effect<void, Socket.SocketError>,
-  never,
-  Storage
-> = Effect.gen(function*() {
-  const clock = yield* Clock
-  const storage = yield* Storage
-  const remoteId = yield* storage.getId
-  const trustedSessionAuthBindings = new Map<string, Uint8Array>()
-  const persistedSessionAuthBindings = yield* storage.loadSessionAuthBindings
-  for (const [publicKey, signingPublicKey] of persistedSessionAuthBindings) {
-    trustedSessionAuthBindings.set(publicKey, copyUint8Array(signingPublicKey))
-  }
-  let chunkId = 0
-
-  const ensureTrustedSessionAuthBinding = Effect.fnUntraced(function*(options: {
-    readonly publicKey: string
-    readonly signingPublicKey: Uint8Array
-  }) {
-    const trustedSigningPublicKey = trustedSessionAuthBindings.get(options.publicKey)
-    if (trustedSigningPublicKey !== undefined) {
-      return equalsUint8Array(trustedSigningPublicKey, options.signingPublicKey)
-    }
-
-    const created = yield* storage.putSessionAuthBindingIfAbsent(options.publicKey, options.signingPublicKey)
-    if (created) {
-      trustedSessionAuthBindings.set(options.publicKey, copyUint8Array(options.signingPublicKey))
-      return true
-    }
-
-    const persistedSigningPublicKey = yield* storage.getSessionAuthBinding(options.publicKey)
-    if (persistedSigningPublicKey === undefined) {
-      return false
-    }
-
-    trustedSessionAuthBindings.set(options.publicKey, copyUint8Array(persistedSigningPublicKey))
-    return equalsUint8Array(persistedSigningPublicKey, options.signingPublicKey)
-  })
-
-  return Effect.fnUntraced(
-    function*(socket: Socket.Socket) {
-      const subscriptions = yield* FiberMap.make<string>()
-      const writeRaw = yield* socket.writer
-      const chunks = new Map<
-        number,
-        {
-          readonly parts: Array<Uint8Array>
-          count: number
-          bytes: number
-        }
-      >()
-      const sessionChallenge = yield* EventLogSessionAuth.makeSessionAuthChallenge.pipe(Effect.orDie)
-      const sessionChallengeIssuedAt = clock.currentTimeMillisUnsafe()
-      let sessionChallengeUsed = false
-      let authenticatedPublicKey: string | undefined
-
-      const write = Effect.fnUntraced(function*(response: Schema.Schema.Type<typeof ProtocolResponse>) {
-        const data = yield* encodeResponse(response)
-        if (response._tag !== "Changes" || data.byteLength <= constChunkSize) {
-          return yield* writeRaw(data)
-        }
-        const id = chunkId++
-        for (const part of ChunkedMessage.split(id, data)) {
-          yield* writeRaw(yield* encodeResponse(part))
-        }
-      })
-
-      const writeForbidden = Effect.fnUntraced(function*(options: {
-        readonly requestTag: "Authenticate" | "WriteEntries" | "RequestChanges" | "StopChanges"
-        readonly id?: number | undefined
-        readonly publicKey?: string | undefined
-      }) {
-        yield* Effect.orDie(write(
-          new ProtocolError({
-            requestTag: options.requestTag,
-            id: options.id,
-            publicKey: options.publicKey,
-            code: "Forbidden",
-            message: "Forbidden request"
-          })
-        ))
-      })
-
-      const handleAuthenticate = Effect.fnUntraced(
-        function*(request: Extract<Schema.Schema.Type<typeof ProtocolRequest>, { readonly _tag: "Authenticate" }>) {
-          if (authenticatedPublicKey !== undefined) {
-            if (authenticatedPublicKey === request.publicKey) {
-              return yield* Effect.orDie(write(new Authenticated({ publicKey: request.publicKey })))
-            }
-
-            return yield* writeForbidden({
-              requestTag: "Authenticate",
-              publicKey: request.publicKey
-            })
-          }
-
-          const challengeAlreadyUsed = sessionChallengeUsed
-          sessionChallengeUsed = true
-
-          const verified = yield* EventLogSessionAuth.verifySessionAuthenticateRequest({
-            remoteId,
-            challenge: sessionChallenge,
-            challengeIssuedAtMillis: sessionChallengeIssuedAt,
-            challengeAlreadyUsed,
-            publicKey: request.publicKey,
-            signingPublicKey: request.signingPublicKey,
-            signature: request.signature,
-            algorithm: request.algorithm
-          }).pipe(
-            Effect.as(true),
-            Effect.catchTag("EventLogSessionAuthError", () => Effect.succeed(false))
-          )
-
-          if (!verified) {
-            return yield* writeForbidden({
-              requestTag: "Authenticate",
-              publicKey: request.publicKey
-            })
-          }
-
-          const trusted = yield* ensureTrustedSessionAuthBinding({
-            publicKey: request.publicKey,
-            signingPublicKey: request.signingPublicKey
-          })
-          if (!trusted) {
-            return yield* writeForbidden({
-              requestTag: "Authenticate",
-              publicKey: request.publicKey
-            })
-          }
-
-          authenticatedPublicKey = request.publicKey
-          return yield* Effect.orDie(write(new Authenticated({ publicKey: request.publicKey })))
-        }
-      )
-
-      yield* Effect.forkChild(Effect.orDie(write(
-        new Hello({
-          remoteId,
-          challenge: sessionChallenge
-        })
-      )))
-
-      const handleRequest = Effect.fnUntraced(
-        function*(request: Schema.Schema.Type<typeof ProtocolRequest>): Effect.fn.Return<void> {
-          switch (request._tag) {
-            case "Ping": {
-              return yield* Effect.orDie(write(new Pong({ id: request.id })))
-            }
-            case "Authenticate": {
-              return yield* handleAuthenticate(request)
-            }
-            case "WriteEntries": {
-              if (authenticatedPublicKey !== request.publicKey) {
-                return yield* writeForbidden({
-                  requestTag: "WriteEntries",
-                  id: request.id,
-                  publicKey: request.publicKey
-                })
-              }
-
-              if (request.encryptedEntries.length === 0) {
-                return yield* Effect.orDie(
-                  write(
-                    new Ack({
-                      id: request.id,
-                      sequenceNumbers: []
-                    })
-                  )
-                )
-              }
-              const entries = request.encryptedEntries.map(({ encryptedEntry, entryId }) =>
-                new PersistedEntry({
-                  entryId,
-                  iv: request.iv,
-                  encryptedEntry
-                })
-              )
-              return yield* storage.write(request.publicKey, request.storeId, entries).pipe(
-                Effect.matchCauseEffect({
-                  onFailure: (_) =>
-                    write(
-                      new ProtocolError({
-                        requestTag: "WriteEntries",
-                        id: request.id,
-                        publicKey: request.publicKey,
-                        storeId: request.storeId,
-                        code: "InternalServerError",
-                        message: "Persistence failure"
-                      })
-                    ),
-                  onSuccess: (encrypted) =>
-                    write(
-                      new Ack({
-                        id: request.id,
-                        sequenceNumbers: encrypted.map((entry) => entry.sequence)
-                      })
-                    )
-                }),
-                Effect.orDie
-              )
-            }
-            case "RequestChanges": {
-              if (authenticatedPublicKey !== request.publicKey) {
-                return yield* writeForbidden({
-                  requestTag: "RequestChanges",
-                  publicKey: request.publicKey
-                })
-              }
-
-              const subscriptionKey = makeEncryptedScopeKey({
-                publicKey: request.publicKey,
-                storeId: request.storeId
-              })
-
-              yield* Effect.gen(function*() {
-                let latestSequence = request.startSequence - 1
-                const changes = yield* storage.changes(request.publicKey, request.storeId, request.startSequence)
-                return yield* Queue.takeAll(changes).pipe(
-                  Effect.flatMap((entries) => {
-                    const latestEntries: Array<EncryptedRemoteEntry> = []
-                    for (const entry of entries) {
-                      if (entry.sequence <= latestSequence) continue
-                      latestEntries.push(entry)
-                      latestSequence = entry.sequence
-                    }
-                    if (latestEntries.length === 0) return Effect.void
-                    return Effect.orDie(
-                      write(
-                        new Changes({
-                          publicKey: request.publicKey,
-                          storeId: request.storeId,
-                          entries: latestEntries
-                        })
-                      )
-                    )
-                  }),
-                  Effect.forever
-                )
-              }).pipe(
-                Effect.scoped,
-                FiberMap.run(subscriptions, subscriptionKey)
-              )
-              return
-            }
-            case "StopChanges": {
-              if (authenticatedPublicKey !== request.publicKey) {
-                return yield* writeForbidden({
-                  requestTag: "StopChanges",
-                  publicKey: request.publicKey
-                })
-              }
-
-              return yield* FiberMap.remove(
-                subscriptions,
-                makeEncryptedScopeKey({
-                  publicKey: request.publicKey,
-                  storeId: request.storeId
-                })
-              )
-            }
-            case "ChunkedMessage": {
-              const data = ChunkedMessage.join(chunks, request)
-              if (!data) return
-              const decoded = yield* Effect.orDie(decodeRequest(data))
-              return yield* handleRequest(decoded)
-            }
-          }
-        }
-      )
-
-      yield* socket.run((data) => Effect.flatMap(Effect.orDie(decodeRequest(data)), handleRequest)).pipe(
-        Effect.catchCause((cause) => Effect.logDebug(cause))
-      )
-    },
-    Effect.scoped,
-    Effect.annotateLogs({
-      module: "EventLogServer"
+export const layerAuthMiddleware: Layer.Layer<
+  EventLogAuthentication
+> = Layer.succeed(EventLogAuthentication, (effect, { client, rpc }) => {
+  const identity = ServiceMap.getOrUndefined(client.annotations, EventLog.Identity)
+  if (identity) return Effect.provideService(effect, EventLog.Identity, identity)
+  return Effect.fail(
+    new EventLogProtocolError({
+      requestTag: rpc._tag,
+      publicKey: undefined,
+      code: "Forbidden",
+      message: "Unauthenticated request"
     })
   )
 })
 
 /**
  * @since 4.0.0
- * @category websockets
+ * @category Layers
  */
-export const makeHandlerHttp: Effect.Effect<
-  Effect.Effect<
-    HttpServerResponse.HttpServerResponse,
-    HttpServerError.HttpServerError | Socket.SocketError,
-    HttpServerRequest.HttpServerRequest | Scope.Scope
-  >,
-  never,
-  Storage
-> = Effect.gen(function*() {
-  const handler = yield* makeHandler
-
-  // @effect-diagnostics-next-line returnEffectInGen:off
-  return Effect.gen(function*() {
-    const request = yield* HttpServerRequest.HttpServerRequest
-    const socket = yield* request.upgrade
-    yield* handler(socket)
-    return HttpServerResponse.empty()
-  }).pipe(Effect.annotateLogs({
-    module: "EventLogServer"
-  }))
-})
-
-/**
- * @since 4.0.0
- * @category storage
- */
-export class PersistedEntry extends Schema.Class<PersistedEntry>(
-  "effect/eventlog/EventLogServer/PersistedEntry"
-)({
-  entryId: EntryId,
-  iv: Schema.Uint8Array,
-  encryptedEntry: Schema.Uint8Array
-}) {
-  /**
-   * @since 4.0.0
-   */
-  get entryIdString(): string {
-    return Uuid.stringify(this.entryId)
-  }
-}
-
-/**
- * @since 4.0.0
- * @category storage
- */
-export class Storage extends ServiceMap.Service<Storage, {
-  readonly getId: Effect.Effect<RemoteId>
-  readonly loadSessionAuthBindings: Effect.Effect<ReadonlyMap<string, Uint8Array>>
-  readonly getSessionAuthBinding: (publicKey: string) => Effect.Effect<Uint8Array | undefined>
-  readonly putSessionAuthBindingIfAbsent: (publicKey: string, signingPublicKey: Uint8Array) => Effect.Effect<boolean>
-  readonly write: (
+export const layerRpcHandlers = (options: {
+  readonly remoteId: RemoteId
+  readonly getOrCreateSessionAuthBinding: (
     publicKey: string,
-    storeId: EventLog.StoreId,
-    entries: ReadonlyArray<PersistedEntry>
-  ) => Effect.Effect<ReadonlyArray<EncryptedRemoteEntry>>
-  readonly entries: (
-    publicKey: string,
-    storeId: EventLog.StoreId,
-    startSequence: number
-  ) => Effect.Effect<ReadonlyArray<EncryptedRemoteEntry>>
-  readonly changes: (
-    publicKey: string,
-    storeId: EventLog.StoreId,
-    startSequence: number
-  ) => Effect.Effect<Queue.Dequeue<EncryptedRemoteEntry, Cause.Done>, never, Scope.Scope>
-}>()("effect/eventlog/EventLogServer/Storage") {}
+    signingPublicKey: Uint8Array<ArrayBuffer>
+  ) => Effect.Effect<Uint8Array<ArrayBuffer>>
+  readonly onWrite: (
+    data: Uint8Array<ArrayBuffer>
+  ) => Effect.Effect<void, EventLogProtocolError>
+  readonly changes: (options: {
+    readonly publicKey: string
+    readonly storeId: StoreId
+    readonly startSequence: number
+  }) => Stream.Stream<Uint8Array<ArrayBuffer>, unknown>
+}): Layer.Layer<
+  Rpc.ToHandler<RpcGroup.Rpcs<typeof EventLogRemoteRpcs>> | EventLogAuthentication
+> =>
+  EventLogRemoteRpcs.toLayer(Effect.gen(function*() {
+    const clientChallenges = yield* Cache.make({
+      lookup: (_clientId: number) => Effect.orDie(EventLogSessionAuth.makeSessionAuthChallenge),
+      capacity: Number.MAX_SAFE_INTEGER,
+      timeToLive: EventLogSessionAuth.SessionAuthChallengeTimeToLiveMillis
+    })
+    let chunkedIdCounter = 0
 
-/**
- * @since 4.0.0
- * @category storage
- */
-export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.Scope> = Effect.gen(function*() {
-  const knownIds = new Map<string, Map<string, number>>()
-  const journals = new Map<string, Array<EncryptedRemoteEntry>>()
-  const sessionAuthBindings = new Map<string, Uint8Array>()
-  const remoteId = makeRemoteIdUnsafe()
-  const ensureKnownIds = (scopeKey: string): Map<string, number> => {
-    let storeKnownIds = knownIds.get(scopeKey)
-    if (storeKnownIds) return storeKnownIds
-    storeKnownIds = new Map<string, number>()
-    knownIds.set(scopeKey, storeKnownIds)
-    return storeKnownIds
-  }
-  const ensureJournal = (scopeKey: string) => {
-    let journal = journals.get(scopeKey)
-    if (journal) return journal
-    journal = []
-    journals.set(scopeKey, journal)
-    return journal
-  }
-  const pubsubs = yield* RcMap.make({
-    lookup: (_scopeKey: string) =>
-      Effect.acquireRelease(
-        PubSub.unbounded<EncryptedRemoteEntry>(),
-        PubSub.shutdown
-      ),
-    idleTimeToLive: 60000
-  })
+    const persistedSigningPublicKeys = yield* Cache.make({
+      lookup: (key: SessionAuthCacheKey) =>
+        options.getOrCreateSessionAuthBinding(key.publicKey, key.signingPublicKey).pipe(
+          Effect.catchCause((_) =>
+            Effect.fail(
+              new EventLogProtocolError({
+                requestTag: "Authenticate",
+                publicKey: key.publicKey,
+                code: "Forbidden",
+                message: "Session auth binding lookup failed"
+              })
+            )
+          )
+        ),
+      capacity: 4096
+    })
 
-  return Storage.of({
-    getId: Effect.succeed(remoteId),
-    loadSessionAuthBindings: Effect.sync(() =>
-      new Map(
-        Array.from(sessionAuthBindings, ([publicKey, signingPublicKey]) =>
-          [publicKey, copyUint8Array(signingPublicKey)] as const)
-      )
-    ),
-    getSessionAuthBinding: (publicKey) =>
-      Effect.sync(() => {
-        const signingPublicKey = sessionAuthBindings.get(publicKey)
-        return signingPublicKey === undefined ? undefined : copyUint8Array(signingPublicKey)
+    return EventLogRemoteRpcs.of({
+      "EventLog.Hello": Effect.fnUntraced(function*(_, { client }) {
+        const challenge = yield* Cache.get(clientChallenges, client.id)
+        return new HelloResponse({
+          remoteId: options.remoteId,
+          challenge
+        })
       }),
-    putSessionAuthBindingIfAbsent: (publicKey, signingPublicKey) =>
-      Effect.sync(() => {
-        if (sessionAuthBindings.has(publicKey)) {
-          return false
+      "EventLog.Authenticate": Effect.fnUntraced(function*(request, { client }) {
+        const challenge = Option.getOrNull(yield* Cache.getOption(clientChallenges, client.id))
+        if (!challenge) {
+          return new EventLogProtocolError({
+            requestTag: "Authenticate",
+            publicKey: request.publicKey,
+            code: "Forbidden",
+            message: "Session auth challenge has expired"
+          })
         }
-        sessionAuthBindings.set(publicKey, copyUint8Array(signingPublicKey))
-        return true
-      }),
-    write: (publicKey, storeId, entries) =>
-      Effect.gen(function*() {
-        const scopeKey = makeEncryptedScopeKey({ publicKey, storeId })
-        const active = yield* RcMap.keys(pubsubs)
-        let pubsub: PubSub.PubSub<EncryptedRemoteEntry> | undefined
-        for (const key of active) {
-          if (key === scopeKey) {
-            pubsub = yield* RcMap.get(pubsubs, scopeKey)
-            break
-          }
-        }
-        const storeKnownIds = ensureKnownIds(scopeKey)
-        const journal = ensureJournal(scopeKey)
-        const encryptedEntries: Array<EncryptedRemoteEntry> = []
-        for (const entry of entries) {
-          const idString = entry.entryIdString
-          if (storeKnownIds.has(idString)) continue
-          const encrypted: EncryptedRemoteEntry = {
-            sequence: journal.length,
-            entryId: entry.entryId,
-            iv: entry.iv,
-            encryptedEntry: entry.encryptedEntry
-          }
-          encryptedEntries.push(encrypted)
-          storeKnownIds.set(idString, encrypted.sequence)
-          journal.push(encrypted)
-          if (pubsub) {
-            yield* PubSub.publish(pubsub, encrypted)
-          }
-        }
-        return encryptedEntries
-      }).pipe(Effect.scoped),
-    entries: (publicKey, storeId, startSequence) =>
-      Effect.sync(() => ensureJournal(makeEncryptedScopeKey({ publicKey, storeId })).slice(startSequence)),
-    changes: (publicKey, storeId, startSequence) =>
-      Effect.gen(function*() {
-        const scopeKey = makeEncryptedScopeKey({ publicKey, storeId })
-        const queue = yield* Queue.make<EncryptedRemoteEntry>()
-        const pubsub = yield* RcMap.get(pubsubs, scopeKey)
-        const subscription = yield* PubSub.subscribe(pubsub)
-        yield* Queue.offerAll(queue, ensureJournal(scopeKey).slice(startSequence))
-        yield* PubSub.takeAll(subscription).pipe(
-          Effect.flatMap((chunk) => Queue.offerAll(queue, chunk)),
-          Effect.forever,
-          Effect.forkScoped
+        yield* Cache.invalidate(clientChallenges, client.id)
+        const signingPublicKey = yield* Cache.get(
+          persistedSigningPublicKeys,
+          new SessionAuthCacheKey({
+            publicKey: request.publicKey,
+            signingPublicKey: request.signingPublicKey
+          })
         )
-        yield* Effect.addFinalizer(() => Queue.shutdown(queue))
-        return Queue.asDequeue(queue)
-      })
-  })
-})
+        const verified = yield* EventLogSessionAuth.verifySessionAuthenticateRequest({
+          remoteId: options.remoteId,
+          challenge,
+          publicKey: request.publicKey,
+          signingPublicKey,
+          signature: request.signature,
+          algorithm: request.algorithm
+        }).pipe(
+          Effect.catch(() => Effect.succeed(false))
+        )
+
+        if (!verified) {
+          return yield* new EventLogProtocolError({
+            requestTag: "Authenticate",
+            publicKey: request.publicKey,
+            code: "Forbidden",
+            message: "Session auth signature verification failed"
+          })
+        }
+
+        client
+          .annotate(EventLog.Identity, {
+            publicKey: request.publicKey,
+            privateKey: constEmptyPrivateKey,
+            signingPublicKey,
+            signingPrivateKey: constEmptyPrivateKey
+          })
+          .annotate(ChunkedMessageState, new Map())
+      }),
+      "EventLog.WriteSingle": Effect.fnUntraced(function*(request) {
+        yield* options.onWrite(request.data)
+      }),
+      "EventLog.WriteChunked": Effect.fnUntraced(function*(request, { client }) {
+        const state = ServiceMap.get(client.annotations, ChunkedMessageState)
+        const data = ChunkedMessage.join(state, request)
+        if (!data) return
+        yield* options.onWrite(data)
+      }),
+      "EventLog.Changes": (request) =>
+        options.changes({
+          publicKey: request.publicKey,
+          storeId: request.storeId,
+          startSequence: request.startSequence
+        }).pipe(
+          Stream.mapArray(Arr.flatMap((data): NonEmptyReadonlyArray<SingleMessage | ChunkedMessage> => {
+            if (data.byteLength <= ChunkedMessage.chunkSize) {
+              return [new SingleMessage({ data })]
+            }
+            return ChunkedMessage.split(chunkedIdCounter++, data)
+          })),
+          Stream.catchCause((_) =>
+            Stream.fail(
+              new EventLogProtocolError({
+                requestTag: "Changes",
+                publicKey: request.publicKey,
+                code: "InternalServerError",
+                message: "Decoding failure"
+              })
+            )
+          )
+        )
+    })
+  })).pipe(
+    Layer.merge(layerAuthMiddleware)
+  )
 
 /**
  * @since 4.0.0
- * @category storage
+ * @category ChunkedMessage state
  */
-export const layerStorageMemory: Layer.Layer<Storage> = Layer.effect(Storage)(makeStorageMemory)
+export class ChunkedMessageState extends ServiceMap.Reference<
+  Map<number, {
+    readonly parts: Array<Uint8Array>
+    count: number
+    bytes: number
+  }>
+>("effect/eventlog/EventLogServer/ChunkedMessageState", {
+  defaultValue: () => new Map()
+}) {}
 
-const makeEncryptedScopeKey = ({ publicKey, storeId }: {
+class SessionAuthCacheKey extends Data.Class<{
   readonly publicKey: string
-  readonly storeId: EventLog.StoreId
-}): string => {
-  return `${publicKey}/${storeId}`
+  readonly signingPublicKey: Uint8Array<ArrayBuffer>
+}> {
+  [Equal.symbol](that: SessionAuthCacheKey) {
+    return this.publicKey === that.publicKey
+  }
+  [Hash.symbol]() {
+    return Hash.string(this.publicKey)
+  }
 }
+
+const constEmptyPrivateKey = Redacted.make(new Uint8Array(32))

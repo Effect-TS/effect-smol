@@ -6,6 +6,7 @@ import * as Layer from "../../Layer.ts"
 import * as Redacted from "../../Redacted.ts"
 import * as Schema from "../../Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
+import * as Transferable from "../workers/Transferable.ts"
 import { Entry, EntryId, RemoteEntry } from "./EventJournal.ts"
 import type { Identity } from "./EventLog.ts"
 
@@ -15,7 +16,7 @@ import type { Identity } from "./EventLog.ts"
  */
 export const EncryptedEntry = Schema.Struct({
   entryId: EntryId,
-  encryptedEntry: Schema.Uint8Array
+  encryptedEntry: Transferable.Uint8Array
 })
 
 /**
@@ -30,9 +31,9 @@ export interface EncryptedRemoteEntry extends Schema.Schema.Type<typeof Encrypte
  */
 export const EncryptedRemoteEntry = Schema.Struct({
   sequence: Schema.Number,
-  iv: Schema.Uint8Array,
+  iv: Transferable.Uint8Array,
   entryId: EntryId,
-  encryptedEntry: Schema.Uint8Array
+  encryptedEntry: Transferable.Uint8Array
 })
 
 const toArrayBuffer = (data: Uint8Array): ArrayBuffer => {
@@ -52,8 +53,8 @@ export class EventLogEncryption extends ServiceMap.Service<EventLogEncryption, {
     identity: Identity["Service"],
     entries: ReadonlyArray<Entry>
   ) => Effect.Effect<{
-    readonly iv: Uint8Array
-    readonly encryptedEntries: ReadonlyArray<Uint8Array>
+    readonly iv: Uint8Array<ArrayBuffer>
+    readonly encryptedEntries: ReadonlyArray<Uint8Array<ArrayBuffer>>
   }>
   readonly decrypt: (
     identity: Identity["Service"],

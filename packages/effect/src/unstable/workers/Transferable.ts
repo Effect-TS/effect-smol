@@ -151,7 +151,7 @@ export const MessagePort: Transferable<Schema.declare<MessagePort>> = schema(
  * @since 1.0.0
  * @category schema
  */
-export const Uint8Array: Transferable<Schema.Uint8Array> = schema(
-  Schema.Uint8Array,
+export const Uint8Array: Transferable<Schema.instanceOf<globalThis.Uint8Array<ArrayBuffer>>> = schema(
+  Schema.Uint8Array as any,
   (_) => [_.buffer]
 )

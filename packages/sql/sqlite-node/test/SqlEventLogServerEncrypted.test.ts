@@ -1,16 +1,17 @@
 import { SqliteClient } from "@effect/sql-sqlite-node"
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Queue } from "effect"
+import { Effect, Queue, Stream } from "effect"
 import * as EventJournal from "effect/unstable/eventlog/EventJournal"
 import type * as EventLog from "effect/unstable/eventlog/EventLog"
 import * as EventLogEncryption from "effect/unstable/eventlog/EventLogEncryption"
-import * as EventLogServer from "effect/unstable/eventlog/EventLogServer"
-import * as SqlEventLogServer from "effect/unstable/eventlog/SqlEventLogServer"
+import type { StoreId } from "effect/unstable/eventlog/EventLogMessage"
+import * as EventLogServer from "effect/unstable/eventlog/EventLogServerEncrypted"
+import * as SqlEventLogServer from "effect/unstable/eventlog/SqlEventLogServerEncrypted"
 import { Reactivity } from "effect/unstable/reactivity"
 import * as SqlClient from "effect/unstable/sql/SqlClient"
 
-const storeIdA = "store-a" as EventLog.StoreId
-const storeIdB = "store-b" as EventLog.StoreId
+const storeIdA = "store-a" as StoreId
+const storeIdB = "store-b" as StoreId
 
 const makeEntry = (value: number) =>
   new EventJournal.Entry({
@@ -71,12 +72,11 @@ describe("SqlEventLogServer", () => {
       const written = yield* storage.write(identity.publicKey, storeIdA, persisted)
       assert.deepStrictEqual(written.map((entry) => entry.sequence), [1, 2])
 
-      const stored = yield* storage.entries(identity.publicKey, storeIdA, 0)
-      assert.deepStrictEqual(stored.map((entry) => entry.sequence), [1, 2])
-
-      const changes = yield* storage.changes(identity.publicKey, storeIdA, 0)
-      const initial = yield* Queue.takeAll(changes)
-      assert.deepStrictEqual(initial.map((entry) => entry.sequence), [1, 2])
+      const changes = yield* storage.changes(identity.publicKey, storeIdA, 0).pipe(
+        Stream.toQueue({ capacity: "unbounded" })
+      )
+      const taken = yield* Queue.takeAll(changes)
+      assert.deepStrictEqual(taken.map((entry) => entry.sequence), [1, 2])
 
       const nextEntry = makeEntry(3)
       const nextPersisted = yield* persistEntries(encryption, identity, [nextEntry])
@@ -97,8 +97,14 @@ describe("SqlEventLogServer", () => {
       yield* storage.write("client-1", storeIdA, [makePersistedEntry(1)])
       yield* storage.write("client-1", storeIdB, [makePersistedEntry(2)])
 
-      const storeAEntries = yield* storage.entries("client-1", storeIdA, 0)
-      const storeBEntries = yield* storage.entries("client-1", storeIdB, 0)
+      const storeAEntries = yield* storage.changes("client-1", storeIdA, 0).pipe(
+        Stream.take(1),
+        Stream.runCollect
+      )
+      const storeBEntries = yield* storage.changes("client-1", storeIdB, 0).pipe(
+        Stream.take(1),
+        Stream.runCollect
+      )
 
       assert.deepStrictEqual(storeAEntries.map((entry) => entry.sequence), [1])
       assert.deepStrictEqual(storeBEntries.map((entry) => entry.sequence), [1])
@@ -114,8 +120,14 @@ describe("SqlEventLogServer", () => {
       yield* storage.write("client-1", storeIdA, [makePersistedEntry(1)])
       yield* storage.write("client-2", storeIdA, [makePersistedEntry(2)])
 
-      const clientOneEntries = yield* storage.entries("client-1", storeIdA, 0)
-      const clientTwoEntries = yield* storage.entries("client-2", storeIdA, 0)
+      const clientOneEntries = yield* storage.changes("client-1", storeIdA, 0).pipe(
+        Stream.take(1),
+        Stream.runCollect
+      )
+      const clientTwoEntries = yield* storage.changes("client-2", storeIdA, 0).pipe(
+        Stream.take(1),
+        Stream.runCollect
+      )
 
       assert.deepStrictEqual(clientOneEntries.map((entry) => entry.sequence), [1])
       assert.deepStrictEqual(clientTwoEntries.map((entry) => entry.sequence), [1])
@@ -134,8 +146,26 @@ describe("SqlEventLogServer", () => {
       yield* storage.write("client-1", storeIdB, [makePersistedEntry(3, sharedEntryId)])
       yield* storage.write("client-2", storeIdA, [makePersistedEntry(4, sharedEntryId)])
 
-      assert.deepStrictEqual((yield* storage.entries("client-1", storeIdA, 0)).map((entry) => entry.sequence), [1])
-      assert.deepStrictEqual((yield* storage.entries("client-1", storeIdB, 0)).map((entry) => entry.sequence), [1])
-      assert.deepStrictEqual((yield* storage.entries("client-2", storeIdA, 0)).map((entry) => entry.sequence), [1])
+      assert.deepStrictEqual(
+        (yield* storage.changes("client-1", storeIdA, 0).pipe(
+          Stream.take(1),
+          Stream.runCollect
+        )).map((entry) => entry.sequence),
+        [1]
+      )
+      assert.deepStrictEqual(
+        (yield* storage.changes("client-1", storeIdB, 0).pipe(
+          Stream.take(1),
+          Stream.runCollect
+        )).map((entry) => entry.sequence),
+        [1]
+      )
+      assert.deepStrictEqual(
+        (yield* storage.changes("client-2", storeIdA, 0).pipe(
+          Stream.take(1),
+          Stream.runCollect
+        )).map((entry) => entry.sequence),
+        [1]
+      )
     }).pipe(Effect.provide([Reactivity.layer, EventLogEncryption.layerSubtle])))
 })

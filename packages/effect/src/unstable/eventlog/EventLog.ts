@@ -1,7 +1,6 @@
 /**
  * @since 4.0.0
  */
-import type { Brand } from "../../Brand.ts"
 import * as Effect from "../../Effect.ts"
 import { constant, identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
@@ -24,6 +23,7 @@ import type * as Event from "./Event.ts"
 import type * as EventGroup from "./EventGroup.ts"
 import { Entry, EventJournal, type EventJournalError, makeEntryIdUnsafe, type RemoteEntry } from "./EventJournal.ts"
 import * as EventLogEncryption from "./EventLogEncryption.ts"
+import { StoreId } from "./EventLogMessage.ts"
 import { EventLogRemote } from "./EventLogRemote.ts"
 
 /**
@@ -121,9 +121,9 @@ export const layerRegistry = Layer.sync(Registry, () => {
  */
 export class Identity extends ServiceMap.Service<Identity, {
   readonly publicKey: string
-  readonly privateKey: Redacted.Redacted<Uint8Array>
-  readonly signingPublicKey: Uint8Array
-  readonly signingPrivateKey: Redacted.Redacted<Uint8Array>
+  readonly privateKey: Redacted.Redacted<Uint8Array<ArrayBuffer>>
+  readonly signingPublicKey: Uint8Array<ArrayBuffer>
+  readonly signingPrivateKey: Redacted.Redacted<Uint8Array<ArrayBuffer>>
 }>()("effect/eventlog/EventLog/Identity") {}
 
 /**
@@ -167,30 +167,6 @@ export const schema = <Groups extends ReadonlyArray<EventGroup.Any>>(
   }) satisfies EventLogSchema<Groups[number]>
   return EventLog
 }
-
-/**
- * @since 4.0.0
- * @category store
- */
-export type StoreIdTypeId = "effect/eventlog/EventLog/StoreId"
-
-/**
- * @since 4.0.0
- * @category store
- */
-export const StoreIdTypeId: StoreIdTypeId = "effect/eventlog/EventLog/StoreId"
-
-/**
- * @since 4.0.0
- * @category store
- */
-export type StoreId = string & Brand<StoreIdTypeId>
-
-/**
- * @since 4.0.0
- * @category store
- */
-export const StoreId = Schema.String.pipe(Schema.brand(StoreIdTypeId))
 
 /**
  * @since 4.0.0
@@ -369,9 +345,9 @@ export const decodeIdentityString = (value: string): Identity["Service"] => {
   const decoded = Schema.decodeUnknownSync(IdentityStringSchema)(value)
   return {
     publicKey: decoded.publicKey,
-    privateKey: Redacted.make(decoded.privateKey),
-    signingPublicKey: decoded.signingPublicKey,
-    signingPrivateKey: Redacted.make(decoded.signingPrivateKey)
+    privateKey: Redacted.make(decoded.privateKey as Uint8Array<ArrayBuffer>),
+    signingPublicKey: decoded.signingPublicKey as Uint8Array<ArrayBuffer>,
+    signingPrivateKey: Redacted.make(decoded.signingPrivateKey as Uint8Array<ArrayBuffer>)
   }
 }
 

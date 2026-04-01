@@ -32,12 +32,22 @@ export * as EventLogEncryption from "./EventLogEncryption.ts"
 /**
  * @since 4.0.0
  */
+export * as EventLogMessage from "./EventLogMessage.ts"
+
+/**
+ * @since 4.0.0
+ */
 export * as EventLogRemote from "./EventLogRemote.ts"
 
 /**
  * @since 4.0.0
  */
 export * as EventLogServer from "./EventLogServer.ts"
+
+/**
+ * @since 4.0.0
+ */
+export * as EventLogServerEncrypted from "./EventLogServerEncrypted.ts"
 
 /**
  * @since 4.0.0

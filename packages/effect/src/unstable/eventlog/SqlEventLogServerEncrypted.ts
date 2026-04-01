@@ -4,21 +4,15 @@
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
 import * as PubSub from "../../PubSub.ts"
-import * as Queue from "../../Queue.ts"
 import * as RcMap from "../../RcMap.ts"
 import * as Schema from "../../Schema.ts"
 import type * as Scope from "../../Scope.ts"
+import * as Stream from "../../Stream.ts"
 import * as SqlClient from "../sql/SqlClient.ts"
 import type * as SqlError from "../sql/SqlError.ts"
 import { EntryId, makeRemoteIdUnsafe, type RemoteId } from "./EventJournal.ts"
 import * as EventLogEncryption from "./EventLogEncryption.ts"
-import * as EventLogServer from "./EventLogServer.ts"
-
-const copyUint8Array = (bytes: Uint8Array): Uint8Array => {
-  const copy = new Uint8Array(bytes.byteLength)
-  copy.set(bytes)
-  return copy
-}
+import * as EventLogServerEncrypted from "./EventLogServerEncrypted.ts"
 
 /**
  * @since 4.0.0
@@ -29,7 +23,7 @@ export const makeStorage = (options?: {
   readonly remoteIdTable?: string
   readonly insertBatchSize?: number
 }): Effect.Effect<
-  EventLogServer.Storage["Service"],
+  EventLogServerEncrypted.Storage["Service"],
   SqlError.SqlError,
   SqlClient.SqlClient | EventLogEncryption.EventLogEncryption | Scope.Scope
 > =>
@@ -158,45 +152,38 @@ export const makeStorage = (options?: {
       idleTimeToLive: "5 minutes"
     })
 
-    return EventLogServer.Storage.of({
-      getId: Effect.succeed(remoteId),
-      loadSessionAuthBindings: sql`
-        SELECT public_key, signing_public_key
-        FROM ${sessionAuthBindingsTableSql}
-      `.pipe(
-        Effect.flatMap(decodeSessionAuthBindings),
-        Effect.map((rows) =>
-          new Map(
-            rows.map((row) => [row.public_key, copyUint8Array(row.signing_public_key)] as const)
-          )
-        ),
-        Effect.orDie
-      ),
-      getSessionAuthBinding: (publicKey) =>
-        sql`
+    const getSessionAuthBinding = (publicKey: string) =>
+      sql`
           SELECT public_key, signing_public_key
           FROM ${sessionAuthBindingsTableSql}
           WHERE public_key = ${publicKey}
         `.pipe(
-          Effect.flatMap(decodeSessionAuthBindings),
-          Effect.map((rows) => {
-            const row = rows[0]
-            return row === undefined ? undefined : copyUint8Array(row.signing_public_key)
-          }),
-          Effect.orDie
-        ),
-      putSessionAuthBindingIfAbsent: (publicKey, signingPublicKey) =>
-        sql`
-          INSERT INTO ${sessionAuthBindingsTableSql} (public_key, signing_public_key)
-          VALUES (${publicKey}, ${signingPublicKey})
-        `.pipe(
-          Effect.as(true),
-          Effect.catchIf(
-            (error: SqlError.SqlError) => error.reason._tag === "ConstraintError",
-            () => Effect.succeed(false)
-          ),
-          Effect.orDie
-        ),
+        Effect.flatMap(decodeSessionAuthBindings),
+        Effect.map((rows) => {
+          const row = rows[0]
+          return row === undefined ? undefined : row.signing_public_key as Uint8Array<ArrayBuffer>
+        }),
+        Effect.orDie
+      )
+
+    return EventLogServerEncrypted.Storage.of({
+      getId: Effect.succeed(remoteId),
+      getOrCreateSessionAuthBinding: Effect.fnUntraced(
+        function*(publicKey, signingPublicKey) {
+          const existing = yield* getSessionAuthBinding(publicKey)
+          if (existing !== undefined) {
+            return existing
+          }
+          return yield* sql`
+            INSERT INTO ${sessionAuthBindingsTableSql} (public_key, signing_public_key)
+            VALUES (${publicKey}, ${signingPublicKey})
+          `.pipe(
+            Effect.as(signingPublicKey)
+          )
+        },
+        sql.withTransaction,
+        Effect.orDie
+      ),
       write: Effect.fnUntraced(
         function*(publicKey, storeId, entries) {
           if (entries.length === 0) return []
@@ -243,38 +230,21 @@ export const makeStorage = (options?: {
         Effect.orDie,
         Effect.scoped
       ),
-      entries: Effect.fnUntraced(
+      changes: Effect.fnUntraced(
         function*(publicKey, storeId, startSequence) {
           const scopeKey = makeEncryptedScopeKey(publicKey, storeId)
-          const { table } = yield* RcMap.get(resources, scopeKey)
-          return yield* sql`SELECT * FROM ${sql(table)} WHERE sequence >= ${startSequence} ORDER BY sequence ASC`.pipe(
+          const { pubsub, table } = yield* RcMap.get(resources, scopeKey)
+          const subscription = yield* PubSub.subscribe(pubsub)
+          const initial = yield* sql`
+          SELECT * FROM ${sql(table)} WHERE sequence >= ${startSequence} ORDER BY sequence ASC
+        `.pipe(
             Effect.flatMap(decodeEntries)
           )
+          return Stream.fromArray(initial).pipe(Stream.concat(Stream.fromSubscription(subscription)))
         },
         Effect.orDie,
-        Effect.scoped
-      ),
-      changes: Effect.fnUntraced(function*(publicKey, storeId, startSequence) {
-        const scopeKey = makeEncryptedScopeKey(publicKey, storeId)
-        const { pubsub, table } = yield* RcMap.get(resources, scopeKey)
-        const queue = yield* Queue.make<EventLogEncryption.EncryptedRemoteEntry>()
-        const subscription = yield* PubSub.subscribe(pubsub)
-        const initial = yield* sql`
-            SELECT * FROM ${sql(table)} WHERE sequence >= ${startSequence} ORDER BY sequence ASC
-          `.pipe(
-          Effect.flatMap(decodeEntries)
-        )
-        yield* Queue.offerAll(queue, initial)
-        yield* PubSub.takeAll(subscription).pipe(
-          Effect.flatMap((entries) =>
-            Queue.offerAll(queue, entries.filter((entry) => entry.sequence >= startSequence))
-          ),
-          Effect.forever,
-          Effect.forkScoped
-        )
-        yield* Effect.addFinalizer(() => Queue.shutdown(queue))
-        return Queue.asDequeue(queue)
-      }, Effect.orDie)
+        Stream.unwrap
+      )
     })
   })
 
@@ -299,9 +269,9 @@ const decodeSessionAuthBindingRows = Schema.decodeUnknownEffect(Schema.Array(Ses
 
 const toEncryptedRemoteEntry = (row: EncryptedRemoteEntrySql): EventLogEncryption.EncryptedRemoteEntry => ({
   sequence: row.sequence,
-  iv: row.iv,
+  iv: row.iv as Uint8Array<ArrayBuffer>,
   entryId: row.entry_id,
-  encryptedEntry: row.encrypted_entry
+  encryptedEntry: row.encrypted_entry as Uint8Array<ArrayBuffer>
 })
 
 const decodeEntries = (
@@ -322,10 +292,10 @@ export const layerStorage = (options?: {
   readonly remoteIdTable?: string
   readonly insertBatchSize?: number
 }): Layer.Layer<
-  EventLogServer.Storage,
+  EventLogServerEncrypted.Storage,
   SqlError.SqlError,
   SqlClient.SqlClient | EventLogEncryption.EventLogEncryption
-> => Layer.effect(EventLogServer.Storage)(makeStorage(options))
+> => Layer.effect(EventLogServerEncrypted.Storage)(makeStorage(options))
 
 /**
  * @since 4.0.0
@@ -335,7 +305,7 @@ export const layerStorageSubtle = (options?: {
   readonly entryTablePrefix?: string
   readonly remoteIdTable?: string
   readonly insertBatchSize?: number
-}): Layer.Layer<EventLogServer.Storage, SqlError.SqlError, SqlClient.SqlClient> =>
+}): Layer.Layer<EventLogServerEncrypted.Storage, SqlError.SqlError, SqlClient.SqlClient> =>
   layerStorage(options).pipe(
     Layer.provide(EventLogEncryption.layerSubtle)
   )

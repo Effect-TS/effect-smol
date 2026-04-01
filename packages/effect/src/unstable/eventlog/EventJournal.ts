@@ -7,13 +7,14 @@ import * as Data from "../../Data.ts"
 import * as DateTime from "../../DateTime.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
+import * as Order from "../../Order.ts"
 import * as PubSub from "../../PubSub.ts"
 import * as Schema from "../../Schema.ts"
 import type { Scope } from "../../Scope.ts"
 import * as Semaphore from "../../Semaphore.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Msgpack from "../encoding/Msgpack.ts"
-import type { StoreId } from "./EventLog.ts"
+import type { StoreId } from "./EventLogMessage.ts"
 
 /**
  * @since 4.0.0
@@ -151,13 +152,28 @@ export type EntryIdTypeId = "effect/eventlog/EventJournal/EntryId"
  * @since 4.0.0
  * @category entry
  */
-export type EntryId = Uint8Array & Brand<EntryIdTypeId>
+export type EntryId = Uint8Array<ArrayBuffer> & Brand<EntryIdTypeId>
 
 /**
  * @since 4.0.0
  * @category entry
  */
-export const EntryId = Schema.Uint8Array.pipe(Schema.brand(EntryIdTypeId))
+export const EntryId = (Schema.Uint8Array as Schema.instanceOf<Uint8Array<ArrayBuffer>>).pipe(
+  Schema.brand(EntryIdTypeId)
+)
+
+/**
+ * @since 4.0.0
+ * @category entry
+ */
+export const EntryIdOrder = Order.make<EntryId>((a, b) => {
+  for (let i = 0; i < 16; i++) {
+    if (a[i] !== b[i]) {
+      return (a[i] - b[i]) < 0 ? -1 : 1
+    }
+  }
+  return 0
+})
 
 /**
  * @since 4.0.0
@@ -200,6 +216,11 @@ export class Entry extends Schema.Class<Entry>("effect/eventlog/EventJournal/Ent
    * @since 4.0.0
    */
   static decodeArray = Schema.decodeUnknownEffect(Entry.arrayMsgpack)
+
+  /**
+   * @since 4.0.0
+   */
+  static Order = Order.make<Entry>((a, b) => EntryIdOrder(a.id, b.id))
 
   /**
    * @since 4.0.0

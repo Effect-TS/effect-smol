@@ -109,6 +109,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
     readonly id: number
     readonly latches: Map<RequestId, Latch.Latch>
     readonly fibers: Map<RequestId, Fiber.Fiber<unknown, any>>
+    readonly serverClient: Rpc.ServerClient
     ended: boolean
   }
 
@@ -157,7 +158,8 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
             id: clientId,
             latches: new Map(),
             fibers: new Map(),
-            ended: false
+            ended: false,
+            serverClient: new ServerClientImpl(clientId)
           }
           clients.set(clientId, client)
         } else if (client.ended) {
@@ -236,7 +238,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
     const isStream = RpcSchema.isStreamSchema(rpc.successSchema)
     const metadata = {
       rpc,
-      clientId: client.id,
+      client: client.serverClient,
       requestId: request.id,
       headers: request.headers,
       payload: request.payload
@@ -410,7 +412,7 @@ const applyMiddleware = <A, E, R>(
   handler: Effect.Effect<A, E, R>,
   options: {
     readonly rpc: Rpc.AnyWithProps
-    readonly clientId: number
+    readonly client: Rpc.ServerClient
     readonly requestId: RequestId
     readonly headers: Headers.Headers
     readonly payload: A
@@ -422,6 +424,19 @@ const applyMiddleware = <A, E, R>(
   }
 
   return handler
+}
+
+class ServerClientImpl implements Rpc.ServerClient {
+  readonly id: number
+  annotations: ServiceMap.ServiceMap<never>
+  constructor(id: number) {
+    this.id = id
+    this.annotations = ServiceMap.empty()
+  }
+  annotate<I, S>(tag: ServiceMap.Key<I, S>, value: NoInfer<S>) {
+    this.annotations = ServiceMap.add(this.annotations, tag, value)
+    return this
+  }
 }
 
 /**

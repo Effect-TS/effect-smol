@@ -10,16 +10,11 @@ import * as RcMap from "../../RcMap.ts"
 import * as Schema from "../../Schema.ts"
 import type * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
+import * as Stream from "../../Stream.ts"
 import * as SqlClient from "../sql/SqlClient.ts"
 import * as SqlError from "../sql/SqlError.ts"
 import { Entry, EntryId, makeRemoteIdUnsafe, RemoteEntry, type RemoteId } from "./EventJournal.ts"
 import * as EventLogServerUnencrypted from "./EventLogServerUnencrypted.ts"
-
-const copyUint8Array = (bytes: Uint8Array): Uint8Array => {
-  const copy = new Uint8Array(bytes.byteLength)
-  copy.set(bytes)
-  return copy
-}
 
 /**
  * @since 4.0.0
@@ -347,207 +342,108 @@ export const makeStorage = (options?: {
           `.pipe(
           Effect.flatMap(decodeRemoteEntries)
         )
+    const getSessionAuthBinding = (publicKey: string) =>
+      sql`
+        SELECT public_key, signing_public_key
+        FROM ${sessionAuthBindingsTableSql}
+        WHERE public_key = ${publicKey}
+      `.pipe(
+        Effect.flatMap(decodeSessionAuthBindings),
+        Effect.map((rows) => {
+          const row = rows[0]
+          return row === undefined ? undefined : row.signing_public_key as Uint8Array<ArrayBuffer>
+        }),
+        Effect.orDie
+      )
 
     return EventLogServerUnencrypted.Storage.of({
       getId: Effect.succeed(remoteId),
-      loadSessionAuthBindings: sql`
-        SELECT public_key, signing_public_key
-        FROM ${sessionAuthBindingsTableSql}
-      `.pipe(
-        Effect.flatMap(decodeSessionAuthBindings),
-        Effect.map((rows) =>
-          new Map(
-            rows.map((row) => [row.public_key, copyUint8Array(row.signing_public_key)] as const)
-          )
-        ),
-        Effect.orDie
-      ),
-      getSessionAuthBinding: (publicKey) =>
-        sql`
-          SELECT public_key, signing_public_key
-          FROM ${sessionAuthBindingsTableSql}
-          WHERE public_key = ${publicKey}
-        `.pipe(
-          Effect.flatMap(decodeSessionAuthBindings),
-          Effect.map((rows) => {
-            const row = rows[0]
-            return row === undefined ? undefined : copyUint8Array(row.signing_public_key)
-          }),
-          Effect.orDie
-        ),
-      putSessionAuthBindingIfAbsent: (publicKey, signingPublicKey) =>
-        sql`
+      getOrCreateSessionAuthBinding: Effect.fnUntraced(
+        function*(publicKey, signingPublicKey) {
+          const existing = yield* getSessionAuthBinding(publicKey)
+          if (existing !== undefined) {
+            return existing
+          }
+          return yield* sql`
           INSERT INTO ${sessionAuthBindingsTableSql} (public_key, signing_public_key)
           VALUES (${publicKey}, ${signingPublicKey})
         `.pipe(
-          Effect.as(true),
-          Effect.catchIf(
-            (error: SqlError.SqlError) => error.reason._tag === "ConstraintError",
-            () => Effect.succeed(false)
-          ),
-          Effect.orDie
-        ),
+            Effect.as(signingPublicKey)
+          )
+        },
+        sql.withTransaction,
+        Effect.orDie
+      ),
       write: Effect.fnUntraced(
         function*(storeId, entries) {
           if (entries.length === 0) {
-            return {
-              sequenceNumbers: [],
-              committed: []
-            }
+            return []
           }
 
-          const result = yield* Effect.gen(function*() {
-            const uniqueEntries: Array<Entry> = []
-            const seenIds = new Set<string>()
+          yield* ensureStore(storeId)
+          const currentNextSequence = yield* lockStore(storeId)
 
-            for (const entry of entries) {
-              if (seenIds.has(entry.idString)) {
-                continue
-              }
-              seenIds.add(entry.idString)
-              uniqueEntries.push(entry)
-            }
+          const committed: Array<RemoteEntry> = []
+          let rowsForInsert: Array<{
+            readonly store_id: string
+            readonly sequence: number
+            readonly entry_id: Uint8Array
+            readonly event: string
+            readonly primary_key: string
+            readonly payload: Uint8Array
+          }> = []
 
-            yield* ensureStore(storeId)
-            const currentNextSequence = yield* lockStore(storeId)
-            const existingEntries = yield* selectExistingEntries(
-              storeId,
-              uniqueEntries.map((entry) => entry.id)
+          for (let index = 0; index < entries.length; index++) {
+            const entry = entries[index]
+            const remoteSequence = currentNextSequence + index
+            committed.push(
+              new RemoteEntry({
+                remoteSequence,
+                entry
+              }, { disableChecks: true })
             )
-
-            const existingSequenceById = new Map<string, number>()
-            for (const remoteEntry of existingEntries) {
-              existingSequenceById.set(remoteEntry.entry.idString, remoteEntry.remoteSequence)
-            }
-
-            const committed: Array<RemoteEntry> = []
-            const rowsForInsert: Array<{
-              readonly store_id: string
-              readonly sequence: number
-              readonly entry_id: Uint8Array
-              readonly event: string
-              readonly primary_key: string
-              readonly payload: Uint8Array
-            }> = []
-
-            for (const entry of uniqueEntries) {
-              if (existingSequenceById.has(entry.idString)) {
-                continue
-              }
-
-              const remoteSequence = currentNextSequence + committed.length
-              committed.push(
-                new RemoteEntry({
-                  remoteSequence,
-                  entry
-                }, { disableChecks: true })
-              )
-              rowsForInsert.push({
-                store_id: storeId,
-                sequence: remoteSequence,
-                entry_id: entry.id,
-                event: entry.event,
-                primary_key: entry.primaryKey,
-                payload: entry.payload
-              })
-            }
-
-            if (committed.length > 0) {
-              yield* setNextSequence(storeId, currentNextSequence + committed.length)
-              for (let index = 0; index < rowsForInsert.length; index += insertBatchSize) {
-                yield* sql`
-                INSERT INTO ${entriesTableSql} ${sql.insert(rowsForInsert.slice(index, index + insertBatchSize))}
+            rowsForInsert.push({
+              store_id: storeId,
+              sequence: remoteSequence,
+              entry_id: entry.id,
+              event: entry.event,
+              primary_key: entry.primaryKey,
+              payload: entry.payload
+            })
+            if (rowsForInsert.length >= insertBatchSize) {
+              yield* sql`
+                INSERT INTO ${entriesTableSql} ${sql.insert(rowsForInsert)}
               `
-              }
-            }
-
-            const sequenceById = new Map(existingSequenceById)
-            for (const remoteEntry of committed) {
-              sequenceById.set(remoteEntry.entry.idString, remoteEntry.remoteSequence)
-            }
-
-            return {
-              sequenceNumbers: entries.map((entry) => {
-                const remoteSequence = sequenceById.get(entry.idString)
-                if (remoteSequence !== undefined) {
-                  return remoteSequence
-                }
-
-                throw new Error(`Missing sequence number for entry id: ${entry.idString}`)
-              }),
-              committed
-            }
-          }).pipe(sql.withTransaction)
-
-          if (result.committed.length > 0) {
-            const pendingOption = yield* Effect.serviceOption(PendingPublications)
-            if (Option.isSome(pendingOption)) {
-              pendingOption.value.pending.push({
-                storeId,
-                committed: result.committed
-              })
-            } else {
-              yield* publishCommitted({
-                storeId,
-                committed: result.committed
-              })
+              rowsForInsert = []
             }
           }
 
-          return result
+          return committed
+        },
+        sql.withTransaction,
+        Effect.orDie
+      ),
+      changes: Effect.fnUntraced(
+        function*({ storeId, startSequence, compactors }) {
+          const pubsub = yield* RcMap.get(pubsubs, storeId)
+          const subscription = yield* PubSub.subscribe(pubsub)
+          const backlog = yield* EventLogServerUnencrypted.compactBacklog({
+            compactors,
+            remoteEntries: yield* selectEntriesAfter(storeId, startSequence)
+          })
+          let watermark = backlog.length > 0 ? backlog[backlog.length - 1]!.remoteSequence : startSequence
+
+          return Stream.fromArray(backlog).pipe(
+            Stream.concat(
+              Stream.fromSubscription(subscription).pipe(
+                Stream.filter((entry) => entry.remoteSequence > watermark)
+              )
+            )
+          )
         },
         Effect.orDie,
-        Effect.scoped
-      ),
-      entries: (storeId, startSequence) => selectEntriesAfter(storeId, startSequence).pipe(Effect.orDie),
-      changes: Effect.fnUntraced(function*(storeId, startSequence) {
-        const queue = yield* Queue.make<RemoteEntry>()
-        const pubsub = yield* RcMap.get(pubsubs, storeId)
-        const subscription = yield* PubSub.subscribe(pubsub)
-        const backlog = yield* selectEntriesAfter(storeId, startSequence)
-        let watermark = backlog.length > 0 ? backlog[backlog.length - 1]!.remoteSequence : startSequence
-
-        if (backlog.length > 0) {
-          yield* Queue.offerAll(queue, backlog)
-        }
-
-        const pendingRows = yield* PubSub.takeUpTo(subscription, Number.POSITIVE_INFINITY)
-        for (const remoteEntry of pendingRows) {
-          if (remoteEntry.remoteSequence > watermark) {
-            yield* Queue.offer(
-              queue,
-              new RemoteEntry({
-                remoteSequence: remoteEntry.remoteSequence,
-                entry: remoteEntry.entry
-              }, { disableChecks: true })
-            )
-            watermark = remoteEntry.remoteSequence
-          }
-        }
-
-        yield* PubSub.take(subscription).pipe(
-          Effect.flatMap((remoteEntry) => {
-            if (remoteEntry.remoteSequence <= watermark) {
-              return Effect.void
-            }
-
-            watermark = remoteEntry.remoteSequence
-            return Queue.offer(
-              queue,
-              new RemoteEntry({
-                remoteSequence: remoteEntry.remoteSequence,
-                entry: remoteEntry.entry
-              }, { disableChecks: true })
-            )
-          }),
-          Effect.forever,
-          Effect.forkScoped
-        )
-
-        yield* Effect.addFinalizer(() => Queue.shutdown(queue))
-        return Queue.asDequeue(queue)
-      }, Effect.orDie),
-      withTransaction
+        Stream.unwrap
+      )
     })
   })
 

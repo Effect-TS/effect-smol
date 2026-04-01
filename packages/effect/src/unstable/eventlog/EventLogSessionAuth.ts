@@ -1,7 +1,6 @@
 /**
  * @since 4.0.0
  */
-import { Clock } from "../../Clock.ts"
 import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
 
@@ -62,9 +61,6 @@ export class EventLogSessionAuthError extends Data.TaggedError("EventLogSessionA
     | "InvalidAlgorithm"
     | "InvalidSigningPublicKeyLength"
     | "InvalidSignatureLength"
-    | "ChallengeAlreadyUsed"
-    | "ChallengeExpired"
-    | "InvalidSignature"
     | "InvalidSigningPrivateKey"
     | "CryptoUnavailable"
     | "CryptoFailure"
@@ -293,7 +289,7 @@ export const decodeSessionAuthPayload = Effect.fnUntraced(
 export const signSessionAuthPayloadBytes = Effect.fnUntraced(function*(options: {
   readonly payload: Uint8Array
   readonly signingPrivateKey: Uint8Array
-}): Effect.fn.Return<Uint8Array, EventLogSessionAuthError> {
+}): Effect.fn.Return<Uint8Array<ArrayBuffer>, EventLogSessionAuthError> {
   yield* decodeSessionAuthPayload(options.payload)
 
   const subtle = yield* getSubtle
@@ -402,7 +398,10 @@ export const verifySessionAuthPayload = (
  * @since 4.0.0
  * @category challenge
  */
-export const makeSessionAuthChallenge: Effect.Effect<Uint8Array, EventLogSessionAuthError> = Effect.gen(function*() {
+export const makeSessionAuthChallenge: Effect.Effect<
+  Uint8Array<ArrayBuffer>,
+  EventLogSessionAuthError
+> = Effect.gen(function*() {
   const crypto = yield* getCrypto
   const challenge = new Uint8Array(SessionAuthChallengeLength)
   crypto.getRandomValues(challenge)
@@ -411,36 +410,16 @@ export const makeSessionAuthChallenge: Effect.Effect<Uint8Array, EventLogSession
 
 /**
  * @since 4.0.0
- * @category challenge
- */
-export const isSessionAuthChallengeExpired = (options: {
-  readonly challengeIssuedAtMillis: number
-  readonly nowMillis: number
-  readonly challengeTimeToLiveMillis?: number | undefined
-}): boolean => {
-  const now = options.nowMillis
-  const timeToLive = options.challengeTimeToLiveMillis ?? SessionAuthChallengeTimeToLiveMillis
-  return now - options.challengeIssuedAtMillis > timeToLive
-}
-
-/**
- * @since 4.0.0
  * @category verification
  */
 export const verifySessionAuthenticateRequest = Effect.fnUntraced(function*(options: {
   readonly remoteId: string | Uint8Array
   readonly challenge: Uint8Array
-  readonly challengeIssuedAtMillis: number
-  readonly challengeAlreadyUsed: boolean
   readonly publicKey: string
   readonly signingPublicKey: Uint8Array
   readonly signature: Uint8Array
   readonly algorithm: string
-  readonly challengeTimeToLiveMillis?: number | undefined
-  readonly nowMillis?: number | undefined
 }) {
-  const clock = yield* Clock
-
   if (options.algorithm !== "Ed25519") {
     return yield* new EventLogSessionAuthError({
       reason: "InvalidAlgorithm",
@@ -448,40 +427,11 @@ export const verifySessionAuthenticateRequest = Effect.fnUntraced(function*(opti
     })
   }
 
-  if (options.challengeAlreadyUsed) {
-    return yield* new EventLogSessionAuthError({
-      reason: "ChallengeAlreadyUsed",
-      message: "Session auth challenge has already been used"
-    })
-  }
-
-  if (
-    isSessionAuthChallengeExpired({
-      challengeIssuedAtMillis: options.challengeIssuedAtMillis,
-      challengeTimeToLiveMillis: options.challengeTimeToLiveMillis,
-      nowMillis: clock.currentTimeMillisUnsafe()
-    })
-  ) {
-    return yield* new EventLogSessionAuthError({
-      reason: "ChallengeExpired",
-      message: "Session auth challenge has expired"
-    })
-  }
-
-  const verified = yield* verifySessionAuthPayload({
+  return yield* verifySessionAuthPayload({
     remoteId: options.remoteId,
     challenge: options.challenge,
     publicKey: options.publicKey,
     signingPublicKey: options.signingPublicKey,
     signature: options.signature
-  })
-
-  if (verified) {
-    return
-  }
-
-  return yield* new EventLogSessionAuthError({
-    reason: "InvalidSignature",
-    message: "Session auth signature verification failed"
   })
 })
