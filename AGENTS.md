@@ -76,7 +76,7 @@ functionality to follow established patterns.
 
 ### Type level tests
 
-Type level tests are located in the `dtslint` directories of each package.
+Type level tests are located in the `packages/*/typetest` directories of each package.
 
 You can run them with `pnpm test-types <filename>`.
 

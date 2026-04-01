@@ -15,7 +15,7 @@
   ],
   "jsPlugins": ["@effect/oxc/oxlint"],
   "overrides": [{
-    "files": ["**/{test,dtslint,examples,ai-docs,benchmark,bundle,scripts,scratchpad}/**"],
+    "files": ["**/{test,typetest,examples,ai-docs,benchmark,bundle,scripts,scratchpad}/**"],
     "rules": {
       "eslint/no-console": "off",
       "effect/no-import-from-barrel-package": "off"

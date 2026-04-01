@@ -463,7 +463,7 @@ describe("HttpApiClient", () => {
             )
         )
 
-      const TestHttpClient = HttpClient.make(() => Effect.die("not used in dtslint"))
+      const TestHttpClient = HttpClient.make(() => Effect.die("not used"))
 
       // @ts-expect-error!
       Effect.runSync(HttpApiClient.makeWith(Api, { httpClient: TestHttpClient }))
