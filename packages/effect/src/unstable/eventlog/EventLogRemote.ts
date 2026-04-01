@@ -4,7 +4,7 @@
 import * as Cache from "../../Cache.ts"
 import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
-import { Layer } from "../../index.ts"
+import * as Layer from "../../Layer.ts"
 import * as Queue from "../../Queue.ts"
 import * as Redacted from "../../Redacted.ts"
 import type * as Schema from "../../Schema.ts"
