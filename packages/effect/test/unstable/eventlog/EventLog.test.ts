@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Layer, Ref, Schema } from "effect"
+import { Effect, Layer, Redacted, Ref, Schema } from "effect"
 import * as EventGroup from "effect/unstable/eventlog/EventGroup"
 import * as EventJournal from "effect/unstable/eventlog/EventJournal"
 import * as EventLog from "effect/unstable/eventlog/EventLog"
@@ -74,6 +74,20 @@ describe("EventLog", () => {
       }])
       assert.strictEqual(decrypted.length, 1)
       assert.strictEqual(decrypted[0].entry.idString, entry.idString)
+    }).pipe(Effect.provide(EventLogEncryption.layerSubtle)))
+
+  it.effect("makeIdentity and identity string encoding use the two-field shape", () =>
+    Effect.gen(function*() {
+      const identity = yield* EventLog.makeIdentity
+      assert.deepStrictEqual(Object.keys(identity).sort(), ["privateKey", "publicKey"])
+
+      const encoded = EventLog.encodeIdentityString(identity)
+      assert.deepStrictEqual(Object.keys(JSON.parse(encoded)).sort(), ["privateKey", "publicKey"])
+
+      const decoded = EventLog.decodeIdentityString(encoded)
+      assert.deepStrictEqual(Object.keys(decoded).sort(), ["privateKey", "publicKey"])
+      assert.strictEqual(decoded.publicKey, identity.publicKey)
+      assert.deepStrictEqual(Redacted.value(decoded.privateKey), Redacted.value(identity.privateKey))
     }).pipe(Effect.provide(EventLogEncryption.layerSubtle)))
 
   it.effect("writeFromRemote reports duplicate entries for downstream reactivity invalidation", () =>

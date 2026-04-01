@@ -299,7 +299,7 @@ The tasks below are intentionally grouped so each task is independently shippabl
 ### Task Status
 
 - [x] Task 1: Add internal root-secret derivation utilities
-- [ ] Task 2: Switch the public identity model to the two-field shape
+- [x] Task 2: Switch the public identity model to the two-field shape
 - [ ] Task 3: Apply optional safe server/storage cleanup
 
 ### Task 1: Add internal root-secret derivation utilities
@@ -344,7 +344,7 @@ Implementation discoveries:
 
 ### Task 2: Switch the public identity model to the two-field shape
 
-Status: ⏳ Pending
+Status: ✅ Completed
 
 Scope:
 
@@ -375,6 +375,17 @@ Implementation notes for Task 2 validation:
 
 - `EventLog.test.ts` should include the new two-field `encodeIdentityString` / `decodeIdentityString` round-trip assertion.
 - `EventLogRemote.test.ts` should assert the authenticate request includes the derived `signingPublicKey` and a valid signature, not only the `publicKey` / algorithm fields.
+
+Implementation discoveries:
+
+- Updated `EventLog.Identity` and identity string schema/encoding to a strict two-field shape: `{ publicKey, privateKey }`.
+- Switched `EventLogEncryption.makeEncryptionSubtle` to derive AES material via `makeGetIdentityRootSecretMaterial` instead of importing `identity.privateKey` directly as the AES key.
+- Switched `EventLogRemote` authentication signing to derived key material from root secret, while preserving the existing wire payload fields.
+- Reduced synthetic server-provided identities in `EventLogServer` and `EventLogServerUnencrypted` to `{ publicKey, privateKey }` placeholders.
+- Added/updated focused tests so:
+  - `EventLog.test.ts` asserts two-field identity shape and identity-string round-trip
+  - `EventLogRemote.test.ts` asserts derived `signingPublicKey` and verifies authenticate request signatures
+  - `EventLogIdentityDerivation.test.ts` uses the new two-field identity helper shape
 
 ### Task 3: Apply optional safe server/storage cleanup
 

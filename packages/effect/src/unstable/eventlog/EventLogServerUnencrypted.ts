@@ -308,12 +308,9 @@ export class Storage extends ServiceMap.Service<Storage, {
 
 const makeClientIdentity = (publicKey: string): EventLog.Identity["Service"] => ({
   publicKey,
-  privateKey: constEmptyPrivateKey,
-  signingPublicKey: constEmptyPublicKey,
-  signingPrivateKey: constEmptyPrivateKey
+  privateKey: constEmptyPrivateKey
 })
-const constEmptyPublicKey = new Uint8Array(32)
-const constEmptyPrivateKey = Redacted.make(constEmptyPublicKey)
+const constEmptyPrivateKey = Redacted.make(new Uint8Array(32))
 
 const makeServerWriteIdentityPublicKey = (storeId: StoreId): string => `effect-eventlog-server-write:${storeId}`
 

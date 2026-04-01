@@ -7,17 +7,12 @@ import {
   SigningDerivationLabelV1
 } from "effect/unstable/eventlog/internal/identityRootSecretDerivation"
 
-const constEmptySigningPublicKey = new Uint8Array(32)
-const constEmptySigningPrivateKey = Redacted.make(new Uint8Array(48))
-
 const makeIdentity = (options: {
   readonly publicKey: string
   readonly rootSecret: Uint8Array
 }): EventLog.Identity["Service"] => ({
   publicKey: options.publicKey,
-  privateKey: Redacted.make(options.rootSecret.slice()),
-  signingPublicKey: constEmptySigningPublicKey,
-  signingPrivateKey: constEmptySigningPrivateKey
+  privateKey: Redacted.make(options.rootSecret.slice())
 })
 
 const makeRootSecret = () => Uint8Array.from(Array.from({ length: 32 }, (_, index) => (index * 17) % 256))

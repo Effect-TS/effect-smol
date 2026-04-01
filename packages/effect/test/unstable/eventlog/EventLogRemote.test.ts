@@ -5,6 +5,8 @@ import * as EventLog from "effect/unstable/eventlog/EventLog"
 import * as EventLogEncryption from "effect/unstable/eventlog/EventLogEncryption"
 import * as EventLogMessage from "effect/unstable/eventlog/EventLogMessage"
 import * as EventLogRemote from "effect/unstable/eventlog/EventLogRemote"
+import * as EventLogSessionAuth from "effect/unstable/eventlog/EventLogSessionAuth"
+import { makeGetIdentityRootSecretMaterial } from "effect/unstable/eventlog/internal/identityRootSecretDerivation"
 import type * as Rpc from "effect/unstable/rpc/Rpc"
 import type * as RpcGroup from "effect/unstable/rpc/RpcGroup"
 import * as RpcTest from "effect/unstable/rpc/RpcTest"
@@ -21,7 +23,7 @@ describe("EventLogRemote", () => {
         storeId: defaultStoreId,
         entries: [entry]
       }).pipe(Effect.forkChild)
-      yield* authenticate({ harness, publicKey: identity.publicKey })
+      yield* authenticate({ harness, identity })
 
       const request = yield* harness.take
       assert(request._tag === "EventLog.WriteSingle")
@@ -47,7 +49,7 @@ describe("EventLogRemote", () => {
         storeId: defaultStoreId,
         entries: [makeEntry()]
       }).pipe(Effect.forkScoped)
-      yield* authenticate({ harness, publicKey: identity.publicKey })
+      yield* authenticate({ harness, identity })
 
       const request = yield* harness.take
       assert(request._tag === "EventLog.WriteSingle")
@@ -146,15 +148,29 @@ const makeEntry = (options?: {
 const defaultStoreId = EventLogMessage.StoreId.make("default")
 const remoteId = EventJournal.makeRemoteIdUnsafe()
 const challenge = new Uint8Array(16).fill(1)
+const getIdentityRootSecretMaterial = makeGetIdentityRootSecretMaterial(globalThis.crypto)
 
 const authenticate = Effect.fnUntraced(function*(options: {
   readonly harness: RemoteHarness["Service"]
-  readonly publicKey: string
+  readonly identity: EventLog.Identity["Service"]
 }) {
   const auth = yield* options.harness.take
   assert(auth._tag === "EventLog.Authenticate")
   const payload = auth.request as Rpc.Payload<typeof EventLogMessage.AuthenticateRpc>
-  assert.strictEqual(payload.publicKey, options.publicKey)
+  const rootSecretMaterial = yield* getIdentityRootSecretMaterial(options.identity)
+
+  assert.strictEqual(payload.publicKey, options.identity.publicKey)
   assert.strictEqual(payload.algorithm, "Ed25519")
+  assert.deepStrictEqual(payload.signingPublicKey, rootSecretMaterial.signingPublicKey)
+
+  const verified = yield* EventLogSessionAuth.verifySessionAuthenticateRequest({
+    remoteId,
+    challenge,
+    publicKey: payload.publicKey,
+    signingPublicKey: payload.signingPublicKey,
+    signature: payload.signature,
+    algorithm: payload.algorithm
+  })
+  assert.isTrue(verified)
   auth.resume(Effect.void)
 })

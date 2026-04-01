@@ -142,9 +142,7 @@ export const layerRpcHandlers = (options: {
         client
           .annotate(EventLog.Identity, {
             publicKey: request.publicKey,
-            privateKey: constEmptyPrivateKey,
-            signingPublicKey,
-            signingPrivateKey: constEmptyPrivateKey
+            privateKey: constEmptyPrivateKey
           })
           .annotate(ChunkedMessageState, new Map())
       }),

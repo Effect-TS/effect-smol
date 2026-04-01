@@ -26,6 +26,7 @@ import {
   WriteEntriesUnencrypted
 } from "./EventLogMessage.ts"
 import { encodeSessionAuthPayload, signSessionAuthPayloadBytes } from "./EventLogSessionAuth.ts"
+import { makeGetIdentityRootSecretMaterial } from "./internal/identityRootSecretDerivation.ts"
 
 /**
  * @since 4.0.0
@@ -54,24 +55,27 @@ export class EventLogRemoteError extends Data.TaggedError("EventLogRemoteError")
   readonly cause: unknown
 }> {}
 
+const getIdentityRootSecretMaterial = makeGetIdentityRootSecretMaterial(globalThis.crypto)
+
 const makeAuthenticate = Effect.fnUntraced(function*(options: {
   readonly identity: Identity["Service"]
   readonly hello: HelloResponse
 }) {
+  const rootSecretMaterial = yield* getIdentityRootSecretMaterial(options.identity)
   const payload = yield* encodeSessionAuthPayload({
     remoteId: options.hello.remoteId,
     challenge: options.hello.challenge,
     publicKey: options.identity.publicKey,
-    signingPublicKey: options.identity.signingPublicKey
+    signingPublicKey: rootSecretMaterial.signingPublicKey
   })
   const signature = yield* signSessionAuthPayloadBytes({
     payload,
-    signingPrivateKey: Redacted.value(options.identity.signingPrivateKey)
+    signingPrivateKey: Redacted.value(rootSecretMaterial.signingPrivateKey)
   })
 
   return new Authenticate({
     publicKey: options.identity.publicKey,
-    signingPublicKey: options.identity.signingPublicKey,
+    signingPublicKey: rootSecretMaterial.signingPublicKey,
     signature,
     algorithm: "Ed25519"
   })

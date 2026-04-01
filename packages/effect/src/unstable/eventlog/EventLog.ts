@@ -122,8 +122,6 @@ export const layerRegistry = Layer.sync(Registry, () => {
 export class Identity extends ServiceMap.Service<Identity, {
   readonly publicKey: string
   readonly privateKey: Redacted.Redacted<Uint8Array<ArrayBuffer>>
-  readonly signingPublicKey: Uint8Array<ArrayBuffer>
-  readonly signingPrivateKey: Redacted.Redacted<Uint8Array<ArrayBuffer>>
 }>()("effect/eventlog/EventLog/Identity") {}
 
 /**
@@ -323,16 +321,12 @@ const RedactedUint8Array = Schema.Uint8ArrayFromBase64.pipe(
  */
 export const IdentitySchema = Schema.Struct({
   publicKey: Schema.String,
-  privateKey: RedactedUint8Array,
-  signingPublicKey: Schema.Uint8ArrayFromBase64,
-  signingPrivateKey: RedactedUint8Array
+  privateKey: RedactedUint8Array
 })
 
 const IdentityEncodedSchema = Schema.Struct({
   publicKey: Schema.String,
-  privateKey: Schema.Uint8ArrayFromBase64,
-  signingPublicKey: Schema.Uint8ArrayFromBase64,
-  signingPrivateKey: Schema.Uint8ArrayFromBase64
+  privateKey: Schema.Uint8ArrayFromBase64
 })
 
 const IdentityStringSchema = Schema.fromJsonString(IdentityEncodedSchema)
@@ -345,9 +339,7 @@ export const decodeIdentityString = (value: string): Identity["Service"] => {
   const decoded = Schema.decodeUnknownSync(IdentityStringSchema)(value)
   return {
     publicKey: decoded.publicKey,
-    privateKey: Redacted.make(decoded.privateKey as Uint8Array<ArrayBuffer>),
-    signingPublicKey: decoded.signingPublicKey as Uint8Array<ArrayBuffer>,
-    signingPrivateKey: Redacted.make(decoded.signingPrivateKey as Uint8Array<ArrayBuffer>)
+    privateKey: Redacted.make(decoded.privateKey as Uint8Array<ArrayBuffer>)
   }
 }
 
@@ -358,9 +350,7 @@ export const decodeIdentityString = (value: string): Identity["Service"] => {
 export const encodeIdentityString = (identity: Identity["Service"]): string =>
   Schema.encodeSync(IdentityStringSchema)({
     publicKey: identity.publicKey,
-    privateKey: Redacted.value(identity.privateKey),
-    signingPublicKey: identity.signingPublicKey,
-    signingPrivateKey: Redacted.value(identity.signingPrivateKey)
+    privateKey: Redacted.value(identity.privateKey)
   })
 
 /**
