@@ -231,7 +231,6 @@ export interface Bottom<
   readonly ast: Ast
   readonly "~rebuild.out": RebuildOut
   readonly "~type.parameters": TypeParameters
-  readonly "~annotate.in": Annotations.Bottom<T, TypeParameters>
 
   readonly "Type": T
   readonly "Encoded": E
@@ -248,7 +247,7 @@ export interface Bottom<
   readonly "~encoded.mutability": EncodedMutability
   readonly "~encoded.optionality": EncodedOptionality
 
-  annotate(annotations: this["~annotate.in"]): this["~rebuild.out"]
+  annotate(annotations: Annotations.Bottom<this["Type"], this["~type.parameters"]>): this["~rebuild.out"]
   annotateKey(annotations: Annotations.Key<this["Type"]>): this["~rebuild.out"]
   check(...checks: readonly [AST.Check<this["Type"]>, ...Array<AST.Check<this["Type"]>>]): this["~rebuild.out"]
   rebuild(ast: this["ast"]): this["~rebuild.out"]
@@ -478,7 +477,7 @@ export function revealBottom<S extends Top>(
  * @category Annotations
  * @since 4.0.0
  */
-export function annotate<S extends Top>(annotations: S["~annotate.in"]) {
+export function annotate<S extends Top>(annotations: Annotations.Bottom<S["Type"], S["~type.parameters"]>) {
   return (self: S): S["~rebuild.out"] => {
     return self.annotate(annotations)
   }
@@ -9976,7 +9975,7 @@ function makeClass<
     static readonly [immerable] = true
 
     declare static readonly "~rebuild.out": decodeTo<declareConstructor<Self, S["Encoded"], readonly [S], S["Iso"]>, S>
-    declare static readonly "~annotate.in": Annotations.Bottom<Self, readonly [S]>
+    declare static readonly "~type.parameters": readonly [S]
 
     declare static readonly "Type": Self
     declare static readonly "Encoded": S["Encoded"]
@@ -11277,7 +11276,9 @@ export const MutableJson: Codec<MutableJson> = make(AST.MutableJson)
  * @category Schema Resolvers
  * @since 4.0.0
  */
-export function resolveAnnotations<S extends Top>(schema: S): S["~annotate.in"] | undefined {
+export function resolveAnnotations<S extends Top>(
+  schema: S
+): Annotations.Bottom<S["Type"], S["~type.parameters"]> | undefined {
   return InternalAnnotations.resolve(schema.ast)
 }
 
@@ -11290,7 +11291,7 @@ export function resolveAnnotations<S extends Top>(schema: S): S["~annotate.in"] 
  * @since 4.0.0
  */
 export function resolveAnnotationsKey<S extends Top>(schema: S): Annotations.Key<S["Type"]> | undefined {
-  return schema.ast.context?.annotations as any
+  return schema.ast.context?.annotations
 }
 
 /**
