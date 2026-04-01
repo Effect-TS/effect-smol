@@ -1,5 +1,5 @@
 ---
-"effect": minor
+"effect": patch
 "@effect/platform-node-shared": patch
 "@effect/platform-node": patch
 ---
