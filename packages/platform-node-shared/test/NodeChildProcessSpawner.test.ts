@@ -814,8 +814,9 @@ describe("NodeChildProcessSpawner", () => {
 
       const killMatchingProcesses = (pattern: string) =>
         Effect.gen(function*() {
-          const handle = yield* ChildProcess.make("bash", ["-c", `pkill -f '${pattern}' || true`])
-          yield* handle.exitCode
+          const escaped = `[${pattern[0]}]${pattern.slice(1)}`
+          const handle = yield* ChildProcess.make("bash", ["-c", `pkill -f '${escaped}' || true`])
+          yield* Effect.ignore(handle.exitCode)
         }).pipe(Effect.asVoid)
 
       const longRunningCommand = () =>
