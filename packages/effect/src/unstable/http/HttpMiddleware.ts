@@ -96,6 +96,15 @@ export const logger: <E, R>(
   let counter = 0
   return Effect.withFiber((fiber) => {
     const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
+    const path = Option.match(Request.toURL(request), {
+      onNone: () => {
+        const queryIndex = request.url.indexOf("?")
+        const hashIndex = request.url.indexOf("#")
+        const end = queryIndex === -1 ? hashIndex : hashIndex === -1 ? queryIndex : Math.min(queryIndex, hashIndex)
+        return end === -1 ? request.url : request.url.slice(0, end)
+      },
+      onSome: (url) => url.pathname
+    })
     return Effect.withLogSpan(
       Effect.flatMap(Effect.exit(httpApp), (exit) => {
         if (loggerDisabledRequests.has(request.source)) {
@@ -105,7 +114,7 @@ export const logger: <E, R>(
           return Effect.andThen(
             Effect.annotateLogs(Effect.log(Option.getOrElse(cause, () => "Sent HTTP Response")), {
               "http.method": request.method,
-              "http.url": request.url,
+              "http.url": path,
               "http.status": response.status
             }),
             exit
@@ -114,7 +123,7 @@ export const logger: <E, R>(
         return Effect.andThen(
           Effect.annotateLogs(Effect.log("Sent HTTP response"), {
             "http.method": request.method,
-            "http.url": request.url,
+            "http.url": path,
             "http.status": exit.value.status
           }),
           exit
