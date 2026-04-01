@@ -353,9 +353,11 @@ export const run: (options: {
         Effect.provideServiceEffect(
           RpcClient.Protocol,
           RpcClient.Protocol.make(Effect.fnUntraced(function*(writeResponse) {
-            write = writeResponse
+            let cid = 0
+            write = (message) => writeResponse(cid, message)
             return {
-              send(request, _transferables) {
+              send(id, request, _transferables) {
+                cid = id
                 return protocol.send(clientId, {
                   ...request,
                   headers: undefined,
