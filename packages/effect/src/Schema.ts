@@ -11269,13 +11269,28 @@ export const MutableJson: Codec<MutableJson> = make(AST.MutableJson)
 // -----------------------------------------------------------------------------
 
 /**
- * Return all the typed annotations from the schema.
+ * Resolves the typed annotations from a schema. The term "resolve" (rather
+ * than "get") reflects the lookup strategy: if the schema has checks, the
+ * annotations are taken from the last check; otherwise they are taken from
+ * the base schema instance.
  *
  * @category Schema Resolvers
  * @since 4.0.0
  */
-export function resolveInto<S extends Top>(schema: S): S["~annotate.in"] | undefined {
+export function resolveAnnotations<S extends Top>(schema: S): S["~annotate.in"] | undefined {
   return InternalAnnotations.resolve(schema.ast)
+}
+
+/**
+ * Resolves the context (key-level) annotations from a schema. Context
+ * annotations are those attached via `annotateKey` and live on the AST's
+ * `context` rather than on the schema node itself.
+ *
+ * @category Schema Resolvers
+ * @since 4.0.0
+ */
+export function resolveAnnotationsKey<S extends Top>(schema: S): Annotations.Key<S["Type"]> | undefined {
+  return schema.ast.context?.annotations as any
 }
 
 /**
@@ -11283,7 +11298,7 @@ export function resolveInto<S extends Top>(schema: S): S["~annotate.in"] | undef
  * metadata to schemas. Annotations control documentation, validation messages,
  * JSON Schema generation, equivalence, arbitrary generation, and more.
  *
- * Use {@link resolveInto} to read the annotations attached to a schema at
+ * Use {@link resolveAnnotations} to read the annotations attached to a schema at
  * runtime.
  *
  * @since 4.0.0

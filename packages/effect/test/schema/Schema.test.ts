@@ -7691,7 +7691,7 @@ describe("Check", () => {
   it("isStringFinite", async () => {
     const schema = Schema.String.check(Schema.isStringFinite())
 
-    deepStrictEqual(Schema.resolveInto(schema)?.["meta"], {
+    deepStrictEqual(Schema.resolveAnnotations(schema)?.["meta"], {
       _tag: "isStringFinite",
       regExp: /^[+-]?\d*\.?\d+(?:[Ee][+-]?\d+)?$/
     })
@@ -7700,7 +7700,7 @@ describe("Check", () => {
   it("isStringBigInt", async () => {
     const schema = Schema.String.check(Schema.isStringBigInt())
 
-    deepStrictEqual(Schema.resolveInto(schema)?.["meta"], {
+    deepStrictEqual(Schema.resolveAnnotations(schema)?.["meta"], {
       _tag: "isStringBigInt",
       regExp: /^-?\d+$/
     })
@@ -7709,7 +7709,7 @@ describe("Check", () => {
   it("isStringSymbol", async () => {
     const schema = Schema.String.check(Schema.isStringSymbol())
 
-    deepStrictEqual(Schema.resolveInto(schema)?.["meta"], {
+    deepStrictEqual(Schema.resolveAnnotations(schema)?.["meta"], {
       _tag: "isStringSymbol",
       regExp: /^Symbol\((.*)\)$/
     })
@@ -7723,7 +7723,7 @@ describe("Check", () => {
       asserts.arbitrary().verifyGeneration()
     }
 
-    deepStrictEqual(Schema.resolveInto(schema)?.["meta"], {
+    deepStrictEqual(Schema.resolveAnnotations(schema)?.["meta"], {
       _tag: "isULID",
       regExp: /^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$/
     })
@@ -7739,7 +7739,7 @@ describe("Check", () => {
   it("isBase64", async () => {
     const schema = Schema.String.check(Schema.isBase64())
 
-    deepStrictEqual(Schema.resolveInto(schema)?.["meta"], {
+    deepStrictEqual(Schema.resolveAnnotations(schema)?.["meta"], {
       _tag: "isBase64",
       regExp: /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/
     })
@@ -7748,7 +7748,7 @@ describe("Check", () => {
   it("isBase64Url", async () => {
     const schema = Schema.String.check(Schema.isBase64Url())
 
-    deepStrictEqual(Schema.resolveInto(schema)?.["meta"], {
+    deepStrictEqual(Schema.resolveAnnotations(schema)?.["meta"], {
       _tag: "isBase64Url",
       regExp: /^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/
     })
@@ -7996,5 +7996,34 @@ Missing key
       strictEqual(B.decodeUnknownSync("1"), 1)
       strictEqual(B.encodeSync(1), "1")
     })
+  })
+})
+
+describe("resolveAnnotations", () => {
+  it("returns undefined for a schema without annotations", () => {
+    strictEqual(Schema.resolveAnnotations(Schema.String), undefined)
+  })
+
+  it("returns annotations from the base schema", () => {
+    const schema = Schema.String.annotate({ title: "my string" })
+    deepStrictEqual(Schema.resolveAnnotations(schema), { title: "my string" })
+  })
+
+  it("returns annotations from the last check", () => {
+    const schema = Schema.String
+      .annotate({ title: "base" })
+      .check(Schema.isNonEmpty().annotate({ title: "check" }))
+    strictEqual(Schema.resolveAnnotations(schema)?.title, "check")
+  })
+})
+
+describe("resolveAnnotationsKey", () => {
+  it("returns undefined for a schema without key annotations", () => {
+    strictEqual(Schema.resolveAnnotationsKey(Schema.String), undefined)
+  })
+
+  it("returns key annotations", () => {
+    const schema = Schema.String.annotateKey({ messageMissingKey: "required" })
+    deepStrictEqual(Schema.resolveAnnotationsKey(schema), { messageMissingKey: "required" })
   })
 })

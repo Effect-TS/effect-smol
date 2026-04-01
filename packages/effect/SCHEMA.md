@@ -6472,7 +6472,31 @@ type TypeMutability2 = (typeof schema)["~type.mutability"] // "readonly" | "muta
 
 ## Typed Annotations
 
-You can retrieve typed annotations with the `Annotations.resolveInto` function.
+You can retrieve typed annotations with the `Schema.resolveAnnotations` function. The function is called "resolve" rather than "get" because it performs a lookup: if the schema has checks, the annotations are taken from the last check; otherwise they are taken from the base schema instance. This means annotations placed on a check (e.g. via `.check(myCheck.annotate({ ... }))`) take precedence over annotations on the schema itself.
+
+**Example** (Resolving annotations from a base schema)
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.String.annotate({ title: "my string" })
+
+console.log(Schema.resolveAnnotations(schema))
+// Output: { title: "my string" }
+```
+
+**Example** (Annotations on the last check take precedence)
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.String
+  .annotate({ title: "base" })
+  .check(Schema.isNonEmpty().annotate({ title: "from check" }))
+
+console.log(Schema.resolveAnnotations(schema)?.title)
+// Output: "from check"
+```
 
 You can also extend the available annotations by adding your own in a module declaration file.
 
@@ -6494,13 +6518,28 @@ declare module "effect/Schema" {
 const schema = Schema.String.annotate({ version: [1, 2, 0] })
 
 // const version: readonly [major: number, minor: number, patch: number] | undefined
-const version = Schema.resolveInto(schema)?.["version"]
+const version = Schema.resolveAnnotations(schema)?.["version"]
 
 if (version) {
   // Access individual parts of the version
   console.log(version[1])
   // Output: 2
 }
+```
+
+### Key-level Annotations
+
+Key-level annotations are attached via `annotateKey` and apply to a field's position inside a `Struct` or `Tuple` rather than to the field's value type. Use `Schema.resolveAnnotationsKey` to retrieve them.
+
+**Example** (Resolving key-level annotations)
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.String.annotateKey({ messageMissingKey: "required" })
+
+console.log(Schema.resolveAnnotationsKey(schema))
+// Output: { messageMissingKey: "required" }
 ```
 
 ## Generics Improvements

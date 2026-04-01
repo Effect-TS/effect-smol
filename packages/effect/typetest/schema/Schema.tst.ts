@@ -1667,4 +1667,46 @@ describe("Schema", () => {
       expect(A.encodeSync(1)).type.toBe<string>()
     })
   })
+
+  describe("Annotations", () => {
+    describe("resolveAnnotations", () => {
+      it("String", () => {
+        const schema = Schema.String
+        expect(Schema.resolveAnnotations(schema)).type.toBe<
+          Schema.Annotations.Bottom<string, readonly []> | undefined
+        >()
+      })
+
+      it("URL", () => {
+        const schema = Schema.URL
+        expect(Schema.resolveAnnotations(schema)).type.toBe<Schema.Annotations.Bottom<URL, readonly []> | undefined>()
+      })
+
+      it("Option(string)", () => {
+        const schema = Schema.Option(Schema.String)
+        expect(Schema.resolveAnnotations(schema)).type.toBe<
+          Schema.Annotations.Bottom<Option.Option<string>, readonly [Schema.String]> | undefined
+        >()
+      })
+    })
+
+    describe("resolveAnnotationsKey", () => {
+      it("String", () => {
+        const schema = Schema.String
+        expect(Schema.resolveAnnotationsKey(schema)).type.toBe<Schema.Annotations.Key<string> | undefined>()
+      })
+    })
+
+    it("URL", () => {
+      const schema = Schema.URL
+      expect(Schema.resolveAnnotationsKey(schema)).type.toBe<Schema.Annotations.Key<URL> | undefined>()
+    })
+
+    it("Option(string)", () => {
+      const schema = Schema.Option(Schema.String)
+      expect(Schema.resolveAnnotationsKey(schema)).type.toBe<
+        Schema.Annotations.Key<Option.Option<string>> | undefined
+      >()
+    })
+  })
 })
