@@ -307,7 +307,7 @@ export declare namespace Handlers {
  * @category models
  */
 export class CurrentStoreId extends ServiceMap.Reference<StoreId>("effect/eventlog/EventLog/CurrentStoreId", {
-  defaultValue: constant(StoreId.makeUnsafe("default"))
+  defaultValue: constant(StoreId.make("default"))
 }) {}
 
 const RedactedUint8Array = Schema.Uint8ArrayFromBase64.pipe(

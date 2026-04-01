@@ -143,7 +143,7 @@ const makeEntry = (options?: {
     payload: new Uint8Array(options?.payloadSize ?? 4).fill(1)
   })
 
-const defaultStoreId = EventLogMessage.StoreId.makeUnsafe("default")
+const defaultStoreId = EventLogMessage.StoreId.make("default")
 const remoteId = EventJournal.makeRemoteIdUnsafe()
 const challenge = new Uint8Array(16).fill(1)
 
