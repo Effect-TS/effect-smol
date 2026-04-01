@@ -8,6 +8,7 @@
  */
 import * as Array from "effect/Array"
 import type * as Config from "effect/Config"
+import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import { identity } from "effect/Function"
 import * as Function from "effect/Function"
@@ -19,7 +20,6 @@ import * as Redacted from "effect/Redacted"
 import * as Schema from "effect/Schema"
 import * as Scope from "effect/Scope"
 import * as Semaphore from "effect/Semaphore"
-import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"
 import * as AiError from "effect/unstable/ai/AiError"
 import * as ResponseIdTracker from "effect/unstable/ai/ResponseIdTracker"
@@ -91,7 +91,7 @@ export interface Service {
  * @since 1.0.0
  * @category service
  */
-export class OpenAiClient extends ServiceMap.Service<OpenAiClient, Service>()(
+export class OpenAiClient extends Context.Service<OpenAiClient, Service>()(
   "@effect/ai-openai/OpenAiClient"
 ) {}
 
@@ -232,7 +232,7 @@ export const make = Effect.fnUntraced(
 
     const createResponseStream: Service["createResponseStream"] = (payload) =>
       Effect.servicesWith((services) => {
-        const socket = ServiceMap.getOrUndefined(services, OpenAiSocket)
+        const socket = Context.getOrUndefined(services, OpenAiSocket)
         if (socket) return socket.createResponseStream(payload)
         return httpClientOk.execute(
           HttpClientRequest.post("/responses", {
@@ -355,7 +355,7 @@ export type ResponseStreamEvent = typeof Generated.ResponseStreamEvent.Type
  * @since 1.0.0
  * @category Websocket mode
  */
-export class OpenAiSocket extends ServiceMap.Service<OpenAiSocket, {
+export class OpenAiSocket extends Context.Service<OpenAiSocket, {
   /**
    * Create a streaming response using the OpenAI responses endpoint.
    */
@@ -492,7 +492,7 @@ const makeSocket = Effect.gen(function*() {
   const semaphore = Semaphore.makeUnsafe(1)
   const request = yield* makeRequest
 
-  return OpenAiSocket.serviceMap({
+  return OpenAiSocket.context({
     createResponseStream(options) {
       const stream = Stream.unwrap(Effect.gen(function*() {
         const scope = yield* Effect.scope
@@ -527,7 +527,7 @@ const makeSocket = Effect.gen(function*() {
       ])
     }
   }).pipe(
-    ServiceMap.add(ResponseIdTracker.ResponseIdTracker, tracker)
+    Context.add(ResponseIdTracker.ResponseIdTracker, tracker)
   )
 })
 

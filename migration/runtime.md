@@ -12,7 +12,7 @@ interface Runtime<in R> {
 }
 ```
 
-In v4, this type no longer exists and you can use `ServiceMap<R>` instead.
+In v4, this type no longer exists and you can use `Context<R>` instead.
 Run functions live directly on `Effect`, and the `Runtime` module is reduced to
 process lifecycle utilities.
 
@@ -54,9 +54,9 @@ In v4, use the same pattern with `Effect.services<R>()`, then run with
 **v4**
 
 ```ts
-import { Effect, ServiceMap } from "effect"
+import { Context, Effect } from "effect"
 
-class Logger extends ServiceMap.Service<Logger, {
+class Logger extends Context.Service<Logger, {
   readonly log: (message: string) => void
 }>()("Logger") {}
 
@@ -69,7 +69,7 @@ const main = Effect.gen(function*() {
   const services = yield* Effect.services<Logger>()
   return Effect.runForkWith(services)(program)
 }).pipe(
-  Effect.provideServices(ServiceMap.make(Logger, {
+  Effect.provideServices(Context.make(Logger, {
     log: (message) => console.log(message)
   }))
 )

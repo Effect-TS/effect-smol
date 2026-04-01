@@ -4,6 +4,7 @@ import {
   Brand,
   Cause,
   Chunk,
+  Context,
   DateTime,
   Duration,
   Effect,
@@ -24,7 +25,6 @@ import {
   SchemaIssue,
   SchemaParser,
   SchemaTransformation,
-  ServiceMap,
   String as Str,
   Struct,
   Tuple
@@ -3189,7 +3189,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       })
 
       it("Struct & Effect async & service", async () => {
-        class Service extends ServiceMap.Service<Service, { value: Effect.Effect<number> }>()("Service") {}
+        class Service extends Context.Service<Service, { value: Effect.Effect<number> }>()("Service") {}
 
         const schema = Schema.Struct({
           a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(
@@ -6108,7 +6108,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   })
 
   it("catchDecodingWithContext", async () => {
-    class Service extends ServiceMap.Service<Service, { fallback: Effect.Effect<string> }>()("Service") {}
+    class Service extends Context.Service<Service, { fallback: Effect.Effect<string> }>()("Service") {}
 
     const schema = Schema.String.pipe(Schema.catchDecodingWithContext(() =>
       Effect.gen(function*() {
@@ -6128,7 +6128,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
   describe("middlewareDecoding", () => {
     it("providing a service", async () => {
-      class Service extends ServiceMap.Service<Service, { fallback: Effect.Effect<number> }>()("Service") {}
+      class Service extends Context.Service<Service, { fallback: Effect.Effect<number> }>()("Service") {}
 
       const schema = Schema.FiniteFromString.pipe(
         Schema.catchDecodingWithContext((issue) =>
@@ -6204,7 +6204,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   })
 
   it("catchEncodingWithContext", async () => {
-    class Service extends ServiceMap.Service<Service, { fallback: Effect.Effect<number> }>()("Service") {}
+    class Service extends Context.Service<Service, { fallback: Effect.Effect<number> }>()("Service") {}
 
     const schema = Schema.Number.pipe(
       Schema.catchEncodingWithContext(() =>
@@ -6231,7 +6231,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
   describe("middlewareEncoding", () => {
     it("providing a service", async () => {
-      class Service extends ServiceMap.Service<Service, { fallback: Effect.Effect<string> }>()("Service") {}
+      class Service extends Context.Service<Service, { fallback: Effect.Effect<string> }>()("Service") {}
 
       const schema = Schema.FiniteFromString.pipe(
         Schema.catchEncodingWithContext((issue) =>
@@ -6518,7 +6518,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
 
     it("with context", async () => {
-      class Service extends ServiceMap.Service<Service, { fallback: Effect.Effect<string> }>()("Service") {}
+      class Service extends Context.Service<Service, { fallback: Effect.Effect<string> }>()("Service") {}
 
       const schema = Schema.String.pipe(
         Schema.decode({
@@ -6636,7 +6636,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
 
     it("should throw on missing dependency", () => {
-      class MagicNumber extends ServiceMap.Service<MagicNumber, number>()("MagicNumber") {}
+      class MagicNumber extends Context.Service<MagicNumber, number>()("MagicNumber") {}
       const DepString = Schema.Number.pipe(Schema.decode({
         decode: SchemaGetter.onSome((n) =>
           Effect.gen(function*() {
@@ -6669,7 +6669,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
 
     it("should die on missing dependency", () => {
-      class MagicNumber extends ServiceMap.Service<MagicNumber, number>()("MagicNumber") {}
+      class MagicNumber extends Context.Service<MagicNumber, number>()("MagicNumber") {}
       const DepString = Schema.Number.pipe(Schema.decode({
         decode: SchemaGetter.onSome((n) =>
           Effect.gen(function*() {

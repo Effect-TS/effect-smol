@@ -3,6 +3,7 @@
  */
 import * as Cause from "./Cause.ts"
 import { Clock } from "./Clock.ts"
+import * as Context from "./Context.ts"
 import * as Deferred from "./Deferred.ts"
 import * as Duration from "./Duration.ts"
 import * as Effect from "./Effect.ts"
@@ -13,7 +14,6 @@ import * as MutableHashMap from "./MutableHashMap.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import { pipeArguments } from "./Pipeable.ts"
 import * as Scope from "./Scope.ts"
-import * as ServiceMap from "./ServiceMap.ts"
 
 const TypeId = "~effect/RcMap"
 
@@ -53,7 +53,7 @@ const TypeId = "~effect/RcMap"
 export interface RcMap<in out K, in out A, in out E = never> extends Pipeable {
   readonly [TypeId]: typeof TypeId
   readonly lookup: (key: K) => Effect.Effect<A, E, Scope.Scope>
-  readonly services: ServiceMap.ServiceMap<never>
+  readonly services: Context.Context<never>
   readonly scope: Scope.Scope
   readonly idleTimeToLive: (key: K) => Duration.Duration
   readonly capacity: number
@@ -196,7 +196,7 @@ export declare namespace State {
 
 const makeUnsafe = <K, A, E>(options: {
   readonly lookup: (key: K) => Effect.Effect<A, E, Scope.Scope>
-  readonly services: ServiceMap.ServiceMap<never>
+  readonly services: Context.Context<never>
   readonly scope: Scope.Scope
   readonly idleTimeToLive: (key: K) => Duration.Duration
   readonly capacity: number
@@ -269,8 +269,8 @@ export const make: {
   readonly capacity?: number | undefined
 }) =>
   Effect.withFiber<RcMap<K, A, E>, never, R | Scope.Scope>((fiber) => {
-    const services = fiber.services as ServiceMap.ServiceMap<R | Scope.Scope>
-    const scope = ServiceMap.get(services, Scope.Scope)
+    const services = fiber.services as Context.Context<R | Scope.Scope>
+    const scope = Context.get(services, Scope.Scope)
     const self = makeUnsafe<K, A, E>({
       lookup: options.lookup as any,
       services,
@@ -367,11 +367,11 @@ export const get: {
         })
         services.set(Scope.Scope.key, entry.scope)
         self.lookup(key).pipe(
-          Effect.runForkWith(ServiceMap.makeUnsafe(services)),
+          Effect.runForkWith(Context.makeUnsafe(services)),
           Fiber.runIn(entry.scope)
         ).addObserver((exit) => Deferred.doneUnsafe(entry.deferred, exit))
       }
-      const scope = ServiceMap.getUnsafe(parent.services, Scope.Scope)
+      const scope = Context.getUnsafe(parent.services, Scope.Scope)
       return Scope.addFinalizer(scope, entry.finalizer).pipe(
         Effect.andThen(restore(Deferred.await(entry.deferred)))
       )

@@ -1,8 +1,8 @@
-import { Effect, Layer, Ref, ServiceMap } from "effect"
+import { Context, Effect, Layer, Ref } from "effect"
 import { User, UserId } from "../domain/User.ts"
 import { SearchQueryTooShort, UserNotFound, UsersError } from "../domain/UserErrors.ts"
 
-export class Users extends ServiceMap.Service<Users, {
+export class Users extends Context.Service<Users, {
   list(search: string | undefined): Effect.Effect<Array<User>, UsersError>
   getById(id: UserId): Effect.Effect<User, UsersError>
   create(input: { readonly name: string; readonly email: string }): Effect.Effect<User, UsersError>

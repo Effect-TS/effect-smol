@@ -2,6 +2,7 @@
 import {
   type Cause,
   type Channel,
+  Context,
   Data,
   Effect,
   Fiber,
@@ -10,7 +11,6 @@ import {
   pipe,
   Result,
   type Scope,
-  ServiceMap,
   type Sink,
   type Stream,
   type Types,
@@ -68,7 +68,7 @@ declare const fiberStringOrNumber: Fiber.Fiber<string, "err-1"> | Fiber.Fiber<nu
 declare const stringArray: Array<Effect.Effect<string, "err-3", "dep-3">>
 declare const numberRecord: Record<string, Effect.Effect<number, "err-4", "dep-4">>
 
-class AcquireReleaseDependency extends ServiceMap.Service<AcquireReleaseDependency, string>()(
+class AcquireReleaseDependency extends Context.Service<AcquireReleaseDependency, string>()(
   "AcquireReleaseDependency"
 ) {}
 
@@ -290,7 +290,7 @@ describe("Effect.catchNoSuchElement", () => {
 describe("Effect.services", () => {
   it("defaults R to never", () => {
     const result = Effect.services()
-    expect(result).type.toBe<Effect.Effect<ServiceMap.ServiceMap<never>, never, never>>()
+    expect(result).type.toBe<Effect.Effect<Context.Context<never>, never, never>>()
   })
 })
 

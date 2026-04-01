@@ -3,6 +3,7 @@
  */
 import * as Arr from "../../Array.ts"
 import * as Cause from "../../Cause.ts"
+import type * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import { identity } from "../../Function.ts"
 import * as Option from "../../Option.ts"
@@ -11,7 +12,6 @@ import * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
 import * as Issue from "../../SchemaIssue.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
-import type * as ServiceMap from "../../ServiceMap.ts"
 import type { Simplify } from "../../Types.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
 import * as HttpBody from "../http/HttpBody.ts"
@@ -186,12 +186,12 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
     }>
     readonly onGroup?: (options: {
       readonly group: HttpApiGroup.AnyWithProps
-      readonly mergedAnnotations: ServiceMap.ServiceMap<never>
+      readonly mergedAnnotations: Context.Context<never>
     }) => void
     readonly onEndpoint: (options: {
       readonly group: HttpApiGroup.AnyWithProps
       readonly endpoint: HttpApiEndpoint.AnyWithProps
-      readonly mergedAnnotations: ServiceMap.ServiceMap<never>
+      readonly mergedAnnotations: Context.Context<never>
       readonly middleware: ReadonlySet<HttpApiMiddleware.AnyService>
       readonly successes: ReadonlyMap<number, readonly [Schema.Top, ...Array<Schema.Top>]>
       readonly errors: ReadonlyMap<number, readonly [Schema.Top, ...Array<Schema.Top>]>

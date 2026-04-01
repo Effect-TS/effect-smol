@@ -1,9 +1,9 @@
 /**
  * @since 4.0.0
  */
+import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import type * as HttpApi from "../httpapi/HttpApi.ts"
 import * as HttpApiBuilder from "../httpapi/HttpApiBuilder.ts"
 import type * as HttpApiGroup from "../httpapi/HttpApiGroup.ts"
@@ -101,7 +101,7 @@ export const layerRpcHandlers = <
           (client(entityId) as any)[parentRpc._tag](payload, { discard: true }) as any
       } as any)
     }
-    return ServiceMap.makeUnsafe(handlers)
+    return Context.makeUnsafe(handlers)
   }))
 
 /**

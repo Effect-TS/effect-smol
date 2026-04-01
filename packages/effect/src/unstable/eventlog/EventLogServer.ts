@@ -3,6 +3,7 @@
  */
 import * as Uuid from "uuid"
 import type * as Cause from "../../Cause.ts"
+import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import * as FiberMap from "../../FiberMap.ts"
 import * as Layer from "../../Layer.ts"
@@ -11,7 +12,6 @@ import * as Queue from "../../Queue.ts"
 import * as RcMap from "../../RcMap.ts"
 import * as Schema from "../../Schema.ts"
 import type * as Scope from "../../Scope.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import type * as HttpServerError from "../http/HttpServerError.ts"
 import * as HttpServerRequest from "../http/HttpServerRequest.ts"
 import * as HttpServerResponse from "../http/HttpServerResponse.ts"
@@ -207,7 +207,7 @@ export class PersistedEntry extends Schema.Class<PersistedEntry>(
  * @since 4.0.0
  * @category storage
  */
-export class Storage extends ServiceMap.Service<Storage, {
+export class Storage extends Context.Service<Storage, {
   readonly getId: Effect.Effect<RemoteId>
   readonly write: (
     publicKey: string,

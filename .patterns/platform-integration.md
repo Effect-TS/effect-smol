@@ -25,7 +25,7 @@ export interface FileSystem {
 }
 
 // Service key for dependency injection
-export const FileSystem: ServiceMap.Service<FileSystem, FileSystem> = ServiceMap.Service("effect/platform/FileSystem")
+export const FileSystem: Context.Service<FileSystem, FileSystem> = Context.Service("effect/platform/FileSystem")
 
 // Type identification
 const TypeId: unique symbol = Symbol.for("effect/platform/FileSystem")
@@ -38,14 +38,14 @@ Use service classes for type-safe dependency injection:
 
 ```typescript
 // HTTP platform service
-export class HttpPlatform extends ServiceMap.Service<HttpPlatform, {
+export class HttpPlatform extends Context.Service<HttpPlatform, {
   readonly fileResponse: (path: string, options?: FileResponseOptions) => Effect.Effect<Response>
   readonly fileWebResponse: (file: FileLike, options?: FileWebResponseOptions) => Effect.Effect<Response>
   readonly formData: (source: Readable) => Effect.Effect<FormData>
 }>()("effect/http/HttpPlatform") {}
 
 // Socket service
-export class NetSocket extends ServiceMap.Service<NetSocket, Net.Socket>()(
+export class NetSocket extends Context.Service<NetSocket, Net.Socket>()(
   "@effect/platform-node/NodeSocket/NetSocket"
 ) {}
 ```
@@ -358,7 +358,7 @@ export const toReadable = <E, R>(stream: Stream.Stream<string | Uint8Array, E, R
   )
 
 export const toReadableNever = <E>(stream: Stream.Stream<string | Uint8Array, E, never>): Readable =>
-  new StreamAdapter(ServiceMap.empty(), stream)
+  new StreamAdapter(Context.empty(), stream)
 ```
 
 ## 🔐 RESOURCE MANAGEMENT PATTERNS

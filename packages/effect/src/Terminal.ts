@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 import type * as Cause from "./Cause.ts"
+import * as Context from "./Context.ts"
 import type * as Effect from "./Effect.ts"
 import type * as Option from "./Option.ts"
 import type { PlatformError } from "./PlatformError.ts"
@@ -9,7 +10,6 @@ import * as Predicate from "./Predicate.ts"
 import type * as Queue from "./Queue.ts"
 import * as Schema from "./Schema.ts"
 import type * as Scope from "./Scope.ts"
-import * as ServiceMap from "./ServiceMap.ts"
 
 const TypeId = "~effect/platform/Terminal"
 
@@ -107,7 +107,7 @@ export const isQuitError = (u: unknown): u is QuitError => Predicate.hasProperty
  * @since 4.0.0
  * @category Services
  */
-export const Terminal: ServiceMap.Service<Terminal, Terminal> = ServiceMap.Service("effect/platform/Terminal")
+export const Terminal: Context.Service<Terminal, Terminal> = Context.Service("effect/platform/Terminal")
 
 /**
  * Creates a Terminal implementation

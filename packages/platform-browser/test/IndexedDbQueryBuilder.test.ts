@@ -2,6 +2,7 @@ import { IndexedDb, IndexedDbDatabase, IndexedDbTable, IndexedDbVersion } from "
 import { afterEach, assert, describe, it } from "@effect/vitest"
 import {
   Array,
+  Context,
   DateTime,
   Effect,
   Fiber,
@@ -10,7 +11,6 @@ import {
   Schema,
   SchemaGetter,
   SchemaIssue,
-  ServiceMap,
   Stream
 } from "effect"
 import { IDBKeyRange, indexedDB } from "fake-indexeddb"
@@ -56,7 +56,7 @@ class ProductSchema extends Schema.Class<ProductSchema>("ProductSchema")({
   price: Schema.Number
 }) {}
 
-class VerifyContext extends ServiceMap.Service<
+class VerifyContext extends Context.Service<
   VerifyContext,
   { readonly maxLength: number }
 >()("VerifyContext") {}

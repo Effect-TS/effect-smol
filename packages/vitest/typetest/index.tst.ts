@@ -1,9 +1,9 @@
 import { it, layer } from "@effect/vitest"
-import { Layer, ServiceMap } from "effect"
+import { Context, Layer } from "effect"
 import { describe, expect, it as test } from "tstyche"
 
-class Foo extends ServiceMap.Service<Foo, "foo">()("Foo") {}
-class Bar extends ServiceMap.Service<Bar, "bar">()("Bar") {}
+class Foo extends Context.Service<Foo, "foo">()("Foo") {}
+class Bar extends Context.Service<Bar, "bar">()("Bar") {}
 
 describe("layer", () => {
   test("top-level export accepts full options", () => {

@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Cache, Data, Deferred, Duration, Effect, Exit, Fiber, Option, ServiceMap } from "effect"
+import { Cache, Context, Data, Deferred, Duration, Effect, Exit, Fiber, Option } from "effect"
 import { TestClock } from "effect/testing"
 
 describe("Cache", () => {
@@ -45,7 +45,7 @@ describe("Cache", () => {
 
     it.effect("make - lookup function context is preserved", () =>
       Effect.gen(function*() {
-        class TestService extends ServiceMap.Service<TestService, { value: number }>()("TestService") {}
+        class TestService extends Context.Service<TestService, { value: number }>()("TestService") {}
 
         const program = Effect.gen(function*() {
           const cache = yield* Cache.make({

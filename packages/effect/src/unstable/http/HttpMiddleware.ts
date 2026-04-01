@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 import { Clock } from "../../Clock.ts"
+import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import { constant, constFalse } from "../../Function.ts"
 import * as internalEffect from "../../internal/effect.ts"
@@ -10,7 +11,6 @@ import * as Option from "../../Option.ts"
 import type { Predicate } from "../../Predicate.ts"
 import type { ReadonlyRecord } from "../../Record.ts"
 import { TracerEnabled } from "../../References.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import { ParentSpan } from "../../Tracer.ts"
 import * as Headers from "./Headers.ts"
 import { causeResponseStripped, exitResponse } from "./HttpServerError.ts"
@@ -68,7 +68,7 @@ const stripSearchAndHash = (url: string): string => {
  */
 export const withLoggerDisabled = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R | HttpServerRequest> =>
   Effect.withFiber((fiber) => {
-    const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
+    const request = Context.getUnsafe(fiber.services, HttpServerRequest)
     loggerDisabledRequests.add(request.source)
     return self
   })
@@ -77,7 +77,7 @@ export const withLoggerDisabled = <A, E, R>(self: Effect.Effect<A, E, R>): Effec
  * @since 4.0.0
  * @category Tracer
  */
-export const TracerDisabledWhen = ServiceMap.Reference<Predicate<HttpServerRequest>>(
+export const TracerDisabledWhen = Context.Reference<Predicate<HttpServerRequest>>(
   "effect/http/HttpMiddleware/TracerDisabledWhen",
   { defaultValue: () => constFalse }
 )
@@ -94,7 +94,7 @@ export const layerTracerDisabledForUrls = (
  * @since 4.0.0
  * @category Tracer
  */
-export const SpanNameGenerator = ServiceMap.Reference<(request: HttpServerRequest) => string>(
+export const SpanNameGenerator = Context.Reference<(request: HttpServerRequest) => string>(
   "@effect/platform/HttpMiddleware/SpanNameGenerator",
   { defaultValue: () => (request) => `http.server ${request.method}` }
 )
@@ -108,7 +108,7 @@ export const logger: <E, R>(
 ) => Effect.Effect<HttpServerResponse, E, HttpServerRequest | R> = make((httpApp) => {
   let counter = 0
   return Effect.withFiber((fiber) => {
-    const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
+    const request = Context.getUnsafe(fiber.services, HttpServerRequest)
     const path = stripSearchAndHash(request.url)
     return Effect.withLogSpan(
       Effect.flatMap(Effect.exit(httpApp), (exit) => {
@@ -147,7 +147,7 @@ export const tracer: <E, R>(
   httpApp: Effect.Effect<HttpServerResponse, E, HttpServerRequest | R>
 ) => Effect.Effect<HttpServerResponse, E, HttpServerRequest | R> = make((httpApp) =>
   Effect.withFiber((fiber) => {
-    const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
+    const request = Context.getUnsafe(fiber.services, HttpServerRequest)
     const disabled = !fiber.getRef(TracerEnabled) || fiber.getRef(TracerDisabledWhen)(request)
     if (disabled) {
       return httpApp
@@ -158,7 +158,7 @@ export const tracer: <E, R>(
       kind: "server"
     })
     const prevServices = fiber.services
-    fiber.setServices(ServiceMap.add(fiber.services, ParentSpan, span))
+    fiber.setServices(Context.add(fiber.services, ParentSpan, span))
     return Effect.onExitPrimitive(httpApp, (exit) => {
       fiber.setServices(prevServices)
       const endTime = fiber.getRef(Clock).currentTimeNanosUnsafe()
@@ -229,7 +229,7 @@ export const searchParamsParser = <E, R>(
 ): Effect.Effect<Response.HttpServerResponse, E, HttpServerRequest | Exclude<R, Request.ParsedSearchParams>> =>
   Effect.withFiber((fiber) => {
     const services = fiber.services
-    const request = ServiceMap.getUnsafe(services, HttpServerRequest)
+    const request = Context.getUnsafe(services, HttpServerRequest)
     const params = Request.searchParamsFromURL(new URL(request.originalUrl))
     return Effect.provideService(
       httpApp,
@@ -346,7 +346,7 @@ export const cors = (options?: {
     httpApp: Effect.Effect<HttpServerResponse, E, R>
   ): Effect.Effect<HttpServerResponse, E, R | HttpServerRequest> =>
     Effect.withFiber((fiber) => {
-      const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
+      const request = Context.getUnsafe(fiber.services, HttpServerRequest)
       if (request.method === "OPTIONS") {
         return Effect.succeed(Response.empty({
           status: 204,

@@ -1,6 +1,7 @@
 import * as Arr from "../../../Array.ts"
 import * as Cause from "../../../Cause.ts"
 import { Clock } from "../../../Clock.ts"
+import * as Context from "../../../Context.ts"
 import * as Duration from "../../../Duration.ts"
 import type { Input } from "../../../Duration.ts"
 import * as Effect from "../../../Effect.ts"
@@ -16,7 +17,6 @@ import * as Schedule from "../../../Schedule.ts"
 import * as Schema from "../../../Schema.ts"
 import * as Issue from "../../../SchemaIssue.ts"
 import * as Scope from "../../../Scope.ts"
-import * as ServiceMap from "../../../ServiceMap.ts"
 import type * as Rpc from "../../rpc/Rpc.ts"
 import { RequestId } from "../../rpc/RpcMessage.ts"
 import * as RpcServer from "../../rpc/RpcServer.ts"
@@ -157,17 +157,17 @@ export const make = Effect.fnUntraced(function*<
         // Initiate the behavior for the entity
         const handlers = yield* (entity.protocol.toHandlers(buildHandlers as any).pipe(
           Effect.provideService(CurrentLogAnnotations, {}),
-          Effect.provideServices(ServiceMap.mutate(services, (services) =>
-            services.pipe(
-              ServiceMap.add(CurrentAddress, address),
-              ServiceMap.add(CurrentRunnerAddress, options.runnerAddress),
-              ServiceMap.add(KeepAliveLatch, keepAliveLatch),
-              ServiceMap.add(Scope.Scope, scope)
+          Effect.provideServices(Context.mutate(services, (context) =>
+            context.pipe(
+              Context.add(CurrentAddress, address),
+              Context.add(CurrentRunnerAddress, options.runnerAddress),
+              Context.add(KeepAliveLatch, keepAliveLatch),
+              Context.add(Scope.Scope, scope)
             ))),
           Effect.sandbox,
           Effect.tapError((cause) => Effect.logError("Defect building entity handlers", cause)),
           Effect.retry(defectRetryPolicy)
-        ) as Effect.Effect<ServiceMap.ServiceMap<Rpc.ToHandler<Rpcs>>>)
+        ) as Effect.Effect<Context.Context<Rpc.ToHandler<Rpcs>>>)
 
         const server = yield* RpcServer.makeNoSerialization(entity.protocol, {
           spanPrefix: `${entity.type}(${address.entityId})`,
@@ -192,7 +192,7 @@ export const make = Effect.fnUntraced(function*<
                 // interrupt.
                 if (
                   storageEnabled &&
-                  ServiceMap.get(request.message.annotations, Persisted) &&
+                  Context.get(request.message.annotations, Persisted) &&
                   Exit.hasInterrupts(response.exit) &&
                   (isShuttingDown || isUninterruptibleForServer(request.message.annotations))
                 ) {
@@ -368,7 +368,7 @@ export const make = Effect.fnUntraced(function*<
   }
 
   // update metrics for active servers
-  const typeAttributes = Metric.CurrentMetricAttributes.serviceMap({ type: entity.type })
+  const typeAttributes = Metric.CurrentMetricAttributes.context({ type: entity.type })
   yield* Effect.sync(() => {
     ClusterMetrics.entities.updateUnsafe(BigInt(activeServers.size), typeAttributes)
   }).pipe(
@@ -400,7 +400,7 @@ export const make = Effect.fnUntraced(function*<
               }
 
               const rpc = entityRpcs.get(message.envelope.tag)! as any as Rpc.AnyWithProps
-              if (!storageEnabled && ServiceMap.get(message.annotations, Persisted)) {
+              if (!storageEnabled && Context.get(message.annotations, Persisted)) {
                 return Effect.die(
                   "EntityManager.sendLocal: Cannot process a persisted message without MessageStorage"
                 )
@@ -464,7 +464,7 @@ export const make = Effect.fnUntraced(function*<
                   )
                 })
               })
-              if (ServiceMap.get(message.annotations, WithTransaction)) {
+              if (Context.get(message.annotations, WithTransaction)) {
                 write = options.storage.withTransaction(write)
               }
               return write
@@ -567,7 +567,7 @@ export const make = Effect.fnUntraced(function*<
             const rpc = entityRpcs.get(decoded.envelope.tag)!
             return sendLocal(
               new Message.IncomingRequestLocal({
-                annotations: ServiceMap.get(rpc.annotations, ClusterSchema.Dynamic)(
+                annotations: Context.get(rpc.annotations, ClusterSchema.Dynamic)(
                   rpc.annotations,
                   decoded.envelope as any
                 ),
@@ -585,7 +585,7 @@ export const make = Effect.fnUntraced(function*<
             )
           }
         }),
-        Effect.provideServices(services as ServiceMap.ServiceMap<unknown>)
+        Effect.provideServices(services as Context.Context<unknown>)
       ),
     activeEntityCount: Effect.sync(() => activeServers.size)
   })

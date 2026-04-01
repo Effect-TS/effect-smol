@@ -2,6 +2,7 @@ import { assert, describe, it } from "@effect/vitest"
 import { assertExitFailure } from "@effect/vitest/utils"
 import {
   Cause,
+  Context,
   Data,
   Deferred,
   Duration,
@@ -17,14 +18,13 @@ import {
   Result,
   Schedule,
   Scope,
-  ServiceMap,
   TxRef
 } from "effect"
 import { constFalse, constTrue, pipe } from "effect/Function"
 import { TestClock } from "effect/testing"
 import { assertCauseFail } from "./utils/assert.ts"
 
-class ATag extends ServiceMap.Service<ATag, "A">()("ATag") {}
+class ATag extends Context.Service<ATag, "A">()("ATag") {}
 
 describe("Effect", () => {
   it("isEffect", () => {
@@ -49,7 +49,7 @@ describe("Effect", () => {
           Effect.flip
         )
         const annotations = Cause.annotations(cause)
-        const trace = ServiceMap.getUnsafe(annotations, Cause.StackTrace)
+        const trace = Context.getUnsafe(annotations, Cause.StackTrace)
         assert.strictEqual(trace.name, "test span")
       }))
   })
@@ -129,7 +129,7 @@ describe("Effect", () => {
     assert.isTrue(release)
   })
 
-  it("ServiceMap.Service", () =>
+  it("Context.Service", () =>
     ATag.asEffect().pipe(
       Effect.tap((_) => Effect.sync(() => assert.strictEqual(_, "A"))),
       Effect.provideService(ATag, "A"),
@@ -2587,7 +2587,7 @@ describe("Effect", () => {
   })
 
   describe("provide", () => {
-    class MyNumber extends ServiceMap.Service<MyNumber, number>()("MyNumber") {}
+    class MyNumber extends Context.Service<MyNumber, number>()("MyNumber") {}
 
     it.effect("subsequent calls share MemoMap", () =>
       Effect.gen(function*() {

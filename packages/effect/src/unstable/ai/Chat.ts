@@ -46,6 +46,7 @@
  */
 import * as Channel from "../../Channel.ts"
 import * as Chunk from "../../Chunk.ts"
+import * as Context from "../../Context.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
@@ -54,7 +55,6 @@ import * as Predicate from "../../Predicate.ts"
 import * as Ref from "../../Ref.ts"
 import * as Schema from "../../Schema.ts"
 import * as Semaphore from "../../Semaphore.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
 import type { NoExcessProperties } from "../../Types.ts"
 import type { PersistenceError } from "../persistence/Persistence.ts"
@@ -90,7 +90,7 @@ import type * as Tool from "./Tool.ts"
  * @since 4.0.0
  * @category services
  */
-export class Chat extends ServiceMap.Service<Chat, Service>()(
+export class Chat extends Context.Service<Chat, Service>()(
   "effect/ai/Chat"
 ) {}
 
@@ -649,7 +649,7 @@ export class ChatNotFoundError extends Schema.ErrorClass<ChatNotFoundError>(
  * @category services
  */
 // @effect-diagnostics effect/leakingRequirements:off
-export class Persistence extends ServiceMap.Service<Persistence, Persistence.Service>()(
+export class Persistence extends Context.Service<Persistence, Persistence.Service>()(
   "effect/ai/Chat/Persisted"
 ) {}
 

@@ -1,9 +1,9 @@
 /**
  * @since 4.0.0
  */
+import type * as Context from "./Context.ts"
 import { pipeArguments } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
-import type * as ServiceMap from "./ServiceMap.ts"
 
 /**
  * Symbol used to identify objects that implement redaction capabilities.
@@ -22,13 +22,13 @@ export const symbolRedactable: unique symbol = Symbol.for("~effect/Inspectable/r
  *
  * @example
  * ```ts
- * import type { ServiceMap } from "effect"
+ * import type { Context } from "effect"
  * import { Redactable } from "effect"
  *
  * class SensitiveData implements Redactable.Redactable {
  *   constructor(private secret: string) {}
  *
- *   [Redactable.symbolRedactable](context: ServiceMap.ServiceMap<never>) {
+ *   [Redactable.symbolRedactable](context: Context.Context<never>) {
  *     // In production, hide the actual secret
  *     return { secret: "[REDACTED]" }
  *   }
@@ -42,7 +42,7 @@ export const symbolRedactable: unique symbol = Symbol.for("~effect/Inspectable/r
  * @category Model
  */
 export interface Redactable {
-  readonly [symbolRedactable]: (context: ServiceMap.ServiceMap<never>) => unknown
+  readonly [symbolRedactable]: (context: Context.Context<never>) => unknown
 }
 
 /**
@@ -118,14 +118,14 @@ export function redact(u: unknown): unknown {
  * @since 4.0.0
  */
 export function getRedacted(redactable: Redactable): unknown {
-  return redactable[symbolRedactable]((globalThis as any)[currentFiberTypeId]?.services ?? emptyServiceMap)
+  return redactable[symbolRedactable]((globalThis as any)[currentFiberTypeId]?.services ?? emptyContext)
 }
 
 /** @internal */
 export const currentFiberTypeId = "~effect/Fiber/currentFiber"
 
-const emptyServiceMap: ServiceMap.ServiceMap<never> = {
-  "~effect/ServiceMap": {} as any,
+const emptyContext: Context.Context<never> = {
+  "~effect/Context": {} as any,
   mapUnsafe: new Map(),
   pipe() {
     return pipeArguments(this, arguments)

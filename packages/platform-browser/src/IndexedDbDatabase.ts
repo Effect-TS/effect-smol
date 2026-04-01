@@ -1,13 +1,13 @@
 /**
  * @since 4.0.0
  */
+import * as Context from "effect/Context"
 import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
 import * as Fiber from "effect/Fiber"
 import * as Inspectable from "effect/Inspectable"
 import * as Layer from "effect/Layer"
 import * as Pipeable from "effect/Pipeable"
-import * as ServiceMap from "effect/ServiceMap"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import * as Utils from "effect/Utils"
 import * as IndexedDb from "./IndexedDb.ts"
@@ -74,7 +74,7 @@ export class IndexedDbDatabaseError extends Data.TaggedError(
  * @since 4.0.0
  * @category models
  */
-export class IndexedDbDatabase extends ServiceMap.Service<
+export class IndexedDbDatabase extends Context.Service<
   IndexedDbDatabase,
   {
     readonly database: globalThis.IDBDatabase
@@ -322,8 +322,8 @@ const layer = <DatabaseName extends string>(
     Effect.gen(function*() {
       const { IDBKeyRange, indexedDB } = yield* IndexedDb.IndexedDb
       const reactivity = yield* Reactivity.Reactivity
-      const serviceMap = yield* Effect.services()
-      const runForkWith = Effect.runForkWith(serviceMap)
+      const context = yield* Effect.services()
+      const runForkWith = Effect.runForkWith(context)
 
       let oldVersion = 0
       const migrations: Array<Any> = []

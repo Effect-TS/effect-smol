@@ -2,11 +2,11 @@
  * @since 4.0.0
  */
 import * as Config from "effect/Config"
+import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Schema from "effect/Schema"
 import * as SchemaIssue from "effect/SchemaIssue"
-import * as ServiceMap from "effect/ServiceMap"
 
 const TypeId = "~@effect/platform-browser/IndexedDb"
 
@@ -24,7 +24,7 @@ export interface IndexedDb {
  * @since 4.0.0
  * @category tag
  */
-export const IndexedDb: ServiceMap.Service<IndexedDb, IndexedDb> = ServiceMap.Service<IndexedDb, IndexedDb>(TypeId)
+export const IndexedDb: Context.Service<IndexedDb, IndexedDb> = Context.Service<IndexedDb, IndexedDb>(TypeId)
 
 /** @internal */
 const IDBFlatKey = Schema.Union([

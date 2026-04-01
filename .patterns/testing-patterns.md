@@ -330,15 +330,15 @@ describe("concurrent operations", () => {
 
 ### Layer and Service Testing Pattern
 
-Use `ServiceMap.Service` for defining services in the Effect codebase:
+Use `Context.Service` for defining services in the Effect codebase:
 
 ```typescript
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Layer, ServiceMap } from "effect"
+import { Context, Effect, Layer } from "effect"
 import * as ServiceModule from "../src/ServiceModule.js"
 
-// Define services using ServiceMap.Service pattern
-class DatabaseService extends ServiceMap.Service<DatabaseService, {
+// Define services using Context.Service pattern
+class DatabaseService extends Context.Service<DatabaseService, {
   readonly query: (sql: string) => Effect.Effect<unknown[]>
 }>()("DatabaseService") {
   // Live implementation for production
@@ -348,7 +348,7 @@ class DatabaseService extends ServiceMap.Service<DatabaseService, {
 }
 
 // Test service with mock implementation
-class TestDatabaseService extends ServiceMap.Service<TestDatabaseService, {
+class TestDatabaseService extends Context.Service<TestDatabaseService, {
   readonly query: (sql: string) => Effect.Effect<unknown[]>
 }>()("TestDatabaseService") {
   static Mock = (mockData: unknown[]) =>

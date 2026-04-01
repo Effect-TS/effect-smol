@@ -3,6 +3,7 @@
  */
 import * as Cause from "effect/Cause"
 import * as Config from "effect/Config"
+import * as Context from "effect/Context"
 import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import * as Fiber from "effect/Fiber"
@@ -14,7 +15,6 @@ import type * as Option from "effect/Option"
 import type * as Path from "effect/Path"
 import type * as Record from "effect/Record"
 import * as Scope from "effect/Scope"
-import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"
 import * as Cookies from "effect/unstable/http/Cookies"
 import * as Etag from "effect/unstable/http/Etag"
@@ -172,7 +172,7 @@ export const makeHandler = <
     ) {
       const map = new Map(services.mapUnsafe)
       map.set(HttpServerRequest.key, new ServerRequestImpl(nodeRequest, nodeResponse))
-      const fiber = Fiber.runIn(Effect.runForkWith(ServiceMap.makeUnsafe<any>(map))(handled), options.scope)
+      const fiber = Fiber.runIn(Effect.runForkWith(Context.makeUnsafe<any>(map))(handled), options.scope)
       nodeResponse.on("close", () => {
         if (!nodeResponse.writableEnded) {
           fiber.interruptUnsafe(parent.id, ClientAbort.annotation)
@@ -235,7 +235,7 @@ export const makeUpgradeHandler = <
       ))
       const map = new Map(services.mapUnsafe)
       map.set(HttpServerRequest.key, new ServerRequestImpl(nodeRequest, nodeResponse, upgradeEffect))
-      const fiber = Fiber.runIn(Effect.runForkWith(ServiceMap.makeUnsafe<any>(map))(handledApp), options.scope)
+      const fiber = Fiber.runIn(Effect.runForkWith(Context.makeUnsafe<any>(map))(handledApp), options.scope)
       socket.on("close", () => {
         if (!socket.writableEnded) {
           fiber.interruptUnsafe(parent.id, ClientAbort.annotation)

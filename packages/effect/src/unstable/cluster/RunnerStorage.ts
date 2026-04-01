@@ -2,10 +2,10 @@
  * @since 4.0.0
  */
 import { isArrayNonEmpty, type NonEmptyArray } from "../../Array.ts"
+import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
 import * as MutableHashMap from "../../MutableHashMap.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import type { PersistenceError } from "./ClusterError.ts"
 import * as MachineId from "./MachineId.ts"
 import { Runner } from "./Runner.ts"
@@ -19,7 +19,7 @@ import * as ShardId from "./ShardId.ts"
  * @since 4.0.0
  * @category models
  */
-export class RunnerStorage extends ServiceMap.Service<RunnerStorage, {
+export class RunnerStorage extends Context.Service<RunnerStorage, {
   /**
    * Register a new runner with the cluster.
    */

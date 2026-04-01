@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 import { Clock } from "../../Clock.ts"
+import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import type * as Fiber from "../../Fiber.ts"
 import { constUndefined } from "../../Function.ts"
@@ -11,7 +12,6 @@ import * as internalEffect from "../../internal/effect.ts"
 import type { Pipeable } from "../../Pipeable.ts"
 import { hasProperty } from "../../Predicate.ts"
 import { TracerTimingEnabled } from "../../References.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
 import type * as Tracer from "../../Tracer.ts"
 import type { Acquirer, Connection, Row } from "./SqlConnection.ts"
@@ -76,7 +76,7 @@ export type Transformer = (
  * @category transformer
  * @since 4.0.0
  */
-export const CurrentTransformer = ServiceMap.Reference<Transformer | undefined>("effect/sql/CurrentTransformer", {
+export const CurrentTransformer = Context.Reference<Transformer | undefined>("effect/sql/CurrentTransformer", {
   defaultValue: constUndefined
 })
 

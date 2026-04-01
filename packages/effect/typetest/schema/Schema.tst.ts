@@ -1,6 +1,7 @@
 import type { SchemaAST } from "effect"
 import {
   Brand,
+  Context,
   Effect,
   hole,
   Option,
@@ -8,7 +9,6 @@ import {
   Schema,
   SchemaGetter,
   SchemaTransformation,
-  ServiceMap,
   Struct,
   Tuple
 } from "effect"
@@ -1507,7 +1507,7 @@ describe("Schema", () => {
     })
 
     it("effectful", () => {
-      const service = hole<ServiceMap.Service<"Tag", "-">>()
+      const service = hole<Context.Service<"Tag", "-">>()
 
       const schema = Schema.String.pipe(Schema.withConstructorDefault(
         Effect.gen(function*() {
@@ -1591,7 +1591,7 @@ describe("Schema", () => {
   })
 
   it("asStandardSchemaV1 should not be callable with a schema with DecodingServices", () => {
-    class MagicNumber extends ServiceMap.Service<MagicNumber, number>()("MagicNumber") {}
+    class MagicNumber extends Context.Service<MagicNumber, number>()("MagicNumber") {}
     const DepString = Schema.Number.pipe(Schema.decode({
       decode: SchemaGetter.onSome((n) =>
         Effect.gen(function*() {

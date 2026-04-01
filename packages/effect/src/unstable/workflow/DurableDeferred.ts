@@ -4,6 +4,7 @@
 import type { NonEmptyReadonlyArray } from "../../Array.ts"
 import type * as Brand from "../../Brand.ts"
 import type * as Cause from "../../Cause.ts"
+import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import * as Encoding from "../../Encoding.ts"
 import * as Exit from "../../Exit.ts"
@@ -11,7 +12,6 @@ import { dual } from "../../Function.ts"
 import * as Option from "../../Option.ts"
 import * as Schema from "../../Schema.ts"
 import * as Getter from "../../SchemaGetter.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Activity from "./Activity.ts"
 import * as Workflow from "./Workflow.ts"
 import type { WorkflowEngine, WorkflowInstance } from "./WorkflowEngine.ts"
@@ -91,18 +91,18 @@ export const make = <
   }
 }
 
-const EngineTag = ServiceMap.Service<WorkflowEngine, WorkflowEngine["Service"]>(
+const EngineTag = Context.Service<WorkflowEngine, WorkflowEngine["Service"]>(
   "effect/workflow/WorkflowEngine" satisfies typeof WorkflowEngine.key
 )
 
-const InstanceTag = ServiceMap.Service<
+const InstanceTag = Context.Service<
   WorkflowInstance,
   WorkflowInstance["Service"]
 >(
   "effect/workflow/WorkflowEngine/WorkflowInstance" satisfies typeof WorkflowInstance.key
 )
 
-const CurrentAttempt = ServiceMap.Reference<number>(
+const CurrentAttempt = Context.Reference<number>(
   "effect/workflow/Activity/CurrentAttempt" satisfies typeof Activity.CurrentAttempt.key,
   { defaultValue: () => 1 }
 )
@@ -185,9 +185,9 @@ export const into: {
     | Error["DecodingServices"]
   > =>
     Effect.servicesWith(
-      (services: ServiceMap.ServiceMap<WorkflowEngine | WorkflowInstance>) => {
-        const engine = ServiceMap.get(services, EngineTag)
-        const instance = ServiceMap.get(services, InstanceTag)
+      (services: Context.Context<WorkflowEngine | WorkflowInstance>) => {
+        const engine = Context.get(services, EngineTag)
+        const instance = Context.get(services, InstanceTag)
         return Effect.onExit(
           effect,
           Effect.fnUntraced(function*(exit) {

@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import * as Context from "../../Context.ts"
 import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
 import * as Encoding from "../../Encoding.ts"
@@ -13,7 +14,6 @@ import type { PlatformError } from "../../PlatformError.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Result from "../../Result.ts"
 import * as Schema from "../../Schema.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
 import * as SqlClient from "../sql/SqlClient.ts"
 import type { SqlError } from "../sql/SqlError.ts"
@@ -172,10 +172,10 @@ export class KeyValueStoreError extends Data.TaggedError("KeyValueStoreError")<{
  * @since 4.0.0
  * @category tags
  */
-export const KeyValueStore: ServiceMap.Service<
+export const KeyValueStore: Context.Service<
   KeyValueStore,
   KeyValueStore
-> = ServiceMap.Service("effect/persistence/KeyValueStore")
+> = Context.Service("effect/persistence/KeyValueStore")
 
 /**
  * @since 4.0.0

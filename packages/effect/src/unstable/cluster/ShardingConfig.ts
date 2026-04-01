@@ -3,12 +3,12 @@
  */
 import * as Config from "../../Config.ts"
 import * as ConfigProvider from "../../ConfigProvider.ts"
+import * as Context from "../../Context.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
 import * as Option from "../../Option.ts"
 import * as Schema from "../../Schema.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import { RunnerAddress } from "./RunnerAddress.ts"
 
 /**
@@ -17,7 +17,7 @@ import { RunnerAddress } from "./RunnerAddress.ts"
  * @since 4.0.0
  * @category models
  */
-export class ShardingConfig extends ServiceMap.Service<ShardingConfig, {
+export class ShardingConfig extends Context.Service<ShardingConfig, {
   /**
    * The address for the current runner that other runners can use to
    * communicate with it.

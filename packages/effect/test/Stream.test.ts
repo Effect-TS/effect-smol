@@ -5,6 +5,7 @@ import {
   Array,
   Cause,
   Clock,
+  Context,
   Data,
   Deferred,
   Duration,
@@ -20,7 +21,6 @@ import {
   References,
   Result,
   Schedule,
-  ServiceMap,
   Sink,
   Stream
 } from "effect"
@@ -132,7 +132,7 @@ describe("Stream", () => {
   })
 
   describe("constructors", () => {
-    class Greeter extends ServiceMap.Service<Greeter, {
+    class Greeter extends Context.Service<Greeter, {
       readonly greet: (name: string) => string
     }>()("Greeter") {}
 

@@ -3,6 +3,7 @@
  */
 import type { NonEmptyReadonlyArray } from "../../Array.ts"
 import * as Cause from "../../Cause.ts"
+import * as Context from "../../Context.ts"
 import type * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
@@ -17,7 +18,6 @@ import * as Result from "../../Result.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../Schema.ts"
 import * as Scope from "../../Scope.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
 import type * as Struct from "../../Struct.ts"
 import type { Span } from "../../Tracer.ts"
@@ -66,11 +66,11 @@ export declare namespace RpcClient {
           readonly asQueue?: AsQueue | undefined
           readonly streamBufferSize?: number | undefined
           readonly headers?: Headers.Input | undefined
-          readonly context?: ServiceMap.ServiceMap<never> | undefined
+          readonly context?: Context.Context<never> | undefined
         } :
         {
           readonly headers?: Headers.Input | undefined
-          readonly context?: ServiceMap.ServiceMap<never> | undefined
+          readonly context?: Context.Context<never> | undefined
           readonly discard?: Discard | undefined
         }
     ) => Current extends Rpc.Rpc<
@@ -129,11 +129,11 @@ export declare namespace RpcClient {
         readonly asQueue?: AsQueue | undefined
         readonly streamBufferSize?: number | undefined
         readonly headers?: Headers.Input | undefined
-        readonly context?: ServiceMap.ServiceMap<never> | undefined
+        readonly context?: Context.Context<never> | undefined
       } :
       {
         readonly headers?: Headers.Input | undefined
-        readonly context?: ServiceMap.ServiceMap<never> | undefined
+        readonly context?: Context.Context<never> | undefined
         readonly discard?: Discard | undefined
       }
   ) => Rpc.ExtractTag<Rpcs, Tag> extends Rpc.Rpc<
@@ -192,7 +192,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
     readonly onFromClient: (
       options: {
         readonly message: FromClient<Rpcs>
-        readonly context: ServiceMap.ServiceMap<never>
+        readonly context: Context.Context<never>
         readonly discard: boolean
       }
     ) => Effect.Effect<void, E>
@@ -216,7 +216,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
     readonly onFromClient: (
       options: {
         readonly message: FromClient<Rpcs>
-        readonly context: ServiceMap.ServiceMap<never>
+        readonly context: Context.Context<never>
         readonly discard: boolean
       }
     ) => Effect.Effect<void, E>
@@ -234,19 +234,19 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
   const generateRequestId = options?.generateRequestId ?? (() => requestIdCounter++ as RequestId)
 
   const services = yield* Effect.services<Rpc.MiddlewareClient<Rpcs> | Scope.Scope>()
-  const scope = ServiceMap.get(services, Scope.Scope)
+  const scope = Context.get(services, Scope.Scope)
 
   type ClientEntry = {
     readonly _tag: "Effect"
     readonly rpc: Rpc.AnyWithProps
-    readonly context: ServiceMap.ServiceMap<never>
+    readonly context: Context.Context<never>
     resume: (_: Exit.Exit<any, any>) => void
   } | {
     readonly _tag: "Queue"
     readonly rpc: Rpc.AnyWithProps
     readonly queue: Queue.Queue<any, any>
     readonly scope: Scope.Scope
-    readonly context: ServiceMap.ServiceMap<never>
+    readonly context: Context.Context<never>
   }
   const entries = new Map<RequestId, ClientEntry>()
 
@@ -279,11 +279,11 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
       readonly asQueue?: boolean | undefined
       readonly streamBufferSize?: number | undefined
       readonly headers?: Headers.Input | undefined
-      readonly context?: ServiceMap.ServiceMap<never> | undefined
+      readonly context?: Context.Context<never> | undefined
       readonly discard?: boolean | undefined
     }) => {
       const headers = opts?.headers ? Headers.fromInput(opts.headers) : Headers.empty
-      const context = opts?.context ?? ServiceMap.empty()
+      const context = opts?.context ?? Context.empty()
       if (!isStream) {
         const onRequest = (span: Span | undefined) =>
           onEffectRequest(
@@ -323,7 +323,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
     span: Span | undefined,
     payload: any,
     headers: Headers.Headers,
-    context: ServiceMap.ServiceMap<never>,
+    context: Context.Context<never>,
     discard: boolean
   ) =>
     Effect.withFiber<any, any, any>((parentFiber) => {
@@ -402,7 +402,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
     payload: any,
     headers: Headers.Headers,
     streamBufferSize: number,
-    context: ServiceMap.ServiceMap<never>
+    context: Context.Context<never>
   ) {
     if (isShutdown) {
       return yield* Effect.interrupt
@@ -414,7 +414,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
     const fiber = Fiber.getCurrent()!
     const id = generateRequestId()
 
-    const scope = ServiceMap.getUnsafe(fiber.services, Scope.Scope)
+    const scope = Context.getUnsafe(fiber.services, Scope.Scope)
     yield* Scope.addFinalizerExit(
       scope,
       (exit) => {
@@ -508,7 +508,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
   const sendInterrupt = (
     requestId: RequestId,
     interruptors: ReadonlyArray<number>,
-    context: ServiceMap.ServiceMap<never>
+    context: Context.Context<never>
   ): Effect.Effect<void> =>
     Effect.callback<void>((resume) => {
       const parentFiber = Fiber.getCurrent()!
@@ -618,7 +618,7 @@ export const make: <Rpcs extends Rpc.Any, const Flatten extends boolean = false>
 
   type ClientEntry = {
     readonly rpc: Rpc.AnyWithProps
-    readonly context: ServiceMap.ServiceMap<never>
+    readonly context: Context.Context<never>
     readonly schemas: RpcSchemas
   }
   const entries = new Map<RequestId, ClientEntry>()
@@ -636,7 +636,7 @@ export const make: <Rpcs extends Rpc.Any, const Flatten extends boolean = false>
 
           const entry: ClientEntry = {
             rpc,
-            context: collector ? ServiceMap.add(fiber.services, Transferable.Collector, collector) : fiber.services,
+            context: collector ? Context.add(fiber.services, Transferable.Collector, collector) : fiber.services,
             schemas: rpcSchemas(rpc)
           }
           entries.set(message.id, entry)
@@ -767,7 +767,7 @@ const rpcSchemas = (rpc: Rpc.AnyWithProps) => {
  * @since 4.0.0
  * @category headers
  */
-export const CurrentHeaders = ServiceMap.Reference<Headers.Headers>("effect/rpc/RpcClient/CurrentHeaders", {
+export const CurrentHeaders = Context.Reference<Headers.Headers>("effect/rpc/RpcClient/CurrentHeaders", {
   defaultValue: () => Headers.empty
 })
 
@@ -788,7 +788,7 @@ export const withHeaders: {
  * @since 4.0.0
  * @category protocol
  */
-export class Protocol extends ServiceMap.Service<Protocol, {
+export class Protocol extends Context.Service<Protocol, {
   readonly run: (
     f: (data: FromServerEncoded) => Effect.Effect<void>
   ) => Effect.Effect<never>

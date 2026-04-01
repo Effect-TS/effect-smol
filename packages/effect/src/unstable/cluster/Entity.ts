@@ -3,6 +3,7 @@
  */
 import * as Arr from "../../Array.ts"
 import type * as Cause from "../../Cause.ts"
+import * as Context from "../../Context.ts"
 import * as Data from "../../Data.ts"
 import type * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
@@ -17,7 +18,6 @@ import * as Predicate from "../../Predicate.ts"
 import * as Queue from "../../Queue.ts"
 import type * as Schedule from "../../Schedule.ts"
 import { Scope } from "../../Scope.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
 import * as Headers from "../http/Headers.ts"
 import * as Rpc from "../rpc/Rpc.ts"
@@ -76,22 +76,22 @@ export interface Entity<
   /**
    * Annotate the entity with a value.
    */
-  annotate<I, S>(key: ServiceMap.Key<I, S>, value: S): Entity<Type, Rpcs>
+  annotate<I, S>(key: Context.Key<I, S>, value: S): Entity<Type, Rpcs>
 
   /**
    * Annotate the Rpc's above this point with a value.
    */
-  annotateRpcs<I, S>(key: ServiceMap.Key<I, S>, value: S): Entity<Type, Rpcs>
+  annotateRpcs<I, S>(key: Context.Key<I, S>, value: S): Entity<Type, Rpcs>
 
   /**
    * Annotate the entity with the given annotations.
    */
-  annotateMerge<S>(annotation: ServiceMap.ServiceMap<S>): Entity<Type, Rpcs>
+  annotateMerge<S>(annotation: Context.Context<S>): Entity<Type, Rpcs>
 
   /**
    * Annotate the Rpc's above this point with a context object.
    */
-  annotateRpcsMerge<S>(context: ServiceMap.ServiceMap<S>): Entity<Type, Rpcs>
+  annotateRpcsMerge<S>(context: Context.Context<S>): Entity<Type, Rpcs>
 
   /**
    * Create a client for this entity.
@@ -208,16 +208,16 @@ const Proto = {
   [Equal.symbol](this: Entity<string, any>, that: Equal.Equal): boolean {
     return isEntity(that) && this.type === that.type
   },
-  annotate<I, S>(this: Entity<string, any>, key: ServiceMap.Key<I, S>, value: S) {
+  annotate<I, S>(this: Entity<string, any>, key: Context.Key<I, S>, value: S) {
     return fromRpcGroup(this.type, this.protocol.annotate(key, value))
   },
-  annotateRpcs<I, S>(this: Entity<string, any>, key: ServiceMap.Key<I, S>, value: S) {
+  annotateRpcs<I, S>(this: Entity<string, any>, key: Context.Key<I, S>, value: S) {
     return fromRpcGroup(this.type, this.protocol.annotateRpcs(key, value))
   },
-  annotateMerge<S>(this: Entity<string, any>, annotations: ServiceMap.ServiceMap<S>) {
+  annotateMerge<S>(this: Entity<string, any>, annotations: Context.Context<S>) {
     return fromRpcGroup(this.type, this.protocol.annotateMerge(annotations))
   },
-  annotateRpcsMerge<S>(this: Entity<string, any>, annotations: ServiceMap.ServiceMap<S>) {
+  annotateRpcsMerge<S>(this: Entity<string, any>, annotations: Context.Context<S>) {
     return fromRpcGroup(this.type, this.protocol.annotateRpcsMerge(annotations))
   },
   getShardId(this: Entity<string, any>, entityId: EntityId) {
@@ -379,7 +379,7 @@ export const fromRpcGroup = <const Type extends string, Rpcs extends Rpc.Any>(
   const self = Object.create(Proto)
   self.type = EntityType.make(type)
   self.protocol = protocol
-  self.getShardGroup = ServiceMap.get(protocol.annotations, ShardGroup)
+  self.getShardGroup = Context.get(protocol.annotations, ShardGroup)
   return self
 }
 
@@ -408,7 +408,7 @@ export const make = <const Type extends string, Rpcs extends ReadonlyArray<Rpc.A
  * @since 4.0.0
  * @category context
  */
-export class CurrentAddress extends ServiceMap.Service<
+export class CurrentAddress extends Context.Service<
   CurrentAddress,
   EntityAddress
 >()("effect/cluster/Entity/EntityAddress") {}
@@ -419,7 +419,7 @@ export class CurrentAddress extends ServiceMap.Service<
  * @since 4.0.0
  * @category context
  */
-export class CurrentRunnerAddress extends ServiceMap.Service<
+export class CurrentRunnerAddress extends Context.Service<
   CurrentRunnerAddress,
   RunnerAddress
 >()("effect/cluster/Entity/RunnerAddress") {}
@@ -491,7 +491,7 @@ export class Request<Rpc extends Rpc.Any> extends Data.Class<
   }
 }
 
-const shardingTag = ServiceMap.Service<Sharding, Sharding["Service"]>("effect/cluster/Sharding")
+const shardingTag = Context.Service<Sharding, Sharding["Service"]>("effect/cluster/Sharding")
 
 /**
  * @since 4.0.0
@@ -517,12 +517,12 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
   const snowflakeGen = yield* Snowflake.makeGenerator
   const runnerAddress = new RunnerAddress({ host: "localhost", port: 3000 })
   const entityMap = new Map<string, {
-    readonly services: ServiceMap.ServiceMap<
+    readonly services: Context.Context<
       Rpc.ServicesClient<Rpcs> | Rpc.ServicesServer<Rpcs> | Rpc.Middleware<Rpcs> | LR
     >
     readonly concurrency: number | "unbounded"
     readonly build: Effect.Effect<
-      ServiceMap.ServiceMap<Rpc.ToHandler<Rpcs>>,
+      Context.Context<Rpc.ToHandler<Rpcs>>,
       never,
       Scope | CurrentAddress
     >
@@ -535,10 +535,10 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
           services: services as any,
           concurrency: options?.concurrency ?? 1,
           build: entity.protocol.toHandlers(handlers as any).pipe(
-            Effect.provideServices(ServiceMap.mutate(services, (services) =>
+            Effect.provideServices(Context.mutate(services, (services) =>
               services.pipe(
-                ServiceMap.add(CurrentRunnerAddress, runnerAddress),
-                ServiceMap.omit(Scope)
+                Context.add(CurrentRunnerAddress, runnerAddress),
+                Context.omit(Scope)
               )))
           ) as any
         })
@@ -621,7 +621,7 @@ export const keepAlive: (
     new Message.OutgoingRequest({
       annotations: KeepAliveRpc.annotations,
       rpc: KeepAliveRpc,
-      services: ServiceMap.empty() as any,
+      services: Context.empty() as any,
       envelope: Envelope.makeRequest({
         requestId,
         address,
@@ -656,6 +656,6 @@ export const KeepAliveRpc = Rpc.make("Cluster/Entity/keepAlive")
  * @since 4.0.0
  * @category Keep alive
  */
-export class KeepAliveLatch extends ServiceMap.Service<KeepAliveLatch, Latch.Latch>()(
+export class KeepAliveLatch extends Context.Service<KeepAliveLatch, Latch.Latch>()(
   "effect/cluster/Entity/KeepAliveLatch"
 ) {}

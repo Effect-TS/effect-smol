@@ -49,6 +49,7 @@
  * @since 4.0.0
  */
 import type * as Cause from "../../Cause.ts"
+import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import * as FiberSet from "../../FiberSet.ts"
 import { constFalse, identity, pipe } from "../../Function.ts"
@@ -59,7 +60,6 @@ import * as Queue from "../../Queue.ts"
 import { CurrentConcurrency } from "../../References.ts"
 import * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import * as Sink from "../../Sink.ts"
 import * as Stream from "../../Stream.ts"
 import type { Span } from "../../Tracer.ts"
@@ -103,7 +103,7 @@ import * as Toolkit from "./Toolkit.ts"
  * @since 4.0.0
  * @category services
  */
-export class LanguageModel extends ServiceMap.Service<LanguageModel, Service>()(
+export class LanguageModel extends Context.Service<LanguageModel, Service>()(
   "effect/unstable/ai/LanguageModel"
 ) {}
 

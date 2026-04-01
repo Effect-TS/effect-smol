@@ -1237,7 +1237,7 @@ There is no `cookies` option on endpoints. Instead, validated cookie access goes
 
 ```ts
 import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
-import { Effect, Layer, Redacted, Schema, ServiceMap } from "effect"
+import { Context, Effect, Layer, Redacted, Schema } from "effect"
 import { HttpRouter } from "effect/unstable/http"
 import {
   HttpApi,
@@ -1252,7 +1252,7 @@ import { createServer } from "node:http"
 
 // Define the service providing the current user
 class CurrentUser
-  extends ServiceMap.Service<CurrentUser, { readonly id: number; readonly name: string }>()("CurrentUser")
+  extends Context.Service<CurrentUser, { readonly id: number; readonly name: string }>()("CurrentUser")
 {}
 
 // Define the security scheme: read the "session" cookie
@@ -2102,7 +2102,7 @@ Attach a security scheme to an endpoint, group, or the entire API via `HttpApiMi
 **Example** (Defining Security Middleware)
 
 ```ts
-import { Schema, ServiceMap } from "effect"
+import { Context, Schema } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiGroup, HttpApiMiddleware, HttpApiSecurity } from "effect/unstable/httpapi"
 
 // Define a schema for the "User"
@@ -2117,7 +2117,7 @@ class Unauthorized extends Schema.TaggedErrorClass<Unauthorized>()(
 ) {}
 
 // Define a Context.Tag for the authenticated user
-class CurrentUser extends ServiceMap.Service<CurrentUser, User>()("CurrentUser") {}
+class CurrentUser extends Context.Service<CurrentUser, User>()("CurrentUser") {}
 
 // Create the Authorization middleware
 class Authorization extends HttpApiMiddleware.Service<Authorization, {
@@ -2163,7 +2163,7 @@ To enforce a security scheme, implement its middleware as a `Layer`. The layer r
 **Example** (Implementing Bearer Token Authentication Middleware)
 
 ```ts
-import { Effect, Layer, Redacted, Schema, ServiceMap } from "effect"
+import { Context, Effect, Layer, Redacted, Schema } from "effect"
 import { HttpApiMiddleware, HttpApiSecurity } from "effect/unstable/httpapi"
 
 class User extends Schema.Class<User>("User")({ id: Schema.Finite }) {}
@@ -2175,7 +2175,7 @@ class Unauthorized extends Schema.TaggedErrorClass<Unauthorized>()(
   { httpApiStatus: 401 }
 ) {}
 
-class CurrentUser extends ServiceMap.Service<CurrentUser, User>()("CurrentUser") {}
+class CurrentUser extends Context.Service<CurrentUser, User>()("CurrentUser") {}
 
 class Authorization extends HttpApiMiddleware.Service<Authorization, {
   provides: CurrentUser
@@ -2219,7 +2219,7 @@ Use `HttpApiSecurity.annotate` to attach metadata — like a description — to 
 **Example** (Adding a Description to a Bearer Token Security Definition)
 
 ```ts
-import { Schema, ServiceMap } from "effect"
+import { Context, Schema } from "effect"
 import { HttpApiMiddleware, HttpApiSecurity, OpenApi } from "effect/unstable/httpapi"
 
 class User extends Schema.Class<User>("User")({ id: Schema.Finite }) {}
@@ -2231,7 +2231,7 @@ class Unauthorized extends Schema.TaggedErrorClass<Unauthorized>()(
   { httpApiStatus: 401 }
 ) {}
 
-class CurrentUser extends ServiceMap.Service<CurrentUser, User>()("CurrentUser") {}
+class CurrentUser extends Context.Service<CurrentUser, User>()("CurrentUser") {}
 
 class Authorization extends HttpApiMiddleware.Service<Authorization, {
   provides: CurrentUser
@@ -2293,7 +2293,7 @@ Handlers can access any Effect service. Because `HttpApiBuilder.group` returns a
 
 ```ts
 import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
-import { Effect, Layer, Schema, ServiceMap } from "effect"
+import { Context, Effect, Layer, Schema } from "effect"
 import { HttpRouter } from "effect/unstable/http"
 import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup, HttpApiScalar } from "effect/unstable/httpapi"
 import { createServer } from "node:http"
@@ -2304,7 +2304,7 @@ const User = Schema.Struct({
 })
 
 // Define the UsersRepository service
-class UsersRepository extends ServiceMap.Service<UsersRepository, {
+class UsersRepository extends Context.Service<UsersRepository, {
   readonly findById: (id: number) => Effect.Effect<typeof User.Type>
 }>()("UsersRepository") {}
 
