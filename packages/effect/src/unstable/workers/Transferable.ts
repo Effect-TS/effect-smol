@@ -112,16 +112,14 @@ export const schema: {
     self: S,
     f: (_: S["Encoded"]) => Iterable<globalThis.Transferable>
   ): Transferable<S> =>
-    self
-      .annotate({
-        serializerJson: () => passthroughLink
+    self.annotate({
+      toCodecJson: () => passthroughLink
+    }).pipe(
+      Schema.decode({
+        decode: Getter.passthrough(),
+        encode: getterAddAll(f)
       })
-      .pipe(
-        Schema.decode({
-          decode: Getter.passthrough(),
-          encode: getterAddAll(f)
-        })
-      )
+    )
 )
 
 const passthroughLink = Schema.link()(Schema.Any, {
