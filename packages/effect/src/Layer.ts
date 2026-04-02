@@ -37,6 +37,7 @@ import * as ServiceMap from "./ServiceMap.ts"
 import type * as Stream from "./Stream.ts"
 import * as Tracer from "./Tracer.ts"
 import type * as Types from "./Types.ts"
+import type * as Unify from "./Unify.ts"
 
 const TypeId = "~effect/Layer"
 
@@ -54,6 +55,29 @@ const TypeId = "~effect/Layer"
 export interface Layer<in ROut, out E = never, out RIn = never> extends Variance<ROut, E, RIn>, Pipeable {
   /** @internal */
   build(memoMap: MemoMap, scope: Scope.Scope): Effect<ServiceMap.ServiceMap<ROut>, E, RIn>
+  [Unify.typeSymbol]?: unknown
+  [Unify.unifySymbol]?: LayerUnify<this>
+  [Unify.ignoreSymbol]?: LayerUnifyIgnore
+}
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export interface LayerUnify<A extends { [Unify.typeSymbol]?: any }> {
+  Layer?: () => A[Unify.typeSymbol] extends Layer<any, any, any> | infer _ ? Layer<
+      Success<Extract<A[Unify.typeSymbol], Any>>,
+      Error<Extract<A[Unify.typeSymbol], Any>>,
+      Services<Extract<A[Unify.typeSymbol], Any>>
+    >
+    : never
+}
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export interface LayerUnifyIgnore {
 }
 
 /**

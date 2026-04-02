@@ -5,6 +5,7 @@ import {
   Data,
   Effect,
   Fiber,
+  type Layer,
   type Option,
   pipe,
   Result,
@@ -58,6 +59,9 @@ declare const sinkStringOrNumber:
 declare const channelStringOrNumber:
   | Channel.Channel<string, "out-err-1", "out-done-1", string, "in-err", "in-done", "dep-1">
   | Channel.Channel<number, "out-err-2", "out-done-2", string, "in-err", "in-done", "dep-2">
+declare const layerStringOrNumber:
+  | Layer.Layer<"out-1", "err-1", "dep-1">
+  | Layer.Layer<"out-2", "err-2", "dep-2">
 declare const optionStringOrNumber: Option.Option<string> | Option.Option<number>
 declare const resultStringOrNumber: Result.Result<string, "err-1"> | Result.Result<number, "err-2">
 declare const fiberStringOrNumber: Fiber.Fiber<string, "err-1"> | Fiber.Fiber<number, "err-2">
@@ -599,6 +603,11 @@ describe("Unify.unify", () => {
         "dep-1" | "dep-2"
       >
     >()
+  })
+
+  it("unifies layer unions", () => {
+    const result = Unify.unify(layerStringOrNumber)
+    expect(result).type.toBe<Layer.Layer<"out-1" | "out-2", "err-1" | "err-2", "dep-1" | "dep-2">>()
   })
 
   it("unifies option unions", () => {
