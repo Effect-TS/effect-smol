@@ -271,7 +271,7 @@ const Proto = {
       const context = new Map<string, unknown>()
       for (const [name, handler] of Object.entries(handlers)) {
         const tool = this.tools[name]!
-        context.set(tool.id, { name, handler, services })
+        context.set(tool.id, { name, handler, context: services })
       }
       return Context.makeUnsafe(context)
     })
