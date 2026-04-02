@@ -581,7 +581,7 @@ export interface JsonFromString<S extends Schema.Top> extends
 export const JsonFromString = <S extends Schema.Top>(
   schema: S
 ): JsonFromString<S> => {
-  const parsed = Schema.fromJsonString(schema)
+  const parsed = Schema.fromJsonString(Schema.toCodecJson(schema)) as any
   return Field({
     select: parsed,
     insert: parsed,
