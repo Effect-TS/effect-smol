@@ -34,6 +34,7 @@ export interface IndexedDbTable<
   readonly keyPath: KeyPath
   readonly indexes: Indexes
   readonly autoIncrement: AutoIncrement
+  readonly durability: IDBTransactionDurability
 }
 
 /**
@@ -159,6 +160,7 @@ export const make = <
     KeyPath
   > extends true ? AutoIncrement | undefined
     : never
+  readonly durability?: IDBTransactionDurability | undefined
 }): IndexedDbTable<
   Name,
   TableSchema,
@@ -185,6 +187,7 @@ export const make = <
   ;(Table as any).keyPath = options.keyPath
   ;(Table as any).indexes = options.indexes
   ;(Table as any).autoIncrement = options.autoIncrement === true
+  ;(Table as any).durability = options.durability ?? "relaxed"
   return Table as any
 }
 

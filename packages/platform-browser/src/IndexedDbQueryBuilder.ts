@@ -79,7 +79,7 @@ export interface IndexedDbQueryBuilder<
   readonly IDBTransaction: globalThis.IDBTransaction | undefined
 
   readonly use: <A = unknown>(
-    f: (database: globalThis.IDBDatabase) => Promise<A>
+    f: (database: globalThis.IDBDatabase) => A
   ) => Effect.Effect<A, IndexedDbQueryError>
 
   readonly from: <
@@ -710,7 +710,9 @@ const applyDelete = (query: IndexedDbQuery.Delete<any, never>) =>
     const database = query.delete.from.database
     const IDBKeyRange = query.delete.from.IDBKeyRange
     let transaction = query.delete.from.transaction
-    transaction ??= database.transaction([query.delete.from.table.tableName], "readwrite")
+    transaction ??= database.transaction([query.delete.from.table.tableName], "readwrite", {
+      durability: query.delete.from.table.durability
+    })
     const objectStore = transaction.objectStore(query.delete.from.table.tableName)
     const predicate = query.predicate
 
@@ -813,7 +815,9 @@ const getReadonlyObjectStore = (
 ) => {
   const database = query.from.database
   const IDBKeyRange = query.from.IDBKeyRange
-  const transaction = query.from.transaction ?? database.transaction([query.from.table.tableName], "readonly")
+  const transaction = query.from.transaction ?? database.transaction([query.from.table.tableName], "readonly", {
+    durability: query.from.table.durability
+  })
   const objectStore = transaction.objectStore(query.from.table.tableName)
 
   let keyRange: globalThis.IDBKeyRange | undefined = undefined
@@ -1032,7 +1036,9 @@ const applyModify = Effect.fnUntraced(function*({
 
   return yield* Effect.callback<any, IndexedDbQueryError>((resume) => {
     const database = query.from.database
-    const transaction = query.from.transaction ?? database.transaction([query.from.table.tableName], "readwrite")
+    const transaction = query.from.transaction ?? database.transaction([query.from.table.tableName], "readwrite", {
+      durability: query.from.table.durability
+    })
     const objectStore = transaction.objectStore(query.from.table.tableName)
 
     let request: globalThis.IDBRequest<IDBValidKey>
@@ -1102,7 +1108,9 @@ const applyModifyAll = Effect.fnUntraced(
       const transaction = query.from.transaction
       const objectStore = (
         transaction ??
-          database.transaction([query.from.table.tableName], "readwrite")
+          database.transaction([query.from.table.tableName], "readwrite", {
+            durability: query.from.table.durability
+          })
       ).objectStore(query.from.table.tableName)
 
       const results: Array<globalThis.IDBValidKey> = []
@@ -1180,12 +1188,14 @@ const applyModifyAll = Effect.fnUntraced(
 const applyClear = (options: {
   readonly database: globalThis.IDBDatabase
   readonly transaction: globalThis.IDBTransaction | undefined
-  readonly table: string
+  readonly table: IndexedDbTable.AnyWithProps
 }) =>
   Effect.callback<void, IndexedDbQueryError>((resume) => {
     const database = options.database
-    const transaction = options.transaction ?? database.transaction([options.table], "readwrite")
-    const objectStore = transaction.objectStore(options.table)
+    const transaction = options.transaction ?? database.transaction([options.table.tableName], "readwrite", {
+      durability: options.table.durability
+    })
+    const objectStore = transaction.objectStore(options.table.tableName)
 
     const request = objectStore.clear()
 
@@ -1321,7 +1331,7 @@ const FromProto: Omit<
     return applyClear({
       database: self.database,
       transaction: self.transaction,
-      table: self.table.tableName
+      table: self.table
     })
   }
 }
@@ -1892,8 +1902,8 @@ const QueryBuilderProto: Omit<
   | "reactivity"
 > = {
   ...CommonProto,
-  use(this: IndexedDbQueryBuilder<any>, f: (database: globalThis.IDBDatabase) => Promise<any>) {
-    return Effect.tryPromise({
+  use(this: IndexedDbQueryBuilder<any>, f: (database: globalThis.IDBDatabase) => any) {
+    return Effect.try({
       try: () => f(this.database),
       catch: (error) =>
         new IndexedDbQueryError({
