@@ -1,4 +1,5 @@
 import * as Arr from "../../Array.ts"
+import * as Equal from "../../Equal.ts"
 import { format } from "../../Formatter.ts"
 import { escapeToken } from "../../JsonPointer.ts"
 import type * as JsonSchema from "../../JsonSchema.ts"
@@ -33,7 +34,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaRep
     references
   }
 
-  function gen(prefix: string = "_"): string {
+  function gen(prefix: string): string {
     let candidate = prefix
     let suffix = 0
 
@@ -63,6 +64,12 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaRep
       const reference = gen(identifier)
       referenceMap.set(ast, reference)
       const out = on(ast)
+      const found = references[identifier]
+      // Reuse existing references when duplicate identifiers have the same representation
+      if (found !== undefined && Equal.equals(out, found)) {
+        referenceMap.set(ast, identifier)
+        return { _tag: "Reference", $ref: identifier }
+      }
       references[reference] = out
       return { _tag: "Reference", $ref: reference }
     }
