@@ -15,7 +15,7 @@ import type * as Envelope from "./Envelope.ts"
 import * as MessageStorage from "./MessageStorage.ts"
 import { SaveResultEncoded } from "./MessageStorage.ts"
 import type * as Reply from "./Reply.ts"
-import { ShardId } from "./ShardId.ts"
+import * as ShardId from "./ShardId.ts"
 import type { ShardingConfig } from "./ShardingConfig.ts"
 import * as Snowflake from "./Snowflake.ts"
 

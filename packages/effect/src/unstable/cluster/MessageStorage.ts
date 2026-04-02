@@ -20,7 +20,7 @@ import type { EntityAddress } from "./EntityAddress.ts"
 import * as Envelope from "./Envelope.ts"
 import * as Message from "./Message.ts"
 import * as Reply from "./Reply.ts"
-import { ShardId } from "./ShardId.ts"
+import * as ShardId from "./ShardId.ts"
 import type { ShardingConfig } from "./ShardingConfig.ts"
 import * as Snowflake from "./Snowflake.ts"
 
@@ -98,7 +98,7 @@ export class MessageStorage extends ServiceMap.Service<MessageStorage, {
   /**
    * Unregister the reply handlers for the specified ShardId.
    */
-  readonly unregisterShardReplyHandlers: (shardId: ShardId) => Effect.Effect<void>
+  readonly unregisterShardReplyHandlers: (shardId: ShardId.ShardId) => Effect.Effect<void>
 
   /**
    * Retrieves the unprocessed messages for the specified shards.
@@ -111,7 +111,7 @@ export class MessageStorage extends ServiceMap.Service<MessageStorage, {
    * - All Interrupt's for unprocessed requests
    */
   readonly unprocessedMessages: (
-    shardIds: Iterable<ShardId>
+    shardIds: Iterable<ShardId.ShardId>
   ) => Effect.Effect<Array<Message.Incoming<any>>, PersistenceError>
 
   /**
@@ -125,7 +125,7 @@ export class MessageStorage extends ServiceMap.Service<MessageStorage, {
    * Reset the mailbox state for the provided shards.
    */
   readonly resetShards: (
-    shardIds: Iterable<ShardId>
+    shardIds: Iterable<ShardId.ShardId>
   ) => Effect.Effect<void, PersistenceError>
 
   /**
@@ -843,7 +843,7 @@ export class MemoryDriver extends ServiceMap.Service<MemoryDriver>()("effect/clu
           }>()
           for (let index = 0; index < journal.length; index++) {
             const envelope = journal[index]
-            const shardId = ShardId.make(envelope.address.shardId)
+            const shardId = ShardId.make(envelope.address.shardId.group, envelope.address.shardId.id)
             if (!unprocessed.has(envelope as any) || !shardIds.includes(shardId.toString())) {
               continue
             }
