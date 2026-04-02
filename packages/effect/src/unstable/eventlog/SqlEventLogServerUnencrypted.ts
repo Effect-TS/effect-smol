@@ -286,7 +286,7 @@ export const makeStorage = (options?: {
       sql`
         SELECT sequence, entry_id, event, primary_key, payload
         FROM ${entriesTableSql}
-        WHERE store_id = ${storeId} AND sequence > ${startSequence}
+        WHERE store_id = ${storeId} AND sequence >= ${startSequence}
         ORDER BY sequence ASC
       `.pipe(
         Effect.flatMap(decodeRemoteEntries)

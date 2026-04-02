@@ -236,8 +236,8 @@ export const makeStorage = (options?: {
           const { pubsub, table } = yield* RcMap.get(resources, scopeKey)
           const subscription = yield* PubSub.subscribe(pubsub)
           const initial = yield* sql`
-          SELECT * FROM ${sql(table)} WHERE sequence >= ${startSequence} ORDER BY sequence ASC
-        `.pipe(
+            SELECT * FROM ${sql(table)} WHERE sequence >= ${startSequence} ORDER BY sequence ASC
+          `.pipe(
             Effect.flatMap(decodeEntries)
           )
           return Stream.fromArray(initial).pipe(Stream.concat(Stream.fromSubscription(subscription)))
