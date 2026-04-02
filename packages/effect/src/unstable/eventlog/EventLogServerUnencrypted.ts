@@ -43,6 +43,7 @@ export class EventLogServerUnencrypted extends ServiceMap.Service<EventLogServer
     Tag extends EventGroup.Events<Groups>["tag"],
     Event extends Event.Any = Event.WithTag<EventGroup.Events<Groups>, Tag>
   >(options: {
+    readonly storeId: StoreId
     readonly event: Tag
     readonly payload: Event.Payload<Event>
   }) => Effect.Effect<
@@ -62,6 +63,7 @@ export const makeWrite = <Groups extends EventGroup.Any>(
     Tag extends EventGroup.Events<Groups>["tag"],
     Event extends Event.Any = Event.WithTag<EventGroup.Events<Groups>, Tag>
   >(options: {
+    readonly storeId: StoreId
     readonly event: Tag
     readonly payload: Event.Payload<Event>
   }) => Effect.Effect<
@@ -594,7 +596,6 @@ export const make = Effect.gen(function*() {
         }
       }
       return Effect.fnUntraced(function*(options: {
-        readonly schema: EventLog.EventLogSchema<any>
         readonly storeId: StoreId
         readonly event: string
         readonly payload: unknown
