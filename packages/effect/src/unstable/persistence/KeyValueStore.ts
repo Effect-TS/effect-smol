@@ -415,7 +415,7 @@ export const layerSql = (
           sql`
           CREATE TABLE IF NOT EXISTS ${table} (
             id VARCHAR(191) PRIMARY KEY,
-            value TEXT NOT NULL,
+            value BLOB NOT NULL,
             value_type SMALLINT NOT NULL
           )
         `,
@@ -423,7 +423,7 @@ export const layerSql = (
           sql`
           CREATE TABLE IF NOT EXISTS ${table} (
             id TEXT PRIMARY KEY,
-            value TEXT NOT NULL,
+            value BYTEA NOT NULL,
             value_type SMALLINT NOT NULL
           )
         `,
@@ -432,7 +432,7 @@ export const layerSql = (
           IF NOT EXISTS (SELECT * FROM sysobjects WHERE name=${table} AND xtype='U')
           CREATE TABLE ${table} (
             id NVARCHAR(450) PRIMARY KEY,
-            value NVARCHAR(MAX) NOT NULL,
+            value VARBINARY(MAX) NOT NULL,
             value_type SMALLINT NOT NULL
           )
         `,
@@ -441,7 +441,7 @@ export const layerSql = (
           sql`
           CREATE TABLE IF NOT EXISTS ${table} (
             id TEXT PRIMARY KEY,
-            value TEXT NOT NULL,
+            value BLOB NOT NULL,
             value_type INTEGER NOT NULL
           )
         `
@@ -449,21 +449,21 @@ export const layerSql = (
 
       type UpsertFn = (entry: {
         id: string
-        value: string
+        value: Uint8Array
         value_type: number
       }) => Effect.Effect<unknown, SqlError>
 
       const upsert = sql.onDialectOrElse({
         pg: (): UpsertFn => (entry) =>
           sql`
-          INSERT INTO ${table} ${sql.insert([entry])}
+          INSERT INTO ${table} (id, value, value_type) VALUES (${entry.id}, ${entry.value}, ${entry.value_type})
           ON CONFLICT (id) DO UPDATE SET value=EXCLUDED.value, value_type=EXCLUDED.value_type
         `.unprepared,
         mysql: (): UpsertFn => (entry) =>
           sql`
-          INSERT INTO ${table} ${sql.insert([entry])}
+          INSERT INTO ${table} (id, value, value_type) VALUES (${entry.id}, ${entry.value}, ${entry.value_type})
           ON DUPLICATE KEY UPDATE value=VALUES(value), value_type=VALUES(value_type)
-        `.unprepared,
+        `,
         mssql: (): UpsertFn => (entry) =>
           sql`
           MERGE ${table} AS target
@@ -476,17 +476,18 @@ export const layerSql = (
         // sqlite
         orElse: (): UpsertFn => (entry) =>
           sql`
-          INSERT INTO ${table} ${sql.insert([entry])}
+          INSERT INTO ${table} (id, value, value_type) VALUES (${entry.id}, ${entry.value}, ${entry.value_type})
           ON CONFLICT(id) DO UPDATE SET value=excluded.value, value_type=excluded.value_type
         `.unprepared
       })
 
       const encoder = new TextEncoder()
+      const decoder = new TextDecoder()
       const ValueTypeString = 0
       const ValueTypeUint8Array = 1
 
       type Row = {
-        value: string
+        value: Uint8Array
         value_type: number
       }
 
@@ -508,9 +509,9 @@ export const layerSql = (
               const row = rows[0]
               switch (row.value_type) {
                 case ValueTypeString:
-                  return Effect.succeed(row.value)
+                  return Effect.succeed(decoder.decode(row.value))
                 case ValueTypeUint8Array:
-                  return Effect.succeed(row.value)
+                  return Effect.succeed(Encoding.encodeBase64(row.value))
                 default:
                   return Effect.fail(
                     new KeyValueStoreError({
@@ -539,20 +540,9 @@ export const layerSql = (
               const row = rows[0]
               switch (row.value_type) {
                 case ValueTypeString:
-                  return Effect.succeed(encoder.encode(row.value))
+                  return Effect.succeed(row.value)
                 case ValueTypeUint8Array:
-                  return Result.match(Encoding.decodeBase64(row.value), {
-                    onFailure: (cause) =>
-                      Effect.fail(
-                        new KeyValueStoreError({
-                          method: "getUint8Array",
-                          key,
-                          message: `Unable to decode base64 value for key ${key}`,
-                          cause
-                        })
-                      ),
-                    onSuccess: Effect.succeed
-                  })
+                  return Effect.succeed(row.value)
                 default:
                   return Effect.fail(
                     new KeyValueStoreError({
@@ -567,7 +557,7 @@ export const layerSql = (
         set: (key: string, value: string | Uint8Array) =>
           upsert({
             id: key,
-            value: typeof value === "string" ? value : Encoding.encodeBase64(value),
+            value: typeof value === "string" ? encoder.encode(value) : value,
             value_type: typeof value === "string" ? ValueTypeString : ValueTypeUint8Array
           }).pipe(
             Effect.mapError((cause) =>
