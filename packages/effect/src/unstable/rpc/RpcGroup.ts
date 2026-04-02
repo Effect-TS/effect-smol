@@ -264,7 +264,7 @@ const RpcGroupProto = {
         contextMap.set(rpc.key, {
           tag: rpc._tag,
           handler,
-          services
+          context: services
         })
       }
       return Context.makeUnsafe(contextMap)
