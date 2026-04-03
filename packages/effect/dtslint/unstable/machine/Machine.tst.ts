@@ -1,4 +1,4 @@
-import { Schema } from "effect"
+import * as Schema from "effect/Schema"
 import * as Machine from "effect/unstable/machine/Machine"
 import { describe, expect, it } from "tstyche"
 
