@@ -41,7 +41,7 @@ describe("Machine", () => {
   const UserMachine = Machine.make({
     id: "UserMachine",
     events: [Create, Rename, Delete],
-    initial: new Uncreated({}),
+    initial: () => new Uncreated({}),
     states: [Uncreated, Created, Deleted]
   }).handlers({
     Uncreated: {
@@ -87,8 +87,8 @@ describe("Machine", () => {
       const initial = yield* Machine.initial(UserMachine)
       const created = yield* Machine.next(UserMachine, initial, new Create({ email: "a@example.com" }))
 
-      assert.deepStrictEqual(yield* Machine.enabled(UserMachine, initial), ["Create"])
-      assert.deepStrictEqual(yield* Machine.enabled(UserMachine, created), ["Rename", "Delete"])
+      assert.deepStrictEqual(Machine.enabled(UserMachine, initial), ["Create"])
+      assert.deepStrictEqual(Machine.enabled(UserMachine, created), ["Rename", "Delete"])
     }))
 
   it.effect("machine actor processes events sequentially", () =>
@@ -131,4 +131,36 @@ describe("Machine", () => {
         assert.strictEqual(sendError.event, "Rename")
       })
     ))
+
+  it.effect("supports schema-backed input for initial state", () =>
+    Effect.gen(function*() {
+      const ExistingUserInput = Schema.Struct({
+        user: User
+      })
+
+      const InputMachine = Machine.make({
+        input: ExistingUserInput,
+        events: [Rename, Delete],
+        states: [Uncreated, Created, Deleted],
+        initial: ({ input }) => new Created({ user: input.user })
+      }).handlers({
+        Created: {
+          Rename: ({ data, event }) => new Created({ user: { ...data.user, email: event.email } }),
+          Delete: ({ data }) => new Deleted({ userId: data.user.id })
+        }
+      })
+
+      const initial = yield* Machine.initial(InputMachine, {
+        user: {
+          id: "seed",
+          email: "seed@example.com"
+        }
+      })
+
+      assert.instanceOf(initial, Created)
+      assert.deepStrictEqual(initial.user, {
+        id: "seed",
+        email: "seed@example.com"
+      })
+    }))
 })
