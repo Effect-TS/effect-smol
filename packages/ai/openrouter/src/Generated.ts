@@ -270,10 +270,6 @@ export type ResponsesFormatText = { readonly "type": "text" }
 export const ResponsesFormatText = Schema.Struct({ "type": Schema.Literal("text") }).annotate({
   "description": "Plain text response format"
 })
-export type ResponsesFormatJSONObject = { readonly "type": "json_object" }
-export const ResponsesFormatJSONObject = Schema.Struct({ "type": Schema.Literal("json_object") }).annotate({
-  "description": "JSON object response format"
-})
 export type ResponsesFormatTextJSONSchemaConfig = {
   readonly "type": "json_schema"
   readonly "name": string
@@ -677,6 +673,7 @@ export type ProviderName =
   | "Inception"
   | "Inceptron"
   | "InferenceNet"
+  | "Ionstream"
   | "Infermatic"
   | "Io Net"
   | "Inflection"
@@ -751,6 +748,7 @@ export const ProviderName = Schema.Literals([
   "Inception",
   "Inceptron",
   "InferenceNet",
+  "Ionstream",
   "Infermatic",
   "Io Net",
   "Inflection",
@@ -794,7 +792,26 @@ export const ProviderName = Schema.Literals([
 export type Quantization = "int4" | "int8" | "fp4" | "fp6" | "fp8" | "fp16" | "bf16" | "fp32" | "unknown"
 export const Quantization = Schema.Literals(["int4", "int8", "fp4", "fp6", "fp8", "fp16", "bf16", "fp32", "unknown"])
 export type ProviderSort = "price" | "throughput" | "latency"
-export const ProviderSort = Schema.Literals(["price", "throughput", "latency"])
+export const ProviderSort = Schema.Literals(["price", "throughput", "latency"]).annotate({
+  "description": "The provider sorting strategy (price, throughput, latency)"
+})
+export type ProviderSortConfig = {
+  readonly "by"?: "price" | "throughput" | "latency"
+  readonly "partition"?: "model" | "none"
+}
+export const ProviderSortConfig = Schema.Struct({
+  "by": Schema.optionalKey(
+    Schema.Literals(["price", "throughput", "latency"]).annotate({
+      "description": "The provider sorting strategy (price, throughput, latency)"
+    })
+  ),
+  "partition": Schema.optionalKey(
+    Schema.Literals(["model", "none"]).annotate({
+      "description":
+        "Partitioning strategy for sorting: \"model\" (default) groups endpoints by model before sorting (fallback models remain fallbacks), \"none\" sorts all endpoints together regardless of model."
+    })
+  )
+}).annotate({ "description": "The provider sorting strategy (price, throughput, latency)" })
 export type BigNumberUnion = string
 export const BigNumberUnion = Schema.String.annotate({ "description": "Price per million prompt tokens" })
 export type PercentileThroughputCutoffs = {
@@ -2325,6 +2342,300 @@ export const ForbiddenResponseErrorData = Schema.Struct({
   "message": Schema.String,
   "metadata": Schema.optionalKey(Schema.Struct({}))
 }).annotate({ "description": "Error data for ForbiddenResponse" })
+export type ChatCompletionFinishReason = "tool_calls" | "stop" | "length" | "content_filter" | "error"
+export const ChatCompletionFinishReason = Schema.Literals(["tool_calls", "stop", "length", "content_filter", "error"])
+export type ChatMessageContentItemCacheControl = { readonly "type": "ephemeral"; readonly "ttl"?: "5m" | "1h" }
+export const ChatMessageContentItemCacheControl = Schema.Struct({
+  "type": Schema.Literal("ephemeral"),
+  "ttl": Schema.optionalKey(Schema.Literals(["5m", "1h"]))
+}).annotate({ "description": "Cache control for the content part" })
+export type ChatMessageContentItemImage = {
+  readonly "type": "image_url"
+  readonly "image_url": { readonly "url": string; readonly "detail"?: "auto" | "low" | "high" }
+}
+export const ChatMessageContentItemImage = Schema.Struct({
+  "type": Schema.Literal("image_url"),
+  "image_url": Schema.Struct({
+    "url": Schema.String.annotate({ "description": "URL of the image (data: URLs supported)" }),
+    "detail": Schema.optionalKey(
+      Schema.Literals(["auto", "low", "high"]).annotate({ "description": "Image detail level for vision models" })
+    )
+  })
+}).annotate({ "description": "Image content part for vision models" })
+export type ChatMessageContentItemAudio = {
+  readonly "type": "input_audio"
+  readonly "input_audio": { readonly "data": string; readonly "format": string }
+}
+export const ChatMessageContentItemAudio = Schema.Struct({
+  "type": Schema.Literal("input_audio"),
+  "input_audio": Schema.Struct({
+    "data": Schema.String.annotate({ "description": "Base64 encoded audio data" }),
+    "format": Schema.String.annotate({
+      "description":
+        "Audio format (e.g., wav, mp3, flac, m4a, ogg, aiff, aac, pcm16, pcm24). Supported formats vary by provider."
+    })
+  })
+}).annotate({ "description": "Audio input content part. Supported audio formats vary by provider." })
+export type VideoInput = { readonly "url": string }
+export const VideoInput = Schema.Struct({
+  "url": Schema.String.annotate({ "description": "URL of the video (data: URLs supported)" })
+}).annotate({ "description": "Video input object" })
+export type ChatMessageToolCall = {
+  readonly "id": string
+  readonly "type": "function"
+  readonly "function": { readonly "name": string; readonly "arguments": string }
+}
+export const ChatMessageToolCall = Schema.Struct({
+  "id": Schema.String.annotate({ "description": "Tool call identifier" }),
+  "type": Schema.Literal("function"),
+  "function": Schema.Struct({
+    "name": Schema.String.annotate({ "description": "Function name to call" }),
+    "arguments": Schema.String.annotate({ "description": "Function arguments as JSON string" })
+  })
+}).annotate({ "description": "Tool call made by the assistant" })
+export type ReasoningDetailSummary = {
+  readonly "type": "reasoning.summary"
+  readonly "summary": string
+  readonly "id"?: string
+  readonly "format"?:
+    | "unknown"
+    | "openai-responses-v1"
+    | "azure-openai-responses-v1"
+    | "xai-responses-v1"
+    | "anthropic-claude-v1"
+    | "google-gemini-v1"
+  readonly "index"?: number
+}
+export const ReasoningDetailSummary = Schema.Struct({
+  "type": Schema.Literal("reasoning.summary"),
+  "summary": Schema.String,
+  "id": Schema.optionalKey(Schema.String),
+  "format": Schema.optionalKey(
+    Schema.Literals([
+      "unknown",
+      "openai-responses-v1",
+      "azure-openai-responses-v1",
+      "xai-responses-v1",
+      "anthropic-claude-v1",
+      "google-gemini-v1"
+    ])
+  ),
+  "index": Schema.optionalKey(Schema.Number.check(Schema.isFinite()))
+}).annotate({ "description": "Reasoning detail summary schema" })
+export type ReasoningDetailEncrypted = {
+  readonly "type": "reasoning.encrypted"
+  readonly "data": string
+  readonly "id"?: string
+  readonly "format"?:
+    | "unknown"
+    | "openai-responses-v1"
+    | "azure-openai-responses-v1"
+    | "xai-responses-v1"
+    | "anthropic-claude-v1"
+    | "google-gemini-v1"
+  readonly "index"?: number
+}
+export const ReasoningDetailEncrypted = Schema.Struct({
+  "type": Schema.Literal("reasoning.encrypted"),
+  "data": Schema.String,
+  "id": Schema.optionalKey(Schema.String),
+  "format": Schema.optionalKey(
+    Schema.Literals([
+      "unknown",
+      "openai-responses-v1",
+      "azure-openai-responses-v1",
+      "xai-responses-v1",
+      "anthropic-claude-v1",
+      "google-gemini-v1"
+    ])
+  ),
+  "index": Schema.optionalKey(Schema.Number.check(Schema.isFinite()))
+}).annotate({ "description": "Reasoning detail encrypted schema" })
+export type ReasoningDetailText = {
+  readonly "type": "reasoning.text"
+  readonly "text"?: string
+  readonly "signature"?: string
+  readonly "id"?: string
+  readonly "format"?:
+    | "unknown"
+    | "openai-responses-v1"
+    | "azure-openai-responses-v1"
+    | "xai-responses-v1"
+    | "anthropic-claude-v1"
+    | "google-gemini-v1"
+  readonly "index"?: number
+}
+export const ReasoningDetailText = Schema.Struct({
+  "type": Schema.Literal("reasoning.text"),
+  "text": Schema.optionalKey(Schema.String),
+  "signature": Schema.optionalKey(Schema.String),
+  "id": Schema.optionalKey(Schema.String),
+  "format": Schema.optionalKey(
+    Schema.Literals([
+      "unknown",
+      "openai-responses-v1",
+      "azure-openai-responses-v1",
+      "xai-responses-v1",
+      "anthropic-claude-v1",
+      "google-gemini-v1"
+    ])
+  ),
+  "index": Schema.optionalKey(Schema.Number.check(Schema.isFinite()))
+}).annotate({ "description": "Reasoning detail text schema" })
+export type ChatMessageTokenLogprob = {
+  readonly "token": string
+  readonly "logprob": number
+  readonly "bytes": ReadonlyArray<number>
+  readonly "top_logprobs": ReadonlyArray<
+    { readonly "token": string; readonly "logprob": number; readonly "bytes": ReadonlyArray<number> }
+  >
+}
+export const ChatMessageTokenLogprob = Schema.Struct({
+  "token": Schema.String.annotate({ "description": "The token" }),
+  "logprob": Schema.Number.annotate({ "description": "Log probability of the token" }).check(Schema.isFinite()),
+  "bytes": Schema.Array(Schema.Number.check(Schema.isFinite())).annotate({ "description": "UTF-8 bytes of the token" }),
+  "top_logprobs": Schema.Array(
+    Schema.Struct({
+      "token": Schema.String,
+      "logprob": Schema.Number.check(Schema.isFinite()),
+      "bytes": Schema.Array(Schema.Number.check(Schema.isFinite()))
+    })
+  ).annotate({ "description": "Top alternative tokens with probabilities" })
+}).annotate({ "description": "Token log probability information" })
+export type ChatGenerationTokenUsage = {
+  readonly "completion_tokens": number
+  readonly "prompt_tokens": number
+  readonly "total_tokens": number
+  readonly "completion_tokens_details"?: {
+    readonly "reasoning_tokens"?: number
+    readonly "audio_tokens"?: number
+    readonly "accepted_prediction_tokens"?: number
+    readonly "rejected_prediction_tokens"?: number
+  }
+  readonly "prompt_tokens_details"?: {
+    readonly "cached_tokens"?: number
+    readonly "cache_write_tokens"?: number
+    readonly "audio_tokens"?: number
+    readonly "video_tokens"?: number
+  }
+}
+export const ChatGenerationTokenUsage = Schema.Struct({
+  "completion_tokens": Schema.Number.annotate({ "description": "Number of tokens in the completion" }).check(
+    Schema.isFinite()
+  ),
+  "prompt_tokens": Schema.Number.annotate({ "description": "Number of tokens in the prompt" }).check(Schema.isFinite()),
+  "total_tokens": Schema.Number.annotate({ "description": "Total number of tokens" }).check(Schema.isFinite()),
+  "completion_tokens_details": Schema.optionalKey(
+    Schema.Struct({
+      "reasoning_tokens": Schema.optionalKey(
+        Schema.Number.annotate({ "description": "Tokens used for reasoning" }).check(Schema.isFinite())
+      ),
+      "audio_tokens": Schema.optionalKey(
+        Schema.Number.annotate({ "description": "Tokens used for audio output" }).check(Schema.isFinite())
+      ),
+      "accepted_prediction_tokens": Schema.optionalKey(
+        Schema.Number.annotate({ "description": "Accepted prediction tokens" }).check(Schema.isFinite())
+      ),
+      "rejected_prediction_tokens": Schema.optionalKey(
+        Schema.Number.annotate({ "description": "Rejected prediction tokens" }).check(Schema.isFinite())
+      )
+    }).annotate({ "description": "Detailed completion token usage" })
+  ),
+  "prompt_tokens_details": Schema.optionalKey(
+    Schema.Struct({
+      "cached_tokens": Schema.optionalKey(
+        Schema.Number.annotate({ "description": "Cached prompt tokens" }).check(Schema.isFinite())
+      ),
+      "cache_write_tokens": Schema.optionalKey(
+        Schema.Number.annotate({
+          "description":
+            "Tokens written to cache. Only returned for models with explicit caching and cache write pricing."
+        }).check(Schema.isFinite())
+      ),
+      "audio_tokens": Schema.optionalKey(
+        Schema.Number.annotate({ "description": "Audio input tokens" }).check(Schema.isFinite())
+      ),
+      "video_tokens": Schema.optionalKey(
+        Schema.Number.annotate({ "description": "Video input tokens" }).check(Schema.isFinite())
+      )
+    }).annotate({ "description": "Detailed prompt token usage" })
+  )
+}).annotate({ "description": "Token usage statistics" })
+export type ChatStreamingMessageToolCall = {
+  readonly "index": number
+  readonly "id"?: string | null
+  readonly "type"?: "function" | null
+  readonly "function"?: { readonly "name"?: string | null; readonly "arguments"?: string }
+}
+export const ChatStreamingMessageToolCall = Schema.Struct({
+  "index": Schema.Number.annotate({ "description": "Tool call index in the array" }).check(Schema.isFinite()),
+  "id": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
+  "type": Schema.optionalKey(Schema.Union([Schema.Literal("function"), Schema.Null])),
+  "function": Schema.optionalKey(
+    Schema.Struct({
+      "name": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
+      "arguments": Schema.optionalKey(Schema.String.annotate({ "description": "Function arguments as JSON string" }))
+    }).annotate({ "description": "Function call details" })
+  )
+}).annotate({ "description": "Tool call delta for streaming responses" })
+export type ModelName = string
+export const ModelName = Schema.String.annotate({ "description": "Model to use for completion" })
+export type ModelNames = ReadonlyArray<string>
+export const ModelNames = Schema.Array(
+  Schema.String.annotate({ "description": "Available OpenRouter chat completion models" })
+).annotate({ "description": "Models to use for completion" })
+export type ResponseFormatText = { readonly "type": "text" }
+export const ResponseFormatText = Schema.Struct({ "type": Schema.Literal("text") }).annotate({
+  "description": "Default text response format"
+})
+export type ResponseFormatJSONObject = { readonly "type": "json_object" }
+export const ResponseFormatJSONObject = Schema.Struct({ "type": Schema.Literal("json_object") }).annotate({
+  "description": "JSON object response format"
+})
+export type JSONSchemaConfig = {
+  readonly "name": string
+  readonly "description"?: string
+  readonly "schema"?: {}
+  readonly "strict"?: boolean
+}
+export const JSONSchemaConfig = Schema.Struct({
+  "name": Schema.String.annotate({ "description": "Schema name (a-z, A-Z, 0-9, underscores, dashes, max 64 chars)" })
+    .check(Schema.isMaxLength(64)),
+  "description": Schema.optionalKey(Schema.String.annotate({ "description": "Schema description for the model" })),
+  "schema": Schema.optionalKey(Schema.Struct({}).annotate({ "description": "JSON Schema object" })),
+  "strict": Schema.optionalKey(Schema.Boolean.annotate({ "description": "Enable strict schema adherence" }))
+}).annotate({ "description": "JSON Schema configuration object" })
+export type ResponseFormatTextGrammar = { readonly "type": "grammar"; readonly "grammar": string }
+export const ResponseFormatTextGrammar = Schema.Struct({
+  "type": Schema.Literal("grammar"),
+  "grammar": Schema.String.annotate({ "description": "Custom grammar for text generation" })
+}).annotate({ "description": "Custom grammar response format" })
+export type ResponseFormatTextPython = { readonly "type": "python" }
+export const ResponseFormatTextPython = Schema.Struct({ "type": Schema.Literal("python") }).annotate({
+  "description": "Python code response format"
+})
+export type ChatStreamOptions = { readonly "include_usage"?: boolean }
+export const ChatStreamOptions = Schema.Struct({
+  "include_usage": Schema.optionalKey(
+    Schema.Boolean.annotate({
+      "description": "Deprecated: This field has no effect. Full usage details are always included."
+    })
+  )
+}).annotate({ "description": "Streaming configuration options" })
+export type NamedToolChoice = { readonly "type": "function"; readonly "function": { readonly "name": string } }
+export const NamedToolChoice = Schema.Struct({
+  "type": Schema.Literal("function"),
+  "function": Schema.Struct({ "name": Schema.String.annotate({ "description": "Function name to call" }) })
+}).annotate({ "description": "Named tool choice for specific function" })
+export type DebugOptions = { readonly "echo_upstream_body"?: boolean }
+export const DebugOptions = Schema.Struct({
+  "echo_upstream_body": Schema.optionalKey(
+    Schema.Boolean.annotate({
+      "description":
+        "If true, includes the transformed upstream request body in a debug chunk at the start of the stream. Only works with streaming mode."
+    })
+  )
+}).annotate({ "description": "Debug options for inspecting request transformations (streaming only)" })
 export type CreateChargeRequest = {
   readonly "amount": number
   readonly "sender": string
@@ -2549,351 +2860,6 @@ export const PercentileStats = Schema.Struct({
   "description":
     "Latency percentiles in milliseconds over the last 30 minutes. Latency measures time to first token. Only visible when authenticated with an API key or cookie; returns null for unauthenticated requests."
 })
-export type __schema5 = ReadonlyArray<
-  | "AI21"
-  | "AionLabs"
-  | "Alibaba"
-  | "Ambient"
-  | "Amazon Bedrock"
-  | "Amazon Nova"
-  | "Anthropic"
-  | "Arcee AI"
-  | "AtlasCloud"
-  | "Avian"
-  | "Azure"
-  | "BaseTen"
-  | "BytePlus"
-  | "Black Forest Labs"
-  | "Cerebras"
-  | "Chutes"
-  | "Cirrascale"
-  | "Clarifai"
-  | "Cloudflare"
-  | "Cohere"
-  | "Crusoe"
-  | "DeepInfra"
-  | "DeepSeek"
-  | "Featherless"
-  | "Fireworks"
-  | "Friendli"
-  | "GMICloud"
-  | "Google"
-  | "Google AI Studio"
-  | "Groq"
-  | "Hyperbolic"
-  | "Inception"
-  | "Inceptron"
-  | "InferenceNet"
-  | "Infermatic"
-  | "Io Net"
-  | "Inflection"
-  | "Liquid"
-  | "Mara"
-  | "Mancer 2"
-  | "Minimax"
-  | "ModelRun"
-  | "Mistral"
-  | "Modular"
-  | "Moonshot AI"
-  | "Morph"
-  | "NCompass"
-  | "Nebius"
-  | "NextBit"
-  | "Novita"
-  | "Nvidia"
-  | "OpenAI"
-  | "OpenInference"
-  | "Parasail"
-  | "Perplexity"
-  | "Phala"
-  | "Relace"
-  | "SambaNova"
-  | "Seed"
-  | "SiliconFlow"
-  | "Sourceful"
-  | "StepFun"
-  | "Stealth"
-  | "StreamLake"
-  | "Switchpoint"
-  | "Together"
-  | "Upstage"
-  | "Venice"
-  | "WandB"
-  | "Xiaomi"
-  | "xAI"
-  | "Z.AI"
-  | "FakeProvider"
-  | string
->
-export const __schema5 = Schema.Array(
-  Schema.Union([
-    Schema.Literals([
-      "AI21",
-      "AionLabs",
-      "Alibaba",
-      "Ambient",
-      "Amazon Bedrock",
-      "Amazon Nova",
-      "Anthropic",
-      "Arcee AI",
-      "AtlasCloud",
-      "Avian",
-      "Azure",
-      "BaseTen",
-      "BytePlus",
-      "Black Forest Labs",
-      "Cerebras",
-      "Chutes",
-      "Cirrascale",
-      "Clarifai",
-      "Cloudflare",
-      "Cohere",
-      "Crusoe",
-      "DeepInfra",
-      "DeepSeek",
-      "Featherless",
-      "Fireworks",
-      "Friendli",
-      "GMICloud",
-      "Google",
-      "Google AI Studio",
-      "Groq",
-      "Hyperbolic",
-      "Inception",
-      "Inceptron",
-      "InferenceNet",
-      "Infermatic",
-      "Io Net",
-      "Inflection",
-      "Liquid",
-      "Mara",
-      "Mancer 2",
-      "Minimax",
-      "ModelRun",
-      "Mistral",
-      "Modular",
-      "Moonshot AI",
-      "Morph",
-      "NCompass",
-      "Nebius",
-      "NextBit",
-      "Novita",
-      "Nvidia",
-      "OpenAI",
-      "OpenInference",
-      "Parasail",
-      "Perplexity",
-      "Phala",
-      "Relace",
-      "SambaNova",
-      "Seed",
-      "SiliconFlow",
-      "Sourceful",
-      "StepFun",
-      "Stealth",
-      "StreamLake",
-      "Switchpoint",
-      "Together",
-      "Upstage",
-      "Venice",
-      "WandB",
-      "Xiaomi",
-      "xAI",
-      "Z.AI",
-      "FakeProvider"
-    ]),
-    Schema.String
-  ])
-)
-export type __schema11 = number
-export const __schema11 = Schema.Number.check(Schema.isFinite())
-export type __schema13 = unknown
-export const __schema13 = Schema.Unknown
-export type __schema21 = string | null
-export const __schema21 = Schema.Union([Schema.String, Schema.Null])
-export type __schema22 =
-  | "unknown"
-  | "openai-responses-v1"
-  | "azure-openai-responses-v1"
-  | "xai-responses-v1"
-  | "anthropic-claude-v1"
-  | "google-gemini-v1"
-  | null
-export const __schema22 = Schema.Union([
-  Schema.Literals([
-    "unknown",
-    "openai-responses-v1",
-    "azure-openai-responses-v1",
-    "xai-responses-v1",
-    "anthropic-claude-v1",
-    "google-gemini-v1"
-  ]),
-  Schema.Null
-])
-export type ModelName = string
-export const ModelName = Schema.String
-export type ChatMessageContentItemImage = {
-  readonly "type": "image_url"
-  readonly "image_url": { readonly "url": string; readonly "detail"?: "auto" | "low" | "high" }
-}
-export const ChatMessageContentItemImage = Schema.Struct({
-  "type": Schema.Literal("image_url"),
-  "image_url": Schema.Struct({
-    "url": Schema.String,
-    "detail": Schema.optionalKey(Schema.Literals(["auto", "low", "high"]))
-  })
-})
-export type ChatMessageContentItemAudio = {
-  readonly "type": "input_audio"
-  readonly "input_audio": { readonly "data": string; readonly "format": string }
-}
-export const ChatMessageContentItemAudio = Schema.Struct({
-  "type": Schema.Literal("input_audio"),
-  "input_audio": Schema.Struct({ "data": Schema.String, "format": Schema.String })
-})
-export type ChatMessageContentItemVideo = {
-  readonly "type": "input_video"
-  readonly "video_url": { readonly "url": string }
-} | { readonly "type": "video_url"; readonly "video_url": { readonly "url": string } }
-export const ChatMessageContentItemVideo = Schema.Union([
-  Schema.Struct({ "type": Schema.Literal("input_video"), "video_url": Schema.Struct({ "url": Schema.String }) }),
-  Schema.Struct({ "type": Schema.Literal("video_url"), "video_url": Schema.Struct({ "url": Schema.String }) })
-], { mode: "oneOf" })
-export type ChatMessageToolCall = {
-  readonly "id": string
-  readonly "type": "function"
-  readonly "function": { readonly "name": string; readonly "arguments": string }
-}
-export const ChatMessageToolCall = Schema.Struct({
-  "id": Schema.String,
-  "type": Schema.Literal("function"),
-  "function": Schema.Struct({ "name": Schema.String, "arguments": Schema.String })
-})
-export type ChatMessageTokenLogprob = {
-  readonly "token": string
-  readonly "logprob": number
-  readonly "bytes": ReadonlyArray<number> | null
-  readonly "top_logprobs": ReadonlyArray<
-    { readonly "token": string; readonly "logprob": number; readonly "bytes": ReadonlyArray<number> | null }
-  >
-}
-export const ChatMessageTokenLogprob = Schema.Struct({
-  "token": Schema.String,
-  "logprob": Schema.Number.check(Schema.isFinite()),
-  "bytes": Schema.Union([Schema.Array(Schema.Number.check(Schema.isFinite())), Schema.Null]),
-  "top_logprobs": Schema.Array(
-    Schema.Struct({
-      "token": Schema.String,
-      "logprob": Schema.Number.check(Schema.isFinite()),
-      "bytes": Schema.Union([Schema.Array(Schema.Number.check(Schema.isFinite())), Schema.Null])
-    })
-  )
-})
-export type ChatGenerationTokenUsage = {
-  readonly "completion_tokens": number
-  readonly "prompt_tokens": number
-  readonly "total_tokens": number
-  readonly "completion_tokens_details"?: {
-    readonly "reasoning_tokens"?: number | null
-    readonly "audio_tokens"?: number | null
-    readonly "accepted_prediction_tokens"?: number | null
-    readonly "rejected_prediction_tokens"?: number | null
-  } | null
-  readonly "prompt_tokens_details"?: {
-    readonly "cached_tokens"?: number
-    readonly "cache_write_tokens"?: number
-    readonly "audio_tokens"?: number
-    readonly "video_tokens"?: number
-  } | null
-}
-export const ChatGenerationTokenUsage = Schema.Struct({
-  "completion_tokens": Schema.Number.check(Schema.isFinite()),
-  "prompt_tokens": Schema.Number.check(Schema.isFinite()),
-  "total_tokens": Schema.Number.check(Schema.isFinite()),
-  "completion_tokens_details": Schema.optionalKey(Schema.Union([
-    Schema.Struct({
-      "reasoning_tokens": Schema.optionalKey(Schema.Union([Schema.Number.check(Schema.isFinite()), Schema.Null])),
-      "audio_tokens": Schema.optionalKey(Schema.Union([Schema.Number.check(Schema.isFinite()), Schema.Null])),
-      "accepted_prediction_tokens": Schema.optionalKey(
-        Schema.Union([Schema.Number.check(Schema.isFinite()), Schema.Null])
-      ),
-      "rejected_prediction_tokens": Schema.optionalKey(
-        Schema.Union([Schema.Number.check(Schema.isFinite()), Schema.Null])
-      )
-    }),
-    Schema.Null
-  ])),
-  "prompt_tokens_details": Schema.optionalKey(Schema.Union([
-    Schema.Struct({
-      "cached_tokens": Schema.optionalKey(Schema.Number.check(Schema.isFinite())),
-      "cache_write_tokens": Schema.optionalKey(Schema.Number.check(Schema.isFinite())),
-      "audio_tokens": Schema.optionalKey(Schema.Number.check(Schema.isFinite())),
-      "video_tokens": Schema.optionalKey(Schema.Number.check(Schema.isFinite()))
-    }),
-    Schema.Null
-  ]))
-})
-export type ChatCompletionFinishReason = "tool_calls" | "stop" | "length" | "content_filter" | "error"
-export const ChatCompletionFinishReason = Schema.Literals(["tool_calls", "stop", "length", "content_filter", "error"])
-export type JSONSchemaConfig = {
-  readonly "name": string
-  readonly "description"?: string
-  readonly "schema"?: {}
-  readonly "strict"?: boolean | null
-}
-export const JSONSchemaConfig = Schema.Struct({
-  "name": Schema.String.check(Schema.isMaxLength(64)),
-  "description": Schema.optionalKey(Schema.String),
-  "schema": Schema.optionalKey(Schema.Struct({}).check(Schema.isPropertyNames(Schema.String))),
-  "strict": Schema.optionalKey(Schema.Union([Schema.Boolean, Schema.Null]))
-})
-export type ResponseFormatTextGrammar = { readonly "type": "grammar"; readonly "grammar": string }
-export const ResponseFormatTextGrammar = Schema.Struct({ "type": Schema.Literal("grammar"), "grammar": Schema.String })
-export type ChatMessageContentItemCacheControl = { readonly "type": "ephemeral"; readonly "ttl"?: "5m" | "1h" }
-export const ChatMessageContentItemCacheControl = Schema.Struct({
-  "type": Schema.Literal("ephemeral"),
-  "ttl": Schema.optionalKey(Schema.Literals(["5m", "1h"]))
-})
-export type NamedToolChoice = { readonly "type": "function"; readonly "function": { readonly "name": string } }
-export const NamedToolChoice = Schema.Struct({
-  "type": Schema.Literal("function"),
-  "function": Schema.Struct({ "name": Schema.String })
-})
-export type ChatStreamOptions = { readonly "include_usage"?: boolean }
-export const ChatStreamOptions = Schema.Struct({ "include_usage": Schema.optionalKey(Schema.Boolean) })
-export type ChatStreamingMessageToolCall = {
-  readonly "index": number
-  readonly "id"?: string | null
-  readonly "type"?: "function" | null
-  readonly "function"?: { readonly "name"?: string | null; readonly "arguments"?: string }
-}
-export const ChatStreamingMessageToolCall = Schema.Struct({
-  "index": Schema.Number.check(Schema.isFinite()),
-  "id": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
-  "type": Schema.optionalKey(Schema.Union([Schema.Literal("function"), Schema.Null])),
-  "function": Schema.optionalKey(
-    Schema.Struct({
-      "name": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
-      "arguments": Schema.optionalKey(Schema.String)
-    })
-  )
-})
-export type ChatError = {
-  readonly "error": {
-    readonly "code": string | number | null
-    readonly "message": string
-    readonly "param"?: string | null
-    readonly "type"?: string | null
-  }
-}
-export const ChatError = Schema.Struct({
-  "error": Schema.Struct({
-    "code": Schema.Union([Schema.Union([Schema.String, Schema.Number.check(Schema.isFinite())]), Schema.Null]),
-    "message": Schema.String,
-    "param": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
-    "type": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null]))
-  })
-})
 export type OpenAIResponsesAnnotation = FileCitation | URLCitation | FilePath
 export const OpenAIResponsesAnnotation = Schema.Union([FileCitation, URLCitation, FilePath])
 export type OutputItemReasoning = {
@@ -2915,7 +2881,7 @@ export const OutputItemReasoning = Schema.Struct({
 export type ResponsesOutputItemReasoning = {
   readonly "type": "reasoning"
   readonly "id": string
-  readonly "content"?: ReadonlyArray<ReasoningTextContent>
+  readonly "content"?: ReadonlyArray<{ readonly "type": "reasoning_text"; readonly "text": string }>
   readonly "summary": ReadonlyArray<ReasoningSummaryText>
   readonly "encrypted_content"?: string
   readonly "status"?: "completed" | "incomplete" | "in_progress"
@@ -2931,7 +2897,9 @@ export type ResponsesOutputItemReasoning = {
 export const ResponsesOutputItemReasoning = Schema.Struct({
   "type": Schema.Literal("reasoning"),
   "id": Schema.String,
-  "content": Schema.optionalKey(Schema.Array(ReasoningTextContent)),
+  "content": Schema.optionalKey(
+    Schema.Array(Schema.Struct({ "type": Schema.Literal("reasoning_text"), "text": Schema.String }))
+  ),
   "summary": Schema.Array(ReasoningSummaryText),
   "encrypted_content": Schema.optionalKey(Schema.String),
   "status": Schema.optionalKey(Schema.Literals(["completed", "incomplete", "in_progress"])),
@@ -2984,7 +2952,7 @@ export const OpenResponsesReasoningSummaryPartDoneEvent = Schema.Struct({
 export type OpenResponsesReasoning = {
   readonly "type": "reasoning"
   readonly "id": string
-  readonly "content"?: ReadonlyArray<ReasoningTextContent>
+  readonly "content"?: ReadonlyArray<{ readonly "type": "reasoning_text"; readonly "text": string }>
   readonly "summary": ReadonlyArray<ReasoningSummaryText>
   readonly "encrypted_content"?: string
   readonly "status"?: "completed" | "incomplete" | "in_progress"
@@ -3000,7 +2968,9 @@ export type OpenResponsesReasoning = {
 export const OpenResponsesReasoning = Schema.Struct({
   "type": Schema.Literal("reasoning"),
   "id": Schema.String,
-  "content": Schema.optionalKey(Schema.Array(ReasoningTextContent)),
+  "content": Schema.optionalKey(
+    Schema.Array(Schema.Struct({ "type": Schema.Literal("reasoning_text"), "text": Schema.String }))
+  ),
   "summary": Schema.Array(ReasoningSummaryText),
   "encrypted_content": Schema.optionalKey(Schema.String),
   "status": Schema.optionalKey(Schema.Literals(["completed", "incomplete", "in_progress"])),
@@ -3178,15 +3148,6 @@ export const OpenResponsesReasoningConfig = Schema.Struct({
   "max_tokens": Schema.optionalKey(Schema.Number.check(Schema.isFinite())),
   "enabled": Schema.optionalKey(Schema.Boolean)
 }).annotate({ "description": "Configuration for reasoning mode in the response" })
-export type ResponseFormatTextConfig =
-  | ResponsesFormatText
-  | ResponsesFormatJSONObject
-  | ResponsesFormatTextJSONSchemaConfig
-export const ResponseFormatTextConfig = Schema.Union([
-  ResponsesFormatText,
-  ResponsesFormatJSONObject,
-  ResponsesFormatTextJSONSchemaConfig
-]).annotate({ "description": "Text response format configuration" })
 export type OpenResponsesLogProbs = {
   readonly "logprob": number
   readonly "token": string
@@ -3346,11 +3307,6 @@ export const OpenResponsesInputMessageItem = Schema.Struct({
     ], { mode: "oneOf" })
   )
 })
-export type ProviderSortConfig = { readonly "by"?: ProviderSort | null; readonly "partition"?: "model" | "none" | null }
-export const ProviderSortConfig = Schema.Struct({
-  "by": Schema.optionalKey(Schema.Union([ProviderSort, Schema.Null])),
-  "partition": Schema.optionalKey(Schema.Union([Schema.Literals(["model", "none"]), Schema.Null]))
-})
 export type PreferredMinThroughput = number | PercentileThroughputCutoffs | unknown
 export const PreferredMinThroughput = Schema.Union([
   Schema.Number.check(Schema.isFinite()),
@@ -3378,6 +3334,85 @@ export const ForbiddenResponse = Schema.Struct({
   "error": ForbiddenResponseErrorData,
   "user_id": Schema.optionalKey(Schema.String)
 }).annotate({ "description": "Forbidden - Authentication successful but insufficient permissions" })
+export type ChatMessageContentItemText = {
+  readonly "type": "text"
+  readonly "text": string
+  readonly "cache_control"?: ChatMessageContentItemCacheControl
+}
+export const ChatMessageContentItemText = Schema.Struct({
+  "type": Schema.Literal("text"),
+  "text": Schema.String,
+  "cache_control": Schema.optionalKey(ChatMessageContentItemCacheControl)
+}).annotate({ "description": "Text content part" })
+export type ToolDefinitionJson = {
+  readonly "type": "function"
+  readonly "function": {
+    readonly "name": string
+    readonly "description"?: string
+    readonly "parameters"?: {}
+    readonly "strict"?: boolean
+  }
+  readonly "cache_control"?: ChatMessageContentItemCacheControl
+}
+export const ToolDefinitionJson = Schema.Struct({
+  "type": Schema.Literal("function"),
+  "function": Schema.Struct({
+    "name": Schema.String.annotate({
+      "description": "Function name (a-z, A-Z, 0-9, underscores, dashes, max 64 chars)"
+    }).check(Schema.isMaxLength(64)),
+    "description": Schema.optionalKey(Schema.String.annotate({ "description": "Function description for the model" })),
+    "parameters": Schema.optionalKey(
+      Schema.Struct({}).annotate({ "description": "Function parameters as JSON Schema object" })
+    ),
+    "strict": Schema.optionalKey(Schema.Boolean.annotate({ "description": "Enable strict schema adherence" }))
+  }).annotate({ "description": "Function definition for tool calling" }),
+  "cache_control": Schema.optionalKey(ChatMessageContentItemCacheControl)
+}).annotate({ "description": "Tool definition for function calling" })
+export type ChatMessageContentItemVideoLegacy = { readonly "type": "input_video"; readonly "video_url": VideoInput }
+export const ChatMessageContentItemVideoLegacy = Schema.Struct({
+  "type": Schema.Literal("input_video"),
+  "video_url": VideoInput
+}).annotate({ "description": "Video input content part (legacy format - deprecated)" })
+export type ChatMessageContentItemVideo = { readonly "type": "video_url"; readonly "video_url": VideoInput }
+export const ChatMessageContentItemVideo = Schema.Struct({
+  "type": Schema.Literal("video_url"),
+  "video_url": VideoInput
+}).annotate({ "description": "Video input content part" })
+export type ReasoningDetailUnion = ReasoningDetailSummary | ReasoningDetailEncrypted | ReasoningDetailText
+export const ReasoningDetailUnion = Schema.Union([
+  ReasoningDetailSummary,
+  ReasoningDetailEncrypted,
+  ReasoningDetailText
+], { mode: "oneOf" }).annotate({ "description": "Reasoning detail union schema" })
+export type ChatMessageTokenLogprobs = {
+  readonly "content": ReadonlyArray<ChatMessageTokenLogprob>
+  readonly "refusal": ReadonlyArray<ChatMessageTokenLogprob>
+}
+export const ChatMessageTokenLogprobs = Schema.Struct({
+  "content": Schema.Array(ChatMessageTokenLogprob).annotate({ "description": "Log probabilities for content tokens" }),
+  "refusal": Schema.Array(ChatMessageTokenLogprob).annotate({ "description": "Log probabilities for refusal tokens" })
+}).annotate({ "description": "Log probabilities for the completion" })
+export type ResponseFormatTextConfig =
+  | ResponsesFormatText
+  | ResponseFormatJSONObject
+  | ResponsesFormatTextJSONSchemaConfig
+export const ResponseFormatTextConfig = Schema.Union([
+  ResponsesFormatText,
+  ResponseFormatJSONObject,
+  ResponsesFormatTextJSONSchemaConfig
+]).annotate({ "description": "Text response format configuration" })
+export type ResponseFormatJSONSchema = { readonly "type": "json_schema"; readonly "json_schema": JSONSchemaConfig }
+export const ResponseFormatJSONSchema = Schema.Struct({
+  "type": Schema.Literal("json_schema"),
+  "json_schema": JSONSchemaConfig
+}).annotate({ "description": "JSON Schema response format for structured outputs" })
+export type ToolChoiceOption = "none" | "auto" | "required" | NamedToolChoice
+export const ToolChoiceOption = Schema.Union([
+  Schema.Literal("none"),
+  Schema.Literal("auto"),
+  Schema.Literal("required"),
+  NamedToolChoice
+]).annotate({ "description": "Tool choice configuration" })
 export type ModelArchitecture = {
   readonly "tokenizer"?: ModelGroup
   readonly "instruct_type"?:
@@ -3540,104 +3575,6 @@ export const PublicEndpoint = Schema.Struct({
       "Throughput percentiles in tokens per second over the last 30 minutes. Throughput measures output token generation speed. Only visible when authenticated with an API key or cookie; returns null for unauthenticated requests."
   })
 }).annotate({ "description": "Information about a specific model endpoint" })
-export type __schema20 = {
-  readonly "type": "reasoning.summary"
-  readonly "summary": string
-  readonly "id"?: __schema21
-  readonly "format"?: __schema22
-  readonly "index"?: __schema11
-} | {
-  readonly "type": "reasoning.encrypted"
-  readonly "data": string
-  readonly "id"?: __schema21
-  readonly "format"?: __schema22
-  readonly "index"?: __schema11
-} | {
-  readonly "type": "reasoning.text"
-  readonly "text"?: string | null
-  readonly "signature"?: string | null
-  readonly "id"?: __schema21
-  readonly "format"?: __schema22
-  readonly "index"?: __schema11
-}
-export const __schema20 = Schema.Union([
-  Schema.Struct({
-    "type": Schema.Literal("reasoning.summary"),
-    "summary": Schema.String,
-    "id": Schema.optionalKey(__schema21),
-    "format": Schema.optionalKey(__schema22),
-    "index": Schema.optionalKey(__schema11)
-  }),
-  Schema.Struct({
-    "type": Schema.Literal("reasoning.encrypted"),
-    "data": Schema.String,
-    "id": Schema.optionalKey(__schema21),
-    "format": Schema.optionalKey(__schema22),
-    "index": Schema.optionalKey(__schema11)
-  }),
-  Schema.Struct({
-    "type": Schema.Literal("reasoning.text"),
-    "text": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
-    "signature": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
-    "id": Schema.optionalKey(__schema21),
-    "format": Schema.optionalKey(__schema22),
-    "index": Schema.optionalKey(__schema11)
-  })
-], { mode: "oneOf" })
-export type __schema14 = __schema11 | ModelName | __schema13
-export const __schema14 = Schema.Union([__schema11, ModelName, __schema13])
-export type ChatMessageTokenLogprobs = {
-  readonly "content": ReadonlyArray<ChatMessageTokenLogprob> | null
-  readonly "refusal": ReadonlyArray<ChatMessageTokenLogprob> | null
-}
-export const ChatMessageTokenLogprobs = Schema.Struct({
-  "content": Schema.Union([Schema.Array(ChatMessageTokenLogprob), Schema.Null]),
-  "refusal": Schema.Union([Schema.Array(ChatMessageTokenLogprob), Schema.Null])
-})
-export type __schema26 = ChatCompletionFinishReason | null
-export const __schema26 = Schema.Union([ChatCompletionFinishReason, Schema.Null])
-export type ResponseFormatJSONSchema = { readonly "type": "json_schema"; readonly "json_schema": JSONSchemaConfig }
-export const ResponseFormatJSONSchema = Schema.Struct({
-  "type": Schema.Literal("json_schema"),
-  "json_schema": JSONSchemaConfig
-})
-export type ChatMessageContentItemText = {
-  readonly "type": "text"
-  readonly "text": string
-  readonly "cache_control"?: ChatMessageContentItemCacheControl
-}
-export const ChatMessageContentItemText = Schema.Struct({
-  "type": Schema.Literal("text"),
-  "text": Schema.String,
-  "cache_control": Schema.optionalKey(ChatMessageContentItemCacheControl)
-})
-export type ToolDefinitionJson = {
-  readonly "type": "function"
-  readonly "function": {
-    readonly "name": string
-    readonly "description"?: string
-    readonly "parameters"?: {}
-    readonly "strict"?: boolean | null
-  }
-  readonly "cache_control"?: ChatMessageContentItemCacheControl
-}
-export const ToolDefinitionJson = Schema.Struct({
-  "type": Schema.Literal("function"),
-  "function": Schema.Struct({
-    "name": Schema.String.check(Schema.isMaxLength(64)),
-    "description": Schema.optionalKey(Schema.String),
-    "parameters": Schema.optionalKey(Schema.Struct({}).check(Schema.isPropertyNames(Schema.String))),
-    "strict": Schema.optionalKey(Schema.Union([Schema.Boolean, Schema.Null]))
-  }),
-  "cache_control": Schema.optionalKey(ChatMessageContentItemCacheControl)
-})
-export type ToolChoiceOption = "none" | "auto" | "required" | NamedToolChoice
-export const ToolChoiceOption = Schema.Union([
-  Schema.Literal("none"),
-  Schema.Literal("auto"),
-  Schema.Literal("required"),
-  NamedToolChoice
-])
 export type ResponseOutputText = {
   readonly "type": "output_text"
   readonly "text": string
@@ -3688,22 +3625,6 @@ export const OpenResponsesOutputTextAnnotationAddedEvent = Schema.Struct({
   "annotation_index": Schema.Number.check(Schema.isFinite()),
   "annotation": OpenAIResponsesAnnotation
 }).annotate({ "description": "Event emitted when a text annotation is added to output" })
-export type ResponseTextConfig = {
-  readonly "format"?: ResponseFormatTextConfig
-  readonly "verbosity"?: "high" | "low" | "medium"
-}
-export const ResponseTextConfig = Schema.Struct({
-  "format": Schema.optionalKey(ResponseFormatTextConfig),
-  "verbosity": Schema.optionalKey(Schema.Literals(["high", "low", "medium"]))
-}).annotate({ "description": "Text output configuration including format and verbosity" })
-export type OpenResponsesResponseText = {
-  readonly "format"?: ResponseFormatTextConfig
-  readonly "verbosity"?: "high" | "low" | "medium"
-}
-export const OpenResponsesResponseText = Schema.Struct({
-  "format": Schema.optionalKey(ResponseFormatTextConfig),
-  "verbosity": Schema.optionalKey(Schema.Literals(["high", "low", "medium"]))
-}).annotate({ "description": "Text output configuration including format and verbosity" })
 export type OpenResponsesTextDeltaEvent = {
   readonly "type": "response.output_text.delta"
   readonly "logprobs": ReadonlyArray<OpenResponsesLogProbs>
@@ -3740,8 +3661,6 @@ export const OpenResponsesTextDoneEvent = Schema.Struct({
   "sequence_number": Schema.Number.check(Schema.isFinite()),
   "logprobs": Schema.Array(OpenResponsesLogProbs)
 }).annotate({ "description": "Event emitted when text streaming is complete" })
-export type ProviderSortUnion = ProviderSort | ProviderSortConfig
-export const ProviderSortUnion = Schema.Union([ProviderSort, ProviderSortConfig])
 export type ProviderPreferences = {
   readonly "allow_fallbacks"?: boolean
   readonly "require_parameters"?: boolean
@@ -3810,19 +3729,34 @@ export const ProviderPreferences = Schema.Struct({
   ),
   "sort": Schema.optionalKey(
     Schema.Union([
-      Schema.Union([Schema.Literal("price"), Schema.Literal("price")]).annotate({
+      Schema.Union([
+        Schema.Literal("price").annotate({
+          "description": "The provider sorting strategy (price, throughput, latency)"
+        }),
+        Schema.Literal("price")
+      ]).annotate({
         "description":
           "The sorting strategy to use for this request, if \"order\" is not specified. When set, no load balancing is performed."
       }),
-      Schema.Union([Schema.Literal("throughput"), Schema.Literal("throughput")]).annotate({
+      Schema.Union([
+        Schema.Literal("throughput").annotate({
+          "description": "The provider sorting strategy (price, throughput, latency)"
+        }),
+        Schema.Literal("throughput")
+      ]).annotate({
         "description":
           "The sorting strategy to use for this request, if \"order\" is not specified. When set, no load balancing is performed."
       }),
-      Schema.Union([Schema.Literal("latency"), Schema.Literal("latency")]).annotate({
+      Schema.Union([
+        Schema.Literal("latency").annotate({
+          "description": "The provider sorting strategy (price, throughput, latency)"
+        }),
+        Schema.Literal("latency")
+      ]).annotate({
         "description":
           "The sorting strategy to use for this request, if \"order\" is not specified. When set, no load balancing is performed."
       })
-    ])
+    ]).annotate({ "description": "The provider sorting strategy (price, throughput, latency)" })
   ),
   "max_price": Schema.optionalKey(
     Schema.Struct({
@@ -4172,19 +4106,34 @@ export const AnthropicMessagesRequest = Schema.Struct({
       ),
       "sort": Schema.optionalKey(
         Schema.Union([
-          Schema.Union([Schema.Literal("price"), Schema.Literal("price")]).annotate({
+          Schema.Union([
+            Schema.Literal("price").annotate({
+              "description": "The provider sorting strategy (price, throughput, latency)"
+            }),
+            Schema.Literal("price")
+          ]).annotate({
             "description":
               "The sorting strategy to use for this request, if \"order\" is not specified. When set, no load balancing is performed."
           }),
-          Schema.Union([Schema.Literal("throughput"), Schema.Literal("throughput")]).annotate({
+          Schema.Union([
+            Schema.Literal("throughput").annotate({
+              "description": "The provider sorting strategy (price, throughput, latency)"
+            }),
+            Schema.Literal("throughput")
+          ]).annotate({
             "description":
               "The sorting strategy to use for this request, if \"order\" is not specified. When set, no load balancing is performed."
           }),
-          Schema.Union([Schema.Literal("latency"), Schema.Literal("latency")]).annotate({
+          Schema.Union([
+            Schema.Literal("latency").annotate({
+              "description": "The provider sorting strategy (price, throughput, latency)"
+            }),
+            Schema.Literal("latency")
+          ]).annotate({
             "description":
               "The sorting strategy to use for this request, if \"order\" is not specified. When set, no load balancing is performed."
           })
-        ])
+        ]).annotate({ "description": "The provider sorting strategy (price, throughput, latency)" })
       ),
       "max_price": Schema.optionalKey(
         Schema.Struct({
@@ -4288,6 +4237,62 @@ export const AnthropicMessagesRequest = Schema.Struct({
   "models": Schema.optionalKey(Schema.Array(Schema.String)),
   "output_config": Schema.optionalKey(AnthropicOutputConfig)
 }).annotate({ "description": "Request schema for Anthropic Messages API endpoint" })
+export type SystemMessage = {
+  readonly "role": "system"
+  readonly "content": string | ReadonlyArray<ChatMessageContentItemText>
+  readonly "name"?: string
+}
+export const SystemMessage = Schema.Struct({
+  "role": Schema.Literal("system"),
+  "content": Schema.Union([Schema.String, Schema.Array(ChatMessageContentItemText)]).annotate({
+    "description": "System message content"
+  }),
+  "name": Schema.optionalKey(Schema.String.annotate({ "description": "Optional name for the system message" }))
+}).annotate({ "description": "System message for setting behavior" })
+export type DeveloperMessage = {
+  readonly "role": "developer"
+  readonly "content": string | ReadonlyArray<ChatMessageContentItemText>
+  readonly "name"?: string
+}
+export const DeveloperMessage = Schema.Struct({
+  "role": Schema.Literal("developer"),
+  "content": Schema.Union([Schema.String, Schema.Array(ChatMessageContentItemText)]).annotate({
+    "description": "Developer message content"
+  }),
+  "name": Schema.optionalKey(Schema.String.annotate({ "description": "Optional name for the developer message" }))
+}).annotate({ "description": "Developer message" })
+export type ChatMessageContentItem =
+  | ChatMessageContentItemText
+  | ChatMessageContentItemImage
+  | ChatMessageContentItemAudio
+  | ChatMessageContentItemVideoLegacy
+  | ChatMessageContentItemVideo
+export const ChatMessageContentItem = Schema.Union([
+  ChatMessageContentItemText,
+  ChatMessageContentItemImage,
+  ChatMessageContentItemAudio,
+  Schema.Union([ChatMessageContentItemVideoLegacy, ChatMessageContentItemVideo], { mode: "oneOf" })
+], { mode: "oneOf" }).annotate({ "description": "Content part for chat completion messages" })
+export type AssistantMessageReasoningDetails = ReadonlyArray<ReasoningDetailUnion>
+export const AssistantMessageReasoningDetails = Schema.Array(ReasoningDetailUnion).annotate({
+  "description": "Reasoning details for extended thinking models"
+})
+export type ResponseTextConfig = {
+  readonly "format"?: ResponseFormatTextConfig
+  readonly "verbosity"?: "high" | "low" | "medium"
+}
+export const ResponseTextConfig = Schema.Struct({
+  "format": Schema.optionalKey(ResponseFormatTextConfig),
+  "verbosity": Schema.optionalKey(Schema.Literals(["high", "low", "medium"]))
+}).annotate({ "description": "Text output configuration including format and verbosity" })
+export type OpenResponsesResponseText = {
+  readonly "format"?: ResponseFormatTextConfig
+  readonly "verbosity"?: "high" | "low" | "medium"
+}
+export const OpenResponsesResponseText = Schema.Struct({
+  "format": Schema.optionalKey(ResponseFormatTextConfig),
+  "verbosity": Schema.optionalKey(Schema.Literals(["high", "low", "medium"]))
+}).annotate({ "description": "Text output configuration including format and verbosity" })
 export type Model = {
   readonly "id": string
   readonly "canonical_slug": string
@@ -4462,117 +4467,6 @@ export const ListEndpointsResponse = Schema.Struct({
   }).annotate({ "description": "Model architecture information" }),
   "endpoints": Schema.Array(PublicEndpoint).annotate({ "description": "List of available endpoints for this model" })
 }).annotate({ "description": "List of available endpoints for a model" })
-export type ChatStreamingMessageChunk = {
-  readonly "role"?: "assistant"
-  readonly "content"?: string | null
-  readonly "reasoning"?: string | null
-  readonly "refusal"?: string | null
-  readonly "tool_calls"?: ReadonlyArray<ChatStreamingMessageToolCall>
-  readonly "reasoning_details"?: ReadonlyArray<__schema20>
-  readonly "images"?:
-    | ReadonlyArray<{ readonly "type": "image_url"; readonly "image_url": { readonly "url": string } }>
-    | null
-  readonly "annotations"?:
-    | ReadonlyArray<
-      {
-        readonly "type": "url_citation"
-        readonly "url_citation": {
-          readonly "url": string
-          readonly "title"?: string
-          readonly "start_index"?: number
-          readonly "end_index"?: number
-          readonly "content"?: string
-        }
-      } | {
-        readonly "type": "file_annotation"
-        readonly "file_annotation": { readonly "file_id": string; readonly "quote"?: string }
-      } | {
-        readonly "type": "file"
-        readonly "file": {
-          readonly "hash": string
-          readonly "name": string
-          readonly "content"?: ReadonlyArray<{ readonly "type": string; readonly "text"?: string }>
-        }
-      }
-    >
-    | null
-}
-export const ChatStreamingMessageChunk = Schema.Struct({
-  "role": Schema.optionalKey(Schema.Literal("assistant")),
-  "content": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
-  "reasoning": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
-  "refusal": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
-  "tool_calls": Schema.optionalKey(Schema.Array(ChatStreamingMessageToolCall)),
-  "reasoning_details": Schema.optionalKey(Schema.Array(__schema20)),
-  "images": Schema.optionalKey(
-    Schema.Union([
-      Schema.Array(
-        Schema.Struct({ "type": Schema.Literal("image_url"), "image_url": Schema.Struct({ "url": Schema.String }) })
-      ),
-      Schema.Null
-    ])
-  ),
-  "annotations": Schema.optionalKey(Schema.Union([
-    Schema.Array(Schema.Union([
-      Schema.Struct({
-        "type": Schema.Literal("url_citation"),
-        "url_citation": Schema.Struct({
-          "url": Schema.String,
-          "title": Schema.optionalKey(Schema.String),
-          "start_index": Schema.optionalKey(Schema.Number.check(Schema.isFinite())),
-          "end_index": Schema.optionalKey(Schema.Number.check(Schema.isFinite())),
-          "content": Schema.optionalKey(Schema.String)
-        })
-      }),
-      Schema.Struct({
-        "type": Schema.Literal("file_annotation"),
-        "file_annotation": Schema.Struct({ "file_id": Schema.String, "quote": Schema.optionalKey(Schema.String) })
-      }),
-      Schema.Struct({
-        "type": Schema.Literal("file"),
-        "file": Schema.Struct({
-          "hash": Schema.String,
-          "name": Schema.String,
-          "content": Schema.optionalKey(
-            Schema.Array(Schema.Struct({ "type": Schema.String, "text": Schema.optionalKey(Schema.String) }))
-          )
-        })
-      })
-    ], { mode: "oneOf" })),
-    Schema.Null
-  ]))
-})
-export type ChatMessageContentItem =
-  | ChatMessageContentItemText
-  | ChatMessageContentItemImage
-  | ChatMessageContentItemAudio
-  | ChatMessageContentItemVideo
-export const ChatMessageContentItem = Schema.Union([
-  ChatMessageContentItemText,
-  ChatMessageContentItemImage,
-  ChatMessageContentItemAudio,
-  ChatMessageContentItemVideo
-], { mode: "oneOf" })
-export type SystemMessage = {
-  readonly "role": "system"
-  readonly "content": string | ReadonlyArray<ChatMessageContentItemText>
-  readonly "name"?: string
-}
-export const SystemMessage = Schema.Struct({
-  "role": Schema.Literal("system"),
-  "content": Schema.Union([Schema.String, Schema.Array(ChatMessageContentItemText)]),
-  "name": Schema.optionalKey(Schema.String)
-})
-export type DeveloperMessage = {
-  readonly "role": "developer"
-  readonly "content": string | ReadonlyArray<ChatMessageContentItemText>
-  readonly "name"?: string
-}
-export const DeveloperMessage = Schema.Struct({
-  "role": Schema.Literal("developer"),
-  "content": Schema.Union([Schema.String, Schema.Array(ChatMessageContentItemText)]),
-  "name": Schema.optionalKey(Schema.String)
-})
 export type OutputMessage = {
   readonly "id": string
   readonly "role": "assistant"
@@ -4633,20 +4527,6 @@ export const OpenResponsesContentPartDoneEvent = Schema.Struct({
   "part": Schema.Union([ResponseOutputText, OpenAIResponsesRefusalContent]),
   "sequence_number": Schema.Number.check(Schema.isFinite())
 }).annotate({ "description": "Event emitted when a content part is complete" })
-export type ModelsListResponseData = ReadonlyArray<Model>
-export const ModelsListResponseData = Schema.Array(Model).annotate({ "description": "List of available models" })
-export type ChatStreamingChoice = {
-  readonly "delta": ChatStreamingMessageChunk
-  readonly "finish_reason"?: __schema26
-  readonly "index": number
-  readonly "logprobs"?: ChatMessageTokenLogprobs | null
-}
-export const ChatStreamingChoice = Schema.Struct({
-  "delta": ChatStreamingMessageChunk,
-  "finish_reason": Schema.optionalKey(__schema26),
-  "index": Schema.Number.check(Schema.isFinite()),
-  "logprobs": Schema.optionalKey(Schema.Union([ChatMessageTokenLogprobs, Schema.Null]))
-})
 export type UserMessage = {
   readonly "role": "user"
   readonly "content": string | ReadonlyArray<ChatMessageContentItem>
@@ -4654,17 +4534,33 @@ export type UserMessage = {
 }
 export const UserMessage = Schema.Struct({
   "role": Schema.Literal("user"),
-  "content": Schema.Union([Schema.String, Schema.Array(ChatMessageContentItem)]),
-  "name": Schema.optionalKey(Schema.String)
-})
+  "content": Schema.Union([Schema.String, Schema.Array(ChatMessageContentItem)]).annotate({
+    "description": "User message content"
+  }),
+  "name": Schema.optionalKey(Schema.String.annotate({ "description": "Optional name for the user" }))
+}).annotate({ "description": "User message" })
+export type ToolResponseMessage = {
+  readonly "role": "tool"
+  readonly "content": string | ReadonlyArray<ChatMessageContentItem>
+  readonly "tool_call_id": string
+}
+export const ToolResponseMessage = Schema.Struct({
+  "role": Schema.Literal("tool"),
+  "content": Schema.Union([Schema.String, Schema.Array(ChatMessageContentItem)]).annotate({
+    "description": "Tool response content"
+  }),
+  "tool_call_id": Schema.String.annotate({
+    "description": "ID of the assistant message tool call this message responds to"
+  })
+}).annotate({ "description": "Tool response message" })
 export type AssistantMessage = {
   readonly "role": "assistant"
-  readonly "content"?: string | ReadonlyArray<ChatMessageContentItem> | null
+  readonly "content"?: string | ReadonlyArray<ChatMessageContentItem> | unknown
   readonly "name"?: string
   readonly "tool_calls"?: ReadonlyArray<ChatMessageToolCall>
-  readonly "refusal"?: string | null
-  readonly "reasoning"?: string | null
-  readonly "reasoning_details"?: ReadonlyArray<__schema20>
+  readonly "refusal"?: string
+  readonly "reasoning"?: string
+  readonly "reasoning_details"?: AssistantMessageReasoningDetails
   readonly "images"?:
     | ReadonlyArray<{ readonly "type": "image_url"; readonly "image_url": { readonly "url": string } }>
     | null
@@ -4696,13 +4592,17 @@ export type AssistantMessage = {
 export const AssistantMessage = Schema.Struct({
   "role": Schema.Literal("assistant"),
   "content": Schema.optionalKey(
-    Schema.Union([Schema.Union([Schema.String, Schema.Array(ChatMessageContentItem)]), Schema.Null])
+    Schema.Union([Schema.String, Schema.Array(ChatMessageContentItem), Schema.Unknown]).annotate({
+      "description": "Assistant message content"
+    })
   ),
-  "name": Schema.optionalKey(Schema.String),
-  "tool_calls": Schema.optionalKey(Schema.Array(ChatMessageToolCall)),
-  "refusal": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
-  "reasoning": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
-  "reasoning_details": Schema.optionalKey(Schema.Array(__schema20)),
+  "name": Schema.optionalKey(Schema.String.annotate({ "description": "Optional name for the assistant" })),
+  "tool_calls": Schema.optionalKey(
+    Schema.Array(ChatMessageToolCall).annotate({ "description": "Tool calls made by the assistant" })
+  ),
+  "refusal": Schema.optionalKey(Schema.String.annotate({ "description": "Refusal message if content was refused" })),
+  "reasoning": Schema.optionalKey(Schema.String.annotate({ "description": "Reasoning output" })),
+  "reasoning_details": Schema.optionalKey(AssistantMessageReasoningDetails),
   "images": Schema.optionalKey(
     Schema.Union([
       Schema.Array(
@@ -4740,17 +4640,91 @@ export const AssistantMessage = Schema.Struct({
     ], { mode: "oneOf" })),
     Schema.Null
   ]))
-})
-export type ToolResponseMessage = {
-  readonly "role": "tool"
-  readonly "content": string | ReadonlyArray<ChatMessageContentItem>
-  readonly "tool_call_id": string
+}).annotate({ "description": "Assistant message for requests and responses" })
+export type ChatStreamingMessageChunk = {
+  readonly "role"?: "assistant"
+  readonly "content"?: string
+  readonly "reasoning"?: string
+  readonly "refusal"?: string
+  readonly "tool_calls"?: ReadonlyArray<ChatStreamingMessageToolCall>
+  readonly "reasoning_details"?: AssistantMessageReasoningDetails
+  readonly "images"?:
+    | ReadonlyArray<{ readonly "type": "image_url"; readonly "image_url": { readonly "url": string } }>
+    | null
+  readonly "annotations"?:
+    | ReadonlyArray<
+      {
+        readonly "type": "url_citation"
+        readonly "url_citation": {
+          readonly "url": string
+          readonly "title"?: string
+          readonly "start_index"?: number
+          readonly "end_index"?: number
+          readonly "content"?: string
+        }
+      } | {
+        readonly "type": "file_annotation"
+        readonly "file_annotation": { readonly "file_id": string; readonly "quote"?: string }
+      } | {
+        readonly "type": "file"
+        readonly "file": {
+          readonly "hash": string
+          readonly "name": string
+          readonly "content"?: ReadonlyArray<{ readonly "type": string; readonly "text"?: string }>
+        }
+      }
+    >
+    | null
 }
-export const ToolResponseMessage = Schema.Struct({
-  "role": Schema.Literal("tool"),
-  "content": Schema.Union([Schema.String, Schema.Array(ChatMessageContentItem)]),
-  "tool_call_id": Schema.String
-})
+export const ChatStreamingMessageChunk = Schema.Struct({
+  "role": Schema.optionalKey(Schema.Literal("assistant").annotate({ "description": "The role of the message author" })),
+  "content": Schema.optionalKey(Schema.String.annotate({ "description": "Message content delta" })),
+  "reasoning": Schema.optionalKey(Schema.String.annotate({ "description": "Reasoning content delta" })),
+  "refusal": Schema.optionalKey(Schema.String.annotate({ "description": "Refusal message delta" })),
+  "tool_calls": Schema.optionalKey(
+    Schema.Array(ChatStreamingMessageToolCall).annotate({ "description": "Tool calls delta" })
+  ),
+  "reasoning_details": Schema.optionalKey(AssistantMessageReasoningDetails),
+  "images": Schema.optionalKey(
+    Schema.Union([
+      Schema.Array(
+        Schema.Struct({ "type": Schema.Literal("image_url"), "image_url": Schema.Struct({ "url": Schema.String }) })
+      ),
+      Schema.Null
+    ])
+  ),
+  "annotations": Schema.optionalKey(Schema.Union([
+    Schema.Array(Schema.Union([
+      Schema.Struct({
+        "type": Schema.Literal("url_citation"),
+        "url_citation": Schema.Struct({
+          "url": Schema.String,
+          "title": Schema.optionalKey(Schema.String),
+          "start_index": Schema.optionalKey(Schema.Number.check(Schema.isFinite())),
+          "end_index": Schema.optionalKey(Schema.Number.check(Schema.isFinite())),
+          "content": Schema.optionalKey(Schema.String)
+        })
+      }),
+      Schema.Struct({
+        "type": Schema.Literal("file_annotation"),
+        "file_annotation": Schema.Struct({ "file_id": Schema.String, "quote": Schema.optionalKey(Schema.String) })
+      }),
+      Schema.Struct({
+        "type": Schema.Literal("file"),
+        "file": Schema.Struct({
+          "hash": Schema.String,
+          "name": Schema.String,
+          "content": Schema.optionalKey(
+            Schema.Array(Schema.Struct({ "type": Schema.String, "text": Schema.optionalKey(Schema.String) }))
+          )
+        })
+      })
+    ], { mode: "oneOf" })),
+    Schema.Null
+  ]))
+}).annotate({ "description": "Delta changes in streaming response" })
+export type ModelsListResponseData = ReadonlyArray<Model>
+export const ModelsListResponseData = Schema.Array(Model).annotate({ "description": "List of available models" })
 export type OpenAIResponsesInput =
   | string
   | ReadonlyArray<
@@ -4912,48 +4886,18 @@ export const OpenResponsesInput = Schema.Union([
     ])
   )
 ]).annotate({ "description": "Input for a response request - can be a string or array of items" })
-export type ModelsListResponse = { readonly "data": ModelsListResponseData }
-export const ModelsListResponse = Schema.Struct({ "data": ModelsListResponseData }).annotate({
-  "description": "List of available models"
-})
-export type ChatStreamingResponseChunk = {
-  readonly "data": {
-    readonly "id": string
-    readonly "choices": ReadonlyArray<ChatStreamingChoice>
-    readonly "created": number
-    readonly "model": string
-    readonly "object": "chat.completion.chunk"
-    readonly "system_fingerprint"?: string | null
-    readonly "error"?: { readonly "message": string; readonly "code": number }
-    readonly "usage"?: ChatGenerationTokenUsage
-  }
-}
-export const ChatStreamingResponseChunk = Schema.Struct({
-  "data": Schema.Struct({
-    "id": Schema.String,
-    "choices": Schema.Array(ChatStreamingChoice),
-    "created": Schema.Number.check(Schema.isFinite()),
-    "model": Schema.String,
-    "object": Schema.Literal("chat.completion.chunk"),
-    "system_fingerprint": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
-    "error": Schema.optionalKey(
-      Schema.Struct({ "message": Schema.String, "code": Schema.Number.check(Schema.isFinite()) })
-    ),
-    "usage": Schema.optionalKey(ChatGenerationTokenUsage)
-  })
-})
 export type ChatResponseChoice = {
-  readonly "finish_reason": __schema26
+  readonly "finish_reason": ChatCompletionFinishReason | unknown | unknown
   readonly "index": number
   readonly "message": AssistantMessage
-  readonly "logprobs"?: ChatMessageTokenLogprobs | null
+  readonly "logprobs"?: ChatMessageTokenLogprobs
 }
 export const ChatResponseChoice = Schema.Struct({
-  "finish_reason": __schema26,
-  "index": Schema.Number.check(Schema.isFinite()),
+  "finish_reason": Schema.Union([ChatCompletionFinishReason, Schema.Unknown, Schema.Unknown]),
+  "index": Schema.Number.annotate({ "description": "Choice index" }).check(Schema.isFinite()),
   "message": AssistantMessage,
-  "logprobs": Schema.optionalKey(Schema.Union([ChatMessageTokenLogprobs, Schema.Null]))
-})
+  "logprobs": Schema.optionalKey(ChatMessageTokenLogprobs)
+}).annotate({ "description": "Chat completion choice" })
 export type Message = SystemMessage | UserMessage | DeveloperMessage | AssistantMessage | ToolResponseMessage
 export const Message = Schema.Union([
   SystemMessage,
@@ -4961,7 +4905,23 @@ export const Message = Schema.Union([
   DeveloperMessage,
   AssistantMessage,
   ToolResponseMessage
-], { mode: "oneOf" })
+], { mode: "oneOf" }).annotate({ "description": "Chat completion message with role-based discrimination" })
+export type ChatStreamingChoice = {
+  readonly "delta": ChatStreamingMessageChunk
+  readonly "finish_reason"?: ChatCompletionFinishReason | unknown | unknown
+  readonly "index": number
+  readonly "logprobs"?: ChatMessageTokenLogprobs
+}
+export const ChatStreamingChoice = Schema.Struct({
+  "delta": ChatStreamingMessageChunk,
+  "finish_reason": Schema.optionalKey(Schema.Union([ChatCompletionFinishReason, Schema.Unknown, Schema.Unknown])),
+  "index": Schema.Number.annotate({ "description": "Choice index" }).check(Schema.isFinite()),
+  "logprobs": Schema.optionalKey(ChatMessageTokenLogprobs)
+}).annotate({ "description": "Streaming completion choice chunk" })
+export type ModelsListResponse = { readonly "data": ModelsListResponseData }
+export const ModelsListResponse = Schema.Struct({ "data": ModelsListResponseData }).annotate({
+  "description": "List of available models"
+})
 export type OpenAIResponsesNonStreamingResponse = {
   readonly "id": string
   readonly "object": "response"
@@ -5338,7 +5298,7 @@ export type OpenResponsesNonStreamingResponse = {
     } | {
       readonly "type": never
       readonly "id": string
-      readonly "content"?: ReadonlyArray<ReasoningTextContent>
+      readonly "content"?: ReadonlyArray<{ readonly "type": "reasoning_text"; readonly "text": string }>
       readonly "summary": ReadonlyArray<ReasoningSummaryText>
       readonly "encrypted_content"?: string
       readonly "status"?: "completed" | "incomplete" | "in_progress"
@@ -5392,7 +5352,7 @@ export type OpenResponsesNonStreamingResponse = {
     } | {
       readonly "type": never
       readonly "id": string
-      readonly "content"?: ReadonlyArray<ReasoningTextContent>
+      readonly "content"?: ReadonlyArray<{ readonly "type": "reasoning_text"; readonly "text": string }>
       readonly "summary": ReadonlyArray<ReasoningSummaryText>
       readonly "encrypted_content"?: string
       readonly "status": "completed" | "in_progress"
@@ -5435,7 +5395,7 @@ export type OpenResponsesNonStreamingResponse = {
     } | {
       readonly "type": never
       readonly "id": string
-      readonly "content"?: ReadonlyArray<ReasoningTextContent>
+      readonly "content"?: ReadonlyArray<{ readonly "type": "reasoning_text"; readonly "text": string }>
       readonly "summary": ReadonlyArray<ReasoningSummaryText>
       readonly "encrypted_content"?: string
       readonly "status": "completed" | "in_progress"
@@ -5482,7 +5442,7 @@ export type OpenResponsesNonStreamingResponse = {
     } | {
       readonly "type": never
       readonly "id": string
-      readonly "content"?: ReadonlyArray<ReasoningTextContent>
+      readonly "content"?: ReadonlyArray<{ readonly "type": "reasoning_text"; readonly "text": string }>
       readonly "summary": ReadonlyArray<ReasoningSummaryText>
       readonly "encrypted_content"?: string
       readonly "status": "completed" | "in_progress"
@@ -5921,7 +5881,9 @@ export const OpenResponsesNonStreamingResponse = Schema.Struct({
       Schema.Struct({
         "type": Schema.Never,
         "id": Schema.String,
-        "content": Schema.optionalKey(Schema.Array(ReasoningTextContent)),
+        "content": Schema.optionalKey(
+          Schema.Array(Schema.Struct({ "type": Schema.Literal("reasoning_text"), "text": Schema.String }))
+        ),
         "summary": Schema.Array(ReasoningSummaryText),
         "encrypted_content": Schema.optionalKey(Schema.String),
         "status": Schema.optionalKey(
@@ -5992,7 +5954,9 @@ export const OpenResponsesNonStreamingResponse = Schema.Struct({
       Schema.Struct({
         "type": Schema.Never,
         "id": Schema.String,
-        "content": Schema.optionalKey(Schema.Array(ReasoningTextContent)),
+        "content": Schema.optionalKey(
+          Schema.Array(Schema.Struct({ "type": Schema.Literal("reasoning_text"), "text": Schema.String }))
+        ),
         "summary": Schema.Array(ReasoningSummaryText),
         "encrypted_content": Schema.optionalKey(Schema.String),
         "status": Schema.Union([Schema.Literal("completed"), Schema.Literal("in_progress")]),
@@ -6058,7 +6022,9 @@ export const OpenResponsesNonStreamingResponse = Schema.Struct({
       Schema.Struct({
         "type": Schema.Never,
         "id": Schema.String,
-        "content": Schema.optionalKey(Schema.Array(ReasoningTextContent)),
+        "content": Schema.optionalKey(
+          Schema.Array(Schema.Struct({ "type": Schema.Literal("reasoning_text"), "text": Schema.String }))
+        ),
         "summary": Schema.Array(ReasoningSummaryText),
         "encrypted_content": Schema.optionalKey(Schema.String),
         "status": Schema.Union([Schema.Literal("completed"), Schema.Literal("in_progress")]),
@@ -6128,7 +6094,9 @@ export const OpenResponsesNonStreamingResponse = Schema.Struct({
       Schema.Struct({
         "type": Schema.Never,
         "id": Schema.String,
-        "content": Schema.optionalKey(Schema.Array(ReasoningTextContent)),
+        "content": Schema.optionalKey(
+          Schema.Array(Schema.Struct({ "type": Schema.Literal("reasoning_text"), "text": Schema.String }))
+        ),
         "summary": Schema.Array(ReasoningSummaryText),
         "encrypted_content": Schema.optionalKey(Schema.String),
         "status": Schema.Union([Schema.Literal("completed"), Schema.Literal("in_progress")]),
@@ -6553,40 +6521,46 @@ export const OpenResponsesRequest = Schema.Struct({
     })
   )
 }).annotate({ "description": "Request schema for Responses endpoint" })
+export type ChatResponse = {
+  readonly "id": string
+  readonly "choices": ReadonlyArray<ChatResponseChoice>
+  readonly "created": number
+  readonly "model": string
+  readonly "object": "chat.completion"
+  readonly "system_fingerprint"?: string
+  readonly "usage"?: ChatGenerationTokenUsage
+}
+export const ChatResponse = Schema.Struct({
+  "id": Schema.String.annotate({ "description": "Unique completion identifier" }),
+  "choices": Schema.Array(ChatResponseChoice).annotate({ "description": "List of completion choices" }),
+  "created": Schema.Number.annotate({ "description": "Unix timestamp of creation" }).check(Schema.isFinite()),
+  "model": Schema.String.annotate({ "description": "Model used for completion" }),
+  "object": Schema.Literal("chat.completion"),
+  "system_fingerprint": Schema.optionalKey(Schema.String.annotate({ "description": "System fingerprint" })),
+  "usage": Schema.optionalKey(ChatGenerationTokenUsage)
+}).annotate({ "description": "Chat completion response" })
 export type ChatGenerationParams = {
   readonly "provider"?: {
-    readonly "allow_fallbacks"?: boolean | null
-    readonly "require_parameters"?: boolean | null
-    readonly "data_collection"?: "deny" | "allow" | null
-    readonly "zdr"?: boolean | null
-    readonly "enforce_distillable_text"?: boolean | null
-    readonly "order"?: __schema5 | null
-    readonly "only"?: __schema5 | null
-    readonly "ignore"?: __schema5 | null
-    readonly "quantizations"?:
-      | ReadonlyArray<"int4" | "int8" | "fp4" | "fp6" | "fp8" | "fp16" | "bf16" | "fp32" | "unknown">
-      | null
-    readonly "sort"?: ProviderSortUnion | null
+    readonly "allow_fallbacks"?: boolean
+    readonly "require_parameters"?: boolean
+    readonly "data_collection"?: DataCollection
+    readonly "zdr"?: boolean
+    readonly "enforce_distillable_text"?: boolean
+    readonly "order"?: ReadonlyArray<ProviderName | string>
+    readonly "only"?: ReadonlyArray<ProviderName | string>
+    readonly "ignore"?: ReadonlyArray<ProviderName | string>
+    readonly "quantizations"?: ReadonlyArray<Quantization>
+    readonly "sort"?: "price" | "price" | "throughput" | "throughput" | "latency" | "latency"
     readonly "max_price"?: {
-      readonly "prompt"?: __schema11 | ModelName | __schema13
-      readonly "completion"?: __schema11 | ModelName | __schema13
-      readonly "image"?: __schema14
-      readonly "audio"?: __schema14
-      readonly "request"?: __schema14
+      readonly "prompt"?: BigNumberUnion
+      readonly "completion"?: string
+      readonly "image"?: string
+      readonly "audio"?: string
+      readonly "request"?: string
     }
-    readonly "preferred_min_throughput"?: number | {
-      readonly "p50"?: number | null
-      readonly "p75"?: number | null
-      readonly "p90"?: number | null
-      readonly "p99"?: number | null
-    } | null
-    readonly "preferred_max_latency"?: number | {
-      readonly "p50"?: number | null
-      readonly "p75"?: number | null
-      readonly "p90"?: number | null
-      readonly "p99"?: number | null
-    } | null
-  } | null
+    readonly "preferred_min_throughput"?: PreferredMinThroughput
+    readonly "preferred_max_latency"?: PreferredMaxLatency
+  }
   readonly "plugins"?: ReadonlyArray<
     | { readonly "id": "auto-router"; readonly "enabled"?: boolean; readonly "allowed_models"?: ReadonlyArray<string> }
     | { readonly "id": "moderation" }
@@ -6595,16 +6569,12 @@ export type ChatGenerationParams = {
       readonly "enabled"?: boolean
       readonly "max_results"?: number
       readonly "search_prompt"?: string
-      readonly "engine"?: "native" | "exa"
+      readonly "engine"?: WebSearchEngine
     }
-    | {
-      readonly "id": "file-parser"
-      readonly "enabled"?: boolean
-      readonly "pdf"?: { readonly "engine"?: "mistral-ocr" | "pdf-text" | "native" }
-    }
+    | { readonly "id": "file-parser"; readonly "enabled"?: boolean; readonly "pdf"?: PDFParserOptions }
     | { readonly "id": "response-healing"; readonly "enabled"?: boolean }
   >
-  readonly "route"?: "fallback" | "sort" | null
+  readonly "route"?: "fallback" | "sort"
   readonly "user"?: string
   readonly "session_id"?: string
   readonly "trace"?: {
@@ -6616,173 +6586,194 @@ export type ChatGenerationParams = {
   }
   readonly "messages": ReadonlyArray<Message>
   readonly "model"?: ModelName
-  readonly "models"?: ReadonlyArray<ModelName>
-  readonly "frequency_penalty"?: number | null
-  readonly "logit_bias"?: {} | null
-  readonly "logprobs"?: boolean | null
-  readonly "top_logprobs"?: number | null
-  readonly "max_completion_tokens"?: number | null
-  readonly "max_tokens"?: number | null
+  readonly "models"?: ModelNames
+  readonly "frequency_penalty"?: number
+  readonly "logit_bias"?: {}
+  readonly "logprobs"?: boolean
+  readonly "top_logprobs"?: number
+  readonly "max_completion_tokens"?: number
+  readonly "max_tokens"?: number
   readonly "metadata"?: {}
-  readonly "presence_penalty"?: number | null
+  readonly "presence_penalty"?: number
   readonly "reasoning"?: {
-    readonly "effort"?: "xhigh" | "high" | "medium" | "low" | "minimal" | "none" | null
-    readonly "summary"?: ReasoningSummaryVerbosity | null
+    readonly "effort"?: "xhigh" | "high" | "medium" | "low" | "minimal" | "none"
+    readonly "summary"?: ReasoningSummaryVerbosity | unknown | unknown
   }
   readonly "response_format"?:
-    | { readonly "type": "text" }
-    | { readonly "type": "json_object" }
+    | ResponseFormatText
+    | ResponseFormatJSONObject
     | ResponseFormatJSONSchema
     | ResponseFormatTextGrammar
-    | { readonly "type": "python" }
-  readonly "seed"?: number | null
-  readonly "stop"?: string | ReadonlyArray<ModelName> | null
+    | ResponseFormatTextPython
+  readonly "seed"?: number
+  readonly "stop"?: string | ReadonlyArray<string> | unknown
   readonly "stream"?: boolean
-  readonly "stream_options"?: ChatStreamOptions | null
-  readonly "temperature"?: number | null
-  readonly "parallel_tool_calls"?: boolean | null
+  readonly "stream_options"?: ChatStreamOptions
+  readonly "temperature"?: number
+  readonly "parallel_tool_calls"?: boolean
   readonly "tool_choice"?: ToolChoiceOption
   readonly "tools"?: ReadonlyArray<ToolDefinitionJson>
-  readonly "top_p"?: number | null
-  readonly "debug"?: { readonly "echo_upstream_body"?: boolean }
+  readonly "top_p"?: number
+  readonly "debug"?: DebugOptions
   readonly "image_config"?: {}
   readonly "modalities"?: ReadonlyArray<"text" | "image">
 }
 export const ChatGenerationParams = Schema.Struct({
   "provider": Schema.optionalKey(
-    Schema.Union([
-      Schema.Struct({
-        "allow_fallbacks": Schema.optionalKey(
-          Schema.Union([Schema.Boolean, Schema.Null]).annotate({
-            "description":
-              "Whether to allow backup providers to serve requests\n- true: (default) when the primary provider (or your custom providers in \"order\") is unavailable, use the next best provider.\n- false: use only the primary/custom provider, and return the upstream error if it's unavailable.\n"
-          })
-        ),
-        "require_parameters": Schema.optionalKey(
-          Schema.Union([Schema.Boolean, Schema.Null]).annotate({
-            "description":
-              "Whether to filter providers to only those that support the parameters you've provided. If this setting is omitted or set to false, then providers will receive only the parameters they support, and ignore the rest."
-          })
-        ),
-        "data_collection": Schema.optionalKey(
-          Schema.Union([Schema.Literals(["deny", "allow"]), Schema.Null]).annotate({
-            "description":
-              "Data collection setting. If no available model provider meets the requirement, your request will return an error.\n- allow: (default) allow providers which store user data non-transiently and may train on it\n\n- deny: use only providers which do not collect user data."
-          })
-        ),
-        "zdr": Schema.optionalKey(Schema.Union([Schema.Boolean, Schema.Null])),
-        "enforce_distillable_text": Schema.optionalKey(Schema.Union([Schema.Boolean, Schema.Null])),
-        "order": Schema.optionalKey(
-          Schema.Union([__schema5, Schema.Null]).annotate({
-            "description":
-              "An ordered list of provider slugs. The router will attempt to use the first provider in the subset of this list that supports your requested model, and fall back to the next if it is unavailable. If no providers are available, the request will fail with an error message."
-          })
-        ),
-        "only": Schema.optionalKey(
-          Schema.Union([__schema5, Schema.Null]).annotate({
-            "description":
-              "List of provider slugs to allow. If provided, this list is merged with your account-wide allowed provider settings for this request."
-          })
-        ),
-        "ignore": Schema.optionalKey(
-          Schema.Union([__schema5, Schema.Null]).annotate({
-            "description":
-              "List of provider slugs to ignore. If provided, this list is merged with your account-wide ignored provider settings for this request."
-          })
-        ),
-        "quantizations": Schema.optionalKey(
+    Schema.Struct({
+      "allow_fallbacks": Schema.optionalKey(Schema.Boolean.annotate({
+        "description":
+          "Whether to allow backup providers to serve requests\n- true: (default) when the primary provider (or your custom providers in \"order\") is unavailable, use the next best provider.\n- false: use only the primary/custom provider, and return the upstream error if it's unavailable.\n"
+      })),
+      "require_parameters": Schema.optionalKey(
+        Schema.Boolean.annotate({
+          "description":
+            "Whether to filter providers to only those that support the parameters you've provided. If this setting is omitted or set to false, then providers will receive only the parameters they support, and ignore the rest."
+        })
+      ),
+      "data_collection": Schema.optionalKey(DataCollection),
+      "zdr": Schema.optionalKey(
+        Schema.Boolean.annotate({
+          "description":
+            "Whether to restrict routing to only ZDR (Zero Data Retention) endpoints. When true, only endpoints that do not retain prompts will be used."
+        })
+      ),
+      "enforce_distillable_text": Schema.optionalKey(
+        Schema.Boolean.annotate({
+          "description":
+            "Whether to restrict routing to only models that allow text distillation. When true, only models where the author has allowed distillation will be used."
+        })
+      ),
+      "order": Schema.optionalKey(
+        Schema.Array(Schema.Union([ProviderName, Schema.String])).annotate({
+          "description":
+            "An ordered list of provider slugs. The router will attempt to use the first provider in the subset of this list that supports your requested model, and fall back to the next if it is unavailable. If no providers are available, the request will fail with an error message."
+        })
+      ),
+      "only": Schema.optionalKey(
+        Schema.Array(Schema.Union([ProviderName, Schema.String])).annotate({
+          "description":
+            "List of provider slugs to allow. If provided, this list is merged with your account-wide allowed provider settings for this request."
+        })
+      ),
+      "ignore": Schema.optionalKey(
+        Schema.Array(Schema.Union([ProviderName, Schema.String])).annotate({
+          "description":
+            "List of provider slugs to ignore. If provided, this list is merged with your account-wide ignored provider settings for this request."
+        })
+      ),
+      "quantizations": Schema.optionalKey(
+        Schema.Array(Quantization).annotate({
+          "description": "A list of quantization levels to filter the provider by."
+        })
+      ),
+      "sort": Schema.optionalKey(
+        Schema.Union([
           Schema.Union([
-            Schema.Array(Schema.Literals(["int4", "int8", "fp4", "fp6", "fp8", "fp16", "bf16", "fp32", "unknown"])),
-            Schema.Null
-          ]).annotate({ "description": "A list of quantization levels to filter the provider by." })
-        ),
-        "sort": Schema.optionalKey(
-          Schema.Union([ProviderSortUnion, Schema.Null]).annotate({
+            Schema.Literal("price").annotate({
+              "description": "The provider sorting strategy (price, throughput, latency)"
+            }),
+            Schema.Literal("price")
+          ]).annotate({
+            "description":
+              "The sorting strategy to use for this request, if \"order\" is not specified. When set, no load balancing is performed."
+          }),
+          Schema.Union([
+            Schema.Literal("throughput").annotate({
+              "description": "The provider sorting strategy (price, throughput, latency)"
+            }),
+            Schema.Literal("throughput")
+          ]).annotate({
+            "description":
+              "The sorting strategy to use for this request, if \"order\" is not specified. When set, no load balancing is performed."
+          }),
+          Schema.Union([
+            Schema.Literal("latency").annotate({
+              "description": "The provider sorting strategy (price, throughput, latency)"
+            }),
+            Schema.Literal("latency")
+          ]).annotate({
             "description":
               "The sorting strategy to use for this request, if \"order\" is not specified. When set, no load balancing is performed."
           })
-        ),
-        "max_price": Schema.optionalKey(
-          Schema.Struct({
-            "prompt": Schema.optionalKey(Schema.Union([__schema11, ModelName, __schema13])),
-            "completion": Schema.optionalKey(Schema.Union([__schema11, ModelName, __schema13])),
-            "image": Schema.optionalKey(__schema14),
-            "audio": Schema.optionalKey(__schema14),
-            "request": Schema.optionalKey(__schema14)
-          }).annotate({
-            "description":
-              "The object specifying the maximum price you want to pay for this request. USD price per million tokens, for prompt and completion."
-          })
-        ),
-        "preferred_min_throughput": Schema.optionalKey(
-          Schema.Union([
-            Schema.Union([
-              Schema.Number.check(Schema.isFinite()),
-              Schema.Struct({
-                "p50": Schema.optionalKey(Schema.Union([Schema.Number.check(Schema.isFinite()), Schema.Null])),
-                "p75": Schema.optionalKey(Schema.Union([Schema.Number.check(Schema.isFinite()), Schema.Null])),
-                "p90": Schema.optionalKey(Schema.Union([Schema.Number.check(Schema.isFinite()), Schema.Null])),
-                "p99": Schema.optionalKey(Schema.Union([Schema.Number.check(Schema.isFinite()), Schema.Null]))
-              })
-            ]),
-            Schema.Null
-          ]).annotate({
-            "description":
-              "Preferred minimum throughput (in tokens per second). Can be a number (applies to p50) or an object with percentile-specific cutoffs. Endpoints below the threshold(s) may still be used, but are deprioritized in routing. When using fallback models, this may cause a fallback model to be used instead of the primary model if it meets the threshold."
-          })
-        ),
-        "preferred_max_latency": Schema.optionalKey(
-          Schema.Union([
-            Schema.Union([
-              Schema.Number.check(Schema.isFinite()),
-              Schema.Struct({
-                "p50": Schema.optionalKey(Schema.Union([Schema.Number.check(Schema.isFinite()), Schema.Null])),
-                "p75": Schema.optionalKey(Schema.Union([Schema.Number.check(Schema.isFinite()), Schema.Null])),
-                "p90": Schema.optionalKey(Schema.Union([Schema.Number.check(Schema.isFinite()), Schema.Null])),
-                "p99": Schema.optionalKey(Schema.Union([Schema.Number.check(Schema.isFinite()), Schema.Null]))
-              })
-            ]),
-            Schema.Null
-          ]).annotate({
-            "description":
-              "Preferred maximum latency (in seconds). Can be a number (applies to p50) or an object with percentile-specific cutoffs. Endpoints above the threshold(s) may still be used, but are deprioritized in routing. When using fallback models, this may cause a fallback model to be used instead of the primary model if it meets the threshold."
-          })
-        )
-      }),
-      Schema.Null
-    ]).annotate({
+        ]).annotate({ "description": "The provider sorting strategy (price, throughput, latency)" })
+      ),
+      "max_price": Schema.optionalKey(
+        Schema.Struct({
+          "prompt": Schema.optionalKey(BigNumberUnion),
+          "completion": Schema.optionalKey(
+            Schema.String.annotate({ "description": "Price per million completion tokens" })
+          ),
+          "image": Schema.optionalKey(Schema.String.annotate({ "description": "Price per image" })),
+          "audio": Schema.optionalKey(Schema.String.annotate({ "description": "Price per audio unit" })),
+          "request": Schema.optionalKey(Schema.String.annotate({ "description": "Price per request" }))
+        }).annotate({
+          "description":
+            "The object specifying the maximum price you want to pay for this request. USD price per million tokens, for prompt and completion."
+        })
+      ),
+      "preferred_min_throughput": Schema.optionalKey(PreferredMinThroughput),
+      "preferred_max_latency": Schema.optionalKey(PreferredMaxLatency)
+    }).annotate({
       "description": "When multiple model providers are available, optionally indicate your routing preference."
     })
   ),
   "plugins": Schema.optionalKey(
-    Schema.Array(
-      Schema.Union([
-        Schema.Struct({
-          "id": Schema.Literal("auto-router"),
-          "enabled": Schema.optionalKey(Schema.Boolean),
-          "allowed_models": Schema.optionalKey(Schema.Array(Schema.String))
-        }),
-        Schema.Struct({ "id": Schema.Literal("moderation") }),
-        Schema.Struct({
-          "id": Schema.Literal("web"),
-          "enabled": Schema.optionalKey(Schema.Boolean),
-          "max_results": Schema.optionalKey(Schema.Number.check(Schema.isFinite())),
-          "search_prompt": Schema.optionalKey(Schema.String),
-          "engine": Schema.optionalKey(Schema.Literals(["native", "exa"]))
-        }),
-        Schema.Struct({
-          "id": Schema.Literal("file-parser"),
-          "enabled": Schema.optionalKey(Schema.Boolean),
-          "pdf": Schema.optionalKey(
-            Schema.Struct({ "engine": Schema.optionalKey(Schema.Literals(["mistral-ocr", "pdf-text", "native"])) })
-          )
-        }),
-        Schema.Struct({ "id": Schema.Literal("response-healing"), "enabled": Schema.optionalKey(Schema.Boolean) })
-      ], { mode: "oneOf" })
-    ).annotate({ "description": "Plugins you want to enable for this request, including their settings." })
+    Schema.Array(Schema.Union([
+      Schema.Struct({
+        "id": Schema.Literal("auto-router"),
+        "enabled": Schema.optionalKey(
+          Schema.Boolean.annotate({
+            "description": "Set to false to disable the auto-router plugin for this request. Defaults to true."
+          })
+        ),
+        "allowed_models": Schema.optionalKey(
+          Schema.Array(Schema.String).annotate({
+            "description":
+              "List of model patterns to filter which models the auto-router can route between. Supports wildcards (e.g., \"anthropic/*\" matches all Anthropic models). When not specified, uses the default supported models list."
+          })
+        )
+      }),
+      Schema.Struct({ "id": Schema.Literal("moderation") }),
+      Schema.Struct({
+        "id": Schema.Literal("web"),
+        "enabled": Schema.optionalKey(
+          Schema.Boolean.annotate({
+            "description": "Set to false to disable the web-search plugin for this request. Defaults to true."
+          })
+        ),
+        "max_results": Schema.optionalKey(Schema.Number.check(Schema.isFinite())),
+        "search_prompt": Schema.optionalKey(Schema.String),
+        "engine": Schema.optionalKey(WebSearchEngine)
+      }),
+      Schema.Struct({
+        "id": Schema.Literal("file-parser"),
+        "enabled": Schema.optionalKey(
+          Schema.Boolean.annotate({
+            "description": "Set to false to disable the file-parser plugin for this request. Defaults to true."
+          })
+        ),
+        "pdf": Schema.optionalKey(PDFParserOptions)
+      }),
+      Schema.Struct({
+        "id": Schema.Literal("response-healing"),
+        "enabled": Schema.optionalKey(
+          Schema.Boolean.annotate({
+            "description": "Set to false to disable the response-healing plugin for this request. Defaults to true."
+          })
+        )
+      })
+    ], { mode: "oneOf" })).annotate({
+      "description": "Plugins you want to enable for this request, including their settings."
+    })
   ),
-  "route": Schema.optionalKey(Schema.Union([Schema.Literals(["fallback", "sort"]), Schema.Null])),
-  "user": Schema.optionalKey(Schema.String),
+  "route": Schema.optionalKey(
+    Schema.Literals(["fallback", "sort"]).annotate({
+      "description":
+        "**DEPRECATED** Use providers.sort.partition instead. Backwards-compatible alias for providers.sort.partition. Accepts legacy values: \"fallback\" (maps to \"model\"), \"sort\" (maps to \"none\")."
+    })
+  ),
+  "user": Schema.optionalKey(Schema.String.annotate({ "description": "Unique user identifier" })),
   "session_id": Schema.optionalKey(
     Schema.String.annotate({
       "description":
@@ -6801,97 +6792,125 @@ export const ChatGenerationParams = Schema.Struct({
         "Metadata for observability and tracing. Known keys (trace_id, trace_name, span_name, generation_name, parent_span_id) have special handling. Additional keys are passed through as custom metadata to configured broadcast destinations."
     })
   ),
-  "messages": Schema.Array(Message).check(Schema.isMinLength(1)),
+  "messages": Schema.Array(Message).annotate({ "description": "List of messages for the conversation" }).check(
+    Schema.isMinLength(1)
+  ),
   "model": Schema.optionalKey(ModelName),
-  "models": Schema.optionalKey(Schema.Array(ModelName)),
+  "models": Schema.optionalKey(ModelNames),
   "frequency_penalty": Schema.optionalKey(
-    Schema.Union([
-      Schema.Number.check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(-2)).check(
-        Schema.isLessThanOrEqualTo(2)
-      ),
-      Schema.Null
-    ])
+    Schema.Number.annotate({ "description": "Frequency penalty (-2.0 to 2.0)" }).check(Schema.isFinite()).check(
+      Schema.isGreaterThanOrEqualTo(-2)
+    ).check(Schema.isLessThanOrEqualTo(2))
   ),
-  "logit_bias": Schema.optionalKey(
-    Schema.Union([Schema.Struct({}).check(Schema.isPropertyNames(Schema.String)), Schema.Null])
-  ),
-  "logprobs": Schema.optionalKey(Schema.Union([Schema.Boolean, Schema.Null])),
+  "logit_bias": Schema.optionalKey(Schema.Struct({}).annotate({ "description": "Token logit bias adjustments" })),
+  "logprobs": Schema.optionalKey(Schema.Boolean.annotate({ "description": "Return log probabilities" })),
   "top_logprobs": Schema.optionalKey(
-    Schema.Union([
-      Schema.Number.check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0)).check(
-        Schema.isLessThanOrEqualTo(20)
-      ),
-      Schema.Null
-    ])
+    Schema.Number.annotate({ "description": "Number of top log probabilities to return (0-20)" }).check(
+      Schema.isFinite()
+    ).check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(20))
   ),
   "max_completion_tokens": Schema.optionalKey(
-    Schema.Union([Schema.Number.check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(1)), Schema.Null])
+    Schema.Number.annotate({ "description": "Maximum tokens in completion" }).check(Schema.isFinite()).check(
+      Schema.isGreaterThanOrEqualTo(1)
+    )
   ),
   "max_tokens": Schema.optionalKey(
-    Schema.Union([Schema.Number.check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(1)), Schema.Null])
+    Schema.Number.annotate({ "description": "Maximum tokens (deprecated, use max_completion_tokens)" }).check(
+      Schema.isFinite()
+    ).check(Schema.isGreaterThanOrEqualTo(1))
   ),
-  "metadata": Schema.optionalKey(Schema.Struct({}).check(Schema.isPropertyNames(Schema.String))),
+  "metadata": Schema.optionalKey(
+    Schema.Struct({}).annotate({
+      "description": "Key-value pairs for additional object information (max 16 pairs, 64 char keys, 512 char values)"
+    })
+  ),
   "presence_penalty": Schema.optionalKey(
-    Schema.Union([
-      Schema.Number.check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(-2)).check(
-        Schema.isLessThanOrEqualTo(2)
-      ),
-      Schema.Null
-    ])
+    Schema.Number.annotate({ "description": "Presence penalty (-2.0 to 2.0)" }).check(Schema.isFinite()).check(
+      Schema.isGreaterThanOrEqualTo(-2)
+    ).check(Schema.isLessThanOrEqualTo(2))
   ),
   "reasoning": Schema.optionalKey(
     Schema.Struct({
       "effort": Schema.optionalKey(
-        Schema.Union([Schema.Literals(["xhigh", "high", "medium", "low", "minimal", "none"]), Schema.Null])
+        Schema.Literals(["xhigh", "high", "medium", "low", "minimal", "none"]).annotate({
+          "description": "Constrains effort on reasoning for reasoning models"
+        })
       ),
-      "summary": Schema.optionalKey(Schema.Union([ReasoningSummaryVerbosity, Schema.Null]))
-    })
+      "summary": Schema.optionalKey(Schema.Union([ReasoningSummaryVerbosity, Schema.Unknown, Schema.Unknown]))
+    }).annotate({ "description": "Configuration options for reasoning models" })
   ),
   "response_format": Schema.optionalKey(
     Schema.Union([
-      Schema.Struct({ "type": Schema.Literal("text") }),
-      Schema.Struct({ "type": Schema.Literal("json_object") }),
+      ResponseFormatText,
+      ResponseFormatJSONObject,
       ResponseFormatJSONSchema,
       ResponseFormatTextGrammar,
-      Schema.Struct({ "type": Schema.Literal("python") })
-    ], { mode: "oneOf" })
+      ResponseFormatTextPython
+    ], { mode: "oneOf" }).annotate({ "description": "Response format configuration" })
   ),
   "seed": Schema.optionalKey(
-    Schema.Union([
-      Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(-9007199254740991)).check(
-        Schema.isLessThanOrEqualTo(9007199254740991)
-      ),
-      Schema.Null
-    ])
+    Schema.Number.annotate({ "description": "Random seed for deterministic outputs" }).check(Schema.isInt())
   ),
   "stop": Schema.optionalKey(
-    Schema.Union([Schema.Union([Schema.String, Schema.Array(ModelName).check(Schema.isMaxLength(4))]), Schema.Null])
+    Schema.Union([Schema.String, Schema.Array(Schema.String).check(Schema.isMaxLength(4)), Schema.Unknown]).annotate({
+      "description": "Stop sequences (up to 4)"
+    })
   ),
-  "stream": Schema.optionalKey(Schema.Boolean),
-  "stream_options": Schema.optionalKey(Schema.Union([ChatStreamOptions, Schema.Null])),
+  "stream": Schema.optionalKey(Schema.Boolean.annotate({ "description": "Enable streaming response" })),
+  "stream_options": Schema.optionalKey(ChatStreamOptions),
   "temperature": Schema.optionalKey(
-    Schema.Union([
-      Schema.Number.check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0)).check(
-        Schema.isLessThanOrEqualTo(2)
-      ),
-      Schema.Null
-    ])
+    Schema.Number.annotate({ "description": "Sampling temperature (0-2)" }).check(Schema.isFinite()).check(
+      Schema.isGreaterThanOrEqualTo(0)
+    ).check(Schema.isLessThanOrEqualTo(2))
   ),
-  "parallel_tool_calls": Schema.optionalKey(Schema.Union([Schema.Boolean, Schema.Null])),
+  "parallel_tool_calls": Schema.optionalKey(Schema.Boolean),
   "tool_choice": Schema.optionalKey(ToolChoiceOption),
-  "tools": Schema.optionalKey(Schema.Array(ToolDefinitionJson)),
-  "top_p": Schema.optionalKey(
-    Schema.Union([
-      Schema.Number.check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0)).check(
-        Schema.isLessThanOrEqualTo(1)
-      ),
-      Schema.Null
-    ])
+  "tools": Schema.optionalKey(
+    Schema.Array(ToolDefinitionJson).annotate({ "description": "Available tools for function calling" })
   ),
-  "debug": Schema.optionalKey(Schema.Struct({ "echo_upstream_body": Schema.optionalKey(Schema.Boolean) })),
-  "image_config": Schema.optionalKey(Schema.Struct({}).check(Schema.isPropertyNames(Schema.String))),
-  "modalities": Schema.optionalKey(Schema.Array(Schema.Literals(["text", "image"])))
-})
+  "top_p": Schema.optionalKey(
+    Schema.Number.annotate({ "description": "Nucleus sampling parameter (0-1)" }).check(Schema.isFinite()).check(
+      Schema.isGreaterThanOrEqualTo(0)
+    ).check(Schema.isLessThanOrEqualTo(1))
+  ),
+  "debug": Schema.optionalKey(DebugOptions),
+  "image_config": Schema.optionalKey(
+    Schema.Struct({}).annotate({
+      "description":
+        "Provider-specific image configuration options. Keys and values vary by model/provider. See https://openrouter.ai/docs/guides/overview/multimodal/image-generation for more details."
+    })
+  ),
+  "modalities": Schema.optionalKey(
+    Schema.Array(Schema.Literals(["text", "image"])).annotate({
+      "description": "Output modalities for the response. Supported values are \"text\" and \"image\"."
+    })
+  )
+}).annotate({ "description": "Chat completion request parameters" })
+export type ChatStreamingResponseChunk = {
+  readonly "id": string
+  readonly "choices": ReadonlyArray<ChatStreamingChoice>
+  readonly "created": number
+  readonly "model": string
+  readonly "object": "chat.completion.chunk"
+  readonly "system_fingerprint"?: string
+  readonly "error"?: { readonly "message": string; readonly "code": number }
+  readonly "usage"?: ChatGenerationTokenUsage
+}
+export const ChatStreamingResponseChunk = Schema.Struct({
+  "id": Schema.String.annotate({ "description": "Unique chunk identifier" }),
+  "choices": Schema.Array(ChatStreamingChoice).annotate({ "description": "List of streaming chunk choices" }),
+  "created": Schema.Number.annotate({ "description": "Unix timestamp of creation" }).check(Schema.isFinite()),
+  "model": Schema.String.annotate({ "description": "Model used for completion" }),
+  "object": Schema.Literal("chat.completion.chunk"),
+  "system_fingerprint": Schema.optionalKey(Schema.String.annotate({ "description": "System fingerprint" })),
+  "error": Schema.optionalKey(
+    Schema.Struct({
+      "message": Schema.String.annotate({ "description": "Error message" }),
+      "code": Schema.Number.annotate({ "description": "Error code" }).check(Schema.isFinite())
+    }).annotate({ "description": "Error information" })
+  ),
+  "usage": Schema.optionalKey(ChatGenerationTokenUsage)
+}).annotate({ "description": "Streaming chat completion chunk" })
 export type OpenResponsesCreatedEvent = {
   readonly "type": "response.created"
   readonly "response": OpenAIResponsesNonStreamingResponse
@@ -7120,6 +7139,38 @@ export type GetUserActivity403 = ForbiddenResponse
 export const GetUserActivity403 = ForbiddenResponse
 export type GetUserActivity500 = InternalServerResponse
 export const GetUserActivity500 = InternalServerResponse
+export type SendChatCompletionRequestRequestJson = ChatGenerationParams
+export const SendChatCompletionRequestRequestJson = ChatGenerationParams
+export type SendChatCompletionRequest200 = ChatResponse
+export const SendChatCompletionRequest200 = ChatResponse
+export type SendChatCompletionRequest200Sse = { readonly "data": ChatStreamingResponseChunk }
+export const SendChatCompletionRequest200Sse = Schema.Struct({ "data": ChatStreamingResponseChunk })
+export type SendChatCompletionRequest400 = BadRequestResponse
+export const SendChatCompletionRequest400 = BadRequestResponse
+export type SendChatCompletionRequest401 = UnauthorizedResponse
+export const SendChatCompletionRequest401 = UnauthorizedResponse
+export type SendChatCompletionRequest402 = PaymentRequiredResponse
+export const SendChatCompletionRequest402 = PaymentRequiredResponse
+export type SendChatCompletionRequest404 = NotFoundResponse
+export const SendChatCompletionRequest404 = NotFoundResponse
+export type SendChatCompletionRequest408 = RequestTimeoutResponse
+export const SendChatCompletionRequest408 = RequestTimeoutResponse
+export type SendChatCompletionRequest413 = PayloadTooLargeResponse
+export const SendChatCompletionRequest413 = PayloadTooLargeResponse
+export type SendChatCompletionRequest422 = UnprocessableEntityResponse
+export const SendChatCompletionRequest422 = UnprocessableEntityResponse
+export type SendChatCompletionRequest429 = TooManyRequestsResponse
+export const SendChatCompletionRequest429 = TooManyRequestsResponse
+export type SendChatCompletionRequest500 = InternalServerResponse
+export const SendChatCompletionRequest500 = InternalServerResponse
+export type SendChatCompletionRequest502 = BadGatewayResponse
+export const SendChatCompletionRequest502 = BadGatewayResponse
+export type SendChatCompletionRequest503 = ServiceUnavailableResponse
+export const SendChatCompletionRequest503 = ServiceUnavailableResponse
+export type SendChatCompletionRequest524 = EdgeNetworkTimeoutResponse
+export const SendChatCompletionRequest524 = EdgeNetworkTimeoutResponse
+export type SendChatCompletionRequest529 = ProviderOverloadedResponse
+export const SendChatCompletionRequest529 = ProviderOverloadedResponse
 export type GetCredits200 = { readonly "data": { readonly "total_credits": number; readonly "total_usage": number } }
 export const GetCredits200 = Schema.Struct({
   "data": Schema.Struct({
@@ -7409,6 +7460,7 @@ export type GetGeneration200 = {
           | "Inception"
           | "Inceptron"
           | "InferenceNet"
+          | "Ionstream"
           | "Infermatic"
           | "Io Net"
           | "Inflection"
@@ -7590,6 +7642,7 @@ export const GetGeneration200 = Schema.Struct({
           "Inception",
           "Inceptron",
           "InferenceNet",
+          "Ionstream",
           "Infermatic",
           "Io Net",
           "Inflection",
@@ -8787,6 +8840,10 @@ export type CreateAuthKeysCodeRequestJson = {
   readonly "code_challenge_method"?: "S256" | "plain"
   readonly "limit"?: number
   readonly "expires_at"?: string
+  readonly "key_label"?: string
+  readonly "usage_limit_type"?: "daily" | "weekly" | "monthly"
+  readonly "spawn_agent"?: string
+  readonly "spawn_cloud"?: string
 }
 export const CreateAuthKeysCodeRequestJson = Schema.Struct({
   "callback_url": Schema.String.annotate({
@@ -8808,7 +8865,19 @@ export const CreateAuthKeysCodeRequestJson = Schema.Struct({
       "description": "Optional expiration time for the API key to be created",
       "format": "date-time"
     })
-  )
+  ),
+  "key_label": Schema.optionalKey(
+    Schema.String.annotate({
+      "description": "Optional custom label for the API key. Defaults to the app name if not provided."
+    }).check(Schema.isMaxLength(100))
+  ),
+  "usage_limit_type": Schema.optionalKey(
+    Schema.Literals(["daily", "weekly", "monthly"]).annotate({
+      "description": "Optional credit limit reset interval. When set, the credit limit resets on this interval."
+    })
+  ),
+  "spawn_agent": Schema.optionalKey(Schema.String.annotate({ "description": "Agent identifier for spawn telemetry" })),
+  "spawn_cloud": Schema.optionalKey(Schema.String.annotate({ "description": "Cloud identifier for spawn telemetry" }))
 })
 export type CreateAuthKeysCode200 = {
   readonly "data": { readonly "id": string; readonly "app_id": number; readonly "created_at": string }
@@ -8828,36 +8897,6 @@ export type CreateAuthKeysCode401 = UnauthorizedResponse
 export const CreateAuthKeysCode401 = UnauthorizedResponse
 export type CreateAuthKeysCode500 = InternalServerResponse
 export const CreateAuthKeysCode500 = InternalServerResponse
-export type SendChatCompletionRequestRequestJson = ChatGenerationParams
-export const SendChatCompletionRequestRequestJson = ChatGenerationParams
-export type SendChatCompletionRequest200 = {
-  readonly "id": string
-  readonly "choices": ReadonlyArray<ChatResponseChoice>
-  readonly "created": number
-  readonly "model": string
-  readonly "object": "chat.completion"
-  readonly "system_fingerprint"?: string | null
-  readonly "usage"?: ChatGenerationTokenUsage
-}
-export const SendChatCompletionRequest200 = Schema.Struct({
-  "id": Schema.String,
-  "choices": Schema.Array(ChatResponseChoice),
-  "created": Schema.Number.check(Schema.isFinite()),
-  "model": Schema.String,
-  "object": Schema.Literal("chat.completion"),
-  "system_fingerprint": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
-  "usage": Schema.optionalKey(ChatGenerationTokenUsage)
-}).annotate({ "description": "Chat completion response" })
-export type SendChatCompletionRequest200Sse = ChatStreamingResponseChunk
-export const SendChatCompletionRequest200Sse = ChatStreamingResponseChunk
-export type SendChatCompletionRequest400 = ChatError
-export const SendChatCompletionRequest400 = ChatError
-export type SendChatCompletionRequest401 = ChatError
-export const SendChatCompletionRequest401 = ChatError
-export type SendChatCompletionRequest429 = ChatError
-export const SendChatCompletionRequest429 = ChatError
-export type SendChatCompletionRequest500 = ChatError
-export const SendChatCompletionRequest500 = ChatError
 
 export interface OperationConfig {
   /**
@@ -9008,6 +9047,32 @@ export const make = (
           "500": decodeError("GetUserActivity500", GetUserActivity500),
           orElse: unexpectedStatus
         }))
+      ),
+    "sendChatCompletionRequest": (options) =>
+      HttpClientRequest.post(`/chat/completions`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(SendChatCompletionRequest200),
+          "400": decodeError("SendChatCompletionRequest400", SendChatCompletionRequest400),
+          "401": decodeError("SendChatCompletionRequest401", SendChatCompletionRequest401),
+          "402": decodeError("SendChatCompletionRequest402", SendChatCompletionRequest402),
+          "404": decodeError("SendChatCompletionRequest404", SendChatCompletionRequest404),
+          "408": decodeError("SendChatCompletionRequest408", SendChatCompletionRequest408),
+          "413": decodeError("SendChatCompletionRequest413", SendChatCompletionRequest413),
+          "422": decodeError("SendChatCompletionRequest422", SendChatCompletionRequest422),
+          "429": decodeError("SendChatCompletionRequest429", SendChatCompletionRequest429),
+          "500": decodeError("SendChatCompletionRequest500", SendChatCompletionRequest500),
+          "502": decodeError("SendChatCompletionRequest502", SendChatCompletionRequest502),
+          "503": decodeError("SendChatCompletionRequest503", SendChatCompletionRequest503),
+          "524": decodeError("SendChatCompletionRequest524", SendChatCompletionRequest524),
+          "529": decodeError("SendChatCompletionRequest529", SendChatCompletionRequest529),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "sendChatCompletionRequestSse": (options) =>
+      HttpClientRequest.post(`/chat/completions`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        sseRequest(SendChatCompletionRequest200Sse)
       ),
     "getCredits": (options) =>
       HttpClientRequest.get(`/credits`).pipe(
@@ -9384,23 +9449,6 @@ export const make = (
           "500": decodeError("CreateAuthKeysCode500", CreateAuthKeysCode500),
           orElse: unexpectedStatus
         }))
-      ),
-    "sendChatCompletionRequest": (options) =>
-      HttpClientRequest.post(`/chat/completions`).pipe(
-        HttpClientRequest.bodyJsonUnsafe(options.payload),
-        withResponse(options.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(SendChatCompletionRequest200),
-          "400": decodeError("SendChatCompletionRequest400", SendChatCompletionRequest400),
-          "401": decodeError("SendChatCompletionRequest401", SendChatCompletionRequest401),
-          "429": decodeError("SendChatCompletionRequest429", SendChatCompletionRequest429),
-          "500": decodeError("SendChatCompletionRequest500", SendChatCompletionRequest500),
-          orElse: unexpectedStatus
-        }))
-      ),
-    "sendChatCompletionRequestSse": (options) =>
-      HttpClientRequest.post(`/chat/completions`).pipe(
-        HttpClientRequest.bodyJsonUnsafe(options.payload),
-        sseRequest(SendChatCompletionRequest200Sse)
       )
   }
 }
@@ -9484,6 +9532,46 @@ export interface OpenRouterClient {
     | OpenRouterClientError<"GetUserActivity401", typeof GetUserActivity401.Type>
     | OpenRouterClientError<"GetUserActivity403", typeof GetUserActivity403.Type>
     | OpenRouterClientError<"GetUserActivity500", typeof GetUserActivity500.Type>
+  >
+  /**
+   * Sends a request for a model response for the given chat conversation. Supports both streaming and non-streaming modes.
+   */
+  readonly "sendChatCompletionRequest": <Config extends OperationConfig>(
+    options: {
+      readonly payload: typeof SendChatCompletionRequestRequestJson.Encoded
+      readonly config?: Config | undefined
+    }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof SendChatCompletionRequest200.Type, Config>,
+    | HttpClientError.HttpClientError
+    | SchemaError
+    | OpenRouterClientError<"SendChatCompletionRequest400", typeof SendChatCompletionRequest400.Type>
+    | OpenRouterClientError<"SendChatCompletionRequest401", typeof SendChatCompletionRequest401.Type>
+    | OpenRouterClientError<"SendChatCompletionRequest402", typeof SendChatCompletionRequest402.Type>
+    | OpenRouterClientError<"SendChatCompletionRequest404", typeof SendChatCompletionRequest404.Type>
+    | OpenRouterClientError<"SendChatCompletionRequest408", typeof SendChatCompletionRequest408.Type>
+    | OpenRouterClientError<"SendChatCompletionRequest413", typeof SendChatCompletionRequest413.Type>
+    | OpenRouterClientError<"SendChatCompletionRequest422", typeof SendChatCompletionRequest422.Type>
+    | OpenRouterClientError<"SendChatCompletionRequest429", typeof SendChatCompletionRequest429.Type>
+    | OpenRouterClientError<"SendChatCompletionRequest500", typeof SendChatCompletionRequest500.Type>
+    | OpenRouterClientError<"SendChatCompletionRequest502", typeof SendChatCompletionRequest502.Type>
+    | OpenRouterClientError<"SendChatCompletionRequest503", typeof SendChatCompletionRequest503.Type>
+    | OpenRouterClientError<"SendChatCompletionRequest524", typeof SendChatCompletionRequest524.Type>
+    | OpenRouterClientError<"SendChatCompletionRequest529", typeof SendChatCompletionRequest529.Type>
+  >
+  /**
+   * Sends a request for a model response for the given chat conversation. Supports both streaming and non-streaming modes.
+   */
+  readonly "sendChatCompletionRequestSse": (
+    options: { readonly payload: typeof SendChatCompletionRequestRequestJson.Encoded }
+  ) => Stream.Stream<
+    {
+      readonly event: string
+      readonly id: string | undefined
+      readonly data: typeof SendChatCompletionRequest200Sse.Type
+    },
+    HttpClientError.HttpClientError | SchemaError | Sse.Retry,
+    typeof SendChatCompletionRequest200Sse.DecodingServices
   >
   /**
    * Get total credits purchased and used for the authenticated user. [Management key](/docs/guides/overview/auth/management-api-keys) required.
@@ -9967,37 +10055,6 @@ export interface OpenRouterClient {
     | OpenRouterClientError<"CreateAuthKeysCode400", typeof CreateAuthKeysCode400.Type>
     | OpenRouterClientError<"CreateAuthKeysCode401", typeof CreateAuthKeysCode401.Type>
     | OpenRouterClientError<"CreateAuthKeysCode500", typeof CreateAuthKeysCode500.Type>
-  >
-  /**
-   * Sends a request for a model response for the given chat conversation. Supports both streaming and non-streaming modes.
-   */
-  readonly "sendChatCompletionRequest": <Config extends OperationConfig>(
-    options: {
-      readonly payload: typeof SendChatCompletionRequestRequestJson.Encoded
-      readonly config?: Config | undefined
-    }
-  ) => Effect.Effect<
-    WithOptionalResponse<typeof SendChatCompletionRequest200.Type, Config>,
-    | HttpClientError.HttpClientError
-    | SchemaError
-    | OpenRouterClientError<"SendChatCompletionRequest400", typeof SendChatCompletionRequest400.Type>
-    | OpenRouterClientError<"SendChatCompletionRequest401", typeof SendChatCompletionRequest401.Type>
-    | OpenRouterClientError<"SendChatCompletionRequest429", typeof SendChatCompletionRequest429.Type>
-    | OpenRouterClientError<"SendChatCompletionRequest500", typeof SendChatCompletionRequest500.Type>
-  >
-  /**
-   * Sends a request for a model response for the given chat conversation. Supports both streaming and non-streaming modes.
-   */
-  readonly "sendChatCompletionRequestSse": (
-    options: { readonly payload: typeof SendChatCompletionRequestRequestJson.Encoded }
-  ) => Stream.Stream<
-    {
-      readonly event: string
-      readonly id: string | undefined
-      readonly data: typeof SendChatCompletionRequest200Sse.Type
-    },
-    HttpClientError.HttpClientError | SchemaError | Sse.Retry,
-    typeof SendChatCompletionRequest200Sse.DecodingServices
   >
 }
 
