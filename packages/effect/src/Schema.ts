@@ -1540,7 +1540,9 @@ export const requiredKey = Struct_.lambda<requiredKeyLambda>((self) => self.sche
  *
  * @since 4.0.0
  */
-export interface optional<S extends Top> extends optionalKey<UndefinedOr<S>> {}
+export interface optional<S extends Top> extends optionalKey<UndefinedOr<S>> {
+  readonly "~rebuild.out": optional<S>
+}
 
 interface optionalLambda extends Lambda {
   <S extends Top>(self: S): optional<S>
@@ -3269,7 +3271,9 @@ export const NonEmptyArray = Struct_.lambda<NonEmptyArrayLambda>((schema) =>
  * @category Arrays
  * @since 4.0.0
  */
-export interface ArrayEnsure<S extends Top> extends decodeTo<$Array<toType<S>>, Union<readonly [S, $Array<S>]>> {}
+export interface ArrayEnsure<S extends Top> extends decodeTo<$Array<toType<S>>, Union<readonly [S, $Array<S>]>> {
+  readonly "~rebuild.out": ArrayEnsure<S>
+}
 
 /**
  * Decodes a single value or an array of values into an array.
@@ -3300,7 +3304,9 @@ export function ArrayEnsure<S extends Top>(schema: S): ArrayEnsure<S> {
  *
  * @since 4.0.0
  */
-export interface UniqueArray<S extends Top> extends $Array<S> {}
+export interface UniqueArray<S extends Top> extends $Array<S> {
+  readonly "~rebuild.out": UniqueArray<S>
+}
 
 /**
  * Returns a new array schema that ensures all elements are unique.
@@ -3526,7 +3532,9 @@ export function Literals<const L extends ReadonlyArray<AST.LiteralValue>>(litera
  *
  * @since 4.0.0
  */
-export interface NullOr<S extends Top> extends Union<readonly [S, Null]> {}
+export interface NullOr<S extends Top> extends Union<readonly [S, Null]> {
+  readonly "~rebuild.out": NullOr<S>
+}
 
 interface NullOrLambda extends Lambda {
   <S extends Top>(self: S): NullOr<S>
@@ -3546,7 +3554,9 @@ export const NullOr = Struct_.lambda<NullOrLambda>((self) => Union([self, Null])
  *
  * @since 4.0.0
  */
-export interface UndefinedOr<S extends Top> extends Union<readonly [S, Undefined]> {}
+export interface UndefinedOr<S extends Top> extends Union<readonly [S, Undefined]> {
+  readonly "~rebuild.out": UndefinedOr<S>
+}
 
 interface UndefinedOrLambda extends Lambda {
   <S extends Top>(self: S): UndefinedOr<S>
@@ -3565,7 +3575,9 @@ export const UndefinedOr = Struct_.lambda<UndefinedOrLambda>((self) => Union([se
  * Schema type for `S | null | undefined`. Produced by {@link NullishOr}.
  * @since 4.0.0
  */
-export interface NullishOr<S extends Top> extends Union<readonly [S, Null, Undefined]> {}
+export interface NullishOr<S extends Top> extends Union<readonly [S, Null, Undefined]> {
+  readonly "~rebuild.out": NullishOr<S>
+}
 
 interface NullishOrLambda extends Lambda {
   <S extends Top>(self: S): NullishOr<S>
@@ -4263,7 +4275,9 @@ export function withConstructorDefault<S extends Top & WithoutConstructorDefault
  * @see {@link withDecodingDefaultKey} for the constructor
  * @since 4.0.0
  */
-export interface withDecodingDefaultKey<S extends Top> extends decodeTo<S, optionalKey<toEncoded<S>>> {}
+export interface withDecodingDefaultKey<S extends Top> extends decodeTo<S, optionalKey<toEncoded<S>>> {
+  readonly "~rebuild.out": withDecodingDefaultKey<S>
+}
 
 /**
  * Options for {@link withDecodingDefaultKey} and {@link withDecodingDefault}.
@@ -4327,7 +4341,9 @@ export function withDecodingDefaultKey<S extends Top>(
  * @see {@link withDecodingDefault} for the constructor
  * @since 4.0.0
  */
-export interface withDecodingDefault<S extends Top> extends decodeTo<S, optional<toEncoded<S>>> {}
+export interface withDecodingDefault<S extends Top> extends decodeTo<S, optional<toEncoded<S>>> {
+  readonly "~rebuild.out": withDecodingDefault<S>
+}
 
 /**
  * **Options**
@@ -4746,7 +4762,7 @@ export interface Opaque<Self, S extends Top, Brand> extends
  * @since 4.0.0
  */
 export function Opaque<Self, Brand = {}>() {
-  return <S extends Top>(schema: S): Opaque<Self, S, Brand> & Omit<S, "Type"> => {
+  return <S extends Top>(schema: S): Opaque<Self, S, Brand> & Omit<S, keyof Top> => {
     // oxlint-disable-next-line @typescript-eslint/no-extraneous-class
     class Opaque {}
     return Object.setPrototypeOf(Opaque, schema)
@@ -6864,7 +6880,9 @@ export function Option<A extends Top>(value: A): Option<A> {
  * @category Option
  * @since 4.0.0
  */
-export interface OptionFromNullOr<S extends Top> extends decodeTo<Option<toType<S>>, NullOr<S>> {}
+export interface OptionFromNullOr<S extends Top> extends decodeTo<Option<toType<S>>, NullOr<S>> {
+  readonly "~rebuild.out": OptionFromNullOr<S>
+}
 
 /**
  * Decodes a nullable, required value `T` to a required `Option<T>` value.
@@ -6893,7 +6911,9 @@ export function OptionFromNullOr<S extends Top>(schema: S): OptionFromNullOr<S> 
  * @category Option
  * @since 4.0.0
  */
-export interface OptionFromUndefinedOr<S extends Top> extends decodeTo<Option<toType<S>>, UndefinedOr<S>> {}
+export interface OptionFromUndefinedOr<S extends Top> extends decodeTo<Option<toType<S>>, UndefinedOr<S>> {
+  readonly "~rebuild.out": OptionFromUndefinedOr<S>
+}
 
 /**
  * Decodes an undefined-or value `T` to a required `Option<T>` value.
@@ -6922,7 +6942,9 @@ export function OptionFromUndefinedOr<S extends Top>(schema: S): OptionFromUndef
  * @category Option
  * @since 4.0.0
  */
-export interface OptionFromNullishOr<S extends Top> extends decodeTo<Option<toType<S>>, NullishOr<S>> {}
+export interface OptionFromNullishOr<S extends Top> extends decodeTo<Option<toType<S>>, NullishOr<S>> {
+  readonly "~rebuild.out": OptionFromNullishOr<S>
+}
 
 /**
  * Decodes a nullish value `T` to a required `Option<T>` value.
@@ -6956,7 +6978,9 @@ export function OptionFromNullishOr<S extends Top>(
  * @category Option
  * @since 4.0.0
  */
-export interface OptionFromOptionalKey<S extends Top> extends decodeTo<Option<toType<S>>, optionalKey<S>> {}
+export interface OptionFromOptionalKey<S extends Top> extends decodeTo<Option<toType<S>>, optionalKey<S>> {
+  readonly "~rebuild.out": OptionFromOptionalKey<S>
+}
 
 /**
  * Decodes an optional value `A` to a required `Option<A>` value.
@@ -6985,7 +7009,9 @@ export function OptionFromOptionalKey<S extends Top>(schema: S): OptionFromOptio
  * @category Option
  * @since 4.0.0
  */
-export interface OptionFromOptional<S extends Top> extends decodeTo<Option<toType<S>>, optional<S>> {}
+export interface OptionFromOptional<S extends Top> extends decodeTo<Option<toType<S>>, optional<S>> {
+  readonly "~rebuild.out": OptionFromOptional<S>
+}
 
 /**
  * Decodes an optional or `undefined` value `A` to an required `Option<A>`
@@ -7016,7 +7042,9 @@ export function OptionFromOptional<S extends Top>(schema: S): OptionFromOptional
  * @category Option
  * @since 4.0.0
  */
-export interface OptionFromOptionalNullOr<S extends Top> extends decodeTo<Option<toType<S>>, optional<NullOr<S>>> {}
+export interface OptionFromOptionalNullOr<S extends Top> extends decodeTo<Option<toType<S>>, optional<NullOr<S>>> {
+  readonly "~rebuild.out": OptionFromOptionalNullOr<S>
+}
 
 /**
  * Decodes an optional or `null` or `undefined` value `A` to a required `Option<A>`
@@ -7275,7 +7303,9 @@ export function Redacted<S extends Top>(value: S, options?: {
  */
 export interface RedactedFromValue<S extends Top>
   extends decodeTo<Redacted<toType<S>>, middlewareDecoding<S, S["DecodingServices"]>>
-{}
+{
+  readonly "~rebuild.out": RedactedFromValue<S>
+}
 
 /**
  * Middleware that wraps decoded errors in `Redacted`, preventing sensitive
@@ -7554,7 +7584,9 @@ function causeToFormatter<E>(error: Formatter<E>, defect: Formatter<unknown>) {
  * @category Schemas
  * @since 4.0.0
  */
-export interface Error extends instanceOf<globalThis.Error> {}
+export interface Error extends instanceOf<globalThis.Error> {
+  readonly "~rebuild.out": Error
+}
 
 const ErrorJsonEncoded = Struct({
   message: String,
@@ -7632,7 +7664,9 @@ export interface Defect extends
       decodeTo<Unknown, Any>
     ]
   >
-{}
+{
+  readonly "~rebuild.out": Defect
+}
 
 const defectTransformation = new Transformation.Transformation(
   Getter.passthrough(),
@@ -8287,7 +8321,9 @@ export function Chunk<Value extends Top>(value: Value): Chunk<Value> {
  * @category Schemas
  * @since 4.0.0
  */
-export interface RegExp extends instanceOf<globalThis.RegExp> {}
+export interface RegExp extends instanceOf<globalThis.RegExp> {
+  readonly "~rebuild.out": RegExp
+}
 
 /**
  * Schema for JavaScript `RegExp` objects.
@@ -8359,7 +8395,9 @@ export const RegExp: RegExp = instanceOf(
  * @category URL
  * @since 4.0.0
  */
-export interface URL extends instanceOf<globalThis.URL> {}
+export interface URL extends instanceOf<globalThis.URL> {
+  readonly "~rebuild.out": URL
+}
 
 const URLString = String.annotate({ expected: "a string that will be decoded as a URL" })
 
@@ -8400,7 +8438,9 @@ export const URL: URL = instanceOf(
  * @category URL
  * @since 4.0.0
  */
-export interface URLFromString extends decodeTo<URL, String> {}
+export interface URLFromString extends decodeTo<URL, String> {
+  readonly "~rebuild.out": URLFromString
+}
 
 /**
  * A transformation schema that decodes a `string` into a `URL`.
@@ -8422,7 +8462,9 @@ export const URLFromString: URLFromString = URLString.pipe(decodeTo(URL, Transfo
  * @category Schemas
  * @since 4.0.0
  */
-export interface Date extends instanceOf<globalThis.Date> {}
+export interface Date extends instanceOf<globalThis.Date> {
+  readonly "~rebuild.out": Date
+}
 
 const DateString = String.annotate({ expected: "a string in ISO 8601 format that will be decoded as a Date" })
 
@@ -8471,7 +8513,9 @@ export const Date: Date = instanceOf(
  * @category Schemas
  * @since 4.0.0
  */
-export interface DateFromString extends decodeTo<Date, String> {}
+export interface DateFromString extends decodeTo<Date, String> {
+  readonly "~rebuild.out": DateFromString
+}
 
 /**
  * A transformation schema that parses an ISO 8601 string into a `Date`.
@@ -8512,7 +8556,9 @@ export const DateValid = Date.check(isDateValid())
  * @category Duration
  * @since 4.0.0
  */
-export interface Duration extends declare<Duration_.Duration> {}
+export interface Duration extends declare<Duration_.Duration> {
+  readonly "~rebuild.out": Duration
+}
 
 /**
  * A schema for `Duration` values.
@@ -8599,7 +8645,9 @@ export const Duration: Duration = declare(
  * @category Duration
  * @since 4.0.0
  */
-export interface DurationFromNanos extends decodeTo<Duration, BigInt> {}
+export interface DurationFromNanos extends decodeTo<Duration, BigInt> {
+  readonly "~rebuild.out": DurationFromNanos
+}
 
 /**
  * A transformation schema that decodes a non-negative `bigint` into a
@@ -8624,7 +8672,9 @@ export const DurationFromNanos: DurationFromNanos = BigInt.check(isGreaterThanOr
  * @category Duration
  * @since 4.0.0
  */
-export interface DurationFromMillis extends decodeTo<Duration, Number> {}
+export interface DurationFromMillis extends decodeTo<Duration, Number> {
+  readonly "~rebuild.out": DurationFromMillis
+}
 
 /**
  * A transformation schema that decodes a non-negative (possibly infinite)
@@ -8652,7 +8702,9 @@ export const DurationFromMillis: DurationFromMillis = Number.check(isGreaterThan
  * @category Schemas
  * @since 4.0.0
  */
-export interface BigDecimal extends declare<BigDecimal_.BigDecimal> {}
+export interface BigDecimal extends declare<BigDecimal_.BigDecimal> {
+  readonly "~rebuild.out": BigDecimal
+}
 
 const BigDecimalString = String.annotate({ expected: "a string that will be decoded as a BigDecimal" })
 
@@ -8696,7 +8748,9 @@ export const BigDecimal: BigDecimal = declare(
  * @category Schemas
  * @since 4.0.0
  */
-export interface BigDecimalFromString extends decodeTo<BigDecimal, String> {}
+export interface BigDecimalFromString extends decodeTo<BigDecimal, String> {
+  readonly "~rebuild.out": BigDecimalFromString
+}
 
 /**
  * A transformation schema that parses a string into a `BigDecimal`.
@@ -8719,7 +8773,9 @@ export const BigDecimalFromString: BigDecimalFromString = BigDecimalString.pipe(
  * @category JSON
  * @since 4.0.0
  */
-export interface UnknownFromJsonString extends fromJsonString<Unknown> {}
+export interface UnknownFromJsonString extends fromJsonString<Unknown> {
+  readonly "~rebuild.out": UnknownFromJsonString
+}
 
 /**
  * A transformation schema that decodes a JSON-encoded string into an `unknown` value.
@@ -8751,7 +8807,9 @@ export const UnknownFromJsonString = fromJsonString(Unknown)
  * @category JSON
  * @since 4.0.0
  */
-export interface fromJsonString<S extends Top> extends decodeTo<S, String> {}
+export interface fromJsonString<S extends Top> extends decodeTo<S, String> {
+  readonly "~rebuild.out": fromJsonString<S>
+}
 
 /**
  * Returns a schema that decodes a JSON string and then decodes the parsed value
@@ -8830,7 +8888,9 @@ export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
  * @category Schemas
  * @since 4.0.0
  */
-export interface File extends instanceOf<globalThis.File> {}
+export interface File extends instanceOf<globalThis.File> {
+  readonly "~rebuild.out": File
+}
 
 /**
  * Schema for JavaScript `File` objects.
@@ -8900,7 +8960,9 @@ export const File: File = instanceOf(globalThis.File, {
  * @category Schemas
  * @since 4.0.0
  */
-export interface FormData extends instanceOf<globalThis.FormData> {}
+export interface FormData extends instanceOf<globalThis.FormData> {
+  readonly "~rebuild.out": FormData
+}
 
 /**
  * Schema for JavaScript `FormData` objects.
@@ -8960,7 +9022,9 @@ export const FormData: FormData = instanceOf(globalThis.FormData, {
  * @category Schemas
  * @since 4.0.0
  */
-export interface fromFormData<S extends Top> extends decodeTo<S, FormData> {}
+export interface fromFormData<S extends Top> extends decodeTo<S, FormData> {
+  readonly "~rebuild.out": fromFormData<S>
+}
 
 /**
  * `Schema.fromFormData` returns a schema that reads a `FormData` instance,
@@ -9055,7 +9119,9 @@ export function fromFormData<S extends Top>(schema: S): fromFormData<S> {
  * @category Schemas
  * @since 4.0.0
  */
-export interface URLSearchParams extends instanceOf<globalThis.URLSearchParams> {}
+export interface URLSearchParams extends instanceOf<globalThis.URLSearchParams> {
+  readonly "~rebuild.out": URLSearchParams
+}
 
 /**
  * Schema for JavaScript `URLSearchParams` objects.
@@ -9090,7 +9156,9 @@ export const URLSearchParams: URLSearchParams = instanceOf(globalThis.URLSearchP
  * @category Schemas
  * @since 4.0.0
  */
-export interface fromURLSearchParams<S extends Top> extends decodeTo<S, URLSearchParams> {}
+export interface fromURLSearchParams<S extends Top> extends decodeTo<S, URLSearchParams> {
+  readonly "~rebuild.out": fromURLSearchParams<S>
+}
 
 /**
  * `Schema.fromURLSearchParams` returns a schema that reads a `URLSearchParams`
@@ -9210,7 +9278,9 @@ export const Int: Int = Number.check(isInt())
  * @category Schemas
  * @since 4.0.0
  */
-export interface NumberFromString extends decodeTo<Finite, String> {}
+export interface NumberFromString extends decodeTo<Finite, String> {
+  readonly "~rebuild.out": NumberFromString
+}
 
 /**
  * A transformation schema that parses a string into a number.
@@ -9233,7 +9303,9 @@ export const NumberFromString: NumberFromString = String.annotate({
  * @category Schemas
  * @since 4.0.0
  */
-export interface FiniteFromString extends decodeTo<Finite, String> {}
+export interface FiniteFromString extends decodeTo<Finite, String> {
+  readonly "~rebuild.out": FiniteFromString
+}
 
 /**
  * A transformation schema that parses a string into a finite number.
@@ -9257,7 +9329,9 @@ export const FiniteFromString: FiniteFromString = String.annotate({
  * @category Schemas
  * @since 4.0.0
  */
-export interface BigIntFromString extends decodeTo<BigInt, String> {}
+export interface BigIntFromString extends decodeTo<BigInt, String> {
+  readonly "~rebuild.out": BigIntFromString
+}
 
 /**
  * A transformation schema that parses a string into a `bigint`.
@@ -9340,7 +9414,9 @@ export const StandardSchemaV1FailureResult = Struct({
  * @category Schemas
  * @since 4.0.0
  */
-export interface BooleanFromBit extends decodeTo<Boolean, Literals<readonly [0, 1]>> {}
+export interface BooleanFromBit extends decodeTo<Boolean, Literals<readonly [0, 1]>> {
+  readonly "~rebuild.out": BooleanFromBit
+}
 
 /**
  * A boolean parsed from 0 or 1.
@@ -9364,7 +9440,9 @@ export const BooleanFromBit: BooleanFromBit = Literals([0, 1]).pipe(
  * @category Schemas
  * @since 4.0.0
  */
-export interface Uint8Array extends instanceOf<globalThis.Uint8Array<ArrayBufferLike>> {}
+export interface Uint8Array extends instanceOf<globalThis.Uint8Array<ArrayBufferLike>> {
+  readonly "~rebuild.out": Uint8Array
+}
 
 const Base64String = String.annotate({
   expected: "a base64 encoded string that will be decoded as Uint8Array",
@@ -9405,7 +9483,9 @@ export const Uint8Array: Uint8Array = instanceOf(globalThis.Uint8Array<ArrayBuff
  * @category Schemas
  * @since 4.0.0
  */
-export interface Uint8ArrayFromBase64 extends decodeTo<Uint8Array, String> {}
+export interface Uint8ArrayFromBase64 extends decodeTo<Uint8Array, String> {
+  readonly "~rebuild.out": Uint8ArrayFromBase64
+}
 
 /**
  * A transformation schema that decodes a base64 encoded string into a
@@ -9430,7 +9510,9 @@ export const Uint8ArrayFromBase64: Uint8ArrayFromBase64 = Base64String.pipe(
  * @category Schemas
  * @since 4.0.0
  */
-export interface Uint8ArrayFromBase64Url extends decodeTo<Uint8Array, String> {}
+export interface Uint8ArrayFromBase64Url extends decodeTo<Uint8Array, String> {
+  readonly "~rebuild.out": Uint8ArrayFromBase64Url
+}
 
 /**
  * A transformation schema that decodes a base64 (URL) encoded string into a
@@ -9460,7 +9542,9 @@ export const Uint8ArrayFromBase64Url: Uint8ArrayFromBase64Url = String.annotate(
  * @category Schemas
  * @since 4.0.0
  */
-export interface Uint8ArrayFromHex extends decodeTo<Uint8Array, String> {}
+export interface Uint8ArrayFromHex extends decodeTo<Uint8Array, String> {
+  readonly "~rebuild.out": Uint8ArrayFromHex
+}
 
 /**
  * A transformation schema that decodes a hex encoded string into a
@@ -9490,7 +9574,9 @@ export const Uint8ArrayFromHex: Uint8ArrayFromHex = String.annotate({
  * @category DateTime
  * @since 4.0.0
  */
-export interface DateTimeUtc extends declare<DateTime.Utc> {}
+export interface DateTimeUtc extends declare<DateTime.Utc> {
+  readonly "~rebuild.out": DateTimeUtc
+}
 
 /**
  * A schema for `DateTime.Utc` values.
@@ -9532,7 +9618,9 @@ export const DateTimeUtc: DateTimeUtc = declare(
  * @category DateTime
  * @since 4.0.0
  */
-export interface DateTimeUtcFromDate extends decodeTo<DateTimeUtc, Date> {}
+export interface DateTimeUtcFromDate extends decodeTo<DateTimeUtc, Date> {
+  readonly "~rebuild.out": DateTimeUtcFromDate
+}
 
 /**
  * A transformation schema that decodes a `Date` into a `DateTime.Utc`.
@@ -9559,7 +9647,9 @@ export const DateTimeUtcFromDate: DateTimeUtcFromDate = DateValid.pipe(
  * @category DateTime
  * @since 4.0.0
  */
-export interface DateTimeUtcFromString extends decodeTo<DateTimeUtc, String> {}
+export interface DateTimeUtcFromString extends decodeTo<DateTimeUtc, String> {
+  readonly "~rebuild.out": DateTimeUtcFromString
+}
 
 /**
  * A transformation schema that decodes a string into a `DateTime.Utc`.
@@ -9590,7 +9680,9 @@ export const DateTimeUtcFromString: DateTimeUtcFromString = String.annotate({
  * @category DateTime
  * @since 4.0.0
  */
-export interface DateTimeUtcFromMillis extends decodeTo<instanceOf<DateTime.Utc>, Number> {}
+export interface DateTimeUtcFromMillis extends decodeTo<instanceOf<DateTime.Utc>, Number> {
+  readonly "~rebuild.out": DateTimeUtcFromMillis
+}
 
 /**
  * A transformation schema that decodes a number into a `DateTime.Utc`.
@@ -9617,7 +9709,9 @@ export const DateTimeUtcFromMillis: DateTimeUtcFromMillis = Number.pipe(
  * @category DateTime
  * @since 4.0.0
  */
-export interface TimeZoneOffset extends declare<DateTime.TimeZone.Offset> {}
+export interface TimeZoneOffset extends declare<DateTime.TimeZone.Offset> {
+  readonly "~rebuild.out": TimeZoneOffset
+}
 
 /**
  * A schema for `DateTime.TimeZone.Offset` values.
@@ -9659,7 +9753,9 @@ export const TimeZoneOffset: TimeZoneOffset = declare(
  * @category DateTime
  * @since 4.0.0
  */
-export interface TimeZoneNamed extends declare<DateTime.TimeZone.Named> {}
+export interface TimeZoneNamed extends declare<DateTime.TimeZone.Named> {
+  readonly "~rebuild.out": TimeZoneNamed
+}
 
 const TimeZoneNamedString = String.annotate({ expected: "an IANA time zone identifier" })
 
@@ -9707,7 +9803,9 @@ export const TimeZoneNamed: TimeZoneNamed = declare(
  * @category DateTime
  * @since 4.0.0
  */
-export interface TimeZoneNamedFromString extends decodeTo<TimeZoneNamed, String> {}
+export interface TimeZoneNamedFromString extends decodeTo<TimeZoneNamed, String> {
+  readonly "~rebuild.out": TimeZoneNamedFromString
+}
 
 /**
  * A transformation schema that parses an IANA time zone identifier string into a `DateTime.TimeZone.Named`.
@@ -9731,7 +9829,9 @@ export const TimeZoneNamedFromString: TimeZoneNamedFromString = TimeZoneNamedStr
  * @category DateTime
  * @since 4.0.0
  */
-export interface TimeZone extends declare<DateTime.TimeZone> {}
+export interface TimeZone extends declare<DateTime.TimeZone> {
+  readonly "~rebuild.out": TimeZone
+}
 
 const TimeZoneString = String.annotate({
   expected: "a time zone string (IANA identifier or offset like +03:00)"
@@ -9785,7 +9885,9 @@ export const TimeZone: TimeZone = declare(
  * @category DateTime
  * @since 4.0.0
  */
-export interface TimeZoneFromString extends decodeTo<TimeZone, String> {}
+export interface TimeZoneFromString extends decodeTo<TimeZone, String> {
+  readonly "~rebuild.out": TimeZoneFromString
+}
 
 /**
  * A transformation schema that parses a time zone string into a `DateTime.TimeZone`.
@@ -9809,7 +9911,9 @@ export const TimeZoneFromString: TimeZoneFromString = TimeZoneString.pipe(
  * @category DateTime
  * @since 4.0.0
  */
-export interface DateTimeZoned extends declare<DateTime.Zoned> {}
+export interface DateTimeZoned extends declare<DateTime.Zoned> {
+  readonly "~rebuild.out": DateTimeZoned
+}
 
 const DateTimeZonedString = String.annotate({
   expected: "a zoned DateTime string (e.g. 2024-01-01T00:00:00.000+00:00[Europe/London])"
@@ -9864,7 +9968,9 @@ export const DateTimeZoned: DateTimeZoned = declare(
  * @category DateTime
  * @since 4.0.0
  */
-export interface DateTimeZonedFromString extends decodeTo<DateTimeZoned, String> {}
+export interface DateTimeZonedFromString extends decodeTo<DateTimeZoned, String> {
+  readonly "~rebuild.out": DateTimeZonedFromString
+}
 
 /**
  * A transformation schema that parses a zoned DateTime string into a `DateTime.Zoned`.
