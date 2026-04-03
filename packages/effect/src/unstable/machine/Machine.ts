@@ -9,11 +9,11 @@ import * as PubSub from "../../PubSub.ts"
 import * as Queue from "../../Queue.ts"
 import * as Ref from "../../Ref.ts"
 import * as Schema from "../../Schema.ts"
+import * as SchemaAST from "../../SchemaAST.ts"
 import type * as Scope from "../../Scope.ts"
 import * as Stream from "../../Stream.ts"
 
 const TypeId = "~effect/unstable/machine/Machine" as const
-const BuilderTypeId = "~effect/unstable/machine/Machine/Builder" as const
 
 type AnyTaggedEvent = Schema.Top & { readonly Type: { readonly _tag: PropertyKey } }
 type AnyTaggedUnion = Schema.Top & { readonly Type: { readonly _tag: PropertyKey }; readonly cases: any }
@@ -29,11 +29,16 @@ type AnyStateSchemas = Record<string, AnyTaggedState>
 type StateSchemasOfStates<States extends AnyStateTuple> = {
   readonly [State in States[number] as State["Type"]["_tag"] & string]: State
 }
+type ScopePrefixes<Tag extends string> = Tag extends `${infer Head}.${infer Tail}`
+  ? Head | `${Head}.${ScopePrefixes<Tail>}`
+  : Tag
+type ScopesOfStates<States extends AnyStateSchemas> = {
+  readonly [Name in keyof States & string]: ScopePrefixes<Name>
+}[keyof States & string]
+type StatesInScope<States extends AnyStateSchemas, Scope extends string> = {
+  readonly [Name in keyof States & string as Name extends Scope | `${Scope}.${string}` ? Name : never]: States[Name]
+}
 type DataSchema<StateSchemas extends AnyStateSchemas, Name extends keyof StateSchemas & string> = StateSchemas[Name]
-type StatePayload<StateSchemas extends AnyStateSchemas, Name extends keyof StateSchemas & string> = Omit<
-  DataSchema<StateSchemas, Name>["~type.make.in"],
-  "_tag"
->
 type InputValue<InputSchema> = InputSchema extends Schema.Top ? Schema.Schema.Type<InputSchema> : never
 type Initializer<InputSchema, State> = [InputSchema] extends [undefined] ? () => State
   : (args: { readonly input: InputValue<InputSchema> }) => State
@@ -43,10 +48,16 @@ type Initializer<InputSchema, State> = [InputSchema] extends [undefined] ? () =>
  * @category models
  */
 export type Snapshot<StateSchemas extends AnyStateSchemas> = {
-  readonly [Name in keyof StateSchemas & string]:
-    & { readonly _tag: Name }
-    & Schema.Schema.Type<DataSchema<StateSchemas, Name>>
+  readonly [Name in keyof StateSchemas & string]: Schema.Schema.Type<DataSchema<StateSchemas, Name>>
 }[keyof StateSchemas & string]
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type ReducedSnapshot<StateSchemas extends AnyStateSchemas> = {
+  readonly [Name in keyof StateSchemas & string]: Schema.Schema.Type<DataSchema<StateSchemas, Name>>
+}[keyof StateSchemas & string] extends infer Q ? Q : never
 
 /**
  * @since 4.0.0
@@ -71,11 +82,10 @@ export type Transition<StateSchemas extends AnyStateSchemas> = Snapshot<StateSch
 export interface HandlerArgs<
   EventSchema extends AnyEventSchema,
   StateSchemas extends AnyStateSchemas,
-  Source extends keyof StateSchemas & string,
+  Source extends ScopesOfStates<StateSchemas>,
   Tag extends EventTag<EventSchema>
 > {
-  readonly snapshot: Extract<Snapshot<StateSchemas>, { readonly _tag: Source }>
-  readonly data: StatePayload<StateSchemas, Source>
+  readonly state: ReducedSnapshot<StatesInScope<StateSchemas, Source>>
   readonly event: EventByTag<EventSchema, Tag>
 }
 
@@ -85,7 +95,7 @@ export interface HandlerArgs<
  */
 export type Handler<
   StateSchemas extends AnyStateSchemas,
-  Source extends keyof StateSchemas & string,
+  Source extends ScopesOfStates<StateSchemas>,
   EventSchema extends AnyEventSchema,
   Tag extends EventTag<EventSchema>,
   E = never,
@@ -101,20 +111,14 @@ export type Handler<
 export type Handlers<
   EventSchema extends AnyEventSchema,
   StateSchemas extends AnyStateSchemas,
+  Scope extends ScopesOfStates<StateSchemas>,
   E = never,
   R = never
 > = {
-  readonly [Name in keyof StateSchemas & string]?: {
-    readonly [Tag in EventTag<EventSchema>]?: Handler<StateSchemas, Name, EventSchema, Tag, E, R>
-  }
+  readonly [Tag in EventTag<EventSchema>]?: Handler<StateSchemas, Scope, EventSchema, Tag, E, R>
 }
 
-type HandlerUnion<HandlersDef extends Record<string, any>> = {
-  readonly [Name in keyof HandlersDef & string]: Exclude<
-    HandlersDef[Name],
-    undefined
-  >[keyof Exclude<HandlersDef[Name], undefined>]
-}[keyof HandlersDef & string]
+type HandlerUnion<HandlersDef extends Record<string, any>> = Exclude<HandlersDef[keyof HandlersDef], undefined>
 
 type InferHandlerError<HandlersDef extends Record<string, any>> = HandlerUnion<HandlersDef> extends
   (...args: Array<any>) => infer Return ? Return extends Effect.Effect<any, infer E, any> ? E : never
@@ -157,7 +161,18 @@ export interface Machine<
   readonly snapshot: AnyTaggedUnion
   readonly initial: Initializer<InputSchema, Snapshot<StateSchemas>>
   readonly states: { readonly [Name in keyof StateSchemas & string]: DataSchema<StateSchemas, Name> }
-  readonly handlers: Handlers<EventSchema, StateSchemas, E, R>
+  readonly scopedHandlers: Partial<Record<ScopesOfStates<StateSchemas>, Handlers<EventSchema, StateSchemas, any, E, R>>>
+  readonly handlers: <Scope extends ScopesOfStates<StateSchemas>>(
+    scope: Scope
+  ) => <HandlersDef extends Handlers<EventSchema, StateSchemas, Scope, any, any>>(
+    handlers: HandlersDef
+  ) => Machine<
+    EventSchema,
+    StateSchemas,
+    InputSchema,
+    InferHandlerError<HandlersDef> | E,
+    InferHandlerServices<HandlersDef> | R
+  >
 }
 
 /**
@@ -186,33 +201,6 @@ export interface Actor<M extends Any> {
 interface Envelope<E, A> {
   readonly event: E
   readonly ack: Deferred.Deferred<Exit.Exit<void, A>>
-}
-
-/**
- * @since 4.0.0
- * @category models
- */
-export interface Builder<
-  EventSchema extends AnyEventSchema,
-  States extends AnyStateTuple,
-  InputSchema = undefined
-> {
-  readonly [BuilderTypeId]: typeof BuilderTypeId
-  readonly id: string | undefined
-  readonly input: InputSchema
-  readonly event: EventSchema
-  readonly snapshot: AnyTaggedUnion
-  readonly initial: Initializer<InputSchema, Snapshot<StateSchemasOfStates<States>>>
-  readonly states: States
-  readonly handlers: <HandlersDef extends Handlers<EventSchema, StateSchemasOfStates<States>, any, any>>(
-    handlers: HandlersDef
-  ) => Machine<
-    EventSchema,
-    StateSchemasOfStates<States>,
-    InputSchema,
-    InferHandlerError<HandlersDef>,
-    InferHandlerServices<HandlersDef>
-  >
 }
 
 /**
@@ -268,6 +256,15 @@ export const isMachine = (u: unknown): u is Any => Predicate.hasProperty(u, Type
 const toEffect = <A, E, R>(value: A | Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
   Effect.isEffect(value) ? value : Effect.succeed(value)
 
+const scopesOf = (tag: string): ReadonlyArray<string> => {
+  const segments = tag.split(".")
+  const scopes = new Array<string>(segments.length)
+  for (let i = segments.length; i >= 1; i--) {
+    scopes[segments.length - i] = segments.slice(0, i).join(".")
+  }
+  return scopes
+}
+
 /**
  * @since 4.0.0
  * @category constructors
@@ -282,32 +279,52 @@ export const make = <
   readonly events: Events
   readonly initial: Initializer<InputSchema, Snapshot<StateSchemasOfStates<States>>>
   readonly states: States
-}): Builder<Schema.toTaggedUnion<"_tag", Events>, States, InputSchema> => {
+}): Machine<Schema.toTaggedUnion<"_tag", Events>, StateSchemasOfStates<States>, InputSchema> => {
   const event = normalizeEventSchema(definition)
   const initial = definition.initial
-  return {
-    [BuilderTypeId]: BuilderTypeId,
+  const snapshot = snapshotSchemaFromStates(definition.states)
+  const states = Object.fromEntries(definition.states.map((state) => [stateTag(state), state])) as {
+    readonly [Name in keyof StateSchemasOfStates<States> & string]: DataSchema<StateSchemasOfStates<States>, Name>
+  }
+  const makeMachine = <E, R>(
+    scopedHandlers: Partial<
+      Record<
+        ScopesOfStates<StateSchemasOfStates<States>>,
+        Handlers<typeof event, StateSchemasOfStates<States>, any, any, any>
+      >
+    >
+  ): Machine<typeof event, StateSchemasOfStates<States>, InputSchema, E, R> => ({
+    [TypeId]: TypeId,
     id: definition.id,
     input: definition.input as InputSchema,
     event,
-    snapshot: snapshotSchemaFromStates(definition.states),
+    snapshot,
     initial,
-    states: definition.states,
-    handlers: (handlers) => ({
-      [TypeId]: TypeId,
-      id: definition.id,
-      input: definition.input as InputSchema,
-      event,
-      snapshot: snapshotSchemaFromStates(definition.states),
-      initial,
-      states: definition.states as any,
-      handlers: handlers as any
-    })
-  }
+    states,
+    scopedHandlers: scopedHandlers as any,
+    handlers: (scope) => (handlers) =>
+      makeMachine<InferHandlerError<typeof handlers> | E, InferHandlerServices<typeof handlers> | R>({
+        ...scopedHandlers,
+        [scope]: handlers
+      })
+  })
+  return makeMachine<never, never>({})
 }
 
 const snapshotSchemaFromStates = <const States extends AnyStateTuple>(states: States): AnyTaggedUnion =>
   Schema.Union(states as any).pipe(Schema.toTaggedUnion("_tag")) as AnyTaggedUnion
+
+const stateTag = (state: AnyTaggedState): string => {
+  const ast = SchemaAST.toEncoded((state as Schema.Top).ast)
+  if (!SchemaAST.isObjects(ast)) {
+    throw new Error("Machine states must be object-like tagged schemas")
+  }
+  const tagField = ast.propertySignatures.find((property) => property.name === "_tag")
+  if (tagField === undefined || !SchemaAST.isLiteral(tagField.type) || typeof tagField.type.literal !== "string") {
+    throw new Error("Machine states must have a string literal _tag")
+  }
+  return tagField.type.literal
+}
 
 const normalizeEventSchema = <const Events extends AnyEventTuple>(
   definition: { readonly events: Events }
@@ -358,23 +375,31 @@ export const transition = <
   Effect.gen(function*() {
     const current = snapshot as Source
     const currentEvent = event as Event<M["event"]>
-    const handlers = self.handlers[current._tag as keyof typeof self.handlers]
-    const handler = handlers?.[(currentEvent as { readonly _tag: string })._tag as keyof typeof handlers] as
-      | Handler<StateSchemasOf<M>, Source["_tag"], M["event"], EventTag<M["event"]>, ErrorOf<M>, ServicesOf<M>>
-      | undefined
+    const eventTag = (currentEvent as { readonly _tag: string })._tag
+    let handler:
+      | Handler<StateSchemasOf<M>, any, M["event"], EventTag<M["event"]>, ErrorOf<M>, ServicesOf<M>>
+      | undefined = undefined
+    for (const scope of scopesOf(current._tag)) {
+      const handlers = self.scopedHandlers[scope as keyof typeof self.scopedHandlers]
+      const candidate = handlers?.[eventTag as keyof typeof handlers] as
+        | Handler<StateSchemasOf<M>, any, M["event"], EventTag<M["event"]>, ErrorOf<M>, ServicesOf<M>>
+        | undefined
+      if (candidate !== undefined) {
+        handler = candidate
+        break
+      }
+    }
     if (handler === undefined) {
       return yield* Effect.fail(
         new UnhandledEventError({
           machineId: self.id,
           state: current._tag,
-          event: (currentEvent as { readonly _tag: string })._tag
+          event: eventTag
         })
       )
     }
-    const { _tag: _, ...data } = current as any
     const decision = yield* toEffect(handler({
-      snapshot: current as any,
-      data,
+      state: current as any,
       event: currentEvent as any
     }))
     const next = decision
@@ -414,8 +439,14 @@ export const enabled = <
   self: M,
   snapshot: Source
 ): ReadonlyArray<EventTag<M["event"]>> => {
-  const handlers = self.handlers[snapshot._tag as keyof typeof self.handlers] ?? {}
-  return Object.keys(handlers) as ReadonlyArray<EventTag<M["event"]>>
+  const enabled = new Set<EventTag<M["event"]>>()
+  for (const scope of scopesOf(snapshot._tag)) {
+    const handlers = self.scopedHandlers[scope as keyof typeof self.scopedHandlers] ?? {}
+    for (const key of Object.keys(handlers)) {
+      enabled.add(key as EventTag<M["event"]>)
+    }
+  }
+  return Array.from(enabled)
 }
 
 /**

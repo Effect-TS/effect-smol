@@ -43,15 +43,14 @@ describe("Machine", () => {
       events: [Create, Rename, Delete],
       initial: () => new Uncreated({}),
       states: [Uncreated, Created, Deleted]
-    }).handlers({
-      Uncreated: {
-        Create: ({ event }) => new Created({ user: { id: "user-1", email: event.email } })
-      },
-      Created: {
-        Rename: ({ data, event }) => new Created({ user: { ...data.user, email: event.email } }),
-        Delete: ({ data }) => new Deleted({ userId: data.user.id })
-      }
     })
+      .handlers("Uncreated")({
+        Create: ({ event }) => new Created({ user: { id: "user-1", email: event.email } })
+      })
+      .handlers("Created")({
+        Rename: ({ state, event }) => new Created({ user: { ...state.user, email: event.email } }),
+        Delete: ({ state }) => new Deleted({ userId: state.user.id })
+      })
 
     expect<Machine.Snapshot<Machine.StateSchemasOf<typeof UserMachine>>>().type.toBe<
       | Uncreated
@@ -80,14 +79,11 @@ describe("Machine", () => {
       events: [Create],
       initial: () => new Uncreated({ count: 0 }),
       states: [Uncreated, Created]
-    }).handlers({
-      Uncreated: {
-        Create: ({ event, data, snapshot }) => {
-          expect<typeof event>().type.toBe<Create>()
-          expect<typeof data>().type.toBe<{ readonly count: number }>()
-          expect<typeof snapshot>().type.toBe<Uncreated>()
-          return new Created({ email: event.email })
-        }
+    }).handlers("Uncreated")({
+      Create: ({ event, state }) => {
+        expect<typeof event>().type.toBe<Create>()
+        expect<typeof state>().type.toBe<Uncreated>()
+        return new Created({ email: event.email })
       }
     })
   })
@@ -117,20 +113,19 @@ describe("Machine", () => {
       events: [Create, Rename],
       initial: () => new Idle({}),
       states: [Idle, Running]
-    }).handlers({
-      Idle: {
+    })
+      .handlers("Idle")({
         Create: ({ event }) => {
           expect<typeof event>().type.toBe<Create>()
           return new Running({ email: event.email })
         }
-      },
-      Running: {
+      })
+      .handlers("Running")({
         Rename: ({ event }) => {
           expect<typeof event>().type.toBe<Rename>()
           return new Running({ email: event.email })
         }
-      }
-    })
+      })
 
     expect<Machine.Event<typeof machine.event>>().type.toBe<Create | Rename>()
     expect<Machine.MachineErrorOf<typeof machine>>().type.toBe<Machine.UnhandledEventError>()
@@ -161,12 +156,44 @@ describe("Machine", () => {
       events: [Create],
       initial: ({ input }) => new Created({ email: input.email }),
       states: [Uncreated, Created]
-    }).handlers({
-      Uncreated: {
-        Create: ({ event }) => new Created({ email: event.email })
-      }
+    }).handlers("Uncreated")({
+      Create: ({ event }) => new Created({ email: event.email })
     })
 
     expect<Machine.InputOf<typeof machine>>().type.toBe<{ readonly email: string }>()
+  })
+
+  it("uses unions for parent-scope snapshot and data", () => {
+    class Logout extends Schema.TaggedClass<Logout, { readonly _: unique symbol }>()(
+      "Logout",
+      {}
+    ) {}
+
+    class Idle extends Schema.TaggedClass<Idle, { readonly _: unique symbol }>()(
+      "Authenticated.Idle",
+      { userId: Schema.String }
+    ) {}
+
+    class Refreshing extends Schema.TaggedClass<Refreshing, { readonly _: unique symbol }>()(
+      "Authenticated.Refreshing",
+      { userId: Schema.String, retryCount: Schema.Number }
+    ) {}
+
+    class Unauthenticated extends Schema.TaggedClass<Unauthenticated, { readonly _: unique symbol }>()(
+      "Unauthenticated",
+      {}
+    ) {}
+
+    Machine.make({
+      events: [Logout],
+      initial: () => new Idle({ userId: "user-1" }),
+      states: [Unauthenticated, Idle, Refreshing]
+    }).handlers("Authenticated")({
+      Logout: ({ event, state }) => {
+        expect<typeof event>().type.toBe<Logout>()
+        expect<typeof state>().type.toBe<Idle | Refreshing>()
+        return new Unauthenticated({})
+      }
+    })
   })
 })
