@@ -8492,7 +8492,9 @@ export const DateFromString: DateFromString = DateString.pipe(decodeTo(Date, Tra
  * @category Schemas
  * @since 4.0.0
  */
-export interface DateValid extends Date {}
+export interface DateValid extends Date {
+  readonly "~rebuild.out": DateValid
+}
 
 /**
  * A schema for **valid** JavaScript `Date` objects.
@@ -9174,7 +9176,9 @@ export function fromURLSearchParams<S extends Top>(schema: S): fromURLSearchPara
  * @category Schemas
  * @since 4.0.0
  */
-export interface Finite extends Number {}
+export interface Finite extends Number {
+  readonly "~rebuild.out": Finite
+}
 
 /**
  * A schema for finite numbers, rejecting `NaN`, `Infinity`, and `-Infinity`.
@@ -9189,7 +9193,9 @@ export const Finite: Finite = Number.check(isFinite())
  * @category Schemas
  * @since 4.0.0
  */
-export interface Int extends Number {}
+export interface Int extends Number {
+  readonly "~rebuild.out": Int
+}
 
 /**
  * A schema for integers, rejecting `NaN`, `Infinity`, and `-Infinity`.
@@ -9274,7 +9280,9 @@ export const BigIntFromString: BigIntFromString = make<String>(AST.bigIntString)
  * @category Schemas
  * @since 4.0.0
  */
-export interface Trimmed extends String {}
+export interface Trimmed extends String {
+  readonly "~rebuild.out": Trimmed
+}
 
 /**
  * A schema for strings that contains no leading or trailing whitespaces.
@@ -9289,7 +9297,9 @@ export const Trimmed: Trimmed = String.check(isTrimmed())
  * @category Schemas
  * @since 4.0.0
  */
-export interface Trim extends decodeTo<Trimmed, String> {}
+export interface Trim extends decodeTo<Trimmed, String> {
+  readonly "~rebuild.out": Trim
+}
 
 /**
  * A transformation schema that trims whitespace from a string.
