@@ -11,7 +11,6 @@ import type * as Schema from "../../Schema.ts"
 import type * as CliError from "./CliError.ts"
 import * as Param from "./Param.ts"
 import type * as Primitive from "./Primitive.ts"
-import type * as Prompt from "./Prompt.ts"
 
 // -------------------------------------------------------------------------------------
 // models
