@@ -34,6 +34,9 @@ type StatePayload<StateSchemas extends AnyStateSchemas, Name extends keyof State
   DataSchema<StateSchemas, Name>["~type.make.in"],
   "_tag"
 >
+type InputValue<InputSchema> = InputSchema extends Schema.Top ? Schema.Schema.Type<InputSchema> : never
+type Initializer<InputSchema, State> = [InputSchema] extends [undefined] ? () => State
+  : (args: { readonly input: InputValue<InputSchema> }) => State
 
 /**
  * @since 4.0.0
@@ -143,14 +146,16 @@ export interface Plan<
 export interface Machine<
   EventSchema extends AnyEventSchema,
   StateSchemas extends AnyStateSchemas,
+  InputSchema = undefined,
   E = never,
   R = never
 > {
   readonly [TypeId]: typeof TypeId
   readonly id: string | undefined
+  readonly input: InputSchema
   readonly event: EventSchema
   readonly snapshot: AnyTaggedUnion
-  readonly initial: Snapshot<StateSchemas>
+  readonly initial: Initializer<InputSchema, Snapshot<StateSchemas>>
   readonly states: { readonly [Name in keyof StateSchemas & string]: DataSchema<StateSchemas, Name> }
   readonly handlers: Handlers<EventSchema, StateSchemas, E, R>
 }
@@ -189,19 +194,22 @@ interface Envelope<E, A> {
  */
 export interface Builder<
   EventSchema extends AnyEventSchema,
-  States extends AnyStateTuple
+  States extends AnyStateTuple,
+  InputSchema = undefined
 > {
   readonly [BuilderTypeId]: typeof BuilderTypeId
   readonly id: string | undefined
+  readonly input: InputSchema
   readonly event: EventSchema
   readonly snapshot: AnyTaggedUnion
-  readonly initial: Snapshot<StateSchemasOfStates<States>>
+  readonly initial: Initializer<InputSchema, Snapshot<StateSchemasOfStates<States>>>
   readonly states: States
   readonly handlers: <HandlersDef extends Handlers<EventSchema, StateSchemasOfStates<States>, any, any>>(
     handlers: HandlersDef
   ) => Machine<
     EventSchema,
     StateSchemasOfStates<States>,
+    InputSchema,
     InferHandlerError<HandlersDef>,
     InferHandlerServices<HandlersDef>
   >
@@ -211,25 +219,39 @@ export interface Builder<
  * @since 4.0.0
  * @category models
  */
-export type Any = Machine<any, any, any, any>
+export type Any = Machine<any, any, any, any, any>
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type StateSchemasOf<M extends Any> = M extends Machine<any, infer StateSchemas, any, any> ? StateSchemas : never
+export type StateSchemasOf<M extends Any> = M extends Machine<any, infer StateSchemas, any, any, any> ? StateSchemas
+  : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type ErrorOf<M extends Any> = M extends Machine<any, any, infer E, any> ? E : never
+export type InputSchemaOf<M extends Any> = M extends Machine<any, any, infer InputSchema, any, any> ? InputSchema
+  : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type ServicesOf<M extends Any> = M extends Machine<any, any, any, infer R> ? R : never
+export type InputOf<M extends Any> = InputValue<InputSchemaOf<M>>
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type ErrorOf<M extends Any> = M extends Machine<any, any, any, infer E, any> ? E : never
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type ServicesOf<M extends Any> = M extends Machine<any, any, any, any, infer R> ? R : never
 
 /**
  * @since 4.0.0
@@ -252,18 +274,21 @@ const toEffect = <A, E, R>(value: A | Effect.Effect<A, E, R>): Effect.Effect<A, 
  */
 export const make = <
   const Events extends AnyEventTuple,
-  const States extends AnyStateTuple
+  const States extends AnyStateTuple,
+  InputSchema = undefined
 >(definition: {
   readonly id?: string | undefined
+  readonly input?: InputSchema
   readonly events: Events
-  readonly initial: Snapshot<StateSchemasOfStates<States>>
+  readonly initial: Initializer<InputSchema, Snapshot<StateSchemasOfStates<States>>>
   readonly states: States
-}): Builder<Schema.toTaggedUnion<"_tag", Events>, States> => {
+}): Builder<Schema.toTaggedUnion<"_tag", Events>, States, InputSchema> => {
   const event = normalizeEventSchema(definition)
   const initial = definition.initial
   return {
     [BuilderTypeId]: BuilderTypeId,
     id: definition.id,
+    input: definition.input as InputSchema,
     event,
     snapshot: snapshotSchemaFromStates(definition.states),
     initial,
@@ -271,6 +296,7 @@ export const make = <
     handlers: (handlers) => ({
       [TypeId]: TypeId,
       id: definition.id,
+      input: definition.input as InputSchema,
       event,
       snapshot: snapshotSchemaFromStates(definition.states),
       initial,
@@ -290,51 +316,34 @@ const normalizeEventSchema = <const Events extends AnyEventTuple>(
 
 /**
  * @since 4.0.0
- * @category accessors
- */
-export const eventSchema = <M extends Any>(self: M): M["event"] => self.event
-
-/**
- * @since 4.0.0
- * @category accessors
- */
-export const snapshotSchema = <M extends Any>(self: M): M["snapshot"] => self.snapshot
-
-/**
- * @since 4.0.0
  * @category constructors
  */
-export const decodeEvent = <M extends Any>(self: M, input: unknown) =>
-  Schema.decodeUnknownEffect(self.event as any)(input) as Effect.Effect<
-    Event<M["event"]>,
-    Schema.SchemaError,
-    M["event"]["DecodingServices"]
-  >
+type InitialArguments<M extends Any> = [InputSchemaOf<M>] extends [undefined] ? [] : [input: InputOf<M>]
 
-/**
- * @since 4.0.0
- * @category constructors
- */
-export const decodeSnapshot = <M extends Any>(self: M, input: unknown) =>
-  Schema.decodeUnknownEffect(self.snapshot as any)(input) as Effect.Effect<
-    Snapshot<StateSchemasOf<M>>,
-    Schema.SchemaError,
-    M["snapshot"]["DecodingServices"]
-  >
+const resolveInitial = <M extends Any>(self: M, args: ReadonlyArray<InputOf<M>>): Snapshot<StateSchemasOf<M>> => {
+  if (self.input === undefined) {
+    return (self.initial as () => Snapshot<StateSchemasOf<M>>)()
+  }
+  return (self.initial as (args: { readonly input: InputOf<M> }) => Snapshot<StateSchemasOf<M>>)({
+    input: args[0] as InputOf<M>
+  })
+}
 
 /**
  * @since 4.0.0
  * @category constructors
  */
 export const initial = <M extends Any>(
-  self: M
-): Effect.Effect<Snapshot<StateSchemasOf<M>>> => Effect.succeed(self.initial as any)
+  self: M,
+  ...args: InitialArguments<M>
+): Effect.Effect<Snapshot<StateSchemasOf<M>>> =>
+  Effect.sync(() => resolveInitial(self, args as ReadonlyArray<InputOf<M>>))
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const plan = <
+export const transition = <
   M extends Any,
   Source extends Snapshot<StateSchemasOf<M>>
 >(
@@ -392,7 +401,7 @@ export const next = <
   Snapshot<StateSchemasOf<M>>,
   MachineErrorOf<M>,
   ServicesOf<M>
-> => Effect.map(plan(self, snapshot, event), (plan) => plan.next)
+> => Effect.map(transition(self, snapshot, event), (plan) => plan.next)
 
 /**
  * @since 4.0.0
@@ -404,11 +413,10 @@ export const enabled = <
 >(
   self: M,
   snapshot: Source
-): Effect.Effect<ReadonlyArray<EventTag<M["event"]>>> =>
-  Effect.sync(() => {
-    const handlers = self.handlers[snapshot._tag as keyof typeof self.handlers] ?? {}
-    return Object.keys(handlers) as ReadonlyArray<EventTag<M["event"]>>
-  })
+): ReadonlyArray<EventTag<M["event"]>> => {
+  const handlers = self.handlers[snapshot._tag as keyof typeof self.handlers] ?? {}
+  return Object.keys(handlers) as ReadonlyArray<EventTag<M["event"]>>
+}
 
 /**
  * @since 4.0.0
@@ -424,10 +432,11 @@ export const graph = <M extends Any>(self: M) => ({
  * @category constructors
  */
 export const start = <M extends Any>(
-  machine: M
+  machine: M,
+  ...args: InitialArguments<M>
 ): Effect.Effect<Actor<M>, never, Scope.Scope | ServicesOf<M>> =>
   Effect.gen(function*() {
-    const initialSnapshot = yield* initial(machine)
+    const initialSnapshot = resolveInitial(machine, args as ReadonlyArray<InputOf<M>>)
     const snapshots = yield* Ref.make(initialSnapshot)
     const mailbox = yield* Queue.unbounded<Envelope<Event<M["event"]>, MachineErrorOf<M>>>()
     const changesHub = yield* PubSub.unbounded<Snapshot<StateSchemasOf<M>>>()
@@ -436,7 +445,7 @@ export const start = <M extends Any>(
       while (true) {
         const envelope = yield* Queue.take(mailbox)
         const current = yield* Ref.get(snapshots)
-        const result = yield* exit(machine, current as any, envelope.event as any)
+        const result = yield* Effect.exit(next(machine, current as any, envelope.event as any))
         if (Exit.isSuccess(result)) {
           yield* Ref.set(snapshots, result.value as any)
           yield* PubSub.publish(changesHub, result.value as any)
@@ -466,10 +475,3 @@ export const start = <M extends Any>(
       changes: Stream.concat(Stream.make(initialSnapshot), Stream.fromPubSub(changesHub))
     }
   })
-
-/**
- * @since 4.0.0
- * @category constructors
- */
-export const exit = <M extends Any>(self: M, snapshot: Snapshot<StateSchemasOf<M>>, event: Event<M["event"]>) =>
-  Effect.exit(next(self, snapshot, event))

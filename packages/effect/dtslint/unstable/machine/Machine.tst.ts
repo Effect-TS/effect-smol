@@ -41,7 +41,7 @@ describe("Machine", () => {
 
     const UserMachine = Machine.make({
       events: [Create, Rename, Delete],
-      initial: new Uncreated({}),
+      initial: () => new Uncreated({}),
       states: [Uncreated, Created, Deleted]
     }).handlers({
       Uncreated: {
@@ -78,7 +78,7 @@ describe("Machine", () => {
 
     Machine.make({
       events: [Create],
-      initial: new Uncreated({ count: 0 }),
+      initial: () => new Uncreated({ count: 0 }),
       states: [Uncreated, Created]
     }).handlers({
       Uncreated: {
@@ -115,7 +115,7 @@ describe("Machine", () => {
 
     const machine = Machine.make({
       events: [Create, Rename],
-      initial: new Idle({}),
+      initial: () => new Idle({}),
       states: [Idle, Running]
     }).handlers({
       Idle: {
@@ -134,5 +134,39 @@ describe("Machine", () => {
 
     expect<Machine.Event<typeof machine.event>>().type.toBe<Create | Rename>()
     expect<Machine.MachineErrorOf<typeof machine>>().type.toBe<Machine.UnhandledEventError>()
+  })
+
+  it("accepts schema-backed input for initial state", () => {
+    const Input = Schema.Struct({
+      email: Schema.String
+    })
+
+    class Create extends Schema.TaggedClass<Create, { readonly _: unique symbol }>()(
+      "Create",
+      { email: Schema.String }
+    ) {}
+
+    class Uncreated extends Schema.TaggedClass<Uncreated, { readonly _: unique symbol }>()(
+      "Uncreated",
+      {}
+    ) {}
+
+    class Created extends Schema.TaggedClass<Created, { readonly _: unique symbol }>()(
+      "Created",
+      { email: Schema.String }
+    ) {}
+
+    const machine = Machine.make({
+      input: Input,
+      events: [Create],
+      initial: ({ input }) => new Created({ email: input.email }),
+      states: [Uncreated, Created]
+    }).handlers({
+      Uncreated: {
+        Create: ({ event }) => new Created({ email: event.email })
+      }
+    })
+
+    expect<Machine.InputOf<typeof machine>>().type.toBe<{ readonly email: string }>()
   })
 })
