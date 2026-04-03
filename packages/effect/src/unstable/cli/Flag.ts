@@ -535,9 +535,9 @@ export const withFallbackConfig: {
  * @category combinators
  */
 export const withFallbackPrompt: {
-  <B>(prompt: Prompt.Prompt<B>): <A>(self: Flag<A>) => Flag<A | B>
-  <A, B>(self: Flag<A>, prompt: Prompt.Prompt<B>): Flag<A | B>
-} = dual(2, <A, B>(self: Flag<A>, prompt: Prompt.Prompt<B>) => Param.withFallbackPrompt(self, prompt))
+  <B>(prompt: Param.FallbackPrompt<B>): <A>(self: Flag<A>) => Flag<A | B>
+  <A, B>(self: Flag<A>, prompt: Param.FallbackPrompt<B>): Flag<A | B>
+} = dual(2, <A, B>(self: Flag<A>, prompt: Param.FallbackPrompt<B>) => Param.withFallbackPrompt(self, prompt))
 
 /**
  * Transforms the parsed value of a flag using a mapping function.

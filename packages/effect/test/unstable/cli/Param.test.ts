@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Config, ConfigProvider, Effect, FileSystem, Layer, Option, Path } from "effect"
+import { Config, ConfigProvider, Effect, FileSystem, Layer, Option, Path, Ref } from "effect"
 import { TestConsole } from "effect/testing"
 import { Argument, CliError, Flag, Prompt } from "effect/unstable/cli"
 import { ChildProcessSpawner } from "effect/unstable/process"
@@ -91,6 +91,36 @@ describe("Param", () => {
 
         assert.strictEqual(value, "notes.txt")
         assert.deepStrictEqual(remaining, [])
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("builds fallback prompts from effects lazily", () =>
+      Effect.gen(function*() {
+        const calls = yield* Ref.make(0)
+        const prompt = Effect.gen(function*() {
+          yield* Ref.update(calls, (n) => n + 1)
+          return Prompt.text({ message: "Name from effect" })
+        })
+
+        const flag = Flag.string("name").pipe(Flag.withFallbackPrompt(prompt))
+
+        const [, provided] = yield* flag.parse({
+          flags: { name: ["Ava"] },
+          arguments: []
+        })
+        assert.strictEqual(provided, "Ava")
+        assert.strictEqual(yield* Ref.get(calls), 0)
+
+        yield* MockTerminal.inputText("Mia")
+        yield* MockTerminal.inputKey("enter")
+
+        const [remaining, prompted] = yield* flag.parse({
+          flags: {},
+          arguments: ["tail"]
+        })
+
+        assert.strictEqual(prompted, "Mia")
+        assert.deepStrictEqual(remaining, ["tail"])
+        assert.strictEqual(yield* Ref.get(calls), 1)
       }).pipe(Effect.provide(TestLayer)))
 
     it.effect("prefers defaults over fallback prompts", () =>

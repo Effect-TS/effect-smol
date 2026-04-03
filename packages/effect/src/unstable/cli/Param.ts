@@ -140,6 +140,17 @@ export interface ParsedArgs {
 }
 
 /**
+ * Represents a fallback prompt that can either be provided directly or
+ * computed effectfully when the parameter is missing.
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export type FallbackPrompt<A> =
+  | Prompt.Prompt<A>
+  | Effect.Effect<Prompt.Prompt<A>, CliError.CliError, Environment>
+
+/**
  * @since 4.0.0
  * @category models
  */
@@ -1219,14 +1230,14 @@ export const withFallbackConfig: {
  * @category combinators
  */
 export const withFallbackPrompt: {
-  <B>(prompt: Prompt.Prompt<B>): <Kind extends ParamKind, A>(self: Param<Kind, A>) => Param<Kind, A | B>
-  <Kind extends ParamKind, A, B>(self: Param<Kind, A>, prompt: Prompt.Prompt<B>): Param<Kind, A | B>
+  <B>(prompt: FallbackPrompt<B>): <Kind extends ParamKind, A>(self: Param<Kind, A>) => Param<Kind, A | B>
+  <Kind extends ParamKind, A, B>(self: Param<Kind, A>, prompt: FallbackPrompt<B>): Param<Kind, A | B>
 } = dual(2, <Kind extends ParamKind, A, B>(
   self: Param<Kind, A>,
-  prompt: Prompt.Prompt<B>
+  prompt: FallbackPrompt<B>
 ): Param<Kind, A | B> => {
   const runPrompt = (error: CliError.MissingOption | CliError.MissingArgument, args: ParsedArgs) =>
-    Prompt.run(prompt).pipe(
+    Effect.flatMap(Prompt.isPrompt(prompt) ? Effect.succeed(prompt) : prompt, Prompt.run).pipe(
       Effect.map((value) => [args.arguments, value as A | B] as const),
       Effect.catchTag("QuitError", () => Effect.fail(error))
     )
