@@ -2484,6 +2484,22 @@ export function fieldsAssign<const NewFields extends Struct.Fields>(fields: NewF
   return Struct_.lambda<fieldsAssign<NewFields>>((struct) => struct.mapFields(Struct_.assign(fields)))
 }
 
+interface encodeKeys<
+  S extends Top & { readonly fields: Struct.Fields },
+  M extends { readonly [K in keyof S["fields"]]?: PropertyKey }
+> extends
+  decodeTo<
+    S,
+    Struct<
+      {
+        [
+          K in keyof S["fields"] as K extends keyof M ? M[K] extends PropertyKey ? M[K] : K : K
+        ]: toEncoded<S["fields"][K]>
+      }
+    >
+  >
+{}
+
 /**
  * Renames struct keys in the encoded form without changing the decoded type.
  *
@@ -2512,18 +2528,7 @@ export function encodeKeys<
   S extends Top & { readonly fields: Struct.Fields },
   const M extends { readonly [K in keyof S["fields"]]?: PropertyKey }
 >(mapping: M) {
-  return function(
-    self: S
-  ): decodeTo<
-    S,
-    Struct<
-      {
-        [
-          K in keyof S["fields"] as K extends keyof M ? M[K] extends PropertyKey ? M[K] : K : K
-        ]: toEncoded<S["fields"][K]>
-      }
-    >
-  > {
+  return function(self: S): encodeKeys<S, M> {
     const fields: any = {}
     const reverseMapping: any = {}
     for (const k in self.fields) {
@@ -2541,7 +2546,7 @@ export function encodeKeys<
         decode: Struct_.renameKeys(reverseMapping),
         encode: Struct_.renameKeys(mapping)
       })
-    ))
+    )) as any
   }
 }
 
