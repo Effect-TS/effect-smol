@@ -4,6 +4,7 @@
 import type { NonEmptyReadonlyArray } from "../../Array.ts"
 import * as Cause from "../../Cause.ts"
 import { Clock } from "../../Clock.ts"
+import * as Context from "../../Context.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Fiber from "../../Fiber.ts"
@@ -17,7 +18,6 @@ import * as Ref from "../../Ref.ts"
 import * as Result from "../../Result.ts"
 import * as Schedule from "../../Schedule.ts"
 import type * as Scope from "../../Scope.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
 import * as Tracer from "../../Tracer.ts"
 import type { EqualsWith, ExcludeTag, ExtractTag, NoExcessProperties, NoInfer, Tags } from "../../Types.ts"
@@ -113,7 +113,7 @@ export declare namespace HttpClient {
  * @since 4.0.0
  * @category tags
  */
-export const HttpClient: ServiceMap.Service<HttpClient, HttpClient> = ServiceMap.Service<HttpClient, HttpClient>(
+export const HttpClient: Context.Service<HttpClient, HttpClient> = Context.Service<HttpClient, HttpClient>(
   "effect/HttpClient"
 )
 
@@ -1323,7 +1323,7 @@ export const followRedirects: {
  * @since 4.0.0
  * @category References
  */
-export const TracerDisabledWhen = ServiceMap.Reference<
+export const TracerDisabledWhen = Context.Reference<
   Predicate.Predicate<HttpClientRequest.HttpClientRequest>
 >("effect/http/HttpClient/TracerDisabledWhen", {
   defaultValue: () => constFalse
@@ -1333,7 +1333,7 @@ export const TracerDisabledWhen = ServiceMap.Reference<
  * @since 4.0.0
  * @category References
  */
-export const TracerPropagationEnabled = ServiceMap.Reference<boolean>("effect/HttpClient/TracerPropagationEnabled", {
+export const TracerPropagationEnabled = Context.Reference<boolean>("effect/HttpClient/TracerPropagationEnabled", {
   defaultValue: constTrue
 })
 
@@ -1341,7 +1341,7 @@ export const TracerPropagationEnabled = ServiceMap.Reference<boolean>("effect/Ht
  * @since 4.0.0
  * @category References
  */
-export const SpanNameGenerator = ServiceMap.Reference<
+export const SpanNameGenerator = Context.Reference<
   (request: HttpClientRequest.HttpClientRequest) => string
 >("effect/http/HttpClient/SpanNameGenerator", {
   defaultValue: () => (request) => `http.client ${request.method}`
@@ -1354,11 +1354,11 @@ export const layerMergedServices = <E, R>(
   effect: Effect.Effect<HttpClient, E, R>
 ): Layer.Layer<HttpClient, E, R> =>
   Layer.effect(HttpClient)(
-    Effect.servicesWith((services: ServiceMap.ServiceMap<never>) =>
+    Effect.contextWith((services: Context.Context<never>) =>
       Effect.map(effect, (client) =>
         transformResponse(
           client,
-          Effect.updateServices((input: ServiceMap.ServiceMap<never>) => ServiceMap.merge(services, input))
+          Effect.updateContext((input: Context.Context<never>) => Context.merge(services, input))
         ))
     )
   )

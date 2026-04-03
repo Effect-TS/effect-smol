@@ -1,4 +1,4 @@
-import { Effect, Schema, ServiceMap } from "effect"
+import { Context, Effect, Schema } from "effect"
 import type { FileSystem } from "effect/FileSystem"
 import type { Path } from "effect/Path"
 import type { Generator } from "effect/unstable/http/Etag"
@@ -51,11 +51,11 @@ describe("HttpApiBuilder", () => {
   })
 })
 
-class Token extends ServiceMap.Service<Token, {
+class Token extends Context.Service<Token, {
   readonly token: string
 }>()("Token") {}
 
-class CurrentUser extends ServiceMap.Service<CurrentUser, {
+class CurrentUser extends Context.Service<CurrentUser, {
   readonly userId: string
 }>()("CurrentUser") {}
 

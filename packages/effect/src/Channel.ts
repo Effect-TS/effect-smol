@@ -60,6 +60,7 @@
 import * as Arr from "./Array.ts"
 import * as Cause from "./Cause.ts"
 import * as Chunk from "./Chunk.ts"
+import * as Context from "./Context.ts"
 import * as Effect from "./Effect.ts"
 import * as Exit from "./Exit.ts"
 import * as Fiber from "./Fiber.ts"
@@ -85,7 +86,6 @@ import * as Result from "./Result.ts"
 import * as Schedule from "./Schedule.ts"
 import * as Scope from "./Scope.ts"
 import * as Semaphore from "./Semaphore.ts"
-import * as ServiceMap from "./ServiceMap.ts"
 import * as String from "./String.ts"
 import * as Take from "./Take.ts"
 import { ParentSpan, type SpanOptions } from "./Tracer.ts"
@@ -1874,7 +1874,7 @@ const mapEffectConcurrent = <
       const queue = yield* Queue.bounded<OutElem2, OutErr | EX | Cause.Done<OutDone>>(0)
       yield* Scope.addFinalizer(forkedScope, Queue.shutdown(queue))
 
-      const runFork = Effect.runForkWith(yield* Effect.services<RX>())
+      const runFork = Effect.runForkWith(yield* Effect.context<RX>())
       const trackFiber = Fiber.runIn(forkedScope)
 
       if (options.unordered) {
@@ -6601,39 +6601,39 @@ const runWith = <
  * @since 2.0.0
  * @category Services
  */
-export const servicesWith = <Env, OutElem, OutErr, OutDone, InElem, InErr, InDone, Env2>(
-  f: (services: ServiceMap.ServiceMap<Env>) => Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env2>
+export const contextWith = <Env, OutElem, OutErr, OutDone, InElem, InErr, InDone, Env2>(
+  f: (services: Context.Context<Env>) => Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env2>
 ): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env | Env2> =>
   fromTransform((upstream, scope) =>
-    Effect.servicesWith((services: ServiceMap.ServiceMap<Env>) => toTransform(f(services))(upstream, scope))
+    Effect.contextWith((services: Context.Context<Env>) => toTransform(f(services))(upstream, scope))
   )
 
 /**
- * Provides a layer or service map to the channel, removing the corresponding
+ * Provides a layer or context to the channel, removing the corresponding
  * service requirements. Use `options.local` to build the layer every time; by
  * default, layers are shared between provide calls.
  *
  * @since 4.0.0
  * @category Services
  */
-export const provideServices: {
+export const provideContext: {
   <R2>(
-    services: ServiceMap.ServiceMap<R2>
+    services: Context.Context<R2>
   ): <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
   ) => Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Exclude<Env, R2>>
   <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, R2>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    services: ServiceMap.ServiceMap<R2>
+    services: Context.Context<R2>
   ): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Exclude<Env, R2>>
 } = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, R2>(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  services: ServiceMap.ServiceMap<R2>
+  services: Context.Context<R2>
 ): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Exclude<Env, R2>> =>
   fromTransform((upstream, scope) =>
     Effect.map(
-      Effect.provideServices(toTransform(self)(upstream, scope), services),
-      Effect.provideServices(services)
+      Effect.provideContext(toTransform(self)(upstream, scope), services),
+      Effect.provideContext(services)
     )
   ))
 
@@ -6643,19 +6643,19 @@ export const provideServices: {
  */
 export const provideService: {
   <I, S>(
-    key: ServiceMap.Key<I, S>,
+    key: Context.Key<I, S>,
     service: NoInfer<S>
   ): <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
   ) => Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Exclude<Env, I>>
   <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, I, S>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    key: ServiceMap.Key<I, S>,
+    key: Context.Key<I, S>,
     service: NoInfer<S>
   ): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Exclude<Env, I>>
 } = dual(3, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, I, S>(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  key: ServiceMap.Key<I, S>,
+  key: Context.Key<I, S>,
   service: NoInfer<S>
 ): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Exclude<Env, I>> =>
   fromTransform((upstream, scope) =>
@@ -6671,19 +6671,19 @@ export const provideService: {
  */
 export const provideServiceEffect: {
   <I, S, ES, RS>(
-    key: ServiceMap.Key<I, S>,
+    key: Context.Key<I, S>,
     service: Effect.Effect<NoInfer<S>, ES, RS>
   ): <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
   ) => Channel<OutElem, OutErr | ES, OutDone, InElem, InErr, InDone, Exclude<Env, I> | RS>
   <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, I, S, ES, RS>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    key: ServiceMap.Key<I, S>,
+    key: Context.Key<I, S>,
     service: Effect.Effect<NoInfer<S>, ES, RS>
   ): Channel<OutElem, OutErr | ES, OutDone, InElem, InErr, InDone, Exclude<Env, I> | RS>
 } = dual(3, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, I, S, ES, RS>(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  key: ServiceMap.Key<I, S>,
+  key: Context.Key<I, S>,
   service: Effect.Effect<NoInfer<S>, ES, RS>
 ): Channel<OutElem, OutErr | ES, OutDone, InElem, InErr, InDone, Exclude<Env, I> | RS> =>
   fromTransform((upstream, scope) =>
@@ -6699,7 +6699,7 @@ export const provideServiceEffect: {
  */
 export const provide: {
   <A, E = never, R = never>(
-    layer: Layer.Layer<A, E, R> | ServiceMap.ServiceMap<A>,
+    layer: Layer.Layer<A, E, R> | Context.Context<A>,
     options?: {
       readonly local?: boolean | undefined
     } | undefined
@@ -6708,27 +6708,27 @@ export const provide: {
   ) => Channel<OutElem, OutErr | E, OutDone, InElem, InErr, InDone, Exclude<Env, A> | R>
   <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, A, E = never, R = never>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    layer: Layer.Layer<A, E, R> | ServiceMap.ServiceMap<A>,
+    layer: Layer.Layer<A, E, R> | Context.Context<A>,
     options?: {
       readonly local?: boolean | undefined
     } | undefined
   ): Channel<OutElem, OutErr | E, OutDone, InElem, InErr, InDone, Exclude<Env, A> | R>
 } = dual((args) => isChannel(args[0]), <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, A, E = never, R = never>(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  layer: Layer.Layer<A, E, R> | ServiceMap.ServiceMap<A>,
+  layer: Layer.Layer<A, E, R> | Context.Context<A>,
   options?: {
     readonly local?: boolean | undefined
   } | undefined
 ): Channel<OutElem, OutErr | E, OutDone, InElem, InErr, InDone, Exclude<Env, A> | R> =>
-  ServiceMap.isServiceMap(layer) ? provideServices(self, layer) : fromTransform((upstream, scope) =>
+  Context.isContext(layer) ? provideContext(self, layer) : fromTransform((upstream, scope) =>
     Effect.flatMap(
       options?.local
         ? Layer.buildWithMemoMap(layer, Layer.makeMemoMapUnsafe(), scope)
         : Layer.buildWithScope(layer, scope),
       (services) =>
         Effect.map(
-          Effect.provideServices(toTransform(self)(upstream, scope), services),
-          Effect.provideServices(services)
+          Effect.provideContext(toTransform(self)(upstream, scope), services),
+          Effect.provideContext(services)
         )
     )
   ))
@@ -6737,24 +6737,24 @@ export const provide: {
  * @since 2.0.0
  * @category Services
  */
-export const updateServices: {
+export const updateContext: {
   <Env, R2>(
-    f: (services: ServiceMap.ServiceMap<R2>) => ServiceMap.ServiceMap<Env>
+    f: (services: Context.Context<R2>) => Context.Context<Env>
   ): <OutElem, OutErr, OutDone, InElem, InErr, InDone>(
     self: Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Env>
   ) => Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, R2>
   <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, R2>(
     self: Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Env>,
-    f: (services: ServiceMap.ServiceMap<R2>) => ServiceMap.ServiceMap<Env>
+    f: (services: Context.Context<R2>) => Context.Context<Env>
   ): Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, R2>
 } = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, R2>(
   self: Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Env>,
-  f: (services: ServiceMap.ServiceMap<R2>) => ServiceMap.ServiceMap<Env>
+  f: (services: Context.Context<R2>) => Context.Context<Env>
 ): Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, R2> =>
   fromTransform((upstream, scope) =>
-    Effect.servicesWith((services) => {
+    Effect.contextWith((services) => {
       const toProvide = f(services)
-      return toTransform(provideServices(self, toProvide))(upstream, scope)
+      return toTransform(provideContext(self, toProvide))(upstream, scope)
     })
   ))
 
@@ -6764,26 +6764,26 @@ export const updateServices: {
  */
 export const updateService: {
   <I, S>(
-    key: ServiceMap.Key<I, S>,
+    key: Context.Key<I, S>,
     f: (service: NoInfer<S>) => S
   ): <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
     self: Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Env>
   ) => Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Env | I>
   <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, I, S>(
     self: Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Env>,
-    service: ServiceMap.Key<I, S>,
+    service: Context.Key<I, S>,
     f: (service: NoInfer<S>) => S
   ): Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Env | I>
 } = dual(3, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, I, S>(
   self: Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Env>,
-  service: ServiceMap.Key<I, S>,
+  service: Context.Key<I, S>,
   f: (service: NoInfer<S>) => S
 ): Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Env | I> =>
-  updateServices(self, (services) =>
-    ServiceMap.add(
+  updateContext(self, (services) =>
+    Context.add(
       services,
       service,
-      f(ServiceMap.get(services, service))
+      f(Context.get(services, service))
     )))
 
 /**
@@ -7367,11 +7367,11 @@ export const toPull: <OutElem, OutErr, OutDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
   ) {
     const semaphore = Semaphore.makeUnsafe(1)
-    const context = yield* Effect.services<Env | Scope.Scope>()
-    const scope = ServiceMap.get(context, Scope.Scope)
+    const context = yield* Effect.context<Env | Scope.Scope>()
+    const scope = Context.get(context, Scope.Scope)
     const pull = yield* toTransform(self)(Cause.done(), scope)
     return pull.pipe(
-      Effect.provideServices(context),
+      Effect.provideContext(context),
       semaphore.withPermits(1)
     )
   },

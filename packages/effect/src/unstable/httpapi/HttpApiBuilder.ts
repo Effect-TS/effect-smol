@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import * as Encoding from "../../Encoding.ts"
 import * as Fiber from "../../Fiber.ts"
@@ -18,7 +19,6 @@ import type * as AST from "../../SchemaAST.ts"
 import * as Issue from "../../SchemaIssue.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
 import type * as Scope from "../../Scope.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
 import type { Covariant, NoInfer } from "../../Types.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
@@ -64,7 +64,7 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
   | HttpApiGroup.ToService<Id, Groups>
 > =>
   HttpRouter.use(Effect.fnUntraced(function*(router) {
-    const services = yield* Effect.services<
+    const services = yield* Effect.context<
       | Etag.Generator
       | HttpRouter.HttpRouter
       | FileSystem
@@ -120,7 +120,7 @@ export const group = <
   Exclude<Handlers.Context<Return>, Scope.Scope>
 > =>
   Layer.effectServices(Effect.gen(function*() {
-    const services = yield* Effect.services<any>()
+    const services = yield* Effect.context<any>()
     const group = api.groups[groupName]!
     const result = build(makeHandlers(group))
     const handlers: Handlers<any, any> = Effect.isEffect(result)
@@ -130,7 +130,7 @@ export const group = <
     for (const item of handlers.handlers) {
       routes.push(handlerToRoute(group as any, item, services))
     }
-    return ServiceMap.makeUnsafe(new Map([[group.key, routes]]))
+    return Context.makeUnsafe(new Map([[group.key, routes]]))
   })) as any
 
 /**
@@ -330,7 +330,7 @@ export const endpoint = <
   | HttpPlatform
   | Path
 > =>
-  Effect.servicesWith((services: ServiceMap.ServiceMap<any>) => {
+  Effect.contextWith((services: Context.Context<any>) => {
     const group = api.groups[groupName] as unknown as HttpApiGroup.AnyWithProps
     const endpoint = group.endpoints[endpointName] as unknown as HttpApiEndpoint.AnyWithProps
     return Effect.succeed(handlerToHttpEffect(group, endpoint, services, handler as any, false))
@@ -521,14 +521,14 @@ function decodePayload(
         return Effect.flatMap(
           Effect.orDie(UndefinedOr.match(existing.limits, {
             onUndefined: () => httpRequest.multipart,
-            onDefined: (limits) => Effect.provideServices(httpRequest.multipart, Multipart.limitsServices(limits))
+            onDefined: (limits) => Effect.provideContext(httpRequest.multipart, Multipart.limitsServices(limits))
           })),
           decode
         )
       }
       return Effect.succeed(UndefinedOr.match(existing.limits, {
         onUndefined: () => httpRequest.multipartStream,
-        onDefined: (limits) => Stream.provideServices(httpRequest.multipartStream, Multipart.limitsServices(limits))
+        onDefined: (limits) => Stream.provideContext(httpRequest.multipartStream, Multipart.limitsServices(limits))
       }))
     }
     case "Json":
@@ -552,7 +552,7 @@ function decodePayload(
 function handlerToHttpEffect(
   group: HttpApiGroup.AnyWithProps,
   endpoint: HttpApiEndpoint.AnyWithProps,
-  services: ServiceMap.ServiceMap<any>,
+  services: Context.Context<any>,
   handler: HttpApiEndpoint.Handler<any, any, any>,
   isRaw: boolean
 ) {
@@ -571,10 +571,10 @@ function handlerToHttpEffect(
     services,
     Effect.gen(function*() {
       const fiber = Fiber.getCurrent()!
-      const services = fiber.services
-      const httpRequest = ServiceMap.getUnsafe(services, HttpServerRequest)
-      const routeContext = ServiceMap.getUnsafe(services, HttpRouter.RouteContext)
-      const query = ServiceMap.getUnsafe(services, Request.ParsedSearchParams)
+      const services = fiber.context
+      const httpRequest = Context.getUnsafe(services, HttpServerRequest)
+      const routeContext = Context.getUnsafe(services, HttpRouter.RouteContext)
+      const query = Context.getUnsafe(services, Request.ParsedSearchParams)
       const request: any = {
         request: httpRequest,
         endpoint,
@@ -604,14 +604,14 @@ function handlerToHttpEffect(
   ).pipe(
     Effect.withErrorReporting,
     Effect.catch((error) => Effect.orDie(encodeError(error))),
-    Effect.provideServices(services)
+    Effect.provideContext(services)
   )
 }
 
 function handlerToRoute(
   group: HttpApiGroup.AnyWithProps,
   handler: Handlers.Item<any>,
-  services: ServiceMap.ServiceMap<any>
+  services: Context.Context<any>
 ): HttpRouter.Route<any, any> {
   const endpoint = handler.endpoint
   return HttpRouter.route(
@@ -636,13 +636,13 @@ const getRequestMediaType = (request: HttpServerRequest): string => {
 const applyMiddleware = <A extends Effect.Effect<any, any, any>>(
   group: HttpApiGroup.AnyWithProps,
   endpoint: HttpApiEndpoint.AnyWithProps,
-  services: ServiceMap.ServiceMap<any>,
+  services: Context.Context<any>,
   handler: A
 ) => {
   const options = { group, endpoint }
   for (const key_ of endpoint.middlewares) {
     const key = key_ as any as HttpApiMiddleware.AnyService
-    const service = ServiceMap.getUnsafe(services, key as any) as HttpApiMiddleware.HttpApiMiddleware<any, any, any>
+    const service = Context.getUnsafe(services, key as any) as HttpApiMiddleware.HttpApiMiddleware<any, any, any>
     const apply = HttpApiMiddleware.isSecurity(key)
       ? makeSecurityMiddleware(key, service as any)
       : service

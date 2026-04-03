@@ -294,12 +294,12 @@ const queryUser = Effect.fn((id: string) =>
 
 ### Layer Composition Pattern
 
-Prefer the class syntax when working with `ServiceMap.Service`. For example:
+Prefer the class syntax when working with `Context.Service`. For example:
 
 ```ts
-import { ServiceMap } from "effect"
+import { Context } from "effect"
 
-class MyService extends ServiceMap.Service<MyService, {
+class MyService extends Context.Service<MyService, {
   readonly doSomething: (input: string) => number
 }>()("MyService") {}
 ```
@@ -307,17 +307,17 @@ class MyService extends ServiceMap.Service<MyService, {
 Build applications using layered architecture:
 
 ```typescript
-import { Effect, Layer, ServiceMap } from "effect"
+import { Context, Effect, Layer } from "effect"
 
 // Define service interfaces
-class DatabaseService extends ServiceMap.Service("DatabaseService")<
+class DatabaseService extends Context.Service("DatabaseService")<
   DatabaseService,
   {
     readonly query: (sql: string) => Effect.Effect<unknown[], DatabaseError, never>
   }
 >() {}
 
-class UserService extends ServiceMap.Service("UserService")<
+class UserService extends Context.Service("UserService")<
   UserService,
   {
     readonly getUser: (id: string) => Effect.Effect<User, UserError, never>

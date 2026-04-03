@@ -1,5 +1,5 @@
 import { assert, describe, expect, it } from "@effect/vitest"
-import { Effect, FileSystem, Layer, Option, Path, ServiceMap, Stdio } from "effect"
+import { Context, Effect, FileSystem, Layer, Option, Path, Stdio } from "effect"
 import { TestConsole } from "effect/testing"
 import { Argument, CliOutput, Command, Flag, GlobalFlag } from "effect/unstable/cli"
 import { toImpl } from "effect/unstable/cli/internal/command"
@@ -50,8 +50,8 @@ describe("Command", () => {
   describe("annotations", () => {
     it.effect("should expose annotations in help docs", () =>
       Effect.gen(function*() {
-        const Team = ServiceMap.Service<never, string>("effect/test/unstable/cli/Team")
-        const Priority = ServiceMap.Service<never, number>("effect/test/unstable/cli/Priority")
+        const Team = Context.Service<never, string>("effect/test/unstable/cli/Team")
+        const Priority = Context.Service<never, number>("effect/test/unstable/cli/Priority")
         const docs: Array<Parameters<CliOutput.Formatter["formatHelpDoc"]>[0]> = []
 
         const formatter: CliOutput.Formatter = {
@@ -64,7 +64,7 @@ describe("Command", () => {
 
         const command = Command.make("deploy").pipe(
           Command.annotate(Team, "runtime"),
-          Command.annotateMerge(ServiceMap.make(Priority, 2))
+          Command.annotateMerge(Context.make(Priority, 2))
         )
 
         yield* Command.runWith(command, { version: "1.0.0" })(["--help"]).pipe(
@@ -74,13 +74,13 @@ describe("Command", () => {
 
         assert.strictEqual(docs.length, 1)
         const annotations = docs[0].annotations
-        assert.strictEqual(ServiceMap.get(annotations, Team), "runtime")
-        assert.strictEqual(ServiceMap.get(annotations, Priority), 2)
+        assert.strictEqual(Context.get(annotations, Team), "runtime")
+        assert.strictEqual(Context.get(annotations, Priority), 2)
       }))
 
     it.effect("should keep annotations when adding subcommands", () =>
       Effect.gen(function*() {
-        const Scope = ServiceMap.Service<never, string>("effect/test/unstable/cli/Scope")
+        const Scope = Context.Service<never, string>("effect/test/unstable/cli/Scope")
         const docs: Array<Parameters<CliOutput.Formatter["formatHelpDoc"]>[0]> = []
 
         const formatter: CliOutput.Formatter = {
@@ -110,8 +110,8 @@ describe("Command", () => {
         )
 
         assert.strictEqual(docs.length, 2)
-        assert.strictEqual(ServiceMap.get(docs[0].annotations, Scope), "root")
-        assert.strictEqual(ServiceMap.get(docs[1].annotations, Scope), "child")
+        assert.strictEqual(Context.get(docs[0].annotations, Scope), "root")
+        assert.strictEqual(Context.get(docs[1].annotations, Scope), "child")
       }))
   })
 
@@ -339,7 +339,7 @@ describe("Command", () => {
         const Region = GlobalFlag.setting("region")({
           flag: Flag.string("region").pipe(Flag.optional)
         })
-        const RegionFromProvide = ServiceMap.Service<never, Option.Option<string>>(
+        const RegionFromProvide = Context.Service<never, Option.Option<string>>(
           "effect/test/unstable/cli/RegionFromProvide"
         )
         const capturedFromProvide: Array<Option.Option<string>> = []
@@ -962,7 +962,7 @@ describe("Command", () => {
       Effect.gen(function*() {
         const messages: Array<string> = []
 
-        const DbUrl = ServiceMap.Service<never, string>("effect/test/unstable/cli/DbUrl")
+        const DbUrl = Context.Service<never, string>("effect/test/unstable/cli/DbUrl")
 
         const root = Command.make("app", {
           dryRun: Flag.boolean("dry-run")

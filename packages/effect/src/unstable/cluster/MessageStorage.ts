@@ -3,6 +3,7 @@
  */
 import * as Arr from "../../Array.ts"
 import { Clock } from "../../Clock.ts"
+import * as Context from "../../Context.ts"
 import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
@@ -12,7 +13,6 @@ import * as Layer from "../../Layer.ts"
 import * as Option from "../../Option.ts"
 import type { Predicate } from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Rpc from "../rpc/Rpc.ts"
 import { EntityNotAssignedToRunner, MalformedMessage, type PersistenceError } from "./ClusterError.ts"
 import * as DeliverAt from "./DeliverAt.ts"
@@ -28,7 +28,7 @@ import * as Snowflake from "./Snowflake.ts"
  * @since 4.0.0
  * @category context
  */
-export class MessageStorage extends ServiceMap.Service<MessageStorage, {
+export class MessageStorage extends Context.Service<MessageStorage, {
   /**
    * Save the provided message and its associated metadata.
    */
@@ -483,7 +483,7 @@ export const makeEncoded: (encoded: Encoded) => Effect.Effect<
           const duplicate = result
           const schema = Reply.Reply(message.rpc)
           return Schema.decodeEffect(schema)(result.lastReceivedReply.value).pipe(
-            Effect.provideServices(message.services),
+            Effect.provideContext(message.services),
             MalformedMessage.refail,
             Effect.map((reply) =>
               SaveResult.Duplicate({
@@ -630,7 +630,7 @@ export const makeEncoded: (encoded: Encoded) => Effect.Effect<
         if (!message) return Effect.void
         const schema = Reply.Reply(message.rpc)
         return Schema.decodeEffect(schema)(reply).pipe(
-          Effect.provideServices(message.services)
+          Effect.provideContext(message.services)
         ) as Effect.Effect<Reply.Reply<any>, Schema.SchemaError>
       }),
       (error) => {
@@ -699,7 +699,7 @@ export type MemoryEntry = {
  * @since 4.0.0
  * @category Memory
  */
-export const MemoryTransaction = ServiceMap.Reference<boolean>("effect/cluster/MessageStorage/MemoryTransaction", {
+export const MemoryTransaction = Context.Reference<boolean>("effect/cluster/MessageStorage/MemoryTransaction", {
   defaultValue: constFalse
 })
 
@@ -707,7 +707,7 @@ export const MemoryTransaction = ServiceMap.Reference<boolean>("effect/cluster/M
  * @since 4.0.0
  * @category Memory
  */
-export class MemoryDriver extends ServiceMap.Service<MemoryDriver>()("effect/cluster/MessageStorage/MemoryDriver", {
+export class MemoryDriver extends Context.Service<MemoryDriver>()("effect/cluster/MessageStorage/MemoryDriver", {
   make: Effect.gen(function*() {
     const clock = yield* Clock
     const requests = new Map<string, MemoryEntry>()

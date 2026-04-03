@@ -102,13 +102,13 @@ export const ordered = <Req extends Schema.Top, Res extends Schema.Top, _, E, R>
     resolver: Effect.fnUntraced(function*(entries) {
       const inputs = yield* partitionRequests(entries, options.Request)
       const results = yield* options.execute(inputs as any).pipe(
-        Effect.provideServices(entries[0].services)
+        Effect.provideContext(entries[0].services)
       )
       if (results.length !== inputs.length) {
         return yield* new ResultLengthMismatch({ expected: inputs.length, actual: results.length })
       }
       const decodedResults = yield* decodeArray(results).pipe(
-        Effect.provideServices(entries[0].services)
+        Effect.provideContext(entries[0].services)
       )
       for (let i = 0; i < entries.length; i++) {
         entries[i].completeUnsafe(Exit.succeed(decodedResults[i]))
@@ -159,10 +159,10 @@ export const grouped = <Req extends Schema.Top, Res extends Schema.Top, K, Row, 
       const inputs = yield* partitionRequests(entries, options.Request)
       const resultMap = MutableHashMap.empty<K, Arr.NonEmptyArray<Res["Type"]>>()
       const results = yield* options.execute(inputs as any).pipe(
-        Effect.provideServices(entries[0].services)
+        Effect.provideContext(entries[0].services)
       )
       const decodedResults = yield* decodeResults(results).pipe(
-        Effect.provideServices(entries[0].services)
+        Effect.provideContext(entries[0].services)
       )
       for (let i = 0, len = decodedResults.length; i < len; i++) {
         const result = decodedResults[i]
@@ -228,10 +228,10 @@ export const findById = <Id extends Schema.Top, Res extends Schema.Top, Row, E, 
     resolver: Effect.fnUntraced(function*(entries) {
       const [inputs, idMap] = yield* partitionRequestsById(entries, options.Id)
       const results = yield* options.execute(inputs as any).pipe(
-        Effect.provideServices(entries[0].services)
+        Effect.provideContext(entries[0].services)
       )
       const decodedResults = yield* decodeResults(results).pipe(
-        Effect.provideServices(entries[0].services)
+        Effect.provideContext(entries[0].services)
       )
       for (let i = 0; i < decodedResults.length; i++) {
         const result = decodedResults[i]
@@ -281,7 +281,7 @@ const void_ = <Req extends Schema.Top, _, E, R>(
     resolver: Effect.fnUntraced(function*(entries) {
       const inputs = yield* partitionRequests(entries, options.Request)
       yield* options.execute(inputs as any).pipe(
-        Effect.provideServices(entries[0].services)
+        Effect.provideContext(entries[0].services)
       )
       for (let i = 0; i < entries.length; i++) {
         entries[i].completeUnsafe(Exit.void)
@@ -320,7 +320,7 @@ const partitionRequests = function*<In, A, E, R, InE>(
 
   for (let i = 0; i < len; i++) {
     entry = requests[i]
-    yield (Effect.provideServices(handle(encode(entry.request.payload)), entry.services) as Effect.Effect<void>)
+    yield (Effect.provideContext(handle(encode(entry.request.payload)), entry.services) as Effect.Effect<void>)
   }
 
   return inputs
@@ -346,7 +346,7 @@ const partitionRequestsById = function*<In, A, E, R, InE>(
 
   for (let i = 0; i < len; i++) {
     entry = requests[i]
-    yield (Effect.provideServices(handle(encode(entry.request.payload)), entry.services) as Effect.Effect<void>)
+    yield (Effect.provideContext(handle(encode(entry.request.payload)), entry.services) as Effect.Effect<void>)
     MutableHashMap.set(byIdMap, entry.request.payload, entry)
   }
 

@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import * as Context from "../../Context.ts"
 import * as DateTime from "../../DateTime.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
@@ -15,7 +16,6 @@ import type * as Record from "../../Record.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../Schema.ts"
 import type * as Scope from "../../Scope.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import * as Rpc from "../rpc/Rpc.ts"
 import { ClientAbort } from "../rpc/RpcSchema.ts"
 import * as Activity from "../workflow/Activity.ts"
@@ -109,7 +109,7 @@ export const make = Effect.gen(function*() {
 
   const activities = new Map<string, {
     readonly activity: Activity.Any
-    readonly services: ServiceMap.ServiceMap<any>
+    readonly services: Context.Context<any>
   }>()
   const interruptedActivities = new Set<string>()
   const activityLatches = new Map<string, Latch.Latch>()
@@ -137,7 +137,7 @@ export const make = Effect.gen(function*() {
     readonly entityType: string
     readonly executionId: string
   }) => {
-    const shardGroup = ServiceMap.get(options.workflow.annotations, ClusterSchema.ShardGroup)(
+    const shardGroup = Context.get(options.workflow.annotations, ClusterSchema.ShardGroup)(
       options.executionId as EntityId.EntityId
     )
     const entityId = EntityId.make(options.executionId)
@@ -210,7 +210,7 @@ export const make = Effect.gen(function*() {
     readonly workflow: Workflow.Any
     readonly executionId: string
   }) {
-    const shardGroup = ServiceMap.get(options.workflow.annotations, ClusterSchema.ShardGroup)(
+    const shardGroup = Context.get(options.workflow.annotations, ClusterSchema.ShardGroup)(
       options.executionId as EntityId.EntityId
     )
     const entityId = EntityId.make(options.executionId)
@@ -320,7 +320,7 @@ export const make = Effect.gen(function*() {
                 }
                 return execute(workflow.payloadSchema.make(payload) as object, executionId).pipe(
                   Effect.onExit((exit) => {
-                    const suspendOnFailure = ServiceMap.get(workflow.annotations, Workflow.SuspendOnFailure)
+                    const suspendOnFailure = Context.get(workflow.annotations, Workflow.SuspendOnFailure)
                     if (!instance.suspended && !(suspendOnFailure && exit._tag === "Failure")) {
                       return parent ? ensureSuccess(sendResumeParent(parent)) : Effect.void
                     }
@@ -361,7 +361,7 @@ export const make = Effect.gen(function*() {
                   contextMap.set(Activity.CurrentAttempt.key, payload.attempt)
                   contextMap.set(WorkflowEngine.WorkflowInstance.key, instance)
                   return yield* entry.activity.executeEncoded.pipe(
-                    Effect.provideServices(ServiceMap.makeUnsafe(contextMap))
+                    Effect.provideContext(Context.makeUnsafe(contextMap))
                   )
                 }).pipe(
                   Workflow.intoResult,
@@ -462,8 +462,8 @@ export const make = Effect.gen(function*() {
 
     activityExecute: Effect.fnUntraced(
       function*(activity, attempt) {
-        const services = yield* Effect.services<WorkflowEngine.WorkflowInstance>()
-        const instance = ServiceMap.get(services, WorkflowEngine.WorkflowInstance)
+        const services = yield* Effect.context<WorkflowEngine.WorkflowInstance>()
+        const instance = Context.get(services, WorkflowEngine.WorkflowInstance)
         yield* Effect.annotateCurrentSpan("executionId", instance.executionId)
         const activityId = `${instance.executionId}/${activity.name}`
         const client = (yield* RcMap.get(clientsPartial, instance.workflow.name))(instance.executionId)
@@ -480,7 +480,7 @@ export const make = Effect.gen(function*() {
             client.activity({
               name: activity.name,
               attempt,
-              withTransaction: ServiceMap.get(activity.annotations, ClusterSchema.WithTransaction)
+              withTransaction: Context.get(activity.annotations, ClusterSchema.WithTransaction)
             })
           )
           // If the activity has suspended and did not execute, we need to resume
@@ -595,7 +595,7 @@ const ActivityRpc = Rpc.make("activity", {
     ClusterSchema.Dynamic,
     (annotations, request) =>
       (request.payload as any).withTransaction
-        ? ServiceMap.add(annotations, ClusterSchema.WithTransaction, true)
+        ? Context.add(annotations, ClusterSchema.WithTransaction, true)
         : annotations
   )
 

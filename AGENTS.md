@@ -32,14 +32,14 @@ const fn = Effect.fnUntraced(function*(param: string) {
 })
 ```
 
-## Using `ServiceMap.Service`
+## Using `Context.Service`
 
-Prefer the class syntax when working with `ServiceMap.Service`. For example:
+Prefer the class syntax when working with `Context.Service`. For example:
 
 ```ts
-import { ServiceMap } from "effect"
+import { Context } from "effect"
 
-class MyService extends ServiceMap.Service<MyService, {
+class MyService extends Context.Service<MyService, {
   readonly doSomething: (input: string) => number
 }>()("MyService") {}
 ```

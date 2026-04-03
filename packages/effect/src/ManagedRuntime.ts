@@ -1,13 +1,13 @@
 /**
  * @since 2.0.0
  */
+import type * as Context from "./Context.ts"
 import * as Effect from "./Effect.ts"
 import * as Exit from "./Exit.ts"
 import * as Fiber from "./Fiber.ts"
 import * as Layer from "./Layer.ts"
 import { hasProperty } from "./Predicate.ts"
 import * as Scope from "./Scope.ts"
-import type * as ServiceMap from "./ServiceMap.ts"
 import type { Mutable } from "./Types.ts"
 
 const TypeId = "~effect/ManagedRuntime"
@@ -45,13 +45,13 @@ export declare namespace ManagedRuntime {
 export interface ManagedRuntime<in R, out ER> {
   readonly [TypeId]: typeof TypeId
   readonly memoMap: Layer.MemoMap
-  readonly servicesEffect: Effect.Effect<ServiceMap.ServiceMap<R>, ER>
-  readonly services: () => Promise<ServiceMap.ServiceMap<R>>
+  readonly servicesEffect: Effect.Effect<Context.Context<R>, ER>
+  readonly services: () => Promise<Context.Context<R>>
 
   // internal
   readonly scope: Scope.Closeable
   // internal
-  cachedServices: ServiceMap.ServiceMap<R> | undefined
+  cachedServices: Context.Context<R> | undefined
 
   /**
    * Executes the effect using the provided Scheduler or using the global
@@ -135,9 +135,9 @@ export interface ManagedRuntime<in R, out ER> {
  * @category runtime class
  * @example
  * ```ts
- * import { Console, Effect, Layer, ManagedRuntime, ServiceMap } from "effect"
+ * import { Console, Effect, Layer, ManagedRuntime, Context } from "effect"
  *
- * class Notifications extends ServiceMap.Service<Notifications, {
+ * class Notifications extends Context.Service<Notifications, {
  *   readonly notify: (message: string) => Effect.Effect<void>
  * }>()("Notifications") {
  *   static readonly layer = Layer.succeed(this)({
@@ -181,8 +181,8 @@ export const make = <R, ER>(
           defaultRunOptions.onFiberStart
       }
       : defaultRunOptions as O
-  let buildFiber: Fiber.Fiber<ServiceMap.ServiceMap<R>, ER> | undefined
-  const servicesEffect = Effect.withFiber<ServiceMap.ServiceMap<R>, ER>((fiber) => {
+  let buildFiber: Fiber.Fiber<Context.Context<R>, ER> | undefined
+  const servicesEffect = Effect.withFiber<Context.Context<R>, ER>((fiber) => {
     if (!buildFiber) {
       buildFiber = Effect.runFork(
         Effect.tap(
@@ -263,6 +263,6 @@ function provide<R, ER, A, E>(
 ): Effect.Effect<A, E | ER> {
   return Effect.flatMap(
     managed.servicesEffect,
-    (services) => Effect.provideServices(effect, services)
+    (services) => Effect.provideContext(effect, services)
   )
 }

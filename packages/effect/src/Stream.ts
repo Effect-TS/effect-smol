@@ -6,6 +6,7 @@ import * as Arr from "./Array.ts"
 import * as Cause from "./Cause.ts"
 import * as Channel from "./Channel.ts"
 import { Clock } from "./Clock.ts"
+import * as Context from "./Context.ts"
 import * as Duration from "./Duration.ts"
 import * as Effect from "./Effect.ts"
 import * as Equal from "./Equal.ts"
@@ -37,7 +38,6 @@ import * as RcRef from "./RcRef.ts"
 import * as Result from "./Result.ts"
 import * as Schedule from "./Schedule.ts"
 import * as Scope from "./Scope.ts"
-import * as ServiceMap from "./ServiceMap.ts"
 import * as Sink from "./Sink.ts"
 import { isString } from "./String.ts"
 import type * as Take from "./Take.ts"
@@ -359,9 +359,9 @@ export const fromEffect = <A, E, R>(effect: Effect.Effect<A, E, R>): Stream<A, E
  *
  * @example
  * ```ts
- * import { Effect, ServiceMap, Stream } from "effect"
+ * import { Effect, Context, Stream } from "effect"
  *
- * class Greeter extends ServiceMap.Service<Greeter, {
+ * class Greeter extends Context.Service<Greeter, {
  *   readonly greet: (name: string) => string
  * }>()("Greeter") {}
  *
@@ -383,9 +383,9 @@ export const fromEffect = <A, E, R>(effect: Effect.Effect<A, E, R>): Stream<A, E
  * ```
  *
  * @since 4.0.0
- * @category ServiceMap
+ * @category Context
  */
-export const service = <I, S>(service: ServiceMap.Key<I, S>): Stream<S, never, I> => fromEffect(Effect.service(service))
+export const service = <I, S>(service: Context.Key<I, S>): Stream<S, never, I> => fromEffect(Effect.service(service))
 
 /**
  * Optionally accesses a service from the context and emits the result as a
@@ -393,9 +393,9 @@ export const service = <I, S>(service: ServiceMap.Key<I, S>): Stream<S, never, I
  *
  * @example
  * ```ts
- * import { Effect, Option, ServiceMap, Stream } from "effect"
+ * import { Effect, Option, Context, Stream } from "effect"
  *
- * class Greeter extends ServiceMap.Service<Greeter, {
+ * class Greeter extends Context.Service<Greeter, {
  *   readonly greet: (name: string) => string
  * }>()("Greeter") {}
  *
@@ -422,9 +422,9 @@ export const service = <I, S>(service: ServiceMap.Key<I, S>): Stream<S, never, I
  * ```
  *
  * @since 4.0.0
- * @category ServiceMap
+ * @category Context
  */
-export const serviceOption = <I, S>(service: ServiceMap.Key<I, S>): Stream<Option.Option<S>> =>
+export const serviceOption = <I, S>(service: Context.Key<I, S>): Stream<Option.Option<S>> =>
   fromEffect(Effect.serviceOption(service))
 
 /**
@@ -1084,9 +1084,9 @@ export const fromIterable = <A>(
  *
  * @example
  * ```ts
- * import { Console, Effect, ServiceMap, Stream } from "effect"
+ * import { Console, Effect, Context, Stream } from "effect"
  *
- * class UserRepo extends ServiceMap.Service<UserRepo, {
+ * class UserRepo extends Context.Service<UserRepo, {
  *   readonly list: Effect.Effect<ReadonlyArray<string>>
  * }>()("UserRepo") {}
  *
@@ -5809,9 +5809,9 @@ export const retry: {
  *
  * @example
  * ```ts
- * import { Console, Effect, ExecutionPlan, Layer, ServiceMap, Stream } from "effect"
+ * import { Console, Effect, ExecutionPlan, Layer, Context, Stream } from "effect"
  *
- * class Service extends ServiceMap.Service<Service>()("Service", {
+ * class Service extends Context.Service<Service>()("Service", {
  *   make: Effect.succeed({
  *     stream: Stream.fail("A") as Stream.Stream<number, string>
  *   })
@@ -9294,7 +9294,7 @@ export const ensuring: {
 )
 
 /**
- * Provides a layer or service map to the stream, removing the corresponding
+ * Provides a layer or context to the stream, removing the corresponding
  * service requirements. Use `options.local` to build the layer every time; by
  * default, layers are shared between provide calls.
  *
@@ -9302,9 +9302,9 @@ export const ensuring: {
  *
  * @example
  * ```ts
- * import { Console, Effect, Layer, ServiceMap, Stream } from "effect"
+ * import { Console, Effect, Layer, Context, Stream } from "effect"
  *
- * class Env extends ServiceMap.Service<Env, { readonly name: string }>()("Env") {}
+ * class Env extends Context.Service<Env, { readonly name: string }>()("Env") {}
  *
  * const layer = Layer.succeed(Env)({ name: "Ada" })
  *
@@ -9331,7 +9331,7 @@ export const ensuring: {
  */
 export const provide: {
   <AL, EL = never, RL = never>(
-    layer: Layer.Layer<AL, EL, RL> | ServiceMap.ServiceMap<AL>,
+    layer: Layer.Layer<AL, EL, RL> | Context.Context<AL>,
     options?: {
       readonly local?: boolean | undefined
     } | undefined
@@ -9340,31 +9340,31 @@ export const provide: {
   ) => Stream<A, E | EL, Exclude<R, AL> | RL>
   <A, E, R, AL, EL = never, RL = never>(
     self: Stream<A, E, R>,
-    layer: Layer.Layer<AL, EL, RL> | ServiceMap.ServiceMap<AL>,
+    layer: Layer.Layer<AL, EL, RL> | Context.Context<AL>,
     options?: {
       readonly local?: boolean | undefined
     } | undefined
   ): Stream<A, E | EL, Exclude<R, AL> | RL>
 } = dual((args) => isStream(args[0]), <A, E, R, AL, EL = never, RL = never>(
   self: Stream<A, E, R>,
-  layer: Layer.Layer<AL, EL, RL> | ServiceMap.ServiceMap<AL>,
+  layer: Layer.Layer<AL, EL, RL> | Context.Context<AL>,
   options?: {
     readonly local?: boolean | undefined
   } | undefined
 ): Stream<A, E | EL, Exclude<R, AL> | RL> => fromChannel(Channel.provide(self.channel, layer, options)))
 
 /**
- * Provides multiple services to the stream using a service map.
+ * Provides multiple services to the stream using a context.
  *
  * @example
  * ```ts
- * import { Console, Effect, ServiceMap, Stream } from "effect"
+ * import { Console, Effect, Context, Stream } from "effect"
  *
- * class Config extends ServiceMap.Service<Config, { readonly prefix: string }>()("Config") {}
- * class Greeter extends ServiceMap.Service<Greeter, { greet: (name: string) => string }>()("Greeter") {}
+ * class Config extends Context.Service<Config, { readonly prefix: string }>()("Config") {}
+ * class Greeter extends Context.Service<Greeter, { greet: (name: string) => string }>()("Greeter") {}
  *
- * const services = ServiceMap.make(Config, { prefix: "Hello" }).pipe(
- *   ServiceMap.add(Greeter, { greet: (name: string) => `${name}!` })
+ * const services = Context.make(Config, { prefix: "Hello" }).pipe(
+ *   Context.add(Greeter, { greet: (name: string) => `${name}!` })
  * )
  *
  * const stream = Stream.fromEffect(
@@ -9376,7 +9376,7 @@ export const provide: {
  * )
  *
  * const program = Effect.gen(function*() {
- *   const result = yield* Stream.runCollect(Stream.provideServices(stream, services))
+ *   const result = yield* Stream.runCollect(Stream.provideContext(stream, services))
  *   yield* Console.log(result)
  * })
  *
@@ -9387,13 +9387,13 @@ export const provide: {
  * @since 4.0.0
  * @category Services
  */
-export const provideServices: {
-  <R2>(services: ServiceMap.ServiceMap<R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, Exclude<R, R2>>
-  <A, E, R, R2>(self: Stream<A, E, R>, services: ServiceMap.ServiceMap<R2>): Stream<A, E, Exclude<R, R2>>
+export const provideContext: {
+  <R2>(services: Context.Context<R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, Exclude<R, R2>>
+  <A, E, R, R2>(self: Stream<A, E, R>, services: Context.Context<R2>): Stream<A, E, Exclude<R, R2>>
 } = dual(
   2,
-  <A, E, R, R2>(self: Stream<A, E, R>, services: ServiceMap.ServiceMap<R2>): Stream<A, E, Exclude<R, R2>> =>
-    fromChannel(Channel.provideServices(self.channel, services))
+  <A, E, R, R2>(self: Stream<A, E, R>, services: Context.Context<R2>): Stream<A, E, Exclude<R, R2>> =>
+    fromChannel(Channel.provideContext(self.channel, services))
 )
 
 /**
@@ -9402,9 +9402,9 @@ export const provideServices: {
  *
  * @example
  * ```ts
- * import { Console, Effect, ServiceMap, Stream } from "effect"
+ * import { Console, Effect, Context, Stream } from "effect"
  *
- * class Greeter extends ServiceMap.Service<Greeter, {
+ * class Greeter extends Context.Service<Greeter, {
  *   greet: (name: string) => string
  * }>()("Greeter") {}
  *
@@ -9434,19 +9434,19 @@ export const provideServices: {
  */
 export const provideService: {
   <I, S>(
-    key: ServiceMap.Key<I, S>,
+    key: Context.Key<I, S>,
     service: NoInfer<S>
   ): <A, E, R>(
     self: Stream<A, E, R>
   ) => Stream<A, E, Exclude<R, I>>
   <A, E, R, I, S>(
     self: Stream<A, E, R>,
-    key: ServiceMap.Key<I, S>,
+    key: Context.Key<I, S>,
     service: NoInfer<S>
   ): Stream<A, E, Exclude<R, I>>
 } = dual(3, <A, E, R, I, S>(
   self: Stream<A, E, R>,
-  key: ServiceMap.Key<I, S>,
+  key: Context.Key<I, S>,
   service: NoInfer<S>
 ): Stream<A, E, Exclude<R, I>> => fromChannel(Channel.provideService(self.channel, key, service)))
 
@@ -9455,9 +9455,9 @@ export const provideService: {
  *
  * @example
  * ```ts
- * import { Console, Effect, ServiceMap, Stream } from "effect"
+ * import { Console, Effect, Context, Stream } from "effect"
  *
- * class ApiConfig extends ServiceMap.Service<ApiConfig, { readonly baseUrl: string }>()("ApiConfig") {}
+ * class ApiConfig extends Context.Service<ApiConfig, { readonly baseUrl: string }>()("ApiConfig") {}
  *
  * const stream = Stream.fromEffect(
  *   Effect.gen(function*() {
@@ -9490,32 +9490,32 @@ export const provideService: {
  */
 export const provideServiceEffect: {
   <I, S, ES, RS>(
-    key: ServiceMap.Key<I, S>,
+    key: Context.Key<I, S>,
     service: Effect.Effect<NoInfer<S>, ES, RS>
   ): <A, E, R>(
     self: Stream<A, E, R>
   ) => Stream<A, E | ES, Exclude<R, I> | RS>
   <A, E, R, I, S, ES, RS>(
     self: Stream<A, E, R>,
-    key: ServiceMap.Key<I, S>,
+    key: Context.Key<I, S>,
     service: Effect.Effect<NoInfer<S>, ES, RS>
   ): Stream<A, E | ES, Exclude<R, I> | RS>
 } = dual(3, <A, E, R, I, S, ES, RS>(
   self: Stream<A, E, R>,
-  key: ServiceMap.Key<I, S>,
+  key: Context.Key<I, S>,
   service: Effect.Effect<NoInfer<S>, ES, RS>
 ): Stream<A, E | ES, Exclude<R, I> | RS> => fromChannel(Channel.provideServiceEffect(self.channel, key, service)))
 
 /**
- * Transforms the stream's required services by mapping the current service map
+ * Transforms the stream's required services by mapping the current context
  * to a new one.
  *
  * @example
  * ```ts
- * import { Console, Effect, ServiceMap, Stream } from "effect"
+ * import { Console, Effect, Context, Stream } from "effect"
  *
- * class Logger extends ServiceMap.Service<Logger, { prefix: string }>()("Logger") {}
- * class Config extends ServiceMap.Service<Config, { name: string }>()("Config") {}
+ * class Logger extends Context.Service<Logger, { prefix: string }>()("Logger") {}
+ * class Config extends Context.Service<Config, { name: string }>()("Config") {}
  *
  * const stream = Stream.fromEffect(
  *   Effect.gen(function*() {
@@ -9526,8 +9526,8 @@ export const provideServiceEffect: {
  * )
  *
  * const updated = stream.pipe(
- *   Stream.updateServices((services: ServiceMap.ServiceMap<Logger>) =>
- *     ServiceMap.add(services, Config, { name: "World" })
+ *   Stream.updateContext((services: Context.Context<Logger>) =>
+ *     Context.add(services, Config, { name: "World" })
  *   )
  * )
  *
@@ -9545,29 +9545,29 @@ export const provideServiceEffect: {
  * @since 2.0.0
  * @category Services
  */
-export const updateServices: {
+export const updateContext: {
   <R, R2>(
-    f: (services: ServiceMap.ServiceMap<R2>) => ServiceMap.ServiceMap<R>
+    f: (services: Context.Context<R2>) => Context.Context<R>
   ): <A, E>(
     self: Stream<A, E, R>
   ) => Stream<A, E, R2>
   <A, E, R, R2>(
     self: Stream<A, E, R>,
-    f: (services: ServiceMap.ServiceMap<R2>) => ServiceMap.ServiceMap<R>
+    f: (services: Context.Context<R2>) => Context.Context<R>
   ): Stream<A, E, R2>
 } = dual(2, <A, E, R, R2>(
   self: Stream<A, E, R>,
-  f: (services: ServiceMap.ServiceMap<R2>) => ServiceMap.ServiceMap<R>
-): Stream<A, E, R2> => fromChannel(Channel.updateServices(self.channel, f)))
+  f: (services: Context.Context<R2>) => Context.Context<R>
+): Stream<A, E, R2> => fromChannel(Channel.updateContext(self.channel, f)))
 
 /**
  * Updates a single service in the stream environment by applying a function.
  *
  * @example
  * ```ts
- * import { Console, Effect, ServiceMap, Stream } from "effect"
+ * import { Console, Effect, Context, Stream } from "effect"
  *
- * class Counter extends ServiceMap.Service<Counter, { count: number }>()("Counter") {}
+ * class Counter extends Context.Service<Counter, { count: number }>()("Counter") {}
  *
  * const stream = Stream.fromEffect(Effect.service(Counter)).pipe(
  *   Stream.updateService(Counter, (counter) => ({ count: counter.count + 1 }))
@@ -9587,26 +9587,26 @@ export const updateServices: {
  */
 export const updateService: {
   <I, S>(
-    key: ServiceMap.Key<I, S>,
+    key: Context.Key<I, S>,
     f: (service: NoInfer<S>) => S
   ): <A, E, R>(
     self: Stream<A, E, R>
   ) => Stream<A, E, R | I>
   <A, E, R, I, S>(
     self: Stream<A, E, R>,
-    key: ServiceMap.Key<I, S>,
+    key: Context.Key<I, S>,
     f: (service: NoInfer<S>) => S
   ): Stream<A, E, R | I>
 } = dual(3, <A, E, R, I, S>(
   self: Stream<A, E, R>,
-  service: ServiceMap.Key<I, S>,
+  service: Context.Key<I, S>,
   f: (service: NoInfer<S>) => S
 ): Stream<A, E, R | I> =>
-  updateServices(self, (services) =>
-    ServiceMap.add(
+  updateContext(self, (services) =>
+    Context.add(
       services,
       service,
-      f(ServiceMap.get(services, service))
+      f(Context.get(services, service))
     )))
 
 /**
@@ -10365,10 +10365,10 @@ export const mkUint8Array = <E, R>(self: Stream<Uint8Array, E, R>): Effect.Effec
  *
  * @example
  * ```ts
- * import { ServiceMap, Stream } from "effect"
+ * import { Context, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3, 4, 5)
- * const readableStream = Stream.toReadableStreamWith(stream, ServiceMap.empty())
+ * const readableStream = Stream.toReadableStreamWith(stream, Context.empty())
  * ```
  *
  * @since 2.0.0
@@ -10376,19 +10376,19 @@ export const mkUint8Array = <E, R>(self: Stream<Uint8Array, E, R>): Effect.Effec
  */
 export const toReadableStreamWith = dual<
   <A, XR>(
-    services: ServiceMap.ServiceMap<XR>,
+    services: Context.Context<XR>,
     options?: { readonly strategy?: QueuingStrategy<A> | undefined }
   ) => <E, R extends XR>(self: Stream<A, E, R>) => ReadableStream<A>,
   <A, E, XR, R extends XR>(
     self: Stream<A, E, R>,
-    services: ServiceMap.ServiceMap<XR>,
+    services: Context.Context<XR>,
     options?: { readonly strategy?: QueuingStrategy<A> | undefined }
   ) => ReadableStream<A>
 >(
   (args) => isStream(args[0]),
   <A, E, XR, R extends XR>(
     self: Stream<A, E, R>,
-    services: ServiceMap.ServiceMap<XR>,
+    services: Context.Context<XR>,
     options?: { readonly strategy?: QueuingStrategy<A> | undefined }
   ): ReadableStream<A> => {
     let currentResolve: (() => void) | undefined = undefined
@@ -10397,7 +10397,7 @@ export const toReadableStreamWith = dual<
 
     return new ReadableStream<A>({
       start(controller) {
-        fiber = Effect.runFork(Effect.provideServices(
+        fiber = Effect.runFork(Effect.provideContext(
           runForEachArray(self, (chunk) =>
             latch.whenOpen(Effect.sync(() => {
               latch.closeUnsafe()
@@ -10462,7 +10462,7 @@ export const toReadableStream: {
   <A, E>(
     self: Stream<A, E>,
     options?: { readonly strategy?: QueuingStrategy<A> | undefined }
-  ): ReadableStream<A> => toReadableStreamWith(self, ServiceMap.empty(), options)
+  ): ReadableStream<A> => toReadableStreamWith(self, Context.empty(), options)
 )
 
 /**
@@ -10504,7 +10504,7 @@ export const toReadableStreamEffect: {
     options?: { readonly strategy?: QueuingStrategy<A> | undefined }
   ): Effect.Effect<ReadableStream<A>, never, R> =>
     Effect.map(
-      Effect.services<R>(),
+      Effect.context<R>(),
       (context) => toReadableStreamWith(self, context, options)
     )
 )
@@ -10514,10 +10514,10 @@ export const toReadableStreamEffect: {
  *
  * @example
  * ```ts
- * import { ServiceMap, Stream } from "effect"
+ * import { Context, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3)
- * const iterable = Stream.toAsyncIterableWith(stream, ServiceMap.empty())
+ * const iterable = Stream.toAsyncIterableWith(stream, Context.empty())
  *
  * const collect = async () => {
  *   const results: Array<number> = []
@@ -10532,16 +10532,16 @@ export const toReadableStreamEffect: {
  * @category Destructors
  */
 export const toAsyncIterableWith: {
-  <XR>(services: ServiceMap.ServiceMap<XR>): <A, E, R extends XR>(self: Stream<A, E, R>) => AsyncIterable<A>
+  <XR>(services: Context.Context<XR>): <A, E, R extends XR>(self: Stream<A, E, R>) => AsyncIterable<A>
   <A, E, XR, R extends XR>(
     self: Stream<A, E, R>,
-    services: ServiceMap.ServiceMap<XR>
+    services: Context.Context<XR>
   ): AsyncIterable<A>
 } = dual(
   2,
   <A, E, XR, R extends XR>(
     self: Stream<A, E, R>,
-    services: ServiceMap.ServiceMap<XR>
+    services: Context.Context<XR>
   ): AsyncIterable<A> => ({
     [Symbol.asyncIterator]() {
       const runPromise = Effect.runPromiseWith(services)
@@ -10607,7 +10607,7 @@ export const toAsyncIterableWith: {
  */
 export const toAsyncIterableEffect = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<AsyncIterable<A>, never, R> =>
   Effect.map(
-    Effect.services<R>(),
+    Effect.context<R>(),
     (services) => toAsyncIterableWith(self, services)
   )
 
@@ -10637,7 +10637,7 @@ export const toAsyncIterableEffect = <A, E, R>(self: Stream<A, E, R>): Effect.Ef
  * @category Destructors
  */
 export const toAsyncIterable = <A, E>(self: Stream<A, E>): AsyncIterable<A> =>
-  toAsyncIterableWith(self, ServiceMap.empty())
+  toAsyncIterableWith(self, Context.empty())
 
 /**
  * Runs the stream, publishing elements into the provided PubSub.

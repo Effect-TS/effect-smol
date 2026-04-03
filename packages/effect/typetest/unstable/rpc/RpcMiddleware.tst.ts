@@ -1,9 +1,9 @@
-import { Schema, ServiceMap } from "effect"
+import { Context, Schema } from "effect"
 import * as RpcMiddleware from "effect/unstable/rpc/RpcMiddleware"
 import { describe, expect, it } from "tstyche"
 
-class CurrentUser extends ServiceMap.Service<CurrentUser, { id: string }>()("CurrentUser") {}
-class DbConnection extends ServiceMap.Service<DbConnection, { url: string }>()("DbConnection") {}
+class CurrentUser extends Context.Service<CurrentUser, { id: string }>()("CurrentUser") {}
+class DbConnection extends Context.Service<DbConnection, { url: string }>()("DbConnection") {}
 
 class AuthMiddleware extends RpcMiddleware.Service<AuthMiddleware, {
   provides: CurrentUser

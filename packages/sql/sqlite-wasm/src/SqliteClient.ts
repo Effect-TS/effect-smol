@@ -6,6 +6,7 @@ import * as WaSqlite from "@effect/wa-sqlite"
 import SQLiteESMFactory from "@effect/wa-sqlite/dist/wa-sqlite.mjs"
 import { MemoryVFS } from "@effect/wa-sqlite/src/examples/MemoryVFS.js"
 import * as Config from "effect/Config"
+import * as Context from "effect/Context"
 import * as Deferred from "effect/Deferred"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
@@ -15,7 +16,6 @@ import * as Layer from "effect/Layer"
 import * as Scope from "effect/Scope"
 import * as ScopedRef from "effect/ScopedRef"
 import * as Semaphore from "effect/Semaphore"
-import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import * as Client from "effect/unstable/sql/SqlClient"
@@ -59,7 +59,7 @@ export interface SqliteClient extends Client.SqlClient {
  * @category tags
  * @since 1.0.0
  */
-export const SqliteClient = ServiceMap.Service<SqliteClient>("@effect/sql-sqlite-wasm/SqliteClient")
+export const SqliteClient = Context.Service<SqliteClient>("@effect/sql-sqlite-wasm/SqliteClient")
 
 /**
  * @category models
@@ -230,7 +230,7 @@ export const makeMemory = (
     const acquirer = semaphore.withPermits(1)(Effect.succeed(connection))
     const transactionAcquirer = Effect.uninterruptibleMask((restore) => {
       const fiber = Fiber.getCurrent()!
-      const scope = ServiceMap.getUnsafe(fiber.services, Scope.Scope)
+      const scope = Context.getUnsafe(fiber.context, Scope.Scope)
       return Effect.as(
         Effect.tap(
           restore(semaphore.take(1)),
@@ -392,7 +392,7 @@ export const make = (
     const acquirer = semaphore.withPermits(1)(ScopedRef.get(connectionRef))
     const transactionAcquirer = Effect.uninterruptibleMask(Effect.fnUntraced(function*(restore) {
       const fiber = Fiber.getCurrent()!
-      const scope = ServiceMap.getUnsafe(fiber.services, Scope.Scope)
+      const scope = Context.getUnsafe(fiber.context, Scope.Scope)
       yield* restore(semaphore.take(1))
       yield* Scope.addFinalizer(scope, semaphore.release(1))
       return yield* ScopedRef.get(connectionRef)
@@ -434,7 +434,7 @@ const extractRows = (rows: [Array<string>, Array<any>]) => rows[1]
  * @category tranferables
  * @since 1.0.0
  */
-export const Transferables = ServiceMap.Reference<ReadonlyArray<Transferable>>(
+export const Transferables = Context.Reference<ReadonlyArray<Transferable>>(
   "@effect/sql-sqlite-wasm/currentTransferables",
   { defaultValue: () => [] }
 )
@@ -458,8 +458,8 @@ export const layerMemoryConfig = (
     Config.unwrap(config).asEffect().pipe(
       Effect.flatMap(makeMemory),
       Effect.map((client) =>
-        ServiceMap.make(SqliteClient, client).pipe(
-          ServiceMap.add(Client.SqlClient, client)
+        Context.make(SqliteClient, client).pipe(
+          Context.add(Client.SqlClient, client)
         )
       )
     )
@@ -474,8 +474,8 @@ export const layerMemory = (
 ): Layer.Layer<SqliteClient | Client.SqlClient, SqlError> =>
   Layer.effectServices(
     Effect.map(makeMemory(config), (client) =>
-      ServiceMap.make(SqliteClient, client).pipe(
-        ServiceMap.add(Client.SqlClient, client)
+      Context.make(SqliteClient, client).pipe(
+        Context.add(Client.SqlClient, client)
       ))
   ).pipe(Layer.provide(Reactivity.layer))
 
@@ -488,8 +488,8 @@ export const layer = (
 ): Layer.Layer<SqliteClient | Client.SqlClient, SqlError> =>
   Layer.effectServices(
     Effect.map(make(config), (client) =>
-      ServiceMap.make(SqliteClient, client).pipe(
-        ServiceMap.add(Client.SqlClient, client)
+      Context.make(SqliteClient, client).pipe(
+        Context.add(Client.SqlClient, client)
       ))
   ).pipe(Layer.provide(Reactivity.layer))
 
@@ -504,8 +504,8 @@ export const layerConfig = (
     Config.unwrap(config).asEffect().pipe(
       Effect.flatMap(make),
       Effect.map((client) =>
-        ServiceMap.make(SqliteClient, client).pipe(
-          ServiceMap.add(Client.SqlClient, client)
+        Context.make(SqliteClient, client).pipe(
+          Context.add(Client.SqlClient, client)
         )
       )
     )

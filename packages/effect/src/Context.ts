@@ -1,12 +1,12 @@
 /**
- * This module provides a data structure called `ServiceMap` that can be used
+ * This module provides a data structure called `Context` that can be used
  * for dependency injection in effectful programs. It is essentially a table
  * mapping `Service`s identifiers to their implementations, and can be used to
- * manage dependencies in a type-safe way. The `ServiceMap` data structure is
+ * manage dependencies in a type-safe way. The `Context` data structure is
  * essentially a way of providing access to a set of related services that can
  * be passed around as a single unit. This module provides functions to create,
- * modify, and query the contents of a `ServiceMap`, as well as a number of
- * utility types for working with a `ServiceMap`.
+ * modify, and query the contents of a `Context`, as well as a number of
+ * utility types for working with a `Context`.
  *
  * @since 4.0.0
  */
@@ -26,16 +26,16 @@ import type * as Types from "./Types.ts"
  * @since 4.0.0
  * @category Type Identifiers
  */
-export type ServiceTypeId = "~effect/ServiceMap/Service"
+export type ServiceTypeId = "~effect/Context/Service"
 
 /**
  * @since 4.0.0
  * @category Type Identifiers
  */
-export const ServiceTypeId: ServiceTypeId = "~effect/ServiceMap/Service"
+export const ServiceTypeId: ServiceTypeId = "~effect/Context/Service"
 
 /**
- * The base type used for all ServiceMap keys.
+ * The base type used for all Context keys.
  *
  * @since 4.0.0
  * @category Models
@@ -52,15 +52,15 @@ export interface Key<out Identifier, out Shape> extends Pipeable, Inspectable {
 /**
  * @example
  * ```ts
- * import { ServiceMap } from "effect"
+ * import { Context } from "effect"
  *
  * // Define an identifier for a database service
- * const Database = ServiceMap.Service<{ query: (sql: string) => string }>(
+ * const Database = Context.Service<{ query: (sql: string) => string }>(
  *   "Database"
  * )
  *
  * // The key can be used to store and retrieve services
- * const services = ServiceMap.make(Database, { query: (sql) => `Result: ${sql}` })
+ * const services = Context.make(Database, { query: (sql) => `Result: ${sql}` })
  * ```
  *
  * @since 4.0.0
@@ -70,7 +70,7 @@ export interface Service<in out Identifier, in out Shape>
   extends Key<Identifier, Shape>, Yieldable<Service<Identifier, Shape>, Shape, never, Identifier>
 {
   of(this: void, self: Shape): Shape
-  serviceMap(self: Shape): ServiceMap<Identifier>
+  context(self: Shape): Context<Identifier>
   use<A, E, R>(f: (service: Shape) => Effect<A, E, R>): Effect<A, E, R | Identifier>
   useSync<A>(f: (service: Shape) => A): Effect<A, never, Identifier>
 }
@@ -105,23 +105,23 @@ export declare namespace ServiceClass {
 /**
  * @example
  * ```ts
- * import { ServiceMap } from "effect"
+ * import { Context } from "effect"
  *
  * // Create a simple service
- * const Database = ServiceMap.Service<{
+ * const Database = Context.Service<{
  *   query: (sql: string) => string
  * }>("Database")
  *
  * // Create a service class
- * class Config extends ServiceMap.Service<Config, {
+ * class Config extends Context.Service<Config, {
  *   port: number
  * }>()("Config") {}
  *
- * // Use the services to create service maps
- * const db = ServiceMap.make(Database, {
+ * // Use the services to create contexts
+ * const db = Context.make(Database, {
  *   query: (sql) => `Result: ${sql}`
  * })
- * const config = ServiceMap.make(Config, { port: 8080 })
+ * const config = Context.make(Config, { port: 8080 })
  * ```
  *
  * @since 4.0.0
@@ -205,42 +205,42 @@ const ServiceProto: any = {
     }
   },
   asEffect(this: any) {
-    const fn = this.asEffect = constant(withFiber((fiber) => exitSucceed(get(fiber.services, this))))
+    const fn = this.asEffect = constant(withFiber((fiber) => exitSucceed(get(fiber.context, this))))
     return fn()
   },
   of<Service>(this: void, self: Service): Service {
     return self
   },
-  serviceMap<Identifier, Shape>(
+  context<Identifier, Shape>(
     this: Service<Identifier, Shape>,
     self: Shape
-  ): ServiceMap<Identifier> {
+  ): Context<Identifier> {
     return make(this, self)
   },
   use<A, E, R>(this: Service<never, any>, f: (service: any) => Effect<A, E, R>): Effect<A, E, R> {
-    return withFiber((fiber) => f(get(fiber.services, this)))
+    return withFiber((fiber) => f(get(fiber.context, this)))
   },
   useSync<A>(this: Service<never, any>, f: (service: any) => A): Effect<A, never, never> {
-    return withFiber((fiber) => exitSucceed(f(get(fiber.services, this))))
+    return withFiber((fiber) => exitSucceed(f(get(fiber.context, this))))
   }
 }
 
-const ReferenceTypeId = "~effect/ServiceMap/Reference" as const
+const ReferenceTypeId = "~effect/Context/Reference" as const
 
 /**
  * @example
  * ```ts
- * import { ServiceMap } from "effect"
+ * import { Context } from "effect"
  *
  * // Define a reference with a default value
- * const LoggerRef: ServiceMap.Reference<{ log: (msg: string) => void }> =
- *   ServiceMap.Reference("Logger", {
+ * const LoggerRef: Context.Reference<{ log: (msg: string) => void }> =
+ *   Context.Reference("Logger", {
  *     defaultValue: () => ({ log: (msg: string) => console.log(msg) })
  *   })
  *
  * // The reference can be used without explicit provision
- * const serviceMap = ServiceMap.empty()
- * const logger = ServiceMap.get(serviceMap, LoggerRef) // Uses default value
+ * const context = Context.empty()
+ * const logger = Context.get(context, LoggerRef) // Uses default value
  * ```
  *
  * @since 4.0.0
@@ -256,17 +256,17 @@ export interface Reference<in out Shape> extends Service<never, Shape> {
 /**
  * @example
  * ```ts
- * import { ServiceMap } from "effect"
+ * import { Context } from "effect"
  *
- * const Database = ServiceMap.Service<{
+ * const Database = Context.Service<{
  *   query: (sql: string) => string
  * }>("Database")
  *
  * // Extract service type from a key
- * type DatabaseService = ServiceMap.Service.Shape<typeof Database>
+ * type DatabaseService = Context.Service.Shape<typeof Database>
  *
  * // Extract identifier type from a key
- * type DatabaseId = ServiceMap.Service.Identifier<typeof Database>
+ * type DatabaseId = Context.Service.Identifier<typeof Database>
  * ```
  *
  * @since 4.0.0
@@ -276,12 +276,12 @@ export declare namespace Service {
   /**
    * @example
    * ```ts
-   * import { ServiceMap } from "effect"
+   * import { Context } from "effect"
    *
    * // Any represents any possible service type
-   * const services: Array<ServiceMap.Service.Any> = [
-   *   ServiceMap.Service<{ log: (msg: string) => void }>("Logger"),
-   *   ServiceMap.Service<{ query: (sql: string) => string }>("Database")
+   * const services: Array<Context.Service.Any> = [
+   *   Context.Service<{ log: (msg: string) => void }>("Logger"),
+   *   Context.Service<{ query: (sql: string) => string }>("Database")
    * ]
    * ```
    *
@@ -293,14 +293,14 @@ export declare namespace Service {
   /**
    * @example
    * ```ts
-   * import { ServiceMap } from "effect"
+   * import { Context } from "effect"
    *
-   * const Database = ServiceMap.Service<{ query: (sql: string) => string }>(
+   * const Database = Context.Service<{ query: (sql: string) => string }>(
    *   "Database"
    * )
    *
    * // Extract the service shape from the service
-   * type DatabaseService = ServiceMap.Service.Shape<typeof Database>
+   * type DatabaseService = Context.Service.Shape<typeof Database>
    * // DatabaseService is { query: (sql: string) => string }
    * ```
    *
@@ -312,14 +312,14 @@ export declare namespace Service {
   /**
    * @example
    * ```ts
-   * import { ServiceMap } from "effect"
+   * import { Context } from "effect"
    *
-   * const Database = ServiceMap.Service<{ query: (sql: string) => string }>(
+   * const Database = Context.Service<{ query: (sql: string) => string }>(
    *   "Database"
    * )
    *
    * // Extract the identifier type from a key
-   * type DatabaseId = ServiceMap.Service.Identifier<typeof Database>
+   * type DatabaseId = Context.Service.Identifier<typeof Database>
    * // DatabaseId is the identifier type
    * ```
    *
@@ -329,29 +329,29 @@ export declare namespace Service {
   export type Identifier<T> = T extends Key<infer I, infer _S> ? I : never
 }
 
-const TypeId = "~effect/ServiceMap" as const
+const TypeId = "~effect/Context" as const
 
 /**
  * @example
  * ```ts
- * import { ServiceMap } from "effect"
+ * import { Context } from "effect"
  *
- * // Create a service map with multiple services
- * const Logger = ServiceMap.Service<{ log: (msg: string) => void }>("Logger")
- * const Database = ServiceMap.Service<{ query: (sql: string) => string }>(
+ * // Create a context with multiple services
+ * const Logger = Context.Service<{ log: (msg: string) => void }>("Logger")
+ * const Database = Context.Service<{ query: (sql: string) => string }>(
  *   "Database"
  * )
  *
- * const services = ServiceMap.make(Logger, {
+ * const services = Context.make(Logger, {
  *   log: (msg: string) => console.log(msg)
  * })
- *   .pipe(ServiceMap.add(Database, { query: (sql) => `Result: ${sql}` }))
+ *   .pipe(Context.add(Database, { query: (sql) => `Result: ${sql}` }))
  * ```
  *
  * @since 4.0.0
  * @category Models
  */
-export interface ServiceMap<in Services> extends Equal.Equal, Pipeable, Inspectable {
+export interface Context<in Services> extends Equal.Equal, Pipeable, Inspectable {
   readonly [TypeId]: {
     readonly _Services: Types.Contravariant<Services>
   }
@@ -362,40 +362,40 @@ export interface ServiceMap<in Services> extends Equal.Equal, Pipeable, Inspecta
 /**
  * @example
  * ```ts
- * import { ServiceMap } from "effect"
+ * import { Context } from "effect"
  *
- * // Create a service map from a Map (unsafe)
+ * // Create a context from a Map (unsafe)
  * const map = new Map([
  *   ["Logger", { log: (msg: string) => console.log(msg) }]
  * ])
  *
- * const services = ServiceMap.makeUnsafe(map)
+ * const services = Context.makeUnsafe(map)
  * ```
  *
  * @since 4.0.0
  * @category Constructors
  */
-export const makeUnsafe = <Services = never>(mapUnsafe: ReadonlyMap<string, any>): ServiceMap<Services> => {
+export const makeUnsafe = <Services = never>(mapUnsafe: ReadonlyMap<string, any>): Context<Services> => {
   const self = Object.create(Proto)
   self.mapUnsafe = mapUnsafe
   self.mutable = false
   return self
 }
 
-const Proto: Omit<ServiceMap<never>, "mapUnsafe" | "mutable"> = {
+const Proto: Omit<Context<never>, "mapUnsafe" | "mutable"> = {
   ...PipeInspectableProto,
   [TypeId]: {
     _Services: (_: never) => _
   },
-  toJSON(this: ServiceMap<never>) {
+  toJSON(this: Context<never>) {
     return {
-      _id: "ServiceMap",
+      _id: "Context",
       services: Array.from(this.mapUnsafe).map(([key, value]) => ({ key, value }))
     }
   },
-  [Equal.symbol]<A>(this: ServiceMap<A>, that: unknown): boolean {
+  [Equal.symbol]<A>(this: Context<A>, that: unknown): boolean {
     if (
-      !isServiceMap(that)
+      !isContext(that)
       || this.mapUnsafe.size !== that.mapUnsafe.size
     ) return false
     for (const k of this.mapUnsafe.keys()) {
@@ -408,36 +408,36 @@ const Proto: Omit<ServiceMap<never>, "mapUnsafe" | "mutable"> = {
     }
     return true
   },
-  [Hash.symbol]<A>(this: ServiceMap<A>): number {
+  [Hash.symbol]<A>(this: Context<A>): number {
     return Hash.number(this.mapUnsafe.size)
   }
 }
 
 /**
- * Checks if the provided argument is a `ServiceMap`.
+ * Checks if the provided argument is a `Context`.
  *
  * @example
  * ```ts
- * import { ServiceMap } from "effect"
+ * import { Context } from "effect"
  * import * as assert from "node:assert"
  *
- * assert.strictEqual(ServiceMap.isServiceMap(ServiceMap.empty()), true)
+ * assert.strictEqual(Context.isContext(Context.empty()), true)
  * ```
  *
  * @since 4.0.0
  * @category Guards
  */
-export const isServiceMap = (u: unknown): u is ServiceMap<never> => hasProperty(u, TypeId)
+export const isContext = (u: unknown): u is Context<never> => hasProperty(u, TypeId)
 
 /**
  * Checks if the provided argument is a `Key`.
  *
  * @example
  * ```ts
- * import { ServiceMap } from "effect"
+ * import { Context } from "effect"
  * import * as assert from "node:assert"
  *
- * assert.strictEqual(ServiceMap.isKey(ServiceMap.Service("Service")), true)
+ * assert.strictEqual(Context.isKey(Context.Service("Service")), true)
  * ```
  *
  * @since 4.0.0
@@ -450,15 +450,15 @@ export const isKey = (u: unknown): u is Key<any, any> => hasProperty(u, ServiceT
  *
  * @example
  * ```ts
- * import { ServiceMap } from "effect"
+ * import { Context } from "effect"
  * import * as assert from "node:assert"
  *
- * const LoggerRef = ServiceMap.Reference("Logger", {
+ * const LoggerRef = Context.Reference("Logger", {
  *   defaultValue: () => ({ log: (msg: string) => console.log(msg) })
  * })
  *
- * assert.strictEqual(ServiceMap.isReference(LoggerRef), true)
- * assert.strictEqual(ServiceMap.isReference(ServiceMap.Service("Key")), false)
+ * assert.strictEqual(Context.isReference(LoggerRef), true)
+ * assert.strictEqual(Context.isReference(Context.Service("Key")), false)
  * ```
  *
  * @since 4.0.0
@@ -467,35 +467,35 @@ export const isKey = (u: unknown): u is Key<any, any> => hasProperty(u, ServiceT
 export const isReference = (u: unknown): u is Reference<any> => hasProperty(u, ReferenceTypeId)
 
 /**
- * Returns an empty `ServiceMap`.
+ * Returns an empty `Context`.
  *
  * @example
  * ```ts
- * import { ServiceMap } from "effect"
+ * import { Context } from "effect"
  * import * as assert from "node:assert"
  *
- * assert.strictEqual(ServiceMap.isServiceMap(ServiceMap.empty()), true)
+ * assert.strictEqual(Context.isContext(Context.empty()), true)
  * ```
  *
  * @since 4.0.0
  * @category Constructors
  */
-export const empty = (): ServiceMap<never> => emptyServiceMap
-const emptyServiceMap = makeUnsafe(new Map())
+export const empty = (): Context<never> => emptyContext
+const emptyContext = makeUnsafe(new Map())
 
 /**
- * Creates a new `ServiceMap` with a single service associated to the key.
+ * Creates a new `Context` with a single service associated to the key.
  *
  * @example
  * ```ts
- * import { ServiceMap } from "effect"
+ * import { Context } from "effect"
  * import * as assert from "node:assert"
  *
- * const Port = ServiceMap.Service<{ PORT: number }>("Port")
+ * const Port = Context.Service<{ PORT: number }>("Port")
  *
- * const Services = ServiceMap.make(Port, { PORT: 8080 })
+ * const Services = Context.make(Port, { PORT: 8080 })
  *
- * assert.deepStrictEqual(ServiceMap.get(Services, Port), { PORT: 8080 })
+ * assert.deepStrictEqual(Context.get(Services, Port), { PORT: 8080 })
  * ```
  *
  * @since 4.0.0
@@ -504,28 +504,28 @@ const emptyServiceMap = makeUnsafe(new Map())
 export const make = <I, S>(
   key: Key<I, S>,
   service: Types.NoInfer<S>
-): ServiceMap<I> => makeUnsafe(new Map([[key.key, service]]))
+): Context<I> => makeUnsafe(new Map([[key.key, service]]))
 
 /**
- * Adds a service to a given `ServiceMap`.
+ * Adds a service to a given `Context`.
  *
  * @example
  * ```ts
- * import { pipe, ServiceMap } from "effect"
+ * import { pipe, Context } from "effect"
  * import * as assert from "node:assert"
  *
- * const Port = ServiceMap.Service<{ PORT: number }>("Port")
- * const Timeout = ServiceMap.Service<{ TIMEOUT: number }>("Timeout")
+ * const Port = Context.Service<{ PORT: number }>("Port")
+ * const Timeout = Context.Service<{ TIMEOUT: number }>("Timeout")
  *
- * const someServiceMap = ServiceMap.make(Port, { PORT: 8080 })
+ * const someContext = Context.make(Port, { PORT: 8080 })
  *
  * const Services = pipe(
- *   someServiceMap,
- *   ServiceMap.add(Timeout, { TIMEOUT: 5000 })
+ *   someContext,
+ *   Context.add(Timeout, { TIMEOUT: 5000 })
  * )
  *
- * assert.deepStrictEqual(ServiceMap.get(Services, Port), { PORT: 8080 })
- * assert.deepStrictEqual(ServiceMap.get(Services, Timeout), { TIMEOUT: 5000 })
+ * assert.deepStrictEqual(Context.get(Services, Port), { PORT: 8080 })
+ * assert.deepStrictEqual(Context.get(Services, Timeout), { TIMEOUT: 5000 })
  * ```
  *
  * @since 4.0.0
@@ -535,17 +535,17 @@ export const add: {
   <I, S>(
     key: Key<I, S>,
     service: Types.NoInfer<S>
-  ): <Services>(self: ServiceMap<Services>) => ServiceMap<Services | I>
+  ): <Services>(self: Context<Services>) => Context<Services | I>
   <Services, I, S>(
-    self: ServiceMap<Services>,
+    self: Context<Services>,
     key: Key<I, S>,
     service: Types.NoInfer<S>
-  ): ServiceMap<Services | I>
+  ): Context<Services | I>
 } = dual(3, <Services, I, S>(
-  self: ServiceMap<Services>,
+  self: Context<Services>,
   key: Key<I, S>,
   service: Types.NoInfer<S>
-): ServiceMap<Services | I> =>
+): Context<Services | I> =>
   withMapUnsafe(self, (map) => {
     map.set(key.key, service)
   }))
@@ -558,17 +558,17 @@ export const addOrOmit: {
   <I, S>(
     key: Key<I, S>,
     service: Option.Option<Types.NoInfer<S>>
-  ): <Services>(self: ServiceMap<Services>) => ServiceMap<Services | I>
+  ): <Services>(self: Context<Services>) => Context<Services | I>
   <Services, I, S>(
-    self: ServiceMap<Services>,
+    self: Context<Services>,
     key: Key<I, S>,
     service: Option.Option<Types.NoInfer<S>>
-  ): ServiceMap<Services | I>
+  ): Context<Services | I>
 } = dual(3, <Services, I, S>(
-  self: ServiceMap<Services>,
+  self: Context<Services>,
   key: Key<I, S>,
   service: Option.Option<Types.NoInfer<S>>
-): ServiceMap<Services | I> =>
+): Context<Services | I> =>
   withMapUnsafe(self, (map) => {
     if (service._tag === "None") {
       map.delete(key.key)
@@ -583,20 +583,20 @@ export const addOrOmit: {
  *
  * @example
  * ```ts
- * import { ServiceMap } from "effect"
+ * import { Context } from "effect"
  * import * as assert from "node:assert"
  *
- * const Logger = ServiceMap.Service<{ log: (msg: string) => void }>("Logger")
- * const Database = ServiceMap.Service<{ query: (sql: string) => string }>(
+ * const Logger = Context.Service<{ log: (msg: string) => void }>("Logger")
+ * const Database = Context.Service<{ query: (sql: string) => string }>(
  *   "Database"
  * )
  *
- * const services = ServiceMap.make(Logger, {
+ * const services = Context.make(Logger, {
  *   log: (msg: string) => console.log(msg)
  * })
  *
- * const logger = ServiceMap.getOrElse(services, Logger, () => ({ log: () => {} }))
- * const database = ServiceMap.getOrElse(
+ * const logger = Context.getOrElse(services, Logger, () => ({ log: () => {} }))
+ * const database = Context.getOrElse(
  *   services,
  *   Database,
  *   () => ({ query: () => "fallback" })
@@ -610,9 +610,9 @@ export const addOrOmit: {
  * @category Getters
  */
 export const getOrElse: {
-  <S, I, B>(key: Key<I, S>, orElse: LazyArg<B>): <Services>(self: ServiceMap<Services>) => S | B
-  <Services, S, I, B>(self: ServiceMap<Services>, key: Key<I, S>, orElse: LazyArg<B>): S | B
-} = dual(3, <Services, S, I, B>(self: ServiceMap<Services>, key: Key<I, S>, orElse: LazyArg<B>): S | B => {
+  <S, I, B>(key: Key<I, S>, orElse: LazyArg<B>): <Services>(self: Context<Services>) => S | B
+  <Services, S, I, B>(self: Context<Services>, key: Key<I, S>, orElse: LazyArg<B>): S | B
+} = dual(3, <Services, S, I, B>(self: Context<Services>, key: Key<I, S>, orElse: LazyArg<B>): S | B => {
   if (self.mapUnsafe.has(key.key)) {
     return self.mapUnsafe.get(key.key)! as any
   }
@@ -624,11 +624,11 @@ export const getOrElse: {
  * @category Getters
  */
 export const getOrUndefined: {
-  <S, I>(key: Key<I, S>): <Services>(self: ServiceMap<Services>) => S | undefined
-  <Services, S, I>(self: ServiceMap<Services>, key: Key<I, S>): S | undefined
+  <S, I>(key: Key<I, S>): <Services>(self: Context<Services>) => S | undefined
+  <Services, S, I>(self: Context<Services>, key: Key<I, S>): S | undefined
 } = dual(
   2,
-  <Services, S, I>(self: ServiceMap<Services>, key: Key<I, S>): S | undefined => self.mapUnsafe.get(key.key)
+  <Services, S, I>(self: Context<Services>, key: Key<I, S>): S | undefined => self.mapUnsafe.get(key.key)
 )
 
 /**
@@ -639,32 +639,32 @@ export const getOrUndefined: {
  *
  * For a safer version see {@link getOption}.
  *
- * @param self - The `ServiceMap` to search for the service.
+ * @param self - The `Context` to search for the service.
  * @param service - The `Service` of the service to retrieve.
  *
  * @example
  * ```ts
- * import { ServiceMap } from "effect"
+ * import { Context } from "effect"
  * import * as assert from "node:assert"
  *
- * const Port = ServiceMap.Service<{ PORT: number }>("Port")
- * const Timeout = ServiceMap.Service<{ TIMEOUT: number }>("Timeout")
+ * const Port = Context.Service<{ PORT: number }>("Port")
+ * const Timeout = Context.Service<{ TIMEOUT: number }>("Timeout")
  *
- * const Services = ServiceMap.make(Port, { PORT: 8080 })
+ * const Services = Context.make(Port, { PORT: 8080 })
  *
- * assert.deepStrictEqual(ServiceMap.getUnsafe(Services, Port), { PORT: 8080 })
- * assert.throws(() => ServiceMap.getUnsafe(Services, Timeout))
+ * assert.deepStrictEqual(Context.getUnsafe(Services, Port), { PORT: 8080 })
+ * assert.throws(() => Context.getUnsafe(Services, Timeout))
  * ```
  *
  * @since 4.0.0
  * @category unsafe
  */
 export const getUnsafe: {
-  <S, I>(service: Key<I, S>): <Services>(self: ServiceMap<Services>) => S
-  <Services, S, I>(self: ServiceMap<Services>, services: Key<I, S>): S
+  <S, I>(service: Key<I, S>): <Services>(self: Context<Services>) => S
+  <Services, S, I>(self: Context<Services>, services: Key<I, S>): S
 } = dual(
   2,
-  <Services, I extends Services, S>(self: ServiceMap<Services>, service: Key<I, S>): S => {
+  <Services, I extends Services, S>(self: Context<Services>, service: Key<I, S>): S => {
     if (!self.mapUnsafe.has(service.key)) {
       if (ReferenceTypeId in service) return getDefaultValue(service as any)
       throw serviceNotFoundError(service)
@@ -676,45 +676,45 @@ export const getUnsafe: {
 /**
  * Get a service from the context that corresponds to the given key.
  *
- * @param self - The `ServiceMap` to search for the service.
+ * @param self - The `Context` to search for the service.
  * @param service - The `Service` of the service to retrieve.
  *
  * @example
  * ```ts
- * import { pipe, ServiceMap } from "effect"
+ * import { pipe, Context } from "effect"
  * import * as assert from "node:assert"
  *
- * const Port = ServiceMap.Service<{ PORT: number }>("Port")
- * const Timeout = ServiceMap.Service<{ TIMEOUT: number }>("Timeout")
+ * const Port = Context.Service<{ PORT: number }>("Port")
+ * const Timeout = Context.Service<{ TIMEOUT: number }>("Timeout")
  *
  * const Services = pipe(
- *   ServiceMap.make(Port, { PORT: 8080 }),
- *   ServiceMap.add(Timeout, { TIMEOUT: 5000 })
+ *   Context.make(Port, { PORT: 8080 }),
+ *   Context.add(Timeout, { TIMEOUT: 5000 })
  * )
  *
- * assert.deepStrictEqual(ServiceMap.get(Services, Timeout), { TIMEOUT: 5000 })
+ * assert.deepStrictEqual(Context.get(Services, Timeout), { TIMEOUT: 5000 })
  * ```
  *
  * @since 4.0.0
  * @category Getters
  */
 export const get: {
-  <Services, I extends Services, S>(service: Key<I, S>): (self: ServiceMap<Services>) => S
-  <Services, I extends Services, S>(self: ServiceMap<Services>, service: Key<I, S>): S
+  <Services, I extends Services, S>(service: Key<I, S>): (self: Context<Services>) => S
+  <Services, I extends Services, S>(self: Context<Services>, service: Key<I, S>): S
 } = getUnsafe
 
 /**
  * @example
  * ```ts
- * import { ServiceMap } from "effect"
+ * import { Context } from "effect"
  * import * as assert from "node:assert"
  *
- * const LoggerRef = ServiceMap.Reference("Logger", {
+ * const LoggerRef = Context.Reference("Logger", {
  *   defaultValue: () => ({ log: (msg: string) => console.log(msg) })
  * })
  *
- * const services = ServiceMap.empty()
- * const logger = ServiceMap.getReferenceUnsafe(services, LoggerRef)
+ * const services = Context.empty()
+ * const logger = Context.getReferenceUnsafe(services, LoggerRef)
  *
  * assert.deepStrictEqual(logger, { log: (msg: string) => console.log(msg) })
  * ```
@@ -722,14 +722,14 @@ export const get: {
  * @since 4.0.0
  * @category unsafe
  */
-export const getReferenceUnsafe = <Services, S>(self: ServiceMap<Services>, service: Reference<S>): S => {
+export const getReferenceUnsafe = <Services, S>(self: Context<Services>, service: Reference<S>): S => {
   if (!self.mapUnsafe.has(service.key)) {
     return getDefaultValue(service as any)
   }
   return self.mapUnsafe.get(service.key)! as any
 }
 
-const defaultValueCacheKey = "~effect/ServiceMap/defaultValue" as const
+const defaultValueCacheKey = "~effect/Context/defaultValue" as const
 
 const getDefaultValue = (ref: Reference<any>) => {
   if (defaultValueCacheKey in ref) {
@@ -764,33 +764,33 @@ const serviceNotFoundError = (service: Key<any, any>) => {
  * an `Option` object. If the key is not found, the `Option` object will be
  * `None`.
  *
- * @param self - The `ServiceMap` to search for the service.
+ * @param self - The `Context` to search for the service.
  * @param service - The `Service` of the service to retrieve.
  *
  * @example
  * ```ts
- * import { Option, ServiceMap } from "effect"
+ * import { Option, Context } from "effect"
  * import * as assert from "node:assert"
  *
- * const Port = ServiceMap.Service<{ PORT: number }>("Port")
- * const Timeout = ServiceMap.Service<{ TIMEOUT: number }>("Timeout")
+ * const Port = Context.Service<{ PORT: number }>("Port")
+ * const Timeout = Context.Service<{ TIMEOUT: number }>("Timeout")
  *
- * const Services = ServiceMap.make(Port, { PORT: 8080 })
+ * const Services = Context.make(Port, { PORT: 8080 })
  *
  * assert.deepStrictEqual(
- *   ServiceMap.getOption(Services, Port),
+ *   Context.getOption(Services, Port),
  *   Option.some({ PORT: 8080 })
  * )
- * assert.deepStrictEqual(ServiceMap.getOption(Services, Timeout), Option.none())
+ * assert.deepStrictEqual(Context.getOption(Services, Timeout), Option.none())
  * ```
  *
  * @since 4.0.0
  * @category Getters
  */
 export const getOption: {
-  <S, I>(service: Key<I, S>): <Services>(self: ServiceMap<Services>) => Option.Option<S>
-  <Services, S, I>(self: ServiceMap<Services>, service: Key<I, S>): Option.Option<S>
-} = dual(2, <Services, I extends Services, S>(self: ServiceMap<Services>, service: Key<I, S>): Option.Option<S> => {
+  <S, I>(service: Key<I, S>): <Services>(self: Context<Services>) => Option.Option<S>
+  <Services, S, I>(self: Context<Services>, service: Key<I, S>): Option.Option<S>
+} = dual(2, <Services, I extends Services, S>(self: Context<Services>, service: Key<I, S>): Option.Option<S> => {
   if (self.mapUnsafe.has(service.key)) {
     return Option.some(self.mapUnsafe.get(service.key)! as any)
   }
@@ -798,35 +798,35 @@ export const getOption: {
 })
 
 /**
- * Merges two `ServiceMap`s, returning a new `ServiceMap` containing the services of both.
+ * Merges two `Context`s, returning a new `Context` containing the services of both.
  *
- * @param self - The first `ServiceMap` to merge.
- * @param that - The second `ServiceMap` to merge.
+ * @param self - The first `Context` to merge.
+ * @param that - The second `Context` to merge.
  *
  * @example
  * ```ts
- * import { ServiceMap } from "effect"
+ * import { Context } from "effect"
  * import * as assert from "node:assert"
  *
- * const Port = ServiceMap.Service<{ PORT: number }>("Port")
- * const Timeout = ServiceMap.Service<{ TIMEOUT: number }>("Timeout")
+ * const Port = Context.Service<{ PORT: number }>("Port")
+ * const Timeout = Context.Service<{ TIMEOUT: number }>("Timeout")
  *
- * const firstServiceMap = ServiceMap.make(Port, { PORT: 8080 })
- * const secondServiceMap = ServiceMap.make(Timeout, { TIMEOUT: 5000 })
+ * const firstContext = Context.make(Port, { PORT: 8080 })
+ * const secondContext = Context.make(Timeout, { TIMEOUT: 5000 })
  *
- * const Services = ServiceMap.merge(firstServiceMap, secondServiceMap)
+ * const Services = Context.merge(firstContext, secondContext)
  *
- * assert.deepStrictEqual(ServiceMap.get(Services, Port), { PORT: 8080 })
- * assert.deepStrictEqual(ServiceMap.get(Services, Timeout), { TIMEOUT: 5000 })
+ * assert.deepStrictEqual(Context.get(Services, Port), { PORT: 8080 })
+ * assert.deepStrictEqual(Context.get(Services, Timeout), { TIMEOUT: 5000 })
  * ```
  *
  * @since 4.0.0
  * @category Utils
  */
 export const merge: {
-  <R1>(that: ServiceMap<R1>): <Services>(self: ServiceMap<Services>) => ServiceMap<R1 | Services>
-  <Services, R1>(self: ServiceMap<Services>, that: ServiceMap<R1>): ServiceMap<Services | R1>
-} = dual(2, <Services, R1>(self: ServiceMap<Services>, that: ServiceMap<R1>): ServiceMap<Services | R1> => {
+  <R1>(that: Context<R1>): <Services>(self: Context<Services>) => Context<R1 | Services>
+  <Services, R1>(self: Context<Services>, that: Context<R1>): Context<Services | R1>
+} = dual(2, <Services, R1>(self: Context<Services>, that: Context<R1>): Context<Services | R1> => {
   if (self.mapUnsafe.size === 0) return that as any
   if (that.mapUnsafe.size === 0) return self as any
   return withMapUnsafe(self, (map) => {
@@ -835,37 +835,37 @@ export const merge: {
 })
 
 /**
- * Merges any number of `ServiceMap`s, returning a new `ServiceMap` containing the services of all.
+ * Merges any number of `Context`s, returning a new `Context` containing the services of all.
  *
  * @example
  * ```ts
- * import { ServiceMap } from "effect"
+ * import { Context } from "effect"
  * import * as assert from "node:assert"
  *
- * const Port = ServiceMap.Service<{ PORT: number }>("Port")
- * const Timeout = ServiceMap.Service<{ TIMEOUT: number }>("Timeout")
- * const Host = ServiceMap.Service<{ HOST: string }>("Host")
+ * const Port = Context.Service<{ PORT: number }>("Port")
+ * const Timeout = Context.Service<{ TIMEOUT: number }>("Timeout")
+ * const Host = Context.Service<{ HOST: string }>("Host")
  *
- * const firstServiceMap = ServiceMap.make(Port, { PORT: 8080 })
- * const secondServiceMap = ServiceMap.make(Timeout, { TIMEOUT: 5000 })
- * const thirdServiceMap = ServiceMap.make(Host, { HOST: "localhost" })
+ * const firstContext = Context.make(Port, { PORT: 8080 })
+ * const secondContext = Context.make(Timeout, { TIMEOUT: 5000 })
+ * const thirdContext = Context.make(Host, { HOST: "localhost" })
  *
- * const Services = ServiceMap.mergeAll(
- *   firstServiceMap,
- *   secondServiceMap,
- *   thirdServiceMap
+ * const Services = Context.mergeAll(
+ *   firstContext,
+ *   secondContext,
+ *   thirdContext
  * )
  *
- * assert.deepStrictEqual(ServiceMap.get(Services, Port), { PORT: 8080 })
- * assert.deepStrictEqual(ServiceMap.get(Services, Timeout), { TIMEOUT: 5000 })
- * assert.deepStrictEqual(ServiceMap.get(Services, Host), { HOST: "localhost" })
+ * assert.deepStrictEqual(Context.get(Services, Port), { PORT: 8080 })
+ * assert.deepStrictEqual(Context.get(Services, Timeout), { TIMEOUT: 5000 })
+ * assert.deepStrictEqual(Context.get(Services, Host), { HOST: "localhost" })
  * ```
  *
  * @since 3.12.0
  */
 export const mergeAll = <T extends Array<unknown>>(
-  ...ctxs: [...{ [K in keyof T]: ServiceMap<T[K]> }]
-): ServiceMap<T[number]> => {
+  ...ctxs: [...{ [K in keyof T]: Context<T[K]> }]
+): Context<T[number]> => {
   const map = new Map()
   for (let i = 0; i < ctxs.length; i++) {
     ctxs[i].mapUnsafe.forEach((value, key) => {
@@ -876,31 +876,31 @@ export const mergeAll = <T extends Array<unknown>>(
 }
 
 /**
- * Returns a new `ServiceMap` that contains only the specified services.
+ * Returns a new `Context` that contains only the specified services.
  *
- * @param self - The `ServiceMap` to prune services from.
- * @param services - The list of `Service`s to be included in the new `ServiceMap`.
+ * @param self - The `Context` to prune services from.
+ * @param services - The list of `Service`s to be included in the new `Context`.
  *
  * @example
  * ```ts
- * import { Option, pipe, ServiceMap } from "effect"
+ * import { Option, pipe, Context } from "effect"
  * import * as assert from "node:assert"
  *
- * const Port = ServiceMap.Service<{ PORT: number }>("Port")
- * const Timeout = ServiceMap.Service<{ TIMEOUT: number }>("Timeout")
+ * const Port = Context.Service<{ PORT: number }>("Port")
+ * const Timeout = Context.Service<{ TIMEOUT: number }>("Timeout")
  *
- * const someServiceMap = pipe(
- *   ServiceMap.make(Port, { PORT: 8080 }),
- *   ServiceMap.add(Timeout, { TIMEOUT: 5000 })
+ * const someContext = pipe(
+ *   Context.make(Port, { PORT: 8080 }),
+ *   Context.add(Timeout, { TIMEOUT: 5000 })
  * )
  *
- * const Services = pipe(someServiceMap, ServiceMap.pick(Port))
+ * const Services = pipe(someContext, Context.pick(Port))
  *
  * assert.deepStrictEqual(
- *   ServiceMap.getOption(Services, Port),
+ *   Context.getOption(Services, Port),
  *   Option.some({ PORT: 8080 })
  * )
- * assert.deepStrictEqual(ServiceMap.getOption(Services, Timeout), Option.none())
+ * assert.deepStrictEqual(Context.getOption(Services, Timeout), Option.none())
  * ```
  *
  * @since 4.0.0
@@ -909,7 +909,7 @@ export const mergeAll = <T extends Array<unknown>>(
 export const pick = <S extends ReadonlyArray<Key<any, any>>>(
   ...services: S
 ) =>
-<Services>(self: ServiceMap<Services>): ServiceMap<Services & Service.Identifier<S[number]>> =>
+<Services>(self: Context<Services>): Context<Services & Service.Identifier<S[number]>> =>
   withMapUnsafe(self, (map) => {
     const keySet = new Set(services.map((key) => key.key))
     map.forEach((_, key) => {
@@ -921,24 +921,24 @@ export const pick = <S extends ReadonlyArray<Key<any, any>>>(
 /**
  * @example
  * ```ts
- * import { Option, pipe, ServiceMap } from "effect"
+ * import { Option, pipe, Context } from "effect"
  * import * as assert from "node:assert"
  *
- * const Port = ServiceMap.Service<{ PORT: number }>("Port")
- * const Timeout = ServiceMap.Service<{ TIMEOUT: number }>("Timeout")
+ * const Port = Context.Service<{ PORT: number }>("Port")
+ * const Timeout = Context.Service<{ TIMEOUT: number }>("Timeout")
  *
- * const someServiceMap = pipe(
- *   ServiceMap.make(Port, { PORT: 8080 }),
- *   ServiceMap.add(Timeout, { TIMEOUT: 5000 })
+ * const someContext = pipe(
+ *   Context.make(Port, { PORT: 8080 }),
+ *   Context.add(Timeout, { TIMEOUT: 5000 })
  * )
  *
- * const Services = pipe(someServiceMap, ServiceMap.omit(Timeout))
+ * const Services = pipe(someContext, Context.omit(Timeout))
  *
  * assert.deepStrictEqual(
- *   ServiceMap.getOption(Services, Port),
+ *   Context.getOption(Services, Port),
  *   Option.some({ PORT: 8080 })
  * )
- * assert.deepStrictEqual(ServiceMap.getOption(Services, Timeout), Option.none())
+ * assert.deepStrictEqual(Context.getOption(Services, Timeout), Option.none())
  * ```
  *
  * @since 4.0.0
@@ -947,7 +947,7 @@ export const pick = <S extends ReadonlyArray<Key<any, any>>>(
 export const omit = <S extends ReadonlyArray<Key<any, any>>>(
   ...keys: S
 ) =>
-<Services>(self: ServiceMap<Services>): ServiceMap<Exclude<Services, Service.Identifier<S[number]>>> =>
+<Services>(self: Context<Services>): Context<Exclude<Services, Service.Identifier<S[number]>>> =>
   withMapUnsafe(self, (map) => {
     for (let i = 0; i < keys.length; i++) {
       map.delete(keys[i].key)
@@ -955,7 +955,7 @@ export const omit = <S extends ReadonlyArray<Key<any, any>>>(
   })
 
 /**
- * Perform a series of mutations on a `ServiceMap`. Prevents unnecessary copying
+ * Perform a series of mutations on a `Context`. Prevents unnecessary copying
  * of the underlying map when multiple mutations are needed.
  *
  * @since 4.0.0
@@ -963,12 +963,12 @@ export const omit = <S extends ReadonlyArray<Key<any, any>>>(
  */
 export const mutate: {
   <Services, B>(
-    f: (serviceMap: ServiceMap<Services>) => ServiceMap<B>
-  ): <Services>(self: ServiceMap<Services>) => ServiceMap<B>
-  <Services, B>(self: ServiceMap<Services>, f: (serviceMap: ServiceMap<Services>) => ServiceMap<B>): ServiceMap<B>
+    f: (context: Context<Services>) => Context<B>
+  ): <Services>(self: Context<Services>) => Context<B>
+  <Services, B>(self: Context<Services>, f: (context: Context<Services>) => Context<B>): Context<B>
 } = dual(
   2,
-  <Services, B>(self: ServiceMap<Services>, f: (serviceMap: ServiceMap<Services>) => ServiceMap<B>): ServiceMap<B> => {
+  <Services, B>(self: Context<Services>, f: (context: Context<Services>) => Context<B>): Context<B> => {
     const next = makeUnsafe<Services>(new Map(self.mapUnsafe))
     next.mutable = true
     const result = f(next)
@@ -977,7 +977,7 @@ export const mutate: {
   }
 )
 
-const withMapUnsafe = <Services, B>(self: ServiceMap<Services>, f: (map: Map<string, any>) => void): ServiceMap<B> => {
+const withMapUnsafe = <Services, B>(self: Context<Services>, f: (map: Map<string, any>) => void): Context<B> => {
   if (self.mutable) {
     f(self.mapUnsafe as any)
     return self as any
@@ -988,33 +988,33 @@ const withMapUnsafe = <Services, B>(self: ServiceMap<Services>, f: (map: Map<str
 }
 
 /**
- * Creates a service map key with a default value.
+ * Creates a context key with a default value.
  *
  * **Details**
  *
- * `ServiceMap.Reference` allows you to create a key that can hold a value. You
+ * `Context.Reference` allows you to create a key that can hold a value. You
  * can provide a default value for the service, which will automatically be used
  * when the context is accessed, or override it with a custom implementation
  * when needed.
  *
  * @example
  * ```ts
- * import { ServiceMap } from "effect"
+ * import { Context } from "effect"
  *
  * // Create a reference with a default value
- * const LoggerRef = ServiceMap.Reference("Logger", {
+ * const LoggerRef = Context.Reference("Logger", {
  *   defaultValue: () => ({ log: (msg: string) => console.log(msg) })
  * })
  *
  * // The reference provides the default value when accessed from an empty context
- * const services = ServiceMap.empty()
- * const logger = ServiceMap.get(services, LoggerRef)
+ * const services = Context.empty()
+ * const logger = Context.get(services, LoggerRef)
  *
  * // You can also override the default value
- * const customServices = ServiceMap.make(LoggerRef, {
+ * const customServices = Context.make(LoggerRef, {
  *   log: (msg: string) => `Custom: ${msg}`
  * })
- * const customLogger = ServiceMap.get(customServices, LoggerRef)
+ * const customLogger = Context.get(customServices, LoggerRef)
  * ```
  *
  * @since 4.0.0

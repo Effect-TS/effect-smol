@@ -3,6 +3,7 @@
  */
 import type { NonEmptyReadonlyArray } from "../../Array.ts"
 import * as Cause from "../../Cause.ts"
+import * as Context from "../../Context.ts"
 import * as Deferred from "../../Deferred.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
@@ -19,7 +20,6 @@ import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../Schema.ts"
 import * as Scope from "../../Scope.ts"
 import * as Semaphore from "../../Semaphore.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import { Stdio } from "../../Stdio.ts"
 import * as Stream from "../../Stream.ts"
 import * as Tracer from "../../Tracer.ts"
@@ -98,8 +98,8 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
   const spanPrefix = options.spanPrefix ?? "RpcServer"
   const concurrency = options.concurrency ?? "unbounded"
   const disableFatalDefects = options.disableFatalDefects ?? false
-  const services = yield* Effect.services<Rpc.ToHandler<Rpcs> | Scope.Scope>()
-  const scope = ServiceMap.get(services, Scope.Scope)
+  const services = yield* Effect.context<Rpc.ToHandler<Rpcs> | Scope.Scope>()
+  const scope = Context.get(services, Scope.Scope)
   const trackFiber = Fiber.runIn(Scope.forkUnsafe(scope, "parallel"))
   const concurrencySemaphore = concurrency === "unbounded"
     ? undefined
@@ -278,7 +278,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
       return close ? Effect.ensuring(write, close) : write
     })
     if (enableTracing) {
-      const parentSpan = requestFiber.services.mapUnsafe.get(
+      const parentSpan = requestFiber.context.mapUnsafe.get(
         Tracer.ParentSpan.key
       ) as Tracer.AnySpan | undefined
       effect = Effect.withSpan(effect, `${spanPrefix}.${request.tag}`, {
@@ -304,10 +304,10 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
     if (!isFork && concurrencySemaphore) {
       effect = concurrencySemaphore.withPermits(1)(effect)
     }
-    const serviceMap = new Map(entry.services.mapUnsafe)
-    requestFiber.services.mapUnsafe.forEach((value, key) => serviceMap.set(key, value))
-    serviceMap.set(Scope.Scope.key, scope)
-    const runFork = Effect.runForkWith(ServiceMap.makeUnsafe(serviceMap))
+    const context = new Map(entry.context.mapUnsafe)
+    requestFiber.context.mapUnsafe.forEach((value, key) => context.set(key, value))
+    context.set(Scope.Scope.key, scope)
+    const runFork = Effect.runForkWith(Context.makeUnsafe(context))
     const fiber = trackFiber(
       runFork(
         effect,
@@ -406,7 +406,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
 })
 
 const applyMiddleware = <A, E, R>(
-  services: ServiceMap.ServiceMap<never>,
+  services: Context.Context<never>,
   handler: Effect.Effect<A, E, R>,
   options: {
     readonly rpc: Rpc.AnyWithProps
@@ -417,7 +417,7 @@ const applyMiddleware = <A, E, R>(
   }
 ) => {
   for (const service of options.rpc.middlewares) {
-    const middleware = ServiceMap.getUnsafe(services, service)
+    const middleware = Context.getUnsafe(services, service)
     handler = middleware(handler as any, options) as any
   }
 
@@ -465,7 +465,7 @@ export const make: <Rpcs extends Rpc.Any>(
     supportsSpanPropagation,
     supportsTransferables
   } = yield* Protocol
-  const services = yield* Effect.services<Rpc.ToHandler<Rpcs> | Rpc.Middleware<Rpcs>>()
+  const services = yield* Effect.context<Rpc.ToHandler<Rpcs> | Rpc.Middleware<Rpcs>>()
   const scope = yield* Scope.make()
 
   const server = yield* makeNoSerialization(group, {
@@ -484,7 +484,7 @@ export const make: <Rpcs extends Rpc.Any>(
             response.requestId,
             schemas.encodeDefect,
             schemas.collector,
-            Effect.provideServices(schemas.encodeChunk(response.values), schemas.services),
+            Effect.provideContext(schemas.encodeChunk(response.values), schemas.context),
             (values) => ({ _tag: "Chunk", requestId: String(response.requestId), values })
           )
         }
@@ -497,7 +497,7 @@ export const make: <Rpcs extends Rpc.Any>(
             response.requestId,
             schemas.encodeDefect,
             schemas.collector,
-            Effect.provideServices(schemas.encodeExit(response.exit), schemas.services),
+            Effect.provideContext(schemas.encodeExit(response.exit), schemas.context),
             (exit) => ({ _tag: "Exit", requestId: String(response.requestId), exit })
           )
         }
@@ -533,7 +533,7 @@ export const make: <Rpcs extends Rpc.Any>(
     ) => Effect.Effect<NonEmptyReadonlyArray<unknown>, Schema.SchemaError>
     readonly encodeExit: (u: unknown) => Effect.Effect<ResponseExitEncoded["exit"], Schema.SchemaError>
     readonly encodeDefect: (u: unknown) => Effect.Effect<unknown, Schema.SchemaError>
-    readonly services: ServiceMap.ServiceMap<never>
+    readonly context: Context.Context<never>
     readonly collector?: Transferable.Collector["Service"] | undefined
   }
 
@@ -552,7 +552,7 @@ export const make: <Rpcs extends Rpc.Any>(
         ) as any,
         encodeExit: Schema.encodeUnknownEffect(Schema.toCodecJson(Rpc.exitSchema(rpc as any))) as any,
         encodeDefect: Schema.encodeUnknownEffect(Schema.toCodecJson(rpc.defectSchema)) as any,
-        services: entry.services
+        context: entry.context
       }
       schemasCache.set(rpc, schemas)
     }
@@ -648,7 +648,7 @@ export const make: <Rpcs extends Rpc.Any>(
         }
         const schemas = getSchemas(rpc as any)
         return Effect.matchEffect(
-          Effect.provideServices(schemas.decode(request.payload), schemas.services),
+          Effect.provideContext(schemas.decode(request.payload), schemas.context),
           {
             onFailure: (error) => sendRequestDefect(client, requestId, schemas.encodeDefect, error.issue.toString()),
             onSuccess: (payload) => {
@@ -761,7 +761,7 @@ export const layerHttp = <Rpcs extends Rpc.Any>(options: {
  * @since 4.0.0
  * @category protocol
  */
-export class Protocol extends ServiceMap.Service<
+export class Protocol extends Context.Service<
   Protocol,
   {
     readonly run: (
@@ -920,8 +920,8 @@ export const makeProtocolWithHttpEffect: Effect.Effect<
     Scope.Scope | HttpServerRequest.HttpServerRequest
   > = Effect.gen(function*() {
     const fiber = Fiber.getCurrent()!
-    const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest.HttpServerRequest)
-    const scope = ServiceMap.getUnsafe(fiber.services, Scope.Scope)
+    const request = Context.getUnsafe(fiber.context, HttpServerRequest.HttpServerRequest)
+    const scope = Context.getUnsafe(fiber.context, Scope.Scope)
     const requestHeaders = Object.entries(request.headers)
     const data = yield* Effect.orDie<string | Uint8Array, any, never>(
       isBinary ? Effect.map(request.arrayBuffer, (buf) => new Uint8Array(buf)) : request.text

@@ -3,6 +3,7 @@
  */
 import * as Arr from "../../Array.ts"
 import * as Cause from "../../Cause.ts"
+import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
@@ -13,7 +14,6 @@ import * as RcMap from "../../RcMap.ts"
 import { CurrentLogLevel } from "../../References.ts"
 import * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import * as Sink from "../../Sink.ts"
 import type { Stdio } from "../../Stdio.ts"
 import * as Stream from "../../Stream.ts"
@@ -75,18 +75,18 @@ import type * as Toolkit from "./Toolkit.ts"
  * @since 4.0.0
  * @category server
  */
-export class McpServer extends ServiceMap.Service<McpServer, {
+export class McpServer extends Context.Service<McpServer, {
   readonly notifications: RpcClient.RpcClient<RpcGroup.Rpcs<typeof ServerNotificationRpcs>>
   readonly notificationsQueue: Queue.Dequeue<RpcMessage.Request<any>>
   readonly initializedClients: Set<number>
 
   readonly tools: ReadonlyArray<{
     readonly tool: McpTool
-    readonly annotations: ServiceMap.ServiceMap<never>
+    readonly annotations: Context.Context<never>
   }>
   readonly addTool: (options: {
     readonly tool: McpTool
-    readonly annotations: ServiceMap.ServiceMap<never>
+    readonly annotations: Context.Context<never>
     readonly handle: (payload: any) => Effect.Effect<CallToolResult, never, McpServerClient>
   }) => Effect.Effect<void>
   readonly callTool: (
@@ -95,22 +95,22 @@ export class McpServer extends ServiceMap.Service<McpServer, {
 
   readonly resources: ReadonlyArray<{
     readonly resource: Resource
-    readonly annotations: ServiceMap.ServiceMap<never>
+    readonly annotations: Context.Context<never>
   }>
   readonly addResource: (options: {
     readonly resource: Resource
-    readonly annotations: ServiceMap.ServiceMap<never>
+    readonly annotations: Context.Context<never>
     readonly handle: Effect.Effect<typeof ReadResourceResult.Type, InternalError, McpServerClient>
   }) => Effect.Effect<void>
 
   readonly resourceTemplates: ReadonlyArray<{
     readonly template: ResourceTemplate
-    readonly annotations: ServiceMap.ServiceMap<never>
+    readonly annotations: Context.Context<never>
   }>
   readonly addResourceTemplate: (
     options: {
       readonly template: ResourceTemplate
-      readonly annotations: ServiceMap.ServiceMap<never>
+      readonly annotations: Context.Context<never>
       readonly routerPath: string
       readonly completions: Record<string, (input: string) => Effect.Effect<CompleteResult, InternalError>>
       readonly handle: (
@@ -126,11 +126,11 @@ export class McpServer extends ServiceMap.Service<McpServer, {
 
   readonly prompts: ReadonlyArray<{
     readonly prompt: Prompt
-    readonly annotations: ServiceMap.ServiceMap<never>
+    readonly annotations: Context.Context<never>
   }>
   readonly addPrompt: (options: {
     readonly prompt: Prompt
-    readonly annotations: ServiceMap.ServiceMap<never>
+    readonly annotations: Context.Context<never>
     readonly completions: Record<
       string,
       (input: string) => Effect.Effect<CompleteResult, InternalError, McpServerClient>
@@ -165,20 +165,20 @@ export class McpServer extends ServiceMap.Service<McpServer, {
     >()
     const tools = Arr.empty<{
       readonly tool: McpTool
-      readonly annotations: ServiceMap.ServiceMap<never>
+      readonly annotations: Context.Context<never>
     }>()
     const toolMap = new Map<string, (payload: any) => Effect.Effect<CallToolResult, InternalError, McpServerClient>>()
     const resources: Array<{
       readonly resource: Resource
-      readonly annotations: ServiceMap.ServiceMap<never>
+      readonly annotations: Context.Context<never>
     }> = []
     const resourceTemplates: Array<{
       readonly template: ResourceTemplate
-      readonly annotations: ServiceMap.ServiceMap<never>
+      readonly annotations: Context.Context<never>
     }> = []
     const prompts: Array<{
       readonly prompt: Prompt
-      readonly annotations: ServiceMap.ServiceMap<never>
+      readonly annotations: Context.Context<never>
     }> = []
     const promptMap = new Map<
       string,
@@ -407,7 +407,7 @@ export const run: (options: {
           case "Request": {
             if (isHttp) {
               const fiber = Fiber.getCurrent()!
-              const httpRequest = ServiceMap.getUnsafe(fiber.services, HttpServerRequest.HttpServerRequest)
+              const httpRequest = Context.getUnsafe(fiber.context, HttpServerRequest.HttpServerRequest)
               const client = getInitializedClient(clientSessions, clientId, httpRequest.headers)
               if (client) {
                 appendPreResponseHandlerUnsafe(httpRequest, (_, res) =>
@@ -607,23 +607,23 @@ export const registerToolkit: <Tools extends Record<string, Tool.Any>>(
     never,
     Exclude<Tool.HandlersFor<Tools>, McpServerClient>
   >)
-  const services = yield* Effect.services<never>()
+  const services = yield* Effect.context<never>()
   for (const tool of Object.values(built.tools)) {
     const annotations = tool.annotations
-    const toolMeta = ServiceMap.getOrUndefined(annotations, Tool.Meta)
+    const toolMeta = Context.getOrUndefined(annotations, Tool.Meta)
     const mcpTool = new McpTool({
       name: tool.name,
       description: Tool.getDescription(tool),
       inputSchema: Tool.getJsonSchema(tool),
       annotations: {
-        ...(ServiceMap.getOption(tool.annotations, Tool.Title).pipe(
+        ...(Context.getOption(tool.annotations, Tool.Title).pipe(
           Option.map((title) => ({ title })),
           Option.getOrUndefined
         )),
-        readOnlyHint: ServiceMap.get(tool.annotations, Tool.Readonly),
-        destructiveHint: ServiceMap.get(tool.annotations, Tool.Destructive),
-        idempotentHint: ServiceMap.get(tool.annotations, Tool.Idempotent),
-        openWorldHint: ServiceMap.get(tool.annotations, Tool.OpenWorld)
+        readOnlyHint: Context.get(tool.annotations, Tool.Readonly),
+        destructiveHint: Context.get(tool.annotations, Tool.Destructive),
+        idempotentHint: Context.get(tool.annotations, Tool.Idempotent),
+        openWorldHint: Context.get(tool.annotations, Tool.OpenWorld)
       },
       _meta: toolMeta
     })
@@ -635,7 +635,7 @@ export const registerToolkit: <Tools extends Record<string, Tool.Any>>(
           Stream.unwrap,
           Stream.run(Sink.last()),
           Effect.flatMap(Effect.fromOption),
-          Effect.provideServices(services as ServiceMap.ServiceMap<any>),
+          Effect.provideContext(services as Context.Context<any>),
           Effect.matchCause({
             onFailure: (cause) =>
               new CallToolResult({
@@ -717,7 +717,7 @@ export const registerResource: {
       E,
       R
     >
-    readonly annotations?: ServiceMap.ServiceMap<never> | undefined
+    readonly annotations?: Context.Context<never> | undefined
   }): Effect.Effect<void, never, Exclude<R, McpServerClient> | McpServer>
   <const Schemas extends ReadonlyArray<Schema.Top>>(segments: TemplateStringsArray, ...schemas: Schemas): <
     E,
@@ -735,7 +735,7 @@ export const registerResource: {
       E,
       R
     >
-    readonly annotations?: ServiceMap.ServiceMap<never> | undefined
+    readonly annotations?: Context.Context<never> | undefined
   }) => Effect.Effect<
     void,
     never,
@@ -760,10 +760,10 @@ export const registerResource: {
       readonly audience?: ReadonlyArray<"user" | "assistant"> | undefined
       readonly priority?: number | undefined
       readonly content: Effect.Effect<typeof ReadResourceResult.Type | string | Uint8Array, any, any>
-      readonly annotations?: ServiceMap.ServiceMap<never> | undefined
+      readonly annotations?: Context.Context<never> | undefined
     }
     return Effect.gen(function*() {
-      const services = yield* Effect.services<any>()
+      const services = yield* Effect.context<any>()
       const registry = yield* McpServer
       yield* registry.addResource({
         resource: new Resource({
@@ -771,14 +771,14 @@ export const registerResource: {
           annotations: options
         }),
         handle: options.content.pipe(
-          Effect.provideServices(services),
+          Effect.provideContext(services),
           Effect.map((content) => resolveResourceContent(options.uri, content)),
           Effect.catchCause((cause) => {
             const prettyError = Cause.prettyErrors(cause)[0]
             return Effect.fail(new InternalError({ message: prettyError.message }))
           })
         ),
-        annotations: options.annotations ?? ServiceMap.empty()
+        annotations: options.annotations ?? Context.empty()
       })
     })
   }
@@ -800,9 +800,9 @@ export const registerResource: {
       E,
       R
     >
-    readonly annotations?: ServiceMap.ServiceMap<never> | undefined
+    readonly annotations?: Context.Context<never> | undefined
   }) {
-    const services = yield* Effect.services<any>()
+    const services = yield* Effect.context<any>()
     const registry = yield* McpServer
     const decode = Schema.decodeUnknownEffect(schema)
     const template = new ResourceTemplate({
@@ -827,7 +827,7 @@ export const registerResource: {
             const prettyError = Cause.prettyErrors(cause)[0]
             return Effect.fail(new InternalError({ message: prettyError.message }))
           }),
-          Effect.provideServices(services)
+          Effect.provideContext(services)
         )
       completions[param] = handler
     }
@@ -835,7 +835,7 @@ export const registerResource: {
       template,
       routerPath,
       completions,
-      annotations: options.annotations ?? ServiceMap.empty(),
+      annotations: options.annotations ?? Context.empty(),
       handle: (uri, params) =>
         decode(params).pipe(
           Effect.mapError((error) => new InvalidParams({ message: error.message })),
@@ -848,7 +848,7 @@ export const registerResource: {
               })
             )
           ),
-          Effect.provideServices(services)
+          Effect.provideContext(services)
         )
     })
   })
@@ -934,7 +934,7 @@ export const registerPrompt = <
     readonly parameters?: Params | undefined
     readonly completion?: ValidateCompletions<Completions, Extract<keyof Params, string>> | undefined
     readonly content: (params: Params) => Effect.Effect<Array<typeof PromptMessage.Type> | string, E, R>
-    readonly annotations?: ServiceMap.ServiceMap<never> | undefined
+    readonly annotations?: Context.Context<never> | undefined
   }
 ): Effect.Effect<void, never, Exclude<Schema.Struct.DecodingServices<Params> | R, McpServerClient> | McpServer> => {
   const args = Arr.empty<typeof PromptArgument.Type>()
@@ -957,7 +957,7 @@ export const registerPrompt = <
   const completion: Record<string, (input: string) => Effect.Effect<any>> = options.completion ?? {}
   return Effect.gen(function*() {
     const registry = yield* McpServer
-    const services = yield* Effect.services<Exclude<R | Schema.Struct.DecodingServices<Params>, McpServerClient>>()
+    const services = yield* Effect.context<Exclude<R | Schema.Struct.DecodingServices<Params>, McpServerClient>>()
     const completions: Record<
       string,
       (input: string) => Effect.Effect<CompleteResult, InternalError, McpServerClient>
@@ -985,7 +985,7 @@ export const registerPrompt = <
     yield* registry.addPrompt({
       prompt,
       completions,
-      annotations: options.annotations ?? ServiceMap.empty(),
+      annotations: options.annotations ?? Context.empty(),
       handle: (params) =>
         decode(params).pipe(
           Effect.mapError((error) => new InvalidParams({ message: error.message })),
@@ -1003,7 +1003,7 @@ export const registerPrompt = <
             const prettyError = Cause.prettyErrors(cause)[0]
             return Effect.fail(new InternalError({ message: prettyError.message }))
           }),
-          Effect.provideServices(services as ServiceMap.ServiceMap<unknown>)
+          Effect.provideContext(services as Context.Context<unknown>)
         )
     })
   })
@@ -1031,7 +1031,7 @@ export const prompt = <
     readonly content: (
       params: Schema.Struct.Type<Params>
     ) => Effect.Effect<Array<typeof PromptMessage.Type> | string, E, R>
-    readonly annotations?: ServiceMap.ServiceMap<never> | undefined
+    readonly annotations?: Context.Context<never> | undefined
   }
 ): Layer.Layer<never, never, Exclude<Schema.Struct.DecodingServices<Params> | R, McpServerClient>> =>
   Layer.effectDiscard(registerPrompt(options)).pipe(
@@ -1177,7 +1177,7 @@ const layerHandlers = (serverInfo: {
             capabilities.extensions = serverInfo.extensions as any
           }
           return Effect.withFiber((fiber) => {
-            const httpRequest = ServiceMap.getOrUndefined(fiber.services, HttpServerRequest.HttpServerRequest)
+            const httpRequest = Context.getOrUndefined(fiber.context, HttpServerRequest.HttpServerRequest)
             if (httpRequest) {
               const sessionId = crypto.randomUUID()
               options.clientSessions.set(sessionId, params)
@@ -1297,7 +1297,7 @@ const resolveResourceContent = (
 
 const filterByClient = <
   A extends {
-    readonly annotations: ServiceMap.ServiceMap<never>
+    readonly annotations: Context.Context<never>
   },
   P extends keyof A
 >(
@@ -1311,7 +1311,7 @@ const filterByClient = <
   const out = Arr.empty<A[P]>()
   for (let i = 0; i < items.length; i++) {
     const item = items[i]
-    const enabledWhen = ServiceMap.getOrUndefined(item.annotations, EnabledWhen)
+    const enabledWhen = Context.getOrUndefined(item.annotations, EnabledWhen)
     if (!enabledWhen || enabledWhen(client)) {
       out.push(item[prop])
     }

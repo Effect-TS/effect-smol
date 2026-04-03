@@ -523,7 +523,7 @@ export * as Combiner from "./Combiner.ts"
  * - **parse** – instance method on every `Config` that takes a provider and
  *   returns `Effect<T, ConfigError>`.
  * - **Yieldable** – every `Config` can be yielded inside `Effect.gen`. It
- *   automatically resolves the current `ConfigProvider` from the service map.
+ *   automatically resolves the current `ConfigProvider` from the context.
  *
  * ## Common tasks
  *
@@ -596,7 +596,7 @@ export * as Config from "./Config.ts"
  *   (e.g. `["database", "host"]`).
  * - **ConfigProvider** – an object with a `load(path)` method that resolves a
  *   path to a `Node | undefined`. Providers can be composed and transformed.
- * - **ServiceMap.Reference** – `ConfigProvider` is registered as a reference
+ * - **Context.Reference** – `ConfigProvider` is registered as a reference
  *   service that defaults to `fromEnv()`, so it works without explicit
  *   provision.
  * - **SourceError** – the typed error returned when a backing store is
@@ -736,6 +736,20 @@ export * as ConfigProvider from "./ConfigProvider.ts"
  * @since 2.0.0
  */
 export * as Console from "./Console.ts"
+
+/**
+ * This module provides a data structure called `Context` that can be used
+ * for dependency injection in effectful programs. It is essentially a table
+ * mapping `Service`s identifiers to their implementations, and can be used to
+ * manage dependencies in a type-safe way. The `Context` data structure is
+ * essentially a way of providing access to a set of related services that can
+ * be passed around as a single unit. This module provides functions to create,
+ * modify, and query the contents of a `Context`, as well as a number of
+ * utility types for working with a `Context`.
+ *
+ * @since 4.0.0
+ */
+export * as Context from "./Context.ts"
 
 /**
  * @since 2.0.0
@@ -3711,6 +3725,7 @@ export * as SchemaRepresentation from "./SchemaRepresentation.ts"
  * - Trim/case strings → {@link trim}, {@link toLowerCase}, {@link toUpperCase}, {@link capitalize}, {@link uncapitalize}, {@link snakeToCamel}
  * - Parse key-value strings → {@link splitKeyValue}
  * - Coerce string ↔ number/bigint → {@link numberFromString}, {@link bigintFromString}
+ * - Coerce string ↔ Date → {@link dateFromString}
  * - Decode durations → {@link durationFromNanos}, {@link durationFromMillis}
  * - Wrap nullable/optional as Option → {@link optionFromNullOr}, {@link optionFromOptionalKey}, {@link optionFromOptional}
  * - Parse URLs → {@link urlFromString}
@@ -3795,20 +3810,6 @@ export * as ScopedRef from "./ScopedRef.ts"
  * @since 2.0.0
  */
 export * as Semaphore from "./Semaphore.ts"
-
-/**
- * This module provides a data structure called `ServiceMap` that can be used
- * for dependency injection in effectful programs. It is essentially a table
- * mapping `Service`s identifiers to their implementations, and can be used to
- * manage dependencies in a type-safe way. The `ServiceMap` data structure is
- * essentially a way of providing access to a set of related services that can
- * be passed around as a single unit. This module provides functions to create,
- * modify, and query the contents of a `ServiceMap`, as well as a number of
- * utility types for working with a `ServiceMap`.
- *
- * @since 4.0.0
- */
-export * as ServiceMap from "./ServiceMap.ts"
 
 /**
  * @since 2.0.0

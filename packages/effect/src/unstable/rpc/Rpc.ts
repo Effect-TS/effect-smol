@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 import type * as Cause from "../../Cause.ts"
+import * as Context from "../../Context.ts"
 import type { Effect } from "../../Effect.ts"
 import type { Exit as Exit_ } from "../../Exit.ts"
 import * as Option from "../../Option.ts"
@@ -10,7 +11,6 @@ import * as Predicate from "../../Predicate.ts"
 import * as PrimaryKey from "../../PrimaryKey.ts"
 import type * as Queue from "../../Queue.ts"
 import * as Schema from "../../Schema.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import type { Stream } from "../../Stream.ts"
 import type * as Struct from "../../Struct.ts"
 import type { Headers } from "../http/Headers.ts"
@@ -63,7 +63,7 @@ export interface Rpc<
   readonly successSchema: Success
   readonly errorSchema: Error
   readonly defectSchema: Schema.Top
-  readonly annotations: ServiceMap.ServiceMap<never>
+  readonly annotations: Context.Context<never>
   readonly middlewares: ReadonlySet<Middleware>
   readonly "~requires": Requires
 
@@ -133,7 +133,7 @@ export interface Rpc<
    * Add an annotation on the rpc.
    */
   annotate<I, S>(
-    tag: ServiceMap.Key<I, S>,
+    tag: Context.Key<I, S>,
     value: S
   ): Rpc<Tag, Payload, Success, Error, Middleware, Requires>
 
@@ -141,7 +141,7 @@ export interface Rpc<
    * Merge the annotations of the rpc with the provided annotations.
    */
   annotateMerge<I>(
-    annotations: ServiceMap.ServiceMap<I>
+    annotations: Context.Context<I>
   ): Rpc<Tag, Payload, Success, Error, Middleware, Requires>
 }
 
@@ -160,7 +160,7 @@ export interface Handler<Tag extends string> {
     readonly headers: Headers
     readonly rpc: Any
   }) => Effect<any, any> | Stream<any, any>
-  readonly services: ServiceMap.ServiceMap<never>
+  readonly context: Context.Context<never>
 }
 
 /**
@@ -171,7 +171,7 @@ export interface Any extends Pipeable {
   readonly [TypeId]: typeof TypeId
   readonly _tag: string
   readonly key: string
-  readonly annotations: ServiceMap.ServiceMap<never>
+  readonly annotations: Context.Context<never>
 }
 
 /**
@@ -186,7 +186,7 @@ export interface AnyWithProps extends Pipeable {
   readonly successSchema: Schema.Top
   readonly errorSchema: Schema.Top
   readonly defectSchema: Schema.Top
-  readonly annotations: ServiceMap.ServiceMap<never>
+  readonly annotations: Context.Context<never>
   readonly middlewares: ReadonlySet<RpcMiddleware.AnyServiceWithProps>
   readonly "~requires": any
 }
@@ -394,7 +394,7 @@ export type Middleware<R> = R extends Rpc<
   infer _Error,
   infer _Middleware,
   infer _Requires
-> ? ServiceMap.Service.Identifier<_Middleware>
+> ? Context.Service.Identifier<_Middleware>
   : never
 
 /**
@@ -660,7 +660,7 @@ const Proto = {
       middlewares: this.middlewares
     })
   },
-  annotate(this: AnyWithProps, tag: ServiceMap.Key<any, any>, value: any) {
+  annotate(this: AnyWithProps, tag: Context.Key<any, any>, value: any) {
     return makeProto({
       _tag: this._tag,
       payloadSchema: this.payloadSchema,
@@ -668,10 +668,10 @@ const Proto = {
       errorSchema: this.errorSchema,
       defectSchema: this.defectSchema,
       middlewares: this.middlewares,
-      annotations: ServiceMap.add(this.annotations, tag, value)
+      annotations: Context.add(this.annotations, tag, value)
     })
   },
-  annotateMerge(this: AnyWithProps, context: ServiceMap.ServiceMap<any>) {
+  annotateMerge(this: AnyWithProps, context: Context.Context<any>) {
     return makeProto({
       _tag: this._tag,
       payloadSchema: this.payloadSchema,
@@ -679,7 +679,7 @@ const Proto = {
       errorSchema: this.errorSchema,
       defectSchema: this.defectSchema,
       middlewares: this.middlewares,
-      annotations: ServiceMap.merge(this.annotations, context)
+      annotations: Context.merge(this.annotations, context)
     })
   }
 }
@@ -697,7 +697,7 @@ const makeProto = <
   readonly successSchema: Success
   readonly errorSchema: Error
   readonly defectSchema: Schema.Top
-  readonly annotations: ServiceMap.ServiceMap<never>
+  readonly annotations: Context.Context<never>
   readonly middlewares: ReadonlySet<Middleware>
 }): Rpc<Tag, Payload, Success, Error, Middleware, Requires> => {
   function Rpc() {}
@@ -758,7 +758,7 @@ export const make = <
       successSchema,
     errorSchema: options?.stream ? Schema.Never : errorSchema,
     defectSchema,
-    annotations: ServiceMap.empty(),
+    annotations: Context.empty(),
     middlewares: new Set<never>()
   }) as any
 }

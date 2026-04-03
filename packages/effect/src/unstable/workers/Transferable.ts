@@ -1,17 +1,17 @@
 /**
  * @since 1.0.0
  */
+import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"
 import * as Schema from "../../Schema.ts"
 import * as Getter from "../../SchemaGetter.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 
 /**
  * @since 1.0.0
  * @category models
  */
-export class Collector extends ServiceMap.Service<Collector, {
+export class Collector extends Context.Service<Collector, {
   readonly addAll: (
     _: Iterable<globalThis.Transferable>
   ) => Effect.Effect<void>
@@ -60,8 +60,8 @@ export const makeCollector: Effect.Effect<Collector["Service"]> = Effect.sync(ma
 export const addAll = (
   tranferables: Iterable<globalThis.Transferable>
 ): Effect.Effect<void> =>
-  Effect.servicesWith((services) => {
-    const collector = ServiceMap.getOrUndefined(services, Collector)
+  Effect.contextWith((services) => {
+    const collector = Context.getOrUndefined(services, Collector)
     if (!collector) return Effect.void
     collector.addAllUnsafe(tranferables)
     return Effect.void
@@ -75,8 +75,8 @@ export const getterAddAll = <A>(
   f: (_: A) => Iterable<globalThis.Transferable>
 ): Getter.Getter<A, A> =>
   Getter.transformOrFail((e: A) =>
-    Effect.servicesWith((services) => {
-      const collector = ServiceMap.getOrUndefined(services, Collector)
+    Effect.contextWith((services) => {
+      const collector = Context.getOrUndefined(services, Collector)
       if (!collector) return Effect.succeed(e)
       collector.addAllUnsafe(f(e))
       return Effect.succeed(e)

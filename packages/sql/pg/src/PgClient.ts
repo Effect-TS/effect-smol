@@ -5,6 +5,7 @@ import * as Arr from "effect/Array"
 import * as Cause from "effect/Cause"
 import * as Channel from "effect/Channel"
 import * as Config from "effect/Config"
+import * as Context from "effect/Context"
 import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import * as Fiber from "effect/Fiber"
@@ -16,7 +17,6 @@ import * as RcRef from "effect/RcRef"
 import * as Redacted from "effect/Redacted"
 import * as Scope from "effect/Scope"
 import * as Semaphore from "effect/Semaphore"
-import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import * as Client from "effect/unstable/sql/SqlClient"
@@ -71,7 +71,7 @@ export interface PgClient extends Client.SqlClient {
  * @category tags
  * @since 1.0.0
  */
-export const PgClient = ServiceMap.Service<PgClient>("@effect/sql-pg/PgClient")
+export const PgClient = Context.Service<PgClient>("@effect/sql-pg/PgClient")
 
 /**
  * @category constructors
@@ -321,7 +321,7 @@ export const fromPool = Effect.fnUntraced(function*(
 
   const reserveRaw = Effect.callback<Pg.PoolClient, SqlError, Scope.Scope>((resume) => {
     const fiber = Fiber.getCurrent()!
-    const scope = ServiceMap.getUnsafe(fiber.services, Scope.Scope)
+    const scope = Context.getUnsafe(fiber.context, Scope.Scope)
     let cause: Error | undefined = undefined
     pool.connect((err, client, release) => {
       if (err) {
@@ -720,8 +720,8 @@ export const layerFrom = <E, R>(
 ): Layer.Layer<PgClient | Client.SqlClient, E, Exclude<R, Scope.Scope | Reactivity.Reactivity>> =>
   Layer.effectServices(
     Effect.map(acquire, (client) =>
-      ServiceMap.make(PgClient, client).pipe(
-        ServiceMap.add(Client.SqlClient, client)
+      Context.make(PgClient, client).pipe(
+        Context.add(Client.SqlClient, client)
       ))
   ).pipe(Layer.provide(Reactivity.layer)) as any
 

@@ -1,11 +1,11 @@
 /**
  * @since 4.0.0
  */
+import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
 import * as Redacted from "../../Redacted.ts"
 import * as Schema from "../../Schema.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import { Entry, EntryId, RemoteEntry } from "./EventJournal.ts"
 import type { Identity } from "./EventLog.ts"
 
@@ -47,7 +47,7 @@ const toBufferSource = (data: Uint8Array): ArrayBufferView<ArrayBuffer> => new U
  * @since 4.0.0
  * @category services
  */
-export class EventLogEncryption extends ServiceMap.Service<EventLogEncryption, {
+export class EventLogEncryption extends Context.Service<EventLogEncryption, {
   readonly encrypt: (
     identity: Identity["Service"],
     entries: ReadonlyArray<Entry>

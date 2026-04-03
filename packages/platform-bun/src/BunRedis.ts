@@ -3,18 +3,18 @@
  */
 import { RedisClient, type RedisOptions } from "bun"
 import * as Config from "effect/Config"
+import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Fn from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Scope from "effect/Scope"
-import * as ServiceMap from "effect/ServiceMap"
 import * as Redis from "effect/unstable/persistence/Redis"
 
 /**
  * @since 1.0.0
  * @category Service
  */
-export class BunRedis extends ServiceMap.Service<BunRedis, {
+export class BunRedis extends Context.Service<BunRedis, {
   readonly client: RedisClient
   readonly use: <A>(f: (client: RedisClient) => Promise<A>) => Effect.Effect<A, Redis.RedisError>
 }>()("@effect/platform-bun/BunRedis") {}
@@ -47,8 +47,8 @@ const make = Effect.fnUntraced(function*(
     use
   })
 
-  return ServiceMap.make(BunRedis, bunRedis).pipe(
-    ServiceMap.add(Redis.Redis, redis)
+  return Context.make(BunRedis, bunRedis).pipe(
+    Context.add(Redis.Redis, redis)
   )
 })
 
