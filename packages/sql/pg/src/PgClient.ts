@@ -323,9 +323,12 @@ export const fromPool = Effect.fnUntraced(function*(
     const fiber = Fiber.getCurrent()!
     const scope = Context.getUnsafe(fiber.context, Scope.Scope)
     let cause: Error | undefined = undefined
+    function onError(cause_: Error) {
+      cause = cause_
+    }
     pool.connect((err, client, release) => {
       if (err) {
-        resume(
+        return resume(
           Effect.fail(
             new SqlError({
               reason: classifyError(
@@ -336,22 +339,30 @@ export const fromPool = Effect.fnUntraced(function*(
             })
           )
         )
-      } else {
-        resume(Effect.as(
-          Scope.addFinalizer(
-            scope,
-            Effect.sync(() => {
-              client!.off("error", onError)
-              release(cause)
+      } else if (!client) {
+        return resume(
+          Effect.fail(
+            new SqlError({
+              reason: new ConnectionError({
+                message: "Failed to acquire connection for transaction",
+                cause: new Error("No client returned"),
+                operation: "acquireConnection"
+              })
             })
-          ),
-          client!
-        ))
+          )
+        )
       }
-      function onError(cause_: Error) {
-        cause = cause_
-      }
-      client!.on("error", onError)
+      client.on("error", onError)
+      resume(Effect.as(
+        Scope.addFinalizer(
+          scope,
+          Effect.sync(() => {
+            client.off("error", onError)
+            release(cause)
+          })
+        ),
+        client
+      ))
     })
   })
   const reserve = Effect.map(reserveRaw, makeConection)
