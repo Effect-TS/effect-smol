@@ -160,7 +160,7 @@ describe("Pool", () => {
       const result = yield* pipe(
         Effect.scoped(Effect.retry(Pool.get(pool), { times: 5 })),
         Effect.timeoutOrElse({
-          onTimeout: () => Effect.fail("timeout"),
+          orElse: () => Effect.fail("timeout"),
           duration: Duration.seconds(1)
         }),
         Effect.flip

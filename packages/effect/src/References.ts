@@ -10,11 +10,13 @@
  *
  * @since 4.0.0
  */
-import { constTrue, constUndefined } from "./Function.ts"
+import * as internalEffect from "./internal/effect.ts"
+import * as references from "./internal/references.ts"
+import type { Logger } from "./Logger.ts"
 import type { LogLevel, Severity } from "./LogLevel.ts"
 import type { ReadonlyRecord } from "./Record.ts"
 import { MaxOpsBeforeYield, PreventSchedulerYield } from "./Scheduler.ts"
-import * as ServiceMap from "./ServiceMap.ts"
+import type * as ServiceMap from "./ServiceMap.ts"
 import { CurrentTraceLevel, DisablePropagation, MinimumTraceLevel, type SpanLink, Tracer } from "./Tracer.ts"
 
 export {
@@ -88,62 +90,224 @@ export {
  * @category references
  * @since 4.0.0
  */
-export const CurrentConcurrency = ServiceMap.Reference<"unbounded" | number>("effect/References/CurrentConcurrency", {
-  defaultValue: () => "unbounded"
-})
+export const CurrentConcurrency: ServiceMap.Reference<number | "unbounded"> = references.CurrentConcurrency
 
-export {
-  /**
-   * Reference for the current scheduler implementation used by the Effect runtime.
-   * Controls how Effects are scheduled and executed.
-   *
-   * @example
-   * ```ts
-   * import { Effect, References, Scheduler } from "effect"
-   *
-   * const customScheduling = Effect.gen(function*() {
-   *   // Get current scheduler (default is MixedScheduler)
-   *   const current = yield* References.Scheduler
-   *   console.log(current) // MixedScheduler instance
-   *
-   *   // Use a custom scheduler
-   *   yield* Effect.provideService(
-   *     Effect.gen(function*() {
-   *       const scheduler = yield* References.Scheduler
-   *       console.log(scheduler) // Custom scheduler instance
-   *
-   *       // Effects will use the custom scheduler in this context
-   *       yield* Effect.log("Using custom scheduler")
-   *     }),
-   *     References.Scheduler,
-   *     new Scheduler.MixedScheduler()
-   *   )
-   * })
-   * ```
-   *
-   * @category references
-   * @since 4.0.0
-   */
-  Scheduler
-} from "./Scheduler.ts"
+/**
+ * Reference for managing log annotations that are automatically added to all log entries.
+ * These annotations provide contextual metadata that appears in every log message.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, References } from "effect"
+ *
+ * const logAnnotationExample = Effect.gen(function*() {
+ *   // Get current annotations (empty by default)
+ *   const current = yield* References.CurrentLogAnnotations
+ *   console.log(current) // {}
+ *
+ *   // Run with custom log annotations
+ *   yield* Effect.provideService(
+ *     Effect.gen(function*() {
+ *       const annotations = yield* References.CurrentLogAnnotations
+ *       console.log(annotations) // { requestId: "req-123", userId: "user-456", version: "1.0.0" }
+ *
+ *       // All log entries will include these annotations
+ *       yield* Console.log("Starting operation")
+ *       yield* Console.info("Processing data")
+ *     }),
+ *     References.CurrentLogAnnotations,
+ *     {
+ *       requestId: "req-123",
+ *       userId: "user-456",
+ *       version: "1.0.0"
+ *     }
+ *   )
+ *
+ *   // Run with extended annotations
+ *   yield* Effect.provideService(
+ *     Effect.gen(function*() {
+ *       const extended = yield* References.CurrentLogAnnotations
+ *       console.log(extended) // { requestId: "req-123", userId: "user-456", version: "1.0.0", operation: "data-sync", timestamp: 1234567890 }
+ *
+ *       yield* Console.log("Operation completed with extended context")
+ *     }),
+ *     References.CurrentLogAnnotations,
+ *     {
+ *       requestId: "req-123",
+ *       userId: "user-456",
+ *       version: "1.0.0",
+ *       operation: "data-sync",
+ *       timestamp: 1234567890
+ *     }
+ *   )
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ * @category references
+ */
+export const CurrentLogAnnotations: ServiceMap.Reference<ReadonlyRecord<string, unknown>> =
+  references.CurrentLogAnnotations
+
+/**
+ * Reference for controlling the current log level for dynamic filtering.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, References } from "effect"
+ *
+ * const dynamicLogging = Effect.gen(function*() {
+ *   // Get current log level (default is "Info")
+ *   const current = yield* References.CurrentLogLevel
+ *   console.log(current) // "Info"
+ *
+ *   // Set log level to Debug for detailed logging
+ *   yield* Effect.provideService(
+ *     Effect.gen(function*() {
+ *       const level = yield* References.CurrentLogLevel
+ *       console.log(level) // "Debug"
+ *       yield* Console.debug("This debug message will be shown")
+ *     }),
+ *     References.CurrentLogLevel,
+ *     "Debug"
+ *   )
+ *
+ *   // Change to Error level to reduce noise
+ *   yield* Effect.provideService(
+ *     Effect.gen(function*() {
+ *       const level = yield* References.CurrentLogLevel
+ *       console.log(level) // "Error"
+ *       yield* Console.info("This info message will be filtered out")
+ *       yield* Console.error("This error message will be shown")
+ *     }),
+ *     References.CurrentLogLevel,
+ *     "Error"
+ *   )
+ * })
+ * ```
+ *
+ * @category references
+ * @since 4.0.0
+ */
+export const CurrentLogLevel: ServiceMap.Reference<Severity> = references.CurrentLogLevel
+
+/**
+ * Reference for managing log spans that track the duration and hierarchy of operations.
+ * Each span represents a labeled time period for performance analysis and debugging.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, References } from "effect"
+ *
+ * const logSpanExample = Effect.gen(function*() {
+ *   // Get current spans (empty by default)
+ *   const current = yield* References.CurrentLogSpans
+ *   console.log(current.length) // 0
+ *
+ *   // Add a log span manually
+ *   const startTime = Date.now()
+ *   yield* Effect.provideService(
+ *     Effect.gen(function*() {
+ *       // Simulate some work
+ *       yield* Effect.sleep("100 millis")
+ *       yield* Console.log("Database operation in progress")
+ *
+ *       const spans = yield* References.CurrentLogSpans
+ *       console.log("Active spans:", spans.map(([label]) => label)) // ["database-connection"]
+ *     }),
+ *     References.CurrentLogSpans,
+ *     [["database-connection", startTime]]
+ *   )
+ *
+ *   // Add another span
+ *   yield* Effect.provideService(
+ *     Effect.gen(function*() {
+ *       const spans = yield* References.CurrentLogSpans
+ *       console.log("Active spans:", spans.map(([label]) => label)) // ["database-connection", "data-processing"]
+ *
+ *       yield* Console.log("Multiple operations in progress")
+ *     }),
+ *     References.CurrentLogSpans,
+ *     [
+ *       ["database-connection", startTime],
+ *       ["data-processing", Date.now()]
+ *     ]
+ *   )
+ *
+ *   // Clear spans when operations complete
+ *   yield* Effect.provideService(
+ *     Effect.gen(function*() {
+ *       const spans = yield* References.CurrentLogSpans
+ *       console.log("Active spans:", spans.length) // 0
+ *     }),
+ *     References.CurrentLogSpans,
+ *     []
+ *   )
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ * @category references
+ */
+export const CurrentLogSpans: ServiceMap.Reference<ReadonlyArray<[label: string, timestamp: number]>> =
+  references.CurrentLogSpans
 
 /**
  * @since 4.0.0
  * @category references
  */
-export interface StackFrame {
-  readonly name: string
-  readonly stack: () => string | undefined
-  readonly parent: StackFrame | undefined
-}
+export const CurrentStackFrame: ServiceMap.Reference<StackFrame | undefined> = references.CurrentStackFrame
 
 /**
- * @since 4.0.0
+ * Reference for setting the minimum log level threshold. Log entries below this
+ * level will be filtered out completely.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, References } from "effect"
+ *
+ * const configureMinimumLogging = Effect.gen(function*() {
+ *   // Get current minimum level (default is "Info")
+ *   const current = yield* References.MinimumLogLevel
+ *   console.log(current) // "Info"
+ *
+ *   // Set minimum level to Warn - Debug and Info will be filtered
+ *   yield* Effect.provideService(
+ *     Effect.gen(function*() {
+ *       const minLevel = yield* References.MinimumLogLevel
+ *       console.log(minLevel) // "Warn"
+ *
+ *       // These won't be processed at all
+ *       yield* Console.debug("Debug message") // Filtered out
+ *       yield* Console.info("Info message") // Filtered out
+ *
+ *       // These will be processed
+ *       yield* Console.warn("Warning message") // Shown
+ *       yield* Console.error("Error message") // Shown
+ *     }),
+ *     References.MinimumLogLevel,
+ *     "Warn"
+ *   )
+ *
+ *   // Reset to default Info level
+ *   yield* Effect.provideService(
+ *     Effect.gen(function*() {
+ *       const minLevel = yield* References.MinimumLogLevel
+ *       console.log(minLevel) // "Info"
+ *
+ *       // Now info messages will be processed
+ *       yield* Console.info("Info message") // Shown
+ *     }),
+ *     References.MinimumLogLevel,
+ *     "Info"
+ *   )
+ * })
+ * ```
+ *
  * @category references
+ * @since 4.0.0
  */
-export const CurrentStackFrame = ServiceMap.Reference<StackFrame | undefined>("effect/References/CurrentStackFrame", {
-  defaultValue: constUndefined
-})
+export const MinimumLogLevel: ServiceMap.Reference<LogLevel> = references.MinimumLogLevel
 
 /**
  * Reference for controlling whether tracing is enabled globally. When set to false,
@@ -189,54 +353,7 @@ export const CurrentStackFrame = ServiceMap.Reference<StackFrame | undefined>("e
  * @since 4.0.0
  * @category references
  */
-export const TracerEnabled = ServiceMap.Reference<boolean>("effect/References/TracerEnabled", {
-  defaultValue: constTrue
-})
-
-/**
- * Reference for controlling whether trace timing is enabled globally. When set
- * to false, spans will not contain timing information (trace time will always
- * be set to zero).
- *
- * @example
- * ```ts
- * import { Effect, References } from "effect"
- *
- * const tracingControl = Effect.gen(function*() {
- *   // Check if trace timing is enabled (default is true)
- *   const current = yield* References.TracerTimingEnabled
- *   console.log(current) // true
- *
- *   // Disable trace timing globally
- *   yield* Effect.provideService(
- *     Effect.gen(function*() {
- *       // Spans will not having timing information in this context
- *       const isEnabled = yield* References.TracerTimingEnabled
- *       console.log(isEnabled) // false
- *     }),
- *     References.TracerTimingEnabled,
- *     false
- *   )
- *
- *   // Re-enable trace timing
- *   yield* Effect.provideService(
- *     Effect.gen(function*() {
- *       // Spans will have timing information in this context
- *       const isEnabled = yield* References.TracerTimingEnabled
- *       console.log(isEnabled) // true
- *     }),
- *     References.TracerTimingEnabled,
- *     true
- *   )
- * })
- * ```
- *
- * @since 4.0.0
- * @category references
- */
-export const TracerTimingEnabled = ServiceMap.Reference<boolean>("effect/References/TracerTimingEnabled", {
-  defaultValue: constTrue
-})
+export const TracerEnabled: ServiceMap.Reference<boolean> = references.TracerEnabled
 
 /**
  * Reference for managing span annotations that are automatically added to all new spans.
@@ -288,10 +405,8 @@ export const TracerTimingEnabled = ServiceMap.Reference<boolean>("effect/Referen
  * @since 4.0.0
  * @category references
  */
-export const TracerSpanAnnotations = ServiceMap.Reference<ReadonlyRecord<string, unknown>>(
-  "effect/References/TracerSpanAnnotations",
-  { defaultValue: () => ({}) }
-)
+export const TracerSpanAnnotations: ServiceMap.Reference<ReadonlyRecord<string, unknown>> =
+  references.TracerSpanAnnotations
 
 /**
  * Reference for managing span links that are automatically added to all new spans.
@@ -353,57 +468,42 @@ export const TracerSpanAnnotations = ServiceMap.Reference<ReadonlyRecord<string,
  * @since 4.0.0
  * @category references
  */
-export const TracerSpanLinks = ServiceMap.Reference<ReadonlyArray<SpanLink>>("effect/References/TracerSpanLinks", {
-  defaultValue: () => []
-})
+export const TracerSpanLinks: ServiceMap.Reference<ReadonlyArray<SpanLink>> = references.TracerSpanLinks
 
 /**
- * Reference for managing log annotations that are automatically added to all log entries.
- * These annotations provide contextual metadata that appears in every log message.
+ * Reference for controlling whether trace timing is enabled globally. When set
+ * to false, spans will not contain timing information (trace time will always
+ * be set to zero).
  *
  * @example
  * ```ts
- * import { Console, Effect, References } from "effect"
+ * import { Effect, References } from "effect"
  *
- * const logAnnotationExample = Effect.gen(function*() {
- *   // Get current annotations (empty by default)
- *   const current = yield* References.CurrentLogAnnotations
- *   console.log(current) // {}
+ * const tracingControl = Effect.gen(function*() {
+ *   // Check if trace timing is enabled (default is true)
+ *   const current = yield* References.TracerTimingEnabled
+ *   console.log(current) // true
  *
- *   // Run with custom log annotations
+ *   // Disable trace timing globally
  *   yield* Effect.provideService(
  *     Effect.gen(function*() {
- *       const annotations = yield* References.CurrentLogAnnotations
- *       console.log(annotations) // { requestId: "req-123", userId: "user-456", version: "1.0.0" }
- *
- *       // All log entries will include these annotations
- *       yield* Console.log("Starting operation")
- *       yield* Console.info("Processing data")
+ *       // Spans will not having timing information in this context
+ *       const isEnabled = yield* References.TracerTimingEnabled
+ *       console.log(isEnabled) // false
  *     }),
- *     References.CurrentLogAnnotations,
- *     {
- *       requestId: "req-123",
- *       userId: "user-456",
- *       version: "1.0.0"
- *     }
+ *     References.TracerTimingEnabled,
+ *     false
  *   )
  *
- *   // Run with extended annotations
+ *   // Re-enable trace timing
  *   yield* Effect.provideService(
  *     Effect.gen(function*() {
- *       const extended = yield* References.CurrentLogAnnotations
- *       console.log(extended) // { requestId: "req-123", userId: "user-456", version: "1.0.0", operation: "data-sync", timestamp: 1234567890 }
- *
- *       yield* Console.log("Operation completed with extended context")
+ *       // Spans will have timing information in this context
+ *       const isEnabled = yield* References.TracerTimingEnabled
+ *       console.log(isEnabled) // true
  *     }),
- *     References.CurrentLogAnnotations,
- *     {
- *       requestId: "req-123",
- *       userId: "user-456",
- *       version: "1.0.0",
- *       operation: "data-sync",
- *       timestamp: 1234567890
- *     }
+ *     References.TracerTimingEnabled,
+ *     true
  *   )
  * })
  * ```
@@ -411,108 +511,7 @@ export const TracerSpanLinks = ServiceMap.Reference<ReadonlyArray<SpanLink>>("ef
  * @since 4.0.0
  * @category references
  */
-export const CurrentLogAnnotations = ServiceMap.Reference<ReadonlyRecord<string, unknown>>(
-  "effect/References/CurrentLogAnnotations",
-  { defaultValue: () => ({}) }
-)
-
-/**
- * Reference for controlling the current log level for dynamic filtering.
- *
- * @example
- * ```ts
- * import { Console, Effect, References } from "effect"
- *
- * const dynamicLogging = Effect.gen(function*() {
- *   // Get current log level (default is "Info")
- *   const current = yield* References.CurrentLogLevel
- *   console.log(current) // "Info"
- *
- *   // Set log level to Debug for detailed logging
- *   yield* Effect.provideService(
- *     Effect.gen(function*() {
- *       const level = yield* References.CurrentLogLevel
- *       console.log(level) // "Debug"
- *       yield* Console.debug("This debug message will be shown")
- *     }),
- *     References.CurrentLogLevel,
- *     "Debug"
- *   )
- *
- *   // Change to Error level to reduce noise
- *   yield* Effect.provideService(
- *     Effect.gen(function*() {
- *       const level = yield* References.CurrentLogLevel
- *       console.log(level) // "Error"
- *       yield* Console.info("This info message will be filtered out")
- *       yield* Console.error("This error message will be shown")
- *     }),
- *     References.CurrentLogLevel,
- *     "Error"
- *   )
- * })
- * ```
- *
- * @category references
- * @since 4.0.0
- */
-export const CurrentLogLevel: ServiceMap.Reference<Severity> = ServiceMap.Reference<Severity>(
-  "effect/References/CurrentLogLevel",
-  { defaultValue: () => "Info" }
-)
-
-/**
- * Reference for setting the minimum log level threshold. Log entries below this
- * level will be filtered out completely.
- *
- * @example
- * ```ts
- * import { Console, Effect, References } from "effect"
- *
- * const configureMinimumLogging = Effect.gen(function*() {
- *   // Get current minimum level (default is "Info")
- *   const current = yield* References.MinimumLogLevel
- *   console.log(current) // "Info"
- *
- *   // Set minimum level to Warn - Debug and Info will be filtered
- *   yield* Effect.provideService(
- *     Effect.gen(function*() {
- *       const minLevel = yield* References.MinimumLogLevel
- *       console.log(minLevel) // "Warn"
- *
- *       // These won't be processed at all
- *       yield* Console.debug("Debug message") // Filtered out
- *       yield* Console.info("Info message") // Filtered out
- *
- *       // These will be processed
- *       yield* Console.warn("Warning message") // Shown
- *       yield* Console.error("Error message") // Shown
- *     }),
- *     References.MinimumLogLevel,
- *     "Warn"
- *   )
- *
- *   // Reset to default Info level
- *   yield* Effect.provideService(
- *     Effect.gen(function*() {
- *       const minLevel = yield* References.MinimumLogLevel
- *       console.log(minLevel) // "Info"
- *
- *       // Now info messages will be processed
- *       yield* Console.info("Info message") // Shown
- *     }),
- *     References.MinimumLogLevel,
- *     "Info"
- *   )
- * })
- * ```
- *
- * @category references
- * @since 4.0.0
- */
-export const MinimumLogLevel = ServiceMap.Reference<
-  LogLevel
->("effect/References/MinimumLogLevel", { defaultValue: () => "Info" })
+export const TracerTimingEnabled: ServiceMap.Reference<boolean> = references.TracerTimingEnabled
 
 /**
  * The log level for unhandled errors. This reference allows you to set the log
@@ -521,69 +520,61 @@ export const MinimumLogLevel = ServiceMap.Reference<
  * @category references
  * @since 4.0.0
  */
-export const UnhandledLogLevel: ServiceMap.Reference<Severity | undefined> = ServiceMap.Reference(
-  "effect/References/UnhandledLogLevel",
-  { defaultValue: (): Severity | undefined => "Error" }
-)
+export const UnhandledLogLevel: ServiceMap.Reference<Severity | undefined> = references.UnhandledLogLevel
 
 /**
- * Reference for managing log spans that track the duration and hierarchy of operations.
- * Each span represents a labeled time period for performance analysis and debugging.
- *
- * @example
- * ```ts
- * import { Console, Effect, References } from "effect"
- *
- * const logSpanExample = Effect.gen(function*() {
- *   // Get current spans (empty by default)
- *   const current = yield* References.CurrentLogSpans
- *   console.log(current.length) // 0
- *
- *   // Add a log span manually
- *   const startTime = Date.now()
- *   yield* Effect.provideService(
- *     Effect.gen(function*() {
- *       // Simulate some work
- *       yield* Effect.sleep("100 millis")
- *       yield* Console.log("Database operation in progress")
- *
- *       const spans = yield* References.CurrentLogSpans
- *       console.log("Active spans:", spans.map(([label]) => label)) // ["database-connection"]
- *     }),
- *     References.CurrentLogSpans,
- *     [["database-connection", startTime]]
- *   )
- *
- *   // Add another span
- *   yield* Effect.provideService(
- *     Effect.gen(function*() {
- *       const spans = yield* References.CurrentLogSpans
- *       console.log("Active spans:", spans.map(([label]) => label)) // ["database-connection", "data-processing"]
- *
- *       yield* Console.log("Multiple operations in progress")
- *     }),
- *     References.CurrentLogSpans,
- *     [
- *       ["database-connection", startTime],
- *       ["data-processing", Date.now()]
- *     ]
- *   )
- *
- *   // Clear spans when operations complete
- *   yield* Effect.provideService(
- *     Effect.gen(function*() {
- *       const spans = yield* References.CurrentLogSpans
- *       console.log("Active spans:", spans.length) // 0
- *     }),
- *     References.CurrentLogSpans,
- *     []
- *   )
- * })
- * ```
- *
  * @since 4.0.0
  * @category references
  */
-export const CurrentLogSpans = ServiceMap.Reference<
-  ReadonlyArray<[label: string, timestamp: number]>
->("effect/References/CurrentLogSpans", { defaultValue: () => [] })
+export interface StackFrame {
+  readonly name: string
+  readonly stack: () => string | undefined
+  readonly parent: StackFrame | undefined
+}
+
+/**
+ * @since 4.0.0
+ * @category references
+ */
+export const CurrentLoggers: ServiceMap.Reference<ReadonlySet<Logger<unknown, any>>> = internalEffect.CurrentLoggers
+
+/**
+ * @since 4.0.0
+ * @category references
+ */
+export const LogToStderr: ServiceMap.Reference<boolean> = internalEffect.LogToStderr
+
+export {
+  /**
+   * Reference for the current scheduler implementation used by the Effect runtime.
+   * Controls how Effects are scheduled and executed.
+   *
+   * @example
+   * ```ts
+   * import { Effect, References, Scheduler } from "effect"
+   *
+   * const customScheduling = Effect.gen(function*() {
+   *   // Get current scheduler (default is MixedScheduler)
+   *   const current = yield* References.Scheduler
+   *   console.log(current) // MixedScheduler instance
+   *
+   *   // Use a custom scheduler
+   *   yield* Effect.provideService(
+   *     Effect.gen(function*() {
+   *       const scheduler = yield* References.Scheduler
+   *       console.log(scheduler) // Custom scheduler instance
+   *
+   *       // Effects will use the custom scheduler in this context
+   *       yield* Effect.log("Using custom scheduler")
+   *     }),
+   *     References.Scheduler,
+   *     new Scheduler.MixedScheduler()
+   *   )
+   * })
+   * ```
+   *
+   * @category references
+   * @since 4.0.0
+   */
+  Scheduler
+} from "./Scheduler.ts"

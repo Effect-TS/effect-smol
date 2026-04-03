@@ -8,7 +8,7 @@ import { identity } from "../../Function.ts"
 import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
-import type * as AST from "../../SchemaAST.ts"
+import * as AST from "../../SchemaAST.ts"
 import * as Issue from "../../SchemaIssue.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
 import type * as ServiceMap from "../../ServiceMap.ts"
@@ -63,6 +63,21 @@ export declare namespace Client {
    * @since 4.0.0
    * @category models
    */
+  export type ResponseMode = HttpApiEndpoint.ClientResponseMode
+
+  /**
+   * @since 4.0.0
+   * @category models
+   */
+  export type Response<Success, Mode extends ResponseMode> = [Mode] extends ["decoded-and-response"]
+    ? [Success, HttpClientResponse.HttpClientResponse]
+    : [Mode] extends ["response-only"] ? HttpClientResponse.HttpClientResponse
+    : Success
+
+  /**
+   * @since 4.0.0
+   * @category models
+   */
   export type Group<Groups extends HttpApiGroup.Any, GroupName extends Groups["identifier"], E, R> =
     [HttpApiGroup.WithName<Groups, GroupName>] extends [HttpApiGroup.HttpApiGroup<infer _GroupName, infer _Endpoints>] ?
       {
@@ -88,23 +103,21 @@ export declare namespace Client {
       infer _Middleware,
       infer _MR
     >
-  ] ? <WithResponse extends boolean = false>(
-      request: Simplify<HttpApiEndpoint.ClientRequest<_Params, _Query, _Payload, _Headers, WithResponse>>
+  ] ? <Mode extends ResponseMode = ResponseMode>(
+      request: Simplify<HttpApiEndpoint.ClientRequest<_Params, _Query, _Payload, _Headers, Mode>>
     ) => Effect.Effect<
-      WithResponse extends true ? [_Success["Type"], HttpClientResponse.HttpClientResponse] : _Success["Type"],
-      | _Error["Type"]
+      Response<_Success["Type"], Mode>,
       | HttpApiMiddleware.Error<_Middleware>
       | HttpApiMiddleware.ClientError<_Middleware>
       | E
       | HttpClientError.HttpClientError
-      | Schema.SchemaError,
+      | ([Mode] extends ["response-only"] ? never : _Error["Type"] | Schema.SchemaError),
       | R
       | _Params["EncodingServices"]
       | _Query["EncodingServices"]
       | _Payload["EncodingServices"]
       | _Headers["EncodingServices"]
-      | _Success["DecodingServices"]
-      | _Error["DecodingServices"]
+      | ([Mode] extends ["response-only"] ? never : _Success["DecodingServices"] | _Error["DecodingServices"])
     > :
     never
 
@@ -120,24 +133,11 @@ export declare namespace Client {
       never
 }
 
-type ApiGroups<Api extends HttpApi.Any> = Api extends HttpApi.HttpApi<infer _ApiId, infer Groups> ? Groups : never
-
-type EndpointId<Endpoint extends HttpApiEndpoint.Any> = Endpoint extends {
-  readonly method: infer Method extends HttpMethod.HttpMethod
-  readonly path: infer Path extends string
-} ? `${Method} ${Path}`
-  : never
-
-type EndpointWithId<Endpoints extends HttpApiEndpoint.Any, Id extends string> = Id extends
-  `${infer Method extends HttpMethod.HttpMethod} ${infer Path extends string}` ?
-  Extract<Endpoints, { readonly method: Method; readonly path: Path }> :
-  never
-
 type UrlBuilderRequest<Endpoint extends HttpApiEndpoint.Any> = (
-  & ([HttpApiEndpoint.Params<Endpoint>["Encoded"]] extends [never] ? {}
-    : { readonly params: HttpApiEndpoint.Params<Endpoint>["Encoded"] })
-  & ([HttpApiEndpoint.Query<Endpoint>["Encoded"]] extends [never] ? {}
-    : { readonly query: HttpApiEndpoint.Query<Endpoint>["Encoded"] })
+  & ([HttpApiEndpoint.Params<Endpoint>["Type"]] extends [never] ? {}
+    : { readonly params: HttpApiEndpoint.Params<Endpoint>["Type"] })
+  & ([HttpApiEndpoint.Query<Endpoint>["Type"]] extends [never] ? {}
+    : { readonly query: HttpApiEndpoint.Query<Endpoint>["Type"] })
 ) extends infer Request ? keyof Request extends never ? void | undefined : Request
   : never
 
@@ -149,14 +149,32 @@ type UrlBuilderArgs<Endpoint extends HttpApiEndpoint.Any> = [UrlBuilderRequest<E
  * @since 4.0.0
  * @category models
  */
-export type UrlBuilder<Api extends HttpApi.Any> = <
-  const GroupName extends HttpApiGroup.Name<ApiGroups<Api>>,
-  const Id extends EndpointId<HttpApiGroup.EndpointsWithName<ApiGroups<Api>, GroupName>>
->(
-  group: GroupName,
-  endpoint: Id,
-  ...args: UrlBuilderArgs<EndpointWithId<HttpApiGroup.EndpointsWithName<ApiGroups<Api>, GroupName>, Id>>
+export type UrlBuilder<Api extends HttpApi.Any> = Api extends HttpApi.HttpApi<infer _ApiId, infer Groups> ? Simplify<
+    & {
+      readonly [Group in Extract<Groups, { readonly topLevel: false }> as HttpApiGroup.Name<Group>]: UrlBuilderGroup<
+        HttpApiGroup.Endpoints<Group>
+      >
+    }
+    & {
+      readonly [Method in UrlBuilderTopLevelMethods<Groups> as Method[0]]: Method[1]
+    }
+  >
+  : never
+
+type UrlBuilderGroup<Endpoints extends HttpApiEndpoint.Any> = {
+  readonly [Endpoint in Endpoints as HttpApiEndpoint.Name<Endpoint>]: UrlBuilderMethod<Endpoint>
+}
+
+type UrlBuilderMethod<Endpoint extends HttpApiEndpoint.Any> = (
+  ...args: UrlBuilderArgs<Endpoint>
 ) => string
+
+type UrlBuilderTopLevelMethods<Groups extends HttpApiGroup.Any> = Extract<Groups, { readonly topLevel: true }> extends
+  HttpApiGroup.HttpApiGroup<infer _Id, infer _Endpoints, infer _TopLevel> ?
+  _Endpoints extends infer Endpoint extends HttpApiEndpoint.Any ?
+    [HttpApiEndpoint.Name<Endpoint>, UrlBuilderMethod<Endpoint>]
+  : never :
+  never
 
 const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>(
   api: HttpApi.HttpApi<ApiId, Groups>,
@@ -268,7 +286,7 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
         const payloadSchemas = HttpApiEndpoint.getPayloadSchemas(endpoint)
         const encodePayload = Arr.isArrayNonEmpty(payloadSchemas) ?
           HttpMethod.hasBody(endpoint.method)
-            ? Schema.encodeUnknownEffect(getEncodePayloadSchema(payloadSchemas))
+            ? Schema.encodeUnknownEffect(getEncodePayloadSchema(payloadSchemas, endpoint.method))
             : Schema.encodeUnknownEffect(Schema.Union(payloadSchemas)) :
           undefined
 
@@ -283,7 +301,7 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
             readonly query: unknown
             readonly payload: unknown
             readonly headers: Record<string, string> | undefined
-            readonly withResponse?: boolean
+            readonly responseMode?: HttpApiEndpoint.ClientResponseMode
           } | undefined
         ) {
           let httpRequest = HttpClientRequest.make(endpoint.method)(endpoint.path)
@@ -331,11 +349,15 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
             middlewareKeys.length - 1
           )
 
+          if (request?.responseMode === "response-only") {
+            return response
+          }
+
           const value = yield* (options.transformResponse === undefined
             ? decodeResponse(response)
             : options.transformResponse(decodeResponse(response)))
 
-          return request?.withResponse === true ? [value, response] : value
+          return request?.responseMode === "decoded-and-response" ? [value, response] : value
         })
 
         options.onEndpoint({
@@ -477,7 +499,7 @@ export const endpoint = <
 }
 
 /**
- * Creates a type-safe URL builder keyed by `${method} ${path}`.
+ * Creates a type-safe URL builder that mirrors `HttpApiClient.make`.
  *
  * @example
  * ```ts
@@ -492,11 +514,11 @@ export const endpoint = <
  *   )
  * )
  *
- * const buildUrl = HttpApiClient.urlBuilder<typeof Api>({
+ * const buildUrl = HttpApiClient.urlBuilder(Api, {
  *   baseUrl: "https://api.example.com"
  * })
  *
- * buildUrl("users", "GET /users/:id", {
+ * buildUrl.users.getUser({
  *   params: { id: "123" }
  * })
  * //=> "https://api.example.com/users/123"
@@ -504,19 +526,45 @@ export const endpoint = <
  * @since 4.0.0
  * @category constructors
  */
-export const urlBuilder = <Api extends HttpApi.Any>(options?: {
+export const urlBuilder = <Api extends HttpApi.Any>(api: Api, options?: {
   readonly baseUrl?: URL | string | undefined
 }): UrlBuilder<Api> => {
-  return ((_: string, endpoint: string, request?: {
-    readonly params?: Record<string, string | undefined> | undefined
-    readonly query?: UrlParams.Input | undefined
-  }) => {
-    const path = endpoint.slice(endpoint.indexOf(" ") + 1)
-    const withParams = request?.params === undefined ? path : compilePath(path)(request.params)
-    const query = request?.query === undefined ? "" : UrlParams.toString(UrlParams.fromInput(request.query))
-    const url = query === "" ? withParams : `${withParams}?${query}`
-    return options?.baseUrl === undefined ? url : new URL(url, options.baseUrl.toString()).toString()
-  }) as UrlBuilder<Api>
+  const builder: Record<string, any> = {}
+
+  HttpApi.reflect(api as unknown as HttpApi.AnyWithProps, {
+    onGroup({ group }) {
+      if (group.topLevel) return
+      builder[group.identifier] = {}
+    },
+    onEndpoint({ group, endpoint }) {
+      const makeUrl = compilePath(endpoint.path)
+      const encodeParams = endpoint.params === undefined
+        ? undefined
+        : Schema.encodeSync(endpoint.params as Schema.Encoder<unknown>)
+      const encodeQuery = endpoint.query === undefined
+        ? undefined
+        : Schema.encodeSync(endpoint.query as Schema.Encoder<unknown>)
+
+      const endpointBuilder = (request?: {
+        readonly params?: unknown
+        readonly query?: unknown
+      }) => {
+        const params = request?.params
+        const path = params === undefined
+          ? endpoint.path
+          : makeUrl((encodeParams === undefined ? params : encodeParams(params)) as Record<string, string | undefined>)
+        const queryInput = request?.query === undefined
+          ? undefined
+          : (encodeQuery === undefined ? request.query : encodeQuery(request.query)) as UrlParams.Input
+        const query = queryInput === undefined ? "" : UrlParams.toString(UrlParams.fromInput(queryInput))
+        const url = query === "" ? path : `${path}?${query}`
+        return options?.baseUrl === undefined ? url : new URL(url, options.baseUrl.toString()).toString()
+      }
+      ;(group.topLevel ? builder : builder[group.identifier])[endpoint.name] = endpointBuilder
+    }
+  })
+
+  return builder as UrlBuilder<Api>
 }
 
 // ----------------------------------------------------------------------------
@@ -608,8 +656,19 @@ function toCodecArrayBuffer(schemas: readonly [Schema.Top, ...Array<Schema.Top>]
   function onSchema(schema: Schema.Top) {
     const encoding = HttpApiSchema.getResponseEncoding(schema.ast)
     switch (encoding._tag) {
-      case "Json":
-        return UnknownFromArrayBuffer.pipe(Schema.decodeTo(schema))
+      case "Json": {
+        // handle json codecs that transform void schemas to null
+        const encodedIsNull = AST.isNull(AST.toEncoded(schema.ast))
+        return UnknownFromArrayBuffer.pipe(Schema.decodeTo(
+          schema,
+          encodedIsNull ?
+            Transformation.transform({
+              decode: (a) => a === undefined ? null : a,
+              encode: (a) => a === null ? undefined : a
+            }) as any :
+            undefined
+        ))
+      }
       case "FormUrlEncoded":
         return StringFromArrayBuffer.pipe(
           Schema.decodeTo(UrlParams.schemaRecord),
@@ -635,21 +694,25 @@ const statusOrElse = (response: HttpClientResponse.HttpClientResponse) =>
 
 const $HttpBody = Schema.declare(HttpBody.isHttpBody)
 
-function getEncodePayloadSchema(schemas: readonly [Schema.Top, ...Array<Schema.Top>]): Schema.Top {
-  return Schema.Union(schemas.map(getEncodePayloadSchemaFromBody))
+function getEncodePayloadSchema(
+  schemas: readonly [Schema.Top, ...Array<Schema.Top>],
+  method: HttpMethod.HttpMethod
+): Schema.Top {
+  return Schema.Union(schemas.map((s) => getEncodePayloadSchemaFromBody(s, method)))
 }
 
 const bodyFromPayloadCache = new WeakMap<AST.AST, Schema.Top>()
 
 function getEncodePayloadSchemaFromBody(
-  schema: Schema.Top
+  schema: Schema.Top,
+  method: HttpMethod.HttpMethod
 ): Schema.Top {
   const ast = schema.ast
   const cached = bodyFromPayloadCache.get(ast)
   if (cached !== undefined) {
     return cached
   }
-  const encoding = HttpApiSchema.getPayloadEncoding(ast)
+  const encoding = HttpApiSchema.getPayloadEncoding(ast, method)
   const out = $HttpBody.pipe(Schema.decodeTo(
     schema,
     Transformation.transformOrFail({

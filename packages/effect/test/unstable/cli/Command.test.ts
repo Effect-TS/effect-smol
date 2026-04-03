@@ -1410,4 +1410,50 @@ describe("Command", () => {
         ])
       }))
   })
+
+  describe("help docs", () => {
+    it.effect("should include flag choices in help doc descriptions", () =>
+      Effect.gen(function*() {
+        const command = Command.make("tool", {
+          mode: Flag.choice("mode", ["dev", "prod"]).pipe(
+            Flag.withDescription("Execution mode")
+          ),
+          format: Flag.choice("format", ["json", "yaml"])
+        })
+
+        const helpDoc = toImpl(command).buildHelpDoc(["tool"])
+
+        assert.deepStrictEqual(helpDoc.flags, [
+          {
+            name: "mode",
+            aliases: [],
+            type: "choice",
+            description: Option.some("Execution mode (choices: dev, prod)"),
+            required: true
+          },
+          {
+            name: "format",
+            aliases: [],
+            type: "choice",
+            description: Option.some("(choices: json, yaml)"),
+            required: true
+          }
+        ])
+      }))
+
+    it.effect("should render flag choices in formatted help output", () =>
+      Effect.gen(function*() {
+        const command = Command.make("tool", {
+          mode: Flag.choice("mode", ["dev", "prod"]).pipe(
+            Flag.withDescription("Execution mode")
+          )
+        })
+        const runCommand = Command.runWith(command, { version: "1.0.0" })
+
+        yield* runCommand(["--help"])
+
+        const stdout = (yield* TestConsole.logLines).join("\n")
+        assert.isTrue(stdout.includes("Execution mode (choices: dev, prod)"))
+      }).pipe(Effect.provide(TestLayer)))
+  })
 })

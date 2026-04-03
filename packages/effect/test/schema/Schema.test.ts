@@ -1,3 +1,4 @@
+import { describe, it } from "@effect/vitest"
 import {
   BigDecimal,
   Brand,
@@ -31,7 +32,6 @@ import {
 import { TestSchema } from "effect/testing"
 import { produce } from "immer"
 import { deepStrictEqual, fail, ok, strictEqual } from "node:assert"
-import { describe, it } from "vitest"
 import { assertFalse, assertInclude, assertTrue, throws } from "../utils/assert.ts"
 
 const isDeno = "Deno" in globalThis
@@ -466,7 +466,7 @@ Expected an integer, got -1.2`
       it("optional field with default", () => {
         const schema = Schema.Struct({
           a: Schema.String.pipe(Schema.encode({
-            decode: SchemaGetter.withDefault(() => "default-a"),
+            decode: SchemaGetter.withDefault(Effect.succeed("default-a")),
             encode: SchemaGetter.passthrough()
           })),
           b: Schema.String
@@ -1011,8 +1011,7 @@ Unexpected key with value "c"
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -1806,8 +1805,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const schema = Schema.Finite
     const asserts = new TestSchema.Asserts(schema)
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
   })
 
@@ -1817,8 +1815,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const asserts = new TestSchema.Asserts(schema)
 
       if (verifyGeneration) {
-        const arbitrary = asserts.arbitrary()
-        arbitrary.verifyGeneration()
+        asserts.arbitrary().verifyGeneration()
       }
 
       const decoding = asserts.decoding()
@@ -1839,13 +1836,26 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       )
     })
 
+    it("DateFromString", async () => {
+      const schema = Schema.DateFromString
+      const asserts = new TestSchema.Asserts(schema)
+      if (verifyGeneration) {
+        asserts.arbitrary().verifyGeneration()
+      }
+
+      const decoding = asserts.decoding()
+      await decoding.succeed("2021-01-01T00:00:00.000Z", new Date("2021-01-01T00:00:00.000Z"))
+
+      const encoding = asserts.encoding()
+      await encoding.succeed(new Date("2021-01-01T00:00:00.000Z"), "2021-01-01T00:00:00.000Z")
+    })
+
     it("FiniteFromString", async () => {
       const schema = Schema.FiniteFromString
       const asserts = new TestSchema.Asserts(schema)
 
       if (verifyGeneration) {
-        const arbitrary = asserts.arbitrary()
-        arbitrary.verifyGeneration()
+        asserts.arbitrary().verifyGeneration()
       }
 
       const decoding = asserts.decoding()
@@ -1876,6 +1886,103 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await encoding.fail(
         "a",
         `Expected number, got "a"`
+      )
+    })
+
+    it("BigIntFromString", async () => {
+      const schema = Schema.BigIntFromString
+      const asserts = new TestSchema.Asserts(schema)
+      if (verifyGeneration) {
+        asserts.arbitrary().verifyGeneration()
+      }
+
+      const decoding = asserts.decoding()
+      await decoding.succeed("0", 0n)
+      await decoding.fail(
+        "a",
+        `Expected a string representing a bigint, got "a"`
+      )
+
+      const encoding = asserts.encoding()
+      await encoding.succeed(0n, "0")
+    })
+
+    it("BigDecimalFromString", async () => {
+      const schema = Schema.BigDecimalFromString
+      const asserts = new TestSchema.Asserts(schema)
+
+      if (verifyGeneration) {
+        asserts.arbitrary().verifyGeneration()
+      }
+
+      const decoding = asserts.decoding()
+      await decoding.succeed("0", Option.getOrThrow(BigDecimal.fromString("0")))
+      await decoding.succeed("123.456", Option.getOrThrow(BigDecimal.fromString("123.456")))
+
+      const encoding = asserts.encoding()
+      await encoding.succeed(BigDecimal.make(0n, 0), "0")
+      await encoding.succeed(BigDecimal.make(123456n, 3), "123.456")
+      await encoding.fail(
+        "a",
+        `Expected BigDecimal, got "a"`
+      )
+    })
+
+    it("TimeZoneNamedFromString", async () => {
+      const schema = Schema.TimeZoneNamedFromString
+      const asserts = new TestSchema.Asserts(schema)
+
+      if (verifyGeneration) {
+        asserts.arbitrary().verifyGeneration()
+      }
+
+      const decoding = asserts.decoding()
+      await decoding.succeed("Europe/London", DateTime.zoneMakeNamedUnsafe("Europe/London"))
+
+      const encoding = asserts.encoding()
+      await encoding.succeed(DateTime.zoneMakeNamedUnsafe("Europe/London"), "Europe/London")
+      await encoding.fail(
+        "a",
+        `Expected DateTime.TimeZone.Named, got "a"`
+      )
+    })
+
+    it("TimeZoneFromString", async () => {
+      const schema = Schema.TimeZoneFromString
+      const asserts = new TestSchema.Asserts(schema)
+
+      if (verifyGeneration) {
+        asserts.arbitrary().verifyGeneration()
+      }
+
+      const decoding = asserts.decoding()
+      await decoding.succeed("Europe/London", DateTime.zoneMakeNamedUnsafe("Europe/London"))
+      await decoding.succeed("+03:00", DateTime.zoneMakeOffset(3 * 60 * 60 * 1000))
+
+      const encoding = asserts.encoding()
+      await encoding.succeed(DateTime.zoneMakeNamedUnsafe("Europe/London"), "Europe/London")
+      await encoding.succeed(DateTime.zoneMakeOffset(3 * 60 * 60 * 1000), "+03:00")
+      await encoding.fail(
+        "a",
+        `Expected DateTime.TimeZone, got "a"`
+      )
+    })
+
+    it("DateTimeZonedFromString", async () => {
+      const schema = Schema.DateTimeZonedFromString
+      const asserts = new TestSchema.Asserts(schema)
+
+      if (verifyGeneration) {
+        asserts.arbitrary().verifyGeneration()
+      }
+
+      const zoned = DateTime.makeZonedUnsafe("2021-01-01T00:00:00.000Z", { timeZone: "Europe/London" })
+
+      const encoding = asserts.encoding()
+      await encoding.succeed(zoned, DateTime.formatIsoZoned(zoned))
+      await encoding.fail(
+        "a",
+        `Expected DateTime.Zoned, got "a"`
       )
     })
 
@@ -1942,7 +2049,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
             Schema.optionalKey(Schema.String),
             {
               decode: SchemaGetter.required(),
-              encode: SchemaGetter.withDefault(() => "default")
+              encode: SchemaGetter.withDefault(Effect.succeed("default"))
             }
           )
         )
@@ -1968,7 +2075,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
           Schema.decodeTo(
             Schema.String,
             {
-              decode: SchemaGetter.withDefault(() => "default"),
+              decode: SchemaGetter.withDefault(Effect.succeed("default")),
               encode: SchemaGetter.passthrough()
             }
           )
@@ -2044,14 +2151,14 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
               Schema.decodeTo(
                 Schema.String,
                 {
-                  decode: SchemaGetter.withDefault(() => "default-b"),
+                  decode: SchemaGetter.withDefault(Effect.succeed("default-b")),
                   encode: SchemaGetter.passthrough()
                 }
               )
             )
           }),
           {
-            decode: SchemaGetter.withDefault(() => ({})),
+            decode: SchemaGetter.withDefault(Effect.succeed({})),
             encode: SchemaGetter.passthrough()
           }
         ))
@@ -2119,7 +2226,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
           Schema.encodeTo(
             Schema.optionalKey(Schema.String),
             {
-              decode: SchemaGetter.withDefault(() => "default"),
+              decode: SchemaGetter.withDefault(Effect.succeed("default")),
               encode: SchemaGetter.passthrough()
             }
           )
@@ -2142,7 +2249,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
             Schema.String,
             {
               decode: SchemaGetter.required(),
-              encode: SchemaGetter.withDefault(() => "default")
+              encode: SchemaGetter.withDefault(Effect.succeed("default"))
             }
           )
         )
@@ -2265,7 +2372,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
     it("should work with withConstructorDefault", async () => {
       const schema = Schema.Struct({
-        a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
+        a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(Effect.succeed(-1)))
       })
       const asserts = new TestSchema.Asserts(schema)
 
@@ -2275,7 +2382,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const flipped = schema.pipe(Schema.flip)
       const assertsFlipped = new TestSchema.Asserts(flipped)
-      throws(() => flipped.makeUnsafe({} as any))
+      throws(() => flipped.make({} as any))
       const makeFlipped = assertsFlipped.make()
       await makeFlipped.succeed({ a: "1" })
 
@@ -2312,8 +2419,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const asserts = new TestSchema.Asserts(schema)
 
       if (verifyGeneration) {
-        const arbitrary = asserts.arbitrary()
-        arbitrary.verifyGeneration()
+        asserts.arbitrary().verifyGeneration()
       }
 
       const decoding = asserts.decoding()
@@ -2350,8 +2456,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const asserts = new TestSchema.Asserts(schema)
 
       if (verifyGeneration) {
-        const arbitrary = asserts.arbitrary()
-        arbitrary.verifyGeneration()
+        asserts.arbitrary().verifyGeneration()
       }
 
       const decoding = asserts.decoding()
@@ -2462,8 +2567,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const asserts = new TestSchema.Asserts(schema)
 
       if (verifyGeneration) {
-        const arbitrary = asserts.arbitrary()
-        arbitrary.verifyGeneration()
+        asserts.arbitrary().verifyGeneration()
       }
 
       const decoding = asserts.decoding()
@@ -2493,8 +2597,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -2512,8 +2615,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -2532,8 +2634,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const asserts = new TestSchema.Asserts(schema)
 
       if (verifyGeneration) {
-        const arbitrary = asserts.arbitrary()
-        arbitrary.verifyGeneration()
+        asserts.arbitrary().verifyGeneration()
       }
 
       const decoding = asserts.decoding()
@@ -2552,8 +2653,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const asserts = new TestSchema.Asserts(schema)
 
       if (verifyGeneration) {
-        const arbitrary = asserts.arbitrary()
-        arbitrary.verifyGeneration()
+        asserts.arbitrary().verifyGeneration()
       }
 
       const decoding = asserts.decoding()
@@ -2575,8 +2675,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -2605,8 +2704,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -2632,8 +2730,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const asserts = new TestSchema.Asserts(schema)
 
       if (verifyGeneration) {
-        const arbitrary = asserts.arbitrary()
-        arbitrary.verifyGeneration()
+        asserts.arbitrary().verifyGeneration()
       }
 
       const decoding = asserts.decoding()
@@ -2706,8 +2803,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const asserts = new TestSchema.Asserts(schema)
 
       if (verifyGeneration) {
-        const arbitrary = asserts.arbitrary()
-        arbitrary.verifyGeneration()
+        asserts.arbitrary().verifyGeneration()
       }
 
       const decoding = asserts.decoding()
@@ -2739,8 +2835,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     noPrototypeObject.message = "a"
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -2793,8 +2888,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const asserts = new TestSchema.Asserts(schema)
 
       if (verifyGeneration) {
-        const arbitrary = asserts.arbitrary()
-        arbitrary.verifyGeneration()
+        asserts.arbitrary().verifyGeneration()
       }
     })
   })
@@ -2813,8 +2907,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const asserts = new TestSchema.Asserts(schema)
 
       if (verifyGeneration) {
-        const arbitrary = asserts.arbitrary()
-        arbitrary.verifyGeneration()
+        asserts.arbitrary().verifyGeneration()
       }
 
       const decoding = asserts.decoding()
@@ -2856,8 +2949,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
   })
 
@@ -2877,8 +2969,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const asserts = new TestSchema.Asserts(schema)
 
       if (verifyGeneration) {
-        const arbitrary = asserts.arbitrary()
-        arbitrary.verifyGeneration()
+        asserts.arbitrary().verifyGeneration()
       }
 
       const decoding = asserts.decoding()
@@ -2976,11 +3067,35 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
   })
 
+  describe("makeEffect", () => {
+    it.effect("Struct", () =>
+      Effect.gen(function*() {
+        const schema = Schema.Struct({ a: Schema.Number.check(Schema.isGreaterThan(0)) })
+
+        const success = yield* schema.makeEffect({ a: 1 }).pipe(Effect.result)
+        deepStrictEqual(success, Result.succeed({ a: 1 }))
+
+        const failure = yield* schema.makeEffect({ a: -1 }).pipe(Effect.flip)
+        assertTrue(Schema.isSchemaError(failure))
+      }))
+
+    it.effect("Class", () =>
+      Effect.gen(function*() {
+        class A extends Schema.Class<A>("A")(Schema.Struct({ a: Schema.Number.check(Schema.isGreaterThan(0)) })) {}
+
+        const success = yield* A.makeEffect({ a: 1 })
+        deepStrictEqual(success, new A({ a: 1 }))
+
+        const failure = yield* A.makeEffect({ a: -1 }).pipe(Effect.flip)
+        assertTrue(Schema.isSchemaError(failure))
+      }))
+  })
+
   describe("withConstructorDefault", () => {
     describe("Struct", () => {
       it("should not apply defaults when decoding / encoding", async () => {
         const schema = Schema.Struct({
-          a: Schema.String.pipe(Schema.optionalKey, Schema.withConstructorDefault(() => Option.some("a")))
+          a: Schema.String.pipe(Schema.optionalKey, Schema.withConstructorDefault(Effect.succeed("a")))
         })
         const asserts = new TestSchema.Asserts(schema)
 
@@ -2991,30 +3106,9 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         await encoding.succeed({}, {})
       })
 
-      it("should pass the input to the default value", async () => {
+      it("should apply constructor default when the field is not present", async () => {
         const schema = Schema.Struct({
-          a: Schema.String.pipe(
-            Schema.UndefinedOr,
-            Schema.withConstructorDefault((o) => {
-              if (Option.isSome(o)) {
-                return Option.some("undefined-default")
-              }
-              return Option.some("otherwise-default")
-            })
-          )
-        })
-        const asserts = new TestSchema.Asserts(schema)
-
-        const make = asserts.make()
-
-        await make.succeed({ a: "a" })
-        await make.succeed({}, { a: "otherwise-default" })
-        await make.succeed({ a: undefined }, { a: "undefined-default" })
-      })
-
-      it("Struct & Some", async () => {
-        const schema = Schema.Struct({
-          a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
+          a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(Effect.succeed(-1)))
         })
         const asserts = new TestSchema.Asserts(schema)
 
@@ -3023,32 +3117,12 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         await make.succeed({}, { a: -1 })
       })
 
-      it("Struct & None", async () => {
-        const schema = Schema.Struct({
-          a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.none()))
-        })
-        const asserts = new TestSchema.Asserts(schema)
-
-        const make = asserts.make()
-        await make.succeed({ a: 1 })
-        await make.fail(
-          {},
-          `Missing key
-  at ["a"]`
-        )
-        await make.fail(
-          {},
-          `Missing key
-  at ["a"]`
-        )
-      })
-
       describe("nested defaults", () => {
         it("Struct", async () => {
           const schema = Schema.Struct({
             a: Schema.Struct({
-              b: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
-            }).pipe(Schema.withConstructorDefault(() => Option.some({})))
+              b: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(Effect.succeed(-1)))
+            }).pipe(Schema.withConstructorDefault(Effect.succeed({})))
           })
           const asserts = new TestSchema.Asserts(schema)
 
@@ -3061,8 +3135,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         it("Class", async () => {
           class A extends Schema.Class<A>("A")(Schema.Struct({
             a: Schema.Struct({
-              b: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
-            }).pipe(Schema.withConstructorDefault(() => Option.some({})))
+              b: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(Effect.succeed(-1)))
+            }).pipe(Schema.withConstructorDefault(Effect.succeed({})))
           })) {}
 
           const asserts = new TestSchema.Asserts(A)
@@ -3072,15 +3146,24 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
           await make.succeed({ a: {} }, new A({ a: { b: -1 } }))
           await make.succeed({}, new A({ a: { b: -1 } }))
 
-          deepStrictEqual(A.makeUnsafe({ a: { b: 1 } }), new A({ a: { b: 1 } }))
-          deepStrictEqual(A.makeUnsafe({ a: {} }), new A({ a: { b: -1 } }))
-          deepStrictEqual(A.makeUnsafe({}), new A({ a: { b: -1 } }))
+          deepStrictEqual(A.make({ a: { b: 1 } }), new A({ a: { b: 1 } }))
+          deepStrictEqual(A.make({ a: {} }), new A({ a: { b: -1 } }))
+          deepStrictEqual(A.make({}), new A({ a: { b: -1 } }))
         })
+      })
+
+      it("applies constructor default when disableChecks is true", () => {
+        class A extends Schema.Class<A>("A")({
+          a: Schema.String.pipe(Schema.withConstructorDefault(Effect.succeed("default")))
+        }) {}
+
+        const instance = new A({}, { disableChecks: true })
+        deepStrictEqual(instance.a, "default")
       })
 
       it("Struct & Effect sync", async () => {
         const schema = Schema.Struct({
-          a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Effect.succeed(Option.some(-1))))
+          a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(Effect.succeed(-1)))
         })
         const asserts = new TestSchema.Asserts(schema)
 
@@ -3091,10 +3174,10 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       it("Struct & Effect async", async () => {
         const schema = Schema.Struct({
-          a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() =>
+          a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(
             Effect.gen(function*() {
               yield* Effect.sleep(100)
-              return Option.some(-1)
+              return -1
             })
           ))
         })
@@ -3109,14 +3192,14 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         class Service extends ServiceMap.Service<Service, { value: Effect.Effect<number> }>()("Service") {}
 
         const schema = Schema.Struct({
-          a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() =>
+          a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(
             Effect.gen(function*() {
               yield* Effect.sleep(100)
               const oservice = yield* Effect.serviceOption(Service)
               if (Option.isNone(oservice)) {
-                return Option.none()
+                return -1
               }
-              return Option.some(yield* oservice.value.value)
+              return yield* oservice.value.value
             })
           ))
         })
@@ -3125,24 +3208,20 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         const make = asserts.make()
 
         await make.succeed({ a: 1 })
-        await make.fail(
-          {},
-          `Missing key
-  at ["a"]`
-        )
+        await make.succeed({}, { a: -1 })
         const effect = await SchemaParser.makeEffect(schema)({}).pipe(
-          Effect.provideService(Service, { value: Effect.succeed(-1) }),
+          Effect.provideService(Service, { value: Effect.succeed(0) }),
           Effect.result,
           Effect.runPromise
         )
-        deepStrictEqual(effect, Result.succeed({ a: -1 }))
+        deepStrictEqual(effect, Result.succeed({ a: 0 }))
       })
     })
 
     describe("Tuple", () => {
       it("Tuple & Some", async () => {
         const schema = Schema.Tuple(
-          [Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))]
+          [Schema.FiniteFromString.pipe(Schema.withConstructorDefault(Effect.succeed(-1)))]
         )
         const asserts = new TestSchema.Asserts(schema)
 
@@ -3155,8 +3234,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         const schema = Schema.Tuple(
           [
             Schema.Struct({
-              b: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
-            }).pipe(Schema.withConstructorDefault(() => Option.some({})))
+              b: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(Effect.succeed(-1)))
+            }).pipe(Schema.withConstructorDefault(Effect.succeed({})))
           ]
         )
         const asserts = new TestSchema.Asserts(schema)
@@ -3171,7 +3250,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         const schema = Schema.Tuple(
           [
             Schema.Tuple([
-              Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
+              Schema.FiniteFromString.pipe(Schema.withConstructorDefault(Effect.succeed(-1)))
             ])
           ]
         )
@@ -3186,8 +3265,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         const schema = Schema.Tuple(
           [
             Schema.Tuple([
-              Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
-            ]).pipe(Schema.withConstructorDefault(() => Option.some([] as const)))
+              Schema.FiniteFromString.pipe(Schema.withConstructorDefault(Effect.succeed(-1)))
+            ]).pipe(Schema.withConstructorDefault(Effect.succeed([] as const)))
           ]
         )
         const asserts = new TestSchema.Asserts(schema)
@@ -3902,8 +3981,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const schema = Schema.PropertyKey
     const asserts = new TestSchema.Asserts(schema)
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
   })
 
@@ -3911,8 +3989,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const schema = Schema.BooleanFromBit
     const asserts = new TestSchema.Asserts(schema)
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
   })
 
@@ -3920,8 +3997,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const schema = Schema.Uint8Array
     const asserts = new TestSchema.Asserts(schema)
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
   })
 
@@ -3931,8 +4007,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const encoder = new TextEncoder()
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -3951,8 +4026,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const encoder = new TextEncoder()
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -3972,8 +4046,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const encoder = new TextEncoder()
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -3999,8 +4072,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -4014,8 +4086,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
   })
 
@@ -4024,8 +4095,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -4040,8 +4110,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -4057,8 +4126,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -4074,8 +4142,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -4091,8 +4158,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -4107,8 +4173,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -4123,8 +4188,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -4141,8 +4205,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -4160,8 +4223,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     strictEqual(schema.annotate({}).value, Schema.FiniteFromString)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -4182,8 +4244,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     strictEqual(schema.annotate({}).value, Schema.FiniteFromString)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -4207,8 +4268,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     strictEqual(schema.annotate({}).value, Schema.FiniteFromString)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -4234,8 +4294,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     strictEqual(schema.annotate({}).value, Schema.FiniteFromString)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -4261,8 +4320,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     strictEqual(schema.annotate({}).value, Schema.FiniteFromString)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -4311,7 +4369,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const schema = A
 
-      const instance = schema.makeUnsafe({ a: "a" })
+      const instance = schema.make({ a: "a" })
       strictEqual(instance.a, "a")
       deepStrictEqual(A.fields, { a: Schema.String })
     })
@@ -4348,8 +4406,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
   })
 
@@ -4358,8 +4415,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -4377,8 +4433,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -4404,8 +4459,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -4525,7 +4579,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
           Schema.encodeTo(
             Schema.optionalKey(Schema.Literal("a")),
             {
-              decode: SchemaGetter.withDefault(() => "a" as const),
+              decode: SchemaGetter.withDefault(Effect.succeed("a")),
               encode: SchemaGetter.omit()
             }
           )
@@ -4581,8 +4635,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const schema = Schema.URL
     const asserts = new TestSchema.Asserts(schema)
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
   })
 
@@ -4590,8 +4643,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const schema = Schema.RegExp
     const asserts = new TestSchema.Asserts(schema)
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
   })
 
@@ -4600,8 +4652,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -4621,8 +4672,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const asserts = new TestSchema.Asserts(schema)
 
       if (verifyGeneration) {
-        const arbitrary = asserts.arbitrary()
-        arbitrary.verifyGeneration()
+        asserts.arbitrary().verifyGeneration()
       }
 
       const decoding = asserts.decoding()
@@ -4641,8 +4691,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const asserts = new TestSchema.Asserts(schema)
 
       if (verifyGeneration) {
-        const arbitrary = asserts.arbitrary()
-        arbitrary.verifyGeneration()
+        asserts.arbitrary().verifyGeneration()
       }
 
       const decoding = asserts.decoding()
@@ -4661,8 +4710,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const asserts = new TestSchema.Asserts(schema)
 
       if (verifyGeneration) {
-        const arbitrary = asserts.arbitrary()
-        arbitrary.verifyGeneration()
+        asserts.arbitrary().verifyGeneration()
       }
 
       const decoding = asserts.decoding()
@@ -4761,8 +4809,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -5482,7 +5529,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         a: Schema.String
       })) {}
       const schema = Schema.Struct({
-        a: A.pipe(Schema.withConstructorDefault(() => Option.some(new A({ a: "default" }))))
+        a: A.pipe(Schema.withConstructorDefault(Effect.succeed(new A({ a: "default" }))))
       })
       const asserts = new TestSchema.Asserts(schema)
 
@@ -5496,7 +5543,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         a: Schema.String
       })) {}
       class B extends Schema.Class<B, { readonly brand: unique symbol }>("B")(Schema.Struct({
-        a: A.pipe(Schema.withConstructorDefault(() => Option.some(new A({ a: "default" }))))
+        a: A.pipe(Schema.withConstructorDefault(Effect.succeed(new A({ a: "default" }))))
       })) {}
       const schema = B
       const asserts = new TestSchema.Asserts(schema)
@@ -5543,11 +5590,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       strictEqual(A.name, "A")
 
       assertTrue(new A({ a: "a" }) instanceof A)
-      assertTrue(A.makeUnsafe({ a: "a" }) instanceof A)
+      assertTrue(A.make({ a: "a" }) instanceof A)
 
       // test additional fields
       strictEqual(new A({ a: "a" })._a, 1)
-      strictEqual(A.makeUnsafe({ a: "a" })._a, 1)
+      strictEqual(A.make({ a: "a" })._a, 1)
 
       // test Equal.equals
       assertTrue(Equal.equals(new A({ a: "a" }), new A({ a: "a" })))
@@ -5599,11 +5646,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       strictEqual(A.name, "A")
 
       assertTrue(new A({ a: "a" }) instanceof A)
-      assertTrue(A.makeUnsafe({ a: "a" }) instanceof A)
+      assertTrue(A.make({ a: "a" }) instanceof A)
 
       // test additional fields
       strictEqual(new A({ a: "a" })._a, 1)
-      strictEqual(A.makeUnsafe({ a: "a" })._a, 1)
+      strictEqual(A.make({ a: "a" })._a, 1)
 
       // test Equal.equals
       assertTrue(Equal.equals(new A({ a: "a" }), new A({ a: "a" })))
@@ -5614,8 +5661,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await make.succeed({ a: "a" }, new A({ a: "a" }))
 
       if (verifyGeneration) {
-        const arbitrary = asserts.arbitrary()
-        arbitrary.verifyGeneration()
+        asserts.arbitrary().verifyGeneration()
       }
 
       const decoding = asserts.decoding()
@@ -5650,7 +5696,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       // should expose the fields
       deepStrictEqual(Annotated.from.fields, { a: Schema.String })
 
-      assertTrue(Annotated.makeUnsafe(new A({ a: "a" })) instanceof A)
+      assertTrue(Annotated.make(new A({ a: "a" })) instanceof A)
     })
 
     describe("extend", () => {
@@ -5670,9 +5716,9 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         const instance = new B({ a: "a", b: 2 })
 
         assertTrue(instance instanceof A)
-        assertTrue(B.makeUnsafe({ a: "a", b: 2 }) instanceof A)
+        assertTrue(B.make({ a: "a", b: 2 }) instanceof A)
         assertTrue(instance instanceof B)
-        assertTrue(B.makeUnsafe({ a: "a", b: 2 }) instanceof B)
+        assertTrue(B.make({ a: "a", b: 2 }) instanceof B)
 
         strictEqual(instance.a, "a")
         strictEqual(instance._a, 1)
@@ -5769,7 +5815,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const err = new E({ id: 1 })
 
-      strictEqual(String(err), `E({"id":1})`)
+      strictEqual(String(err), `E`)
       assertInclude(err.stack, "Schema.test.ts:")
       strictEqual(err.id, 1)
 
@@ -5786,7 +5832,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const err = new E({ id: 1 })
 
-      strictEqual(String(err), `E({"id":1})`)
+      strictEqual(String(err), `E`)
       assertInclude(err.stack, "Schema.test.ts:")
       strictEqual(err.id, 1)
 
@@ -5795,8 +5841,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await make.succeed({ id: 1 }, new E({ id: 1 }))
 
       if (verifyGeneration) {
-        const arbitrary = asserts.arbitrary()
-        arbitrary.verifyGeneration()
+        asserts.arbitrary().verifyGeneration()
       }
     })
 
@@ -5815,13 +5860,13 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const instance = new B({ a: "a", b: 2 })
 
-      strictEqual(String(instance), `B({"a":"a","b":2,"_a":1,"_b":2})`)
+      strictEqual(String(instance), `B`)
       assertInclude(instance.stack, "Schema.test.ts:")
 
       assertTrue(instance instanceof A)
-      assertTrue(B.makeUnsafe({ a: "a", b: 2 }) instanceof A)
+      assertTrue(B.make({ a: "a", b: 2 }) instanceof A)
       assertTrue(instance instanceof B)
-      assertTrue(B.makeUnsafe({ a: "a", b: 2 }) instanceof B)
+      assertTrue(B.make({ a: "a", b: 2 }) instanceof B)
 
       strictEqual(instance.a, "a")
       strictEqual(instance._a, 1)
@@ -5834,6 +5879,14 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const decoding = asserts.decoding()
       await decoding.succeed({ a: "a", b: 2 }, new B({ a: "a", b: 2 }))
+    })
+
+    it("`toString` to match native `Error` output format", async () => {
+      class E extends Schema.ErrorClass<E>("E")({
+        message: Schema.String
+      }) {}
+      const err = new E({ message: "my message" })
+      strictEqual(String(err), `E: my message`)
     })
   })
 
@@ -5884,12 +5937,24 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
 
     it("name matches identifier", () => {
-      class E extends Schema.TaggedErrorClass<E>("effect/TaggedErrorName")("TaggedErrorName", {
-        id: Schema.Number
+      class E extends Schema.TaggedErrorClass<E>("A")("B", {
+        a: Schema.Number
       }) {}
 
-      const err = new E({ id: 1 })
-      strictEqual(err.name, "effect/TaggedErrorName")
+      const err = new E({ a: 1 })
+      strictEqual(err.name, "A")
+    })
+
+    it("name matches identifier after extend", () => {
+      class E extends Schema.TaggedErrorClass<E>("A")("B", {
+        a: Schema.Number
+      }) {}
+      class E2 extends E.extend<E2>("C")({
+        b: Schema.String
+      }) {}
+
+      const err = new E2({ a: 1, b: "b" })
+      strictEqual(err.name, "C")
     })
 
     it("zero-field TaggedErrorClass allows omitting props argument", () => {
@@ -7315,7 +7380,7 @@ error message 2`
   describe("withDecodingDefaultKey", () => {
     it("should return a decoding default value if the key is missing", async () => {
       const schema = Schema.Struct({
-        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultKey(() => "1"))
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultKey(Effect.succeed("1")))
       })
       const asserts = new TestSchema.Asserts(schema)
 
@@ -7331,7 +7396,7 @@ error message 2`
 
     it("by default should pass through the value", async () => {
       const schema = Schema.Struct({
-        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultKey(() => "1"))
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultKey(Effect.succeed("1")))
       })
       const asserts = new TestSchema.Asserts(schema)
 
@@ -7341,7 +7406,9 @@ error message 2`
 
     it("should omit the value if the encoding strategy is set to omit", async () => {
       const schema = Schema.Struct({
-        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultKey(() => "1", { encodingStrategy: "omit" }))
+        a: Schema.FiniteFromString.pipe(
+          Schema.withDecodingDefaultKey(Effect.succeed("1"), { encodingStrategy: "omit" })
+        )
       })
       const asserts = new TestSchema.Asserts(schema)
 
@@ -7352,8 +7419,8 @@ error message 2`
     it("nested default values", async () => {
       const schema = Schema.Struct({
         a: Schema.Struct({
-          b: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultKey(() => "1"))
-        }).pipe(Schema.withDecodingDefaultKey(() => ({})))
+          b: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultKey(Effect.succeed("1")))
+        }).pipe(Schema.withDecodingDefaultKey(Effect.succeed({})))
       })
       const asserts = new TestSchema.Asserts(schema)
 
@@ -7372,7 +7439,7 @@ error message 2`
   describe("withDecodingDefault", () => {
     it("should return a decoding default value if the key is missing", async () => {
       const schema = Schema.Struct({
-        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefault(() => "1"))
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefault(Effect.succeed("1")))
       })
       const asserts = new TestSchema.Asserts(schema)
 
@@ -7383,7 +7450,7 @@ error message 2`
     })
 
     it("should return a decoding default value if the schema is used as standalone and the input is undefined", async () => {
-      const schema = Schema.String.pipe(Schema.withDecodingDefault(() => "a"))
+      const schema = Schema.String.pipe(Schema.withDecodingDefault(Effect.succeed("a")))
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
@@ -7393,7 +7460,7 @@ error message 2`
 
     it("by default should pass through the value", async () => {
       const schema = Schema.Struct({
-        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefault(() => "1"))
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefault(Effect.succeed("1")))
       })
       const asserts = new TestSchema.Asserts(schema)
 
@@ -7403,7 +7470,7 @@ error message 2`
 
     it("should omit the value if the encoding strategy is set to omit", async () => {
       const schema = Schema.Struct({
-        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefault(() => "1", { encodingStrategy: "omit" }))
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefault(Effect.succeed("1"), { encodingStrategy: "omit" }))
       })
       const asserts = new TestSchema.Asserts(schema)
 
@@ -7414,8 +7481,8 @@ error message 2`
     it("nested default values", async () => {
       const schema = Schema.Struct({
         a: Schema.Struct({
-          b: Schema.FiniteFromString.pipe(Schema.withDecodingDefault(() => "1"))
-        }).pipe(Schema.withDecodingDefault(() => ({})))
+          b: Schema.FiniteFromString.pipe(Schema.withDecodingDefault(Effect.succeed("1")))
+        }).pipe(Schema.withDecodingDefault(Effect.succeed({})))
       })
       const asserts = new TestSchema.Asserts(schema)
 
@@ -7452,8 +7519,7 @@ error message 2`
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -7476,8 +7542,7 @@ error message 2`
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -7517,8 +7582,7 @@ error message 2`
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -7542,8 +7606,7 @@ error message 2`
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -7567,8 +7630,7 @@ error message 2`
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -7592,8 +7654,7 @@ error message 2`
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
     const decoding = asserts.decoding()
@@ -7630,7 +7691,7 @@ describe("Check", () => {
   it("isStringFinite", async () => {
     const schema = Schema.String.check(Schema.isStringFinite())
 
-    deepStrictEqual(Schema.resolveInto(schema)?.["meta"], {
+    deepStrictEqual(Schema.resolveAnnotations(schema)?.["meta"], {
       _tag: "isStringFinite",
       regExp: /^[+-]?\d*\.?\d+(?:[Ee][+-]?\d+)?$/
     })
@@ -7639,7 +7700,7 @@ describe("Check", () => {
   it("isStringBigInt", async () => {
     const schema = Schema.String.check(Schema.isStringBigInt())
 
-    deepStrictEqual(Schema.resolveInto(schema)?.["meta"], {
+    deepStrictEqual(Schema.resolveAnnotations(schema)?.["meta"], {
       _tag: "isStringBigInt",
       regExp: /^-?\d+$/
     })
@@ -7648,7 +7709,7 @@ describe("Check", () => {
   it("isStringSymbol", async () => {
     const schema = Schema.String.check(Schema.isStringSymbol())
 
-    deepStrictEqual(Schema.resolveInto(schema)?.["meta"], {
+    deepStrictEqual(Schema.resolveAnnotations(schema)?.["meta"], {
       _tag: "isStringSymbol",
       regExp: /^Symbol\((.*)\)$/
     })
@@ -7659,11 +7720,10 @@ describe("Check", () => {
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
-      const arbitrary = asserts.arbitrary()
-      arbitrary.verifyGeneration()
+      asserts.arbitrary().verifyGeneration()
     }
 
-    deepStrictEqual(Schema.resolveInto(schema)?.["meta"], {
+    deepStrictEqual(Schema.resolveAnnotations(schema)?.["meta"], {
       _tag: "isULID",
       regExp: /^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$/
     })
@@ -7679,7 +7739,7 @@ describe("Check", () => {
   it("isBase64", async () => {
     const schema = Schema.String.check(Schema.isBase64())
 
-    deepStrictEqual(Schema.resolveInto(schema)?.["meta"], {
+    deepStrictEqual(Schema.resolveAnnotations(schema)?.["meta"], {
       _tag: "isBase64",
       regExp: /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/
     })
@@ -7688,7 +7748,7 @@ describe("Check", () => {
   it("isBase64Url", async () => {
     const schema = Schema.String.check(Schema.isBase64Url())
 
-    deepStrictEqual(Schema.resolveInto(schema)?.["meta"], {
+    deepStrictEqual(Schema.resolveAnnotations(schema)?.["meta"], {
       _tag: "isBase64Url",
       regExp: /^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/
     })
@@ -7873,5 +7933,97 @@ Missing key
 Missing key
   at ["c"]`
     )
+  })
+
+  describe("asClass", () => {
+    it("wrapping a primitive schema", () => {
+      class A extends Schema.asClass(Schema.String) {}
+
+      strictEqual(Schema.decodeUnknownSync(A)("a"), "a")
+    })
+
+    it("static getter using this", () => {
+      class A extends Schema.asClass(Schema.String) {
+        static get decodeUnknownSync() {
+          return Schema.decodeUnknownSync(this)
+        }
+      }
+
+      strictEqual(A.decodeUnknownSync("a"), "a")
+    })
+
+    it("static property", () => {
+      class A extends Schema.asClass(Schema.String) {
+        static readonly decodeUnknownSync = Schema.decodeUnknownSync(this)
+      }
+
+      strictEqual(A.decodeUnknownSync("a"), "a")
+    })
+
+    it("static property using Schema.suspend", () => {
+      class A extends Schema.asClass(Schema.String) {
+        static readonly decodeUnknownSync = Schema.decodeUnknownSync(Schema.suspend(() => this))
+      }
+
+      strictEqual(A.decodeUnknownSync("a"), "a")
+    })
+
+    it("wrapping a Struct schema", () => {
+      const struct = Schema.Struct({
+        name: Schema.String
+      })
+      class A extends Schema.asClass(struct) {
+        static get decodeUnknownSync() {
+          return Schema.decodeUnknownSync(this)
+        }
+      }
+
+      deepStrictEqual(A.decodeUnknownSync({ name: "a" }), { name: "a" })
+      strictEqual(A.fields, struct.fields)
+    })
+
+    it("subclassing (double wrap)", () => {
+      class A extends Schema.asClass(Schema.FiniteFromString) {
+        static get decodeUnknownSync() {
+          return Schema.decodeUnknownSync(this)
+        }
+      }
+
+      class B extends A {
+        static encodeSync = Schema.encodeSync(this)
+      }
+
+      strictEqual(B.decodeUnknownSync("1"), 1)
+      strictEqual(B.encodeSync(1), "1")
+    })
+  })
+})
+
+describe("resolveAnnotations", () => {
+  it("returns undefined for a schema without annotations", () => {
+    strictEqual(Schema.resolveAnnotations(Schema.String), undefined)
+  })
+
+  it("returns annotations from the base schema", () => {
+    const schema = Schema.String.annotate({ title: "my string" })
+    deepStrictEqual(Schema.resolveAnnotations(schema), { title: "my string" })
+  })
+
+  it("returns annotations from the last check", () => {
+    const schema = Schema.String
+      .annotate({ title: "base" })
+      .check(Schema.isNonEmpty().annotate({ title: "check" }))
+    strictEqual(Schema.resolveAnnotations(schema)?.title, "check")
+  })
+})
+
+describe("resolveAnnotationsKey", () => {
+  it("returns undefined for a schema without key annotations", () => {
+    strictEqual(Schema.resolveAnnotationsKey(Schema.String), undefined)
+  })
+
+  it("returns key annotations", () => {
+    const schema = Schema.String.annotateKey({ messageMissingKey: "required" })
+    deepStrictEqual(Schema.resolveAnnotationsKey(schema), { messageMissingKey: "required" })
   })
 })

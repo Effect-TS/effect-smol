@@ -994,7 +994,7 @@ export const registerPrompt = <
             messages = typeof messages === "string" ?
               [{
                 role: "user",
-                content: TextContent.makeUnsafe({ text: messages })
+                content: TextContent.make({ text: messages })
               }] :
               messages
             return new GetPromptResult({ messages, description: prompt.description })
@@ -1058,7 +1058,7 @@ export const elicit: <S extends Schema.Encoder<Record<string, unknown>, unknown>
   const { getClient } = yield* McpServerClient
   const client = yield* getClient
   const schema = options.schema
-  const request = Elicit.payloadSchema.makeUnsafe({
+  const request = Elicit.payloadSchema.make({
     message: options.message,
     requestedSchema: Tool.getJsonSchemaFromSchema(schema)
   })

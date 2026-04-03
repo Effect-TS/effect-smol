@@ -63,16 +63,15 @@ This document maps v3 Schema APIs to their v4 equivalents. Simple renames and ar
 | `attachPropertySignature("k", "v")`             | `mapFields(f => ({...f, k: tagDefaultOmit("v")}))`                            | restructure       |
 | `validate*`                                     | removed (use `decode*` + `toType`)                                            | removed           |
 | `keyof`                                         | —                                                                             | removed           |
-| `ArrayEnsure`                                   | —                                                                             | removed           |
 | `NonEmptyArrayEnsure`                           | —                                                                             | removed           |
 | `withDefaults`                                  | —                                                                             | removed           |
-| `fromKey`                                       | —                                                                             | removed           |
 | `Data(schema)`                                  | —                                                                             | removed           |
 | `optionalWith(schema, opts)`                    | varies by options (see [optionalWith](#optionalwith))                         | manual            |
 | `optionalToOptional`                            | see [optional field transformations](#optional-field-transformations)         | manual            |
 | `optionalToRequired`                            | see [optional field transformations](#optional-field-transformations)         | manual            |
 | `requiredToOptional`                            | see [optional field transformations](#optional-field-transformations)         | manual            |
 | `filterEffect`                                  | see [filterEffect](#filtereffect)                                             | manual            |
+| `fromKey`                                       | see [rename](#rename)                                                         | manual            |
 | `rename({ a: "c" })`                            | see [rename](#rename)                                                         | manual            |
 | `format(schema)`                                | see [format](#format)                                                         | manual            |
 | `ParseResult.ArrayFormatter.formatError(error)` | see [ParseResult formatters](#parseresult-formatters)                         | manual            |
@@ -478,10 +477,10 @@ const schema = Schema.Struct({
 v4
 
 ```ts
-import { Schema } from "effect"
+import { Effect, Schema } from "effect"
 
 const schema = Schema.Struct({
-  a: Schema.String.pipe(Schema.withDecodingDefault(() => ""))
+  a: Schema.String.pipe(Schema.withDecodingDefault(Effect.succeed("")))
 })
 ```
 
@@ -500,10 +499,10 @@ const schema = Schema.Struct({
 v4
 
 ```ts
-import { Schema } from "effect"
+import { Effect, Schema } from "effect"
 
 const schema = Schema.Struct({
-  a: Schema.String.pipe(Schema.withDecodingDefaultKey(() => ""))
+  a: Schema.String.pipe(Schema.withDecodingDefaultKey(Effect.succeed("")))
 })
 ```
 
@@ -957,9 +956,3 @@ function split(separator: string) {
   )
 }
 ```
-
-## Not covered
-
-The following v3 APIs are not yet documented in this migration guide. If you encounter them, check the v4 source or open an issue.
-
-`suspend`, `brand` / `fromBrand`, `Enum`, `instanceOf`, `is` / `asserts`, `mutable`, `TaggedStruct`, `withConstructorDefault`

@@ -359,7 +359,7 @@ export interface CommandContext<Name extends string> {
 export interface ParsedTokens {
   readonly flags: Record<string, ReadonlyArray<string>>
   readonly arguments: ReadonlyArray<string>
-  readonly errors?: ReadonlyArray<CliError.CliError>
+  readonly errors?: ReadonlyArray<CliError.NonShowHelpErrors>
   readonly subcommand: Option.Option<{
     readonly name: string
     readonly parsedInput: ParsedTokens
@@ -1183,9 +1183,9 @@ const getOutOfScopeGlobalFlagErrors = (
   activeFlags: ReadonlyArray<GlobalFlag.GlobalFlag<any>>,
   flagMap: Record<string, ReadonlyArray<string>>,
   commandPath: ReadonlyArray<string>
-): ReadonlyArray<CliError.CliError> => {
+): ReadonlyArray<CliError.UnrecognizedOption> => {
   const activeSet = new Set(activeFlags)
-  const errors: Array<CliError.CliError> = []
+  const errors: Array<CliError.UnrecognizedOption> = []
   const seen = new Set<string>()
 
   for (const flag of allFlags) {
@@ -1373,7 +1373,10 @@ export const runWith = <const Name extends string, Input, E, R, ContextInput>(
       }
       const parseResult = yield* Effect.result(commandImpl.parse(parsedArgs))
       if (parseResult._tag === "Failure") {
-        return yield* new CliError.ShowHelp({ commandPath, errors: [parseResult.failure] })
+        return yield* new CliError.ShowHelp({
+          commandPath,
+          errors: [parseResult.failure as CliError.NonShowHelpErrors]
+        })
       }
 
       // 7. Provide setting values

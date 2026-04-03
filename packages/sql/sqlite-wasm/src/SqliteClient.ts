@@ -20,11 +20,14 @@ import * as Stream from "effect/Stream"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import * as Client from "effect/unstable/sql/SqlClient"
 import type { Connection } from "effect/unstable/sql/SqlConnection"
-import { SqlError } from "effect/unstable/sql/SqlError"
+import { classifySqliteError, SqlError } from "effect/unstable/sql/SqlError"
 import * as Statement from "effect/unstable/sql/Statement"
 import type { OpfsWorkerMessage } from "./internal/opfsWorker.ts"
 
 const ATTR_DB_SYSTEM_NAME = "db.system.name"
+
+const classifyError = (cause: unknown, message: string, operation: string) =>
+  classifySqliteError(cause, { message, operation })
 
 /**
  * @category type ids
@@ -125,7 +128,7 @@ export const makeMemory = (
       const db = yield* Effect.acquireRelease(
         Effect.try({
           try: () => sqlite3.open_v2(":memory:", undefined, "memory-vfs"),
-          catch: (cause) => new SqlError({ cause, message: "Failed to open database" })
+          catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to open database", "openDatabase") })
         }),
         (db) => Effect.sync(() => sqlite3.close(db))
       )
@@ -165,7 +168,7 @@ export const makeMemory = (
             }
             return results
           },
-          catch: (cause) => new SqlError({ cause, message: "Failed to execute statement" })
+          catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to execute statement", "execute") })
         })
 
       return identity<SqliteConnection>({
@@ -203,17 +206,19 @@ export const makeMemory = (
             transformRows
               ? Stream.mapArray((chunk) => transformRows(chunk) as any)
               : identity,
-            Stream.mapError((cause) => new SqlError({ cause, message: "Failed to execute statement" }))
+            Stream.mapError((cause) =>
+              new SqlError({ reason: classifyError(cause, "Failed to execute statement", "stream") })
+            )
           )
         },
         export: Effect.try({
           try: () => sqlite3.serialize(db, "main"),
-          catch: (cause) => new SqlError({ cause, message: "Failed to export database" })
+          catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to export database", "export") })
         }),
         import(data) {
           return Effect.try({
             try: () => sqlite3.deserialize(db, "main", data, data.length, data.length, 1 | 2),
-            catch: (cause) => new SqlError({ cause, message: "Failed to import database" })
+            catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to import database", "import") })
           })
         }
       })
@@ -297,7 +302,11 @@ export const make = (
           if (!resume) return
           pending.delete(id)
           if (error) {
-            resume(Exit.fail(new SqlError({ cause: error as string, message: "Failed to execute statement" })))
+            resume(
+              Exit.fail(
+                new SqlError({ reason: classifyError(error as string, "Failed to execute statement", "execute") })
+              )
+            )
           } else {
             resume(Exit.succeed(results))
           }

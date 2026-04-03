@@ -238,7 +238,7 @@ export interface Class<
   new(
     props: S["~type.make.in"],
     options?: {
-      readonly disableValidation?: boolean
+      readonly disableChecks?: boolean
     } | undefined
   ): S["Type"]
 

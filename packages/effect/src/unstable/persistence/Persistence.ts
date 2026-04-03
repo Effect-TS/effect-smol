@@ -24,7 +24,7 @@ const ErrorTypeId = "~effect/persistence/Persistence/PersistenceError" as const
  * @since 4.0.0
  * @category errors
  */
-export class PersistenceError extends Schema.ErrorClass(ErrorTypeId)({
+export class PersistenceError extends Schema.ErrorClass<PersistenceError>(ErrorTypeId)({
   _tag: Schema.tag("PersistenceError"),
   message: Schema.String,
   cause: Schema.optional(Schema.Defect)

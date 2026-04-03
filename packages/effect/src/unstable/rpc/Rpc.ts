@@ -32,9 +32,9 @@ export const isRpc = (u: unknown): u is Rpc<any, any, any> => Predicate.hasPrope
  */
 export interface DefectSchema extends Schema.Top {
   readonly Type: unknown
-  makeUnsafe(input: null, options?: Schema.MakeOptions): unknown
-  makeUnsafe(input: undefined, options?: Schema.MakeOptions): unknown
-  makeUnsafe(input: {}, options?: Schema.MakeOptions): unknown
+  make(input: null, options?: Schema.MakeOptions): unknown
+  make(input: undefined, options?: Schema.MakeOptions): unknown
+  make(input: {}, options?: Schema.MakeOptions): unknown
   readonly DecodingServices: never
   readonly EncodingServices: never
 }
@@ -171,6 +171,7 @@ export interface Any extends Pipeable {
   readonly [TypeId]: typeof TypeId
   readonly _tag: string
   readonly key: string
+  readonly annotations: ServiceMap.ServiceMap<never>
 }
 
 /**

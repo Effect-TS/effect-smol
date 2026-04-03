@@ -59,7 +59,7 @@ describe("EventLog", () => {
         event: "UserCreated",
         primaryKey: "user-1",
         payload: new Uint8Array([1, 2, 3])
-      }, { disableValidation: true })
+      }, { disableChecks: true })
       const encrypted = yield* encryption.encrypt(identity, [entry])
       const decrypted = yield* encryption.decrypt(identity, [{
         sequence: 0,

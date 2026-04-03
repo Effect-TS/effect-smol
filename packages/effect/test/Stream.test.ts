@@ -20,6 +20,7 @@ import {
   References,
   Result,
   Schedule,
+  ServiceMap,
   Sink,
   Stream
 } from "effect"
@@ -131,10 +132,44 @@ describe("Stream", () => {
   })
 
   describe("constructors", () => {
+    class Greeter extends ServiceMap.Service<Greeter, {
+      readonly greet: (name: string) => string
+    }>()("Greeter") {}
+
     it.effect("range - min less than max", () =>
       Effect.gen(function*() {
         const result = yield* Stream.range(1, 3).pipe(Stream.runCollect)
         assert.deepStrictEqual(result, [1, 2, 3])
+      }))
+
+    it.effect("service", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.service(Greeter).pipe(
+          Stream.map((greeter) => greeter.greet("World")),
+          Stream.provideService(Greeter, {
+            greet: (name) => `Hello, ${name}!`
+          }),
+          Stream.runCollect
+        )
+        assert.deepStrictEqual(result, ["Hello, World!"])
+      }))
+
+    it.effect("serviceOption - some", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.serviceOption(Greeter).pipe(
+          Stream.map((option) => Option.map(option, (greeter) => greeter.greet("World"))),
+          Stream.provideService(Greeter, {
+            greet: (name) => `Hello, ${name}!`
+          }),
+          Stream.runCollect
+        )
+        assert.deepStrictEqual(result, [Option.some("Hello, World!")])
+      }))
+
+    it.effect("serviceOption - none", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.serviceOption(Greeter).pipe(Stream.runCollect)
+        assert.deepStrictEqual(result, [Option.none()])
       }))
 
     it.effect("range - min greater than max", () =>
@@ -1626,6 +1661,29 @@ describe("Stream", () => {
         )
         yield* TestClock.adjust("1 second")
         assert.isUndefined(fiber.pollUnsafe())
+      }))
+
+    it.effect("groupedWithin flushes final partial batch on upstream end without waiting for the schedule", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.make(1, 2, 3, 4, 5).pipe(
+          Stream.groupedWithin(3, "1 second"),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [[1, 2, 3], [4, 5]])
+      }))
+
+    it.effect("groupedWithin flushes partial batch when the schedule elapses while upstream is idle", () =>
+      Effect.gen(function*() {
+        const fiber = yield* Stream.make(1, 2, 3, 4, 5).pipe(
+          Stream.concat(Stream.never),
+          Stream.groupedWithin(3, "1 second"),
+          Stream.take(2),
+          Stream.runCollect,
+          Effect.forkChild({ startImmediately: true })
+        )
+        yield* TestClock.adjust("1 second")
+        const result = yield* Fiber.join(fiber)
+        deepStrictEqual(result, [[1, 2, 3], [4, 5]])
       }))
 
     it.effect("simple example", () =>
@@ -4155,6 +4213,52 @@ describe("Stream", () => {
   })
 
   describe("timeout", () => {
+    it.effect("timeoutOrElse - succeed", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.succeed(1),
+          Stream.timeoutOrElse({
+            duration: Duration.infinity,
+            orElse: () => Stream.succeed(-1)
+          }),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [1])
+      }))
+
+    it.effect("timeoutOrElse - should switch streams", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.range(0, 4),
+          Stream.tap(() => Effect.sleep(Duration.infinity)),
+          Stream.timeoutOrElse({
+            duration: Duration.zero,
+            orElse: () => Stream.succeed(4)
+          }),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [4])
+      }))
+
+    it.effect("timeoutOrElse - should not apply timeout after switch", () =>
+      Effect.gen(function*() {
+        const fiber = yield* pipe(
+          Stream.never,
+          Stream.timeoutOrElse({
+            duration: Duration.zero,
+            orElse: () =>
+              Stream.succeed(1).pipe(
+                Stream.tap(() => Effect.sleep(Duration.seconds(1)))
+              )
+          }),
+          Stream.runCollect,
+          Effect.forkChild({ startImmediately: true })
+        )
+        yield* TestClock.adjust(Duration.seconds(1))
+        const result = yield* Fiber.join(fiber)
+        deepStrictEqual(result, [1])
+      }))
+
     it.effect("timeout - succeed", () =>
       Effect.gen(function*() {
         const result = yield* pipe(

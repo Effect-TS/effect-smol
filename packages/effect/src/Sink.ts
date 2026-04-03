@@ -63,6 +63,9 @@ export interface Sink<out A, in In = unknown, out L = never, out E = never, out 
     upstream: Pull.Pull<NonEmptyReadonlyArray<In>, never, void>,
     scope: Scope.Scope
   ) => Effect.Effect<End<A, L>, E, R>
+  [Unify.typeSymbol]?: unknown
+  [Unify.unifySymbol]?: SinkUnify<this>
+  [Unify.ignoreSymbol]?: SinkUnifyIgnore
 }
 
 /**
@@ -122,8 +125,8 @@ export interface SinkUnify<A extends { [Unify.typeSymbol]?: any }> extends Effec
  * @category models
  * @since 2.0.0
  */
-export interface SinkUnifyIgnore extends Effect.EffectUnifyIgnore {
-  Sink?: true
+export interface SinkUnifyIgnore {
+  Effect?: true
 }
 
 /**

@@ -820,7 +820,10 @@ const make = Effect.gen(function*() {
     return Effect.catchFilter(
       Effect.suspend(() => {
         const address = message.envelope.address
-        const isPersisted = ServiceMap.get(message.rpc.annotations, Persisted)
+        const isPersisted = ServiceMap.get(
+          message._tag === "OutgoingRequest" ? message.annotations : message.rpc.annotations,
+          Persisted
+        )
         if (isPersisted && !storageEnabled) {
           return Effect.die("Sharding.sendOutgoing: Persisted messages require MessageStorage")
         }
@@ -1000,6 +1003,7 @@ const make = Effect.gen(function*() {
   type ClientRequestEntry = {
     readonly rpc: Rpc.AnyWithProps
     readonly services: ServiceMap.ServiceMap<never>
+    readonly message: Message.OutgoingRequest<any>
     lastChunkId?: Snowflake.Snowflake
   }
   const clientRequests = new Map<Snowflake.Snowflake, ClientRequestEntry>()
@@ -1029,35 +1033,39 @@ const make = Effect.gen(function*() {
             const id = Snowflake.Snowflake(options.message.id)
             const rpc = entity.protocol.requests.get(options.message.tag)!
             let respond: (reply: Reply.Reply<any>) => Effect.Effect<void>
+            const envelope = Envelope.makeRequest<any>({
+              requestId: id,
+              address,
+              tag: options.message.tag,
+              payload: options.message.payload,
+              headers: options.message.headers,
+              traceId: options.message.traceId,
+              spanId: options.message.spanId,
+              sampled: options.message.sampled
+            })
+            const message = new Message.OutgoingRequest({
+              envelope,
+              lastReceivedReply: Option.none(),
+              rpc,
+              services: fiber.services as ServiceMap.ServiceMap<any>,
+              respond: (reply) => respond(reply),
+              annotations: ServiceMap.get(rpc.annotations, ClusterSchema.Dynamic)(
+                rpc.annotations,
+                envelope as any
+              )
+            })
             if (!options.discard) {
               const entry: ClientRequestEntry = {
                 rpc: rpc as any,
-                services: fiber.currentContext
+                services: fiber.currentContext,
+                message
               }
               clientRequests.set(id, entry)
               respond = makeClientRespond(entry, client.write)
             } else {
               respond = clientRespondDiscard
             }
-            return sendOutgoing(
-              new Message.OutgoingRequest({
-                envelope: Envelope.makeRequest({
-                  requestId: id,
-                  address,
-                  tag: options.message.tag,
-                  payload: options.message.payload,
-                  headers: options.message.headers,
-                  traceId: options.message.traceId,
-                  spanId: options.message.spanId,
-                  sampled: options.message.sampled
-                }),
-                lastReceivedReply: Option.none(),
-                rpc,
-                services: fiber.services as ServiceMap.ServiceMap<any>,
-                respond
-              }),
-              options.discard
-            )
+            return sendOutgoing(message, options.discard)
           }
           case "Ack": {
             const requestId = Snowflake.Snowflake(options.message.requestId)
@@ -1081,14 +1089,14 @@ const make = Effect.gen(function*() {
             const entry = clientRequests.get(requestId)!
             if (!entry) return Effect.void
             clientRequests.delete(requestId)
-            if (ClusterSchema.isUninterruptibleForClient(entry.rpc.annotations)) {
+            if (ClusterSchema.isUninterruptibleForClient(entry.message.annotations)) {
               return Effect.void
             }
             // for durable messages, we ignore interrupts on shutdown or as a
             // result of a shard being resassigned
             const isTransientInterrupt = MutableRef.get(isShutdown) ||
               options.message.interruptors.some((id) => internalInterruptors.has(id))
-            if (isTransientInterrupt && ServiceMap.get(entry.rpc.annotations, Persisted)) {
+            if (isTransientInterrupt && ServiceMap.get(entry.message.annotations, Persisted)) {
               return Effect.void
             }
             return Effect.ignore(sendOutgoing(

@@ -1149,7 +1149,7 @@ const prepareTools = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Too
 
   // Convert the tools in the toolkit to the provider-defined format
   for (const tool of allowedTools) {
-    if (Tool.isUserDefined(tool)) {
+    if (Tool.isUserDefined(tool) || Tool.isDynamic(tool)) {
       const strict = Tool.getStrictMode(tool) ?? config.strictJsonSchema ?? true
       const parameters = yield* tryToolJsonSchema(tool, "prepareTools")
       tools.push({

@@ -64,6 +64,7 @@ import * as IdGenerator from "./IdGenerator.ts"
 import * as LanguageModel from "./LanguageModel.ts"
 import * as Prompt from "./Prompt.ts"
 import type * as Response from "./Response.ts"
+import type * as Tool from "./Tool.ts"
 
 /**
  * The `Chat` service tag for dependency injection.
@@ -198,13 +199,43 @@ export interface Service {
    * })
    * ```
    */
-  readonly generateText: <
-    Options extends NoExcessProperties<LanguageModel.GenerateTextOptions<any>, Options>
-  >(options: Options & LanguageModel.GenerateTextOptions<LanguageModel.ExtractTools<Options>>) => Effect.Effect<
-    LanguageModel.GenerateTextResponse<LanguageModel.ExtractTools<Options>>,
-    LanguageModel.ExtractError<Options>,
-    LanguageModel.LanguageModel | LanguageModel.ExtractServices<Options>
-  >
+  readonly generateText: {
+    <Options extends NoExcessProperties<LanguageModel.GenerateTextOptions<{}>, Options>>(
+      options: Options & { readonly toolkit?: undefined } & LanguageModel.GenerateTextOptions<{}>
+    ): Effect.Effect<
+      LanguageModel.GenerateTextResponse<{}>,
+      LanguageModel.ExtractError<Options>,
+      LanguageModel.LanguageModel | LanguageModel.ExtractServices<Options>
+    >
+    <
+      Tools extends Record<string, Tool.Any>,
+      Options extends NoExcessProperties<
+        LanguageModel.GenerateTextOptions<Tools> & { readonly toolkit: LanguageModel.ToolkitInput<Tools> },
+        Options
+      >
+    >(
+      options: Options & LanguageModel.GenerateTextOptions<Tools> & {
+        readonly toolkit: LanguageModel.ToolkitInput<Tools>
+      }
+    ): Effect.Effect<
+      LanguageModel.GenerateTextResponse<Tools>,
+      LanguageModel.ExtractError<Options>,
+      LanguageModel.LanguageModel | LanguageModel.ExtractServices<Options>
+    >
+    <
+      Options extends {
+        readonly toolkit: LanguageModel.ToolkitOption<any>
+      } & NoExcessProperties<LanguageModel.GenerateTextOptions<any>, Options>
+    >(
+      options: Options & LanguageModel.GenerateTextOptions<LanguageModel.ExtractTools<Options>> & {
+        readonly toolkit: Options["toolkit"]
+      }
+    ): Effect.Effect<
+      LanguageModel.GenerateTextResponse<LanguageModel.ExtractTools<Options>>,
+      LanguageModel.ExtractError<Options>,
+      LanguageModel.LanguageModel | LanguageModel.ExtractServices<Options>
+    >
+  }
 
   /**
    * Generate text using a language model with streaming output.
@@ -231,13 +262,43 @@ export interface Service {
    * })
    * ```
    */
-  readonly streamText: <
-    Options extends NoExcessProperties<LanguageModel.GenerateTextOptions<any>, Options>
-  >(options: Options & LanguageModel.GenerateTextOptions<LanguageModel.ExtractTools<Options>>) => Stream.Stream<
-    Response.StreamPart<LanguageModel.ExtractTools<Options>>,
-    LanguageModel.ExtractError<Options>,
-    LanguageModel.LanguageModel | LanguageModel.ExtractServices<Options>
-  >
+  readonly streamText: {
+    <Options extends NoExcessProperties<LanguageModel.GenerateTextOptions<{}>, Options>>(
+      options: Options & { readonly toolkit?: undefined } & LanguageModel.GenerateTextOptions<{}>
+    ): Stream.Stream<
+      Response.StreamPart<{}>,
+      LanguageModel.ExtractError<Options>,
+      LanguageModel.LanguageModel | LanguageModel.ExtractServices<Options>
+    >
+    <
+      Tools extends Record<string, Tool.Any>,
+      Options extends NoExcessProperties<
+        LanguageModel.GenerateTextOptions<Tools> & { readonly toolkit: LanguageModel.ToolkitInput<Tools> },
+        Options
+      >
+    >(
+      options: Options & LanguageModel.GenerateTextOptions<Tools> & {
+        readonly toolkit: LanguageModel.ToolkitInput<Tools>
+      }
+    ): Stream.Stream<
+      Response.StreamPart<Tools>,
+      LanguageModel.ExtractError<Options>,
+      LanguageModel.LanguageModel | LanguageModel.ExtractServices<Options>
+    >
+    <
+      Options extends {
+        readonly toolkit: LanguageModel.ToolkitOption<any>
+      } & NoExcessProperties<LanguageModel.GenerateTextOptions<any>, Options>
+    >(
+      options: Options & LanguageModel.GenerateTextOptions<LanguageModel.ExtractTools<Options>> & {
+        readonly toolkit: Options["toolkit"]
+      }
+    ): Stream.Stream<
+      Response.StreamPart<LanguageModel.ExtractTools<Options>>,
+      LanguageModel.ExtractError<Options>,
+      LanguageModel.LanguageModel | LanguageModel.ExtractServices<Options>
+    >
+  }
 
   /**
    * Generate a structured object using a language model and schema.
@@ -334,7 +395,7 @@ const makeUnsafe = (history: Ref.Ref<Prompt.Prompt>) => {
       },
       semaphore.withPermits(1),
       (effect) => Effect.withSpan(effect, "Chat.generateText", { captureStackTrace: false })
-    ),
+    ) as Service["generateText"],
     streamText: Effect.fnUntraced(
       function*(options) {
         let parts = Chunk.empty<Response.AnyPart>()
@@ -366,7 +427,7 @@ const makeUnsafe = (history: Ref.Ref<Prompt.Prompt>) => {
         )
       },
       Stream.unwrap
-    ),
+    ) as Service["streamText"],
     generateObject: Effect.fnUntraced(
       function*(options) {
         const newPrompt = Prompt.make(options.prompt)
@@ -713,7 +774,7 @@ export const makePersisted = Effect.fnUntraced(function*(options: {
           return yield* chat.generateText(options).pipe(
             Effect.ensuring(Effect.orDie(saveChat(history)))
           )
-        }),
+        }) as Service["generateText"],
         generateObject: Effect.fnUntraced(function*(options) {
           const history = yield* Ref.get(chat.history)
           return yield* chat.generateObject(options).pipe(
@@ -726,7 +787,7 @@ export const makePersisted = Effect.fnUntraced(function*(options: {
             Stream.ensuring(Effect.orDie(saveChat(history)))
           )
           return stream
-        }, Stream.unwrap)
+        }, Stream.unwrap) as Service["streamText"]
       }
 
       return persisted

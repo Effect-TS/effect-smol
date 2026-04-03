@@ -1131,12 +1131,16 @@ export const fromWeb = (response: Response): HttpServerResponse => {
     cookies: Cookies.fromSetCookie(setCookieHeaders)
   })
   if (response.body) {
+    const contentType = response.headers.get("content-type")
     self = setBody(
       self,
-      Body.stream(Stream.fromReadableStream({
-        evaluate: () => response.body!,
-        onError: (e) => e
-      }))
+      Body.stream(
+        Stream.fromReadableStream({
+          evaluate: () => response.body!,
+          onError: (e) => e
+        }),
+        contentType ?? undefined
+      )
     )
   }
   return self

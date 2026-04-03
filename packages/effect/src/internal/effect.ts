@@ -5,7 +5,6 @@ import type * as Console from "../Console.ts"
 import * as Duration from "../Duration.ts"
 import type * as Effect from "../Effect.ts"
 import * as Equal from "../Equal.ts"
-import type { ErrorReporter } from "../ErrorReporter.ts"
 import type * as Exit from "../Exit.ts"
 import type * as Fiber from "../Fiber.ts"
 import * as Filter from "../Filter.ts"
@@ -25,19 +24,7 @@ import { pipeArguments } from "../Pipeable.ts"
 import type * as Predicate from "../Predicate.ts"
 import { hasProperty, isIterable, isString, isTagged } from "../Predicate.ts"
 import { currentFiberTypeId, redact } from "../Redactable.ts"
-import {
-  CurrentConcurrency,
-  CurrentLogAnnotations,
-  CurrentLogLevel,
-  CurrentLogSpans,
-  CurrentStackFrame,
-  MinimumLogLevel,
-  type StackFrame,
-  TracerEnabled,
-  TracerSpanAnnotations,
-  TracerSpanLinks,
-  TracerTimingEnabled
-} from "../References.ts"
+import type { StackFrame } from "../References.ts"
 import * as Result from "../Result.ts"
 import * as Scheduler from "../Scheduler.ts"
 import type * as Scope from "../Scope.ts"
@@ -97,6 +84,19 @@ import {
 } from "./core.ts"
 import * as doNotation from "./doNotation.ts"
 import * as InternalMetric from "./metric.ts"
+import {
+  CurrentConcurrency,
+  CurrentErrorReporters,
+  CurrentLogAnnotations,
+  CurrentLogLevel,
+  CurrentLogSpans,
+  CurrentStackFrame,
+  MinimumLogLevel,
+  TracerEnabled,
+  TracerSpanAnnotations,
+  TracerSpanLinks,
+  TracerTimingEnabled
+} from "./references.ts"
 import { addSpanStackTrace, type ErrorWithStackTraceLimit, makeStackCleaner } from "./tracer.ts"
 import { version } from "./version.ts"
 
@@ -3536,7 +3536,7 @@ export const delay: {
 export const timeoutOrElse: {
   <A2, E2, R2>(options: {
     readonly duration: Duration.Input
-    readonly onTimeout: LazyArg<Effect.Effect<A2, E2, R2>>
+    readonly orElse: LazyArg<Effect.Effect<A2, E2, R2>>
   }): <A, E, R>(
     self: Effect.Effect<A, E, R>
   ) => Effect.Effect<A | A2, E | E2, R | R2>
@@ -3544,7 +3544,7 @@ export const timeoutOrElse: {
     self: Effect.Effect<A, E, R>,
     options: {
       readonly duration: Duration.Input
-      readonly onTimeout: LazyArg<Effect.Effect<A2, E2, R2>>
+      readonly orElse: LazyArg<Effect.Effect<A2, E2, R2>>
     }
   ): Effect.Effect<A | A2, E | E2, R | R2>
 } = dual(
@@ -3553,12 +3553,12 @@ export const timeoutOrElse: {
     self: Effect.Effect<A, E, R>,
     options: {
       readonly duration: Duration.Input
-      readonly onTimeout: LazyArg<Effect.Effect<A2, E2, R2>>
+      readonly orElse: LazyArg<Effect.Effect<A2, E2, R2>>
     }
   ): Effect.Effect<A | A2, E | E2, R | R2> =>
     raceFirst(
       self,
-      flatMap(sleep(options.duration), options.onTimeout)
+      flatMap(sleep(options.duration), options.orElse)
     )
 )
 
@@ -3581,7 +3581,7 @@ export const timeout: {
   ): Effect.Effect<A, E | TimeoutError, R> =>
     timeoutOrElse(self, {
       duration,
-      onTimeout: () => fail(new TimeoutError())
+      orElse: () => fail(new TimeoutError())
     })
 )
 
@@ -4063,7 +4063,8 @@ export const cachedInvalidateWithTTL: {
     const wait = flatMap(latch.await, () => exit!)
     return [
       withFiber((fiber) => {
-        const now = isFinite ? fiber.getRef(ClockRef).currentTimeMillisUnsafe() : 0
+        const clock = fiber.getRef(ClockRef)
+        const now = isFinite ? clock.currentTimeMillisUnsafe() : 0
         if (running || now < expiresAt) return exit ?? wait
         running = true
         latch.closeUnsafe()
@@ -4071,7 +4072,7 @@ export const cachedInvalidateWithTTL: {
         return onExit(self, (exit_) =>
           sync(() => {
             running = false
-            expiresAt = now + ttlMillis
+            expiresAt = clock.currentTimeMillisUnsafe() + ttlMillis
             exit = exit_
             latch.openUnsafe()
           }))
@@ -5024,6 +5025,9 @@ export const runForkWith = <R>(services: ServiceMap.ServiceMap<R>) =>
       fiber.addObserver(() => options.signal!.removeEventListener("abort", abort))
     }
   }
+  if (options?.onFiberStart) {
+    options.onFiberStart(fiber)
+  }
   return fiber
 }
 
@@ -5130,7 +5134,7 @@ export const runSyncExitWith = <R>(services: ServiceMap.ServiceMap<R>) => {
     const scheduler = new Scheduler.MixedScheduler("sync")
     const fiber = runFork(effect, { scheduler })
     fiber.currentDispatcher?.flush()
-    return (fiber as FiberImpl<A, E>)._exit ?? exitDie(fiber)
+    return (fiber as FiberImpl<A, E>)._exit ?? exitDie(new AsyncFiberError(fiber))
   }
 }
 
@@ -5708,6 +5712,28 @@ export class ExceededCapacityError extends TaggedError("ExceededCapacityError") 
 }
 
 /** @internal */
+export const AsyncFiberErrorTypeId = "~effect/Cause/AsyncFiberError"
+
+/** @internal */
+export const isAsyncFiberError = (
+  u: unknown
+): u is Cause.AsyncFiberError => hasProperty(u, AsyncFiberErrorTypeId)
+
+/** @internal */
+export class AsyncFiberError extends TaggedError("AsyncFiberError")<{
+  fiber: Fiber.Fiber<unknown, unknown>
+  message: string
+}> {
+  readonly [AsyncFiberErrorTypeId] = AsyncFiberErrorTypeId
+  constructor(fiber: Fiber.Fiber<unknown, unknown>) {
+    super({
+      message: "An asynchronous Effect was executed with Effect.runSync",
+      fiber
+    })
+  }
+}
+
+/** @internal */
 export const UnknownErrorTypeId = "~effect/Cause/UnknownError"
 
 /** @internal */
@@ -5716,7 +5742,10 @@ export const isUnknownError = (
 ): u is Cause.UnknownError => hasProperty(u, UnknownErrorTypeId)
 
 /** @internal */
-export class UnknownError extends TaggedError("UnknownError") {
+export class UnknownError extends TaggedError("UnknownError")<{
+  cause: unknown
+  message?: string | undefined
+}> {
   readonly [UnknownErrorTypeId] = UnknownErrorTypeId
   constructor(cause: unknown, message?: string) {
     super({ message, cause } as any)
@@ -6165,13 +6194,6 @@ export { undefined_ as undefined }
 // ----------------------------------------------------------------------------
 // ErrorReporter
 // ----------------------------------------------------------------------------
-
-/** @internal */
-export const CurrentErrorReporters = ServiceMap.Reference<
-  ReadonlySet<ErrorReporter>
->("effect/ErrorReporter/CurrentErrorReporters", {
-  defaultValue: () => new Set()
-})
 
 /** @internal */
 export const withErrorReporting: <

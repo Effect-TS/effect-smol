@@ -18,11 +18,12 @@ import * as Queue from "../../Queue.ts"
 import type * as Schedule from "../../Schedule.ts"
 import { Scope } from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
-import type * as Stream from "../../Stream.ts"
+import * as Stream from "../../Stream.ts"
 import * as Headers from "../http/Headers.ts"
 import * as Rpc from "../rpc/Rpc.ts"
 import * as RpcClient from "../rpc/RpcClient.ts"
 import * as RpcGroup from "../rpc/RpcGroup.ts"
+import * as RpcSchema from "../rpc/RpcSchema.ts"
 import * as RpcServer from "../rpc/RpcServer.ts"
 import type { AlreadyProcessingMessage, MailboxFull, PersistenceError } from "./ClusterError.ts"
 import { Persisted, ShardGroup, Uninterruptible } from "./ClusterSchema.ts"
@@ -296,15 +297,25 @@ const Proto = {
       const queue = yield* Queue.make<Envelope.Request<Rpcs>>()
 
       // create the rpc handlers for the entity
-      const handler = (envelope: any) => {
-        return Effect.callback<any, any>((resume) => {
+      const handler = (envelope: any) =>
+        Effect.callback<any, any>((resume) => {
           Queue.offerUnsafe(queue, envelope)
           resumes.set(envelope, resume)
         })
-      }
+      const streamHandler = (envelope: any) =>
+        Effect.callback<any, any>((resume) => {
+          Queue.offerUnsafe(queue, envelope)
+          resumes.set(envelope, resume)
+        }).pipe(
+          Effect.map((streamOrQueue) =>
+            Stream.isStream(streamOrQueue) ? streamOrQueue : Stream.fromQueue(streamOrQueue)
+          ),
+          Stream.unwrap
+        )
       const handlers: Record<string, any> = {}
-      for (const rpc of this.protocol.requests.keys()) {
-        handlers[rpc] = handler
+      for (const rpc_ of this.protocol.requests.values()) {
+        const rpc = rpc_ as any as Rpc.AnyWithProps
+        handlers[rpc._tag] = RpcSchema.isStreamSchema(rpc.successSchema) ? streamHandler : handler
       }
 
       // make the Replier for the behaviour
@@ -366,7 +377,7 @@ export const fromRpcGroup = <const Type extends string, Rpcs extends Rpc.Any>(
   protocol: RpcGroup.RpcGroup<Rpcs>
 ): Entity<Type, Rpcs> => {
   const self = Object.create(Proto)
-  self.type = EntityType.makeUnsafe(type)
+  self.type = EntityType.make(type)
   self.protocol = protocol
   self.getShardGroup = ServiceMap.get(protocol.annotations, ShardGroup)
   return self
@@ -449,7 +460,7 @@ export declare namespace Replier {
    * @category Replier
    */
   export type Success<R extends Rpc.Any> = Rpc.Success<R> extends Stream.Stream<infer _A, infer _E, infer _R> ?
-    Stream.Stream<_A, _E | Rpc.Error<R>, _R> | Queue.Dequeue<_A, _E | Rpc.Error<R>>
+    Stream.Stream<_A, _E | Rpc.Error<R>, _R> | Queue.Dequeue<_A, _E | Rpc.Error<R> | Cause.Done>
     : Rpc.Success<R>
 }
 
@@ -608,6 +619,7 @@ export const keepAlive: (
   olatch.value.closeUnsafe()
   yield* Effect.orDie(sharding.sendOutgoing(
     new Message.OutgoingRequest({
+      annotations: ServiceMap.empty(),
       rpc: KeepAliveRpc,
       services: ServiceMap.empty() as any,
       envelope: Envelope.makeRequest({

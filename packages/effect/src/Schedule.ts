@@ -12,7 +12,7 @@
  *
  * // Retry with exponential backoff
  * const retryPolicy = Schedule.exponential("100 millis", 2.0)
- *   .pipe(Schedule.compose(Schedule.recurs(3)))
+ *   .pipe(Schedule.both(Schedule.recurs(3)))
  *
  * const program = Effect.gen(function*() {
  *   // This will retry up to 3 times with exponential backoff
@@ -59,7 +59,7 @@ const randomNext: Effect<number> = random.Random.useSync((random) => random.next
  *
  * // Basic retry schedule - retry up to 3 times with exponential backoff
  * const retrySchedule = Schedule.exponential("100 millis").pipe(
- *   Schedule.compose(Schedule.recurs(3))
+ *   Schedule.both(Schedule.recurs(3))
  * )
  *
  * // Basic repeat schedule - repeat every 30 seconds forever
@@ -336,7 +336,7 @@ export const isSchedule = (u: unknown): u is Schedule<unknown, never, unknown, u
  *
  * // These can be combined and transformed as needed
  * const complexSchedule = simpleSchedule.pipe(
- *   Schedule.compose(Schedule.recurs(3))
+ *   Schedule.both(Schedule.recurs(3))
  * )
  * ```
  *
@@ -1066,85 +1066,6 @@ export const bothWith: {
         onFailure: effect.failCause
       })
   )))
-
-/**
- * Returns a new `Schedule` that combines two schedules by running them
- * sequentially. First the current schedule runs to completion, then the
- * other schedule runs to completion. The output is a tuple of both results.
- *
- * @example
- * ```ts
- * import { Console, Data, Effect, Schedule } from "effect"
- *
- * class RetryAttemptError extends Data.TaggedError("RetryAttemptError")<{ readonly message: string }> {}
- *
- * // Compose a quick retry phase followed by slower retry phase
- * const fastRetries = Schedule.exponential("100 millis").pipe(
- *   Schedule.compose(Schedule.recurs(3)) // 3 fast retries
- * )
- *
- * const slowRetries = Schedule.exponential("2 seconds").pipe(
- *   Schedule.compose(Schedule.recurs(2)) // 2 slow retries
- * )
- *
- * // Sequential composition: fast retries first, then slow retries
- * const composedRetry = Schedule.compose(fastRetries, slowRetries)
- * // Outputs: [number_from_fast_phase, number_from_slow_phase]
- *
- * const program = Effect.gen(function*() {
- *   let attempt = 0
- *
- *   const result = yield* Effect.retry(
- *     Effect.gen(function*() {
- *       attempt++
- *       yield* Console.log(`Attempt ${attempt}`)
- *
- *       if (attempt < 7) { // Needs both phases to succeed
- *         return yield* Effect.fail(new RetryAttemptError({ message: `Attempt ${attempt} failed` }))
- *       }
- *
- *       return `Success on attempt ${attempt}`
- *     }),
- *     composedRetry.pipe(
- *       Schedule.tapOutput(([fastResult, slowResult]) =>
- *         Console.log(`Fast phase: ${fastResult}, Slow phase: ${slowResult}`)
- *       )
- *     )
- *   )
- *
- *   yield* Console.log(`Final result: ${result}`)
- * })
- *
- * // Compose different schedule types
- * const warmupAndMaintenance = Schedule.compose(
- *   Schedule.fixed("500 millis").pipe(Schedule.take(5)), // 5 warmup cycles
- *   Schedule.spaced("5 seconds") // then regular maintenance
- * )
- *
- * // Progressive backoff: fixed first, then exponential
- * const progressiveBackoff = Schedule.compose(
- *   Schedule.fixed("100 millis").pipe(Schedule.take(3)), // Fixed: 100ms, 100ms, 100ms
- *   Schedule.exponential("500 millis").pipe(Schedule.take(3)) // Then exponential: 500ms, 1s, 2s
- * )
- * ```
- *
- * @since 2.0.0
- * @category sequencing
- */
-export const compose: {
-  <Output2, Input2, Error2, Env2>(
-    other: Schedule<Output2, Input2, Error2, Env2>
-  ): <Output, Input, Error, Env>(
-    self: Schedule<Output, Input, Error, Env>
-  ) => Schedule<[Output, Output2], Input & Input2, Error | Error2, Env | Env2>
-  <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
-    self: Schedule<Output, Input, Error, Env>,
-    other: Schedule<Output2, Input2, Error2, Env2>
-  ): Schedule<[Output, Output2], Input & Input2, Error | Error2, Env | Env2>
-} = dual(2, <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
-  self: Schedule<Output, Input, Error, Env>,
-  other: Schedule<Output2, Input2, Error2, Env2>
-): Schedule<[Output, Output2], Input & Input2, Error | Error2, Env | Env2> => both(self, other))
 
 /**
  * Returns a new `Schedule` that always recurs, collecting all inputs of the
@@ -2011,7 +1932,7 @@ export const elapsed: Schedule<Duration.Duration> = fromStepWithMetadata(
  *
  * // Retry with exponential backoff (limited to 5 attempts)
  * const retryPolicy = Schedule.exponential("50 millis").pipe(
- *   Schedule.compose(Schedule.recurs(5))
+ *   Schedule.both(Schedule.recurs(5))
  * )
  *
  * const program = Effect.gen(function*() {
@@ -2080,7 +2001,7 @@ export const exponential = (
  *       return `Success on attempt ${attempt}`
  *     }),
  *     Schedule.fibonacci("50 millis").pipe(
- *       Schedule.compose(Schedule.recurs(6)), // Maximum 6 retries
+ *       Schedule.both(Schedule.recurs(6)), // Maximum 6 retries
  *       Schedule.tapOutput((delay) => Console.log(`Next retry in ${delay}`))
  *     )
  *   )
@@ -2194,14 +2115,26 @@ export const fibonacci = (one: Duration.Input): Schedule<Duration.Duration> => {
  */
 export const fixed = (interval: Duration.Input): Schedule<number> => {
   const window = Duration.toMillis(Duration.fromInputUnsafe(interval))
-  return fromStepWithMetadata(effect.succeed((meta) =>
-    effect.succeed([
-      meta.attempt - 1,
-      window === 0
-        ? Duration.zero
-        : Duration.millis(window - (meta.elapsed % window))
-    ])
-  ))
+  return fromStepWithMetadata(effect.sync(() => {
+    let start = 0
+    let lastRun = 0
+    return (meta) =>
+      effect.sync(() => {
+        if (window === 0) {
+          return [meta.attempt - 1, Duration.zero] as const
+        }
+        if (meta.attempt === 1) {
+          start = meta.now
+          lastRun = meta.now + window
+          return [0, Duration.millis(window)] as const
+        }
+        const runningBehind = meta.now > (lastRun + window)
+        const boundary = window - ((meta.now - start) % window)
+        const delay = runningBehind ? 0 : boundary === 0 ? window : boundary
+        lastRun = runningBehind ? meta.now : meta.now + delay
+        return [meta.attempt - 1, Duration.millis(delay)] as const
+      })
+  }))
 }
 
 /**
@@ -2448,7 +2381,7 @@ export const passthrough = <Output, Input, Error, Env>(
  *
  * // Combining recurs with other schedules for sophisticated retry logic
  * const complexRetry = Schedule.exponential("100 millis").pipe(
- *   Schedule.compose(Schedule.recurs(3)) // At most 3 attempts
+ *   Schedule.both(Schedule.recurs(3)) // At most 3 attempts
  * )
  *
  * // Repeat an effect exactly 10 times
@@ -2653,7 +2586,7 @@ export const reduce: {
  *
  * // Simple spaced schedule with limited repetitions
  * const limitedSpaced = Schedule.spaced("100 millis").pipe(
- *   Schedule.compose(Schedule.recurs(5)) // at most 5 times
+ *   Schedule.both(Schedule.recurs(5)) // at most 5 times
  * )
  *
  * const program = Effect.gen(function*() {

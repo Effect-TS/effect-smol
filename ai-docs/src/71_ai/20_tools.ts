@@ -34,7 +34,7 @@ const SearchProducts = Tool.make("SearchProducts", {
       // guidance.
       description: "The search query, e.g. 'wireless headphones'"
     }),
-    maxResults: Schema.Number.pipe(Schema.withDecodingDefault(() => 10)).annotate({
+    maxResults: Schema.Number.pipe(Schema.withDecodingDefault(Effect.succeed(10))).annotate({
       description: "The maximum number of results to return"
     })
   }),
@@ -85,8 +85,8 @@ const ProductToolkitLayer = ProductToolkit.toLayer(Effect.gen(function*() {
   return ProductToolkit.of({
     SearchProducts: Effect.fn("ProductToolkit.SearchProducts")(function*({ query, maxResults }) {
       return [
-        new Product({ id: ProductId.makeUnsafe("p-1"), name: `${query} widget`, price: 19.99 }),
-        new Product({ id: ProductId.makeUnsafe("p-2"), name: `${query} gadget`, price: 29.99 })
+        new Product({ id: ProductId.make("p-1"), name: `${query} widget`, price: 19.99 }),
+        new Product({ id: ProductId.make("p-2"), name: `${query} gadget`, price: 29.99 })
       ].slice(0, maxResults)
     }),
     GetInventory: Effect.fn("ProductToolkit.GetInventory")(function*({ productId }) {
@@ -215,8 +215,8 @@ export const AssistantToolkitLayer = AssistantToolkit.toLayer(Effect.gen(functio
   return AssistantToolkit.of({
     SearchProducts: Effect.fn("AssistantToolkit.SearchProducts")(function*({ query, maxResults }) {
       return [
-        new Product({ id: ProductId.makeUnsafe("p-1"), name: `${query} widget`, price: 19.99 }),
-        new Product({ id: ProductId.makeUnsafe("p-2"), name: `${query} gadget`, price: 29.99 })
+        new Product({ id: ProductId.make("p-1"), name: `${query} widget`, price: 19.99 }),
+        new Product({ id: ProductId.make("p-2"), name: `${query} gadget`, price: 29.99 })
       ].slice(0, maxResults)
     }),
     GetInventory: Effect.fn("AssistantToolkit.GetInventory")(function*({ productId }) {

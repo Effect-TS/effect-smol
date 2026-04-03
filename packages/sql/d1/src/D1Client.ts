@@ -14,10 +14,13 @@ import * as Stream from "effect/Stream"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import * as Client from "effect/unstable/sql/SqlClient"
 import type { Connection } from "effect/unstable/sql/SqlConnection"
-import { SqlError } from "effect/unstable/sql/SqlError"
+import { SqlError, UnknownError } from "effect/unstable/sql/SqlError"
 import * as Statement from "effect/unstable/sql/Statement"
 
 const ATTR_DB_SYSTEM_NAME = "db.system.name"
+
+const classifyError = (cause: unknown, message: string, operation: string) =>
+  new UnknownError({ cause, message, operation })
 
 /**
  * @category type ids
@@ -85,7 +88,7 @@ export const make = (
         lookup: (sql: string) =>
           Effect.try({
             try: () => db.prepare(sql),
-            catch: (cause) => new SqlError({ cause, message: `Failed to prepare statement` })
+            catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to prepare statement", "prepare") })
           })
       })
 
@@ -101,7 +104,7 @@ export const make = (
             }
             return response.results || []
           },
-          catch: (cause) => new SqlError({ cause, message: `Failed to execute statement` })
+          catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to execute statement", "execute") })
         })
 
       const runRaw = (
@@ -134,7 +137,7 @@ export const make = (
                   >
                 >
               },
-              catch: (cause) => new SqlError({ cause, message: `Failed to execute statement` })
+              catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to execute statement", "execute") })
             })
         )
 

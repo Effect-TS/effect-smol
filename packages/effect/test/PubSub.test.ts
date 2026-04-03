@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Array, Effect, Fiber, Latch, PubSub } from "effect"
+import { Array, Effect, Exit, Fiber, Latch, PubSub, Stream } from "effect"
 import { pipe } from "effect/Function"
 
 describe("PubSub", () => {
@@ -475,4 +475,64 @@ describe("PubSub", () => {
         assert.deepStrictEqual(yield* PubSub.takeAll(sub3), [14, 15, 16])
       }))
   })
+
+  it.effect("shutdown interrupts suspended subscribers", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const pubsub = yield* PubSub.unbounded<number>()
+        const subscription = yield* PubSub.subscribe(pubsub)
+        const fiber = yield* Effect.forkChild(PubSub.take(subscription), { startImmediately: true })
+
+        yield* PubSub.shutdown(pubsub)
+
+        const exit = yield* Fiber.await(fiber)
+        assert.isTrue(Exit.hasInterrupts(exit!))
+      })
+    ))
+
+  it.effect("shutdown interrupts suspended takeAll subscribers", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const pubsub = yield* PubSub.unbounded<number>()
+        const subscription = yield* PubSub.subscribe(pubsub)
+        const fiber = yield* Effect.forkChild(PubSub.takeAll(subscription), { startImmediately: true })
+        yield* PubSub.shutdown(pubsub)
+        const exit = yield* Fiber.await(fiber)
+        assert.isTrue(Exit.hasInterrupts(exit))
+      })
+    ))
+
+  it.effect("Stream.fromPubSub completes after shutdown", () =>
+    Effect.gen(function*() {
+      const pubsub = yield* PubSub.unbounded<number>()
+      const fiber = yield* Effect.forkChild(Stream.runCollect(Stream.fromPubSub(pubsub)))
+
+      yield* Effect.yieldNow
+      assert.isUndefined(fiber.pollUnsafe())
+
+      yield* PubSub.shutdown(pubsub)
+
+      const result = yield* Fiber.join(fiber)
+      assert.deepStrictEqual(result, [])
+    }))
+
+  it.effect("publish returns false after shutdown", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const pubsub = yield* PubSub.unbounded<number>()
+        yield* PubSub.shutdown(pubsub)
+
+        assert.strictEqual(yield* PubSub.publish(pubsub, 1), false)
+      })
+    ))
+
+  it.effect("publishAll returns false after shutdown", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const pubsub = yield* PubSub.unbounded<number>()
+        yield* PubSub.shutdown(pubsub)
+
+        assert.strictEqual(yield* PubSub.publishAll(pubsub, [1, 2, 3]), false)
+      })
+    ))
 })

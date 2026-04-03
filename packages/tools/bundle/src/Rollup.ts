@@ -4,6 +4,8 @@
 import * as NodeStream from "@effect/platform-node/NodeStream"
 import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
+import * as FiberSet from "effect/FiberSet"
+import * as FileSystem from "effect/FileSystem"
 import * as Layer from "effect/Layer"
 import * as Path from "effect/Path"
 import * as ServiceMap from "effect/ServiceMap"
@@ -59,12 +61,12 @@ export class Rollup extends ServiceMap.Service<Rollup>()(
   {
     make: Effect.gen(function*() {
       const pathService = yield* Path.Path
+      const fs = yield* FileSystem.FileSystem
 
       const getRollupOptions = (options: BundleOptions): RollupOptions => ({
         input: options.path,
         output: {
-          format: "esm",
-          ...(options.outputDirectory ? { dir: options.outputDirectory } : {})
+          format: "esm"
         },
         plugins: createPlugins(pathService, { visualize: options.visualize }),
         onwarn: (warning, next) => {
@@ -75,44 +77,60 @@ export class Rollup extends ServiceMap.Service<Rollup>()(
 
       const bundle = Effect.fn("Rollup.bundle")(
         function*(options: BundleOptions) {
-          return yield* Effect.acquireUseRelease(
+          const bundle = yield* Effect.acquireRelease(
             Effect.tryPromise({
               try: () => rollup(getRollupOptions(options)),
               catch: (cause) => new RollupError({ cause })
             }),
-            Effect.fnUntraced(function*(bundle) {
-              const { output } = yield* Effect.tryPromise({
-                try: () => bundle.generate({ format: "esm" }),
-                catch: (cause) => new RollupError({ cause })
-              })
-
-              const sizeInBytes = yield* Stream.fromIterable(output).pipe(
-                Stream.filter((output) => output.type === "chunk"),
-                Stream.map((chunk) => chunk.code),
-                Stream.encodeText,
-                NodeStream.pipeThroughDuplex({
-                  evaluate: () => createGzip({ level: 9 }),
-                  onError: (cause) => new RollupError({ cause })
-                }),
-                Stream.runFold(
-                  () => 0,
-                  (totalBytes, chunkBytes) => chunkBytes.length + totalBytes
-                )
-              )
-
-              yield* Effect.log(`Bundled ${options.path}`).pipe(
-                Effect.annotateLogs({ size: `${(sizeInBytes / 1000).toFixed(2)} kB` })
-              )
-
-              return new BundleStats({ path: options.path, sizeInBytes })
-            }),
-            (bundle) =>
-              Effect.tryPromise({
-                try: () => bundle.close(),
-                catch: (cause) => new RollupError({ cause })
-              })
+            (bundle) => Effect.promise(() => bundle.close())
           )
-        }
+          const fibers = yield* FiberSet.make()
+
+          const { output } = yield* Effect.tryPromise({
+            try: () => bundle.generate({ format: "esm" }),
+            catch: (cause) => new RollupError({ cause })
+          })
+
+          const stream = yield* Stream.fromIterable(output).pipe(
+            Stream.filter((output) => output.type === "chunk"),
+            Stream.map((chunk) => chunk.code),
+            Stream.encodeText,
+            Stream.broadcast({ capacity: 8, replay: 8 })
+          )
+
+          if (options.outputDirectory) {
+            const outputPath = pathService.join(
+              options.outputDirectory,
+              `${pathService.parse(options.path).name}.min.js`
+            )
+            yield* FiberSet.run(
+              fibers,
+              stream.pipe(
+                Stream.run(fs.sink(outputPath))
+              )
+            )
+          }
+
+          const sizeInBytes = yield* stream.pipe(
+            NodeStream.pipeThroughDuplex({
+              evaluate: () => createGzip({ level: 9 }),
+              onError: (cause) => new RollupError({ cause })
+            }),
+            Stream.runFold(
+              () => 0,
+              (totalBytes, chunkBytes) => chunkBytes.length + totalBytes
+            )
+          )
+
+          yield* FiberSet.awaitEmpty(fibers)
+
+          yield* Effect.log(`Bundled ${options.path}`).pipe(
+            Effect.annotateLogs({ size: `${(sizeInBytes / 1000).toFixed(2)} kB` })
+          )
+
+          return new BundleStats({ path: options.path, sizeInBytes })
+        },
+        Effect.scoped
       )
 
       const bundleAll = Effect.fn("Rollup.bundleAll")(

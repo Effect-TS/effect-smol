@@ -14,10 +14,13 @@ import * as Stream from "effect/Stream"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import * as Client from "effect/unstable/sql/SqlClient"
 import type { Connection } from "effect/unstable/sql/SqlConnection"
-import { SqlError } from "effect/unstable/sql/SqlError"
+import { classifySqliteError, SqlError } from "effect/unstable/sql/SqlError"
 import * as Statement from "effect/unstable/sql/Statement"
 
 const ATTR_DB_SYSTEM_NAME = "db.system.name"
+
+const classifyError = (cause: unknown, message: string, operation: string) =>
+  classifySqliteError(cause, { message, operation })
 
 /**
  * @category type ids
@@ -117,7 +120,8 @@ export const make = (
             return Effect.map(
               Effect.tryPromise({
                 try: () => db.execute(sql, params as Array<any>),
-                catch: (cause) => new SqlError({ cause, message: "Failed to execute statement (async)" })
+                catch: (cause) =>
+                  new SqlError({ reason: classifyError(cause, "Failed to execute statement (async)", "execute") })
               }),
               (result) => values ? result.rawRows ?? [] : result.rows
             )
@@ -127,7 +131,7 @@ export const make = (
               const result = db.executeSync(sql, params as Array<any>)
               return values ? result.rawRows ?? [] : result.rows
             },
-            catch: (cause) => new SqlError({ cause, message: "Failed to execute statement" })
+            catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to execute statement", "execute") })
           })
         })
 

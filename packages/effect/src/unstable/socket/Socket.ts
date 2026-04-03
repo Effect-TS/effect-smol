@@ -387,7 +387,7 @@ export const makeChannel = <IE = never>(): Channel.Channel<
 /**
  * @since 4.0.0
  */
-export const defaultCloseCodeIsError = (code: number) => code !== 1000 && code !== 1006
+export const defaultCloseCodeIsError = (_code: number) => true
 
 /**
  * @since 4.0.0
@@ -528,7 +528,7 @@ export const fromWebSocket = <RO>(
           yield* Deferred.await(openDeferred).pipe(
             Effect.timeoutOrElse({
               duration: options?.openTimeout ?? 10000,
-              onTimeout: () =>
+              orElse: () =>
                 Effect.fail(
                   new SocketError({
                     reason: new SocketOpenError({

@@ -50,7 +50,7 @@ export const parseArgs = (
   lexResult: LexResult,
   command: Command.Any,
   commandPath: ReadonlyArray<string> = []
-): Effect.Effect<ParsedTokens, CliError.CliError, Param.Environment> =>
+): Effect.Effect<ParsedTokens, never, Param.Environment> =>
   Effect.gen(function*() {
     const { tokens, trailingOperands: afterEndOfOptions } = lexResult
     const newCommandPath = [...commandPath, command.name]
@@ -161,7 +161,7 @@ type ParseMode =
 type ParseState = {
   readonly flags: FlagAccumulator
   readonly arguments: Array<string>
-  readonly errors: Array<CliError.CliError>
+  readonly errors: Array<CliError.NonShowHelpErrors>
   mode: ParseMode
 }
 
@@ -179,7 +179,7 @@ type LeafResult = {
   readonly _tag: "Leaf"
   readonly flags: Readonly<FlagMap>
   readonly arguments: ReadonlyArray<string>
-  readonly errors: ReadonlyArray<CliError.CliError>
+  readonly errors: ReadonlyArray<CliError.NonShowHelpErrors>
 }
 
 /**
@@ -190,7 +190,7 @@ type SubcommandResult = {
   readonly flags: Readonly<FlagMap>
   readonly sub: Command<string, unknown, unknown, unknown, unknown>
   readonly childTokens: ReadonlyArray<Token>
-  readonly errors: ReadonlyArray<CliError.CliError>
+  readonly errors: ReadonlyArray<CliError.NonShowHelpErrors>
 }
 
 type LevelResult = LeafResult | SubcommandResult

@@ -31,6 +31,7 @@ import { constVoid, type LazyArg } from "../../Function.ts"
 import * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
+import { hasBody, type HttpMethod } from "../http/HttpMethod.ts"
 import type * as Multipart_ from "../http/Multipart.ts"
 
 declare module "../../Schema.ts" {
@@ -298,7 +299,7 @@ export function asJson(options?: {
 export function asFormUrlEncoded(options?: {
   readonly contentType?: string
 }) {
-  return <S extends Schema.Top & { readonly Encoded: Record<string, string | ReadonlyArray<string> | undefined> }>(
+  return <S extends Schema.Top>(
     self: S
   ) => asNonMultipartEncoding(self, { _tag: "FormUrlEncoded", ...options })
 }
@@ -332,6 +333,17 @@ export function asUint8Array(options?: {
   return <S extends Schema.Top & { readonly Encoded: Uint8Array }>(self: S) =>
     asNonMultipartEncoding(self, { _tag: "Uint8Array", ...options })
 }
+/**
+ * @since 4.0.0
+ */
+export const isNoContent = (ast: AST.AST): boolean => {
+  if (AST.isVoid(ast)) return true
+  const encoded = AST.toEncoded(ast)
+  if (AST.isVoid(encoded)) return true
+  const target = ast.encoding?.[0].to
+  if (target === undefined) return false
+  return AST.isVoid(target)
+}
 
 const resolveHttpApiEncoding = AST.resolveAt<Encoding>("~httpApiEncoding")
 
@@ -341,14 +353,20 @@ const defaultJsonEncoding: Encoding = {
   _tag: "Json",
   contentType: "application/json"
 }
+const defaultUrlEncodedEncoding: Encoding = {
+  _tag: "FormUrlEncoded",
+  contentType: "application/x-www-form-urlencoded"
+}
 
 function getEncoding(ast: AST.AST): Encoding {
   return resolveHttpApiEncoding(ast) ?? defaultJsonEncoding
 }
 
 /** @internal */
-export function getPayloadEncoding(ast: AST.AST): PayloadEncoding {
-  return getEncoding(ast)
+export function getPayloadEncoding(ast: AST.AST, method: HttpMethod): PayloadEncoding {
+  const encoding = resolveHttpApiEncoding(ast)
+  if (encoding) return encoding
+  return hasBody(method) ? defaultJsonEncoding : defaultUrlEncodedEncoding
 }
 
 /** @internal */

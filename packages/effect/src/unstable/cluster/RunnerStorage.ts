@@ -10,7 +10,7 @@ import type { PersistenceError } from "./ClusterError.ts"
 import * as MachineId from "./MachineId.ts"
 import { Runner } from "./Runner.ts"
 import type { RunnerAddress } from "./RunnerAddress.ts"
-import { ShardId } from "./ShardId.ts"
+import * as ShardId from "./ShardId.ts"
 
 /**
  * Represents a generic interface to the persistent storage required by the
@@ -47,23 +47,23 @@ export class RunnerStorage extends ServiceMap.Service<RunnerStorage, {
    */
   readonly acquire: (
     address: RunnerAddress,
-    shardIds: Iterable<ShardId>
-  ) => Effect.Effect<Array<ShardId>, PersistenceError>
+    shardIds: Iterable<ShardId.ShardId>
+  ) => Effect.Effect<Array<ShardId.ShardId>, PersistenceError>
 
   /**
    * Refresh the locks owned by the given runner.
    */
   readonly refresh: (
     address: RunnerAddress,
-    shardIds: Iterable<ShardId>
-  ) => Effect.Effect<Array<ShardId>, PersistenceError>
+    shardIds: Iterable<ShardId.ShardId>
+  ) => Effect.Effect<Array<ShardId.ShardId>, PersistenceError>
 
   /**
    * Release the given shard ids.
    */
   readonly release: (
     address: RunnerAddress,
-    shardId: ShardId
+    shardId: ShardId.ShardId
   ) => Effect.Effect<void, PersistenceError>
 
   /**
@@ -181,7 +181,7 @@ export const makeEncoded = (encoded: Encoded) =>
  */
 export const makeMemory = Effect.gen(function*() {
   const runners = MutableHashMap.empty<RunnerAddress, Runner>()
-  let acquired: Array<ShardId> = []
+  let acquired: Array<ShardId.ShardId> = []
   let id = 0
 
   return RunnerStorage.of({

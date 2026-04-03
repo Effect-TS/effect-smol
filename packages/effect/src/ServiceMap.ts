@@ -22,7 +22,17 @@ import type { Pipeable } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
 import type * as Types from "./Types.ts"
 
-const ServiceTypeId = "~effect/ServiceMap/Service" as const
+/**
+ * @since 4.0.0
+ * @category Type Identifiers
+ */
+export type ServiceTypeId = "~effect/ServiceMap/Service"
+
+/**
+ * @since 4.0.0
+ * @category Type Identifiers
+ */
+export const ServiceTypeId: ServiceTypeId = "~effect/ServiceMap/Service"
 
 /**
  * The base type used for all ServiceMap keys.
@@ -30,11 +40,8 @@ const ServiceTypeId = "~effect/ServiceMap/Service" as const
  * @since 4.0.0
  * @category Models
  */
-export interface Key<in out Identifier, in out Shape> extends Pipeable, Inspectable {
-  readonly [ServiceTypeId]: {
-    readonly _Service: Types.Invariant<Shape>
-    readonly _Identifier: Types.Invariant<Identifier>
-  }
+export interface Key<out Identifier, out Shape> extends Pipeable, Inspectable {
+  readonly [ServiceTypeId]: ServiceTypeId
   readonly Service: Shape
   readonly Identifier: Identifier
   readonly key: string
@@ -187,10 +194,7 @@ export const Service: {
 } as any
 
 const ServiceProto: any = {
-  [ServiceTypeId]: {
-    _Service: (_: unknown) => _,
-    _Identifier: (_: unknown) => _
-  },
+  [ServiceTypeId]: ServiceTypeId,
   ...PipeInspectableProto,
   ...YieldableProto,
   toJSON<I, A>(this: Service<I, A>) {
@@ -272,25 +276,6 @@ export declare namespace Service {
   /**
    * @example
    * ```ts
-   * import type { ServiceMap } from "effect"
-   *
-   * // Variance interface is used internally for type inference
-   * type MyVariance = ServiceMap.Service.Variance<"MyId", { value: number }>
-   * ```
-   *
-   * @since 4.0.0
-   * @category Models
-   */
-  export interface Variance<in out Identifier, in out Shape> {
-    readonly [ServiceTypeId]: {
-      readonly _Service: Types.Invariant<Shape>
-      readonly _Identifier: Types.Invariant<Identifier>
-    }
-  }
-
-  /**
-   * @example
-   * ```ts
    * import { ServiceMap } from "effect"
    *
    * // Any represents any possible service type
@@ -322,7 +307,7 @@ export declare namespace Service {
    * @since 4.0.0
    * @category Models
    */
-  export type Shape<T> = T extends Variance<infer _I, infer S> ? S : never
+  export type Shape<T> = T extends Key<infer _I, infer S> ? S : never
 
   /**
    * @example
@@ -341,7 +326,7 @@ export declare namespace Service {
    * @since 4.0.0
    * @category Models
    */
-  export type Identifier<T> = T extends Variance<infer I, infer _S> ? I : never
+  export type Identifier<T> = T extends Key<infer I, infer _S> ? I : never
 }
 
 const TypeId = "~effect/ServiceMap" as const

@@ -49,6 +49,19 @@ export const make = <M extends HttpMiddleware>(middleware: M): M => middleware
 
 const loggerDisabledRequests = new WeakSet<object>()
 
+const stripSearchAndHash = (url: string): string => {
+  const queryIndex = url.indexOf("?")
+  const hashIndex = url.indexOf("#")
+
+  if (queryIndex === -1) {
+    return hashIndex === -1 ? url : url.slice(0, hashIndex)
+  }
+  if (hashIndex === -1) {
+    return url.slice(0, queryIndex)
+  }
+  return url.slice(0, Math.min(queryIndex, hashIndex))
+}
+
 /**
  * @since 4.0.0
  * @category Logger
@@ -96,6 +109,7 @@ export const logger: <E, R>(
   let counter = 0
   return Effect.withFiber((fiber) => {
     const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
+    const path = stripSearchAndHash(request.url)
     return Effect.withLogSpan(
       Effect.flatMap(Effect.exit(httpApp), (exit) => {
         if (loggerDisabledRequests.has(request.source)) {
@@ -105,7 +119,7 @@ export const logger: <E, R>(
           return Effect.andThen(
             Effect.annotateLogs(Effect.log(Option.getOrElse(cause, () => "Sent HTTP Response")), {
               "http.method": request.method,
-              "http.url": request.url,
+              "http.url": path,
               "http.status": response.status
             }),
             exit
@@ -114,7 +128,7 @@ export const logger: <E, R>(
         return Effect.andThen(
           Effect.annotateLogs(Effect.log("Sent HTTP response"), {
             "http.method": request.method,
-            "http.url": request.url,
+            "http.url": path,
             "http.status": exit.value.status
           }),
           exit

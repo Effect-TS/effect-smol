@@ -110,6 +110,54 @@ describe("Prompt.text", () => {
       assert.strictEqual(result, "John")
     }).pipe(Effect.provide(TestLayer)))
 
+  it.effect("moves the cursor to the beginning on ctrl-a", () =>
+    Effect.gen(function*() {
+      const prompt = Prompt.text({
+        message: "Name",
+        default: "Jane"
+      })
+
+      yield* MockTerminal.inputText(" Doe")
+      yield* MockTerminal.inputKey("a", { ctrl: true })
+      yield* MockTerminal.inputText("Dr. ")
+      yield* MockTerminal.inputKey("enter")
+
+      const result = yield* Prompt.run(prompt)
+      assert.strictEqual(result, "Dr. Jane Doe")
+    }).pipe(Effect.provide(TestLayer)))
+
+  it.effect("moves the cursor to the end on ctrl-e", () =>
+    Effect.gen(function*() {
+      const prompt = Prompt.text({
+        message: "Name"
+      })
+
+      yield* MockTerminal.inputText("Jane")
+      yield* MockTerminal.inputKey("left")
+      yield* MockTerminal.inputKey("left")
+      yield* MockTerminal.inputKey("e", { ctrl: true })
+      yield* MockTerminal.inputText(" Doe")
+      yield* MockTerminal.inputKey("enter")
+
+      const result = yield* Prompt.run(prompt)
+      assert.strictEqual(result, "Jane Doe")
+    }).pipe(Effect.provide(TestLayer)))
+
+  it.effect("does not insert characters for unsupported ctrl key combinations", () =>
+    Effect.gen(function*() {
+      const prompt = Prompt.text({
+        message: "Name"
+      })
+
+      yield* MockTerminal.inputText("Ja")
+      yield* MockTerminal.inputKey("l", { ctrl: true })
+      yield* MockTerminal.inputText("ne")
+      yield* MockTerminal.inputKey("enter")
+
+      const result = yield* Prompt.run(prompt)
+      assert.strictEqual(result, "Jane")
+    }).pipe(Effect.provide(TestLayer)))
+
   it.effect("does not render or submit the cleared default value", () =>
     Effect.gen(function*() {
       const prompt = Prompt.text({
@@ -311,4 +359,75 @@ describe("Prompt.autoComplete", () => {
 
       assert.isTrue(findFrame(frames, "No matches") !== undefined)
     }).pipe(Effect.provide(TestLayer)))
+})
+
+describe("Prompt.file", () => {
+  const FilePromptLayer = Layer.mergeAll(
+    ConsoleLayer,
+    FileSystem.layerNoop({
+      exists: () => Effect.succeed(true),
+      readDirectory: (directory) =>
+        Effect.succeed(
+          directory === "/workspace"
+            ? ["alpha.txt", "banana.txt", "basket.txt"]
+            : []
+        ),
+      stat: (path) =>
+        Effect.succeed(
+          path.endsWith(".txt")
+            ? ({ type: "File" } as any)
+            : ({ type: "Directory" } as any)
+        )
+    }),
+    PathLayer,
+    TerminalLayer
+  )
+
+  it.effect("filters files as you type", () =>
+    Effect.gen(function*() {
+      const prompt = Prompt.file({
+        message: "Pick file",
+        startingPath: "/workspace"
+      })
+
+      yield* MockTerminal.inputText("ban")
+      yield* MockTerminal.inputKey("enter")
+
+      const result = yield* Prompt.run(prompt)
+      assert.strictEqual(result, "/workspace/banana.txt")
+
+      const output = yield* TestConsole.logLines
+      const frames = toFrames(output)
+      const filteredFrame = findFrame(frames, "[filter: ban]")
+
+      assert.isTrue(filteredFrame !== undefined)
+      assert.isTrue(filteredFrame?.includes("banana.txt"))
+      assert.isFalse(filteredFrame?.includes("alpha.txt"))
+      assert.isFalse(filteredFrame?.includes("basket.txt"))
+    }).pipe(Effect.provide(FilePromptLayer)))
+
+  it.effect("removes the last character on backspace", () =>
+    Effect.gen(function*() {
+      const prompt = Prompt.file({
+        message: "Pick file",
+        startingPath: "/workspace"
+      })
+
+      yield* MockTerminal.inputText("ban")
+      yield* MockTerminal.inputKey("backspace")
+      yield* MockTerminal.inputKey("enter")
+
+      const result = yield* Prompt.run(prompt)
+      assert.strictEqual(result, "/workspace/banana.txt")
+
+      const output = yield* TestConsole.logLines
+      const frames = toFrames(output)
+      const narrowedFrame = findFrame(frames, "[filter: ban]")
+      const expandedFrame = findFrame(frames, "[filter: ba]")
+
+      assert.isTrue(narrowedFrame !== undefined)
+      assert.isTrue(expandedFrame !== undefined)
+      assert.isFalse(narrowedFrame?.includes("basket.txt"))
+      assert.isTrue(expandedFrame?.includes("basket.txt"))
+    }).pipe(Effect.provide(FilePromptLayer)))
 })

@@ -739,7 +739,7 @@ export const file = (options: FileOptions = {}): Prompt<string> => {
     const currentPath = yield* resolveCurrentPath(Option.none(), opts)
     const files = yield* getFileList(currentPath, opts)
     const confirm = Confirm.Hide()
-    return { cursor: 0, files, path: Option.none(), confirm }
+    return { cursor: 0, files, allFiles: files, query: "", path: Option.none(), confirm }
   })
   return custom(initialState, {
     render: handleFileRender(opts),
@@ -1849,11 +1849,16 @@ interface FileOptionsReq extends Required<Omit<FileOptions, "startingPath">> {
 interface FileState {
   readonly cursor: number
   readonly files: ReadonlyArray<string>
+  readonly allFiles: ReadonlyArray<string>
+  readonly query: string
   readonly path: Option.Option<string>
   readonly confirm: Confirm
 }
 
 const CONFIRM_MESSAGE = "The selected directory contains files. Would you like to traverse the selected directory?"
+const FILE_FILTER_LABEL = "filter"
+const FILE_FILTER_PLACEHOLDER = "type to filter"
+const FILE_EMPTY_MESSAGE = "No matches"
 type Confirm = Data.TaggedEnum<{
   readonly Show: {}
   readonly Hide: {}
@@ -1908,6 +1913,40 @@ const getFileList = Effect.fnUntraced(function*(directory: string, options: File
   }, { concurrency: files.length })
 })
 
+const filterFiles = (files: ReadonlyArray<string>, query: string) => {
+  if (query.length === 0) {
+    return files
+  }
+  const normalizedQuery = query.toLowerCase()
+  const filtered: Array<string> = []
+  for (let index = 0; index < files.length; index++) {
+    if (files[index].toLowerCase().includes(normalizedQuery)) {
+      filtered.push(files[index])
+    }
+  }
+  return filtered
+}
+
+const updateFileState = (
+  state: FileState,
+  query: string,
+  allFiles: ReadonlyArray<string> = state.allFiles
+): FileState => {
+  const files = filterFiles(allFiles, query)
+  if (files.length === 0) {
+    return { ...state, query, allFiles, files, cursor: 0 }
+  }
+  const selected = state.files[state.cursor]
+  const cursor = selected === undefined ? 0 : files.indexOf(selected)
+  return {
+    ...state,
+    query,
+    allFiles,
+    files,
+    cursor: cursor === -1 ? 0 : cursor
+  }
+}
+
 const handleFileClear = (options: FileOptionsReq) => {
   return Effect.fnUntraced(function*(state: FileState, _: Action<FileState, string>) {
     const terminal = yield* Terminal.Terminal
@@ -1916,12 +1955,14 @@ const handleFileClear = (options: FileOptionsReq) => {
     const figures = yield* platformFigures
     const currentPath = yield* resolveCurrentPath(state.path, options)
     const selectedPath = state.files[state.cursor]
-    const resolvedPath = path.resolve(currentPath, selectedPath)
+    const resolvedPath = selectedPath === undefined ? currentPath : path.resolve(currentPath, selectedPath)
     const resolvedPathText = `${figures.pointerSmall} ${resolvedPath}`
     const isConfirming = showConfirmation(state.confirm)
     const promptText = isConfirming
       ? renderPrompt("(Y/n)", CONFIRM_MESSAGE, "?", figures.pointerSmall, { plain: true })
-      : renderPrompt("", options.message, figures.tick, figures.ellipsis, { plain: true })
+      : renderPrompt(renderFileFilter(state, { plain: true }), options.message, figures.tick, figures.ellipsis, {
+        plain: true
+      })
     const filesText = isConfirming
       ? ""
       : renderFiles(state, state.files, figures, options, { plain: true })
@@ -1989,6 +2030,17 @@ const renderFileName = (file: string, isSelected: boolean, renderOptions?: Rende
     : file
 }
 
+const renderFileFilter = (state: FileState, renderOptions?: RenderOptions | undefined) => {
+  const filterValue = state.query.length === 0
+    ? renderOptions?.plain === true
+      ? FILE_FILTER_PLACEHOLDER
+      : Ansi.annotate(FILE_FILTER_PLACEHOLDER, Ansi.blackBright)
+    : renderOptions?.plain === true
+    ? state.query
+    : Ansi.annotate(state.query, Ansi.combine(Ansi.underlined, Ansi.cyanBright))
+  return `[${FILE_FILTER_LABEL}: ${filterValue}]`
+}
+
 const renderFiles = (
   state: FileState,
   files: ReadonlyArray<string>,
@@ -1997,6 +2049,11 @@ const renderFiles = (
   renderOptions?: RenderOptions | undefined
 ) => {
   const length = files.length
+  if (length === 0) {
+    return renderOptions?.plain === true
+      ? FILE_EMPTY_MESSAGE
+      : Ansi.annotate(FILE_EMPTY_MESSAGE, Ansi.blackBright)
+  }
   const toDisplay = entriesToDisplay(state.cursor, length, options.maxPerPage)
   const documents: Array<string> = []
   for (let index = toDisplay.startIndex; index < toDisplay.endIndex; index++) {
@@ -2013,7 +2070,7 @@ const renderFileNextFrame = Effect.fnUntraced(function*(state: FileState, option
   const figures = yield* platformFigures
   const currentPath = yield* resolveCurrentPath(state.path, options)
   const selectedPath = state.files[state.cursor]
-  const resolvedPath = path.resolve(currentPath, selectedPath)
+  const resolvedPath = selectedPath === undefined ? currentPath : path.resolve(currentPath, selectedPath)
   const resolvedPathMsg = Ansi.annotate(figures.pointerSmall + " " + resolvedPath, Ansi.blackBright)
 
   if (showConfirmation(state.confirm)) {
@@ -2025,33 +2082,36 @@ const renderFileNextFrame = Effect.fnUntraced(function*(state: FileState, option
   }
   const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
   const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
-  const promptMsg = renderPrompt("", options.message, leadingSymbol, trailingSymbol)
+  const promptMsg = renderPrompt(renderFileFilter(state), options.message, leadingSymbol, trailingSymbol)
   const files = renderFiles(state, state.files, figures, options)
   return Ansi.cursorHide + promptMsg + "\n" + resolvedPathMsg + "\n" + files
 })
 
-const renderFileSubmission = Effect.fnUntraced(function*(value: string, options: FileOptionsReq) {
+const renderFileSubmission = Effect.fnUntraced(function*(state: FileState, value: string, options: FileOptionsReq) {
   const figures = yield* platformFigures
   const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
   const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
-  const promptMsg = renderPrompt("", options.message, leadingSymbol, trailingSymbol)
+  const promptMsg = renderPrompt(renderFileFilter(state), options.message, leadingSymbol, trailingSymbol)
   return promptMsg + " " + Ansi.annotate(value, Ansi.white) + "\n"
 })
 
 const handleFileRender = (options: FileOptionsReq) => {
   return (
-    _: FileState,
+    state: FileState,
     action: Action<FileState, string>
   ): Effect.Effect<string, never, Path.Path | FileSystem.FileSystem> => {
     return Action.$match(action, {
       Beep: () => Effect.succeed(renderBeep),
       NextFrame: ({ state }) => renderFileNextFrame(state, options),
-      Submit: ({ value }) => renderFileSubmission(value, options)
+      Submit: ({ value }) => renderFileSubmission(state, value, options)
     })
   }
 }
 
 const processFileCursorUp = (state: FileState) => {
+  if (state.files.length === 0) {
+    return Effect.succeed(Action.Beep())
+  }
   const cursor = state.cursor - 1
   return Effect.succeed(Action.NextFrame({
     state: { ...state, cursor: cursor < 0 ? state.files.length - 1 : cursor }
@@ -2059,12 +2119,36 @@ const processFileCursorUp = (state: FileState) => {
 }
 
 const processFileCursorDown = (state: FileState) => {
+  if (state.files.length === 0) {
+    return Effect.succeed(Action.Beep())
+  }
   return Effect.succeed(Action.NextFrame({
     state: { ...state, cursor: (state.cursor + 1) % state.files.length }
   }))
 }
 
+const processFileBackspace = (state: FileState) => {
+  if (state.query.length === 0) {
+    return Effect.succeed(Action.Beep())
+  }
+  const query = state.query.slice(0, state.query.length - 1)
+  return Effect.succeed(Action.NextFrame({ state: updateFileState(state, query) }))
+}
+
+const processFileClear = (state: FileState) => Effect.succeed(Action.NextFrame({ state: updateFileState(state, "") }))
+
+const processFileInput = (input: string, state: FileState) => {
+  if (input.length === 0) {
+    return Effect.succeed(Action.Beep())
+  }
+  const query = state.query + input
+  return Effect.succeed(Action.NextFrame({ state: updateFileState(state, query) }))
+}
+
 const processSelection = Effect.fnUntraced(function*(state: FileState, options: FileOptionsReq) {
+  if (state.files.length === 0) {
+    return Action.Beep()
+  }
   const fs = yield* FileSystem.FileSystem
   const path = yield* Path.Path
   const currentPath = yield* resolveCurrentPath(state.path, options)
@@ -2091,6 +2175,8 @@ const processSelection = Effect.fnUntraced(function*(state: FileState, options: 
       state: {
         cursor: 0,
         files,
+        allFiles: files,
+        query: "",
         path: Option.some(resolvedPath),
         confirm: Confirm.Hide()
       }
@@ -2101,6 +2187,15 @@ const processSelection = Effect.fnUntraced(function*(state: FileState, options: 
 
 const handleFileProcess = (options: FileOptionsReq) => {
   return Effect.fnUntraced(function*(input: Terminal.UserInput, state: FileState) {
+    if (input.key.ctrl) {
+      if (input.key.name === "u") {
+        if (showConfirmation(state.confirm)) {
+          return Action.Beep()
+        }
+        return yield* processFileClear(state)
+      }
+      return Action.Beep()
+    }
     switch (input.key.name) {
       case "k":
       case "up": {
@@ -2110,6 +2205,12 @@ const handleFileProcess = (options: FileOptionsReq) => {
       case "down":
       case "tab": {
         return yield* processFileCursorDown(state)
+      }
+      case "backspace": {
+        if (showConfirmation(state.confirm)) {
+          return Action.Beep()
+        }
+        return yield* processFileBackspace(state)
       }
       case "enter":
       case "return": {
@@ -2127,12 +2228,14 @@ const handleFileProcess = (options: FileOptionsReq) => {
             state: {
               cursor: 0,
               files,
+              allFiles: files,
+              query: "",
               path: Option.some(resolvedPath),
               confirm: Confirm.Hide()
             }
           })
         }
-        return Action.Beep()
+        return yield* processFileInput(Option.getOrElse(input.input, () => ""), state)
       }
       case "n":
       case "f": {
@@ -2143,10 +2246,13 @@ const handleFileProcess = (options: FileOptionsReq) => {
           const resolvedPath = path.resolve(currentPath, selectedPath)
           return Action.Submit({ value: resolvedPath })
         }
-        return Action.Beep()
+        return yield* processFileInput(Option.getOrElse(input.input, () => ""), state)
       }
       default: {
-        return Action.Beep()
+        if (showConfirmation(state.confirm)) {
+          return Action.Beep()
+        }
+        return yield* processFileInput(Option.getOrElse(input.input, () => ""), state)
       }
     }
   })
@@ -2244,7 +2350,9 @@ const renderMultiSelectChoices = <A>(
       const annotatedCheckbox = isHighlighted && renderOptions?.plain !== true
         ? Ansi.annotate(checkbox, Ansi.cyanBright)
         : checkbox
-      const title = choice.title
+      const title = isHighlighted && renderOptions?.plain !== true
+        ? Ansi.annotate(choice.title, Ansi.cyanBright)
+        : choice.title
       const description = renderChoiceDescription(choice as SelectChoice<A>, isHighlighted, renderOptions)
       documents.push(prefix + " " + annotatedCheckbox + " " + title + " " + description)
     }
@@ -3051,8 +3159,11 @@ const handleSelectProcess = <A>(options: SelectOptionsReq<A>) => {
 
 const handleAutoCompleteProcess = <A>(options: AutoCompleteOptionsReq<A>) => {
   return (input: Terminal.UserInput, state: AutoCompleteState) => {
-    if (input.key.ctrl && input.key.name === "u") {
-      return processAutoCompleteClear(state, options)
+    if (input.key.ctrl) {
+      if (input.key.name === "u") {
+        return processAutoCompleteClear(state, options)
+      }
+      return Effect.succeed(Action.Beep())
     }
     switch (input.key.name) {
       case "k":
@@ -3253,6 +3364,20 @@ const processTextCursorRight = (state: TextState) => {
   )
 }
 
+const processTextCursorStart = (state: TextState) =>
+  Effect.succeed(
+    Action.NextFrame({
+      state: { ...state, cursor: 0, error: Option.none() }
+    })
+  )
+
+const processTextCursorEnd = (state: TextState) =>
+  Effect.succeed(
+    Action.NextFrame({
+      state: { ...state, cursor: state.value.length, error: Option.none() }
+    })
+  )
+
 const processTab = (state: TextState, options: TextOptionsReq) => {
   if (state.value === options.default) {
     return Effect.succeed(Action.Beep())
@@ -3289,8 +3414,21 @@ const handleTextRender = (options: TextOptionsReq) => {
 
 const handleTextProcess = (options: TextOptionsReq) => {
   return (input: Terminal.UserInput, state: TextState) => {
-    if (input.key.ctrl && input.key.name === "u") {
-      return processTextClear(state)
+    if (input.key.ctrl) {
+      switch (input.key.name) {
+        case "u": {
+          return processTextClear(state)
+        }
+        case "a": {
+          return processTextCursorStart(state)
+        }
+        case "e": {
+          return processTextCursorEnd(state)
+        }
+        default: {
+          return Effect.succeed(Action.Beep())
+        }
+      }
     }
     switch (input.key.name) {
       case "backspace": {
@@ -3301,6 +3439,12 @@ const handleTextProcess = (options: TextOptionsReq) => {
       }
       case "right": {
         return processTextCursorRight(state)
+      }
+      case "home": {
+        return processTextCursorStart(state)
+      }
+      case "end": {
+        return processTextCursorEnd(state)
       }
       case "enter":
       case "return": {

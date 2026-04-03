@@ -39,13 +39,13 @@ describe("MessageStorage", () => {
         yield* storage.saveRequest(
           yield* makeRequest({
             rpc: PrimaryKeyTest,
-            payload: PrimaryKeyTest.payloadSchema.makeUnsafe({ id: 123 })
+            payload: PrimaryKeyTest.payloadSchema.make({ id: 123 })
           })
         )
         const result = yield* storage.saveRequest(
           yield* makeRequest({
             rpc: PrimaryKeyTest,
-            payload: PrimaryKeyTest.payloadSchema.makeUnsafe({ id: 123 })
+            payload: PrimaryKeyTest.payloadSchema.make({ id: 123 })
           })
         )
         expect(result._tag).toEqual("Duplicate")
@@ -119,6 +119,7 @@ export const makeRequest = Effect.fnUntraced(function*(options?: {
       sampled: false,
       headers: Headers.empty
     }),
+    annotations: rpc.annotations,
     services: ServiceMap.empty() as any,
     rpc,
     lastReceivedReply: Option.none(),

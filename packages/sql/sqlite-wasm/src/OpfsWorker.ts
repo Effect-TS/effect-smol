@@ -7,8 +7,11 @@ import * as WaSqlite from "@effect/wa-sqlite"
 import SQLiteESMFactory from "@effect/wa-sqlite/dist/wa-sqlite.mjs"
 import { AccessHandlePoolVFS } from "@effect/wa-sqlite/src/examples/AccessHandlePoolVFS.js"
 import * as Effect from "effect/Effect"
-import { SqlError } from "effect/unstable/sql/SqlError"
+import { classifySqliteError, SqlError } from "effect/unstable/sql/SqlError"
 import type { OpfsWorkerMessage } from "./internal/opfsWorker.ts"
+
+const classifyError = (cause: unknown, message: string, operation: string) =>
+  classifySqliteError(cause, { message, operation })
 
 /**
  * @category models
@@ -34,7 +37,7 @@ export const run = (
     const db = yield* Effect.acquireRelease(
       Effect.try({
         try: () => sqlite3.open_v2(options.dbName, undefined, "opfs"),
-        catch: (cause) => new SqlError({ cause, message: "Failed to open database" })
+        catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to open database", "openDatabase") })
       }),
       (db) => Effect.sync(() => sqlite3.close(db))
     )

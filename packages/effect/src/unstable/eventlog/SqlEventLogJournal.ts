@@ -199,7 +199,7 @@ export const make = (options?: {
             event,
             primaryKey,
             payload
-          }, { disableValidation: true })
+          }, { disableChecks: true })
           yield* insertEntry(toEntryRow(entry))
           const value = yield* effect(entry)
           yield* PubSub.publish(pubsub, entry)
@@ -280,7 +280,7 @@ const toEntry = (row: EntryRow): EventJournal.Entry =>
     event: row.event,
     primaryKey: row.primary_key,
     payload: row.payload
-  }, { disableValidation: true })
+  }, { disableChecks: true })
 
 const toEntryRow = (entry: EventJournal.Entry): EntryRow => ({
   id: entry.id,

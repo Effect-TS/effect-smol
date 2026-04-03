@@ -37,7 +37,7 @@ const compare = Command.make("compare", { baseDirectory, outputPath }).pipe(
   }))
 )
 
-const outputDirectory = Flag.file("output-dir").pipe(
+const outputDirectory = Flag.directory("output-dir").pipe(
   Flag.withAlias("o"),
   Flag.withDescription("The name of the directory to write the bundle size visualizations to"),
   Flag.mapEffect(Effect.fnUntraced(function*(outputPath) {

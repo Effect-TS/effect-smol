@@ -45,13 +45,13 @@ describe("SqlEventLogJournal", () => {
         event: "UserCreated",
         primaryKey: "user-2",
         payload: new Uint8Array([2])
-      }, { disableValidation: true })
+      }, { disableChecks: true })
       const entryB = new EventJournal.Entry({
         id: EventJournal.makeEntryIdUnsafe(),
         event: "UserCreated",
         primaryKey: "user-3",
         payload: new Uint8Array([3])
-      }, { disableValidation: true })
+      }, { disableChecks: true })
       const remoteEntries = [
         new EventJournal.RemoteEntry({ remoteSequence: 0, entry: entryA }),
         new EventJournal.RemoteEntry({ remoteSequence: 1, entry: entryB })

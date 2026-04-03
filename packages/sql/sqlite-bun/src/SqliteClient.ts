@@ -14,10 +14,13 @@ import * as Stream from "effect/Stream"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import * as Client from "effect/unstable/sql/SqlClient"
 import type { Connection } from "effect/unstable/sql/SqlConnection"
-import { SqlError } from "effect/unstable/sql/SqlError"
+import { classifySqliteError, SqlError } from "effect/unstable/sql/SqlError"
 import * as Statement from "effect/unstable/sql/Statement"
 
 const ATTR_DB_SYSTEM_NAME = "db.system.name"
+
+const classifyError = (cause: unknown, message: string, operation: string) =>
+  classifySqliteError(cause, { message, operation })
 
 /**
  * @category type ids
@@ -112,7 +115,7 @@ export const make = (
           try {
             return Effect.succeed((statement.all(...(params as any)) ?? []) as Array<any>)
           } catch (cause) {
-            return Effect.fail(new SqlError({ cause, message: "Failed to execute statement" }))
+            return Effect.fail(new SqlError({ reason: classifyError(cause, "Failed to execute statement", "execute") }))
           }
         })
 
@@ -128,7 +131,7 @@ export const make = (
           try {
             return Effect.succeed((statement.values(...(params as any)) ?? []) as Array<any>)
           } catch (cause) {
-            return Effect.fail(new SqlError({ cause, message: "Failed to execute statement" }))
+            return Effect.fail(new SqlError({ reason: classifyError(cause, "Failed to execute statement", "execute") }))
           }
         })
 
@@ -152,12 +155,13 @@ export const make = (
         },
         export: Effect.try({
           try: () => db.serialize(),
-          catch: (cause) => new SqlError({ cause, message: "Failed to export database" })
+          catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to export database", "export") })
         }),
         loadExtension: (path) =>
           Effect.try({
             try: () => db.loadExtension(path),
-            catch: (cause) => new SqlError({ cause, message: "Failed to load extension" })
+            catch: (cause) =>
+              new SqlError({ reason: classifyError(cause, "Failed to load extension", "loadExtension") })
           })
       })
     })

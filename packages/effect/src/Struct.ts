@@ -157,7 +157,7 @@ export type Mutable<T> = { -readonly [K in keyof T]: T[K] } & {}
  * @category Type-Level Programming
  * @since 4.0.0
  */
-export type Assign<T, U> = keyof T & keyof U extends never ? T & U : Omit<T, keyof T & keyof U> & U
+export type Assign<T, U> = Simplify<keyof T & keyof U extends never ? T & U : Omit<T, keyof T & keyof U> & U>
 
 /**
  * Retrieves the value at `key` from a struct.
@@ -238,8 +238,10 @@ export const keys = <S extends object>(self: S): Array<(keyof S) & string> =>
  * @since 2.0.0
  */
 export const pick: {
-  <S extends object, const Keys extends ReadonlyArray<keyof S>>(keys: Keys): (self: S) => Pick<S, Keys[number]>
-  <S extends object, const Keys extends ReadonlyArray<keyof S>>(self: S, keys: Keys): Pick<S, Keys[number]>
+  <S extends object, const Keys extends ReadonlyArray<keyof S>>(
+    keys: Keys
+  ): (self: S) => Simplify<Pick<S, Keys[number]>>
+  <S extends object, const Keys extends ReadonlyArray<keyof S>>(self: S, keys: Keys): Simplify<Pick<S, Keys[number]>>
 } = dual(
   2,
   <S extends object, const Keys extends ReadonlyArray<keyof S>>(self: S, keys: Keys) => {
@@ -270,8 +272,10 @@ export const pick: {
  * @since 2.0.0
  */
 export const omit: {
-  <S extends object, const Keys extends ReadonlyArray<keyof S>>(keys: Keys): (self: S) => Omit<S, Keys[number]>
-  <S extends object, const Keys extends ReadonlyArray<keyof S>>(self: S, keys: Keys): Omit<S, Keys[number]>
+  <S extends object, const Keys extends ReadonlyArray<keyof S>>(
+    keys: Keys
+  ): (self: S) => Simplify<Omit<S, Keys[number]>>
+  <S extends object, const Keys extends ReadonlyArray<keyof S>>(self: S, keys: Keys): Simplify<Omit<S, Keys[number]>>
 } = dual(
   2,
   <S extends object, Keys extends ReadonlyArray<keyof S>>(self: S, keys: Keys) => {
@@ -305,8 +309,8 @@ export const omit: {
  * @since 4.0.0
  */
 export const assign: {
-  <O extends object>(that: O): <S extends object>(self: S) => Simplify<Assign<S, O>>
-  <O extends object, S extends object>(self: S, that: O): Simplify<Assign<S, O>>
+  <O extends object>(that: O): <S extends object>(self: S) => Assign<S, O>
+  <O extends object, S extends object>(self: S, that: O): Assign<S, O>
 } = dual(
   2,
   <O extends object, S extends object>(self: S, that: O) => {

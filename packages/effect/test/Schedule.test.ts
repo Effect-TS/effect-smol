@@ -241,6 +241,34 @@ describe("Schedule", () => {
           Duration.zero
         ])
       }))
+
+    it.effect("matches effect v3 when action duration exceeds the interval", () =>
+      Effect.gen(function*() {
+        const delays: Array<Duration.Duration> = []
+        const schedule = Schedule.fixed("1 seconds").pipe(
+          Schedule.while(({ attempt }) => Effect.succeed(attempt <= 5)),
+          Schedule.delays,
+          Schedule.map((delay) =>
+            Effect.sync(() => {
+              delays.push(delay)
+              return delays
+            })
+          )
+        )
+        yield* Effect.sleep("1.5 seconds").pipe(
+          Effect.schedule(schedule),
+          Effect.forkChild
+        )
+        yield* TestClock.setTime(Number.POSITIVE_INFINITY)
+        expect(delays).toEqual([
+          Duration.millis(1000),
+          Duration.zero,
+          Duration.zero,
+          Duration.zero,
+          Duration.zero,
+          Duration.zero
+        ])
+      }))
   })
 
   describe("windowed", () => {

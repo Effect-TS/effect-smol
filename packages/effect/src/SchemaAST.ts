@@ -434,6 +434,12 @@ export interface ParseOptions {
    * default: "none"
    */
   readonly propertyOrder?: "none" | "original" | undefined
+
+  /**
+   * Whether to disable checks while still applying defaults and
+   * transformations.
+   */
+  readonly disableChecks?: boolean | undefined
 }
 
 /** @internal */
@@ -2797,21 +2803,10 @@ export function mutableKey<A extends AST>(ast: A): A {
 /** @internal */
 export function withConstructorDefault<A extends AST>(
   ast: A,
-  /**
-   * The `input` parameters is `None` if the value is not present and
-   * `Some(undefined)` if the value is present but undefined
-   */
-  defaultValue: (input: Option.Option<undefined>) => Option.Option<unknown> | Effect.Effect<Option.Option<unknown>>
+  defaultValue: Effect.Effect<unknown>
 ): A {
   const transformation = new Transformation.Transformation(
-    new Getter.Getter((o) => {
-      if (Option.isNone(Option.filter(o, Predicate.isNotUndefined))) {
-        const oe = defaultValue(o as Option.Option<undefined>)
-        return Effect.isEffect(oe) ? oe : Effect.succeed(oe)
-      } else {
-        return Effect.succeed(o)
-      }
-    }),
+    Getter.withDefault(defaultValue),
     Getter.passthrough()
   )
   const encoding: Encoding = [new Link(unknown, transformation)]
@@ -3202,7 +3197,9 @@ export function isStringBigInt(annotations?: Schema.Annotations.Filter) {
 }
 
 /** @internal */
-export const bigIntString = appendChecks(string, [isStringBigInt()])
+export const bigIntString = appendChecks(string, [isStringBigInt({
+  expected: "a string representing a bigint"
+})])
 
 const bigIntToString = new Link(
   bigIntString,

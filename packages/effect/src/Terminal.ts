@@ -88,7 +88,7 @@ const QuitErrorTypeId = "effect/platform/Terminal/QuitError"
  * @since 4.0.0
  * @category QuitError
  */
-export class QuitError extends Schema.ErrorClass("QuitError")({
+export class QuitError extends Schema.ErrorClass<QuitError>("QuitError")({
   _tag: Schema.tag("QuitError")
 }) {
   /**

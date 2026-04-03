@@ -92,7 +92,8 @@ export const createPlugins = (pathService: Path.Path, options: PluginOptions = {
     }),
     esbuild({
       target: resolved.nodeTarget,
-      format: "esm"
+      format: "esm",
+      treeShaking: true
     }),
     // @ts-expect-error see https://github.com/rollup/plugins/issues/1662
     terser({

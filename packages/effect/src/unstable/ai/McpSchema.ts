@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import type * as Effect from "../../Effect.ts"
+import * as Effect from "../../Effect.ts"
 import { constFalse, constTrue } from "../../Function.ts"
 import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
@@ -28,16 +28,18 @@ export interface optionalWithDefault<S extends Schema.Top & Schema.WithoutConstr
 export const optionalWithDefault = <S extends Schema.Top & Schema.WithoutConstructorDefault>(
   schema: S,
   defaultValue: () => Schema.optionalKey<S>["Type"]
-): optionalWithDefault<S> =>
-  Schema.optionalKey(schema).pipe(
+): optionalWithDefault<S> => {
+  const effect = Effect.sync(defaultValue)
+  return Schema.optionalKey(schema).pipe(
     Schema.decode<Schema.optionalKey<S>>({
-      decode: Getter.withDefault(defaultValue),
+      decode: Getter.withDefault(effect),
       encode: Getter.passthrough()
     }),
     Schema.withConstructorDefault<
       Schema.decodeTo<Schema.toType<Schema.optionalKey<S>>, Schema.optionalKey<S>>
-    >(() => Option.some(defaultValue()))
+    >(effect)
   )
+}
 
 /**
  * @since 4.0.0
@@ -1616,7 +1618,7 @@ export class CompleteResult extends Schema.Opaque<CompleteResult>()(Schema.Struc
   /**
    * @since 4.0.0
    */
-  static readonly empty = CompleteResult.makeUnsafe({
+  static readonly empty = CompleteResult.make({
     completion: {
       values: [],
       total: 0,

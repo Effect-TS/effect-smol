@@ -1,8 +1,11 @@
 /**
  * @since 4.0.0
  */
+import * as Exit from "../../Exit.ts"
+import { identity } from "../../Function.ts"
 import type * as Option from "../../Option.ts"
 import * as Schema from "../../Schema.ts"
+import * as SchemaTransformation from "../../SchemaTransformation.ts"
 
 /**
  * @since 4.0.0
@@ -26,7 +29,16 @@ export type SpanStatusStarted = Schema.Schema.Type<typeof SpanStatusStarted>
 export const SpanStatusEnded = Schema.Struct({
   _tag: Schema.tag("Ended"),
   startTime: Schema.BigInt,
-  endTime: Schema.BigInt
+  endTime: Schema.BigInt,
+  exit: Schema.Exit(Schema.Void, Schema.DefectWithStack, Schema.DefectWithStack).pipe(
+    Schema.decodeTo(
+      Schema.Exit(Schema.Unknown, Schema.Unknown, Schema.Unknown),
+      SchemaTransformation.transform({
+        decode: identity,
+        encode: Exit.asVoid
+      })
+    )
+  )
 })
 
 /**

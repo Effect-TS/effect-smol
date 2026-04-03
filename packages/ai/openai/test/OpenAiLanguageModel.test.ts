@@ -415,6 +415,96 @@ describe("OpenAiLanguageModel", () => {
           strictEqual(tool.strict, true)
         }).pipe(Effect.provide([makeTestLayer(), TestToolkitLayer])))
 
+      it.effect("empty object on properties for empty parameters", () =>
+        Effect.gen(function*() {
+          const EmptyTool = Tool.make("EmptyParamsTool", {
+            description: "Empty params tool",
+            parameters: Tool.EmptyParams,
+            success: Schema.String
+          })
+          const toolkit = Toolkit.make(EmptyTool)
+          const toolkitLayer = toolkit.toLayer({
+            EmptyParamsTool: () => Effect.succeed("ok")
+          })
+
+          yield* LanguageModel.generateText({
+            prompt: "Use the tool",
+            toolkit
+          }).pipe(Effect.provide([OpenAiLanguageModel.model("gpt-4o-mini"), toolkitLayer]))
+
+          const requests = yield* MockHttpClient.requests
+          const body = yield* getRequestBody(requests[0])
+
+          const tool = body.tools?.find((t: any) => t.type === "function" && t.name === "EmptyParamsTool")
+          assert.isDefined(tool)
+          deepStrictEqual(tool.parameters, {
+            type: "object",
+            properties: {},
+            additionalProperties: false
+          })
+        }).pipe(Effect.provide(makeTestLayer())))
+
+      it.effect("converts dynamic tools to function type", () =>
+        Effect.gen(function*() {
+          const inputSchema = {
+            type: "object",
+            properties: {
+              query: { type: "string" },
+              limit: { type: "number" }
+            },
+            required: ["query"],
+            additionalProperties: false
+          } as const
+
+          const DynamicTool = Tool.dynamic("DynamicTool", {
+            description: "A dynamic tool",
+            parameters: inputSchema
+          })
+
+          yield* LanguageModel.generateText({
+            prompt: "Use the dynamic tool",
+            toolkit: Toolkit.make(DynamicTool),
+            disableToolCallResolution: true
+          }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+          const requests = yield* MockHttpClient.requests
+          const body = yield* getRequestBody(requests[0])
+
+          const tool = body.tools?.find((entry: any) => entry.type === "function" && entry.name === "DynamicTool")
+          assert.isDefined(tool)
+          strictEqual(tool.description, "A dynamic tool")
+          deepStrictEqual(tool.parameters, inputSchema)
+        }).pipe(Effect.provide(makeTestLayer())))
+
+      it.effect("empty object on properties for empty parameters", () =>
+        Effect.gen(function*() {
+          const EmptyTool = Tool.make("EmptyParamsTool", {
+            description: "Empty params tool",
+            parameters: Tool.EmptyParams,
+            success: Schema.String
+          })
+          const toolkit = Toolkit.make(EmptyTool)
+          const toolkitLayer = toolkit.toLayer({
+            EmptyParamsTool: () => Effect.succeed("ok")
+          })
+
+          yield* LanguageModel.generateText({
+            prompt: "Use the tool",
+            toolkit
+          }).pipe(Effect.provide([OpenAiLanguageModel.model("gpt-4o-mini"), toolkitLayer]))
+
+          const requests = yield* MockHttpClient.requests
+          const body = yield* getRequestBody(requests[0])
+
+          const tool = body.tools?.find((t: any) => t.type === "function" && t.name === "EmptyParamsTool")
+          assert.isDefined(tool)
+          deepStrictEqual(tool.parameters, {
+            type: "object",
+            properties: {},
+            additionalProperties: false
+          })
+        }).pipe(Effect.provide(makeTestLayer())))
+
       it.effect("handles tool choice auto", () =>
         Effect.gen(function*() {
           yield* LanguageModel.generateText({
@@ -827,6 +917,153 @@ describe("OpenAiLanguageModel", () => {
             diff
           }
         })
+      }))
+
+    it.effect("emits tool call from function_call_arguments.done when output_item.done is missing", () =>
+      Effect.gen(function*() {
+        const streamEvents = [
+          {
+            type: "response.created",
+            sequence_number: 1,
+            response: makeDefaultResponse({
+              id: "resp_function_call_done",
+              status: "in_progress",
+              output: []
+            })
+          },
+          {
+            type: "response.output_item.added",
+            sequence_number: 2,
+            output_index: 0,
+            item: {
+              type: "function_call",
+              id: "fc_1",
+              call_id: "call_1",
+              name: "TestTool",
+              arguments: "",
+              status: "in_progress"
+            }
+          },
+          {
+            type: "response.function_call_arguments.delta",
+            sequence_number: 3,
+            output_index: 0,
+            item_id: "fc_1",
+            delta: "{\"input\":\"hel"
+          },
+          {
+            type: "response.function_call_arguments.done",
+            sequence_number: 4,
+            output_index: 0,
+            item_id: "fc_1",
+            name: "TestTool",
+            arguments: "{\"input\":\"hello\"}"
+          },
+          {
+            type: "response.completed",
+            sequence_number: 5,
+            response: makeDefaultResponse({
+              id: "resp_function_call_done",
+              status: "completed",
+              output: []
+            })
+          }
+        ] as unknown as ReadonlyArray<typeof Generated.ResponseStreamEvent.Type>
+
+        const partsChunk = yield* LanguageModel.streamText({
+          prompt: "Use the test tool",
+          toolkit: TestToolkit,
+          disableToolCallResolution: true
+        }).pipe(
+          Stream.runCollect,
+          Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")),
+          Effect.provide(makeStreamTestLayer(streamEvents)),
+          Effect.provide(TestToolkitLayer)
+        )
+
+        const parts = globalThis.Array.from(partsChunk)
+        const toolCalls = parts.filter((part) => part.type === "tool-call" && part.id === "call_1")
+        strictEqual(toolCalls.length, 1)
+        const toolCall = toolCalls[0]
+        assert.isDefined(toolCall)
+        if (toolCall?.type === "tool-call") {
+          strictEqual(toolCall.name, "TestTool")
+          deepStrictEqual(toolCall.params, { input: "hello" })
+        }
+
+        const toolParamsEnd = parts.find((part) => part.type === "tool-params-end" && part.id === "call_1")
+        assert.isDefined(toolParamsEnd)
+      }))
+
+    it.effect("handles reasoning summary events when reasoning state is missing", () =>
+      Effect.gen(function*() {
+        const streamEvents = [
+          {
+            type: "response.created",
+            sequence_number: 1,
+            response: makeDefaultResponse({
+              id: "resp_reasoning_missing_state",
+              status: "in_progress",
+              output: []
+            })
+          },
+          {
+            type: "response.reasoning_summary_part.added",
+            sequence_number: 2,
+            output_index: 0,
+            item_id: "rs_missing",
+            summary_index: 1
+          },
+          {
+            type: "response.reasoning_summary_text.delta",
+            sequence_number: 3,
+            output_index: 0,
+            item_id: "rs_missing",
+            summary_index: 1,
+            delta: "thinking"
+          },
+          {
+            type: "response.reasoning_summary_part.done",
+            sequence_number: 4,
+            output_index: 0,
+            item_id: "rs_missing",
+            summary_index: 1
+          },
+          {
+            type: "response.output_item.done",
+            sequence_number: 5,
+            output_index: 0,
+            item: makeReasoningOutput(["thinking"], { id: "rs_missing" })
+          },
+          {
+            type: "response.output_item.done",
+            sequence_number: 6,
+            output_index: 1,
+            item: makeReasoningOutput([], { id: "rs_done_only" })
+          },
+          {
+            type: "response.completed",
+            sequence_number: 7,
+            response: makeDefaultResponse({
+              id: "resp_reasoning_missing_state",
+              status: "completed",
+              output: []
+            })
+          }
+        ] as unknown as ReadonlyArray<typeof Generated.ResponseStreamEvent.Type>
+
+        const partsChunk = yield* LanguageModel.streamText({
+          prompt: "reason"
+        }).pipe(
+          Stream.runCollect,
+          Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")),
+          Effect.provide(makeStreamTestLayer(streamEvents))
+        )
+
+        const parts = globalThis.Array.from(partsChunk)
+        assert.isDefined(parts.find((part) => part.type === "reasoning-start" && part.id === "rs_missing:1"))
+        assert.isDefined(parts.find((part) => part.type === "reasoning-end" && part.id === "rs_missing:1"))
+        assert.isDefined(parts.find((part) => part.type === "finish"))
       }))
   })
 

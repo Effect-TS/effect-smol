@@ -1,4 +1,5 @@
 import * as Arr from "../../Array.ts"
+import * as Equal from "../../Equal.ts"
 import { format } from "../../Formatter.ts"
 import { escapeToken } from "../../JsonPointer.ts"
 import type * as JsonSchema from "../../JsonSchema.ts"
@@ -33,7 +34,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaRep
     references
   }
 
-  function gen(prefix: string = "_"): string {
+  function gen(prefix: string): string {
     let candidate = prefix
     let suffix = 0
 
@@ -63,6 +64,12 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaRep
       const reference = gen(identifier)
       referenceMap.set(ast, reference)
       const out = on(ast)
+      const found = references[identifier]
+      // Reuse existing references when duplicate identifiers have the same representation
+      if (found !== undefined && Equal.equals(out, found)) {
+        referenceMap.set(ast, identifier)
+        return { _tag: "Reference", $ref: identifier }
+      }
       references[reference] = out
       return { _tag: "Reference", $ref: reference }
     }
@@ -527,9 +534,37 @@ export function toJsonSchemaMultiDocument(
           // anyOf MUST be a non-empty array
           return { not: {} }
         }
+        if (types.length > 1) {
+          const compacted = compactEnums(types)
+          if (compacted) return compacted
+        }
         return schema.mode === "anyOf" ? { anyOf: types } : { oneOf: types }
       }
     }
+  }
+
+  // Collapses [{type:"string",enum:["a"]},{type:"string",enum:["b"]}] into {type:"string",enum:["a","b"]}.
+  // Returns undefined if members have different types, extra keys (e.g. title), or empty enums.
+  function compactEnums(
+    types: ReadonlyArray<JsonSchema.JsonSchema>
+  ): JsonSchema.JsonSchema | undefined {
+    let sharedType: string | undefined
+    const values: Array<unknown> = []
+    for (const t of types) {
+      const keys = Object.keys(t)
+      if (keys.length !== 2 || t.type === undefined || !Array.isArray(t.enum) || t.enum.length === 0) {
+        return undefined
+      }
+      if (sharedType === undefined) {
+        sharedType = t.type as string
+      } else if (t.type !== sharedType) {
+        return undefined
+      }
+      for (const v of t.enum) {
+        values.push(v)
+      }
+    }
+    return { type: sharedType, enum: values }
   }
 
   function collectJsonSchemaAnnotations(

@@ -37,6 +37,7 @@ import * as ServiceMap from "./ServiceMap.ts"
 import type * as Stream from "./Stream.ts"
 import * as Tracer from "./Tracer.ts"
 import type * as Types from "./Types.ts"
+import type * as Unify from "./Unify.ts"
 
 const TypeId = "~effect/Layer"
 
@@ -54,6 +55,29 @@ const TypeId = "~effect/Layer"
 export interface Layer<in ROut, out E = never, out RIn = never> extends Variance<ROut, E, RIn>, Pipeable {
   /** @internal */
   build(memoMap: MemoMap, scope: Scope.Scope): Effect<ServiceMap.ServiceMap<ROut>, E, RIn>
+  [Unify.typeSymbol]?: unknown
+  [Unify.unifySymbol]?: LayerUnify<this>
+  [Unify.ignoreSymbol]?: LayerUnifyIgnore
+}
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export interface LayerUnify<A extends { [Unify.typeSymbol]?: any }> {
+  Layer?: () => A[Unify.typeSymbol] extends Layer<any, any, any> | infer _ ? Layer<
+      Success<Extract<A[Unify.typeSymbol], Any>>,
+      Error<Extract<A[Unify.typeSymbol], Any>>,
+      Services<Extract<A[Unify.typeSymbol], Any>>
+    >
+    : never
+}
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export interface LayerUnifyIgnore {
 }
 
 /**
@@ -842,6 +866,33 @@ export const effectServices = <A, E, R>(
  */
 export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E, Exclude<R, Scope.Scope>> =>
   effectServices(internalEffect.as(effect, ServiceMap.empty()))
+
+/**
+ * Lazily constructs a layer using the specified factory.
+ *
+ * The factory is evaluated only when the suspended layer is first built, and
+ * the result is memoized with normal layer sharing semantics.
+ *
+ * @example
+ * ```ts
+ * import { Layer, ServiceMap } from "effect"
+ *
+ * class Config extends ServiceMap.Service<Config, string>()("Config") {}
+ *
+ * const useProd = true
+ *
+ * const layer = Layer.suspend(() =>
+ *   useProd
+ *     ? Layer.succeed(Config)("https://api.example.com")
+ *     : Layer.succeed(Config)("http://localhost:3000")
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const suspend = <A, E, R>(evaluate: LazyArg<Layer<A, E, R>>): Layer<A, E, R> =>
+  fromBuildMemo((memoMap, scope) => internalEffect.suspend(() => evaluate().build(memoMap, scope)))
 
 /**
  * Unwraps a Layer from an Effect, flattening the nested structure.
@@ -1656,7 +1707,7 @@ export const updateService: {
     layer: Layer<A1, E1, R1>,
     service: ServiceMap.Key<I, A>,
     f: (a: A) => A
-  ): Layer<A1, E1, I | R1> => provide(layer, effect(service)(internalEffect.map(service.asEffect(), f)))
+  ): Layer<A1, E1, I | R1> => provide(layer, effect(service, internalEffect.map(service.asEffect(), f)))
 )
 
 /**

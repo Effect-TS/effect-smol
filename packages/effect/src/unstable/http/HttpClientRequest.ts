@@ -15,10 +15,11 @@ import type * as Redacted from "../../Redacted.ts"
 import * as Result from "../../Result.ts"
 import type * as Schema from "../../Schema.ts"
 import type { ParseOptions } from "../../SchemaAST.ts"
-import type * as Stream from "../../Stream.ts"
+import * as ServiceMap from "../../ServiceMap.ts"
+import * as Stream from "../../Stream.ts"
 import * as Headers from "./Headers.ts"
 import * as HttpBody from "./HttpBody.ts"
-import type { HttpMethod } from "./HttpMethod.ts"
+import { hasBody, type HttpMethod } from "./HttpMethod.ts"
 import * as UrlParams from "./UrlParams.ts"
 
 const TypeId = "~effect/http/HttpClientRequest"
@@ -749,3 +750,104 @@ export function toUrl(self: HttpClientRequest): Option.Option<URL> {
   }
   return Option.none()
 }
+
+/**
+ * @since 4.0.0
+ * @category conversions
+ */
+export const fromWeb = (request: globalThis.Request): HttpClientRequest => {
+  const method = request.method.toUpperCase() as HttpMethod
+  return modify(empty, {
+    method,
+    url: new URL(request.url),
+    headers: request.headers,
+    body: fromWebBody(request, method)
+  })
+}
+
+const fromWebBody = (request: globalThis.Request, method: HttpMethod): HttpBody.HttpBody => {
+  if (!hasBody(method) || request.body === null) {
+    return HttpBody.empty
+  }
+  return HttpBody.raw(request.body, {
+    contentType: request.headers.get("content-type") ?? undefined,
+    contentLength: parseContentLength(request.headers.get("content-length"))
+  })
+}
+
+const parseContentLength = (contentLength: string | null): number | undefined => {
+  if (contentLength === null) {
+    return undefined
+  }
+  const parsed = Number.parseInt(contentLength, 10)
+  return Number.isNaN(parsed) ? undefined : parsed
+}
+
+/**
+ * @since 4.0.0
+ * @category conversions
+ */
+export const toWebResult = (self: HttpClientRequest, options?: {
+  readonly signal?: AbortSignal | undefined
+  readonly services?: ServiceMap.ServiceMap<never> | undefined
+}): Result.Result<Request, UrlParams.UrlParamsError> => {
+  const url = UrlParams.makeUrl(self.url, self.urlParams, Option.getOrUndefined(self.hash))
+  if (Result.isFailure(url)) {
+    return Result.fail(url.failure)
+  }
+  const requestInit: RequestInit = {
+    method: self.method,
+    headers: self.headers
+  }
+  if (options?.signal) {
+    requestInit.signal = options.signal
+  }
+  if (hasBody(self.method)) {
+    switch (self.body._tag) {
+      case "Empty": {
+        break
+      }
+      case "Raw": {
+        requestInit.body = self.body.body as any
+        if (isReadableStream(self.body.body)) {
+          ;(requestInit as any).duplex = "half"
+        }
+        break
+      }
+      case "Uint8Array": {
+        requestInit.body = self.body.body as any
+        break
+      }
+      case "FormData": {
+        requestInit.body = self.body.formData
+        break
+      }
+      case "Stream": {
+        requestInit.body = Stream.toReadableStreamWith(self.body.stream, options?.services ?? ServiceMap.empty())
+        ;(requestInit as any).duplex = "half"
+        break
+      }
+    }
+  }
+  return Result.try({
+    try: () => new Request(url.success, requestInit),
+    catch: (cause) => new UrlParams.UrlParamsError({ cause })
+  })
+}
+
+const isReadableStream = (u: unknown): u is ReadableStream<Uint8Array> =>
+  typeof ReadableStream !== "undefined" && u instanceof ReadableStream
+
+/**
+ * @since 4.0.0
+ * @category conversions
+ */
+export const toWeb = (self: HttpClientRequest, options?: {
+  readonly signal?: AbortSignal | undefined
+}): Effect.Effect<Request, UrlParams.UrlParamsError> =>
+  Effect.servicesWith((services) =>
+    toWebResult(self, {
+      services,
+      signal: options?.signal
+    }).asEffect()
+  )

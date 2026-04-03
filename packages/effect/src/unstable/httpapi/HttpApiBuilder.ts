@@ -652,7 +652,7 @@ const applyMiddleware = <A extends Effect.Effect<any, any, any>>(
 }
 
 const securityMiddlewareCache = new WeakMap<
-  any,
+  object,
   (effect: Effect.Effect<any, any, any>, options: any) => Effect.Effect<any, any, any>
 >()
 
@@ -660,13 +660,14 @@ const makeSecurityMiddleware = (
   key: HttpApiMiddleware.AnyServiceSecurity,
   service: HttpApiMiddleware.HttpApiMiddlewareSecurity<any, any, any, any>
 ): (effect: Effect.Effect<any, any, any>, options: any) => Effect.Effect<any, any, any> => {
-  if (securityMiddlewareCache.has(key)) {
-    return securityMiddlewareCache.get(key)!
+  const cached = securityMiddlewareCache.get(service)
+  if (cached !== undefined) {
+    return cached
   }
 
-  const entries = Object.entries(key.security).map(([key, security]) => ({
+  const entries = Object.entries(key.security).map(([securityKey, security]) => ({
     decode: securityDecode(security),
-    middleware: service[key]
+    middleware: service[securityKey]
   }))
   if (entries.length === 0) {
     return identity
@@ -694,7 +695,7 @@ const makeSecurityMiddleware = (
     return yield* lastResult!.asEffect()
   })
 
-  securityMiddlewareCache.set(key, middleware)
+  securityMiddlewareCache.set(service, middleware)
   return middleware
 }
 
@@ -734,7 +735,11 @@ function getResponseTransformation(
   schema: Schema.Top
 ): Transformation.Transformation<unknown, Response.HttpServerResponse> {
   const ast = schema.ast
-  const encode = getResponseEncode(getStatus(ast), HttpApiSchema.getResponseEncoding(ast))
+  const encode = getResponseEncode(
+    getStatus(ast),
+    HttpApiSchema.getResponseEncoding(ast),
+    HttpApiSchema.isNoContent(ast)
+  )
 
   return Transformation.transformOrFail({
     decode: (res) => Effect.fail(new Issue.Forbidden(Option.some(res), { message: "Encode only schema" })),
@@ -744,12 +749,13 @@ function getResponseTransformation(
 
 function getResponseEncode<E>(
   status: number,
-  encoding: HttpApiSchema.ResponseEncoding
+  encoding: HttpApiSchema.ResponseEncoding,
+  isNoContent: boolean
 ): (e: E) => Effect.Effect<Response.HttpServerResponse, Issue.InvalidValue, never> {
   switch (encoding._tag) {
     case "Json": {
       return ((e) => {
-        if (e === undefined) {
+        if (e === undefined || isNoContent) {
           return Effect.succeed(Response.empty({ status }))
         }
         try {
