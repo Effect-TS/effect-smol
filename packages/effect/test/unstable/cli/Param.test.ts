@@ -67,7 +67,7 @@ describe("Param", () => {
         assert.deepStrictEqual(remaining, [])
       }).pipe(Effect.provide(TestLayer)))
 
-    it.effect("builds fallback prompts from effects lazily", () =>
+    it.effect("builds flag fallback prompts from effects lazily", () =>
       Effect.gen(function*() {
         const calls = yield* Ref.make(0)
         const prompt = Effect.gen(function*() {
@@ -95,6 +95,56 @@ describe("Param", () => {
         assert.strictEqual(prompted, "Mia")
         assert.deepStrictEqual(remaining, ["tail"])
         assert.strictEqual(yield* Ref.get(calls), 1)
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("builds argument fallback prompts from effects lazily", () =>
+      Effect.gen(function*() {
+        const calls = yield* Ref.make(0)
+        const prompt = Effect.gen(function*() {
+          yield* Ref.update(calls, (n) => n + 1)
+          return Prompt.text({ message: "File from effect" })
+        })
+
+        const argument = Argument.string("file").pipe(Argument.withFallbackPrompt(prompt))
+
+        const [providedRemaining, provided] = yield* argument.parse({
+          flags: {},
+          arguments: ["notes.txt", "tail"]
+        })
+        assert.strictEqual(provided, "notes.txt")
+        assert.deepStrictEqual(providedRemaining, ["tail"])
+        assert.strictEqual(yield* Ref.get(calls), 0)
+
+        yield* MockTerminal.inputText("draft.md")
+        yield* MockTerminal.inputKey("enter")
+
+        const [promptedRemaining, prompted] = yield* argument.parse({
+          flags: {},
+          arguments: []
+        })
+
+        assert.strictEqual(prompted, "draft.md")
+        assert.deepStrictEqual(promptedRemaining, [])
+        assert.strictEqual(yield* Ref.get(calls), 1)
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("propagates errors from effectful fallback prompt creation", () =>
+      Effect.gen(function*() {
+        const failure = new CliError.UserError({
+          cause: "failed to build prompt"
+        })
+        const prompt = Effect.fail(failure)
+
+        const flag = Flag.string("name").pipe(Flag.withFallbackPrompt(prompt))
+
+        const error = yield* Effect.flip(
+          flag.parse({
+            flags: {},
+            arguments: []
+          })
+        )
+
+        assert.strictEqual(error, failure)
       }).pipe(Effect.provide(TestLayer)))
 
     it.effect("prefers defaults over fallback prompts", () =>
