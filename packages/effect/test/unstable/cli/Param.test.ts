@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Config, ConfigProvider, Effect, FileSystem, Layer, Path } from "effect"
+import { Config, ConfigProvider, Effect, FileSystem, Layer, Option, Path } from "effect"
 import { TestConsole } from "effect/testing"
 import { Argument, CliError, Flag, Prompt } from "effect/unstable/cli"
 import { ChildProcessSpawner } from "effect/unstable/process"
@@ -19,6 +19,32 @@ const TestLayer = Layer.mergeAll(
 )
 
 describe("Param", () => {
+  describe("optional", () => {
+    it.effect("returns none when an optional boolean flag is omitted", () =>
+      Effect.gen(function*() {
+        const flag = Flag.boolean("verbose").pipe(Flag.optional)
+
+        const [, value] = yield* flag.parse({
+          flags: {},
+          arguments: []
+        })
+
+        assert.deepStrictEqual(value, Option.none())
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("returns some when an optional boolean flag is provided", () =>
+      Effect.gen(function*() {
+        const flag = Flag.boolean("verbose").pipe(Flag.optional)
+
+        const [, value] = yield* flag.parse({
+          flags: { verbose: ["false"] },
+          arguments: []
+        })
+
+        assert.deepStrictEqual(value, Option.some(false))
+      }).pipe(Effect.provide(TestLayer)))
+  })
+
   describe("withFallbackPrompt", () => {
     it.effect("prompts for missing flag values and preserves remaining args", () =>
       Effect.gen(function*() {

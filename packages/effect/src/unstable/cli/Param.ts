@@ -1090,15 +1090,26 @@ export const mapTryCatch: {
 export const optional = <Kind extends ParamKind, A>(
   param: Param<Kind, A>
 ): Param<Kind, Option.Option<A>> => {
+  const single = getUnderlyingSingleOrThrow(param)
   const parse: Parse<Option.Option<A>> = (args) =>
-    param.parse(args).pipe(
-      Effect.map(
-        ([leftover, value]) => [leftover, Option.some(value)] as const
-      ),
-      // Catch both MissingOption (for flags) and MissingArgument (for positional arguments)
-      Effect.catchTag("MissingOption", () => Effect.succeed([args.arguments, Option.none()] as const)),
-      Effect.catchTag("MissingArgument", () => Effect.succeed([args.arguments, Option.none()] as const))
-    )
+    Effect.gen(function*() {
+      if (
+        single.kind === flagKind &&
+        Primitive.isBoolean(single.primitiveType) &&
+        ![single.name, ...single.aliases].some((name) => (args.flags[name] ?? []).length > 0)
+      ) {
+        return [args.arguments, Option.none()] as const
+      }
+
+      return yield* param.parse(args).pipe(
+        Effect.map(
+          ([leftover, value]) => [leftover, Option.some(value)] as const
+        ),
+        // Catch both MissingOption (for flags) and MissingArgument (for positional arguments)
+        Effect.catchTag("MissingOption", () => Effect.succeed([args.arguments, Option.none()] as const)),
+        Effect.catchTag("MissingArgument", () => Effect.succeed([args.arguments, Option.none()] as const))
+      )
+    })
   return Object.assign(Object.create(Proto), {
     _tag: "Optional",
     kind: param.kind,
