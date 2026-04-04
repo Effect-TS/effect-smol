@@ -1,6 +1,18 @@
 import { IndexedDb, IndexedDbDatabase, IndexedDbTable, IndexedDbVersion } from "@effect/platform-browser"
 import { afterEach, assert, describe, it } from "@effect/vitest"
-import { DateTime, Effect, Fiber, Layer, Option, Schema, SchemaGetter, SchemaIssue, ServiceMap, Stream } from "effect"
+import {
+  Array,
+  DateTime,
+  Effect,
+  Fiber,
+  Layer,
+  Option,
+  Schema,
+  SchemaGetter,
+  SchemaIssue,
+  ServiceMap,
+  Stream
+} from "effect"
 import { IDBKeyRange, indexedDB } from "fake-indexeddb"
 
 const databaseName = "db"
@@ -474,6 +486,35 @@ describe.sequential("IndexedDbQueryBuilder", () => {
         assert.deepStrictEqual(data, [
           { id: 1, title: "test1", count: 1, completed: false },
           { id: 2, title: "test2", count: 2, completed: false }
+        ])
+      }).pipe(provideDb(Db))
+    })
+
+    it.effect("select offset", () => {
+      class Db extends IndexedDbDatabase.make(
+        V1,
+        Effect.fn(function*(api) {
+          yield* api.createObjectStore("todo")
+          yield* api.createIndex("todo", "titleIndex")
+          yield* api.createIndex("todo", "countIndex")
+          yield* api.from("todo").insertAll([
+            { id: 1, title: "test1", count: 1, completed: false },
+            { id: 2, title: "test2", count: 2, completed: false },
+            { id: 3, title: "test3", count: 3, completed: false },
+            { id: 4, title: "test4", count: 4, completed: false },
+            { id: 5, title: "test5", count: 5, completed: false }
+          ])
+        })
+      ) {}
+
+      return Effect.gen(function*() {
+        const api = yield* Db.getQueryBuilder
+        const data = yield* api.from("todo").select().limit(2).offset(2)
+
+        assert.equal(data.length, 2)
+        assert.deepStrictEqual(data, [
+          { id: 3, title: "test3", count: 3, completed: false },
+          { id: 4, title: "test4", count: 4, completed: false }
         ])
       }).pipe(provideDb(Db))
     })
@@ -1287,6 +1328,40 @@ describe.sequential("IndexedDbQueryBuilder", () => {
         count: 2,
         completed: false
       }])
+    }).pipe(provideDb(Db))
+  })
+
+  it.effect("stream", () => {
+    class Db extends IndexedDbDatabase.make(
+      V1,
+      Effect.fn(function*(api) {
+        yield* api.createObjectStore("todo")
+        yield* api.createIndex("todo", "titleIndex")
+        yield* api.createIndex("todo", "countIndex")
+        yield* api.from("todo").insertAll(
+          Array.makeBy(1000, (i) => ({ id: i + 1, title: `test${i}`, count: i, completed: false }))
+        )
+      })
+    ) {}
+
+    return Effect.gen(function*() {
+      const api = yield* Db
+      const data = yield* api.from("todo").select().stream().pipe(
+        Stream.runCollect
+      )
+      assert.equal(data.length, 1000)
+
+      const data2 = yield* api.from("todo").select().limit(10).stream().pipe(
+        Stream.runCollect
+      )
+      assert.equal(data2.length, 10)
+      assert.equal(data2[0].id, 1)
+
+      const data3 = yield* api.from("todo").select().limit(10).offset(50).stream().pipe(
+        Stream.runCollect
+      )
+      assert.equal(data3.length, 10)
+      assert.equal(data3[0].id, 51)
     }).pipe(provideDb(Db))
   })
 
