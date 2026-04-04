@@ -317,10 +317,40 @@ const createFlagAccumulator = (params: ReadonlyArray<FlagParam>): FlagAccumulato
 /* ========================================================================== */
 
 type FlagToken = Extract<Token, { _tag: "LongOption" | "ShortOption" }>
+type ResolvedFlag = {
+  readonly param: FlagParam
+  readonly negated: boolean
+}
 
 const isFlagToken = (t: Token): t is FlagToken => t._tag === "LongOption" || t._tag === "ShortOption"
 
 const getFlagName = (t: FlagToken): string => t._tag === "LongOption" ? t.name : t.flag
+
+const resolveFlag = (
+  token: FlagToken,
+  registry: FlagRegistry
+): ResolvedFlag | undefined => {
+  const direct = registry.index.get(getFlagName(token))
+  if (direct) {
+    return {
+      param: direct,
+      negated: false
+    }
+  }
+
+  if (token._tag === "LongOption" && token.name.startsWith("no-")) {
+    const canonicalName = token.name.slice(3)
+    const param = registry.index.get(canonicalName)
+    if (param && param.name === canonicalName && Primitive.isBoolean(param.primitiveType)) {
+      return {
+        param,
+        negated: true
+      }
+    }
+  }
+
+  return undefined
+}
 
 /**
  * Checks if a token is a boolean literal value.
@@ -346,9 +376,14 @@ const asBooleanLiteral = (token: Token | undefined): string | undefined =>
 const consumeFlagValue = (
   cursor: TokenCursor,
   token: FlagToken,
-  spec: FlagParam
+  spec: FlagParam,
+  negated = false
 ): string | undefined => {
   // Inline value has highest priority
+  if (negated) {
+    return "false"
+  }
+
   if (token.value !== undefined) {
     return token.value
   }
@@ -390,15 +425,15 @@ export const consumeKnownFlags = (
       continue
     }
 
-    const param = registry.index.get(getFlagName(t))
-    if (!param) {
+    const resolved = resolveFlag(t, registry)
+    if (!resolved) {
       remainder.push(t)
       continue
     }
 
-    const value = consumeFlagValue(cursor, t, param)
+    const value = consumeFlagValue(cursor, t, resolved.param, resolved.negated)
     if (value !== undefined) {
-      flagMap[param.name].push(value)
+      flagMap[resolved.param.name].push(value)
     }
   }
 
@@ -419,6 +454,9 @@ const createUnrecognizedFlagError = (
 
   for (const p of params) {
     validNames.push(p.name)
+    if (Primitive.isBoolean(p.primitiveType)) {
+      validNames.push(`no-${p.name}`)
+    }
     for (const alias of p.aliases) {
       validNames.push(alias)
     }
@@ -542,15 +580,14 @@ const processFlag = (
   state: ParseState
 ): void => {
   const { commandPath, flagRegistry } = context
-  const name = getFlagName(token)
-  const spec = flagRegistry.index.get(name)
+  const resolved = resolveFlag(token, flagRegistry)
 
-  if (!spec) {
+  if (!resolved) {
     state.errors.push(createUnrecognizedFlagError(token, flagRegistry.params, commandPath))
     return
   }
 
-  state.flags.add(spec.name, consumeFlagValue(cursor, token, spec))
+  state.flags.add(resolved.param.name, consumeFlagValue(cursor, token, resolved.param, resolved.negated))
 }
 
 /**

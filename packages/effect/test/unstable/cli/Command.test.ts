@@ -1077,6 +1077,27 @@ describe("Command", () => {
         assert.deepStrictEqual(captured, [false, false])
       }).pipe(Effect.provide(TestLayer)))
 
+    it.effect("should support optional boolean flags and --no-<flag> negation", () =>
+      Effect.gen(function*() {
+        const captured: Array<Option.Option<boolean>> = []
+
+        const cmd = Command.make("tool", {
+          open: Flag.boolean("open").pipe(Flag.optional)
+        }, (config) => Effect.sync(() => captured.push(config.open)))
+
+        const runCmd = Command.runWith(cmd, { version: "1.0.0" })
+
+        yield* runCmd([])
+        yield* runCmd(["--open"])
+        yield* runCmd(["--no-open"])
+
+        assert.deepStrictEqual(captured, [
+          Option.none(),
+          Option.some(true),
+          Option.some(false)
+        ])
+      }).pipe(Effect.provide(TestLayer)))
+
     it.effect("should fail when a required flag value is missing", () =>
       Effect.gen(function*() {
         let invoked = false
