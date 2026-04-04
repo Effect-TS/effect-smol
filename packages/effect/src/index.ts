@@ -3711,6 +3711,7 @@ export * as SchemaRepresentation from "./SchemaRepresentation.ts"
  * - Trim/case strings → {@link trim}, {@link toLowerCase}, {@link toUpperCase}, {@link capitalize}, {@link uncapitalize}, {@link snakeToCamel}
  * - Parse key-value strings → {@link splitKeyValue}
  * - Coerce string ↔ number/bigint → {@link numberFromString}, {@link bigintFromString}
+ * - Coerce string ↔ Date → {@link dateFromString}
  * - Decode durations → {@link durationFromNanos}, {@link durationFromMillis}
  * - Wrap nullable/optional as Option → {@link optionFromNullOr}, {@link optionFromOptionalKey}, {@link optionFromOptional}
  * - Parse URLs → {@link urlFromString}
