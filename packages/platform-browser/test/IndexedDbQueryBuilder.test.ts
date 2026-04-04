@@ -28,7 +28,7 @@ class Table1 extends IndexedDbTable.make({
     completed: Schema.Boolean
   }),
   keyPath: "id",
-  indexes: { titleIndex: "title", countIndex: "count" }
+  indexes: { titleIndex: "title", countIndex: "count", titleCount: ["title", "count"] }
 }) {}
 
 class User extends Schema.Class<User>("User")({
@@ -1314,6 +1314,36 @@ describe.sequential("IndexedDbQueryBuilder", () => {
       )
       yield* api.from("todo").insert({ id: 4, title: "test4", count: 4, completed: false }).invalidate()
       yield* Fiber.join(data)
+    }).pipe(provideDb(Db))
+  })
+
+  it.effect("compound query", () => {
+    class Db extends IndexedDbDatabase.make(
+      V1,
+      Effect.fn(function*(api) {
+        yield* api.createObjectStore("todo")
+        yield* api.createIndex("todo", "titleIndex")
+        yield* api.createIndex("todo", "countIndex")
+        yield* api.createIndex("todo", "titleCount")
+        yield* api.from("todo").insertAll([
+          { id: 1, title: "test1", count: 1, completed: false },
+          { id: 2, title: "test2", count: 2, completed: false },
+          { id: 3, title: "test2", count: 3, completed: false },
+          { id: 4, title: "test3", count: 4, completed: false }
+        ])
+      })
+    ) {}
+
+    return Effect.gen(function*() {
+      const api = yield* Db
+      const data = yield* api.from("todo").select("titleCount").between(["test2"], ["test2", []])
+      assert.deepStrictEqual(data, [
+        { id: 2, title: "test2", count: 2, completed: false },
+        { id: 3, title: "test2", count: 3, completed: false }
+      ])
+
+      const data2 = yield* api.from("todo").select("titleCount").equals(["test2", 3]).first()
+      assert.deepStrictEqual(data2, { id: 3, title: "test2", count: 3, completed: false })
     }).pipe(provideDb(Db))
   })
 })

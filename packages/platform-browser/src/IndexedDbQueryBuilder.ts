@@ -140,7 +140,7 @@ export declare namespace IndexedDbQuery {
    * @since 4.0.0
    * @category models
    */
-  export type SourceTableSelectSchemaType<
+  export type SelectType<
     Table extends IndexedDbTable.AnyWithProps
   > = [IndexedDbTable.KeyPath<Table>] extends [undefined] ? IndexedDbTable.TableSchema<Table>["Type"] & {
       readonly key: (typeof IndexedDb.IDBValidKey)["Type"]
@@ -183,15 +183,30 @@ export declare namespace IndexedDbQuery {
    * @since 4.0.0
    * @category models
    */
+  export type EqualsType<
+    Table extends IndexedDbTable.AnyWithProps,
+    Index extends keyof Table["indexes"],
+    KeyPath = [Index] extends [never] ? Table["keyPath"] : Table["indexes"][Index],
+    Type = Table["tableSchema"]["Type"]
+  > = KeyPath extends keyof Type ? Type[KeyPath]
+    : { [I in keyof KeyPath]: KeyPath[I] extends keyof Type ? Type[KeyPath[I]] | [] : never }
+
+  /**
+   * @since 4.0.0
+   * @category models
+   */
   export type ExtractIndexType<
     Table extends IndexedDbTable.AnyWithProps,
-    Index extends IndexedDbDatabase.IndexFromTable<Table>
-  > = [Index] extends [never] ? Schema.Schema.Type<
-      IndexedDbTable.TableSchema<Table>
-    >[IndexedDbTable.KeyPath<Table>]
-    : Schema.Schema.Type<
-      IndexedDbTable.TableSchema<Table>
-    >[IndexedDbTable.Indexes<Table>[Index]]
+    Index extends keyof Table["indexes"],
+    KeyPath = [Index] extends [never] ? Table["keyPath"] : Table["indexes"][Index],
+    Type = Table["tableSchema"]["Type"]
+  > = KeyPath extends keyof Type ? Type[KeyPath]
+    : KeyPath extends readonly [infer K, ...infer Rest] ? K extends keyof Type ? [
+          Type[K],
+          ...{ [P in keyof Rest]?: Rest[P] extends keyof Type ? Type[Rest[P]] | [] : never }
+        ] :
+      never :
+    never
 
   /**
    * @since 4.0.0
@@ -271,7 +286,7 @@ export declare namespace IndexedDbQuery {
     readonly limitValue?: number | undefined
 
     readonly equals: (
-      value: ExtractIndexType<Table, Index>
+      value: EqualsType<Table, Index>
     ) => Omit<
       Count<Table, Index>,
       "equals" | "gte" | "lte" | "gt" | "lt" | "between"
@@ -327,7 +342,7 @@ export declare namespace IndexedDbQuery {
     readonly index?: Index
 
     readonly equals: (
-      value: ExtractIndexType<Table, Index>
+      value: EqualsType<Table, Index>
     ) => Omit<
       Delete<Table, Index>,
       "equals" | "gte" | "lte" | "gt" | "lt" | "between"
@@ -397,7 +412,7 @@ export declare namespace IndexedDbQuery {
     readonly predicate?: (item: IndexedDbTable.Encoded<Table>) => boolean
 
     readonly equals: (
-      value: ExtractIndexType<Table, Index>
+      value: EqualsType<Table, Index>
     ) => Omit<
       Delete<Table, Index>,
       "equals" | "gte" | "lte" | "gt" | "lt" | "between"
@@ -471,7 +486,7 @@ export declare namespace IndexedDbQuery {
   > extends
     Pipeable.Pipeable,
     Effect.YieldableClass<
-      Array<SourceTableSelectSchemaType<Table>>,
+      Array<SelectType<Table>>,
       IndexedDbQueryError,
       IndexedDbTable.Context<Table>
     >
@@ -487,7 +502,7 @@ export declare namespace IndexedDbQuery {
     readonly predicate?: (item: IndexedDbTable.Encoded<Table>) => boolean
 
     readonly equals: (
-      value: ExtractIndexType<Table, Index>
+      value: EqualsType<Table, Index>
     ) => Omit<
       Select<Table, Index>,
       "equals" | "gte" | "lte" | "gt" | "lt" | "between"
@@ -551,14 +566,14 @@ export declare namespace IndexedDbQuery {
     readonly reactive: (
       keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
     ) => Stream.Stream<
-      Array<SourceTableSelectSchemaType<Table>>,
+      Array<SelectType<Table>>,
       IndexedDbQueryError,
       IndexedDbTable.Context<Table>
     >
     readonly reactiveQueue: (
       keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
     ) => Effect.Effect<
-      Queue.Dequeue<Array<SourceTableSelectSchemaType<Table>>, IndexedDbQueryError>,
+      Queue.Dequeue<Array<SelectType<Table>>, IndexedDbQueryError>,
       never,
       Scope.Scope | IndexedDbTable.Context<Table>
     >
@@ -574,7 +589,7 @@ export declare namespace IndexedDbQuery {
   > extends
     Pipeable.Pipeable,
     Effect.YieldableClass<
-      SourceTableSelectSchemaType<Table>,
+      SelectType<Table>,
       IndexedDbQueryError,
       IndexedDbTable.Context<Table>
     >
@@ -589,7 +604,7 @@ export declare namespace IndexedDbQuery {
     readonly reactive: (
       keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
     ) => Stream.Stream<
-      SourceTableSelectSchemaType<Table>,
+      SelectType<Table>,
       IndexedDbQueryError,
       IndexedDbTable.Context<Table>
     >
@@ -602,7 +617,7 @@ export declare namespace IndexedDbQuery {
     readonly reactiveQueue: (
       keys: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>>
     ) => Effect.Effect<
-      Queue.Dequeue<SourceTableSelectSchemaType<Table>, IndexedDbQueryError>,
+      Queue.Dequeue<SelectType<Table>, IndexedDbQueryError>,
       never,
       Scope.Scope | IndexedDbTable.Context<Table>
     >
@@ -618,7 +633,7 @@ export declare namespace IndexedDbQuery {
   > extends
     Pipeable.Pipeable,
     Effect.YieldableClass<
-      Array<SourceTableSelectSchemaType<Table>>,
+      Array<SelectType<Table>>,
       IndexedDbQueryError,
       IndexedDbTable.Context<Table>
     >
@@ -853,7 +868,7 @@ const getReadonlyObjectStore = (
   return { store, keyRange }
 }
 
-const getSelect = Effect.fnUntraced(function*(
+const applySelect = Effect.fnUntraced(function*(
   query: IndexedDbQuery.Select<any, never>
 ) {
   const keyPath = query.from.table.keyPath
@@ -1738,7 +1753,7 @@ const SelectProto: Omit<
     })
   },
   asEffect(this: IndexedDbQuery.Select<any, never>) {
-    return getSelect(this) as any
+    return applySelect(this) as any
   },
   reactive(
     this: IndexedDbQuery.Select<any, never>,
