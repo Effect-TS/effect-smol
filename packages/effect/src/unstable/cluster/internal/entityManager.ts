@@ -108,9 +108,10 @@ export const make = Effect.fnUntraced(function*<
   const mailboxCapacity = options.mailboxCapacity ?? config.entityMailboxCapacity
   const clock = yield* Clock
   const services = yield* Effect.services<Rpc.Services<Rpcs> | Rpc.Middleware<Rpcs> | RX>()
-  const retryDriver = yield* Schedule.toStepWithSleep(
-    options.defectRetryPolicy ? Schedule.andThen(options.defectRetryPolicy, defaultRetryPolicy) : defaultRetryPolicy
-  )
+  const defectRetryPolicy = options.defectRetryPolicy
+    ? Schedule.andThen(options.defectRetryPolicy, defaultRetryPolicy)
+    : defaultRetryPolicy
+  const retryDriver = yield* Schedule.toStepWithSleep(defectRetryPolicy)
   const entityRpcs = new Map(entity.protocol.requests)
 
   // add internal rpcs
@@ -162,7 +163,10 @@ export const make = Effect.fnUntraced(function*<
               ServiceMap.add(CurrentRunnerAddress, options.runnerAddress),
               ServiceMap.add(KeepAliveLatch, keepAliveLatch),
               ServiceMap.add(Scope.Scope, scope)
-            )))
+            ))),
+          Effect.sandbox,
+          Effect.tapError((cause) => Effect.logError("Defect building entity handlers", cause)),
+          Effect.retry(defectRetryPolicy)
         ) as Effect.Effect<ServiceMap.ServiceMap<Rpc.ToHandler<Rpcs>>>)
 
         const server = yield* RpcServer.makeNoSerialization(entity.protocol, {
