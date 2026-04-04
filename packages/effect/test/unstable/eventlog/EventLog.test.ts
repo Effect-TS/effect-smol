@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Layer, Ref, Schema } from "effect"
+import { Effect, Layer, Redacted, Ref, Schema } from "effect"
 import * as EventGroup from "effect/unstable/eventlog/EventGroup"
 import * as EventJournal from "effect/unstable/eventlog/EventJournal"
 import * as EventLog from "effect/unstable/eventlog/EventLog"
@@ -22,13 +22,18 @@ const handlerLayer = (handled: Ref.Ref<ReadonlyArray<string>>) =>
     UserGroup,
     (handlers) =>
       handlers.handle("UserCreated", ({ payload }) => Ref.update(handled, (values) => [...values, payload.id]))
+  ).pipe(
+    Layer.provide(EventLog.layerRegistry)
   )
 
 const logLayer = (handled: Ref.Ref<ReadonlyArray<string>>) =>
-  EventLog.layer(schema).pipe(
-    Layer.provideMerge(EventJournal.layerMemory),
-    Layer.provideMerge(Layer.succeed(EventLog.Identity, EventLog.makeIdentityUnsafe())),
-    Layer.provideMerge(handlerLayer(handled))
+  EventLog.layer(schema, handlerLayer(handled)).pipe(
+    Layer.provide(EventJournal.layerMemory),
+    Layer.provide(
+      Layer.effect(EventLog.Identity, EventLog.makeIdentity).pipe(
+        Layer.provide(EventLogEncryption.layerSubtle)
+      )
+    )
   )
 
 describe("EventLog", () => {
@@ -53,7 +58,7 @@ describe("EventLog", () => {
   it.effect("encrypts and decrypts entries", () =>
     Effect.gen(function*() {
       const encryption = yield* EventLogEncryption.EventLogEncryption
-      const identity = EventLog.makeIdentityUnsafe()
+      const identity = yield* encryption.generateIdentity
       const entry = new EventJournal.Entry({
         id: EventJournal.makeEntryIdUnsafe(),
         event: "UserCreated",
@@ -70,4 +75,44 @@ describe("EventLog", () => {
       assert.strictEqual(decrypted.length, 1)
       assert.strictEqual(decrypted[0].entry.idString, entry.idString)
     }).pipe(Effect.provide(EventLogEncryption.layerSubtle)))
+
+  it.effect("makeIdentity and identity string encoding use the two-field shape", () =>
+    Effect.gen(function*() {
+      const identity = yield* EventLog.makeIdentity
+      assert.deepStrictEqual(Object.keys(identity).sort(), ["privateKey", "publicKey"])
+
+      const encoded = EventLog.encodeIdentityString(identity)
+      assert.deepStrictEqual(Object.keys(JSON.parse(encoded)).sort(), ["privateKey", "publicKey"])
+
+      const decoded = EventLog.decodeIdentityString(encoded)
+      assert.deepStrictEqual(Object.keys(decoded).sort(), ["privateKey", "publicKey"])
+      assert.strictEqual(decoded.publicKey, identity.publicKey)
+      assert.deepStrictEqual(Redacted.value(decoded.privateKey), Redacted.value(identity.privateKey))
+    }).pipe(Effect.provide(EventLogEncryption.layerSubtle)))
+
+  it.effect("writeFromRemote reports duplicate entries for downstream reactivity invalidation", () =>
+    Effect.gen(function*() {
+      const remoteId = EventJournal.makeRemoteIdUnsafe()
+      const journal = yield* EventJournal.EventJournal
+      const entry = new EventJournal.Entry({
+        id: EventJournal.makeEntryIdUnsafe(),
+        event: "UserCreated",
+        primaryKey: "user-1",
+        payload: new Uint8Array([1])
+      }, { disableChecks: true })
+
+      const first = yield* journal.writeFromRemote({
+        remoteId,
+        entries: [new EventJournal.RemoteEntry({ remoteSequence: 1, entry })],
+        effect: () => Effect.void
+      })
+      const second = yield* journal.writeFromRemote({
+        remoteId,
+        entries: [new EventJournal.RemoteEntry({ remoteSequence: 2, entry })],
+        effect: () => Effect.void
+      })
+
+      assert.deepStrictEqual(first.duplicateEntries, [])
+      assert.deepStrictEqual(second.duplicateEntries.map((_) => _.idString), [entry.idString])
+    }).pipe(Effect.provide(EventJournal.layerMemory)))
 })

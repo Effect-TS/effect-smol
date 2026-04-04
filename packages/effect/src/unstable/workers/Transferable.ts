@@ -112,16 +112,14 @@ export const schema: {
     self: S,
     f: (_: S["Encoded"]) => Iterable<globalThis.Transferable>
   ): Transferable<S> =>
-    self
-      .annotate({
-        serializerJson: () => passthroughLink
+    self.annotate({
+      toCodecJson: () => passthroughLink
+    }).pipe(
+      Schema.decode({
+        decode: Getter.passthrough(),
+        encode: getterAddAll(f)
       })
-      .pipe(
-        Schema.decode({
-          decode: Getter.passthrough(),
-          encode: getterAddAll(f)
-        })
-      )
+    )
 )
 
 const passthroughLink = Schema.link()(Schema.Any, {
@@ -151,7 +149,7 @@ export const MessagePort: Transferable<Schema.declare<MessagePort>> = schema(
  * @since 1.0.0
  * @category schema
  */
-export const Uint8Array: Transferable<Schema.Uint8Array> = schema(
-  Schema.Uint8Array,
+export const Uint8Array: Transferable<Schema.instanceOf<globalThis.Uint8Array<ArrayBuffer>>> = schema(
+  Schema.Uint8Array as any,
   (_) => [_.buffer]
 )

@@ -10871,7 +10871,8 @@ export const toQueue: {
       readonly replay?: number | undefined
       readonly shutdownOnEnd?: boolean | undefined
     }
-  ): Effect.Effect<PubSub.PubSub<A>, never, R | Scope.Scope> => Channel.toPubSubArray(self.channel, options)
+  ): Effect.Effect<Queue.Dequeue<A, E | Cause.Done>, never, R | Scope.Scope> =>
+    Channel.toQueueArray(self.channel, options)
 )
 
 /**
