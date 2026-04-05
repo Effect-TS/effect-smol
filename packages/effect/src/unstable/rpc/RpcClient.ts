@@ -926,6 +926,7 @@ export const makeProtocolSocket = (options?: {
   Protocol.make(Effect.fnUntraced(function*(writeResponse) {
     const socket = yield* Socket.Socket
     const serialization = yield* RpcSerialization.RpcSerialization
+    const hooks = yield* Effect.serviceOption(ConnectionHooks)
 
     const write = yield* socket.writer
 
@@ -933,8 +934,9 @@ export const makeProtocolSocket = (options?: {
 
     const pinger = yield* makePinger(write(parser.encode(constPing)!))
     let currentError: RpcClientError | undefined
-    const clearCurrentError = Effect.sync(() => {
+    const onOpen = Effect.suspend(() => {
       currentError = undefined
+      return Option.isSome(hooks) ? hooks.value.onConnect : Effect.void
     })
 
     yield* Effect.suspend(() => {
@@ -967,7 +969,7 @@ export const makeProtocolSocket = (options?: {
             })
           })
         }
-      }, { onOpen: clearCurrentError }).pipe(
+      }, { onOpen }).pipe(
         Effect.raceFirst(Effect.flatMap(
           pinger.timeout,
           () =>
@@ -985,6 +987,7 @@ export const makeProtocolSocket = (options?: {
       Effect.flatMap(() =>
         Effect.fail(new Socket.SocketError({ reason: new Socket.SocketCloseError({ code: 1000 }) }))
       ),
+      Option.isSome(hooks) ? Effect.ensuring(hooks.value.onDisconnect) : identity,
       Effect.tapCause((cause) => {
         const error = Cause.findError(cause)
         const hasError = Result.isSuccess(error)
@@ -1093,6 +1096,7 @@ export const makeProtocolWorker = (
     const scope = yield* Effect.scope
     let workerId = 0
     const initialMessage = yield* Effect.serviceOption(RpcWorker.InitialMessage)
+    const hooks = yield* Effect.serviceOption(ConnectionHooks)
 
     const entries = new Map<string, {
       readonly worker: Worker.Worker<FromServerEncoded, FromClientEncoded | RpcWorker.InitialMessage.Encoded>
@@ -1207,6 +1211,7 @@ export const makeProtocolWorker = (
     }
 
     yield* Effect.scoped(Pool.get(pool))
+    if (Option.isSome(hooks)) yield* hooks.value.onConnect
 
     return {
       send,
@@ -1236,6 +1241,15 @@ export const layerProtocolWorker: (
   WorkerError,
   Worker.WorkerPlatform | Worker.Spawner
 > = flow(makeProtocolWorker, Layer.effect(Protocol))
+
+/**
+ * @since 4.0.0
+ * @category ConnectionHooks
+ */
+export class ConnectionHooks extends ServiceMap.Service<ConnectionHooks, {
+  readonly onConnect: Effect.Effect<void>
+  readonly onDisconnect: Effect.Effect<void>
+}>()("effect/rpc/RpcClient/ConnectionHooks") {}
 
 // internal
 
