@@ -619,7 +619,7 @@ export const keepAlive: (
   olatch.value.closeUnsafe()
   yield* Effect.orDie(sharding.sendOutgoing(
     new Message.OutgoingRequest({
-      annotations: ServiceMap.empty(),
+      annotations: KeepAliveRpc.annotations,
       rpc: KeepAliveRpc,
       services: ServiceMap.empty() as any,
       envelope: Envelope.makeRequest({
