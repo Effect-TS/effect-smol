@@ -1,8 +1,9 @@
 {
   "dprint.path": "node_modules/.bin/dprint",
-  "typescript.tsdk": "node_modules/typescript/lib",
-  "typescript.preferences.importModuleSpecifier": "relative",
-  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "js/ts.tsdk.path": "node_modules/typescript/lib",
+  "js/ts.tsdk.promptToUseWorkspaceVersion": true,
+  "js/ts.preferences.importModuleSpecifier": "relative",
+  "js/ts.tsserver.experimental.enableProjectDiagnostics": false, // Breaks Deno
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "dprint.dprint",
   "editor.formatOnSaveMode": "file",
@@ -42,5 +43,9 @@
   "[markdown]": {
     "editor.defaultFormatter": "dprint.dprint"
   },
-  "deno.enable": false
+  "deno.enable": true,
+  "deno.lint": false,
+  "deno.enablePaths": [
+    "./packages/platform-deno"
+  ]
 }
