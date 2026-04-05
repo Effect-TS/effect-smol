@@ -1141,7 +1141,7 @@ const makeHttpClient = Effect.gen(function*() {
   )
 })
 
-const HttpClientLayer = Layer.effectServices(makeHttpClient)
+const HttpClientLayer = Layer.effectContext(makeHttpClient)
 
 const makeStreamTestLayer = (events: ReadonlyArray<typeof Generated.ResponseStreamEvent.Type>) => {
   const response = HttpClientResponse.fromWeb(

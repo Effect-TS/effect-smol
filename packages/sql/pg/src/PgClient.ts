@@ -718,7 +718,7 @@ const makeCancel = (pool: Pg.Pool, client: Pg.PoolClient) => {
 export const layerFrom = <E, R>(
   acquire: Effect.Effect<PgClient, E, R>
 ): Layer.Layer<PgClient | Client.SqlClient, E, Exclude<R, Scope.Scope | Reactivity.Reactivity>> =>
-  Layer.effectServices(
+  Layer.effectContext(
     Effect.map(acquire, (client) =>
       Context.make(PgClient, client).pipe(
         Context.add(Client.SqlClient, client)

@@ -477,7 +477,7 @@ const makeHttpClient = Effect.gen(function*() {
   )
 })
 
-const HttpClientLayer = Layer.effectServices(makeHttpClient)
+const HttpClientLayer = Layer.effectContext(makeHttpClient)
 
 const OtlpCumulativeMetricsLayer = OtlpMetrics.layer({
   url: "http://localhost:4318/v1/metrics",

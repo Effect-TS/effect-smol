@@ -306,7 +306,7 @@ export const layerUndiciNoDispatcher: Layer.Layer<
   Client.HttpClient,
   never,
   Dispatcher
-> = Client.layerMergedServices(makeUndici)
+> = Client.layerMergedContext(makeUndici)
 
 /**
  * @since 1.0.0
@@ -576,7 +576,7 @@ export const layerNodeHttpNoAgent: Layer.Layer<
   Client.HttpClient,
   never,
   HttpAgent
-> = Client.layerMergedServices(makeNodeHttp)
+> = Client.layerMergedContext(makeNodeHttp)
 
 /**
  * @since 1.0.0

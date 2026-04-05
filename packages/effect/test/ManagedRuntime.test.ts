@@ -42,7 +42,7 @@ describe("ManagedRuntime", () => {
     const tag = Context.Service<string>("string")
     const layer = Layer.succeed(tag)("test")
     const managedRuntime = ManagedRuntime.make(layer)
-    const services = Effect.runSync(managedRuntime.servicesEffect)
+    const services = Effect.runSync(managedRuntime.contextEffect)
     const result = Context.get(services, tag)
     strictEqual(result, "test")
   })

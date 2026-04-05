@@ -3209,11 +3209,11 @@ export const dump: Effect<string> = InternalEffect.flatMap(InternalEffect.contex
  * @since 2.0.0
  * @category Snapshotting
  */
-export const snapshotUnsafe = (services: Context.Context<never>): ReadonlyArray<Metric.Snapshot> => {
-  const registry = Context.get(services, MetricRegistry)
+export const snapshotUnsafe = (context: Context.Context<never>): ReadonlyArray<Metric.Snapshot> => {
+  const registry = Context.get(context, MetricRegistry)
   return Array.from(registry.values()).map(({ hooks, ...meta }) => ({
     ...meta,
-    state: hooks.get(services)
+    state: hooks.get(context)
   }))
 }
 

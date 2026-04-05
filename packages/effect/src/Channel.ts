@@ -6602,10 +6602,10 @@ const runWith = <
  * @category Services
  */
 export const contextWith = <Env, OutElem, OutErr, OutDone, InElem, InErr, InDone, Env2>(
-  f: (services: Context.Context<Env>) => Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env2>
+  f: (context: Context.Context<Env>) => Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env2>
 ): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env | Env2> =>
   fromTransform((upstream, scope) =>
-    Effect.contextWith((services: Context.Context<Env>) => toTransform(f(services))(upstream, scope))
+    Effect.contextWith((context: Context.Context<Env>) => toTransform(f(context))(upstream, scope))
   )
 
 /**
@@ -6618,22 +6618,22 @@ export const contextWith = <Env, OutElem, OutErr, OutDone, InElem, InErr, InDone
  */
 export const provideContext: {
   <R2>(
-    services: Context.Context<R2>
+    context: Context.Context<R2>
   ): <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
   ) => Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Exclude<Env, R2>>
   <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, R2>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    services: Context.Context<R2>
+    context: Context.Context<R2>
   ): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Exclude<Env, R2>>
 } = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, R2>(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  services: Context.Context<R2>
+  context: Context.Context<R2>
 ): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Exclude<Env, R2>> =>
   fromTransform((upstream, scope) =>
     Effect.map(
-      Effect.provideContext(toTransform(self)(upstream, scope), services),
-      Effect.provideContext(services)
+      Effect.provideContext(toTransform(self)(upstream, scope), context),
+      Effect.provideContext(context)
     )
   ))
 
@@ -6725,10 +6725,10 @@ export const provide: {
       options?.local
         ? Layer.buildWithMemoMap(layer, Layer.makeMemoMapUnsafe(), scope)
         : Layer.buildWithScope(layer, scope),
-      (services) =>
+      (context) =>
         Effect.map(
-          Effect.provideContext(toTransform(self)(upstream, scope), services),
-          Effect.provideContext(services)
+          Effect.provideContext(toTransform(self)(upstream, scope), context),
+          Effect.provideContext(context)
         )
     )
   ))
@@ -6739,21 +6739,21 @@ export const provide: {
  */
 export const updateContext: {
   <Env, R2>(
-    f: (services: Context.Context<R2>) => Context.Context<Env>
+    f: (context: Context.Context<R2>) => Context.Context<Env>
   ): <OutElem, OutErr, OutDone, InElem, InErr, InDone>(
     self: Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Env>
   ) => Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, R2>
   <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, R2>(
     self: Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Env>,
-    f: (services: Context.Context<R2>) => Context.Context<Env>
+    f: (context: Context.Context<R2>) => Context.Context<Env>
   ): Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, R2>
 } = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, R2>(
   self: Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Env>,
-  f: (services: Context.Context<R2>) => Context.Context<Env>
+  f: (context: Context.Context<R2>) => Context.Context<Env>
 ): Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, R2> =>
   fromTransform((upstream, scope) =>
-    Effect.contextWith((services) => {
-      const toProvide = f(services)
+    Effect.contextWith((context) => {
+      const toProvide = f(context)
       return toTransform(provideContext(self, toProvide))(upstream, scope)
     })
   ))
@@ -6779,11 +6779,11 @@ export const updateService: {
   service: Context.Key<I, S>,
   f: (service: NoInfer<S>) => S
 ): Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Env | I> =>
-  updateContext(self, (services) =>
+  updateContext(self, (context) =>
     Context.add(
-      services,
+      context,
       service,
-      f(Context.get(services, service))
+      f(Context.get(context, service))
     )))
 
 /**

@@ -41,8 +41,8 @@ export class Users extends Context.Service<Users, {
           const user = usersTable.get(entry.request.id)
 
           // If the request had requirements, you can access them with
-          // `entry.services`
-          const requestSpan = Context.getOption(entry.services, Tracer.ParentSpan)
+          // `entry.context`
+          const requestSpan = Context.getOption(entry.context, Tracer.ParentSpan)
           console.log("Request span", requestSpan)
 
           if (user) {

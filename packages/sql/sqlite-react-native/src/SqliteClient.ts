@@ -197,7 +197,7 @@ export const make = (
 export const layerConfig = (
   config: Config.Wrap<SqliteClientConfig>
 ): Layer.Layer<SqliteClient | Client.SqlClient, Config.ConfigError> =>
-  Layer.effectServices(
+  Layer.effectContext(
     Config.unwrap(config).asEffect().pipe(
       Effect.flatMap(make),
       Effect.map((client) =>
@@ -215,7 +215,7 @@ export const layerConfig = (
 export const layer = (
   config: SqliteClientConfig
 ): Layer.Layer<SqliteClient | Client.SqlClient> =>
-  Layer.effectServices(
+  Layer.effectContext(
     Effect.map(make(config), (client) =>
       Context.make(SqliteClient, client).pipe(
         Context.add(Client.SqlClient, client)

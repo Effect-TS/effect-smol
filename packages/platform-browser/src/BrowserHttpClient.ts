@@ -387,6 +387,6 @@ class ClientResponseImpl extends IncomingMessageImpl<HttpClientError.HttpClientE
  * @since 1.0.0
  * @category Layers
  */
-export const layerXMLHttpRequest: Layer.Layer<HttpClient.HttpClient> = HttpClient.layerMergedServices(
+export const layerXMLHttpRequest: Layer.Layer<HttpClient.HttpClient> = HttpClient.layerMergedContext(
   Effect.succeed(makeXmlHttpRequest)
 )

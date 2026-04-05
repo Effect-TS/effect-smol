@@ -280,7 +280,7 @@ const Proto = {
     this: Toolkit<Record<string, Tool.Any>>,
     build: Record<string, (params: any) => any> | Effect.Effect<Record<string, (params: any) => any>>
   ) {
-    return Layer.effectServices(this.toHandlers(build))
+    return Layer.effectContext(this.toHandlers(build))
   },
   asEffect(this: Toolkit<Record<string, Tool.Any>>) {
     return Effect.gen({ self: this }, function*() {

@@ -5597,7 +5597,7 @@ export const context: <R = never>() => Effect<Context.Context<R>, never, R> = in
  * @category Environment
  */
 export const contextWith: <R, A, E, R2>(
-  f: (services: Context.Context<R>) => Effect<A, E, R2>
+  f: (context: Context.Context<R>) => Effect<A, E, R2>
 ) => Effect<A, E, R | R2> = internal.contextWith
 
 /**
@@ -5816,8 +5816,8 @@ export const serviceOption: <I, S>(key: Context.Key<I, S>) => Effect<Option<S>> 
  *
  * // Transform services by providing Config while keeping Logger requirement
  * const configured = program.pipe(
- *   Effect.updateContext((services: Context.Context<typeof Logger>) =>
- *     Context.add(services, Config, { name: "World" })
+ *   Effect.updateContext((context: Context.Context<typeof Logger>) =>
+ *     Context.add(context, Config, { name: "World" })
  *   )
  * )
  *
@@ -5832,11 +5832,11 @@ export const serviceOption: <I, S>(key: Context.Key<I, S>) => Effect<Option<S>> 
  */
 export const updateContext: {
   <R2, R>(
-    f: (services: Context.Context<R2>) => Context.Context<NoInfer<R>>
+    f: (context: Context.Context<R2>) => Context.Context<NoInfer<R>>
   ): <A, E>(self: Effect<A, E, R>) => Effect<A, E, R2>
   <A, E, R, R2>(
     self: Effect<A, E, R>,
-    f: (services: Context.Context<R2>) => Context.Context<NoInfer<R>>
+    f: (context: Context.Context<R2>) => Context.Context<NoInfer<R>>
   ): Effect<A, E, R2>
 } = internal.updateContext
 
@@ -8338,7 +8338,7 @@ export const runFork: <A, E>(effect: Effect<A, E, never>, options?: RunOptions |
  * @category Running Effects
  */
 export const runForkWith: <R>(
-  services: Context.Context<R>
+  context: Context.Context<R>
 ) => <A, E>(effect: Effect<A, E, R>, options?: RunOptions | undefined) => Fiber<A, E> = internal.runForkWith
 
 /**
@@ -8382,7 +8382,7 @@ export const runForkWith: <R>(
  * @category Running Effects
  */
 export const runCallbackWith: <R>(
-  services: Context.Context<R>
+  context: Context.Context<R>
 ) => <A, E>(
   effect: Effect<A, E, R>,
   options?: (RunOptions & { readonly onExit: (exit: Exit.Exit<A, E>) => void }) | undefined
@@ -8482,7 +8482,7 @@ export const runPromise: <A, E>(
  *
  * const Config = Context.Service<Config>("Config")
  *
- * const services = Context.make(Config, {
+ * const context = Context.make(Config, {
  *   apiUrl: "https://api.example.com"
  * })
  *
@@ -8491,14 +8491,14 @@ export const runPromise: <A, E>(
  *   return `Connecting to ${config.apiUrl}`
  * })
  *
- * Effect.runPromiseWith(services)(program).then(console.log)
+ * Effect.runPromiseWith(context)(program).then(console.log)
  * ```
  *
  * @since 4.0.0
  * @category Running Effects
  */
 export const runPromiseWith: <R>(
-  services: Context.Context<R>
+  context: Context.Context<R>
 ) => <A, E>(effect: Effect<A, E, R>, options?: RunOptions | undefined) => Promise<A> = internal.runPromiseWith
 
 /**
@@ -8586,7 +8586,7 @@ export const runPromiseExit: <A, E>(
  * @category Running Effects
  */
 export const runPromiseExitWith: <R>(
-  services: Context.Context<R>
+  context: Context.Context<R>
 ) => <A, E>(effect: Effect<A, E, R>, options?: RunOptions | undefined) => Promise<Exit.Exit<A, E>> =
   internal.runPromiseExitWith
 
@@ -8662,7 +8662,7 @@ export const runSync: <A, E>(effect: Effect<A, E>) => A = internal.runSync
  *
  * const MathService = Context.Service<MathService>("MathService")
  *
- * const services = Context.make(MathService, {
+ * const context = Context.make(MathService, {
  *   add: (a, b) => a + b
  * })
  *
@@ -8671,7 +8671,7 @@ export const runSync: <A, E>(effect: Effect<A, E>) => A = internal.runSync
  *   return math.add(2, 3)
  * })
  *
- * const result = Effect.runSyncWith(services)(program)
+ * const result = Effect.runSyncWith(context)(program)
  * console.log(result) // 5
  * ```
  *
@@ -8679,7 +8679,7 @@ export const runSync: <A, E>(effect: Effect<A, E>) => A = internal.runSync
  * @category Running Effects
  */
 export const runSyncWith: <R>(
-  services: Context.Context<R>
+  context: Context.Context<R>
 ) => <A, E>(effect: Effect<A, E, R>) => A = internal.runSyncWith
 
 /**
@@ -8771,12 +8771,12 @@ export const runSyncExit: <A, E>(effect: Effect<A, E>) => Exit.Exit<A, E> = inte
  *   return 42
  * })
  *
- * // Prepare services
- * const services = Context.make(Logger, {
+ * // Prepare context
+ * const context = Context.make(Logger, {
  *   log: (msg) => console.log(`[LOG] ${msg}`)
  * })
  *
- * const exit = Effect.runSyncExitWith(services)(program)
+ * const exit = Effect.runSyncExitWith(context)(program)
  *
  * if (Exit.isSuccess(exit)) {
  *   console.log(`Success: ${exit.value}`)
@@ -8792,7 +8792,7 @@ export const runSyncExit: <A, E>(effect: Effect<A, E>) => Exit.Exit<A, E> = inte
  * @category Running Effects
  */
 export const runSyncExitWith: <R>(
-  services: Context.Context<R>
+  context: Context.Context<R>
 ) => <A, E>(effect: Effect<A, E, R>) => Exit.Exit<A, E> = internal.runSyncExitWith
 
 // -----------------------------------------------------------------------------

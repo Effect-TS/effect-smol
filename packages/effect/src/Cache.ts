@@ -186,12 +186,12 @@ export const makeWith = <
   never,
   "lookup" extends ServiceMode ? never : R
 > =>
-  effect.contextWith((services: Context.Context<any>) => {
+  effect.contextWith((context: Context.Context<any>) => {
     const self = Object.create(Proto)
     self.lookup = (key: Key): Effect.Effect<A, E> =>
       effect.updateContext(
         options.lookup(key),
-        (input) => Context.merge(services, input)
+        (input) => Context.merge(context, input)
       )
     self.map = MutableHashMap.make()
     self.capacity = options.capacity

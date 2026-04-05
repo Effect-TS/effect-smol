@@ -100,8 +100,8 @@ export const make = Effect.gen(function*() {
     | Request.From<"Requires", Exclude<Route.Context<Routes[number]>, Provided>>
     | Request.From<"Error", Route.Error<Routes[number]>>
   > =>
-    Effect.contextWith((services: Context.Context<never>) => {
-      const middleware = getMiddleware(services)
+    Effect.contextWith((context: Context.Context<never>) => {
+      const middleware = getMiddleware(context)
       const applyMiddleware = (effect: Effect.Effect<HttpServerResponse.HttpServerResponse>) => {
         for (let i = 0; i < middleware.length; i++) {
           effect = middleware[i](effect)
@@ -270,13 +270,13 @@ export const schemaJson = <
   const parse = Schema.decodeUnknownEffect(schema)
   return Effect.contextWith(
     (
-      services: Context.Context<
+      context: Context.Context<
         HttpServerRequest.HttpServerRequest | HttpServerRequest.ParsedSearchParams | RouteContext
       >
     ) => {
-      const request = Context.get(services, HttpServerRequest.HttpServerRequest)
-      const searchParams = Context.get(services, HttpServerRequest.ParsedSearchParams)
-      const routeContext = Context.get(services, RouteContext)
+      const request = Context.get(context, HttpServerRequest.HttpServerRequest)
+      const searchParams = Context.get(context, HttpServerRequest.ParsedSearchParams)
+      const routeContext = Context.get(context, RouteContext)
       return Effect.flatMap(request.json, (body) =>
         parse({
           method: request.method,
@@ -318,13 +318,13 @@ export const schemaNoBody = <
   const parse = Schema.decodeUnknownEffect(schema)
   return Effect.contextWith(
     (
-      services: Context.Context<
+      context: Context.Context<
         HttpServerRequest.HttpServerRequest | HttpServerRequest.ParsedSearchParams | RouteContext
       >
     ) => {
-      const request = Context.get(services, HttpServerRequest.HttpServerRequest)
-      const searchParams = Context.get(services, HttpServerRequest.ParsedSearchParams)
-      const routeContext = Context.get(services, RouteContext)
+      const request = Context.get(context, HttpServerRequest.HttpServerRequest)
+      const searchParams = Context.get(context, HttpServerRequest.ParsedSearchParams)
+      const routeContext = Context.get(context, RouteContext)
       return parse({
         method: request.method,
         url: request.url,
@@ -346,9 +346,9 @@ export const schemaParams = <A, I extends Readonly<Record<string, string | Reado
   options?: ParseOptions | undefined
 ): Effect.Effect<A, Schema.SchemaError, HttpServerRequest.ParsedSearchParams | RouteContext | RD> => {
   const parse = Schema.decodeUnknownEffect(schema)
-  return Effect.contextWith((services: Context.Context<HttpServerRequest.ParsedSearchParams | RouteContext>) => {
-    const searchParams = Context.get(services, HttpServerRequest.ParsedSearchParams)
-    const routeContext = Context.get(services, RouteContext)
+  return Effect.contextWith((context: Context.Context<HttpServerRequest.ParsedSearchParams | RouteContext>) => {
+    const searchParams = Context.get(context, HttpServerRequest.ParsedSearchParams)
+    const routeContext = Context.get(context, RouteContext)
     return parse({ ...searchParams, ...routeContext.params }, options)
   })
 }
@@ -799,8 +799,8 @@ const makeMiddleware = (middleware: any, options?: {
     }))
     : new MiddlewareImpl(
       Effect.isEffect(middleware) ?
-        Layer.effectServices(Effect.map(middleware, (fn) => Context.makeUnsafe(new Map([[fnContextKey, fn]])))) :
-        Layer.succeedServices(Context.makeUnsafe(new Map([[fnContextKey, middleware]]))) as any
+        Layer.effectContext(Effect.map(middleware, (fn) => Context.makeUnsafe(new Map([[fnContextKey, fn]])))) :
+        Layer.succeedContext(Context.makeUnsafe(new Map([[fnContextKey, middleware]]))) as any
     )
 
 let middlewareId = 0
@@ -828,7 +828,7 @@ class MiddlewareImpl<
     this.layerFn = layerFn
     this.dependencies = dependencies
     const contextKey = `effect/http/HttpRouter/Middleware-${++middlewareId}` as const
-    this.layer = Layer.effectServices(Effect.gen({ self: this }, function*() {
+    this.layer = Layer.effectContext(Effect.gen({ self: this }, function*() {
       const context = yield* Effect.context<Scope.Scope>()
       const stack = [context.mapUnsafe.get(fnContextKey)]
       if (this.dependencies) {

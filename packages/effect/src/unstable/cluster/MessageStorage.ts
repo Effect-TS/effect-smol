@@ -483,7 +483,7 @@ export const makeEncoded: (encoded: Encoded) => Effect.Effect<
           const duplicate = result
           const schema = Reply.Reply(message.rpc)
           return Schema.decodeEffect(schema)(result.lastReceivedReply.value).pipe(
-            Effect.provideContext(message.services),
+            Effect.provideContext(message.context),
             MalformedMessage.refail,
             Effect.map((reply) =>
               SaveResult.Duplicate({
@@ -630,7 +630,7 @@ export const makeEncoded: (encoded: Encoded) => Effect.Effect<
         if (!message) return Effect.void
         const schema = Reply.Reply(message.rpc)
         return Schema.decodeEffect(schema)(reply).pipe(
-          Effect.provideContext(message.services)
+          Effect.provideContext(message.context)
         ) as Effect.Effect<Reply.Reply<any>, Schema.SchemaError>
       }),
       (error) => {

@@ -282,13 +282,13 @@ const RpcGroupProto = {
     })
   },
   toLayer(this: RpcGroup<any>, build: Effect.Effect<Record<string, (request: any) => any>>) {
-    return Layer.effectServices(this.toHandlers(build))
+    return Layer.effectContext(this.toHandlers(build))
   },
   of: identity,
   toLayerHandler(this: RpcGroup<any>, service: string, build: Effect.Effect<Record<string, (request: any) => any>>) {
     // oxlint-disable-next-line no-this-alias
     const self = this
-    return Layer.effectServices(Effect.gen(function*() {
+    return Layer.effectContext(Effect.gen(function*() {
       const services = yield* Effect.context<never>()
       const handler = Effect.isEffect(build) ? yield* build : build
       const contextMap = new Map<string, unknown>()
@@ -301,9 +301,9 @@ const RpcGroupProto = {
     }))
   },
   accessHandler(this: RpcGroup<any>, service: string) {
-    return Effect.contextWith((parentServices: Context.Context<any>) => {
+    return Effect.contextWith((parentContext: Context.Context<any>) => {
       const rpc = this.requests.get(service)!
-      const { handler, context } = parentServices.mapUnsafe.get(rpc.key) as Rpc.Handler<any>
+      const { handler, context } = parentContext.mapUnsafe.get(rpc.key) as Rpc.Handler<any>
       return Effect.succeed((payload: Rpc.Payload<any>, options: any) => {
         options.rpc = rpc
         const result = handler(payload, options)

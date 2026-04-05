@@ -148,7 +148,7 @@ export const make: <
   return identity<LayerMap<K, I, any>>({
     [TypeId]: TypeId,
     rcMap,
-    get: (key) => Layer.effectServices(RcMap.get(rcMap, key)),
+    get: (key) => Layer.effectContext(RcMap.get(rcMap, key)),
     services: (key) => RcMap.get(rcMap, key),
     invalidate: (key) => RcMap.invalidate(rcMap, key)
   })

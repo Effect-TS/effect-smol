@@ -406,7 +406,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
 })
 
 const applyMiddleware = <A, E, R>(
-  services: Context.Context<never>,
+  context: Context.Context<never>,
   handler: Effect.Effect<A, E, R>,
   options: {
     readonly rpc: Rpc.AnyWithProps
@@ -417,7 +417,7 @@ const applyMiddleware = <A, E, R>(
   }
 ) => {
   for (const service of options.rpc.middlewares) {
-    const middleware = Context.getUnsafe(services, service)
+    const middleware = Context.getUnsafe(context, service)
     handler = middleware(handler as any, options) as any
   }
 

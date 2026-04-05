@@ -454,7 +454,7 @@ export const withTransferables =
 export const layerMemoryConfig = (
   config: Config.Wrap<SqliteClientMemoryConfig>
 ): Layer.Layer<SqliteClient | Client.SqlClient, Config.ConfigError | SqlError> =>
-  Layer.effectServices(
+  Layer.effectContext(
     Config.unwrap(config).asEffect().pipe(
       Effect.flatMap(makeMemory),
       Effect.map((client) =>
@@ -472,7 +472,7 @@ export const layerMemoryConfig = (
 export const layerMemory = (
   config: SqliteClientMemoryConfig
 ): Layer.Layer<SqliteClient | Client.SqlClient, SqlError> =>
-  Layer.effectServices(
+  Layer.effectContext(
     Effect.map(makeMemory(config), (client) =>
       Context.make(SqliteClient, client).pipe(
         Context.add(Client.SqlClient, client)
@@ -486,7 +486,7 @@ export const layerMemory = (
 export const layer = (
   config: SqliteClientConfig
 ): Layer.Layer<SqliteClient | Client.SqlClient, SqlError> =>
-  Layer.effectServices(
+  Layer.effectContext(
     Effect.map(make(config), (client) =>
       Context.make(SqliteClient, client).pipe(
         Context.add(Client.SqlClient, client)
@@ -500,7 +500,7 @@ export const layer = (
 export const layerConfig = (
   config: Config.Wrap<SqliteClientConfig>
 ): Layer.Layer<SqliteClient | Client.SqlClient, Config.ConfigError | SqlError> =>
-  Layer.effectServices(
+  Layer.effectContext(
     Config.unwrap(config).asEffect().pipe(
       Effect.flatMap(make),
       Effect.map((client) =>

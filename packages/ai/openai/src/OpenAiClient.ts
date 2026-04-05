@@ -591,4 +591,4 @@ export const layerWebSocketMode: Layer.Layer<
   OpenAiSocket | ResponseIdTracker.ResponseIdTracker,
   never,
   OpenAiClient | Socket.WebSocketConstructor
-> = Layer.effectServices(makeSocket)
+> = Layer.effectContext(makeSocket)

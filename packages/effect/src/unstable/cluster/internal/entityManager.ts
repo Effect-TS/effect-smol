@@ -553,7 +553,7 @@ export const make = Effect.fnUntraced(function*<
                   exit: Exit.die(new MalformedMessage({ cause }))
                 }),
                 rpc: entityRpcs.get(message.envelope.tag)!,
-                services: context as any
+                context: context as any
               })
             ))
           },
@@ -578,7 +578,7 @@ export const make = Effect.fnUntraced(function*<
                     new Reply.ReplyWithContext({
                       reply,
                       rpc,
-                      services: context as any
+                      context: context as any
                     })
                   )
               })

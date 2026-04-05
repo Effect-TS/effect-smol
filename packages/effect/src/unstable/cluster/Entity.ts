@@ -517,7 +517,7 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
   const snowflakeGen = yield* Snowflake.makeGenerator
   const runnerAddress = new RunnerAddress({ host: "localhost", port: 3000 })
   const entityMap = new Map<string, {
-    readonly services: Context.Context<
+    readonly context: Context.Context<
       Rpc.ServicesClient<Rpcs> | Rpc.ServicesServer<Rpcs> | Rpc.Middleware<Rpcs> | LR
     >
     readonly concurrency: number | "unbounded"
@@ -530,13 +530,13 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
   const sharding = shardingTag.of({
     ...({} as Sharding["Service"]),
     registerEntity: (entity, handlers, options) =>
-      Effect.contextWith((services) => {
+      Effect.contextWith((context) => {
         entityMap.set(entity.type, {
-          services: services as any,
+          context: context as any,
           concurrency: options?.concurrency ?? 1,
           build: entity.protocol.toHandlers(handlers as any).pipe(
-            Effect.provideContext(Context.mutate(services, (services) =>
-              services.pipe(
+            Effect.provideContext(Context.mutate(context, (context) =>
+              context.pipe(
                 Context.add(CurrentRunnerAddress, runnerAddress),
                 Context.omit(Scope)
               )))
@@ -621,7 +621,7 @@ export const keepAlive: (
     new Message.OutgoingRequest({
       annotations: KeepAliveRpc.annotations,
       rpc: KeepAliveRpc,
-      services: Context.empty() as any,
+      context: Context.empty() as any,
       envelope: Envelope.makeRequest({
         requestId,
         address,

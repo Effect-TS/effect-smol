@@ -100,7 +100,7 @@ const addEntry = <A extends Request.Any>(
   let completed = false
   const entry = makeEntry({
     request,
-    services: fiber.context as any,
+    context: fiber.context as any,
     uninterruptible: false,
     completeUnsafe(effect) {
       if (completed) return

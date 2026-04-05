@@ -1246,7 +1246,7 @@ export const layerProtocolWorker: (
  * @since 4.0.0
  * @category ConnectionHooks
  */
-export class ConnectionHooks extends ServiceMap.Service<ConnectionHooks, {
+export class ConnectionHooks extends Context.Service<ConnectionHooks, {
   readonly onConnect: Effect.Effect<void>
   readonly onDisconnect: Effect.Effect<void>
 }>()("effect/rpc/RpcClient/ConnectionHooks") {}

@@ -129,10 +129,10 @@ export const format: (options?: FormatOptions | undefined) => Effect.Effect<stri
  * @category Formatting
  */
 export const formatUnsafe = (
-  services: Context.Context<never>,
+  context: Context.Context<never>,
   options?: FormatOptions | undefined
 ): string => {
-  const snapshot = Metric.snapshotUnsafe(services)
+  const snapshot = Metric.snapshotUnsafe(context)
   const prefix = options?.prefix ? sanitizeMetricName(options.prefix) + "_" : ""
   const mapper = options?.metricNameMapper ?? ((name: string) => name)
   const lines: Array<string> = []

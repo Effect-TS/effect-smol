@@ -367,7 +367,7 @@ export const layerClient = <Id extends AnyId, S, R, EX = never, RX = never>(
       RX
     >
 ): Layer.Layer<ForClient<Id>, EX, R | Exclude<RX, Scope>> =>
-  Layer.effectServices(Effect.gen(function*() {
+  Layer.effectContext(Effect.gen(function*() {
     const services = (yield* Effect.context<R | Scope>()).pipe(
       Context.omit(Scope)
     ) as Context.Context<R>

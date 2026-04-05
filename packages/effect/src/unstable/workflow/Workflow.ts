@@ -551,8 +551,8 @@ export const intoResult = <A, E, R>(
   never,
   Exclude<R, Scope.Scope> | WorkflowInstance
 > =>
-  Effect.contextWith((services: Context.Context<WorkflowInstance>) => {
-    const instance = Context.get(services, InstanceTag)
+  Effect.contextWith((context: Context.Context<WorkflowInstance>) => {
+    const instance = Context.get(context, InstanceTag)
     const captureDefects = Context.get(instance.workflow.annotations, CaptureDefects)
     const suspendOnFailure = Context.get(instance.workflow.annotations, SuspendOnFailure)
     return effect.pipe(
@@ -601,8 +601,8 @@ export const wrapActivityResult = <A, E, R>(
   effect: Effect.Effect<A, E, R>,
   isSuspend: (value: A) => boolean
 ): Effect.Effect<A, E, R | WorkflowInstance> =>
-  Effect.contextWith((services: Context.Context<WorkflowInstance>) => {
-    const instance = Context.get(services, InstanceTag)
+  Effect.contextWith((context: Context.Context<WorkflowInstance>) => {
+    const instance = Context.get(context, InstanceTag)
     const state = instance.activityState
     if (instance.suspended) {
       return waitForZero(instance).pipe(

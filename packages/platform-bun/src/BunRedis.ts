@@ -58,7 +58,7 @@ const make = Effect.fnUntraced(function*(
  */
 export const layer = (
   options?: ({ readonly url?: string } & RedisOptions) | undefined
-): Layer.Layer<Redis.Redis | BunRedis> => Layer.effectServices(make(options))
+): Layer.Layer<Redis.Redis | BunRedis> => Layer.effectContext(make(options))
 
 /**
  * @since 1.0.0
@@ -67,7 +67,7 @@ export const layer = (
 export const layerConfig = (
   options: Config.Wrap<{ readonly url?: string } & RedisOptions>
 ): Layer.Layer<Redis.Redis | BunRedis, Config.ConfigError> =>
-  Layer.effectServices(
+  Layer.effectContext(
     Config.unwrap(options).asEffect().pipe(
       Effect.flatMap(make)
     )

@@ -204,28 +204,28 @@ export const withPreResponseHandler: {
  * @category conversions
  */
 export const toWebHandlerWith = <Provided, R = never, ReqR = Exclude<R, Provided | Scope.Scope | HttpServerRequest>>(
-  services: Context.Context<Provided>
+  context: Context.Context<Provided>
 ) =>
 <E>(
   self: Effect.Effect<HttpServerResponse, E, R>,
   middleware?: HttpMiddleware | undefined
 ): [ReqR] extends [never] ?
-  (request: Request, services?: Context.Context<never> | undefined) => Promise<globalThis.Response>
-  : (request: Request, services: Context.Context<ReqR>) => Promise<globalThis.Response> =>
+  (request: Request, context?: Context.Context<never> | undefined) => Promise<globalThis.Response>
+  : (request: Request, context: Context.Context<ReqR>) => Promise<globalThis.Response> =>
 {
   const resolveSymbol = Symbol.for("@effect/platform/HttpApp/resolve")
   const httpApp = toHandled(self, (request, response) => {
     response = scopeTransferToStream(response)
     ;(request as any)[resolveSymbol](
-      Response.toWeb(response, { withoutBody: request.method === "HEAD", services })
+      Response.toWeb(response, { withoutBody: request.method === "HEAD", context })
     )
     return Effect.void
   }, middleware)
-  return (request: Request, reqServices?: Context.Context<never> | undefined): Promise<globalThis.Response> =>
+  return (request: Request, reqContext?: Context.Context<never> | undefined): Promise<globalThis.Response> =>
     new Promise((resolve) => {
-      const contextMap = new Map<string, any>(services.mapUnsafe)
-      if (Context.isContext(reqServices)) {
-        for (const [key, value] of reqServices.mapUnsafe) {
+      const contextMap = new Map<string, any>(context.mapUnsafe)
+      if (Context.isContext(reqContext)) {
+        for (const [key, value] of reqContext.mapUnsafe) {
           contextMap.set(key, value)
         }
       }
@@ -246,7 +246,7 @@ export const toWebHandlerWith = <Provided, R = never, ReqR = Exclude<R, Provided
 export const toWebHandler: <E>(
   self: Effect.Effect<HttpServerResponse, E, HttpServerRequest | Scope.Scope>,
   middleware?: HttpMiddleware | undefined
-) => (request: Request, services?: Context.Context<never> | undefined) => Promise<globalThis.Response> =
+) => (request: Request, context?: Context.Context<never> | undefined) => Promise<globalThis.Response> =
   toWebHandlerWith(Context.empty())
 
 /**
@@ -263,7 +263,7 @@ export const toWebHandlerLayerWith = <
   layer: Layer.Layer<Provided, LE>,
   options: {
     readonly toHandler: (
-      services: Context.Context<Provided>
+      context: Context.Context<Provided>
     ) => Effect.Effect<Effect.Effect<HttpServerResponse, E, R>, LE>
     readonly middleware?: HttpMiddleware | undefined
     readonly memoMap?: Layer.MemoMap | undefined
@@ -272,39 +272,39 @@ export const toWebHandlerLayerWith = <
   readonly dispose: () => Promise<void>
   readonly handler: [ReqR] extends [never] ? (
       request: Request,
-      services?: Context.Context<never> | undefined
+      context?: Context.Context<never> | undefined
     ) => Promise<globalThis.Response>
     : (
       request: Request,
-      services: Context.Context<ReqR>
+      context: Context.Context<ReqR>
     ) => Promise<globalThis.Response>
 } => {
   const scope = Scope.makeUnsafe()
   const dispose = () => Effect.runPromise(Scope.close(scope, Exit.void))
 
   let handlerCache:
-    | ((request: Request, services?: Context.Context<ReqR> | undefined) => Promise<globalThis.Response>)
+    | ((request: Request, context?: Context.Context<ReqR> | undefined) => Promise<globalThis.Response>)
     | undefined
   let handlerPromise:
-    | Promise<(request: Request, services?: Context.Context<ReqR> | undefined) => Promise<globalThis.Response>>
+    | Promise<(request: Request, context?: Context.Context<ReqR> | undefined) => Promise<globalThis.Response>>
     | undefined
   function handler(
     request: Request,
-    services?: Context.Context<ReqR> | undefined
+    context?: Context.Context<ReqR> | undefined
   ): Promise<globalThis.Response> {
     if (handlerCache) {
-      return handlerCache(request, services)
+      return handlerCache(request, context)
     }
     handlerPromise ??= Effect.runPromise(Effect.gen(function*() {
-      const services = yield* (options.memoMap
+      const context = yield* (options.memoMap
         ? Layer.buildWithMemoMap(layer, options.memoMap, scope)
         : Layer.buildWithScope(layer, scope))
-      return handlerCache = toWebHandlerWith<Provided, R>(services)(
-        yield* options.toHandler(services),
+      return handlerCache = toWebHandlerWith<Provided, R>(context)(
+        yield* options.toHandler(context),
         options.middleware
       ) as any
     }))
-    return handlerPromise.then((f) => f(request, services))
+    return handlerPromise.then((f) => f(request, context))
   }
   return { dispose, handler: handler as any } as const
 }
@@ -323,10 +323,10 @@ export const toWebHandlerLayer = <E, R, Provided, LE, ReqR = Exclude<R, Provided
 ): {
   readonly dispose: () => Promise<void>
   readonly handler: [ReqR] extends [never]
-    ? (request: Request, services?: Context.Context<never> | undefined) => Promise<globalThis.Response>
+    ? (request: Request, context?: Context.Context<never> | undefined) => Promise<globalThis.Response>
     : (
       request: Request,
-      services: Context.Context<ReqR>
+      context: Context.Context<ReqR>
     ) => Promise<globalThis.Response>
 } =>
   toWebHandlerLayerWith(layer, {
@@ -346,7 +346,7 @@ export const fromWebHandler = (
     const request = Context.getUnsafe(fiber.context, HttpServerRequest)
     const requestResult = Request.toWebResult(request, {
       signal,
-      services: fiber.context
+      context: fiber.context
     })
     if (requestResult._tag === "Failure") {
       return resume(Effect.fail(new HttpServerError({ reason: requestResult.failure })))

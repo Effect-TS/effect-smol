@@ -399,7 +399,7 @@ export const layerConfig: (
 ) => Layer.Layer<ClickhouseClient | Client.SqlClient, Config.ConfigError | SqlError> = (
   config: Config.Wrap<ClickhouseClientConfig>
 ): Layer.Layer<ClickhouseClient | Client.SqlClient, Config.ConfigError | SqlError> =>
-  Layer.effectServices(
+  Layer.effectContext(
     Config.unwrap(config).asEffect().pipe(
       Effect.flatMap(make),
       Effect.map((client) =>
@@ -417,7 +417,7 @@ export const layerConfig: (
 export const layer = (
   config: ClickhouseClientConfig
 ): Layer.Layer<ClickhouseClient | Client.SqlClient, Config.ConfigError | SqlError> =>
-  Layer.effectServices(
+  Layer.effectContext(
     Effect.map(make(config), (client) =>
       Context.make(ClickhouseClient, client).pipe(
         Context.add(Client.SqlClient, client)

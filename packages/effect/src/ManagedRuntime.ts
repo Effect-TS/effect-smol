@@ -45,13 +45,13 @@ export declare namespace ManagedRuntime {
 export interface ManagedRuntime<in R, out ER> {
   readonly [TypeId]: typeof TypeId
   readonly memoMap: Layer.MemoMap
-  readonly servicesEffect: Effect.Effect<Context.Context<R>, ER>
-  readonly services: () => Promise<Context.Context<R>>
+  readonly contextEffect: Effect.Effect<Context.Context<R>, ER>
+  readonly context: () => Promise<Context.Context<R>>
 
   // internal
   readonly scope: Scope.Closeable
   // internal
-  cachedServices: Context.Context<R> | undefined
+  cachedContext: Context.Context<R> | undefined
 
   /**
    * Executes the effect using the provided Scheduler or using the global
@@ -182,14 +182,14 @@ export const make = <R, ER>(
       }
       : defaultRunOptions as O
   let buildFiber: Fiber.Fiber<Context.Context<R>, ER> | undefined
-  const servicesEffect = Effect.withFiber<Context.Context<R>, ER>((fiber) => {
+  const contextEffect = Effect.withFiber<Context.Context<R>, ER>((fiber) => {
     if (!buildFiber) {
       buildFiber = Effect.runFork(
         Effect.tap(
           Layer.buildWithMemoMap(layer, memoMap, layerScope),
-          (services) =>
+          (context) =>
             Effect.sync(() => {
-              self.cachedServices = services
+              self.cachedContext = context
             })
         ),
         { ...defaultRunOptions, scheduler: fiber.currentScheduler }
@@ -201,25 +201,25 @@ export const make = <R, ER>(
     [TypeId]: TypeId,
     memoMap,
     scope,
-    servicesEffect,
-    cachedServices: undefined,
-    services() {
-      return self.cachedServices === undefined ?
-        Effect.runPromise(self.servicesEffect) :
-        Promise.resolve(self.cachedServices)
+    contextEffect: contextEffect,
+    cachedContext: undefined,
+    context() {
+      return self.cachedContext === undefined ?
+        Effect.runPromise(self.contextEffect) :
+        Promise.resolve(self.cachedContext)
     },
     dispose(): Promise<void> {
       return Effect.runPromise(self.disposeEffect)
     },
     disposeEffect: Effect.suspend(() => {
-      ;(self as Mutable<ManagedRuntime<R, ER>>).servicesEffect = Effect.die("ManagedRuntime disposed")
-      self.cachedServices = undefined
+      ;(self as Mutable<ManagedRuntime<R, ER>>).contextEffect = Effect.die("ManagedRuntime disposed")
+      self.cachedContext = undefined
       return Scope.close(self.scope, Exit.void)
     }),
     runFork<A, E>(effect: Effect.Effect<A, E, R>, options?: Effect.RunOptions): Fiber.Fiber<A, E | ER> {
-      return self.cachedServices === undefined ?
+      return self.cachedContext === undefined ?
         Effect.runFork(provide(self, effect), mergeRunOptions(options)) :
-        Effect.runForkWith(self.cachedServices)(effect, mergeRunOptions(options))
+        Effect.runForkWith(self.cachedContext)(effect, mergeRunOptions(options))
     },
     runCallback<A, E>(
       effect: Effect.Effect<A, E, R>,
@@ -227,31 +227,31 @@ export const make = <R, ER>(
         readonly onExit: (exit: Exit.Exit<A, E | ER>) => void
       }
     ): (interruptor?: number | undefined) => void {
-      return self.cachedServices === undefined ?
+      return self.cachedContext === undefined ?
         Effect.runCallback(provide(self, effect), mergeRunOptions(options)) :
-        Effect.runCallbackWith(self.cachedServices)(effect, mergeRunOptions(options))
+        Effect.runCallbackWith(self.cachedContext)(effect, mergeRunOptions(options))
     },
     runSyncExit<A, E>(effect: Effect.Effect<A, E, R>): Exit.Exit<A, E | ER> {
-      return self.cachedServices === undefined ?
+      return self.cachedContext === undefined ?
         Effect.runSyncExit(provide(self, effect)) :
-        Effect.runSyncExitWith(self.cachedServices)(effect)
+        Effect.runSyncExitWith(self.cachedContext)(effect)
     },
     runSync<A, E>(effect: Effect.Effect<A, E, R>): A {
-      return self.cachedServices === undefined ?
+      return self.cachedContext === undefined ?
         Effect.runSync(provide(self, effect)) :
-        Effect.runSyncWith(self.cachedServices)(effect)
+        Effect.runSyncWith(self.cachedContext)(effect)
     },
     runPromiseExit<A, E>(effect: Effect.Effect<A, E, R>, options?: Effect.RunOptions): Promise<Exit.Exit<A, E | ER>> {
-      return self.cachedServices === undefined ?
+      return self.cachedContext === undefined ?
         Effect.runPromiseExit(provide(self, effect), mergeRunOptions(options)) :
-        Effect.runPromiseExitWith(self.cachedServices)(effect, mergeRunOptions(options))
+        Effect.runPromiseExitWith(self.cachedContext)(effect, mergeRunOptions(options))
     },
     runPromise<A, E>(effect: Effect.Effect<A, E, R>, options?: {
       readonly signal?: AbortSignal | undefined
     }): Promise<A> {
-      return self.cachedServices === undefined ?
+      return self.cachedContext === undefined ?
         Effect.runPromise(provide(self, effect), mergeRunOptions(options)) :
-        Effect.runPromiseWith(self.cachedServices)(effect, mergeRunOptions(options))
+        Effect.runPromiseWith(self.cachedContext)(effect, mergeRunOptions(options))
     }
   }
   return self
@@ -262,7 +262,7 @@ function provide<R, ER, A, E>(
   effect: Effect.Effect<A, E, R>
 ): Effect.Effect<A, E | ER> {
   return Effect.flatMap(
-    managed.servicesEffect,
-    (services) => Effect.provideContext(effect, services)
+    managed.contextEffect,
+    (context) => Effect.provideContext(effect, context)
   )
 }

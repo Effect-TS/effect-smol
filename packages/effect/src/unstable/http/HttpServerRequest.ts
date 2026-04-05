@@ -897,7 +897,7 @@ export const toURL = (self: HttpServerRequest): Option.Option<URL> => {
  */
 export const toWebResult = (self: HttpServerRequest, options?: {
   readonly signal?: AbortSignal | undefined
-  readonly services?: Context.Context<never> | undefined
+  readonly context?: Context.Context<never> | undefined
 }): Result.Result<Request, RequestError> => {
   if (self.source instanceof Request) {
     return Result.succeed(self.source)
@@ -919,7 +919,7 @@ export const toWebResult = (self: HttpServerRequest, options?: {
     requestInit.signal = options.signal
   }
   if (hasBody(self.method)) {
-    requestInit.body = Stream.toReadableStreamWith(self.stream, options?.services ?? Context.empty())
+    requestInit.body = Stream.toReadableStreamWith(self.stream, options?.context ?? Context.empty())
     ;(requestInit as any).duplex = "half"
   }
   return Result.succeed(new Request(url.value, requestInit))
@@ -932,9 +932,9 @@ export const toWebResult = (self: HttpServerRequest, options?: {
 export const toWeb = (self: HttpServerRequest, options?: {
   readonly signal?: AbortSignal | undefined
 }): Effect.Effect<Request, RequestError> =>
-  Effect.contextWith((services) =>
+  Effect.contextWith((context) =>
     toWebResult(self, {
-      services,
+      context,
       signal: options?.signal
     }).asEffect()
   )

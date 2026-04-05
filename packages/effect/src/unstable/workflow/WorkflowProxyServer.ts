@@ -90,7 +90,7 @@ export const layerRpcHandlers = <
   never,
   WorkflowEngine | Workflow.RequirementsHandler<Workflows[number]>
 > =>
-  Layer.effectServices(Effect.gen(function*() {
+  Layer.effectContext(Effect.gen(function*() {
     const services = yield* Effect.context<never>()
     const prefix = options?.prefix ?? ""
     const handlers = new Map<string, Rpc.Handler<string>>()

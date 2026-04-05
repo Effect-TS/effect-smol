@@ -76,13 +76,13 @@ export const makeWith = <
   never,
   ("lookup" extends ServiceMode ? never : R) | Scope.Scope
 > =>
-  effect.contextWith((services: Context.Context<any>) => {
-    const scope = Context.get(services, Scope.Scope)
+  effect.contextWith((context: Context.Context<any>) => {
+    const scope = Context.get(context, Scope.Scope)
     const self = Object.create(Proto)
     self.lookup = (key: Key): Effect.Effect<A, E> =>
       effect.updateContext(
         options.lookup(key),
-        (input) => Context.merge(services, input)
+        (input) => Context.merge(context, input)
       )
     const map = MutableHashMap.empty<Key, Entry<A, E>>()
     self.state = { _tag: "Open", map }

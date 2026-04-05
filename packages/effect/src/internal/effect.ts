@@ -497,11 +497,11 @@ export const getCurrentFiber = (): Fiber.Fiber<any, any> | undefined => (globalT
 /** @internal */
 export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
   constructor(
-    services: Context.Context<never>,
+    context: Context.Context<never>,
     interruptible: boolean = true
   ) {
     this[FiberTypeId] = fiberVariance as any
-    this.setContext(services)
+    this.setContext(context)
     this.id = ++fiberIdStore.id
     this.currentOpCount = 0
     this.currentLoopCount = 0
@@ -678,21 +678,21 @@ export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
   pipe() {
     return pipeArguments(this, arguments)
   }
-  setContext(services: Context.Context<never>): void {
-    this.context = services
+  setContext(context: Context.Context<never>): void {
+    this.context = context
     const scheduler = this.getRef(Scheduler.Scheduler)
     if (scheduler !== this.currentScheduler) {
       this.currentScheduler = scheduler
       this._dispatcher = undefined
     }
-    this.currentSpan = services.mapUnsafe.get(Tracer.ParentSpanKey)
+    this.currentSpan = context.mapUnsafe.get(Tracer.ParentSpanKey)
     this.currentLogLevel = this.getRef(CurrentLogLevel)
     this.minimumLogLevel = this.getRef(MinimumLogLevel)
-    this.currentStackFrame = services.mapUnsafe.get(CurrentStackFrame.key)
+    this.currentStackFrame = context.mapUnsafe.get(CurrentStackFrame.key)
     this.maxOpsBeforeYield = this.getRef(Scheduler.MaxOpsBeforeYield)
     this.currentPreventYield = this.getRef(Scheduler.PreventSchedulerYield)
-    this.runtimeMetrics = services.mapUnsafe.get(InternalMetric.FiberRuntimeMetricsKey)
-    const currentTracer = services.mapUnsafe.get(Tracer.TracerKey)
+    this.runtimeMetrics = context.mapUnsafe.get(InternalMetric.FiberRuntimeMetricsKey)
+    const currentTracer = context.mapUnsafe.get(Tracer.TracerKey)
     this.currentTracerContext = currentTracer ? currentTracer["context"] : undefined
   }
   get currentSpanLocal(): Tracer.Span | undefined {
@@ -1991,25 +1991,25 @@ export const serviceOptional = <I, S>(
 /** @internal */
 export const updateContext: {
   <R2, R>(
-    f: (services: Context.Context<R2>) => Context.Context<NoInfer<R>>
+    f: (context: Context.Context<R2>) => Context.Context<NoInfer<R>>
   ): <A, E>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R2>
   <A, E, R, R2>(
     self: Effect.Effect<A, E, R>,
-    f: (services: Context.Context<R2>) => Context.Context<NoInfer<R>>
+    f: (context: Context.Context<R2>) => Context.Context<NoInfer<R>>
   ): Effect.Effect<A, E, R2>
 } = dual(
   2,
   <A, E, R, R2>(
     self: Effect.Effect<A, E, R>,
-    f: (services: Context.Context<R2>) => Context.Context<NoInfer<R>>
+    f: (context: Context.Context<R2>) => Context.Context<NoInfer<R>>
   ): Effect.Effect<A, E, R2> =>
     withFiber<A, E, R2>((fiber) => {
-      const prev = fiber.context as Context.Context<R2>
-      const nextServices = f(prev)
-      if (prev === nextServices) return self as any
-      fiber.setContext(nextServices)
+      const prevContext = fiber.context as Context.Context<R2>
+      const nextContext = f(prevContext)
+      if (prevContext === nextContext) return self as any
+      fiber.setContext(nextContext)
       return onExitPrimitive(self, () => {
-        fiber.setContext(prev)
+        fiber.setContext(prevContext)
         return undefined
       })
     })
@@ -2047,28 +2047,28 @@ const getContext = withFiber((fiber) => succeed(fiber.context))
 
 /** @internal */
 export const contextWith = <R, A, E, R2>(
-  f: (services: Context.Context<R>) => Effect.Effect<A, E, R2>
+  f: (context: Context.Context<R>) => Effect.Effect<A, E, R2>
 ): Effect.Effect<A, E, R | R2> => withFiber((fiber) => f(fiber.context as Context.Context<R>))
 
 /** @internal */
 export const provideContext: {
   <XR>(
-    services: Context.Context<XR>
+    context: Context.Context<XR>
   ): <A, E, R>(
     self: Effect.Effect<A, E, R>
   ) => Effect.Effect<A, E, Exclude<R, XR>>
   <A, E, R, XR>(
     self: Effect.Effect<A, E, R>,
-    services: Context.Context<XR>
+    context: Context.Context<XR>
   ): Effect.Effect<A, E, Exclude<R, XR>>
 } = dual(
   2,
   <A, E, R, XR>(
     self: Effect.Effect<A, E, R>,
-    services: Context.Context<XR>
+    context: Context.Context<XR>
   ): Effect.Effect<A, E, Exclude<R, XR>> => {
     if (effectIsExit(self)) return self as any
-    return updateContext(self, Context.merge(services)) as any
+    return updateContext(self, Context.merge(context)) as any
   }
 )
 
@@ -3797,14 +3797,14 @@ export const acquireRelease = <A, E, R, R2>(
   release: (a: A, exit: Exit.Exit<unknown, unknown>) => Effect.Effect<unknown, never, R2>,
   options?: { readonly interruptible?: boolean }
 ): Effect.Effect<A, E, R | R2 | Scope.Scope> =>
-  contextWith((services: Context.Context<R2>) =>
+  contextWith((context: Context.Context<R2>) =>
     uninterruptibleMask((restore) =>
       flatMap(
         scope,
         (scope) =>
           tap(
             options?.interruptible ? restore(acquire) : acquire,
-            (a) => scopeAddFinalizerExit(scope, (exit) => provideContext(release(a, exit), services))
+            (a) => scopeAddFinalizerExit(scope, (exit) => provideContext(release(a, exit), context))
           )
       )
     )
@@ -3817,8 +3817,8 @@ export const addFinalizer = <R>(
   flatMap(
     scope,
     (scope) =>
-      contextWith((services: Context.Context<R>) =>
-        scopeAddFinalizerExit(scope, (exit) => provideContext(finalizer(exit), services))
+      contextWith((context: Context.Context<R>) =>
+        scopeAddFinalizerExit(scope, (exit) => provideContext(finalizer(exit), context))
       )
   )
 
@@ -5004,13 +5004,13 @@ export const forkScoped: {
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const runForkWith = <R>(services: Context.Context<R>) =>
+export const runForkWith = <R>(context: Context.Context<R>) =>
 <A, E>(
   effect: Effect.Effect<A, E, R>,
   options?: Effect.RunOptions | undefined
 ): Fiber.Fiber<A, E> => {
   const fiber = new FiberImpl<A, E>(
-    options?.scheduler ? Context.add(services, Scheduler.Scheduler, options.scheduler) : services,
+    options?.scheduler ? Context.add(context, Scheduler.Scheduler, options.scheduler) : context,
     options?.uninterruptible !== true
   )
   fiber.evaluate(effect as any)
@@ -5061,8 +5061,8 @@ export const runFork: <A, E>(
 ) => Fiber.Fiber<A, E> = runForkWith(Context.empty())
 
 /** @internal */
-export const runCallbackWith = <R>(services: Context.Context<R>) => {
-  const runFork = runForkWith(services)
+export const runCallbackWith = <R>(context: Context.Context<R>) => {
+  const runFork = runForkWith(context)
   return <A, E>(
     effect: Effect.Effect<A, E, R>,
     options?:
@@ -5085,8 +5085,8 @@ export const runCallbackWith = <R>(services: Context.Context<R>) => {
 export const runCallback = runCallbackWith(Context.empty())
 
 /** @internal */
-export const runPromiseExitWith = <R>(services: Context.Context<R>) => {
-  const runFork = runForkWith(services)
+export const runPromiseExitWith = <R>(context: Context.Context<R>) => {
+  const runFork = runForkWith(context)
   return <A, E>(
     effect: Effect.Effect<A, E, R>,
     options?: Effect.RunOptions | undefined
@@ -5102,8 +5102,8 @@ export const runPromiseExitWith = <R>(services: Context.Context<R>) => {
 export const runPromiseExit = runPromiseExitWith(Context.empty())
 
 /** @internal */
-export const runPromiseWith = <R>(services: Context.Context<R>) => {
-  const runPromiseExit = runPromiseExitWith(services)
+export const runPromiseWith = <R>(context: Context.Context<R>) => {
+  const runPromiseExit = runPromiseExitWith(context)
   return <A, E>(
     effect: Effect.Effect<A, E, R>,
     options?:
@@ -5127,8 +5127,8 @@ export const runPromise: <A, E>(
 ) => Promise<A> = runPromiseWith(Context.empty())
 
 /** @internal */
-export const runSyncExitWith = <R>(services: Context.Context<R>) => {
-  const runFork = runForkWith(services)
+export const runSyncExitWith = <R>(context: Context.Context<R>) => {
+  const runFork = runForkWith(context)
   return <A, E>(effect: Effect.Effect<A, E, R>): Exit.Exit<A, E> => {
     if (effectIsExit(effect)) return effect
     const scheduler = new Scheduler.MixedScheduler("sync")
@@ -5144,8 +5144,8 @@ export const runSyncExit: <A, E>(effect: Effect.Effect<A, E>) => Exit.Exit<A, E>
 )
 
 /** @internal */
-export const runSyncWith = <R>(services: Context.Context<R>) => {
-  const runSyncExit = runSyncExitWith(services)
+export const runSyncWith = <R>(context: Context.Context<R>) => {
+  const runSyncExit = runSyncExitWith(context)
   return <A, E>(effect: Effect.Effect<A, E, R>): A => {
     const exit = runSyncExit(effect)
     if (exit._tag === "Failure") throw causeSquash(exit.cause)

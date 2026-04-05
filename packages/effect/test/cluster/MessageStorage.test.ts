@@ -120,7 +120,7 @@ export const makeRequest = Effect.fnUntraced(function*(options?: {
       headers: Headers.empty
     }),
     annotations: rpc.annotations,
-    services: Context.empty() as any,
+    context: Context.empty() as any,
     rpc,
     lastReceivedReply: Option.none(),
     respond() {
@@ -152,7 +152,7 @@ export const makeReply = Effect.fnUntraced(function*(request: Message.OutgoingRe
       requestId: request.envelope.requestId,
       exit: Exit.void as any
     }),
-    services: request.services,
+    context: request.context,
     rpc: request.rpc
   })
 })
@@ -182,7 +182,7 @@ export const makeChunkReply = Effect.fnUntraced(function*(request: Message.Outgo
       sequence,
       values: [undefined]
     }),
-    services: request.services,
+    context: request.context,
     rpc: request.rpc
   })
 })
@@ -190,7 +190,7 @@ export const makeChunkReply = Effect.fnUntraced(function*(request: Message.Outgo
 export const makeEmptyReply = (request: Message.OutgoingRequest<any>) => {
   return new Reply.ReplyWithContext({
     reply: Reply.Chunk.emptyFrom(request.envelope.requestId),
-    services: request.services,
+    context: request.context,
     rpc: request.rpc
   })
 }

@@ -308,7 +308,7 @@ export const layerConfig: (
 ) => Layer.Layer<LibsqlClient | Client.SqlClient, Config.ConfigError> = (
   config: Config.Wrap<LibsqlClientConfig>
 ): Layer.Layer<LibsqlClient | Client.SqlClient, Config.ConfigError> =>
-  Layer.effectServices(
+  Layer.effectContext(
     Config.unwrap(config).asEffect().pipe(
       Effect.flatMap(make),
       Effect.map((client) =>
@@ -326,7 +326,7 @@ export const layerConfig: (
 export const layer = (
   config: LibsqlClientConfig
 ): Layer.Layer<LibsqlClient | Client.SqlClient> =>
-  Layer.effectServices(
+  Layer.effectContext(
     Effect.map(make(config), (client) =>
       Context.make(LibsqlClient, client).pipe(
         Context.add(Client.SqlClient, client)

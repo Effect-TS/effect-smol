@@ -119,7 +119,7 @@ export const group = <
   Handlers.Error<Return>,
   Exclude<Handlers.Context<Return>, Scope.Scope>
 > =>
-  Layer.effectServices(Effect.gen(function*() {
+  Layer.effectContext(Effect.gen(function*() {
     const services = yield* Effect.context<any>()
     const group = api.groups[groupName]!
     const result = build(makeHandlers(group))
@@ -330,10 +330,10 @@ export const endpoint = <
   | HttpPlatform
   | Path
 > =>
-  Effect.contextWith((services: Context.Context<any>) => {
+  Effect.contextWith((context: Context.Context<any>) => {
     const group = api.groups[groupName] as unknown as HttpApiGroup.AnyWithProps
     const endpoint = group.endpoints[endpointName] as unknown as HttpApiEndpoint.AnyWithProps
-    return Effect.succeed(handlerToHttpEffect(group, endpoint, services, handler as any, false))
+    return Effect.succeed(handlerToHttpEffect(group, endpoint, context, handler as any, false))
   })
 
 /**
@@ -552,7 +552,7 @@ function decodePayload(
 function handlerToHttpEffect(
   group: HttpApiGroup.AnyWithProps,
   endpoint: HttpApiEndpoint.AnyWithProps,
-  services: Context.Context<any>,
+  context: Context.Context<any>,
   handler: HttpApiEndpoint.Handler<any, any, any>,
   isRaw: boolean
 ) {
@@ -568,13 +568,13 @@ function handlerToHttpEffect(
   return applyMiddleware(
     group,
     endpoint,
-    services,
+    context,
     Effect.gen(function*() {
       const fiber = Fiber.getCurrent()!
-      const services = fiber.context
-      const httpRequest = Context.getUnsafe(services, HttpServerRequest)
-      const routeContext = Context.getUnsafe(services, HttpRouter.RouteContext)
-      const query = Context.getUnsafe(services, Request.ParsedSearchParams)
+      const context = fiber.context
+      const httpRequest = Context.getUnsafe(context, HttpServerRequest)
+      const routeContext = Context.getUnsafe(context, HttpRouter.RouteContext)
+      const query = Context.getUnsafe(context, Request.ParsedSearchParams)
       const request: any = {
         request: httpRequest,
         endpoint,
@@ -604,20 +604,20 @@ function handlerToHttpEffect(
   ).pipe(
     Effect.withErrorReporting,
     Effect.catch((error) => Effect.orDie(encodeError(error))),
-    Effect.provideContext(services)
+    Effect.provideContext(context)
   )
 }
 
 function handlerToRoute(
   group: HttpApiGroup.AnyWithProps,
   handler: Handlers.Item<any>,
-  services: Context.Context<any>
+  context: Context.Context<any>
 ): HttpRouter.Route<any, any> {
   const endpoint = handler.endpoint
   return HttpRouter.route(
     endpoint.method,
     endpoint.path as HttpRouter.PathInput,
-    handlerToHttpEffect(group, endpoint, services, handler.handler, handler.isRaw),
+    handlerToHttpEffect(group, endpoint, context, handler.handler, handler.isRaw),
     { uninterruptible: handler.uninterruptible }
   )
 }
@@ -636,13 +636,13 @@ const getRequestMediaType = (request: HttpServerRequest): string => {
 const applyMiddleware = <A extends Effect.Effect<any, any, any>>(
   group: HttpApiGroup.AnyWithProps,
   endpoint: HttpApiEndpoint.AnyWithProps,
-  services: Context.Context<any>,
+  context: Context.Context<any>,
   handler: A
 ) => {
   const options = { group, endpoint }
   for (const key_ of endpoint.middlewares) {
     const key = key_ as any as HttpApiMiddleware.AnyService
-    const service = Context.getUnsafe(services, key as any) as HttpApiMiddleware.HttpApiMiddleware<any, any, any>
+    const service = Context.getUnsafe(context, key as any) as HttpApiMiddleware.HttpApiMiddleware<any, any, any>
     const apply = HttpApiMiddleware.isSecurity(key)
       ? makeSecurityMiddleware(key, service as any)
       : service

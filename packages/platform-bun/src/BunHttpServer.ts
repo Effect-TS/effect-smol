@@ -150,7 +150,7 @@ export const make = Effect.fnUntraced(
 const makeResponse = (
   request: ServerRequest.HttpServerRequest,
   response: ServerResponse.HttpServerResponse,
-  services: Context.Context<never>,
+  context: Context.Context<never>,
   scope: Scope.Scope
 ): Response => {
   const fields: {
@@ -201,7 +201,7 @@ const makeResponse = (
             Fiber.runIn(fiber, scope)
             return Effect.succeed(body.stream)
           })),
-          services
+          context
         ),
         fields
       )

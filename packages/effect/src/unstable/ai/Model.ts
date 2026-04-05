@@ -108,8 +108,8 @@ const Proto = {
     _RIn: identity
   },
   asEffect(this: Model<any, any, any>) {
-    return Effect.contextWith((services: Context.Context<never>) =>
-      Effect.succeed(Layer.provide(this, Layer.succeedServices(services)))
+    return Effect.contextWith((context: Context.Context<never>) =>
+      Effect.succeed(Layer.provide(this, Layer.succeedContext(context)))
     )
   },
   toJSON(this: Model<any, any, any>): unknown {
@@ -171,7 +171,7 @@ export const make = <const Provider extends string, const Name extends string, P
     { provider },
     Layer.merge(
       layer,
-      Layer.succeedServices(
+      Layer.succeedContext(
         ProviderName.context(provider).pipe(
           Context.add(ModelName, modelName)
         )

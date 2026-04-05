@@ -185,9 +185,9 @@ export const into: {
     | Error["DecodingServices"]
   > =>
     Effect.contextWith(
-      (services: Context.Context<WorkflowEngine | WorkflowInstance>) => {
-        const engine = Context.get(services, EngineTag)
-        const instance = Context.get(services, InstanceTag)
+      (context: Context.Context<WorkflowEngine | WorkflowInstance>) => {
+        const engine = Context.get(context, EngineTag)
+        const instance = Context.get(context, InstanceTag)
         return Effect.onExit(
           effect,
           Effect.fnUntraced(function*(exit) {

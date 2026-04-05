@@ -156,9 +156,9 @@ const MemoMapTypeId = "~effect/Layer/MemoMap"
  *   const dbLayer = Layer.succeed(Database)({
  *     query: Effect.fn("Database.query")((sql: string) => Effect.succeed("result"))
  *   })
- *   const services = yield* Layer.buildWithMemoMap(dbLayer, memoMap, scope)
+ *   const context = yield* Layer.buildWithMemoMap(dbLayer, memoMap, scope)
  *
- *   return Context.get(services, Database)
+ *   return Context.get(context, Database)
  * })
  * ```
  *
@@ -367,9 +367,9 @@ class MemoMapImpl implements MemoMap {
  *   const dbLayer = Layer.succeed(Database)({
  *     query: Effect.fn("Database.query")((sql: string) => Effect.succeed("result"))
  *   })
- *   const services = yield* Layer.buildWithMemoMap(dbLayer, memoMap, scope)
+ *   const context = yield* Layer.buildWithMemoMap(dbLayer, memoMap, scope)
  *
- *   return Context.get(services, Database)
+ *   return Context.get(context, Database)
  * })
  * ```
  *
@@ -397,9 +397,9 @@ export const makeMemoMapUnsafe = (): MemoMap => new MemoMapImpl()
  *   const dbLayer = Layer.succeed(Database)({
  *     query: Effect.fn("Database.query")((sql: string) => Effect.succeed("result"))
  *   })
- *   const services = yield* Layer.buildWithMemoMap(dbLayer, memoMap, scope)
+ *   const context = yield* Layer.buildWithMemoMap(dbLayer, memoMap, scope)
  *
- *   return Context.get(services, Database)
+ *   return Context.get(context, Database)
  * })
  * ```
  *
@@ -449,21 +449,21 @@ export class CurrentMemoMap extends Context.Service<CurrentMemoMap, MemoMap>()("
  *   const dbLayer = Layer.succeed(Database)({
  *     query: Effect.fn("Database.query")((sql: string) => Effect.succeed("result"))
  *   })
- *   const dbServices = yield* Layer.buildWithMemoMap(dbLayer, memoMap, scope)
+ *   const dbContext = yield* Layer.buildWithMemoMap(dbLayer, memoMap, scope)
  *
  *   // Build logger layer with same memoization (reuses memo if same layer)
  *   const loggerLayer = Layer.succeed(Logger)({
  *     log: Effect.fn("Logger.log")((msg: string) => Effect.sync(() => console.log(msg)))
  *   })
- *   const loggerServices = yield* Layer.buildWithMemoMap(
+ *   const loggerContext = yield* Layer.buildWithMemoMap(
  *     loggerLayer,
  *     memoMap,
  *     scope
  *   )
  *
  *   return {
- *     database: Context.get(dbServices, Database),
- *     logger: Context.get(loggerServices, Logger)
+ *     database: Context.get(dbContext, Database),
+ *     logger: Context.get(loggerContext, Logger)
  *   }
  * })
  * ```
@@ -510,10 +510,10 @@ export const buildWithMemoMap: {
  *   })
  *
  *   // Build the layer into Context - automatically manages scope and memoization
- *   const services = yield* Layer.build(dbLayer)
+ *   const context = yield* Layer.build(dbLayer)
  *
  *   // Extract the specific service from the built layer
- *   const database = Context.get(services, Database)
+ *   const database = Context.get(context, Database)
  *
  *   return yield* database.query("SELECT * FROM users")
  * })
@@ -562,8 +562,8 @@ export const build = <RIn, E, ROut>(
  *   }))
  *
  *   // Build with specific scope - resources tied to this scope
- *   const services = yield* Layer.buildWithScope(dbLayer, scope)
- *   const database = Context.get(services, Database)
+ *   const context = yield* Layer.buildWithScope(dbLayer, scope)
+ *   const database = Context.get(context, Database)
  *
  *   return yield* database.query("SELECT * FROM users")
  *   // Database will be closed when scope is closed
@@ -635,9 +635,9 @@ export const succeed: {
   <I, S>(service: Context.Key<I, S>, resource: Types.NoInfer<S>): Layer<I>
 } = function() {
   if (arguments.length === 1) {
-    return (resource: any) => succeedServices(Context.make(arguments[0], resource))
+    return (resource: any) => succeedContext(Context.make(arguments[0], resource))
   }
-  return succeedServices(Context.make(arguments[0], arguments[1]))
+  return succeedContext(Context.make(arguments[0], arguments[1]))
 } as any
 
 /**
@@ -659,23 +659,22 @@ export const succeed: {
  *   readonly log: (msg: string) => Effect.Effect<void>
  * }>()("Logger") {}
  *
- * const services = Context.make(Database, {
+ * const context = Context.make(Database, {
  *   query: Effect.fn("Database.query")((sql: string) => Effect.succeed("result"))
- * })
- *   .pipe(
- *     Context.add(Logger, {
- *       log: (msg: string) => Effect.sync(() => console.log(msg))
- *     })
- *   )
+ * }).pipe(
+ *   Context.add(Logger, {
+ *     log: (msg: string) => Effect.sync(() => console.log(msg))
+ *   })
+ * )
  *
- * const layer = Layer.succeedServices(services)
+ * const layer = Layer.succeedContext(context)
  * ```
  *
  * @since 2.0.0
  * @category constructors
  */
-export const succeedServices = <A>(services: Context.Context<A>): Layer<A> =>
-  fromBuildUnsafe(constant(internalEffect.succeed(services)))
+export const succeedContext = <A>(context: Context.Context<A>): Layer<A> =>
+  fromBuildUnsafe(constant(internalEffect.succeed(context)))
 
 /**
  * A Layer that constructs an empty Context.
@@ -693,7 +692,7 @@ export const succeedServices = <A>(services: Context.Context<A>): Layer<A> =>
  * @since 2.0.0
  * @category constructors
  */
-export const empty: Layer<never> = succeedServices(Context.empty())
+export const empty: Layer<never> = succeedContext(Context.empty())
 
 /**
  * Lazily constructs a layer from the specified value.
@@ -722,16 +721,16 @@ export const sync: {
   <I, S>(service: Context.Key<I, S>, evaluate: LazyArg<S>): Layer<I>
 } = function() {
   if (arguments.length === 1) {
-    return (evaluate: LazyArg<any>) => syncServices(() => Context.make(arguments[0], evaluate()))
+    return (evaluate: LazyArg<any>) => syncContext(() => Context.make(arguments[0], evaluate()))
   }
-  return syncServices(() => Context.make(arguments[0], arguments[1]()))
+  return syncContext(() => Context.make(arguments[0], arguments[1]()))
 } as any
 
 /**
  * Lazily constructs a layer from the specified value, which must return one or more
  * services.
  *
- * This is a lazy version of `succeedServices` where the Context is computed
+ * This is a lazy version of `succeedContext` where the Context is computed
  * synchronously only when the layer is built.
  *
  * @example
@@ -742,7 +741,7 @@ export const sync: {
  *   readonly query: (sql: string) => Effect.Effect<string>
  * }>()("Database") {}
  *
- * const layer = Layer.syncServices(() =>
+ * const layer = Layer.syncContext(() =>
  *   Context.make(Database, {
  *     query: (sql: string) => Effect.succeed(`Query: ${sql}`)
  *   })
@@ -752,7 +751,7 @@ export const sync: {
  * @since 2.0.0
  * @category constructors
  */
-export const syncServices = <A>(evaluate: LazyArg<Context.Context<A>>): Layer<A> =>
+export const syncContext = <A>(evaluate: LazyArg<Context.Context<A>>): Layer<A> =>
   fromBuildMemo(constant(internalEffect.sync(evaluate)))
 
 /**
@@ -805,7 +804,7 @@ const effectImpl = <I, S, E, R>(
   service: Context.Key<I, S>,
   effect: Effect<S, E, R>
 ): Layer<I, E, Exclude<R, Scope.Scope>> =>
-  effectServices(internalEffect.map(effect, (value) => Context.make(service, value)))
+  effectContext(internalEffect.map(effect, (value) => Context.make(service, value)))
 
 /**
  * Constructs a layer from the specified scoped effect, which must return one
@@ -823,7 +822,7 @@ const effectImpl = <I, S, E, R>(
  *   { readonly query: (sql: string) => Effect.Effect<string> }
  * >()("Database") {}
  *
- * const layer = Layer.effectServices(
+ * const layer = Layer.effectContext(
  *   Effect.succeed(Context.make(Database, {
  *     query: (sql: string) => Effect.succeed(`Query: ${sql}`)
  *   }))
@@ -833,7 +832,7 @@ const effectImpl = <I, S, E, R>(
  * @since 2.0.0
  * @category constructors
  */
-export const effectServices = <A, E, R>(
+export const effectContext = <A, E, R>(
   effect: Effect<Context.Context<A>, E, R>
 ): Layer<A, E, Exclude<R, Scope.Scope>> => fromBuildMemo((_, scope) => Scope.provide(effect, scope))
 
@@ -864,7 +863,7 @@ export const effectServices = <A, E, R>(
  * @category constructors
  */
 export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E, Exclude<R, Scope.Scope>> =>
-  effectServices(internalEffect.as(effect, Context.empty()))
+  effectContext(internalEffect.as(effect, Context.empty()))
 
 /**
  * Lazily constructs a layer using the specified factory.
@@ -938,7 +937,7 @@ const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<n
   return internalEffect.forEach(layers, (layer) => layer.build(memoMap, Scope.forkUnsafe(parentScope, "sequential")), {
     concurrency: layers.length
   }).pipe(
-    internalEffect.map((services) => Context.mergeAll(...(services as any)))
+    internalEffect.map((context) => Context.mergeAll(...(context as any)))
   )
 }
 
@@ -1048,8 +1047,8 @@ const provideWith = (
   self: Layer<any, any, any>,
   that: Layer<any, any, any> | ReadonlyArray<Layer<any, any, any>>,
   f: (
-    selfServices: Context.Context<any>,
-    thatServices: Context.Context<any>
+    selfContext: Context.Context<any>,
+    thatContext: Context.Context<any>
   ) => Context.Context<any>
 ) =>
   fromBuild((memoMap, scope) =>
@@ -1300,8 +1299,8 @@ export const provideMerge: {
  *
  * // Dynamically create services based on config
  * const dynamicServiceLayer = configLayer.pipe(
- *   Layer.flatMap((services) => {
- *     const config = Context.get(services, Config)
+ *   Layer.flatMap((context) => {
+ *     const config = Context.get(context, Config)
  *
  *     // Create database layer based on config
  *     const dbLayer = Layer.succeed(Database)({
@@ -2165,7 +2164,7 @@ export const span = (
  * @category tracing
  */
 export const parentSpan = (span: Tracer.AnySpan): Layer<Tracer.ParentSpan> =>
-  succeedServices(Tracer.ParentSpan.context(span))
+  succeedContext(Tracer.ParentSpan.context(span))
 
 /**
  * Wraps a Layer with a new tracing span, making all operations in the layer
@@ -2313,9 +2312,9 @@ export const withSpan: {
  *       Layer.withParentSpan(parentSpan)
  *     )
  *
- *     const services = yield* Layer.build(AppLayer)
- *     const database = Context.get(services, Database)
- *     const cache = Context.get(services, Cache)
+ *     const context = yield* Layer.build(AppLayer)
+ *     const database = Context.get(context, Database)
+ *     const cache = Context.get(context, Cache)
  *
  *     const dbResult = yield* database.query("SELECT * FROM users")
  *     const cacheResult = yield* cache.get("user:123")

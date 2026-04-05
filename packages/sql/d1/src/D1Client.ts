@@ -193,7 +193,7 @@ export const make = (
 export const layerConfig = (
   config: Config.Wrap<D1ClientConfig>
 ): Layer.Layer<D1Client | Client.SqlClient, Config.ConfigError> =>
-  Layer.effectServices(
+  Layer.effectContext(
     Config.unwrap(config).asEffect().pipe(
       Effect.flatMap(make),
       Effect.map((client) =>
@@ -211,7 +211,7 @@ export const layerConfig = (
 export const layer = (
   config: D1ClientConfig
 ): Layer.Layer<D1Client | Client.SqlClient, Config.ConfigError> =>
-  Layer.effectServices(
+  Layer.effectContext(
     Effect.map(make(config), (client) =>
       Context.make(D1Client, client).pipe(
         Context.add(Client.SqlClient, client)

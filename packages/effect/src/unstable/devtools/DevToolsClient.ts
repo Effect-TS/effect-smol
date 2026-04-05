@@ -96,10 +96,10 @@ const makeEffect = Effect.gen(function*() {
 })
 
 const toMetricsSnapshot = (
-  services: Context.Context<never>
+  context: Context.Context<never>
 ): DevToolsSchema.MetricsSnapshot => ({
   _tag: "MetricsSnapshot",
-  metrics: Metric.snapshotUnsafe(services)
+  metrics: Metric.snapshotUnsafe(context)
 })
 
 /**

@@ -41,11 +41,11 @@ export const makeNet = (
   }
 ): Effect.Effect<Socket.Socket> =>
   fromDuplex(
-    Effect.contextWith((services: Context.Context<Scope.Scope>) => {
+    Effect.contextWith((context: Context.Context<Scope.Scope>) => {
       let conn: Net.Socket | undefined
       return Effect.flatMap(
         Scope.addFinalizer(
-          Context.get(services, Scope.Scope),
+          Context.get(context, Scope.Scope),
           Effect.sync(() => {
             if (!conn) return
             if (conn.closed === false) {

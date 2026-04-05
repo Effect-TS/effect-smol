@@ -529,7 +529,7 @@ export const layerConfig: (
 ) => Layer.Layer<Client.SqlClient | MssqlClient, Config.ConfigError | SqlError> = (
   config: Config.Wrap<MssqlClientConfig>
 ): Layer.Layer<Client.SqlClient | MssqlClient, Config.ConfigError | SqlError> =>
-  Layer.effectServices(
+  Layer.effectContext(
     Config.unwrap(config).asEffect().pipe(
       Effect.flatMap(make),
       Effect.map((client) =>
@@ -547,7 +547,7 @@ export const layerConfig: (
 export const layer = (
   config: MssqlClientConfig
 ): Layer.Layer<Client.SqlClient | MssqlClient, never | SqlError> =>
-  Layer.effectServices(
+  Layer.effectContext(
     Effect.map(make(config), (client) =>
       Context.make(MssqlClient, client).pipe(
         Context.add(Client.SqlClient, client)

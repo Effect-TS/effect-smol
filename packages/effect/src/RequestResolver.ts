@@ -870,7 +870,7 @@ export const withSpan: {
         const links = opts?.links ? opts.links.slice() : []
         const seen = new Set<Tracer.AnySpan>()
         for (const entry of entries) {
-          const span = Context.getOption(entry.services, Tracer.ParentSpan)
+          const span = Context.getOption(entry.context, Tracer.ParentSpan)
           if (span._tag === "None" || seen.has(span.value)) continue
           seen.add(span.value)
           links.push({ span: span.value, attributes: {} })
@@ -1071,7 +1071,7 @@ export const persisted: {
       ...self,
       runAll: Effect.fnUntraced(function*(entries, key) {
         const results = yield* (store.getMany(Iterable.map(entries, (_) => _.request)).pipe(
-          Effect.provideContext(entries[0].services)
+          Effect.provideContext(entries[0].context)
         ) as Effect.Effect<
           Array<Exit.Exit<unknown, unknown> | undefined>,
           Request.Error<A>
@@ -1107,7 +1107,7 @@ export const persisted: {
           return Effect.void
         })
         yield* (store.setMany(toPersist).pipe(
-          Effect.provideContext(entries[0].services)
+          Effect.provideContext(entries[0].context)
         ) as Effect.Effect<void, Request.Error<A>>)
       })
     })

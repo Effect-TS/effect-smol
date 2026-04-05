@@ -753,7 +753,7 @@ export const toWeb = (
   response: HttpServerResponse,
   options?: {
     readonly withoutBody?: boolean | undefined
-    readonly services?: Context.Context<never> | undefined
+    readonly context?: Context.Context<never> | undefined
   }
 ): Response => {
   const headers = new globalThis.Headers(response.headers)
@@ -804,7 +804,7 @@ export const toWeb = (
       return new Response(
         Stream.toReadableStreamWith(
           body.stream,
-          options?.services ?? Context.empty()
+          options?.context ?? Context.empty()
         ),
         {
           status: response.status,
@@ -995,8 +995,8 @@ class ServerHttpClientResponse extends Inspectable.Class implements HttpClientRe
     if (body._tag === "FormData") {
       return Effect.succeed(body.formData)
     }
-    return Effect.contextWith((services: Context.Context<never>) => {
-      const readableStream = Stream.toReadableStreamWith(this.stream, services)
+    return Effect.contextWith((context: Context.Context<never>) => {
+      const readableStream = Stream.toReadableStreamWith(this.stream, context)
       return Effect.tryPromise({
         try: () => new Response(readableStream, { headers: this.headers }).formData(),
         catch: (cause) => this.decodeError(cause)

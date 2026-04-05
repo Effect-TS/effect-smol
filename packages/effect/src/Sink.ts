@@ -1641,19 +1641,19 @@ export const timed: Sink<Duration.Duration, unknown> = map(withDuration(drain), 
  */
 export const provideContext: {
   <Provided>(
-    services: Context.Context<Provided>
+    context: Context.Context<Provided>
   ): <A, In, L, E, R>(self: Sink<A, In, L, E, R>) => Sink<A, In, L, E, Exclude<R, Provided>>
   <A, In, L, E, R, Provided>(
     self: Sink<A, In, L, E, R>,
-    services: Context.Context<Provided>
+    context: Context.Context<Provided>
   ): Sink<A, In, L, E, Exclude<R, Provided>>
 } = dual(2, <A, In, L, E, R, Provided>(
   self: Sink<A, In, L, E, R>,
-  services: Context.Context<Provided>
+  context: Context.Context<Provided>
 ): Sink<A, In, L, E, Exclude<R, Provided>> =>
   fromTransform((upstream, scope) =>
     self.transform(upstream, scope).pipe(
-      Effect.provideContext(services)
+      Effect.provideContext(context)
     )
   ))
 

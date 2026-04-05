@@ -426,7 +426,7 @@ export const succeed: {
  */
 export interface Entry<out R> {
   readonly request: R
-  readonly services: Context.Context<
+  readonly context: Context.Context<
     [R] extends [Request<infer _A, infer _E, infer _R>] ? _R : never
   >
   uninterruptible: boolean
@@ -444,7 +444,7 @@ export interface Entry<out R> {
  */
 export const makeEntry = <R>(options: {
   readonly request: R
-  readonly services: Context.Context<
+  readonly context: Context.Context<
     [R] extends [Request<infer _A, infer _E, infer _R>] ? _R : never
   >
   readonly uninterruptible: boolean

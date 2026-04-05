@@ -43,7 +43,7 @@ export const provide = dual<
         readonly local?: boolean | undefined
       } | undefined
     ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E | E2, RIn | Exclude<R, ROut>>
-    <R2>(services: Context.Context<R2>): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, R2>>
+    <R2>(context: Context.Context<R2>): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, R2>>
   },
   {
     <A, E, R, const Layers extends [Layer.Any, ...Array<Layer.Any>]>(
@@ -67,7 +67,7 @@ export const provide = dual<
     ): Effect<A, E | E2, RIn | Exclude<R, ROut>>
     <A, E, R, R2>(
       self: Effect<A, E, R>,
-      services: Context.Context<R2>
+      context: Context.Context<R2>
     ): Effect<A, E, Exclude<R, R2>>
   }
 >(

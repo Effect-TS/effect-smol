@@ -258,11 +258,11 @@ const Proto: Omit<ExecutionPlan<any>, "steps"> = {
   [TypeId]: TypeId,
   get withRequirements() {
     const self = this as any as ExecutionPlan<any>
-    return effect.contextWith((services: Context.Context<any>) =>
+    return effect.contextWith((context: Context.Context<any>) =>
       effect.succeed(makeProto(self.steps.map((step) => ({
         ...step,
         provide: Layer.isLayer(step.provide)
-          ? Layer.provide(step.provide, Layer.succeedServices(services))
+          ? Layer.provide(step.provide, Layer.succeedContext(context))
           : step.provide
       })) as any))
     )

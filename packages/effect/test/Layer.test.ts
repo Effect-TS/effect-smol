@@ -13,8 +13,8 @@ describe("Layer", () => {
     Effect.gen(function*() {
       const BoolTag = Context.Service<boolean>("boolean")
       const latch = Latch.makeUnsafe()
-      const layer1 = Layer.effectServices<never, never, never>(Effect.never)
-      const layer2 = Layer.effectServices(
+      const layer1 = Layer.effectContext<never, never, never>(Effect.never)
+      const layer2 = Layer.effectContext(
         Effect.acquireRelease(
           latch.open.pipe(
             Effect.map((bool) => Context.make(BoolTag, bool))

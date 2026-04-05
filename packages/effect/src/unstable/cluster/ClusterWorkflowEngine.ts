@@ -109,7 +109,7 @@ export const make = Effect.gen(function*() {
 
   const activities = new Map<string, {
     readonly activity: Activity.Any
-    readonly services: Context.Context<any>
+    readonly context: Context.Context<any>
   }>()
   const interruptedActivities = new Set<string>()
   const activityLatches = new Map<string, Latch.Latch>()
@@ -357,7 +357,7 @@ export const make = Effect.gen(function*() {
                     yield* latch.await
                     entry = activities.get(activityId)
                   }
-                  const contextMap = new Map(entry.services.mapUnsafe)
+                  const contextMap = new Map(entry.context.mapUnsafe)
                   contextMap.set(Activity.CurrentAttempt.key, payload.attempt)
                   contextMap.set(WorkflowEngine.WorkflowInstance.key, instance)
                   return yield* entry.activity.executeEncoded.pipe(
@@ -469,7 +469,7 @@ export const make = Effect.gen(function*() {
         const client = (yield* RcMap.get(clientsPartial, instance.workflow.name))(instance.executionId)
         while (true) {
           if (!activities.has(activityId)) {
-            activities.set(activityId, { activity, services })
+            activities.set(activityId, { activity, context: services })
             const latch = activityLatches.get(activityId)
             if (latch) {
               yield* latch.release

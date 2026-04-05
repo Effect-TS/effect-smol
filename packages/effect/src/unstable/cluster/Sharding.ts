@@ -1047,7 +1047,7 @@ const make = Effect.gen(function*() {
               envelope,
               lastReceivedReply: Option.none(),
               rpc,
-              services: fiber.context as Context.Context<any>,
+              context: fiber.context as Context.Context<any>,
               respond: (reply) => respond(reply),
               annotations: Context.get(rpc.annotations, ClusterSchema.Dynamic)(
                 rpc.annotations,

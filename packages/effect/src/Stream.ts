@@ -9363,7 +9363,7 @@ export const provide: {
  * class Config extends Context.Service<Config, { readonly prefix: string }>()("Config") {}
  * class Greeter extends Context.Service<Greeter, { greet: (name: string) => string }>()("Greeter") {}
  *
- * const services = Context.make(Config, { prefix: "Hello" }).pipe(
+ * const context = Context.make(Config, { prefix: "Hello" }).pipe(
  *   Context.add(Greeter, { greet: (name: string) => `${name}!` })
  * )
  *
@@ -9376,7 +9376,7 @@ export const provide: {
  * )
  *
  * const program = Effect.gen(function*() {
- *   const result = yield* Stream.runCollect(Stream.provideContext(stream, services))
+ *   const result = yield* Stream.runCollect(Stream.provideContext(stream, context))
  *   yield* Console.log(result)
  * })
  *
@@ -9388,12 +9388,12 @@ export const provide: {
  * @category Services
  */
 export const provideContext: {
-  <R2>(services: Context.Context<R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, Exclude<R, R2>>
-  <A, E, R, R2>(self: Stream<A, E, R>, services: Context.Context<R2>): Stream<A, E, Exclude<R, R2>>
+  <R2>(context: Context.Context<R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, Exclude<R, R2>>
+  <A, E, R, R2>(self: Stream<A, E, R>, context: Context.Context<R2>): Stream<A, E, Exclude<R, R2>>
 } = dual(
   2,
-  <A, E, R, R2>(self: Stream<A, E, R>, services: Context.Context<R2>): Stream<A, E, Exclude<R, R2>> =>
-    fromChannel(Channel.provideContext(self.channel, services))
+  <A, E, R, R2>(self: Stream<A, E, R>, context: Context.Context<R2>): Stream<A, E, Exclude<R, R2>> =>
+    fromChannel(Channel.provideContext(self.channel, context))
 )
 
 /**
@@ -9526,8 +9526,8 @@ export const provideServiceEffect: {
  * )
  *
  * const updated = stream.pipe(
- *   Stream.updateContext((services: Context.Context<Logger>) =>
- *     Context.add(services, Config, { name: "World" })
+ *   Stream.updateContext((context: Context.Context<Logger>) =>
+ *     Context.add(context, Config, { name: "World" })
  *   )
  * )
  *
@@ -9547,17 +9547,17 @@ export const provideServiceEffect: {
  */
 export const updateContext: {
   <R, R2>(
-    f: (services: Context.Context<R2>) => Context.Context<R>
+    f: (context: Context.Context<R2>) => Context.Context<R>
   ): <A, E>(
     self: Stream<A, E, R>
   ) => Stream<A, E, R2>
   <A, E, R, R2>(
     self: Stream<A, E, R>,
-    f: (services: Context.Context<R2>) => Context.Context<R>
+    f: (context: Context.Context<R2>) => Context.Context<R>
   ): Stream<A, E, R2>
 } = dual(2, <A, E, R, R2>(
   self: Stream<A, E, R>,
-  f: (services: Context.Context<R2>) => Context.Context<R>
+  f: (context: Context.Context<R2>) => Context.Context<R>
 ): Stream<A, E, R2> => fromChannel(Channel.updateContext(self.channel, f)))
 
 /**
@@ -9602,11 +9602,11 @@ export const updateService: {
   service: Context.Key<I, S>,
   f: (service: NoInfer<S>) => S
 ): Stream<A, E, R | I> =>
-  updateContext(self, (services) =>
+  updateContext(self, (context) =>
     Context.add(
-      services,
+      context,
       service,
-      f(Context.get(services, service))
+      f(Context.get(context, service))
     )))
 
 /**
@@ -10376,19 +10376,19 @@ export const mkUint8Array = <E, R>(self: Stream<Uint8Array, E, R>): Effect.Effec
  */
 export const toReadableStreamWith = dual<
   <A, XR>(
-    services: Context.Context<XR>,
+    context: Context.Context<XR>,
     options?: { readonly strategy?: QueuingStrategy<A> | undefined }
   ) => <E, R extends XR>(self: Stream<A, E, R>) => ReadableStream<A>,
   <A, E, XR, R extends XR>(
     self: Stream<A, E, R>,
-    services: Context.Context<XR>,
+    context: Context.Context<XR>,
     options?: { readonly strategy?: QueuingStrategy<A> | undefined }
   ) => ReadableStream<A>
 >(
   (args) => isStream(args[0]),
   <A, E, XR, R extends XR>(
     self: Stream<A, E, R>,
-    services: Context.Context<XR>,
+    context: Context.Context<XR>,
     options?: { readonly strategy?: QueuingStrategy<A> | undefined }
   ): ReadableStream<A> => {
     let currentResolve: (() => void) | undefined = undefined
@@ -10407,7 +10407,7 @@ export const toReadableStreamWith = dual<
               currentResolve!()
               currentResolve = undefined
             }))),
-          services
+          context
         ))
         fiber.addObserver((exit) => {
           if (exit._tag === "Failure") {
@@ -10532,20 +10532,20 @@ export const toReadableStreamEffect: {
  * @category Destructors
  */
 export const toAsyncIterableWith: {
-  <XR>(services: Context.Context<XR>): <A, E, R extends XR>(self: Stream<A, E, R>) => AsyncIterable<A>
+  <XR>(context: Context.Context<XR>): <A, E, R extends XR>(self: Stream<A, E, R>) => AsyncIterable<A>
   <A, E, XR, R extends XR>(
     self: Stream<A, E, R>,
-    services: Context.Context<XR>
+    context: Context.Context<XR>
   ): AsyncIterable<A>
 } = dual(
   2,
   <A, E, XR, R extends XR>(
     self: Stream<A, E, R>,
-    services: Context.Context<XR>
+    context: Context.Context<XR>
   ): AsyncIterable<A> => ({
     [Symbol.asyncIterator]() {
-      const runPromise = Effect.runPromiseWith(services)
-      const runPromiseExit = Effect.runPromiseExitWith(services)
+      const runPromise = Effect.runPromiseWith(context)
+      const runPromiseExit = Effect.runPromiseExitWith(context)
       const scope = Scope.makeUnsafe()
       let pull: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void, R> | undefined
       let currentIter: Iterator<A> | undefined
@@ -10608,7 +10608,7 @@ export const toAsyncIterableWith: {
 export const toAsyncIterableEffect = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<AsyncIterable<A>, never, R> =>
   Effect.map(
     Effect.context<R>(),
-    (services) => toAsyncIterableWith(self, services)
+    (context) => toAsyncIterableWith(self, context)
   )
 
 /**

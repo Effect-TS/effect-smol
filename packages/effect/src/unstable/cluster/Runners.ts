@@ -533,7 +533,7 @@ export const makeRpc: Effect.Effect<
               Effect.catchTag("RpcClientError", Effect.die),
               Effect.flatMap((reply) =>
                 Schema.decodeEffect(Reply.Reply(message.rpc))(reply).pipe(
-                  Effect.provideContext(message.services),
+                  Effect.provideContext(message.context),
                   Effect.orDie
                 )
               ),
@@ -567,7 +567,7 @@ export const makeRpc: Effect.Effect<
                 Effect.flatMap(message.respond),
                 Effect.forever,
                 Effect.catchTag("RpcClientError", Effect.die),
-                Effect.provideContext(message.services),
+                Effect.provideContext(message.context),
                 Effect.catchTag("Done", (_) => Effect.void),
                 Effect.catchDefect(() => Effect.fail(new RunnerUnavailable({ address })))
               )

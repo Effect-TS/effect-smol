@@ -88,7 +88,7 @@ export type Outgoing<R extends Rpc.Any> = OutgoingRequest<R> | OutgoingEnvelope
  */
 export class OutgoingRequest<R extends Rpc.Any> extends Data.TaggedClass("OutgoingRequest")<{
   readonly envelope: Envelope.Request<R>
-  readonly services: Context.Context<Rpc.Services<R>>
+  readonly context: Context.Context<Rpc.Services<R>>
   readonly lastReceivedReply: Option.Option<Reply.Reply<R>>
   readonly rpc: R
   readonly respond: (reply: Reply.Reply<R>) => Effect.Effect<void>
@@ -167,7 +167,7 @@ export const serializeRequest = <Rpc extends Rpc.Any>(
 ): Effect.Effect<Envelope.PartialRequest, MalformedMessage> => {
   const rpc = self.rpc as any as Rpc.AnyWithProps
   return Schema.encodeEffect(Schema.toCodecJson(rpc.payloadSchema))(self.envelope.payload).pipe(
-    Effect.provideContext(self.services),
+    Effect.provideContext(self.context),
     MalformedMessage.refail,
     Effect.map((payload) => ({
       ...self.envelope,
@@ -196,7 +196,7 @@ export const deserializeLocal = <Rpc extends Rpc.Any>(
   }
   const rpc = self.rpc as any as Rpc.AnyWithProps
   return Schema.decodeEffect(Schema.toCodecJson(rpc.payloadSchema))(encoded.payload).pipe(
-    Effect.provideContext(self.services),
+    Effect.provideContext(self.context),
     MalformedMessage.refail,
     Effect.map((payload) => {
       const envelope = Envelope.makeRequest({

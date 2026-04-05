@@ -47,7 +47,7 @@ const SpawnerLayer = Layer.succeed(
   ChildProcessSpawner.ChildProcessSpawner,
   ChildProcessSpawner.make(() => Effect.die("Not implemented"))
 )
-const LoggerLayer = Layer.effectServices(makeMockLogger)
+const LoggerLayer = Layer.effectContext(makeMockLogger)
 
 const TestLayer = Layer.mergeAll(
   FileSystemLayer,

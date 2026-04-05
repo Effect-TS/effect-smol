@@ -56,12 +56,12 @@ class RcRefImpl<A, E> implements RcRef.RcRef<A, E> {
 
   constructor(
     acquire: Effect.Effect<A, E>,
-    services: Context.Context<never>,
+    context: Context.Context<never>,
     scope: Scope.Scope,
     idleTimeToLive: Duration.Duration | undefined
   ) {
     this.acquire = acquire
-    this.context = services
+    this.context = context
     this.scope = scope
     this.idleTimeToLive = idleTimeToLive
   }
@@ -73,11 +73,11 @@ export const make = <A, E, R>(options: {
   readonly idleTimeToLive?: Duration.Input | undefined
 }) =>
   Effect.withFiber<RcRef.RcRef<A, E>, never, R | Scope.Scope>((fiber) => {
-    const services = fiber.context as Context.Context<R | Scope.Scope>
-    const scope = Context.get(services, Scope.Scope)
+    const context = fiber.context as Context.Context<R | Scope.Scope>
+    const scope = Context.get(context, Scope.Scope)
     const ref = new RcRefImpl<A, E>(
       options.acquire as Effect.Effect<A, E>,
-      services,
+      context,
       scope,
       options.idleTimeToLive ? Duration.fromInputUnsafe(options.idleTimeToLive) : undefined
     )

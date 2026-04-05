@@ -304,7 +304,7 @@ export const group = <Events extends Event.Any, Return>(
   group: EventGroup.EventGroup<Events>,
   f: (handlers: Handlers<never, Events>) => Handlers.ValidateReturn<Return>
 ): Layer.Layer<Event.ToService<Events>, Handlers.Error<Return>, Exclude<Handlers.Services<Return>, Scope.Scope>> =>
-  Layer.effectServices(
+  Layer.effectContext(
     Effect.gen(function*() {
       const context = yield* Effect.context<Handlers.Services<Return>>()
       const result = f(makeHandlers({
