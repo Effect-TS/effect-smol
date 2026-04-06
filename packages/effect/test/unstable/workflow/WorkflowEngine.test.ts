@@ -7,7 +7,14 @@ describe("WorkflowEngine", () => {
     name: "WorkflowEngine/IncrementWorkflow",
     payload: { value: Schema.Number },
     success: Schema.Number,
-    idempotencyKey: ({ value }) => String(value)
+    idempotencyKey: ({ value }) => String(value),
+    executionId: (options, payload) => Effect.gen(function* () {
+      const baseExecutionId = yield* Workflow.executionId(options, payload);
+      return [
+        options.name,
+        baseExecutionId,
+      ].join("/")
+    })
   })
 
   const IncrementWorkflowLayer = IncrementWorkflow.toLayer(({ value }) => Effect.succeed(value + 1))
@@ -33,6 +40,22 @@ describe("WorkflowEngine", () => {
       const discardedExecutionId = yield* IncrementWorkflow.execute({ value: 1 }, { discard: true })
 
       assert.strictEqual(discardedExecutionId, executionId)
+    }).pipe(
+      Effect.provide(IncrementWorkflowLayer.pipe(
+        Layer.provideMerge(WorkflowEngine.layerMemory)
+      ))
+    ))
+
+  it.effect("executionId uses makeWorkflowExecutionId from workflow options", () =>
+    Effect.gen(function*() {
+      const executionId = yield* IncrementWorkflow.executionId({ value: 1 });
+      const executionIdFromUtilityFunction = yield* Workflow.executionId(IncrementWorkflow, { value: 1 })
+      const expectedExecutionIdPrefix = [
+        IncrementWorkflow.name,
+      ].join("/");
+
+      assert.isTrue(executionId.startsWith(expectedExecutionIdPrefix))
+      assert.strictEqual(executionId, executionIdFromUtilityFunction)
     }).pipe(
       Effect.provide(IncrementWorkflowLayer.pipe(
         Layer.provideMerge(WorkflowEngine.layerMemory)
