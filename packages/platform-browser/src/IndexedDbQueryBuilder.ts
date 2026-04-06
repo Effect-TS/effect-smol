@@ -188,7 +188,7 @@ export declare namespace IndexedDbQuery {
     Table extends IndexedDbTable.AnyWithProps,
     Index extends keyof Table["indexes"],
     KeyPath = [Index] extends [never] ? Table["keyPath"] : Table["indexes"][Index],
-    Type = Table["tableSchema"]["Type"]
+    Type = Table["tableSchema"]["Encoded"]
   > = KeyPath extends keyof Type ? Type[KeyPath]
     : { [I in keyof KeyPath]: KeyPath[I] extends keyof Type ? Type[KeyPath[I]] | [] : never }
 
@@ -200,7 +200,7 @@ export declare namespace IndexedDbQuery {
     Table extends IndexedDbTable.AnyWithProps,
     Index extends keyof Table["indexes"],
     KeyPath = [Index] extends [never] ? Table["keyPath"] : Table["indexes"][Index],
-    Type = Table["tableSchema"]["Type"]
+    Type = Table["tableSchema"]["Encoded"]
   > = KeyPath extends keyof Type ? Type[KeyPath]
     : KeyPath extends readonly [infer K, ...infer Rest] ? K extends keyof Type ? [
           Type[K],
