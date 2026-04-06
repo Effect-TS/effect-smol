@@ -4,6 +4,7 @@ import * as NodePath from "@effect/platform-node-shared/NodePath"
 import { assert, describe, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
+import * as FileSystem from "effect/FileSystem"
 import * as Layer from "effect/Layer"
 import * as Path from "effect/Path"
 import * as PlatformError from "effect/PlatformError"
@@ -211,14 +212,19 @@ describe("NodeChildProcessSpawner", () => {
 
         it.effect("should handle array interpolation", () =>
           Effect.gen(function*() {
+            const fs = yield* FileSystem.FileSystem
+            const path = yield* Path.Path
+            const dir = yield* fs.makeTempDirectoryScoped()
+            const file = path.join(dir, "array-interpolation.txt")
             const args = ["-l", "-a"]
-            const handle = yield* ChildProcess.make`ls ${args} /tmp`
+            yield* fs.writeFile(file, new TextEncoder().encode("test"))
+
+            const handle = yield* ChildProcess.make`ls ${args} ${dir}`
             const exitCode = yield* handle.exitCode
             const output = yield* decodeByteStream(handle.stdout)
 
             assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-            // Should list files in /tmp with -l -a flags
-            assert.isTrue(output.length > 0)
+            assert.isTrue(output.includes("array-interpolation.txt"))
           }).pipe(Effect.scoped))
 
         it.effect("should handle multiple interpolations", () =>
