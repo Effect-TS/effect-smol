@@ -41,7 +41,7 @@ type IdleTimeToLiveInput<K> = Duration.Input | ((key: K) => Duration.Input)
  *   const devLayer = layerMap.get("development")
  *
  *   // Get context directly
- *   const context = yield* layerMap.context("production")
+ *   const context = yield* layerMap.contextEffect("production")
  *
  *   // Invalidate a cached layer
  *   yield* layerMap.invalidate("development")
@@ -366,7 +366,8 @@ export const Service = <Self>() =>
     TagClass_.layerNoDeps
 
   TagClass_.get = (key: string) => Layer.unwrap(Effect.map(TagClass_.asEffect(), (layerMap) => layerMap.get(key)))
-  TagClass_.contextEffect = (key: string) => Effect.flatMap(TagClass_.asEffect(), (layerMap) => layerMap.contextEffect(key))
+  TagClass_.contextEffect = (key: string) =>
+    Effect.flatMap(TagClass_.asEffect(), (layerMap) => layerMap.contextEffect(key))
   TagClass_.invalidate = (key: string) => Effect.flatMap(TagClass_.asEffect(), (layerMap) => layerMap.invalidate(key))
 
   return TagClass as any
