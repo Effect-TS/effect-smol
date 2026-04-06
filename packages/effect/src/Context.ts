@@ -60,7 +60,7 @@ export interface Key<out Identifier, out Shape> extends Pipeable, Inspectable {
  * )
  *
  * // The key can be used to store and retrieve services
- * const services = Context.make(Database, { query: (sql) => `Result: ${sql}` })
+ * const context = Context.make(Database, { query: (sql) => `Result: ${sql}` })
  * ```
  *
  * @since 4.0.0
@@ -342,7 +342,7 @@ const TypeId = "~effect/Context" as const
  *   "Database"
  * )
  *
- * const services = Context.make(Logger, {
+ * const context = Context.make(Logger, {
  *   log: (msg: string) => console.log(msg)
  * })
  *   .pipe(Context.add(Database, { query: (sql) => `Result: ${sql}` }))
@@ -369,7 +369,7 @@ export interface Context<in Services> extends Equal.Equal, Pipeable, Inspectable
  *   ["Logger", { log: (msg: string) => console.log(msg) }]
  * ])
  *
- * const services = Context.makeUnsafe(map)
+ * const context = Context.makeUnsafe(map)
  * ```
  *
  * @since 4.0.0
@@ -493,9 +493,9 @@ const emptyContext = makeUnsafe(new Map())
  *
  * const Port = Context.Service<{ PORT: number }>("Port")
  *
- * const Services = Context.make(Port, { PORT: 8080 })
+ * const context = Context.make(Port, { PORT: 8080 })
  *
- * assert.deepStrictEqual(Context.get(Services, Port), { PORT: 8080 })
+ * assert.deepStrictEqual(Context.get(context, Port), { PORT: 8080 })
  * ```
  *
  * @since 4.0.0
@@ -519,13 +519,13 @@ export const make = <I, S>(
  *
  * const someContext = Context.make(Port, { PORT: 8080 })
  *
- * const Services = pipe(
+ * const context = pipe(
  *   someContext,
  *   Context.add(Timeout, { TIMEOUT: 5000 })
  * )
  *
- * assert.deepStrictEqual(Context.get(Services, Port), { PORT: 8080 })
- * assert.deepStrictEqual(Context.get(Services, Timeout), { TIMEOUT: 5000 })
+ * assert.deepStrictEqual(Context.get(context, Port), { PORT: 8080 })
+ * assert.deepStrictEqual(Context.get(context, Timeout), { TIMEOUT: 5000 })
  * ```
  *
  * @since 4.0.0
@@ -591,13 +591,13 @@ export const addOrOmit: {
  *   "Database"
  * )
  *
- * const services = Context.make(Logger, {
+ * const context = Context.make(Logger, {
  *   log: (msg: string) => console.log(msg)
  * })
  *
- * const logger = Context.getOrElse(services, Logger, () => ({ log: () => {} }))
+ * const logger = Context.getOrElse(context, Logger, () => ({ log: () => {} }))
  * const database = Context.getOrElse(
- *   services,
+ *   context,
  *   Database,
  *   () => ({ query: () => "fallback" })
  * )
@@ -650,10 +650,10 @@ export const getOrUndefined: {
  * const Port = Context.Service<{ PORT: number }>("Port")
  * const Timeout = Context.Service<{ TIMEOUT: number }>("Timeout")
  *
- * const Services = Context.make(Port, { PORT: 8080 })
+ * const context = Context.make(Port, { PORT: 8080 })
  *
- * assert.deepStrictEqual(Context.getUnsafe(Services, Port), { PORT: 8080 })
- * assert.throws(() => Context.getUnsafe(Services, Timeout))
+ * assert.deepStrictEqual(Context.getUnsafe(context, Port), { PORT: 8080 })
+ * assert.throws(() => Context.getUnsafe(context, Timeout))
  * ```
  *
  * @since 4.0.0
@@ -687,12 +687,12 @@ export const getUnsafe: {
  * const Port = Context.Service<{ PORT: number }>("Port")
  * const Timeout = Context.Service<{ TIMEOUT: number }>("Timeout")
  *
- * const Services = pipe(
+ * const context = pipe(
  *   Context.make(Port, { PORT: 8080 }),
  *   Context.add(Timeout, { TIMEOUT: 5000 })
  * )
  *
- * assert.deepStrictEqual(Context.get(Services, Timeout), { TIMEOUT: 5000 })
+ * assert.deepStrictEqual(Context.get(context, Timeout), { TIMEOUT: 5000 })
  * ```
  *
  * @since 4.0.0
@@ -713,8 +713,8 @@ export const get: {
  *   defaultValue: () => ({ log: (msg: string) => console.log(msg) })
  * })
  *
- * const services = Context.empty()
- * const logger = Context.getReferenceUnsafe(services, LoggerRef)
+ * const context = Context.empty()
+ * const logger = Context.getReferenceUnsafe(context, LoggerRef)
  *
  * assert.deepStrictEqual(logger, { log: (msg: string) => console.log(msg) })
  * ```
@@ -775,13 +775,13 @@ const serviceNotFoundError = (service: Key<any, any>) => {
  * const Port = Context.Service<{ PORT: number }>("Port")
  * const Timeout = Context.Service<{ TIMEOUT: number }>("Timeout")
  *
- * const Services = Context.make(Port, { PORT: 8080 })
+ * const context = Context.make(Port, { PORT: 8080 })
  *
  * assert.deepStrictEqual(
- *   Context.getOption(Services, Port),
+ *   Context.getOption(context, Port),
  *   Option.some({ PORT: 8080 })
  * )
- * assert.deepStrictEqual(Context.getOption(Services, Timeout), Option.none())
+ * assert.deepStrictEqual(Context.getOption(context, Timeout), Option.none())
  * ```
  *
  * @since 4.0.0
@@ -814,10 +814,10 @@ export const getOption: {
  * const firstContext = Context.make(Port, { PORT: 8080 })
  * const secondContext = Context.make(Timeout, { TIMEOUT: 5000 })
  *
- * const Services = Context.merge(firstContext, secondContext)
+ * const context = Context.merge(firstContext, secondContext)
  *
- * assert.deepStrictEqual(Context.get(Services, Port), { PORT: 8080 })
- * assert.deepStrictEqual(Context.get(Services, Timeout), { TIMEOUT: 5000 })
+ * assert.deepStrictEqual(Context.get(context, Port), { PORT: 8080 })
+ * assert.deepStrictEqual(Context.get(context, Timeout), { TIMEOUT: 5000 })
  * ```
  *
  * @since 4.0.0
@@ -850,15 +850,15 @@ export const merge: {
  * const secondContext = Context.make(Timeout, { TIMEOUT: 5000 })
  * const thirdContext = Context.make(Host, { HOST: "localhost" })
  *
- * const Services = Context.mergeAll(
+ * const context = Context.mergeAll(
  *   firstContext,
  *   secondContext,
  *   thirdContext
  * )
  *
- * assert.deepStrictEqual(Context.get(Services, Port), { PORT: 8080 })
- * assert.deepStrictEqual(Context.get(Services, Timeout), { TIMEOUT: 5000 })
- * assert.deepStrictEqual(Context.get(Services, Host), { HOST: "localhost" })
+ * assert.deepStrictEqual(Context.get(context, Port), { PORT: 8080 })
+ * assert.deepStrictEqual(Context.get(context, Timeout), { TIMEOUT: 5000 })
+ * assert.deepStrictEqual(Context.get(context, Host), { HOST: "localhost" })
  * ```
  *
  * @since 3.12.0
@@ -894,13 +894,13 @@ export const mergeAll = <T extends Array<unknown>>(
  *   Context.add(Timeout, { TIMEOUT: 5000 })
  * )
  *
- * const Services = pipe(someContext, Context.pick(Port))
+ * const context = pipe(someContext, Context.pick(Port))
  *
  * assert.deepStrictEqual(
- *   Context.getOption(Services, Port),
+ *   Context.getOption(context, Port),
  *   Option.some({ PORT: 8080 })
  * )
- * assert.deepStrictEqual(Context.getOption(Services, Timeout), Option.none())
+ * assert.deepStrictEqual(Context.getOption(context, Timeout), Option.none())
  * ```
  *
  * @since 4.0.0
@@ -932,13 +932,13 @@ export const pick = <S extends ReadonlyArray<Key<any, any>>>(
  *   Context.add(Timeout, { TIMEOUT: 5000 })
  * )
  *
- * const Services = pipe(someContext, Context.omit(Timeout))
+ * const context = pipe(someContext, Context.omit(Timeout))
  *
  * assert.deepStrictEqual(
- *   Context.getOption(Services, Port),
+ *   Context.getOption(context, Port),
  *   Option.some({ PORT: 8080 })
  * )
- * assert.deepStrictEqual(Context.getOption(Services, Timeout), Option.none())
+ * assert.deepStrictEqual(Context.getOption(context, Timeout), Option.none())
  * ```
  *
  * @since 4.0.0
@@ -1007,14 +1007,14 @@ const withMapUnsafe = <Services, B>(self: Context<Services>, f: (map: Map<string
  * })
  *
  * // The reference provides the default value when accessed from an empty context
- * const services = Context.empty()
- * const logger = Context.get(services, LoggerRef)
+ * const context = Context.empty()
+ * const logger = Context.get(context, LoggerRef)
  *
  * // You can also override the default value
- * const customServices = Context.make(LoggerRef, {
+ * const customContext = Context.make(LoggerRef, {
  *   log: (msg: string) => `Custom: ${msg}`
  * })
- * const customLogger = Context.get(customServices, LoggerRef)
+ * const customLogger = Context.get(customContext, LoggerRef)
  * ```
  *
  * @since 4.0.0

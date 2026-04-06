@@ -40,8 +40,8 @@ type IdleTimeToLiveInput<K> = Duration.Input | ((key: K) => Duration.Input)
  *   // Get a layer for a specific environment
  *   const devLayer = layerMap.get("development")
  *
- *   // Get services directly
- *   const services = yield* layerMap.services("production")
+ *   // Get context directly
+ *   const context = yield* layerMap.context("production")
  *
  *   // Invalidate a cached layer
  *   yield* layerMap.invalidate("development")
@@ -62,9 +62,9 @@ export interface LayerMap<in out K, in out I, in out E = never> {
   get(key: K): Layer.Layer<I, E>
 
   /**
-   * Retrieves the services associated with the key.
+   * Retrieves the context associated with the key.
    */
-  services(key: K): Effect.Effect<Context.Context<I>, E, Scope.Scope>
+  contextEffect(key: K): Effect.Effect<Context.Context<I>, E, Scope.Scope>
 
   /**
    * Invalidates the resource associated with the key.
@@ -134,8 +134,8 @@ export const make: <
     readonly idleTimeToLive?: IdleTimeToLiveInput<K> | undefined
   } | undefined
 ) {
-  const services = yield* Effect.context<never>()
-  const memoMap = Layer.CurrentMemoMap.getOrCreate(services)
+  const context = yield* Effect.context<never>()
+  const memoMap = Layer.CurrentMemoMap.getOrCreate(context)
 
   const rcMap = yield* RcMap.make({
     lookup: (key: K) =>
@@ -149,7 +149,7 @@ export const make: <
     [TypeId]: TypeId,
     rcMap,
     get: (key) => Layer.effectContext(RcMap.get(rcMap, key)),
-    services: (key) => RcMap.get(rcMap, key),
+    contextEffect: (key) => RcMap.get(rcMap, key),
     invalidate: (key) => RcMap.invalidate(rcMap, key)
   })
 })
@@ -252,9 +252,9 @@ export interface TagClass<
   readonly get: (key: K) => Layer.Layer<I, E, Self>
 
   /**
-   * Retrieves the services associated with the key.
+   * Retrieves the context associated with the key.
    */
-  readonly services: (key: K) => Effect.Effect<Context.Context<I>, E, Scope.Scope | Self>
+  readonly contextEffect: (key: K) => Effect.Effect<Context.Context<I>, E, Scope.Scope | Self>
 
   /**
    * Invalidates the resource associated with the key.
@@ -366,7 +366,7 @@ export const Service = <Self>() =>
     TagClass_.layerNoDeps
 
   TagClass_.get = (key: string) => Layer.unwrap(Effect.map(TagClass_.asEffect(), (layerMap) => layerMap.get(key)))
-  TagClass_.services = (key: string) => Effect.flatMap(TagClass_.asEffect(), (layerMap) => layerMap.services(key))
+  TagClass_.contextEffect = (key: string) => Effect.flatMap(TagClass_.asEffect(), (layerMap) => layerMap.contextEffect(key))
   TagClass_.invalidate = (key: string) => Effect.flatMap(TagClass_.asEffect(), (layerMap) => layerMap.invalidate(key))
 
   return TagClass as any
