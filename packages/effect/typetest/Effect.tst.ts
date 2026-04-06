@@ -739,3 +739,51 @@ describe("all", () => {
     >()
   })
 })
+
+describe("Effect.retry", () => {
+  it("while refinement narrows error type without times", () => {
+    const result = Effect.retry(mixedEffect, {
+      while: (e): e is AiError => e._tag === "AiError"
+    })
+    expect(result).type.toBe<Effect.Effect<string, OtherError>>()
+  })
+
+  it("until refinement narrows error type without times", () => {
+    const result = Effect.retry(mixedEffect, {
+      until: (e): e is AiError => e._tag === "AiError"
+    })
+    expect(result).type.toBe<Effect.Effect<string, AiError>>()
+  })
+
+  it("times with while refinement preserves full error type", () => {
+    const result = Effect.retry(mixedEffect, {
+      times: 3,
+      while: (e): e is AiError => e._tag === "AiError"
+    })
+    expect(result).type.toBe<Effect.Effect<string, AiError | OtherError>>()
+  })
+
+  it("times with until refinement preserves full error type", () => {
+    const result = Effect.retry(mixedEffect, {
+      times: 3,
+      until: (e): e is AiError => e._tag === "AiError"
+    })
+    expect(result).type.toBe<Effect.Effect<string, AiError | OtherError>>()
+  })
+
+  it("times alone preserves full error type", () => {
+    const result = Effect.retry(mixedEffect, { times: 3 })
+    expect(result).type.toBe<Effect.Effect<string, AiError | OtherError>>()
+  })
+
+  it("data-last with times and while refinement preserves full error type", () => {
+    const result = pipe(
+      mixedEffect,
+      Effect.retry({
+        times: 3,
+        while: (e): e is AiError => e._tag === "AiError"
+      })
+    )
+    expect(result).type.toBe<Effect.Effect<string, AiError | OtherError>>()
+  })
+})

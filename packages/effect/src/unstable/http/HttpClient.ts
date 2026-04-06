@@ -739,6 +739,7 @@ export declare namespace Retry {
    */
   export type Return<R, E, O extends NoExcessProperties<Effect.Retry.Options<E>, O>> = HttpClient.With<
     | (O extends { schedule: Schedule.Schedule<infer _O, infer _I, infer _E, infer _R> } ? E | _E
+      : O extends { times: number } ? E
       : O extends { until: Predicate.Refinement<E, infer E2> } ? E2
       : E)
     | (O extends { while: (...args: Array<any>) => Effect.Effect<infer _A, infer E, infer _R> } ? E : never)
