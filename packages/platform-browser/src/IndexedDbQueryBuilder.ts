@@ -425,6 +425,7 @@ export declare namespace IndexedDbQuery {
     readonly index?: Index
     readonly limitValue?: number
     readonly offsetValue?: number
+    readonly reverseValue?: boolean
     readonly only?: ExtractIndexType<Table, Index>
     readonly lowerBound?: ExtractIndexType<Table, Index>
     readonly upperBound?: ExtractIndexType<Table, Index>
@@ -465,6 +466,8 @@ export declare namespace IndexedDbQuery {
     readonly offset: (
       offset: number
     ) => SelectWithout<Table, Index, ExcludedKeys | "offset" | "first">
+
+    readonly reverse: () => SelectWithout<Table, Index, ExcludedKeys | "reverse" | "first">
 
     readonly filter: (
       f: (value: IndexedDbTable.Encoded<Table>) => boolean
@@ -805,7 +808,7 @@ const applySelect = Effect.fnUntraced(function*(
     yield* Effect.callback<Array<any>, IndexedDbQueryError>((resume) => {
       const { keyRange, store } = getReadonlyObjectStore(query)
 
-      const cursorRequest = store.openCursor(keyRange)
+      const cursorRequest = store.openCursor(keyRange, query.reverseValue ? "prev" : "next")
       const results: Array<any> = []
       let count = 0
       let offsetApplied = false
@@ -862,6 +865,9 @@ const applySelect = Effect.fnUntraced(function*(
         )
       }
       request.onsuccess = () => {
+        if (query.reverseValue) {
+          request.result.reverse()
+        }
         resume(Effect.succeed(request.result))
       }
     })
@@ -1547,6 +1553,7 @@ const SelectProto: Omit<
   | "from"
   | "index"
   | "limitValue"
+  | "reverseValue"
   | "only"
   | "lowerBound"
   | "upperBound"
@@ -1614,6 +1621,12 @@ const SelectProto: Omit<
       excludeUpperBound: queryOptions?.excludeUpperBound ?? false
     })
   },
+  reverse(this: IndexedDbQuery.Select<any, never>) {
+    return makeSelect({
+      ...this,
+      reverseValue: true
+    })
+  },
   first(this: IndexedDbQuery.Select<any, never>) {
     return makeFirst({ select: this })
   },
@@ -1672,6 +1685,7 @@ const makeSelect = <
   readonly index?: Index | undefined
   readonly limitValue?: number | undefined
   readonly offsetValue?: number | undefined
+  readonly reverseValue?: boolean | undefined
   readonly only?: IndexedDbQuery.ExtractIndexType<Table, Index> | undefined
   readonly lowerBound?:
     | IndexedDbQuery.ExtractIndexType<Table, Index>
@@ -1689,6 +1703,7 @@ const makeSelect = <
   self.only = options.only
   self.limitValue = options.limitValue
   self.offsetValue = options.offsetValue
+  self.reverseValue = options.reverseValue
   self.lowerBound = options.lowerBound
   self.upperBound = options.upperBound
   self.excludeLowerBound = options.excludeLowerBound
