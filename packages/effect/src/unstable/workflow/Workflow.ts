@@ -267,6 +267,55 @@ const InstanceTag = ServiceMap.Service<
   "effect/workflow/WorkflowEngine/WorkflowInstance" satisfies typeof WorkflowInstance.key
 )
 
+export interface MakeWorkflowExecutionId<
+  TName = string,
+  TPayloadSchema extends Schema.Struct.Fields | AnyStructSchema = Schema.Struct.Fields | AnyStructSchema,
+> {
+  <
+    Name extends TName,
+    PayloadSchema extends TPayloadSchema,
+    Payload extends (
+      PayloadSchema extends Schema.Struct.Fields ? Schema.Struct<PayloadSchema> : PayloadSchema
+    ),
+  >(
+    options: {
+      name: Name,
+      payload: PayloadSchema,
+      idempotencyKey: (payload: Payload['Type']) => string,
+      annotations?: ServiceMap.ServiceMap<never>,
+    },
+    payload: Payload['~type.make.in']
+  ): Effect.Effect<string, never, never>
+}
+
+const makeWorkflowExecutionId: MakeWorkflowExecutionId = (
+  (options, payload) => makeHashDigest(`${options.name}-${options.idempotencyKey(payload)}`)
+);
+
+/**
+ * @since 4.0.0
+ */
+export const executionId: (
+  & (
+    <
+      Payload extends AnyStructSchema
+    >(
+      workflow: Workflow<any, Payload, any, any>,
+      payload: Payload["Type"]
+    ) => Effect.Effect<string, never, never>
+  )
+  & MakeWorkflowExecutionId
+) = (workflowOrWorkflowOptions: any, payload: any) => {
+  // Use Workflow's executionId if a workflow is provided.
+  if (Predicate.hasProperty(workflowOrWorkflowOptions, TypeId)) {
+    const workflow = workflowOrWorkflowOptions as Workflow<any, any, any, any>;
+    return workflow.executionId(payload)
+  }
+  // Generate an executionId for a workflow options object and payload.
+  const options = workflowOrWorkflowOptions as any;
+  return makeWorkflowExecutionId(options, payload)
+}
+
 /**
  * @since 4.0.0
  * @category Constructors
@@ -287,13 +336,18 @@ export const make = <
   readonly error?: Error
   readonly suspendedRetrySchedule?: Schedule.Schedule<any, unknown> | undefined
   readonly annotations?: ServiceMap.ServiceMap<never>
+  readonly executionId?: MakeWorkflowExecutionId<Name, (
+    Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload
+  )>
 }): Workflow<
   Name,
   Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
   Success,
   Error
 > => {
-  const makeExecutionId = (payload: any) => makeHashDigest(`${options.name}-${options.idempotencyKey(payload)}`)
+  const makeExecutionId = (payload: any) => (
+    options.executionId ?? executionId
+  )(options as any, payload)
   const self: Workflow<Name, any, Success, Error> = {
     [TypeId]: TypeId,
     name: options.name,
