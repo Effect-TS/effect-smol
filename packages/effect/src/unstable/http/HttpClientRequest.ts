@@ -789,7 +789,7 @@ const parseContentLength = (contentLength: string | null): number | undefined =>
  */
 export const toWebResult = (self: HttpClientRequest, options?: {
   readonly signal?: AbortSignal | undefined
-  readonly services?: Context.Context<never> | undefined
+  readonly context?: Context.Context<never> | undefined
 }): Result.Result<Request, UrlParams.UrlParamsError> => {
   const url = UrlParams.makeUrl(self.url, self.urlParams, Option.getOrUndefined(self.hash))
   if (Result.isFailure(url)) {
@@ -823,7 +823,7 @@ export const toWebResult = (self: HttpClientRequest, options?: {
         break
       }
       case "Stream": {
-        requestInit.body = Stream.toReadableStreamWith(self.body.stream, options?.services ?? Context.empty())
+        requestInit.body = Stream.toReadableStreamWith(self.body.stream, options?.context ?? Context.empty())
         ;(requestInit as any).duplex = "half"
         break
       }
@@ -845,9 +845,9 @@ const isReadableStream = (u: unknown): u is ReadableStream<Uint8Array> =>
 export const toWeb = (self: HttpClientRequest, options?: {
   readonly signal?: AbortSignal | undefined
 }): Effect.Effect<Request, UrlParams.UrlParamsError> =>
-  Effect.contextWith((services) =>
+  Effect.contextWith((context) =>
     toWebResult(self, {
-      services,
+      context: context,
       signal: options?.signal
     }).asEffect()
   )
