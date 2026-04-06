@@ -78,7 +78,7 @@ const makeHarness = Effect.fn(function*(
   makeClient: Effect.Effect<
     EventLogRemote.EventLogRemote["Service"],
     EventLogRemote.EventLogRemoteError,
-    EventLogEncryption.EventLogEncryption | EventLogRemote.EventLogRemoteClient | Scope.Scope
+    EventLogEncryption.EventLogEncryption | EventLogRemote.EventLogRemoteClient | EventLog.Registry | Scope.Scope
   >
 ): Effect.fn.Return<
   RemoteHarness["Service"],
@@ -115,7 +115,7 @@ const makeHarness = Effect.fn(function*(
   )
   const remote = yield* makeClient.pipe(
     Effect.provideService(EventLogRemote.EventLogRemoteClient, client),
-    Effect.provide(EventLogEncryption.layerSubtle),
+    Effect.provide([EventLogEncryption.layerSubtle, EventLog.layerRegistry]),
     Effect.forkChild
   )
 

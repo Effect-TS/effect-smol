@@ -3,9 +3,9 @@
  */
 import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
+import * as FiberMap from "../../FiberMap.ts"
 import { constant, identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
-import * as Option from "../../Option.ts"
 import type { Pipeable } from "../../Pipeable.ts"
 import { pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
@@ -22,10 +22,17 @@ import { Reactivity } from "../reactivity/Reactivity.ts"
 import * as ReactivityLayer from "../reactivity/Reactivity.ts"
 import type * as Event from "./Event.ts"
 import type * as EventGroup from "./EventGroup.ts"
-import { Entry, EventJournal, type EventJournalError, makeEntryIdUnsafe, type RemoteEntry } from "./EventJournal.ts"
+import {
+  Entry,
+  EventJournal,
+  type EventJournalError,
+  makeEntryIdUnsafe,
+  type RemoteEntry,
+  type RemoteId
+} from "./EventJournal.ts"
 import * as EventLogEncryption from "./EventLogEncryption.ts"
 import { StoreId } from "./EventLogMessage.ts"
-import { EventLogRemote } from "./EventLogRemote.ts"
+import type { EventLogRemote } from "./EventLogRemote.ts"
 
 /**
  * @since 4.0.0
@@ -72,6 +79,9 @@ export class Registry extends Context.Service<Registry, {
     }) => Effect.Effect<void>
   }>
 
+  readonly registerRemote: (remote: EventLogRemote["Service"]) => Effect.Effect<void, never, Scope.Scope>
+  readonly handleRemote: (handler: (remote: EventLogRemote["Service"]) => Effect.Effect<void>) => Effect.Effect<void>
+
   readonly registerReactivity: (keys: Record<string, ReadonlyArray<string>>) => Effect.Effect<void, never, Scope.Scope>
 
   readonly reactivityKeys: Record<string, ReadonlyArray<string>>
@@ -81,40 +91,65 @@ export class Registry extends Context.Service<Registry, {
  * @since 4.0.0
  * @category Registry
  */
-export const layerRegistry = Layer.sync(Registry, () => {
-  const handlers = new Map<string, Handlers.Item<any>>()
-  const compactors = new Map<string, {
-    readonly events: ReadonlySet<string>
-    readonly effect: (options: {
-      readonly entries: ReadonlyArray<Entry>
-      readonly write: (entry: Entry) => Effect.Effect<void>
-    }) => Effect.Effect<void>
-  }>()
-  const reactivityKeys: Record<string, ReadonlyArray<string>> = {}
-  return Registry.of({
-    registerHandlerUnsafe(options) {
-      handlers.set(options.event, options.handler)
-    },
-    handlers,
-    registerCompaction: (options) =>
-      Effect.sync(() => {
-        const events = new Set(options.events)
-        const compactor = {
-          events,
-          effect: options.effect
-        }
-        for (const event of options.events) {
-          compactors.set(event, compactor)
-        }
-      }),
-    compactors,
-    registerReactivity: (keys) =>
-      Effect.sync(() => {
-        Object.assign(reactivityKeys, keys)
-      }),
-    reactivityKeys
+export const layerRegistry = Layer.effect(
+  Registry,
+  Effect.gen(function*() {
+    const handlers = new Map<string, Handlers.Item<any>>()
+    const compactors = new Map<string, {
+      readonly events: ReadonlySet<string>
+      readonly effect: (options: {
+        readonly entries: ReadonlyArray<Entry>
+        readonly write: (entry: Entry) => Effect.Effect<void>
+      }) => Effect.Effect<void>
+    }>()
+
+    const remoteFiberMap = yield* FiberMap.make<RemoteId>()
+    const remotes = new Map<RemoteId, EventLogRemote["Service"]>()
+    let remoteHandler: (remote: EventLogRemote["Service"]) => Effect.Effect<void> = (_) => Effect.void
+
+    const reactivityKeys: Record<string, ReadonlyArray<string>> = {}
+    return Registry.of({
+      registerHandlerUnsafe(options) {
+        handlers.set(options.event, options.handler)
+      },
+      handlers,
+      registerCompaction: (options) =>
+        Effect.sync(() => {
+          const events = new Set(options.events)
+          const compactor = {
+            events,
+            effect: options.effect
+          }
+          for (const event of options.events) {
+            compactors.set(event, compactor)
+          }
+        }),
+      compactors,
+      registerRemote: (remote) =>
+        Effect.acquireRelease(
+          Effect.suspend(() => {
+            remotes.set(remote.id, remote)
+            return Effect.asVoid(FiberMap.run(remoteFiberMap, remote.id, remoteHandler(remote)))
+          }),
+          () => {
+            remotes.delete(remote.id)
+            return FiberMap.remove(remoteFiberMap, remote.id)
+          }
+        ),
+      handleRemote(handler) {
+        remoteHandler = handler
+        return Effect.forEach(remotes, ([id, remote]) => FiberMap.run(remoteFiberMap, id, handler(remote)), {
+          discard: true
+        })
+      },
+      registerReactivity: (keys) =>
+        Effect.sync(() => {
+          Object.assign(reactivityKeys, keys)
+        }),
+      reactivityKeys
+    })
   })
-})
+)
 
 /**
  * @since 4.0.0
@@ -728,7 +763,7 @@ const make = Effect.gen(function*() {
     },
     Effect.scoped,
     Effect.provideService(Identity, identity),
-    Effect.interruptible
+    Effect.orDie
   )
 
   const writeHandler = Effect.fnUntraced(function*(handler: Handlers.Item<any>, options: {
@@ -778,10 +813,7 @@ const make = Effect.gen(function*() {
     return writeHandler(handler, options)
   }
 
-  const remote = yield* Effect.serviceOption(EventLogRemote)
-  if (Option.isSome(remote)) {
-    yield* Effect.forkScoped(runRemote(remote.value))
-  }
+  yield* registry.handleRemote(runRemote)
 
   return EventLog.of({
     write: eventLogWrite as EventLog["Service"]["write"],

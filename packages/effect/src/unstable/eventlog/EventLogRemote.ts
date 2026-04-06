@@ -13,7 +13,7 @@ import type * as Scope from "../../Scope.ts"
 import * as RpcClient from "../rpc/RpcClient.ts"
 import type * as RpcGroup from "../rpc/RpcGroup.ts"
 import type { Entry, RemoteEntry, RemoteId } from "./EventJournal.ts"
-import type { Identity } from "./EventLog.ts"
+import { type Identity, Registry } from "./EventLog.ts"
 import { EventLogEncryption, layerSubtle } from "./EventLogEncryption.ts"
 import {
   Authenticate,
@@ -115,8 +115,9 @@ export const makeWith = Effect.fnUntraced(function*({ encodeWrite, decodeChanges
     identity: Identity["Service"],
     data: Uint8Array<ArrayBuffer>
   ) => Effect.Effect<ReadonlyArray<RemoteEntry>, Schema.SchemaError>
-}): Effect.fn.Return<EventLogRemote["Service"], EventLogRemoteError, Scope.Scope | EventLogRemoteClient> {
+}): Effect.fn.Return<EventLogRemote["Service"], EventLogRemoteError, Scope.Scope | EventLogRemoteClient | Registry> {
   const client = yield* EventLogRemoteClient
+  const registry = yield* Registry
 
   const hello = yield* client["EventLog.Hello"]().pipe(
     Effect.mapError((cause) => new EventLogRemoteError({ method: "hello", cause }))
@@ -151,7 +152,7 @@ export const makeWith = Effect.fnUntraced(function*({ encodeWrite, decodeChanges
 
   let chunkedIdCounter = 0
 
-  return EventLogRemote.of({
+  const remote = EventLogRemote.of({
     id: hello.remoteId,
     write: Effect.fnUntraced(function*(options) {
       yield* ensureAuthenticated(options.identity)
@@ -208,6 +209,10 @@ export const makeWith = Effect.fnUntraced(function*({ encodeWrite, decodeChanges
     whenAuthenticated: (effect) =>
       IdentityService.use((identity) => Effect.flatMap(ensureAuthenticated(identity), () => effect))
   })
+
+  yield* registry.registerRemote(remote)
+
+  return remote
 })
 
 class IdentityService extends Context.Service<Identity, Identity["Service"]>()(
@@ -221,7 +226,7 @@ class IdentityService extends Context.Service<Identity, Identity["Service"]>()(
 export const makeEncrypted = Effect.gen(function*(): Effect.fn.Return<
   EventLogRemote["Service"],
   EventLogRemoteError,
-  Scope.Scope | EventLogRemoteClient | EventLogEncryption
+  Scope.Scope | EventLogRemoteClient | EventLogEncryption | Registry
 > {
   const encryption = yield* EventLogEncryption
 
@@ -254,7 +259,7 @@ export const makeEncrypted = Effect.gen(function*(): Effect.fn.Return<
 export const makeUnencrypted: Effect.Effect<
   EventLogRemote["Service"],
   EventLogRemoteError,
-  Scope.Scope | EventLogRemoteClient
+  Scope.Scope | EventLogRemoteClient | Registry
 > = makeWith({
   encodeWrite: (options) =>
     new WriteEntriesUnencrypted({
@@ -272,7 +277,7 @@ export const makeUnencrypted: Effect.Effect<
 export const layerEncrypted: Layer.Layer<
   EventLogRemote,
   EventLogRemoteError,
-  RpcClient.Protocol
+  RpcClient.Protocol | Registry
 > = Layer.effect(EventLogRemote, makeEncrypted).pipe(
   Layer.provide(EventLogRemoteClient.layer),
   Layer.provide(layerSubtle)
@@ -285,7 +290,7 @@ export const layerEncrypted: Layer.Layer<
 export const layerUnencrypted: Layer.Layer<
   EventLogRemote,
   EventLogRemoteError,
-  RpcClient.Protocol
+  RpcClient.Protocol | Registry
 > = Layer.effect(EventLogRemote, makeUnencrypted).pipe(
   Layer.provide(EventLogRemoteClient.layer)
 )
