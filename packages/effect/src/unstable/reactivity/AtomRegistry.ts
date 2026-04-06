@@ -754,7 +754,7 @@ function childrenAreActive(children: Array<NodeImpl<any>>): boolean {
   return false
 }
 
-interface Lifetime<A> extends Atom.Context {
+interface Lifetime<A> extends Atom.AtomContext {
   isFn: boolean
   readonly node: NodeImpl<A>
   finalizers: Array<() => void> | undefined

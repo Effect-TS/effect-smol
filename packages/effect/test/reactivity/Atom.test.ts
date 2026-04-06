@@ -408,7 +408,7 @@ describe.sequential("Atom", () => {
   })
 
   it("disposed lifetime apis are no-ops", () => {
-    let context: Atom.Context | undefined
+    let context: Atom.AtomContext | undefined
     const state = Atom.make(0).pipe(Atom.keepAlive)
     const option = Atom.make<Option.Option<number>>(Option.some(1)).pipe(Atom.keepAlive)
     const result = Atom.make<AsyncResult.AsyncResult<number, never>>(AsyncResult.success(1)).pipe(Atom.keepAlive)
