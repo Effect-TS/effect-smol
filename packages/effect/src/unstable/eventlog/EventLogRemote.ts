@@ -163,16 +163,11 @@ export const makeWith = Effect.fnUntraced(function*({ encodeWrite, decodeChanges
   ) =>
     Effect.retry(effect, {
       while(e) {
-        if (!Predicate.isTagged(e, "EventLogProtocolError")) {
-          return false
-        }
-        const error = e as any as EventLogProtocolError
-        if (error.code !== "Forbidden") {
-          return false
-        }
         hello = null
+        const isForbidden = Predicate.isTagged(e, "EventLogProtocolError") &&
+          (e as any as EventLogProtocolError).code === "Forbidden"
         return Cache.invalidate(authCache, options.identity.publicKey).pipe(
-          Effect.as(true)
+          Effect.as(isForbidden)
         )
       },
       times: 5
