@@ -22,14 +22,7 @@ import { Reactivity } from "../reactivity/Reactivity.ts"
 import * as ReactivityLayer from "../reactivity/Reactivity.ts"
 import type * as Event from "./Event.ts"
 import type * as EventGroup from "./EventGroup.ts"
-import {
-  Entry,
-  EventJournal,
-  type EventJournalError,
-  makeEntryIdUnsafe,
-  type RemoteEntry,
-  type RemoteId
-} from "./EventJournal.ts"
+import { Entry, EventJournal, type EventJournalError, makeEntryIdUnsafe, type RemoteId } from "./EventJournal.ts"
 import * as EventLogEncryption from "./EventLogEncryption.ts"
 import { StoreId } from "./EventLogMessage.ts"
 import type { EventLogRemote } from "./EventLogRemote.ts"
@@ -686,51 +679,43 @@ const make = Effect.gen(function*() {
             entries: entries.flat(),
             compact: registry.compactors.size > 0
               ? Effect.fnUntraced(function*(remoteEntries) {
-                const brackets: Array<[Array<Entry>, Array<RemoteEntry>]> = []
-                let uncompacted: Array<Entry> = []
-                let uncompactedRemote: Array<RemoteEntry> = []
-                let index = 0
-                while (index < remoteEntries.length) {
-                  const remoteEntry = remoteEntries[index]
-                  const compactor = registry.compactors.get(remoteEntry.entry.event)
+                const entries: Array<Entry> = []
+                const compactable = new Map<
+                  (options: {
+                    readonly entries: ReadonlyArray<Entry>
+                    readonly write: (entry: Entry) => Effect.Effect<void>
+                  }) => Effect.Effect<void>,
+                  Array<Entry>
+                >()
+
+                for (let i = 0; i < remoteEntries.length; i++) {
+                  const remoteEntry = remoteEntries[i]
+                  const entry = remoteEntry.entry
+                  const compactor = registry.compactors.get(entry.event)
                   if (!compactor) {
-                    uncompacted.push(remoteEntry.entry)
-                    uncompactedRemote.push(remoteEntry)
-                    index++
+                    entries.push(entry)
                     continue
                   }
-                  if (uncompacted.length > 0) {
-                    brackets.push([uncompacted, uncompactedRemote])
-                    uncompacted = []
-                    uncompactedRemote = []
+                  let arr = compactable.get(compactor.effect)
+                  if (!arr) {
+                    arr = []
+                    compactable.set(compactor.effect, arr)
                   }
-                  const entries = [remoteEntry.entry]
-                  const remoteGroup = [remoteEntry]
-                  const compacted: Array<Entry> = []
-                  index++
-                  while (index < remoteEntries.length) {
-                    const nextRemoteEntry = remoteEntries[index]
-                    if (!compactor.events.has(nextRemoteEntry.entry.event)) {
-                      break
-                    }
-                    entries.push(nextRemoteEntry.entry)
-                    remoteGroup.push(nextRemoteEntry)
-                    index++
-                  }
-                  yield* compactor.effect({
+                  arr.push(entry)
+                }
+
+                for (const [compact, entries] of compactable) {
+                  yield* compact({
                     entries,
                     write(entry) {
                       return Effect.sync(() => {
-                        compacted.push(entry)
+                        entries.push(entry)
                       })
                     }
-                  }).pipe(Effect.orDie)
-                  brackets.push([compacted, remoteGroup])
+                  })
                 }
-                if (uncompacted.length > 0) {
-                  brackets.push([uncompacted, uncompactedRemote])
-                }
-                return brackets
+
+                return entries.sort(Entry.Order)
               })
               : undefined,
             effect: replayFromRemote

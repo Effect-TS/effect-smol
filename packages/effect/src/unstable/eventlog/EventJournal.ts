@@ -47,10 +47,7 @@ export class EventJournal extends Context.Service<EventJournal, {
       readonly remoteId: RemoteId
       readonly entries: ReadonlyArray<RemoteEntry>
       readonly compact?:
-        | ((uncommitted: ReadonlyArray<RemoteEntry>) => Effect.Effect<
-          ReadonlyArray<[compacted: ReadonlyArray<Entry>, remoteEntries: ReadonlyArray<RemoteEntry>]>,
-          EventJournalError
-        >)
+        | ((uncommitted: ReadonlyArray<RemoteEntry>) => Effect.Effect<ReadonlyArray<Entry>, EventJournalError>)
         | undefined
       readonly effect: (options: {
         readonly entry: Entry
@@ -323,38 +320,36 @@ export const makeMemory: Effect.Effect<EventJournal["Service"]> = Effect.gen(fun
         uncommitted.push(remoteEntry.entry)
       }
 
-      const brackets = options.compact
+      const compacted = options.compact
         ? yield* options.compact(uncommittedRemotes)
-        : [[uncommitted, uncommittedRemotes]] as const
+        : uncommitted
 
-      for (const [compacted, remoteEntries] of brackets) {
-        for (const originEntry of compacted) {
-          const entryMillis = entryIdMillis(originEntry.id)
-          const conflicts: Array<Entry> = []
-          for (let i = journal.length - 1; i >= -1; i--) {
-            const entry = journal[i]
-            if (entry !== undefined && entry.createdAtMillis > entryMillis) {
-              continue
-            }
-            for (let j = i + 2; j < journal.length; j++) {
-              const scannedEntry = journal[j]!
-              if (scannedEntry.event === originEntry.event && scannedEntry.primaryKey === originEntry.primaryKey) {
-                conflicts.push(scannedEntry)
-              }
-            }
-            yield* options.effect({ entry: originEntry, conflicts })
-            break
+      for (const originEntry of compacted) {
+        const entryMillis = entryIdMillis(originEntry.id)
+        const conflicts: Array<Entry> = []
+        for (let i = journal.length - 1; i >= -1; i--) {
+          const entry = journal[i]
+          if (entry !== undefined && entry.createdAtMillis > entryMillis) {
+            continue
           }
-        }
-        for (const remoteEntry of remoteEntries) {
-          journal.push(remoteEntry.entry)
-          byId.set(remoteEntry.entry.idString, remoteEntry.entry)
-          if (remoteEntry.remoteSequence > remote.sequence) {
-            remote.sequence = remoteEntry.remoteSequence
+          for (let j = i + 2; j < journal.length; j++) {
+            const scannedEntry = journal[j]!
+            if (scannedEntry.event === originEntry.event && scannedEntry.primaryKey === originEntry.primaryKey) {
+              conflicts.push(scannedEntry)
+            }
           }
+          yield* options.effect({ entry: originEntry, conflicts })
+          break
         }
-        journal.sort((a, b) => a.createdAtMillis - b.createdAtMillis)
       }
+      for (const remoteEntry of uncommittedRemotes) {
+        journal.push(remoteEntry.entry)
+        byId.set(remoteEntry.entry.idString, remoteEntry.entry)
+        if (remoteEntry.remoteSequence > remote.sequence) {
+          remote.sequence = remoteEntry.remoteSequence
+        }
+      }
+      journal.sort((a, b) => a.createdAtMillis - b.createdAtMillis)
       return {
         duplicateEntries
       }
@@ -493,59 +488,56 @@ export const makeIndexedDb = (options?: {
           return Effect.sync(() => tx.abort())
         })
 
-        const brackets = options.compact
+        const compacted = options.compact
           ? yield* options.compact(uncommittedRemotes)
-          : [[uncommitted, uncommittedRemotes]] as const
+          : uncommitted
 
-        for (const [compacted, remoteEntries] of brackets) {
-          for (const originEntry of compacted) {
-            const conflicts: Array<Entry> = []
-            yield* Effect.callback<void, EventJournalError>((resume) => {
-              const tx = db.transaction("entries", "readonly")
-              const entries = tx.objectStore("entries")
-              const cursorRequest = entries.index("id").openCursor(
-                IDBKeyRange.lowerBound(originEntry.id as IDBValidKey, true),
-                "next"
-              )
-              cursorRequest.onsuccess = () => {
-                const cursor = cursorRequest.result
-                if (!cursor) return
-                const decodedEntry = decodeEntryIdb(cursor.value)
-                if (
-                  decodedEntry.event === originEntry.event &&
-                  decodedEntry.primaryKey === originEntry.primaryKey
-                ) {
-                  conflicts.push(decodedEntry)
-                }
-                cursor.continue()
-              }
-              tx.oncomplete = () => resume(Effect.void)
-              tx.onerror = () =>
-                resume(Effect.fail(new EventJournalError({ method: "writeFromRemote", cause: tx.error })))
-              return Effect.sync(() => tx.abort())
-            })
-
-            yield* options.effect({ entry: originEntry, conflicts })
-          }
-
+        for (const originEntry of compacted) {
+          const conflicts: Array<Entry> = []
           yield* Effect.callback<void, EventJournalError>((resume) => {
-            const tx = db.transaction(["entries", "remotes"], "readwrite")
+            const tx = db.transaction("entries", "readonly")
             const entries = tx.objectStore("entries")
-            const remotes = tx.objectStore("remotes")
-            for (const remoteEntry of remoteEntries) {
-              entries.add(encodeEntryIdb(remoteEntry.entry))
-              remotes.put({
-                remoteId: options.remoteId,
-                entryId: remoteEntry.entry.id,
-                sequence: remoteEntry.remoteSequence
-              })
+            const cursorRequest = entries.index("id").openCursor(
+              IDBKeyRange.lowerBound(originEntry.id as IDBValidKey, true),
+              "next"
+            )
+            cursorRequest.onsuccess = () => {
+              const cursor = cursorRequest.result
+              if (!cursor) return
+              const decodedEntry = decodeEntryIdb(cursor.value)
+              if (
+                decodedEntry.event === originEntry.event &&
+                decodedEntry.primaryKey === originEntry.primaryKey
+              ) {
+                conflicts.push(decodedEntry)
+              }
+              cursor.continue()
             }
             tx.oncomplete = () => resume(Effect.void)
             tx.onerror = () =>
               resume(Effect.fail(new EventJournalError({ method: "writeFromRemote", cause: tx.error })))
             return Effect.sync(() => tx.abort())
           })
+
+          yield* options.effect({ entry: originEntry, conflicts })
         }
+
+        yield* Effect.callback<void, EventJournalError>((resume) => {
+          const tx = db.transaction(["entries", "remotes"], "readwrite")
+          const entries = tx.objectStore("entries")
+          const remotes = tx.objectStore("remotes")
+          for (const remoteEntry of uncommittedRemotes) {
+            entries.add(encodeEntryIdb(remoteEntry.entry))
+            remotes.put({
+              remoteId: options.remoteId,
+              entryId: remoteEntry.entry.id,
+              sequence: remoteEntry.remoteSequence
+            })
+          }
+          tx.oncomplete = () => resume(Effect.void)
+          tx.onerror = () => resume(Effect.fail(new EventJournalError({ method: "writeFromRemote", cause: tx.error })))
+          return Effect.sync(() => tx.abort())
+        })
         return {
           duplicateEntries
         }

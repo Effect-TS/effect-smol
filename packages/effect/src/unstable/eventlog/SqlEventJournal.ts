@@ -13,8 +13,6 @@ import * as EventJournal from "./EventJournal.ts"
 
 type WriteFromRemoteOptions = Parameters<EventJournal.EventJournal["Service"]["writeFromRemote"]>[0]
 
-type RemoteBracket = readonly [ReadonlyArray<EventJournal.Entry>, ReadonlyArray<EventJournal.RemoteEntry>]
-
 /**
  * @since 4.0.0
  * @category constructors
@@ -169,13 +167,12 @@ export const make = (options?: {
       const duplicateEntries = options.entries
         .filter((entry) => existingIds.has(entry.entry.idString))
         .map((entry) => entry.entry)
-      const brackets: ReadonlyArray<RemoteBracket> = options.compact
+      const compacted = options.compact
         ? yield* options.compact(uncommitted)
-        : [[uncommitted.map((remoteEntry) => remoteEntry.entry), uncommitted] as const]
+        : uncommitted.map((remoteEntry) => remoteEntry.entry)
 
-      for (const [compacted] of brackets) {
-        for (const entry of compacted) {
-          const conflicts = yield* sql`
+      for (const entry of compacted) {
+        const conflicts = yield* sql`
             SELECT *
             FROM ${entryTableSql}
             WHERE event = ${entry.event} AND
@@ -183,11 +180,10 @@ export const make = (options?: {
                   timestamp >= ${entry.createdAtMillis}
             ORDER BY timestamp ASC
           `.pipe(
-            Effect.flatMap(decodeEntryRows),
-            Effect.map(toEntries)
-          )
-          yield* options.effect({ entry, conflicts })
-        }
+          Effect.flatMap(decodeEntryRows),
+          Effect.map(toEntries)
+        )
+        yield* options.effect({ entry, conflicts })
       }
 
       return {
