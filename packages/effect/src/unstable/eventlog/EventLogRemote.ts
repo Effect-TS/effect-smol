@@ -6,6 +6,7 @@ import * as Context from "../../Context.ts"
 import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
+import * as Predicate from "../../Predicate.ts"
 import * as Queue from "../../Queue.ts"
 import * as Redacted from "../../Redacted.ts"
 import type * as Schema from "../../Schema.ts"
@@ -19,6 +20,7 @@ import {
   Authenticate,
   ChangesRpc,
   ChunkedMessage,
+  type EventLogProtocolError,
   EventLogRemoteRpcs,
   type HelloResponse,
   type StoreId,
@@ -150,20 +152,46 @@ export const makeWith = Effect.fnUntraced(function*({ encodeWrite, decodeChanges
     return Cache.get(authCache, identity.publicKey)
   }
 
+  const retryForbidden = <A, E, R>(
+    effect: Effect.Effect<A, E, R>,
+    options: {
+      readonly identity: Identity["Service"]
+    }
+  ) =>
+    Effect.retry(effect, {
+      while(e) {
+        if (!Predicate.isTagged(e, "EventLogProtocolError")) {
+          return false
+        }
+        const error = e as any as EventLogProtocolError
+        if (error.code !== "Forbidden") {
+          return false
+        }
+        return Cache.invalidate(authCache, options.identity.publicKey).pipe(
+          Effect.as(true)
+        )
+      },
+      times: 5
+    })
+
   let chunkedIdCounter = 0
 
   const remote = EventLogRemote.of({
     id: hello.remoteId,
-    write: Effect.fnUntraced(function*(options) {
-      yield* ensureAuthenticated(options.identity)
-      const encoded = yield* encodeWrite(options)
-      if (encoded.byteLength <= ChunkedMessage.chunkSize) {
-        return yield* client["EventLog.WriteSingle"]({ data: encoded })
-      }
-      for (const part of ChunkedMessage.split(chunkedIdCounter++, encoded)) {
-        yield* client["EventLog.WriteChunked"](part)
-      }
-    }, Effect.mapError((cause) => new EventLogRemoteError({ method: "write", cause }))),
+    write: Effect.fnUntraced(
+      function*(options) {
+        yield* ensureAuthenticated(options.identity)
+        const encoded = yield* encodeWrite(options)
+        if (encoded.byteLength <= ChunkedMessage.chunkSize) {
+          return yield* client["EventLog.WriteSingle"]({ data: encoded })
+        }
+        for (const part of ChunkedMessage.split(chunkedIdCounter++, encoded)) {
+          yield* client["EventLog.WriteChunked"](part)
+        }
+      },
+      retryForbidden,
+      Effect.mapError((cause) => new EventLogRemoteError({ method: "write", cause }))
+    ),
     changes: Effect.fnUntraced(function*(options) {
       const outgoing = yield* Queue.make<RemoteEntry, EventLogRemoteError>()
 
@@ -191,6 +219,7 @@ export const makeWith = Effect.fnUntraced(function*({ encodeWrite, decodeChanges
           }
         }
       }).pipe(
+        (effect) => retryForbidden(effect, options),
         Effect.mapError((cause) => {
           if (cause._tag === "EventLogRemoteError") {
             return cause
