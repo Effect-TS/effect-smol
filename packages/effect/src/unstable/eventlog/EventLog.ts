@@ -679,7 +679,7 @@ const make = Effect.gen(function*() {
             entries: entries.flat(),
             compact: registry.compactors.size > 0
               ? Effect.fnUntraced(function*(remoteEntries) {
-                const entries: Array<Entry> = []
+                const finalEntries: Array<Entry> = []
                 const compactable = new Map<
                   (options: {
                     readonly entries: ReadonlyArray<Entry>
@@ -693,7 +693,7 @@ const make = Effect.gen(function*() {
                   const entry = remoteEntry.entry
                   const compactor = registry.compactors.get(entry.event)
                   if (!compactor) {
-                    entries.push(entry)
+                    finalEntries.push(entry)
                     continue
                   }
                   let arr = compactable.get(compactor.effect)
@@ -709,13 +709,13 @@ const make = Effect.gen(function*() {
                     entries,
                     write(entry) {
                       return Effect.sync(() => {
-                        entries.push(entry)
+                        finalEntries.push(entry)
                       })
                     }
                   })
                 }
 
-                return entries.sort(Entry.Order)
+                return finalEntries.sort(Entry.Order)
               })
               : undefined,
             effect: replayFromRemote
