@@ -258,7 +258,6 @@ export const make = <
         database,
         IDBKeyRange,
         tables: initialVersion.tables,
-        transaction: undefined,
         reactivity
       })
     })
@@ -302,7 +301,6 @@ const makeProto = <
         database,
         IDBKeyRange,
         tables: options.version.tables,
-        transaction: undefined,
         reactivity
       })
     })
@@ -459,7 +457,8 @@ const layer = <DatabaseName extends string>(
                   reason: "UpgradeError",
                   cause
                 })
-            )
+            ),
+            Effect.provideService(IndexedDbQueryBuilder.IndexedDbTransaction, transaction)
           )
           fiber = runForkWith(effect)
           fiber.currentDispatcher.flush()
@@ -537,11 +536,11 @@ const makeTransactionProto = <Source extends IndexedDbVersion.AnyWithProps>({
     database,
     IDBKeyRange,
     tables,
-    transaction,
     reactivity
   }) as any
 
   migration.transaction = transaction
+
   migration.createObjectStore = Effect.fnUntraced(function*(table: string) {
     const createTable = yield* Effect.fromNullishOr(tables.get(table)).pipe(
       Effect.mapError(

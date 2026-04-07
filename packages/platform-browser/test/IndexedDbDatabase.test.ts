@@ -113,14 +113,15 @@ describe.sequential("IndexedDbDatabase", () => {
 
     return Effect.gen(function*() {
       const api = yield* Migration.getQueryBuilder
-      yield* api.transaction(["todo"], "readwrite", (api) =>
+      yield* api.withTransaction({ tables: ["todo"], mode: "readwrite" })(
         api
           .from("todo")
           .insert({ id: 2, title: "test2", completed: false })
           .pipe(
             Effect.fromYieldable,
             Effect.orDie
-          ))
+          )
+      )
 
       const todo = yield* api.from("todo").select()
       assert.deepStrictEqual(todo, [
