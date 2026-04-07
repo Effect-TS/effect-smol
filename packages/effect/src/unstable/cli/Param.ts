@@ -1076,8 +1076,6 @@ export const mapTryCatch: {
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
- * // @internal - this module is not exported publicly
- *
  * // Create an optional port option
  * // - When not provided: returns Option.none()
  * // - When provided: returns Option.some(parsedValue)
@@ -1090,26 +1088,29 @@ export const mapTryCatch: {
 export const optional = <Kind extends ParamKind, A>(
   param: Param<Kind, A>
 ): Param<Kind, Option.Option<A>> => {
-  const single = getUnderlyingSingleOrThrow(param)
-  const parse: Parse<Option.Option<A>> = (args) =>
-    Effect.gen(function*() {
-      if (
-        single.kind === flagKind &&
-        Primitive.isBoolean(single.primitiveType) &&
-        ![single.name, ...single.aliases].some((name) => (args.flags[name] ?? []).length > 0)
-      ) {
-        return [args.arguments, Option.none()] as const
-      }
+  const parse: Parse<Option.Option<A>> = Effect.fnUntraced(function*(args) {
+    const single = getUnderlyingSingleOrThrow(param)
 
-      return yield* param.parse(args).pipe(
-        Effect.map(
-          ([leftover, value]) => [leftover, Option.some(value)] as const
-        ),
-        // Catch both MissingOption (for flags) and MissingArgument (for positional arguments)
-        Effect.catchTag("MissingOption", () => Effect.succeed([args.arguments, Option.none()] as const)),
-        Effect.catchTag("MissingArgument", () => Effect.succeed([args.arguments, Option.none()] as const))
-      )
-    })
+    // Handle boolean params that are explicitly marked as optional (i.e. the
+    // end user wants to return `Option.none()` instead of `false` when the
+    // flag (or its negated variant) are not present on the command line
+    if (
+      isFlagParam(single) &&
+      Primitive.isBoolean(single.primitiveType) &&
+      ![single.name, ...single.aliases].some((name) => (args.flags[name] ?? []).length > 0)
+    ) {
+      return [args.arguments, Option.none()] as const
+    }
+
+    return yield* param.parse(args).pipe(
+      Effect.map(([leftover, value]) => [leftover, Option.some(value)] as const),
+      // Catch both MissingOption (for flags) and MissingArgument (for positional arguments)
+      Effect.catchTags({
+        MissingOption: () => Effect.succeed([args.arguments, Option.none()] as const),
+        MissingArgument: () => Effect.succeed([args.arguments, Option.none()] as const)
+      })
+    )
+  })
   return Object.assign(Object.create(Proto), {
     _tag: "Optional",
     kind: param.kind,
