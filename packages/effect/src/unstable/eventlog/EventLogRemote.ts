@@ -121,7 +121,7 @@ export const makeWith = Effect.fnUntraced(function*({ encodeWrite, decodeChanges
   const client = yield* EventLogRemoteClient
   const registry = yield* Registry
 
-  const hello = yield* client["EventLog.Hello"]().pipe(
+  let hello: HelloResponse | null = yield* client["EventLog.Hello"]().pipe(
     Effect.mapError((cause) => new EventLogRemoteError({ method: "hello", cause }))
   )
 
@@ -138,6 +138,9 @@ export const makeWith = Effect.fnUntraced(function*({ encodeWrite, decodeChanges
   const authCache = yield* Cache.make({
     lookup: Effect.fnUntraced(function*(publicKey: string) {
       const identity = identities.get(publicKey)!
+      hello ??= yield* client["EventLog.Hello"]().pipe(
+        Effect.mapError((cause) => new EventLogRemoteError({ method: "hello", cause }))
+      )
       const authenticate = yield* makeAuthenticate({
         identity,
         hello
@@ -167,6 +170,7 @@ export const makeWith = Effect.fnUntraced(function*({ encodeWrite, decodeChanges
         if (error.code !== "Forbidden") {
           return false
         }
+        hello = null
         return Cache.invalidate(authCache, options.identity.publicKey).pipe(
           Effect.as(true)
         )
