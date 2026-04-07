@@ -2032,26 +2032,23 @@ class ValidationError extends Schema.TaggedErrorClass<ValidationError>()(
 ) {}
 
 // Define the middleware service, declaring the error it can produce
-class SchemaErrorHandler
-  extends HttpApiMiddleware.Service<SchemaErrorHandler>()(
-    "api/SchemaErrorHandler",
-    {
-      error: ValidationError.pipe(HttpApiSchema.status(422))
-    }
-  )
-{}
+class SchemaErrorHandler extends HttpApiMiddleware.Service<SchemaErrorHandler>()(
+  "api/SchemaErrorHandler",
+  {
+    error: ValidationError.pipe(HttpApiSchema.status(422))
+  }
+) {}
 
 // Implement the middleware layer
-const SchemaErrorHandlerLive =
-  HttpApiMiddleware.layerSchemaErrorTransform(
-    SchemaErrorHandler,
-    (schemaError) =>
-      Effect.fail(
-        new ValidationError({
-          message: `Invalid request: ${schemaError.message}`
-        })
-      )
-  )
+const SchemaErrorHandlerLive = HttpApiMiddleware.layerSchemaErrorTransform(
+  SchemaErrorHandler,
+  (schemaError) =>
+    Effect.fail(
+      new ValidationError({
+        message: `Invalid request: ${schemaError.message}`
+      })
+    )
+)
 
 const User = Schema.Struct({
   id: Schema.Int,
@@ -2074,10 +2071,7 @@ const Api = HttpApi.make("MyApi").add(
 const GroupLive = HttpApiBuilder.group(
   Api,
   "Users",
-  (handlers) =>
-    handlers.handle("getUser", (ctx) =>
-      Effect.succeed({ id: ctx.query.id, name: `User ${ctx.query.id}` })
-    )
+  (handlers) => handlers.handle("getUser", (ctx) => Effect.succeed({ id: ctx.query.id, name: `User ${ctx.query.id}` }))
 )
 
 const ApiLive = HttpApiBuilder.layer(Api).pipe(
@@ -2100,7 +2094,6 @@ The middleware can be attached at different scopes:
 - **Endpoint**: `.middleware(SchemaErrorHandler)` on a single endpoint (as shown above).
 - **Group**: `.middleware(SchemaErrorHandler)` on a group to cover all its endpoints.
 - **API**: `.middleware(SchemaErrorHandler)` on the API to cover every endpoint.
-
 
 # Middlewares
 
