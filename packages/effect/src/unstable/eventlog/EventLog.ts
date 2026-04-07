@@ -676,11 +676,12 @@ const make = Effect.gen(function*() {
   const runRemote = Effect.fnUntraced(
     function*(remote: EventLogRemote["Service"]) {
       const startSequence = yield* journal.nextRemoteSequence(remote.id)
-      const changes = yield* remote.changes({ identity, startSequence, storeId })
 
-      yield* Queue.takeAll(changes).pipe(
-        Effect.flatMap((entries) =>
-          journal.writeFromRemote({
+      yield* Effect.gen(function*() {
+        const changes = yield* remote.changes({ identity, startSequence, storeId })
+        while (true) {
+          const entries = yield* Queue.takeAll(changes)
+          yield* journal.writeFromRemote({
             remoteId: remote.id,
             entries: entries.flat(),
             compact: registry.compactors.size > 0
@@ -737,7 +738,9 @@ const make = Effect.gen(function*() {
             Effect.tap(({ duplicateEntries }) => invalidateReactivityEntries(duplicateEntries)),
             journal.withLock(storeId)
           )
-        ),
+        }
+      }).pipe(
+        Effect.scoped,
         Effect.catchCause(Effect.logError),
         Effect.repeat(
           Schedule.exponential(200, 1.5).pipe(
