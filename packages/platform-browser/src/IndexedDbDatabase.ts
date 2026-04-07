@@ -9,6 +9,7 @@ import * as Inspectable from "effect/Inspectable"
 import * as Layer from "effect/Layer"
 import * as MutableRef from "effect/MutableRef"
 import * as Pipeable from "effect/Pipeable"
+import * as Semaphore from "effect/Semaphore"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import * as Utils from "effect/Utils"
 import * as IndexedDb from "./IndexedDb.ts"
@@ -483,6 +484,7 @@ const layer = <DatabaseName extends string>(
       })
       yield* open
 
+      const rebuildLock = Semaphore.makeUnsafe(1).withPermit
       const rebuild = Effect.callback<void, IndexedDbDatabaseError>((resume) => {
         database.current?.close()
         const request = indexedDB.deleteDatabase(databaseName)
@@ -500,7 +502,8 @@ const layer = <DatabaseName extends string>(
           resume(Effect.void)
         }
       }).pipe(
-        Effect.flatMap(() => open)
+        Effect.flatMap(() => open),
+        rebuildLock
       )
 
       return IndexedDbDatabase.of({ database, IDBKeyRange, rebuild, reactivity })
