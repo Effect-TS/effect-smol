@@ -13,6 +13,7 @@ import * as Option from "effect/Option"
 import * as Pipeable from "effect/Pipeable"
 import type * as Queue from "effect/Queue"
 import type * as Record from "effect/Record"
+import * as References from "effect/References"
 import * as Schema from "effect/Schema"
 import * as SchemaIssue from "effect/SchemaIssue"
 import * as SchemaParser from "effect/SchemaParser"
@@ -1848,7 +1849,10 @@ const QueryBuilderProto: Omit<
       Effect.suspend(() => {
         const transaction = this.database.current.transaction(options.tables, options.mode, options)
         return Effect.provideService(effect, IndexedDbTransaction, transaction)
-      })
+      }).pipe(
+        // To prevent async gaps between transaction queries
+        Effect.provideService(References.PreventSchedulerYield, true)
+      )
   }
 }
 
