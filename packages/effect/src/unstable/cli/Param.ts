@@ -851,7 +851,7 @@ const FLAG_DASH_REGEXP = /^-+/
  *
  * const force = Param.boolean(Param.flagKind, "force").pipe(
  *   Param.withAlias("-f"),
- *   Param.withAlias("--no-prompt")
+ *   Param.withAlias("-F")
  * )
  *
  * // Also works on composed params:

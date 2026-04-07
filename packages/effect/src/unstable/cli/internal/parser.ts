@@ -321,6 +321,15 @@ type ResolvedFlag = {
   readonly param: FlagParam
   readonly negated: boolean
 }
+type ConsumedFlagValue =
+  | {
+    readonly _tag: "Value"
+    readonly value: string | undefined
+  }
+  | {
+    readonly _tag: "Error"
+    readonly error: CliError.InvalidValue
+  }
 
 const isFlagToken = (t: Token): t is FlagToken => t._tag === "LongOption" || t._tag === "ShortOption"
 
@@ -330,8 +339,9 @@ const resolveFlag = (
   token: FlagToken,
   registry: FlagRegistry
 ): ResolvedFlag | undefined => {
-  const direct = registry.index.get(getFlagName(token))
-  if (direct) {
+  const tokenName = getFlagName(token)
+  const direct = registry.index.get(tokenName)
+  if (direct && direct.name === tokenName) {
     return {
       param: direct,
       negated: false
@@ -349,8 +359,27 @@ const resolveFlag = (
     }
   }
 
+  if (direct) {
+    return {
+      param: direct,
+      negated: false
+    }
+  }
+
   return undefined
 }
+
+const invalidNegatedFlagValue = (
+  token: FlagToken,
+  spec: FlagParam,
+  value: string
+): CliError.InvalidValue =>
+  new CliError.InvalidValue({
+    option: spec.name,
+    value,
+    expected: `omit the value and use ${token.raw} by itself to set --${spec.name} to false`,
+    kind: "flag"
+  })
 
 /**
  * Checks if a token is a boolean literal value.
@@ -378,31 +407,62 @@ const consumeFlagValue = (
   token: FlagToken,
   spec: FlagParam,
   negated = false
-): string | undefined => {
+): ConsumedFlagValue => {
   // Inline value has highest priority
   if (negated) {
-    return "false"
+    if (token.value !== undefined) {
+      return {
+        _tag: "Error",
+        error: invalidNegatedFlagValue(token, spec, token.value)
+      }
+    }
+
+    const literal = asBooleanLiteral(cursor.peek())
+    if (literal !== undefined) {
+      cursor.take()
+      return {
+        _tag: "Error",
+        error: invalidNegatedFlagValue(token, spec, literal)
+      }
+    }
+
+    return {
+      _tag: "Value",
+      value: "false"
+    }
   }
 
   if (token.value !== undefined) {
-    return token.value
+    return {
+      _tag: "Value",
+      value: token.value
+    }
   }
 
   // Boolean flags: check for explicit literal or default to "true"
   if (Primitive.isBoolean(spec.primitiveType)) {
     const literal = asBooleanLiteral(cursor.peek())
     if (literal !== undefined) cursor.take()
-    return literal ?? "true"
+    return {
+      _tag: "Value",
+      value: literal ?? "true"
+    }
   }
 
   // Non-boolean: try to consume next Value token
   const next = cursor.peek()
   if (next?._tag === "Value") {
     cursor.take()
-    return next.value
+    return {
+      _tag: "Value",
+      value: next.value
+    }
   }
 
-  return undefined
+  return {
+    _tag: "Value",
+    value: undefined
+  }
 }
 
 /**
@@ -414,9 +474,10 @@ const consumeFlagValue = (
 export const consumeKnownFlags = (
   tokens: ReadonlyArray<Token>,
   registry: FlagRegistry
-): { flagMap: FlagMap; remainder: ReadonlyArray<Token> } => {
+): { flagMap: FlagMap; remainder: ReadonlyArray<Token>; errors: ReadonlyArray<CliError.InvalidValue> } => {
   const flagMap = createEmptyFlagMap(registry.params)
   const remainder: Array<Token> = []
+  const errors: Array<CliError.InvalidValue> = []
   const cursor = makeCursor(tokens)
 
   for (let t = cursor.take(); t; t = cursor.take()) {
@@ -431,13 +492,17 @@ export const consumeKnownFlags = (
       continue
     }
 
-    const value = consumeFlagValue(cursor, t, resolved.param, resolved.negated)
-    if (value !== undefined) {
-      flagMap[resolved.param.name].push(value)
+    const consumed = consumeFlagValue(cursor, t, resolved.param, resolved.negated)
+    if (consumed._tag === "Error") {
+      errors.push(consumed.error)
+      continue
+    }
+    if (consumed.value !== undefined) {
+      flagMap[resolved.param.name].push(consumed.value)
     }
   }
 
-  return { flagMap, remainder }
+  return { flagMap, remainder, errors }
 }
 
 /* ========================================================================== */
@@ -536,6 +601,7 @@ const resolveFirstValue = (
     // npm-style: inherited parent flags can appear after subcommand name
     const tail = consumeKnownFlags(cursor.rest(), inheritedFlagRegistry)
     state.flags.merge(tail.flagMap)
+    state.errors.push(...tail.errors)
 
     return {
       _tag: "Subcommand",
@@ -587,7 +653,13 @@ const processFlag = (
     return
   }
 
-  state.flags.add(resolved.param.name, consumeFlagValue(cursor, token, resolved.param, resolved.negated))
+  const consumed = consumeFlagValue(cursor, token, resolved.param, resolved.negated)
+  if (consumed._tag === "Error") {
+    state.errors.push(consumed.error)
+    return
+  }
+
+  state.flags.add(resolved.param.name, consumed.value)
 }
 
 /**

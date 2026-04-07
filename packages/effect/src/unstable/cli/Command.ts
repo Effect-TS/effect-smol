@@ -1337,7 +1337,7 @@ export const runWith = <const Name extends string, Input, E, R, ContextInput>(
       // 2. Extract global flag tokens
       const allFlagParams = allFlags.flatMap((f) => Param.extractSingleParams(f.flag))
       const globalRegistry = Parser.createFlagRegistry(allFlagParams.filter(Param.isFlagParam))
-      const { flagMap, remainder } = Parser.consumeKnownFlags(tokens, globalRegistry)
+      const { flagMap, remainder, errors: globalFlagErrors } = Parser.consumeKnownFlags(tokens, globalRegistry)
       const emptyArgs: Param.ParsedArgs = { flags: flagMap, arguments: [] }
 
       // 3. Parse command arguments from remaining tokens
@@ -1348,9 +1348,12 @@ export const runWith = <const Name extends string, Input, E, R, ContextInput>(
 
       // 4. Reject globals that were passed outside the active command scope
       const outOfScopeErrors = getOutOfScopeGlobalFlagErrors(allFlags, activeFlags, flagMap, commandPath)
-      if (outOfScopeErrors.length > 0) {
+      if (outOfScopeErrors.length > 0 || globalFlagErrors.length > 0) {
         const parseErrors = parsedArgs.errors ?? []
-        return yield* new CliError.ShowHelp({ commandPath, errors: [...outOfScopeErrors, ...parseErrors] })
+        return yield* new CliError.ShowHelp({
+          commandPath,
+          errors: [...globalFlagErrors, ...outOfScopeErrors, ...parseErrors]
+        })
       }
 
       // 5. Process action flags — first present action wins, then exit

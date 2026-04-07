@@ -27,7 +27,7 @@ This file records the intended parsing semantics with a short usage example and 
   Test: `packages/effect/test/unstable/cli/Command.test.ts` – "should handle boolean flags before subcommands"
 
 - **Boolean flags support canonical `--no-<flag>` negation, and optional booleans distinguish omission from explicit false**\
-  Example: `tool --no-verbose` → `false`; `Flag.optional(Flag.boolean("verbose"))` yields `Option.none()` when omitted\
+  Example: `tool --no-verbose` → `false`; `--no-verbose=false` is rejected; `Flag.optional(Flag.boolean("verbose"))` yields `Option.none()` when omitted\
   Test: `packages/effect/test/unstable/cli/Command.test.ts` – "should support optional boolean flags and --no-<flag> negation"
 
 - **Unknown subcommands emit suggestions**\
@@ -105,6 +105,7 @@ Below each semantic you’ll find: a short description, a usage example, how maj
 
 - **What**: Boolean flags accept a canonical negated long form in addition to explicit literals.
 - **Example**: `tool --no-verbose`.
+- **Value form**: Negated form does not accept an explicit value; use `--verbose false` or bare `--no-verbose`.
 - **Commander / yargs / clap / Click**: Commonly supported for long boolean options.
 - **Effect (current)**: Supported for canonical long flag names. Test: “should support optional boolean flags and --no-<flag> negation”.
 - **Suggestion**: Keep; this matches the existing docs and generated completions.

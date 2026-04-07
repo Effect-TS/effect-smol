@@ -334,6 +334,32 @@ describe("Command", () => {
         assert.strictEqual(handlerInvocations, 1)
       }).pipe(Effect.provide(TestLayer)))
 
+    it.effect("should reject explicit values for canonical negated global flags", () =>
+      Effect.gen(function*() {
+        let handlerInvoked = false
+        const Verbose = GlobalFlag.setting("verbose")({
+          flag: Flag.boolean("verbose")
+        })
+
+        const command = Command.make("deploy", {}, () =>
+          Effect.sync(() => {
+            handlerInvoked = true
+          })).pipe(
+            Command.withGlobalFlags([Verbose])
+          )
+
+        const runCommand = Command.runWith(command, {
+          version: "1.0.0"
+        })
+
+        yield* runCommand(["--no-verbose", "false"]).pipe(Effect.catchTag("ShowHelp", () => Effect.void))
+
+        assert.isFalse(handlerInvoked)
+
+        const stderr = yield* TestConsole.errorLines
+        assert.isTrue(stderr.join("\n").includes("use --no-verbose by itself to set --verbose to false"))
+      }).pipe(Effect.provide(TestLayer)))
+
     it.effect("should expose setting global flags in Command.provide APIs", () =>
       Effect.gen(function*() {
         const Region = GlobalFlag.setting("region")({
@@ -1096,6 +1122,74 @@ describe("Command", () => {
           Option.some(true),
           Option.some(false)
         ])
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should prefer canonical negation over conflicting aliases", () =>
+      Effect.gen(function*() {
+        const captured: Array<readonly [boolean, boolean]> = []
+
+        const cmd = Command.make("tool", {
+          prompt: Flag.boolean("prompt"),
+          force: Flag.boolean("force").pipe(Flag.withAlias("no-prompt"))
+        }, (config) => Effect.sync(() => captured.push([config.prompt, config.force] as const)))
+
+        const runCmd = Command.runWith(cmd, { version: "1.0.0" })
+
+        yield* runCmd(["--no-prompt"])
+
+        assert.deepStrictEqual(captured, [[false, false]])
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should reject explicit values for canonical negated flags", () =>
+      Effect.gen(function*() {
+        let invoked = false
+
+        const cmd = Command.make("tool", {
+          open: Flag.boolean("open")
+        }, () =>
+          Effect.sync(() => {
+            invoked = true
+          }))
+
+        const runCmd = Command.runWith(cmd, { version: "1.0.0" })
+
+        yield* runCmd(["--no-open", "false"]).pipe(Effect.catchTag("ShowHelp", () => Effect.void))
+        yield* runCmd(["--no-open=true"]).pipe(Effect.catchTag("ShowHelp", () => Effect.void))
+
+        assert.isFalse(invoked)
+
+        const stderr = yield* TestConsole.errorLines
+        assert.isTrue(stderr.join("\n").includes("use --no-open by itself to set --open to false"))
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should not leak a negated flag literal into subcommand parsing", () =>
+      Effect.gen(function*() {
+        let parentInvoked = false
+        let childInvoked = false
+
+        const child = Command.make("child", {}, () =>
+          Effect.sync(() => {
+            childInvoked = true
+          }))
+
+        const root = Command.make("tool", {
+          open: Flag.boolean("open")
+        }, () =>
+          Effect.sync(() => {
+            parentInvoked = true
+          })).pipe(Command.withSubcommands([child]))
+
+        const runCmd = Command.runWith(root, { version: "1.0.0" })
+
+        yield* runCmd(["--no-open", "false", "child"]).pipe(Effect.catchTag("ShowHelp", () => Effect.void))
+
+        assert.isFalse(parentInvoked)
+        assert.isFalse(childInvoked)
+
+        const stderr = yield* TestConsole.errorLines
+        const output = stderr.join("\n")
+        assert.isTrue(output.includes("use --no-open by itself to set --open to false"))
+        assert.isFalse(output.includes("Unknown subcommand \"false\""))
       }).pipe(Effect.provide(TestLayer)))
 
     it.effect("should fail when a required flag value is missing", () =>
