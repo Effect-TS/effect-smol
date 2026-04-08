@@ -4020,6 +4020,20 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     await encoding.succeed(encoder.encode("foobar"), "Zm9vYmFy")
   })
 
+  it("StringFromBase64", async () => {
+    const schema = Schema.StringFromBase64
+    const asserts = new TestSchema.Asserts(schema)
+
+    const decoding = asserts.decoding()
+    await decoding.succeed("Zm9vYmFy", "foobar")
+    await decoding.fail("Zm9vY", "Length must be a multiple of 4, but is 5")
+    await decoding.fail("Zm9vYmF-", "Invalid character -")
+    await decoding.fail("=Zm9vYmF", "Found a '=' character, but it is not at the end")
+
+    const encoding = asserts.encoding()
+    await encoding.succeed("foobar", "Zm9vYmFy")
+  })
+
   it("Uint8ArrayFromBase64Url", async () => {
     const schema = Schema.Uint8ArrayFromBase64Url
     const asserts = new TestSchema.Asserts(schema)

@@ -40,6 +40,7 @@
  * - Wrap nullable/optional as Option → {@link optionFromNullOr}, {@link optionFromOptionalKey}, {@link optionFromOptional}
  * - Parse URLs → {@link urlFromString}
  * - Base64 ↔ Uint8Array → {@link uint8ArrayFromBase64String}
+ * - Base64 ↔ string → {@link stringFromBase64String}
  * - JSON string ↔ unknown → {@link fromJsonString}
  * - FormData/URLSearchParams ↔ unknown → {@link fromFormData}, {@link fromURLSearchParams}
  * - Check if a value is a Transformation → {@link isTransformation}
@@ -1309,6 +1310,37 @@ export const bigDecimalFromString: Transformation<BigDecimal.BigDecimal, string>
  */
 export const uint8ArrayFromBase64String: Transformation<Uint8Array<ArrayBufferLike>, string> = new Transformation(
   Getter.decodeBase64(),
+  Getter.encodeBase64()
+)
+
+/**
+ * Decodes a Base64-encoded `string` into a UTF-8 `string` and encodes a
+ * UTF-8 `string` back to a Base64 string.
+ *
+ * When to use this:
+ * - Handling text data transmitted as Base64 strings.
+ *
+ * Behavior:
+ * - Decode: parses the Base64 string into a UTF-8 string.
+ * - Encode: encodes the string as a Base64 string.
+ *
+ * **Example** (String from Base64)
+ *
+ * ```ts
+ * import { Schema, SchemaTransformation } from "effect"
+ *
+ * const schema = Schema.String.pipe(
+ *   Schema.decodeTo(Schema.String, SchemaTransformation.stringFromBase64String)
+ * )
+ * ```
+ *
+ * See also:
+ * - {@link uint8ArrayFromBase64String}
+ *
+ * @since 4.0.0
+ */
+export const stringFromBase64String: Transformation<string, string> = new Transformation(
+  Getter.decodeBase64String(),
   Getter.encodeBase64()
 )
 
