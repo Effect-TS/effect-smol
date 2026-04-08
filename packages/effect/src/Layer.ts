@@ -718,7 +718,7 @@ export const empty: Layer<never> = succeedContext(Context.empty())
  */
 export const sync: {
   <I, S>(service: Context.Key<I, S>): (evaluate: LazyArg<S>) => Layer<I>
-  <I, S>(service: Context.Key<I, S>, evaluate: LazyArg<S>): Layer<I>
+  <I, S>(service: Context.Key<I, S>, evaluate: LazyArg<Types.NoInfer<S>>): Layer<I>
 } = function() {
   if (arguments.length === 1) {
     return (evaluate: LazyArg<any>) => syncContext(() => Context.make(arguments[0], evaluate()))
@@ -791,7 +791,7 @@ export const effect: {
   ) => Layer<I, E, Exclude<R, Scope.Scope>>
   <I, S, E, R>(
     service: Context.Key<I, S>,
-    effect: Effect<S, E, R>
+    effect: Effect<Types.NoInfer<S>, E, R>
   ): Layer<I, E, Exclude<R, Scope.Scope>>
 } = function() {
   if (arguments.length === 1) {
@@ -1692,19 +1692,19 @@ export const catchCause: {
 export const updateService: {
   <I, A>(
     service: Context.Key<I, A>,
-    f: (a: A) => A
+    f: (a: Types.NoInfer<A>) => A
   ): <A1, E1, R1>(layer: Layer<A1, E1, R1>) => Layer<A1, E1, I | R1>
   <A1, E1, R1, I, A>(
     layer: Layer<A1, E1, R1>,
     service: Context.Key<I, A>,
-    f: (a: A) => A
+    f: (a: Types.NoInfer<A>) => A
   ): Layer<A1, E1, I | R1>
 } = dual(
   3,
   <A1, E1, R1, I, A>(
     layer: Layer<A1, E1, R1>,
     service: Context.Key<I, A>,
-    f: (a: A) => A
+    f: (a: Types.NoInfer<A>) => A
   ): Layer<A1, E1, I | R1> => provide(layer, effect(service, internalEffect.map(service.asEffect(), f)))
 )
 
