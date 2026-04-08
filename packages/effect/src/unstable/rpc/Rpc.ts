@@ -501,7 +501,7 @@ export type ToHandlerFn<Current extends Any, R = any> = (
     readonly headers: Headers
     readonly rpc: Current
   }
-) => ResultFrom<Current, R> | Wrapper<ResultFrom<Current, R>>
+) => WrapperOr<ResultFrom<Current, R>>
 
 /**
  * @since 4.0.0
@@ -835,6 +835,12 @@ export interface Wrapper<A> {
  * @since 4.0.0
  * @category Wrapper
  */
+export type WrapperOr<A> = A | Wrapper<A>
+
+/**
+ * @since 4.0.0
+ * @category Wrapper
+ */
 export const isWrapper = (u: object): u is Wrapper<any> => WrapperTypeId in u
 
 /**
@@ -859,6 +865,17 @@ export const wrap = (options: {
       fork: options.fork ?? false,
       uninterruptible: options.uninterruptible ?? false
     }
+
+/**
+ * @since 4.0.0
+ * @category Wrapper
+ */
+export const wrapMap = <A extends object, B extends object>(self: WrapperOr<A>, f: (value: A) => B): WrapperOr<B> => {
+  if (isWrapper(self)) {
+    return wrap(self)(f(self.value))
+  }
+  return f(self)
+}
 
 /**
  * You can use `fork` to wrap a response Effect or Stream, to ensure that the
