@@ -4020,6 +4020,65 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     await encoding.succeed(encoder.encode("foobar"), "Zm9vYmFy")
   })
 
+  it("StringFromBase64", async () => {
+    const schema = Schema.StringFromBase64
+    const asserts = new TestSchema.Asserts(schema)
+
+    const decoding = asserts.decoding()
+    await decoding.succeed("Zm9vYmFy", "foobar")
+    await decoding.fail("Zm9vY", "Length must be a multiple of 4, but is 5")
+    await decoding.fail("Zm9vYmF-", "Invalid character -")
+    await decoding.fail("=Zm9vYmF", "Found a '=' character, but it is not at the end")
+
+    const encoding = asserts.encoding()
+    await encoding.succeed("foobar", "Zm9vYmFy")
+  })
+
+  it("StringFromBase64Url", async () => {
+    const schema = Schema.StringFromBase64Url
+    const asserts = new TestSchema.Asserts(schema)
+
+    const decoding = asserts.decoding()
+    await decoding.succeed("Zm9vYmFy", "foobar")
+    await decoding.fail("Zm9vY", "Length should be a multiple of 4, but is 5")
+    await decoding.succeed("Pj8-ZD_Dnw", ">?>d?\u00DF")
+    await decoding.fail("Pj8/ZD+Dnw", "Invalid input")
+
+    const encoding = asserts.encoding()
+    await encoding.succeed("foobar", "Zm9vYmFy")
+    await encoding.succeed(">?>d?\u00DF", "Pj8-ZD_Dnw")
+  })
+
+  it("StringFromHex", async () => {
+    const schema = Schema.StringFromHex
+    const asserts = new TestSchema.Asserts(schema)
+
+    const decoding = asserts.decoding()
+    await decoding.succeed("67", "g")
+    await decoding.fail("0", "Length must be a multiple of 2, but is 1")
+    await decoding.fail("zd4aa", "Length must be a multiple of 2, but is 5")
+    await decoding.fail("0\x01", "Invalid input")
+
+    const encoding = asserts.encoding()
+    await encoding.succeed("g", "67")
+  })
+
+  it("StringFromUriComponent", async () => {
+    const schema = Schema.StringFromUriComponent
+    const asserts = new TestSchema.Asserts(schema)
+
+    const decoding = asserts.decoding()
+    await decoding.succeed("%7B%22a%22%3A1%7D", "{\"a\":1}")
+    await decoding.succeed("%D1%88%D0%B5%D0%BB%D0%BB%D1%8B", "шеллы")
+    await decoding.succeed("hello%20world", "hello world")
+    await decoding.succeed("hello", "hello")
+    await decoding.fail("%ZZ", `URI malformed`)
+
+    const encoding = asserts.encoding()
+    await encoding.succeed("{\"a\":1}", "%7B%22a%22%3A1%7D")
+    await encoding.succeed("hello world", "hello%20world")
+  })
+
   it("Uint8ArrayFromBase64Url", async () => {
     const schema = Schema.Uint8ArrayFromBase64Url
     const asserts = new TestSchema.Asserts(schema)

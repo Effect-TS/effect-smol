@@ -1464,7 +1464,7 @@ export function isSchema(u: unknown): u is Top {
 }
 
 /**
- * Schema type for an exact optional struct key. The key may be absent, but
+ * Companion type for an exact optional struct key. The key may be absent, but
  * when present must match the wrapped schema (no implicit `undefined`).
  * Produced by {@link optionalKey}.
  *
@@ -1535,7 +1535,7 @@ interface requiredKeyLambda extends Lambda {
 export const requiredKey = Struct_.lambda<requiredKeyLambda>((self) => self.schema)
 
 /**
- * Schema type for an optional struct key that also accepts `undefined`.
+ * Companion type for an optional struct key that also accepts `undefined`.
  * Equivalent to `optionalKey<UndefinedOr<S>>`. Produced by {@link optional}.
  *
  * @since 4.0.0
@@ -1591,7 +1591,7 @@ interface requiredLambda extends Lambda {
 export const required = Struct_.lambda<requiredLambda>((self) => self.schema.members[0])
 
 /**
- * Schema type for a mutable struct key. The key's property is writable.
+ * Companion type for a mutable struct key. The key's property is writable.
  * Produced by {@link mutableKey}.
  *
  * @since 4.0.0
@@ -2692,7 +2692,7 @@ export declare namespace Record {
 }
 
 /**
- * Schema type for a key-value record (map) with a typed key and value schema.
+ * Companion type for a key-value record (map) with a typed key and value schema.
  * Produced by {@link Record}.
  *
  * @since 4.0.0
@@ -2817,7 +2817,7 @@ export declare namespace StructWithRest {
 }
 
 /**
- * Schema type for a struct combined with one or more record schemas. Produced
+ * Companion type for a struct combined with one or more record schemas. Produced
  * by {@link StructWithRest}.
  *
  * @since 4.0.0
@@ -2962,7 +2962,7 @@ export declare namespace Tuple {
 }
 
 /**
- * Schema type for a fixed-length tuple. Produced by {@link Tuple}.
+ * Companion type for a fixed-length tuple. Produced by {@link Tuple}.
  *
  * @since 4.0.0
  */
@@ -3112,7 +3112,7 @@ export declare namespace TupleWithRest {
 }
 
 /**
- * Schema type for a tuple with additional rest elements. Produced by
+ * Companion type for a tuple with additional rest elements. Produced by
  * {@link TupleWithRest}.
  *
  * @since 4.0.0
@@ -3168,7 +3168,7 @@ export function TupleWithRest<S extends Tuple<Tuple.Elements>, const Rest extend
 }
 
 /**
- * Schema type for a `ReadonlyArray`. Produced by {@link ArraySchema}.
+ * Companion type for a `ReadonlyArray`. Produced by {@link ArraySchema}.
  *
  * @since 4.0.0
  */
@@ -3221,7 +3221,7 @@ export {
 }
 
 /**
- * Schema type for a non-empty `ReadonlyArray`. Produced by {@link NonEmptyArray}.
+ * Companion type for a non-empty `ReadonlyArray`. Produced by {@link NonEmptyArray}.
  *
  * @since 4.0.0
  */
@@ -3300,7 +3300,7 @@ export function ArrayEnsure<S extends Top>(schema: S): ArrayEnsure<S> {
 }
 
 /**
- * Schema type for an array with unique elements. Produced by {@link UniqueArray}.
+ * Companion type for an array with unique elements. Produced by {@link UniqueArray}.
  *
  * @since 4.0.0
  */
@@ -3377,7 +3377,7 @@ export const mutable = Struct_.lambda<mutableLambda>((schema) => {
 })
 
 /**
- * Schema type for a union of multiple schemas. Produced by {@link Union}.
+ * Companion type for a union of multiple schemas. Produced by {@link Union}.
  *
  * @since 4.0.0
  */
@@ -3528,7 +3528,7 @@ export function Literals<const L extends ReadonlyArray<AST.LiteralValue>>(litera
 }
 
 /**
- * Schema type for `S | null`. Produced by {@link NullOr}.
+ * Companion type for `S | null`. Produced by {@link NullOr}.
  *
  * @since 4.0.0
  */
@@ -3550,7 +3550,7 @@ interface NullOrLambda extends Lambda {
 export const NullOr = Struct_.lambda<NullOrLambda>((self) => Union([self, Null]))
 
 /**
- * Schema type for `S | undefined`. Produced by {@link UndefinedOr}.
+ * Companion type for `S | undefined`. Produced by {@link UndefinedOr}.
  *
  * @since 4.0.0
  */
@@ -3572,7 +3572,7 @@ interface UndefinedOrLambda extends Lambda {
 export const UndefinedOr = Struct_.lambda<UndefinedOrLambda>((self) => Union([self, Undefined]))
 
 /**
- * Schema type for `S | null | undefined`. Produced by {@link NullishOr}.
+ * Companion type for `S | null | undefined`. Produced by {@link NullishOr}.
  * @since 4.0.0
  */
 export interface NullishOr<S extends Top> extends Union<readonly [S, Null, Undefined]> {
@@ -6752,19 +6752,41 @@ export function isUnique<T>(annotations?: Annotations.Filter) {
 // -----------------------------------------------------------------------------
 
 /**
+ * Companion type for {@link NonEmptyString}.
+ *
+ * @category String
+ * @since 4.0.0
+ */
+export interface NonEmptyString extends String {
+  readonly "~rebuild.out": NonEmptyString
+}
+
+/**
  * A schema for non-empty strings. Validates that a string has at least one
  * character.
  *
+ * @category String
  * @since 4.0.0
  */
-export const NonEmptyString = String.check(isNonEmpty())
+export const NonEmptyString: NonEmptyString = String.check(isNonEmpty())
+
+/**
+ * Companion type for {@link Char}.
+ *
+ * @category String
+ * @since 4.0.0
+ */
+export interface Char extends String {
+  readonly "~rebuild.out": Char
+}
 
 /**
  * A schema representing a single character.
  *
+ * @category String
  * @since 4.0.0
  */
-export const Char = String.check(isLengthBetween(1, 1))
+export const Char: Char = String.check(isLengthBetween(1, 1))
 
 /**
  * Schema for the `Option<A>` type, representing an optional value that is
@@ -6875,7 +6897,7 @@ export function Option<A extends Top>(value: A): Option<A> {
 }
 
 /**
- * Schema type for {@link OptionFromNullOr}.
+ * Companion type for {@link OptionFromNullOr}.
  *
  * @category Option
  * @since 4.0.0
@@ -6906,7 +6928,7 @@ export function OptionFromNullOr<S extends Top>(schema: S): OptionFromNullOr<S> 
 }
 
 /**
- * Schema type for {@link OptionFromUndefinedOr}.
+ * Companion type for {@link OptionFromUndefinedOr}.
  *
  * @category Option
  * @since 4.0.0
@@ -6937,7 +6959,7 @@ export function OptionFromUndefinedOr<S extends Top>(schema: S): OptionFromUndef
 }
 
 /**
- * Schema type for {@link OptionFromNullishOr}.
+ * Companion type for {@link OptionFromNullishOr}.
  *
  * @category Option
  * @since 4.0.0
@@ -6973,7 +6995,7 @@ export function OptionFromNullishOr<S extends Top>(
 }
 
 /**
- * Schema type for {@link OptionFromOptionalKey}.
+ * Companion type for {@link OptionFromOptionalKey}.
  *
  * @category Option
  * @since 4.0.0
@@ -7004,7 +7026,7 @@ export function OptionFromOptionalKey<S extends Top>(schema: S): OptionFromOptio
 }
 
 /**
- * Schema type for {@link OptionFromOptional}.
+ * Companion type for {@link OptionFromOptional}.
  *
  * @category Option
  * @since 4.0.0
@@ -7037,7 +7059,7 @@ export function OptionFromOptional<S extends Top>(schema: S): OptionFromOptional
 }
 
 /**
- * Schema type for {@link OptionFromOptionalNullOr}.
+ * Companion type for {@link OptionFromOptionalNullOr}.
  *
  * @category Option
  * @since 4.0.0
@@ -7296,7 +7318,7 @@ export function Redacted<S extends Top>(value: S, options?: {
 }
 
 /**
- * Schema type for {@link RedactedFromValue}.
+ * Companion type for {@link RedactedFromValue}.
  *
  * @category Redacted
  * @since 4.0.0
@@ -7579,9 +7601,9 @@ function causeToFormatter<E>(error: Formatter<E>, defect: Formatter<unknown>) {
 }
 
 /**
- * Schema type for {@link Error}.
+ * Companion type for {@link Error}.
  *
- * @category Schemas
+ * @category Error
  * @since 4.0.0
  */
 export interface Error extends instanceOf<globalThis.Error> {
@@ -7645,9 +7667,9 @@ export const ErrorWithStack: Error = instanceOf(globalThis.Error, {
 })
 
 /**
- * Schema type for {@link Defect}.
+ * Companion type for {@link Defect}.
  *
- * @category Schemas
+ * @category Defect
  * @since 4.0.0
  */
 export interface Defect extends
@@ -7700,7 +7722,7 @@ export const Defect: Defect = Union([
  * A schema that represents defects, that also includes stack traces in the
  * encoded form.
  *
- * @category Constructors
+ * @category Defect
  * @since 4.0.0
  */
 export const DefectWithStack: Defect = Union([
@@ -7853,7 +7875,7 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
 }
 
 /**
- * Schema type for {@link ReadonlyMap}.
+ * Companion type for {@link ReadonlyMap}.
  *
  * @category ReadonlyMap
  * @since 4.0.0
@@ -8041,7 +8063,7 @@ export function HashMap<Key extends Top, Value extends Top>(key: Key, value: Val
 }
 
 /**
- * Schema type for {@link ReadonlySet}.
+ * Companion type for {@link ReadonlySet}.
  *
  * @category ReadonlySet
  * @since 4.0.0
@@ -8316,9 +8338,9 @@ export function Chunk<Value extends Top>(value: Value): Chunk<Value> {
 }
 
 /**
- * Schema type for {@link RegExp}.
+ * Companion type for {@link RegExp}.
  *
- * @category Schemas
+ * @category RegExp
  * @since 4.0.0
  */
 export interface RegExp extends instanceOf<globalThis.RegExp> {
@@ -8330,7 +8352,7 @@ export interface RegExp extends instanceOf<globalThis.RegExp> {
  *
  * The default JSON serializer encodes a `RegExp` as `{ source, flags }`.
  *
- * @category Schemas
+ * @category RegExp
  * @since 4.0.0
  */
 export const RegExp: RegExp = instanceOf(
@@ -8390,7 +8412,7 @@ export const RegExp: RegExp = instanceOf(
 )
 
 /**
- * Schema type for {@link URL}.
+ * Companion type for {@link URL}.
  *
  * @category URL
  * @since 4.0.0
@@ -8433,7 +8455,7 @@ export const URL: URL = instanceOf(
 )
 
 /**
- * Schema type for {@link URLFromString}.
+ * Companion type for {@link URLFromString}.
  *
  * @category URL
  * @since 4.0.0
@@ -8457,9 +8479,9 @@ export interface URLFromString extends decodeTo<URL, String> {
 export const URLFromString: URLFromString = URLString.pipe(decodeTo(URL, Transformation.urlFromString))
 
 /**
- * Schema type for {@link Date}.
+ * Companion type for {@link Date}.
  *
- * @category Schemas
+ * @category Date
  * @since 4.0.0
  */
 export interface Date extends instanceOf<globalThis.Date> {
@@ -8484,7 +8506,7 @@ const DateString = String.annotate({ expected: "a string in ISO 8601 format that
  * // => Date { 2024-01-01T00:00:00.000Z }
  * ```
  *
- * @category Schemas
+ * @category Date
  * @since 4.0.0
  */
 export const Date: Date = instanceOf(
@@ -8508,9 +8530,9 @@ export const Date: Date = instanceOf(
 )
 
 /**
- * Schema type for {@link DateFromString}.
+ * Companion type for {@link DateFromString}.
  *
- * @category Schemas
+ * @category Date
  * @since 4.0.0
  */
 export interface DateFromString extends decodeTo<Date, String> {
@@ -8526,14 +8548,15 @@ export interface DateFromString extends decodeTo<Date, String> {
  * Encoding:
  * - A `Date` is encoded as a `string`.
  *
+ * @category Date
  * @since 4.0.0
  */
 export const DateFromString: DateFromString = DateString.pipe(decodeTo(Date, Transformation.dateFromString))
 
 /**
- * Schema type for {@link DateValid}.
+ * Companion type for {@link DateValid}.
  *
- * @category Schemas
+ * @category Date
  * @since 4.0.0
  */
 export interface DateValid extends Date {
@@ -8546,12 +8569,13 @@ export interface DateValid extends Date {
  * This schema accepts `Date` instances but rejects invalid dates (such as `new
  * Date("invalid")`).
  *
+ * @category Date
  * @since 4.0.0
  */
-export const DateValid = Date.check(isDateValid())
+export const DateValid: DateValid = Date.check(isDateValid())
 
 /**
- * Schema type for {@link Duration}.
+ * Companion type for {@link Duration}.
  *
  * @category Duration
  * @since 4.0.0
@@ -8640,7 +8664,7 @@ export const Duration: Duration = declare(
 )
 
 /**
- * Schema type for {@link DurationFromNanos}.
+ * Companion type for {@link DurationFromNanos}.
  *
  * @category Duration
  * @since 4.0.0
@@ -8667,7 +8691,7 @@ export const DurationFromNanos: DurationFromNanos = BigInt.check(isGreaterThanOr
 )
 
 /**
- * Schema type for {@link DurationFromMillis}.
+ * Companion type for {@link DurationFromMillis}.
  *
  * @category Duration
  * @since 4.0.0
@@ -8697,9 +8721,9 @@ export const DurationFromMillis: DurationFromMillis = Number.check(isGreaterThan
 )
 
 /**
- * Schema type for {@link BigDecimal}.
+ * Companion type for {@link BigDecimal}.
  *
- * @category Schemas
+ * @category BigDecimal
  * @since 4.0.0
  */
 export interface BigDecimal extends declare<BigDecimal_.BigDecimal> {
@@ -8715,6 +8739,7 @@ const BigDecimalString = String.annotate({ expected: "a string that will be deco
  *
  * - encodes `BigDecimal` as a `string`
  *
+ * @category BigDecimal
  * @since 4.0.0
  */
 export const BigDecimal: BigDecimal = declare(
@@ -8743,9 +8768,9 @@ export const BigDecimal: BigDecimal = declare(
 )
 
 /**
- * Schema type for {@link BigDecimalFromString}.
+ * Companion type for {@link BigDecimalFromString}.
  *
- * @category Schemas
+ * @category BigDecimal
  * @since 4.0.0
  */
 export interface BigDecimalFromString extends decodeTo<BigDecimal, String> {
@@ -8761,6 +8786,7 @@ export interface BigDecimalFromString extends decodeTo<BigDecimal, String> {
  * Encoding:
  * - A `BigDecimal` is encoded as a `string`.
  *
+ * @category BigDecimal
  * @since 4.0.0
  */
 export const BigDecimalFromString: BigDecimalFromString = BigDecimalString.pipe(
@@ -8768,7 +8794,7 @@ export const BigDecimalFromString: BigDecimalFromString = BigDecimalString.pipe(
 )
 
 /**
- * Schema type for {@link UnknownFromJsonString}.
+ * Companion type for {@link UnknownFromJsonString}.
  *
  * @category JSON
  * @since 4.0.0
@@ -8797,12 +8823,13 @@ export interface UnknownFromJsonString extends fromJsonString<Unknown> {
  * // => { a: 1, b: 2 }
  * ```
  *
+ * @category JSON
  * @since 4.0.0
  */
-export const UnknownFromJsonString = fromJsonString(Unknown)
+export const UnknownFromJsonString: UnknownFromJsonString = fromJsonString(Unknown)
 
 /**
- * Schema type for {@link fromJsonString}.
+ * Companion type for {@link fromJsonString}.
  *
  * @category JSON
  * @since 4.0.0
@@ -8872,6 +8899,7 @@ export interface fromJsonString<S extends Top> extends decodeTo<S, String> {
  * // }
  * ```
  *
+ * @category JSON
  * @since 4.0.0
  */
 export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
@@ -8883,9 +8911,9 @@ export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
 }
 
 /**
- * Schema type for {@link File}.
+ * Companion type for {@link File}.
  *
- * @category Schemas
+ * @category File
  * @since 4.0.0
  */
 export interface File extends instanceOf<globalThis.File> {
@@ -8898,7 +8926,7 @@ export interface File extends instanceOf<globalThis.File> {
  * The default JSON serializer encodes a `File` as `{ data, type, name, lastModified }`
  * where `data` is base64-encoded.
  *
- * @category Schemas
+ * @category File
  * @since 4.0.0
  */
 export const File: File = instanceOf(globalThis.File, {
@@ -8955,9 +8983,9 @@ export const File: File = instanceOf(globalThis.File, {
 })
 
 /**
- * Schema type for {@link FormData}.
+ * Companion type for {@link FormData}.
  *
- * @category Schemas
+ * @category FormData
  * @since 4.0.0
  */
 export interface FormData extends instanceOf<globalThis.FormData> {
@@ -8970,7 +8998,7 @@ export interface FormData extends instanceOf<globalThis.FormData> {
  * The default JSON serializer encodes a `FormData` as an array of `[key, entry]`
  * pairs where each entry is tagged as `"String"` or `"File"`.
  *
- * @category Schemas
+ * @category FormData
  * @since 4.0.0
  */
 export const FormData: FormData = instanceOf(globalThis.FormData, {
@@ -9017,9 +9045,9 @@ export const FormData: FormData = instanceOf(globalThis.FormData, {
 })
 
 /**
- * Schema type for {@link fromFormData}.
+ * Companion type for {@link fromFormData}.
  *
- * @category Schemas
+ * @category FormData
  * @since 4.0.0
  */
 export interface fromFormData<S extends Top> extends decodeTo<S, FormData> {
@@ -9114,9 +9142,9 @@ export function fromFormData<S extends Top>(schema: S): fromFormData<S> {
 }
 
 /**
- * Schema type for {@link URLSearchParams}.
+ * Companion type for {@link URLSearchParams}.
  *
- * @category Schemas
+ * @category URLSearchParams
  * @since 4.0.0
  */
 export interface URLSearchParams extends instanceOf<globalThis.URLSearchParams> {
@@ -9128,7 +9156,7 @@ export interface URLSearchParams extends instanceOf<globalThis.URLSearchParams> 
  *
  * The default JSON serializer encodes a `URLSearchParams` as a query string.
  *
- * @category Schemas
+ * @category URLSearchParams
  * @since 4.0.0
  */
 export const URLSearchParams: URLSearchParams = instanceOf(globalThis.URLSearchParams, {
@@ -9151,9 +9179,9 @@ export const URLSearchParams: URLSearchParams = instanceOf(globalThis.URLSearchP
 })
 
 /**
- * Schema type for {@link fromURLSearchParams}.
+ * Companion type for {@link fromURLSearchParams}.
  *
- * @category Schemas
+ * @category URLSearchParams
  * @since 4.0.0
  */
 export interface fromURLSearchParams<S extends Top> extends decodeTo<S, URLSearchParams> {
@@ -9239,9 +9267,9 @@ export function fromURLSearchParams<S extends Top>(schema: S): fromURLSearchPara
 }
 
 /**
- * Schema type for {@link Finite}.
+ * Companion type for {@link Finite}.
  *
- * @category Schemas
+ * @category Number
  * @since 4.0.0
  */
 export interface Finite extends Number {
@@ -9251,14 +9279,15 @@ export interface Finite extends Number {
 /**
  * A schema for finite numbers, rejecting `NaN`, `Infinity`, and `-Infinity`.
  *
+ * @category Number
  * @since 4.0.0
  */
 export const Finite: Finite = Number.check(isFinite())
 
 /**
- * Schema type for {@link Int}.
+ * Companion type for {@link Int}.
  *
- * @category Schemas
+ * @category Number
  * @since 4.0.0
  */
 export interface Int extends Number {
@@ -9268,14 +9297,15 @@ export interface Int extends Number {
 /**
  * A schema for integers, rejecting `NaN`, `Infinity`, and `-Infinity`.
  *
+ * @category Number
  * @since 4.0.0
  */
 export const Int: Int = Number.check(isInt())
 
 /**
- * Schema type for {@link NumberFromString}.
+ * Companion type for {@link NumberFromString}.
  *
- * @category Schemas
+ * @category Number
  * @since 4.0.0
  */
 export interface NumberFromString extends decodeTo<Finite, String> {
@@ -9291,6 +9321,7 @@ export interface NumberFromString extends decodeTo<Finite, String> {
  * Encoding:
  * - A number is encoded as a `string`.
  *
+ * @category Number
  * @since 4.0.0
  */
 export const NumberFromString: NumberFromString = String.annotate({
@@ -9298,9 +9329,9 @@ export const NumberFromString: NumberFromString = String.annotate({
 }).pipe(decodeTo(Number, Transformation.numberFromString))
 
 /**
- * Schema type for {@link FiniteFromString}.
+ * Companion type for {@link FiniteFromString}.
  *
- * @category Schemas
+ * @category Number
  * @since 4.0.0
  */
 export interface FiniteFromString extends decodeTo<Finite, String> {
@@ -9317,6 +9348,7 @@ export interface FiniteFromString extends decodeTo<Finite, String> {
  * Encoding:
  * - A finite number is encoded as a `string`.
  *
+ * @category Number
  * @since 4.0.0
  */
 export const FiniteFromString: FiniteFromString = String.annotate({
@@ -9324,9 +9356,9 @@ export const FiniteFromString: FiniteFromString = String.annotate({
 }).pipe(decodeTo(Finite, Transformation.numberFromString))
 
 /**
- * Schema type for {@link BigIntFromString}.
+ * Companion type for {@link BigIntFromString}.
  *
- * @category Schemas
+ * @category BigInt
  * @since 4.0.0
  */
 export interface BigIntFromString extends decodeTo<BigInt, String> {
@@ -9342,6 +9374,7 @@ export interface BigIntFromString extends decodeTo<BigInt, String> {
  * Encoding:
  * - A `bigint` is encoded as a `string`.
  *
+ * @category BigInt
  * @since 4.0.0
  */
 export const BigIntFromString: BigIntFromString = make<String>(AST.bigIntString).pipe(
@@ -9349,9 +9382,9 @@ export const BigIntFromString: BigIntFromString = make<String>(AST.bigIntString)
 )
 
 /**
- * Schema type for {@link Trimmed}.
+ * Companion type for {@link Trimmed}.
  *
- * @category Schemas
+ * @category String
  * @since 4.0.0
  */
 export interface Trimmed extends String {
@@ -9361,14 +9394,15 @@ export interface Trimmed extends String {
 /**
  * A schema for strings that contains no leading or trailing whitespaces.
  *
+ * @category String
  * @since 4.0.0
  */
 export const Trimmed: Trimmed = String.check(isTrimmed())
 
 /**
- * Schema type for {@link Trim}.
+ * Companion type for {@link Trim}.
  *
- * @category Schemas
+ * @category String
  * @since 4.0.0
  */
 export interface Trim extends decodeTo<Trimmed, String> {
@@ -9384,6 +9418,7 @@ export interface Trim extends decodeTo<Trimmed, String> {
  * Encoding:
  * - The trimmed string is encoded as is.
  *
+ * @category String
  * @since 4.0.0
  */
 export const Trim: Trim = String.annotate({
@@ -9391,14 +9426,146 @@ export const Trim: Trim = String.annotate({
 }).pipe(decodeTo(Trimmed, Transformation.trim()))
 
 /**
+ * Companion type for {@link StringFromBase64}.
+ *
+ * @category String
+ * @since 4.0.0
+ */
+export interface StringFromBase64 extends decodeTo<String, String> {
+  readonly "~rebuild.out": StringFromBase64
+}
+
+/**
+ * Decodes a base64 (RFC4648) encoded string into a UTF-8 string.
+ *
+ * Decoding:
+ * - A **valid** base64 encoded string is decoded as a UTF-8 `string`.
+ *
+ * Encoding:
+ * - A `string` is encoded as a base64-encoded string.
+ *
+ * @category String
+ * @since 4.0.0
+ */
+export const StringFromBase64: StringFromBase64 = String.annotate({
+  expected: "a base64 encoded string that will be decoded as a UTF-8 string"
+}).pipe(
+  decodeTo(String, Transformation.stringFromBase64String)
+)
+
+/**
+ * Companion type for {@link StringFromBase64Url}.
+ *
+ * @category String
+ * @since 4.0.0
+ */
+export interface StringFromBase64Url extends decodeTo<String, String> {
+  readonly "~rebuild.out": StringFromBase64Url
+}
+
+/**
+ * Decodes a base64 (URL) encoded string into a UTF-8 string.
+ *
+ * Decoding:
+ * - A **valid** base64 (URL) encoded string is decoded as a UTF-8 `string`.
+ *
+ * Encoding:
+ * - A `string` is encoded as a base64 (URL) encoded string.
+ *
+ * @category String
+ * @since 4.0.0
+ */
+export const StringFromBase64Url: StringFromBase64Url = String.annotate({
+  expected: "a base64 (URL) encoded string that will be decoded as a UTF-8 string"
+}).pipe(
+  decodeTo(String, Transformation.stringFromBase64UrlString)
+)
+
+/**
+ * Companion type for {@link StringFromHex}.
+ *
+ * @category String
+ * @since 4.0.0
+ */
+export interface StringFromHex extends decodeTo<String, String> {
+  readonly "~rebuild.out": StringFromHex
+}
+
+/**
+ * Decodes a hex encoded string into a UTF-8 string.
+ *
+ * Decoding:
+ * - A **valid** hex encoded string is decoded as a UTF-8 `string`.
+ *
+ * Encoding:
+ * - A `string` is encoded as a hex string.
+ *
+ * @category String
+ * @since 4.0.0
+ */
+export const StringFromHex: StringFromHex = String.annotate({
+  expected: "a hex encoded string that will be decoded as a UTF-8 string"
+}).pipe(
+  decodeTo(String, Transformation.stringFromHexString)
+)
+
+/**
+ * Companion type for {@link StringFromUriComponent}.
+ *
+ * @category String
+ * @since 4.0.0
+ */
+export interface StringFromUriComponent extends decodeTo<String, String> {
+  readonly "~rebuild.out": StringFromUriComponent
+}
+
+/**
+ * Decodes a URI component encoded string into a UTF-8 string.
+ * Can be used to store data in a URL.
+ *
+ * Decoding:
+ * - A **valid** URI component encoded string is decoded as a UTF-8 `string`.
+ *
+ * Encoding:
+ * - A `string` is encoded as a URI component encoded string.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Schema } from "effect"
+ *
+ * const PaginationSchema = Schema.Struct({
+ *   maxItemPerPage: Schema.Number,
+ *   page: Schema.Number
+ * })
+ *
+ * const UrlSchema = Schema.StringFromUriComponent.pipe(
+ *   Schema.decodeTo(Schema.fromJsonString(PaginationSchema))
+ * )
+ *
+ * console.log(Schema.encodeSync(UrlSchema)({ maxItemPerPage: 10, page: 1 }))
+ * // %7B%22maxItemPerPage%22%3A10%2C%22page%22%3A1%7D
+ * ```
+ *
+ * @category String
+ * @since 4.0.0
+ */
+export const StringFromUriComponent: StringFromUriComponent = String.annotate({
+  expected: "a URI component encoded string that will be decoded as a UTF-8 string"
+}).pipe(
+  decodeTo(String, Transformation.stringFromUriComponent)
+)
+
+/**
  * A union schema for JavaScript property keys: `number | symbol | string`.
  *
- * @category Schemas
+ * @category PropertyKey
  * @since 4.0.0
  */
 export const PropertyKey = Union([Finite, Symbol, String])
 
 /**
+ * @category StandardSchema
  * @since 4.0.0
  */
 export const StandardSchemaV1FailureResult = Struct({
@@ -9409,9 +9576,9 @@ export const StandardSchemaV1FailureResult = Struct({
 })
 
 /**
- * Schema type for {@link BooleanFromBit}.
+ * Companion type for {@link BooleanFromBit}.
  *
- * @category Schemas
+ * @category Boolean
  * @since 4.0.0
  */
 export interface BooleanFromBit extends decodeTo<Boolean, Literals<readonly [0, 1]>> {
@@ -9435,9 +9602,9 @@ export const BooleanFromBit: BooleanFromBit = Literals([0, 1]).pipe(
 )
 
 /**
- * Schema type for {@link Uint8Array}.
+ * Companion type for {@link Uint8Array}.
  *
- * @category Schemas
+ * @category Uint8Array
  * @since 4.0.0
  */
 export interface Uint8Array extends instanceOf<globalThis.Uint8Array<ArrayBufferLike>> {
@@ -9478,9 +9645,9 @@ export const Uint8Array: Uint8Array = instanceOf(globalThis.Uint8Array<ArrayBuff
 })
 
 /**
- * Schema type for {@link Uint8ArrayFromBase64}.
+ * Companion type for {@link Uint8ArrayFromBase64}.
  *
- * @category Schemas
+ * @category Uint8Array
  * @since 4.0.0
  */
 export interface Uint8ArrayFromBase64 extends decodeTo<Uint8Array, String> {
@@ -9505,9 +9672,9 @@ export const Uint8ArrayFromBase64: Uint8ArrayFromBase64 = Base64String.pipe(
 )
 
 /**
- * Schema type for {@link Uint8ArrayFromBase64Url}.
+ * Companion type for {@link Uint8ArrayFromBase64Url}.
  *
- * @category Schemas
+ * @category Uint8Array
  * @since 4.0.0
  */
 export interface Uint8ArrayFromBase64Url extends decodeTo<Uint8Array, String> {
@@ -9537,9 +9704,9 @@ export const Uint8ArrayFromBase64Url: Uint8ArrayFromBase64Url = String.annotate(
 )
 
 /**
- * Schema type for {@link Uint8ArrayFromHex}.
+ * Companion type for {@link Uint8ArrayFromHex}.
  *
- * @category Schemas
+ * @category Uint8Array
  * @since 4.0.0
  */
 export interface Uint8ArrayFromHex extends decodeTo<Uint8Array, String> {
@@ -9569,7 +9736,7 @@ export const Uint8ArrayFromHex: Uint8ArrayFromHex = String.annotate({
 )
 
 /**
- * Schema type for {@link DateTimeUtc}.
+ * Companion type for {@link DateTimeUtc}.
  *
  * @category DateTime
  * @since 4.0.0
@@ -9613,7 +9780,7 @@ export const DateTimeUtc: DateTimeUtc = declare(
 )
 
 /**
- * Schema type for {@link DateTimeUtcFromDate}.
+ * Companion type for {@link DateTimeUtcFromDate}.
  *
  * @category DateTime
  * @since 4.0.0
@@ -9642,7 +9809,7 @@ export const DateTimeUtcFromDate: DateTimeUtcFromDate = DateValid.pipe(
 )
 
 /**
- * Schema type for {@link DateTimeUtcFromString}.
+ * Companion type for {@link DateTimeUtcFromString}.
  *
  * @category DateTime
  * @since 4.0.0
@@ -9675,7 +9842,7 @@ export const DateTimeUtcFromString: DateTimeUtcFromString = String.annotate({
 )
 
 /**
- * Schema type for {@link DateTimeUtcFromMillis}.
+ * Companion type for {@link DateTimeUtcFromMillis}.
  *
  * @category DateTime
  * @since 4.0.0
@@ -9704,7 +9871,7 @@ export const DateTimeUtcFromMillis: DateTimeUtcFromMillis = Number.pipe(
 )
 
 /**
- * Schema type for {@link TimeZoneOffset}.
+ * Companion type for {@link TimeZoneOffset}.
  *
  * @category DateTime
  * @since 4.0.0
@@ -9748,7 +9915,7 @@ export const TimeZoneOffset: TimeZoneOffset = declare(
 )
 
 /**
- * Schema type for {@link TimeZoneNamed}.
+ * Companion type for {@link TimeZoneNamed}.
  *
  * @category DateTime
  * @since 4.0.0
@@ -9798,7 +9965,7 @@ export const TimeZoneNamed: TimeZoneNamed = declare(
 )
 
 /**
- * Schema type for {@link TimeZoneNamedFromString}.
+ * Companion type for {@link TimeZoneNamedFromString}.
  *
  * @category DateTime
  * @since 4.0.0
@@ -9824,7 +9991,7 @@ export const TimeZoneNamedFromString: TimeZoneNamedFromString = TimeZoneNamedStr
 )
 
 /**
- * Schema type for {@link TimeZone}.
+ * Companion type for {@link TimeZone}.
  *
  * @category DateTime
  * @since 4.0.0
@@ -9880,7 +10047,7 @@ export const TimeZone: TimeZone = declare(
 )
 
 /**
- * Schema type for {@link TimeZoneFromString}.
+ * Companion type for {@link TimeZoneFromString}.
  *
  * @category DateTime
  * @since 4.0.0
@@ -9906,7 +10073,7 @@ export const TimeZoneFromString: TimeZoneFromString = TimeZoneString.pipe(
 )
 
 /**
- * Schema type for {@link DateTimeZoned}.
+ * Companion type for {@link DateTimeZoned}.
  *
  * @category DateTime
  * @since 4.0.0
@@ -9963,7 +10130,7 @@ export const DateTimeZoned: DateTimeZoned = declare(
 )
 
 /**
- * Schema type for {@link DateTimeZonedFromString}.
+ * Companion type for {@link DateTimeZonedFromString}.
  *
  * @category DateTime
  * @since 4.0.0

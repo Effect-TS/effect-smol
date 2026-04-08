@@ -40,6 +40,8 @@
  * - Wrap nullable/optional as Option → {@link optionFromNullOr}, {@link optionFromOptionalKey}, {@link optionFromOptional}
  * - Parse URLs → {@link urlFromString}
  * - Base64 ↔ Uint8Array → {@link uint8ArrayFromBase64String}
+ * - Base64 ↔ string → {@link stringFromBase64String}
+ * - URI component ↔ string → {@link stringFromUriComponent}
  * - JSON string ↔ unknown → {@link fromJsonString}
  * - FormData/URLSearchParams ↔ unknown → {@link fromFormData}, {@link fromURLSearchParams}
  * - Check if a value is a Transformation → {@link isTransformation}
@@ -1310,6 +1312,130 @@ export const bigDecimalFromString: Transformation<BigDecimal.BigDecimal, string>
 export const uint8ArrayFromBase64String: Transformation<Uint8Array<ArrayBufferLike>, string> = new Transformation(
   Getter.decodeBase64(),
   Getter.encodeBase64()
+)
+
+/**
+ * Decodes a Base64-encoded `string` into a UTF-8 `string` and encodes a
+ * UTF-8 `string` back to a Base64 string.
+ *
+ * When to use this:
+ * - Handling text data transmitted as Base64 strings.
+ *
+ * Behavior:
+ * - Decode: parses the Base64 string into a UTF-8 string.
+ * - Encode: encodes the string as a Base64 string.
+ *
+ * **Example** (String from Base64)
+ *
+ * ```ts
+ * import { Schema, SchemaTransformation } from "effect"
+ *
+ * const schema = Schema.String.pipe(
+ *   Schema.decodeTo(Schema.String, SchemaTransformation.stringFromBase64String)
+ * )
+ * ```
+ *
+ * See also:
+ * - {@link uint8ArrayFromBase64String}
+ *
+ * @since 4.0.0
+ */
+export const stringFromBase64String: Transformation<string, string> = new Transformation(
+  Getter.decodeBase64String(),
+  Getter.encodeBase64()
+)
+
+/**
+ * Decodes a base64 (URL) encoded `string` into a UTF-8 `string` and encodes it back.
+ *
+ * When to use this:
+ * - Handling text data transmitted as Base64 URL-safe strings.
+ *
+ * Behavior:
+ * - Decode: parses the Base64 URL string into a UTF-8 string.
+ * - Encode: encodes the string as a Base64 URL string.
+ *
+ * **Example** (String from Base64Url)
+ *
+ * ```ts
+ * import { Schema, SchemaTransformation } from "effect"
+ *
+ * const schema = Schema.String.pipe(
+ *   Schema.decodeTo(Schema.String, SchemaTransformation.stringFromBase64UrlString)
+ * )
+ * ```
+ *
+ * See also:
+ * - {@link stringFromBase64String}
+ *
+ * @since 4.0.0
+ */
+export const stringFromBase64UrlString: Transformation<string, string> = new Transformation(
+  Getter.decodeBase64UrlString(),
+  Getter.encodeBase64Url()
+)
+
+/**
+ * Decodes a hex encoded `string` into a UTF-8 `string` and encodes it back.
+ *
+ * When to use this:
+ * - Handling text data transmitted as hexadecimal strings.
+ *
+ * Behavior:
+ * - Decode: parses the hex string into a UTF-8 string.
+ * - Encode: encodes the string as a hex string.
+ *
+ * **Example** (String from Hex)
+ *
+ * ```ts
+ * import { Schema, SchemaTransformation } from "effect"
+ *
+ * const schema = Schema.String.pipe(
+ *   Schema.decodeTo(Schema.String, SchemaTransformation.stringFromHexString)
+ * )
+ * ```
+ *
+ * See also:
+ * - {@link stringFromBase64String}
+ *
+ * @since 4.0.0
+ */
+export const stringFromHexString: Transformation<string, string> = new Transformation(
+  Getter.decodeHexString(),
+  Getter.encodeHex()
+)
+
+/**
+ * Decodes a URI component encoded string into a UTF-8 string and encodes a
+ * UTF-8 string into a URI component encoded string.
+ *
+ * When to use this:
+ * - Storing structured data in URL query parameters or fragments.
+ * - Composing with `Schema.parseJson` to round-trip JSON through a URL.
+ *
+ * Behavior:
+ * - Decode: calls `decodeURIComponent`. Fails if the input contains malformed
+ *   percent-encoding sequences.
+ * - Encode: calls `encodeURIComponent`.
+ *
+ * **Example** (URI component schema)
+ *
+ * ```ts
+ * import { Schema, SchemaTransformation } from "effect"
+ *
+ * const schema = Schema.String.pipe(
+ *   Schema.decodeTo(Schema.String, SchemaTransformation.stringFromUriComponent)
+ * )
+ * ```
+ *
+ * See also:
+ * - {@link stringFromBase64String}
+ *
+ * @since 4.0.0
+ */
+export const stringFromUriComponent: Transformation<string, string> = new Transformation(
+  Getter.decodeUriComponent(),
+  Getter.encodeUriComponent()
 )
 
 /**

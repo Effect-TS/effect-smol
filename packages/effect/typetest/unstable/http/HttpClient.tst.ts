@@ -84,13 +84,11 @@ describe("HttpClient", () => {
     })
 
     it("should reject non-urlParams input", () => {
-      // @ts-expect-error!
-      HttpClient.get("", { urlParams: 1 })
+      expect(HttpClient.get).type.not.toBeCallableWith("", { urlParams: 1 })
     })
 
     it("should reject non-coercible tuple values", () => {
-      HttpClient.get("", {
-        // @ts-expect-error!
+      expect(HttpClient.get).type.not.toBeCallableWith("", {
         urlParams: [["q", { nested: "value" }]]
       })
     })
@@ -105,14 +103,14 @@ describe("HttpClient", () => {
 
     it("should reject mode option", () => {
       client.pipe(
-        // @ts-expect-error!
+        // @ts-expect-error 'mode' does not exist in type '{ readonly retryOn?: ...; readonly while?: ...; readonly schedule?: ...; }'
         HttpClient.retryTransient({ mode: "errors-only" })
       )
     })
 
     it("should reject both retry value", () => {
       client.pipe(
-        // @ts-expect-error!
+        // @ts-expect-error Type '"both"' is not assignable to type '"errors-only" | "response-only" | "errors-and-responses" | undefined'
         HttpClient.retryTransient({ retryOn: "both" })
       )
     })

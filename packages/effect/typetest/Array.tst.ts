@@ -1202,9 +1202,9 @@ describe("Array", () => {
   })
 
   describe("make", () => {
-    it("should raise an error if no elements are provided", () => {
-      // @ts-expect-error: Expected at least 1 arguments, but got 0
-      Array.make()
+    it("should require at least 1 argument", () => {
+      expect(Array.make).type.not.toBeCallableWith()
+      expect(Array.make).type.toBeCallableWith(1)
     })
 
     it("should return a non-empty array", () => {

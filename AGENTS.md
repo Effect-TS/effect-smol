@@ -6,7 +6,7 @@ This is the Effect library repository, focusing on functional programming patter
 - Always run tests after making changes: `pnpm test <test_file.ts>`
 - Run type checking: `pnpm check:tsgo`
   - If type checking continues to fail, run `pnpm clean` to clear caches, then re-run `pnpm check:tsgo`
-- Check JSDoc examples compile: `pnpm docgen`
+- Check JSDoc examples compile: when changes are localized to a single package, `cd` into that package directory and run `pnpm docgen` within it instead of running it at the root
 
 ## Code Style Guidelines
 

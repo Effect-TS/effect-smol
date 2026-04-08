@@ -6,8 +6,7 @@ describe("HttpApiEndpoint", () => {
   describe("params option", () => {
     it("should default to never", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
-      type T = typeof endpoint["~Params"]
-      expect<T>().type.toBe<HttpApiEndpoint.StringTree<never>>()
+      expect(endpoint["~Params"]).type.toBe<HttpApiEndpoint.StringTree<never>>()
     })
 
     it("should accept a record of fields", () => {
@@ -16,8 +15,7 @@ describe("HttpApiEndpoint", () => {
           id: Schema.Finite
         }
       })
-      type T = typeof endpoint["~Params"]
-      expect<T>().type.toBe<
+      expect(endpoint["~Params"]).type.toBe<
         HttpApiEndpoint.StringTree<
           Schema.Struct<{ id: Schema.Finite }>
         >
@@ -28,8 +26,7 @@ describe("HttpApiEndpoint", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         params: Schema.Struct({ a: Schema.Finite, b: Schema.Finite })
       })
-      type T = typeof endpoint["~Params"]
-      expect<T>().type.toBe<
+      expect(endpoint["~Params"]).type.toBe<
         HttpApiEndpoint.StringTree<
           Schema.Struct<{ readonly a: Schema.Finite; readonly b: Schema.Finite }>
         >
@@ -40,8 +37,7 @@ describe("HttpApiEndpoint", () => {
   describe("query option", () => {
     it("should default to never", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
-      type T = typeof endpoint["~Query"]
-      expect<T>().type.toBe<HttpApiEndpoint.StringTree<never>>()
+      expect(endpoint["~Query"]).type.toBe<HttpApiEndpoint.StringTree<never>>()
     })
 
     it("should accept a record of fields", () => {
@@ -50,25 +46,23 @@ describe("HttpApiEndpoint", () => {
           id: Schema.Finite
         }
       })
-      type T = typeof endpoint["~Query"]
-      expect<T>().type.toBe<HttpApiEndpoint.StringTree<Schema.Struct<{ id: Schema.Finite }>>>()
+      expect(endpoint["~Query"]).type.toBe<HttpApiEndpoint.StringTree<Schema.Struct<{ id: Schema.Finite }>>>()
     })
 
     it("should accept a Struct.Record", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         query: Struct.Record(["a", "b"], Schema.Finite)
       })
-      type T = typeof endpoint["~Query"]
-      expect<T>().type.toBe<HttpApiEndpoint.StringTree<Schema.Struct<Record<"a" | "b", Schema.Finite>>>>()
-      expect<T>().type.toBe<HttpApiEndpoint.StringTree<Schema.Struct<{ a: Schema.Finite; b: Schema.Finite }>>>()
+      expect(endpoint["~Query"]).type.toBe<
+        HttpApiEndpoint.StringTree<Schema.Struct<{ a: Schema.Finite; b: Schema.Finite }>>
+      >()
     })
 
     it("should accept a Struct", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         query: Schema.Struct({ a: Schema.Finite, b: Schema.Finite })
       })
-      type T = typeof endpoint["~Query"]
-      expect<T>().type.toBe<
+      expect(endpoint["~Query"]).type.toBe<
         HttpApiEndpoint.StringTree<
           Schema.Struct<{ readonly a: Schema.Finite; readonly b: Schema.Finite }>
         >
@@ -79,8 +73,7 @@ describe("HttpApiEndpoint", () => {
   describe("headers option", () => {
     it("should default to never", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
-      type T = typeof endpoint["~Headers"]
-      expect<T>().type.toBe<HttpApiEndpoint.StringTree<never>>()
+      expect(endpoint["~Headers"]).type.toBe<HttpApiEndpoint.StringTree<never>>()
     })
 
     it("should accept a record of fields", () => {
@@ -89,16 +82,16 @@ describe("HttpApiEndpoint", () => {
           id: Schema.FiniteFromString
         }
       })
-      type T = typeof endpoint["~Headers"]
-      expect<T>().type.toBe<HttpApiEndpoint.StringTree<Schema.Struct<{ id: Schema.FiniteFromString }>>>()
+      expect(endpoint["~Headers"]).type.toBe<
+        HttpApiEndpoint.StringTree<Schema.Struct<{ id: Schema.FiniteFromString }>>
+      >()
     })
 
     it("should accept a Struct", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         headers: Schema.Struct({ a: Schema.FiniteFromString, b: Schema.FiniteFromString })
       })
-      type T = typeof endpoint["~Headers"]
-      expect<T>().type.toBe<
+      expect(endpoint["~Headers"]).type.toBe<
         HttpApiEndpoint.StringTree<
           Schema.Struct<{ readonly a: Schema.FiniteFromString; readonly b: Schema.FiniteFromString }>
         >
@@ -109,8 +102,7 @@ describe("HttpApiEndpoint", () => {
   describe("payload option", () => {
     it("should default to never", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
-      type T = typeof endpoint["~Payload"]
-      expect<T>().type.toBe<HttpApiEndpoint.StringTree<never>>()
+      expect(endpoint["~Payload"]).type.toBe<HttpApiEndpoint.StringTree<never>>()
     })
 
     describe("GET", () => {
@@ -120,13 +112,11 @@ describe("HttpApiEndpoint", () => {
             id: Schema.Finite
           }
         })
-        type T = typeof endpoint["~Payload"]
-        expect<T>().type.toBe<HttpApiEndpoint.StringTree<Schema.Struct<{ id: Schema.Finite }>>>()
+        expect(endpoint["~Payload"]).type.toBe<HttpApiEndpoint.StringTree<Schema.Struct<{ id: Schema.Finite }>>>()
       })
 
       it("should not accept any other schema", () => {
-        HttpApiEndpoint.get("a", "/a", {
-          // @ts-expect-error Type 'Struct<{ readonly id: String; }>' is not assignable to type 'Record<string, Encoder<string | readonly string[] | undefined, unknown>>'.
+        expect(HttpApiEndpoint.get).type.not.toBeCallableWith("a", "/a", {
           payload: Schema.Struct({ id: Schema.String })
         })
       })
@@ -137,8 +127,7 @@ describe("HttpApiEndpoint", () => {
         const endpoint = HttpApiEndpoint.post("a", "/a", {
           payload: Schema.Struct({ a: Schema.String })
         })
-        type T = typeof endpoint["~Payload"]
-        expect<T>().type.toBe<HttpApiEndpoint.Json<Schema.Struct<{ readonly a: Schema.String }>>>()
+        expect(endpoint["~Payload"]).type.toBe<HttpApiEndpoint.Json<Schema.Struct<{ readonly a: Schema.String }>>>()
       })
 
       it("should accept an array of schemas", () => {
@@ -149,8 +138,7 @@ describe("HttpApiEndpoint", () => {
             Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array()) // application/octet-stream
           ]
         })
-        type T = typeof endpoint["~Payload"]
-        expect<T>().type.toBe<
+        expect(endpoint["~Payload"]).type.toBe<
           HttpApiEndpoint.Json<
             Schema.String | Schema.Struct<{ readonly a: Schema.String }> | Schema.Uint8Array
           >
@@ -165,13 +153,11 @@ describe("HttpApiEndpoint", () => {
             id: Schema.Finite
           }
         })
-        type T = typeof endpoint["~Payload"]
-        expect<T>().type.toBe<HttpApiEndpoint.StringTree<Schema.Struct<{ id: Schema.Finite }>>>()
+        expect(endpoint["~Payload"]).type.toBe<HttpApiEndpoint.StringTree<Schema.Struct<{ id: Schema.Finite }>>>()
       })
 
       it("should not accept any other schema", () => {
-        HttpApiEndpoint.head("a", "/a", {
-          // @ts-expect-error Type 'Struct<{ readonly id: String; }>' is not assignable to type 'Record<string, Encoder<string | readonly string[] | undefined, unknown>>'.
+        expect(HttpApiEndpoint.head).type.not.toBeCallableWith("a", "/a", {
           payload: Schema.Struct({ id: Schema.String })
         })
       })
@@ -184,13 +170,11 @@ describe("HttpApiEndpoint", () => {
             id: Schema.Finite
           }
         })
-        type T = typeof endpoint["~Payload"]
-        expect<T>().type.toBe<HttpApiEndpoint.StringTree<Schema.Struct<{ id: Schema.Finite }>>>()
+        expect(endpoint["~Payload"]).type.toBe<HttpApiEndpoint.StringTree<Schema.Struct<{ id: Schema.Finite }>>>()
       })
 
       it("should not accept any other schema", () => {
-        HttpApiEndpoint.options("a", "/a", {
-          // @ts-expect-error Type 'Struct<{ readonly id: String; }>' is not assignable to type 'Record<string, Encoder<string | readonly string[] | undefined, unknown>>'.
+        expect(HttpApiEndpoint.options).type.not.toBeCallableWith("a", "/a", {
           payload: Schema.Struct({ id: Schema.String })
         })
       })
@@ -200,16 +184,14 @@ describe("HttpApiEndpoint", () => {
   describe("success option", () => {
     it("should default to HttpApiSchema.NoContent", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
-      type T = typeof endpoint["~Success"]
-      expect<T>().type.toBe<HttpApiEndpoint.Json<typeof HttpApiSchema.NoContent>>()
+      expect(endpoint["~Success"]).type.toBe<HttpApiEndpoint.Json<typeof HttpApiSchema.NoContent>>()
     })
 
     it("should accept a schema", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         success: Schema.Struct({ a: Schema.String })
       })
-      type T = typeof endpoint["~Success"]
-      expect<T>().type.toBe<HttpApiEndpoint.Json<Schema.Struct<{ readonly a: Schema.String }>>>()
+      expect(endpoint["~Success"]).type.toBe<HttpApiEndpoint.Json<Schema.Struct<{ readonly a: Schema.String }>>>()
     })
 
     it("should accept an array of schemas", () => {
@@ -220,8 +202,7 @@ describe("HttpApiEndpoint", () => {
           Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array()) // application/octet-stream
         ]
       })
-      type T = typeof endpoint["~Success"]
-      expect<T>().type.toBe<
+      expect(endpoint["~Success"]).type.toBe<
         HttpApiEndpoint.Json<Schema.String | Schema.Struct<{ readonly a: Schema.String }> | Schema.Uint8Array>
       >()
     })
@@ -230,16 +211,14 @@ describe("HttpApiEndpoint", () => {
   describe("error option", () => {
     it("should default to BadRequestNoContent", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
-      type T = typeof endpoint["~Error"]
-      expect<T>().type.toBe<HttpApiEndpoint.Json<typeof HttpApiError.BadRequestNoContent>>()
+      expect(endpoint["~Error"]).type.toBe<HttpApiEndpoint.Json<typeof HttpApiError.BadRequestNoContent>>()
     })
 
     it("should accept a schema", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         error: Schema.Struct({ a: Schema.String })
       })
-      type T = typeof endpoint["~Error"]
-      expect<T>().type.toBe<
+      expect(endpoint["~Error"]).type.toBe<
         HttpApiEndpoint.Json<
           | Schema.Struct<{ readonly a: Schema.String }>
           | typeof HttpApiError.BadRequestNoContent
@@ -255,8 +234,7 @@ describe("HttpApiEndpoint", () => {
           Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array()) // application/octet-stream
         ]
       })
-      type T = typeof endpoint["~Error"]
-      expect<T>().type.toBe<
+      expect(endpoint["~Error"]).type.toBe<
         HttpApiEndpoint.Json<
           | Schema.String
           | Schema.Struct<{ readonly a: Schema.String }>

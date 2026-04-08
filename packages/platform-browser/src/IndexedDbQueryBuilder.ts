@@ -2,14 +2,18 @@
  * @since 4.0.0
  */
 import type { NonEmptyReadonlyArray } from "effect/Array"
+import * as Context from "effect/Context"
 import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
+import * as Fiber from "effect/Fiber"
 import type { Inspectable } from "effect/Inspectable"
 import { BaseProto } from "effect/Inspectable"
+import type * as MutableRef from "effect/MutableRef"
 import * as Option from "effect/Option"
 import * as Pipeable from "effect/Pipeable"
 import type * as Queue from "effect/Queue"
 import type * as Record from "effect/Record"
+import * as References from "effect/References"
 import * as Schema from "effect/Schema"
 import * as SchemaIssue from "effect/SchemaIssue"
 import * as SchemaParser from "effect/SchemaParser"
@@ -74,7 +78,7 @@ export interface IndexedDbQueryBuilder<
   Source extends IndexedDbVersion.AnyWithProps
 > extends Pipeable.Pipeable, Inspectable {
   readonly tables: ReadonlyMap<string, IndexedDbVersion.Tables<Source>>
-  readonly database: globalThis.IDBDatabase
+  readonly database: MutableRef.MutableRef<globalThis.IDBDatabase>
   readonly reactivity: Reactivity.Reactivity["Service"]
   readonly IDBKeyRange: typeof globalThis.IDBKeyRange
   readonly IDBTransaction: globalThis.IDBTransaction | undefined
@@ -93,27 +97,16 @@ export interface IndexedDbQueryBuilder<
 
   readonly clearAll: Effect.Effect<void, IndexedDbQueryError>
 
-  readonly transaction: <
+  readonly withTransaction: <
     Tables extends NonEmptyReadonlyArray<
       IndexedDbTable.TableName<IndexedDbVersion.Tables<Source>>
     >,
-    Mode extends "readonly" | "readwrite",
-    E,
-    R
-  >(
-    tables: Tables,
-    mode: Mode,
-    callback: (api: {
-      readonly from: <Name extends Tables[number]>(
-        table: Name
-      ) => Mode extends "readwrite" ? IndexedDbQuery.From<IndexedDbVersion.TableWithName<Source, Name>>
-        : Omit<
-          IndexedDbQuery.From<IndexedDbVersion.TableWithName<Source, Name>>,
-          "insert" | "insertAll" | "upsert" | "upsertAll" | "clear" | "delete"
-        >
-    }) => Effect.Effect<void, E, R>,
-    options?: globalThis.IDBTransactionOptions
-  ) => Effect.Effect<void, never, R>
+    Mode extends "readonly" | "readwrite"
+  >(options: {
+    readonly tables: Tables
+    readonly mode: Mode
+    readonly durability?: IDBTransactionDurability
+  }) => <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, IndexedDbTransaction>>
 }
 
 /**
@@ -221,9 +214,8 @@ export declare namespace IndexedDbQuery {
    */
   export interface From<Table extends IndexedDbTable.AnyWithProps> {
     readonly table: Table
-    readonly database: globalThis.IDBDatabase
+    readonly database: MutableRef.MutableRef<globalThis.IDBDatabase>
     readonly IDBKeyRange: typeof globalThis.IDBKeyRange
-    readonly transaction?: globalThis.IDBTransaction
     readonly reactivity: Reactivity.Reactivity["Service"]
 
     readonly clear: Effect.Effect<void, IndexedDbQueryError>
@@ -632,6 +624,14 @@ export declare namespace IndexedDbQuery {
   }
 }
 
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export class IndexedDbTransaction extends Context.Service<IndexedDbTransaction, globalThis.IDBTransaction>()(
+  "@effect/platform-browser/IndexedDbQueryBuilder/IndexedDbTransaction"
+) {}
+
 // -----------------------------------------------------------------------------
 // internal
 // -----------------------------------------------------------------------------
@@ -654,8 +654,7 @@ const applyDelete = (query: IndexedDbQuery.Delete<any, never>) =>
   Effect.callback<any, IndexedDbQueryError>((resume) => {
     const database = query.delete.from.database
     const IDBKeyRange = query.delete.from.IDBKeyRange
-    let transaction = query.delete.from.transaction
-    transaction ??= database.transaction([query.delete.from.table.tableName], "readwrite", {
+    const transaction = getOrCreateTransaction(database.current, [query.delete.from.table.tableName], "readwrite", {
       durability: query.delete.from.table.durability
     })
     const objectStore = transaction.objectStore(query.delete.from.table.tableName)
@@ -760,7 +759,7 @@ const getReadonlyObjectStore = (
 ) => {
   const database = query.from.database
   const IDBKeyRange = query.from.IDBKeyRange
-  const transaction = query.from.transaction ?? database.transaction([query.from.table.tableName], "readonly", {
+  const transaction = getOrCreateTransaction(database.current, [query.from.table.tableName], "readonly", {
     durability: query.from.table.durability
   })
   const objectStore = transaction.objectStore(query.from.table.tableName)
@@ -990,7 +989,7 @@ const applyModify = Effect.fnUntraced(function*({
 
   return yield* Effect.callback<any, IndexedDbQueryError>((resume) => {
     const database = query.from.database
-    const transaction = query.from.transaction ?? database.transaction([query.from.table.tableName], "readwrite", {
+    const transaction = getOrCreateTransaction(database.current, [query.from.table.tableName], "readwrite", {
       durability: query.from.table.durability
     })
     const objectStore = transaction.objectStore(query.from.table.tableName)
@@ -1059,13 +1058,10 @@ const applyModifyAll = Effect.fnUntraced(
       IndexedDbQueryError
     >((resume) => {
       const database = query.from.database
-      const transaction = query.from.transaction
-      const objectStore = (
-        transaction ??
-          database.transaction([query.from.table.tableName], "readwrite", {
-            durability: query.from.table.durability
-          })
-      ).objectStore(query.from.table.tableName)
+      const transaction = getOrCreateTransaction(database.current, [query.from.table.tableName], "readwrite", {
+        durability: query.from.table.durability
+      })
+      const objectStore = transaction.objectStore(query.from.table.tableName)
 
       const results: Array<globalThis.IDBValidKey> = []
 
@@ -1141,12 +1137,11 @@ const applyModifyAll = Effect.fnUntraced(
 
 const applyClear = (options: {
   readonly database: globalThis.IDBDatabase
-  readonly transaction: globalThis.IDBTransaction | undefined
   readonly table: IndexedDbTable.AnyWithProps
 }) =>
   Effect.callback<void, IndexedDbQueryError>((resume) => {
     const database = options.database
-    const transaction = options.transaction ?? database.transaction([options.table.tableName], "readwrite", {
+    const transaction = getOrCreateTransaction(database, [options.table.tableName], "readwrite", {
       durability: options.table.durability
     })
     const objectStore = transaction.objectStore(options.table.tableName)
@@ -1171,12 +1166,11 @@ const applyClear = (options: {
 
 const applyClearAll = (options: {
   readonly database: globalThis.IDBDatabase
-  readonly transaction: globalThis.IDBTransaction | undefined
 }) =>
   Effect.callback<void, IndexedDbQueryError>((resume) => {
     const database = options.database
     const tables = database.objectStoreNames
-    const transaction = options.transaction ?? database.transaction([...tables], "readwrite")
+    const transaction = getOrCreateTransaction(database, [...tables], "readwrite")
 
     for (let t = 0; t < tables.length; t++) {
       const objectStore = transaction.objectStore(tables[t])
@@ -1283,8 +1277,7 @@ const FromProto: Omit<
   get clear() {
     const self = this as IndexedDbQuery.From<any>
     return applyClear({
-      database: self.database,
-      transaction: self.transaction,
+      database: self.database.current,
       table: self.table
     })
   }
@@ -1294,16 +1287,14 @@ const makeFrom = <
   const Table extends IndexedDbTable.AnyWithProps
 >(options: {
   readonly table: Table
-  readonly database: globalThis.IDBDatabase
+  readonly database: MutableRef.MutableRef<globalThis.IDBDatabase>
   readonly IDBKeyRange: typeof globalThis.IDBKeyRange
-  readonly transaction: globalThis.IDBTransaction | undefined
   readonly reactivity: Reactivity.Reactivity["Service"]
 }): IndexedDbQuery.From<Table> => {
   const self = Object.create(FromProto)
   self.table = options.table
   self.database = options.database
   self.IDBKeyRange = options.IDBKeyRange
-  self.transaction = options.transaction
   self.reactivity = options.reactivity
   return self
 }
@@ -1829,7 +1820,7 @@ const QueryBuilderProto: Omit<
   ...CommonProto,
   use(this: IndexedDbQueryBuilder<any>, f: (database: globalThis.IDBDatabase) => any) {
     return Effect.try({
-      try: () => f(this.database),
+      try: () => f(this.database.current),
       catch: (error) =>
         new IndexedDbQueryError({
           reason: "UnknownError",
@@ -1842,41 +1833,27 @@ const QueryBuilderProto: Omit<
       database: this.database,
       IDBKeyRange: this.IDBKeyRange,
       table: this.tables.get(table)!,
-      transaction: this.IDBTransaction,
       reactivity: this.reactivity
     }) as any
   },
   get clearAll() {
     const self = this as IndexedDbQueryBuilder<any>
-    return applyClearAll({ database: self.database, transaction: self.IDBTransaction })
+    return applyClearAll({ database: self.database.current })
   },
-  transaction: Effect.fnUntraced(function*<E, R>(
-    this: IndexedDbQueryBuilder<any>,
-    transactionTables: Array<
-      IndexedDbTable.TableName<IndexedDbVersion.Tables<any>>
-    >,
-    mode: globalThis.IDBTransactionMode,
-    callback: (api: {
-      readonly from: <
-        Name extends IndexedDbTable.TableName<IndexedDbVersion.Tables<any>>
-      >(
-        table: Name
-      ) => IndexedDbQuery.From<IndexedDbVersion.TableWithName<any, Name>>
-    }) => Effect.Effect<void, E, R>,
-    options?: globalThis.IDBTransactionOptions
-  ) {
-    const transaction = this.database.transaction(transactionTables, mode, options)
-    return yield* callback({
-      from: (table) =>
-        makeFrom({
-          database: this.database,
-          IDBKeyRange: this.IDBKeyRange,
-          table: this.tables.get(table) as any,
-          transaction,
-          reactivity: this.reactivity
-        })
-    })
-  }) as any
+  withTransaction(this: IndexedDbQueryBuilder<any>, options: {
+    readonly tables: NonEmptyReadonlyArray<any>
+    readonly mode: globalThis.IDBTransactionMode
+    readonly durability?: IDBTransactionDurability
+  }) {
+    return (effect) =>
+      Effect.suspend(() => {
+        const transaction = this.database.current.transaction(options.tables, options.mode, options)
+        return Effect.provideService(effect, IndexedDbTransaction, transaction)
+      }).pipe(
+        // To prevent async gaps between transaction queries
+        Effect.provideService(References.PreventSchedulerYield, true)
+      )
+  }
 }
 
 /**
@@ -1887,13 +1864,11 @@ export const make = <Source extends IndexedDbVersion.AnyWithProps>({
   IDBKeyRange,
   database,
   tables,
-  transaction,
   reactivity
 }: {
-  readonly database: globalThis.IDBDatabase
+  readonly database: MutableRef.MutableRef<globalThis.IDBDatabase>
   readonly IDBKeyRange: typeof globalThis.IDBKeyRange
   readonly tables: ReadonlyMap<string, IndexedDbVersion.Tables<Source>>
-  readonly transaction: globalThis.IDBTransaction | undefined
   readonly reactivity: Reactivity.Reactivity["Service"]
 }): IndexedDbQueryBuilder<Source> => {
   const self = Object.create(QueryBuilderProto)
@@ -1901,6 +1876,15 @@ export const make = <Source extends IndexedDbVersion.AnyWithProps>({
   self.database = database
   self.reactivity = reactivity
   self.IDBKeyRange = IDBKeyRange
-  self.IDBTransaction = transaction
   return self
+}
+
+const getOrCreateTransaction = (
+  database: globalThis.IDBDatabase,
+  tables: ReadonlyArray<string>,
+  mode: globalThis.IDBTransactionMode,
+  options?: IDBTransactionOptions
+) => {
+  const fiber = Fiber.getCurrent()!
+  return Context.getOrUndefined(fiber.context, IndexedDbTransaction) ?? database.transaction(tables, mode, options)
 }

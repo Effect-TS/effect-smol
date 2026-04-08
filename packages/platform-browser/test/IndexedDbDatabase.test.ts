@@ -45,8 +45,9 @@ describe.sequential("IndexedDbDatabase", () => {
     {}
 
     return Effect.gen(function*() {
+      const db = yield* IndexedDbDatabase.IndexedDbDatabase
       const api = yield* Db.getQueryBuilder
-      const todo = yield* api.from("todo").select()
+      let todo = yield* api.from("todo").select()
 
       const name = yield* api.use((database) => database.name)
       const version = yield* api.use((database) => database.version)
@@ -66,6 +67,14 @@ describe.sequential("IndexedDbDatabase", () => {
       assert.deepStrictEqual(Array.from(objectStoreNames), ["todo"])
       assert.deepStrictEqual(Array.from(indexNames), ["titleIndex"])
       assert.deepStrictEqual(index.keyPath, "title")
+
+      yield* api.from("todo").insert({ id: 2, title: "test2", completed: false })
+
+      yield* db.rebuild
+      todo = yield* api.from("todo").select()
+      assert.deepStrictEqual(todo, [
+        { id: 1, title: "test", completed: false }
+      ])
     }).pipe(provideMigration(Db))
   })
 
@@ -104,14 +113,15 @@ describe.sequential("IndexedDbDatabase", () => {
 
     return Effect.gen(function*() {
       const api = yield* Migration.getQueryBuilder
-      yield* api.transaction(["todo"], "readwrite", (api) =>
+      yield* api.withTransaction({ tables: ["todo"], mode: "readwrite" })(
         api
           .from("todo")
           .insert({ id: 2, title: "test2", completed: false })
           .pipe(
             Effect.fromYieldable,
             Effect.orDie
-          ))
+          )
+      )
 
       const todo = yield* api.from("todo").select()
       assert.deepStrictEqual(todo, [

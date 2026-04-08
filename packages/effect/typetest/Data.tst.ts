@@ -73,7 +73,7 @@ describe("Data", () => {
     })
 
     it("should raise an error if one of the variants has a _tag property", () => {
-      // @ts-expect-error: It looks like you're trying to create a tagged enum, but one or more of its members already has a `_tag` property.
+      // @ts-expect-error It looks like you're trying to create a tagged enum, but one or more of its members already has a `_tag` property.
       type TE = Data.TaggedEnum<{
         A: { readonly _tag: "A" }
         B: { readonly b: number }
