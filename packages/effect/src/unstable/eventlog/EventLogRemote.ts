@@ -12,6 +12,7 @@ import * as Redacted from "../../Redacted.ts"
 import type * as Schema from "../../Schema.ts"
 import type * as Scope from "../../Scope.ts"
 import * as RpcClient from "../rpc/RpcClient.ts"
+import type { RpcClientError } from "../rpc/RpcClientError.ts"
 import type * as RpcGroup from "../rpc/RpcGroup.ts"
 import type { Entry, RemoteEntry, RemoteId } from "./EventJournal.ts"
 import { type Identity, Registry } from "./EventLog.ts"
@@ -91,7 +92,10 @@ const makeAuthenticate = Effect.fnUntraced(function*(options: {
  * @category RpcClient
  */
 export class EventLogRemoteClient
-  extends Context.Service<EventLogRemoteClient, RpcClient.RpcClient<RpcGroup.Rpcs<typeof EventLogRemoteRpcs>>>()(
+  extends Context.Service<
+    EventLogRemoteClient,
+    RpcClient.RpcClient<RpcGroup.Rpcs<typeof EventLogRemoteRpcs>, RpcClientError>
+  >()(
     "effect/unstable/eventlog/EventLogRemote/EventLogRemoteClient"
   )
 {
