@@ -91,14 +91,12 @@ const makeAuthenticate = Effect.fnUntraced(function*(options: {
  * @since 4.0.0
  * @category RpcClient
  */
-export class EventLogRemoteClient
-  extends Context.Service<
-    EventLogRemoteClient,
-    RpcClient.RpcClient<RpcGroup.Rpcs<typeof EventLogRemoteRpcs>, RpcClientError>
-  >()(
-    "effect/unstable/eventlog/EventLogRemote/EventLogRemoteClient"
-  )
-{
+export class EventLogRemoteClient extends Context.Service<
+  EventLogRemoteClient,
+  RpcClient.RpcClient<RpcGroup.Rpcs<typeof EventLogRemoteRpcs>, RpcClientError>
+>()(
+  "effect/unstable/eventlog/EventLogRemote/EventLogRemoteClient"
+) {
   static readonly layer = Layer.effect(
     EventLogRemoteClient,
     RpcClient.make(EventLogRemoteRpcs, {
