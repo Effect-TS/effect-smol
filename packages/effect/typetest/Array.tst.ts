@@ -1202,7 +1202,7 @@ describe("Array", () => {
   })
 
   describe("make", () => {
-    it("should require at least 1 argument", () => {      
+    it("should require at least 1 argument", () => {
       expect(Array.make).type.not.toBeCallableWith()
       expect(Array.make).type.toBeCallableWith(1)
     })

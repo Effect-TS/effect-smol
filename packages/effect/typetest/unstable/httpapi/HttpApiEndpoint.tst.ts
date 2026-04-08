@@ -53,7 +53,9 @@ describe("HttpApiEndpoint", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         query: Struct.Record(["a", "b"], Schema.Finite)
       })
-      expect(endpoint["~Query"]).type.toBe<HttpApiEndpoint.StringTree<Schema.Struct<{ a: Schema.Finite; b: Schema.Finite }>>>()
+      expect(endpoint["~Query"]).type.toBe<
+        HttpApiEndpoint.StringTree<Schema.Struct<{ a: Schema.Finite; b: Schema.Finite }>>
+      >()
     })
 
     it("should accept a Struct", () => {
@@ -80,7 +82,9 @@ describe("HttpApiEndpoint", () => {
           id: Schema.FiniteFromString
         }
       })
-      expect(endpoint["~Headers"]).type.toBe<HttpApiEndpoint.StringTree<Schema.Struct<{ id: Schema.FiniteFromString }>>>()
+      expect(endpoint["~Headers"]).type.toBe<
+        HttpApiEndpoint.StringTree<Schema.Struct<{ id: Schema.FiniteFromString }>>
+      >()
     })
 
     it("should accept a Struct", () => {

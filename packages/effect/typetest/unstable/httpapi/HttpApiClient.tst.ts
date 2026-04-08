@@ -404,7 +404,9 @@ describe("HttpApiClient", () => {
         >
       >()
 
-      expect(Effect.runSync).type.not.toBeCallableWith(HttpApiClient.make(Api).pipe(Effect.provide(FetchHttpClient.layer)))
+      expect(Effect.runSync).type.not.toBeCallableWith(
+        HttpApiClient.make(Api).pipe(Effect.provide(FetchHttpClient.layer))
+      )
     })
 
     it("requiredForClient is enforced for makeWith, group, and endpoint", () => {
@@ -432,8 +434,12 @@ describe("HttpApiClient", () => {
       const TestHttpClient = HttpClient.make(() => Effect.die("not used"))
 
       expect(Effect.runSync).type.not.toBeCallableWith(HttpApiClient.makeWith(Api, { httpClient: TestHttpClient }))
-      expect(Effect.runSync).type.not.toBeCallableWith(HttpApiClient.group(Api, { group: "group", httpClient: TestHttpClient }))
-      expect(Effect.runSync).type.not.toBeCallableWith(HttpApiClient.endpoint(Api, { group: "group", endpoint: "a", httpClient: TestHttpClient }))
+      expect(Effect.runSync).type.not.toBeCallableWith(
+        HttpApiClient.group(Api, { group: "group", httpClient: TestHttpClient })
+      )
+      expect(Effect.runSync).type.not.toBeCallableWith(
+        HttpApiClient.endpoint(Api, { group: "group", endpoint: "a", httpClient: TestHttpClient })
+      )
 
       const middlewareLayer = HttpApiMiddleware.layerClient(
         RequiredMiddleware,
