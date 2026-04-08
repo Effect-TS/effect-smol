@@ -9483,6 +9483,53 @@ export const StringFromHex: StringFromHex = String.annotate({
 )
 
 /**
+ * Companion type for {@link StringFromUriComponent}.
+ *
+ * @category String
+ * @since 4.0.0
+ */
+export interface StringFromUriComponent extends decodeTo<String, String> {
+  readonly "~rebuild.out": StringFromUriComponent
+}
+
+/**
+ * Decodes a URI component encoded string into a UTF-8 string.
+ * Can be used to store data in a URL.
+ *
+ * Decoding:
+ * - A **valid** URI component encoded string is decoded as a UTF-8 `string`.
+ *
+ * Encoding:
+ * - A `string` is encoded as a URI component encoded string.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Schema } from "effect"
+ *
+ * const PaginationSchema = Schema.Struct({
+ *   maxItemPerPage: Schema.Number,
+ *   page: Schema.Number
+ * })
+ *
+ * const UrlSchema = Schema.StringFromUriComponent.pipe(
+ *   Schema.decodeTo(Schema.fromJsonString(PaginationSchema))
+ * )
+ *
+ * console.log(Schema.encodeSync(UrlSchema)({ maxItemPerPage: 10, page: 1 }))
+ * // %7B%22maxItemPerPage%22%3A10%2C%22page%22%3A1%7D
+ * ```
+ *
+ * @category String
+ * @since 4.0.0
+ */
+export const StringFromUriComponent: StringFromUriComponent = String.annotate({
+  expected: "a URI component encoded string that will be decoded as a UTF-8 string"
+}).pipe(
+  decodeTo(String, Transformation.stringFromUriComponent)
+)
+
+/**
  * A union schema for JavaScript property keys: `number | symbol | string`.
  *
  * @category PropertyKey

@@ -38,6 +38,7 @@
  * - Parse/stringify JSON → {@link parseJson}, {@link stringifyJson}
  * - Encode/decode Base64 → {@link encodeBase64}, {@link decodeBase64}, {@link decodeBase64String}
  * - Encode/decode Hex → {@link encodeHex}, {@link decodeHex}, {@link decodeHexString}
+ * - Encode/decode URI components → {@link encodeUriComponent}, {@link decodeUriComponent}
  * - Parse DateTime → {@link dateTimeUtcFromInput}
  * - Decode/encode FormData → {@link decodeFormData}, {@link encodeFormData}
  * - Decode/encode URLSearchParams → {@link decodeURLSearchParams}, {@link encodeURLSearchParams}
@@ -1452,6 +1453,65 @@ export function decodeHexString<E extends string>(): Getter<string, E> {
       onSuccess: Effect.succeed
     })
   )
+}
+
+/**
+ * Encodes a string using `encodeURIComponent`.
+ *
+ * Behavior:
+ * - Pure, never fails.
+ *
+ * **Example** (Encode a URI component)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const encode = SchemaGetter.encodeUriComponent<string>()
+ * ```
+ *
+ * See also:
+ * - {@link decodeUriComponent} - inverse operation
+ *
+ * @category URI
+ * @since 4.0.0
+ */
+export function encodeUriComponent<E extends string>(): Getter<string, E> {
+  return transform(encodeURIComponent)
+}
+
+/**
+ * Decodes a URI component encoded string using `decodeURIComponent`.
+ *
+ * Behavior:
+ * - Fails with `Issue.InvalidValue` if the input contains malformed percent-encoding sequences.
+ *
+ * **Example** (Decode a URI component)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const decode = SchemaGetter.decodeUriComponent<string>()
+ * // Getter<string, string>
+ * ```
+ *
+ * See also:
+ * - {@link encodeUriComponent} - inverse operation
+ *
+ * @category URI
+ * @since 4.0.0
+ */
+export function decodeUriComponent<E extends string>(): Getter<string, E> {
+  return transformOrFail((input) => {
+    try {
+      return Effect.succeed(globalThis.decodeURIComponent(input))
+    } catch (e) {
+      return Effect.fail(
+        new Issue.InvalidValue(Option.some(input), {
+          message: e instanceof URIError ? e.message : "Invalid URI component"
+        })
+      )
+    }
+  })
 }
 
 /**

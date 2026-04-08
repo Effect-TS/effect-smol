@@ -4054,11 +4054,29 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const asserts = new TestSchema.Asserts(schema)
 
     const decoding = asserts.decoding()
-    await decoding.succeed("68656c6c6f", "hello")
-    await decoding.fail("6", "Length must be a multiple of 2, but is 1")
+    await decoding.succeed("67", "g")
+    await decoding.fail("0", "Length must be a multiple of 2, but is 1")
+    await decoding.fail("zd4aa", "Length must be a multiple of 2, but is 5")
+    await decoding.fail("0\x01", "Invalid input")
 
     const encoding = asserts.encoding()
-    await encoding.succeed("hello", "68656c6c6f")
+    await encoding.succeed("g", "67")
+  })
+
+  it("StringFromUriComponent", async () => {
+    const schema = Schema.StringFromUriComponent
+    const asserts = new TestSchema.Asserts(schema)
+
+    const decoding = asserts.decoding()
+    await decoding.succeed("%7B%22a%22%3A1%7D", "{\"a\":1}")
+    await decoding.succeed("%D1%88%D0%B5%D0%BB%D0%BB%D1%8B", "шеллы")
+    await decoding.succeed("hello%20world", "hello world")
+    await decoding.succeed("hello", "hello")
+    await decoding.fail("%ZZ", `URI malformed`)
+
+    const encoding = asserts.encoding()
+    await encoding.succeed("{\"a\":1}", "%7B%22a%22%3A1%7D")
+    await encoding.succeed("hello world", "hello%20world")
   })
 
   it("Uint8ArrayFromBase64Url", async () => {
