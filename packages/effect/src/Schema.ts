@@ -6752,19 +6752,41 @@ export function isUnique<T>(annotations?: Annotations.Filter) {
 // -----------------------------------------------------------------------------
 
 /**
+ * Companion type for {@link NonEmptyString}.
+ *
+ * @category String
+ * @since 4.0.0
+ */
+export interface NonEmptyString extends String {
+  readonly "~rebuild.out": NonEmptyString
+}
+
+/**
  * A schema for non-empty strings. Validates that a string has at least one
  * character.
  *
+ * @category String
  * @since 4.0.0
  */
-export const NonEmptyString = String.check(isNonEmpty())
+export const NonEmptyString: NonEmptyString = String.check(isNonEmpty())
+
+/**
+ * Companion type for {@link Char}.
+ *
+ * @category String
+ * @since 4.0.0
+ */
+export interface Char extends String {
+  readonly "~rebuild.out": Char
+}
 
 /**
  * A schema representing a single character.
  *
+ * @category String
  * @since 4.0.0
  */
-export const Char = String.check(isLengthBetween(1, 1))
+export const Char: Char = String.check(isLengthBetween(1, 1))
 
 /**
  * Schema for the `Option<A>` type, representing an optional value that is
@@ -8484,7 +8506,7 @@ const DateString = String.annotate({ expected: "a string in ISO 8601 format that
  * // => Date { 2024-01-01T00:00:00.000Z }
  * ```
  *
- * @category Schemas
+ * @category Date
  * @since 4.0.0
  */
 export const Date: Date = instanceOf(
@@ -8526,6 +8548,7 @@ export interface DateFromString extends decodeTo<Date, String> {
  * Encoding:
  * - A `Date` is encoded as a `string`.
  *
+ * @category Date
  * @since 4.0.0
  */
 export const DateFromString: DateFromString = DateString.pipe(decodeTo(Date, Transformation.dateFromString))
@@ -8546,9 +8569,10 @@ export interface DateValid extends Date {
  * This schema accepts `Date` instances but rejects invalid dates (such as `new
  * Date("invalid")`).
  *
+ * @category Date
  * @since 4.0.0
  */
-export const DateValid = Date.check(isDateValid())
+export const DateValid: DateValid = Date.check(isDateValid())
 
 /**
  * Companion type for {@link Duration}.
@@ -8762,6 +8786,7 @@ export interface BigDecimalFromString extends decodeTo<BigDecimal, String> {
  * Encoding:
  * - A `BigDecimal` is encoded as a `string`.
  *
+ * @category BigDecimal
  * @since 4.0.0
  */
 export const BigDecimalFromString: BigDecimalFromString = BigDecimalString.pipe(
@@ -8801,7 +8826,7 @@ export interface UnknownFromJsonString extends fromJsonString<Unknown> {
  * @category JSON
  * @since 4.0.0
  */
-export const UnknownFromJsonString = fromJsonString(Unknown)
+export const UnknownFromJsonString: UnknownFromJsonString = fromJsonString(Unknown)
 
 /**
  * Companion type for {@link fromJsonString}.
@@ -9349,6 +9374,7 @@ export interface BigIntFromString extends decodeTo<BigInt, String> {
  * Encoding:
  * - A `bigint` is encoded as a `string`.
  *
+ * @category BigInt
  * @since 4.0.0
  */
 export const BigIntFromString: BigIntFromString = make<String>(AST.bigIntString).pipe(
@@ -9368,6 +9394,7 @@ export interface Trimmed extends String {
 /**
  * A schema for strings that contains no leading or trailing whitespaces.
  *
+ * @category String
  * @since 4.0.0
  */
 export const Trimmed: Trimmed = String.check(isTrimmed())
