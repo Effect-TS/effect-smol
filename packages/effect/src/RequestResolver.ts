@@ -945,11 +945,10 @@ export const asCache: {
   never,
   "construction" extends ServiceMode ? Request.Services<A> : never
 > =>
-  Cache.makeWith({
+  Cache.makeWith((req: A) => internal.request(req, self), {
     capacity: options.capacity,
     timeToLive: options.timeToLive as any,
-    requireServicesAt: options.requireServicesAt ?? "lookup" as ServiceMode,
-    lookup: (req: A) => internal.request(req, self)
+    requireServicesAt: options.requireServicesAt ?? "lookup" as ServiceMode
   }) as any)
 
 /**
