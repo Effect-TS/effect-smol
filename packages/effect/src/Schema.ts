@@ -9391,11 +9391,96 @@ export interface Trim extends decodeTo<Trimmed, String> {
  * Encoding:
  * - The trimmed string is encoded as is.
  *
+ * @category String
  * @since 4.0.0
  */
 export const Trim: Trim = String.annotate({
   expected: "a string that will be decoded as a trimmed string"
 }).pipe(decodeTo(Trimmed, Transformation.trim()))
+
+/**
+ * Companion type for {@link StringFromBase64}.
+ *
+ * @category String
+ * @since 4.0.0
+ */
+export interface StringFromBase64 extends decodeTo<String, String> {
+  readonly "~rebuild.out": StringFromBase64
+}
+
+/**
+ * Decodes a base64 (RFC4648) encoded string into a UTF-8 string.
+ *
+ * Decoding:
+ * - A **valid** base64 encoded string is decoded as a UTF-8 `string`.
+ *
+ * Encoding:
+ * - A `string` is encoded as a base64-encoded string.
+ *
+ * @category String
+ * @since 4.0.0
+ */
+export const StringFromBase64: StringFromBase64 = String.annotate({
+  expected: "a base64 encoded string that will be decoded as a UTF-8 string"
+}).pipe(
+  decodeTo(String, Transformation.stringFromBase64String)
+)
+
+/**
+ * Companion type for {@link StringFromBase64Url}.
+ *
+ * @category String
+ * @since 4.0.0
+ */
+export interface StringFromBase64Url extends decodeTo<String, String> {
+  readonly "~rebuild.out": StringFromBase64Url
+}
+
+/**
+ * Decodes a base64 (URL) encoded string into a UTF-8 string.
+ *
+ * Decoding:
+ * - A **valid** base64 (URL) encoded string is decoded as a UTF-8 `string`.
+ *
+ * Encoding:
+ * - A `string` is encoded as a base64 (URL) encoded string.
+ *
+ * @category String
+ * @since 4.0.0
+ */
+export const StringFromBase64Url: StringFromBase64Url = String.annotate({
+  expected: "a base64 (URL) encoded string that will be decoded as a UTF-8 string"
+}).pipe(
+  decodeTo(String, Transformation.stringFromBase64UrlString)
+)
+
+/**
+ * Companion type for {@link StringFromHex}.
+ *
+ * @category String
+ * @since 4.0.0
+ */
+export interface StringFromHex extends decodeTo<String, String> {
+  readonly "~rebuild.out": StringFromHex
+}
+
+/**
+ * Decodes a hex encoded string into a UTF-8 string.
+ *
+ * Decoding:
+ * - A **valid** hex encoded string is decoded as a UTF-8 `string`.
+ *
+ * Encoding:
+ * - A `string` is encoded as a hex string.
+ *
+ * @category String
+ * @since 4.0.0
+ */
+export const StringFromHex: StringFromHex = String.annotate({
+  expected: "a hex encoded string that will be decoded as a UTF-8 string"
+}).pipe(
+  decodeTo(String, Transformation.stringFromHexString)
+)
 
 /**
  * A union schema for JavaScript property keys: `number | symbol | string`.
@@ -9510,62 +9595,6 @@ export interface Uint8ArrayFromBase64 extends decodeTo<Uint8Array, String> {
  */
 export const Uint8ArrayFromBase64: Uint8ArrayFromBase64 = Base64String.pipe(
   decodeTo(Uint8Array, Transformation.uint8ArrayFromBase64String)
-)
-
-/**
- * Companion type for {@link StringFromBase64}.
- *
- * @category String
- * @since 4.0.0
- */
-export interface StringFromBase64 extends decodeTo<String, String> {
-  readonly "~rebuild.out": StringFromBase64
-}
-
-/**
- * Decodes a base64 (RFC4648) encoded string into a UTF-8 string.
- *
- * Decoding:
- * - A **valid** base64 encoded string is decoded as a UTF-8 `string`.
- *
- * Encoding:
- * - A `string` is encoded as a base64-encoded string.
- *
- * @category String
- * @since 4.0.0
- */
-export const StringFromBase64: StringFromBase64 = String.annotate({
-  expected: "a base64 encoded string that will be decoded as a UTF-8 string"
-}).pipe(
-  decodeTo(String, Transformation.stringFromBase64String)
-)
-
-/**
- * Companion type for {@link StringFromBase64Url}.
- *
- * @category String
- * @since 4.0.0
- */
-export interface StringFromBase64Url extends decodeTo<String, String> {
-  readonly "~rebuild.out": StringFromBase64Url
-}
-
-/**
- * Decodes a base64 (URL) encoded string into a UTF-8 string.
- *
- * Decoding:
- * - A **valid** base64 (URL) encoded string is decoded as a UTF-8 `string`.
- *
- * Encoding:
- * - A `string` is encoded as a base64 (URL) encoded string.
- *
- * @category String
- * @since 4.0.0
- */
-export const StringFromBase64Url: StringFromBase64Url = String.annotate({
-  expected: "a base64 (URL) encoded string that will be decoded as a UTF-8 string"
-}).pipe(
-  decodeTo(String, Transformation.stringFromBase64UrlString)
 )
 
 /**

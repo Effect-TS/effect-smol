@@ -1375,6 +1375,36 @@ export const stringFromBase64UrlString: Transformation<string, string> = new Tra
 )
 
 /**
+ * Decodes a hex encoded `string` into a UTF-8 `string` and encodes it back.
+ *
+ * When to use this:
+ * - Handling text data transmitted as hexadecimal strings.
+ *
+ * Behavior:
+ * - Decode: parses the hex string into a UTF-8 string.
+ * - Encode: encodes the string as a hex string.
+ *
+ * **Example** (String from Hex)
+ *
+ * ```ts
+ * import { Schema, SchemaTransformation } from "effect"
+ *
+ * const schema = Schema.String.pipe(
+ *   Schema.decodeTo(Schema.String, SchemaTransformation.stringFromHexString)
+ * )
+ * ```
+ *
+ * See also:
+ * - {@link stringFromBase64String}
+ *
+ * @since 4.0.0
+ */
+export const stringFromHexString: Transformation<string, string> = new Transformation(
+  Getter.decodeHexString(),
+  Getter.encodeHex()
+)
+
+/**
  * Decodes a JSON `string` into an `unknown` value and encodes an `unknown`
  * value back to a JSON string.
  *

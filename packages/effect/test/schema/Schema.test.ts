@@ -4049,6 +4049,18 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     await encoding.succeed(">?>d?\u00DF", "Pj8-ZD_Dnw")
   })
 
+  it("StringFromHex", async () => {
+    const schema = Schema.StringFromHex
+    const asserts = new TestSchema.Asserts(schema)
+
+    const decoding = asserts.decoding()
+    await decoding.succeed("68656c6c6f", "hello")
+    await decoding.fail("6", "Length must be a multiple of 2, but is 1")
+
+    const encoding = asserts.encoding()
+    await encoding.succeed("hello", "68656c6c6f")
+  })
+
   it("Uint8ArrayFromBase64Url", async () => {
     const schema = Schema.Uint8ArrayFromBase64Url
     const asserts = new TestSchema.Asserts(schema)
