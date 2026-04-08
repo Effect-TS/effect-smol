@@ -3907,6 +3907,7 @@ export declare namespace Retry {
   export type Return<R, E, A, O extends Options<E>> = Effect<
     A,
     | (O extends { schedule: Schedule<infer _O, infer _I, infer _E1, infer _R> } ? E
+      : O extends { times: number } ? E
       : O extends { until: Predicate.Refinement<E, infer E2> } ? E2
       : O extends { while: Predicate.Refinement<E, infer E2> } ? Exclude<E, E2>
       : E)
