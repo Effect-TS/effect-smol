@@ -4034,6 +4034,21 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     await encoding.succeed("foobar", "Zm9vYmFy")
   })
 
+  it("StringFromBase64Url", async () => {
+    const schema = Schema.StringFromBase64Url
+    const asserts = new TestSchema.Asserts(schema)
+
+    const decoding = asserts.decoding()
+    await decoding.succeed("Zm9vYmFy", "foobar")
+    await decoding.fail("Zm9vY", "Length should be a multiple of 4, but is 5")
+    await decoding.succeed("Pj8-ZD_Dnw", ">?>d?\u00DF")
+    await decoding.fail("Pj8/ZD+Dnw", "Invalid input")
+
+    const encoding = asserts.encoding()
+    await encoding.succeed("foobar", "Zm9vYmFy")
+    await encoding.succeed(">?>d?\u00DF", "Pj8-ZD_Dnw")
+  })
+
   it("Uint8ArrayFromBase64Url", async () => {
     const schema = Schema.Uint8ArrayFromBase64Url
     const asserts = new TestSchema.Asserts(schema)

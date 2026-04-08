@@ -9541,6 +9541,34 @@ export const StringFromBase64: StringFromBase64 = String.annotate({
 )
 
 /**
+ * Companion type for {@link StringFromBase64Url}.
+ *
+ * @category String
+ * @since 4.0.0
+ */
+export interface StringFromBase64Url extends decodeTo<String, String> {
+  readonly "~rebuild.out": StringFromBase64Url
+}
+
+/**
+ * Decodes a base64 (URL) encoded string into a UTF-8 string.
+ *
+ * Decoding:
+ * - A **valid** base64 (URL) encoded string is decoded as a UTF-8 `string`.
+ *
+ * Encoding:
+ * - A `string` is encoded as a base64 (URL) encoded string.
+ *
+ * @category String
+ * @since 4.0.0
+ */
+export const StringFromBase64Url: StringFromBase64Url = String.annotate({
+  expected: "a base64 (URL) encoded string that will be decoded as a UTF-8 string"
+}).pipe(
+  decodeTo(String, Transformation.stringFromBase64UrlString)
+)
+
+/**
  * Companion type for {@link Uint8ArrayFromBase64Url}.
  *
  * @category Uint8Array

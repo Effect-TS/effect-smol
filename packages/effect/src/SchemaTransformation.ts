@@ -1345,6 +1345,36 @@ export const stringFromBase64String: Transformation<string, string> = new Transf
 )
 
 /**
+ * Decodes a base64 (URL) encoded `string` into a UTF-8 `string` and encodes it back.
+ *
+ * When to use this:
+ * - Handling text data transmitted as Base64 URL-safe strings.
+ *
+ * Behavior:
+ * - Decode: parses the Base64 URL string into a UTF-8 string.
+ * - Encode: encodes the string as a Base64 URL string.
+ *
+ * **Example** (String from Base64Url)
+ *
+ * ```ts
+ * import { Schema, SchemaTransformation } from "effect"
+ *
+ * const schema = Schema.String.pipe(
+ *   Schema.decodeTo(Schema.String, SchemaTransformation.stringFromBase64UrlString)
+ * )
+ * ```
+ *
+ * See also:
+ * - {@link stringFromBase64String}
+ *
+ * @since 4.0.0
+ */
+export const stringFromBase64UrlString: Transformation<string, string> = new Transformation(
+  Getter.decodeBase64UrlString(),
+  Getter.encodeBase64Url()
+)
+
+/**
  * Decodes a JSON `string` into an `unknown` value and encodes an `unknown`
  * value back to a JSON string.
  *
