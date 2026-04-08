@@ -86,25 +86,11 @@ describe("HttpApiClient", () => {
         baseUrl: "https://api.example.com"
       })
 
-      const getUserUrl = builder.users.getUser({
-        params: { id: 123 },
-        query: { page: 1 }
-      })
-
-      expect<typeof getUserUrl>().type.toBe<string>()
-
-      const healthUrl = builder.users.health()
-
-      expect<typeof healthUrl>().type.toBe<string>()
-
-      // @ts-expect-error!
-      builder.users.getUser({ params: { id: "123" }, query: { page: 1 } })
-
-      // @ts-expect-error!
-      builder.users.getUser({ params: { id: 123 }, query: { page: "1" } })
-
-      // @ts-expect-error!
-      builder.users.missing()
+      expect(builder.users.getUser({ params: { id: 123 }, query: { page: 1 } })).type.toBe<string>()
+      expect(builder.users.health()).type.toBe<string>()
+      expect(builder.users.getUser).type.not.toBeCallableWith({ params: { id: "123" }, query: { page: 1 } })
+      expect(builder.users.getUser).type.not.toBeCallableWith({ params: { id: 123 }, query: { page: "1" } })
+      expect(builder.users).type.not.toHaveProperty("missing")
     })
 
     it("should support prefixes and top-level endpoints", () => {
@@ -131,21 +117,10 @@ describe("HttpApiClient", () => {
 
       const builder = HttpApiClient.urlBuilder(Api)
 
-      const prefixedUrl = builder.users.getUser({
-        params: { id: 123 }
-      })
-
-      expect<typeof prefixedUrl>().type.toBe<string>()
-
-      const topLevelUrl = builder.topHealth()
-
-      expect<typeof topLevelUrl>().type.toBe<string>()
-
-      // @ts-expect-error!
-      builder.users.getUser({ params: { id: "123" } })
-
-      // @ts-expect-error!
-      builder.top.topHealth()
+      expect(builder.users.getUser({ params: { id: 123 } })).type.toBe<string>()
+      expect(builder.topHealth()).type.toBe<string>()
+      expect(builder.users.getUser).type.not.toBeCallableWith({ params: { id: "123" } })
+      expect(builder).type.not.toHaveProperty("top")
     })
   })
 
@@ -262,8 +237,7 @@ describe("HttpApiClient", () => {
       const client = Effect.runSync(
         HttpApiClient.make(Api).pipe(Effect.provide(FetchHttpClient.layer))
       )
-      const f = client.group.a
-      expect<ReturnType<typeof f>>().type.toBe<
+      expect(client.group.a()).type.toBe<
         Effect.Effect<
           { readonly a: number },
           HttpApiError.BadRequest | HttpClientError.HttpClientError | Schema.SchemaError
@@ -288,8 +262,7 @@ describe("HttpApiClient", () => {
       const client = Effect.runSync(
         HttpApiClient.make(Api).pipe(Effect.provide(FetchHttpClient.layer))
       )
-      const f = client.group.a
-      expect<ReturnType<typeof f>>().type.toBe<
+      expect(client.group.a()).type.toBe<
         Effect.Effect<
           | string
           | { readonly a: number }
@@ -314,24 +287,21 @@ describe("HttpApiClient", () => {
       )
       const f = client.group.a
 
-      const decodedOnly = f({ responseMode: "decoded-only" })
-      expect<typeof decodedOnly>().type.toBe<
+      expect(f({ responseMode: "decoded-only" })).type.toBe<
         Effect.Effect<
           { readonly a: number },
           HttpApiError.BadRequest | HttpClientError.HttpClientError | Schema.SchemaError
         >
       >()
 
-      const decodedAndResponse = f({ responseMode: "decoded-and-response" })
-      expect<typeof decodedAndResponse>().type.toBe<
+      expect(f({ responseMode: "decoded-and-response" })).type.toBe<
         Effect.Effect<
           [{ readonly a: number }, HttpClientResponse.HttpClientResponse],
           HttpApiError.BadRequest | HttpClientError.HttpClientError | Schema.SchemaError
         >
       >()
 
-      const responseOnly = f({ responseMode: "response-only" })
-      expect<typeof responseOnly>().type.toBe<
+      expect(f({ responseMode: "response-only" })).type.toBe<
         Effect.Effect<HttpClientResponse.HttpClientResponse, HttpApiError.BadRequest | HttpClientError.HttpClientError>
       >()
     })
@@ -349,8 +319,7 @@ describe("HttpApiClient", () => {
       const client = Effect.runSync(
         HttpApiClient.make(Api).pipe(Effect.provide(FetchHttpClient.layer))
       )
-      const f = client.group.a
-      expect<ReturnType<typeof f>>().type.toBe<
+      expect(client.group.a()).type.toBe<
         Effect.Effect<
           void,
           | HttpApiError.BadRequest
@@ -373,8 +342,7 @@ describe("HttpApiClient", () => {
       const client = Effect.runSync(
         HttpApiClient.make(Api).pipe(Effect.provide(FetchHttpClient.layer))
       )
-      const f = client.group.a
-      expect<ReturnType<typeof f>>().type.toBe<
+      expect(client.group.a()).type.toBe<
         Effect.Effect<
           void,
           | { readonly a: number }
@@ -418,9 +386,6 @@ describe("HttpApiClient", () => {
             )
         )
 
-      // @ts-expect-error!
-      Effect.runSync(HttpApiClient.make(Api).pipe(Effect.provide(FetchHttpClient.layer)))
-
       const client = Effect.runSync(
         HttpApiClient.make(Api).pipe(
           Effect.provide([
@@ -429,8 +394,7 @@ describe("HttpApiClient", () => {
           ])
         )
       )
-      const f = client.group.a
-      expect<ReturnType<typeof f>>().type.toBe<
+      expect(client.group.a()).type.toBe<
         Effect.Effect<
           string,
           | RequiredClientError
@@ -439,6 +403,8 @@ describe("HttpApiClient", () => {
           | Schema.SchemaError
         >
       >()
+
+      expect(Effect.runSync).type.not.toBeCallableWith(HttpApiClient.make(Api).pipe(Effect.provide(FetchHttpClient.layer)))
     })
 
     it("requiredForClient is enforced for makeWith, group, and endpoint", () => {
@@ -465,14 +431,9 @@ describe("HttpApiClient", () => {
 
       const TestHttpClient = HttpClient.make(() => Effect.die("not used"))
 
-      // @ts-expect-error!
-      Effect.runSync(HttpApiClient.makeWith(Api, { httpClient: TestHttpClient }))
-
-      // @ts-expect-error!
-      Effect.runSync(HttpApiClient.group(Api, { group: "group", httpClient: TestHttpClient }))
-
-      // @ts-expect-error!
-      Effect.runSync(HttpApiClient.endpoint(Api, { group: "group", endpoint: "a", httpClient: TestHttpClient }))
+      expect(Effect.runSync).type.not.toBeCallableWith(HttpApiClient.makeWith(Api, { httpClient: TestHttpClient }))
+      expect(Effect.runSync).type.not.toBeCallableWith(HttpApiClient.group(Api, { group: "group", httpClient: TestHttpClient }))
+      expect(Effect.runSync).type.not.toBeCallableWith(HttpApiClient.endpoint(Api, { group: "group", endpoint: "a", httpClient: TestHttpClient }))
 
       const middlewareLayer = HttpApiMiddleware.layerClient(
         RequiredMiddleware,
@@ -499,7 +460,7 @@ describe("HttpApiClient", () => {
         )
       )
 
-      expect<ReturnType<typeof fromClient>>().type.toBe<
+      expect(fromClient()).type.toBe<
         Effect.Effect<
           string,
           | RequiredClientError
@@ -509,7 +470,7 @@ describe("HttpApiClient", () => {
         >
       >()
 
-      expect<ReturnType<typeof fromGroup>>().type.toBe<
+      expect(fromGroup()).type.toBe<
         Effect.Effect<
           string,
           | RequiredClientError
@@ -519,7 +480,7 @@ describe("HttpApiClient", () => {
         >
       >()
 
-      expect<ReturnType<typeof fromEndpoint>>().type.toBe<
+      expect(fromEndpoint()).type.toBe<
         Effect.Effect<
           string,
           | RequiredClientError

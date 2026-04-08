@@ -14,9 +14,8 @@ describe("SqlSchema", () => {
       }
     })
 
-    query(1)
-    // @ts-expect-error!
-    query("1")
+    expect(query).type.toBeCallableWith(1)
+    expect(query).type.not.toBeCallableWith("1")
   })
 
   it("findNonEmpty accepts Request type input", () => {
@@ -29,9 +28,8 @@ describe("SqlSchema", () => {
       }
     })
 
-    query(1)
-    // @ts-expect-error!
-    query("1")
+    expect(query).type.toBeCallableWith(1)
+    expect(query).type.not.toBeCallableWith("1")
   })
 
   it("findOne accepts Request type input", () => {
@@ -44,9 +42,8 @@ describe("SqlSchema", () => {
       }
     })
 
-    query(1)
-    // @ts-expect-error!
-    query("1")
+    expect(query).type.toBeCallableWith(1)
+    expect(query).type.not.toBeCallableWith("1")
   })
 
   it("findOneOption accepts Request type input", () => {
@@ -59,9 +56,8 @@ describe("SqlSchema", () => {
       }
     })
 
-    query(1)
-    // @ts-expect-error!
-    query("1")
+    expect(query).type.toBeCallableWith(1)
+    expect(query).type.not.toBeCallableWith("1")
   })
 
   it("void accepts Request type input", () => {
@@ -69,12 +65,11 @@ describe("SqlSchema", () => {
       Request: Schema.NumberFromString,
       execute: (request) => {
         expect(request).type.toBe<string>()
-        return Effect.succeed(undefined)
+        return Effect.void
       }
     })
 
-    query(1)
-    // @ts-expect-error!
-    query("1")
+    expect(query).type.toBeCallableWith(1)
+    expect(query).type.not.toBeCallableWith("1")
   })
 })

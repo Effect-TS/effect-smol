@@ -1,6 +1,6 @@
 import { it, layer } from "@effect/vitest"
 import { Context, Layer } from "effect"
-import { describe, expect, it as test } from "tstyche"
+import { describe, expect, test } from "tstyche"
 
 class Foo extends Context.Service<Foo, "foo">()("Foo") {}
 class Bar extends Context.Service<Bar, "bar">()("Bar") {}
