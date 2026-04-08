@@ -123,7 +123,7 @@ export interface Entry<A, E> {
  * // Cache with TTL based on computed value
  * const userCache = Effect.gen(function*() {
  *   const cache = yield* Cache.makeWith(
- *     (id: string) => Effect.succeed({ id, active: id % 2 === 0 })
+ *     (id: string) => Effect.succeed({ id, active: id % 2 === 0 }),
  *     {
  *       capacity: 1000,
  *       timeToLive: (exit) => {
