@@ -5895,6 +5895,29 @@ export const mergeEffect: {
   ) as any)
 
 /**
+ * Splits upstream string chunks into lines, recognizing `\n`, `\r\n`, and
+ * standalone `\r` as line terminators. The behavior matches
+ * `String.linesIterator` regardless of how the input is chunked.
+ *
+ * A line terminator at the very end of the stream does **not** produce a
+ * trailing empty line (consistent with `String.linesIterator`). Conversely,
+ * if the stream ends without a terminator the final partial line is still
+ * emitted.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Effect, Stream } from "effect"
+ *
+ * Effect.runPromise(Effect.gen(function*() {
+ *   const result = yield* Stream.runCollect(
+ *     Stream.splitLines(Stream.make("hel", "lo\r\nwor", "ld\n"))
+ *   )
+ *   console.log(result)
+ *   // [ 'hello', 'world' ]
+ * }))
+ * ```
+ *
  * @since 2.0.0
  * @category String manipulation
  */
@@ -5908,11 +5931,30 @@ export const splitLines = <Err, Done>(): Channel<
 > =>
   fromTransform((upstream, _scope) =>
     Effect.sync(() => {
+      // Accumulates text that has not yet been terminated by a line break.
+      // Content is carried across chunks until a terminator is found.
       let stringBuilder = ""
+      // Set when a chunk ends with \r so the next chunk can check whether
+      // the following character is \n (completing a \r\n pair) or not
+      // (standalone \r, which is itself a line terminator).
       let midCRLF = false
+      // Remembers the upstream Done value after the first time the upstream
+      // signals completion, so subsequent pulls return Done immediately
+      // without pulling upstream again.
+      let done = Option.none<Done>()
 
-      const splitLinesArray = (chunk: Arr.NonEmptyReadonlyArray<string>): Arr.NonEmptyReadonlyArray<string> | null => {
+      function splitLinesArray(chunk: Arr.NonEmptyReadonlyArray<string>): Arr.NonEmptyReadonlyArray<string> | null {
         const chunkBuilder: Array<string> = []
+
+        function pushLine(segment: string): void {
+          if (stringBuilder.length === 0) {
+            chunkBuilder.push(segment)
+          } else {
+            chunkBuilder.push(stringBuilder + segment)
+            stringBuilder = ""
+          }
+        }
+
         for (let i = 0; i < chunk.length; i++) {
           const str = chunk[i]
           if (str.length !== 0) {
@@ -5921,23 +5963,17 @@ export const splitLines = <Err, Done>(): Channel<
             let indexOfLF = str.indexOf("\n")
             if (midCRLF) {
               if (indexOfLF === 0) {
-                chunkBuilder.push(stringBuilder)
-                stringBuilder = ""
+                pushLine("")
                 from = 1
                 indexOfLF = str.indexOf("\n", from)
               } else {
-                stringBuilder = stringBuilder + "\r"
+                pushLine("")
               }
               midCRLF = false
             }
             while (indexOfCR !== -1 || indexOfLF !== -1) {
               if (indexOfCR === -1 || (indexOfLF !== -1 && indexOfLF < indexOfCR)) {
-                if (stringBuilder.length === 0) {
-                  chunkBuilder.push(str.substring(from, indexOfLF))
-                } else {
-                  chunkBuilder.push(stringBuilder + str.substring(from, indexOfLF))
-                  stringBuilder = ""
-                }
+                pushLine(str.substring(from, indexOfLF))
                 from = indexOfLF + 1
                 indexOfLF = str.indexOf("\n", from)
               } else {
@@ -5945,40 +5981,45 @@ export const splitLines = <Err, Done>(): Channel<
                   midCRLF = true
                   indexOfCR = -1
                 } else {
-                  if (indexOfLF === indexOfCR + 1) {
-                    if (stringBuilder.length === 0) {
-                      chunkBuilder.push(str.substring(from, indexOfCR))
-                    } else {
-                      stringBuilder = stringBuilder + str.substring(from, indexOfCR)
-                      chunkBuilder.push(stringBuilder)
-                      stringBuilder = ""
-                    }
-                    from = indexOfCR + 2
-                    indexOfCR = str.indexOf("\r", from)
-                    indexOfLF = str.indexOf("\n", from)
-                  } else {
-                    indexOfCR = str.indexOf("\r", indexOfCR + 1)
-                  }
+                  pushLine(str.substring(from, indexOfCR))
+                  from = indexOfCR + (indexOfLF === indexOfCR + 1 ? 2 : 1)
+                  indexOfCR = str.indexOf("\r", from)
+                  indexOfLF = str.indexOf("\n", from)
                 }
               }
             }
-            if (midCRLF) {
-              stringBuilder = stringBuilder + str.substring(from, str.length - 1)
-            } else {
-              stringBuilder = stringBuilder + str.substring(from, str.length)
-            }
+            stringBuilder = stringBuilder + str.substring(from, str.length - (midCRLF ? 1 : 0))
           }
         }
         return Arr.isReadonlyArrayNonEmpty(chunkBuilder) ? chunkBuilder : null
       }
 
-      return Effect.flatMap(
-        upstream,
-        function loop(chunk): Pull.Pull<Arr.NonEmptyReadonlyArray<string>, Err, Done> {
-          const lines = splitLinesArray(chunk)
-          return lines !== null ? Effect.succeed(lines) : Effect.flatMap(upstream, loop)
+      const pullOrFlush: Pull.Pull<Arr.NonEmptyReadonlyArray<string>, Err, Done> = Effect.suspend(() => {
+        if (done._tag === "Some") {
+          return Cause.done(done.value)
         }
-      )
+        return Pull.matchEffect(upstream, {
+          onSuccess: loop,
+          onFailure: Effect.failCause,
+          onDone: (leftover) => {
+            done = Option.some(leftover)
+            if (stringBuilder.length > 0 || midCRLF) {
+              const last = stringBuilder
+              stringBuilder = ""
+              midCRLF = false
+              return Effect.succeed([last] as Arr.NonEmptyReadonlyArray<string>)
+            }
+            return Cause.done(leftover)
+          }
+        })
+      })
+
+      function loop(chunk: Arr.NonEmptyReadonlyArray<string>): Pull.Pull<Arr.NonEmptyReadonlyArray<string>, Err, Done> {
+        const lines = splitLinesArray(chunk)
+        return lines !== null ? Effect.succeed(lines) : pullOrFlush
+      }
+
+      return pullOrFlush
     })
   )
 
