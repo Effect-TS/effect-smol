@@ -1,4 +1,4 @@
-import { Data, pipe, Stream } from "effect"
+import { type Cause, Data, type Effect, pipe, type Queue, type Scope, Stream } from "effect"
 import { describe, expect, it } from "tstyche"
 
 class ErrorA extends Data.TaggedError("ErrorA")<{
@@ -52,5 +52,21 @@ describe("Stream.catchIf", () => {
       }
     )
     expect(result).type.toBe<Stream.Stream<string | number, ErrorA | ErrorB, "dep-1">>()
+  })
+})
+
+describe("Stream.toQueue", () => {
+  it("supports data-last usage", () => {
+    const result = pipe(stream, Stream.toQueue({ capacity: 16 }))
+    expect(result).type.toBe<
+      Effect.Effect<Queue.Dequeue<string, ErrorA | ErrorB | Cause.Done>, never, "dep-1" | Scope.Scope>
+    >()
+  })
+
+  it("supports data-first usage", () => {
+    const result = Stream.toQueue(stream, { capacity: "unbounded" })
+    expect(result).type.toBe<
+      Effect.Effect<Queue.Dequeue<string, ErrorA | ErrorB | Cause.Done>, never, "dep-1" | Scope.Scope>
+    >()
   })
 })

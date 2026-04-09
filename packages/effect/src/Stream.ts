@@ -10823,16 +10823,16 @@ export const toPubSubTake: {
 )
 
 /**
- * Converts a stream to a PubSub for concurrent consumption.
+ * Converts a stream to a Queue for concurrent consumption.
  *
  * @example
  * ```ts
- * import { Effect, PubSub, Stream } from "effect"
+ * import { Effect, Queue, Stream } from "effect"
  *
  * const program = Effect.gen(function* () {
- *   const pubSub = yield* Stream.toQueue(Stream.fromIterable([1, 2, 3]), { capacity: 8 })
- *   const subscription = yield* PubSub.subscribe(pubSub)
- *   return subscription
+ *   const queue = yield* Stream.toQueue(Stream.fromIterable([1, 2, 3]), { capacity: 8 })
+ *   const chunk = yield* Queue.takeBetween(queue, 1, 3)
+ *   return chunk
  * })
  * ```
  *
@@ -10856,22 +10856,19 @@ export const toQueue: {
       readonly capacity: number
       readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
     }
-  ): Effect.Effect<PubSub.PubSub<A>, never, R | Scope.Scope>
+  ): Effect.Effect<Queue.Dequeue<A, E | Cause.Done>, never, R | Scope.Scope>
 } = dual(
   2,
   <A, E, R>(
     self: Stream<A, E, R>,
     options: {
       readonly capacity: "unbounded"
-      readonly replay?: number | undefined
-      readonly shutdownOnEnd?: boolean | undefined
     } | {
       readonly capacity: number
       readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
-      readonly replay?: number | undefined
-      readonly shutdownOnEnd?: boolean | undefined
     }
-  ): Effect.Effect<PubSub.PubSub<A>, never, R | Scope.Scope> => Channel.toPubSubArray(self.channel, options)
+  ): Effect.Effect<Queue.Dequeue<A, E | Cause.Done>, never, R | Scope.Scope> =>
+    Channel.toQueueArray(self.channel, options)
 )
 
 /**
