@@ -317,7 +317,7 @@ const constEmptyPrivateKey = Redacted.make(new Uint8Array(32))
 const makeServerWriteIdentityPublicKey = (storeId: StoreId): string => `effect-eventlog-server-write:${storeId}`
 
 const entriesAfter = (journal: Array<RemoteEntry>, startSequence: number): ReadonlyArray<RemoteEntry> =>
-  journal.filter((entry) => entry.remoteSequence > startSequence)
+  journal.filter((entry) => entry.remoteSequence >= startSequence)
 
 const toConflicts = (
   history: ReadonlyArray<Entry>,
@@ -559,7 +559,7 @@ export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.S
         remoteEntries: entriesAfter(ensureJournal(storeId), startSequence),
         compactors
       })
-      const replayedUpTo = backlog.length > 0 ? backlog[backlog.length - 1].remoteSequence : startSequence
+      const replayedUpTo = backlog.length > 0 ? backlog[backlog.length - 1].remoteSequence : startSequence - 1
 
       return Stream.fromArray(backlog).pipe(
         Stream.concat(

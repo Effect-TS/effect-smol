@@ -399,7 +399,7 @@ export const makeStorage = (options?: {
             compactors,
             remoteEntries: yield* selectEntriesAfter(storeId, startSequence)
           })
-          let watermark = backlog.length > 0 ? backlog[backlog.length - 1]!.remoteSequence : startSequence
+          let watermark = backlog.length > 0 ? backlog[backlog.length - 1]!.remoteSequence : startSequence - 1
 
           return Stream.fromArray(backlog).pipe(
             Stream.concat(
