@@ -22,6 +22,7 @@ import {
   Result,
   Schedule,
   Sink,
+  String as Str,
   Stream
 } from "effect"
 import { isReadonlyArrayNonEmpty, type NonEmptyArray } from "effect/Array"
@@ -224,6 +225,71 @@ describe("Stream", () => {
         )
         assert.strictEqual(result, "Hello 🌍!")
       }))
+
+    describe("splitLines", () => {
+      const splitLines = (chunks: ReadonlyArray<string>) =>
+        Stream.fromIterable(chunks).pipe(
+          Stream.splitLines,
+          Stream.runCollect
+        )
+
+      it.effect("handles an empty stream", () =>
+        Effect.gen(function*() {
+          const result = yield* splitLines([])
+          assert.deepStrictEqual(result, [])
+        }))
+
+      it.effect("handles empty chunks and repeated line feeds", () =>
+        Effect.gen(function*() {
+          const result = yield* splitLines(["", "a\n\n", "", "b\n", ""])
+          assert.deepStrictEqual(result, ["a", "", "b"])
+        }))
+
+      it.effect("handles line feeds across chunks", () =>
+        Effect.gen(function*() {
+          const result = yield* splitLines(["a\nb", "\nc\n", "d"])
+          assert.deepStrictEqual(result, ["a", "b", "c", "d"])
+        }))
+
+      it.effect("handles carriage return / line feed pairs across chunks", () =>
+        Effect.gen(function*() {
+          const result = yield* splitLines(["a\r", "\nb\r", "\nc"])
+          assert.deepStrictEqual(result, ["a", "b", "c"])
+        }))
+
+      it.effect("emits the final line when the stream does not end with a newline", () =>
+        Effect.gen(function*() {
+          const result = yield* splitLines(["a\nb\nc\n", "d\ne"])
+          assert.deepStrictEqual(result, ["a", "b", "c", "d", "e"])
+        }))
+
+      it.effect("handles standalone carriage returns within a chunk", () =>
+        Effect.gen(function*() {
+          const result = yield* splitLines(["a\rb\rc"])
+          assert.deepStrictEqual(result, ["a", "b", "c"])
+        }))
+
+      it.effect("handles standalone carriage returns across chunk boundaries", () =>
+        Effect.gen(function*() {
+          const result = yield* splitLines(["a\r", "b\r", "c"])
+          assert.deepStrictEqual(result, ["a", "b", "c"])
+        }))
+
+      it.effect.prop(
+        "matches String.linesIterator regardless of chunk boundaries",
+        {
+          chunks: fc.array(
+            fc.array(fc.constantFrom("a", "b", "\n", "\r"), { maxLength: 8 }).map((chars) => chars.join("")),
+            { maxLength: 8 }
+          )
+        },
+        Effect.fnUntraced(function*({ chunks }) {
+          const result = yield* splitLines(chunks)
+          const expected = globalThis.Array.from(Str.linesIterator(chunks.join("")))
+          assert.deepStrictEqual(result, expected)
+        })
+      )
+    })
   })
 
   describe("filtering", () => {
