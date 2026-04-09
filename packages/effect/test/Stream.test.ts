@@ -16,14 +16,15 @@ import {
   Logger,
   type LogLevel,
   Option,
+  type Pull,
   Queue,
   Ref,
   References,
   Result,
   Schedule,
   Sink,
-  String as Str,
-  Stream
+  Stream,
+  String as Str
 } from "effect"
 import { isReadonlyArrayNonEmpty, type NonEmptyArray } from "effect/Array"
 import { constTrue, constVoid, pipe } from "effect/Function"
@@ -261,6 +262,35 @@ describe("Stream", () => {
         Effect.gen(function*() {
           const result = yield* splitLines(["a\nb\nc\n", "d\ne"])
           assert.deepStrictEqual(result, ["a", "b", "c", "d", "e"])
+        }))
+
+      it.effect("does not pull upstream again after flushing the final line", () =>
+        Effect.gen(function*() {
+          let pulls = 0
+          const stream = Stream.fromPull(Effect.sync(() => {
+            const pull = Effect.suspend(
+              (): Pull.Pull<Array.NonEmptyReadonlyArray<string>, string> => {
+                pulls++
+                switch (pulls) {
+                  case 1:
+                    return Effect.succeed(Array.of("a"))
+                  case 2:
+                    return Cause.done()
+                  default:
+                    return Effect.fail("pulled after done")
+                }
+              }
+            )
+            return pull
+          }))
+
+          const result = yield* stream.pipe(
+            Stream.splitLines,
+            Stream.runCollect
+          )
+
+          assert.deepStrictEqual(result, ["a"])
+          assert.strictEqual(pulls, 2)
         }))
 
       it.effect("handles standalone carriage returns within a chunk", () =>
