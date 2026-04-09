@@ -1306,6 +1306,7 @@ export const bigDecimalFromString: Transformation<BigDecimal.BigDecimal, string>
  *
  * See also:
  * - {@link fromJsonString}
+ * - `Schema.Uint8ArrayFromBase64` - a ready-made schema wrapping this transformation.
  *
  * @since 4.0.0
  */
@@ -1337,6 +1338,7 @@ export const uint8ArrayFromBase64String: Transformation<Uint8Array<ArrayBufferLi
  *
  * See also:
  * - {@link uint8ArrayFromBase64String}
+ * - `Schema.StringFromBase64` - a ready-made schema wrapping this transformation.
  *
  * @since 4.0.0
  */
@@ -1367,6 +1369,7 @@ export const stringFromBase64String: Transformation<string, string> = new Transf
  *
  * See also:
  * - {@link stringFromBase64String}
+ * - `Schema.StringFromBase64Url` - a ready-made schema wrapping this transformation.
  *
  * @since 4.0.0
  */
@@ -1397,6 +1400,7 @@ export const stringFromBase64UrlString: Transformation<string, string> = new Tra
  *
  * See also:
  * - {@link stringFromBase64String}
+ * - `Schema.StringFromHex` - a ready-made schema wrapping this transformation.
  *
  * @since 4.0.0
  */
@@ -1430,6 +1434,7 @@ export const stringFromHexString: Transformation<string, string> = new Transform
  *
  * See also:
  * - {@link stringFromBase64String}
+ * - `Schema.StringFromUriComponent` - a ready-made schema wrapping this transformation.
  *
  * @since 4.0.0
  */

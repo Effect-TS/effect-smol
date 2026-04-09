@@ -4359,6 +4359,88 @@ Schema.decodeUnknownSync(schemaFromJsonString)(`{"a":1,"b":2}`)
 // => { a: 1 }
 ```
 
+## String Encoding Support
+
+Schema provides built-in schemas for common string encodings. Each one decodes an encoded string into a UTF-8 string (and encodes back). They can be composed with `fromJsonString` to decode structured data in a single pipeline.
+
+#### StringFromBase64
+
+Decodes a Base64-encoded (RFC 4648) string into a UTF-8 string.
+
+```ts
+import { Schema } from "effect"
+
+Schema.decodeUnknownSync(Schema.StringFromBase64)("aGVsbG8=")
+// => "hello"
+```
+
+Compose with `fromJsonString` to decode Base64-encoded JSON into a validated struct:
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Struct({ a: Schema.Number })
+
+// base64 string -> UTF-8 string -> parsed & validated struct
+const schemaFromBase64 = Schema.StringFromBase64.pipe(
+  Schema.decodeTo(Schema.fromJsonString(schema))
+)
+```
+
+#### StringFromBase64Url
+
+Like `StringFromBase64`, but uses the URL-safe Base64 alphabet (RFC 4648 section 5).
+
+```ts
+import { Schema } from "effect"
+
+Schema.decodeUnknownSync(Schema.StringFromBase64Url)("aGVsbG8")
+// => "hello"
+```
+
+#### StringFromHex
+
+Decodes a hex-encoded string into a UTF-8 string.
+
+```ts
+import { Schema } from "effect"
+
+Schema.decodeUnknownSync(Schema.StringFromHex)("68656c6c6f")
+// => "hello"
+```
+
+#### StringFromUriComponent
+
+Decodes a URI-component-encoded string into a UTF-8 string. Useful for storing structured data in URL query parameters.
+
+```ts
+import { Schema } from "effect"
+
+const PaginationSchema = Schema.Struct({
+  maxItemPerPage: Schema.Number,
+  page: Schema.Number
+})
+
+const UrlSchema = Schema.StringFromUriComponent.pipe(
+  Schema.decodeTo(Schema.fromJsonString(PaginationSchema))
+)
+
+console.log(Schema.encodeSync(UrlSchema)({ maxItemPerPage: 10, page: 1 }))
+// %7B%22maxItemPerPage%22%3A10%2C%22page%22%3A1%7D
+```
+
+#### Uint8Array variants
+
+For binary data, use the `Uint8Array` variants instead:
+
+- `Schema.Uint8ArrayFromBase64` - decodes Base64 into a `Uint8Array`.
+- `Schema.Uint8ArrayFromBase64Url` - decodes URL-safe Base64 into a `Uint8Array`.
+- `Schema.Uint8ArrayFromHex` - decodes hex into a `Uint8Array`.
+
+#### Low-level transformations
+
+The `SchemaTransformation` module exposes the underlying transformations (`stringFromBase64String`, `stringFromBase64UrlString`, `stringFromHexString`, `stringFromUriComponent`). Prefer the built-in `Schema.*` schemas above unless you need to build a custom pipeline.
+
 ## FormData Support
 
 `Schema.fromFormData` returns a schema that reads a `FormData` instance,
