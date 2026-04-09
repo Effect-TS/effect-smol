@@ -1,5 +1,34 @@
 # @effect/platform-browser
 
+## 4.0.0-beta.44
+
+### Patch Changes
+
+- [#1976](https://github.com/Effect-TS/effect-smol/pull/1976) [`7a35a83`](https://github.com/Effect-TS/effect-smol/commit/7a35a83382f9956b1cb92b6a47399adabd79cbf9) Thanks @tim-smart! - improve idb support for compound indexes
+
+- [#1993](https://github.com/Effect-TS/effect-smol/pull/1993) [`acc7fff`](https://github.com/Effect-TS/effect-smol/commit/acc7fffcaa82b34225f54d324090c2853f9b3547) Thanks @tim-smart! - improve idb transaction api
+
+- [#1964](https://github.com/Effect-TS/effect-smol/pull/1964) [`1ee4543`](https://github.com/Effect-TS/effect-smol/commit/1ee4543450895f58d2f3ba986dadea6962de4818) Thanks @tim-smart! - allow customizing idb durability
+
+- [#1937](https://github.com/Effect-TS/effect-smol/pull/1937) [`96cb778`](https://github.com/Effect-TS/effect-smol/commit/96cb77829d6677de788c4227cbee06fc4c707c9c) Thanks @tim-smart! - add .reactive to indexeddb .first queries
+
+- [#1953](https://github.com/Effect-TS/effect-smol/pull/1953) [`fbbdaec`](https://github.com/Effect-TS/effect-smol/commit/fbbdaec5ed020f7f94a030ede02c121011313037) Thanks @tim-smart! - add defaults to indexeddb reactivity keys
+
+- [#1977](https://github.com/Effect-TS/effect-smol/pull/1977) [`4f58e30`](https://github.com/Effect-TS/effect-smol/commit/4f58e309d16ded3cac3fb95185a61c06972e2e26) Thanks @tim-smart! - add idb stream and offset
+
+- [#1989](https://github.com/Effect-TS/effect-smol/pull/1989) [`3cc091d`](https://github.com/Effect-TS/effect-smol/commit/3cc091de7ecfa657b519b0ced316754bcbf53099) Thanks @tim-smart! - use encoded types for idb queries
+
+- [#1985](https://github.com/Effect-TS/effect-smol/pull/1985) [`f244e71`](https://github.com/Effect-TS/effect-smol/commit/f244e7141770bab8a00f34e48e6923d97ebbe405) Thanks @tim-smart! - add .reverse() to idb select
+
+- [#1992](https://github.com/Effect-TS/effect-smol/pull/1992) [`8c74d03`](https://github.com/Effect-TS/effect-smol/commit/8c74d0353fff9099075ba28bb50166a23f4062dc) Thanks @tim-smart! - Add rebuild api to idb databases
+
+- [#1961](https://github.com/Effect-TS/effect-smol/pull/1961) [`7bb5dce`](https://github.com/Effect-TS/effect-smol/commit/7bb5dce60e1d904ef049a0287dec2b2e6113c970) Thanks @IMax153! - Rename the `ServiceMap` module to `Context` across exports, docs, and tests.
+
+- [#1924](https://github.com/Effect-TS/effect-smol/pull/1924) [`716fe24`](https://github.com/Effect-TS/effect-smol/commit/716fe24886292aa6af2ad1f3fd7aa1b2f0a10c7f) Thanks @tim-smart! - allow Model.Class for indexeddb schemas
+
+- Updated dependencies [[`e3f0621`](https://github.com/Effect-TS/effect-smol/commit/e3f0621454c3f5d11070d30619da27c9232cadc1), [`5b476ab`](https://github.com/Effect-TS/effect-smol/commit/5b476abc0bd7e9bb59135ea1bcad2e4936227ced), [`6b40e5a`](https://github.com/Effect-TS/effect-smol/commit/6b40e5a4a6bd2087c15a3d7374d25057fdedfa16), [`7bb5dce`](https://github.com/Effect-TS/effect-smol/commit/7bb5dce60e1d904ef049a0287dec2b2e6113c970), [`3b09fb3`](https://github.com/Effect-TS/effect-smol/commit/3b09fb31c40c2802b01f21c23bcdd1fe7fb0aa82), [`2370410`](https://github.com/Effect-TS/effect-smol/commit/237041062e5af4594d32db91597e34e70a632877), [`dabc272`](https://github.com/Effect-TS/effect-smol/commit/dabc272444a700eb629c07ba3e77671a841ca86e), [`08b63c3`](https://github.com/Effect-TS/effect-smol/commit/08b63c3df11bd35c9fd6090dbd166287fdc40664), [`dfff04c`](https://github.com/Effect-TS/effect-smol/commit/dfff04c4c2b1d352dfad83992a6dce1280c85cf9), [`9baed9e`](https://github.com/Effect-TS/effect-smol/commit/9baed9e17e84702e6e480fcef6f86404f9e24be9), [`7846792`](https://github.com/Effect-TS/effect-smol/commit/7846792adc7e1631d62d26d657bd7ba6139f369b), [`1556a24`](https://github.com/Effect-TS/effect-smol/commit/1556a247623636b7ebe438fb56d77f1a7bf957bb), [`7c11bc2`](https://github.com/Effect-TS/effect-smol/commit/7c11bc292ab8e46252fe8f7576fb685917bfb8b5), [`b5ea591`](https://github.com/Effect-TS/effect-smol/commit/b5ea5913ec1d45d0dd12a327b9dd966bda2f6d02), [`0853afa`](https://github.com/Effect-TS/effect-smol/commit/0853afaeb1633b2d7f8b66893bd01c3aa1ef2c22), [`ac845f3`](https://github.com/Effect-TS/effect-smol/commit/ac845f3ab40e0b8719576e7f9bc16ea2e0e02cd4), [`b80c462`](https://github.com/Effect-TS/effect-smol/commit/b80c46247480f47bb64fc480fab48a3f37bc8888), [`b3f535d`](https://github.com/Effect-TS/effect-smol/commit/b3f535d9a7ac13b5fb984c29f93561c57a081ff0), [`6fe2e93`](https://github.com/Effect-TS/effect-smol/commit/6fe2e93cc2f1b173ef89651d74b6a5d2626b3226), [`cda8004`](https://github.com/Effect-TS/effect-smol/commit/cda800451c1ffbdddfc08415aed7b2d91e0412ee), [`8335477`](https://github.com/Effect-TS/effect-smol/commit/8335477a8a936a24b5f3ee6203c1b268bd1bfc3c), [`8c836f9`](https://github.com/Effect-TS/effect-smol/commit/8c836f99ab1e896b9580a71d67773625baff2eaf), [`718ff6f`](https://github.com/Effect-TS/effect-smol/commit/718ff6fe3e3d3820cefd67d2bff1b2224fe08060), [`7eed84f`](https://github.com/Effect-TS/effect-smol/commit/7eed84fc33c5781a6fb11bf4fd189d424902ebd4), [`5df46fe`](https://github.com/Effect-TS/effect-smol/commit/5df46fe2f654d59ab5fc1578f4fc27fa40368ef9), [`82dd0f2`](https://github.com/Effect-TS/effect-smol/commit/82dd0f26c6442b07143762ef7bc33742d3978dd6), [`03ae41e`](https://github.com/Effect-TS/effect-smol/commit/03ae41e7304cffac9f18feea22b73468feafc43a), [`4677a0a`](https://github.com/Effect-TS/effect-smol/commit/4677a0a58f95eea38a211efcd3f345f237a9e44a), [`87e1fc8`](https://github.com/Effect-TS/effect-smol/commit/87e1fc8b67e4901d75f567b2fecc3841ab762cc4), [`c1af1b7`](https://github.com/Effect-TS/effect-smol/commit/c1af1b756f63291e9c0298cf95c98a6920a0c2a0), [`7bb5dce`](https://github.com/Effect-TS/effect-smol/commit/7bb5dce60e1d904ef049a0287dec2b2e6113c970), [`c8a877b`](https://github.com/Effect-TS/effect-smol/commit/c8a877b53e8f29616335719e5dd1c3992dddf780), [`7da961a`](https://github.com/Effect-TS/effect-smol/commit/7da961ae4916229d2246699a5d3b20e5b2dd2020)]:
+  - effect@4.0.0-beta.44
+
 ## 4.0.0-beta.43
 
 ### Patch Changes
