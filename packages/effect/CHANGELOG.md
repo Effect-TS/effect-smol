@@ -1,5 +1,11 @@
 # effect
 
+## 4.0.0-beta.46
+
+### Patch Changes
+
+- [#2008](https://github.com/Effect-TS/effect-smol/pull/2008) [`3a30b9e`](https://github.com/Effect-TS/effect-smol/commit/3a30b9e2ec2bd8b8193e1aa139f6878a07e3f5ee) Thanks @tim-smart! - fix eventlog skipping entries
+
 ## 4.0.0-beta.45
 
 ### Patch Changes
