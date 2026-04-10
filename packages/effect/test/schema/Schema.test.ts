@@ -3761,7 +3761,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed(["1", "a", true, true, "b"], [1, "a", true, true, "b"])
       await decoding.fail(
         ["1", "a"],
-        `Expected string, got undefined
+        `Missing key
   at [2]`
       )
       await decoding.fail(
@@ -3798,12 +3798,12 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed(["1", "a", true, true, "b", "2"], [1, "a", true, true, "b", 2])
       await decoding.fail(
         ["1", "a"],
-        `Expected string, got undefined
+        `Missing key
   at [2]`
       )
       await decoding.fail(
         ["1", "a", "b"],
-        `Expected string, got undefined
+        `Missing key
   at [3]`
       )
       await decoding.fail(
