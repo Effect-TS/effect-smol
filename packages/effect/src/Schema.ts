@@ -4270,7 +4270,8 @@ export function withConstructorDefault<S extends Top & WithoutConstructorDefault
 }
 
 /**
- * The type produced by {@link withDecodingDefaultKey} — a schema that decodes from an `optionalKey` encoded source.
+ * The type produced by {@link withDecodingDefaultKey}: a schema whose `Encoded`
+ * side is `optionalKey` and that fills in a default `Encoded` value during decoding.
  *
  * @see {@link withDecodingDefaultKey} for the constructor
  * @since 4.0.0
@@ -4293,18 +4294,18 @@ export type DecodingDefaultOptions = {
 }
 
 /**
+ * Makes a struct key optional on the `Encoded` side and provides a default
+ * `Encoded` value when the key is missing during decoding.
+ *
+ * The key uses `optionalKey` on the encoded side, so it may be absent from the
+ * input object but **not** `undefined`. The default value is specified in terms
+ * of the `Encoded` type (before any decoding transformations).
+ *
  * **Options**
  *
- * - `encodingStrategy`: The strategy to use when encoding.
- *   - `passthrough`: (default) Pass the default value through to the output.
- *   - `omit`: Omit the value from the output.
- *
- * Provides a default value for a missing key during decoding.
- *
- * When the key is absent from the input, `defaultValue()` is called to supply a value.
- * During encoding, the behavior is controlled by `options.encodingStrategy`:
- * - `"passthrough"` (default): include the value in the output
- * - `"omit"`: omit the key from the output
+ * - `encodingStrategy`:
+ *   - `"passthrough"` (default): include the value in the encoded output.
+ *   - `"omit"`: omit the key from the encoded output.
  *
  * **Example** (Default for a missing struct key)
  *
@@ -4319,7 +4320,8 @@ export type DecodingDefaultOptions = {
  * // result: { name: "anonymous" }
  * ```
  *
- * @see {@link withDecodingDefault} for the `optional` (value-level) variant
+ * @see {@link withDecodingDefault} for the value-level variant (key absent **or** `undefined`)
+ * @see {@link withDecodingDefaultTypeKey} for the variant where the default is a `Type` value
  * @since 4.0.0
  */
 export function withDecodingDefaultKey<S extends Top>(
@@ -4336,7 +4338,53 @@ export function withDecodingDefaultKey<S extends Top>(
 }
 
 /**
- * The type produced by {@link withDecodingDefault} — a schema that decodes from an `optional` encoded source.
+ * The type produced by {@link withDecodingDefaultTypeKey}: a schema whose
+ * `Encoded` side is `optionalKey` and that fills in a default `Type` value
+ * during decoding.
+ *
+ * @see {@link withDecodingDefaultTypeKey} for the constructor
+ * @since 4.0.0
+ */
+export interface withDecodingDefaultTypeKey<S extends Top>
+  extends decodeTo<withDecodingDefaultKey<toType<S>>, optionalKey<S>>
+{
+  readonly "~rebuild.out": withDecodingDefaultTypeKey<S>
+}
+
+/**
+ * Makes a struct key optional on the `Encoded` side (`optionalKey`, so the
+ * key may be absent but **not** `undefined`) and provides a default `Type`
+ * value when the key is missing during decoding.
+ *
+ * Unlike {@link withDecodingDefaultKey}, the default value is specified in
+ * terms of the `Type` (decoded) representation, so it does not need to go
+ * through the decoding transformation.
+ *
+ * **Options**
+ *
+ * - `encodingStrategy`:
+ *   - `"passthrough"` (default): include the value in the encoded output.
+ *   - `"omit"`: omit the key from the encoded output.
+ *
+ * @see {@link withDecodingDefaultKey} for the variant where the default is an `Encoded` value
+ * @see {@link withDecodingDefaultType} for the value-level variant
+ * @since 4.0.0
+ */
+export function withDecodingDefaultTypeKey<S extends Top>(
+  defaultValue: Effect.Effect<S["Type"]>,
+  options?: DecodingDefaultOptions
+) {
+  return (self: S): withDecodingDefaultTypeKey<S> => {
+    return toType(self).pipe(
+      withDecodingDefaultKey<toType<S>>(defaultValue, options),
+      encodeTo(optionalKey(self))
+    )
+  }
+}
+
+/**
+ * The type produced by {@link withDecodingDefault}: a schema whose `Encoded`
+ * side is `optional` and that fills in a default `Encoded` value during decoding.
  *
  * @see {@link withDecodingDefault} for the constructor
  * @since 4.0.0
@@ -4346,21 +4394,18 @@ export interface withDecodingDefault<S extends Top> extends decodeTo<S, optional
 }
 
 /**
+ * Wraps the `Encoded` side with `optional` (key absent **or** `undefined`)
+ * and provides a default `Encoded` value when the field is missing or
+ * `undefined` during decoding.
+ *
+ * The default value is specified in terms of the `Encoded` type (before any
+ * decoding transformations).
+ *
  * **Options**
  *
- * - `encodingStrategy`: The strategy to use when encoding.
- *   - `passthrough`: (default) Pass the default value through to the output.
- *   - `omit`: Omit the value from the output.
- *
- * Provides a default value for an `optional` field during decoding.
- *
- * Similar to {@link withDecodingDefaultKey} but works on `optional` (value-level optional)
- * rather than `optionalKey` (key-level optional).
- *
- * When the value is `undefined` or absent, `defaultValue()` is called to supply a value.
- * During encoding, the behavior is controlled by `options.encodingStrategy`:
- * - `"passthrough"` (default): include the value in the output
- * - `"omit"`: omit the value from the output
+ * - `encodingStrategy`:
+ *   - `"passthrough"` (default): include the value in the encoded output.
+ *   - `"omit"`: omit the key from the encoded output.
  *
  * **Example** (Default for an optional field value)
  *
@@ -4375,7 +4420,8 @@ export interface withDecodingDefault<S extends Top> extends decodeTo<S, optional
  * // result: { name: "anonymous" }
  * ```
  *
- * @see {@link withDecodingDefaultKey} for the key-level variant
+ * @see {@link withDecodingDefaultKey} for the key-level variant (key absent only, not `undefined`)
+ * @see {@link withDecodingDefaultType} for the variant where the default is a `Type` value
  * @since 4.0.0
  */
 export function withDecodingDefault<S extends Top>(
@@ -4388,6 +4434,49 @@ export function withDecodingDefault<S extends Top>(
       decode: Getter.withDefault(defaultValue),
       encode
     }))
+  }
+}
+
+/**
+ * The type produced by {@link withDecodingDefaultType}: a schema whose
+ * `Encoded` side is `optional` and that fills in a default `Type` value during
+ * decoding.
+ *
+ * @see {@link withDecodingDefaultType} for the constructor
+ * @since 4.0.0
+ */
+export interface withDecodingDefaultType<S extends Top> extends decodeTo<withDecodingDefault<toType<S>>, optional<S>> {
+  readonly "~rebuild.out": withDecodingDefaultType<S>
+}
+
+/**
+ * Wraps the `Encoded` side with `optional` (key absent **or** `undefined`)
+ * and provides a default `Type` value when the field is missing or
+ * `undefined` during decoding.
+ *
+ * Unlike {@link withDecodingDefault}, the default value is specified in terms
+ * of the `Type` (decoded) representation, so it does not need to go through
+ * the decoding transformation.
+ *
+ * **Options**
+ *
+ * - `encodingStrategy`:
+ *   - `"passthrough"` (default): include the value in the encoded output.
+ *   - `"omit"`: omit the key from the encoded output.
+ *
+ * @see {@link withDecodingDefault} for the variant where the default is an `Encoded` value
+ * @see {@link withDecodingDefaultTypeKey} for the key-level variant
+ * @since 4.0.0
+ */
+export function withDecodingDefaultType<S extends Top>(
+  defaultValue: Effect.Effect<S["Type"]>,
+  options?: DecodingDefaultOptions
+) {
+  return (self: S): withDecodingDefaultType<S> => {
+    return toType(self).pipe(
+      withDecodingDefault<toType<S>>(defaultValue, options),
+      encodeTo(optional(self))
+    )
   }
 }
 

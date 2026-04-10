@@ -427,8 +427,8 @@ const schema = Schema.Struct({
 | v3 options                                 | v4 pattern                                                              |
 | ------------------------------------------ | ----------------------------------------------------------------------- |
 | `{ exact: true }`                          | `optionalKey(schema)`                                                   |
-| `{ default }`                              | `schema.pipe(withDecodingDefault(...))`                                 |
-| `{ exact: true, default }`                 | `schema.pipe(withDecodingDefaultKey(...))`                              |
+| `{ default }`                              | `schema.pipe(withDecodingDefaultType(...))`                             |
+| `{ exact: true, default }`                 | `schema.pipe(withDecodingDefaultTypeKey(...))`                          |
 | `{ nullable: true }`                       | `optional(NullOr(schema))` + `decodeTo` + filter null                   |
 | `{ nullable: true, exact: true }`          | `optionalKey(NullOr(schema))` + `decodeTo` + filter null                |
 | `{ nullable: true, default }`              | `optional(NullOr(schema))` + `decodeTo` + filter null + `orElseSome`    |
@@ -438,7 +438,7 @@ Key rules:
 
 - `exact: true` → use `optionalKey` instead of `optional`
 - `nullable: true` → wrap inner schema in `NullOr` and filter nulls via `Option.filter(Predicate.isNotNull)`
-- `default` → use `withDecodingDefault` (or `withDecodingDefaultKey` with `exact: true`)
+- `default` → use `withDecodingDefaultType` (or `withDecodingDefaultTypeKey` with `exact: true`)
 
 #### Example: `{ exact: true }` (simplest case)
 
@@ -480,7 +480,7 @@ v4
 import { Effect, Schema } from "effect"
 
 const schema = Schema.Struct({
-  a: Schema.String.pipe(Schema.withDecodingDefault(Effect.succeed("")))
+  a: Schema.String.pipe(Schema.withDecodingDefaultType(Effect.succeed("")))
 })
 ```
 
@@ -502,7 +502,7 @@ v4
 import { Effect, Schema } from "effect"
 
 const schema = Schema.Struct({
-  a: Schema.String.pipe(Schema.withDecodingDefaultKey(Effect.succeed("")))
+  a: Schema.String.pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed("")))
 })
 ```
 

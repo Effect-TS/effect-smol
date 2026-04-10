@@ -1590,6 +1590,26 @@ describe("Schema", () => {
     >()
   })
 
+  it("withDecodingDefaultTypeKey", () => {
+    const schema = Schema.Struct({
+      a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(1)))
+    })
+
+    expect(Schema.revealCodec(schema)).type.toBe<
+      Schema.Codec<{ readonly a: number }, { readonly a?: string }, never, never>
+    >()
+  })
+
+  it("withDecodingDefaultType", () => {
+    const schema = Schema.Struct({
+      a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultType(Effect.succeed(1)))
+    })
+
+    expect(Schema.revealCodec(schema)).type.toBe<
+      Schema.Codec<{ readonly a: number }, { readonly a?: string | undefined }, never, never>
+    >()
+  })
+
   it("asStandardSchemaV1 should not be callable with a schema with DecodingServices", () => {
     class MagicNumber extends Context.Service<MagicNumber, number>()("MagicNumber") {}
     const DepString = Schema.Number.pipe(Schema.decode({

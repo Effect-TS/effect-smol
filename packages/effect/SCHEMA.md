@@ -448,21 +448,75 @@ type Type = typeof schema.Type
 
 You can assign default values to fields during decoding using:
 
-- `Schema.withDecodingDefaultKey`: for optional fields
-- `Schema.withDecodingDefault`: for optional or undefined fields
+| API                                 | Encoded side              | Default value type |
+| ----------------------------------- | ------------------------- | ------------------ |
+| `Schema.withDecodingDefaultKey`     | key absent                | `Encoded`          |
+| `Schema.withDecodingDefault`        | key absent or `undefined` | `Encoded`          |
+| `Schema.withDecodingDefaultTypeKey` | key absent                | `Type`             |
+| `Schema.withDecodingDefaultType`    | key absent or `undefined` | `Type`             |
 
-In both cases, the provided value must be of the **encoded** type, and it is used when:
+The "Key" variants use `optionalKey` (the key may be absent but not `undefined`), while the non-"Key" variants use `optional` (the key may be absent **or** `undefined`).
 
-1. the field is missing, or
-2. the field is explicitly `undefined`
+The "Type" variants accept a default specified as a `Type` (decoded) value, which is useful when the schema has a transformation and you want to provide the default in the decoded representation.
 
-**Example** (Providing a default for a missing or undefined value)
+#### Encoded-Side Defaults
+
+`withDecodingDefaultKey` and `withDecodingDefault` accept a default specified as an
+**`Encoded` value** (before any decoding transformation). This is the most common
+case and works well when the Encoded and Type representations are the same, or
+when you already have the value in encoded form.
+
+**Example** (Default as an Encoded value)
+
+In `FiniteFromString`, the `Encoded` type is `string` and the `Type` is `number`.
+The default `"1"` is a **string** (the Encoded type), which is then decoded to `1`.
 
 ```ts
 import { Effect, Schema } from "effect"
 
 const schema = Schema.Struct({
+  //                                          ┌─── "1" is a string (Encoded type)
+  //                                          ▼
   a: Schema.FiniteFromString.pipe(Schema.withDecodingDefault(Effect.succeed("1")))
+})
+
+//     ┌─── { readonly a?: string | undefined; }
+//     ▼
+type Encoded = typeof schema.Encoded
+
+//     ┌─── { readonly a: number; }
+//     ▼
+type Type = typeof schema.Type
+
+console.log(Schema.decodeUnknownSync(schema)({}))
+// Output: { a: 1 }
+
+console.log(Schema.decodeUnknownSync(schema)({ a: undefined }))
+// Output: { a: 1 }
+
+console.log(Schema.decodeUnknownSync(schema)({ a: "2" }))
+// Output: { a: 2 }
+```
+
+#### Type-Side Defaults
+
+`withDecodingDefaultTypeKey` and `withDecodingDefaultType` accept a default
+specified as a **`Type` value** (the decoded representation). This is useful when
+the schema has a transformation and you want to provide the default directly as a
+decoded value, bypassing the decoding step.
+
+**Example** (Default as a Type value)
+
+Here the default `1` is a **number** (the Type), not a string. It does not go
+through the `FiniteFromString` decoding transformation.
+
+```ts
+import { Effect, Schema } from "effect"
+
+const schema = Schema.Struct({
+  //                                              ┌─── 1 is a number (Type)
+  //                                              ▼
+  a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultType(Effect.succeed(1)))
 })
 
 //     ┌─── { readonly a?: string | undefined; }

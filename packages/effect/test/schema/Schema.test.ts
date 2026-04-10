@@ -7554,6 +7554,126 @@ error message 2`
     })
   })
 
+  describe("withDecodingDefaultTypeKey", () => {
+    it("should return a decoding default value if the key is missing", async () => {
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(1)))
+      })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({}, { a: 1 })
+      await decoding.succeed({ a: "2" }, { a: 2 })
+      await decoding.fail(
+        { a: undefined },
+        `Expected string, got undefined
+  at ["a"]`
+      )
+    })
+
+    it("by default should pass through the value", async () => {
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(1)))
+      })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const encoding = asserts.encoding()
+      await encoding.succeed({ a: 1 }, { a: "1" })
+    })
+
+    it("should omit the value if the encoding strategy is set to omit", async () => {
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(
+          Schema.withDecodingDefaultTypeKey(Effect.succeed(1), { encodingStrategy: "omit" })
+        )
+      })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const encoding = asserts.encoding()
+      await encoding.succeed({ a: 1 }, {})
+    })
+
+    it("nested default values", async () => {
+      const schema = Schema.Struct({
+        a: Schema.Struct({
+          b: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(1)))
+        }).pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed({ b: 1 })))
+      })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({}, { a: { b: 1 } })
+      await decoding.succeed({ a: {} }, { a: { b: 1 } })
+      await decoding.succeed({ a: { b: "2" } }, { a: { b: 2 } })
+      await decoding.fail(
+        { a: { b: undefined } },
+        `Expected string, got undefined
+  at ["a"]["b"]`
+      )
+    })
+  })
+
+  describe("withDecodingDefaultType", () => {
+    it("should return a decoding default value if the key is missing", async () => {
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultType(Effect.succeed(1)))
+      })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({}, { a: 1 })
+      await decoding.succeed({ a: undefined }, { a: 1 })
+      await decoding.succeed({ a: "2" }, { a: 2 })
+    })
+
+    it("should return a decoding default value if the schema is used as standalone and the input is undefined", async () => {
+      const schema = Schema.String.pipe(Schema.withDecodingDefaultType(Effect.succeed("a")))
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed(undefined, "a")
+      await decoding.succeed("b", "b")
+    })
+
+    it("by default should pass through the value", async () => {
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultType(Effect.succeed(1)))
+      })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const encoding = asserts.encoding()
+      await encoding.succeed({ a: 1 }, { a: "1" })
+    })
+
+    it("should omit the value if the encoding strategy is set to omit", async () => {
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(
+          Schema.withDecodingDefaultType(Effect.succeed(1), { encodingStrategy: "omit" })
+        )
+      })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const encoding = asserts.encoding()
+      await encoding.succeed({ a: 1 }, {})
+    })
+
+    it("nested default values", async () => {
+      const schema = Schema.Struct({
+        a: Schema.Struct({
+          b: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultType(Effect.succeed(1)))
+        }).pipe(Schema.withDecodingDefaultType(Effect.succeed({ b: 1 })))
+      })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({}, { a: { b: 1 } })
+      await decoding.succeed({ a: {} }, { a: { b: 1 } })
+      await decoding.succeed({ a: undefined }, { a: { b: 1 } })
+      await decoding.succeed({ a: { b: undefined } }, { a: { b: 1 } })
+      await decoding.succeed({ a: { b: "2" } }, { a: { b: 2 } })
+    })
+  })
+
   it("NonEmptyString", async () => {
     const schema = Schema.NonEmptyString
     const asserts = new TestSchema.Asserts(schema)
