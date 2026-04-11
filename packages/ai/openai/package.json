@@ -1,6 +1,6 @@
 {
   "name": "@effect/ai-openai",
-  "version": "4.0.0-beta.46",
+  "version": "4.0.0-beta.47",
   "type": "module",
   "license": "MIT",
   "description": "An OpenAI provider integration for Effect AI SDK",

@@ -1,6 +1,6 @@
 {
   "name": "@effect/sql-clickhouse",
-  "version": "4.0.0-beta.46",
+  "version": "4.0.0-beta.47",
   "type": "module",
   "license": "MIT",
   "description": "A Clickhouse toolkit for Effect",
