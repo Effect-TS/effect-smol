@@ -8,15 +8,6 @@ This is the Effect library repository, focusing on functional programming patter
   - If type checking continues to fail, run `pnpm clean` to clear caches, then re-run `pnpm check:tsgo`
 - Check JSDoc examples compile: when changes are localized to a single package, `cd` into that package directory and run `pnpm docgen` within it instead of running it at the root
 
-## Type-Level Tests
-
-Type-level tests are located in the `packages/*/typetest` directories of each package.
-
-You can run them with `pnpm test-types`.
-
-Take a look at the existing `.tst.ts` files for examples of how to write type
-level tests. They use the `tstyche` testing library.
-
 ## Code Style Guidelines
 
 You **MUST** look at the `./.patterns/` directory as well as existing code in
