@@ -225,9 +225,7 @@ export type MultipartStreamTypeId = typeof MultipartStreamTypeId
 /**
  * @since 4.0.0
  */
-export interface asMultipartStream<S extends Schema.Top>
-  extends Schema.brand<S["Rebuild"], MultipartStreamTypeId>
-{}
+export interface asMultipartStream<S extends Schema.Top> extends Schema.brand<S["Rebuild"], MultipartStreamTypeId> {}
 
 /**
  * Marks a schema as a multipart stream payload.
