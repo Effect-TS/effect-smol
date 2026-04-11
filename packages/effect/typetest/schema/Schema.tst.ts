@@ -455,6 +455,33 @@ describe("Schema", () => {
     })
   })
 
+  describe("annotateEncoded", () => {
+    it("non-transforming schema should return Rebuild", () => {
+      const schema = Schema.String.pipe(
+        Schema.annotateEncoded({ title: "encoded" })
+      )
+      expect(schema).type.toBe<Schema.String>()
+    })
+
+    it("transforming schema should return Rebuild", () => {
+      const schema = Schema.NumberFromString.pipe(
+        Schema.annotateEncoded({ title: "encoded" })
+      )
+      expect(schema).type.toBe<Schema.NumberFromString>()
+    })
+
+    it("should constrain annotations to the Encoded type", () => {
+      // NumberFromString has Encoded = string, so string annotations are valid
+      expect(Schema.annotateEncoded<Schema.NumberFromString>).type.toBeCallableWith(
+        { examples: ["a"] }
+      )
+      // number annotations should not be valid for a string-encoded schema
+      expect(Schema.annotateEncoded<Schema.NumberFromString>).type.not.toBeCallableWith(
+        { examples: [1] }
+      )
+    })
+  })
+
   it("annotateKey", () => {
     expect(Schema.String.annotateKey).type.toBeCallableWith(
       { examples: ["a"] }

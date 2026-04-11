@@ -5154,7 +5154,7 @@ console.log(JSON.stringify(document, null, 2))
 
 When a schema includes a transformation (e.g. `Schema.Trim`), the generated JSON Schema corresponds to the encoded side. Calling `.annotate(...)` on a transformation annotates the decoded side, so the annotations won't appear in the JSON Schema output.
 
-To annotate the encoded side, use `Schema.flip` twice: flip to expose the encoded side, annotate it, then flip back.
+To annotate the encoded side, use `Schema.annotateEncoded`.
 
 **Example** (Annotating the encoded side of `Trim`)
 
@@ -5162,12 +5162,10 @@ To annotate the encoded side, use `Schema.flip` twice: flip to expose the encode
 import { Schema } from "effect"
 
 const schema = Schema.Trim.pipe(
-  Schema.flip,
-  Schema.annotate({
+  Schema.annotateEncoded({
     description: "my description",
     title: "my title"
-  }),
-  Schema.flip
+  })
 )
 
 console.log(JSON.stringify(Schema.toJsonSchemaDocument(schema), null, 2))

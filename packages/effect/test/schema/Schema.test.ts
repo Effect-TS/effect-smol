@@ -6776,6 +6776,22 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
   })
 
+  describe("annotateEncoded", () => {
+    it("non-transforming schema", () => {
+      const schema = Schema.String.pipe(
+        Schema.annotateEncoded({ title: "encoded title" })
+      )
+      strictEqual(SchemaAST.toEncoded(schema.ast).annotations?.title, "encoded title")
+    })
+
+    it("transforming schema", () => {
+      const schema = Schema.NumberFromString.pipe(
+        Schema.annotateEncoded({ title: "encoded title" })
+      )
+      strictEqual(SchemaAST.toEncoded(schema.ast).annotations?.title, "encoded title")
+    })
+  })
+
   describe("Struct.mapFields", () => {
     it("evolve", () => {
       const schema = Schema.Struct({
