@@ -2400,9 +2400,9 @@ export class Union<A extends AST = AST> extends Base {
       }
     )
 
-    return Effect.fnUntracedEager(function*(oinput, options) {
+    return (oinput, options) => {
       if (oinput._tag === "None") {
-        return oinput
+        return Effect.succeed(oinput)
       }
       const input = oinput.value
       const candidates = getCandidates(input, ast.types)
@@ -2416,14 +2416,13 @@ export class Union<A extends AST = AST> extends Base {
         options
       }
       const eff = parseCandidates(state, candidates)
-      if (eff) yield* eff
-
-      if (state.out) {
-        return state.out
-      } else {
-        return yield* Effect.fail(new Issue.AnyOf(ast, input, state.issues ?? []))
+      if (!eff) {
+        return state.out ? Effect.succeed(state.out) : Effect.fail(new Issue.AnyOf(ast, input, state.issues ?? []))
       }
-    })
+      return Effect.flatMap(eff, (_) => {
+        return state.out ? Effect.succeed(state.out) : Effect.fail(new Issue.AnyOf(ast, input, state.issues ?? []))
+      })
+    }
   }
   /** @internal */
   recur(recur: (ast: AST) => AST) {
