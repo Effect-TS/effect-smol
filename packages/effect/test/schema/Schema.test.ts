@@ -5509,6 +5509,13 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   })
 
   describe("Class", () => {
+    it("make with void input", () => {
+      class A extends Schema.Class<A>("A")({}) {}
+      deepStrictEqual(A.make(), new A())
+      deepStrictEqual(A.makeOption(), Option.some(new A()))
+      deepStrictEqual(Effect.runSync(A.makeEffect()), new A())
+    })
+
     it("suspend before initialization", async () => {
       const schema = Schema.suspend(() => string)
       class A extends Schema.Class<A>("A")(Schema.Struct({ a: schema })) {}
@@ -5807,6 +5814,13 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   })
 
   describe("TaggedClass", () => {
+    it("make with void input", () => {
+      class A extends Schema.TaggedClass<A>()("A", {}) {}
+      deepStrictEqual(A.make(), new A())
+      deepStrictEqual(A.makeOption(), Option.some(new A()))
+      deepStrictEqual(Effect.runSync(A.makeEffect()), new A())
+    })
+
     it("explicit identifier", async () => {
       class A extends Schema.TaggedClass<A>("B")("A", {
         a: Schema.String
@@ -5866,6 +5880,13 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   })
 
   describe("ErrorClass", () => {
+    it("make with void input", () => {
+      class E extends Schema.ErrorClass<E>("E")({}) {}
+      deepStrictEqual(E.make(), new E())
+      deepStrictEqual(E.makeOption(), Option.some(new E()))
+      deepStrictEqual(Effect.runSync(E.makeEffect()), new E())
+    })
+
     it("fields argument", async () => {
       class E extends Schema.ErrorClass<E>("E")({
         id: Schema.Number
@@ -5950,6 +5971,13 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   })
 
   describe("TaggedErrorClass", () => {
+    it("make with void input", () => {
+      class E extends Schema.TaggedErrorClass<E>()("E", {}) {}
+      deepStrictEqual(E.make(), new E())
+      deepStrictEqual(E.makeOption(), Option.some(new E()))
+      deepStrictEqual(Effect.runSync(E.makeEffect()), new E())
+    })
+
     it("fields argument", async () => {
       class E extends Schema.TaggedErrorClass<E>()("E", {
         id: Schema.Number

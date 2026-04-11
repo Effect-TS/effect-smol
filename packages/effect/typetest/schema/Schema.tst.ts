@@ -306,17 +306,43 @@ describe("Schema", () => {
     })
 
     describe("Class", () => {
+      it("make with void input", () => {
+        class A extends Schema.Class<A>("A")({}) {}
+        expect(A.make).type.toBe<Make<void | {}, A>>()
+      })
+
       it("nested defaulted fields", () => {
         class A extends Schema.Class<A, { readonly brand: unique symbol }>("A")(Schema.Struct({
           a: Schema.Struct({
             b: Schema.Finite.pipe(Schema.withConstructorDefault(Effect.succeed(-1)))
           }).pipe(Schema.withConstructorDefault(Effect.succeed({})))
         })) {}
-        expect(A.make).type.toBe<Make<{ readonly a?: { readonly b?: number } }, A>>()
+        expect(A.make).type.toBe<Make<void | { readonly a?: { readonly b?: number } }, A>>()
         const schema = Schema.Struct({
           a: A
         })
         expect(schema.make).type.toBe<Make<{ readonly a: A }, { readonly a: A }>>()
+      })
+    })
+
+    describe("TaggedClass", () => {
+      it("make with void input", () => {
+        class A extends Schema.TaggedClass<A>()("A", {}) {}
+        expect(A.make).type.toBe<Make<void | { readonly _tag?: "A" }, A>>()
+      })
+    })
+
+    describe("ErrorClass", () => {
+      it("make with void input", () => {
+        class E extends Schema.ErrorClass<E>("E")({}) {}
+        expect(E.make).type.toBe<Make<void | {}, E>>()
+      })
+    })
+
+    describe("TaggedErrorClass", () => {
+      it("make with void input", () => {
+        class E extends Schema.TaggedErrorClass<E>()("E", {}) {}
+        expect(E.make).type.toBe<Make<void | { readonly _tag?: "E" }, E>>()
       })
     })
 

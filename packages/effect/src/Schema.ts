@@ -135,7 +135,7 @@ import * as Transformation from "./SchemaTransformation.ts"
 import type { Assign, Lambda, Mutable, Simplify } from "./Struct.ts"
 import * as Struct_ from "./Struct.ts"
 import * as FastCheck from "./testing/FastCheck.ts"
-import type { UnionToIntersection } from "./Types.ts"
+import type { RequiredKeys, UnionToIntersection } from "./Types.ts"
 import type { Unify } from "./Unify.ts"
 
 const TypeId = InternalSchema.TypeId
@@ -10299,7 +10299,7 @@ export interface Class<Self, S extends Top & { readonly fields: Struct.Fields },
     S["EncodingServices"],
     AST.Declaration,
     decodeTo<declareConstructor<Self, S["Encoded"], readonly [S], S["Iso"]>, S>,
-    S["~type.make.in"],
+    RequiredKeys<S["~type.make.in"]> extends never ? void | S["~type.make.in"] : S["~type.make.in"],
     S["Iso"],
     readonly [S],
     Self,
@@ -10316,6 +10316,7 @@ export interface Class<Self, S extends Top & { readonly fields: Struct.Fields },
   ): S["Type"] & Inherited
   readonly identifier: string
   readonly fields: S["fields"]
+
   /**
    * Returns a new struct with the fields modified by the provided function.
    *
@@ -10370,9 +10371,9 @@ function makeClass<
 
   const out = class extends Inherited {
     constructor(...[input, options]: ReadonlyArray<any>) {
-      const props = input ?? {}
-      const validated = struct.make(props, options)
-      super({ ...props, ...validated }, { ...options, disableChecks: true })
+      input = input ?? {}
+      const validated = struct.make(input, options)
+      super({ ...input, ...validated }, { ...options, disableChecks: true })
     }
 
     static readonly [TypeId] = TypeId
@@ -10382,24 +10383,6 @@ function makeClass<
     }
 
     static readonly [immerable] = true
-
-    declare static readonly "Rebuild": decodeTo<declareConstructor<Self, S["Encoded"], readonly [S], S["Iso"]>, S>
-    declare static readonly "~type.parameters": readonly [S]
-
-    declare static readonly "Type": Self
-    declare static readonly "Encoded": S["Encoded"]
-    declare static readonly "DecodingServices": S["DecodingServices"]
-    declare static readonly "EncodingServices": S["EncodingServices"]
-
-    declare static readonly "~type.make.in": S["~type.make.in"]
-    declare static readonly "~type.make": Self
-    declare static readonly "~type.constructor.default": S["~type.constructor.default"]
-    declare static readonly "Iso": S["Iso"]
-
-    declare static readonly "~type.mutability": S["~type.mutability"]
-    declare static readonly "~type.optionality": S["~type.optionality"]
-    declare static readonly "~encoded.mutability": S["~encoded.mutability"]
-    declare static readonly "~encoded.optionality": S["~encoded.optionality"]
 
     static readonly identifier = identifier
     static readonly fields = struct.fields
@@ -10416,14 +10399,14 @@ function makeClass<
     static make(input: S["~type.make.in"], options?: MakeOptions): Self {
       return new this(input, options)
     }
+    static makeOption(input: S["~type.make.in"], options?: MakeOptions): Option_.Option<Self> {
+      return Parser.makeOption(getClassSchema(this) as any)(input ?? {}, options) as any
+    }
     static makeEffect(input: S["~type.make.in"], options?: MakeOptions): Effect.Effect<Self, SchemaError> {
       return Effect.mapErrorEager(
-        Parser.makeEffect(getClassSchema(this) as any)(input, options),
+        Parser.makeEffect(getClassSchema(this) as any)(input ?? {}, options),
         (issue) => new SchemaError(issue)
       ) as any
-    }
-    static makeOption(input: S["~type.make.in"], options?: MakeOptions): Option_.Option<Self> {
-      return Parser.makeOption(getClassSchema(this) as any)(input, options) as any
     }
     static annotate(annotations: Annotations.Declaration<Self, readonly [S]>) {
       return this.rebuild(AST.annotate(this.ast, annotations))
@@ -10656,17 +10639,6 @@ export const TaggedClass: {
     )
   }
 }
-
-/**
- * Interface for schema-backed error classes created with {@link ErrorClass}.
- * Extends {@link Class} and is also a `YieldableError`, so instances
- * can be yielded inside `Effect.gen` as failures.
- *
- * @since 4.0.0
- */
-export interface ErrorClass<Self, S extends Top & { readonly fields: Struct.Fields }, Inherited>
-  extends Class<Self, S, Inherited>
-{}
 
 /**
  * Creates a schema-backed error class that can be used as a typed,
