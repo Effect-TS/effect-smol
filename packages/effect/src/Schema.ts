@@ -2299,10 +2299,10 @@ export declare namespace Struct {
     O extends keyof F = TypeOptionalKeys<F>,
     M extends keyof F = TypeMutableKeys<F>
   > =
-    & { readonly [K in Exclude<keyof F, M | O>]: F[K]["Type"] }
-    & { readonly [K in Exclude<O, M>]?: F[K]["Type"] }
-    & { [K in Exclude<M, O>]: F[K]["Type"] }
-    & { [K in M & O]?: F[K]["Type"] }
+    & { readonly [K in keyof Pick<F, Exclude<keyof F, M | O>>]: F[K]["Type"] }
+    & { readonly [K in keyof Pick<F, Exclude<O, M>>]?: F[K]["Type"] }
+    & { [K in keyof Pick<F, Exclude<M, O>>]: F[K]["Type"] }
+    & { [K in keyof Pick<F, M & O>]?: F[K]["Type"] }
 
   /**
    * @since 4.0.0
