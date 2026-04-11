@@ -2106,7 +2106,7 @@ export interface Param<Name extends string, S extends Schema.Top> extends
     S["~encoded.optionality"]
   >
 {
-  readonly "~rebuild.out": this
+  readonly "Rebuild": Param<Name, S>
   readonly [ParamSchemaTypeId]: typeof ParamSchemaTypeId
   readonly name: Name
   readonly schema: S

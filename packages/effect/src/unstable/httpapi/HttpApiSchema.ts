@@ -87,7 +87,7 @@ export type ResponseEncoding = {
  * @since 4.0.0
  */
 export function status(code: number) {
-  return <S extends Schema.Top>(self: S): S["~rebuild.out"] => {
+  return <S extends Schema.Top>(self: S): S["Rebuild"] => {
     return self.annotate({ httpApiStatus: code })
   }
 }
@@ -190,7 +190,7 @@ export type MultipartTypeId = typeof MultipartTypeId
 /**
  * @since 4.0.0
  */
-export interface asMultipart<S extends Schema.Top> extends Schema.brand<S["~rebuild.out"], MultipartTypeId> {}
+export interface asMultipart<S extends Schema.Top> extends Schema.brand<S["Rebuild"], MultipartTypeId> {}
 
 /**
  * Marks a schema as a multipart payload.
@@ -226,7 +226,7 @@ export type MultipartStreamTypeId = typeof MultipartStreamTypeId
  * @since 4.0.0
  */
 export interface asMultipartStream<S extends Schema.Top>
-  extends Schema.brand<S["~rebuild.out"], MultipartStreamTypeId>
+  extends Schema.brand<S["Rebuild"], MultipartStreamTypeId>
 {}
 
 /**
@@ -252,7 +252,7 @@ export function asMultipartStream(options?: Multipart_.withLimits.Options) {
 function asNonMultipartEncoding<S extends Schema.Top>(self: S, options: {
   readonly _tag: "Json" | "FormUrlEncoded" | "Uint8Array" | "Text"
   readonly contentType?: string | undefined
-}): S["~rebuild.out"] {
+}): S["Rebuild"] {
   return self.annotate({
     "~httpApiEncoding": {
       _tag: options._tag,

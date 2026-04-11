@@ -47,7 +47,7 @@ export interface Stream<A extends Schema.Top, E extends Schema.Top> extends
     Stream<A, E>
   >
 {
-  readonly "~rebuild.out": this
+  readonly "Rebuild": Stream<A, E>
   readonly [StreamSchemaTypeId]: typeof StreamSchemaTypeId
   readonly success: A
   readonly error: E

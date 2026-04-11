@@ -215,7 +215,7 @@ export interface Bottom<
   out RD,
   out RE,
   out Ast extends AST.AST,
-  out RebuildOut extends Top,
+  out Rebuild extends Top,
   out TypeMakeIn = T,
   out Iso = T,
   in out TypeParameters extends ReadonlyArray<Top> = readonly [],
@@ -228,8 +228,8 @@ export interface Bottom<
 > extends Pipeable.Pipeable {
   readonly [TypeId]: typeof TypeId
 
-  readonly ast: Ast
-  readonly "~rebuild.out": RebuildOut
+  readonly "ast": Ast
+  readonly "Rebuild": Rebuild
   readonly "~type.parameters": TypeParameters
 
   readonly "Type": T
@@ -247,10 +247,10 @@ export interface Bottom<
   readonly "~encoded.mutability": EncodedMutability
   readonly "~encoded.optionality": EncodedOptionality
 
-  annotate(annotations: Annotations.Bottom<this["Type"], this["~type.parameters"]>): this["~rebuild.out"]
-  annotateKey(annotations: Annotations.Key<this["Type"]>): this["~rebuild.out"]
-  check(...checks: readonly [AST.Check<this["Type"]>, ...Array<AST.Check<this["Type"]>>]): this["~rebuild.out"]
-  rebuild(ast: this["ast"]): this["~rebuild.out"]
+  annotate(annotations: Annotations.Bottom<this["Type"], this["~type.parameters"]>): this["Rebuild"]
+  annotateKey(annotations: Annotations.Key<this["Type"]>): this["Rebuild"]
+  check(...checks: readonly [AST.Check<this["Type"]>, ...Array<AST.Check<this["Type"]>>]): this["Rebuild"]
+  rebuild(ast: this["ast"]): this["Rebuild"]
   /**
    * @throws {Error} The issue is contained in the error cause.
    */
@@ -359,7 +359,7 @@ export function declareConstructor<T, E = T, Iso = T>() {
  * @since 4.0.0
  */
 export interface declare<T, Iso = T> extends declareConstructor<T, T, readonly [], Iso> {
-  readonly "~rebuild.out": declare<T, Iso>
+  readonly "Rebuild": declare<T, Iso>
 }
 
 /**
@@ -424,7 +424,7 @@ export function declare<T, Iso = T>(
  * const bottom = Schema.revealBottom(schema)
  *
  * // `bottom` now exposes Type, Encoded, DecodingServices, EncodingServices,
- * // ast, ~rebuild.out, ~type.make.in, Iso, ~type.parameters, etc.
+ * // ast, Rebuild, ~type.make.in, Iso, ~type.parameters, etc.
  * type T = typeof bottom["Type"]     // string
  * type E = typeof bottom["Encoded"]  // string
  * ```
@@ -439,7 +439,7 @@ export function revealBottom<S extends Top>(
   S["DecodingServices"],
   S["EncodingServices"],
   S["ast"],
-  S["~rebuild.out"],
+  S["Rebuild"],
   S["~type.make.in"],
   S["Iso"],
   S["~type.parameters"],
@@ -478,7 +478,7 @@ export function revealBottom<S extends Top>(
  * @since 4.0.0
  */
 export function annotate<S extends Top>(annotations: Annotations.Bottom<S["Type"], S["~type.parameters"]>) {
-  return (self: S): S["~rebuild.out"] => {
+  return (self: S): S["Rebuild"] => {
     return self.annotate(annotations)
   }
 }
@@ -512,7 +512,7 @@ export function annotate<S extends Top>(annotations: Annotations.Bottom<S["Type"
  * @since 4.0.0
  */
 export function annotateKey<S extends Top>(annotations: Annotations.Key<S["Type"]>) {
-  return (self: S): S["~rebuild.out"] => {
+  return (self: S): S["Rebuild"] => {
     return self.rebuild(AST.annotateKey(self.ast, annotations))
   }
 }
@@ -605,7 +605,7 @@ export declare namespace Schema {
  */
 export interface Schema<out T> extends Top {
   readonly "Type": T
-  readonly "~rebuild.out": Schema<T>
+  readonly "Rebuild": Schema<T>
 }
 
 /**
@@ -693,7 +693,7 @@ export interface Optic<out T, out Iso> extends Schema<T> {
   readonly "Iso": Iso
   readonly "DecodingServices": never
   readonly "EncodingServices": never
-  readonly "~rebuild.out": Optic<T, Iso>
+  readonly "Rebuild": Optic<T, Iso>
 }
 
 /**
@@ -730,7 +730,7 @@ export interface Codec<out T, out E = T, out RD = never, out RE = never> extends
   readonly "Encoded": E
   readonly "DecodingServices": RD
   readonly "EncodingServices": RE
-  readonly "~rebuild.out": Codec<T, E, RD, RE>
+  readonly "Rebuild": Codec<T, E, RD, RE>
 }
 
 /**
@@ -754,7 +754,7 @@ export interface Codec<out T, out E = T, out RD = never, out RE = never> extends
  * @since 4.0.0
  */
 export interface Decoder<out T, out RD = never> extends Codec<T, unknown, RD, unknown> {
-  readonly "~rebuild.out": Decoder<T, RD>
+  readonly "Rebuild": Decoder<T, RD>
 }
 
 /**
@@ -778,7 +778,7 @@ export interface Decoder<out T, out RD = never> extends Codec<T, unknown, RD, un
  * @since 4.0.0
  */
 export interface Encoder<out E, out RE = never> extends Codec<unknown, E, unknown, RE> {
-  readonly "~rebuild.out": Encoder<E, RE>
+  readonly "Rebuild": Encoder<E, RE>
 }
 
 /**
@@ -1541,7 +1541,7 @@ export const requiredKey = Struct_.lambda<requiredKeyLambda>((self) => self.sche
  * @since 4.0.0
  */
 export interface optional<S extends Top> extends optionalKey<UndefinedOr<S>> {
-  readonly "~rebuild.out": optional<S>
+  readonly "Rebuild": optional<S>
 }
 
 interface optionalLambda extends Lambda {
@@ -1774,7 +1774,7 @@ function isFlip$(schema: Top): schema is flip<any> {
  *
  * @since 4.0.0
  */
-export function flip<S extends Top>(schema: S): S extends flip<infer F> ? F["~rebuild.out"] : flip<S>
+export function flip<S extends Top>(schema: S): S extends flip<infer F> ? F["Rebuild"] : flip<S>
 export function flip<S extends Top>(schema: S): flip<S> {
   if (isFlip$(schema)) {
     return schema.schema.rebuild(AST.flip(schema.ast))
@@ -3272,7 +3272,7 @@ export const NonEmptyArray = Struct_.lambda<NonEmptyArrayLambda>((schema) =>
  * @since 4.0.0
  */
 export interface ArrayEnsure<S extends Top> extends decodeTo<$Array<toType<S>>, Union<readonly [S, $Array<S>]>> {
-  readonly "~rebuild.out": ArrayEnsure<S>
+  readonly "Rebuild": ArrayEnsure<S>
 }
 
 /**
@@ -3305,7 +3305,7 @@ export function ArrayEnsure<S extends Top>(schema: S): ArrayEnsure<S> {
  * @since 4.0.0
  */
 export interface UniqueArray<S extends Top> extends $Array<S> {
-  readonly "~rebuild.out": UniqueArray<S>
+  readonly "Rebuild": UniqueArray<S>
 }
 
 /**
@@ -3533,7 +3533,7 @@ export function Literals<const L extends ReadonlyArray<AST.LiteralValue>>(litera
  * @since 4.0.0
  */
 export interface NullOr<S extends Top> extends Union<readonly [S, Null]> {
-  readonly "~rebuild.out": NullOr<S>
+  readonly "Rebuild": NullOr<S>
 }
 
 interface NullOrLambda extends Lambda {
@@ -3555,7 +3555,7 @@ export const NullOr = Struct_.lambda<NullOrLambda>((self) => Union([self, Null])
  * @since 4.0.0
  */
 export interface UndefinedOr<S extends Top> extends Union<readonly [S, Undefined]> {
-  readonly "~rebuild.out": UndefinedOr<S>
+  readonly "Rebuild": UndefinedOr<S>
 }
 
 interface UndefinedOrLambda extends Lambda {
@@ -3576,7 +3576,7 @@ export const UndefinedOr = Struct_.lambda<UndefinedOrLambda>((self) => Union([se
  * @since 4.0.0
  */
 export interface NullishOr<S extends Top> extends Union<readonly [S, Null, Undefined]> {
-  readonly "~rebuild.out": NullishOr<S>
+  readonly "Rebuild": NullishOr<S>
 }
 
 interface NullishOrLambda extends Lambda {
@@ -3659,7 +3659,7 @@ export function suspend<S extends Top>(f: () => S): suspend<S> {
  * @since 4.0.0
  */
 export function check<S extends Top>(...checks: readonly [AST.Check<S["Type"]>, ...Array<AST.Check<S["Type"]>>]) {
-  return (self: S): S["~rebuild.out"] => self.check(...checks)
+  return (self: S): S["Rebuild"] => self.check(...checks)
 }
 
 /**
@@ -3744,7 +3744,7 @@ export interface brand<S extends Top, B> extends
  * @since 4.0.0
  */
 export function brand<B extends string>(identifier: B) {
-  return <S extends Top>(schema: S): brand<S["~rebuild.out"], B> =>
+  return <S extends Top>(schema: S): brand<S["Rebuild"], B> =>
     make(AST.brand(schema.ast, identifier), { schema, identifier })
 }
 
@@ -3758,7 +3758,7 @@ export function brand<B extends string>(identifier: B) {
 export function fromBrand<A extends Brand.Brand<any>>(identifier: string, ctor: Brand.Constructor<A>) {
   return <S extends Top & { readonly "Type": Brand.Brand.Unbranded<A> }>(
     self: S
-  ): brand<S["~rebuild.out"], Brand.Brand.Keys<A>> => {
+  ): brand<S["Rebuild"], Brand.Brand.Keys<A>> => {
     return (ctor.checks ? self.check(...ctor.checks) : self).pipe(brand(identifier))
   }
 }
@@ -3916,7 +3916,7 @@ export function middlewareEncoding<S extends Top, RE>(
  */
 export function catchDecoding<S extends Top>(
   f: (issue: Issue.Issue) => Effect.Effect<Option_.Option<S["Type"]>, Issue.Issue>
-): (self: S) => S["~rebuild.out"] {
+): (self: S) => S["Rebuild"] {
   return catchDecodingWithContext(f)
 }
 
@@ -3943,7 +3943,7 @@ export function catchDecodingWithContext<S extends Top, R = never>(
  */
 export function catchEncoding<S extends Top>(
   f: (issue: Issue.Issue) => Effect.Effect<Option_.Option<S["Encoded"]>, Issue.Issue>
-): (self: S) => S["~rebuild.out"] {
+): (self: S) => S["Rebuild"] {
   return catchEncodingWithContext(f)
 }
 
@@ -4277,7 +4277,7 @@ export function withConstructorDefault<S extends Top & WithoutConstructorDefault
  * @since 4.0.0
  */
 export interface withDecodingDefaultKey<S extends Top> extends decodeTo<S, optionalKey<toEncoded<S>>> {
-  readonly "~rebuild.out": withDecodingDefaultKey<S>
+  readonly "Rebuild": withDecodingDefaultKey<S>
 }
 
 /**
@@ -4348,7 +4348,7 @@ export function withDecodingDefaultKey<S extends Top>(
 export interface withDecodingDefaultTypeKey<S extends Top>
   extends decodeTo<withDecodingDefaultKey<toType<S>>, optionalKey<S>>
 {
-  readonly "~rebuild.out": withDecodingDefaultTypeKey<S>
+  readonly "Rebuild": withDecodingDefaultTypeKey<S>
 }
 
 /**
@@ -4390,7 +4390,7 @@ export function withDecodingDefaultTypeKey<S extends Top>(
  * @since 4.0.0
  */
 export interface withDecodingDefault<S extends Top> extends decodeTo<S, optional<toEncoded<S>>> {
-  readonly "~rebuild.out": withDecodingDefault<S>
+  readonly "Rebuild": withDecodingDefault<S>
 }
 
 /**
@@ -4446,7 +4446,7 @@ export function withDecodingDefault<S extends Top>(
  * @since 4.0.0
  */
 export interface withDecodingDefaultType<S extends Top> extends decodeTo<withDecodingDefault<toType<S>>, optional<S>> {
-  readonly "~rebuild.out": withDecodingDefaultType<S>
+  readonly "Rebuild": withDecodingDefaultType<S>
 }
 
 /**
@@ -4812,7 +4812,7 @@ export interface Opaque<Self, S extends Top, Brand> extends
     S["DecodingServices"],
     S["EncodingServices"],
     S["ast"],
-    S["~rebuild.out"],
+    S["Rebuild"],
     S["~type.make.in"],
     S["Iso"],
     S["~type.parameters"],
@@ -4865,7 +4865,7 @@ export function Opaque<Self, Brand = {}>() {
  * @since 4.0.0
  */
 export interface instanceOf<T, Iso = T> extends declare<T, Iso> {
-  readonly "~rebuild.out": instanceOf<T, Iso>
+  readonly "Rebuild": instanceOf<T, Iso>
 }
 
 /**
@@ -6847,7 +6847,7 @@ export function isUnique<T>(annotations?: Annotations.Filter) {
  * @since 4.0.0
  */
 export interface NonEmptyString extends String {
-  readonly "~rebuild.out": NonEmptyString
+  readonly "Rebuild": NonEmptyString
 }
 
 /**
@@ -6866,7 +6866,7 @@ export const NonEmptyString: NonEmptyString = String.check(isNonEmpty())
  * @since 4.0.0
  */
 export interface Char extends String {
-  readonly "~rebuild.out": Char
+  readonly "Rebuild": Char
 }
 
 /**
@@ -6906,7 +6906,7 @@ export interface Option<A extends Top> extends
     OptionIso<A>
   >
 {
-  readonly "~rebuild.out": Option<A>
+  readonly "Rebuild": Option<A>
   readonly value: A
 }
 
@@ -6992,7 +6992,7 @@ export function Option<A extends Top>(value: A): Option<A> {
  * @since 4.0.0
  */
 export interface OptionFromNullOr<S extends Top> extends decodeTo<Option<toType<S>>, NullOr<S>> {
-  readonly "~rebuild.out": OptionFromNullOr<S>
+  readonly "Rebuild": OptionFromNullOr<S>
 }
 
 /**
@@ -7023,7 +7023,7 @@ export function OptionFromNullOr<S extends Top>(schema: S): OptionFromNullOr<S> 
  * @since 4.0.0
  */
 export interface OptionFromUndefinedOr<S extends Top> extends decodeTo<Option<toType<S>>, UndefinedOr<S>> {
-  readonly "~rebuild.out": OptionFromUndefinedOr<S>
+  readonly "Rebuild": OptionFromUndefinedOr<S>
 }
 
 /**
@@ -7054,7 +7054,7 @@ export function OptionFromUndefinedOr<S extends Top>(schema: S): OptionFromUndef
  * @since 4.0.0
  */
 export interface OptionFromNullishOr<S extends Top> extends decodeTo<Option<toType<S>>, NullishOr<S>> {
-  readonly "~rebuild.out": OptionFromNullishOr<S>
+  readonly "Rebuild": OptionFromNullishOr<S>
 }
 
 /**
@@ -7090,7 +7090,7 @@ export function OptionFromNullishOr<S extends Top>(
  * @since 4.0.0
  */
 export interface OptionFromOptionalKey<S extends Top> extends decodeTo<Option<toType<S>>, optionalKey<S>> {
-  readonly "~rebuild.out": OptionFromOptionalKey<S>
+  readonly "Rebuild": OptionFromOptionalKey<S>
 }
 
 /**
@@ -7121,7 +7121,7 @@ export function OptionFromOptionalKey<S extends Top>(schema: S): OptionFromOptio
  * @since 4.0.0
  */
 export interface OptionFromOptional<S extends Top> extends decodeTo<Option<toType<S>>, optional<S>> {
-  readonly "~rebuild.out": OptionFromOptional<S>
+  readonly "Rebuild": OptionFromOptional<S>
 }
 
 /**
@@ -7154,7 +7154,7 @@ export function OptionFromOptional<S extends Top>(schema: S): OptionFromOptional
  * @since 4.0.0
  */
 export interface OptionFromOptionalNullOr<S extends Top> extends decodeTo<Option<toType<S>>, optional<NullOr<S>>> {
-  readonly "~rebuild.out": OptionFromOptionalNullOr<S>
+  readonly "Rebuild": OptionFromOptionalNullOr<S>
 }
 
 /**
@@ -7212,7 +7212,7 @@ export interface Result<A extends Top, E extends Top> extends
     ResultIso<A, E>
   >
 {
-  readonly "~rebuild.out": Result<A, E>
+  readonly "Rebuild": Result<A, E>
   readonly success: A
   readonly failure: E
 }
@@ -7315,7 +7315,7 @@ export interface Redacted<S extends Top> extends
     readonly [S]
   >
 {
-  readonly "~rebuild.out": Redacted<S>
+  readonly "Rebuild": Redacted<S>
   readonly value: S
 }
 
@@ -7415,7 +7415,7 @@ export function Redacted<S extends Top>(value: S, options?: {
 export interface RedactedFromValue<S extends Top>
   extends decodeTo<Redacted<toType<S>>, middlewareDecoding<S, S["DecodingServices"]>>
 {
-  readonly "~rebuild.out": RedactedFromValue<S>
+  readonly "Rebuild": RedactedFromValue<S>
 }
 
 /**
@@ -7467,7 +7467,7 @@ export interface CauseReason<E extends Top, D extends Top> extends
     CauseReasonIso<E, D>
   >
 {
-  readonly "~rebuild.out": CauseReason<E, D>
+  readonly "Rebuild": CauseReason<E, D>
   readonly error: E
   readonly defect: D
 }
@@ -7615,7 +7615,7 @@ export interface Cause<E extends Top, D extends Top> extends
     CauseIso<E, D>
   >
 {
-  readonly "~rebuild.out": Cause<E, D>
+  readonly "Rebuild": Cause<E, D>
   readonly error: E
   readonly defect: D
 }
@@ -7696,7 +7696,7 @@ function causeToFormatter<E>(error: Formatter<E>, defect: Formatter<unknown>) {
  * @since 4.0.0
  */
 export interface Error extends instanceOf<globalThis.Error> {
-  readonly "~rebuild.out": Error
+  readonly "Rebuild": Error
 }
 
 const ErrorJsonEncoded = Struct({
@@ -7776,7 +7776,7 @@ export interface Defect extends
     ]
   >
 {
-  readonly "~rebuild.out": Defect
+  readonly "Rebuild": Defect
 }
 
 const defectTransformation = new Transformation.Transformation(
@@ -7845,7 +7845,7 @@ export interface Exit<A extends Top, E extends Top, D extends Top> extends
     ExitIso<A, E, D>
   >
 {
-  readonly "~rebuild.out": Exit<A, E, D>
+  readonly "Rebuild": Exit<A, E, D>
   readonly value: A
   readonly error: E
   readonly defect: D
@@ -7977,7 +7977,7 @@ export interface $ReadonlyMap<Key extends Top, Value extends Top> extends
     ReadonlyMapIso<Key, Value>
   >
 {
-  readonly "~rebuild.out": $ReadonlyMap<Key, Value>
+  readonly "Rebuild": $ReadonlyMap<Key, Value>
   readonly key: Key
   readonly value: Value
 }
@@ -8071,7 +8071,7 @@ export interface HashMap<Key extends Top, Value extends Top> extends
     HashMapIso<Key, Value>
   >
 {
-  readonly "~rebuild.out": HashMap<Key, Value>
+  readonly "Rebuild": HashMap<Key, Value>
   readonly key: Key
   readonly value: Value
 }
@@ -8165,7 +8165,7 @@ export interface $ReadonlySet<Value extends Top> extends
     ReadonlySetIso<Value>
   >
 {
-  readonly "~rebuild.out": $ReadonlySet<Value>
+  readonly "Rebuild": $ReadonlySet<Value>
   readonly value: Value
 }
 
@@ -8255,7 +8255,7 @@ export interface HashSet<Value extends Top> extends
     HashSetIso<Value>
   >
 {
-  readonly "~rebuild.out": HashSet<Value>
+  readonly "Rebuild": HashSet<Value>
   readonly value: Value
 }
 
@@ -8348,7 +8348,7 @@ export interface Chunk<Value extends Top> extends
     ChunkIso<Value>
   >
 {
-  readonly "~rebuild.out": Chunk<Value>
+  readonly "Rebuild": Chunk<Value>
   readonly value: Value
 }
 
@@ -8433,7 +8433,7 @@ export function Chunk<Value extends Top>(value: Value): Chunk<Value> {
  * @since 4.0.0
  */
 export interface RegExp extends instanceOf<globalThis.RegExp> {
-  readonly "~rebuild.out": RegExp
+  readonly "Rebuild": RegExp
 }
 
 /**
@@ -8507,7 +8507,7 @@ export const RegExp: RegExp = instanceOf(
  * @since 4.0.0
  */
 export interface URL extends instanceOf<globalThis.URL> {
-  readonly "~rebuild.out": URL
+  readonly "Rebuild": URL
 }
 
 const URLString = String.annotate({ expected: "a string that will be decoded as a URL" })
@@ -8550,7 +8550,7 @@ export const URL: URL = instanceOf(
  * @since 4.0.0
  */
 export interface URLFromString extends decodeTo<URL, String> {
-  readonly "~rebuild.out": URLFromString
+  readonly "Rebuild": URLFromString
 }
 
 /**
@@ -8574,7 +8574,7 @@ export const URLFromString: URLFromString = URLString.pipe(decodeTo(URL, Transfo
  * @since 4.0.0
  */
 export interface Date extends instanceOf<globalThis.Date> {
-  readonly "~rebuild.out": Date
+  readonly "Rebuild": Date
 }
 
 const DateString = String.annotate({ expected: "a string in ISO 8601 format that will be decoded as a Date" })
@@ -8625,7 +8625,7 @@ export const Date: Date = instanceOf(
  * @since 4.0.0
  */
 export interface DateFromString extends decodeTo<Date, String> {
-  readonly "~rebuild.out": DateFromString
+  readonly "Rebuild": DateFromString
 }
 
 /**
@@ -8649,7 +8649,7 @@ export const DateFromString: DateFromString = DateString.pipe(decodeTo(Date, Tra
  * @since 4.0.0
  */
 export interface DateValid extends Date {
-  readonly "~rebuild.out": DateValid
+  readonly "Rebuild": DateValid
 }
 
 /**
@@ -8670,7 +8670,7 @@ export const DateValid: DateValid = Date.check(isDateValid())
  * @since 4.0.0
  */
 export interface Duration extends declare<Duration_.Duration> {
-  readonly "~rebuild.out": Duration
+  readonly "Rebuild": Duration
 }
 
 /**
@@ -8759,7 +8759,7 @@ export const Duration: Duration = declare(
  * @since 4.0.0
  */
 export interface DurationFromNanos extends decodeTo<Duration, BigInt> {
-  readonly "~rebuild.out": DurationFromNanos
+  readonly "Rebuild": DurationFromNanos
 }
 
 /**
@@ -8786,7 +8786,7 @@ export const DurationFromNanos: DurationFromNanos = BigInt.check(isGreaterThanOr
  * @since 4.0.0
  */
 export interface DurationFromMillis extends decodeTo<Duration, Number> {
-  readonly "~rebuild.out": DurationFromMillis
+  readonly "Rebuild": DurationFromMillis
 }
 
 /**
@@ -8816,7 +8816,7 @@ export const DurationFromMillis: DurationFromMillis = Number.check(isGreaterThan
  * @since 4.0.0
  */
 export interface BigDecimal extends declare<BigDecimal_.BigDecimal> {
-  readonly "~rebuild.out": BigDecimal
+  readonly "Rebuild": BigDecimal
 }
 
 const BigDecimalString = String.annotate({ expected: "a string that will be decoded as a BigDecimal" })
@@ -8863,7 +8863,7 @@ export const BigDecimal: BigDecimal = declare(
  * @since 4.0.0
  */
 export interface BigDecimalFromString extends decodeTo<BigDecimal, String> {
-  readonly "~rebuild.out": BigDecimalFromString
+  readonly "Rebuild": BigDecimalFromString
 }
 
 /**
@@ -8889,7 +8889,7 @@ export const BigDecimalFromString: BigDecimalFromString = BigDecimalString.pipe(
  * @since 4.0.0
  */
 export interface UnknownFromJsonString extends fromJsonString<Unknown> {
-  readonly "~rebuild.out": UnknownFromJsonString
+  readonly "Rebuild": UnknownFromJsonString
 }
 
 /**
@@ -8924,7 +8924,7 @@ export const UnknownFromJsonString: UnknownFromJsonString = fromJsonString(Unkno
  * @since 4.0.0
  */
 export interface fromJsonString<S extends Top> extends decodeTo<S, String> {
-  readonly "~rebuild.out": fromJsonString<S>
+  readonly "Rebuild": fromJsonString<S>
 }
 
 /**
@@ -9006,7 +9006,7 @@ export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
  * @since 4.0.0
  */
 export interface File extends instanceOf<globalThis.File> {
-  readonly "~rebuild.out": File
+  readonly "Rebuild": File
 }
 
 /**
@@ -9078,7 +9078,7 @@ export const File: File = instanceOf(globalThis.File, {
  * @since 4.0.0
  */
 export interface FormData extends instanceOf<globalThis.FormData> {
-  readonly "~rebuild.out": FormData
+  readonly "Rebuild": FormData
 }
 
 /**
@@ -9140,7 +9140,7 @@ export const FormData: FormData = instanceOf(globalThis.FormData, {
  * @since 4.0.0
  */
 export interface fromFormData<S extends Top> extends decodeTo<S, FormData> {
-  readonly "~rebuild.out": fromFormData<S>
+  readonly "Rebuild": fromFormData<S>
 }
 
 /**
@@ -9237,7 +9237,7 @@ export function fromFormData<S extends Top>(schema: S): fromFormData<S> {
  * @since 4.0.0
  */
 export interface URLSearchParams extends instanceOf<globalThis.URLSearchParams> {
-  readonly "~rebuild.out": URLSearchParams
+  readonly "Rebuild": URLSearchParams
 }
 
 /**
@@ -9274,7 +9274,7 @@ export const URLSearchParams: URLSearchParams = instanceOf(globalThis.URLSearchP
  * @since 4.0.0
  */
 export interface fromURLSearchParams<S extends Top> extends decodeTo<S, URLSearchParams> {
-  readonly "~rebuild.out": fromURLSearchParams<S>
+  readonly "Rebuild": fromURLSearchParams<S>
 }
 
 /**
@@ -9362,7 +9362,7 @@ export function fromURLSearchParams<S extends Top>(schema: S): fromURLSearchPara
  * @since 4.0.0
  */
 export interface Finite extends Number {
-  readonly "~rebuild.out": Finite
+  readonly "Rebuild": Finite
 }
 
 /**
@@ -9380,7 +9380,7 @@ export const Finite: Finite = Number.check(isFinite())
  * @since 4.0.0
  */
 export interface Int extends Number {
-  readonly "~rebuild.out": Int
+  readonly "Rebuild": Int
 }
 
 /**
@@ -9398,7 +9398,7 @@ export const Int: Int = Number.check(isInt())
  * @since 4.0.0
  */
 export interface NumberFromString extends decodeTo<Finite, String> {
-  readonly "~rebuild.out": NumberFromString
+  readonly "Rebuild": NumberFromString
 }
 
 /**
@@ -9424,7 +9424,7 @@ export const NumberFromString: NumberFromString = String.annotate({
  * @since 4.0.0
  */
 export interface FiniteFromString extends decodeTo<Finite, String> {
-  readonly "~rebuild.out": FiniteFromString
+  readonly "Rebuild": FiniteFromString
 }
 
 /**
@@ -9451,7 +9451,7 @@ export const FiniteFromString: FiniteFromString = String.annotate({
  * @since 4.0.0
  */
 export interface BigIntFromString extends decodeTo<BigInt, String> {
-  readonly "~rebuild.out": BigIntFromString
+  readonly "Rebuild": BigIntFromString
 }
 
 /**
@@ -9477,7 +9477,7 @@ export const BigIntFromString: BigIntFromString = make<String>(AST.bigIntString)
  * @since 4.0.0
  */
 export interface Trimmed extends String {
-  readonly "~rebuild.out": Trimmed
+  readonly "Rebuild": Trimmed
 }
 
 /**
@@ -9495,7 +9495,7 @@ export const Trimmed: Trimmed = String.check(isTrimmed())
  * @since 4.0.0
  */
 export interface Trim extends decodeTo<Trimmed, String> {
-  readonly "~rebuild.out": Trim
+  readonly "Rebuild": Trim
 }
 
 /**
@@ -9521,7 +9521,7 @@ export const Trim: Trim = String.annotate({
  * @since 4.0.0
  */
 export interface StringFromBase64 extends decodeTo<String, String> {
-  readonly "~rebuild.out": StringFromBase64
+  readonly "Rebuild": StringFromBase64
 }
 
 /**
@@ -9549,7 +9549,7 @@ export const StringFromBase64: StringFromBase64 = String.annotate({
  * @since 4.0.0
  */
 export interface StringFromBase64Url extends decodeTo<String, String> {
-  readonly "~rebuild.out": StringFromBase64Url
+  readonly "Rebuild": StringFromBase64Url
 }
 
 /**
@@ -9577,7 +9577,7 @@ export const StringFromBase64Url: StringFromBase64Url = String.annotate({
  * @since 4.0.0
  */
 export interface StringFromHex extends decodeTo<String, String> {
-  readonly "~rebuild.out": StringFromHex
+  readonly "Rebuild": StringFromHex
 }
 
 /**
@@ -9605,7 +9605,7 @@ export const StringFromHex: StringFromHex = String.annotate({
  * @since 4.0.0
  */
 export interface StringFromUriComponent extends decodeTo<String, String> {
-  readonly "~rebuild.out": StringFromUriComponent
+  readonly "Rebuild": StringFromUriComponent
 }
 
 /**
@@ -9671,7 +9671,7 @@ export const StandardSchemaV1FailureResult = Struct({
  * @since 4.0.0
  */
 export interface BooleanFromBit extends decodeTo<Boolean, Literals<readonly [0, 1]>> {
-  readonly "~rebuild.out": BooleanFromBit
+  readonly "Rebuild": BooleanFromBit
 }
 
 /**
@@ -9697,7 +9697,7 @@ export const BooleanFromBit: BooleanFromBit = Literals([0, 1]).pipe(
  * @since 4.0.0
  */
 export interface Uint8Array extends instanceOf<globalThis.Uint8Array<ArrayBufferLike>> {
-  readonly "~rebuild.out": Uint8Array
+  readonly "Rebuild": Uint8Array
 }
 
 const Base64String = String.annotate({
@@ -9740,7 +9740,7 @@ export const Uint8Array: Uint8Array = instanceOf(globalThis.Uint8Array<ArrayBuff
  * @since 4.0.0
  */
 export interface Uint8ArrayFromBase64 extends decodeTo<Uint8Array, String> {
-  readonly "~rebuild.out": Uint8ArrayFromBase64
+  readonly "Rebuild": Uint8ArrayFromBase64
 }
 
 /**
@@ -9767,7 +9767,7 @@ export const Uint8ArrayFromBase64: Uint8ArrayFromBase64 = Base64String.pipe(
  * @since 4.0.0
  */
 export interface Uint8ArrayFromBase64Url extends decodeTo<Uint8Array, String> {
-  readonly "~rebuild.out": Uint8ArrayFromBase64Url
+  readonly "Rebuild": Uint8ArrayFromBase64Url
 }
 
 /**
@@ -9799,7 +9799,7 @@ export const Uint8ArrayFromBase64Url: Uint8ArrayFromBase64Url = String.annotate(
  * @since 4.0.0
  */
 export interface Uint8ArrayFromHex extends decodeTo<Uint8Array, String> {
-  readonly "~rebuild.out": Uint8ArrayFromHex
+  readonly "Rebuild": Uint8ArrayFromHex
 }
 
 /**
@@ -9831,7 +9831,7 @@ export const Uint8ArrayFromHex: Uint8ArrayFromHex = String.annotate({
  * @since 4.0.0
  */
 export interface DateTimeUtc extends declare<DateTime.Utc> {
-  readonly "~rebuild.out": DateTimeUtc
+  readonly "Rebuild": DateTimeUtc
 }
 
 /**
@@ -9875,7 +9875,7 @@ export const DateTimeUtc: DateTimeUtc = declare(
  * @since 4.0.0
  */
 export interface DateTimeUtcFromDate extends decodeTo<DateTimeUtc, Date> {
-  readonly "~rebuild.out": DateTimeUtcFromDate
+  readonly "Rebuild": DateTimeUtcFromDate
 }
 
 /**
@@ -9904,7 +9904,7 @@ export const DateTimeUtcFromDate: DateTimeUtcFromDate = DateValid.pipe(
  * @since 4.0.0
  */
 export interface DateTimeUtcFromString extends decodeTo<DateTimeUtc, String> {
-  readonly "~rebuild.out": DateTimeUtcFromString
+  readonly "Rebuild": DateTimeUtcFromString
 }
 
 /**
@@ -9937,7 +9937,7 @@ export const DateTimeUtcFromString: DateTimeUtcFromString = String.annotate({
  * @since 4.0.0
  */
 export interface DateTimeUtcFromMillis extends decodeTo<instanceOf<DateTime.Utc>, Number> {
-  readonly "~rebuild.out": DateTimeUtcFromMillis
+  readonly "Rebuild": DateTimeUtcFromMillis
 }
 
 /**
@@ -9966,7 +9966,7 @@ export const DateTimeUtcFromMillis: DateTimeUtcFromMillis = Number.pipe(
  * @since 4.0.0
  */
 export interface TimeZoneOffset extends declare<DateTime.TimeZone.Offset> {
-  readonly "~rebuild.out": TimeZoneOffset
+  readonly "Rebuild": TimeZoneOffset
 }
 
 /**
@@ -10010,7 +10010,7 @@ export const TimeZoneOffset: TimeZoneOffset = declare(
  * @since 4.0.0
  */
 export interface TimeZoneNamed extends declare<DateTime.TimeZone.Named> {
-  readonly "~rebuild.out": TimeZoneNamed
+  readonly "Rebuild": TimeZoneNamed
 }
 
 const TimeZoneNamedString = String.annotate({ expected: "an IANA time zone identifier" })
@@ -10060,7 +10060,7 @@ export const TimeZoneNamed: TimeZoneNamed = declare(
  * @since 4.0.0
  */
 export interface TimeZoneNamedFromString extends decodeTo<TimeZoneNamed, String> {
-  readonly "~rebuild.out": TimeZoneNamedFromString
+  readonly "Rebuild": TimeZoneNamedFromString
 }
 
 /**
@@ -10086,7 +10086,7 @@ export const TimeZoneNamedFromString: TimeZoneNamedFromString = TimeZoneNamedStr
  * @since 4.0.0
  */
 export interface TimeZone extends declare<DateTime.TimeZone> {
-  readonly "~rebuild.out": TimeZone
+  readonly "Rebuild": TimeZone
 }
 
 const TimeZoneString = String.annotate({
@@ -10142,7 +10142,7 @@ export const TimeZone: TimeZone = declare(
  * @since 4.0.0
  */
 export interface TimeZoneFromString extends decodeTo<TimeZone, String> {
-  readonly "~rebuild.out": TimeZoneFromString
+  readonly "Rebuild": TimeZoneFromString
 }
 
 /**
@@ -10168,7 +10168,7 @@ export const TimeZoneFromString: TimeZoneFromString = TimeZoneString.pipe(
  * @since 4.0.0
  */
 export interface DateTimeZoned extends declare<DateTime.Zoned> {
-  readonly "~rebuild.out": DateTimeZoned
+  readonly "Rebuild": DateTimeZoned
 }
 
 const DateTimeZonedString = String.annotate({
@@ -10225,7 +10225,7 @@ export const DateTimeZoned: DateTimeZoned = declare(
  * @since 4.0.0
  */
 export interface DateTimeZonedFromString extends decodeTo<DateTimeZoned, String> {
-  readonly "~rebuild.out": DateTimeZonedFromString
+  readonly "Rebuild": DateTimeZonedFromString
 }
 
 /**
@@ -10351,7 +10351,7 @@ function makeClass<
 
     static readonly [immerable] = true
 
-    declare static readonly "~rebuild.out": decodeTo<declareConstructor<Self, S["Encoded"], readonly [S], S["Iso"]>, S>
+    declare static readonly "Rebuild": decodeTo<declareConstructor<Self, S["Encoded"], readonly [S], S["Iso"]>, S>
     declare static readonly "~type.parameters": readonly [S]
 
     declare static readonly "Type": Self
@@ -10816,7 +10816,7 @@ export function toArbitrary<S extends Top>(schema: S): FastCheck.Arbitrary<S["Ty
  * @since 4.0.0
  */
 export function overrideToFormatter<S extends Top>(toFormatter: () => Formatter<S["Type"]>) {
-  return (self: S): S["~rebuild.out"] => {
+  return (self: S): S["Rebuild"] => {
     return self.annotate({ toFormatter })
   }
 }
@@ -10981,7 +10981,7 @@ export function toFormatter<T>(schema: Schema<T>, options?: {
  * @since 4.0.0
  */
 export function overrideToEquivalence<S extends Top>(toEquivalence: () => Equivalence.Equivalence<S["Type"]>) {
-  return (self: S): S["~rebuild.out"] => self.annotate({ toEquivalence })
+  return (self: S): S["Rebuild"] => self.annotate({ toEquivalence })
 }
 
 /**
