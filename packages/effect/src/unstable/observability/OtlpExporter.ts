@@ -61,6 +61,7 @@ export const make: (
   let disabledUntil: number | undefined = undefined
 
   const client = HttpClient.filterStatusOk(Context.get(services, HttpClient.HttpClient)).pipe(
+    HttpClient.transformResponse(Effect.provideService(HttpClient.TracerPropagationEnabled, false)),
     HttpClient.retryTransient({ schedule: policy, times: 3 })
   )
 

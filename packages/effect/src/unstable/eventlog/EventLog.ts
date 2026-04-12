@@ -358,7 +358,9 @@ const IdentityEncodedSchema = Schema.Struct({
   privateKey: Schema.Uint8ArrayFromBase64
 })
 
-const IdentityStringSchema = Schema.fromJsonString(IdentityEncodedSchema)
+const IdentityStringSchema = Schema.StringFromBase64Url.pipe(
+  Schema.decodeTo(Schema.fromJsonString(IdentityEncodedSchema))
+)
 
 /**
  * @since 4.0.0
