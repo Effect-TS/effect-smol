@@ -1,5 +1,17 @@
 # effect
 
+## 4.0.0-beta.48
+
+### Patch Changes
+
+- [#2025](https://github.com/Effect-TS/effect-smol/pull/2025) [`4da56ec`](https://github.com/Effect-TS/effect-smol/commit/4da56ecff129b2da40137ffede23a73cc4e532d8) Thanks @tim-smart! - update dependencies
+
+- [#2029](https://github.com/Effect-TS/effect-smol/pull/2029) [`a5e6f77`](https://github.com/Effect-TS/effect-smol/commit/a5e6f774bab195cf50ecdc818240765f69a3bf4a) Thanks @tim-smart! - omit scope from HttpApi handlers
+
+- [#2023](https://github.com/Effect-TS/effect-smol/pull/2023) [`f1ba5b8`](https://github.com/Effect-TS/effect-smol/commit/f1ba5b8584d325a541156928cecf041b37fd5070) Thanks @tim-smart! - EventLog Identity string encodes to base 64
+
+- [#2023](https://github.com/Effect-TS/effect-smol/pull/2023) [`f1ba5b8`](https://github.com/Effect-TS/effect-smol/commit/f1ba5b8584d325a541156928cecf041b37fd5070) Thanks @tim-smart! - disable tracer propagation for otlp exporter
+
 ## 4.0.0-beta.47
 
 ### Patch Changes
