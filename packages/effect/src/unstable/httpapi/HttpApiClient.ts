@@ -715,11 +715,11 @@ function getEncodePayloadSchemaFromBody(
   const encoding = HttpApiSchema.getPayloadEncoding(ast, method)
   const out = $HttpBody.pipe(Schema.decodeTo(
     schema,
-    Transformation.transformOrFail({
+    Transformation.transformOrFail<unknown, HttpBody.HttpBody>({
       decode(httpBody) {
         return Effect.fail(new Issue.Forbidden(Option.some(httpBody), { message: "Encode only schema" }))
       },
-      encode(t: unknown) {
+      encode(t) {
         switch (encoding._tag) {
           case "Multipart":
             return Effect.fail(new Issue.Forbidden(Option.some(t), { message: "Payload must be a FormData" }))

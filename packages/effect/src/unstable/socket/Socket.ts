@@ -575,7 +575,7 @@ export const fromWebSocket = <RO>(
         if (isCloseEvent(chunk)) {
           ws.close(chunk.code, chunk.reason)
         } else {
-          ws.send(chunk)
+          ws.send(chunk as string | Uint8Array<ArrayBuffer>)
         }
       }))
     const writer = Effect.succeed(write)
