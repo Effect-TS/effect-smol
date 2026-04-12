@@ -316,7 +316,10 @@ export const make = <
       })
     },
     execute: Effect.fnUntraced(
-      function*(fields, opts) {
+      function*<const Discard extends boolean = false>(
+        fields: any,
+        opts?: { readonly discard?: Discard } | undefined
+      ) {
         const payload = self.payloadSchema.make(fields)
         const engine = yield* EngineTag
         const executionId = yield* makeExecutionId(payload)
