@@ -245,6 +245,7 @@ export const makeWith = Effect.fnUntraced(function*({ encodeWrite, decodeChanges
   return remote
 })
 
+/** @effect-diagnostics-next-line classSelfMismatch:off */
 class IdentityService extends Context.Service<Identity, Identity["Service"]>()(
   "effect/eventlog/EventLog/Identity" satisfies Identity["key"]
 ) {}

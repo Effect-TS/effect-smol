@@ -179,10 +179,10 @@ export const Service = <Self>() =>
       Effect.fnUntraced(function*({ headers, payload, reactivityKeys }) {
         const client = yield* self
         const effect = client(tag, payload, { headers } as any)
-        return yield* reactivityKeys
-          ? Reactivity.mutation(effect, reactivityKeys)
-          : effect
-      }) as any
+        return yield* (reactivityKeys
+          ? Reactivity.mutation(effect, reactivityKeys) as Effect.Effect<any>
+          : effect as any as Effect.Effect<any>)
+      })
     ).pipe(
       Atom.serializable({
         key: `AtomRpc:mutation:${tag}`,
