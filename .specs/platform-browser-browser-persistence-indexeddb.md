@@ -341,11 +341,12 @@ The implementation must follow repo rules:
 
 ### Task status
 - [x] Task 1 — backing layer and direct backing tests
-- [ ] Task 2 — composed layer, public export, shared integration test, changeset
+- [x] Task 2 — composed layer, public export, shared integration test, changeset
 
 ### Implementation discoveries
 - `layerBackingIndexedDb` is specified as `Layer.Layer<Persistence.BackingPersistence>` (non-failing layer type). To preserve this API while still constructing typed `PersistenceError` values for IndexedDB open failures, the implementation maps open failures to `PersistenceError` and then uses `Effect.orDie` at layer construction time.
 - `clear` can scope deletion to one `storeId` without depending on `IDBKeyRange` by using the `storeId` secondary index with `index.openCursor(storeId)`.
+- Shared `PersistedCacheTest.suite(...)` coverage for browser persistence must install `fake-indexeddb` on `globalThis.indexedDB` because `BrowserPersistence` intentionally uses the global IndexedDB API directly instead of the `IndexedDb` service.
 
 ### Task 1 — backing layer and direct backing tests
 Implement `BrowserPersistence.layerBackingIndexedDb` and its private IndexedDB helpers, then add direct backing-store tests.
@@ -372,7 +373,7 @@ Shippability constraints:
 ### Task 2 — composed layer, public export, shared integration test, changeset
 Add the composed persistence layer, publish the new module through package exports, add shared integration coverage, and add the changeset.
 
-Status: ⏳ Pending.
+Status: ✅ Completed.
 
 Scope:
 - add `layerIndexedDb` in `BrowserPersistence.ts`

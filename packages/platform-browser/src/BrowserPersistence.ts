@@ -53,6 +53,15 @@ export const layerBackingIndexedDb = (options?: Options): Layer.Layer<Persistenc
     })
   }))
 
+/**
+ * @since 1.0.0
+ * @category layers
+ */
+export const layerIndexedDb = (options?: Options): Layer.Layer<Persistence.Persistence> =>
+  Persistence.layer.pipe(
+    Layer.provide(layerBackingIndexedDb(options))
+  )
+
 const openDatabase = (database: string): Effect.Effect<IDBDatabase, Persistence.PersistenceError> =>
   Effect.gen(function*() {
     const openRequest = yield* Effect.try({

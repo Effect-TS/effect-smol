@@ -17,6 +17,11 @@ export * as BrowserKeyValueStore from "./BrowserKeyValueStore.ts"
 /**
  * @since 1.0.0
  */
+export * as BrowserPersistence from "./BrowserPersistence.ts"
+
+/**
+ * @since 1.0.0
+ */
 export * as BrowserRuntime from "./BrowserRuntime.ts"
 
 /**
