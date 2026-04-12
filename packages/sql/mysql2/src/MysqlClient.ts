@@ -402,7 +402,7 @@ function queryStream(
 ) {
   return asyncPauseResume<any, SqlError>(Effect.fnUntraced(function*(emit) {
     const query = (conn as any).query(sql, params).stream()
-    yield* Effect.addFinalizer(() => Effect.sync(() => query.destroy()))
+    yield* Effect.addFinalizer(() => Effect.sync(() => query.destroy() as void))
 
     let buffer: Array<any> = []
     let taskPending = false
