@@ -18,7 +18,7 @@ import * as Schema from "../../Schema.ts"
 import type * as AST from "../../SchemaAST.ts"
 import * as Issue from "../../SchemaIssue.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
-import type * as Scope from "../../Scope.ts"
+import * as Scope from "../../Scope.ts"
 import * as Stream from "../../Stream.ts"
 import type { Covariant, NoInfer } from "../../Types.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
@@ -120,7 +120,9 @@ export const group = <
   Exclude<Handlers.Context<Return>, Scope.Scope>
 > =>
   Layer.effectContext(Effect.gen(function*() {
-    const services = yield* Effect.context<any>()
+    const services = (yield* Effect.context<any>()).pipe(
+      Context.omit(Scope.Scope)
+    )
     const group = api.groups[groupName]!
     const result = build(makeHandlers(group))
     const handlers: Handlers<any, any> = Effect.isEffect(result)
@@ -333,7 +335,13 @@ export const endpoint = <
   Effect.contextWith((context: Context.Context<any>) => {
     const group = api.groups[groupName] as unknown as HttpApiGroup.AnyWithProps
     const endpoint = group.endpoints[endpointName] as unknown as HttpApiEndpoint.AnyWithProps
-    return Effect.succeed(handlerToHttpEffect(group, endpoint, context, handler as any, false))
+    return Effect.succeed(handlerToHttpEffect(
+      group,
+      endpoint,
+      Context.omit(Scope.Scope)(context),
+      handler as any,
+      false
+    ))
   })
 
 /**
