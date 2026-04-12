@@ -1948,7 +1948,7 @@ export const kvs = <S extends Schema.Codec<any, any>, const Mode extends "sync" 
  */
 export const searchParam = <S extends Schema.Codec<any, string> = never>(name: string, options?: {
   readonly schema?: S | undefined
-}): Writable<S extends never ? string : Option.Option<S["Type"]>> => {
+}): Writable<[S] extends [never] ? string : Option.Option<S["Type"]>> => {
   const decode = options?.schema && Schema.decodeExit(options.schema)
   const encode = options?.schema && Schema.encodeExit(options.schema)
   return writable(
