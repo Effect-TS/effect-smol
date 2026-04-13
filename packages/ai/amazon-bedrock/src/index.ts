@@ -5,11 +5,6 @@
 // @barrel: Auto-generated exports. Do not edit manually.
 
 /**
- * Amazon Bedrock Client module for interacting with Amazon Bedrock's API.
- *
- * Provides a type-safe, Effect-based client for Bedrock operations including
- * converse and streaming responses with AWS SigV4 authentication.
- *
  * @since 1.0.0
  */
 export * as AmazonBedrockClient from "./AmazonBedrockClient.ts"
@@ -35,24 +30,25 @@ export * as AmazonBedrockError from "./AmazonBedrockError.ts"
 export * as AmazonBedrockLanguageModel from "./AmazonBedrockLanguageModel.ts"
 
 /**
- * Amazon Bedrock API request/response schemas.
- *
  * @since 1.0.0
  */
 export * as AmazonBedrockSchema from "./AmazonBedrockSchema.ts"
 
 /**
- * Amazon Bedrock provider-defined tools for use with the LanguageModel.
+ * Amazon Bedrock provider-defined tools.
  *
- * Re-exports Anthropic tools for use with Anthropic models running on
- * Amazon Bedrock.
+ * Re-exports Anthropic tools for use with Amazon Bedrock when running
+ * Anthropic models (e.g., Claude) on the Bedrock platform.
  *
  * @since 1.0.0
  */
 export * as AmazonBedrockTool from "./AmazonBedrockTool.ts"
 
 /**
- * AWS Event Stream encoding parser for Bedrock streaming responses.
+ * An event stream encoding parser for Amazon Bedrock streaming responses.
+ *
+ * See the [AWS Documentation](https://docs.aws.amazon.com/lexv2/latest/dg/event-stream-encoding.html)
+ * for more information.
  *
  * @since 1.0.0
  */
