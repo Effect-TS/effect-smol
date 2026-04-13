@@ -885,6 +885,20 @@ describe("OpenAPI spec", () => {
           })
         })
 
+        it("status(\"Created\")", () => {
+          const Api = HttpApi.make("api")
+            .add(
+              HttpApiGroup.make("group")
+                .add(HttpApiEndpoint.get("a", "/a", {
+                  success: Schema.Void.pipe(HttpApiSchema.status("Created"))
+                }))
+            )
+          const spec = OpenApi.fromApi(Api)
+          assert.deepStrictEqual(spec.paths["/a"].get?.responses["201"], {
+            description: "<No Content>"
+          })
+        })
+
         it("Accepted", () => {
           const Api = HttpApi.make("api")
             .add(
