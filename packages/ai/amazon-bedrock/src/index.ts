@@ -2,6 +2,8 @@
  * @since 1.0.0
  */
 
+// @barrel: Auto-generated exports. Do not edit manually.
+
 /**
  * Amazon Bedrock Client module for interacting with Amazon Bedrock's API.
  *
