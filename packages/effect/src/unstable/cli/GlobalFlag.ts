@@ -11,7 +11,7 @@ import * as CliOutput from "./CliOutput.ts"
 import type * as Command from "./Command.ts"
 import * as Completions_ from "./Completions.ts"
 import * as Flag from "./Flag.ts"
-import * as CommandDescriptor from "./internal/completions/CommandDescriptor.ts"
+import * as CommandDescriptor from "./internal/completions/descriptor.ts"
 import * as HelpInternal from "./internal/help.ts"
 
 /* ========================================================================== */

@@ -6,64 +6,16 @@
  */
 import * as Option from "../../../../Option.ts"
 import type { Command } from "../../Command.ts"
+import type * as Completions from "../../Completions.ts"
 import * as Param from "../../Param.ts"
 import * as Primitive from "../../Primitive.ts"
 import { toImpl } from "../command.ts"
 
 // ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-/** @internal */
-export interface CommandDescriptor {
-  readonly name: string
-  readonly description: string | undefined
-  readonly flags: ReadonlyArray<FlagDescriptor>
-  readonly arguments: ReadonlyArray<ArgumentDescriptor>
-  readonly subcommands: ReadonlyArray<CommandDescriptor>
-}
-
-/** @internal */
-export interface FlagDescriptor {
-  readonly name: string
-  readonly aliases: ReadonlyArray<string>
-  readonly description: string | undefined
-  readonly type: FlagType
-}
-
-/** @internal */
-export type FlagType =
-  | { readonly _tag: "Boolean" }
-  | { readonly _tag: "String" }
-  | { readonly _tag: "Integer" }
-  | { readonly _tag: "Float" }
-  | { readonly _tag: "Date" }
-  | { readonly _tag: "Choice"; readonly values: ReadonlyArray<string> }
-  | { readonly _tag: "Path"; readonly pathType: "file" | "directory" | "either" }
-
-/** @internal */
-export interface ArgumentDescriptor {
-  readonly name: string
-  readonly description: string | undefined
-  readonly required: boolean
-  readonly variadic: boolean
-  readonly type: ArgumentType
-}
-
-/** @internal */
-export type ArgumentType =
-  | { readonly _tag: "String" }
-  | { readonly _tag: "Integer" }
-  | { readonly _tag: "Float" }
-  | { readonly _tag: "Date" }
-  | { readonly _tag: "Choice"; readonly values: ReadonlyArray<string> }
-  | { readonly _tag: "Path"; readonly pathType: "file" | "directory" | "either" }
-
-// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-const toFlagType = (single: Param.Single<"flag", unknown>): FlagType => {
+const toFlagType = (single: Param.Single<"flag", unknown>): Completions.FlagType => {
   const tag = single.primitiveType._tag
   switch (tag) {
     case "Boolean":
@@ -92,7 +44,7 @@ const toFlagType = (single: Param.Single<"flag", unknown>): FlagType => {
   }
 }
 
-const toArgumentType = (single: Param.Single<"argument", unknown>): ArgumentType => {
+const toArgumentType = (single: Param.Single<"argument", unknown>): Completions.ArgumentType => {
   const tag = single.primitiveType._tag
   switch (tag) {
     case "Integer":
@@ -124,11 +76,11 @@ const toArgumentType = (single: Param.Single<"argument", unknown>): ArgumentType
 // ---------------------------------------------------------------------------
 
 /** @internal */
-export const fromCommand = (cmd: Command.Any): CommandDescriptor => {
+export const fromCommand = (cmd: Command.Any): Completions.CommandDescriptor => {
   const impl = toImpl(cmd)
   const config = impl.config
 
-  const flags: Array<FlagDescriptor> = []
+  const flags: Array<Completions.FlagDescriptor> = []
   for (const flag of config.flags) {
     const singles = Param.extractSingleParams(flag)
     for (const single of singles) {
@@ -142,7 +94,7 @@ export const fromCommand = (cmd: Command.Any): CommandDescriptor => {
     }
   }
 
-  const args: Array<ArgumentDescriptor> = []
+  const args: Array<Completions.ArgumentDescriptor> = []
   for (const arg of config.arguments) {
     const singles = Param.extractSingleParams(arg)
     const metadata = Param.getParamMetadata(arg)
@@ -158,7 +110,7 @@ export const fromCommand = (cmd: Command.Any): CommandDescriptor => {
     }
   }
 
-  const subcommands: Array<CommandDescriptor> = []
+  const subcommands: Array<Completions.CommandDescriptor> = []
   for (const group of cmd.subcommands) {
     for (const subcommand of group.commands) {
       subcommands.push(fromCommand(subcommand))
