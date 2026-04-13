@@ -719,8 +719,7 @@ describe("AmazonBedrockLanguageModel", () => {
           region: "us-east-1",
           transformClient: (client) =>
             HttpClient.mapRequest(client, (request) =>
-              HttpClientRequest.setHeader(request, "authorization", "Bearer my-bearer-token")
-            )
+              HttpClientRequest.setHeader(request, "authorization", "Bearer my-bearer-token"))
         }).pipe(
           Layer.provide(Layer.succeed(
             HttpClient.HttpClient,

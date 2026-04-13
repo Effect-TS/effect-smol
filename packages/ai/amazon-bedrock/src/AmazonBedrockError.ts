@@ -7,14 +7,22 @@
  * @since 1.0.0
  */
 
+import type { MutableJson } from "effect/Schema"
+
 /**
  * @since 1.0.0
  * @category models
  */
-export interface AmazonBedrockErrorMetadata {}
+export interface AmazonBedrockErrorMetadata {
+  readonly [key: string]: MutableJson
+}
 
 declare module "effect/unstable/ai/AiError" {
-  export interface InvalidRequestErrorMetadata {
+  export interface RateLimitErrorMetadata {
+    readonly bedrock?: AmazonBedrockErrorMetadata | null
+  }
+
+  export interface QuotaExhaustedErrorMetadata {
     readonly bedrock?: AmazonBedrockErrorMetadata | null
   }
 
@@ -22,11 +30,27 @@ declare module "effect/unstable/ai/AiError" {
     readonly bedrock?: AmazonBedrockErrorMetadata | null
   }
 
-  export interface RateLimitErrorMetadata {
+  export interface ContentPolicyErrorMetadata {
+    readonly bedrock?: AmazonBedrockErrorMetadata | null
+  }
+
+  export interface InvalidRequestErrorMetadata {
     readonly bedrock?: AmazonBedrockErrorMetadata | null
   }
 
   export interface InternalProviderErrorMetadata {
+    readonly bedrock?: AmazonBedrockErrorMetadata | null
+  }
+
+  export interface InvalidOutputErrorMetadata {
+    readonly bedrock?: AmazonBedrockErrorMetadata | null
+  }
+
+  export interface StructuredOutputErrorMetadata {
+    readonly bedrock?: AmazonBedrockErrorMetadata | null
+  }
+
+  export interface UnsupportedSchemaErrorMetadata {
     readonly bedrock?: AmazonBedrockErrorMetadata | null
   }
 

@@ -8,7 +8,7 @@
  */
 import { EventStreamCodec } from "@smithy/eventstream-codec"
 import { fromUtf8, toUtf8 } from "@smithy/util-utf8"
-import * as Arr from "effect/Array"
+import type * as Arr from "effect/Array"
 import * as Channel from "effect/Channel"
 import * as Effect from "effect/Effect"
 import type * as Pull from "effect/Pull"

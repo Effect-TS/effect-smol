@@ -2,7 +2,7 @@ import { AmazonBedrockClient, AmazonBedrockLanguageModel } from "@effect/ai-amaz
 import { assert, describe, it } from "@effect/vitest"
 import { Config, Effect, Layer, Stream } from "effect"
 import { LanguageModel } from "effect/unstable/ai"
-import { HttpClient } from "effect/unstable/http"
+import { FetchHttpClient } from "effect/unstable/http"
 
 // Smoke tests against real Bedrock API.
 // Silently skipped when AWS credentials are not available.
@@ -16,16 +16,17 @@ const TestLayer = AmazonBedrockClient.layerConfig({
     ? { sessionToken: Config.redacted("AWS_SESSION_TOKEN") }
     : {}),
   region: Config.string("AWS_REGION").pipe(Config.withDefault("us-east-1"))
-}).pipe(Layer.provide(HttpClient.layerFetch))
+}).pipe(Layer.provide(FetchHttpClient.layer))
 
 describe("AmazonBedrock Smoke Tests", () => {
   it.effect.runIf(hasCredentials)("Converse: minimal text generation", () =>
     Effect.gen(function*() {
       const result = yield* LanguageModel.generateText({
-        prompt: "Say hi",
-        maxTokens: 10
+        prompt: "Say hi"
       }).pipe(
-        Effect.provide(AmazonBedrockLanguageModel.model("amazon.nova-micro-v1:0")),
+        Effect.provide(AmazonBedrockLanguageModel.model("amazon.nova-micro-v1:0", {
+          inferenceConfig: { maxTokens: 10 }
+        })),
         Effect.provide(TestLayer)
       )
 
@@ -44,11 +45,12 @@ describe("AmazonBedrock Smoke Tests", () => {
   it.effect.runIf(hasCredentials)("ConverseStream: minimal streaming", () =>
     Effect.gen(function*() {
       const parts = yield* LanguageModel.streamText({
-        prompt: "Say hi",
-        maxTokens: 10
+        prompt: "Say hi"
       }).pipe(
         Stream.runCollect,
-        Effect.provide(AmazonBedrockLanguageModel.model("amazon.nova-micro-v1:0")),
+        Effect.provide(AmazonBedrockLanguageModel.model("amazon.nova-micro-v1:0", {
+          inferenceConfig: { maxTokens: 10 }
+        })),
         Effect.provide(TestLayer)
       )
 

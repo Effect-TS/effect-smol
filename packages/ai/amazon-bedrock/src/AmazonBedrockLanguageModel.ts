@@ -8,6 +8,7 @@ import * as Encoding from "effect/Encoding"
 import { dual } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Predicate from "effect/Predicate"
+import type { JsonObject } from "effect/Schema"
 import * as SchemaAST from "effect/SchemaAST"
 import * as Stream from "effect/Stream"
 import type { Span } from "effect/Tracer"
@@ -105,47 +106,47 @@ export type AmazonBedrockReasoningInfo = {
 }
 
 declare module "effect/unstable/ai/Prompt" {
-  export interface SystemMessageOptions {
+  export interface SystemMessageOptions extends ProviderOptions {
     readonly bedrock?: {
-      readonly cachePoint?: typeof CachePointBlock.Encoded | undefined
-    } | undefined
+      readonly cachePoint?: typeof CachePointBlock.Encoded | null
+    } | null
   }
 
-  export interface UserMessageOptions {
+  export interface UserMessageOptions extends ProviderOptions {
     readonly bedrock?: {
-      readonly cachePoint?: typeof CachePointBlock.Encoded | undefined
-    } | undefined
+      readonly cachePoint?: typeof CachePointBlock.Encoded | null
+    } | null
   }
 
-  export interface AssistantMessageOptions {
+  export interface AssistantMessageOptions extends ProviderOptions {
     readonly bedrock?: {
-      readonly cachePoint?: typeof CachePointBlock.Encoded | undefined
-    } | undefined
+      readonly cachePoint?: typeof CachePointBlock.Encoded | null
+    } | null
   }
 
-  export interface ToolMessageOptions {
+  export interface ToolMessageOptions extends ProviderOptions {
     readonly bedrock?: {
-      readonly cachePoint?: typeof CachePointBlock.Encoded | undefined
-    } | undefined
+      readonly cachePoint?: typeof CachePointBlock.Encoded | null
+    } | null
   }
 
-  export interface ReasoningPartOptions {
-    readonly bedrock?: AmazonBedrockReasoningInfo | undefined
+  export interface ReasoningPartOptions extends ProviderOptions {
+    readonly bedrock?: AmazonBedrockReasoningInfo | null
   }
 }
 
 declare module "effect/unstable/ai/Response" {
-  export interface ReasoningPartMetadata {
-    readonly bedrock?: AmazonBedrockReasoningInfo | undefined
+  export interface ReasoningPartMetadata extends ProviderMetadata {
+    readonly bedrock?: AmazonBedrockReasoningInfo | null
   }
 
-  export interface FinishPartMetadata {
+  export interface FinishPartMetadata extends ProviderMetadata {
     readonly bedrock?: {
-      readonly trace?: Record<string, unknown> | undefined
+      readonly trace?: JsonObject | null
       readonly usage: {
-        readonly cacheWriteInputTokens?: number | undefined
+        readonly cacheWriteInputTokens?: number | null
       }
-    } | undefined
+    } | null
   }
 }
 
@@ -245,9 +246,7 @@ export const make = Effect.fnUntraced(function*(options: {
       },
       (effect, options) =>
         effect.pipe(
-          Effect.flatMap(({ request, stream, nameMapper }) =>
-            makeStreamResponse(request, stream, options, nameMapper)
-          ),
+          Effect.flatMap(({ request, stream, nameMapper }) => makeStreamResponse(request, stream, options, nameMapper)),
           Stream.unwrap,
           Stream.map((response) => {
             annotateStreamResponse(options.span, response)
@@ -424,7 +423,7 @@ const prepareMessages: (options: LanguageModel.ProviderOptions) => Effect.Effect
 
                 case "reasoning": {
                   const options = part.options.bedrock
-                  if (Predicate.isNotUndefined(options)) {
+                  if (options != null) {
                     if (options.type === "thinking") {
                       content.push({
                         reasoningContent: {
@@ -575,7 +574,7 @@ const makeResponse: (
     metadata: {
       bedrock: {
         ...(response.trace !== undefined
-          ? { trace: response.trace as unknown as Record<string, unknown> }
+          ? { trace: response.trace as unknown as JsonObject }
           : undefined),
         usage: {
           ...(response.usage.cacheWriteInputTokens !== undefined
@@ -617,7 +616,7 @@ const makeStreamResponse: (
       }
     > = {}
 
-    let trace: Record<string, unknown> | undefined = undefined
+    let trace: JsonObject | undefined = undefined
     let cacheWriteInputTokens: number | undefined = undefined
     let finishReason: Response.FinishReason | undefined = undefined
     let hasMetadata = false
@@ -868,7 +867,7 @@ const makeStreamResponse: (
             cacheWriteInputTokens = event.metadata.usage.cacheWriteInputTokens
           }
           if (Predicate.isNotUndefined(event.metadata.trace)) {
-            trace = event.metadata.trace as unknown as Record<string, unknown>
+            trace = event.metadata.trace as unknown as JsonObject
           }
           hasMetadata = true
           tryEmitFinish(parts)
@@ -1138,7 +1137,7 @@ const getCachePoint = (
     | Prompt.UserMessage
     | Prompt.AssistantMessage
     | Prompt.ToolMessage
-): typeof CachePointBlock.Encoded | undefined => part.options.bedrock?.cachePoint
+): typeof CachePointBlock.Encoded | undefined => part.options.bedrock?.cachePoint ?? undefined
 
 const convertToBase64 = (data: string | Uint8Array): string =>
   typeof data === "string" ? data : Encoding.encodeBase64(data)

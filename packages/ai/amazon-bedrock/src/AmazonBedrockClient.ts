@@ -1,6 +1,7 @@
 /**
  * @since 1.0.0
  */
+import { AwsV4Signer } from "aws4fetch"
 import * as Arr from "effect/Array"
 import type * as Config from "effect/Config"
 import * as Context from "effect/Context"
@@ -9,16 +10,15 @@ import { identity } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Predicate from "effect/Predicate"
 import * as Redacted from "effect/Redacted"
-import * as Schema from "effect/Schema"
+import type * as Schema from "effect/Schema"
 import * as Stream from "effect/Stream"
-import * as AiError from "effect/unstable/ai/AiError"
+import type * as AiError from "effect/unstable/ai/AiError"
 import * as Headers from "effect/unstable/http/Headers"
 import * as HttpBody from "effect/unstable/http/HttpBody"
 import * as HttpClient from "effect/unstable/http/HttpClient"
 import * as HttpClientError from "effect/unstable/http/HttpClientError"
 import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
 import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
-import { AwsV4Signer } from "aws4fetch"
 import { AmazonBedrockConfig } from "./AmazonBedrockConfig.ts"
 import type { ConverseRequest } from "./AmazonBedrockSchema.ts"
 import { ConverseResponse, ConverseResponseStreamEvent } from "./AmazonBedrockSchema.ts"
@@ -117,10 +117,8 @@ export const make = Effect.fnUntraced(
       function*(request) {
         return yield* client.converse(request).pipe(
           Effect.catchTags({
-            HttpClientError: (error: HttpClientError.HttpClientError) =>
-              Errors.mapHttpClientError(error, "converse"),
-            SchemaError: (error: Schema.SchemaError) =>
-              Effect.fail(Errors.mapSchemaError(error, "converse"))
+            HttpClientError: (error: HttpClientError.HttpClientError) => Errors.mapHttpClientError(error, "converse"),
+            SchemaError: (error: Schema.SchemaError) => Effect.fail(Errors.mapSchemaError(error, "converse"))
           })
         )
       }
@@ -137,8 +135,7 @@ export const make = Effect.fnUntraced(
         Stream.catchTags({
           HttpClientError: (error: HttpClientError.HttpClientError) =>
             Stream.unwrap(Errors.mapHttpClientError(error, "streamRequest")),
-          SchemaError: (error: Schema.SchemaError) =>
-            Stream.fail(Errors.mapSchemaError(error, "streamRequest"))
+          SchemaError: (error: Schema.SchemaError) => Stream.fail(Errors.mapSchemaError(error, "streamRequest"))
         })
       ) as any
 
@@ -268,9 +265,8 @@ const makeClient = (
         f
       )
     : (f) => (request) => Effect.flatMap(httpClient.execute(request), f)
-  const decodeSuccess =
-    <T>(schema: Schema.Schema<T>) => (response: HttpClientResponse.HttpClientResponse) =>
-      HttpClientResponse.schemaBodyJson(schema)(response)
+  const decodeSuccess = <T>(schema: Schema.Schema<T>) => (response: HttpClientResponse.HttpClientResponse) =>
+    HttpClientResponse.schemaBodyJson(schema)(response)
   return {
     converse: ({ params, payload: { modelId, ...payload } }) =>
       HttpClientRequest.post(`/model/${modelId}/converse`).pipe(

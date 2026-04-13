@@ -742,7 +742,9 @@ export class GuardrailConfiguration extends Schema.Class<GuardrailConfiguration>
   guardrailIdentifier: Schema.String
     .check(Schema.isMinLength(0))
     .check(Schema.isMaxLength(2048))
-    .check(Schema.isPattern(/^(([a-z0-9]+)|(arn:aws(-[^:]+)?:bedrock:[a-z0-9-]{1,20}:[0-9]{12}:guardrail\/[a-z0-9]+))$/)),
+    .check(
+      Schema.isPattern(/^(([a-z0-9]+)|(arn:aws(-[^:]+)?:bedrock:[a-z0-9-]{1,20}:[0-9]{12}:guardrail\/[a-z0-9]+))$/)
+    ),
   guardrailVersion: Schema.String
     .check(Schema.isPattern(/^(([1-9][0-9]{0,7})|(DRAFT))$/)),
   trace: Schema.optionalKey(Schema.Literals(["enabled", "disabled", "enabled_full"]))
