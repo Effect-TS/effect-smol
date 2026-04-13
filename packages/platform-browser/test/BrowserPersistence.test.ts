@@ -164,7 +164,9 @@ describe.sequential("BrowserPersistence", () => {
 
 const withStore = <A>(
   storeId: string,
-  options: BrowserPersistence.Options | undefined,
+  options: {
+    readonly database?: string | undefined
+  } | undefined,
   f: (store: Persistence.BackingPersistenceStore) => Effect.Effect<A, Persistence.PersistenceError>
 ) =>
   Effect.gen(function*() {
