@@ -1,5 +1,15 @@
 # effect
 
+## 4.0.0-beta.49
+
+### Patch Changes
+
+- [#2035](https://github.com/Effect-TS/effect-smol/pull/2035) [`7d87873`](https://github.com/Effect-TS/effect-smol/commit/7d8787340ff549370f6f2a88b612e9ebbfd6ba45) Thanks @tim-smart! - Add support for common HTTP status string literals in `HttpApiSchema.status` (for example, `HttpApiSchema.status("Created")` resolves to status code `201`).
+
+- [#2036](https://github.com/Effect-TS/effect-smol/pull/2036) [`c2f6f90`](https://github.com/Effect-TS/effect-smol/commit/c2f6f901b200a6e515b4f02c93ce8005b7bbf1c5) Thanks @tim-smart! - add RpcGroup.omit
+
+- [#2034](https://github.com/Effect-TS/effect-smol/pull/2034) [`216f13c`](https://github.com/Effect-TS/effect-smol/commit/216f13c1fce454a21b489bb915714a17e791a1ac) Thanks @IMax153! - Fix issue with exported CLI `Completions` types
+
 ## 4.0.0-beta.48
 
 ### Patch Changes
