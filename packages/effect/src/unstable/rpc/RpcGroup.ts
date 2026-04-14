@@ -44,6 +44,13 @@ export interface RpcGroup<in out R extends Rpc.Any> extends Pipeable {
   ): RpcGroup<R | Rpcs<Groups[number]>>
 
   /**
+   * Omit one or more procedures from the group.
+   */
+  omit<const Tags extends ReadonlyArray<R["_tag"]>>(
+    ...tags: Tags
+  ): RpcGroup<Exclude<R, { readonly _tag: Tags[number] }>>
+
+  /**
    * Add middleware to all the procedures added to the group until this point.
    */
   middleware<M extends RpcMiddleware.AnyService>(middleware: M): RpcGroup<Rpc.AddMiddleware<R, M>>
@@ -240,6 +247,16 @@ const RpcGroupProto = {
     return makeProto({
       requests,
       annotations: Context.makeUnsafe(annotations)
+    })
+  },
+  omit(this: RpcGroup<any>, ...tags: Array<string>) {
+    const requests = new Map(this.requests)
+    for (const tag of tags) {
+      requests.delete(tag)
+    }
+    return makeProto({
+      requests,
+      annotations: this.annotations
     })
   },
   middleware(this: RpcGroup<any>, middleware: RpcMiddleware.AnyService) {

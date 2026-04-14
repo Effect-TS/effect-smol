@@ -13,12 +13,14 @@ class Metrics extends Context.Service<Metrics, {
 }>()("Metrics") {}
 
 const GetUser = Rpc.make("GetUser", { success: Schema.String })
-const Group = RpcGroup.make(GetUser)
+const UpdateUser = Rpc.make("UpdateUser", { success: Schema.String })
+const Group = RpcGroup.make(GetUser, UpdateUser)
 
 describe("RpcGroup", () => {
   it("toLayer includes handler dependencies in layer services", () => {
     const layer = Group.toLayer({
-      GetUser: () => Db.use((db) => Effect.succeed(db.value))
+      GetUser: () => Db.use((db) => Effect.succeed(db.value)),
+      UpdateUser: () => Db.use((db) => Effect.succeed(db.value))
     })
 
     type HasExpectedServices = [Layer.Services<typeof layer>] extends [Db] ?
@@ -30,7 +32,8 @@ describe("RpcGroup", () => {
 
   it("toLayer includes handler dependencies from effect-built handlers", () => {
     const layer = Group.toLayer(Effect.succeed({
-      GetUser: () => Db.use((db) => Effect.succeed(db.value))
+      GetUser: () => Db.use((db) => Effect.succeed(db.value)),
+      UpdateUser: () => Db.use((db) => Effect.succeed(db.value))
     }))
 
     type HasExpectedServices = [Layer.Services<typeof layer>] extends [Db] ?
@@ -48,5 +51,11 @@ describe("RpcGroup", () => {
       false
 
     expect<HasExpectedServices>().type.toBe<true>()
+  })
+
+  it("omit removes an rpc", () => {
+    const group = Group.omit("GetUser")
+    type Tags = RpcGroup.Rpcs<typeof group>["_tag"]
+    expect<Tags>().type.toBe<"UpdateUser">()
   })
 })
