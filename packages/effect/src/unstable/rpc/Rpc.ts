@@ -3,6 +3,7 @@
  */
 import type * as Cause from "../../Cause.ts"
 import * as Context from "../../Context.ts"
+import type { Deferred } from "../../Deferred.ts"
 import type { Effect } from "../../Effect.ts"
 import type { Exit as Exit_ } from "../../Exit.ts"
 import * as Option from "../../Option.ts"
@@ -180,7 +181,7 @@ export interface Handler<Tag extends string> {
     readonly requestId: RequestId
     readonly headers: Headers
     readonly rpc: Any
-  }) => Effect<any, any> | Stream<any, any>
+  }) => Effect<{} | Deferred<any, any>, any> | Stream<any, any>
   readonly context: Context.Context<never>
 }
 
@@ -591,7 +592,7 @@ export type ResultFrom<R extends Any, Services> = R extends Rpc<
         Services
       > :
   Effect<
-    _Success["Type"],
+    _Success["Type"] | Deferred<_Success["Type"], _Error["Type"]>,
     _Error["Type"],
     Services
   > :
@@ -865,6 +866,12 @@ export const wrap = (options: {
       fork: options.fork ?? false,
       uninterruptible: options.uninterruptible ?? false
     }
+
+/**
+ * @since 4.0.0
+ * @category Wrapper
+ */
+export const unwrap = <A extends object>(value: WrapperOr<A>): A => isWrapper(value) ? value.value : value
 
 /**
  * @since 4.0.0

@@ -433,7 +433,7 @@ export const run: (options: {
                   requestId: RpcMessage.RequestId(request.id),
                   client: new Rpc.ServerClient(clientId),
                   headers: Headers.fromInput(request.headers)
-                }) as Effect.Effect<void>
+                }) as any as Effect.Effect<void>
                 : Effect.void
             }
             return f(clientId, request)

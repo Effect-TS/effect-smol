@@ -37,6 +37,14 @@ export const e2eSuite = <E>(
         assert.deepStrictEqual(user, new User({ id: "1", name: "Logged in user" }))
       }).pipe(Effect.provide(layer)))
 
+    it.effect("should get deferred user", () =>
+      Effect.gen(function*() {
+        const client = yield* UsersClient
+        const user = yield* client.GetUserDeferred({ id: "1" })
+        assert.instanceOf(user, User)
+        assert.deepStrictEqual(user, new User({ id: "1", name: "John" }))
+      }).pipe(Effect.provide(layer)))
+
     it.effect("nested method", () =>
       Effect.gen(function*() {
         const client = yield* UsersClient

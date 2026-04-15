@@ -104,7 +104,7 @@ export const layerRpcHandlers = (options: {
       "EventLog.Authenticate": Effect.fnUntraced(function*(request, { client }) {
         const challenge = Option.getOrNull(yield* Cache.getOption(clientChallenges, client.id))
         if (!challenge) {
-          return new EventLogProtocolError({
+          return yield* new EventLogProtocolError({
             requestTag: "Authenticate",
             publicKey: request.publicKey,
             code: "Forbidden",
@@ -139,7 +139,7 @@ export const layerRpcHandlers = (options: {
           })
         }
 
-        client
+        void client
           .annotate(EventLog.Identity, {
             publicKey: request.publicKey,
             privateKey: constEmptyPrivateKey

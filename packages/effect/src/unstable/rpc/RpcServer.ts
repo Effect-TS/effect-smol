@@ -252,28 +252,45 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
     // unwrap the fork data type
     const streamOrEffect = isWrapper ? result.value : result
     const handler = isStream
-      ? (streamEffect(client, request, streamOrEffect) as Effect.Effect<any>)
-      : (streamOrEffect as Effect.Effect<any>)
+      ? (streamEffect(client, request, streamOrEffect) as Effect.Effect<{} | Deferred.Deferred<any, any>>)
+      : (streamOrEffect as Effect.Effect<{} | Deferred.Deferred<any, any>>)
 
     const withMiddleware = rpc.middlewares.size > 0
       ? applyMiddleware(services, handler, metadata)
       : handler
     let responded = false
     const scope = Scope.makeUnsafe()
+    let deferred: Deferred.Deferred<unknown, unknown> | undefined = undefined
     let effect = Effect.onExit(withMiddleware, (exit) => {
       responded = true
-      const close = Scope.closeUnsafe(scope, exit)
-      const write = exit._tag === "Failure" &&
-          !disableFatalDefects &&
-          Cause.hasDies(exit.cause) &&
-          !Cause.hasInterrupts(exit.cause)
-        ? sendDefect(client, Cause.squash(exit.cause))
-        : options.onFromServer({
+      let write: Effect.Effect<void>
+      if (exit._tag === "Success") {
+        if (Deferred.isDeferred(exit.value)) {
+          deferred = exit.value
+          write = Effect.void
+        } else {
+          write = options.onFromServer({
+            _tag: "Exit",
+            clientId: client.id,
+            requestId: request.id,
+            exit: exit as any
+          })
+        }
+      } else if (
+        !disableFatalDefects &&
+        Cause.hasDies(exit.cause) &&
+        !Cause.hasInterrupts(exit.cause)
+      ) {
+        write = sendDefect(client, Cause.squash(exit.cause))
+      } else {
+        write = options.onFromServer({
           _tag: "Exit",
           clientId: client.id,
           requestId: request.id,
-          exit
+          exit: exit as any
         })
+      }
+      const close = Scope.closeUnsafe(scope, exit)
       if (exit._tag === "Failure") {
         reportCauseUnsafe(Fiber.getCurrent()!, exit.cause)
       }
@@ -304,7 +321,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
       })
     }
     if (!isFork && concurrencySemaphore) {
-      effect = concurrencySemaphore.withPermits(1)(effect)
+      effect = concurrencySemaphore.withPermit(effect)
     }
     const context = new Map(entry.context.mapUnsafe)
     requestFiber.context.mapUnsafe.forEach((value, key) => context.set(key, value))
@@ -317,7 +334,20 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
       )
     )
     client.fibers.set(request.id, fiber)
-    fiber.addObserver((exit) => {
+    fiber.addObserver(function onExit(exit: Exit.Exit<any, any>): void {
+      if (deferred) {
+        const fiber = trackFiber(runFork(Effect.onExit(Deferred.await(deferred), (exit) =>
+          options.onFromServer({
+            _tag: "Exit",
+            clientId: client.id,
+            requestId: request.id,
+            exit: exit as any
+          }))))
+        client.fibers.set(request.id, fiber)
+        deferred = undefined
+        fiber.addObserver(onExit)
+        return
+      }
       if (!responded && exit._tag === "Failure") {
         trackFiber(
           runFork(
@@ -415,7 +445,7 @@ const applyMiddleware = <A, E, R>(
     readonly client: Rpc.ServerClient
     readonly requestId: RequestId
     readonly headers: Headers.Headers
-    readonly payload: A
+    readonly payload: unknown
   }
 ) => {
   for (const service of options.rpc.middlewares) {
