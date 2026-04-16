@@ -4,7 +4,6 @@
 import * as Context from "../../Context.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
-import * as Hash from "../../Hash.ts"
 import * as Layer from "../../Layer.ts"
 import type { ReadonlyRecord } from "../../Record.ts"
 import * as Schema from "../../Schema.ts"
@@ -73,6 +72,7 @@ export interface AtomRpcClient<Self, Id extends string, Rpcs extends Rpc.Any> ex
         | ReadonlyRecord<string, ReadonlyArray<unknown>>
         | undefined
       readonly timeToLive?: Duration.Input | undefined
+      readonly serializationKey?: ((payload: Rpc.PayloadConstructor<Rpc.ExtractTag<Rpcs, Tag>>) => string) | undefined
     }
   ) => Rpc.ExtractTag<Rpcs, Tag> extends Rpc.Rpc<
     infer _Tag,
@@ -194,6 +194,7 @@ export const Service = <Self>() =>
     )
   }) as any
 
+  const querySerializationFns = new WeakMap<object, (payload: any) => string>()
   const queryFamily = Atom.family(
     (key: QueryKey) => {
       const { headers, payload, reactivityKeys, tag, timeToLive } = key
@@ -212,9 +213,10 @@ export const Service = <Self>() =>
         : self.runtime.atom(
           self.use((client) => client(tag, payload, { headers } as any)) as any
         )
-      if (!isStream) {
+      const serializationFn = querySerializationFns.get(key)
+      if (!isStream && serializationFn) {
         atom = Atom.serializable(atom, {
-          key: makeSerializableKey(key),
+          key: `AtomRpc:${key.tag}:${serializationFn(payload)}`,
           schema: AsyncResult.Schema({
             success: rpc.successSchema,
             error: makeErrorSchema(rpc)
@@ -242,9 +244,10 @@ export const Service = <Self>() =>
         | ReadonlyRecord<string, ReadonlyArray<unknown>>
         | undefined
       readonly timeToLive?: Duration.Input | undefined
+      readonly serializationKey?: ((payload: Rpc.PayloadConstructor<Rpc.ExtractTag<Rpcs, Tag>>) => string) | undefined
     }
-  ) =>
-    queryFamily({
+  ) => {
+    const key: QueryKey = {
       tag,
       payload,
       headers: options?.headers
@@ -254,7 +257,12 @@ export const Service = <Self>() =>
       timeToLive: options?.timeToLive
         ? Duration.fromInputUnsafe(options.timeToLive)
         : undefined
-    }) as any
+    }
+    if (options?.serializationKey) {
+      querySerializationFns.set(key, options.serializationKey)
+    }
+    return queryFamily(key) as any
+  }
 
   return self as AtomRpcClient<Self, Id, Rpcs>
 }
@@ -262,12 +270,12 @@ export const Service = <Self>() =>
 interface QueryKey {
   tag: string
   payload: any
-  headers?: Headers.Headers | undefined
-  reactivityKeys?:
+  headers: Headers.Headers | undefined
+  reactivityKeys:
     | ReadonlyArray<unknown>
     | ReadonlyRecord<string, ReadonlyArray<unknown>>
     | undefined
-  timeToLive?: Duration.Duration | undefined
+  timeToLive: Duration.Duration | undefined
 }
 
 const makeErrorSchema = (rpc: Rpc.AnyWithProps): Schema.Top =>
@@ -276,5 +284,3 @@ const makeErrorSchema = (rpc: Rpc.AnyWithProps): Schema.Top =>
     ...Array.from(rpc.middlewares, (middleware) => middleware.error),
     RpcClientError
   ])
-
-const makeSerializableKey = (key: QueryKey): string => `AtomRpc:${key.tag}:${Hash.hash(key)}`

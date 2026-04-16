@@ -47,7 +47,8 @@ describe("AtomHttpApi", () => {
 
       const atom = Client.query("group", "get", {
         params: { id: 1 },
-        query: { page: 2 }
+        query: { page: 2 },
+        serializationKey: ({ params, query }) => `${params.id}:${query.page}`
       })
 
       if (!Atom.isSerializable(atom)) {
