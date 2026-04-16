@@ -589,11 +589,14 @@ export const makeRpc: Effect.Effect<
         return Effect.void
       }
       const envelope = message.envelope
-      return RcMap.get(clients, address.value).pipe(
-        Effect.flatMap((client) => client.Notify({ envelope })),
-        Effect.scoped,
-        Effect.ignore
-      )
+      const encode: Effect.Effect<Envelope.AckChunk | Envelope.Interrupt | Envelope.PartialRequest> =
+        message._tag === "OutgoingRequest" ? Effect.orDie(Message.serializeRequest(message)) : Effect.succeed(envelope)
+      return Effect.flatMap(encode, (envelope) =>
+        RcMap.get(clients, address.value).pipe(
+          Effect.flatMap((client) => client.Notify({ envelope })),
+          Effect.scoped,
+          Effect.ignore
+        ))
     },
     onRunnerUnavailable: (address) => RcMap.invalidate(clients, address)
   })
