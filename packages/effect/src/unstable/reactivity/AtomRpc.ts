@@ -72,7 +72,7 @@ export interface AtomRpcClient<Self, Id extends string, Rpcs extends Rpc.Any> ex
         | ReadonlyRecord<string, ReadonlyArray<unknown>>
         | undefined
       readonly timeToLive?: Duration.Input | undefined
-      readonly serializationKey?: ((payload: Rpc.PayloadConstructor<Rpc.ExtractTag<Rpcs, Tag>>) => string) | undefined
+      readonly serializationKey?: string | undefined
     }
   ) => Rpc.ExtractTag<Rpcs, Tag> extends Rpc.Rpc<
     infer _Tag,
@@ -194,7 +194,6 @@ export const Service = <Self>() =>
     )
   }) as any
 
-  const querySerializationFns = new WeakMap<object, (payload: any) => string>()
   const queryFamily = Atom.family(
     (key: QueryKey) => {
       const { headers, payload, reactivityKeys, tag, timeToLive } = key
@@ -213,10 +212,9 @@ export const Service = <Self>() =>
         : self.runtime.atom(
           self.use((client) => client(tag, payload, { headers } as any)) as any
         )
-      const serializationFn = querySerializationFns.get(key)
-      if (!isStream && serializationFn) {
+      if (!isStream && key.serializationKey) {
         atom = Atom.serializable(atom, {
-          key: `AtomRpc:${key.tag}:${serializationFn(payload)}`,
+          key: `AtomRpc:${key.tag}:${key.serializationKey}`,
           schema: AsyncResult.Schema({
             success: rpc.successSchema,
             error: makeErrorSchema(rpc)
@@ -244,7 +242,7 @@ export const Service = <Self>() =>
         | ReadonlyRecord<string, ReadonlyArray<unknown>>
         | undefined
       readonly timeToLive?: Duration.Input | undefined
-      readonly serializationKey?: ((payload: Rpc.PayloadConstructor<Rpc.ExtractTag<Rpcs, Tag>>) => string) | undefined
+      readonly serializationKey?: string | undefined
     }
   ) => {
     const key: QueryKey = {
@@ -256,10 +254,8 @@ export const Service = <Self>() =>
       reactivityKeys: options?.reactivityKeys,
       timeToLive: options?.timeToLive
         ? Duration.fromInputUnsafe(options.timeToLive)
-        : undefined
-    }
-    if (options?.serializationKey) {
-      querySerializationFns.set(key, options.serializationKey)
+        : undefined,
+      serializationKey: options?.serializationKey
     }
     return queryFamily(key) as any
   }
@@ -276,6 +272,7 @@ interface QueryKey {
     | ReadonlyRecord<string, ReadonlyArray<unknown>>
     | undefined
   timeToLive: Duration.Duration | undefined
+  serializationKey: string | undefined
 }
 
 const makeErrorSchema = (rpc: Rpc.AnyWithProps): Schema.Top =>

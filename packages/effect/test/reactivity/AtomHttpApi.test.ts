@@ -48,7 +48,7 @@ describe("AtomHttpApi", () => {
       const atom = Client.query("group", "get", {
         params: { id: 1 },
         query: { page: 2 },
-        serializationKey: ({ params, query }) => `${params.id}:${query.page}`
+        serializationKey: `1:2`
       })
 
       if (!Atom.isSerializable(atom)) {
@@ -58,7 +58,8 @@ describe("AtomHttpApi", () => {
 
       const atomFromEncodedInput = Client.query("group", "get", {
         params: { id: 1 },
-        query: { page: 2 }
+        query: { page: 2 },
+        serializationKey: `1:2`
       })
       if (!Atom.isSerializable(atomFromEncodedInput)) {
         assert.fail("expected query atom from encoded input to be serializable")

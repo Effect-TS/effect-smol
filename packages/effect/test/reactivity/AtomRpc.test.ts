@@ -38,7 +38,7 @@ describe("AtomRpc", () => {
         headers: {
           "x-id": "abc"
         },
-        serializationKey: (p) => p.id.toString()
+        serializationKey: "1"
       })
 
       if (!Atom.isSerializable(atom)) {
@@ -49,7 +49,8 @@ describe("AtomRpc", () => {
       const atomFromEncodedPayload = Client.query("getUser", { id: 1 }, {
         headers: {
           "x-id": "abc"
-        }
+        },
+        serializationKey: "1"
       })
       assert(Atom.isSerializable(atomFromEncodedPayload), "expected query atom from encoded payload to be serializable")
       assert(atom === atomFromEncodedPayload)

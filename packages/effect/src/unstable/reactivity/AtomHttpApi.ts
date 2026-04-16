@@ -104,13 +104,7 @@ export interface AtomHttpApiClient<Self, Id extends string, Groups extends HttpA
             | ReadonlyRecord<string, ReadonlyArray<unknown>>
             | undefined
           readonly timeToLive?: Duration.Input | undefined
-          readonly serializationKey?:
-            | ((options: {
-              readonly params: _Params["Type"]
-              readonly query: _Query["Type"]
-              readonly payload: _Payload["Type"]
-            }) => string)
-            | undefined
+          readonly serializationKey?: string | undefined
         }
       >
       : never
@@ -237,15 +231,6 @@ export const Service = <Self>() =>
       responseMode: options?.responseMode ?? "decoded-only"
     })) as any
 
-  const querySerializationFns = new WeakMap<
-    object,
-    (options: {
-      readonly params: any
-      readonly query: any
-      readonly payload: any
-    }) => string
-  >()
-
   const queryFamily = Atom.family((opts: QueryKey) => {
     let atom = self.runtime.atom(self.use((client_) => {
       const client = client_ as any
@@ -254,11 +239,10 @@ export const Service = <Self>() =>
         HttpClientError.HttpClientError | SchemaError
       >)
     }))
-    const serializationFn = querySerializationFns.get(opts)
-    if (opts.responseMode === "decoded-only" && serializationFn) {
+    if (opts.responseMode === "decoded-only" && opts.serializationKey) {
       const endpoint = options.api.groups[opts.group]!.endpoints[opts.endpoint]! as HttpApiEndpoint.AnyWithProps
       atom = Atom.serializable(atom, {
-        key: `AtomHttpApi:${opts.group}:${opts.endpoint}:${serializationFn(opts)}`,
+        key: `AtomHttpApi:${opts.group}:${opts.endpoint}:${opts.serializationKey}`,
         schema: AsyncResult.Schema({
           success: Schema.Union(HttpApiEndpoint.getSuccessSchemas(endpoint)),
           error: Schema.Union(HttpApiEndpoint.getErrorSchemas(endpoint))
@@ -286,13 +270,7 @@ export const Service = <Self>() =>
       readonly responseMode?: HttpApiEndpoint.ClientResponseMode
       readonly reactivityKeys?: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
       readonly timeToLive?: Duration.Input | undefined
-      readonly serializationKey?:
-        | ((options: {
-          readonly params: any
-          readonly query: any
-          readonly payload: any
-        }) => string)
-        | undefined
+      readonly serializationKey?: string | undefined
     }
   ) => {
     const key: QueryKey = {
@@ -306,10 +284,8 @@ export const Service = <Self>() =>
       reactivityKeys: request.reactivityKeys,
       timeToLive: request.timeToLive
         ? Duration.fromInputUnsafe(request.timeToLive)
-        : undefined
-    }
-    if (request.serializationKey) {
-      querySerializationFns.set(key, request.serializationKey)
+        : undefined,
+      serializationKey: request.serializationKey
     }
     return queryFamily(key)
   }) as any
@@ -333,6 +309,7 @@ interface QueryKey {
   responseMode: HttpApiEndpoint.ClientResponseMode
   reactivityKeys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
   timeToLive: Duration.Duration | undefined
+  serializationKey: string | undefined
 }
 
 type ResponseByMode<Success, ResponseMode extends HttpApiEndpoint.ClientResponseMode> = [ResponseMode] extends
