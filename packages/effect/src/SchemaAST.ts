@@ -3372,7 +3372,14 @@ export const resolveDescription: (ast: AST) => string | undefined = InternalAnno
  * @internal
  */
 export function isJson(u: unknown): u is Schema.Json {
-  const seen = new Set<unknown>()
+  // `onPath` is the current recursion stack: nodes between the root and the
+  // one being visited. A hit here means we looped back to an ancestor — a
+  // real cycle, not a DAG — so the value is not JSON.
+  const onPath = new Set<unknown>()
+  // `validated` memoizes subtrees we've already fully checked. Without it, a
+  // diamond-shaped DAG (same node reached through multiple parents) would be
+  // re-traversed once per parent, which is exponential in the nesting depth.
+  const validated = new Set<unknown>()
   return recur(u)
 
   function recur(u: unknown): boolean {
@@ -3385,14 +3392,23 @@ export function isJson(u: unknown): u is Schema.Json {
     if (typeof u !== "object" || u === undefined) {
       return false
     }
-    if (seen.has(u)) {
+    if (onPath.has(u)) {
       return false
     }
-    seen.add(u)
-    if (Array.isArray(u)) {
-      return u.every(recur)
+    if (validated.has(u)) {
+      return true
     }
-    return Object.keys(u).every((key) => recur((u as Record<string, unknown>)[key]))
+    onPath.add(u)
+    const ok = Array.isArray(u)
+      ? u.every(recur)
+      : Object.keys(u).every((key) => recur((u as Record<string, unknown>)[key]))
+    // Pop on exit so siblings reaching the same node via a different path
+    // don't see it as an ancestor (that would reject valid DAGs).
+    onPath.delete(u)
+    if (ok) {
+      validated.add(u)
+    }
+    return ok
   }
 }
 
