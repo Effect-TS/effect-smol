@@ -77,11 +77,10 @@ import * as Arr from "./Array.ts"
 import * as Cause from "./Cause.ts"
 import type * as Combiner from "./Combiner.ts"
 import * as Effect from "./Effect.ts"
-import type * as Exit from "./Exit.ts"
-import * as Fiber from "./Fiber.ts"
+import * as Exit from "./Exit.ts"
 import { format, formatPropertyKey } from "./Formatter.ts"
 import { memoize } from "./Function.ts"
-import { effectIsExit, forkUnsafe, interruptChildrenPatch } from "./internal/effect.ts"
+import { effectIsExit, iterateEager } from "./internal/effect.ts"
 import * as internalRecord from "./internal/record.ts"
 import * as InternalAnnotations from "./internal/schema/annotations.ts"
 import * as Option from "./Option.ts"
@@ -441,6 +440,13 @@ export interface ParseOptions {
    * transformations.
    */
   readonly disableChecks?: boolean | undefined
+
+  /**
+   * The maximum number of async effects to run concurrently.
+   *
+   * Defaults to 1.
+   */
+  readonly concurrency?: number | "unbounded" | undefined
 }
 
 /** @internal */
@@ -1377,37 +1383,32 @@ export class Arrays extends Base {
     const rest = ast.rest.map((ast) => ({ ast, parser: recur(ast) }))
     const elementLen = elements.length
 
-    const parseElements = forEachEager(
-      (
-        s: {
-          readonly oinput: Option.Option<unknown>
-          readonly input: ReadonlyArray<any>
-          readonly options: ParseOptions
-          readonly output: Array<unknown>
-          issues: Array<Issue.Issue> | undefined
-          readonly offset: number
-          parentFiber?: Fiber.Fiber<any, any> | undefined
-        },
-        e: typeof elements[number],
-        i
-      ) => {
+    const parseElements = iterateEager<{
+      readonly oinput: Option.Option<unknown>
+      readonly input: ReadonlyArray<any>
+      readonly options: ParseOptions
+      readonly output: Array<unknown>
+      issues: Array<Issue.Issue> | undefined
+      readonly offset: number
+    }, typeof elements[number]>()({
+      onItem(s, e, i) {
         const index = s.offset + i
         const value = index < s.input.length ? Option.some(s.input[index]) : Option.none()
         return e.parser(value, s.options)
       },
-      (s, exit, e, i) => {
+      step(s, e, exit, i) {
         const index = s.offset + i
         if (exit._tag === "Failure") {
           const issueElement = Cause.findError(exit.cause)
           if (Result.isFailure(issueElement)) {
-            return exit.cause
+            return exit
           }
           const issue = new Issue.Pointer([index], issueElement.success)
           if (s.options.errors === "all") {
             if (s.issues) s.issues.push(issue)
             else s.issues = [issue]
           } else {
-            return Cause.fail(new Issue.Composite(ast, s.oinput, [issue]))
+            return Exit.fail(new Issue.Composite(ast, s.oinput, [issue]))
           }
         } else if (exit.value._tag === "Some") {
           s.output[index] = exit.value.value
@@ -1417,38 +1418,36 @@ export class Arrays extends Base {
             if (s.issues) s.issues.push(issue)
             else s.issues = [issue]
           } else {
-            return Cause.fail(new Issue.Composite(ast, s.oinput, [issue]))
+            return Exit.fail(new Issue.Composite(ast, s.oinput, [issue]))
           }
         }
       }
-    )
+    })
 
     const [head, ...tail] = rest
     const tailLen = tail.length
     const keyAnnotations = head?.ast.context?.annotations
-    const parseRest = forEachEager(
-      (
-        s: {
-          readonly oinput: Option.Option<unknown>
-          readonly options: ParseOptions
-          readonly output: Array<unknown>
-          issues: Array<Issue.Issue> | undefined
-          parentFiber?: Fiber.Fiber<any, any> | undefined
-        },
-        a: unknown
-      ) => head.parser(Option.some(a), s.options),
-      (s, exit, _input, i) => {
+    const parseRest = iterateEager<{
+      readonly oinput: Option.Option<unknown>
+      readonly options: ParseOptions
+      readonly output: Array<unknown>
+      issues: Array<Issue.Issue> | undefined
+    }, unknown>()({
+      onItem(s, item) {
+        return head.parser(Option.some(item), s.options)
+      },
+      step(s, _, exit, i) {
         if (exit._tag === "Failure") {
           const issueRest = Cause.findError(exit.cause)
           if (Result.isFailure(issueRest)) {
-            return exit.cause
+            return exit
           }
           const issue = new Issue.Pointer([i], issueRest.success)
           if (s.options.errors === "all") {
             if (s.issues) s.issues.push(issue)
             else s.issues = [issue]
           } else {
-            return Cause.fail(new Issue.Composite(ast, s.oinput, [issue]))
+            return Exit.fail(new Issue.Composite(ast, s.oinput, [issue]))
           }
         } else if (exit.value._tag === "Some") {
           s.output[i] = exit.value.value
@@ -1458,11 +1457,11 @@ export class Arrays extends Base {
             if (s.issues) s.issues.push(issue)
             else s.issues = [issue]
           } else {
-            return Cause.fail(new Issue.Composite(ast, s.oinput, [issue]))
+            return Exit.fail(new Issue.Composite(ast, s.oinput, [issue]))
           }
         }
       }
-    )
+    })
 
     return Effect.fnUntracedEager(function*(oinput, options) {
       if (oinput._tag === "None") {
@@ -1475,6 +1474,7 @@ export class Arrays extends Base {
         return yield* Effect.fail(new Issue.InvalidType(ast, oinput))
       }
 
+      const len = input.length
       const state = {
         oinput,
         input,
@@ -1483,23 +1483,27 @@ export class Arrays extends Base {
         options,
         offset: 0
       }
+      const concurrency = resolveConcurrency(options?.concurrency)
       if (elementLen > 0) {
-        const eff = parseElements(state, elements)
+        const eff = parseElements(state, elements, concurrency)
         if (eff) yield* eff
       }
 
       // ---------------------------------------------
       // handle rest element
       // ---------------------------------------------
-      const len = input.length
       if (ast.rest.length > 0) {
         state.offset = elementLen + tailLen > len ? elementLen : len - tailLen
         if (state.offset > elementLen) {
-          const eff = parseRest(state, input, elementLen, len - tailLen)
+          const eff = parseRest(state, input, {
+            concurrency: concurrency?.concurrency,
+            start: elementLen,
+            end: len - tailLen
+          })
           if (eff) yield* eff
         }
         if (tailLen > 0) {
-          const eff = parseElements(state, tail)
+          const eff = parseElements(state, tail, concurrency)
           if (eff) yield* eff
         }
       } else {
@@ -1536,69 +1540,12 @@ export class Arrays extends Base {
   }
 }
 
-const forEachEager = <
-  S extends {
-    parentFiber?: Fiber.Fiber<any, any> | undefined
-  },
-  A,
-  B,
-  E,
-  R,
-  E2,
-  R2
->(
-  f: (s: S, a: A, i: number) => Effect.Effect<B, E, R>,
-  onExit: (s: S, exit: Exit.Exit<B, E>, element: A, i: number) => Cause.Cause<E2> | Break | void
-) =>
-  function loop(
-    state: S,
-    arr: ReadonlyArray<A>,
-    index = 0,
-    end = arr.length
-  ): Effect.Effect<void, E | E2, R | R2> | void {
-    let fibers: Arr.NonEmptyArray<Fiber.Fiber<any, any>> | undefined
-    let failure: Cause.Cause<E2> | Break | void = undefined
-    for (; index < end; index++) {
-      const elem = arr[index]
-      const eff = f(state, elem, index)
-      if (effectIsExit(eff)) {
-        failure = onExit(state, eff, elem, index)
-        if (failure) break
-      } else if (!state.parentFiber) {
-        interruptChildrenPatch()
-        return Effect.withFiber((fiber) => {
-          state.parentFiber = fiber
-          return loop(state, arr, index, end) ?? Effect.void
-        })
-      } else {
-        const fiber = forkUnsafe(state.parentFiber, eff, true)
-        const exit = fiber.pollUnsafe()
-        if (exit) {
-          failure = onExit(state, exit, elem, index)
-          if (failure) break
-          continue
-        }
-        const i = index
-        fiber.addObserver((exit) => {
-          const result = onExit(state, exit, elem, i)
-          if (!result || result === Break) return
-          failure = Cause.isCause(failure) ? Cause.combine(failure, result) : result
-        })
-        if (fibers) fibers.push(fiber)
-        else fibers = [fiber]
-      }
-    }
-    if (failure) {
-      const fail = failure === Break ? Effect.void : Effect.failCause(failure)
-      return fibers ? Effect.flatMap(Fiber.interruptAll(fibers), () => fail) : fail
-    } else if (fibers) {
-      return Effect.flatMap(Fiber.awaitAll(fibers), () =>
-        Cause.isCause(failure) ? Effect.failCause(failure) : Effect.void)
-    }
-  }
-
-const Break: unique symbol = globalThis.Symbol.for("effect/SchemaAST/Break") as any
-type Break = typeof Break
+const resolveConcurrency = (value: number | "unbounded" | undefined) => {
+  if (!value) return undefined
+  if (value === "unbounded") return { concurrency: Infinity }
+  value = Math.max(1, value)
+  return value > 1 ? { concurrency: value } : undefined
+}
 
 /**
  * floating point or integer, with optional exponent
@@ -1815,28 +1762,33 @@ export class Objects extends Base {
       return fromRefinement(ast, Predicate.isNotNullish)
     }
 
-    const parseProperties = forEachEager(
-      (
+    const parseProperties = iterateEager<{
+      readonly oinput: Option.Option<unknown>
+      readonly input: Record<PropertyKey, unknown>
+      readonly options: ParseOptions
+      readonly out: Record<PropertyKey, unknown>
+      issues: Array<Issue.Issue> | undefined
+    }, typeof properties[number]>()({
+      onItem(
         s: {
           readonly oinput: Option.Option<unknown>
           readonly input: Record<PropertyKey, unknown>
           readonly options: ParseOptions
           readonly out: Record<PropertyKey, unknown>
           issues: Array<Issue.Issue> | undefined
-          readonly parentFiber?: Fiber.Fiber<any, any> | undefined
         },
-        p: typeof properties[number]
-      ) => {
+        p
+      ) {
         const value: Option.Option<unknown> = Object.hasOwn(s.input, p.name)
           ? Option.some(s.input[p.name])
           : Option.none()
         return p.parser(value, s.options)
       },
-      (s, exit, p) => {
+      step(s, p, exit) {
         if (exit._tag === "Failure") {
           const issueProp = Cause.findError(exit.cause)
           if (Result.isFailure(issueProp)) {
-            return exit.cause
+            return exit
           }
           const issue = new Issue.Pointer([p.name], issueProp.success)
           if (s.options.errors === "all") {
@@ -1844,7 +1796,7 @@ export class Objects extends Base {
             else s.issues = [issue]
             return
           } else {
-            return Cause.fail(new Issue.Composite(ast, s.oinput, [issue]))
+            return Exit.fail(new Issue.Composite(ast, s.oinput, [issue]))
           }
         } else if (exit.value._tag === "Some") {
           internalRecord.set(s.out, p.name, exit.value.value)
@@ -1855,25 +1807,24 @@ export class Objects extends Base {
             else s.issues = [issue]
             return
           } else {
-            return Cause.fail(
+            return Exit.fail(
               new Issue.Composite(ast, s.oinput, [issue])
             )
           }
         }
       }
-    )
+    })
 
-    const parseIndexes = forEachEager(
-      Effect.fnUntracedEager(function*(
-        s: {
-          readonly oinput: Option.Option<unknown>
-          readonly input: Record<PropertyKey, unknown>
-          readonly options: ParseOptions
-          readonly out: Record<PropertyKey, unknown>
-          issues: Array<Issue.Issue> | undefined
-          readonly parentFiber?: Fiber.Fiber<any, any> | undefined
-        },
-        [key, is]: [PropertyKey, IndexSignature]
+    const parseIndexes = iterateEager<{
+      readonly oinput: Option.Option<unknown>
+      readonly input: Record<PropertyKey, unknown>
+      readonly options: ParseOptions
+      readonly out: Record<PropertyKey, unknown>
+      issues: Array<Issue.Issue> | undefined
+    }, [key: PropertyKey, is: IndexSignature]>()({
+      onItem: Effect.fnUntracedEager(function*(
+        s,
+        [key, is]
       ) {
         const parserKey = recur(indexSignatureParameterFromString(is.parameter))
         const effKey = parserKey(Option.some(key), s.options)
@@ -1927,8 +1878,8 @@ export class Objects extends Base {
           }
         }
       }),
-      (_s, exit) => exit._tag === "Failure" ? exit.cause : undefined
-    )
+      step: (_s, _, exit: Exit.Exit<void, Issue.Issue>) => exit._tag === "Failure" ? exit : undefined
+    })
 
     return Effect.fnUntracedEager(function*(oinput, options) {
       if (oinput._tag === "None") {
@@ -1983,22 +1934,29 @@ export class Objects extends Base {
         }
       }
 
+      const concurrency = resolveConcurrency(options?.concurrency)
+
       // ---------------------------------------------
       // handle property signatures
       // ---------------------------------------------
-      const eff = parseProperties(state, properties)
+      const eff = parseProperties(state, properties, concurrency)
       if (eff) yield* eff
 
       // ---------------------------------------------
       // handle index signatures
       // ---------------------------------------------
       if (indexCount > 0) {
+        const keyPairs = Arr.empty<[PropertyKey, IndexSignature]>()
         for (let i = 0; i < indexCount; i++) {
           const is = ast.indexSignatures[i]
           const keys = getIndexSignatureKeys(input, is.parameter)
-          const eff = parseIndexes(state, keys.map((key) => [key, is]))
-          if (eff) yield* eff
+          for (let j = 0; j < keys.length; j++) {
+            const key = keys[j]
+            keyPairs.push([key, is])
+          }
         }
+        const eff = parseIndexes(state, keyPairs, concurrency)
+        if (eff) yield* eff
       }
 
       if (state.issues) {
@@ -2362,43 +2320,39 @@ export class Union<A extends AST = AST> extends Base {
     const ast = this
     const oneOf = ast.mode === "oneOf"
 
-    const parseCandidates = forEachEager(
-      (
-        s: {
-          readonly oinput: Option.Option<unknown>
-          readonly input: unknown
-          readonly options: ParseOptions
-          out: Option.Option<unknown> | undefined
-          successes: Array<AST>
-          issues: Array<Issue.Issue> | undefined
-          readonly parentFiber?: Fiber.Fiber<any, any> | undefined
-        },
-        ast: AST
-      ) => {
+    const parseCandidates = iterateEager<{
+      readonly oinput: Option.Option<unknown>
+      readonly input: unknown
+      readonly options: ParseOptions
+      out: Option.Option<unknown> | undefined
+      successes: Array<AST>
+      issues: Array<Issue.Issue> | undefined
+    }, AST>()({
+      onItem(s, ast) {
         const parser = recur(ast)
         return parser(s.oinput, s.options)
       },
-      (s, exit, candidate) => {
+      step(s, candidate, exit) {
         if (exit._tag === "Failure") {
           const issueResult = Cause.findError(exit.cause)
           if (Result.isFailure(issueResult)) {
-            return exit.cause
+            return exit
           }
           if (s.issues) s.issues.push(issueResult.success)
           else s.issues = [issueResult.success]
         } else {
           if (s.out && oneOf) {
             s.successes.push(candidate)
-            return Cause.fail(new Issue.OneOf(ast, s.input, s.successes))
+            return Exit.fail(new Issue.OneOf(ast, s.input, s.successes))
           }
           s.out = exit.value
           s.successes.push(candidate)
           if (!oneOf) {
-            return Break
+            return Exit.void
           }
         }
       }
-    )
+    })
 
     return (oinput, options) => {
       if (oinput._tag === "None") {
@@ -2415,7 +2369,8 @@ export class Union<A extends AST = AST> extends Base {
         issues: undefined as Arr.NonEmptyArray<Issue.Issue> | undefined,
         options
       }
-      const eff = parseCandidates(state, candidates)
+      const concurrency = resolveConcurrency(options?.concurrency)
+      const eff = parseCandidates(state, candidates, concurrency)
       if (!eff) {
         return state.out ? Effect.succeed(state.out) : Effect.fail(new Issue.AnyOf(ast, input, state.issues ?? []))
       }

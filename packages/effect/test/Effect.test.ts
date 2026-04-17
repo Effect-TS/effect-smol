@@ -40,6 +40,7 @@ describe("Effect", () => {
       assert.notDeepEqual(Effect.succeed(0), Effect.succeed(1))
     })
   })
+
   describe("tracing", () => {
     it.effect("failCause captures stack frame", () =>
       Effect.gen(function*() {
@@ -69,6 +70,7 @@ describe("Effect", () => {
     assert.strictEqual(isSync, 1)
     assert.strictEqual(isAsync, 2)
   })
+
   it("runPromise", async () => {
     const result = await Effect.runPromise(Effect.succeed(1))
     assert.strictEqual(result, 1)
@@ -302,6 +304,7 @@ describe("Effect", () => {
         const results = yield* Effect.forEach([], (_) => Effect.succeed(_))
         assert.deepStrictEqual(results, [])
       }).pipe(Effect.runPromise))
+
     it("string", () =>
       Effect.gen(function*() {
         const results = yield* Effect.forEach("abc", (_) => Effect.succeed(_))
