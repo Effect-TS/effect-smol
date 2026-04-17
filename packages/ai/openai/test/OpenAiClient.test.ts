@@ -541,6 +541,49 @@ describe("OpenAiClient", () => {
       }))
   })
 
+  describe("createResponse", () => {
+    // OpenAI's API returns `in_memory` (underscore) for `prompt_cache_retention`
+    // even though the OpenAPI spec only documents `in-memory` (hyphen). The
+    // generated schema accepts both so responses decode successfully.
+    it.effect("accepts prompt_cache_retention=\"in_memory\" in response body", () =>
+      Effect.gen(function*() {
+        const mockClient = makeMockHttpClient((request) =>
+          Effect.succeed(makeMockResponse({
+            status: 200,
+            body: makeResponseBody({ prompt_cache_retention: "in_memory" }),
+            request
+          }))
+        )
+
+        const client = yield* OpenAiClient.make({
+          apiKey: Redacted.make("test-key")
+        }).pipe(Effect.provide(Layer.succeed(HttpClient.HttpClient, mockClient)))
+
+        const [body] = yield* client.createResponse({ model: "gpt-4o", input: "test" })
+
+        assert.strictEqual(body.prompt_cache_retention, "in_memory")
+      }))
+
+    it.effect("accepts prompt_cache_retention=\"in-memory\" in response body", () =>
+      Effect.gen(function*() {
+        const mockClient = makeMockHttpClient((request) =>
+          Effect.succeed(makeMockResponse({
+            status: 200,
+            body: makeResponseBody({ prompt_cache_retention: "in-memory" }),
+            request
+          }))
+        )
+
+        const client = yield* OpenAiClient.make({
+          apiKey: Redacted.make("test-key")
+        }).pipe(Effect.provide(Layer.succeed(HttpClient.HttpClient, mockClient)))
+
+        const [body] = yield* client.createResponse({ model: "gpt-4o", input: "test" })
+
+        assert.strictEqual(body.prompt_cache_retention, "in-memory")
+      }))
+  })
+
   describe("createResponseStream", () => {
     it.effect("accepts keepalive stream events", () => {
       const mockClient = makeMockHttpClient((request) =>

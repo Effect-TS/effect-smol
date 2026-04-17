@@ -19599,7 +19599,7 @@ export type CreateChatCompletionRequest = {
   readonly "safety_identifier"?: string | null
   readonly "prompt_cache_key"?: string | null
   readonly "service_tier"?: ServiceTier
-  readonly "prompt_cache_retention"?: "in-memory" | "24h" | null
+  readonly "prompt_cache_retention"?: "in-memory" | "24h" | "in_memory" | null
   readonly "messages": ReadonlyArray<ChatCompletionRequestMessage>
   readonly "model":
     | string
@@ -19764,7 +19764,7 @@ export const CreateChatCompletionRequest = Schema.Struct({
   "service_tier": Schema.optionalKey(ServiceTier),
   "prompt_cache_retention": Schema.optionalKey(
     Schema.Union([
-      Schema.Literals(["in-memory", "24h"]).annotate({
+      Schema.Literals(["in-memory", "24h", "in_memory"]).annotate({
         "description":
           "The retention policy for the prompt cache. Set to `24h` to enable extended prompt caching, which keeps cached prefixes active for longer, up to a maximum of 24 hours. [Learn more](/docs/guides/prompt-caching#prompt-cache-retention).\n"
       }),
@@ -21553,7 +21553,7 @@ export type Response = {
   readonly "safety_identifier"?: string | null
   readonly "prompt_cache_key"?: string | null
   readonly "service_tier"?: ServiceTier
-  readonly "prompt_cache_retention"?: "in-memory" | "24h" | null
+  readonly "prompt_cache_retention"?: "in-memory" | "24h" | "in_memory" | null
   readonly "previous_response_id"?: string | null
   readonly "model":
     | ModelIdsShared
@@ -21654,7 +21654,7 @@ export const Response = Schema.Struct({
   "service_tier": Schema.optionalKey(ServiceTier),
   "prompt_cache_retention": Schema.optionalKey(
     Schema.Union([
-      Schema.Literals(["in-memory", "24h"]).annotate({
+      Schema.Literals(["in-memory", "24h", "in_memory"]).annotate({
         "description":
           "The retention policy for the prompt cache. Set to `24h` to enable extended prompt caching, which keeps cached prefixes active for longer, up to a maximum of 24 hours. [Learn more](/docs/guides/prompt-caching#prompt-cache-retention).\n"
       }),
@@ -21823,7 +21823,7 @@ export type ResponseCompletedEvent = {
     readonly "safety_identifier"?: string | null
     readonly "prompt_cache_key"?: string | null
     readonly "service_tier"?: ServiceTier
-    readonly "prompt_cache_retention"?: "in-memory" | "24h" | null
+    readonly "prompt_cache_retention"?: "in-memory" | "24h" | "in_memory" | null
     readonly "previous_response_id"?: string | null
     readonly "model":
       | ModelIdsShared
@@ -21930,7 +21930,7 @@ export const ResponseCompletedEvent = Schema.Struct({
     "service_tier": Schema.optionalKey(ServiceTier),
     "prompt_cache_retention": Schema.optionalKey(
       Schema.Union([
-        Schema.Literals(["in-memory", "24h"]).annotate({
+        Schema.Literals(["in-memory", "24h", "in_memory"]).annotate({
           "description":
             "The retention policy for the prompt cache. Set to `24h` to enable extended prompt caching, which keeps cached prefixes active for longer, up to a maximum of 24 hours. [Learn more](/docs/guides/prompt-caching#prompt-cache-retention).\n"
         }),
@@ -22104,7 +22104,7 @@ export type ResponseCreatedEvent = {
     readonly "safety_identifier"?: string | null
     readonly "prompt_cache_key"?: string | null
     readonly "service_tier"?: ServiceTier
-    readonly "prompt_cache_retention"?: "in-memory" | "24h" | null
+    readonly "prompt_cache_retention"?: "in-memory" | "24h" | "in_memory" | null
     readonly "previous_response_id"?: string | null
     readonly "model":
       | ModelIdsShared
@@ -22211,7 +22211,7 @@ export const ResponseCreatedEvent = Schema.Struct({
     "service_tier": Schema.optionalKey(ServiceTier),
     "prompt_cache_retention": Schema.optionalKey(
       Schema.Union([
-        Schema.Literals(["in-memory", "24h"]).annotate({
+        Schema.Literals(["in-memory", "24h", "in_memory"]).annotate({
           "description":
             "The retention policy for the prompt cache. Set to `24h` to enable extended prompt caching, which keeps cached prefixes active for longer, up to a maximum of 24 hours. [Learn more](/docs/guides/prompt-caching#prompt-cache-retention).\n"
         }),
@@ -22386,7 +22386,7 @@ export type ResponseFailedEvent = {
     readonly "safety_identifier"?: string | null
     readonly "prompt_cache_key"?: string | null
     readonly "service_tier"?: ServiceTier
-    readonly "prompt_cache_retention"?: "in-memory" | "24h" | null
+    readonly "prompt_cache_retention"?: "in-memory" | "24h" | "in_memory" | null
     readonly "previous_response_id"?: string | null
     readonly "model":
       | ModelIdsShared
@@ -22495,7 +22495,7 @@ export const ResponseFailedEvent = Schema.Struct({
     "service_tier": Schema.optionalKey(ServiceTier),
     "prompt_cache_retention": Schema.optionalKey(
       Schema.Union([
-        Schema.Literals(["in-memory", "24h"]).annotate({
+        Schema.Literals(["in-memory", "24h", "in_memory"]).annotate({
           "description":
             "The retention policy for the prompt cache. Set to `24h` to enable extended prompt caching, which keeps cached prefixes active for longer, up to a maximum of 24 hours. [Learn more](/docs/guides/prompt-caching#prompt-cache-retention).\n"
         }),
@@ -22666,7 +22666,7 @@ export type ResponseInProgressEvent = {
     readonly "safety_identifier"?: string | null
     readonly "prompt_cache_key"?: string | null
     readonly "service_tier"?: ServiceTier
-    readonly "prompt_cache_retention"?: "in-memory" | "24h" | null
+    readonly "prompt_cache_retention"?: "in-memory" | "24h" | "in_memory" | null
     readonly "previous_response_id"?: string | null
     readonly "model":
       | ModelIdsShared
@@ -22773,7 +22773,7 @@ export const ResponseInProgressEvent = Schema.Struct({
     "service_tier": Schema.optionalKey(ServiceTier),
     "prompt_cache_retention": Schema.optionalKey(
       Schema.Union([
-        Schema.Literals(["in-memory", "24h"]).annotate({
+        Schema.Literals(["in-memory", "24h", "in_memory"]).annotate({
           "description":
             "The retention policy for the prompt cache. Set to `24h` to enable extended prompt caching, which keeps cached prefixes active for longer, up to a maximum of 24 hours. [Learn more](/docs/guides/prompt-caching#prompt-cache-retention).\n"
         }),
@@ -22947,7 +22947,7 @@ export type ResponseIncompleteEvent = {
     readonly "safety_identifier"?: string | null
     readonly "prompt_cache_key"?: string | null
     readonly "service_tier"?: ServiceTier
-    readonly "prompt_cache_retention"?: "in-memory" | "24h" | null
+    readonly "prompt_cache_retention"?: "in-memory" | "24h" | "in_memory" | null
     readonly "previous_response_id"?: string | null
     readonly "model":
       | ModelIdsShared
@@ -23054,7 +23054,7 @@ export const ResponseIncompleteEvent = Schema.Struct({
     "service_tier": Schema.optionalKey(ServiceTier),
     "prompt_cache_retention": Schema.optionalKey(
       Schema.Union([
-        Schema.Literals(["in-memory", "24h"]).annotate({
+        Schema.Literals(["in-memory", "24h", "in_memory"]).annotate({
           "description":
             "The retention policy for the prompt cache. Set to `24h` to enable extended prompt caching, which keeps cached prefixes active for longer, up to a maximum of 24 hours. [Learn more](/docs/guides/prompt-caching#prompt-cache-retention).\n"
         }),
@@ -23228,7 +23228,7 @@ export type ResponseQueuedEvent = {
     readonly "safety_identifier"?: string | null
     readonly "prompt_cache_key"?: string | null
     readonly "service_tier"?: ServiceTier
-    readonly "prompt_cache_retention"?: "in-memory" | "24h" | null
+    readonly "prompt_cache_retention"?: "in-memory" | "24h" | "in_memory" | null
     readonly "previous_response_id"?: string | null
     readonly "model":
       | ModelIdsShared
@@ -23335,7 +23335,7 @@ export const ResponseQueuedEvent = Schema.Struct({
     "service_tier": Schema.optionalKey(ServiceTier),
     "prompt_cache_retention": Schema.optionalKey(
       Schema.Union([
-        Schema.Literals(["in-memory", "24h"]).annotate({
+        Schema.Literals(["in-memory", "24h", "in_memory"]).annotate({
           "description":
             "The retention policy for the prompt cache. Set to `24h` to enable extended prompt caching, which keeps cached prefixes active for longer, up to a maximum of 24 hours. [Learn more](/docs/guides/prompt-caching#prompt-cache-retention).\n"
         }),
@@ -23629,7 +23629,7 @@ export type CreateResponse = {
   readonly "safety_identifier"?: string | null
   readonly "prompt_cache_key"?: string | null
   readonly "service_tier"?: ServiceTier
-  readonly "prompt_cache_retention"?: "in-memory" | "24h" | null
+  readonly "prompt_cache_retention"?: "in-memory" | "24h" | "in_memory" | null
   readonly "previous_response_id"?: string | null
   readonly "model"?:
     | ModelIdsShared
@@ -23718,7 +23718,7 @@ export const CreateResponse = Schema.Struct({
   "service_tier": Schema.optionalKey(ServiceTier),
   "prompt_cache_retention": Schema.optionalKey(
     Schema.Union([
-      Schema.Literals(["in-memory", "24h"]).annotate({
+      Schema.Literals(["in-memory", "24h", "in_memory"]).annotate({
         "description":
           "The retention policy for the prompt cache. Set to `24h` to enable extended prompt caching, which keeps cached prefixes active for longer, up to a maximum of 24 hours. [Learn more](/docs/guides/prompt-caching#prompt-cache-retention).\n"
       }),

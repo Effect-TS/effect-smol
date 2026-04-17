@@ -35,3 +35,10 @@ replacements:
     to: "Schema.Record(Schema.String, Schema.Json)"
   - from: "{ readonly [x: string]: unknown }"
     to: "{ readonly [x: string]: Schema.Json }"
+  # OpenAI's API returns `in_memory` (underscore) for `prompt_cache_retention` even
+  # though the OpenAPI spec only documents `in-memory` (hyphen). Accept both so
+  # responses parse successfully. See https://community.openai.com/... for context.
+  - from: 'Schema.Literals(["in-memory", "24h"])'
+    to: 'Schema.Literals(["in-memory", "24h", "in_memory"])'
+  - from: '"in-memory" | "24h"'
+    to: '"in-memory" | "24h" | "in_memory"'
