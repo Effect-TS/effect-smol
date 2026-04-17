@@ -199,21 +199,11 @@ function processAnnotation<Services, S, I>(
  * and overrides. Cached results are used for better performance when the same
  * `HttpApi` instance is processed multiple times.
  *
- * **Options**
- *
- * - `additionalProperties`: Controls how additional properties are handled while resolving the JSON schema. Possible values include:
- *   - `false`: Disallow additional properties (default)
- *   - `true`: Allow additional properties
- *   - `JsonSchema`: Use the provided JSON Schema for additional properties
- *
  * @category constructors
  * @since 4.0.0
  */
 export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
-  api: HttpApi.HttpApi<Id, Groups>,
-  options?: {
-    readonly additionalProperties?: boolean | JsonSchema.JsonSchema | undefined
-  } | undefined
+  api: HttpApi.HttpApi<Id, Groups>
 ): OpenAPISpec {
   const cached = apiCache.get(api)
   if (cached !== undefined) {
@@ -484,9 +474,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
       Arr.map(pathOps, (op) => op.ast)
     )
     const jsonSchemaMultiDocument = JsonSchema.toMultiDocumentOpenApi3_1(
-      SchemaRepresentation.toJsonSchemaMultiDocument(multiDocument, {
-        additionalProperties: options?.additionalProperties
-      })
+      SchemaRepresentation.toJsonSchemaMultiDocument(multiDocument)
     )
     const patchOps: Array<JsonPatch.JsonPatchOperation> = pathOps.map((op, i) => {
       const oppath = escapePath(op.path)
