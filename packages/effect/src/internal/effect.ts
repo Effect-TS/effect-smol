@@ -4501,130 +4501,136 @@ const iterateEagerImpl = <S, A, X, E, R, E2>(options: {
     state: S,
     items: ReadonlyArray<A>,
     opts,
-    ls = {
+    s: {
+      index: number
+      end: number
+      done: boolean
+      concurrency: number
+      parentFiber?: Fiber.Fiber<any, any> | undefined
+      fibers?: Set<Fiber.Fiber<any, any>> | undefined
+      resume?: ((effect: Effect.Effect<void, E | E2, R>) => void) | undefined
+      interrupted: boolean
+      terminal?: Exit.Exit<void, E | E2> | void
+      effect?: Effect.Effect<X, E, R> | undefined
+    } = {
       index: opts?.start ?? 0,
       end: opts?.end ?? items.length,
       done: false,
       concurrency: opts?.concurrency ?? 1,
-      parentFiber: undefined as Fiber.Fiber<any, any> | undefined,
-      fibers: undefined as Set<Fiber.Fiber<any, any>> | undefined,
-      resume: undefined as ((effect: Effect.Effect<void, E | E2, R>) => void) | undefined,
-      interrupted: false,
-      terminal: undefined as Exit.Exit<void, E | E2> | void,
-      effect: undefined as Effect.Effect<X, E, R> | undefined
+      interrupted: false
     }
   ): Effect.Effect<void, E | E2, R> | undefined {
     let paused = false
-    for (; !ls.terminal && ls.index < ls.end; ls.index++) {
-      const item = items[ls.index]!
-      const eff = ls.effect ?? options.onItem(state, item, ls.index)
+    for (; !s.terminal && s.index < s.end; s.index++) {
+      const item = items[s.index]
+      const eff = s.effect ?? options.onItem(state, item, s.index)
 
       // fast case (already an exit)
       if (effectIsExit(eff)) {
-        const result = options.step(state, item, eff, ls.index)
+        const result = options.step(state, item, eff, s.index)
         if (result) {
-          ls.terminal = result
+          s.terminal = result
           break
         }
 
         // Use flatMap for concurrency of 1
-      } else if (ls.concurrency === 1) {
+      } else if (s.concurrency === 1) {
         return flatMap(exit(eff), (exit) => {
-          ls.terminal = options.step(state, item, exit, ls.index)
-          ls.index++
-          return ls.terminal ?? loop(state, items, opts, ls) ?? void_
+          s.terminal = options.step(state, item, exit, s.index)
+          s.index++
+          return s.terminal ?? loop(state, items, opts, s) ?? void_
         })
 
         // We have an effect, so enter "async" mode
-      } else if (!ls.parentFiber) {
+      } else if (!s.parentFiber) {
         return callback((resume) => {
-          ls.parentFiber = getCurrentFiber()!
-          ls.effect = eff
-          ls.resume = resume
-          const result = loop(state, items, opts, ls)
+          s.parentFiber = getCurrentFiber()!
+          s.effect = eff
+          s.resume = resume
+          const result = loop(state, items, opts, s)
           if (result) return resume(result)
           return suspend(() => {
-            ls.terminal = exitVoid
-            ls.interrupted = true
-            return ls.fibers && ls.fibers.size > 0 ? fiberInterruptAll(ls.fibers) : void_
+            s.terminal = exitVoid
+            s.interrupted = true
+            return s.fibers && s.fibers.size > 0 ? fiberInterruptAll(s.fibers) : void_
           })
         })
 
         // Fork the effect with concurrency > 1
       } else {
         // Clear the temporary effect from capturing the parentFiber
-        if (ls.effect) ls.effect = undefined
+        if (s.effect) s.effect = undefined
 
-        const fiber = forkUnsafe(ls.parentFiber, eff, true, true, "inherit")
+        const fiber = forkUnsafe(s.parentFiber, eff, true, true, "inherit")
         if (fiber._exit) {
-          const result = options.step(state, item, fiber._exit, ls.index)
+          const result = options.step(state, item, fiber._exit, s.index)
           if (result) {
-            ls.terminal = result
+            s.terminal = result
             break
           }
           continue
         }
 
         // Add the fiber to the Set
-        if (ls.fibers) ls.fibers.add(fiber)
-        else ls.fibers = new Set([fiber])
+        if (s.fibers) s.fibers.add(fiber)
+        else s.fibers = new Set([fiber])
 
-        const index = ls.index
+        const index = s.index
         fiber.addObserver((exit) => {
-          ls.fibers!.delete(fiber)
-          if (ls.terminal) {
-            if (!ls.interrupted && exit._tag === "Failure") {
+          s.fibers!.delete(fiber)
+          if (s.terminal) {
+            if (!s.interrupted && exit._tag === "Failure") {
               for (const reason of exit.cause.reasons) {
                 if (reason._tag === "Interrupt") continue
-                else if (ls.terminal._tag === "Failure") {
-                  ;(ls.terminal.cause.reasons as Array<any>).push(reason)
+                else if (s.terminal._tag === "Failure") {
+                  ;(s.terminal.cause.reasons as Array<any>).push(reason)
                 } else {
-                  ls.terminal = exitFailCause(causeFromReasons([reason]))
+                  s.terminal = exitFailCause(causeFromReasons([reason]))
                 }
               }
             }
           } else {
             const result = options.step(state, item, exit, index)
             if (result) {
-              ls.terminal = result._tag === "Failure"
+              s.terminal = result._tag === "Failure"
                 ? exitFailCause(causeFromReasons(result.cause.reasons.slice()))
                 : result
-              loop(state, items, opts, ls)
+              loop(state, items, opts, s)
             }
           }
 
           // We are now under the concurrency limit
           if (paused) {
-            const eff = loop(state, items, opts, ls)
-            if (eff) ls.resume!(eff)
-          } else if (ls.done && ls.fibers!.size === 0) {
-            ls.resume!(ls.terminal ?? void_)
+            const eff = loop(state, items, opts, s)
+            if (eff) s.resume!(eff)
+          } else if (s.done && s.fibers!.size === 0) {
+            s.resume!(s.terminal ?? void_)
           }
         })
 
         // Check if we have reached the concurrency limit
-        if (ls.fibers.size < ls.concurrency) continue
+        if (s.fibers.size < s.concurrency) continue
         paused = true
-        ls.index++
+        s.index++
         return
       }
     }
 
-    ls.done = true
+    s.done = true
 
-    if (ls.terminal) {
-      if (ls.fibers && ls.fibers.size > 0) {
-        const annotations = fiberStackAnnotations(ls.parentFiber!)
-        ls.fibers.forEach((f) => f.interruptUnsafe(ls.parentFiber!.id, annotations))
+    if (s.terminal) {
+      if (s.fibers && s.fibers.size > 0) {
+        const annotations = fiberStackAnnotations(s.parentFiber!)
+        s.fibers.forEach((f) => f.interruptUnsafe(s.parentFiber!.id, annotations))
         return
       }
-      if (ls.resume || ls.terminal._tag === "Failure") {
-        return ls.terminal
+      if (s.resume || s.terminal._tag === "Failure") {
+        return s.terminal
       }
-    } else if (ls.resume) {
-      if (!ls.fibers) return exitVoid
-      else if (ls.fibers.size === 0) {
-        ls.resume(void_)
+    } else if (s.resume) {
+      if (!s.fibers) return exitVoid
+      else if (s.fibers.size === 0) {
+        s.resume(void_)
       }
     }
   }

@@ -1383,66 +1383,37 @@ export class Arrays extends Base {
     const rest = ast.rest.map((ast) => ({ ast, parser: recur(ast) }))
     const elementLen = elements.length
 
-    const parseElements = iterateEager<{
-      readonly oinput: Option.Option<unknown>
-      readonly input: ReadonlyArray<any>
-      readonly options: ParseOptions
-      readonly output: Array<unknown>
-      issues: Array<Issue.Issue> | undefined
-      readonly offset: number
-    }, typeof elements[number]>()({
-      onItem(s, e, i) {
-        const index = s.offset + i
-        const value = index < s.input.length ? Option.some(s.input[index]) : Option.none()
-        return e.parser(value, s.options)
-      },
-      step(s, e, exit, i) {
-        const index = s.offset + i
-        if (exit._tag === "Failure") {
-          const issueElement = Cause.findError(exit.cause)
-          if (Result.isFailure(issueElement)) {
-            return exit
-          }
-          const issue = new Issue.Pointer([index], issueElement.success)
-          if (s.options.errors === "all") {
-            if (s.issues) s.issues.push(issue)
-            else s.issues = [issue]
-          } else {
-            return Exit.fail(new Issue.Composite(ast, s.oinput, [issue]))
-          }
-        } else if (exit.value._tag === "Some") {
-          s.output[index] = exit.value.value
-        } else if (!isOptional(e.ast)) {
-          const issue = new Issue.Pointer([index], new Issue.MissingKey(e.ast.context?.annotations))
-          if (s.options.errors === "all") {
-            if (s.issues) s.issues.push(issue)
-            else s.issues = [issue]
-          } else {
-            return Exit.fail(new Issue.Composite(ast, s.oinput, [issue]))
-          }
-        }
-      }
-    })
-
     const [head, ...tail] = rest
     const tailLen = tail.length
-    const keyAnnotations = head?.ast.context?.annotations
-    const parseRest = iterateEager<{
+
+    function getParser(tailThreshold: number, index: number): { readonly ast: AST; readonly parser: Parser.Parser } {
+      if (index < elementLen) {
+        return elements[index]
+      } else if (index >= tailThreshold) {
+        return tail[index - tailThreshold]
+      }
+      return head
+    }
+
+    const parseArray = iterateEager<{
       readonly oinput: Option.Option<unknown>
+      readonly len: number
+      readonly tailThreshold: number
       readonly options: ParseOptions
       readonly output: Array<unknown>
       issues: Array<Issue.Issue> | undefined
     }, unknown>()({
-      onItem(s, item) {
-        return head.parser(Option.some(item), s.options)
+      onItem(s, item, i) {
+        const value = i < s.len ? Option.some(item) : Option.none()
+        return getParser(s.tailThreshold, i).parser(value, s.options)
       },
       step(s, _, exit, i) {
         if (exit._tag === "Failure") {
-          const issueRest = Cause.findError(exit.cause)
-          if (Result.isFailure(issueRest)) {
+          const issueResult = Cause.findError(exit.cause)
+          if (Result.isFailure(issueResult)) {
             return exit
           }
-          const issue = new Issue.Pointer([i], issueRest.success)
+          const issue = new Issue.Pointer([i], issueResult.success)
           if (s.options.errors === "all") {
             if (s.issues) s.issues.push(issue)
             else s.issues = [issue]
@@ -1452,7 +1423,9 @@ export class Arrays extends Base {
         } else if (exit.value._tag === "Some") {
           s.output[i] = exit.value.value
         } else {
-          const issue = new Issue.Pointer([i], new Issue.MissingKey(keyAnnotations))
+          const p = getParser(s.tailThreshold, i)
+          if (isOptional(p.ast)) return
+          const issue = new Issue.Pointer([i], new Issue.MissingKey(p.ast.context?.annotations))
           if (s.options.errors === "all") {
             if (s.issues) s.issues.push(issue)
             else s.issues = [issue]
@@ -1476,40 +1449,25 @@ export class Arrays extends Base {
 
       const len = input.length
       const state = {
+        ast,
         oinput,
-        input,
-        output: [] as Array<unknown>,
+        len,
+        tailThreshold: resolveTailThreshold(len, elementLen, tailLen),
+        output: new globalThis.Array(len),
         issues: undefined as Arr.NonEmptyArray<Issue.Issue> | undefined,
-        options,
-        offset: 0
+        options
       }
       const concurrency = resolveConcurrency(options?.concurrency)
-      if (elementLen > 0) {
-        const eff = parseElements(state, elements, concurrency)
-        if (eff) yield* eff
-      }
+      const eff = parseArray(state, input, {
+        concurrency: concurrency?.concurrency,
+        end: ast.rest.length === 0 ? elementLen : Math.max(len, elementLen + tailLen)
+      })
+      if (eff) yield* eff
 
       // ---------------------------------------------
-      // handle rest element
+      // handle excess indexes
       // ---------------------------------------------
-      if (ast.rest.length > 0) {
-        state.offset = elementLen + tailLen > len ? elementLen : len - tailLen
-        if (state.offset > elementLen) {
-          const eff = parseRest(state, input, {
-            concurrency: concurrency?.concurrency,
-            start: elementLen,
-            end: len - tailLen
-          })
-          if (eff) yield* eff
-        }
-        if (tailLen > 0) {
-          const eff = parseElements(state, tail, concurrency)
-          if (eff) yield* eff
-        }
-      } else {
-        // ---------------------------------------------
-        // handle excess indexes
-        // ---------------------------------------------
+      if (ast.rest.length === 0 && len > elementLen) {
         for (let i = elementLen; i <= len - 1; i++) {
           const issue = new Issue.Pointer([i], new Issue.UnexpectedKey(ast, input[i]))
           if (options.errors === "all") {
@@ -1538,6 +1496,14 @@ export class Arrays extends Base {
   getExpected(): string {
     return "array"
   }
+}
+
+function resolveTailThreshold(
+  inputLen: number,
+  elementLen: number,
+  tailLen: number
+) {
+  return Math.max(elementLen, inputLen - tailLen)
 }
 
 const resolveConcurrency = (value: number | "unbounded" | undefined) => {
