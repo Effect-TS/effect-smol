@@ -1705,7 +1705,7 @@ export class Objects extends Base {
     const expectedKeys: Array<PropertyKey> = []
     const expectedKeysSet = new Set<PropertyKey>()
     const properties: Array<{
-      readonly ps: PropertySignature
+      readonly ps: PropertySignature | IndexSignature
       readonly parser: Parser.Parser
       readonly name: PropertyKey
       readonly type: AST
@@ -2284,41 +2284,6 @@ export class Union<A extends AST = AST> extends Base {
   getParser(recur: (ast: AST) => Parser.Parser): Parser.Parser {
     // oxlint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
-    const oneOf = ast.mode === "oneOf"
-
-    const parseCandidates = iterateEager<{
-      readonly oinput: Option.Option<unknown>
-      readonly input: unknown
-      readonly options: ParseOptions
-      out: Option.Option<unknown> | undefined
-      successes: Array<AST>
-      issues: Array<Issue.Issue> | undefined
-    }, AST>()({
-      onItem(s, ast) {
-        const parser = recur(ast)
-        return parser(s.oinput, s.options)
-      },
-      step(s, candidate, exit) {
-        if (exit._tag === "Failure") {
-          const issueResult = Cause.findError(exit.cause)
-          if (Result.isFailure(issueResult)) {
-            return exit
-          }
-          if (s.issues) s.issues.push(issueResult.success)
-          else s.issues = [issueResult.success]
-        } else {
-          if (s.out && oneOf) {
-            s.successes.push(candidate)
-            return Exit.fail(new Issue.OneOf(ast, s.input, s.successes))
-          }
-          s.out = exit.value
-          s.successes.push(candidate)
-          if (!oneOf) {
-            return Exit.void
-          }
-        }
-      }
-    })
 
     return (oinput, options) => {
       if (oinput._tag === "None") {
@@ -2328,6 +2293,8 @@ export class Union<A extends AST = AST> extends Base {
       const candidates = getCandidates(input, ast.types)
 
       const state = {
+        ast,
+        recur,
         oinput,
         input,
         out: undefined,
@@ -2336,7 +2303,7 @@ export class Union<A extends AST = AST> extends Base {
         options
       }
       const concurrency = resolveConcurrency(options?.concurrency)
-      const eff = parseCandidates(state, candidates, concurrency)
+      const eff = parseUnion(state, candidates, concurrency)
       if (!eff) {
         return state.out ? Effect.succeed(state.out) : Effect.fail(new Issue.AnyOf(ast, input, state.issues ?? []))
       }
@@ -2390,6 +2357,41 @@ export class Union<A extends AST = AST> extends Base {
     return Array.from(new Set(types)).join(" | ")
   }
 }
+const parseUnion = iterateEager<{
+  readonly recur: (ast: AST) => Parser.Parser
+  readonly ast: Union
+  readonly oinput: Option.Option<unknown>
+  readonly input: unknown
+  readonly options: ParseOptions
+  out: Option.Option<unknown> | undefined
+  successes: Array<AST>
+  issues: Array<Issue.Issue> | undefined
+}, AST>()({
+  onItem(s, ast) {
+    const parser = s.recur(ast)
+    return parser(s.oinput, s.options)
+  },
+  step(s, candidate, exit) {
+    if (exit._tag === "Failure") {
+      const issueResult = Cause.findError(exit.cause)
+      if (Result.isFailure(issueResult)) {
+        return exit
+      }
+      if (s.issues) s.issues.push(issueResult.success)
+      else s.issues = [issueResult.success]
+    } else {
+      if (s.out && s.ast.mode === "oneOf") {
+        s.successes.push(candidate)
+        return Exit.fail(new Issue.OneOf(s.ast, s.input, s.successes))
+      }
+      s.out = exit.value
+      s.successes.push(candidate)
+      if (s.ast.mode === "anyOf") {
+        return Exit.void
+      }
+    }
+  }
+})
 
 const nonFiniteLiterals = new Union([
   new Literal("Infinity"),
