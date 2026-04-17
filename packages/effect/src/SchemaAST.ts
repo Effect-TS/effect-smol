@@ -1409,17 +1409,7 @@ export class Arrays extends Base {
       },
       step(s, _, exit, i) {
         if (exit._tag === "Failure") {
-          const issueResult = Cause.findError(exit.cause)
-          if (Result.isFailure(issueResult)) {
-            return exit
-          }
-          const issue = new Issue.Pointer([i], issueResult.success)
-          if (s.options.errors === "all") {
-            if (s.issues) s.issues.push(issue)
-            else s.issues = [issue]
-          } else {
-            return Exit.fail(new Issue.Composite(ast, s.oinput, [issue]))
-          }
+          return wrapPropertyKeyIssue(s, ast, i, exit)
         } else if (exit.value._tag === "Some") {
           s.output[i] = exit.value.value
         } else {
@@ -1511,6 +1501,29 @@ const resolveConcurrency = (value: number | "unbounded" | undefined) => {
   if (value === "unbounded") return { concurrency: Infinity }
   value = Math.max(1, value)
   return value > 1 ? { concurrency: value } : undefined
+}
+
+const wrapPropertyKeyIssue = (
+  s: {
+    readonly oinput: Option.Option<unknown>
+    readonly options: ParseOptions
+    issues: Array<Issue.Issue> | undefined
+  },
+  ast: AST,
+  key: PropertyKey,
+  exit: Exit.Failure<any, Issue.Issue>
+) => {
+  const issueResult = Cause.findError(exit.cause)
+  if (Result.isFailure(issueResult)) {
+    return exit
+  }
+  const issue = new Issue.Pointer([key], issueResult.success)
+  if (s.options.errors === "all") {
+    if (s.issues) s.issues.push(issue)
+    else s.issues = [issue]
+  } else {
+    return Exit.fail(new Issue.Composite(ast, s.oinput, [issue]))
+  }
 }
 
 /**
@@ -1752,18 +1765,7 @@ export class Objects extends Base {
       },
       step(s, p, exit) {
         if (exit._tag === "Failure") {
-          const issueProp = Cause.findError(exit.cause)
-          if (Result.isFailure(issueProp)) {
-            return exit
-          }
-          const issue = new Issue.Pointer([p.name], issueProp.success)
-          if (s.options.errors === "all") {
-            if (s.issues) s.issues.push(issue)
-            else s.issues = [issue]
-            return
-          } else {
-            return Exit.fail(new Issue.Composite(ast, s.oinput, [issue]))
-          }
+          return wrapPropertyKeyIssue(s, ast, p.name, exit)
         } else if (exit.value._tag === "Some") {
           internalRecord.set(s.out, p.name, exit.value.value)
         } else if (!isOptional(p.type)) {
@@ -1799,19 +1801,9 @@ export class Objects extends Base {
           Issue.Issue
         >
         if (exitKey._tag === "Failure") {
-          const issueKey = Cause.findError(exitKey.cause)
-          if (Result.isFailure(issueKey)) {
-            return yield* exitKey
-          }
-          const issue = new Issue.Pointer([key], issueKey.success)
-          if (s.options.errors === "all") {
-            if (s.issues) s.issues.push(issue)
-            else s.issues = [issue]
-            return
-          }
-          return yield* Effect.fail(
-            new Issue.Composite(ast, s.oinput, [issue])
-          )
+          const eff = wrapPropertyKeyIssue(s, ast, key, exitKey)
+          if (eff) yield* eff
+          return
         }
 
         const value: Option.Option<unknown> = Option.some(s.input[key])
@@ -2357,6 +2349,7 @@ export class Union<A extends AST = AST> extends Base {
     return Array.from(new Set(types)).join(" | ")
   }
 }
+
 const parseUnion = iterateEager<{
   readonly recur: (ast: AST) => Parser.Parser
   readonly ast: Union
