@@ -1390,6 +1390,12 @@ export class Arrays extends Base {
       let issues: Arr.NonEmptyArray<Issue.Issue> | undefined
       const errorsAllOption = options.errors === "all"
 
+      const tasks: Array<{
+        readonly ast: AST
+        readonly index: number
+        readonly exit: Effect.Effect<Exit.Exit<Option.Option<unknown>, Issue.Issue>, never, unknown>
+      }> = []
+
       let i = 0
       // ---------------------------------------------
       // handle elements
@@ -1397,31 +1403,11 @@ export class Arrays extends Base {
       for (; i < elementLen; i++) {
         const e = elements[i]
         const value = i < input.length ? Option.some(input[i]) : Option.none()
-        const eff = e.parser(value, options)
-        const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
-        if (exit._tag === "Failure") {
-          const issueElement = Cause.findError(exit.cause)
-          if (Result.isFailure(issueElement)) {
-            return yield* exit
-          }
-          const issue = new Issue.Pointer([i], issueElement.success)
-          if (errorsAllOption) {
-            if (issues) issues.push(issue)
-            else issues = [issue]
-          } else {
-            return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
-          }
-        } else if (exit.value._tag === "Some") {
-          output[i] = exit.value.value
-        } else if (!isOptional(e.ast)) {
-          const issue = new Issue.Pointer([i], new Issue.MissingKey(e.ast.context?.annotations))
-          if (errorsAllOption) {
-            if (issues) issues.push(issue)
-            else issues = [issue]
-          } else {
-            return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
-          }
-        }
+        tasks.push({
+          ast: e.ast,
+          index: i,
+          exit: toExitEffect(e.parser(value, options))
+        })
       }
       // ---------------------------------------------
       // handle rest element
@@ -1429,33 +1415,12 @@ export class Arrays extends Base {
       const len = input.length
       if (ast.rest.length > 0) {
         const [head, ...tail] = rest
-        const keyAnnotations = head.ast.context?.annotations
         for (; i < len - tail.length; i++) {
-          const eff = head.parser(Option.some(input[i]), options)
-          const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
-          if (exit._tag === "Failure") {
-            const issueRest = Cause.findError(exit.cause)
-            if (Result.isFailure(issueRest)) {
-              return yield* exit
-            }
-            const issue = new Issue.Pointer([i], issueRest.success)
-            if (errorsAllOption) {
-              if (issues) issues.push(issue)
-              else issues = [issue]
-            } else {
-              return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
-            }
-          } else if (exit.value._tag === "Some") {
-            output[i] = exit.value.value
-          } else {
-            const issue = new Issue.Pointer([i], new Issue.MissingKey(keyAnnotations))
-            if (errorsAllOption) {
-              if (issues) issues.push(issue)
-              else issues = [issue]
-            } else {
-              return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
-            }
-          }
+          tasks.push({
+            ast: head.ast,
+            index: i,
+            exit: toExitEffect(head.parser(Option.some(input[i]), options))
+          })
         }
         // ---------------------------------------------
         // handle post rest elements
@@ -1464,37 +1429,45 @@ export class Arrays extends Base {
           const index = i + j
           if (len < index) {
             continue
+          }
+          const tailj = tail[j]
+          tasks.push({
+            ast: tailj.ast,
+            index,
+            exit: toExitEffect(tailj.parser(Option.some(input[index]), options))
+          })
+        }
+      }
+
+      const exits = yield* Effect.forEach(tasks, (task) => task.exit, { concurrency: "unbounded" })
+      for (let i = 0; i < tasks.length; i++) {
+        const task = tasks[i]
+        const exit = exits[i]
+        if (exit._tag === "Failure") {
+          const issueElement = Cause.findError(exit.cause)
+          if (Result.isFailure(issueElement)) {
+            return yield* exit
+          }
+          const issue = new Issue.Pointer([task.index], issueElement.success)
+          if (errorsAllOption) {
+            if (issues) issues.push(issue)
+            else issues = [issue]
           } else {
-            const tailj = tail[j]
-            const keyAnnotations = tailj.ast.context?.annotations
-            const eff = tailj.parser(Option.some(input[index]), options)
-            const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
-            if (exit._tag === "Failure") {
-              const issueRest = Cause.findError(exit.cause)
-              if (Result.isFailure(issueRest)) {
-                return yield* exit
-              }
-              const issue = new Issue.Pointer([index], issueRest.success)
-              if (errorsAllOption) {
-                if (issues) issues.push(issue)
-                else issues = [issue]
-              } else {
-                return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
-              }
-            } else if (exit.value._tag === "Some") {
-              output[index] = exit.value.value
-            } else {
-              const issue = new Issue.Pointer([index], new Issue.MissingKey(keyAnnotations))
-              if (errorsAllOption) {
-                if (issues) issues.push(issue)
-                else issues = [issue]
-              } else {
-                return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
-              }
-            }
+            return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
+          }
+        } else if (exit.value._tag === "Some") {
+          output[task.index] = exit.value.value
+        } else if (!isOptional(task.ast)) {
+          const issue = new Issue.Pointer([task.index], new Issue.MissingKey(task.ast.context?.annotations))
+          if (errorsAllOption) {
+            if (issues) issues.push(issue)
+            else issues = [issue]
+          } else {
+            return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
           }
         }
-      } else {
+      }
+      if (ast.rest.length === 0) {
         // ---------------------------------------------
         // handle excess indexes
         // ---------------------------------------------
@@ -1736,7 +1709,12 @@ export class Objects extends Base {
         type: ps.type
       })
     }
-    const indexCount = ast.indexSignatures.length
+    const indexes = ast.indexSignatures.map((indexSignature) => ({
+      indexSignature,
+      parserKey: recur(indexSignatureParameterFromString(indexSignature.parameter)),
+      parserValue: recur(indexSignature.type)
+    }))
+    const indexCount = indexes.length
     // ---------------------------------------------
     // handle empty struct
     // ---------------------------------------------
@@ -1793,13 +1771,15 @@ export class Objects extends Base {
       // ---------------------------------------------
       // handle property signatures
       // ---------------------------------------------
-      for (let i = 0; i < propertyCount; i++) {
-        const p = properties[i]
+      const propertyExits = yield* Effect.forEach(properties, (p) => {
         const value: Option.Option<unknown> = Object.hasOwn(input, p.name)
           ? Option.some(input[p.name])
           : Option.none()
-        const eff = p.parser(value, options)
-        const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
+        return toExitEffect(p.parser(value, options))
+      }, { concurrency: "unbounded" })
+      for (let i = 0; i < propertyCount; i++) {
+        const p = properties[i]
+        const exit = propertyExits[i]
         if (exit._tag === "Failure") {
           const issueProp = Cause.findError(exit.cause)
           if (Result.isFailure(issueProp)) {
@@ -1833,61 +1813,81 @@ export class Objects extends Base {
       // handle index signatures
       // ---------------------------------------------
       if (indexCount > 0) {
+        const indexTasks: Array<{
+          readonly indexSignature: IndexSignature
+          readonly key: PropertyKey
+          readonly exit: Effect.Effect<
+            {
+              readonly key: Exit.Exit<Option.Option<PropertyKey>, Issue.Issue>
+              readonly value: Exit.Exit<Option.Option<unknown>, Issue.Issue>
+            },
+            never,
+            unknown
+          >
+        }> = []
         for (let i = 0; i < indexCount; i++) {
-          const is = ast.indexSignatures[i]
-          const keys = getIndexSignatureKeys(input, is.parameter)
+          const entry = indexes[i]
+          const keys = getIndexSignatureKeys(input, entry.indexSignature.parameter)
           for (let j = 0; j < keys.length; j++) {
             const key = keys[j]
-            const parserKey = recur(indexSignatureParameterFromString(is.parameter))
-            const effKey = parserKey(Option.some(key), options)
-            const exitKey = (effectIsExit(effKey) ? effKey : yield* Effect.exit(effKey)) as Exit.Exit<
-              Option.Option<PropertyKey>,
-              Issue.Issue
-            >
-            if (exitKey._tag === "Failure") {
-              const issueKey = Cause.findError(exitKey.cause)
-              if (Result.isFailure(issueKey)) {
-                return yield* exitKey
-              }
-              const issue = new Issue.Pointer([key], issueKey.success)
-              if (errorsAllOption) {
-                if (issues) issues.push(issue)
-                else issues = [issue]
-                continue
-              }
+            indexTasks.push({
+              indexSignature: entry.indexSignature,
+              key,
+              exit: Effect.all({
+                key: toExitEffect(entry.parserKey(Option.some(key), options)) as Effect.Effect<
+                  Exit.Exit<Option.Option<PropertyKey>, Issue.Issue>,
+                  never,
+                  unknown
+                >,
+                value: toExitEffect(entry.parserValue(Option.some(input[key]), options))
+              }, { concurrency: "unbounded" })
+            })
+          }
+        }
+
+        const indexExits = yield* Effect.forEach(indexTasks, (task) => task.exit, { concurrency: "unbounded" })
+        for (let i = 0; i < indexTasks.length; i++) {
+          const task = indexTasks[i]
+          const { key, indexSignature } = task
+          const { key: exitKey, value: exitValue } = indexExits[i]
+          if (exitKey._tag === "Failure") {
+            const issueKey = Cause.findError(exitKey.cause)
+            if (Result.isFailure(issueKey)) {
+              return yield* exitKey
+            }
+            const issue = new Issue.Pointer([key], issueKey.success)
+            if (errorsAllOption) {
+              if (issues) issues.push(issue)
+              else issues = [issue]
+              continue
+            }
+            return yield* Effect.fail(
+              new Issue.Composite(ast, oinput, [issue])
+            )
+          }
+          if (exitValue._tag === "Failure") {
+            const issueValue = Cause.findError(exitValue.cause)
+            if (Result.isFailure(issueValue)) {
+              return yield* exitValue
+            }
+            const issue = new Issue.Pointer([key], issueValue.success)
+            if (errorsAllOption) {
+              if (issues) issues.push(issue)
+              else issues = [issue]
+              continue
+            } else {
               return yield* Effect.fail(
                 new Issue.Composite(ast, oinput, [issue])
               )
             }
-
-            const value: Option.Option<unknown> = Option.some(input[key])
-            const parserValue = recur(is.type)
-            const effValue = parserValue(value, options)
-            const exitValue = effectIsExit(effValue) ? effValue : yield* Effect.exit(effValue)
-            if (exitValue._tag === "Failure") {
-              const issueValue = Cause.findError(exitValue.cause)
-              if (Result.isFailure(issueValue)) {
-                return yield* exitValue
-              }
-              const issue = new Issue.Pointer([key], issueValue.success)
-              if (errorsAllOption) {
-                if (issues) issues.push(issue)
-                else issues = [issue]
-                continue
-              } else {
-                return yield* Effect.fail(
-                  new Issue.Composite(ast, oinput, [issue])
-                )
-              }
-            } else if (exitKey.value._tag === "Some" && exitValue.value._tag === "Some") {
-              const k2 = exitKey.value.value
-              const v2 = exitValue.value.value
-              if (is.merge && is.merge.decode && Object.hasOwn(out, k2)) {
-                const [k, v] = is.merge.decode.combine([k2, out[k2]], [k2, v2])
-                internalRecord.set(out, k, v)
-              } else {
-                internalRecord.set(out, k2, v2)
-              }
+          } else if (exitKey.value._tag === "Some" && exitValue.value._tag === "Some") {
+            const k2 = exitKey.value.value
+            const v2 = exitValue.value.value
+            if (indexSignature.merge && indexSignature.merge.decode && Object.hasOwn(out, k2)) {
+              const [k, v] = indexSignature.merge.decode.combine([k2, out[k2]], [k2, v2])
+              internalRecord.set(out, k, v)
+            } else {
+              internalRecord.set(out, k2, v2)
             }
           }
         }
@@ -3284,6 +3284,9 @@ export function runChecks<T>(
   }
   return Result.succeed(s)
 }
+
+const toExitEffect = <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<Exit.Exit<A, E>, never, R> =>
+  effectIsExit(effect) ? Effect.succeed(effect) : Effect.exit(effect)
 
 /** @internal */
 export const ClassTypeId = "~effect/Schema/Class"

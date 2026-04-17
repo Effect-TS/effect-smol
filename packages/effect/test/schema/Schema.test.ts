@@ -29,6 +29,8 @@ import {
   Struct,
   Tuple
 } from "effect"
+import * as Request from "effect/Request"
+import * as RequestResolver from "effect/RequestResolver"
 import { TestSchema } from "effect/testing"
 import { produce } from "immer"
 import { deepStrictEqual, fail, ok, strictEqual } from "node:assert"
@@ -4918,6 +4920,281 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       `input should not be "b"`
     )
   })
+
+  it.effect("transformOrFail with Schema.Array(Struct({ x: UserFromId })) batches from a single root decode", () =>
+    Effect.gen(function*() {
+      class GetUser extends Request.TaggedClass("GetUser")<
+        {
+          readonly id: number
+        },
+        {
+          readonly id: number
+          readonly name: string
+        },
+        never
+      > {}
+
+      const batches: Array<Array<number>> = []
+
+      const resolver = RequestResolver.make<GetUser>(Effect.fnUntraced(function*(entries) {
+        batches.push(entries.map((entry) => entry.request.id))
+
+        for (const entry of entries) {
+          entry.completeUnsafe(Exit.succeed({
+            id: entry.request.id,
+            name: `user-${entry.request.id}`
+          }))
+        }
+      }))
+
+      const schema = Schema.Number.pipe(
+        Schema.decodeTo(
+          Schema.Struct({
+            id: Schema.Number,
+            name: Schema.String
+          }),
+          SchemaTransformation.transformOrFail({
+            decode: (id) => Effect.request(new GetUser({ id }), resolver),
+            encode: (user) => Effect.succeed(user.id)
+          })
+        )
+      )
+
+      const rootSchema = Schema.Array(Schema.Struct({ x: schema }))
+
+      const users = yield* Schema.decodeUnknownEffect(rootSchema)([
+        { x: 1 },
+        { x: 2 },
+        { x: 3 }
+      ])
+
+      deepStrictEqual(users, [
+        { x: { id: 1, name: "user-1" } },
+        { x: { id: 2, name: "user-2" } },
+        { x: { id: 3, name: "user-3" } }
+      ])
+      strictEqual(batches.length, 1)
+      deepStrictEqual(batches[0], [1, 2, 3])
+    }))
+
+  it.effect("transformOrFail with Schema.Array(UserFromId) batches sibling element requests", () =>
+    Effect.gen(function*() {
+      class GetUser extends Request.TaggedClass("GetUser")<
+        {
+          readonly id: number
+        },
+        {
+          readonly id: number
+          readonly name: string
+        },
+        never
+      > {}
+
+      const batches: Array<Array<number>> = []
+
+      const resolver = RequestResolver.make<GetUser>(Effect.fnUntraced(function*(entries) {
+        batches.push(entries.map((entry) => entry.request.id))
+
+        for (const entry of entries) {
+          entry.completeUnsafe(Exit.succeed({
+            id: entry.request.id,
+            name: `user-${entry.request.id}`
+          }))
+        }
+      }))
+
+      const userSchema = Schema.Struct({
+        id: Schema.Number,
+        name: Schema.String
+      })
+
+      const UserFromId = Schema.Number.pipe(
+        Schema.decodeTo(
+          userSchema,
+          SchemaTransformation.transformOrFail({
+            decode: (id) => Effect.request(new GetUser({ id }), resolver),
+            encode: (user) => Effect.succeed(user.id)
+          })
+        )
+      )
+
+      const schema = Schema.Array(UserFromId)
+
+      const users = yield* Schema.decodeUnknownEffect(schema)([1, 2, 3])
+
+      deepStrictEqual(users, [
+        { id: 1, name: "user-1" },
+        { id: 2, name: "user-2" },
+        { id: 3, name: "user-3" }
+      ])
+      strictEqual(batches.length, 1)
+      deepStrictEqual(batches, [[1, 2, 3]])
+    }))
+
+  it.effect("transformOrFail with Schema.Struct batches sibling property requests", () =>
+    Effect.gen(function*() {
+      class GetUser extends Request.TaggedClass("GetUser")<
+        {
+          readonly id: number
+        },
+        {
+          readonly id: number
+          readonly name: string
+        },
+        never
+      > {}
+
+      const batches: Array<Array<number>> = []
+
+      const resolver = RequestResolver.make<GetUser>(Effect.fnUntraced(function*(entries) {
+        batches.push(entries.map((entry) => entry.request.id))
+
+        for (const entry of entries) {
+          entry.completeUnsafe(Exit.succeed({
+            id: entry.request.id,
+            name: `user-${entry.request.id}`
+          }))
+        }
+      }))
+
+      const userSchema = Schema.Struct({
+        id: Schema.Number,
+        name: Schema.String
+      })
+
+      const UserFromId = Schema.Number.pipe(
+        Schema.decodeTo(
+          userSchema,
+          SchemaTransformation.transformOrFail({
+            decode: (id) => Effect.request(new GetUser({ id }), resolver),
+            encode: (user) => Effect.succeed(user.id)
+          })
+        )
+      )
+
+      const schema = Schema.Struct({
+        author: UserFromId,
+        editor: UserFromId,
+        reviewer: UserFromId
+      })
+
+      const users = yield* Schema.decodeUnknownEffect(schema)({
+        author: 1,
+        editor: 2,
+        reviewer: 3
+      })
+
+      deepStrictEqual(users, {
+        author: { id: 1, name: "user-1" },
+        editor: { id: 2, name: "user-2" },
+        reviewer: { id: 3, name: "user-3" }
+      })
+      strictEqual(batches.length, 1)
+      deepStrictEqual(batches, [[1, 2, 3]])
+    }))
+
+  it.effect("transformOrFail with nested Array(Struct(...)) batches requests from a single root decode", () =>
+    Effect.gen(function*() {
+      class GetUser extends Request.TaggedClass("GetUser")<
+        {
+          readonly id: number
+        },
+        {
+          readonly id: number
+          readonly name: string
+        },
+        never
+      > {}
+
+      const batches: Array<Array<number>> = []
+
+      const resolver = RequestResolver.make<GetUser>(Effect.fnUntraced(function*(entries) {
+        batches.push(entries.map((entry) => entry.request.id))
+
+        for (const entry of entries) {
+          entry.completeUnsafe(Exit.succeed({
+            id: entry.request.id,
+            name: `user-${entry.request.id}`
+          }))
+        }
+      }))
+
+      const userSchema = Schema.Struct({
+        id: Schema.Number,
+        name: Schema.String
+      })
+
+      const UserFromId = Schema.Number.pipe(
+        Schema.decodeTo(
+          userSchema,
+          SchemaTransformation.transformOrFail({
+            decode: (id) => Effect.request(new GetUser({ id }), resolver),
+            encode: (user) => Effect.succeed(user.id)
+          })
+        )
+      )
+
+      const schema = Schema.Array(Schema.Struct({
+        array: Schema.Array(Schema.Struct({
+          x: UserFromId,
+          y: Schema.Array(Schema.Struct({ x: UserFromId }))
+        }))
+      }))
+
+      const users = yield* Schema.decodeUnknownEffect(schema)([
+        {
+          array: [
+            {
+              x: 1,
+              y: [{ x: 2 }, { x: 3 }]
+            },
+            {
+              x: 4,
+              y: [{ x: 5 }]
+            }
+          ]
+        },
+        {
+          array: [
+            {
+              x: 6,
+              y: [{ x: 7 }, { x: 8 }]
+            }
+          ]
+        }
+      ])
+
+      deepStrictEqual(users, [
+        {
+          array: [
+            {
+              x: { id: 1, name: "user-1" },
+              y: [
+                { x: { id: 2, name: "user-2" } },
+                { x: { id: 3, name: "user-3" } }
+              ]
+            },
+            {
+              x: { id: 4, name: "user-4" },
+              y: [{ x: { id: 5, name: "user-5" } }]
+            }
+          ]
+        },
+        {
+          array: [
+            {
+              x: { id: 6, name: "user-6" },
+              y: [
+                { x: { id: 7, name: "user-7" } },
+                { x: { id: 8, name: "user-8" } }
+              ]
+            }
+          ]
+        }
+      ])
+      strictEqual(batches.length, 1)
+      deepStrictEqual([...batches[0]].sort((a, b) => a - b), [1, 2, 3, 4, 5, 6, 7, 8])
+    }))
 
   describe("TemplateLiteral", () => {
     it("should expose the parts", () => {
