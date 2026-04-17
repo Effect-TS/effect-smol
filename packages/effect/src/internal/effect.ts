@@ -4527,13 +4527,13 @@ const iterateEagerImpl = <S, A, X, E, R, E2>(options: {
           break
         }
 
-        // Use onExitPrimitive for concurrency of 1
+        // Use flatMap for concurrency of 1
       } else if (ls.concurrency === 1) {
-        return onExitPrimitive(eff, (exit) => {
+        return flatMap(exit(eff), (exit) => {
           ls.terminal = options.step(state, item, exit, ls.index)
           ls.index++
           return ls.terminal ?? loop(state, items, opts, ls) ?? void_
-        }, true)
+        })
 
         // We have an effect, so enter "async" mode
       } else if (!ls.parentFiber) {
@@ -4589,7 +4589,6 @@ const iterateEagerImpl = <S, A, X, E, R, E2>(options: {
               ls.terminal = result._tag === "Failure"
                 ? exitFailCause(causeFromReasons(result.cause.reasons.slice()))
                 : result
-              // trigger interruption
               loop(state, items, opts, ls)
             }
           }
