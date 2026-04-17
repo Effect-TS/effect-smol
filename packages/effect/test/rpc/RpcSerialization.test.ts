@@ -132,4 +132,40 @@ describe("RpcSerialization", () => {
       "{\"jsonrpc\":\"2.0\",\"method\":\"users.get\",\"params\":null,\"id\":\"\",\"headers\":[]}"
     )
   })
+
+  it("msgPack encodes and decodes a payload", () => {
+    const parser = RpcSerialization.msgPack.makeUnsafe()
+    const payload = { _tag: "Request", id: 1, method: "echo" }
+    const encoded = parser.encode(payload)
+    const decoded = parser.decode(encoded as Uint8Array)
+    assert.strictEqual(decoded.length, 1)
+    assert.deepStrictEqual(decoded[0], payload)
+  })
+
+  it("makeMsgPack with useRecords false encodes and decodes a payload", () => {
+    const parser = RpcSerialization.makeMsgPack({ useRecords: false }).makeUnsafe()
+    const payload = { _tag: "Request", id: 1, method: "echo" }
+    const encoded = parser.encode(payload)
+    const decoded = parser.decode(encoded as Uint8Array)
+    assert.strictEqual(decoded.length, 1)
+    assert.deepStrictEqual(decoded[0], payload)
+  })
+
+  it("makeMsgPack with useRecords false handles nested objects with repeated structures", () => {
+    const parser = RpcSerialization.makeMsgPack({ useRecords: false }).makeUnsafe()
+    const payload = {
+      _tag: "Chunk",
+      requestId: "1",
+      values: [
+        responseExitSuccess("1", { _tag: "Ok", data: "a" }),
+        responseExitSuccess("2", { _tag: "Ok", data: "b" }),
+        responseExitSuccess("3", { _tag: "Ok", data: "c" }),
+        responseExitSuccess("4", { _tag: "Ok", data: "d" })
+      ]
+    }
+    const encoded = parser.encode(payload)
+    const decoded = parser.decode(encoded as Uint8Array)
+    assert.strictEqual(decoded.length, 1)
+    assert.deepStrictEqual(decoded[0], payload)
+  })
 })

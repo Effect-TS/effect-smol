@@ -400,47 +400,67 @@ interface JsonRpcResponse {
 type JsonRpcMessage = JsonRpcRequest | JsonRpcResponse
 
 /**
+ * Create a MessagePack serialization with custom msgpackr options.
+ *
+ * On Cloudflare Workers with `allow_eval_during_startup` (default for
+ * `compatibility_date >= 2025-06-01`), pass `{ useRecords: false }` to
+ * prevent msgpackr's JIT code generation via `new Function()`, which is
+ * blocked during request handling.
+ *
+ * @since 4.0.0
+ * @category serialization
+ * @example
+ * ```ts
+ * import { Layer } from "effect"
+ * import { RpcSerialization } from "effect/unstable/rpc"
+ *
+ * // Cloudflare Workers
+ * Layer.succeed(RpcSerialization)(
+ *   RpcSerialization.makeMsgPack({ useRecords: false })
+ * )
+ * ```
+ */
+export const makeMsgPack = (options: Msgpackr.Options): RpcSerialization["Service"] =>
+  RpcSerialization.of({
+    contentType: "application/msgpack",
+    includesFraming: true,
+    makeUnsafe: () => {
+      const unpackr = new Msgpackr.Unpackr(options)
+      const packr = new Msgpackr.Packr(options)
+      const encoder = new TextEncoder()
+      let incomplete: Uint8Array | undefined = undefined
+      return {
+        decode: (bytes) => {
+          let buf = typeof bytes === "string" ? encoder.encode(bytes) : bytes
+          if (incomplete !== undefined) {
+            const prev = buf
+            bytes = new Uint8Array(incomplete.length + buf.length)
+            bytes.set(incomplete)
+            bytes.set(prev, incomplete.length)
+            buf = bytes
+            incomplete = undefined
+          }
+          try {
+            return unpackr.unpackMultiple(buf)
+          } catch (error_) {
+            const error = error_ as any
+            if (error.incomplete) {
+              incomplete = buf.subarray(error.lastPosition)
+              return error.values ?? []
+            }
+            throw error_
+          }
+        },
+        encode: (response) => packr.pack(response)
+      }
+    }
+  })
+
+/**
  * @since 4.0.0
  * @category serialization
  */
-export const msgPack: RpcSerialization["Service"] = RpcSerialization.of({
-  contentType: "application/msgpack",
-  includesFraming: true,
-  makeUnsafe: () => {
-    const unpackr = new Msgpackr.Unpackr({
-      useRecords: true
-    })
-    const packr = new Msgpackr.Packr({
-      useRecords: true
-    })
-    const encoder = new TextEncoder()
-    let incomplete: Uint8Array | undefined = undefined
-    return {
-      decode: (bytes) => {
-        let buf = typeof bytes === "string" ? encoder.encode(bytes) : bytes
-        if (incomplete !== undefined) {
-          const prev = buf
-          bytes = new Uint8Array(incomplete.length + buf.length)
-          bytes.set(incomplete)
-          bytes.set(prev, incomplete.length)
-          buf = bytes
-          incomplete = undefined
-        }
-        try {
-          return unpackr.unpackMultiple(buf)
-        } catch (error_) {
-          const error = error_ as any
-          if (error.incomplete) {
-            incomplete = buf.subarray(error.lastPosition)
-            return error.values ?? []
-          }
-          return []
-        }
-      },
-      encode: (response) => packr.pack(response)
-    }
-  }
-})
+export const msgPack: RpcSerialization["Service"] = makeMsgPack({ useRecords: true })
 
 /**
  * A rpc serialization layer that uses JSON for serialization.
@@ -490,6 +510,11 @@ export const layerNdJsonRpc = (options?: {
  *
  * MessagePack has a more compact binary format compared to JSON and NDJSON. It
  * also has better support for binary data.
+ *
+ * On Cloudflare Workers with `allow_eval_during_startup` (default for
+ * `compatibility_date >= 2025-06-01`), use {@link makeMsgPack} with
+ * `{ useRecords: false }` to prevent msgpackr's JIT code generation via
+ * `new Function()`, which is blocked during request handling.
  *
  * @since 4.0.0
  * @category serialization
