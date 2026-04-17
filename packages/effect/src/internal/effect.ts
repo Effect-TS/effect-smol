@@ -4504,6 +4504,7 @@ const iterateEagerImpl = <S, A, X, E, R, E2>(options: {
     ls = {
       index: opts?.start ?? 0,
       end: opts?.end ?? items.length,
+      done: false,
       concurrency: opts?.concurrency ?? 1,
       parentFiber: undefined as Fiber.Fiber<any, any> | undefined,
       fibers: undefined as Set<Fiber.Fiber<any, any>> | undefined,
@@ -4597,7 +4598,7 @@ const iterateEagerImpl = <S, A, X, E, R, E2>(options: {
           if (paused) {
             const eff = loop(state, items, opts, ls)
             if (eff) ls.resume!(eff)
-          } else if (ls.fibers!.size === 0) {
+          } else if (ls.done && ls.fibers!.size === 0) {
             ls.resume!(ls.terminal ?? void_)
           }
         })
@@ -4609,6 +4610,8 @@ const iterateEagerImpl = <S, A, X, E, R, E2>(options: {
         return
       }
     }
+
+    ls.done = true
 
     if (ls.terminal) {
       if (ls.fibers && ls.fibers.size > 0) {
