@@ -1741,103 +1741,63 @@ export class Objects extends Base {
       return fromRefinement(ast, Predicate.isNotNullish)
     }
 
-    const parseProperties = iterateEager<{
-      readonly oinput: Option.Option<unknown>
-      readonly input: Record<PropertyKey, unknown>
-      readonly options: ParseOptions
-      readonly out: Record<PropertyKey, unknown>
-      issues: Array<Issue.Issue> | undefined
-    }, typeof properties[number]>()({
-      onItem(
-        s: {
-          readonly oinput: Option.Option<unknown>
-          readonly input: Record<PropertyKey, unknown>
-          readonly options: ParseOptions
-          readonly out: Record<PropertyKey, unknown>
-          issues: Array<Issue.Issue> | undefined
-        },
-        p
-      ) {
-        const value: Option.Option<unknown> = Object.hasOwn(s.input, p.name)
-          ? Option.some(s.input[p.name])
-          : Option.none()
-        return p.parser(value, s.options)
-      },
-      step(s, p, exit) {
-        if (exit._tag === "Failure") {
-          return wrapPropertyKeyIssue(s, ast, p.name, exit)
-        } else if (exit.value._tag === "Some") {
-          internalRecord.set(s.out, p.name, exit.value.value)
-        } else if (!isOptional(p.type)) {
-          const issue = new Issue.Pointer([p.name], new Issue.MissingKey(p.type.context?.annotations))
-          if (s.options.errors === "all") {
-            if (s.issues) s.issues.push(issue)
-            else s.issues = [issue]
+    const parseIndexes = indexCount > 0 ?
+      iterateEager<{
+        readonly oinput: Option.Option<unknown>
+        readonly input: Record<PropertyKey, unknown>
+        readonly options: ParseOptions
+        readonly out: Record<PropertyKey, unknown>
+        issues: Array<Issue.Issue> | undefined
+      }, [key: PropertyKey, is: IndexSignature]>()({
+        onItem: Effect.fnUntracedEager(function*(
+          s,
+          [key, is]
+        ) {
+          const parserKey = recur(indexSignatureParameterFromString(is.parameter))
+          const effKey = parserKey(Option.some(key), s.options)
+          const exitKey = (effectIsExit(effKey) ? effKey : yield* Effect.exit(effKey)) as Exit.Exit<
+            Option.Option<PropertyKey>,
+            Issue.Issue
+          >
+          if (exitKey._tag === "Failure") {
+            const eff = wrapPropertyKeyIssue(s, ast, key, exitKey)
+            if (eff) yield* eff
             return
-          } else {
-            return Exit.fail(
-              new Issue.Composite(ast, s.oinput, [issue])
-            )
           }
-        }
-      }
-    })
 
-    const parseIndexes = iterateEager<{
-      readonly oinput: Option.Option<unknown>
-      readonly input: Record<PropertyKey, unknown>
-      readonly options: ParseOptions
-      readonly out: Record<PropertyKey, unknown>
-      issues: Array<Issue.Issue> | undefined
-    }, [key: PropertyKey, is: IndexSignature]>()({
-      onItem: Effect.fnUntracedEager(function*(
-        s,
-        [key, is]
-      ) {
-        const parserKey = recur(indexSignatureParameterFromString(is.parameter))
-        const effKey = parserKey(Option.some(key), s.options)
-        const exitKey = (effectIsExit(effKey) ? effKey : yield* Effect.exit(effKey)) as Exit.Exit<
-          Option.Option<PropertyKey>,
-          Issue.Issue
-        >
-        if (exitKey._tag === "Failure") {
-          const eff = wrapPropertyKeyIssue(s, ast, key, exitKey)
-          if (eff) yield* eff
-          return
-        }
-
-        const value: Option.Option<unknown> = Option.some(s.input[key])
-        const parserValue = recur(is.type)
-        const effValue = parserValue(value, s.options)
-        const exitValue = effectIsExit(effValue) ? effValue : yield* Effect.exit(effValue)
-        if (exitValue._tag === "Failure") {
-          const issueValue = Cause.findError(exitValue.cause)
-          if (Result.isFailure(issueValue)) {
-            return yield* exitValue
+          const value: Option.Option<unknown> = Option.some(s.input[key])
+          const parserValue = recur(is.type)
+          const effValue = parserValue(value, s.options)
+          const exitValue = effectIsExit(effValue) ? effValue : yield* Effect.exit(effValue)
+          if (exitValue._tag === "Failure") {
+            const issueValue = Cause.findError(exitValue.cause)
+            if (Result.isFailure(issueValue)) {
+              return yield* exitValue
+            }
+            const issue = new Issue.Pointer([key], issueValue.success)
+            if (s.options.errors === "all") {
+              if (s.issues) s.issues.push(issue)
+              else s.issues = [issue]
+              return
+            } else {
+              return yield* Effect.fail(
+                new Issue.Composite(ast, s.oinput, [issue])
+              )
+            }
+          } else if (exitKey.value._tag === "Some" && exitValue.value._tag === "Some") {
+            const k2 = exitKey.value.value
+            const v2 = exitValue.value.value
+            if (is.merge && is.merge.decode && Object.hasOwn(s.out, k2)) {
+              const [k, v] = is.merge.decode.combine([k2, s.out[k2]], [k2, v2])
+              internalRecord.set(s.out, k, v)
+            } else {
+              internalRecord.set(s.out, k2, v2)
+            }
           }
-          const issue = new Issue.Pointer([key], issueValue.success)
-          if (s.options.errors === "all") {
-            if (s.issues) s.issues.push(issue)
-            else s.issues = [issue]
-            return
-          } else {
-            return yield* Effect.fail(
-              new Issue.Composite(ast, s.oinput, [issue])
-            )
-          }
-        } else if (exitKey.value._tag === "Some" && exitValue.value._tag === "Some") {
-          const k2 = exitKey.value.value
-          const v2 = exitValue.value.value
-          if (is.merge && is.merge.decode && Object.hasOwn(s.out, k2)) {
-            const [k, v] = is.merge.decode.combine([k2, s.out[k2]], [k2, v2])
-            internalRecord.set(s.out, k, v)
-          } else {
-            internalRecord.set(s.out, k2, v2)
-          }
-        }
-      }),
-      step: (_s, _, exit: Exit.Exit<void, Issue.Issue>) => exit._tag === "Failure" ? exit : undefined
-    })
+        }),
+        step: (_s, _, exit: Exit.Exit<void, Issue.Issue>) => exit._tag === "Failure" ? exit : undefined
+      }) :
+      undefined
 
     return Effect.fnUntracedEager(function*(oinput, options) {
       if (oinput._tag === "None") {
@@ -1852,6 +1812,7 @@ export class Objects extends Base {
 
       const out: Record<PropertyKey, unknown> = {}
       const state = {
+        ast,
         oinput,
         input,
         out,
@@ -1903,7 +1864,7 @@ export class Objects extends Base {
       // ---------------------------------------------
       // handle index signatures
       // ---------------------------------------------
-      if (indexCount > 0) {
+      if (parseIndexes) {
         const keyPairs = Arr.empty<[PropertyKey, IndexSignature]>()
         for (let i = 0; i < indexCount; i++) {
           const is = ast.indexSignatures[i]
@@ -1970,6 +1931,56 @@ export class Objects extends Base {
     return "object"
   }
 }
+
+type ParsedProperty = {
+  readonly ps: PropertySignature | IndexSignature
+  readonly parser: Parser.Parser
+  readonly name: PropertyKey
+  readonly type: AST
+}
+
+const parseProperties = iterateEager<{
+  readonly ast: AST
+  readonly oinput: Option.Option<unknown>
+  readonly input: Record<PropertyKey, unknown>
+  readonly options: ParseOptions
+  readonly out: Record<PropertyKey, unknown>
+  issues: Array<Issue.Issue> | undefined
+}, ParsedProperty>()({
+  onItem(
+    s: {
+      readonly oinput: Option.Option<unknown>
+      readonly input: Record<PropertyKey, unknown>
+      readonly options: ParseOptions
+      readonly out: Record<PropertyKey, unknown>
+      issues: Array<Issue.Issue> | undefined
+    },
+    p
+  ) {
+    const value: Option.Option<unknown> = Object.hasOwn(s.input, p.name)
+      ? Option.some(s.input[p.name])
+      : Option.none()
+    return p.parser(value, s.options)
+  },
+  step(s, p, exit) {
+    if (exit._tag === "Failure") {
+      return wrapPropertyKeyIssue(s, s.ast, p.name, exit)
+    } else if (exit.value._tag === "Some") {
+      internalRecord.set(s.out, p.name, exit.value.value)
+    } else if (!isOptional(p.type)) {
+      const issue = new Issue.Pointer([p.name], new Issue.MissingKey(p.type.context?.annotations))
+      if (s.options.errors === "all") {
+        if (s.issues) s.issues.push(issue)
+        else s.issues = [issue]
+        return
+      } else {
+        return Exit.fail(
+          new Issue.Composite(s.ast, s.oinput, [issue])
+        )
+      }
+    }
+  }
+})
 
 function mergeChecks(checks: Checks | undefined, b: AST): Checks | undefined {
   if (!checks) {
