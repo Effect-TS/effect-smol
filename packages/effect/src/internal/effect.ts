@@ -4497,142 +4497,140 @@ const iterateEagerImpl = <S, A, X, E, R, E2>(options: {
     readonly end?: number | undefined
   }
 ) => Effect.Effect<void, E | E2, R> | undefined => {
-  return function loop(
+  const onItem = options.onItem
+  const step = options.step
+
+  return (
     state: S,
     items: ReadonlyArray<A>,
-    opts,
-    s: {
-      index: number
-      end: number
-      done: boolean
-      concurrency: number
-      parentFiber?: Fiber.Fiber<any, any> | undefined
-      fibers?: Set<Fiber.Fiber<any, any>> | undefined
-      resume?: ((effect: Effect.Effect<void, E | E2, R>) => void) | undefined
-      interrupted: boolean
-      terminal?: Exit.Exit<void, E | E2> | void
-      effect?: Effect.Effect<X, E, R> | undefined
-    } = {
-      index: opts?.start ?? 0,
-      end: opts?.end ?? items.length,
-      done: false,
-      concurrency: opts?.concurrency ?? 1,
-      interrupted: false
-    }
-  ): Effect.Effect<void, E | E2, R> | undefined {
-    let paused = false
-    for (; !s.terminal && s.index < s.end; s.index++) {
-      const item = items[s.index]
-      const eff = s.effect ?? options.onItem(state, item, s.index)
+    opts: {
+      readonly concurrency?: number | undefined
+      readonly start?: number | undefined
+      readonly end?: number | undefined
+    } | undefined
+  ): Effect.Effect<void, E | E2, R> | undefined => {
+    let index = opts?.start ?? 0
+    const end = opts?.end ?? items.length
+    const concurrency = opts?.concurrency ?? 1
+    let done = false
+    let parentFiber: Fiber.Fiber<any, any> | undefined
+    let fibers: Set<Fiber.Fiber<any, any>> | undefined
+    let resume: ((effect: Effect.Effect<void, E | E2, R>) => void) | undefined
+    let interrupted = false
+    let terminal: Exit.Exit<void, E | E2> | void
+    let effect: Effect.Effect<X, E, R> | undefined
 
-      // fast case (already an exit)
-      if (effectIsExit(eff)) {
-        const result = options.step(state, item, eff, s.index)
-        if (result) {
-          s.terminal = result
-          break
-        }
+    const runLoop = (): Effect.Effect<void, E | E2, R> | undefined => {
+      let paused = false
+      for (; !terminal && index < end; index++) {
+        const item = items[index]
+        const eff = effect ?? onItem(state, item, index)
 
-        // Use flatMap for concurrency of 1
-      } else if (s.concurrency === 1) {
-        return flatMap(exit(eff), (exit) => {
-          s.terminal = options.step(state, item, exit, s.index)
-          s.index++
-          return s.terminal ?? loop(state, items, opts, s) ?? void_
-        })
+        // fast case (already an exit)
+        if (effectIsExit(eff)) {
+          terminal = step(state, item, eff, index)
+          if (terminal) break
 
-        // We have an effect, so enter "async" mode
-      } else if (!s.parentFiber) {
-        return callback((resume) => {
-          s.parentFiber = getCurrentFiber()!
-          s.effect = eff
-          s.resume = resume
-          const result = loop(state, items, opts, s)
-          if (result) return resume(result)
-          return suspend(() => {
-            s.terminal = exitVoid
-            s.interrupted = true
-            return s.fibers && s.fibers.size > 0 ? fiberInterruptAll(s.fibers) : void_
+          // Use flatMap for concurrency of 1
+        } else if (concurrency === 1) {
+          return flatMap(exit(eff), (exit) => {
+            terminal = step(state, item, exit, index)
+            index++
+            return terminal ?? runLoop() ?? void_
           })
-        })
 
-        // Fork the effect with concurrency > 1
-      } else {
-        // Clear the temporary effect from capturing the parentFiber
-        if (s.effect) s.effect = undefined
+          // We have an effect, so enter "async" mode
+        } else if (!parentFiber) {
+          return callback((cb) => {
+            parentFiber = getCurrentFiber()!
+            effect = eff
+            resume = cb
+            const result = runLoop()
+            if (result) return cb(result)
+            return suspend(() => {
+              terminal = exitVoid
+              interrupted = true
+              return fibers && fibers.size > 0 ? fiberInterruptAll(fibers) : void_
+            })
+          })
 
-        const fiber = forkUnsafe(s.parentFiber, eff, true, true, "inherit")
-        if (fiber._exit) {
-          const result = options.step(state, item, fiber._exit, s.index)
-          if (result) {
-            s.terminal = result
-            break
+          // Fork the effect with concurrency > 1
+        } else {
+          // Clear the temporary effect from capturing the parentFiber
+          effect = undefined
+
+          const fiber = forkUnsafe(parentFiber, eff, true, true, "inherit")
+          if (fiber._exit) {
+            terminal = step(state, item, fiber._exit, index)
+            if (terminal) break
+            continue
           }
-          continue
-        }
 
-        // Add the fiber to the Set
-        if (s.fibers) s.fibers.add(fiber)
-        else s.fibers = new Set([fiber])
+          // Add the fiber to the Set
+          if (fibers) fibers.add(fiber)
+          else fibers = new Set([fiber])
 
-        const index = s.index
-        fiber.addObserver((exit) => {
-          s.fibers!.delete(fiber)
-          if (s.terminal) {
-            if (!s.interrupted && exit._tag === "Failure") {
-              for (const reason of exit.cause.reasons) {
-                if (reason._tag === "Interrupt") continue
-                else if (s.terminal._tag === "Failure") {
-                  ;(s.terminal.cause.reasons as Array<any>).push(reason)
-                } else {
-                  s.terminal = exitFailCause(causeFromReasons([reason]))
+          const currentIndex = index
+          fiber.addObserver((exit) => {
+            fibers!.delete(fiber)
+            if (terminal) {
+              if (!interrupted && exit._tag === "Failure") {
+                for (const reason of exit.cause.reasons) {
+                  if (reason._tag === "Interrupt") continue
+                  else if (terminal._tag === "Failure") {
+                    ;(terminal.cause.reasons as Array<any>).push(reason)
+                  } else {
+                    terminal = exitFailCause(causeFromReasons([reason]))
+                  }
                 }
               }
+            } else {
+              const result = step(state, item, exit, currentIndex)
+              if (result) {
+                terminal = result._tag === "Failure"
+                  ? exitFailCause(causeFromReasons(result.cause.reasons.slice()))
+                  : result
+                runLoop()
+              }
             }
-          } else {
-            const result = options.step(state, item, exit, index)
-            if (result) {
-              s.terminal = result._tag === "Failure"
-                ? exitFailCause(causeFromReasons(result.cause.reasons.slice()))
-                : result
-              loop(state, items, opts, s)
+
+            // We are now under the concurrency limit
+            if (paused) {
+              const eff = runLoop()
+              if (eff) resume!(eff)
+            } else if (done && fibers!.size === 0) {
+              resume!(terminal ?? void_)
             }
-          }
+          })
 
-          // We are now under the concurrency limit
-          if (paused) {
-            const eff = loop(state, items, opts, s)
-            if (eff) s.resume!(eff)
-          } else if (s.done && s.fibers!.size === 0) {
-            s.resume!(s.terminal ?? void_)
-          }
-        })
+          // Check if we have reached the concurrency limit
+          if (fibers.size < concurrency) continue
+          paused = true
+          index++
+          return
+        }
+      }
 
-        // Check if we have reached the concurrency limit
-        if (s.fibers.size < s.concurrency) continue
-        paused = true
-        s.index++
-        return
+      done = true
+
+      if (terminal) {
+        if (fibers && fibers.size > 0) {
+          const annotations = fiberStackAnnotations(parentFiber!)
+          fibers.forEach((f) => f.interruptUnsafe(parentFiber!.id, annotations))
+          return
+        }
+        if (resume || terminal._tag === "Failure") {
+          return terminal
+        }
+      } else if (resume) {
+        if (!fibers) return exitVoid
+        else if (fibers.size === 0) {
+          resume(void_)
+        }
       }
     }
 
-    s.done = true
-
-    if (s.terminal) {
-      if (s.fibers && s.fibers.size > 0) {
-        const annotations = fiberStackAnnotations(s.parentFiber!)
-        s.fibers.forEach((f) => f.interruptUnsafe(s.parentFiber!.id, annotations))
-        return
-      }
-      if (s.resume || s.terminal._tag === "Failure") {
-        return s.terminal
-      }
-    } else if (s.resume) {
-      if (!s.fibers) return exitVoid
-      else if (s.fibers.size === 0) {
-        s.resume(void_)
-      }
-    }
+    return runLoop()
   }
 }
 
