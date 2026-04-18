@@ -322,7 +322,8 @@ export const makeStorage = (options?: {
           )
         },
         sql.withTransaction,
-        Effect.orDie
+        Effect.orDie,
+        withTracerDisabled
       ),
       entriesAfter: (storeId, entry) =>
         sql`
@@ -333,7 +334,8 @@ export const makeStorage = (options?: {
         `.pipe(
           Effect.flatMap(decodeRemoteEntries),
           Effect.map(Arr.map((r) => r.entry)),
-          Effect.orDie
+          Effect.orDie,
+          withTracerDisabled
         ),
       write: Effect.fnUntraced(
         function*(storeId, entries) {
@@ -389,6 +391,7 @@ export const makeStorage = (options?: {
         },
         Effect.scoped,
         sql.withTransaction,
+        withTracerDisabled,
         Effect.orDie
       ),
       changes: Effect.fnUntraced(
@@ -410,6 +413,7 @@ export const makeStorage = (options?: {
           )
         },
         Effect.orDie,
+        withTracerDisabled,
         Stream.unwrap
       ),
       withTransaction: (effect) =>
@@ -417,7 +421,7 @@ export const makeStorage = (options?: {
           Effect.catchIf(SqlError.isSqlError, Effect.die)
         )
     })
-  })
+  }).pipe(withTracerDisabled)
 
 /**
  * @since 4.0.0
@@ -498,3 +502,5 @@ const decodeStoreSequence = (rows: unknown): Effect.Effect<number, Schema.Schema
 const decodeSessionAuthBindings = (
   rows: unknown
 ): Effect.Effect<ReadonlyArray<SessionAuthBindingSql>, Schema.SchemaError> => decodeSessionAuthBindingRows(rows)
+
+const withTracerDisabled = Effect.withTracerEnabled(false)

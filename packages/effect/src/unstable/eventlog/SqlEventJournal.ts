@@ -71,7 +71,7 @@ export const make = (options?: {
             payload BLOB NOT NULL,
             timestamp INTEGER NOT NULL
           )`
-    })
+    }).pipe(withTracerDisabled)
 
     yield* sql.onDialectOrElse({
       pg: () =>
@@ -106,7 +106,7 @@ export const make = (options?: {
             sequence INT NOT NULL,
             PRIMARY KEY (remote_id, entry_id)
           )`
-    })
+    }).pipe(withTracerDisabled)
 
     const decodeEntryRows = Schema.decodeUnknownEffect(EntryRowArray)
     const toEntries = (rows: ReadonlyArray<EntryRow>): ReadonlyArray<EventJournal.Entry> => rows.map(toEntry)
@@ -193,6 +193,7 @@ export const make = (options?: {
 
     return EventJournal.EventJournal.of({
       entries: sql`SELECT * FROM ${entryTableSql} ORDER BY timestamp ASC`.pipe(
+        withTracerDisabled,
         Effect.flatMap(decodeEntryRows),
         Effect.map(toEntries),
         Effect.mapError((cause) => new EventJournal.EventJournalError({ cause, method: "entries" }))
@@ -210,10 +211,12 @@ export const make = (options?: {
           yield* PubSub.publish(pubsub, entry)
           return value
         },
+        withTracerDisabled,
         Effect.mapError((cause) => new EventJournal.EventJournalError({ cause, method: "write" }))
       ),
       writeFromRemote: (options) =>
         writeFromRemote(options).pipe(
+          withTracerDisabled,
           Effect.catchIf(
             (e) => e._tag !== "EventJournalError",
             (cause) => Effect.fail(new EventJournal.EventJournalError({ cause, method: "writeFromRemote" }))
@@ -232,6 +235,7 @@ export const make = (options?: {
           )
           return yield* f(entries)
         },
+        withTracerDisabled,
         Effect.mapError((cause) => new EventJournal.EventJournalError({ cause, method: "withRemoteUncommited" }))
       ),
       nextRemoteSequence: (remoteId) =>
@@ -242,6 +246,7 @@ export const make = (options?: {
               if (value === null || value === undefined) return 0
               return Number(value) + 1
             }),
+            withTracerDisabled,
             Effect.mapError((cause) => new EventJournal.EventJournalError({ cause, method: "nextRemoteSequence" }))
           ),
       changes: PubSub.subscribe(pubsub),
@@ -249,6 +254,7 @@ export const make = (options?: {
         yield* sql`DROP TABLE ${entryTableSql}`
         yield* sql`DROP TABLE ${remotesTableSql}`
       }).pipe(
+        withTracerDisabled,
         Effect.mapError((cause) => new EventJournal.EventJournalError({ cause, method: "destroy" }))
       ),
       withLock(_storeId) {
@@ -305,3 +311,5 @@ const RemoteRow = Schema.Struct({
 })
 
 const RemoteRowArray = Schema.Array(RemoteRow)
+
+const withTracerDisabled = Effect.withTracerEnabled(false)

@@ -148,7 +148,7 @@ export const makeStorage = (options?: {
           PubSub.shutdown
         )
         return { pubsub, table } as const
-      }),
+      }, withTracerDisabled),
       idleTimeToLive: "5 minutes"
     })
 
@@ -182,6 +182,7 @@ export const makeStorage = (options?: {
           )
         },
         sql.withTransaction,
+        withTracerDisabled,
         Effect.orDie
       ),
       write: Effect.fnUntraced(
@@ -228,7 +229,8 @@ export const makeStorage = (options?: {
           return allEntries
         },
         Effect.orDie,
-        Effect.scoped
+        Effect.scoped,
+        withTracerDisabled
       ),
       changes: Effect.fnUntraced(
         function*(publicKey, storeId, startSequence) {
@@ -243,10 +245,11 @@ export const makeStorage = (options?: {
           return Stream.fromArray(initial).pipe(Stream.concat(Stream.fromSubscription(subscription)))
         },
         Effect.orDie,
+        withTracerDisabled,
         Stream.unwrap
       )
     })
-  })
+  }).pipe(withTracerDisabled)
 
 const EncryptedRemoteEntrySql = Schema.Struct({
   sequence: Schema.Number,
@@ -314,3 +317,5 @@ const makeEncryptedScopeKey = (
   publicKey: string,
   storeId: string
 ): string => `${publicKey}/${storeId}`
+
+const withTracerDisabled = Effect.withTracerEnabled(false)
