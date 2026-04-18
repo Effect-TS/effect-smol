@@ -402,25 +402,10 @@ type JsonRpcMessage = JsonRpcRequest | JsonRpcResponse
 /**
  * Create a MessagePack serialization with custom msgpackr options.
  *
- * On Cloudflare Workers with `allow_eval_during_startup` (default for
- * `compatibility_date >= 2025-06-01`), pass `{ useRecords: false }` to
- * prevent msgpackr's JIT code generation via `new Function()`, which is
- * blocked during request handling.
- *
  * @since 4.0.0
  * @category serialization
- * @example
- * ```ts
- * import { Layer } from "effect"
- * import { RpcSerialization } from "effect/unstable/rpc"
- *
- * // Cloudflare Workers
- * Layer.succeed(RpcSerialization)(
- *   RpcSerialization.makeMsgPack({ useRecords: false })
- * )
- * ```
  */
-export const makeMsgPack = (options: Msgpackr.Options): RpcSerialization["Service"] =>
+export const makeMsgPack = (options?: Msgpackr.Options | undefined): RpcSerialization["Service"] =>
   RpcSerialization.of({
     contentType: "application/msgpack",
     includesFraming: true,
@@ -430,7 +415,7 @@ export const makeMsgPack = (options: Msgpackr.Options): RpcSerialization["Servic
       const encoder = new TextEncoder()
       let incomplete: Uint8Array | undefined = undefined
       return {
-        decode: (bytes) => {
+        decode(bytes) {
           let buf = typeof bytes === "string" ? encoder.encode(bytes) : bytes
           if (incomplete !== undefined) {
             const prev = buf
@@ -510,11 +495,6 @@ export const layerNdJsonRpc = (options?: {
  *
  * MessagePack has a more compact binary format compared to JSON and NDJSON. It
  * also has better support for binary data.
- *
- * On Cloudflare Workers with `allow_eval_during_startup` (default for
- * `compatibility_date >= 2025-06-01`), use {@link makeMsgPack} with
- * `{ useRecords: false }` to prevent msgpackr's JIT code generation via
- * `new Function()`, which is blocked during request handling.
  *
  * @since 4.0.0
  * @category serialization
