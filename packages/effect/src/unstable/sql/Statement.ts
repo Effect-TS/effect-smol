@@ -73,8 +73,36 @@ export type Transformer = (
 ) => Effect.Effect<Statement<unknown>>
 
 /**
- * @category transformer
+ * A service reference holding an optional `Transformer` that is applied to every
+ * SQL statement before it executes. Set it via `Layer.succeed` to post-process
+ * result rows globally without modifying individual queries.
+ *
+ * To transform result rows, mutate `self.transformRows` on the
+ * statement directly and return the same `self`. The property is read lazily
+ * by the runtime after the transformer has already run, so the mutation is
+ * always visible.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Layer } from "effect"
+ * import { Statement } from "effect/unstable/sql"
+ *
+ * const removePasswordTransformer: Statement.Transformer = (self, _sql, _fiber, _span) => {
+ *   (self as any).transformRows = (rows: readonly any[]) => {
+ *     return rows.map((row) => {
+ *       delete row["PASSWORD"]
+ *       return row
+ *     })
+ *   }
+ *   return Effect.succeed(self)
+ * }
+ *
+ * const RemovePasswordLayer = Layer.succeed(Statement.CurrentTransformer, removePasswordTransformer)
+ * const AppLayer = Layer.mergeAll(RemovePasswordLayer, DatabaseLayer)
+ * ```
+ *
  * @since 4.0.0
+ * @category transformer
  */
 export const CurrentTransformer = Context.Reference<Transformer | undefined>("effect/sql/CurrentTransformer", {
   defaultValue: constUndefined
