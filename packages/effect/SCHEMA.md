@@ -2392,6 +2392,58 @@ console.log(String(Schema.decodeUnknownExit(schema)("")))
 // Failure(Cause([Fail(SchemaError: length must be >= 3, got 0)]))
 ```
 
+### Filter return shapes
+
+A filter predicate can return any of the shapes described by `Schema.FilterOutput`:
+
+- `undefined` or `true` — success.
+- `false` — generic failure (no custom message).
+- `string` — failure with the string used as the error message.
+- `SchemaIssue.Issue` — a fully-formed issue, returned as-is (escape hatch for `Composite`, `AnyOf`, etc.).
+- `{ path, issue }` — failure attached to a nested path. `issue` can be a `string` (wrapped in an `InvalidValue`) or a full `SchemaIssue.Issue`.
+- `ReadonlyArray<FilterIssue>` — several failures reported together. Empty arrays are success; a single element is unwrapped; multiple entries are grouped into an `Issue.Composite`.
+
+**Example** (Failure at a nested path)
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Struct({ password: Schema.String, confirmPassword: Schema.String }).check(
+  Schema.makeFilter((o) =>
+    o.password === o.confirmPassword
+      ? undefined
+      : { path: ["password"], issue: "password and confirmPassword must match" }
+  )
+)
+
+console.log(String(Schema.decodeUnknownExit(schema)({ password: "123456", confirmPassword: "1234567" })))
+// Failure(Cause([Fail(SchemaError: password and confirmPassword must match
+//   at ["password"])]))
+```
+
+**Example** (Reporting multiple failures at once)
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Struct({ a: Schema.Finite, b: Schema.Finite, c: Schema.Finite }).check(
+  Schema.makeFilter((o) => {
+    const issues: Array<Schema.FilterIssue> = []
+    if (o.a > 0) {
+      if (o.b <= 0) issues.push({ path: ["b"], issue: "b must be greater than 0" })
+      if (o.c <= 0) issues.push({ path: ["c"], issue: "c must be greater than 0" })
+    }
+    return issues
+  })
+)
+
+console.log(String(Schema.decodeUnknownExit(schema)({ a: 1, b: 0, c: 0 })))
+// Failure(Cause([Fail(SchemaError: b must be greater than 0
+//   at ["b"]
+// c must be greater than 0
+//   at ["c"])]))
+```
+
 ## Preserving Schema Type After Filtering
 
 Adding a filter does not change the schema's type. You can still use all schema-specific methods (like `.fields` on a struct or `.make`) after calling `.check(...)`.

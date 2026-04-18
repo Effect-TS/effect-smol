@@ -483,7 +483,8 @@ export function onSome<T, E, R = never>(
  *   - `undefined` or `true` — value is valid, passes through.
  *   - `false` or a `string` — value is invalid, fails with an `Issue`.
  *   - An `Issue` object — fails with that issue directly.
- *   - `{ path, message }` — fails with a nested path issue.
+ *   - `{ path, issue }` — fails with a nested path issue (`issue` may be a
+ *     message string or a full {@link Issue.Issue}).
  * - Does not transform the value — input and output types are the same.
  *
  * **Example** (Effectful validation)
@@ -505,17 +506,14 @@ export function onSome<T, E, R = never>(
  */
 export function checkEffect<T, R = never>(
   f: (input: T, options: AST.ParseOptions) => Effect.Effect<
-    undefined | boolean | string | Issue.Issue | {
-      readonly path: ReadonlyArray<PropertyKey>
-      readonly message: string
-    },
+    undefined | boolean | Schema.FilterIssue,
     never,
     R
   >
 ): Getter<T, T, R> {
   return onSome((t, options) => {
     return f(t, options).pipe(Effect.flatMapEager((out) => {
-      const issue = Issue.make(t, out)
+      const issue = Issue.makeSingle(t, out)
       return issue ?
         Effect.fail(issue) :
         Effect.succeed(Option.some(t))

@@ -2600,19 +2600,12 @@ export type Check<T> = Filter<T> | FilterGroup<T>
 
 /** @internal */
 export function makeFilter<T>(
-  filter: (
-    input: T,
-    ast: AST,
-    options: ParseOptions
-  ) => undefined | boolean | string | Issue.Issue | {
-    readonly path: ReadonlyArray<PropertyKey>
-    readonly message: string
-  },
+  filter: (input: T, ast: AST, options: ParseOptions) => Schema.FilterOutput,
   annotations?: Schema.Annotations.Filter | undefined,
   aborted: boolean = false
 ): Filter<T> {
   return new Filter(
-    (input, ast, options) => Issue.make(input, filter(input, ast, options)),
+    (input, ast, options) => Issue.make(input, ast, filter(input, ast, options)),
     annotations,
     aborted
   )

@@ -4951,31 +4951,105 @@ export function link<T>() { // TODO: better name
 /**
  * Creates a custom filter check from a predicate function. The predicate
  * receives the input value, the schema's AST, and parse options, and returns
- * `true`/`undefined` on success or a failure description on error.
+ * a value of type {@link FilterOutput}.
  *
- * **Example** (Custom filter check)
+ * **Example** (Failure at a nested path)
+ *
  * ```ts
  * import { Schema } from "effect"
  *
- * // Check that a number is even
- * const isEven = Schema.makeFilter(
- *   (n: number) => n % 2 === 0 || "expected an even number"
+ * const schema = Schema.Struct({ password: Schema.String, confirmPassword: Schema.String }).check(
+ *   Schema.makeFilter((o) =>
+ *     o.password === o.confirmPassword
+ *       ? undefined
+ *       : { path: ["password"], issue: "password and confirmPassword must match" }
+ *   )
  * )
  *
- * const EvenNumber = Schema.Number.check(isEven)
+ * console.log(String(Schema.decodeUnknownExit(schema)({ password: "123456", confirmPassword: "1234567" })))
+ * // Failure(Cause([Fail(SchemaError: password and confirmPassword must match
+ * //   at ["password"])]))
+ * ```
+ *
+ * **Example** (Reporting multiple failures at once)
+ *
+ * ```ts
+ * import { Schema } from "effect"
+ *
+ * const schema = Schema.Struct({ a: Schema.Finite, b: Schema.Finite, c: Schema.Finite }).check(
+ *   Schema.makeFilter((o) => {
+ *     const issues: Array<Schema.FilterIssue> = []
+ *     if (o.a > 0) {
+ *       if (o.b <= 0) issues.push({ path: ["b"], issue: "b must be greater than 0" })
+ *       if (o.c <= 0) issues.push({ path: ["c"], issue: "c must be greater than 0" })
+ *     }
+ *     return issues
+ *   })
+ * )
+ *
+ * console.log(String(Schema.decodeUnknownExit(schema)({ a: 1, b: 0, c: 0 })))
+ * // Failure(Cause([Fail(SchemaError: b must be greater than 0
+ * //   at ["b"]
+ * // c must be greater than 0
+ * //   at ["c"])]))
  * ```
  *
  * @category Checks Constructors
  * @since 4.0.0
  */
 export const makeFilter: <T>(
-  filter: (input: T, ast: AST.AST, options: AST.ParseOptions) => undefined | boolean | string | Issue.Issue | {
-    readonly path: ReadonlyArray<PropertyKey>
-    readonly message: string
-  },
+  filter: (input: T, ast: AST.AST, options: AST.ParseOptions) => FilterOutput,
   annotations?: Annotations.Filter | undefined,
   abort?: boolean
 ) => AST.Filter<T> = AST.makeFilter
+
+/**
+ * A single failure reported by a filter predicate. Used as the element type
+ * of the array arm of {@link FilterOutput}, and also accepted on its own.
+ *
+ * - `string`: failure with that string as the message. Produces an
+ *   {@link Issue.InvalidValue} wrapping the input, with the string used as
+ *   the issue's `message` annotation.
+ * - {@link Issue.Issue}: a fully-formed issue, returned as-is.
+ * - `{ path, issue }`: failure attached to a nested path. `issue` is either
+ *   a `string` (wrapped in an {@link Issue.InvalidValue}) or a full
+ *   {@link Issue.Issue}; the result is wrapped in an {@link Issue.Pointer}
+ *   at the given `path`.
+ *
+ * @category model
+ * @since 4.0.0
+ */
+export type FilterIssue = string | Issue.Issue | {
+  readonly path: ReadonlyArray<PropertyKey>
+  readonly issue: string | Issue.Issue
+}
+
+/**
+ * The value a filter predicate (see {@link makeFilter}) may return.
+ *
+ * Each shape is normalized into an {@link Issue.Issue} (or `undefined` for
+ * success) before being attached to the parse result:
+ *
+ * - `undefined`: success. The input satisfies the filter.
+ * - `true`: success. Equivalent to `undefined`, useful when the predicate is
+ *   a plain boolean expression.
+ * - `false`: generic failure. Produces an {@link Issue.InvalidValue} wrapping
+ *   the input, with no custom message.
+ * - {@link FilterIssue}: a single failure. See {@link FilterIssue} for the
+ *   shapes (`string`, {@link Issue.Issue}, or `{ path, issue }`).
+ * - `ReadonlyArray<FilterIssue>`: several failures reported together. An
+ *   empty array is treated as success; a single-element array is equivalent
+ *   to returning that element directly; otherwise the entries are grouped
+ *   into an {@link Issue.Composite}.
+ *
+ * @category model
+ * @since 4.0.0
+ */
+export type FilterOutput =
+  | undefined
+  | boolean
+  | FilterIssue
+  | ReadonlyArray<FilterIssue>
 
 /**
  * Groups multiple checks into a single {@link AST.FilterGroup}, applying

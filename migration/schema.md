@@ -658,6 +658,56 @@ const a = Schema.String.check(Schema.makeFilter((s) => s.length > 0))
 const b = Schema.Option(Schema.String).pipe(Schema.refine(Option.isSome))
 ```
 
+In v4, a `makeFilter` predicate can return any of the shapes described by `Schema.FilterOutput`:
+
+- `undefined` / `true` — success
+- `false` — generic failure
+- `string` — failure with that message
+- `SchemaIssue.Issue` — a fully-formed issue
+- `{ path, issue }` — failure at a nested path (`issue` is a `string` or `SchemaIssue.Issue`)
+- `ReadonlyArray<Schema.FilterIssue>` — several failures reported together (empty array = success, single element is unwrapped, otherwise grouped into an `Issue.Composite`)
+
+**Example** (Failure at a nested path)
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Struct({ password: Schema.String, confirmPassword: Schema.String }).check(
+  Schema.makeFilter((o) =>
+    o.password === o.confirmPassword
+      ? undefined
+      : { path: ["password"], issue: "password and confirmPassword must match" }
+  )
+)
+
+console.log(String(Schema.decodeUnknownExit(schema)({ password: "123456", confirmPassword: "1234567" })))
+// Failure(Cause([Fail(SchemaError: password and confirmPassword must match
+//   at ["password"])]))
+```
+
+**Example** (Reporting multiple failures at once)
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Struct({ a: Schema.Finite, b: Schema.Finite, c: Schema.Finite }).check(
+  Schema.makeFilter((o) => {
+    const issues: Array<Schema.FilterIssue> = []
+    if (o.a > 0) {
+      if (o.b <= 0) issues.push({ path: ["b"], issue: "b must be greater than 0" })
+      if (o.c <= 0) issues.push({ path: ["c"], issue: "c must be greater than 0" })
+    }
+    return issues
+  })
+)
+
+console.log(String(Schema.decodeUnknownExit(schema)({ a: 1, b: 0, c: 0 })))
+// Failure(Cause([Fail(SchemaError: b must be greater than 0
+//   at ["b"]
+// c must be greater than 0
+//   at ["c"])]))
+```
+
 ### filterEffect
 
 **Migration: manual**
