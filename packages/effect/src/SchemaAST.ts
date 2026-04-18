@@ -1395,37 +1395,6 @@ export class Arrays extends Base {
       return head
     }
 
-    const parseArray = iterateEager<{
-      readonly oinput: Option.Option<unknown>
-      readonly len: number
-      readonly tailThreshold: number
-      readonly options: ParseOptions
-      readonly output: Array<unknown>
-      issues: Array<Issue.Issue> | undefined
-    }, unknown>()({
-      onItem(s, item, i) {
-        const value = i < s.len ? Option.some(item) : Option.none()
-        return getParser(s.tailThreshold, i).parser(value, s.options)
-      },
-      step(s, _, exit, i) {
-        if (exit._tag === "Failure") {
-          return wrapPropertyKeyIssue(s, ast, i, exit)
-        } else if (exit.value._tag === "Some") {
-          s.output[i] = exit.value.value
-        } else {
-          const p = getParser(s.tailThreshold, i)
-          if (isOptional(p.ast)) return
-          const issue = new Issue.Pointer([i], new Issue.MissingKey(p.ast.context?.annotations))
-          if (s.options.errors === "all") {
-            if (s.issues) s.issues.push(issue)
-            else s.issues = [issue]
-          } else {
-            return Exit.fail(new Issue.Composite(ast, s.oinput, [issue]))
-          }
-        }
-      }
-    })
-
     return Effect.fnUntracedEager(function*(oinput, options) {
       if (oinput._tag === "None") {
         return oinput
@@ -1440,6 +1409,7 @@ export class Arrays extends Base {
       const len = input.length
       const state = {
         ast,
+        getParser,
         oinput,
         len,
         tailThreshold: resolveTailThreshold(len, elementLen, tailLen),
@@ -1487,6 +1457,38 @@ export class Arrays extends Base {
     return "array"
   }
 }
+const parseArray = iterateEager<{
+  readonly ast: AST
+  readonly oinput: Option.Option<unknown>
+  readonly len: number
+  readonly getParser: (tailThreshold: number, index: number) => { readonly ast: AST; readonly parser: Parser.Parser }
+  readonly tailThreshold: number
+  readonly options: ParseOptions
+  readonly output: Array<unknown>
+  issues: Array<Issue.Issue> | undefined
+}, unknown>()({
+  onItem(s, item, i) {
+    const value = i < s.len ? Option.some(item) : Option.none()
+    return s.getParser(s.tailThreshold, i).parser(value, s.options)
+  },
+  step(s, _, exit, i) {
+    if (exit._tag === "Failure") {
+      return wrapPropertyKeyIssue(s, s.ast, i, exit)
+    } else if (exit.value._tag === "Some") {
+      s.output[i] = exit.value.value
+    } else {
+      const p = s.getParser(s.tailThreshold, i)
+      if (isOptional(p.ast)) return
+      const issue = new Issue.Pointer([i], new Issue.MissingKey(p.ast.context?.annotations))
+      if (s.options.errors === "all") {
+        if (s.issues) s.issues.push(issue)
+        else s.issues = [issue]
+      } else {
+        return Exit.fail(new Issue.Composite(s.ast, s.oinput, [issue]))
+      }
+    }
+  }
+})
 
 function resolveTailThreshold(
   inputLen: number,
@@ -1497,9 +1499,7 @@ function resolveTailThreshold(
 }
 
 const resolveConcurrency = (value: number | "unbounded" | undefined) => {
-  if (!value) return undefined
-  if (value === "unbounded") return { concurrency: Infinity }
-  value = Math.max(1, value)
+  value = value === "unbounded" ? Infinity : value ?? 1
   return value > 1 ? { concurrency: value } : undefined
 }
 
@@ -1770,20 +1770,9 @@ export class Objects extends Base {
           const effValue = parserValue(value, s.options)
           const exitValue = effectIsExit(effValue) ? effValue : yield* Effect.exit(effValue)
           if (exitValue._tag === "Failure") {
-            const issueValue = Cause.findError(exitValue.cause)
-            if (Result.isFailure(issueValue)) {
-              return yield* exitValue
-            }
-            const issue = new Issue.Pointer([key], issueValue.success)
-            if (s.options.errors === "all") {
-              if (s.issues) s.issues.push(issue)
-              else s.issues = [issue]
-              return
-            } else {
-              return yield* Effect.fail(
-                new Issue.Composite(ast, s.oinput, [issue])
-              )
-            }
+            const eff = wrapPropertyKeyIssue(s, ast, key, exitValue)
+            if (eff) yield* eff
+            return
           } else if (exitKey.value._tag === "Some" && exitValue.value._tag === "Some") {
             const k2 = exitKey.value.value
             const v2 = exitValue.value.value

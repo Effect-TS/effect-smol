@@ -4520,7 +4520,7 @@ const iterateEagerImpl = <S, A, X, E, R, E2>(options: {
     let terminal: Exit.Exit<void, E | E2> | void
     let effect: Effect.Effect<X, E, R> | undefined
 
-    const runLoop = (): Effect.Effect<void, E | E2, R> | undefined => {
+    const go = (): Effect.Effect<void, E | E2, R> | undefined => {
       let paused = false
       for (; !terminal && index < end; index++) {
         const item = items[index]
@@ -4536,7 +4536,7 @@ const iterateEagerImpl = <S, A, X, E, R, E2>(options: {
           return flatMap(exit(eff), (exit) => {
             terminal = step(state, item, exit, index)
             index++
-            return terminal ?? runLoop() ?? void_
+            return terminal ?? go() ?? void_
           })
 
           // We have an effect, so enter "async" mode
@@ -4545,12 +4545,12 @@ const iterateEagerImpl = <S, A, X, E, R, E2>(options: {
             parentFiber = getCurrentFiber()!
             effect = eff
             resume = cb
-            const result = runLoop()
+            const result = go()
             if (result) return cb(result)
             return suspend(() => {
               terminal = exitVoid
               interrupted = true
-              return fibers && fibers.size > 0 ? fiberInterruptAll(fibers) : void_
+              return fibers ? fiberInterruptAll(fibers) : void_
             })
           })
 
@@ -4590,13 +4590,12 @@ const iterateEagerImpl = <S, A, X, E, R, E2>(options: {
                 terminal = result._tag === "Failure"
                   ? exitFailCause(causeFromReasons(result.cause.reasons.slice()))
                   : result
-                runLoop()
+                go()
               }
             }
 
-            // We are now under the concurrency limit
             if (paused) {
-              const eff = runLoop()
+              const eff = go()
               if (eff) resume!(eff)
             } else if (done && fibers!.size === 0) {
               resume!(terminal ?? void_)
@@ -4623,14 +4622,15 @@ const iterateEagerImpl = <S, A, X, E, R, E2>(options: {
           return terminal
         }
       } else if (resume) {
-        if (!fibers) return exitVoid
-        else if (fibers.size === 0) {
+        if (!fibers) {
+          return exitVoid
+        } else if (fibers.size === 0) {
           resume(void_)
         }
       }
     }
 
-    return runLoop()
+    return go()
   }
 }
 
