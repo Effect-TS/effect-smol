@@ -17,6 +17,14 @@ export const APIError = Schema.Struct({
   "message": Schema.String.annotate({ "title": "Message", "default": "Internal server error" }),
   "type": Schema.Literal("api_error").annotate({ "title": "Type", "default": "api_error" })
 }).annotate({ "title": "APIError" })
+export type AllowedCaller = "direct" | "code_execution_20250825" | "code_execution_20260120"
+export const AllowedCaller = Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"]).annotate(
+  {
+    "title": "AllowedCaller",
+    "description":
+      "Specifies who can invoke a tool.\n\nValues:\n    direct: The model can call this tool directly.\n    code_execution_20250825: The tool can be called from the code execution environment (v1).\n    code_execution_20260120: The tool can be called from the code execution environment (v2 with persistence)."
+  }
+)
 export type AuthenticationError = { readonly "message": string; readonly "type": "authentication_error" }
 export const AuthenticationError = Schema.Struct({
   "message": Schema.String.annotate({ "title": "Message", "default": "Authentication error" }),
@@ -65,6 +73,13 @@ export const BetaAPIError = Schema.Struct({
 export type BetaAllThinkingTurns = { readonly "type": "all" }
 export const BetaAllThinkingTurns = Schema.Struct({ "type": Schema.Literal("all").annotate({ "title": "Type" }) })
   .annotate({ "title": "AllThinkingTurns" })
+export type BetaAllowedCaller = "direct" | "code_execution_20250825" | "code_execution_20260120"
+export const BetaAllowedCaller = Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])
+  .annotate({
+    "title": "AllowedCaller",
+    "description":
+      "Specifies who can invoke a tool.\n\nValues:\n    direct: The model can call this tool directly.\n    code_execution_20250825: The tool can be called from the code execution environment (v1).\n    code_execution_20260120: The tool can be called from the code execution environment (v2 with persistence)."
+  })
 export type BetaAuthenticationError = { readonly "message": string; readonly "type": "authentication_error" }
 export const BetaAuthenticationError = Schema.Struct({
   "message": Schema.String.annotate({ "title": "Message", "default": "Authentication error" }),
@@ -173,6 +188,13 @@ export type BetaCanceledResult = { readonly "type": "canceled" }
 export const BetaCanceledResult = Schema.Struct({
   "type": Schema.Literal("canceled").annotate({ "title": "Type", "default": "canceled" })
 }).annotate({ "title": "CanceledResult" })
+export type BetaCapabilitySupport = { readonly "supported": boolean }
+export const BetaCapabilitySupport = Schema.Struct({
+  "supported": Schema.Boolean.annotate({
+    "title": "Supported",
+    "description": "Whether this capability is supported by the model."
+  })
+}).annotate({ "title": "CapabilitySupport", "description": "Indicates whether a capability is supported." })
 export type BetaCodeExecutionToolResultErrorCode =
   | "invalid_tool_input"
   | "unavailable"
@@ -635,30 +657,6 @@ export type BetaMessageStopEvent = { readonly "type": "message_stop" }
 export const BetaMessageStopEvent = Schema.Struct({
   "type": Schema.Literal("message_stop").annotate({ "title": "Type", "default": "message_stop" })
 }).annotate({ "title": "MessageStopEvent" })
-export type BetaModelInfo = {
-  readonly "created_at": string
-  readonly "display_name": string
-  readonly "id": string
-  readonly "type": "model"
-}
-export const BetaModelInfo = Schema.Struct({
-  "created_at": Schema.String.annotate({
-    "title": "Created At",
-    "description":
-      "RFC 3339 datetime string representing the time at which the model was released. May be set to an epoch value if the release date is unknown.",
-    "format": "date-time"
-  }),
-  "display_name": Schema.String.annotate({
-    "title": "Display Name",
-    "description": "A human-readable name for the model."
-  }),
-  "id": Schema.String.annotate({ "title": "Id", "description": "Unique model identifier." }),
-  "type": Schema.Literal("model").annotate({
-    "title": "Type",
-    "description": "Object type.\n\nFor Models, this is always `\"model\"`.",
-    "default": "model"
-  })
-}).annotate({ "title": "ModelInfo" })
 export type BetaNotFoundError = { readonly "message": string; readonly "type": "not_found_error" }
 export const BetaNotFoundError = Schema.Struct({
   "message": Schema.String.annotate({ "title": "Message", "default": "Not found" }),
@@ -1338,33 +1336,48 @@ export const BetaTextEditorCodeExecutionToolResultErrorCode = Schema.Literals([
   "execution_time_exceeded",
   "file_not_found"
 ]).annotate({ "title": "TextEditorCodeExecutionToolResultErrorCode" })
-export type BetaThinkingConfigAdaptive = { readonly "type": "adaptive" }
-export const BetaThinkingConfigAdaptive = Schema.Struct({
-  "type": Schema.Literal("adaptive").annotate({ "title": "Type" })
-}).annotate({ "title": "ThinkingConfigAdaptive" })
 export type BetaThinkingConfigDisabled = { readonly "type": "disabled" }
 export const BetaThinkingConfigDisabled = Schema.Struct({
   "type": Schema.Literal("disabled").annotate({ "title": "Type" })
 }).annotate({ "title": "ThinkingConfigDisabled" })
-export type BetaThinkingConfigEnabled = { readonly "budget_tokens": number; readonly "type": "enabled" }
-export const BetaThinkingConfigEnabled = Schema.Struct({
-  "budget_tokens": Schema.Number.annotate({
-    "title": "Budget Tokens",
-    "description":
-      "Determines how many tokens Claude can use for its internal reasoning process. Larger budgets can enable more thorough analysis for complex problems, improving response quality.\n\nMust be ≥1024 and less than `max_tokens`.\n\nSee [extended thinking](https://docs.claude.com/en/docs/build-with-claude/extended-thinking) for details."
-  }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1024)),
-  "type": Schema.Literal("enabled").annotate({ "title": "Type" })
-}).annotate({ "title": "ThinkingConfigEnabled" })
 export type BetaThinkingContentBlockDelta = { readonly "thinking": string; readonly "type": "thinking_delta" }
 export const BetaThinkingContentBlockDelta = Schema.Struct({
   "thinking": Schema.String.annotate({ "title": "Thinking" }),
   "type": Schema.Literal("thinking_delta").annotate({ "title": "Type", "default": "thinking_delta" })
 }).annotate({ "title": "ThinkingContentBlockDelta" })
+export type BetaThinkingDisplayMode = "summarized" | "omitted"
+export const BetaThinkingDisplayMode = Schema.Literals(["summarized", "omitted"]).annotate({
+  "title": "ThinkingDisplayMode"
+})
 export type BetaThinkingTurns = { readonly "type": "thinking_turns"; readonly "value": number }
 export const BetaThinkingTurns = Schema.Struct({
   "type": Schema.Literal("thinking_turns").annotate({ "title": "Type" }),
   "value": Schema.Number.annotate({ "title": "Value" }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1))
 }).annotate({ "title": "ThinkingTurns" })
+export type BetaThinkingTypes = {
+  readonly "adaptive": { readonly "supported": boolean }
+  readonly "enabled": { readonly "supported": boolean }
+}
+export const BetaThinkingTypes = Schema.Struct({
+  "adaptive": Schema.Struct({
+    "supported": Schema.Boolean.annotate({
+      "title": "Supported",
+      "description": "Whether this capability is supported by the model."
+    })
+  }).annotate({
+    "title": "CapabilitySupport",
+    "description": "Whether the model supports thinking with type 'adaptive' (auto)."
+  }),
+  "enabled": Schema.Struct({
+    "supported": Schema.Boolean.annotate({
+      "title": "Supported",
+      "description": "Whether this capability is supported by the model."
+    })
+  }).annotate({
+    "title": "CapabilitySupport",
+    "description": "Whether the model supports thinking with type 'enabled'."
+  })
+}).annotate({ "title": "ThinkingTypes", "description": "Supported thinking type configurations." })
 export type BetaToolChoiceAny = { readonly "disable_parallel_tool_use"?: boolean; readonly "type": "any" }
 export const BetaToolChoiceAny = Schema.Struct({
   "disable_parallel_tool_use": Schema.optionalKey(
@@ -1619,6 +1632,13 @@ export type CanceledResult = { readonly "type": "canceled" }
 export const CanceledResult = Schema.Struct({
   "type": Schema.Literal("canceled").annotate({ "title": "Type", "default": "canceled" })
 }).annotate({ "title": "CanceledResult" })
+export type CapabilitySupport = { readonly "supported": boolean }
+export const CapabilitySupport = Schema.Struct({
+  "supported": Schema.Boolean.annotate({
+    "title": "Supported",
+    "description": "Whether this capability is supported by the model."
+  })
+}).annotate({ "title": "CapabilitySupport", "description": "Indicates whether a capability is supported." })
 export type CodeExecutionToolResultErrorCode =
   | "invalid_tool_input"
   | "unavailable"
@@ -2065,30 +2085,6 @@ export type MessageStopEvent = { readonly "type": "message_stop" }
 export const MessageStopEvent = Schema.Struct({
   "type": Schema.Literal("message_stop").annotate({ "title": "Type", "default": "message_stop" })
 }).annotate({ "title": "MessageStopEvent" })
-export type ModelInfo = {
-  readonly "created_at": string
-  readonly "display_name": string
-  readonly "id": string
-  readonly "type": "model"
-}
-export const ModelInfo = Schema.Struct({
-  "created_at": Schema.String.annotate({
-    "title": "Created At",
-    "description":
-      "RFC 3339 datetime string representing the time at which the model was released. May be set to an epoch value if the release date is unknown.",
-    "format": "date-time"
-  }),
-  "display_name": Schema.String.annotate({
-    "title": "Display Name",
-    "description": "A human-readable name for the model."
-  }),
-  "id": Schema.String.annotate({ "title": "Id", "description": "Unique model identifier." }),
-  "type": Schema.Literal("model").annotate({
-    "title": "Type",
-    "description": "Object type.\n\nFor Models, this is always `\"model\"`.",
-    "default": "model"
-  })
-}).annotate({ "title": "ModelInfo" })
 export type NotFoundError = { readonly "message": string; readonly "type": "not_found_error" }
 export const NotFoundError = Schema.Struct({
   "message": Schema.String.annotate({ "title": "Message", "default": "Not found" }),
@@ -2686,28 +2682,43 @@ export const TextEditorCodeExecutionToolResultErrorCode = Schema.Literals([
   "execution_time_exceeded",
   "file_not_found"
 ]).annotate({ "title": "TextEditorCodeExecutionToolResultErrorCode" })
-export type ThinkingConfigAdaptive = { readonly "type": "adaptive" }
-export const ThinkingConfigAdaptive = Schema.Struct({
-  "type": Schema.Literal("adaptive").annotate({ "title": "Type" })
-}).annotate({ "title": "ThinkingConfigAdaptive" })
 export type ThinkingConfigDisabled = { readonly "type": "disabled" }
 export const ThinkingConfigDisabled = Schema.Struct({
   "type": Schema.Literal("disabled").annotate({ "title": "Type" })
 }).annotate({ "title": "ThinkingConfigDisabled" })
-export type ThinkingConfigEnabled = { readonly "budget_tokens": number; readonly "type": "enabled" }
-export const ThinkingConfigEnabled = Schema.Struct({
-  "budget_tokens": Schema.Number.annotate({
-    "title": "Budget Tokens",
-    "description":
-      "Determines how many tokens Claude can use for its internal reasoning process. Larger budgets can enable more thorough analysis for complex problems, improving response quality.\n\nMust be ≥1024 and less than `max_tokens`.\n\nSee [extended thinking](https://docs.claude.com/en/docs/build-with-claude/extended-thinking) for details."
-  }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1024)),
-  "type": Schema.Literal("enabled").annotate({ "title": "Type" })
-}).annotate({ "title": "ThinkingConfigEnabled" })
 export type ThinkingContentBlockDelta = { readonly "thinking": string; readonly "type": "thinking_delta" }
 export const ThinkingContentBlockDelta = Schema.Struct({
   "thinking": Schema.String.annotate({ "title": "Thinking" }),
   "type": Schema.Literal("thinking_delta").annotate({ "title": "Type", "default": "thinking_delta" })
 }).annotate({ "title": "ThinkingContentBlockDelta" })
+export type ThinkingDisplayMode = "summarized" | "omitted"
+export const ThinkingDisplayMode = Schema.Literals(["summarized", "omitted"]).annotate({
+  "title": "ThinkingDisplayMode"
+})
+export type ThinkingTypes = {
+  readonly "adaptive": { readonly "supported": boolean }
+  readonly "enabled": { readonly "supported": boolean }
+}
+export const ThinkingTypes = Schema.Struct({
+  "adaptive": Schema.Struct({
+    "supported": Schema.Boolean.annotate({
+      "title": "Supported",
+      "description": "Whether this capability is supported by the model."
+    })
+  }).annotate({
+    "title": "CapabilitySupport",
+    "description": "Whether the model supports thinking with type 'adaptive' (auto)."
+  }),
+  "enabled": Schema.Struct({
+    "supported": Schema.Boolean.annotate({
+      "title": "Supported",
+      "description": "Whether this capability is supported by the model."
+    })
+  }).annotate({
+    "title": "CapabilitySupport",
+    "description": "Whether the model supports thinking with type 'enabled'."
+  })
+}).annotate({ "title": "ThinkingTypes", "description": "Supported thinking type configurations." })
 export type ToolChoiceAny = { readonly "disable_parallel_tool_use"?: boolean; readonly "type": "any" }
 export const ToolChoiceAny = Schema.Struct({
   "disable_parallel_tool_use": Schema.optionalKey(
@@ -2874,48 +2885,34 @@ export const BetaStopReason = Schema.Literals([
 export type Model =
   | "claude-opus-4-6"
   | "claude-sonnet-4-6"
-  | "claude-opus-4-5-20251101"
-  | "claude-opus-4-5"
-  | "claude-3-7-sonnet-latest"
-  | "claude-3-7-sonnet-20250219"
-  | "claude-3-5-haiku-latest"
-  | "claude-3-5-haiku-20241022"
   | "claude-haiku-4-5"
   | "claude-haiku-4-5-20251001"
-  | "claude-sonnet-4-20250514"
-  | "claude-sonnet-4-0"
-  | "claude-4-sonnet-20250514"
+  | "claude-opus-4-5"
+  | "claude-opus-4-5-20251101"
   | "claude-sonnet-4-5"
   | "claude-sonnet-4-5-20250929"
+  | "claude-opus-4-1"
+  | "claude-opus-4-1-20250805"
   | "claude-opus-4-0"
   | "claude-opus-4-20250514"
-  | "claude-4-opus-20250514"
-  | "claude-opus-4-1-20250805"
-  | "claude-3-opus-latest"
-  | "claude-3-opus-20240229"
+  | "claude-sonnet-4-0"
+  | "claude-sonnet-4-20250514"
   | "claude-3-haiku-20240307"
 export const Model = Schema.Literals([
   "claude-opus-4-6",
   "claude-sonnet-4-6",
-  "claude-opus-4-5-20251101",
-  "claude-opus-4-5",
-  "claude-3-7-sonnet-latest",
-  "claude-3-7-sonnet-20250219",
-  "claude-3-5-haiku-latest",
-  "claude-3-5-haiku-20241022",
   "claude-haiku-4-5",
   "claude-haiku-4-5-20251001",
-  "claude-sonnet-4-20250514",
-  "claude-sonnet-4-0",
-  "claude-4-sonnet-20250514",
+  "claude-opus-4-5",
+  "claude-opus-4-5-20251101",
   "claude-sonnet-4-5",
   "claude-sonnet-4-5-20250929",
+  "claude-opus-4-1",
+  "claude-opus-4-1-20250805",
   "claude-opus-4-0",
   "claude-opus-4-20250514",
-  "claude-4-opus-20250514",
-  "claude-opus-4-1-20250805",
-  "claude-3-opus-latest",
-  "claude-3-opus-20240229",
+  "claude-sonnet-4-0",
+  "claude-sonnet-4-20250514",
   "claude-3-haiku-20240307"
 ]).annotate({
   "title": "Model",
@@ -3029,7 +3026,7 @@ export const BetaResponseBashCodeExecutionToolResultError = Schema.Struct({
   })
 }).annotate({ "title": "ResponseBashCodeExecutionToolResultError" })
 export type BetaCodeExecutionTool_20250522 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<BetaAllowedCaller>
   readonly "cache_control"?: BetaCacheControlEphemeral | null
   readonly "defer_loading"?: boolean
   readonly "name": "code_execution"
@@ -3037,11 +3034,7 @@ export type BetaCodeExecutionTool_20250522 = {
   readonly "type": "code_execution_20250522"
 }
 export const BetaCodeExecutionTool_20250522 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(BetaAllowedCaller).annotate({ "title": "Allowed Callers" })),
   "cache_control": Schema.optionalKey(
     Schema.Union([Schema.Union([BetaCacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
       "title": "Cache Control",
@@ -3068,7 +3061,7 @@ export const BetaCodeExecutionTool_20250522 = Schema.Struct({
   "type": Schema.Literal("code_execution_20250522").annotate({ "title": "Type" })
 }).annotate({ "title": "CodeExecutionTool_20250522" })
 export type BetaCodeExecutionTool_20250825 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<BetaAllowedCaller>
   readonly "cache_control"?: BetaCacheControlEphemeral | null
   readonly "defer_loading"?: boolean
   readonly "name": "code_execution"
@@ -3076,11 +3069,7 @@ export type BetaCodeExecutionTool_20250825 = {
   readonly "type": "code_execution_20250825"
 }
 export const BetaCodeExecutionTool_20250825 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(BetaAllowedCaller).annotate({ "title": "Allowed Callers" })),
   "cache_control": Schema.optionalKey(
     Schema.Union([Schema.Union([BetaCacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
       "title": "Cache Control",
@@ -3107,7 +3096,7 @@ export const BetaCodeExecutionTool_20250825 = Schema.Struct({
   "type": Schema.Literal("code_execution_20250825").annotate({ "title": "Type" })
 }).annotate({ "title": "CodeExecutionTool_20250825" })
 export type BetaCodeExecutionTool_20260120 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<BetaAllowedCaller>
   readonly "cache_control"?: BetaCacheControlEphemeral | null
   readonly "defer_loading"?: boolean
   readonly "name": "code_execution"
@@ -3115,11 +3104,7 @@ export type BetaCodeExecutionTool_20260120 = {
   readonly "type": "code_execution_20260120"
 }
 export const BetaCodeExecutionTool_20260120 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(BetaAllowedCaller).annotate({ "title": "Allowed Callers" })),
   "cache_control": Schema.optionalKey(
     Schema.Union([Schema.Union([BetaCacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
       "title": "Cache Control",
@@ -3231,7 +3216,7 @@ export const BetaRequestToolReferenceBlock = Schema.Struct({
   "description": "Tool reference block that can be included in tool_result content."
 })
 export type BetaToolSearchToolBM25_20251119 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<BetaAllowedCaller>
   readonly "cache_control"?: BetaCacheControlEphemeral | null
   readonly "defer_loading"?: boolean
   readonly "name": "tool_search_tool_bm25"
@@ -3239,11 +3224,7 @@ export type BetaToolSearchToolBM25_20251119 = {
   readonly "type": "tool_search_tool_bm25_20251119" | "tool_search_tool_bm25"
 }
 export const BetaToolSearchToolBM25_20251119 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(BetaAllowedCaller).annotate({ "title": "Allowed Callers" })),
   "cache_control": Schema.optionalKey(
     Schema.Union([Schema.Union([BetaCacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
       "title": "Cache Control",
@@ -3270,7 +3251,7 @@ export const BetaToolSearchToolBM25_20251119 = Schema.Struct({
   "type": Schema.Literals(["tool_search_tool_bm25_20251119", "tool_search_tool_bm25"]).annotate({ "title": "Type" })
 }).annotate({ "title": "ToolSearchToolBM25_20251119" })
 export type BetaToolSearchToolRegex_20251119 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<BetaAllowedCaller>
   readonly "cache_control"?: BetaCacheControlEphemeral | null
   readonly "defer_loading"?: boolean
   readonly "name": "tool_search_tool_regex"
@@ -3278,11 +3259,7 @@ export type BetaToolSearchToolRegex_20251119 = {
   readonly "type": "tool_search_tool_regex_20251119" | "tool_search_tool_regex"
 }
 export const BetaToolSearchToolRegex_20251119 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(BetaAllowedCaller).annotate({ "title": "Allowed Callers" })),
   "cache_control": Schema.optionalKey(
     Schema.Union([Schema.Union([BetaCacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
       "title": "Cache Control",
@@ -3475,7 +3452,7 @@ export const BetaCompact20260112 = Schema.Struct({
   "description": "Automatically compact older context when reaching the configured trigger threshold."
 })
 export type BetaBashTool_20241022 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<BetaAllowedCaller>
   readonly "cache_control"?: BetaCacheControlEphemeral | null
   readonly "defer_loading"?: boolean
   readonly "input_examples"?: ReadonlyArray<{ readonly [x: string]: BetaJsonValue }>
@@ -3484,11 +3461,7 @@ export type BetaBashTool_20241022 = {
   readonly "type": "bash_20241022"
 }
 export const BetaBashTool_20241022 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(BetaAllowedCaller).annotate({ "title": "Allowed Callers" })),
   "cache_control": Schema.optionalKey(
     Schema.Union([Schema.Union([BetaCacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
       "title": "Cache Control",
@@ -3518,7 +3491,7 @@ export const BetaBashTool_20241022 = Schema.Struct({
   "type": Schema.Literal("bash_20241022").annotate({ "title": "Type" })
 }).annotate({ "title": "BashTool_20241022" })
 export type BetaBashTool_20250124 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<BetaAllowedCaller>
   readonly "cache_control"?: BetaCacheControlEphemeral | null
   readonly "defer_loading"?: boolean
   readonly "input_examples"?: ReadonlyArray<{ readonly [x: string]: BetaJsonValue }>
@@ -3527,11 +3500,7 @@ export type BetaBashTool_20250124 = {
   readonly "type": "bash_20250124"
 }
 export const BetaBashTool_20250124 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(BetaAllowedCaller).annotate({ "title": "Allowed Callers" })),
   "cache_control": Schema.optionalKey(
     Schema.Union([Schema.Union([BetaCacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
       "title": "Cache Control",
@@ -3561,7 +3530,7 @@ export const BetaBashTool_20250124 = Schema.Struct({
   "type": Schema.Literal("bash_20250124").annotate({ "title": "Type" })
 }).annotate({ "title": "BashTool_20250124" })
 export type BetaComputerUseTool_20241022 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<BetaAllowedCaller>
   readonly "cache_control"?: BetaCacheControlEphemeral | null
   readonly "defer_loading"?: boolean
   readonly "display_height_px": number
@@ -3573,11 +3542,7 @@ export type BetaComputerUseTool_20241022 = {
   readonly "type": "computer_20241022"
 }
 export const BetaComputerUseTool_20241022 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(BetaAllowedCaller).annotate({ "title": "Allowed Callers" })),
   "cache_control": Schema.optionalKey(
     Schema.Union([Schema.Union([BetaCacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
       "title": "Cache Control",
@@ -3621,7 +3586,7 @@ export const BetaComputerUseTool_20241022 = Schema.Struct({
   "type": Schema.Literal("computer_20241022").annotate({ "title": "Type" })
 }).annotate({ "title": "ComputerUseTool_20241022" })
 export type BetaComputerUseTool_20250124 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<BetaAllowedCaller>
   readonly "cache_control"?: BetaCacheControlEphemeral | null
   readonly "defer_loading"?: boolean
   readonly "display_height_px": number
@@ -3633,11 +3598,7 @@ export type BetaComputerUseTool_20250124 = {
   readonly "type": "computer_20250124"
 }
 export const BetaComputerUseTool_20250124 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(BetaAllowedCaller).annotate({ "title": "Allowed Callers" })),
   "cache_control": Schema.optionalKey(
     Schema.Union([Schema.Union([BetaCacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
       "title": "Cache Control",
@@ -3681,7 +3642,7 @@ export const BetaComputerUseTool_20250124 = Schema.Struct({
   "type": Schema.Literal("computer_20250124").annotate({ "title": "Type" })
 }).annotate({ "title": "ComputerUseTool_20250124" })
 export type BetaComputerUseTool_20251124 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<BetaAllowedCaller>
   readonly "cache_control"?: BetaCacheControlEphemeral | null
   readonly "defer_loading"?: boolean
   readonly "display_height_px": number
@@ -3694,11 +3655,7 @@ export type BetaComputerUseTool_20251124 = {
   readonly "type": "computer_20251124"
 }
 export const BetaComputerUseTool_20251124 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(BetaAllowedCaller).annotate({ "title": "Allowed Callers" })),
   "cache_control": Schema.optionalKey(
     Schema.Union([Schema.Union([BetaCacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
       "title": "Cache Control",
@@ -3748,7 +3705,7 @@ export const BetaComputerUseTool_20251124 = Schema.Struct({
   "type": Schema.Literal("computer_20251124").annotate({ "title": "Type" })
 }).annotate({ "title": "ComputerUseTool_20251124" })
 export type BetaMemoryTool_20250818 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<BetaAllowedCaller>
   readonly "cache_control"?: BetaCacheControlEphemeral | null
   readonly "defer_loading"?: boolean
   readonly "input_examples"?: ReadonlyArray<{ readonly [x: string]: BetaJsonValue }>
@@ -3757,11 +3714,7 @@ export type BetaMemoryTool_20250818 = {
   readonly "type": "memory_20250818"
 }
 export const BetaMemoryTool_20250818 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(BetaAllowedCaller).annotate({ "title": "Allowed Callers" })),
   "cache_control": Schema.optionalKey(
     Schema.Union([Schema.Union([BetaCacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
       "title": "Cache Control",
@@ -3791,7 +3744,7 @@ export const BetaMemoryTool_20250818 = Schema.Struct({
   "type": Schema.Literal("memory_20250818").annotate({ "title": "Type" })
 }).annotate({ "title": "MemoryTool_20250818" })
 export type BetaTextEditor_20241022 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<BetaAllowedCaller>
   readonly "cache_control"?: BetaCacheControlEphemeral | null
   readonly "defer_loading"?: boolean
   readonly "input_examples"?: ReadonlyArray<{ readonly [x: string]: BetaJsonValue }>
@@ -3800,11 +3753,7 @@ export type BetaTextEditor_20241022 = {
   readonly "type": "text_editor_20241022"
 }
 export const BetaTextEditor_20241022 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(BetaAllowedCaller).annotate({ "title": "Allowed Callers" })),
   "cache_control": Schema.optionalKey(
     Schema.Union([Schema.Union([BetaCacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
       "title": "Cache Control",
@@ -3834,7 +3783,7 @@ export const BetaTextEditor_20241022 = Schema.Struct({
   "type": Schema.Literal("text_editor_20241022").annotate({ "title": "Type" })
 }).annotate({ "title": "TextEditor_20241022" })
 export type BetaTextEditor_20250124 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<BetaAllowedCaller>
   readonly "cache_control"?: BetaCacheControlEphemeral | null
   readonly "defer_loading"?: boolean
   readonly "input_examples"?: ReadonlyArray<{ readonly [x: string]: BetaJsonValue }>
@@ -3843,11 +3792,7 @@ export type BetaTextEditor_20250124 = {
   readonly "type": "text_editor_20250124"
 }
 export const BetaTextEditor_20250124 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(BetaAllowedCaller).annotate({ "title": "Allowed Callers" })),
   "cache_control": Schema.optionalKey(
     Schema.Union([Schema.Union([BetaCacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
       "title": "Cache Control",
@@ -3877,7 +3822,7 @@ export const BetaTextEditor_20250124 = Schema.Struct({
   "type": Schema.Literal("text_editor_20250124").annotate({ "title": "Type" })
 }).annotate({ "title": "TextEditor_20250124" })
 export type BetaTextEditor_20250429 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<BetaAllowedCaller>
   readonly "cache_control"?: BetaCacheControlEphemeral | null
   readonly "defer_loading"?: boolean
   readonly "input_examples"?: ReadonlyArray<{ readonly [x: string]: BetaJsonValue }>
@@ -3886,11 +3831,7 @@ export type BetaTextEditor_20250429 = {
   readonly "type": "text_editor_20250429"
 }
 export const BetaTextEditor_20250429 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(BetaAllowedCaller).annotate({ "title": "Allowed Callers" })),
   "cache_control": Schema.optionalKey(
     Schema.Union([Schema.Union([BetaCacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
       "title": "Cache Control",
@@ -3920,7 +3861,7 @@ export const BetaTextEditor_20250429 = Schema.Struct({
   "type": Schema.Literal("text_editor_20250429").annotate({ "title": "Type" })
 }).annotate({ "title": "TextEditor_20250429" })
 export type BetaTextEditor_20250728 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<BetaAllowedCaller>
   readonly "cache_control"?: BetaCacheControlEphemeral | null
   readonly "defer_loading"?: boolean
   readonly "input_examples"?: ReadonlyArray<{ readonly [x: string]: BetaJsonValue }>
@@ -3930,11 +3871,7 @@ export type BetaTextEditor_20250728 = {
   readonly "type": "text_editor_20250728"
 }
 export const BetaTextEditor_20250728 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(BetaAllowedCaller).annotate({ "title": "Allowed Callers" })),
   "cache_control": Schema.optionalKey(
     Schema.Union([Schema.Union([BetaCacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
       "title": "Cache Control",
@@ -3983,7 +3920,7 @@ export type BetaTool = {
   readonly "cache_control"?: BetaCacheControlEphemeral | null
   readonly "strict"?: boolean
   readonly "eager_input_streaming"?: boolean | null
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<BetaAllowedCaller>
   readonly "defer_loading"?: boolean
   readonly "input_examples"?: ReadonlyArray<{ readonly [x: string]: BetaJsonValue }>
 }
@@ -4035,11 +3972,7 @@ export const BetaTool = Schema.Struct({
         "Enable eager input streaming for this tool. When true, tool input parameters will be streamed incrementally as they are generated, and types will be inferred on-the-fly rather than buffering the full JSON output. When false, streaming is disabled for this tool even if the fine-grained-tool-streaming beta is active. When null (default), uses the default behavior based on beta headers."
     })
   ),
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(BetaAllowedCaller).annotate({ "title": "Allowed Callers" })),
   "defer_loading": Schema.optionalKey(
     Schema.Boolean.annotate({
       "title": "Defer Loading",
@@ -4111,27 +4044,6 @@ export const BetaListResponse_MessageBatch_ = Schema.Struct({
     "description": "Last ID in the `data` list. Can be used as the `after_id` for the next page."
   })
 }).annotate({ "title": "ListResponse[MessageBatch]" })
-export type BetaListResponse_ModelInfo_ = {
-  readonly "data": ReadonlyArray<BetaModelInfo>
-  readonly "first_id": string | null
-  readonly "has_more": boolean
-  readonly "last_id": string | null
-}
-export const BetaListResponse_ModelInfo_ = Schema.Struct({
-  "data": Schema.Array(BetaModelInfo).annotate({ "title": "Data" }),
-  "first_id": Schema.Union([Schema.String, Schema.Null]).annotate({
-    "title": "First Id",
-    "description": "First ID in the `data` list. Can be used as the `before_id` for the previous page."
-  }),
-  "has_more": Schema.Boolean.annotate({
-    "title": "Has More",
-    "description": "Indicates if there are more results in the requested page direction."
-  }),
-  "last_id": Schema.Union([Schema.String, Schema.Null]).annotate({
-    "title": "Last Id",
-    "description": "Last ID in the `data` list. Can be used as the `after_id` for the next page."
-  })
-}).annotate({ "title": "ListResponse[ModelInfo]" })
 export type BetaErrorResponse = {
   readonly "error":
     | BetaInvalidRequestError
@@ -4176,7 +4088,7 @@ export const BetaRequestBashCodeExecutionResultBlock = Schema.Struct({
   "type": Schema.Literal("bash_code_execution_result").annotate({ "title": "Type" })
 }).annotate({ "title": "RequestBashCodeExecutionResultBlock" })
 export type BetaWebFetchTool_20250910 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<BetaAllowedCaller>
   readonly "allowed_domains"?: ReadonlyArray<string> | null
   readonly "blocked_domains"?: ReadonlyArray<string> | null
   readonly "cache_control"?: BetaCacheControlEphemeral | null
@@ -4189,11 +4101,7 @@ export type BetaWebFetchTool_20250910 = {
   readonly "type": "web_fetch_20250910"
 }
 export const BetaWebFetchTool_20250910 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(BetaAllowedCaller).annotate({ "title": "Allowed Callers" })),
   "allowed_domains": Schema.optionalKey(
     Schema.Union([Schema.Array(Schema.String), Schema.Null]).annotate({
       "title": "Allowed Domains",
@@ -4250,7 +4158,7 @@ export const BetaWebFetchTool_20250910 = Schema.Struct({
   "type": Schema.Literal("web_fetch_20250910").annotate({ "title": "Type" })
 }).annotate({ "title": "WebFetchTool_20250910" })
 export type BetaWebFetchTool_20260209 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<BetaAllowedCaller>
   readonly "allowed_domains"?: ReadonlyArray<string> | null
   readonly "blocked_domains"?: ReadonlyArray<string> | null
   readonly "cache_control"?: BetaCacheControlEphemeral | null
@@ -4263,11 +4171,7 @@ export type BetaWebFetchTool_20260209 = {
   readonly "type": "web_fetch_20260209"
 }
 export const BetaWebFetchTool_20260209 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(BetaAllowedCaller).annotate({ "title": "Allowed Callers" })),
   "allowed_domains": Schema.optionalKey(
     Schema.Union([Schema.Array(Schema.String), Schema.Null]).annotate({
       "title": "Allowed Domains",
@@ -4323,6 +4227,87 @@ export const BetaWebFetchTool_20260209 = Schema.Struct({
   ),
   "type": Schema.Literal("web_fetch_20260209").annotate({ "title": "Type" })
 }).annotate({ "title": "WebFetchTool_20260209" })
+export type BetaWebFetchTool_20260309 = {
+  readonly "allowed_callers"?: ReadonlyArray<BetaAllowedCaller>
+  readonly "allowed_domains"?: ReadonlyArray<string> | null
+  readonly "blocked_domains"?: ReadonlyArray<string> | null
+  readonly "cache_control"?: BetaCacheControlEphemeral | null
+  readonly "citations"?: BetaRequestCitationsConfig | null
+  readonly "defer_loading"?: boolean
+  readonly "max_content_tokens"?: number | null
+  readonly "max_uses"?: number | null
+  readonly "name": "web_fetch"
+  readonly "strict"?: boolean
+  readonly "type": "web_fetch_20260309"
+  readonly "use_cache"?: boolean
+}
+export const BetaWebFetchTool_20260309 = Schema.Struct({
+  "allowed_callers": Schema.optionalKey(Schema.Array(BetaAllowedCaller).annotate({ "title": "Allowed Callers" })),
+  "allowed_domains": Schema.optionalKey(
+    Schema.Union([Schema.Array(Schema.String), Schema.Null]).annotate({
+      "title": "Allowed Domains",
+      "description": "List of domains to allow fetching from"
+    })
+  ),
+  "blocked_domains": Schema.optionalKey(
+    Schema.Union([Schema.Array(Schema.String), Schema.Null]).annotate({
+      "title": "Blocked Domains",
+      "description": "List of domains to block fetching from"
+    })
+  ),
+  "cache_control": Schema.optionalKey(
+    Schema.Union([Schema.Union([BetaCacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
+      "title": "Cache Control",
+      "description": "Create a cache control breakpoint at this content block."
+    })
+  ),
+  "citations": Schema.optionalKey(
+    Schema.Union([BetaRequestCitationsConfig, Schema.Null]).annotate({
+      "description": "Citations configuration for fetched documents. Citations are disabled by default."
+    })
+  ),
+  "defer_loading": Schema.optionalKey(
+    Schema.Boolean.annotate({
+      "title": "Defer Loading",
+      "description":
+        "If true, tool will not be included in initial system prompt. Only loaded when returned via tool_reference from tool search."
+    })
+  ),
+  "max_content_tokens": Schema.optionalKey(
+    Schema.Union([Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)), Schema.Null]).annotate({
+      "title": "Max Content Tokens",
+      "description":
+        "Maximum number of tokens used by including web page text content in the context. The limit is approximate and does not apply to binary content such as PDFs."
+    })
+  ),
+  "max_uses": Schema.optionalKey(
+    Schema.Union([Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)), Schema.Null]).annotate({
+      "title": "Max Uses",
+      "description": "Maximum number of times the tool can be used in the API request."
+    })
+  ),
+  "name": Schema.Literal("web_fetch").annotate({
+    "title": "Name",
+    "description": "Name of the tool.\n\nThis is how the tool will be called by the model and in `tool_use` blocks."
+  }),
+  "strict": Schema.optionalKey(
+    Schema.Boolean.annotate({
+      "title": "Strict",
+      "description": "When true, guarantees schema validation on tool names and inputs"
+    })
+  ),
+  "type": Schema.Literal("web_fetch_20260309").annotate({ "title": "Type" }),
+  "use_cache": Schema.optionalKey(
+    Schema.Boolean.annotate({
+      "title": "Use Cache",
+      "description":
+        "Whether to use cached content. Set to false to bypass the cache and fetch fresh content. Only set to false when the user explicitly requests fresh content or when fetching rapidly-changing sources."
+    })
+  )
+}).annotate({
+  "title": "WebFetchTool_20260309",
+  "description": "Web fetch tool with use_cache parameter for bypassing cached content."
+})
 export type BetaRequestCodeExecutionResultBlock = {
   readonly "content": ReadonlyArray<BetaRequestCodeExecutionOutputBlock>
   readonly "return_code": number
@@ -4845,19 +4830,38 @@ export const BetaResponseTextEditorCodeExecutionToolResultError = Schema.Struct(
     "default": "text_editor_code_execution_tool_result_error"
   })
 }).annotate({ "title": "ResponseTextEditorCodeExecutionToolResultError" })
-export type BetaThinkingConfigParam =
-  | BetaThinkingConfigEnabled
-  | BetaThinkingConfigDisabled
-  | BetaThinkingConfigAdaptive
-export const BetaThinkingConfigParam = Schema.Union([
-  BetaThinkingConfigEnabled,
-  BetaThinkingConfigDisabled,
-  BetaThinkingConfigAdaptive
-], { mode: "oneOf" }).annotate({
-  "title": "Thinking",
-  "description":
-    "Configuration for enabling Claude's extended thinking.\n\nWhen enabled, responses include `thinking` content blocks showing Claude's thinking process before the final answer. Requires a minimum budget of 1,024 tokens and counts towards your `max_tokens` limit.\n\nSee [extended thinking](https://docs.claude.com/en/docs/build-with-claude/extended-thinking) for details."
-})
+export type BetaThinkingConfigAdaptive = {
+  readonly "display"?: BetaThinkingDisplayMode | null
+  readonly "type": "adaptive"
+}
+export const BetaThinkingConfigAdaptive = Schema.Struct({
+  "display": Schema.optionalKey(
+    Schema.Union([BetaThinkingDisplayMode, Schema.Null]).annotate({
+      "description":
+        "Controls how thinking content appears in the response. When set to `summarized`, thinking is returned normally. When set to `omitted`, thinking content is redacted but a signature is returned for multi-turn continuity. Defaults to `summarized`."
+    })
+  ),
+  "type": Schema.Literal("adaptive").annotate({ "title": "Type" })
+}).annotate({ "title": "ThinkingConfigAdaptive" })
+export type BetaThinkingConfigEnabled = {
+  readonly "budget_tokens": number
+  readonly "display"?: BetaThinkingDisplayMode | null
+  readonly "type": "enabled"
+}
+export const BetaThinkingConfigEnabled = Schema.Struct({
+  "budget_tokens": Schema.Number.annotate({
+    "title": "Budget Tokens",
+    "description":
+      "Determines how many tokens Claude can use for its internal reasoning process. Larger budgets can enable more thorough analysis for complex problems, improving response quality.\n\nMust be ≥1024 and less than `max_tokens`.\n\nSee [extended thinking](https://docs.claude.com/en/docs/build-with-claude/extended-thinking) for details."
+  }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1024)),
+  "display": Schema.optionalKey(
+    Schema.Union([BetaThinkingDisplayMode, Schema.Null]).annotate({
+      "description":
+        "Controls how thinking content appears in the response. When set to `summarized`, thinking is returned normally. When set to `omitted`, thinking content is redacted but a signature is returned for multi-turn continuity. Defaults to `summarized`."
+    })
+  ),
+  "type": Schema.Literal("enabled").annotate({ "title": "Type" })
+}).annotate({ "title": "ThinkingConfigEnabled" })
 export type BetaClearThinking20251015 = {
   readonly "keep"?: BetaThinkingTurns | BetaAllThinkingTurns | "all"
   readonly "type": "clear_thinking_20251015"
@@ -4873,6 +4877,130 @@ export const BetaClearThinking20251015 = Schema.Struct({
   ),
   "type": Schema.Literal("clear_thinking_20251015").annotate({ "title": "Type" })
 }).annotate({ "title": "ClearThinking20251015" })
+export type BetaModelCapabilities = {
+  readonly "batch": { readonly "supported": boolean }
+  readonly "citations": { readonly "supported": boolean }
+  readonly "code_execution": { readonly "supported": boolean }
+  readonly "context_management": {
+    readonly "clear_thinking_20251015": BetaCapabilitySupport | null
+    readonly "clear_tool_uses_20250919": BetaCapabilitySupport | null
+    readonly "compact_20260112": BetaCapabilitySupport | null
+    readonly "supported": boolean
+  }
+  readonly "effort": {
+    readonly "high": { readonly "supported": boolean }
+    readonly "low": { readonly "supported": boolean }
+    readonly "max": { readonly "supported": boolean }
+    readonly "medium": { readonly "supported": boolean }
+    readonly "supported": boolean
+  }
+  readonly "image_input": { readonly "supported": boolean }
+  readonly "pdf_input": { readonly "supported": boolean }
+  readonly "structured_outputs": { readonly "supported": boolean }
+  readonly "thinking": { readonly "supported": boolean; readonly "types": BetaThinkingTypes }
+}
+export const BetaModelCapabilities = Schema.Struct({
+  "batch": Schema.Struct({
+    "supported": Schema.Boolean.annotate({
+      "title": "Supported",
+      "description": "Whether this capability is supported by the model."
+    })
+  }).annotate({ "title": "CapabilitySupport", "description": "Whether the model supports the Batch API." }),
+  "citations": Schema.Struct({
+    "supported": Schema.Boolean.annotate({
+      "title": "Supported",
+      "description": "Whether this capability is supported by the model."
+    })
+  }).annotate({ "title": "CapabilitySupport", "description": "Whether the model supports citation generation." }),
+  "code_execution": Schema.Struct({
+    "supported": Schema.Boolean.annotate({
+      "title": "Supported",
+      "description": "Whether this capability is supported by the model."
+    })
+  }).annotate({ "title": "CapabilitySupport", "description": "Whether the model supports code execution tools." }),
+  "context_management": Schema.Struct({
+    "clear_thinking_20251015": Schema.Union([BetaCapabilitySupport, Schema.Null]).annotate({
+      "description": "Whether the clear_thinking_20251015 strategy is supported."
+    }),
+    "clear_tool_uses_20250919": Schema.Union([BetaCapabilitySupport, Schema.Null]).annotate({
+      "description": "Whether the clear_tool_uses_20250919 strategy is supported."
+    }),
+    "compact_20260112": Schema.Union([BetaCapabilitySupport, Schema.Null]).annotate({
+      "description": "Whether the compact_20260112 strategy is supported."
+    }),
+    "supported": Schema.Boolean.annotate({
+      "title": "Supported",
+      "description": "Whether this capability is supported by the model."
+    })
+  }).annotate({
+    "title": "ContextManagementCapability",
+    "description": "Context management support and available strategies."
+  }),
+  "effort": Schema.Struct({
+    "high": Schema.Struct({
+      "supported": Schema.Boolean.annotate({
+        "title": "Supported",
+        "description": "Whether this capability is supported by the model."
+      })
+    }).annotate({ "title": "CapabilitySupport", "description": "Whether the model supports high effort level." }),
+    "low": Schema.Struct({
+      "supported": Schema.Boolean.annotate({
+        "title": "Supported",
+        "description": "Whether this capability is supported by the model."
+      })
+    }).annotate({ "title": "CapabilitySupport", "description": "Whether the model supports low effort level." }),
+    "max": Schema.Struct({
+      "supported": Schema.Boolean.annotate({
+        "title": "Supported",
+        "description": "Whether this capability is supported by the model."
+      })
+    }).annotate({ "title": "CapabilitySupport", "description": "Whether the model supports max effort level." }),
+    "medium": Schema.Struct({
+      "supported": Schema.Boolean.annotate({
+        "title": "Supported",
+        "description": "Whether this capability is supported by the model."
+      })
+    }).annotate({ "title": "CapabilitySupport", "description": "Whether the model supports medium effort level." }),
+    "supported": Schema.Boolean.annotate({
+      "title": "Supported",
+      "description": "Whether this capability is supported by the model."
+    })
+  }).annotate({
+    "title": "EffortCapability",
+    "description": "Effort (reasoning_effort) support and available levels."
+  }),
+  "image_input": Schema.Struct({
+    "supported": Schema.Boolean.annotate({
+      "title": "Supported",
+      "description": "Whether this capability is supported by the model."
+    })
+  }).annotate({ "title": "CapabilitySupport", "description": "Whether the model accepts image content blocks." }),
+  "pdf_input": Schema.Struct({
+    "supported": Schema.Boolean.annotate({
+      "title": "Supported",
+      "description": "Whether this capability is supported by the model."
+    })
+  }).annotate({ "title": "CapabilitySupport", "description": "Whether the model accepts PDF content blocks." }),
+  "structured_outputs": Schema.Struct({
+    "supported": Schema.Boolean.annotate({
+      "title": "Supported",
+      "description": "Whether this capability is supported by the model."
+    })
+  }).annotate({
+    "title": "CapabilitySupport",
+    "description": "Whether the model supports structured output / JSON mode / strict tool schemas."
+  }),
+  "thinking": Schema.Struct({
+    "supported": Schema.Boolean.annotate({
+      "title": "Supported",
+      "description": "Whether this capability is supported by the model."
+    }),
+    "types": BetaThinkingTypes
+  }).annotate({
+    "title": "ThinkingCapability",
+    "description": "Thinking capability and supported type configurations."
+  })
+}).annotate({ "title": "ModelCapabilities", "description": "Model capability information." })
 export type BetaToolChoice = BetaToolChoiceAuto | BetaToolChoiceAny | BetaToolChoiceTool | BetaToolChoiceNone
 export const BetaToolChoice = Schema.Union([
   BetaToolChoiceAuto,
@@ -4964,7 +5092,7 @@ export const BetaRequestImageBlock = Schema.Struct({
   "type": Schema.Literal("image").annotate({ "title": "Type" })
 }).annotate({ "title": "RequestImageBlock" })
 export type BetaWebSearchTool_20250305 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<BetaAllowedCaller>
   readonly "allowed_domains"?: ReadonlyArray<string> | null
   readonly "blocked_domains"?: ReadonlyArray<string> | null
   readonly "cache_control"?: BetaCacheControlEphemeral | null
@@ -4976,11 +5104,7 @@ export type BetaWebSearchTool_20250305 = {
   readonly "user_location"?: BetaUserLocation | null
 }
 export const BetaWebSearchTool_20250305 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(BetaAllowedCaller).annotate({ "title": "Allowed Callers" })),
   "allowed_domains": Schema.optionalKey(
     Schema.Union([Schema.Array(Schema.String), Schema.Null]).annotate({
       "title": "Allowed Domains",
@@ -5032,7 +5156,7 @@ export const BetaWebSearchTool_20250305 = Schema.Struct({
   )
 }).annotate({ "title": "WebSearchTool_20250305" })
 export type BetaWebSearchTool_20260209 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<BetaAllowedCaller>
   readonly "allowed_domains"?: ReadonlyArray<string> | null
   readonly "blocked_domains"?: ReadonlyArray<string> | null
   readonly "cache_control"?: BetaCacheControlEphemeral | null
@@ -5044,11 +5168,7 @@ export type BetaWebSearchTool_20260209 = {
   readonly "user_location"?: BetaUserLocation | null
 }
 export const BetaWebSearchTool_20260209 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(BetaAllowedCaller).annotate({ "title": "Allowed Callers" })),
   "allowed_domains": Schema.optionalKey(
     Schema.Union([Schema.Array(Schema.String), Schema.Null]).annotate({
       "title": "Allowed Domains",
@@ -5156,7 +5276,7 @@ export const BetaListSkillsResponse = Schema.Struct({
   })
 }).annotate({ "title": "ListSkillsResponse" })
 export type CodeExecutionTool_20250522 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<AllowedCaller>
   readonly "cache_control"?: CacheControlEphemeral | null
   readonly "defer_loading"?: boolean
   readonly "name": "code_execution"
@@ -5164,11 +5284,7 @@ export type CodeExecutionTool_20250522 = {
   readonly "type": "code_execution_20250522"
 }
 export const CodeExecutionTool_20250522 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(AllowedCaller).annotate({ "title": "Allowed Callers" })),
   "cache_control": Schema.optionalKey(
     Schema.Union([Schema.Union([CacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
       "title": "Cache Control",
@@ -5195,7 +5311,7 @@ export const CodeExecutionTool_20250522 = Schema.Struct({
   "type": Schema.Literal("code_execution_20250522").annotate({ "title": "Type" })
 }).annotate({ "title": "CodeExecutionTool_20250522" })
 export type CodeExecutionTool_20250825 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<AllowedCaller>
   readonly "cache_control"?: CacheControlEphemeral | null
   readonly "defer_loading"?: boolean
   readonly "name": "code_execution"
@@ -5203,11 +5319,7 @@ export type CodeExecutionTool_20250825 = {
   readonly "type": "code_execution_20250825"
 }
 export const CodeExecutionTool_20250825 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(AllowedCaller).annotate({ "title": "Allowed Callers" })),
   "cache_control": Schema.optionalKey(
     Schema.Union([Schema.Union([CacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
       "title": "Cache Control",
@@ -5234,7 +5346,7 @@ export const CodeExecutionTool_20250825 = Schema.Struct({
   "type": Schema.Literal("code_execution_20250825").annotate({ "title": "Type" })
 }).annotate({ "title": "CodeExecutionTool_20250825" })
 export type CodeExecutionTool_20260120 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<AllowedCaller>
   readonly "cache_control"?: CacheControlEphemeral | null
   readonly "defer_loading"?: boolean
   readonly "name": "code_execution"
@@ -5242,11 +5354,7 @@ export type CodeExecutionTool_20260120 = {
   readonly "type": "code_execution_20260120"
 }
 export const CodeExecutionTool_20260120 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(AllowedCaller).annotate({ "title": "Allowed Callers" })),
   "cache_control": Schema.optionalKey(
     Schema.Union([Schema.Union([CacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
       "title": "Cache Control",
@@ -5315,7 +5423,7 @@ export const RequestToolReferenceBlock = Schema.Struct({
   "description": "Tool reference block that can be included in tool_result content."
 })
 export type ToolSearchToolBM25_20251119 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<AllowedCaller>
   readonly "cache_control"?: CacheControlEphemeral | null
   readonly "defer_loading"?: boolean
   readonly "name": "tool_search_tool_bm25"
@@ -5323,11 +5431,7 @@ export type ToolSearchToolBM25_20251119 = {
   readonly "type": "tool_search_tool_bm25_20251119" | "tool_search_tool_bm25"
 }
 export const ToolSearchToolBM25_20251119 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(AllowedCaller).annotate({ "title": "Allowed Callers" })),
   "cache_control": Schema.optionalKey(
     Schema.Union([Schema.Union([CacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
       "title": "Cache Control",
@@ -5354,7 +5458,7 @@ export const ToolSearchToolBM25_20251119 = Schema.Struct({
   "type": Schema.Literals(["tool_search_tool_bm25_20251119", "tool_search_tool_bm25"]).annotate({ "title": "Type" })
 }).annotate({ "title": "ToolSearchToolBM25_20251119" })
 export type ToolSearchToolRegex_20251119 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<AllowedCaller>
   readonly "cache_control"?: CacheControlEphemeral | null
   readonly "defer_loading"?: boolean
   readonly "name": "tool_search_tool_regex"
@@ -5362,11 +5466,7 @@ export type ToolSearchToolRegex_20251119 = {
   readonly "type": "tool_search_tool_regex_20251119" | "tool_search_tool_regex"
 }
 export const ToolSearchToolRegex_20251119 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(AllowedCaller).annotate({ "title": "Allowed Callers" })),
   "cache_control": Schema.optionalKey(
     Schema.Union([Schema.Union([CacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
       "title": "Cache Control",
@@ -5443,7 +5543,7 @@ export const FileListResponse = Schema.Struct({
   )
 }).annotate({ "title": "FileListResponse" })
 export type BashTool_20250124 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<AllowedCaller>
   readonly "cache_control"?: CacheControlEphemeral | null
   readonly "defer_loading"?: boolean
   readonly "input_examples"?: ReadonlyArray<{ readonly [x: string]: JsonValue }>
@@ -5452,11 +5552,7 @@ export type BashTool_20250124 = {
   readonly "type": "bash_20250124"
 }
 export const BashTool_20250124 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(AllowedCaller).annotate({ "title": "Allowed Callers" })),
   "cache_control": Schema.optionalKey(
     Schema.Union([Schema.Union([CacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
       "title": "Cache Control",
@@ -5486,7 +5582,7 @@ export const BashTool_20250124 = Schema.Struct({
   "type": Schema.Literal("bash_20250124").annotate({ "title": "Type" })
 }).annotate({ "title": "BashTool_20250124" })
 export type MemoryTool_20250818 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<AllowedCaller>
   readonly "cache_control"?: CacheControlEphemeral | null
   readonly "defer_loading"?: boolean
   readonly "input_examples"?: ReadonlyArray<{ readonly [x: string]: JsonValue }>
@@ -5495,11 +5591,7 @@ export type MemoryTool_20250818 = {
   readonly "type": "memory_20250818"
 }
 export const MemoryTool_20250818 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(AllowedCaller).annotate({ "title": "Allowed Callers" })),
   "cache_control": Schema.optionalKey(
     Schema.Union([Schema.Union([CacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
       "title": "Cache Control",
@@ -5529,7 +5621,7 @@ export const MemoryTool_20250818 = Schema.Struct({
   "type": Schema.Literal("memory_20250818").annotate({ "title": "Type" })
 }).annotate({ "title": "MemoryTool_20250818" })
 export type TextEditor_20250124 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<AllowedCaller>
   readonly "cache_control"?: CacheControlEphemeral | null
   readonly "defer_loading"?: boolean
   readonly "input_examples"?: ReadonlyArray<{ readonly [x: string]: JsonValue }>
@@ -5538,11 +5630,7 @@ export type TextEditor_20250124 = {
   readonly "type": "text_editor_20250124"
 }
 export const TextEditor_20250124 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(AllowedCaller).annotate({ "title": "Allowed Callers" })),
   "cache_control": Schema.optionalKey(
     Schema.Union([Schema.Union([CacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
       "title": "Cache Control",
@@ -5572,7 +5660,7 @@ export const TextEditor_20250124 = Schema.Struct({
   "type": Schema.Literal("text_editor_20250124").annotate({ "title": "Type" })
 }).annotate({ "title": "TextEditor_20250124" })
 export type TextEditor_20250429 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<AllowedCaller>
   readonly "cache_control"?: CacheControlEphemeral | null
   readonly "defer_loading"?: boolean
   readonly "input_examples"?: ReadonlyArray<{ readonly [x: string]: JsonValue }>
@@ -5581,11 +5669,7 @@ export type TextEditor_20250429 = {
   readonly "type": "text_editor_20250429"
 }
 export const TextEditor_20250429 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(AllowedCaller).annotate({ "title": "Allowed Callers" })),
   "cache_control": Schema.optionalKey(
     Schema.Union([Schema.Union([CacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
       "title": "Cache Control",
@@ -5615,7 +5699,7 @@ export const TextEditor_20250429 = Schema.Struct({
   "type": Schema.Literal("text_editor_20250429").annotate({ "title": "Type" })
 }).annotate({ "title": "TextEditor_20250429" })
 export type TextEditor_20250728 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<AllowedCaller>
   readonly "cache_control"?: CacheControlEphemeral | null
   readonly "defer_loading"?: boolean
   readonly "input_examples"?: ReadonlyArray<{ readonly [x: string]: JsonValue }>
@@ -5625,11 +5709,7 @@ export type TextEditor_20250728 = {
   readonly "type": "text_editor_20250728"
 }
 export const TextEditor_20250728 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(AllowedCaller).annotate({ "title": "Allowed Callers" })),
   "cache_control": Schema.optionalKey(
     Schema.Union([Schema.Union([CacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
       "title": "Cache Control",
@@ -5678,7 +5758,7 @@ export type Tool = {
   readonly "cache_control"?: CacheControlEphemeral | null
   readonly "strict"?: boolean
   readonly "eager_input_streaming"?: boolean | null
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<AllowedCaller>
   readonly "defer_loading"?: boolean
   readonly "input_examples"?: ReadonlyArray<{ readonly [x: string]: JsonValue }>
 }
@@ -5730,11 +5810,7 @@ export const Tool = Schema.Struct({
         "Enable eager input streaming for this tool. When true, tool input parameters will be streamed incrementally as they are generated, and types will be inferred on-the-fly rather than buffering the full JSON output. When false, streaming is disabled for this tool even if the fine-grained-tool-streaming beta is active. When null (default), uses the default behavior based on beta headers."
     })
   ),
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(AllowedCaller).annotate({ "title": "Allowed Callers" })),
   "defer_loading": Schema.optionalKey(
     Schema.Boolean.annotate({
       "title": "Defer Loading",
@@ -5767,27 +5843,6 @@ export const ListResponse_MessageBatch_ = Schema.Struct({
     "description": "Last ID in the `data` list. Can be used as the `after_id` for the next page."
   })
 }).annotate({ "title": "ListResponse[MessageBatch]" })
-export type ListResponse_ModelInfo_ = {
-  readonly "data": ReadonlyArray<ModelInfo>
-  readonly "first_id": string | null
-  readonly "has_more": boolean
-  readonly "last_id": string | null
-}
-export const ListResponse_ModelInfo_ = Schema.Struct({
-  "data": Schema.Array(ModelInfo).annotate({ "title": "Data" }),
-  "first_id": Schema.Union([Schema.String, Schema.Null]).annotate({
-    "title": "First Id",
-    "description": "First ID in the `data` list. Can be used as the `before_id` for the previous page."
-  }),
-  "has_more": Schema.Boolean.annotate({
-    "title": "Has More",
-    "description": "Indicates if there are more results in the requested page direction."
-  }),
-  "last_id": Schema.Union([Schema.String, Schema.Null]).annotate({
-    "title": "Last Id",
-    "description": "Last ID in the `data` list. Can be used as the `after_id` for the next page."
-  })
-}).annotate({ "title": "ListResponse[ModelInfo]" })
 export type ErrorResponse = {
   readonly "error":
     | InvalidRequestError
@@ -5832,7 +5887,7 @@ export const RequestBashCodeExecutionResultBlock = Schema.Struct({
   "type": Schema.Literal("bash_code_execution_result").annotate({ "title": "Type" })
 }).annotate({ "title": "RequestBashCodeExecutionResultBlock" })
 export type WebFetchTool_20250910 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<AllowedCaller>
   readonly "allowed_domains"?: ReadonlyArray<string> | null
   readonly "blocked_domains"?: ReadonlyArray<string> | null
   readonly "cache_control"?: CacheControlEphemeral | null
@@ -5845,11 +5900,7 @@ export type WebFetchTool_20250910 = {
   readonly "type": "web_fetch_20250910"
 }
 export const WebFetchTool_20250910 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(AllowedCaller).annotate({ "title": "Allowed Callers" })),
   "allowed_domains": Schema.optionalKey(
     Schema.Union([Schema.Array(Schema.String), Schema.Null]).annotate({
       "title": "Allowed Domains",
@@ -5906,7 +5957,7 @@ export const WebFetchTool_20250910 = Schema.Struct({
   "type": Schema.Literal("web_fetch_20250910").annotate({ "title": "Type" })
 }).annotate({ "title": "WebFetchTool_20250910" })
 export type WebFetchTool_20260209 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<AllowedCaller>
   readonly "allowed_domains"?: ReadonlyArray<string> | null
   readonly "blocked_domains"?: ReadonlyArray<string> | null
   readonly "cache_control"?: CacheControlEphemeral | null
@@ -5919,11 +5970,7 @@ export type WebFetchTool_20260209 = {
   readonly "type": "web_fetch_20260209"
 }
 export const WebFetchTool_20260209 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(AllowedCaller).annotate({ "title": "Allowed Callers" })),
   "allowed_domains": Schema.optionalKey(
     Schema.Union([Schema.Array(Schema.String), Schema.Null]).annotate({
       "title": "Allowed Domains",
@@ -5979,6 +6026,87 @@ export const WebFetchTool_20260209 = Schema.Struct({
   ),
   "type": Schema.Literal("web_fetch_20260209").annotate({ "title": "Type" })
 }).annotate({ "title": "WebFetchTool_20260209" })
+export type WebFetchTool_20260309 = {
+  readonly "allowed_callers"?: ReadonlyArray<AllowedCaller>
+  readonly "allowed_domains"?: ReadonlyArray<string> | null
+  readonly "blocked_domains"?: ReadonlyArray<string> | null
+  readonly "cache_control"?: CacheControlEphemeral | null
+  readonly "citations"?: RequestCitationsConfig | null
+  readonly "defer_loading"?: boolean
+  readonly "max_content_tokens"?: number | null
+  readonly "max_uses"?: number | null
+  readonly "name": "web_fetch"
+  readonly "strict"?: boolean
+  readonly "type": "web_fetch_20260309"
+  readonly "use_cache"?: boolean
+}
+export const WebFetchTool_20260309 = Schema.Struct({
+  "allowed_callers": Schema.optionalKey(Schema.Array(AllowedCaller).annotate({ "title": "Allowed Callers" })),
+  "allowed_domains": Schema.optionalKey(
+    Schema.Union([Schema.Array(Schema.String), Schema.Null]).annotate({
+      "title": "Allowed Domains",
+      "description": "List of domains to allow fetching from"
+    })
+  ),
+  "blocked_domains": Schema.optionalKey(
+    Schema.Union([Schema.Array(Schema.String), Schema.Null]).annotate({
+      "title": "Blocked Domains",
+      "description": "List of domains to block fetching from"
+    })
+  ),
+  "cache_control": Schema.optionalKey(
+    Schema.Union([Schema.Union([CacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
+      "title": "Cache Control",
+      "description": "Create a cache control breakpoint at this content block."
+    })
+  ),
+  "citations": Schema.optionalKey(
+    Schema.Union([RequestCitationsConfig, Schema.Null]).annotate({
+      "description": "Citations configuration for fetched documents. Citations are disabled by default."
+    })
+  ),
+  "defer_loading": Schema.optionalKey(
+    Schema.Boolean.annotate({
+      "title": "Defer Loading",
+      "description":
+        "If true, tool will not be included in initial system prompt. Only loaded when returned via tool_reference from tool search."
+    })
+  ),
+  "max_content_tokens": Schema.optionalKey(
+    Schema.Union([Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)), Schema.Null]).annotate({
+      "title": "Max Content Tokens",
+      "description":
+        "Maximum number of tokens used by including web page text content in the context. The limit is approximate and does not apply to binary content such as PDFs."
+    })
+  ),
+  "max_uses": Schema.optionalKey(
+    Schema.Union([Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)), Schema.Null]).annotate({
+      "title": "Max Uses",
+      "description": "Maximum number of times the tool can be used in the API request."
+    })
+  ),
+  "name": Schema.Literal("web_fetch").annotate({
+    "title": "Name",
+    "description": "Name of the tool.\n\nThis is how the tool will be called by the model and in `tool_use` blocks."
+  }),
+  "strict": Schema.optionalKey(
+    Schema.Boolean.annotate({
+      "title": "Strict",
+      "description": "When true, guarantees schema validation on tool names and inputs"
+    })
+  ),
+  "type": Schema.Literal("web_fetch_20260309").annotate({ "title": "Type" }),
+  "use_cache": Schema.optionalKey(
+    Schema.Boolean.annotate({
+      "title": "Use Cache",
+      "description":
+        "Whether to use cached content. Set to false to bypass the cache and fetch fresh content. Only set to false when the user explicitly requests fresh content or when fetching rapidly-changing sources."
+    })
+  )
+}).annotate({
+  "title": "WebFetchTool_20260309",
+  "description": "Web fetch tool with use_cache parameter for bypassing cached content."
+})
 export type RequestCodeExecutionResultBlock = {
   readonly "content": ReadonlyArray<RequestCodeExecutionOutputBlock>
   readonly "return_code": number
@@ -6332,15 +6460,159 @@ export const ResponseTextEditorCodeExecutionToolResultError = Schema.Struct({
     "default": "text_editor_code_execution_tool_result_error"
   })
 }).annotate({ "title": "ResponseTextEditorCodeExecutionToolResultError" })
-export type ThinkingConfigParam = ThinkingConfigEnabled | ThinkingConfigDisabled | ThinkingConfigAdaptive
-export const ThinkingConfigParam = Schema.Union(
-  [ThinkingConfigEnabled, ThinkingConfigDisabled, ThinkingConfigAdaptive],
-  { mode: "oneOf" }
-).annotate({
-  "title": "Thinking",
-  "description":
-    "Configuration for enabling Claude's extended thinking.\n\nWhen enabled, responses include `thinking` content blocks showing Claude's thinking process before the final answer. Requires a minimum budget of 1,024 tokens and counts towards your `max_tokens` limit.\n\nSee [extended thinking](https://docs.claude.com/en/docs/build-with-claude/extended-thinking) for details."
-})
+export type ThinkingConfigAdaptive = { readonly "display"?: ThinkingDisplayMode | null; readonly "type": "adaptive" }
+export const ThinkingConfigAdaptive = Schema.Struct({
+  "display": Schema.optionalKey(
+    Schema.Union([ThinkingDisplayMode, Schema.Null]).annotate({
+      "description":
+        "Controls how thinking content appears in the response. When set to `summarized`, thinking is returned normally. When set to `omitted`, thinking content is redacted but a signature is returned for multi-turn continuity. Defaults to `summarized`."
+    })
+  ),
+  "type": Schema.Literal("adaptive").annotate({ "title": "Type" })
+}).annotate({ "title": "ThinkingConfigAdaptive" })
+export type ThinkingConfigEnabled = {
+  readonly "budget_tokens": number
+  readonly "display"?: ThinkingDisplayMode | null
+  readonly "type": "enabled"
+}
+export const ThinkingConfigEnabled = Schema.Struct({
+  "budget_tokens": Schema.Number.annotate({
+    "title": "Budget Tokens",
+    "description":
+      "Determines how many tokens Claude can use for its internal reasoning process. Larger budgets can enable more thorough analysis for complex problems, improving response quality.\n\nMust be ≥1024 and less than `max_tokens`.\n\nSee [extended thinking](https://docs.claude.com/en/docs/build-with-claude/extended-thinking) for details."
+  }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1024)),
+  "display": Schema.optionalKey(
+    Schema.Union([ThinkingDisplayMode, Schema.Null]).annotate({
+      "description":
+        "Controls how thinking content appears in the response. When set to `summarized`, thinking is returned normally. When set to `omitted`, thinking content is redacted but a signature is returned for multi-turn continuity. Defaults to `summarized`."
+    })
+  ),
+  "type": Schema.Literal("enabled").annotate({ "title": "Type" })
+}).annotate({ "title": "ThinkingConfigEnabled" })
+export type ModelCapabilities = {
+  readonly "batch": { readonly "supported": boolean }
+  readonly "citations": { readonly "supported": boolean }
+  readonly "code_execution": { readonly "supported": boolean }
+  readonly "context_management": {
+    readonly "clear_thinking_20251015": CapabilitySupport | null
+    readonly "clear_tool_uses_20250919": CapabilitySupport | null
+    readonly "compact_20260112": CapabilitySupport | null
+    readonly "supported": boolean
+  }
+  readonly "effort": {
+    readonly "high": { readonly "supported": boolean }
+    readonly "low": { readonly "supported": boolean }
+    readonly "max": { readonly "supported": boolean }
+    readonly "medium": { readonly "supported": boolean }
+    readonly "supported": boolean
+  }
+  readonly "image_input": { readonly "supported": boolean }
+  readonly "pdf_input": { readonly "supported": boolean }
+  readonly "structured_outputs": { readonly "supported": boolean }
+  readonly "thinking": { readonly "supported": boolean; readonly "types": ThinkingTypes }
+}
+export const ModelCapabilities = Schema.Struct({
+  "batch": Schema.Struct({
+    "supported": Schema.Boolean.annotate({
+      "title": "Supported",
+      "description": "Whether this capability is supported by the model."
+    })
+  }).annotate({ "title": "CapabilitySupport", "description": "Whether the model supports the Batch API." }),
+  "citations": Schema.Struct({
+    "supported": Schema.Boolean.annotate({
+      "title": "Supported",
+      "description": "Whether this capability is supported by the model."
+    })
+  }).annotate({ "title": "CapabilitySupport", "description": "Whether the model supports citation generation." }),
+  "code_execution": Schema.Struct({
+    "supported": Schema.Boolean.annotate({
+      "title": "Supported",
+      "description": "Whether this capability is supported by the model."
+    })
+  }).annotate({ "title": "CapabilitySupport", "description": "Whether the model supports code execution tools." }),
+  "context_management": Schema.Struct({
+    "clear_thinking_20251015": Schema.Union([CapabilitySupport, Schema.Null]).annotate({
+      "description": "Whether the clear_thinking_20251015 strategy is supported."
+    }),
+    "clear_tool_uses_20250919": Schema.Union([CapabilitySupport, Schema.Null]).annotate({
+      "description": "Whether the clear_tool_uses_20250919 strategy is supported."
+    }),
+    "compact_20260112": Schema.Union([CapabilitySupport, Schema.Null]).annotate({
+      "description": "Whether the compact_20260112 strategy is supported."
+    }),
+    "supported": Schema.Boolean.annotate({
+      "title": "Supported",
+      "description": "Whether this capability is supported by the model."
+    })
+  }).annotate({
+    "title": "ContextManagementCapability",
+    "description": "Context management support and available strategies."
+  }),
+  "effort": Schema.Struct({
+    "high": Schema.Struct({
+      "supported": Schema.Boolean.annotate({
+        "title": "Supported",
+        "description": "Whether this capability is supported by the model."
+      })
+    }).annotate({ "title": "CapabilitySupport", "description": "Whether the model supports high effort level." }),
+    "low": Schema.Struct({
+      "supported": Schema.Boolean.annotate({
+        "title": "Supported",
+        "description": "Whether this capability is supported by the model."
+      })
+    }).annotate({ "title": "CapabilitySupport", "description": "Whether the model supports low effort level." }),
+    "max": Schema.Struct({
+      "supported": Schema.Boolean.annotate({
+        "title": "Supported",
+        "description": "Whether this capability is supported by the model."
+      })
+    }).annotate({ "title": "CapabilitySupport", "description": "Whether the model supports max effort level." }),
+    "medium": Schema.Struct({
+      "supported": Schema.Boolean.annotate({
+        "title": "Supported",
+        "description": "Whether this capability is supported by the model."
+      })
+    }).annotate({ "title": "CapabilitySupport", "description": "Whether the model supports medium effort level." }),
+    "supported": Schema.Boolean.annotate({
+      "title": "Supported",
+      "description": "Whether this capability is supported by the model."
+    })
+  }).annotate({
+    "title": "EffortCapability",
+    "description": "Effort (reasoning_effort) support and available levels."
+  }),
+  "image_input": Schema.Struct({
+    "supported": Schema.Boolean.annotate({
+      "title": "Supported",
+      "description": "Whether this capability is supported by the model."
+    })
+  }).annotate({ "title": "CapabilitySupport", "description": "Whether the model accepts image content blocks." }),
+  "pdf_input": Schema.Struct({
+    "supported": Schema.Boolean.annotate({
+      "title": "Supported",
+      "description": "Whether this capability is supported by the model."
+    })
+  }).annotate({ "title": "CapabilitySupport", "description": "Whether the model accepts PDF content blocks." }),
+  "structured_outputs": Schema.Struct({
+    "supported": Schema.Boolean.annotate({
+      "title": "Supported",
+      "description": "Whether this capability is supported by the model."
+    })
+  }).annotate({
+    "title": "CapabilitySupport",
+    "description": "Whether the model supports structured output / JSON mode / strict tool schemas."
+  }),
+  "thinking": Schema.Struct({
+    "supported": Schema.Boolean.annotate({
+      "title": "Supported",
+      "description": "Whether this capability is supported by the model."
+    }),
+    "types": ThinkingTypes
+  }).annotate({
+    "title": "ThinkingCapability",
+    "description": "Thinking capability and supported type configurations."
+  })
+}).annotate({ "title": "ModelCapabilities", "description": "Model capability information." })
 export type ToolChoice = ToolChoiceAuto | ToolChoiceAny | ToolChoiceTool | ToolChoiceNone
 export const ToolChoice = Schema.Union([ToolChoiceAuto, ToolChoiceAny, ToolChoiceTool, ToolChoiceNone], {
   mode: "oneOf"
@@ -6386,7 +6658,7 @@ export const RequestImageBlock = Schema.Struct({
   "type": Schema.Literal("image").annotate({ "title": "Type" })
 }).annotate({ "title": "RequestImageBlock" })
 export type WebSearchTool_20250305 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<AllowedCaller>
   readonly "allowed_domains"?: ReadonlyArray<string> | null
   readonly "blocked_domains"?: ReadonlyArray<string> | null
   readonly "cache_control"?: CacheControlEphemeral | null
@@ -6398,11 +6670,7 @@ export type WebSearchTool_20250305 = {
   readonly "user_location"?: UserLocation | null
 }
 export const WebSearchTool_20250305 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(AllowedCaller).annotate({ "title": "Allowed Callers" })),
   "allowed_domains": Schema.optionalKey(
     Schema.Union([Schema.Array(Schema.String), Schema.Null]).annotate({
       "title": "Allowed Domains",
@@ -6454,7 +6722,7 @@ export const WebSearchTool_20250305 = Schema.Struct({
   )
 }).annotate({ "title": "WebSearchTool_20250305" })
 export type WebSearchTool_20260209 = {
-  readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825" | "code_execution_20260120">
+  readonly "allowed_callers"?: ReadonlyArray<AllowedCaller>
   readonly "allowed_domains"?: ReadonlyArray<string> | null
   readonly "blocked_domains"?: ReadonlyArray<string> | null
   readonly "cache_control"?: CacheControlEphemeral | null
@@ -6466,11 +6734,7 @@ export type WebSearchTool_20260209 = {
   readonly "user_location"?: UserLocation | null
 }
 export const WebSearchTool_20260209 = Schema.Struct({
-  "allowed_callers": Schema.optionalKey(
-    Schema.Array(Schema.Literals(["direct", "code_execution_20250825", "code_execution_20260120"])).annotate({
-      "title": "Allowed Callers"
-    })
-  ),
+  "allowed_callers": Schema.optionalKey(Schema.Array(AllowedCaller).annotate({ "title": "Allowed Callers" })),
   "allowed_domains": Schema.optionalKey(
     Schema.Union([Schema.Array(Schema.String), Schema.Null]).annotate({
       "title": "Allowed Domains",
@@ -6627,7 +6891,7 @@ export const CompletionRequest = Schema.Struct({
   "metadata": Schema.optionalKey(
     Schema.Struct({
       "user_id": Schema.optionalKey(
-        Schema.Union([Schema.String.check(Schema.isMaxLength(256)), Schema.Null]).annotate({
+        Schema.Union([Schema.String.check(Schema.isMaxLength(512)), Schema.Null]).annotate({
           "title": "User Id",
           "description":
             "An external identifier for the user who is associated with the request.\n\nThis should be a uuid, hash value, or other opaque identifier. Anthropic may use this id to help detect abuse. Do not include any identifying information such as name, email address, or phone number."
@@ -6681,7 +6945,7 @@ export const BetaRequestToolSearchToolSearchResultBlock = Schema.Struct({
 }).annotate({ "title": "RequestToolSearchToolSearchResultBlock" })
 export type BetaIterationsUsage = ReadonlyArray<BetaMessageIterationUsage | BetaCompactionIterationUsage> | null
 export const BetaIterationsUsage = Schema.Union([
-  Schema.Array(Schema.Union([BetaMessageIterationUsage, BetaCompactionIterationUsage])),
+  Schema.Array(Schema.Union([BetaMessageIterationUsage, BetaCompactionIterationUsage], { mode: "oneOf" })),
   Schema.Null
 ]).annotate({
   "title": "Iterations",
@@ -6906,6 +7170,58 @@ export const BetaResponseTextEditorCodeExecutionToolResultBlock = Schema.Struct(
     "default": "text_editor_code_execution_tool_result"
   })
 }).annotate({ "title": "ResponseTextEditorCodeExecutionToolResultBlock" })
+export type BetaThinkingConfigParam =
+  | BetaThinkingConfigEnabled
+  | BetaThinkingConfigDisabled
+  | BetaThinkingConfigAdaptive
+export const BetaThinkingConfigParam = Schema.Union([
+  BetaThinkingConfigEnabled,
+  BetaThinkingConfigDisabled,
+  BetaThinkingConfigAdaptive
+], { mode: "oneOf" }).annotate({
+  "title": "Thinking",
+  "description":
+    "Configuration for enabling Claude's extended thinking.\n\nWhen enabled, responses include `thinking` content blocks showing Claude's thinking process before the final answer. Requires a minimum budget of 1,024 tokens and counts towards your `max_tokens` limit.\n\nSee [extended thinking](https://docs.claude.com/en/docs/build-with-claude/extended-thinking) for details."
+})
+export type BetaModelInfo = {
+  readonly "capabilities": BetaModelCapabilities | null
+  readonly "created_at": string
+  readonly "display_name": string
+  readonly "id": string
+  readonly "max_input_tokens": number | null
+  readonly "max_tokens": number | null
+  readonly "type": "model"
+}
+export const BetaModelInfo = Schema.Struct({
+  "capabilities": Schema.Union([BetaModelCapabilities, Schema.Null]).annotate({
+    "description":
+      "Object mapping capability names to their support details. Keys are always present for all known capabilities."
+  }),
+  "created_at": Schema.String.annotate({
+    "title": "Created At",
+    "description":
+      "RFC 3339 datetime string representing the time at which the model was released. May be set to an epoch value if the release date is unknown.",
+    "format": "date-time"
+  }),
+  "display_name": Schema.String.annotate({
+    "title": "Display Name",
+    "description": "A human-readable name for the model."
+  }),
+  "id": Schema.String.annotate({ "title": "Id", "description": "Unique model identifier." }),
+  "max_input_tokens": Schema.Union([Schema.Number.check(Schema.isInt()), Schema.Null]).annotate({
+    "title": "Max Input Tokens",
+    "description": "Maximum input context window size in tokens for this model."
+  }),
+  "max_tokens": Schema.Union([Schema.Number.check(Schema.isInt()), Schema.Null]).annotate({
+    "title": "Max Tokens",
+    "description": "Maximum value for the `max_tokens` parameter when using this model."
+  }),
+  "type": Schema.Literal("model").annotate({
+    "title": "Type",
+    "description": "Object type.\n\nFor Models, this is always `\"model\"`.",
+    "default": "model"
+  })
+}).annotate({ "title": "ModelInfo" })
 export type BetaResponseToolSearchToolResultBlock = {
   readonly "content": BetaResponseToolSearchToolResultError | BetaResponseToolSearchToolSearchResultBlock
   readonly "tool_use_id": string
@@ -7202,6 +7518,54 @@ export const ResponseTextEditorCodeExecutionToolResultBlock = Schema.Struct({
     "default": "text_editor_code_execution_tool_result"
   })
 }).annotate({ "title": "ResponseTextEditorCodeExecutionToolResultBlock" })
+export type ThinkingConfigParam = ThinkingConfigEnabled | ThinkingConfigDisabled | ThinkingConfigAdaptive
+export const ThinkingConfigParam = Schema.Union(
+  [ThinkingConfigEnabled, ThinkingConfigDisabled, ThinkingConfigAdaptive],
+  { mode: "oneOf" }
+).annotate({
+  "title": "Thinking",
+  "description":
+    "Configuration for enabling Claude's extended thinking.\n\nWhen enabled, responses include `thinking` content blocks showing Claude's thinking process before the final answer. Requires a minimum budget of 1,024 tokens and counts towards your `max_tokens` limit.\n\nSee [extended thinking](https://docs.claude.com/en/docs/build-with-claude/extended-thinking) for details."
+})
+export type ModelInfo = {
+  readonly "capabilities": ModelCapabilities | null
+  readonly "created_at": string
+  readonly "display_name": string
+  readonly "id": string
+  readonly "max_input_tokens": number | null
+  readonly "max_tokens": number | null
+  readonly "type": "model"
+}
+export const ModelInfo = Schema.Struct({
+  "capabilities": Schema.Union([ModelCapabilities, Schema.Null]).annotate({
+    "description":
+      "Object mapping capability names to their support details. Keys are always present for all known capabilities."
+  }),
+  "created_at": Schema.String.annotate({
+    "title": "Created At",
+    "description":
+      "RFC 3339 datetime string representing the time at which the model was released. May be set to an epoch value if the release date is unknown.",
+    "format": "date-time"
+  }),
+  "display_name": Schema.String.annotate({
+    "title": "Display Name",
+    "description": "A human-readable name for the model."
+  }),
+  "id": Schema.String.annotate({ "title": "Id", "description": "Unique model identifier." }),
+  "max_input_tokens": Schema.Union([Schema.Number.check(Schema.isInt()), Schema.Null]).annotate({
+    "title": "Max Input Tokens",
+    "description": "Maximum input context window size in tokens for this model."
+  }),
+  "max_tokens": Schema.Union([Schema.Number.check(Schema.isInt()), Schema.Null]).annotate({
+    "title": "Max Tokens",
+    "description": "Maximum value for the `max_tokens` parameter when using this model."
+  }),
+  "type": Schema.Literal("model").annotate({
+    "title": "Type",
+    "description": "Object type.\n\nFor Models, this is always `\"model\"`.",
+    "default": "model"
+  })
+}).annotate({ "title": "ModelInfo" })
 export type ResponseToolSearchToolResultBlock = {
   readonly "content": ResponseToolSearchToolResultError | ResponseToolSearchToolSearchResultBlock
   readonly "tool_use_id": string
@@ -7438,6 +7802,27 @@ export const BetaMessageDeltaEvent = Schema.Struct({
       "Billing and rate-limit usage.\n\nAnthropic's API bills and rate-limits by token counts, as tokens represent the underlying cost to our systems.\n\nUnder the hood, the API transforms requests into a format suitable for the model. The model's output then goes through a parsing stage before becoming an API response. As a result, the token counts in `usage` will not match one-to-one with the exact visible content of an API request or response.\n\nFor example, `output_tokens` will be non-zero, even for an empty string response from Claude.\n\nTotal input tokens in a request is the summation of `input_tokens`, `cache_creation_input_tokens`, and `cache_read_input_tokens`."
   })
 }).annotate({ "title": "MessageDeltaEvent" })
+export type BetaListResponse_ModelInfo_ = {
+  readonly "data": ReadonlyArray<BetaModelInfo>
+  readonly "first_id": string | null
+  readonly "has_more": boolean
+  readonly "last_id": string | null
+}
+export const BetaListResponse_ModelInfo_ = Schema.Struct({
+  "data": Schema.Array(BetaModelInfo).annotate({ "title": "Data" }),
+  "first_id": Schema.Union([Schema.String, Schema.Null]).annotate({
+    "title": "First Id",
+    "description": "First ID in the `data` list. Can be used as the `before_id` for the previous page."
+  }),
+  "has_more": Schema.Boolean.annotate({
+    "title": "Has More",
+    "description": "Indicates if there are more results in the requested page direction."
+  }),
+  "last_id": Schema.Union([Schema.String, Schema.Null]).annotate({
+    "title": "Last Id",
+    "description": "Last ID in the `data` list. Can be used as the `after_id` for the next page."
+  })
+}).annotate({ "title": "ListResponse[ModelInfo]" })
 export type BetaRequestDocumentBlock = {
   readonly "cache_control"?: BetaCacheControlEphemeral | null
   readonly "citations"?: BetaRequestCitationsConfig | null
@@ -7516,6 +7901,27 @@ export const ResponseWebFetchToolResultBlock = Schema.Struct({
   ),
   "type": Schema.Literal("web_fetch_tool_result").annotate({ "title": "Type", "default": "web_fetch_tool_result" })
 }).annotate({ "title": "ResponseWebFetchToolResultBlock" })
+export type ListResponse_ModelInfo_ = {
+  readonly "data": ReadonlyArray<ModelInfo>
+  readonly "first_id": string | null
+  readonly "has_more": boolean
+  readonly "last_id": string | null
+}
+export const ListResponse_ModelInfo_ = Schema.Struct({
+  "data": Schema.Array(ModelInfo).annotate({ "title": "Data" }),
+  "first_id": Schema.Union([Schema.String, Schema.Null]).annotate({
+    "title": "First Id",
+    "description": "First ID in the `data` list. Can be used as the `before_id` for the previous page."
+  }),
+  "has_more": Schema.Boolean.annotate({
+    "title": "Has More",
+    "description": "Indicates if there are more results in the requested page direction."
+  }),
+  "last_id": Schema.Union([Schema.String, Schema.Null]).annotate({
+    "title": "Last Id",
+    "description": "Last ID in the `data` list. Can be used as the `after_id` for the next page."
+  })
+}).annotate({ "title": "ListResponse[ModelInfo]" })
 export type RequestDocumentBlock = {
   readonly "cache_control"?: CacheControlEphemeral | null
   readonly "citations"?: RequestCitationsConfig | null
@@ -8518,6 +8924,7 @@ export type BetaCountMessageTokensParams = {
     | BetaWebFetchTool_20250910
     | BetaWebSearchTool_20260209
     | BetaWebFetchTool_20260209
+    | BetaWebFetchTool_20260309
     | BetaToolSearchToolBM25_20251119
     | BetaToolSearchToolRegex_20251119
     | BetaMCPToolset
@@ -8610,6 +9017,7 @@ export const BetaCountMessageTokensParams = Schema.Struct({
         BetaWebFetchTool_20250910,
         BetaWebSearchTool_20260209,
         BetaWebFetchTool_20260209,
+        BetaWebFetchTool_20260309,
         BetaToolSearchToolBM25_20251119,
         BetaToolSearchToolRegex_20251119,
         BetaMCPToolset
@@ -8663,6 +9071,7 @@ export type BetaCreateMessageParams = {
     | BetaWebFetchTool_20250910
     | BetaWebSearchTool_20260209
     | BetaWebFetchTool_20260209
+    | BetaWebFetchTool_20260309
     | BetaToolSearchToolBM25_20251119
     | BetaToolSearchToolRegex_20251119
     | BetaMCPToolset
@@ -8717,7 +9126,7 @@ export const BetaCreateMessageParams = Schema.Struct({
   "metadata": Schema.optionalKey(
     Schema.Struct({
       "user_id": Schema.optionalKey(
-        Schema.Union([Schema.String.check(Schema.isMaxLength(256)), Schema.Null]).annotate({
+        Schema.Union([Schema.String.check(Schema.isMaxLength(512)), Schema.Null]).annotate({
           "title": "User Id",
           "description":
             "An external identifier for the user who is associated with the request.\n\nThis should be a uuid, hash value, or other opaque identifier. Anthropic may use this id to help detect abuse. Do not include any identifying information such as name, email address, or phone number."
@@ -8814,6 +9223,7 @@ export const BetaCreateMessageParams = Schema.Struct({
         BetaWebFetchTool_20250910,
         BetaWebSearchTool_20260209,
         BetaWebFetchTool_20260209,
+        BetaWebFetchTool_20260309,
         BetaToolSearchToolBM25_20251119,
         BetaToolSearchToolRegex_20251119,
         BetaMCPToolset
@@ -8883,6 +9293,7 @@ export type BetaMessageBatchIndividualRequestParams = {
       | BetaWebFetchTool_20250910
       | BetaWebSearchTool_20260209
       | BetaWebFetchTool_20260209
+      | BetaWebFetchTool_20260309
       | BetaToolSearchToolBM25_20251119
       | BetaToolSearchToolRegex_20251119
       | BetaMCPToolset
@@ -8946,7 +9357,7 @@ export const BetaMessageBatchIndividualRequestParams = Schema.Struct({
     "metadata": Schema.optionalKey(
       Schema.Struct({
         "user_id": Schema.optionalKey(
-          Schema.Union([Schema.String.check(Schema.isMaxLength(256)), Schema.Null]).annotate({
+          Schema.Union([Schema.String.check(Schema.isMaxLength(512)), Schema.Null]).annotate({
             "title": "User Id",
             "description":
               "An external identifier for the user who is associated with the request.\n\nThis should be a uuid, hash value, or other opaque identifier. Anthropic may use this id to help detect abuse. Do not include any identifying information such as name, email address, or phone number."
@@ -9043,6 +9454,7 @@ export const BetaMessageBatchIndividualRequestParams = Schema.Struct({
           BetaWebFetchTool_20250910,
           BetaWebSearchTool_20260209,
           BetaWebFetchTool_20260209,
+          BetaWebFetchTool_20260309,
           BetaToolSearchToolBM25_20251119,
           BetaToolSearchToolRegex_20251119,
           BetaMCPToolset
@@ -9095,6 +9507,7 @@ export type CountMessageTokensParams = {
     | WebFetchTool_20250910
     | WebSearchTool_20260209
     | WebFetchTool_20260209
+    | WebFetchTool_20260309
     | ToolSearchToolBM25_20251119
     | ToolSearchToolRegex_20251119
   >
@@ -9157,6 +9570,7 @@ export const CountMessageTokensParams = Schema.Struct({
         WebFetchTool_20250910,
         WebSearchTool_20260209,
         WebFetchTool_20260209,
+        WebFetchTool_20260309,
         ToolSearchToolBM25_20251119,
         ToolSearchToolRegex_20251119
       ], { mode: "oneOf" })
@@ -9197,6 +9611,7 @@ export type CreateMessageParams = {
     | WebFetchTool_20250910
     | WebSearchTool_20260209
     | WebFetchTool_20260209
+    | WebFetchTool_20260309
     | ToolSearchToolBM25_20251119
     | ToolSearchToolRegex_20251119
   >
@@ -9238,7 +9653,7 @@ export const CreateMessageParams = Schema.Struct({
   "metadata": Schema.optionalKey(
     Schema.Struct({
       "user_id": Schema.optionalKey(
-        Schema.Union([Schema.String.check(Schema.isMaxLength(256)), Schema.Null]).annotate({
+        Schema.Union([Schema.String.check(Schema.isMaxLength(512)), Schema.Null]).annotate({
           "title": "User Id",
           "description":
             "An external identifier for the user who is associated with the request.\n\nThis should be a uuid, hash value, or other opaque identifier. Anthropic may use this id to help detect abuse. Do not include any identifying information such as name, email address, or phone number."
@@ -9318,6 +9733,7 @@ export const CreateMessageParams = Schema.Struct({
         WebFetchTool_20250910,
         WebSearchTool_20260209,
         WebFetchTool_20260209,
+        WebFetchTool_20260309,
         ToolSearchToolBM25_20251119,
         ToolSearchToolRegex_20251119
       ], { mode: "oneOf" })
@@ -9374,6 +9790,7 @@ export type MessageBatchIndividualRequestParams = {
       | WebFetchTool_20250910
       | WebSearchTool_20260209
       | WebFetchTool_20260209
+      | WebFetchTool_20260309
       | ToolSearchToolBM25_20251119
       | ToolSearchToolRegex_20251119
     >
@@ -9424,7 +9841,7 @@ export const MessageBatchIndividualRequestParams = Schema.Struct({
     "metadata": Schema.optionalKey(
       Schema.Struct({
         "user_id": Schema.optionalKey(
-          Schema.Union([Schema.String.check(Schema.isMaxLength(256)), Schema.Null]).annotate({
+          Schema.Union([Schema.String.check(Schema.isMaxLength(512)), Schema.Null]).annotate({
             "title": "User Id",
             "description":
               "An external identifier for the user who is associated with the request.\n\nThis should be a uuid, hash value, or other opaque identifier. Anthropic may use this id to help detect abuse. Do not include any identifying information such as name, email address, or phone number."
@@ -9504,6 +9921,7 @@ export const MessageBatchIndividualRequestParams = Schema.Struct({
           WebFetchTool_20250910,
           WebSearchTool_20260209,
           WebFetchTool_20260209,
+          WebFetchTool_20260309,
           ToolSearchToolBM25_20251119,
           ToolSearchToolRegex_20251119
         ], { mode: "oneOf" })
