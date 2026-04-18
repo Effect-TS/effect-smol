@@ -214,6 +214,7 @@ const parseOpenApi = (
         pathIds,
         pathTemplate
       })
+      const httpClientResponses = op.httpClientResponses
       op.path = path
       op.operationId = Utils.nonEmptyString(operation.operationId)
       op.tags = [...(operation.tags ?? [])]
@@ -518,33 +519,31 @@ const parseOpenApi = (
             continue
           }
           if (statusMajorNumber < 4) {
-            op.successSchemas.set(statusLower, schemaName)
+            httpClientResponses.successSchemas.set(statusLower, schemaName)
           } else {
-            op.errorSchemas.set(statusLower, schemaName)
+            httpClientResponses.errorSchemas.set(statusLower, schemaName)
           }
         }
 
         const sseResponseSchema = content?.["text/event-stream"]?.schema
-        if (Predicate.isUndefined(op.sseSchema) && Predicate.isNotUndefined(sseResponseSchema)) {
+        if (Predicate.isUndefined(httpClientResponses.sseSchema) && Predicate.isNotUndefined(sseResponseSchema)) {
           const statusMajorNumber = Number(parsedStatus[0])
           if (!Number.isNaN(statusMajorNumber) && statusMajorNumber < 4) {
-            op.sseSchema = addSchema(`${schemaId}${status}Sse`, sseResponseSchema, op)
+            httpClientResponses.sseSchema = addSchema(`${schemaId}${status}Sse`, sseResponseSchema, op)
           }
         }
 
         if (Predicate.isNotUndefined(content)) {
           for (const [contentType, mediaType] of Object.entries(content)) {
             const schema = Predicate.isObject(mediaType) ? mediaType.schema : undefined
-            const isBinary =
-              isBinaryMediaType(contentType.toLowerCase()) ||
+            const isBinary = isBinaryMediaType(contentType.toLowerCase()) ||
               (Predicate.isObject(schema) && schema.type === "string" && schema.format === "binary")
             if (!isBinary) {
               continue
             }
             const statusMajorNumber = Number(parsedStatus[0])
             if (!Number.isNaN(statusMajorNumber) && statusMajorNumber < 4) {
-              op.binaryResponse = true
-              op.binarySuccessStatuses.add(parsedStatus.toLowerCase())
+              httpClientResponses.binarySuccessStatuses.add(parsedStatus.toLowerCase())
             }
             break
           }
@@ -552,13 +551,13 @@ const parseOpenApi = (
 
         if (isEmptyResponse) {
           if (parsedStatus !== "default") {
-            op.voidSchemas.add(parsedStatus.toLowerCase())
+            httpClientResponses.voidStatuses.add(parsedStatus.toLowerCase())
           }
         }
       }
 
-      if (!isHttpApi && op.successSchemas.size === 0 && Predicate.isNotUndefined(defaultSchema)) {
-        op.successSchemas.set("2xx", defaultSchema)
+      if (!isHttpApi && httpClientResponses.successSchemas.size === 0 && Predicate.isNotUndefined(defaultSchema)) {
+        httpClientResponses.successSchemas.set("2xx", defaultSchema)
         warnForOperation(emitWarning, op, {
           code: "default-response-remapped",
           message: "Default response was remapped to 2xx for the current HttpClient outputs."
@@ -850,8 +849,8 @@ const combineJsonResponseSchemas = (
   return schemas.length === 1
     ? schemas[0]
     : {
-        anyOf: schemas
-      }
+      anyOf: schemas
+    }
 }
 
 const findContentEntriesByMediaType = (
