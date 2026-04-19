@@ -8881,7 +8881,7 @@ export interface DurationFromNanos extends decodeTo<Duration, BigInt> {
  * @category Duration
  * @since 4.0.0
  */
-export const DurationFromNanos: DurationFromNanos = BigInt.check(isGreaterThanOrEqualToBigInt(0n)).pipe(
+export const DurationFromNanos: DurationFromNanos = BigInt.check(isGreaterThanOrEqualToBigInt(BigInt(0))).pipe(
   decodeTo(Duration, Transformation.durationFromNanos)
 )
 

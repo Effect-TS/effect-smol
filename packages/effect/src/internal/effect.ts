@@ -5449,7 +5449,7 @@ export const makeSpanUnsafe = <XA, XE>(
       parent,
       annotations: options?.annotations ?? Context.empty(),
       links,
-      startTime: timingEnabled ? clock.currentTimeNanosUnsafe() : 0n,
+      startTime: timingEnabled ? clock.currentTimeNanosUnsafe() : BigInt(0),
       kind: options?.kind ?? "internal",
       root: options?.root ?? Option.isNone(parent),
       sampled: options?.sampled ??
