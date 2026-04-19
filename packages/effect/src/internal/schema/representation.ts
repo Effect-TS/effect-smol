@@ -11,7 +11,6 @@ import * as AST from "../../SchemaAST.ts"
 import type * as SchemaRepresentation from "../../SchemaRepresentation.ts"
 import * as InternalAnnotations from "./annotations.ts"
 import * as InternalSchema from "./schema.ts"
-import * as InternalToCodec from "./to-codec.ts"
 
 /** @internal */
 export function fromAST(ast: AST.AST): SchemaRepresentation.Document {
@@ -213,7 +212,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaRep
           ...annotations
         }
       case "Union": {
-        const types = InternalToCodec.jsonReorder(last.types)
+        const types = InternalSchema.jsonReorder(last.types)
         return {
           _tag: last._tag,
           types: types.map((ast) => recur(ast)),
