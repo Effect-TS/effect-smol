@@ -412,40 +412,45 @@ export type TextResponseFormatConfiguration = typeof TextResponseFormatConfigura
  * @since 1.0.0
  */
 export const CreateResponse = Schema.Struct({
-  metadata: Schema.optionalKey(Schema.NullOr(Schema.Record(Schema.String, Schema.String))),
-  top_logprobs: Schema.optionalKey(Schema.Number),
-  temperature: Schema.optionalKey(Schema.NullOr(Schema.Number)),
-  top_p: Schema.optionalKey(Schema.NullOr(Schema.Number)),
-  user: Schema.optionalKey(Schema.NullOr(Schema.String)),
-  service_tier: Schema.optionalKey(Schema.String),
-  previous_response_id: Schema.optionalKey(Schema.NullOr(Schema.String)),
-  model: Schema.optionalKey(Schema.String),
-  reasoning: Schema.optionalKey(Schema.Unknown),
-  background: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
-  max_output_tokens: Schema.optionalKey(Schema.NullOr(Schema.Number)),
-  max_tool_calls: Schema.optionalKey(Schema.NullOr(Schema.Number)),
-  text: Schema.optionalKey(
+  metadata: Schema.optional(Schema.Record(Schema.String, Schema.String)),
+  top_logprobs: Schema.optional(Schema.Number),
+  temperature: Schema.optional(Schema.Number),
+  top_p: Schema.optional(Schema.Number),
+  user: Schema.optional(Schema.String),
+  service_tier: Schema.optional(Schema.String),
+  previous_response_id: Schema.optional(Schema.String),
+  model: Schema.optional(Schema.String),
+  reasoning: Schema.optional(Schema.Struct({
+    effort: Schema.optional(Schema.Literals(["none", "minimal", "low", "medium", "high", "xhigh"])),
+
+    summary: Schema.optional(Schema.Literals(["auto", "concise", "detailed"])),
+    generate_summary: Schema.optional(Schema.Literals(["auto", "concise", "detailed"]))
+  })),
+  background: Schema.optional(Schema.Boolean),
+  max_output_tokens: Schema.optional(Schema.Number),
+  max_tool_calls: Schema.optional(Schema.Number),
+  text: Schema.optional(
     Schema.Struct({
-      format: Schema.optionalKey(TextResponseFormatConfiguration),
-      verbosity: Schema.optionalKey(Schema.NullOr(Schema.Literals(["low", "medium", "high"])))
+      format: Schema.optional(TextResponseFormatConfiguration),
+      verbosity: Schema.optional(Schema.Literals(["low", "medium", "high"]))
     })
   ),
-  tools: Schema.optionalKey(Schema.Array(Tool)),
-  tool_choice: Schema.optionalKey(ToolChoice),
-  truncation: Schema.optionalKey(Schema.NullOr(Schema.Literals(["auto", "disabled"]))),
-  input: Schema.optionalKey(
+  tools: Schema.optional(Schema.Array(Tool)),
+  tool_choice: Schema.optional(ToolChoice),
+  truncation: Schema.optional(Schema.Literals(["auto", "disabled"])),
+  input: Schema.optional(
     Schema.Union([
       Schema.String,
       Schema.Array(InputItem)
     ])
   ),
-  include: Schema.optionalKey(Schema.NullOr(Schema.Array(IncludeEnum))),
-  store: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
-  instructions: Schema.optionalKey(Schema.NullOr(Schema.String)),
-  stream: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
-  conversation: Schema.optionalKey(Schema.NullOr(Schema.String)),
-  modalities: Schema.optionalKey(Schema.Array(Schema.Literals(["text", "audio"]))),
-  seed: Schema.optionalKey(Schema.Number)
+  include: Schema.optional(Schema.Array(IncludeEnum)),
+  store: Schema.optional(Schema.Boolean),
+  instructions: Schema.optional(Schema.String),
+  stream: Schema.optional(Schema.Boolean),
+  conversation: Schema.optional(Schema.String),
+  modalities: Schema.optional(Schema.Array(Schema.Literals(["text", "audio"]))),
+  seed: Schema.optional(Schema.Number)
 })
 
 /**

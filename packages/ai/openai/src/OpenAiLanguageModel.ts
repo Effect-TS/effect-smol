@@ -67,7 +67,7 @@ export class Config extends Context.Service<
     & Partial<
       Omit<
         typeof OpenAiSchema.CreateResponse.Encoded,
-        "input" | "tools" | "tool_choice" | "stream" | "text"
+        "input" | "tools" | "tool_choice" | "stream" | "text" | "reasoning"
       >
     >
     & {
@@ -379,9 +379,9 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
       const request: Mutable<typeof OpenAiSchema.CreateResponse.Encoded> = {
         ...config,
         input: messages,
-        include: include.size > 0 ? Array.from(include) : null,
+        include: include.size > 0 ? Array.from(include) : undefined,
         text: {
-          verbosity: config.text?.verbosity ?? null,
+          verbosity: config.text?.verbosity ?? undefined,
           format: responseFormat
         }
       }
