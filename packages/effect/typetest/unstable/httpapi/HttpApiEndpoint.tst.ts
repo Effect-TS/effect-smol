@@ -1,5 +1,5 @@
 import { Schema, Struct } from "effect"
-import { HttpApiEndpoint, type HttpApiError, HttpApiSchema } from "effect/unstable/httpapi"
+import { HttpApiEndpoint, HttpApiSchema } from "effect/unstable/httpapi"
 import { describe, expect, it } from "tstyche"
 
 describe("HttpApiEndpoint", () => {
@@ -209,19 +209,13 @@ describe("HttpApiEndpoint", () => {
   })
 
   describe("error option", () => {
-    it("should default to BadRequestNoContent", () => {
-      const endpoint = HttpApiEndpoint.get("a", "/a")
-      expect(endpoint["~Error"]).type.toBe<HttpApiEndpoint.Json<typeof HttpApiError.BadRequestNoContent>>()
-    })
-
     it("should accept a schema", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         error: Schema.Struct({ a: Schema.String })
       })
       expect(endpoint["~Error"]).type.toBe<
         HttpApiEndpoint.Json<
-          | Schema.Struct<{ readonly a: Schema.String }>
-          | typeof HttpApiError.BadRequestNoContent
+          Schema.Struct<{ readonly a: Schema.String }>
         >
       >()
     })
@@ -239,7 +233,6 @@ describe("HttpApiEndpoint", () => {
           | Schema.String
           | Schema.Struct<{ readonly a: Schema.String }>
           | Schema.Uint8Array
-          | typeof HttpApiError.BadRequestNoContent
         >
       >()
     })
