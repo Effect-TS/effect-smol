@@ -24,6 +24,11 @@ Replace the current `@effect/ai-openai` client implementation that is backed by 
 - Added a dedicated `OpenAiSchema.ResponseStreamEvent` unknown-event fallback via `Schema.declare`, constrained to `type: string` values that are **not** one of the known event literals. This preserves tolerant unknown-event decoding while ensuring malformed known events do not silently decode as unknown.
 - Added focused schema tests in `OpenAiSchema.test.ts` that exercise direct JSON decoding plus `Sse.decodeDataSchema(OpenAiSchema.ResponseStreamEvent)` to confirm keepalive / future event tolerance in the stream decode path.
 
+### Implementation discoveries (Task 2)
+- Added `packages/ai/openai/src/OpenAiClientGenerated.ts` with a `Context.Service` whose service value is the generated `Generated.OpenAiClient` itself (not wrapped under a `client` field).
+- `OpenAiClientGenerated.make` now mirrors the existing `OpenAiClient.make` generated-client wiring for base URL, bearer auth, organization / project headers, and `OpenAiConfig.transformClient` precedence (options transform first, context transform applied by generated client).
+- Added focused tests in `OpenAiClient.test.ts` validating the generated-client path for auth headers, custom base URL handling, and `OpenAiConfig.withClientTransform` application after the options-level transform.
+
 ## Confirmed decisions
 The following product decisions have now been confirmed:
 
@@ -329,7 +334,7 @@ Validation for this task:
 - `cd packages/ai/openai && pnpm docgen`
 
 ### Task 2 — Add and export `OpenAiClientGenerated`
-Status: ⏳ Not started
+Status: ✅ Completed
 
 Deliverables:
 - add `packages/ai/openai/src/OpenAiClientGenerated.ts`
