@@ -725,6 +725,7 @@ function makeSuccessSchema(endpoint: HttpApiEndpoint.AnyWithProps): Schema.Encod
 
 function makeErrorSchema(endpoint: HttpApiEndpoint.AnyWithProps): Schema.Encoder<HttpServerResponse, unknown> {
   const schemas = HttpApiEndpoint.getErrorSchemas(endpoint).map(toResponseErrorSchema)
+  if (schemas.length === 0) return Schema.Never
   return schemas.length === 1 ? schemas[0] : Schema.Union(schemas)
 }
 
