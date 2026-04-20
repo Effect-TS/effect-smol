@@ -1,5 +1,12 @@
 # @effect/sql-mssql
 
+## 4.0.0-beta.52
+
+### Patch Changes
+
+- Updated dependencies [[`8e04bfc`](https://github.com/Effect-TS/effect-smol/commit/8e04bfc95554b74eac205d67a20388e056b21499), [`cf3a311`](https://github.com/Effect-TS/effect-smol/commit/cf3a311d863a8abb818840c3b80f847e621c43c1), [`8e04bfc`](https://github.com/Effect-TS/effect-smol/commit/8e04bfc95554b74eac205d67a20388e056b21499), [`131fdd5`](https://github.com/Effect-TS/effect-smol/commit/131fdd5b1f26531e265fe1a08f002002f47c276e)]:
+  - effect@4.0.0-beta.52
+
 ## 4.0.0-beta.51
 
 ### Patch Changes

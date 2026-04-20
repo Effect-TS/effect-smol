@@ -1,5 +1,22 @@
 # @effect/ai-openai
 
+## 4.0.0-beta.52
+
+### Minor Changes
+
+- [#2059](https://github.com/Effect-TS/effect-smol/pull/2059) [`6f73f92`](https://github.com/Effect-TS/effect-smol/commit/6f73f92291733dc1e970e222e63aba865183a072) Thanks @tim-smart! - Add a new public `OpenAiSchema` module with minimal local schemas for responses, streaming SSE events (including unknown-event fallback), and embeddings.
+
+### Patch Changes
+
+- [#2059](https://github.com/Effect-TS/effect-smol/pull/2059) [`6f73f92`](https://github.com/Effect-TS/effect-smol/commit/6f73f92291733dc1e970e222e63aba865183a072) Thanks @tim-smart! - Add a new `OpenAiClientGenerated` module that exposes the generated OpenAI client as a dedicated context service with `make`, `layer`, and `layerConfig` constructors. This provides a compatibility path for direct generated-client access while preserving existing auth, base URL, header, and `OpenAiConfig.transformClient` wiring.
+
+- [#2059](https://github.com/Effect-TS/effect-smol/pull/2059) [`6f73f92`](https://github.com/Effect-TS/effect-smol/commit/6f73f92291733dc1e970e222e63aba865183a072) Thanks @tim-smart! - Refactor `OpenAiClient` to the handwritten minimal-schema path so `client` now exposes the configured `HttpClient`, `createResponse` / `createResponseStream` / `createEmbedding` use `OpenAiSchema` request-response types, and websocket mode no longer depends on generated-client internals.
+
+  Also migrate OpenAI language and embedding model request-response typing to `OpenAiSchema` and make embedding decoding explicitly reject non-vector (string/base64) payloads with `InvalidOutputError`.
+
+- Updated dependencies [[`8e04bfc`](https://github.com/Effect-TS/effect-smol/commit/8e04bfc95554b74eac205d67a20388e056b21499), [`cf3a311`](https://github.com/Effect-TS/effect-smol/commit/cf3a311d863a8abb818840c3b80f847e621c43c1), [`8e04bfc`](https://github.com/Effect-TS/effect-smol/commit/8e04bfc95554b74eac205d67a20388e056b21499), [`131fdd5`](https://github.com/Effect-TS/effect-smol/commit/131fdd5b1f26531e265fe1a08f002002f47c276e)]:
+  - effect@4.0.0-beta.52
+
 ## 4.0.0-beta.51
 
 ### Patch Changes
