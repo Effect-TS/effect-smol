@@ -20,10 +20,6 @@ export * as Generated from "./Generated.ts"
 export * as OpenAiClient from "./OpenAiClient.ts"
 
 /**
- * OpenAI generated client compatibility module.
- *
- * Exposes the generated OpenAI client directly as a context service value.
- *
  * @since 1.0.0
  */
 export * as OpenAiClientGenerated from "./OpenAiClientGenerated.ts"

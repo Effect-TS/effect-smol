@@ -3528,6 +3528,7 @@ export * as SchemaAST from "./SchemaAST.ts"
  * - Parse/stringify JSON → {@link parseJson}, {@link stringifyJson}
  * - Encode/decode Base64 → {@link encodeBase64}, {@link decodeBase64}, {@link decodeBase64String}
  * - Encode/decode Hex → {@link encodeHex}, {@link decodeHex}, {@link decodeHexString}
+ * - Encode/decode URI components → {@link encodeUriComponent}, {@link decodeUriComponent}
  * - Parse DateTime → {@link dateTimeUtcFromInput}
  * - Decode/encode FormData → {@link decodeFormData}, {@link encodeFormData}
  * - Decode/encode URLSearchParams → {@link decodeURLSearchParams}, {@link encodeURLSearchParams}
@@ -3795,6 +3796,8 @@ export * as SchemaRepresentation from "./SchemaRepresentation.ts"
  * - Wrap nullable/optional as Option → {@link optionFromNullOr}, {@link optionFromOptionalKey}, {@link optionFromOptional}
  * - Parse URLs → {@link urlFromString}
  * - Base64 ↔ Uint8Array → {@link uint8ArrayFromBase64String}
+ * - Base64 ↔ string → {@link stringFromBase64String}
+ * - URI component ↔ string → {@link stringFromUriComponent}
  * - JSON string ↔ unknown → {@link fromJsonString}
  * - FormData/URLSearchParams ↔ unknown → {@link fromFormData}, {@link fromURLSearchParams}
  * - Check if a value is a Transformation → {@link isTransformation}

@@ -1,8 +1,4 @@
 /**
- * OpenAI generated client compatibility module.
- *
- * Exposes the generated OpenAI client directly as a context service value.
- *
  * @since 1.0.0
  */
 import * as Array from "effect/Array"
