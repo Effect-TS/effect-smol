@@ -20,6 +20,10 @@ Replace the current `@effect/ai-openai` client implementation that is backed by 
 - Localized package changes should run `cd packages/ai/openai && pnpm docgen`.
 - Required validation for implementation: `pnpm lint-fix`, targeted tests, `pnpm check:tsgo`, and a changeset.
 
+### Implementation discoveries (Task 1)
+- Added a dedicated `OpenAiSchema.ResponseStreamEvent` unknown-event fallback via `Schema.declare`, constrained to `type: string` values that are **not** one of the known event literals. This preserves tolerant unknown-event decoding while ensuring malformed known events do not silently decode as unknown.
+- Added focused schema tests in `OpenAiSchema.test.ts` that exercise direct JSON decoding plus `Sse.decodeDataSchema(OpenAiSchema.ResponseStreamEvent)` to confirm keepalive / future event tolerance in the stream decode path.
+
 ## Confirmed decisions
 The following product decisions have now been confirmed:
 
@@ -307,6 +311,8 @@ Secondary review area:
 ## Implementation plan
 
 ### Task 1 — Add and export `OpenAiSchema`
+Status: ✅ Completed
+
 Deliverables:
 - add `packages/ai/openai/src/OpenAiSchema.ts`
 - export it through barrel regeneration
@@ -323,6 +329,8 @@ Validation for this task:
 - `cd packages/ai/openai && pnpm docgen`
 
 ### Task 2 — Add and export `OpenAiClientGenerated`
+Status: ⏳ Not started
+
 Deliverables:
 - add `packages/ai/openai/src/OpenAiClientGenerated.ts`
 - move or share the current generated-client construction logic into this module
@@ -340,6 +348,8 @@ Validation for this task:
 - `cd packages/ai/openai && pnpm docgen`
 
 ### Task 3 — Migrate `OpenAiClient`, websocket mode, `OpenAiEmbeddingModel`, and `OpenAiLanguageModel` to `OpenAiSchema`
+Status: ⏳ Not started
+
 Deliverables:
 - change `OpenAiClient.client` to expose the transformed `HttpClient.HttpClient`
 - switch main client request / response / streaming types to `OpenAiSchema`
@@ -361,6 +371,8 @@ Validation for this task:
 - `cd packages/ai/openai && pnpm docgen`
 
 ### Task 4 — Release metadata and migration notes
+Status: ⏳ Not started
+
 Deliverables:
 - add a changeset describing the public API changes
 - update any relevant migration notes or package docs discovered during implementation, especially around `OpenAiClient.client` and `OpenAiClientGenerated`
