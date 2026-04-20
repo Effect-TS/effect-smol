@@ -36,6 +36,7 @@ import * as Multipart from "../http/Multipart.ts"
 import * as UrlParams from "../http/UrlParams.ts"
 import type * as HttpApi from "./HttpApi.ts"
 import * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
+import { HttpApiSchemaError } from "./HttpApiError.ts"
 import type * as HttpApiGroup from "./HttpApiGroup.ts"
 import * as HttpApiMiddleware from "./HttpApiMiddleware.ts"
 import * as HttpApiSchema from "./HttpApiSchema.ts"
@@ -589,13 +590,13 @@ function handlerToHttpEffect(
         group
       }
       if (decodeParams) {
-        request.params = yield* decodeParams(routeContext.params)
+        request.params = yield* HttpApiSchemaError.wrap("Params", decodeParams(routeContext.params))
       }
       if (decodeHeaders) {
-        request.headers = yield* decodeHeaders(httpRequest.headers)
+        request.headers = yield* HttpApiSchemaError.wrap("Headers", decodeHeaders(httpRequest.headers))
       }
       if (decodeQuery) {
-        request.query = yield* decodeQuery(query)
+        request.query = yield* HttpApiSchemaError.wrap("Query", decodeQuery(query))
       }
       if (payloadBy) {
         const result = decodePayload(payloadBy, httpRequest, query)
@@ -603,15 +604,20 @@ function handlerToHttpEffect(
           return result
         }
         if (result !== undefined) {
-          request.payload = yield* result
+          request.payload = yield* HttpApiSchemaError.wrap("Payload", result)
         }
       }
       const response = yield* handler(request)
-      return Response.isHttpServerResponse(response) ? response : yield* encodeSuccess(response)
+      return Response.isHttpServerResponse(response)
+        ? response
+        : yield* HttpApiSchemaError.wrap("Body", encodeSuccess(response))
     })
   ).pipe(
     Effect.withErrorReporting,
-    Effect.catch((error) => Effect.orDie(encodeError(error))),
+    Effect.catch((error) => {
+      if (HttpApiSchemaError.is(error)) return Effect.die(error)
+      return Effect.orDie(encodeError(error))
+    }),
     Effect.provideContext(context)
   )
 }

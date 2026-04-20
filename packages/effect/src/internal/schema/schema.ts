@@ -42,6 +42,7 @@ export function make<S extends Schema.Top>(ast: S["ast"], options?: object): S {
 /** @internal */
 export const SchemaErrorTypeId = "~effect/Schema/SchemaError"
 
+// not internal
 export class SchemaError {
   readonly [SchemaErrorTypeId] = SchemaErrorTypeId
   readonly _tag = "SchemaError"

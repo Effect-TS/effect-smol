@@ -524,7 +524,7 @@ type ResponseBodies = Map<
 >
 
 function extractResponseBodies(
-  schemas: readonly [Schema.Top, ...Array<Schema.Top>],
+  schemas: Array<Schema.Top>,
   getStatus: (ast: AST.AST) => number,
   getDescription: (ast: AST.AST) => string | undefined
 ): ResponseBodies {
