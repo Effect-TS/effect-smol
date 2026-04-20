@@ -46,7 +46,7 @@ export interface HttpIncomingMessage<E = unknown> extends Inspectable.Inspectabl
  * @category schema
  */
 export const schemaBodyJson = <S extends Schema.Top>(schema: S, options?: ParseOptions | undefined) => {
-  const decode = Schema.decodeEffect(Schema.toCodecJson(schema).annotate({ options }))
+  const decode = Schema.decodeEffect(Schema.toCodecJson(schema).annotate({ parseOptions: options }))
   return <E>(
     self: HttpIncomingMessage<E>
   ): Effect.Effect<S["Type"], E | Schema.SchemaError, S["DecodingServices"]> => Effect.flatMap(self.json, decode)
