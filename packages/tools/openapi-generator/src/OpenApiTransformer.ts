@@ -74,15 +74,16 @@ ${clientErrorSource(name)}`
       const type = `typeof ${operation.params}.Encoded${operation.paramsOptional ? " | undefined" : ""}`
       options.push(`${key}: ${type}`)
     }
-    if (operation.payload) {
+    const payload = operation.payload
+    if (payload) {
       const key = `readonly payload`
-      const type = `typeof ${operation.payload}.Encoded`
+      const type = `typeof ${payload.schema}.Encoded`
       options.push(`${key}: ${type}`)
     }
     options.push("readonly config?: Config | undefined")
 
     // If all options are optional, the argument itself should be optional
-    const hasOptions = (operation.params && !operation.paramsOptional) || operation.payload
+    const hasOptions = (operation.params && !operation.paramsOptional) || payload
     if (hasOptions) {
       args.push(`options: { ${options.join("; ")} }`)
     } else {
@@ -130,11 +131,12 @@ ${clientErrorSource(name)}`
       const type = `typeof ${operation.params}.Encoded${operation.paramsOptional ? " | undefined" : ""}`
       options.push(`${key}: ${type}`)
     }
-    if (operation.payload) {
-      options.push(`readonly payload: typeof ${operation.payload}.Encoded`)
+    const payload = operation.payload
+    if (payload) {
+      options.push(`readonly payload: typeof ${payload.schema}.Encoded`)
     }
 
-    const hasOptions = (operation.params && !operation.paramsOptional) || operation.payload
+    const hasOptions = (operation.params && !operation.paramsOptional) || payload
     if (hasOptions) {
       args.push(`options: { ${options.join("; ")} }`)
     } else if (options.length > 0) {
@@ -161,11 +163,12 @@ ${clientErrorSource(name)}`
       const type = `typeof ${operation.params}.Encoded${operation.paramsOptional ? " | undefined" : ""}`
       options.push(`${key}: ${type}`)
     }
-    if (operation.payload) {
-      options.push(`readonly payload: typeof ${operation.payload}.Encoded`)
+    const payload = operation.payload
+    if (payload) {
+      options.push(`readonly payload: typeof ${payload.schema}.Encoded`)
     }
 
-    const hasOptions = (operation.params && !operation.paramsOptional) || operation.payload
+    const hasOptions = (operation.params && !operation.paramsOptional) || payload
     if (hasOptions) {
       args.push(`options: { ${options.join("; ")} }`)
     } else if (options.length > 0) {
@@ -285,12 +288,19 @@ export const make = (
     }
 
     const payloadVarName = "options.payload"
-    if (operation.payloadFormData) {
-      pipeline.push(`HttpClientRequest.bodyFormData(${payloadVarName} as any)`)
-    } else if (operation.payloadFormUrlEncoded) {
-      pipeline.push(`HttpClientRequest.bodyUrlParams(${payloadVarName} as any)`)
-    } else if (operation.payload) {
-      pipeline.push(`HttpClientRequest.bodyJsonUnsafe(${payloadVarName})`)
+    switch (operation.payload?._tag) {
+      case "multipart": {
+        pipeline.push(`HttpClientRequest.bodyFormData(${payloadVarName} as any)`)
+        break
+      }
+      case "formUrlEncoded": {
+        pipeline.push(`HttpClientRequest.bodyUrlParams(${payloadVarName} as any)`)
+        break
+      }
+      case "json": {
+        pipeline.push(`HttpClientRequest.bodyJsonUnsafe(${payloadVarName})`)
+        break
+      }
     }
 
     const decodes: Array<string> = []
@@ -325,8 +335,9 @@ export const make = (
 
   const operationToSseImpl = (_importName: string, operation: ParsedOperation) => {
     const args: Array<string> = [...operation.pathIds]
-    const hasOptions = (operation.params && !operation.paramsOptional) || operation.payload
-    if (hasOptions || operation.params || operation.payload) {
+    const payload = operation.payload
+    const hasOptions = (operation.params && !operation.paramsOptional) || payload
+    if (hasOptions || operation.params || payload) {
       args.push("options")
     }
     const params = args.join(", ")
@@ -349,10 +360,19 @@ export const make = (
       }
     }
 
-    if (operation.payloadFormData) {
-      pipeline.push(`HttpClientRequest.bodyFormData(options.payload as any)`)
-    } else if (operation.payload) {
-      pipeline.push(`HttpClientRequest.bodyJsonUnsafe(options.payload)`)
+    switch (payload?._tag) {
+      case "multipart": {
+        pipeline.push(`HttpClientRequest.bodyFormData(options.payload as any)`)
+        break
+      }
+      case "formUrlEncoded": {
+        pipeline.push(`HttpClientRequest.bodyUrlParams(options.payload as any)`)
+        break
+      }
+      case "json": {
+        pipeline.push(`HttpClientRequest.bodyJsonUnsafe(options.payload)`)
+        break
+      }
     }
 
     pipeline.push(`sseRequest(${operation.sseSchema})`)
@@ -366,8 +386,9 @@ export const make = (
 
   const operationToBinaryImpl = (operation: ParsedOperation) => {
     const args: Array<string> = [...operation.pathIds]
-    const hasOptions = (operation.params && !operation.paramsOptional) || operation.payload
-    if (hasOptions || operation.params || operation.payload) {
+    const payload = operation.payload
+    const hasOptions = (operation.params && !operation.paramsOptional) || payload
+    if (hasOptions || operation.params || payload) {
       args.push("options")
     }
     const params = args.join(", ")
@@ -390,10 +411,19 @@ export const make = (
       }
     }
 
-    if (operation.payloadFormData) {
-      pipeline.push(`HttpClientRequest.bodyFormData(options.payload as any)`)
-    } else if (operation.payload) {
-      pipeline.push(`HttpClientRequest.bodyJsonUnsafe(options.payload)`)
+    switch (payload?._tag) {
+      case "multipart": {
+        pipeline.push(`HttpClientRequest.bodyFormData(options.payload as any)`)
+        break
+      }
+      case "formUrlEncoded": {
+        pipeline.push(`HttpClientRequest.bodyUrlParams(options.payload as any)`)
+        break
+      }
+      case "json": {
+        pipeline.push(`HttpClientRequest.bodyJsonUnsafe(options.payload)`)
+        break
+      }
     }
 
     pipeline.push(`binaryRequest`)
@@ -480,13 +510,14 @@ ${clientErrorSource(name)}`
       const type = `${operation.params}${operation.paramsOptional ? " | undefined" : ""}`
       options.push(`${key}: ${type}`)
     }
-    if (operation.payload) {
-      options.push(`readonly payload: ${operation.payload}`)
+    const payload = operation.payload
+    if (payload) {
+      options.push(`readonly payload: ${payload.schema}`)
     }
     options.push("readonly config?: Config | undefined")
 
     // If all options are optional, the argument itself should be optional
-    const hasOptions = (operation.params && !operation.paramsOptional) || operation.payload
+    const hasOptions = (operation.params && !operation.paramsOptional) || payload
     if (hasOptions) {
       args.push(`options: { ${options.join("; ")} }`)
     } else {
@@ -530,11 +561,12 @@ ${clientErrorSource(name)}`
       const type = `${operation.params}${operation.paramsOptional ? " | undefined" : ""}`
       options.push(`${key}: ${type}`)
     }
-    if (operation.payload) {
-      options.push(`readonly payload: ${operation.payload}`)
+    const payload = operation.payload
+    if (payload) {
+      options.push(`readonly payload: ${payload.schema}`)
     }
 
-    const hasOptions = (operation.params && !operation.paramsOptional) || operation.payload
+    const hasOptions = (operation.params && !operation.paramsOptional) || payload
     if (hasOptions) {
       args.push(`options: { ${options.join("; ")} }`)
     } else if (options.length > 0) {
@@ -560,11 +592,12 @@ ${clientErrorSource(name)}`
       const type = `${operation.params}${operation.paramsOptional ? " | undefined" : ""}`
       options.push(`${key}: ${type}`)
     }
-    if (operation.payload) {
-      options.push(`readonly payload: ${operation.payload}`)
+    const payload = operation.payload
+    if (payload) {
+      options.push(`readonly payload: ${payload.schema}`)
     }
 
-    const hasOptions = (operation.params && !operation.paramsOptional) || operation.payload
+    const hasOptions = (operation.params && !operation.paramsOptional) || payload
     if (hasOptions) {
       args.push(`options: { ${options.join("; ")} }`)
     } else if (options.length > 0) {
@@ -723,10 +756,19 @@ export const make = (
     }
 
     const payloadAccessor = "options.payload"
-    if (operation.payloadFormData) {
-      pipeline.push(`HttpClientRequest.bodyFormDataRecord(${payloadAccessor} as any)`)
-    } else if (operation.payload) {
-      pipeline.push(`HttpClientRequest.bodyJsonUnsafe(${payloadAccessor})`)
+    switch (operation.payload?._tag) {
+      case "multipart": {
+        pipeline.push(`HttpClientRequest.bodyFormDataRecord(${payloadAccessor} as any)`)
+        break
+      }
+      case "formUrlEncoded": {
+        pipeline.push(`HttpClientRequest.bodyUrlParams(${payloadAccessor} as any)`)
+        break
+      }
+      case "json": {
+        pipeline.push(`HttpClientRequest.bodyJsonUnsafe(${payloadAccessor})`)
+        break
+      }
     }
 
     const successCodesRaw = Array.from(operation.successSchemas.keys())
@@ -761,8 +803,9 @@ export const make = (
 
   const operationToSseImpl = (operation: ParsedOperation) => {
     const args: Array<string> = [...operation.pathIds]
-    const hasOptions = (operation.params && !operation.paramsOptional) || operation.payload
-    if (hasOptions || operation.params || operation.payload) {
+    const payload = operation.payload
+    const hasOptions = (operation.params && !operation.paramsOptional) || payload
+    if (hasOptions || operation.params || payload) {
       args.push("options")
     }
     const params = args.join(", ")
@@ -785,10 +828,19 @@ export const make = (
       }
     }
 
-    if (operation.payloadFormData) {
-      pipeline.push(`HttpClientRequest.bodyFormDataRecord(options.payload as any)`)
-    } else if (operation.payload) {
-      pipeline.push(`HttpClientRequest.bodyJsonUnsafe(options.payload)`)
+    switch (payload?._tag) {
+      case "multipart": {
+        pipeline.push(`HttpClientRequest.bodyFormDataRecord(options.payload as any)`)
+        break
+      }
+      case "formUrlEncoded": {
+        pipeline.push(`HttpClientRequest.bodyUrlParams(options.payload as any)`)
+        break
+      }
+      case "json": {
+        pipeline.push(`HttpClientRequest.bodyJsonUnsafe(options.payload)`)
+        break
+      }
     }
 
     pipeline.push(`sseRequest`)
@@ -802,8 +854,9 @@ export const make = (
 
   const operationToBinaryImpl = (operation: ParsedOperation) => {
     const args: Array<string> = [...operation.pathIds]
-    const hasOptions = (operation.params && !operation.paramsOptional) || operation.payload
-    if (hasOptions || operation.params || operation.payload) {
+    const payload = operation.payload
+    const hasOptions = (operation.params && !operation.paramsOptional) || payload
+    if (hasOptions || operation.params || payload) {
       args.push("options")
     }
     const params = args.join(", ")
@@ -826,10 +879,19 @@ export const make = (
       }
     }
 
-    if (operation.payloadFormData) {
-      pipeline.push(`HttpClientRequest.bodyFormDataRecord(options.payload as any)`)
-    } else if (operation.payload) {
-      pipeline.push(`HttpClientRequest.bodyJsonUnsafe(options.payload)`)
+    switch (payload?._tag) {
+      case "multipart": {
+        pipeline.push(`HttpClientRequest.bodyFormDataRecord(options.payload as any)`)
+        break
+      }
+      case "formUrlEncoded": {
+        pipeline.push(`HttpClientRequest.bodyUrlParams(options.payload as any)`)
+        break
+      }
+      case "json": {
+        pipeline.push(`HttpClientRequest.bodyJsonUnsafe(options.payload)`)
+        break
+      }
     }
 
     pipeline.push(`binaryRequest`)

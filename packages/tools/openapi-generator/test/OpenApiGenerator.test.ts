@@ -52,6 +52,23 @@ function assertRuntimeIncludes(spec: OpenAPISpec, includes: ReadonlyArray<string
   )
 }
 
+function assertTypeOnlyIncludes(spec: OpenAPISpec, includes: ReadonlyArray<string>) {
+  return Effect.gen(function*() {
+    const generator = yield* OpenApiGenerator.OpenApiGenerator
+
+    const result = yield* generator.generate(spec, {
+      name: "TestClient",
+      format: "httpclient-type-only"
+    })
+
+    for (const expected of includes) {
+      assert.include(result, expected)
+    }
+  }).pipe(
+    Effect.provide(OpenApiGenerator.layerTransformerTs)
+  )
+}
+
 function assertHttpApiIncludes(
   spec: OpenAPISpec,
   includes: ReadonlyArray<string>,
@@ -590,6 +607,70 @@ export const TestClientError = <Tag extends string, E>(
   })
 
   describe("type-only", () => {
+    it.effect("form-urlencoded request body generates bodyUrlParams", () =>
+      assertTypeOnlyIncludes(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Test API",
+            version: "1.0.0"
+          },
+          paths: {
+            "/auth/token": {
+              post: {
+                operationId: "issueToken",
+                parameters: [],
+                requestBody: {
+                  required: true,
+                  content: {
+                    "application/x-www-form-urlencoded": {
+                      schema: {
+                        type: "object",
+                        properties: {
+                          grant_type: { type: "string" },
+                          client_id: { type: "string" }
+                        },
+                        required: ["grant_type", "client_id"],
+                        additionalProperties: false
+                      }
+                    }
+                  }
+                } as any,
+                responses: {
+                  200: {
+                    description: "Token response",
+                    content: {
+                      "application/json": {
+                        schema: {
+                          type: "object",
+                          properties: {
+                            access_token: { type: "string" }
+                          },
+                          required: ["access_token"],
+                          additionalProperties: false
+                        }
+                      }
+                    }
+                  }
+                },
+                tags: ["Auth"],
+                security: []
+              }
+            }
+          },
+          components: {
+            schemas: {},
+            securitySchemes: {}
+          },
+          security: [],
+          tags: []
+        },
+        [
+          `HttpClientRequest.bodyUrlParams(options.payload as any)`,
+          `readonly payload: IssueTokenRequestFormUrlEncoded`
+        ]
+      ))
+
     it.effect("get operation", () =>
       assertTypeOnly(
         {
@@ -1790,7 +1871,9 @@ export const __HttpApiMultipartFiles = Multipart.FilesSchema`,
               400: { description: "Bad request" },
               404: { description: "Resource not found" },
               500: { description: "Internal server error" }
-            }
+            },
+            tags: ["Resources"],
+            security: []
           }
         }
       },
@@ -1847,7 +1930,9 @@ export const __HttpApiMultipartFiles = Multipart.FilesSchema`,
                 responses: {
                   200: { description: "Healthy" },
                   204: { description: "Healthy, no content" }
-                }
+                },
+                tags: ["Health"],
+                security: []
               }
             }
           },
