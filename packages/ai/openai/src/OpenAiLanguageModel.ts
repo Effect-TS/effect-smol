@@ -1379,11 +1379,7 @@ const makeResponse = Effect.fnUntraced(
       reason: finishReason,
       usage: getUsage(rawResponse.usage),
       response: buildHttpResponseDetails(response),
-      ...(toServiceTier(rawResponse.service_tier) && {
-        metadata: {
-          openai: { serviceTier: toServiceTier(rawResponse.service_tier)! }
-        }
-      })
+      ...toServiceTier(rawResponse.service_tier)
     })
 
     return parts
@@ -1506,11 +1502,7 @@ const makeStreamResponse = Effect.fnUntraced(
               ),
               usage: getUsage(event.response.usage),
               response: buildHttpResponseDetails(response),
-              ...(toServiceTier(event.response.service_tier) && {
-                metadata: {
-                  openai: { serviceTier: toServiceTier(event.response.service_tier)! }
-                }
-              })
+              ...toServiceTier(event.response.service_tier)
             })
             break
           }
@@ -2777,24 +2769,27 @@ const getUsage = (usage: OpenAiSchema.ResponseUsage | null | undefined): Respons
 
 type ServiceTier = "default" | "auto" | "flex" | "scale" | "priority" | null
 
-const toServiceTier = (value: string | undefined): ServiceTier | undefined => {
+const toServiceTier = (value: string | undefined): {
+  readonly metadata: {
+    readonly openai: {
+      readonly serviceTier: ServiceTier
+    }
+  }
+} | undefined => {
   switch (value) {
     case "default":
     case "auto":
     case "flex":
     case "scale":
     case "priority":
-      return value
+      return { metadata: { openai: { serviceTier: value } } }
     default:
       return undefined
   }
 }
 
 const getUsageTokenDetail = (details: unknown, key: string): number =>
-  typeof details === "object" && details !== null && key in details &&
-    typeof (details as Record<string, unknown>)[key] === "number"
-    ? (details as Record<string, number>)[key]
-    : 0
+  Predicate.hasProperty(details, key) && typeof details[key] === "number" ? details[key] : 0
 
 const transformToolCallParams = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Tool.Any>>(
   tools: Tools,
