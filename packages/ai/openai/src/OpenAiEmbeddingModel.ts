@@ -13,8 +13,8 @@ import type { Simplify } from "effect/Types"
 import * as AiError from "effect/unstable/ai/AiError"
 import * as EmbeddingModel from "effect/unstable/ai/EmbeddingModel"
 import * as AiModel from "effect/unstable/ai/Model"
-import type * as Generated from "./Generated.ts"
 import { OpenAiClient } from "./OpenAiClient.ts"
+import type * as OpenAiSchema from "./OpenAiSchema.ts"
 
 /**
  * @since 1.0.0
@@ -33,7 +33,7 @@ export class Config extends Context.Service<
   Simplify<
     & Partial<
       Omit<
-        typeof Generated.CreateEmbeddingRequest.Encoded,
+        typeof OpenAiSchema.CreateEmbeddingRequest.Encoded,
         "input"
       >
     >
@@ -133,7 +133,7 @@ export const withConfigOverride: {
 
 const mapProviderResponse = (
   inputLength: number,
-  response: typeof Generated.CreateEmbeddingResponse.Type
+  response: typeof OpenAiSchema.CreateEmbeddingResponse.Type
 ): Effect.Effect<EmbeddingModel.ProviderResponse, AiError.AiError> => {
   if (response.data.length !== inputLength) {
     return Effect.fail(
@@ -150,6 +150,9 @@ const mapProviderResponse = (
     }
     if (seen.has(entry.index)) {
       return Effect.fail(invalidOutput("Provider returned duplicate embedding index: " + entry.index))
+    }
+    if (!Array.isArray(entry.embedding)) {
+      return Effect.fail(invalidOutput("Provider returned non-vector embedding at index " + entry.index))
     }
 
     seen.add(entry.index)

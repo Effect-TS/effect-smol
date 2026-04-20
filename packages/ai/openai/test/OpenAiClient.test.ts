@@ -202,6 +202,67 @@ describe("OpenAiClient", () => {
         yield* client.createResponse({ model: "gpt-4o", input: "test" }).pipe(Effect.ignore)
         assert.isTrue(transformApplied)
       }))
+
+    it.effect("exposes transformed HttpClient via client field", () =>
+      Effect.gen(function*() {
+        let capturedRequest: HttpClientRequest.HttpClientRequest | undefined
+        const mockClient = makeMockHttpClient((request) => {
+          capturedRequest = request
+          return Effect.succeed(makeMockResponse({ status: 200, body: {}, request }))
+        })
+
+        const client = yield* OpenAiClient.make({
+          apiKey: Redacted.make("test-key"),
+          transformClient: (client) =>
+            client.pipe(HttpClient.mapRequest(HttpClientRequest.setHeader("x-client-field", "enabled")))
+        }).pipe(Effect.provide(Layer.succeed(HttpClient.HttpClient, mockClient)))
+
+        yield* client.client.execute(HttpClientRequest.get("/responses")).pipe(Effect.ignore)
+
+        assert.isDefined(capturedRequest)
+        assert.isTrue(capturedRequest!.url.startsWith("https://api.openai.com/v1"))
+        assert.strictEqual(capturedRequest!.headers["authorization"], "Bearer test-key")
+        assert.strictEqual(capturedRequest!.headers["x-client-field"], "enabled")
+      }))
+
+    it.effect("applies OpenAiConfig transformClient after options transformClient", () =>
+      Effect.gen(function*() {
+        let optionsTransformApplied = false
+        let configTransformApplied = false
+        let capturedRequest: HttpClientRequest.HttpClientRequest | undefined
+
+        const mockClient = makeMockHttpClient((request) => {
+          capturedRequest = request
+          return Effect.succeed(makeMockResponse({ status: 200, body: makeResponseBody(), request }))
+        })
+
+        const client = yield* OpenAiClient.make({
+          apiKey: Redacted.make("test-key"),
+          transformClient: (client) => {
+            optionsTransformApplied = true
+            return client.pipe(
+              HttpClient.mapRequest(HttpClientRequest.setHeader("x-openai-transform", "options"))
+            )
+          }
+        }).pipe(Effect.provide(Layer.succeed(HttpClient.HttpClient, mockClient)))
+
+        yield* client.createResponse({
+          model: "gpt-4o",
+          input: "test"
+        }).pipe(
+          OpenAiConfig.withClientTransform((client) => {
+            configTransformApplied = true
+            return client.pipe(
+              HttpClient.mapRequest(HttpClientRequest.setHeader("x-openai-transform", "config"))
+            )
+          })
+        )
+
+        assert.isTrue(optionsTransformApplied)
+        assert.isTrue(configTransformApplied)
+        assert.isDefined(capturedRequest)
+        assert.strictEqual(capturedRequest!.headers["x-openai-transform"], "config")
+      }))
   })
 
   describe("OpenAiClientGenerated", () => {
@@ -682,13 +743,23 @@ describe("OpenAiClient", () => {
         assert.strictEqual(parts.length, 3)
         const keepAlive = parts[1]
         assert.strictEqual(keepAlive.type, "keepalive")
-        if (keepAlive.type === "keepalive") {
+        if (keepAlive.type === "keepalive" && "sequence_number" in keepAlive) {
           assert.strictEqual(keepAlive.sequence_number, 2)
         }
 
-        assert.strictEqual(parts[2].type, "response.completed")
-        if (parts[2].type === "response.completed") {
-          assert.strictEqual(parts[2].response.id, "resp_stream")
+        const completed = parts[2]
+        assert.isTrue(typeof completed === "object" && completed !== null && "type" in completed)
+        if (typeof completed === "object" && completed !== null && "type" in completed) {
+          assert.strictEqual(completed.type, "response.completed")
+          if (
+            completed.type === "response.completed" &&
+            "response" in completed &&
+            typeof completed.response === "object" &&
+            completed.response !== null &&
+            "id" in completed.response
+          ) {
+            assert.strictEqual(completed.response.id, "resp_stream")
+          }
         }
       }).pipe(Effect.provide(MainLayer))
     })

@@ -29,6 +29,13 @@ Replace the current `@effect/ai-openai` client implementation that is backed by 
 - `OpenAiClientGenerated.make` now mirrors the existing `OpenAiClient.make` generated-client wiring for base URL, bearer auth, organization / project headers, and `OpenAiConfig.transformClient` precedence (options transform first, context transform applied by generated client).
 - Added focused tests in `OpenAiClient.test.ts` validating the generated-client path for auth headers, custom base URL handling, and `OpenAiConfig.withClientTransform` application after the options-level transform.
 
+### Implementation discoveries (Task 3)
+- Refactored `OpenAiClient.make` to use direct handwritten HTTP calls for `/responses` and `/embeddings`, decoding with `HttpClientResponse.schemaBodyJson(OpenAiSchema.*)` and preserving existing `Errors.mapHttpClientError` / `Errors.mapSchemaError` mappings.
+- Introduced a shared `resolveHttpClient` step in the main client methods so `OpenAiConfig.transformClient` remains context-applied after the options-level transform, while `OpenAiClient.client` now exposes the configured `HttpClient.HttpClient` (base URL + auth/header wiring + options transform).
+- Updated websocket mode request preprocessing to derive from the new `OpenAiClient.client` shape (no `.client.httpClient` access), while keeping the same websocket error-event mapping logic and tolerant unknown event decoding via `OpenAiSchema.ResponseStreamEvent`.
+- Updated `OpenAiEmbeddingModel` to use `OpenAiSchema` embedding request/response types and to explicitly reject non-vector (string/base64) embeddings with `InvalidOutputError` to avoid accidental character-array coercion.
+- For stream-consumer typing (`OpenAiLanguageModel`), the unknown-event fallback branch (`type: string`) required an explicit known-event type guard so exhaustive event handling remains type-safe while still preserving tolerant runtime behavior for future / keepalive events.
+
 ## Confirmed decisions
 The following product decisions have now been confirmed:
 
@@ -353,7 +360,7 @@ Validation for this task:
 - `cd packages/ai/openai && pnpm docgen`
 
 ### Task 3 — Migrate `OpenAiClient`, websocket mode, `OpenAiEmbeddingModel`, and `OpenAiLanguageModel` to `OpenAiSchema`
-Status: ⏳ Not started
+Status: ✅ Completed
 
 Deliverables:
 - change `OpenAiClient.client` to expose the transformed `HttpClient.HttpClient`
@@ -376,7 +383,7 @@ Validation for this task:
 - `cd packages/ai/openai && pnpm docgen`
 
 ### Task 4 — Release metadata and migration notes
-Status: ⏳ Not started
+Status: ✅ Completed
 
 Deliverables:
 - add a changeset describing the public API changes
