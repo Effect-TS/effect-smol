@@ -176,6 +176,7 @@ export const make = Effect.fnUntraced(
           : identity,
         HttpClientRequest.acceptJson
       )),
+      HttpClient.filterStatusOk,
       options.transformClient
         ? options.transformClient
         : identity
@@ -198,7 +199,7 @@ export const make = Effect.fnUntraced(
       AiError.AiError
     > =>
       Effect.flatMap(resolveHttpClient, (client) =>
-        HttpClient.filterStatusOk(client).execute(
+        client.execute(
           HttpClientRequest.post("/responses", {
             body: HttpBody.jsonUnsafe(payload)
           })
@@ -223,7 +224,7 @@ export const make = Effect.fnUntraced(
       HttpClientResponse.HttpClientResponse,
       Stream.Stream<typeof OpenAiSchema.ResponseStreamEvent.Type, AiError.AiError>
     ] => {
-      const stream: Stream.Stream<typeof OpenAiSchema.ResponseStreamEvent.Type, AiError.AiError> = response.stream.pipe(
+      const stream = response.stream.pipe(
         Stream.decodeText(),
         Stream.pipeThroughChannel(Sse.decodeDataSchema(OpenAiSchema.ResponseStreamEvent)),
         Stream.takeUntil((event) =>
@@ -246,7 +247,7 @@ export const make = Effect.fnUntraced(
         const socket = Context.getOrUndefined(services, OpenAiSocket)
         if (socket) return socket.createResponseStream(payload)
         return Effect.flatMap(resolveHttpClient, (client) =>
-          HttpClient.filterStatusOk(client).execute(
+          client.execute(
             HttpClientRequest.post("/responses", {
               body: HttpBody.jsonUnsafe({ ...payload, stream: true })
             })
@@ -265,7 +266,7 @@ export const make = Effect.fnUntraced(
       payload: typeof OpenAiSchema.CreateEmbeddingRequest.Encoded
     ): Effect.Effect<typeof OpenAiSchema.CreateEmbeddingResponse.Type, AiError.AiError> =>
       Effect.flatMap(resolveHttpClient, (client) =>
-        HttpClient.filterStatusOk(client).execute(
+        client.execute(
           HttpClientRequest.post("/embeddings", {
             body: HttpBody.jsonUnsafe(payload)
           })
@@ -459,15 +460,9 @@ const makeSocket = Effect.gen(function*() {
         const text = typeof msg === "string" ? msg : decoder.decode(msg)
         try {
           const event = decodeEvent(text)
-          if (
-            event.type === "error" &&
-            "status" in event &&
-            typeof event.status === "number" &&
-            "error" in event &&
-            typeof event.error === "object" &&
-            event.error !== null
-          ) {
-            const error = event.error as Record<string, unknown>
+          if (event.type === "error" && "status" in event) {
+            const status = Number(event.status)
+            const error = "error" in event ? event.error : event
             const json = JSON.stringify(error)
             return Effect.fail(
               AiError.make({
@@ -475,7 +470,7 @@ const makeSocket = Effect.gen(function*() {
                 method: "createResponseStream",
                 reason: AiError.reasonFromHttpStatus({
                   description: json,
-                  status: event.status,
+                  status: isNaN(status) ? 500 : status,
                   metadata: error as any,
                   http: {
                     body: json,
