@@ -1227,7 +1227,8 @@ describe("HttpApi", () => {
           const error = yield* client.users.upload({ params: {}, payload: new FormData() }).pipe(
             Effect.flip
           )
-          assert.deepStrictEqual(error, new HttpApiError.BadRequest({}))
+          assert(error._tag === "HttpClientError" && error.reason._tag === "DecodeError")
+          assert.strictEqual(error.reason.response.status, 400)
         }).pipe(Effect.provide(HttpLive)))
     })
 

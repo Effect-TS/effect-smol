@@ -374,7 +374,7 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
   get stream(): Stream.Stream<Uint8Array, Error.HttpServerError> {
     return this.source.body
       ? BunStream.fromReadableStream({
-        evaluate: () => this.source.body as any,
+        evaluate: () => this.source.body ?? emptyReadbleStream,
         onError: (cause) =>
           new Error.HttpServerError({
             reason: new Error.RequestParseError({
@@ -565,6 +565,13 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
     })
   }
 }
+
+const emptyReadbleStream = new ReadableStream({
+  start(controller) {
+    controller.enqueue(new Uint8Array())
+    controller.close()
+  }
+})
 
 const removeHost = (url: string) => {
   if (url[0] === "/") {

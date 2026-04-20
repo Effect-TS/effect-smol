@@ -5,7 +5,7 @@ import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
 import { hasProperty } from "../../Predicate.ts"
-import * as Schema from "../../Schema.ts"
+import type * as Schema from "../../Schema.ts"
 import { Scope } from "../../Scope.ts"
 import type { unhandled } from "../../Types.ts"
 import type * as HttpClientError from "../http/HttpClientError.ts"
@@ -14,6 +14,7 @@ import type * as HttpClientResponse from "../http/HttpClientResponse.ts"
 import type * as HttpRouter from "../http/HttpRouter.ts"
 import type { HttpServerResponse } from "../http/HttpServerResponse.ts"
 import type * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
+import { HttpApiSchemaError } from "./HttpApiError.ts"
 import type * as HttpApiGroup from "./HttpApiGroup.ts"
 import type * as HttpApiSecurity from "./HttpApiSecurity.ts"
 
@@ -333,11 +334,11 @@ function getError(error: ErrorConstraint | undefined): ReadonlySet<Schema.Top> {
 export const layerSchemaErrorTransform = <Id, E extends ErrorConstraint, Requires>(
   service: Context.Service<Id, HttpApiMiddleware<never, E, Requires>>,
   transform: (
-    error: Schema.SchemaError,
+    error: HttpApiSchemaError,
     context: { readonly endpoint: HttpApiEndpoint.AnyWithProps; readonly group: HttpApiGroup.AnyWithProps }
   ) => Effect.Effect<
     HttpServerResponse,
-    ErrorSchemaFromConstraint<E>["Type"] | Schema.SchemaError,
+    ErrorSchemaFromConstraint<E>["Type"] | HttpApiSchemaError,
     Requires | HttpRouter.Provided
   >
 ): Layer.Layer<Id> =>
@@ -348,9 +349,9 @@ export const layerSchemaErrorTransform = <Id, E extends ErrorConstraint, Require
         httpEffect,
         (e): Effect.Effect<
           HttpServerResponse,
-          unhandled | Schema.SchemaError | ErrorSchemaFromConstraint<E>["Type"],
+          unhandled | HttpApiSchemaError | ErrorSchemaFromConstraint<E>["Type"],
           Requires | HttpRouter.Provided
-        > => Schema.isSchemaError(e) ? transform(e, options) : Effect.fail(e)
+        > => HttpApiSchemaError.is(e) ? transform(e, options) : Effect.fail(e)
       )
   )
 

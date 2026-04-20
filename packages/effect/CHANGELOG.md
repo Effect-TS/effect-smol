@@ -1,5 +1,59 @@
 # effect
 
+## 4.0.0-beta.52
+
+### Patch Changes
+
+- [#2057](https://github.com/Effect-TS/effect-smol/pull/2057) [`8e04bfc`](https://github.com/Effect-TS/effect-smol/commit/8e04bfc95554b74eac205d67a20388e056b21499) Thanks @tim-smart! - add HttpApiSchemaError for determining where a schema error originates from
+
+- [#2055](https://github.com/Effect-TS/effect-smol/pull/2055) [`cf3a311`](https://github.com/Effect-TS/effect-smol/commit/cf3a311d863a8abb818840c3b80f847e621c43c1) Thanks @tim-smart! - ensure tagged enum \_tag is correctly set
+
+- [#2057](https://github.com/Effect-TS/effect-smol/pull/2057) [`8e04bfc`](https://github.com/Effect-TS/effect-smol/commit/8e04bfc95554b74eac205d67a20388e056b21499) Thanks @tim-smart! - make HttpApi schema errors defects unless transformed
+
+- [#2058](https://github.com/Effect-TS/effect-smol/pull/2058) [`131fdd5`](https://github.com/Effect-TS/effect-smol/commit/131fdd5b1f26531e265fe1a08f002002f47c276e) Thanks @tim-smart! - mcp http request with no session header is 404 response
+
+## 4.0.0-beta.51
+
+### Patch Changes
+
+- [#2049](https://github.com/Effect-TS/effect-smol/pull/2049) [`778d2af`](https://github.com/Effect-TS/effect-smol/commit/778d2afe9b5154bc1f9abae46d93ea7e54c87344) Thanks @bohdanbirdie! - Add `RpcSerialization.makeMsgPack` for creating MessagePack serialization with custom msgpackr options. On Cloudflare Workers with `allow_eval_during_startup` (default for `compatibility_date >= 2025-06-01`), pass `{ useRecords: false }` to prevent msgpackr's JIT code generation via `new Function()`, which is blocked during request handling. Also fixes silent error swallowing in the `msgPack` decode path — non-incomplete errors are now rethrown instead of returning `[]`.
+
+- [#2010](https://github.com/Effect-TS/effect-smol/pull/2010) [`4e24dcf`](https://github.com/Effect-TS/effect-smol/commit/4e24dcf75037f65eebc1eb68623bc7cbf9d5512a) Thanks @tim-smart! - process schema properties / elements concurrently
+
+- [#2052](https://github.com/Effect-TS/effect-smol/pull/2052) [`4b1c015`](https://github.com/Effect-TS/effect-smol/commit/4b1c0150e9bdb5559ed32d250deb66e17b4240c7) Thanks @gcanti! - Schema: expand `FilterOutput` and add `FilterIssue` for richer filter failures.
+
+  The return type of a `Schema.makeFilter` predicate now supports two additional shapes:
+  - `{ path, issue }` where `issue` is `string | SchemaIssue.Issue` (previously only `{ path, message: string }` was accepted). The `issue` arm lets you attach a fully-formed `Issue` at a nested path without manually constructing a `Pointer`.
+  - `ReadonlyArray<Schema.FilterIssue>` to report several failures at once. An empty array is success, a single-element array is equivalent to returning that element, and multi-entry arrays are grouped into an `Issue.Composite`. This removes the need to import `SchemaIssue` and hand-build a `Composite` for multi-field validators.
+
+  The single-failure shapes (`undefined`, `true`, `false`, `string`, `SchemaIssue.Issue`) are unchanged.
+
+  **Breaking**: the object shape renamed from `{ path, message }` to `{ path, issue }`. Call sites that used the old shape must rename the field; the migration is mechanical.
+
+  ```ts
+  // before
+  Schema.makeFilter((o) => ({ path: ["a"], message: "bad" }));
+
+  // after
+  Schema.makeFilter((o) => ({ path: ["a"], issue: "bad" }));
+  ```
+
+  Also renamed `{ path, message }` to `{ path, issue }` in the accepted return type of `SchemaGetter.checkEffect`.
+
+- [#2047](https://github.com/Effect-TS/effect-smol/pull/2047) [`454f8ad`](https://github.com/Effect-TS/effect-smol/commit/454f8adad822929c3ef60f8280d0987226b049fd) Thanks @gcanti! - Fix `SchemaAST.isJson` rejecting DAGs as cycles, closes [#2021](https://github.com/Effect-TS/effect-smol/issues/2021).
+
+  The previous implementation marked every visited object in a single `seen` set and never removed it, so any value that referenced the same object through two different paths (a DAG, e.g. `{ x: shared, y: shared }`) was treated as a cycle and returned `false`. Cycle detection now tracks only the current recursion path (popping on exit) and memoizes fully validated subtrees, so DAGs are accepted while true cycles are still rejected.
+
+- [#2051](https://github.com/Effect-TS/effect-smol/pull/2051) [`6754a0c`](https://github.com/Effect-TS/effect-smol/commit/6754a0cd18626b06805a079cc5265525a5eb7d27) Thanks @tim-smart! - disable sql traces for EventLog, RunnerStorage
+
+- [#2053](https://github.com/Effect-TS/effect-smol/pull/2053) [`90f7fd5`](https://github.com/Effect-TS/effect-smol/commit/90f7fd5243871b30980964135db4512b8119fa82) Thanks @tim-smart! - remove use of bigint literals
+
+- [#2046](https://github.com/Effect-TS/effect-smol/pull/2046) [`d7e1519`](https://github.com/Effect-TS/effect-smol/commit/d7e151974934201fd93fa4c8a1192ee9a5d965a0) Thanks @gcanti! - Remove the `options` parameter from `OpenApi.fromApi`.
+
+  The parameter only carried `additionalProperties`, but the function caches results in a `WeakMap` keyed solely on the `api` instance. Passing different options across calls for the same api was silently ignored, making the parameter order-dependent and effectively single-shot. No call sites were using it, so the signature is now simply `fromApi(api)`.
+
+- [#2044](https://github.com/Effect-TS/effect-smol/pull/2044) [`72a8122`](https://github.com/Effect-TS/effect-smol/commit/72a81228e09782bae512f7d041bbfbc78bc668d0) Thanks @tim-smart! - ensure envelope payloads are correctly encoded for notify path
+
 ## 4.0.0-beta.50
 
 ### Patch Changes

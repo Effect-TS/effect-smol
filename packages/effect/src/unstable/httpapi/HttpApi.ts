@@ -255,7 +255,7 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
 // -------------------------------------------------------------------------------------
 
 const extractResponseContent = (
-  schemas: readonly [Schema.Top, ...Array<Schema.Top>],
+  schemas: Array<Schema.Top>,
   getStatus: (ast: AST.AST) => number
 ): ReadonlyMap<number, [Schema.Top, ...Array<Schema.Top>]> => {
   const map = new Map<number, [Schema.Top, ...Array<Schema.Top>]>()

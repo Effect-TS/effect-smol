@@ -5,7 +5,6 @@ import {
   HttpApi,
   HttpApiClient,
   HttpApiEndpoint,
-  type HttpApiError,
   HttpApiGroup,
   HttpApiMiddleware,
   HttpApiSchema
@@ -240,7 +239,7 @@ describe("HttpApiClient", () => {
       expect(client.group.a()).type.toBe<
         Effect.Effect<
           { readonly a: number },
-          HttpApiError.BadRequest | HttpClientError.HttpClientError | Schema.SchemaError
+          HttpClientError.HttpClientError | Schema.SchemaError
         >
       >()
     })
@@ -267,7 +266,7 @@ describe("HttpApiClient", () => {
           | string
           | { readonly a: number }
           | Uint8Array<ArrayBufferLike>,
-          HttpApiError.BadRequest | HttpClientError.HttpClientError | Schema.SchemaError
+          HttpClientError.HttpClientError | Schema.SchemaError
         >
       >()
     })
@@ -290,25 +289,25 @@ describe("HttpApiClient", () => {
       expect(f({ responseMode: "decoded-only" })).type.toBe<
         Effect.Effect<
           { readonly a: number },
-          HttpApiError.BadRequest | HttpClientError.HttpClientError | Schema.SchemaError
+          HttpClientError.HttpClientError | Schema.SchemaError
         >
       >()
 
       expect(f({ responseMode: "decoded-and-response" })).type.toBe<
         Effect.Effect<
           [{ readonly a: number }, HttpClientResponse.HttpClientResponse],
-          HttpApiError.BadRequest | HttpClientError.HttpClientError | Schema.SchemaError
+          HttpClientError.HttpClientError | Schema.SchemaError
         >
       >()
 
       expect(f({ responseMode: "response-only" })).type.toBe<
-        Effect.Effect<HttpClientResponse.HttpClientResponse, HttpApiError.BadRequest | HttpClientError.HttpClientError>
+        Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError.HttpClientError>
       >()
     })
   })
 
   describe("error option", () => {
-    it("should default to BadRequest", () => {
+    it("should default to client and schema errors", () => {
       const Api = HttpApi.make("Api")
         .add(
           HttpApiGroup.make("group")
@@ -322,7 +321,6 @@ describe("HttpApiClient", () => {
       expect(client.group.a()).type.toBe<
         Effect.Effect<
           void,
-          | HttpApiError.BadRequest
           | HttpClientError.HttpClientError
           | Schema.SchemaError
         >
@@ -346,7 +344,6 @@ describe("HttpApiClient", () => {
         Effect.Effect<
           void,
           | { readonly a: number }
-          | HttpApiError.BadRequest
           | HttpClientError.HttpClientError
           | Schema.SchemaError
         >
@@ -398,7 +395,6 @@ describe("HttpApiClient", () => {
         Effect.Effect<
           string,
           | RequiredClientError
-          | HttpApiError.BadRequest
           | HttpClientError.HttpClientError
           | Schema.SchemaError
         >
@@ -470,7 +466,6 @@ describe("HttpApiClient", () => {
         Effect.Effect<
           string,
           | RequiredClientError
-          | HttpApiError.BadRequest
           | HttpClientError.HttpClientError
           | Schema.SchemaError
         >
@@ -480,7 +475,6 @@ describe("HttpApiClient", () => {
         Effect.Effect<
           string,
           | RequiredClientError
-          | HttpApiError.BadRequest
           | HttpClientError.HttpClientError
           | Schema.SchemaError
         >
@@ -490,7 +484,6 @@ describe("HttpApiClient", () => {
         Effect.Effect<
           string,
           | RequiredClientError
-          | HttpApiError.BadRequest
           | HttpClientError.HttpClientError
           | Schema.SchemaError
         >

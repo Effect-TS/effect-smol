@@ -1,5 +1,29 @@
 # @effect/ai-openai
 
+## 4.0.0-beta.52
+
+### Minor Changes
+
+- [#2059](https://github.com/Effect-TS/effect-smol/pull/2059) [`6f73f92`](https://github.com/Effect-TS/effect-smol/commit/6f73f92291733dc1e970e222e63aba865183a072) Thanks @tim-smart! - Add a new public `OpenAiSchema` module with minimal local schemas for responses, streaming SSE events (including unknown-event fallback), and embeddings.
+
+### Patch Changes
+
+- [#2059](https://github.com/Effect-TS/effect-smol/pull/2059) [`6f73f92`](https://github.com/Effect-TS/effect-smol/commit/6f73f92291733dc1e970e222e63aba865183a072) Thanks @tim-smart! - Add a new `OpenAiClientGenerated` module that exposes the generated OpenAI client as a dedicated context service with `make`, `layer`, and `layerConfig` constructors. This provides a compatibility path for direct generated-client access while preserving existing auth, base URL, header, and `OpenAiConfig.transformClient` wiring.
+
+- [#2059](https://github.com/Effect-TS/effect-smol/pull/2059) [`6f73f92`](https://github.com/Effect-TS/effect-smol/commit/6f73f92291733dc1e970e222e63aba865183a072) Thanks @tim-smart! - Refactor `OpenAiClient` to the handwritten minimal-schema path so `client` now exposes the configured `HttpClient`, `createResponse` / `createResponseStream` / `createEmbedding` use `OpenAiSchema` request-response types, and websocket mode no longer depends on generated-client internals.
+
+  Also migrate OpenAI language and embedding model request-response typing to `OpenAiSchema` and make embedding decoding explicitly reject non-vector (string/base64) payloads with `InvalidOutputError`.
+
+- Updated dependencies [[`8e04bfc`](https://github.com/Effect-TS/effect-smol/commit/8e04bfc95554b74eac205d67a20388e056b21499), [`cf3a311`](https://github.com/Effect-TS/effect-smol/commit/cf3a311d863a8abb818840c3b80f847e621c43c1), [`8e04bfc`](https://github.com/Effect-TS/effect-smol/commit/8e04bfc95554b74eac205d67a20388e056b21499), [`131fdd5`](https://github.com/Effect-TS/effect-smol/commit/131fdd5b1f26531e265fe1a08f002002f47c276e)]:
+  - effect@4.0.0-beta.52
+
+## 4.0.0-beta.51
+
+### Patch Changes
+
+- Updated dependencies [[`778d2af`](https://github.com/Effect-TS/effect-smol/commit/778d2afe9b5154bc1f9abae46d93ea7e54c87344), [`4e24dcf`](https://github.com/Effect-TS/effect-smol/commit/4e24dcf75037f65eebc1eb68623bc7cbf9d5512a), [`4b1c015`](https://github.com/Effect-TS/effect-smol/commit/4b1c0150e9bdb5559ed32d250deb66e17b4240c7), [`454f8ad`](https://github.com/Effect-TS/effect-smol/commit/454f8adad822929c3ef60f8280d0987226b049fd), [`6754a0c`](https://github.com/Effect-TS/effect-smol/commit/6754a0cd18626b06805a079cc5265525a5eb7d27), [`90f7fd5`](https://github.com/Effect-TS/effect-smol/commit/90f7fd5243871b30980964135db4512b8119fa82), [`d7e1519`](https://github.com/Effect-TS/effect-smol/commit/d7e151974934201fd93fa4c8a1192ee9a5d965a0), [`72a8122`](https://github.com/Effect-TS/effect-smol/commit/72a81228e09782bae512f7d041bbfbc78bc668d0)]:
+  - effect@4.0.0-beta.51
+
 ## 4.0.0-beta.50
 
 ### Patch Changes

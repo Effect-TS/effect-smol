@@ -159,9 +159,6 @@ describe("OpenAPI spec", () => {
                     }
                   }
                 }
-              },
-              "400": {
-                "description": "BadRequest"
               }
             }
           }
@@ -225,9 +222,6 @@ describe("OpenAPI spec", () => {
                         }
                       }
                     }
-                  },
-                  "400": {
-                    "description": "BadRequest"
                   }
                 },
                 "description": "my description",
@@ -292,9 +286,6 @@ describe("OpenAPI spec", () => {
                       }
                     }
                   }
-                },
-                "400": {
-                  "description": "BadRequest"
                 }
               }
             }
@@ -342,9 +333,6 @@ describe("OpenAPI spec", () => {
               }
             }
           }
-        },
-        "400": {
-          description: "BadRequest"
         }
       })
     })
@@ -378,9 +366,6 @@ describe("OpenAPI spec", () => {
               }
             }
           }
-        },
-        "400": {
-          description: "BadRequest"
         },
         "405": {
           description: "Error",
@@ -1122,9 +1107,6 @@ describe("OpenAPI spec", () => {
                 }
               }
             },
-            "400": {
-              description: "BadRequest"
-            },
             "500": {
               description: "Error",
               content: {
@@ -1160,9 +1142,6 @@ describe("OpenAPI spec", () => {
                   }
                 }
               }
-            },
-            "400": {
-              description: "BadRequest"
             },
             "500": {
               description: "id",
@@ -1205,7 +1184,7 @@ describe("OpenAPI spec", () => {
               }
             },
             "400": {
-              description: "BadRequest",
+              description: "Error",
               content: {
                 "application/json": {
                   schema: {
@@ -1248,9 +1227,6 @@ describe("OpenAPI spec", () => {
                 }
               }
             },
-            "400": {
-              description: "BadRequest"
-            },
             "500": {
               description: "Error",
               content: {
@@ -1272,9 +1248,6 @@ describe("OpenAPI spec", () => {
                   }
                 }
               }
-            },
-            "400": {
-              description: "BadRequest"
             },
             "500": {
               description: "Error",
@@ -1318,9 +1291,6 @@ describe("OpenAPI spec", () => {
                 }
               }
             },
-            "400": {
-              description: "BadRequest"
-            },
             "500": {
               description: "id",
               content: {
@@ -1342,9 +1312,6 @@ describe("OpenAPI spec", () => {
                   }
                 }
               }
-            },
-            "400": {
-              description: "BadRequest"
             },
             "500": {
               description: "id",
@@ -1393,7 +1360,7 @@ describe("OpenAPI spec", () => {
               }
             },
             "400": {
-              description: "BadRequest",
+              description: "Error",
               content: {
                 "application/json": {
                   schema: {
@@ -1415,7 +1382,7 @@ describe("OpenAPI spec", () => {
               }
             },
             "400": {
-              description: "BadRequest",
+              description: "Error",
               content: {
                 "application/json": {
                   schema: {
@@ -1442,7 +1409,7 @@ describe("OpenAPI spec", () => {
             )
           const spec = OpenApi.fromApi(Api)
           assert.deepStrictEqual(spec.paths["/a"].get?.responses["400"], {
-            description: "<No Content> | BadRequest"
+            description: "<No Content>"
           })
         })
 

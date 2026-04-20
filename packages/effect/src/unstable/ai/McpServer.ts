@@ -383,6 +383,14 @@ export const run: (options: {
     const initializePayload = getInitializedClient(clientSessions, client.id, headers)
     const isInitialize = rpc._tag === "initialize"
     if (!isInitialize && !initializePayload) {
+      const fiber = Fiber.getCurrent()!
+      const httpRequest = Context.getOrUndefined(fiber.context, HttpServerRequest.HttpServerRequest)
+      if (httpRequest) {
+        appendPreResponseHandlerUnsafe(
+          httpRequest,
+          () => Effect.succeed(HttpServerResponse.empty({ status: 404 }))
+        )
+      }
       return Effect.die(new Error(`Mcp-Session-Id does not exist`))
     }
     return Effect.provideService(

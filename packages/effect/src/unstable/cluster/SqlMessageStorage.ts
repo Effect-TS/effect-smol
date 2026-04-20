@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+// eslint-disable effect/no-bigint-literals
 import * as Arr from "../../Array.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
