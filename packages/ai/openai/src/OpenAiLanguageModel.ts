@@ -19,7 +19,7 @@ import * as Schema from "effect/Schema"
 import * as AST from "effect/SchemaAST"
 import * as Stream from "effect/Stream"
 import type { Span } from "effect/Tracer"
-import type { DeepMutable, Simplify } from "effect/Types"
+import type { DeepMutable, Mutable, Simplify } from "effect/Types"
 import * as AiError from "effect/unstable/ai/AiError"
 import * as IdGenerator from "effect/unstable/ai/IdGenerator"
 import * as LanguageModel from "effect/unstable/ai/LanguageModel"
@@ -376,18 +376,18 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
         config,
         options
       })
-      const request: typeof OpenAiSchema.CreateResponse.Encoded = {
+      const request: Mutable<typeof OpenAiSchema.CreateResponse.Encoded> = {
         ...config,
         input: messages,
         include: include.size > 0 ? Array.from(include) : null,
         text: {
           verbosity: config.text?.verbosity ?? null,
           format: responseFormat
-        },
-        ...(tools ? { tools } : undefined),
-        ...(toolChoice ? { tool_choice: toolChoice } : undefined),
-        ...(options.previousResponseId ? { previous_response_id: options.previousResponseId } : undefined)
+        }
       }
+      if (tools) request.tools = tools
+      if (toolChoice) request.tool_choice = toolChoice
+      if (options.previousResponseId) request.previous_response_id = options.previousResponseId
       return request
     }
   )
@@ -1020,7 +1020,7 @@ const makeResponse = Effect.fnUntraced(
             id: part.call_id,
             name: toolName,
             params: { call_id: part.call_id, operation: part.operation },
-            metadata: { openai: { ...makeItemIdMetadata(part.id) } }
+            metadata: { openai: makeItemIdMetadata(part.id) }
           })
           break
         }
@@ -1095,7 +1095,7 @@ const makeResponse = Effect.fnUntraced(
             id: part.call_id,
             name: toolName,
             params,
-            metadata: { openai: { ...makeItemIdMetadata(part.id) } }
+            metadata: { openai: makeItemIdMetadata(part.id) }
           })
           break
         }
@@ -1126,7 +1126,7 @@ const makeResponse = Effect.fnUntraced(
             id: part.call_id,
             name: toolName,
             params: { action: part.action },
-            metadata: { openai: { ...makeItemIdMetadata(part.id) } }
+            metadata: { openai: makeItemIdMetadata(part.id) }
           })
           break
         }
@@ -1160,7 +1160,7 @@ const makeResponse = Effect.fnUntraced(
               ...(Predicate.isNotNullish(part.output) ? { output: part.output } : undefined),
               ...(Predicate.isNotNullish(part.error) ? { error: part.error } : undefined)
             },
-            metadata: { openai: { ...makeItemIdMetadata(part.id) } }
+            metadata: { openai: makeItemIdMetadata(part.id) }
           })
 
           break
@@ -1340,7 +1340,7 @@ const makeResponse = Effect.fnUntraced(
             id: part.call_id,
             name: toolName,
             params: { action: part.action },
-            metadata: { openai: { ...makeItemIdMetadata(part.id) } }
+            metadata: { openai: makeItemIdMetadata(part.id) }
           })
           break
         }
@@ -1641,7 +1641,7 @@ const makeStreamResponse = Effect.fnUntraced(
                 parts.push({
                   type: "text-start",
                   id: event.item.id,
-                  metadata: { openai: { ...makeItemIdMetadata(event.item.id) } }
+                  metadata: { openai: makeItemIdMetadata(event.item.id) }
                 })
                 break
               }
@@ -1740,7 +1740,7 @@ const makeStreamResponse = Effect.fnUntraced(
                     id: toolCall.id,
                     name: toolName,
                     params: { call_id: event.item.call_id, operation: event.item.operation },
-                    metadata: { openai: { ...makeItemIdMetadata(event.item.id) } }
+                    metadata: { openai: makeItemIdMetadata(event.item.id) }
                   })
                 }
                 delete activeToolCalls[event.output_index]
@@ -1841,7 +1841,7 @@ const makeStreamResponse = Effect.fnUntraced(
                   id: event.item.call_id,
                   name: toolName,
                   params,
-                  metadata: { openai: { ...makeItemIdMetadata(event.item.id) } }
+                  metadata: { openai: makeItemIdMetadata(event.item.id) }
                 })
 
                 break
@@ -1867,7 +1867,7 @@ const makeStreamResponse = Effect.fnUntraced(
                   id: event.item.call_id,
                   name: toolName,
                   params: { action: event.item.action },
-                  metadata: { openai: { ...makeItemIdMetadata(event.item.id) } }
+                  metadata: { openai: makeItemIdMetadata(event.item.id) }
                 })
                 break
               }
@@ -1905,7 +1905,7 @@ const makeStreamResponse = Effect.fnUntraced(
                     ...(Predicate.isNotNullish(event.item.output) ? { output: event.item.output } : undefined),
                     ...(Predicate.isNotNullish(event.item.error) ? { error: event.item.error } : undefined)
                   },
-                  metadata: { openai: { ...makeItemIdMetadata(event.item.id) } }
+                  metadata: { openai: makeItemIdMetadata(event.item.id) }
                 })
 
                 break
@@ -1976,7 +1976,7 @@ const makeStreamResponse = Effect.fnUntraced(
                   id: event.item.id ?? event.item.call_id,
                   name: toolName,
                   params: { action: event.item.action },
-                  metadata: { openai: { ...makeItemIdMetadata(event.item.id) } }
+                  metadata: { openai: makeItemIdMetadata(event.item.id) }
                 })
                 break
               }
@@ -2127,7 +2127,7 @@ const makeStreamResponse = Effect.fnUntraced(
                 id: toolCall.id,
                 name: toolCall.name,
                 params,
-                metadata: { openai: { ...makeItemIdMetadata(event.item_id) } }
+                metadata: { openai: makeItemIdMetadata(event.item_id) }
               })
 
               toolCall.functionCall.emitted = true
@@ -2265,7 +2265,7 @@ const makeStreamResponse = Effect.fnUntraced(
               type: "reasoning-delta",
               id: `${event.item_id}:${event.summary_index}`,
               delta: event.delta,
-              metadata: { openai: { ...makeItemIdMetadata(event.item_id) } }
+              metadata: { openai: makeItemIdMetadata(event.item_id) }
             })
             break
           }
@@ -2278,7 +2278,7 @@ const makeStreamResponse = Effect.fnUntraced(
               parts.push({
                 type: "reasoning-end",
                 id: `${event.item_id}:${event.summary_index}`,
-                metadata: { openai: { ...makeItemIdMetadata(event.item_id) } }
+                metadata: { openai: makeItemIdMetadata(event.item_id) }
               })
               // Mark the summary part concluded
               reasoningPart.summaryParts[event.summary_index] = "concluded"
@@ -2607,7 +2607,7 @@ const getEncryptedContent = (
 
 const getImageDetail = (part: Prompt.FilePart): ImageDetail => part.options.openai?.imageDetail ?? "auto"
 
-const makeItemIdMetadata = (itemId: string | undefined) => Predicate.isNotUndefined(itemId) ? { itemId } : undefined
+const makeItemIdMetadata = (itemId: string | undefined) => Predicate.isNotUndefined(itemId) ? { itemId } : {}
 
 const makeEncryptedContentMetadata = (encryptedContent: string | null | undefined) =>
   Predicate.isNotNullish(encryptedContent) ? { encryptedContent } : undefined
