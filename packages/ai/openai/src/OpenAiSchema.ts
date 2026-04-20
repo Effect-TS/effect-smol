@@ -67,7 +67,7 @@ export const InputContent = Schema.Union([
   InputTextContent,
   InputImageContent,
   InputFileContent
-], { mode: "oneOf" })
+])
 
 /**
  * @since 1.0.0
@@ -146,7 +146,7 @@ export const Annotation = Schema.Union([
   UrlCitationAnnotation,
   ContainerFileCitationAnnotation,
   FilePathAnnotation
-], { mode: "oneOf" })
+])
 
 /**
  * @since 1.0.0
@@ -170,146 +170,113 @@ const OutputMessageContent = Schema.Union([
   InputImageContent,
   ComputerScreenshotContent,
   InputFileContent
-], { mode: "oneOf" })
+])
 
-const OutputMessage = Schema.StructWithRest(
-  Schema.Struct({
-    id: Schema.String,
-    type: Schema.Literal("message"),
-    role: Schema.Literal("assistant"),
-    content: Schema.Array(OutputMessageContent),
-    status: MessageStatus
-  }),
-  [UnknownRecord]
-)
+const OutputMessage = Schema.Struct({
+  id: Schema.String,
+  type: Schema.Literal("message"),
+  role: Schema.Literal("assistant"),
+  content: Schema.Array(OutputMessageContent),
+  status: MessageStatus
+})
 
 /**
  * @since 1.0.0
  */
-export const ReasoningItem = Schema.StructWithRest(
-  Schema.Struct({
-    type: Schema.Literal("reasoning"),
-    id: Schema.String,
-    encrypted_content: Schema.optionalKey(Schema.NullOr(Schema.String)),
-    summary: Schema.Array(SummaryTextContent),
-    content: Schema.optionalKey(Schema.Array(ReasoningTextContent)),
-    status: Schema.optionalKey(MessageStatus)
-  }),
-  [UnknownRecord]
-)
+export const ReasoningItem = Schema.Struct({
+  type: Schema.Literal("reasoning"),
+  id: Schema.String,
+  encrypted_content: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  summary: Schema.Array(SummaryTextContent),
+  content: Schema.optionalKey(Schema.Array(ReasoningTextContent)),
+  status: Schema.optionalKey(MessageStatus)
+})
 
 /**
  * @since 1.0.0
  */
 export type ReasoningItem = typeof ReasoningItem.Type
 
-const FunctionCall = Schema.StructWithRest(
-  Schema.Struct({
-    id: Schema.optionalKey(Schema.String),
-    type: Schema.Literal("function_call"),
-    call_id: Schema.String,
-    name: Schema.String,
-    arguments: Schema.String,
-    status: Schema.optionalKey(MessageStatus)
-  }),
-  [UnknownRecord]
-)
+const FunctionCall = Schema.Struct({
+  id: Schema.optionalKey(Schema.String),
+  type: Schema.Literal("function_call"),
+  call_id: Schema.String,
+  name: Schema.String,
+  arguments: Schema.String,
+  status: Schema.optionalKey(MessageStatus)
+})
 
-const FunctionCallOutput = Schema.StructWithRest(
-  Schema.Struct({
-    id: Schema.optionalKey(Schema.NullOr(Schema.String)),
-    type: Schema.Literal("function_call_output"),
-    call_id: Schema.String,
-    output: Schema.Union([
-      Schema.String,
-      Schema.Array(InputContent)
-    ], { mode: "oneOf" }),
-    status: Schema.optionalKey(Schema.NullOr(MessageStatus))
-  }),
-  [UnknownRecord]
-)
+const FunctionCallOutput = Schema.Struct({
+  id: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  type: Schema.Literal("function_call_output"),
+  call_id: Schema.String,
+  output: Schema.Union([
+    Schema.String,
+    Schema.Array(InputContent)
+  ]),
+  status: Schema.optionalKey(Schema.NullOr(MessageStatus))
+})
 
 const ItemReference = Schema.Struct({
-  type: Schema.optionalKey(Schema.NullOr(Schema.Literal("item_reference"))),
+  type: Schema.Literal("item_reference"),
   id: Schema.String
 })
 
-const LocalShellCall = Schema.StructWithRest(
-  Schema.Struct({
-    id: Schema.optionalKey(Schema.String),
-    type: Schema.Literal("local_shell_call"),
-    call_id: Schema.String,
-    action: Schema.Unknown,
-    status: Schema.optionalKey(MessageStatus)
-  }),
-  [UnknownRecord]
-)
+const LocalShellCall = Schema.Struct({
+  id: Schema.optionalKey(Schema.String),
+  type: Schema.Literal("local_shell_call"),
+  call_id: Schema.String,
+  action: Schema.Unknown,
+  status: Schema.optionalKey(MessageStatus)
+})
 
-const LocalShellCallOutput = Schema.StructWithRest(
-  Schema.Struct({
-    id: Schema.optionalKey(Schema.String),
-    type: Schema.Literal("local_shell_call_output"),
-    call_id: Schema.String,
-    output: Schema.Unknown,
-    status: Schema.optionalKey(MessageStatus)
-  }),
-  [UnknownRecord]
-)
+const LocalShellCallOutput = Schema.Struct({
+  id: Schema.optionalKey(Schema.String),
+  type: Schema.Literal("local_shell_call_output"),
+  call_id: Schema.String,
+  output: Schema.Unknown,
+  status: Schema.optionalKey(MessageStatus)
+})
 
-const ShellCall = Schema.StructWithRest(
-  Schema.Struct({
-    id: Schema.optionalKey(Schema.String),
-    type: Schema.Literal("shell_call"),
-    call_id: Schema.String,
-    action: Schema.Unknown,
-    status: Schema.optionalKey(MessageStatus)
-  }),
-  [UnknownRecord]
-)
+const ShellCall = Schema.Struct({
+  id: Schema.optionalKey(Schema.String),
+  type: Schema.Literal("shell_call"),
+  call_id: Schema.String,
+  action: Schema.Unknown,
+  status: Schema.optionalKey(MessageStatus)
+})
 
-const ShellCallOutput = Schema.StructWithRest(
-  Schema.Struct({
-    id: Schema.optionalKey(Schema.String),
-    type: Schema.Literal("shell_call_output"),
-    call_id: Schema.String,
-    output: Schema.Unknown,
-    status: Schema.optionalKey(MessageStatus)
-  }),
-  [UnknownRecord]
-)
+const ShellCallOutput = Schema.Struct({
+  id: Schema.optionalKey(Schema.String),
+  type: Schema.Literal("shell_call_output"),
+  call_id: Schema.String,
+  output: Schema.Unknown,
+  status: Schema.optionalKey(MessageStatus)
+})
 
-const ApplyPatchCallOutput = Schema.StructWithRest(
-  Schema.Struct({
-    id: Schema.optionalKey(Schema.String),
-    type: Schema.Literal("apply_patch_call_output"),
-    call_id: Schema.String,
-    status: Schema.optionalKey(MessageStatus),
-    output: Schema.optionalKey(Schema.Unknown)
-  }),
-  [UnknownRecord]
-)
+const ApplyPatchCallOutput = Schema.Struct({
+  id: Schema.optionalKey(Schema.String),
+  type: Schema.Literal("apply_patch_call_output"),
+  call_id: Schema.String,
+  status: Schema.optionalKey(MessageStatus),
+  output: Schema.optionalKey(Schema.Unknown)
+})
 
-const McpApprovalResponse = Schema.StructWithRest(
-  Schema.Struct({
-    type: Schema.Literal("mcp_approval_response"),
-    approval_request_id: Schema.String,
-    approve: Schema.Boolean
-  }),
-  [UnknownRecord]
-)
+const McpApprovalResponse = Schema.Struct({
+  type: Schema.Literal("mcp_approval_response"),
+  approval_request_id: Schema.String,
+  approve: Schema.Boolean
+})
 
-const RequestMessageItem = Schema.StructWithRest(
-  Schema.Struct({
-    type: Schema.optionalKey(Schema.Literal("message")),
-    role: MessageRole,
-    status: Schema.optionalKey(MessageStatus),
-    content: Schema.Union([
-      Schema.String,
-      Schema.Array(InputContent)
-    ], { mode: "oneOf" })
-  }),
-  [UnknownRecord]
-)
+const RequestMessageItem = Schema.Struct({
+  type: Schema.optionalKey(Schema.Literal("message")),
+  role: MessageRole,
+  status: Schema.optionalKey(MessageStatus),
+  content: Schema.Union([
+    Schema.String,
+    Schema.Array(InputContent)
+  ])
+})
 
 /**
  * @since 1.0.0
@@ -327,33 +294,27 @@ export const InputItem = Schema.Union([
   ShellCallOutput,
   ApplyPatchCallOutput,
   McpApprovalResponse
-], { mode: "oneOf" })
+])
 
 /**
  * @since 1.0.0
  */
 export type InputItem = typeof InputItem.Type
 
-const FunctionTool = Schema.StructWithRest(
-  Schema.Struct({
-    type: Schema.Literal("function"),
-    name: Schema.String,
-    description: Schema.optionalKey(Schema.NullOr(Schema.String)),
-    parameters: Schema.optionalKey(Schema.NullOr(JsonObject)),
-    strict: Schema.optionalKey(Schema.NullOr(Schema.Boolean))
-  }),
-  [UnknownRecord]
-)
+const FunctionTool = Schema.Struct({
+  type: Schema.Literal("function"),
+  name: Schema.String,
+  description: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  parameters: Schema.optionalKey(Schema.NullOr(JsonObject)),
+  strict: Schema.optionalKey(Schema.NullOr(Schema.Boolean))
+})
 
-const CustomTool = Schema.StructWithRest(
-  Schema.Struct({
-    type: Schema.Literal("custom"),
-    name: Schema.String,
-    description: Schema.optionalKey(Schema.String),
-    format: Schema.optionalKey(Schema.Unknown)
-  }),
-  [UnknownRecord]
-)
+const CustomTool = Schema.Struct({
+  type: Schema.Literal("custom"),
+  name: Schema.String,
+  description: Schema.optionalKey(Schema.String),
+  format: Schema.optionalKey(Schema.Unknown)
+})
 
 const ProviderDefinedTool = Schema.StructWithRest(
   Schema.Struct({
@@ -379,7 +340,7 @@ export const Tool = Schema.Union([
   FunctionTool,
   CustomTool,
   ProviderDefinedTool
-], { mode: "oneOf" })
+])
 
 /**
  * @since 1.0.0
@@ -391,28 +352,19 @@ export type Tool = typeof Tool.Type
  */
 export const ToolChoice = Schema.Union([
   Schema.Literals(["none", "auto", "required"]),
-  Schema.StructWithRest(
-    Schema.Struct({
-      type: Schema.Literal("allowed_tools"),
-      mode: Schema.Literals(["auto", "required"]),
-      tools: Schema.Array(JsonObject)
-    }),
-    [UnknownRecord]
-  ),
-  Schema.StructWithRest(
-    Schema.Struct({
-      type: Schema.Literal("function"),
-      name: Schema.String
-    }),
-    [UnknownRecord]
-  ),
-  Schema.StructWithRest(
-    Schema.Struct({
-      type: Schema.Literal("custom"),
-      name: Schema.String
-    }),
-    [UnknownRecord]
-  ),
+  Schema.Struct({
+    type: Schema.Literal("allowed_tools"),
+    mode: Schema.Literals(["auto", "required"]),
+    tools: Schema.Array(JsonObject)
+  }),
+  Schema.Struct({
+    type: Schema.Literal("function"),
+    name: Schema.String
+  }),
+  Schema.Struct({
+    type: Schema.Literal("custom"),
+    name: Schema.String
+  }),
   Schema.StructWithRest(
     Schema.Struct({
       type: Schema.Literals([
@@ -429,7 +381,7 @@ export const ToolChoice = Schema.Union([
     }),
     [UnknownRecord]
   )
-], { mode: "oneOf" })
+])
 
 /**
  * @since 1.0.0
@@ -441,18 +393,15 @@ export type ToolChoice = typeof ToolChoice.Type
  */
 export const TextResponseFormatConfiguration = Schema.Union([
   Schema.Struct({ type: Schema.Literal("text") }),
-  Schema.StructWithRest(
-    Schema.Struct({
-      type: Schema.Literal("json_schema"),
-      description: Schema.optionalKey(Schema.String),
-      name: Schema.String,
-      schema: JsonObject,
-      strict: Schema.optionalKey(Schema.NullOr(Schema.Boolean))
-    }),
-    [UnknownRecord]
-  ),
+  Schema.Struct({
+    type: Schema.Literal("json_schema"),
+    description: Schema.optionalKey(Schema.String),
+    name: Schema.String,
+    schema: JsonObject,
+    strict: Schema.optionalKey(Schema.NullOr(Schema.Boolean))
+  }),
   Schema.Struct({ type: Schema.Literal("json_object") })
-], { mode: "oneOf" })
+])
 
 /**
  * @since 1.0.0
@@ -462,51 +411,42 @@ export type TextResponseFormatConfiguration = typeof TextResponseFormatConfigura
 /**
  * @since 1.0.0
  */
-export const CreateResponse = Schema.StructWithRest(
-  Schema.Struct({
-    metadata: Schema.optionalKey(Schema.NullOr(Schema.Record(Schema.String, Schema.String))),
-    top_logprobs: Schema.optionalKey(Schema.Number),
-    temperature: Schema.optionalKey(Schema.NullOr(Schema.Number)),
-    top_p: Schema.optionalKey(Schema.NullOr(Schema.Number)),
-    user: Schema.optionalKey(Schema.NullOr(Schema.String)),
-    safety_identifier: Schema.optionalKey(Schema.NullOr(Schema.String)),
-    prompt_cache_key: Schema.optionalKey(Schema.NullOr(Schema.String)),
-    service_tier: Schema.optionalKey(Schema.String),
-    prompt_cache_retention: Schema.optionalKey(
-      Schema.NullOr(Schema.Literals(["in-memory", "24h"]))
-    ),
-    previous_response_id: Schema.optionalKey(Schema.NullOr(Schema.String)),
-    model: Schema.optionalKey(Schema.String),
-    reasoning: Schema.optionalKey(Schema.Unknown),
-    background: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
-    max_output_tokens: Schema.optionalKey(Schema.NullOr(Schema.Number)),
-    max_tool_calls: Schema.optionalKey(Schema.NullOr(Schema.Number)),
-    text: Schema.optionalKey(
-      Schema.Struct({
-        format: Schema.optionalKey(TextResponseFormatConfiguration),
-        verbosity: Schema.optionalKey(Schema.NullOr(Schema.Literals(["low", "medium", "high"])))
-      })
-    ),
-    tools: Schema.optionalKey(Schema.Array(Tool)),
-    tool_choice: Schema.optionalKey(ToolChoice),
-    truncation: Schema.optionalKey(Schema.NullOr(Schema.Literals(["auto", "disabled"]))),
-    input: Schema.optionalKey(
-      Schema.Union([
-        Schema.String,
-        Schema.Array(InputItem)
-      ], { mode: "oneOf" })
-    ),
-    include: Schema.optionalKey(Schema.NullOr(Schema.Array(IncludeEnum))),
-    parallel_tool_calls: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
-    store: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
-    instructions: Schema.optionalKey(Schema.NullOr(Schema.String)),
-    stream: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
-    conversation: Schema.optionalKey(Schema.NullOr(Schema.String)),
-    modalities: Schema.optionalKey(Schema.Array(Schema.Literals(["text", "audio"]))),
-    seed: Schema.optionalKey(Schema.Number)
-  }),
-  [UnknownRecord]
-)
+export const CreateResponse = Schema.Struct({
+  metadata: Schema.optionalKey(Schema.NullOr(Schema.Record(Schema.String, Schema.String))),
+  top_logprobs: Schema.optionalKey(Schema.Number),
+  temperature: Schema.optionalKey(Schema.NullOr(Schema.Number)),
+  top_p: Schema.optionalKey(Schema.NullOr(Schema.Number)),
+  user: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  service_tier: Schema.optionalKey(Schema.String),
+  previous_response_id: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  model: Schema.optionalKey(Schema.String),
+  reasoning: Schema.optionalKey(Schema.Unknown),
+  background: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
+  max_output_tokens: Schema.optionalKey(Schema.NullOr(Schema.Number)),
+  max_tool_calls: Schema.optionalKey(Schema.NullOr(Schema.Number)),
+  text: Schema.optionalKey(
+    Schema.Struct({
+      format: Schema.optionalKey(TextResponseFormatConfiguration),
+      verbosity: Schema.optionalKey(Schema.NullOr(Schema.Literals(["low", "medium", "high"])))
+    })
+  ),
+  tools: Schema.optionalKey(Schema.Array(Tool)),
+  tool_choice: Schema.optionalKey(ToolChoice),
+  truncation: Schema.optionalKey(Schema.NullOr(Schema.Literals(["auto", "disabled"]))),
+  input: Schema.optionalKey(
+    Schema.Union([
+      Schema.String,
+      Schema.Array(InputItem)
+    ])
+  ),
+  include: Schema.optionalKey(Schema.NullOr(Schema.Array(IncludeEnum))),
+  store: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
+  instructions: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  stream: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
+  conversation: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  modalities: Schema.optionalKey(Schema.Array(Schema.Literals(["text", "audio"]))),
+  seed: Schema.optionalKey(Schema.Number)
+})
 
 /**
  * @since 1.0.0
@@ -532,110 +472,80 @@ export const ResponseUsage = Schema.StructWithRest(
  */
 export type ResponseUsage = typeof ResponseUsage.Type
 
-const ApplyPatchOperation = Schema.StructWithRest(
-  Schema.Struct({
-    type: Schema.String,
-    path: Schema.String,
-    diff: Schema.optionalKey(Schema.String)
-  }),
-  [UnknownRecord]
-)
+const ApplyPatchOperation = Schema.Struct({
+  type: Schema.String,
+  path: Schema.String,
+  diff: Schema.optionalKey(Schema.String)
+})
 
-const ApplyPatchCall = Schema.StructWithRest(
-  Schema.Struct({
-    id: Schema.String,
-    type: Schema.Literal("apply_patch_call"),
-    call_id: Schema.String,
-    operation: ApplyPatchOperation,
-    status: Schema.optionalKey(MessageStatus)
-  }),
-  [UnknownRecord]
-)
+const ApplyPatchCall = Schema.Struct({
+  id: Schema.String,
+  type: Schema.Literal("apply_patch_call"),
+  call_id: Schema.String,
+  operation: ApplyPatchOperation,
+  status: Schema.optionalKey(MessageStatus)
+})
 
-const CodeInterpreterCall = Schema.StructWithRest(
-  Schema.Struct({
-    id: Schema.String,
-    type: Schema.Literal("code_interpreter_call"),
-    code: Schema.optionalKey(Schema.String),
-    container_id: Schema.String,
-    outputs: Schema.optionalKey(Schema.Array(Schema.Unknown)),
-    status: Schema.optionalKey(MessageStatus)
-  }),
-  [UnknownRecord]
-)
+const CodeInterpreterCall = Schema.Struct({
+  id: Schema.String,
+  type: Schema.Literal("code_interpreter_call"),
+  code: Schema.optionalKey(Schema.String),
+  container_id: Schema.String,
+  outputs: Schema.optionalKey(Schema.Array(Schema.Unknown)),
+  status: Schema.optionalKey(MessageStatus)
+})
 
-const ComputerCall = Schema.StructWithRest(
-  Schema.Struct({
-    id: Schema.String,
-    type: Schema.Literal("computer_call"),
-    status: Schema.optionalKey(MessageStatus)
-  }),
-  [UnknownRecord]
-)
+const ComputerCall = Schema.Struct({
+  id: Schema.String,
+  type: Schema.Literal("computer_call"),
+  status: Schema.optionalKey(MessageStatus)
+})
 
-const FileSearchCall = Schema.StructWithRest(
-  Schema.Struct({
-    id: Schema.String,
-    type: Schema.Literal("file_search_call"),
-    status: Schema.optionalKey(Schema.String),
-    queries: Schema.optionalKey(Schema.Array(Schema.String)),
-    results: Schema.optionalKey(Schema.NullOr(Schema.Unknown))
-  }),
-  [UnknownRecord]
-)
+const FileSearchCall = Schema.Struct({
+  id: Schema.String,
+  type: Schema.Literal("file_search_call"),
+  status: Schema.optionalKey(Schema.String),
+  queries: Schema.optionalKey(Schema.Array(Schema.String)),
+  results: Schema.optionalKey(Schema.NullOr(Schema.Unknown))
+})
 
-const ImageGenerationCall = Schema.StructWithRest(
-  Schema.Struct({
-    id: Schema.String,
-    type: Schema.Literal("image_generation_call"),
-    result: Schema.optionalKey(Schema.String),
-    status: Schema.optionalKey(MessageStatus)
-  }),
-  [UnknownRecord]
-)
+const ImageGenerationCall = Schema.Struct({
+  id: Schema.String,
+  type: Schema.Literal("image_generation_call"),
+  result: Schema.optionalKey(Schema.String),
+  status: Schema.optionalKey(MessageStatus)
+})
 
-const McpCall = Schema.StructWithRest(
-  Schema.Struct({
-    id: Schema.String,
-    type: Schema.Literal("mcp_call"),
-    approval_request_id: Schema.optionalKey(Schema.NullOr(Schema.String)),
-    name: Schema.String,
-    arguments: Schema.Unknown,
-    output: Schema.optionalKey(Schema.Unknown),
-    error: Schema.optionalKey(Schema.Unknown),
-    server_label: Schema.optionalKey(Schema.NullOr(Schema.String))
-  }),
-  [UnknownRecord]
-)
+const McpCall = Schema.Struct({
+  id: Schema.String,
+  type: Schema.Literal("mcp_call"),
+  approval_request_id: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  name: Schema.String,
+  arguments: Schema.Unknown,
+  output: Schema.optionalKey(Schema.Unknown),
+  error: Schema.optionalKey(Schema.Unknown),
+  server_label: Schema.optionalKey(Schema.NullOr(Schema.String))
+})
 
-const McpListTools = Schema.StructWithRest(
-  Schema.Struct({
-    id: Schema.String,
-    type: Schema.Literal("mcp_list_tools")
-  }),
-  [UnknownRecord]
-)
+const McpListTools = Schema.Struct({
+  id: Schema.String,
+  type: Schema.Literal("mcp_list_tools")
+})
 
-const McpApprovalRequest = Schema.StructWithRest(
-  Schema.Struct({
-    id: Schema.String,
-    type: Schema.Literal("mcp_approval_request"),
-    approval_request_id: Schema.optionalKey(Schema.String),
-    name: Schema.String,
-    arguments: Schema.Unknown
-  }),
-  [UnknownRecord]
-)
+const McpApprovalRequest = Schema.Struct({
+  id: Schema.String,
+  type: Schema.Literal("mcp_approval_request"),
+  approval_request_id: Schema.optionalKey(Schema.String),
+  name: Schema.String,
+  arguments: Schema.Unknown
+})
 
-const WebSearchCall = Schema.StructWithRest(
-  Schema.Struct({
-    id: Schema.String,
-    type: Schema.Literal("web_search_call"),
-    action: Schema.optionalKey(Schema.Unknown),
-    status: Schema.optionalKey(Schema.String)
-  }),
-  [UnknownRecord]
-)
+const WebSearchCall = Schema.Struct({
+  id: Schema.String,
+  type: Schema.Literal("web_search_call"),
+  action: Schema.optionalKey(Schema.Unknown),
+  status: Schema.optionalKey(Schema.String)
+})
 
 const OutputItem = Schema.Union([
   ApplyPatchCall,
@@ -652,245 +562,185 @@ const OutputItem = Schema.Union([
   ReasoningItem,
   ShellCall,
   WebSearchCall
-], { mode: "oneOf" })
+])
 
 /**
  * @since 1.0.0
  */
-export const Response = Schema.StructWithRest(
-  Schema.Struct({
-    id: Schema.String,
-    object: Schema.optionalKey(Schema.Literal("response")),
-    model: Schema.String,
-    status: Schema.optionalKey(
-      Schema.Literals(["completed", "failed", "in_progress", "cancelled", "queued", "incomplete"])
-    ),
-    created_at: Schema.Number,
-    output: Schema.Array(OutputItem),
-    usage: Schema.optionalKey(Schema.NullOr(ResponseUsage)),
-    incomplete_details: Schema.optionalKey(
-      Schema.NullOr(
-        Schema.Struct({
-          reason: Schema.optionalKey(Schema.Literals(["max_output_tokens", "content_filter"]))
-        })
-      )
-    ),
-    service_tier: Schema.optionalKey(Schema.String)
-  }),
-  [UnknownRecord]
-)
+export const Response = Schema.Struct({
+  id: Schema.String,
+  object: Schema.optionalKey(Schema.Literal("response")),
+  model: Schema.String,
+  status: Schema.optionalKey(
+    Schema.Literals(["completed", "failed", "in_progress", "cancelled", "queued", "incomplete"])
+  ),
+  created_at: Schema.Number,
+  output: Schema.Array(OutputItem),
+  usage: Schema.optionalKey(Schema.NullOr(ResponseUsage)),
+  incomplete_details: Schema.optionalKey(
+    Schema.NullOr(
+      Schema.Struct({
+        reason: Schema.optionalKey(Schema.Literals(["max_output_tokens", "content_filter"]))
+      })
+    )
+  ),
+  service_tier: Schema.optionalKey(Schema.String)
+})
 
 /**
  * @since 1.0.0
  */
 export type Response = typeof Response.Type
 
-const ResponseCreatedEvent = Schema.StructWithRest(
-  Schema.Struct({
-    type: Schema.Literal("response.created"),
-    response: Response,
-    sequence_number: Schema.Number
-  }),
-  [UnknownRecord]
-)
+const ResponseCreatedEvent = Schema.Struct({
+  type: Schema.Literal("response.created"),
+  response: Response,
+  sequence_number: Schema.Number
+})
 
-const ResponseCompletedEvent = Schema.StructWithRest(
-  Schema.Struct({
-    type: Schema.Literal("response.completed"),
-    response: Response,
-    sequence_number: Schema.Number
-  }),
-  [UnknownRecord]
-)
+const ResponseCompletedEvent = Schema.Struct({
+  type: Schema.Literal("response.completed"),
+  response: Response,
+  sequence_number: Schema.Number
+})
 
-const ResponseIncompleteEvent = Schema.StructWithRest(
-  Schema.Struct({
-    type: Schema.Literal("response.incomplete"),
-    response: Response,
-    sequence_number: Schema.Number
-  }),
-  [UnknownRecord]
-)
+const ResponseIncompleteEvent = Schema.Struct({
+  type: Schema.Literal("response.incomplete"),
+  response: Response,
+  sequence_number: Schema.Number
+})
 
-const ResponseFailedEvent = Schema.StructWithRest(
-  Schema.Struct({
-    type: Schema.Literal("response.failed"),
-    response: Response,
-    sequence_number: Schema.Number
-  }),
-  [UnknownRecord]
-)
+const ResponseFailedEvent = Schema.Struct({
+  type: Schema.Literal("response.failed"),
+  response: Response,
+  sequence_number: Schema.Number
+})
 
-const ResponseOutputItemAddedEvent = Schema.StructWithRest(
-  Schema.Struct({
-    type: Schema.Literal("response.output_item.added"),
-    output_index: Schema.Number,
-    sequence_number: Schema.Number,
-    item: OutputItem
-  }),
-  [UnknownRecord]
-)
+const ResponseOutputItemAddedEvent = Schema.Struct({
+  type: Schema.Literal("response.output_item.added"),
+  output_index: Schema.Number,
+  sequence_number: Schema.Number,
+  item: OutputItem
+})
 
-const ResponseOutputItemDoneEvent = Schema.StructWithRest(
-  Schema.Struct({
-    type: Schema.Literal("response.output_item.done"),
-    output_index: Schema.Number,
-    sequence_number: Schema.Number,
-    item: OutputItem
-  }),
-  [UnknownRecord]
-)
+const ResponseOutputItemDoneEvent = Schema.Struct({
+  type: Schema.Literal("response.output_item.done"),
+  output_index: Schema.Number,
+  sequence_number: Schema.Number,
+  item: OutputItem
+})
 
-const ResponseOutputTextDeltaEvent = Schema.StructWithRest(
-  Schema.Struct({
-    type: Schema.Literal("response.output_text.delta"),
-    item_id: Schema.String,
-    output_index: Schema.Number,
-    content_index: Schema.Number,
-    delta: Schema.String,
-    sequence_number: Schema.Number,
-    logprobs: Schema.optionalKey(Schema.Array(Schema.Unknown))
-  }),
-  [UnknownRecord]
-)
+const ResponseOutputTextDeltaEvent = Schema.Struct({
+  type: Schema.Literal("response.output_text.delta"),
+  item_id: Schema.String,
+  output_index: Schema.Number,
+  content_index: Schema.Number,
+  delta: Schema.String,
+  sequence_number: Schema.Number,
+  logprobs: Schema.optionalKey(Schema.Array(Schema.Unknown))
+})
 
-const ResponseOutputTextAnnotationAddedEvent = Schema.StructWithRest(
-  Schema.Struct({
-    type: Schema.Literal("response.output_text.annotation.added"),
-    item_id: Schema.String,
-    output_index: Schema.Number,
-    content_index: Schema.Number,
-    annotation_index: Schema.Number,
-    sequence_number: Schema.Number,
-    annotation: Annotation
-  }),
-  [UnknownRecord]
-)
+const ResponseOutputTextAnnotationAddedEvent = Schema.Struct({
+  type: Schema.Literal("response.output_text.annotation.added"),
+  item_id: Schema.String,
+  output_index: Schema.Number,
+  content_index: Schema.Number,
+  annotation_index: Schema.Number,
+  sequence_number: Schema.Number,
+  annotation: Annotation
+})
 
-const ResponseReasoningSummaryPartAddedEvent = Schema.StructWithRest(
-  Schema.Struct({
-    type: Schema.Literal("response.reasoning_summary_part.added"),
-    item_id: Schema.String,
-    output_index: Schema.Number,
-    summary_index: Schema.Number,
-    sequence_number: Schema.Number,
-    part: SummaryTextContent
-  }),
-  [UnknownRecord]
-)
+const ResponseReasoningSummaryPartAddedEvent = Schema.Struct({
+  type: Schema.Literal("response.reasoning_summary_part.added"),
+  item_id: Schema.String,
+  output_index: Schema.Number,
+  summary_index: Schema.Number,
+  sequence_number: Schema.Number,
+  part: SummaryTextContent
+})
 
-const ResponseReasoningSummaryPartDoneEvent = Schema.StructWithRest(
-  Schema.Struct({
-    type: Schema.Literal("response.reasoning_summary_part.done"),
-    item_id: Schema.String,
-    output_index: Schema.Number,
-    summary_index: Schema.Number,
-    sequence_number: Schema.Number,
-    part: SummaryTextContent
-  }),
-  [UnknownRecord]
-)
+const ResponseReasoningSummaryPartDoneEvent = Schema.Struct({
+  type: Schema.Literal("response.reasoning_summary_part.done"),
+  item_id: Schema.String,
+  output_index: Schema.Number,
+  summary_index: Schema.Number,
+  sequence_number: Schema.Number,
+  part: SummaryTextContent
+})
 
-const ResponseReasoningSummaryTextDeltaEvent = Schema.StructWithRest(
-  Schema.Struct({
-    type: Schema.Literal("response.reasoning_summary_text.delta"),
-    item_id: Schema.String,
-    output_index: Schema.Number,
-    summary_index: Schema.Number,
-    delta: Schema.String,
-    sequence_number: Schema.Number
-  }),
-  [UnknownRecord]
-)
+const ResponseReasoningSummaryTextDeltaEvent = Schema.Struct({
+  type: Schema.Literal("response.reasoning_summary_text.delta"),
+  item_id: Schema.String,
+  output_index: Schema.Number,
+  summary_index: Schema.Number,
+  delta: Schema.String,
+  sequence_number: Schema.Number
+})
 
-const ResponseFunctionCallArgumentsDeltaEvent = Schema.StructWithRest(
-  Schema.Struct({
-    type: Schema.Literal("response.function_call_arguments.delta"),
-    item_id: Schema.String,
-    output_index: Schema.Number,
-    sequence_number: Schema.Number,
-    delta: Schema.String
-  }),
-  [UnknownRecord]
-)
+const ResponseFunctionCallArgumentsDeltaEvent = Schema.Struct({
+  type: Schema.Literal("response.function_call_arguments.delta"),
+  item_id: Schema.String,
+  output_index: Schema.Number,
+  sequence_number: Schema.Number,
+  delta: Schema.String
+})
 
-const ResponseFunctionCallArgumentsDoneEvent = Schema.StructWithRest(
-  Schema.Struct({
-    type: Schema.Literal("response.function_call_arguments.done"),
-    item_id: Schema.String,
-    output_index: Schema.Number,
-    sequence_number: Schema.Number,
-    arguments: Schema.String
-  }),
-  [UnknownRecord]
-)
+const ResponseFunctionCallArgumentsDoneEvent = Schema.Struct({
+  type: Schema.Literal("response.function_call_arguments.done"),
+  item_id: Schema.String,
+  output_index: Schema.Number,
+  sequence_number: Schema.Number,
+  arguments: Schema.String
+})
 
-const ResponseCodeInterpreterCallCodeDeltaEvent = Schema.StructWithRest(
-  Schema.Struct({
-    type: Schema.Literal("response.code_interpreter_call_code.delta"),
-    item_id: Schema.String,
-    output_index: Schema.Number,
-    sequence_number: Schema.Number,
-    delta: Schema.String
-  }),
-  [UnknownRecord]
-)
+const ResponseCodeInterpreterCallCodeDeltaEvent = Schema.Struct({
+  type: Schema.Literal("response.code_interpreter_call_code.delta"),
+  item_id: Schema.String,
+  output_index: Schema.Number,
+  sequence_number: Schema.Number,
+  delta: Schema.String
+})
 
-const ResponseCodeInterpreterCallCodeDoneEvent = Schema.StructWithRest(
-  Schema.Struct({
-    type: Schema.Literal("response.code_interpreter_call_code.done"),
-    item_id: Schema.String,
-    output_index: Schema.Number,
-    sequence_number: Schema.Number,
-    code: Schema.String
-  }),
-  [UnknownRecord]
-)
+const ResponseCodeInterpreterCallCodeDoneEvent = Schema.Struct({
+  type: Schema.Literal("response.code_interpreter_call_code.done"),
+  item_id: Schema.String,
+  output_index: Schema.Number,
+  sequence_number: Schema.Number,
+  code: Schema.String
+})
 
-const ResponseApplyPatchCallOperationDiffDeltaEvent = Schema.StructWithRest(
-  Schema.Struct({
-    type: Schema.Literal("response.apply_patch_call_operation_diff.delta"),
-    item_id: Schema.String,
-    output_index: Schema.Number,
-    sequence_number: Schema.Number,
-    delta: Schema.String
-  }),
-  [UnknownRecord]
-)
+const ResponseApplyPatchCallOperationDiffDeltaEvent = Schema.Struct({
+  type: Schema.Literal("response.apply_patch_call_operation_diff.delta"),
+  item_id: Schema.String,
+  output_index: Schema.Number,
+  sequence_number: Schema.Number,
+  delta: Schema.String
+})
 
-const ResponseApplyPatchCallOperationDiffDoneEvent = Schema.StructWithRest(
-  Schema.Struct({
-    type: Schema.Literal("response.apply_patch_call_operation_diff.done"),
-    item_id: Schema.String,
-    output_index: Schema.Number,
-    sequence_number: Schema.Number,
-    delta: Schema.optionalKey(Schema.String)
-  }),
-  [UnknownRecord]
-)
+const ResponseApplyPatchCallOperationDiffDoneEvent = Schema.Struct({
+  type: Schema.Literal("response.apply_patch_call_operation_diff.done"),
+  item_id: Schema.String,
+  output_index: Schema.Number,
+  sequence_number: Schema.Number,
+  delta: Schema.optionalKey(Schema.String)
+})
 
-const ResponseImageGenerationCallPartialImageEvent = Schema.StructWithRest(
-  Schema.Struct({
-    type: Schema.Literal("response.image_generation_call.partial_image"),
-    item_id: Schema.String,
-    output_index: Schema.Number,
-    sequence_number: Schema.Number,
-    partial_image_b64: Schema.String
-  }),
-  [UnknownRecord]
-)
+const ResponseImageGenerationCallPartialImageEvent = Schema.Struct({
+  type: Schema.Literal("response.image_generation_call.partial_image"),
+  item_id: Schema.String,
+  output_index: Schema.Number,
+  sequence_number: Schema.Number,
+  partial_image_b64: Schema.String
+})
 
-const ResponseErrorEvent = Schema.StructWithRest(
-  Schema.Struct({
-    type: Schema.Literal("error"),
-    code: Schema.NullOr(Schema.String),
-    message: Schema.String,
-    param: Schema.NullOr(Schema.String),
-    sequence_number: Schema.Number,
-    status: Schema.optionalKey(Schema.Number)
-  }),
-  [UnknownRecord]
-)
+const ResponseErrorEvent = Schema.Struct({
+  type: Schema.Literal("error"),
+  code: Schema.NullOr(Schema.String),
+  message: Schema.String,
+  param: Schema.NullOr(Schema.String),
+  sequence_number: Schema.Number,
+  status: Schema.optionalKey(Schema.Number)
+})
 
 const knownResponseStreamEventTypes = new Set([
   "response.created",
@@ -957,7 +807,7 @@ export const ResponseStreamEvent = Schema.Union([
   ResponseImageGenerationCallPartialImageEvent,
   ResponseErrorEvent,
   UnknownResponseStreamEvent
-], { mode: "oneOf" })
+])
 
 /**
  * @since 1.0.0
@@ -967,17 +817,14 @@ export type ResponseStreamEvent = typeof ResponseStreamEvent.Type
 /**
  * @since 1.0.0
  */
-export const Embedding = Schema.StructWithRest(
-  Schema.Struct({
-    embedding: Schema.Union([
-      Schema.Array(Schema.Number),
-      Schema.String
-    ], { mode: "oneOf" }),
-    index: Schema.Number,
-    object: Schema.optionalKey(Schema.String)
-  }),
-  [UnknownRecord]
-)
+export const Embedding = Schema.Struct({
+  embedding: Schema.Union([
+    Schema.Array(Schema.Number),
+    Schema.String
+  ]),
+  index: Schema.Number,
+  object: Schema.optionalKey(Schema.String)
+})
 
 /**
  * @since 1.0.0
@@ -987,21 +834,18 @@ export type Embedding = typeof Embedding.Type
 /**
  * @since 1.0.0
  */
-export const CreateEmbeddingRequest = Schema.StructWithRest(
-  Schema.Struct({
-    input: Schema.Union([
-      Schema.String,
-      Schema.Array(Schema.String),
-      Schema.Array(Schema.Number),
-      Schema.Array(Schema.Array(Schema.Number))
-    ], { mode: "oneOf" }),
-    model: Schema.String,
-    encoding_format: Schema.optionalKey(Schema.Literals(["float", "base64"])),
-    dimensions: Schema.optionalKey(Schema.Number),
-    user: Schema.optionalKey(Schema.String)
-  }),
-  [UnknownRecord]
-)
+export const CreateEmbeddingRequest = Schema.Struct({
+  input: Schema.Union([
+    Schema.String,
+    Schema.Array(Schema.String),
+    Schema.Array(Schema.Number),
+    Schema.Array(Schema.Array(Schema.Number))
+  ]),
+  model: Schema.String,
+  encoding_format: Schema.optionalKey(Schema.Literals(["float", "base64"])),
+  dimensions: Schema.optionalKey(Schema.Number),
+  user: Schema.optionalKey(Schema.String)
+})
 
 /**
  * @since 1.0.0
@@ -1011,20 +855,17 @@ export type CreateEmbeddingRequest = typeof CreateEmbeddingRequest.Type
 /**
  * @since 1.0.0
  */
-export const CreateEmbeddingResponse = Schema.StructWithRest(
-  Schema.Struct({
-    data: Schema.Array(Embedding),
-    model: Schema.String,
-    object: Schema.optionalKey(Schema.Literal("list")),
-    usage: Schema.optionalKey(
-      Schema.Struct({
-        prompt_tokens: Schema.Number,
-        total_tokens: Schema.Number
-      })
-    )
-  }),
-  [UnknownRecord]
-)
+export const CreateEmbeddingResponse = Schema.Struct({
+  data: Schema.Array(Embedding),
+  model: Schema.String,
+  object: Schema.optionalKey(Schema.Literal("list")),
+  usage: Schema.optionalKey(
+    Schema.Struct({
+      prompt_tokens: Schema.Number,
+      total_tokens: Schema.Number
+    })
+  )
+})
 
 /**
  * @since 1.0.0
