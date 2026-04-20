@@ -5,8 +5,8 @@ import type { NonEmptyReadonlyArray } from "../../Array.ts"
 import * as Cause from "../../Cause.ts"
 import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
+import * as Effectable from "../../Effectable.ts"
 import { dual } from "../../Function.ts"
-import { PipeInspectableProto, YieldableProto } from "../../internal/core.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../Schema.ts"
 import type { Scope } from "../../Scope.ts"
@@ -27,8 +27,7 @@ export interface Activity<
   Error extends Schema.Top = Schema.Never,
   R = never
 > extends
-  Effect.Yieldable<
-    Activity<Success, Error, R>,
+  Effect.Effect<
     Success["Type"],
     Error["Type"],
     Success["DecodingServices"] | Error["DecodingServices"] | R | WorkflowEngine | WorkflowInstance
@@ -123,8 +122,12 @@ export const make = <
     options.interruptRetryPolicy
   )(options.execute)
   const self: Activity<Success, Error, Exclude<R, WorkflowInstance | WorkflowEngine>> = {
-    ...PipeInspectableProto,
-    ...YieldableProto,
+    ...Effectable.Prototype<Activity<Success, Error, R>>({
+      label: "Activity",
+      evaluate(_) {
+        return execute
+      }
+    }),
     [TypeId]: TypeId,
     name: options.name,
     successSchema,
@@ -147,10 +150,7 @@ export const make = <
     executeEncoded: Effect.matchEffect(executeWithoutInterrupt, {
       onFailure: (error) => Effect.flatMap(Effect.orDie(Schema.encodeEffect(errorSchemaJson)(error)), Effect.fail),
       onSuccess: (value) => Effect.orDie(Schema.encodeEffect(successSchemaJson)(value))
-    }),
-    asEffect() {
-      return execute
-    }
+    })
   } as any
   execute = makeExecute(self)
   return self

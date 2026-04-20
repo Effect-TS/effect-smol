@@ -79,6 +79,7 @@ import type { Fiber } from "./Fiber.ts"
 import type * as Filter from "./Filter.ts"
 import { constant, dual, type LazyArg } from "./Function.ts"
 import type { TypeLambda } from "./HKT.ts"
+import type { Inspectable } from "./Inspectable.ts"
 import * as core from "./internal/core.ts"
 import * as internal from "./internal/effect.ts"
 import * as internalExecutionPlan from "./internal/executionPlan.ts"
@@ -169,7 +170,9 @@ const TypeId = core.EffectTypeId
  * @since 2.0.0
  * @category Models
  */
-export interface Effect<out A, out E = never, out R = never> extends Pipeable, Yieldable<Effect<A, E, R>, A, E, R> {
+export interface Effect<out A, out E = never, out R = never>
+  extends Pipeable, Inspectable, Yieldable<Effect<A, E, R>, A, E, R>
+{
   readonly [TypeId]: Variance<A, E, R>
   [Unify.typeSymbol]?: unknown
   [Unify.unifySymbol]?: EffectUnify<this>

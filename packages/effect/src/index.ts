@@ -1001,6 +1001,11 @@ export * as Duration from "./Duration.ts"
 export * as Effect from "./Effect.ts"
 
 /**
+ * @since 4.0.0
+ */
+export * as Effectable from "./Effectable.ts"
+
+/**
  * Encoding & decoding for Base64 (RFC4648), Base64Url, and Hex.
  *
  * @since 4.0.0
