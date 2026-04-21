@@ -1,5 +1,14 @@
 # @effect/ai-openai
 
+## 4.0.0-beta.53
+
+### Patch Changes
+
+- [#2060](https://github.com/Effect-TS/effect-smol/pull/2060) [`aef2b1c`](https://github.com/Effect-TS/effect-smol/commit/aef2b1c0130a61a430f116465e4c200c51bcd9e2) Thanks @tim-smart! - add back openai reasoning types
+
+- Updated dependencies [[`0768509`](https://github.com/Effect-TS/effect-smol/commit/07685094e931af07d104165195826a535b55fa7e), [`476aede`](https://github.com/Effect-TS/effect-smol/commit/476aede69c6efa06b5781ca5eb3e3b128ca29141), [`4f79c54`](https://github.com/Effect-TS/effect-smol/commit/4f79c542e7b508c235ff485d862cc8b29a8260c5), [`4be6a7c`](https://github.com/Effect-TS/effect-smol/commit/4be6a7cf35dab2a01d652f56dd35f0358c5a7e88), [`88927eb`](https://github.com/Effect-TS/effect-smol/commit/88927ebb896162cdba103b36553280b58e0facac)]:
+  - effect@4.0.0-beta.53
+
 ## 4.0.0-beta.52
 
 ### Minor Changes
