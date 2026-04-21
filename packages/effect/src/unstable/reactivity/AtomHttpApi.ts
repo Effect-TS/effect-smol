@@ -16,6 +16,7 @@ import type * as HttpApi from "../httpapi/HttpApi.ts"
 import * as HttpApiClient from "../httpapi/HttpApiClient.ts"
 import * as HttpApiEndpoint from "../httpapi/HttpApiEndpoint.ts"
 import type * as HttpApiGroup from "../httpapi/HttpApiGroup.ts"
+import type * as HttpApiMiddleware from "../httpapi/HttpApiMiddleware.ts"
 import * as AsyncResult from "./AsyncResult.ts"
 import * as Atom from "./Atom.ts"
 import * as Reactivity from "./Reactivity.ts"
@@ -57,7 +58,7 @@ export interface AtomHttpApiClient<Self, Id extends string, Groups extends HttpA
       infer _Headers,
       infer _Success,
       infer _Error,
-      infer _R,
+      infer _Middleware,
       infer _RE
     >
   ] ? Atom.AtomResultFn<
@@ -67,7 +68,7 @@ export interface AtomHttpApiClient<Self, Id extends string, Groups extends HttpA
         }
       >,
       ResponseByMode<_Success["Type"], ResponseMode>,
-      _Error["Type"]
+      ErrorByMode<_Error, _Middleware, ResponseMode>
     >
     : never
 
@@ -119,13 +120,13 @@ export interface AtomHttpApiClient<Self, Id extends string, Groups extends HttpA
       infer _Headers,
       infer _Success,
       infer _Error,
-      infer _R,
+      infer _Middleware,
       infer _RE
     >
   ] ? Atom.Atom<
       AsyncResult.AsyncResult<
         ResponseByMode<_Success["Type"], ResponseMode>,
-        _Error["Type"]
+        ErrorByMode<_Error, _Middleware, ResponseMode>
       >
     >
     : never
@@ -316,3 +317,12 @@ type ResponseByMode<Success, ResponseMode extends HttpApiEndpoint.ClientResponse
   ["decoded-and-response"] ? [Success, HttpClientResponse]
   : [ResponseMode] extends ["response-only"] ? HttpClientResponse
   : Success
+
+type ErrorByMode<
+  Error extends Schema.Top,
+  Middleware,
+  ResponseMode extends HttpApiEndpoint.ClientResponseMode
+> =
+  | HttpApiMiddleware.Error<Middleware>
+  | HttpApiMiddleware.ClientError<Middleware>
+  | ([ResponseMode] extends ["response-only"] ? never : Error["Type"])
