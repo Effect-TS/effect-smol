@@ -8,7 +8,7 @@ import { evaluate, makePrimitiveProto } from "./internal/core.ts"
 /**
  * Create a low-level `Effect` prototype.
  *
- * Whe the effect is evaluated, it will call `evaluate` with the current fiber.
+ * When the effect is evaluated, it will call `evaluate` with the current fiber.
  *
  * @since 4.0.0
  * @category Prototypes
