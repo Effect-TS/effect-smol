@@ -606,6 +606,16 @@ importers:
         specifier: workspace:^
         version: link:../../effect
 
+  packages/sql/pglite:
+    dependencies:
+      '@electric-sql/pglite':
+        specifier: ^0.4.4
+        version: 0.4.4
+    devDependencies:
+      effect:
+        specifier: workspace:^
+        version: link:../../effect
+
   packages/sql/sqlite-bun:
     devDependencies:
       '@effect/platform-bun':
@@ -1555,6 +1565,9 @@ packages:
 
   '@effect/wa-sqlite@0.2.1':
     resolution: {integrity: sha512-vMnGIHKWSIFnDf7+n7lP2vyXPzORJotkaRI8LKyJw3eNjsvFopHYVaaGSeMSSVTm/w45pC5T4JdLrD6nxSR4oQ==}
+
+  '@electric-sql/pglite@0.4.4':
+    resolution: {integrity: sha512-g/6CWAJ4XOkObWCWAQ2IReZD8VvsDy3poRHSKvpRR2F96F8WJ3HVbjpso3gN7l0q6QPPgvxSSpl/qo5k8a7mkQ==}
 
   '@emnapi/core@1.9.2':
     resolution: {integrity: sha512-UC+ZhH3XtczQYfOlu3lNEkdW/p4dsJ1r/bP7H8+rhao3TTTMO1ATq/4DdIi23XuGoFY+Cz0JmCbdVl0hz9jZcA==}
@@ -7258,6 +7271,8 @@ snapshots:
       strip-color: 0.1.0
 
   '@effect/wa-sqlite@0.2.1': {}
+
+  '@electric-sql/pglite@0.4.4': {}
 
   '@emnapi/core@1.9.2':
     dependencies:
