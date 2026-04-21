@@ -235,7 +235,7 @@ export const make = Effect.fnUntraced(function*(
   }
 
   function currentTimeNanosUnsafe(): bigint {
-    return BigInt(currentTimestamp * 1000000)
+    return BigInt(Math.floor(currentTimestamp * 1000000))
   }
 
   const currentTimeMillis = Effect.sync(currentTimeMillisUnsafe)
