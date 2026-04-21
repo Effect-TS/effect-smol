@@ -472,7 +472,7 @@ export const make = Effect.gen(function*() {
             activities.set(activityId, { activity, context: services })
             const latch = activityLatches.get(activityId)
             if (latch) {
-              yield* latch.release
+              yield* latch.open
               activityLatches.delete(activityId)
             }
           }

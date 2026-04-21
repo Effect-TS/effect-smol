@@ -5307,7 +5307,7 @@ class Latch implements _Latch.Latch {
     this.isOpen = true
     return this.scheduleUnsafe(fiber)
   })
-  release = withFiber<boolean>((fiber) => this.open ? succeedFalse : this.scheduleUnsafe(fiber))
+  release = withFiber<boolean>((fiber) => this.isOpen ? succeedFalse : this.scheduleUnsafe(fiber))
   openUnsafe() {
     if (this.isOpen) return false
     this.isOpen = true
