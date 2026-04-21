@@ -1994,7 +1994,7 @@ export interface TemplateLiteralParser<Parts extends TemplateLiteral.Parts> exte
 export function TemplateLiteralParser<const Parts extends TemplateLiteral.Parts>(
   parts: Parts
 ): TemplateLiteralParser<Parts> {
-  return make(templateLiteralFromParts(parts).asTemplateLiteralParser(), { parts: [...parts] })
+  return make(templateLiteralFromParts(parts).asTemplateLiteralParser(), { parts })
 }
 
 /**

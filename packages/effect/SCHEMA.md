@@ -294,19 +294,25 @@ If you want to extract the parts of a string that match a template, you can use 
 ```ts
 import { Schema } from "effect"
 
-const email = Schema.TemplateLiteralParser([
-  Schema.String.check(Schema.isMinLength(1)),
-  "@",
-  Schema.String.check(Schema.isMaxLength(64))
+const schema = Schema.TemplateLiteralParser([
+  Schema.String.check(Schema.isMinLength(2)),
+  ":",
+  Schema.Int
 ])
 
-// The inferred type is `readonly [string, "@", string]`
-export type Type = typeof email.Type
+// The inferred type is `readonly [string, ":", number]`
+export type Type = typeof schema.Type
 
-console.log(String(Schema.decodeUnknownExit(email)("a@b.com")))
-/*
-Success(["a","@","b.com"])
-*/
+console.log(String(Schema.decodeUnknownExit(schema)("aa:1")))
+// Success(["aa",":",1])
+
+console.log(String(Schema.decodeUnknownExit(schema)("a:1")))
+// Failure(Cause([Fail(SchemaError(Expected a value with a length of at least 2, got "a"
+//   at [0]))]))
+
+console.log(String(Schema.decodeUnknownExit(schema)("aa:1.2")))
+// Failure(Cause([Fail(SchemaError(Expected an integer, got 1.2
+//   at [2]))]))
 ```
 
 # Defining Composite Schemas
