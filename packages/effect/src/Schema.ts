@@ -2517,7 +2517,13 @@ export function fieldsAssign<const NewFields extends Struct.Fields>(fields: NewF
   return Struct_.lambda<fieldsAssign<NewFields>>((struct) => struct.mapFields(Struct_.assign(fields)))
 }
 
-interface encodeKeys<
+/**
+ * Schema type for a struct with renamed encoded keys. Produced by
+ * {@link encodeKeys}.
+ *
+ * @since 4.0.0
+ */
+export interface encodeKeys<
   S extends Top & { readonly fields: Struct.Fields },
   M extends { readonly [K in keyof S["fields"]]?: PropertyKey }
 > extends
