@@ -1,7 +1,6 @@
 import { PgliteClient } from "@effect/sql-pglite"
 import { assert, describe, layer } from "@effect/vitest"
-import { Effect, Fiber, Layer, Stream } from "effect"
-import * as TestClock from "effect/testing/TestClock"
+import { Deferred, Effect, Layer } from "effect"
 
 const ClientLayer = PgliteClient.layer({})
 
@@ -94,17 +93,19 @@ describe("PgliteClient", () => {
     it.effect("listen + notify", () =>
       Effect.gen(function*() {
         const sql = yield* PgliteClient.PgliteClient
-        const fiber = yield* sql.listen("ch1").pipe(Stream.take(1), Stream.runCollect, Effect.forkScoped)
-        yield* TestClock.adjust("250 millis")
+        const deferred = yield* Deferred.make<string>()
+        const unsub = yield* Effect.tryPromise({
+          try: () => sql.pglite.listen("ch1", (payload) => Effect.runFork(Deferred.succeed(deferred, payload))),
+          catch: (cause) => cause
+        })
         yield* sql.notify("ch1", "hello")
-        const payloads = yield* Fiber.join(fiber)
-        assert.deepStrictEqual(payloads, ["hello"])
+        assert.strictEqual(yield* Deferred.await(deferred), "hello")
+        yield* Effect.promise(() => unsub())
       }), { timeout: 15_000 })
 
     it.effect("provider extras", () =>
       Effect.gen(function*() {
         const sql = yield* PgliteClient.PgliteClient
-        yield* sql.refreshArrayTypes
         const dump = yield* sql.dumpDataDir("none")
         assert.isAbove((dump as Blob).size, 0)
       }))
@@ -127,6 +128,33 @@ describe("PgliteClient", () => {
           const sql = yield* PgliteClient.PgliteClient
           const rows = yield* sql<{ value: number }>`SELECT 1 AS value`
           assert.deepStrictEqual(rows, [{ value: 1 }])
+        }))
+    })
+
+    layer(
+      Layer.unwrap(
+        Effect.gen(function*() {
+          const { PGlite } = yield* Effect.promise(() => import("@electric-sql/pglite"))
+          const pg = new PGlite()
+          yield* Effect.promise(() => pg.waitReady)
+          yield* Effect.tryPromise(() => pg.query("CREATE TYPE mood AS ENUM ('sad', 'happy')"))
+          yield* Effect.tryPromise(() =>
+            pg.query("CREATE TABLE test_moods (id SERIAL PRIMARY KEY, name TEXT, moods mood[])")
+          )
+          return PgliteClient.layerFrom(PgliteClient.fromClient({
+            liveClient: pg,
+            refreshArrayTypesOnStart: true
+          }))
+        })
+      ),
+      { timeout: "30 seconds" }
+    )((it) => {
+      it.effect("refreshArrayTypesOnStart", () =>
+        Effect.gen(function*() {
+          const sql = yield* PgliteClient.PgliteClient
+          yield* sql`INSERT INTO test_moods (name, moods) VALUES (${"test2"}, ${["sad", "happy"]})`
+          const rows = yield* sql<{ moods: ReadonlyArray<string> }>`SELECT moods FROM test_moods`
+          assert.deepStrictEqual(rows, [{ moods: ["sad", "happy"] }])
         }))
     })
   })

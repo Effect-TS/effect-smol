@@ -5,6 +5,7 @@ import { PGlite, type PGliteInterface, type PGliteOptions } from "@electric-sql/
 import * as Config from "effect/Config"
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
+import * as Fiber from "effect/Fiber"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Queue from "effect/Queue"
@@ -54,7 +55,6 @@ export interface PgliteClient extends Client.SqlClient {
   readonly listen: (channel: string) => Stream.Stream<string, SqlError>
   readonly notify: (channel: string, payload: string) => Effect.Effect<void, SqlError>
   readonly dumpDataDir: (compression?: "none" | "gzip" | "auto") => Effect.Effect<File | Blob, SqlError>
-  readonly refreshArrayTypes: Effect.Effect<void, SqlError>
 }
 
 /**
@@ -62,10 +62,6 @@ export interface PgliteClient extends Client.SqlClient {
  * @since 1.0.0
  */
 export const PgliteClient = Context.Service<PgliteClient>("@effect/sql-pglite/PgliteClient")
-
-const PgliteTransaction = Context.Service<readonly [PgliteConnection, counter: number]>(
-  "@effect/sql-pglite/PgliteClient/PgliteTransaction"
-)
 
 /**
  * @category models
@@ -83,6 +79,11 @@ export declare namespace PgliteClientConfig {
    * @since 1.0.0
    */
   export interface Base {
+    /**
+     * Refresh PGlite's array type cache once during startup. Useful after
+     * creating enum array types before handing the client to Effect.
+     */
+    readonly refreshArrayTypesOnStart?: boolean | undefined
     readonly spanAttributes?: Record<string, unknown> | undefined
     readonly transformResultNames?: ((str: string) => string) | undefined
     readonly transformQueryNames?: ((str: string) => string) | undefined
@@ -117,6 +118,11 @@ export declare namespace PgliteClientConfig {
 
 interface PgliteConnection extends Connection {}
 
+const TransactionConnection = Client.TransactionConnection as unknown as Context.Service<
+  readonly [conn: PgliteConnection, counter: number],
+  readonly [conn: PgliteConnection, counter: number]
+>
+
 /**
  * @category constructor
  * @since 1.0.0
@@ -130,7 +136,8 @@ export const make = (
       : yield* Effect.acquireRelease(
         Effect.tryPromise({
           try: async () => {
-            const pg = new PGlite(options as PGliteOptions)
+            const { refreshArrayTypesOnStart: _, ...pgliteOptions } = options
+            const pg = new PGlite(pgliteOptions as PGliteOptions)
             await pg.waitReady
             return pg as PGliteInterface
           },
@@ -152,7 +159,7 @@ export const fromClient = (
     & {
       readonly liveClient: PGliteInterface
     }
-): Effect.Effect<PgliteClient, never, Scope.Scope | Reactivity.Reactivity> =>
+): Effect.Effect<PgliteClient, SqlError, Scope.Scope | Reactivity.Reactivity> =>
   Effect.gen(function*() {
     const pglite = options.liveClient
     const compiler = makeCompiler(options.transformQueryNames, options.transformJson)
@@ -213,37 +220,21 @@ export const fromClient = (
 
     const connection: PgliteConnection = new PgliteConnectionImpl()
     const semaphore = yield* Semaphore.make(1)
-
-    const transactionAcquirer: Effect.Effect<readonly [Scope.Closeable, PgliteConnection], SqlError> = Effect
-      .uninterruptibleMask(Effect.fnUntraced(function*(restore) {
-        const scope = Scope.makeUnsafe()
-        yield* restore(semaphore.take(1))
-        yield* Scope.addFinalizer(scope, semaphore.release(1))
-        return [scope, connection] as const
-      }))
-
-    const withTransaction = Client.makeWithTransaction({
-      transactionService: PgliteTransaction,
-      spanAttributes,
-      acquireConnection: transactionAcquirer,
-      begin: (conn) => conn.executeRaw("BEGIN", []).pipe(Effect.asVoid),
-      savepoint: (conn, id) => conn.executeRaw(`SAVEPOINT effect_sql_${id}`, []).pipe(Effect.asVoid),
-      commit: (conn) => conn.executeRaw("COMMIT", []).pipe(Effect.asVoid),
-      rollback: (conn) => conn.executeRaw("ROLLBACK", []).pipe(Effect.asVoid),
-      rollbackSavepoint: (conn, id) => conn.executeRaw(`ROLLBACK TO SAVEPOINT effect_sql_${id}`, []).pipe(Effect.asVoid)
+    const acquirer = semaphore.withPermits(1)(Effect.succeed(connection))
+    const transactionAcquirer = Effect.uninterruptibleMask((restore) => {
+      const fiber = Fiber.getCurrent()!
+      const scope = Context.getUnsafe(fiber.context, Scope.Scope)
+      return Effect.as(
+        Effect.tap(
+          restore(semaphore.take(1)),
+          () => Scope.addFinalizer(scope, semaphore.release(1))
+        ),
+        connection
+      )
     })
-
-    const acquirer = Effect.flatMap(
-      Effect.serviceOption(PgliteTransaction),
-      Option.match({
-        onNone: () => semaphore.withPermits(1)(Effect.succeed(connection)),
-        onSome: ([conn]) => Effect.succeed(conn)
-      })
-    )
-
-    const withPglite = <A, E>(effect: Effect.Effect<A, E>): Effect.Effect<A, E> =>
+    const withPermit = <A, E>(effect: Effect.Effect<A, E>): Effect.Effect<A, E> =>
       Effect.flatMap(
-        Effect.serviceOption(PgliteTransaction),
+        Effect.serviceOption(TransactionConnection),
         Option.match({
           onNone: () => semaphore.withPermits(1)(effect),
           onSome: () => effect
@@ -251,46 +242,52 @@ export const fromClient = (
       )
 
     const config: PgliteClientConfig = options as PgliteClientConfig
+    const client = yield* Client.make({
+      acquirer,
+      compiler,
+      transactionAcquirer,
+      spanAttributes,
+      transformRows
+    })
+
+    if (options.refreshArrayTypesOnStart === true) {
+      yield* withPermit(Effect.tryPromise({
+        try: () => pglite.refreshArrayTypes(),
+        catch: (cause) =>
+          new SqlError({ reason: classifyError(cause, "Failed to refresh array types", "refreshArrayTypes") })
+      }))
+    }
 
     return Object.assign(
-      yield* Client.make({
-        acquirer,
-        compiler,
-        spanAttributes,
-        transformRows
-      }),
+      client,
       {
         [TypeId]: TypeId as TypeId,
         config,
-        withTransaction,
         pglite,
         json: (_: unknown) => Statement.fragment([PgJson(_)]),
         listen: (channel: string) =>
           Stream.callback<string, SqlError>(Effect.fnUntraced(function*(queue) {
-            const unlisten = yield* Effect.tryPromise({
-              try: () =>
-                pglite.listen(channel, (payload) => {
-                  Queue.offerUnsafe(queue, payload)
-                }),
-              catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to listen", "listen") })
-            })
-            yield* Effect.addFinalizer(() => Effect.promise(() => unlisten()))
+            return yield* Effect.acquireRelease(
+              Effect.interruptible(Effect.tryPromise({
+                try: () =>
+                  pglite.listen(channel, (payload) => {
+                    Queue.offerUnsafe(queue, payload)
+                  }),
+                catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to listen", "listen") })
+              })),
+              (unlisten) => Effect.promise(() => unlisten())
+            )
           })),
         notify: (channel: string, payload: string) =>
-          Effect.flatMap(
-            acquirer,
-            (conn) => conn.executeRaw("SELECT pg_notify($1, $2)", [channel, payload])
-          ).pipe(Effect.asVoid),
+          withPermit(Effect.tryPromise({
+            try: () => pglite.exec(`NOTIFY ${escape(channel)}, ${escapeLiteral(payload)}`),
+            catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to notify", "notify") })
+          })).pipe(Effect.asVoid),
         dumpDataDir: (compression?: "none" | "gzip" | "auto") =>
-          withPglite(Effect.tryPromise({
+          withPermit(Effect.tryPromise({
             try: () => pglite.dumpDataDir(compression),
             catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to dump data dir", "dumpDataDir") })
-          })),
-        refreshArrayTypes: withPglite(Effect.tryPromise({
-          try: () => pglite.refreshArrayTypes(),
-          catch: (cause) =>
-            new SqlError({ reason: classifyError(cause, "Failed to refresh array types", "refreshArrayTypes") })
-        }))
+          }))
       }
     )
   })
@@ -379,6 +376,7 @@ export const makeCompiler = (
 }
 
 const escape = Statement.defaultEscape("\"")
+const escapeLiteral = (value: string) => `'${value.replace(/'/g, "''")}'`
 
 /**
  * @category custom types

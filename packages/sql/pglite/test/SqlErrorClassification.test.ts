@@ -20,7 +20,6 @@ const makeFailingClient = (cause: unknown) => ({
   listen: () => Promise.resolve(() => Promise.resolve()),
   notify: () => Promise.resolve(),
   dumpDataDir: () => Promise.reject(cause),
-  refreshArrayTypes: () => Promise.reject(cause),
   close: () => Promise.resolve(),
   waitReady: Promise.resolve(),
   ready: true,
