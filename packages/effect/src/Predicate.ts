@@ -878,7 +878,7 @@ export function isNotNull<A>(input: A): input is Exclude<A, null> {
  * @category guards
  * @since 4.0.0
  */
-export function isNullish<A>(input: A): input is Extract<A, null | undefined> {
+export function isNullish<A>(input: A): input is A & (null | undefined) {
   return input === null || input === undefined
 }
 
