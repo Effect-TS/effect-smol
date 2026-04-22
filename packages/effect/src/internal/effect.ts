@@ -4177,6 +4177,15 @@ export const interruptibleMask = <A, E, R>(
     return f(uninterruptible)
   })
 
+/** @internal */
+export const abortSignal: Effect.Effect<AbortSignal, never, Scope.Scope> = map(
+  acquireRelease(
+    sync(() => new AbortController()),
+    (controller) => sync(() => controller.abort())
+  ),
+  (_) => _.signal
+)
+
 // ========================================================================
 // collecting & elements
 // ========================================================================

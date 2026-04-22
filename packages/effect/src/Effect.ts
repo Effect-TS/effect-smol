@@ -6983,6 +6983,14 @@ export const interruptibleMask: <A, E, R>(
   ) => Effect<A, E, R>
 ) => Effect<A, E, R> = internal.interruptibleMask
 
+/**
+ * Creates an AbortSignal that is managed by the provided scope.
+ *
+ * @since 4.0.0
+ * @category Interruption
+ */
+export const abortSignal: Effect<AbortSignal, never, Scope> = internal.abortSignal
+
 // -----------------------------------------------------------------------------
 // Repetition & Recursion
 // -----------------------------------------------------------------------------
