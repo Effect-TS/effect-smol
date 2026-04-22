@@ -189,9 +189,10 @@ export const into: {
     Effect.contextWith(
       (context: Context.Context<WorkflowEngine | WorkflowInstance>) => {
         const engine = Context.get(context, EngineTag)
-        const instance = Context.get(context, InstanceTag)
+        const parentInstance = Context.get(context, InstanceTag)
+        const instance = { ...parentInstance }
         return Effect.onExit(
-          effect,
+          Effect.provideService(effect, InstanceTag, instance),
           Effect.fnUntraced(function*(exit) {
             if (Exit.isFailure(exit)) {
               const [reasons, interrupts] = Arr.partition(
@@ -200,6 +201,7 @@ export const into: {
               )
               const hasInterruptsOnly = interrupts.length === exit.cause.reasons.length
               if (hasInterruptsOnly && instance.suspended) {
+                parentInstance.suspended = true
                 return
               } else if (interrupts.length > 0) {
                 exit = Exit.failCause(Cause.fromReasons(reasons))
