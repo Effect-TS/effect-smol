@@ -1,5 +1,12 @@
 # @effect/opentelemetry
 
+## 4.0.0-beta.56
+
+### Patch Changes
+
+- Updated dependencies []:
+  - effect@4.0.0-beta.56
+
 ## 4.0.0-beta.55
 
 ### Patch Changes

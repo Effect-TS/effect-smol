@@ -1,5 +1,16 @@
 # @effect/ai-openai
 
+## 4.0.0-beta.56
+
+### Patch Changes
+
+- [#1933](https://github.com/Effect-TS/effect-smol/pull/1933) [`c5a7327`](https://github.com/Effect-TS/effect-smol/commit/c5a732746690185b8bb7935d0cf26a5ef21658e4) Thanks @IMax153! - Accept both `in-memory` and `in_memory` for OpenAI `prompt_cache_retention` schema fields.
+
+- [#1933](https://github.com/Effect-TS/effect-smol/pull/1933) [`c5a7327`](https://github.com/Effect-TS/effect-smol/commit/c5a732746690185b8bb7935d0cf26a5ef21658e4) Thanks @IMax153! - Fix OpenAI MCP tool call handling to keep the canonical `OpenAiMcp` tool name across response and stream paths, including approval flows.
+
+- Updated dependencies []:
+  - effect@4.0.0-beta.56
+
 ## 4.0.0-beta.55
 
 ### Patch Changes
