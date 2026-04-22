@@ -655,12 +655,12 @@ export const ChatCompletionTokenLogprob = Schema.Struct({
   })
 })
 export type ComparisonFilter = {
-  readonly "type": "eq" | "ne" | "gt" | "gte" | "lt" | "lte"
+  readonly "type": "eq" | "ne" | "gt" | "gte" | "lt" | "lte" | "in" | "nin"
   readonly "key": string
   readonly "value": string | number | boolean | ReadonlyArray<string | number>
 }
 export const ComparisonFilter = Schema.Struct({
-  "type": Schema.Literals(["eq", "ne", "gt", "gte", "lt", "lte"]).annotate({
+  "type": Schema.Literals(["eq", "ne", "gt", "gte", "lt", "lte", "in", "nin"]).annotate({
     "description":
       "Specifies the comparison operator: `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `in`, `nin`.\n- `eq`: equals\n- `ne`: not equal\n- `gt`: greater than\n- `gte`: greater than or equal\n- `lt`: less than\n- `lte`: less than or equal\n- `in`: in\n- `nin`: not in\n"
   }),
@@ -1275,73 +1275,6 @@ export const CreateModerationResponse = Schema.Struct({
     }).annotate({ "description": "A list of the categories along with the input type(s) that the score applies to." })
   })).annotate({ "description": "A list of moderation objects." })
 }).annotate({ "description": "Represents if a given text input is potentially harmful." })
-export type CreateSpeechRequest = {
-  readonly "model": string | "tts-1" | "tts-1-hd" | "gpt-4o-mini-tts" | "gpt-4o-mini-tts-2025-12-15"
-  readonly "input": string
-  readonly "instructions"?: string
-  readonly "voice":
-    | string
-    | "alloy"
-    | "ash"
-    | "ballad"
-    | "coral"
-    | "echo"
-    | "sage"
-    | "shimmer"
-    | "verse"
-    | "marin"
-    | "cedar"
-    | { readonly "id": string }
-  readonly "response_format"?: "mp3" | "opus" | "aac" | "flac" | "wav" | "pcm"
-  readonly "speed"?: number
-  readonly "stream_format"?: "sse" | "audio"
-}
-export const CreateSpeechRequest = Schema.Struct({
-  "model": Schema.Union([
-    Schema.String,
-    Schema.Literals(["tts-1", "tts-1-hd", "gpt-4o-mini-tts", "gpt-4o-mini-tts-2025-12-15"])
-  ]).annotate({
-    "description":
-      "One of the available [TTS models](/docs/models#tts): `tts-1`, `tts-1-hd`, `gpt-4o-mini-tts`, or `gpt-4o-mini-tts-2025-12-15`.\n"
-  }),
-  "input": Schema.String.annotate({
-    "description": "The text to generate audio for. The maximum length is 4096 characters."
-  }).check(Schema.isMaxLength(4096)),
-  "instructions": Schema.optionalKey(
-    Schema.String.annotate({
-      "description":
-        "Control the voice of your generated audio with additional instructions. Does not work with `tts-1` or `tts-1-hd`."
-    }).check(Schema.isMaxLength(4096))
-  ),
-  "voice": Schema.Union([
-    Schema.Union([
-      Schema.String,
-      Schema.Literals(["alloy", "ash", "ballad", "coral", "echo", "sage", "shimmer", "verse", "marin", "cedar"])
-    ]),
-    Schema.Struct({ "id": Schema.String.annotate({ "description": "The custom voice ID, e.g. `voice_1234`." }) })
-      .annotate({ "description": "Custom voice reference." })
-  ]).annotate({
-    "title": "Voice",
-    "description":
-      "The voice to use when generating the audio. Supported built-in voices are `alloy`, `ash`, `ballad`, `coral`, `echo`, `fable`, `onyx`, `nova`, `sage`, `shimmer`, `verse`, `marin`, and `cedar`. You may also provide a custom voice object with an `id`, for example `{ \"id\": \"voice_1234\" }`. Previews of the voices are available in the [Text to speech guide](/docs/guides/text-to-speech#voice-options)."
-  }),
-  "response_format": Schema.optionalKey(
-    Schema.Literals(["mp3", "opus", "aac", "flac", "wav", "pcm"]).annotate({
-      "description": "The format to audio in. Supported formats are `mp3`, `opus`, `aac`, `flac`, `wav`, and `pcm`."
-    })
-  ),
-  "speed": Schema.optionalKey(
-    Schema.Number.annotate({
-      "description": "The speed of the generated audio. Select a value from `0.25` to `4.0`. `1.0` is the default."
-    }).check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0.25)).check(Schema.isLessThanOrEqualTo(4))
-  ),
-  "stream_format": Schema.optionalKey(
-    Schema.Literals(["sse", "audio"]).annotate({
-      "description":
-        "The format to stream the audio in. Supported formats are `sse` and `audio`. `sse` is not supported for `tts-1` or `tts-1-hd`."
-    })
-  )
-})
 export type CreateTranscriptionResponseJson = {
   readonly "text": string
   readonly "logprobs"?: ReadonlyArray<
@@ -1493,6 +1426,7 @@ export type CustomToolCall = {
   readonly "type": "custom_tool_call"
   readonly "id"?: string
   readonly "call_id": string
+  readonly "namespace"?: string
   readonly "name": string
   readonly "input": string
 }
@@ -1506,6 +1440,9 @@ export const CustomToolCall = Schema.Struct({
   "call_id": Schema.String.annotate({
     "description": "An identifier used to map this custom tool call to a tool call output.\n"
   }),
+  "namespace": Schema.optionalKey(
+    Schema.String.annotate({ "description": "The namespace of the custom tool being called.\n" })
+  ),
   "name": Schema.String.annotate({ "description": "The name of the custom tool being called.\n" }),
   "input": Schema.String.annotate({ "description": "The input for the custom tool call generated by the model.\n" })
 }).annotate({ "title": "Custom tool call", "description": "A call to a custom tool created by the model.\n" })
@@ -2267,6 +2204,7 @@ export type FunctionToolCall = {
   readonly "id"?: string
   readonly "type": "function_call"
   readonly "call_id": string
+  readonly "namespace"?: string
   readonly "name": string
   readonly "arguments": string
   readonly "status"?: "in_progress" | "completed" | "incomplete"
@@ -2279,6 +2217,7 @@ export const FunctionToolCall = Schema.Struct({
   "call_id": Schema.String.annotate({
     "description": "The unique ID of the function tool call generated by the model.\n"
   }),
+  "namespace": Schema.optionalKey(Schema.String.annotate({ "description": "The namespace of the function to run.\n" })),
   "name": Schema.String.annotate({ "description": "The name of the function to run.\n" }),
   "arguments": Schema.String.annotate({ "description": "A JSON string of the arguments to pass to the function.\n" }),
   "status": Schema.optionalKey(
@@ -2296,6 +2235,7 @@ export type FunctionToolCallResource = {
   readonly "id": string
   readonly "type": "function_call"
   readonly "call_id": string
+  readonly "namespace"?: string
   readonly "name": string
   readonly "arguments": string
   readonly "status"?: "in_progress" | "completed" | "incomplete"
@@ -2308,6 +2248,7 @@ export const FunctionToolCallResource = Schema.Struct({
   "call_id": Schema.String.annotate({
     "description": "The unique ID of the function tool call generated by the model.\n"
   }),
+  "namespace": Schema.optionalKey(Schema.String.annotate({ "description": "The namespace of the function to run.\n" })),
   "name": Schema.String.annotate({ "description": "The name of the function to run.\n" }),
   "arguments": Schema.String.annotate({ "description": "A JSON string of the arguments to pass to the function.\n" }),
   "status": Schema.optionalKey(
@@ -3092,6 +3033,11 @@ export const MessageDeltaContentTextAnnotationsFilePathObject = Schema.Struct({
   "description":
     "A URL for the file that's generated when the assistant used the `code_interpreter` tool to generate a file."
 })
+export type MessagePhase = "commentary" | "final_answer"
+export const MessagePhase = Schema.Literals(["commentary", "final_answer"]).annotate({
+  "description":
+    "Labels an `assistant` message as intermediate commentary (`commentary`) or the final answer (`final_answer`).\nFor models like `gpt-5.3-codex` and beyond, when sending follow-up requests, preserve and resend\nphase on all assistant messages — dropping it can degrade performance. Not used for user messages.\n"
+})
 export type MessageRequestContentTextObject = { readonly "type": "text"; readonly "text": string }
 export const MessageRequestContentTextObject = Schema.Struct({
   "type": Schema.Literal("text").annotate({ "description": "Always `text`." }),
@@ -3126,6 +3072,12 @@ export const Model = Schema.StructWithRest(
 ).annotate({ "title": "Model", "description": "Describes an OpenAI model offering that can be used with the API." })
 export type ModelIdsShared =
   | string
+  | "gpt-5.4"
+  | "gpt-5.4-mini"
+  | "gpt-5.4-nano"
+  | "gpt-5.4-mini-2026-03-17"
+  | "gpt-5.4-nano-2026-03-17"
+  | "gpt-5.3-chat-latest"
   | "gpt-5.2"
   | "gpt-5.2-2025-12-11"
   | "gpt-5.2-chat-latest"
@@ -3201,6 +3153,12 @@ export type ModelIdsShared =
 export const ModelIdsShared = Schema.Union([
   Schema.String,
   Schema.Literals([
+    "gpt-5.4",
+    "gpt-5.4-mini",
+    "gpt-5.4-nano",
+    "gpt-5.4-mini-2026-03-17",
+    "gpt-5.4-nano-2026-03-17",
+    "gpt-5.3-chat-latest",
     "gpt-5.2",
     "gpt-5.2-2025-12-11",
     "gpt-5.2-chat-latest",
@@ -6704,7 +6662,9 @@ export type ToolChoiceTypes = {
   readonly "type":
     | "file_search"
     | "web_search_preview"
+    | "computer"
     | "computer_use_preview"
+    | "computer_use"
     | "web_search_preview_2025_03_11"
     | "image_generation"
     | "code_interpreter"
@@ -6713,13 +6673,15 @@ export const ToolChoiceTypes = Schema.Struct({
   "type": Schema.Literals([
     "file_search",
     "web_search_preview",
+    "computer",
     "computer_use_preview",
+    "computer_use",
     "web_search_preview_2025_03_11",
     "image_generation",
     "code_interpreter"
   ]).annotate({
     "description":
-      "The type of hosted tool the model should to use. Learn more about\n[built-in tools](/docs/guides/tools).\n\nAllowed values are:\n- `file_search`\n- `web_search_preview`\n- `computer_use_preview`\n- `code_interpreter`\n- `image_generation`\n"
+      "The type of hosted tool the model should to use. Learn more about\n[built-in tools](/docs/guides/tools).\n\nAllowed values are:\n- `file_search`\n- `web_search_preview`\n- `computer`\n- `computer_use_preview`\n- `computer_use`\n- `code_interpreter`\n- `image_generation`\n"
   })
 }).annotate({
   "title": "Hosted tool",
@@ -7954,7 +7916,7 @@ export type InputImageContent = {
   readonly "type": "input_image"
   readonly "image_url"?: string | null
   readonly "file_id"?: string | null
-  readonly "detail": "low" | "high" | "auto"
+  readonly "detail": "low" | "high" | "auto" | "original"
 }
 export const InputImageContent = Schema.Struct({
   "type": Schema.Literal("input_image").annotate({
@@ -7975,9 +7937,9 @@ export const InputImageContent = Schema.Struct({
       Schema.Null
     ])
   ),
-  "detail": Schema.Literals(["low", "high", "auto"]).annotate({
+  "detail": Schema.Literals(["low", "high", "auto", "original"]).annotate({
     "description":
-      "The detail level of the image to be sent to the model. One of `high`, `low`, or `auto`. Defaults to `auto`."
+      "The detail level of the image to be sent to the model. One of `high`, `low`, `auto`, or `original`. Defaults to `auto`."
   })
 }).annotate({
   "title": "Input image",
@@ -7987,6 +7949,7 @@ export type ComputerScreenshotContent = {
   readonly "type": "computer_screenshot"
   readonly "image_url": string | null
   readonly "file_id": string | null
+  readonly "detail": "low" | "high" | "auto" | "original"
 }
 export const ComputerScreenshotContent = Schema.Struct({
   "type": Schema.Literal("computer_screenshot").annotate({
@@ -8000,14 +7963,18 @@ export const ComputerScreenshotContent = Schema.Struct({
   "file_id": Schema.Union([
     Schema.String.annotate({ "description": "The identifier of an uploaded file that contains the screenshot." }),
     Schema.Null
-  ])
+  ]),
+  "detail": Schema.Literals(["low", "high", "auto", "original"]).annotate({
+    "description":
+      "The detail level of the screenshot image to be sent to the model. One of `high`, `low`, `auto`, or `original`. Defaults to `auto`."
+  })
 }).annotate({ "title": "Computer screenshot", "description": "A screenshot of a computer." })
 export type InputFileContent = {
   readonly "type": "input_file"
   readonly "file_id"?: string | null
   readonly "filename"?: string
-  readonly "file_url"?: string
   readonly "file_data"?: string
+  readonly "file_url"?: string
 }
 export const InputFileContent = Schema.Struct({
   "type": Schema.Literal("input_file").annotate({ "description": "The type of the input item. Always `input_file`." }),
@@ -8020,11 +7987,11 @@ export const InputFileContent = Schema.Struct({
   "filename": Schema.optionalKey(
     Schema.String.annotate({ "description": "The name of the file to be sent to the model." })
   ),
-  "file_url": Schema.optionalKey(
-    Schema.String.annotate({ "description": "The URL of the file to be sent to the model." })
-  ),
   "file_data": Schema.optionalKey(
     Schema.String.annotate({ "description": "The content of the file to be sent to the model.\n" })
+  ),
+  "file_url": Schema.optionalKey(
+    Schema.String.annotate({ "description": "The URL of the file to be sent to the model." })
   )
 }).annotate({ "title": "Input file", "description": "A file input to the model." })
 export type ClickParam = {
@@ -8130,6 +8097,188 @@ export const ComputerCallSafetyCheckParam = Schema.Struct({
     Schema.Union([Schema.String.annotate({ "description": "Details about the pending safety check." }), Schema.Null])
   )
 }).annotate({ "description": "A pending safety check for the computer call." })
+export type ToolSearchCall = {
+  readonly "type": "tool_search_call"
+  readonly "id": string
+  readonly "call_id": string | null
+  readonly "execution": "server" | "client"
+  readonly "arguments": unknown
+  readonly "status": "in_progress" | "completed" | "incomplete"
+  readonly "created_by"?: string
+}
+export const ToolSearchCall = Schema.Struct({
+  "type": Schema.Literal("tool_search_call").annotate({
+    "description": "The type of the item. Always `tool_search_call`."
+  }),
+  "id": Schema.String.annotate({ "description": "The unique ID of the tool search call item." }),
+  "call_id": Schema.Union([
+    Schema.String.annotate({ "description": "The unique ID of the tool search call generated by the model." }),
+    Schema.Null
+  ]),
+  "execution": Schema.Literals(["server", "client"]).annotate({
+    "description": "Whether tool search was executed by the server or by the client."
+  }),
+  "arguments": Schema.Unknown.annotate({ "description": "Arguments used for the tool search call." }),
+  "status": Schema.Literals(["in_progress", "completed", "incomplete"]).annotate({
+    "description": "The status of the tool search call item that was recorded."
+  }),
+  "created_by": Schema.optionalKey(
+    Schema.String.annotate({ "description": "The identifier of the actor that created the item." })
+  )
+})
+export type FunctionTool = {
+  readonly "type": "function"
+  readonly "name": string
+  readonly "description"?: string | null
+  readonly "parameters": {} | null
+  readonly "strict": boolean | null
+  readonly "defer_loading"?: boolean
+}
+export const FunctionTool = Schema.Struct({
+  "type": Schema.Literal("function").annotate({ "description": "The type of the function tool. Always `function`." }),
+  "name": Schema.String.annotate({ "description": "The name of the function to call." }),
+  "description": Schema.optionalKey(
+    Schema.Union([
+      Schema.String.annotate({
+        "description":
+          "A description of the function. Used by the model to determine whether or not to call the function."
+      }),
+      Schema.Null
+    ])
+  ),
+  "parameters": Schema.Union([
+    Schema.Struct({}).annotate({ "description": "A JSON schema object describing the parameters of the function." }),
+    Schema.Null
+  ]),
+  "strict": Schema.Union([
+    Schema.Boolean.annotate({ "description": "Whether to enforce strict parameter validation. Default `true`." }),
+    Schema.Null
+  ]),
+  "defer_loading": Schema.optionalKey(
+    Schema.Boolean.annotate({ "description": "Whether this function is deferred and loaded via tool search." })
+  )
+}).annotate({
+  "title": "Function",
+  "description":
+    "Defines a function in your own code the model can choose to call. Learn more about [function calling](https://platform.openai.com/docs/guides/function-calling)."
+})
+export type ComputerTool = { readonly "type": "computer" }
+export const ComputerTool = Schema.Struct({
+  "type": Schema.Literal("computer").annotate({ "description": "The type of the computer tool. Always `computer`." })
+}).annotate({
+  "title": "Computer",
+  "description":
+    "A tool that controls a virtual computer. Learn more about the [computer tool](https://platform.openai.com/docs/guides/tools-computer-use)."
+})
+export type ComputerUsePreviewTool = {
+  readonly "type": "computer_use_preview"
+  readonly "environment": "windows" | "mac" | "linux" | "ubuntu" | "browser"
+  readonly "display_width": number
+  readonly "display_height": number
+}
+export const ComputerUsePreviewTool = Schema.Struct({
+  "type": Schema.Literal("computer_use_preview").annotate({
+    "description": "The type of the computer use tool. Always `computer_use_preview`."
+  }),
+  "environment": Schema.Literals(["windows", "mac", "linux", "ubuntu", "browser"]).annotate({
+    "description": "The type of computer environment to control."
+  }),
+  "display_width": Schema.Number.annotate({ "description": "The width of the computer display." }).check(
+    Schema.isInt()
+  ),
+  "display_height": Schema.Number.annotate({ "description": "The height of the computer display." }).check(
+    Schema.isInt()
+  )
+}).annotate({
+  "title": "Computer use preview",
+  "description":
+    "A tool that controls a virtual computer. Learn more about the [computer tool](https://platform.openai.com/docs/guides/tools-computer-use)."
+})
+export type InputFidelity = "high" | "low"
+export const InputFidelity = Schema.Literals(["high", "low"]).annotate({
+  "description":
+    "Control how much effort the model will exert to match the style and features, especially facial features, of input images. This parameter is only supported for `gpt-image-1` and `gpt-image-1.5` and later models, unsupported for `gpt-image-1-mini`. Supports `high` and `low`. Defaults to `low`."
+})
+export type LocalShellToolParam = { readonly "type": "local_shell" }
+export const LocalShellToolParam = Schema.Struct({
+  "type": Schema.Literal("local_shell").annotate({
+    "description": "The type of the local shell tool. Always `local_shell`."
+  })
+}).annotate({
+  "title": "Local shell tool",
+  "description": "A tool that allows the model to execute shell commands in a local environment."
+})
+export type LocalSkillParam = { readonly "name": string; readonly "description": string; readonly "path": string }
+export const LocalSkillParam = Schema.Struct({
+  "name": Schema.String.annotate({ "description": "The name of the skill." }),
+  "description": Schema.String.annotate({ "description": "The description of the skill." }),
+  "path": Schema.String.annotate({ "description": "The path to the directory containing the skill." })
+})
+export type ContainerReferenceParam = { readonly "type": "container_reference"; readonly "container_id": string }
+export const ContainerReferenceParam = Schema.Struct({
+  "type": Schema.Literal("container_reference").annotate({
+    "description": "References a container created with the /v1/containers endpoint"
+  }),
+  "container_id": Schema.String.annotate({ "description": "The ID of the referenced container." })
+})
+export type CustomTextFormatParam = { readonly "type": "text" }
+export const CustomTextFormatParam = Schema.Struct({
+  "type": Schema.Literal("text").annotate({ "description": "Unconstrained text format. Always `text`." })
+}).annotate({ "title": "Text format", "description": "Unconstrained free-form text." })
+export type CustomGrammarFormatParam = {
+  readonly "type": "grammar"
+  readonly "syntax": "lark" | "regex"
+  readonly "definition": string
+}
+export const CustomGrammarFormatParam = Schema.Struct({
+  "type": Schema.Literal("grammar").annotate({ "description": "Grammar format. Always `grammar`." }),
+  "syntax": Schema.Literals(["lark", "regex"]).annotate({
+    "description": "The syntax of the grammar definition. One of `lark` or `regex`."
+  }),
+  "definition": Schema.String.annotate({ "description": "The grammar definition." })
+}).annotate({ "title": "Grammar format", "description": "A grammar defined by the user." })
+export type EmptyModelParam = {}
+export const EmptyModelParam = Schema.Struct({})
+export type ToolSearchToolParam = {
+  readonly "type": "tool_search"
+  readonly "execution"?: "server" | "client"
+  readonly "description"?: string | null
+  readonly "parameters"?: {} | null
+}
+export const ToolSearchToolParam = Schema.Struct({
+  "type": Schema.Literal("tool_search").annotate({ "description": "The type of the tool. Always `tool_search`." }),
+  "execution": Schema.optionalKey(
+    Schema.Literals(["server", "client"]).annotate({
+      "description": "Whether tool search is executed by the server or by the client."
+    })
+  ),
+  "description": Schema.optionalKey(
+    Schema.Union([
+      Schema.String.annotate({
+        "description": "Description shown to the model for a client-executed tool search tool."
+      }),
+      Schema.Null
+    ])
+  ),
+  "parameters": Schema.optionalKey(
+    Schema.Union([
+      Schema.Struct({}).annotate({ "description": "Parameter schema for a client-executed tool search tool." }),
+      Schema.Null
+    ])
+  )
+}).annotate({
+  "title": "Tool search tool",
+  "description": "Hosted or BYOT tool search configuration for deferred tools."
+})
+export type SearchContentType = "text" | "image"
+export const SearchContentType = Schema.Literals(["text", "image"])
+export type ApplyPatchToolParam = { readonly "type": "apply_patch" }
+export const ApplyPatchToolParam = Schema.Struct({
+  "type": Schema.Literal("apply_patch").annotate({ "description": "The type of the tool. Always `apply_patch`." })
+}).annotate({
+  "title": "Apply patch tool",
+  "description": "Allows the assistant to create, delete, or update files using unified diffs."
+})
 export type CodeInterpreterOutputLogs = { readonly "type": "logs"; readonly "logs": string }
 export const CodeInterpreterOutputLogs = Schema.Struct({
   "type": Schema.Literal("logs").annotate({ "description": "The type of the output. Always `logs`." }),
@@ -8276,7 +8425,7 @@ export type InputImageContentParamAutoParam = {
   readonly "type": "input_image"
   readonly "image_url"?: string | null
   readonly "file_id"?: string | null
-  readonly "detail"?: "low" | "high" | "auto" | null
+  readonly "detail"?: "low" | "high" | "auto" | "original" | null
 }
 export const InputImageContentParamAutoParam = Schema.Struct({
   "type": Schema.Literal("input_image").annotate({
@@ -8299,9 +8448,9 @@ export const InputImageContentParamAutoParam = Schema.Struct({
   ),
   "detail": Schema.optionalKey(
     Schema.Union([
-      Schema.Literals(["low", "high", "auto"]).annotate({
+      Schema.Literals(["low", "high", "auto", "original"]).annotate({
         "description":
-          "The detail level of the image to be sent to the model. One of `high`, `low`, or `auto`. Defaults to `auto`."
+          "The detail level of the image to be sent to the model. One of `high`, `low`, `auto`, or `original`. Defaults to `auto`."
       }),
       Schema.Null
     ])
@@ -8346,6 +8495,42 @@ export const InputFileContentParam = Schema.Struct({
     ])
   )
 }).annotate({ "title": "Input file", "description": "A file input to the model." })
+export type ToolSearchCallItemParam = {
+  readonly "id"?: string | null
+  readonly "call_id"?: string | null
+  readonly "type": "tool_search_call"
+  readonly "execution"?: "server" | "client"
+  readonly "arguments": {}
+  readonly "status"?: "in_progress" | "completed" | "incomplete" | null
+}
+export const ToolSearchCallItemParam = Schema.Struct({
+  "id": Schema.optionalKey(
+    Schema.Union([Schema.String.annotate({ "description": "The unique ID of this tool search call." }), Schema.Null])
+  ),
+  "call_id": Schema.optionalKey(
+    Schema.Union([
+      Schema.String.annotate({ "description": "The unique ID of the tool search call generated by the model." }).check(
+        Schema.isMinLength(1)
+      ).check(Schema.isMaxLength(64)),
+      Schema.Null
+    ])
+  ),
+  "type": Schema.Literal("tool_search_call").annotate({ "description": "The item type. Always `tool_search_call`." }),
+  "execution": Schema.optionalKey(
+    Schema.Literals(["server", "client"]).annotate({
+      "description": "Whether tool search was executed by the server or by the client."
+    })
+  ),
+  "arguments": Schema.Struct({}).annotate({ "description": "The arguments supplied to the tool search call." }),
+  "status": Schema.optionalKey(
+    Schema.Union([
+      Schema.Literals(["in_progress", "completed", "incomplete"]).annotate({
+        "description": "The status of the tool search call."
+      }),
+      Schema.Null
+    ])
+  )
+})
 export type CompactionSummaryItemParam = {
   readonly "id"?: string | null
   readonly "type": "compaction"
@@ -8362,19 +8547,6 @@ export const CompactionSummaryItemParam = Schema.Struct({
   "title": "Compaction item",
   "description":
     "A compaction item generated by the [`v1/responses/compact` API](/docs/api-reference/responses/compact)."
-})
-export type LocalSkillParam = { readonly "name": string; readonly "description": string; readonly "path": string }
-export const LocalSkillParam = Schema.Struct({
-  "name": Schema.String.annotate({ "description": "The name of the skill." }),
-  "description": Schema.String.annotate({ "description": "The description of the skill." }),
-  "path": Schema.String.annotate({ "description": "The path to the directory containing the skill." })
-})
-export type ContainerReferenceParam = { readonly "type": "container_reference"; readonly "container_id": string }
-export const ContainerReferenceParam = Schema.Struct({
-  "type": Schema.Literal("container_reference").annotate({
-    "description": "References a container created with the /v1/containers endpoint"
-  }),
-  "container_id": Schema.String.annotate({ "description": "The ID of the referenced container." })
 })
 export type FunctionShellCallOutputTimeoutOutcomeParam = { readonly "type": "timeout" }
 export const FunctionShellCallOutputTimeoutOutcomeParam = Schema.Struct({
@@ -8507,163 +8679,6 @@ export const ConversationResource = Schema.Struct({
     "description": "The time at which the conversation was created, measured in seconds since the Unix epoch."
   }).check(Schema.isInt())
 })
-export type FunctionTool = {
-  readonly "type": "function"
-  readonly "name": string
-  readonly "description"?: string | null
-  readonly "parameters": {} | null
-  readonly "strict": boolean | null
-}
-export const FunctionTool = Schema.Struct({
-  "type": Schema.Literal("function").annotate({ "description": "The type of the function tool. Always `function`." }),
-  "name": Schema.String.annotate({ "description": "The name of the function to call." }),
-  "description": Schema.optionalKey(
-    Schema.Union([
-      Schema.String.annotate({
-        "description":
-          "A description of the function. Used by the model to determine whether or not to call the function."
-      }),
-      Schema.Null
-    ])
-  ),
-  "parameters": Schema.Union([
-    Schema.Struct({}).annotate({ "description": "A JSON schema object describing the parameters of the function." }),
-    Schema.Null
-  ]),
-  "strict": Schema.Union([
-    Schema.Boolean.annotate({ "description": "Whether to enforce strict parameter validation. Default `true`." }),
-    Schema.Null
-  ])
-}).annotate({
-  "title": "Function",
-  "description":
-    "Defines a function in your own code the model can choose to call. Learn more about [function calling](https://platform.openai.com/docs/guides/function-calling)."
-})
-export type ComputerUsePreviewTool = {
-  readonly "type": "computer_use_preview"
-  readonly "environment": "windows" | "mac" | "linux" | "ubuntu" | "browser"
-  readonly "display_width": number
-  readonly "display_height": number
-}
-export const ComputerUsePreviewTool = Schema.Struct({
-  "type": Schema.Literal("computer_use_preview").annotate({
-    "description": "The type of the computer use tool. Always `computer_use_preview`."
-  }),
-  "environment": Schema.Literals(["windows", "mac", "linux", "ubuntu", "browser"]).annotate({
-    "description": "The type of computer environment to control."
-  }),
-  "display_width": Schema.Number.annotate({ "description": "The width of the computer display." }).check(
-    Schema.isInt()
-  ),
-  "display_height": Schema.Number.annotate({ "description": "The height of the computer display." }).check(
-    Schema.isInt()
-  )
-}).annotate({
-  "title": "Computer use preview",
-  "description":
-    "A tool that controls a virtual computer. Learn more about the [computer tool](https://platform.openai.com/docs/guides/tools-computer-use)."
-})
-export type InputFidelity = "high" | "low"
-export const InputFidelity = Schema.Literals(["high", "low"]).annotate({
-  "description":
-    "Control how much effort the model will exert to match the style and features, especially facial features, of input images. This parameter is only supported for `gpt-image-1` and `gpt-image-1.5` and later models, unsupported for `gpt-image-1-mini`. Supports `high` and `low`. Defaults to `low`."
-})
-export type LocalShellToolParam = { readonly "type": "local_shell" }
-export const LocalShellToolParam = Schema.Struct({
-  "type": Schema.Literal("local_shell").annotate({
-    "description": "The type of the local shell tool. Always `local_shell`."
-  })
-}).annotate({
-  "title": "Local shell tool",
-  "description": "A tool that allows the model to execute shell commands in a local environment."
-})
-export type CustomTextFormatParam = { readonly "type": "text" }
-export const CustomTextFormatParam = Schema.Struct({
-  "type": Schema.Literal("text").annotate({ "description": "Unconstrained text format. Always `text`." })
-}).annotate({ "title": "Text format", "description": "Unconstrained free-form text." })
-export type CustomGrammarFormatParam = {
-  readonly "type": "grammar"
-  readonly "syntax": "lark" | "regex"
-  readonly "definition": string
-}
-export const CustomGrammarFormatParam = Schema.Struct({
-  "type": Schema.Literal("grammar").annotate({ "description": "Grammar format. Always `grammar`." }),
-  "syntax": Schema.Literals(["lark", "regex"]).annotate({
-    "description": "The syntax of the grammar definition. One of `lark` or `regex`."
-  }),
-  "definition": Schema.String.annotate({ "description": "The grammar definition." })
-}).annotate({ "title": "Grammar format", "description": "A grammar defined by the user." })
-export type WebSearchPreviewTool = {
-  readonly "type": "web_search_preview" | "web_search_preview_2025_03_11"
-  readonly "user_location"?: {
-    readonly "type": "approximate"
-    readonly "country"?: string | null
-    readonly "region"?: string | null
-    readonly "city"?: string | null
-    readonly "timezone"?: string | null
-  } | null
-  readonly "search_context_size"?: "low" | "medium" | "high"
-}
-export const WebSearchPreviewTool = Schema.Struct({
-  "type": Schema.Literals(["web_search_preview", "web_search_preview_2025_03_11"]).annotate({
-    "description": "The type of the web search tool. One of `web_search_preview` or `web_search_preview_2025_03_11`."
-  }),
-  "user_location": Schema.optionalKey(Schema.Union([
-    Schema.Struct({
-      "type": Schema.Literal("approximate").annotate({
-        "description": "The type of location approximation. Always `approximate`."
-      }),
-      "country": Schema.optionalKey(
-        Schema.Union([
-          Schema.String.annotate({
-            "description":
-              "The two-letter [ISO country code](https://en.wikipedia.org/wiki/ISO_3166-1) of the user, e.g. `US`."
-          }),
-          Schema.Null
-        ])
-      ),
-      "region": Schema.optionalKey(
-        Schema.Union([
-          Schema.String.annotate({ "description": "Free text input for the region of the user, e.g. `California`." }),
-          Schema.Null
-        ])
-      ),
-      "city": Schema.optionalKey(
-        Schema.Union([
-          Schema.String.annotate({ "description": "Free text input for the city of the user, e.g. `San Francisco`." }),
-          Schema.Null
-        ])
-      ),
-      "timezone": Schema.optionalKey(
-        Schema.Union([
-          Schema.String.annotate({
-            "description":
-              "The [IANA timezone](https://timeapi.io/documentation/iana-timezones) of the user, e.g. `America/Los_Angeles`."
-          }),
-          Schema.Null
-        ])
-      )
-    }).annotate({ "description": "The user's location." }),
-    Schema.Null
-  ])),
-  "search_context_size": Schema.optionalKey(
-    Schema.Literals(["low", "medium", "high"]).annotate({
-      "description":
-        "High level guidance for the amount of context window space to use for the search. One of `low`, `medium`, or `high`. `medium` is the default."
-    })
-  )
-}).annotate({
-  "title": "Web search preview",
-  "description":
-    "This tool searches the web for relevant results to use in a response. Learn more about the [web search tool](https://platform.openai.com/docs/guides/tools-web-search)."
-})
-export type ApplyPatchToolParam = { readonly "type": "apply_patch" }
-export const ApplyPatchToolParam = Schema.Struct({
-  "type": Schema.Literal("apply_patch").annotate({ "description": "The type of the tool. Always `apply_patch`." })
-}).annotate({
-  "title": "Apply patch tool",
-  "description": "Allows the assistant to create, delete, or update files using unified diffs."
-})
 export type ImageGenOutputTokensDetails = { readonly "image_tokens": number; readonly "text_tokens": number }
 export const ImageGenOutputTokensDetails = Schema.Struct({
   "image_tokens": Schema.Number.annotate({ "description": "The number of image output tokens generated by the model." })
@@ -8790,7 +8805,7 @@ export type VideoResource = {
   readonly "expires_at": number | null
   readonly "prompt": string | null
   readonly "size": "720x1280" | "1280x720" | "1024x1792" | "1792x1024"
-  readonly "seconds": "4" | "8" | "12"
+  readonly "seconds": string
   readonly "remixed_from_video_id": string | null
   readonly "error": { readonly "code": string; readonly "message": string } | null
 }
@@ -8826,8 +8841,8 @@ export const VideoResource = Schema.Struct({
   "size": Schema.Literals(["720x1280", "1280x720", "1024x1792", "1792x1024"]).annotate({
     "description": "The resolution of the generated video."
   }),
-  "seconds": Schema.Literals(["4", "8", "12"]).annotate({
-    "description": "Duration of the generated clip in seconds."
+  "seconds": Schema.String.annotate({
+    "description": "Duration of the generated clip in seconds. For extensions, this is the stitched total duration."
   }),
   "remixed_from_video_id": Schema.Union([
     Schema.String.annotate({ "description": "Identifier of the source video if this video is a remix." }),
@@ -8846,7 +8861,16 @@ export const VideoResource = Schema.Struct({
     Schema.Null
   ])
 }).annotate({ "title": "Video job", "description": "Structured information describing a generated video job." })
-export type CreateVideoBody = {
+export type ImageRefParam_2 = { readonly "image_url"?: string; readonly "file_id"?: string }
+export const ImageRefParam_2 = Schema.Struct({
+  "image_url": Schema.optionalKey(
+    Schema.String.annotate({ "description": "A fully qualified URL or base64-encoded data URL." }).check(
+      Schema.isMaxLength(20971520)
+    )
+  ),
+  "file_id": Schema.optionalKey(Schema.String)
+})
+export type CreateVideoJsonBody = {
   readonly "model"?:
     | string
     | "sora-2"
@@ -8855,11 +8879,11 @@ export type CreateVideoBody = {
     | "sora-2-pro-2025-10-06"
     | "sora-2-2025-12-08"
   readonly "prompt": string
-  readonly "input_reference"?: string
+  readonly "input_reference"?: { readonly "image_url"?: string; readonly "file_id"?: string }
   readonly "seconds"?: "4" | "8" | "12"
   readonly "size"?: "720x1280" | "1280x720" | "1024x1792" | "1792x1024"
 }
-export const CreateVideoBody = Schema.Struct({
+export const CreateVideoJsonBody = Schema.Struct({
   "model": Schema.optionalKey(
     Schema.Union([
       Schema.String,
@@ -8872,7 +8896,17 @@ export const CreateVideoBody = Schema.Struct({
     Schema.isMinLength(1)
   ).check(Schema.isMaxLength(32000)),
   "input_reference": Schema.optionalKey(
-    Schema.String.annotate({ "description": "Optional image reference that guides generation.", "format": "binary" })
+    Schema.Struct({
+      "image_url": Schema.optionalKey(
+        Schema.String.annotate({ "description": "A fully qualified URL or base64-encoded data URL." }).check(
+          Schema.isMaxLength(20971520)
+        )
+      ),
+      "file_id": Schema.optionalKey(Schema.String)
+    }).annotate({
+      "description":
+        "Optional reference object that guides generation. Provide exactly one of `image_url` or `file_id`."
+    })
   ),
   "seconds": Schema.optionalKey(
     Schema.Literals(["4", "8", "12"]).annotate({
@@ -8885,7 +8919,65 @@ export const CreateVideoBody = Schema.Struct({
         "Output resolution formatted as width x height (allowed values: 720x1280, 1280x720, 1024x1792, 1792x1024). Defaults to 720x1280."
     })
   )
-}).annotate({ "title": "Create video request", "description": "Parameters for creating a new video generation job." })
+}).annotate({
+  "title": "Create video JSON request",
+  "description": "JSON parameters for creating a new video generation job."
+})
+export type CreateVideoCharacterBody = { readonly "video": string; readonly "name": string }
+export const CreateVideoCharacterBody = Schema.Struct({
+  "video": Schema.String.annotate({ "description": "Video file used to create a character.", "format": "binary" }),
+  "name": Schema.String.annotate({ "description": "Display name for this API character." }).check(Schema.isMinLength(1))
+    .check(Schema.isMaxLength(80))
+}).annotate({
+  "title": "Create character request",
+  "description": "Parameters for creating a character from an uploaded video."
+})
+export type VideoCharacterResource = {
+  readonly "id": string | null
+  readonly "name": string | null
+  readonly "created_at": number
+}
+export const VideoCharacterResource = Schema.Struct({
+  "id": Schema.Union([
+    Schema.String.annotate({ "description": "Identifier for the character creation cameo." }),
+    Schema.Null
+  ]),
+  "name": Schema.Union([Schema.String.annotate({ "description": "Display name for the character." }), Schema.Null]),
+  "created_at": Schema.Number.annotate({ "description": "Unix timestamp (in seconds) when the character was created." })
+    .check(Schema.isInt())
+})
+export type VideoReferenceInputParam = { readonly "id": string }
+export const VideoReferenceInputParam = Schema.Struct({
+  "id": Schema.String.annotate({ "description": "The identifier of the completed video." })
+}).annotate({ "description": "Reference to the completed video." })
+export type CreateVideoEditJsonBody = { readonly "video": { readonly "id": string }; readonly "prompt": string }
+export const CreateVideoEditJsonBody = Schema.Struct({
+  "video": Schema.Struct({ "id": Schema.String.annotate({ "description": "The identifier of the completed video." }) })
+    .annotate({ "description": "Reference to the completed video to edit." }),
+  "prompt": Schema.String.annotate({ "description": "Text prompt that describes how to edit the source video." }).check(
+    Schema.isMinLength(1)
+  ).check(Schema.isMaxLength(32000))
+}).annotate({
+  "title": "Create video edit JSON request",
+  "description": "JSON parameters for editing an existing generated video."
+})
+export type CreateVideoExtendJsonBody = {
+  readonly "video": { readonly "id": string }
+  readonly "prompt": string
+  readonly "seconds": "4" | "8" | "12"
+}
+export const CreateVideoExtendJsonBody = Schema.Struct({
+  "video": Schema.Struct({ "id": Schema.String.annotate({ "description": "The identifier of the completed video." }) })
+    .annotate({ "description": "Reference to the completed video to extend." }),
+  "prompt": Schema.String.annotate({ "description": "Updated text prompt that directs the extension generation." })
+    .check(Schema.isMinLength(1)).check(Schema.isMaxLength(32000)),
+  "seconds": Schema.Literals(["4", "8", "12"]).annotate({
+    "description": "Length of the newly generated extension segment in seconds (allowed values: 4, 8, 12, 16, 20)."
+  })
+}).annotate({
+  "title": "Create video extension JSON request",
+  "description": "JSON parameters for extending an existing generated video."
+})
 export type DeletedVideoResource = {
   readonly "object": "video.deleted"
   readonly "deleted": boolean
@@ -9455,6 +9547,15 @@ export const DeletedThreadResource = Schema.Struct({
   }),
   "deleted": Schema.Boolean.annotate({ "description": "Indicates that the thread has been deleted." })
 }).annotate({ "title": "Deleted thread", "description": "Confirmation payload returned after deleting a thread." })
+export type ResponseKeepAliveEvent = { readonly "type": "keepalive"; readonly "sequence_number": number }
+export const ResponseKeepAliveEvent = Schema.Struct({
+  "type": Schema.Literal("keepalive").annotate({
+    "description": "The type of the keepalive event. Always `keepalive`."
+  }),
+  "sequence_number": Schema.Number.annotate({ "description": "The sequence number of this keepalive event." }).check(
+    Schema.isInt()
+  )
+}).annotate({ "title": "Keep alive", "description": "A keepalive event emitted during long-running response streams." })
 export type ResponseApplyPatchCallOperationDiffDeltaEvent = {
   readonly "type": "response.apply_patch_call_operation_diff.delta"
   readonly "sequence_number": number
@@ -10368,6 +10469,7 @@ export type MCPTool = {
     | "always"
     | "never"
     | null
+  readonly "defer_loading"?: boolean
 }
 export const MCPTool = Schema.Struct({
   "type": Schema.Literal("mcp").annotate({ "description": "The type of the MCP tool. Always `mcp`." }),
@@ -10440,6 +10542,9 @@ export const MCPTool = Schema.Struct({
       ], { mode: "oneOf" }).annotate({ "description": "Specify which of the MCP server's tools require approval." }),
       Schema.Null
     ])
+  ),
+  "defer_loading": Schema.optionalKey(
+    Schema.Boolean.annotate({ "description": "Whether this MCP tool is deferred and discovered via tool search.\n" })
   )
 }).annotate({
   "title": "MCP tool",
@@ -12545,6 +12650,58 @@ export const VoiceConsentListResource = Schema.Struct({
   "last_id": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
   "has_more": Schema.Boolean
 })
+export type CreateSpeechRequest = {
+  readonly "model": string | "tts-1" | "tts-1-hd" | "gpt-4o-mini-tts" | "gpt-4o-mini-tts-2025-12-15"
+  readonly "input": string
+  readonly "instructions"?: string
+  readonly "voice": VoiceIdsShared | { readonly "id": string }
+  readonly "response_format"?: "mp3" | "opus" | "aac" | "flac" | "wav" | "pcm"
+  readonly "speed"?: number
+  readonly "stream_format"?: "sse" | "audio"
+}
+export const CreateSpeechRequest = Schema.Struct({
+  "model": Schema.Union([
+    Schema.String,
+    Schema.Literals(["tts-1", "tts-1-hd", "gpt-4o-mini-tts", "gpt-4o-mini-tts-2025-12-15"])
+  ]).annotate({
+    "description":
+      "One of the available [TTS models](/docs/models#tts): `tts-1`, `tts-1-hd`, `gpt-4o-mini-tts`, or `gpt-4o-mini-tts-2025-12-15`.\n"
+  }),
+  "input": Schema.String.annotate({
+    "description": "The text to generate audio for. The maximum length is 4096 characters."
+  }).check(Schema.isMaxLength(4096)),
+  "instructions": Schema.optionalKey(
+    Schema.String.annotate({
+      "description":
+        "Control the voice of your generated audio with additional instructions. Does not work with `tts-1` or `tts-1-hd`."
+    }).check(Schema.isMaxLength(4096))
+  ),
+  "voice": Schema.Union([
+    VoiceIdsShared,
+    Schema.Struct({ "id": Schema.String.annotate({ "description": "The custom voice ID, e.g. `voice_1234`." }) })
+      .annotate({ "description": "Custom voice reference." })
+  ]).annotate({
+    "title": "Voice",
+    "description":
+      "The voice to use when generating the audio. Supported built-in voices are `alloy`, `ash`, `ballad`, `coral`, `echo`, `fable`, `onyx`, `nova`, `sage`, `shimmer`, `verse`, `marin`, and `cedar`. You may also provide a custom voice object with an `id`, for example `{ \"id\": \"voice_1234\" }`. Previews of the voices are available in the [Text to speech guide](/docs/guides/text-to-speech#voice-options)."
+  }),
+  "response_format": Schema.optionalKey(
+    Schema.Literals(["mp3", "opus", "aac", "flac", "wav", "pcm"]).annotate({
+      "description": "The format to audio in. Supported formats are `mp3`, `opus`, `aac`, `flac`, `wav`, and `pcm`."
+    })
+  ),
+  "speed": Schema.optionalKey(
+    Schema.Number.annotate({
+      "description": "The speed of the generated audio. Select a value from `0.25` to `4.0`. `1.0` is the default."
+    }).check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0.25)).check(Schema.isLessThanOrEqualTo(4))
+  ),
+  "stream_format": Schema.optionalKey(
+    Schema.Literals(["sse", "audio"]).annotate({
+      "description":
+        "The format to stream the audio in. Supported formats are `sse` and `audio`. `sse` is not supported for `tts-1` or `tts-1-hd`."
+    })
+  )
+})
 export type RealtimeSessionCreateResponse = {
   readonly "id"?: string
   readonly "object"?: string
@@ -12986,280 +13143,6 @@ export const ComputerCallOutputItemParam = Schema.Struct({
     ])
   )
 }).annotate({ "title": "Computer tool call output", "description": "The output of a computer tool call." })
-export type CodeInterpreterToolCall = {
-  readonly "type": "code_interpreter_call"
-  readonly "id": string
-  readonly "status": "in_progress" | "completed" | "incomplete" | "interpreting" | "failed"
-  readonly "container_id": string
-  readonly "code": string | null
-  readonly "outputs": ReadonlyArray<CodeInterpreterOutputLogs | CodeInterpreterOutputImage> | null
-}
-export const CodeInterpreterToolCall = Schema.Struct({
-  "type": Schema.Literal("code_interpreter_call").annotate({
-    "description": "The type of the code interpreter tool call. Always `code_interpreter_call`.\n"
-  }),
-  "id": Schema.String.annotate({ "description": "The unique ID of the code interpreter tool call.\n" }),
-  "status": Schema.Literals(["in_progress", "completed", "incomplete", "interpreting", "failed"]).annotate({
-    "description":
-      "The status of the code interpreter tool call. Valid values are `in_progress`, `completed`, `incomplete`, `interpreting`, and `failed`.\n"
-  }),
-  "container_id": Schema.String.annotate({ "description": "The ID of the container used to run the code.\n" }),
-  "code": Schema.Union([
-    Schema.String.annotate({ "description": "The code to run, or null if not available.\n" }),
-    Schema.Null
-  ]),
-  "outputs": Schema.Union([
-    Schema.Array(Schema.Union([CodeInterpreterOutputLogs, CodeInterpreterOutputImage], { mode: "oneOf" })).annotate({
-      "description":
-        "The outputs generated by the code interpreter, such as logs or images.\nCan be null if no outputs are available.\n"
-    }),
-    Schema.Null
-  ])
-}).annotate({ "title": "Code interpreter tool call", "description": "A tool call to run code.\n" })
-export type LocalShellToolCall = {
-  readonly "type": "local_shell_call"
-  readonly "id": string
-  readonly "call_id": string
-  readonly "action": LocalShellExecAction
-  readonly "status": "in_progress" | "completed" | "incomplete"
-}
-export const LocalShellToolCall = Schema.Struct({
-  "type": Schema.Literal("local_shell_call").annotate({
-    "description": "The type of the local shell call. Always `local_shell_call`.\n"
-  }),
-  "id": Schema.String.annotate({ "description": "The unique ID of the local shell call.\n" }),
-  "call_id": Schema.String.annotate({
-    "description": "The unique ID of the local shell tool call generated by the model.\n"
-  }),
-  "action": LocalShellExecAction,
-  "status": Schema.Literals(["in_progress", "completed", "incomplete"]).annotate({
-    "description": "The status of the local shell call.\n"
-  })
-}).annotate({ "title": "Local shell call", "description": "A tool call to run a command on the local shell.\n" })
-export type FunctionShellCall = {
-  readonly "type": "shell_call"
-  readonly "id": string
-  readonly "call_id": string
-  readonly "action": {
-    readonly "commands": ReadonlyArray<string>
-    readonly "timeout_ms": number | null
-    readonly "max_output_length": number | null
-  }
-  readonly "status": "in_progress" | "completed" | "incomplete"
-  readonly "environment": LocalEnvironmentResource | ContainerReferenceResource | null
-  readonly "created_by"?: string
-}
-export const FunctionShellCall = Schema.Struct({
-  "type": Schema.Literal("shell_call").annotate({ "description": "The type of the item. Always `shell_call`." }),
-  "id": Schema.String.annotate({
-    "description": "The unique ID of the shell tool call. Populated when this item is returned via API."
-  }),
-  "call_id": Schema.String.annotate({ "description": "The unique ID of the shell tool call generated by the model." }),
-  "action": Schema.Struct({
-    "commands": Schema.Array(Schema.String.annotate({ "description": "A list of commands to run." })),
-    "timeout_ms": Schema.Union([
-      Schema.Number.annotate({ "description": "Optional timeout in milliseconds for the commands." }).check(
-        Schema.isInt()
-      ),
-      Schema.Null
-    ]),
-    "max_output_length": Schema.Union([
-      Schema.Number.annotate({ "description": "Optional maximum number of characters to return from each command." })
-        .check(Schema.isInt()),
-      Schema.Null
-    ])
-  }).annotate({
-    "title": "Shell exec action",
-    "description": "The shell commands and limits that describe how to run the tool call."
-  }),
-  "status": Schema.Literals(["in_progress", "completed", "incomplete"]).annotate({
-    "description": "The status of the shell call. One of `in_progress`, `completed`, or `incomplete`."
-  }),
-  "environment": Schema.Union([
-    Schema.Union([LocalEnvironmentResource, ContainerReferenceResource], { mode: "oneOf" }),
-    Schema.Null
-  ]),
-  "created_by": Schema.optionalKey(
-    Schema.String.annotate({ "description": "The ID of the entity that created this tool call." })
-  )
-}).annotate({
-  "title": "Shell tool call",
-  "description": "A tool call that executes one or more shell commands in a managed environment."
-})
-export type FunctionShellCallOutputContent = {
-  readonly "stdout": string
-  readonly "stderr": string
-  readonly "outcome": FunctionShellCallOutputTimeoutOutcome | FunctionShellCallOutputExitOutcome
-  readonly "created_by"?: string
-}
-export const FunctionShellCallOutputContent = Schema.Struct({
-  "stdout": Schema.String.annotate({ "description": "The standard output that was captured." }),
-  "stderr": Schema.String.annotate({ "description": "The standard error output that was captured." }),
-  "outcome": Schema.Union([FunctionShellCallOutputTimeoutOutcome, FunctionShellCallOutputExitOutcome], {
-    mode: "oneOf"
-  }).annotate({
-    "title": "Shell call outcome",
-    "description":
-      "Represents either an exit outcome (with an exit code) or a timeout outcome for a shell call output chunk."
-  }),
-  "created_by": Schema.optionalKey(
-    Schema.String.annotate({ "description": "The identifier of the actor that created the item." })
-  )
-}).annotate({
-  "title": "Shell call output content",
-  "description": "The content of a shell tool call output that was emitted."
-})
-export type ApplyPatchToolCall = {
-  readonly "type": "apply_patch_call"
-  readonly "id": string
-  readonly "call_id": string
-  readonly "status": "in_progress" | "completed"
-  readonly "operation": ApplyPatchCreateFileOperation | ApplyPatchDeleteFileOperation | ApplyPatchUpdateFileOperation
-  readonly "created_by"?: string
-}
-export const ApplyPatchToolCall = Schema.Struct({
-  "type": Schema.Literal("apply_patch_call").annotate({
-    "description": "The type of the item. Always `apply_patch_call`."
-  }),
-  "id": Schema.String.annotate({
-    "description": "The unique ID of the apply patch tool call. Populated when this item is returned via API."
-  }),
-  "call_id": Schema.String.annotate({
-    "description": "The unique ID of the apply patch tool call generated by the model."
-  }),
-  "status": Schema.Literals(["in_progress", "completed"]).annotate({
-    "description": "The status of the apply patch tool call. One of `in_progress` or `completed`."
-  }),
-  "operation": Schema.Union([
-    ApplyPatchCreateFileOperation,
-    ApplyPatchDeleteFileOperation,
-    ApplyPatchUpdateFileOperation
-  ], { mode: "oneOf" }).annotate({
-    "title": "Apply patch operation",
-    "description": "One of the create_file, delete_file, or update_file operations applied via apply_patch."
-  }),
-  "created_by": Schema.optionalKey(
-    Schema.String.annotate({ "description": "The ID of the entity that created this tool call." })
-  )
-}).annotate({
-  "title": "Apply patch tool call",
-  "description": "A tool call that applies file diffs by creating, deleting, or updating files."
-})
-export type FunctionCallOutputItemParam = {
-  readonly "id"?: string | null
-  readonly "call_id": string
-  readonly "type": "function_call_output"
-  readonly "output":
-    | string
-    | ReadonlyArray<InputTextContentParam | InputImageContentParamAutoParam | InputFileContentParam>
-  readonly "status"?: "in_progress" | "completed" | "incomplete" | null
-}
-export const FunctionCallOutputItemParam = Schema.Struct({
-  "id": Schema.optionalKey(
-    Schema.Union([
-      Schema.String.annotate({
-        "description": "The unique ID of the function tool call output. Populated when this item is returned via API."
-      }),
-      Schema.Null
-    ])
-  ),
-  "call_id": Schema.String.annotate({
-    "description": "The unique ID of the function tool call generated by the model."
-  }).check(Schema.isMinLength(1)).check(Schema.isMaxLength(64)),
-  "type": Schema.Literal("function_call_output").annotate({
-    "description": "The type of the function tool call output. Always `function_call_output`."
-  }),
-  "output": Schema.Union([
-    Schema.String.annotate({ "description": "A JSON string of the output of the function tool call." }).check(
-      Schema.isMaxLength(10485760)
-    ),
-    Schema.Array(
-      Schema.Union([InputTextContentParam, InputImageContentParamAutoParam, InputFileContentParam], { mode: "oneOf" })
-        .annotate({ "description": "A piece of message content, such as text, an image, or a file." })
-    ).annotate({ "description": "An array of content outputs (text, image, file) for the function tool call." })
-  ], { mode: "oneOf" }).annotate({ "description": "Text, image, or file output of the function tool call." }),
-  "status": Schema.optionalKey(
-    Schema.Union([
-      Schema.Literals(["in_progress", "completed", "incomplete"]).annotate({
-        "description":
-          "The status of the item. One of `in_progress`, `completed`, or `incomplete`. Populated when items are returned via API."
-      }),
-      Schema.Null
-    ])
-  )
-}).annotate({ "title": "Function tool call output", "description": "The output of a function tool call." })
-export type LocalEnvironmentParam = { readonly "type": "local"; readonly "skills"?: ReadonlyArray<LocalSkillParam> }
-export const LocalEnvironmentParam = Schema.Struct({
-  "type": Schema.Literal("local").annotate({ "description": "Use a local computer environment." }),
-  "skills": Schema.optionalKey(
-    Schema.Array(LocalSkillParam).annotate({ "description": "An optional list of skills." }).check(
-      Schema.isMaxLength(200)
-    )
-  )
-})
-export type FunctionShellCallOutputContentParam = {
-  readonly "stdout": string
-  readonly "stderr": string
-  readonly "outcome": FunctionShellCallOutputTimeoutOutcomeParam | FunctionShellCallOutputExitOutcomeParam
-}
-export const FunctionShellCallOutputContentParam = Schema.Struct({
-  "stdout": Schema.String.annotate({ "description": "Captured stdout output for the shell call." }).check(
-    Schema.isMaxLength(10485760)
-  ),
-  "stderr": Schema.String.annotate({ "description": "Captured stderr output for the shell call." }).check(
-    Schema.isMaxLength(10485760)
-  ),
-  "outcome": Schema.Union([FunctionShellCallOutputTimeoutOutcomeParam, FunctionShellCallOutputExitOutcomeParam], {
-    mode: "oneOf"
-  }).annotate({
-    "title": "Shell call outcome",
-    "description": "The exit or timeout outcome associated with this shell call."
-  })
-}).annotate({
-  "title": "Shell output content",
-  "description": "Captured stdout and stderr for a portion of a shell tool call output."
-})
-export type ApplyPatchToolCallItemParam = {
-  readonly "type": "apply_patch_call"
-  readonly "id"?: string | null
-  readonly "call_id": string
-  readonly "status": "in_progress" | "completed"
-  readonly "operation":
-    | ApplyPatchCreateFileOperationParam
-    | ApplyPatchDeleteFileOperationParam
-    | ApplyPatchUpdateFileOperationParam
-}
-export const ApplyPatchToolCallItemParam = Schema.Struct({
-  "type": Schema.Literal("apply_patch_call").annotate({
-    "description": "The type of the item. Always `apply_patch_call`."
-  }),
-  "id": Schema.optionalKey(
-    Schema.Union([
-      Schema.String.annotate({
-        "description": "The unique ID of the apply patch tool call. Populated when this item is returned via API."
-      }),
-      Schema.Null
-    ])
-  ),
-  "call_id": Schema.String.annotate({
-    "description": "The unique ID of the apply patch tool call generated by the model."
-  }).check(Schema.isMinLength(1)).check(Schema.isMaxLength(64)),
-  "status": Schema.Literals(["in_progress", "completed"]).annotate({
-    "title": "Apply patch call status",
-    "description": "The status of the apply patch tool call. One of `in_progress` or `completed`."
-  }),
-  "operation": Schema.Union([
-    ApplyPatchCreateFileOperationParam,
-    ApplyPatchDeleteFileOperationParam,
-    ApplyPatchUpdateFileOperationParam
-  ], { mode: "oneOf" }).annotate({
-    "title": "Apply patch operation",
-    "description": "The specific create, delete, or update instruction for the apply_patch tool call."
-  })
-}).annotate({
-  "title": "Apply patch tool call",
-  "description": "A tool call representing a request to create, delete, or update files using diff patches."
-})
 export type CreateImageEditRequest = {
   readonly "image": string | ReadonlyArray<string>
   readonly "prompt": string
@@ -13464,11 +13347,21 @@ export const ImageGenTool = Schema.Struct({
   "title": "Image generation tool",
   "description": "A tool that generates images using the GPT image models.\n"
 })
+export type LocalEnvironmentParam = { readonly "type": "local"; readonly "skills"?: ReadonlyArray<LocalSkillParam> }
+export const LocalEnvironmentParam = Schema.Struct({
+  "type": Schema.Literal("local").annotate({ "description": "Use a local computer environment." }),
+  "skills": Schema.optionalKey(
+    Schema.Array(LocalSkillParam).annotate({ "description": "An optional list of skills." }).check(
+      Schema.isMaxLength(200)
+    )
+  )
+})
 export type CustomToolParam = {
   readonly "type": "custom"
   readonly "name": string
   readonly "description"?: string
   readonly "format"?: CustomTextFormatParam | CustomGrammarFormatParam
+  readonly "defer_loading"?: boolean
 }
 export const CustomToolParam = Schema.Struct({
   "type": Schema.Literal("custom").annotate({ "description": "The type of the custom tool. Always `custom`." }),
@@ -13480,11 +13373,367 @@ export const CustomToolParam = Schema.Struct({
     Schema.Union([CustomTextFormatParam, CustomGrammarFormatParam], { mode: "oneOf" }).annotate({
       "description": "The input format for the custom tool. Default is unconstrained text."
     })
+  ),
+  "defer_loading": Schema.optionalKey(
+    Schema.Boolean.annotate({ "description": "Whether this tool should be deferred and discovered via tool search." })
   )
 }).annotate({
   "title": "Custom tool",
   "description":
     "A custom tool that processes input using a specified format. Learn more about   [custom tools](/docs/guides/function-calling#custom-tools)"
+})
+export type FunctionToolParam = {
+  readonly "name": string
+  readonly "description"?: string | null
+  readonly "parameters"?: EmptyModelParam | null
+  readonly "strict"?: boolean | null
+  readonly "type": "function"
+  readonly "defer_loading"?: boolean
+}
+export const FunctionToolParam = Schema.Struct({
+  "name": Schema.String.check(Schema.isMinLength(1)).check(Schema.isMaxLength(128)).check(
+    Schema.isPattern(new RegExp("^[a-zA-Z0-9_-]+$"))
+  ),
+  "description": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
+  "parameters": Schema.optionalKey(Schema.Union([EmptyModelParam, Schema.Null])),
+  "strict": Schema.optionalKey(Schema.Union([Schema.Boolean, Schema.Null])),
+  "type": Schema.Literal("function"),
+  "defer_loading": Schema.optionalKey(
+    Schema.Boolean.annotate({
+      "description": "Whether this function should be deferred and discovered via tool search."
+    })
+  )
+})
+export type WebSearchPreviewTool = {
+  readonly "type": "web_search_preview" | "web_search_preview_2025_03_11"
+  readonly "user_location"?: {
+    readonly "type": "approximate"
+    readonly "country"?: string | null
+    readonly "region"?: string | null
+    readonly "city"?: string | null
+    readonly "timezone"?: string | null
+  } | null
+  readonly "search_context_size"?: "low" | "medium" | "high"
+  readonly "search_content_types"?: ReadonlyArray<SearchContentType>
+}
+export const WebSearchPreviewTool = Schema.Struct({
+  "type": Schema.Literals(["web_search_preview", "web_search_preview_2025_03_11"]).annotate({
+    "description": "The type of the web search tool. One of `web_search_preview` or `web_search_preview_2025_03_11`."
+  }),
+  "user_location": Schema.optionalKey(Schema.Union([
+    Schema.Struct({
+      "type": Schema.Literal("approximate").annotate({
+        "description": "The type of location approximation. Always `approximate`."
+      }),
+      "country": Schema.optionalKey(
+        Schema.Union([
+          Schema.String.annotate({
+            "description":
+              "The two-letter [ISO country code](https://en.wikipedia.org/wiki/ISO_3166-1) of the user, e.g. `US`."
+          }),
+          Schema.Null
+        ])
+      ),
+      "region": Schema.optionalKey(
+        Schema.Union([
+          Schema.String.annotate({ "description": "Free text input for the region of the user, e.g. `California`." }),
+          Schema.Null
+        ])
+      ),
+      "city": Schema.optionalKey(
+        Schema.Union([
+          Schema.String.annotate({ "description": "Free text input for the city of the user, e.g. `San Francisco`." }),
+          Schema.Null
+        ])
+      ),
+      "timezone": Schema.optionalKey(
+        Schema.Union([
+          Schema.String.annotate({
+            "description":
+              "The [IANA timezone](https://timeapi.io/documentation/iana-timezones) of the user, e.g. `America/Los_Angeles`."
+          }),
+          Schema.Null
+        ])
+      )
+    }).annotate({ "description": "The user's location." }),
+    Schema.Null
+  ])),
+  "search_context_size": Schema.optionalKey(
+    Schema.Literals(["low", "medium", "high"]).annotate({
+      "description":
+        "High level guidance for the amount of context window space to use for the search. One of `low`, `medium`, or `high`. `medium` is the default."
+    })
+  ),
+  "search_content_types": Schema.optionalKey(Schema.Array(SearchContentType))
+}).annotate({
+  "title": "Web search preview",
+  "description":
+    "This tool searches the web for relevant results to use in a response. Learn more about the [web search tool](https://platform.openai.com/docs/guides/tools-web-search)."
+})
+export type CodeInterpreterToolCall = {
+  readonly "type": "code_interpreter_call"
+  readonly "id": string
+  readonly "status": "in_progress" | "completed" | "incomplete" | "interpreting" | "failed"
+  readonly "container_id": string
+  readonly "code": string | null
+  readonly "outputs": ReadonlyArray<CodeInterpreterOutputLogs | CodeInterpreterOutputImage> | null
+}
+export const CodeInterpreterToolCall = Schema.Struct({
+  "type": Schema.Literal("code_interpreter_call").annotate({
+    "description": "The type of the code interpreter tool call. Always `code_interpreter_call`.\n"
+  }),
+  "id": Schema.String.annotate({ "description": "The unique ID of the code interpreter tool call.\n" }),
+  "status": Schema.Literals(["in_progress", "completed", "incomplete", "interpreting", "failed"]).annotate({
+    "description":
+      "The status of the code interpreter tool call. Valid values are `in_progress`, `completed`, `incomplete`, `interpreting`, and `failed`.\n"
+  }),
+  "container_id": Schema.String.annotate({ "description": "The ID of the container used to run the code.\n" }),
+  "code": Schema.Union([
+    Schema.String.annotate({ "description": "The code to run, or null if not available.\n" }),
+    Schema.Null
+  ]),
+  "outputs": Schema.Union([
+    Schema.Array(Schema.Union([CodeInterpreterOutputLogs, CodeInterpreterOutputImage], { mode: "oneOf" })).annotate({
+      "description":
+        "The outputs generated by the code interpreter, such as logs or images.\nCan be null if no outputs are available.\n"
+    }),
+    Schema.Null
+  ])
+}).annotate({ "title": "Code interpreter tool call", "description": "A tool call to run code.\n" })
+export type LocalShellToolCall = {
+  readonly "type": "local_shell_call"
+  readonly "id": string
+  readonly "call_id": string
+  readonly "action": LocalShellExecAction
+  readonly "status": "in_progress" | "completed" | "incomplete"
+}
+export const LocalShellToolCall = Schema.Struct({
+  "type": Schema.Literal("local_shell_call").annotate({
+    "description": "The type of the local shell call. Always `local_shell_call`.\n"
+  }),
+  "id": Schema.String.annotate({ "description": "The unique ID of the local shell call.\n" }),
+  "call_id": Schema.String.annotate({
+    "description": "The unique ID of the local shell tool call generated by the model.\n"
+  }),
+  "action": LocalShellExecAction,
+  "status": Schema.Literals(["in_progress", "completed", "incomplete"]).annotate({
+    "description": "The status of the local shell call.\n"
+  })
+}).annotate({ "title": "Local shell call", "description": "A tool call to run a command on the local shell.\n" })
+export type FunctionShellCall = {
+  readonly "type": "shell_call"
+  readonly "id": string
+  readonly "call_id": string
+  readonly "action": {
+    readonly "commands": ReadonlyArray<string>
+    readonly "timeout_ms": number | null
+    readonly "max_output_length": number | null
+  }
+  readonly "status": "in_progress" | "completed" | "incomplete"
+  readonly "environment": LocalEnvironmentResource | ContainerReferenceResource | null
+  readonly "created_by"?: string
+}
+export const FunctionShellCall = Schema.Struct({
+  "type": Schema.Literal("shell_call").annotate({ "description": "The type of the item. Always `shell_call`." }),
+  "id": Schema.String.annotate({
+    "description": "The unique ID of the shell tool call. Populated when this item is returned via API."
+  }),
+  "call_id": Schema.String.annotate({ "description": "The unique ID of the shell tool call generated by the model." }),
+  "action": Schema.Struct({
+    "commands": Schema.Array(Schema.String.annotate({ "description": "A list of commands to run." })),
+    "timeout_ms": Schema.Union([
+      Schema.Number.annotate({ "description": "Optional timeout in milliseconds for the commands." }).check(
+        Schema.isInt()
+      ),
+      Schema.Null
+    ]),
+    "max_output_length": Schema.Union([
+      Schema.Number.annotate({ "description": "Optional maximum number of characters to return from each command." })
+        .check(Schema.isInt()),
+      Schema.Null
+    ])
+  }).annotate({
+    "title": "Shell exec action",
+    "description": "The shell commands and limits that describe how to run the tool call."
+  }),
+  "status": Schema.Literals(["in_progress", "completed", "incomplete"]).annotate({
+    "description": "The status of the shell call. One of `in_progress`, `completed`, or `incomplete`."
+  }),
+  "environment": Schema.Union([
+    Schema.Union([LocalEnvironmentResource, ContainerReferenceResource], { mode: "oneOf" }),
+    Schema.Null
+  ]),
+  "created_by": Schema.optionalKey(
+    Schema.String.annotate({ "description": "The ID of the entity that created this tool call." })
+  )
+}).annotate({
+  "title": "Shell tool call",
+  "description": "A tool call that executes one or more shell commands in a managed environment."
+})
+export type FunctionShellCallOutputContent = {
+  readonly "stdout": string
+  readonly "stderr": string
+  readonly "outcome": FunctionShellCallOutputTimeoutOutcome | FunctionShellCallOutputExitOutcome
+  readonly "created_by"?: string
+}
+export const FunctionShellCallOutputContent = Schema.Struct({
+  "stdout": Schema.String.annotate({ "description": "The standard output that was captured." }),
+  "stderr": Schema.String.annotate({ "description": "The standard error output that was captured." }),
+  "outcome": Schema.Union([FunctionShellCallOutputTimeoutOutcome, FunctionShellCallOutputExitOutcome], {
+    mode: "oneOf"
+  }).annotate({
+    "title": "Shell call outcome",
+    "description":
+      "Represents either an exit outcome (with an exit code) or a timeout outcome for a shell call output chunk."
+  }),
+  "created_by": Schema.optionalKey(
+    Schema.String.annotate({ "description": "The identifier of the actor that created the item." })
+  )
+}).annotate({
+  "title": "Shell call output content",
+  "description": "The content of a shell tool call output that was emitted."
+})
+export type ApplyPatchToolCall = {
+  readonly "type": "apply_patch_call"
+  readonly "id": string
+  readonly "call_id": string
+  readonly "status": "in_progress" | "completed"
+  readonly "operation": ApplyPatchCreateFileOperation | ApplyPatchDeleteFileOperation | ApplyPatchUpdateFileOperation
+  readonly "created_by"?: string
+}
+export const ApplyPatchToolCall = Schema.Struct({
+  "type": Schema.Literal("apply_patch_call").annotate({
+    "description": "The type of the item. Always `apply_patch_call`."
+  }),
+  "id": Schema.String.annotate({
+    "description": "The unique ID of the apply patch tool call. Populated when this item is returned via API."
+  }),
+  "call_id": Schema.String.annotate({
+    "description": "The unique ID of the apply patch tool call generated by the model."
+  }),
+  "status": Schema.Literals(["in_progress", "completed"]).annotate({
+    "description": "The status of the apply patch tool call. One of `in_progress` or `completed`."
+  }),
+  "operation": Schema.Union([
+    ApplyPatchCreateFileOperation,
+    ApplyPatchDeleteFileOperation,
+    ApplyPatchUpdateFileOperation
+  ], { mode: "oneOf" }).annotate({
+    "title": "Apply patch operation",
+    "description": "One of the create_file, delete_file, or update_file operations applied via apply_patch."
+  }),
+  "created_by": Schema.optionalKey(
+    Schema.String.annotate({ "description": "The ID of the entity that created this tool call." })
+  )
+}).annotate({
+  "title": "Apply patch tool call",
+  "description": "A tool call that applies file diffs by creating, deleting, or updating files."
+})
+export type FunctionCallOutputItemParam = {
+  readonly "id"?: string | null
+  readonly "call_id": string
+  readonly "type": "function_call_output"
+  readonly "output":
+    | string
+    | ReadonlyArray<InputTextContentParam | InputImageContentParamAutoParam | InputFileContentParam>
+  readonly "status"?: "in_progress" | "completed" | "incomplete" | null
+}
+export const FunctionCallOutputItemParam = Schema.Struct({
+  "id": Schema.optionalKey(
+    Schema.Union([
+      Schema.String.annotate({
+        "description": "The unique ID of the function tool call output. Populated when this item is returned via API."
+      }),
+      Schema.Null
+    ])
+  ),
+  "call_id": Schema.String.annotate({
+    "description": "The unique ID of the function tool call generated by the model."
+  }).check(Schema.isMinLength(1)).check(Schema.isMaxLength(64)),
+  "type": Schema.Literal("function_call_output").annotate({
+    "description": "The type of the function tool call output. Always `function_call_output`."
+  }),
+  "output": Schema.Union([
+    Schema.String.annotate({ "description": "A JSON string of the output of the function tool call." }).check(
+      Schema.isMaxLength(10485760)
+    ),
+    Schema.Array(
+      Schema.Union([InputTextContentParam, InputImageContentParamAutoParam, InputFileContentParam], { mode: "oneOf" })
+        .annotate({ "description": "A piece of message content, such as text, an image, or a file." })
+    ).annotate({ "description": "An array of content outputs (text, image, file) for the function tool call." })
+  ], { mode: "oneOf" }).annotate({ "description": "Text, image, or file output of the function tool call." }),
+  "status": Schema.optionalKey(
+    Schema.Union([
+      Schema.Literals(["in_progress", "completed", "incomplete"]).annotate({
+        "description":
+          "The status of the item. One of `in_progress`, `completed`, or `incomplete`. Populated when items are returned via API."
+      }),
+      Schema.Null
+    ])
+  )
+}).annotate({ "title": "Function tool call output", "description": "The output of a function tool call." })
+export type FunctionShellCallOutputContentParam = {
+  readonly "stdout": string
+  readonly "stderr": string
+  readonly "outcome": FunctionShellCallOutputTimeoutOutcomeParam | FunctionShellCallOutputExitOutcomeParam
+}
+export const FunctionShellCallOutputContentParam = Schema.Struct({
+  "stdout": Schema.String.annotate({ "description": "Captured stdout output for the shell call." }).check(
+    Schema.isMaxLength(10485760)
+  ),
+  "stderr": Schema.String.annotate({ "description": "Captured stderr output for the shell call." }).check(
+    Schema.isMaxLength(10485760)
+  ),
+  "outcome": Schema.Union([FunctionShellCallOutputTimeoutOutcomeParam, FunctionShellCallOutputExitOutcomeParam], {
+    mode: "oneOf"
+  }).annotate({
+    "title": "Shell call outcome",
+    "description": "The exit or timeout outcome associated with this shell call."
+  })
+}).annotate({
+  "title": "Shell output content",
+  "description": "Captured stdout and stderr for a portion of a shell tool call output."
+})
+export type ApplyPatchToolCallItemParam = {
+  readonly "type": "apply_patch_call"
+  readonly "id"?: string | null
+  readonly "call_id": string
+  readonly "status": "in_progress" | "completed"
+  readonly "operation":
+    | ApplyPatchCreateFileOperationParam
+    | ApplyPatchDeleteFileOperationParam
+    | ApplyPatchUpdateFileOperationParam
+}
+export const ApplyPatchToolCallItemParam = Schema.Struct({
+  "type": Schema.Literal("apply_patch_call").annotate({
+    "description": "The type of the item. Always `apply_patch_call`."
+  }),
+  "id": Schema.optionalKey(
+    Schema.Union([
+      Schema.String.annotate({
+        "description": "The unique ID of the apply patch tool call. Populated when this item is returned via API."
+      }),
+      Schema.Null
+    ])
+  ),
+  "call_id": Schema.String.annotate({
+    "description": "The unique ID of the apply patch tool call generated by the model."
+  }).check(Schema.isMinLength(1)).check(Schema.isMaxLength(64)),
+  "status": Schema.Literals(["in_progress", "completed"]).annotate({
+    "title": "Apply patch call status",
+    "description": "The status of the apply patch tool call. One of `in_progress` or `completed`."
+  }),
+  "operation": Schema.Union([
+    ApplyPatchCreateFileOperationParam,
+    ApplyPatchDeleteFileOperationParam,
+    ApplyPatchUpdateFileOperationParam
+  ], { mode: "oneOf" }).annotate({
+    "title": "Apply patch operation",
+    "description": "The specific create, delete, or update instruction for the apply_patch tool call."
+  })
+}).annotate({
+  "title": "Apply patch tool call",
+  "description": "A tool call representing a request to create, delete, or update files using diff patches."
 })
 export type ImageGenUsage = {
   readonly "input_tokens": number
@@ -13557,6 +13806,90 @@ export const VideoListResource = Schema.Struct({
     Schema.Null
   ]),
   "has_more": Schema.Boolean.annotate({ "description": "Whether there are more items available." })
+})
+export type CreateVideoMultipartBody = {
+  readonly "model"?:
+    | string
+    | "sora-2"
+    | "sora-2-pro"
+    | "sora-2-2025-10-06"
+    | "sora-2-pro-2025-10-06"
+    | "sora-2-2025-12-08"
+  readonly "prompt": string
+  readonly "input_reference"?: string | ImageRefParam_2
+  readonly "seconds"?: "4" | "8" | "12"
+  readonly "size"?: "720x1280" | "1280x720" | "1024x1792" | "1792x1024"
+}
+export const CreateVideoMultipartBody = Schema.Struct({
+  "model": Schema.optionalKey(
+    Schema.Union([
+      Schema.String,
+      Schema.Literals(["sora-2", "sora-2-pro", "sora-2-2025-10-06", "sora-2-pro-2025-10-06", "sora-2-2025-12-08"])
+    ]).annotate({
+      "description": "The video generation model to use (allowed values: sora-2, sora-2-pro). Defaults to `sora-2`."
+    })
+  ),
+  "prompt": Schema.String.annotate({ "description": "Text prompt that describes the video to generate." }).check(
+    Schema.isMinLength(1)
+  ).check(Schema.isMaxLength(32000)),
+  "input_reference": Schema.optionalKey(
+    Schema.Union([
+      Schema.String.annotate({
+        "description": "Optional reference asset upload or reference object that guides generation.",
+        "format": "binary"
+      }),
+      ImageRefParam_2
+    ], { mode: "oneOf" })
+  ),
+  "seconds": Schema.optionalKey(
+    Schema.Literals(["4", "8", "12"]).annotate({
+      "description": "Clip duration in seconds (allowed values: 4, 8, 12). Defaults to 4 seconds."
+    })
+  ),
+  "size": Schema.optionalKey(
+    Schema.Literals(["720x1280", "1280x720", "1024x1792", "1792x1024"]).annotate({
+      "description":
+        "Output resolution formatted as width x height (allowed values: 720x1280, 1280x720, 1024x1792, 1792x1024). Defaults to 720x1280."
+    })
+  )
+}).annotate({
+  "title": "Create video multipart request",
+  "description": "Multipart parameters for creating a new video generation job."
+})
+export type CreateVideoEditMultipartBody = {
+  readonly "video": string | VideoReferenceInputParam
+  readonly "prompt": string
+}
+export const CreateVideoEditMultipartBody = Schema.Struct({
+  "video": Schema.Union([
+    Schema.String.annotate({ "description": "Reference to the completed video to edit.", "format": "binary" }),
+    VideoReferenceInputParam
+  ], { mode: "oneOf" }),
+  "prompt": Schema.String.annotate({ "description": "Text prompt that describes how to edit the source video." }).check(
+    Schema.isMinLength(1)
+  ).check(Schema.isMaxLength(32000))
+}).annotate({
+  "title": "Create video edit multipart request",
+  "description": "Parameters for editing an existing generated video."
+})
+export type CreateVideoExtendMultipartBody = {
+  readonly "video": VideoReferenceInputParam | string
+  readonly "prompt": string
+  readonly "seconds": "4" | "8" | "12"
+}
+export const CreateVideoExtendMultipartBody = Schema.Struct({
+  "video": Schema.Union([
+    VideoReferenceInputParam,
+    Schema.String.annotate({ "description": "Reference to the completed video to extend.", "format": "binary" })
+  ], { mode: "oneOf" }),
+  "prompt": Schema.String.annotate({ "description": "Updated text prompt that directs the extension generation." })
+    .check(Schema.isMinLength(1)).check(Schema.isMaxLength(32000)),
+  "seconds": Schema.Literals(["4", "8", "12"]).annotate({
+    "description": "Length of the newly generated extension segment in seconds (allowed values: 4, 8, 12, 16, 20)."
+  })
+}).annotate({
+  "title": "Create video extension multipart request",
+  "description": "Multipart parameters for extending an existing generated video."
 })
 export type SkillListResource = {
   readonly "object": "list"
@@ -14710,6 +15043,7 @@ export type RealtimeCallCreateRequest = {
     readonly "model"?:
       | string
       | "gpt-realtime"
+      | "gpt-realtime-1.5"
       | "gpt-realtime-2025-08-28"
       | "gpt-4o-realtime-preview"
       | "gpt-4o-realtime-preview-2024-10-01"
@@ -14720,6 +15054,7 @@ export type RealtimeCallCreateRequest = {
       | "gpt-realtime-mini"
       | "gpt-realtime-mini-2025-10-06"
       | "gpt-realtime-mini-2025-12-15"
+      | "gpt-audio-1.5"
       | "gpt-audio-mini"
       | "gpt-audio-mini-2025-10-06"
       | "gpt-audio-mini-2025-12-15"
@@ -14747,19 +15082,7 @@ export type RealtimeCallCreateRequest = {
         readonly "format"?: { readonly "type"?: "audio/pcm"; readonly "rate"?: 24000 } | {
           readonly "type"?: "audio/pcmu"
         } | { readonly "type"?: "audio/pcma" }
-        readonly "voice"?:
-          | string
-          | "alloy"
-          | "ash"
-          | "ballad"
-          | "coral"
-          | "echo"
-          | "sage"
-          | "shimmer"
-          | "verse"
-          | "marin"
-          | "cedar"
-          | { readonly "id": string }
+        readonly "voice"?: VoiceIdsShared | { readonly "id": string }
         readonly "speed"?: number
       }
     }
@@ -14796,6 +15119,7 @@ export const RealtimeCallCreateRequest = Schema.Struct({
           Schema.String,
           Schema.Literals([
             "gpt-realtime",
+            "gpt-realtime-1.5",
             "gpt-realtime-2025-08-28",
             "gpt-4o-realtime-preview",
             "gpt-4o-realtime-preview-2024-10-01",
@@ -14806,6 +15130,7 @@ export const RealtimeCallCreateRequest = Schema.Struct({
             "gpt-realtime-mini",
             "gpt-realtime-mini-2025-10-06",
             "gpt-realtime-mini-2025-12-15",
+            "gpt-audio-1.5",
             "gpt-audio-mini",
             "gpt-audio-mini-2025-10-06",
             "gpt-audio-mini-2025-12-15"
@@ -14912,21 +15237,7 @@ export const RealtimeCallCreateRequest = Schema.Struct({
             ),
             "voice": Schema.optionalKey(
               Schema.Union([
-                Schema.Union([
-                  Schema.String,
-                  Schema.Literals([
-                    "alloy",
-                    "ash",
-                    "ballad",
-                    "coral",
-                    "echo",
-                    "sage",
-                    "shimmer",
-                    "verse",
-                    "marin",
-                    "cedar"
-                  ])
-                ]),
+                VoiceIdsShared,
                 Schema.Struct({
                   "id": Schema.String.annotate({ "description": "The custom voice ID, e.g. `voice_1234`." })
                 }).annotate({ "description": "Custom voice reference." })
@@ -15022,6 +15333,7 @@ export type RealtimeSession = {
   readonly "model"?:
     | string
     | "gpt-realtime"
+    | "gpt-realtime-1.5"
     | "gpt-realtime-2025-08-28"
     | "gpt-4o-realtime-preview"
     | "gpt-4o-realtime-preview-2024-10-01"
@@ -15032,6 +15344,7 @@ export type RealtimeSession = {
     | "gpt-realtime-mini"
     | "gpt-realtime-mini-2025-10-06"
     | "gpt-realtime-mini-2025-12-15"
+    | "gpt-audio-1.5"
     | "gpt-audio-mini"
     | "gpt-audio-mini-2025-10-06"
     | "gpt-audio-mini-2025-12-15"
@@ -15096,6 +15409,7 @@ export const RealtimeSession = Schema.Struct({
       Schema.String,
       Schema.Literals([
         "gpt-realtime",
+        "gpt-realtime-1.5",
         "gpt-realtime-2025-08-28",
         "gpt-4o-realtime-preview",
         "gpt-4o-realtime-preview-2024-10-01",
@@ -15106,6 +15420,7 @@ export const RealtimeSession = Schema.Struct({
         "gpt-realtime-mini",
         "gpt-realtime-mini-2025-10-06",
         "gpt-realtime-mini-2025-12-15",
+        "gpt-audio-1.5",
         "gpt-audio-mini",
         "gpt-audio-mini-2025-10-06",
         "gpt-audio-mini-2025-12-15"
@@ -15255,19 +15570,7 @@ export type RealtimeSessionCreateRequest = {
   readonly "client_secret": { readonly "value": string; readonly "expires_at": number }
   readonly "modalities"?: ReadonlyArray<"text" | "audio">
   readonly "instructions"?: string
-  readonly "voice"?:
-    | string
-    | "alloy"
-    | "ash"
-    | "ballad"
-    | "coral"
-    | "echo"
-    | "sage"
-    | "shimmer"
-    | "verse"
-    | "marin"
-    | "cedar"
-    | { readonly "id": string }
+  readonly "voice"?: VoiceIdsShared | { readonly "id": string }
   readonly "input_audio_format"?: string
   readonly "output_audio_format"?: string
   readonly "input_audio_transcription"?: { readonly "model"?: string }
@@ -15318,10 +15621,7 @@ export const RealtimeSessionCreateRequest = Schema.Struct({
   })),
   "voice": Schema.optionalKey(
     Schema.Union([
-      Schema.Union([
-        Schema.String,
-        Schema.Literals(["alloy", "ash", "ballad", "coral", "echo", "sage", "shimmer", "verse", "marin", "cedar"])
-      ]),
+      VoiceIdsShared,
       Schema.Struct({ "id": Schema.String.annotate({ "description": "The custom voice ID, e.g. `voice_1234`." }) })
         .annotate({ "description": "Custom voice reference." })
     ]).annotate({
@@ -15455,6 +15755,7 @@ export type RealtimeSessionCreateRequestGA = {
   readonly "model"?:
     | string
     | "gpt-realtime"
+    | "gpt-realtime-1.5"
     | "gpt-realtime-2025-08-28"
     | "gpt-4o-realtime-preview"
     | "gpt-4o-realtime-preview-2024-10-01"
@@ -15465,6 +15766,7 @@ export type RealtimeSessionCreateRequestGA = {
     | "gpt-realtime-mini"
     | "gpt-realtime-mini-2025-10-06"
     | "gpt-realtime-mini-2025-12-15"
+    | "gpt-audio-1.5"
     | "gpt-audio-mini"
     | "gpt-audio-mini-2025-10-06"
     | "gpt-audio-mini-2025-12-15"
@@ -15492,19 +15794,7 @@ export type RealtimeSessionCreateRequestGA = {
       readonly "format"?: { readonly "type"?: "audio/pcm"; readonly "rate"?: 24000 } | {
         readonly "type"?: "audio/pcmu"
       } | { readonly "type"?: "audio/pcma" }
-      readonly "voice"?:
-        | string
-        | "alloy"
-        | "ash"
-        | "ballad"
-        | "coral"
-        | "echo"
-        | "sage"
-        | "shimmer"
-        | "verse"
-        | "marin"
-        | "cedar"
-        | { readonly "id": string }
+      readonly "voice"?: VoiceIdsShared | { readonly "id": string }
       readonly "speed"?: number
     }
   }
@@ -15535,6 +15825,7 @@ export const RealtimeSessionCreateRequestGA = Schema.Struct({
       Schema.String,
       Schema.Literals([
         "gpt-realtime",
+        "gpt-realtime-1.5",
         "gpt-realtime-2025-08-28",
         "gpt-4o-realtime-preview",
         "gpt-4o-realtime-preview-2024-10-01",
@@ -15545,6 +15836,7 @@ export const RealtimeSessionCreateRequestGA = Schema.Struct({
         "gpt-realtime-mini",
         "gpt-realtime-mini-2025-10-06",
         "gpt-realtime-mini-2025-12-15",
+        "gpt-audio-1.5",
         "gpt-audio-mini",
         "gpt-audio-mini-2025-10-06",
         "gpt-audio-mini-2025-12-15"
@@ -15651,10 +15943,7 @@ export const RealtimeSessionCreateRequestGA = Schema.Struct({
         ),
         "voice": Schema.optionalKey(
           Schema.Union([
-            Schema.Union([
-              Schema.String,
-              Schema.Literals(["alloy", "ash", "ballad", "coral", "echo", "sage", "shimmer", "verse", "marin", "cedar"])
-            ]),
+            VoiceIdsShared,
             Schema.Struct({
               "id": Schema.String.annotate({ "description": "The custom voice ID, e.g. `voice_1234`." })
             }).annotate({ "description": "Custom voice reference." })
@@ -15741,6 +16030,7 @@ export type RealtimeSessionCreateResponseGA = {
   readonly "model"?:
     | string
     | "gpt-realtime"
+    | "gpt-realtime-1.5"
     | "gpt-realtime-2025-08-28"
     | "gpt-4o-realtime-preview"
     | "gpt-4o-realtime-preview-2024-10-01"
@@ -15751,6 +16041,7 @@ export type RealtimeSessionCreateResponseGA = {
     | "gpt-realtime-mini"
     | "gpt-realtime-mini-2025-10-06"
     | "gpt-realtime-mini-2025-12-15"
+    | "gpt-audio-1.5"
     | "gpt-audio-mini"
     | "gpt-audio-mini-2025-10-06"
     | "gpt-audio-mini-2025-12-15"
@@ -15829,6 +16120,7 @@ export const RealtimeSessionCreateResponseGA = Schema.Struct({
       Schema.String,
       Schema.Literals([
         "gpt-realtime",
+        "gpt-realtime-1.5",
         "gpt-realtime-2025-08-28",
         "gpt-4o-realtime-preview",
         "gpt-4o-realtime-preview-2024-10-01",
@@ -15839,6 +16131,7 @@ export const RealtimeSessionCreateResponseGA = Schema.Struct({
         "gpt-realtime-mini",
         "gpt-realtime-mini-2025-10-06",
         "gpt-realtime-mini-2025-12-15",
+        "gpt-audio-1.5",
         "gpt-audio-mini",
         "gpt-audio-mini-2025-10-06",
         "gpt-audio-mini-2025-12-15"
@@ -16444,40 +16737,6 @@ export const ComputerAction = Schema.Union([
   TypeParam,
   WaitParam
 ], { mode: "oneOf" })
-export type FunctionShellCallOutput = {
-  readonly "type": "shell_call_output"
-  readonly "id": string
-  readonly "call_id": string
-  readonly "status": "in_progress" | "completed" | "incomplete"
-  readonly "output": ReadonlyArray<FunctionShellCallOutputContent>
-  readonly "max_output_length": number | null
-  readonly "created_by"?: string
-}
-export const FunctionShellCallOutput = Schema.Struct({
-  "type": Schema.Literal("shell_call_output").annotate({
-    "description": "The type of the shell call output. Always `shell_call_output`."
-  }),
-  "id": Schema.String.annotate({
-    "description": "The unique ID of the shell call output. Populated when this item is returned via API."
-  }),
-  "call_id": Schema.String.annotate({ "description": "The unique ID of the shell tool call generated by the model." }),
-  "status": Schema.Literals(["in_progress", "completed", "incomplete"]).annotate({
-    "description": "The status of the shell call output. One of `in_progress`, `completed`, or `incomplete`."
-  }),
-  "output": Schema.Array(FunctionShellCallOutputContent).annotate({
-    "description": "An array of shell call output contents"
-  }),
-  "max_output_length": Schema.Union([
-    Schema.Number.annotate({
-      "description":
-        "The maximum length of the shell command output. This is generated by the model and should be passed back with the raw output."
-    }).check(Schema.isInt()),
-    Schema.Null
-  ]),
-  "created_by": Schema.optionalKey(
-    Schema.String.annotate({ "description": "The identifier of the actor that created the item." })
-  )
-}).annotate({ "title": "Shell call output", "description": "The output of a shell tool call that was emitted." })
 export type FunctionShellCallItemParam = {
   readonly "id"?: string | null
   readonly "call_id": string
@@ -16547,6 +16806,61 @@ export const FunctionShellCallItemParam = Schema.Struct({
   "title": "Shell tool call",
   "description": "A tool representing a request to execute one or more shell commands."
 })
+export type NamespaceToolParam = {
+  readonly "type": "namespace"
+  readonly "name": string
+  readonly "description": string
+  readonly "tools": ReadonlyArray<FunctionToolParam | CustomToolParam>
+}
+export const NamespaceToolParam = Schema.Struct({
+  "type": Schema.Literal("namespace").annotate({ "description": "The type of the tool. Always `namespace`." }),
+  "name": Schema.String.annotate({ "description": "The namespace name used in tool calls (for example, `crm`)." })
+    .check(Schema.isMinLength(1)),
+  "description": Schema.String.annotate({ "description": "A description of the namespace shown to the model." }).check(
+    Schema.isMinLength(1)
+  ),
+  "tools": Schema.Array(
+    Schema.Union([FunctionToolParam, CustomToolParam], { mode: "oneOf" }).annotate({
+      "description": "A function or custom tool that belongs to a namespace."
+    })
+  ).annotate({ "description": "The function/custom tools available inside this namespace." }).check(
+    Schema.isMinLength(1)
+  )
+}).annotate({ "title": "Namespace", "description": "Groups function/custom tools under a shared namespace." })
+export type FunctionShellCallOutput = {
+  readonly "type": "shell_call_output"
+  readonly "id": string
+  readonly "call_id": string
+  readonly "status": "in_progress" | "completed" | "incomplete"
+  readonly "output": ReadonlyArray<FunctionShellCallOutputContent>
+  readonly "max_output_length": number | null
+  readonly "created_by"?: string
+}
+export const FunctionShellCallOutput = Schema.Struct({
+  "type": Schema.Literal("shell_call_output").annotate({
+    "description": "The type of the shell call output. Always `shell_call_output`."
+  }),
+  "id": Schema.String.annotate({
+    "description": "The unique ID of the shell call output. Populated when this item is returned via API."
+  }),
+  "call_id": Schema.String.annotate({ "description": "The unique ID of the shell tool call generated by the model." }),
+  "status": Schema.Literals(["in_progress", "completed", "incomplete"]).annotate({
+    "description": "The status of the shell call output. One of `in_progress`, `completed`, or `incomplete`."
+  }),
+  "output": Schema.Array(FunctionShellCallOutputContent).annotate({
+    "description": "An array of shell call output contents"
+  }),
+  "max_output_length": Schema.Union([
+    Schema.Number.annotate({
+      "description":
+        "The maximum length of the shell command output. This is generated by the model and should be passed back with the raw output."
+    }).check(Schema.isInt()),
+    Schema.Null
+  ]),
+  "created_by": Schema.optionalKey(
+    Schema.String.annotate({ "description": "The identifier of the actor that created the item." })
+  )
+}).annotate({ "title": "Shell call output", "description": "The output of a shell tool call that was emitted." })
 export type FunctionShellCallOutputItemParam = {
   readonly "id"?: string | null
   readonly "call_id": string
@@ -17687,19 +18001,7 @@ export const RealtimeBetaResponse = Schema.Struct({
 export type RealtimeBetaResponseCreateParams = {
   readonly "modalities"?: ReadonlyArray<"text" | "audio">
   readonly "instructions"?: string
-  readonly "voice"?:
-    | string
-    | "alloy"
-    | "ash"
-    | "ballad"
-    | "coral"
-    | "echo"
-    | "sage"
-    | "shimmer"
-    | "verse"
-    | "marin"
-    | "cedar"
-    | { readonly "id": string }
+  readonly "voice"?: VoiceIdsShared | { readonly "id": string }
   readonly "output_audio_format"?: "pcm16" | "g711_ulaw" | "g711_alaw"
   readonly "tools"?: ReadonlyArray<
     {
@@ -17729,10 +18031,7 @@ export const RealtimeBetaResponseCreateParams = Schema.Struct({
   })),
   "voice": Schema.optionalKey(
     Schema.Union([
-      Schema.Union([
-        Schema.String,
-        Schema.Literals(["alloy", "ash", "ballad", "coral", "echo", "sage", "shimmer", "verse", "marin", "cedar"])
-      ]),
+      VoiceIdsShared,
       Schema.Struct({ "id": Schema.String.annotate({ "description": "The custom voice ID, e.g. `voice_1234`." }) })
         .annotate({ "description": "Custom voice reference." })
     ]).annotate({
@@ -18058,19 +18357,7 @@ export type RealtimeResponseCreateParams = {
       readonly "format"?: { readonly "type"?: "audio/pcm"; readonly "rate"?: 24000 } | {
         readonly "type"?: "audio/pcmu"
       } | { readonly "type"?: "audio/pcma" }
-      readonly "voice"?:
-        | string
-        | "alloy"
-        | "ash"
-        | "ballad"
-        | "coral"
-        | "echo"
-        | "sage"
-        | "shimmer"
-        | "verse"
-        | "marin"
-        | "cedar"
-        | { readonly "id": string }
+      readonly "voice"?: VoiceIdsShared | { readonly "id": string }
     }
   }
   readonly "tools"?: ReadonlyArray<RealtimeFunctionTool | MCPTool>
@@ -18122,10 +18409,7 @@ export const RealtimeResponseCreateParams = Schema.Struct({
         ),
         "voice": Schema.optionalKey(
           Schema.Union([
-            Schema.Union([
-              Schema.String,
-              Schema.Literals(["alloy", "ash", "ballad", "coral", "echo", "sage", "shimmer", "verse", "marin", "cedar"])
-            ]),
+            VoiceIdsShared,
             Schema.Struct({
               "id": Schema.String.annotate({ "description": "The custom voice ID, e.g. `voice_1234`." })
             }).annotate({ "description": "Custom voice reference." })
@@ -19334,9 +19618,7 @@ export const EvalItemContent = Schema.Union([EvalItemContentItem, EvalItemConten
     "Inputs to the model - can contain template strings. Supports text, output text, input images, and input audio, either as a single item or an array of items.\n"
 })
 export type OutputMessageContent = OutputTextContent | RefusalContent
-export const OutputMessageContent = Schema.Union([OutputTextContent, RefusalContent], {
-  mode: "oneOf"
-})
+export const OutputMessageContent = Schema.Union([OutputTextContent, RefusalContent], { mode: "oneOf" })
 export type ResponseContentPartAddedEvent = {
   readonly "type": "response.content_part.added"
   readonly "item_id": string
@@ -19439,6 +19721,7 @@ export const Message = Schema.Struct({
 export type EasyInputMessage = {
   readonly "role": "user" | "assistant" | "system" | "developer"
   readonly "content": string | InputMessageContentList
+  readonly "phase"?: MessagePhase | null
   readonly "type"?: "message"
 }
 export const EasyInputMessage = Schema.Struct({
@@ -19452,6 +19735,7 @@ export const EasyInputMessage = Schema.Struct({
     "description":
       "Text, image, or audio input to the model, used to generate a response.\nCan also contain previous assistant responses.\n"
   }),
+  "phase": Schema.optionalKey(Schema.Union([MessagePhase, Schema.Null])),
   "type": Schema.optionalKey(
     Schema.Literal("message").annotate({ "description": "The type of the message input. Always `message`.\n" })
   )
@@ -19486,16 +19770,16 @@ export const InputMessage = Schema.Struct({
     "A message input to the model with a role indicating instruction following\nhierarchy. Instructions given with the `developer` or `system` role take\nprecedence over instructions given with the `user` role.\n"
 })
 export type InputMessageResource = {
-  readonly "type"?: "message"
+  readonly "type": "message"
   readonly "role": "user" | "system" | "developer"
   readonly "status"?: "in_progress" | "completed" | "incomplete"
   readonly "content": InputMessageContentList
   readonly "id": string
 }
 export const InputMessageResource = Schema.Struct({
-  "type": Schema.optionalKey(
-    Schema.Literal("message").annotate({ "description": "The type of the message input. Always set to `message`.\n" })
-  ),
+  "type": Schema.Literal("message").annotate({
+    "description": "The type of the message input. Always set to `message`.\n"
+  }),
   "role": Schema.Literals(["user", "system", "developer"]).annotate({
     "description": "The role of the message input. One of `user`, `system`, or `developer`.\n"
   }),
@@ -19512,34 +19796,11 @@ export const InputMessageResource = Schema.Struct({
   "description":
     "A message input to the model with a role indicating instruction following\nhierarchy. Instructions given with the `developer` or `system` role take\nprecedence over instructions given with the `user` role.\n"
 })
-export type ComputerToolCall = {
-  readonly "type": "computer_call"
-  readonly "id": string
-  readonly "call_id": string
-  readonly "action": ComputerAction
-  readonly "pending_safety_checks": ReadonlyArray<ComputerCallSafetyCheckParam>
-  readonly "status": "in_progress" | "completed" | "incomplete"
-}
-export const ComputerToolCall = Schema.Struct({
-  "type": Schema.Literal("computer_call").annotate({
-    "description": "The type of the computer call. Always `computer_call`."
-  }),
-  "id": Schema.String.annotate({ "description": "The unique ID of the computer call." }),
-  "call_id": Schema.String.annotate({
-    "description": "An identifier used when responding to the tool call with output.\n"
-  }),
-  "action": ComputerAction,
-  "pending_safety_checks": Schema.Array(ComputerCallSafetyCheckParam).annotate({
-    "description": "The pending safety checks for the computer call.\n"
-  }),
-  "status": Schema.Literals(["in_progress", "completed", "incomplete"]).annotate({
-    "description":
-      "The status of the item. One of `in_progress`, `completed`, or\n`incomplete`. Populated when items are returned via API.\n"
-  })
-}).annotate({
-  "title": "Computer tool call",
+export type ComputerActionList = ReadonlyArray<ComputerAction>
+export const ComputerActionList = Schema.Array(ComputerAction).annotate({
+  "title": "Computer Action List",
   "description":
-    "A tool call to a computer use tool. See the\n[computer use guide](/docs/guides/tools-computer-use) for more information.\n"
+    "Flattened batched actions for `computer_use`. Each action includes an\n`type` discriminator and action-specific fields.\n"
 })
 export type ThreadItem =
   | UserMessageItem
@@ -19603,6 +19864,12 @@ export type CreateChatCompletionRequest = {
   readonly "messages": ReadonlyArray<ChatCompletionRequestMessage>
   readonly "model":
     | string
+    | "gpt-5.4"
+    | "gpt-5.4-mini"
+    | "gpt-5.4-nano"
+    | "gpt-5.4-mini-2026-03-17"
+    | "gpt-5.4-nano-2026-03-17"
+    | "gpt-5.3-chat-latest"
     | "gpt-5.2"
     | "gpt-5.2-2025-12-11"
     | "gpt-5.2-chat-latest"
@@ -19778,6 +20045,12 @@ export const CreateChatCompletionRequest = Schema.Struct({
   "model": Schema.Union([
     Schema.String,
     Schema.Literals([
+      "gpt-5.4",
+      "gpt-5.4-mini",
+      "gpt-5.4-nano",
+      "gpt-5.4-mini-2026-03-17",
+      "gpt-5.4-nano-2026-03-17",
+      "gpt-5.3-chat-latest",
       "gpt-5.2",
       "gpt-5.2-2025-12-11",
       "gpt-5.2-chat-latest",
@@ -20180,6 +20453,7 @@ export const RunStreamEvent = Schema.Union([
 export type Tool =
   | FunctionTool
   | FileSearchTool
+  | ComputerTool
   | ComputerUsePreviewTool
   | WebSearchTool
   | MCPTool
@@ -20188,11 +20462,14 @@ export type Tool =
   | LocalShellToolParam
   | FunctionShellToolParam
   | CustomToolParam
+  | NamespaceToolParam
+  | ToolSearchToolParam
   | WebSearchPreviewTool
   | ApplyPatchToolParam
 export const Tool = Schema.Union([
   FunctionTool,
   FileSearchTool,
+  ComputerTool,
   ComputerUsePreviewTool,
   WebSearchTool,
   MCPTool,
@@ -20201,6 +20478,8 @@ export const Tool = Schema.Union([
   LocalShellToolParam,
   FunctionShellToolParam,
   CustomToolParam,
+  NamespaceToolParam,
+  ToolSearchToolParam,
   WebSearchPreviewTool,
   ApplyPatchToolParam
 ], { mode: "oneOf" }).annotate({ "description": "A tool that can be used to generate a response.\n" })
@@ -20227,6 +20506,7 @@ export type OutputMessage = {
   readonly "type": "message"
   readonly "role": "assistant"
   readonly "content": ReadonlyArray<OutputMessageContent>
+  readonly "phase"?: MessagePhase | null
   readonly "status": "in_progress" | "completed" | "incomplete"
 }
 export const OutputMessage = Schema.Struct({
@@ -20236,112 +20516,42 @@ export const OutputMessage = Schema.Struct({
     "description": "The role of the output message. Always `assistant`.\n"
   }),
   "content": Schema.Array(OutputMessageContent).annotate({ "description": "The content of the output message.\n" }),
+  "phase": Schema.optionalKey(Schema.Union([MessagePhase, Schema.Null])),
   "status": Schema.Literals(["in_progress", "completed", "incomplete"]).annotate({
     "description":
       "The status of the message input. One of `in_progress`, `completed`, or\n`incomplete`. Populated when input items are returned via API.\n"
   })
 }).annotate({ "title": "Output message", "description": "An output message from the model.\n" })
-export type ConversationItem =
-  | Message
-  | FunctionToolCallResource
-  | FunctionToolCallOutputResource
-  | FileSearchToolCall
-  | WebSearchToolCall
-  | ImageGenToolCall
-  | ComputerToolCall
-  | ComputerToolCallOutputResource
-  | ReasoningItem
-  | CodeInterpreterToolCall
-  | LocalShellToolCall
-  | LocalShellToolCallOutput
-  | FunctionShellCall
-  | FunctionShellCallOutput
-  | ApplyPatchToolCall
-  | ApplyPatchToolCallOutput
-  | MCPListTools
-  | MCPApprovalRequest
-  | MCPApprovalResponseResource
-  | MCPToolCall
-  | CustomToolCall
-  | CustomToolCallOutput
-export const ConversationItem = Schema.Union([
-  Message,
-  FunctionToolCallResource,
-  FunctionToolCallOutputResource,
-  FileSearchToolCall,
-  WebSearchToolCall,
-  ImageGenToolCall,
-  ComputerToolCall,
-  ComputerToolCallOutputResource,
-  ReasoningItem,
-  CodeInterpreterToolCall,
-  LocalShellToolCall,
-  LocalShellToolCallOutput,
-  FunctionShellCall,
-  FunctionShellCallOutput,
-  ApplyPatchToolCall,
-  ApplyPatchToolCallOutput,
-  MCPListTools,
-  MCPApprovalRequest,
-  MCPApprovalResponseResource,
-  MCPToolCall,
-  CustomToolCall,
-  CustomToolCallOutput
-], { mode: "oneOf" }).annotate({
-  "title": "Conversation item",
+export type ComputerToolCall = {
+  readonly "type": "computer_call"
+  readonly "id": string
+  readonly "call_id": string
+  readonly "action"?: ComputerAction
+  readonly "actions"?: ComputerActionList
+  readonly "pending_safety_checks": ReadonlyArray<ComputerCallSafetyCheckParam>
+  readonly "status": "in_progress" | "completed" | "incomplete"
+}
+export const ComputerToolCall = Schema.Struct({
+  "type": Schema.Literal("computer_call").annotate({
+    "description": "The type of the computer call. Always `computer_call`."
+  }),
+  "id": Schema.String.annotate({ "description": "The unique ID of the computer call." }),
+  "call_id": Schema.String.annotate({
+    "description": "An identifier used when responding to the tool call with output.\n"
+  }),
+  "action": Schema.optionalKey(ComputerAction),
+  "actions": Schema.optionalKey(ComputerActionList),
+  "pending_safety_checks": Schema.Array(ComputerCallSafetyCheckParam).annotate({
+    "description": "The pending safety checks for the computer call.\n"
+  }),
+  "status": Schema.Literals(["in_progress", "completed", "incomplete"]).annotate({
+    "description":
+      "The status of the item. One of `in_progress`, `completed`, or\n`incomplete`. Populated when items are returned via API.\n"
+  })
+}).annotate({
+  "title": "Computer tool call",
   "description":
-    "A single item within a conversation. The set of possible types are the same as the `output` type of a [Response object](/docs/api-reference/responses/object#responses/object-output)."
-})
-export type ItemField =
-  | Message
-  | FunctionToolCall
-  | FunctionToolCallOutput
-  | FileSearchToolCall
-  | WebSearchToolCall
-  | ImageGenToolCall
-  | ComputerToolCall
-  | ComputerToolCallOutputResource
-  | ReasoningItem
-  | CompactionBody
-  | CodeInterpreterToolCall
-  | LocalShellToolCall
-  | LocalShellToolCallOutput
-  | FunctionShellCall
-  | FunctionShellCallOutput
-  | ApplyPatchToolCall
-  | ApplyPatchToolCallOutput
-  | MCPListTools
-  | MCPApprovalRequest
-  | MCPApprovalResponseResource
-  | MCPToolCall
-  | CustomToolCall
-  | CustomToolCallOutput
-export const ItemField = Schema.Union([
-  Message,
-  FunctionToolCall,
-  FunctionToolCallOutput,
-  FileSearchToolCall,
-  WebSearchToolCall,
-  ImageGenToolCall,
-  ComputerToolCall,
-  ComputerToolCallOutputResource,
-  ReasoningItem,
-  CompactionBody,
-  CodeInterpreterToolCall,
-  LocalShellToolCall,
-  LocalShellToolCallOutput,
-  FunctionShellCall,
-  FunctionShellCallOutput,
-  ApplyPatchToolCall,
-  ApplyPatchToolCallOutput,
-  MCPListTools,
-  MCPApprovalRequest,
-  MCPApprovalResponseResource,
-  MCPToolCall,
-  CustomToolCall,
-  CustomToolCallOutput
-], { mode: "oneOf" }).annotate({
-  "description": "An item representing a message, tool call, tool output, reasoning, or other response element."
+    "A tool call to a computer use tool. See the\n[computer use guide](/docs/guides/tools-computer-use) for more information.\n"
 })
 export type ThreadItemListResource = {
   readonly "object": "list"
@@ -20420,6 +20630,75 @@ export type ToolsArray = ReadonlyArray<Tool>
 export const ToolsArray = Schema.Array(Tool).annotate({
   "description":
     "An array of tools the model may call while generating a response. You\ncan specify which tool to use by setting the `tool_choice` parameter.\n\nWe support the following categories of tools:\n- **Built-in tools**: Tools that are provided by OpenAI that extend the\n  model's capabilities, like [web search](/docs/guides/tools-web-search)\n  or [file search](/docs/guides/tools-file-search). Learn more about\n  [built-in tools](/docs/guides/tools).\n- **MCP Tools**: Integrations with third-party systems via custom MCP servers\n  or predefined connectors such as Google Drive and SharePoint. Learn more about\n  [MCP Tools](/docs/guides/tools-connectors-mcp).\n- **Function calls (custom tools)**: Functions that are defined by you,\n  enabling the model to call your own code with strongly typed arguments\n  and outputs. Learn more about\n  [function calling](/docs/guides/function-calling). You can also use\n  custom tools to call your own code.\n"
+})
+export type ToolSearchOutput = {
+  readonly "type": "tool_search_output"
+  readonly "id": string
+  readonly "call_id": string | null
+  readonly "execution": "server" | "client"
+  readonly "tools": ReadonlyArray<Tool>
+  readonly "status": "in_progress" | "completed" | "incomplete"
+  readonly "created_by"?: string
+}
+export const ToolSearchOutput = Schema.Struct({
+  "type": Schema.Literal("tool_search_output").annotate({
+    "description": "The type of the item. Always `tool_search_output`."
+  }),
+  "id": Schema.String.annotate({ "description": "The unique ID of the tool search output item." }),
+  "call_id": Schema.Union([
+    Schema.String.annotate({ "description": "The unique ID of the tool search call generated by the model." }),
+    Schema.Null
+  ]),
+  "execution": Schema.Literals(["server", "client"]).annotate({
+    "description": "Whether tool search was executed by the server or by the client."
+  }),
+  "tools": Schema.Array(Tool).annotate({ "description": "The loaded tool definitions returned by tool search." }),
+  "status": Schema.Literals(["in_progress", "completed", "incomplete"]).annotate({
+    "description": "The status of the tool search output item that was recorded."
+  }),
+  "created_by": Schema.optionalKey(
+    Schema.String.annotate({ "description": "The identifier of the actor that created the item." })
+  )
+})
+export type ToolSearchOutputItemParam = {
+  readonly "id"?: string | null
+  readonly "call_id"?: string | null
+  readonly "type": "tool_search_output"
+  readonly "execution"?: "server" | "client"
+  readonly "tools": ReadonlyArray<Tool>
+  readonly "status"?: "in_progress" | "completed" | "incomplete" | null
+}
+export const ToolSearchOutputItemParam = Schema.Struct({
+  "id": Schema.optionalKey(
+    Schema.Union([Schema.String.annotate({ "description": "The unique ID of this tool search output." }), Schema.Null])
+  ),
+  "call_id": Schema.optionalKey(
+    Schema.Union([
+      Schema.String.annotate({ "description": "The unique ID of the tool search call generated by the model." }).check(
+        Schema.isMinLength(1)
+      ).check(Schema.isMaxLength(64)),
+      Schema.Null
+    ])
+  ),
+  "type": Schema.Literal("tool_search_output").annotate({
+    "description": "The item type. Always `tool_search_output`."
+  }),
+  "execution": Schema.optionalKey(
+    Schema.Literals(["server", "client"]).annotate({
+      "description": "Whether tool search was executed by the server or by the client."
+    })
+  ),
+  "tools": Schema.Array(Tool).annotate({
+    "description": "The loaded tool definitions returned by the tool search output."
+  }),
+  "status": Schema.optionalKey(
+    Schema.Union([
+      Schema.Literals(["in_progress", "completed", "incomplete"]).annotate({
+        "description": "The status of the tool search output."
+      }),
+      Schema.Null
+    ])
+  )
 })
 export type CreateEvalCompletionsRunDataSource = {
   readonly "type": "completions"
@@ -20815,67 +21094,61 @@ export const GraderScoreModel = Schema.Struct({
   "title": "ScoreModelGrader",
   "description": "A ScoreModelGrader object that uses a model to assign a score to the input.\n"
 })
-export type InputItem =
-  | EasyInputMessage
-  | InputMessage
-  | OutputMessage
+export type ConversationItem =
+  | Message
+  | FunctionToolCallResource
+  | FunctionToolCallOutputResource
   | FileSearchToolCall
-  | ComputerToolCall
-  | ComputerCallOutputItemParam
   | WebSearchToolCall
-  | FunctionToolCall
-  | FunctionCallOutputItemParam
-  | ReasoningItem
-  | CompactionSummaryItemParam
   | ImageGenToolCall
+  | ComputerToolCall
+  | ComputerToolCallOutputResource
+  | ToolSearchCall
+  | ToolSearchOutput
+  | ReasoningItem
   | CodeInterpreterToolCall
   | LocalShellToolCall
   | LocalShellToolCallOutput
-  | FunctionShellCallItemParam
-  | FunctionShellCallOutputItemParam
-  | ApplyPatchToolCallItemParam
-  | ApplyPatchToolCallOutputItemParam
+  | FunctionShellCall
+  | FunctionShellCallOutput
+  | ApplyPatchToolCall
+  | ApplyPatchToolCallOutput
   | MCPListTools
   | MCPApprovalRequest
-  | MCPApprovalResponse
+  | MCPApprovalResponseResource
   | MCPToolCall
-  | CustomToolCallOutput
   | CustomToolCall
-  | ItemReferenceParam
-export const InputItem = Schema.Union([
-  EasyInputMessage,
-  Schema.Union([
-    InputMessage,
-    OutputMessage,
-    FileSearchToolCall,
-    ComputerToolCall,
-    ComputerCallOutputItemParam,
-    WebSearchToolCall,
-    FunctionToolCall,
-    FunctionCallOutputItemParam,
-    ReasoningItem,
-    CompactionSummaryItemParam,
-    ImageGenToolCall,
-    CodeInterpreterToolCall,
-    LocalShellToolCall,
-    LocalShellToolCallOutput,
-    FunctionShellCallItemParam,
-    FunctionShellCallOutputItemParam,
-    ApplyPatchToolCallItemParam,
-    ApplyPatchToolCallOutputItemParam,
-    MCPListTools,
-    MCPApprovalRequest,
-    MCPApprovalResponse,
-    MCPToolCall,
-    CustomToolCallOutput,
-    CustomToolCall
-  ], { mode: "oneOf" }).annotate({
-    "description":
-      "An item representing part of the context for the response to be\ngenerated by the model. Can contain text, images, and audio inputs,\nas well as previous assistant responses and tool call outputs.\n",
-    "title": "Item"
-  }),
-  ItemReferenceParam
-], { mode: "oneOf" })
+  | CustomToolCallOutput
+export const ConversationItem = Schema.Union([
+  Message,
+  FunctionToolCallResource,
+  FunctionToolCallOutputResource,
+  FileSearchToolCall,
+  WebSearchToolCall,
+  ImageGenToolCall,
+  ComputerToolCall,
+  ComputerToolCallOutputResource,
+  ToolSearchCall,
+  ToolSearchOutput,
+  ReasoningItem,
+  CodeInterpreterToolCall,
+  LocalShellToolCall,
+  LocalShellToolCallOutput,
+  FunctionShellCall,
+  FunctionShellCallOutput,
+  ApplyPatchToolCall,
+  ApplyPatchToolCallOutput,
+  MCPListTools,
+  MCPApprovalRequest,
+  MCPApprovalResponseResource,
+  MCPToolCall,
+  CustomToolCall,
+  CustomToolCallOutput
+], { mode: "oneOf" }).annotate({
+  "title": "Conversation item",
+  "description":
+    "A single item within a conversation. The set of possible types are the same as the `output` type of a [Response object](/docs/api-reference/responses/object#responses/object-output)."
+})
 export type ItemResource =
   | InputMessageResource
   | OutputMessage
@@ -20885,6 +21158,8 @@ export type ItemResource =
   | WebSearchToolCall
   | FunctionToolCallResource
   | FunctionToolCallOutputResource
+  | ToolSearchCall
+  | ToolSearchOutput
   | ImageGenToolCall
   | CodeInterpreterToolCall
   | LocalShellToolCall
@@ -20906,6 +21181,8 @@ export const ItemResource = Schema.Union([
   WebSearchToolCall,
   FunctionToolCallResource,
   FunctionToolCallOutputResource,
+  ToolSearchCall,
+  ToolSearchOutput,
   ImageGenToolCall,
   CodeInterpreterToolCall,
   LocalShellToolCall,
@@ -20926,6 +21203,8 @@ export type OutputItem =
   | WebSearchToolCall
   | ComputerToolCall
   | ReasoningItem
+  | ToolSearchCall
+  | ToolSearchOutput
   | CompactionBody
   | ImageGenToolCall
   | CodeInterpreterToolCall
@@ -20945,6 +21224,8 @@ export const OutputItem = Schema.Union([
   WebSearchToolCall,
   ComputerToolCall,
   ReasoningItem,
+  ToolSearchCall,
+  ToolSearchOutput,
   CompactionBody,
   ImageGenToolCall,
   CodeInterpreterToolCall,
@@ -20969,6 +21250,8 @@ export type ResponseOutputItemAddedEvent = {
     | WebSearchToolCall
     | ComputerToolCall
     | ReasoningItem
+    | ToolSearchCall
+    | ToolSearchOutput
     | CompactionBody
     | ImageGenToolCall
     | CodeInterpreterToolCall
@@ -20999,6 +21282,8 @@ export const ResponseOutputItemAddedEvent = Schema.Struct({
     WebSearchToolCall,
     ComputerToolCall,
     ReasoningItem,
+    ToolSearchCall,
+    ToolSearchOutput,
     CompactionBody,
     ImageGenToolCall,
     CodeInterpreterToolCall,
@@ -21024,6 +21309,8 @@ export type ResponseOutputItemDoneEvent = {
     | WebSearchToolCall
     | ComputerToolCall
     | ReasoningItem
+    | ToolSearchCall
+    | ToolSearchOutput
     | CompactionBody
     | ImageGenToolCall
     | CodeInterpreterToolCall
@@ -21053,6 +21340,8 @@ export const ResponseOutputItemDoneEvent = Schema.Struct({
     WebSearchToolCall,
     ComputerToolCall,
     ReasoningItem,
+    ToolSearchCall,
+    ToolSearchOutput,
     CompactionBody,
     ImageGenToolCall,
     CodeInterpreterToolCall,
@@ -21067,61 +21356,126 @@ export const ResponseOutputItemDoneEvent = Schema.Struct({
     CustomToolCall
   ]).annotate({ "description": "The output item that was marked done.\n" })
 }).annotate({ "description": "Emitted when an output item is marked done." })
-export type ConversationItemList = {
-  readonly "object": "list"
-  readonly "data": ReadonlyArray<ConversationItem>
-  readonly "has_more": boolean
-  readonly "first_id": string
-  readonly "last_id": string
-}
-export const ConversationItemList = Schema.Struct({
-  "object": Schema.Literal("list").annotate({ "description": "The type of object returned, must be `list`." }),
-  "data": Schema.Array(ConversationItem).annotate({ "description": "A list of conversation items." }),
-  "has_more": Schema.Boolean.annotate({ "description": "Whether there are more items available." }),
-  "first_id": Schema.String.annotate({ "description": "The ID of the first item in the list." }),
-  "last_id": Schema.String.annotate({ "description": "The ID of the last item in the list." })
-}).annotate({ "title": "The conversation item list", "description": "A list of Conversation items." })
-export type CompactResource = {
-  readonly "id": string
-  readonly "object": "response.compaction"
-  readonly "output": ReadonlyArray<ItemField>
-  readonly "created_at": number
-  readonly "usage": {
-    readonly "input_tokens": number
-    readonly "input_tokens_details": { readonly "cached_tokens": number }
-    readonly "output_tokens": number
-    readonly "output_tokens_details": { readonly "reasoning_tokens": number }
-    readonly "total_tokens": number
-  }
-}
-export const CompactResource = Schema.Struct({
-  "id": Schema.String.annotate({ "description": "The unique identifier for the compacted response." }),
-  "object": Schema.Literal("response.compaction").annotate({
-    "description": "The object type. Always `response.compaction`."
+export type ItemField =
+  | Message
+  | FunctionToolCall
+  | ToolSearchCall
+  | ToolSearchOutput
+  | FunctionToolCallOutput
+  | FileSearchToolCall
+  | WebSearchToolCall
+  | ImageGenToolCall
+  | ComputerToolCall
+  | ComputerToolCallOutputResource
+  | ReasoningItem
+  | CompactionBody
+  | CodeInterpreterToolCall
+  | LocalShellToolCall
+  | LocalShellToolCallOutput
+  | FunctionShellCall
+  | FunctionShellCallOutput
+  | ApplyPatchToolCall
+  | ApplyPatchToolCallOutput
+  | MCPListTools
+  | MCPApprovalRequest
+  | MCPApprovalResponseResource
+  | MCPToolCall
+  | CustomToolCall
+  | CustomToolCallOutput
+export const ItemField = Schema.Union([
+  Message,
+  FunctionToolCall,
+  ToolSearchCall,
+  ToolSearchOutput,
+  FunctionToolCallOutput,
+  FileSearchToolCall,
+  WebSearchToolCall,
+  ImageGenToolCall,
+  ComputerToolCall,
+  ComputerToolCallOutputResource,
+  ReasoningItem,
+  CompactionBody,
+  CodeInterpreterToolCall,
+  LocalShellToolCall,
+  LocalShellToolCallOutput,
+  FunctionShellCall,
+  FunctionShellCallOutput,
+  ApplyPatchToolCall,
+  ApplyPatchToolCallOutput,
+  MCPListTools,
+  MCPApprovalRequest,
+  MCPApprovalResponseResource,
+  MCPToolCall,
+  CustomToolCall,
+  CustomToolCallOutput
+], { mode: "oneOf" }).annotate({
+  "description": "An item representing a message, tool call, tool output, reasoning, or other response element."
+})
+export type InputItem =
+  | EasyInputMessage
+  | InputMessage
+  | OutputMessage
+  | FileSearchToolCall
+  | ComputerToolCall
+  | ComputerCallOutputItemParam
+  | WebSearchToolCall
+  | FunctionToolCall
+  | FunctionCallOutputItemParam
+  | ToolSearchCallItemParam
+  | ToolSearchOutputItemParam
+  | ReasoningItem
+  | CompactionSummaryItemParam
+  | ImageGenToolCall
+  | CodeInterpreterToolCall
+  | LocalShellToolCall
+  | LocalShellToolCallOutput
+  | FunctionShellCallItemParam
+  | FunctionShellCallOutputItemParam
+  | ApplyPatchToolCallItemParam
+  | ApplyPatchToolCallOutputItemParam
+  | MCPListTools
+  | MCPApprovalRequest
+  | MCPApprovalResponse
+  | MCPToolCall
+  | CustomToolCallOutput
+  | CustomToolCall
+  | ItemReferenceParam
+export const InputItem = Schema.Union([
+  EasyInputMessage,
+  Schema.Union([
+    InputMessage,
+    OutputMessage,
+    FileSearchToolCall,
+    ComputerToolCall,
+    ComputerCallOutputItemParam,
+    WebSearchToolCall,
+    FunctionToolCall,
+    FunctionCallOutputItemParam,
+    ToolSearchCallItemParam,
+    ToolSearchOutputItemParam,
+    ReasoningItem,
+    CompactionSummaryItemParam,
+    ImageGenToolCall,
+    CodeInterpreterToolCall,
+    LocalShellToolCall,
+    LocalShellToolCallOutput,
+    FunctionShellCallItemParam,
+    FunctionShellCallOutputItemParam,
+    ApplyPatchToolCallItemParam,
+    ApplyPatchToolCallOutputItemParam,
+    MCPListTools,
+    MCPApprovalRequest,
+    MCPApprovalResponse,
+    MCPToolCall,
+    CustomToolCallOutput,
+    CustomToolCall
+  ], { mode: "oneOf" }).annotate({
+    "description":
+      "An item representing part of the context for the response to be\ngenerated by the model. Can contain text, images, and audio inputs,\nas well as previous assistant responses and tool call outputs.\n",
+    "title": "Item"
   }),
-  "output": Schema.Array(ItemField).annotate({ "description": "The compacted list of output items." }),
-  "created_at": Schema.Number.annotate({
-    "description": "Unix timestamp (in seconds) when the compacted conversation was created."
-  }).check(Schema.isInt()),
-  "usage": Schema.Struct({
-    "input_tokens": Schema.Number.annotate({ "description": "The number of input tokens." }).check(Schema.isInt()),
-    "input_tokens_details": Schema.Struct({
-      "cached_tokens": Schema.Number.annotate({
-        "description":
-          "The number of tokens that were retrieved from the cache. \n[More on prompt caching](/docs/guides/prompt-caching).\n"
-      }).check(Schema.isInt())
-    }).annotate({ "description": "A detailed breakdown of the input tokens." }),
-    "output_tokens": Schema.Number.annotate({ "description": "The number of output tokens." }).check(Schema.isInt()),
-    "output_tokens_details": Schema.Struct({
-      "reasoning_tokens": Schema.Number.annotate({ "description": "The number of reasoning tokens." }).check(
-        Schema.isInt()
-      )
-    }).annotate({ "description": "A detailed breakdown of the output tokens." }),
-    "total_tokens": Schema.Number.annotate({ "description": "The total number of tokens used." }).check(Schema.isInt())
-  }).annotate({
-    "description": "Token accounting for the compaction pass, including cached, reasoning, and total tokens."
-  })
-}).annotate({ "title": "The compacted response object" })
+  ItemReferenceParam
+], { mode: "oneOf" })
 export type CreateEvalLabelModelGrader = {
   readonly "type": "label_model"
   readonly "name": string
@@ -21317,219 +21671,20 @@ export const GraderMulti = Schema.Struct({
   "title": "MultiGrader",
   "description": "A MultiGrader object combines the output of multiple graders to produce a single score."
 })
-export type InputParam = string | ReadonlyArray<InputItem>
-export const InputParam = Schema.Union([
-  Schema.String.annotate({
-    "title": "Text input",
-    "description": "A text input to the model, equivalent to a text input with the\n`user` role.\n"
-  }),
-  Schema.Array(InputItem).annotate({
-    "title": "Input item list",
-    "description": "A list of one or many input items to the model, containing\ndifferent content types.\n"
-  })
-], { mode: "oneOf" }).annotate({
-  "description":
-    "Text, image, or file inputs to the model, used to generate a response.\n\nLearn more:\n- [Text inputs and outputs](/docs/guides/text)\n- [Image inputs](/docs/guides/images)\n- [File inputs](/docs/guides/pdf-files)\n- [Conversation state](/docs/guides/conversation-state)\n- [Function calling](/docs/guides/function-calling)\n"
-})
-export type CreateConversationBody = {
-  readonly "metadata"?: {} | null | null
-  readonly "items"?: ReadonlyArray<InputItem> | null
+export type ConversationItemList = {
+  readonly "object": "list"
+  readonly "data": ReadonlyArray<ConversationItem>
+  readonly "has_more": boolean
+  readonly "first_id": string
+  readonly "last_id": string
 }
-export const CreateConversationBody = Schema.Struct({
-  "metadata": Schema.optionalKey(Schema.Union([
-    Schema.Union([
-      Schema.Struct({}).annotate({
-        "description":
-          "Set of 16 key-value pairs that can be attached to an object. This can be\nuseful for storing additional information about the object in a structured\nformat, and querying for objects via API or the dashboard.\n\nKeys are strings with a maximum length of 64 characters. Values are strings\nwith a maximum length of 512 characters.\n"
-      }),
-      Schema.Null
-    ]).annotate({
-      "description":
-        "Set of 16 key-value pairs that can be attached to an object. This can be         useful for storing additional information about the object in a structured         format, and querying for objects via API or the dashboard.\n        Keys are strings with a maximum length of 64 characters. Values are strings         with a maximum length of 512 characters."
-    }),
-    Schema.Null
-  ])),
-  "items": Schema.optionalKey(
-    Schema.Union([
-      Schema.Array(InputItem).annotate({
-        "description": "Initial items to include in the conversation context. You may add up to 20 items at a time."
-      }).check(Schema.isMaxLength(20)),
-      Schema.Null
-    ])
-  )
-})
-export type TokenCountsBody = {
-  readonly "model"?: string | null
-  readonly "input"?: string | ReadonlyArray<InputItem> | null
-  readonly "previous_response_id"?: string | null
-  readonly "tools"?: ReadonlyArray<Tool> | null
-  readonly "text"?: ResponseTextParam | null
-  readonly "reasoning"?: {
-    readonly "effort"?: ReasoningEffort
-    readonly "summary"?: "auto" | "concise" | "detailed" | null
-    readonly "generate_summary"?: "auto" | "concise" | "detailed" | null
-  } | null
-  readonly "truncation"?: "auto" | "disabled"
-  readonly "instructions"?: string | null
-  readonly "conversation"?: ConversationParam | null
-  readonly "tool_choice"?:
-    | ToolChoiceOptions
-    | ToolChoiceAllowed
-    | ToolChoiceTypes
-    | ToolChoiceFunction
-    | ToolChoiceMCP
-    | ToolChoiceCustom
-    | SpecificApplyPatchParam
-    | SpecificFunctionShellParam
-    | null
-  readonly "parallel_tool_calls"?: boolean | null
-}
-export const TokenCountsBody = Schema.Struct({
-  "model": Schema.optionalKey(
-    Schema.Union([
-      Schema.String.annotate({
-        "description":
-          "Model ID used to generate the response, like `gpt-4o` or `o3`. OpenAI offers a wide range of models with different capabilities, performance characteristics, and price points. Refer to the [model guide](/docs/models) to browse and compare available models."
-      }),
-      Schema.Null
-    ])
-  ),
-  "input": Schema.optionalKey(
-    Schema.Union([
-      Schema.Union([
-        Schema.String.annotate({
-          "description": "A text input to the model, equivalent to a text input with the `user` role."
-        }).check(Schema.isMaxLength(10485760)),
-        Schema.Array(InputItem).annotate({
-          "description": "A list of one or many input items to the model, containing different content types."
-        })
-      ], { mode: "oneOf" }).annotate({
-        "description": "Text, image, or file inputs to the model, used to generate a response"
-      }),
-      Schema.Null
-    ])
-  ),
-  "previous_response_id": Schema.optionalKey(
-    Schema.Union([
-      Schema.String.annotate({
-        "description":
-          "The unique ID of the previous response to the model. Use this to create multi-turn conversations. Learn more about [conversation state](/docs/guides/conversation-state). Cannot be used in conjunction with `conversation`."
-      }),
-      Schema.Null
-    ])
-  ),
-  "tools": Schema.optionalKey(
-    Schema.Union([
-      Schema.Array(Tool).annotate({
-        "description":
-          "An array of tools the model may call while generating a response. You can specify which tool to use by setting the `tool_choice` parameter."
-      }),
-      Schema.Null
-    ])
-  ),
-  "text": Schema.optionalKey(Schema.Union([ResponseTextParam, Schema.Null])),
-  "reasoning": Schema.optionalKey(Schema.Union([
-    Schema.Struct({
-      "effort": Schema.optionalKey(ReasoningEffort),
-      "summary": Schema.optionalKey(Schema.Union([
-        Schema.Literals(["auto", "concise", "detailed"]).annotate({
-          "description":
-            "A summary of the reasoning performed by the model. This can be\nuseful for debugging and understanding the model's reasoning process.\nOne of `auto`, `concise`, or `detailed`.\n\n`concise` is supported for `computer-use-preview` models and all reasoning models after `gpt-5`.\n"
-        }),
-        Schema.Null
-      ])),
-      "generate_summary": Schema.optionalKey(
-        Schema.Union([
-          Schema.Literals(["auto", "concise", "detailed"]).annotate({
-            "description":
-              "**Deprecated:** use `summary` instead.\n\nA summary of the reasoning performed by the model. This can be\nuseful for debugging and understanding the model's reasoning process.\nOne of `auto`, `concise`, or `detailed`.\n"
-          }),
-          Schema.Null
-        ])
-      )
-    }).annotate({
-      "title": "Reasoning",
-      "description":
-        "**gpt-5 and o-series models only** Configuration options for [reasoning models](https://platform.openai.com/docs/guides/reasoning)."
-    }),
-    Schema.Null
-  ])),
-  "truncation": Schema.optionalKey(
-    Schema.Literals(["auto", "disabled"]).annotate({
-      "description":
-        "The truncation strategy to use for the model response. - `auto`: If the input to this Response exceeds the model's context window size, the model will truncate the response to fit the context window by dropping items from the beginning of the conversation. - `disabled` (default): If the input size will exceed the context window size for a model, the request will fail with a 400 error."
-    })
-  ),
-  "instructions": Schema.optionalKey(Schema.Union([
-    Schema.String.annotate({
-      "description":
-        "A system (or developer) message inserted into the model's context.\nWhen used along with `previous_response_id`, the instructions from a previous response will not be carried over to the next response. This makes it simple to swap out system (or developer) messages in new responses."
-    }),
-    Schema.Null
-  ])),
-  "conversation": Schema.optionalKey(Schema.Union([ConversationParam, Schema.Null])),
-  "tool_choice": Schema.optionalKey(
-    Schema.Union([
-      Schema.Union([
-        ToolChoiceOptions,
-        ToolChoiceAllowed,
-        ToolChoiceTypes,
-        ToolChoiceFunction,
-        ToolChoiceMCP,
-        ToolChoiceCustom,
-        SpecificApplyPatchParam,
-        SpecificFunctionShellParam
-      ], { mode: "oneOf" }).annotate({ "description": "Controls which tool the model should use, if any." }),
-      Schema.Null
-    ])
-  ),
-  "parallel_tool_calls": Schema.optionalKey(
-    Schema.Union([
-      Schema.Boolean.annotate({ "description": "Whether to allow the model to run tool calls in parallel." }),
-      Schema.Null
-    ])
-  )
-})
-export type CompactResponseMethodPublicBody = {
-  readonly "model": ModelIdsCompaction
-  readonly "input"?: string | ReadonlyArray<InputItem> | null
-  readonly "previous_response_id"?: string | null
-  readonly "instructions"?: string | null
-}
-export const CompactResponseMethodPublicBody = Schema.Struct({
-  "model": ModelIdsCompaction,
-  "input": Schema.optionalKey(
-    Schema.Union([
-      Schema.Union([
-        Schema.String.annotate({
-          "description": "A text input to the model, equivalent to a text input with the `user` role."
-        }).check(Schema.isMaxLength(10485760)),
-        Schema.Array(InputItem).annotate({
-          "description": "A list of one or many input items to the model, containing different content types."
-        })
-      ], { mode: "oneOf" }).annotate({
-        "description": "Text, image, or file inputs to the model, used to generate a response"
-      }),
-      Schema.Null
-    ])
-  ),
-  "previous_response_id": Schema.optionalKey(
-    Schema.Union([
-      Schema.String.annotate({
-        "description":
-          "The unique ID of the previous response to the model. Use this to create multi-turn conversations. Learn more about [conversation state](/docs/guides/conversation-state). Cannot be used in conjunction with `conversation`."
-      }),
-      Schema.Null
-    ])
-  ),
-  "instructions": Schema.optionalKey(Schema.Union([
-    Schema.String.annotate({
-      "description":
-        "A system (or developer) message inserted into the model's context.\nWhen used along with `previous_response_id`, the instructions from a previous response will not be carried over to the next response. This makes it simple to swap out system (or developer) messages in new responses."
-    }),
-    Schema.Null
-  ]))
-})
+export const ConversationItemList = Schema.Struct({
+  "object": Schema.Literal("list").annotate({ "description": "The type of object returned, must be `list`." }),
+  "data": Schema.Array(ConversationItem).annotate({ "description": "A list of conversation items." }),
+  "has_more": Schema.Boolean.annotate({ "description": "Whether there are more items available." }),
+  "first_id": Schema.String.annotate({ "description": "The ID of the first item in the list." }),
+  "last_id": Schema.String.annotate({ "description": "The ID of the last item in the list." })
+}).annotate({ "title": "The conversation item list", "description": "A list of Conversation items." })
 export type ResponseItemList = {
   readonly "object": "list"
   readonly "data": ReadonlyArray<ItemResource>
@@ -21544,6 +21699,61 @@ export const ResponseItemList = Schema.Struct({
   "first_id": Schema.String.annotate({ "description": "The ID of the first item in the list." }),
   "last_id": Schema.String.annotate({ "description": "The ID of the last item in the list." })
 }).annotate({ "description": "A list of Response items." })
+export type CompactResource = {
+  readonly "id": string
+  readonly "object": "response.compaction"
+  readonly "output": ReadonlyArray<ItemField>
+  readonly "created_at": number
+  readonly "usage": {
+    readonly "input_tokens": number
+    readonly "input_tokens_details": { readonly "cached_tokens": number }
+    readonly "output_tokens": number
+    readonly "output_tokens_details": { readonly "reasoning_tokens": number }
+    readonly "total_tokens": number
+  }
+}
+export const CompactResource = Schema.Struct({
+  "id": Schema.String.annotate({ "description": "The unique identifier for the compacted response." }),
+  "object": Schema.Literal("response.compaction").annotate({
+    "description": "The object type. Always `response.compaction`."
+  }),
+  "output": Schema.Array(ItemField).annotate({ "description": "The compacted list of output items." }),
+  "created_at": Schema.Number.annotate({
+    "description": "Unix timestamp (in seconds) when the compacted conversation was created."
+  }).check(Schema.isInt()),
+  "usage": Schema.Struct({
+    "input_tokens": Schema.Number.annotate({ "description": "The number of input tokens." }).check(Schema.isInt()),
+    "input_tokens_details": Schema.Struct({
+      "cached_tokens": Schema.Number.annotate({
+        "description":
+          "The number of tokens that were retrieved from the cache. \n[More on prompt caching](/docs/guides/prompt-caching).\n"
+      }).check(Schema.isInt())
+    }).annotate({ "description": "A detailed breakdown of the input tokens." }),
+    "output_tokens": Schema.Number.annotate({ "description": "The number of output tokens." }).check(Schema.isInt()),
+    "output_tokens_details": Schema.Struct({
+      "reasoning_tokens": Schema.Number.annotate({ "description": "The number of reasoning tokens." }).check(
+        Schema.isInt()
+      )
+    }).annotate({ "description": "A detailed breakdown of the output tokens." }),
+    "total_tokens": Schema.Number.annotate({ "description": "The total number of tokens used." }).check(Schema.isInt())
+  }).annotate({
+    "description": "Token accounting for the compaction pass, including cached, reasoning, and total tokens."
+  })
+}).annotate({ "title": "The compacted response object" })
+export type InputParam = string | ReadonlyArray<InputItem>
+export const InputParam = Schema.Union([
+  Schema.String.annotate({
+    "title": "Text input",
+    "description": "A text input to the model, equivalent to a text input with the\n`user` role.\n"
+  }),
+  Schema.Array(InputItem).annotate({
+    "title": "Input item list",
+    "description": "A list of one or many input items to the model, containing\ndifferent content types.\n"
+  })
+], { mode: "oneOf" }).annotate({
+  "description":
+    "Text, image, or file inputs to the model, used to generate a response.\n\nLearn more:\n- [Text inputs and outputs](/docs/guides/text)\n- [Image inputs](/docs/guides/images)\n- [File inputs](/docs/guides/pdf-files)\n- [Conversation state](/docs/guides/conversation-state)\n- [Function calling](/docs/guides/function-calling)\n"
+})
 export type Response = {
   readonly "metadata": {} | null
   readonly "top_logprobs"?: number | null
@@ -23501,6 +23711,214 @@ export const ResponseQueuedEvent = Schema.Struct({
   "title": "ResponseQueuedEvent",
   "description": "Emitted when a response is queued and waiting to be processed.\n"
 })
+export type CreateConversationBody = {
+  readonly "metadata"?: {} | null | null
+  readonly "items"?: ReadonlyArray<InputItem> | null
+}
+export const CreateConversationBody = Schema.Struct({
+  "metadata": Schema.optionalKey(Schema.Union([
+    Schema.Union([
+      Schema.Struct({}).annotate({
+        "description":
+          "Set of 16 key-value pairs that can be attached to an object. This can be\nuseful for storing additional information about the object in a structured\nformat, and querying for objects via API or the dashboard.\n\nKeys are strings with a maximum length of 64 characters. Values are strings\nwith a maximum length of 512 characters.\n"
+      }),
+      Schema.Null
+    ]).annotate({
+      "description":
+        "Set of 16 key-value pairs that can be attached to an object. This can be         useful for storing additional information about the object in a structured         format, and querying for objects via API or the dashboard.\n        Keys are strings with a maximum length of 64 characters. Values are strings         with a maximum length of 512 characters."
+    }),
+    Schema.Null
+  ])),
+  "items": Schema.optionalKey(
+    Schema.Union([
+      Schema.Array(InputItem).annotate({
+        "description": "Initial items to include in the conversation context. You may add up to 20 items at a time."
+      }).check(Schema.isMaxLength(20)),
+      Schema.Null
+    ])
+  )
+})
+export type TokenCountsBody = {
+  readonly "model"?: string | null
+  readonly "input"?: string | ReadonlyArray<InputItem> | null
+  readonly "previous_response_id"?: string | null
+  readonly "tools"?: ReadonlyArray<Tool> | null
+  readonly "text"?: ResponseTextParam | null
+  readonly "reasoning"?: {
+    readonly "effort"?: ReasoningEffort
+    readonly "summary"?: "auto" | "concise" | "detailed" | null
+    readonly "generate_summary"?: "auto" | "concise" | "detailed" | null
+  } | null
+  readonly "truncation"?: "auto" | "disabled"
+  readonly "instructions"?: string | null
+  readonly "conversation"?: ConversationParam | null
+  readonly "tool_choice"?:
+    | ToolChoiceOptions
+    | ToolChoiceAllowed
+    | ToolChoiceTypes
+    | ToolChoiceFunction
+    | ToolChoiceMCP
+    | ToolChoiceCustom
+    | SpecificApplyPatchParam
+    | SpecificFunctionShellParam
+    | null
+  readonly "parallel_tool_calls"?: boolean | null
+}
+export const TokenCountsBody = Schema.Struct({
+  "model": Schema.optionalKey(
+    Schema.Union([
+      Schema.String.annotate({
+        "description":
+          "Model ID used to generate the response, like `gpt-4o` or `o3`. OpenAI offers a wide range of models with different capabilities, performance characteristics, and price points. Refer to the [model guide](/docs/models) to browse and compare available models."
+      }),
+      Schema.Null
+    ])
+  ),
+  "input": Schema.optionalKey(
+    Schema.Union([
+      Schema.Union([
+        Schema.String.annotate({
+          "description": "A text input to the model, equivalent to a text input with the `user` role."
+        }).check(Schema.isMaxLength(10485760)),
+        Schema.Array(InputItem).annotate({
+          "description": "A list of one or many input items to the model, containing different content types."
+        })
+      ], { mode: "oneOf" }).annotate({
+        "description": "Text, image, or file inputs to the model, used to generate a response"
+      }),
+      Schema.Null
+    ])
+  ),
+  "previous_response_id": Schema.optionalKey(
+    Schema.Union([
+      Schema.String.annotate({
+        "description":
+          "The unique ID of the previous response to the model. Use this to create multi-turn conversations. Learn more about [conversation state](/docs/guides/conversation-state). Cannot be used in conjunction with `conversation`."
+      }),
+      Schema.Null
+    ])
+  ),
+  "tools": Schema.optionalKey(
+    Schema.Union([
+      Schema.Array(Tool).annotate({
+        "description":
+          "An array of tools the model may call while generating a response. You can specify which tool to use by setting the `tool_choice` parameter."
+      }),
+      Schema.Null
+    ])
+  ),
+  "text": Schema.optionalKey(Schema.Union([ResponseTextParam, Schema.Null])),
+  "reasoning": Schema.optionalKey(Schema.Union([
+    Schema.Struct({
+      "effort": Schema.optionalKey(ReasoningEffort),
+      "summary": Schema.optionalKey(Schema.Union([
+        Schema.Literals(["auto", "concise", "detailed"]).annotate({
+          "description":
+            "A summary of the reasoning performed by the model. This can be\nuseful for debugging and understanding the model's reasoning process.\nOne of `auto`, `concise`, or `detailed`.\n\n`concise` is supported for `computer-use-preview` models and all reasoning models after `gpt-5`.\n"
+        }),
+        Schema.Null
+      ])),
+      "generate_summary": Schema.optionalKey(
+        Schema.Union([
+          Schema.Literals(["auto", "concise", "detailed"]).annotate({
+            "description":
+              "**Deprecated:** use `summary` instead.\n\nA summary of the reasoning performed by the model. This can be\nuseful for debugging and understanding the model's reasoning process.\nOne of `auto`, `concise`, or `detailed`.\n"
+          }),
+          Schema.Null
+        ])
+      )
+    }).annotate({
+      "title": "Reasoning",
+      "description":
+        "**gpt-5 and o-series models only** Configuration options for [reasoning models](https://platform.openai.com/docs/guides/reasoning)."
+    }),
+    Schema.Null
+  ])),
+  "truncation": Schema.optionalKey(
+    Schema.Literals(["auto", "disabled"]).annotate({
+      "description":
+        "The truncation strategy to use for the model response. - `auto`: If the input to this Response exceeds the model's context window size, the model will truncate the response to fit the context window by dropping items from the beginning of the conversation. - `disabled` (default): If the input size will exceed the context window size for a model, the request will fail with a 400 error."
+    })
+  ),
+  "instructions": Schema.optionalKey(Schema.Union([
+    Schema.String.annotate({
+      "description":
+        "A system (or developer) message inserted into the model's context.\nWhen used along with `previous_response_id`, the instructions from a previous response will not be carried over to the next response. This makes it simple to swap out system (or developer) messages in new responses."
+    }),
+    Schema.Null
+  ])),
+  "conversation": Schema.optionalKey(Schema.Union([ConversationParam, Schema.Null])),
+  "tool_choice": Schema.optionalKey(
+    Schema.Union([
+      Schema.Union([
+        ToolChoiceOptions,
+        ToolChoiceAllowed,
+        ToolChoiceTypes,
+        ToolChoiceFunction,
+        ToolChoiceMCP,
+        ToolChoiceCustom,
+        SpecificApplyPatchParam,
+        SpecificFunctionShellParam
+      ], { mode: "oneOf" }).annotate({ "description": "Controls which tool the model should use, if any." }),
+      Schema.Null
+    ])
+  ),
+  "parallel_tool_calls": Schema.optionalKey(
+    Schema.Union([
+      Schema.Boolean.annotate({ "description": "Whether to allow the model to run tool calls in parallel." }),
+      Schema.Null
+    ])
+  )
+})
+export type CompactResponseMethodPublicBody = {
+  readonly "model": ModelIdsCompaction
+  readonly "input"?: string | ReadonlyArray<InputItem> | null
+  readonly "previous_response_id"?: string | null
+  readonly "instructions"?: string | null
+  readonly "prompt_cache_key"?: string | null
+}
+export const CompactResponseMethodPublicBody = Schema.Struct({
+  "model": ModelIdsCompaction,
+  "input": Schema.optionalKey(
+    Schema.Union([
+      Schema.Union([
+        Schema.String.annotate({
+          "description": "A text input to the model, equivalent to a text input with the `user` role."
+        }).check(Schema.isMaxLength(10485760)),
+        Schema.Array(InputItem).annotate({
+          "description": "A list of one or many input items to the model, containing different content types."
+        })
+      ], { mode: "oneOf" }).annotate({
+        "description": "Text, image, or file inputs to the model, used to generate a response"
+      }),
+      Schema.Null
+    ])
+  ),
+  "previous_response_id": Schema.optionalKey(
+    Schema.Union([
+      Schema.String.annotate({
+        "description":
+          "The unique ID of the previous response to the model. Use this to create multi-turn conversations. Learn more about [conversation state](/docs/guides/conversation-state). Cannot be used in conjunction with `conversation`."
+      }),
+      Schema.Null
+    ])
+  ),
+  "instructions": Schema.optionalKey(Schema.Union([
+    Schema.String.annotate({
+      "description":
+        "A system (or developer) message inserted into the model's context.\nWhen used along with `previous_response_id`, the instructions from a previous response will not be carried over to the next response. This makes it simple to swap out system (or developer) messages in new responses."
+    }),
+    Schema.Null
+  ])),
+  "prompt_cache_key": Schema.optionalKey(
+    Schema.Union([
+      Schema.String.annotate({ "description": "A key to use when reading from or writing to the prompt cache." }).check(
+        Schema.isMaxLength(64)
+      ),
+      Schema.Null
+    ])
+  )
+})
 export type CreateEvalRequest = {
   readonly "name"?: string
   readonly "metadata"?: Metadata
@@ -23843,20 +24261,235 @@ export const CreateResponse = Schema.Struct({
     ])
   )
 })
-export type ResponseKeepAliveEvent = {
-  readonly "type": "keepalive"
-  readonly "sequence_number": number
+export type ResponsesClientEventResponseCreate = {
+  readonly "type": "response.create"
+  readonly "metadata"?: Metadata
+  readonly "top_logprobs"?: number
+  readonly "temperature"?: number | null
+  readonly "top_p"?: number | null
+  readonly "user"?: string | null
+  readonly "safety_identifier"?: string | null
+  readonly "prompt_cache_key"?: string | null
+  readonly "service_tier"?: ServiceTier
+  readonly "prompt_cache_retention"?: "in-memory" | "24h" | null
+  readonly "previous_response_id"?: string | null
+  readonly "model"?:
+    | ModelIdsShared
+    | "o1-pro"
+    | "o1-pro-2025-03-19"
+    | "o3-pro"
+    | "o3-pro-2025-06-10"
+    | "o3-deep-research"
+    | "o3-deep-research-2025-06-26"
+    | "o4-mini-deep-research"
+    | "o4-mini-deep-research-2025-06-26"
+    | "computer-use-preview"
+    | "computer-use-preview-2025-03-11"
+    | "gpt-5-codex"
+    | "gpt-5-pro"
+    | "gpt-5-pro-2025-10-06"
+    | "gpt-5.1-codex-max"
+  readonly "reasoning"?: Reasoning | null
+  readonly "background"?: boolean | null
+  readonly "max_output_tokens"?: number | null
+  readonly "max_tool_calls"?: number | null
+  readonly "text"?: ResponseTextParam
+  readonly "tools"?: ToolsArray
+  readonly "tool_choice"?: ToolChoiceParam
+  readonly "prompt"?: Prompt
+  readonly "truncation"?: "auto" | "disabled" | null
+  readonly "input"?: InputParam
+  readonly "include"?: ReadonlyArray<IncludeEnum> | null
+  readonly "parallel_tool_calls"?: boolean | null
+  readonly "store"?: boolean | null
+  readonly "instructions"?: string | null
+  readonly "stream"?: boolean | null
+  readonly "stream_options"?: ResponseStreamOptions
+  readonly "conversation"?: ConversationParam | null
+  readonly "context_management"?: ReadonlyArray<ContextManagementParam> | null
 }
-export const ResponseKeepAliveEvent = Schema.Struct({
-  "type": Schema.Literal("keepalive").annotate({
-    "description": "The type of the keepalive event. Always `keepalive`."
+export const ResponsesClientEventResponseCreate = Schema.Struct({
+  "type": Schema.Literal("response.create").annotate({
+    "description": "The type of the client event. Always `response.create`.\n"
   }),
-  "sequence_number": Schema.Number.annotate({ "description": "The sequence number of this keepalive event." }).check(
-    Schema.isInt()
+  "metadata": Schema.optionalKey(Metadata),
+  "top_logprobs": Schema.optionalKey(
+    Schema.Union([
+      Schema.Number.annotate({
+        "description":
+          "An integer between 0 and 20 specifying the number of most likely tokens to\nreturn at each token position, each with an associated log probability.\n"
+      }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(20)).check(
+        Schema.makeFilterGroup([Schema.isGreaterThanOrEqualTo(0), Schema.isLessThanOrEqualTo(20)], {
+          "description":
+            "An integer between 0 and 20 specifying the number of most likely tokens to\nreturn at each token position, each with an associated log probability.\n"
+        })
+      )
+    ])
+  ),
+  "temperature": Schema.optionalKey(
+    Schema.Union([
+      Schema.Number.annotate({
+        "description":
+          "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic.\nWe generally recommend altering this or `top_p` but not both.\n"
+      }).check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(2)),
+      Schema.Null
+    ])
+  ),
+  "top_p": Schema.optionalKey(Schema.Union([
+    Schema.Number.annotate({
+      "description":
+        "An alternative to sampling with temperature, called nucleus sampling,\nwhere the model considers the results of the tokens with top_p probability\nmass. So 0.1 means only the tokens comprising the top 10% probability mass\nare considered.\n\nWe generally recommend altering this or `temperature` but not both.\n"
+    }).check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(1)),
+    Schema.Null
+  ])),
+  "user": Schema.optionalKey(
+    Schema.Union([Schema.String, Schema.Null]).annotate({
+      "description":
+        "This field is being replaced by `safety_identifier` and `prompt_cache_key`. Use `prompt_cache_key` instead to maintain caching optimizations.\nA stable identifier for your end-users.\nUsed to boost cache hit rates by better bucketing similar requests and  to help OpenAI detect and prevent abuse. [Learn more](/docs/guides/safety-best-practices#safety-identifiers).\n"
+    })
+  ),
+  "safety_identifier": Schema.optionalKey(
+    Schema.Union([Schema.String, Schema.Null]).annotate({
+      "description":
+        "A stable identifier used to help detect users of your application that may be violating OpenAI's usage policies.\nThe IDs should be a string that uniquely identifies each user, with a maximum length of 64 characters. We recommend hashing their username or email address, in order to avoid sending us any identifying information. [Learn more](/docs/guides/safety-best-practices#safety-identifiers).\n"
+    })
+  ),
+  "prompt_cache_key": Schema.optionalKey(
+    Schema.Union([Schema.String, Schema.Null]).annotate({
+      "description":
+        "Used by OpenAI to cache responses for similar requests to optimize your cache hit rates. Replaces the `user` field. [Learn more](/docs/guides/prompt-caching).\n"
+    })
+  ),
+  "service_tier": Schema.optionalKey(ServiceTier),
+  "prompt_cache_retention": Schema.optionalKey(
+    Schema.Union([
+      Schema.Literals(["in-memory", "24h"]).annotate({
+        "description":
+          "The retention policy for the prompt cache. Set to `24h` to enable extended prompt caching, which keeps cached prefixes active for longer, up to a maximum of 24 hours. [Learn more](/docs/guides/prompt-caching#prompt-cache-retention).\n"
+      }),
+      Schema.Null
+    ])
+  ),
+  "previous_response_id": Schema.optionalKey(
+    Schema.Union([
+      Schema.String.annotate({
+        "description":
+          "The unique ID of the previous response to the model. Use this to\ncreate multi-turn conversations. Learn more about\n[conversation state](/docs/guides/conversation-state). Cannot be used in conjunction with `conversation`.\n"
+      }),
+      Schema.Null
+    ])
+  ),
+  "model": Schema.optionalKey(
+    Schema.Union([
+      ModelIdsShared,
+      Schema.Literals([
+        "o1-pro",
+        "o1-pro-2025-03-19",
+        "o3-pro",
+        "o3-pro-2025-06-10",
+        "o3-deep-research",
+        "o3-deep-research-2025-06-26",
+        "o4-mini-deep-research",
+        "o4-mini-deep-research-2025-06-26",
+        "computer-use-preview",
+        "computer-use-preview-2025-03-11",
+        "gpt-5-codex",
+        "gpt-5-pro",
+        "gpt-5-pro-2025-10-06",
+        "gpt-5.1-codex-max"
+      ]).annotate({ "title": "ResponsesOnlyModel" })
+    ]).annotate({
+      "description":
+        "Model ID used to generate the response, like `gpt-4o` or `o3`. OpenAI\noffers a wide range of models with different capabilities, performance\ncharacteristics, and price points. Refer to the [model guide](/docs/models)\nto browse and compare available models.\n"
+    })
+  ),
+  "reasoning": Schema.optionalKey(Schema.Union([Reasoning, Schema.Null])),
+  "background": Schema.optionalKey(
+    Schema.Union([
+      Schema.Boolean.annotate({
+        "description": "Whether to run the model response in the background.\n[Learn more](/docs/guides/background).\n"
+      }),
+      Schema.Null
+    ])
+  ),
+  "max_output_tokens": Schema.optionalKey(
+    Schema.Union([
+      Schema.Number.annotate({
+        "description":
+          "An upper bound for the number of tokens that can be generated for a response, including visible output tokens and [reasoning tokens](/docs/guides/reasoning).\n"
+      }).check(Schema.isInt()),
+      Schema.Null
+    ])
+  ),
+  "max_tool_calls": Schema.optionalKey(
+    Schema.Union([
+      Schema.Number.annotate({
+        "description":
+          "The maximum number of total calls to built-in tools that can be processed in a response. This maximum number applies across all built-in tool calls, not per individual tool. Any further attempts to call a tool by the model will be ignored.\n"
+      }).check(Schema.isInt()),
+      Schema.Null
+    ])
+  ),
+  "text": Schema.optionalKey(ResponseTextParam),
+  "tools": Schema.optionalKey(ToolsArray),
+  "tool_choice": Schema.optionalKey(ToolChoiceParam),
+  "prompt": Schema.optionalKey(Prompt),
+  "truncation": Schema.optionalKey(Schema.Union([
+    Schema.Literals(["auto", "disabled"]).annotate({
+      "description":
+        "The truncation strategy to use for the model response.\n- `auto`: If the input to this Response exceeds\n  the model's context window size, the model will truncate the\n  response to fit the context window by dropping items from the beginning of the conversation.\n- `disabled` (default): If the input size will exceed the context window\n  size for a model, the request will fail with a 400 error.\n"
+    }),
+    Schema.Null
+  ])),
+  "input": Schema.optionalKey(InputParam),
+  "include": Schema.optionalKey(Schema.Union([
+    Schema.Array(IncludeEnum).annotate({
+      "description":
+        "Specify additional output data to include in the model response. Currently supported values are:\n- `web_search_call.action.sources`: Include the sources of the web search tool call.\n- `code_interpreter_call.outputs`: Includes the outputs of python code execution in code interpreter tool call items.\n- `computer_call_output.output.image_url`: Include image urls from the computer call output.\n- `file_search_call.results`: Include the search results of the file search tool call.\n- `message.input_image.image_url`: Include image urls from the input message.\n- `message.output_text.logprobs`: Include logprobs with assistant messages.\n- `reasoning.encrypted_content`: Includes an encrypted version of reasoning tokens in reasoning item outputs. This enables reasoning items to be used in multi-turn conversations when using the Responses API statelessly (like when the `store` parameter is set to `false`, or when an organization is enrolled in the zero data retention program)."
+    }),
+    Schema.Null
+  ])),
+  "parallel_tool_calls": Schema.optionalKey(
+    Schema.Union([
+      Schema.Boolean.annotate({ "description": "Whether to allow the model to run tool calls in parallel.\n" }),
+      Schema.Null
+    ])
+  ),
+  "store": Schema.optionalKey(
+    Schema.Union([
+      Schema.Boolean.annotate({
+        "description": "Whether to store the generated model response for later retrieval via\nAPI.\n"
+      }),
+      Schema.Null
+    ])
+  ),
+  "instructions": Schema.optionalKey(Schema.Union([
+    Schema.String.annotate({
+      "description":
+        "A system (or developer) message inserted into the model's context.\n\nWhen using along with `previous_response_id`, the instructions from a previous\nresponse will not be carried over to the next response. This makes it simple\nto swap out system (or developer) messages in new responses.\n"
+    }),
+    Schema.Null
+  ])),
+  "stream": Schema.optionalKey(Schema.Union([
+    Schema.Boolean.annotate({
+      "description":
+        "If set to true, the model response data will be streamed to the client\nas it is generated using [server-sent events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#Event_stream_format).\nSee the [Streaming section below](/docs/api-reference/responses-streaming)\nfor more information.\n"
+    }),
+    Schema.Null
+  ])),
+  "stream_options": Schema.optionalKey(ResponseStreamOptions),
+  "conversation": Schema.optionalKey(Schema.Union([ConversationParam, Schema.Null])),
+  "context_management": Schema.optionalKey(
+    Schema.Union([
+      Schema.Array(ContextManagementParam).annotate({
+        "description": "Context management configuration for this request.\n"
+      }).check(Schema.isMinLength(1)),
+      Schema.Null
+    ])
   )
 }).annotate({
-  "title": "Keep alive",
-  "description": "A keepalive event emitted during long-running response streams."
+  "description":
+    "Client event for creating a response over a persistent WebSocket connection.\nThis payload uses the same top-level fields as `POST /v1/responses`.\n\nNotes:\n- `stream` is implicit over WebSocket and should not be sent.\n- `background` is not supported over WebSocket.\n"
 })
 export type ResponseStreamEvent =
   | ResponseAudioDeltaEvent
@@ -23881,7 +24514,6 @@ export type ResponseStreamEvent =
   | ResponseInProgressEvent
   | ResponseFailedEvent
   | ResponseIncompleteEvent
-  | ResponseKeepAliveEvent
   | ResponseOutputItemAddedEvent
   | ResponseOutputItemDoneEvent
   | ResponseReasoningSummaryPartAddedEvent
@@ -23913,6 +24545,7 @@ export type ResponseStreamEvent =
   | ResponseQueuedEvent
   | ResponseCustomToolCallInputDeltaEvent
   | ResponseCustomToolCallInputDoneEvent
+  | ResponseKeepAliveEvent
   | ResponseApplyPatchCallOperationDiffDeltaEvent
   | ResponseApplyPatchCallOperationDiffDoneEvent
 export const ResponseStreamEvent = Schema.Union([
@@ -23938,7 +24571,6 @@ export const ResponseStreamEvent = Schema.Union([
   ResponseInProgressEvent,
   ResponseFailedEvent,
   ResponseIncompleteEvent,
-  ResponseKeepAliveEvent,
   ResponseOutputItemAddedEvent,
   ResponseOutputItemDoneEvent,
   ResponseReasoningSummaryPartAddedEvent,
@@ -23970,6 +24602,7 @@ export const ResponseStreamEvent = Schema.Union([
   ResponseQueuedEvent,
   ResponseCustomToolCallInputDeltaEvent,
   ResponseCustomToolCallInputDoneEvent,
+  ResponseKeepAliveEvent,
   ResponseApplyPatchCallOperationDiffDeltaEvent,
   ResponseApplyPatchCallOperationDiffDoneEvent
 ])
@@ -24334,6 +24967,7 @@ export type CreateBatchRequestJson = {
     | "/v1/moderations"
     | "/v1/images/generations"
     | "/v1/images/edits"
+    | "/v1/videos"
   readonly "completion_window": "24h"
   readonly "metadata"?: Metadata
   readonly "output_expires_after"?: BatchFileExpirationAfter
@@ -24350,10 +24984,11 @@ export const CreateBatchRequestJson = Schema.Struct({
     "/v1/completions",
     "/v1/moderations",
     "/v1/images/generations",
-    "/v1/images/edits"
+    "/v1/images/edits",
+    "/v1/videos"
   ]).annotate({
     "description":
-      "The endpoint to be used for all requests in the batch. Currently `/v1/responses`, `/v1/chat/completions`, `/v1/embeddings`, `/v1/completions`, `/v1/moderations`, `/v1/images/generations`, and `/v1/images/edits` are supported. Note that `/v1/embeddings` batches are also restricted to a maximum of 50,000 embedding inputs across all requests in the batch."
+      "The endpoint to be used for all requests in the batch. Currently `/v1/responses`, `/v1/chat/completions`, `/v1/embeddings`, `/v1/completions`, `/v1/moderations`, `/v1/images/generations`, `/v1/images/edits`, and `/v1/videos` are supported. Note that `/v1/embeddings` batches are also restricted to a maximum of 50,000 embedding inputs across all requests in the batch."
   }),
   "completion_window": Schema.Literal("24h").annotate({
     "description": "The time frame within which the batch should be processed. Currently only `24h` is supported."
@@ -25680,12 +26315,30 @@ export const ListVideosParams = Schema.Struct({
 })
 export type ListVideos200 = VideoListResource
 export const ListVideos200 = VideoListResource
-export type CreateVideoRequestJson = CreateVideoBody
-export const CreateVideoRequestJson = CreateVideoBody
-export type CreateVideoRequestFormData = CreateVideoBody
-export const CreateVideoRequestFormData = CreateVideoBody
+export type CreateVideoRequestJson = CreateVideoJsonBody
+export const CreateVideoRequestJson = CreateVideoJsonBody
+export type CreateVideoRequestFormData = CreateVideoMultipartBody
+export const CreateVideoRequestFormData = CreateVideoMultipartBody
 export type CreateVideo200 = VideoResource
 export const CreateVideo200 = VideoResource
+export type CreateVideoCharacterRequestFormData = CreateVideoCharacterBody
+export const CreateVideoCharacterRequestFormData = CreateVideoCharacterBody
+export type CreateVideoCharacter200 = VideoCharacterResource
+export const CreateVideoCharacter200 = VideoCharacterResource
+export type GetVideoCharacter200 = VideoCharacterResource
+export const GetVideoCharacter200 = VideoCharacterResource
+export type CreateVideoEditRequestJson = CreateVideoEditJsonBody
+export const CreateVideoEditRequestJson = CreateVideoEditJsonBody
+export type CreateVideoEditRequestFormData = CreateVideoEditMultipartBody
+export const CreateVideoEditRequestFormData = CreateVideoEditMultipartBody
+export type CreateVideoEdit200 = VideoResource
+export const CreateVideoEdit200 = VideoResource
+export type CreateVideoExtendRequestJson = CreateVideoExtendJsonBody
+export const CreateVideoExtendRequestJson = CreateVideoExtendJsonBody
+export type CreateVideoExtendRequestFormData = CreateVideoExtendMultipartBody
+export const CreateVideoExtendRequestFormData = CreateVideoExtendMultipartBody
+export type CreateVideoExtend200 = VideoResource
+export const CreateVideoExtend200 = VideoResource
 export type GetVideo200 = VideoResource
 export const GetVideo200 = VideoResource
 export type DeleteVideo200 = DeletedVideoResource
@@ -27905,6 +28558,37 @@ export const make = (
         HttpClientRequest.bodyFormData(options.payload as any),
         withResponse(options.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(CreateVideo200),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "CreateVideoCharacter": (options) =>
+      HttpClientRequest.post(`/videos/characters`).pipe(
+        HttpClientRequest.bodyFormData(options.payload as any),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(CreateVideoCharacter200),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "GetVideoCharacter": (characterId, options) =>
+      HttpClientRequest.get(`/videos/characters/${characterId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(GetVideoCharacter200),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "CreateVideoEdit": (options) =>
+      HttpClientRequest.post(`/videos/edits`).pipe(
+        HttpClientRequest.bodyFormData(options.payload as any),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(CreateVideoEdit200),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "CreateVideoExtend": (options) =>
+      HttpClientRequest.post(`/videos/extensions`).pipe(
+        HttpClientRequest.bodyFormData(options.payload as any),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(CreateVideoExtend200),
           orElse: unexpectedStatus
         }))
       ),
@@ -30489,7 +31173,7 @@ export interface OpenAiClient {
     HttpClientError.HttpClientError | SchemaError
   >
   /**
-   * Create a vector store file batch.
+   * The maximum number of files in a single batch request is 2000.
    */
   readonly "createVectorStoreFileBatch": <Config extends OperationConfig>(
     vectorStoreId: string,
@@ -30674,6 +31358,46 @@ export interface OpenAiClient {
     options: { readonly payload: typeof CreateVideoRequestFormData.Encoded; readonly config?: Config | undefined }
   ) => Effect.Effect<
     WithOptionalResponse<typeof CreateVideo200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Create a character from an uploaded video.
+   */
+  readonly "CreateVideoCharacter": <Config extends OperationConfig>(
+    options: {
+      readonly payload: typeof CreateVideoCharacterRequestFormData.Encoded
+      readonly config?: Config | undefined
+    }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof CreateVideoCharacter200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Fetch a character.
+   */
+  readonly "GetVideoCharacter": <Config extends OperationConfig>(
+    characterId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof GetVideoCharacter200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Create a new video generation job by editing a source video or existing generated video.
+   */
+  readonly "CreateVideoEdit": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateVideoEditRequestFormData.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof CreateVideoEdit200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Create an extension of a completed video.
+   */
+  readonly "CreateVideoExtend": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateVideoExtendRequestFormData.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof CreateVideoExtend200.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
