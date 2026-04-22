@@ -1,12 +1,14 @@
 /**
  * @since 4.0.0
  */
+import * as Arr from "../../Array.ts"
 import * as Cause from "../../Cause.ts"
 import * as Context from "../../Context.ts"
 import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
+import * as Filter from "../../Filter.ts"
 import { constFalse, constTrue, dual, identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import * as Option from "../../Option.ts"
@@ -575,13 +577,20 @@ export const intoResult = <A, E, R>(
       Effect.scoped,
       Effect.matchCauseEffect({
         onSuccess: (value) => Effect.succeed(new Complete({ exit: Exit.succeed(value) })),
-        onFailure: (cause): Effect.Effect<Result<A, E>> =>
-          instance.suspended
+        onFailure: (cause): Effect.Effect<Result<A, E>> => {
+          const [reasons, interrupts] = Arr.partition(
+            cause.reasons,
+            Filter.fromPredicate(Cause.isInterruptReason)
+          )
+          const hasInterruptsOnly = interrupts.length === cause.reasons.length
+          const filtered = reasons.length === 0 ? cause : Cause.fromReasons(reasons)
+          return instance.suspended && hasInterruptsOnly
             ? Effect.succeed(new Suspended({ cause: instance.cause }))
-            : (!instance.interrupted && Cause.hasInterruptsOnly(cause)) ||
+            : (!instance.interrupted && hasInterruptsOnly) ||
                 (!captureDefects && Cause.hasDies(cause))
-            ? Effect.failCause(cause as Cause.Cause<never>)
-            : Effect.succeed(new Complete({ exit: Exit.failCause(cause) }))
+            ? Effect.failCause(filtered as Cause.Cause<never>)
+            : Effect.succeed(new Complete({ exit: Exit.failCause(filtered) }))
+        }
       }),
       (eff) =>
         Effect.onExitPrimitive(eff, (exit) => {
@@ -607,11 +616,6 @@ export const wrapActivityResult = <A, E, R>(
   Effect.contextWith((context: Context.Context<WorkflowInstance>) => {
     const instance = Context.get(context, InstanceTag)
     const state = instance.activityState
-    if (instance.suspended) {
-      return waitForZero(instance).pipe(
-        Effect.andThen(suspend(instance))
-      )
-    }
     if (state.count === 0) state.latch.closeUnsafe()
     state.count++
     return Effect.onExit(effect, (exit) => {
