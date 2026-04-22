@@ -1,18 +1,17 @@
 import { PgliteClient } from "@effect/sql-pglite"
 import { assert, describe, layer } from "@effect/vitest"
+import * as Pglite from "@electric-sql/pglite"
 import { Deferred, Effect, Layer } from "effect"
+import { SqlClient } from "effect/unstable/sql/SqlClient"
 
-const ClientLayer = PgliteClient.layer({})
+const ClientLayer = PgliteClient.layer()
 
 const Migrations = Layer.effectDiscard(
-  PgliteClient.PgliteClient.asEffect().pipe(
-    Effect.andThen((sql) =>
-      Effect.acquireRelease(
-        sql`CREATE TABLE test (id SERIAL PRIMARY KEY, name TEXT)`,
-        () => sql`DROP TABLE test`.pipe(Effect.ignore)
-      )
-    )
-  )
+  Effect.gen(function*() {
+    const sql = yield* SqlClient
+    yield* sql`DROP TABLE test`.pipe(Effect.ignore)
+    yield* sql`CREATE TABLE test (id SERIAL PRIMARY KEY, name TEXT)`
+  })
 )
 
 describe("PgliteClient", () => {
@@ -113,14 +112,10 @@ describe("PgliteClient", () => {
 
   describe("fromClient", () => {
     layer(
-      Layer.unwrap(
-        Effect.gen(function*() {
-          const { PGlite } = yield* Effect.promise(() => import("@electric-sql/pglite"))
-          const pg = new PGlite()
-          yield* Effect.promise(() => pg.waitReady)
-          return PgliteClient.layerFrom(PgliteClient.fromClient({ liveClient: pg }))
-        })
-      ),
+      PgliteClient.layerFrom(Effect.gen(function*() {
+        const pg = new Pglite.PGlite()
+        return yield* PgliteClient.fromClient({ liveClient: pg })
+      })),
       { timeout: "30 seconds" }
     )((it) => {
       it.effect("works", () =>
@@ -132,24 +127,17 @@ describe("PgliteClient", () => {
     })
 
     layer(
-      Layer.unwrap(
-        Effect.gen(function*() {
-          const { PGlite } = yield* Effect.promise(() => import("@electric-sql/pglite"))
-          const pg = new PGlite()
-          yield* Effect.promise(() => pg.waitReady)
-          yield* Effect.tryPromise(() => pg.query("CREATE TYPE mood AS ENUM ('sad', 'happy')"))
-          yield* Effect.tryPromise(() =>
-            pg.query("CREATE TABLE test_moods (id SERIAL PRIMARY KEY, name TEXT, moods mood[])")
-          )
-          return PgliteClient.layerFrom(PgliteClient.fromClient({
-            liveClient: pg,
-            refreshArrayTypesOnStart: true
-          }))
-        })
+      Layer.effectDiscard(Effect.gen(function*() {
+        const sql = yield* PgliteClient.PgliteClient
+        yield* sql`CREATE TYPE mood AS ENUM ('sad', 'happy')`
+        yield* sql`CREATE TABLE test_moods (id SERIAL PRIMARY KEY, name TEXT, moods mood[])`
+        yield* sql.refreshArrayTypes
+      })).pipe(
+        Layer.provideMerge(ClientLayer)
       ),
       { timeout: "30 seconds" }
     )((it) => {
-      it.effect("refreshArrayTypesOnStart", () =>
+      it.effect("refreshArrayTypes", () =>
         Effect.gen(function*() {
           const sql = yield* PgliteClient.PgliteClient
           yield* sql`INSERT INTO test_moods (name, moods) VALUES (${"test2"}, ${["sad", "happy"]})`

@@ -7,7 +7,6 @@ import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Fiber from "effect/Fiber"
 import * as Layer from "effect/Layer"
-import * as Option from "effect/Option"
 import * as Queue from "effect/Queue"
 import * as Scope from "effect/Scope"
 import * as Semaphore from "effect/Semaphore"
@@ -55,6 +54,7 @@ export interface PgliteClient extends Client.SqlClient {
   readonly listen: (channel: string) => Stream.Stream<string, SqlError>
   readonly notify: (channel: string, payload: string) => Effect.Effect<void, SqlError>
   readonly dumpDataDir: (compression?: "none" | "gzip" | "auto") => Effect.Effect<File | Blob, SqlError>
+  readonly refreshArrayTypes: Effect.Effect<void, SqlError>
 }
 
 /**
@@ -79,11 +79,6 @@ export declare namespace PgliteClientConfig {
    * @since 1.0.0
    */
   export interface Base {
-    /**
-     * Refresh PGlite's array type cache once during startup. Useful after
-     * creating enum array types before handing the client to Effect.
-     */
-    readonly refreshArrayTypesOnStart?: boolean | undefined
     readonly spanAttributes?: Record<string, unknown> | undefined
     readonly transformResultNames?: ((str: string) => string) | undefined
     readonly transformQueryNames?: ((str: string) => string) | undefined
@@ -121,7 +116,7 @@ export declare namespace PgliteClientConfig {
  * @since 1.0.0
  */
 export const make = (
-  options: PgliteClientConfig
+  options: PgliteClientConfig = {}
 ): Effect.Effect<PgliteClient, SqlError, Scope.Scope | Reactivity.Reactivity> =>
   Effect.gen(function*() {
     const pglite = "liveClient" in options
@@ -189,14 +184,6 @@ export const fromClient = (
       transformRows
     })
 
-    if (options.refreshArrayTypesOnStart === true) {
-      yield* Effect.tryPromise({
-        try: () => pglite.refreshArrayTypes(),
-        catch: (cause) =>
-          new SqlError({ reason: classifyError(cause, "Failed to refresh array types", "refreshArrayTypes") })
-      })
-    }
-
     return Object.assign(
       client,
       {
@@ -232,7 +219,14 @@ export const fromClient = (
               try: () => pglite.dumpDataDir(compression),
               catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to dump data dir", "dumpDataDir") })
             })
-          )
+          ),
+        refreshArrayTypes: semaphore.withPermit(
+          Effect.tryPromise({
+            try: () => pglite.refreshArrayTypes(),
+            catch: (cause) =>
+              new SqlError({ reason: classifyError(cause, "Failed to refresh array types", "refreshArrayTypes") })
+          })
+        )
       }
     )
   })
@@ -330,7 +324,7 @@ export const layerConfig: (
  * @since 1.0.0
  */
 export const layer = (
-  config: PgliteClientConfig
+  config?: PgliteClientConfig | undefined
 ): Layer.Layer<PgliteClient | Client.SqlClient, SqlError> => layerFrom(make(config))
 
 /**
