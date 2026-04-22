@@ -116,13 +116,6 @@ export declare namespace PgliteClientConfig {
   }
 }
 
-interface PgliteConnection extends Connection {}
-
-const TransactionConnection = Client.TransactionConnection as unknown as Context.Service<
-  readonly [conn: PgliteConnection, counter: number],
-  readonly [conn: PgliteConnection, counter: number]
->
-
 /**
  * @category constructor
  * @since 1.0.0
@@ -131,19 +124,19 @@ export const make = (
   options: PgliteClientConfig
 ): Effect.Effect<PgliteClient, SqlError, Scope.Scope | Reactivity.Reactivity> =>
   Effect.gen(function*() {
-    const pglite: PGliteInterface = "liveClient" in options
+    const pglite = "liveClient" in options
       ? options.liveClient
       : yield* Effect.acquireRelease(
         Effect.tryPromise({
           try: async () => {
-            const { refreshArrayTypesOnStart: _, ...pgliteOptions } = options
-            const pg = new PGlite(pgliteOptions as PGliteOptions)
+            const pg = new PGlite(options)
             await pg.waitReady
-            return pg as PGliteInterface
+            return pg
           },
           catch: (cause) => new SqlError({ reason: classifyError(cause, "PgliteClient: Failed to connect", "connect") })
         }),
-        (pg) => Effect.promise(() => pg.close()).pipe(Effect.timeoutOption(1000))
+        (pg) => Effect.promise(() => pg.close()).pipe(Effect.timeoutOption(1000)),
+        { interruptible: true }
       )
 
     return yield* fromClient({ ...options, liveClient: pglite })
@@ -172,54 +165,8 @@ export const fromClient = (
       [ATTR_DB_SYSTEM_NAME, "postgresql"]
     ]
 
-    class PgliteConnectionImpl implements PgliteConnection {
-      private run(sql: string, params: ReadonlyArray<unknown>) {
-        return Effect.map(
-          Effect.tryPromise({
-            try: () => pglite.query<any>(sql, params as Array<any>),
-            catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to execute statement", "execute") })
-          }),
-          (result) => result.rows
-        )
-      }
-      execute(
-        sql: string,
-        params: ReadonlyArray<unknown>,
-        transformRows: (<A extends object>(row: ReadonlyArray<A>) => ReadonlyArray<A>) | undefined
-      ) {
-        return transformRows
-          ? Effect.map(this.run(sql, params), transformRows)
-          : this.run(sql, params)
-      }
-      executeRaw(sql: string, params: ReadonlyArray<unknown>) {
-        return Effect.tryPromise({
-          try: () => pglite.query<any>(sql, params as Array<any>),
-          catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to execute statement", "execute") })
-        })
-      }
-      executeValues(sql: string, params: ReadonlyArray<unknown>) {
-        return Effect.map(
-          Effect.tryPromise({
-            try: () => pglite.query<any>(sql, params as Array<any>, { rowMode: "array" }),
-            catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to execute statement", "execute") })
-          }),
-          (result) => result.rows as ReadonlyArray<ReadonlyArray<any>>
-        )
-      }
-      executeUnprepared(
-        sql: string,
-        params: ReadonlyArray<unknown>,
-        transformRows: (<A extends object>(row: ReadonlyArray<A>) => ReadonlyArray<A>) | undefined
-      ) {
-        return this.execute(sql, params, transformRows)
-      }
-      executeStream() {
-        return Stream.die("executeStream not implemented")
-      }
-    }
-
-    const connection: PgliteConnection = new PgliteConnectionImpl()
-    const semaphore = yield* Semaphore.make(1)
+    const connection = new PgliteConnection(pglite)
+    const semaphore = Semaphore.makeUnsafe(1)
     const acquirer = semaphore.withPermits(1)(Effect.succeed(connection))
     const transactionAcquirer = Effect.uninterruptibleMask((restore) => {
       const fiber = Fiber.getCurrent()!
@@ -232,16 +179,8 @@ export const fromClient = (
         connection
       )
     })
-    const withPermit = <A, E>(effect: Effect.Effect<A, E>): Effect.Effect<A, E> =>
-      Effect.flatMap(
-        Effect.serviceOption(TransactionConnection),
-        Option.match({
-          onNone: () => semaphore.withPermits(1)(effect),
-          onSome: () => effect
-        })
-      )
 
-    const config: PgliteClientConfig = options as PgliteClientConfig
+    const config = options as PgliteClientConfig
     const client = yield* Client.make({
       acquirer,
       compiler,
@@ -251,11 +190,11 @@ export const fromClient = (
     })
 
     if (options.refreshArrayTypesOnStart === true) {
-      yield* withPermit(Effect.tryPromise({
+      yield* Effect.tryPromise({
         try: () => pglite.refreshArrayTypes(),
         catch: (cause) =>
           new SqlError({ reason: classifyError(cause, "Failed to refresh array types", "refreshArrayTypes") })
-      }))
+      })
     }
 
     return Object.assign(
@@ -266,31 +205,97 @@ export const fromClient = (
         pglite,
         json: (_: unknown) => Statement.fragment([PgJson(_)]),
         listen: (channel: string) =>
-          Stream.callback<string, SqlError>(Effect.fnUntraced(function*(queue) {
-            return yield* Effect.acquireRelease(
-              Effect.interruptible(Effect.tryPromise({
+          Stream.callback<string, SqlError>((queue) =>
+            Effect.acquireRelease(
+              Effect.tryPromise({
                 try: () =>
                   pglite.listen(channel, (payload) => {
                     Queue.offerUnsafe(queue, payload)
                   }),
                 catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to listen", "listen") })
-              })),
-              (unlisten) => Effect.promise(() => unlisten())
+              }),
+              (unlisten) => Effect.promise(() => unlisten()),
+              { interruptible: true }
             )
-          })),
+          ),
         notify: (channel: string, payload: string) =>
-          withPermit(Effect.tryPromise({
+          Effect.tryPromise({
             try: () => pglite.exec(`NOTIFY ${escape(channel)}, ${escapeLiteral(payload)}`),
             catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to notify", "notify") })
-          })).pipe(Effect.asVoid),
+          }).pipe(
+            semaphore.withPermit,
+            Effect.asVoid
+          ),
         dumpDataDir: (compression?: "none" | "gzip" | "auto") =>
-          withPermit(Effect.tryPromise({
-            try: () => pglite.dumpDataDir(compression),
-            catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to dump data dir", "dumpDataDir") })
-          }))
+          semaphore.withPermit(
+            Effect.tryPromise({
+              try: () => pglite.dumpDataDir(compression),
+              catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to dump data dir", "dumpDataDir") })
+            })
+          )
       }
     )
   })
+
+class PgliteConnection implements Connection {
+  readonly pglite: PGliteInterface
+  constructor(pglite: PGliteInterface) {
+    this.pglite = pglite
+  }
+
+  private run(method: string, sql: string, params: ReadonlyArray<unknown>) {
+    return Effect.map(
+      Effect.tryPromise({
+        try: () => this.pglite.query<any>(sql, params as Array<any>),
+        catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to execute statement", method) })
+      }),
+      (result) => result.rows
+    )
+  }
+  execute(
+    sql: string,
+    params: ReadonlyArray<unknown>,
+    transformRows: (<A extends object>(row: ReadonlyArray<A>) => ReadonlyArray<A>) | undefined
+  ) {
+    return transformRows
+      ? Effect.map(this.run("execute", sql, params), transformRows)
+      : this.run("execute", sql, params)
+  }
+  executeRaw(sql: string, params: ReadonlyArray<unknown>) {
+    return Effect.tryPromise({
+      try: () => this.pglite.query<any>(sql, params as Array<any>),
+      catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to execute statement", "executeRaw") })
+    })
+  }
+  executeValues(sql: string, params: ReadonlyArray<unknown>) {
+    return Effect.map(
+      Effect.tryPromise({
+        try: () => this.pglite.query<any>(sql, params as Array<any>, { rowMode: "array" }),
+        catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to execute statement", "executeValues") })
+      }),
+      (result) => result.rows as ReadonlyArray<ReadonlyArray<any>>
+    )
+  }
+  executeUnprepared(
+    sql: string,
+    params: ReadonlyArray<unknown>,
+    transformRows: (<A extends object>(row: ReadonlyArray<A>) => ReadonlyArray<A>) | undefined
+  ) {
+    return transformRows
+      ? Effect.map(this.run("executeUnprepared", sql, params), transformRows)
+      : this.run("executeUnprepared", sql, params)
+  }
+  executeStream(
+    sql: string,
+    params: ReadonlyArray<unknown>,
+    transformRows: (<A extends object>(row: ReadonlyArray<A>) => ReadonlyArray<A>) | undefined
+  ) {
+    const eff = transformRows
+      ? Effect.map(this.run("executeStream", sql, params), transformRows)
+      : this.run("executeStream", sql, params)
+    return Stream.fromArrayEffect(eff)
+  }
+}
 
 /**
  * @category layers

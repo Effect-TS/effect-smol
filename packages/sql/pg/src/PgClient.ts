@@ -155,7 +155,8 @@ export const make = (options: PgPoolConfig): Effect.Effect<PgClient, SqlError, S
         () =>
           Effect.promise(() => pool.end()).pipe(
             Effect.timeoutOption(1000)
-          )
+          ),
+        { interruptible: true }
       ).pipe(
         Effect.timeoutOrElse({
           duration: options.connectTimeout ?? Duration.seconds(5),
@@ -211,7 +212,8 @@ export const makeClient = (
         () =>
           Effect.promise(() => client.end()).pipe(
             Effect.timeoutOption(1000)
-          )
+          ),
+        { interruptible: true }
       ).pipe(
         Effect.timeoutOrElse({
           duration: options.connectTimeout ?? Duration.seconds(5),
@@ -390,7 +392,8 @@ export const fromPool = Effect.fnUntraced(function*(
           return client.end()
         }).pipe(
           Effect.timeoutOption(1000)
-        )
+        ),
+      { interruptible: true }
     )
   })
 
