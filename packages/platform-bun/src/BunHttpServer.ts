@@ -550,14 +550,7 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
           semaphore.withPermits(1)
         )
 
-        const encoder = new TextEncoder()
-        const run = <R, E, _>(handler: (_: Uint8Array) => Effect.Effect<_, E, R> | void, opts?: {
-          readonly onOpen?: Effect.Effect<void> | undefined
-        }) => runRaw((data) => typeof data === "string" ? handler(encoder.encode(data)) : handler(data), opts)
-
-        return Socket.Socket.of({
-          [Socket.TypeId]: Socket.TypeId as typeof Socket.TypeId,
-          run,
+        return Socket.make({
           runRaw,
           writer
         })

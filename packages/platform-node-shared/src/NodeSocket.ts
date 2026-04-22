@@ -204,8 +204,7 @@ export const fromDuplex = <RO>(
         })
     )
 
-    return Effect.succeed(Socket.Socket.of({
-      [Socket.TypeId]: Socket.TypeId,
+    return Effect.succeed(Socket.make({
       run,
       runRaw: run,
       writer

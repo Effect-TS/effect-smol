@@ -50,6 +50,12 @@ export interface Socket {
       readonly onOpen?: Effect.Effect<void> | undefined
     }
   ) => Effect.Effect<void, SocketError | E, R>
+  readonly runString: <_, E = never, R = never>(
+    handler: (_: string) => Effect.Effect<_, E, R> | void,
+    options?: {
+      readonly onOpen?: Effect.Effect<void> | undefined
+    }
+  ) => Effect.Effect<void, SocketError | E, R>
   readonly runRaw: <_, E = never, R = never>(
     handler: (_: string | Uint8Array) => Effect.Effect<_, E, R> | void,
     options?: {
@@ -62,6 +68,61 @@ export interface Socket {
     Scope.Scope
   >
 }
+
+/**
+ * @since 4.0.0
+ * @category Constructors
+ */
+export const make = (options: {
+  readonly runRaw: <_, E, R>(
+    handler: (_: string | Uint8Array) => Effect.Effect<_, E, R> | void,
+    options?: {
+      readonly onOpen?: Effect.Effect<void> | undefined
+    }
+  ) => Effect.Effect<void, SocketError | E, R>
+  readonly run?: <_, E, R>(
+    handler: (_: Uint8Array) => Effect.Effect<_, E, R> | void,
+    options?: {
+      readonly onOpen?: Effect.Effect<void> | undefined
+    }
+  ) => Effect.Effect<void, SocketError | E, R>
+  readonly runString?: <_, E, R>(
+    handler: (_: string) => Effect.Effect<_, E, R> | void,
+    options?: {
+      readonly onOpen?: Effect.Effect<void> | undefined
+    }
+  ) => Effect.Effect<void, SocketError | E, R>
+  readonly writer: Effect.Effect<
+    (chunk: Uint8Array | string | CloseEvent) => Effect.Effect<void, SocketError>,
+    never,
+    Scope.Scope
+  >
+}): Socket =>
+  Socket.of({
+    [TypeId]: TypeId,
+    runRaw: options.runRaw,
+    run: options.run ?? ((handler, opts) =>
+      options.runRaw((data) =>
+        typeof data === "string"
+          ? handler(encoder.encode(data))
+          : data instanceof Uint8Array
+          ? handler(data)
+          : handler(new Uint8Array(data)), opts)),
+    runString: options.runString ??
+      (options.run ?
+        (handler, opts) => options.run!((data) => handler(decoder.decode(data)), opts) :
+        (handler, opts) =>
+          options.runRaw((data) =>
+            typeof data === "string"
+              ? handler(data)
+              : data instanceof Uint8Array
+              ? handler(decoder.decode(data))
+              : handler(decoder.decode(new Uint8Array(data))), opts)),
+    writer: options.writer
+  })
+
+const encoder = new TextEncoder()
+const decoder = new TextDecoder()
 
 const CloseEventTypeId = "~effect/socket/Socket/CloseEvent"
 
@@ -558,17 +619,6 @@ export const fromWebSocket = <RO>(
         }))
       )
 
-    const encoder = new TextEncoder()
-    const run = <_, E, R>(handler: (_: Uint8Array) => Effect.Effect<_, E, R> | void, opts?: {
-      readonly onOpen?: Effect.Effect<void> | undefined
-    }) =>
-      runRaw((data) =>
-        typeof data === "string"
-          ? handler(encoder.encode(data))
-          : data instanceof Uint8Array
-          ? handler(data)
-          : handler(new Uint8Array(data)), opts)
-
     const write = (chunk: Uint8Array | string | CloseEvent) =>
       latch.whenOpen(Effect.sync(() => {
         const ws = currentWS!
@@ -580,9 +630,7 @@ export const fromWebSocket = <RO>(
       }))
     const writer = Effect.succeed(write)
 
-    return Effect.succeed(Socket.of({
-      [TypeId]: TypeId,
-      run,
+    return Effect.succeed(make({
       runRaw,
       writer
     }))
@@ -706,15 +754,6 @@ export const fromTransformStream = <R>(acquire: Effect.Effect<InputTransformStre
         }))
       )
 
-    const encoder = new TextEncoder()
-    const run = <_, E, R>(handler: (_: Uint8Array) => Effect.Effect<_, E, R> | void, opts?: {
-      readonly onOpen?: Effect.Effect<void> | undefined
-    }) =>
-      runRaw((data) =>
-        typeof data === "string"
-          ? handler(encoder.encode(data))
-          : handler(data), opts)
-
     const writers = new WeakMap<InputTransformStream, WritableStreamDefaultWriter<Uint8Array>>()
     const getWriter = (stream: InputTransformStream) => {
       let writer = writers.get(stream)
@@ -746,9 +785,7 @@ export const fromTransformStream = <R>(acquire: Effect.Effect<InputTransformStre
         })
     )
 
-    return Effect.succeed(Socket.of({
-      [TypeId]: TypeId,
-      run,
+    return Effect.succeed(make({
       runRaw,
       writer
     }))
