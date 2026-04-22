@@ -971,11 +971,10 @@ describe("Schema", () => {
 
     it("E != T", () => {
       Schema.String.pipe(Schema.decodeTo(
-          Schema.Number,
-          // @ts-expect-error Argument of type 'Transformation<never, never, never, never>' is not assignable
-          SchemaTransformation.passthrough()
-        )
-      )
+        Schema.Number,
+        // @ts-expect-error Argument of type 'Transformation<never, never, never, never>' is not assignable
+        SchemaTransformation.passthrough()
+      ))
 
       Schema.String.pipe(
         Schema.decodeTo(
