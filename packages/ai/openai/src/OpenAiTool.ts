@@ -204,7 +204,7 @@ export const Shell = Tool.providerDefined({
     action: Generated.FunctionShellCall.fields.action
   }),
   success: Schema.Struct({
-    output: Generated.FunctionShellCallOutputItemParam.fields.output
+    output: Generated.FunctionShellCallOutput.fields.output
   })
 })
 

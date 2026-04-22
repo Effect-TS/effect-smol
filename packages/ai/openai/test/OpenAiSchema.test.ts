@@ -17,6 +17,7 @@ describe("OpenAiSchema", () => {
   it("decodes a representative response payload", () => {
     const decoded = Schema.decodeUnknownSync(OpenAiSchema.Response)({
       ...makeResponse(),
+      prompt_cache_retention: "in_memory",
       output: [
         {
           id: "msg_1",
@@ -71,6 +72,7 @@ describe("OpenAiSchema", () => {
 
     assert.strictEqual(decoded.id, "resp_123")
     assert.strictEqual(decoded.output.length, 3)
+    assert.strictEqual(decoded.prompt_cache_retention, "in_memory")
     assert.strictEqual(decoded.output[0].type, "message")
     if (decoded.output[0].type === "message") {
       assert.strictEqual(decoded.output[0].content[0].type, "output_text")
@@ -78,7 +80,7 @@ describe("OpenAiSchema", () => {
   })
 
   it("decodes required stream events", () => {
-    const response = makeResponse({ status: "in_progress" })
+    const response = makeResponse({ status: "in_progress", prompt_cache_retention: "in_memory" })
     const applyPatchItem = {
       id: "ap_1",
       type: "apply_patch_call",
@@ -92,7 +94,11 @@ describe("OpenAiSchema", () => {
 
     const events = [
       { type: "response.created", sequence_number: 1, response },
-      { type: "response.completed", sequence_number: 2, response: makeResponse() },
+      {
+        type: "response.completed",
+        sequence_number: 2,
+        response: makeResponse({ prompt_cache_retention: "in_memory" })
+      },
       { type: "response.incomplete", sequence_number: 3, response: makeResponse({ status: "incomplete" }) },
       { type: "response.failed", sequence_number: 4, response: makeResponse({ status: "failed" }) },
       { type: "response.output_item.added", sequence_number: 5, output_index: 0, item: applyPatchItem },
