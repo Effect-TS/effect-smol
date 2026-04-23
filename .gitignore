@@ -28,6 +28,7 @@ scratchpad/**/*
 # lalph
 .lalph/
 .repos/
+.specs/
 
 # ralph auto loop (runtime output)
 .ralph-auto/
