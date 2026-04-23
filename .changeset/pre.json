@@ -35,7 +35,8 @@
     "@effect/ai-codegen": "0.0.0",
     "@effect/bundle": "0.0.0",
     "ai-docs": "0.0.0",
-    "@effect/ai-docgen": "0.0.0"
+    "@effect/ai-docgen": "0.0.0",
+    "@effect/sql-pglite": "4.0.0-beta.52"
   },
   "changesets": [
     "add-bigdecimal-sumall-multiplyall",
@@ -55,6 +56,7 @@
     "add-schema-option-from-optional-nullor",
     "add-schema-option-from-undefined-nullish",
     "add-schema-string-encoding",
+    "add-sql-pglite",
     "add-unstable-encoding-export",
     "afraid-cobras-like",
     "atom-stream-error-type",
@@ -175,6 +177,7 @@
     "fancy-glasses-grow",
     "fast-times-camp",
     "few-birds-matter",
+    "few-cougars-dig",
     "few-foxes-grin",
     "few-mirrors-pull",
     "few-socks-poke",
@@ -375,6 +378,7 @@
     "sharp-emus-applaud",
     "sharp-goats-wink",
     "sharp-peas-march",
+    "sharp-rules-draw",
     "shiny-trains-hug",
     "short-cows-relate",
     "short-foxes-admire",
@@ -435,6 +439,7 @@
     "three-tomatoes-wave",
     "tidy-stars-drive",
     "tiny-buckets-wave",
+    "tiny-lilies-flash",
     "tiny-rabbits-smile",
     "tocodecjson-return-json-type",
     "tool-get-json-schema-tests",
