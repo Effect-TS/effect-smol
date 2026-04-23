@@ -256,10 +256,7 @@ const withEntriesTransaction = <A>(
     let done = false
 
     const fail = (cause: unknown) => {
-      if (!done) {
-        done = true
-        tx.abort()
-      }
+      done = true
       resume(Effect.fail(new Persistence.PersistenceError({ message, cause })))
     }
 
