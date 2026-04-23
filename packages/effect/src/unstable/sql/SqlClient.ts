@@ -47,6 +47,11 @@ export interface SqlClient extends Constructor {
   ) => Effect.Effect<A, E | SqlError, R>
 
   /**
+   * The transaction service for this client.
+   */
+  readonly transactionService: Context.Service<TransactionConnection, TransactionConnection.Service>
+
+  /**
    * Use the Reactivity service from @effect/experimental to create a reactive
    * query.
    */
@@ -85,6 +90,7 @@ export namespace SqlClient {
     readonly compiler: Compiler
     readonly transactionAcquirer?: Connection.Acquirer
     readonly spanAttributes: ReadonlyArray<readonly [string, unknown]>
+    readonly transactionService?: Context.Service<TransactionConnection, TransactionConnection.Service>
     readonly beginTransaction?: string | undefined
     readonly rollback?: string | undefined
     readonly commit?: string | undefined
@@ -98,13 +104,16 @@ export namespace SqlClient {
   }
 }
 
+let clientIdCounter = 0
+
 /**
  * @category constructors
  * @since 4.0.0
  */
 export const make = Effect.fnUntraced(function*(options: SqlClient.MakeOptions) {
+  const transactionService = options.transactionService ?? TransactionConnection(clientIdCounter++)
   const getConnection = Effect.flatMap(
-    Effect.serviceOption(TransactionConnection),
+    Effect.serviceOption(transactionService),
     Option.match({
       onNone: () => options.acquirer,
       onSome: ([conn]) => Effect.succeed(conn)
@@ -118,7 +127,7 @@ export const make = Effect.fnUntraced(function*(options: SqlClient.MakeOptions) 
   const rollbackSavepoint = options.rollbackSavepoint ?? ((name: string) => `ROLLBACK TO SAVEPOINT ${name}`)
   const transactionAcquirer = options.transactionAcquirer ?? options.acquirer
   const withTransaction = makeWithTransaction({
-    transactionService: TransactionConnection,
+    transactionService,
     spanAttributes: options.spanAttributes,
     acquireConnection: Effect.flatMap(
       Scope.make(),
@@ -138,6 +147,7 @@ export const make = Effect.fnUntraced(function*(options: SqlClient.MakeOptions) 
       [TypeId]: TypeId as typeof TypeId,
       safe: undefined as any,
       withTransaction,
+      transactionService,
       reserve: transactionAcquirer,
       withoutTransforms(): any {
         if (options.transformRows === undefined) {
@@ -189,8 +199,8 @@ export const makeWithTransaction = <I, S>(options: {
   readonly rollback: (conn: NoInfer<S>) => Effect.Effect<void, SqlError>
   readonly rollbackSavepoint: (conn: NoInfer<S>, id: number) => Effect.Effect<void, SqlError>
 }) =>
-<R, E, A>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E | SqlError, R> =>
-  Effect.uninterruptibleMask((restore) =>
+<R, E, A>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E | SqlError, R> => {
+  return Effect.uninterruptibleMask((restore) =>
     Effect.useSpan(
       "sql.transaction",
       { kind: "client" },
@@ -249,15 +259,32 @@ export const makeWithTransaction = <I, S>(options: {
         })
     )
   )
+}
 
 /**
  * @since 4.0.0
  */
-export class TransactionConnection
-  extends Context.Service<TransactionConnection, readonly [conn: Connection.Connection, depth: number]>()(
-    "effect/sql/SqlClient/TransactionConnection"
-  )
-{}
+export interface TransactionConnection {
+  readonly _: unique symbol
+}
+
+/**
+ * @since 4.0.0
+ */
+export declare namespace TransactionConnection {
+  /**
+   * @since 4.0.0
+   */
+  export type Service = readonly [conn: Connection.Connection, depth: number]
+}
+
+/**
+ * @since 4.0.0
+ */
+export const TransactionConnection = (
+  clientId: number
+): Context.Service<TransactionConnection, TransactionConnection.Service> =>
+  Context.Service(`effect/sql/SqlClient/TransactionConnection/${clientId}`)
 
 /**
  * @since 4.0.0

@@ -173,10 +173,12 @@ interface MssqlConnection extends Connection {
   readonly rollback: (name?: string) => Effect.Effect<void, SqlError>
 }
 
-const TransactionConnection = Client.TransactionConnection as unknown as Context.Service<
+const TransactionConnection = Client.TransactionConnection as unknown as (clientId: number) => Context.Service<
   readonly [conn: MssqlConnection, counter: number],
   readonly [conn: MssqlConnection, counter: number]
 >
+
+let clientIdCounter = 0
 
 /**
  * @category constructors
@@ -458,8 +460,10 @@ export const make = (
       })
     )
 
+    const transactionService = TransactionConnection(clientIdCounter++)
+
     const withTransaction = Client.makeWithTransaction({
-      transactionService: TransactionConnection,
+      transactionService,
       spanAttributes,
       acquireConnection: Effect.gen(function*() {
         const scope = Scope.makeUnsafe()
@@ -477,6 +481,7 @@ export const make = (
       yield* Client.make({
         acquirer: Pool.get(pool),
         compiler,
+        transactionService: transactionService as any,
         spanAttributes,
         transformRows
       }),

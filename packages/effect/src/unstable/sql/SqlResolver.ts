@@ -96,7 +96,7 @@ export const ordered = <Req extends Schema.Top, Res extends Schema.Top, _, E, R>
       E | ResultLengthMismatch,
       Req["EncodingServices"] | Res["DecodingServices"] | R
     >,
-    SqlClient.TransactionConnection["Service"] | undefined
+    SqlClient.TransactionConnection.Service | undefined
   >({
     key: transactionKey,
     resolver: Effect.fnUntraced(function*(entries) {
@@ -152,7 +152,7 @@ export const grouped = <Req extends Schema.Top, Res extends Schema.Top, K, Row, 
       E | Schema.SchemaError | Cause.NoSuchElementError,
       Req["EncodingServices"] | Res["DecodingServices"] | R
     >,
-    SqlClient.TransactionConnection["Service"] | undefined
+    SqlClient.TransactionConnection.Service | undefined
   >({
     key: transactionKey,
     resolver: Effect.fnUntraced(function*(entries) {
@@ -218,13 +218,9 @@ export const findById = <Id extends Schema.Top, Res extends Schema.Top, Row, E, 
       E | Schema.SchemaError | Cause.NoSuchElementError,
       Id["EncodingServices"] | Res["DecodingServices"] | R
     >,
-    SqlClient.TransactionConnection["Service"] | undefined
+    SqlClient.TransactionConnection.Service | undefined
   >({
-    key(entry) {
-      const conn = entry.context.mapUnsafe.get(SqlClient.TransactionConnection.key)
-      if (!conn) return undefined
-      return Equal.byReferenceUnsafe(conn)
-    },
+    key: transactionKey,
     resolver: Effect.fnUntraced(function*(entries) {
       const [inputs, idMap] = yield* partitionRequestsById(entries, options.Id)
       const results = yield* options.execute(inputs as any).pipe(
@@ -275,7 +271,7 @@ const void_ = <Req extends Schema.Top, _, E, R>(
       E | Schema.SchemaError,
       Req["EncodingServices"] | R
     >,
-    SqlClient.TransactionConnection["Service"] | undefined
+    SqlClient.TransactionConnection.Service | undefined
   >({
     key: transactionKey,
     resolver: Effect.fnUntraced(function*(entries) {
@@ -353,8 +349,10 @@ const partitionRequestsById = function*<In, A, E, R, InE>(
   return [inputs, byIdMap] as const
 }
 
-function transactionKey<A>(entry: Request.Entry<A>): SqlClient.TransactionConnection["Service"] | undefined {
-  const conn = entry.context.mapUnsafe.get(SqlClient.TransactionConnection.key)
+function transactionKey<A>(entry: Request.Entry<A>): SqlClient.TransactionConnection.Service | undefined {
+  const client = entry.context.mapUnsafe.get(SqlClient.SqlClient.key)
+  if (!client) return undefined
+  const conn = entry.context.mapUnsafe.get(client.transactionService.key)
   if (!conn) return undefined
   return Equal.byReferenceUnsafe(conn)
 }
