@@ -10,10 +10,12 @@ import * as Queue from "../../Queue.ts"
 import * as Ref from "../../Ref.ts"
 import * as Schema from "../../Schema.ts"
 import * as SchemaAST from "../../SchemaAST.ts"
+import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Scope from "../../Scope.ts"
 import * as Stream from "../../Stream.ts"
 
 const TypeId = "~effect/unstable/machine/Machine" as const
+declare const HandlerContextTypeId: unique symbol
 
 type AnyTaggedEvent = Schema.Top & { readonly Type: { readonly _tag: PropertyKey } }
 type AnyTaggedUnion = Schema.Top & { readonly Type: { readonly _tag: PropertyKey }; readonly cases: any }
@@ -118,14 +120,65 @@ export type Handlers<
   readonly [Tag in EventTag<EventSchema>]?: Handler<StateSchemas, Scope, EventSchema, Tag, E, R>
 }
 
+type HandlerDefinitions<
+  EventSchema extends AnyEventSchema,
+  StateSchemas extends AnyStateSchemas,
+  Scope extends ScopesOfStates<StateSchemas>
+> = {
+  readonly [Tag in EventTag<EventSchema>]?: (
+    args: HandlerArgs<EventSchema, StateSchemas, Scope, Tag>
+  ) => Snapshot<StateSchemas> | Effect.Effect<Snapshot<StateSchemas>, any, any>
+}
+
 type HandlerUnion<HandlersDef extends Record<string, any>> = Exclude<HandlersDef[keyof HandlersDef], undefined>
 
+/**
+ * @since 4.0.0
+ * @category context
+ */
+export class HandlerContext extends ServiceMap.Service<HandlerContext, {
+  readonly defer: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<void, never, HandlerContext.Marker<E, R>>
+  readonly read: Effect.Effect<ReadonlyArray<Effect.Effect<void, any, any>>>
+}>()("effect/unstable/machine/Machine/HandlerContext") {}
+
+export declare namespace HandlerContext {
+  export interface Marker<E = never, R = never> {
+    readonly [HandlerContextTypeId]: {
+      readonly _E: (_: never) => E
+      readonly _R: (_: never) => R
+    }
+  }
+}
+
+type DeferredMarker = HandlerContext.Marker<any, any>
+type DeferredMarkerFromServices<R> = Extract<R, DeferredMarker>
+type InferDeferredErrorFromServices<R> = [DeferredMarkerFromServices<R>] extends [never] ? never
+  : DeferredMarkerFromServices<R> extends HandlerContext.Marker<infer E, any> ? E
+  : never
+type InferDeferredServicesFromServices<R> = [DeferredMarkerFromServices<R>] extends [never] ? never
+  : DeferredMarkerFromServices<R> extends HandlerContext.Marker<any, infer R> ? R
+  : never
+type StripHandlerContext<R> = Exclude<R, HandlerContext | DeferredMarker>
+
 type InferHandlerError<HandlersDef extends Record<string, any>> = HandlerUnion<HandlersDef> extends
-  (...args: Array<any>) => infer Return ? Return extends Effect.Effect<any, infer E, any> ? E : never
+  (...args: Array<any>) => infer Return ? Return extends Effect.Effect<any, any, any> ? Effect.Error<Return> : never
   : never
 
 type InferHandlerServices<HandlersDef extends Record<string, any>> = HandlerUnion<HandlersDef> extends
-  (...args: Array<any>) => infer Return ? Return extends Effect.Effect<any, any, infer R> ? R : never
+  (...args: Array<any>) => infer Return ? Return extends Effect.Effect<any, any, any> ? StripHandlerContext<Effect.Services<Return>>
+  : never
+  : never
+
+type InferDeferredError<HandlersDef extends Record<string, any>> = HandlerUnion<HandlersDef> extends
+  (...args: Array<any>) => infer Return ? Return extends Effect.Effect<any, any, any>
+    ? InferDeferredErrorFromServices<Effect.Services<Return>>
+  : never
+  : never
+
+type InferDeferredServices<HandlersDef extends Record<string, any>> = HandlerUnion<HandlersDef> extends
+  (...args: Array<any>) => infer Return ? Return extends Effect.Effect<any, any, any>
+    ? InferDeferredServicesFromServices<Effect.Services<Return>>
+  : never
   : never
 
 /**
@@ -152,7 +205,9 @@ export interface Machine<
   StateSchemas extends AnyStateSchemas,
   InputSchema = undefined,
   E = never,
-  R = never
+  R = never,
+  DeferredE = never,
+  DeferredR = never
 > {
   readonly [TypeId]: typeof TypeId
   readonly id: string | undefined
@@ -161,17 +216,19 @@ export interface Machine<
   readonly snapshot: AnyTaggedUnion
   readonly initial: Initializer<InputSchema, Snapshot<StateSchemas>>
   readonly states: { readonly [Name in keyof StateSchemas & string]: DataSchema<StateSchemas, Name> }
-  readonly scopedHandlers: Partial<Record<ScopesOfStates<StateSchemas>, Handlers<EventSchema, StateSchemas, any, E, R>>>
+  readonly scopedHandlers: Partial<Record<ScopesOfStates<StateSchemas>, Handlers<EventSchema, StateSchemas, any, any, any>>>
   readonly handlers: <Scope extends ScopesOfStates<StateSchemas>>(
     scope: Scope
-  ) => <HandlersDef extends Handlers<EventSchema, StateSchemas, Scope, any, any>>(
+  ) => <HandlersDef extends HandlerDefinitions<EventSchema, StateSchemas, Scope>>(
     handlers: HandlersDef
   ) => Machine<
     EventSchema,
     StateSchemas,
     InputSchema,
     InferHandlerError<HandlersDef> | E,
-    InferHandlerServices<HandlersDef> | R
+    InferHandlerServices<HandlersDef> | R,
+    InferDeferredError<HandlersDef> | DeferredE,
+    InferDeferredServices<HandlersDef> | DeferredR
   >
 }
 
@@ -207,20 +264,20 @@ interface Envelope<E, A> {
  * @since 4.0.0
  * @category models
  */
-export type Any = Machine<any, any, any, any, any>
+export type Any = Machine<any, any, any, any, any, any, any>
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type StateSchemasOf<M extends Any> = M extends Machine<any, infer StateSchemas, any, any, any> ? StateSchemas
+export type StateSchemasOf<M extends Any> = M extends Machine<any, infer StateSchemas, any, any, any, any, any> ? StateSchemas
   : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type InputSchemaOf<M extends Any> = M extends Machine<any, any, infer InputSchema, any, any> ? InputSchema
+export type InputSchemaOf<M extends Any> = M extends Machine<any, any, infer InputSchema, any, any, any, any> ? InputSchema
   : never
 
 /**
@@ -233,19 +290,60 @@ export type InputOf<M extends Any> = InputValue<InputSchemaOf<M>>
  * @since 4.0.0
  * @category models
  */
-export type ErrorOf<M extends Any> = M extends Machine<any, any, any, infer E, any> ? E : never
+export type ImmediateErrorOf<M extends Any> = M extends Machine<any, any, any, infer E, any, any, any> ? E : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type ServicesOf<M extends Any> = M extends Machine<any, any, any, any, infer R> ? R : never
+export type ImmediateServicesOf<M extends Any> = M extends Machine<any, any, any, any, infer R, any, any> ? R : never
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type DeferredErrorOf<M extends Any> = M extends Machine<any, any, any, any, any, infer E, any> ? E : never
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type DeferredServicesOf<M extends Any> = M extends Machine<any, any, any, any, any, any, infer R> ? R : never
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type ErrorOf<M extends Any> = ImmediateErrorOf<M> | DeferredErrorOf<M>
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type ServicesOf<M extends Any> = ImmediateServicesOf<M> | DeferredServicesOf<M>
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type PlanErrorOf<M extends Any> = ImmediateErrorOf<M>
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type PlanServicesOf<M extends Any> = ImmediateServicesOf<M>
 
 /**
  * @since 4.0.0
  * @category models
  */
 export type MachineErrorOf<M extends Any> = ErrorOf<M> | UnhandledEventError
+
+type EvaluateServicesOf<M extends Any> =
+  | ImmediateServicesOf<M>
+  | HandlerContext
+  | HandlerContext.Marker<DeferredErrorOf<M>, DeferredServicesOf<M>>
 
 /**
  * @since 4.0.0
@@ -286,14 +384,14 @@ export const make = <
   const states = Object.fromEntries(definition.states.map((state) => [stateTag(state), state])) as {
     readonly [Name in keyof StateSchemasOfStates<States> & string]: DataSchema<StateSchemasOfStates<States>, Name>
   }
-  const makeMachine = <E, R>(
+  const makeMachine = <E, R, DeferredE, DeferredR>(
     scopedHandlers: Partial<
       Record<
         ScopesOfStates<StateSchemasOfStates<States>>,
         Handlers<typeof event, StateSchemasOfStates<States>, any, any, any>
       >
     >
-  ): Machine<typeof event, StateSchemasOfStates<States>, InputSchema, E, R> => ({
+  ): Machine<typeof event, StateSchemasOfStates<States>, InputSchema, E, R, DeferredE, DeferredR> => ({
     [TypeId]: TypeId,
     id: definition.id,
     input: definition.input as InputSchema,
@@ -303,12 +401,17 @@ export const make = <
     states,
     scopedHandlers: scopedHandlers as any,
     handlers: (scope) => (handlers) =>
-      makeMachine<InferHandlerError<typeof handlers> | E, InferHandlerServices<typeof handlers> | R>({
+      makeMachine<
+        InferHandlerError<typeof handlers> | E,
+        InferHandlerServices<typeof handlers> | R,
+        InferDeferredError<typeof handlers> | DeferredE,
+        InferDeferredServices<typeof handlers> | DeferredR
+      >({
         ...scopedHandlers,
-        [scope]: handlers
+        [scope]: handlers as Handlers<typeof event, StateSchemasOfStates<States>, typeof scope, any, any>
       })
   })
-  return makeMachine<never, never>({})
+  return makeMachine<never, never, never, never>({})
 }
 
 const snapshotSchemaFromStates = <const States extends AnyStateTuple>(states: States): AnyTaggedUnion =>
@@ -353,8 +456,124 @@ const resolveInitial = <M extends Any>(self: M, args: ReadonlyArray<InputOf<M>>)
 export const initial = <M extends Any>(
   self: M,
   ...args: InitialArguments<M>
-): Effect.Effect<Snapshot<StateSchemasOf<M>>> =>
-  Effect.sync(() => resolveInitial(self, args as ReadonlyArray<InputOf<M>>))
+): Snapshot<StateSchemasOf<M>> => resolveInitial(self, args as ReadonlyArray<InputOf<M>>)
+
+/**
+ * @since 4.0.0
+ * @category accessors
+ */
+export const defer = <A, E, R>(
+  effect: Effect.Effect<A, E, R>
+): Effect.Effect<void, never, HandlerContext | HandlerContext.Marker<E, R>> =>
+  Effect.gen(function*() {
+    const context = yield* HandlerContext
+    return yield* context.defer(effect)
+  })
+
+interface EvaluatedPlan<
+  StateSchemas extends AnyStateSchemas,
+  EventSchema extends AnyEventSchema,
+  Source extends Snapshot<StateSchemas>,
+  DeferredE = never,
+  DeferredR = never
+> {
+  readonly plan: Plan<StateSchemas, EventSchema, Source>
+  readonly deferred: ReadonlyArray<Effect.Effect<void, DeferredE, DeferredR>>
+}
+
+const makeHandlerContext = (): HandlerContext["Service"] => {
+  const deferred: Array<Effect.Effect<void, any, any>> = []
+  return HandlerContext.of({
+    defer: <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<void, never, HandlerContext.Marker<E, R>> =>
+      Effect.sync(() => {
+        deferred.push(Effect.asVoid(effect))
+      }),
+    read: Effect.sync(() => deferred)
+  })
+}
+
+const runDeferred = <E, R>(
+  deferred: ReadonlyArray<Effect.Effect<void, E, R>>
+): Effect.Effect<void, E, R> =>
+  Effect.forEach(deferred, (effect) => effect, { discard: true })
+
+const evaluate = <
+  M extends Any,
+  Source extends Snapshot<StateSchemasOf<M>>
+>(
+  self: M,
+  snapshot: Source,
+  event: Event<M["event"]>
+): Effect.Effect<
+  EvaluatedPlan<StateSchemasOf<M>, M["event"], Source, DeferredErrorOf<M>, DeferredServicesOf<M>>,
+  UnhandledEventError | PlanErrorOf<M>,
+  PlanServicesOf<M>
+> =>
+  Effect.gen(function*() {
+    const current = snapshot as Source
+    const currentEvent = event as Event<M["event"]>
+    const eventTag = (currentEvent as { readonly _tag: string })._tag
+    let handler:
+      | Handler<StateSchemasOf<M>, any, M["event"], EventTag<M["event"]>, PlanErrorOf<M>, EvaluateServicesOf<M>>
+      | undefined = undefined
+    for (const scope of scopesOf(current._tag)) {
+      const handlers = self.scopedHandlers[scope as keyof typeof self.scopedHandlers]
+      const candidate = handlers?.[eventTag as keyof typeof handlers] as
+        | Handler<StateSchemasOf<M>, any, M["event"], EventTag<M["event"]>, PlanErrorOf<M>, EvaluateServicesOf<M>>
+        | undefined
+      if (candidate !== undefined) {
+        handler = candidate
+        break
+      }
+    }
+    if (handler === undefined) {
+      return yield* Effect.fail(
+        new UnhandledEventError({
+          machineId: self.id,
+          state: current._tag,
+          event: eventTag
+        })
+      )
+    }
+    const handlerContext = makeHandlerContext()
+    const next = yield* (toEffect(handler({
+      state: current as any,
+      event: currentEvent as any
+    })).pipe(Effect.provideService(HandlerContext, handlerContext)) as Effect.Effect<
+      Snapshot<StateSchemasOf<M>>,
+      PlanErrorOf<M>,
+      PlanServicesOf<M>
+    >)
+    const deferred = (yield* handlerContext.read) as ReadonlyArray<
+      Effect.Effect<void, DeferredErrorOf<M>, DeferredServicesOf<M>>
+    >
+    return {
+      plan: {
+        snapshot: current,
+        event: currentEvent,
+        next,
+        changed: next !== current
+      },
+      deferred
+    }
+  })
+
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const plan = <
+  M extends Any,
+  Source extends Snapshot<StateSchemasOf<M>>
+>(
+  self: M,
+  snapshot: Source,
+  event: Event<M["event"]>
+): Effect.Effect<
+  Plan<StateSchemasOf<M>, M["event"], Source>,
+  UnhandledEventError | PlanErrorOf<M>,
+  PlanServicesOf<M>
+> => Effect.map(evaluate(self, snapshot, event), (_) => _.plan)
 
 /**
  * @since 4.0.0
@@ -373,42 +592,9 @@ export const transition = <
   ServicesOf<M>
 > =>
   Effect.gen(function*() {
-    const current = snapshot as Source
-    const currentEvent = event as Event<M["event"]>
-    const eventTag = (currentEvent as { readonly _tag: string })._tag
-    let handler:
-      | Handler<StateSchemasOf<M>, any, M["event"], EventTag<M["event"]>, ErrorOf<M>, ServicesOf<M>>
-      | undefined = undefined
-    for (const scope of scopesOf(current._tag)) {
-      const handlers = self.scopedHandlers[scope as keyof typeof self.scopedHandlers]
-      const candidate = handlers?.[eventTag as keyof typeof handlers] as
-        | Handler<StateSchemasOf<M>, any, M["event"], EventTag<M["event"]>, ErrorOf<M>, ServicesOf<M>>
-        | undefined
-      if (candidate !== undefined) {
-        handler = candidate
-        break
-      }
-    }
-    if (handler === undefined) {
-      return yield* Effect.fail(
-        new UnhandledEventError({
-          machineId: self.id,
-          state: current._tag,
-          event: eventTag
-        })
-      )
-    }
-    const decision = yield* toEffect(handler({
-      state: current as any,
-      event: currentEvent as any
-    }))
-    const next = decision
-    return {
-      snapshot: current,
-      event: currentEvent,
-      next,
-      changed: next !== current
-    }
+    const evaluated = yield* evaluate(self, snapshot, event)
+    yield* runDeferred(evaluated.deferred)
+    return evaluated.plan
   })
 
 /**
@@ -476,10 +662,16 @@ export const start = <M extends Any>(
       while (true) {
         const envelope = yield* Queue.take(mailbox)
         const current = yield* Ref.get(snapshots)
-        const result = yield* Effect.exit(next(machine, current as any, envelope.event as any))
+        const result = yield* Effect.exit(evaluate(machine, current as any, envelope.event as any))
         if (Exit.isSuccess(result)) {
-          yield* Ref.set(snapshots, result.value as any)
-          yield* PubSub.publish(changesHub, result.value as any)
+          yield* Ref.set(snapshots, result.value.plan.next as any)
+          yield* PubSub.publish(changesHub, result.value.plan.next as any)
+          const deferredResult = yield* Effect.exit(runDeferred(result.value.deferred))
+          yield* Deferred.succeed(
+            envelope.ack,
+            Exit.isSuccess(deferredResult) ? Exit.succeed<void>(void 0) : deferredResult
+          )
+          continue
         }
         yield* Deferred.succeed(envelope.ack, Exit.map(result, () => void 0))
       }

@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Schema } from "effect"
+import { Effect, Ref, Schema, ServiceMap } from "effect"
 import * as Machine from "effect/unstable/machine/Machine"
 
 describe("Machine", () => {
@@ -63,6 +63,19 @@ describe("Machine", () => {
     {}
   ) {}
 
+  class DeferredLog extends ServiceMap.Service<DeferredLog, {
+    readonly push: (message: string) => Effect.Effect<void>
+    readonly read: Effect.Effect<ReadonlyArray<string>>
+  }>()("test/Machine/DeferredLog") {}
+
+  const makeDeferredLog = Effect.gen(function*() {
+    const ref = yield* Ref.make<ReadonlyArray<string>>([])
+    return DeferredLog.of({
+      push: (message) => Ref.update(ref, (messages) => [...messages, message]),
+      read: Ref.get(ref)
+    })
+  })
+
   const UserMachine = Machine.make({
     id: "UserMachine",
     events: [Create, Rename, Delete],
@@ -79,7 +92,7 @@ describe("Machine", () => {
 
   it.effect("supports state-dependent snapshots", () =>
     Effect.gen(function*() {
-      const initial = yield* Machine.initial(UserMachine)
+      const initial = Machine.initial(UserMachine)
       const created = yield* Machine.next(UserMachine, initial, new Create({ email: "a@example.com" }))
       const renamed = yield* Machine.next(UserMachine, created, new Rename({ email: "b@example.com" }))
       const deleted = yield* Machine.next(UserMachine, renamed, new Delete({}))
@@ -108,7 +121,7 @@ describe("Machine", () => {
 
   it.effect("returns enabled event tags for the current state", () =>
     Effect.gen(function*() {
-      const initial = yield* Machine.initial(UserMachine)
+      const initial = Machine.initial(UserMachine)
       const created = yield* Machine.next(UserMachine, initial, new Create({ email: "a@example.com" }))
 
       assert.deepStrictEqual(Machine.enabled(UserMachine, initial), ["Create"])
@@ -133,7 +146,7 @@ describe("Machine", () => {
 
   it.effect("fails with UnhandledEventError for invalid events in the current state", () =>
     Effect.gen(function*() {
-      const initial = yield* Machine.initial(UserMachine)
+      const initial = Machine.initial(UserMachine)
       const planError = yield* Effect.flip(Machine.next(UserMachine, initial, new Rename({ email: "x@example.com" })))
 
       assert.instanceOf(planError, Machine.UnhandledEventError)
@@ -169,7 +182,7 @@ describe("Machine", () => {
           Delete: ({ state }) => new Deleted({ userId: state.user.id })
         })
 
-      const initial = yield* Machine.initial(InputMachine, {
+      const initial = Machine.initial(InputMachine, {
         user: {
           id: "seed",
           email: "seed@example.com"
@@ -245,11 +258,80 @@ describe("Machine", () => {
           Refresh: ({ state }) => new AuthenticatedRefreshing({ userId: state.userId })
         })
 
-      const initial = yield* Machine.initial(RefreshMachine, { userId: "user-1" })
+      const initial = Machine.initial(RefreshMachine, { userId: "user-1" })
       const loggedOut = yield* Machine.next(RefreshMachine, initial, new Logout({}))
 
       assert.instanceOf(initial, AuthenticatedIdle)
       assert.instanceOf(loggedOut, Unauthenticated)
       assert.deepStrictEqual(Machine.enabled(RefreshMachine, initial), ["Refresh", "Logout"])
+    }))
+
+  it.effect("plan does not run deferred effects", () =>
+    Effect.gen(function*() {
+      const DeferredMachine = Machine.make({
+        events: [Create],
+        initial: () => new Uncreated({}),
+        states: [Uncreated, Created]
+      }).handlers("Uncreated")({
+        Create: Effect.fn(function*() {
+            const log = yield* DeferredLog
+            yield* Machine.defer(log.push("created"))
+            return new Created({ user: { id: "user-1", email: "a@example.com" } })
+          })
+      })
+
+      const log = yield* makeDeferredLog
+      const initial = Machine.initial(DeferredMachine)
+      const planned = yield* Machine.plan(DeferredMachine, initial, new Create({ email: "a@example.com" })).pipe(
+        Effect.provideService(DeferredLog, log)
+      )
+
+      assert.instanceOf(planned.next, Created)
+      assert.deepStrictEqual(yield* log.read, [])
+    }))
+
+  it.effect("next runs deferred effects", () =>
+    Effect.gen(function*() {
+      const DeferredMachine = Machine.make({
+        events: [Create],
+        initial: () => new Uncreated({}),
+        states: [Uncreated, Created]
+      }).handlers("Uncreated")({
+        Create: Effect.fn(function*() {
+            const log = yield* DeferredLog
+            yield* Machine.defer(log.push("created"))
+            return new Created({ user: { id: "user-1", email: "a@example.com" } })
+          })
+      })
+
+      const log = yield* makeDeferredLog
+      const initial = Machine.initial(DeferredMachine)
+      const next = yield* Machine.next(DeferredMachine, initial, new Create({ email: "a@example.com" })).pipe(
+        Effect.provideService(DeferredLog, log)
+      )
+
+      assert.instanceOf(next, Created)
+      assert.deepStrictEqual(yield* log.read, ["created"])
+    }))
+
+  it.effect("actor commits snapshot before deferred failures surface", () =>
+    Effect.gen(function*() {
+      const DeferredMachine = Machine.make({
+        events: [Create],
+        initial: () => new Uncreated({}),
+        states: [Uncreated, Created]
+      }).handlers("Uncreated")({
+        Create: Effect.fn(function*() {
+            yield* Machine.defer(Effect.fail("boom"))
+            return new Created({ user: { id: "user-1", email: "a@example.com" } })
+          })
+      })
+
+      const actor = yield* Machine.start(DeferredMachine)
+      const error = yield* Effect.flip(actor.send(new Create({ email: "a@example.com" })))
+      const snapshot = yield* actor.snapshot
+
+      assert.strictEqual(error, "boom")
+      assert.instanceOf(snapshot, Created)
     }))
 })

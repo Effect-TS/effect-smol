@@ -1,4 +1,6 @@
+import * as Effect from "effect/Effect"
 import * as Schema from "effect/Schema"
+import * as ServiceMap from "effect/ServiceMap"
 import * as Machine from "effect/unstable/machine/Machine"
 import { describe, expect, it } from "tstyche"
 
@@ -57,6 +59,9 @@ describe("Machine", () => {
       | Created
       | Deleted
     >()
+    expect<Machine.DeferredServicesOf<typeof UserMachine>>().type.toBe<never>()
+    const next = Machine.next(UserMachine, Machine.initial(UserMachine), new Create({ email: "a@example.com" }))
+    expect<typeof next>().type.toBe<Effect.Effect<Uncreated | Created | Deleted, Machine.UnhandledEventError>>()
   })
 
   it("contextually types handlers", () => {
@@ -86,6 +91,34 @@ describe("Machine", () => {
         return new Created({ email: event.email })
       }
     })
+  })
+
+  it("does not infer deferred requirements from plain effectful handlers", () => {
+    class Create extends Schema.TaggedClass<Create, { readonly _: unique symbol }>()(
+      "Create",
+      { email: Schema.String }
+    ) {}
+
+    class Uncreated extends Schema.TaggedClass<Uncreated, { readonly _: unique symbol }>()(
+      "Uncreated",
+      {}
+    ) {}
+
+    class Created extends Schema.TaggedClass<Created, { readonly _: unique symbol }>()(
+      "Created",
+      { email: Schema.String }
+    ) {}
+
+    const machine = Machine.make({
+      events: [Create],
+      initial: () => new Uncreated({}),
+      states: [Uncreated, Created]
+    }).handlers("Uncreated")({
+      Create: ({ event }) => Effect.succeed(new Created({ email: event.email }))
+    })
+
+    expect<Machine.DeferredErrorOf<typeof machine>>().type.toBe<never>()
+    expect<Machine.DeferredServicesOf<typeof machine>>().type.toBe<never>()
   })
 
   it("accepts events as a tuple of tagged schemas", () => {
@@ -195,5 +228,50 @@ describe("Machine", () => {
         return new Unauthenticated({})
       }
     })
+  })
+
+  it("tracks deferred effect errors and services separately from plan requirements", () => {
+    class DeferredError extends Schema.TaggedErrorClass<DeferredError, { readonly _: unique symbol }>()(
+      "DeferredError",
+      {}
+    ) {}
+
+    class DeferredDependency extends ServiceMap.Service<DeferredDependency, {
+      readonly emit: Effect.Effect<void, DeferredError>
+    }>()("test/Machine/DeferredDependency") {}
+
+    class Create extends Schema.TaggedClass<Create, { readonly _: unique symbol }>()(
+      "Create",
+      {}
+    ) {}
+
+    class Idle extends Schema.TaggedClass<Idle, { readonly _: unique symbol }>()(
+      "Idle",
+      {}
+    ) {}
+
+    const machine = Machine.make({
+      events: [Create],
+      initial: () => new Idle({}),
+      states: [Idle]
+    }).handlers("Idle")({
+      Create: () =>
+        Effect.gen(function*() {
+          yield* Machine.defer(DeferredDependency.use((deferred) => deferred.emit))
+          return new Idle({})
+        })
+    })
+
+    const planned = Machine.plan(machine, Machine.initial(machine), new Create({}))
+
+    expect<Machine.PlanErrorOf<typeof machine>>().type.toBe<never>()
+    expect<Machine.PlanServicesOf<typeof machine>>().type.toBe<never>()
+    expect<Machine.DeferredErrorOf<typeof machine>>().type.toBe<DeferredError>()
+    expect<Machine.DeferredServicesOf<typeof machine>>().type.toBe<DeferredDependency>()
+    expect<Machine.ErrorOf<typeof machine>>().type.toBe<DeferredError>()
+    expect<Machine.ServicesOf<typeof machine>>().type.toBe<DeferredDependency>()
+    expect<typeof planned>().type.toBe<
+      Effect.Effect<Machine.Plan<Machine.StateSchemasOf<typeof machine>, typeof machine.event, Idle>, Machine.UnhandledEventError>
+    >()
   })
 })
