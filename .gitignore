@@ -35,3 +35,6 @@ scratchpad/**/*
 
 # Claude Code
 .claude/
+
+# OpenCode
+.opencode/
