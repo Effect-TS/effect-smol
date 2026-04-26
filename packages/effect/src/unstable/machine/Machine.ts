@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 import * as Deferred from "../../Deferred.ts"
+import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Predicate from "../../Predicate.ts"
@@ -10,7 +11,6 @@ import * as Queue from "../../Queue.ts"
 import * as Ref from "../../Ref.ts"
 import * as Schema from "../../Schema.ts"
 import * as SchemaAST from "../../SchemaAST.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Scope from "../../Scope.ts"
 import * as Stream from "../../Stream.ts"
 
@@ -136,7 +136,7 @@ type HandlerUnion<HandlersDef extends Record<string, any>> = Exclude<HandlersDef
  * @since 4.0.0
  * @category context
  */
-export class HandlerContext extends ServiceMap.Service<HandlerContext, {
+export class HandlerContext extends Context.Service<HandlerContext, {
   readonly defer: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<void, never, HandlerContext.Marker<E, R>>
   readonly read: Effect.Effect<ReadonlyArray<Effect.Effect<void, any, any>>>
 }>()("effect/unstable/machine/Machine/HandlerContext") {}
@@ -536,10 +536,10 @@ const evaluate = <
       )
     }
     const handlerContext = makeHandlerContext()
-    const next = yield* (toEffect(handler({
+    const next = yield* (Effect.provideService(toEffect(handler({
       state: current as any,
       event: currentEvent as any
-    })).pipe(Effect.provideService(HandlerContext, handlerContext)) as Effect.Effect<
+    })), HandlerContext, handlerContext) as Effect.Effect<
       Snapshot<StateSchemasOf<M>>,
       PlanErrorOf<M>,
       PlanServicesOf<M>

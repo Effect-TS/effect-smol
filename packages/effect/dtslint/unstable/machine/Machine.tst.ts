@@ -1,6 +1,6 @@
 import * as Effect from "effect/Effect"
 import * as Schema from "effect/Schema"
-import * as ServiceMap from "effect/ServiceMap"
+import * as Context from "effect/Context"
 import * as Machine from "effect/unstable/machine/Machine"
 import { describe, expect, it } from "tstyche"
 
@@ -236,7 +236,7 @@ describe("Machine", () => {
       {}
     ) {}
 
-    class DeferredDependency extends ServiceMap.Service<DeferredDependency, {
+    class DeferredDependency extends Context.Service<DeferredDependency, {
       readonly emit: Effect.Effect<void, DeferredError>
     }>()("test/Machine/DeferredDependency") {}
 

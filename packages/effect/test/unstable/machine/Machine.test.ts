@@ -1,5 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Ref, Schema, ServiceMap } from "effect"
+import { Effect, Ref, Schema } from "effect"
+import * as Context from "effect/Context"
 import * as Machine from "effect/unstable/machine/Machine"
 
 describe("Machine", () => {
@@ -63,7 +64,7 @@ describe("Machine", () => {
     {}
   ) {}
 
-  class DeferredLog extends ServiceMap.Service<DeferredLog, {
+  class DeferredLog extends Context.Service<DeferredLog, {
     readonly push: (message: string) => Effect.Effect<void>
     readonly read: Effect.Effect<ReadonlyArray<string>>
   }>()("test/Machine/DeferredLog") {}
