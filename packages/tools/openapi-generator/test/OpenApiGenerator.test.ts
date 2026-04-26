@@ -52,6 +52,23 @@ function assertRuntimeIncludes(spec: OpenAPISpec, includes: ReadonlyArray<string
   )
 }
 
+function assertTypeOnlyIncludes(spec: OpenAPISpec, includes: ReadonlyArray<string>) {
+  return Effect.gen(function*() {
+    const generator = yield* OpenApiGenerator.OpenApiGenerator
+
+    const result = yield* generator.generate(spec, {
+      name: "TestClient",
+      format: "httpclient-type-only"
+    })
+
+    for (const expected of includes) {
+      assert.include(result, expected)
+    }
+  }).pipe(
+    Effect.provide(OpenApiGenerator.layerTransformerTs)
+  )
+}
+
 function assertHttpApiIncludes(
   spec: OpenAPISpec,
   includes: ReadonlyArray<string>,
@@ -590,6 +607,70 @@ export const TestClientError = <Tag extends string, E>(
   })
 
   describe("type-only", () => {
+    it.effect("form-urlencoded request body generates bodyUrlParams", () =>
+      assertTypeOnlyIncludes(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Test API",
+            version: "1.0.0"
+          },
+          paths: {
+            "/auth/token": {
+              post: {
+                operationId: "issueToken",
+                parameters: [],
+                requestBody: {
+                  required: true,
+                  content: {
+                    "application/x-www-form-urlencoded": {
+                      schema: {
+                        type: "object",
+                        properties: {
+                          grant_type: { type: "string" },
+                          client_id: { type: "string" }
+                        },
+                        required: ["grant_type", "client_id"],
+                        additionalProperties: false
+                      }
+                    }
+                  }
+                } as any,
+                responses: {
+                  200: {
+                    description: "Token response",
+                    content: {
+                      "application/json": {
+                        schema: {
+                          type: "object",
+                          properties: {
+                            access_token: { type: "string" }
+                          },
+                          required: ["access_token"],
+                          additionalProperties: false
+                        }
+                      }
+                    }
+                  }
+                },
+                tags: ["Auth"],
+                security: []
+              }
+            }
+          },
+          components: {
+            schemas: {},
+            securitySchemes: {}
+          },
+          security: [],
+          tags: []
+        },
+        [
+          `HttpClientRequest.bodyUrlParams(options.payload as any)`,
+          `readonly payload: IssueTokenRequestFormUrlEncoded`
+        ]
+      ))
+
     it.effect("get operation", () =>
       assertTypeOnly(
         {
@@ -1764,5 +1845,106 @@ export const __HttpApiMultipartFiles = Multipart.FilesSchema`,
           operationId: "getUser"
         }
       ]))
+  })
+
+  describe("HEAD void-collapse fix", () => {
+    const headSpec: OpenAPISpec = {
+      openapi: "3.1.0",
+      info: {
+        title: "Test API",
+        version: "1.0.0"
+      },
+      paths: {
+        "/resources/{id}": {
+          head: {
+            operationId: "checkResource",
+            parameters: [
+              {
+                name: "id",
+                in: "path",
+                schema: { type: "string" },
+                required: true
+              }
+            ],
+            responses: {
+              200: { description: "Resource exists" },
+              400: { description: "Bad request" },
+              404: { description: "Resource not found" },
+              500: { description: "Internal server error" }
+            },
+            tags: ["Resources"],
+            security: []
+          }
+        }
+      },
+      components: { schemas: {}, securitySchemes: {} },
+      security: [],
+      tags: []
+    }
+
+    it.effect("routes 4xx/5xx void schemas to error channel in schema mode", () =>
+      assertRuntimeIncludes(headSpec, [
+        // 200 should remain void (success channel)
+        `"200": () => Effect.void`,
+        // 4xx/5xx should route to error channel via decodeVoidError
+        `"400": decodeVoidError("400")`,
+        `"404": decodeVoidError("404")`,
+        `"500": decodeVoidError("500")`,
+        // The decodeVoidError helper should be generated
+        `const decodeVoidError`,
+        // Type signature should include void error types
+        `TestClientError<"400", undefined>`,
+        `TestClientError<"404", undefined>`,
+        `TestClientError<"500", undefined>`
+      ]))
+
+    it.effect("routes 4xx/5xx void schemas to error channel in type-only mode", () =>
+      Effect.gen(function*() {
+        const generator = yield* OpenApiGenerator.OpenApiGenerator
+
+        const result = yield* generator.generate(headSpec, {
+          name: "TestClient",
+          format: "httpclient-type-only"
+        })
+
+        // Type signature should include void error types
+        assert.include(result, `TestClientError<"400", undefined>`)
+        assert.include(result, `TestClientError<"404", undefined>`)
+        assert.include(result, `TestClientError<"500", undefined>`)
+        // decodeVoidError helper should be generated in the implementation
+        assert.include(result, `const decodeVoidError`)
+      }).pipe(
+        Effect.provide(OpenApiGenerator.layerTransformerTs)
+      ))
+
+    it.effect("preserves 2xx void schemas as success", () =>
+      assertRuntimeIncludes(
+        {
+          openapi: "3.1.0",
+          info: { title: "Test API", version: "1.0.0" },
+          paths: {
+            "/health": {
+              head: {
+                operationId: "healthCheck",
+                parameters: [],
+                responses: {
+                  200: { description: "Healthy" },
+                  204: { description: "Healthy, no content" }
+                },
+                tags: ["Health"],
+                security: []
+              }
+            }
+          },
+          components: { schemas: {}, securitySchemes: {} },
+          security: [],
+          tags: []
+        },
+        [
+          // Both 2xx codes should remain void success
+          `"200": () => Effect.void`,
+          `"204": () => Effect.void`
+        ]
+      ))
   })
 })

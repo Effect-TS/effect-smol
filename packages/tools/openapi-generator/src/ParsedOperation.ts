@@ -82,6 +82,20 @@ export interface ParsedOperationResponse {
 
 export type ParsedOperationSecurityRequirement = Readonly<OpenAPISecurityRequirement>
 
+export type ParsedOperationPayload =
+  | {
+    readonly _tag: "json"
+    readonly schema: string
+  }
+  | {
+    readonly _tag: "multipart"
+    readonly schema: string
+  }
+  | {
+    readonly _tag: "formUrlEncoded"
+    readonly schema: string
+  }
+
 export interface ParsedOperation {
   readonly id: string
   readonly operationId: string | undefined
@@ -105,9 +119,7 @@ export interface ParsedOperation {
   readonly urlParams: ReadonlyArray<string>
   readonly headers: ReadonlyArray<string>
   readonly cookies: ReadonlyArray<string>
-  readonly payload?: string
-  readonly payloadFormData: boolean
-  readonly payloadFormUrlEncoded: boolean
+  readonly payload?: ParsedOperationPayload
   readonly pathSchema: string | undefined
   readonly querySchema: string | undefined
   readonly querySchemaOptional: boolean
@@ -155,8 +167,6 @@ export const makeDeepMutable = (options: {
   urlParams: [],
   headers: [],
   cookies: [],
-  payloadFormData: false,
-  payloadFormUrlEncoded: false,
   pathSchema: undefined,
   querySchema: undefined,
   querySchemaOptional: true,
