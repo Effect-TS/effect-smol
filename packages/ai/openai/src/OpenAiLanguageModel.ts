@@ -67,7 +67,7 @@ export class Config extends Context.Service<
     & Partial<
       Omit<
         typeof OpenAiSchema.CreateResponse.Encoded,
-        "input" | "tools" | "tool_choice" | "stream" | "text" | "reasoning"
+        "input" | "tools" | "tool_choice" | "stream" | "text"
       >
     >
     & {
