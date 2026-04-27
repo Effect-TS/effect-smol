@@ -47,22 +47,26 @@ export abstract class NodeHttpIncomingMessage<E> extends Inspectable.Class
     return this.remoteAddressOverride ?? Option.fromNullishOr(this.source.socket.remoteAddress)
   }
 
-  private textEffect: Effect.Effect<string, E> | undefined
-  get text(): Effect.Effect<string, E> {
-    if (this.textEffect) {
-      return this.textEffect
+  private bytesEffect: Effect.Effect<Uint8Array, E> | undefined
+  private get bytes(): Effect.Effect<Uint8Array, E> {
+    if (this.bytesEffect) {
+      return this.bytesEffect
     }
-    this.textEffect = Effect.runSync(Effect.cached(
+    this.bytesEffect = Effect.runSync(Effect.cached(
       Effect.flatMap(
         IncomingMessage.MaxBodySize.asEffect(),
         (maxBodySize) =>
-          NodeStream.toString(() => this.source, {
+          NodeStream.toUint8Array(() => this.source, {
             onError: this.onError,
             maxBytes: maxBodySize
           })
       )
     ))
-    return this.textEffect
+    return this.bytesEffect
+  }
+
+  get text(): Effect.Effect<string, E> {
+    return Effect.map(this.bytes, (bytes) => textDecoder.decode(bytes))
   }
 
   get textUnsafe(): string {
@@ -97,11 +101,8 @@ export abstract class NodeHttpIncomingMessage<E> extends Inspectable.Class
   }
 
   get arrayBuffer(): Effect.Effect<ArrayBuffer, E> {
-    return Effect.withFiber((fiber) =>
-      NodeStream.toArrayBuffer(() => this.source, {
-        onError: this.onError,
-        maxBytes: fiber.getRef(IncomingMessage.MaxBodySize)
-      })
-    )
+    return Effect.map(this.bytes, (bytes) => bytes.slice().buffer)
   }
 }
+
+const textDecoder = new TextDecoder()

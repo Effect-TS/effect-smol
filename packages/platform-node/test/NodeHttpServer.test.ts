@@ -275,6 +275,34 @@ describe("HttpServer", () => {
       expect(todo).toEqual({ id: 1, title: "test" })
     }).pipe(Effect.provide(NodeHttpServer.layerTest)))
 
+  it.effect("request body accessors can be read multiple times", () =>
+    Effect.gen(function*() {
+      yield* HttpRouter.add(
+        "POST",
+        "/repro",
+        Effect.gen(function*() {
+          const request = yield* HttpServerRequest.HttpServerRequest
+          const arrayBuffer = yield* request.arrayBuffer
+          const text = yield* request.text
+
+          expect(new TextDecoder().decode(new Uint8Array(arrayBuffer))).toEqual("{\"ok\":true,\"msg\":\"hi\"}")
+          expect(text).toEqual("{\"ok\":true,\"msg\":\"hi\"}")
+
+          return HttpServerResponse.empty()
+        })
+      ).pipe(
+        HttpRouter.serve,
+        Layer.build
+      )
+
+      const response = yield* HttpClientRequest.post("/repro").pipe(
+        HttpClientRequest.bodyJsonUnsafe({ ok: true, msg: "hi" }),
+        HttpClient.execute
+      )
+
+      expect(response.status).toEqual(204)
+    }).pipe(Effect.provide(NodeHttpServer.layerTest)))
+
   it.effect("schemaBodyUrlParams error", () =>
     Effect.gen(function*() {
       yield* HttpRouter.add(
