@@ -62,6 +62,7 @@ export abstract class NodeHttpIncomingMessage<E> extends Inspectable.Class
           })
       )
     ))
+    this.arrayBufferEffect = Effect.map(this.textEffect, (_) => new TextEncoder().encode(_).buffer)
     return this.textEffect
   }
 
@@ -96,12 +97,21 @@ export abstract class NodeHttpIncomingMessage<E> extends Inspectable.Class
     })
   }
 
+  private arrayBufferEffect: Effect.Effect<ArrayBuffer, E> | undefined
   get arrayBuffer(): Effect.Effect<ArrayBuffer, E> {
-    return Effect.withFiber((fiber) =>
+    if (this.arrayBufferEffect) {
+      return this.arrayBufferEffect
+    }
+    this.arrayBufferEffect = Effect.withFiber((fiber) =>
       NodeStream.toArrayBuffer(() => this.source, {
         onError: this.onError,
         maxBytes: fiber.getRef(IncomingMessage.MaxBodySize)
       })
+    ).pipe(
+      Effect.cached,
+      Effect.runSync
     )
+    this.textEffect = Effect.map(this.arrayBufferEffect, (_) => new TextDecoder().decode(_))
+    return this.arrayBufferEffect
   }
 }

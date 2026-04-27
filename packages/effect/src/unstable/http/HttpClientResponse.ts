@@ -302,7 +302,10 @@ class WebHttpClientResponse extends Inspectable.Class implements HttpClientRespo
 
   private textBody?: Effect.Effect<string, Error.HttpClientError>
   get text(): Effect.Effect<string, Error.HttpClientError> {
-    return this.textBody ??= Effect.tryPromise({
+    if (this.textBody) {
+      return this.textBody
+    }
+    this.textBody = Effect.tryPromise({
       try: () => this.source.text(),
       catch: (cause) =>
         new Error.HttpClientError({
@@ -313,6 +316,8 @@ class WebHttpClientResponse extends Inspectable.Class implements HttpClientRespo
           })
         })
     }).pipe(Effect.cached, Effect.runSync)
+    this.arrayBufferBody = Effect.map(this.textBody, (_) => new TextEncoder().encode(_).buffer)
+    return this.textBody
   }
 
   get urlParamsBody(): Effect.Effect<UrlParams.UrlParams, Error.HttpClientError> {
@@ -347,7 +352,10 @@ class WebHttpClientResponse extends Inspectable.Class implements HttpClientRespo
 
   private arrayBufferBody?: Effect.Effect<ArrayBuffer, Error.HttpClientError>
   get arrayBuffer(): Effect.Effect<ArrayBuffer, Error.HttpClientError> {
-    return this.arrayBufferBody ??= Effect.tryPromise({
+    if (this.arrayBufferBody) {
+      return this.arrayBufferBody
+    }
+    this.arrayBufferBody = Effect.tryPromise({
       try: () => this.source.arrayBuffer(),
       catch: (cause) =>
         new Error.HttpClientError({
@@ -358,6 +366,8 @@ class WebHttpClientResponse extends Inspectable.Class implements HttpClientRespo
           })
         })
     }).pipe(Effect.cached, Effect.runSync)
+    this.textBody = Effect.map(this.arrayBufferBody, (_) => new TextDecoder().decode(_))
+    return this.arrayBufferBody
   }
 
   pipe() {

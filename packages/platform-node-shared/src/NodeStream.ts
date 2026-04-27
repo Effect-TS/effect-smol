@@ -237,7 +237,7 @@ export const toArrayBuffer = <E = Cause.UnknownError>(
   const onError = options?.onError ?? defaultOnError
   return Effect.callback((resume) => {
     const stream = readable() as Readable
-    let buffer = Buffer.alloc(0)
+    const buffers: Array<Uint8Array> = []
     let bytes = 0
     stream.once("error", (err) => {
       if ("closed" in stream && !stream.closed) {
@@ -246,13 +246,16 @@ export const toArrayBuffer = <E = Cause.UnknownError>(
       resume(Effect.fail(onError(err) as E))
     })
     stream.once("end", () => {
-      if (buffer.buffer.byteLength === buffer.byteLength) {
-        return resume(Effect.succeed(buffer.buffer))
+      const buffer = buffers.length === 1 ? buffers[0] : Buffer.concat(buffers)
+      if (buffer.byteOffset === 0 && buffer.buffer.byteLength === buffer.byteLength) {
+        return resume(Effect.succeed(buffer.buffer as ArrayBuffer))
       }
-      resume(Effect.succeed(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength)))
+      resume(
+        Effect.succeed(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer)
+      )
     })
     stream.on("data", (chunk) => {
-      buffer = Buffer.concat([buffer, chunk])
+      buffers.push(chunk)
       bytes += chunk.length
       if (maxBytesNumber && bytes > maxBytesNumber) {
         resume(Effect.fail(onError(new Error("maxBytes exceeded")) as E))

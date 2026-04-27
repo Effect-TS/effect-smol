@@ -10339,20 +10339,31 @@ export const mkString = <E, R>(self: Stream<string, E, R>): Effect.Effect<string
  * @category Destructors
  */
 export const mkUint8Array = <E, R>(self: Stream<Uint8Array, E, R>): Effect.Effect<Uint8Array, E, R> =>
-  Channel.runFold(
-    self.channel,
-    () => new Uint8Array(0),
-    (acc, chunk) => {
-      let chunkLength = 0
-      for (let i = 0; i < chunk.length; i++) {
-        chunkLength += chunk[i].length
+  Effect.map(
+    Channel.runFold(
+      self.channel,
+      (): {
+        bytes: number
+        readonly arrays: Array<Uint8Array>
+      } => ({
+        bytes: 0,
+        arrays: []
+      }),
+      (acc, chunk) => {
+        for (let i = 0; i < chunk.length; i++) {
+          acc.bytes += chunk[i].length
+          acc.arrays.push(chunk[i])
+        }
+        return acc
       }
-      const result = new Uint8Array(acc.length + chunkLength)
-      result.set(acc, 0)
-      let offset = acc.length
-      for (let i = 0; i < chunk.length; i++) {
-        result.set(chunk[i], offset)
-        offset += chunk[i].length
+    ),
+    ({ arrays, bytes }) => {
+      const result = new Uint8Array(bytes)
+      let offset = 0
+      for (let i = 0; i < arrays.length; i++) {
+        const array = arrays[i]
+        result.set(array, offset)
+        offset += array.length
       }
       return result
     }
