@@ -628,6 +628,10 @@ export type Builder<Out, A, E, I> =
     orNull(): Out | null
     render(): [A | I] extends [never] ? Out : Out | null
   }
+  & ([A | E | I] extends [never] ? {
+      exhaustive(): Out
+    } :
+    {})
   & ([I] extends [never] ? {} :
     {
       onInitial<B>(f: (result: Initial<A, E>) => B): Builder<Out | B, A, E, never>
@@ -760,6 +764,10 @@ class BuilderImpl<Out, A, E> {
       throw Cause.squash(this.result.cause)
     }
     return null
+  }
+
+  exhaustive(): Out {
+    return this.render() as Out
   }
 }
 
