@@ -78,7 +78,7 @@ const makeTester = <R>(
     it.for(cases)(
       name,
       testOptions(timeout),
-      (args, ctx) => run(ctx, [args], self) as any
+      (args, ctx) => run(ctx, [args, ctx], self) as any
     )
 
   const fails: Vitest.Vitest.Tester<R>["fails"] = (name, self, timeout) =>

@@ -59,7 +59,7 @@ export namespace Vitest {
     only: Vitest.Test<R>
     each: <T>(
       cases: ReadonlyArray<T>
-    ) => <A, E>(name: string, self: TestFunction<A, E, R, Array<T>>, timeout?: number | V.TestOptions) => void
+    ) => <A, E>(name: string, self: TestFunction<A, E, R, [T, V.TestContext]>, timeout?: number | V.TestOptions) => void
     fails: Vitest.Test<R>
 
     /**
