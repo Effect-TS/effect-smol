@@ -40,8 +40,6 @@ export const MessageStatus = Schema.Literals(["in_progress", "completed", "incom
  */
 export type MessageStatus = typeof MessageStatus.Type
 
-const PromptCacheRetention = Schema.Literals(["in-memory", "in_memory", "24h"])
-
 const InputTextContent = Schema.Struct({
   type: Schema.Literal("input_text"),
   text: Schema.String
@@ -419,7 +417,6 @@ export const CreateResponse = Schema.Struct({
   temperature: Schema.optional(Schema.Number),
   top_p: Schema.optional(Schema.Number),
   user: Schema.optional(Schema.String),
-  prompt_cache_retention: Schema.optional(PromptCacheRetention),
   service_tier: Schema.optional(Schema.String),
   previous_response_id: Schema.optional(Schema.String),
   model: Schema.optional(Schema.String),
@@ -579,13 +576,9 @@ export const Response = Schema.Struct({
   id: Schema.String,
   object: Schema.optionalKey(Schema.Literal("response")),
   model: Schema.String,
-  status: Schema.optionalKey(
-    Schema.Literals(["completed", "failed", "in_progress", "cancelled", "queued", "incomplete"])
-  ),
   created_at: Schema.Number,
   output: Schema.Array(OutputItem),
   usage: Schema.optionalKey(Schema.NullOr(ResponseUsage)),
-  prompt_cache_retention: Schema.optionalKey(Schema.NullOr(PromptCacheRetention)),
   incomplete_details: Schema.optionalKey(
     Schema.NullOr(
       Schema.Struct({
