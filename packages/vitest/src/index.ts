@@ -57,7 +57,7 @@ export namespace Vitest {
     skipIf: (condition: unknown) => Vitest.Test<R>
     runIf: (condition: unknown) => Vitest.Test<R>
     only: Vitest.Test<R>
-    each: <T>(
+    for: <T>(
       cases: ReadonlyArray<T>
     ) => <A, E>(name: string, self: TestFunction<A, E, R, [T, V.TestContext]>, timeout?: number | V.TestOptions) => void
     fails: Vitest.Test<R>
