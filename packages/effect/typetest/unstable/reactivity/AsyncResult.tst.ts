@@ -16,9 +16,32 @@ describe("AsyncResult", () => {
           expect(error).type.toBe<TestError>()
           return "error" as const
         })
+        .onFailure(() => "failure" as const)
         .onSuccess((value) => value)
 
-      expect(complete.exhaustive()).type.toBe<number | "loading" | "error">()
+      expect(complete.exhaustive()).type.toBe<number | "loading" | "error" | "failure">()
+
+      const completeWithFailure = AsyncResult.builder(result)
+        .onInitialOrWaiting(() => "loading" as const)
+        .onFailure(() => "failure" as const)
+        .onSuccess((value) => value)
+
+      expect(completeWithFailure.exhaustive()).type.toBe<number | "loading" | "failure">()
+
+      const missingFailure = AsyncResult.builder(result)
+        .onInitialOrWaiting(() => "loading" as const)
+        .onErrorTag("TestError", () => "error" as const)
+        .onSuccess((value) => value)
+
+      expect(missingFailure).type.not.toHaveProperty("exhaustive")
+
+      const missingFailureCause = AsyncResult.builder(result)
+        .onInitialOrWaiting(() => "loading" as const)
+        .onErrorTag("TestError", () => "error" as const)
+        .onDefect(() => "defect" as const)
+        .onSuccess((value) => value)
+
+      expect(missingFailureCause).type.not.toHaveProperty("exhaustive")
 
       const missingError = AsyncResult.builder(result)
         .onInitialOrWaiting(() => "loading" as const)
