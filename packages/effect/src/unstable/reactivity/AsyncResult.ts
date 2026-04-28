@@ -620,51 +620,51 @@ export const builder = <A extends AsyncResult<any, any>>(self: A): Builder<
  * @since 4.0.0
  * @category Builder
  */
-export type Builder<Out, A, E, I, F> =
+export type Builder<Out, A, E, I, Defect> =
   & Pipeable
   & {
-    onWaiting<B>(f: (result: AsyncResult<A, E>) => B): Builder<Out | B, A, E, I, F>
-    onDefect<B>(f: (defect: unknown, result: Failure<A, E>) => B): Builder<Out | B, A, E, I, F>
+    onWaiting<B>(f: (result: AsyncResult<A, E>) => B): Builder<Out | B, A, E, I, Defect>
+    onDefect<B>(f: (defect: unknown, result: Failure<A, E>) => B): Builder<Out | B, A, E, I, never>
     orElse<B>(orElse: LazyArg<B>): Out | B
     orNull(): Out | null
     render(): [A | I] extends [never] ? Out : Out | null
   }
-  & ([A | E | I | F] extends [never] ? {
+  & ([A | E | I | Defect] extends [never] ? {
       exhaustive(): Out
     } :
     {})
   & ([I] extends [never] ? {} :
     {
-      onInitial<B>(f: (result: Initial<A, E>) => B): Builder<Out | B, A, E, never, F>
-      onInitialOrWaiting<B>(f: (result: AsyncResult<A, E>) => B): Builder<Out | B, A, E, never, F>
+      onInitial<B>(f: (result: Initial<A, E>) => B): Builder<Out | B, A, E, never, Defect>
+      onInitialOrWaiting<B>(f: (result: AsyncResult<A, E>) => B): Builder<Out | B, A, E, never, Defect>
     })
   & ([A] extends [never] ? {} :
     {
-      onSuccess<B>(f: (value: A, result: Success<A, E>) => B): Builder<Out | B, never, E, I, F>
+      onSuccess<B>(f: (value: A, result: Success<A, E>) => B): Builder<Out | B, never, E, I, Defect>
     })
-  & ([E | F] extends [never] ? {} : {
+  & ([E | Defect] extends [never] ? {} : {
     onFailure<B>(f: (cause: Cause.Cause<E>, result: Failure<A, E>) => B): Builder<Out | B, A, never, I, never>
   })
   & ([E] extends [never] ? {} : {
-    onError<B>(f: (error: E, result: Failure<A, E>) => B): Builder<Out | B, A, never, I, F>
+    onError<B>(f: (error: E, result: Failure<A, E>) => B): Builder<Out | B, A, never, I, Defect>
 
     onErrorIf<B extends E, C>(
       refinement: Refinement<E, B>,
       f: (error: B, result: Failure<A, E>) => C
-    ): Builder<Out | C, A, Types.EqualsWith<E, B, E, Exclude<E, B>>, I, F>
+    ): Builder<Out | C, A, Types.EqualsWith<E, B, E, Exclude<E, B>>, I, Defect>
     onErrorIf<C>(
       predicate: Predicate<E>,
       f: (error: E, result: Failure<A, E>) => C
-    ): Builder<Out | C, A, E, I, F>
+    ): Builder<Out | C, A, E, I, Defect>
 
     onErrorTag<const Tags extends ReadonlyArray<Types.Tags<E>>, B>(
       tags: Tags,
       f: (error: Types.ExtractTag<E, Tags[number]>, result: Failure<A, E>) => B
-    ): Builder<Out | B, A, Types.ExcludeTag<E, Tags[number]>, I, F>
+    ): Builder<Out | B, A, Types.ExcludeTag<E, Tags[number]>, I, Defect>
     onErrorTag<const Tag extends Types.Tags<E>, B>(
       tag: Tag,
       f: (error: Types.ExtractTag<E, Tag>, result: Failure<A, E>) => B
-    ): Builder<Out | B, A, Types.ExcludeTag<E, Tag>, I, F>
+    ): Builder<Out | B, A, Types.ExcludeTag<E, Tag>, I, Defect>
   })
 
 class BuilderImpl<Out, A, E> {
