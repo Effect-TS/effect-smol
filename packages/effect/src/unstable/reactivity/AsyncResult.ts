@@ -613,59 +613,84 @@ export const builder = <A extends AsyncResult<any, any>>(self: A): Builder<
   A extends Success<infer _A, infer _E> ? _A : never,
   A extends Failure<infer _A, infer _E> ? _E : never,
   A extends Initial<infer _A, infer _E> ? true : never,
-  A extends Failure<infer _A, infer _E> ? unknown : never
+  A extends Failure<infer _A, infer _E> ? Defect | Interrupt : never
 > => new BuilderImpl(self) as any
 
 /**
  * @since 4.0.0
  * @category Builder
  */
-export type Builder<Out, A, E, I, Defect> =
+export interface Defect {
+  readonly _: unique symbol
+}
+
+/**
+ * @since 4.0.0
+ * @category Builder
+ */
+export interface Interrupt {
+  readonly _: unique symbol
+}
+
+/**
+ * @since 4.0.0
+ * @category Builder
+ */
+export type Builder<Out, A, E, I, F> =
   & Pipeable
   & {
-    onWaiting<B>(f: (result: AsyncResult<A, E>) => B): Builder<Out | B, A, E, I, Defect>
-    onDefect<B>(f: (defect: unknown, result: Failure<A, E>) => B): Builder<Out | B, A, E, I, never>
+    onWaiting<B>(f: (result: AsyncResult<A, E>) => B): Builder<Out | B, A, E, I, F>
     orElse<B>(orElse: LazyArg<B>): Out | B
     orNull(): Out | null
     render(): [A | I] extends [never] ? Out : Out | null
   }
-  & ([A | E | I | Defect] extends [never] ? {
+  & ([A | E | I | F] extends [never] ? {
       exhaustive(): Out
     } :
-    {})
-  & ([I] extends [never] ? {} :
+    unknown)
+  & ([I] extends [never] ? unknown :
     {
-      onInitial<B>(f: (result: Initial<A, E>) => B): Builder<Out | B, A, E, never, Defect>
-      onInitialOrWaiting<B>(f: (result: AsyncResult<A, E>) => B): Builder<Out | B, A, E, never, Defect>
+      onInitial<B>(f: (result: Initial<A, E>) => B): Builder<Out | B, A, E, never, F>
+      onInitialOrWaiting<B>(f: (result: AsyncResult<A, E>) => B): Builder<Out | B, A, E, never, F>
     })
-  & ([A] extends [never] ? {} :
+  & ([A] extends [never] ? unknown :
     {
-      onSuccess<B>(f: (value: A, result: Success<A, E>) => B): Builder<Out | B, never, E, I, Defect>
+      onSuccess<B>(f: (value: A, result: Success<A, E>) => B): Builder<Out | B, never, E, I, F>
     })
-  & ([E | Defect] extends [never] ? {} : {
-    onFailure<B>(f: (cause: Cause.Cause<E>, result: Failure<A, E>) => B): Builder<Out | B, A, never, I, never>
-  })
-  & ([E] extends [never] ? {} : {
-    onError<B>(f: (error: E, result: Failure<A, E>) => B): Builder<Out | B, A, never, I, Defect>
+  & ([E] extends [never] ? unknown : {
+    onError<B>(f: (error: E, result: Failure<A, E>) => B): Builder<Out | B, A, never, I, F>
 
     onErrorIf<B extends E, C>(
       refinement: Refinement<E, B>,
       f: (error: B, result: Failure<A, E>) => C
-    ): Builder<Out | C, A, Types.EqualsWith<E, B, E, Exclude<E, B>>, I, Defect>
+    ): Builder<Out | C, A, Types.EqualsWith<E, B, E, Exclude<E, B>>, I, F>
     onErrorIf<C>(
       predicate: Predicate<E>,
       f: (error: E, result: Failure<A, E>) => C
-    ): Builder<Out | C, A, E, I, Defect>
+    ): Builder<Out | C, A, E, I, F>
 
     onErrorTag<const Tags extends ReadonlyArray<Types.Tags<E>>, B>(
       tags: Tags,
       f: (error: Types.ExtractTag<E, Tags[number]>, result: Failure<A, E>) => B
-    ): Builder<Out | B, A, Types.ExcludeTag<E, Tags[number]>, I, Defect>
+    ): Builder<Out | B, A, Types.ExcludeTag<E, Tags[number]>, I, F>
     onErrorTag<const Tag extends Types.Tags<E>, B>(
       tag: Tag,
       f: (error: Types.ExtractTag<E, Tag>, result: Failure<A, E>) => B
-    ): Builder<Out | B, A, Types.ExcludeTag<E, Tag>, I, Defect>
+    ): Builder<Out | B, A, Types.ExcludeTag<E, Tag>, I, F>
   })
+  & ([E | F] extends [never] ? unknown : {
+    onFailure<B>(f: (cause: Cause.Cause<E>, result: Failure<A, E>) => B): Builder<Out | B, A, never, I, never>
+  })
+  & (Interrupt extends F ? {
+      onInterrupt<B>(
+        f: (interruptors: ReadonlySet<number>, result: Failure<A, E>) => B
+      ): Builder<Out | B, A, E, I, Exclude<F, Interrupt>>
+    } :
+    unknown)
+  & (Defect extends F ? {
+      onDefect<B>(f: (defect: unknown, result: Failure<A, E>) => B): Builder<Out | B, A, E, I, Exclude<F, Defect>>
+    } :
+    unknown)
 
 class BuilderImpl<Out, A, E> {
   constructor(result: AsyncResult<A, E>) {
@@ -748,6 +773,13 @@ class BuilderImpl<Out, A, E> {
     return this.when(isFailure, (result) => {
       const defect = Cause.findDefect(result.cause)
       return Result.isFailure(defect) ? Option.none() : Option.some(f(defect.success, result))
+    })
+  }
+
+  onInterrupt<B>(f: (interruptors: ReadonlySet<number>, result: Failure<A, E>) => B): BuilderImpl<Out | B, A, E> {
+    return this.when(isFailure, (result) => {
+      const interruptors = Cause.filterInterruptors(result.cause)
+      return Result.isFailure(interruptors) ? Option.none() : Option.some(f(interruptors.success, result))
     })
   }
 
