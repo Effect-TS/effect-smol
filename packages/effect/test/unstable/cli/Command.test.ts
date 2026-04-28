@@ -178,7 +178,7 @@ describe("Command", () => {
         const config = "build.json"
         const output = "dist/"
 
-        yield* Cli.run(["build", "-o", output, "-v", "-f", config])
+        yield* Cli.run(["build", "-o", output, "-V", "-f", config])
 
         const actions = yield* TestActions.getActions
         assert.strictEqual(actions.length, 1)
@@ -1219,7 +1219,7 @@ describe("Command", () => {
 
         const cmd = Command.make("tool", {
           all: Flag.boolean("all").pipe(Flag.withAlias("a")),
-          verbose: Flag.boolean("verbose").pipe(Flag.withAlias("v")),
+          verbose: Flag.boolean("verbose").pipe(Flag.withAlias("V")),
           pkg: Flag.string("pkg").pipe(Flag.withAlias("p"))
         }, (config) =>
           Effect.sync(() => {
@@ -1228,7 +1228,7 @@ describe("Command", () => {
 
         const runCmd = Command.runWith(cmd, { version: "1.0.0" })
 
-        yield* runCmd(["-avp", "cowsay"])
+        yield* runCmd(["-aVp", "cowsay"])
 
         assert.deepStrictEqual(captured, [{ all: true, verbose: true, pkg: "cowsay" }])
       }).pipe(Effect.provide(TestLayer)))
