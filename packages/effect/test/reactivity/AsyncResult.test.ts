@@ -32,6 +32,7 @@ describe("AsyncResult", () => {
       )
         .onErrorTag("NotFoundError", (error) => `missing:${error.resource}`)
         .onDefect(() => "failure")
+        .onInterrupt(() => "interrupt")
         .exhaustive()
 
       expect(handled).toEqual("missing:user")
