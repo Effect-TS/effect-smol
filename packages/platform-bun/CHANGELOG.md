@@ -1,5 +1,15 @@
 # @effect/platform-bun
 
+## 4.0.0-beta.58
+
+### Patch Changes
+
+- [#2098](https://github.com/Effect-TS/effect-smol/pull/2098) [`96c8b22`](https://github.com/Effect-TS/effect-smol/commit/96c8b22c2057ccddbf10ed269d7697f22119b3ec) Thanks @tim-smart! - improve http body consumption
+
+- Updated dependencies [[`11993d4`](https://github.com/Effect-TS/effect-smol/commit/11993d4934c66f5dc611b8bbf553f01d501ef8f7), [`96c8b22`](https://github.com/Effect-TS/effect-smol/commit/96c8b22c2057ccddbf10ed269d7697f22119b3ec), [`96c8b22`](https://github.com/Effect-TS/effect-smol/commit/96c8b22c2057ccddbf10ed269d7697f22119b3ec)]:
+  - effect@4.0.0-beta.58
+  - @effect/platform-node-shared@4.0.0-beta.58
+
 ## 4.0.0-beta.57
 
 ### Patch Changes
