@@ -5,6 +5,7 @@ import type { NonEmptyReadonlyArray } from "effect/Array"
 import * as Context from "effect/Context"
 import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
+import * as Effectable from "effect/Effectable"
 import * as Fiber from "effect/Fiber"
 import type { Inspectable } from "effect/Inspectable"
 import { BaseProto } from "effect/Inspectable"
@@ -257,7 +258,7 @@ export declare namespace IndexedDbQuery {
    */
   export interface Clear<
     Table extends IndexedDbTable.AnyWithProps
-  > extends Pipeable.Pipeable, Effect.YieldableClass<void, IndexedDbQueryError> {
+  > extends Effect.Effect<void, IndexedDbQueryError> {
     readonly from: From<Table>
   }
 
@@ -270,7 +271,7 @@ export declare namespace IndexedDbQuery {
   export interface Count<
     Table extends IndexedDbTable.AnyWithProps,
     Index extends IndexedDbDatabase.IndexFromTable<Table>
-  > extends Pipeable.Pipeable, Effect.YieldableClass<number, IndexedDbQueryError> {
+  > extends Effect.Effect<number, IndexedDbQueryError> {
     readonly from: From<Table>
     readonly index?: Index
     readonly only?: ExtractIndexType<Table, Index>
@@ -362,7 +363,7 @@ export declare namespace IndexedDbQuery {
     Table extends IndexedDbTable.AnyWithProps,
     Index extends IndexedDbDatabase.IndexFromTable<Table>,
     ExcludedKeys extends string = never
-  > extends Pipeable.Pipeable, Effect.YieldableClass<void, IndexedDbQueryError> {
+  > extends Effect.Effect<void, IndexedDbQueryError> {
     readonly delete: DeletePartial<Table, Index>
     readonly index?: Index
     readonly limitValue?: number
@@ -406,8 +407,7 @@ export declare namespace IndexedDbQuery {
     Index extends IndexedDbDatabase.IndexFromTable<Table>,
     ExcludedKeys extends string = never
   > extends
-    Pipeable.Pipeable,
-    Effect.YieldableClass<
+    Effect.Effect<
       Array<SelectType<Table>>,
       IndexedDbQueryError,
       IndexedDbTable.Context<Table>
@@ -509,8 +509,7 @@ export declare namespace IndexedDbQuery {
     Table extends IndexedDbTable.AnyWithProps,
     Index extends IndexedDbDatabase.IndexFromTable<Table>
   > extends
-    Pipeable.Pipeable,
-    Effect.YieldableClass<
+    Effect.Effect<
       SelectType<Table>,
       IndexedDbQueryError,
       IndexedDbTable.Context<Table>
@@ -553,8 +552,7 @@ export declare namespace IndexedDbQuery {
     Table extends IndexedDbTable.AnyWithProps,
     Index extends IndexedDbDatabase.IndexFromTable<Table>
   > extends
-    Pipeable.Pipeable,
-    Effect.YieldableClass<
+    Effect.Effect<
       Array<SelectType<Table>>,
       IndexedDbQueryError,
       IndexedDbTable.Context<Table>
@@ -574,8 +572,7 @@ export declare namespace IndexedDbQuery {
   export interface Modify<
     Table extends IndexedDbTable.AnyWithProps
   > extends
-    Pipeable.Pipeable,
-    Effect.YieldableClass<
+    Effect.Effect<
       globalThis.IDBValidKey,
       IndexedDbQueryError,
       IndexedDbTable.Context<Table>
@@ -602,8 +599,7 @@ export declare namespace IndexedDbQuery {
   export interface ModifyAll<
     Table extends IndexedDbTable.AnyWithProps
   > extends
-    Pipeable.Pipeable,
-    Effect.YieldableClass<
+    Effect.Effect<
       Array<globalThis.IDBValidKey>,
       IndexedDbQueryError,
       IndexedDbTable.Context<Table>
@@ -884,7 +880,7 @@ const applySelect = Effect.fnUntraced(function*(
   ) as Effect.Effect<Array<any>, IndexedDbQueryError, unknown>
 })
 
-const getFirst = Effect.fnUntraced(function*(
+const applyFirst = Effect.fnUntraced(function*(
   query: IndexedDbQuery.First<any, never>
 ) {
   const keyPath = query.select.from.table.keyPath
@@ -1386,9 +1382,12 @@ const DeleteProto: Omit<
   | "predicate"
 > = {
   ...CommonProto,
-  asEffect(this: IndexedDbQuery.Delete<any, never>) {
-    return applyDelete(this) as any
-  },
+  ...Effectable.Prototype<IndexedDbQuery.Delete<any, never>>({
+    label: "IndexedDbQuery.Delete",
+    evaluate() {
+      return applyDelete(this)
+    }
+  }),
   limit(this: IndexedDbQuery.Delete<any, never>, limit: number) {
     return makeDelete({
       ...this,
@@ -1409,7 +1408,7 @@ const DeleteProto: Omit<
     keys ??= this.only !== undefined
       ? { [this.delete.from.table.tableName]: [this.only] }
       : [this.delete.from.table.tableName]
-    return this.delete.from.reactivity.mutation(keys, this.asEffect())
+    return this.delete.from.reactivity.mutation(keys, this)
   }
 }
 
@@ -1453,9 +1452,12 @@ const CountProto: Omit<
   | "excludeUpperBound"
 > = {
   ...CommonProto,
-  asEffect(this: IndexedDbQuery.Count<any, never>) {
-    return getCount(this) as any
-  },
+  ...Effectable.Prototype<IndexedDbQuery.Count<any, never>>({
+    label: "IndexedDbQuery.Count",
+    evaluate() {
+      return getCount(this)
+    }
+  }),
   equals(this: IndexedDbQuery.Count<any, never>, value: IndexedDbQuery.ExtractIndexType<any, never>) {
     return makeCount({
       from: this.from,
@@ -1552,6 +1554,12 @@ const SelectProto: Omit<
   | "excludeUpperBound"
 > = {
   ...CommonProto,
+  ...Effectable.Prototype<IndexedDbQuery.Select<any, never>>({
+    label: "IndexedDbQuery.Select",
+    evaluate() {
+      return applySelect(this)
+    }
+  }),
   limit(this: IndexedDbQuery.Select<any, never>, limit: number) {
     return makeSelect({
       ...this,
@@ -1628,9 +1636,6 @@ const SelectProto: Omit<
       predicate: prev ? (item) => prev(item) && filter(item) : filter
     })
   },
-  asEffect(this: IndexedDbQuery.Select<any, never>) {
-    return applySelect(this) as any
-  },
   stream(this: IndexedDbQuery.Select<any, never>, options?: {
     readonly chunkSize?: number | undefined
   }) {
@@ -1657,14 +1662,14 @@ const SelectProto: Omit<
     keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
   ) {
     keys ??= [this.from.table.tableName]
-    return this.from.reactivity.stream(keys, this.asEffect())
+    return this.from.reactivity.stream(keys, this)
   },
   reactiveQueue(
     this: IndexedDbQuery.Select<any, never>,
     keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
   ) {
     keys ??= [this.from.table.tableName]
-    return this.from.reactivity.query(keys, this.asEffect())
+    return this.from.reactivity.query(keys, this)
   }
 }
 
@@ -1708,9 +1713,12 @@ const FirstProto: Omit<
   "select"
 > = {
   ...CommonProto,
-  asEffect(this: IndexedDbQuery.First<any, never>) {
-    return getFirst(this) as any
-  },
+  ...Effectable.Prototype<IndexedDbQuery.First<any, never>>({
+    label: "IndexedDbQuery.First",
+    evaluate() {
+      return applyFirst(this)
+    }
+  }),
   reactive(
     this: IndexedDbQuery.First<any, never>,
     keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
@@ -1718,7 +1726,7 @@ const FirstProto: Omit<
     keys ??= this.select.only !== undefined
       ? [`${this.select.from.table.tableName}:${String(this.select.only)}`]
       : [this.select.from.table.tableName]
-    return this.select.from.reactivity.stream(keys, this.asEffect())
+    return this.select.from.reactivity.stream(keys, this)
   },
   reactiveQueue(
     this: IndexedDbQuery.First<any, never>,
@@ -1727,7 +1735,7 @@ const FirstProto: Omit<
     keys ??= this.select.only !== undefined
       ? [`${this.select.from.table.tableName}:${this.select.only}`]
       : [this.select.from.table.tableName]
-    return this.select.from.reactivity.query(keys, this.asEffect())
+    return this.select.from.reactivity.query(keys, this)
   }
 }
 
@@ -1749,9 +1757,12 @@ const ModifyProto: Omit<
   | "operation"
 > = {
   ...CommonProto,
-  asEffect(this: IndexedDbQuery.Modify<any>) {
-    return applyModify({ query: this, value: this.value }) as any
-  },
+  ...Effectable.Prototype<IndexedDbQuery.Modify<any>>({
+    label: "IndexedDbQuery.Modify",
+    evaluate() {
+      return applyModify({ query: this, value: this.value })
+    }
+  }),
   invalidate(
     this: IndexedDbQuery.Modify<any>,
     keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
@@ -1760,7 +1771,7 @@ const ModifyProto: Omit<
     keys ??= typeof keyPath === "string" && this.value[keyPath] !== undefined
       ? { [this.from.table.tableName]: [this.value[keyPath]] }
       : [this.from.table.tableName]
-    return this.from.reactivity.mutation(keys, this.asEffect())
+    return this.from.reactivity.mutation(keys, this)
   }
 }
 
@@ -1783,15 +1794,18 @@ const ModifyAllProto: Omit<
   | "operation"
 > = {
   ...CommonProto,
-  asEffect(this: IndexedDbQuery.ModifyAll<any>) {
-    return applyModifyAll({ query: this, values: this.values }) as any
-  },
+  ...Effectable.Prototype<IndexedDbQuery.ModifyAll<any>>({
+    label: "IndexedDbQuery.ModifyAll",
+    evaluate() {
+      return applyModifyAll({ query: this, values: this.values })
+    }
+  }),
   invalidate(
     this: IndexedDbQuery.ModifyAll<any>,
     keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
   ) {
     keys ??= [this.from.table.tableName]
-    return this.from.reactivity.mutation(keys, this.asEffect())
+    return this.from.reactivity.mutation(keys, this)
   }
 }
 

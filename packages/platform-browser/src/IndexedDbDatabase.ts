@@ -4,14 +4,12 @@
 import * as Context from "effect/Context"
 import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
+import * as Effectable from "effect/Effectable"
 import * as Fiber from "effect/Fiber"
-import * as Inspectable from "effect/Inspectable"
 import * as Layer from "effect/Layer"
 import * as MutableRef from "effect/MutableRef"
-import * as Pipeable from "effect/Pipeable"
 import * as Semaphore from "effect/Semaphore"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
-import * as Utils from "effect/Utils"
 import * as IndexedDb from "./IndexedDb.ts"
 import * as IndexedDbQueryBuilder from "./IndexedDbQueryBuilder.ts"
 import type * as IndexedDbTable from "./IndexedDbTable.ts"
@@ -20,26 +18,45 @@ import type * as IndexedDbVersion from "./IndexedDbVersion.ts"
 const TypeId = "~@effect/platform-browser/IndexedDbDatabase"
 const ErrorTypeId = "~@effect/platform-browser/IndexedDbDatabase/IndexedDbDatabaseError"
 
-const YieldableProto = {
-  [Symbol.iterator]() {
-    return new Utils.SingleShotGen(this) as any
-  }
-}
-
-const PipeInspectableProto = {
-  ...Pipeable.Prototype,
-  ...Inspectable.BaseProto,
-  toJSON(this: any) {
-    return { _id: "IndexedDbDatabase" }
-  }
-}
-
-const CommonProto = {
+const SchemaProto = {
   [TypeId]: {
     _A: (_: never) => _
   },
-  ...PipeInspectableProto,
-  ...YieldableProto
+  ...Effectable.Prototype<IndexedDbSchema<any, any, any>>({
+    label: "IndexedDbSchema",
+    evaluate() {
+      return this.getQueryBuilder
+    }
+  }),
+  get getQueryBuilder() {
+    const self = this as unknown as IndexedDbSchema<any, any, any>
+    return IndexedDbDatabase.useSync(({ database, IDBKeyRange, reactivity }) =>
+      IndexedDbQueryBuilder.make({
+        database,
+        IDBKeyRange,
+        tables: self.version.tables,
+        reactivity
+      })
+    )
+  },
+  add<Version extends IndexedDbVersion.AnyWithProps>(
+    this: IndexedDbSchema<any, any, any>,
+    version: Version,
+    migrate: (
+      fromQuery: Transaction<any>,
+      toQuery: Transaction<Version>
+    ) => Effect.Effect<void, Error>
+  ) {
+    return makeMigration({
+      fromVersion: this.version,
+      version,
+      migrate,
+      previous: this
+    })
+  },
+  layer(this: IndexedDbSchema<any, any, any>, databaseName: string) {
+    return layer(databaseName, this)
+  }
 }
 
 /**
@@ -95,9 +112,7 @@ export interface IndexedDbSchema<
   in out ToVersion extends IndexedDbVersion.AnyWithProps,
   out Error = never
 > extends
-  Pipeable.Pipeable,
-  Inspectable.Inspectable,
-  Effect.YieldableClass<
+  Effect.Effect<
     IndexedDbQueryBuilder.IndexedDbQueryBuilder<ToVersion>,
     never,
     IndexedDbDatabase
@@ -145,7 +160,7 @@ export interface IndexedDbSchema<
  */
 export interface Transaction<
   Source extends IndexedDbVersion.AnyWithProps = never
-> extends Pipeable.Pipeable, Omit<IndexedDbQueryBuilder.IndexedDbQueryBuilder<Source>, "transaction"> {
+> extends Omit<IndexedDbQueryBuilder.IndexedDbQueryBuilder<Source>, "transaction"> {
   readonly transaction: globalThis.IDBTransaction
 
   readonly createObjectStore: <
@@ -231,47 +246,16 @@ export const make = <
 >(
   initialVersion: InitialVersion,
   init: (toQuery: Transaction<InitialVersion>) => Effect.Effect<void, Error>
-): IndexedDbSchema<never, InitialVersion, Error> =>
-  (function() {
-    // oxlint-disable-next-line typescript/no-extraneous-class
-    class Initial {}
-    Object.assign(Initial, CommonProto)
-    ;(Initial as any).version = initialVersion
-    ;(Initial as any).migrate = init
-    ;(Initial as any)._tag = "Initial"
-    ;(Initial as any).add = <Version extends IndexedDbVersion.AnyWithProps>(
-      version: Version,
-      migrate: (
-        fromQuery: Transaction<InitialVersion>,
-        toQuery: Transaction<Version>
-      ) => Effect.Effect<void, Error>
-    ) =>
-      makeProto({
-        fromVersion: initialVersion,
-        version,
-        migrate,
-        previous: Initial as any
-      })
-    ;(Initial as any).getQueryBuilder = Effect.gen(function*() {
-      const { IDBKeyRange, database, reactivity } = yield* IndexedDbDatabase
-      return IndexedDbQueryBuilder.make({
-        database,
-        IDBKeyRange,
-        tables: initialVersion.tables,
-        reactivity
-      })
-    })
-    ;(Initial as any).asEffect = function() {
-      return this.getQueryBuilder
-    }
-    ;(Initial as any).layer = <DatabaseName extends string>(
-      databaseName: DatabaseName
-    ) => layer(databaseName, Initial as any)
+): IndexedDbSchema<never, InitialVersion, Error> => {
+  // oxlint-disable-next-line typescript/no-extraneous-class
+  function Initial() {}
+  Object.setPrototypeOf(Initial, SchemaProto)
+  ;(Initial as any).version = initialVersion
+  ;(Initial as any).migrate = init
+  return Initial as any
+}
 
-    return Initial as any
-  })()
-
-const makeProto = <
+const makeMigration = <
   FromVersion extends IndexedDbVersion.AnyWithProps,
   ToVersion extends IndexedDbVersion.AnyWithProps,
   Error
@@ -285,34 +269,17 @@ const makeProto = <
     fromQuery: Transaction<FromVersion>,
     toQuery: Transaction<ToVersion>
   ) => Effect.Effect<void, Error>
-}): IndexedDbSchema<FromVersion, ToVersion, Error> =>
-  (function() {
-    // oxlint-disable-next-line typescript/no-extraneous-class
-    class Migration {}
-    Object.assign(Migration, CommonProto)
-    ;(Migration as any).previous = options.previous
-    ;(Migration as any).fromVersion = options.fromVersion
-    ;(Migration as any).version = options.version
-    ;(Migration as any).migrate = options.migrate
-    ;(Migration as any)._tag = "Migration"
-    ;(Migration as any).getQueryBuilder = Effect.gen(function*() {
-      const { IDBKeyRange, database, reactivity } = yield* IndexedDbDatabase
-      return IndexedDbQueryBuilder.make({
-        database,
-        IDBKeyRange,
-        tables: options.version.tables,
-        reactivity
-      })
-    })
-    ;(Migration as any).asEffect = function() {
-      return this.getQueryBuilder
-    }
-    ;(Migration as any).layer = <DatabaseName extends string>(
-      databaseName: DatabaseName
-    ) => layer(databaseName, Migration as any)
+}): IndexedDbSchema<FromVersion, ToVersion, Error> => {
+  // oxlint-disable-next-line typescript/no-extraneous-class
+  function Migration() {}
+  Object.setPrototypeOf(Migration, SchemaProto)
+  ;(Migration as any).previous = options.previous
+  ;(Migration as any).fromVersion = options.fromVersion
+  ;(Migration as any).version = options.version
+  ;(Migration as any).migrate = options.migrate
 
-    return Migration as any
-  })()
+  return Migration as any
+}
 
 const layer = <DatabaseName extends string>(
   databaseName: DatabaseName,
