@@ -71,7 +71,7 @@ export const layerExporters: Layer.Layer<Exporters> = Layer.effect(
 
 /**
  * @since 4.0.0
- * @category Layers
+ * @category constructors
  */
 export const flush = Effect.serviceOption(Exporters).pipe(
   Effect.flatMap(
