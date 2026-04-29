@@ -68,6 +68,6 @@
     "effect": "workspace:^"
   },
   "dependencies": {
-    "@libsql/client": "^0.17.2"
+    "@libsql/client": "^0.17.3"
   }
 }
