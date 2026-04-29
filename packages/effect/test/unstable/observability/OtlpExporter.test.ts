@@ -28,12 +28,38 @@ const makeHttpClient = Effect.fnUntraced(function*(retryAfter: string | undefine
   return { attempts, httpClient } as const
 })
 
+const makeSuccessfulHttpClient = Effect.fnUntraced(function*() {
+  const attempts = yield* Ref.make(0)
+
+  const httpClient = HttpClient.makeWith(
+    Effect.fnUntraced(function*(requestEffect) {
+      const request = yield* requestEffect
+      yield* Ref.update(attempts, (attempts) => attempts + 1)
+      return HttpClientResponse.fromWeb(request, new Response())
+    }),
+    Effect.succeed as HttpClient.HttpClient.Preprocess<HttpClientError.HttpClientError, never>
+  )
+
+  return { attempts, httpClient } as const
+})
+
 const makeExporter = (httpClient: HttpClient.HttpClient) =>
   OtlpExporter.make({
     label: "OtlpExporterTest",
     url: "http://localhost:4318/v1/logs",
     headers: undefined,
     exportInterval: "1 hour",
+    maxBatchSize: 1,
+    body: () => HttpBody.empty,
+    shutdownTimeout: "1 second"
+  }).pipe(Effect.provideService(HttpClient.HttpClient, httpClient))
+
+const makeDisabledExporter = (httpClient: HttpClient.HttpClient) =>
+  OtlpExporter.make({
+    label: "OtlpExporterTest",
+    url: "http://localhost:4318/v1/logs",
+    headers: undefined,
+    exportInterval: "disabled",
     maxBatchSize: 1,
     body: () => HttpBody.empty,
     shutdownTimeout: "1 second"
@@ -104,5 +130,21 @@ describe("OtlpExporter", () => {
         yield* yieldNowN(2)
         assert.strictEqual(yield* Ref.get(attempts), 2)
       })
+    ))
+
+  it.effect("supports manually flushing disabled exporters", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const { attempts, httpClient } = yield* makeSuccessfulHttpClient()
+        const exporter = yield* makeDisabledExporter(httpClient)
+
+        exporter.push({ value: 1 })
+        yield* yieldNowN(3)
+        assert.strictEqual(yield* Ref.get(attempts), 0)
+
+        const exporters = yield* OtlpExporter.Exporters
+        yield* exporters.flush
+        assert.strictEqual(yield* Ref.get(attempts), 1)
+      }).pipe(Effect.provide(OtlpExporter.layerExporters))
     ))
 })
