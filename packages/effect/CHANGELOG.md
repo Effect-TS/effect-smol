@@ -1,5 +1,11 @@
 # effect
 
+## 4.0.0-beta.59
+
+### Patch Changes
+
+- [#2106](https://github.com/Effect-TS/effect-smol/pull/2106) [`56837ea`](https://github.com/Effect-TS/effect-smol/commit/56837ea2a338395b35550641374e9e589bd8b71d) Thanks @IMax153! - Fix entity proxy RPC handlers to provide the context expected by RpcServer.
+
 ## 4.0.0-beta.58
 
 ### Patch Changes
