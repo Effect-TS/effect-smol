@@ -22,7 +22,7 @@ const tasks = Command.make("tasks").pipe(
   Command.withSharedFlags({
     workspace,
     verbose: Flag.boolean("verbose").pipe(
-      Flag.withAlias("v"),
+      Flag.withAlias("V"),
       Flag.withDescription("Print diagnostic output")
     )
   }),
