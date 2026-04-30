@@ -330,6 +330,7 @@ export const run: (options: {
   readonly name: string
   readonly version: string
   readonly extensions?: Record<`${string}/${string}`, unknown> | undefined
+  readonly clientSessions?: Map<string, typeof Initialize.payloadSchema.Type> | undefined
 }) => Effect.Effect<
   never,
   never,
@@ -337,11 +338,12 @@ export const run: (options: {
 > = Effect.fnUntraced(function*(options: {
   readonly name: string
   readonly version: string
+  readonly clientSessions?: Map<string, typeof Initialize.payloadSchema.Type> | undefined
 }) {
   const protocol = yield* RpcServer.Protocol
   const server = yield* McpServer
   const isHttp = Option.isSome(yield* Effect.serviceOption(HttpRouter.HttpRouter))
-  const clientSessions = new Map<string, typeof Initialize.payloadSchema.Type>()
+  const clientSessions = options.clientSessions ?? new Map<string, typeof Initialize.payloadSchema.Type>()
   const handlers = yield* Layer.build(layerHandlers(options, { clientSessions }))
 
   const clients = yield* RcMap.make({
@@ -507,6 +509,7 @@ export const layer = (options: {
   readonly name: string
   readonly version: string
   readonly extensions?: Record<`${string}/${string}`, unknown> | undefined
+  readonly clientSessions?: Map<string, typeof Initialize.payloadSchema.Type> | undefined
 }): Layer.Layer<McpServer | McpServerClient, never, RpcServer.Protocol> =>
   Layer.effectDiscard(Effect.forkScoped(run(options))).pipe(
     Layer.provideMerge(McpServer.layer)
@@ -573,6 +576,7 @@ export const layerStdio = (options: {
   readonly name: string
   readonly version: string
   readonly extensions?: Record<`${string}/${string}`, unknown> | undefined
+  readonly clientSessions?: Map<string, typeof Initialize.payloadSchema.Type> | undefined
 }): Layer.Layer<McpServer | McpServerClient, never, Stdio> =>
   layer(options).pipe(
     Layer.provide(RpcServer.layerProtocolStdio),
@@ -590,6 +594,7 @@ export const layerHttp = (options: {
   readonly version: string
   readonly path: HttpRouter.PathInput
   readonly extensions?: Record<`${string}/${string}`, unknown> | undefined
+  readonly clientSessions?: Map<string, typeof Initialize.payloadSchema.Type> | undefined
 }): Layer.Layer<McpServer | McpServerClient, never, HttpRouter.HttpRouter> =>
   layer(options).pipe(
     Layer.provide(RpcServer.layerProtocolHttp(options)),
