@@ -360,28 +360,29 @@ const parseOpenApi = (
         }
 
         if (Predicate.isNotUndefined(content["application/json"]?.schema)) {
-          op.payload = addSchema(`${schemaId}RequestJson`, content["application/json"].schema, op)
-          requestSchemaNames.set("application/json", op.payload)
+          const schema = addSchema(`${schemaId}RequestJson`, content["application/json"].schema, op)
+          op.payload = { _tag: "json", schema }
+          requestSchemaNames.set("application/json", schema)
         }
 
         if (Predicate.isNotUndefined(content["multipart/form-data"]?.schema)) {
-          op.payload = addSchema(
+          const schema = addSchema(
             `${schemaId}RequestFormData`,
             transformMultipartSchema(content["multipart/form-data"].schema, multipartSchemaRefs, resolveRef),
             op
           )
-          op.payloadFormData = true
-          requestSchemaNames.set("multipart/form-data", op.payload)
+          op.payload = { _tag: "multipart", schema }
+          requestSchemaNames.set("multipart/form-data", schema)
         }
 
         if (Predicate.isNotUndefined(content["application/x-www-form-urlencoded"]?.schema)) {
-          op.payload = addSchema(
+          const schema = addSchema(
             `${schemaId}RequestFormUrlEncoded`,
             content["application/x-www-form-urlencoded"].schema,
             op
           )
-          op.payloadFormUrlEncoded = true
-          requestSchemaNames.set("application/x-www-form-urlencoded", op.payload)
+          op.payload = { _tag: "formUrlEncoded", schema }
+          requestSchemaNames.set("application/x-www-form-urlencoded", schema)
         }
 
         if (isHttpApi) {
