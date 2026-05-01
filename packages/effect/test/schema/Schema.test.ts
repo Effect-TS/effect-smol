@@ -3188,6 +3188,20 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         await make.succeed({}, { a: -1 })
       })
 
+      it("Effect failing with Issue propagates as parse failure", async () => {
+        const schema = Schema.Struct({
+          a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(
+            Effect.fail(new SchemaIssue.InvalidValue(Option.none(), { message: "ctor default failed" }))
+          ))
+        })
+        const asserts = new TestSchema.Asserts(schema)
+
+        const make = asserts.make()
+        await make.succeed({ a: 1 })
+        await make.fail({}, `ctor default failed
+  at ["a"]`)
+      })
+
       it("Struct & Effect async & service", async () => {
         class Service extends Context.Service<Service, { value: Effect.Effect<number> }>()("Service") {}
 
@@ -7611,6 +7625,23 @@ pointed message
         { a: { b: undefined } },
         `Expected string, got undefined
   at ["a"]["b"]`
+      )
+    })
+
+    it("Effect failing with Issue propagates as decode failure", async () => {
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultKey(
+          Effect.fail(new SchemaIssue.InvalidValue(Option.none(), { message: "decoding default failed" }))
+        ))
+      })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({ a: "2" }, { a: 2 })
+      await decoding.fail(
+        {},
+        `decoding default failed
+  at ["a"]`
       )
     })
   })

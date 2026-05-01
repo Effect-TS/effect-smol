@@ -2835,7 +2835,7 @@ export function mutableKey<A extends AST>(ast: A): A {
 /** @internal */
 export function withConstructorDefault<A extends AST>(
   ast: A,
-  defaultValue: Effect.Effect<unknown>
+  defaultValue: Effect.Effect<unknown, Issue.Issue>
 ): A {
   const transformation = new Transformation.Transformation(
     Getter.withDefault(defaultValue),
