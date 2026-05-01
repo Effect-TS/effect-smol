@@ -4,17 +4,19 @@
 
 unstable/rpc: add server-to-client response headers
 
-Server handlers can now attach headers to the response sent back to the client.
-The headers are emitted on `Chunk` and `Exit` messages and exposed to the
-client via a new per-call `onResponseHeaders` option.
+Server handlers can now attach headers to the response sent back to the
+client. Headers ride along on every `Chunk` and `Exit` message and are
+exposed to the client via per-call options or the new
+`RpcClient.withResponseHeaders` helper.
 
-Server-side handlers and middleware can set response headers either via the
-mutable `responseHeaders` holder available on the metadata object, or via
-the new `Rpc.setResponseHeader`, `Rpc.setAllResponseHeaders`, and
-`Rpc.mergeResponseHeaders` effects.
+### Setting headers (server)
+
+Handlers and middleware receive a mutable `responseHeaders` holder on the
+metadata object. The same value is also available through `Rpc.setResponseHeader`,
+`Rpc.setAllResponseHeaders` and `Rpc.mergeResponseHeaders`:
 
 ```ts
-import { Effect } from "effect"
+import { Effect, Schema } from "effect"
 import { Rpc, RpcGroup } from "effect/unstable/rpc"
 
 const group = RpcGroup.make(
@@ -28,10 +30,35 @@ const handlers = group.toLayer({
       return req.value
     })
 })
+```
 
-// client side
-const result = yield* client.Echo(
-  { value: "hi" },
-  { onResponseHeaders: (headers) => console.log(headers) }
+### Reading headers (client)
+
+Three options on the call site:
+
+```ts
+// 1. withResponseHeaders — wrap the call, get [result, headers]
+const [user, headers] = yield* RpcClient.withResponseHeaders(client.GetUser({ id: 1 }))
+
+// 2. onResponseHeaders — Effect callback. Its E and R bubble into the call's
+//    error and requirements. Failures propagate into the result Cause.
+yield* client.GetUser(
+  { id: 1 },
+  { onResponseHeaders: (h) => Logger.log(`headers: ${JSON.stringify(h)}`) }
+)
+
+// 3. onResponseHeadersSync — fire-and-forget sync callback
+yield* client.GetUser(
+  { id: 1 },
+  { onResponseHeadersSync: (h) => { lastHeaders = h } }
 )
 ```
+
+For streaming RPCs, `onResponseHeaders` / `onResponseHeadersSync` fire on
+each chunk and on the final exit; `withResponseHeaders` is for single-response
+calls.
+
+### Message shape
+
+`ResponseChunk(Encoded)` and `ResponseExit(Encoded)` now carry a (required)
+`headers` field, defaulting to an empty value when none are set.

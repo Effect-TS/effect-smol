@@ -1,7 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Option, Schema, Stream } from "effect"
+import { Context, Effect, Layer, Option, Schema, Stream } from "effect"
 import { Headers } from "effect/unstable/http"
-import { Rpc, RpcGroup, RpcSerialization, RpcTest } from "effect/unstable/rpc"
+import { Rpc, RpcClient, RpcGroup, RpcSerialization, RpcTest } from "effect/unstable/rpc"
 
 const TestGroup = RpcGroup.make(
   Rpc.make("Echo", { payload: { value: Schema.String }, success: Schema.String }),
@@ -35,7 +35,11 @@ describe("Rpc response headers", () => {
       let captured: Headers.Headers | undefined
       const result = yield* client.Echo(
         { value: "hi" },
-        { onResponseHeaders: (h) => (captured = h) }
+        {
+          onResponseHeadersSync: (h) => {
+            captured = h
+          }
+        }
       )
       assert.strictEqual(result, "hi")
       assert.ok(captured, "headers callback fired")
@@ -49,13 +53,51 @@ describe("Rpc response headers", () => {
       const captures: Array<Headers.Headers> = []
       const stream = client.Counter(
         { count: 3 },
-        { onResponseHeaders: (h) => captures.push(h) }
+        {
+          onResponseHeadersSync: (h) => {
+            captures.push(h)
+          }
+        }
       )
       const values = yield* Stream.runCollect(stream)
       assert.deepStrictEqual([...values], [1, 2, 3])
       assert.ok(captures.length > 0, "callback fired at least once")
       const last = captures[captures.length - 1]
       assert.strictEqual(headerValue(last, "x-stream"), "on")
+    }).pipe(Effect.provide(TestHandlers)))
+
+  it.effect("onResponseHeaders effect runs in client's context, propagates errors", () =>
+    Effect.gen(function*() {
+      class Sink extends Context.Service<Sink, { record: (h: Headers.Headers) => Effect.Effect<void> }>()(
+        "test/Sink"
+      ) {}
+      const recorded: Array<Headers.Headers> = []
+      const SinkLayer = Layer.succeed(Sink)({
+        record: (h) =>
+          Effect.sync(() => {
+            recorded.push(h)
+          })
+      })
+
+      const client = yield* RpcTest.makeClient(TestGroup)
+      const result = yield* client.Echo(
+        { value: "yo" },
+        {
+          onResponseHeaders: (h) => Effect.flatMap(Sink.asEffect(), (s) => s.record(h))
+        }
+      ).pipe(Effect.provide(SinkLayer))
+      assert.strictEqual(result, "yo")
+      assert.strictEqual(recorded.length, 1)
+      assert.strictEqual(headerValue(recorded[0], "x-echo"), "yo")
+    }).pipe(Effect.provide(TestHandlers)))
+
+  it.effect("withResponseHeaders returns [result, headers]", () =>
+    Effect.gen(function*() {
+      const client = yield* RpcTest.makeClient(TestGroup)
+      const [result, headers] = yield* RpcClient.withResponseHeaders(client.Echo({ value: "ok" }))
+      assert.strictEqual(result, "ok")
+      assert.strictEqual(headerValue(headers, "x-echo"), "ok")
+      assert.strictEqual(headerValue(headers, "x-extra"), "1")
     }).pipe(Effect.provide(TestHandlers)))
 
   it("jsonRpc serialization round-trips response headers on Exit", () => {
