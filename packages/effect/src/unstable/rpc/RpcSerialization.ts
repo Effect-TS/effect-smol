@@ -215,7 +215,8 @@ function decodeJsonRpcMessage(decoded: JsonRpcMessage): RpcMessage.FromClientEnc
     return {
       _tag: "Chunk",
       requestId: String(decoded.id),
-      values: decoded.result as any
+      values: decoded.result as any,
+      headers: decoded.headers ?? []
     }
   }
   return {
@@ -234,7 +235,8 @@ function decodeJsonRpcMessage(decoded: JsonRpcMessage): RpcMessage.FromClientEnc
       {
         _tag: "Success",
         value: decoded.result
-      }
+      },
+    headers: decoded.headers ?? []
   }
 }
 
@@ -329,14 +331,16 @@ function encodeJsonRpcMessage(response: RpcMessage.FromServerEncoded | RpcMessag
         jsonrpc: "2.0",
         chunk: true,
         id: Number(response.requestId),
-        result: response.values
+        result: response.values,
+        headers: response.headers
       }
     case "Exit": {
       if (response.exit._tag === "Success") {
         return {
           jsonrpc: "2.0",
           id: response.requestId !== "" ? Number(response.requestId) : undefined,
-          result: response.exit.value
+          result: response.exit.value,
+          headers: response.headers
         } as any
       }
       const error = response.exit.cause.find((failure) => failure._tag === "Fail")
@@ -352,7 +356,8 @@ function encodeJsonRpcMessage(response: RpcMessage.FromServerEncoded | RpcMessag
               : JSON.stringify(response.exit.cause),
             data: response.exit.cause
           } :
-          undefined
+          undefined,
+        headers: response.headers
       } as any
     }
     case "Defect":
@@ -389,6 +394,7 @@ interface JsonRpcResponse {
   readonly id?: number | string | null
   readonly result?: unknown
   readonly chunk?: boolean
+  readonly headers?: ReadonlyArray<[string, string]>
   readonly error?: {
     readonly code: number
     readonly message: string

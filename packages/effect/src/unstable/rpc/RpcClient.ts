@@ -67,11 +67,13 @@ export declare namespace RpcClient {
           readonly streamBufferSize?: number | undefined
           readonly headers?: Headers.Input | undefined
           readonly context?: Context.Context<never> | undefined
+          readonly onResponseHeaders?: ((headers: Headers.Headers) => void) | undefined
         } :
         {
           readonly headers?: Headers.Input | undefined
           readonly context?: Context.Context<never> | undefined
           readonly discard?: Discard | undefined
+          readonly onResponseHeaders?: ((headers: Headers.Headers) => void) | undefined
         }
     ) => Current extends Rpc.Rpc<
       infer _Tag,
@@ -130,11 +132,13 @@ export declare namespace RpcClient {
         readonly streamBufferSize?: number | undefined
         readonly headers?: Headers.Input | undefined
         readonly context?: Context.Context<never> | undefined
+        readonly onResponseHeaders?: ((headers: Headers.Headers) => void) | undefined
       } :
       {
         readonly headers?: Headers.Input | undefined
         readonly context?: Context.Context<never> | undefined
         readonly discard?: Discard | undefined
+        readonly onResponseHeaders?: ((headers: Headers.Headers) => void) | undefined
       }
   ) => Rpc.ExtractTag<Rpcs, Tag> extends Rpc.Rpc<
     infer _Tag,
@@ -240,6 +244,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
     readonly _tag: "Effect"
     readonly rpc: Rpc.AnyWithProps
     readonly context: Context.Context<never>
+    readonly onResponseHeaders?: ((headers: Headers.Headers) => void) | undefined
     resume: (_: Exit.Exit<any, any>) => void
   } | {
     readonly _tag: "Queue"
@@ -247,6 +252,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
     readonly queue: Queue.Queue<any, any>
     readonly scope: Scope.Scope
     readonly context: Context.Context<never>
+    readonly onResponseHeaders?: ((headers: Headers.Headers) => void) | undefined
   }
   const entries = new Map<RequestId, ClientEntry>()
 
@@ -281,6 +287,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
       readonly headers?: Headers.Input | undefined
       readonly context?: Context.Context<never> | undefined
       readonly discard?: boolean | undefined
+      readonly onResponseHeaders?: ((headers: Headers.Headers) => void) | undefined
     }) => {
       const headers = opts?.headers ? Headers.fromInput(opts.headers) : Headers.empty
       const context = opts?.context ?? Context.empty()
@@ -293,7 +300,8 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
             rpc.payloadSchema.make(payload),
             headers,
             context,
-            opts?.discard ?? false
+            opts?.discard ?? false,
+            opts?.onResponseHeaders
           )
         return disableTracing ? onRequest(undefined) : Effect.useSpan(
           `${spanPrefix}.${rpc._tag}`,
@@ -307,7 +315,8 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
         rpc.payloadSchema.make(payload),
         headers,
         opts?.streamBufferSize ?? 16,
-        context
+        context,
+        opts?.onResponseHeaders
       )
       if (opts?.asQueue) return queue
       return Stream.unwrap(Effect.map(queue, Stream.fromQueue))
@@ -324,7 +333,8 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
     payload: any,
     headers: Headers.Headers,
     context: Context.Context<never>,
-    discard: boolean
+    discard: boolean,
+    onResponseHeaders: ((headers: Headers.Headers) => void) | undefined
   ) =>
     Effect.withFiber<any, any, any>((parentFiber) => {
       if (isShutdown) {
@@ -363,6 +373,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
             _tag: "Effect",
             rpc,
             context,
+            onResponseHeaders,
             resume(exit) {
               resume(exit)
               if (fiber && !fiber.pollUnsafe()) {
@@ -402,7 +413,8 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
     payload: any,
     headers: Headers.Headers,
     streamBufferSize: number,
-    context: Context.Context<never>
+    context: Context.Context<never>,
+    onResponseHeaders: ((headers: Headers.Headers) => void) | undefined
   ) {
     if (isShutdown) {
       return yield* Effect.interrupt
@@ -436,7 +448,8 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
       rpc,
       queue,
       scope,
-      context
+      context,
+      onResponseHeaders
     })
 
     yield* middleware(
@@ -531,6 +544,9 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
         const requestId = message.requestId
         const entry = entries.get(requestId)
         if (!entry || entry._tag !== "Queue") return Effect.void
+        if (entry.onResponseHeaders) {
+          entry.onResponseHeaders(message.headers)
+        }
         return Queue.offerAll(entry.queue, message.values).pipe(
           supportsAck
             ? Effect.flatMap(() =>
@@ -549,6 +565,9 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
         const entry = entries.get(requestId)
         if (!entry) return Effect.void
         entries.delete(requestId)
+        if (entry.onResponseHeaders) {
+          entry.onResponseHeaders(message.headers)
+        }
         if (entry._tag === "Effect") {
           entry.resume(message.exit)
           return Effect.void
@@ -687,18 +706,20 @@ export const make: <Rpcs extends Rpc.Any, const Flatten extends boolean = false>
         const requestId = RequestId(message.requestId)
         const entry = entries.get(requestId)
         if (!entry || Option.isNone(entry.schemas.decodeChunk)) return Effect.void
+        const headers = Headers.fromInput(message.headers)
         return entry.schemas.decodeChunk.value(message.values).pipe(
           Effect.provideContext(entry.context),
           Effect.orDie,
           Effect.flatMap((chunk) =>
-            write({ _tag: "Chunk", clientId: 0, requestId: RequestId(message.requestId), values: chunk })
+            write({ _tag: "Chunk", clientId: 0, requestId: RequestId(message.requestId), values: chunk, headers })
           ),
           Effect.onError((cause) =>
             write({
               _tag: "Exit",
               clientId: 0,
               requestId: RequestId(message.requestId),
-              exit: Exit.failCause(cause)
+              exit: Exit.failCause(cause),
+              headers: Headers.empty
             })
           )
         ) as Effect.Effect<void>
@@ -708,12 +729,14 @@ export const make: <Rpcs extends Rpc.Any, const Flatten extends boolean = false>
         const entry = entries.get(requestId)
         if (!entry) return Effect.void
         entries.delete(requestId)
+        const headers = Headers.fromInput(message.headers)
         return entry.schemas.decodeExit(message.exit).pipe(
           Effect.provideContext(entry.context),
           Effect.orDie,
           Effect.matchCauseEffect({
-            onSuccess: (exit) => write({ _tag: "Exit", clientId: 0, requestId, exit }),
-            onFailure: (cause) => write({ _tag: "Exit", clientId: 0, requestId, exit: Exit.failCause(cause) })
+            onSuccess: (exit) => write({ _tag: "Exit", clientId: 0, requestId, exit, headers }),
+            onFailure: (cause) =>
+              write({ _tag: "Exit", clientId: 0, requestId, exit: Exit.failCause(cause), headers: Headers.empty })
           })
         ) as Effect.Effect<void>
       }
@@ -724,7 +747,7 @@ export const make: <Rpcs extends Rpc.Any, const Flatten extends boolean = false>
         const exit = Exit.fail(message.error)
         return Effect.forEach(
           entries.keys(),
-          (requestId) => write({ _tag: "Exit", clientId: 0, requestId, exit: exit as any })
+          (requestId) => write({ _tag: "Exit", clientId: 0, requestId, exit: exit as any, headers: Headers.empty })
         )
       }
       default: {

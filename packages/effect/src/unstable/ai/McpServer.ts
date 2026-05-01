@@ -215,7 +215,8 @@ export class McpServer extends Context.Service<McpServer, {
             clientId: 0,
             requestId: message.id,
             _tag: "Exit",
-            exit: Exit.void as any
+            exit: Exit.void as any,
+            headers: Headers.empty
           })
         })
     })
@@ -440,7 +441,8 @@ export const run: (options: {
                   rpc,
                   requestId: RpcMessage.RequestId(request.id),
                   client: new Rpc.ServerClient(clientId),
-                  headers: Headers.fromInput(request.headers)
+                  headers: Headers.fromInput(request.headers),
+                  responseHeaders: new Rpc.ResponseHeaders()
                 }) as any as Effect.Effect<void>
                 : Effect.void
             }

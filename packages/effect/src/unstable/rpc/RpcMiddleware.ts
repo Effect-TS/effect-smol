@@ -36,6 +36,7 @@ export interface RpcMiddleware<Provides, E, Requires> {
       readonly rpc: Rpc.AnyWithProps
       readonly payload: unknown
       readonly headers: Headers
+      readonly responseHeaders: Rpc.ResponseHeaders
     }
   ): Effect.Effect<SuccessValue, unhandled | E, Requires | Scope>
 }
@@ -82,6 +83,7 @@ export interface Any {
       readonly rpc: Rpc.AnyWithProps
       readonly payload: unknown
       readonly headers: Headers
+      readonly responseHeaders: Rpc.ResponseHeaders
     }
   ): Effect.Effect<SuccessValue, any, any>
 }

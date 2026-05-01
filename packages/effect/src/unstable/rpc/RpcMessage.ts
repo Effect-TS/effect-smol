@@ -175,6 +175,7 @@ export interface ResponseChunkEncoded {
   readonly _tag: "Chunk"
   readonly requestId: string
   readonly values: NonEmptyReadonlyArray<unknown>
+  readonly headers: ReadonlyArray<[string, string]>
 }
 
 /**
@@ -186,6 +187,7 @@ export interface ResponseChunk<A extends Rpc.Any> {
   readonly clientId: number
   readonly requestId: RequestId
   readonly values: NonEmptyReadonlyArray<Rpc.SuccessChunk<A>>
+  readonly headers: Headers
 }
 
 /**
@@ -219,6 +221,7 @@ export interface ResponseExitEncoded {
   readonly _tag: "Exit"
   readonly requestId: string
   readonly exit: ExitEncoded<unknown, unknown>
+  readonly headers: ReadonlyArray<[string, string]>
 }
 
 /**
@@ -239,6 +242,7 @@ export interface ResponseExit<A extends Rpc.Any> {
   readonly clientId: number
   readonly requestId: RequestId
   readonly exit: Rpc.Exit<A>
+  readonly headers: Headers
 }
 
 /**
@@ -268,7 +272,8 @@ export const ResponseExitDieEncoded = (options: {
       _tag: "Die",
       defect: encodeDefect(options.defect)
     }]
-  }
+  },
+  headers: []
 })
 
 /**
