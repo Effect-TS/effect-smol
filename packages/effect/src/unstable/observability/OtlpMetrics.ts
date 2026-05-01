@@ -60,7 +60,7 @@ export const make: (options: {
     readonly attributes?: Record<string, unknown>
   } | undefined
   readonly headers?: Headers.Input | undefined
-  readonly exportInterval?: Duration.Input | undefined
+  readonly exportInterval?: Duration.Input | "disabled" | undefined
   readonly shutdownTimeout?: Duration.Input | undefined
   readonly temporality?: AggregationTemporality | undefined
 }) => Effect.Effect<
@@ -440,7 +440,7 @@ export const layer = (options: {
     readonly attributes?: Record<string, unknown>
   } | undefined
   readonly headers?: Headers.Input | undefined
-  readonly exportInterval?: Duration.Input | undefined
+  readonly exportInterval?: Duration.Input | "disabled" | undefined
   readonly shutdownTimeout?: Duration.Input | undefined
   readonly temporality?: AggregationTemporality | undefined
 }): Layer.Layer<never, never, HttpClient.HttpClient | OtlpSerialization> => Layer.effectDiscard(make(options))

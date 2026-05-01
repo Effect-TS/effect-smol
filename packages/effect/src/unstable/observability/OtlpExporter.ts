@@ -77,9 +77,9 @@ export const flush = Effect.serviceOption(Exporters).pipe(
   Effect.flatMap(
     Option.match({
       onNone: () => Effect.void,
-      onSome: (exporters) => exporters.flush,
-    }),
-  ),
+      onSome: (exporters) => exporters.flush
+    })
+  )
 )
 
 /**
