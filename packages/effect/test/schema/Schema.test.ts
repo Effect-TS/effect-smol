@@ -3199,8 +3199,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
         const make = asserts.make()
         await make.succeed({ a: 1 })
-        await make.fail({}, `ctor default failed
-  at ["a"]`)
+        await make.fail(
+          {},
+          `ctor default failed
+  at ["a"]`
+        )
       })
 
       it("Struct & Effect async & service", async () => {
