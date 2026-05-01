@@ -4300,7 +4300,7 @@ export interface withConstructorDefault<S extends Top & WithoutConstructorDefaul
 export function withConstructorDefault<S extends Top & WithoutConstructorDefault>(
   // `S["~type.make.in"]` instead of `S["Type"]` is intentional here because
   // it makes easier to define the default value if there are nested defaults
-  defaultValue: Effect.Effect<S["~type.make.in"]>
+  defaultValue: Effect.Effect<S["~type.make.in"], Issue.Issue>
 ) {
   return (schema: S): withConstructorDefault<S> =>
     make(AST.withConstructorDefault(schema.ast, defaultValue), { schema })
@@ -4362,7 +4362,7 @@ export type DecodingDefaultOptions = {
  * @since 4.0.0
  */
 export function withDecodingDefaultKey<S extends Top>(
-  defaultValue: Effect.Effect<S["Encoded"]>,
+  defaultValue: Effect.Effect<S["Encoded"], Issue.Issue>,
   options?: DecodingDefaultOptions
 ) {
   const encode = options?.encodingStrategy === "omit" ? Getter.omit() : Getter.passthrough()
@@ -4408,7 +4408,7 @@ export interface withDecodingDefaultTypeKey<S extends Top>
  * @since 4.0.0
  */
 export function withDecodingDefaultTypeKey<S extends Top>(
-  defaultValue: Effect.Effect<S["Type"]>,
+  defaultValue: Effect.Effect<S["Type"], Issue.Issue>,
   options?: DecodingDefaultOptions
 ) {
   return (self: S): withDecodingDefaultTypeKey<S> => {
@@ -4462,7 +4462,7 @@ export interface withDecodingDefault<S extends Top> extends decodeTo<S, optional
  * @since 4.0.0
  */
 export function withDecodingDefault<S extends Top>(
-  defaultValue: Effect.Effect<S["Encoded"]>,
+  defaultValue: Effect.Effect<S["Encoded"], Issue.Issue>,
   options?: DecodingDefaultOptions
 ) {
   const encode = options?.encodingStrategy === "omit" ? Getter.omit() : Getter.passthrough()
@@ -4506,7 +4506,7 @@ export interface withDecodingDefaultType<S extends Top> extends decodeTo<withDec
  * @since 4.0.0
  */
 export function withDecodingDefaultType<S extends Top>(
-  defaultValue: Effect.Effect<S["Type"]>,
+  defaultValue: Effect.Effect<S["Type"], Issue.Issue>,
   options?: DecodingDefaultOptions
 ) {
   return (self: S): withDecodingDefaultType<S> => {
