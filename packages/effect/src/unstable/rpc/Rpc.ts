@@ -810,8 +810,8 @@ export const make = <
  *   }>
  * {}
  *
- * // You can then implement the schema transformation using `Rpc.makeCustom`
- * export const makePaginated = Rpc.makeCustom<RpcWithPagination>((schemas) => ({
+ * // You can then implement the schema transformation using `Rpc.custom`
+ * export const makePaginated = Rpc.custom<RpcWithPagination>((schemas) => ({
  *   ...schemas,
  *   success: Schema.Struct({
  *     offset: Schema.Number,
@@ -829,7 +829,7 @@ export const make = <
  * @since 4.0.0
  * @category Custom constructors
  */
-export const makeCustom = <Def extends Custom>(
+export const custom = <Def extends Custom>(
   f: (options: Custom.OutDefault) => (Def & Custom.OutDefault)["out"]
 ) =>
 <

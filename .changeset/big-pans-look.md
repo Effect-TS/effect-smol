@@ -2,4 +2,4 @@
 "effect": patch
 ---
 
-add Rpc.makeCustom
+add Rpc.custom
