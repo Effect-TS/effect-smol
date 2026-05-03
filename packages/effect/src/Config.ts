@@ -73,7 +73,6 @@
  */
 import type { Path, SourceError } from "./ConfigProvider.ts"
 import * as ConfigProvider from "./ConfigProvider.ts"
-import * as Duration_ from "./Duration.ts"
 import * as Effect from "./Effect.ts"
 import { dual } from "./Function.ts"
 import { PipeInspectableProto, YieldableProto } from "./internal/core.ts"
@@ -84,7 +83,6 @@ import * as Predicate from "./Predicate.ts"
 import * as Rec from "./Record.ts"
 import * as Schema from "./Schema.ts"
 import * as AST from "./SchemaAST.ts"
-import * as Getter from "./SchemaGetter.ts"
 import * as Issue from "./SchemaIssue.ts"
 import * as Parser from "./SchemaParser.ts"
 import * as Transformation from "./SchemaTransformation.ts"
@@ -726,32 +724,6 @@ export const Boolean = Schema.Literals([...TrueValues.literals, ...FalseValues.l
 )
 
 /**
- * A `Schema.Codec` for `Duration` values encoded as strings.
- *
- * When to use:
- * - Pass to {@link schema} for custom paths, or use the {@link duration}
- *   convenience constructor.
- *
- * Accepts any string that `Duration.fromInput` can parse (e.g.
- * `"10 seconds"`, `"500 millis"`).
- *
- * @see {@link duration} – convenience constructor
- *
- * @category Schema
- * @since 4.0.0
- */
-export const Duration = Schema.String.pipe(Schema.decodeTo(Schema.Duration, {
-  decode: Getter.transformOrFail((s) => {
-    const d = Duration_.fromInput(s as any)
-    return Option.match(d, {
-      onNone: () => Effect.fail(new Issue.InvalidValue(Option.some(s))),
-      onSome: Effect.succeed
-    })
-  }),
-  encode: Getter.forbidden(() => "Encoding Duration is not supported")
-}))
-
-/**
  * A `Schema.Codec` for port numbers (integers in 1–65535).
  *
  * When to use:
@@ -1050,10 +1022,10 @@ export function boolean(name?: string) {
  * Creates a config for a `Duration` value parsed from a human-readable
  * string.
  *
- * Shortcut for `Config.schema(Config.Duration, name)`.
+ * Shortcut for `Config.schema(Schema.DurationFromString, name)`.
  *
  * Accepts any string that `Duration.fromInput` can parse (e.g.
- * `"10 seconds"`, `"500 millis"`, `"2 minutes"`).
+ * `"10 seconds"`, `"500 millis"`, `"Infinity"`, `"-Infinity"`).
  *
  * **Example** (Reading a duration)
  *
@@ -1081,7 +1053,7 @@ export function boolean(name?: string) {
  * @since 4.0.0
  */
 export function duration(name?: string) {
-  return schema(Duration, name)
+  return schema(Schema.DurationFromString, name)
 }
 
 /**

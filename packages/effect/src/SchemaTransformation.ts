@@ -35,7 +35,7 @@
  * - Trim/case strings → {@link trim}, {@link toLowerCase}, {@link toUpperCase}, {@link capitalize}, {@link uncapitalize}, {@link snakeToCamel}
  * - Parse key-value strings → {@link splitKeyValue}
  * - Coerce string ↔ number/bigint → {@link numberFromString}, {@link bigintFromString}
- * - Coerce string ↔ Date → {@link dateFromString}
+ * - Coerce string ↔ Date/Duration → {@link dateFromString}, {@link durationFromString}
  * - Decode durations → {@link durationFromNanos}, {@link durationFromMillis}
  * - Wrap nullable/optional as Option → {@link optionFromNullOr}, {@link optionFromOptionalKey}, {@link optionFromOptional}
  * - Parse URLs → {@link urlFromString}
@@ -914,6 +914,47 @@ export const dateFromString: Transformation<globalThis.Date, string> = new Trans
   Getter.Date(),
   Getter.transform(formatDate)
 )
+
+/**
+ * Decodes a `string` into a `Duration` and encodes a `Duration` back to a
+ * parseable `string`.
+ *
+ * When to use this:
+ * - Parsing human-readable duration strings from APIs, config, or user input.
+ *
+ * Behavior:
+ * - Decode: accepts any string that `Duration.fromInput` can parse, including
+ *   `"Infinity"` and `"-Infinity"`.
+ * - Encode: returns `String(duration)`, producing strings like `"2000 millis"`
+ *   or `"10 nanos"` that round-trip through the parser.
+ *
+ * **Example** (Duration from string)
+ *
+ * ```ts
+ * import { Schema, SchemaTransformation } from "effect"
+ *
+ * const schema = Schema.String.pipe(
+ *   Schema.decodeTo(Schema.Duration, SchemaTransformation.durationFromString)
+ * )
+ * ```
+ *
+ * See also:
+ * - {@link durationFromNanos}
+ * - {@link durationFromMillis}
+ *
+ * @since 4.0.0
+ */
+export const durationFromString: Transformation<Duration.Duration, string> = transformOrFail<
+  Duration.Duration,
+  string
+>({
+  decode: (s) =>
+    Option.match(Duration.fromInput(s as Duration.Input), {
+      onNone: () => Effect.fail(new Issue.InvalidValue(Option.some(s), { message: `Invalid Duration string: ${s}` })),
+      onSome: Effect.succeed
+    }),
+  encode: (duration) => Effect.succeed(globalThis.String(duration))
+})
 
 /**
  * Decodes a `bigint` (nanoseconds) into a `Duration` and encodes a

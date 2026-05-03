@@ -8862,6 +8862,35 @@ export const Duration: Duration = declare(
   }
 )
 
+const DurationString = String.annotate({ expected: "a string that will be decoded as a Duration" })
+
+/**
+ * Companion type for {@link DurationFromString}.
+ *
+ * @category Duration
+ * @since 4.0.0
+ */
+export interface DurationFromString extends decodeTo<Duration, String> {
+  readonly "Rebuild": DurationFromString
+}
+
+/**
+ * A transformation schema that parses a string into a `Duration`.
+ *
+ * Decoding:
+ * - A `string` is decoded as a `Duration`, accepting any format that
+ *   `Duration.fromInput` can parse.
+ *
+ * Encoding:
+ * - A `Duration` is encoded as a parseable `string`.
+ *
+ * @category Duration
+ * @since 4.0.0
+ */
+export const DurationFromString: DurationFromString = DurationString.pipe(
+  decodeTo(Duration, Transformation.durationFromString)
+)
+
 /**
  * Companion type for {@link DurationFromNanos}.
  *

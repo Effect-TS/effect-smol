@@ -4469,6 +4469,25 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     }
   })
 
+  it("DurationFromString", async () => {
+    const schema = Schema.DurationFromString
+    const asserts = new TestSchema.Asserts(schema)
+
+    const decoding = asserts.decoding()
+    await decoding.succeed("1000 millis", Duration.millis(1000))
+    await decoding.succeed("1 second", Duration.seconds(1))
+    await decoding.succeed("Infinity", Duration.infinity)
+    await decoding.succeed("-Infinity", Duration.negativeInfinity)
+    await decoding.fail("value", "Invalid Duration string: value")
+
+    const encoding = asserts.encoding()
+    await encoding.succeed(Duration.zero, "0 millis")
+    await encoding.succeed(Duration.seconds(5), "5000 millis")
+    await encoding.succeed(Duration.nanos(5000n), "5000 nanos")
+    await encoding.succeed(Duration.infinity, "Infinity")
+    await encoding.succeed(Duration.negativeInfinity, "-Infinity")
+  })
+
   it("DurationFromNanos", async () => {
     const schema = Schema.DurationFromNanos
     const asserts = new TestSchema.Asserts(schema)

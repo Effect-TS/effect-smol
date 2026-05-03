@@ -87,6 +87,9 @@ export type Unit =
 /**
  * Valid input types that can be converted to a Duration.
  *
+ * String inputs accept values like `"10 seconds"`, `"500 millis"`,
+ * `"Infinity"`, and `"-Infinity"`.
+ *
  * @since 2.0.0
  * @category models
  */
@@ -96,6 +99,8 @@ export type Input =
   | bigint // nanos
   | readonly [seconds: number, nanos: number]
   | `${number} ${Unit}`
+  | "Infinity"
+  | "-Infinity"
   | DurationObject
 
 /**
@@ -140,7 +145,8 @@ const DURATION_REGEXP = /^(-?\d+(?:\.\d+)?)\s+(nanos?|micros?|millis?|seconds?|m
  *
  * const duration1 = Duration.fromInputUnsafe(1000) // 1000 milliseconds
  * const duration2 = Duration.fromInputUnsafe("5 seconds")
- * const duration3 = Duration.fromInputUnsafe([2, 500_000_000]) // 2 seconds and 500ms
+ * const duration3 = Duration.fromInputUnsafe("Infinity")
+ * const duration4 = Duration.fromInputUnsafe([2, 500_000_000]) // 2 seconds and 500ms
  * ```
  *
  * @since 2.0.0
@@ -153,6 +159,12 @@ export const fromInputUnsafe = (input: Input): Duration => {
     case "bigint":
       return nanos(input)
     case "string": {
+      if (input === "Infinity") {
+        return infinity
+      }
+      if (input === "-Infinity") {
+        return negativeInfinity
+      }
       const match = DURATION_REGEXP.exec(input)
       if (!match) break
       const [_, valueStr, unit] = match
