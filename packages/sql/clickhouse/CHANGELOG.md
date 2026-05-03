@@ -1,5 +1,13 @@
 # @effect/sql-clickhouse
 
+## 4.0.0-beta.60
+
+### Patch Changes
+
+- Updated dependencies [[`f69d567`](https://github.com/Effect-TS/effect-smol/commit/f69d5675dcff9f4137295752baf066b7153fdc09), [`bbb4dcc`](https://github.com/Effect-TS/effect-smol/commit/bbb4dcc6c406b83a416b4ad3541cc02037c420e4), [`7af2207`](https://github.com/Effect-TS/effect-smol/commit/7af2207901eabf3132c1b7010a69b3899c06fbbe), [`848b40a`](https://github.com/Effect-TS/effect-smol/commit/848b40a4bd4bf54a5098617d50c33c88eee8270a)]:
+  - effect@4.0.0-beta.60
+  - @effect/platform-node@4.0.0-beta.60
+
 ## 4.0.0-beta.59
 
 ### Patch Changes
