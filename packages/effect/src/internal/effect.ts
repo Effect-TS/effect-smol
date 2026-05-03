@@ -3184,6 +3184,23 @@ export const orElseSucceed: {
 )
 
 /** @internal */
+export const firstSuccessOf = <Eff extends Effect.Effect<any, any, any>>(
+  effects: Iterable<Eff>
+): Effect.Effect<Effect.Success<Eff>, Effect.Error<Eff>, Effect.Services<Eff>> =>
+  suspend(() => {
+    const list = Arr.fromIterable(effects)
+    if (list.length === 0) {
+      return die(new Error("Received an empty collection of effects"))
+    }
+    let effect: Effect.Effect<any, any, any> = list[0]
+    for (let i = 1; i < list.length; i++) {
+      const next = list[i]
+      effect = catch_(effect, () => next)
+    }
+    return effect
+  }) as any
+
+/** @internal */
 export const eventually = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, never, R> =>
   catch_(self, (_) => flatMap(yieldNow, () => eventually(self)))
 

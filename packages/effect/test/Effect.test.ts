@@ -2168,6 +2168,50 @@ describe("Effect", () => {
       }))
   })
 
+  describe("firstSuccessOf", () => {
+    it.effect("returns the first success and does not run later effects", () =>
+      Effect.gen(function*() {
+        const executed: Array<string> = []
+        const result = yield* Effect.firstSuccessOf([
+          Effect.sync(() => executed.push("first")).pipe(
+            Effect.flatMap(() => Effect.fail("e1" as const))
+          ),
+          Effect.sync(() => executed.push("second")).pipe(
+            Effect.as("success" as const)
+          ),
+          Effect.sync(() => executed.push("third")).pipe(
+            Effect.as("unreachable" as const)
+          )
+        ])
+
+        assert.strictEqual(result, "success")
+        assert.deepStrictEqual(executed, ["first", "second"])
+      }))
+
+    it.effect("fails with the last failure when all effects fail", () =>
+      Effect.gen(function*() {
+        const result = yield* Effect.firstSuccessOf([
+          Effect.fail("e1" as const),
+          Effect.fail("e2" as const),
+          Effect.fail("e3" as const)
+        ]).pipe(Effect.flip)
+
+        assert.strictEqual(result, "e3")
+      }))
+
+    it.effect("defects on an empty collection", () =>
+      Effect.gen(function*() {
+        const result = yield* Effect.firstSuccessOf([]).pipe(Effect.sandbox, Effect.flip)
+        const reason = result.reasons[0]
+
+        assert.isTrue(Cause.isDieReason(reason))
+        if (Cause.isDieReason(reason)) {
+          assert.instanceOf(reason.defect, Error)
+          assert.strictEqual(reason.defect.message, "Received an empty collection of effects")
+        }
+      }))
+  })
+
   describe("catchCause", () => {
     it.effect("first argument as success", () =>
       Effect.gen(function*() {
