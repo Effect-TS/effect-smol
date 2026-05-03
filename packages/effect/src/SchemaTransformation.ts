@@ -1291,7 +1291,7 @@ export const urlFromString: Transformation<URL, string> = transformOrFail<URL, s
   decode: (s) =>
     Effect.try({
       try: () => new URL(s),
-      catch: (e) => new Issue.InvalidValue(Option.some(s), { message: globalThis.String(e) })
+      catch: () => new Issue.InvalidValue(Option.some(s), { message: `Invalid URL string: ${s}` })
     }),
   encode: (url) => Effect.succeed(url.href)
 })
@@ -1633,7 +1633,8 @@ export const dateTimeUtcFromString: Transformation<DateTime.Utc, string> = trans
 >({
   decode: (s) => {
     return Option.match(DateTime.make(s), {
-      onNone: () => Effect.fail(new Issue.InvalidValue(Option.some(s), { message: "Invalid DateTime input" })),
+      onNone: () =>
+        Effect.fail(new Issue.InvalidValue(Option.some(s), { message: `Invalid UTC DateTime string: ${s}` })),
       onSome: (result) => Effect.succeed(DateTime.toUtc(result))
     })
   },
@@ -1650,7 +1651,7 @@ export const dateTimeZonedFromString: Transformation<DateTime.Zoned, string> = t
   decode: (s) => {
     return Option.match(DateTime.makeZonedFromString(s), {
       onNone: () =>
-        Effect.fail(new Issue.InvalidValue(Option.some(s), { message: `Invalid zoned DateTime string: ${s}` })),
+        Effect.fail(new Issue.InvalidValue(Option.some(s), { message: `Invalid Zoned DateTime string: ${s}` })),
       onSome: Effect.succeed
     })
   },

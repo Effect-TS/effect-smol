@@ -34,8 +34,6 @@ import { produce } from "immer"
 import { deepStrictEqual, fail, ok, strictEqual } from "node:assert"
 import { assertFalse, assertInclude, assertTrue, throws } from "../utils/assert.ts"
 
-const isDeno = "Deno" in globalThis
-
 const verifyGeneration = true
 
 const equals = TestSchema.Asserts.ast.fields.equals
@@ -1977,6 +1975,9 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       }
 
       const zoned = DateTime.makeZonedUnsafe("2021-01-01T00:00:00.000Z", { timeZone: "Europe/London" })
+
+      const decoding = asserts.decoding()
+      await decoding.fail("invalid", `Invalid Zoned DateTime string: invalid`)
 
       const encoding = asserts.encoding()
       await encoding.succeed(zoned, DateTime.formatIsoZoned(zoned))
@@ -4190,6 +4191,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
     const decoding = asserts.decoding()
     await decoding.succeed("2021-01-01T00:00:00.000Z", DateTime.makeUnsafe("2021-01-01T00:00:00.000Z"))
+    await decoding.fail("invalid", `Invalid UTC DateTime string: invalid`)
     await decoding.fail(null, `Expected string, got null`)
 
     const encoding = asserts.encoding()
@@ -4737,7 +4739,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     await decoding.succeed("https://effect.website", new URL("https://effect.website"))
     await decoding.fail(
       "123",
-      isDeno ? `TypeError: Invalid URL: '123'` : `TypeError: Invalid URL`
+      `Invalid URL string: 123`
     )
 
     const encoding = asserts.encoding()
