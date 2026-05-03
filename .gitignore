@@ -34,3 +34,6 @@ scratchpad/**/*
 
 # Claude Code
 .claude/
+
+# Codex
+.agents/

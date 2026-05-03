@@ -131,6 +131,28 @@ describe("Config", () => {
       )
     })
 
+    it("literals", async () => {
+      const provider = ConfigProvider.fromUnknown({ a: "production", b: "staging" })
+      await assertSuccess(Config.literals(["development", "production"], "a"), provider, "production")
+      await assertFailure(
+        Config.literals(["development", "production"], "b"),
+        provider,
+        `Expected "development" | "production", got "staging"
+  at ["b"]`
+      )
+    })
+
+    it("literals (numbers)", async () => {
+      const provider = ConfigProvider.fromUnknown({ a: "1", b: "3" })
+      await assertSuccess(Config.literals([1, 2], "a"), provider, 1)
+      await assertFailure(
+        Config.literals([1, 2], "b"),
+        provider,
+        `Expected "1" | "2", got "3"
+  at ["b"]`
+      )
+    })
+
     it("date", async () => {
       const provider = ConfigProvider.fromUnknown({ a: "2021-01-01", b: "invalid" })
       await assertSuccess(Config.date("a"), provider, new Date("2021-01-01"))

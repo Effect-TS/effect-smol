@@ -989,6 +989,26 @@ export function literal<L extends AST.LiteralValue>(literal: L, name?: string) {
 }
 
 /**
+ * Creates a config that only accepts one of the specified literal values.
+ *
+ * Shortcut for `Config.schema(Schema.Literals(literals), name)`.
+ *
+ * **Example** (Restricting to a set of literals)
+ *
+ * ```ts
+ * import { Config } from "effect"
+ *
+ * const env = Config.literals(["development", "production"], "ENV")
+ * ```
+ *
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function literals<const L extends ReadonlyArray<AST.LiteralValue>>(literals: L, name?: string) {
+  return schema(Schema.Literals(literals), name)
+}
+
+/**
  * Creates a config for a boolean value parsed from common string
  * representations.
  *
