@@ -37,23 +37,23 @@ export const layerHttpApi = <
         handlers = handlers
           .handle(
             parentRpc._tag as any,
-            (({ path, payload }: { path: { entityId: string }; payload: any }) =>
-              (client(path.entityId) as any as Record<string, (p: any) => Effect.Effect<any>>)[parentRpc._tag](
+            (({ params, payload }: { params: { entityId: string }; payload: any }) =>
+              (client(params.entityId) as any as Record<string, (p: any) => Effect.Effect<any>>)[parentRpc._tag](
                 payload
               ).pipe(
                 Effect.tapDefect(Effect.logError),
                 Effect.annotateLogs({
                   module: "EntityProxyServer",
                   entity: entity.type,
-                  entityId: path.entityId,
+                  entityId: params.entityId,
                   method: parentRpc._tag
                 })
               )) as any
           )
           .handle(
             `${parentRpc._tag}Discard` as any,
-            (({ path, payload }: { path: { entityId: string }; payload: any }) =>
-              (client(path.entityId) as any as Record<string, (p: any, o: {}) => Effect.Effect<any>>)[parentRpc._tag](
+            (({ params, payload }: { params: { entityId: string }; payload: any }) =>
+              (client(params.entityId) as any as Record<string, (p: any, o: {}) => Effect.Effect<any>>)[parentRpc._tag](
                 payload,
                 { discard: true }
               ).pipe(
@@ -61,7 +61,7 @@ export const layerHttpApi = <
                 Effect.annotateLogs({
                   module: "EntityProxyServer",
                   entity: entity.type,
-                  entityId: path.entityId,
+                  entityId: params.entityId,
                   method: `${parentRpc._tag}Discard`
                 })
               )) as any
