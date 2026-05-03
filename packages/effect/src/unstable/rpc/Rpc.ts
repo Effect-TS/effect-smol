@@ -865,6 +865,7 @@ export const custom = <Def extends Custom>(
   })
   return make(tag, {
     ...out,
+    primaryKey: options?.primaryKey,
     payload: options?.payload,
     stream: options?.stream
   }) as any
