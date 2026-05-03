@@ -37,9 +37,8 @@
  *
  * @since 2.0.0
  */
-import { format } from "./Formatter.ts"
+import { format, formatJson } from "./Formatter.ts"
 import * as Predicate from "./Predicate.ts"
-import * as Redactable from "./Redactable.ts"
 import { redact } from "./Redactable.ts"
 
 /**
@@ -176,29 +175,10 @@ export const toStringUnknown = (u: unknown, whitespace: number | string | undefi
     return u
   }
   try {
-    return typeof u === "object" ? stringifyCircular(u, whitespace) : String(u)
+    return typeof u === "object" ? formatJson(u, { space: whitespace }) : String(u)
   } catch {
     return String(u)
   }
-}
-
-/**
- * @since 2.0.0
- */
-export const stringifyCircular = (obj: unknown, whitespace?: number | string | undefined): string => {
-  let cache: Array<unknown> = []
-  const retVal = JSON.stringify(
-    obj,
-    (_key, value) =>
-      typeof value === "object" && value !== null
-        ? cache.includes(value)
-          ? undefined // circular reference
-          : cache.push(value) && Redactable.redact(value)
-        : value,
-    whitespace
-  )
-  ;(cache as any) = undefined
-  return retVal
 }
 
 /**

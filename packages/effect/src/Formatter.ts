@@ -362,8 +362,8 @@ function safeToString(input: any): string {
  *
  * Behavior:
  * - Does not mutate input.
- * - Uses `JSON.stringify` internally with a replacer that tracks seen
- *   objects.
+ * - Uses `JSON.stringify` internally with a replacer that tracks the
+ *   current object ancestry.
  * - Circular references are replaced with `undefined` (omitted from
  *   output).
  * - `Redactable` values are automatically redacted before serialization.
@@ -414,17 +414,23 @@ function safeToString(input: any): string {
 export function formatJson(input: unknown, options?: {
   readonly space?: number | string | undefined
 }): string {
-  let cache: Array<unknown> = []
-  const out = JSON.stringify(
+  const ancestors: Array<object> = []
+  return JSON.stringify(
     input,
-    (_key, value) =>
-      typeof value === "object" && value !== null
-        ? cache.includes(value)
-          ? undefined // circular reference
-          : cache.push(value) && redact(value)
-        : value,
+    function(this: unknown, _key: string, value: unknown) {
+      const redacted = redact(value)
+      if (typeof redacted !== "object" || redacted === null) {
+        return redacted
+      }
+      while (ancestors.length > 0 && ancestors[ancestors.length - 1] !== this) {
+        ancestors.pop()
+      }
+      if (ancestors.includes(redacted)) {
+        return undefined // circular reference
+      }
+      ancestors.push(redacted)
+      return redacted
+    },
     options?.space
   )
-  ;(cache as any) = undefined
-  return out
 }
