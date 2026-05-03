@@ -27,6 +27,7 @@ import * as Schedule from "../../Schedule.ts"
 import * as Scope from "../../Scope.ts"
 import * as Semaphore from "../../Semaphore.ts"
 import * as Stream from "../../Stream.ts"
+import * as Headers from "../http/Headers.ts"
 import type * as Rpc from "../rpc/Rpc.ts"
 import * as RpcClient from "../rpc/RpcClient.ts"
 import { type FromServer, RequestId } from "../rpc/RpcMessage.ts"
@@ -1178,7 +1179,8 @@ const make = Effect.gen(function*() {
           _tag: "Chunk",
           clientId: 0,
           requestId: RequestId(reply.requestId),
-          values: reply.values
+          values: reply.values,
+          headers: Headers.empty
         })
       }
       case "WithExit": {
@@ -1187,7 +1189,8 @@ const make = Effect.gen(function*() {
           _tag: "Exit",
           clientId: 0,
           requestId: RequestId(reply.requestId),
-          exit: reply.exit
+          exit: reply.exit,
+          headers: Headers.empty
         })
       }
     }

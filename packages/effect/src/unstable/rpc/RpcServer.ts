@@ -184,7 +184,8 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
               _tag: "Exit",
               clientId,
               requestId: message.requestId,
-              exit: Exit.interrupt()
+              exit: Exit.interrupt(),
+              headers: Headers.empty
             })
           }
           case "Eof": {
@@ -228,7 +229,8 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
           _tag: "Exit",
           clientId: client.id,
           requestId: request.id,
-          exit: Exit.die(`Unknown request tag: ${request.tag}`)
+          exit: Exit.die(`Unknown request tag: ${request.tag}`),
+          headers: Headers.empty
         }),
         (defect) => sendDefect(client, defect)
       )
@@ -236,12 +238,14 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
       return Effect.ensuring(write, endClient(client))
     }
     const isStream = RpcSchema.isStreamSchema(rpc.successSchema)
+    const responseHeaders = new Rpc.ResponseHeaders()
     const metadata = {
       rpc,
       client: client.serverClient,
       requestId: request.id,
       headers: request.headers,
-      payload: request.payload
+      payload: request.payload,
+      responseHeaders
     }
     const result = entry.handler(request.payload, metadata)
 
@@ -252,7 +256,9 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
     // unwrap the fork data type
     const streamOrEffect = isWrapper ? result.value : result
     const handler = isStream
-      ? (streamEffect(client, request, streamOrEffect) as Effect.Effect<{} | Deferred.Deferred<any, any>>)
+      ? (streamEffect(client, request, responseHeaders, streamOrEffect) as Effect.Effect<
+        {} | Deferred.Deferred<any, any>
+      >)
       : (streamOrEffect as Effect.Effect<{} | Deferred.Deferred<any, any>>)
 
     const withMiddleware = rpc.middlewares.size > 0
@@ -273,7 +279,8 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
             _tag: "Exit",
             clientId: client.id,
             requestId: request.id,
-            exit: exit as any
+            exit: exit as any,
+            headers: responseHeaders.current
           })
         }
       } else if (
@@ -287,7 +294,8 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
           _tag: "Exit",
           clientId: client.id,
           requestId: request.id,
-          exit: exit as any
+          exit: exit as any,
+          headers: responseHeaders.current
         })
       }
       const close = Scope.closeUnsafe(scope, exit)
@@ -326,6 +334,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
     const context = new Map(entry.context.mapUnsafe)
     requestFiber.context.mapUnsafe.forEach((value, key) => context.set(key, value))
     context.set(Scope.Scope.key, scope)
+    context.set(Rpc.CurrentResponseHeaders.key, responseHeaders)
     const runFork = Effect.runForkWith(Context.makeUnsafe(context))
     const fiber = trackFiber(
       runFork(
@@ -341,7 +350,8 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
             _tag: "Exit",
             clientId: client.id,
             requestId: request.id,
-            exit: exit as any
+            exit: exit as any,
+            headers: responseHeaders.current
           }))))
         client.fibers.set(request.id, fiber)
         deferred = undefined
@@ -355,7 +365,8 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
               _tag: "Exit",
               clientId: client.id,
               requestId: request.id,
-              exit: Exit.interrupt()
+              exit: Exit.interrupt(),
+              headers: responseHeaders.current
             })
           )
         )
@@ -372,6 +383,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
   const streamEffect = (
     client: Client,
     request: Request<Rpcs>,
+    responseHeaders: Rpc.ResponseHeaders,
     stream:
       | Stream.Stream<any, any>
       | Effect.Effect<Queue.Dequeue<any, any>, any, Scope.Scope>
@@ -392,7 +404,8 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
                   _tag: "Chunk",
                   clientId: client.id,
                   requestId: request.id,
-                  values
+                  values,
+                  headers: responseHeaders.current
                 })
                 if (!latch) return write
                 latch.closeUnsafe()
@@ -411,7 +424,8 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
         _tag: "Chunk",
         clientId: client.id,
         requestId: request.id,
-        values
+        values,
+        headers: responseHeaders.current
       })
       if (!latch) return write
       latch.closeUnsafe()
@@ -446,6 +460,7 @@ const applyMiddleware = <A, E, R>(
     readonly requestId: RequestId
     readonly headers: Headers.Headers
     readonly payload: unknown
+    readonly responseHeaders: Rpc.ResponseHeaders
   }
 ) => {
   for (const service of options.rpc.middlewares) {
@@ -511,26 +526,28 @@ export const make: <Rpcs extends Rpc.Any>(
         case "Chunk": {
           const schemas = client.schemas.get(response.requestId)
           if (!schemas) return Effect.void
+          const encodedHeaders = Object.entries(response.headers)
           return handleEncode(
             client,
             response.requestId,
             schemas.encodeDefect,
             schemas.collector,
             Effect.provideContext(schemas.encodeChunk(response.values), schemas.context),
-            (values) => ({ _tag: "Chunk", requestId: String(response.requestId), values })
+            (values) => ({ _tag: "Chunk", requestId: String(response.requestId), values, headers: encodedHeaders })
           )
         }
         case "Exit": {
           const schemas = client.schemas.get(response.requestId)
           if (!schemas) return Effect.void
           client.schemas.delete(response.requestId)
+          const encodedHeaders = Object.entries(response.headers)
           return handleEncode(
             client,
             response.requestId,
             schemas.encodeDefect,
             schemas.collector,
             Effect.provideContext(schemas.encodeExit(response.exit), schemas.context),
-            (exit) => ({ _tag: "Exit", requestId: String(response.requestId), exit })
+            (exit) => ({ _tag: "Exit", requestId: String(response.requestId), exit, headers: encodedHeaders })
           )
         }
         case "Defect": {
@@ -634,7 +651,8 @@ export const make: <Rpcs extends Rpc.Any>(
               _tag: "Die",
               defect: encodedDefect
             }]
-          }
+          },
+          headers: []
         })),
       (cause) => sendDefect(client, Cause.squash(cause))
     )

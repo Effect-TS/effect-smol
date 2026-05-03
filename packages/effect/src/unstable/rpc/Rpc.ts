@@ -4,7 +4,7 @@
 import type * as Cause from "../../Cause.ts"
 import * as Context from "../../Context.ts"
 import type { Deferred } from "../../Deferred.ts"
-import type { Effect } from "../../Effect.ts"
+import * as Effect from "../../Effect.ts"
 import type { Exit as Exit_ } from "../../Exit.ts"
 import * as Option from "../../Option.ts"
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
@@ -15,6 +15,7 @@ import * as Schema from "../../Schema.ts"
 import type { Stream } from "../../Stream.ts"
 import type * as Struct from "../../Struct.ts"
 import type { NoInfer } from "../../Types.ts"
+import * as Headers_ from "../http/Headers.ts"
 import type { Headers } from "../http/Headers.ts"
 import type { RequestId } from "./RpcMessage.ts"
 import type * as RpcMiddleware from "./RpcMiddleware.ts"
@@ -168,6 +169,78 @@ export class ServerClient {
 }
 
 /**
+ * Mutable holder for response headers attached by a server-side handler or
+ * middleware. The current value is read by the `RpcServer` when it emits a
+ * `Chunk` or `Exit` message back to the client.
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export class ResponseHeaders {
+  current: Headers = Headers_.empty
+  setUnsafe(key: string, value: string): void {
+    this.current = Headers_.set(this.current, key, value)
+  }
+  setAllUnsafe(headers: Headers_.Input): void {
+    this.current = Headers_.setAll(this.current, headers)
+  }
+  mergeUnsafe(headers: Headers): void {
+    this.current = Headers_.merge(this.current, headers)
+  }
+}
+
+/**
+ * A `Context.Reference` that exposes the current request's
+ * `ResponseHeaders` holder to a server-side handler.
+ *
+ * Available within the handler fiber so `setAllResponseHeaders` /
+ * `setResponseHeader` / `mergeResponseHeaders` can be called as effects.
+ *
+ * @since 4.0.0
+ * @category headers
+ */
+export const CurrentResponseHeaders: Context.Reference<ResponseHeaders> = Context.Reference<ResponseHeaders>(
+  "effect/rpc/Rpc/CurrentResponseHeaders",
+  { defaultValue: () => new ResponseHeaders() }
+)
+
+/**
+ * Replace the current set of response headers with the provided input.
+ *
+ * @since 4.0.0
+ * @category headers
+ */
+export const setAllResponseHeaders = (input: Headers_.Input): Effect.Effect<void> =>
+  Effect.flatMap(CurrentResponseHeaders.asEffect(), (ref) =>
+    Effect.sync(() => {
+      ref.setAllUnsafe(input)
+    }))
+
+/**
+ * Set a single response header.
+ *
+ * @since 4.0.0
+ * @category headers
+ */
+export const setResponseHeader = (key: string, value: string): Effect.Effect<void> =>
+  Effect.flatMap(CurrentResponseHeaders.asEffect(), (ref) =>
+    Effect.sync(() => {
+      ref.setUnsafe(key, value)
+    }))
+
+/**
+ * Merge another `Headers` value into the current response headers.
+ *
+ * @since 4.0.0
+ * @category headers
+ */
+export const mergeResponseHeaders = (headers: Headers): Effect.Effect<void> =>
+  Effect.flatMap(CurrentResponseHeaders.asEffect(), (ref) =>
+    Effect.sync(() => {
+      ref.mergeUnsafe(headers)
+    }))
+
+/**
  * Represents an implemented rpc.
  *
  * @since 4.0.0
@@ -180,8 +253,9 @@ export interface Handler<Tag extends string> {
     readonly client: ServerClient
     readonly requestId: RequestId
     readonly headers: Headers
+    readonly responseHeaders: ResponseHeaders
     readonly rpc: Any
-  }) => Effect<{} | Deferred<any, any>, any> | Stream<any, any>
+  }) => Effect.Effect<{} | Deferred<any, any>, any> | Stream<any, any>
   readonly context: Context.Context<never>
 }
 
@@ -500,6 +574,7 @@ export type ToHandlerFn<Current extends Any, R = any> = (
     readonly client: ServerClient
     readonly requestId: RequestId
     readonly headers: Headers
+    readonly responseHeaders: ResponseHeaders
     readonly rpc: Current
   }
 ) => WrapperOr<ResultFrom<Current, R>>
@@ -586,12 +661,12 @@ export type ResultFrom<R extends Any, Services> = R extends Rpc<
         _SE["Type"] | _Error["Type"],
         Services
       >
-      | Effect<
+      | Effect.Effect<
         Queue.Dequeue<_SA["Type"], _SE["Type"] | _Error["Type"] | Cause.Done>,
         _SE["Type"] | Schema.Schema.Type<_Error>,
         Services
       > :
-  Effect<
+  Effect.Effect<
     _Success["Type"] | Deferred<_Success["Type"], _Error["Type"]>,
     _Error["Type"],
     Services
