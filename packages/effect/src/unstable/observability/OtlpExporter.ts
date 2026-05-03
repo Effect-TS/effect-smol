@@ -6,10 +6,13 @@ import * as Context from "../../Context.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Fiber from "../../Fiber.ts"
+import * as Layer from "../../Layer.ts"
 import * as Num from "../../Number.ts"
 import * as Option from "../../Option.ts"
+import * as Ref from "../../Ref.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Scope from "../../Scope.ts"
+import * as Semaphore from "../../Semaphore.ts"
 import * as Headers from "../../unstable/http/Headers.ts"
 import * as HttpClient from "../../unstable/http/HttpClient.ts"
 import * as HttpClientError from "../../unstable/http/HttpClientError.ts"
@@ -36,6 +39,51 @@ const policy = Schedule.forever.pipe(
 
 /**
  * @since 4.0.0
+ * @category Services
+ */
+export class Exporters extends Context.Service<Exporters, {
+  readonly register: (exporter: Effect.Effect<void>) => Effect.Effect<void>
+  readonly flush: Effect.Effect<void>
+}>()("effect/unstable/observability/OtlpExporter/Exporters") {}
+
+/**
+ * @since 4.0.0
+ * @category Layers
+ */
+export const layerExporters: Layer.Layer<Exporters> = Layer.effect(
+  Exporters,
+  Effect.gen(function*() {
+    const exporters = yield* Ref.make<ReadonlyArray<Effect.Effect<void>>>([])
+
+    return {
+      register: (exporter) => Ref.update(exporters, (all) => [...all, exporter]),
+      flush: Ref.get(exporters).pipe(
+        Effect.flatMap((all) =>
+          Effect.forEach(all, (exporter) => exporter, {
+            concurrency: "unbounded",
+            discard: true
+          })
+        )
+      )
+    }
+  })
+)
+
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const flush = Effect.serviceOption(Exporters).pipe(
+  Effect.flatMap(
+    Option.match({
+      onNone: () => Effect.void,
+      onSome: (exporters) => exporters.flush
+    })
+  )
+)
+
+/**
+ * @since 4.0.0
  * @category Constructors
  */
 export const make: (
@@ -43,7 +91,7 @@ export const make: (
     readonly url: string
     readonly headers: Headers.Input | undefined
     readonly label: string
-    readonly exportInterval: Duration.Input
+    readonly exportInterval: Duration.Input | "disabled"
     readonly maxBatchSize: number | "disabled"
     readonly body: (data: Array<any>) => HttpBody
     readonly shutdownTimeout: Duration.Input
@@ -57,7 +105,6 @@ export const make: (
   const clock = Context.get(services, Clock)
   const scope = Context.get(services, Scope.Scope)
   const runFork = Effect.runForkWith(services)
-  const exportInterval = Duration.max(Duration.fromInputUnsafe(options.exportInterval), Duration.zero)
   let disabledUntil: number | undefined = undefined
 
   const client = HttpClient.filterStatusOk(Context.get(services, HttpClient.HttpClient)).pipe(
@@ -74,7 +121,8 @@ export const make: (
 
   const request = HttpClientRequest.post(options.url, { headers })
   let buffer: Array<any> = []
-  const runExport = Effect.suspend(() => {
+  const semaphore = yield* Semaphore.make(1)
+  const runExport = semaphore.withPermits(1)(Effect.suspend(() => {
     if (disabledUntil !== undefined && clock.currentTimeMillisUnsafe() < disabledUntil) {
       return Effect.void
     } else if (disabledUntil !== undefined) {
@@ -90,10 +138,11 @@ export const make: (
     return client.execute(
       HttpClientRequest.setBody(request, options.body(items))
     ).pipe(
+      Effect.flatMap((response) => response.text),
       Effect.asVoid,
       Effect.withTracerEnabled(false)
     )
-  }).pipe(
+  })).pipe(
     Effect.catchCause((cause) => {
       if (disabledUntil !== undefined) return Effect.void
       disabledUntil = clock.currentTimeMillisUnsafe() + 60_000
@@ -106,26 +155,37 @@ export const make: (
     })
   )
 
-  yield* Scope.addFinalizer(
-    scope,
-    runExport.pipe(
-      Effect.ignore,
-      Effect.interruptible,
-      Effect.timeoutOption(options.shutdownTimeout)
-    )
-  )
+  const exporters = yield* Effect.serviceOption(Exporters)
+  if (Option.isSome(exporters)) {
+    yield* exporters.value.register(runExport)
+  }
 
-  yield* Effect.sleep(exportInterval).pipe(
-    Effect.andThen(runExport),
-    Effect.forever,
-    Effect.forkIn(scope)
-  )
+  if (options.exportInterval !== "disabled") {
+    yield* Scope.addFinalizer(
+      scope,
+      runExport.pipe(
+        Effect.ignore,
+        Effect.interruptible,
+        Effect.timeoutOption(options.shutdownTimeout)
+      )
+    )
+
+    const exportInterval = Duration.max(Duration.fromInputUnsafe(options.exportInterval), Duration.zero)
+    yield* Effect.sleep(exportInterval).pipe(
+      Effect.andThen(runExport),
+      Effect.forever,
+      Effect.forkIn(scope)
+    )
+  }
 
   return {
     push(data) {
       if (disabledUntil !== undefined) return
       buffer.push(data)
-      if (options.maxBatchSize !== "disabled" && buffer.length >= options.maxBatchSize) {
+      if (
+        options.exportInterval !== "disabled" && options.maxBatchSize !== "disabled" &&
+        buffer.length >= options.maxBatchSize
+      ) {
         Fiber.runIn(runFork(runExport), scope)
       }
     }

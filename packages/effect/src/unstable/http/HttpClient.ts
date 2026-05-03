@@ -1368,7 +1368,23 @@ export const layerMergedContext = <E, R>(
 // internal
 // -----------------------------------------------------------------------------
 
-const responseRegistry = (() => {
+interface ResponseRegistry {
+  readonly register: (response: HttpClientResponse.HttpClientResponse, controller: AbortController) => void
+  readonly unregister: (response: HttpClientResponse.HttpClientResponse) => void
+}
+
+let responseRegistryInstance: ResponseRegistry | undefined
+
+const responseRegistry: ResponseRegistry = {
+  register(response, controller) {
+    ;(responseRegistryInstance ??= makeResponseRegistry()).register(response, controller)
+  },
+  unregister(response) {
+    ;(responseRegistryInstance ??= makeResponseRegistry()).unregister(response)
+  }
+}
+
+const makeResponseRegistry = (): ResponseRegistry => {
   if ("FinalizationRegistry" in globalThis && globalThis.FinalizationRegistry) {
     const registry = new FinalizationRegistry((controller: AbortController) => {
       controller.abort()
@@ -1395,7 +1411,7 @@ const responseRegistry = (() => {
       timers.delete(response)
     }
   }
-})()
+}
 
 const scopedRequests = new WeakMap<HttpClientRequest.HttpClientRequest, AbortController>()
 
