@@ -6277,6 +6277,47 @@ export const acquireRelease: <A, E, R, R2>(
 ) => Effect<A, E, R | R2 | Scope> = internal.acquireRelease
 
 /**
+ * This function constructs a scoped resource from an Effect that acquires a
+ * disposable value.
+ *
+ * The resource is automatically disposed when the surrounding
+ * {@link Scope} is closed, using {@link Symbol.dispose} for
+ * synchronous disposables or {@link Symbol.asyncDispose} for asynchronous
+ * disposables.
+ *
+ * This is similar to {@link acquireRelease}, but uses the standard
+ * JavaScript disposal protocal instead of requiring an explicit release
+ * function.
+ *
+ * @see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/using}
+ *
+ * @example
+ * ```ts
+ * import sqlite from "node:sqlite";
+ * import { Effect } from "effect";
+ *
+ * const program = Effect.scoped(
+ *   Effect.gen(function* () {
+ *     // acquire database connection
+ *     // database will be closed when the scope is closed
+ *     const db = yield* Effect.acquireDisposable(
+ *       Effect.sync(() => new sqlite.DatabaseSync(":memory:"))
+ *     )
+ *
+ *     const row = db.prepare("SELECT 1 AS value").get()
+ *     yield* Effect.log(row) // { value: 1 }
+ *   })
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category Resource Management & Finalization
+ */
+export const acquireDisposable: <A extends AsyncDisposable | Disposable, E, R>(
+  acquire: Effect<A, E, R>
+) => Effect<A, E, R | Scope> = internal.acquireDisposable
+
+/**
  * This function is used to ensure that an `Effect` value that represents the
  * acquisition of a resource (for example, opening a file, launching a thread,
  * etc.) will not be interrupted, and that the resource will always be released

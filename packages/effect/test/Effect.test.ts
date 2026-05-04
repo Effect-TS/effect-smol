@@ -1,4 +1,4 @@
-import { assert, describe, it } from "@effect/vitest"
+import { assert, describe, it, vi } from "@effect/vitest"
 import { assertExitFailure } from "@effect/vitest/utils"
 import {
   Cause,
@@ -539,6 +539,26 @@ describe("Effect", () => {
       Effect.gen(function*() {
         const results = yield* Effect.filter(new Set([1, 2, 3, 4, 5]), (value) => Effect.succeed(value % 2 === 1))
         assert.deepStrictEqual(results, [1, 3, 5])
+      }))
+  })
+
+  describe("acquireDisposable", () => {
+    it.effect("releases disposables", ({ expect }) =>
+      Effect.gen(function*() {
+        const acquire = Effect.sync((): Disposable => ({ [Symbol.dispose]: release }))
+        const release = vi.fn(() => void 0)
+
+        yield* Effect.scoped(Effect.acquireDisposable(acquire))
+        expect(release).toHaveBeenCalledTimes(1)
+      }))
+
+    it.effect("relases async disposables", ({ expect }) =>
+      Effect.gen(function*() {
+        const acquire = Effect.sync((): AsyncDisposable => ({ [Symbol.asyncDispose]: release }))
+        const release = vi.fn(async () => void 0)
+
+        yield* Effect.scoped(Effect.acquireDisposable(acquire))
+        expect(release).toHaveBeenCalledTimes(1)
       }))
   })
 

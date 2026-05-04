@@ -4053,6 +4053,15 @@ export const acquireUseRelease = <Resource, E, R, A, E2, R2, E3, R3>(
       ))
   )
 
+/** @internal */
+export const acquireDisposable = <A extends AsyncDisposable | Disposable, E, R>(
+  acquire: Effect.Effect<A, E, R>
+): Effect.Effect<A, E, R | Scope.Scope> =>
+  acquireRelease(acquire, (resource) =>
+    hasProperty(resource, Symbol.asyncDispose)
+      ? promise(() => resource[Symbol.asyncDispose]())
+      : sync(() => resource[Symbol.dispose]()))
+
 // ----------------------------------------------------------------------------
 // Caching
 // ----------------------------------------------------------------------------
