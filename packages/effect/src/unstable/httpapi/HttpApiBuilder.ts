@@ -15,7 +15,7 @@ import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Redacted from "../../Redacted.ts"
 import * as Result from "../../Result.ts"
 import * as Schema from "../../Schema.ts"
-import type * as AST from "../../SchemaAST.ts"
+import * as AST from "../../SchemaAST.ts"
 import * as Issue from "../../SchemaIssue.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
 import * as Scope from "../../Scope.ts"
@@ -492,6 +492,7 @@ type PayloadDecoder =
   }
   | {
     readonly _tag: "Json" | "FormUrlEncoded" | "Uint8Array" | "Text"
+    readonly nullOnEmpty: boolean
     readonly decode: (input: unknown) => Effect.Effect<unknown, Schema.SchemaError, unknown>
   }
 
@@ -504,7 +505,11 @@ function buildPayloadDecoders(
     if (encoding._tag === "Multipart") {
       result.set(contentType, { _tag: "Multipart", mode: encoding.mode, limits: encoding.limits, decode })
     } else {
-      result.set(contentType, { _tag: encoding._tag, decode })
+      result.set(contentType, {
+        _tag: encoding._tag,
+        decode,
+        nullOnEmpty: schemas.some((s) => AST.isNull(AST.toEncoded(s.ast)))
+      })
     }
   })
   return result
@@ -527,21 +532,26 @@ function decodePayload(
   switch (_tag) {
     case "Multipart": {
       if (existing.mode === "buffered") {
-        return Effect.flatMap(
-          Effect.orDie(UndefinedOr.match(existing.limits, {
-            onUndefined: () => httpRequest.multipart,
-            onDefined: (limits) => Effect.provideContext(httpRequest.multipart, Multipart.limitsServices(limits))
-          })),
-          decode
-        )
+        let eff = Effect.orDie(httpRequest.multipart)
+        if (existing.limits) {
+          eff = Effect.provideContext(eff, Multipart.limitsServices(existing.limits))
+        }
+        return Effect.flatMap(eff, decode)
       }
-      return Effect.succeed(UndefinedOr.match(existing.limits, {
-        onUndefined: () => httpRequest.multipartStream,
-        onDefined: (limits) => Stream.provideContext(httpRequest.multipartStream, Multipart.limitsServices(limits))
-      }))
+      return Effect.succeed(
+        existing.limits
+          ? Stream.provideContext(httpRequest.multipartStream, Multipart.limitsServices(existing.limits))
+          : httpRequest.multipartStream
+      )
     }
     case "Json":
-      return Effect.flatMap(Effect.orDie(httpRequest.json), decode)
+      const json = Effect.orDie(Effect.flatMap(httpRequest.text, (text) => {
+        if (text === "") {
+          return existing.nullOnEmpty ? Effect.succeed(null) : Effect.undefined
+        }
+        return Effect.succeed(JSON.parse(text))
+      }))
+      return Effect.flatMap(json, decode)
     case "Text":
       return Effect.flatMap(Effect.orDie(httpRequest.text), decode)
     case "FormUrlEncoded": {
