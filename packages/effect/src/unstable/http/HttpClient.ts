@@ -604,8 +604,11 @@ export const make = (
             }
             const redactedHeaderNames = fiber.getRef(Headers.CurrentRedactedNames)
             const redactedHeaders = Headers.redact(request.headers, redactedHeaderNames)
+            const requestHeaderFilter = fiber.getRef(TracerRequestHeadersFilter)
             for (const name in redactedHeaders) {
-              span.attribute(`http.request.header.${name}`, String(redactedHeaders[name]))
+              if (requestHeaderFilter(name)) {
+                span.attribute(`http.request.header.${name}`, String(redactedHeaders[name]))
+              }
             }
             request = fiber.getRef(TracerPropagationEnabled)
               ? HttpClientRequest.setHeaders(request, TraceContext.toHeaders(span))
@@ -617,8 +620,11 @@ export const make = (
                   onSuccess: (response) => {
                     span.attribute("http.response.status_code", response.status)
                     const redactedHeaders = Headers.redact(response.headers, redactedHeaderNames)
+                    const responseHeaderFilter = fiber.getRef(TracerResponseHeadersFilter)
                     for (const name in redactedHeaders) {
-                      span.attribute(`http.response.header.${name}`, String(redactedHeaders[name]))
+                      if (responseHeaderFilter(name)) {
+                        span.attribute(`http.response.header.${name}`, String(redactedHeaders[name]))
+                      }
                     }
 
                     if (scopedController) return Effect.succeed(response)
@@ -1347,6 +1353,85 @@ export const SpanNameGenerator = Context.Reference<
 >("effect/http/HttpClient/SpanNameGenerator", {
   defaultValue: () => (request) => `http.client ${request.method}`
 })
+
+/**
+ * A `Context.Reference` controlling which request headers are captured as OTEL
+ * span attributes. The predicate receives each header name (lower-cased) and
+ * should return `true` to include it. Defaults to `constTrue` (capture all).
+ *
+ * @since 4.0.0
+ * @category References
+ */
+export const TracerRequestHeadersFilter = Context.Reference<Predicate.Predicate<string>>(
+  "effect/http/HttpClient/TracerRequestHeadersFilter",
+  { defaultValue: () => constTrue }
+)
+
+/**
+ * A `Context.Reference` controlling which response headers are captured as OTEL
+ * span attributes. The predicate receives each header name (lower-cased) and
+ * should return `true` to include it. Defaults to `constTrue` (capture all).
+ *
+ * @since 4.0.0
+ * @category References
+ */
+export const TracerResponseHeadersFilter = Context.Reference<Predicate.Predicate<string>>(
+  "effect/http/HttpClient/TracerResponseHeadersFilter",
+  { defaultValue: () => constTrue }
+)
+
+/**
+ * Restricts which request headers are recorded as OTEL span attributes.
+ *
+ * @since 4.0.0
+ * @category Tracing
+ */
+export const withTracerRequestHeadersFilter: {
+  (predicate: Predicate.Predicate<string>): <E, R>(self: HttpClient.With<E, R>) => HttpClient.With<E, R>
+  <E, R>(self: HttpClient.With<E, R>, predicate: Predicate.Predicate<string>): HttpClient.With<E, R>
+} = dual(
+  2,
+  <E, R>(self: HttpClient.With<E, R>, predicate: Predicate.Predicate<string>): HttpClient.With<E, R> =>
+    transformResponse(self, Effect.provideService(TracerRequestHeadersFilter, predicate)) as HttpClient.With<E, R>
+)
+
+/**
+ * Restricts which response headers are recorded as OTEL span attributes.
+ *
+ * @since 4.0.0
+ * @category Tracing
+ */
+export const withTracerResponseHeadersFilter: {
+  (predicate: Predicate.Predicate<string>): <E, R>(self: HttpClient.With<E, R>) => HttpClient.With<E, R>
+  <E, R>(self: HttpClient.With<E, R>, predicate: Predicate.Predicate<string>): HttpClient.With<E, R>
+} = dual(
+  2,
+  <E, R>(self: HttpClient.With<E, R>, predicate: Predicate.Predicate<string>): HttpClient.With<E, R> =>
+    transformResponse(self, Effect.provideService(TracerResponseHeadersFilter, predicate)) as HttpClient.With<E, R>
+)
+
+/**
+ * Restricts which headers are recorded as OTEL span attributes for both
+ * requests and responses. Equivalent to calling `withTracerRequestHeadersFilter`
+ * and `withTracerResponseHeadersFilter` with the same predicate.
+ *
+ * @since 4.0.0
+ * @category Tracing
+ */
+export const withTracerHeadersFilter: {
+  (predicate: Predicate.Predicate<string>): <E, R>(self: HttpClient.With<E, R>) => HttpClient.With<E, R>
+  <E, R>(self: HttpClient.With<E, R>, predicate: Predicate.Predicate<string>): HttpClient.With<E, R>
+} = dual(
+  2,
+  <E, R>(self: HttpClient.With<E, R>, predicate: Predicate.Predicate<string>): HttpClient.With<E, R> =>
+    transformResponse(
+      self,
+      flow(
+        Effect.provideService(TracerRequestHeadersFilter, predicate),
+        Effect.provideService(TracerResponseHeadersFilter, predicate)
+      )
+    ) as HttpClient.With<E, R>
+)
 
 /**
  * @since 4.0.0
