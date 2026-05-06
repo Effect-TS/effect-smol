@@ -1282,6 +1282,26 @@ describe("OpenAiLanguageModel", () => {
         strictEqual(body.temperature, 0.9)
       }).pipe(Effect.provide(makeTestLayer())))
   })
+
+  describe("config", () => {
+    it.effect("does not leak library-only fields into request body", () =>
+      Effect.gen(function*() {
+        yield* LanguageModel.generateText({ prompt: "test" }).pipe(
+          Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini", {
+            fileIdPrefixes: ["file-"],
+            strictJsonSchema: false,
+            temperature: 0.5
+          }))
+        )
+
+        const requests = yield* MockHttpClient.requests
+        const body = yield* getRequestBody(requests[0])
+
+        strictEqual(body.fileIdPrefixes, undefined)
+        strictEqual(body.strictJsonSchema, undefined)
+        strictEqual(body.temperature, 0.5)
+      }).pipe(Effect.provide(makeTestLayer())))
+  })
 })
 
 // =============================================================================

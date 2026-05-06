@@ -376,8 +376,9 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
         config,
         options
       })
+      const { fileIdPrefixes: _fip, strictJsonSchema: _sjs, ...apiConfig } = config
       const request: Mutable<typeof OpenAiSchema.CreateResponse.Encoded> = {
-        ...config,
+        ...apiConfig,
         input: messages,
         include: include.size > 0 ? Array.from(include) : undefined,
         text: {
