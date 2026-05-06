@@ -1,6 +1,7 @@
 /**
  * @since 1.0.0
  */
+import { SeverityNumber } from "@opentelemetry/api-logs"
 import * as Otel from "@opentelemetry/sdk-logs"
 import type { NonEmptyReadonlyArray } from "effect/Array"
 import * as Arr from "effect/Array"
@@ -10,7 +11,7 @@ import type * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Logger from "effect/Logger"
-import * as LogLevel from "effect/LogLevel"
+import type * as LogLevel from "effect/LogLevel"
 import * as Predicate from "effect/Predicate"
 import * as References from "effect/References"
 import * as Tracer from "effect/Tracer"
@@ -25,6 +26,36 @@ export class OtelLoggerProvider extends Context.Service<
   OtelLoggerProvider,
   Otel.LoggerProvider
 >()("@effect/opentelemetry/Logger/OtelLoggerProvider") {}
+
+/**
+ * Maps an Effect `LogLevel` to the corresponding OpenTelemetry
+ * `SeverityNumber` (per the OTel logs data model, severity range 1-24).
+ *
+ * Effect's `LogLevel.getOrdinal` returns Effect's internal sort ordinal
+ * (e.g. Info=20000), which falls outside the OTel spec — backends that
+ * validate the field map such values to `UNSPECIFIED`.
+ *
+ * @since 1.0.0
+ * @category Conversions
+ */
+export const logLevelToSeverityNumber = (level: LogLevel.LogLevel): SeverityNumber => {
+  switch (level) {
+    case "Trace":
+      return SeverityNumber.TRACE
+    case "Debug":
+      return SeverityNumber.DEBUG
+    case "Info":
+      return SeverityNumber.INFO
+    case "Warn":
+      return SeverityNumber.WARN
+    case "Error":
+      return SeverityNumber.ERROR
+    case "Fatal":
+      return SeverityNumber.FATAL
+    default:
+      return SeverityNumber.UNSPECIFIED
+  }
+}
 
 /**
  * @since 1.0.0
@@ -64,7 +95,7 @@ export const make: Effect.Effect<
     otelLogger.emit({
       body: message.length === 1 ? message[0] : message,
       severityText: options.logLevel,
-      severityNumber: LogLevel.getOrdinal(options.logLevel),
+      severityNumber: logLevelToSeverityNumber(options.logLevel),
       timestamp: hrTime,
       observedTimestamp: hrTime,
       attributes
