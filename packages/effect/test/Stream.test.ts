@@ -205,6 +205,29 @@ describe("Stream", () => {
       }))
   })
 
+  describe("mkUint8Array", () => {
+    it.effect("concatenates chunks into a single Uint8Array", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.mkUint8Array(
+          Stream.make(new Uint8Array([1, 2]), new Uint8Array([3, 4]))
+        )
+        assert.deepStrictEqual(result, new Uint8Array([1, 2, 3, 4]))
+      }))
+
+    it.effect("works with many chunks (regression: mutable accumulator in Bun compiled binaries)", () =>
+      Effect.gen(function*() {
+        const chunks = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => new Uint8Array([i]))
+        const result = yield* Stream.mkUint8Array(Stream.fromIterable(chunks))
+        assert.deepStrictEqual(result, new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]))
+      }))
+
+    it.effect("handles empty stream", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.mkUint8Array(Stream.empty)
+        assert.deepStrictEqual(result, new Uint8Array([]))
+      }))
+  })
+
   describe("encoding", () => {
     it.effect("decodeText handles multi-byte characters split across chunks", () =>
       Effect.gen(function*() {
