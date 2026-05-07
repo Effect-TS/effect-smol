@@ -1,5 +1,5 @@
 ---
-"effect": minor
+"effect": patch
 ---
 
 add `Effect.acquireDisposable`
