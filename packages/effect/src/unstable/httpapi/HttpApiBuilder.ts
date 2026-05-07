@@ -77,7 +77,7 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
       key.startsWith("effect/httpapi/HttpApiGroup/")
     )
     for (const group of Object.values(api.groups)) {
-      const groupRoutes = services.mapUnsafe.get(group.key).routes as Array<HttpRouter.Route<any, any>>
+      const groupRoutes = services.mapUnsafe.get(group.key)?.routes as Array<HttpRouter.Route<any, any>>
       if (groupRoutes === undefined) {
         const available = availableGroups.length === 0 ? "none" : availableGroups.join(", ")
         return yield* Effect.die(
