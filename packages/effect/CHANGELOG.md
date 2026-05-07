@@ -1,5 +1,11 @@
 # effect
 
+## 4.0.0-beta.64
+
+### Patch Changes
+
+- [#2137](https://github.com/Effect-TS/effect-smol/pull/2137) [`7d4877a`](https://github.com/Effect-TS/effect-smol/commit/7d4877a1929cdb690280ea254326c04f2ec97ea5) Thanks @tim-smart! - Add optional soft delete column support to SqlModel repositories and resolvers.
+
 ## 4.0.0-beta.63
 
 ### Patch Changes
