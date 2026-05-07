@@ -1,5 +1,14 @@
 # @effect/ai-openai-compat
 
+## 4.0.0-beta.63
+
+### Patch Changes
+
+- [#2133](https://github.com/Effect-TS/effect-smol/pull/2133) [`5be0aaa`](https://github.com/Effect-TS/effect-smol/commit/5be0aaad694c9eb943a710eb4f896bc4c3fcae99) Thanks @Zelys-DFKH! - Fix `OpenAiLanguageModel` leaking library-only config fields (`fileIdPrefixes`, `strictJsonSchema`) into request body, causing OpenAI 400 errors.
+
+- Updated dependencies [[`7f927ff`](https://github.com/Effect-TS/effect-smol/commit/7f927ffb7a9801dcfc4096c29e369d13d65cd0ac), [`a696b3e`](https://github.com/Effect-TS/effect-smol/commit/a696b3e83a8504cdbe261a18c10a1cc0619ae102)]:
+  - effect@4.0.0-beta.63
+
 ## 4.0.0-beta.62
 
 ### Patch Changes
