@@ -39,6 +39,7 @@ import {
   HttpApiMiddleware,
   HttpApiSchema,
   HttpApiSecurity,
+  HttpApiTest,
   OpenApi
 } from "effect/unstable/httpapi"
 
@@ -1462,6 +1463,29 @@ describe("HttpApi", () => {
         assert.deepStrictEqual(response, new RateLimitError({ message: "Rate limit exceeded" }))
       }).pipe(Effect.provide(ApiLive))
     })
+  })
+
+  describe("HttpApiTest", () => {
+    it.effect("works", () =>
+      Effect.gen(function*() {
+        const client = yield* HttpApiTest.groups(Api, ["groups"])
+        const result = yield* client.groups.findById({ params: { id: 0 } })
+        assert.deepStrictEqual(result, new Group({ id: 1, name: "foo" }))
+      }).pipe(
+        Effect.provide([
+          NodeHttpServer.layerHttpServices,
+          AuthorizationLive,
+          HttpApiBuilder.group(Api, "groups", (handlers) =>
+            handlers
+              .handle("findById", () => Effect.succeed(new Group({ id: 1, name: "foo" })))
+              .handle(
+                "handle",
+                () => Effect.die("unimplemented")
+              )
+              .handle("create", () => Effect.die("unimplemented"))
+              .handle("handleRaw", () => Effect.die("unimplemented")))
+        ])
+      ))
   })
 })
 

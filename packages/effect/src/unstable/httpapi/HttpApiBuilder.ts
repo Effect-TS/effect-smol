@@ -77,7 +77,7 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
       key.startsWith("effect/httpapi/HttpApiGroup/")
     )
     for (const group of Object.values(api.groups)) {
-      const groupRoutes = services.mapUnsafe.get(group.key) as Array<HttpRouter.Route<any, any>>
+      const groupRoutes = services.mapUnsafe.get(group.key).routes as Array<HttpRouter.Route<any, any>>
       if (groupRoutes === undefined) {
         const available = availableGroups.length === 0 ? "none" : availableGroups.join(", ")
         return yield* Effect.die(
@@ -130,10 +130,15 @@ export const group = <
       ? (yield* result as Effect.Effect<any, any, any>)
       : result
     const routes: Array<HttpRouter.Route<any, any>> = []
-    for (const item of handlers.handlers) {
+    for (const item of handlers.handlers.values()) {
       routes.push(handlerToRoute(group as any, item, services))
     }
-    return Context.makeUnsafe(new Map([[group.key, routes]]))
+    return Context.makeUnsafe(
+      new Map([[group.key, {
+        routes,
+        handlers: handlers.handlers
+      }]])
+    )
   })) as any
 
 /**
@@ -162,7 +167,7 @@ export interface Handlers<
     _Endpoints: Covariant<Endpoints>
   }
   readonly group: HttpApiGroup.AnyWithProps
-  readonly handlers: Set<Handlers.Item<R>>
+  readonly handlers: Map<string, Handlers.Item<R>>
 
   /**
    * Add the implementation for an `HttpApiEndpoint` to a `Handlers` group.
@@ -449,7 +454,7 @@ const HandlersProto = {
     options?: { readonly uninterruptible?: boolean | undefined } | undefined
   ) {
     const endpoint = this.group.endpoints[name]
-    this.handlers.add({
+    this.handlers.set(name, {
       endpoint,
       handler,
       isRaw: false,
@@ -464,7 +469,7 @@ const HandlersProto = {
     options?: { readonly uninterruptible?: boolean | undefined } | undefined
   ) {
     const endpoint = this.group.endpoints[name]
-    this.handlers.add({
+    this.handlers.set(name, {
       endpoint,
       handler,
       isRaw: true,
@@ -479,7 +484,7 @@ const makeHandlers = <R, Endpoints extends HttpApiEndpoint.Any>(
 ): Handlers<R, Endpoints> => {
   const self = Object.create(HandlersProto)
   self.group = group
-  self.handlers = new Set<Handlers.Item<R>>()
+  self.handlers = new Map<string, Handlers.Item<R>>()
   return self
 }
 
@@ -632,7 +637,8 @@ function handlerToHttpEffect(
   )
 }
 
-function handlerToRoute(
+/** @internal */
+export function handlerToRoute(
   group: HttpApiGroup.AnyWithProps,
   handler: Handlers.Item<any>,
   context: Context.Context<any>

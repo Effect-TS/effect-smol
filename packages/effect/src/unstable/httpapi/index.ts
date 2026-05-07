@@ -88,4 +88,9 @@ export * as HttpApiSwagger from "./HttpApiSwagger.ts"
 /**
  * @since 4.0.0
  */
+export * as HttpApiTest from "./HttpApiTest.ts"
+
+/**
+ * @since 4.0.0
+ */
 export * as OpenApi from "./OpenApi.ts"

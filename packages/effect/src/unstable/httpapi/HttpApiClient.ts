@@ -175,7 +175,8 @@ type UrlBuilderTopLevelMethods<Groups extends HttpApiGroup.Any> = Extract<Groups
   : never :
   never
 
-const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>(
+/** @internal */
+export const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>(
   api: HttpApi.HttpApi<ApiId, Groups>,
   options: {
     readonly httpClient: HttpClient.HttpClient.With<E, R>
@@ -201,9 +202,9 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
       | undefined
     readonly baseUrl?: URL | string | undefined
   }
-): Effect.Effect<void, unknown, unknown> =>
+): Effect.Effect<void> =>
   Effect.gen(function*() {
-    const services = yield* Effect.context<any>()
+    const services = yield* Effect.context()
 
     const httpClient = options.httpClient.pipe(
       options?.baseUrl === undefined
