@@ -74,6 +74,7 @@ export const makeRepository = <
     const setSoftDeleted = softDeleteColumn === undefined
       ? undefined
       : sql`${sql(softDeleteColumn)} = CURRENT_TIMESTAMP`
+    const updateOmitColumns = softDeleteColumn === undefined ? [idColumn] : [idColumn, softDeleteColumn]
 
     const insertSchema = SqlSchema.findOne({
       Request: Model.insert,
@@ -120,7 +121,7 @@ select * from ${sql(options.tableName)} where ${withSoftDeleteFilter(sql`${sql(i
       execute: (request: any) =>
         sql.onDialectOrElse({
           mysql: () =>
-            sql`update ${sql(options.tableName)} set ${sql.update(request, [idColumn])} where ${
+            sql`update ${sql(options.tableName)} set ${sql.update(request, updateOmitColumns)} where ${
               withSoftDeleteFilter(sql`${sql(idColumn)} = ${request[idColumn]}`)
             };
 select * from ${sql(options.tableName)} where ${withSoftDeleteFilter(sql`${sql(idColumn)} = ${request[idColumn]}`)};`
@@ -128,7 +129,7 @@ select * from ${sql(options.tableName)} where ${withSoftDeleteFilter(sql`${sql(i
                 Effect.map(([, results]) => results as any)
               ),
           orElse: () =>
-            sql`update ${sql(options.tableName)} set ${sql.update(request, [idColumn])} where ${
+            sql`update ${sql(options.tableName)} set ${sql.update(request, updateOmitColumns)} where ${
               withSoftDeleteFilter(sql`${sql(idColumn)} = ${request[idColumn]}`)
             } returning *`
         })
@@ -152,7 +153,7 @@ select * from ${sql(options.tableName)} where ${withSoftDeleteFilter(sql`${sql(i
     const updateVoidSchema = SqlSchema.void({
       Request: Model.update,
       execute: (request: any) =>
-        sql`update ${sql(options.tableName)} set ${sql.update(request, [idColumn])} where ${
+        sql`update ${sql(options.tableName)} set ${sql.update(request, updateOmitColumns)} where ${
           withSoftDeleteFilter(sql`${sql(idColumn)} = ${request[idColumn]}`)
         }`
     })
