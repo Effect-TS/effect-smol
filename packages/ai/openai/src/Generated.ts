@@ -11167,7 +11167,7 @@ export type Batch = {
   readonly "id": string
   readonly "object": "batch"
   readonly "endpoint": string
-  readonly "model"?: string
+  readonly "model"?: string | null
   readonly "errors"?: {
     readonly "object"?: string
     readonly "data"?: ReadonlyArray<
@@ -11190,8 +11190,8 @@ export type Batch = {
     | "expired"
     | "cancelling"
     | "cancelled"
-  readonly "output_file_id"?: string
-  readonly "error_file_id"?: string
+  readonly "output_file_id"?: string | null
+  readonly "error_file_id"?: string | null
   readonly "created_at": number
   readonly "in_progress_at"?: number
   readonly "expires_at"?: number
@@ -11215,10 +11215,12 @@ export const Batch = Schema.Struct({
   "id": Schema.String,
   "object": Schema.Literal("batch").annotate({ "description": "The object type, which is always `batch`." }),
   "endpoint": Schema.String.annotate({ "description": "The OpenAI API endpoint used by the batch." }),
-  "model": Schema.optionalKey(Schema.String.annotate({
-    "description":
-      "Model ID used to process the batch, like `gpt-5-2025-08-07`. OpenAI\noffers a wide range of models with different capabilities, performance\ncharacteristics, and price points. Refer to the [model\nguide](/docs/models) to browse and compare available models.\n"
-  })),
+  "model": Schema.optionalKey(
+    Schema.Union([Schema.String, Schema.Null]).annotate({
+      "description":
+        "Model ID used to process the batch, like `gpt-5-2025-08-07`. OpenAI\noffers a wide range of models with different capabilities, performance\ncharacteristics, and price points. Refer to the [model\nguide](/docs/models) to browse and compare available models.\n"
+    })
+  ),
   "errors": Schema.optionalKey(Schema.Struct({
     "object": Schema.optionalKey(Schema.String.annotate({ "description": "The object type, which is always `list`." })),
     "data": Schema.optionalKey(Schema.Array(Schema.Struct({
@@ -11259,12 +11261,14 @@ export const Batch = Schema.Struct({
     "cancelled"
   ]).annotate({ "description": "The current status of the batch." }),
   "output_file_id": Schema.optionalKey(
-    Schema.String.annotate({
+    Schema.Union([Schema.String, Schema.Null]).annotate({
       "description": "The ID of the file containing the outputs of successfully executed requests."
     })
   ),
   "error_file_id": Schema.optionalKey(
-    Schema.String.annotate({ "description": "The ID of the file containing the outputs of requests with errors." })
+    Schema.Union([Schema.String, Schema.Null]).annotate({
+      "description": "The ID of the file containing the outputs of requests with errors."
+    })
   ),
   "created_at": Schema.Number.annotate({
     "description": "The Unix timestamp (in seconds) for when the batch was created.",
