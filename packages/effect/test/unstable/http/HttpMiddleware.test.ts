@@ -217,6 +217,54 @@ describe("HttpMiddleware", () => {
         assert.strictEqual(out.headers["content-encoding"], undefined)
       }))
 
+    // Locks the default content-type policy against the IANA mime-db
+    // `compressible` flags. The "skip" cases are formats that are already
+    // compressed (woff is zlib-wrapped, woff2 is brotli-wrapped, png/jpeg/mp4
+    // are inherently compressed) and re-compressing wastes CPU for no gain.
+    const compressiblePolicyCases: ReadonlyArray<[string, boolean]> = [
+      ["text/plain", true],
+      ["text/html; charset=utf-8", true],
+      ["application/json", true],
+      ["application/wasm", true],
+      ["application/ld+json", true],
+      ["application/manifest+json", true],
+      ["application/xhtml+xml", true],
+      ["image/svg+xml", true],
+      ["image/bmp", true],
+      ["font/otf", true],
+      ["font/ttf", true],
+      ["text/event-stream", false],
+      ["font/woff", false],
+      ["font/woff2", false],
+      ["image/png", false],
+      ["image/jpeg", false],
+      ["video/mp4", false],
+      ["audio/mpeg", false],
+      ["application/zip", false],
+      ["application/octet-stream", false]
+    ]
+    for (const [contentType, shouldCompress] of compressiblePolicyCases) {
+      it.effect(`${shouldCompress ? "compresses" : "skips"} ${contentType}`, () =>
+        Effect.gen(function*() {
+          const request = HttpServerRequest.fromWeb(
+            new Request("http://api.example.com/data", {
+              method: "GET",
+              headers: { "accept-encoding": "gzip" }
+            })
+          )
+          const response = HttpServerResponse.uint8Array(
+            new TextEncoder().encode(largeBody),
+            { contentType }
+          )
+          const out = yield* runCompression(request, response)
+          assert.strictEqual(
+            out.headers["content-encoding"],
+            shouldCompress ? "gzip" : undefined,
+            `${contentType} should ${shouldCompress ? "compress" : "skip"}`
+          )
+        }))
+    }
+
     it.effect("skips text/event-stream", () =>
       Effect.gen(function*() {
         const request = HttpServerRequest.fromWeb(

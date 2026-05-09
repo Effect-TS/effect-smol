@@ -368,9 +368,16 @@ export type CompressionEncoding = "gzip" | "deflate"
 
 const compressionEncodingsDefault: ReadonlyArray<CompressionEncoding> = ["gzip", "deflate"]
 
-// Mirrors Hono's compressible content-type allowlist.
+// Curated set of compressible content types. Each entry is flagged
+// `compressible: true` in the IANA-derived mime-db dataset. Already-compressed
+// formats (woff/woff2, image/png, image/jpeg, video/*, audio/*, etc.) are
+// intentionally excluded. text/event-stream is excluded directly from the
+// regex so the policy is self-consistent even without the separate runtime
+// guard. Structured-syntax suffixes (+json, +xml, +text, +yaml) are matched
+// generically, which covers things like application/ld+json, image/svg+xml,
+// and application/xhtml+xml without listing them explicitly.
 const compressibleContentTypeDefault =
-  /^\s*(?:text\/[^;\s]+|application\/(?:javascript|json|xml|xml-dtd|ecmascript|dart|postscript|rtf|tar|toml|vnd\.dart|vnd\.ms-fontobject|vnd\.ms-opentype|wasm|x-httpd-php|x-javascript|xhtml\+xml)|font\/(?:otf|ttf)|image\/(?:bmp|svg\+xml|vnd\.adobe\.photoshop|vnd\.microsoft\.icon|vnd\.ms-dds|x-icon|x-ms-bmp)|message\/rfc822|model\/gltf-binary|x-shader\/x-fragment|x-shader\/x-vertex|[^;\s]+?\+(?:json|text|xml|yaml))(?:[;\s]|$)/i
+  /^\s*(?:text\/(?!event-stream(?:[;\s]|$))[^;\s]+|application\/(?:javascript|json|xml|xml-dtd|ecmascript|dart|postscript|rtf|tar|toml|vnd\.dart|vnd\.ms-fontobject|vnd\.ms-opentype|wasm|x-httpd-php|x-javascript)|font\/(?:otf|ttf)|image\/(?:bmp|vnd\.adobe\.photoshop|vnd\.microsoft\.icon|vnd\.ms-dds|x-icon|x-ms-bmp)|message\/rfc822|model\/gltf-binary|x-shader\/x-fragment|x-shader\/x-vertex|[^;\s]+?\+(?:json|text|xml|yaml))(?:[;\s]|$)/i
 
 const pickCompressionEncoding = (
   acceptEncoding: string | undefined,
