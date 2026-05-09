@@ -192,7 +192,7 @@ export const makeStorage = (options?: {
           VALUES (1, ${created})
         `.pipe(
           Effect.catchIf(
-            (error: SqlError.SqlError) => error.reason._tag === "ConstraintError",
+            isConstraintConflict,
             () => Effect.void
           ),
           Effect.andThen(selectRemoteId),
@@ -504,3 +504,6 @@ const decodeSessionAuthBindings = (
 ): Effect.Effect<ReadonlyArray<SessionAuthBindingSql>, Schema.SchemaError> => decodeSessionAuthBindingRows(rows)
 
 const withTracerDisabled = Effect.withTracerEnabled(false)
+
+const isConstraintConflict = (error: SqlError.SqlError): boolean =>
+  error.reason._tag === "ConstraintError" || error.reason._tag === "UniqueViolation"

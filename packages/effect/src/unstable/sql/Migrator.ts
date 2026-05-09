@@ -237,7 +237,7 @@ export const make = <RD = never>({
         yield* pipe(
           insertMigrations(required.map(([id, name]) => [id, name])),
           Effect.mapError((error): MigrationError | SqlError =>
-            error.reason._tag === "ConstraintError"
+            isConstraintConflict(error)
               ? new MigrationError({
                 kind: "Locked",
                 message: "Migrations already running"
@@ -296,6 +296,9 @@ export const make = <RD = never>({
   })
 
 const migrationOrder = Order.make<ResolvedMigration>(([a], [b]) => Order.Number(a, b))
+
+const isConstraintConflict = (error: SqlError): boolean =>
+  error.reason._tag === "ConstraintError" || error.reason._tag === "UniqueViolation"
 
 /**
  * @since 4.0.0
