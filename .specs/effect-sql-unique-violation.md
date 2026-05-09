@@ -393,6 +393,14 @@ Rationale:
 
 ### Task 7: Update MSSQL classification and tests
 
+Status: Completed. MSSQL error numbers `2601` and `2627` are now classified as `UniqueViolation` before generic constraint handling, with `515` and `547` retained as `ConstraintError`. The classifier normalizes structured `cause.constraint` values, parses common `constraint 'name'` and `unique index 'name'` messages for the respective MSSQL unique-violation numbers, and falls back to exactly `"unknown"` for missing, blank, malformed, or non-string metadata. Tests cover both unique numbers, structured-field precedence and trimming, fallback behavior, and the non-unique `547` constraint path.
+
+Validation completed for this task:
+
+- `pnpm lint-fix`
+- `pnpm test packages/sql/mssql/test/SqlErrorClassification.test.ts`
+- `pnpm check:tsgo`
+
 Scope:
 
 - `packages/sql/mssql/src/MssqlClient.ts`.
@@ -412,6 +420,7 @@ Steps:
 6. Update tests to assert:
    - `2601` -> `UniqueViolation` and extracts unique index name.
    - `2627` -> `UniqueViolation` and extracts constraint name.
+   - Structured `cause.constraint` is preferred and trimmed.
    - Blank/missing/invalid message -> `"unknown"`.
    - `547` remains `ConstraintError`.
 7. Run validation for this task:

@@ -24,6 +24,7 @@ import {
   SerializationError,
   SqlError,
   SqlSyntaxError,
+  UniqueViolation,
   UnknownError
 } from "effect/unstable/sql/SqlError"
 import * as Statement from "effect/unstable/sql/Statement"
@@ -51,7 +52,42 @@ const mssqlConnectionErrorCodes = new Set([233, 10054])
 const mssqlAuthenticationErrorCodes = new Set([4060, 18452, 18456])
 const mssqlAuthorizationErrorCodes = new Set([229, 230, 262, 297, 300])
 const mssqlSyntaxErrorCodes = new Set([102, 207, 208, 2714])
-const mssqlConstraintErrorCodes = new Set([515, 547, 2601, 2627])
+const mssqlConstraintErrorCodes = new Set([515, 547])
+
+const UNKNOWN_CONSTRAINT = "unknown"
+
+const normalizeConstraintIdentifier = (identifier: unknown): string => {
+  if (typeof identifier !== "string") {
+    return UNKNOWN_CONSTRAINT
+  }
+  const trimmed = identifier.trim()
+  return trimmed.length === 0 ? UNKNOWN_CONSTRAINT : trimmed
+}
+
+const mssqlCauseProperty = (cause: unknown, property: "constraint" | "message"): unknown => {
+  if (typeof cause !== "object" || cause === null || !(property in cause)) {
+    return undefined
+  }
+  return (cause as Record<string, unknown>)[property]
+}
+
+const mssqlUniqueViolationConstraintFromMessage = (number: 2601 | 2627, message: unknown): string => {
+  if (typeof message !== "string") {
+    return UNKNOWN_CONSTRAINT
+  }
+  const match = number === 2627 ?
+    /\bconstraint\s+'([^']*)'/i.exec(message) :
+    /\bunique index\s+'([^']*)'/i.exec(message)
+  return match === null ? UNKNOWN_CONSTRAINT : normalizeConstraintIdentifier(match[1])
+}
+
+const mssqlUniqueViolationConstraintFromCause = (number: 2601 | 2627, cause: unknown): string => {
+  const constraint = normalizeConstraintIdentifier(mssqlCauseProperty(cause, "constraint"))
+  if (constraint !== UNKNOWN_CONSTRAINT) {
+    return constraint
+  }
+  return mssqlUniqueViolationConstraintFromMessage(number, mssqlCauseProperty(cause, "message"))
+}
 
 const classifyError = (
   cause: unknown,
@@ -73,6 +109,9 @@ const classifyError = (
     }
     if (mssqlSyntaxErrorCodes.has(number)) {
       return new SqlSyntaxError(props)
+    }
+    if (number === 2601 || number === 2627) {
+      return new UniqueViolation({ ...props, constraint: mssqlUniqueViolationConstraintFromCause(number, cause) })
     }
     if (mssqlConstraintErrorCodes.has(number)) {
       return new ConstraintError(props)
