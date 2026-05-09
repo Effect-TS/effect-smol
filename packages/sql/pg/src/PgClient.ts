@@ -33,6 +33,7 @@ import {
   SqlError,
   SqlSyntaxError,
   StatementTimeoutError,
+  UniqueViolation,
   UnknownError
 } from "effect/unstable/sql/SqlError"
 import type { Custom, Fragment } from "effect/unstable/sql/Statement"
@@ -840,6 +841,18 @@ const pgCodeFromCause = (cause: unknown): string | undefined => {
   return typeof code === "string" ? code : undefined
 }
 
+const pgConstraintFromCause = (cause: unknown): string => {
+  if (typeof cause !== "object" || cause === null || !("constraint" in cause)) {
+    return "unknown"
+  }
+  const constraint = cause.constraint
+  if (typeof constraint !== "string") {
+    return "unknown"
+  }
+  const normalized = constraint.trim()
+  return normalized.length === 0 ? "unknown" : normalized
+}
+
 const classifyError = (
   cause: unknown,
   message: string,
@@ -859,6 +872,9 @@ const classifyError = (
     }
     if (code.startsWith("42")) {
       return new SqlSyntaxError(props)
+    }
+    if (code === "23505") {
+      return new UniqueViolation({ ...props, constraint: pgConstraintFromCause(cause) })
     }
     if (code.startsWith("23")) {
       return new ConstraintError(props)

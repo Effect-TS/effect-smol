@@ -281,6 +281,14 @@ Rationale:
 
 ### Task 4: Update PostgreSQL classification and tests
 
+Status: Completed. PostgreSQL SQLSTATE `23505` is now classified as `UniqueViolation` before the broader integrity-constraint branch. The classifier normalizes `cause.constraint` by accepting only strings, trimming whitespace, and falling back to `"unknown"` for missing, non-string, or blank values. Non-unique integrity SQLSTATEs such as `23503` remain classified as `ConstraintError`.
+
+Validation completed for this task:
+
+- `pnpm lint-fix`
+- `pnpm test packages/sql/pg/test/SqlErrorClassification.test.ts`
+- `pnpm check:tsgo`
+
 Scope:
 
 - `packages/sql/pg/src/PgClient.ts`.
