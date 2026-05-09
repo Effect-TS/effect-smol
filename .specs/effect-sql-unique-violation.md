@@ -167,6 +167,15 @@ Applies to all users of shared `classifySqliteError`, including sqlite-node, sql
 
 ### Task 1: Add the core `UniqueViolation` reason class and core tests
 
+Status: Completed. The core `UniqueViolation` reason was added to `SqlError.ts`, included in the `SqlErrorReason` type and schema unions, and covered by construction, recognition, retryability, constraint-retention, and schema roundtrip tests in `SqlError.test.ts`.
+
+Validation completed for this task:
+
+- `pnpm lint-fix`
+- `pnpm test packages/effect/test/unstable/sql/SqlError.test.ts`
+- `pnpm check:tsgo`
+- `cd packages/effect && pnpm docgen`
+
 Scope:
 
 - `packages/effect/src/unstable/sql/SqlError.ts`.

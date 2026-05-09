@@ -91,6 +91,31 @@ export class SqlSyntaxError extends Schema.TaggedErrorClass<SqlSyntaxError>("eff
   }
 }
 
+const UniqueViolationFields = {
+  ...ReasonFields,
+  constraint: Schema.String
+}
+
+/**
+ * @since 4.0.0
+ */
+export class UniqueViolation extends Schema.TaggedErrorClass<UniqueViolation>("effect/sql/SqlError/UniqueViolation")(
+  "UniqueViolation",
+  UniqueViolationFields
+) {
+  /**
+   * @since 4.0.0
+   */
+  readonly [ReasonTypeId] = ReasonTypeId
+
+  /**
+   * @since 4.0.0
+   */
+  get isRetryable(): boolean {
+    return false
+  }
+}
+
 /**
  * @since 4.0.0
  */
@@ -217,6 +242,7 @@ export type SqlErrorReason =
   | AuthenticationError
   | AuthorizationError
   | SqlSyntaxError
+  | UniqueViolation
   | ConstraintError
   | DeadlockError
   | SerializationError
@@ -232,6 +258,7 @@ export const SqlErrorReason: Schema.Union<[
   typeof AuthenticationError,
   typeof AuthorizationError,
   typeof SqlSyntaxError,
+  typeof UniqueViolation,
   typeof ConstraintError,
   typeof DeadlockError,
   typeof SerializationError,
@@ -243,6 +270,7 @@ export const SqlErrorReason: Schema.Union<[
   AuthenticationError,
   AuthorizationError,
   SqlSyntaxError,
+  UniqueViolation,
   ConstraintError,
   DeadlockError,
   SerializationError,

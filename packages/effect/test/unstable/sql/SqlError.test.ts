@@ -5,30 +5,37 @@ import * as SqlError from "effect/unstable/sql/SqlError"
 type ReasonCase = {
   readonly tag: SqlError.SqlErrorReason["_tag"]
   readonly isRetryable: boolean
-  readonly ctor: new(args: {
+  readonly make: (args: {
     readonly cause: unknown
     readonly message?: string | undefined
     readonly operation?: string | undefined
   }) => SqlError.SqlErrorReason
 }
 
+const uniqueViolationConstraint = "users_email_key"
+
 const reasonCases = [
-  { tag: "ConnectionError", isRetryable: true, ctor: SqlError.ConnectionError },
-  { tag: "AuthenticationError", isRetryable: false, ctor: SqlError.AuthenticationError },
-  { tag: "AuthorizationError", isRetryable: false, ctor: SqlError.AuthorizationError },
-  { tag: "SqlSyntaxError", isRetryable: false, ctor: SqlError.SqlSyntaxError },
-  { tag: "ConstraintError", isRetryable: false, ctor: SqlError.ConstraintError },
-  { tag: "DeadlockError", isRetryable: true, ctor: SqlError.DeadlockError },
-  { tag: "SerializationError", isRetryable: true, ctor: SqlError.SerializationError },
-  { tag: "LockTimeoutError", isRetryable: true, ctor: SqlError.LockTimeoutError },
-  { tag: "StatementTimeoutError", isRetryable: true, ctor: SqlError.StatementTimeoutError },
-  { tag: "UnknownError", isRetryable: false, ctor: SqlError.UnknownError }
+  { tag: "ConnectionError", isRetryable: true, make: (args) => new SqlError.ConnectionError(args) },
+  { tag: "AuthenticationError", isRetryable: false, make: (args) => new SqlError.AuthenticationError(args) },
+  { tag: "AuthorizationError", isRetryable: false, make: (args) => new SqlError.AuthorizationError(args) },
+  { tag: "SqlSyntaxError", isRetryable: false, make: (args) => new SqlError.SqlSyntaxError(args) },
+  {
+    tag: "UniqueViolation",
+    isRetryable: false,
+    make: (args) => new SqlError.UniqueViolation({ ...args, constraint: uniqueViolationConstraint })
+  },
+  { tag: "ConstraintError", isRetryable: false, make: (args) => new SqlError.ConstraintError(args) },
+  { tag: "DeadlockError", isRetryable: true, make: (args) => new SqlError.DeadlockError(args) },
+  { tag: "SerializationError", isRetryable: true, make: (args) => new SqlError.SerializationError(args) },
+  { tag: "LockTimeoutError", isRetryable: true, make: (args) => new SqlError.LockTimeoutError(args) },
+  { tag: "StatementTimeoutError", isRetryable: true, make: (args) => new SqlError.StatementTimeoutError(args) },
+  { tag: "UnknownError", isRetryable: false, make: (args) => new SqlError.UnknownError(args) }
 ] as const satisfies ReadonlyArray<ReasonCase>
 
 describe("SqlError", () => {
   it("reason classes expose expected tags and retryability", () => {
     for (const reasonCase of reasonCases) {
-      const reason = new reasonCase.ctor({
+      const reason = reasonCase.make({
         cause: { tag: reasonCase.tag },
         message: `${reasonCase.tag} message`,
         operation: "execute"
@@ -44,15 +51,15 @@ describe("SqlError", () => {
 
   it("delegates message, cause and retryability for every reason type", () => {
     for (const reasonCase of reasonCases) {
-      const withoutMessage = new reasonCase.ctor({
+      const withoutMessage = reasonCase.make({
         cause: { tag: `${reasonCase.tag}-fallback` }
       })
-      const withMessage = new reasonCase.ctor({
+      const withMessage = reasonCase.make({
         cause: { tag: `${reasonCase.tag}-custom` },
         message: `${reasonCase.tag} custom`,
         operation: "execute"
       })
-      const withEmptyMessage = new reasonCase.ctor({
+      const withEmptyMessage = reasonCase.make({
         cause: { tag: `${reasonCase.tag}-empty` },
         message: ""
       })
@@ -96,6 +103,20 @@ describe("SqlError", () => {
     assert.strictEqual(SqlError.isSqlErrorReason(error), false)
   })
 
+  it("constructs and recognizes UniqueViolation reasons", () => {
+    const reason = new SqlError.UniqueViolation({
+      cause: { code: "23505" },
+      message: "duplicate key value violates unique constraint",
+      operation: "insert",
+      constraint: uniqueViolationConstraint
+    })
+
+    assert.strictEqual(SqlError.isSqlErrorReason(reason), true)
+    assert.strictEqual(reason._tag, "UniqueViolation")
+    assert.strictEqual(reason.isRetryable, false)
+    assert.strictEqual(reason.constraint, uniqueViolationConstraint)
+  })
+
   it("classifySqliteError maps sqlite code strings and numeric codes", () => {
     const byString = SqlError.classifySqliteError({ code: "SQLITE_CONSTRAINT_UNIQUE" })
     const byNumber = SqlError.classifySqliteError({ errno: 2067 })
@@ -111,7 +132,7 @@ describe("SqlError", () => {
       Effect.gen(function*() {
         const cause = { tag: reasonCase.tag }
         const error = new SqlError.SqlError({
-          reason: new reasonCase.ctor({
+          reason: reasonCase.make({
             cause,
             message: `${reasonCase.tag} message`,
             operation: "execute"
@@ -129,6 +150,9 @@ describe("SqlError", () => {
         assert.strictEqual(decoded.message, `${reasonCase.tag} message`)
         assert.strictEqual(decoded.isRetryable, reasonCase.isRetryable)
         assert.strictEqual(decoded.cause, decoded.reason)
+        if (decoded.reason._tag === "UniqueViolation") {
+          assert.strictEqual(decoded.reason.constraint, uniqueViolationConstraint)
+        }
       }))
   }
 })
