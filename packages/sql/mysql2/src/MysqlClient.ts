@@ -22,6 +22,7 @@ import {
   SqlError,
   SqlSyntaxError,
   StatementTimeoutError,
+  UniqueViolation,
   UnknownError
 } from "effect/unstable/sql/SqlError"
 import { asyncPauseResume } from "effect/unstable/sql/SqlStream"
@@ -44,7 +45,46 @@ const mysqlErrnoFromCause = (cause: unknown): number | undefined => {
 const mysqlConnectionErrorCodes = new Set([1040, 1042, 1043, 1129, 1130, 1203])
 const mysqlAuthorizationErrorCodes = new Set([1044, 1142, 1143, 1227])
 const mysqlSyntaxErrorCodes = new Set([1054, 1064, 1146])
-const mysqlConstraintErrorCodes = new Set([1022, 1048, 1062, 1169, 1216, 1217, 1451, 1452, 1557])
+const mysqlConstraintErrorCodes = new Set([1022, 1048, 1169, 1216, 1217, 1451, 1452, 1557])
+
+const UNKNOWN_CONSTRAINT = "unknown"
+
+const normalizeConstraintIdentifier = (identifier: unknown): string => {
+  if (typeof identifier !== "string") {
+    return UNKNOWN_CONSTRAINT
+  }
+  const trimmed = identifier.trim()
+  return trimmed.length === 0 ? UNKNOWN_CONSTRAINT : trimmed
+}
+
+const mysqlCauseProperty = (cause: unknown, property: "constraint" | "message" | "sqlMessage"): unknown => {
+  if (typeof cause !== "object" || cause === null || !(property in cause)) {
+    return undefined
+  }
+  return (cause as Record<string, unknown>)[property]
+}
+
+const mysqlDuplicateEntryConstraintFromMessage = (message: unknown): string => {
+  if (typeof message !== "string") {
+    return UNKNOWN_CONSTRAINT
+  }
+  const match = /\bfor key\s+(?:'([^']*)'|\x60([^\x60]*)\x60|([^\s'\x60]+))/i.exec(message)
+  return match === null ?
+    UNKNOWN_CONSTRAINT :
+    normalizeConstraintIdentifier(match[1] ?? match[2] ?? match[3])
+}
+
+const mysqlDuplicateEntryConstraintFromCause = (cause: unknown): string => {
+  const constraint = normalizeConstraintIdentifier(mysqlCauseProperty(cause, "constraint"))
+  if (constraint !== UNKNOWN_CONSTRAINT) {
+    return constraint
+  }
+  const sqlMessageConstraint = mysqlDuplicateEntryConstraintFromMessage(mysqlCauseProperty(cause, "sqlMessage"))
+  if (sqlMessageConstraint !== UNKNOWN_CONSTRAINT) {
+    return sqlMessageConstraint
+  }
+  return mysqlDuplicateEntryConstraintFromMessage(mysqlCauseProperty(cause, "message"))
+}
 
 const classifyError = (
   cause: unknown,
@@ -65,6 +105,9 @@ const classifyError = (
     }
     if (mysqlSyntaxErrorCodes.has(errno)) {
       return new SqlSyntaxError(props)
+    }
+    if (errno === 1062) {
+      return new UniqueViolation({ ...props, constraint: mysqlDuplicateEntryConstraintFromCause(cause) })
     }
     if (mysqlConstraintErrorCodes.has(errno)) {
       return new ConstraintError(props)

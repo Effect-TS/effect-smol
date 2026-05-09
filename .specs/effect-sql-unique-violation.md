@@ -354,6 +354,14 @@ Rationale:
 
 ### Task 6: Update MySQL classification and tests
 
+Status: Completed. MySQL duplicate-entry errno `1062` is now classified as `UniqueViolation` before the generic constraint errno set. The classifier prefers a non-empty structured `cause.constraint`, then parses common duplicate-entry `for key ...` forms from `cause.sqlMessage` or `cause.message`, and falls back to exactly `"unknown"` for missing, blank, malformed, or non-string metadata. Other MySQL constraint errno values remain classified as `ConstraintError`.
+
+Validation completed for this task:
+
+- `pnpm lint-fix`
+- `pnpm test packages/sql/mysql2/test/SqlErrorClassification.test.ts`
+- `pnpm check:tsgo`
+
 Scope:
 
 - `packages/sql/mysql2/src/MysqlClient.ts`.
