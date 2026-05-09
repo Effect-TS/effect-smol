@@ -317,6 +317,14 @@ Rationale:
 
 ### Task 5: Update PGlite classification and tests
 
+Status: Completed. PGlite SQLSTATE `23505` is now classified as `UniqueViolation` before the broader integrity-constraint branch. The classifier normalizes `cause.constraint` by accepting only strings, trimming whitespace, and falling back to `"unknown"` for missing, non-string, or blank values. Non-unique integrity SQLSTATEs such as `23503` remain classified as `ConstraintError`. A dedicated `SqlErrorClassification.test.ts` uses a lightweight rejecting PGlite client mock to exercise classification without a live database.
+
+Validation completed for this task:
+
+- `pnpm lint-fix`
+- `pnpm test packages/sql/pglite/test/SqlErrorClassification.test.ts`
+- `pnpm check:tsgo`
+
 Scope:
 
 - `packages/sql/pglite/src/PgliteClient.ts`.
