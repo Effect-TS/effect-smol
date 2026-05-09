@@ -203,6 +203,18 @@ Rationale:
 
 ### Task 2: Update core consumers that currently catch `ConstraintError`
 
+Status: Completed. Local `isConstraintConflict` predicates were added in both core consumers so `ConstraintError` and `UniqueViolation` continue to follow the existing duplicate/locked paths while non-SQL errors and other SQL errors remain unchanged.
+
+Validation completed for this task:
+
+- `pnpm lint-fix`
+- `pnpm test packages/effect/test/unstable/sql/SqlError.test.ts`
+- `pnpm test packages/sql/pg/test/SqlEventLogServerUnencrypted.test.ts`
+- `pnpm test packages/sql/mysql2/test/SqlEventLogServerUnencrypted.test.ts`
+- `pnpm test packages/sql/sqlite-node/test/SqlEventLogServerUnencrypted.test.ts`
+- `pnpm check:tsgo`
+- `cd packages/effect && pnpm docgen`
+
 Scope:
 
 - `packages/effect/src/unstable/sql/Migrator.ts`.
