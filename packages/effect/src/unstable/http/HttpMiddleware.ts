@@ -377,9 +377,14 @@ const pickCompressionEncoding = (
   preferred: ReadonlyArray<CompressionEncoding>
 ): CompressionEncoding | undefined => {
   if (!acceptEncoding) return undefined
-  const lower = acceptEncoding.toLowerCase()
+  // Parse RFC 7231 tokens so values like "gzipold" don't match "gzip".
+  const tokens = new Set<string>()
+  for (const part of acceptEncoding.split(",")) {
+    const token = part.split(";")[0].trim().toLowerCase()
+    if (token.length > 0) tokens.add(token)
+  }
   for (const enc of preferred) {
-    if (lower.includes(enc)) return enc
+    if (tokens.has(enc)) return enc
   }
   return undefined
 }
@@ -462,7 +467,7 @@ const compressStream = (
  */
 export const compression = (options?: {
   readonly threshold?: number | undefined
-  readonly skip?: ((request: Request.HttpServerRequest) => boolean) | undefined
+  readonly skip?: Predicate<Request.HttpServerRequest> | undefined
   readonly compressibleContentType?: RegExp | undefined
   readonly encodings?: ReadonlyArray<CompressionEncoding> | undefined
 }): <E, R>(
@@ -506,11 +511,6 @@ export const compression = (options?: {
     const applyHeaders = (next: HttpServerResponse): HttpServerResponse => {
       let out = Response.setHeader(next, "content-encoding", encoding)
       out = Response.setHeader(out, "vary", varyAcceptEncoding(out.headers["vary"]))
-      // Stream bodies have unknown compressed length; remove any stale value
-      // that survived the body swap.
-      if (out.body._tag === "Stream" && out.headers["content-length"] !== undefined) {
-        out = Response.removeHeader(out, "content-length")
-      }
       const etag = out.headers["etag"]
       if (etag && !etag.startsWith("W/")) {
         out = Response.setHeader(out, "etag", `W/${etag}`)
@@ -519,7 +519,10 @@ export const compression = (options?: {
     }
 
     if (body._tag === "Stream") {
-      return Effect.succeed(applyHeaders(Response.setBody(response, compressStream(body, encoding))))
+      // Compressed stream length is unknown; drop any stale value carried over
+      // from the original body before applying the encoding headers.
+      const next = Response.setBody(response, compressStream(body, encoding))
+      return Effect.succeed(applyHeaders(Response.removeHeader(next, "content-length")))
     }
 
     return compressBytes(body.body, encoding).pipe(

@@ -1015,12 +1015,7 @@ export const cors = (
  * @category Middleware
  */
 export const compression = (
-  options?: {
-    readonly threshold?: number | undefined
-    readonly skip?: ((request: HttpServerRequest.HttpServerRequest) => boolean) | undefined
-    readonly compressibleContentType?: RegExp | undefined
-    readonly encodings?: ReadonlyArray<HttpMiddleware.CompressionEncoding> | undefined
-  } | undefined
+  options?: Parameters<typeof HttpMiddleware.compression>[0]
 ): Layer.Layer<never, never, HttpRouter> => middleware(HttpMiddleware.compression(options), { global: true })
 
 /**

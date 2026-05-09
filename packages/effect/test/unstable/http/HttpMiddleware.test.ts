@@ -161,6 +161,33 @@ describe("HttpMiddleware", () => {
         assert.strictEqual(out.headers["content-encoding"], undefined)
       }))
 
+    it.effect("does not match unrelated tokens that share a prefix with gzip", () =>
+      Effect.gen(function*() {
+        const request = HttpServerRequest.fromWeb(
+          new Request("http://api.example.com/data", {
+            method: "GET",
+            headers: { "accept-encoding": "gzipold, identity" }
+          })
+        )
+        const response = HttpServerResponse.text(largeBody)
+        const out = yield* runCompression(request, response)
+        assert.strictEqual(out.headers["content-encoding"], undefined)
+      }))
+
+    it.effect("ignores q-values when matching encodings", () =>
+      Effect.gen(function*() {
+        const request = HttpServerRequest.fromWeb(
+          new Request("http://api.example.com/data", {
+            method: "GET",
+            headers: { "accept-encoding": "gzip;q=0.5, deflate;q=1.0" }
+          })
+        )
+        const response = HttpServerResponse.text(largeBody)
+        const out = yield* runCompression(request, response)
+        // We honour the configured priority (gzip first), not q-values yet.
+        assert.strictEqual(out.headers["content-encoding"], "gzip")
+      }))
+
     it.effect("skips bodies smaller than threshold", () =>
       Effect.gen(function*() {
         const request = HttpServerRequest.fromWeb(
