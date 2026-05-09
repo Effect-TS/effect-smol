@@ -14,6 +14,13 @@ type ReasonCase = {
 
 const uniqueViolationConstraint = "users_email_key"
 
+const assertUniqueViolation = (reason: SqlError.SqlErrorReason, constraint: string) => {
+  assert.strictEqual(reason._tag, "UniqueViolation")
+  if (reason._tag === "UniqueViolation") {
+    assert.strictEqual(reason.constraint, constraint)
+  }
+}
+
 const reasonCases = [
   { tag: "ConnectionError", isRetryable: true, make: (args) => new SqlError.ConnectionError(args) },
   { tag: "AuthenticationError", isRetryable: false, make: (args) => new SqlError.AuthenticationError(args) },
@@ -117,14 +124,77 @@ describe("SqlError", () => {
     assert.strictEqual(reason.constraint, uniqueViolationConstraint)
   })
 
-  it("classifySqliteError maps sqlite code strings and numeric codes", () => {
-    const byString = SqlError.classifySqliteError({ code: "SQLITE_CONSTRAINT_UNIQUE" })
-    const byNumber = SqlError.classifySqliteError({ errno: 2067 })
+  it("classifySqliteError maps sqlite unique constraint codes to UniqueViolation", () => {
+    const byString = SqlError.classifySqliteError({
+      code: "SQLITE_CONSTRAINT_UNIQUE",
+      constraint: " " + uniqueViolationConstraint + " "
+    })
+    const byNumericCode = SqlError.classifySqliteError({ code: 2067, constraint: uniqueViolationConstraint })
+    const byErrno = SqlError.classifySqliteError({ errno: 2067, constraint: uniqueViolationConstraint })
+    const byExtendedErrno = SqlError.classifySqliteError({
+      code: 19,
+      errno: 2067,
+      constraint: uniqueViolationConstraint
+    })
     const unknown = SqlError.classifySqliteError({ code: "NOT_SQLITE" })
 
-    assert.strictEqual(byString._tag, "ConstraintError")
-    assert.strictEqual(byNumber._tag, "ConstraintError")
+    assertUniqueViolation(byString, uniqueViolationConstraint)
+    assertUniqueViolation(byNumericCode, uniqueViolationConstraint)
+    assertUniqueViolation(byErrno, uniqueViolationConstraint)
+    assertUniqueViolation(byExtendedErrno, uniqueViolationConstraint)
     assert.strictEqual(unknown._tag, "UnknownError")
+  })
+
+  it("classifySqliteError extracts sqlite unique descriptors from messages", () => {
+    const reason = SqlError.classifySqliteError({
+      code: "SQLITE_CONSTRAINT_UNIQUE",
+      message: "UNIQUE constraint failed: users.email"
+    })
+
+    assertUniqueViolation(reason, "users.email")
+  })
+
+  it("classifySqliteError prefers explicit sqlite unique constraint identifiers", () => {
+    const reason = SqlError.classifySqliteError({
+      code: "SQLITE_CONSTRAINT_UNIQUE",
+      constraint: " users_email_key ",
+      message: "UNIQUE constraint failed: users.email"
+    })
+
+    assertUniqueViolation(reason, "users_email_key")
+  })
+
+  it("classifySqliteError falls back to unknown for blank or missing sqlite unique identifiers", () => {
+    const blank = SqlError.classifySqliteError({
+      code: "SQLITE_CONSTRAINT_UNIQUE",
+      constraint: "   ",
+      message: "UNIQUE constraint failed: users.email"
+    })
+    const missing = SqlError.classifySqliteError({ code: "SQLITE_CONSTRAINT_UNIQUE" })
+    const nonString = SqlError.classifySqliteError({ code: "SQLITE_CONSTRAINT_UNIQUE", constraint: 123 })
+    const malformedMessage = SqlError.classifySqliteError({
+      code: "SQLITE_CONSTRAINT_UNIQUE",
+      message: { text: "UNIQUE constraint failed: users.email" }
+    })
+
+    assertUniqueViolation(blank, "unknown")
+    assertUniqueViolation(missing, "unknown")
+    assertUniqueViolation(nonString, "unknown")
+    assertUniqueViolation(malformedMessage, "unknown")
+  })
+
+  it("classifySqliteError keeps generic sqlite constraints as ConstraintError", () => {
+    const byString = SqlError.classifySqliteError({ code: "SQLITE_CONSTRAINT" })
+    const byNumericCode = SqlError.classifySqliteError({ code: 19 })
+    const byErrno = SqlError.classifySqliteError({ errno: 19 })
+    const primaryKeyString = SqlError.classifySqliteError({ code: "SQLITE_CONSTRAINT_PRIMARYKEY" })
+    const primaryKeyNumber = SqlError.classifySqliteError({ code: 1555 })
+
+    assert.strictEqual(byString._tag, "ConstraintError")
+    assert.strictEqual(byNumericCode._tag, "ConstraintError")
+    assert.strictEqual(byErrno._tag, "ConstraintError")
+    assert.strictEqual(primaryKeyString._tag, "ConstraintError")
+    assert.strictEqual(primaryKeyNumber._tag, "ConstraintError")
   })
 
   for (const reasonCase of reasonCases) {

@@ -241,6 +241,15 @@ Rationale:
 
 ### Task 3: Update SQLite shared classification and tests
 
+Status: Completed. The shared SQLite classifier now normalizes unique constraint identifiers, extracts SQLite unique descriptors from explicit `cause.constraint` values or common `UNIQUE constraint failed: ...` messages, and maps both `SQLITE_CONSTRAINT_UNIQUE` and numeric extended result code `2067` to `UniqueViolation` before generic constraint handling. Generic `SQLITE_CONSTRAINT`, base numeric result code `19`, and primary-key-specific SQLite constraint codes remain classified as `ConstraintError`.
+
+Validation completed for this task:
+
+- `pnpm lint-fix`
+- `pnpm test packages/effect/test/unstable/sql/SqlError.test.ts`
+- `pnpm check:tsgo`
+- `cd packages/effect && pnpm docgen`
+
 Scope:
 
 - `packages/effect/src/unstable/sql/SqlError.ts`.

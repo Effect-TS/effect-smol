@@ -345,8 +345,47 @@ const sqliteNumericCodeFromCause = (cause: unknown): number | undefined => {
   return typeof errno === "number" ? errno : undefined
 }
 
+const matchesSqliteNumericCode = (cause: unknown, expected: number): boolean => {
+  const code = sqliteCodeFromCause(cause)
+  if (code === expected) {
+    return true
+  }
+  if (!Predicate.hasProperty(cause, "errno")) {
+    return false
+  }
+  return cause.errno === expected
+}
+
 const matchesSqliteCode = (code: string, expected: string): boolean =>
   code === expected || code.startsWith(expected + "_")
+
+const UNKNOWN_CONSTRAINT = "unknown"
+const SQLITE_CONSTRAINT_UNIQUE = "SQLITE_CONSTRAINT_UNIQUE"
+const SQLITE_CONSTRAINT_UNIQUE_CODE = 2067
+
+const normalizeConstraintIdentifier = (identifier: unknown): string => {
+  if (typeof identifier !== "string") {
+    return UNKNOWN_CONSTRAINT
+  }
+  const trimmed = identifier.trim()
+  return trimmed.length === 0 ? UNKNOWN_CONSTRAINT : trimmed
+}
+
+const sqliteUniqueConstraintFromCause = (cause: unknown): string => {
+  if (Predicate.hasProperty(cause, "constraint")) {
+    return normalizeConstraintIdentifier(cause.constraint)
+  }
+  if (!Predicate.hasProperty(cause, "message")) {
+    return UNKNOWN_CONSTRAINT
+  }
+  const message = cause.message
+  if (typeof message !== "string") {
+    return UNKNOWN_CONSTRAINT
+  }
+  const prefix = "UNIQUE constraint failed:"
+  const index = message.indexOf(prefix)
+  return index === -1 ? UNKNOWN_CONSTRAINT : normalizeConstraintIdentifier(message.slice(index + prefix.length))
+}
 
 /**
  * @since 4.0.0
@@ -361,6 +400,11 @@ export const classifySqliteError = (
     operation
   }
   const code = sqliteCodeFromCause(cause)
+  const numericCode = sqliteNumericCodeFromCause(cause)
+
+  if (code === SQLITE_CONSTRAINT_UNIQUE || matchesSqliteNumericCode(cause, SQLITE_CONSTRAINT_UNIQUE_CODE)) {
+    return new UniqueViolation({ ...props, constraint: sqliteUniqueConstraintFromCause(cause) })
+  }
 
   if (typeof code === "string") {
     if (matchesSqliteCode(code, "SQLITE_AUTH")) {
@@ -380,7 +424,6 @@ export const classifySqliteError = (
     }
   }
 
-  const numericCode = sqliteNumericCodeFromCause(cause)
   if (typeof numericCode === "number") {
     const code = numericCode & 0xff
     switch (code) {
