@@ -434,31 +434,30 @@ Rationale:
 
 ### Task 8: Add release documentation and final validation
 
+Status: Completed. The existing `.changeset/silver-snails-sqlite.md` was expanded to cover all directly affected release packages: `effect`, PostgreSQL, PGlite, MySQL, MSSQL, `@effect/sql-libsql`, and the SQLite-family packages using the shared SQLite classifier. The changeset now documents the new `UniqueViolation` SQL error reason, the classification change from `ConstraintError` to `UniqueViolation` for supported unique constraint violations, the exact `"unknown"` fallback, and the broadened PostgreSQL/PGlite/MySQL/MSSQL/shared-SQLite classification coverage.
+
+Validation completed for this release-metadata task:
+
+- `pnpm lint-fix`
+- `pnpm check:tsgo`
+
 Scope:
 
-- Add a changeset under `.changeset/`.
-- Run the final validation suite required by repository instructions.
+- Update the existing changeset under `.changeset/`.
+- Run the final validation requested for this release-metadata-only task.
 
 Steps:
 
-1. Add a changeset for affected package(s). At minimum include `effect`, `@effect/sql-pg`, `@effect/sql-pglite`, `@effect/sql-mysql2`, and `@effect/sql-mssql`. If maintainers prefer exhaustive package entries, also include sqlite-family packages whose classification changes through shared `classifySqliteError`.
+1. Update the existing changeset for affected package(s). At minimum include `effect`, `@effect/sql-pg`, `@effect/sql-pglite`, `@effect/sql-mysql2`, and `@effect/sql-mssql`. This follow-up used exhaustive package entries for the SQLite-family packages whose classification changes through shared `classifySqliteError`.
 2. The changeset must state:
    - `UniqueViolation` was added as a new SQL error reason.
    - Unique constraint violations now classify as `UniqueViolation` instead of `ConstraintError`.
    - The reason includes `constraint`, falling back to `"unknown"`.
-3. Run:
+3. For this release-metadata-only follow-up, run the validation requested by the task:
    - `pnpm lint-fix`
-   - `pnpm test packages/effect/test/unstable/sql/SqlError.test.ts`
-   - `pnpm test packages/sql/pg/test/SqlErrorClassification.test.ts`
-   - `pnpm test packages/sql/pglite/test/SqlErrorClassification.test.ts`
-   - `pnpm test packages/sql/mysql2/test/SqlErrorClassification.test.ts`
-   - `pnpm test packages/sql/mssql/test/SqlErrorClassification.test.ts`
-   - `pnpm test packages/sql/pg/test/SqlEventLogServerUnencrypted.test.ts`
-   - `pnpm test packages/sql/mysql2/test/SqlEventLogServerUnencrypted.test.ts`
-   - `pnpm test packages/sql/sqlite-node/test/SqlEventLogServerUnencrypted.test.ts`
    - `pnpm check:tsgo`
    - If `pnpm check:tsgo` repeatedly fails due to stale caches, run `pnpm clean` and then rerun `pnpm check:tsgo`.
-   - `cd packages/effect && pnpm docgen`
+   - The behavior tests and localized docgen were completed in the implementation tasks above; no source code changes were made in this follow-up.
 4. Confirm no generated barrel files were manually edited.
 5. Confirm no scratchpad files remain.
 
