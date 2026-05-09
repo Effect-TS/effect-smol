@@ -31,7 +31,10 @@ export const groups = Effect.fnUntraced(function*<
   SelectedGroups = HttpApiGroup.WithName<Groups, Names[number]>
 >(
   api: HttpApi.HttpApi<ApiId, Groups>,
-  groupNames: Names
+  groupNames: Names,
+  options?: {
+    readonly baseUrl?: string | URL | undefined
+  }
 ): Effect.fn.Return<
   HttpApiClient.Client<Groups>,
   never,
@@ -90,6 +93,6 @@ export const groups = Effect.fnUntraced(function*<
 
   return yield* HttpApiClient.makeWith(api, {
     httpClient,
-    baseUrl: "http://localhost:3000"
+    baseUrl: options?.baseUrl ?? "http://localhost:3000"
   })
 })
