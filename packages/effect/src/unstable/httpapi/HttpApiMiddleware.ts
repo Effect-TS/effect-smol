@@ -104,6 +104,7 @@ export interface AnyService extends Context.Key<any, any> {
   readonly error: ReadonlySet<Schema.Top>
   readonly requiredForClient: boolean
   readonly "~ClientError": any
+  readonly query?: Schema.Struct.Fields | undefined
 }
 
 /**
@@ -250,13 +251,30 @@ export const Service = <
   const Id extends string,
   const Error extends ErrorConstraint = never,
   const Security extends Record<string, HttpApiSecurity.HttpApiSecurity> = never,
-  RequiredForClient extends boolean = false
+  RequiredForClient extends boolean = false,
+  const Query extends Schema.Struct.Fields = never
 >(
   id: Id,
   options?: {
     readonly error?: Error | undefined
     readonly security?: Security | undefined
     readonly requiredForClient?: RequiredForClient | undefined
+    /**
+     * Query parameters that this middleware reads off the request URL.
+     *
+     * Declaring them here means the framework merges these field schemas into
+     * the runtime query schema of every endpoint that applies this middleware,
+     * so requests carrying these params do not 400 just because the endpoint
+     * did not list them.
+     *
+     * Conflicts (same field name with non-equivalent schemas) are reported at
+     * HttpApi materialisation time. Mirrors how `error` is accumulated lazily
+     * in `getErrorSchemas`.
+     *
+     * Currently limited to `Schema.Struct.Fields` so the merge is mechanically
+     * field-wise. `headers` is a natural follow-up.
+     */
+    readonly query?: Query | undefined
   } | undefined
 ) => ServiceClass<Self, Id, {
   requires: "requires" extends keyof Config ? Config["requires"] : never
@@ -272,6 +290,7 @@ export const Service = <
     readonly security?: Record<string, HttpApiSecurity.HttpApiSecurity> | undefined
     readonly error?: ErrorConstraint | undefined
     readonly requiredForClient?: boolean | undefined
+    readonly query?: Schema.Struct.Fields | undefined
   } | undefined
 ) => {
   const Err = globalThis.Error as any
@@ -291,6 +310,9 @@ export const Service = <
   self[TypeId] = TypeId
   self.error = getError(options?.error)
   self.requiredForClient = options?.requiredForClient ?? false
+  if (options?.query !== undefined) {
+    self.query = options.query
+  }
   if (options?.security !== undefined) {
     if (Object.keys(options.security).length === 0) {
       throw new Error("HttpApiMiddleware.Service: security object must not be empty")

@@ -183,6 +183,63 @@ export function getErrorSchemas(endpoint: AnyWithProps): Array<Schema.Top> {
 }
 
 /**
+ * Build the effective query schema for an endpoint by merging field schemas
+ * declared by its applied middlewares into the endpoint's own query fields.
+ *
+ * Mirrors `getErrorSchemas`: lazy walk over `endpoint.middlewares` at the
+ * time the schema is needed, no eager mutation at `.middleware()` time.
+ *
+ * Conflicts (same field name with non-equivalent schemas) throw at call time.
+ *
+ * @internal
+ */
+export function getQuerySchema(endpoint: AnyWithProps): Schema.Top | undefined {
+  const middlewareFields: Record<string, Schema.Top> = {}
+  for (const middleware of endpoint.middlewares) {
+    const key = middleware as any as HttpApiMiddleware.AnyService
+    if (!key.query) continue
+    for (const name of Object.keys(key.query)) {
+      const field = key.query[name]
+      const existing = middlewareFields[name]
+      if (existing !== undefined && existing !== field) {
+        throw new globalThis.Error(
+          `HttpApiMiddleware: conflicting query field "${name}" declared by multiple middlewares on endpoint "${endpoint.name}".`
+        )
+      }
+      middlewareFields[name] = field
+    }
+  }
+  if (Object.keys(middlewareFields).length === 0) return endpoint.query
+
+  const endpointFields = (endpoint as AnyWithProps & { readonly queryFields?: Schema.Struct.Fields | undefined })
+    .queryFields
+  const disableCodecs = (endpoint as AnyWithProps & { readonly disableCodecs?: boolean | undefined }).disableCodecs
+    ?? false
+
+  if (endpointFields === undefined && endpoint.query !== undefined) {
+    throw new globalThis.Error(
+      `HttpApiMiddleware: cannot merge middleware-declared query fields into endpoint "${endpoint.name}" because its query schema is not a Schema.Struct.Fields literal. Re-declare the endpoint query as { ... } (a fields object) or remove the middleware-declared query.`
+    )
+  }
+
+  const merged: Record<string, Schema.Top> = { ...middlewareFields }
+  if (endpointFields !== undefined) {
+    for (const name of Object.keys(endpointFields)) {
+      const field = endpointFields[name]
+      const existing = merged[name]
+      if (existing !== undefined && existing !== field) {
+        throw new globalThis.Error(
+          `HttpApiMiddleware: conflicting query field "${name}" declared by both middleware and endpoint "${endpoint.name}".`
+        )
+      }
+      merged[name] = field
+    }
+  }
+  const struct = Schema.Struct(merged)
+  return disableCodecs ? struct : Schema.toCodecStringTree(struct)
+}
+
+/**
  * @since 4.0.0
  * @category models
  */
@@ -837,6 +894,8 @@ function makeProto<
   readonly error: ReadonlySet<Schema.Top>
   readonly annotations: Context.Context<never>
   readonly middlewares: ReadonlySet<Context.Key<Middleware, any>>
+  readonly queryFields?: Schema.Struct.Fields | undefined
+  readonly disableCodecs?: boolean | undefined
 }): HttpApiEndpoint<
   Name,
   Method,
@@ -1021,6 +1080,9 @@ export const make = <Method extends HttpMethod>(method: Method): {
 > => {
   const disableCodecs = options?.disableCodecs ?? false
   const transformStringTree = disableCodecs ? identity : Schema.toCodecStringTree
+  const queryFields = options?.query !== undefined && !Schema.isSchema(options.query)
+    ? (options.query as Schema.Struct.Fields)
+    : undefined
   return makeProto({
     name,
     path,
@@ -1032,7 +1094,9 @@ export const make = <Method extends HttpMethod>(method: Method): {
     success: getResponse(options?.success, disableCodecs),
     error: getResponse(options?.error, disableCodecs),
     annotations: Context.empty(),
-    middlewares: new Set()
+    middlewares: new Set(),
+    queryFields,
+    disableCodecs
   })
 }
 

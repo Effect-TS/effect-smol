@@ -631,6 +631,57 @@ describe("HttpApi", () => {
       }).pipe(Effect.provide(ApiLive))
     })
 
+    it.effect("middleware-declared query fields propagate to endpoint runtime decoding", () => {
+      // Reproduces opencode's WorkspaceRoutingMiddleware case: middleware reads
+      // ?directory off the URL on every endpoint in the group. The endpoint
+      // does not list ?directory in its own query schema, so without the
+      // middleware-query feature this request would 400 with "unexpected
+      // property" because HttpApi's runtime decoder is strict-by-default.
+      class WorkspaceRoutingMiddleware extends HttpApiMiddleware.Service<WorkspaceRoutingMiddleware>()(
+        "Http/WorkspaceRouting",
+        {
+          query: {
+            directory: Schema.optional(Schema.String)
+          }
+        }
+      ) {}
+
+      const Api = HttpApi.make("api").add(
+        HttpApiGroup.make("group")
+          .add(
+            HttpApiEndpoint.get("a", "/a", {
+              query: {
+                limit: Schema.optional(Schema.NumberFromString)
+              },
+              success: Schema.String
+            })
+          )
+          .middleware(WorkspaceRoutingMiddleware)
+      )
+      const GroupLive = HttpApiBuilder.group(
+        Api,
+        "group",
+        (handlers) => handlers.handle("a", (ctx) => Effect.succeed(`limit=${ctx.query.limit ?? "none"}`))
+      )
+      const MLive = Layer.succeed(
+        WorkspaceRoutingMiddleware,
+        (effect) => effect
+      )
+      const ApiLive = HttpRouter.serve(
+        HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive), Layer.provide(MLive)),
+        { disableListenLog: true, disableLogger: true }
+      ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
+
+      return Effect.gen(function*() {
+        // The middleware-only field is accepted; endpoint decode still works.
+        yield* assertServerText(yield* HttpClient.get("/a?directory=foo"), 200, `"limit=none"`)
+        // Endpoint's own field still works alongside the middleware field.
+        yield* assertServerText(yield* HttpClient.get("/a?directory=foo&limit=10"), 200, `"limit=10"`)
+        // Without the middleware field, endpoint decode is unchanged.
+        yield* assertServerText(yield* HttpClient.get("/a?limit=10"), 200, `"limit=10"`)
+      }).pipe(Effect.provide(ApiLive))
+    })
+
     it.effect("missing middleware layer fails with service not found error", () => {
       class M extends HttpApiMiddleware.Service<M>()("Server/MissingMiddleware") {}
 
