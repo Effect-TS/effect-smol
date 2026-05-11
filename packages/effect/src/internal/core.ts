@@ -566,16 +566,17 @@ export const YieldableError: new(
   message?: string,
   options?: ErrorOptions
 ) => Cause.YieldableError = (function() {
-  class YieldableError extends globalThis.Error {
-  }
+  class YieldableError extends globalThis.Error {}
+  const proto = makePrimitiveProto({
+    op: "YieldableError",
+    [evaluate]() {
+      return exitFail(this)
+    }
+  })
+  delete (proto as any).toString
   Object.assign(
     YieldableError.prototype,
-    makePrimitiveProto({
-      op: "YieldableError",
-      [evaluate]() {
-        return exitFail(this)
-      }
-    })
+    proto
   )
   return YieldableError as any
 })()
