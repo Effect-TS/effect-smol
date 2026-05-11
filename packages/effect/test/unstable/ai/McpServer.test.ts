@@ -10,48 +10,50 @@ import * as HttpRouter from "effect/unstable/http/HttpRouter"
 import { RpcSerialization } from "effect/unstable/rpc"
 import * as RpcClient from "effect/unstable/rpc/RpcClient"
 
-const makeTestClient = Effect.gen(function*() {
-  const responses: Array<Response> = []
+const makeTestClient = (clientSessions?: Map<string, any>) =>
+  Effect.gen(function*() {
+    const responses: Array<Response> = []
 
-  const serverLayer = McpServer.layerHttp({
-    name: "TestServer",
-    version: "1.0.0",
-    path: "/mcp"
-  })
-  const { handler, dispose } = HttpRouter.toWebHandler(serverLayer, { disableLogger: true })
-  yield* Effect.addFinalizer(() => Effect.promise(() => dispose()))
+    const serverLayer = McpServer.layerHttp({
+      name: "TestServer",
+      version: "1.0.0",
+      path: "/mcp",
+      clientSessions
+    })
+    const { handler, dispose } = HttpRouter.toWebHandler(serverLayer, { disableLogger: true })
+    yield* Effect.addFinalizer(() => Effect.promise(() => dispose()))
 
-  let sessionId: string | null = null
-  const customFetch: typeof fetch = async (input, init) => {
-    const request = input instanceof Request ? input : new Request(input, init)
-    if (sessionId) {
-      request.headers.set("Mcp-Session-Id", sessionId)
+    let sessionId: string | null = null
+    const customFetch: typeof fetch = async (input, init) => {
+      const request = input instanceof Request ? input : new Request(input, init)
+      if (sessionId) {
+        request.headers.set("Mcp-Session-Id", sessionId)
+      }
+      const response = await handler(request)
+      sessionId = response.headers.get("Mcp-Session-Id")
+      responses.push(response.clone())
+      return response
     }
-    const response = await handler(request)
-    sessionId = response.headers.get("Mcp-Session-Id")
-    responses.push(response.clone())
-    return response
-  }
 
-  const clientLayer = RpcClient.layerProtocolHttp({ url: "http://localhost/mcp" }).pipe(
-    Layer.provideMerge([FetchHttpClient.layer, RpcSerialization.layerJsonRpc()]),
-    Layer.provide(Layer.succeed(FetchHttpClient.Fetch, customFetch))
-  )
-  const client = yield* RpcClient.make(McpSchema.ClientRpcs).pipe(
-    Effect.provide(clientLayer)
-  )
+    const clientLayer = RpcClient.layerProtocolHttp({ url: "http://localhost/mcp" }).pipe(
+      Layer.provideMerge([FetchHttpClient.layer, RpcSerialization.layerJsonRpc()]),
+      Layer.provide(Layer.succeed(FetchHttpClient.Fetch, customFetch))
+    )
+    const client = yield* RpcClient.make(McpSchema.ClientRpcs).pipe(
+      Effect.provide(clientLayer)
+    )
 
-  const httpClient = yield* HttpClient.HttpClient.asEffect().pipe(
-    Effect.provide(clientLayer)
-  )
+    const httpClient = yield* HttpClient.HttpClient.asEffect().pipe(
+      Effect.provide(clientLayer)
+    )
 
-  return { client, responses, httpClient }
-})
+    return { client, responses, httpClient }
+  })
 
 describe("McpServer", () => {
   it.effect("replays MCP session and negotiated protocol headers after initialize", () =>
     Effect.gen(function*() {
-      const { client, responses } = yield* makeTestClient
+      const { client, responses } = yield* makeTestClient()
 
       yield* client.initialize({
         protocolVersion: "9999-01-01",
@@ -70,7 +72,7 @@ describe("McpServer", () => {
 
   it.effect("no session id is 404", () =>
     Effect.gen(function*() {
-      const { httpClient } = yield* makeTestClient
+      const { httpClient } = yield* makeTestClient()
 
       const response = yield* HttpClientRequest.post("http://locahost/mcp").pipe(
         HttpClientRequest.bodyJsonUnsafe({ jsonrpc: "2.0", method: "ping", params: {}, id: 0 }),
@@ -78,5 +80,34 @@ describe("McpServer", () => {
       )
 
       strictEqual(response.status, 404)
+    }))
+
+  it.effect("accepts an external clientSessions map", () =>
+    Effect.gen(function*() {
+      const sessions = new Map<string, any>()
+
+      const initResponse = yield* Effect.gen(function*() {
+        const { client, responses } = yield* makeTestClient(sessions)
+        yield* client.initialize({
+          protocolVersion: "9999-01-01",
+          capabilities: {},
+          clientInfo: { name: "TestClient", version: "1.0.0" }
+        })
+        return responses[0]
+      }).pipe(Effect.scoped)
+
+      const sessionId = initResponse.headers.get("Mcp-Session-Id")
+      strictEqual(sessions.size, 1)
+      strictEqual(sessions.has(sessionId!), true)
+
+      yield* Effect.gen(function*() {
+        const { httpClient } = yield* makeTestClient(sessions)
+        const response = yield* HttpClientRequest.post("http://localhost/mcp").pipe(
+          HttpClientRequest.setHeader("Mcp-Session-Id", sessionId!),
+          HttpClientRequest.bodyJsonUnsafe({ jsonrpc: "2.0", method: "ping", params: {}, id: 1 }),
+          httpClient.execute
+        )
+        strictEqual(response.status, 200)
+      }).pipe(Effect.scoped)
     }))
 })
