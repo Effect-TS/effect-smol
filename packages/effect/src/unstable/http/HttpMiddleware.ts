@@ -105,9 +105,8 @@ export const SpanNameGenerator = Context.Reference<(request: HttpServerRequest) 
  */
 export const logger: <E, R>(
   httpApp: Effect.Effect<HttpServerResponse, E, HttpServerRequest | R>
-) => Effect.Effect<HttpServerResponse, E, HttpServerRequest | R> = make((httpApp) => {
-  let counter = 0
-  return Effect.withFiber((fiber) => {
+) => Effect.Effect<HttpServerResponse, E, HttpServerRequest | R> = make((httpApp) =>
+  Effect.withFiber((fiber) => {
     const request = Context.getUnsafe(fiber.context, HttpServerRequest)
     const path = stripSearchAndHash(request.url)
     return Effect.withLogSpan(
@@ -134,10 +133,10 @@ export const logger: <E, R>(
           exit
         )
       }),
-      `http.span.${++counter}`
+      "http.span"
     )
   })
-})
+)
 
 /**
  * @since 4.0.0
