@@ -4303,13 +4303,7 @@ export function withConstructorDefault<S extends Top & WithoutConstructorDefault
   defaultValue: Effect.Effect<S["~type.make.in"], SchemaError>
 ) {
   return (schema: S): withConstructorDefault<S> =>
-    make(AST.withConstructorDefault(schema.ast, unwrapSchemaError(defaultValue)), { schema })
-}
-
-function unwrapSchemaError<A, R>(
-  effect: Effect.Effect<A, SchemaError, R>
-): Effect.Effect<A, Issue.Issue, R> {
-  return Effect.mapError(effect, (e) => e.issue)
+    make(AST.withConstructorDefault(schema.ast, Effect.mapError(defaultValue, (e) => e.issue)), { schema })
 }
 
 /**
@@ -4374,7 +4368,7 @@ export function withDecodingDefaultKey<S extends Top>(
   const encode = options?.encodingStrategy === "omit" ? Getter.omit() : Getter.passthrough()
   return (self: S): withDecodingDefaultKey<S> => {
     return optionalKey(toEncoded(self)).pipe(decodeTo(self, {
-      decode: Getter.withDefault(unwrapSchemaError(defaultValue)),
+      decode: Getter.withDefault(Effect.mapError(defaultValue, (e) => e.issue)),
       encode
     }))
   }
@@ -4474,7 +4468,7 @@ export function withDecodingDefault<S extends Top>(
   const encode = options?.encodingStrategy === "omit" ? Getter.omit() : Getter.passthrough()
   return (self: S): withDecodingDefault<S> => {
     return optional(toEncoded(self)).pipe(decodeTo(self, {
-      decode: Getter.withDefault(unwrapSchemaError(defaultValue)),
+      decode: Getter.withDefault(Effect.mapError(defaultValue, (e) => e.issue)),
       encode
     }))
   }
