@@ -980,6 +980,9 @@ export const makeProtocolWithHttpEffect: Effect.Effect<
     }
 
     yield* Scope.addFinalizerExit(scope, () => {
+      if (!includesFraming) {
+        return Effect.void
+      }
       clients.delete(id)
       clientIds.delete(id)
       Queue.offerUnsafe(disconnects, id)
@@ -1135,7 +1138,7 @@ export const toHttpEffect: <Rpcs extends Rpc.Any>(
   const { httpEffect, protocol } = yield* makeProtocolWithHttpEffect
   yield* make(group, options).pipe(
     Effect.provideService(Protocol, protocol),
-    Effect.forkScoped
+    Effect.forkDetach({ startImmediately: true })
   )
   // @effect-diagnostics-next-line returnEffectInGen:off
   return httpEffect
