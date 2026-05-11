@@ -129,7 +129,7 @@ import type {
   unassigned
 } from "./Types.ts"
 import type * as Unify from "./Unify.ts"
-import { internalCall, SingleShotGen } from "./Utils.ts"
+import { internalCall } from "./Utils.ts"
 
 const TypeId = core.EffectTypeId
 
@@ -170,60 +170,11 @@ const TypeId = core.EffectTypeId
  * @since 2.0.0
  * @category Models
  */
-export interface Effect<out A, out E = never, out R = never>
-  extends Pipeable, Inspectable, Yieldable<Effect<A, E, R>, A, E, R>
-{
+export interface Effect<out A, out E = never, out R = never> extends Pipeable, Inspectable {
   readonly [TypeId]: Variance<A, E, R>
   [Unify.typeSymbol]?: unknown
   [Unify.unifySymbol]?: EffectUnify<this>
   [Unify.ignoreSymbol]?: {}
-}
-
-/**
- * A type that can be yielded in an Effect generator function.
- *
- * The `Yieldable` interface allows values to be used with the `yield*` syntax
- * in Effect generator functions, providing a clean way to sequence effectful operations.
- *
- * @example
- * ```ts
- * import { Effect } from "effect"
- *
- * // Effects implement Yieldable and can be used with yield*
- * const effect1 = Effect.succeed(10)
- * const effect2 = Effect.succeed(20)
- *
- * const program = Effect.gen(function*() {
- *   const a = yield* effect1 // yields the Effect which implements Yieldable
- *   const b = yield* effect2
- *   return a + b
- * })
- *
- * Effect.runPromise(program).then(console.log) // 30
- * ```
- *
- * @since 4.0.0
- * @category Yieldable
- */
-export interface Yieldable<
-  out Self extends Yieldable<any, any, any, any>,
-  out A,
-  out E = never,
-  out R = never
-> {
-  asEffect(): Effect<A, E, R>
-  [Symbol.iterator](): EffectIterator<Self>
-}
-
-/**
- * @since 4.0.0
- * @category Yieldable
- */
-export abstract class YieldableClass<A, E = never, R = never> implements Yieldable<any, A, E, R> {
-  [Symbol.iterator](): EffectIterator<this> {
-    return new SingleShotGen(this) as any
-  }
-  abstract asEffect(): Effect<A, E, R>
 }
 
 /**
@@ -319,34 +270,6 @@ export type Services<T> = T extends Effect<infer _A, infer _E, infer _R> ? _R
   : never
 
 /**
- * Namespace containing type utilities for Yieldable values.
- *
- * @since 4.0.0
- * @category Yieldable
- */
-export declare namespace Yieldable {
-  /**
-   * @since 4.0.0
-   * @category Yieldable
-   */
-  export type Any = Yieldable<any, any, any, any>
-
-  /**
-   * @since 4.0.0
-   * @category Yieldable
-   * @example
-   * ```ts
-   * import type { Effect } from "effect"
-   *
-   * // Extract the success type from a Yieldable
-   * type SuccessType = Effect.Yieldable.Success<Effect.Effect<string>> // string
-   * ```
-   */
-  export type Success<T> = T extends Yieldable<infer _Self, infer _A, infer _E, infer _R> ? _A
-    : never
-}
-
-/**
  * Tests if a value is an `Effect`.
  *
  * @example
@@ -384,10 +307,10 @@ export const isEffect: (u: unknown) => u is Effect<any, any, any> = core.isEffec
  * @since 2.0.0
  * @category Models
  */
-export interface EffectIterator<T extends Yieldable<any, any, any, any>> {
+export interface EffectIterator<T extends Effect<any, any, any>> {
   next(
     ...args: ReadonlyArray<any>
-  ): IteratorResult<T, Yieldable.Success<T>>
+  ): IteratorResult<T, Success<T>>
 }
 
 // ========================================================================
