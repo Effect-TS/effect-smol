@@ -961,6 +961,7 @@ export const makeProtocolWithHttpEffect: Effect.Effect<
     const id = clientId++
     const queue = yield* Queue.make<Uint8Array | FromServerEncoded, Cause.Done>()
     const parser = serialization.makeUnsafe()
+    const requestIds: Array<RequestId> = []
 
     const offer = (data: Uint8Array | string) =>
       typeof data === "string" ? Queue.offer(queue, encoder.encode(data)) : Queue.offer(queue, data)
@@ -992,8 +993,6 @@ export const makeProtocolWithHttpEffect: Effect.Effect<
     })
     clients.set(id, client)
     clientIds.add(id)
-
-    const requestIds: Array<RequestId> = []
 
     // @effect-diagnostics-next-line tryCatchInEffectGen:off
     try {
