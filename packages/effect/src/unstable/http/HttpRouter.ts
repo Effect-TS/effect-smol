@@ -385,8 +385,7 @@ export const schemaPathParams = <A, I extends Readonly<Record<string, string | u
  */
 export const use = <A, E, R>(
   f: (router: HttpRouter) => Effect.Effect<A, E, R>
-): Layer.Layer<never, E, HttpRouter | Exclude<R, Scope.Scope>> =>
-  Layer.effectDiscard(Effect.flatMap(HttpRouter, f))
+): Layer.Layer<never, E, HttpRouter | Exclude<R, Scope.Scope>> => Layer.effectDiscard(Effect.flatMap(HttpRouter, f))
 
 /**
  * Create a layer that adds a single route to the HTTP router.

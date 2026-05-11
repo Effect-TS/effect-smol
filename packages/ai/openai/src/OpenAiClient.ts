@@ -623,4 +623,3 @@ export const layerWebSocketMode: Layer.Layer<
   never,
   OpenAiClient | Socket.WebSocketConstructor
 > = Layer.effectContext(makeSocket)
-

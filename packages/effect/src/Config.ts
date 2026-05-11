@@ -1294,4 +1294,3 @@ export const nested: {
   2,
   <A>(self: Config<A>, name: string): Config<A> => make((provider) => self.parse(ConfigProvider.nested(provider, name)))
 )
-

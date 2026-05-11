@@ -1873,4 +1873,3 @@ export function collectBracketPathEntries<A>(isLeaf: (value: unknown) => value i
     return bracketPathEntries
   }
 }
-

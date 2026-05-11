@@ -366,8 +366,7 @@ export const Service = <Self>() =>
     TagClass_.layerNoDeps
 
   TagClass_.get = (key: string) => Layer.unwrap(Effect.map(TagClass_, (layerMap) => layerMap.get(key)))
-  TagClass_.contextEffect = (key: string) =>
-    Effect.flatMap(TagClass_, (layerMap) => layerMap.contextEffect(key))
+  TagClass_.contextEffect = (key: string) => Effect.flatMap(TagClass_, (layerMap) => layerMap.contextEffect(key))
   TagClass_.invalidate = (key: string) => Effect.flatMap(TagClass_, (layerMap) => layerMap.invalidate(key))
 
   return TagClass as any

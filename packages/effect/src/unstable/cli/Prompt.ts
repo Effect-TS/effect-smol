@@ -3620,4 +3620,3 @@ const entriesToDisplay = (cursor: number, total: number, maxVisible?: number) =>
   const endIndex = Math.min(startIndex + max, total)
   return { startIndex, endIndex }
 }
-

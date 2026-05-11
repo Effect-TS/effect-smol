@@ -90,4 +90,3 @@ export const initialMessage = <S extends Schema.Top>(
     Effect.flatMap(Effect.fromOption),
     Effect.flatMap(Schema.decodeUnknownEffect(Schema.toCodecJson(schema)))
   )
-
