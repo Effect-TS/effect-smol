@@ -2,6 +2,6 @@
 "effect": patch
 ---
 
-Allow Schema constructor and decoding defaults to fail with `SchemaIssue.Issue`.
+Allow Schema constructor and decoding defaults to fail with `SchemaError`.
 
-The `Effect` passed to `Schema.withConstructorDefault`, `Schema.withDecodingDefaultKey`, `Schema.withDecodingDefault`, `Schema.withDecodingDefaultTypeKey`, and `Schema.withDecodingDefaultType` (as well as the underlying `SchemaGetter.withDefault`) now accepts `SchemaIssue.Issue` in its error channel. When a default fails with an `Issue`, the parser propagates it as a parse failure with the surrounding path attached.
+The `Effect` passed to `Schema.withConstructorDefault`, `Schema.withDecodingDefault`, and `Schema.withDecodingDefaultKey` now accepts `SchemaError` in its error channel. When a default fails, the parser unwraps the underlying `SchemaIssue.Issue` and propagates it as a parse failure with the surrounding path attached. This makes it easy to use another schema's `makeEffect` / `decode*` as the default value.

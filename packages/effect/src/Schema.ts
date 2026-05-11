@@ -4300,10 +4300,16 @@ export interface withConstructorDefault<S extends Top & WithoutConstructorDefaul
 export function withConstructorDefault<S extends Top & WithoutConstructorDefault>(
   // `S["~type.make.in"]` instead of `S["Type"]` is intentional here because
   // it makes easier to define the default value if there are nested defaults
-  defaultValue: Effect.Effect<S["~type.make.in"], Issue.Issue>
+  defaultValue: Effect.Effect<S["~type.make.in"], SchemaError>
 ) {
   return (schema: S): withConstructorDefault<S> =>
-    make(AST.withConstructorDefault(schema.ast, defaultValue), { schema })
+    make(AST.withConstructorDefault(schema.ast, unwrapSchemaError(defaultValue)), { schema })
+}
+
+function unwrapSchemaError<A, R>(
+  effect: Effect.Effect<A, SchemaError, R>
+): Effect.Effect<A, Issue.Issue, R> {
+  return Effect.mapError(effect, (e) => e.issue)
 }
 
 /**
@@ -4362,13 +4368,13 @@ export type DecodingDefaultOptions = {
  * @since 4.0.0
  */
 export function withDecodingDefaultKey<S extends Top>(
-  defaultValue: Effect.Effect<S["Encoded"], Issue.Issue>,
+  defaultValue: Effect.Effect<S["Encoded"], SchemaError>,
   options?: DecodingDefaultOptions
 ) {
   const encode = options?.encodingStrategy === "omit" ? Getter.omit() : Getter.passthrough()
   return (self: S): withDecodingDefaultKey<S> => {
     return optionalKey(toEncoded(self)).pipe(decodeTo(self, {
-      decode: Getter.withDefault(defaultValue),
+      decode: Getter.withDefault(unwrapSchemaError(defaultValue)),
       encode
     }))
   }
@@ -4408,7 +4414,7 @@ export interface withDecodingDefaultTypeKey<S extends Top>
  * @since 4.0.0
  */
 export function withDecodingDefaultTypeKey<S extends Top>(
-  defaultValue: Effect.Effect<S["Type"], Issue.Issue>,
+  defaultValue: Effect.Effect<S["Type"]>,
   options?: DecodingDefaultOptions
 ) {
   return (self: S): withDecodingDefaultTypeKey<S> => {
@@ -4462,13 +4468,13 @@ export interface withDecodingDefault<S extends Top> extends decodeTo<S, optional
  * @since 4.0.0
  */
 export function withDecodingDefault<S extends Top>(
-  defaultValue: Effect.Effect<S["Encoded"], Issue.Issue>,
+  defaultValue: Effect.Effect<S["Encoded"], SchemaError>,
   options?: DecodingDefaultOptions
 ) {
   const encode = options?.encodingStrategy === "omit" ? Getter.omit() : Getter.passthrough()
   return (self: S): withDecodingDefault<S> => {
     return optional(toEncoded(self)).pipe(decodeTo(self, {
-      decode: Getter.withDefault(defaultValue),
+      decode: Getter.withDefault(unwrapSchemaError(defaultValue)),
       encode
     }))
   }
@@ -4506,7 +4512,7 @@ export interface withDecodingDefaultType<S extends Top> extends decodeTo<withDec
  * @since 4.0.0
  */
 export function withDecodingDefaultType<S extends Top>(
-  defaultValue: Effect.Effect<S["Type"], Issue.Issue>,
+  defaultValue: Effect.Effect<S["Type"]>,
   options?: DecodingDefaultOptions
 ) {
   return (self: S): withDecodingDefaultType<S> => {
