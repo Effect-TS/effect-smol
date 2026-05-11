@@ -443,7 +443,7 @@ export const makeChannel = <IE = never>(): Channel.Channel<
   IE,
   unknown,
   Socket
-> => Channel.unwrap(Effect.map(Socket.asEffect(), toChannelWith<IE>()))
+> => Channel.unwrap(Effect.map(Socket, toChannelWith<IE>()))
 
 /**
  * @since 4.0.0

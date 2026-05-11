@@ -85,8 +85,9 @@ export const layerInitialMessage = <S extends Schema.Top, R2>(
 export const initialMessage = <S extends Schema.Top>(
   schema: S
 ): Effect.Effect<S["Type"], NoSuchElementError | Schema.SchemaError, Protocol | S["DecodingServices"]> =>
-  ProtocolTag.asEffect().pipe(
+  ProtocolTag.pipe(
     Effect.flatMap((protocol) => protocol.initialMessage),
-    Effect.flatMap((o) => o.asEffect()),
+    Effect.flatMap(Effect.fromOption),
     Effect.flatMap(Schema.decodeUnknownEffect(Schema.toCodecJson(schema)))
   )
+

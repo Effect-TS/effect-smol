@@ -311,7 +311,7 @@ const EmailWorkflowLayer = EmailWorkflow.toLayer(Effect.fn(function*(payload) {
         })
       }
     })
-  }).asEffect().pipe(
+  }).pipe(
     EmailWorkflow.withCompensation(Effect.fnUntraced(function*() {
       flags.set("compensation", true)
     })),
@@ -544,7 +544,7 @@ const CatchWorkflowLayer = CatchWorkflow.toLayer(Effect.fnUntraced(function*() {
   yield* Activity.make({
     name: "fail",
     execute: Effect.die("boom")
-  }).asEffect().pipe(
+  }).pipe(
     Effect.catchCause((cause) =>
       Activity.make({
         name: "log",
@@ -552,7 +552,7 @@ const CatchWorkflowLayer = CatchWorkflow.toLayer(Effect.fnUntraced(function*() {
           flags.set("catch", true)
           return Effect.log(cause)
         })
-      }).asEffect()
+      })
     )
   )
 }))

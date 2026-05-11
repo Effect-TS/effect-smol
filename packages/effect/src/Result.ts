@@ -68,7 +68,6 @@
  * @since 4.0.0
  */
 
-import type { Yieldable } from "./Effect.ts"
 import * as Equivalence from "./Equivalence.ts"
 import type { LazyArg } from "./Function.ts"
 import { constNull, constUndefined, dual, identity } from "./Function.ts"
@@ -154,7 +153,7 @@ export type Result<A, E = never> = Success<A, E> | Failure<A, E>
  * @category Models
  * @since 4.0.0
  */
-export interface Failure<out A, out E> extends Pipeable, Inspectable, Yieldable<Result<A, E>, A, E> {
+export interface Failure<out A, out E> extends Pipeable, Inspectable {
   readonly _tag: "Failure"
   readonly _op: "Failure"
   readonly failure: E
@@ -162,9 +161,20 @@ export interface Failure<out A, out E> extends Pipeable, Inspectable, Yieldable<
     readonly _A: Covariant<E>
     readonly _E: Covariant<A>
   }
+  [Symbol.iterator](): ResultIterator<Result<A, E>>
   [Unify.typeSymbol]?: unknown
   [Unify.unifySymbol]?: ResultUnify<this>
   [Unify.ignoreSymbol]?: ResultUnifyIgnore
+}
+
+/**
+ * @since 4.0.0
+ * @category Models
+ */
+export interface ResultIterator<T extends Result<any, any>> {
+  next(
+    ...args: ReadonlyArray<any>
+  ): IteratorResult<T, Result.Success<T>>
 }
 
 /**
@@ -194,7 +204,7 @@ export interface Failure<out A, out E> extends Pipeable, Inspectable, Yieldable<
  * @category Models
  * @since 4.0.0
  */
-export interface Success<out A, out E> extends Pipeable, Inspectable, Yieldable<Result<A, E>, A, E> {
+export interface Success<out A, out E> extends Pipeable, Inspectable {
   readonly _tag: "Success"
   readonly _op: "Success"
   readonly success: A
@@ -202,6 +212,7 @@ export interface Success<out A, out E> extends Pipeable, Inspectable, Yieldable<
     readonly _A: Covariant<E>
     readonly _E: Covariant<A>
   }
+  [Symbol.iterator](): ResultIterator<Result<A, E>>
   [Unify.typeSymbol]?: unknown
   [Unify.unifySymbol]?: ResultUnify<this>
   [Unify.ignoreSymbol]?: ResultUnifyIgnore

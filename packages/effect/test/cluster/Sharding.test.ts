@@ -316,7 +316,7 @@ describe.concurrent("Sharding", () => {
         assert.strictEqual(driver.journal.length, 13 + 3 + 1)
         assert.strictEqual(driver.replyIds.size, 1 + 4)
       }).pipe(Effect.provide(TestShardingWithoutStorage.pipe(
-        Layer.provideMerge(Layer.effect(MessageStorage.MemoryDriver)(MessageStorage.MemoryDriver.asEffect())),
+        Layer.provideMerge(Layer.effect(MessageStorage.MemoryDriver)(MessageStorage.MemoryDriver)),
         Layer.updateService(MessageStorage.MessageStorage, (storage) => ({
           ...storage,
           unprocessedMessagesById(messageIds) {

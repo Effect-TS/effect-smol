@@ -846,8 +846,9 @@ export const toWeb = (self: HttpClientRequest, options?: {
   readonly signal?: AbortSignal | undefined
 }): Effect.Effect<Request, UrlParams.UrlParamsError> =>
   Effect.contextWith((context) =>
-    toWebResult(self, {
+    Effect.fromResult(toWebResult(self, {
       context: context,
       signal: options?.signal
-    }).asEffect()
+    }))
   )
+

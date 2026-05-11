@@ -6,13 +6,12 @@ import type { NoSuchElementError } from "../../Cause.ts"
 import type * as Cause from "../../Cause.ts"
 import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
+import * as Effectable from "../../Effectable.ts"
 import * as FileSystem from "../../FileSystem.ts"
 import { dual, pipe } from "../../Function.ts"
-import { YieldableProto } from "../../internal/core.ts"
 import * as EffectNumber from "../../Number.ts"
 import * as Option from "../../Option.ts"
 import * as Path from "../../Path.ts"
-import * as Pipeable from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Queue from "../../Queue.ts"
 import * as Redacted from "../../Redacted.ts"
@@ -27,9 +26,7 @@ const TypeId = "~effect/cli/Prompt"
  * @since 4.0.0
  * @category models
  */
-export interface Prompt<Output>
-  extends Pipeable.Pipeable, Effect.Yieldable<Prompt<Output>, Output, Terminal.QuitError, Environment>
-{
+export interface Prompt<Output> extends Effect.Effect<Output, Terminal.QuitError, Environment> {
   readonly [TypeId]: {
     readonly _Output: Covariant<Output>
   }
@@ -1054,15 +1051,14 @@ export const toggle = (options: ToggleOptions): Prompt<boolean> => {
 }
 
 const proto = {
-  ...YieldableProto,
+  ...Effectable.Prototype<Prompt<any>>({
+    label: "Prompt",
+    evaluate() {
+      return run(this)
+    }
+  }),
   [TypeId]: {
     _Output: (_: never) => _
-  },
-  asEffect(): Effect.Effect<unknown, Terminal.QuitError, Environment> {
-    return run(this as any)
-  },
-  pipe() {
-    return Pipeable.pipeArguments(this, arguments)
   }
 }
 
@@ -1876,7 +1872,7 @@ const resolveCurrentPath = (
   }
   if (Option.isSome(options.startingPath)) {
     const startingPath = options.startingPath.value
-    return Effect.flatMap(FileSystem.FileSystem.asEffect(), (fs) =>
+    return Effect.flatMap(FileSystem.FileSystem, (fs) =>
       // Ensure the user provided starting path exists
       Effect.orDie(fs.exists(startingPath)).pipe(
         Effect.flatMap((exists) =>
@@ -3624,3 +3620,4 @@ const entriesToDisplay = (cursor: number, total: number, maxVisible?: number) =>
   const endIndex = Math.min(startIndex + max, total)
   return { startIndex, endIndex }
 }
+

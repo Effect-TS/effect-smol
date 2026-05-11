@@ -1207,7 +1207,7 @@ export const withFallbackConfig: {
       kind: error._tag === "MissingOption" ? "flag" : "argument"
     })
   const runConfig = (error: CliError.MissingOption | CliError.MissingArgument, args: ParsedArgs) =>
-    Config.option(config).asEffect().pipe(
+    Config.option(config).pipe(
       Effect.mapError((configError) => toInvalidValue(error, configError)),
       Effect.flatMap(Option.match({
         onNone: () => Effect.fail(error),

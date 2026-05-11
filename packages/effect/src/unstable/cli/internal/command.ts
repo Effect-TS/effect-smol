@@ -8,9 +8,8 @@
 import * as Arr from "../../../Array.ts"
 import * as Context from "../../../Context.ts"
 import * as Effect from "../../../Effect.ts"
-import { YieldableProto } from "../../../internal/core.ts"
+import * as Effectable from "../../../Effectable.ts"
 import * as Option from "../../../Option.ts"
-import { pipeArguments } from "../../../Pipeable.ts"
 import * as Predicate from "../../../Predicate.ts"
 import * as CliError from "../CliError.ts"
 import type * as GlobalFlag from "../GlobalFlag.ts"
@@ -73,14 +72,13 @@ export const toImpl = <Name extends string, Input, E, R, ContextInput = {}>(
 /* Proto                                                                      */
 /* ========================================================================== */
 
-export const Proto = {
-  ...YieldableProto,
-  pipe() {
-    return pipeArguments(this, arguments)
-  },
-  asEffect(this: Command<any, any, any, any, any>) {
-    return toImpl(this).service.asEffect()
-  }
+export const Proto: Effect.Effect<any, never, any> = {
+  ...Effectable.Prototype<Command.Any>({
+    label: "Command",
+    evaluate() {
+      return toImpl(this).service
+    }
+  })
 }
 
 /* ========================================================================== */
@@ -287,9 +285,9 @@ const parseParams: (parsedArgs: Param.ParsedArgs, params: ReadonlyArray<Param.An
 /**
  * Checks for duplicate flag names between parent and child commands.
  */
-export const checkForDuplicateFlags = <Name extends string, Input, ContextInput>(
-  parent: Command<Name, Input, ContextInput, unknown, unknown>,
-  subcommands: ReadonlyArray<Command<any, unknown, any, unknown, unknown>>,
+export const checkForDuplicateFlags = <Name extends string, Input, ContextInput, E, R>(
+  parent: Command<Name, Input, ContextInput, E, R>,
+  subcommands: ReadonlyArray<Command.Any>,
   options?: {
     readonly contextConfig?: ConfigInternal | undefined
   } | undefined
@@ -309,7 +307,7 @@ export const checkForDuplicateFlags = <Name extends string, Input, ContextInput>
   extractNames((options?.contextConfig ?? parentImpl.contextConfig).flags)
 
   for (const subcommand of subcommands) {
-    const subImpl = toImpl(subcommand)
+    const subImpl = toImpl(subcommand as any)
     for (const option of subImpl.config.flags) {
       const singles = Param.extractSingleParams(option)
       for (const single of singles) {
@@ -324,3 +322,4 @@ export const checkForDuplicateFlags = <Name extends string, Input, ContextInput>
     }
   }
 }
+

@@ -25,7 +25,7 @@ import * as HelpInternal from "./internal/help.ts"
  * @category models
  */
 export interface HandlerContext {
-  readonly command: Command.Command<any, unknown, any, unknown, unknown>
+  readonly command: Command.Command.Any
   readonly commandPath: ReadonlyArray<string>
   readonly version: string
 }

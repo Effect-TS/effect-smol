@@ -253,7 +253,7 @@ export const raceAll = <const Activities extends NonEmptyReadonlyArray<Any>>(
     error: Schema.Union(
       activities.map((activity) => (activity as any).errorSchema)
     ),
-    effects: activities.map((activity) => (activity as any).asEffect()) as any
+    effects: activities.map((activity) => (activity as any)) as any
   }) as any
 
 // -----------------------------------------------------------------------------

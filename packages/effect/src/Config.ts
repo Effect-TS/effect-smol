@@ -74,11 +74,10 @@
 import type { Path, SourceError } from "./ConfigProvider.ts"
 import * as ConfigProvider from "./ConfigProvider.ts"
 import * as Effect from "./Effect.ts"
+import * as Effectable from "./Effectable.ts"
 import { dual } from "./Function.ts"
-import { PipeInspectableProto, YieldableProto } from "./internal/core.ts"
 import * as LogLevel_ from "./LogLevel.ts"
 import * as Option from "./Option.ts"
-import type { Pipeable } from "./Pipeable.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Rec from "./Record.ts"
 import * as Schema from "./Schema.ts"
@@ -159,18 +158,19 @@ export class ConfigError {
  *
  * @since 4.0.0
  */
-export interface Config<out T> extends Pipeable, Effect.Yieldable<Config<T>, T, ConfigError> {
+export interface Config<out T> extends Effect.Effect<T, ConfigError> {
   readonly [TypeId]: typeof TypeId
   readonly parse: (provider: ConfigProvider.ConfigProvider) => Effect.Effect<T, ConfigError>
 }
 
 const Proto = {
-  ...PipeInspectableProto,
-  ...YieldableProto,
+  ...Effectable.Prototype<Config<any>>({
+    label: "Config",
+    evaluate(fiber) {
+      return this.parse(fiber.getRef(ConfigProvider.ConfigProvider))
+    }
+  }),
   [TypeId]: TypeId,
-  asEffect(this: Config<unknown>) {
-    return Effect.flatMap(ConfigProvider.ConfigProvider.asEffect(), (provider) => this.parse(provider))
-  },
   toJSON(this: Config<unknown>) {
     return {
       _id: "Config"
@@ -1294,3 +1294,4 @@ export const nested: {
   2,
   <A>(self: Config<A>, name: string): Config<A> => make((provider) => self.parse(ConfigProvider.nested(provider, name)))
 )
+

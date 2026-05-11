@@ -68,7 +68,7 @@ export const layerConfig: (
   options: Config.Wrap<IoRedis.RedisOptions>
 ): Layer.Layer<Redis.Redis | NodeRedis, Config.ConfigError> =>
   Layer.effectContext(
-    Config.unwrap(options).asEffect().pipe(
+    Config.unwrap(options).pipe(
       Effect.flatMap(make)
     )
   )

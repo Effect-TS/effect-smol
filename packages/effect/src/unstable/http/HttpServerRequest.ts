@@ -121,7 +121,7 @@ export const upgradeChannel = <IE = never>(): Channel.Channel<
   unknown,
   HttpServerRequest
 > =>
-  HttpServerRequest.asEffect().pipe(
+  HttpServerRequest.pipe(
     Effect.flatMap((_) => _.upgrade),
     Effect.map(Socket.toChannelWith<IE>()),
     Channel.unwrap
@@ -136,7 +136,7 @@ export const schemaCookies = <A, I extends Readonly<Record<string, string | unde
   options?: ParseOptions | undefined
 ): Effect.Effect<A, Schema.SchemaError, RD | HttpServerRequest> => {
   const parse = Schema.decodeUnknownEffect(schema)
-  return Effect.flatMap(HttpServerRequest.asEffect(), (req) => parse(req.cookies, options))
+  return Effect.flatMap(HttpServerRequest, (req) => parse(req.cookies, options))
 }
 
 /**
@@ -148,7 +148,7 @@ export const schemaHeaders = <A, I extends Readonly<Record<string, string | unde
   options?: ParseOptions | undefined
 ): Effect.Effect<A, Schema.SchemaError, HttpServerRequest | RD> => {
   const parse = Schema.decodeUnknownEffect(schema)
-  return Effect.flatMap(HttpServerRequest.asEffect(), (req) => parse(req.headers, options))
+  return Effect.flatMap(HttpServerRequest, (req) => parse(req.headers, options))
 }
 
 /**
@@ -165,7 +165,7 @@ export const schemaSearchParams = <
   options?: ParseOptions | undefined
 ): Effect.Effect<A, Schema.SchemaError, ParsedSearchParams | RD> => {
   const parse = Schema.decodeUnknownEffect(schema)
-  return Effect.flatMap(ParsedSearchParams.asEffect(), (params) => parse(params, options))
+  return Effect.flatMap(ParsedSearchParams, (params) => parse(params, options))
 }
 /**
  * @since 4.0.0
@@ -176,7 +176,7 @@ export const schemaBodyJson = <A, I, RD, RE>(
   options?: ParseOptions | undefined
 ): Effect.Effect<A, HttpServerError | Schema.SchemaError, HttpServerRequest | RD> => {
   const parse = HttpIncomingMessage.schemaBodyJson(schema, options)
-  return Effect.flatMap(HttpServerRequest.asEffect(), parse)
+  return Effect.flatMap(HttpServerRequest, parse)
 }
 
 const isMultipart = (request: HttpServerRequest) =>
@@ -193,7 +193,7 @@ export const schemaBodyForm = <A, I extends Partial<Multipart.Persisted>, RD, RE
 ) => {
   const parseMultipart = Multipart.schemaPersisted(schema)
   const parseUrlParams = HttpIncomingMessage.schemaBodyUrlParams(schema as Schema.Codec<A, any, RD, RE>, options)
-  return Effect.flatMap(HttpServerRequest.asEffect(), (request): Effect.Effect<
+  return Effect.flatMap(HttpServerRequest, (request): Effect.Effect<
     A,
     Multipart.MultipartError | Schema.SchemaError | HttpServerError,
     RD | HttpServerRequest | Scope.Scope | FileSystem.FileSystem | Path.Path
@@ -219,7 +219,7 @@ export const schemaBodyUrlParams = <
   options?: ParseOptions | undefined
 ): Effect.Effect<A, HttpServerError | Schema.SchemaError, HttpServerRequest | RD> => {
   const parse = HttpIncomingMessage.schemaBodyUrlParams(schema, options)
-  return Effect.flatMap(HttpServerRequest.asEffect(), parse)
+  return Effect.flatMap(HttpServerRequest, parse)
 }
 
 /**
@@ -235,7 +235,7 @@ export const schemaBodyMultipart = <A, I extends Partial<Multipart.Persisted>, R
   HttpServerRequest | Scope.Scope | FileSystem.FileSystem | Path.Path | RD
 > => {
   const parse = Multipart.schemaPersisted(schema)
-  return HttpServerRequest.asEffect().pipe(
+  return HttpServerRequest.pipe(
     Effect.flatMap((_) => _.multipart),
     Effect.flatMap((_) => parse(_, options))
   )
@@ -256,7 +256,7 @@ export const schemaBodyFormJson = <A, I, RD, RE>(
       Schema.decodeEffect
     )
     return Effect.flatMap(
-      HttpServerRequest.asEffect(),
+      HttpServerRequest,
       (request): Effect.Effect<
         A,
         Schema.SchemaError | HttpServerError,
@@ -933,8 +933,9 @@ export const toWeb = (self: HttpServerRequest, options?: {
   readonly signal?: AbortSignal | undefined
 }): Effect.Effect<Request, RequestError> =>
   Effect.contextWith((context) =>
-    toWebResult(self, {
+    Effect.fromResult(toWebResult(self, {
       context,
       signal: options?.signal
-    }).asEffect()
+    }))
   )
+

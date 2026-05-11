@@ -119,7 +119,7 @@ export const HttpClient: Context.Service<HttpClient, HttpClient> = Context.Servi
 
 const accessor = (method: keyof HttpClient) => (...args: Array<any>): Effect.Effect<any, any, any> =>
   Effect.flatMap(
-    HttpClient.asEffect(),
+    HttpClient,
     (client) => (client as any)[method](...args)
   )
 

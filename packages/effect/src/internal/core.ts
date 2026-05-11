@@ -96,29 +96,11 @@ export const StructuralProto = {
 }
 
 /** @internal */
-export const YieldableProto = {
-  [Symbol.iterator]() {
-    return new SingleShotGen(this) as any
-  }
-}
-
-/** @internal */
-export const YieldableErrorProto = {
-  ...YieldableProto,
-  pipe() {
-    return pipeArguments(this, arguments)
-  }
-}
-
-/** @internal */
 export const EffectProto = {
   [EffectTypeId]: effectVariance,
   ...PipeInspectableProto,
   [Symbol.iterator]() {
     return new SingleShotGen(this) as any
-  },
-  asEffect(): any {
-    return this
   },
   toJSON(this: Primitive) {
     return {
@@ -585,11 +567,16 @@ export const YieldableError: new(
   options?: ErrorOptions
 ) => Cause.YieldableError = (function() {
   class YieldableError extends globalThis.Error {
-    asEffect() {
-      return exitFail(this)
-    }
   }
-  Object.assign(YieldableError.prototype, YieldableErrorProto)
+  Object.assign(
+    YieldableError.prototype,
+    makePrimitiveProto({
+      op: "YieldableError",
+      [evaluate]() {
+        return exitFail(this)
+      }
+    })
+  )
   return YieldableError as any
 })()
 
@@ -609,7 +596,7 @@ export const Error: new<A extends Record<string, any> = {}>(
         })
       }
     }
-    toJSON() {
+    override toJSON() {
       return { ...(this as any)[plainArgsSymbol], ...this }
     }
   } as any

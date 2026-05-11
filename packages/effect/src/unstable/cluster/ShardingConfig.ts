@@ -263,7 +263,7 @@ export const config: Config.Config<ShardingConfig["Service"]> = Config.all({
  * @since 4.0.0
  * @category Config
  */
-export const configFromEnv = config.asEffect().pipe(
+export const configFromEnv = config.pipe(
   Effect.provideService(
     ConfigProvider.ConfigProvider,
     ConfigProvider.fromEnv().pipe(

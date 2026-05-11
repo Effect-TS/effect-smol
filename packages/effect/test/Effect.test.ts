@@ -132,7 +132,7 @@ describe("Effect", () => {
   })
 
   it("Context.Service", () =>
-    ATag.asEffect().pipe(
+    ATag.pipe(
       Effect.tap((_) => Effect.sync(() => assert.strictEqual(_, "A"))),
       Effect.provideService(ATag, "A"),
       Effect.runPromise
@@ -140,28 +140,19 @@ describe("Effect", () => {
 
   describe("fromOption", () => {
     it("from a some", () =>
-      Option.some("A").asEffect().pipe(
+      Option.some("A").pipe(
+        Effect.fromOption,
         Effect.tap((_) => Effect.sync(() => assert.strictEqual(_, "A"))),
         Effect.runPromise
       ))
 
     it("from a none", () =>
-      Option.none().asEffect().pipe(
+      Option.none().pipe(
+        Effect.fromOption,
         Effect.flip,
         Effect.tap((error) => Effect.sync(() => assert.ok(error instanceof Cause.NoSuchElementError))),
         Effect.runPromise
       ))
-
-    it.effect("yieldable", () =>
-      Effect.gen(function*() {
-        const result = yield* Option.some("A")
-        assert.strictEqual(result, "A")
-
-        const error = yield* Effect.gen(function*() {
-          yield* Option.none()
-        }).pipe(Effect.flip)
-        assert.deepStrictEqual(error, new Cause.NoSuchElementError())
-      }))
   })
 
   describe("fromResult", () => {
@@ -173,22 +164,12 @@ describe("Effect", () => {
       ))
 
     it("from a failure", () =>
-      Result.fail("error").asEffect().pipe(
+      Result.fail("error").pipe(
+        Effect.fromResult,
         Effect.flip,
         Effect.tap((error) => Effect.sync(() => assert.strictEqual(error, "error"))),
         Effect.runPromise
       ))
-
-    it.effect("yieldable", () =>
-      Effect.gen(function*() {
-        const result = yield* Result.succeed("A")
-        assert.strictEqual(result, "A")
-
-        const error = yield* Effect.gen(function*() {
-          yield* Result.fail("error")
-        }).pipe(Effect.flip)
-        assert.strictEqual(error, "error")
-      }))
   })
 
   describe("gen", () => {
@@ -2675,3 +2656,4 @@ describe("Effect", () => {
       }))
   })
 })
+

@@ -1390,7 +1390,7 @@ export const cron: {
   (expression: string, tz?: string | DateTime.TimeZone): Schedule<Duration.Duration, unknown, Cron.CronParseError>
 } = (expression: string | Cron.Cron, tz?: string | DateTime.TimeZone) => {
   const parsed = Cron.isCron(expression) ? Result.succeed(expression) : Cron.parse(expression, tz)
-  return fromStep(effect.map(parsed.asEffect(), (cron) => (now, _) =>
+  return fromStep(effect.map(effect.fromResult(parsed), (cron) => (now, _) =>
     effect.sync(() => {
       const next = Cron.next(cron, now).getTime()
       const duration = Duration.millis(next - now)
@@ -3334,3 +3334,4 @@ export const satisfiesServicesType = <T>() =>
 <Env extends T, Output = never, Input = unknown, Error = never>(
   self: Schedule<Output, Input, Error, Env>
 ): Schedule<Output, Input, Error, Env> => self
+

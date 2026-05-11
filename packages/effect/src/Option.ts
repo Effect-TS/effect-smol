@@ -72,9 +72,7 @@
  * @since 2.0.0
  * @module
  */
-import type { NoSuchElementError } from "./Cause.ts"
 import * as Combiner from "./Combiner.ts"
-import type { EffectIterator, Yieldable } from "./Effect.ts"
 import * as Equal from "./Equal.ts"
 import * as Equivalence from "./Equivalence.ts"
 import type * as Filter from "./Filter.ts"
@@ -144,7 +142,6 @@ export type Option<A> = None<A> | Some<A>
  * **Behavior**
  *
  * - `_tag` is always `"None"`
- * - Yieldable in `Effect.gen` — yields `NoSuchElementError`
  * - Implements `Pipeable`, `Inspectable`, and structural equality
  *
  * @see {@link isNone} to check if an `Option` is `None`
@@ -153,16 +150,27 @@ export type Option<A> = None<A> | Some<A>
  * @category Models
  * @since 2.0.0
  */
-export interface None<out A> extends Pipeable, Inspectable, Yieldable<Option<A>, A, NoSuchElementError> {
+export interface None<out A> extends Pipeable, Inspectable {
   readonly _tag: "None"
   readonly _op: "None"
   readonly valueOrUndefined: undefined
   readonly [TypeId]: {
     readonly _A: Covariant<A>
   }
+  [Symbol.iterator](): OptionIterator<Option<A>>
   [Unify.typeSymbol]?: unknown
   [Unify.unifySymbol]?: OptionUnify<this>
   [Unify.ignoreSymbol]?: OptionUnifyIgnore
+}
+
+/**
+ * @since 4.0.0
+ * @category Models
+ */
+export interface OptionIterator<T extends Option<any>> {
+  next(
+    ...args: ReadonlyArray<any>
+  ): IteratorResult<T, Option.Value<T>>
 }
 
 /**
@@ -177,7 +185,6 @@ export interface None<out A> extends Pipeable, Inspectable, Yieldable<Option<A>,
  *
  * - `_tag` is always `"Some"`
  * - `.value` holds the contained value of type `A`
- * - Yieldable in `Effect.gen` — yields the inner value
  * - Implements `Pipeable`, `Inspectable`, and structural equality
  *
  * @see {@link isSome} to check if an `Option` is `Some`
@@ -186,7 +193,7 @@ export interface None<out A> extends Pipeable, Inspectable, Yieldable<Option<A>,
  * @category Models
  * @since 2.0.0
  */
-export interface Some<out A> extends Pipeable, Inspectable, Yieldable<Option<A>, A, NoSuchElementError> {
+export interface Some<out A> extends Pipeable, Inspectable {
   readonly _tag: "Some"
   readonly _op: "Some"
   readonly value: A
@@ -194,7 +201,7 @@ export interface Some<out A> extends Pipeable, Inspectable, Yieldable<Option<A>,
   readonly [TypeId]: {
     readonly _A: Covariant<A>
   }
-  [Symbol.iterator](): EffectIterator<Option<A>>
+  [Symbol.iterator](): OptionIterator<Option<A>>
   [Unify.typeSymbol]?: unknown
   [Unify.unifySymbol]?: OptionUnify<this>
   [Unify.ignoreSymbol]?: OptionUnifyIgnore

@@ -892,15 +892,16 @@ export const suspend: <A, E, R>(
 })
 
 /** @internal */
-export const fromYieldable = <Self extends Effect.Yieldable.Any, A, E, R>(
-  yieldable: Effect.Yieldable<Self, A, E, R>
-): Effect.Effect<A, E, R> => yieldable.asEffect()
+export const fromOption: <A>(option: Option.Option<A>) => Effect.Effect<A, Cause.NoSuchElementError> = Option.match({
+  onNone: () => fail(new NoSuchElementError("Effect.fromOption: Option.none")),
+  onSome: succeed
+})
 
 /** @internal */
-export const fromOption: <A>(option: Option.Option<A>) => Effect.Effect<A, Cause.NoSuchElementError> = fromYieldable
-
-/** @internal */
-export const fromResult: <A, E>(result: Result.Result<A, E>) => Effect.Effect<A, E> = fromYieldable
+export const fromResult: <A, E>(result: Result.Result<A, E>) => Effect.Effect<A, E> = Result.match({
+  onFailure: fail,
+  onSuccess: succeed
+})
 
 /** @internal */
 export const fromNullishOr = <A>(value: A): Effect.Effect<NonNullable<A>, Cause.NoSuchElementError> =>
@@ -1083,7 +1084,7 @@ export const never: Effect.Effect<never> = callback<never>(constVoid)
 /** @internal */
 export const gen = <
   Self,
-  Eff extends Effect.Yieldable<any, any, any, any>,
+  Eff extends Effect.Effect<any, any, any>,
   AEff
 >(
   ...args:
@@ -1092,10 +1093,10 @@ export const gen = <
 ): Effect.Effect<
   AEff,
   [Eff] extends [never] ? never
-    : [Eff] extends [Effect.Yieldable<infer _A, infer E, infer _R>] ? E
+    : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E
     : never,
   [Eff] extends [never] ? never
-    : [Eff] extends [Effect.Yieldable<infer _A, infer _E, infer R>] ? R
+    : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R
     : never
 > =>
   suspend(() =>
@@ -1223,7 +1224,7 @@ export const fnUntracedEager: Effect.fn.Untraced = (
   )
 
 const fromIteratorEagerUnsafe = (
-  evaluate: () => Iterator<Effect.Yieldable<any, any, any, any>>
+  evaluate: () => Iterator<Effect.Effect<any, any, any>>
 ): Effect.Effect<any, any, any> => {
   try {
     const iterator = evaluate()
@@ -1237,22 +1238,20 @@ const fromIteratorEagerUnsafe = (
         return succeed(state.value)
       }
 
-      const yieldable = state.value
-      const effect = yieldable.asEffect()
-      const primitive = effect as any
+      const primitive = state.value as any
 
       if (primitive && primitive._tag === "Success") {
         value = primitive.value
         continue
       } else if (primitive && primitive._tag === "Failure") {
-        return effect
+        return state.value
       } else {
         let isFirstExecution = true
 
         return suspend(() => {
           if (isFirstExecution) {
             isFirstExecution = false
-            return flatMap(effect, (value) => fromIteratorUnsafe(iterator, value))
+            return flatMap(state.value, (value) => fromIteratorUnsafe(iterator, value))
           } else {
             return suspend(() => fromIteratorUnsafe(evaluate()))
           }
@@ -1265,7 +1264,7 @@ const fromIteratorEagerUnsafe = (
 }
 
 const fromIteratorUnsafe: (
-  iterator: Iterator<Effect.Yieldable<any, any, any, any>>,
+  iterator: Iterator<Effect.Effect<any, any, any>>,
   initial?: undefined
 ) => Effect.Effect<any, any, any> = makePrimitive({
   op: "Iterator",
@@ -1275,14 +1274,13 @@ const fromIteratorUnsafe: (
     while (true) {
       const state = iter.next(value)
       if (state.done) return succeed(state.value)
-      const eff = state.value.asEffect()
-      if (!effectIsExit(eff)) {
+      if (!effectIsExit(state.value)) {
         fiber._stack.push(this)
-        return eff
-      } else if (eff._tag === "Failure") {
-        return eff
+        return state.value
+      } else if (state.value._tag === "Failure") {
+        return state.value
       }
-      value = eff.value
+      value = state.value.value
     }
   },
   [evaluate](this: any, fiber: FiberImpl) {
@@ -1968,9 +1966,7 @@ export const exitFindErrorOption = <A, E>(self: Exit.Exit<A, E>): Option.Option<
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const service: {
-  <I, S>(service: Context.Key<I, S>): Effect.Effect<S, never, I>
-} = fromYieldable as any
+export const service = <I, S>(service: Context.Key<I, S>): Effect.Effect<S, never, I> => service
 
 /** @internal */
 export const serviceOption = <I, S>(
@@ -3767,7 +3763,7 @@ export const scopeMake = (finalizerStrategy?: "sequential" | "parallel"): Effect
   sync(() => scopeMakeUnsafe(finalizerStrategy))
 
 /** @internal */
-export const scope: Effect.Effect<Scope.Scope, never, Scope.Scope> = scopeTag.asEffect()
+export const scope: Effect.Effect<Scope.Scope, never, Scope.Scope> = scopeTag
 
 /** @internal */
 export const provideScope: {
@@ -5570,10 +5566,10 @@ const provideSpanStackFrame = (name: string, stack: (() => string | undefined) |
 }
 
 /** @internal */
-export const spanAnnotations: Effect.Effect<Readonly<Record<string, unknown>>> = TracerSpanAnnotations.asEffect()
+export const spanAnnotations: Effect.Effect<Readonly<Record<string, unknown>>> = TracerSpanAnnotations
 
 /** @internal */
-export const spanLinks: Effect.Effect<ReadonlyArray<Tracer.SpanLink>> = TracerSpanLinks.asEffect()
+export const spanLinks: Effect.Effect<ReadonlyArray<Tracer.SpanLink>> = TracerSpanLinks
 
 /** @internal */
 export const linkSpans: {

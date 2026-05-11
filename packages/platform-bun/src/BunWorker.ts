@@ -59,7 +59,7 @@ export const layerPlatform = Layer.succeed(Worker.WorkerPlatform)(
               message: "An error event was emitted",
               cause: event.error ?? event.message
             })
-          }).asEffect()
+          })
         )
       }
       port.addEventListener("message", onMessage)

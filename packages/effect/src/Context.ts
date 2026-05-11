@@ -10,12 +10,13 @@
  *
  * @since 4.0.0
  */
-import type { Effect, EffectIterator, Yieldable } from "./Effect.ts"
+import type { Effect, EffectIterator } from "./Effect.ts"
+import * as Effectable from "./Effectable.ts"
 import * as Equal from "./Equal.ts"
-import { constant, dual, type LazyArg } from "./Function.ts"
+import { dual, type LazyArg } from "./Function.ts"
 import * as Hash from "./Hash.ts"
 import type { Inspectable } from "./Inspectable.ts"
-import { exitSucceed, PipeInspectableProto, withFiber, YieldableProto } from "./internal/core.ts"
+import { exitSucceed, PipeInspectableProto, withFiber } from "./internal/core.ts"
 import type { ErrorWithStackTraceLimit } from "./internal/tracer.ts"
 import * as Option from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
@@ -40,13 +41,12 @@ export const ServiceTypeId: ServiceTypeId = "~effect/Context/Service"
  * @since 4.0.0
  * @category Models
  */
-export interface Key<out Identifier, out Shape> extends Pipeable, Inspectable {
+export interface Key<out Identifier, out Shape> extends Effect<Shape, never, Identifier> {
   readonly [ServiceTypeId]: ServiceTypeId
   readonly Service: Shape
   readonly Identifier: Identifier
   readonly key: string
   readonly stack?: string | undefined
-  asEffect(): Effect<Shape, never, Identifier>
 }
 
 /**
@@ -66,9 +66,7 @@ export interface Key<out Identifier, out Shape> extends Pipeable, Inspectable {
  * @since 4.0.0
  * @category Models
  */
-export interface Service<in out Identifier, in out Shape>
-  extends Key<Identifier, Shape>, Yieldable<Service<Identifier, Shape>, Shape, never, Identifier>
-{
+export interface Service<in out Identifier, in out Shape> extends Key<Identifier, Shape> {
   of(this: void, self: Shape): Shape
   context(self: Shape): Context<Identifier>
   use<A, E, R>(f: (service: Shape) => Effect<A, E, R>): Effect<A, E, R | Identifier>
@@ -195,18 +193,18 @@ export const Service: {
 
 const ServiceProto: any = {
   [ServiceTypeId]: ServiceTypeId,
-  ...PipeInspectableProto,
-  ...YieldableProto,
+  ...Effectable.Prototype<Service<never, any>>({
+    label: "Service",
+    evaluate(fiber) {
+      return exitSucceed(get(fiber.context, this))
+    }
+  }),
   toJSON<I, A>(this: Service<I, A>) {
     return {
       _id: "Service",
       key: this.key,
       stack: this.stack
     }
-  },
-  asEffect(this: any) {
-    const fn = this.asEffect = constant(withFiber((fiber) => exitSucceed(get(fiber.context, this))))
-    return fn()
   },
   of<Service>(this: void, self: Service): Service {
     return self

@@ -194,7 +194,7 @@ export const layerConfig = (
   config: Config.Wrap<D1ClientConfig>
 ): Layer.Layer<D1Client | Client.SqlClient, Config.ConfigError> =>
   Layer.effectContext(
-    Config.unwrap(config).asEffect().pipe(
+    Config.unwrap(config).pipe(
       Effect.flatMap(make),
       Effect.map((client) =>
         Context.make(D1Client, client).pipe(

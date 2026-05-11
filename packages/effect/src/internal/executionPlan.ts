@@ -73,7 +73,7 @@ export const withExecutionPlan: {
             nextEffect = effect.suspend(() => {
               if (attempted) return wrapped
               attempted = true
-              return result!.asEffect()
+              return effect.fromResult(result!)
             })
             nextEffect = internalSchedule.retry(nextEffect, scheduleFromStep(step, false)!)
           } else {
@@ -87,7 +87,7 @@ export const withExecutionPlan: {
           i++
         }
       }),
-      () => result!.asEffect()
+      () => effect.fromResult(result!)
     )
   }))
 
@@ -118,3 +118,4 @@ export const scheduleFromStep = <Provides, In, PlanE, PlanR>(
 }
 
 const scheduleOnce = Schedule.recurs(1)
+

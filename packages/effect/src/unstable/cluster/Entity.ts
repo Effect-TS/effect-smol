@@ -221,10 +221,10 @@ const Proto = {
     return fromRpcGroup(this.type, this.protocol.annotateRpcsMerge(annotations))
   },
   getShardId(this: Entity<string, any>, entityId: EntityId) {
-    return Effect.map(shardingTag.asEffect(), (sharding) => sharding.getShardId(entityId, this.getShardGroup(entityId)))
+    return Effect.map(shardingTag, (sharding) => sharding.getShardId(entityId, this.getShardGroup(entityId)))
   },
   get client() {
-    return shardingTag.asEffect().pipe(
+    return shardingTag.pipe(
       Effect.flatMap((sharding) => sharding.makeClient(this as any))
     )
   },
@@ -253,7 +253,7 @@ const Proto = {
     | Rpc.Middleware<Rpcs>
     | Sharding
   > {
-    return shardingTag.asEffect().pipe(
+    return shardingTag.pipe(
       Effect.flatMap((sharding) =>
         sharding.registerEntity(
           this,

@@ -135,7 +135,7 @@ export const modify: {
   self: TxRef<A>,
   f: (current: A) => [returnValue: R, newValue: A]
 ): Effect.Effect<R> =>
-  Effect.Transaction.asEffect().pipe(
+  Effect.Transaction.pipe(
     Effect.flatMap((state) =>
       Effect.sync(() => {
         if (!state.journal.has(self)) {

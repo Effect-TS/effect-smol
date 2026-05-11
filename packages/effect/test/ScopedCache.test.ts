@@ -51,7 +51,7 @@ describe("ScopedCache", () => {
           const program = Effect.gen(function*() {
             const cache = yield* ScopedCache.make({
               capacity: 10,
-              lookup: (_key: string) => Effect.map(TestService.asEffect(), (service) => service.value)
+              lookup: (_key: string) => Effect.map(TestService, (service) => service.value)
             })
             return yield* ScopedCache.get(cache, "test")
           })
@@ -2005,7 +2005,7 @@ describe("ScopedCache", () => {
 
           const cache = yield* ScopedCache.make({
             capacity: 10,
-            lookup: (_key: string) => Effect.map(CounterService.asEffect(), (service) => service.value),
+            lookup: (_key: string) => Effect.map(CounterService, (service) => service.value),
             requireServicesAt: "lookup"
           })
 

@@ -74,7 +74,7 @@ export const suite = (storeId: string, layer: Layer.Layer<Persistence.Persistenc
     it.effect("requireServicesAt: 'lookup' requires lookup services at get-time", () =>
       Effect.gen(function*() {
         const cache = yield* PersistedCache.make((req: TTLRequest) =>
-          Effect.map(LookupService.asEffect(), (service) => new User({ id: req.id, name: service.value })), {
+          Effect.map(LookupService, (service) => new User({ id: req.id, name: service.value })), {
           storeId: `${storeId}-require-services-at`,
           timeToLive: () =>
             5000,

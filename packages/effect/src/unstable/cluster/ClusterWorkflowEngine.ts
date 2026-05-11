@@ -502,7 +502,7 @@ export const make = Effect.gen(function*() {
     ),
 
     deferredResult: (deferred) =>
-      WorkflowEngine.WorkflowInstance.asEffect().pipe(
+      WorkflowEngine.WorkflowInstance.pipe(
         Effect.flatMap((instance) =>
           requestReply({
             workflow: instance.workflow,

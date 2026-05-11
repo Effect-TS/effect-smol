@@ -279,7 +279,7 @@ export const layerConfig = <R extends string>(
   ConfigError
 > =>
   Layer.mergeAll(
-    Layer.effect(Server.HttpServer)(Effect.flatMap(Config.unwrap(options).asEffect(), make)),
+    Layer.effect(Server.HttpServer)(Effect.flatMap(Config.unwrap(options), make)),
     layerHttpServices
   )
 

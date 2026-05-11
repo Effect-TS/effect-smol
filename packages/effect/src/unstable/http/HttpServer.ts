@@ -177,7 +177,7 @@ export const addressFormattedWith = <A, E, R>(
   f: (address: string) => Effect.Effect<A, E, R>
 ): Effect.Effect<A, E, HttpServer | R> =>
   Effect.flatMap(
-    HttpServer.asEffect(),
+    HttpServer,
     (server) => f(formatAddress(server.address))
   )
 
