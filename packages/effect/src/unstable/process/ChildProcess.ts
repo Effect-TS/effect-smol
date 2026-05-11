@@ -40,11 +40,11 @@
  *
  * @since 4.0.0
  */
+import * as Context from "../../Context.ts"
 import type * as Duration from "../../Duration.ts"
 import type * as Effect from "../../Effect.ts"
+import * as Effectable from "../../Effectable.ts"
 import { dual } from "../../Function.ts"
-import { PipeInspectableProto, YieldableProto } from "../../internal/core.ts"
-import type { Pipeable } from "../../Pipeable.ts"
 import type * as PlatformError from "../../PlatformError.ts"
 import * as Predicate from "../../Predicate.ts"
 import type * as Scope from "../../Scope.ts"
@@ -74,9 +74,7 @@ export type Command =
  * @category Models
  */
 export interface StandardCommand extends
-  Pipeable,
-  Effect.Yieldable<
-    StandardCommand,
+  Effect.Effect<
     ChildProcessHandle,
     PlatformError.PlatformError,
     ChildProcessSpawner | Scope.Scope
@@ -96,9 +94,7 @@ export interface StandardCommand extends
  * @category Models
  */
 export interface PipedCommand extends
-  Pipeable,
-  Effect.Yieldable<
-    PipedCommand,
+  Effect.Effect<
     ChildProcessHandle,
     PlatformError.PlatformError,
     ChildProcessSpawner | Scope.Scope
@@ -510,12 +506,13 @@ export type TemplateExpression = TemplateExpressionItem | ReadonlyArray<Template
 // =============================================================================
 
 const Proto = {
-  ...PipeInspectableProto,
-  ...YieldableProto,
-  [TypeId]: TypeId,
-  asEffect(this: Command) {
-    return ChildProcessSpawner.use((_) => _.spawn(this))
-  }
+  ...Effectable.Prototype<Command>({
+    label: "Command",
+    evaluate(fiber) {
+      return Context.getUnsafe(fiber.context, ChildProcessSpawner).spawn(this)
+    }
+  }),
+  [TypeId]: TypeId
 }
 
 /**

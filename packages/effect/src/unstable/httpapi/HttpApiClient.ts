@@ -386,7 +386,7 @@ export const make = <ApiId extends string, Groups extends HttpApiGroup.Any>(
   never,
   HttpClient.HttpClient | HttpApiGroup.MiddlewareClient<Groups>
 > =>
-  Effect.flatMap(HttpClient.HttpClient.asEffect(), (httpClient) =>
+  Effect.flatMap(HttpClient.HttpClient, (httpClient) =>
     makeWith(api, {
       ...options,
       httpClient: options?.transformClient ? options.transformClient(httpClient) : httpClient

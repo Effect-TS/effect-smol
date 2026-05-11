@@ -1291,10 +1291,10 @@ export function encodeHex<E extends Uint8Array | string>(): Getter<string, E> {
  */
 export function decodeBase64<E extends string>(): Getter<Uint8Array, E> {
   return transformOrFail((input) =>
-    Result.mapError(
-      Encoding.decodeBase64(input),
+    Effect.mapErrorEager(
+      Effect.fromResult(Encoding.decodeBase64(input)),
       (e) => new Issue.InvalidValue(Option.some(input), { message: e.message })
-    ).asEffect()
+    )
   )
 }
 

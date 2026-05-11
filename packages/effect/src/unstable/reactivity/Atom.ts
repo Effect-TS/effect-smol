@@ -2057,7 +2057,7 @@ export const modify: {
 } = dual(
   2,
   <R, W, A>(self: Writable<R, W>, f: (_: R) => [returnValue: A, nextValue: W]): Effect.Effect<A, never, AtomRegistry> =>
-    Effect.map(AtomRegistry.asEffect(), (_) => _.modify(self, f))
+    Effect.map(AtomRegistry, (_) => _.modify(self, f))
 )
 
 /**
@@ -2070,7 +2070,7 @@ export const set: {
 } = dual(
   2,
   <R, W>(self: Writable<R, W>, value: W): Effect.Effect<void, never, AtomRegistry> =>
-    Effect.map(AtomRegistry.asEffect(), (_) => _.set(self, value))
+    Effect.map(AtomRegistry, (_) => _.set(self, value))
 )
 
 /**
@@ -2083,7 +2083,7 @@ export const update: {
 } = dual(
   2,
   <R, W>(self: Writable<R, W>, f: (_: R) => W): Effect.Effect<void, never, AtomRegistry> =>
-    Effect.map(AtomRegistry.asEffect(), (_) => _.update(self, f))
+    Effect.map(AtomRegistry, (_) => _.update(self, f))
 )
 
 /**
@@ -2100,7 +2100,7 @@ export const getResult = <A, E>(
  * @category Conversions
  */
 export const refresh = <A>(self: Atom<A>): Effect.Effect<void, never, AtomRegistry> =>
-  Effect.map(AtomRegistry.asEffect(), (_) => _.refresh(self))
+  Effect.map(AtomRegistry, (_) => _.refresh(self))
 
 /**
  * @since 4.0.0

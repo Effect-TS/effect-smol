@@ -376,7 +376,7 @@ export const file = (
   }
 ): Effect.Effect<Stream, PlatformError.PlatformError, FileSystem.FileSystem> =>
   Effect.flatMap(
-    FileSystem.FileSystem.asEffect(),
+    FileSystem.FileSystem,
     (fs) =>
       Effect.map(fs.stat(path), (info) =>
         stream(
@@ -401,7 +401,7 @@ export const fileFromInfo = (
   }
 ): Effect.Effect<Stream, PlatformError.PlatformError, FileSystem.FileSystem> =>
   Effect.map(
-    FileSystem.FileSystem.asEffect(),
+    FileSystem.FileSystem,
     (fs) =>
       stream(
         fs.stream(path, options),

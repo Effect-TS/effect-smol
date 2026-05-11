@@ -24,7 +24,7 @@ describe("Config", () => {
   it("a config is an Effect and can be yielded", () => {
     const provider = ConfigProvider.fromEnv({ env: { STRING: "value" } })
     const result = Effect.runSync(Effect.provide(
-      Config.schema(Schema.Struct({ STRING: Schema.String })).asEffect(),
+      Config.schema(Schema.Struct({ STRING: Schema.String })),
       ConfigProvider.layer(provider)
     ))
     deepStrictEqual(result, { STRING: "value" })

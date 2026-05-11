@@ -70,7 +70,7 @@ export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.succe
                     message: "received messageerror event",
                     cause
                   })
-                }).asEffect()
+                })
               )
             })
             WorkerThreads.parentPort.on("error", (cause) => {
@@ -81,7 +81,7 @@ export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.succe
                     message: "received messageerror event",
                     cause
                   })
-                }).asEffect()
+                })
               )
             })
           }

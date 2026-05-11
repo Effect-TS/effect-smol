@@ -54,7 +54,7 @@ export abstract class NodeHttpIncomingMessage<E> extends Inspectable.Class
     }
     this.textEffect = Effect.runSync(Effect.cached(
       Effect.flatMap(
-        IncomingMessage.MaxBodySize.asEffect(),
+        IncomingMessage.MaxBodySize,
         (maxBodySize) =>
           NodeStream.toString(() => this.source, {
             onError: this.onError,

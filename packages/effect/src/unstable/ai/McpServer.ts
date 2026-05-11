@@ -1252,9 +1252,9 @@ const layerHandlers = (serverInfo: {
             Effect.provideService(CurrentLogLevel, currentLogLevel)
           ),
         "resources/subscribe": () =>
-          InternalError.notImplemented.asEffect(),
+          InternalError.notImplemented,
         "resources/unsubscribe": () =>
-          InternalError.notImplemented.asEffect(),
+          InternalError.notImplemented,
         "resources/templates/list": (_, { client, headers }) =>
           Effect.sync(() => {
             const initialized = getInitializedClient(options.clientSessions, client.id, headers)

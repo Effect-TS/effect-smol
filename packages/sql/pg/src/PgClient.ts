@@ -750,7 +750,7 @@ export const layerConfig: (
   config: Config.Wrap<PgPoolConfig>
 ): Layer.Layer<PgClient | Client.SqlClient, Config.ConfigError | SqlError> =>
   layerFrom(Effect.flatMap(
-    Config.unwrap(config).asEffect(),
+    Config.unwrap(config),
     make
   ))
 

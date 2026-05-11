@@ -666,7 +666,7 @@ export const scope: Effect.Effect<
   never,
   WorkflowInstance
 > = Effect.map(
-  InstanceTag.asEffect(),
+  InstanceTag,
   (instance) => instance.scope as Scope.Scope
 )
 

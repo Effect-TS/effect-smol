@@ -1497,7 +1497,7 @@ export const setPartsUtc: {
  *
  * const program = Effect.gen(function*() {
  *   // Access the current time zone service
- *   const zone = yield* DateTime.CurrentTimeZone.asEffect()
+ *   const zone = yield* DateTime.CurrentTimeZone
  *   console.log(DateTime.zoneToString(zone))
  * })
  *
@@ -1532,7 +1532,7 @@ export class CurrentTimeZone extends Context.Service<CurrentTimeZone, TimeZone>(
  * ```
  */
 export const setZoneCurrent = (self: DateTime): Effect.Effect<Zoned, never, CurrentTimeZone> =>
-  Effect.map(CurrentTimeZone.asEffect(), (zone) => setZone(self, zone))
+  Effect.map(CurrentTimeZone, (zone) => setZone(self, zone))
 
 /**
  * Provide the `CurrentTimeZone` to an effect.

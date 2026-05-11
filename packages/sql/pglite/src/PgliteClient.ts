@@ -316,7 +316,7 @@ export const layerConfig: (
   config: Config.Wrap<PgliteClientConfig.ConfigBase>
 ): Layer.Layer<PgliteClient | Client.SqlClient, Config.ConfigError | SqlError> =>
   layerFrom(Effect.flatMap(
-    Config.unwrap(config).asEffect(),
+    Config.unwrap(config),
     (resolved) => make(resolved as PgliteClientConfig)
   ))
 

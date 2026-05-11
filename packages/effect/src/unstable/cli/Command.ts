@@ -10,13 +10,12 @@ import { dual } from "../../Function.ts"
 import type * as Layer from "../../Layer.ts"
 import * as Option from "../../Option.ts"
 import type * as Path from "../../Path.ts"
-import type { Pipeable } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as References from "../../References.ts"
 import * as Result from "../../Result.ts"
 import * as Stdio from "../../Stdio.ts"
 import * as Terminal from "../../Terminal.ts"
-import type { NoInfer, Simplify } from "../../Types.ts"
+import type { Contravariant, Covariant, NoInfer, Simplify } from "../../Types.ts"
 import type { ChildProcessSpawner } from "../process/ChildProcessSpawner.ts"
 import * as CliError from "./CliError.ts"
 import * as CliOutput from "./CliOutput.ts"
@@ -77,17 +76,15 @@ import * as Param from "./Param.ts"
  * @since 4.0.0
  * @category models
  */
-export interface Command<Name extends string, Input, ContextInput = {}, E = never, R = never>
+export interface Command<in out Name extends string, in Input, out ContextInput = {}, out E = never, out R = never>
   extends
-    Pipeable,
-    Effect.Yieldable<
-      Command<Name, Input, ContextInput, E, R>,
+    Effect.Effect<
       ContextInput,
       never,
       CommandContext<Name>
     >
 {
-  readonly [TypeId]: typeof TypeId
+  readonly [TypeId]: Command.Variance<Input, E, R>
 
   /**
    * The name of the command.
@@ -132,6 +129,16 @@ export interface Command<Name extends string, Input, ContextInput = {}, E = neve
  * @since 4.0.0
  */
 export declare namespace Command {
+  /**
+   * @since 4.0.0
+   * @category models
+   */
+  export interface Variance<in Input, out E, out R> {
+    readonly Input: Contravariant<Input>
+    readonly E: Covariant<E>
+    readonly R: Covariant<R>
+  }
+
   /**
    * Represents a concrete usage example for a command.
    *
@@ -262,7 +269,19 @@ export declare namespace Command {
    * @since 4.0.0
    * @category models
    */
-  export type Any = Command<string, unknown, unknown, unknown, unknown>
+  export interface Any extends Effect.Effect<any, never, any> {
+    readonly [TypeId]: any
+    readonly name: string
+    readonly description: string | undefined
+    readonly shortDescription: string | undefined
+    readonly alias: string | undefined
+    readonly examples: ReadonlyArray<Command.Example>
+    readonly subcommands: ReadonlyArray<{
+      readonly group: string | undefined
+      readonly commands: NonEmptyReadonlyArray<Command.Any>
+    }>
+    readonly annotations: Context.Context<never>
+  }
 
   /**
    * A grouped set of subcommands used by `Command.withSubcommands`.
@@ -497,7 +516,7 @@ export const withHandler: {
   self: Command<Name, A, ContextInput, XE, XR>,
   handler: (value: A) => Effect.Effect<void, E, R>
 ): Command<Name, A, ContextInput, E, Exclude<R, GlobalFlag.BuiltInSettingContext>> =>
-  makeCommand({ ...toImpl(self), handle: handler }))
+  makeCommand({ ...toImpl(self), handle: handler } as any))
 
 interface SubcommandGroupInternal {
   readonly group: string | undefined
@@ -638,7 +657,7 @@ export const withSubcommands: {
   checkForDuplicateFlags(self, normalized.flat)
 
   const impl = toImpl(self)
-  const byName = new Map(normalized.flat.map((s) => [s.name, toImpl(s)] as const))
+  const byName = new Map(normalized.flat.map((s) => [s.name, toImpl(s as any)] as const))
 
   type NextInput = Simplify<Input | ContextInput>
   const SubcommandStateSymbol = Symbol("effect/cli/SubcommandState")
@@ -691,7 +710,7 @@ export const withSubcommands: {
     parse,
     parseContext: impl.parseContext,
     handle
-  })
+  }) as any
 })
 
 /**
@@ -788,7 +807,7 @@ export const withSharedFlags: {
       parse,
       parseContext,
       handle
-    })
+    }) as any
   }
 )
 
@@ -832,7 +851,7 @@ export const withGlobalFlags: {
   ): Command<Name, Input, ContextInput, E, Exclude<R, ExtractGlobalFlagContext<GlobalFlags>>> => {
     const impl = toImpl(self)
     const next = Array.from(new Set([...impl.globalFlags, ...globalFlags]))
-    return makeCommand({ ...impl, globalFlags: next })
+    return makeCommand({ ...impl, globalFlags: next }) as any
   }
 )
 

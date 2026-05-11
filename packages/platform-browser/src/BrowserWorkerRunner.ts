@@ -83,7 +83,7 @@ export const make = (self: MessagePort | Window): WorkerRunner.WorkerRunnerPlatf
                 message: "An messageerror event was emitted",
                 cause: error.data
               })
-            }).asEffect()
+            })
           )
         }
         function onError(error: any) {
@@ -94,7 +94,7 @@ export const make = (self: MessagePort | Window): WorkerRunner.WorkerRunnerPlatf
                 message: "An error event was emitted",
                 cause: error.data
               })
-            }).asEffect()
+            })
           )
         }
         function handlePort(port: MessagePort) {

@@ -908,7 +908,7 @@ export const layerProtocolHttp = (options: {
 }): Layer.Layer<Protocol, never, RpcSerialization.RpcSerialization | HttpClient.HttpClient> =>
   Layer.effect(Protocol)(
     Effect.flatMap(
-      HttpClient.HttpClient.asEffect(),
+      HttpClient.HttpClient,
       (client) => {
         client = HttpClient.mapRequest(client, HttpClientRequest.prependUrl(options.url))
         return makeProtocolHttp(options.transformClient ? options.transformClient(client) : client)

@@ -63,7 +63,7 @@ export const layerPlatform: Layer.Layer<Worker.WorkerPlatform> = Layer.succeed(W
               message: "An messageerror event was emitted",
               cause
             })
-          }).asEffect()
+          })
         )
       })
       port.worker.on("error", (cause) => {
@@ -74,7 +74,7 @@ export const layerPlatform: Layer.Layer<Worker.WorkerPlatform> = Layer.succeed(W
               message: "An error event was emitted",
               cause
             })
-          }).asEffect()
+          })
         )
       })
       port.worker.on("exit", (code) => {
@@ -84,7 +84,7 @@ export const layerPlatform: Layer.Layer<Worker.WorkerPlatform> = Layer.succeed(W
             reason: new WorkerReceiveError({
               message: "The worker has exited with code: " + code
             })
-          }).asEffect()
+          })
         )
       })
       return Effect.void

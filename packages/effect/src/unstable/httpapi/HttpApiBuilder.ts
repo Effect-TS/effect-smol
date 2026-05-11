@@ -364,7 +364,7 @@ export const securityDecode = <Security extends HttpApiSecurity.HttpApiSecurity>
   switch (self._tag) {
     case "Bearer": {
       return Effect.map(
-        HttpServerRequest.asEffect(),
+        HttpServerRequest,
         (request) => Redacted.make((request.headers.authorization ?? "").slice(bearerLen)) as any
       )
     }
@@ -392,9 +392,9 @@ export const securityDecode = <Security extends HttpApiSecurity.HttpApiSecurity>
         username: "",
         password: Redacted.make("")
       } as any
-      return HttpServerRequest.asEffect().pipe(
+      return HttpServerRequest.pipe(
         Effect.flatMap((request) =>
-          Encoding.decodeBase64String((request.headers.authorization ?? "").slice(basicLen)).asEffect()
+          Effect.fromResult(Encoding.decodeBase64String((request.headers.authorization ?? "").slice(basicLen)))
         ),
         Effect.match({
           onFailure: () => empty,
@@ -722,7 +722,7 @@ const makeSecurityMiddleware = (
       }
       return result.success
     }
-    return yield* lastResult!.asEffect()
+    return yield* Effect.fromResult(lastResult!)
   })
 
   securityMiddlewareCache.set(service, middleware)

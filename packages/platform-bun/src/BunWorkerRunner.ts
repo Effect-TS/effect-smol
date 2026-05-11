@@ -62,7 +62,7 @@ export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.succe
                 message: "received messageerror event",
                 cause: error.data
               })
-            }).asEffect()
+            })
           )
         }
         function onError(error: MessageEvent) {
@@ -73,7 +73,7 @@ export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.succe
                 message: "received error event",
                 cause: error.data
               })
-            }).asEffect()
+            })
           )
         }
         yield* Scope.addFinalizer(

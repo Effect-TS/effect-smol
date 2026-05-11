@@ -41,7 +41,7 @@ const makeTestClient = Effect.gen(function*() {
     Effect.provide(clientLayer)
   )
 
-  const httpClient = yield* HttpClient.HttpClient.asEffect().pipe(
+  const httpClient = yield* HttpClient.HttpClient.pipe(
     Effect.provide(clientLayer)
   )
 

@@ -374,7 +374,7 @@ export const file = (
     })
     | undefined
 ): Effect.Effect<HttpServerResponse, PlatformError, HttpPlatform> =>
-  Effect.flatMap(HttpPlatformKey.asEffect(), (platform) => platform.fileResponse(path, options))
+  Effect.flatMap(HttpPlatformKey, (platform) => platform.fileResponse(path, options))
 
 /**
  * @since 4.0.0
@@ -390,7 +390,7 @@ export const fileWeb = (
     })
     | undefined
 ): Effect.Effect<HttpServerResponse, never, HttpPlatform> =>
-  Effect.flatMap(HttpPlatformKey.asEffect(), (platform) => platform.fileWebResponse(file, options))
+  Effect.flatMap(HttpPlatformKey, (platform) => platform.fileWebResponse(file, options))
 
 /**
  * @since 4.0.0
@@ -482,7 +482,7 @@ export const setCookie: {
     options?: Cookies.Cookie["options"]
   ): Effect.Effect<HttpServerResponse, Cookies.CookiesError> =>
     Effect.map(
-      Cookies.set(self.cookies, name, value, options).asEffect(),
+      Effect.fromResult(Cookies.set(self.cookies, name, value, options)),
       (cookies) =>
         makeResponse({
           ...self,
@@ -515,7 +515,7 @@ export const expireCookie: {
     options?: Omit<NonNullable<Cookies.Cookie["options"]>, "expires" | "maxAge">
   ): Effect.Effect<HttpServerResponse, Cookies.CookiesError> =>
     Effect.map(
-      Cookies.expireCookie(self.cookies, name, options).asEffect(),
+      Effect.fromResult(Cookies.expireCookie(self.cookies, name, options)),
       (cookies) =>
         makeResponse({
           ...self,
@@ -656,7 +656,7 @@ export const setCookies: {
       ]
     >
   ): Effect.Effect<HttpServerResponse, Cookies.CookiesError> =>
-    Effect.map(Cookies.setAll(self.cookies, cookies).asEffect(), (cookies) =>
+    Effect.map(Effect.fromResult(Cookies.setAll(self.cookies, cookies)), (cookies) =>
       makeResponse({
         ...self,
         cookies

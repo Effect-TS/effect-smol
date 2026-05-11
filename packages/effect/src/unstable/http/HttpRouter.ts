@@ -148,7 +148,7 @@ export const make = Effect.gen(function*() {
                 Effect.succeed(handler) :
                 Effect.isEffect(handler)
                 ? handler
-                : Effect.flatMap(HttpServerRequest.HttpServerRequest.asEffect(), handler),
+                : Effect.flatMap(HttpServerRequest.HttpServerRequest, handler),
               uninterruptible: options?.uninterruptible ?? false,
               prefix
             })
@@ -240,7 +240,7 @@ export const params: Effect.Effect<
   ReadonlyRecord<string, string | undefined>,
   never,
   RouteContext
-> = Effect.map(RouteContext.asEffect(), (_) => _.params)
+> = Effect.map(RouteContext, (_) => _.params)
 
 /**
  * @since 4.0.0
@@ -385,8 +385,7 @@ export const schemaPathParams = <A, I extends Readonly<Record<string, string | u
  */
 export const use = <A, E, R>(
   f: (router: HttpRouter) => Effect.Effect<A, E, R>
-): Layer.Layer<never, E, HttpRouter | Exclude<R, Scope.Scope>> =>
-  Layer.effectDiscard(Effect.flatMap(HttpRouter.asEffect(), f))
+): Layer.Layer<never, E, HttpRouter | Exclude<R, Scope.Scope>> => Layer.effectDiscard(Effect.flatMap(HttpRouter, f))
 
 /**
  * Create a layer that adds a single route to the HTTP router.
@@ -559,7 +558,7 @@ export const route = <E = never, R = never>(
       Effect.succeed(handler) :
       Effect.isEffect(handler)
       ? handler
-      : Effect.flatMap(HttpServerRequest.HttpServerRequest.asEffect(), handler),
+      : Effect.flatMap(HttpServerRequest.HttpServerRequest, handler),
     uninterruptible: options?.uninterruptible ?? false
   })
 

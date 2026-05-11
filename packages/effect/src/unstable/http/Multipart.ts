@@ -455,7 +455,7 @@ class FileImpl extends PartBase implements File {
 
 const defaultWriteFile = (path: string, file: File) =>
   Effect.flatMap(
-    FileSystem.FileSystem.asEffect(),
+    FileSystem.FileSystem,
     (fs) =>
       Effect.mapError(
         Stream.run(file.content, fs.sink(path)),

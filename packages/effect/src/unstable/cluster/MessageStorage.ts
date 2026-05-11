@@ -929,7 +929,7 @@ export const layerMemory: Layer.Layer<
   MessageStorage | MemoryDriver,
   never,
   ShardingConfig
-> = Layer.effect(MessageStorage, Effect.map(MemoryDriver.asEffect(), (_) => _.storage)).pipe(
+> = Layer.effect(MessageStorage, Effect.map(MemoryDriver, (_) => _.storage)).pipe(
   Layer.provideMerge(MemoryDriver.layer)
 )
 

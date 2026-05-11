@@ -48,7 +48,7 @@ describe("ExecutionPlan", () => {
   describe("Stream.withExecutionPlan", () => {
     it.effect("fallback", () =>
       Effect.gen(function*() {
-        const stream = Stream.unwrap(Effect.map(Service.asEffect(), (_) => _.stream))
+        const stream = Stream.unwrap(Effect.map(Service, (_) => _.stream))
         const items = Array.empty<number>()
         const metadata = Array.empty<ExecutionPlan.Metadata>()
         const result = yield* stream.pipe(
@@ -80,7 +80,7 @@ describe("ExecutionPlan", () => {
 
     it.effect("fallback from partial stream", () =>
       Effect.gen(function*() {
-        const stream = Stream.unwrap(Effect.map(Service.asEffect(), (_) => _.stream))
+        const stream = Stream.unwrap(Effect.map(Service, (_) => _.stream))
         const items = Array.empty<number>()
         const result = yield* stream.pipe(
           Stream.withExecutionPlan(PlanPartial),
@@ -97,7 +97,7 @@ describe("ExecutionPlan", () => {
 
     it.effect("preventFallbackOnPartialStream", () =>
       Effect.gen(function*() {
-        const stream = Stream.unwrap(Effect.map(Service.asEffect(), (_) => _.stream))
+        const stream = Stream.unwrap(Effect.map(Service, (_) => _.stream))
         const items = Array.empty<number>()
         const result = yield* stream.pipe(
           Stream.withExecutionPlan(PlanPartial, {

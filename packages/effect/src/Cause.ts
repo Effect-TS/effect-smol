@@ -1067,7 +1067,7 @@ export const pretty: <E>(cause: Cause<E>) => string = effect.causePretty
 /**
  * Base interface for error classes that can be yielded directly inside
  * `Effect.gen` (via `Symbol.iterator`) or converted to a failing Effect
- * via `.asEffect()`.
+ * via ``.
  *
  * All built-in error classes in this module ({@link NoSuchElementError},
  * {@link TimeoutError}, {@link IllegalArgumentError},
@@ -1089,9 +1089,9 @@ export const pretty: <E>(cause: Cause<E>) => string = effect.causePretty
  * @since 2.0.0
  * @category errors
  */
-export interface YieldableError extends Error, Pipeable {
-  [Symbol.iterator](): Effect.EffectIterator<this>
-  asEffect(): Effect.Effect<never, this, never>
+export interface YieldableError extends Error, Pipeable, Inspectable {
+  readonly [Effect.TypeId]: Effect.Variance<never, this, never>
+  [Symbol.iterator](): Effect.EffectIterator<Effect.Effect<never, this, never>>
 }
 
 /**

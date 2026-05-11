@@ -618,7 +618,7 @@ describe("NodeChildProcessSpawner", () => {
       it.effect("should fail for invalid command", () =>
         Effect.gen(function*() {
           const exit = yield* Effect.exit(
-            ChildProcess.make("nonexistent-command-12345").asEffect()
+            ChildProcess.make("nonexistent-command-12345")
           )
 
           assert.isTrue(exit._tag === "Failure")
@@ -627,7 +627,7 @@ describe("NodeChildProcessSpawner", () => {
       it.effect("should handle spawn error with invalid cwd", () =>
         Effect.gen(function*() {
           const exit = yield* Effect.exit(
-            ChildProcess.make("echo", ["test"], { cwd: "/nonexistent/directory/path" }).asEffect()
+            ChildProcess.make("echo", ["test"], { cwd: "/nonexistent/directory/path" })
           )
 
           assert.isTrue(exit._tag === "Failure")
@@ -639,7 +639,7 @@ describe("NodeChildProcessSpawner", () => {
           const cwd = path.join(...TEST_BASH_SCRIPTS_PATH)
 
           const command = ChildProcess.make({ cwd })`./no-permissions.sh`
-          const result = yield* Effect.flip(command.asEffect())
+          const result = yield* Effect.flip(command)
 
           assert.deepStrictEqual(
             result,

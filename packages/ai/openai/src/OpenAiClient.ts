@@ -504,7 +504,7 @@ const makeSocket = Effect.gen(function*() {
               },
               description: error.message
             })
-          }).asEffect()),
+          })),
         Effect.catchCause((cause) => Queue.failCause(incoming, cause)),
         Effect.ensuring(Effect.forkIn(RcRef.invalidate(queueRef), socketScope, {
           startImmediately: true

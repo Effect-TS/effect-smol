@@ -30,7 +30,7 @@ const Base: new<A, E, R>() => Effect.Effect<A, E, R> = (() => {
   Base.prototype = Prototype({
     label: "Effectable",
     evaluate(_) {
-      return this.asEffect()
+      return this
     }
   })
   return Base as any
@@ -43,5 +43,5 @@ const Base: new<A, E, R>() => Effect.Effect<A, E, R> = (() => {
  * @category Constructors
  */
 export abstract class Class<A, E = never, R = never> extends Base<A, E, R> {
-  abstract override asEffect(): Effect.Effect<A, E, R>
+  abstract override: Effect.Effect<A, E, R>
 }

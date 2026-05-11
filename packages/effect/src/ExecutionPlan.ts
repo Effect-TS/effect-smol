@@ -94,10 +94,9 @@ export interface ExecutionPlan<
   }>
 
   /**
-   * Returns an equivalent `ExecutionPlan` with the requirements satisfied,
-   * using the current context.
+   * Returns an equivalent `ExecutionPlan` with the requirements satisfied, using the current context.
    */
-  readonly withRequirements: Effect.Effect<
+  readonly captureRequirements: Effect.Effect<
     ExecutionPlan<{
       provides: Config["provides"]
       input: Config["input"]
@@ -256,7 +255,7 @@ export declare namespace make {
 
 const Proto: Omit<ExecutionPlan<any>, "steps"> = {
   [TypeId]: TypeId,
-  get withRequirements() {
+  get captureRequirements() {
     const self = this as any as ExecutionPlan<any>
     return effect.contextWith((context: Context.Context<any>) =>
       effect.succeed(makeProto(self.steps.map((step) => ({

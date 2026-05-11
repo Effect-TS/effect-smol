@@ -68,7 +68,7 @@ export const layerConfig = (
   options: Config.Wrap<{ readonly url?: string } & RedisOptions>
 ): Layer.Layer<Redis.Redis | BunRedis, Config.ConfigError> =>
   Layer.effectContext(
-    Config.unwrap(options).asEffect().pipe(
+    Config.unwrap(options).pipe(
       Effect.flatMap(make)
     )
   )

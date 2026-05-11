@@ -528,8 +528,7 @@ export type ToolkitOption<
   R = any
 > = Tools extends any ? (
     | Toolkit.WithHandler<Tools>
-    | Effect.Yieldable<
-      Toolkit.Toolkit<Tools>,
+    | Effect.Effect<
       Toolkit.WithHandler<Tools>,
       E,
       R
@@ -554,20 +553,18 @@ export type ToolkitInput<
 > =
   | ToolkitOption<Tools, E, R>
   | Toolkit.WithHandler<Tools>
-  | Effect.Yieldable<
-    Toolkit.Toolkit<Tools>,
+  | Effect.Effect<
     Toolkit.WithHandler<Tools>,
     E,
     R
   >
 
 type ExtractToolsFromToolkitOption<ToolkitValue> = ToolkitValue extends Toolkit.WithHandler<infer Tools> ? Tools
-  : ToolkitValue extends Effect.Yieldable<
-    Toolkit.Toolkit<infer Tools>,
+  : ToolkitValue extends Effect.Effect<
     Toolkit.WithHandler<infer _Tools>,
     infer _E,
     infer _R
-  > ? Tools
+  > ? _Tools
   : never
 
 /**
@@ -585,20 +582,18 @@ type ExtractErrorFromToolkitOption<ToolkitValue, DisableToolCallResolution exten
   Toolkit.WithHandler<infer Tools> ?
     | AiError.AiError
     | (DisableToolCallResolution extends true ? never : Tool.HandlerError<Tools[keyof Tools]>)
-  : ToolkitValue extends Effect.Yieldable<
-    Toolkit.Toolkit<infer Tools>,
+  : ToolkitValue extends Effect.Effect<
     Toolkit.WithHandler<infer _Tools>,
     infer E,
     infer _R
-  > ? AiError.AiError | E | (DisableToolCallResolution extends true ? never : Tool.HandlerError<Tools[keyof Tools]>)
+  > ? AiError.AiError | E | (DisableToolCallResolution extends true ? never : Tool.HandlerError<_Tools[keyof _Tools]>)
   : AiError.AiError
 
 type ExtractServicesFromToolkitOption<ToolkitValue> = ToolkitValue extends Toolkit.WithHandler<infer Tools> ?
     | Tool.HandlerServices<Tools[keyof Tools]>
     | Tool.ResultDecodingServices<Tools[keyof Tools]>
-  : ToolkitValue extends Effect.Yieldable<
-    Toolkit.Toolkit<infer Tools>,
-    Toolkit.WithHandler<infer _Tools>,
+  : ToolkitValue extends Effect.Effect<
+    Toolkit.WithHandler<infer Tools>,
     infer _E,
     infer R
   > ?
@@ -607,16 +602,14 @@ type ExtractServicesFromToolkitOption<ToolkitValue> = ToolkitValue extends Toolk
       | R
   : never
 
-type ExtractToolkitResolutionError<ToolkitValue> = ToolkitValue extends Effect.Yieldable<
-  Toolkit.Toolkit<infer _Tools>,
+type ExtractToolkitResolutionError<ToolkitValue> = ToolkitValue extends Effect.Effect<
   Toolkit.WithHandler<infer _Tools>,
   infer E,
   infer _R
 > ? E
   : never
 
-type ExtractToolkitResolutionServices<ToolkitValue> = ToolkitValue extends Effect.Yieldable<
-  Toolkit.Toolkit<infer _Tools>,
+type ExtractToolkitResolutionServices<ToolkitValue> = ToolkitValue extends Effect.Effect<
   Toolkit.WithHandler<infer _Tools>,
   infer _E,
   infer R
@@ -2163,8 +2156,8 @@ const resolveToolCalls = <Tools extends Record<string, Tool.Any>>(
 const resolveToolkit = <Tools extends Record<string, Tool.Any>, E, R>(
   toolkit: ToolkitInput<Tools, E, R>
 ): Effect.Effect<Toolkit.WithHandler<Tools>, E, R> =>
-  ("asEffect" in toolkit
-    ? toolkit.asEffect()
+  (Effect.isEffect(toolkit)
+    ? toolkit
     : Effect.succeed(toolkit as unknown as Toolkit.WithHandler<Tools>)) as any
 
 /** @internal */

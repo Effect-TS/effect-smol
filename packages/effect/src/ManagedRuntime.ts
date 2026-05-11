@@ -148,7 +148,7 @@ export interface ManagedRuntime<in R, out ER> {
  * async function main() {
  *   const runtime = ManagedRuntime.make(Notifications.layer)
  *   await runtime.runPromise(Effect.flatMap(
- *     Notifications.asEffect(),
+ *     Notifications,
  *     (_) => _.notify("Hello, world!")
  *   ))
  *   await runtime.dispose()

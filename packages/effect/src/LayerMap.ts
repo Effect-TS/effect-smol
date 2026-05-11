@@ -365,10 +365,9 @@ export const Service = <Self>() =>
     Layer.provide(TagClass_.layerNoDeps, options.dependencies as any) :
     TagClass_.layerNoDeps
 
-  TagClass_.get = (key: string) => Layer.unwrap(Effect.map(TagClass_.asEffect(), (layerMap) => layerMap.get(key)))
-  TagClass_.contextEffect = (key: string) =>
-    Effect.flatMap(TagClass_.asEffect(), (layerMap) => layerMap.contextEffect(key))
-  TagClass_.invalidate = (key: string) => Effect.flatMap(TagClass_.asEffect(), (layerMap) => layerMap.invalidate(key))
+  TagClass_.get = (key: string) => Layer.unwrap(Effect.map(TagClass_, (layerMap) => layerMap.get(key)))
+  TagClass_.contextEffect = (key: string) => Effect.flatMap(TagClass_, (layerMap) => layerMap.contextEffect(key))
+  TagClass_.invalidate = (key: string) => Effect.flatMap(TagClass_, (layerMap) => layerMap.invalidate(key))
 
   return TagClass as any
 }

@@ -1,9 +1,7 @@
-import { Cause, Chunk, Effect, Equal, Equivalence, flow, identity, Option, pipe, Result, String as Str } from "effect"
+import { Chunk, Equal, Equivalence, flow, identity, Option, pipe, Result, String as Str } from "effect"
 import { inspect } from "node:util"
 import { describe, it } from "vitest"
 import {
-  assertExitFailure,
-  assertExitSuccess,
   assertFailure,
   assertFalse,
   assertNone,
@@ -122,11 +120,6 @@ describe("Result", () => {
       assertTrue(Equal.equals(Result.fail("e"), Result.fail("e")))
       assertFalse(Equal.equals(Result.succeed(1), Result.fail("e")))
       assertFalse(Equal.equals(Result.fail("e"), Result.succeed(1)))
-    })
-
-    it("asEffect", () => {
-      assertExitSuccess(Effect.runSyncExit(Result.succeed(1).asEffect()), 1)
-      assertExitFailure(Effect.runSyncExit(Result.fail("e").asEffect()), Cause.fail("e"))
     })
 
     it("pipe()", () => {

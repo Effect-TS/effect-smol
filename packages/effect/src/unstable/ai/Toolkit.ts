@@ -41,12 +41,10 @@
 import type * as Cause from "../../Cause.ts"
 import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
+import * as Effectable from "../../Effectable.ts"
 import * as Fiber from "../../Fiber.ts"
 import { identity } from "../../Function.ts"
-import type { Inspectable } from "../../Inspectable.ts"
-import { PipeInspectableProto, YieldableProto } from "../../internal/core.ts"
 import * as Layer from "../../Layer.ts"
-import type { Pipeable } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Queue from "../../Queue.ts"
 import * as Schema from "../../Schema.ts"
@@ -98,14 +96,11 @@ const TypeId = "~effect/ai/Toolkit" as const
  * @category models
  */
 export interface Toolkit<in out Tools extends Record<string, Tool.Any>> extends
-  Effect.Yieldable<
-    Toolkit<Tools>,
+  Effect.Effect<
     WithHandler<Tools>,
     never,
     Tool.HandlersFor<Tools>
-  >,
-  Inspectable,
-  Pipeable
+  >
 {
   new(_: never): {}
 
@@ -257,37 +252,11 @@ export interface WithHandler<in out Tools extends Record<string, Tool.Any>> {
 export type WithHandlerTools<T> = T extends WithHandler<infer Tools> ? Tools : never
 
 const Proto = {
-  ...YieldableProto,
-  ...PipeInspectableProto,
-  [TypeId]: TypeId,
-  of: identity,
-  toHandlers(
-    this: Toolkit<Record<string, Tool.Any>>,
-    build: Record<string, (params: any) => any> | Effect.Effect<Record<string, (params: any) => any>>
-  ) {
-    return Effect.gen({ self: this }, function*() {
-      const services = yield* Effect.context<never>()
-      const handlers = Effect.isEffect(build) ? yield* build : build
-      const context = new Map<string, unknown>()
-      for (const [name, handler] of Object.entries(handlers)) {
-        const tool = this.tools[name]!
-        context.set(tool.id, { name, handler, context: services })
-      }
-      return Context.makeUnsafe(context)
-    })
-  },
-  toLayer(
-    this: Toolkit<Record<string, Tool.Any>>,
-    build: Record<string, (params: any) => any> | Effect.Effect<Record<string, (params: any) => any>>
-  ) {
-    return Layer.effectContext(this.toHandlers(build))
-  },
-  asEffect(this: Toolkit<Record<string, Tool.Any>>) {
-    return Effect.gen({ self: this }, function*() {
+  ...Effectable.Prototype({
+    label: "Toolkit",
+    evaluate: Effect.fnUntraced(function*(this: Toolkit<Record<string, Tool.Any>>, parent) {
       const tools = this.tools
-
-      const services = yield* Effect.context<never>()
-
+      const services = parent.context
       const schemasCache = new WeakMap<any, {
         readonly context: Context.Context<never>
         readonly handler: Tool.Handler<any>["handler"]
@@ -441,6 +410,29 @@ const Proto = {
         handle: handle as any
       } satisfies WithHandler<Record<string, any>>
     })
+  }),
+  [TypeId]: TypeId,
+  of: identity,
+  toHandlers(
+    this: Toolkit<Record<string, Tool.Any>>,
+    build: Record<string, (params: any) => any> | Effect.Effect<Record<string, (params: any) => any>>
+  ) {
+    return Effect.gen({ self: this }, function*() {
+      const services = yield* Effect.context<never>()
+      const handlers = Effect.isEffect(build) ? yield* build : build
+      const context = new Map<string, unknown>()
+      for (const [name, handler] of Object.entries(handlers)) {
+        const tool = this.tools[name]!
+        context.set(tool.id, { name, handler, context: services })
+      }
+      return Context.makeUnsafe(context)
+    })
+  },
+  toLayer(
+    this: Toolkit<Record<string, Tool.Any>>,
+    build: Record<string, (params: any) => any> | Effect.Effect<Record<string, (params: any) => any>>
+  ) {
+    return Layer.effectContext(this.toHandlers(build))
   },
   toJSON(this: Toolkit<any>): unknown {
     return {

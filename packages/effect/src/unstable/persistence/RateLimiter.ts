@@ -666,5 +666,5 @@ export const layerStoreRedisConfig = (
 ): Layer.Layer<RateLimiterStore, Config.ConfigError, Redis.Redis> =>
   Layer.effect(
     RateLimiterStore,
-    Effect.flatMap(Config.unwrap(options).asEffect(), makeStoreRedis)
+    Effect.flatMap(Config.unwrap(options), makeStoreRedis)
   )

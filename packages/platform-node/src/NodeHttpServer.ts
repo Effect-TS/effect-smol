@@ -426,7 +426,7 @@ export const layerConfig = (
 > =>
   Layer.mergeAll(
     Layer.effect(HttpServer.HttpServer)(
-      Effect.flatMap(Config.unwrap(options).asEffect(), (options) => make(evaluate, options))
+      Effect.flatMap(Config.unwrap(options), (options) => make(evaluate, options))
     ),
     layerHttpServices
   )
