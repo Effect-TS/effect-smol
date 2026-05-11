@@ -1,6 +1,8 @@
 /**
  * @since 4.0.0
  */
+/** @effect-diagnostics floatingEffect:skip-file */
+/** @effect-diagnostics classSelfMismatch:off */
 import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
@@ -280,7 +282,6 @@ export const Service = <
   const creationError = new Err()
   Err.stackTraceLimit = limit
 
-  /** @effect-diagnostics-next-line classSelfMismatch:off */
   class Service extends Context.Service<Self, any>()(id) {}
   const self = Service as any
   Object.defineProperty(Service, "stack", {

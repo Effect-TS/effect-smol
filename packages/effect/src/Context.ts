@@ -167,6 +167,7 @@ export const Service: {
   function KeyClass() {}
   const self = KeyClass as any as Types.Mutable<Reference<any>>
   Object.setPrototypeOf(self, ServiceProto)
+  // @effect-diagnostics-next-line floatingEffect:off
   Object.defineProperty(self, "stack", {
     get() {
       return err.stack
