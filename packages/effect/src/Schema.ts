@@ -2298,10 +2298,10 @@ export declare namespace Struct {
     O extends keyof F = TypeOptionalKeys<F>,
     M extends keyof F = TypeMutableKeys<F>
   > =
-    & { readonly [K in Exclude<keyof F, M | O>]: F[K]["Type"] }
-    & { readonly [K in Exclude<O, M>]?: F[K]["Type"] }
-    & { [K in Exclude<M, O>]: F[K]["Type"] }
-    & { [K in M & O]?: F[K]["Type"] }
+    & { readonly [K in keyof F as K extends M | O ? never : K]: F[K]["Type"] }
+    & { readonly [K in keyof F as K extends O ? K extends M ? never : K : never]?: F[K]["Type"] }
+    & { -readonly [K in keyof F as K extends M ? K extends O ? never : K : never]: F[K]["Type"] }
+    & { -readonly [K in keyof F as K extends M & O ? K : never]?: F[K]["Type"] }
 
   /**
    * @since 4.0.0
@@ -2313,10 +2313,10 @@ export declare namespace Struct {
     O extends keyof F = TypeOptionalKeys<F>,
     M extends keyof F = TypeMutableKeys<F>
   > =
-    & { readonly [K in Exclude<keyof F, M | O>]: F[K]["Iso"] }
-    & { readonly [K in Exclude<O, M>]?: F[K]["Iso"] }
-    & { [K in Exclude<M, O>]: F[K]["Iso"] }
-    & { [K in M & O]?: F[K]["Iso"] }
+    & { readonly [K in keyof F as K extends M | O ? never : K]: F[K]["Iso"] }
+    & { readonly [K in keyof F as K extends O ? K extends M ? never : K : never]?: F[K]["Iso"] }
+    & { -readonly [K in keyof F as K extends M ? K extends O ? never : K : never]: F[K]["Iso"] }
+    & { -readonly [K in keyof F as K extends M & O ? K : never]?: F[K]["Iso"] }
 
   /**
    * @since 4.0.0
@@ -2338,10 +2338,10 @@ export declare namespace Struct {
     O extends keyof F = EncodedOptionalKeys<F>,
     M extends keyof F = EncodedMutableKeys<F>
   > =
-    & { readonly [K in Exclude<keyof F, M | O>]: F[K]["Encoded"] }
-    & { readonly [K in Exclude<O, M>]?: F[K]["Encoded"] }
-    & { [K in Exclude<M, O>]: F[K]["Encoded"] }
-    & { [K in M & O]?: F[K]["Encoded"] }
+    & { readonly [K in keyof F as K extends M | O ? never : K]: F[K]["Encoded"] }
+    & { readonly [K in keyof F as K extends O ? K extends M ? never : K : never]?: F[K]["Encoded"] }
+    & { -readonly [K in keyof F as K extends M ? K extends O ? never : K : never]: F[K]["Encoded"] }
+    & { -readonly [K in keyof F as K extends M & O ? K : never]?: F[K]["Encoded"] }
 
   /**
    * @since 4.0.0
@@ -10738,13 +10738,14 @@ export const TaggedClass: {
     schema: Struct.Fields | Struct<Struct.Fields>,
     annotations?: Annotations.Declaration<any, readonly [Struct<Struct.Fields>]>
   ): any => {
+    const struct = isStruct(schema) ?
+      schema.mapFields((fields) => ({ _tag: tag(tagValue), ...fields }), {
+        unsafePreserveChecks: true
+      }) :
+      TaggedStruct(tagValue, schema)
     return Class<any, {}>(identifier ?? tagValue)(
-      isStruct(schema) ?
-        schema.mapFields((fields) => ({ _tag: tag(tagValue), ...fields }), {
-          unsafePreserveChecks: true
-        }) :
-        TaggedStruct(tagValue, schema),
-      annotations
+      struct,
+      annotations as Annotations.Declaration<any, readonly [typeof struct]>
     )
   }
 }
@@ -10850,13 +10851,14 @@ export const TaggedErrorClass: {
     schema: Struct.Fields | Struct<Struct.Fields>,
     annotations?: Annotations.Declaration<any, readonly [Struct<Struct.Fields>]>
   ): any => {
+    const struct = isStruct(schema) ?
+      schema.mapFields((fields) => ({ _tag: tag(tagValue), ...fields }), {
+        unsafePreserveChecks: true
+      }) :
+      TaggedStruct(tagValue, schema)
     return ErrorClass<any, {}>(identifier ?? tagValue)(
-      isStruct(schema) ?
-        schema.mapFields((fields) => ({ _tag: tag(tagValue), ...fields }), {
-          unsafePreserveChecks: true
-        }) :
-        TaggedStruct(tagValue, schema),
-      annotations
+      struct,
+      annotations as Annotations.Declaration<any, readonly [typeof struct]>
     )
   }
 }
