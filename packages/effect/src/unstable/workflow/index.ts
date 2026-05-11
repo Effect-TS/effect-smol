@@ -22,6 +22,11 @@ export * as DurableDeferred from "./DurableDeferred.ts"
 /**
  * @since 4.0.0
  */
+export * as DurableQueue from "./DurableQueue.ts"
+
+/**
+ * @since 4.0.0
+ */
 export * as Workflow from "./Workflow.ts"
 
 /**
