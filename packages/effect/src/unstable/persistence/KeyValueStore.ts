@@ -733,51 +733,56 @@ export const layerStorage = (
       get: (key: string) =>
         Effect.try({
           try: () => storage.getItem(key) ?? undefined,
-          catch: () =>
+          catch: (cause) =>
             new KeyValueStoreError({
               key,
               method: "get",
-              message: `Unable to get item with key ${key}`
+              message: `Unable to get item with key ${key}`,
+              cause
             })
         }),
 
       set: (key: string, value: string) =>
         Effect.try({
           try: () => storage.setItem(key, value),
-          catch: () =>
+          catch: (cause) =>
             new KeyValueStoreError({
               key,
               method: "set",
-              message: `Unable to set item with key ${key}`
+              message: `Unable to set item with key ${key}`,
+              cause
             })
         }),
 
       remove: (key: string) =>
         Effect.try({
           try: () => storage.removeItem(key),
-          catch: () =>
+          catch: (cause) =>
             new KeyValueStoreError({
               key,
               method: "remove",
-              message: `Unable to remove item with key ${key}`
+              message: `Unable to remove item with key ${key}`,
+              cause
             })
         }),
 
       clear: Effect.try({
         try: () => storage.clear(),
-        catch: () =>
+        catch: (cause) =>
           new KeyValueStoreError({
             method: "clear",
-            message: `Unable to clear storage`
+            message: `Unable to clear storage`,
+            cause
           })
       }),
 
       size: Effect.try({
         try: () => storage.length,
-        catch: () =>
+        catch: (cause) =>
           new KeyValueStoreError({
             method: "size",
-            message: `Unable to get size`
+            message: `Unable to get size`,
+            cause
           })
       })
     })

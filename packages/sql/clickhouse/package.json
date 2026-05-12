@@ -67,6 +67,6 @@
     "effect": "workspace:^"
   },
   "dependencies": {
-    "@clickhouse/client": "^1.18.2"
+    "@clickhouse/client": "^1.18.4"
   }
 }
