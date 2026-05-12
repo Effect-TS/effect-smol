@@ -3731,6 +3731,12 @@ export interface refine<T extends S["Type"], S extends Top> extends
  * Narrows the TypeScript type of a schema's output via a type guard predicate,
  * attaching the guard as a runtime filter check.
  *
+ * The `annotations` parameter annotates the filter created by the refinement.
+ * With the default formatter, failed refinements use `message` first,
+ * `expected` second, and `<filter>` when neither is provided. `identifier`
+ * names type-level failures before the refinement runs; it does not name the
+ * failed refinement itself.
+ *
  * @category Filtering
  * @since 4.0.0
  */
@@ -4956,6 +4962,12 @@ export function link<T>() {
  * Creates a custom filter check from a predicate function. The predicate
  * receives the input value, the schema's AST, and parse options, and returns
  * a value of type {@link FilterOutput}.
+ *
+ * The `annotations` parameter annotates the filter itself. With the default
+ * formatter, failed filters use `message` first, `expected` second, and
+ * `<filter>` when neither is provided. `identifier` can name type-level
+ * failures before the filter runs, but it does not name the failed filter
+ * itself.
  *
  * **Example** (Failure at a nested path)
  *
@@ -11944,6 +11956,15 @@ export declare namespace Annotations {
    * @since 4.0.0
    */
   export interface Augment extends Annotations {
+    /**
+     * Human-readable description of what a value is expected to satisfy.
+     *
+     * For filter and refinement failures, the default formatter uses
+     * `message` first, then `expected`, and finally falls back to `<filter>`.
+     *
+     * Use this to name a failed filter in the default message:
+     * `Expected <expected>, got <actual>`.
+     */
     readonly expected?: string | undefined
     readonly title?: string | undefined
     readonly description?: string | undefined
@@ -11991,13 +12012,31 @@ export declare namespace Annotations {
    */
   export interface Bottom<T, TypeParameters extends ReadonlyArray<Top>> extends Documentation<T> {
     /**
-     * The message to use when the value is invalid.
+     * Complete message to use when this schema node reports an issue.
+     *
+     * This replaces the default message for matching issue types instead of
+     * only changing the expected label. For a filter or refinement failure,
+     * annotate the filter with `message` to replace the whole filter failure
+     * message, or `expected` to keep the default
+     * `Expected <expected>, got <actual>` shape.
      */
     readonly message?: string | undefined
     /**
      * The message to use when a key is unexpected.
      */
     readonly messageUnexpectedKey?: string | undefined
+    /**
+     * Stable identifier for this schema node.
+     *
+     * Identifiers are used by schema tooling, including JSON Schema
+     * generation, to name references. The default formatter also uses
+     * `identifier` as the expected label for type-level failures, such as
+     * `Expected UserId, got null`.
+     *
+     * `identifier` does not name a failed filter or refinement. If the base
+     * type matches and a filter fails, put `expected` or `message` on the
+     * filter/refinement instead.
+     */
     readonly identifier?: string | undefined
     readonly parseOptions?: AST.ParseOptions | undefined
     /**
@@ -12082,7 +12121,21 @@ export declare namespace Annotations {
    * @since 4.0.0
    */
   export interface Filter extends Augment {
+    /**
+     * Complete message to use when this filter or refinement fails.
+     *
+     * The default formatter checks filter annotations in this order:
+     * `message`, then `expected`, then `<filter>`.
+     */
     readonly message?: string | undefined
+    /**
+     * Stable identifier for the schema after this filter is attached.
+     *
+     * This can affect schema tooling such as JSON Schema generation and
+     * type-level failures before the filter runs, but it does not name the
+     * failed filter itself. For filter failure messages, use `expected` or
+     * `message`.
+     */
     readonly identifier?: string | undefined
     /**
      * Optional metadata used to identify or extend the filter with custom data.
