@@ -3210,7 +3210,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
         await make.succeed({ a: 1 })
         await make.succeed({}, { a: -1 })
-        const effect = await SchemaParser.makeEffect(schema)({}).pipe(
+        const effect = await schema.makeEffect({}).pipe(
           Effect.provideService(Service, { value: Effect.succeed(0) }),
           Effect.result,
           Effect.runPromise

@@ -172,7 +172,7 @@ export class Asserts<S extends Schema.Top> {
     async function succeed(input: S["~type.make.in"], expected?: S["Type"]) {
       const r = await Effect.runPromise(
         makeEffect(input, options).pipe(
-          Effect.mapError((issue) => issue.toString()),
+          Effect.mapErrorEager((issue) => issue.toString()),
           Effect.result
         )
       )
@@ -184,7 +184,7 @@ export class Asserts<S extends Schema.Top> {
       async fail(input: unknown, message: string) {
         const r = await Effect.runPromise(
           makeEffect(input, options).pipe(
-            Effect.mapError((issue) => issue.toString()),
+            Effect.mapErrorEager((issue) => issue.toString()),
             Effect.result
           )
         )
@@ -221,8 +221,8 @@ export class Asserts<S extends Schema.Top> {
       FastCheck.asyncProperty(arbitrary, async (t) => {
         const r = await Effect.runPromise(
           encodeEffect(t).pipe(
-            Effect.flatMap((e) => decodeUnknownEffect(e)),
-            Effect.mapError((issue) => issue.toString()),
+            Effect.flatMapEager((e) => decodeUnknownEffect(e)),
+            Effect.mapErrorEager((issue) => issue.toString()),
             Effect.result
           )
         )
@@ -394,7 +394,7 @@ export class Decoding<S extends Schema.Top> {
   ) {
     const r = await Effect.runPromise(
       this.decodeUnknownEffect(input, this.options?.parseOptions).pipe(
-        Effect.mapError((issue) => issue.toString()),
+        Effect.mapErrorEager((issue) => issue.toString()),
         Effect.result
       )
     )
@@ -422,7 +422,7 @@ export class Decoding<S extends Schema.Top> {
   ) {
     const r = await Effect.runPromise(
       this.decodeUnknownEffect(input, this.options?.parseOptions).pipe(
-        Effect.mapError((issue) => issue.toString()),
+        Effect.mapErrorEager((issue) => issue.toString()),
         Effect.result
       )
     )
@@ -529,7 +529,7 @@ class Encoding<S extends Schema.Top> {
   ) {
     const r = await Effect.runPromise(
       this.encodeUnknownEffect(input, this.options?.parseOptions).pipe(
-        Effect.mapError((issue) => issue.toString()),
+        Effect.mapErrorEager((issue) => issue.toString()),
         Effect.result
       )
     )
@@ -557,7 +557,7 @@ class Encoding<S extends Schema.Top> {
   ) {
     const r = await Effect.runPromise(
       this.encodeUnknownEffect(input, this.options?.parseOptions).pipe(
-        Effect.mapError((issue) => issue.toString()),
+        Effect.mapErrorEager((issue) => issue.toString()),
         Effect.result
       )
     )

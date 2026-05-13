@@ -57,7 +57,7 @@ describe("Model", () => {
       const insert = Model.extract(User, "insert")
 
       const now = yield* DateTime.now
-      const user = yield* SchemaParser.makeEffect(insert)({})
+      const user = yield* insert.makeEffect({})
       assert.deepStrictEqual(user.createdAt, now)
 
       yield* Schema.encodeEffect(insert)({
