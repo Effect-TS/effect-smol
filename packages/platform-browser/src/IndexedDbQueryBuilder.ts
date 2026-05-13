@@ -96,6 +96,9 @@ export interface IndexedDbQueryBuilder<
     table: Name
   ) => IndexedDbQuery.From<IndexedDbVersion.TableWithName<Source, Name>>
 
+  /** @internal */
+  readonly fromCache: Map<string, IndexedDbQuery.From<IndexedDbVersion.TableWithName<Source, any>>>
+
   readonly clearAll: Effect.Effect<void, IndexedDbQueryError>
 
   readonly withTransaction: <
@@ -228,6 +231,12 @@ export declare namespace IndexedDbQuery {
       (): Select<Table, never>
     }
 
+    /** @internal */
+    readonly selectCache: Map<
+      string | undefined,
+      IndexedDbQuery.Select<any, never>
+    >
+
     readonly count: {
       <Index extends IndexedDbDatabase.IndexFromTable<Table>>(
         index: Index
@@ -235,12 +244,24 @@ export declare namespace IndexedDbQuery {
       (): Count<Table, never>
     }
 
+    /** @internal */
+    readonly countCache: Map<
+      string | undefined,
+      IndexedDbQuery.Count<any, never>
+    >
+
     readonly delete: {
       <Index extends IndexedDbDatabase.IndexFromTable<Table>>(
         index: Index
       ): DeletePartial<Table, Index>
       (): DeletePartial<Table, never>
     }
+
+    /** @internal */
+    readonly deleteCache: Map<
+      string | undefined,
+      IndexedDbQuery.DeletePartial<any, never>
+    >
 
     readonly insert: (value: ModifyWithKey<Table>) => Modify<Table>
     readonly insertAll: (
@@ -1225,34 +1246,52 @@ const FromProto: Omit<
   | "IDBKeyRange"
   | "transaction"
   | "reactivity"
+  | "selectCache"
+  | "countCache"
+  | "deleteCache"
 > = {
   ...CommonProto,
   select<Index extends IndexedDbDatabase.IndexFromTable<any>>(
     this: IndexedDbQuery.From<any>,
     index?: Index
   ) {
-    return makeSelect({
-      from: this,
-      index
-    }) as any
+    let select = this.selectCache.get(index)
+    if (select === undefined) {
+      select = makeSelect({
+        from: this,
+        index
+      })
+      this.selectCache.set(index, select)
+    }
+    return select
   },
   count<Index extends IndexedDbDatabase.IndexFromTable<any>>(
     this: IndexedDbQuery.From<any>,
     index?: Index
   ) {
-    return makeCount({
-      from: this,
-      index
-    }) as any
+    let count = this.countCache.get(index)
+    if (count === undefined) {
+      count = makeCount({
+        from: this,
+        index
+      })
+      this.countCache.set(index, count)
+    }
+    return count
   },
   delete<Index extends IndexedDbDatabase.IndexFromTable<any>>(
     this: IndexedDbQuery.From<any>,
     index?: Index
   ) {
-    return makeDeletePartial({
-      from: this,
-      index
-    }) as any
+    let cached = this.deleteCache.get(index)
+    if (cached === undefined) {
+      cached = makeDeletePartial({
+        from: this,
+        index
+      })
+      this.deleteCache.set(index, cached)
+    }
+    return cached
   },
   insert(this: IndexedDbQuery.From<any>, value: any) {
     return makeModify({ from: this, value, operation: "add" })
@@ -1288,6 +1327,9 @@ const makeFrom = <
   self.database = options.database
   self.IDBKeyRange = options.IDBKeyRange
   self.reactivity = options.reactivity
+  self.selectCache = new Map()
+  self.countCache = new Map()
+  self.deleteCache = new Map()
   return self
 }
 
@@ -1821,6 +1863,7 @@ const makeModifyAll = <
 
 const QueryBuilderProto: Omit<
   IndexedDbQueryBuilder<any>,
+  | "fromCache"
   | "tables"
   | "database"
   | "IDBKeyRange"
@@ -1839,12 +1882,17 @@ const QueryBuilderProto: Omit<
     })
   },
   from(this: IndexedDbQueryBuilder<any>, table: any) {
-    return makeFrom({
-      database: this.database,
-      IDBKeyRange: this.IDBKeyRange,
-      table: this.tables.get(table)!,
-      reactivity: this.reactivity
-    }) as any
+    let cached = this.fromCache.get(table)
+    if (cached === undefined) {
+      cached = makeFrom({
+        database: this.database,
+        IDBKeyRange: this.IDBKeyRange,
+        table: this.tables.get(table)!,
+        reactivity: this.reactivity
+      })
+      this.fromCache.set(table, cached)
+    }
+    return cached as any
   },
   get clearAll() {
     const self = this as IndexedDbQueryBuilder<any>
@@ -1886,6 +1934,7 @@ export const make = <Source extends IndexedDbVersion.AnyWithProps>({
   self.database = database
   self.reactivity = reactivity
   self.IDBKeyRange = IDBKeyRange
+  self.fromCache = new Map()
   return self
 }
 
