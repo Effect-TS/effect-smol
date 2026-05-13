@@ -48,6 +48,23 @@ export const addEqualityTesters = () => {
 /** @internal */
 const testOptions = (timeout?: number | V.TestOptions) => typeof timeout === "number" ? { timeout } : timeout ?? {}
 
+const makeItProxy = <Methods extends object>(
+  it: V.TestAPI,
+  overrides: Methods
+): Methods & V.TestAPI =>
+  new Proxy(it as Methods & V.TestAPI, {
+    apply(target, thisArg, argArray) {
+      return Reflect.apply(target, thisArg, argArray)
+    },
+    get(target, property, receiver) {
+      if (property in overrides) {
+        return Reflect.get(overrides, property)
+      }
+      const value = Reflect.get(target, property, receiver)
+      return typeof value === "function" ? value.bind(target) : value
+    }
+  })
+
 /** @internal */
 const makeTester = <R>(
   mapEffect: <A, E>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, never>,
@@ -209,7 +226,7 @@ export const layer = <R, E>(
   )
 
   const makeIt = (it: V.TestAPI): Vitest.Vitest.MethodsNonLive<R> =>
-    Object.assign(it, {
+    makeItProxy(it, {
       effect: makeTester<R | Scope.Scope>(
         (effect) =>
           Effect.flatMap(contextEffect, (context) =>
@@ -282,7 +299,7 @@ export const flakyTest = <A, E, R>(
 
 /** @internal */
 export const makeMethods = (it: V.TestAPI): Vitest.Vitest.Methods =>
-  Object.assign(it, {
+  makeItProxy(it, {
     effect: makeTester<Scope.Scope>(flow(Effect.scoped, Effect.provide(TestEnv)), it),
     live: makeTester<Scope.Scope>(Effect.scoped, it),
     flakyTest,
