@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { DateTime, Effect, Schema, SchemaParser } from "effect"
+import { DateTime, Effect, Schema } from "effect"
 import { Model, VariantSchema } from "effect/unstable/schema"
 
 describe("VariantSchema", () => {
