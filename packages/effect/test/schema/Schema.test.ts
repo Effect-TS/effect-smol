@@ -7692,6 +7692,24 @@ pointed message
   at ["a"]`
       )
     })
+
+    it("default Effect can require a service", async () => {
+      class Service extends Context.Service<Service, { fallback: Effect.Effect<string> }>()("Service") {}
+
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultKey(
+          Effect.gen(function*() {
+            const service = yield* Service
+            return yield* service.fallback
+          })
+        ))
+      })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding().provide(Service, { fallback: Effect.succeed("3") })
+      await decoding.succeed({ a: "2" }, { a: 2 })
+      await decoding.succeed({}, { a: 3 })
+    })
   })
 
   describe("withDecodingDefault", () => {
@@ -7750,6 +7768,25 @@ pointed message
       await decoding.succeed({ a: undefined }, { a: { b: 1 } })
       await decoding.succeed({ a: { b: undefined } }, { a: { b: 1 } })
       await decoding.succeed({ a: { b: "2" } }, { a: { b: 2 } })
+    })
+
+    it("default Effect can require a service", async () => {
+      class Service extends Context.Service<Service, { fallback: Effect.Effect<string> }>()("Service") {}
+
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefault(
+          Effect.gen(function*() {
+            const service = yield* Service
+            return yield* service.fallback
+          })
+        ))
+      })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding().provide(Service, { fallback: Effect.succeed("3") })
+      await decoding.succeed({ a: "2" }, { a: 2 })
+      await decoding.succeed({}, { a: 3 })
+      await decoding.succeed({ a: undefined }, { a: 3 })
     })
   })
 
@@ -7828,6 +7865,24 @@ pointed message
         `decoding default failed
   at ["a"]`
       )
+    })
+
+    it("default Effect can require a service", async () => {
+      class Service extends Context.Service<Service, { fallback: Effect.Effect<number> }>()("Service") {}
+
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultTypeKey(
+          Effect.gen(function*() {
+            const service = yield* Service
+            return yield* service.fallback
+          })
+        ))
+      })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding().provide(Service, { fallback: Effect.succeed(3) })
+      await decoding.succeed({ a: "2" }, { a: 2 })
+      await decoding.succeed({}, { a: 3 })
     })
   })
 
@@ -7908,6 +7963,25 @@ pointed message
         `decoding default failed
   at ["a"]`
       )
+    })
+
+    it("default Effect can require a service", async () => {
+      class Service extends Context.Service<Service, { fallback: Effect.Effect<number> }>()("Service") {}
+
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultType(
+          Effect.gen(function*() {
+            const service = yield* Service
+            return yield* service.fallback
+          })
+        ))
+      })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding().provide(Service, { fallback: Effect.succeed(3) })
+      await decoding.succeed({ a: "2" }, { a: 2 })
+      await decoding.succeed({}, { a: 3 })
+      await decoding.succeed({ a: undefined }, { a: 3 })
     })
   })
 

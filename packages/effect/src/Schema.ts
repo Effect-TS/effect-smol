@@ -4319,8 +4319,8 @@ export function withConstructorDefault<S extends Top & WithoutConstructorDefault
  * @see {@link withDecodingDefaultKey} for the constructor
  * @since 4.0.0
  */
-export interface withDecodingDefaultKey<S extends Top> extends decodeTo<S, optionalKey<toEncoded<S>>> {
-  readonly "Rebuild": withDecodingDefaultKey<S>
+export interface withDecodingDefaultKey<S extends Top, R = never> extends decodeTo<S, optionalKey<toEncoded<S>>, R> {
+  readonly "Rebuild": withDecodingDefaultKey<S, R>
 }
 
 /**
@@ -4367,12 +4367,12 @@ export type DecodingDefaultOptions = {
  * @see {@link withDecodingDefaultTypeKey} for the variant where the default is a `Type` value
  * @since 4.0.0
  */
-export function withDecodingDefaultKey<S extends Top>(
-  defaultValue: Effect.Effect<S["Encoded"], SchemaError>,
+export function withDecodingDefaultKey<S extends Top, R = never>(
+  defaultValue: Effect.Effect<S["Encoded"], SchemaError, R>,
   options?: DecodingDefaultOptions
 ) {
   const encode = options?.encodingStrategy === "omit" ? Getter.omit() : Getter.passthrough()
-  return (self: S): withDecodingDefaultKey<S> => {
+  return (self: S): withDecodingDefaultKey<S, R> => {
     return optionalKey(toEncoded(self)).pipe(decodeTo(self, {
       decode: Getter.withDefault(Effect.mapErrorEager(defaultValue, (e) => e.issue)),
       encode
@@ -4388,10 +4388,10 @@ export function withDecodingDefaultKey<S extends Top>(
  * @see {@link withDecodingDefaultTypeKey} for the constructor
  * @since 4.0.0
  */
-export interface withDecodingDefaultTypeKey<S extends Top>
-  extends decodeTo<withDecodingDefaultKey<toType<S>>, optionalKey<S>>
+export interface withDecodingDefaultTypeKey<S extends Top, R = never>
+  extends decodeTo<withDecodingDefaultKey<toType<S>, R>, optionalKey<S>>
 {
-  readonly "Rebuild": withDecodingDefaultTypeKey<S>
+  readonly "Rebuild": withDecodingDefaultTypeKey<S, R>
 }
 
 /**
@@ -4413,13 +4413,13 @@ export interface withDecodingDefaultTypeKey<S extends Top>
  * @see {@link withDecodingDefaultType} for the value-level variant
  * @since 4.0.0
  */
-export function withDecodingDefaultTypeKey<S extends Top>(
-  defaultValue: Effect.Effect<S["Type"], SchemaError>,
+export function withDecodingDefaultTypeKey<S extends Top, R = never>(
+  defaultValue: Effect.Effect<S["Type"], SchemaError, R>,
   options?: DecodingDefaultOptions
 ) {
-  return (self: S): withDecodingDefaultTypeKey<S> => {
+  return (self: S): withDecodingDefaultTypeKey<S, R> => {
     return toType(self).pipe(
-      withDecodingDefaultKey<toType<S>>(defaultValue, options),
+      withDecodingDefaultKey<toType<S>, R>(defaultValue, options),
       encodeTo(optionalKey(self))
     )
   }
@@ -4432,8 +4432,8 @@ export function withDecodingDefaultTypeKey<S extends Top>(
  * @see {@link withDecodingDefault} for the constructor
  * @since 4.0.0
  */
-export interface withDecodingDefault<S extends Top> extends decodeTo<S, optional<toEncoded<S>>> {
-  readonly "Rebuild": withDecodingDefault<S>
+export interface withDecodingDefault<S extends Top, R = never> extends decodeTo<S, optional<toEncoded<S>>, R> {
+  readonly "Rebuild": withDecodingDefault<S, R>
 }
 
 /**
@@ -4467,12 +4467,12 @@ export interface withDecodingDefault<S extends Top> extends decodeTo<S, optional
  * @see {@link withDecodingDefaultType} for the variant where the default is a `Type` value
  * @since 4.0.0
  */
-export function withDecodingDefault<S extends Top>(
-  defaultValue: Effect.Effect<S["Encoded"], SchemaError>,
+export function withDecodingDefault<S extends Top, R = never>(
+  defaultValue: Effect.Effect<S["Encoded"], SchemaError, R>,
   options?: DecodingDefaultOptions
 ) {
   const encode = options?.encodingStrategy === "omit" ? Getter.omit() : Getter.passthrough()
-  return (self: S): withDecodingDefault<S> => {
+  return (self: S): withDecodingDefault<S, R> => {
     return optional(toEncoded(self)).pipe(decodeTo(self, {
       decode: Getter.withDefault(Effect.mapErrorEager(defaultValue, (e) => e.issue)),
       encode
@@ -4488,8 +4488,10 @@ export function withDecodingDefault<S extends Top>(
  * @see {@link withDecodingDefaultType} for the constructor
  * @since 4.0.0
  */
-export interface withDecodingDefaultType<S extends Top> extends decodeTo<withDecodingDefault<toType<S>>, optional<S>> {
-  readonly "Rebuild": withDecodingDefaultType<S>
+export interface withDecodingDefaultType<S extends Top, R = never>
+  extends decodeTo<withDecodingDefault<toType<S>, R>, optional<S>>
+{
+  readonly "Rebuild": withDecodingDefaultType<S, R>
 }
 
 /**
@@ -4511,13 +4513,13 @@ export interface withDecodingDefaultType<S extends Top> extends decodeTo<withDec
  * @see {@link withDecodingDefaultTypeKey} for the key-level variant
  * @since 4.0.0
  */
-export function withDecodingDefaultType<S extends Top>(
-  defaultValue: Effect.Effect<S["Type"], SchemaError>,
+export function withDecodingDefaultType<S extends Top, R = never>(
+  defaultValue: Effect.Effect<S["Type"], SchemaError, R>,
   options?: DecodingDefaultOptions
 ) {
-  return (self: S): withDecodingDefaultType<S> => {
+  return (self: S): withDecodingDefaultType<S, R> => {
     return toType(self).pipe(
-      withDecodingDefault<toType<S>>(defaultValue, options),
+      withDecodingDefault<toType<S>, R>(defaultValue, options),
       encodeTo(optional(self))
     )
   }

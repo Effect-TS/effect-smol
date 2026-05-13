@@ -689,7 +689,9 @@ export function omit<T>(): Getter<never, T> {
  * @category Constructors
  * @since 4.0.0
  */
-export function withDefault<T>(defaultValue: Effect.Effect<T, Issue.Issue>): Getter<T, T | undefined> {
+export function withDefault<T, R = never>(
+  defaultValue: Effect.Effect<T, Issue.Issue, R>
+): Getter<T, T | undefined, R> {
   return new Getter((o) => {
     const filtered = Option.filter(o, Predicate.isNotUndefined)
     return Option.isSome(filtered) ? Effect.succeed(filtered) : Effect.mapEager(defaultValue, Option.some)
