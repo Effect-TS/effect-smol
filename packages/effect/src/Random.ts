@@ -40,12 +40,10 @@ import * as Predicate from "./Predicate.ts"
  *   const float = yield* Random.next
  *   const integer = yield* Random.nextInt
  *   const inRange = yield* Random.nextIntBetween(1, 100)
- *   const uuid = yield* Random.nextUUIDv4
  *
  *   console.log("Float:", float)
  *   console.log("Integer:", integer)
  *   console.log("In range:", inRange)
- *   console.log("UUID:", uuid)
  * })
  * ```
  *
@@ -203,51 +201,7 @@ export const shuffle = <A>(elements: Iterable<A>): Effect.Effect<Array<A>> =>
   })
 
 /**
- * Generates a random UUID (v4) string.
- *
- * **Example** (Generating a UUID)
- *
- * ```ts
- * import { Effect, Random } from "effect"
- *
- * const program = Effect.gen(function*() {
- *   const uuid = yield* Random.nextUUIDv4
- *   console.log("UUID:", uuid)
- * })
- * ```
- *
- * @category Random Number Generators
- * @since 4.0.0
- */
-export const nextUUIDv4: Effect.Effect<string> = randomWith((r) => {
-  // Generate 16 random bytes (128 bits) for UUID
-  const bytes: Array<number> = []
-  for (let i = 0; i < 16; i++) {
-    // Get unsigned byte [0, 255] from nextInt (signed 32-bit)
-    bytes.push((r.nextIntUnsafe() >>> 0) & 0xFF)
-  }
-
-  // Set version to 4 (bits 12-15 of time_hi_and_version)
-  bytes[6] = (bytes[6] & 0x0F) | 0x40
-
-  // Set variant to RFC 4122 (bits 6-7 of clock_seq_hi_and_reserved)
-  bytes[8] = (bytes[8] & 0x3F) | 0x80
-
-  // Format as UUID string: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
-  const hex = (n: number) => n.toString(16).padStart(2, "0")
-
-  return [
-    bytes.slice(0, 4).map(hex).join(""),
-    bytes.slice(4, 6).map(hex).join(""),
-    bytes.slice(6, 8).map(hex).join(""),
-    bytes.slice(8, 10).map(hex).join(""),
-    bytes.slice(10, 16).map(hex).join("")
-  ].join("-")
-})
-
-/**
- * Runs an effect with a pseudorandom number generator initialized from the
- * specified seed.
+ * Seeds the pseudorandom number generator with the specified value.
  *
  * Using the same seed produces the same random sequence, which is useful for
  * tests and reproducible simulations. Use an unpredictable seed when uniqueness
