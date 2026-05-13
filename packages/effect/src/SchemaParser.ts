@@ -73,7 +73,7 @@ export function makeOption<S extends Schema.Top>(schema: S) {
  * @category Constructing
  * @since 4.0.0
  */
-export function makeUnsafe<S extends Schema.Top>(schema: S) {
+export function make<S extends Schema.Top>(schema: S) {
   const parser = makeEffect(schema)
   return (input: S["~type.make.in"], options?: Schema.MakeOptions): S["Type"] => {
     return Effect.runSync(

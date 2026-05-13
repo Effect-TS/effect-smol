@@ -3193,9 +3193,9 @@ const URLFromString = Schema.String.pipe(
       decode: (s) =>
         Effect.try({
           try: () => new URL(s),
-          catch: (error) => new SchemaIssue.InvalidValue(Option.some(s), { cause: error })
+          catch: () => new Issue.InvalidValue(Option.some(s), { message: `Invalid URL string: ${s}` })
         }),
-      encode: (url) => Effect.succeed(url.toString())
+      encode: (url) => Effect.succeed(url.href)
     })
   )
 )
