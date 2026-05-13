@@ -4414,7 +4414,7 @@ export interface withDecodingDefaultTypeKey<S extends Top>
  * @since 4.0.0
  */
 export function withDecodingDefaultTypeKey<S extends Top>(
-  defaultValue: Effect.Effect<S["Type"]>,
+  defaultValue: Effect.Effect<S["Type"], SchemaError>,
   options?: DecodingDefaultOptions
 ) {
   return (self: S): withDecodingDefaultTypeKey<S> => {
@@ -4512,7 +4512,7 @@ export interface withDecodingDefaultType<S extends Top> extends decodeTo<withDec
  * @since 4.0.0
  */
 export function withDecodingDefaultType<S extends Top>(
-  defaultValue: Effect.Effect<S["Type"]>,
+  defaultValue: Effect.Effect<S["Type"], SchemaError>,
   options?: DecodingDefaultOptions
 ) {
   return (self: S): withDecodingDefaultType<S> => {

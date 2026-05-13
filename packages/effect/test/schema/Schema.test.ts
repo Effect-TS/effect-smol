@@ -7810,6 +7810,25 @@ pointed message
   at ["a"]["b"]`
       )
     })
+
+    it("Effect failing with SchemaError propagates as decode failure", async () => {
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultTypeKey(
+          Effect.fail(
+            new Schema.SchemaError(new SchemaIssue.InvalidValue(Option.none(), { message: "decoding default failed" }))
+          )
+        ))
+      })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({ a: "2" }, { a: 2 })
+      await decoding.fail(
+        {},
+        `decoding default failed
+  at ["a"]`
+      )
+    })
   })
 
   describe("withDecodingDefaultType", () => {
@@ -7870,6 +7889,25 @@ pointed message
       await decoding.succeed({ a: undefined }, { a: { b: 1 } })
       await decoding.succeed({ a: { b: undefined } }, { a: { b: 1 } })
       await decoding.succeed({ a: { b: "2" } }, { a: { b: 2 } })
+    })
+
+    it("Effect failing with SchemaError propagates as decode failure", async () => {
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultType(
+          Effect.fail(
+            new Schema.SchemaError(new SchemaIssue.InvalidValue(Option.none(), { message: "decoding default failed" }))
+          )
+        ))
+      })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({ a: "2" }, { a: 2 })
+      await decoding.fail(
+        {},
+        `decoding default failed
+  at ["a"]`
+      )
     })
   })
 
