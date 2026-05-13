@@ -29,6 +29,11 @@ export * as NodeClusterSocket from "./NodeClusterSocket.ts"
 /**
  * @since 1.0.0
  */
+export * as NodeCrypto from "./NodeCrypto.ts"
+
+/**
+ * @since 1.0.0
+ */
 export * as NodeFileSystem from "./NodeFileSystem.ts"
 
 /**

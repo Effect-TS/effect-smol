@@ -7,6 +7,11 @@
 /**
  * @since 1.0.0
  */
+export * as BrowserCrypto from "./BrowserCrypto.ts"
+
+/**
+ * @since 1.0.0
+ */
 export * as BrowserHttpClient from "./BrowserHttpClient.ts"
 
 /**

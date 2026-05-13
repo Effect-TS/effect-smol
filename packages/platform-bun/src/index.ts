@@ -24,6 +24,11 @@ export * as BunClusterSocket from "./BunClusterSocket.ts"
 /**
  * @since 1.0.0
  */
+export * as BunCrypto from "./BunCrypto.ts"
+
+/**
+ * @since 1.0.0
+ */
 export * as BunFileSystem from "./BunFileSystem.ts"
 
 /**

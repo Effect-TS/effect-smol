@@ -757,6 +757,59 @@ export * as Context from "./Context.ts"
 export * as Cron from "./Cron.ts"
 
 /**
+ * The `Crypto` module provides a platform-agnostic service for cryptographic
+ * operations. Runtime packages such as `@effect/platform-node`,
+ * `@effect/platform-bun`, and `@effect/platform-browser` provide concrete
+ * implementations backed by the host platform's cryptography APIs.
+ *
+ * Use `Crypto` for cryptographic randomness, UUIDv4 generation, and message
+ * digests. Use `Random` only when you need deterministic pseudo-random values,
+ * such as in tests or simulations.
+ *
+ * @example
+ * ```ts
+ * import { Console, Crypto, Effect, Layer } from "effect"
+ *
+ * const TestCrypto = Layer.succeed(
+ *   Crypto.Crypto,
+ *   Crypto.make({
+ *     randomBytes: (size) => Effect.succeed(new Uint8Array(size)),
+ *     randomUUIDv4: Effect.succeed("00000000-0000-4000-8000-000000000000"),
+ *     digest: (_algorithm, data) => Effect.succeed(data)
+ *   })
+ * )
+ *
+ * const program = Effect.gen(function*() {
+ *   const id = yield* Crypto.randomUUIDv4
+ *   yield* Console.log(`Created id: ${id}`)
+ * })
+ *
+ * Effect.runPromise(Effect.provide(program, TestCrypto))
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Crypto, Effect, Layer } from "effect"
+ *
+ * const TestCrypto = Layer.succeed(
+ *   Crypto.Crypto,
+ *   Crypto.make({
+ *     randomBytes: (size) => Effect.succeed(new Uint8Array(size)),
+ *     randomUUIDv4: Effect.succeed("00000000-0000-4000-8000-000000000000"),
+ *     digest: (_algorithm, data) => Effect.succeed(data)
+ *   })
+ * )
+ *
+ * const program = Crypto.randomBytes(32)
+ *
+ * Effect.runPromise(Effect.provide(program, TestCrypto))
+ * ```
+ *
+ * @since 4.0.0
+ */
+export * as Crypto from "./Crypto.ts"
+
+/**
  * Immutable data constructors with discriminated-union support.
  *
  * The `Data` module provides base classes and factory functions for creating
