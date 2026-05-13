@@ -53,6 +53,7 @@
   },
   "devDependencies": {
     "@types/node": "^25.7.0",
+    "@vitest/runner": "4.1.4",
     "effect": "workspace:^",
     "vitest": "4.1.4"
   }

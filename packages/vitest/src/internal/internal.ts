@@ -2,6 +2,7 @@
  * @since 1.0.0
  */
 
+import { getCurrentSuite } from "@vitest/runner"
 import * as Cause from "effect/Cause"
 import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
@@ -48,6 +49,9 @@ export const addEqualityTesters = () => {
 /** @internal */
 const testOptions = (timeout?: number | V.TestOptions) => typeof timeout === "number" ? { timeout } : timeout ?? {}
 
+const hookTimeout = (timeout?: Duration.Input) =>
+  timeout === undefined ? undefined : Duration.toMillis(Duration.fromInputUnsafe(timeout))
+
 const makeItProxy = <Methods extends object>(
   it: V.TestAPI,
   overrides: Methods
@@ -64,6 +68,24 @@ const makeItProxy = <Methods extends object>(
       return typeof value === "function" ? value.bind(target) : value
     }
   })
+
+type CollectedTask = {
+  readonly type: string
+  readonly mode?: string
+  readonly tasks?: ReadonlyArray<CollectedTask>
+}
+
+const collectTasks = (tasks: ReadonlyArray<CollectedTask>, acc: Array<V.TestContext["task"]> = []) => {
+  for (let i = 0; i < tasks.length; i++) {
+    const task = tasks[i]
+    if (task.type === "test" && task.mode !== "skip" && task.mode !== "todo") {
+      acc.push(task as V.TestContext["task"])
+    } else if (task.tasks !== undefined) {
+      collectTasks(task.tasks, acc)
+    }
+  }
+  return acc
+}
 
 /** @internal */
 const makeTester = <R>(
@@ -224,6 +246,14 @@ export const layer = <R, E>(
     Effect.cached,
     Effect.runSync
   )
+  let closed = false
+  const closeScope = (ctx?: Vitest.TestContext) => {
+    if (closed) {
+      return Promise.resolve()
+    }
+    closed = true
+    return runPromise(Scope.close(scope, Exit.void), ctx)
+  }
 
   const makeIt = (it: V.TestAPI): Vitest.Vitest.MethodsNonLive<R> =>
     makeItProxy(it, {
@@ -250,25 +280,49 @@ export const layer = <R, E>(
     })
 
   if (args.length === 1) {
-    V.beforeAll(
-      () => runPromise(Effect.asVoid(contextEffect)),
-      options?.timeout ? Duration.toMillis(Duration.fromInputUnsafe(options.timeout)) : undefined
+    const currentSuite = getCurrentSuite()
+    const previousTasks = new Set(currentSuite.tasks)
+
+    args[0](makeIt(V.it))
+
+    const blockTasks = collectTasks(
+      currentSuite.tasks.filter((task) => !previousTasks.has(task)) as ReadonlyArray<CollectedTask>
     )
-    V.afterAll(
-      () => runPromise(Scope.close(scope, Exit.void)),
-      options?.timeout ? Duration.toMillis(Duration.fromInputUnsafe(options.timeout)) : undefined
+    if (blockTasks.length === 0) {
+      V.afterAll(() => closeScope(), hookTimeout(options?.timeout))
+      return
+    }
+
+    const blockTaskSet = new Set(blockTasks)
+    let remaining = blockTasks.length
+
+    V.beforeEach(
+      (ctx) => {
+        if (!blockTaskSet.has(ctx.task)) {
+          return
+        }
+        ctx.onTestFinished(() => {
+          remaining--
+          if (remaining === 0) {
+            return closeScope(ctx)
+          }
+        })
+        return runPromise(Effect.asVoid(contextEffect), ctx)
+      },
+      hookTimeout(options?.timeout)
     )
-    return args[0](makeIt(V.it))
+    V.afterAll(() => closeScope(), hookTimeout(options?.timeout))
+    return
   }
 
   return V.describe(args[0], () => {
     V.beforeAll(
       () => runPromise(Effect.asVoid(contextEffect)),
-      options?.timeout ? Duration.toMillis(Duration.fromInputUnsafe(options.timeout)) : undefined
+      hookTimeout(options?.timeout)
     )
     V.afterAll(
-      () => runPromise(Scope.close(scope, Exit.void)),
-      options?.timeout ? Duration.toMillis(Duration.fromInputUnsafe(options.timeout)) : undefined
+      () => closeScope(),
+      hookTimeout(options?.timeout)
     )
     return args[1](makeIt(V.it))
   })

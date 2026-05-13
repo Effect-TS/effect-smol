@@ -804,6 +804,9 @@ importers:
       '@types/node':
         specifier: ^25.7.0
         version: 25.7.0
+      '@vitest/runner':
+        specifier: 4.1.4
+        version: 4.1.4
       effect:
         specifier: workspace:^
         version: link:../effect
