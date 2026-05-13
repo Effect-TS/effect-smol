@@ -167,6 +167,10 @@ const MemoMapTypeId = "~effect/Layer/MemoMap"
  */
 export interface MemoMap {
   readonly [MemoMapTypeId]: typeof MemoMapTypeId
+  readonly get: <RIn, E, ROut>(
+    layer: Layer<ROut, E, RIn>,
+    scope: Scope.Scope
+  ) => Effect<Context.Context<ROut>, E, RIn> | undefined
   readonly getOrElseMemoize: <RIn, E, ROut>(
     layer: Layer<ROut, E, RIn>,
     scope: Scope.Scope,
@@ -178,6 +182,17 @@ type MemoMapEntry = {
   observers: number
   effect: Effect<Context.Context<any>, any>
   readonly finalizer: (exit: Exit.Exit<unknown, unknown>) => Effect<void>
+}
+
+const memoMapReuse = <RIn, E, ROut>(
+  entry: MemoMapEntry,
+  scope: Scope.Scope
+): Effect<Context.Context<ROut>, E, RIn> => {
+  entry.observers++
+  return internalEffect.andThen(
+    internalEffect.scopeAddFinalizerExit(scope, (exit) => entry.finalizer(exit)),
+    entry.effect
+  )
 }
 
 /**
@@ -304,27 +319,8 @@ export const fromBuildMemo = <ROut, E, RIn>(
   return self
 }
 
-abstract class MemoMapBase implements MemoMap {
-  get [MemoMapTypeId](): typeof MemoMapTypeId {
-    return MemoMapTypeId
-  }
-
-  abstract getOrElseMemoize<RIn, E, ROut>(
-    layer: Layer<ROut, E, RIn>,
-    scope: Scope.Scope,
-    build: (memoMap: MemoMap, scope: Scope.Scope) => Effect<Context.Context<ROut>, E, RIn>
-  ): Effect<Context.Context<ROut>, E, RIn>
-
-  abstract unsafeGet(layer: Layer<any, any, any>): MemoMapEntry | undefined
-}
-
-const memoMapGet = (
-  memoMap: MemoMap,
-  layer: Layer<any, any, any>
-): MemoMapEntry | undefined => memoMap instanceof MemoMapBase ? memoMap.unsafeGet(layer) : undefined
-
 const memoMapBuild = <RIn, E, ROut>(
-  memoMap: MemoMap,
+  memoMap: MemoMapImpl,
   layer: Layer<ROut, E, RIn>,
   scope: Scope.Scope,
   build: (memoMap: MemoMap, scope: Scope.Scope) => Effect<Context.Context<ROut>, E, RIn>
@@ -338,17 +334,13 @@ const memoMapBuild = <RIn, E, ROut>(
       internalEffect.suspend(() => {
         entry.observers--
         if (entry.observers === 0) {
-          if (memoMap instanceof MemoMapImpl) {
-            memoMap.map.delete(layer)
-          }
+          memoMap.map.delete(layer)
           return Scope.close(layerScope, exit)
         }
         return internalEffect.void
       })
   }
-  if (memoMap instanceof MemoMapImpl) {
-    memoMap.map.set(layer, entry)
-  }
+  memoMap.map.set(layer, entry)
   return internalEffect.scopeAddFinalizerExit(scope, entry.finalizer).pipe(
     internalEffect.flatMap(() => build(memoMap, layerScope)),
     internalEffect.onExit((exit) => {
@@ -358,18 +350,28 @@ const memoMapBuild = <RIn, E, ROut>(
   )
 }
 
-class MemoMapImpl extends MemoMapBase {
+class MemoMapImpl implements MemoMap {
+  get [MemoMapTypeId](): typeof MemoMapTypeId {
+    return MemoMapTypeId
+  }
+
   readonly parent: MemoMap | undefined
 
   constructor(parent?: MemoMap) {
-    super()
     this.parent = parent
   }
 
   readonly map = new Map<Layer<any, any, any>, MemoMapEntry>()
 
-  unsafeGet(layer: Layer<any, any, any>): MemoMapEntry | undefined {
-    return this.map.get(layer) ?? (this.parent ? memoMapGet(this.parent, layer) : undefined)
+  get<RIn, E, ROut>(
+    layer: Layer<ROut, E, RIn>,
+    scope: Scope.Scope
+  ): Effect<Context.Context<ROut>, E, RIn> | undefined {
+    const local = this.map.get(layer)
+    if (local) {
+      return memoMapReuse(local, scope)
+    }
+    return this.parent?.get(layer, scope)
   }
 
   getOrElseMemoize<RIn, E, ROut>(
@@ -377,13 +379,9 @@ class MemoMapImpl extends MemoMapBase {
     scope: Scope.Scope,
     build: (memoMap: MemoMap, scope: Scope.Scope) => Effect<Context.Context<ROut>, E, RIn>
   ): Effect<Context.Context<ROut>, E, RIn> {
-    const entry = this.unsafeGet(layer)
-    if (entry) {
-      entry.observers++
-      return internalEffect.andThen(
-        internalEffect.scopeAddFinalizerExit(scope, (exit) => entry.finalizer(exit)),
-        entry.effect
-      )
+    const existing = this.get(layer, scope)
+    if (existing) {
+      return existing
     }
     return memoMapBuild(this, layer, scope, build)
   }
