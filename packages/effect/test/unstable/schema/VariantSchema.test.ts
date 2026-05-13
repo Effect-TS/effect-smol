@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { DateTime, Effect, Schema, SchemaParser } from "effect"
+import { DateTime, Effect, Schema } from "effect"
 import { Model, VariantSchema } from "effect/unstable/schema"
 
 describe("VariantSchema", () => {
@@ -57,7 +57,7 @@ describe("Model", () => {
       const insert = Model.extract(User, "insert")
 
       const now = yield* DateTime.now
-      const user = yield* SchemaParser.makeEffect(insert)({})
+      const user = yield* insert.makeEffect({})
       assert.deepStrictEqual(user.createdAt, now)
 
       yield* Schema.encodeEffect(insert)({

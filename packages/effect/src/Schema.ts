@@ -10524,10 +10524,7 @@ function makeClass<
       return Parser.makeOption(getClassSchema(this) as any)(input ?? {}, options) as any
     }
     static makeEffect(input: S["~type.make.in"], options?: MakeOptions): Effect.Effect<Self, SchemaError> {
-      return Effect.mapErrorEager(
-        Parser.makeEffect(getClassSchema(this) as any)(input ?? {}, options),
-        (issue) => new SchemaError(issue)
-      ) as any
+      return (getClassSchema(this) as any).makeEffect(input ?? {}, options)
     }
     static annotate(annotations: Annotations.Declaration<Self, readonly [S]>) {
       return this.rebuild(AST.annotate(this.ast, annotations))

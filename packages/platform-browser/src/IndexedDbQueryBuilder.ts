@@ -964,15 +964,11 @@ const applyModify = Effect.fnUntraced(function*({
   const autoIncrement = query.from.table.autoIncrement as boolean
   const keyPath = query.from.table.keyPath
   const table = query.from.table
-  const schema = autoIncrement && value[keyPath] === undefined
+  const schema: Schema.Top = autoIncrement && value[keyPath] === undefined
     ? table.autoincrementSchema
     : table.tableSchema
 
-  const encodedValue = yield* SchemaParser.makeEffect(
-    autoIncrement && value[keyPath] === undefined
-      ? table.autoincrementSchema
-      : table.tableSchema
-  )(value).pipe(
+  const encodedValue = yield* schema.makeEffect(value).pipe(
     Effect.flatMap(Schema.encodeUnknownEffect(schema)),
     Effect.mapError(
       (error) =>
