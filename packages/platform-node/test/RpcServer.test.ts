@@ -1,10 +1,23 @@
 import { NodeHttpServer, NodeSocket, NodeSocketServer } from "@effect/platform-node"
 import { assert, describe, it } from "@effect/vitest"
-import { Cause, Deferred, Effect, Layer } from "effect"
-import { Entity, EntityProxy, EntityProxyServer, Sharding } from "effect/unstable/cluster"
+import { Cause, Deferred, Effect, Fiber, Layer, Schema } from "effect"
+import { TestClock } from "effect/testing"
+import {
+  ClusterWorkflowEngine,
+  Entity,
+  EntityProxy,
+  EntityProxyServer,
+  MessageStorage,
+  RunnerHealth,
+  Runners,
+  RunnerStorage,
+  Sharding,
+  ShardingConfig
+} from "effect/unstable/cluster"
 import { HttpClient, HttpClientRequest, HttpRouter, HttpServer } from "effect/unstable/http"
 import { Rpc, RpcClient, RpcSerialization, RpcServer, RpcTest } from "effect/unstable/rpc"
 import { SocketServer } from "effect/unstable/socket"
+import { Workflow, WorkflowProxy, WorkflowProxyServer } from "effect/unstable/workflow"
 import { e2eSuite, UsersClient } from "./fixtures/rpc-e2e.ts"
 import { RpcLive, User } from "./fixtures/rpc-schemas.ts"
 
@@ -209,5 +222,57 @@ describe("RpcServer", () => {
         })
         yield* Deferred.await(called)
       }))
+  })
+
+  describe("workflow proxy", () => {
+    const TestShardingConfig = ShardingConfig.layer({
+      shardsPerGroup: 300,
+      entityMailboxCapacity: 10,
+      entityTerminationTimeout: 0,
+      entityMessagePollInterval: 5000,
+      sendRetryInterval: 100
+    })
+
+    const TestWorkflowEngine = ClusterWorkflowEngine.layer.pipe(
+      Layer.provideMerge(Sharding.layer),
+      Layer.provide(Runners.layerNoop),
+      Layer.provideMerge(MessageStorage.layerMemory),
+      Layer.provide(RunnerStorage.layerMemory),
+      Layer.provide(RunnerHealth.layerNoop),
+      Layer.provide(TestShardingConfig)
+    )
+
+    const TestWorkflow = Workflow.make({
+      name: "TestWorkflow",
+      payload: { id: Schema.String },
+      success: Schema.String,
+      error: Schema.Never,
+      idempotencyKey: (payload) => payload.id
+    })
+
+    const TestWorkflowRpcs = WorkflowProxy.toRpcGroup([TestWorkflow])
+    const TestWorkflowLayer = TestWorkflow.toLayer(
+      Effect.fn(function*(payload) {
+        return `handled:${payload.id}`
+      })
+    )
+
+    it.effect("provides handler context for generated rpc handlers", () =>
+      Effect.gen(function*() {
+        const sharding = yield* Sharding.Sharding
+        const client = yield* RpcTest.makeClient(TestWorkflowRpcs)
+        const fiber = yield* client.TestWorkflow({ id: "test-id-1" }).pipe(
+          Effect.forkChild({ startImmediately: true })
+        )
+        yield* TestClock.adjust("1 second")
+        yield* sharding.pollStorage
+        yield* TestClock.adjust("1 second")
+        const result = yield* Fiber.join(fiber)
+        assert.strictEqual(result, "handled:test-id-1")
+      }).pipe(
+        Effect.provide(WorkflowProxyServer.layerRpcHandlers([TestWorkflow])),
+        Effect.provide(TestWorkflowLayer),
+        Effect.provide(TestWorkflowEngine)
+      ))
   })
 })

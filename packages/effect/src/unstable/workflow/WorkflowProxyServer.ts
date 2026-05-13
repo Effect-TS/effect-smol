@@ -91,7 +91,7 @@ export const layerRpcHandlers = <
   WorkflowEngine | Workflow.RequirementsHandler<Workflows[number]>
 > =>
   Layer.effectContext(Effect.gen(function*() {
-    const services = yield* Effect.context<never>()
+    const context = yield* Effect.context<never>()
     const prefix = options?.prefix ?? ""
     const handlers = new Map<string, Rpc.Handler<string>>()
     for (const workflow_ of workflows) {
@@ -103,17 +103,17 @@ export const layerRpcHandlers = <
       const keyDiscard = `${key}Discard`
       const keyResume = `${key}Resume`
       handlers.set(key, {
-        services,
+        context,
         tag,
         handler: (payload: any) => workflow.execute(payload) as any
       } as any)
       handlers.set(keyDiscard, {
-        services,
+        context,
         tag: tagDiscard,
         handler: (payload: any) => workflow.execute(payload, { discard: true } as any) as any
       } as any)
       handlers.set(keyResume, {
-        services,
+        context,
         tag: tagResume,
         handler: (payload: any) => workflow.resume(payload.executionId) as any
       } as any)
