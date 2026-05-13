@@ -224,7 +224,11 @@ export const layer = <R, E>(
       layer<R2, E2>(nestedLayer: Layer.Layer<R2, E2, R>, options?: {
         readonly timeout?: Duration.Input
       }) {
-        return layer(Layer.provideMerge(nestedLayer, withTestEnv), { ...options, memoMap, excludeTestServices })
+        return layer(Layer.provideMerge(nestedLayer, withTestEnv), {
+          ...options,
+          memoMap: Layer.forkMemoMapUnsafe(memoMap),
+          excludeTestServices
+        })
       }
     })
 

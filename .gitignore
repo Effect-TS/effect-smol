@@ -37,3 +37,6 @@ scratchpad/**/*
 
 # Codex
 .agents/
+
+# OpenCode local tooling
+.opencode/
