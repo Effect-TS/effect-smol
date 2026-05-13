@@ -692,7 +692,7 @@ export function omit<T>(): Getter<never, T> {
 export function withDefault<T>(defaultValue: Effect.Effect<T>): Getter<T, T | undefined> {
   return new Getter((o) => {
     const filtered = Option.filter(o, Predicate.isNotUndefined)
-    return Option.isSome(filtered) ? Effect.succeed(filtered) : Effect.map(defaultValue, Option.some)
+    return Option.isSome(filtered) ? Effect.succeed(filtered) : Effect.mapEager(defaultValue, Option.some)
   })
 }
 
