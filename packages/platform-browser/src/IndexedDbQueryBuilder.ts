@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 import type { NonEmptyReadonlyArray } from "effect/Array"
+import * as Cause from "effect/Cause"
 import * as Context from "effect/Context"
 import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
@@ -47,7 +48,6 @@ const CommonProto = {
  * @category errors
  */
 export type ErrorReason =
-  | "NotFoundError"
   | "UnknownError"
   | "DecodeError"
   | "EncodeError"
@@ -532,7 +532,7 @@ export declare namespace IndexedDbQuery {
   > extends
     Effect.Effect<
       SelectType<Table>,
-      IndexedDbQueryError,
+      IndexedDbQueryError | Cause.NoSuchElementError,
       IndexedDbTable.Context<Table>
     >
   {
@@ -547,7 +547,7 @@ export declare namespace IndexedDbQuery {
       keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
     ) => Stream.Stream<
       SelectType<Table>,
-      IndexedDbQueryError,
+      IndexedDbQueryError | Cause.NoSuchElementError,
       IndexedDbTable.Context<Table>
     >
 
@@ -559,7 +559,7 @@ export declare namespace IndexedDbQuery {
     readonly reactiveQueue: (
       keys: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>>
     ) => Effect.Effect<
-      Queue.Dequeue<SelectType<Table>, IndexedDbQueryError>,
+      Queue.Dequeue<SelectType<Table>, IndexedDbQueryError | Cause.NoSuchElementError>,
       never,
       Scope.Scope | IndexedDbTable.Context<Table>
     >
@@ -906,7 +906,7 @@ const applyFirst = Effect.fnUntraced(function*(
 ) {
   const keyPath = query.select.from.table.keyPath
 
-  const data = yield* Effect.callback<any, IndexedDbQueryError>((resume) => {
+  const data = yield* Effect.callback<any, IndexedDbQueryError | Cause.NoSuchElementError>((resume) => {
     const { keyRange, store } = getReadonlyObjectStore(query.select)
 
     if (keyRange !== undefined) {
@@ -946,12 +946,7 @@ const applyFirst = Effect.fnUntraced(function*(
 
         if (value === undefined) {
           resume(
-            Effect.fail(
-              new IndexedDbQueryError({
-                reason: "NotFoundError",
-                cause: request.error
-              })
-            )
+            Effect.fail(new Cause.NoSuchElementError(`No such element in table ${query.select.from.table.tableName}`))
           )
         } else {
           resume(
