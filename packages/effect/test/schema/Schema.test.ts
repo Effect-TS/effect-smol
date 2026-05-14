@@ -97,6 +97,36 @@ Expected an integer, got -1.2`
     })
   })
 
+  describe("parse options", () => {
+    it("decoders can receive options when they are created", () => {
+      const schema = Schema.Struct({
+        a: Schema.String
+      })
+      const decode = Schema.decodeUnknownExit(schema, { onExcessProperty: "error" })
+
+      const failure = decode({ a: "a", b: "b" })
+      assertTrue(Exit.isFailure(failure))
+
+      const success = decode({ a: "a", b: "b" }, { onExcessProperty: "preserve" })
+      assertTrue(Exit.isSuccess(success))
+      deepStrictEqual(success.value, { a: "a", b: "b" })
+    })
+
+    it("encoders can receive options when they are created", () => {
+      const schema = Schema.Struct({
+        a: Schema.String
+      })
+      const encode = Schema.encodeUnknownExit(schema, { onExcessProperty: "error" })
+
+      const failure = encode({ a: "a", b: "b" })
+      assertTrue(Exit.isFailure(failure))
+
+      const success = encode({ a: "a", b: "b" }, { onExcessProperty: "preserve" })
+      assertTrue(Exit.isSuccess(success))
+      deepStrictEqual(success.value, { a: "a", b: "b" })
+    })
+  })
+
   describe("Literal", () => {
     it("should throw an error if the literal is not a finite number", () => {
       throws(
