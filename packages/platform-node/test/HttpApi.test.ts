@@ -812,6 +812,47 @@ describe("HttpApi", () => {
         yield* assertClientJson(client.group.a({ payload: new Uint8Array([1, 2, 3]) }), { 0: 1, 1: 2, 2: 3 })
       }).pipe(Effect.provide(ApiLive))
     })
+
+    it("optional JSON payload accepts an empty request body", async () => {
+      const Payload = Schema.Struct({
+        name: Schema.optional(Schema.String)
+      })
+
+      const Api = HttpApi.make("api").add(
+        HttpApiGroup.make("group").add(
+          HttpApiEndpoint.post("create", "/create", {
+            payload: Schema.optional(Payload),
+            success: Schema.String
+          })
+        )
+      )
+      const GroupLive = HttpApiBuilder.group(
+        Api,
+        "group",
+        (handlers) => handlers.handle("create", (ctx) => Effect.succeed(ctx.payload?.name ?? "default"))
+      )
+
+      const handler = HttpRouter.toWebHandler(
+        HttpApiBuilder.layer(Api).pipe(
+          Layer.provide(GroupLive),
+          Layer.provide(HttpServer.layerServices)
+        ),
+        { disableLogger: true }
+      )
+
+      try {
+        const response = await handler.handler(
+          new Request("http://localhost/create", {
+            method: "POST",
+            headers: { "content-type": "application/json" }
+          })
+        )
+        assert.strictEqual(response.status, 200)
+        assert.deepStrictEqual(await response.json(), "default")
+      } finally {
+        await handler.dispose()
+      }
+    })
   })
 
   describe("params option", () => {
