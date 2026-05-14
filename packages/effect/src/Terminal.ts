@@ -28,6 +28,11 @@ export interface Terminal {
    */
   readonly columns: Effect.Effect<number>
   /**
+   * The number of rows available on the platform's terminal interface.
+   */
+
+  readonly rows: Effect.Effect<number>
+  /**
    * Reads input events from the default standard input.
    */
   readonly readInput: Effect.Effect<Queue.Dequeue<UserInput, Cause.Done>, never, Scope.Scope>
