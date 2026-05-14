@@ -47,6 +47,7 @@ export const make: (
     })
 
     const columns = Effect.sync(() => stdout.columns ?? 0)
+    const rows = Effect.sync(() => stdout.rows ?? 0)
 
     const readInput = Effect.gen(function*() {
       yield* RcRef.get(rlRef)
@@ -94,6 +95,7 @@ export const make: (
 
     return Terminal.make({
       columns,
+      rows,
       readInput,
       readLine,
       display
