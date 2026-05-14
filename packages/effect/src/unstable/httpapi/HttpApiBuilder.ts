@@ -584,7 +584,7 @@ function handlerToHttpEffect(
   const encodeError = Schema.encodeUnknownEffect(makeErrorSchema(endpoint))
   const decodeParams = UndefinedOr.map(endpoint.params, Schema.decodeUnknownEffect)
   const decodeHeaders = UndefinedOr.map(endpoint.headers, Schema.decodeUnknownEffect)
-  const decodeQuery = UndefinedOr.map(endpoint.query, Schema.decodeUnknownEffect)
+  const decodeQuery = UndefinedOr.map(HttpApiEndpoint.getQuerySchema(endpoint), Schema.decodeUnknownEffect)
 
   const shouldParsePayload = endpoint.payload.size > 0 && !isRaw
   const payloadBy = shouldParsePayload ? buildPayloadDecoders(endpoint.payload) : undefined
