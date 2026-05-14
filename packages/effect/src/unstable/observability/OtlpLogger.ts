@@ -31,7 +31,7 @@ export const make: (
       readonly attributes?: Record<string, unknown>
     } | undefined
     readonly headers?: Headers.Input | undefined
-    readonly exportInterval?: Duration.Input | undefined
+    readonly exportInterval?: Duration.Input | "disabled" | undefined
     readonly maxBatchSize?: number | undefined
     readonly shutdownTimeout?: Duration.Input | undefined
     readonly excludeLogSpans?: boolean | undefined
@@ -87,7 +87,7 @@ export const layer = (options: {
     readonly attributes?: Record<string, unknown>
   } | undefined
   readonly headers?: Headers.Input | undefined
-  readonly exportInterval?: Duration.Input | undefined
+  readonly exportInterval?: Duration.Input | "disabled" | undefined
   readonly maxBatchSize?: number | undefined
   readonly shutdownTimeout?: Duration.Input | undefined
   readonly excludeLogSpans?: boolean | undefined

@@ -2,7 +2,7 @@ import { assert, describe, it } from "@effect/vitest"
 import { Array, Context, Effect, Layer, Metric, Predicate, Ref } from "effect"
 import { TestClock } from "effect/testing"
 import { HttpClient, type HttpClientError, HttpClientResponse } from "effect/unstable/http"
-import { OtlpMetrics, OtlpSerialization } from "effect/unstable/observability"
+import { OtlpExporter, OtlpMetrics, OtlpSerialization } from "effect/unstable/observability"
 
 describe("OtlpMetrics", () => {
   describe("cumulative temporality", () => {
@@ -399,6 +399,30 @@ describe("OtlpMetrics", () => {
         assert.strictEqual(secondMetric?.gauge?.dataPoints[0].asDouble, 50)
       }).pipe(Effect.provide(layer)))
   })
+
+  it.effect("supports manually flushing disabled exporters", () =>
+    Effect.gen(function*() {
+      const metricName = "manual_flush_counter_test"
+      const counter = Metric.counter(metricName, {
+        description: "Test counter"
+      })
+
+      yield* Metric.update(counter, 5)
+      yield* TestClock.adjust("10 seconds")
+
+      let requests = yield* MockHttpClient.requests
+      assert.strictEqual(requests.length, 0)
+
+      yield* OtlpExporter.flush
+
+      requests = yield* MockHttpClient.requests
+      assert.strictEqual(requests.length, 1)
+      const metric = findMetric(requests[0], metricName)
+      assert.strictEqual(metric?.sum?.dataPoints[0].asDouble, 5)
+    }).pipe(
+      Effect.provide(TestLayerDisabled),
+      Effect.provide(OtlpExporter.layerExporters)
+    ))
 })
 
 interface OtlpExportRequest {
@@ -492,12 +516,23 @@ const OtlpDeltaMetricsLayer = OtlpMetrics.layer({
   exportInterval: "10 seconds"
 })
 
+const OtlpDisabledMetricsLayer = OtlpMetrics.layer({
+  url: "http://localhost:4318/v1/metrics",
+  resource: { serviceName: "test-service" },
+  exportInterval: "disabled"
+})
+
 const TestLayerCumulative = OtlpCumulativeMetricsLayer.pipe(
   Layer.provideMerge(HttpClientLayer),
   Layer.provide(OtlpSerialization.layerJson)
 )
 
 const TestLayerDelta = OtlpDeltaMetricsLayer.pipe(
+  Layer.provideMerge(HttpClientLayer),
+  Layer.provide(OtlpSerialization.layerJson)
+)
+
+const TestLayerDisabled = OtlpDisabledMetricsLayer.pipe(
   Layer.provideMerge(HttpClientLayer),
   Layer.provide(OtlpSerialization.layerJson)
 )

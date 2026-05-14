@@ -33,7 +33,7 @@ export const make: (
       readonly attributes?: Record<string, unknown>
     } | undefined
     readonly headers?: Headers.Input | undefined
-    readonly exportInterval?: Duration.Input | undefined
+    readonly exportInterval?: Duration.Input | "disabled" | undefined
     readonly maxBatchSize?: number | undefined
     readonly context?: (<X>(primitive: Tracer.EffectPrimitive<X>, span: Tracer.AnySpan) => X) | undefined
     readonly shutdownTimeout?: Duration.Input | undefined
@@ -110,7 +110,7 @@ export const layer: (options: {
     readonly attributes?: Record<string, unknown>
   } | undefined
   readonly headers?: Headers.Input | undefined
-  readonly exportInterval?: Duration.Input | undefined
+  readonly exportInterval?: Duration.Input | "disabled" | undefined
   readonly maxBatchSize?: number | undefined
   readonly context?: (<X>(primitive: Tracer.EffectPrimitive<X>, span: Tracer.AnySpan) => X) | undefined
   readonly shutdownTimeout?: Duration.Input | undefined
