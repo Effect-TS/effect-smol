@@ -2,8 +2,8 @@
 /**
  * @since 1.0.0
  */
+import * as NodeContext from "@effect/platform-node/NodeContext"
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime"
-import * as NodeServices from "@effect/platform-node/NodeServices"
 import * as Array from "effect/Array"
 import * as Effect from "effect/Effect"
 import * as FileSystem from "effect/FileSystem"
@@ -55,7 +55,7 @@ Command.make("effect-ai-docgen", { directory, output, watch }).pipe(
   Command.run({
     version: "0.0.0"
   }),
-  Effect.provide(NodeServices.layer),
+  Effect.provide(NodeContext.layer),
   NodeRuntime.runMain
 )
 

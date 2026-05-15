@@ -22,9 +22,9 @@ import * as RpcSerialization from "effect/unstable/rpc/RpcSerialization"
 import type { SqlClient } from "effect/unstable/sql/SqlClient"
 import { createServer } from "node:http"
 import { layerK8sHttpClient } from "./NodeClusterSocket.ts"
+import type { NodeContext } from "./NodeContext.ts"
 import * as NodeHttpClient from "./NodeHttpClient.ts"
 import * as NodeHttpServer from "./NodeHttpServer.ts"
-import type { NodeServices } from "./NodeServices.ts"
 import * as NodeSocket from "./NodeSocket.ts"
 
 export {
@@ -123,7 +123,7 @@ export const layer = <
 export const layerHttpServer: Layer.Layer<
   | HttpPlatform
   | Etag.Generator
-  | NodeServices
+  | NodeContext
   | HttpServer,
   ServeError,
   ShardingConfig.ShardingConfig

@@ -137,7 +137,7 @@ export interface ChildProcessHandle {
    *
    * @example
    * ```ts
-   * import { NodeServices } from "@effect/platform-node"
+   * import { NodeContext } from "@effect/platform-node"
    * import { Effect } from "effect"
    * import { ChildProcess } from "effect/unstable/process"
    *
@@ -149,7 +149,7 @@ export interface ChildProcessHandle {
    *
    *   yield* reref
    *   return yield* handle.exitCode
-   * }).pipe(Effect.scoped, Effect.provide(NodeServices.layer))
+   * }).pipe(Effect.scoped, Effect.provide(NodeContext.layer))
    * ```
    */
   readonly unref: Effect.Effect<Reref, PlatformError.PlatformError>

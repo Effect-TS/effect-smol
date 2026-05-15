@@ -3,7 +3,7 @@
  *
  * This example shows how to collect process output, compose pipelines, and stream long-running command output.
  */
-import { NodeServices } from "@effect/platform-node"
+import { NodeContext } from "@effect/platform-node"
 import { Console, Context, Effect, Layer, Schema, Stream, String } from "effect"
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 
@@ -100,8 +100,8 @@ export class DevTools extends Context.Service<DevTools, {
       })
     })
   ).pipe(
-    // Provide the `ChildProcessSpawner` dependency from `NodeServices.layer`.
-    Layer.provide(NodeServices.layer)
+    // Provide the `ChildProcessSpawner` dependency from `NodeContext.layer`.
+    Layer.provide(NodeContext.layer)
   )
 }
 
@@ -112,6 +112,6 @@ export const program = Effect.gen(function*() {
   yield* Effect.log(`node=${version}`)
 }).pipe(
   // `ChildProcess` requires a platform implementation of
-  // `ChildProcessSpawner`. In Node.js, `NodeServices.layer` provides it.
+  // `ChildProcessSpawner`. In Node.js, `NodeContext.layer` provides it.
   Effect.provide(DevTools.layer)
 )

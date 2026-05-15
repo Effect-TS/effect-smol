@@ -1,11 +1,11 @@
 import * as OpenApiPatch from "@effect/openapi-generator/OpenApiPatch"
-import * as NodeServices from "@effect/platform-node/NodeServices"
+import * as NodeContext from "@effect/platform-node/NodeContext"
 import { assert, describe, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Path from "effect/Path"
 
-const testLayer = NodeServices.layer
+const testLayer = NodeContext.layer
 
 describe("OpenApiPatch", () => {
   describe("parsePatchInput", () => {

@@ -1,4 +1,4 @@
-import * as NodeServices from "@effect/platform-node/NodeServices"
+import * as NodeContext from "@effect/platform-node/NodeContext"
 import { assert, describe, it } from "@effect/vitest"
 import { Effect, Layer, Stdio, Stream } from "effect"
 import * as Exit from "effect/Exit"
@@ -10,7 +10,7 @@ const makeLayer = (args: ReadonlyArray<string>) =>
   Layer.mergeAll(
     TestConsole.layer,
     CliOutput.layer(CliOutput.defaultFormatter({ colors: false })),
-    NodeServices.layer,
+    NodeContext.layer,
     Stdio.layerTest({ args: Effect.succeed(args) })
   )
 
@@ -143,5 +143,5 @@ describe("openapigen CLI", () => {
         "WARNING [cookie-parameter-dropped] GET /users/{id} (getUser): Cookie parameter \"session\" was dropped because non-security cookie parameters are not supported."
       )
       assert.notInclude(result.stderr, "export const make = (")
-    }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
+    }).pipe(Effect.scoped, Effect.provide(NodeContext.layer)))
 })

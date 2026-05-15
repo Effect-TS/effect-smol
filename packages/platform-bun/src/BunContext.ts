@@ -17,13 +17,13 @@ import * as BunTerminal from "./BunTerminal.ts"
  * @since 1.0.0
  * @category models
  */
-export type BunServices = ChildProcessSpawner | FileSystem | Path | Terminal | Stdio
+export type BunContext = ChildProcessSpawner | FileSystem | Path | Terminal | Stdio
 
 /**
  * @since 1.0.0
  * @category layer
  */
-export const layer: Layer.Layer<BunServices> = BunChildProcessSpawner.layer.pipe(
+export const layer: Layer.Layer<BunContext> = BunChildProcessSpawner.layer.pipe(
   Layer.provideMerge(Layer.mergeAll(
     BunFileSystem.layer,
     BunPath.layer,

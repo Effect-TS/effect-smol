@@ -6,7 +6,7 @@
  *
  * @example
  * ```ts
- * import { NodeServices } from "@effect/platform-node"
+ * import { NodeContext } from "@effect/platform-node"
  * import { Effect, Stream } from "effect"
  * import { ChildProcess } from "effect/unstable/process"
  *
@@ -20,7 +20,7 @@
  *   const chunks = yield* Stream.runCollect(handle.stdout)
  *   const exitCode = yield* handle.exitCode
  *   return { chunks, exitCode }
- * }).pipe(Effect.scoped, Effect.provide(NodeServices.layer))
+ * }).pipe(Effect.scoped, Effect.provide(NodeContext.layer))
  *
  * // With options
  * const withOptions = ChildProcess.make({ cwd: "/tmp" })`ls -la`
@@ -35,7 +35,7 @@
  *   const handle = yield* pipeline
  *   const chunks = yield* Stream.runCollect(handle.stdout)
  *   return chunks
- * }).pipe(Effect.scoped, Effect.provide(NodeServices.layer))
+ * }).pipe(Effect.scoped, Effect.provide(NodeContext.layer))
  * ```
  *
  * @since 4.0.0

@@ -17,13 +17,13 @@ import * as NodeTerminal from "./NodeTerminal.ts"
  * @since 1.0.0
  * @category models
  */
-export type NodeServices = ChildProcessSpawner | FileSystem | Path | Stdio | Terminal
+export type NodeContext = ChildProcessSpawner | FileSystem | Path | Stdio | Terminal
 
 /**
  * @since 1.0.0
  * @category layer
  */
-export const layer: Layer.Layer<NodeServices> = Layer.provideMerge(
+export const layer: Layer.Layer<NodeContext> = Layer.provideMerge(
   NodeChildProcessSpawner.layer,
   Layer.mergeAll(
     NodeFileSystem.layer,

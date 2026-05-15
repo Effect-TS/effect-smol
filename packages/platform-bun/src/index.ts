@@ -24,6 +24,11 @@ export * as BunClusterSocket from "./BunClusterSocket.ts"
 /**
  * @since 1.0.0
  */
+export * as BunContext from "./BunContext.ts"
+
+/**
+ * @since 1.0.0
+ */
 export * as BunFileSystem from "./BunFileSystem.ts"
 
 /**
@@ -65,11 +70,6 @@ export * as BunRedis from "./BunRedis.ts"
  * @since 1.0.0
  */
 export * as BunRuntime from "./BunRuntime.ts"
-
-/**
- * @since 1.0.0
- */
-export * as BunServices from "./BunServices.ts"
 
 /**
  * @since 1.0.0
