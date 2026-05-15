@@ -48,10 +48,15 @@ const randomBytes: EffectCrypto.Crypto["randomBytes"] = (size) =>
       catch: (cause) => systemError("randomBytes", "Could not generate cryptographic random bytes", cause)
     }))
 
-const randomUUIDv4: EffectCrypto.Crypto["randomUUIDv4"] = Effect.try({
-  try: () => NodeCrypto.randomUUID(),
-  catch: (cause) => systemError("randomUUIDv4", "Could not generate a UUIDv4", cause)
-})
+const nextDoubleUnsafe = (): number => {
+  const bytes = NodeCrypto.randomBytes(7)
+  const value = ((bytes[0] & 0x1f) * 2 ** 48) + (bytes[1] * 2 ** 40) + (bytes[2] * 2 ** 32) +
+    (bytes[3] * 2 ** 24) + (bytes[4] * 2 ** 16) + (bytes[5] * 2 ** 8) + bytes[6]
+  return value / 2 ** 53
+}
+
+const nextIntUnsafe = (): number =>
+  Math.floor(nextDoubleUnsafe() * (Number.MAX_SAFE_INTEGER - Number.MIN_SAFE_INTEGER + 1)) + Number.MIN_SAFE_INTEGER
 
 const digest: EffectCrypto.Crypto["digest"] = (algorithm, data) =>
   Effect.map(
@@ -68,7 +73,8 @@ const digest: EffectCrypto.Crypto["digest"] = (algorithm, data) =>
  */
 export const make: EffectCrypto.Crypto = EffectCrypto.make({
   randomBytes,
-  randomUUIDv4,
+  nextIntUnsafe,
+  nextDoubleUnsafe,
   digest
 })
 

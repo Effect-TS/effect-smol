@@ -1,7 +1,15 @@
 /**
- * The Random module provides a service for generating random numbers in Effect
- * programs. It offers a testable and composable way to work with randomness,
- * supporting integers, floating-point numbers, and range-based generation.
+ * The `Random` module provides a service for generating pseudo-random numbers
+ * in Effect programs. It offers a testable and composable way to work with
+ * randomness, supporting integers, floating-point numbers, and range-based
+ * generation.
+ *
+ * The default `Random` service is not cryptographically secure. Do not use it
+ * for secrets, tokens, UUIDs, session identifiers, or other security-sensitive
+ * values. For cryptographically secure random generation, replace the service
+ * with a cryptographically secure implementation such as the platform `Crypto`
+ * service. `Random.withSeed` also replaces the service, but predictable seeds
+ * remain deterministic and must not be treated as cryptographically secure.
  *
  * **Example** (Generating random values)
  *
@@ -29,7 +37,11 @@ import * as random from "./internal/random.ts"
 import * as Predicate from "./Predicate.ts"
 
 /**
- * Represents a service for generating random numbers.
+ * Represents a service for generating pseudo-random numbers.
+ *
+ * The default implementation is based on `Math.random` and is not
+ * cryptographically secure. Replace the service with a cryptographically secure
+ * implementation before using these generators for security-sensitive values.
  *
  * **Example** (Accessing the random service)
  *
@@ -54,6 +66,12 @@ export const Random: Context.Reference<{
   nextIntUnsafe(): number
   nextDoubleUnsafe(): number
 }> = random.Random
+
+/**
+ * @since 4.0.0
+ * @category Random Number Generators
+ */
+export type Random = typeof Random["Service"]
 
 const randomWith = <A>(f: (random: typeof Random["Service"]) => A): Effect.Effect<A> =>
   Effect.withFiber((fiber) => Effect.succeed(f(fiber.getRef(Random))))
@@ -201,7 +219,7 @@ export const shuffle = <A>(elements: Iterable<A>): Effect.Effect<Array<A>> =>
   })
 
 /**
- * Seeds the pseudorandom number generator with the specified value.
+ * Seeds the pseudo-random number generator with the specified value.
  *
  * Using the same seed produces the same random sequence, which is useful for
  * tests and reproducible simulations. Use an unpredictable seed when uniqueness

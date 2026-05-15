@@ -14,7 +14,6 @@ const randomValuesMaxLength = 65_536
  */
 export interface CryptoBackend {
   readonly getRandomValues?: Crypto["getRandomValues"] | undefined
-  readonly randomUUID?: Crypto["randomUUID"] | undefined
   readonly subtle?: Pick<SubtleCrypto, "digest"> | undefined
 }
 
@@ -67,21 +66,30 @@ const toSubtleAlgorithm = (algorithm: EffectCrypto.DigestAlgorithm): string => {
   }
 }
 
-const hex = (byte: number): string => byte.toString(16).padStart(2, "0")
-
-const formatUUIDv4 = (bytes: Uint8Array): string => {
-  bytes[6] = (bytes[6] & 0x0f) | 0x40
-  bytes[8] = (bytes[8] & 0x3f) | 0x80
-  return `${hex(bytes[0])}${hex(bytes[1])}${hex(bytes[2])}${hex(bytes[3])}-${hex(bytes[4])}${hex(bytes[5])}-${
-    hex(bytes[6])
-  }${hex(bytes[7])}-${hex(bytes[8])}${hex(bytes[9])}-${hex(bytes[10])}${hex(bytes[11])}${hex(bytes[12])}${
-    hex(bytes[13])
-  }${hex(bytes[14])}${hex(bytes[15])}`
-}
-
 const makeWith = (
-  getBackend: (method: string) => Effect.Effect<CryptoBackend, PlatformError.PlatformError>
+  getBackend: (method: string) => Effect.Effect<CryptoBackend, PlatformError.PlatformError>,
+  getUnsafeBackend: () => CryptoBackend | undefined
 ): EffectCrypto.Crypto => {
+  const unsafeRandomBytes = (size: number): Uint8Array => {
+    const crypto = getUnsafeBackend()
+    if (typeof crypto?.getRandomValues !== "function") {
+      throw new Error("crypto.getRandomValues is not available")
+    }
+    const bytes = new Uint8Array(size)
+    crypto.getRandomValues(bytes)
+    return bytes
+  }
+
+  const nextDoubleUnsafe = (): number => {
+    const bytes = unsafeRandomBytes(7)
+    const value = ((bytes[0] & 0x1f) * 2 ** 48) + (bytes[1] * 2 ** 40) + (bytes[2] * 2 ** 32) +
+      (bytes[3] * 2 ** 24) + (bytes[4] * 2 ** 16) + (bytes[5] * 2 ** 8) + bytes[6]
+    return value / 2 ** 53
+  }
+
+  const nextIntUnsafe = (): number =>
+    Math.floor(nextDoubleUnsafe() * (Number.MAX_SAFE_INTEGER - Number.MIN_SAFE_INTEGER + 1)) + Number.MIN_SAFE_INTEGER
+
   const randomBytes: EffectCrypto.Crypto["randomBytes"] = (size) =>
     Effect.flatMap(
       validateSize("randomBytes", size),
@@ -107,17 +115,6 @@ const makeWith = (
         })
     )
 
-  const randomUUIDv4: EffectCrypto.Crypto["randomUUIDv4"] = Effect.flatMap(getBackend("randomUUIDv4"), (crypto) => {
-    if (typeof crypto.randomUUID === "function") {
-      const randomUUID = crypto.randomUUID
-      return Effect.try({
-        try: () => randomUUID.call(crypto),
-        catch: (cause) => systemError("randomUUIDv4", "Could not generate a UUIDv4", cause)
-      })
-    }
-    return Effect.map(randomBytes(16), formatUUIDv4)
-  })
-
   const digest: EffectCrypto.Crypto["digest"] = (algorithm, data) =>
     Effect.flatMap(getBackend("digest"), (crypto) => {
       if (typeof crypto.subtle?.digest !== "function") {
@@ -135,7 +132,8 @@ const makeWith = (
 
   return EffectCrypto.make({
     randomBytes,
-    randomUUIDv4,
+    nextIntUnsafe,
+    nextDoubleUnsafe,
     digest
   })
 }
@@ -144,7 +142,8 @@ const makeWith = (
  * @since 1.0.0
  * @category constructors
  */
-export const make = (backend: CryptoBackend): EffectCrypto.Crypto => makeWith(() => Effect.succeed(backend))
+export const make = (backend: CryptoBackend): EffectCrypto.Crypto =>
+  makeWith(() => Effect.succeed(backend), () => backend)
 
 /**
  * A layer that directly interfaces with the Web Crypto API.
@@ -152,4 +151,7 @@ export const make = (backend: CryptoBackend): EffectCrypto.Crypto => makeWith(()
  * @since 1.0.0
  * @category layers
  */
-export const layer: Layer.Layer<EffectCrypto.Crypto> = Layer.succeed(EffectCrypto.Crypto, makeWith(getCrypto))
+export const layer: Layer.Layer<EffectCrypto.Crypto> = Layer.succeed(
+  EffectCrypto.Crypto,
+  makeWith(getCrypto, () => globalThis.crypto)
+)

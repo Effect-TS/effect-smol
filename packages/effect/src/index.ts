@@ -772,9 +772,9 @@ export * as Cron from "./Cron.ts"
  * `@effect/platform-bun`, and `@effect/platform-browser` provide concrete
  * implementations backed by the host platform's cryptography APIs.
  *
- * Use `Crypto` for cryptographic randomness, UUIDv4 generation, and message
- * digests. Use `Random` only when you need deterministic pseudo-random values,
- * such as in tests or simulations.
+ * Use `Crypto` for cryptographic randomness, UUIDv4 generation, random values,
+ * and message digests. The base `Random` service is not cryptographically
+ * secure unless you replace it with a cryptographically secure implementation.
  *
  * @example
  * ```ts
@@ -784,7 +784,8 @@ export * as Cron from "./Cron.ts"
  *   Crypto.Crypto,
  *   Crypto.make({
  *     randomBytes: (size) => Effect.succeed(new Uint8Array(size)),
- *     randomUUIDv4: Effect.succeed("00000000-0000-4000-8000-000000000000"),
+ *     nextIntUnsafe: () => 1,
+ *     nextDoubleUnsafe: () => 0.5,
  *     digest: (_algorithm, data) => Effect.succeed(data)
  *   })
  * )
@@ -805,7 +806,8 @@ export * as Cron from "./Cron.ts"
  *   Crypto.Crypto,
  *   Crypto.make({
  *     randomBytes: (size) => Effect.succeed(new Uint8Array(size)),
- *     randomUUIDv4: Effect.succeed("00000000-0000-4000-8000-000000000000"),
+ *     nextIntUnsafe: () => 1,
+ *     nextDoubleUnsafe: () => 0.5,
  *     digest: (_algorithm, data) => Effect.succeed(data)
  *   })
  * )
@@ -3018,9 +3020,17 @@ export * as Pull from "./Pull.ts"
 export * as Queue from "./Queue.ts"
 
 /**
- * The Random module provides a service for generating random numbers in Effect
- * programs. It offers a testable and composable way to work with randomness,
- * supporting integers, floating-point numbers, and range-based generation.
+ * The `Random` module provides a service for generating pseudo-random numbers
+ * in Effect programs. It offers a testable and composable way to work with
+ * randomness, supporting integers, floating-point numbers, and range-based
+ * generation.
+ *
+ * The default `Random` service is not cryptographically secure. Do not use it
+ * for secrets, tokens, UUIDs, session identifiers, or other security-sensitive
+ * values. For cryptographically secure random generation, replace the service
+ * with a cryptographically secure implementation such as the platform `Crypto`
+ * service. `Random.withSeed` also replaces the service, but predictable seeds
+ * remain deterministic and must not be treated as cryptographically secure.
  *
  * **Example** (Generating random values)
  *
