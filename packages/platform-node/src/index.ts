@@ -29,6 +29,11 @@ export * as NodeClusterSocket from "./NodeClusterSocket.ts"
 /**
  * @since 1.0.0
  */
+export * as NodeContext from "./NodeContext.ts"
+
+/**
+ * @since 1.0.0
+ */
 export * as NodeFileSystem from "./NodeFileSystem.ts"
 
 /**
@@ -75,11 +80,6 @@ export * as NodeRedis from "./NodeRedis.ts"
  * @since 1.0.0
  */
 export * as NodeRuntime from "./NodeRuntime.ts"
-
-/**
- * @since 1.0.0
- */
-export * as NodeServices from "./NodeServices.ts"
 
 /**
  * @since 1.0.0

@@ -22,9 +22,9 @@ import type { ServeError } from "effect/unstable/http/HttpServerError"
 import * as RpcSerialization from "effect/unstable/rpc/RpcSerialization"
 import type { SqlClient } from "effect/unstable/sql/SqlClient"
 import { layerK8sHttpClient } from "./BunClusterSocket.ts"
+import type { BunContext } from "./BunContext.ts"
 import * as BunFileSystem from "./BunFileSystem.ts"
 import * as BunHttpServer from "./BunHttpServer.ts"
-import type { BunServices } from "./BunServices.ts"
 import * as BunSocket from "./BunSocket.ts"
 
 export {
@@ -42,7 +42,7 @@ export {
 export const layerHttpServer: Layer.Layer<
   | HttpPlatform
   | Etag.Generator
-  | BunServices
+  | BunContext
   | HttpServer,
   ServeError,
   ShardingConfig.ShardingConfig

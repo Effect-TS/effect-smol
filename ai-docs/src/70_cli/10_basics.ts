@@ -4,7 +4,7 @@
  * Build a command-line app with typed arguments and flags, then wire subcommand
  * handlers into a single executable command.
  */
-import { NodeRuntime, NodeServices } from "@effect/platform-node"
+import { NodeContext, NodeRuntime } from "@effect/platform-node"
 import { Console, Effect } from "effect"
 import { Argument, Command, Flag } from "effect/unstable/cli"
 
@@ -131,6 +131,6 @@ tasks.pipe(
   }),
   // Provide the services for the platform you are targeting. In this case,
   // Node.js
-  Effect.provide(NodeServices.layer),
+  Effect.provide(NodeContext.layer),
   NodeRuntime.runMain
 )

@@ -45,10 +45,10 @@ import type * as Net from "node:net"
 import type { Duplex } from "node:stream"
 import { Readable } from "node:stream"
 import { pipeline } from "node:stream/promises"
+import * as NodeContext from "./NodeContext.ts"
 import { NodeHttpIncomingMessage } from "./NodeHttpIncomingMessage.ts"
 import * as NodeHttpPlatform from "./NodeHttpPlatform.ts"
 import * as NodeMultipart from "./NodeMultipart.ts"
-import * as NodeServices from "./NodeServices.ts"
 import { NodeWS } from "./NodeSocket.ts"
 
 /**
@@ -382,11 +382,11 @@ export const layerServer: (
  * @category Layers
  */
 export const layerHttpServices: Layer.Layer<
-  NodeServices.NodeServices | HttpPlatform.HttpPlatform | Etag.Generator
+  NodeContext.NodeContext | HttpPlatform.HttpPlatform | Etag.Generator
 > = Layer.mergeAll(
   NodeHttpPlatform.layer,
   Etag.layerWeak,
-  NodeServices.layer
+  NodeContext.layer
 )
 
 /**
@@ -400,7 +400,7 @@ export const layer = (
     readonly gracefulShutdownTimeout?: Duration.Input | undefined
   }
 ): Layer.Layer<
-  HttpServer.HttpServer | NodeServices.NodeServices | HttpPlatform.HttpPlatform | Etag.Generator,
+  HttpServer.HttpServer | NodeContext.NodeContext | HttpPlatform.HttpPlatform | Etag.Generator,
   ServeError
 > =>
   Layer.mergeAll(

@@ -38,9 +38,9 @@ import type * as ServerResponse from "effect/unstable/http/HttpServerResponse"
 import type * as Multipart from "effect/unstable/http/Multipart"
 import * as UrlParams from "effect/unstable/http/UrlParams"
 import * as Socket from "effect/unstable/socket/Socket"
+import * as BunContext from "./BunContext.ts"
 import * as Platform from "./BunHttpPlatform.ts"
 import * as BunMultipart from "./BunMultipart.ts"
-import * as BunServices from "./BunServices.ts"
 import * as BunStream from "./BunStream.ts"
 
 /**
@@ -227,11 +227,11 @@ export const layerServer: <R extends string>(
 export const layerHttpServices: Layer.Layer<
   | HttpPlatform
   | Etag.Generator
-  | BunServices.BunServices
+  | BunContext.BunContext
 > = Layer.mergeAll(
   Platform.layer,
   Etag.layerWeak,
-  BunServices.layer
+  BunContext.layer
 )
 
 /**
@@ -247,7 +247,7 @@ export const layer = <R extends string>(
   | Server.HttpServer
   | HttpPlatform
   | Etag.Generator
-  | BunServices.BunServices
+  | BunContext.BunContext
 > => Layer.mergeAll(layerServer(options), layerHttpServices)
 
 /**
