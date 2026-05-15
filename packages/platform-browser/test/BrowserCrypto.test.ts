@@ -30,24 +30,12 @@ describe("BrowserCrypto", () => {
       assert.strictEqual(calls, 2)
     }))
 
-  it.effect("uses native randomUUID when available", () =>
+  it.effect("generates UUIDv4 values from getRandomValues", () =>
     Effect.gen(function*() {
-      const service = BrowserCrypto.make({
-        randomUUID: () => "00000000-0000-4000-8000-000000000000"
-      })
-
-      const uuid = yield* service.randomUUIDv4
-      assert.strictEqual(uuid, "00000000-0000-4000-8000-000000000000")
-    }))
-
-  it.effect("falls back to getRandomValues for UUIDv4", () =>
-    Effect.gen(function*() {
-      const service = BrowserCrypto.make({ getRandomValues })
-
-      const uuid = yield* service.randomUUIDv4
+      const uuid = yield* Crypto.randomUUIDv4
       assert.strictEqual(uuid, "00010203-0405-4607-8809-0a0b0c0d0e0f")
       assert.match(uuid, uuidV4Regex)
-    }))
+    }).pipe(Effect.provideService(Crypto.Crypto, BrowserCrypto.make({ getRandomValues }))))
 
   it.effect("fails when random byte generation is unavailable", () =>
     Effect.gen(function*() {
