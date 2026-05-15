@@ -1,7 +1,15 @@
 /**
- * The Random module provides a service for generating random numbers in Effect
- * programs. It offers a testable and composable way to work with randomness,
- * supporting integers, floating-point numbers, and range-based generation.
+ * The `Random` module provides a service for generating pseudo-random numbers
+ * in Effect programs. It offers a testable and composable way to work with
+ * randomness, supporting integers, floating-point numbers, and range-based
+ * generation.
+ *
+ * The default `Random` service is not cryptographically secure. Do not use it
+ * for secrets, tokens, UUIDs, session identifiers, or other security-sensitive
+ * values. For cryptographically secure random generation, replace the service
+ * with a cryptographically secure implementation such as the platform `Crypto`
+ * service. `Random.withSeed` also replaces the service, but predictable seeds
+ * remain deterministic and must not be treated as cryptographically secure.
  *
  * @example
  * ```ts
@@ -28,7 +36,11 @@ import * as random from "./internal/random.ts"
 import * as Predicate from "./Predicate.ts"
 
 /**
- * Represents a service for generating random numbers.
+ * Represents a service for generating pseudo-random numbers.
+ *
+ * The default implementation is based on `Math.random` and is not
+ * cryptographically secure. Replace the service with a cryptographically secure
+ * implementation before using these generators for security-sensitive values.
  *
  * @example
  * ```ts
@@ -38,12 +50,10 @@ import * as Predicate from "./Predicate.ts"
  *   const float = yield* Random.next
  *   const integer = yield* Random.nextInt
  *   const inRange = yield* Random.nextIntBetween(1, 100)
- *   const uuid = yield* Random.nextUUIDv4
  *
  *   console.log("Float:", float)
  *   console.log("Integer:", integer)
  *   console.log("In range:", inRange)
- *   console.log("UUID:", uuid)
  * })
  * ```
  *
@@ -54,6 +64,12 @@ export const Random: Context.Reference<{
   nextIntUnsafe(): number
   nextDoubleUnsafe(): number
 }> = random.Random
+
+/**
+ * @since 4.0.0
+ * @category Random Number Generators
+ */
+export type Random = typeof Random["Service"]
 
 const randomWith = <A>(f: (random: typeof Random["Service"]) => A): Effect.Effect<A> =>
   Effect.withFiber((fiber) => Effect.succeed(f(fiber.getRef(Random))))
@@ -194,52 +210,12 @@ export const shuffle = <A>(elements: Iterable<A>): Effect.Effect<Array<A>> =>
   })
 
 /**
- * Generates a random UUID (v4) string.
+ * Seeds the pseudo-random number generator with the specified value.
  *
- * @example
- * ```ts
- * import { Effect, Random } from "effect"
- *
- * const program = Effect.gen(function*() {
- *   const uuid = yield* Random.nextUUIDv4
- *   console.log("UUID:", uuid)
- * })
- * ```
- *
- * @since 4.0.0
- * @category Random Number Generators
- */
-export const nextUUIDv4: Effect.Effect<string> = randomWith((r) => {
-  // Generate 16 random bytes (128 bits) for UUID
-  const bytes: Array<number> = []
-  for (let i = 0; i < 16; i++) {
-    // Get unsigned byte [0, 255] from nextInt (signed 32-bit)
-    bytes.push((r.nextIntUnsafe() >>> 0) & 0xFF)
-  }
-
-  // Set version to 4 (bits 12-15 of time_hi_and_version)
-  bytes[6] = (bytes[6] & 0x0F) | 0x40
-
-  // Set variant to RFC 4122 (bits 6-7 of clock_seq_hi_and_reserved)
-  bytes[8] = (bytes[8] & 0x3F) | 0x80
-
-  // Format as UUID string: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
-  const hex = (n: number) => n.toString(16).padStart(2, "0")
-
-  return [
-    bytes.slice(0, 4).map(hex).join(""),
-    bytes.slice(4, 6).map(hex).join(""),
-    bytes.slice(6, 8).map(hex).join(""),
-    bytes.slice(8, 10).map(hex).join(""),
-    bytes.slice(10, 16).map(hex).join("")
-  ].join("-")
-})
-
-/**
- * Seeds the pseudorandom number generator with the specified value.
- *
- * Take care to select a seed wit hhigh entropy to avoid issues with the
- * quality of random number generation.
+ * `withSeed` replaces the `Random` service with a deterministic generator. This
+ * is useful for repeatable tests and simulations. Predictable seeds are not
+ * cryptographically secure, so do not use seeded random values for secrets,
+ * tokens, UUIDs, session identifiers, or other security-sensitive data.
  *
  * @example
  * ```ts

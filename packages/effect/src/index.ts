@@ -757,6 +757,61 @@ export * as Context from "./Context.ts"
 export * as Cron from "./Cron.ts"
 
 /**
+ * The `Crypto` module provides a platform-agnostic service for cryptographic
+ * operations. Runtime packages such as `@effect/platform-node`,
+ * `@effect/platform-bun`, and `@effect/platform-browser` provide concrete
+ * implementations backed by the host platform's cryptography APIs.
+ *
+ * Use `Crypto` for cryptographic randomness, UUIDv4 generation, random values,
+ * and message digests. The base `Random` service is not cryptographically
+ * secure unless you replace it with a cryptographically secure implementation.
+ *
+ * @example
+ * ```ts
+ * import { Console, Crypto, Effect, Layer } from "effect"
+ *
+ * const TestCrypto = Layer.succeed(
+ *   Crypto.Crypto,
+ *   Crypto.make({
+ *     randomBytes: (size) => Effect.succeed(new Uint8Array(size)),
+ *     nextIntUnsafe: () => 1,
+ *     nextDoubleUnsafe: () => 0.5,
+ *     digest: (_algorithm, data) => Effect.succeed(data)
+ *   })
+ * )
+ *
+ * const program = Effect.gen(function*() {
+ *   const id = yield* Crypto.randomUUIDv4
+ *   yield* Console.log(`Created id: ${id}`)
+ * })
+ *
+ * Effect.runPromise(Effect.provide(program, TestCrypto))
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Crypto, Effect, Layer } from "effect"
+ *
+ * const TestCrypto = Layer.succeed(
+ *   Crypto.Crypto,
+ *   Crypto.make({
+ *     randomBytes: (size) => Effect.succeed(new Uint8Array(size)),
+ *     nextIntUnsafe: () => 1,
+ *     nextDoubleUnsafe: () => 0.5,
+ *     digest: (_algorithm, data) => Effect.succeed(data)
+ *   })
+ * )
+ *
+ * const program = Crypto.randomBytes(32)
+ *
+ * Effect.runPromise(Effect.provide(program, TestCrypto))
+ * ```
+ *
+ * @since 4.0.0
+ */
+export * as Crypto from "./Crypto.ts"
+
+/**
  * Immutable data constructors with discriminated-union support.
  *
  * The `Data` module provides base classes and factory functions for creating
@@ -2920,9 +2975,17 @@ export * as Pull from "./Pull.ts"
 export * as Queue from "./Queue.ts"
 
 /**
- * The Random module provides a service for generating random numbers in Effect
- * programs. It offers a testable and composable way to work with randomness,
- * supporting integers, floating-point numbers, and range-based generation.
+ * The `Random` module provides a service for generating pseudo-random numbers
+ * in Effect programs. It offers a testable and composable way to work with
+ * randomness, supporting integers, floating-point numbers, and range-based
+ * generation.
+ *
+ * The default `Random` service is not cryptographically secure. Do not use it
+ * for secrets, tokens, UUIDs, session identifiers, or other security-sensitive
+ * values. For cryptographically secure random generation, replace the service
+ * with a cryptographically secure implementation such as the platform `Crypto`
+ * service. `Random.withSeed` also replaces the service, but predictable seeds
+ * remain deterministic and must not be treated as cryptographically secure.
  *
  * @example
  * ```ts
