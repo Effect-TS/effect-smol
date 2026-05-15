@@ -814,10 +814,10 @@ export const ComputerUse_20251124 = Tool.providerDefined({
 /**
  * A `[start, end]` line range for viewing file contents.
  *
- * Lines are 1-indexed. Use -1 for end to read to end of file.
+ * Lines are 1-indexed. Use -1 for end to read to end of file:
  *
- * @example [1, 50]    // View lines 1-50
- * @example [100, -1]  // View from line 100 to end of file
+ * - `[1, 50]`: View lines 1-50
+ * - `[100, -1]`: View from line 100 to end of file
  *
  * @since 1.0.0
  * @category Memory

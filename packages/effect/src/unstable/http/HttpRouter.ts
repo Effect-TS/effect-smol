@@ -527,13 +527,12 @@ const makeRoute = <E, R>(options: {
   readonly handler: Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>
   readonly uninterruptible?: boolean | undefined
   readonly prefix?: Option.Option<string> | string | undefined
-}): Route<E, Exclude<R, Provided>> =>
-  ({
-    ...options,
-    uninterruptible: options.uninterruptible ?? false,
-    prefix: typeof options.prefix === "string" ? Option.some(options.prefix) : options.prefix ?? Option.none(),
-    [RouteTypeId]: RouteTypeId
-  }) as Route<E, Exclude<R, Provided>>
+}): Route<E, Exclude<R, Provided>> => (({
+  ...options,
+  uninterruptible: options.uninterruptible ?? false,
+  prefix: typeof options.prefix === "string" ? Option.some(options.prefix) : options.prefix ?? Option.none(),
+  [RouteTypeId]: RouteTypeId
+}) as Route<E, Exclude<R, Provided>>)
 
 /**
  * @since 4.0.0

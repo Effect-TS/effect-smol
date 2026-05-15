@@ -890,6 +890,7 @@ export const findFirstFilter: {
  * ```
  *
  * @example
+ * ```ts
  * // Title: Using discard to Ignore Results
  * import { Effect } from "effect"
  * import { Console } from "effect"
@@ -910,6 +911,7 @@ export const findFirstFilter: {
  * // Currently at index 3
  * // Currently at index 4
  * // undefined
+ * ```
  *
  * @since 2.0.0
  * @category Collecting
@@ -1181,6 +1183,7 @@ export const succeedSome: <A>(value: A) => Effect<Option<A>> = internal.succeedS
  * ```
  *
  * @example
+ * ```ts
  * // Title: Recursive Fibonacci
  * import { Effect } from "effect"
  *
@@ -1203,8 +1206,10 @@ export const succeedSome: <A>(value: A) => Effect<Option<A>> = internal.succeedS
  *
  * console.log(Effect.runSync(allGood(32)))
  * // Output: 3524578
+ * ```
  *
  * @example
+ * ```ts
  * // Title: Using Effect.suspend to Help TypeScript Infer Types
  * import { Effect } from "effect"
  *
@@ -1226,6 +1231,7 @@ export const succeedSome: <A>(value: A) => Effect<Option<A>> = internal.succeedS
  *       ? Effect.fail(new Error("Cannot divide by zero"))
  *       : Effect.succeed(a / b)
  *   )
+ * ```
  *
  * @since 2.0.0
  * @category Creating Effects
@@ -2489,6 +2495,7 @@ export const flip: <A, E, R>(self: Effect<A, E, R>) => Effect<E, A, R> = interna
  * ```
  *
  * @example
+ * ```ts
  * // Title: Combining Two Effects Concurrently
  * import { Effect } from "effect"
  *
@@ -2509,6 +2516,7 @@ export const flip: <A, E, R>(self: Effect<A, E, R>) => Effect<E, A, R> = interna
  * // timestamp=... level=INFO fiber=#0 message="task2 done"
  * // timestamp=... level=INFO fiber=#0 message="task1 done"
  * // [ 1, 'hello' ]
+ * ```
  *
  * @since 2.0.0
  * @category Zipping
@@ -7148,6 +7156,7 @@ export const forever: <
  * ```
  *
  * @example
+ * ```ts
  * // Failure Example
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
@@ -7170,6 +7179,7 @@ export const forever: <
  * const program = Effect.repeat(action, policy)
  *
  * // Effect.runPromiseExit(program).then(console.log)
+ * ```
  *
  * @since 2.0.0
  * @category Repetition / Recursion
@@ -8463,12 +8473,14 @@ export const runCallback: <A, E>(
  * ```
  *
  * @example
+ * ```ts
  * //Example: Handling a Failing Effect as a Rejected Promise
  * import { Effect } from "effect"
  *
  * Effect.runPromise(Effect.fail("my error")).catch(console.error)
  * // Output:
  * // (FiberFailure) Error: my error
+ * ```
  *
  * @since 2.0.0
  * @category Running Effects
@@ -8632,6 +8644,7 @@ export const runPromiseExitWith: <R>(
  * ```
  *
  * @example
+ * ```ts
  * // Title: Incorrect Usage with Failing or Async Effects
  * import { Effect } from "effect"
  *
@@ -8652,6 +8665,7 @@ export const runPromiseExitWith: <R>(
  * }
  * // Output:
  * // (FiberFailure) AsyncFiberException: Fiber #0 cannot be resolved synchronously. This is caused by using runSync on an effect that performs async work
+ * ```
  *
  * @since 2.0.0
  * @category Running Effects
@@ -8738,6 +8752,7 @@ export const runSyncWith: <R>(
  * ```
  *
  * @example
+ * ```ts
  * // Title: Asynchronous Operation Resulting in Die
  * import { Effect } from "effect"
  *
@@ -8756,6 +8771,7 @@ export const runSyncWith: <R>(
  * //     }
  * //   }
  * // }
+ * ```
  *
  * @since 2.0.0
  * @category Running Effects

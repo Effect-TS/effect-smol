@@ -544,13 +544,12 @@ export const makePart = <const Type extends AnyPart["type"]>(
      */
     readonly metadata?: Extract<AnyPart, { type: Type }>["metadata"] | undefined
   }
-): Extract<AnyPart, { type: Type }> =>
-  ({
-    ...params,
-    [PartTypeId]: PartTypeId,
-    type,
-    metadata: params.metadata ?? {}
-  }) as any
+): Extract<AnyPart, { type: Type }> => (({
+  ...params,
+  [PartTypeId]: PartTypeId,
+  type,
+  metadata: params.metadata ?? {}
+}) as any)
 
 /**
  * A utility type for specifying the parameters required to construct a

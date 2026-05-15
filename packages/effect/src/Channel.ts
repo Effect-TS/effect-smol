@@ -6916,7 +6916,11 @@ const let_: {
   InErr,
   InDone,
   R
-> => map(self, (elem) => ({ ...elem, [name]: f(elem) }) as any))
+> =>
+  map(self, (elem) => (({
+    ...elem,
+    [name]: f(elem)
+  }) as any)))
 export {
   /**
    * @since 4.0.0

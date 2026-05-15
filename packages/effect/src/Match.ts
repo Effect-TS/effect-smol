@@ -936,7 +936,7 @@ export const tag: <
  * cases share a common prefix.
  *
  * @example
-  ```ts
+ * ```ts
  * import { pipe } from "effect"
  * import { Match } from "effect"
  *

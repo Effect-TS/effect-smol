@@ -584,9 +584,8 @@ export interface PipeableConstructor {
  */
 export const Mixin = <TBase extends new(...args: ReadonlyArray<any>) => any>(
   klass: TBase
-): TBase & PipeableConstructor =>
-  class extends klass {
-    pipe() {
-      return pipeArguments(this, arguments)
-    }
+): TBase & PipeableConstructor => (class extends klass {
+  pipe() {
+    return pipeArguments(this, arguments)
   }
+})

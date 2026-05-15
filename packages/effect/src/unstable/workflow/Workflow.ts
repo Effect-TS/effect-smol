@@ -490,7 +490,10 @@ export class Complete<A, E> extends Data.TaggedClass("Complete")<{
             }),
             Tranformation.transform({
               decode: (encoded) => new Complete({ exit: encoded.exit }),
-              encode: (result) => ({ _tag: "Complete", exit: result.exit }) as const
+              encode: (result) => (({
+                _tag: "Complete",
+                exit: result.exit
+              }) as const)
             })
           )
       }

@@ -221,13 +221,12 @@ export const makePart = <const Type extends Part["type"]>(
      */
     readonly options?: Extract<Part, { type: Type }>["options"] | undefined
   }
-): Extract<Part, { type: Type }> =>
-  ({
-    ...params,
-    [PartTypeId]: PartTypeId,
-    type,
-    options: params.options ?? {}
-  }) as any
+): Extract<Part, { type: Type }> => (({
+  ...params,
+  [PartTypeId]: PartTypeId,
+  type,
+  options: params.options ?? {}
+}) as any)
 
 /**
  * A utility type for specifying the parameters required to construct a
@@ -1044,13 +1043,12 @@ export const makeMessage = <const Role extends Message["role"]>(
   params: Omit<Extract<Message, { role: Role }>, typeof MessageTypeId | "role" | "options"> & {
     readonly options?: Extract<Message, { role: Role }>["options"] | undefined
   }
-): Extract<Message, { role: Role }> =>
-  ({
-    ...params,
-    [MessageTypeId]: MessageTypeId,
-    role,
-    options: params.options ?? {}
-  }) as any
+): Extract<Message, { role: Role }> => (({
+  ...params,
+  [MessageTypeId]: MessageTypeId,
+  role,
+  options: params.options ?? {}
+}) as any)
 
 /**
  * A utility type for specifying the parameters required to construct a
