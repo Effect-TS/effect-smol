@@ -127,6 +127,7 @@ describe("ChildProcess", () => {
     it.effect("should allow restoring the reference within acquireRelease", () =>
       Effect.gen(function*() {
         const handle = yield* ChildProcess.make`echo test`
+        // @effect-diagnostics-next-line floatingEffect:off
         yield* Effect.acquireRelease(handle.unref, (reref) => Effect.ignore(reref))
       }).pipe(Effect.provide(MockExecutorLayer)))
   })
