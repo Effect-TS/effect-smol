@@ -82,6 +82,14 @@ export interface ParsedOperationResponse {
 
 export type ParsedOperationSecurityRequirement = Readonly<OpenAPISecurityRequirement>
 
+export interface ParsedOperationHttpClientResponses {
+  readonly successSchemas: ReadonlyMap<string, string>
+  readonly errorSchemas: ReadonlyMap<string, string>
+  readonly voidStatuses: ReadonlySet<string>
+  readonly sseSchema?: string
+  readonly binarySuccessStatuses: ReadonlySet<string>
+}
+
 export interface ParsedOperation {
   readonly id: string
   readonly operationId: string | undefined
@@ -116,13 +124,7 @@ export interface ParsedOperation {
   readonly requestBodyRepresentable: ReadonlyArray<ParsedOperationMediaTypeSchema>
   readonly pathIds: ReadonlyArray<string>
   readonly pathTemplate: string
-  readonly successSchemas: ReadonlyMap<string, string>
-  readonly errorSchemas: ReadonlyMap<string, string>
-  readonly voidSchemas: ReadonlySet<string>
-  // SSE streaming response schema (text/event-stream)
-  readonly sseSchema?: string
-  // Binary stream response (application/octet-stream)
-  readonly binaryResponse: boolean
+  readonly httpClientResponses: ParsedOperationHttpClientResponses
 }
 
 export const makeDeepMutable = (options: {
@@ -163,9 +165,11 @@ export const makeDeepMutable = (options: {
   headersSchema: undefined,
   headersSchemaOptional: true,
   requestBodyRepresentable: [],
-  successSchemas: new Map(),
-  errorSchemas: new Map(),
-  voidSchemas: new Set(),
-  paramsOptional: true,
-  binaryResponse: false
+  httpClientResponses: {
+    successSchemas: new Map(),
+    errorSchemas: new Map(),
+    voidStatuses: new Set(),
+    binarySuccessStatuses: new Set()
+  },
+  paramsOptional: true
 })
