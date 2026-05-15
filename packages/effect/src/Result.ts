@@ -168,8 +168,11 @@ export interface Failure<out A, out E> extends Pipeable, Inspectable {
 }
 
 /**
+ * Iterator protocol used to yield a `Result` inside {@link gen}, returning the
+ * success value type back to the generator.
+ *
+ * @category Generators
  * @since 4.0.0
- * @category Models
  */
 export interface ResultIterator<T extends Result<any, any>> {
   next(
@@ -281,15 +284,15 @@ export declare namespace Result {
   /**
    * Extracts the failure type `E` from `Result<A, E>`.
    *
-   * @since 4.0.0
    * @category Type Level
+   * @since 4.0.0
    */
   export type Failure<T extends Result<any, any>> = [T] extends [Result<infer _A, infer _E>] ? _E : never
   /**
    * Extracts the success type `A` from `Result<A, E>`.
    *
-   * @since 4.0.0
    * @category Type Level
+   * @since 4.0.0
    */
   export type Success<T extends Result<any, any>> = [T] extends [Result<infer _A, infer _E>] ? _A : never
 }
@@ -949,8 +952,8 @@ export const liftPredicate: {
  * @see {@link liftPredicate} to create a `Result` from a raw value with a predicate
  * @see {@link flatMap} for general conditional chaining
  *
- * @since 4.0.0
  * @category Filtering
+ * @since 4.0.0
  */
 export const filterOrFail: {
   <A, B extends A, E2>(
@@ -1604,8 +1607,8 @@ export {
  *
  * @see {@link transposeMapOption} to map and transpose in one step
  *
- * @since 3.14.0
  * @category Transposing
+ * @since 3.14.0
  */
 export const transposeOption = <A = never, E = never>(
   self: Option<Result<A, E>>
@@ -1640,8 +1643,8 @@ export const transposeOption = <A = never, E = never>(
  *
  * @see {@link transposeOption} when the Option already contains a Result
  *
- * @since 3.15.0
  * @category Transposing
+ * @since 3.15.0
  */
 export const transposeMapOption = dual<
   <A, B, E = never>(

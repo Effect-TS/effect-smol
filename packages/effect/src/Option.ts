@@ -149,7 +149,7 @@ export interface None<out A> extends Pipeable, Inspectable {
  * Iterator protocol used to yield an `Option` inside {@link gen}, returning the
  * contained value type back to the generator.
  *
- * @category Models
+ * @category Generators
  * @since 4.0.0
  */
 export interface OptionIterator<T extends Option<any>> {

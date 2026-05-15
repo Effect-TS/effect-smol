@@ -23,7 +23,7 @@
     // Staged rollout: add package/module globs to include.
     "effect/standard-jsdoc": ["error", {
       "include": [
-        "packages/effect/src/Option.ts"
+        "packages/effect/src/Result.ts"
       ],
       "exclude": [
         "packages/**/src/index.ts",
