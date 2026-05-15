@@ -836,12 +836,8 @@ export const toWeeks = (self: Input): number =>
  * const nanos = Duration.toNanosUnsafe(duration)
  * console.log(nanos) // 2000000000n
  *
- * // This will throw an error
- * try {
- *   Duration.toNanosUnsafe(Duration.infinity)
- * } catch (error) {
- *   console.log((error as Error).message) // "Cannot convert infinite duration to nanos"
- * }
+ * // Duration.toNanosUnsafe(Duration.infinity)
+ * // throws Error: "Cannot convert infinite duration to nanos"
  * ```
  *
  * @category getters

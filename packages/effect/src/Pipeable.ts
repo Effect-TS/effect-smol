@@ -503,21 +503,23 @@ export interface Pipeable {
 /**
  * @category utilities
  * @since 2.0.0
- * **Example** (Implementing custom piping)
+ * **Example** (Implementing a pipe method)
  *
  * ```ts
  * import { Pipeable } from "effect"
  *
- * // pipeArguments is used internally to implement efficient piping
- * function customPipe<A>(self: A, ...fns: Array<(a: any) => any>): unknown {
- *   return Pipeable.pipeArguments(self, arguments as any)
+ * class NumberBox {
+ *   constructor(readonly value: number) {}
+ *
+ *   pipe(..._fns: ReadonlyArray<(value: number) => number>): number {
+ *     return Pipeable.pipeArguments(this.value, arguments) as number
+ *   }
  * }
  *
- * // Example usage
- * const add = (x: number) => (y: number) => x + y
- * const multiply = (x: number) => (y: number) => x * y
- *
- * const result = customPipe(5, add(2), multiply(3))
+ * const result = new NumberBox(5).pipe(
+ *   (n) => n + 2,
+ *   (n) => n * 3
+ * )
  * console.log(result) // 21
  * ```
  */

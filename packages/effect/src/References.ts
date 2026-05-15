@@ -209,7 +209,7 @@ export const CurrentLogLevel: Context.Reference<Severity> = references.CurrentLo
  *   console.log(current.length) // 0
  *
  *   // Add a log span manually
- *   const startTime = Date.now()
+ *   const databaseConnectionStartedAt = 0
  *   yield* Effect.provideService(
  *     Effect.gen(function*() {
  *       // Simulate some work
@@ -220,10 +220,11 @@ export const CurrentLogLevel: Context.Reference<Severity> = references.CurrentLo
  *       console.log("Active spans:", spans.map(([label]) => label)) // ["database-connection"]
  *     }),
  *     References.CurrentLogSpans,
- *     [["database-connection", startTime]]
+ *     [["database-connection", databaseConnectionStartedAt]]
  *   )
  *
  *   // Add another span
+ *   const dataProcessingStartedAt = 100
  *   yield* Effect.provideService(
  *     Effect.gen(function*() {
  *       const spans = yield* References.CurrentLogSpans
@@ -233,8 +234,8 @@ export const CurrentLogLevel: Context.Reference<Severity> = references.CurrentLo
  *     }),
  *     References.CurrentLogSpans,
  *     [
- *       ["database-connection", startTime],
- *       ["data-processing", Date.now()]
+ *       ["database-connection", databaseConnectionStartedAt],
+ *       ["data-processing", dataProcessingStartedAt]
  *     ]
  *   )
  *

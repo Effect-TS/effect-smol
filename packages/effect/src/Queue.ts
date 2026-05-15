@@ -81,8 +81,8 @@ export const asDequeue: <A, E>(self: Queue<A, E>) => Dequeue<A, E> = identity
  * // Function that only needs write access to a queue
  * const producer = (enqueue: Queue.Enqueue<string>) =>
  *   Effect.gen(function*() {
- *     yield* Queue.offer(enqueue as Queue.Queue<string>, "hello")
- *     yield* Queue.offerAll(enqueue as Queue.Queue<string>, ["world", "!"])
+ *     yield* Queue.offer(enqueue, "hello")
+ *     yield* Queue.offerAll(enqueue, ["world", "!"])
  *   })
  *
  * const program = Effect.gen(function*() {
@@ -130,7 +130,7 @@ export declare namespace Enqueue {
  * **Example** (Taking through dequeue handles)
  *
  * ```ts
- * import { Cause, Effect, Queue } from "effect"
+ * import { Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<string, never>(10)
@@ -191,7 +191,7 @@ export declare namespace Dequeue {
  * **Example** (Offering and taking queue values)
  *
  * ```ts
- * import { Cause, Effect, Queue } from "effect"
+ * import { Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Create a bounded queue
@@ -313,7 +313,6 @@ const QueueProto = {
  *
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
- * import * as assert from "node:assert"
  *
  * Effect.gen(function*() {
  *   const queue = yield* Queue.make<number, string | Cause.Done>()
@@ -325,15 +324,17 @@ const QueueProto = {
  *
  *   // take messages from the queue
  *   const messages = yield* Queue.takeAll(queue)
- *   assert.deepStrictEqual(messages, [1, 2, 3, 4, 5])
+ *   console.log(messages) // [1, 2, 3, 4, 5]
  *
  *   // signal that the queue is done
  *   yield* Queue.end(queue)
- *   const done = yield* Effect.flip(Queue.takeAll(queue))
- *   assert.deepStrictEqual(done, Cause.Done)
+ *   const done = yield* Effect.flip(Queue.take(queue))
+ *   console.log(Cause.isDone(done)) // true
  *
- *   // signal that the queue has failed
- *   yield* Queue.fail(queue, "boom")
+ *   // signal that another queue has failed
+ *   const failedQueue = yield* Queue.make<number, string>()
+ *   const failed = yield* Queue.fail(failedQueue, "boom")
+ *   console.log(failed) // true
  * })
  * ```
  */
@@ -368,7 +369,7 @@ export const make = <A, E = never>(
  * **Example** (Creating bounded queues)
  *
  * ```ts
- * import { Cause, Effect, Queue } from "effect"
+ * import { Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<string>(5)
@@ -397,7 +398,7 @@ export const bounded = <A, E = never>(capacity: number): Effect<Queue<A, E>> => 
  * **Example** (Creating sliding queues)
  *
  * ```ts
- * import { Cause, Effect, Queue } from "effect"
+ * import { Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.sliding<number>(3)
@@ -430,7 +431,7 @@ export const sliding = <A, E = never>(capacity: number): Effect<Queue<A, E>> => 
  * **Example** (Creating dropping queues)
  *
  * ```ts
- * import { Cause, Effect, Queue } from "effect"
+ * import { Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.dropping<number>(2)
@@ -465,7 +466,7 @@ export const dropping = <A, E = never>(capacity: number): Effect<Queue<A, E>> =>
  * **Example** (Creating unbounded queues)
  *
  * ```ts
- * import { Cause, Effect, Queue } from "effect"
+ * import { Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.unbounded<string>()
@@ -477,7 +478,7 @@ export const dropping = <A, E = never>(capacity: number): Effect<Queue<A, E>> =>
  *
  *   // Check current size
  *   const size = yield* Queue.size(queue)
- *   console.log(size) // Some(5)
+ *   console.log(size) // 5
  *
  *   // Take all messages
  *   const messages = yield* Queue.takeAll(queue)
@@ -500,7 +501,7 @@ export const unbounded = <A, E = never>(): Effect<Queue<A, E>> => make()
  * **Example** (Offering a value)
  *
  * ```ts
- * import { Cause, Effect, Queue } from "effect"
+ * import { Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number>(3)
@@ -605,12 +606,12 @@ export const offerUnsafe = <A, E>(self: Enqueue<A, E>, message: Types.NoInfer<A>
  * **Example** (Offering multiple values)
  *
  * ```ts
- * import { Cause, Effect, Queue } from "effect"
+ * import { Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number>(3)
+ *   const queue = yield* Queue.dropping<number>(3)
  *
- *   // Try to add more messages than capacity
+ *   // Try to add more messages than capacity without suspending
  *   const remaining1 = yield* Queue.offerAll(queue, [1, 2, 3, 4, 5])
  *   console.log(remaining1) // [4, 5] - couldn't fit the last 2
  * })
@@ -702,21 +703,18 @@ export const offerAllUnsafe = <A, E>(self: Enqueue<A, E>, messages: Iterable<A>)
  * **Example** (Failing queues with an error)
  *
  * ```ts
- * import { Cause, Effect, Queue } from "effect"
+ * import { Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number, string>(10)
- *
- *   // Add some messages
- *   yield* Queue.offer(queue, 1)
- *   yield* Queue.offer(queue, 2)
  *
  *   // Fail the queue with an error
  *   const failed = yield* Queue.fail(queue, "Something went wrong")
  *   console.log(failed) // true
  *
- *   // Subsequent operations will reflect the failure
- *   // Taking from failed queue will fail with the error
+ *   // Taking from the failed queue fails with the error
+ *   const error = yield* Effect.flip(Queue.take(queue))
+ *   console.log(error) // "Something went wrong"
  * })
  * ```
  *
@@ -737,15 +735,13 @@ export const fail = <A, E>(self: Enqueue<A, E>, error: E) => failCause(self, cor
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number, string>(10)
  *
- *   // Add some messages
- *   yield* Queue.offer(queue, 1)
- *
  *   // Create a cause and fail the queue
  *   const cause = Cause.fail("Queue processing failed")
  *   const failed = yield* Queue.failCause(queue, cause)
  *   console.log(failed) // true
  *
- *   // The queue is now in failed state with the specified cause
+ *   // The queue is now done with the specified failure cause
+ *   console.log(queue.state._tag) // "Done"
  * })
  * ```
  *
@@ -776,15 +772,12 @@ export const failCause: {
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number, string>(10)
  *
- *   // Add some messages
- *   Queue.offerUnsafe(queue, 1)
- *
  *   // Create a cause and fail the queue synchronously
  *   const cause = Cause.fail("Processing error")
  *   const failed = Queue.failCauseUnsafe(queue, cause)
  *   console.log(failed) // true
  *
- *   // The queue is now in failed state
+ *   // The queue is now done with the specified failure cause
  *   console.log(queue.state._tag) // "Done"
  * })
  * ```
@@ -867,7 +860,13 @@ export const end = <A, E>(self: Enqueue<A, E | Done>): Effect<boolean> => failCa
  *   const ended = Queue.endUnsafe(queue)
  *   console.log(ended) // true
  *
- *   // The queue is now done
+ *   // Existing messages can still be consumed while the queue is closing
+ *   console.log(queue.state._tag) // "Closing"
+ *
+ *   Queue.takeUnsafe(queue)
+ *   Queue.takeUnsafe(queue)
+ *
+ *   // After buffered messages are consumed, the queue is done
  *   console.log(queue.state._tag) // "Done"
  * })
  * ```
@@ -929,7 +928,7 @@ export const interrupt = <A, E>(self: Enqueue<A, E>): Effect<boolean> =>
  * **Example** (Shutting down queues)
  *
  * ```ts
- * import { Cause, Effect, Queue } from "effect"
+ * import { Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number>(2)
@@ -938,10 +937,7 @@ export const interrupt = <A, E>(self: Enqueue<A, E>): Effect<boolean> =>
  *   yield* Queue.offer(queue, 1)
  *   yield* Queue.offer(queue, 2)
  *
- *   // Try to add more than capacity (will be pending)
- *   const pendingOffer = Queue.offer(queue, 3)
- *
- *   // Shutdown cancels pending operations and clears the queue
+ *   // Shutdown clears buffered messages and prevents further offers
  *   const wasShutdown = yield* Queue.shutdown(queue)
  *   console.log(wasShutdown) // true
  *
@@ -1120,11 +1116,8 @@ export const collect = <A, E>(self: Dequeue<A, E | Done>): Effect<Array<A>, Pull
  *   const next2 = yield* Queue.takeN(queue, 2)
  *   console.log(next2) // [4, 5]
  *
- *   // End the queue before taking; now it can return fewer than requested
- *   yield* Queue.end(queue)
- *
- *   // Take remaining messages (takes 2, even though we asked for 5)
- *   const remaining = yield* Queue.takeN(queue, 5)
+ *   // Take remaining messages
+ *   const remaining = yield* Queue.takeN(queue, 2)
  *   console.log(remaining) // [6, 7]
  * })
  * ```
@@ -1207,7 +1200,7 @@ export const takeBetween = <A, E>(
  *   // End the queue
  *   yield* Queue.end(queue)
  *
- *   // Taking from ended queue fails with None
+ *   // Taking from an ended queue fails with Done
  *   const result = yield* Effect.match(Queue.take(queue), {
  *     onFailure: (error: Cause.Done) => true,
  *     onSuccess: (value: string) => false

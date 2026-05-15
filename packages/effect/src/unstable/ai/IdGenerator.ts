@@ -94,14 +94,15 @@ export class IdGenerator extends Context.Service<IdGenerator, Service>()(
  * import { Effect } from "effect"
  * import type { IdGenerator } from "effect/unstable/ai"
  *
- * // Custom implementation
+ * // Custom deterministic implementation
+ * let nextId = 0
  * const customService: IdGenerator.Service = {
- *   generateId: () => Effect.succeed(`custom_${Date.now()}`)
+ *   generateId: () => Effect.sync(() => `custom_${++nextId}`)
  * }
  *
  * const program = Effect.gen(function*() {
  *   const id = yield* customService.generateId()
- *   console.log(id) // "custom_1234567890"
+ *   console.log(id) // "custom_1"
  *   return id
  * })
  * ```

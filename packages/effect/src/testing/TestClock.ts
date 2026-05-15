@@ -150,23 +150,6 @@ export declare namespace TestClock {
   }
 
   /**
-   * **Example** (Inspecting test clock state)
-   *
-   * ```ts
-   * import { Effect } from "effect"
-   * import { TestClock } from "effect/testing"
-   *
-   * const program = Effect.gen(function*() {
-   *   const testClock = yield* TestClock.make()
-   *
-   *   // The state represents the current timestamp and scheduled sleeps
-   *   const timestamp = testClock.currentTimeMillisUnsafe()
-   *   console.log(timestamp) // Current test time
-   *
-   *   // Internal state structure: { timestamp: number, sleeps: Array<[number, Latch.Latch]> }
-   * })
-   * ```
-   *
    * @category models
    * @since 4.0.0
    */

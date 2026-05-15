@@ -478,13 +478,8 @@ export const head = <A>(self: Iterable<A>): Option<A> => {
  * const letters = "hello"
  * console.log(Iterable.headUnsafe(letters)) // "h"
  *
- * // This will throw an error!
- * try {
- *   const empty = Iterable.empty<number>()
- *   Iterable.headUnsafe(empty) // throws Error: "headUnsafe: empty iterable"
- * } catch (error) {
- *   console.log((error as Error).message) // "headUnsafe: empty iterable"
- * }
+ * // Iterable.headUnsafe(Iterable.empty<number>())
+ * // throws Error: "headUnsafe: empty iterable"
  *
  * // Use only when you're certain the iterable is non-empty
  * const nonEmpty = Iterable.range(1, 10)

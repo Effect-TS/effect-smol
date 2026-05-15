@@ -826,7 +826,6 @@ export const toArray = <A>(self: MutableList<A>): Array<A> => toArrayN(self, sel
  * // Keep only even numbers
  * MutableList.filter(list, (n) => n % 2 === 0)
  *
- * console.log(list.length) // 5
  * console.log(MutableList.takeAll(list)) // [2, 4, 6, 8, 10]
  *
  * // Filter with index
@@ -848,7 +847,7 @@ export const toArray = <A>(self: MutableList<A>): Array<A> => toArrayN(self, sel
  *
  * // Keep only errors
  * MutableList.filter(logs, (log) => log.level === "ERROR")
- * console.log(MutableList.takeAll(logs)) // Only error logs
+ * console.log(MutableList.takeAll(logs).map((log) => log.message)) // ["Connection failed", "Timeout"]
  * ```
  *
  * @category mutations
@@ -890,12 +889,13 @@ export const filter = <A>(self: MutableList<A>, f: (value: A, i: number) => bool
  * // Remove all occurrences of "apple"
  * MutableList.remove(list, "apple")
  *
- * console.log(list.length) // 2
  * console.log(MutableList.takeAll(list)) // ["banana", "cherry"]
  *
  * // Remove non-existent value (no effect)
- * MutableList.remove(list, "grape")
- * console.log(list.length) // 2
+ * const colors = MutableList.make<string>()
+ * MutableList.appendAll(colors, ["red", "blue"])
+ * MutableList.remove(colors, "green")
+ * console.log(MutableList.takeAll(colors)) // ["red", "blue"]
  *
  * // Real-world example: removing completed tasks
  * const tasks = MutableList.make<{ id: number; status: string }>()
@@ -908,7 +908,7 @@ export const filter = <A>(self: MutableList<A>, f: (value: A, i: number) => bool
  *
  * // Remove completed tasks by filtering status
  * MutableList.filter(tasks, (task) => task.status !== "completed")
- * console.log(MutableList.takeAll(tasks)) // Only pending tasks
+ * console.log(MutableList.takeAll(tasks).map((task) => task.id)) // [1, 3]
  * ```
  *
  * @category mutations

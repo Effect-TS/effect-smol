@@ -10,18 +10,6 @@ import { identity } from "./Function.ts"
  * This symbol is used internally by the Effect type system to enable automatic
  * unification of Effect types in unions and complex type operations.
  *
- * **Example** (Declaring unification symbols)
- *
- * ```ts
- * import type { Unify } from "effect"
- *
- * // The unifySymbol is used internally in Effect types
- * // to enable automatic type unification
- * declare const effect: {
- *   readonly [Unify.unifySymbol]?: any
- * }
- * ```
- *
  * @category symbols
  * @since 2.0.0
  */
@@ -34,18 +22,6 @@ export declare const unifySymbol: unique symbol
  * behavior in Effect types. It's typically used in type-level operations
  * to enable automatic type unification.
  *
- * **Example** (Referencing the unification symbol type)
- *
- * ```ts
- * import type { Unify } from "effect"
- *
- * // The unifySymbol type is used in type declarations
- * // to enable unification behavior
- * type UnifyableType = {
- *   [Unify.unifySymbol]?: any
- * }
- * ```
- *
  * @category symbols
  * @since 2.0.0
  */
@@ -56,18 +32,6 @@ export type unifySymbol = typeof unifySymbol
  *
  * This symbol is used internally by the Effect type system to store type
  * information that can be used during type unification operations.
- *
- * **Example** (Declaring type metadata symbols)
- *
- * ```ts
- * import type { Unify } from "effect"
- *
- * // The typeSymbol is used internally in Effect types
- * // to store type information for unification
- * declare const effect: {
- *   readonly [Unify.typeSymbol]?: any
- * }
- * ```
  *
  * @category symbols
  * @since 2.0.0
@@ -81,18 +45,6 @@ export declare const typeSymbol: unique symbol
  * in types that support unification. It's used in type-level operations
  * to access and manipulate type information.
  *
- * **Example** (Referencing the type metadata symbol type)
- *
- * ```ts
- * import type { Unify } from "effect"
- *
- * // The typeSymbol type is used in type declarations
- * // to store type information for unification
- * type TypedValue = {
- *   [Unify.typeSymbol]?: string
- * }
- * ```
- *
  * @category symbols
  * @since 2.0.0
  */
@@ -105,18 +57,6 @@ export type typeSymbol = typeof typeSymbol
  * that should be excluded from the unification process, allowing for more
  * precise type handling in complex scenarios.
  *
- * **Example** (Declaring ignored unification fields)
- *
- * ```ts
- * import type { Unify } from "effect"
- *
- * // The ignoreSymbol is used internally in Effect types
- * // to mark types that should be ignored during unification
- * declare const effect: {
- *   readonly [Unify.ignoreSymbol]?: any
- * }
- * ```
- *
  * @category symbols
  * @since 2.0.0
  */
@@ -128,18 +68,6 @@ export declare const ignoreSymbol: unique symbol
  * This type represents the unique symbol used for marking types that should
  * be ignored during unification operations. It's used in type-level operations
  * to exclude specific types from the unification process.
- *
- * **Example** (Referencing the ignored field symbol type)
- *
- * ```ts
- * import type { Unify } from "effect"
- *
- * // The ignoreSymbol type is used in type declarations
- * // to mark types that should be ignored during unification
- * type IgnorableType = {
- *   [Unify.ignoreSymbol]?: unknown
- * }
- * ```
  *
  * @category symbols
  * @since 2.0.0

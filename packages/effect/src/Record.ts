@@ -115,16 +115,23 @@ export declare namespace ReadonlyRecord {
  * Type lambda for readonly records, used in higher-kinded type operations.
  * This enables records to work with generic type constructors and functors.
  *
- * **Example** (Using a readonly record type lambda)
+ * **Example** (Applying a readonly record type lambda)
  *
  * ```ts
- * import type { Record } from "effect"
+ * import type { HKT, Record } from "effect"
  *
- * // The type lambda allows records to be used as higher-kinded types
- * type RecordTypeLambda = Record.ReadonlyRecordTypeLambda<"key1" | "key2">
+ * type Settings = HKT.Kind<
+ *   Record.ReadonlyRecordTypeLambda<"port" | "retries">,
+ *   never,
+ *   never,
+ *   never,
+ *   number
+ * >
  *
- * // This enables mapping over the type parameter
- * type StringRecord = RecordTypeLambda["type"] // ReadonlyRecord<"key1" | "key2", Target>
+ * const defaults: Settings = {
+ *   port: 3000,
+ *   retries: 3
+ * }
  * ```
  *
  * @category type lambdas
@@ -1028,19 +1035,27 @@ export const set: {
  * **Example** (Checking subrecords with a custom equivalence)
  *
  * ```ts
- * import { Equal, Record } from "effect"
- * import * as assert from "node:assert"
+ * import { Equivalence, Record } from "effect"
  *
- * const isSubrecord = Record.isSubrecordBy(Equal.asEquivalence<number>())
+ * const isSubrecord = Record.isSubrecordBy(
+ *   Equivalence.make<string>((self, that) => self.toLowerCase() === that.toLowerCase())
+ * )
  *
- * assert.deepStrictEqual(
- *   Record.isSubrecord({ a: 1 } as Record<string, number>, { a: 1, b: 2 }),
- *   true
- * )
- * assert.deepStrictEqual(
- *   Record.isSubrecord({ a: 1, b: 2 }, { a: 1 } as Record<string, number>),
- *   false
- * )
+ * const required: Record.ReadonlyRecord<string, string> = { role: "Admin" }
+ * const available: Record.ReadonlyRecord<string, string> = {
+ *   role: "admin",
+ *   status: "active"
+ * }
+ *
+ * console.log(
+ *   isSubrecord(required, available)
+ * ) // true
+ * console.log(
+ *   isSubrecord({ role: "Admin", status: "inactive" }, available)
+ * ) // false
+ * console.log(
+ *   isSubrecord(required, { role: "editor", status: "active" })
+ * ) // false
  * ```
  *
  * @category predicates

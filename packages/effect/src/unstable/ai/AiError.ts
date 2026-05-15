@@ -1105,13 +1105,13 @@ export class InvalidToolResultError extends Schema.ErrorClass<InvalidToolResultE
  *
  * const error = new AiError.ToolResultEncodingError({
  *   toolName: "GetWeather",
- *   toolResult: { circular: "ref" },
- *   description: "Cannot encode circular reference"
+ *   toolResult: { temperature: 72n },
+ *   description: "Cannot encode bigint values as JSON"
  * })
  *
  * console.log(error.isRetryable) // false
  * console.log(error.message)
- * // "Failed to encode result for tool 'GetWeather': Cannot encode circular reference"
+ * // "Failed to encode result for tool 'GetWeather': Cannot encode bigint values as JSON"
  * ```
  *
  * @category reason

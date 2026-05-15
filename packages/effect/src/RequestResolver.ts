@@ -604,12 +604,13 @@ export const setDelay: {
  *   (entries) =>
  *     Effect.gen(function*() {
  *       yield* Effect.log(`Starting batch of ${entries.length} requests`)
- *       return Date.now()
+ *       return entries.length
  *     }),
- *   (entries, startTime) =>
+ *   (entries, initialSize) =>
  *     Effect.gen(function*() {
- *       const duration = Date.now() - startTime
- *       yield* Effect.log(`Batch completed in ${duration}ms`)
+ *       yield* Effect.log(
+ *         `Batch completed with ${entries.length} requests (started with ${initialSize})`
+ *       )
  *     })
  * )
  * ```

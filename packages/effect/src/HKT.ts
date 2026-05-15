@@ -44,17 +44,28 @@ import type * as Types from "./Types.ts"
  * with their corresponding TypeLambda. It provides a way to link runtime
  * type class instances with their compile-time type information.
  *
- * **Example** (Defining type classes)
+ * **Example** (Linking a type class to a type lambda)
  *
  * ```ts
  * import type { HKT } from "effect"
  *
- * interface MyTypeClass<F extends HKT.TypeLambda> extends HKT.TypeClass<F> {
- *   // TypeClass methods here
+ * interface IdentityTypeLambda extends HKT.TypeLambda {
+ *   readonly type: this["Target"]
  * }
  *
- * // The URI symbol helps TypeScript understand the relationship
- * // between the type class and its type lambda
+ * interface IdentityTypeClass extends HKT.TypeClass<IdentityTypeLambda> {
+ *   readonly [HKT.URI]?: IdentityTypeLambda
+ *   readonly of: <A>(value: A) => HKT.Kind<IdentityTypeLambda, never, never, never, A>
+ * }
+ *
+ * const identity: IdentityTypeClass = {
+ *   of: (value) => value
+ * }
+ *
+ * type LinkedTypeLambda = typeof identity[typeof HKT.URI]
+ *
+ * const value: HKT.Kind<NonNullable<LinkedTypeLambda>, never, never, never, string> = identity.of("ok")
+ * console.log(value) // "ok"
  * ```
  *
  * @category symbols

@@ -836,8 +836,13 @@ export const endSync = <A>(evaluate: LazyArg<A>): Channel<never, never, A> =>
  * ```ts
  * import { Channel } from "effect"
  *
- * const channel = Channel.sync(() => Math.random())
- * // Emits a random number computed when the channel runs
+ * let requests = 0
+ *
+ * const channel = Channel.sync(() => {
+ *   requests += 1
+ *   return `request-${requests}`
+ * })
+ * // Emits "request-1" when the channel runs for the first time
  * ```
  *
  * @category constructors
@@ -945,14 +950,16 @@ export const fail = <E>(error: E): Channel<never, E, never> => fromPull(Effect.s
  * })
  *
  * // The error computation is deferred until the channel runs
- * const conditionalError = Channel.failSync(() =>
- *   Math.random() > 0.5 ? "Error A" : "Error B"
- * )
+ * let attempts = 0
+ * const conditionalError = Channel.failSync(() => {
+ *   attempts += 1
+ *   return `Error after attempt ${attempts}`
+ * })
  *
  * // Use with expensive error construction
  * const expensiveError = Channel.failSync(() => {
- *   const timestamp = Date.now()
- *   return new Error(`Failed at: ${timestamp}`)
+ *   const requestId = "request-123"
+ *   return new Error(`Failed while processing ${requestId}`)
  * })
  * ```
  *
@@ -997,15 +1004,16 @@ export const failCause = <E>(cause: Cause.Cause<E>): Channel<never, E, never> =>
  * import { Cause, Channel } from "effect"
  *
  * // Create a channel that fails with a lazily computed cause
+ * let attempts = 0
  * const failedChannel = Channel.failCauseSync(() => {
- *   const errorType = Math.random() > 0.5 ? "A" : "B"
- *   return Cause.fail(`Runtime error ${errorType}`)
+ *   attempts += 1
+ *   return Cause.fail(`Runtime error after attempt ${attempts}`)
  * })
  *
  * // Create a channel with die cause computation
  * const dieCauseChannel = Channel.failCauseSync(() => {
- *   const timestamp = Date.now()
- *   return Cause.die(`Error at ${timestamp}`)
+ *   const operation = "load-profile"
+ *   return Cause.die(`Unexpected defect during ${operation}`)
  * })
  * ```
  *
@@ -1332,11 +1340,7 @@ export const fromSubscription = <A>(
  * **Example** (Aggregating subscription metrics)
  *
  * ```ts
- * import { Channel, Data, Effect, PubSub } from "effect"
- *
- * class MetricsError extends Data.TaggedError("MetricsError")<{
- *   readonly cause: string
- * }> {}
+ * import { Channel, Effect, PubSub } from "effect"
  *
  * const metricsAggregator = Effect.gen(function*() {
  *   const metricsPubSub = yield* PubSub.bounded<
@@ -1361,7 +1365,8 @@ export const fromSubscription = <A>(
  *       average: avg,
  *       min,
  *       max,
- *       timestamp: Date.now()
+ *       firstTimestamp: Math.min(...metrics.map((m) => m.timestamp)),
+ *       lastTimestamp: Math.max(...metrics.map((m) => m.timestamp))
  *     }
  *   })
  *
@@ -1414,11 +1419,7 @@ export const fromSubscriptionArray = <A>(
  * **Example** (Streaming PubSub notifications)
  *
  * ```ts
- * import { Channel, Data, Effect, PubSub } from "effect"
- *
- * class NotificationError extends Data.TaggedError("NotificationError")<{
- *   readonly reason: string
- * }> {}
+ * import { Channel, Effect, PubSub } from "effect"
  *
  * const notificationService = Effect.gen(function*() {
  *   const notificationPubSub = yield* PubSub.bounded<string>(50)
@@ -1427,10 +1428,11 @@ export const fromSubscriptionArray = <A>(
  *   const notificationChannel = Channel.fromPubSub(notificationPubSub)
  *
  *   // Transform notifications to add timestamps
+ *   const receivedAt = "2024-01-01T00:00:00.000Z"
  *   const timestampedChannel = Channel.map(notificationChannel, (message) => ({
  *     message,
- *     timestamp: new Date().toISOString(),
- *     id: Math.random().toString(36).substr(2, 9)
+ *     receivedAt,
+ *     id: `notification:${message}`
  *   }))
  *
  *   return timestampedChannel
@@ -1440,12 +1442,7 @@ export const fromSubscriptionArray = <A>(
  * **Example** (Processing PubSub events)
  *
  * ```ts
- * import { Channel, Data, Effect, PubSub } from "effect"
- *
- * class EventProcessingError extends Data.TaggedError("EventProcessingError")<{
- *   readonly eventType: string
- *   readonly cause: string
- * }> {}
+ * import { Channel, Effect, PubSub } from "effect"
  *
  * interface DomainEvent {
  *   readonly type: string
@@ -1465,7 +1462,7 @@ export const fromSubscriptionArray = <A>(
  *       return {
  *         ...event,
  *         processed: true,
- *         processedAt: Date.now()
+ *         processedAt: event.timestamp + 1
  *       }
  *     }
  *     return event
@@ -1521,18 +1518,14 @@ export const fromPubSub = <A>(
  * **Example** (Processing PubSub orders in batches)
  *
  * ```ts
- * import { Channel, Data, Effect, PubSub } from "effect"
- *
- * class OrderProcessingError extends Data.TaggedError("OrderProcessingError")<{
- *   readonly orderId: string
- *   readonly reason: string
- * }> {}
+ * import { Channel, Effect, PubSub } from "effect"
  *
  * interface Order {
  *   readonly id: string
  *   readonly customerId: string
  *   readonly items: ReadonlyArray<string>
  *   readonly total: number
+ *   readonly submittedAt: number
  * }
  *
  * const orderBatchProcessor = Effect.gen(function*() {
@@ -1552,7 +1545,7 @@ export const fromPubSub = <A>(
  *       batchSize: orderBatch.length,
  *       totalRevenue,
  *       uniqueCustomers: customerCount,
- *       processedAt: Date.now(),
+ *       firstSubmittedAt: Math.min(...orderBatch.map((order) => order.submittedAt)),
  *       orders: orderBatch
  *     }
  *   })
@@ -1564,12 +1557,7 @@ export const fromPubSub = <A>(
  * **Example** (Processing PubSub logs in batches)
  *
  * ```ts
- * import { Channel, Data, Effect, PubSub } from "effect"
- *
- * class LogProcessingError extends Data.TaggedError("LogProcessingError")<{
- *   readonly batchId: string
- *   readonly cause: string
- * }> {}
+ * import { Channel, Effect, PubSub } from "effect"
  *
  * interface LogEntry {
  *   readonly timestamp: number
@@ -1596,7 +1584,7 @@ export const fromPubSub = <A>(
  *     }
  *
  *     return {
- *       batchId: Math.random().toString(36).substr(2, 9),
+ *       batchId: `${timeRange.start}-${timeRange.end}`,
  *       totalEntries: logBatch.length,
  *       errorCount,
  *       warnCount,
@@ -6296,19 +6284,22 @@ export const scoped = <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
  * **Example** (Embedding custom input handling)
  *
  * ```ts
- * import { Channel, Data, Effect } from "effect"
- *
- * class EmbedError extends Data.TaggedError("EmbedError")<{
- *   readonly stage: string
- * }> {}
+ * import { Channel, Effect } from "effect"
  *
  * // Create a base channel
  * const baseChannel = Channel.fromIterable([1, 2, 3])
  *
- * // Embed input handling - simplified example
+ * // Drain the embedded input while the base channel runs
  * const embeddedChannel = Channel.embedInput(
  *   baseChannel,
- *   (_upstream) => Effect.void
+ *   (upstream) =>
+ *     upstream.pipe(
+ *       Effect.tap((message) =>
+ *         Effect.sync(() => console.log(message))
+ *       ),
+ *       Effect.forever,
+ *       Effect.ignore
+ *     )
  * )
  * ```
  *

@@ -431,15 +431,25 @@ export const redacted: Primitive<Redacted.Redacted<string>> = makePrimitive(
  * **Example** (Reading file text)
  *
  * ```ts
- * import { Effect } from "effect"
+ * import { Effect, Schema } from "effect"
  * import { Primitive } from "effect/unstable/cli"
+ *
+ * const ConfigSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   version: Schema.String,
+ *   port: Schema.Number
+ * })
+ * const decodeConfig = Schema.decodeUnknownEffect(
+ *   Schema.fromJsonString(ConfigSchema)
+ * )
  *
  * const readConfigFile = Effect.gen(function*() {
  *   const content = yield* Primitive.fileText.parse("./config.json")
- *   console.log(content) // File contents as string
+ *   console.log(content) // {"name":"my-app","version":"1.0.0","port":3000}
  *
- *   const parsed = JSON.parse(content)
- *   return parsed
+ *   const config = yield* decodeConfig(content)
+ *   console.log(config) // { name: "my-app", version: "1.0.0", port: 3000 }
+ *   return config
  * })
  * ```
  *
@@ -571,7 +581,7 @@ export type FileSchemaOptions = Struct.Simplify<
  *   name: Schema.String,
  *   version: Schema.String,
  *   port: Schema.Number
- * }).pipe(Schema.fromJsonString)
+ * })
  *
  * const jsonConfigPrimitive = Primitive.fileSchema(ConfigSchema, {
  *   format: "json"

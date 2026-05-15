@@ -268,8 +268,7 @@ export const modify: {
  * const program = Effect.gen(function*() {
  *   const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
  *
- *   // Update the chunk by reversing it
- *   // Update the chunk by reversing it - automatically transactional
+ *   // Update the chunk by reversing it atomically
  *   yield* TxChunk.update(txChunk, (chunk) => Chunk.reverse(chunk))
  *
  *   const result = yield* TxChunk.get(txChunk)
@@ -614,8 +613,7 @@ export const slice: {
  * const program = Effect.gen(function*() {
  *   const txChunk = yield* TxChunk.fromIterable([1, 2, 3, 4])
  *
- *   // Transform each element (must maintain same type)
- *   // Transform each element (must maintain same type) - automatically transactional
+ *   // Transform each element atomically (must maintain same type)
  *   yield* TxChunk.map(txChunk, (n) => n * 2)
  *
  *   const result = yield* TxChunk.get(txChunk)
@@ -648,8 +646,7 @@ export const map: {
  * const program = Effect.gen(function*() {
  *   const txChunk = yield* TxChunk.fromIterable([1, 2, 3, 4, 5, 6])
  *
- *   // Keep only even numbers
- *   // Keep only even numbers - automatically transactional
+ *   // Keep only even numbers atomically
  *   yield* TxChunk.filter(txChunk, (n) => n % 2 === 0)
  *
  *   const result = yield* TxChunk.get(txChunk)
@@ -686,8 +683,7 @@ export const filter: {
  *   const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
  *   const otherChunk = Chunk.fromIterable([4, 5, 6])
  *
- *   // Append all elements from another chunk
- *   // Append all elements from another chunk - automatically transactional
+ *   // Append all elements from another chunk atomically
  *   yield* TxChunk.appendAll(txChunk, otherChunk)
  *
  *   const result = yield* TxChunk.get(txChunk)
@@ -722,8 +718,7 @@ export const appendAll: {
  *   const txChunk = yield* TxChunk.fromIterable([4, 5, 6])
  *   const otherChunk = Chunk.fromIterable([1, 2, 3])
  *
- *   // Prepend all elements from another chunk
- *   // Prepend all elements from another chunk - automatically transactional
+ *   // Prepend all elements from another chunk atomically
  *   yield* TxChunk.prependAll(txChunk, otherChunk)
  *
  *   const result = yield* TxChunk.get(txChunk)

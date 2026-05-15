@@ -1485,13 +1485,8 @@ export const tapCause: {
  *
  * // Layer that can fail during construction
  * const flakyDatabaseLayer = Layer.effect(Database)(Effect.gen(function*() {
- *   // Simulate a database connection that might fail
- *   const shouldFail = Math.random() > 0.5
- *   if (shouldFail) {
- *     return yield* new DatabaseError({ message: "Connection failed" })
- *   }
- *
- *   return { query: Effect.fn("Database.query")((sql: string) => Effect.succeed(`Result: ${sql}`)) }
+ *   console.log("connecting")
+ *   return yield* new DatabaseError({ message: "Connection failed" })
  * }))
  *
  * // Convert failures to fiber death - removes error from type
@@ -1505,8 +1500,8 @@ export const tapCause: {
  *   Effect.provide(reliableDatabaseLayer)
  * )
  *
- * // If the database layer fails, the entire fiber will die
- * // instead of the effect failing with DatabaseError
+ * // Running the program prints "connecting", then the DatabaseError is
+ * // converted into a fiber defect instead of remaining a typed error.
  * ```
  *
  * @category error handling
@@ -1633,47 +1628,32 @@ export const catchTag: {
  *   message: string
  * }> {}
  *
- * class NetworkError extends Data.TaggedError("NetworkError")<{
- *   reason: string
- * }> {}
- *
  * class Database extends Context.Service<Database, {
  *   readonly query: (sql: string) => Effect.Effect<string>
  * }>()("Database") {}
  *
- * class Logger extends Context.Service<Logger, {
- *   readonly log: (msg: string) => Effect.Effect<void>
- * }>()("Logger") {}
+ * const primaryDatabaseLayer = Layer.effect(Database)(
+ *   Effect.fail(new DatabaseError({ message: "Primary DB unreachable" }))
+ * )
  *
- * // Primary database layer that might fail
- * const primaryDatabaseLayer = Layer.effect(Database)(Effect.gen(function*() {
- *   return yield* new DatabaseError({ message: "Primary DB unreachable" })
- *   return { query: Effect.fn("Database.query")((sql: string) => Effect.succeed(`Primary: ${sql}`)) }
- * }))
- *
- * // Fallback layers for different error causes
  * const databaseWithFallback = primaryDatabaseLayer.pipe(
  *   Layer.catchCause(() => {
- *     // For any cause/error, fallback to in-memory database
- *     return Layer.mergeAll(
- *       Layer.succeed(Database)({
- *         query: Effect.fn("Database.query")((sql: string) => Effect.succeed(`Memory: ${sql}`))
- *       }),
- *       Layer.succeed(Logger)({
- *         log: Effect.fn("Logger.log")((msg: string) =>
- *           Effect.sync(() => console.log(`[FALLBACK] ${msg}`))
- *         )
- *       })
- *     )
+ *     return Layer.succeed(Database)({
+ *       query: Effect.fn("Database.query")((sql: string) => Effect.succeed(`Memory: ${sql}`))
+ *     })
  *   })
  * )
  *
  * const program = Effect.gen(function*() {
  *   const database = yield* Database
- *   return yield* database.query("SELECT * FROM users")
+ *   const result = yield* database.query("SELECT * FROM users")
+ *   console.log(result)
  * }).pipe(
  *   Effect.provide(databaseWithFallback)
  * )
+ *
+ * Effect.runPromise(program)
+ * // Memory: SELECT * FROM users
  * ```
  *
  * @category error handling
@@ -1744,44 +1724,64 @@ export const updateService: {
  * import { Effect, Layer, Ref, Context } from "effect"
  *
  * class Counter extends Context.Service<Counter, {
- *   readonly count: number
- *   readonly increment: () => Effect.Effect<number>
+ *   readonly id: number
  * }>()("Counter") {}
  *
- * // Layer that creates a counter with shared state
- * const counterLayer = Layer.effect(Counter)(Effect.gen(function*() {
- *   const ref = yield* Ref.make(0)
- *   return {
- *     count: 0,
- *     increment: Effect.fn("Counter.increment")(() =>
- *       Ref.update(ref, (n) => n + 1).pipe(
- *         Effect.flatMap(() => Ref.get(ref))
- *       )
- *     )
- *   }
+ * class Left extends Context.Service<Left, {
+ *   readonly counterId: number
+ * }>()("Left") {}
+ *
+ * class Right extends Context.Service<Right, {
+ *   readonly counterId: number
+ * }>()("Right") {}
+ *
+ * const leftLayer = Layer.effect(Left)(Effect.gen(function*() {
+ *   const counter = yield* Counter
+ *   return { counterId: counter.id }
  * }))
  *
- * // By default, layers are shared - same instance used everywhere
- * const sharedProgram = Effect.gen(function*() {
- *   const counter1 = yield* Counter
- *   const counter2 = yield* Counter
+ * const rightLayer = Layer.effect(Right)(Effect.gen(function*() {
+ *   const counter = yield* Counter
+ *   return { counterId: counter.id }
+ * }))
  *
- *   // Both counter1 and counter2 refer to the same instance
- *   console.log("Shared layer - same instance")
- * }).pipe(
- *   Effect.provide(counterLayer)
- * )
+ * const showIds = Effect.gen(function*() {
+ *   const left = yield* Left
+ *   const right = yield* Right
+ *   console.log(`same Counter: ${left.counterId === right.counterId}`)
+ * })
  *
- * // Fresh layer creates a new instance each time
- * const freshProgram = Effect.gen(function*() {
- *   const counter1 = yield* Counter
- *   const counter2 = yield* Counter
+ * const program = Effect.gen(function*() {
+ *   const nextId = yield* Ref.make(0)
  *
- *   // counter1 and counter2 are different instances
- *   console.log("Fresh layer - different instances")
- * }).pipe(
- *   Effect.provide(Layer.fresh(counterLayer))
- * )
+ *   const counterLayer = Layer.effect(Counter)(Effect.gen(function*() {
+ *     const id = yield* Ref.updateAndGet(nextId, (n) => n + 1)
+ *     console.log("constructed Counter")
+ *     return { id }
+ *   }))
+ *
+ *   const shared = Layer.merge(
+ *     Layer.provide(leftLayer, counterLayer),
+ *     Layer.provide(rightLayer, counterLayer)
+ *   )
+ *
+ *   yield* Effect.provide(showIds, shared)
+ *
+ *   const freshCounterLayer = Layer.fresh(counterLayer)
+ *   const fresh = Layer.merge(
+ *     Layer.provide(leftLayer, freshCounterLayer),
+ *     Layer.provide(rightLayer, freshCounterLayer)
+ *   )
+ *
+ *   yield* Effect.provide(showIds, fresh)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // constructed Counter
+ * // same Counter: true
+ * // constructed Counter
+ * // constructed Counter
+ * // same Counter: false
  * ```
  *
  * @category utils
@@ -2002,7 +2002,7 @@ const ChannelTypeId: Channel.TypeId = "~effect/Channel"
  * // This would cause a TypeScript compilation error:
  * // const invalidLayer = satisfiesNumber(StringLayer)
  * //                                     ^^^^^^^^^^^
- * // Type 'number' is not assignable to type 'string'
+ * // Type 'string' is not assignable to type 'number'
  * ```
  *
  * @category Type constraints
@@ -2058,7 +2058,7 @@ export const satisfiesErrorType =
  * declare const FortyTwoLayer: Layer.Layer<never, never, 42>
  * declare const StringLayer: Layer.Layer<never, never, string>
  *
- * // Define a constraint that the success type must be a number
+ * // Define a constraint that the service requirements must be numbers
  * const satisfiesNumber = Layer.satisfiesServicesType<number>()
  *
  * // This works - Layer<never, never, 42> extends Layer<never, never, number>

@@ -599,7 +599,6 @@ export const addOrOmit: {
  *
  * ```ts
  * import { Context } from "effect"
- * import * as assert from "node:assert"
  *
  * const Logger = Context.Service<{ log: (msg: string) => void }>("Logger")
  * const Database = Context.Service<{ query: (sql: string) => string }>(
@@ -617,8 +616,8 @@ export const addOrOmit: {
  *   () => ({ query: () => "fallback" })
  * )
  *
- * assert.deepStrictEqual(logger, { log: (msg: string) => console.log(msg) })
- * assert.deepStrictEqual(database, { query: () => "fallback" })
+ * console.log(logger === Context.get(context, Logger)) // true
+ * console.log(database.query("SELECT 1")) // "fallback"
  * ```
  *
  * @category Getters
@@ -725,7 +724,6 @@ export const get: {
  *
  * ```ts
  * import { Context } from "effect"
- * import * as assert from "node:assert"
  *
  * const LoggerRef = Context.Reference("Logger", {
  *   defaultValue: () => ({ log: (msg: string) => console.log(msg) })
@@ -734,7 +732,7 @@ export const get: {
  * const context = Context.empty()
  * const logger = Context.getReferenceUnsafe(context, LoggerRef)
  *
- * assert.deepStrictEqual(logger, { log: (msg: string) => console.log(msg) })
+ * console.log(typeof logger.log) // "function"
  * ```
  *
  * @category unsafe

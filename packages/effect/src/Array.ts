@@ -4241,6 +4241,7 @@ const reducer = Reducer.make((a, b) => a.concat(b), [] as any)
  *
  * @see {@link makeReducerConcat} — mutable `Array` variant
  *
+ * @category folding
  * @since 4.0.0
  */
 export function getReadonlyReducerConcat<A>(): Reducer.Reducer<ReadonlyArray<A>> {
@@ -4252,6 +4253,7 @@ export function getReadonlyReducerConcat<A>(): Reducer.Reducer<ReadonlyArray<A>>
  *
  * @see {@link getReadonlyReducerConcat} — readonly variant
  *
+ * @category folding
  * @since 4.0.0
  */
 export function makeReducerConcat<A>(): Reducer.Reducer<Array<A>> {

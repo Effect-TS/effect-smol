@@ -65,27 +65,6 @@ export interface RcMap<in out K, in out A, in out E = never> extends Pipeable {
 /**
  * Represents the internal state of an RcMap, which can be either Open (active)
  * or Closed (shutdown and no longer accepting operations).
- *
- * **Example** (Narrowing map state)
- *
- * ```ts
- * import type { RcMap } from "effect"
- *
- * // State is a union type that can be either:
- * declare const openState: RcMap.State.Open<string, number, never>
- * declare const closedState: RcMap.State.Closed
- *
- * // Check the state type
- * declare const state: RcMap.State<string, number, never>
- * if (state._tag === "Open") {
- *   // Access the internal map when open
- *   console.log("Map is open, contains entries")
- * } else {
- *   // State is closed
- *   console.log("Map is closed")
- * }
- * ```
- *
  * @category Models
  * @since 4.0.0
  */
@@ -93,22 +72,6 @@ export type State<K, A, E> = State.Open<K, A, E> | State.Closed
 
 /**
  * Namespace containing the internal state types for RcMap.
- *
- * **Example** (Referencing state types)
- *
- * ```ts
- * import type { RcMap } from "effect"
- *
- * // The State namespace contains types for RcMap internal state:
- * // - Open: Contains the active resource map
- * // - Closed: Indicates the map is shut down
- * // - Entry: Individual resource entries with metadata
- *
- * declare const openState: RcMap.State.Open<string, number, never>
- * declare const closedState: RcMap.State.Closed
- * declare const entry: RcMap.State.Entry<number, never>
- * ```
- *
  * @category Models
  * @since 4.0.0
  */
@@ -116,24 +79,6 @@ export declare namespace State {
   /**
    * Represents the open/active state of an RcMap, containing the actual
    * resource map that stores entries.
-   *
-   * **Example** (Inspecting open state)
-   *
-   * ```ts
-   * import type { RcMap } from "effect"
-   * import * as MutableHashMap from "effect/MutableHashMap"
-   *
-   * // State.Open contains the active resource map
-   * declare const openState: RcMap.State.Open<string, number, never>
-   *
-   * // Access the internal map when state is open
-   * if (openState._tag === "Open") {
-   *   // The map contains Entry objects indexed by keys
-   *   const hasKey = MutableHashMap.has(openState.map, "someKey")
-   *   console.log(`Map contains key: ${hasKey}`)
-   * }
-   * ```
-   *
    * @category Models
    * @since 4.0.0
    */
@@ -145,22 +90,6 @@ export declare namespace State {
   /**
    * Represents the closed state of an RcMap, indicating that the map has been
    * shut down and will no longer accept new operations.
-   *
-   * **Example** (Checking closed state)
-   *
-   * ```ts
-   * import type { RcMap } from "effect"
-   *
-   * // State.Closed indicates the RcMap is shut down
-   * declare const closedState: RcMap.State.Closed
-   *
-   * // Check for closed state
-   * if (closedState._tag === "Closed") {
-   *   console.log("RcMap is closed, no operations allowed")
-   *   // Any attempt to get resources will result in interruption
-   * }
-   * ```
-   *
    * @category Models
    * @since 4.0.0
    */
@@ -171,27 +100,6 @@ export declare namespace State {
   /**
    * Represents an individual entry in the RcMap, containing the resource's
    * metadata including reference count, expiration time, and lifecycle management.
-   *
-   * **Example** (Inspecting entry metadata)
-   *
-   * ```ts
-   * import type { RcMap } from "effect"
-   *
-   * // Entry contains all metadata for a resource in the map
-   * declare const entry: RcMap.State.Entry<string, never>
-   *
-   * // Entry properties:
-   * // - deferred: Promise-like structure for the resource value
-   * // - scope: Manages the resource's lifecycle
-   * // - finalizer: Effect to run when cleaning up
-   * // - fiber: Optional background fiber for expiration
-   * // - expiresAt: Timestamp when resource expires
-   * // - refCount: Number of active references
-   *
-   * console.log(`Reference count: ${entry.refCount}`)
-   * console.log(`Expires at: ${entry.expiresAt}`)
-   * ```
-   *
    * @category Models
    * @since 4.0.0
    */

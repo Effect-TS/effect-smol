@@ -71,30 +71,12 @@ const TypeId = "~effect/transactions/TxQueue"
 /**
  * Namespace containing type definitions for TxEnqueue variance annotations.
  *
- * **Example** (Referencing TxEnqueue variance)
- *
- * ```ts
- * import type { TxQueue } from "effect"
- *
- * // Use variance types for type-level operations
- * declare const variance: TxQueue.TxEnqueue.Variance<number, Error>
- * ```
- *
  * @category models
  * @since 4.0.0
  */
 export declare namespace TxEnqueue {
   /**
    * Variance annotation interface for TxEnqueue contravariance.
-   *
-   * **Example** (Using TxEnqueue variance annotations)
-   *
-   * ```ts
-   * import type { TxQueue } from "effect"
-   *
-   * // Demonstrates contravariant type behavior for both A and E
-   * declare const variance: TxQueue.TxEnqueue.Variance<string, Error>
-   * ```
    *
    * @category models
    * @since 4.0.0
@@ -108,30 +90,12 @@ export declare namespace TxEnqueue {
 /**
  * Namespace containing type definitions for TxDequeue variance annotations.
  *
- * **Example** (Referencing TxDequeue variance)
- *
- * ```ts
- * import type { TxQueue } from "effect"
- *
- * // Use variance types for type-level operations
- * declare const variance: TxQueue.TxDequeue.Variance<number, Error>
- * ```
- *
  * @category models
  * @since 4.0.0
  */
 export declare namespace TxDequeue {
   /**
    * Variance annotation interface for TxDequeue covariance.
-   *
-   * **Example** (Using TxDequeue variance annotations)
-   *
-   * ```ts
-   * import type { TxQueue } from "effect"
-   *
-   * // Demonstrates covariant type behavior for both A and E
-   * declare const variance: TxQueue.TxDequeue.Variance<string, Error>
-   * ```
    *
    * @category models
    * @since 4.0.0
@@ -145,30 +109,12 @@ export declare namespace TxDequeue {
 /**
  * Namespace containing type definitions for TxQueue variance annotations.
  *
- * **Example** (Referencing TxQueue variance)
- *
- * ```ts
- * import type { TxQueue } from "effect"
- *
- * // Use variance types for type-level operations
- * declare const variance: TxQueue.TxQueue.Variance<number, Error>
- * ```
- *
  * @category models
  * @since 4.0.0
  */
 export declare namespace TxQueue {
   /**
    * Variance annotation interface for TxQueue invariance.
-   *
-   * **Example** (Using TxQueue variance annotations)
-   *
-   * ```ts
-   * import type { TxQueue } from "effect"
-   *
-   * // Demonstrates invariant type behavior for both A and E
-   * declare const variance: TxQueue.TxQueue.Variance<string, Error>
-   * ```
    *
    * @category models
    * @since 4.0.0
@@ -243,11 +189,12 @@ export interface TxEnqueue<in A, in E = never> extends TxQueueState {
  * const program = Effect.gen(function*() {
  *   // Queue without error channel
  *   const queue = yield* TxQueue.bounded<number>(10)
+ *   yield* TxQueue.offer(queue, 42)
  *   const item = yield* TxQueue.take(queue)
+ *   console.log(item) // 42
  *
  *   // Queue with error channel - errors propagate through E-channel
  *   const faultTolerantQueue = yield* TxQueue.bounded<number, string>(10)
- *   yield* TxQueue.offer(faultTolerantQueue, 42)
  *   yield* TxQueue.fail(faultTolerantQueue, "processing failed")
  *
  *   // All dequeue operations now fail with the error directly
@@ -285,8 +232,9 @@ export interface TxDequeue<out A, out E = never> extends TxQueueState {
  *   const faultTolerantQueue = yield* TxQueue.bounded<number, string>(10)
  *
  *   // Operations can handle queue-level failures
- *   yield* TxQueue.shutdown(faultTolerantQueue)
- *   const result = yield* Effect.flip(TxQueue.take(faultTolerantQueue)) // never
+ *   yield* TxQueue.fail(faultTolerantQueue, "queue failed")
+ *   const result = yield* Effect.flip(TxQueue.take(faultTolerantQueue))
+ *   console.log(result) // "queue failed"
  * })
  * ```
  *
@@ -643,7 +591,7 @@ export const offer: {
  * **Example** (Offering multiple values)
  *
  * ```ts
- * import { Chunk, Effect, TxQueue } from "effect"
+ * import { Effect, TxQueue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* TxQueue.bounded<number>(10)
@@ -870,14 +818,15 @@ export const takeAll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Arr.NonEmpty
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* TxQueue.bounded<number>(5)
- *   yield* TxQueue.offerAll(queue, [1, 2, 3])
+ *   yield* TxQueue.offerAll(queue, [1, 2, 3, 4])
  *
- *   // This will wait until 4 items are available
- *   // (will retry transaction until more items are offered)
  *   const items = yield* TxQueue.takeN(queue, 4)
+ *   console.log(items) // [1, 2, 3, 4]
  *
  *   // This requests more than capacity (5), so takes all available (up to 5)
- *   const all = yield* TxQueue.takeN(queue, 10) // Takes at most 5 items
+ *   yield* TxQueue.offerAll(queue, [5, 6, 7, 8, 9])
+ *   const all = yield* TxQueue.takeN(queue, 10)
+ *   console.log(all) // [5, 6, 7, 8, 9]
  * })
  * ```
  *
@@ -1292,8 +1241,6 @@ export const failCause: {
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* TxQueue.bounded<number, Cause.Done>(10)
- *   yield* TxQueue.offer(queue, 1)
- *   yield* TxQueue.offer(queue, 2)
  *
  *   // Signal the end of the queue
  *   const result = yield* TxQueue.end(queue)

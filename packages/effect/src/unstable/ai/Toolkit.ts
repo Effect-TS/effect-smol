@@ -6,10 +6,9 @@
  * **Example** (Creating and implementing toolkits)
  *
  * ```ts
- * import { Effect, Schema } from "effect"
+ * import { Effect, Schema, Stream } from "effect"
  * import { Tool, Toolkit } from "effect/unstable/ai"
  *
- * // Create individual tools
  * const GetCurrentTime = Tool.make("GetCurrentTime", {
  *   description: "Get the current timestamp",
  *   success: Schema.Number
@@ -24,17 +23,29 @@
  *   })
  * })
  *
- * // Create a toolkit with multiple tools
  * const MyToolkit = Toolkit.make(GetCurrentTime, GetWeather)
  *
  * const MyToolkitLayer = MyToolkit.toLayer({
- *   GetCurrentTime: () => Effect.succeed(Date.now()),
+ *   GetCurrentTime: () => Effect.succeed(1_704_067_200_000),
  *   GetWeather: ({ location }) =>
  *     Effect.succeed({
  *       temperature: 72,
- *       condition: "sunny"
+ *       condition: `sunny in ${location}`
  *     })
  * })
+ *
+ * const program = Effect.gen(function*() {
+ *   const toolkit = yield* MyToolkit
+ *   const stream = yield* toolkit.handle("GetWeather", {
+ *     location: "San Francisco"
+ *   })
+ *   const results = yield* Stream.runCollect(stream)
+ *
+ *   return Array.from(results, ({ result }) => result)
+ * }).pipe(Effect.provide(MyToolkitLayer))
+ *
+ * console.log(Effect.runSync(program))
+ * // [{ temperature: 72, condition: "sunny in San Francisco" }]
  * ```
  *
  * @since 1.0.0
@@ -63,35 +74,25 @@ const TypeId = "~effect/ai/Toolkit" as const
  * **Example** (Defining AI toolkits)
  *
  * ```ts
- * import { Effect, Schema } from "effect"
+ * import { Schema } from "effect"
  * import { Tool, Toolkit } from "effect/unstable/ai"
  *
- * // Create individual tools
- * const GetCurrentTime = Tool.make("GetCurrentTime", {
- *   description: "Get the current timestamp",
- *   success: Schema.Number
+ * const SearchDocs = Tool.make("SearchDocs", {
+ *   description: "Search project documentation",
+ *   parameters: Schema.Struct({ query: Schema.String }),
+ *   success: Schema.Array(Schema.String)
  * })
  *
- * const GetWeather = Tool.make("GetWeather", {
- *   description: "Get weather for a location",
- *   parameters: Schema.Struct({ location: Schema.String }),
- *   success: Schema.Struct({
- *     temperature: Schema.Number,
- *     condition: Schema.String
- *   })
+ * const SummarizeText = Tool.make("SummarizeText", {
+ *   description: "Summarize text",
+ *   parameters: Schema.Struct({ text: Schema.String }),
+ *   success: Schema.String
  * })
  *
- * // Create a toolkit with multiple tools
- * const MyToolkit = Toolkit.make(GetCurrentTime, GetWeather)
+ * const AiToolkit = Toolkit.make(SearchDocs, SummarizeText)
  *
- * const MyToolkitLayer = MyToolkit.toLayer({
- *   GetCurrentTime: () => Effect.succeed(Date.now()),
- *   GetWeather: ({ location }) =>
- *     Effect.succeed({
- *       temperature: 72,
- *       condition: "sunny"
- *     })
- * })
+ * console.log(Object.keys(AiToolkit.tools))
+ * // ["SearchDocs", "SummarizeText"]
  * ```
  *
  * @category models

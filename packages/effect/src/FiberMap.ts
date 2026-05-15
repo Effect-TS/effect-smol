@@ -35,8 +35,8 @@ const TypeId = "~effect/FiberMap"
  *   const map = yield* FiberMap.make<string>()
  *
  *   // Add some fibers to the map
- *   yield* FiberMap.run(map, "task1", Effect.succeed("Hello"))
- *   yield* FiberMap.run(map, "task2", Effect.succeed("World"))
+ *   yield* FiberMap.run(map, "task1", Effect.never)
+ *   yield* FiberMap.run(map, "task2", Effect.never)
  *
  *   // Get the size of the map
  *   const size = yield* FiberMap.size(map)
@@ -169,9 +169,9 @@ export const make = <K, A = unknown, E = unknown>(): Effect.Effect<FiberMap<K, A
  *   const fiber1 = run("task1", Effect.succeed("Hello"))
  *   const fiber2 = run("task2", Effect.succeed("World"))
  *
- *   // Await the results
- *   const result1 = yield* Fiber.await(fiber1)
- *   const result2 = yield* Fiber.await(fiber2)
+ *   // Join the fibers to get their successful values
+ *   const result1 = yield* Fiber.join(fiber1)
+ *   const result2 = yield* Fiber.join(fiber2)
  *
  *   console.log(result1, result2) // "Hello", "World"
  * })
@@ -256,17 +256,20 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
  * **Example** (Adding a fiber unsafely)
  *
  * ```ts
- * import { Effect, Fiber, FiberMap } from "effect"
+ * import { Deferred, Effect, Fiber, FiberMap } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const map = yield* FiberMap.make<string>()
+ *   const deferred = yield* Deferred.make<string>()
  *
  *   // Create a fiber and add it to the map
- *   const fiber = yield* Effect.forkChild(Effect.succeed("Hello"))
+ *   const fiber = yield* Effect.forkChild(Deferred.await(deferred))
  *   FiberMap.setUnsafe(map, "greeting", fiber)
  *
- *   // The fiber will be automatically removed when it completes
- *   const result = yield* Fiber.await(fiber)
+ *   yield* Deferred.succeed(deferred, "Hello")
+ *
+ *   // Join the fiber to get its successful value
+ *   const result = yield* Fiber.join(fiber)
  *   console.log(result) // "Hello"
  * })
  * ```
@@ -347,17 +350,20 @@ export const setUnsafe: {
  * **Example** (Adding a fiber)
  *
  * ```ts
- * import { Effect, Fiber, FiberMap } from "effect"
+ * import { Deferred, Effect, Fiber, FiberMap } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const map = yield* FiberMap.make<string>()
+ *   const deferred = yield* Deferred.make<string>()
  *
  *   // Create a fiber and add it to the map using Effect
- *   const fiber = yield* Effect.forkChild(Effect.succeed("Hello"))
+ *   const fiber = yield* Effect.forkChild(Deferred.await(deferred))
  *   yield* FiberMap.set(map, "greeting", fiber)
  *
- *   // The fiber will be automatically removed when it completes
- *   const result = yield* Fiber.await(fiber)
+ *   yield* Deferred.succeed(deferred, "Hello")
+ *
+ *   // Join the fiber to get its successful value
+ *   const result = yield* Fiber.join(fiber)
  *   console.log(result) // "Hello"
  * })
  * ```
@@ -399,19 +405,22 @@ export const set: {
  * **Example** (Retrieving a fiber unsafely)
  *
  * ```ts
- * import { Effect, Fiber, FiberMap } from "effect"
+ * import { Deferred, Effect, Fiber, FiberMap } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const map = yield* FiberMap.make<string>()
+ *   const deferred = yield* Deferred.make<string>()
  *
  *   // Add a fiber to the map
- *   const fiber = yield* Effect.forkChild(Effect.succeed("Hello"))
+ *   const fiber = yield* Effect.forkChild(Deferred.await(deferred))
  *   FiberMap.setUnsafe(map, "greeting", fiber)
  *
  *   // Retrieve the fiber
  *   const retrieved = FiberMap.getUnsafe(map, "greeting")
  *   if (retrieved._tag === "Some") {
- *     const result = yield* Fiber.await(retrieved.value)
+ *     yield* Deferred.succeed(deferred, "Hello")
+ *
+ *     const result = yield* Fiber.join(retrieved.value)
  *     console.log(result) // "Hello"
  *   }
  * })
@@ -438,19 +447,22 @@ export const getUnsafe: {
  * **Example** (Retrieving a fiber)
  *
  * ```ts
- * import { Effect, Fiber, FiberMap } from "effect"
+ * import { Deferred, Effect, Fiber, FiberMap } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const map = yield* FiberMap.make<string>()
+ *   const deferred = yield* Deferred.make<string>()
  *
  *   // Add a fiber to the map
- *   const fiber = yield* Effect.forkChild(Effect.succeed("Hello"))
+ *   const fiber = yield* Effect.forkChild(Deferred.await(deferred))
  *   yield* FiberMap.set(map, "greeting", fiber)
  *
  *   // Retrieve the fiber with error handling
  *   const retrieved = yield* FiberMap.get(map, "greeting")
  *   if (retrieved._tag === "Some") {
- *     const result = yield* Fiber.await(retrieved.value)
+ *     yield* Deferred.succeed(deferred, "Hello")
+ *
+ *     const result = yield* Fiber.join(retrieved.value)
  *     console.log(result) // "Hello"
  *   }
  * })
@@ -480,7 +492,7 @@ export const get: {
  *   const map = yield* FiberMap.make<string>()
  *
  *   // Add a fiber to the map
- *   yield* FiberMap.run(map, "task1", Effect.succeed("Hello"))
+ *   yield* FiberMap.run(map, "task1", Effect.never)
  *
  *   // Check if keys exist
  *   console.log(FiberMap.hasUnsafe(map, "task1")) // true
@@ -513,7 +525,7 @@ export const hasUnsafe: {
  *   const map = yield* FiberMap.make<string>()
  *
  *   // Add a fiber to the map
- *   yield* FiberMap.run(map, "task1", Effect.succeed("Hello"))
+ *   yield* FiberMap.run(map, "task1", Effect.never)
  *
  *   // Check if keys exist using Effect
  *   const exists1 = yield* FiberMap.has(map, "task1")
@@ -647,9 +659,9 @@ const constInterruptedFiber = (function() {
  *   const fiber1 = yield* FiberMap.run(map, "task1", Effect.succeed("Hello"))
  *   const fiber2 = yield* FiberMap.run(map, "task2", Effect.succeed("World"))
  *
- *   // Wait for the results
- *   const result1 = yield* Fiber.await(fiber1)
- *   const result2 = yield* Fiber.await(fiber2)
+ *   // Join the fibers to get their successful values
+ *   const result1 = yield* Fiber.join(fiber1)
+ *   const result2 = yield* Fiber.join(fiber2)
  *
  *   console.log(result1, result2) // "Hello", "World"
  *   console.log(yield* FiberMap.size(map)) // 0 (fibers are removed after completion)

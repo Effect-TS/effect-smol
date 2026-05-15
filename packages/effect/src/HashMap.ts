@@ -184,9 +184,9 @@ export declare namespace HashMap {
    *   return `${productId}: $${product.price} (${product.category})`
    * }
    *
-   * // Convert to entries and process
-   * const descriptions = HashMap.toEntries(catalog).map(processEntry)
-   * console.log(descriptions) // ["laptop: $999 (electronics)", "book: $29 (education)"]
+   * // Convert to entries, process, and sort for deterministic output
+   * const descriptions = HashMap.toEntries(catalog).map(processEntry).sort()
+   * console.log(descriptions) // ["book: $29 (education)", "laptop: $999 (electronics)"]
    * ```
    * @category type-level
    * @since 3.9.0
@@ -448,9 +448,12 @@ export const has: {
  * const exactHash = Hash.string("Admin")
  * console.log(HashMap.hasHash(userMap, "Admin", exactHash)) // true
  *
- * // Check case-insensitive by using custom hash
- * const caseInsensitiveHash = Hash.string("admin".toLowerCase())
- * console.log(HashMap.hasHash(userMap, "admin", caseInsensitiveHash)) // false (different hash)
+ * // A matching hash does not override key equality
+ * console.log(HashMap.hasHash(userMap, "admin", exactHash)) // false
+ *
+ * // A different hash also cannot find the existing key
+ * const lowercaseHash = Hash.string("admin")
+ * console.log(HashMap.hasHash(userMap, "Admin", lowercaseHash)) // false
  * ```
  *
  * @category elements
@@ -592,16 +595,13 @@ export const toValues = <K, V>(self: HashMap<K, V>): Array<V> => Array.from(valu
  *   ["cache.enabled", "true"]
  * )
  *
- * // Get entries iterator for processing
- * const entries = HashMap.entries(config)
+ * // Sort the derived array for deterministic output
+ * const settings = Array.from(HashMap.entries(config))
+ *   .sort(([left], [right]) => left.localeCompare(right))
+ *   .map(([key, value]) => `Setting ${key} = ${value}`)
  *
- * // Process each configuration entry
- * for (const [key, value] of entries) {
- *   console.log(`Setting ${key} = ${value}`)
- * }
- * // Setting database.host = localhost
- * // Setting database.port = 5432
- * // Setting cache.enabled = true
+ * console.log(settings)
+ * // ["Setting cache.enabled = true", "Setting database.host = localhost", "Setting database.port = 5432"]
  *
  * // Convert to array when you need all entries at once
  * const allEntries = Array.from(HashMap.entries(config))
@@ -1152,9 +1152,9 @@ export const filterMap: {
  * import * as Option from "effect/Option"
  *
  * const map = HashMap.make(["a", 1], ["b", 2], ["c", 3])
- * const result = HashMap.findFirst(map, (value) => value > 1)
- * console.log(result) // Option.some(["c", 3])
- * console.log(Option.getOrElse(result, () => ["", 0])) // ["c", 3]
+ * const result = HashMap.findFirst(map, (value, key) => key === "b" && value > 1)
+ * console.log(result) // Option.some(["b", 2])
+ * console.log(Option.getOrElse(result, () => ["", 0])) // ["b", 2]
  * ```
  *
  * @category elements

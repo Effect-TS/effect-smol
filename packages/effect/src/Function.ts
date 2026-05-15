@@ -42,21 +42,6 @@ export interface FunctionTypeLambda extends TypeLambda {
  * which determines if the function is being used in a data-first or
  * data-last style.
  *
- * **Example** (Creating a dual API with arity)
- *
- * ```ts
- * import { dual, pipe } from "effect/Function"
- *
- * // Using arity to determine data-first or data-last style
- * const sum = dual<
- *   (that: number) => (self: number) => number,
- *   (self: number, that: number) => number
- * >(2, (self, that) => self + that)
- *
- * console.log(sum(2, 3)) // 5 (data-first)
- * console.log(pipe(2, sum(3))) // 5 (data-last)
- * ```
- *
  * **Example** (Using arity to determine data-first or data-last style)
  *
  * ```ts
@@ -493,25 +478,26 @@ export const untupled = <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): (
  * ```ts
  * import { pipe } from "effect"
  *
- * const input = 1
- * const func1 = (n: number) => n + 1
- * const func2 = (n: number) => n * 2
- * const funcN = (n: number) => `result: ${n}`
+ * const result = pipe(
+ *   1,
+ *   (n) => n + 1,
+ *   (n) => n * 2,
+ *   (n) => `result: ${n}`
+ * )
  *
- * const result = pipe(input, func1, func2, funcN)
+ * console.log(result) // "result: 4"
  * ```
  *
- * In this syntax, `input` is the initial value, and `func1`, `func2`, ...,
- * `funcN` are the functions to be applied in sequence. The result of each
- * function becomes the input for the next function, and the final result is
- * returned.
+ * In this syntax, `1` is the initial value, and each function is applied in
+ * sequence. The result of each function becomes the input for the next
+ * function, and the final result is returned.
  *
  * Here's an illustration of how `pipe` works:
  *
  * ```
- * ┌───────┐    ┌───────┐    ┌───────┐    ┌───────┐    ┌───────┐    ┌────────┐
- * │ input │───►│ func1 │───►│ func2 │───►│  ...  │───►│ funcN │───►│ result │
- * └───────┘    └───────┘    └───────┘    └───────┘    └───────┘    └────────┘
+ * ┌───┐    ┌───────┐    ┌─────────────┐    ┌────────┐
+ * │ 1 │───►│ add 1 │───►│ multiply 2  │───►│ format │───► "result: 4"
+ * └───┘    └───────┘    └─────────────┘    └────────┘
  * ```
  *
  * It's important to note that functions passed to `pipe` must have a **single
@@ -525,11 +511,13 @@ export const untupled = <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): (
  * **Example** (Chaining methods before conversion)
  *
  * ```ts
- * const as = [1, 2, 3]
- * const f = (n: number) => n * 2
- * const g = (n: number) => n > 2
+ * const numbers = [1, 2, 3, 4]
+ * const double = (n: number) => n * 2
+ * const greaterThanFour = (n: number) => n > 4
  *
- * as.map(f).filter(g)
+ * const result = numbers.map(double).filter(greaterThanFour)
+ *
+ * console.log(result) // [6, 8]
  * ```
  *
  * becomes:
@@ -539,11 +527,17 @@ export const untupled = <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): (
  * ```ts
  * import { Array, pipe } from "effect"
  *
- * const as = [1, 2, 3]
- * const f = (n: number) => n * 2
- * const g = (n: number) => n > 2
+ * const numbers = [1, 2, 3, 4]
+ * const double = (n: number) => n * 2
+ * const greaterThanFour = (n: number) => n > 4
  *
- * pipe(as, Array.map(f), Array.filter(g))
+ * const result = pipe(
+ *   numbers,
+ *   Array.map(double),
+ *   Array.filter(greaterThanFour)
+ * )
+ *
+ * console.log(result) // [6, 8]
  * ```
  *
  * **Example** (Chaining Arithmetic Operations)
@@ -1229,8 +1223,13 @@ export function flow(
  * ```ts
  * import { hole } from "effect/Function"
  *
- * // Use during development as a placeholder
- * const placeholder: string = hole<string>()
+ * // Intentionally not called: `hole` throws if the placeholder is evaluated.
+ * const buildUser = (id: number): { readonly id: number; readonly name: string } => ({
+ *   id,
+ *   name: hole<string>()
+ * })
+ *
+ * console.log(typeof buildUser) // "function"
  * ```
  *
  * @category utilities

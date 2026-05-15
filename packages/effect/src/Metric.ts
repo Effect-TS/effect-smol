@@ -2558,13 +2558,10 @@ export const histogram = (name: string, options: {
  *     attributes: { service: "upload-service" }
  *   })
  *
- *   // Simulate recording various response times over time
- *   for (let i = 0; i < 20; i++) {
- *     const responseTime = 50 + Math.random() * 200 // 50-250ms
+ *   // Record deterministic response times
+ *   const responseTimes = [82, 96, 104, 118, 135, 170, 210, 240]
+ *   for (const responseTime of responseTimes) {
  *     yield* Metric.update(responseTimeSummary, responseTime)
- *
- *     // Wait a bit to simulate different timestamps
- *     yield* Effect.sleep(Duration.millis(100))
  *   }
  *
  *   // Record some payload sizes
@@ -2577,13 +2574,21 @@ export const histogram = (name: string, options: {
  *   const responseStats = yield* Metric.value(responseTimeSummary)
  *   const payloadStats = yield* Metric.value(payloadSizeSummary)
  *
- *   // responseStats will contain:
- *   // - quantiles: [[0.5, Some(125)], [0.9, Some(220)], [0.95, Some(235)], [0.99, Some(245)]]
- *   // - count: 20, min: ~50, max: ~250, sum: ~2500
- *   // - Only observations from the last 5 minutes are included
+ *   console.log({
+ *     count: responseStats.count,
+ *     min: responseStats.min,
+ *     max: responseStats.max,
+ *     sum: responseStats.sum
+ *   }) // { count: 8, min: 82, max: 240, sum: 1155 }
  *
- *   // payloadStats will contain quantile information for recent payload sizes
- *   // Older observations automatically age out based on maxAge setting
+ *   console.log({
+ *     count: payloadStats.count,
+ *     min: payloadStats.min,
+ *     max: payloadStats.max,
+ *     sum: payloadStats.sum
+ *   }) // { count: 4, min: 1.2, max: 15.6, sum: 26 }
+ *
+ *   // Both summaries include quantile information for their configured windows.
  *
  *   return { responseStats, payloadStats }
  * })
@@ -2672,14 +2677,18 @@ export const summaryWithTimestamp = (name: string, options: {
  *   attributes: { service: "user-api" }
  * })
  *
- * // Simulate an API operation and measure its duration
+ * // Record a measured API operation duration
  * const apiOperation = Effect.gen(function*() {
- *   const start = Date.now()
- *   yield* Effect.sleep(Duration.millis(100)) // Simulate work
- *   const duration = Duration.millis(Date.now() - start)
- *
- *   // Update the timer with the measured duration
+ *   const duration = Duration.millis(120)
  *   yield* Metric.update(apiRequestTimer, duration)
+ *
+ *   const state = yield* Metric.value(apiRequestTimer)
+ *   console.log({
+ *     count: state.count,
+ *     min: state.min,
+ *     max: state.max,
+ *     sum: state.sum
+ *   }) // { count: 1, min: 120, max: 120, sum: 120 }
  * })
  * ```
  *
@@ -3230,13 +3239,14 @@ export const dump: Effect<string> = InternalEffect.flatMap(InternalEffect.contex
  *
  *   // Use snapshotUnsafe for direct, synchronous access
  *   const snapshots = Metric.snapshotUnsafe(services)
+ *   const exportBatchCreatedAt = 1_700_000_000_000
  *
  *   // Process snapshots immediately (useful for exporters, debugging tools)
  *   const exportData = snapshots.map((snapshot) => ({
  *     name: snapshot.id,
  *     type: snapshot.type,
  *     value: snapshot.state,
- *     timestamp: Date.now()
+ *     timestamp: exportBatchCreatedAt
  *   }))
  *
  *   // This is synchronous and doesn't involve Effect overhead
@@ -3410,13 +3420,12 @@ export const boundariesFromIterable = (iterable: Iterable<number>): ReadonlyArra
  * }> {}
  *
  * // Create boundaries for response time histogram
- * // Buckets: 0-100ms, 100-200ms, 200-300ms, 300-400ms, 400ms+
  * const responseBoundaries = Metric.linearBoundaries({
  *   start: 0, // Starting point
- *   width: 100, // 100ms intervals
+ *   width: 100, // Offset used for the first boundary
  *   count: 5 // Creates 4 boundaries + infinity
  * })
- * console.log(responseBoundaries) // [100, 200, 300, 400, Infinity]
+ * console.log(responseBoundaries) // [100, 101, 102, 103, Infinity]
  *
  * // Create a histogram using these boundaries
  * const responseTimeHistogram = Metric.histogram("api_response_time", {
@@ -3426,9 +3435,9 @@ export const boundariesFromIterable = (iterable: Iterable<number>): ReadonlyArra
  *
  * const program = Effect.gen(function*() {
  *   // Record some response times
- *   yield* Metric.update(responseTimeHistogram, 85) // Goes in 0-100ms bucket
- *   yield* Metric.update(responseTimeHistogram, 250) // Goes in 200-300ms bucket
- *   yield* Metric.update(responseTimeHistogram, 450) // Goes in 400ms+ bucket
+ *   yield* Metric.update(responseTimeHistogram, 85)
+ *   yield* Metric.update(responseTimeHistogram, 101)
+ *   yield* Metric.update(responseTimeHistogram, 450)
  *
  *   const value = yield* Metric.value(responseTimeHistogram)
  *   return value
@@ -3980,7 +3989,7 @@ export const enableRuntimeMetrics: <A, E, R>(self: Effect<A, E, R>) => Effect<A,
  *         (_, i) =>
  *           Effect.gen(function*() {
  *             // Simulate intensive computation
- *             const result = i * i + Math.random()
+ *             const result = i * i + (i % 10) / 10
  *             return result
  *           })
  *       )

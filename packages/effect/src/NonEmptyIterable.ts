@@ -141,25 +141,6 @@
  * `Iterable<A>`, providing compile-time guarantees about non-emptiness while
  * maintaining full compatibility with the JavaScript iteration protocol.
  *
- * **Example** (Branding non-empty iterables)
- *
- * ```ts
- * import type * as NonEmptyIterable from "effect/NonEmptyIterable"
- *
- * // The symbol is used internally for type branding
- * declare const data: NonEmptyIterable.NonEmptyIterable<number>
- *
- * // This has the nonEmpty symbol property (not accessible at runtime)
- * // but is still a regular Iterable for all practical purposes
- * for (const item of data) {
- *   console.log(item) // Works normally
- * }
- *
- * // Can be used with any function expecting an Iterable
- * const array = Array.from(data)
- * const set = new Set(data)
- * ```
- *
  * @category symbol
  * @since 2.0.0
  */

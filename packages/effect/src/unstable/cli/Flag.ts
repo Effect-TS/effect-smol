@@ -360,8 +360,11 @@ export const keyValuePair = (name: string): Flag<Record<string, string>> => Para
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
- * // Used as a placeholder in flag combinators
- * const conditionalFlag = true ? Flag.string("value") : Flag.none
+ * const makeValueFlag = (includeValue: boolean) =>
+ *   includeValue ? Flag.string("value") : Flag.none
+ *
+ * console.log(makeValueFlag(true) === Flag.none) // false
+ * console.log(makeValueFlag(false) === Flag.none) // true
  * ```
  *
  * @category constructors
@@ -886,7 +889,7 @@ export const orElseResult: {
  * import { Schema } from "effect"
  * import { Flag } from "effect/unstable/cli"
  *
- * const isEmail = Schema.isIncludes("@", {
+ * const isEmail = Schema.isPattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, {
  *   message: "Must be a valid email address"
  * })
  *

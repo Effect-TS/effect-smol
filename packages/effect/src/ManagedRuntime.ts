@@ -136,26 +136,27 @@ export interface ManagedRuntime<in R, out ER> {
  * **Example** (Creating a managed runtime)
  *
  * ```ts
- * import { Console, Effect, Layer, ManagedRuntime, Context } from "effect"
+ * import { Effect, Layer, ManagedRuntime, Context } from "effect"
  *
  * class Notifications extends Context.Service<Notifications, {
  *   readonly notify: (message: string) => Effect.Effect<void>
  * }>()("Notifications") {
  *   static readonly layer = Layer.succeed(this)({
- *     notify: Effect.fn("Notifications.notify")((message) => Console.log(message))
+ *     notify: Effect.fn("Notifications.notify")((message) =>
+ *       Effect.sync(() => console.log(message))
+ *     )
  *   })
  * }
  *
- * async function main() {
- *   const runtime = ManagedRuntime.make(Notifications.layer)
- *   await runtime.runPromise(Effect.flatMap(
- *     Notifications,
- *     (_) => _.notify("Hello, world!")
- *   ))
- *   await runtime.dispose()
- * }
+ * const runtime = ManagedRuntime.make(Notifications.layer)
  *
- * main()
+ * const program = Effect.flatMap(
+ *   Notifications,
+ *   (_) => _.notify("Hello, world!")
+ * ).pipe(Effect.ensuring(runtime.disposeEffect))
+ *
+ * runtime.runPromise(program)
+ * // Hello, world!
  * ```
  */
 export const make = <R, ER>(

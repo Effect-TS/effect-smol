@@ -61,12 +61,11 @@
  * import { Chunk, Effect } from "effect"
  *
  * // Working with Effects
- * const processChunk = (chunk: Chunk.Chunk<number>) =>
- *   Effect.gen(function*() {
- *     const mapped = Chunk.map(chunk, (n) => n * 2)
- *     const filtered = Chunk.filter(mapped, (n) => n > 5)
- *     return Chunk.toReadonlyArray(filtered)
- *   })
+ * const processChunk = Effect.fnUntraced(function*(chunk: Chunk.Chunk<number>) {
+ *   const mapped = Chunk.map(chunk, (n) => n * 2)
+ *   const filtered = Chunk.filter(mapped, (n) => n > 5)
+ *   return Chunk.toReadonlyArray(filtered)
+ * })
  * ```
  *
  * @since 2.0.0
@@ -372,8 +371,7 @@ export const empty: <A = never>() => Chunk<A> = () => _empty
  * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4)
- * console.log(chunk)
- * // { _id: 'Chunk', values: [ 1, 2, 3, 4 ] }
+ * console.log(Chunk.toArray(chunk)) // [1, 2, 3, 4]
  * ```
  *
  * @category constructors
@@ -391,8 +389,7 @@ export const make = <As extends readonly [any, ...Array<any>]>(...as: As): NonEm
  * import { Chunk } from "effect"
  *
  * const chunk = Chunk.of("hello")
- * console.log(chunk)
- * // { _id: 'Chunk', values: [ "hello" ] }
+ * console.log(Chunk.toArray(chunk)) // ["hello"]
  * ```
  *
  * @category constructors
@@ -409,8 +406,7 @@ export const of = <A>(a: A): NonEmptyChunk<A> => makeChunk({ _tag: "ISingleton",
  * import { Chunk } from "effect"
  *
  * const chunk = Chunk.fromIterable([1, 2, 3])
- * console.log(chunk)
- * // { _id: 'Chunk', values: [ 1, 2, 3 ] }
+ * console.log(Chunk.toArray(chunk)) // [1, 2, 3]
  * ```
  *
  * @category constructors
@@ -557,8 +553,7 @@ const reverseChunk = <A>(self: Chunk<A>): Chunk<A> => {
  * const chunk = Chunk.make(1, 2, 3)
  * const result = Chunk.reverse(chunk)
  *
- * console.log(result)
- * // { _id: 'Chunk', values: [ 3, 2, 1 ] }
+ * console.log(Chunk.toArray(result)) // [3, 2, 1]
  * ```
  *
  * @category elements
@@ -649,19 +644,15 @@ export const fromNonEmptyArrayUnsafe = <A>(self: NonEmptyReadonlyArray<A>): NonE
  * **Example** (Accessing elements unsafely)
  *
  * ```ts
- * import { Chunk } from "effect"
+ * import { Chunk, Option } from "effect"
  *
  * const chunk = Chunk.make("a", "b", "c", "d")
  *
  * console.log(Chunk.getUnsafe(chunk, 1)) // "b"
  * console.log(Chunk.getUnsafe(chunk, 3)) // "d"
  *
- * // Warning: This will throw an error for invalid indices
- * try {
- *   Chunk.getUnsafe(chunk, 10) // throws "Index out of bounds"
- * } catch (error) {
- *   console.log((error as Error).message) // "Index out of bounds"
- * }
+ * // Use Chunk.get when the index may be out of bounds
+ * console.log(Option.isNone(Chunk.get(chunk, 10))) // true
  * ```
  *
  * @category unsafe
@@ -761,8 +752,7 @@ export const prepend: {
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5)
  * const result = Chunk.take(chunk, 3)
- * console.log(result)
- * // { _id: 'Chunk', values: [ 1, 2, 3 ] }
+ * console.log(Chunk.toArray(result)) // [1, 2, 3]
  * ```
  *
  * @category elements
@@ -819,8 +809,7 @@ export const take: {
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5)
  * const result = Chunk.drop(chunk, 2)
- * console.log(result)
- * // { _id: 'Chunk', values: [ 3, 4, 5 ] }
+ * console.log(Chunk.toArray(result)) // [3, 4, 5]
  * ```
  *
  * @category elements
@@ -876,8 +865,7 @@ export const drop: {
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5)
  * const result = Chunk.dropRight(chunk, 2)
- * console.log(result)
- * // { _id: 'Chunk', values: [ 1, 2, 3 ] }
+ * console.log(Chunk.toArray(result)) // [1, 2, 3]
  * ```
  *
  * @category elements
@@ -898,8 +886,7 @@ export const dropRight: {
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5)
  * const result = Chunk.dropWhile(chunk, (n) => n < 3)
- * console.log(result)
- * // { _id: 'Chunk', values: [ 3, 4, 5 ] }
+ * console.log(Chunk.toArray(result)) // [3, 4, 5]
  * ```
  *
  * @category elements
@@ -1148,8 +1135,7 @@ export const filterMapWhile: {
  *
  * const chunk = Chunk.make(Option.some(1), Option.none(), Option.some(3))
  * const result = Chunk.compact(chunk)
- * console.log(result)
- * // { _id: 'Chunk', values: [ 1, 3 ] }
+ * console.log(Chunk.toArray(result)) // [1, 3]
  * ```
  *
  * @category filtering
@@ -1423,7 +1409,7 @@ export const head: <A>(self: Chunk<A>) => Option<A> = get(0)
  * **Example** (Getting the first element unsafely)
  *
  * ```ts
- * import { Chunk } from "effect"
+ * import { Chunk, Option } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4)
  * console.log(Chunk.headUnsafe(chunk)) // 1
@@ -1431,12 +1417,8 @@ export const head: <A>(self: Chunk<A>) => Option<A> = get(0)
  * const singleElement = Chunk.make("hello")
  * console.log(Chunk.headUnsafe(singleElement)) // "hello"
  *
- * // Warning: This will throw for empty chunks
- * try {
- *   Chunk.headUnsafe(Chunk.empty())
- * } catch (error) {
- *   console.log((error as Error).message) // "Index out of bounds"
- * }
+ * // Use Chunk.head when the chunk may be empty
+ * console.log(Option.isNone(Chunk.head(Chunk.empty()))) // true
  * ```
  *
  * @category unsafe
@@ -1492,7 +1474,7 @@ export const last = <A>(self: Chunk<A>): Option<A> => get(self, self.length - 1)
  * **Example** (Getting the last element unsafely)
  *
  * ```ts
- * import { Chunk } from "effect"
+ * import { Chunk, Option } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4)
  * console.log(Chunk.lastUnsafe(chunk)) // 4
@@ -1500,12 +1482,8 @@ export const last = <A>(self: Chunk<A>): Option<A> => get(self, self.length - 1)
  * const singleElement = Chunk.make("hello")
  * console.log(Chunk.lastUnsafe(singleElement)) // "hello"
  *
- * // Warning: This will throw for empty chunks
- * try {
- *   Chunk.lastUnsafe(Chunk.empty())
- * } catch (error) {
- *   console.log((error as Error).message) // "Index out of bounds"
- * }
+ * // Use Chunk.last when the chunk may be empty
+ * console.log(Option.isNone(Chunk.last(Chunk.empty()))) // true
  * ```
  *
  * @category unsafe
@@ -1703,8 +1681,7 @@ export declare namespace Chunk {
  *
  * const result = Chunk.map(Chunk.make(1, 2), (n) => n + 1)
  *
- * console.log(result)
- * // { _id: 'Chunk', values: [ 2, 3 ] }
+ * console.log(Chunk.toArray(result)) // [2, 3]
  * ```
  *
  * @category mapping
@@ -2477,8 +2454,7 @@ export const replace: {
  * import { Chunk } from "effect"
  *
  * const chunk = Chunk.makeBy(5, (i) => i * 2)
- * console.log(chunk)
- * // { _id: 'Chunk', values: [ 0, 2, 4, 6, 8 ] }
+ * console.log(Chunk.toArray(chunk)) // [0, 2, 4, 6, 8]
  * ```
  *
  * @category constructors
@@ -2498,8 +2474,7 @@ export const makeBy: {
  * import { Chunk } from "effect"
  *
  * const chunk = Chunk.range(1, 5)
- * console.log(chunk)
- * // { _id: 'Chunk', values: [ 1, 2, 3, 4, 5 ] }
+ * console.log(Chunk.toArray(chunk)) // [1, 2, 3, 4, 5]
  * ```
  *
  * @category constructors

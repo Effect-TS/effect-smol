@@ -8,28 +8,6 @@ import type * as Path from "effect/Path"
 import * as Schema from "effect/Schema"
 
 /**
- * Configuration for AI provider code generation.
- *
- * **Example** (Decoding a codegen configuration)
- *
- * ```ts
- * import * as Config from "@effect/ai-codegen/Config"
- * import * as Schema from "effect/Schema"
- *
- * const config = Schema.decodeUnknownSync(Config.CodegenConfig)({
- *   spec: "https://example.com/openapi.json",
- *   output: "Generated.ts",
- *   name: "MyClient"
- * })
- *
- * console.log(config.spec)
- * // "https://example.com/openapi.json"
- * ```
- *
- * @category models
- * @since 1.0.0
- */
-/**
  * A text replacement to apply to generated code.
  *
  * @category models
@@ -51,6 +29,28 @@ export const SpecSourceConfig = Schema.Struct({
   statsUrl: Schema.String
 })
 
+/**
+ * Configuration for AI provider code generation.
+ *
+ * **Example** (Decoding a codegen configuration)
+ *
+ * ```ts
+ * import * as Config from "@effect/ai-codegen/Config"
+ * import * as Schema from "effect/Schema"
+ *
+ * const config = Schema.decodeUnknownSync(Config.CodegenConfig)({
+ *   spec: "https://example.com/openapi.json",
+ *   output: "Generated.ts",
+ *   name: "MyClient"
+ * })
+ *
+ * console.log(config.spec)
+ * // "https://example.com/openapi.json"
+ * ```
+ *
+ * @category models
+ * @since 1.0.0
+ */
 export class CodegenConfig extends Schema.Class<CodegenConfig>("CodegenConfig")({
   spec: Schema.Union([Schema.String, SpecSourceConfig]),
   output: Schema.String,

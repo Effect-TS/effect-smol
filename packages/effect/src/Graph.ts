@@ -402,9 +402,13 @@ export const endMutation = <N, E, T extends Kind = "directed">(
  *
  * const graph = Graph.directed<string, number>()
  * const newGraph = Graph.mutate(graph, (mutable) => {
- *   // Safe mutations go here
- *   // mutable gets automatically converted back to immutable
+ *   const nodeA = Graph.addNode(mutable, "A")
+ *   const nodeB = Graph.addNode(mutable, "B")
+ *   Graph.addEdge(mutable, nodeA, nodeB, 1)
  * })
+ *
+ * console.log(Graph.nodeCount(newGraph)) // 2
+ * console.log(Graph.edgeCount(newGraph)) // 1
  * ```
  *
  * @category mutations
@@ -799,7 +803,7 @@ export const updateNode = <N, E, T extends Kind = "directed">(
  * })
  *
  * const edgeData = Graph.getEdge(result, 0)
- * console.log(edgeData) // new Graph.Edge({ source: 0, target: 1, data: 20 })
+ * console.log(edgeData) // Option.some(new Graph.Edge({ source: 0, target: 1, data: 20 }))
  * ```
  *
  * @category mutations
@@ -835,7 +839,7 @@ export const updateEdge = <N, E, T extends Kind = "directed">(
  * })
  *
  * const nodeData = Graph.getNode(graph, 0)
- * console.log(nodeData) // new Graph.Node("NODE A")
+ * console.log(nodeData) // Option.some("NODE A")
  * ```
  *
  * @category transformations
@@ -870,7 +874,7 @@ export const mapNodes = <N, E, T extends Kind = "directed">(
  * })
  *
  * const edgeData = Graph.getEdge(graph, 0)
- * console.log(edgeData) // new Graph.Edge({ source: 0, target: 1, data: 20 })
+ * console.log(edgeData) // Option.some(new Graph.Edge({ source: 0, target: 1, data: 20 }))
  * ```
  *
  * @category transformations
@@ -908,7 +912,7 @@ export const mapEdges = <N, E, T extends Kind = "directed">(
  * })
  *
  * const edge0 = Graph.getEdge(graph, 0)
- * console.log(edge0) // new Graph.Edge({ source: 1, target: 0, data: 1 }) - B -> A
+ * console.log(edge0) // Option.some(new Graph.Edge({ source: 1, target: 0, data: 1 }))
  * ```
  *
  * @category transformations
@@ -1431,8 +1435,8 @@ const removeEdgeInternal = <N, E, T extends Kind = "directed">(
  *
  * if (edgeData._tag === "Some") {
  *   console.log(edgeData.value.data) // 42
- *   console.log(edgeData.value.source) // NodeIndex(0)
- *   console.log(edgeData.value.target) // NodeIndex(1)
+ *   console.log(edgeData.value.source) // 0
+ *   console.log(edgeData.value.target) // 1
  * }
  * ```
  *
@@ -1563,7 +1567,7 @@ export const edgeCount = <N, E, T extends Kind = "directed">(
  * const nodeC = 2
  *
  * const neighborsA = Graph.neighbors(graph, nodeA)
- * console.log(neighborsA) // [NodeIndex(1), NodeIndex(2)]
+ * console.log(neighborsA) // [1, 2]
  *
  * const neighborsB = Graph.neighbors(graph, nodeB)
  * console.log(neighborsB) // []
@@ -3915,7 +3919,7 @@ export interface TopoConfig {
  * // With initial nodes
  * const topo2 = Graph.topo(graph, { initials: [0] })
  *
- * // Throws error for cyclic graph
+ * // Check before sorting a cyclic graph
  * const cyclicGraph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")
  *   const b = Graph.addNode(mutable, "B")
@@ -3923,10 +3927,8 @@ export interface TopoConfig {
  *   Graph.addEdge(mutable, b, a, 2) // Creates cycle
  * })
  *
- * try {
- *   Graph.topo(cyclicGraph) // Throws: "Cannot perform topological sort on cyclic graph"
- * } catch (error) {
- *   console.log((error as Error).message)
+ * if (!Graph.isAcyclic(cyclicGraph)) {
+ *   console.log("cyclic graph") // cyclic graph
  * }
  * ```
  *

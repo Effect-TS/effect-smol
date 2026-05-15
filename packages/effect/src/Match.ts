@@ -168,22 +168,6 @@ export interface ValueMatcher<in Input, Filters, out Remaining, out Result, Prov
  * Cases are the building blocks of pattern matching logic and determine
  * how values are tested and transformed.
  *
- * **Example** (Referencing match case types)
- *
- * ```ts
- * import type { Match } from "effect"
- *
- * // Case is a union type representing pattern matching cases
- * // It combines When (positive) and Not (negative) matching logic
- *
- * // When you write this:
- * // Match.when(pattern, handler)  // Creates a When case
- * // Match.not(pattern, handler)   // Creates a Not case
- *
- * // The Match module internally uses Case = When | Not
- * type MyCaseType = Match.Case // When | Not
- * ```
- *
  * @category models
  * @since 4.0.0
  */
@@ -1503,17 +1487,13 @@ export const symbol: Predicate.Refinement<unknown, symbol> = Predicate.isSymbol
  *     return `Date: ${date.toISOString().split("T")[0]}`
  *   }),
  *   Match.when(Match.string, (str) => `Date string: ${str}`),
- *   Match.when(
- *     Match.number,
- *     (num) => `Timestamp: ${new Date(num).toISOString()}`
- *   ),
  *   Match.orElse(() => "Not a date-related value")
  * )
  *
  * console.log(processDateValue(new Date("2024-01-01"))) // "Date: 2024-01-01"
  * console.log(processDateValue(new Date("invalid"))) // "Invalid date"
  * console.log(processDateValue("2024-01-01")) // "Date string: 2024-01-01"
- * console.log(processDateValue(1704067200000)) // "Timestamp: 2024-01-01T00:00:00.000Z"
+ * console.log(processDateValue(1704067200000)) // "Not a date-related value"
  * ```
  *
  * @category predicates
@@ -1543,18 +1523,13 @@ export const date: Predicate.Refinement<unknown, Date> = Predicate.isDate
  *     Match.instanceOf(Array),
  *     (arr) => `Array with ${arr.length} items`
  *   ),
- *   Match.when(Match.date, () => "Date object"),
  *   Match.orElse(() => "Not an object")
  * )
  *
- * console.log(analyzeValue({ name: "Alice", age: 30 }))
- * // "Object with 2 properties: [name, age]"
- * console.log(analyzeValue([1, 2, 3]))
- * // "Array with 3 items"
- * console.log(analyzeValue(new Date()))
- * // "Date object"
- * console.log(analyzeValue("hello"))
- * // "Not an object"
+ * console.log(analyzeValue({ name: "Alice", age: 30 })) // "Object with 2 properties: [name, age]"
+ * console.log(analyzeValue([1, 2, 3])) // "Array with 3 items"
+ * console.log(analyzeValue(null)) // "Not an object"
+ * console.log(analyzeValue("hello")) // "Not an object"
  * ```
  *
  * @category predicates
@@ -1589,25 +1564,21 @@ export const record: Predicate.Refinement<unknown, { [x: PropertyKey]: unknown }
  *       Match.instanceOf(Error),
  *       (err) => `Standard error: ${err.message}`
  *     ),
- *     Match.when(Match.instanceOf(Date), (date) => `Date: ${date.toISOString()}`),
  *     Match.when(
  *       Match.instanceOf(Array),
  *       (arr) => `Array with ${arr.length} items`
  *     ),
+ *     Match.when(
+ *       Match.instanceOf(Map),
+ *       (map) => `Map with ${map.size} entries`
+ *     ),
  *     Match.orElse((value) => `Other: ${typeof value}`)
  *   )
  *
- * console.log(handleValue(new CustomError("Failed", 404)))
- * // Output: "Custom error: Failed (code: 404)"
- *
- * console.log(handleValue(new Error("Generic error")))
- * // Output: "Standard error: Generic error"
- *
- * console.log(handleValue(new Date()))
- * // Output: "Date: 2024-01-01T00:00:00.000Z"
- *
- * console.log(handleValue([1, 2, 3]))
- * // Output: "Array with 3 items"
+ * console.log(handleValue(new CustomError("Failed", 404))) // "Custom error: Failed (code: 404)"
+ * console.log(handleValue(new Error("Generic error"))) // "Standard error: Generic error"
+ * console.log(handleValue([1, 2, 3])) // "Array with 3 items"
+ * console.log(handleValue(new Map([["count", 1]]))) // "Map with 1 entries"
  * ```
  *
  * @category Predicates
@@ -1891,23 +1862,6 @@ type Fail = typeof Fail
  * application. These types enable the sophisticated type inference that makes
  * pattern matching both type-safe and ergonomic.
  *
- * **Example** (Referencing Match utility types)
- *
- * ```ts
- * import { Match } from "effect"
- *
- * // Most users won't need to use Types directly, but it powers the type system:
- * type MyPattern = Match.Types.PatternBase<{ name: string; age: number }>
- * type MyWhenMatch = Match.Types.WhenMatch<string | number, typeof Match.string>
- *
- * // These types are used internally to provide accurate type inference
- * const matcher = Match.type<string | number>().pipe(
- *   Match.when(Match.string, (s) => s.length), // s is correctly typed as string
- *   Match.when(Match.number, (n) => n * 2), // n is correctly typed as number
- *   Match.exhaustive
- * )
- * ```
- *
  * @category types
  * @since 4.0.0
  */
@@ -2121,25 +2075,6 @@ export declare namespace Types {
    * This type represents the building blocks of pattern matching: predicates,
    * literal values, and safe refinements. These are the atomic patterns that
    * can be composed into more complex matching logic.
-   *
-   * **Example** (Matching primitive patterns)
-   *
-   * ```ts
-   * import { Match } from "effect"
-   *
-   * // PatternPrimitive includes various pattern types:
-   *
-   * // Literal values
-   * Match.when("exact", () => "matched exact")
-   * Match.when(42, () => "matched number")
-   *
-   * // Predicates
-   * Match.when(Match.string, (s) => `string: ${s}`)
-   * Match.when((x: number) => x > 10, (n: number) => `large number: ${n}`)
-   *
-   * // Custom refinements
-   * Match.when(Match.defined, (value) => `defined: ${value}`)
-   * ```
    *
    * @category types
    * @since 4.0.0

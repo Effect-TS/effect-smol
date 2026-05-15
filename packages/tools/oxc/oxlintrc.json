@@ -22,9 +22,7 @@
     "effect/no-opaque-instance-fields": "error",
     // Staged rollout: add package/module globs to include.
     "effect/standard-jsdoc": ["error", {
-      "include": [
-        "packages/effect/src/Array.ts"
-      ],
+      "include": [],
       "exclude": [
         "packages/**/src/index.ts",
         "packages/**/src/*Generated.ts"

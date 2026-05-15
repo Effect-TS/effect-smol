@@ -221,7 +221,7 @@ export const add: {
  * **Example** (Checking HashSet membership)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet" // false
+ * import * as HashSet from "effect/HashSet"
  *
  * // Works with any type that implements Equal
  * import { Equal, Hash } from "effect"
@@ -229,7 +229,7 @@ export const add: {
  * const set = HashSet.make("apple", "banana", "cherry")
  *
  * console.log(HashSet.has(set, "apple")) // true
- * console.log(HashSet.has(set, "grape"))
+ * console.log(HashSet.has(set, "grape")) // false
  *
  * class Person implements Equal.Equal {
  *   constructor(readonly name: string) {}

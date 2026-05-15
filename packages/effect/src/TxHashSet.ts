@@ -121,16 +121,18 @@ export declare namespace TxHashSet {
    * **Example** (Extracting a TxHashSet value type)
    *
    * ```ts
-   * import { TxHashSet } from "effect"
+   * import type { TxHashSet } from "effect"
    *
-   * const fruits = TxHashSet.make("apple", "banana", "cherry")
+   * type FruitSet = TxHashSet.TxHashSet<"apple" | "banana" | "cherry">
    *
    * // Extract the value type
-   * type Fruit = TxHashSet.TxHashSet.Value<typeof fruits> // string
+   * type Fruit = TxHashSet.TxHashSet.Value<FruitSet> // "apple" | "banana" | "cherry"
    *
    * const processFruit = (fruit: Fruit) => {
    *   return `Processing ${fruit}`
    * }
+   *
+   * console.log(processFruit("apple")) // Processing apple
    * ```
    *
    * @category type-level
@@ -224,7 +226,7 @@ export const make = <Values extends ReadonlyArray<any>>(
  *
  *   const fromString = yield* TxHashSet.fromIterable("hello")
  *   const values = yield* TxHashSet.toHashSet(fromString)
- *   console.log(Array.from(values)) // ["h", "e", "l", "o"]
+ *   console.log(Array.from(values).sort()) // ["e", "h", "l", "o"]
  * })
  * ```
  *

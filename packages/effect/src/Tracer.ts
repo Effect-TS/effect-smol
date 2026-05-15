@@ -46,19 +46,23 @@ export interface EffectPrimitive<X> {
  * import type { Tracer } from "effect"
  * import { Exit } from "effect"
  *
- * // Started span status
+ * const startTime = 1_000_000_000n
+ * const endTime = 1_500_000_000n
+ *
  * const startedStatus: Tracer.SpanStatus = {
  *   _tag: "Started",
- *   startTime: BigInt(Date.now() * 1000000)
+ *   startTime
  * }
  *
- * // Ended span status
  * const endedStatus: Tracer.SpanStatus = {
  *   _tag: "Ended",
- *   startTime: BigInt(Date.now() * 1000000),
- *   endTime: BigInt(Date.now() * 1000000 + 1000000),
+ *   startTime,
+ *   endTime,
  *   exit: Exit.succeed("result")
  * }
+ *
+ * console.log(startedStatus._tag) // "Started"
+ * console.log(endedStatus.endTime - endedStatus.startTime) // 500000000n
  * ```
  *
  * @category models
@@ -239,15 +243,50 @@ export type SpanKind = "internal" | "server" | "client" | "producer" | "consumer
  * **Example** (Working with spans)
  *
  * ```ts
- * import { Effect } from "effect"
+ * import type { Tracer } from "effect"
+ * import { Context, Exit, Option } from "effect"
  *
- * // Working with spans using withSpan
- * const program = Effect.succeed("Hello World").pipe(
- *   Effect.withSpan("my-operation")
- * )
+ * const attributes = new Map<string, unknown>()
+ * const links: Array<Tracer.SpanLink> = []
+ * let status: Tracer.SpanStatus = {
+ *   _tag: "Started",
+ *   startTime: 1_000_000_000n
+ * }
  *
- * // The span interface defines the properties available
- * // when working with tracing in your effects
+ * const span: Tracer.Span = {
+ *   _tag: "Span",
+ *   name: "load-user",
+ *   spanId: "span-1",
+ *   traceId: "trace-1",
+ *   parent: Option.none(),
+ *   annotations: Context.empty(),
+ *   get status() {
+ *     return status
+ *   },
+ *   attributes,
+ *   links,
+ *   sampled: true,
+ *   kind: "internal",
+ *   end(endTime, exit) {
+ *     status = { _tag: "Ended", startTime: status.startTime, endTime, exit }
+ *   },
+ *   attribute(key, value) {
+ *     attributes.set(key, value)
+ *   },
+ *   event(name, startTime, eventAttributes = {}) {
+ *     console.log(`${name} at ${startTime} with ${Object.keys(eventAttributes).length} attributes`)
+ *   },
+ *   addLinks(newLinks) {
+ *     links.push(...newLinks)
+ *   }
+ * }
+ *
+ * span.attribute("user.id", "123")
+ * span.end(1_500_000_000n, Exit.succeed("user"))
+ *
+ * console.log(span.name) // "load-user"
+ * console.log(span.attributes.get("user.id")) // "123"
+ * console.log(span.status._tag) // "Ended"
  * ```
  *
  * @category models

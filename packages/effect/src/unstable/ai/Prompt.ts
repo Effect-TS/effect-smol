@@ -342,7 +342,7 @@ export const textPart = (params: PartConstructorParams<TextPart>): TextPart => m
  *
  * const reasoningPart: Prompt.ReasoningPart = Prompt.makePart("reasoning", {
  *   text:
- *     "Let me think step by step: First I need to understand the user's question..."
+ *     "Summary: the response compares the requested options by price and availability."
  * })
  * ```
  *
@@ -1041,7 +1041,7 @@ const BaseMessage = Schema.Struct({
  *   text: "Hello, world!"
  * })
  *
- * const filePart = Prompt.makeMessage("user", {
+ * const userMessage = Prompt.makeMessage("user", {
  *   content: [textPart]
  * })
  * ```
@@ -1376,7 +1376,7 @@ export const userMessage = (params: MessageConstructorParams<UserMessage>): User
  *     content: [
  *       Prompt.makePart("text", {
  *         text:
- *           "The user is asking about the weather. I should use the weather tool."
+ *           "I can check the current weather for San Francisco."
  *       }),
  *       Prompt.makePart("tool-call", {
  *         id: "call_123",

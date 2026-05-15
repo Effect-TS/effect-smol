@@ -862,12 +862,12 @@ export const keys = <K, V>(self: TxHashMap<K, V>): Effect.Effect<Array<K>> =>
  *   )
  *
  *   const allScores = yield* TxHashMap.values(scores)
- *   console.log(allScores.sort()) // [87, 92, 95]
+ *   console.log(allScores.sort((a, b) => a - b)) // [87, 92, 95]
  *
  *   // Calculate average
  *   const average = allScores.reduce((sum, score) => sum + score, 0) /
  *     allScores.length
- *   console.log(average) // 91.33
+ *   console.log(average.toFixed(2)) // "91.33"
  *
  *   // Find maximum
  *   const maxScore = Math.max(...allScores)
@@ -900,11 +900,12 @@ export const values = <K, V>(self: TxHashMap<K, V>): Effect.Effect<Array<V>> =>
  *   )
  *
  *   const allEntries = yield* TxHashMap.entries(config)
- *   console.log(allEntries)
+ *   const sortedEntries = allEntries.toSorted(([left], [right]) => left.localeCompare(right))
+ *   console.log(sortedEntries)
  *   // [["host", "localhost"], ["port", "3000"], ["ssl", "false"]]
  *
  *   // Process configuration entries
- *   for (const [key, value] of allEntries) {
+ *   for (const [key, value] of sortedEntries) {
  *     console.log(`${key}=${value}`)
  *   }
  *   // host=localhost
@@ -1199,8 +1200,8 @@ export const isTxHashMap = <K, V>(value: unknown): value is TxHashMap<K, V> => {
  * const program = Effect.gen(function*() {
  *   // Create a cache with user sessions
  *   const cache = yield* TxHashMap.make(
- *     ["session_abc123", { userId: "user1", lastActive: Date.now() }],
- *     ["session_def456", { userId: "user2", lastActive: Date.now() }]
+ *     ["session_abc123", { userId: "user1", lastActive: 1_700_000_000_000 }],
+ *     ["session_def456", { userId: "user2", lastActive: 1_700_000_060_000 }]
  *   )
  *
  *   // When you have precomputed hash (e.g., from another lookup)
@@ -1611,10 +1612,11 @@ export const filterMap: {
  *
  * const program = Effect.gen(function*() {
  *   // Create a user status map
+ *   const currentTime = 1_700_000_000_000
  *   const userStatuses = yield* TxHashMap.make(
- *     ["alice", { status: "online", lastSeen: Date.now() }],
- *     ["bob", { status: "offline", lastSeen: Date.now() - 3600000 }],
- *     ["charlie", { status: "online", lastSeen: Date.now() }]
+ *     ["alice", { status: "online", lastSeen: currentTime }],
+ *     ["bob", { status: "offline", lastSeen: currentTime - 3_600_000 }],
+ *     ["charlie", { status: "online", lastSeen: currentTime }]
  *   )
  *
  *   // Check if any users are online
@@ -1633,7 +1635,7 @@ export const filterMap: {
  *
  *   // Data-last usage with pipe
  *   const hasRecentActivity = yield* userStatuses.pipe(
- *     TxHashMap.hasBy((user) => Date.now() - user.lastSeen < 1800000) // 30 minutes
+ *     TxHashMap.hasBy((user) => currentTime - user.lastSeen < 1_800_000) // 30 minutes
  *   )
  *   console.log(hasRecentActivity) // true
  * })
@@ -2015,7 +2017,8 @@ export const flatMap: {
  *   // Useful for cleaning up optional data processing results
  *   const userAges = yield* TxHashMap.map(validUsers, (user) => user.age)
  *   const ageEntries = yield* TxHashMap.entries(userAges)
- *   console.log(ageEntries) // [["alice", 30], ["charlie", 25], ["eve", 28]]
+ *   const sortedAgeEntries = ageEntries.toSorted(([left], [right]) => left.localeCompare(right))
+ *   console.log(sortedAgeEntries) // [["alice", 30], ["charlie", 25], ["eve", 28]]
  * })
  * ```
  *
@@ -2049,17 +2052,19 @@ export const compact = <K, A>(
  *
  *   // Get all entries as an array
  *   const allEntries = yield* TxHashMap.toEntries(settings)
- *   console.log(allEntries)
- *   // [["theme", "dark"], ["language", "en-US"], ["timezone", "UTC"]]
+ *   const sortedEntries = allEntries.toSorted(([left], [right]) => left.localeCompare(right))
+ *   console.log(sortedEntries)
+ *   // [["language", "en-US"], ["theme", "dark"], ["timezone", "UTC"]]
  *
  *   // Process entries
- *   for (const [setting, value] of allEntries) {
+ *   for (const [setting, value] of sortedEntries) {
  *     console.log(`${setting}: ${value}`)
  *   }
  *
  *   // Convert to object for JSON serialization
- *   const settingsObj = Object.fromEntries(allEntries)
+ *   const settingsObj = Object.fromEntries(sortedEntries)
  *   console.log(JSON.stringify(settingsObj))
+ *   // {"language":"en-US","theme":"dark","timezone":"UTC"}
  * })
  * ```
  *
@@ -2088,19 +2093,18 @@ export const toEntries = <K, V>(
  *
  *   // Get all product information
  *   const products = yield* TxHashMap.toValues(inventory)
- *   console.log(products)
- *   // [{ price: 999, stock: 5 }, { price: 29, stock: 50 }, { price: 79, stock: 20 }]
+ *   console.log(products.length) // 3
  *
  *   // Calculate total inventory value
  *   const totalValue = products.reduce(
  *     (sum, product) => sum + (product.price * product.stock),
  *     0
  *   )
- *   console.log(`Total inventory value: $${totalValue}`) // $8,435
+ *   console.log(`Total inventory value: $${totalValue}`) // Total inventory value: $8025
  *
  *   // Find products with low stock
  *   const lowStockProducts = products.filter((product) => product.stock < 10)
- *   console.log(`${lowStockProducts.length} products with low stock`)
+ *   console.log(`${lowStockProducts.length} product with low stock`) // 1 product with low stock
  * })
  * ```
  *

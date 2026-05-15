@@ -52,14 +52,6 @@ export interface TestConsole extends Console.Console {
  * The `TestConsole` namespace provides types and utilities for working with
  * test console implementations.
  *
- * **Example** (Using test console utilities)
- *
- * ```ts
- * // The TestConsole namespace provides types for testing
- * // Use TestConsole.make to create a test console instance
- * // Use TestConsole.layer to provide the service in tests
- * ```
- *
  * @category models
  * @since 4.0.0
  */
@@ -68,12 +60,14 @@ export declare namespace TestConsole {
    * Represents a console method name that can be invoked on the TestConsole.
    * This type includes all methods available on the Console interface.
    *
-   * **Example** (Listing console methods)
+   * **Example** (Typing captured console methods)
    *
    * ```ts
-   * // Method represents console method names like:
-   * // "log", "error", "warn", "debug", "info", etc.
-   * // All methods from the Console interface are supported
+   * import type * as TestConsole from "effect/testing/TestConsole"
+   *
+   * const method: TestConsole.TestConsole.Method = "log"
+   *
+   * console.log(method) // "log"
    * ```
    *
    * @category models
@@ -85,12 +79,18 @@ export declare namespace TestConsole {
    * Represents a single console method invocation captured by the TestConsole.
    * Each entry contains the method name and the parameters passed to it.
    *
-   * **Example** (Describing captured console entries)
+   * **Example** (Typing captured console entries)
    *
    * ```ts
-   * // Entry represents captured console calls with their method and parameters
-   * // Each entry contains: { method: string, parameters: ReadonlyArray<unknown> }
-   * // Used internally by TestConsole to track all console operations
+   * import type * as TestConsole from "effect/testing/TestConsole"
+   *
+   * const entry: TestConsole.TestConsole.Entry = {
+   *   method: "error",
+   *   parameters: ["not found"]
+   * }
+   *
+   * console.log(entry.method) // "error"
+   * console.log(entry.parameters) // ["not found"]
    * ```
    *
    * @category models

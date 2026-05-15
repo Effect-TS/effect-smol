@@ -10,11 +10,10 @@ import * as predicate from "./Predicate.ts"
  * **Example** (Checking for symbols)
  *
  * ```ts
- * import * as Predicate from "effect/Predicate"
- * import * as assert from "node:assert"
+ * import { isSymbol } from "effect/Symbol"
  *
- * assert.deepStrictEqual(Predicate.isSymbol(Symbol.for("a")), true)
- * assert.deepStrictEqual(Predicate.isSymbol("a"), false)
+ * console.log(isSymbol(Symbol.for("a"))) // true
+ * console.log(isSymbol("a")) // false
  * ```
  *
  * @category guards

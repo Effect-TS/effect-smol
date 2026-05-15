@@ -109,19 +109,6 @@ export interface Stream<out A, out E = never, out R = never> extends Variance<A,
 /**
  * Type-level unification hook for Stream within the Effect type system.
  *
- * **Example** (Unifying stream types)
- *
- * ```ts
- * import { Effect, Stream } from "effect"
- *
- * // StreamUnify helps unify Stream and Effect types
- * declare const stream: Stream.Stream<number>
- * declare const effect: Effect.Effect<string>
- *
- * // The unification system handles mixed operations
- * const combined = Effect.zip(stream.pipe(Stream.runCollect), effect)
- * ```
- *
  * @category Models
  * @since 2.0.0
  */
@@ -131,16 +118,6 @@ export interface StreamUnify<A extends { [Unify.typeSymbol]?: any }> extends Eff
 
 /**
  * Type-level marker that excludes Stream from unification.
- *
- * **Example** (Ignoring stream unification)
- *
- * ```ts
- * import type * as Stream from "effect/Stream"
- *
- * // Used internally by the type system
- * // Users typically don't interact with this directly
- * type StreamIgnore = Stream.StreamUnifyIgnore
- * ```
  *
  * @category Models
  * @since 2.0.0
@@ -1439,7 +1416,7 @@ export const fromReadableStream = <A, E>(
  * **Example** (Creating a stream from an AsyncIterable)
  *
  * ```ts
- * import { Console, Data, Effect, Stream } from "effect"
+ * import { Data, Effect, Stream } from "effect"
  *
  * class StreamError extends Data.TaggedError("StreamError")<{ readonly cause: unknown }> {}
  *
@@ -1449,14 +1426,13 @@ export const fromReadableStream = <A, E>(
  *   yield 3
  * })()
  *
- * const program = Effect.gen(function*() {
+ * Effect.runPromise(Effect.gen(function*() {
  *   const stream = Stream.fromAsyncIterable(iterable, (cause) => new StreamError({ cause }))
  *   const values = yield* Stream.runCollect(stream)
- *   yield* Console.log(values)
- * })
+ *   yield* Effect.sync(() => console.log(values))
+ * }))
  *
- * Effect.runPromise(program)
- * // Output: [ 1, 2, 3 ]
+ * // [ 1, 2, 3 ]
  * ```
  *
  * @category Constructors
@@ -1565,20 +1541,28 @@ export interface EventListener<A> {
  * **Example** (Creating a stream from an event listener)
  *
  * ```ts
- * import { Console, Effect, Stream } from "effect"
+ * import { Effect, Stream } from "effect"
  *
- * declare const target: Stream.EventListener<number>
+ * class NumberTarget implements Stream.EventListener<number> {
+ *   addEventListener(event: string, f: (event: number) => void) {
+ *     if (event === "data") {
+ *       f(1)
+ *       f(2)
+ *       f(3)
+ *     }
+ *   }
+ *   removeEventListener(_event: string, _f: (event: number) => void) {}
+ * }
  *
- * const program = Effect.gen(function*() {
- *   const stream = Stream.fromEventListener(target, "data").pipe(
+ * Effect.runPromise(Effect.gen(function*() {
+ *   const stream = Stream.fromEventListener(new NumberTarget(), "data").pipe(
  *     Stream.take(3)
  *   )
  *   const values = yield* Stream.runCollect(stream)
- *   yield* Console.log(values)
- * })
+ *   yield* Effect.sync(() => console.log(values))
+ * }))
  *
- * Effect.runPromise(program)
- * // Output: [ 1, 2, 3 ]
+ * // [ 1, 2, 3 ]
  * ```
  *
  * @category Constructors
@@ -5798,11 +5782,17 @@ export const orDie = <A, E, R>(self: Stream<A, E, R>): Stream<A, never, R> => fr
  * **Example** (Configuring ignore logging)
  *
  * ```ts
- * import { Stream } from "effect"
+ * import { Effect, Stream } from "effect"
  *
- * const stream = Stream.fail("boom")
+ * Effect.runPromise(Effect.gen(function*() {
+ *   const values = yield* Stream.fail("boom").pipe(
+ *     Stream.ignore({ log: false }),
+ *     Stream.runCollect
+ *   )
+ *   yield* Effect.sync(() => console.log(values))
+ * }))
  *
- * const program = stream.pipe(Stream.ignore({ log: "Error" }))
+ * // []
  * ```
  *
  * @category Error Handling
@@ -5838,12 +5828,16 @@ export const ignore: <
  * ```ts
  * import { Effect, Stream } from "effect"
  *
- * const stream = Stream.make(1, 2).pipe(
- *   Stream.concat(Stream.fail("boom")),
- *   Stream.ignoreCause({ log: "Error" })
- * )
+ * Effect.runPromise(Effect.gen(function*() {
+ *   const values = yield* Stream.make(1, 2).pipe(
+ *     Stream.concat(Stream.die("boom")),
+ *     Stream.ignoreCause({ log: false }),
+ *     Stream.runCollect
+ *   )
+ *   yield* Effect.sync(() => console.log(values))
+ * }))
  *
- * const program = Stream.runCollect(stream)
+ * // [ 1, 2 ]
  * ```
  *
  * @category Error Handling
@@ -8583,29 +8577,24 @@ export const pipeThroughChannel: {
  * **Example** (Piping through a channel with failures)
  *
  * ```ts
- * import type { Channel } from "effect"
- * import { Console, Effect, Stream } from "effect"
+ * import { Array, Channel, Effect, Stream } from "effect"
  *
- * declare const transformChannel: Channel.Channel<
- *   readonly [string, ...Array<string>],
- *   "ChannelError",
- *   unknown,
- *   readonly [number, ...Array<number>],
- *   "StreamError",
- *   unknown,
- *   never
- * >
+ * type NumberChunk = readonly [number, ...Array<number>]
+ *
+ * const stringifyChunks = Channel.identity<NumberChunk, "StreamError", unknown>().pipe(
+ *   Channel.map((chunk) => Array.map(chunk, String))
+ * )
  *
  * Effect.runPromise(Effect.gen(function*() {
  *   const result = yield* Stream.make(1, 2, 3).pipe(
- *     Stream.pipeThroughChannelOrFail(transformChannel),
+ *     Stream.rechunk(2),
+ *     Stream.pipeThroughChannelOrFail(stringifyChunks),
  *     Stream.runCollect
  *   )
  *
- *   yield* Console.log(result)
+ *   yield* Effect.sync(() => console.log(result))
  * }))
- * // Output:
- * // ["1", "2", "3"]
+ * // [ "1", "2", "3" ]
  * ```
  *
  * @category Pipe
@@ -10755,8 +10744,11 @@ export const toReadableStreamEffect: {
  *   for await (const value of iterable) {
  *     results.push(value)
  *   }
- *   return results
+ *   console.log(results)
  * }
+ *
+ * collect()
+ * // [ 1, 2, 3 ]
  * ```
  *
  * @category Destructors
@@ -10814,7 +10806,7 @@ export const toAsyncIterableWith: {
  * **Example** (Creating an AsyncIterable effect)
  *
  * ```ts
- * import { Console, Effect, Stream } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3)
  *
@@ -10827,11 +10819,11 @@ export const toAsyncIterableWith: {
  *     }
  *     return collected
  *   })
- *   yield* Console.log(values)
+ *   yield* Effect.sync(() => console.log(values))
  * })
  *
  * Effect.runPromise(program)
- * //=> [ 1, 2, 3 ]
+ * // [ 1, 2, 3 ]
  * ```
  *
  * @category Destructors
@@ -10849,21 +10841,21 @@ export const toAsyncIterableEffect = <A, E, R>(self: Stream<A, E, R>): Effect.Ef
  * **Example** (Converting to an async iterable)
  *
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3)
  *
- * const program = Effect.gen(function* () {
+ * const collect = async () => {
  *   const iterable = Stream.toAsyncIterable(stream)
- *   const results = yield* Effect.promise(async () => {
- *     const values: Array<number> = []
- *     for await (const value of iterable) {
- *       values.push(value)
- *     }
- *     return values
- *   })
- *   return results
- * })
+ *   const values: Array<number> = []
+ *   for await (const value of iterable) {
+ *     values.push(value)
+ *   }
+ *   console.log(values)
+ * }
+ *
+ * collect()
+ * // [ 1, 2, 3 ]
  * ```
  *
  * @category Destructors

@@ -386,11 +386,10 @@ export interface FileSystem {
  * const largeFile = FileSystem.Size(BigInt("9007199254740992")) // Very large
  *
  * // Use with file operations
- * const truncateToSize = (path: string, size: FileSystem.Size) =>
- *   Effect.gen(function*() {
- *     const fs = yield* FileSystem.FileSystem
- *     return fs.truncate(path, size)
- *   })
+ * const truncateToSize = Effect.fnUntraced(function*(path: string, size: FileSystem.Size) {
+ *   const fs = yield* FileSystem.FileSystem
+ *   return yield* fs.truncate(path, size)
+ * })
  * ```
  *
  * @category sizes
@@ -537,20 +536,22 @@ export const MiB = (n: number): Size => Size(n * 1024 * 1024)
  * **Example** (Creating gibibyte sizes)
  *
  * ```ts
- * import { Console, Effect, FileSystem } from "effect"
+ * import { Effect, FileSystem } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const fs = yield* FileSystem.FileSystem
  *
- *   // Check available space before creating large files
- *   const stats = yield* fs.stat(".")
- *   const requiredSpace = FileSystem.GiB(5)
+ *   // Use GiB values as size thresholds
+ *   const maxArchiveSize = FileSystem.GiB(1)
+ *   console.log(maxArchiveSize.toString()) // "1073741824"
  *
- *   // Create a large temporary file
- *   const tempFile = yield* fs.makeTempFile({ prefix: "large-" })
- *   yield* fs.truncate(tempFile, FileSystem.GiB(1)) // 1 GiB file
+ *   const tempFile = yield* fs.makeTempFile({ prefix: "archive-" })
+ *   yield* fs.writeFileString(tempFile, "backup data")
  *
- *   yield* Console.log(`Created ${tempFile} with 1 GiB size`)
+ *   const info = yield* fs.stat(tempFile)
+ *   console.log(info.size < maxArchiveSize) // true
+ *
+ *   yield* fs.remove(tempFile)
  * })
  * ```
  *
@@ -1116,25 +1117,33 @@ export declare namespace File {
    * **Example** (Inspecting file information)
    *
    * ```ts
-   * import { Console, Effect, FileSystem, Option } from "effect"
+   * import { Effect, FileSystem, Option } from "effect"
    *
    * const program = Effect.gen(function*() {
    *   const fs = yield* FileSystem.FileSystem
    *
-   *   const info: FileSystem.File.Info = yield* fs.stat("./data.txt")
+   *   const path = yield* fs.makeTempFile({ prefix: "info-" })
+   *   yield* fs.writeFileString(path, "hello")
    *
-   *   yield* Console.log(`File type: ${info.type}`)
-   *   yield* Console.log(`File size: ${info.size} bytes`)
-   *   yield* Console.log(`Mode: ${info.mode.toString(8)}`) // Octal permissions
+   *   const info: FileSystem.File.Info = yield* fs.stat(path)
    *
-   *   // Handle optional timestamps
-   *   const mtime = Option.getOrElse(info.mtime, () => new Date(0))
-   *   yield* Console.log(`Modified: ${mtime.toISOString()}`)
+   *   console.log(`File type: ${info.type}`) // "File type: File"
+   *   console.log(`File size: ${info.size} bytes`) // "File size: 5 bytes"
+   *   console.log(`Mode: ${info.mode.toString(8)}`) // Octal permissions
+   *
+   *   // Handle optional timestamps without inventing a fallback date
+   *   const modified = Option.match(info.mtime, {
+   *     onNone: () => "unavailable",
+   *     onSome: (mtime) => mtime.toISOString()
+   *   })
+   *   console.log(`Modified: ${modified}`)
    *
    *   // Check if it's a regular file
    *   if (info.type === "File") {
-   *     yield* Console.log("Processing regular file...")
+   *     console.log("Processing regular file...") // "Processing regular file..."
    *   }
+   *
+   *   yield* fs.remove(path)
    * })
    * ```
    *

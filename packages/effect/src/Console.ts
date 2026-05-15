@@ -329,16 +329,17 @@ export const dir = (item: any, options?: any): Effect.Effect<void> =>
  *
  * This function is particularly useful for inspecting DOM elements in browser environments.
  *
- * **Example** (Inspecting DOM nodes)
+ * **Example** (Inspecting XML-like data)
  *
  * ```ts
  * import { Console, Effect } from "effect"
  *
  * const program = Effect.gen(function*() {
- *   // In a browser environment
- *   const element = document.getElementById("myElement")
- *   yield* Console.dirxml(element)
+ *   yield* Console.dirxml("<user id=\"1\">Ada</user>")
  * })
+ *
+ * Effect.runSync(program)
+ * // <user id="1">Ada</user>
  * ```
  *
  * @category accessor

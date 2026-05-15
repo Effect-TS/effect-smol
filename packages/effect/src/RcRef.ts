@@ -66,18 +66,6 @@ export interface RcRef<out A, out E = never> extends Pipeable {
  */
 export declare namespace RcRef {
   /**
-   * **Example** (Referencing variance types)
-   *
-   * ```ts
-   * import type { RcRef } from "effect"
-   *
-   * // Variance interface defines covariance for type parameters
-   * type StringRcRefVariance = RcRef.RcRef.Variance<string, Error>
-   *
-   * // Shows that both A and E are covariant
-   * declare const variance: StringRcRefVariance
-   * ```
-   *
    * @category models
    * @since 3.5.0
    */

@@ -38,10 +38,10 @@ const TypeId = "~effect/BigDecimal"
  * ```ts
  * import { BigDecimal } from "effect"
  *
- * const d = BigDecimal.fromNumberUnsafe(123.45)
+ * const d = BigDecimal.fromStringUnsafe("123.45")
  *
- * d.value // 12345n
- * d.scale // 2
+ * console.log(d.value) // 12345n
+ * console.log(d.scale) // 2
  * ```
  *
  * @category models
@@ -481,8 +481,8 @@ export const roundTerminal = (n: bigint): bigint => {
 /**
  * Provides a division operation on `BigDecimal`s.
  *
- * If the dividend is not a multiple of the divisor the result will be a `BigDecimal` value
- * which represents the integer division rounded down to the nearest integer.
+ * If the dividend is not a multiple of the divisor, the result will be a `BigDecimal` value
+ * with up to the default division precision.
  *
  * If the divisor is `0`, the result will be `Option.none()`.
  *
@@ -490,29 +490,31 @@ export const roundTerminal = (n: bigint): bigint => {
  *
  * ```ts
  * import { BigDecimal, Option } from "effect"
- * import * as assert from "node:assert"
  *
- * assert.deepStrictEqual(
- *   BigDecimal.divide(
- *     BigDecimal.fromStringUnsafe("6"),
- *     BigDecimal.fromStringUnsafe("3")
- *   ),
- *   Option.some(BigDecimal.fromStringUnsafe("2"))
- * )
- * assert.deepStrictEqual(
- *   BigDecimal.divide(
- *     BigDecimal.fromStringUnsafe("6"),
- *     BigDecimal.fromStringUnsafe("4")
- *   ),
- *   Option.some(BigDecimal.fromStringUnsafe("1.5"))
- * )
- * assert.deepStrictEqual(
- *   BigDecimal.divide(
- *     BigDecimal.fromStringUnsafe("6"),
- *     BigDecimal.fromStringUnsafe("0")
- *   ),
- *   Option.none()
- * )
+ * console.log(
+ *   Option.getOrThrow(
+ *     BigDecimal.divide(
+ *       BigDecimal.fromStringUnsafe("6"),
+ *       BigDecimal.fromStringUnsafe("3")
+ *     )
+ *   )
+ * ) // BigDecimal(2)
+ * console.log(
+ *   Option.getOrThrow(
+ *     BigDecimal.divide(
+ *       BigDecimal.fromStringUnsafe("6"),
+ *       BigDecimal.fromStringUnsafe("4")
+ *     )
+ *   )
+ * ) // BigDecimal(1.5)
+ * console.log(
+ *   Option.isNone(
+ *     BigDecimal.divide(
+ *       BigDecimal.fromStringUnsafe("6"),
+ *       BigDecimal.fromStringUnsafe("0")
+ *     )
+ *   )
+ * ) // true
  * ```
  *
  * @category math
@@ -541,8 +543,8 @@ export const divide: {
 /**
  * Provides an unsafe division operation on `BigDecimal`s.
  *
- * If the dividend is not a multiple of the divisor the result will be a `BigDecimal` value
- * which represents the integer division rounded down to the nearest integer.
+ * If the dividend is not a multiple of the divisor, the result will be a `BigDecimal` value
+ * with up to the default division precision.
  *
  * Throws a `RangeError` if the divisor is `0`.
  *
@@ -550,16 +552,9 @@ export const divide: {
  *
  * ```ts
  * import { divideUnsafe, fromStringUnsafe } from "effect/BigDecimal"
- * import * as assert from "node:assert"
  *
- * assert.deepStrictEqual(
- *   divideUnsafe(fromStringUnsafe("6"), fromStringUnsafe("3")),
- *   fromStringUnsafe("2")
- * )
- * assert.deepStrictEqual(
- *   divideUnsafe(fromStringUnsafe("6"), fromStringUnsafe("4")),
- *   fromStringUnsafe("1.5")
- * )
+ * console.log(divideUnsafe(fromStringUnsafe("6"), fromStringUnsafe("3"))) // BigDecimal(2)
+ * console.log(divideUnsafe(fromStringUnsafe("6"), fromStringUnsafe("4"))) // BigDecimal(1.5)
  * ```
  *
  * @category math
@@ -1023,9 +1018,9 @@ export const remainderUnsafe: {
  * ```ts
  * import { BigDecimal } from "effect"
  *
- * const a = BigDecimal.fromNumberUnsafe(1.50)
- * const b = BigDecimal.fromNumberUnsafe(1.5)
- * const c = BigDecimal.fromNumberUnsafe(2.0)
+ * const a = BigDecimal.fromStringUnsafe("1.50")
+ * const b = BigDecimal.fromStringUnsafe("1.5")
+ * const c = BigDecimal.fromStringUnsafe("2.0")
  *
  * console.log(BigDecimal.Equivalence(a, b)) // true (1.50 === 1.5)
  * console.log(BigDecimal.Equivalence(a, c)) // false (1.50 !== 2.0)
@@ -1054,9 +1049,9 @@ export const Equivalence: Equ.Equivalence<BigDecimal> = Equ.make((self, that) =>
  * ```ts
  * import { BigDecimal } from "effect"
  *
- * const a = BigDecimal.fromNumberUnsafe(1.5)
- * const b = BigDecimal.fromNumberUnsafe(1.50)
- * const c = BigDecimal.fromNumberUnsafe(2.0)
+ * const a = BigDecimal.fromStringUnsafe("1.5")
+ * const b = BigDecimal.fromStringUnsafe("1.50")
+ * const c = BigDecimal.fromStringUnsafe("2.0")
  *
  * console.log(BigDecimal.equals(a, b)) // true
  * console.log(BigDecimal.equals(a, c)) // false
@@ -1523,22 +1518,16 @@ export const round: {
 })
 
 /**
- * Truncate a `BigDecimal` at the given scale. This is the same operation as rounding away from zero.
+ * Truncate a `BigDecimal` at the given scale. This removes fractional digits beyond the scale,
+ * rounding toward zero.
  *
  * **Example** (Truncating decimals)
  *
  * ```ts
  * import { fromStringUnsafe, truncate } from "effect/BigDecimal"
- * import * as assert from "node:assert"
  *
- * assert.deepStrictEqual(
- *   truncate(fromStringUnsafe("145"), -1),
- *   fromStringUnsafe("140")
- * )
- * assert.deepStrictEqual(
- *   truncate(fromStringUnsafe("-14.5")),
- *   fromStringUnsafe("-14")
- * )
+ * console.log(truncate(fromStringUnsafe("145"), -1)) // BigDecimal(140)
+ * console.log(truncate(fromStringUnsafe("-14.5"))) // BigDecimal(-14)
  * ```
  *
  * @category math

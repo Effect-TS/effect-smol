@@ -842,13 +842,13 @@ export const keyValuePair = <Kind extends ParamKind>(
  *
  * // @internal - this module is not exported publicly
  *
- * // Create a none parameter for composition
- * const noneParam = Param.none(Param.flagKind)
+ * const disabledDebugParam = Param.none(Param.flagKind)
  *
- * // Often used in conditional parameter creation
- * const conditionalParam = process.env.NODE_ENV === "production"
- *   ? Param.string(Param.flagKind, "my-dev-flag")
- *   : Param.none(Param.flagKind)
+ * const makeDebugParam = (enableDebug: boolean) =>
+ *   enableDebug ? Param.string(Param.flagKind, "debug") : disabledDebugParam
+ *
+ * console.log(makeDebugParam(true) === disabledDebugParam) // false
+ * console.log(makeDebugParam(false) === disabledDebugParam) // true
  * ```
  *
  * @category constructors
@@ -1318,7 +1318,7 @@ export type VariadicParamOptions = {
  * // Variadic with both min and max
  * const limited = Param.variadic(Param.string(Param.flagKind, "item"), {
  *   min: 2, // at least 2 times
- *   max: 2 // at most 5 times
+ *   max: 2 // at most 2 times
  * })
  * ```
  *

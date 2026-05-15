@@ -563,8 +563,8 @@ export const isUserDefined = (u: unknown): u is Tool<string, any, any> =>
  *   })
  * })
  *
- * console.log(Tool.isUserDefined(UserDefinedTool)) // false
- * console.log(Tool.isUserDefined(ProviderDefinedTool)) // true
+ * console.log(Tool.isProviderDefined(UserDefinedTool)) // false
+ * console.log(Tool.isProviderDefined(ProviderDefinedTool)) // true
  * ```
  *
  * @category guards

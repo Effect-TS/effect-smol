@@ -81,21 +81,6 @@ const endVoid = Effect.succeed([void 0] as End<void, never>)
  * Interface for Sink unification, used internally by the Effect type system
  * to provide proper type inference when using Sink with other Effect types.
  *
- * **Example** (Unifying sink and effect types)
- *
- * ```ts
- * import type { Effect } from "effect"
- * import type * as Sink from "effect/Sink"
- * import type * as Unify from "effect/Unify"
- *
- * // SinkUnify helps unify Sink and Effect types
- * declare const sink: Sink.Sink<number>
- * declare const effect: Effect.Effect<string>
- *
- * // The unification system handles mixed operations
- * type Combined = Sink.SinkUnify<{ [Unify.typeSymbol]?: any }>
- * ```
- *
  * @category models
  * @since 2.0.0
  */
@@ -116,15 +101,6 @@ export interface SinkUnify<A extends { [Unify.typeSymbol]?: any }> extends Effec
  * Interface used to ignore certain types during Sink unification.
  * Part of the internal type system machinery.
  *
- * **Example** (Configuring sink unification ignores)
- *
- * ```ts
- * import type * as Sink from "effect/Sink"
- *
- * // Used internally by the type system
- * type IgnoreConfig = Sink.SinkUnifyIgnore
- * ```
- *
  * @category models
  * @since 2.0.0
  */
@@ -135,16 +111,6 @@ export interface SinkUnifyIgnore {
 /**
  * Namespace containing types and interfaces for Sink variance and type relationships.
  *
- * **Example** (Referencing sink type definitions)
- *
- * ```ts
- * import type * as Sink from "effect/Sink"
- *
- * // The Sink namespace contains internal type definitions
- * // These are used internally for type safety and variance
- * type SinkType<A, In, L, E, R> = Sink.Sink<A, In, L, E, R>
- * ```
- *
  * @category models
  * @since 2.0.0
  */
@@ -152,16 +118,6 @@ export declare namespace Sink {
   /**
    * Represents the variance annotations for a Sink type.
    * Used internally to track how type parameters flow through the Sink.
-   *
-   * **Example** (Referencing sink variance annotations)
-   *
-   * ```ts
-   * import type * as Sink from "effect/Sink"
-   *
-   * // The variance interface is used internally
-   * // It defines how type parameters behave in Sink
-   * type SinkWithVariance = Sink.Sink<string> & { variance: "internal" }
-   * ```
    *
    * @category models
    * @since 2.0.0
@@ -172,16 +128,6 @@ export declare namespace Sink {
   /**
    * The internal structure representing Sink variance annotations.
    * Contains the actual variance markers for each type parameter.
-   *
-   * **Example** (Referencing sink variance structure)
-   *
-   * ```ts
-   * import type * as Sink from "effect/Sink"
-   *
-   * // The variance structure is used internally by the type system
-   * // It ensures proper type safety for Sink operations
-   * type SinkInstance = Sink.Sink<number, string>
-   * ```
    *
    * @category models
    * @since 2.0.0

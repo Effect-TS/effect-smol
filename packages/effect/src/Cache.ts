@@ -201,13 +201,17 @@ export const makeWith = <
  * })
  * ```
  *
- * **Example** (Creating a cache with TTL and async lookup)
+ * **Example** (Creating a cache with TTL)
  *
  * ```ts
  * import { Cache, Effect } from "effect"
  *
- * // Cache with TTL and async lookup
- * const fetchUserCache = Effect.gen(function*() {
+ * const program = Effect.gen(function*() {
+ *   const users = new Map([
+ *     [123, { name: "Ada", email: "ada@example.com" }],
+ *     [456, { name: "Grace", email: "grace@example.com" }]
+ *   ])
+ *
  *   const cache = yield* Cache.make<
  *     number,
  *     { name: string; email: string },
@@ -215,17 +219,20 @@ export const makeWith = <
  *   >({
  *     capacity: 500,
  *     lookup: (userId) =>
- *       Effect.tryPromise({
- *         try: () => fetch(`/api/users/${userId}`).then((r) => r.json()),
- *         catch: () => "Failed to fetch user"
+ *       Effect.suspend(() => {
+ *         const user = users.get(userId)
+ *         return user === undefined
+ *           ? Effect.fail(`User ${userId} not found`)
+ *           : Effect.succeed(user)
  *       }),
  *     timeToLive: "15 minutes"
  *   })
  *
- *   // First call fetches from API, second call returns cached result
  *   const user1 = yield* Cache.get(cache, 123)
- *   const user2 = yield* Cache.get(cache, 123) // From cache
- *   return { user1, user2 }
+ *   console.log(user1) // { name: "Ada", email: "ada@example.com" }
+ *
+ *   const user2 = yield* Cache.get(cache, 123)
+ *   console.log(user2) // { name: "Ada", email: "ada@example.com" }
  * })
  * ```
  *
@@ -497,6 +504,9 @@ const checkCapacity = <K, A, E, R>(self: Cache<K, A, E, R>) => {
  *
  *   const result = yield* Fiber.join(optionFiber)
  *   console.log(result) // Option.some(42)
+ *
+ *   const value = yield* Fiber.join(getFiber)
+ *   console.log(value) // 42
  * })
  * ```
  *
@@ -1148,7 +1158,7 @@ export const size = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<num
  *   // Retrieve all active keys
  *   const keys = yield* Cache.keys(cache)
  *
- *   console.log(Array.from(keys)) // ["hello", "world", "cache"]
+ *   console.log(Array.from(keys).sort()) // ["cache", "hello", "world"]
  * })
  * ```
  *

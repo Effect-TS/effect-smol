@@ -55,18 +55,6 @@ export interface Redacted<out A = string> extends Redacted.Variance<A>, Equal.Eq
  */
 export declare namespace Redacted {
   /**
-   * **Example** (Creating redacted values with different types)
-   *
-   * ```ts
-   * import { Redacted } from "effect"
-   *
-   * // Variance interface ensures type safety for covariant type parameter
-   * const stringSecret = Redacted.make("secret")
-   * const numberSecret = Redacted.make(42)
-   *
-   * // TypeScript will infer the types with proper variance
-   * ```
-   *
    * @category models
    * @since 3.3.0
    */
@@ -82,9 +70,14 @@ export declare namespace Redacted {
    * ```ts
    * import { Redacted } from "effect"
    *
-   * // Extract the value type from a Redacted instance
-   * const secret = Redacted.make("my-secret")
-   * const extractedValue: string = Redacted.value(secret)
+   * type ApiKey = Redacted.Redacted<{ readonly token: string }>
+   * type ApiKeyValue = Redacted.Redacted.Value<ApiKey>
+   *
+   * const rotate = (value: ApiKeyValue): ApiKeyValue => ({
+   *   token: `${value.token}:rotated`
+   * })
+   *
+   * console.log(rotate({ token: "secret" })) // { token: "secret:rotated" }
    * ```
    *
    * @category type-level

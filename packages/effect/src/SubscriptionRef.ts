@@ -88,21 +88,28 @@ export const make = <A>(value: A): Effect.Effect<SubscriptionRef<A>> =>
  * **Example** (Streaming changes)
  *
  * ```ts
- * import { Effect, Stream, SubscriptionRef } from "effect"
+ * import { Deferred, Effect, Fiber, Stream, SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const ref = yield* SubscriptionRef.make(0)
+ *   const ready = yield* Deferred.make<void>()
  *
- *   const stream = SubscriptionRef.changes(ref)
+ *   const fiber = yield* SubscriptionRef.changes(ref).pipe(
+ *     Stream.tap(() => Deferred.succeed(ready, void 0)),
+ *     Stream.take(3),
+ *     Stream.runCollect,
+ *     Effect.forkChild
+ *   )
  *
- *   const fiber = yield* Stream.runForEach(
- *     stream,
- *     (value) => Effect.sync(() => console.log("Value:", value))
- *   ).pipe(Effect.forkScoped)
- *
+ *   yield* Deferred.await(ready)
  *   yield* SubscriptionRef.set(ref, 1)
  *   yield* SubscriptionRef.set(ref, 2)
+ *
+ *   const values = yield* Fiber.join(fiber)
+ *   console.log(values) // [ 0, 1, 2 ]
  * })
+ *
+ * Effect.runPromise(program)
  * ```
  *
  * @category changes

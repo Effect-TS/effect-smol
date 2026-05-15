@@ -298,16 +298,6 @@ declare global {
  * Set this property to `true` on any error class to prevent it from being
  * forwarded to reporters. Useful for expected errors such as HTTP 404s.
  *
- * **Example** (Ignoring expected errors)
- *
- * ```ts
- * import { Data, ErrorReporter } from "effect"
- *
- * class NotFoundError extends Data.TaggedError("NotFoundError")<{}> {
- *   readonly [ErrorReporter.ignore] = true
- * }
- * ```
- *
  * @category Annotations
  * @since 4.0.0
  */
@@ -350,16 +340,6 @@ export const isIgnored = (u: unknown): boolean =>
  * When set, the reporter callback receives this value as `severity` instead
  * of the default `"Error"`. Accepted values are the `LogLevel.Severity`
  * literals: `"Trace"`, `"Debug"`, `"Info"`, `"Warn"`, `"Error"`, `"Fatal"`.
- *
- * **Example** (Overriding error severity)
- *
- * ```ts
- * import { Data, ErrorReporter } from "effect"
- *
- * class DeprecationWarning extends Data.TaggedError("DeprecationWarning")<{}> {
- *   readonly [ErrorReporter.severity] = "Warn" as const
- * }
- * ```
  *
  * @category Annotations
  * @since 4.0.0
@@ -408,20 +388,6 @@ export const getSeverity = (error: object): Severity => {
  * Reporters receive these attributes alongside the error, making it easy to
  * include contextual information such as user IDs, request IDs, or any
  * domain-specific data useful for debugging.
- *
- * **Example** (Attaching error attributes)
- *
- * ```ts
- * import { Data, ErrorReporter } from "effect"
- *
- * class PaymentError extends Data.TaggedError("PaymentError")<{
- *   readonly orderId: string
- * }> {
- *   readonly [ErrorReporter.attributes] = {
- *     orderId: this.orderId
- *   }
- * }
- * ```
  *
  * @category Annotations
  * @since 4.0.0

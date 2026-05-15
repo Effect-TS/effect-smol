@@ -78,7 +78,7 @@ export interface Hash {
  * // Hash objects and arrays
  * console.log(Hash.hash({ name: "John", age: 30 }))
  * console.log(Hash.hash([1, 2, 3]))
- * console.log(Hash.hash(new Date("2023-01-01")))
+ * console.log(Hash.hash({ id: "user-1", roles: ["admin", "editor"] }))
  * ```
  *
  * @category hashing
