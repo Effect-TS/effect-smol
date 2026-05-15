@@ -26,8 +26,8 @@ import type { WorkflowEngine, WorkflowInstance } from "./WorkflowEngine.ts"
 const TypeId = "~effect/workflow/Workflow"
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface Workflow<
   Name extends string,
@@ -174,8 +174,8 @@ export interface AnyStructSchema extends Schema.Top {
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface Execution<Name extends string> {
   readonly _: unique symbol
@@ -183,8 +183,8 @@ export interface Execution<Name extends string> {
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface Any {
   readonly [TypeId]: typeof TypeId
@@ -197,8 +197,8 @@ export interface Any {
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface AnyWithProps extends Any {
   readonly payloadSchema: AnyStructSchema
@@ -214,8 +214,8 @@ export interface AnyWithProps extends Any {
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export type PayloadSchema<W> = W extends Workflow<
   infer _Name,
@@ -226,8 +226,8 @@ export type PayloadSchema<W> = W extends Workflow<
   : never
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export type RequirementsClient<Workflows extends Any> = Workflows extends Workflow<
   infer _Name,
@@ -241,8 +241,8 @@ export type RequirementsClient<Workflows extends Any> = Workflows extends Workfl
   : never
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export type RequirementsHandler<Workflows extends Any> = Workflows extends Workflow<
   infer _Name,
@@ -270,8 +270,8 @@ const InstanceTag = Context.Service<
 )
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make = <
   const Name extends string,
@@ -393,30 +393,30 @@ export const make = <
 const ResultTypeId = "~effect/workflow/Workflow/Result"
 
 /**
- * @since 4.0.0
  * @category Result
+ * @since 4.0.0
  */
 export const isResult = <A = unknown, E = unknown>(
   u: unknown
 ): u is Result<A, E> => Predicate.hasProperty(u, ResultTypeId)
 
 /**
- * @since 4.0.0
  * @category Result
+ * @since 4.0.0
  */
 export type Result<A, E> = Complete<A, E> | Suspended
 
 /**
- * @since 4.0.0
  * @category Result
+ * @since 4.0.0
  */
 export type ResultEncoded<A, E> =
   | CompleteEncoded<A, E>
   | typeof Suspended.Encoded
 
 /**
- * @since 4.0.0
  * @category Result
+ * @since 4.0.0
  */
 export interface CompleteEncoded<A, E> {
   readonly _tag: "Complete"
@@ -441,8 +441,8 @@ export interface CompleteSchema<
 }
 
 /**
- * @since 4.0.0
  * @category Result
+ * @since 4.0.0
  */
 export class Complete<A, E> extends Data.TaggedClass("Complete")<{
   readonly exit: Exit.Exit<A, E>
@@ -506,8 +506,8 @@ export class Complete<A, E> extends Data.TaggedClass("Complete")<{
 }
 
 /**
- * @since 4.0.0
  * @category Result
+ * @since 4.0.0
  */
 export class Suspended extends Schema.Class<Suspended>(
   "effect/workflow/Workflow/Suspended"
@@ -522,8 +522,8 @@ export class Suspended extends Schema.Class<Suspended>(
 }
 
 /**
- * @since 4.0.0
  * @category Result
+ * @since 4.0.0
  */
 export const Result = <
   Success extends Schema.Top,
@@ -536,8 +536,8 @@ export const Result = <
 const AnyOrVoid = Schema.Union([Schema.Any, Schema.Void])
 
 /**
- * @since 4.0.0
  * @category Result
+ * @since 4.0.0
  */
 export const ResultEncoded: Schema.Codec<ResultEncoded<any, any>> = Schema.toEncoded(
   Schema.toCodecJson(
@@ -549,8 +549,8 @@ export const ResultEncoded: Schema.Codec<ResultEncoded<any, any>> = Schema.toEnc
 ) as any
 
 /**
- * @since 4.0.0
  * @category Result
+ * @since 4.0.0
  */
 export const intoResult = <A, E, R>(
   effect: Effect.Effect<A, E, R>
@@ -609,8 +609,8 @@ export const intoResult = <A, E, R>(
   })
 
 /**
- * @since 4.0.0
  * @category Result
+ * @since 4.0.0
  */
 export const wrapActivityResult = <A, E, R>(
   effect: Effect.Effect<A, E, R>,
@@ -661,8 +661,8 @@ const waitForZero = Effect.fnUntraced(function*(instance: WorkflowInstance["Serv
  * The workflow scope is only closed when the workflow execution fully
  * completes.
  *
- * @since 1.0.0
  * @category Scope
+ * @since 1.0.0
  */
 export const scope: Effect.Effect<
   Scope.Scope,
@@ -679,8 +679,8 @@ export const scope: Effect.Effect<
  * The workflow scope is only closed when the workflow execution fully
  * completes.
  *
- * @since 1.0.0
  * @category Scope
+ * @since 1.0.0
  */
 export const provideScope = <A, E, R>(
   effect: Effect.Effect<A, E, R>
@@ -688,8 +688,8 @@ export const provideScope = <A, E, R>(
   Effect.flatMap(scope, (scope) => Scope.provide(effect, scope))
 
 /**
- * @since 1.0.0
  * @category Scope
+ * @since 1.0.0
  */
 export const addFinalizer: <R>(
   f: (exit: Exit.Exit<unknown, unknown>) => Effect.Effect<void, never, R>
@@ -713,8 +713,8 @@ export const addFinalizer: <R>(
  * NOTE: Compensation will not work for nested activities. Compensation
  * finalizers are only registered for top-level effects in the workflow.
  *
- * @since 1.0.0
  * @category Compensation
+ * @since 1.0.0
  */
 export const withCompensation: {
   <A, R2>(
@@ -738,8 +738,8 @@ export const withCompensation: {
   ))
 
 /**
- * @since 4.0.0
  * @category Result
+ * @since 4.0.0
  */
 export const suspend = (instance: WorkflowInstance["Service"]): Effect.Effect<never> =>
   Effect.interruptible(Effect.callback<never>(() => {
@@ -754,8 +754,8 @@ export const suspend = (instance: WorkflowInstance["Service"]): Effect.Effect<ne
  *
  * By default, this is set to `true`, meaning that defects will be captured.
  *
- * @since 4.0.0
  * @category Annotations
+ * @since 4.0.0
  */
 export const CaptureDefects = Context.Reference<boolean>(
   "effect/workflow/Workflow/CaptureDefects",
@@ -771,8 +771,8 @@ export const CaptureDefects = Context.Reference<boolean>(
  * You can then manually resume the workflow later with
  * `Workflow.resume(executionId)`.
  *
- * @since 4.0.0
  * @category Annotations
+ * @since 4.0.0
  */
 export const SuspendOnFailure = Context.Reference<boolean>(
   "effect/workflow/Workflow/SuspendOnFailure",

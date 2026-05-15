@@ -70,8 +70,8 @@ const TxHashMapProto = {
  * })
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface TxHashMap<in out K, in out V> extends Inspectable, Pipeable {
   readonly [TypeId]: typeof TypeId
@@ -110,8 +110,8 @@ export interface TxHashMap<in out K, in out V> extends Inspectable, Pipeable {
  * })
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export declare namespace TxHashMap {
   /**
@@ -137,8 +137,8 @@ export declare namespace TxHashMap {
    * })
    * ```
    *
-   * @since 2.0.0
    * @category type-level
+   * @since 2.0.0
    */
   export type Key<T extends TxHashMap<any, any>> = T extends TxHashMap<infer K, any> ? K : never
 
@@ -169,8 +169,8 @@ export declare namespace TxHashMap {
    * })
    * ```
    *
-   * @since 2.0.0
    * @category type-level
+   * @since 2.0.0
    */
   export type Value<T extends TxHashMap<any, any>> = T extends TxHashMap<any, infer V> ? V : never
 
@@ -204,8 +204,8 @@ export declare namespace TxHashMap {
    * })
    * ```
    *
-   * @since 2.0.0
    * @category type-level
+   * @since 2.0.0
    */
   export type Entry<T extends TxHashMap<any, any>> = T extends TxHashMap<infer K, infer V> ? readonly [K, V] : never
 }
@@ -235,8 +235,8 @@ export declare namespace TxHashMap {
  * })
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const empty = <K, V>(): Effect.Effect<TxHashMap<K, V>> =>
   Effect.gen(function*() {
@@ -272,8 +272,8 @@ export const empty = <K, V>(): Effect.Effect<TxHashMap<K, V>> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const make = <K, V>(
   ...entries: Array<readonly [K, V]>
@@ -315,8 +315,8 @@ export const make = <K, V>(
  * })
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const fromIterable = <K, V>(
   entries: Iterable<readonly [K, V]>
@@ -355,8 +355,8 @@ export const fromIterable = <K, V>(
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const get: {
   <K1 extends K, K>(key: K1): <V>(self: TxHashMap<K, V>) => Effect.Effect<Option.Option<V>>
@@ -401,8 +401,8 @@ export const get: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const set: {
   <K, V>(key: K, value: V): (self: TxHashMap<K, V>) => Effect.Effect<void>
@@ -440,8 +440,8 @@ export const set: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const has: {
   <K1 extends K, K>(key: K1): <V>(self: TxHashMap<K, V>) => Effect.Effect<boolean>
@@ -489,8 +489,8 @@ export const has: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const remove: {
   <K1 extends K, K>(key: K1): <V>(self: TxHashMap<K, V>) => Effect.Effect<boolean>
@@ -541,8 +541,8 @@ export const remove: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const clear = <K, V>(self: TxHashMap<K, V>): Effect.Effect<void> => TxRef.set(self.ref, HashMap.empty<K, V>())
 
@@ -575,8 +575,8 @@ export const clear = <K, V>(self: TxHashMap<K, V>): Effect.Effect<void> => TxRef
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const size = <K, V>(self: TxHashMap<K, V>): Effect.Effect<number> =>
   Effect.gen(function*() {
@@ -609,8 +609,8 @@ export const size = <K, V>(self: TxHashMap<K, V>): Effect.Effect<number> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const isEmpty = <K, V>(self: TxHashMap<K, V>): Effect.Effect<boolean> =>
   Effect.gen(function*() {
@@ -638,8 +638,8 @@ export const isEmpty = <K, V>(self: TxHashMap<K, V>): Effect.Effect<boolean> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const isNonEmpty = <K, V>(self: TxHashMap<K, V>): Effect.Effect<boolean> =>
   Effect.map(isEmpty(self), (empty) => !empty)
@@ -684,8 +684,8 @@ export const isNonEmpty = <K, V>(self: TxHashMap<K, V>): Effect.Effect<boolean> 
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const modify: {
   <K, V>(
@@ -758,8 +758,8 @@ export const modify: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const modifyAt: {
   <K, V>(
@@ -818,8 +818,8 @@ export const modifyAt: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const keys = <K, V>(self: TxHashMap<K, V>): Effect.Effect<Array<K>> =>
   Effect.gen(function*() {
@@ -855,8 +855,8 @@ export const keys = <K, V>(self: TxHashMap<K, V>): Effect.Effect<Array<K>> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const values = <K, V>(self: TxHashMap<K, V>): Effect.Effect<Array<V>> =>
   Effect.gen(function*() {
@@ -892,8 +892,8 @@ export const values = <K, V>(self: TxHashMap<K, V>): Effect.Effect<Array<V>> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const entries = <K, V>(
   self: TxHashMap<K, V>
@@ -934,8 +934,8 @@ export const entries = <K, V>(
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const snapshot = <K, V>(
   self: TxHashMap<K, V>
@@ -985,8 +985,8 @@ export const snapshot = <K, V>(
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const union: {
   <K1 extends K, K, V1 extends V, V>(
@@ -1043,8 +1043,8 @@ export const union: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const removeMany: {
   <K1 extends K, K>(keys: Iterable<K1>): <V>(self: TxHashMap<K, V>) => Effect.Effect<void>
@@ -1109,8 +1109,8 @@ export const removeMany: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const setMany: {
   <K1 extends K, K, V1 extends V, V>(
@@ -1154,8 +1154,8 @@ export const setMany: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category guards
+ * @since 2.0.0
  */
 export const isTxHashMap = <K, V>(value: unknown): value is TxHashMap<K, V> => {
   return hasProperty(value, TypeId)
@@ -1194,8 +1194,8 @@ export const isTxHashMap = <K, V>(value: unknown): value is TxHashMap<K, V> => {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const getHash: {
   <K1 extends K, K>(
@@ -1258,8 +1258,8 @@ export const getHash: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const hasHash: {
   <K1 extends K, K>(
@@ -1318,8 +1318,8 @@ export const hasHash: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const map: {
   <A, V, K>(
@@ -1387,8 +1387,8 @@ export const map: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const filter: {
   <K, V, B extends V>(
@@ -1469,8 +1469,8 @@ export const filter: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const reduce: {
   <A, V, K>(
@@ -1545,8 +1545,8 @@ export const reduce: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const filterMap: {
   <V, K, A, X>(
@@ -1606,8 +1606,8 @@ export const filterMap: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const hasBy: {
   <K, V>(
@@ -1664,8 +1664,8 @@ export const hasBy: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const findFirst: {
   <K, V>(
@@ -1721,8 +1721,8 @@ export const findFirst: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const some: {
   <K, V>(
@@ -1777,8 +1777,8 @@ export const some: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const every: {
   <K, V>(
@@ -1834,8 +1834,8 @@ export const every: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const forEach: {
   <V, K, R, E>(
@@ -1906,8 +1906,8 @@ export const forEach: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const flatMap: {
   <A, V, K>(
@@ -1980,8 +1980,8 @@ export const flatMap: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const compact = <K, A>(
   self: TxHashMap<K, Option.Option<A>>
@@ -2023,8 +2023,8 @@ export const compact = <K, A>(
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const toEntries = <K, V>(
   self: TxHashMap<K, V>
@@ -2063,8 +2063,8 @@ export const toEntries = <K, V>(
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const toValues = <K, V>(self: TxHashMap<K, V>): Effect.Effect<Array<V>> => values(self)
 

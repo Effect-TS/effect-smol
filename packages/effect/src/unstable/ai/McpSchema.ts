@@ -59,8 +59,8 @@ export const optional = <S extends Schema.Top>(schema: S): Schema.decodeTo<Schem
 /**
  * A uniquely identifying ID for a request in JSON-RPC.
  *
- * @since 4.0.0
  * @category common
+ * @since 4.0.0
  */
 export const RequestId: Schema.Union<[
   typeof Schema.String,
@@ -70,8 +70,8 @@ export const RequestId: Schema.Union<[
 /**
  * A uniquely identifying ID for a request in JSON-RPC.
  *
- * @since 4.0.0
  * @category common
+ * @since 4.0.0
  */
 export type RequestId = typeof RequestId.Type
 
@@ -79,8 +79,8 @@ export type RequestId = typeof RequestId.Type
  * A progress token, used to associate progress notifications with the original
  * request.
  *
- * @since 4.0.0
  * @category common
+ * @since 4.0.0
  */
 export const ProgressToken: Schema.Union<[
   typeof Schema.String,
@@ -91,14 +91,14 @@ export const ProgressToken: Schema.Union<[
  * A progress token, used to associate progress notifications with the original
  * request.
  *
- * @since 4.0.0
  * @category common
+ * @since 4.0.0
  */
 export type ProgressToken = typeof ProgressToken.Type
 
 /**
- * @since 4.0.0
  * @category common
+ * @since 4.0.0
  */
 export class RequestMeta extends Schema.Opaque<RequestMeta>()(Schema.Struct({
   _meta: optional(Schema.Struct({
@@ -114,8 +114,8 @@ export class RequestMeta extends Schema.Opaque<RequestMeta>()(Schema.Struct({
 })) {}
 
 /**
- * @since 4.0.0
  * @category common
+ * @since 4.0.0
  */
 export class ResultMeta extends Schema.Opaque<ResultMeta>()(Schema.Struct({
   /**
@@ -126,8 +126,8 @@ export class ResultMeta extends Schema.Opaque<ResultMeta>()(Schema.Struct({
 })) {}
 
 /**
- * @since 4.0.0
  * @category common
+ * @since 4.0.0
  */
 export class NotificationMeta extends Schema.Opaque<NotificationMeta>()(Schema.Struct({
   /**
@@ -140,20 +140,20 @@ export class NotificationMeta extends Schema.Opaque<NotificationMeta>()(Schema.S
 /**
  * An opaque token used to represent a cursor for pagination.
  *
- * @since 4.0.0
  * @category common
+ * @since 4.0.0
  */
 export const Cursor: typeof Schema.String = Schema.String
 
 /**
- * @since 4.0.0
  * @category common
+ * @since 4.0.0
  */
 export type Cursor = typeof Cursor.Type
 
 /**
- * @since 4.0.0
  * @category common
+ * @since 4.0.0
  */
 export class PaginatedRequestMeta extends Schema.Opaque<PaginatedRequestMeta>()(Schema.Struct({
   ...RequestMeta.fields,
@@ -165,8 +165,8 @@ export class PaginatedRequestMeta extends Schema.Opaque<PaginatedRequestMeta>()(
 })) {}
 
 /**
- * @since 4.0.0
  * @category common
+ * @since 4.0.0
  */
 export class PaginatedResultMeta extends Schema.Opaque<PaginatedResultMeta>()(Schema.Struct({
   ...ResultMeta.fields,
@@ -179,14 +179,14 @@ export class PaginatedResultMeta extends Schema.Opaque<PaginatedResultMeta>()(Sc
 
 /**
  * The sender or recipient of messages and data in a conversation.
- * @since 4.0.0
  * @category common
+ * @since 4.0.0
  */
 export const Role: Schema.Literals<["user", "assistant"]> = Schema.Literals(["user", "assistant"])
 
 /**
- * @since 4.0.0
  * @category common
+ * @since 4.0.0
  */
 export type Role = typeof Role.Type
 
@@ -194,8 +194,8 @@ export type Role = typeof Role.Type
  * Optional annotations for the client. The client can use annotations to
  * inform how objects are used or displayed
  *
- * @since 4.0.0
  * @category common
+ * @since 4.0.0
  */
 export class Annotations extends Schema.Opaque<Annotations>()(Schema.Struct({
   /**
@@ -218,8 +218,8 @@ export class Annotations extends Schema.Opaque<Annotations>()(Schema.Struct({
 /**
  * Describes the name and version of an MCP implementation.
  *
- * @since 4.0.0
  * @category common
+ * @since 4.0.0
  */
 export class Implementation extends Schema.Opaque<Implementation>()(Schema.Struct({
   name: Schema.String,
@@ -232,8 +232,8 @@ export class Implementation extends Schema.Opaque<Implementation>()(Schema.Struc
  * this schema, but this is not a closed set: any client can define its own,
  * additional capabilities.
  *
- * @since 4.0.0
  * @category common
+ * @since 4.0.0
  */
 export class ClientCapabilities extends Schema.Class<ClientCapabilities>(
   "@effect/ai/McpSchema/ClientCapabilities"
@@ -271,8 +271,8 @@ export class ClientCapabilities extends Schema.Class<ClientCapabilities>(
  * here, in this schema, but this is not a closed set: any server can define
  * its own, additional capabilities.
  *
- * @since 4.0.0
  * @category common
+ * @since 4.0.0
  */
 export class ServerCapabilities extends Schema.Opaque<ServerCapabilities>()(Schema.Struct({
   /**
@@ -330,8 +330,8 @@ export class ServerCapabilities extends Schema.Opaque<ServerCapabilities>()(Sche
 // =============================================================================
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class McpErrorBase extends Schema.Class<McpErrorBase>(
   "@effect/ai/McpSchema/McpErrorBase"
@@ -353,34 +353,34 @@ export class McpErrorBase extends Schema.Class<McpErrorBase>(
 }) {}
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export const INVALID_REQUEST_ERROR_CODE = -32600 as const
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export const METHOD_NOT_FOUND_ERROR_CODE = -32601 as const
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export const INVALID_PARAMS_ERROR_CODE = -32602 as const
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export const INTERNAL_ERROR_CODE = -32603 as const
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export const PARSE_ERROR_CODE = -32700 as const
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class ParseError extends Schema.ErrorClass<ParseError>("effect/ai/McpSchema/ParseError")({
   ...McpErrorBase.fields,
@@ -389,8 +389,8 @@ export class ParseError extends Schema.ErrorClass<ParseError>("effect/ai/McpSche
 }) {}
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class InvalidRequest extends Schema.ErrorClass<InvalidRequest>("effect/ai/McpSchema/InvalidRequest")({
   ...McpErrorBase.fields,
@@ -399,8 +399,8 @@ export class InvalidRequest extends Schema.ErrorClass<InvalidRequest>("effect/ai
 }) {}
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class MethodNotFound extends Schema.ErrorClass<MethodNotFound>("effect/ai/McpSchema/MethodNotFound")({
   ...McpErrorBase.fields,
@@ -409,8 +409,8 @@ export class MethodNotFound extends Schema.ErrorClass<MethodNotFound>("effect/ai
 }) {}
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class InvalidParams extends Schema.ErrorClass<InvalidParams>("effect/ai/McpSchema/InvalidParams")({
   ...McpErrorBase.fields,
@@ -419,8 +419,8 @@ export class InvalidParams extends Schema.ErrorClass<InvalidParams>("effect/ai/M
 }) {}
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class InternalError extends Schema.ErrorClass<InternalError>("effect/ai/McpSchema/InternalError")({
   ...McpErrorBase.fields,
@@ -431,8 +431,8 @@ export class InternalError extends Schema.ErrorClass<InternalError>("effect/ai/M
 }
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export const McpError = Schema.Union([
   ParseError,
@@ -452,8 +452,8 @@ export const McpError = Schema.Union([
  * party is still alive. The receiver must promptly respond, or else may be
  * disconnected.
  *
- * @since 4.0.0
  * @category ping
+ * @since 4.0.0
  */
 export class Ping extends Rpc.make("ping", {
   success: Schema.Struct({}),
@@ -469,8 +469,8 @@ export class Ping extends Rpc.make("ping", {
  * After receiving an initialize request from the client, the server sends this
  * response.
  *
- * @since 4.0.0
  * @category initialization
+ * @since 4.0.0
  */
 export class InitializeResult extends Schema.Opaque<InitializeResult>()(Schema.Struct({
   ...ResultMeta.fields,
@@ -496,8 +496,8 @@ export class InitializeResult extends Schema.Opaque<InitializeResult>()(Schema.S
  * This request is sent from the client to the server when it first connects,
  * asking it to begin initialization.
  *
- * @since 4.0.0
  * @category initialization
+ * @since 4.0.0
  */
 export class Initialize extends Rpc.make("initialize", {
   success: InitializeResult,
@@ -526,8 +526,8 @@ export class Initialize extends Rpc.make("initialize", {
  * This notification is sent from the client to the server after initialization
  * has finished.
  *
- * @since 4.0.0
  * @category initialization
+ * @since 4.0.0
  */
 export class InitializedNotification extends Rpc.make("notifications/initialized", {
   payload: Schema.UndefinedOr(NotificationMeta)
@@ -538,8 +538,8 @@ export class InitializedNotification extends Rpc.make("notifications/initialized
 // =============================================================================
 
 /**
- * @since 4.0.0
  * @category cancellation
+ * @since 4.0.0
  */
 export class CancelledNotification extends Rpc.make("notifications/cancelled", {
   payload: {
@@ -567,8 +567,8 @@ export class CancelledNotification extends Rpc.make("notifications/cancelled", {
  * An out-of-band notification used to inform the receiver of a progress update
  * for a long-running request.
  *
- * @since 4.0.0
  * @category progress
+ * @since 4.0.0
  */
 export class ProgressNotification extends Rpc.make("notifications/progress", {
   payload: {
@@ -601,8 +601,8 @@ export class ProgressNotification extends Rpc.make("notifications/progress", {
 /**
  * A known resource that the server is capable of reading.
  *
- * @since 4.0.0
  * @category resources
+ * @since 4.0.0
  */
 export class Resource extends Schema.Class<Resource>(
   "@effect/ai/McpSchema/Resource"
@@ -653,8 +653,8 @@ export class Resource extends Schema.Class<Resource>(
 /**
  * A template description for resources available on the server.
  *
- * @since 4.0.0
  * @category resources
+ * @since 4.0.0
  */
 export class ResourceTemplate extends Schema.Class<ResourceTemplate>(
   "@effect/ai/McpSchema/ResourceTemplate"
@@ -699,8 +699,8 @@ export class ResourceTemplate extends Schema.Class<ResourceTemplate>(
 /**
  * The contents of a specific resource or sub-resource.
  *
- * @since 4.0.0
  * @category resources
+ * @since 4.0.0
  */
 export class ResourceContents extends Schema.Opaque<ResourceContents>()(Schema.Struct({
   /**
@@ -720,8 +720,8 @@ export class ResourceContents extends Schema.Opaque<ResourceContents>()(Schema.S
 /**
  * The contents of a text resource, which can be represented as a string.
  *
- * @since 4.0.0
  * @category resources
+ * @since 4.0.0
  */
 export class TextResourceContents extends Schema.Opaque<TextResourceContents>()(Schema.Struct({
   ...ResourceContents.fields,
@@ -735,8 +735,8 @@ export class TextResourceContents extends Schema.Opaque<TextResourceContents>()(
 /**
  * The contents of a binary resource, which can be represented as an Uint8Array
  *
- * @since 4.0.0
  * @category resources
+ * @since 4.0.0
  */
 export class BlobResourceContents extends Schema.Opaque<BlobResourceContents>()(Schema.Struct({
   ...ResourceContents.fields,
@@ -749,8 +749,8 @@ export class BlobResourceContents extends Schema.Opaque<BlobResourceContents>()(
 /**
  * The server's response to a resources/list request from the client.
  *
- * @since 4.0.0
  * @category resources
+ * @since 4.0.0
  */
 export class ListResourcesResult extends Schema.Class<ListResourcesResult>(
   "@effect/ai/McpSchema/ListResourcesResult"
@@ -762,8 +762,8 @@ export class ListResourcesResult extends Schema.Class<ListResourcesResult>(
 /**
  * Sent from the client to request a list of resources the server has.
  *
- * @since 4.0.0
  * @category resources
+ * @since 4.0.0
  */
 export class ListResources extends Rpc.make("resources/list", {
   success: ListResourcesResult,
@@ -774,8 +774,8 @@ export class ListResources extends Rpc.make("resources/list", {
 /**
  * The server's response to a resources/templates/list request from the client.
  *
- * @since 4.0.0
  * @category resources
+ * @since 4.0.0
  */
 export class ListResourceTemplatesResult extends Schema.Class<ListResourceTemplatesResult>(
   "@effect/ai/McpSchema/ListResourceTemplatesResult"
@@ -787,8 +787,8 @@ export class ListResourceTemplatesResult extends Schema.Class<ListResourceTempla
 /**
  * Sent from the client to request a list of resource templates the server has.
  *
- * @since 4.0.0
  * @category resources
+ * @since 4.0.0
  */
 export class ListResourceTemplates extends Rpc.make("resources/templates/list", {
   success: ListResourceTemplatesResult,
@@ -799,8 +799,8 @@ export class ListResourceTemplates extends Rpc.make("resources/templates/list", 
 /**
  * The server's response to a resources/read request from the client.
  *
- * @since 4.0.0
  * @category resources
+ * @since 4.0.0
  */
 export class ReadResourceResult extends Schema.Opaque<ReadResourceResult>()(Schema.Struct({
   ...ResultMeta.fields,
@@ -810,8 +810,8 @@ export class ReadResourceResult extends Schema.Opaque<ReadResourceResult>()(Sche
 /**
  * Sent from the client to the server, to read a specific resource URI.
  *
- * @since 4.0.0
  * @category resources
+ * @since 4.0.0
  */
 export class ReadResource extends Rpc.make("resources/read", {
   success: ReadResourceResult,
@@ -831,8 +831,8 @@ export class ReadResource extends Rpc.make("resources/read", {
  * list of resources it can read from has changed. This may be issued by servers
  * without any previous subscription from the client.
  *
- * @since 4.0.0
  * @category resources
+ * @since 4.0.0
  */
 export class ResourceListChangedNotification extends Rpc.make("notifications/resources/list_changed", {
   payload: Schema.UndefinedOr(NotificationMeta)
@@ -842,8 +842,8 @@ export class ResourceListChangedNotification extends Rpc.make("notifications/res
  * Sent from the client to request resources/updated notifications from the
  * server whenever a particular resource changes.
  *
- * @since 4.0.0
  * @category resources
+ * @since 4.0.0
  */
 export class Subscribe extends Rpc.make("resources/subscribe", {
   error: McpError,
@@ -862,8 +862,8 @@ export class Subscribe extends Rpc.make("resources/subscribe", {
  * notifications from the server. This should follow a previous
  * resources/subscribe request.
  *
- * @since 4.0.0
  * @category resources
+ * @since 4.0.0
  */
 export class Unsubscribe extends Rpc.make("resources/unsubscribe", {
   error: McpError,
@@ -878,8 +878,8 @@ export class Unsubscribe extends Rpc.make("resources/unsubscribe", {
 }) {}
 
 /**
- * @since 4.0.0
  * @category resources
+ * @since 4.0.0
  */
 export class ResourceUpdatedNotification extends Rpc.make("notifications/resources/updated", {
   payload: {
@@ -898,8 +898,8 @@ export class ResourceUpdatedNotification extends Rpc.make("notifications/resourc
 /**
  * Describes an argument that a prompt can accept.
  *
- * @since 4.0.0
  * @category prompts
+ * @since 4.0.0
  */
 export class PromptArgument extends Schema.Opaque<PromptArgument>()(Schema.Struct({
   /**
@@ -920,8 +920,8 @@ export class PromptArgument extends Schema.Opaque<PromptArgument>()(Schema.Struc
 /**
  * A prompt or prompt template that the server offers.
  *
- * @since 4.0.0
  * @category prompts
+ * @since 4.0.0
  */
 export class Prompt extends Schema.Class<Prompt>(
   "@effect/ai/McpSchema/Prompt"
@@ -944,8 +944,8 @@ export class Prompt extends Schema.Class<Prompt>(
 /**
  * Text provided to or from an LLM.
  *
- * @since 4.0.0
  * @category prompts
+ * @since 4.0.0
  */
 export class TextContent extends Schema.Opaque<TextContent>()(Schema.Struct({
   type: Schema.tag("text"),
@@ -962,8 +962,8 @@ export class TextContent extends Schema.Opaque<TextContent>()(Schema.Struct({
 /**
  * An image provided to or from an LLM.
  *
- * @since 4.0.0
  * @category prompts
+ * @since 4.0.0
  */
 export class ImageContent extends Schema.Opaque<ImageContent>()(Schema.Struct({
   type: Schema.tag("image"),
@@ -985,8 +985,8 @@ export class ImageContent extends Schema.Opaque<ImageContent>()(Schema.Struct({
 /**
  * Audio provided to or from an LLM.
  *
- * @since 4.0.0
  * @category prompts
+ * @since 4.0.0
  */
 export class AudioContent extends Schema.Opaque<AudioContent>()(Schema.Struct({
   type: Schema.tag("audio"),
@@ -1011,8 +1011,8 @@ export class AudioContent extends Schema.Opaque<AudioContent>()(Schema.Struct({
  * It is up to the client how best to render embedded resources for the benefit
  * of the LLM and/or the user.
  *
- * @since 4.0.0
  * @category prompts
+ * @since 4.0.0
  */
 export class EmbeddedResource extends Schema.Opaque<EmbeddedResource>()(Schema.Struct({
   type: Schema.tag("resource"),
@@ -1028,8 +1028,8 @@ export class EmbeddedResource extends Schema.Opaque<EmbeddedResource>()(Schema.S
  *
  * Note: resource links returned by tools are not guaranteed to appear in the results of `resources/list` requests.
  *
- * @since 4.0.0
  * @category prompts
+ * @since 4.0.0
  */
 export class ResourceLink extends Schema.Opaque<ResourceLink>()(Schema.Struct({
   ...Resource.fields,
@@ -1037,8 +1037,8 @@ export class ResourceLink extends Schema.Opaque<ResourceLink>()(Schema.Struct({
 })) {}
 
 /**
- * @since 4.0.0
  * @category prompts
+ * @since 4.0.0
  */
 export const ContentBlock = Schema.Union([
   TextContent,
@@ -1054,8 +1054,8 @@ export const ContentBlock = Schema.Union([
  * This is similar to `SamplingMessage`, but also supports the embedding of
  * resources from the MCP server.
  *
- * @since 4.0.0
  * @category prompts
+ * @since 4.0.0
  */
 export class PromptMessage extends Schema.Opaque<PromptMessage>()(Schema.Struct({
   role: Role,
@@ -1065,8 +1065,8 @@ export class PromptMessage extends Schema.Opaque<PromptMessage>()(Schema.Struct(
 /**
  * The server's response to a prompts/list request from the client.
  *
- * @since 4.0.0
  * @category prompts
+ * @since 4.0.0
  */
 export class ListPromptsResult extends Schema.Class<ListPromptsResult>(
   "@effect/ai/McpSchema/ListPromptsResult"
@@ -1079,8 +1079,8 @@ export class ListPromptsResult extends Schema.Class<ListPromptsResult>(
  * Sent from the client to request a list of prompts and prompt templates the
  * server has.
  *
- * @since 4.0.0
  * @category prompts
+ * @since 4.0.0
  */
 export class ListPrompts extends Rpc.make("prompts/list", {
   success: ListPromptsResult,
@@ -1091,8 +1091,8 @@ export class ListPrompts extends Rpc.make("prompts/list", {
 /**
  * The server's response to a prompts/get request from the client.
  *
- * @since 4.0.0
  * @category prompts
+ * @since 4.0.0
  */
 export class GetPromptResult extends Schema.Class<GetPromptResult>(
   "@effect/ai/McpSchema/GetPromptResult"
@@ -1108,8 +1108,8 @@ export class GetPromptResult extends Schema.Class<GetPromptResult>(
 /**
  * Used by the client to get a prompt provided by the server.
  *
- * @since 4.0.0
  * @category prompts
+ * @since 4.0.0
  */
 export class GetPrompt extends Rpc.make("prompts/get", {
   success: GetPromptResult,
@@ -1133,8 +1133,8 @@ export class GetPrompt extends Rpc.make("prompts/get", {
  * the list of prompts it offers has changed. This may be issued by servers
  * without any previous subscription from the client.
  *
- * @since 4.0.0
  * @category prompts
+ * @since 4.0.0
  */
 export class PromptListChangedNotification extends Rpc.make("notifications/prompts/list_changed", {
   payload: Schema.UndefinedOr(NotificationMeta)
@@ -1154,8 +1154,8 @@ export class PromptListChangedNotification extends Rpc.make("notifications/promp
  * Clients should never make tool use decisions based on ToolAnnotations
  * received from untrusted servers.
  *
- * @since 4.0.0
  * @category tools
+ * @since 4.0.0
  */
 export class ToolAnnotations extends Schema.Opaque<ToolAnnotations>()(Schema.Struct({
   /**
@@ -1200,8 +1200,8 @@ export class ToolAnnotations extends Schema.Opaque<ToolAnnotations>()(Schema.Str
 /**
  * Definition for a tool the client can call.
  *
- * @since 4.0.0
  * @category tools
+ * @since 4.0.0
  */
 export class Tool extends Schema.Class<Tool>(
   "@effect/ai/McpSchema/Tool"
@@ -1237,8 +1237,8 @@ export class Tool extends Schema.Class<Tool>(
 /**
  * The server's response to a tools/list request from the client.
  *
- * @since 4.0.0
  * @category tools
+ * @since 4.0.0
  */
 export class ListToolsResult extends Schema.Class<ListToolsResult>(
   "@effect/ai/McpSchema/ListToolsResult"
@@ -1250,8 +1250,8 @@ export class ListToolsResult extends Schema.Class<ListToolsResult>(
 /**
  * Sent from the client to request a list of tools the server has.
  *
- * @since 4.0.0
  * @category tools
+ * @since 4.0.0
  */
 export class ListTools extends Rpc.make("tools/list", {
   success: ListToolsResult,
@@ -1271,8 +1271,8 @@ export class ListTools extends Rpc.make("tools/list", {
  * server does not support tool calls, or any other exceptional conditions,
  * should be reported as an MCP error response.
  *
- * @since 4.0.0
  * @category tools
+ * @since 4.0.0
  */
 export class CallToolResult extends Schema.Class<CallToolResult>("@effect/ai/McpSchema/CallToolResult")({
   ...ResultMeta.fields,
@@ -1289,8 +1289,8 @@ export class CallToolResult extends Schema.Class<CallToolResult>("@effect/ai/Mcp
 /**
  * Used by the client to invoke a tool provided by the server.
  *
- * @since 4.0.0
  * @category tools
+ * @since 4.0.0
  */
 export class CallTool extends Rpc.make("tools/call", {
   success: CallToolResult,
@@ -1310,8 +1310,8 @@ export class CallTool extends Rpc.make("tools/call", {
  * the list of tools it offers has changed. This may be issued by servers
  * without any previous subscription from the client.
  *
- * @since 4.0.0
  * @category tools
+ * @since 4.0.0
  */
 export class ToolListChangedNotification extends Rpc.make("notifications/tools/list_changed", {
   payload: Schema.UndefinedOr(NotificationMeta)
@@ -1327,8 +1327,8 @@ export class ToolListChangedNotification extends Rpc.make("notifications/tools/l
  * These map to syslog message severities, as specified in RFC-5424:
  * https://datatracker.ietf.org/doc/html/rfc5424#section-6.2.1
  *
- * @since 4.0.0
  * @category logging
+ * @since 4.0.0
  */
 export const LoggingLevel: Schema.Literals<[
   "debug",
@@ -1356,16 +1356,16 @@ export const LoggingLevel: Schema.Literals<[
  * These map to syslog message severities, as specified in RFC-5424:
  * https://datatracker.ietf.org/doc/html/rfc5424#section-6.2.1
  *
- * @since 4.0.0
  * @category logging
+ * @since 4.0.0
  */
 export type LoggingLevel = typeof LoggingLevel.Type
 
 /**
  * A request from the client to the server, to enable or adjust logging.
  *
- * @since 4.0.0
  * @category logging
+ * @since 4.0.0
  */
 export class SetLevel extends Rpc.make("logging/setLevel", {
   payload: {
@@ -1381,8 +1381,8 @@ export class SetLevel extends Rpc.make("logging/setLevel", {
 }) {}
 
 /**
- * @since 4.0.0
  * @category logging
+ * @since 4.0.0
  */
 export class LoggingMessageNotification extends Rpc.make("notifications/message", {
   payload: Schema.Struct({
@@ -1410,8 +1410,8 @@ export class LoggingMessageNotification extends Rpc.make("notifications/message"
 /**
  * Describes a message issued to or received from an LLM API.
  *
- * @since 4.0.0
  * @category sampling
+ * @since 4.0.0
  */
 export class SamplingMessage extends Schema.Opaque<SamplingMessage>()(Schema.Struct({
   role: Role,
@@ -1424,8 +1424,8 @@ export class SamplingMessage extends Schema.Opaque<SamplingMessage>()(Schema.Str
  * Keys not declared here are currently left unspecified by the spec and are up
  * to the client to interpret.
  *
- * @since 4.0.0
  * @category sampling
+ * @since 4.0.0
  */
 export class ModelHint extends Schema.Opaque<ModelHint>()(Schema.Struct({
   /**
@@ -1456,8 +1456,8 @@ export class ModelHint extends Schema.Opaque<ModelHint>()(Schema.Struct({
  * up to the client to decide how to interpret these preferences and how to
  * balance them against other considerations.
  *
- * @since 4.0.0
  * @category sampling
+ * @since 4.0.0
  */
 export class ModelPreferences extends Schema.Class<ModelPreferences>(
   "@effect/ai/McpSchema/ModelPreferences"
@@ -1498,8 +1498,8 @@ export class ModelPreferences extends Schema.Class<ModelPreferences>(
  * allow them to inspect the response (human in the loop) and decide whether to
  * allow the server to see it.
  *
- * @since 4.0.0
  * @category sampling
+ * @since 4.0.0
  */
 export class CreateMessageResult extends Schema.Class<CreateMessageResult>(
   "@effect/ai/McpSchema/CreateMessageResult"
@@ -1520,8 +1520,8 @@ export class CreateMessageResult extends Schema.Class<CreateMessageResult>(
  * user before beginning sampling, to allow them to inspect the request (human
  * in the loop) and decide whether to approve it.
  *
- * @since 4.0.0
  * @category sampling
+ * @since 4.0.0
  */
 export class CreateMessage extends Rpc.make("sampling/createMessage", {
   success: CreateMessageResult,
@@ -1565,8 +1565,8 @@ export class CreateMessage extends Rpc.make("sampling/createMessage", {
 /**
  * A reference to a resource or resource template definition.
  *
- * @since 4.0.0
  * @category autocomplete
+ * @since 4.0.0
  */
 export class ResourceReference extends Schema.Opaque<ResourceReference>()(Schema.Struct({
   type: Schema.tag("ref/resource"),
@@ -1579,8 +1579,8 @@ export class ResourceReference extends Schema.Opaque<ResourceReference>()(Schema
 /**
  * Identifies a prompt.
  *
- * @since 4.0.0
  * @category autocomplete
+ * @since 4.0.0
  */
 export class PromptReference extends Schema.Opaque<PromptReference>()(Schema.Struct({
   type: Schema.tag("ref/prompt"),
@@ -1594,8 +1594,8 @@ export class PromptReference extends Schema.Opaque<PromptReference>()(Schema.Str
 /**
  * The server's response to a completion/complete request
  *
- * @since 4.0.0
  * @category autocomplete
+ * @since 4.0.0
  */
 export class CompleteResult extends Schema.Opaque<CompleteResult>()(Schema.Struct({
   completion: Schema.Struct({
@@ -1630,8 +1630,8 @@ export class CompleteResult extends Schema.Opaque<CompleteResult>()(Schema.Struc
 /**
  * A request from the client to the server, to ask for completion options.
  *
- * @since 4.0.0
  * @category autocomplete
+ * @since 4.0.0
  */
 export class Complete extends Rpc.make("completion/complete", {
   success: CompleteResult,
@@ -1676,8 +1676,8 @@ export class Complete extends Rpc.make("completion/complete", {
 /**
  * Represents a root directory or file that the server can operate on.
  *
- * @since 4.0.0
  * @category roots
+ * @since 4.0.0
  */
 export class Root extends Schema.Class<Root>(
   "@effect/ai/McpSchema/Root"
@@ -1701,8 +1701,8 @@ export class Root extends Schema.Class<Root>(
  * contains an array of Root objects, each representing a root directory or file
  * that the server can operate on.
  *
- * @since 4.0.0
  * @category roots
+ * @since 4.0.0
  */
 export class ListRootsResult extends Schema.Class<ListRootsResult>(
   "@effect/ai/McpSchema/ListRootsResult"
@@ -1721,8 +1721,8 @@ export class ListRootsResult extends Schema.Class<ListRootsResult>(
  * system structure or access specific locations that the client has permission
  * to read from.
  *
- * @since 4.0.0
  * @category roots
+ * @since 4.0.0
  */
 export class ListRoots extends Rpc.make("roots/list", {
   success: ListRootsResult,
@@ -1736,8 +1736,8 @@ export class ListRoots extends Rpc.make("roots/list", {
  * removes, or modifies any root. The server should then request an updated list
  * of roots using the ListRootsRequest.
  *
- * @since 4.0.0
  * @category roots
+ * @since 4.0.0
  */
 export class RootsListChangedNotification extends Rpc.make("notifications/roots/list_changed", {
   payload: Schema.UndefinedOr(NotificationMeta)
@@ -1750,8 +1750,8 @@ export class RootsListChangedNotification extends Rpc.make("notifications/roots/
 /**
  * The client's response to an elicitation request
  *
- * @since 4.0.0
  * @category elicitation
+ * @since 4.0.0
  */
 export class ElicitAcceptResult extends Schema.Class<ElicitAcceptResult>(
   "@effect/ai/McpSchema/ElicitAcceptResult"
@@ -1774,8 +1774,8 @@ export class ElicitAcceptResult extends Schema.Class<ElicitAcceptResult>(
 /**
  * The client's response to an elicitation request
  *
- * @since 4.0.0
  * @category elicitation
+ * @since 4.0.0
  */
 export class ElicitDeclineResult extends Schema.Class<ElicitDeclineResult>(
   "@effect/ai/McpSchema/ElicitDeclineResult"
@@ -1793,8 +1793,8 @@ export class ElicitDeclineResult extends Schema.Class<ElicitDeclineResult>(
 /**
  * The client's response to an elicitation request
  *
- * @since 4.0.0
  * @category elicitation
+ * @since 4.0.0
  */
 export const ElicitResult = Schema.Union([
   ElicitAcceptResult,
@@ -1802,8 +1802,8 @@ export const ElicitResult = Schema.Union([
 ])
 
 /**
- * @since 4.0.0
  * @category elicitation
+ * @since 4.0.0
  */
 export class Elicit extends Rpc.make("elicitation/create", {
   success: ElicitResult,
@@ -1823,8 +1823,8 @@ export class Elicit extends Rpc.make("elicitation/create", {
 }) {}
 
 /**
- * @since 4.0.0
  * @category elicitation
+ * @since 4.0.0
  */
 export class ElicitationDeclined
   extends Schema.ErrorClass<ElicitationDeclined>("@effect/ai/McpSchema/ElicitationDeclined")({
@@ -1839,8 +1839,8 @@ export class ElicitationDeclined
 // =============================================================================
 
 /**
- * @since 4.0.0
  * @category client
+ * @since 4.0.0
  */
 export class McpServerClient extends Context.Service<McpServerClient, {
   readonly clientId: number
@@ -1853,8 +1853,8 @@ export class McpServerClient extends Context.Service<McpServerClient, {
 }>()("effect/ai/McpSchema/McpServerClient") {}
 
 /**
- * @since 4.0.0
  * @category middleware
+ * @since 4.0.0
  */
 export class McpServerClientMiddleware extends RpcMiddleware.Service<McpServerClientMiddleware, {
   provides: McpServerClient
@@ -1865,8 +1865,8 @@ export class McpServerClientMiddleware extends RpcMiddleware.Service<McpServerCl
 // =============================================================================
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export type RequestEncoded<Group extends RpcGroup.Any> = RpcGroup.Rpcs<
   Group
@@ -1886,8 +1886,8 @@ export type RequestEncoded<Group extends RpcGroup.Any> = RpcGroup.Rpcs<
   : never
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export type NotificationEncoded<Group extends RpcGroup.Any> = RpcGroup.Rpcs<
   Group
@@ -1906,8 +1906,8 @@ export type NotificationEncoded<Group extends RpcGroup.Any> = RpcGroup.Rpcs<
   : never
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export type SuccessEncoded<Group extends RpcGroup.Any> = RpcGroup.Rpcs<
   Group
@@ -1926,8 +1926,8 @@ export type SuccessEncoded<Group extends RpcGroup.Any> = RpcGroup.Rpcs<
   : never
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export type FailureEncoded<Group extends RpcGroup.Any> = RpcGroup.Rpcs<
   Group
@@ -1946,8 +1946,8 @@ export type FailureEncoded<Group extends RpcGroup.Any> = RpcGroup.Rpcs<
   : never
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export class ClientRequestRpcs extends RpcGroup.make(
   Ping,
@@ -1966,14 +1966,14 @@ export class ClientRequestRpcs extends RpcGroup.make(
 ).middleware(McpServerClientMiddleware) {}
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export type ClientRequestEncoded = RequestEncoded<typeof ClientRequestRpcs>
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export class ClientNotificationRpcs extends RpcGroup.make(
   CancelledNotification,
@@ -1983,32 +1983,32 @@ export class ClientNotificationRpcs extends RpcGroup.make(
 ) {}
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export type ClientNotificationEncoded = NotificationEncoded<typeof ClientNotificationRpcs>
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export class ClientRpcs extends ClientRequestRpcs.merge(ClientNotificationRpcs) {}
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export type ClientSuccessEncoded = SuccessEncoded<typeof ServerRequestRpcs>
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export type ClientFailureEncoded = FailureEncoded<typeof ServerRequestRpcs>
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export class ServerRequestRpcs extends RpcGroup.make(
   Ping,
@@ -2018,14 +2018,14 @@ export class ServerRequestRpcs extends RpcGroup.make(
 ) {}
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export type ServerRequestEncoded = RequestEncoded<typeof ServerRequestRpcs>
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export class ServerNotificationRpcs extends RpcGroup.make(
   CancelledNotification,
@@ -2038,54 +2038,54 @@ export class ServerNotificationRpcs extends RpcGroup.make(
 ) {}
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export type ServerNotificationEncoded = NotificationEncoded<typeof ServerNotificationRpcs>
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export type ServerSuccessEncoded = SuccessEncoded<typeof ClientRequestRpcs>
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export type ServerFailureEncoded = FailureEncoded<typeof ClientRequestRpcs>
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export type ServerResultEncoded = ServerSuccessEncoded | ServerFailureEncoded
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export type FromClientEncoded = ClientRequestEncoded | ClientNotificationEncoded
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export type FromServerEncoded = ServerResultEncoded | ServerNotificationEncoded
 
 const ParamSchemaTypeId = "~effect/ai/McpSchema/ParamSchema"
 
 /**
- * @since 4.0.0
  * @category parameters
+ * @since 4.0.0
  */
 export function isParam(schema: Schema.Top): schema is Param<string, Schema.Top> {
   return Predicate.hasProperty(schema, ParamSchemaTypeId)
 }
 
 /**
- * @since 4.0.0
  * @category parameters
+ * @since 4.0.0
  */
 export interface Param<Name extends string, S extends Schema.Top> extends
   Schema.Bottom<
@@ -2115,8 +2115,8 @@ export interface Param<Name extends string, S extends Schema.Top> extends
 /**
  * Helper to create a param for a resource URI template.
  *
- * @since 4.0.0
  * @category parameters
+ * @since 4.0.0
  */
 export function param<const Name extends string, S extends Schema.Top>(
   name: Name,
@@ -2129,8 +2129,8 @@ export function param<const Name extends string, S extends Schema.Top>(
  * Annotation to conditionally enable or disable tools based on client
  * information.
  *
- * @since 4.0.0
  * @category annotations
+ * @since 4.0.0
  */
 export class EnabledWhen
   extends Context.Service<EnabledWhen, Predicate.Predicate<typeof Initialize.payloadSchema.Type>>()(

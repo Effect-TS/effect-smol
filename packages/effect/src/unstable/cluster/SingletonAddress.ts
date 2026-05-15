@@ -11,8 +11,8 @@ const TypeId = "~effect/cluster/SingletonAddress"
 /**
  * Represents the unique address of an singleton within the cluster.
  *
- * @since 4.0.0
  * @category Address
+ * @since 4.0.0
  */
 export class SingletonAddress extends Schema.Class<SingletonAddress>(TypeId)({
   shardId: ShardId,

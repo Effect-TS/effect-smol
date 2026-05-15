@@ -42,8 +42,8 @@ const parseAnnotation = (line: string): string | undefined => {
 }
 
 /**
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export interface BarrelFile {
   readonly path: string
@@ -52,8 +52,8 @@ export interface BarrelFile {
 }
 
 /**
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export interface BarrelGenerator {
   readonly discoverFiles: (
@@ -64,16 +64,16 @@ export interface BarrelGenerator {
 }
 
 /**
- * @since 1.0.0
  * @category tags
+ * @since 1.0.0
  */
 export const BarrelGenerator: Context.Service<BarrelGenerator, BarrelGenerator> = Context.Service(
   "@effect/utils/BarrelGenerator"
 )
 
 /**
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layer: Layer.Layer<BarrelGenerator, never, FileSystem.FileSystem | Path.Path | Glob.Glob> = Effect.gen(
   function*() {

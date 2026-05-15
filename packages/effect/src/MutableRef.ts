@@ -27,8 +27,8 @@
  * - Compare-and-set: O(1)
  * - All operations: O(1)
  *
- * @since 2.0.0
  * @category data-structures
+ * @since 2.0.0
  */
 import * as Equal from "./Equal.ts"
 import * as Dual from "./Function.ts"
@@ -70,8 +70,8 @@ const TypeId = "~effect/MutableRef"
  * console.log(config.current.timeout) // 10000
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface MutableRef<out T> extends Pipeable, Inspectable {
   readonly [TypeId]: typeof TypeId
@@ -110,8 +110,8 @@ const MutableRefProto: Omit<MutableRef<unknown>, "current"> = {
  * console.log(MutableRef.get(status)) // "running"
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const make = <T>(value: T): MutableRef<T> => {
   const ref = Object.create(MutableRefProto)
@@ -152,8 +152,8 @@ export const make = <T>(value: T): MutableRef<T> => {
  * console.log(casUpdate(ref)) // true
  * ```
  *
- * @since 2.0.0
  * @category general
+ * @since 2.0.0
  */
 export const compareAndSet: {
   <T>(oldValue: T, newValue: T): (self: MutableRef<T>) => boolean
@@ -195,8 +195,8 @@ export const compareAndSet: {
  * }
  * ```
  *
- * @since 2.0.0
  * @category numeric
+ * @since 2.0.0
  */
 export const decrement = (self: MutableRef<number>): MutableRef<number> => update(self, (n) => n - 1)
 
@@ -226,8 +226,8 @@ export const decrement = (self: MutableRef<number>): MutableRef<number> => updat
  * }
  * ```
  *
- * @since 2.0.0
  * @category numeric
+ * @since 2.0.0
  */
 export const decrementAndGet = (self: MutableRef<number>): number => updateAndGet(self, (n) => n - 1)
 
@@ -255,8 +255,8 @@ export const decrementAndGet = (self: MutableRef<number>): number => updateAndGe
  * console.log(value1 === value2) // true
  * ```
  *
- * @since 2.0.0
  * @category general
+ * @since 2.0.0
  */
 export const get = <T>(self: MutableRef<T>): T => self.current
 
@@ -287,8 +287,8 @@ export const get = <T>(self: MutableRef<T>): T => self.current
  * console.log(`Current: ${currentIndex}, Next: ${MutableRef.get(index)}`) // "Current: 3, Next: 2"
  * ```
  *
- * @since 2.0.0
  * @category numeric
+ * @since 2.0.0
  */
 export const getAndDecrement = (self: MutableRef<number>): number => getAndUpdate(self, (n) => n - 1)
 
@@ -327,8 +327,8 @@ export const getAndDecrement = (self: MutableRef<number>): number => getAndUpdat
  * }
  * ```
  *
- * @since 2.0.0
  * @category numeric
+ * @since 2.0.0
  */
 export const getAndIncrement = (self: MutableRef<number>): number => getAndUpdate(self, (n) => n + 1)
 
@@ -363,8 +363,8 @@ export const getAndIncrement = (self: MutableRef<number>): number => getAndUpdat
  * console.log(MutableRef.get(buffer)) // []
  * ```
  *
- * @since 2.0.0
  * @category general
+ * @since 2.0.0
  */
 export const getAndSet: {
   <T>(value: T): (self: MutableRef<T>) => T
@@ -416,8 +416,8 @@ export const getAndSet: {
  * console.log(MutableRef.get(list)) // [1, 2, 3, 4]
  * ```
  *
- * @since 2.0.0
  * @category general
+ * @since 2.0.0
  */
 export const getAndUpdate: {
   <T>(f: (value: T) => T): (self: MutableRef<T>) => T
@@ -456,8 +456,8 @@ export const getAndUpdate: {
  * console.log(result === counter) // true
  * ```
  *
- * @since 2.0.0
  * @category numeric
+ * @since 2.0.0
  */
 export const increment = (self: MutableRef<number>): MutableRef<number> => update(self, (n) => n + 1)
 
@@ -491,8 +491,8 @@ export const increment = (self: MutableRef<number>): MutableRef<number> => updat
  * }
  * ```
  *
- * @since 2.0.0
  * @category numeric
+ * @since 2.0.0
  */
 export const incrementAndGet = (self: MutableRef<number>): number => updateAndGet(self, (n) => n + 1)
 
@@ -531,8 +531,8 @@ export const incrementAndGet = (self: MutableRef<number>): number => updateAndGe
  * MutableRef.set(state, "success")
  * ```
  *
- * @since 2.0.0
  * @category general
+ * @since 2.0.0
  */
 export const set: {
   <T>(value: T): (self: MutableRef<T>) => MutableRef<T>
@@ -576,8 +576,8 @@ export const set: {
  * console.log(returnedValue) // 3
  * ```
  *
- * @since 2.0.0
  * @category general
+ * @since 2.0.0
  */
 export const setAndGet: {
   <T>(value: T): (self: MutableRef<T>) => T
@@ -630,8 +630,8 @@ export const setAndGet: {
  * console.log(MutableRef.get(list)) // [1, 2, 3, 4]
  * ```
  *
- * @since 2.0.0
  * @category general
+ * @since 2.0.0
  */
 export const update: {
   <T>(f: (value: T) => T): (self: MutableRef<T>) => MutableRef<T>
@@ -683,8 +683,8 @@ export const update: {
  * console.log(MutableRef.get(list)) // [2, 4, 6]
  * ```
  *
- * @since 2.0.0
  * @category general
+ * @since 2.0.0
  */
 export const updateAndGet: {
   <T>(f: (value: T) => T): (self: MutableRef<T>) => T
@@ -731,7 +731,7 @@ export const updateAndGet: {
  * console.log(result === flag) // true
  * ```
  *
- * @since 2.0.0
  * @category boolean
+ * @since 2.0.0
  */
 export const toggle = (self: MutableRef<boolean>): MutableRef<boolean> => update(self, (_) => !_)

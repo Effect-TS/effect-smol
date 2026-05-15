@@ -32,8 +32,8 @@ import { encodeSessionAuthPayload, signSessionAuthPayloadBytes } from "./EventLo
 import { makeGetIdentityRootSecretMaterial } from "./internal/identityRootSecretDerivation.ts"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class EventLogRemote extends Context.Service<EventLogRemote, {
   readonly id: RemoteId
@@ -53,8 +53,8 @@ export class EventLogRemote extends Context.Service<EventLogRemote, {
 }>()("effect/eventlog/EventLogRemote") {}
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class EventLogRemoteError extends Data.TaggedError("EventLogRemoteError")<{
   readonly method: string
@@ -88,8 +88,8 @@ const makeAuthenticate = Effect.fnUntraced(function*(options: {
 })
 
 /**
- * @since 4.0.0
  * @category RpcClient
+ * @since 4.0.0
  */
 export class EventLogRemoteClient extends Context.Service<
   EventLogRemoteClient,
@@ -106,8 +106,8 @@ export class EventLogRemoteClient extends Context.Service<
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const makeWith = Effect.fnUntraced(function*({ encodeWrite, decodeChanges }: {
   readonly encodeWrite: (options: {
@@ -251,8 +251,8 @@ class IdentityService extends Context.Service<Identity, Identity["Service"]>()(
 ) {}
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const makeEncrypted = Effect.gen(function*(): Effect.fn.Return<
   EventLogRemote["Service"],
@@ -284,8 +284,8 @@ export const makeEncrypted = Effect.gen(function*(): Effect.fn.Return<
 })
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const makeUnencrypted: Effect.Effect<
   EventLogRemote["Service"],
@@ -302,8 +302,8 @@ export const makeUnencrypted: Effect.Effect<
 })
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerEncrypted: Layer.Layer<
   EventLogRemote,
@@ -315,8 +315,8 @@ export const layerEncrypted: Layer.Layer<
 )
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerUnencrypted: Layer.Layer<
   EventLogRemote,

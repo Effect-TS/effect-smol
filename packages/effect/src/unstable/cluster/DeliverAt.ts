@@ -5,28 +5,28 @@ import type { DateTime } from "../../DateTime.ts"
 import { hasProperty } from "../../Predicate.ts"
 
 /**
- * @since 4.0.0
  * @category symbols
+ * @since 4.0.0
  */
 export const symbol = "~effect/cluster/DeliverAt"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface DeliverAt {
   [symbol](): DateTime
 }
 
 /**
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isDeliverAt = (self: unknown): self is DeliverAt => hasProperty(self, symbol)
 
 /**
- * @since 4.0.0
  * @category accessors
+ * @since 4.0.0
  */
 export const toMillis = (self: unknown): number | null => {
   if (isDeliverAt(self)) {

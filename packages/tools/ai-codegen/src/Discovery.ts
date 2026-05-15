@@ -27,8 +27,8 @@ import * as Glob from "./Glob.ts"
  * console.log(provider.specSource._tag) // "Url" | "File"
  * ```
  *
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export interface DiscoveredProvider {
   readonly name: string
@@ -41,8 +41,8 @@ export interface DiscoveredProvider {
 /**
  * Service for discovering AI provider configurations.
  *
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export interface ProviderDiscovery {
   readonly discover: () => Effect.Effect<
@@ -58,8 +58,8 @@ export interface ProviderDiscovery {
 }
 
 /**
- * @since 1.0.0
  * @category tags
+ * @since 1.0.0
  */
 export const ProviderDiscovery: Context.Service<ProviderDiscovery, ProviderDiscovery> = Context.Service(
   "@effect/ai-codegen/ProviderDiscovery"
@@ -78,8 +78,8 @@ export const ProviderDiscovery: Context.Service<ProviderDiscovery, ProviderDisco
  * })
  * ```
  *
- * @since 1.0.0
  * @category errors
+ * @since 1.0.0
  */
 export class DiscoveryError extends Data.TaggedError("DiscoveryError")<{
   readonly message: string
@@ -99,8 +99,8 @@ export class DiscoveryError extends Data.TaggedError("DiscoveryError")<{
  * })
  * ```
  *
- * @since 1.0.0
  * @category errors
+ * @since 1.0.0
  */
 export class ProviderNotFoundError extends Data.TaggedError("ProviderNotFoundError")<{
   readonly provider: string
@@ -110,8 +110,8 @@ export class ProviderNotFoundError extends Data.TaggedError("ProviderNotFoundErr
 /**
  * Layer providing the ProviderDiscovery service.
  *
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layer: Layer.Layer<
   ProviderDiscovery,

@@ -66,8 +66,8 @@ const TypeId = "~effect/RequestResolver"
  * )
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface RequestResolver<in A extends Request.Any> extends RequestResolver.Variance<A>, Pipeable {
   readonly delay: Effect.Effect<void>
@@ -97,13 +97,13 @@ export interface RequestResolver<in A extends Request.Any> extends RequestResolv
 }
 
 /**
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export declare namespace RequestResolver {
   /**
-   * @since 2.0.0
    * @category models
+   * @since 2.0.0
    */
   export interface Variance<in A> {
     readonly [TypeId]: {
@@ -125,8 +125,8 @@ const RequestResolverProto = {
 /**
  * Returns `true` if the specified value is a `RequestResolver`, `false` otherwise.
  *
- * @since 2.0.0
  * @category guards
+ * @since 2.0.0
  */
 export const isRequestResolver = (u: unknown): u is RequestResolver<any> => hasProperty(u, TypeId)
 
@@ -134,8 +134,8 @@ export const isRequestResolver = (u: unknown): u is RequestResolver<any> => hasP
  * Low-level constructor for creating a request resolver with fine-grained
  * control over its behavior.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const makeWith = <A extends Request.Any>(options: {
   readonly batchKey: (request: Request.Entry<A>) => unknown
@@ -184,8 +184,8 @@ const defaultKey = (_request: unknown): unknown => defaultKeyObject
  * const getUserEffect = Effect.request(GetUserRequest({ id: 123 }), UserResolver)
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const make = <A extends Request.Any>(
   runAll: (entries: NonEmptyArray<Request.Entry<A>>, key: unknown) => Effect.Effect<void, Request.Error<A>>
@@ -228,8 +228,8 @@ export const make = <A extends Request.Any>(
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const makeGrouped = <A extends Request.Any, K>(options: {
   readonly key: (entry: Request.Entry<A>) => K
@@ -281,8 +281,8 @@ const hashGroupKey = <A, K>(get: (entry: Request.Entry<A>) => K) => {
  * // Will resolve to 25
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const fromFunction = <A extends Request.Any>(
   f: (entry: Request.Entry<A>) => Request.Success<A>
@@ -324,8 +324,8 @@ export const fromFunction = <A extends Request.Any>(
  * const batchedEffect = Effect.all(effects) // [2, 4, 6]
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const fromFunctionBatched = <A extends Request.Any>(
   f: (entries: NonEmptyArray<Request.Entry<A>>) => Iterable<Request.Success<A>>
@@ -374,8 +374,8 @@ export const fromFunctionBatched = <A extends Request.Any>(
  * )
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const fromEffect = <A extends Request.Any>(
   f: (entry: Request.Entry<A>) => Effect.Effect<Request.Success<A>, Request.Error<A>>
@@ -432,8 +432,8 @@ export const fromEffect = <A extends Request.Any>(
  * })
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const fromEffectTagged = <A extends Request.Any & { readonly _tag: string }>() =>
 <
@@ -510,8 +510,8 @@ export const fromEffectTagged = <A extends Request.Any & { readonly _tag: string
  * )
  * ```
  *
- * @since 4.0.0
  * @category delay
+ * @since 4.0.0
  */
 export const setDelayEffect: {
   (delay: Effect.Effect<void>): <A extends Request.Any>(self: RequestResolver<A>) => RequestResolver<A>
@@ -552,8 +552,8 @@ export const setDelayEffect: {
  * const delayedResolver2 = RequestResolver.setDelay(resolver, 100)
  * ```
  *
- * @since 4.0.0
  * @category delay
+ * @since 4.0.0
  */
 export const setDelay: {
   (duration: Duration.Input): <A extends Request.Any>(self: RequestResolver<A>) => RequestResolver<A>
@@ -604,8 +604,8 @@ export const setDelay: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const around: {
   <A extends Request.Any, A2, X>(
@@ -635,8 +635,8 @@ export const around: {
 /**
  * A request resolver that never executes requests.
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const never: RequestResolver<never> = make(() => Effect.never)
 
@@ -672,8 +672,8 @@ export const never: RequestResolver<never> = make(() => Effect.never)
  * )
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const batchN: {
   (n: number): <A extends Request.Any>(self: RequestResolver<A>) => RequestResolver<A>
@@ -731,8 +731,8 @@ export const batchN: {
  * ]
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const grouped: {
   <A extends Request.Any, K>(f: (entry: Request.Entry<A>) => K): (self: RequestResolver<A>) => RequestResolver<A>
@@ -787,8 +787,8 @@ export const grouped: {
  * const racingResolver = RequestResolver.race(fastResolver, slowResolver)
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const race: {
   <A2 extends Request.Any>(
@@ -844,8 +844,8 @@ export const race: {
  * const effect = Effect.request(GetDataRequest({ id: 123 }), tracedResolver)
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withSpan: {
   <A extends Request.Any>(
@@ -890,8 +890,8 @@ export const withSpan: {
  * Wraps a request resolver in a cache, allowing it to cache results up to a
  * specified capacity and optional time-to-live.
  *
- * @since 4.0.0
  * @category Caching
+ * @since 4.0.0
  */
 export const asCache: {
   <
@@ -955,8 +955,8 @@ export const asCache: {
  * Adds caching capabilities to a request resolver, allowing it to cache
  * results up to a specified capacity.
  *
- * @since 4.0.0
  * @category Caching
+ * @since 4.0.0
  */
 export const withCache: {
   <A extends Request.Any>(options: {
@@ -1024,8 +1024,8 @@ export const withCache: {
   }))
 
 /**
- * @since 4.0.0
  * @category Persistence
+ * @since 4.0.0
  */
 export const persisted: {
   <A extends Request.Request<any, Persistence.PersistenceError | Schema.SchemaError, any> & Persistable.Any>(

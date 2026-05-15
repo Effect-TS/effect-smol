@@ -72,8 +72,8 @@ import * as Tool from "./Tool.ts"
 import type * as Toolkit from "./Toolkit.ts"
 
 /**
- * @since 4.0.0
  * @category server
+ * @since 4.0.0
  */
 export class McpServer extends Context.Service<McpServer, {
   readonly notifications: RpcClient.RpcClient<RpcGroup.Rpcs<typeof ServerNotificationRpcs>>
@@ -323,8 +323,8 @@ const mcpSessionIdHeader = "mcp-session-id"
 const mcpProtocolVersionHeader = "mcp-protocol-version"
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const run: (options: {
   readonly name: string
@@ -500,8 +500,8 @@ export const run: (options: {
 }, Effect.scoped)
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layer = (options: {
   readonly name: string
@@ -566,8 +566,8 @@ export const layer = (options: {
  * Layer.launch(ServerLayer).pipe(NodeRuntime.runMain)
  * ```
  *
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerStdio = (options: {
   readonly name: string
@@ -582,8 +582,8 @@ export const layerStdio = (options: {
 /**
  * Run the `McpServer`, registering a router with a `HttpRouter`
  *
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerHttp = (options: {
   readonly name: string
@@ -599,8 +599,8 @@ export const layerHttp = (options: {
 /**
  * Register a `Toolkit` with the `McpServer`.
  *
- * @since 4.0.0
  * @category tools
+ * @since 4.0.0
  */
 export const registerToolkit: <Tools extends Record<string, Tool.Any>>(
   toolkit: Toolkit.Toolkit<Tools>
@@ -675,8 +675,8 @@ export const registerToolkit: <Tools extends Record<string, Tool.Any>>(
 /**
  * Register an AiToolkit with the McpServer.
  *
- * @since 4.0.0
  * @category tools
+ * @since 4.0.0
  */
 export const toolkit = <Tools extends Record<string, Tool.Any>>(
   toolkit: Toolkit.Toolkit<Tools>
@@ -711,8 +711,8 @@ export type ResourceCompletions<Schemas extends ReadonlyArray<Schema.Top>> = {
 /**
  * Register a resource with the McpServer.
  *
- * @since 4.0.0
  * @category resources
+ * @since 4.0.0
  */
 export const registerResource: {
   <E, R>(options: {
@@ -867,8 +867,8 @@ export const registerResource: {
 /**
  * Register a resource with the McpServer.
  *
- * @since 4.0.0
  * @category resources
+ * @since 4.0.0
  */
 export const resource: {
   <E, R>(options: {
@@ -927,8 +927,8 @@ export const resource: {
 /**
  * Register a prompt with the McpServer.
  *
- * @since 4.0.0
  * @category prompts
+ * @since 4.0.0
  */
 export const registerPrompt = <
   E,
@@ -1022,8 +1022,8 @@ export const registerPrompt = <
 /**
  * Register a prompt with the McpServer.
  *
- * @since 4.0.0
  * @category prompts
+ * @since 4.0.0
  */
 export const prompt = <
   E,
@@ -1051,8 +1051,8 @@ export const prompt = <
 /**
  * Create an elicitation request
  *
- * @since 4.0.0
  * @category elicitation
+ * @since 4.0.0
  */
 export const elicit: <S extends Schema.Encoder<Record<string, unknown>, unknown>>(options: {
   readonly message: string
@@ -1088,8 +1088,8 @@ export const elicit: <S extends Schema.Encoder<Record<string, unknown>, unknown>
 /**
  * Access the current client's capabilities.
  *
- * @since 4.0.0
  * @category capabilities
+ * @since 4.0.0
  */
 export const clientCapabilities: Effect.Effect<
   ClientCapabilities,

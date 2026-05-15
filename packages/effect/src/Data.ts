@@ -416,8 +416,8 @@ export declare namespace TaggedEnum {
    *
    * @see {@link taggedEnum} — creates a `Constructor`
    *
-   * @since 3.1.0
    * @category types
+   * @since 3.1.0
    */
   export type Constructor<A extends { readonly _tag: string }> = Types.Simplify<
     {

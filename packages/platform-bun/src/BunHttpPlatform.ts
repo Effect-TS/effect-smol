@@ -10,8 +10,8 @@ import * as Response from "effect/unstable/http/HttpServerResponse"
 import * as BunFileSystem from "./BunFileSystem.ts"
 
 /**
- * @since 1.0.0
  * @category constructors
+ * @since 1.0.0
  */
 const make: Effect.Effect<
   Platform.HttpPlatform["Service"],
@@ -31,8 +31,8 @@ const make: Effect.Effect<
 })
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layer = Layer.effect(Platform.HttpPlatform)(make).pipe(
   Layer.provide(BunFileSystem.layer),

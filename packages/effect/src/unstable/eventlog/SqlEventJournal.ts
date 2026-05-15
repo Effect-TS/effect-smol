@@ -14,8 +14,8 @@ import * as EventJournal from "./EventJournal.ts"
 type WriteFromRemoteOptions = Parameters<EventJournal.EventJournal["Service"]["writeFromRemote"]>[0]
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = (options?: {
   readonly entryTable?: string
@@ -267,8 +267,8 @@ export const make = (options?: {
   })
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layer = (options?: {
   readonly entryTable?: string

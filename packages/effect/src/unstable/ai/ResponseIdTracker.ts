@@ -7,8 +7,8 @@ import * as Option from "../../Option.ts"
 import * as Prompt from "./Prompt.ts"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface PrepareResult {
   readonly previousResponseId: string
@@ -16,8 +16,8 @@ export interface PrepareResult {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Service {
   clearUnsafe(): void
@@ -26,14 +26,14 @@ export interface Service {
 }
 
 /**
- * @since 4.0.0
  * @category Services
+ * @since 4.0.0
  */
 export class ResponseIdTracker extends Context.Service<ResponseIdTracker, Service>()("effect/ai/ResponseIdTracker") {}
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make: Effect.Effect<Service> = Effect.sync(() => {
   const sentParts = new Map<object, string>()

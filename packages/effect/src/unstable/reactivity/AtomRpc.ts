@@ -22,8 +22,8 @@ import * as Atom from "./Atom.ts"
 import * as Reactivity from "./Reactivity.ts"
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface AtomRpcClient<Self, Id extends string, Rpcs extends Rpc.Any> extends
   Context.Service<
@@ -103,8 +103,8 @@ declare global {
 }
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const Service = <Self>() =>
 <

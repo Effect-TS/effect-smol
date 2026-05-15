@@ -13,8 +13,8 @@ const TypeId = "~@effect/platform-browser/Geolocation"
 const ErrorTypeId = "~@effect/platform-browser/Geolocation/GeolocationError"
 
 /**
- * @since 1.0.0
  * @category Models
+ * @since 1.0.0
  */
 export interface Geolocation {
   readonly [TypeId]: typeof TypeId
@@ -31,14 +31,14 @@ export interface Geolocation {
 }
 
 /**
- * @since 1.0.0
  * @category Service
+ * @since 1.0.0
  */
 export const Geolocation: Context.Service<Geolocation, Geolocation> = Context.Service<Geolocation>(TypeId)
 
 /**
- * @since 1.0.0
  * @category Errors
+ * @since 1.0.0
  */
 export class GeolocationError extends Data.TaggedError("GeolocationError")<{
   readonly reason: GeolocationErrorReason
@@ -60,8 +60,8 @@ export class GeolocationError extends Data.TaggedError("GeolocationError")<{
 }
 
 /**
- * @since 1.0.0
  * @category Errors
+ * @since 1.0.0
  */
 export class PositionUnavailable extends Data.TaggedError("PositionUnavailable")<{
   readonly cause: unknown
@@ -72,8 +72,8 @@ export class PositionUnavailable extends Data.TaggedError("PositionUnavailable")
 }
 
 /**
- * @since 1.0.0
  * @category Errors
+ * @since 1.0.0
  */
 export class PermissionDenied extends Data.TaggedError("PermissionDenied")<{
   readonly cause: unknown
@@ -84,8 +84,8 @@ export class PermissionDenied extends Data.TaggedError("PermissionDenied")<{
 }
 
 /**
- * @since 1.0.0
  * @category Errors
+ * @since 1.0.0
  */
 export class Timeout extends Data.TaggedError("Timeout")<{
   readonly cause: unknown
@@ -96,8 +96,8 @@ export class Timeout extends Data.TaggedError("Timeout")<{
 }
 
 /**
- * @since 1.0.0
  * @category Errors
+ * @since 1.0.0
  */
 export type GeolocationErrorReason = PositionUnavailable | PermissionDenied | Timeout
 
@@ -141,8 +141,8 @@ const makeQueue = (
   )
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layer: Layer.Layer<Geolocation> = Layer.succeed(
   Geolocation,
@@ -162,8 +162,8 @@ export const layer: Layer.Layer<Geolocation> = Layer.succeed(
 )
 
 /**
- * @since 1.0.0
  * @category Accessors
+ * @since 1.0.0
  */
 export const watchPosition = (
   options?:

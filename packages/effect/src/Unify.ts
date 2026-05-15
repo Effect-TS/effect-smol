@@ -21,8 +21,8 @@ import { identity } from "./Function.ts"
  * }
  * ```
  *
- * @since 2.0.0
  * @category symbols
+ * @since 2.0.0
  */
 export declare const unifySymbol: unique symbol
 
@@ -44,8 +44,8 @@ export declare const unifySymbol: unique symbol
  * }
  * ```
  *
- * @since 2.0.0
  * @category symbols
+ * @since 2.0.0
  */
 export type unifySymbol = typeof unifySymbol
 
@@ -66,8 +66,8 @@ export type unifySymbol = typeof unifySymbol
  * }
  * ```
  *
- * @since 2.0.0
  * @category symbols
+ * @since 2.0.0
  */
 export declare const typeSymbol: unique symbol
 
@@ -89,8 +89,8 @@ export declare const typeSymbol: unique symbol
  * }
  * ```
  *
- * @since 2.0.0
  * @category symbols
+ * @since 2.0.0
  */
 export type typeSymbol = typeof typeSymbol
 
@@ -112,8 +112,8 @@ export type typeSymbol = typeof typeSymbol
  * }
  * ```
  *
- * @since 2.0.0
  * @category symbols
+ * @since 2.0.0
  */
 export declare const ignoreSymbol: unique symbol
 
@@ -135,8 +135,8 @@ export declare const ignoreSymbol: unique symbol
  * }
  * ```
  *
- * @since 2.0.0
  * @category symbols
+ * @since 2.0.0
  */
 export type ignoreSymbol = typeof ignoreSymbol
 
@@ -201,8 +201,8 @@ type FilterOut<A> = A extends any ? typeSymbol extends keyof A ? never : A : nev
  * // Results in a properly unified type
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export type Unify<A> = Values<
   ExtractTypes<
@@ -258,8 +258,8 @@ export type Unify<A> = Values<
  * // Type: (a: string) => (b: number) => Unify<{ result: string }>
  * ```
  *
- * @since 2.0.0
  * @category utilities
+ * @since 2.0.0
  */
 export const unify: {
   <

@@ -46,16 +46,16 @@ import * as HttpServerResponse from "../http/HttpServerResponse.ts"
  *   name.replace(/([a-z])([A-Z])/g, "$1_$2").toLowerCase()
  * ```
  *
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export type MetricNameMapper = (name: string) => string
 
 /**
  * Options for formatting metrics.
  *
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface FormatOptions {
   /**
@@ -72,8 +72,8 @@ export interface FormatOptions {
 /**
  * Options for exporting Prometheus metrics over HTTP.
  *
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface HttpOptions extends FormatOptions {
   /**
@@ -109,8 +109,8 @@ export interface HttpOptions extends FormatOptions {
  * })
  * ```
  *
- * @since 4.0.0
  * @category Formatting
+ * @since 4.0.0
  */
 export const format: (options?: FormatOptions | undefined) => Effect.Effect<string> = Effect.fnUntraced(
   function*(options) {
@@ -125,8 +125,8 @@ export const format: (options?: FormatOptions | undefined) => Effect.Effect<stri
  * This is a low-level function that requires access to the context.
  * Most users should use `format` instead.
  *
- * @since 4.0.0
  * @category Formatting
+ * @since 4.0.0
  */
 export const formatUnsafe = (
   context: Context.Context<never>,
@@ -180,8 +180,8 @@ export const formatUnsafe = (
  * })
  * ```
  *
- * @since 4.0.0
  * @category Http
+ * @since 4.0.0
  */
 export const layerHttp = (
   options?: HttpOptions | undefined

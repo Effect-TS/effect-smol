@@ -36,8 +36,8 @@ const TypeId = internal.HashMapTypeId
  * console.log(HashMap.size(updated)) // 4
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface HashMap<out Key, out Value> extends Iterable<[Key, Value]>, Equal, Pipeable, Inspectable {
   readonly [TypeId]: typeof TypeId
@@ -74,8 +74,8 @@ export interface HashMap<out Key, out Value> extends Iterable<[Key, Value]>, Equ
  * const updatedInventory = updateInventory("tablet", newProduct)
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export declare namespace HashMap {
   /**
@@ -98,8 +98,8 @@ export declare namespace HashMap {
    * console.log(HashMap.get(updated, "a")) // Option.some(2)
    * ```
    *
-   * @since 2.0.0
    * @category models
+   * @since 2.0.0
    */
   export type UpdateFn<V> = (option: Option<V>) => Option<V>
 
@@ -123,8 +123,8 @@ export declare namespace HashMap {
    * const getUserById = (id: UserKey) => HashMap.get(userMap, id)
    * console.log(getUserById("alice")) // Option.some({ name: "Alice", age: 30 })
    * ```
-   * @since 2.0.0
    * @category type-level
+   * @since 2.0.0
    */
   export type Key<T extends HashMap<any, any>> = [T] extends [HashMap<infer _K, infer _V>] ? _K : never
 
@@ -152,8 +152,8 @@ export declare namespace HashMap {
    * const alice = HashMap.get(userMap, "alice")
    * // alice has type Option<User> thanks to type extraction
    * ```
-   * @since 2.0.0
    * @category type-level
+   * @since 2.0.0
    */
   export type Value<T extends HashMap<any, any>> = [T] extends [HashMap<infer _K, infer _V>] ? _V : never
 
@@ -182,8 +182,8 @@ export declare namespace HashMap {
    * const descriptions = HashMap.toEntries(catalog).map(processEntry)
    * console.log(descriptions) // ["laptop: $999 (electronics)", "book: $29 (education)"]
    * ```
-   * @since 3.9.0
    * @category type-level
+   * @since 3.9.0
    */
   export type Entry<T extends HashMap<any, any>> = [Key<T>, Value<T>]
 }
@@ -203,8 +203,8 @@ export declare namespace HashMap {
  * console.log(HashMap.isHashMap(null)) // false
  * ```
  *
- * @since 2.0.0
  * @category refinements
+ * @since 2.0.0
  */
 export const isHashMap: {
   <K, V>(u: Iterable<readonly [K, V]>): u is HashMap<K, V>
@@ -223,8 +223,8 @@ export const isHashMap: {
  * console.log(HashMap.size(map)) // 0
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const empty: <K = never, V = never>() => HashMap<K, V> = internal.empty
 
@@ -240,8 +240,8 @@ export const empty: <K = never, V = never>() => HashMap<K, V> = internal.empty
  * console.log(HashMap.get(map, "b")) // Option.some(2)
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const make: <Entries extends ReadonlyArray<readonly [any, any]>>(
   ...entries: Entries
@@ -263,8 +263,8 @@ export const make: <Entries extends ReadonlyArray<readonly [any, any]>>(
  * console.log(HashMap.get(map, "a")) // Option.some(1)
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const fromIterable: <K, V>(entries: Iterable<readonly [K, V]>) => HashMap<K, V> = internal.fromIterable
 
@@ -282,8 +282,8 @@ export const fromIterable: <K, V>(entries: Iterable<readonly [K, V]>) => HashMap
  * console.log(HashMap.isEmpty(nonEmptyMap)) // false
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const isEmpty: <K, V>(self: HashMap<K, V>) => boolean = internal.isEmpty
 
@@ -305,8 +305,8 @@ export const isEmpty: <K, V>(self: HashMap<K, V>) => boolean = internal.isEmpty
  * console.log(value) // Option.some(2)
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const get: {
   <K1 extends K, K>(key: K1): <V>(self: HashMap<K, V>) => Option<V>
@@ -340,8 +340,8 @@ export const get: {
  * console.log(notFound) // Option.none()
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const getHash: {
   <K1 extends K, K>(key: K1, hash: number): <V>(self: HashMap<K, V>) => Option<V>
@@ -380,8 +380,8 @@ export const getHash: {
  * // Error: "HashMap.getUnsafe: key not found"
  * ```
  *
- * @since 2.0.0
  * @category unsafe
+ * @since 2.0.0
  */
 export const getUnsafe: {
   <K1 extends K, K>(key: K1): <V>(self: HashMap<K, V>) => V
@@ -405,8 +405,8 @@ export const getUnsafe: {
  * console.log(hasB) // true
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const has: {
   <K1 extends K, K>(key: K1): <K, V>(self: HashMap<K, V>) => boolean
@@ -437,8 +437,8 @@ export const has: {
  * console.log(HashMap.hasHash(userMap, "admin", caseInsensitiveHash)) // false (different hash)
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const hasHash: {
   <K1 extends K, K>(key: K1, hash: number): <V>(self: HashMap<K, V>) => boolean
@@ -457,8 +457,8 @@ export const hasHash: {
  * HashMap.hasBy(hm, (value) => value === "b") // -> false
  * ```
  *
- * @since 3.16.0
  * @category elements
+ * @since 3.16.0
  */
 export const hasBy: {
   <K, V>(predicate: (value: NoInfer<V>, key: NoInfer<K>) => boolean): (self: HashMap<K, V>) => boolean
@@ -483,8 +483,8 @@ export const hasBy: {
  * console.log(HashMap.size(map1)) // 1
  * ```
  *
- * @since 2.0.0
  * @category transformations
+ * @since 2.0.0
  */
 export const set: {
   <K, V>(key: K, value: V): (self: HashMap<K, V>) => HashMap<K, V>
@@ -503,8 +503,8 @@ export const set: {
  * console.log(keys.sort()) // ["a", "b", "c"]
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const keys: <K, V>(self: HashMap<K, V>) => IterableIterator<K> = internal.keys
 
@@ -520,8 +520,8 @@ export const keys: <K, V>(self: HashMap<K, V>) => IterableIterator<K> = internal
  * console.log(values.sort()) // [1, 2, 3]
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const values: <K, V>(self: HashMap<K, V>) => IterableIterator<V> = internal.values
 
@@ -551,8 +551,8 @@ export const values: <K, V>(self: HashMap<K, V>) => IterableIterator<V> = intern
  * console.log(engineers.length) // 2
  * ```
  *
- * @since 3.13.0
  * @category getters
+ * @since 3.13.0
  */
 export const toValues = <K, V>(self: HashMap<K, V>): Array<V> => Array.from(values(self))
 
@@ -586,8 +586,8 @@ export const toValues = <K, V>(self: HashMap<K, V>): Array<V> => Array.from(valu
  * console.log(allEntries.length) // 3
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const entries: <K, V>(self: HashMap<K, V>) => IterableIterator<[K, V]> = internal.entries
 
@@ -619,8 +619,8 @@ export const entries: <K, V>(self: HashMap<K, V>) => IterableIterator<[K, V]> = 
  * const sortedMap = HashMap.fromIterable(scoreEntries)
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const toEntries = <K, V>(self: HashMap<K, V>): Array<[K, V]> => Array.from(entries(self))
 
@@ -638,8 +638,8 @@ export const toEntries = <K, V>(self: HashMap<K, V>): Array<[K, V]> => Array.fro
  * console.log(HashMap.size(map)) // 3
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const size: <K, V>(self: HashMap<K, V>) => number = internal.size
 
@@ -665,8 +665,8 @@ export const size: <K, V>(self: HashMap<K, V>) => number = internal.size
  * console.log(HashMap.size(result)) // 2
  * ```
  *
- * @since 2.0.0
  * @category mutations
+ * @since 2.0.0
  */
 export const beginMutation: <K, V>(self: HashMap<K, V>) => HashMap<K, V> = internal.beginMutation
 
@@ -696,8 +696,8 @@ export const beginMutation: <K, V>(self: HashMap<K, V>) => HashMap<K, V> = inter
  * console.log(HashMap.get(final, "z")) // Option.some(30)
  * ```
  *
- * @since 2.0.0
  * @category mutations
+ * @since 2.0.0
  */
 export const endMutation: <K, V>(self: HashMap<K, V>) => HashMap<K, V> = internal.endMutation
 
@@ -716,8 +716,8 @@ export const endMutation: <K, V>(self: HashMap<K, V>) => HashMap<K, V> = interna
  * // Returns a new HashMap with mutations applied
  * ```
  *
- * @since 2.0.0
  * @category mutations
+ * @since 2.0.0
  */
 export const mutate: {
   <K, V>(f: (self: HashMap<K, V>) => void): (self: HashMap<K, V>) => HashMap<K, V>
@@ -747,8 +747,8 @@ export const mutate: {
  * console.log(HashMap.get(updated, "a")) // Option.some(2)
  * ```
  *
- * @since 2.0.0
  * @category transformations
+ * @since 2.0.0
  */
 export const modifyAt: {
   <K, V>(key: K, f: HashMap.UpdateFn<V>): (self: HashMap<K, V>) => HashMap<K, V>
@@ -803,8 +803,8 @@ export const modifyAt: {
  * console.log(HashMap.get(withClicks, "clicks")) // Option.some(1)
  * ```
  *
- * @since 2.0.0
  * @category transformations
+ * @since 2.0.0
  */
 export const modifyHash: {
   <K, V>(key: K, hash: number, f: HashMap.UpdateFn<V>): (self: HashMap<K, V>) => HashMap<K, V>
@@ -825,8 +825,8 @@ export const modifyHash: {
  * console.log(HashMap.get(map2, "b")) // Option.some(2)
  * ```
  *
- * @since 2.0.0
  * @category transformations
+ * @since 2.0.0
  */
 export const modify: {
   <K, V>(key: K, f: (v: V) => V): (self: HashMap<K, V>) => HashMap<K, V>
@@ -848,8 +848,8 @@ export const modify: {
  * console.log(HashMap.get(union, "b")) // Option.some(20) - map2 wins
  * ```
  *
- * @since 2.0.0
  * @category combining
+ * @since 2.0.0
  */
 export const union: {
   <K1, V1>(that: HashMap<K1, V1>): <K0, V0>(self: HashMap<K0, V0>) => HashMap<K1 | K0, V1 | V0>
@@ -872,8 +872,8 @@ export const union: {
  * console.log(HashMap.has(map2, "a")) // true
  * ```
  *
- * @since 2.0.0
  * @category transformations
+ * @since 2.0.0
  */
 export const remove: {
   <K>(key: K): <V>(self: HashMap<K, V>) => HashMap<K, V>
@@ -895,8 +895,8 @@ export const remove: {
  * console.log(HashMap.has(map2, "c")) // true
  * ```
  *
- * @since 2.0.0
  * @category transformations
+ * @since 2.0.0
  */
 export const removeMany: {
   <K>(keys: Iterable<K>): <V>(self: HashMap<K, V>) => HashMap<K, V>
@@ -919,8 +919,8 @@ export const removeMany: {
  * console.log(HashMap.get(map2, "c")) // Option.some(3)
  * ```
  *
- * @since 2.0.0
  * @category transformations
+ * @since 2.0.0
  */
 export const setMany: {
   <K, V>(entries: Iterable<readonly [K, V]>): (self: HashMap<K, V>) => HashMap<K, V>
@@ -941,8 +941,8 @@ export const setMany: {
  * console.log(HashMap.get(map2, "b")) // Option.some("b:4")
  * ```
  *
- * @since 2.0.0
  * @category mapping
+ * @since 2.0.0
  */
 export const map: {
   <A, V, K>(f: (value: V, key: K) => A): (self: HashMap<K, V>) => HashMap<K, A>
@@ -969,8 +969,8 @@ export const map: {
  * console.log(HashMap.get(map2, "b2")) // Option.some(4)
  * ```
  *
- * @since 2.0.0
  * @category sequencing
+ * @since 2.0.0
  */
 export const flatMap: {
   <A, K, B>(f: (value: A, key: K) => HashMap<K, B>): (self: HashMap<K, A>) => HashMap<K, B>
@@ -994,8 +994,8 @@ export const flatMap: {
  * console.log(collected.sort()) // [["a", 1], ["b", 2]]
  * ```
  *
- * @since 2.0.0
  * @category traversing
+ * @since 2.0.0
  */
 export const forEach: {
   <V, K>(f: (value: V, key: K) => void): (self: HashMap<K, V>) => void
@@ -1015,8 +1015,8 @@ export const forEach: {
  * console.log(sum) // 6
  * ```
  *
- * @since 2.0.0
  * @category folding
+ * @since 2.0.0
  */
 export const reduce: {
   <Z, V, K>(zero: Z, f: (accumulator: Z, value: V, key: K) => Z): (self: HashMap<K, V>) => Z
@@ -1039,8 +1039,8 @@ export const reduce: {
  * console.log(HashMap.has(map2, "a")) // false
  * ```
  *
- * @since 2.0.0
  * @category filtering
+ * @since 2.0.0
  */
 export const filter: {
   <K, A>(f: (a: NoInfer<A>, k: K) => boolean): (self: HashMap<K, A>) => HashMap<K, A>
@@ -1067,8 +1067,8 @@ export const filter: {
  * console.log(HashMap.has(map2, "b")) // false
  * ```
  *
- * @since 2.0.0
  * @category filtering
+ * @since 2.0.0
  */
 export const compact: <K, A>(self: HashMap<K, Option<A>>) => HashMap<K, A> = internal.compact
 
@@ -1092,8 +1092,8 @@ export const compact: <K, A>(self: HashMap<K, Option<A>>) => HashMap<K, A> = int
  * console.log(HashMap.get(map2, "d")) // Option.some(8)
  * ```
  *
- * @since 2.0.0
  * @category filtering
+ * @since 2.0.0
  */
 export const filterMap: {
   <A, K, B, X>(f: (input: A, key: K) => Result<B, X>): (self: HashMap<K, A>) => HashMap<K, B>
@@ -1136,8 +1136,8 @@ export const findFirst: {
  * console.log(HashMap.some(map, (value) => value > 5)) // false
  * ```
  *
- * @since 3.13.0
  * @category elements
+ * @since 3.13.0
  */
 export const some: {
   <K, A>(predicate: (a: NoInfer<A>, k: K) => boolean): (self: HashMap<K, A>) => boolean
@@ -1160,8 +1160,8 @@ export const some: {
  * @param self - The hashmap to check.
  * @param predicate - The condition to test entries (value, key).
  *
- * @since 3.14.0
  * @category elements
+ * @since 3.14.0
  */
 export const every: {
   <K, A>(predicate: (a: NoInfer<A>, k: K) => boolean): (self: HashMap<K, A>) => boolean

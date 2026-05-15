@@ -29,8 +29,8 @@ const TypeId = "~effect/data/Redacted"
  * // TypeScript will infer the types as Redacted<string>
  * ```
  *
- * @since 3.3.0
  * @category models
+ * @since 3.3.0
  */
 export interface Redacted<out A = string> extends Redacted.Variance<A>, Equal.Equal, Pipeable {
   readonly label: string | undefined
@@ -48,8 +48,8 @@ export interface Redacted<out A = string> extends Redacted.Variance<A>, Equal.Eq
  * const isRedacted = Redacted.isRedacted(secret) // true
  * ```
  *
- * @since 3.3.0
  * @category namespace
+ * @since 3.3.0
  */
 export declare namespace Redacted {
   /**
@@ -64,8 +64,8 @@ export declare namespace Redacted {
    * // TypeScript will infer the types with proper variance
    * ```
    *
-   * @since 3.3.0
    * @category models
+   * @since 3.3.0
    */
   export interface Variance<out A> {
     readonly [TypeId]: {
@@ -83,8 +83,8 @@ export declare namespace Redacted {
    * const extractedValue: string = Redacted.value(secret)
    * ```
    *
-   * @since 3.3.0
    * @category type-level
+   * @since 3.3.0
    */
   export type Value<T extends Redacted<any>> = [T] extends [Redacted<infer _A>] ? _A : never
 }
@@ -101,8 +101,8 @@ export declare namespace Redacted {
  * console.log(Redacted.isRedacted(plainString)) // false
  * ```
  *
- * @since 3.3.0
  * @category refinements
+ * @since 3.3.0
  */
 export const isRedacted = (u: unknown): u is Redacted<unknown> => hasProperty(u, TypeId)
 
@@ -117,8 +117,8 @@ export const isRedacted = (u: unknown): u is Redacted<unknown> => hasProperty(u,
  * const API_KEY = Redacted.make("1234567890")
  * ```
  *
- * @since 3.3.0
  * @category constructors
+ * @since 3.3.0
  */
 export const make = <T>(value: T, options?: {
   readonly label?: string | undefined
@@ -171,8 +171,8 @@ const Proto = {
  * assert.equal(Redacted.value(API_KEY), "1234567890")
  * ```
  *
- * @since 3.3.0
  * @category getters
+ * @since 3.3.0
  */
 export const value: <T>(self: Redacted<T>) => T = redacted.value
 
@@ -198,8 +198,8 @@ export const value: <T>(self: Redacted<T>) => T = redacted.value
  * )
  * ```
  *
- * @since 3.3.0
  * @category unsafe
+ * @since 3.3.0
  */
 export const wipeUnsafe = <T>(self: Redacted<T>): boolean => redacted.redactedRegistry.delete(self)
 

@@ -17,16 +17,16 @@ import type { CreateEmbedding200, CreateEmbeddingRequestJson } from "./OpenAiCli
 import { OpenAiClient } from "./OpenAiClient.ts"
 
 /**
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export type Model = string
 
 /**
  * Service definition for OpenAI embedding model configuration.
  *
- * @since 1.0.0
  * @category context
+ * @since 1.0.0
  */
 export class Config extends Context.Service<
   Config,
@@ -44,8 +44,8 @@ export class Config extends Context.Service<
 >()("@effect/ai-openai-compat/OpenAiEmbeddingModel/Config") {}
 
 /**
- * @since 1.0.0
  * @category constructors
+ * @since 1.0.0
  */
 export const model = (
   model: string,
@@ -72,8 +72,8 @@ export const model = (
 /**
  * Creates an OpenAI embedding model service.
  *
- * @since 1.0.0
  * @category constructors
+ * @since 1.0.0
  */
 export const make = Effect.fnUntraced(function*({ model, config: providerConfig }: {
   readonly model: string
@@ -98,8 +98,8 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
 /**
  * Creates a layer for the OpenAI embedding model.
  *
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layer = (options: {
   readonly model: string
@@ -110,8 +110,8 @@ export const layer = (options: {
 /**
  * Provides config overrides for OpenAI embedding model operations.
  *
- * @since 1.0.0
  * @category configuration
+ * @since 1.0.0
  */
 export const withConfigOverride: {
   (overrides: typeof Config.Service): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, Config>>

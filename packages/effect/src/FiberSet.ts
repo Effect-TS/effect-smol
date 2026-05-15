@@ -38,8 +38,8 @@ const TypeId = "~effect/FiberSet"
  * })
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface FiberSet<out A = unknown, out E = unknown>
   extends Pipeable, Inspectable.Inspectable, Iterable<Fiber.Fiber<A, E>>
@@ -57,8 +57,8 @@ export interface FiberSet<out A = unknown, out E = unknown>
 /**
  * Checks if a value is a FiberSet.
  *
- * @since 2.0.0
  * @category refinements
+ * @since 2.0.0
  * @example
  * ```ts
  * import { Effect, FiberSet } from "effect"
@@ -124,8 +124,8 @@ const makeUnsafe = <A, E>(
  * )
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const make = <A = unknown, E = unknown>(): Effect.Effect<FiberSet<A, E>, never, Scope.Scope> =>
   Effect.acquireRelease(
@@ -145,8 +145,8 @@ export const make = <A = unknown, E = unknown>(): Effect.Effect<FiberSet<A, E>, 
 /**
  * Create an Effect run function that is backed by a FiberSet.
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  * @example
  * ```ts
  * import { Effect, Fiber, FiberSet } from "effect"
@@ -200,8 +200,8 @@ export const makeRuntime = <R = never, A = unknown, E = unknown>(): Effect.Effec
  * })
  * ```
  *
- * @since 3.13.0
  * @category constructors
+ * @since 3.13.0
  */
 export const makeRuntimePromise = <R = never, A = unknown, E = unknown>(): Effect.Effect<
   (<XE extends E, XA extends A>(
@@ -242,8 +242,8 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const addUnsafe: {
   <A, E, XE extends E, XA extends A>(
@@ -310,8 +310,8 @@ export const addUnsafe: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const add: {
   <A, E, XE extends E, XA extends A>(
@@ -361,8 +361,8 @@ export const add: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const clear = <A, E>(self: FiberSet<A, E>): Effect.Effect<void> =>
   Effect.suspend(() => {
@@ -405,8 +405,8 @@ const constInterruptedFiber = (function() {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const run: {
   <A, E>(
@@ -476,8 +476,8 @@ const runImpl = <A, E, R, XE extends E, XA extends A>(
  * )
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const runtime: <A, E>(
   self: FiberSet<A, E>
@@ -535,8 +535,8 @@ export const runtime: <A, E>(
  * })
  * ```
  *
- * @since 3.13.0
  * @category combinators
+ * @since 3.13.0
  */
 export const runtimePromise = <A, E>(self: FiberSet<A, E>): <R = never>() => Effect.Effect<
   <XE extends E, XA extends A>(
@@ -589,8 +589,8 @@ export const runtimePromise = <A, E>(self: FiberSet<A, E>): <R = never>() => Eff
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const size = <A, E>(self: FiberSet<A, E>): Effect.Effect<number> =>
   Effect.sync(() => self.state._tag === "Closed" ? 0 : self.state.backing.size)
@@ -612,8 +612,8 @@ export const size = <A, E>(self: FiberSet<A, E>): Effect.Effect<number> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const join = <A, E>(self: FiberSet<A, E>): Effect.Effect<void, E> =>
   Deferred.await(self.deferred as Deferred.Deferred<void, E>)
@@ -639,8 +639,8 @@ export const join = <A, E>(self: FiberSet<A, E>): Effect.Effect<void, E> =>
  * })
  * ```
  *
- * @since 3.13.0
  * @category combinators
+ * @since 3.13.0
  */
 export const awaitEmpty = <A, E>(self: FiberSet<A, E>): Effect.Effect<void> =>
   Effect.whileLoop({

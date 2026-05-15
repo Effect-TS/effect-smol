@@ -20,8 +20,8 @@ import * as Errors from "./internal/errors.ts"
 import { OpenAiConfig } from "./OpenAiConfig.ts"
 
 /**
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export interface Service {
   readonly client: HttpClient.HttpClient
@@ -46,16 +46,16 @@ export interface Service {
 }
 
 /**
- * @since 1.0.0
  * @category service
+ * @since 1.0.0
  */
 export class OpenAiClient extends Context.Service<OpenAiClient, Service>()(
   "@effect/ai-openai-compat/OpenAiClient"
 ) {}
 
 /**
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export type Options = {
   readonly apiKey?: Redacted.Redacted<string> | undefined
@@ -71,8 +71,8 @@ const RedactedOpenAiHeaders = {
 }
 
 /**
- * @since 1.0.0
  * @category constructors
+ * @since 1.0.0
  */
 export const make = Effect.fnUntraced(
   function*(options: Options): Effect.fn.Return<Service, never, HttpClient.HttpClient> {
@@ -212,15 +212,15 @@ export const make = Effect.fnUntraced(
 )
 
 /**
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layer = (options: Options): Layer.Layer<OpenAiClient, never, HttpClient.HttpClient> =>
   Layer.effect(OpenAiClient, make(options))
 
 /**
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layerConfig = (options?: {
   readonly apiKey?: Config.Config<Redacted.Redacted<string> | undefined> | undefined

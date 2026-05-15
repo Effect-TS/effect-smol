@@ -35,8 +35,8 @@ const TypeId = "~effect/FiberHandle"
  * })
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface FiberHandle<out A = unknown, out E = unknown> extends Pipeable, Inspectable.Inspectable {
   readonly [TypeId]: typeof TypeId
@@ -62,8 +62,8 @@ export interface FiberHandle<out A = unknown, out E = unknown> extends Pipeable,
  * })
  * ```
  *
- * @since 2.0.0
  * @category refinements
+ * @since 2.0.0
  */
 export const isFiberHandle = (u: unknown): u is FiberHandle => Predicate.hasProperty(u, TypeId)
 
@@ -110,8 +110,8 @@ const makeUnsafe = <A = unknown, E = unknown>(): FiberHandle<A, E> => {
  * )
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const make = <A = unknown, E = unknown>(): Effect.Effect<FiberHandle<A, E>, never, Scope.Scope> =>
   Effect.acquireRelease(
@@ -149,8 +149,8 @@ export const make = <A = unknown, E = unknown>(): Effect.Effect<FiberHandle<A, E
  * }).pipe(Effect.scoped)
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const makeRuntime = <R, E = unknown, A = unknown>(): Effect.Effect<
   <XE extends E, XA extends A>(
@@ -189,8 +189,8 @@ export const makeRuntime = <R, E = unknown, A = unknown>(): Effect.Effect<
  * }).pipe(Effect.scoped)
  * ```
  *
- * @since 3.13.0
  * @category constructors
+ * @since 3.13.0
  */
 export const makeRuntimePromise = <R = never, A = unknown, E = unknown>(): Effect.Effect<
   <XE extends E, XA extends A>(
@@ -237,8 +237,8 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const setUnsafe: {
   <A, E, XE extends E, XA extends A>(
@@ -320,8 +320,8 @@ export const setUnsafe: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const set: {
   <A, E, XE extends E, XA extends A>(
@@ -375,8 +375,8 @@ export const set: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export function getUnsafe<A, E>(self: FiberHandle<A, E>): Option.Option<Fiber.Fiber<A, E>> {
   return self.state._tag === "Closed" ? Option.none() : Option.fromUndefinedOr(self.state.fiber)
@@ -404,8 +404,8 @@ export function getUnsafe<A, E>(self: FiberHandle<A, E>): Option.Option<Fiber.Fi
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export function get<A, E>(self: FiberHandle<A, E>): Effect.Effect<Option.Option<Fiber.Fiber<A, E>>> {
   return Effect.suspend(() => Effect.succeed(getUnsafe(self)))
@@ -431,8 +431,8 @@ export function get<A, E>(self: FiberHandle<A, E>): Effect.Effect<Option.Option<
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const clear = <A, E>(self: FiberHandle<A, E>): Effect.Effect<void> =>
   Effect.uninterruptibleMask((restore) => {
@@ -482,8 +482,8 @@ const constInterruptedFiber = (function() {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const run: {
   <A, E>(
@@ -560,8 +560,8 @@ const runImpl = <A, E, R, XE extends E, XA extends A>(
  * )
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const runtime: <A, E>(
   self: FiberHandle<A, E>
@@ -628,8 +628,8 @@ export const runtime: <A, E>(
  * })
  * ```
  *
- * @since 3.13.0
  * @category combinators
+ * @since 3.13.0
  */
 export const runtimePromise = <A, E>(self: FiberHandle<A, E>): <R = never>() => Effect.Effect<
   <XE extends E, XA extends A>(
@@ -689,8 +689,8 @@ export const runtimePromise = <A, E>(self: FiberHandle<A, E>): <R = never>() => 
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const join = <A, E>(self: FiberHandle<A, E>): Effect.Effect<void, E> =>
   Deferred.await(self.deferred as Deferred.Deferred<void, E>)
@@ -715,8 +715,8 @@ export const join = <A, E>(self: FiberHandle<A, E>): Effect.Effect<void, E> =>
  * })
  * ```
  *
- * @since 3.13.0
  * @category combinators
+ * @since 3.13.0
  */
 export const awaitEmpty = <A, E>(self: FiberHandle<A, E>): Effect.Effect<void, E> =>
   Effect.suspend(() => {

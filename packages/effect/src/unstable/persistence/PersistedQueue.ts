@@ -23,20 +23,20 @@ import type { SqlError } from "../sql/SqlError.ts"
 import * as Redis from "./Redis.ts"
 
 /**
- * @since 4.0.0
  * @category Type IDs
+ * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/persistence/PersistedQueue"
 
 /**
- * @since 4.0.0
  * @category Type IDs
+ * @since 4.0.0
  */
 export type TypeId = "~effect/persistence/PersistedQueue"
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface PersistedQueue<in out A, out R = never> {
   readonly [TypeId]: TypeId
@@ -72,8 +72,8 @@ export interface PersistedQueue<in out A, out R = never> {
 }
 
 /**
- * @since 4.0.0
  * @category Factory
+ * @since 4.0.0
  */
 export class PersistedQueueFactory extends Context.Service<
   PersistedQueueFactory,
@@ -86,8 +86,8 @@ export class PersistedQueueFactory extends Context.Service<
 >()("effect/persistence/PersistedQueue/PersistedQueueFactory") {}
 
 /**
- * @since 4.0.0
  * @category Accessors
+ * @since 4.0.0
  */
 export const make = <S extends Schema.Top>(options: {
   readonly name: string
@@ -99,8 +99,8 @@ export const make = <S extends Schema.Top>(options: {
 > => PersistedQueueFactory.use((factory) => factory.make(options))
 
 /**
- * @since 4.0.0
  * @category Factory
+ * @since 4.0.0
  */
 export const makeFactory = Effect.gen(function*() {
   const store = yield* PersistedQueueStore
@@ -153,8 +153,8 @@ export const makeFactory = Effect.gen(function*() {
 })
 
 /**
- * @since 4.0.0
  * @category Factory
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<
   PersistedQueueFactory,
@@ -163,20 +163,20 @@ export const layer: Layer.Layer<
 > = Layer.effect(PersistedQueueFactory, makeFactory)
 
 /**
- * @since 4.0.0
  * @category Errors
+ * @since 4.0.0
  */
 export const ErrorTypeId: ErrorTypeId = "~@effect/experimental/PersistedQueue/PersistedQueueError"
 
 /**
- * @since 4.0.0
  * @category Errors
+ * @since 4.0.0
  */
 export type ErrorTypeId = "~@effect/experimental/PersistedQueue/PersistedQueueError"
 
 /**
- * @since 4.0.0
  * @category Errors
+ * @since 4.0.0
  */
 export class PersistedQueueError extends Schema.ErrorClass<PersistedQueueError>(
   "effect/persistence/PersistedQueue/PersistedQueueError"
@@ -192,8 +192,8 @@ export class PersistedQueueError extends Schema.ErrorClass<PersistedQueueError>(
 }
 
 /**
- * @since 4.0.0
  * @category Store
+ * @since 4.0.0
  */
 export class PersistedQueueStore extends Context.Service<
   PersistedQueueStore,
@@ -223,8 +223,8 @@ export class PersistedQueueStore extends Context.Service<
 >()("effect/persistence/PersistedQueue/PersistedQueueStore") {}
 
 /**
- * @since 4.0.0
  * @category Store
+ * @since 4.0.0
  */
 export const layerStoreMemory: Layer.Layer<
   PersistedQueueStore
@@ -289,8 +289,8 @@ export const layerStoreMemory: Layer.Layer<
 })
 
 /**
- * @since 4.0.0
  * @category Store
+ * @since 4.0.0
  */
 export const makeStoreRedis = Effect.fnUntraced(function*(
   options?: {
@@ -648,8 +648,8 @@ end
 )
 
 /**
- * @since 4.0.0
  * @category Store
+ * @since 4.0.0
  */
 export const layerStoreRedis: (
   options?: {
@@ -665,8 +665,8 @@ export const layerStoreRedis: (
 > = flow(makeStoreRedis, Layer.effect(PersistedQueueStore))
 
 /**
- * @since 4.0.0
  * @category Store
+ * @since 4.0.0
  */
 export const makeStoreSql: (
   options?: {
@@ -1093,8 +1093,8 @@ class QueueKey extends Data.Class<{
 }> {}
 
 /**
- * @since 4.0.0
  * @category Store
+ * @since 4.0.0
  */
 export const layerStoreSql: (
   options?: {

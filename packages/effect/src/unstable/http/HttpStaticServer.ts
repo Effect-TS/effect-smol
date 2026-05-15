@@ -27,8 +27,8 @@ import * as HttpServerResponse from "./HttpServerResponse.ts"
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make: (options: {
   readonly root: string
@@ -185,8 +185,8 @@ export const make: (options: {
  * const AppLayer = Layer.mergeAll(ApiLayer, StaticFilesLayer)
  * ```
  *
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layer = (options: {
   readonly root: string

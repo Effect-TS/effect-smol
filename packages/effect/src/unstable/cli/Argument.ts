@@ -24,8 +24,8 @@ import type * as Primitive from "./Primitive.ts"
  * no flag name to negate (e.g., `--no-verbose`). Use Flag.boolean instead,
  * or use Argument.choice with explicit "true"/"false" strings if needed.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Argument<A> extends Param.Param<typeof Param.argumentKind, A> {}
 
@@ -43,8 +43,8 @@ export interface Argument<A> extends Param.Param<typeof Param.argumentKind, A> {
  * const filename = Argument.string("filename")
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const string = (name: string): Argument<string> => Param.string(Param.argumentKind, name)
 
@@ -58,8 +58,8 @@ export const string = (name: string): Argument<string> => Param.string(Param.arg
  * const count = Argument.integer("count")
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const integer = (name: string): Argument<number> => Param.integer(Param.argumentKind, name)
 
@@ -74,8 +74,8 @@ export const integer = (name: string): Argument<number> => Param.integer(Param.a
  * const outputFile = Argument.file("output", { mustExist: false }) // Must not exist
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const file = (name: string, options?: {
   readonly mustExist?: boolean | undefined
@@ -91,8 +91,8 @@ export const file = (name: string, options?: {
  * const workspace = Argument.directory("workspace", { mustExist: true }) // Must exist
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const directory = (name: string, options?: {
   readonly mustExist?: boolean | undefined
@@ -108,8 +108,8 @@ export const directory = (name: string, options?: {
  * const ratio = Argument.float("ratio")
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const float = (name: string): Argument<number> => Param.float(Param.argumentKind, name)
 
@@ -123,8 +123,8 @@ export const float = (name: string): Argument<number> => Param.float(Param.argum
  * const startDate = Argument.date("start-date")
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const date = (name: string): Argument<Date> => Param.date(Param.argumentKind, name)
 
@@ -138,8 +138,8 @@ export const date = (name: string): Argument<Date> => Param.date(Param.argumentK
  * const environment = Argument.choice("environment", ["dev", "staging", "prod"])
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const choice = <const Choices extends ReadonlyArray<string>>(
   name: string,
@@ -156,8 +156,8 @@ export const choice = <const Choices extends ReadonlyArray<string>>(
  * const configPath = Argument.path("config")
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const path = (name: string, options?: {
   pathType?: "file" | "directory" | "either"
@@ -174,8 +174,8 @@ export const path = (name: string, options?: {
  * const secret = Argument.redacted("secret")
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const redacted = (name: string): Argument<Redacted.Redacted<string>> => Param.redacted(Param.argumentKind, name)
 
@@ -189,8 +189,8 @@ export const redacted = (name: string): Argument<Redacted.Redacted<string>> => P
  * const config = Argument.fileText("config-file")
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fileText = (name: string): Argument<string> => Param.fileText(Param.argumentKind, name)
 
@@ -204,8 +204,8 @@ export const fileText = (name: string): Argument<string> => Param.fileText(Param
  * const config = Argument.fileParse("config", { format: "json" })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fileParse = (
   name: string,
@@ -228,8 +228,8 @@ export const fileParse = (
  * const config = Argument.fileSchema("config", ConfigSchema)
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fileSchema = <A>(
   name: string,
@@ -248,8 +248,8 @@ export const fileSchema = <A>(
  * const noArg = Argument.none
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const none: Argument<never> = Param.none(Param.argumentKind)
 
@@ -267,8 +267,8 @@ export const none: Argument<never> = Param.none(Param.argumentKind)
  * const optionalVersion = Argument.string("version").pipe(Argument.optional)
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const optional = <A>(arg: Argument<A>): Argument<Option.Option<A>> => Param.optional(arg)
 
@@ -284,8 +284,8 @@ export const optional = <A>(arg: Argument<A>): Argument<Option.Option<A>> => Par
  * )
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withDescription: {
   <A>(description: string): (self: Argument<A>) => Argument<A>
@@ -302,8 +302,8 @@ export const withDescription: {
  * const port = Argument.integer("port").pipe(Argument.withDefault(8080))
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withDefault: {
   <const B>(
@@ -328,8 +328,8 @@ export const withDefault: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withFallbackConfig: {
   <B>(config: Config.Config<B>): <A>(self: Argument<A>) => Argument<A | B>
@@ -348,8 +348,8 @@ export const withFallbackConfig: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withFallbackPrompt: {
   <B>(prompt: Param.FallbackPrompt<B>): <A>(self: Argument<A>) => Argument<A | B>
@@ -377,8 +377,8 @@ export const withFallbackPrompt: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const variadic: {
   (options?: Param.VariadicParamOptions | undefined): <A>(self: Argument<A>) => Argument<ReadonlyArray<A>>
@@ -400,8 +400,8 @@ export const variadic: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const map: {
   <A, B>(f: (a: A) => B): (self: Argument<A>) => Argument<B>
@@ -429,8 +429,8 @@ export const map: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const mapEffect: {
   <A, B>(
@@ -461,8 +461,8 @@ export const mapEffect: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const mapTryCatch: {
   <A, B>(
@@ -486,8 +486,8 @@ export const mapTryCatch: {
  * const files = Argument.string("files").pipe(Argument.atLeast(1))
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const atLeast: {
   <A>(min: number): (self: Argument<A>) => Argument<ReadonlyArray<A>>
@@ -504,8 +504,8 @@ export const atLeast: {
  * const files = Argument.string("files").pipe(Argument.atMost(5))
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const atMost: {
   <A>(max: number): (self: Argument<A>) => Argument<ReadonlyArray<A>>
@@ -522,8 +522,8 @@ export const atMost: {
  * const files = Argument.string("files").pipe(Argument.between(1, 5))
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const between: {
   <A>(min: number, max: number): (self: Argument<A>) => Argument<ReadonlyArray<A>>
@@ -543,8 +543,8 @@ export const between: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withSchema: {
   <A, B>(schema: Schema.Codec<B, A>): (self: Argument<A>) => Argument<B>
@@ -566,8 +566,8 @@ export const withSchema: {
  * ])
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const choiceWithValue = <const Choices extends ReadonlyArray<readonly [string, any]>>(
   name: string,
@@ -593,8 +593,8 @@ export const choiceWithValue = <const Choices extends ReadonlyArray<readonly [st
  * )
  * ```
  *
- * @since 4.0.0
  * @category metadata
+ * @since 4.0.0
  */
 export const withMetavar: {
   <A>(metavar: string): (self: Argument<A>) => Argument<A>
@@ -616,8 +616,8 @@ export const withMetavar: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const filter: {
   <A>(predicate: (a: A) => boolean, onFalse: (a: A) => string): (self: Argument<A>) => Argument<A>
@@ -645,8 +645,8 @@ export const filter: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const filterMap: {
   <A, B>(f: (a: A) => Option.Option<B>, onNone: (a: A) => string): (self: Argument<A>) => Argument<B>
@@ -669,8 +669,8 @@ export const filterMap: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const orElse: {
   <B>(that: LazyArg<Argument<B>>): <A>(self: Argument<A>) => Argument<A | B>
@@ -690,8 +690,8 @@ export const orElse: {
  * // Returns Result<string, string>
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const orElseResult: {
   <B>(that: LazyArg<Argument<B>>): <A>(self: Argument<A>) => Argument<Result.Result<A, B>>

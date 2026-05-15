@@ -27,8 +27,8 @@ import type { SpecSource } from "./Config.ts"
  * })
  * ```
  *
- * @since 1.0.0
  * @category errors
+ * @since 1.0.0
  */
 export class SpecFetchError extends Data.TaggedError("SpecFetchError")<{
   readonly provider: string
@@ -39,8 +39,8 @@ export class SpecFetchError extends Data.TaggedError("SpecFetchError")<{
 /**
  * Service for fetching OpenAPI specifications.
  *
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export interface SpecFetcher {
   readonly fetch: (
@@ -50,8 +50,8 @@ export interface SpecFetcher {
 }
 
 /**
- * @since 1.0.0
  * @category tags
+ * @since 1.0.0
  */
 export const SpecFetcher: Context.Service<SpecFetcher, SpecFetcher> = Context.Service(
   "@effect/ai-codegen/SpecFetcher"
@@ -60,8 +60,8 @@ export const SpecFetcher: Context.Service<SpecFetcher, SpecFetcher> = Context.Se
 /**
  * Layer providing the SpecFetcher service.
  *
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layer: Layer.Layer<
   SpecFetcher,

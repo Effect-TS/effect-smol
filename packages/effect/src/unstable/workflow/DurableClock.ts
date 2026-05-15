@@ -12,8 +12,8 @@ import type { WorkflowEngine, WorkflowInstance } from "./WorkflowEngine.ts"
 const TypeId = "~effect/workflow/DurableClock"
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface DurableClock {
   readonly [TypeId]: typeof TypeId
@@ -23,8 +23,8 @@ export interface DurableClock {
 }
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make = (options: {
   readonly name: string
@@ -48,8 +48,8 @@ const InstanceTag = Context.Service<
 )
 
 /**
- * @since 1.0.0
  * @category Sleeping
+ * @since 1.0.0
  */
 export const sleep: (
   options: {

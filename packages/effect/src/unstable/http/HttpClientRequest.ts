@@ -25,14 +25,14 @@ import * as UrlParams from "./UrlParams.ts"
 const TypeId = "~effect/http/HttpClientRequest"
 
 /**
- * @since 4.0.0
  * @category Guards
+ * @since 4.0.0
  */
 export const isHttpClientRequest = (u: unknown): u is HttpClientRequest => hasProperty(u, TypeId)
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface HttpClientRequest extends Inspectable.Inspectable, Pipeable {
   readonly [TypeId]: typeof TypeId
@@ -45,8 +45,8 @@ export interface HttpClientRequest extends Inspectable.Inspectable, Pipeable {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Options {
   readonly method?: HttpMethod | undefined
@@ -64,8 +64,8 @@ export interface Options {
  */
 export declare namespace Options {
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface NoUrl extends Omit<Options, "method" | "url"> {}
 }
@@ -90,8 +90,8 @@ const Proto = {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export function makeWith(
   method: HttpMethod,
@@ -112,8 +112,8 @@ export function makeWith(
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const empty: HttpClientRequest = makeWith(
   "GET",
@@ -125,8 +125,8 @@ export const empty: HttpClientRequest = makeWith(
 )
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = <M extends HttpMethod>(
   method: M
@@ -142,26 +142,26 @@ export const make = <M extends HttpMethod>(
   })
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const get: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = make("GET")
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const post: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = make("POST")
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const patch: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = make("PATCH")
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const put: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = make("PUT")
 
@@ -169,33 +169,33 @@ const del: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = m
 
 export {
   /**
-   * @since 4.0.0
    * @category constructors
+   * @since 4.0.0
    */
   del as delete
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const head: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = make("HEAD")
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const options: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = make("OPTIONS")
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const trace: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = make("TRACE")
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const modify: {
   (options: Options): (self: HttpClientRequest) => HttpClientRequest
@@ -232,8 +232,8 @@ export const modify: {
 })
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const setMethod: {
   (method: HttpMethod): (self: HttpClientRequest) => HttpClientRequest
@@ -245,8 +245,8 @@ export const setMethod: {
 )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const setHeader: {
   (key: string, value: string): (self: HttpClientRequest) => HttpClientRequest
@@ -262,8 +262,8 @@ export const setHeader: {
   ))
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const setHeaders: {
   (input: Headers.Input): (self: HttpClientRequest) => HttpClientRequest
@@ -279,8 +279,8 @@ export const setHeaders: {
   ))
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const basicAuth: {
   (
@@ -303,8 +303,8 @@ export const basicAuth: {
 )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const bearerToken: {
   (token: string | Redacted.Redacted): (self: HttpClientRequest) => HttpClientRequest
@@ -316,8 +316,8 @@ export const bearerToken: {
 )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const accept: {
   (mediaType: string): (self: HttpClientRequest) => HttpClientRequest
@@ -325,14 +325,14 @@ export const accept: {
 } = dual(2, (self: HttpClientRequest, mediaType: string): HttpClientRequest => setHeader(self, "Accept", mediaType))
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const acceptJson: (self: HttpClientRequest) => HttpClientRequest = accept("application/json")
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const setUrl: {
   (url: string | URL): (self: HttpClientRequest) => HttpClientRequest
@@ -364,8 +364,8 @@ export const setUrl: {
 })
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const prependUrl: {
   (path: string): (self: HttpClientRequest) => HttpClientRequest
@@ -383,8 +383,8 @@ export const prependUrl: {
 })
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const appendUrl: {
   (path: string): (self: HttpClientRequest) => HttpClientRequest
@@ -414,8 +414,8 @@ const joinSegments = (first: string, second: string): string => {
 }
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const updateUrl: {
   (f: (url: string) => string): (self: HttpClientRequest) => HttpClientRequest
@@ -431,8 +431,8 @@ export const updateUrl: {
   ))
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const setUrlParam: {
   (key: string, value: string): (self: HttpClientRequest) => HttpClientRequest
@@ -448,8 +448,8 @@ export const setUrlParam: {
   ))
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const setUrlParams: {
   (input: UrlParams.Input): (self: HttpClientRequest) => HttpClientRequest
@@ -465,8 +465,8 @@ export const setUrlParams: {
   ))
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const appendUrlParam: {
   (key: string, value: string): (self: HttpClientRequest) => HttpClientRequest
@@ -482,8 +482,8 @@ export const appendUrlParam: {
   ))
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const appendUrlParams: {
   (input: UrlParams.Input): (self: HttpClientRequest) => HttpClientRequest
@@ -499,8 +499,8 @@ export const appendUrlParams: {
   ))
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const setHash: {
   (hash: string): (self: HttpClientRequest) => HttpClientRequest
@@ -516,8 +516,8 @@ export const setHash: {
   ))
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const removeHash = (self: HttpClientRequest): HttpClientRequest =>
   makeWith(
@@ -530,8 +530,8 @@ export const removeHash = (self: HttpClientRequest): HttpClientRequest =>
   )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const setBody: {
   (body: HttpBody.HttpBody): (self: HttpClientRequest) => HttpClientRequest
@@ -559,8 +559,8 @@ export const setBody: {
 })
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const bodyUint8Array: {
   (body: Uint8Array, contentType?: string): (self: HttpClientRequest) => HttpClientRequest
@@ -572,8 +572,8 @@ export const bodyUint8Array: {
 )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const bodyText: {
   (body: string, contentType?: string): (self: HttpClientRequest) => HttpClientRequest
@@ -585,8 +585,8 @@ export const bodyText: {
 )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const bodyJson: {
   (body: unknown): (self: HttpClientRequest) => Effect.Effect<HttpClientRequest, HttpBody.HttpBodyError>
@@ -598,8 +598,8 @@ export const bodyJson: {
 )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const bodyJsonUnsafe: {
   (body: unknown): (self: HttpClientRequest) => HttpClientRequest
@@ -607,8 +607,8 @@ export const bodyJsonUnsafe: {
 } = dual(2, (self: HttpClientRequest, body: unknown): HttpClientRequest => setBody(self, HttpBody.jsonUnsafe(body)))
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const schemaBodyJson = <S extends Schema.Top>(
   schema: S,
@@ -636,8 +636,8 @@ export const schemaBodyJson = <S extends Schema.Top>(
 }
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const bodyUrlParams: {
   (input: UrlParams.Input): (self: HttpClientRequest) => HttpClientRequest
@@ -649,8 +649,8 @@ export const bodyUrlParams: {
 )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const bodyFormData: {
   (body: FormData): (self: HttpClientRequest) => HttpClientRequest
@@ -658,8 +658,8 @@ export const bodyFormData: {
 } = dual(2, (self: HttpClientRequest, body: FormData): HttpClientRequest => setBody(self, HttpBody.formData(body)))
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const bodyFormDataRecord: {
   (entries: HttpBody.FormDataInput): (self: HttpClientRequest) => HttpClientRequest
@@ -671,8 +671,8 @@ export const bodyFormDataRecord: {
 )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const bodyStream: {
   (
@@ -698,8 +698,8 @@ export const bodyStream: {
 )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const bodyFile: {
   (
@@ -740,8 +740,8 @@ export const bodyFile: {
 )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export function toUrl(self: HttpClientRequest): Option.Option<URL> {
   const r = UrlParams.makeUrl(self.url, self.urlParams, Option.getOrUndefined(self.hash))
@@ -752,8 +752,8 @@ export function toUrl(self: HttpClientRequest): Option.Option<URL> {
 }
 
 /**
- * @since 4.0.0
  * @category conversions
+ * @since 4.0.0
  */
 export const fromWeb = (request: globalThis.Request): HttpClientRequest => {
   const method = request.method.toUpperCase() as HttpMethod
@@ -784,8 +784,8 @@ const parseContentLength = (contentLength: string | null): number | undefined =>
 }
 
 /**
- * @since 4.0.0
  * @category conversions
+ * @since 4.0.0
  */
 export const toWebResult = (self: HttpClientRequest, options?: {
   readonly signal?: AbortSignal | undefined
@@ -839,8 +839,8 @@ const isReadableStream = (u: unknown): u is ReadableStream<Uint8Array> =>
   typeof ReadableStream !== "undefined" && u instanceof ReadableStream
 
 /**
- * @since 4.0.0
  * @category conversions
+ * @since 4.0.0
  */
 export const toWeb = (self: HttpClientRequest, options?: {
   readonly signal?: AbortSignal | undefined

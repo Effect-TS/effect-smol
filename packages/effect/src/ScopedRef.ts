@@ -18,8 +18,8 @@ const TypeId = "~effect/ScopedRef"
  * resources). The reference itself takes care of properly releasing resources
  * for the old value whenever a new value is obtained.
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface ScopedRef<in out A> extends Pipeable {
   readonly [TypeId]: typeof TypeId
@@ -50,8 +50,8 @@ const makeUnsafe = <A>(
  * Creates a new `ScopedRef` from an effect that resourcefully produces a
  * value.
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const fromAcquire: <A, E, R>(
   acquire: Effect.Effect<A, E, R>
@@ -71,16 +71,16 @@ export const fromAcquire: <A, E, R>(
 /**
  * Retrieves the current value of the scoped reference.
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const getUnsafe = <A>(self: ScopedRef<A>): A => self.backing.backing.ref.current[1]
 
 /**
  * Retrieves the current value of the scoped reference.
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const get = <A>(self: ScopedRef<A>): Effect.Effect<A> => Effect.sync(() => getUnsafe(self))
 
@@ -88,8 +88,8 @@ export const get = <A>(self: ScopedRef<A>): Effect.Effect<A> => Effect.sync(() =
  * Creates a new `ScopedRef` from the specified value. This method should
  * not be used for values whose creation require the acquisition of resources.
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const make = <A>(evaluate: LazyArg<A>): Effect.Effect<ScopedRef<A>, never, Scope.Scope> =>
   Effect.suspend(() => {
@@ -107,8 +107,8 @@ export const make = <A>(evaluate: LazyArg<A>): Effect.Effect<ScopedRef<A>, never
  * changed to the new value, with old resources released, or until the attempt
  * to acquire a new value fails.
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const set: {
   <A, R, E>(acquire: Effect.Effect<A, E, R>): (self: ScopedRef<A>) => Effect.Effect<void, E, Exclude<R, Scope.Scope>>

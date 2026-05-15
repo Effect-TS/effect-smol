@@ -914,8 +914,8 @@ export const get: {
  *
  * @see {@link get} — safe version returning `Option`
  *
- * @since 2.0.0
  * @category unsafe
+ * @since 2.0.0
  */
 export const getUnsafe: {
   (index: number): <A>(self: ReadonlyArray<A>) => A
@@ -1859,8 +1859,8 @@ export const sort: {
  * @see {@link sort} — sort by a direct `Order`
  * @see {@link sortBy} — sort by multiple orders
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const sortWith: {
   <S extends Iterable<any>, B>(
@@ -2401,8 +2401,8 @@ export const splitAtNonEmpty: {
  *
  * @see {@link chunksOf} — split into fixed-size chunks
  *
- * @since 2.0.0
  * @category splitting
+ * @since 2.0.0
  */
 export const split: {
   (n: number): <A>(self: Iterable<A>) => Array<Array<A>>
@@ -3966,8 +3966,8 @@ export const dedupeAdjacent: <A>(self: Iterable<A>) => Array<A> = dedupeAdjacent
  *
  * @see {@link intersperse} — insert separator elements without joining
  *
- * @since 2.0.0
  * @category folding
+ * @since 2.0.0
  */
 export const join: {
   (sep: string): (self: Iterable<string>) => string
@@ -3994,8 +3994,8 @@ export const join: {
  * @see {@link scan} — when you only need the accumulated results (not the final state)
  * @see {@link reduce} — when you only need the final accumulated value
  *
- * @since 2.0.0
  * @category folding
+ * @since 2.0.0
  */
 export const mapAccum: {
   <S, A, B, I extends Iterable<A> = Iterable<A>>(
@@ -4041,8 +4041,8 @@ export const mapAccum: {
  *
  * @see {@link cartesian} — returns tuples instead of applying a combiner
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const cartesianWith: {
   <A, B, C>(that: ReadonlyArray<B>, f: (a: A, b: B) => C): (self: ReadonlyArray<A>) => Array<C>
@@ -4070,8 +4070,8 @@ export const cartesianWith: {
  *
  * @see {@link cartesianWith} — apply a combiner to each pair
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const cartesian: {
   <B>(that: ReadonlyArray<B>): <A>(self: ReadonlyArray<A>) => Array<[A, B]>

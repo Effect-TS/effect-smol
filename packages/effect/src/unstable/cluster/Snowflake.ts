@@ -23,26 +23,26 @@ export const TypeId = "~effect/cluster/Snowflake"
 export type TypeId = typeof TypeId
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export type Snowflake = Brand.Branded<bigint, TypeId>
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export const Snowflake = (input: string | bigint): Snowflake =>
   typeof input === "string" ? BigInt(input) as Snowflake : input as Snowflake
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export declare namespace Snowflake {
   /**
-   * @since 4.0.0
    * @category Models
+   * @since 4.0.0
    */
   export interface Parts {
     readonly timestamp: number
@@ -51,8 +51,8 @@ export declare namespace Snowflake {
   }
 
   /**
-   * @since 4.0.0
    * @category Models
+   * @since 4.0.0
    */
   export interface Generator {
     readonly nextUnsafe: () => Snowflake
@@ -61,34 +61,34 @@ export declare namespace Snowflake {
 }
 
 /**
- * @since 4.0.0
  * @category Schemas
+ * @since 4.0.0
  */
 export interface SnowflakeFromBigInt extends Schema.brand<Schema.BigInt, TypeId> {}
 
 /**
- * @since 4.0.0
  * @category Schemas
+ * @since 4.0.0
  */
 export const SnowflakeFromBigInt: SnowflakeFromBigInt = Schema.BigInt.pipe(Schema.brand(TypeId))
 
 /**
- * @since 4.0.0
  * @category Schemas
+ * @since 4.0.0
  */
 export interface SnowflakeFromString extends Schema.decodeTo<SnowflakeFromBigInt, Schema.String> {}
 
 /**
- * @since 4.0.0
  * @category Schemas
+ * @since 4.0.0
  */
 export const SnowflakeFromString: SnowflakeFromString = Schema.String.pipe(
   Schema.decodeTo(SnowflakeFromBigInt, Transformation.bigintFromString)
 )
 
 /**
- * @since 4.0.0
  * @category Epoch
+ * @since 4.0.0
  */
 export const constEpochMillis: number = Date.UTC(2025, 0, 1)
 
@@ -99,8 +99,8 @@ const constBigInt1024 = BigInt(1024)
 const constBigInt4096 = BigInt(4096)
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = (options: {
   readonly machineId: MachineId
@@ -112,33 +112,33 @@ export const make = (options: {
     | BigInt(options.sequence % 4096)) as Snowflake
 
 /**
- * @since 4.0.0
  * @category Parts
+ * @since 4.0.0
  */
 export const timestamp = (snowflake: Snowflake): number => Number(snowflake >> constBigInt22) + sinceUnixEpoch
 
 /**
- * @since 4.0.0
  * @category Parts
+ * @since 4.0.0
  */
 export const dateTime = (snowflake: Snowflake): DateTime.Utc => DateTime.makeUnsafe(timestamp(snowflake))
 
 /**
- * @since 4.0.0
  * @category Parts
+ * @since 4.0.0
  */
 export const machineId = (snowflake: Snowflake): MachineId =>
   Number((snowflake >> constBigInt12) % constBigInt1024) as MachineId
 
 /**
- * @since 4.0.0
  * @category Parts
+ * @since 4.0.0
  */
 export const sequence = (snowflake: Snowflake): number => Number(snowflake % constBigInt4096)
 
 /**
- * @since 4.0.0
  * @category Parts
+ * @since 4.0.0
  */
 export const toParts = (snowflake: Snowflake): Snowflake.Parts => ({
   timestamp: timestamp(snowflake),
@@ -147,8 +147,8 @@ export const toParts = (snowflake: Snowflake): Snowflake.Parts => ({
 })
 
 /**
- * @since 4.0.0
  * @category Generator
+ * @since 4.0.0
  */
 export const makeGenerator: Effect.Effect<Snowflake.Generator> = Effect.gen(function*() {
   let machineId = Math.floor(Math.random() * 1024) as MachineId
@@ -189,8 +189,8 @@ export const makeGenerator: Effect.Effect<Snowflake.Generator> = Effect.gen(func
 })
 
 /**
- * @since 4.0.0
  * @category Generator
+ * @since 4.0.0
  */
 export class Generator extends Context.Service<
   Generator,
@@ -198,7 +198,7 @@ export class Generator extends Context.Service<
 >()("effect/cluster/Snowflake/Generator") {}
 
 /**
- * @since 4.0.0
  * @category Generator
+ * @since 4.0.0
  */
 export const layerGenerator: Layer.Layer<Generator> = Layer.effect(Generator)(makeGenerator)

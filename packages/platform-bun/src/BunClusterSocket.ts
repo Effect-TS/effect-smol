@@ -24,20 +24,20 @@ import * as BunFileSystem from "./BunFileSystem.ts"
 
 export {
   /**
-   * @since 1.0.0
    * @category Re-exports
+   * @since 1.0.0
    */
   layerClientProtocol,
   /**
-   * @since 1.0.0
    * @category Re-exports
+   * @since 1.0.0
    */
   layerSocketServer
 }
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layer = <
   const ClientOnly extends boolean = false,
@@ -110,8 +110,8 @@ export const layer = <
 }
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerK8sHttpClient: Layer.Layer<K8sHttpClient.K8sHttpClient> = K8sHttpClient.layer.pipe(
   Layer.provide(Layer.unwrap(Effect.gen(function*() {

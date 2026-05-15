@@ -20,8 +20,8 @@ import * as TxRef from "./TxRef.ts"
 const TypeId = "~effect/transactions/TxReentrantLock"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 interface LockState {
   readonly readers: HashMap.HashMap<number, number>
@@ -53,8 +53,8 @@ const emptyState: LockState = {
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface TxReentrantLock extends Inspectable, Pipeable {
   readonly [TypeId]: typeof TypeId
@@ -95,8 +95,8 @@ const TxReentrantLockProto: Omit<TxReentrantLock, typeof TypeId | "stateRef"> = 
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = (): Effect.Effect<TxReentrantLock> =>
   Effect.gen(function*() {
@@ -128,8 +128,8 @@ export const make = (): Effect.Effect<TxReentrantLock> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const acquireRead = (self: TxReentrantLock): Effect.Effect<number> =>
   Effect.withFiber((fiber) =>
@@ -171,8 +171,8 @@ export const acquireRead = (self: TxReentrantLock): Effect.Effect<number> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const acquireWrite = (self: TxReentrantLock): Effect.Effect<number> =>
   Effect.withFiber((fiber) =>
@@ -228,8 +228,8 @@ export const acquireWrite = (self: TxReentrantLock): Effect.Effect<number> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const releaseRead = (self: TxReentrantLock): Effect.Effect<number> =>
   Effect.withFiber((fiber) =>
@@ -266,8 +266,8 @@ export const releaseRead = (self: TxReentrantLock): Effect.Effect<number> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const releaseWrite = (self: TxReentrantLock): Effect.Effect<number> =>
   Effect.withFiber((fiber) =>
@@ -308,8 +308,8 @@ export const releaseWrite = (self: TxReentrantLock): Effect.Effect<number> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const readLock = (self: TxReentrantLock): Effect.Effect<number, never, Scope.Scope> =>
   Effect.acquireRelease(
@@ -338,8 +338,8 @@ export const readLock = (self: TxReentrantLock): Effect.Effect<number, never, Sc
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const writeLock = (self: TxReentrantLock): Effect.Effect<number, never, Scope.Scope> =>
   Effect.acquireRelease(
@@ -365,8 +365,8 @@ export const writeLock = (self: TxReentrantLock): Effect.Effect<number, never, S
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const withReadLock: {
   <A, E, R>(effect: Effect.Effect<A, E, R>): (self: TxReentrantLock) => Effect.Effect<A, E, R>
@@ -407,8 +407,8 @@ export const withReadLock: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const withWriteLock: {
   <A, E, R>(effect: Effect.Effect<A, E, R>): (self: TxReentrantLock) => Effect.Effect<A, E, R>
@@ -448,8 +448,8 @@ export const withWriteLock: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const withLock: {
   <A, E, R>(effect: Effect.Effect<A, E, R>): (self: TxReentrantLock) => Effect.Effect<A, E, R>
@@ -476,8 +476,8 @@ export const withLock: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const readLocks = (self: TxReentrantLock): Effect.Effect<number> =>
   Effect.gen(function*() {
@@ -503,8 +503,8 @@ export const readLocks = (self: TxReentrantLock): Effect.Effect<number> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const writeLocks = (self: TxReentrantLock): Effect.Effect<number> =>
   Effect.gen(function*() {
@@ -526,8 +526,8 @@ export const writeLocks = (self: TxReentrantLock): Effect.Effect<number> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const locked = (self: TxReentrantLock): Effect.Effect<boolean> =>
   Effect.gen(function*() {
@@ -549,8 +549,8 @@ export const locked = (self: TxReentrantLock): Effect.Effect<boolean> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const readLocked = (self: TxReentrantLock): Effect.Effect<boolean> =>
   Effect.gen(function*() {
@@ -572,8 +572,8 @@ export const readLocked = (self: TxReentrantLock): Effect.Effect<boolean> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const writeLocked = (self: TxReentrantLock): Effect.Effect<boolean> =>
   Effect.gen(function*() {
@@ -599,7 +599,7 @@ export const writeLocked = (self: TxReentrantLock): Effect.Effect<boolean> =>
  * }
  * ```
  *
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isTxReentrantLock = (u: unknown): u is TxReentrantLock => hasProperty(u, TypeId)

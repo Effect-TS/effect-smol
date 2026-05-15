@@ -11,8 +11,8 @@ import * as Scope from "effect/Scope"
 import * as Redis from "effect/unstable/persistence/Redis"
 
 /**
- * @since 1.0.0
  * @category Service
+ * @since 1.0.0
  */
 export class BunRedis extends Context.Service<BunRedis, {
   readonly client: RedisClient
@@ -53,16 +53,16 @@ const make = Effect.fnUntraced(function*(
 })
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layer = (
   options?: ({ readonly url?: string } & RedisOptions) | undefined
 ): Layer.Layer<Redis.Redis | BunRedis> => Layer.effectContext(make(options))
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerConfig = (
   options: Config.Wrap<{ readonly url?: string } & RedisOptions>

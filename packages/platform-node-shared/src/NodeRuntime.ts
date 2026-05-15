@@ -5,8 +5,8 @@ import type { Effect } from "effect/Effect"
 import * as Runtime from "effect/Runtime"
 
 /**
- * @since 1.0.0
  * @category Run main
+ * @since 1.0.0
  */
 export const runMain: {
   (

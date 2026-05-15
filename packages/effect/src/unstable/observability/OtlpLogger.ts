@@ -19,8 +19,8 @@ import * as OtlpResource from "./OtlpResource.ts"
 import { OtlpSerialization } from "./OtlpSerialization.ts"
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make: (
   options: {
@@ -76,8 +76,8 @@ export const make: (
 })
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layer = (options: {
   readonly url: string

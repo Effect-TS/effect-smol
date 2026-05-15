@@ -15,8 +15,8 @@ import { Entry, EntryId, makeRemoteIdUnsafe, RemoteEntry, type RemoteId } from "
 import * as EventLogServerUnencrypted from "./EventLogServerUnencrypted.ts"
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const makeStorage = (options?: {
   readonly entryTablePrefix?: string
@@ -424,8 +424,8 @@ export const makeStorage = (options?: {
   }).pipe(withTracerDisabled)
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerStorage = (options?: {
   readonly entryTablePrefix?: string

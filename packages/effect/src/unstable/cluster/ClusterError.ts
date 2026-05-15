@@ -15,8 +15,8 @@ const TypeId = "~effect/cluster/ClusterError"
  * Represents an error that occurs when a Runner receives a message for an entity
  * that it is not assigned to it.
  *
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class EntityNotAssignedToRunner
   extends Schema.ErrorClass<EntityNotAssignedToRunner>(`${TypeId}/EntityNotAssignedToRunner`)({
@@ -41,8 +41,8 @@ export class EntityNotAssignedToRunner
  * Represents an error that occurs when a message fails to be properly
  * deserialized by an entity.
  *
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class MalformedMessage extends Schema.ErrorClass<MalformedMessage>(`${TypeId}/MalformedMessage`)({
   _tag: Schema.tag("MalformedMessage"),
@@ -74,8 +74,8 @@ export class MalformedMessage extends Schema.ErrorClass<MalformedMessage>(`${Typ
  * Represents an error that occurs when a message fails to be persisted into
  * cluster's mailbox storage.
  *
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class PersistenceError extends Schema.ErrorClass<PersistenceError>(`${TypeId}/PersistenceError`)({
   _tag: Schema.tag("PersistenceError"),
@@ -98,8 +98,8 @@ export class PersistenceError extends Schema.ErrorClass<PersistenceError>(`${Typ
  * Represents an error that occurs when a Runner is not registered with the shard
  * manager.
  *
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class RunnerNotRegistered extends Schema.ErrorClass<RunnerNotRegistered>(`${TypeId}/RunnerNotRegistered`)({
   _tag: Schema.tag("RunnerNotRegistered"),
@@ -114,8 +114,8 @@ export class RunnerNotRegistered extends Schema.ErrorClass<RunnerNotRegistered>(
 /**
  * Represents an error that occurs when a Runner is unresponsive.
  *
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class RunnerUnavailable extends Schema.ErrorClass<RunnerUnavailable>(`${TypeId}/RunnerUnavailable`)({
   _tag: Schema.tag("RunnerUnavailable"),
@@ -137,8 +137,8 @@ export class RunnerUnavailable extends Schema.ErrorClass<RunnerUnavailable>(`${T
 /**
  * Represents an error that occurs when the entities mailbox is full.
  *
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class MailboxFull extends Schema.ErrorClass<MailboxFull>(`${TypeId}/MailboxFull`)({
   _tag: Schema.tag("MailboxFull"),
@@ -161,8 +161,8 @@ export class MailboxFull extends Schema.ErrorClass<MailboxFull>(`${TypeId}/Mailb
  * Represents an error that occurs when the entity is already processing a
  * request.
  *
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class AlreadyProcessingMessage
   extends Schema.ErrorClass<AlreadyProcessingMessage>(`${TypeId}/AlreadyProcessingMessage`)({

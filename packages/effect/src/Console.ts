@@ -83,8 +83,8 @@ import type { Scope } from "./Scope.ts"
  * Provides methods for various console operations including logging, debugging,
  * timing, and grouping output.
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Console {
   assert(condition: boolean, ...args: ReadonlyArray<any>): void
@@ -125,8 +125,8 @@ export interface Console {
  * )
  * ```
  *
- * @since 4.0.0
  * @category references
+ * @since 4.0.0
  */
 export const Console: Context.Reference<Console> = effect.ConsoleRef
 
@@ -148,8 +148,8 @@ export const Console: Context.Reference<Console> = effect.ConsoleRef
  * )
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const consoleWith = <A, E, R>(f: (console: Console) => Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
   core.withFiber((fiber) => f(fiber.getRef(Console)))
@@ -170,8 +170,8 @@ export const consoleWith = <A, E, R>(f: (console: Console) => Effect.Effect<A, E
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const assert = (condition: boolean, ...args: ReadonlyArray<any>): Effect.Effect<void> =>
   consoleWith((console) =>
@@ -196,8 +196,8 @@ export const assert = (condition: boolean, ...args: ReadonlyArray<any>): Effect.
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const clear: Effect.Effect<void> = consoleWith((console) =>
   effect.sync(() => {
@@ -222,8 +222,8 @@ export const clear: Effect.Effect<void> = consoleWith((console) =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const count = (label?: string): Effect.Effect<void> =>
   consoleWith((console) =>
@@ -250,8 +250,8 @@ export const count = (label?: string): Effect.Effect<void> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const countReset = (label?: string): Effect.Effect<void> =>
   consoleWith((console) =>
@@ -276,8 +276,8 @@ export const countReset = (label?: string): Effect.Effect<void> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const debug = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
   consoleWith((console) =>
@@ -303,8 +303,8 @@ export const debug = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const dir = (item: any, options?: any): Effect.Effect<void> =>
   consoleWith((console) =>
@@ -329,8 +329,8 @@ export const dir = (item: any, options?: any): Effect.Effect<void> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const dirxml = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
   consoleWith((console) =>
@@ -358,8 +358,8 @@ export const dirxml = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const error = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
   consoleWith((console) =>
@@ -390,8 +390,8 @@ export const error = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const group = (
   options?: { label?: string | undefined; collapsed?: boolean | undefined } | undefined
@@ -431,8 +431,8 @@ export const group = (
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const info = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
   consoleWith((console) =>
@@ -457,8 +457,8 @@ export const info = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const log = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
   consoleWith((console) =>
@@ -488,8 +488,8 @@ export const log = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const table = (tabularData: any, properties?: ReadonlyArray<string>): Effect.Effect<void> =>
   consoleWith((console) =>
@@ -520,8 +520,8 @@ export const table = (tabularData: any, properties?: ReadonlyArray<string>): Eff
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const time = (label?: string | undefined): Effect.Effect<void, never, Scope> =>
   consoleWith((console) =>
@@ -559,8 +559,8 @@ export const time = (label?: string | undefined): Effect.Effect<void, never, Sco
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const timeLog = (label?: string, ...args: ReadonlyArray<any>): Effect.Effect<void> =>
   consoleWith((console) =>
@@ -585,8 +585,8 @@ export const timeLog = (label?: string, ...args: ReadonlyArray<any>): Effect.Eff
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const trace = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
   consoleWith((console) =>
@@ -613,8 +613,8 @@ export const trace = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const warn = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
   consoleWith((console) =>
@@ -646,8 +646,8 @@ export const warn = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const withGroup = dual<
   (
@@ -703,8 +703,8 @@ export const withGroup = dual<
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const withTime = dual<
   (label?: string) => <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>,

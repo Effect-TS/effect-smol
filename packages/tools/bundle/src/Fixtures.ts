@@ -9,8 +9,8 @@ import * as Order from "effect/Order"
 import * as Glob from "glob"
 
 /**
- * @since 1.0.0
  * @category services
+ * @since 1.0.0
  */
 export class Fixtures extends Context.Service<Fixtures>()(
   "@effect/bundle/Fixtures",

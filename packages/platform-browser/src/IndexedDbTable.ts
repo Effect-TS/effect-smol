@@ -11,8 +11,8 @@ import type * as IndexedDbQueryBuilder from "./IndexedDbQueryBuilder.ts"
 const TypeId = "~@effect/platform-browser/IndexedDbTable"
 
 /**
- * @since 4.0.0
  * @category interface
+ * @since 4.0.0
  */
 export interface IndexedDbTable<
   out Name extends string,
@@ -38,16 +38,16 @@ export interface IndexedDbTable<
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type AnySchemaStruct = Schema.Top & {
   readonly fields: Schema.Struct.Fields
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Any {
   readonly [TypeId]: typeof TypeId
@@ -62,8 +62,8 @@ export interface Any {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type AnyWithProps = IndexedDbTable<
   string,
@@ -74,50 +74,50 @@ export type AnyWithProps = IndexedDbTable<
 >
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type TableName<Table extends Any> = Table["tableName"]
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type KeyPath<Table extends Any> = Table["keyPath"]
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type AutoIncrement<Table extends Any> = Table["autoIncrement"]
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type TableSchema<Table extends Any> = Table["tableSchema"]
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Context<Table extends Any> =
   | Table["tableSchema"]["DecodingServices"]
   | Table["tableSchema"]["EncodingServices"]
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Encoded<Table extends Any> = Table["tableSchema"]["Encoded"]
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Indexes<Table extends Any> = Table["indexes"]
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type WithName<Table extends Any, TableName extends string> = Extract<
   Table,
@@ -132,8 +132,8 @@ const Proto = {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = <
   const Name extends string,

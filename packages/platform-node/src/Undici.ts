@@ -4,13 +4,13 @@
 import Undici from "undici"
 
 /**
- * @since 1.0.0
  * @category undici
+ * @since 1.0.0
  */
 export * from "undici"
 
 /**
- * @since 1.0.0
  * @category undici
+ * @since 1.0.0
  */
 export default Undici

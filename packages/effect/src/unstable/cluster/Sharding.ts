@@ -62,8 +62,8 @@ import { SingletonAddress } from "./SingletonAddress.ts"
 import * as Snowflake from "./Snowflake.ts"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class Sharding extends Context.Service<Sharding, {
   /**
@@ -1430,8 +1430,8 @@ const make = Effect.gen(function*() {
 })
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<
   Sharding,

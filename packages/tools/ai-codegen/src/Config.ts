@@ -25,14 +25,14 @@ import * as Schema from "effect/Schema"
  * // "https://example.com/openapi.json"
  * ```
  *
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 /**
  * A text replacement to apply to generated code.
  *
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export class Replacement extends Schema.Class<Replacement>("Replacement")({
   from: Schema.String,
@@ -42,8 +42,8 @@ export class Replacement extends Schema.Class<Replacement>("Replacement")({
 /**
  * Structured spec source configuration for Stainless stats indirection.
  *
- * @since 1.0.0
  * @category schemas
+ * @since 1.0.0
  */
 export const SpecSourceConfig = Schema.Struct({
   type: Schema.Literal("stainless-stats"),
@@ -128,21 +128,21 @@ export class CodegenConfig extends Schema.Class<CodegenConfig>("CodegenConfig")(
 /**
  * Represents the source of an OpenAPI specification.
  *
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export type SpecSource = SpecSource.Url | SpecSource.File | SpecSource.StainlessStats
 
 /**
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export declare namespace SpecSource {
   /**
    * A URL-based spec source.
    *
-   * @since 1.0.0
    * @category models
+   * @since 1.0.0
    */
   export interface Url {
     readonly _tag: "Url"
@@ -152,8 +152,8 @@ export declare namespace SpecSource {
   /**
    * A file-based spec source.
    *
-   * @since 1.0.0
    * @category models
+   * @since 1.0.0
    */
   export interface File {
     readonly _tag: "File"
@@ -163,8 +163,8 @@ export declare namespace SpecSource {
   /**
    * Stainless SDK stats.yml indirection - fetches stats file and extracts openapi_spec_url.
    *
-   * @since 1.0.0
    * @category models
+   * @since 1.0.0
    */
   export interface StainlessStats {
     readonly _tag: "StainlessStats"
@@ -186,8 +186,8 @@ export declare namespace SpecSource {
  * const fileSource = Config.SpecSource.File("/path/to/spec.json")
  * ```
  *
- * @since 1.0.0
  * @category constructors
+ * @since 1.0.0
  */
 export const SpecSource = {
   /**
@@ -257,8 +257,8 @@ export const SpecSource = {
  * })
  * ```
  *
- * @since 1.0.0
  * @category errors
+ * @since 1.0.0
  */
 export class ConfigParseError extends Data.TaggedError("ConfigParseError")<{
   readonly path: string
@@ -278,8 +278,8 @@ export class ConfigParseError extends Data.TaggedError("ConfigParseError")<{
  * })
  * ```
  *
- * @since 1.0.0
  * @category errors
+ * @since 1.0.0
  */
 export class ConfigNotFoundError extends Data.TaggedError("ConfigNotFoundError")<{
   readonly provider: string

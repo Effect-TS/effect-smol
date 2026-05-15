@@ -4,8 +4,8 @@
 import * as Schema from "../../Schema.ts"
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const MachineId = Schema.Int.pipe(
   Schema.brand("~effect/cluster/MachineId"),
@@ -15,13 +15,13 @@ export const MachineId = Schema.Int.pipe(
 )
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type MachineId = typeof MachineId.Type
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make = (id: number): MachineId => id as MachineId

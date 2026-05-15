@@ -26,8 +26,8 @@ import type { EqualsWith, ExcludeTag, ExtractReason, ExtractTag, ReasonTags, Tag
  * console.log(positiveFilter(-3)) // Result.fail(-3)
  * ```
  *
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface Filter<in Input, out Pass = Input, out Fail = Input> {
   (input: Input): Result.Result<Pass, Fail>
@@ -60,8 +60,8 @@ export interface Filter<in Input, out Pass = Input, out Fail = Input> {
  *   })
  * ```
  *
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface FilterEffect<
   in Input,
@@ -96,8 +96,8 @@ export interface FilterEffect<
  * )
  * ```
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make = <Input, Pass, Fail>(
   f: (input: Input) => Result.Result<Pass, Fail>
@@ -123,16 +123,16 @@ export const make = <Input, Pass, Fail>(
  * )
  * ```
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const makeEffect = <Input, Pass, Fail, E, R>(
   f: (input: Input) => Effect<Result.Result<Pass, Fail>, E, R>
 ): FilterEffect<Input, Pass, Fail, E, R> => f as any
 
 /**
- * @since 4.0.0
  * @category Mapping
+ * @since 4.0.0
  */
 export const mapFail: {
   <Fail, Fail2>(f: (fail: Fail) => Fail2): <Input, Pass>(self: Filter<Input, Pass, Fail>) => Filter<Input, Pass, Fail2>
@@ -159,8 +159,8 @@ export {
    * Creates a Filter that tries to apply a function and returns `fail` on
    * error.
    *
-   * @since 4.0.0
    * @category Constructors
+   * @since 4.0.0
    */
   try_ as try
 }
@@ -186,8 +186,8 @@ export {
  * )
  * ```
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const fromPredicate: {
   <A, B extends A>(refinement: Predicate.Refinement<A, B>): Filter<A, B, EqualsWith<A, B, A, Exclude<A, B>>>
@@ -198,8 +198,8 @@ export const fromPredicate: {
 /**
  * Creates a Filter from a function that returns an Option.
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const fromPredicateOption = <A, B>(predicate: (a: A) => Option.Option<B>): Filter<A, B> => (input) => {
   const o = predicate(input)
@@ -209,8 +209,8 @@ export const fromPredicateOption = <A, B>(predicate: (a: A) => Option.Option<B>)
 /**
  * Converts a Filter into a predicate function.
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const toPredicate = <A, Pass, Fail>(
   self: Filter<A, Pass, Fail>
@@ -228,22 +228,22 @@ export const toPredicate = <A, Pass, Fail>(
  * console.log(Filter.string(42)) // fail
  * ```
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const string: Filter<unknown, string> = fromPredicate(Predicate.isString)
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const equalsStrict =
   <const A, Input = unknown>(value: A): Filter<Input, A, EqualsWith<Input, A, A, Exclude<Input, A>>> => (u) =>
     (u as unknown) === value ? Result.succeed(value) : Result.fail(u as any)
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const has =
   <K>(key: K) => <Input extends { readonly has: (key: K) => boolean }>(input: Input): Result.Result<Input, Input> =>
@@ -252,8 +252,8 @@ export const has =
 /**
  * Creates a filter that only passes instances of the given constructor.
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const instanceOf =
   <K extends new(...args: any) => any>(constructor: K) =>
@@ -271,48 +271,48 @@ export const instanceOf =
  * console.log(Filter.number("42")) // fail
  * ```
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const number: Filter<unknown, number> = fromPredicate(Predicate.isNumber)
 
 /**
  * A predefined filter that only passes through boolean values.
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const boolean: Filter<unknown, boolean> = fromPredicate(Predicate.isBoolean)
 
 /**
  * A predefined filter that only passes through BigInt values.
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const bigint: Filter<unknown, bigint> = fromPredicate(Predicate.isBigInt)
 
 /**
  * A predefined filter that only passes through Symbol values.
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const symbol: Filter<unknown, symbol> = fromPredicate(Predicate.isSymbol)
 
 /**
  * A predefined filter that only passes through Date objects.
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const date: Filter<unknown, Date> = fromPredicate(Predicate.isDate)
 
 /**
  * Creates a filter that checks if an input is tagged with a specific tag.
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const tagged: {
   <Input>(): <const Tag extends Tags<Input>>(tag: Tag) => Filter<Input, ExtractTag<Input, Tag>, ExcludeTag<Input, Tag>>
@@ -334,8 +334,8 @@ const taggedImpl =
 /**
  * Creates a filter that extracts a reason from a tagged error.
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const reason: {
   <Input>(): <const Tag extends Tags<Input>, const ReasonTag extends ReasonTags<ExtractTag<Input, Tag>>>(
@@ -369,8 +369,8 @@ const reasonImpl =
 /**
  * Creates a filter that only passes values equal to the specified value using structural equality.
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const equals =
   <const A, Input = unknown>(value: A): Filter<Input, A, EqualsWith<Input, A, A, Exclude<Input, A>>> => (u) =>
@@ -379,8 +379,8 @@ export const equals =
 /**
  * Combines two filters with logical OR semantics.
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const or: {
   <Input2, Pass2, Fail2>(
@@ -405,8 +405,8 @@ export const or: {
  * Both filters must succeed (not return `fail`) for the combination to succeed.
  * If both filters pass, their outputs are combined using the provided function.
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const zipWith: {
   <PassL, InputR, PassR, FailR, A>(
@@ -447,8 +447,8 @@ export const zipWith: {
  * const positiveAndEven = Filter.zip(positiveNumbers, evenNumbers)
  * ```
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const zip: {
   <InputR, PassR, FailR>(
@@ -479,8 +479,8 @@ export const zip: {
  * const positiveEven = Filter.andLeft(positiveNumbers, evenNumbers)
  * ```
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const andLeft: {
   <InputR, PassR, FailR>(
@@ -512,8 +512,8 @@ export const andLeft: {
  * const positiveDoubled = Filter.andRight(positiveNumbers, doubleNumbers)
  * ```
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const andRight: {
   <InputR, PassR, FailR>(
@@ -545,8 +545,8 @@ export const andRight: {
  * const stringToUpper = Filter.compose(stringFilter, nonEmptyUpper)
  * ```
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const compose: {
   <PassL, PassR, FailR>(
@@ -573,8 +573,8 @@ export const compose: {
  * This is similar to `compose`, but it will always fail with the original
  * input.
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const composePassthrough: {
   <InputL, PassL, PassR, FailR>(
@@ -597,8 +597,8 @@ export const composePassthrough: {
 })
 
 /**
- * @since 4.0.0
  * @category Conversions
+ * @since 4.0.0
  */
 export const toOption = <A, Pass, Fail>(
   self: Filter<A, Pass, Fail>
@@ -609,8 +609,8 @@ export const toOption = <A, Pass, Fail>(
 }
 
 /**
- * @since 4.0.0
  * @category Conversions
+ * @since 4.0.0
  */
 export const toResult = <A, Pass, Fail>(
   self: Filter<A, Pass, Fail>

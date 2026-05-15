@@ -47,8 +47,8 @@ import type * as Types from "./Types.ts"
  * }
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type State<_A, E> =
   | {
@@ -78,8 +78,8 @@ const TypeId = "~effect/transactions/TxQueue"
  * declare const variance: TxQueue.TxEnqueue.Variance<number, Error>
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export declare namespace TxEnqueue {
   /**
@@ -93,8 +93,8 @@ export declare namespace TxEnqueue {
    * declare const variance: TxQueue.TxEnqueue.Variance<string, Error>
    * ```
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Variance<in A, in E> {
     readonly _A: Types.Contravariant<A>
@@ -113,8 +113,8 @@ export declare namespace TxEnqueue {
  * declare const variance: TxQueue.TxDequeue.Variance<number, Error>
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export declare namespace TxDequeue {
   /**
@@ -128,8 +128,8 @@ export declare namespace TxDequeue {
    * declare const variance: TxQueue.TxDequeue.Variance<string, Error>
    * ```
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Variance<out A, out E> {
     readonly _A: Types.Covariant<A>
@@ -148,8 +148,8 @@ export declare namespace TxDequeue {
  * declare const variance: TxQueue.TxQueue.Variance<number, Error>
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export declare namespace TxQueue {
   /**
@@ -163,8 +163,8 @@ export declare namespace TxQueue {
    * declare const variance: TxQueue.TxQueue.Variance<string, Error>
    * ```
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Variance<in out A, in out E> {
     readonly _A: Types.Invariant<A>
@@ -177,8 +177,8 @@ export declare namespace TxQueue {
  * This interface contains the core properties needed for queue state inspection
  * operations like size, capacity, and completion status.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface TxQueueState extends Inspectable {
   readonly strategy: "bounded" | "unbounded" | "dropping" | "sliding"
@@ -216,8 +216,8 @@ export interface TxQueueState extends Inspectable {
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface TxEnqueue<in A, in E = never> extends TxQueueState {
   readonly [EnqueueTypeId]: TxEnqueue.Variance<A, E>
@@ -247,8 +247,8 @@ export interface TxEnqueue<in A, in E = never> extends TxQueueState {
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface TxDequeue<out A, out E = never> extends TxQueueState {
   readonly [DequeueTypeId]: TxDequeue.Variance<A, E>
@@ -280,8 +280,8 @@ export interface TxDequeue<out A, out E = never> extends TxQueueState {
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface TxQueue<in out A, in out E = never> extends TxEnqueue<A, E>, TxDequeue<A, E> {
   readonly [TypeId]: TxQueue.Variance<A, E>
@@ -302,8 +302,8 @@ export interface TxQueue<in out A, in out E = never> extends TxEnqueue<A, E>, Tx
  * }
  * ```
  *
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isTxEnqueue = <A = unknown, E = unknown>(u: unknown): u is TxEnqueue<A, E> => hasProperty(u, EnqueueTypeId)
 
@@ -322,8 +322,8 @@ export const isTxEnqueue = <A = unknown, E = unknown>(u: unknown): u is TxEnqueu
  * }
  * ```
  *
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isTxDequeue = <A = unknown, E = unknown>(u: unknown): u is TxDequeue<A, E> => hasProperty(u, DequeueTypeId)
 
@@ -342,8 +342,8 @@ export const isTxDequeue = <A = unknown, E = unknown>(u: unknown): u is TxDequeu
  * }
  * ```
  *
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isTxQueue = <A = unknown, E = unknown>(u: unknown): u is TxQueue<A, E> => hasProperty(u, TypeId)
 
@@ -400,8 +400,8 @@ const TxQueueProto = {
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const bounded = <A = never, E = never>(
   capacity: number
@@ -444,8 +444,8 @@ export const bounded = <A = never, E = never>(
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const unbounded = <A = never, E = never>(): Effect.Effect<TxQueue<A, E>> =>
   Effect.gen(function*() {
@@ -484,8 +484,8 @@ export const unbounded = <A = never, E = never>(): Effect.Effect<TxQueue<A, E>> 
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const dropping = <A = never, E = never>(
   capacity: number
@@ -528,8 +528,8 @@ export const dropping = <A = never, E = never>(
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const sliding = <A = never, E = never>(
   capacity: number
@@ -569,8 +569,8 @@ export const sliding = <A = never, E = never>(
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const offer: {
   <A, E>(value: A): (self: TxEnqueue<A, E>) => Effect.Effect<boolean>
@@ -636,8 +636,8 @@ export const offer: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const offerAll: {
   <A, E>(values: Iterable<A>): (self: TxEnqueue<A, E>) => Effect.Effect<Array<A>>
@@ -684,8 +684,8 @@ export const offerAll: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const take = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
   Effect.gen(function*() {
@@ -738,8 +738,8 @@ export const take = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const poll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Option.Option<A>> =>
   Effect.gen(function*() {
@@ -795,8 +795,8 @@ export const poll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Option.Option<A
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const takeAll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Arr.NonEmptyArray<A>, E> =>
   Effect.gen(function*() {
@@ -858,8 +858,8 @@ export const takeAll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Arr.NonEmpty
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const takeN: {
   (n: number): <A, E>(self: TxDequeue<A, E>) => Effect.Effect<Array<A>, E>
@@ -946,8 +946,8 @@ export const takeN: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category taking
+ * @since 4.0.0
  */
 export const takeBetween: {
   (min: number, max: number): <A, E>(self: TxDequeue<A, E>) => Effect.Effect<Array<A>, E>
@@ -1037,8 +1037,8 @@ export const takeBetween: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const peek = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
   Effect.gen(function*() {
@@ -1072,8 +1072,8 @@ export const peek = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const size = (self: TxQueueState): Effect.Effect<number> => TxChunk.size(self.items)
 
@@ -1096,8 +1096,8 @@ export const size = (self: TxQueueState): Effect.Effect<number> => TxChunk.size(
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const isEmpty = (self: TxQueueState): Effect.Effect<boolean> => TxChunk.isEmpty(self.items)
 
@@ -1120,8 +1120,8 @@ export const isEmpty = (self: TxQueueState): Effect.Effect<boolean> => TxChunk.i
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const isFull = (self: TxQueueState): Effect.Effect<boolean> =>
   self.capacity === Number.POSITIVE_INFINITY
@@ -1148,8 +1148,8 @@ export const isFull = (self: TxQueueState): Effect.Effect<boolean> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const interrupt = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<boolean> =>
   Effect.withFiber((fiber) => failCause(self, Cause.interrupt(fiber.id)))
@@ -1173,8 +1173,8 @@ export const interrupt = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<boolean> =
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const fail: {
   <E>(error: E): <A>(self: TxEnqueue<A, E>) => Effect.Effect<boolean>
@@ -1217,8 +1217,8 @@ export const fail: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const failCause: {
   <E>(cause: Cause.Cause<E>): <A>(self: TxEnqueue<A, E>) => Effect.Effect<boolean>
@@ -1276,8 +1276,8 @@ export const failCause: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const end = <A, E>(self: TxEnqueue<A, E | Cause.Done>): Effect.Effect<boolean> =>
   failCause(self, Cause.fail(Cause.Done()))
@@ -1308,8 +1308,8 @@ export const end = <A, E>(self: TxEnqueue<A, E | Cause.Done>): Effect.Effect<boo
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const clear = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<Array<A>, ExcludeDone<E>> =>
   Effect.gen(function*() {
@@ -1357,8 +1357,8 @@ export const clear = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<Array<A>, Excl
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const shutdown = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<boolean> =>
   Effect.gen(function*() {
@@ -1385,8 +1385,8 @@ export const shutdown = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<boolean> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const isOpen = (self: TxQueueState): Effect.Effect<boolean> =>
   Effect.map(TxRef.get(self.stateRef), (state) => state._tag === "Open")
@@ -1411,8 +1411,8 @@ export const isOpen = (self: TxQueueState): Effect.Effect<boolean> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const isClosing = (self: TxQueueState): Effect.Effect<boolean> =>
   Effect.map(TxRef.get(self.stateRef), (state) => state._tag === "Closing")
@@ -1436,8 +1436,8 @@ export const isClosing = (self: TxQueueState): Effect.Effect<boolean> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const isDone = (self: TxQueueState): Effect.Effect<boolean> =>
   Effect.map(TxRef.get(self.stateRef), (state) => state._tag === "Done")
@@ -1461,8 +1461,8 @@ export const isDone = (self: TxQueueState): Effect.Effect<boolean> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const isShutdown = (self: TxQueueState): Effect.Effect<boolean> => isDone(self)
 
@@ -1485,8 +1485,8 @@ export const isShutdown = (self: TxQueueState): Effect.Effect<boolean> => isDone
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const awaitCompletion = (self: TxQueueState): Effect.Effect<void> =>
   Effect.gen(function*() {

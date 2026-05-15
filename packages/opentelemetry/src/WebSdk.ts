@@ -17,8 +17,8 @@ import * as Resource from "./Resource.ts"
 import * as Tracer from "./Tracer.ts"
 
 /**
- * @since 1.0.0
  * @category Models
+ * @since 1.0.0
  */
 export interface Configuration {
   readonly spanProcessor?: SpanProcessor | ReadonlyArray<SpanProcessor> | undefined
@@ -36,8 +36,8 @@ export interface Configuration {
 }
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerTracerProvider = (
   processor: SpanProcessor | NonEmptyReadonlyArray<SpanProcessor>,
@@ -65,8 +65,8 @@ export const layerTracerProvider = (
   )
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layer: {
   (evaluate: LazyArg<Configuration>): Layer.Layer<Resource.Resource>

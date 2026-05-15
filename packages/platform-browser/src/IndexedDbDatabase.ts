@@ -60,8 +60,8 @@ const SchemaProto = {
 }
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export type ErrorReason =
   | "TransactionError"
@@ -73,8 +73,8 @@ export type ErrorReason =
   | "MissingIndex"
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class IndexedDbDatabaseError extends Data.TaggedError(
   "IndexedDbDatabaseError"
@@ -90,8 +90,8 @@ export class IndexedDbDatabaseError extends Data.TaggedError(
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class IndexedDbDatabase extends Context.Service<
   IndexedDbDatabase,
@@ -104,8 +104,8 @@ export class IndexedDbDatabase extends Context.Service<
 >()(TypeId) {}
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface IndexedDbSchema<
   in out FromVersion extends IndexedDbVersion.AnyWithProps,
@@ -155,8 +155,8 @@ export interface IndexedDbSchema<
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Transaction<
   Source extends IndexedDbVersion.AnyWithProps = never
@@ -192,8 +192,8 @@ export interface Transaction<
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type IndexFromTable<Table extends IndexedDbTable.AnyWithProps> = IsStringLiteral<
   Extract<keyof IndexedDbTable.Indexes<Table>, string>
@@ -201,8 +201,8 @@ export type IndexFromTable<Table extends IndexedDbTable.AnyWithProps> = IsString
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type IndexFromTableName<
   Version extends IndexedDbVersion.AnyWithProps,
@@ -212,8 +212,8 @@ export type IndexFromTableName<
 >
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Any {
   readonly previous?: Any | undefined
@@ -227,8 +227,8 @@ export interface Any {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type AnySchema = IndexedDbSchema<
   IndexedDbVersion.AnyWithProps,
@@ -237,8 +237,8 @@ export type AnySchema = IndexedDbSchema<
 >
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = <
   InitialVersion extends IndexedDbVersion.AnyWithProps,

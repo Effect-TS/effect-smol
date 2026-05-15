@@ -46,20 +46,20 @@ const TypeId = "~effect/Request"
  * }
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Request<out A, out E = never, out R = never> extends Variance<A, E, R> {}
 
 /**
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export type Any = Request<any, any, any>
 
 /**
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Variance<out A, out E, out R> {
   readonly [TypeId]: {
@@ -84,8 +84,8 @@ export interface Variance<out A, out E, out R> {
  * const userRequest = GetUser({ id: 123 })
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Constructor<R extends Request<any, any, any>, T extends keyof R = never> {
   (args: Types.VoidIfEmpty<Types.Simplify<Omit<R, T | keyof (Variance<any, any, any>)>>>): R
@@ -106,8 +106,8 @@ export interface Constructor<R extends Request<any, any, any>, T extends keyof R
  * type UserError = Request.Error<GetUser> // Error
  * ```
  *
- * @since 2.0.0
  * @category type-level
+ * @since 2.0.0
  */
 export type Error<T extends Request<any, any, any>> = [T] extends [Request<infer _A, infer _E, infer _R>] ? _E : never
 
@@ -127,8 +127,8 @@ export type Error<T extends Request<any, any, any>> = [T] extends [Request<infer
  * type UserSuccess = Request.Success<GetUser> // string
  * ```
  *
- * @since 2.0.0
  * @category type-level
+ * @since 2.0.0
  */
 export type Success<T extends Request<any, any, any>> = [T] extends [Request<infer _A, infer _E, infer _R>] ? _A
   : never
@@ -136,8 +136,8 @@ export type Success<T extends Request<any, any, any>> = [T] extends [Request<inf
 /**
  * A utility type to extract the requirements type from a `Request`.
  *
- * @since 4.0.0
  * @category type-level
+ * @since 4.0.0
  */
 export type Services<T extends Request<any, any, any>> = [T] extends [Request<infer _A, infer _E, infer _R>] ? _R
   : never
@@ -158,8 +158,8 @@ export type Services<T extends Request<any, any, any>> = [T] extends [Request<in
  * type UserResult = Request.Result<GetUser> // Exit.Exit<string, Error>
  * ```
  *
- * @since 2.0.0
  * @category type-level
+ * @since 2.0.0
  */
 export type Result<T extends Request<any, any, any>> = T extends Request<infer A, infer E, infer _R> ? Exit.Exit<A, E>
   : never
@@ -306,8 +306,8 @@ export const tagged = <R extends Request<any, any, any> & { _tag: string }>(
  * console.log(getUserRequest.id) // 123
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const Class: new<A extends Record<string, any>, Success, Error = never, Context = never>(
   args: Types.Equals<Omit<A, keyof Request<unknown, unknown>>, {}> extends true ? void
@@ -336,8 +336,8 @@ export const Class: new<A extends Record<string, any>, Success, Error = never, C
  * console.log(request.id) // 123
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const TaggedClass = <Tag extends string>(
   tag: Tag
@@ -367,8 +367,8 @@ export const complete: {
 )
 
 /**
- * @since 2.0.0
  * @category completion
+ * @since 2.0.0
  */
 export const completeEffect: {
   <A extends Any, R>(effect: Effect.Effect<Success<A>, Error<A>, R>): (self: Entry<A>) => Effect.Effect<void, never, R>
@@ -383,8 +383,8 @@ export const completeEffect: {
 )
 
 /**
- * @since 2.0.0
  * @category completion
+ * @since 2.0.0
  */
 export const fail: {
   <A extends Any>(error: Error<A>): (self: Entry<A>) => Effect.Effect<void>
@@ -395,8 +395,8 @@ export const fail: {
 )
 
 /**
- * @since 2.0.0
  * @category completion
+ * @since 2.0.0
  */
 export const failCause: {
   <A extends Any>(cause: Cause.Cause<Error<A>>): (self: Entry<A>) => Effect.Effect<void>
@@ -408,8 +408,8 @@ export const failCause: {
 )
 
 /**
- * @since 2.0.0
  * @category completion
+ * @since 2.0.0
  */
 export const succeed: {
   <A extends Any>(value: Success<A>): (self: Entry<A>) => Effect.Effect<void>
@@ -421,8 +421,8 @@ export const succeed: {
 )
 
 /**
- * @since 2.0.0
  * @category entry
+ * @since 2.0.0
  */
 export interface Entry<out R> {
   readonly request: R
@@ -439,8 +439,8 @@ export interface Entry<out R> {
 }
 
 /**
- * @since 2.0.0
  * @category entry
+ * @since 2.0.0
  */
 export const makeEntry = <R>(options: {
   readonly request: R

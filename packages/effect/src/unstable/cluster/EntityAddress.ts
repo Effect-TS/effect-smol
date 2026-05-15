@@ -13,8 +13,8 @@ const TypeId = "~effect/cluster/EntityAddress"
 /**
  * Represents the unique address of an entity within the cluster.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class EntityAddress extends Schema.Class<EntityAddress>(TypeId)({
   shardId: ShardId,
@@ -49,8 +49,8 @@ export class EntityAddress extends Schema.Class<EntityAddress>(TypeId)({
   }
 }
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = (options: {
   readonly shardId: ShardId

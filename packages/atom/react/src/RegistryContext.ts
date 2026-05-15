@@ -9,8 +9,8 @@ import * as React from "react"
 import * as Scheduler from "scheduler"
 
 /**
- * @since 1.0.0
  * @category context
+ * @since 1.0.0
  */
 export function scheduleTask(f: () => void): () => void {
   const node = Scheduler.unstable_scheduleCallback(Scheduler.unstable_LowPriority, f)
@@ -18,8 +18,8 @@ export function scheduleTask(f: () => void): () => void {
 }
 
 /**
- * @since 1.0.0
  * @category context
+ * @since 1.0.0
  */
 export const RegistryContext = React.createContext<AtomRegistry.AtomRegistry>(AtomRegistry.make({
   scheduleTask,
@@ -27,8 +27,8 @@ export const RegistryContext = React.createContext<AtomRegistry.AtomRegistry>(At
 }))
 
 /**
- * @since 1.0.0
  * @category context
+ * @since 1.0.0
  */
 export const RegistryProvider = (options: {
   readonly children?: React.ReactNode | undefined

@@ -7,8 +7,8 @@ import type { Scope } from "../../Scope.ts"
 import { Sharding } from "./Sharding.ts"
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = <E, R>(
   name: string,

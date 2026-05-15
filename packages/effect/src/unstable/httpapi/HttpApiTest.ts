@@ -21,8 +21,8 @@ import type * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
 import type * as HttpApiGroup from "./HttpApiGroup.ts"
 
 /**
- * @since 4.0.0
  * @category Testing
+ * @since 4.0.0
  */
 export const groups = Effect.fnUntraced(function*<
   ApiId extends string,

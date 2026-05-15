@@ -36,8 +36,8 @@ import type { HelpDoc } from "./HelpDoc.ts"
  * )
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Formatter {
   /**
@@ -207,8 +207,8 @@ export interface Formatter {
  * const result = Effect.runSync(program)
  * ```
  *
- * @since 4.0.0
  * @category services
+ * @since 4.0.0
  */
 export const Formatter: Context.Reference<Formatter> = Context.Reference(
   "effect/cli/CliOutput",
@@ -249,8 +249,8 @@ export const Formatter: Context.Reference<Formatter> = Context.Reference(
  * const JsonLayer = CliOutput.layer(jsonFormatter)
  * ```
  *
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layer = (formatter: Formatter): Layer.Layer<never> => Layer.succeed(Formatter)(formatter)
 
@@ -290,8 +290,8 @@ export const layer = (formatter: Formatter): Layer.Layer<never> => Layer.succeed
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const defaultFormatter = (options?: { colors?: boolean }): Formatter => {
   const globalProcess = (globalThis as any).process

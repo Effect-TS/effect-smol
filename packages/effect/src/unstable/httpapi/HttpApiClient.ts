@@ -28,8 +28,8 @@ import type * as HttpApiMiddleware from "./HttpApiMiddleware.ts"
 import * as HttpApiSchema from "./HttpApiSchema.ts"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Client<Groups extends HttpApiGroup.Any, E = never, R = never> = Simplify<
   & {
@@ -46,27 +46,27 @@ export type Client<Groups extends HttpApiGroup.Any, E = never, R = never> = Simp
 >
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ForApi<Api extends HttpApi.Any, E = never, R = never> = Api extends
   HttpApi.HttpApi<infer _Id, infer Groups> ? Client<Groups, E, R> :
   never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export declare namespace Client {
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type ResponseMode = HttpApiEndpoint.ClientResponseMode
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type Response<Success, Mode extends ResponseMode> = [Mode] extends ["decoded-and-response"]
     ? [Success, HttpClientResponse.HttpClientResponse]
@@ -74,8 +74,8 @@ export declare namespace Client {
     : Success
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type Group<Groups extends HttpApiGroup.Any, GroupName extends Groups["identifier"], E, R> =
     [HttpApiGroup.WithName<Groups, GroupName>] extends [HttpApiGroup.HttpApiGroup<infer _GroupName, infer _Endpoints>] ?
@@ -85,8 +85,8 @@ export declare namespace Client {
       never
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type Method<Endpoint, E, R> = [Endpoint] extends [
     HttpApiEndpoint.HttpApiEndpoint<
@@ -121,8 +121,8 @@ export declare namespace Client {
     never
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type TopLevelMethods<Groups extends HttpApiGroup.Any, E, R> =
     Extract<Groups, { readonly topLevel: true }> extends
@@ -145,8 +145,8 @@ type UrlBuilderArgs<Endpoint extends HttpApiEndpoint.Any> = [UrlBuilderRequest<E
   : [request: UrlBuilderRequest<Endpoint>]
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type UrlBuilder<Api extends HttpApi.Any> = Api extends HttpApi.HttpApi<infer _ApiId, infer Groups> ? Simplify<
     & {
@@ -369,8 +369,8 @@ export const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any
   })
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = <ApiId extends string, Groups extends HttpApiGroup.Any>(
   api: HttpApi.HttpApi<ApiId, Groups>,
@@ -393,8 +393,8 @@ export const make = <ApiId extends string, Groups extends HttpApiGroup.Any>(
     }))
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const makeWith = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>(
   api: HttpApi.HttpApi<ApiId, Groups>,
@@ -420,8 +420,8 @@ export const makeWith = <ApiId extends string, Groups extends HttpApiGroup.Any, 
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const group = <
   ApiId extends string,
@@ -455,8 +455,8 @@ export const group = <
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const endpoint = <
   ApiId extends string,
@@ -523,8 +523,8 @@ export const endpoint = <
  * })
  * //=> "https://api.example.com/users/123"
  * ```
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const urlBuilder = <Api extends HttpApi.Any>(api: Api, options?: {
   readonly baseUrl?: URL | string | undefined

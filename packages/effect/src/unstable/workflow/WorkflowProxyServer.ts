@@ -13,8 +13,8 @@ import type * as Workflow from "./Workflow.ts"
 import type { WorkflowEngine } from "./WorkflowEngine.ts"
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerHttpApi = <
   ApiId extends string,
@@ -77,8 +77,8 @@ export const layerHttpApi = <
   )
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerRpcHandlers = <
   const Workflows extends NonEmptyReadonlyArray<Workflow.Any>,

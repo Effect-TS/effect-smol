@@ -24,8 +24,8 @@ const DequeueTypeId = "~effect/Queue/Dequeue"
 /**
  * Type guard to check if a value is a Queue.
  *
- * @since 3.8.0
  * @category Guards
+ * @since 3.8.0
  */
 export const isQueue = <A = unknown, E = unknown>(
   u: unknown
@@ -34,8 +34,8 @@ export const isQueue = <A = unknown, E = unknown>(
 /**
  * Type guard to check if a value is an Enqueue.
  *
- * @since 4.0.0
  * @category Guards
+ * @since 4.0.0
  */
 export const isEnqueue = <A = unknown, E = unknown>(
   u: unknown
@@ -44,8 +44,8 @@ export const isEnqueue = <A = unknown, E = unknown>(
 /**
  * Type guard to check if a value is a Dequeue.
  *
- * @since 4.0.0
  * @category Guards
+ * @since 4.0.0
  */
 export const isDequeue = <A = unknown, E = unknown>(
   u: unknown
@@ -54,16 +54,16 @@ export const isDequeue = <A = unknown, E = unknown>(
 /**
  * Converts a Queue to an Enqueue (write-only interface).
  *
- * @since 4.0.0
  * @category Conversions
+ * @since 4.0.0
  */
 export const asEnqueue = <A, E>(self: Queue<A, E>): Enqueue<A, E> => self
 
 /**
  * Convert a Queue to a Dequeue, allowing only read operations.
  *
- * @since 4.0.0
  * @category Conversions
+ * @since 4.0.0
  */
 export const asDequeue: <A, E>(self: Queue<A, E>) => Dequeue<A, E> = identity
 
@@ -90,8 +90,8 @@ export const asDequeue: <A, E>(self: Queue<A, E>) => Dequeue<A, E> = identity
  * })
  * ```
  *
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface Enqueue<in A, in E = never> extends Inspectable {
   readonly [EnqueueTypeId]: Enqueue.Variance<A, E>
@@ -104,15 +104,15 @@ export interface Enqueue<in A, in E = never> extends Inspectable {
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export declare namespace Enqueue {
   /**
    * Variance interface for Enqueue types, defining the type parameter constraints.
    *
-   * @since 4.0.0
    * @category Models
+   * @since 4.0.0
    */
   export interface Variance<A, E> {
     _A: Types.Contravariant<A>
@@ -145,8 +145,8 @@ export declare namespace Enqueue {
  * })
  * ```
  *
- * @since 3.8.0
  * @category Models
+ * @since 3.8.0
  */
 export interface Dequeue<out A, out E = never> extends Inspectable {
   readonly [DequeueTypeId]: Dequeue.Variance<A, E>
@@ -159,15 +159,15 @@ export interface Dequeue<out A, out E = never> extends Inspectable {
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export declare namespace Dequeue {
   /**
    * Variance interface for Dequeue types, defining the type parameter constraints.
    *
-   * @since 3.8.0
    * @category Models
+   * @since 3.8.0
    */
   export interface Variance<A, E> {
     _A: Types.Covariant<A>
@@ -207,23 +207,23 @@ export declare namespace Dequeue {
  * })
  * ```
  *
- * @since 3.8.0
  * @category Models
+ * @since 3.8.0
  */
 export interface Queue<in out A, in out E = never> extends Enqueue<A, E>, Dequeue<A, E> {
   readonly [TypeId]: Queue.Variance<A, E>
 }
 
 /**
- * @since 3.8.0
  * @category Models
+ * @since 3.8.0
  */
 export declare namespace Queue {
   /**
    * Variance interface for Queue types, defining the type parameter constraints.
    *
-   * @since 3.8.0
    * @category Models
+   * @since 3.8.0
    */
   export interface Variance<A, E> {
     _A: Types.Invariant<A>
@@ -233,8 +233,8 @@ export declare namespace Queue {
   /**
    * Represents the internal state of a Queue.
    *
-   * @since 4.0.0
    * @category Models
+   * @since 4.0.0
    */
   export type State<A, E> =
     | {
@@ -258,8 +258,8 @@ export declare namespace Queue {
   /**
    * Represents an entry in the queue's offer buffer.
    *
-   * @since 4.0.0
    * @category Models
+   * @since 4.0.0
    */
   export type OfferEntry<A> =
     | {
@@ -304,8 +304,8 @@ const QueueProto = {
  *
  * - `Mailbox.make`
  *
- * @since 3.8.0
  * @category Constructors
+ * @since 3.8.0
  * @example
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
@@ -377,8 +377,8 @@ export const make = <A, E = never>(
  * })
  * ```
  *
- * @since 2.0.0
  * @category Constructors
+ * @since 2.0.0
  */
 export const bounded = <A, E = never>(capacity: number): Effect<Queue<A, E>> => make({ capacity })
 
@@ -409,8 +409,8 @@ export const bounded = <A, E = never>(capacity: number): Effect<Queue<A, E>> => 
  * })
  * ```
  *
- * @since 2.0.0
  * @category Constructors
+ * @since 2.0.0
  */
 export const sliding = <A, E = never>(capacity: number): Effect<Queue<A, E>> => make({ capacity, strategy: "sliding" })
 
@@ -442,8 +442,8 @@ export const sliding = <A, E = never>(capacity: number): Effect<Queue<A, E>> => 
  * })
  * ```
  *
- * @since 2.0.0
  * @category Constructors
+ * @since 2.0.0
  */
 export const dropping = <A, E = never>(capacity: number): Effect<Queue<A, E>> =>
   make({ capacity, strategy: "dropping" })
@@ -477,8 +477,8 @@ export const dropping = <A, E = never>(capacity: number): Effect<Queue<A, E>> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category Constructors
+ * @since 2.0.0
  */
 export const unbounded = <A, E = never>(): Effect<Queue<A, E>> => make()
 
@@ -1510,8 +1510,8 @@ export const isFullUnsafe = <A, E>(self: Dequeue<A, E>): boolean => sizeUnsafe(s
  * })
  * ```
  *
- * @since 3.8.0
  * @category Completion
+ * @since 3.8.0
  */
 export const into: {
   <A, E>(

@@ -7,8 +7,8 @@ import { dual } from "effect/Function"
 import type { HttpClient } from "effect/unstable/http/HttpClient"
 
 /**
- * @since 1.0.0
  * @category services
+ * @since 1.0.0
  */
 export class OpenRouterConfig extends Context.Service<
   OpenRouterConfig,
@@ -28,8 +28,8 @@ export class OpenRouterConfig extends Context.Service<
  */
 export declare namespace OpenRouterConfig {
   /**
-   * @since 1.0.0
    * @category models
+   * @since 1.0.0
    */
   export interface Service {
     readonly transformClient?: ((client: HttpClient) => HttpClient) | undefined
@@ -37,8 +37,8 @@ export declare namespace OpenRouterConfig {
 }
 
 /**
- * @since 1.0.0
  * @category configuration
+ * @since 1.0.0
  */
 export const withClientTransform: {
   (transform: (client: HttpClient) => HttpClient): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>

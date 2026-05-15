@@ -13,8 +13,8 @@ import type * as HttpApiMiddleware from "./HttpApiMiddleware.ts"
 const TypeId = "~effect/httpapi/HttpApiGroup"
 
 /**
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isHttpApiGroup = (u: unknown): u is Any => Predicate.hasProperty(u, TypeId)
 
@@ -24,8 +24,8 @@ export const isHttpApiGroup = (u: unknown): u is Any => Predicate.hasProperty(u,
  *
  * The endpoints can be implemented later using the `HttpApiBuilder.group` api.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface HttpApiGroup<
   out Id extends string,
@@ -95,8 +95,8 @@ export interface HttpApiGroup<
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ApiGroup<ApiId extends string, Name extends string> {
   readonly _: unique symbol
@@ -105,8 +105,8 @@ export interface ApiGroup<ApiId extends string, Name extends string> {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Any {
   readonly [TypeId]: typeof TypeId
@@ -116,92 +116,92 @@ export interface Any {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type AnyWithProps = HttpApiGroup<string, HttpApiEndpoint.AnyWithProps, boolean>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ToService<ApiId extends string, A> = A extends HttpApiGroup<infer Name, infer _Endpoints, infer _TopLevel> ?
   ApiGroup<ApiId, Name>
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type WithName<Group, Name extends string> = Extract<Group, { readonly identifier: Name }>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Name<Group> = Group extends HttpApiGroup<infer _Name, infer _Endpoints, infer _TopLevel> ? _Name
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Endpoints<Group> = Group extends HttpApiGroup<infer _Name, infer _Endpoints, infer _TopLevel> ? _Endpoints
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ErrorServicesEncode<Group> = HttpApiEndpoint.ErrorServicesEncode<Endpoints<Group>>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ErrorServicesDecode<Group> = HttpApiEndpoint.ErrorServicesDecode<Endpoints<Group>>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type MiddlewareError<Group> = HttpApiEndpoint.MiddlewareError<Endpoints<Group>>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type MiddlewareProvides<Group> = HttpApiEndpoint.MiddlewareProvides<Endpoints<Group>>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type MiddlewareClient<Group> = HttpApiEndpoint.MiddlewareClient<Endpoints<Group>>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type MiddlewareServices<Group> = HttpApiEndpoint.MiddlewareServices<Endpoints<Group>>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type EndpointsWithName<Group extends Any, Name extends string> = Endpoints<WithName<Group, Name>>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ClientServices<Group> = Group extends HttpApiGroup<infer _Name, infer _Endpoints, infer _TopLevel> ?
   HttpApiEndpoint.ClientServices<_Endpoints>
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type AddPrefix<Group, Prefix extends PathInput> = Group extends
   HttpApiGroup<infer _Name, infer _Endpoints, infer _TopLevel> ?
@@ -209,8 +209,8 @@ export type AddPrefix<Group, Prefix extends PathInput> = Group extends
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type AddMiddleware<Group, Id extends HttpApiMiddleware.AnyId> = Group extends
   HttpApiGroup<infer _Name, infer _Endpoints, infer _TopLevel> ?
@@ -306,8 +306,8 @@ const makeProto = <
  *
  * The endpoints can be implemented later using the `HttpApiBuilder.group` api.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = <const Id extends string, const TopLevel extends boolean = false>(identifier: Id, options?: {
   readonly topLevel?: TopLevel | undefined

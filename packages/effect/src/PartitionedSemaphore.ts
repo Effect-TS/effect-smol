@@ -7,14 +7,14 @@ import * as MutableHashMap from "./MutableHashMap.ts"
 import * as Option from "./Option.ts"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export const PartitionedTypeId: PartitionedTypeId = "~effect/PartitionedSemaphore"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type PartitionedTypeId = "~effect/PartitionedSemaphore"
 
@@ -24,8 +24,8 @@ export type PartitionedTypeId = "~effect/PartitionedSemaphore"
  *
  * Waiting permits are distributed across partitions in round-robin order.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface PartitionedSemaphore<in K> {
   readonly [PartitionedTypeId]: PartitionedTypeId
@@ -44,16 +44,16 @@ export interface PartitionedSemaphore<in K> {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Partitioned<in K> extends PartitionedSemaphore<K> {}
 
 /**
  * Creates a `PartitionedSemaphore` unsafely.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const makeUnsafe = <K = unknown>(options: {
   readonly permits: number
@@ -245,8 +245,8 @@ export const makeUnsafe = <K = unknown>(options: {
 /**
  * Creates a `PartitionedSemaphore`.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = <K = unknown>(options: {
   readonly permits: number
@@ -255,24 +255,24 @@ export const make = <K = unknown>(options: {
 /**
  * Gets the current number of available permits.
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const available = <K>(self: PartitionedSemaphore<K>): Effect.Effect<number> => self.available
 
 /**
  * Gets the total capacity.
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const capacity = <K>(self: PartitionedSemaphore<K>): number => self.capacity
 
 /**
  * Acquires permits for a partition.
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const take: {
   <K>(key: K, permits: number): (self: PartitionedSemaphore<K>) => Effect.Effect<void>
@@ -282,8 +282,8 @@ export const take: {
 /**
  * Releases permits back to the shared pool.
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const release: {
   (permits: number): <K>(self: PartitionedSemaphore<K>) => Effect.Effect<number>
@@ -293,8 +293,8 @@ export const release: {
 /**
  * Runs an effect with permits for a partition.
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withPermits: {
   <K>(
@@ -320,8 +320,8 @@ export const withPermits: {
 /**
  * Runs an effect with a single permit for a partition.
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withPermit: {
   <K>(self: PartitionedSemaphore<K>, key: K): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
@@ -342,8 +342,8 @@ export const withPermit: {
 /**
  * Runs an effect only if the permits are immediately available.
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withPermitsIfAvailable: {
   <K>(

@@ -10,8 +10,8 @@ import type { MetricsData } from "./OtlpMetrics.ts"
 import type { TraceData } from "./OtlpTracer.ts"
 
 /**
- * @since 4.0.0
  * @category Services
+ * @since 4.0.0
  */
 export class OtlpSerialization extends Context.Service<OtlpSerialization, {
   readonly traces: (data: TraceData) => HttpBody.HttpBody
@@ -20,8 +20,8 @@ export class OtlpSerialization extends Context.Service<OtlpSerialization, {
 }>()("effect/observability/OtlpSerialization") {}
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerJson = Layer.succeed(OtlpSerialization, {
   traces: (spans) => HttpBody.jsonUnsafe(spans),
@@ -30,8 +30,8 @@ export const layerJson = Layer.succeed(OtlpSerialization, {
 })
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerProtobuf = Layer.succeed(OtlpSerialization, {
   traces: (spans) =>

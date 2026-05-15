@@ -52,8 +52,8 @@ import * as NodeServices from "./NodeServices.ts"
 import { NodeWS } from "./NodeSocket.ts"
 
 /**
- * @since 1.0.0
  * @category constructors
+ * @since 1.0.0
  */
 export const make = Effect.fnUntraced(function*(
   evaluate: LazyArg<Http.Server>,
@@ -145,8 +145,8 @@ export const make = Effect.fnUntraced(function*(
 })
 
 /**
- * @since 1.0.0
  * @category Handlers
+ * @since 1.0.0
  */
 export const makeHandler = <
   R,
@@ -183,8 +183,8 @@ export const makeHandler = <
 }
 
 /**
- * @since 1.0.0
  * @category Handlers
+ * @since 1.0.0
  */
 export const makeUpgradeHandler = <
   R,
@@ -366,8 +366,8 @@ class ServerRequestImpl extends NodeHttpIncomingMessage<HttpServerError> impleme
 }
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerServer: (
   evaluate: LazyArg<Http.Server<typeof Http.IncomingMessage, typeof Http.ServerResponse>>,
@@ -378,8 +378,8 @@ export const layerServer: (
 ) => Layer.Layer<HttpServer.HttpServer, ServeError> = flow(make, Layer.effect(HttpServer.HttpServer))
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerHttpServices: Layer.Layer<
   NodeServices.NodeServices | HttpPlatform.HttpPlatform | Etag.Generator
@@ -390,8 +390,8 @@ export const layerHttpServices: Layer.Layer<
 )
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layer = (
   evaluate: LazyArg<Http.Server>,
@@ -409,8 +409,8 @@ export const layer = (
   )
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerConfig = (
   evaluate: LazyArg<Http.Server>,
@@ -432,8 +432,8 @@ export const layerConfig = (
   )
 
 /**
- * @since 1.0.0
  * @category Testing
+ * @since 1.0.0
  */
 export const layerTest: Layer.Layer<
   | HttpServer.HttpServer

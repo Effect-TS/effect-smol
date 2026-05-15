@@ -31,8 +31,8 @@ import * as Layer from "../Layer.ts"
  * }).pipe(Effect.provide(TestConsole.layer))
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface TestConsole extends Console.Console {
   /**
@@ -58,8 +58,8 @@ export interface TestConsole extends Console.Console {
  * // Use TestConsole.layer to provide the service in tests
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export declare namespace TestConsole {
   /**
@@ -73,8 +73,8 @@ export declare namespace TestConsole {
    * // All methods from the Console interface are supported
    * ```
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type Method = keyof Console.Console
 
@@ -89,8 +89,8 @@ export declare namespace TestConsole {
    * // Used internally by TestConsole to track all console operations
    * ```
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Entry {
     readonly method: Method
@@ -120,8 +120,8 @@ export declare namespace TestConsole {
  * }).pipe(Effect.provide(TestConsole.layer))
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = Effect.gen(function*() {
   const entries: Array<TestConsole.Entry> = []
@@ -186,8 +186,8 @@ export const make = Effect.gen(function*() {
  * ).pipe(Effect.provide(TestConsole.layer))
  * ```
  *
- * @since 4.0.0
  * @category utils
+ * @since 4.0.0
  */
 export const testConsoleWith = <A, E, R>(f: (console: TestConsole) => Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
   Console.consoleWith((console) => f(console as TestConsole))
@@ -214,8 +214,8 @@ export const testConsoleWith = <A, E, R>(f: (console: TestConsole) => Effect.Eff
  * }).pipe(Effect.provide(TestConsole.layer))
  * ```
  *
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<TestConsole> = Layer.effect(Console.Console)(make) as any
 
@@ -244,8 +244,8 @@ export const layer: Layer.Layer<TestConsole> = Layer.effect(Console.Console)(mak
  * }).pipe(Effect.provide(TestConsole.layer))
  * ```
  *
- * @since 4.0.0
  * @category utils
+ * @since 4.0.0
  */
 export const logLines: Effect.Effect<ReadonlyArray<unknown>, never, never> = testConsoleWith(
   (console) => console.logLines
@@ -274,8 +274,8 @@ export const logLines: Effect.Effect<ReadonlyArray<unknown>, never, never> = tes
  * }).pipe(Effect.provide(TestConsole.layer))
  * ```
  *
- * @since 4.0.0
  * @category utils
+ * @since 4.0.0
  */
 export const errorLines: Effect.Effect<ReadonlyArray<unknown>, never, never> = testConsoleWith(
   (console) => console.errorLines

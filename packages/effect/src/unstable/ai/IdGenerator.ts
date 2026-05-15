@@ -71,8 +71,8 @@ import * as Random from "../../Random.ts"
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class IdGenerator extends Context.Service<IdGenerator, Service>()(
   "@effect/ai/IdGenerator"
@@ -102,8 +102,8 @@ export class IdGenerator extends Context.Service<IdGenerator, Service>()(
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Service {
   readonly generateId: () => Effect.Effect<string>
@@ -127,8 +127,8 @@ export interface Service {
  * // This will generate IDs like: "tool_A1B2C3D4"
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface MakeOptions {
   /**
@@ -201,8 +201,8 @@ const makeGenerator = ({
  * )
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const defaultIdGenerator: Service = {
   generateId: makeGenerator({ prefix: "id" })
@@ -257,8 +257,8 @@ export const defaultIdGenerator: Service = {
  * )
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = Effect.fnUntraced(function*({
   alphabet = DEFAULT_ALPHABET,
@@ -307,8 +307,8 @@ export const make = Effect.fnUntraced(function*({
  * }).pipe(Effect.provide(toolCallIdLayer))
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const layer = (options: MakeOptions): Layer.Layer<IdGenerator, Cause.IllegalArgumentError> =>
   Layer.effect(IdGenerator)(make(options))

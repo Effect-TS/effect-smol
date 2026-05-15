@@ -36,18 +36,18 @@ import * as Undici from "./Undici.ts"
 
 export {
   /**
-   * @since 1.0.0
    * @category Fetch
+   * @since 1.0.0
    */
   Fetch,
   /**
-   * @since 1.0.0
    * @category Fetch
+   * @since 1.0.0
    */
   layer as layerFetch,
   /**
-   * @since 1.0.0
    * @category Fetch
+   * @since 1.0.0
    */
   RequestInit
 } from "effect/unstable/http/FetchHttpClient"
@@ -57,16 +57,16 @@ export {
 // -----------------------------------------------------------------------------
 
 /**
- * @since 1.0.0
  * @category Dispatcher
+ * @since 1.0.0
  */
 export class Dispatcher extends Context.Service<Dispatcher, Undici.Dispatcher>()(
   "@effect/platform-node/NodeHttpClient/Dispatcher"
 ) {}
 
 /**
- * @since 1.0.0
  * @category Dispatcher
+ * @since 1.0.0
  */
 export const makeDispatcher: Effect.Effect<Undici.Dispatcher, never, Scope.Scope> = Effect.acquireRelease(
   Effect.sync(() => new Undici.Agent()),
@@ -74,20 +74,20 @@ export const makeDispatcher: Effect.Effect<Undici.Dispatcher, never, Scope.Scope
 )
 
 /**
- * @since 1.0.0
  * @category Dispatcher
+ * @since 1.0.0
  */
 export const layerDispatcher: Layer.Layer<Dispatcher> = Layer.effect(Dispatcher)(makeDispatcher)
 
 /**
- * @since 1.0.0
  * @category Dispatcher
+ * @since 1.0.0
  */
 export const dispatcherLayerGlobal: Layer.Layer<Dispatcher> = Layer.sync(Dispatcher)(() => Undici.getGlobalDispatcher())
 
 /**
- * @since 1.0.0
  * @category undici
+ * @since 1.0.0
  */
 export const UndiciOptions = Context.Reference<Partial<Undici.Dispatcher.RequestOptions>>(
   "@effect/platform-node/NodeHttpClient/UndiciOptions",
@@ -95,8 +95,8 @@ export const UndiciOptions = Context.Reference<Partial<Undici.Dispatcher.Request
 )
 
 /**
- * @since 1.0.0
  * @category undici
+ * @since 1.0.0
  */
 export const makeUndici = Effect.gen(function*() {
   const dispatcher = yield* Dispatcher
@@ -309,8 +309,8 @@ class UndiciResponse extends Inspectable.Class implements HttpClientResponse, Pi
 }
 
 /**
- * @since 1.0.0
  * @category Undici
+ * @since 1.0.0
  */
 export const layerUndiciNoDispatcher: Layer.Layer<
   Client.HttpClient,
@@ -319,8 +319,8 @@ export const layerUndiciNoDispatcher: Layer.Layer<
 > = Client.layerMergedContext(makeUndici)
 
 /**
- * @since 1.0.0
  * @category Undici
+ * @since 1.0.0
  */
 export const layerUndici: Layer.Layer<Client.HttpClient> = Layer.provide(layerUndiciNoDispatcher, layerDispatcher)
 
@@ -329,8 +329,8 @@ export const layerUndici: Layer.Layer<Client.HttpClient> = Layer.provide(layerUn
 // -----------------------------------------------------------------------------
 
 /**
- * @since 1.0.0
  * @category HttpAgent
+ * @since 1.0.0
  */
 export class HttpAgent extends Context.Service<HttpAgent, {
   readonly http: Http.Agent
@@ -338,8 +338,8 @@ export class HttpAgent extends Context.Service<HttpAgent, {
 }>()("@effect/platform-node/NodeHttpClient/HttpAgent") {}
 
 /**
- * @since 1.0.0
  * @category HttpAgent
+ * @since 1.0.0
  */
 export const makeAgent = (options?: Https.AgentOptions): Effect.Effect<HttpAgent["Service"], never, Scope.Scope> =>
   Effect.zipWith(
@@ -355,22 +355,22 @@ export const makeAgent = (options?: Https.AgentOptions): Effect.Effect<HttpAgent
   )
 
 /**
- * @since 1.0.0
  * @category HttpAgent
+ * @since 1.0.0
  */
 export const layerAgentOptions: (options?: Https.AgentOptions | undefined) => Layer.Layer<
   HttpAgent
 > = flow(makeAgent, Layer.effect(HttpAgent))
 
 /**
- * @since 1.0.0
  * @category HttpAgent
+ * @since 1.0.0
  */
 export const layerAgent: Layer.Layer<HttpAgent> = layerAgentOptions()
 
 /**
- * @since 1.0.0
  * @category node:http
+ * @since 1.0.0
  */
 export const makeNodeHttp = Effect.gen(function*() {
   const agent = yield* HttpAgent
@@ -579,8 +579,8 @@ class NodeHttpResponse extends NodeHttpIncomingMessage<Error.HttpClientError> im
 }
 
 /**
- * @since 1.0.0
  * @category node:http
+ * @since 1.0.0
  */
 export const layerNodeHttpNoAgent: Layer.Layer<
   Client.HttpClient,
@@ -589,7 +589,7 @@ export const layerNodeHttpNoAgent: Layer.Layer<
 > = Client.layerMergedContext(makeNodeHttp)
 
 /**
- * @since 1.0.0
  * @category node:http
+ * @since 1.0.0
  */
 export const layerNodeHttp: Layer.Layer<Client.HttpClient> = Layer.provide(layerNodeHttpNoAgent, layerAgent)

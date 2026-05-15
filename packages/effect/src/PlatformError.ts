@@ -6,8 +6,8 @@ import * as Data from "./Data.ts"
 const TypeId = "~effect/platform/PlatformError"
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export class BadArgument extends Data.TaggedError("BadArgument")<{
   module: string
@@ -24,8 +24,8 @@ export class BadArgument extends Data.TaggedError("BadArgument")<{
 }
 
 /**
- * @since 4.0.0
  * @category Model
+ * @since 4.0.0
  */
 export type SystemErrorTag =
   | "AlreadyExists"
@@ -41,8 +41,8 @@ export type SystemErrorTag =
   | "WriteZero"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class SystemError extends Data.Error<{
   _tag: SystemErrorTag
@@ -64,8 +64,8 @@ export class SystemError extends Data.Error<{
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export class PlatformError extends Data.TaggedError("PlatformError")<{
   reason: BadArgument | SystemError
@@ -89,8 +89,8 @@ export class PlatformError extends Data.TaggedError("PlatformError")<{
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const systemError = (options: {
   readonly _tag: SystemErrorTag
@@ -103,8 +103,8 @@ export const systemError = (options: {
 }): PlatformError => new PlatformError(new SystemError(options))
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const badArgument = (options: {
   readonly module: string

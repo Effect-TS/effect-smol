@@ -20,37 +20,37 @@ import * as SchemaTransformation from "../../SchemaTransformation.ts"
 import type * as Types from "../../Types.ts"
 
 /**
- * @since 4.0.0
  * @category type ids
+ * @since 4.0.0
  */
 export type TypeId = "~effect/reactivity/AsyncResult"
 
 /**
- * @since 4.0.0
  * @category type ids
+ * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/reactivity/AsyncResult"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type AsyncResult<A, E = never> = Initial<A, E> | Success<A, E> | Failure<A, E>
 
 /**
- * @since 4.0.0
  * @category Guards
+ * @since 4.0.0
  */
 export const isAsyncResult = (u: unknown): u is AsyncResult<unknown, unknown> => hasProperty(u, TypeId)
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export declare namespace AsyncResult {
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Proto<A, E> extends Pipeable {
     readonly [TypeId]: {
@@ -110,29 +110,29 @@ const ResultProto = {
 }
 
 /**
- * @since 4.0.0
  * @category refinements
+ * @since 4.0.0
  */
 export const isWaiting = <A, E>(result: AsyncResult<A, E>): boolean => result.waiting
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Initial<A, E = never> extends AsyncResult.Proto<A, E> {
   readonly _tag: "Initial"
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fromExit = <A, E>(exit: Exit.Exit<A, E>): Success<A, E> | Failure<A, E> =>
   exit._tag === "Success" ? success(exit.value) : failure(exit.cause)
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fromExitWithPrevious = <A, E>(
   exit: Exit.Exit<A, E>,
@@ -141,8 +141,8 @@ export const fromExitWithPrevious = <A, E>(
   exit._tag === "Success" ? success(exit.value) : failureWithPrevious(exit.cause, { previous })
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const waitingFrom = <A, E>(previous: Option.Option<AsyncResult<A, E>>): AsyncResult<A, E> => {
   if (previous._tag === "None") {
@@ -152,21 +152,21 @@ export const waitingFrom = <A, E>(previous: Option.Option<AsyncResult<A, E>>): A
 }
 
 /**
- * @since 4.0.0
  * @category refinements
+ * @since 4.0.0
  */
 export const isInitial = <A, E>(result: AsyncResult<A, E>): result is Initial<A, E> => result._tag === "Initial"
 
 /**
- * @since 4.0.0
  * @category refinements
+ * @since 4.0.0
  */
 export const isNotInitial = <A, E>(result: AsyncResult<A, E>): result is Success<A, E> | Failure<A, E> =>
   result._tag !== "Initial"
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const initial = <A = never, E = never>(waiting = false): Initial<A, E> => {
   const result = Object.create(ResultProto)
@@ -176,8 +176,8 @@ export const initial = <A = never, E = never>(waiting = false): Initial<A, E> =>
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Success<A, E = never> extends AsyncResult.Proto<A, E> {
   readonly _tag: "Success"
@@ -186,14 +186,14 @@ export interface Success<A, E = never> extends AsyncResult.Proto<A, E> {
 }
 
 /**
- * @since 4.0.0
  * @category refinements
+ * @since 4.0.0
  */
 export const isSuccess = <A, E>(result: AsyncResult<A, E>): result is Success<A, E> => result._tag === "Success"
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const success = <A, E = never>(value: A, options?: {
   readonly waiting?: boolean | undefined
@@ -208,8 +208,8 @@ export const success = <A, E = never>(value: A, options?: {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Failure<A, E = never> extends AsyncResult.Proto<A, E> {
   readonly _tag: "Failure"
@@ -218,21 +218,21 @@ export interface Failure<A, E = never> extends AsyncResult.Proto<A, E> {
 }
 
 /**
- * @since 4.0.0
  * @category refinements
+ * @since 4.0.0
  */
 export const isFailure = <A, E>(result: AsyncResult<A, E>): result is Failure<A, E> => result._tag === "Failure"
 
 /**
- * @since 4.0.0
  * @category refinements
+ * @since 4.0.0
  */
 export const isInterrupted = <A, E>(result: AsyncResult<A, E>): result is Failure<A, E> =>
   result._tag === "Failure" && Cause.hasInterruptsOnly(result.cause)
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const failure = <A, E = never>(
   cause: Cause.Cause<E>,
@@ -250,8 +250,8 @@ export const failure = <A, E = never>(
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const failureWithPrevious = <A, E>(
   cause: Cause.Cause<E>,
@@ -271,8 +271,8 @@ export const failureWithPrevious = <A, E>(
   })
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fail = <E, A = never>(error: E, options?: {
   readonly previousSuccess?: Option.Option<Success<A, E>> | undefined
@@ -280,8 +280,8 @@ export const fail = <E, A = never>(error: E, options?: {
 }): Failure<A, E> => failure(Cause.fail(error), options)
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const failWithPrevious = <A, E>(
   error: E,
@@ -292,8 +292,8 @@ export const failWithPrevious = <A, E>(
 ): Failure<A, E> => failureWithPrevious(Cause.fail(error), options)
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const waiting = <R extends AsyncResult<any, any>>(self: R, options?: {
   readonly touch?: boolean | undefined
@@ -310,8 +310,8 @@ export const waiting = <R extends AsyncResult<any, any>>(self: R, options?: {
 }
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const touch = <A extends AsyncResult<any, any>>(result: A): A => {
   if (isSuccess(result)) {
@@ -321,8 +321,8 @@ export const touch = <A extends AsyncResult<any, any>>(result: A): A => {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const replacePrevious = <R extends AsyncResult<any, any>, XE, A>(
   self: R,
@@ -335,8 +335,8 @@ export const replacePrevious = <R extends AsyncResult<any, any>, XE, A>(
 }
 
 /**
- * @since 4.0.0
  * @category accessors
+ * @since 4.0.0
  */
 export const value = <A, E>(self: AsyncResult<A, E>): Option.Option<A> => {
   if (self._tag === "Success") {
@@ -348,8 +348,8 @@ export const value = <A, E>(self: AsyncResult<A, E>): Option.Option<A> => {
 }
 
 /**
- * @since 4.0.0
  * @category accessors
+ * @since 4.0.0
  */
 export const getOrElse: {
   <B>(orElse: LazyArg<B>): <A, E>(self: AsyncResult<A, E>) => A | B
@@ -357,29 +357,29 @@ export const getOrElse: {
 } = dual(2, <A, E, B>(self: AsyncResult<A, E>, orElse: LazyArg<B>): A | B => Option.getOrElse(value(self), orElse))
 
 /**
- * @since 4.0.0
  * @category accessors
+ * @since 4.0.0
  */
 export const getOrThrow = <A, E>(self: AsyncResult<A, E>): A =>
   Option.getOrThrowWith(value(self), () => new Cause.NoSuchElementError("AsyncResult.getOrThrow: no value found"))
 
 /**
- * @since 4.0.0
  * @category accessors
+ * @since 4.0.0
  */
 export const cause = <A, E>(self: AsyncResult<A, E>): Option.Option<Cause.Cause<E>> =>
   self._tag === "Failure" ? Option.some(self.cause) : Option.none()
 
 /**
- * @since 4.0.0
  * @category accessors
+ * @since 4.0.0
  */
 export const error = <A, E>(self: AsyncResult<A, E>): Option.Option<E> =>
   self._tag === "Failure" ? Cause.findErrorOption(self.cause) : Option.none()
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const toExit = <A, E>(
   self: AsyncResult<A, E>
@@ -398,8 +398,8 @@ export const toExit = <A, E>(
 }
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const map: {
   <A, B>(f: (a: A) => B): <E>(self: AsyncResult<A, E>) => AsyncResult<B, E>
@@ -419,8 +419,8 @@ export const map: {
 })
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const flatMap: {
   <A, E, B, E2>(
@@ -451,8 +451,8 @@ export const flatMap: {
 )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const match: {
   <A, E, X, Y, Z>(options: {
@@ -481,8 +481,8 @@ export const match: {
 })
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const matchWithError: {
   <A, E, W, X, Y, Z>(options: {
@@ -519,8 +519,8 @@ export const matchWithError: {
 })
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const matchWithWaiting: {
   <A, E, W, X, Y, Z>(options: {
@@ -563,8 +563,8 @@ export const matchWithWaiting: {
  * Combines multiple results into a single result. Also works with non-result
  * values.
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const all = <const Arg extends Iterable<any> | Record<string, any>>(
   results: Arg
@@ -605,8 +605,8 @@ export const all = <const Arg extends Iterable<any> | Record<string, any>>(
 }
 
 /**
- * @since 4.0.0
  * @category Builder
+ * @since 4.0.0
  */
 export const builder = <A extends AsyncResult<any, any>>(self: A): Builder<
   never,
@@ -617,24 +617,24 @@ export const builder = <A extends AsyncResult<any, any>>(self: A): Builder<
 > => new BuilderImpl(self) as any
 
 /**
- * @since 4.0.0
  * @category Builder
+ * @since 4.0.0
  */
 export interface Defect {
   readonly _: unique symbol
 }
 
 /**
- * @since 4.0.0
  * @category Builder
+ * @since 4.0.0
  */
 export interface Interrupt {
   readonly _: unique symbol
 }
 
 /**
- * @since 4.0.0
  * @category Builder
+ * @since 4.0.0
  */
 export type Builder<Out, A, E, I, F> =
   & Pipeable
@@ -806,8 +806,8 @@ class BuilderImpl<Out, A, E> {
 }
 
 /**
- * @since 4.0.0
  * @category Schemas
+ * @since 4.0.0
  */
 export interface Schema<
   Success extends Schema_.Top,
@@ -824,8 +824,8 @@ export interface Schema<
 }
 
 /**
- * @since 4.0.0
  * @category Schemas
+ * @since 4.0.0
  */
 export const Schema = <
   A extends Schema_.Top = Schema_.Never,

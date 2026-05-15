@@ -11,14 +11,14 @@ import type * as Types from "../../Types.ts"
 import type { PersistenceError } from "./Persistence.ts"
 
 /**
- * @since 4.0.0
  * @category Symbols
+ * @since 4.0.0
  */
 export const symbol = "~effect/persistence/Persistable" as const
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface Persistable<A extends Schema.Top, E extends Schema.Top> extends PrimaryKey.PrimaryKey {
   readonly [symbol]: {
@@ -28,54 +28,54 @@ export interface Persistable<A extends Schema.Top, E extends Schema.Top> extends
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export type Any = Persistable<Schema.Top, Schema.Top>
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export type SuccessSchema<A extends Any> = A["~effect/persistence/Persistable"]["success"]
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export type Success<A extends Any> = A["~effect/persistence/Persistable"]["success"]["Type"]
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export type ErrorSchema<A extends Any> = A["~effect/persistence/Persistable"]["error"]
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export type Error<A extends Any> = A["~effect/persistence/Persistable"]["error"]["Type"]
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export type DecodingServices<A extends Any> =
   | A["~effect/persistence/Persistable"]["success"]["DecodingServices"]
   | A["~effect/persistence/Persistable"]["error"]["DecodingServices"]
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export type EncodingServices<A extends Any> =
   | A["~effect/persistence/Persistable"]["success"]["EncodingServices"]
   | A["~effect/persistence/Persistable"]["error"]["EncodingServices"]
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export type Services<A extends Any> =
   | A["~effect/persistence/Persistable"]["success"]["DecodingServices"]
@@ -84,14 +84,14 @@ export type Services<A extends Any> =
   | A["~effect/persistence/Persistable"]["error"]["EncodingServices"]
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export type TimeToLiveFn<K extends Any> = (exit: Exit.Exit<Success<K>, Error<K>>, request: K) => Duration.Input
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const Class = <
   Config extends {
@@ -154,8 +154,8 @@ export const Class = <
 }
 
 /**
- * @since 4.0.0
  * @category Accessors
+ * @since 4.0.0
  */
 export const exitSchema = <A extends Schema.Top, E extends Schema.Top>(
   self: Persistable<A, E>
@@ -170,8 +170,8 @@ export const exitSchema = <A extends Schema.Top, E extends Schema.Top>(
 const exitSchemaCache = new WeakMap<Persistable<any, any>, Schema.Exit<any, any, Schema.Defect>>()
 
 /**
- * @since 4.0.0
  * @category Serialization
+ * @since 4.0.0
  */
 export const serializeExit = <A extends Schema.Top, E extends Schema.Top>(
   self: Persistable<A, E>,
@@ -182,8 +182,8 @@ export const serializeExit = <A extends Schema.Top, E extends Schema.Top>(
 }
 
 /**
- * @since 4.0.0
  * @category Serialization
+ * @since 4.0.0
  */
 export const deserializeExit = <A extends Schema.Top, E extends Schema.Top>(
   self: Persistable<A, E>,

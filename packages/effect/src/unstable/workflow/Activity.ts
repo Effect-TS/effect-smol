@@ -19,8 +19,8 @@ import type { WorkflowEngine, WorkflowInstance } from "./WorkflowEngine.ts"
 const TypeId = "~effect/workflow/Activity"
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface Activity<
   Success extends Schema.Top = Schema.Void,
@@ -73,8 +73,8 @@ export interface Activity<
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface Any {
   readonly [TypeId]: typeof TypeId
@@ -84,8 +84,8 @@ export interface Any {
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface AnyWithProps {
   readonly [TypeId]: typeof TypeId
@@ -96,8 +96,8 @@ export interface AnyWithProps {
 }
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make = <
   R,
@@ -178,8 +178,8 @@ const retryOnInterrupt = (
   )
 
 /**
- * @since 4.0.0
  * @category Error handling
+ * @since 4.0.0
  */
 export const retry: {
   <E, O extends Types.NoExcessProperties<Omit<Effect.Retry.Options<E>, "schedule">, O>>(
@@ -199,8 +199,8 @@ export const retry: {
 )
 
 /**
- * @since 4.0.0
  * @category Attempts
+ * @since 4.0.0
  */
 export const CurrentAttempt = Context.Reference<number>(
   "effect/workflow/Activity/CurrentAttempt",
@@ -208,8 +208,8 @@ export const CurrentAttempt = Context.Reference<number>(
 )
 
 /**
- * @since 4.0.0
  * @category Idempotency
+ * @since 4.0.0
  */
 export const idempotencyKey: (
   name: string,
@@ -230,8 +230,8 @@ export const idempotencyKey: (
 })
 
 /**
- * @since 4.0.0
  * @category Racing
+ * @since 4.0.0
  */
 export const raceAll = <const Activities extends NonEmptyReadonlyArray<Any>>(
   name: string,

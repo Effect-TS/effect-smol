@@ -14,8 +14,8 @@ import * as Socket from "effect/unstable/socket/Socket"
 export * from "@effect/platform-node-shared/NodeSocket"
 
 /**
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layerWebSocketConstructor: Layer.Layer<
   Socket.WebSocketConstructor
@@ -27,8 +27,8 @@ export const layerWebSocketConstructor: Layer.Layer<
 })
 
 /**
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layerWebSocketConstructorWS: Layer.Layer<
   Socket.WebSocketConstructor
@@ -37,8 +37,8 @@ export const layerWebSocketConstructorWS: Layer.Layer<
 )
 
 /**
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layerWebSocket: (
   url: string | Effect.Effect<string>,

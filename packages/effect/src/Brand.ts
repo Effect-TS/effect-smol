@@ -18,8 +18,8 @@ const TypeId = "~effect/Brand"
 /**
  * A generic interface that defines a branded type.
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Brand<in out Keys extends string> {
   readonly [TypeId]: {

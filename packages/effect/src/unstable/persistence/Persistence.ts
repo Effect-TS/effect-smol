@@ -21,8 +21,8 @@ import * as Redis from "./Redis.ts"
 const ErrorTypeId = "~effect/persistence/Persistence/PersistenceError" as const
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class PersistenceError extends Schema.ErrorClass<PersistenceError>(ErrorTypeId)({
   _tag: Schema.tag("PersistenceError"),
@@ -36,8 +36,8 @@ export class PersistenceError extends Schema.ErrorClass<PersistenceError>(ErrorT
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export class Persistence extends Context.Service<Persistence, {
   readonly make: (options: {
@@ -47,8 +47,8 @@ export class Persistence extends Context.Service<Persistence, {
 }>()("effect/persistence/Persistence") {}
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface PersistenceStore {
   readonly get: <A extends Schema.Top, E extends Schema.Top>(
@@ -79,16 +79,16 @@ export interface PersistenceStore {
 }
 
 /**
- * @since 4.0.0
  * @category BackingPersistence
+ * @since 4.0.0
  */
 export class BackingPersistence extends Context.Service<BackingPersistence, {
   readonly make: (storeId: string) => Effect.Effect<BackingPersistenceStore, never, Scope.Scope>
 }>()("effect/persistence/BackingPersistence") {}
 
 /**
- * @since 4.0.0
  * @category BackingPersistence
+ * @since 4.0.0
  */
 export interface BackingPersistenceStore {
   readonly get: (key: string) => Effect.Effect<object | undefined, PersistenceError>
@@ -108,8 +108,8 @@ export interface BackingPersistenceStore {
 }
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layer = Layer.effect(Persistence)(Effect.gen(function*() {
   const backing = yield* BackingPersistence
@@ -202,8 +202,8 @@ export const layer = Layer.effect(Persistence)(Effect.gen(function*() {
 }))
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerBackingMemory: Layer.Layer<BackingPersistence> = Layer.sync(BackingPersistence)(
   () => {
@@ -249,8 +249,8 @@ export const layerBackingMemory: Layer.Layer<BackingPersistence> = Layer.sync(Ba
 )
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerBackingSqlMultiTable: Layer.Layer<
   BackingPersistence,
@@ -457,8 +457,8 @@ export const layerBackingSqlMultiTable: Layer.Layer<
 }))
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerBackingSql: Layer.Layer<
   BackingPersistence,
@@ -695,8 +695,8 @@ export const layerBackingSql: Layer.Layer<
 }))
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerBackingRedis: Layer.Layer<
   BackingPersistence,
@@ -849,8 +849,8 @@ end
 )
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerBackingKvs: Layer.Layer<
   BackingPersistence,
@@ -945,40 +945,40 @@ export const layerBackingKvs: Layer.Layer<
 }))
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerKvs: Layer.Layer<Persistence, never, KeyValueStore.KeyValueStore> = layer.pipe(
   Layer.provide(layerBackingKvs)
 )
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerMemory: Layer.Layer<Persistence> = layer.pipe(
   Layer.provide(layerBackingMemory)
 )
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerRedis: Layer.Layer<Persistence, never, Redis.Redis> = layer.pipe(
   Layer.provide(layerBackingRedis)
 )
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerSqlMultiTable: Layer.Layer<Persistence, never, SqlClient.SqlClient> = layer.pipe(
   Layer.provide(layerBackingSqlMultiTable)
 )
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerSql: Layer.Layer<Persistence, never, SqlClient.SqlClient> = layer.pipe(
   Layer.provide(layerBackingSql)

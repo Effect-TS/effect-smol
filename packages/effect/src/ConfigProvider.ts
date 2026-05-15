@@ -536,8 +536,8 @@ export const mapInput: {
  *
  * @see {@link mapInput} – for arbitrary path transformations
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const constantCase: (self: ConfigProvider) => ConfigProvider = mapInput((path) =>
   path.map((seg) => typeof seg === "number" ? seg : Str.constantCase(seg))

@@ -23,8 +23,8 @@ import * as Snowflake from "./Snowflake.ts"
 const withTracerDisabled = Effect.withTracerEnabled(false)
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make: (options?: {
   readonly prefix?: string | undefined
@@ -603,8 +603,8 @@ export const make: (options?: {
 }, withTracerDisabled)
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<
   MessageStorage.MessageStorage,
@@ -615,8 +615,8 @@ export const layer: Layer.Layer<
 )
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerWith = (options: {
   readonly prefix?: string | undefined

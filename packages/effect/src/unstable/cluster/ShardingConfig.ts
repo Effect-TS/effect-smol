@@ -14,8 +14,8 @@ import { RunnerAddress } from "./RunnerAddress.ts"
 /**
  * Represents the configuration for the `Sharding` service on a given runner.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class ShardingConfig extends Context.Service<ShardingConfig, {
   /**
@@ -125,8 +125,8 @@ export class ShardingConfig extends Context.Service<ShardingConfig, {
 const defaultRunnerAddress = RunnerAddress.make({ host: "localhost", port: 34431 })
 
 /**
- * @since 4.0.0
  * @category defaults
+ * @since 4.0.0
  */
 export const defaults: ShardingConfig["Service"] = {
   runnerAddress: Option.some(defaultRunnerAddress),
@@ -151,21 +151,21 @@ export const defaults: ShardingConfig["Service"] = {
 }
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layer = (options?: Partial<ShardingConfig["Service"]>): Layer.Layer<ShardingConfig> =>
   Layer.succeed(ShardingConfig)({ ...defaults, ...options })
 
 /**
- * @since 4.0.0
  * @category defaults
+ * @since 4.0.0
  */
 export const layerDefaults: Layer.Layer<ShardingConfig> = layer()
 
 /**
- * @since 4.0.0
  * @category Config
+ * @since 4.0.0
  */
 export const config: Config.Config<ShardingConfig["Service"]> = Config.all({
   runnerAddress: Config.all({
@@ -260,8 +260,8 @@ export const config: Config.Config<ShardingConfig["Service"]> = Config.all({
 })
 
 /**
- * @since 4.0.0
  * @category Config
+ * @since 4.0.0
  */
 export const configFromEnv = config.pipe(
   Effect.provideService(
@@ -273,8 +273,8 @@ export const configFromEnv = config.pipe(
 )
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerFromEnv = (options?: Partial<ShardingConfig["Service"]> | undefined): Layer.Layer<
   ShardingConfig,

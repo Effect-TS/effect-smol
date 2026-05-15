@@ -8,8 +8,8 @@ import { dual } from "./Function.ts"
 import * as Schema from "./Schema.ts"
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const encode = <S extends Schema.Top>(
   schema: S
@@ -28,8 +28,8 @@ export const encode = <S extends Schema.Top>(
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const encodeUnknown: <S extends Schema.Top>(
   schema: S
@@ -44,8 +44,8 @@ export const encodeUnknown: <S extends Schema.Top>(
 > = encode
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const decode = <S extends Schema.Top>(
   schema: S
@@ -64,8 +64,8 @@ export const decode = <S extends Schema.Top>(
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const decodeUnknown: <S extends Schema.Top>(
   schema: S
@@ -80,8 +80,8 @@ export const decodeUnknown: <S extends Schema.Top>(
 > = decode
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const duplex: {
   <In extends Schema.Top, Out extends Schema.Top>(options: {
@@ -158,8 +158,8 @@ export const duplex: {
   ))
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const duplexUnknown: {
   <In extends Schema.Top, Out extends Schema.Top>(options: {

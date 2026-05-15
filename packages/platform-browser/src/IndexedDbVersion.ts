@@ -9,8 +9,8 @@ import type * as IndexedDbTable from "./IndexedDbTable.ts"
 const TypeId = "~@effect/platform-browser/IndexedDbVersion"
 
 /**
- * @since 4.0.0
  * @category interface
+ * @since 4.0.0
  */
 export interface IndexedDbVersion<
   out Tables extends IndexedDbTable.AnyWithProps
@@ -21,28 +21,28 @@ export interface IndexedDbVersion<
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Any {
   readonly [TypeId]: typeof TypeId
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type AnyWithProps = IndexedDbVersion<IndexedDbTable.AnyWithProps>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Tables<Db extends Any> = Db extends IndexedDbVersion<infer _Tables> ? _Tables : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type TableWithName<
   Db extends Any,
@@ -50,8 +50,8 @@ export type TableWithName<
 > = IndexedDbTable.WithName<Tables<Db>, TableName>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type SchemaWithName<
   Db extends Any,
@@ -76,8 +76,8 @@ const makeProto = <Tables extends IndexedDbTable.AnyWithProps>(options: {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = <
   const Tables extends NonEmptyReadonlyArray<IndexedDbTable.AnyWithProps>

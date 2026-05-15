@@ -19,24 +19,24 @@ const TypeId = "~effect/collections/Graph"
 /**
  * Node index for node identification using plain numbers.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type NodeIndex = number
 
 /**
  * Edge index for edge identification using plain numbers.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type EdgeIndex = number
 
 /**
  * Edge data containing source, target, and user data.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class Edge<E> extends Data.Class<{
   readonly source: NodeIndex
@@ -47,16 +47,16 @@ export class Edge<E> extends Data.Class<{
 /**
  * Graph type for distinguishing directed and undirected graphs.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Kind = "directed" | "undirected"
 
 /**
  * Graph prototype interface.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Proto<out N, out E> extends Iterable<readonly [NodeIndex, N]>, Equal.Equal, Pipeable, Inspectable {
   readonly [TypeId]: typeof TypeId
@@ -72,8 +72,8 @@ export interface Proto<out N, out E> extends Iterable<readonly [NodeIndex, N]>, 
 /**
  * Immutable graph interface.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Graph<out N, out E, T extends Kind = "directed"> extends Proto<N, E> {
   readonly type: T
@@ -83,8 +83,8 @@ export interface Graph<out N, out E, T extends Kind = "directed"> extends Proto<
 /**
  * Mutable graph interface.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface MutableGraph<out N, out E, T extends Kind = "directed"> extends Proto<N, E> {
   readonly type: T
@@ -94,32 +94,32 @@ export interface MutableGraph<out N, out E, T extends Kind = "directed"> extends
 /**
  * Directed graph type alias.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type DirectedGraph<N, E> = Graph<N, E, "directed">
 
 /**
  * Undirected graph type alias.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type UndirectedGraph<N, E> = Graph<N, E, "undirected">
 
 /**
  * Mutable directed graph type alias.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type MutableDirectedGraph<N, E> = MutableGraph<N, E, "directed">
 
 /**
  * Mutable undirected graph type alias.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type MutableUndirectedGraph<N, E> = MutableGraph<N, E, "undirected">
 
@@ -205,8 +205,8 @@ const ProtoGraph = {
 // TODO: Do we need safe variants for these?
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class GraphError extends Data.TaggedError("GraphError")<{
   readonly message: string
@@ -220,8 +220,8 @@ const missingNode = (node: number) => new GraphError({ message: `Node ${node} do
 // =============================================================================
 
 /**
- * @since 4.0.0
  * @category Guards
+ * @since 4.0.0
  */
 export const isGraph = (u: unknown): u is Graph<unknown, unknown> => hasProperty(u, TypeId)
 
@@ -242,8 +242,8 @@ export const isGraph = (u: unknown): u is Graph<unknown, unknown> => hasProperty
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const directed = <N, E>(mutate?: (mutable: MutableDirectedGraph<N, E>) => void): DirectedGraph<N, E> => {
   const graph: Mutable<DirectedGraph<N, E>> = Object.create(ProtoGraph)
@@ -283,8 +283,8 @@ export const directed = <N, E>(mutate?: (mutable: MutableDirectedGraph<N, E>) =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const undirected = <N, E>(mutate?: (mutable: MutableUndirectedGraph<N, E>) => void): UndirectedGraph<N, E> => {
   const graph: Mutable<UndirectedGraph<N, E>> = Object.create(ProtoGraph)
@@ -323,8 +323,8 @@ export const undirected = <N, E>(mutate?: (mutable: MutableUndirectedGraph<N, E>
  * // Now mutable can be safely modified without affecting original graph
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const beginMutation = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T>
@@ -368,8 +368,8 @@ export const beginMutation = <N, E, T extends Kind = "directed">(
  * const newGraph = Graph.endMutation(mutable)
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const endMutation = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>
@@ -402,8 +402,8 @@ export const endMutation = <N, E, T extends Kind = "directed">(
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const mutate: {
   <N, E, T extends Kind = "directed">(
@@ -441,8 +441,8 @@ export const mutate: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const addNode = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>,
@@ -483,8 +483,8 @@ export const addNode = <N, E, T extends Kind = "directed">(
  * }
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const getNode: {
   <N, E, T extends Kind = "directed">(
@@ -519,8 +519,8 @@ export const getNode: {
  * console.log(notExists) // false
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const hasNode: {
   (nodeIndex: NodeIndex): <N, E, T extends Kind = "directed">(graph: Graph<N, E, T> | MutableGraph<N, E, T>) => boolean
@@ -549,8 +549,8 @@ export const hasNode: {
  * console.log(Graph.nodeCount(graphWithNodes)) // 3
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const nodeCount = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>
@@ -576,8 +576,8 @@ export const nodeCount = <N, E, T extends Kind = "directed">(
  * console.log(notFound) // Option.none()
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const findNode: {
   <N>(
@@ -619,8 +619,8 @@ export const findNode: {
  * console.log(empty) // []
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const findNodes: {
   <N>(
@@ -665,8 +665,8 @@ export const findNodes: {
  * console.log(notFound) // Option.none()
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const findEdge: {
   <E>(
@@ -711,8 +711,8 @@ export const findEdge: {
  * console.log(empty) // []
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const findEdges: {
   <E>(
@@ -752,8 +752,8 @@ export const findEdges: {
  * console.log(nodeData) // Option.some("NODE A")
  * ```
  *
- * @since 4.0.0
  * @category transformations
+ * @since 4.0.0
  */
 export const updateNode = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>,
@@ -787,8 +787,8 @@ export const updateNode = <N, E, T extends Kind = "directed">(
  * console.log(edgeData) // new Graph.Edge({ source: 0, target: 1, data: 20 })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const updateEdge = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>,
@@ -822,8 +822,8 @@ export const updateEdge = <N, E, T extends Kind = "directed">(
  * console.log(nodeData) // new Graph.Node("NODE A")
  * ```
  *
- * @since 4.0.0
  * @category transformations
+ * @since 4.0.0
  */
 export const mapNodes = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>,
@@ -856,8 +856,8 @@ export const mapNodes = <N, E, T extends Kind = "directed">(
  * console.log(edgeData) // new Graph.Edge({ source: 0, target: 1, data: 20 })
  * ```
  *
- * @since 4.0.0
  * @category transformations
+ * @since 4.0.0
  */
 export const mapEdges = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>,
@@ -893,8 +893,8 @@ export const mapEdges = <N, E, T extends Kind = "directed">(
  * console.log(edge0) // new Graph.Edge({ source: 1, target: 0, data: 1 }) - B -> A
  * ```
  *
- * @since 4.0.0
  * @category transformations
+ * @since 4.0.0
  */
 export const reverse = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>
@@ -959,8 +959,8 @@ export const reverse = <N, E, T extends Kind = "directed">(
  * console.log(Graph.nodeCount(graph)) // 2 (only "active" nodes remain)
  * ```
  *
- * @since 4.0.0
  * @category transformations
+ * @since 4.0.0
  */
 export const filterMapNodes = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>,
@@ -1013,8 +1013,8 @@ export const filterMapNodes = <N, E, T extends Kind = "directed">(
  * console.log(Graph.edgeCount(graph)) // 2 (edges with weight 5 removed)
  * ```
  *
- * @since 4.0.0
  * @category transformations
+ * @since 4.0.0
  */
 export const filterMapEdges = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>,
@@ -1064,8 +1064,8 @@ export const filterMapEdges = <N, E, T extends Kind = "directed">(
  * console.log(Graph.nodeCount(graph)) // 2 (only "active" nodes remain)
  * ```
  *
- * @since 4.0.0
  * @category transformations
+ * @since 4.0.0
  */
 export const filterNodes = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>,
@@ -1110,8 +1110,8 @@ export const filterNodes = <N, E, T extends Kind = "directed">(
  * console.log(Graph.edgeCount(graph)) // 2 (edge with weight 5 removed)
  * ```
  *
- * @since 4.0.0
  * @category transformations
+ * @since 4.0.0
  */
 export const filterEdges = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>,
@@ -1175,8 +1175,8 @@ const invalidateCycleFlagOnAddition = <N, E, T extends Kind = "directed">(
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const addEdge = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>,
@@ -1249,8 +1249,8 @@ export const addEdge = <N, E, T extends Kind = "directed">(
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const removeNode = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>,
@@ -1312,8 +1312,8 @@ export const removeNode = <N, E, T extends Kind = "directed">(
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const removeEdge = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>,
@@ -1410,8 +1410,8 @@ const removeEdgeInternal = <N, E, T extends Kind = "directed">(
  * }
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const getEdge: {
   <E>(
@@ -1451,8 +1451,8 @@ export const getEdge: {
  * console.log(hasAC) // false
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const hasEdge: {
   (
@@ -1507,8 +1507,8 @@ export const hasEdge: {
  * console.log(Graph.edgeCount(graphWithEdges)) // 3
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const edgeCount = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>
@@ -1540,8 +1540,8 @@ export const edgeCount = <N, E, T extends Kind = "directed">(
  * console.log(neighborsB) // []
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const neighbors: {
   (
@@ -1599,8 +1599,8 @@ export const neighbors: {
  * const incoming = Graph.neighborsDirected(graph, nodeB, "incoming")
  * ```
  *
- * @since 4.0.0
  * @category queries
+ * @since 4.0.0
  */
 export const neighborsDirected: {
   (
@@ -1669,8 +1669,8 @@ export const neighborsDirected: {
  * }
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface GraphVizOptions<N, E> {
   /**
@@ -1720,8 +1720,8 @@ export interface GraphVizOptions<N, E> {
  * // }
  * ```
  *
- * @since 4.0.0
  * @category utils
+ * @since 4.0.0
  */
 export const toGraphViz: {
   <N, E>(
@@ -1799,8 +1799,8 @@ export const toGraphViz: {
  * }
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type MermaidNodeShape =
   | "rectangle" // A["label"]
@@ -1841,8 +1841,8 @@ export type MermaidNodeShape =
  * }
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type MermaidDirection =
   | "TB" // Top to Bottom (default)
@@ -1879,8 +1879,8 @@ export type MermaidDirection =
  * const autoOptions: Graph.MermaidOptions<string, string> = {}
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type MermaidDiagramType =
   | "flowchart" // For directed graphs
@@ -1889,8 +1889,8 @@ export type MermaidDiagramType =
 /**
  * Configuration options for Mermaid diagram generation, following GraphViz pattern.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 /**
  * Configuration options for Mermaid diagram generation from graphs.
@@ -1918,8 +1918,8 @@ export type MermaidDiagramType =
  * }
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface MermaidOptions<N, E> {
   /**
@@ -2181,8 +2181,8 @@ const formatMermaidNode = (
  * @param options - Optional configuration for the Mermaid output
  * @returns Mermaid diagram syntax as a string
  *
- * @since 4.0.0
  * @category utils
+ * @since 4.0.0
  */
 export const toMermaid: {
   <N, E>(
@@ -2267,8 +2267,8 @@ export const toMermaid: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Direction = "outgoing" | "incoming"
 
@@ -2307,8 +2307,8 @@ export type Direction = "outgoing" | "incoming"
  * console.log(Graph.isAcyclic(cyclic)) // false
  * ```
  *
- * @since 4.0.0
  * @category algorithms
+ * @since 4.0.0
  */
 export const isAcyclic = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>
@@ -2421,8 +2421,8 @@ export const isAcyclic = <N, E, T extends Kind = "directed">(
  * console.log(Graph.isBipartite(triangle)) // false
  * ```
  *
- * @since 4.0.0
  * @category algorithms
+ * @since 4.0.0
  */
 export const isBipartite = <N, E>(
   graph: Graph<N, E, "undirected"> | MutableGraph<N, E, "undirected">
@@ -2519,8 +2519,8 @@ const getUndirectedNeighbors = <N, E>(
  * console.log(components) // [[0, 1], [2, 3]]
  * ```
  *
- * @since 4.0.0
  * @category algorithms
+ * @since 4.0.0
  */
 export const connectedComponents = <N, E>(
   graph: Graph<N, E, "undirected"> | MutableGraph<N, E, "undirected">
@@ -2577,8 +2577,8 @@ export const connectedComponents = <N, E>(
  * console.log(sccs) // [[0, 1, 2]]
  * ```
  *
- * @since 4.0.0
  * @category algorithms
+ * @since 4.0.0
  */
 export const stronglyConnectedComponents = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>
@@ -2680,8 +2680,8 @@ export const stronglyConnectedComponents = <N, E, T extends Kind = "directed">(
 /**
  * Result of a shortest path computation containing the path and total distance.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface PathResult<E> {
   readonly path: Array<NodeIndex>
@@ -2692,8 +2692,8 @@ export interface PathResult<E> {
 /**
  * Configuration for Dijkstra's algorithm.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface DijkstraConfig<E> {
   source: NodeIndex
@@ -2732,8 +2732,8 @@ export interface DijkstraConfig<E> {
  * }
  * ```
  *
- * @since 4.0.0
  * @category algorithms
+ * @since 4.0.0
  */
 export const dijkstra: {
   <E>(
@@ -2872,8 +2872,8 @@ export const dijkstra: {
 /**
  * Result of all-pairs shortest path computation.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface AllPairsResult<E> {
   readonly distances: Map<NodeIndex, Map<NodeIndex, number>>
@@ -2907,8 +2907,8 @@ export interface AllPairsResult<E> {
  * const pathAToC = result.paths.get(0)?.get(2) // [0, 1, 2]
  * ```
  *
- * @since 4.0.0
  * @category algorithms
+ * @since 4.0.0
  */
 export const floydWarshall: {
   <E>(
@@ -3032,8 +3032,8 @@ export const floydWarshall: {
 /**
  * Configuration for A* pathfinding algorithm.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface AstarConfig<E, N> {
   source: NodeIndex
@@ -3080,8 +3080,8 @@ export interface AstarConfig<E, N> {
  * }
  * ```
  *
- * @since 4.0.0
  * @category algorithms
+ * @since 4.0.0
  */
 export const astar: {
   <E, N>(
@@ -3244,8 +3244,8 @@ export const astar: {
 /**
  * Configuration for Bellman-Ford algorithm.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface BellmanFordConfig<E> {
   source: NodeIndex
@@ -3285,8 +3285,8 @@ export interface BellmanFordConfig<E> {
  * }
  * ```
  *
- * @since 4.0.0
  * @category algorithms
+ * @since 4.0.0
  */
 export const bellmanFord: {
   <E>(
@@ -3456,8 +3456,8 @@ export const bellmanFord: {
  * const nodeEntries = Array.from(Graph.entries(allNodes)) // [[0, "A"], [1, "B"]]
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class Walker<T, N> implements Iterable<[T, N]> {
   // @ts-ignore
@@ -3493,8 +3493,8 @@ export class Walker<T, N> implements Iterable<[T, N]> {
    * console.log(custom) // [{ id: 0, name: "A" }, { id: 1, name: "B" }]
    * ```
    *
-   * @since 4.0.0
    * @category iterators
+   * @since 4.0.0
    */
   readonly visit: <U>(f: (index: T, data: N) => U) => Iterable<U>
 
@@ -3529,8 +3529,8 @@ export class Walker<T, N> implements Iterable<[T, N]> {
      * console.log(custom) // [{ id: 0, name: "A" }, { id: 1, name: "B" }]
      * ```
      *
-     * @since 4.0.0
      * @category iterators
+     * @since 4.0.0
      */
     visit: <U>(f: (index: T, data: N) => U) => Iterable<U>
   ) {
@@ -3543,8 +3543,8 @@ export class Walker<T, N> implements Iterable<[T, N]> {
  * Type alias for node iteration using Walker.
  * NodeWalker is represented as Walker<NodeIndex, N>.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type NodeWalker<N> = Walker<NodeIndex, N>
 
@@ -3552,8 +3552,8 @@ export type NodeWalker<N> = Walker<NodeIndex, N>
  * Type alias for edge iteration using Walker.
  * EdgeWalker is represented as Walker<EdgeIndex, Edge<E>>.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type EdgeWalker<E> = Walker<EdgeIndex, Edge<E>>
 
@@ -3575,8 +3575,8 @@ export type EdgeWalker<E> = Walker<EdgeIndex, Edge<E>>
  * console.log(indices) // [0, 1]
  * ```
  *
- * @since 4.0.0
  * @category utilities
+ * @since 4.0.0
  */
 export const indices = <T, N>(walker: Walker<T, N>): Iterable<T> => walker.visit((index, _) => index)
 
@@ -3598,8 +3598,8 @@ export const indices = <T, N>(walker: Walker<T, N>): Iterable<T> => walker.visit
  * console.log(values) // ["A", "B"]
  * ```
  *
- * @since 4.0.0
  * @category utilities
+ * @since 4.0.0
  */
 export const values = <T, N>(walker: Walker<T, N>): Iterable<N> => walker.visit((_, data) => data)
 
@@ -3621,8 +3621,8 @@ export const values = <T, N>(walker: Walker<T, N>): Iterable<N> => walker.visit(
  * console.log(entries) // [[0, "A"], [1, "B"]]
  * ```
  *
- * @since 4.0.0
  * @category utilities
+ * @since 4.0.0
  */
 export const entries = <T, N>(walker: Walker<T, N>): Iterable<[T, N]> =>
   walker.visit((index, data) => [index, data] as [T, N])
@@ -3630,8 +3630,8 @@ export const entries = <T, N>(walker: Walker<T, N>): Iterable<[T, N]> =>
 /**
  * Configuration options for search iterators.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface SearchConfig {
   readonly start?: Array<NodeIndex>
@@ -3667,8 +3667,8 @@ export interface SearchConfig {
  * // Can be used programmatically
  * ```
  *
- * @since 4.0.0
  * @category iterators
+ * @since 4.0.0
  */
 export const dfs: {
   (
@@ -3760,8 +3760,8 @@ export const dfs: {
  * // Can be used programmatically
  * ```
  *
- * @since 4.0.0
  * @category iterators
+ * @since 4.0.0
  */
 export const bfs: {
   (
@@ -3823,8 +3823,8 @@ export const bfs: {
 /**
  * Configuration options for topological sort iterator.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface TopoConfig {
   readonly initials?: Array<NodeIndex>
@@ -3872,8 +3872,8 @@ export interface TopoConfig {
  * }
  * ```
  *
- * @since 4.0.0
  * @category iterators
+ * @since 4.0.0
  */
 export const topo: {
   (
@@ -3989,8 +3989,8 @@ export const topo: {
  * }
  * ```
  *
- * @since 4.0.0
  * @category iterators
+ * @since 4.0.0
  */
 export const dfsPostOrder: {
   (
@@ -4088,8 +4088,8 @@ export const dfsPostOrder: {
  * console.log(indices) // [0, 1, 2]
  * ```
  *
- * @since 4.0.0
  * @category iterators
+ * @since 4.0.0
  */
 export const nodes = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>
@@ -4134,8 +4134,8 @@ export const nodes = <N, E, T extends Kind = "directed">(
  * console.log(indices) // [0, 1]
  * ```
  *
- * @since 4.0.0
  * @category iterators
+ * @since 4.0.0
  */
 export const edges = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>
@@ -4161,8 +4161,8 @@ export const edges = <N, E, T extends Kind = "directed">(
 /**
  * Configuration for externals iterator.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ExternalsConfig {
   readonly direction?: Direction
@@ -4202,8 +4202,8 @@ export interface ExternalsConfig {
  * console.log(sources) // [0, 3]
  * ```
  *
- * @since 4.0.0
  * @category iterators
+ * @since 4.0.0
  */
 export const externals: {
   (

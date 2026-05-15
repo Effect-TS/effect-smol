@@ -14,8 +14,8 @@ import * as Terminal from "effect/Terminal"
 import * as readline from "node:readline"
 
 /**
- * @since 1.0.0
  * @category constructors
+ * @since 1.0.0
  */
 export const make: (
   shouldQuit?: (input: Terminal.UserInput) => boolean
@@ -104,8 +104,8 @@ export const make: (
 )
 
 /**
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layer: Layer.Layer<Terminal.Terminal> = Layer.effect(Terminal.Terminal, make(defaultShouldQuit))
 

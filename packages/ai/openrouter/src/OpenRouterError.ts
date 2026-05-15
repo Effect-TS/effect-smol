@@ -10,8 +10,8 @@
 /**
  * OpenRouter-specific error metadata fields.
  *
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export type OpenRouterErrorMetadata = {
   /**
@@ -31,8 +31,8 @@ export type OpenRouterErrorMetadata = {
 /**
  * OpenRouter-specific rate limit metadata fields.
  *
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export type OpenRouterRateLimitMetadata = OpenRouterErrorMetadata & {
   readonly limit: string | null

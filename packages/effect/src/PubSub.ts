@@ -74,8 +74,8 @@ const TypeId = "~effect/PubSub"
  * })
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface PubSub<in out A> extends Pipeable {
   readonly [TypeId]: {
@@ -90,15 +90,15 @@ export interface PubSub<in out A> extends Pipeable {
 }
 
 /**
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export namespace PubSub {
   /**
    * Low-level atomic PubSub interface that handles the core message storage and retrieval.
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Atomic<in out A> {
     readonly capacity: number
@@ -115,8 +115,8 @@ export namespace PubSub {
   /**
    * Low-level subscription interface that handles message polling for individual subscribers.
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface BackingSubscription<out A> {
     isEmpty(): boolean
@@ -129,8 +129,8 @@ export namespace PubSub {
   /**
    * Internal type representing the mapping from subscriptions to their pollers.
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type Subscribers<A> = Map<
     BackingSubscription<A>,
@@ -140,8 +140,8 @@ export namespace PubSub {
   /**
    * Interface for accessing replay buffer contents for late subscribers.
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface ReplayWindow<A> {
     take(): A | undefined
@@ -153,8 +153,8 @@ export namespace PubSub {
   /**
    * Strategy interface defining how PubSub handles backpressure and message distribution.
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Strategy<in out A> {
     /**
@@ -234,8 +234,8 @@ const SubscriptionTypeId = "~effect/PubSub/Subscription"
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Subscription<out A> extends Pipeable {
   readonly [SubscriptionTypeId]: {
@@ -271,8 +271,8 @@ export interface Subscription<out A> extends Pipeable {
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = <A>(
   options: {
@@ -319,8 +319,8 @@ export const make = <A>(
  * })
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const bounded = <A>(
   capacity: number | {
@@ -363,8 +363,8 @@ export const bounded = <A>(
  * })
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const dropping = <A>(
   capacity: number | {
@@ -412,8 +412,8 @@ export const dropping = <A>(
  * })
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const sliding = <A>(
   capacity: number | {
@@ -456,8 +456,8 @@ export const sliding = <A>(
  * })
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const unbounded = <A>(options?: {
   readonly replay?: number | undefined
@@ -470,8 +470,8 @@ export const unbounded = <A>(options?: {
 /**
  * Creates a bounded atomic PubSub implementation with optional replay buffer.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const makeAtomicBounded = <A>(
   capacity: number | {
@@ -494,8 +494,8 @@ export const makeAtomicBounded = <A>(
 /**
  * Creates an unbounded atomic PubSub implementation with optional replay buffer.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const makeAtomicUnbounded = <A>(options?: {
   readonly replay?: number | undefined
@@ -520,8 +520,8 @@ export const makeAtomicUnbounded = <A>(options?: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const capacity = <A>(self: PubSub<A>): number => self.pubsub.capacity
 
@@ -551,8 +551,8 @@ export const capacity = <A>(self: PubSub<A>): number => self.pubsub.capacity
  * })
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const size = <A>(self: PubSub<A>): Effect.Effect<number> => Effect.sync(() => sizeUnsafe(self))
 /**
@@ -571,8 +571,8 @@ export const size = <A>(self: PubSub<A>): Effect.Effect<number> => Effect.sync((
  * console.log("Current size:", size)
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const sizeUnsafe = <A>(self: PubSub<A>): number => {
   if (MutableRef.get(self.shutdownFlag)) {
@@ -606,8 +606,8 @@ export const sizeUnsafe = <A>(self: PubSub<A>): number => {
  * })
  * ```
  *
- * @since 2.0.0
  * @category predicates
+ * @since 2.0.0
  */
 export const isFull = <A>(self: PubSub<A>): Effect.Effect<boolean> =>
   Effect.map(size(self), (size) => size === self.pubsub.capacity)
@@ -635,8 +635,8 @@ export const isFull = <A>(self: PubSub<A>): Effect.Effect<boolean> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category predicates
+ * @since 2.0.0
  */
 export const isEmpty = <A>(self: PubSub<A>): Effect.Effect<boolean> => Effect.map(size(self), (size) => size === 0)
 
@@ -668,8 +668,8 @@ export const isEmpty = <A>(self: PubSub<A>): Effect.Effect<boolean> => Effect.ma
  * })
  * ```
  *
- * @since 2.0.0
  * @category lifecycle
+ * @since 2.0.0
  */
 export const shutdown = <A>(self: PubSub<A>): Effect.Effect<void> =>
   Effect.uninterruptible(Effect.withFiber((fiber) => {
@@ -704,8 +704,8 @@ export const shutdown = <A>(self: PubSub<A>): Effect.Effect<void> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category predicates
+ * @since 2.0.0
  */
 export const isShutdown = <A>(self: PubSub<A>): Effect.Effect<boolean> => Effect.sync(() => isShutdownUnsafe(self))
 
@@ -727,8 +727,8 @@ export const isShutdown = <A>(self: PubSub<A>): Effect.Effect<boolean> => Effect
  * }
  * ```
  *
- * @since 4.0.0
  * @category predicates
+ * @since 4.0.0
  */
 export const isShutdownUnsafe = <A>(self: PubSub<A>): boolean => self.shutdownFlag.current
 
@@ -763,8 +763,8 @@ export const isShutdownUnsafe = <A>(self: PubSub<A>): boolean => self.shutdownFl
  * })
  * ```
  *
- * @since 2.0.0
  * @category lifecycle
+ * @since 2.0.0
  */
 export const awaitShutdown = <A>(self: PubSub<A>): Effect.Effect<void> => self.shutdownHook.await
 
@@ -801,8 +801,8 @@ export const awaitShutdown = <A>(self: PubSub<A>): Effect.Effect<void> => self.s
  * })
  * ```
  *
- * @since 2.0.0
  * @category publishing
+ * @since 2.0.0
  */
 export const publish: {
   <A>(value: A): (self: PubSub<A>) => Effect.Effect<boolean>
@@ -851,8 +851,8 @@ export const publish: {
  * console.log(`Published ${publishedCount} out of ${messages.length} messages`)
  * ```
  *
- * @since 4.0.0
  * @category publishing
+ * @since 4.0.0
  */
 export const publishUnsafe: {
   <A>(value: A): (self: PubSub<A>) => boolean
@@ -900,8 +900,8 @@ export const publishUnsafe: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category publishing
+ * @since 2.0.0
  */
 export const publishAll: {
   <A>(elements: Iterable<A>): (self: PubSub<A>) => Effect.Effect<boolean>
@@ -968,8 +968,8 @@ export const publishAll: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category subscription
+ * @since 2.0.0
  */
 export const subscribe = <A>(self: PubSub<A>): Effect.Effect<Subscription<A>, never, Scope.Scope> =>
   Effect.uninterruptible(
@@ -1035,8 +1035,8 @@ const unsubscribe = <A>(self: Subscription<A>): Effect.Effect<void> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category subscription
+ * @since 4.0.0
  */
 export const take = <A>(self: Subscription<A>): Effect.Effect<A> =>
   Effect.suspend(() => {
@@ -1082,8 +1082,8 @@ export const take = <A>(self: Subscription<A>): Effect.Effect<A> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category subscription
+ * @since 4.0.0
  */
 export const takeAll = <A>(self: Subscription<A>): Effect.Effect<Arr.NonEmptyArray<A>> =>
   Effect.suspend(function loop(value?: [A]): Effect.Effect<Arr.NonEmptyArray<A>> {
@@ -1161,8 +1161,8 @@ const pollForItem = <A>(self: Subscription<A>) => {
  * })
  * ```
  *
- * @since 4.0.0
  * @category subscription
+ * @since 4.0.0
  */
 export const takeUpTo: {
   (max: number): <A>(self: Subscription<A>) => Effect.Effect<Array<A>>
@@ -1213,8 +1213,8 @@ export const takeUpTo: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category subscription
+ * @since 4.0.0
  */
 export const takeBetween: {
   (min: number, max: number): <A>(self: Subscription<A>) => Effect.Effect<Array<A>>
@@ -1288,8 +1288,8 @@ const takeRemainderLoop = <A>(
  * })
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const remaining = <A>(self: Subscription<A>): Effect.Effect<number> =>
   Effect.suspend(() =>
@@ -1321,8 +1321,8 @@ export const remaining = <A>(self: Subscription<A>): Effect.Effect<number> =>
  * }
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const remainingUnsafe = <A>(self: Subscription<A>): Option.Option<number> => {
   if (self.shutdownFlag.current) {
@@ -2209,8 +2209,8 @@ const ensureCapacity = (capacity: number): void => {
  * risk that a slow subscriber will slow down the rate at which messages
  * are published and received by other subscribers.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class BackPressureStrategy<in out A> implements PubSub.Strategy<A> {
   publishers: MutableList.MutableList<
@@ -2343,8 +2343,8 @@ export class BackPressureStrategy<in out A> implements PubSub.Strategy<A> {
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class DroppingStrategy<in out A> implements PubSub.Strategy<A> {
   get shutdown(): Effect.Effect<void> {
@@ -2418,8 +2418,8 @@ export class DroppingStrategy<in out A> implements PubSub.Strategy<A> {
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class SlidingStrategy<in out A> implements PubSub.Strategy<A> {
   get shutdown(): Effect.Effect<void> {

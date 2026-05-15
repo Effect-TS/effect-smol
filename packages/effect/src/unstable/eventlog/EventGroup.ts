@@ -8,20 +8,20 @@ import type * as Schema from "../../Schema.ts"
 import * as Event from "./Event.ts"
 
 /**
- * @since 4.0.0
  * @category type ids
+ * @since 4.0.0
  */
 export type TypeId = "~effect/eventlog/EventGroup"
 
 /**
- * @since 4.0.0
  * @category type ids
+ * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/eventlog/EventGroup"
 
 /**
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isEventGroup = (u: unknown): u is Any => Predicate.hasProperty(u, TypeId)
 
@@ -31,8 +31,8 @@ export const isEventGroup = (u: unknown): u is Any => Predicate.hasProperty(u, T
  *
  * The events can be implemented later using the `EventLogBuilder.group` api.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface EventGroup<
   out Events extends Event.Any = Event.Any
@@ -63,42 +63,42 @@ export interface EventGroup<
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Any {
   readonly [TypeId]: TypeId
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type AnyWithProps = EventGroup<Event.Any>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ToService<A> = A extends EventGroup<infer _Events> ? Event.ToService<_Events>
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Events<Group> = Group extends EventGroup<infer _Events> ? _Events
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ServicesClient<Group> = Event.ServicesClient<Events<Group>>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ServicesServer<Group> = Event.ServicesServer<Events<Group>>
 
@@ -156,7 +156,7 @@ const makeProto = <
  *
  * The events can be implemented later using the `EventLog.group` api.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const empty: EventGroup<never> = makeProto({ events: Record.empty() })

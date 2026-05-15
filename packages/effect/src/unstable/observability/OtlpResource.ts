@@ -7,8 +7,8 @@ import { format } from "../../Formatter.ts"
 import * as Schema from "../../Schema.ts"
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface Resource {
   /** Resource attributes */
@@ -18,8 +18,8 @@ export interface Resource {
 }
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make = (options: {
   readonly serviceName: string
@@ -51,8 +51,8 @@ export const make = (options: {
 }
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const fromConfig: (
   options?: {
@@ -86,8 +86,8 @@ export const fromConfig: (
 }, Effect.orDie)
 
 /**
- * @since 4.0.0
  * @category Attributes
+ * @since 4.0.0
  */
 export const serviceNameUnsafe = (resource: Resource): string => {
   const serviceNameAttribute = resource.attributes.find(
@@ -100,8 +100,8 @@ export const serviceNameUnsafe = (resource: Resource): string => {
 }
 
 /**
- * @since 4.0.0
  * @category Attributes
+ * @since 4.0.0
  */
 export const entriesToAttributes = (entries: Iterable<[string, unknown]>): Array<KeyValue> => {
   const attributes: Array<KeyValue> = []
@@ -115,8 +115,8 @@ export const entriesToAttributes = (entries: Iterable<[string, unknown]>): Array
 }
 
 /**
- * @since 4.0.0
  * @category Attributes
+ * @since 4.0.0
  */
 export const unknownToAttributeValue = (value: unknown): AnyValue => {
   if (Array.isArray(value)) {
@@ -155,8 +155,8 @@ export const unknownToAttributeValue = (value: unknown): AnyValue => {
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface KeyValue {
   /** KeyValue key */
@@ -166,8 +166,8 @@ export interface KeyValue {
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface AnyValue {
   /** AnyValue stringValue */
@@ -187,8 +187,8 @@ export interface AnyValue {
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface ArrayValue {
   /** ArrayValue values */
@@ -196,8 +196,8 @@ export interface ArrayValue {
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface KeyValueList {
   /** KeyValueList values */
@@ -205,8 +205,8 @@ export interface KeyValueList {
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface LongBits {
   low: number
@@ -214,7 +214,7 @@ export interface LongBits {
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export type Fixed64 = LongBits | string | number

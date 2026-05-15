@@ -12,8 +12,8 @@ import type * as Entity from "./Entity.ts"
 import type { Sharding } from "./Sharding.ts"
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerHttpApi = <
   ApiId extends string,
@@ -72,8 +72,8 @@ export const layerHttpApi = <
   )
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerRpcHandlers = <
   const Type extends string,

@@ -209,8 +209,8 @@ export class Conflict extends Schema.ErrorClass<Conflict>("effect/HttpApiError/C
 }
 
 /**
- * @since 4.0.0
  * @category NoContent errors
+ * @since 4.0.0
  */
 export const ConflictNoContent = Conflict.pipe(HttpApiSchema.asNoContent({
   decode: () => new Conflict({})

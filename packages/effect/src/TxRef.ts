@@ -24,8 +24,8 @@ const TypeId = "~effect/transactions/TxRef"
  * transaction explicitely calls to `Effect.txRetry` and any of the accessed TxRef values
  * change.
  *
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  * @example
  * ```ts
  * import { Effect, TxRef } from "effect"
@@ -56,8 +56,8 @@ export interface TxRef<in out A> extends Pipeable {
 /**
  * Creates a new `TxRef` with the specified initial value.
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  * @example
  * ```ts
  * import { Effect, TxRef } from "effect"
@@ -83,8 +83,8 @@ export const make = <A>(initial: A) => Effect.sync(() => makeUnsafe(initial))
 /**
  * Creates a new `TxRef` with the specified initial value.
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  * @example
  * ```ts
  * import { TxRef } from "effect"
@@ -111,8 +111,8 @@ export const makeUnsafe = <A>(initial: A): TxRef<A> => ({
 /**
  * Modifies the value of the `TxRef` using the provided function.
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  * @example
  * ```ts
  * import { Effect, TxRef } from "effect"
@@ -153,8 +153,8 @@ export const modify: {
 /**
  * Updates the value of the `TxRef` using the provided function.
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  * @example
  * ```ts
  * import { Effect, TxRef } from "effect"
@@ -182,8 +182,8 @@ export const update: {
 /**
  * Reads the current value of the `TxRef`.
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  * @example
  * ```ts
  * import { Effect, TxRef } from "effect"
@@ -205,8 +205,8 @@ export const get = <A>(self: TxRef<A>): Effect.Effect<A> => modify(self, (curren
 /**
  * Sets the value of the `TxRef`.
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  * @example
  * ```ts
  * import { Effect, TxRef } from "effect"

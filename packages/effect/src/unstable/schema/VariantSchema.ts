@@ -11,16 +11,16 @@ import type * as AST from "../../SchemaAST.ts"
 import * as Struct_ from "../../Struct.ts"
 
 /**
- * @since 4.0.0
  * @category Type IDs
+ * @since 4.0.0
  */
 export const TypeId = "~effect/schema/VariantSchema"
 
 const cacheSymbol = Symbol.for(`${TypeId}/cache`)
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Struct<in out A extends Field.Fields> extends Pipeable {
   readonly [TypeId]: A
@@ -29,25 +29,25 @@ export interface Struct<in out A extends Field.Fields> extends Pipeable {
 }
 
 /**
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isStruct = (u: unknown): u is Struct<any> => Predicate.hasProperty(u, TypeId)
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export declare namespace Struct {
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type Any = { readonly [TypeId]: any }
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type Fields = {
     readonly [key: string]:
@@ -58,8 +58,8 @@ export declare namespace Struct {
   }
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type Validate<A, Variant extends string> = {
     readonly [K in keyof A]: A[K] extends { readonly [TypeId]: infer _ } ? Validate<A[K], Variant> :
@@ -71,8 +71,8 @@ export declare namespace Struct {
 const FieldTypeId = "~effect/schema/VariantSchema/Field"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Field<in out A extends Field.Config> extends Pipeable {
   readonly [FieldTypeId]: typeof FieldTypeId
@@ -80,41 +80,41 @@ export interface Field<in out A extends Field.Config> extends Pipeable {
 }
 
 /**
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isField = (u: unknown): u is Field<any> => Predicate.hasProperty(u, FieldTypeId)
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export declare namespace Field {
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type Any = { readonly [FieldTypeId]: typeof FieldTypeId }
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type Config = {
     readonly [key: string]: Schema.Top | undefined
   }
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type ConfigWithKeys<K extends string> = {
     readonly [P in K]?: Schema.Top
   }
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type Fields = {
     readonly [key: string]:
@@ -126,8 +126,8 @@ export declare namespace Field {
 }
 
 /**
- * @since 4.0.0
  * @category extractors
+ * @since 4.0.0
  */
 export type ExtractFields<V extends string, Fields extends Struct.Fields, IsDefault = false> = {
   readonly [
@@ -142,8 +142,8 @@ export type ExtractFields<V extends string, Fields extends Struct.Fields, IsDefa
 }
 
 /**
- * @since 4.0.0
  * @category extractors
+ * @since 4.0.0
  */
 export type Extract<V extends string, A extends Struct<any>, IsDefault = false> = [A] extends [
   Struct<infer Fields>
@@ -203,8 +203,8 @@ const extract: {
 export const fields = <A extends Struct<any>>(self: A): A[typeof TypeId] => self[TypeId]
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Class<
   Self,
@@ -251,8 +251,8 @@ type MissingSelfGeneric<Params extends string = ""> =
   `Missing \`Self\` generic - use \`class Self extends Class<Self>()(${Params}{ ... })\``
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Union<Members extends ReadonlyArray<Struct<any>>> extends
   Schema.Union<
@@ -263,13 +263,13 @@ export interface Union<Members extends ReadonlyArray<Struct<any>>> extends
 {}
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export declare namespace Union {
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type Variants<Members extends ReadonlyArray<Struct<any>>, Variants extends string> = {
     readonly [Variant in Variants]: Schema.Union<
@@ -281,8 +281,8 @@ export declare namespace Union {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = <
   const Variants extends ReadonlyArray<string>,
@@ -456,14 +456,14 @@ export const make = <
 }
 
 /**
- * @since 4.0.0
  * @category overrideable
+ * @since 4.0.0
  */
 export const Override = <A>(value: A): A & Brand<"Override"> => value as any
 
 /**
- * @since 4.0.0
  * @category overrideable
+ * @since 4.0.0
  */
 export interface Overrideable<S extends Schema.Top & Schema.WithoutConstructorDefault> extends
   Schema.Bottom<
@@ -486,8 +486,8 @@ export interface Overrideable<S extends Schema.Top & Schema.WithoutConstructorDe
 {}
 
 /**
- * @since 4.0.0
  * @category overrideable
+ * @since 4.0.0
  */
 export const Overrideable = <S extends Schema.Top & Schema.WithoutConstructorDefault>(
   schema: S,

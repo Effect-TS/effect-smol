@@ -44,8 +44,8 @@ import * as Snowflake from "./Snowflake.ts"
 const TypeId = "~effect/cluster/Entity"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Entity<
   in out Type extends string,
@@ -179,14 +179,14 @@ export interface Entity<
   >
 }
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Any = Entity<string, Rpc.Any>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type HandlersFrom<Rpc extends Rpc.Any> = {
   readonly [Current in Rpc as Current["_tag"]]: (
@@ -195,8 +195,8 @@ export type HandlersFrom<Rpc extends Rpc.Any> = {
 }
 
 /**
- * @since 4.0.0
  * @category refinements
+ * @since 4.0.0
  */
 export const isEntity = (u: unknown): u is Any => Predicate.hasProperty(u, TypeId)
 
@@ -362,8 +362,8 @@ const Proto = {
  * Creates a new `Entity` of the specified `type` which will accept messages
  * that adhere to the provided `RpcGroup`.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fromRpcGroup = <const Type extends string, Rpcs extends Rpc.Any>(
   /**
@@ -387,8 +387,8 @@ export const fromRpcGroup = <const Type extends string, Rpcs extends Rpc.Any>(
  * Creates a new `Entity` of the specified `type` which will accept messages
  * that adhere to the provided schemas.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = <const Type extends string, Rpcs extends ReadonlyArray<Rpc.Any>>(
   /**
@@ -405,8 +405,8 @@ export const make = <const Type extends string, Rpcs extends ReadonlyArray<Rpc.A
 /**
  * A Context.Tag to access the current entity address.
  *
- * @since 4.0.0
  * @category context
+ * @since 4.0.0
  */
 export class CurrentAddress extends Context.Service<
   CurrentAddress,
@@ -416,8 +416,8 @@ export class CurrentAddress extends Context.Service<
 /**
  * A Context.Tag to access the current Runner address.
  *
- * @since 4.0.0
  * @category context
+ * @since 4.0.0
  */
 export class CurrentRunnerAddress extends Context.Service<
   CurrentRunnerAddress,
@@ -425,8 +425,8 @@ export class CurrentRunnerAddress extends Context.Service<
 >()("effect/cluster/Entity/RunnerAddress") {}
 
 /**
- * @since 4.0.0
  * @category Replier
+ * @since 4.0.0
  */
 export interface Replier<Rpcs extends Rpc.Any> {
   readonly succeed: <R extends Rpcs>(
@@ -451,13 +451,13 @@ export interface Replier<Rpcs extends Rpc.Any> {
 }
 
 /**
- * @since 4.0.0
  * @category Replier
+ * @since 4.0.0
  */
 export declare namespace Replier {
   /**
-   * @since 4.0.0
    * @category Replier
+   * @since 4.0.0
    */
   export type Success<R extends Rpc.Any> = Rpc.Success<R> extends Stream.Stream<infer _A, infer _E, infer _R> ?
     Stream.Stream<_A, _E | Rpc.Error<R>, _R> | Queue.Dequeue<_A, _E | Rpc.Error<R> | Cause.Done>
@@ -465,8 +465,8 @@ export declare namespace Replier {
 }
 
 /**
- * @since 4.0.0
  * @category Request
+ * @since 4.0.0
  */
 export class Request<Rpc extends Rpc.Any> extends Data.Class<
   Envelope.Request<Rpc> & {
@@ -494,8 +494,8 @@ export class Request<Rpc extends Rpc.Any> extends Data.Class<
 const shardingTag = Context.Service<Sharding, Sharding["Service"]>("effect/cluster/Sharding")
 
 /**
- * @since 4.0.0
  * @category Testing
+ * @since 4.0.0
  */
 export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE, LR>(
   entity: Entity<Type, Rpcs>,
@@ -596,8 +596,8 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
 })
 
 /**
- * @since 4.0.0
  * @category Keep alive
+ * @since 4.0.0
  */
 export const keepAlive: (
   enabled: boolean
@@ -645,16 +645,16 @@ export const keepAlive: (
   ))
 
 /**
- * @since 4.0.0
  * @category Keep alive
+ * @since 4.0.0
  */
 export const KeepAliveRpc = Rpc.make("Cluster/Entity/keepAlive")
   .annotate(Persisted, true)
   .annotate(Uninterruptible, true)
 
 /**
- * @since 4.0.0
  * @category Keep alive
+ * @since 4.0.0
  */
 export class KeepAliveLatch extends Context.Service<KeepAliveLatch, Latch.Latch>()(
   "effect/cluster/Entity/KeepAliveLatch"

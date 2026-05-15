@@ -10,19 +10,19 @@ import type { Covariant } from "../../Types.ts"
 const TypeId = "~effect/httpapi/HttpApiSecurity"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type HttpApiSecurity = Bearer | ApiKey | Basic
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export declare namespace HttpApiSecurity {
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Proto<out A> extends Pipeable {
     readonly [TypeId]: {
@@ -32,23 +32,23 @@ export declare namespace HttpApiSecurity {
   }
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type Type<A extends HttpApiSecurity> = A extends Proto<infer Out> ? Out : never
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Bearer extends HttpApiSecurity.Proto<Redacted> {
   readonly _tag: "Bearer"
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ApiKey extends HttpApiSecurity.Proto<Redacted> {
   readonly _tag: "ApiKey"
@@ -57,16 +57,16 @@ export interface ApiKey extends HttpApiSecurity.Proto<Redacted> {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Basic extends HttpApiSecurity.Proto<Credentials> {
   readonly _tag: "Basic"
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Credentials {
   readonly username: string
@@ -86,8 +86,8 @@ const Proto = {
  * You can implement some api middleware for this security scheme using
  * `HttpApiBuilder.middlewareSecurity`.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const bearer: Bearer = Object.assign(Object.create(Proto), {
   _tag: "Bearer",
@@ -105,8 +105,8 @@ export const bearer: Bearer = Object.assign(Object.create(Proto), {
  *
  * The default value for `in` is "header".
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const apiKey = (options: {
   readonly key: string
@@ -120,8 +120,8 @@ export const apiKey = (options: {
   })
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const basic: Basic = Object.assign(Object.create(Proto), {
   _tag: "Basic",
@@ -129,8 +129,8 @@ export const basic: Basic = Object.assign(Object.create(Proto), {
 })
 
 /**
- * @since 4.0.0
  * @category annotations
+ * @since 4.0.0
  */
 export const annotateMerge: {
   <I>(annotations: Context.Context<I>): <A extends HttpApiSecurity>(self: A) => A
@@ -145,8 +145,8 @@ export const annotateMerge: {
 )
 
 /**
- * @since 4.0.0
  * @category annotations
+ * @since 4.0.0
  */
 export const annotate: {
   <I, S>(service: Context.Key<I, S>, value: S): <A extends HttpApiSecurity>(self: A) => A

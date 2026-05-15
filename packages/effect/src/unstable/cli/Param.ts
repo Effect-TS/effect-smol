@@ -31,8 +31,8 @@ import * as Prompt from "./Prompt.ts"
 const TypeId = "~effect/cli/Param"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Param<Kind extends ParamKind, out A> extends Param.Variance<A> {
   readonly _tag: "Single" | "Map" | "Transform" | "Optional" | "Variadic"
@@ -41,60 +41,60 @@ export interface Param<Kind extends ParamKind, out A> extends Param.Variance<A> 
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ParamKind = "argument" | "flag"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Environment = FileSystem.FileSystem | Path.Path | Terminal.Terminal | ChildProcessSpawner
 
 /**
  * Kind discriminator for positional argument parameters.
  *
- * @since 4.0.0
  * @category constants
+ * @since 4.0.0
  */
 export const argumentKind: "argument" = "argument" as const
 
 /**
  * Kind discriminator for flag parameters.
  *
- * @since 4.0.0
  * @category constants
+ * @since 4.0.0
  */
 export const flagKind: "flag" = "flag" as const
 
 /**
  * Represents any parameter.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Any = Param<ParamKind, unknown>
 
 /**
  * Represents any positional argument parameter.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type AnyArgument = Param<typeof argumentKind, unknown>
 
 /**
  * Represents any flag parameter.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type AnyFlag = Param<typeof flagKind, unknown>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Parse<A> = (args: ParsedArgs) => Effect.Effect<
   readonly [leftover: ReadonlyArray<string>, value: A],
@@ -107,8 +107,8 @@ export type Parse<A> = (args: ParsedArgs) => Effect.Effect<
  */
 export declare namespace Param {
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Variance<out A> extends Pipeable {
     readonly [TypeId]: {
@@ -121,8 +121,8 @@ export declare namespace Param {
  * Map of flag names to their provided string values.
  * Multiple occurrences of a flag produce multiple values.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Flags = Record<string, ReadonlyArray<string>>
 
@@ -131,8 +131,8 @@ export type Flags = Record<string, ReadonlyArray<string>>
  * - `flags`: already-collected flag values by canonical flag name
  * - `arguments`: remaining positional arguments to be consumed
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ParsedArgs {
   readonly flags: Flags
@@ -143,16 +143,16 @@ export interface ParsedArgs {
  * Represents a fallback prompt that can either be provided directly or
  * computed effectfully when the parameter is missing.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type FallbackPrompt<A> =
   | Prompt.Prompt<A>
   | Effect.Effect<Prompt.Prompt<A>, CliError.CliError, Environment>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Single<Kind extends ParamKind, out A> extends Param<Kind, A> {
   readonly _tag: "Single"
@@ -165,8 +165,8 @@ export interface Single<Kind extends ParamKind, out A> extends Param<Kind, A> {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Map<Kind extends ParamKind, in out A, out B> extends Param<Kind, B> {
   readonly _tag: "Map"
@@ -176,8 +176,8 @@ export interface Map<Kind extends ParamKind, in out A, out B> extends Param<Kind
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Transform<Kind extends ParamKind, in out A, out B> extends Param<Kind, B> {
   readonly _tag: "Transform"
@@ -187,8 +187,8 @@ export interface Transform<Kind extends ParamKind, in out A, out B> extends Para
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Optional<Kind extends ParamKind, A> extends Param<Kind, Option.Option<A>> {
   readonly _tag: "Optional"
@@ -197,8 +197,8 @@ export interface Optional<Kind extends ParamKind, A> extends Param<Kind, Option.
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Variadic<Kind extends ParamKind, A> extends Param<Kind, ReadonlyArray<A>> {
   readonly _tag: "Variadic"
@@ -233,8 +233,8 @@ const Proto = {
  * }
  * ```
  *
- * @since 4.0.0
  * @category refinements
+ * @since 4.0.0
  */
 export const isParam = (u: unknown): u is Param<any, ParamKind> => Predicate.hasProperty(u, TypeId)
 
@@ -254,8 +254,8 @@ export const isParam = (u: unknown): u is Param<any, ParamKind> => Predicate.has
  * console.log(Param.isSingle(optionalParam)) // false
  * ```
  *
- * @since 4.0.0
  * @category refinements
+ * @since 4.0.0
  */
 export const isSingle = <const Kind extends ParamKind, A>(
   param: Param<Kind, A>
@@ -271,8 +271,8 @@ export const isFlagParam = <A>(
 ): single is Single<typeof flagKind, A> => single.kind === "flag"
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const makeSingle = <const Kind extends ParamKind, A>(params: {
   readonly kind: Kind
@@ -313,8 +313,8 @@ export const makeSingle = <const Kind extends ParamKind, A>(params: {
  * // Usage in CLI: --name "John Doe" or as positional argument
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const string = <const Kind extends ParamKind>(
   kind: Kind,
@@ -345,8 +345,8 @@ export const string = <const Kind extends ParamKind>(
  * // or as positional: true/false
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const boolean = <const Kind extends ParamKind>(
   kind: Kind,
@@ -376,8 +376,8 @@ export const boolean = <const Kind extends ParamKind>(
  * // Usage in CLI: --port 8080 or as positional argument: 42
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const integer = <const Kind extends ParamKind>(
   kind: Kind,
@@ -407,8 +407,8 @@ export const integer = <const Kind extends ParamKind>(
  * // Usage in CLI: --rate 0.95 or as positional argument: 3.14159
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const float = <const Kind extends ParamKind>(
   kind: Kind,
@@ -439,8 +439,8 @@ export const float = <const Kind extends ParamKind>(
  * // Parses to JavaScript Date object
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const date = <const Kind extends ParamKind>(
   kind: Kind,
@@ -478,8 +478,8 @@ export const date = <const Kind extends ParamKind>(
  * ])
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const choiceWithValue = <
   const Kind extends ParamKind,
@@ -509,8 +509,8 @@ export const choiceWithValue = <
  * ])
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const choice = <
   const Kind extends ParamKind,
@@ -543,8 +543,8 @@ export const choice = <
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const path = <Kind extends ParamKind>(
   kind: Kind,
@@ -583,8 +583,8 @@ export const path = <Kind extends ParamKind>(
  * // Usage: --output-dir /path/to/dir --source /existing/dir
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const directory = <Kind extends ParamKind>(
   kind: Kind,
@@ -620,8 +620,8 @@ export const directory = <Kind extends ParamKind>(
  * // Usage: --output result.txt --input existing-file.txt
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const file = <Kind extends ParamKind>(
   kind: Kind,
@@ -655,8 +655,8 @@ export const file = <Kind extends ParamKind>(
  * // Usage: --password (value will be hidden in help/logs)
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const redacted = <Kind extends ParamKind>(
   kind: Kind,
@@ -686,8 +686,8 @@ export const redacted = <Kind extends ParamKind>(
  * // Usage: --config config.txt (reads file content into string)
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fileText = <Kind extends ParamKind>(kind: Kind, name: string): Param<Kind, string> =>
   makeSingle({
@@ -718,8 +718,8 @@ export const fileText = <Kind extends ParamKind>(kind: Kind, name: string): Para
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fileParse = <Kind extends ParamKind>(
   kind: Kind,
@@ -759,8 +759,8 @@ export const fileParse = <Kind extends ParamKind>(
  * // Usage: --config config.json (reads and validates file content)
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fileSchema = <Kind extends ParamKind, A>(
   kind: Kind,
@@ -794,8 +794,8 @@ export const fileSchema = <Kind extends ParamKind, A>(
  * // --property name=value --property debug=true
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const keyValuePair = <Kind extends ParamKind>(
   kind: Kind,
@@ -833,8 +833,8 @@ export const keyValuePair = <Kind extends ParamKind>(
  *   : Param.none(Param.flagKind)
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const none = <Kind extends ParamKind>(kind: Kind): Param<Kind, never> =>
   makeSingle({
@@ -872,8 +872,8 @@ const FLAG_DASH_REGEXP = /^-+/
  * )
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withAlias: {
   <Kind extends ParamKind, A>(alias: string): (self: Param<Kind, A>) => Param<Kind, A>
@@ -904,8 +904,8 @@ export const withAlias: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withDescription: {
   <Kind extends ParamKind, A>(description: string): (self: Param<Kind, A>) => Param<Kind, A>
@@ -932,8 +932,8 @@ export const withDescription: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const map: {
   <A, B>(f: (a: A) => B): <Kind extends ParamKind>(self: Param<Kind, A>) => Param<Kind, B>
@@ -992,8 +992,8 @@ const transform = <Kind extends ParamKind, A, B>(
  * )
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const mapEffect: {
   <A, B>(
@@ -1035,8 +1035,8 @@ export const mapEffect: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const mapTryCatch: {
   <A, B>(
@@ -1093,8 +1093,8 @@ export const mapTryCatch: {
  * const port = Param.optional(Param.integer(Param.flagKind, "port"))
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const optional = <Kind extends ParamKind, A>(
   param: Param<Kind, A>
@@ -1156,8 +1156,8 @@ export const optional = <Kind extends ParamKind, A>(
  * )
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withDefault: {
   <const B>(
@@ -1186,8 +1186,8 @@ export const withDefault: {
 /**
  * Adds a fallback config that is loaded when a required parameter is missing.
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withFallbackConfig: {
   <B>(config: Config.Config<B>): <Kind extends ParamKind, A>(self: Param<Kind, A>) => Param<Kind, A | B>
@@ -1226,8 +1226,8 @@ export const withFallbackConfig: {
 /**
  * Adds a fallback prompt that is shown when a required parameter is missing.
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withFallbackPrompt: {
   <B>(prompt: FallbackPrompt<B>): <Kind extends ParamKind, A>(self: Param<Kind, A>) => Param<Kind, A | B>
@@ -1253,8 +1253,8 @@ export const withFallbackPrompt: {
 /**
  * Represent options which can be used to configure variadic parameters.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type VariadicParamOptions = {
   /**
@@ -1296,8 +1296,8 @@ export type VariadicParamOptions = {
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const variadic = <Kind extends ParamKind, A>(
   self: Param<Kind, A>,
@@ -1351,8 +1351,8 @@ export const variadic = <Kind extends ParamKind, A>(
  * // Result: ["dev", "staging", "v1.0"]
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const between: {
   <A>(min: number, max: number): <Kind extends ParamKind>(self: Param<Kind, A>) => Param<Kind, ReadonlyArray<A>>
@@ -1389,8 +1389,8 @@ export const between: {
  * // Result: ["warning1", "warning2"]
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const atMost: {
   <A>(max: number): <Kind extends ParamKind>(self: Param<Kind, A>) => Param<Kind, ReadonlyArray<A>>
@@ -1424,8 +1424,8 @@ export const atMost: {
  * // Result: ["file1.txt", "file2.txt", "file3.txt"]
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const atLeast: {
   <A>(min: number): <Kind extends ParamKind>(self: Param<Kind, A>) => Param<Kind, ReadonlyArray<A>>
@@ -1457,8 +1457,8 @@ export const atLeast: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const filterMap: {
   <A, B>(
@@ -1509,8 +1509,8 @@ export const filterMap: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const filter: {
   <A>(
@@ -1549,8 +1549,8 @@ export const filter: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category metadata
+ * @since 4.0.0
  */
 export const withMetavar: {
   <K extends ParamKind>(metavar: string): <A>(self: Param<K, A>) => Param<K, A>
@@ -1585,8 +1585,8 @@ export const withMetavar: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withSchema: {
   <A, B>(schema: Schema.Codec<B, A>): <Kind extends ParamKind>(self: Param<Kind, A>) => Param<Kind, B>
@@ -1622,8 +1622,8 @@ export const withSchema: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const orElse: {
   <B, Kind extends ParamKind>(
@@ -1657,8 +1657,8 @@ export const orElse: {
  * // Returns Result<string, string>
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const orElseResult: {
   <Kind extends ParamKind, B>(

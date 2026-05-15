@@ -38,8 +38,8 @@ import * as Sharding from "./Sharding.ts"
 import * as Snowflake from "./Snowflake.ts"
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make = Effect.gen(function*() {
   const sharding = yield* Sharding.Sharding
@@ -693,8 +693,8 @@ const ClockEntityLayer = ClockEntity.toLayer(Effect.gen(function*() {
 const InterruptSignal = DurableDeferred.make("Workflow/InterruptSignal")
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<
   WorkflowEngine.WorkflowEngine,

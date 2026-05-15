@@ -31,8 +31,8 @@ import * as UrlParams from "./UrlParams.ts"
 const TypeId = "~effect/http/HttpServerResponse"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface HttpServerResponse extends Inspectable.Inspectable, Pipeable, ErrorReporter.Reportable {
   readonly [TypeId]: typeof TypeId
@@ -44,8 +44,8 @@ export interface HttpServerResponse extends Inspectable.Inspectable, Pipeable, E
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Options {
   readonly status?: number | undefined
@@ -61,14 +61,14 @@ export interface Options {
  */
 export declare namespace Options {
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface WithContent extends Omit<Options, "contentType" | "contentLength"> {}
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface WithContentType extends Omit<Options, "contentLength"> {}
 }
@@ -79,8 +79,8 @@ export declare namespace Options {
 export const isHttpServerResponse = (u: unknown): u is HttpServerResponse => hasProperty(u, TypeId)
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const empty = (
   options?: Options.WithContent | undefined
@@ -93,8 +93,8 @@ export const empty = (
   })
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const redirect = (
   location: string | URL,
@@ -112,8 +112,8 @@ export const redirect = (
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const uint8Array = (
   body: Uint8Array,
@@ -143,8 +143,8 @@ const getContentType = (
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const text = (
   body: string,
@@ -163,8 +163,8 @@ export const text = (
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const html: {
   <A extends ReadonlyArray<Template.Interpolated>>(
@@ -188,8 +188,8 @@ export const html: {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const htmlStream = <
   A extends ReadonlyArray<Template.InterpolatedWithStream>
@@ -214,8 +214,8 @@ export const htmlStream = <
   )
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const json = (
   body: unknown,
@@ -233,8 +233,8 @@ export const json = (
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const schemaJson = <A, I, RD, RE>(
   schema: Schema.Codec<A, I, RD, RE>,
@@ -258,8 +258,8 @@ export const schemaJson = <A, I, RD, RE>(
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const jsonUnsafe = (
   body: unknown,
@@ -276,8 +276,8 @@ export const jsonUnsafe = (
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const urlParams = (
   body: UrlParams.Input,
@@ -297,8 +297,8 @@ export const urlParams = (
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const raw = (
   body: unknown,
@@ -316,8 +316,8 @@ export const raw = (
   })
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const formData = (
   body: FormData,
@@ -332,8 +332,8 @@ export const formData = (
   })
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const stream = <E>(
   body: Stream.Stream<Uint8Array, E>,
@@ -361,8 +361,8 @@ const HttpPlatformKey = Context.Service<
 >("effect/http/HttpPlatform" satisfies typeof HttpPlatform.key)
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const file = (
   path: string,
@@ -377,8 +377,8 @@ export const file = (
   Effect.flatMap(HttpPlatformKey, (platform) => platform.fileResponse(path, options))
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fileWeb = (
   file: Body.HttpBody.FileLike,
@@ -393,8 +393,8 @@ export const fileWeb = (
   Effect.flatMap(HttpPlatformKey, (platform) => platform.fileWebResponse(file, options))
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const setHeader: {
   (
@@ -412,8 +412,8 @@ export const setHeader: {
 )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const setHeaders: {
   (input: Headers.Input): (self: HttpServerResponse) => HttpServerResponse
@@ -428,8 +428,8 @@ export const setHeaders: {
 )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const removeCookie: {
   (name: string): (self: HttpServerResponse) => HttpServerResponse
@@ -444,8 +444,8 @@ export const removeCookie: {
 )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const replaceCookies: {
   (cookies: Cookies.Cookies): (self: HttpServerResponse) => HttpServerResponse
@@ -456,8 +456,8 @@ export const replaceCookies: {
 )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const setCookie: {
   (
@@ -492,8 +492,8 @@ export const setCookie: {
 )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const expireCookie: {
   (
@@ -525,8 +525,8 @@ export const expireCookie: {
 )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const setCookieUnsafe: {
   (
@@ -555,8 +555,8 @@ export const setCookieUnsafe: {
 )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const expireCookieUnsafe: {
   (
@@ -582,8 +582,8 @@ export const expireCookieUnsafe: {
 )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const updateCookies: {
   (
@@ -606,8 +606,8 @@ export const updateCookies: {
 )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const mergeCookies: {
   (cookies: Cookies.Cookies): (self: HttpServerResponse) => HttpServerResponse
@@ -619,8 +619,8 @@ export const mergeCookies: {
 )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const setCookies: {
   (
@@ -664,8 +664,8 @@ export const setCookies: {
 )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const setCookiesUnsafe: {
   (
@@ -706,8 +706,8 @@ export const setCookiesUnsafe: {
 )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const setBody: {
   (body: Body.HttpBody): (self: HttpServerResponse) => HttpServerResponse
@@ -718,8 +718,8 @@ export const setBody: {
 )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const setStatus: {
   (
@@ -746,8 +746,8 @@ export const setStatus: {
 )
 
 /**
- * @since 4.0.0
  * @category conversions
+ * @since 4.0.0
  */
 export const toWeb = (
   response: HttpServerResponse,
@@ -817,8 +817,8 @@ export const toWeb = (
 }
 
 /**
- * @since 4.0.0
  * @category conversions
+ * @since 4.0.0
  */
 export const toClientResponse = (
   response: HttpServerResponse,
@@ -1031,8 +1031,8 @@ class ServerHttpClientResponse extends Inspectable.Class implements HttpClientRe
 const textDecoder = new TextDecoder()
 
 /**
- * @since 4.0.0
  * @category conversions
+ * @since 4.0.0
  */
 export const fromClientResponse = (
   response: HttpClientResponse.HttpClientResponse
@@ -1117,8 +1117,8 @@ const makeResponse = (options: {
 }
 
 /**
- * @since 4.0.0
  * @category conversions
+ * @since 4.0.0
  */
 export const fromWeb = (response: Response): HttpServerResponse => {
   const headers = new globalThis.Headers(response.headers)

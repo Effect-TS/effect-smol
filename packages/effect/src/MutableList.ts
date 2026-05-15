@@ -31,8 +31,8 @@
  * - Streaming data buffers
  * - Real-time data processing pipelines
  *
- * @since 4.0.0
  * @category data-structures
+ * @since 4.0.0
  */
 import * as Arr from "./Array.ts"
 
@@ -64,8 +64,8 @@ import * as Arr from "./Array.ts"
  * console.log(MutableList.take(list)) // 2
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface MutableList<in out A> {
   head: MutableList.Bucket<A> | undefined
@@ -106,8 +106,8 @@ export interface MutableList<in out A> {
  * }
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export declare namespace MutableList {
   /**
@@ -138,8 +138,8 @@ export declare namespace MutableList {
    * inspectBucket(list.tail)
    * ```
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Bucket<A> {
     readonly array: Array<A>
@@ -182,8 +182,8 @@ export declare namespace MutableList {
  * console.log(empty === MutableList.Empty) // true, list is empty
  * ```
  *
- * @since 4.0.0
  * @category Symbols
+ * @since 4.0.0
  */
 export const Empty: unique symbol = Symbol.for("effect/MutableList/Empty")
 
@@ -231,8 +231,8 @@ export const Empty: unique symbol = Symbol.for("effect/MutableList/Empty")
  * }
  * ```
  *
- * @since 4.0.0
  * @category Symbols
+ * @since 4.0.0
  */
 export type Empty = typeof Empty
 
@@ -258,8 +258,8 @@ export type Empty = typeof Empty
  * console.log(MutableList.take(list)) // "second"
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = <A>(): MutableList<A> => ({
   head: undefined,
@@ -302,8 +302,8 @@ const emptyBucket = <A = never>(): MutableList.Bucket<A> => ({
  * }
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const append = <A>(self: MutableList<A>, message: A): void => {
   if (!self.tail) {
@@ -344,8 +344,8 @@ export const append = <A>(self: MutableList<A>, message: A): void => {
  * console.log(MutableList.take(list)) // "priority"
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const prepend = <A>(self: MutableList<A>, message: A): void => {
   self.head = {
@@ -384,8 +384,8 @@ export const prepend = <A>(self: MutableList<A>, message: A): void => {
  * console.log(MutableList.takeAll(newList)) // ["h", "e", "l", "l", "o"]
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const prependAll = <A>(self: MutableList<A>, messages: Iterable<A>): void =>
   prependAllUnsafe(self, Arr.fromIterable(messages), !Array.isArray(messages))
@@ -417,8 +417,8 @@ export const prependAll = <A>(self: MutableList<A>, messages: Iterable<A>): void
  * console.log(MutableList.takeAll(list)) // [10, 20, 30, 1, 2, 3, 4]
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const prependAllUnsafe = <A>(self: MutableList<A>, messages: ReadonlyArray<A>, mutable = false): void => {
   self.head = {
@@ -464,8 +464,8 @@ export const prependAllUnsafe = <A>(self: MutableList<A>, messages: ReadonlyArra
  * console.log(count) // 1000
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const appendAll = <A>(self: MutableList<A>, messages: Iterable<A>): number =>
   appendAllUnsafe(self, Arr.fromIterable(messages), !Array.isArray(messages))
@@ -503,8 +503,8 @@ export const appendAll = <A>(self: MutableList<A>, messages: Iterable<A>): numbe
  * MutableList.appendAllUnsafe(list, bigArray, true) // Very efficient
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const appendAllUnsafe = <A>(self: MutableList<A>, messages: ReadonlyArray<A>, mutable = false): number => {
   if (messages.length === 0) {
@@ -555,8 +555,8 @@ export const appendAllUnsafe = <A>(self: MutableList<A>, messages: ReadonlyArray
  * }
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const clear = <A>(self: MutableList<A>): void => {
   self.head = self.tail = undefined
@@ -601,8 +601,8 @@ export const clear = <A>(self: MutableList<A>): void => {
  * }
  * ```
  *
- * @since 4.0.0
  * @category elements
+ * @since 4.0.0
  */
 export const takeN = <A>(self: MutableList<A>, n: number): Array<A> => {
   if (n <= 0 || !self.head) return []
@@ -634,8 +634,8 @@ export const takeN = <A>(self: MutableList<A>, n: number): Array<A> => {
 }
 
 /**
- * @since 4.0.0
  * @category elements
+ * @since 4.0.0
  */
 export const takeNVoid = <A>(self: MutableList<A>, n: number): void => {
   if (n <= 0 || !self.head) return
@@ -699,8 +699,8 @@ export const takeNVoid = <A>(self: MutableList<A>, n: number): void => {
  * }
  * ```
  *
- * @since 4.0.0
  * @category elements
+ * @since 4.0.0
  */
 export const takeAll = <A>(self: MutableList<A>): Array<A> => takeN(self, self.length)
 
@@ -749,8 +749,8 @@ export const takeAll = <A>(self: MutableList<A>): Array<A> => takeN(self, self.l
  * }
  * ```
  *
- * @since 4.0.0
  * @category elements
+ * @since 4.0.0
  */
 export const take = <A>(self: MutableList<A>): Empty | A => {
   if (!self.head) return Empty
@@ -769,8 +769,8 @@ export const take = <A>(self: MutableList<A>): Empty | A => {
 }
 
 /**
- * @since 4.0.0
  * @category elements
+ * @since 4.0.0
  */
 export const toArrayN = <A>(self: MutableList<A>, n: number): Array<A> => {
   const length = Math.min(n, self.length)
@@ -788,8 +788,8 @@ export const toArrayN = <A>(self: MutableList<A>, n: number): Array<A> => {
 }
 
 /**
- * @since 4.0.0
  * @category elements
+ * @since 4.0.0
  */
 export const toArray = <A>(self: MutableList<A>): Array<A> => toArrayN(self, self.length)
 
@@ -834,8 +834,8 @@ export const toArray = <A>(self: MutableList<A>): Array<A> => toArrayN(self, sel
  * console.log(MutableList.takeAll(logs)) // Only error logs
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const filter = <A>(self: MutableList<A>, f: (value: A, i: number) => boolean): void => {
   const array: Array<A> = []
@@ -893,7 +893,7 @@ export const filter = <A>(self: MutableList<A>, f: (value: A, i: number) => bool
  * console.log(MutableList.takeAll(tasks)) // Only pending tasks
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const remove = <A>(self: MutableList<A>, value: A): void => filter(self, (v) => v !== value)

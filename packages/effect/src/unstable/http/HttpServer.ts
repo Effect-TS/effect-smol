@@ -17,8 +17,8 @@ import type { HttpServerRequest } from "./HttpServerRequest.ts"
 import type { HttpServerResponse } from "./HttpServerResponse.ts"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class HttpServer extends Context.Service<HttpServer, {
   readonly serve: {
@@ -41,14 +41,14 @@ export class HttpServer extends Context.Service<HttpServer, {
 }>()("effect/http/HttpServer") {}
 
 /**
- * @since 4.0.0
  * @category address
+ * @since 4.0.0
  */
 export type Address = UnixAddress | TcpAddress
 
 /**
- * @since 4.0.0
  * @category address
+ * @since 4.0.0
  */
 export interface TcpAddress {
   readonly _tag: "TcpAddress"
@@ -57,8 +57,8 @@ export interface TcpAddress {
 }
 
 /**
- * @since 4.0.0
  * @category address
+ * @since 4.0.0
  */
 export interface UnixAddress {
   readonly _tag: "UnixAddress"
@@ -66,8 +66,8 @@ export interface UnixAddress {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = (
   options: {
@@ -80,8 +80,8 @@ export const make = (
 ): HttpServer["Service"] => options
 
 /**
- * @since 4.0.0
  * @category accessors
+ * @since 4.0.0
  */
 export const serve: {
   (): <E, R>(
@@ -120,8 +120,8 @@ export const serve: {
   ) as any)
 
 /**
- * @since 4.0.0
  * @category accessors
+ * @since 4.0.0
  */
 export const serveEffect: {
   (): <E, R>(
@@ -157,8 +157,8 @@ export const serveEffect: {
 > => HttpServer.use((server) => server.serve(effect, middleware!)) as any)
 
 /**
- * @since 4.0.0
  * @category address
+ * @since 4.0.0
  */
 export const formatAddress = (address: Address): string => {
   switch (address._tag) {
@@ -170,8 +170,8 @@ export const formatAddress = (address: Address): string => {
 }
 
 /**
- * @since 4.0.0
  * @category address
+ * @since 4.0.0
  */
 export const addressFormattedWith = <A, E, R>(
   f: (address: string) => Effect.Effect<A, E, R>
@@ -182,16 +182,16 @@ export const addressFormattedWith = <A, E, R>(
   )
 
 /**
- * @since 4.0.0
  * @category address
+ * @since 4.0.0
  */
 export const logAddress: Effect.Effect<void, never, HttpServer> = addressFormattedWith((_) =>
   Effect.log(`Listening on ${_}`)
 )
 
 /**
- * @since 4.0.0
  * @category address
+ * @since 4.0.0
  */
 export const withLogAddress = <A, E, R>(
   layer: Layer.Layer<A, E, R>
@@ -201,8 +201,8 @@ export const withLogAddress = <A, E, R>(
   )
 
 /**
- * @since 4.0.0
  * @category Testing
+ * @since 4.0.0
  */
 export const makeTestClient: Effect.Effect<
   HttpClient.HttpClient,
@@ -221,8 +221,8 @@ export const makeTestClient: Effect.Effect<
 })
 
 /**
- * @since 4.0.0
  * @category Testing
+ * @since 4.0.0
  */
 export const layerTestClient: Layer.Layer<
   HttpClient.HttpClient,
@@ -231,8 +231,8 @@ export const layerTestClient: Layer.Layer<
 > = Layer.effect(HttpClient.HttpClient)(makeTestClient)
 
 /**
- * @since 4.0.0
  * @category Testing
+ * @since 4.0.0
  */
 export const layerServices: Layer.Layer<
   | Path.Path

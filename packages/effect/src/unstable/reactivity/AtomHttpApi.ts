@@ -22,8 +22,8 @@ import * as Atom from "./Atom.ts"
 import * as Reactivity from "./Reactivity.ts"
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface AtomHttpApiClient<Self, Id extends string, Groups extends HttpApiGroup.Any>
   extends Context.Service<Self, HttpApiClient.Client<Groups, never, never>>
@@ -139,8 +139,8 @@ declare global {
 }
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const Service = <Self>() =>
 <const Id extends string, ApiId extends string, Groups extends HttpApiGroup.Any>(

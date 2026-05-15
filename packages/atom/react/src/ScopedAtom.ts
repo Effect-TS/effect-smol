@@ -7,24 +7,24 @@ import type * as Atom from "effect/unstable/reactivity/Atom"
 import * as React from "react"
 
 /**
- * @since 1.0.0
  * @category Type IDs
+ * @since 1.0.0
  *
  * Type identifier for ScopedAtom.
  */
 export type TypeId = "~@effect/atom-react/ScopedAtom"
 
 /**
- * @since 1.0.0
  * @category Type IDs
+ * @since 1.0.0
  *
  * Type identifier for ScopedAtom.
  */
 export const TypeId: TypeId = "~@effect/atom-react/ScopedAtom"
 
 /**
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  *
  * Scoped Atom interface with a provider-backed instance.
  *
@@ -57,8 +57,8 @@ export interface ScopedAtom<A extends Atom.Atom<any>, Input = never> {
 }
 
 /**
- * @since 1.0.0
  * @category constructors
+ * @since 1.0.0
  *
  * Creates a ScopedAtom from a factory function.
  *

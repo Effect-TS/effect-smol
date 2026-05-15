@@ -85,8 +85,8 @@ const TypeId = "~effect/platform/FileSystem"
  * })
  * ```
  *
- * @since 4.0.0
  * @category model
+ * @since 4.0.0
  */
 export interface FileSystem {
   readonly [TypeId]: typeof TypeId
@@ -390,8 +390,8 @@ export interface FileSystem {
  *   })
  * ```
  *
- * @since 4.0.0
  * @category sizes
+ * @since 4.0.0
  */
 export type Size = Brand.Branded<bigint, "Size">
 
@@ -416,8 +416,8 @@ export type Size = Brand.Branded<bigint, "Size">
  * })
  * ```
  *
- * @since 4.0.0
  * @category sizes
+ * @since 4.0.0
  */
 export type SizeInput = bigint | number | Size
 
@@ -452,8 +452,8 @@ export type SizeInput = bigint | number | Size
  *   })
  * ```
  *
- * @since 4.0.0
  * @category sizes
+ * @since 4.0.0
  */
 export const Size = (bytes: SizeInput): Size => typeof bytes === "bigint" ? bytes as Size : BigInt(bytes) as Size
 
@@ -482,8 +482,8 @@ export const Size = (bytes: SizeInput): Size => typeof bytes === "bigint" ? byte
  * })
  * ```
  *
- * @since 4.0.0
  * @category sizes
+ * @since 4.0.0
  */
 export const KiB = (n: number): Size => Size(n * 1024)
 
@@ -516,8 +516,8 @@ export const KiB = (n: number): Size => Size(n * 1024)
  * })
  * ```
  *
- * @since 4.0.0
  * @category sizes
+ * @since 4.0.0
  */
 export const MiB = (n: number): Size => Size(n * 1024 * 1024)
 
@@ -546,8 +546,8 @@ export const MiB = (n: number): Size => Size(n * 1024 * 1024)
  * })
  * ```
  *
- * @since 4.0.0
  * @category sizes
+ * @since 4.0.0
  */
 export const GiB = (n: number): Size => Size(n * 1024 * 1024 * 1024)
 
@@ -579,8 +579,8 @@ export const GiB = (n: number): Size => Size(n * 1024 * 1024 * 1024)
  * })
  * ```
  *
- * @since 4.0.0
  * @category sizes
+ * @since 4.0.0
  */
 export const TiB = (n: number): Size => Size(n * 1024 * 1024 * 1024 * 1024)
 
@@ -615,8 +615,8 @@ const bigintPiB = bigint1024 * bigint1024 * bigint1024 * bigint1024 * bigint1024
  * })
  * ```
  *
- * @since 4.0.0
  * @category sizes
+ * @since 4.0.0
  */
 export const PiB = (n: number): Size => Size(BigInt(n) * bigintPiB)
 
@@ -658,8 +658,8 @@ export const PiB = (n: number): Size => Size(BigInt(n) * bigintPiB)
  * })
  * ```
  *
- * @since 4.0.0
  * @category model
+ * @since 4.0.0
  */
 export type OpenFlag =
   | "r"
@@ -708,8 +708,8 @@ export type OpenFlag =
  * )
  * ```
  *
- * @since 4.0.0
  * @category tag
+ * @since 4.0.0
  */
 export const FileSystem: Context.Service<FileSystem, FileSystem> = Context.Service("effect/platform/FileSystem")
 
@@ -720,8 +720,8 @@ export const FileSystem: Context.Service<FileSystem, FileSystem> = Context.Servi
  * default implementations for `exists`, `readFileString`, `stream`, `sink`, and
  * `writeFileString` methods based on the provided core methods.
  *
- * @since 4.0.0
  * @category constructor
+ * @since 4.0.0
  */
 export const make = (
   impl: Omit<FileSystem, typeof TypeId | "exists" | "readFileString" | "stream" | "sink" | "writeFileString">
@@ -857,8 +857,8 @@ const notFound = (method: string, path: string) =>
  * )
  * ```
  *
- * @since 4.0.0
  * @category constructor
+ * @since 4.0.0
  */
 export const makeNoop = (fileSystem: Partial<FileSystem>): FileSystem =>
   FileSystem.of({
@@ -979,15 +979,15 @@ export const makeNoop = (fileSystem: Partial<FileSystem>): FileSystem =>
  * const testProgram = Effect.provide(program, testLayer)
  * ```
  *
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerNoop = (fileSystem: Partial<FileSystem>): Layer.Layer<FileSystem> =>
   Layer.succeed(FileSystem)(makeNoop(fileSystem))
 
 /**
- * @since 4.0.0
  * @category File
+ * @since 4.0.0
  */
 export const FileTypeId = "~effect/platform/FileSystem/File"
 
@@ -997,8 +997,8 @@ export const FileTypeId = "~effect/platform/FileSystem/File"
  * This function determines whether the provided value is a valid File
  * instance by checking for the presence of the File type identifier.
  *
- * @since 4.0.0
  * @category File
+ * @since 4.0.0
  */
 export const isFile = (u: unknown): u is File => hasProperty(u, FileTypeId)
 
@@ -1040,8 +1040,8 @@ export const isFile = (u: unknown): u is File => hasProperty(u, FileTypeId)
  * })
  * ```
  *
- * @since 4.0.0
  * @category File
+ * @since 4.0.0
  */
 export interface File {
   readonly [FileTypeId]: typeof FileTypeId
@@ -1057,8 +1057,8 @@ export interface File {
 }
 
 /**
- * @since 4.0.0
  * @category File
+ * @since 4.0.0
  */
 export declare namespace File {
   /**
@@ -1067,8 +1067,8 @@ export declare namespace File {
    * File descriptors are numeric handles used by the operating system
    * to identify open files. The branded type ensures type safety.
    *
-   * @since 4.0.0
    * @category File
+   * @since 4.0.0
    */
   export type Descriptor = Brand.Branded<number, "FileDescriptor">
 
@@ -1078,8 +1078,8 @@ export declare namespace File {
    * Represents the different types of entries that can exist in a file system,
    * from regular files to special device files and symbolic links.
    *
-   * @since 4.0.0
    * @category File
+   * @since 4.0.0
    */
   export type Type =
     | "File"
@@ -1122,8 +1122,8 @@ export declare namespace File {
    * })
    * ```
    *
-   * @since 4.0.0
    * @category File
+   * @since 4.0.0
    */
   export interface Info {
     readonly type: Type
@@ -1149,8 +1149,8 @@ export declare namespace File {
  * File descriptors are integer handles that the operating system uses to identify
  * open files. This branded type ensures type safety when working with file descriptors.
  *
- * @since 4.0.0
  * @category constructor
+ * @since 4.0.0
  */
 export const FileDescriptor = Brand.nominal<File.Descriptor>()
 
@@ -1160,22 +1160,22 @@ export const FileDescriptor = Brand.nominal<File.Descriptor>()
  * - `"start"` - Seek from the beginning of the file
  * - `"current"` - Seek from the current position
  *
- * @since 4.0.0
  * @category model
+ * @since 4.0.0
  */
 export type SeekMode = "start" | "current"
 
 /**
  * Represents file system events that can be observed when watching files or directories.
  *
- * @since 4.0.0
  * @category model
+ * @since 4.0.0
  */
 export type WatchEvent = WatchEvent.Create | WatchEvent.Update | WatchEvent.Remove
 
 /**
- * @since 4.0.0
  * @category model
+ * @since 4.0.0
  */
 export declare namespace WatchEvent {
   /**
@@ -1184,8 +1184,8 @@ export declare namespace WatchEvent {
    * This event is triggered when a new file or directory is created
    * in the watched location.
    *
-   * @since 4.0.0
    * @category model
+   * @since 4.0.0
    */
   export interface Create {
     readonly _tag: "Create"
@@ -1198,8 +1198,8 @@ export declare namespace WatchEvent {
    * This event is triggered when an existing file or directory is
    * modified in the watched location.
    *
-   * @since 4.0.0
    * @category model
+   * @since 4.0.0
    */
   export interface Update {
     readonly _tag: "Update"
@@ -1212,8 +1212,8 @@ export declare namespace WatchEvent {
    * This event is triggered when a file or directory is deleted
    * from the watched location.
    *
-   * @since 4.0.0
    * @category model
+   * @since 4.0.0
    */
   export interface Remove {
     readonly _tag: "Remove"
@@ -1255,8 +1255,8 @@ export declare namespace WatchEvent {
  * )
  * ```
  *
- * @since 4.0.0
  * @category file watcher
+ * @since 4.0.0
  */
 export class WatchBackend extends Context.Service<WatchBackend, {
   readonly register: (path: string, stat: File.Info) => Option.Option<Stream.Stream<WatchEvent, PlatformError>>

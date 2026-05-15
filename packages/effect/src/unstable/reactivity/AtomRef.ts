@@ -5,20 +5,20 @@ import * as Equal from "../../Equal.ts"
 import * as Hash from "../../Hash.ts"
 
 /**
- * @since 4.0.0
  * @category type ids
+ * @since 4.0.0
  */
 export type TypeId = "~effect/reactivity/AtomRef"
 
 /**
- * @since 4.0.0
  * @category type ids
+ * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/reactivity/AtomRef"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ReadonlyRef<A> extends Equal.Equal {
   readonly [TypeId]: TypeId
@@ -29,8 +29,8 @@ export interface ReadonlyRef<A> extends Equal.Equal {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface AtomRef<A> extends ReadonlyRef<A> {
   readonly prop: <K extends keyof A>(prop: K) => AtomRef<A[K]>
@@ -39,8 +39,8 @@ export interface AtomRef<A> extends ReadonlyRef<A> {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Collection<A> extends ReadonlyRef<ReadonlyArray<AtomRef<A>>> {
   readonly push: (item: A) => Collection<A>
@@ -50,14 +50,14 @@ export interface Collection<A> extends ReadonlyRef<ReadonlyArray<AtomRef<A>>> {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = <A>(value: A): AtomRef<A> => new AtomRefImpl(value)
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const collection = <A>(items: Iterable<A>): Collection<A> => new CollectionImpl(items)
 

@@ -53,8 +53,8 @@ const TypeId = "~effect/Sink"
  * // Output: 42
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Sink<out A, in In = unknown, out L = never, out E = never, out R = never>
   extends Sink.Variance<A, In, L, E, R>, Pipeable
@@ -69,8 +69,8 @@ export interface Sink<out A, in In = unknown, out L = never, out E = never, out 
 }
 
 /**
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export type End<A, L = never> = readonly [value: A, leftover?: NonEmptyReadonlyArray<L> | undefined]
 
@@ -94,8 +94,8 @@ const endVoid = Effect.succeed([void 0] as End<void, never>)
  * type Combined = Sink.SinkUnify<{ [Unify.typeSymbol]?: any }>
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface SinkUnify<A extends { [Unify.typeSymbol]?: any }> extends Effect.EffectUnify<A> {
   Sink?: () => A[Unify.typeSymbol] extends
@@ -141,8 +141,8 @@ export interface SinkUnifyIgnore {
  * type SinkType<A, In, L, E, R> = Sink.Sink<A, In, L, E, R>
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export declare namespace Sink {
   /**
@@ -158,8 +158,8 @@ export declare namespace Sink {
    * type SinkWithVariance = Sink.Sink<string> & { variance: "internal" }
    * ```
    *
-   * @since 2.0.0
    * @category models
+   * @since 2.0.0
    */
   export interface Variance<out A, in In, out L, out E, out R> {
     readonly [TypeId]: VarianceStruct<A, In, L, E, R>
@@ -177,8 +177,8 @@ export declare namespace Sink {
    * type SinkInstance = Sink.Sink<number, string>
    * ```
    *
-   * @since 2.0.0
    * @category models
+   * @since 2.0.0
    */
   export interface VarianceStruct<out A, in In, out L, out E, out R> {
     _A: Types.Covariant<A>
@@ -218,16 +218,16 @@ const SinkProto = {
  * console.log(Sink.isSink(notStream)) // false
  * ```
  *
- * @since 2.0.0
  * @category guards
+ * @since 2.0.0
  */
 export const isSink = (u: unknown): u is Sink<unknown, never, unknown, unknown, unknown> => hasProperty(u, TypeId)
 
 /**
  * Creates a sink from a `Channel`.
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const fromChannel = <L, In, E, A, R>(
   channel: Channel.Channel<
@@ -248,8 +248,8 @@ export const fromChannel = <L, In, E, A, R>(
   )
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fromTransform = <In, A, E, R, L = never>(
   transform: (
@@ -274,8 +274,8 @@ export const fromTransform = <In, A, E, R, L = never>(
  * const channel = Sink.toChannel(sink)
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const toChannel = <A, In, L, E, R>(
   self: Sink<A, In, L, E, R>
@@ -288,8 +288,8 @@ export const toChannel = <A, In, L, E, R>(
   )
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = <In>(): make.Constructor<In> => (...fns: []) =>
   fromTransform((upstream, scope) =>
@@ -399,24 +399,24 @@ export declare namespace make {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fromEffectEnd = <A, E, R, L = never>(
   effect: Effect.Effect<End<A, L>, E, R>
 ): Sink<A, unknown, L, E, R> => fromTransform(() => effect)
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fromEffect = <A, E, R>(
   effect: Effect.Effect<A, E, R>
 ): Sink<A, unknown, never, E, R> => fromEffectEnd(Effect.map(effect, (a) => [a]))
 
 /**
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const fromQueue = <A>(
   queue: Queue.Queue<A, Cause.Done>
@@ -433,8 +433,8 @@ export const fromQueue = <A>(
   )
 
 /**
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const fromPubSub = <A>(
   pubsub: PubSub.PubSub<A>
@@ -458,8 +458,8 @@ export const fromPubSub = <A>(
  * // Output: 42
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const succeed = <A, L = never>(a: A, leftovers?: NonEmptyReadonlyArray<L> | undefined): Sink<A, unknown, L> =>
   fromEffectEnd(Effect.succeed([a, leftovers]))
@@ -467,16 +467,16 @@ export const succeed = <A, L = never>(a: A, leftovers?: NonEmptyReadonlyArray<L>
 /**
  * A sink that immediately ends with the specified lazily evaluated value.
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const sync = <A>(a: LazyArg<A>): Sink<A> => fromEffect(Effect.sync(a))
 
 /**
  * A sink that is created from a lazily evaluated sink.
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const suspend = <A, In, L, E, R>(evaluate: LazyArg<Sink<A, In, L, E, R>>): Sink<A, In, L, E, R> =>
   fromTransform((upstream, scope) => evaluate().transform(upstream, scope))
@@ -499,8 +499,8 @@ export const suspend = <A, In, L, E, R>(evaluate: LazyArg<Sink<A, In, L, E, R>>)
  * // Output: Error: Sink failed
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const fail = <E>(e: E): Sink<never, unknown, never, E> => fromEffectEnd(Effect.fail(e))
 
@@ -522,8 +522,8 @@ export const fail = <E>(e: E): Sink<never, unknown, never, E> => fromEffectEnd(E
  * // Output: Error: Lazy error
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const failSync = <E>(evaluate: LazyArg<E>): Sink<never, unknown, never, E> =>
   fromEffectEnd(Effect.failSync(evaluate))
@@ -546,8 +546,8 @@ export const failSync = <E>(evaluate: LazyArg<E>): Sink<never, unknown, never, E
  * // Output: Error: Custom cause
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const failCause = <E>(cause: Cause.Cause<E>): Sink<never, unknown, never, E> =>
   fromEffectEnd(Effect.failCause(cause))
@@ -570,8 +570,8 @@ export const failCause = <E>(cause: Cause.Cause<E>): Sink<never, unknown, never,
  * // Output: Error: Lazy cause
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const failCauseSync = <E>(evaluate: LazyArg<Cause.Cause<E>>): Sink<never, unknown, never, E> =>
   fromEffectEnd(Effect.failCauseSync(evaluate))
@@ -594,24 +594,24 @@ export const failCauseSync = <E>(evaluate: LazyArg<Cause.Cause<E>>): Sink<never,
  * // Output: Error: Defect error
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const die = (defect: unknown): Sink<never> => fromEffectEnd(Effect.die(defect))
 
 /**
  * A sink that never completes.
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const never: Sink<unknown> = fromEffectEnd(Effect.never)
 
 /**
  * Drains the remaining elements from the stream after the sink finishes
  *
- * @since 2.0.0
  * @category utils
+ * @since 2.0.0
  */
 export const ignoreLeftover = <A, In, L, E, R>(self: Sink<A, In, L, E, R>): Sink<A, In, never, E, R> =>
   mapEnd(self, ([a]) => [a])
@@ -619,8 +619,8 @@ export const ignoreLeftover = <A, In, L, E, R>(self: Sink<A, In, L, E, R>): Sink
 /**
  * Drains elements from the stream by ignoring all inputs.
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const drain: Sink<void, unknown> = fromTransform((upstream) =>
   Pull.catchDone(
@@ -633,8 +633,8 @@ export const drain: Sink<void, unknown> = fromTransform((upstream) =>
  * A sink that folds its inputs with the provided function, termination
  * predicate and initial state.
  *
- * @since 2.0.0
  * @category folding
+ * @since 2.0.0
  */
 export const fold = <S, In, E = never, R = never>(
   s: LazyArg<S>,
@@ -661,8 +661,8 @@ export const fold = <S, In, E = never, R = never>(
   })
 
 /**
- * @since 2.0.0
  * @category folding
+ * @since 2.0.0
  */
 export const foldArray = <S, In, E = never, R = never>(
   s: LazyArg<S>,
@@ -684,8 +684,8 @@ export const foldArray = <S, In, E = never, R = never>(
   })
 
 /**
- * @since 2.0.0
  * @category folding
+ * @since 2.0.0
  */
 export const foldUntil = <S, In, E = never, R = never>(
   s: LazyArg<S>,
@@ -703,8 +703,8 @@ export const foldUntil = <S, In, E = never, R = never>(
 /**
  * A sink that returns whether all elements satisfy the specified predicate.
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const every = <In>(predicate: Predicate<In>): Sink<boolean, In, In> =>
   fold(
@@ -716,8 +716,8 @@ export const every = <In>(predicate: Predicate<In>): Sink<boolean, In, In> =>
 /**
  * A sink that returns whether an element satisfies the specified predicate.
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const some = <In>(predicate: Predicate<In>): Sink<boolean, In, In> =>
   fold(
@@ -729,8 +729,8 @@ export const some = <In>(predicate: Predicate<In>): Sink<boolean, In, In> =>
 /**
  * Transforms this sink's result.
  *
- * @since 2.0.0
  * @category mapping
+ * @since 2.0.0
  */
 export const map: {
   <A, A2>(f: (a: A) => A2): <In, L, E, R>(self: Sink<A, In, L, E, R>) => Sink<A2, In, L, E, R>
@@ -744,8 +744,8 @@ export const map: {
 /**
  * Set the sink's result to a constant value.
  *
- * @since 2.0.0
  * @category mapping
+ * @since 2.0.0
  */
 export const as: {
   <A2>(a2: A2): <A, In, L, E, R>(self: Sink<A, In, L, E, R>) => Sink<A2, In, L, E, R>
@@ -758,8 +758,8 @@ export const as: {
 /**
  * Transforms this sink's input elements.
  *
- * @since 2.0.0
  * @category mapping
+ * @since 2.0.0
  */
 export const mapInput: {
   <In0, In>(f: (input: In0) => In): <A, L, E, R>(self: Sink<A, In, L, E, R>) => Sink<A, In0, L, E, R>
@@ -773,8 +773,8 @@ export const mapInput: {
 /**
  * Effectfully transforms this sink's input elements.
  *
- * @since 2.0.0
  * @category mapping
+ * @since 2.0.0
  */
 export const mapInputEffect: {
   <In0, In, E2, R2>(
@@ -795,8 +795,8 @@ export const mapInputEffect: {
 /**
  * Transforms this sink's input elements.
  *
- * @since 4.0.0
  * @category mapping
+ * @since 4.0.0
  */
 export const mapInputArray: {
   <In0, In>(
@@ -817,8 +817,8 @@ export const mapInputArray: {
 /**
  * Effectfully transforms this sink's input elements.
  *
- * @since 4.0.0
  * @category mapping
+ * @since 4.0.0
  */
 export const mapInputArrayEffect: {
   <In0, In, E2, R2>(
@@ -845,8 +845,8 @@ export const mapInputArrayEffect: {
 /**
  * Transforms this sink's result.
  *
- * @since 4.0.0
  * @category mapping
+ * @since 4.0.0
  */
 export const mapEnd: {
   <A, L, A2, L2 = never>(
@@ -875,8 +875,8 @@ const transformEffect = <A, In, L, E, R, A2, E2, R2, L2 = never>(
 /**
  * Effectfully transforms this sink's result.
  *
- * @since 4.0.0
  * @category mapping
+ * @since 4.0.0
  */
 export const mapEffectEnd: {
   <A, L, A2, E2, R2, L2 = never>(
@@ -894,8 +894,8 @@ export const mapEffectEnd: {
 /**
  * Effectfully transforms this sink's result.
  *
- * @since 2.0.0
  * @category mapping
+ * @since 2.0.0
  */
 export const mapEffect: {
   <A, A2, E2, R2>(
@@ -913,8 +913,8 @@ export const mapEffect: {
 /**
  * Transforms the errors emitted by this sink using `f`.
  *
- * @since 2.0.0
  * @category mapping
+ * @since 2.0.0
  */
 export const mapError: {
   <E, E2>(f: (error: E) => E2): <A, In, L, R>(self: Sink<A, In, L, E, R>) => Sink<A, In, L, E2, R>
@@ -927,8 +927,8 @@ export const mapError: {
 /**
  * Transforms the leftovers emitted by this sink using `f`.
  *
- * @since 2.0.0
  * @category mapping
+ * @since 2.0.0
  */
 export const mapLeftover: {
   <L, L2>(f: (leftover: L) => L2): <A, In, E, R>(self: Sink<A, In, L, E, R>) => Sink<A, In, L2, E, R>
@@ -939,8 +939,8 @@ export const mapLeftover: {
 ): Sink<A, In, L2, E, R> => mapEnd(self, ([a, l]) => [a, l && Arr.map(l, f)]))
 
 /**
- * @since 2.0.0
  * @category collecting
+ * @since 2.0.0
  */
 export const take = <In>(n: number): Sink<Array<In>, In, In> =>
   fromTransform((upstream) => {
@@ -981,8 +981,8 @@ export const take = <In>(n: number): Sink<Array<In>, In, In> =>
  *
  * This function essentially runs sinks in sequence.
  *
- * @since 2.0.0
  * @category sequencing
+ * @since 2.0.0
  */
 export const flatMap: {
   <A, A1, L, In1 extends L, L1, E1, R1>(
@@ -1025,8 +1025,8 @@ export const flatMap: {
  * A sink that reduces its inputs using the provided function `f` starting from
  * the provided `initial` state while the specified `predicate` returns `true`.
  *
- * @since 2.0.0
  * @category reducing
+ * @since 2.0.0
  */
 export const reduceWhile = <S, In>(
   initial: LazyArg<S>,
@@ -1062,8 +1062,8 @@ export const reduceWhile = <S, In>(
  * starting from the provided `initial` state while the specified `predicate`
  * returns `true`.
  *
- * @since 2.0.0
  * @category reducing
+ * @since 2.0.0
  */
 export const reduceWhileEffect = <S, In, E, R>(
   initial: LazyArg<S>,
@@ -1103,8 +1103,8 @@ export const reduceWhileEffect = <S, In, E, R>(
  * A sink that reduces its inputs using the provided function `f` starting from
  * the provided `initial` state while the specified `predicate` returns `true`.
  *
- * @since 4.0.0
  * @category reducing
+ * @since 4.0.0
  */
 export const reduceWhileArray = <S, In>(
   initial: LazyArg<S>,
@@ -1136,8 +1136,8 @@ export const reduceWhileArray = <S, In>(
  * starting from the provided `initial` state while the specified `predicate`
  * returns `true`.
  *
- * @since 4.0.0
  * @category reducing
+ * @since 4.0.0
  */
 export const reduceWhileArrayEffect = <S, In, E, R>(
   initial: LazyArg<S>,
@@ -1167,8 +1167,8 @@ export const reduceWhileArrayEffect = <S, In, E, R>(
  * A sink that reduces its inputs using the provided function `f` starting from
  * the provided `initial` state.
  *
- * @since 2.0.0
  * @category reducing
+ * @since 2.0.0
  */
 export const reduce = <S, In>(initial: LazyArg<S>, f: (s: S, input: In) => S): Sink<S, In> =>
   reduceArray(initial, (s, arr) => {
@@ -1182,8 +1182,8 @@ export const reduce = <S, In>(initial: LazyArg<S>, f: (s: S, input: In) => S): S
  * A sink that reduces its inputs using the provided function `f` starting from
  * the specified `initial` state.
  *
- * @since 2.0.0
  * @category reducing
+ * @since 2.0.0
  */
 export const reduceArray = <S, In>(
   initial: LazyArg<S>,
@@ -1205,8 +1205,8 @@ export const reduceArray = <S, In>(
  * A sink that reduces its inputs using the provided effectful function `f`
  * starting from the specified `initial` state.
  *
- * @since 2.0.0
  * @category reducing
+ * @since 2.0.0
  */
 export const reduceEffect = <S, In, E, R>(
   initial: LazyArg<S>,
@@ -1218,8 +1218,8 @@ const head_ = reduceWhile(Option.none<unknown>, Option.isNone, (_, in_) => Optio
 /**
  * Creates a sink containing the first value.
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const head = <In>(): Sink<Option.Option<In>, In, In> => head_ as any
 
@@ -1228,16 +1228,16 @@ const last_ = reduceArray(Option.none<unknown>, (_, arr) => Arr.last(arr))
 /**
  * Creates a sink containing the last value.
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const last = <In>(): Sink<Option.Option<In>, In> => last_ as any
 
 /**
  * Creates a sink containing the first matching value.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const find: {
   <In, Out extends In>(refinement: Refinement<In, Out>): Sink<Option.Option<Out>, In, In>
@@ -1252,8 +1252,8 @@ export const find: {
 /**
  * Creates a sink containing the first matching value.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const findEffect = <In, E, R>(
   predicate: (input: In) => Effect.Effect<boolean, E, R>
@@ -1267,8 +1267,8 @@ export const findEffect = <In, E, R>(
 /**
  * Creates a sink which sums up its inputs.
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const sum: Sink<number, number> = reduceArray(() => 0, (s, arr) => {
   for (let i = 0; i < arr.length; i++) {
@@ -1280,16 +1280,16 @@ export const sum: Sink<number, number> = reduceArray(() => 0, (s, arr) => {
 /**
  * A sink that counts the number of elements fed to it.
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const count: Sink<number, unknown> = reduceArray(() => 0, (s, arr) => s + arr.length)
 
 /**
  * Accumulates incoming elements into an array.
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const collect = <In>(): Sink<Array<In>, In> =>
   reduceArray(Arr.empty<In>, (s, arr) => {
@@ -1298,8 +1298,8 @@ export const collect = <In>(): Sink<Array<In>, In> =>
   })
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const takeWhile: {
   <In, Out extends In>(refinement: Refinement<In, Out>): Sink<Array<Out>, In, In>
@@ -1326,8 +1326,8 @@ export const takeWhile: {
   })
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const takeWhileFilter = <In, Out, X>(
   filter: Filter.Filter<In, Out, X>
@@ -1354,8 +1354,8 @@ export const takeWhileFilter = <In, Out, X>(
   })
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const takeWhileEffect: {
   <In, E, R>(predicate: (input: In) => Effect.Effect<boolean, E, R>): Sink<Array<In>, In, In, E, R>
@@ -1395,8 +1395,8 @@ export const takeWhileEffect: {
   })
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const takeWhileFilterEffect = <In, Out, X, E, R>(
   filter: Filter.FilterEffect<In, Out, X, E, R>
@@ -1428,8 +1428,8 @@ export const takeWhileFilterEffect = <In, Out, X, E, R>(
   })
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const takeUntil = <In>(predicate: Predicate<In>): Sink<Array<In>, In, In> =>
   suspend(() => {
@@ -1442,8 +1442,8 @@ export const takeUntil = <In>(predicate: Predicate<In>): Sink<Array<In>, In, In>
   })
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const takeUntilEffect = <In, E, R>(
   predicate: (input: In) => Effect.Effect<boolean, E, R>
@@ -1483,8 +1483,8 @@ export const takeUntilEffect = <In, E, R>(
  * // Processing: 3
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const forEach = <In, X, E, R>(
   f: (input: In) => Effect.Effect<X, E, R>
@@ -1513,8 +1513,8 @@ export const forEach = <In, X, E, R>(
  * // Output: Processing chunk of 5 items: [1, 2, 3, 4, 5]
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const forEachArray = <In, X, E, R>(
   f: (input: NonEmptyReadonlyArray<In>) => Effect.Effect<X, E, R>
@@ -1528,8 +1528,8 @@ export const forEachArray = <In, X, E, R>(
   )
 
 /**
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const forEachWhile = <In, E, R>(
   f: (input: In) => Effect.Effect<boolean, E, R>
@@ -1543,8 +1543,8 @@ export const forEachWhile = <In, E, R>(
   }))
 
 /**
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const forEachWhileArray = <In, E, R>(
   f: (input: NonEmptyReadonlyArray<In>) => Effect.Effect<boolean, E, R>
@@ -1582,8 +1582,8 @@ export const forEachWhileArray = <In, E, R>(
  * // Item: 3
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const unwrap = <A, In, L, E, R, R2>(
   effect: Effect.Effect<Sink<A, In, L, E, R2>, E, R>
@@ -1593,8 +1593,8 @@ export const unwrap = <A, In, L, E, R, R2>(
  * Summarize a sink by running an effect when the sink starts and again when
  * it completes.
  *
- * @since 2.0.0
  * @category utils
+ * @since 2.0.0
  */
 export const summarized: {
   <A2, E2, R2, A3>(
@@ -1621,8 +1621,8 @@ export const summarized: {
 /**
  * Returns the sink that executes this one and times its execution.
  *
- * @since 2.0.0
  * @category utils
+ * @since 2.0.0
  */
 export const withDuration = <A, In, L, E, R>(
   self: Sink<A, In, L, E, R>
@@ -1630,14 +1630,14 @@ export const withDuration = <A, In, L, E, R>(
   summarized(self, Clock.currentTimeNanos, (start, end) => Duration.nanos(end - start))
 
 /**
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const timed: Sink<Duration.Duration, unknown> = map(withDuration(drain), ([, duration]) => duration)
 
 /**
- * @since 4.0.0
  * @category Services
+ * @since 4.0.0
  */
 export const provideContext: {
   <Provided>(
@@ -1658,8 +1658,8 @@ export const provideContext: {
   ))
 
 /**
- * @since 4.0.0
  * @category Services
+ * @since 4.0.0
  */
 export const provideService: {
   <I, S>(
@@ -1683,8 +1683,8 @@ export const provideService: {
   ))
 
 /**
- * @since 2.0.0
  * @category Error handling
+ * @since 2.0.0
  */
 export const orElse: {
   <E, A2, In2, L2, E2, R2>(
@@ -1720,8 +1720,8 @@ export const orElse: {
   }))
 
 /**
- * @since 4.0.0
  * @category Error handling
+ * @since 4.0.0
  */
 export const catchCause: {
   <E, A2, E2, R2>(
@@ -1759,15 +1759,15 @@ const catch_: {
 
 export {
   /**
-   * @since 4.0.0
    * @category Error handling
+   * @since 4.0.0
    */
   catch_ as catch
 }
 
 /**
- * @since 4.0.0
  * @category Finalization
+ * @since 4.0.0
  */
 export const onExit: {
   <A, E, X, E2, R2>(
@@ -1787,8 +1787,8 @@ export const onExit: {
   ))
 
 /**
- * @since 4.0.0
  * @category Finalization
+ * @since 4.0.0
  */
 export const ensuring: {
   <X, E2, R2>(

@@ -35,14 +35,14 @@ import * as UrlParams from "./UrlParams.ts"
 const TypeId = "~effect/http/HttpClient"
 
 /**
- * @since 4.0.0
  * @category Guards
+ * @since 4.0.0
  */
 export const isHttpClient = (u: unknown): u is HttpClient => Predicate.hasProperty(u, TypeId)
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface HttpClient extends HttpClient.With<Error.HttpClientError> {}
 
@@ -51,8 +51,8 @@ export interface HttpClient extends HttpClient.With<Error.HttpClientError> {}
  */
 export declare namespace HttpClient {
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface With<E, R = never> extends Pipeable, Inspectable.Inspectable {
     readonly [TypeId]: typeof TypeId
@@ -93,16 +93,16 @@ export declare namespace HttpClient {
   }
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type Preprocess<E, R> = (
     request: HttpClientRequest.HttpClientRequest
   ) => Effect.Effect<HttpClientRequest.HttpClientRequest, E, R>
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type Postprocess<E = never, R = never> = (
     request: Effect.Effect<HttpClientRequest.HttpClientRequest, E, R>
@@ -110,8 +110,8 @@ export declare namespace HttpClient {
 }
 
 /**
- * @since 4.0.0
  * @category tags
+ * @since 4.0.0
  */
 export const HttpClient: Context.Service<HttpClient, HttpClient> = Context.Service<HttpClient, HttpClient>(
   "effect/HttpClient"
@@ -124,16 +124,16 @@ const accessor = (method: keyof HttpClient) => (...args: Array<any>): Effect.Eff
   )
 
 /**
- * @since 4.0.0
  * @category accessors
+ * @since 4.0.0
  */
 export const execute: (
   request: HttpClientRequest.HttpClientRequest
 ) => Effect.Effect<HttpClientResponse.HttpClientResponse, Error.HttpClientError, HttpClient> = accessor("execute")
 
 /**
- * @since 4.0.0
  * @category accessors
+ * @since 4.0.0
  */
 export const get: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
@@ -142,8 +142,8 @@ export const get: (url: string | URL, options?: HttpClientRequest.Options.NoUrl 
 > = accessor("get")
 
 /**
- * @since 4.0.0
  * @category accessors
+ * @since 4.0.0
  */
 export const head: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
@@ -152,8 +152,8 @@ export const head: (url: string | URL, options?: HttpClientRequest.Options.NoUrl
 > = accessor("head")
 
 /**
- * @since 4.0.0
  * @category accessors
+ * @since 4.0.0
  */
 export const post: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
@@ -162,8 +162,8 @@ export const post: (url: string | URL, options?: HttpClientRequest.Options.NoUrl
 > = accessor("post")
 
 /**
- * @since 4.0.0
  * @category accessors
+ * @since 4.0.0
  */
 export const patch: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
@@ -172,8 +172,8 @@ export const patch: (url: string | URL, options?: HttpClientRequest.Options.NoUr
 > = accessor("patch")
 
 /**
- * @since 4.0.0
  * @category accessors
+ * @since 4.0.0
  */
 export const put: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
@@ -182,8 +182,8 @@ export const put: (url: string | URL, options?: HttpClientRequest.Options.NoUrl 
 > = accessor("put")
 
 /**
- * @since 4.0.0
  * @category accessors
+ * @since 4.0.0
  */
 export const del: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
@@ -192,8 +192,8 @@ export const del: (url: string | URL, options?: HttpClientRequest.Options.NoUrl 
 > = accessor("del")
 
 /**
- * @since 4.0.0
  * @category accessors
+ * @since 4.0.0
  */
 export const options: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
@@ -202,8 +202,8 @@ export const options: (url: string | URL, options?: HttpClientRequest.Options.No
 > = accessor("options")
 
 /**
- * @since 4.0.0
  * @category mapping & sequencing
+ * @since 4.0.0
  */
 export const transform: {
   <E, R, E1, R1>(
@@ -232,8 +232,8 @@ export const transform: {
   ))
 
 /**
- * @since 4.0.0
  * @category mapping & sequencing
+ * @since 4.0.0
  */
 export const transformResponse: {
   <E, R, E1, R1>(
@@ -272,15 +272,15 @@ const catch_: {
 
 export {
   /**
-   * @since 4.0.0
    * @category error handling
+   * @since 4.0.0
    */
   catch_ as catch
 }
 
 /**
- * @since 4.0.0
  * @category error handling
+ * @since 4.0.0
  */
 export const catchTag: {
   <K extends Tags<E> | NonEmptyReadonlyArray<Tags<E>>, E, E1, R1>(
@@ -311,8 +311,8 @@ export const catchTag: {
 )
 
 /**
- * @since 4.0.0
  * @category error handling
+ * @since 4.0.0
  */
 export const catchTags: {
   <
@@ -405,8 +405,8 @@ export const catchTags: {
 /**
  * Filters the result of a response, or runs an alternative effect if the predicate fails.
  *
- * @since 4.0.0
  * @category filters
+ * @since 4.0.0
  */
 export const filterOrElse: {
   <B extends HttpClientResponse.HttpClientResponse, E2, R2>(
@@ -450,8 +450,8 @@ export const filterOrElse: {
 /**
  * Filters the result of a response, or throws an error if the predicate fails.
  *
- * @since 4.0.0
  * @category filters
+ * @since 4.0.0
  */
 export const filterOrFail: {
   <B extends HttpClientResponse.HttpClientResponse, E2>(
@@ -477,8 +477,8 @@ export const filterOrFail: {
 /**
  * Filters responses by HTTP status code.
  *
- * @since 4.0.0
  * @category filters
+ * @since 4.0.0
  */
 export const filterStatus: {
   (f: (status: number) => boolean): <E, R>(self: HttpClient.With<E, R>) => HttpClient.With<E | Error.HttpClientError, R>
@@ -492,15 +492,15 @@ export const filterStatus: {
 /**
  * Filters responses that return a 2xx status code.
  *
- * @since 4.0.0
  * @category filters
+ * @since 4.0.0
  */
 export const filterStatusOk: <E, R>(self: HttpClient.With<E, R>) => HttpClient.With<E | Error.HttpClientError, R> =
   transformResponse(Effect.flatMap(HttpClientResponse.filterStatusOk))
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const makeWith = <E2, R2, E, R>(
   postprocess: (
@@ -538,8 +538,8 @@ const Proto = {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = (
   f: (
@@ -641,8 +641,8 @@ export const make = (
 /**
  * Appends a transformation of the request object before sending it.
  *
- * @since 4.0.0
  * @category mapping & sequencing
+ * @since 4.0.0
  */
 export const mapRequest: {
   (
@@ -663,8 +663,8 @@ export const mapRequest: {
 /**
  * Appends an effectful transformation of the request object before sending it.
  *
- * @since 4.0.0
  * @category mapping & sequencing
+ * @since 4.0.0
  */
 export const mapRequestEffect: {
   <E2, R2>(
@@ -686,8 +686,8 @@ export const mapRequestEffect: {
 /**
  * Prepends a transformation of the request object before sending it.
  *
- * @since 4.0.0
  * @category mapping & sequencing
+ * @since 4.0.0
  */
 export const mapRequestInput: {
   (
@@ -708,8 +708,8 @@ export const mapRequestInput: {
 /**
  * Prepends an effectful transformation of the request object before sending it.
  *
- * @since 4.0.0
  * @category mapping & sequencing
+ * @since 4.0.0
  */
 export const mapRequestInputEffect: {
   <E2, R2>(
@@ -729,13 +729,13 @@ export const mapRequestInputEffect: {
 )
 
 /**
- * @since 4.0.0
  * @category error handling
+ * @since 4.0.0
  */
 export declare namespace Retry {
   /**
-   * @since 4.0.0
    * @category error handling
+   * @since 4.0.0
    */
   export type Return<R, E, O extends NoExcessProperties<Effect.Retry.Options<E>, O>> = HttpClient.With<
     | (O extends { schedule: Schedule.Schedule<infer _O, infer _I, infer _E, infer _R> } ? E | _E
@@ -754,8 +754,8 @@ export declare namespace Retry {
 /**
  * Retries the request based on a provided schedule or policy.
  *
- * @since 4.0.0
  * @category error handling
+ * @since 4.0.0
  */
 export const retry: {
   <E, O extends NoExcessProperties<Effect.Retry.Options<E>, O>>(
@@ -788,8 +788,8 @@ export const retry: {
  * Specifying a `while` predicate allows you to consider other errors as
  * transient, and is ignored in "response-only" mode.
  *
- * @since 4.0.0
  * @category error handling
+ * @since 4.0.0
  */
 export const retryTransient: {
   <
@@ -884,13 +884,13 @@ export const retryTransient: {
 )
 
 /**
- * @since 4.0.0
  * @category rate limiting
+ * @since 4.0.0
  */
 export declare namespace WithRateLimiter {
   /**
-   * @since 4.0.0
    * @category rate limiting
+   * @since 4.0.0
    */
   export interface Options {
     /**
@@ -933,8 +933,8 @@ export declare namespace WithRateLimiter {
  * automatically retries HTTP `429` responses (or `HttpClientError` values
  * wrapping a `429` response) by forcing the retry back through the limiter.
  *
- * @since 4.0.0
  * @category rate limiting
+ * @since 4.0.0
  */
 export const withRateLimiter: {
   (options: WithRateLimiter.Options): <E, R>(
@@ -1164,8 +1164,8 @@ const getHeader = (headers: Headers.Headers, ...keys: Array<string>): string | u
 /**
  * Performs an additional effect after a successful request.
  *
- * @since 4.0.0
  * @category mapping & sequencing
+ * @since 4.0.0
  */
 export const tap: {
   <_, E2, R2>(
@@ -1186,8 +1186,8 @@ export const tap: {
 /**
  * Performs an additional effect after an unsuccessful request.
  *
- * @since 4.0.0
  * @category mapping & sequencing
+ * @since 4.0.0
  */
 export const tapError: {
   <_, E, E2, R2>(
@@ -1208,8 +1208,8 @@ export const tapError: {
 /**
  * Performs an additional effect on the request before sending it.
  *
- * @since 4.0.0
  * @category mapping & sequencing
+ * @since 4.0.0
  */
 export const tapRequest: {
   <_, E2, R2>(
@@ -1231,8 +1231,8 @@ export const tapRequest: {
 /**
  * Associates a `Ref` of cookies with the client for handling cookies across requests.
  *
- * @since 4.0.0
  * @category cookies
+ * @since 4.0.0
  */
 export const withCookiesRef: {
   (ref: Ref.Ref<Cookies.Cookies>): <E, R>(self: HttpClient.With<E, R>) => HttpClient.With<E, R>
@@ -1264,8 +1264,8 @@ export const withCookiesRef: {
 /**
  * Ties the lifetime of the `HttpClientRequest` to a `Scope`.
  *
- * @since 4.0.0
  * @category Scope
+ * @since 4.0.0
  */
 export const withScope = <E, R>(
   self: HttpClient.With<E, R>
@@ -1285,8 +1285,8 @@ export const withScope = <E, R>(
 /**
  * Follows HTTP redirects up to a specified number of times.
  *
- * @since 4.0.0
  * @category redirects
+ * @since 4.0.0
  */
 export const followRedirects: {
   (maxRedirects?: number | undefined): <E, R>(self: HttpClient.With<E, R>) => HttpClient.With<E, R>
@@ -1321,8 +1321,8 @@ export const followRedirects: {
   ))
 
 /**
- * @since 4.0.0
  * @category References
+ * @since 4.0.0
  */
 export const TracerDisabledWhen = Context.Reference<
   Predicate.Predicate<HttpClientRequest.HttpClientRequest>
@@ -1331,16 +1331,16 @@ export const TracerDisabledWhen = Context.Reference<
 })
 
 /**
- * @since 4.0.0
  * @category References
+ * @since 4.0.0
  */
 export const TracerPropagationEnabled = Context.Reference<boolean>("effect/HttpClient/TracerPropagationEnabled", {
   defaultValue: constTrue
 })
 
 /**
- * @since 4.0.0
  * @category References
+ * @since 4.0.0
  */
 export const SpanNameGenerator = Context.Reference<
   (request: HttpClientRequest.HttpClientRequest) => string

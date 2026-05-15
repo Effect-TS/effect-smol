@@ -7,8 +7,8 @@ import type * as Effect from "../../Effect.ts"
 import type * as Socket from "./Socket.ts"
 
 /**
- * @since 4.0.0
  * @category tags
+ * @since 4.0.0
  */
 export class SocketServer extends Context.Service<SocketServer, {
   readonly address: Address
@@ -18,20 +18,20 @@ export class SocketServer extends Context.Service<SocketServer, {
 }>()("@effect/platform/SocketServer") {}
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export const ErrorTypeId: ErrorTypeId = "@effect/platform/SocketServer/SocketServerError"
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export type ErrorTypeId = "@effect/platform/SocketServer/SocketServerError"
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class SocketServerOpenError extends Data.TaggedError("SocketServerOpenError")<{
   readonly cause: unknown
@@ -42,8 +42,8 @@ export class SocketServerOpenError extends Data.TaggedError("SocketServerOpenErr
 }
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class SocketServerUnknownError extends Data.TaggedError("SocketServerUnknownError")<{
   readonly cause: unknown
@@ -54,14 +54,14 @@ export class SocketServerUnknownError extends Data.TaggedError("SocketServerUnkn
 }
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export type SocketServerErrorReason = SocketServerOpenError | SocketServerUnknownError
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class SocketServerError extends Data.TaggedError("SocketServerError")<{
   readonly reason: SocketServerErrorReason
@@ -88,14 +88,14 @@ export class SocketServerError extends Data.TaggedError("SocketServerError")<{
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Address = UnixAddress | TcpAddress
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface TcpAddress {
   readonly _tag: "TcpAddress"
@@ -104,8 +104,8 @@ export interface TcpAddress {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface UnixAddress {
   readonly _tag: "UnixAddress"

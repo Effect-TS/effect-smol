@@ -21,26 +21,26 @@ import * as Schema from "../../Schema.ts"
 import * as Scope from "../../Scope.ts"
 
 /**
- * @since 4.0.0
  * @category Type IDs
+ * @since 4.0.0
  */
 export const TypeId = "~effect/socket/Socket"
 
 /**
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isSocket = (u: unknown): u is Socket => Predicate.hasProperty(u, TypeId)
 
 /**
- * @since 4.0.0
  * @category tags
+ * @since 4.0.0
  */
 export const Socket: Context.Service<Socket, Socket> = Context.Service<Socket>("effect/socket/Socket")
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Socket {
   readonly [TypeId]: typeof TypeId
@@ -70,8 +70,8 @@ export interface Socket {
 }
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make = (options: {
   readonly runRaw: <_, E, R>(
@@ -127,8 +127,8 @@ const decoder = new TextDecoder()
 const CloseEventTypeId = "~effect/socket/Socket/CloseEvent"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class CloseEvent {
   /**
@@ -152,32 +152,32 @@ export class CloseEvent {
 }
 
 /**
- * @since 4.0.0
  * @category refinements
+ * @since 4.0.0
  */
 export const isCloseEvent = (u: unknown): u is CloseEvent => Predicate.hasProperty(u, CloseEventTypeId)
 
 /**
- * @since 4.0.0
  * @category type ids
+ * @since 4.0.0
  */
 export type SocketErrorTypeId = "~effect/socket/Socket/SocketError"
 
 /**
- * @since 4.0.0
  * @category type ids
+ * @since 4.0.0
  */
 export const SocketErrorTypeId: SocketErrorTypeId = "~effect/socket/Socket/SocketError"
 
 /**
- * @since 4.0.0
  * @category refinements
+ * @since 4.0.0
  */
 export const isSocketError = (u: unknown): u is SocketError => Predicate.hasProperty(u, SocketErrorTypeId)
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class SocketReadError extends Schema.ErrorClass<SocketReadError>("effect/socket/Socket/SocketReadError")({
   _tag: Schema.tag("SocketReadError"),
@@ -190,8 +190,8 @@ export class SocketReadError extends Schema.ErrorClass<SocketReadError>("effect/
 }
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class SocketWriteError extends Schema.ErrorClass<SocketWriteError>("effect/socket/Socket/SocketWriteError")({
   _tag: Schema.tag("SocketWriteError"),
@@ -204,8 +204,8 @@ export class SocketWriteError extends Schema.ErrorClass<SocketWriteError>("effec
 }
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class SocketOpenError extends Schema.ErrorClass<SocketOpenError>("effect/socket/Socket/SocketOpenError")({
   _tag: Schema.tag("SocketOpenError"),
@@ -223,8 +223,8 @@ export class SocketOpenError extends Schema.ErrorClass<SocketOpenError>("effect/
 }
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class SocketCloseError extends Schema.ErrorClass<SocketCloseError>("effect/socket/Socket/SocketCloseError")({
   _tag: Schema.tag("SocketCloseError"),
@@ -251,8 +251,8 @@ export class SocketCloseError extends Schema.ErrorClass<SocketCloseError>("effec
 }
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export const SocketErrorReason = Schema.Union([
   SocketReadError,
@@ -262,8 +262,8 @@ export const SocketErrorReason = Schema.Union([
 ])
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export type SocketErrorReason =
   | SocketReadError
@@ -272,8 +272,8 @@ export type SocketErrorReason =
   | SocketCloseError
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class SocketError extends Schema.TaggedErrorClass<SocketError>(SocketErrorTypeId)("SocketError", {
   _tag: Schema.tag("SocketError"),
@@ -309,8 +309,8 @@ export class SocketError extends Schema.TaggedErrorClass<SocketError>(SocketErro
 }
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const toChannelMap = <IE, A>(
   self: Socket,
@@ -364,8 +364,8 @@ export const toChannelMap = <IE, A>(
   }))
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const toChannel = <IE>(
   self: Socket
@@ -381,8 +381,8 @@ export const toChannel = <IE>(
 }
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const toChannelString: {
   (encoding?: string | undefined): <IE>(self: Socket) => Channel.Channel<
@@ -417,8 +417,8 @@ export const toChannelString: {
 })
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const toChannelWith = <IE = never>() =>
 (
@@ -432,8 +432,8 @@ export const toChannelWith = <IE = never>() =>
 > => toChannel(self)
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const makeChannel = <IE = never>(): Channel.Channel<
   NonEmptyReadonlyArray<Uint8Array>,
@@ -451,16 +451,16 @@ export const makeChannel = <IE = never>(): Channel.Channel<
 export const defaultCloseCodeIsError = (_code: number) => true
 
 /**
- * @since 4.0.0
  * @category tags
+ * @since 4.0.0
  */
 export class WebSocket extends Context.Service<WebSocket, globalThis.WebSocket>()(
   "~effect/socket/Socket/WebSocket"
 ) {}
 
 /**
- * @since 4.0.0
  * @category tags
+ * @since 4.0.0
  */
 export class WebSocketConstructor extends Context.Service<
   WebSocketConstructor,
@@ -468,16 +468,16 @@ export class WebSocketConstructor extends Context.Service<
 >()("@effect/platform/Socket/WebSocketConstructor") {}
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerWebSocketConstructorGlobal: Layer.Layer<WebSocketConstructor> = Layer.succeed(WebSocketConstructor)(
   (url, protocols) => new globalThis.WebSocket(url, protocols)
 )
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const makeWebSocket = (url: string | Effect.Effect<string>, options?: {
   readonly closeCodeIsError?: ((code: number) => boolean) | undefined
@@ -497,8 +497,8 @@ export const makeWebSocket = (url: string | Effect.Effect<string>, options?: {
   )
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fromWebSocket = <RO>(
   acquire: Effect.Effect<globalThis.WebSocket, SocketError, RO>,
@@ -637,8 +637,8 @@ export const fromWebSocket = <RO>(
   })
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const makeWebSocketChannel = <IE = never>(
   url: string,
@@ -659,8 +659,8 @@ export const makeWebSocketChannel = <IE = never>(
   )
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerWebSocket: (
   url: string | Effect.Effect<string>,
@@ -672,16 +672,16 @@ export const layerWebSocket: (
 ) => Layer.Layer<Socket, never, WebSocketConstructor> = flow(makeWebSocket, Layer.effect(Socket))
 
 /**
- * @since 4.0.0
  * @category fiber refs
+ * @since 4.0.0
  */
 export const SendQueueCapacity = Context.Reference<number>("~effect/socket/Socket/SendQueueCapacity", {
   defaultValue: () => 16
 })
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface InputTransformStream {
   readonly readable: ReadableStream<Uint8Array> | ReadableStream<string> | ReadableStream<Uint8Array | string>
@@ -689,8 +689,8 @@ export interface InputTransformStream {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fromTransformStream = <R>(acquire: Effect.Effect<InputTransformStream, SocketError, R>, options?: {
   readonly closeCodeIsError?: (code: number) => boolean

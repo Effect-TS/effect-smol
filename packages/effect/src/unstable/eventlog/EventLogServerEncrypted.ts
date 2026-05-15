@@ -19,8 +19,8 @@ import { ChangesRpc, EventLogProtocolError, EventLogRemoteRpcs, type StoreId, Wr
 import * as EventLogServer from "./EventLogServer.ts"
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerRpcHandlers = Layer.unwrap(Effect.gen(function*() {
   const storage = yield* Storage
@@ -70,16 +70,16 @@ export const layerRpcHandlers = Layer.unwrap(Effect.gen(function*() {
 }))
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<never, never, RpcServer.Protocol | Storage> = RpcServer.layer(EventLogRemoteRpcs).pipe(
   Layer.provide(layerRpcHandlers)
 )
 
 /**
- * @since 4.0.0
  * @category storage
+ * @since 4.0.0
  */
 export class PersistedEntry extends Schema.Class<PersistedEntry>(
   "effect/eventlog/EventLogServerEncrypted/PersistedEntry"
@@ -97,8 +97,8 @@ export class PersistedEntry extends Schema.Class<PersistedEntry>(
 }
 
 /**
- * @since 4.0.0
  * @category storage
+ * @since 4.0.0
  */
 export class Storage extends Context.Service<Storage, {
   readonly getId: Effect.Effect<RemoteId>
@@ -119,8 +119,8 @@ export class Storage extends Context.Service<Storage, {
 }>()("effect/eventlog/EventLogServer/Storage") {}
 
 /**
- * @since 4.0.0
  * @category storage
+ * @since 4.0.0
  */
 export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.Scope> = Effect.gen(function*() {
   const knownIds = new Map<string, Map<string, number>>()
@@ -193,8 +193,8 @@ export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.S
 })
 
 /**
- * @since 4.0.0
  * @category storage
+ * @since 4.0.0
  */
 export const layerStorageMemory: Layer.Layer<Storage> = Layer.effect(Storage)(makeStorageMemory)
 

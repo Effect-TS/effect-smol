@@ -23,8 +23,8 @@ import type * as Primitive from "./Primitive.ts"
 const TypeId = "~effect/cli/Prompt"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Prompt<Output> extends Effect.Effect<Output, Terminal.QuitError, Environment> {
   readonly [TypeId]: {
@@ -33,16 +33,16 @@ export interface Prompt<Output> extends Effect.Effect<Output, Terminal.QuitError
 }
 
 /**
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isPrompt = (u: unknown): u is Prompt<unknown> => Predicate.hasProperty(u, TypeId)
 
 /**
  * Represents the services available to a custom `Prompt`.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Environment = FileSystem.FileSystem | Path.Path | Terminal.Terminal
 
@@ -50,8 +50,8 @@ export type Environment = FileSystem.FileSystem | Path.Path | Terminal.Terminal
  * Represents the action that should be taken by a `Prompt` based upon the
  * user input received during the current frame.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Action<State, Output> = Data.TaggedEnum<{
   readonly Beep: {}
@@ -64,8 +64,8 @@ export type Action<State, Output> = Data.TaggedEnum<{
  *
  * Required to create a `Data.TaggedEnum` with generic type arguments.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ActionDefinition extends Data.TaggedEnum.WithGenerics<2> {
   readonly taggedEnum: Action<this["A"], this["B"]>
@@ -78,8 +78,8 @@ export interface ActionDefinition extends Data.TaggedEnum.WithGenerics<2> {
  *   - Process user input and determine the next `Prompt.Action` to take
  *   - Clear the terminal screen before the next frame
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Handlers<State, Output> {
   /**
@@ -120,8 +120,8 @@ export interface Handlers<State, Output> {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ConfirmOptions {
   /**
@@ -163,8 +163,8 @@ export interface ConfirmOptions {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface DateOptions {
   /**
@@ -235,8 +235,8 @@ export interface DateOptions {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface IntegerOptions {
   /**
@@ -269,8 +269,8 @@ export interface IntegerOptions {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface FloatOptions extends IntegerOptions {
   /**
@@ -280,8 +280,8 @@ export interface FloatOptions extends IntegerOptions {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ListOptions extends TextOptions {
   /**
@@ -291,8 +291,8 @@ export interface ListOptions extends TextOptions {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface FileOptions {
   /**
@@ -329,8 +329,8 @@ export interface FileOptions {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface SelectOptions<A> {
   /**
@@ -348,8 +348,8 @@ export interface SelectOptions<A> {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface AutoCompleteOptions<A> extends SelectOptions<A> {
   /**
@@ -367,8 +367,8 @@ export interface AutoCompleteOptions<A> extends SelectOptions<A> {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface MultiSelectOptions {
   /**
@@ -394,8 +394,8 @@ export interface MultiSelectOptions {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface SelectChoice<A> {
   /**
@@ -422,8 +422,8 @@ export interface SelectChoice<A> {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface TextOptions {
   /**
@@ -442,8 +442,8 @@ export interface TextOptions {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ToggleOptions {
   /**
@@ -507,8 +507,8 @@ export const platformFigures = Effect.map(
 )
 
 /**
- * @since 4.0.0
  * @category utility types
+ * @since 4.0.0
  */
 export type Any = Prompt<unknown>
 
@@ -581,8 +581,8 @@ export declare namespace All {
  * const allWithRecord = Prompt.all({ username, password })
  * ```
  *
- * @since 4.0.0
  * @category collecting & elements
+ * @since 4.0.0
  */
 export const all: <
   const Arg extends Iterable<Prompt<any>> | Record<string, Prompt<any>>
@@ -619,8 +619,8 @@ const annotateLine = (line: string): string => Ansi.annotate(line, Ansi.bold)
 const annotateErrorLine = (line: string): string => Ansi.annotate(line, Ansi.combine(Ansi.italicized, Ansi.red))
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const confirm = (options: ConfirmOptions): Prompt<boolean> => {
   const opts: Required<ConfirmOptions> = {
@@ -669,8 +669,8 @@ export const confirm = (options: ConfirmOptions): Prompt<boolean> => {
  *      action and returns an ANSI escape string used to clear the screen of
  *      the `Terminal`
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const custom = <State, Output>(
   initialState: State | Effect.Effect<State, never, Environment>,
@@ -686,8 +686,8 @@ export const custom = <State, Output>(
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const date = (options: DateOptions): Prompt<Date> => {
   const opts: Required<DateOptions> = {
@@ -717,8 +717,8 @@ export const date = (options: DateOptions): Prompt<Date> => {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const file = (options: FileOptions = {}): Prompt<string> => {
   const opts: FileOptionsReq = {
@@ -746,8 +746,8 @@ export const file = (options: FileOptions = {}): Prompt<string> => {
 }
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const flatMap: {
   <Output, Output2>(
@@ -769,8 +769,8 @@ export const flatMap: {
 })
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const float = (options: FloatOptions): Prompt<number> => {
   const opts: FloatOptionsReq = {
@@ -802,16 +802,16 @@ export const float = (options: FloatOptions): Prompt<number> => {
   })
 }
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const hidden = (
   options: TextOptions
 ): Prompt<Redacted.Redacted> => basePrompt(options, "hidden").pipe(map(Redacted.make))
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const integer = (options: IntegerOptions): Prompt<number> => {
   const opts: IntegerOptionsReq = {
@@ -843,8 +843,8 @@ export const integer = (options: IntegerOptions): Prompt<number> => {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const list = (options: ListOptions): Prompt<Array<string>> =>
   text(options).pipe(
@@ -852,8 +852,8 @@ export const list = (options: ListOptions): Prompt<Array<string>> =>
   )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const map: {
   <Output, Output2>(
@@ -869,8 +869,8 @@ export const map: {
 ) => flatMap(self, (a) => succeed(f(a))))
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const password = (
   options: TextOptions
@@ -879,8 +879,8 @@ export const password = (
 /**
  * Executes the specified `Prompt`.
  *
- * @since 4.0.0
  * @category execution
+ * @since 4.0.0
  */
 export const run: <Output>(
   self: Prompt<Output>
@@ -917,8 +917,8 @@ const getSelectInitialIndex = <A>(choices: ReadonlyArray<SelectChoice<A>>): numb
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const select = <const A>(options: SelectOptions<A>): Prompt<A> => {
   const opts: SelectOptionsReq<A> = {
@@ -951,8 +951,8 @@ export const select = <const A>(options: SelectOptions<A>): Prompt<A> => {
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const autoComplete = <const A>(options: AutoCompleteOptions<A>): Prompt<A> => {
   const opts: AutoCompleteOptionsReq<A> = {
@@ -982,8 +982,8 @@ export const autoComplete = <const A>(options: AutoCompleteOptions<A>): Prompt<A
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const multiSelect = <const A>(
   options: SelectOptions<A> & MultiSelectOptions
@@ -1014,8 +1014,8 @@ export const multiSelect = <const A>(
  * **NOTE**: This method will not attempt to obtain user input or render
  * anything to the screen.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const succeed = <A>(value: A): Prompt<A> => {
   const op = Object.create(proto)
@@ -1025,16 +1025,16 @@ export const succeed = <A>(value: A): Prompt<A> => {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const text = (
   options: TextOptions
 ): Prompt<string> => basePrompt(options, "text")
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const toggle = (options: ToggleOptions): Prompt<boolean> => {
   const opts: ToggleOptionsReq = {

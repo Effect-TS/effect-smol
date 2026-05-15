@@ -55,8 +55,8 @@ import type * as Types from "./Types.ts"
  * // between the type class and its type lambda
  * ```
  *
- * @since 2.0.0
  * @category symbols
+ * @since 2.0.0
  */
 export declare const URI: unique symbol
 
@@ -88,8 +88,8 @@ export declare const URI: unique symbol
  * }
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface TypeClass<F extends TypeLambda> {
   readonly [URI]?: F
@@ -128,8 +128,8 @@ export interface TypeClass<F extends TypeLambda> {
  * }
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface TypeLambda {
   readonly In: unknown
@@ -185,8 +185,8 @@ export interface TypeLambda {
  * >
  * ```
  *
- * @since 2.0.0
  * @category type utils
+ * @since 2.0.0
  */
 export type Kind<F extends TypeLambda, In, Out2, Out1, Target> = F extends {
   readonly type: unknown

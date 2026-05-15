@@ -635,7 +635,7 @@ const makeFileSystem = Effect.map(Effect.serviceOption(FileSystem.WatchBackend),
   }))
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layer: Layer.Layer<FileSystem.FileSystem> = Layer.effect(FileSystem.FileSystem)(makeFileSystem)

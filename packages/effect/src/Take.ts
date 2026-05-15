@@ -8,14 +8,14 @@ import * as Exit from "./Exit.ts"
 import type * as Pull from "./Pull.ts"
 
 /**
- * @since 2.0.0
  * @category Models
+ * @since 2.0.0
  */
 export type Take<A, E = never, Done = void> = NonEmptyReadonlyArray<A> | Exit.Exit<Done, E>
 
 /**
- * @since 4.0.0
  * @category Conversions
+ * @since 4.0.0
  */
 export const toPull = <A, E, Done>(take: Take<A, E, Done>): Pull.Pull<NonEmptyReadonlyArray<A>, E, Done> =>
   Exit.isExit(take)

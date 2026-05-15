@@ -22,8 +22,8 @@
  * - Creating ordered data structures
  * - Pattern matching on comparison outcomes
  *
- * @since 2.0.0
  * @category utilities
+ * @since 2.0.0
  */
 import type { LazyArg } from "./Function.ts"
 import { dual } from "./Function.ts"

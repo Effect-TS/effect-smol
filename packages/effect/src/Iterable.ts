@@ -2261,8 +2261,8 @@ export const dedupeAdjacent: <A>(self: Iterable<A>) => Iterable<A> = dedupeAdjac
  * // ["admin_can_read", "admin_can_write", "admin_can_delete", "user_can_read", "user_can_write", "user_can_delete"]
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const cartesianWith: {
   <A, B, C>(that: Iterable<B>, f: (a: A, b: B) => C): (self: Iterable<A>) => Iterable<C>
@@ -2310,8 +2310,8 @@ export const cartesianWith: {
  * console.log(Array.from(withEmpty)) // []
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const cartesian: {
   <B>(that: Iterable<B>): <A>(self: Iterable<A>) => Iterable<[A, B]>

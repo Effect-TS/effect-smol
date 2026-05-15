@@ -15,8 +15,8 @@ const TypeId = "~effect/ManagedRuntime"
 /**
  * Checks if the provided argument is a `ManagedRuntime`.
  *
- * @since 3.9.0
  * @category guards
+ * @since 3.9.0
  */
 export const isManagedRuntime = (input: unknown): input is ManagedRuntime<unknown, unknown> =>
   hasProperty(input, TypeId)
@@ -39,8 +39,8 @@ export declare namespace ManagedRuntime {
 }
 
 /**
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface ManagedRuntime<in R, out ER> {
   readonly [TypeId]: typeof TypeId
@@ -131,8 +131,8 @@ export interface ManagedRuntime<in R, out ER> {
  * Convert a Layer into an ManagedRuntime, that can be used to run Effect's using
  * your services.
  *
- * @since 2.0.0
  * @category runtime class
+ * @since 2.0.0
  * @example
  * ```ts
  * import { Console, Effect, Layer, ManagedRuntime, Context } from "effect"

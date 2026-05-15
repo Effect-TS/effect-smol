@@ -33,20 +33,20 @@ import * as Registry from "./AtomRegistry.ts"
 import * as Reactivity from "./Reactivity.ts"
 
 /**
- * @since 4.0.0
  * @category type ids
+ * @since 4.0.0
  */
 export type TypeId = "~effect/reactivity/Atom"
 
 /**
- * @since 4.0.0
  * @category type ids
+ * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/reactivity/Atom"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Atom<A> extends Pipeable, Inspectable.Inspectable {
   readonly [TypeId]: TypeId
@@ -60,8 +60,8 @@ export interface Atom<A> extends Pipeable, Inspectable.Inspectable {
 }
 
 /**
- * @since 4.0.0
  * @category Guards
+ * @since 4.0.0
  */
 export const isAtom = (u: unknown): u is Atom<any> => hasProperty(u, TypeId)
 
@@ -92,20 +92,20 @@ export type WithoutSerializable<T extends Atom<any>> = T extends Writable<infer 
   : Atom<Type<T>>
 
 /**
- * @since 4.0.0
  * @category type ids
+ * @since 4.0.0
  */
 export const WritableTypeId: WritableTypeId = "~effect/reactivity/Atom/Writable"
 
 /**
- * @since 4.0.0
  * @category type ids
+ * @since 4.0.0
  */
 export type WritableTypeId = "~effect/reactivity/Atom/Writable"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Writable<R, W = R> extends Atom<R> {
   readonly [WritableTypeId]: WritableTypeId
@@ -113,8 +113,8 @@ export interface Writable<R, W = R> extends Atom<R> {
 }
 
 /**
- * @since 4.0.0
  * @category context
+ * @since 4.0.0
  */
 export interface AtomContext {
   <A>(atom: Atom<A>): A
@@ -151,8 +151,8 @@ export interface AtomContext {
 }
 
 /**
- * @since 4.0.0
  * @category context
+ * @since 4.0.0
  */
 export interface WriteContext<A> {
   get<T>(this: WriteContext<A>, atom: Atom<T>): T
@@ -162,8 +162,8 @@ export interface WriteContext<A> {
 }
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const setIdleTTL: {
   (duration: Duration.Input): <A extends Atom<any>>(self: A) => A
@@ -307,14 +307,14 @@ const WritableProto = {
 } as const
 
 /**
- * @since 4.0.0
  * @category refinements
+ * @since 4.0.0
  */
 export const isWritable = <R, W>(atom: Atom<R>): atom is Writable<R, W> => WritableTypeId in atom
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const readable = <A>(
   read: (get: AtomContext) => A,
@@ -329,8 +329,8 @@ export const readable = <A>(
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const writable = <R, W>(
   read: (get: AtomContext) => R,
@@ -355,8 +355,8 @@ function constSetSelf<A>(ctx: WriteContext<A>, value: A) {
 // -----------------------------------------------------------------------------
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make: {
   <A, E>(create: (get: AtomContext) => Effect.Effect<A, E, Scope.Scope | AtomRegistry>, options?: {
@@ -553,8 +553,8 @@ function runCallbackSync<R, A, E, ER = never>(
 // -----------------------------------------------------------------------------
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface AtomRuntime<R, ER = never> extends Atom<AsyncResult.AsyncResult<Context.Context<R>, ER>> {
   readonly factory: RuntimeFactory
@@ -638,8 +638,8 @@ export interface AtomRuntime<R, ER = never> extends Atom<AsyncResult.AsyncResult
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface RuntimeFactory {
   <R, E>(
@@ -660,8 +660,8 @@ export interface RuntimeFactory {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const context: (options: {
   readonly memoMap: Layer.MemoMap
@@ -719,14 +719,14 @@ export const context: (options: {
 }
 
 /**
- * @since 4.0.0
  * @category context
+ * @since 4.0.0
  */
 export const defaultMemoMap: Layer.MemoMap = Layer.makeMemoMapUnsafe()
 
 /**
- * @since 4.0.0
  * @category context
+ * @since 4.0.0
  */
 export const runtime: RuntimeFactory = context({ memoMap: defaultMemoMap })
 
@@ -734,8 +734,8 @@ export const runtime: RuntimeFactory = context({ memoMap: defaultMemoMap })
  * An alias to `Rx.runtime.withReactivity`, for refreshing an atom whenever the
  * keys change in the `Reactivity` service.
  *
- * @since 4.0.0
  * @category Reactivity
+ * @since 4.0.0
  */
 export const withReactivity: (
   keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>
@@ -828,8 +828,8 @@ function makeStream<A, E>(
 // -----------------------------------------------------------------------------
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const subscriptionRef: {
   <A>(ref: SubscriptionRef.SubscriptionRef<A> | ((get: AtomContext) => SubscriptionRef.SubscriptionRef<A>)): Writable<A>
@@ -914,8 +914,8 @@ const makeSubRef = (
 // -----------------------------------------------------------------------------
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface FnContext {
   <A>(atom: Atom<A>): A
@@ -945,8 +945,8 @@ export interface FnContext {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fnSync: {
   <Arg>(): {
@@ -993,40 +993,40 @@ const makeFnSync = <Arg, A>(f: (arg: Arg, get: FnContext) => A, options?: {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface AtomResultFn<Arg, A, E = never>
   extends Writable<AsyncResult.AsyncResult<A, E>, Arg | Reset | Interrupt>
 {}
 
 /**
- * @since 4.0.0
  * @category symbols
+ * @since 4.0.0
  */
 export const Reset = Symbol.for("effect/reactivity/atom/Atom/Reset")
 
 /**
- * @since 4.0.0
  * @category symbols
+ * @since 4.0.0
  */
 export type Reset = typeof Reset
 
 /**
- * @since 4.0.0
  * @category symbols
+ * @since 4.0.0
  */
 export const Interrupt = Symbol.for("effect/reactivity/atom/Atom/Interrupt")
 
 /**
- * @since 4.0.0
  * @category symbols
+ * @since 4.0.0
  */
 export type Interrupt = typeof Interrupt
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fn: {
   <Arg>(): <E, A>(fn: (arg: Arg, get: FnContext) => Effect.Effect<A, E, Scope.Scope | AtomRegistry>, options?: {
@@ -1130,8 +1130,8 @@ function makeResultFn<Arg, E, A>(
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type PullResult<A, E = never> = AsyncResult.AsyncResult<{
   readonly done: boolean
@@ -1139,8 +1139,8 @@ export type PullResult<A, E = never> = AsyncResult.AsyncResult<{
 }, E | Cause.NoSuchElementError>
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const pull = <A, E>(
   create: ((get: AtomContext) => Stream.Stream<A, E, AtomRegistry>) | Stream.Stream<A, E, AtomRegistry>,
@@ -1236,8 +1236,8 @@ const makeStreamPull = <A, E>(
   })
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const family = typeof WeakRef === "undefined" || typeof FinalizationRegistry === "undefined" ?
   <Arg, T extends object>(
@@ -1277,8 +1277,8 @@ export const family = typeof WeakRef === "undefined" || typeof FinalizationRegis
   }
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withFallback: {
   <E2, A2>(
@@ -1355,8 +1355,8 @@ export const withFallback: {
 })
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const keepAlive = <A extends Atom<any>>(self: A): A =>
   Object.assign(Object.create(Object.getPrototypeOf(self)), {
@@ -1370,8 +1370,8 @@ export const keepAlive = <A extends Atom<any>>(self: A): A =>
  *
  * Note that Atom's have this behavior by default.
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const autoDispose = <A extends Atom<any>>(self: A): A =>
   Object.assign(Object.create(Object.getPrototypeOf(self)), {
@@ -1380,8 +1380,8 @@ export const autoDispose = <A extends Atom<any>>(self: A): A =>
   })
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const setLazy: {
   (lazy: boolean): <A extends Atom<any>>(self: A) => A
@@ -1393,8 +1393,8 @@ export const setLazy: {
   }))
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withLabel: {
   (name: string): <A extends Atom<any>>(self: A) => A
@@ -1409,8 +1409,8 @@ export const withLabel: {
   }))
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const initialValue: {
   <A>(initialValue: A): (self: Atom<A>) => readonly [Atom<A>, A]
@@ -1421,8 +1421,8 @@ export const initialValue: {
 >(2, (self, initialValue) => [self, initialValue])
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const transform: {
   <R extends Atom<any>, B>(
@@ -1483,8 +1483,8 @@ const getInitialValueTarget = <A>(atom: Atom<A>): Atom<A> => {
 }
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const map: {
   <R extends Atom<any>, B>(
@@ -1500,8 +1500,8 @@ export const map: {
 )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const mapResult: {
   <R extends Atom<AsyncResult.AsyncResult<any, any>>, B>(
@@ -1525,8 +1525,8 @@ export const mapResult: {
   : Atom<AsyncResult.AsyncResult<B, AsyncResult.AsyncResult.Failure<Type<R>>>> => map(self, AsyncResult.map(f)))
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const debounce: {
   (duration: Duration.Input): <A extends Atom<any>>(self: A) => WithoutSerializable<A>
@@ -1559,8 +1559,8 @@ export const debounce: {
  * Ensures that the value of the atom is refreshed at most once per specified
  * duration.
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withRefresh: {
   (duration: Duration.Input): <A extends Atom<any>>(self: A) => WithoutSerializable<A>
@@ -1588,8 +1588,8 @@ export const withRefresh: {
  * background refresh on first mount. Use `revalidateOnFocus` to control
  * focus behavior. `true` respects `staleTime` and `"always"` forces refetch.
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const swr: {
   (
@@ -1674,8 +1674,8 @@ const shouldRevalidateSWR = <A, E>(result: AsyncResult.AsyncResult<A, E>, staleT
 }
 
 /**
- * @since 4.0.0
  * @category Optimistic
+ * @since 4.0.0
  */
 export const optimistic = <A>(self: Atom<A>): Writable<A, Atom<AsyncResult.AsyncResult<A, unknown>>> => {
   let counter = 0
@@ -1768,8 +1768,8 @@ export const optimistic = <A>(self: Atom<A>): Writable<A, Atom<AsyncResult.Async
 }
 
 /**
- * @since 4.0.0
  * @category Optimistic
+ * @since 4.0.0
  */
 export const optimisticFn: {
   <A, W, XA, XE, OW = void>(
@@ -1828,8 +1828,8 @@ export const optimisticFn: {
 })
 
 /**
- * @since 4.0.0
  * @category batching
+ * @since 4.0.0
  */
 export const batch: (f: () => void) => void = Registry.batch
 
@@ -1838,8 +1838,8 @@ export const batch: (f: () => void) => void = Registry.batch
 // -----------------------------------------------------------------------------
 
 /**
- * @since 4.0.0
  * @category Focus
+ * @since 4.0.0
  */
 export const windowFocusSignal: Atom<number> = readable((get) => {
   let count = 0
@@ -1856,8 +1856,8 @@ export const windowFocusSignal: Atom<number> = readable((get) => {
 })
 
 /**
- * @since 4.0.0
  * @category Focus
+ * @since 4.0.0
  */
 export const makeRefreshOnSignal = <_>(signal: Atom<_>) => <A extends Atom<any>>(self: A): WithoutSerializable<A> =>
   transform(self, (get) => {
@@ -1868,8 +1868,8 @@ export const makeRefreshOnSignal = <_>(signal: Atom<_>) => <A extends Atom<any>>
   }, { initialValueTarget: self }) as any
 
 /**
- * @since 4.0.0
  * @category Focus
+ * @since 4.0.0
  */
 export const refreshOnWindowFocus: <A extends Atom<any>>(self: A) => WithoutSerializable<A> = makeRefreshOnSignal(
   windowFocusSignal
@@ -1880,8 +1880,8 @@ export const refreshOnWindowFocus: <A extends Atom<any>>(self: A) => WithoutSeri
 // -----------------------------------------------------------------------------
 
 /**
- * @since 4.0.0
  * @category KeyValueStore
+ * @since 4.0.0
  */
 export const kvs = <S extends Schema.Codec<any, any>, const Mode extends "sync" | "async" = never>(options: {
   readonly runtime: AtomRuntime<KeyValueStore.KeyValueStore, any>
@@ -1943,8 +1943,8 @@ export const kvs = <S extends Schema.Codec<any, any>, const Mode extends "sync" 
  *
  * Note: If you pass a schema, it has to be synchronous and have no context.
  *
- * @since 4.0.0
  * @category URL search params
+ * @since 4.0.0
  */
 export const searchParam = <S extends Schema.Codec<any, string> = never>(name: string, options?: {
   readonly schema?: S | undefined
@@ -2025,29 +2025,29 @@ function updateSearchParams() {
 // -----------------------------------------------------------------------------
 
 /**
- * @since 4.0.0
  * @category Conversions
+ * @since 4.0.0
  */
 export const toStream = <A>(self: Atom<A>): Stream.Stream<A, never, AtomRegistry> =>
   Stream.unwrap(AtomRegistry.use((r) => Effect.succeed(Registry.toStream(r, self))))
 
 /**
- * @since 4.0.0
  * @category Conversions
+ * @since 4.0.0
  */
 export const toStreamResult = <A, E>(self: Atom<AsyncResult.AsyncResult<A, E>>): Stream.Stream<A, E, AtomRegistry> =>
   Stream.unwrap(AtomRegistry.use((r) => Effect.succeed(Registry.toStreamResult(r, self))))
 
 /**
- * @since 4.0.0
  * @category Conversions
+ * @since 4.0.0
  */
 export const get = <A>(self: Atom<A>): Effect.Effect<A, never, AtomRegistry> =>
   AtomRegistry.use((r) => Effect.succeed(r.get(self)))
 
 /**
- * @since 4.0.0
  * @category Conversions
+ * @since 4.0.0
  */
 export const modify: {
   <R, W, A>(
@@ -2061,8 +2061,8 @@ export const modify: {
 )
 
 /**
- * @since 4.0.0
  * @category Conversions
+ * @since 4.0.0
  */
 export const set: {
   <W>(value: W): <R>(self: Writable<R, W>) => Effect.Effect<void, never, AtomRegistry>
@@ -2074,8 +2074,8 @@ export const set: {
 )
 
 /**
- * @since 4.0.0
  * @category Conversions
+ * @since 4.0.0
  */
 export const update: {
   <R, W>(f: (_: R) => W): (self: Writable<R, W>) => Effect.Effect<void, never, AtomRegistry>
@@ -2087,8 +2087,8 @@ export const update: {
 )
 
 /**
- * @since 4.0.0
  * @category Conversions
+ * @since 4.0.0
  */
 export const getResult = <A, E>(
   self: Atom<AsyncResult.AsyncResult<A, E>>,
@@ -2096,15 +2096,15 @@ export const getResult = <A, E>(
 ): Effect.Effect<A, E, AtomRegistry> => AtomRegistry.use(Registry.getResult(self, options))
 
 /**
- * @since 4.0.0
  * @category Conversions
+ * @since 4.0.0
  */
 export const refresh = <A>(self: Atom<A>): Effect.Effect<void, never, AtomRegistry> =>
   Effect.map(AtomRegistry, (_) => _.refresh(self))
 
 /**
- * @since 4.0.0
  * @category Conversions
+ * @since 4.0.0
  */
 export const mount = <A>(self: Atom<A>): Effect.Effect<void, never, AtomRegistry | Scope.Scope> =>
   AtomRegistry.use((r) => Registry.mount(r, self))
@@ -2114,20 +2114,20 @@ export const mount = <A>(self: Atom<A>): Effect.Effect<void, never, AtomRegistry
 // -----------------------------------------------------------------------------
 
 /**
- * @since 4.0.0
  * @category Serializable
+ * @since 4.0.0
  */
 export const SerializableTypeId: SerializableTypeId = "~effect-atom/atom/Atom/Serializable"
 
 /**
- * @since 4.0.0
  * @category Serializable
+ * @since 4.0.0
  */
 export type SerializableTypeId = "~effect-atom/atom/Atom/Serializable"
 
 /**
- * @since 4.0.0
  * @category Serializable
+ * @since 4.0.0
  */
 export interface Serializable<S extends Schema.Top> {
   readonly [SerializableTypeId]: {
@@ -2138,14 +2138,14 @@ export interface Serializable<S extends Schema.Top> {
 }
 
 /**
- * @since 4.0.0
  * @category Serializable
+ * @since 4.0.0
  */
 export const isSerializable = (self: Atom<any>): self is Atom<any> & Serializable<any> => SerializableTypeId in self
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const serializable: {
   <R extends Atom<any>, S extends Schema.Codec<Type<R>, any>>(options: {
@@ -2173,16 +2173,16 @@ export const serializable: {
 })
 
 /**
- * @since 4.0.0
  * @category ServerValue
+ * @since 4.0.0
  */
 export const ServerValueTypeId = "~effect-atom/atom/Atom/ServerValue" as const
 
 /**
  * Overrides the value of an Atom when read on the server.
  *
- * @since 4.0.0
  * @category ServerValue
+ * @since 4.0.0
  */
 export const withServerValue: {
   <A extends Atom<any>>(read: (get: <A>(atom: Atom<A>) => A) => Type<A>): (self: A) => A
@@ -2199,15 +2199,15 @@ export const withServerValue: {
 /**
  * Sets the Atom's server value to `Result.initial(true)`.
  *
- * @since 4.0.0
  * @category ServerValue
+ * @since 4.0.0
  */
 export const withServerValueInitial = <A extends Atom<AsyncResult.AsyncResult<any, any>>>(self: A): A =>
   withServerValue(self, constant(AsyncResult.initial(true)) as any)
 
 /**
- * @since 4.0.0
  * @category ServerValue
+ * @since 4.0.0
  */
 export const getServerValue: {
   (registry: Registry.AtomRegistry): <A>(self: Atom<A>) => A

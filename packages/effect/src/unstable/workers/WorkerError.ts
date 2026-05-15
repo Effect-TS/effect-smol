@@ -7,20 +7,20 @@ import * as Schema from "../../Schema.ts"
 const TypeId = "~effect/workers/WorkerError" as const
 
 /**
- * @since 4.0.0
  * @category Symbols
+ * @since 4.0.0
  */
 export type TypeId = typeof TypeId
 
 /**
- * @since 4.0.0
  * @category Guards
+ * @since 4.0.0
  */
 export const isWorkerError = (u: unknown): u is WorkerError => hasProperty(u, TypeId)
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export class WorkerSpawnError extends Schema.ErrorClass<WorkerSpawnError>(
   "effect/workers/WorkerError/WorkerSpawnError"
@@ -31,8 +31,8 @@ export class WorkerSpawnError extends Schema.ErrorClass<WorkerSpawnError>(
 }) {}
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export class WorkerSendError extends Schema.ErrorClass<WorkerSendError>(
   "effect/workers/WorkerError/WorkerSendError"
@@ -43,8 +43,8 @@ export class WorkerSendError extends Schema.ErrorClass<WorkerSendError>(
 }) {}
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export class WorkerReceiveError extends Schema.ErrorClass<WorkerReceiveError>(
   "effect/workers/WorkerError/WorkerReceiveError"
@@ -55,8 +55,8 @@ export class WorkerReceiveError extends Schema.ErrorClass<WorkerReceiveError>(
 }) {}
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export class WorkerUnknownError extends Schema.ErrorClass<WorkerUnknownError>(
   "effect/workers/WorkerError/WorkerUnknownError"
@@ -67,8 +67,8 @@ export class WorkerUnknownError extends Schema.ErrorClass<WorkerUnknownError>(
 }) {}
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export type WorkerErrorReason =
   | WorkerSpawnError
@@ -77,8 +77,8 @@ export type WorkerErrorReason =
   | WorkerUnknownError
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export const WorkerErrorReason: Schema.Union<[
   typeof WorkerSpawnError,
@@ -93,8 +93,8 @@ export const WorkerErrorReason: Schema.Union<[
 ])
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export class WorkerError extends Schema.ErrorClass<WorkerError>(TypeId)({
   _tag: Schema.tag("WorkerError"),

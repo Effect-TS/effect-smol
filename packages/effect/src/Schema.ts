@@ -8711,8 +8711,8 @@ const URLString = String.annotate({ expected: "a string that will be decoded as 
  *
  * - encodes `URL` as a `string`
  *
- * @since 4.0.0
  * @category URL
+ * @since 4.0.0
  */
 export const URL: URL = instanceOf(
   globalThis.URL,

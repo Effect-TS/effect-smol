@@ -111,8 +111,8 @@ const TypeId = `~effect/Fiber/${version}`
  * })
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Fiber<out A, out E = never> extends Pipeable {
   readonly [TypeId]: Fiber.Variance<A, E>
@@ -162,8 +162,8 @@ export interface Fiber<out A, out E = never> extends Pipeable {
  * })
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export declare namespace Fiber {
   /**
@@ -179,8 +179,8 @@ export declare namespace Fiber {
    * const upcast: Fiber.Fiber<unknown, unknown> = fiber
    * ```
    *
-   * @since 2.0.0
    * @category models
+   * @since 2.0.0
    */
   export interface Variance<out A, out E = never> {
     readonly _A: Covariant<A>
@@ -204,8 +204,8 @@ export {
    * })
    * ```
    *
-   * @since 2.0.0
    * @category combinators
+   * @since 2.0.0
    */
   await_ as await
 }
@@ -225,8 +225,8 @@ export {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const awaitAll: <A extends Fiber<any, any>>(
   self: Iterable<A>
@@ -254,14 +254,14 @@ export const awaitAll: <A extends Fiber<any, any>>(
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const join: <A, E>(self: Fiber<A, E>) => Effect<A, E> = effect.fiberJoin
 
 /**
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const joinAll: <A extends Iterable<Fiber<any, any>>>(
   self: A
@@ -290,8 +290,8 @@ export const joinAll: <A extends Iterable<Fiber<any, any>>>(
  * })
  * ```
  *
- * @since 2.0.0
  * @category interruption
+ * @since 2.0.0
  */
 export const interrupt: <A, E>(self: Fiber<A, E>) => Effect<void> = effect.fiberInterrupt
 
@@ -314,8 +314,8 @@ export const interrupt: <A, E>(self: Fiber<A, E>) => Effect<void> = effect.fiber
  * })
  * ```
  *
- * @since 2.0.0
  * @category interruption
+ * @since 2.0.0
  */
 export const interruptAs: {
   (
@@ -371,8 +371,8 @@ export const interruptAs: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category interruption
+ * @since 2.0.0
  */
 export const interruptAll: <A extends Iterable<Fiber<any, any>>>(
   fibers: A
@@ -416,8 +416,8 @@ export const interruptAll: <A extends Iterable<Fiber<any, any>>>(
  * })
  * ```
  *
- * @since 2.0.0
  * @category interruption
+ * @since 2.0.0
  */
 export const interruptAllAs: {
   (fiberId: number): <A extends Iterable<Fiber<any, any>>>(fibers: A) => Effect<void>
@@ -451,8 +451,8 @@ export const interruptAllAs: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category guards
+ * @since 2.0.0
  */
 export const isFiber = (
   u: unknown
@@ -474,16 +474,16 @@ export const isFiber = (
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessors
+ * @since 2.0.0
  */
 export const getCurrent: () => Fiber<any, any> | undefined = effect.getCurrentFiber
 
 /**
  * Links the lifetime of a fiber to the provided scope.
  *
- * @since 4.0.0
  * @category Scope
+ * @since 4.0.0
  */
 export const runIn: {
   (scope: Scope): <A, E>(self: Fiber<A, E>) => Fiber<A, E>

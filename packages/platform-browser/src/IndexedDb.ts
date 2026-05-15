@@ -11,8 +11,8 @@ import * as SchemaIssue from "effect/SchemaIssue"
 const TypeId = "~@effect/platform-browser/IndexedDb"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface IndexedDb {
   readonly [TypeId]: typeof TypeId
@@ -21,8 +21,8 @@ export interface IndexedDb {
 }
 
 /**
- * @since 4.0.0
  * @category tag
+ * @since 4.0.0
  */
 export const IndexedDb: Context.Service<IndexedDb, IndexedDb> = Context.Service<IndexedDb, IndexedDb>(TypeId)
 
@@ -41,16 +41,16 @@ const IDBFlatKey = Schema.Union([
 /**
  * Schema for `IDBValidKey` (`number | string | Date | BufferSource | IDBValidKey[]`).
  *
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const IDBValidKey = Schema.Union([IDBFlatKey, Schema.Array(IDBFlatKey)])
 
 /**
  * Schema for `autoIncrement` key path (`number`).
  *
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const AutoIncrement = Schema.Int.check(
   Schema.isBetween({ minimum: 1, maximum: 2 ** 53 })
@@ -61,16 +61,16 @@ export const AutoIncrement = Schema.Int.check(
 })
 
 /**
- * @since 4.0.0
  * @category constructor
+ * @since 4.0.0
  */
 export const make = (impl: Omit<IndexedDb, typeof TypeId>): IndexedDb => IndexedDb.of({ [TypeId]: TypeId, ...impl })
 
 /**
  * Instance of IndexedDb from the `window` object.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const layerWindow: Layer.Layer<IndexedDb, Config.ConfigError> = Layer.effect(
   IndexedDb,

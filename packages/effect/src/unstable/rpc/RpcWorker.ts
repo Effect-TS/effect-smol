@@ -10,8 +10,8 @@ import * as Transferable from "../workers/Transferable.ts"
 import type { Protocol } from "./RpcServer.ts"
 
 /**
- * @since 4.0.0
  * @category initial message
+ * @since 4.0.0
  */
 export class InitialMessage extends Context.Service<
   InitialMessage,
@@ -24,13 +24,13 @@ export class InitialMessage extends Context.Service<
 >()("effect/rpc/RpcWorker/InitialMessage") {}
 
 /**
- * @since 4.0.0
  * @category initial message
+ * @since 4.0.0
  */
 export declare namespace InitialMessage {
   /**
-   * @since 4.0.0
    * @category initial message
+   * @since 4.0.0
    */
   export interface Encoded {
     readonly _tag: "InitialMessage"
@@ -41,8 +41,8 @@ export declare namespace InitialMessage {
 const ProtocolTag: typeof Protocol = Context.Service("@effect/rpc/RpcServer/Protocol") as any
 
 /**
- * @since 4.0.0
  * @category initial message
+ * @since 4.0.0
  */
 export const makeInitialMessage = <S extends Schema.Top, E, R2>(
   schema: S,
@@ -63,8 +63,8 @@ export const makeInitialMessage = <S extends Schema.Top, E, R2>(
 }
 
 /**
- * @since 4.0.0
  * @category initial message
+ * @since 4.0.0
  */
 export const layerInitialMessage = <S extends Schema.Top, R2>(
   schema: S,
@@ -79,8 +79,8 @@ export const layerInitialMessage = <S extends Schema.Top, R2>(
   )
 
 /**
- * @since 4.0.0
  * @category initial message
+ * @since 4.0.0
  */
 export const initialMessage = <S extends Schema.Top>(
   schema: S

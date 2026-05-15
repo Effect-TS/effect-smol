@@ -23,14 +23,14 @@ import * as HttpApiSchema from "./HttpApiSchema.ts"
 const TypeId = "~effect/httpapi/HttpApiEndpoint"
 
 /**
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isHttpApiEndpoint = (u: unknown): u is HttpApiEndpoint<any, any, any> => Predicate.hasProperty(u, TypeId)
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type PayloadMap = ReadonlyMap<string, {
   readonly encoding: HttpApiSchema.PayloadEncoding
@@ -41,8 +41,8 @@ export type PayloadMap = ReadonlyMap<string, {
  * Represents an API endpoint. An API endpoint is mapped to a single route on
  * the underlying `HttpRouter`.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface HttpApiEndpoint<
   out Name extends string,
@@ -183,8 +183,8 @@ export function getErrorSchemas(endpoint: AnyWithProps): Array<Schema.Top> {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Any extends Pipeable {
   readonly [TypeId]: any
@@ -194,16 +194,16 @@ export interface Any extends Pipeable {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface AnyWithProps
   extends HttpApiEndpoint<string, HttpMethod, string, Schema.Top, Schema.Top, Schema.Top, Schema.Top, any, any>
 {}
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Name<Endpoint> = Endpoint extends HttpApiEndpoint<
   infer _Name,
@@ -221,8 +221,8 @@ export type Name<Endpoint> = Endpoint extends HttpApiEndpoint<
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Success<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
@@ -240,8 +240,8 @@ export type Success<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Error<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
@@ -259,8 +259,8 @@ export type Error<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Params<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
@@ -278,8 +278,8 @@ export type Params<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Query<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
@@ -297,8 +297,8 @@ export type Query<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Payload<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
@@ -316,8 +316,8 @@ export type Payload<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Headers<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
@@ -335,8 +335,8 @@ export type Headers<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Middleware<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
@@ -354,26 +354,26 @@ export type Middleware<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type MiddlewareProvides<Endpoint extends Any> = HttpApiMiddleware.Provides<Middleware<Endpoint>>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type MiddlewareClient<Endpoint extends Any> = HttpApiMiddleware.MiddlewareClient<Middleware<Endpoint>>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type MiddlewareError<Endpoint extends Any> = HttpApiMiddleware.Error<Middleware<Endpoint>>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Errors<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
@@ -391,8 +391,8 @@ export type Errors<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ErrorServicesEncode<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
@@ -410,8 +410,8 @@ export type ErrorServicesEncode<Endpoint extends Any> = Endpoint extends HttpApi
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Request<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
@@ -441,8 +441,8 @@ export type Request<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   : {}
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type RequestRaw<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
@@ -468,8 +468,8 @@ export type RequestRaw<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   : {}
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ClientRequest<
   Params extends Schema.Top,
@@ -492,14 +492,14 @@ export type ClientRequest<
   void
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ClientResponseMode = "decoded-only" | "decoded-and-response" | "response-only"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ServerServices<Endpoint> = Endpoint extends HttpApiEndpoint<
   infer _Name,
@@ -524,8 +524,8 @@ export type ServerServices<Endpoint> = Endpoint extends HttpApiEndpoint<
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ClientServices<Endpoint> = Endpoint extends HttpApiEndpoint<
   infer _Name,
@@ -549,8 +549,8 @@ export type ClientServices<Endpoint> = Endpoint extends HttpApiEndpoint<
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type MiddlewareServices<Endpoint> = Endpoint extends HttpApiEndpoint<
   infer _Name,
@@ -568,8 +568,8 @@ export type MiddlewareServices<Endpoint> = Endpoint extends HttpApiEndpoint<
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ErrorServicesDecode<Endpoint> = Endpoint extends HttpApiEndpoint<
   infer _Name,
@@ -587,36 +587,36 @@ export type ErrorServicesDecode<Endpoint> = Endpoint extends HttpApiEndpoint<
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Handler<Endpoint extends Any, E, R> = (
   request: Types.Simplify<Request<Endpoint>>
 ) => Effect<Endpoint["~Success"]["Type"] | HttpServerResponse, Endpoint["~Error"]["Type"] | E, R>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type HandlerRaw<Endpoint extends Any, E, R> = (
   request: Types.Simplify<RequestRaw<Endpoint>>
 ) => Effect<Endpoint["~Success"]["Type"] | HttpServerResponse, Endpoint["~Error"]["Type"] | E, R>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type WithName<Endpoints extends Any, Name extends string> = Extract<Endpoints, { readonly name: Name }>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ExcludeName<Endpoints extends Any, Name extends string> = Exclude<Endpoints, { readonly name: Name }>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type HandlerWithName<Endpoints extends Any, Name extends string, E, R> = Handler<
   WithName<Endpoints, Name>,
@@ -625,8 +625,8 @@ export type HandlerWithName<Endpoints extends Any, Name extends string, E, R> = 
 >
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type HandlerRawWithName<Endpoints extends Any, Name extends string, E, R> = HandlerRaw<
   WithName<Endpoints, Name>,
@@ -635,44 +635,44 @@ export type HandlerRawWithName<Endpoints extends Any, Name extends string, E, R>
 >
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type SuccessWithName<Endpoints extends Any, Name extends string> = Success<
   WithName<Endpoints, Name>
 >["Type"]
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ErrorsWithName<Endpoints extends Any, Name extends string> = Errors<WithName<Endpoints, Name>>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ServerServicesWithName<Endpoints extends Any, Name extends string> = ServerServices<
   WithName<Endpoints, Name>
 >
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type MiddlewareWithName<Endpoints extends Any, Name extends string> = Middleware<WithName<Endpoints, Name>>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type MiddlewareServicesWithName<Endpoints extends Any, Name extends string> = MiddlewareServices<
   WithName<Endpoints, Name>
 >
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ExcludeProvidedWithName<Endpoints extends Any, Name extends string, R> = ExcludeProvided<
   WithName<Endpoints, Name>,
@@ -680,8 +680,8 @@ export type ExcludeProvidedWithName<Endpoints extends Any, Name extends string, 
 >
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ExcludeProvided<Endpoint extends Any, R> = Exclude<
   R,
@@ -690,8 +690,8 @@ export type ExcludeProvided<Endpoint extends Any, R> = Exclude<
 >
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type AddPrefix<Endpoint extends Any, Prefix extends HttpRouter.PathInput> = Endpoint extends HttpApiEndpoint<
   infer _Name,
@@ -721,8 +721,8 @@ export type AddPrefix<Endpoint extends Any, Prefix extends HttpRouter.PathInput>
   never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type AddError<Endpoint extends Any, E extends Schema.Top> = Endpoint extends HttpApiEndpoint<
   infer _Name,
@@ -752,8 +752,8 @@ export type AddError<Endpoint extends Any, E extends Schema.Top> = Endpoint exte
   never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type AddMiddleware<Endpoint extends Any, M extends HttpApiMiddleware.AnyId> = Endpoint extends HttpApiEndpoint<
   infer _Name,
@@ -854,24 +854,24 @@ function makeProto<
 }
 
 /**
- * @since 4.0.0
  * @category constraints
+ * @since 4.0.0
  */
 export type ParamsConstraint =
   | Record<string, Schema.Encoder<string | undefined, unknown>>
   | Schema.Encoder<Record<string, string | undefined>, unknown>
 
 /**
- * @since 4.0.0
  * @category constraints
+ * @since 4.0.0
  */
 export type HeadersConstraint =
   | Record<string, Schema.Encoder<string | undefined, unknown>>
   | Schema.Encoder<Record<string, string | undefined>, unknown>
 
 /**
- * @since 4.0.0
  * @category constraints
+ * @since 4.0.0
  */
 export type QueryConstraint =
   | Record<string, Schema.Encoder<string | ReadonlyArray<string> | undefined, unknown>>
@@ -885,8 +885,8 @@ export type QueryConstraint =
  * - for body methods, payload may be any `Schema.Top` (or content-type keyed
  *   schemas) and OpenAPI uses `requestBody` instead of `parameters`
  *
- * @since 4.0.0
  * @category constraints
+ * @since 4.0.0
  */
 export type PayloadConstraint<Method extends HttpMethod> = Method extends HttpMethod.NoBody ? Record<
     string,
@@ -895,28 +895,28 @@ export type PayloadConstraint<Method extends HttpMethod> = Method extends HttpMe
   SuccessConstraint
 
 /**
- * @since 4.0.0
  * @category constraints
+ * @since 4.0.0
  */
 export type PayloadConstraintCodecs<Method extends HttpMethod> = Method extends HttpMethod.NoBody ?
   Record<string, Schema.Top> :
   Schema.Top | ReadonlyArray<Schema.Top>
 
 /**
- * @since 4.0.0
  * @category constraints
+ * @since 4.0.0
  */
 export type SuccessConstraint = Schema.Top | ReadonlyArray<Schema.Top>
 
 /**
- * @since 4.0.0
  * @category constraints
+ * @since 4.0.0
  */
 export type ErrorConstraint = Schema.Top | ReadonlyArray<Schema.Top>
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = <Method extends HttpMethod>(method: Method): {
   <
@@ -1042,16 +1042,16 @@ type ExtractSchemaOrArray<S extends Schema.Struct.Fields | Schema.Top | Readonly
   : S
 
 /**
- * @since 4.0.0
  * @category Codecs
+ * @since 4.0.0
  */
 export interface Json<S extends Schema.Top>
   extends Schema.Codec<S["Type"], Schema.Json, S["DecodingServices"], S["EncodingServices"]>
 {}
 
 /**
- * @since 4.0.0
  * @category Codecs
+ * @since 4.0.0
  */
 export interface StringTree<S extends Schema.Top> extends
   Schema.Codec<
@@ -1141,26 +1141,26 @@ function transformPayload(schema: Schema.Top, method: HttpMethod): Schema.Top {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const get = make("GET")
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const post = make("POST")
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const put = make("PUT")
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const patch = make("PATCH")
 
@@ -1168,20 +1168,20 @@ const del = make("DELETE")
 
 export {
   /**
-   * @since 4.0.0
    * @category constructors
+   * @since 4.0.0
    */
   del as delete
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const head = make("HEAD")
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const options = make("OPTIONS")

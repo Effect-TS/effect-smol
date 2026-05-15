@@ -6,16 +6,16 @@ import * as Atom from "./Atom.ts"
 import type * as AtomRegistry from "./AtomRegistry.ts"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface DehydratedAtom {
   readonly "~effect/reactivity/DehydratedAtom": true
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface DehydratedAtomValue extends DehydratedAtom {
   readonly key: string
@@ -25,8 +25,8 @@ export interface DehydratedAtomValue extends DehydratedAtom {
 }
 
 /**
- * @since 4.0.0
  * @category dehydration
+ * @since 4.0.0
  */
 export const dehydrate = (
   registry: AtomRegistry.AtomRegistry,
@@ -73,14 +73,14 @@ export const dehydrate = (
 }
 
 /**
- * @since 4.0.0
  * @category dehydration
+ * @since 4.0.0
  */
 export const toValues = (state: ReadonlyArray<DehydratedAtom>): Array<DehydratedAtomValue> => state as any
 
 /**
- * @since 4.0.0
  * @category hydration
+ * @since 4.0.0
  */
 export const hydrate = (
   registry: AtomRegistry.AtomRegistry,

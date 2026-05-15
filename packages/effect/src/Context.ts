@@ -24,22 +24,22 @@ import { hasProperty } from "./Predicate.ts"
 import type * as Types from "./Types.ts"
 
 /**
- * @since 4.0.0
  * @category Type Identifiers
+ * @since 4.0.0
  */
 export type ServiceTypeId = "~effect/Context/Service"
 
 /**
- * @since 4.0.0
  * @category Type Identifiers
+ * @since 4.0.0
  */
 export const ServiceTypeId: ServiceTypeId = "~effect/Context/Service"
 
 /**
  * The base type used for all Context keys.
  *
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface Key<out Identifier, out Shape> extends Effect<Shape, never, Identifier> {
   readonly [ServiceTypeId]: ServiceTypeId
@@ -63,8 +63,8 @@ export interface Key<out Identifier, out Shape> extends Effect<Shape, never, Ide
  * const context = Context.make(Database, { query: (sql) => `Result: ${sql}` })
  * ```
  *
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface Service<in out Identifier, in out Shape> extends Key<Identifier, Shape> {
   of(this: void, self: Shape): Shape
@@ -74,8 +74,8 @@ export interface Service<in out Identifier, in out Shape> extends Key<Identifier
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface ServiceClass<in out Self, in out Identifier extends string, in out Shape>
   extends Service<Self, Shape>
@@ -85,13 +85,13 @@ export interface ServiceClass<in out Self, in out Identifier extends string, in 
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export declare namespace ServiceClass {
   /**
-   * @since 4.0.0
    * @category Models
+   * @since 4.0.0
    */
   export interface Shape<Identifier extends string, Service> {
     readonly [ServiceTypeId]: typeof ServiceTypeId
@@ -122,8 +122,8 @@ export declare namespace ServiceClass {
  * const config = Context.make(Config, { port: 8080 })
  * ```
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const Service: {
   <Identifier, Shape = Identifier>(key: string): Service<Identifier, Shape>
@@ -242,8 +242,8 @@ const ReferenceTypeId = "~effect/Context/Reference" as const
  * const logger = Context.get(context, LoggerRef) // Uses default value
  * ```
  *
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface Reference<in out Shape> extends Service<never, Shape> {
   readonly [ReferenceTypeId]: typeof ReferenceTypeId
@@ -268,8 +268,8 @@ export interface Reference<in out Shape> extends Service<never, Shape> {
  * type DatabaseId = Context.Service.Identifier<typeof Database>
  * ```
  *
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export declare namespace Service {
   /**
@@ -284,8 +284,8 @@ export declare namespace Service {
    * ]
    * ```
    *
-   * @since 4.0.0
    * @category Models
+   * @since 4.0.0
    */
   export type Any = Key<never, any> | Key<any, any>
 
@@ -303,8 +303,8 @@ export declare namespace Service {
    * // DatabaseService is { query: (sql: string) => string }
    * ```
    *
-   * @since 4.0.0
    * @category Models
+   * @since 4.0.0
    */
   export type Shape<T> = T extends Key<infer _I, infer S> ? S : never
 
@@ -322,8 +322,8 @@ export declare namespace Service {
    * // DatabaseId is the identifier type
    * ```
    *
-   * @since 4.0.0
    * @category Models
+   * @since 4.0.0
    */
   export type Identifier<T> = T extends Key<infer I, infer _S> ? I : never
 }
@@ -347,8 +347,8 @@ const TypeId = "~effect/Context" as const
  *   .pipe(Context.add(Database, { query: (sql) => `Result: ${sql}` }))
  * ```
  *
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface Context<in Services> extends Equal.Equal, Pipeable, Inspectable {
   readonly [TypeId]: {
@@ -371,8 +371,8 @@ export interface Context<in Services> extends Equal.Equal, Pipeable, Inspectable
  * const context = Context.makeUnsafe(map)
  * ```
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const makeUnsafe = <Services = never>(mapUnsafe: ReadonlyMap<string, any>): Context<Services> => {
   const self = Object.create(Proto)
@@ -423,8 +423,8 @@ const Proto: Omit<Context<never>, "mapUnsafe" | "mutable"> = {
  * assert.strictEqual(Context.isContext(Context.empty()), true)
  * ```
  *
- * @since 4.0.0
  * @category Guards
+ * @since 4.0.0
  */
 export const isContext = (u: unknown): u is Context<never> => hasProperty(u, TypeId)
 
@@ -439,8 +439,8 @@ export const isContext = (u: unknown): u is Context<never> => hasProperty(u, Typ
  * assert.strictEqual(Context.isKey(Context.Service("Service")), true)
  * ```
  *
- * @since 4.0.0
  * @category Guards
+ * @since 4.0.0
  */
 export const isKey = (u: unknown): u is Key<any, any> => hasProperty(u, ServiceTypeId)
 
@@ -460,8 +460,8 @@ export const isKey = (u: unknown): u is Key<any, any> => hasProperty(u, ServiceT
  * assert.strictEqual(Context.isReference(Context.Service("Key")), false)
  * ```
  *
- * @since 4.0.0
  * @category Guards
+ * @since 4.0.0
  */
 export const isReference = (u: unknown): u is Reference<any> => hasProperty(u, ReferenceTypeId)
 
@@ -476,8 +476,8 @@ export const isReference = (u: unknown): u is Reference<any> => hasProperty(u, R
  * assert.strictEqual(Context.isContext(Context.empty()), true)
  * ```
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const empty = (): Context<never> => emptyContext
 const emptyContext = makeUnsafe(new Map())
@@ -497,8 +497,8 @@ const emptyContext = makeUnsafe(new Map())
  * assert.deepStrictEqual(Context.get(context, Port), { PORT: 8080 })
  * ```
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make = <I, S>(
   key: Key<I, S>,
@@ -527,8 +527,8 @@ export const make = <I, S>(
  * assert.deepStrictEqual(Context.get(context, Timeout), { TIMEOUT: 5000 })
  * ```
  *
- * @since 4.0.0
  * @category Adders
+ * @since 4.0.0
  */
 export const add: {
   <I, S>(
@@ -550,8 +550,8 @@ export const add: {
   }))
 
 /**
- * @since 4.0.0
  * @category Adders
+ * @since 4.0.0
  */
 export const addOrOmit: {
   <I, S>(
@@ -605,8 +605,8 @@ export const addOrOmit: {
  * assert.deepStrictEqual(database, { query: () => "fallback" })
  * ```
  *
- * @since 4.0.0
  * @category Getters
+ * @since 4.0.0
  */
 export const getOrElse: {
   <S, I, B>(key: Key<I, S>, orElse: LazyArg<B>): <Services>(self: Context<Services>) => S | B
@@ -619,8 +619,8 @@ export const getOrElse: {
 })
 
 /**
- * @since 4.0.0
  * @category Getters
+ * @since 4.0.0
  */
 export const getOrUndefined: {
   <S, I>(key: Key<I, S>): <Services>(self: Context<Services>) => S | undefined
@@ -655,8 +655,8 @@ export const getOrUndefined: {
  * assert.throws(() => Context.getUnsafe(context, Timeout))
  * ```
  *
- * @since 4.0.0
  * @category unsafe
+ * @since 4.0.0
  */
 export const getUnsafe: {
   <S, I>(service: Key<I, S>): <Services>(self: Context<Services>) => S
@@ -694,8 +694,8 @@ export const getUnsafe: {
  * assert.deepStrictEqual(Context.get(context, Timeout), { TIMEOUT: 5000 })
  * ```
  *
- * @since 4.0.0
  * @category Getters
+ * @since 4.0.0
  */
 export const get: {
   <Services, I extends Services, S>(service: Key<I, S>): (self: Context<Services>) => S
@@ -718,8 +718,8 @@ export const get: {
  * assert.deepStrictEqual(logger, { log: (msg: string) => console.log(msg) })
  * ```
  *
- * @since 4.0.0
  * @category unsafe
+ * @since 4.0.0
  */
 export const getReferenceUnsafe = <Services, S>(self: Context<Services>, service: Reference<S>): S => {
   if (!self.mapUnsafe.has(service.key)) {
@@ -783,8 +783,8 @@ const serviceNotFoundError = (service: Key<any, any>) => {
  * assert.deepStrictEqual(Context.getOption(context, Timeout), Option.none())
  * ```
  *
- * @since 4.0.0
  * @category Getters
+ * @since 4.0.0
  */
 export const getOption: {
   <S, I>(service: Key<I, S>): <Services>(self: Context<Services>) => Option.Option<S>
@@ -819,8 +819,8 @@ export const getOption: {
  * assert.deepStrictEqual(Context.get(context, Timeout), { TIMEOUT: 5000 })
  * ```
  *
- * @since 4.0.0
  * @category Utils
+ * @since 4.0.0
  */
 export const merge: {
   <R1>(that: Context<R1>): <Services>(self: Context<Services>) => Context<R1 | Services>
@@ -902,8 +902,8 @@ export const mergeAll = <T extends Array<unknown>>(
  * assert.deepStrictEqual(Context.getOption(context, Timeout), Option.none())
  * ```
  *
- * @since 4.0.0
  * @category Utils
+ * @since 4.0.0
  */
 export const pick = <S extends ReadonlyArray<Key<any, any>>>(
   ...services: S
@@ -940,8 +940,8 @@ export const pick = <S extends ReadonlyArray<Key<any, any>>>(
  * assert.deepStrictEqual(Context.getOption(context, Timeout), Option.none())
  * ```
  *
- * @since 4.0.0
  * @category Utils
+ * @since 4.0.0
  */
 export const omit = <S extends ReadonlyArray<Key<any, any>>>(
   ...keys: S
@@ -957,8 +957,8 @@ export const omit = <S extends ReadonlyArray<Key<any, any>>>(
  * Perform a series of mutations on a `Context`. Prevents unnecessary copying
  * of the underlying map when multiple mutations are needed.
  *
- * @since 4.0.0
  * @category Utils
+ * @since 4.0.0
  */
 export const mutate: {
   <Services, B>(
@@ -1016,8 +1016,8 @@ const withMapUnsafe = <Services, B>(self: Context<Services>, f: (map: Map<string
  * const customLogger = Context.get(customContext, LoggerRef)
  * ```
  *
- * @since 4.0.0
  * @category References
+ * @since 4.0.0
  */
 export const Reference: <Service>(
   key: string,

@@ -51,8 +51,8 @@ import type { InitialMessage } from "./RpcWorker.ts"
 import { withRun } from "./Utils.ts"
 
 /**
- * @since 4.0.0
  * @category server
+ * @since 4.0.0
  */
 export interface RpcServer<A extends Rpc.Any> {
   readonly write: (clientId: number, message: FromClient<A>) => Effect.Effect<void>
@@ -60,8 +60,8 @@ export interface RpcServer<A extends Rpc.Any> {
 }
 
 /**
- * @since 4.0.0
  * @category server
+ * @since 4.0.0
  */
 export const makeNoSerialization: <Rpcs extends Rpc.Any>(
   group: RpcGroup.RpcGroup<Rpcs>,
@@ -457,8 +457,8 @@ const applyMiddleware = <A, E, R>(
 }
 
 /**
- * @since 4.0.0
  * @category server
+ * @since 4.0.0
  */
 export const make: <Rpcs extends Rpc.Any>(
   group: RpcGroup.RpcGroup<Rpcs>,
@@ -733,8 +733,8 @@ export const make: <Rpcs extends Rpc.Any>(
 })
 
 /**
- * @since 4.0.0
  * @category server
+ * @since 4.0.0
  */
 export const layer = <Rpcs extends Rpc.Any>(
   group: RpcGroup.RpcGroup<Rpcs>,
@@ -760,8 +760,8 @@ export const layer = <Rpcs extends Rpc.Any>(
  * It defaults to using websockets for communication, but can be configured to
  * use HTTP.
  *
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export const layerHttp = <Rpcs extends Rpc.Any>(options: {
   readonly group: RpcGroup.RpcGroup<Rpcs>
@@ -790,8 +790,8 @@ export const layerHttp = <Rpcs extends Rpc.Any>(options: {
   )
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export class Protocol extends Context.Service<
   Protocol,
@@ -820,8 +820,8 @@ export class Protocol extends Context.Service<
 }
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export const makeProtocolSocketServer = Effect.gen(function*() {
   const server = yield* SocketServer.SocketServer
@@ -835,8 +835,8 @@ export const makeProtocolSocketServer = Effect.gen(function*() {
 /**
  * A rpc protocol that uses `SocketServer` for communication.
  *
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export const layerProtocolSocketServer: Layer.Layer<
   Protocol,
@@ -845,8 +845,8 @@ export const layerProtocolSocketServer: Layer.Layer<
 > = Layer.effect(Protocol)(makeProtocolSocketServer)
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export const makeProtocolWithHttpEffectWebsocket: Effect.Effect<
   {
@@ -877,8 +877,8 @@ export const makeProtocolWithHttpEffectWebsocket: Effect.Effect<
 })
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export const makeProtocolWebsocket: (options: {
   readonly path: HttpRouter.PathInput
@@ -896,8 +896,8 @@ export const makeProtocolWebsocket: (options: {
 /**
  * A rpc protocol that uses websockets for communication.
  *
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export const layerProtocolWebsocket = (options: {
   readonly path: HttpRouter.PathInput
@@ -910,8 +910,8 @@ export const layerProtocolWebsocket = (options: {
 }
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export const makeProtocolWithHttpEffect: Effect.Effect<
   {
@@ -1074,8 +1074,8 @@ const mergeUint8Arrays = (arrays: ReadonlyArray<Uint8Array>) => {
 }
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export const makeProtocolHttp: (options: {
   readonly path: HttpRouter.PathInput
@@ -1093,8 +1093,8 @@ export const makeProtocolHttp: (options: {
 /**
  * A rpc protocol that uses websockets for communication.
  *
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export const layerProtocolHttp = (options: {
   readonly path: HttpRouter.PathInput
@@ -1103,8 +1103,8 @@ export const layerProtocolHttp = (options: {
 }
 
 /**
- * @since 4.0.0
  * @category http app
+ * @since 4.0.0
  */
 export const toHttpEffect: <Rpcs extends Rpc.Any>(
   group: RpcGroup.RpcGroup<Rpcs>,
@@ -1141,8 +1141,8 @@ export const toHttpEffect: <Rpcs extends Rpc.Any>(
 })
 
 /**
- * @since 4.0.0
  * @category http app
+ * @since 4.0.0
  */
 export const toHttpEffectWebsocket: <Rpcs extends Rpc.Any>(
   group: RpcGroup.RpcGroup<Rpcs>,
@@ -1181,8 +1181,8 @@ export const toHttpEffectWebsocket: <Rpcs extends Rpc.Any>(
 /**
  * Create a protocol that uses the provided `Stream` and `Sink` for communication.
  *
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export const makeProtocolStdio = Effect.gen(function*() {
   const stdio = yield* Stdio
@@ -1241,8 +1241,8 @@ export const makeProtocolStdio = Effect.gen(function*() {
 /**
  * Create a protocol that uses the provided `Stream` and `Sink` for communication.
  *
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export const layerProtocolStdio: Layer.Layer<
   Protocol,
@@ -1251,8 +1251,8 @@ export const layerProtocolStdio: Layer.Layer<
 > = Layer.effect(Protocol, makeProtocolStdio)
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export const makeProtocolWorkerRunner: Effect.Effect<
   Protocol["Service"],
@@ -1307,8 +1307,8 @@ export const makeProtocolWorkerRunner: Effect.Effect<
 }))
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export const layerProtocolWorkerRunner: Layer.Layer<
   Protocol,

@@ -12,20 +12,20 @@ import type * as Rpc from "./Rpc.ts"
 import type { Request, RequestId } from "./RpcMessage.ts"
 
 /**
- * @since 4.0.0
  * @category Type IDs
+ * @since 4.0.0
  */
 export type TypeId = "~effect/rpc/RpcMiddleware"
 
 /**
- * @since 4.0.0
  * @category Type IDs
+ * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/rpc/RpcMiddleware"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface RpcMiddleware<Provides, E, Requires> {
   (
@@ -41,16 +41,16 @@ export interface RpcMiddleware<Provides, E, Requires> {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface SuccessValue {
   readonly _: unique symbol
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface RpcMiddlewareClient<E, CE, R> {
   (options: {
@@ -61,8 +61,8 @@ export interface RpcMiddlewareClient<E, CE, R> {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ForClient<Id> {
   readonly _: unique symbol
@@ -70,8 +70,8 @@ export interface ForClient<Id> {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Any {
   (
@@ -87,8 +87,8 @@ export interface Any {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface AnyId {
   readonly [TypeId]: {
@@ -100,8 +100,8 @@ export interface AnyId {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ServiceClass<
   Self,
@@ -127,52 +127,52 @@ export interface ServiceClass<
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Provides<A> = A extends { readonly [TypeId]: { readonly provides: infer P } } ? P : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Requires<A> = A extends { readonly [TypeId]: { readonly requires: infer R } } ? R : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ApplyServices<A, R> = Exclude<R, Provides<A>> | Requires<A>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ErrorSchema<A> = A extends { readonly [TypeId]: { readonly error: infer E } }
   ? E extends Schema.Top ? E : never
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Error<A> = ErrorSchema<A>["Type"]
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ErrorServicesEncode<A> = ErrorSchema<A>["EncodingServices"]
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ErrorServicesDecode<A> = ErrorSchema<A>["DecodingServices"]
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface AnyService extends Context.Key<any, any> {
   readonly [TypeId]: typeof TypeId
@@ -182,8 +182,8 @@ export interface AnyService extends Context.Key<any, any> {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface AnyServiceWithProps extends Context.Key<any, RpcMiddleware<any, any, any>> {
   readonly [TypeId]: typeof TypeId
@@ -193,8 +193,8 @@ export interface AnyServiceWithProps extends Context.Key<any, RpcMiddleware<any,
 }
 
 /**
- * @since 4.0.0
  * @category tags
+ * @since 4.0.0
  */
 export const Service = <
   Self,
@@ -255,8 +255,8 @@ export const Service = <
 }
 
 /**
- * @since 4.0.0
  * @category client
+ * @since 4.0.0
  */
 export const layerClient = <Id extends AnyId, S, R, EX = never, RX = never>(
   tag: Context.Key<Id, S>,

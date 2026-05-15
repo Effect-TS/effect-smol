@@ -43,8 +43,8 @@ const TypeId = "~effect/FiberMap"
  * })
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface FiberMap<in out K, out A = unknown, out E = unknown>
   extends Pipeable, Inspectable.Inspectable, Iterable<[K, Fiber.Fiber<A, E>]>
@@ -73,8 +73,8 @@ export interface FiberMap<in out K, out A = unknown, out E = unknown>
  * })
  * ```
  *
- * @since 2.0.0
  * @category refinements
+ * @since 2.0.0
  */
 export const isFiberMap = (u: unknown): u is FiberMap<unknown> => Predicate.hasProperty(u, TypeId)
 
@@ -129,8 +129,8 @@ const makeUnsafe = <K, A = unknown, E = unknown>(
  * )
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const make = <K, A = unknown, E = unknown>(): Effect.Effect<FiberMap<K, A, E>, never, Scope.Scope> =>
   Effect.acquireRelease(
@@ -173,8 +173,8 @@ export const make = <K, A = unknown, E = unknown>(): Effect.Effect<FiberMap<K, A
  * })
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const makeRuntime = <R, K, E = unknown, A = unknown>(): Effect.Effect<
   <XE extends E, XA extends A>(
@@ -217,8 +217,8 @@ export const makeRuntime = <R, K, E = unknown, A = unknown>(): Effect.Effect<
  * })
  * ```
  *
- * @since 3.13.0
  * @category constructors
+ * @since 3.13.0
  */
 export const makeRuntimePromise = <R, K, A = unknown, E = unknown>(): Effect.Effect<
   <XE extends E, XA extends A>(
@@ -265,8 +265,8 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const setUnsafe: {
   <K, A, E, XE extends E, XA extends A>(
@@ -355,8 +355,8 @@ export const setUnsafe: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const set: {
   <K, A, E, XE extends E, XA extends A>(
@@ -409,8 +409,8 @@ export const set: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const getUnsafe: {
   <K>(key: K): <A, E>(self: FiberMap<K, A, E>) => Option.Option<Fiber.Fiber<A, E>>
@@ -447,8 +447,8 @@ export const getUnsafe: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const get: {
   <K>(key: K): <A, E>(self: FiberMap<K, A, E>) => Effect.Effect<Option.Option<Fiber.Fiber<A, E>>>
@@ -478,8 +478,8 @@ export const get: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const hasUnsafe: {
   <K>(key: K): <A, E>(self: FiberMap<K, A, E>) => boolean
@@ -513,8 +513,8 @@ export const hasUnsafe: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const has: {
   <K>(key: K): <A, E>(self: FiberMap<K, A, E>) => Effect.Effect<boolean>
@@ -547,8 +547,8 @@ export const has: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const remove: {
   <K>(key: K): <A, E>(self: FiberMap<K, A, E>) => Effect.Effect<void>
@@ -597,8 +597,8 @@ export const remove: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const clear = <K, A, E>(self: FiberMap<K, A, E>): Effect.Effect<void> =>
   Effect.suspend(() => {
@@ -642,8 +642,8 @@ const constInterruptedFiber = (function() {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const run: {
   <K, A, E>(
@@ -723,8 +723,8 @@ const runImpl = <K, A, E, R, XE extends E, XA extends A>(
  * )
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const runtime: <K, A, E>(
   self: FiberMap<K, A, E>
@@ -792,8 +792,8 @@ export const runtime: <K, A, E>(
  * })
  * ```
  *
- * @since 3.13.0
  * @category combinators
+ * @since 3.13.0
  */
 export const runtimePromise = <K, A, E>(self: FiberMap<K, A, E>): <R = never>() => Effect.Effect<
   <XE extends E, XA extends A>(
@@ -851,8 +851,8 @@ export const runtimePromise = <K, A, E>(self: FiberMap<K, A, E>): <R = never>() 
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const size = <K, A, E>(self: FiberMap<K, A, E>): Effect.Effect<number> =>
   Effect.sync(() => self.state._tag === "Closed" ? 0 : MutableHashMap.size(self.state.backing))
@@ -874,8 +874,8 @@ export const size = <K, A, E>(self: FiberMap<K, A, E>): Effect.Effect<number> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const join = <K, A, E>(self: FiberMap<K, A, E>): Effect.Effect<void, E> =>
   Deferred.await(self.deferred as Deferred.Deferred<void, E>)
@@ -905,8 +905,8 @@ export const join = <K, A, E>(self: FiberMap<K, A, E>): Effect.Effect<void, E> =
  * })
  * ```
  *
- * @since 3.13.0
  * @category combinators
+ * @since 3.13.0
  */
 export const awaitEmpty = <K, A, E>(self: FiberMap<K, A, E>): Effect.Effect<void, E> =>
   Effect.whileLoop({

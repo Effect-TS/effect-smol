@@ -83,8 +83,8 @@ const randomNext: Effect<number> = random.Random.useSync((random) => random.next
  * })
  * ```
  *
- * @since 2.0.0
  * @category Models
+ * @since 2.0.0
  */
 export interface Schedule<out Output, in Input = unknown, out Error = never, out Env = never>
   extends Schedule.Variance<Output, Input, Error, Env>, Pipeable
@@ -112,8 +112,8 @@ export interface Schedule<out Output, in Input = unknown, out Error = never, out
  * })
  * ```
  *
- * @since 4.0.0
  * @category Metadata
+ * @since 4.0.0
  */
 export interface InputMetadata<Input> {
   readonly input: Input
@@ -154,8 +154,8 @@ export interface InputMetadata<Input> {
  * // "Output: 2, Attempt: 3, Elapsed: 200ms, Since previous: 100ms"
  * ```
  *
- * @since 4.0.0
  * @category Metadata
+ * @since 4.0.0
  */
 export interface Metadata<Output = unknown, Input = unknown> extends InputMetadata<Input> {
   readonly output: Output
@@ -163,8 +163,8 @@ export interface Metadata<Output = unknown, Input = unknown> extends InputMetada
 }
 
 /**
- * @since 4.0.0
  * @category Metadata
+ * @since 4.0.0
  */
 export const CurrentMetadata = Context.Reference<Metadata>("effect/Schedule/CurrentMetadata", {
   defaultValue: constant({
@@ -209,8 +209,8 @@ export const CurrentMetadata = Context.Reference<Metadata>("effect/Schedule/Curr
  * })
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export declare namespace Schedule {
   /**
@@ -240,8 +240,8 @@ export declare namespace Schedule {
    * const serviceSchedule = Schedule.spaced("5 seconds")
    * ```
    *
-   * @since 2.0.0
    * @category Models
+   * @since 2.0.0
    */
   export interface Variance<out Output, in Input, out Error, out Env> {
     readonly [TypeId]: VarianceStruct<Output, Input, Error, Env>
@@ -276,8 +276,8 @@ export declare namespace Schedule {
    * // This enables proper type relationships where schedules can be composed safely
    * ```
    *
-   * @since 2.0.0
    * @category Models
+   * @since 2.0.0
    */
   export interface VarianceStruct<out Output, in Input, out Error, out Env> {
     readonly _Out: Covariant<Output>
@@ -314,8 +314,8 @@ const ScheduleProto = {
  * console.log(Schedule.isSchedule(undefined)) // false
  * ```
  *
- * @since 2.0.0
  * @category guards
+ * @since 2.0.0
  */
 export const isSchedule = (u: unknown): u is Schedule<unknown, never, unknown, unknown> => hasProperty(u, TypeId)
 
@@ -340,8 +340,8 @@ export const isSchedule = (u: unknown): u is Schedule<unknown, never, unknown, u
  * )
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fromStep = <Input, Output, EnvX, Error, ErrorX, Env>(
   step: Effect<
@@ -389,8 +389,8 @@ const metadataFn = () => {
  * )
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fromStepWithMetadata = <Input, Output, EnvX, ErrorX, Error, Env>(
   step: Effect<
@@ -425,8 +425,8 @@ export const fromStepWithMetadata = <Input, Output, EnvX, ErrorX, Error, Env>(
  * })
  * ```
  *
- * @since 4.0.0
  * @category destructors
+ * @since 4.0.0
  */
 export const toStep = <Output, Input, Error, Env>(
   schedule: Schedule<Output, Input, Error, Env>
@@ -444,8 +444,8 @@ export const toStep = <Output, Input, Error, Env>(
  * Extracts a step function from a Schedule that provides metadata about each
  * execution. It will also handle sleeping for the computed delay.
  *
- * @since 4.0.0
  * @category destructors
+ * @since 4.0.0
  */
 export const toStepWithMetadata = <Output, Input, Error, Env>(
   schedule: Schedule<Output, Input, Error, Env>
@@ -502,8 +502,8 @@ export const toStepWithMetadata = <Output, Input, Error, Env>(
  * })
  * ```
  *
- * @since 4.0.0
  * @category destructors
+ * @since 4.0.0
  */
 export const toStepWithSleep = <Output, Input, Error, Env>(
   schedule: Schedule<Output, Input, Error, Env>
@@ -632,8 +632,8 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
  * })
  * ```
  *
- * @since 2.0.0
  * @category utils
+ * @since 2.0.0
  */
 export const addDelay: {
   <Output, Error2 = never, Env2 = never>(
@@ -692,8 +692,8 @@ export const addDelay: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category sequencing
+ * @since 2.0.0
  */
 export const andThen: {
   <Output2, Input2, Error2, Env2>(
@@ -748,8 +748,8 @@ export const andThen: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category sequencing
+ * @since 2.0.0
  */
 export const andThenResult: {
   <Output2, Input2, Error2, Env2>(
@@ -876,8 +876,8 @@ export const andThenResult: {
  * // Compare with either which provides union semantics (OR logic)
  * ```
  *
- * @since 2.0.0
  * @category utilities
+ * @since 2.0.0
  */
 export const both: {
   <Output2, Input2, Error2, Env2, Output>(
@@ -923,8 +923,8 @@ export const both: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category utilities
+ * @since 2.0.0
  */
 export const bothLeft: {
   <Output2, Input2, Error2, Env2>(
@@ -971,8 +971,8 @@ export const bothLeft: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category utilities
+ * @since 2.0.0
  */
 export const bothRight: {
   <Output2, Input2, Error2, Env2>(
@@ -1024,8 +1024,8 @@ export const bothRight: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category utilities
+ * @since 2.0.0
  */
 export const bothWith: {
   <Output2, Input2, Error2, Env2, Output, Output3>(
@@ -1093,8 +1093,8 @@ export const bothWith: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category utilities
+ * @since 2.0.0
  */
 export const collectInputs = <Output, Input, Error, Env>(
   self: Schedule<Output, Input, Error, Env>
@@ -1124,8 +1124,8 @@ export const collectInputs = <Output, Input, Error, Env>(
  * })
  * ```
  *
- * @since 2.0.0
  * @category utilities
+ * @since 2.0.0
  */
 export const collectOutputs = <Output, Input, Error, Env>(
   self: Schedule<Output, Input, Error, Env>
@@ -1232,8 +1232,8 @@ export const collectOutputs = <Output, Input, Error, Env>(
  * })
  * ```
  *
- * @since 2.0.0
  * @category utilities
+ * @since 2.0.0
  */
 export const collectWhile: {
   <Input, Output, Error2 = never, Env2 = never>(
@@ -1382,8 +1382,8 @@ export const collectWhile: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const cron: {
   (expression: Cron.Cron): Schedule<Duration.Duration, unknown, Cron.CronParseError>
@@ -1478,8 +1478,8 @@ export const cron: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const delays = <Out, In, E, R>(self: Schedule<Out, In, E, R>): Schedule<Duration.Duration, In, E, R> =>
   fromStep(
@@ -1499,8 +1499,8 @@ export const delays = <Out, In, E, R>(self: Schedule<Out, In, E, R>): Schedule<D
  * The schedule outputs the configured duration for its first recurrence and
  * then completes.
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const duration = (durationInput: Duration.Input): Schedule<Duration.Duration> => {
   const duration = Duration.fromInputUnsafe(durationInput)
@@ -1595,8 +1595,8 @@ export const duration = (durationInput: Duration.Input): Schedule<Duration.Durat
  * )
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const during = (duration: Duration.Input): Schedule<Duration.Duration> =>
   while_(
@@ -1672,8 +1672,8 @@ export const during = (duration: Duration.Input): Schedule<Duration.Duration> =>
  * // Compare with intersect which provides intersection semantics (AND logic)
  * ```
  *
- * @since 2.0.0
  * @category utilities
+ * @since 2.0.0
  */
 export const either: {
   <Output2, Input2, Error2, Env2>(
@@ -1722,8 +1722,8 @@ export const either: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category utilities
+ * @since 2.0.0
  */
 export const eitherLeft: {
   <Output2, Input2, Error2, Env2>(
@@ -1771,8 +1771,8 @@ export const eitherLeft: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category utilities
+ * @since 2.0.0
  */
 export const eitherRight: {
   <Output2, Input2, Error2, Env2>(
@@ -1825,8 +1825,8 @@ export const eitherRight: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category utilities
+ * @since 2.0.0
  */
 export const eitherWith: {
   <Output2, Input2, Error2, Env2, Output, Output3>(
@@ -1904,8 +1904,8 @@ export const eitherWith: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const elapsed: Schedule<Duration.Duration> = fromStepWithMetadata(
   effect.succeed((meta) => effect.succeed([Duration.millis(meta.elapsed), Duration.zero] as const))
@@ -1956,8 +1956,8 @@ export const elapsed: Schedule<Duration.Duration> = fromStepWithMetadata(
  * // Will retry with delays: 50ms, 100ms, 200ms before success
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const exponential = (
   base: Duration.Input,
@@ -2033,8 +2033,8 @@ export const exponential = (
  * })
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const fibonacci = (one: Duration.Input): Schedule<Duration.Duration> => {
   const oneMillis = Duration.toMillis(Duration.fromInputUnsafe(one))
@@ -2110,8 +2110,8 @@ export const fibonacci = (one: Duration.Input): Schedule<Duration.Duration> => {
  * })
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const fixed = (interval: Duration.Input): Schedule<number> => {
   const window = Duration.toMillis(Duration.fromInputUnsafe(interval))
@@ -2196,8 +2196,8 @@ export const fixed = (interval: Duration.Input): Schedule<number> => {
  * )
  * ```
  *
- * @since 2.0.0
  * @category mapping
+ * @since 2.0.0
  */
 export const map: {
   <Output, Output2, Error2 = never, Env2 = never>(
@@ -2258,8 +2258,8 @@ export const map: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category utilities
+ * @since 2.0.0
  */
 export const modifyDelay: {
   <Output, Error2 = never, Env2 = never>(
@@ -2295,8 +2295,8 @@ export const modifyDelay: {
  *
  * Delays are jittered between `80%` and `120%` of the original delay.
  *
- * @since 2.0.0
  * @category utilities
+ * @since 2.0.0
  */
 export const jittered = <Output, Input, Error, Env>(
   self: Schedule<Output, Input, Error, Env>
@@ -2332,8 +2332,8 @@ export const jittered = <Output, Input, Error, Env>(
  * })
  * ```
  *
- * @since 2.0.0
  * @category utilities
+ * @since 2.0.0
  */
 export const passthrough = <Output, Input, Error, Env>(
   self: Schedule<Output, Input, Error, Env>
@@ -2512,8 +2512,8 @@ export const recurs = (times: number): Schedule<number> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category utilities
+ * @since 2.0.0
  */
 export const reduce: {
   <State, Output, Error2 = never, Env2 = never>(
@@ -2601,8 +2601,8 @@ export const reduce: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const spaced = (duration: Duration.Input): Schedule<number> => {
   const decoded = Duration.fromInputUnsafe(duration)
@@ -2730,8 +2730,8 @@ export const spaced = (duration: Duration.Input): Schedule<number> => {
  * )
  * ```
  *
- * @since 2.0.0
  * @category sequencing
+ * @since 2.0.0
  */
 export const tapInput: {
   <Input, X, Error2, Env2>(
@@ -2834,8 +2834,8 @@ export const tapInput: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category sequencing
+ * @since 2.0.0
  */
 export const tapOutput: {
   <Output, X, Error2, Env2>(
@@ -2933,8 +2933,8 @@ export const tapOutput: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category utilities
+ * @since 2.0.0
  */
 export const take: {
   (n: number): <Output, Input, Error, Env>(
@@ -3042,8 +3042,8 @@ export const take: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const unfold = <State, Error = never, Env = never>(
   initial: State,
@@ -3102,8 +3102,8 @@ export {
    * If the `predicate` returns `true`, the schedule will continue, otherwise
    * the schedule will stop.
    *
-   * @since 2.0.0
    * @category utilities
+   * @since 2.0.0
    */
   while_ as while
 }
@@ -3140,8 +3140,8 @@ export {
  * })
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const windowed = (interval: Duration.Input): Schedule<number> => {
   const window = Duration.toMillis(Duration.fromInputUnsafe(interval))
@@ -3177,8 +3177,8 @@ export const windowed = (interval: Duration.Input): Schedule<number> => {
  * })
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const forever: Schedule<number> = spaced(Duration.zero)
 
@@ -3198,8 +3198,8 @@ export {
    * without modification. It effectively acts as a pass-through that simply
    * echoes its input values at each step.
    *
-   * @since 2.0.0
    * @category Constructors
+   * @since 2.0.0
    */
   identity_ as identity
 }
@@ -3226,8 +3226,8 @@ export {
  * // where CustomType doesn't match the schedule's input type
  * ```
  *
- * @since 2.0.0
  * @category ensuring types
+ * @since 2.0.0
  */
 export const satisfiesInputType = <T>() =>
 <Input extends T, Output = never, Error = never, Env = never>(
@@ -3238,8 +3238,8 @@ export const satisfiesInputType = <T>() =>
  * Sets the input type of the provided schedule to a specified type, without
  * altering the schedule's behavior.
  *
- * @since 2.0.0
  * @category ensuring types
+ * @since 2.0.0
  */
 export const setInputType =
   <T>() => <Output, Error, Env>(self: Schedule<Output, T, Error, Env>): Schedule<Output, T, Error, Env> => self
@@ -3261,8 +3261,8 @@ export const setInputType =
  * )
  * ```
  *
- * @since 2.0.0
  * @category ensuring types
+ * @since 2.0.0
  */
 export const satisfiesOutputType = <T>() =>
 <Output extends T, Error = never, Input = unknown, Env = never>(
@@ -3292,8 +3292,8 @@ export const satisfiesOutputType = <T>() =>
  * )
  * ```
  *
- * @since 2.0.0
  * @category ensuring types
+ * @since 2.0.0
  */
 export const satisfiesErrorType = <T>() =>
 <Error extends T, Output = never, Input = unknown, Env = never>(
@@ -3327,8 +3327,8 @@ export const satisfiesErrorType = <T>() =>
  * )
  * ```
  *
- * @since 2.0.0
  * @category ensuring types
+ * @since 2.0.0
  */
 export const satisfiesServicesType = <T>() =>
 <Env extends T, Output = never, Input = unknown, Error = never>(

@@ -96,14 +96,14 @@ const TypeId = core.ExitTypeId
  * @see {@link Failure} for the failure case
  * @see {@link match} for pattern matching
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export type Exit<A, E = never> = Success<A, E> | Failure<A, E>
 
 /**
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export declare namespace Exit {
   /**
@@ -111,8 +111,8 @@ export declare namespace Exit {
    *
    * Every Exit is also an Effect, so you can yield it in `Effect.gen`.
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Proto<out A, out E = never> extends Effect.Effect<A, E> {
     readonly [TypeId]: typeof TypeId
@@ -141,8 +141,8 @@ export declare namespace Exit {
  * @see {@link isSuccess} to narrow an Exit to Success
  * @see {@link Failure} for the failure counterpart
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Success<out A, out E = never> extends Exit.Proto<A, E> {
   readonly _tag: "Success"
@@ -172,8 +172,8 @@ export interface Success<out A, out E = never> extends Exit.Proto<A, E> {
  * @see {@link isFailure} to narrow an Exit to Failure
  * @see {@link Success} for the success counterpart
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Failure<out A, out E> extends Exit.Proto<A, E> {
   readonly _tag: "Failure"

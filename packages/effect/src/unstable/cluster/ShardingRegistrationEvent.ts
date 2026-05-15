@@ -8,8 +8,8 @@ import type { SingletonAddress } from "./SingletonAddress.ts"
 /**
  * Represents events that can occur when a runner registers entities or singletons.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ShardingRegistrationEvent =
   | EntityRegistered
@@ -18,8 +18,8 @@ export type ShardingRegistrationEvent =
 /**
  * Represents an event that occurs when a new entity is registered with a runner.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface EntityRegistered {
   readonly _tag: "EntityRegistered"
@@ -30,8 +30,8 @@ export interface EntityRegistered {
  * Represents an event that occurs when a new singleton is registered with a
  * runner.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface SingletonRegistered {
   readonly _tag: "SingletonRegistered"
@@ -39,23 +39,23 @@ export interface SingletonRegistered {
 }
 
 /**
- * @since 4.0.0
  * @category pattern matching
+ * @since 4.0.0
  */
 export const {
   /**
-   * @since 4.0.0
    * @category pattern matching
+   * @since 4.0.0
    */
   $match: match,
   /**
-   * @since 4.0.0
    * @category constructors
+   * @since 4.0.0
    */
   EntityRegistered,
   /**
-   * @since 4.0.0
    * @category constructors
+   * @since 4.0.0
    */
   SingletonRegistered
 } = Data.taggedEnum<ShardingRegistrationEvent>()

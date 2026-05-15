@@ -30,8 +30,8 @@ import * as MP from "./Multipasta.ts"
 export const TypeId = "~effect/http/Multipart"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Part = Field | File
 
@@ -40,8 +40,8 @@ export type Part = Field | File
  */
 export declare namespace Part {
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Proto extends Inspectable.Inspectable {
     readonly [TypeId]: typeof TypeId
@@ -50,8 +50,8 @@ export declare namespace Part {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Field extends Part.Proto {
   readonly _tag: "Field"
@@ -61,20 +61,20 @@ export interface Field extends Part.Proto {
 }
 
 /**
- * @since 4.0.0
  * @category Guards
+ * @since 4.0.0
  */
 export const isPart = (u: unknown): u is Part => Predicate.hasProperty(u, TypeId)
 
 /**
- * @since 4.0.0
  * @category Guards
+ * @since 4.0.0
  */
 export const isField = (u: unknown): u is Field => isPart(u) && u._tag === "Field"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface File extends Part.Proto {
   readonly _tag: "File"
@@ -86,14 +86,14 @@ export interface File extends Part.Proto {
 }
 
 /**
- * @since 4.0.0
  * @category Guards
+ * @since 4.0.0
  */
 export const isFile = (u: unknown): u is File => isPart(u) && u._tag === "File"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface PersistedFile extends Part.Proto {
   readonly _tag: "PersistedFile"
@@ -104,15 +104,15 @@ export interface PersistedFile extends Part.Proto {
 }
 
 /**
- * @since 4.0.0
  * @category Guards
+ * @since 4.0.0
  */
 export const isPersistedFile = (u: unknown): u is PersistedFile =>
   Predicate.hasProperty(u, TypeId) && Predicate.isTagged(u, "PersistedFile")
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Persisted {
   readonly [key: string]: ReadonlyArray<PersistedFile> | ReadonlyArray<string> | string
@@ -121,8 +121,8 @@ export interface Persisted {
 const MultipartErrorTypeId = "~effect/http/Multipart/MultipartError"
 
 /**
- * @since 4.0.0
  * @category Errors
+ * @since 4.0.0
  */
 export class MultipartErrorReason extends Data.Error<{
   readonly _tag: "FileTooLarge" | "FieldTooLarge" | "BodyTooLarge" | "TooManyParts" | "InternalError" | "Parse"
@@ -130,8 +130,8 @@ export class MultipartErrorReason extends Data.Error<{
 }> {}
 
 /**
- * @since 4.0.0
  * @category Errors
+ * @since 4.0.0
  */
 export class MultipartError extends Data.TaggedError("MultipartError")<{
   readonly reason: MultipartErrorReason
@@ -157,14 +157,14 @@ export class MultipartError extends Data.TaggedError("MultipartError")<{
 }
 
 /**
- * @since 4.0.0
  * @category Schemas
+ * @since 4.0.0
  */
 export interface PersistedFileSchema extends Schema.declare<PersistedFile> {}
 
 /**
- * @since 4.0.0
  * @category Schemas
+ * @since 4.0.0
  */
 export const PersistedFileSchema: PersistedFileSchema = Schema.declare(
   isPersistedFile,
@@ -200,14 +200,14 @@ export const PersistedFileSchema: PersistedFileSchema = Schema.declare(
 )
 
 /**
- * @since 4.0.0
  * @category Schemas
+ * @since 4.0.0
  */
 export const FilesSchema: Schema.$Array<PersistedFileSchema> = Schema.Array(PersistedFileSchema)
 
 /**
- * @since 4.0.0
  * @category Schemas
+ * @since 4.0.0
  */
 export const SingleFileSchema: Schema.decodeTo<PersistedFileSchema, Schema.$Array<PersistedFileSchema>> = FilesSchema
   .check(
@@ -223,8 +223,8 @@ export const SingleFileSchema: Schema.decodeTo<PersistedFileSchema, Schema.$Arra
   )
 
 /**
- * @since 4.0.0
  * @category Schemas
+ * @since 4.0.0
  */
 export const schemaPersisted = <A, I extends Partial<Persisted>, RD, RE>(
   schema: Schema.Codec<A, I, RD, RE>
@@ -232,8 +232,8 @@ export const schemaPersisted = <A, I extends Partial<Persisted>, RD, RE>(
   Schema.decodeUnknownEffect(schema)
 
 /**
- * @since 4.0.0
  * @category Schemas
+ * @since 4.0.0
  */
 export const schemaJson = <A, I, RD, RE>(schema: Schema.Codec<A, I, RD, RE>, options?: ParseOptions | undefined): {
   (
@@ -253,8 +253,8 @@ export const schemaJson = <A, I, RD, RE>(schema: Schema.Codec<A, I, RD, RE>, opt
 }
 
 /**
- * @since 4.0.0
  * @category Config
+ * @since 4.0.0
  */
 export const makeConfig = (
   headers: Record<string, string>
@@ -275,8 +275,8 @@ export const makeConfig = (
   })
 
 /**
- * @since 4.0.0
  * @category Parsers
+ * @since 4.0.0
  */
 export const makeChannel = <IE>(headers: Record<string, string>): Channel.Channel<
   Arr.NonEmptyReadonlyArray<Part>,
@@ -482,8 +482,8 @@ export const collectUint8Array = <OE, OD, R>(
   })
 
 /**
- * @since 4.0.0
  * @category Conversions
+ * @since 4.0.0
  */
 export const toPersisted = (
   stream: Stream.Stream<Part, MultipartError>,
@@ -560,8 +560,8 @@ class PersistedFileImpl extends PartBase implements PersistedFile {
 }
 
 /**
- * @since 4.0.0
  * @category References
+ * @since 4.0.0
  */
 export const limitsServices = (options: {
   readonly maxParts?: number | undefined
@@ -590,13 +590,13 @@ export const limitsServices = (options: {
 }
 
 /**
- * @since 4.0.0
  * @category fiber refs
+ * @since 4.0.0
  */
 export declare namespace withLimits {
   /**
-   * @since 4.0.0
    * @category fiber refs
+   * @since 4.0.0
    */
   export type Options = {
     readonly maxParts?: number | undefined
@@ -608,24 +608,24 @@ export declare namespace withLimits {
 }
 
 /**
- * @since 4.0.0
  * @category References
+ * @since 4.0.0
  */
 export const MaxParts = Context.Reference<number | undefined>("effect/http/Multipart/MaxParts", {
   defaultValue: () => undefined
 })
 
 /**
- * @since 4.0.0
  * @category References
+ * @since 4.0.0
  */
 export const MaxFieldSize = Context.Reference<FileSystem.SizeInput>("effect/http/Multipart/MaxFieldSize", {
   defaultValue: constant(FileSystem.Size(10 * 1024 * 1024))
 })
 
 /**
- * @since 4.0.0
  * @category References
+ * @since 4.0.0
  */
 export const MaxFileSize = Context.Reference<FileSystem.SizeInput | undefined>(
   "effect/http/Multipart/MaxFileSize",
@@ -633,8 +633,8 @@ export const MaxFileSize = Context.Reference<FileSystem.SizeInput | undefined>(
 )
 
 /**
- * @since 4.0.0
  * @category References
+ * @since 4.0.0
  */
 export const FieldMimeTypes = Context.Reference<ReadonlyArray<string>>("effect/http/Multipart/FieldMimeTypes", {
   defaultValue: constant(["application/json"])

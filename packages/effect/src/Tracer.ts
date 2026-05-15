@@ -10,8 +10,8 @@ import type { LogLevel } from "./LogLevel.ts"
 import * as Option from "./Option.ts"
 
 /**
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Tracer {
   span(this: Tracer, options: {
@@ -32,16 +32,16 @@ export interface Tracer {
 const evaluate = "~effect/Effect/evaluate" satisfies core.evaluate
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface EffectPrimitive<X> {
   [evaluate](this: EffectPrimitive<X>, fiber: Fiber<any, any>): X
 }
 
 /**
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  * @example
  * ```ts
  * import type { Tracer } from "effect"
@@ -73,8 +73,8 @@ export type SpanStatus = {
 }
 
 /**
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  * @example
  * ```ts
  * import { Effect, Tracer } from "effect"
@@ -95,8 +95,8 @@ export type SpanStatus = {
 export type AnySpan = Span | ExternalSpan
 
 /**
- * @since 2.0.0
  * @category tags
+ * @since 2.0.0
  * @example
  * ```ts
  * import { Tracer } from "effect"
@@ -108,8 +108,8 @@ export type AnySpan = Span | ExternalSpan
 export const ParentSpanKey = "effect/Tracer/ParentSpan"
 
 /**
- * @since 2.0.0
  * @category tags
+ * @since 2.0.0
  * @example
  * ```ts
  * import { Effect, Tracer } from "effect"
@@ -124,8 +124,8 @@ export const ParentSpanKey = "effect/Tracer/ParentSpan"
 export class ParentSpan extends Context.Service<ParentSpan, AnySpan>()(ParentSpanKey) {}
 
 /**
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  * @example
  * ```ts
  * import type { Tracer } from "effect"
@@ -152,8 +152,8 @@ export interface ExternalSpan {
 }
 
 /**
- * @since 3.1.0
  * @category models
+ * @since 3.1.0
  * @example
  * ```ts
  * import type { Tracer } from "effect"
@@ -175,8 +175,8 @@ export interface ExternalSpan {
 export interface SpanOptions extends SpanOptionsNoTrace, TraceOptions {}
 
 /**
- * @since 3.1.0
  * @category models
+ * @since 3.1.0
  */
 export interface SpanOptionsNoTrace {
   readonly attributes?: Record<string, unknown> | undefined
@@ -190,16 +190,16 @@ export interface SpanOptionsNoTrace {
 }
 
 /**
- * @since 3.1.0
  * @category models
+ * @since 3.1.0
  */
 export interface TraceOptions {
   readonly captureStackTrace?: boolean | LazyArg<string | undefined> | undefined
 }
 
 /**
- * @since 3.1.0
  * @category models
+ * @since 3.1.0
  * @example
  * ```ts
  * import type { Tracer } from "effect"
@@ -222,8 +222,8 @@ export interface TraceOptions {
 export type SpanKind = "internal" | "server" | "client" | "producer" | "consumer"
 
 /**
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  * @example
  * ```ts
  * import { Effect } from "effect"
@@ -256,8 +256,8 @@ export interface Span {
 }
 
 /**
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  * @example
  * ```ts
  * import { Effect, Tracer } from "effect"
@@ -284,14 +284,14 @@ export interface SpanLink {
 }
 
 /**
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const make = (options: Tracer): Tracer => options
 
 /**
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  * @example
  * ```ts
  * import { Effect, Tracer } from "effect"
@@ -325,8 +325,8 @@ export const externalSpan = (
 })
 
 /**
- * @since 3.12.0
  * @category references
+ * @since 3.12.0
  * @example
  * ```ts
  * import { Effect, Tracer } from "effect"
@@ -368,14 +368,14 @@ export const MinimumTraceLevel = Context.Reference<
 >("effect/Tracer/MinimumTraceLevel", { defaultValue: () => "All" })
 
 /**
- * @since 4.0.0
  * @category references
+ * @since 4.0.0
  */
 export const TracerKey = "effect/Tracer"
 
 /**
- * @since 4.0.0
  * @category references
+ * @since 4.0.0
  * @example
  * ```ts
  * import { Effect, Tracer } from "effect"
@@ -401,8 +401,8 @@ export const Tracer: Context.Reference<Tracer> = Context.Reference<Tracer>(Trace
 })
 
 /**
- * @since 4.0.0
  * @category native tracer
+ * @since 4.0.0
  */
 export class NativeSpan implements Span {
   readonly _tag = "Span"

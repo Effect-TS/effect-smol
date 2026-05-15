@@ -15,8 +15,8 @@ import type { Invariant } from "./Types.ts"
 const TypeId = "~effect/SubscriptionRef"
 
 /**
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface SubscriptionRef<in out A> extends SubscriptionRef.Variance<A>, Pipeable {
   value: A
@@ -25,8 +25,8 @@ export interface SubscriptionRef<in out A> extends SubscriptionRef.Variance<A>, 
 }
 
 /**
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isSubscriptionRef: (u: unknown) => u is SubscriptionRef<unknown> = (
   u: unknown
@@ -39,8 +39,8 @@ export const isSubscriptionRef: (u: unknown) => u is SubscriptionRef<unknown> = 
  */
 export declare namespace SubscriptionRef {
   /**
-   * @since 2.0.0
    * @category models
+   * @since 2.0.0
    */
   export interface Variance<in out A> {
     readonly [TypeId]: {
@@ -65,8 +65,8 @@ const Proto = {
 /**
  * Constructs a new `SubscriptionRef` from an initial value.
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const make = <A>(value: A): Effect.Effect<SubscriptionRef<A>> =>
   Effect.map(PubSub.unbounded<A>({ replay: 1 }), (pubsub) => {
@@ -128,8 +128,8 @@ export const changes = <A>(self: SubscriptionRef<A>): Stream.Stream<A> => Stream
  * })
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const getUnsafe = <A>(self: SubscriptionRef<A>): A => self.value
 
@@ -148,8 +148,8 @@ export const getUnsafe = <A>(self: SubscriptionRef<A>): A => self.value
  * })
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const get = <A>(self: SubscriptionRef<A>): Effect.Effect<A> => Effect.sync(() => self.value)
 
@@ -172,8 +172,8 @@ export const get = <A>(self: SubscriptionRef<A>): Effect.Effect<A> => Effect.syn
  * })
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const getAndSet: {
   <A>(value: A): (self: SubscriptionRef<A>) => Effect.Effect<A>
@@ -209,8 +209,8 @@ const setUnsafe = <A>(self: SubscriptionRef<A>, value: A) => {
  * })
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const getAndUpdate: {
   <A>(update: (a: A) => A): (self: SubscriptionRef<A>) => Effect.Effect<A>
@@ -245,8 +245,8 @@ export const getAndUpdate: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const getAndUpdateEffect: {
   <A, E, R>(update: (a: A) => Effect.Effect<A, E, R>): (self: SubscriptionRef<A>) => Effect.Effect<A, E, R>
@@ -286,8 +286,8 @@ export const getAndUpdateEffect: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const getAndUpdateSome: {
   <A>(update: (a: A) => Option.Option<A>): (self: SubscriptionRef<A>) => Effect.Effect<A>
@@ -329,8 +329,8 @@ export const getAndUpdateSome: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const getAndUpdateSomeEffect: {
   <A, R, E>(
@@ -375,8 +375,8 @@ export const getAndUpdateSomeEffect: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category modifications
+ * @since 2.0.0
  */
 export const modify: {
   <A, B>(modify: (a: A) => readonly [B, A]): (self: SubscriptionRef<A>) => Effect.Effect<B>
@@ -414,8 +414,8 @@ export const modify: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category modifications
+ * @since 2.0.0
  */
 export const modifyEffect: {
   <B, A, E, R>(
@@ -460,8 +460,8 @@ export const modifyEffect: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category modifications
+ * @since 2.0.0
  */
 export const modifySome: {
   <B, A>(
@@ -510,8 +510,8 @@ export const modifySome: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category modifications
+ * @since 2.0.0
  */
 export const modifySomeEffect: {
   <A, B, R, E>(
@@ -551,8 +551,8 @@ export const modifySomeEffect: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category setters
+ * @since 2.0.0
  */
 export const set: {
   <A>(value: A): (self: SubscriptionRef<A>) => Effect.Effect<void>
@@ -578,8 +578,8 @@ export const set: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category setters
+ * @since 2.0.0
  */
 export const setAndGet: {
   <A>(value: A): (self: SubscriptionRef<A>) => Effect.Effect<A>
@@ -608,8 +608,8 @@ export const setAndGet: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category updating
+ * @since 2.0.0
  */
 export const update: {
   <A>(update: (a: A) => A): (self: SubscriptionRef<A>) => Effect.Effect<void>
@@ -638,8 +638,8 @@ export const update: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category updating
+ * @since 2.0.0
  */
 export const updateEffect: {
   <A, E, R>(update: (a: A) => Effect.Effect<A, E, R>): (self: SubscriptionRef<A>) => Effect.Effect<void, E, R>
@@ -668,8 +668,8 @@ export const updateEffect: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category updating
+ * @since 2.0.0
  */
 export const updateAndGet: {
   <A>(update: (a: A) => A): (self: SubscriptionRef<A>) => Effect.Effect<A>
@@ -701,8 +701,8 @@ export const updateAndGet: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category updating
+ * @since 2.0.0
  */
 export const updateAndGetEffect: {
   <A, E, R>(update: (a: A) => Effect.Effect<A, E, R>): (self: SubscriptionRef<A>) => Effect.Effect<A, E, R>
@@ -740,8 +740,8 @@ export const updateAndGetEffect: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category updating
+ * @since 2.0.0
  */
 export const updateSome: {
   <A>(update: (a: A) => Option.Option<A>): (self: SubscriptionRef<A>) => Effect.Effect<void>
@@ -778,8 +778,8 @@ export const updateSome: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category updating
+ * @since 2.0.0
  */
 export const updateSomeEffect: {
   <A, E, R>(
@@ -820,8 +820,8 @@ export const updateSomeEffect: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category updating
+ * @since 2.0.0
  */
 export const updateSomeAndGet: {
   <A>(update: (a: A) => Option.Option<A>): (self: SubscriptionRef<A>) => Effect.Effect<A>
@@ -858,8 +858,8 @@ export const updateSomeAndGet: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category updating
+ * @since 2.0.0
  */
 export const updateSomeAndGetEffect: {
   <A, E, R>(

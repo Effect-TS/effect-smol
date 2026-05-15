@@ -13,20 +13,20 @@ import * as K8sHttpClient from "./K8sHttpClient.ts"
 import type { Sharding } from "./Sharding.ts"
 
 /**
- * @since 4.0.0
  * @category Type ids
+ * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/cluster/EntityResource"
 
 /**
- * @since 4.0.0
  * @category Type ids
+ * @since 4.0.0
  */
 export type TypeId = "~effect/cluster/EntityResource"
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface EntityResource<out A, out E = never> {
   readonly [TypeId]: TypeId
@@ -39,8 +39,8 @@ export interface EntityResource<out A, out E = never> {
  *
  * It is not closed during restarts, due to shard movement or node shutdowns.
  *
- * @since 4.0.0
  * @category Scope
+ * @since 4.0.0
  */
 export class CloseScope extends Context.Service<
   CloseScope,
@@ -57,8 +57,8 @@ export class CloseScope extends Context.Service<
  * By default, the `idleTimeToLive` is infinite, meaning the resource will only
  * be released when `close` is called.
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make: <A, E, R>(options: {
   readonly acquire: Effect.Effect<A, E, R>
@@ -110,8 +110,8 @@ export const make: <A, E, R>(options: {
 })
 
 /**
- * @since 4.0.0
  * @category Kubernetes
+ * @since 4.0.0
  */
 export const makeK8sPod: (
   spec: v1.Pod,

@@ -42,19 +42,19 @@ import * as RpcWorker from "./RpcWorker.ts"
 import { withRunClient } from "./Utils.ts"
 
 /**
- * @since 4.0.0
  * @category client
+ * @since 4.0.0
  */
 export type RpcClient<Rpcs extends Rpc.Any, E = never> = Struct.Simplify<RpcClient.From<Rpcs, E>>
 
 /**
- * @since 4.0.0
  * @category client
+ * @since 4.0.0
  */
 export declare namespace RpcClient {
   /**
-   * @since 4.0.0
    * @category client
+   * @since 4.0.0
    */
   export type From<Rpcs extends Rpc.Any, E = never> = {
     readonly [Current in Rpcs as Current["_tag"]]: <
@@ -115,8 +115,8 @@ export declare namespace RpcClient {
   }
 
   /**
-   * @since 4.0.0
    * @category client
+   * @since 4.0.0
    */
   export type Flat<Rpcs extends Rpc.Any, E = never> = <
     const Tag extends Rpcs["_tag"],
@@ -175,16 +175,16 @@ export declare namespace RpcClient {
 }
 
 /**
- * @since 4.0.0
  * @category client
+ * @since 4.0.0
  */
 export type FromGroup<Group, E = never> = RpcClient<RpcGroup.Rpcs<Group>, E>
 
 let requestIdCounter = BigInt(0)
 
 /**
- * @since 4.0.0
  * @category client
+ * @since 4.0.0
  */
 export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extends boolean = false>(
   group: RpcGroup.RpcGroup<Rpcs>,
@@ -590,8 +590,8 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
 let clientIdCounter = 0
 
 /**
- * @since 4.0.0
  * @category client
+ * @since 4.0.0
  */
 export const make: <Rpcs extends Rpc.Any, const Flatten extends boolean = false>(
   group: RpcGroup.RpcGroup<Rpcs>,
@@ -767,16 +767,16 @@ const rpcSchemas = (rpc: Rpc.AnyWithProps) => {
 }
 
 /**
- * @since 4.0.0
  * @category headers
+ * @since 4.0.0
  */
 export const CurrentHeaders = Context.Reference<Headers.Headers>("effect/rpc/RpcClient/CurrentHeaders", {
   defaultValue: () => Headers.empty
 })
 
 /**
- * @since 4.0.0
  * @category headers
+ * @since 4.0.0
  */
 export const withHeaders: {
   (headers: Headers.Input): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
@@ -788,8 +788,8 @@ export const withHeaders: {
 )
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export class Protocol extends Context.Service<Protocol, {
   readonly run: (
@@ -811,8 +811,8 @@ export class Protocol extends Context.Service<Protocol, {
 }
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export const makeProtocolHttp = (client: HttpClient.HttpClient): Effect.Effect<
   Protocol["Service"],
@@ -899,8 +899,8 @@ export const makeProtocolHttp = (client: HttpClient.HttpClient): Effect.Effect<
   }))
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export const layerProtocolHttp = (options: {
   readonly url: string
@@ -917,8 +917,8 @@ export const layerProtocolHttp = (options: {
   )
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export const makeProtocolSocket = (options?: {
   readonly retryTransientErrors?: boolean | undefined
@@ -1081,8 +1081,8 @@ const makePinger = Effect.fnUntraced(function*<A, E, R>(writePing: Effect.Effect
 })
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export const layerProtocolSocket = (options?: {
   readonly retryTransientErrors?: boolean | undefined
@@ -1093,8 +1093,8 @@ export const layerProtocolSocket = (options?: {
 > => Layer.effect(Protocol)(makeProtocolSocket(options))
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export const makeProtocolWorker = (
   options: {
@@ -1256,8 +1256,8 @@ export const makeProtocolWorker = (
   }))
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export const layerProtocolWorker: (
   options: {
@@ -1278,8 +1278,8 @@ export const layerProtocolWorker: (
 > = flow(makeProtocolWorker, Layer.effect(Protocol))
 
 /**
- * @since 4.0.0
  * @category ConnectionHooks
+ * @since 4.0.0
  */
 export class ConnectionHooks extends Context.Service<ConnectionHooks, {
   readonly onConnect: Effect.Effect<void>

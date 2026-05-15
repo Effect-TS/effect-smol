@@ -21,8 +21,8 @@ const RequestSchema = Schema.toCodecJson(DevToolsSchema.Request)
 const ResponseSchema = Schema.toCodecJson(DevToolsSchema.Response)
 
 /**
- * @since 4.0.0
  * @category tags
+ * @since 4.0.0
  */
 export class DevToolsClient extends Context.Service<
   DevToolsClient,
@@ -103,8 +103,8 @@ const toMetricsSnapshot = (
 })
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make: Effect.Effect<
   DevToolsClient["Service"],
@@ -118,8 +118,8 @@ export const make: Effect.Effect<
 )
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<DevToolsClient, never, Socket.Socket> = Layer.effect(DevToolsClient, make)
 
@@ -157,8 +157,8 @@ const makeTracerEffect = Effect.gen(function*() {
 })
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const makeTracer: Effect.Effect<Tracer.Tracer, never, DevToolsClient> = makeTracerEffect.pipe(
   Effect.annotateLogs({
@@ -168,8 +168,8 @@ export const makeTracer: Effect.Effect<Tracer.Tracer, never, DevToolsClient> = m
 )
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerTracer: Layer.Layer<never, never, Socket.Socket> = Layer.effect(Tracer.Tracer, makeTracer).pipe(
   Layer.provide(layer)

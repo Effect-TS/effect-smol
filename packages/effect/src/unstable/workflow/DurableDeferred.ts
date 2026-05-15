@@ -21,8 +21,8 @@ import type { WorkflowEngine, WorkflowInstance } from "./WorkflowEngine.ts"
 const TypeId = "~effect/workflow/DurableDeferred"
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface DurableDeferred<
   Success extends Schema.Top,
@@ -37,8 +37,8 @@ export interface DurableDeferred<
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface Any {
   readonly [TypeId]: typeof TypeId
@@ -46,8 +46,8 @@ export interface Any {
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface AnyWithProps {
   readonly [TypeId]: typeof TypeId
@@ -58,8 +58,8 @@ export interface AnyWithProps {
 }
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make = <
   Success extends Schema.Top = Schema.Void,
@@ -136,15 +136,15 @@ const await_: <Success extends Schema.Top, Error extends Schema.Top>(
 
 export {
   /**
-   * @since 4.0.0
    * @category Combinators
+   * @since 4.0.0
    */
   await_ as await
 }
 
 /**
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const into: {
   <Success extends Schema.Top, Error extends Schema.Top>(
@@ -220,8 +220,8 @@ export const into: {
 )
 
 /**
- * @since 4.0.0
  * @category Racing
+ * @since 4.0.0
  */
 export const raceAll = <
   const Effects extends NonEmptyReadonlyArray<Effect.Effect<any, any, any>>,
@@ -271,20 +271,20 @@ export const TokenTypeId = "~effect/workflow/DurableDeferred/Token"
 export type TokenTypeId = typeof TokenTypeId
 
 /**
- * @since 4.0.0
  * @category Token
+ * @since 4.0.0
  */
 export type Token = Brand.Branded<string, TokenTypeId>
 
 /**
- * @since 4.0.0
  * @category Token
+ * @since 4.0.0
  */
 export const Token: Schema.brand<Schema.String, TokenTypeId> = Schema.String.pipe(Schema.brand(TokenTypeId))
 
 /**
- * @since 4.0.0
  * @category Token
+ * @since 4.0.0
  */
 export class TokenParsed extends Schema.Class<TokenParsed>(
   "effect/workflow/DurableDeferred/TokenParsed"
@@ -347,8 +347,8 @@ export class TokenParsed extends Schema.Class<TokenParsed>(
 }
 
 /**
- * @since 4.0.0
  * @category Token
+ * @since 4.0.0
  */
 export const token: <Success extends Schema.Top, Error extends Schema.Top>(
   self: DurableDeferred<Success, Error>
@@ -362,8 +362,8 @@ export const token: <Success extends Schema.Top, Error extends Schema.Top>(
 )
 
 /**
- * @since 4.0.0
  * @category Token
+ * @since 4.0.0
  */
 export const tokenFromExecutionId: {
   (options: {
@@ -393,8 +393,8 @@ export const tokenFromExecutionId: {
 )
 
 /**
- * @since 4.0.0
  * @category Token
+ * @since 4.0.0
  */
 export const tokenFromPayload: {
   <W extends Workflow.Any>(options: {
@@ -435,8 +435,8 @@ export const tokenFromPayload: {
 )
 
 /**
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const done: {
   <Success extends Schema.Top, Error extends Schema.Top>(options: {
@@ -484,8 +484,8 @@ export const done: {
 )
 
 /**
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const succeed: {
   <Success extends Schema.Top, Error extends Schema.Top>(options: {
@@ -517,8 +517,8 @@ export const succeed: {
 )
 
 /**
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const fail: {
   <Success extends Schema.Top, Error extends Schema.Top>(options: {
@@ -550,8 +550,8 @@ export const fail: {
 )
 
 /**
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const failCause: {
   <Success extends Schema.Top, Error extends Schema.Top>(options: {

@@ -10,8 +10,8 @@ import { evaluate, makePrimitiveProto } from "./internal/core.ts"
  *
  * When the effect is evaluated, it will call `evaluate` with the current fiber.
  *
- * @since 4.0.0
  * @category Prototypes
+ * @since 4.0.0
  */
 export const Prototype = <A extends Effect.Effect<any, any, any>>(options: {
   readonly label: string
@@ -39,8 +39,8 @@ const Base: new<A, E, R>() => Effect.Effect<A, E, R> = (() => {
 /**
  * An abstract class that can be extended to create an `Effect`.
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export abstract class Class<A, E = never, R = never> extends Base<A, E, R> {
   abstract override: Effect.Effect<A, E, R>

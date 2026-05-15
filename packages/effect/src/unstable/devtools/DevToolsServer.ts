@@ -14,8 +14,8 @@ const RequestSchema = Schema.toCodecJson(DevToolsSchema.Request)
 const ResponseSchema = Schema.toCodecJson(DevToolsSchema.Response)
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Client {
   readonly queue: Queue.Dequeue<DevToolsSchema.Request.WithoutPing>
@@ -23,8 +23,8 @@ export interface Client {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const run: <_, E, R>(
   handle: (client: Client) => Effect.Effect<_, E, R>

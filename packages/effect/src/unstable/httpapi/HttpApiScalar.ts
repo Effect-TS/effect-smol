@@ -12,8 +12,8 @@ import * as internal from "./internal/httpApiScalar.ts"
 import * as OpenApi from "./OpenApi.ts"
 
 /**
- * @since 4.0.0
  * @category model
+ * @since 4.0.0
  */
 export type ScalarThemeId =
   | "alternate"
@@ -32,8 +32,8 @@ export type ScalarThemeId =
 /**
  * @see https://github.com/scalar/scalar/blob/main/documentation/configuration.md
  *
- * @since 4.0.0
  * @category model
+ * @since 4.0.0
  */
 export type ScalarConfig = {
   /** A string to use one of the color presets */
@@ -165,8 +165,8 @@ const makeHandler = <Id extends string, Groups extends HttpApiGroup.Any>(options
 }
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
   api: HttpApi.HttpApi<Id, Groups>,
@@ -188,8 +188,8 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
   }))
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerCdn = <Id extends string, Groups extends HttpApiGroup.Any>(
   api: HttpApi.HttpApi<Id, Groups>,

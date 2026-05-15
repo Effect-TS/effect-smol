@@ -7,8 +7,8 @@ import * as React from "react"
 import { RegistryContext } from "./RegistryContext.ts"
 
 /**
- * @since 1.0.0
  * @category components
+ * @since 1.0.0
  */
 export interface HydrationBoundaryProps {
   state?: Iterable<Hydration.DehydratedAtom>
@@ -16,8 +16,8 @@ export interface HydrationBoundaryProps {
 }
 
 /**
- * @since 1.0.0
  * @category components
+ * @since 1.0.0
  */
 export const HydrationBoundary: React.FC<HydrationBoundaryProps> = ({
   children,

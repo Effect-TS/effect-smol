@@ -12,20 +12,20 @@ import * as DurableDeferred from "./DurableDeferred.ts"
 import type { WorkflowEngine, WorkflowInstance } from "./WorkflowEngine.ts"
 
 /**
- * @since 4.0.0
  * @category Type IDs
+ * @since 4.0.0
  */
 export type TypeId = "~effect/workflow/DurableQueue"
 
 /**
- * @since 4.0.0
  * @category Type IDs
+ * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/workflow/DurableQueue"
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface DurableQueue<
   Payload extends Schema.Top,
@@ -92,8 +92,8 @@ export interface DurableQueue<
  * )
  * ```
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make = <
   Payload extends Schema.Top | Schema.Struct.Fields,
@@ -153,8 +153,8 @@ const getQueueSchema = <Payload extends Schema.Top>(
 /**
  * Add an item to the queue and wait for a worker to process it.
  *
- * @since 4.0.0
  * @category Processing
+ * @since 4.0.0
  */
 export const process: <
   Payload extends Schema.Top,
@@ -229,8 +229,8 @@ const defaultRetrySchedule = Schedule.exponential(500, 1.5).pipe(
 /**
  * Create a worker effect that processes items from the durable queue.
  *
- * @since 4.0.0
  * @category Worker
+ * @since 4.0.0
  */
 export const makeWorker: <
   Payload extends Schema.Top,
@@ -316,8 +316,8 @@ export const makeWorker: <
 /**
  * Create a layer that runs workers for the durable queue.
  *
- * @since 4.0.0
  * @category Worker
+ * @since 4.0.0
  */
 export const worker: <
   Payload extends Schema.Top,

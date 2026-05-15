@@ -21,8 +21,8 @@
  * - Size: O(1)
  * - Iteration: O(n)
  *
- * @since 2.0.0
  * @category data-structures
+ * @since 2.0.0
  */
 import { format } from "./Formatter.ts"
 import * as Dual from "./Function.ts"
@@ -61,8 +61,8 @@ const TypeId = "~effect/collections/MutableHashSet"
  * console.log(MutableHashSet.size(set)) // 3
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface MutableHashSet<out V> extends Iterable<V>, Pipeable, Inspectable {
   readonly [TypeId]: typeof TypeId
@@ -123,8 +123,8 @@ const fromHashMap = <V>(keyMap: MutableHashMap.MutableHashMap<V, boolean>): Muta
  * console.log(Array.from(set)) // ["apple", "banana"]
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const empty = <K = never>(): MutableHashSet<K> => fromHashMap(MutableHashMap.empty())
 
@@ -151,8 +151,8 @@ export const empty = <K = never>(): MutableHashSet<K> => fromHashMap(MutableHash
  * console.log(Array.from(fromString)) // ["h", "e", "l", "o"]
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const fromIterable = <K = never>(keys: Iterable<K>): MutableHashSet<K> =>
   fromHashMap(MutableHashMap.fromIterable(Array.from(keys).map((k) => [k, true])))
@@ -180,8 +180,8 @@ export const fromIterable = <K = never>(keys: Iterable<K>): MutableHashSet<K> =>
  * console.log(MutableHashSet.size(mixed)) // 3
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const make = <Keys extends ReadonlyArray<unknown>>(
   ...keys: Keys
@@ -214,8 +214,8 @@ export const make = <Keys extends ReadonlyArray<unknown>>(
  * console.log(MutableHashSet.size(set)) // 3
  * ```
  *
- * @since 2.0.0
  * @category mutations
+ * @since 2.0.0
  */
 export const add: {
   <V>(key: V): (self: MutableHashSet<V>) => MutableHashSet<V>
@@ -246,8 +246,8 @@ export const add: {
  * console.log(MutableHashSet.has(set, "grape")) // true
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const has: {
   <V>(key: V): (self: MutableHashSet<V>) => boolean
@@ -284,8 +284,8 @@ export const has: {
  * console.log(MutableHashSet.size(set)) // 1
  * ```
  *
- * @since 2.0.0
  * @category mutations
+ * @since 2.0.0
  */
 export const remove: {
   <V>(key: V): (self: MutableHashSet<V>) => MutableHashSet<V>
@@ -317,8 +317,8 @@ export const remove: {
  * console.log(MutableHashSet.size(set)) // 0
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const size = <V>(self: MutableHashSet<V>): number => MutableHashMap.size(self.keyMap)
 
@@ -346,7 +346,7 @@ export const size = <V>(self: MutableHashSet<V>): number => MutableHashMap.size(
  * console.log(MutableHashSet.size(set)) // 1
  * ```
  *
- * @since 2.0.0
  * @category mutations
+ * @since 2.0.0
  */
 export const clear = <V>(self: MutableHashSet<V>): MutableHashSet<V> => (MutableHashMap.clear(self.keyMap), self)

@@ -38,8 +38,8 @@ import * as Errors from "./internal/errors.ts"
  * Provides methods for interacting with Anthropic's Messages API, including
  * both synchronous and streaming message creation.
  *
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export interface Service {
   /**
@@ -113,8 +113,8 @@ export interface Service {
  * - `content_block_stop`: End of a content block
  * - `error`: Error events with type and message
  *
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export type MessageStreamEvent =
   | typeof Generated.BetaMessageStartEvent.Type
@@ -132,8 +132,8 @@ export type MessageStreamEvent =
 /**
  * Service identifier for the Anthropic client.
  *
- * @since 1.0.0
  * @category service
+ * @since 1.0.0
  */
 export class AnthropicClient extends Context.Service<AnthropicClient, Service>()(
   "@effect/ai-anthropic/AnthropicClient"
@@ -146,8 +146,8 @@ export class AnthropicClient extends Context.Service<AnthropicClient, Service>()
 /**
  * Configuration options for creating an Anthropic client.
  *
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export type Options = {
   /**
@@ -204,8 +204,8 @@ const RedactedAnthropicHeaders = {
  *
  * Requires an `HttpClient` in the context.
  *
- * @since 1.0.0
  * @category constructors
+ * @since 1.0.0
  */
 export const make = Effect.fnUntraced(
   function*(options: Options): Effect.fn.Return<Service, never, HttpClient.HttpClient> {
@@ -352,8 +352,8 @@ export const make = Effect.fnUntraced(
 /**
  * Creates a layer for the Anthropic client with the given options.
  *
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layer = (options: Options): Layer.Layer<AnthropicClient, never, HttpClient.HttpClient> =>
   Layer.effect(AnthropicClient, make(options))
@@ -362,8 +362,8 @@ export const layer = (options: Options): Layer.Layer<AnthropicClient, never, Htt
  * Creates a layer for the Anthropic client, loading the requisite configuration
  * via Effect's `Config` module.
  *
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layerConfig = (options?: {
   /**

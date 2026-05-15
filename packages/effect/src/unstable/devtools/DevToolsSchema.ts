@@ -8,8 +8,8 @@ import * as Schema from "../../Schema.ts"
 import * as SchemaTransformation from "../../SchemaTransformation.ts"
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const SpanStatusStarted = Schema.Struct({
   _tag: Schema.tag("Started"),
@@ -17,14 +17,14 @@ export const SpanStatusStarted = Schema.Struct({
 })
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export type SpanStatusStarted = Schema.Schema.Type<typeof SpanStatusStarted>
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const SpanStatusEnded = Schema.Struct({
   _tag: Schema.tag("Ended"),
@@ -42,26 +42,26 @@ export const SpanStatusEnded = Schema.Struct({
 })
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export type SpanStatusEnded = Schema.Schema.Type<typeof SpanStatusEnded>
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const SpanStatus = Schema.Union([SpanStatusStarted, SpanStatusEnded])
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export type SpanStatus = Schema.Schema.Type<typeof SpanStatus>
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export interface ExternalSpan {
   readonly _tag: "ExternalSpan"
@@ -71,8 +71,8 @@ export interface ExternalSpan {
 }
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const ExternalSpan: Schema.Codec<ExternalSpan> = Schema.Struct({
   _tag: Schema.tag("ExternalSpan"),
@@ -82,8 +82,8 @@ export const ExternalSpan: Schema.Codec<ExternalSpan> = Schema.Struct({
 })
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export interface Span {
   readonly _tag: "Span"
@@ -97,8 +97,8 @@ export interface Span {
 }
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const Span: Schema.Codec<Span> = Schema.Struct({
   _tag: Schema.tag("Span"),
@@ -112,8 +112,8 @@ export const Span: Schema.Codec<Span> = Schema.Struct({
 })
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const SpanEvent = Schema.Struct({
   _tag: Schema.tag("SpanEvent"),
@@ -125,68 +125,68 @@ export const SpanEvent = Schema.Struct({
 })
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export type SpanEvent = Schema.Schema.Type<typeof SpanEvent>
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export type ParentSpan = Span | ExternalSpan
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const ParentSpan = Schema.Union([Span, ExternalSpan])
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const Ping = Schema.Struct({
   _tag: Schema.tag("Ping")
 })
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export type Ping = Schema.Schema.Type<typeof Ping>
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const Pong = Schema.Struct({
   _tag: Schema.tag("Pong")
 })
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export type Pong = Schema.Schema.Type<typeof Pong>
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const MetricsRequest = Schema.Struct({
   _tag: Schema.tag("MetricsRequest")
 })
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export type MetricsRequest = Schema.Schema.Type<typeof MetricsRequest>
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const MetricLabel = Schema.Struct({
   key: Schema.String,
@@ -194,8 +194,8 @@ export const MetricLabel = Schema.Struct({
 })
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export type MetricLabel = Schema.Schema.Type<typeof MetricLabel>
 
@@ -209,8 +209,8 @@ const metric = <Type extends string, State extends Schema.Top>(type: Type, state
   })
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const Counter = metric(
   "Counter",
@@ -221,14 +221,14 @@ export const Counter = metric(
 )
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export type Counter = Schema.Schema.Type<typeof Counter>
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const Frequency = metric(
   "Frequency",
@@ -238,14 +238,14 @@ export const Frequency = metric(
 )
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export type Frequency = Schema.Schema.Type<typeof Frequency>
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const Gauge = metric(
   "Gauge",
@@ -255,14 +255,14 @@ export const Gauge = metric(
 )
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export type Gauge = Schema.Schema.Type<typeof Gauge>
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const Histogram = metric(
   "Histogram",
@@ -276,14 +276,14 @@ export const Histogram = metric(
 )
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export type Histogram = Schema.Schema.Type<typeof Histogram>
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const Summary = metric(
   "Summary",
@@ -297,26 +297,26 @@ export const Summary = metric(
 )
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export type Summary = Schema.Schema.Type<typeof Summary>
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const Metric = Schema.Union([Counter, Frequency, Gauge, Histogram, Summary])
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export type Metric = Schema.Schema.Type<typeof Metric>
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const MetricsSnapshot = Schema.Struct({
   _tag: Schema.tag("MetricsSnapshot"),
@@ -324,55 +324,55 @@ export const MetricsSnapshot = Schema.Struct({
 })
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export type MetricsSnapshot = Schema.Schema.Type<typeof MetricsSnapshot>
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const Request = Schema.Union([Ping, Span, SpanEvent, MetricsSnapshot])
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export type Request = Schema.Schema.Type<typeof Request>
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export declare namespace Request {
   /**
-   * @since 4.0.0
    * @category schemas
+   * @since 4.0.0
    */
   export type WithoutPing = Exclude<Request, { readonly _tag: "Ping" }>
 }
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const Response = Schema.Union([Pong, MetricsRequest])
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export type Response = Schema.Schema.Type<typeof Response>
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export declare namespace Response {
   /**
-   * @since 4.0.0
    * @category schemas
+   * @since 4.0.0
    */
   export type WithoutPong = Exclude<Response, { readonly _tag: "Pong" }>
 }

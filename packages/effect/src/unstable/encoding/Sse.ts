@@ -16,8 +16,8 @@ import * as Schema from "../../Schema.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
 
 /**
- * @since 4.0.0
  * @category Decoding
+ * @since 4.0.0
  */
 export const decode = <IE, Done>(): Channel.Channel<
   NonEmptyReadonlyArray<Event>,
@@ -60,8 +60,8 @@ export const decode = <IE, Done>(): Channel.Channel<
   )
 
 /**
- * @since 4.0.0
  * @category Decoding
+ * @since 4.0.0
  */
 export const decodeSchema = <
   Type extends {
@@ -91,8 +91,8 @@ export const decodeSchema = <
   )
 
 /**
- * @since 4.0.0
  * @category Decoding
+ * @since 4.0.0
  */
 export const decodeDataSchema = <Type, DecodingServices, IE, Done>(
   schema: Schema.Decoder<Type, DecodingServices>
@@ -124,8 +124,8 @@ export const decodeDataSchema = <Type, DecodingServices, IE, Done>(
  *
  * Adapted from https://github.com/rexxars/eventsource-parser under MIT license.
  *
- * @since 4.0.0
  * @category Decoding
+ * @since 4.0.0
  */
 export function makeParser(onParse: (event: AnyEvent) => void): Parser {
   // Processing state
@@ -286,8 +286,8 @@ function hasBom(buffer: string) {
 }
 
 /**
- * @since 4.0.0
  * @category Decoding
+ * @since 4.0.0
  */
 export interface Parser {
   feed(chunk: string): void
@@ -295,8 +295,8 @@ export interface Parser {
 }
 
 /**
- * @since 4.0.0
  * @category Encoding
+ * @since 4.0.0
  */
 export const encode = <IE, Done>(): Channel.Channel<
   NonEmptyReadonlyArray<string>,
@@ -322,8 +322,8 @@ export const encode = <IE, Done>(): Channel.Channel<
   )
 
 /**
- * @since 4.0.0
  * @category Encoding
+ * @since 4.0.0
  */
 export const encodeSchema = <
   S extends Schema.Encoder<
@@ -348,16 +348,16 @@ export const encodeSchema = <
   )
 
 /**
- * @since 4.0.0
  * @category Encoding
+ * @since 4.0.0
  */
 export interface Encoder {
   write(event: AnyEvent): string
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface Event {
   readonly _tag: "Event"
@@ -367,8 +367,8 @@ export interface Event {
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export const EventEncoded: Schema.Struct<{
   readonly id: Schema.UndefinedOr<Schema.String>
@@ -381,8 +381,8 @@ export const EventEncoded: Schema.Struct<{
 })
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export const Event: Schema.Struct<{
   readonly _tag: Schema.tag<"Event">
@@ -397,8 +397,8 @@ export const Event: Schema.Struct<{
 })
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export const transformEvent = Transformation.transform<{
   readonly id?: string | undefined
@@ -420,8 +420,8 @@ export const transformEvent = Transformation.transform<{
 })
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface EventEncoded {
   readonly event: string
@@ -432,8 +432,8 @@ export interface EventEncoded {
 const RetryTypeId = "~effect/encoding/Sse/Retry" as const
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export class Retry extends Data.TaggedClass("Retry")<{
   readonly duration: Duration.Duration
@@ -458,14 +458,14 @@ export class Retry extends Data.TaggedClass("Retry")<{
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export type AnyEvent = Event | Retry
 
 /**
- * @since 4.0.0
  * @category Encoding
+ * @since 4.0.0
  */
 export const encoder: Encoder = {
   write(event: AnyEvent): string {

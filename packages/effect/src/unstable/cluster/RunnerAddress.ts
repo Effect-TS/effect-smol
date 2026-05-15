@@ -10,8 +10,8 @@ import * as Schema from "../../Schema.ts"
 const TypeId = "~effect/cluster/RunnerAddress"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class RunnerAddress extends Schema.Class<RunnerAddress>(TypeId)({
   host: Schema.String,
@@ -59,8 +59,8 @@ export class RunnerAddress extends Schema.Class<RunnerAddress>(TypeId)({
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = (host: string, port: number): RunnerAddress =>
   new RunnerAddress({ host, port }, { disableChecks: true })

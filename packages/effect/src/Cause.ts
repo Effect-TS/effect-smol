@@ -93,16 +93,16 @@ import type * as Types from "./Types.ts"
 /**
  * Unique brand for `Cause` values, used for runtime type checks via {@link isCause}.
  *
- * @since 2.0.0
  * @category symbols
+ * @since 2.0.0
  */
 export const TypeId: "~effect/Cause" = core.CauseTypeId
 
 /**
  * Unique brand for `Reason` values, used for runtime type checks via {@link isReason}.
  *
- * @since 2.0.0
  * @category symbols
+ * @since 2.0.0
  */
 export const ReasonTypeId: "~effect/Cause/Reason" = core.CauseReasonTypeId
 
@@ -134,8 +134,8 @@ export const ReasonTypeId: "~effect/Cause/Reason" = core.CauseReasonTypeId
  *
  * @see {@link Reason} — the union type stored in `reasons`
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Cause<out E> extends Pipeable, Inspectable, Equal {
   readonly [TypeId]: typeof TypeId
@@ -205,8 +205,8 @@ export const isReason: (self: unknown) => self is Reason<unknown> = core.isCause
  * @see {@link Die} — untyped defect reason
  * @see {@link Interrupt} — interruption reason
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Reason<E> = Fail<E> | Die | Interrupt
 
@@ -282,8 +282,8 @@ export const isInterruptReason: <E>(self: Reason<E>) => self is Interrupt = core
 /**
  * Companion namespace for the {@link Cause} interface.
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export declare namespace Cause {
   /**
@@ -298,8 +298,8 @@ export declare namespace Cause {
    * type E = Cause.Cause.Error<Cause.Cause<string>>
    * ```
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type Error<T> = T extends Cause<infer E> ? E : never
 
@@ -312,8 +312,8 @@ export declare namespace Cause {
    * - `annotations` — tracing metadata attached by the runtime
    * - `annotate()` — returns a copy with additional annotations
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface ReasonProto<Tag extends string> extends Inspectable, Equal {
     readonly [ReasonTypeId]: typeof ReasonTypeId
@@ -328,8 +328,8 @@ export declare namespace Cause {
 /**
  * Companion namespace for the {@link Reason} type.
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export declare namespace Reason {
   /**
@@ -344,8 +344,8 @@ export declare namespace Reason {
    * type E = Cause.Reason.Error<Cause.Reason<string>>
    * ```
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type Error<T> = T extends Reason<infer E> ? E : never
 }
@@ -372,8 +372,8 @@ export declare namespace Reason {
  * @see {@link die} — create a `Cause` containing a single `Die`
  * @see {@link isDieReason} — type guard
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Die extends Cause.ReasonProto<"Die"> {
   readonly defect: unknown
@@ -400,8 +400,8 @@ export interface Die extends Cause.ReasonProto<"Die"> {
  * @see {@link fail} — create a `Cause` containing a single `Fail`
  * @see {@link isFailReason} — type guard
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Fail<out E> extends Cause.ReasonProto<"Fail"> {
   readonly error: E
@@ -428,8 +428,8 @@ export interface Fail<out E> extends Cause.ReasonProto<"Fail"> {
  * @see {@link interrupt} — create a `Cause` containing a single `Interrupt`
  * @see {@link isInterruptReason} — type guard
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Interrupt extends Cause.ReasonProto<"Interrupt"> {
   readonly fiberId: number | undefined
@@ -1022,8 +1022,8 @@ export const filterInterruptors: <E>(self: Cause<E>) => Result.Result<Set<number
  * @see {@link pretty} — renders the cause as a single string
  * @see {@link squash} — lossy collapse to a single thrown value
  *
- * @since 4.0.0
  * @category rendering
+ * @since 4.0.0
  */
 export const prettyErrors: <E>(self: Cause<E>) => Array<Error> = effect.causePrettyErrors
 
@@ -1059,8 +1059,8 @@ export const prettyErrors: <E>(self: Cause<E>) => Array<Error> = effect.causePre
  *
  * @see {@link prettyErrors} — get the individual `Error` instances
  *
- * @since 4.0.0
  * @category rendering
+ * @since 4.0.0
  */
 export const pretty: <E>(cause: Cause<E>) => string = effect.causePretty
 
@@ -1086,8 +1086,8 @@ export const pretty: <E>(cause: Cause<E>) => string = effect.causePretty
  * })
  * ```
  *
- * @since 2.0.0
  * @category errors
+ * @since 2.0.0
  */
 export interface YieldableError extends Error, Pipeable, Inspectable {
   readonly [Effect.TypeId]: Effect.Variance<never, this, never>
@@ -1114,8 +1114,8 @@ export const isNoSuchElementError: (u: unknown) => u is NoSuchElementError = cor
 /**
  * Unique brand for {@link NoSuchElementError}.
  *
- * @since 4.0.0
  * @category symbols
+ * @since 4.0.0
  */
 export const NoSuchElementErrorTypeId: "~effect/Cause/NoSuchElementError" = core.NoSuchElementErrorTypeId
 
@@ -1139,8 +1139,8 @@ export const NoSuchElementErrorTypeId: "~effect/Cause/NoSuchElementError" = core
  * @see {@link isNoSuchElementError} — type guard
  * @see {@link NoSuchElementError:var | NoSuchElementError constructor}
  *
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export interface NoSuchElementError extends YieldableError {
   readonly [NoSuchElementErrorTypeId]: typeof NoSuchElementErrorTypeId
@@ -1184,8 +1184,8 @@ export const isDone: (u: unknown) => u is Done<any> = core.isDone
 /**
  * Unique brand for {@link Done} values.
  *
- * @since 4.0.0
  * @category symbols
+ * @since 4.0.0
  */
 export const DoneTypeId: "~effect/Cause/Done" = core.DoneTypeId
 
@@ -1215,8 +1215,8 @@ export const DoneTypeId: "~effect/Cause/Done" = core.DoneTypeId
  * @see {@link isDone} — type guard
  * @see {@link done} — create a failing Effect with `Done`
  *
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export interface Done<A = void> {
   readonly [DoneTypeId]: typeof DoneTypeId
@@ -1227,8 +1227,8 @@ export interface Done<A = void> {
 /**
  * Companion namespace for the {@link Done} interface.
  *
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export declare namespace Done {
   /**
@@ -1271,8 +1271,8 @@ export const done: <A = void>(value?: A) => Effect.Effect<never, Done<A>> = core
 /**
  * Unique brand for {@link TimeoutError}.
  *
- * @since 4.0.0
  * @category symbols
+ * @since 4.0.0
  */
 export const TimeoutErrorTypeId: "~effect/Cause/TimeoutError" = effect.TimeoutErrorTypeId
 
@@ -1311,8 +1311,8 @@ export const isTimeoutError: (u: unknown) => u is TimeoutError = effect.isTimeou
  *
  * @see {@link isTimeoutError} — type guard
  *
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export interface TimeoutError extends YieldableError {
   readonly [TimeoutErrorTypeId]: typeof TimeoutErrorTypeId
@@ -1339,8 +1339,8 @@ export const TimeoutError: new(message?: string) => TimeoutError = effect.Timeou
 /**
  * Unique brand for {@link IllegalArgumentError}.
  *
- * @since 4.0.0
  * @category symbols
+ * @since 4.0.0
  */
 export const IllegalArgumentErrorTypeId: "~effect/Cause/IllegalArgumentError" = effect.IllegalArgumentErrorTypeId
 
@@ -1379,8 +1379,8 @@ export const isIllegalArgumentError: (u: unknown) => u is IllegalArgumentError =
  *
  * @see {@link isIllegalArgumentError} — type guard
  *
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export interface IllegalArgumentError extends YieldableError {
   readonly [IllegalArgumentErrorTypeId]: typeof IllegalArgumentErrorTypeId
@@ -1424,8 +1424,8 @@ export const isExceededCapacityError: (u: unknown) => u is ExceededCapacityError
 /**
  * Unique brand for {@link ExceededCapacityError}.
  *
- * @since 4.0.0
  * @category symbols
+ * @since 4.0.0
  */
 export const ExceededCapacityErrorTypeId: "~effect/Cause/ExceededCapacityError" = effect.ExceededCapacityErrorTypeId
 
@@ -1447,8 +1447,8 @@ export const ExceededCapacityErrorTypeId: "~effect/Cause/ExceededCapacityError" 
  *
  * @see {@link isExceededCapacityError} — type guard
  *
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export interface ExceededCapacityError extends YieldableError {
   readonly [ExceededCapacityErrorTypeId]: typeof ExceededCapacityErrorTypeId
@@ -1475,8 +1475,8 @@ export const ExceededCapacityError: new(message?: string) => ExceededCapacityErr
 /**
  * Unique brand for {@link AsyncFiberError}.
  *
- * @since 4.0.0
  * @category symbols
+ * @since 4.0.0
  */
 export const AsyncFiberErrorTypeId: "~effect/Cause/AsyncFiberError" = effect.AsyncFiberErrorTypeId
 
@@ -1489,8 +1489,8 @@ export const isAsyncFiberError: (u: unknown) => u is AsyncFiberError = effect.is
 /**
  * An error that occurs when trying to run an async fiber with Effect.runSync.
  *
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export interface AsyncFiberError extends YieldableError {
   readonly [AsyncFiberErrorTypeId]: typeof AsyncFiberErrorTypeId
@@ -1509,8 +1509,8 @@ export const AsyncFiberError: new(fiber: Fiber<unknown, unknown>) => AsyncFiberE
 /**
  * Unique brand for {@link UnknownError}.
  *
- * @since 4.0.0
  * @category symbols
+ * @since 4.0.0
  */
 export const UnknownErrorTypeId: "~effect/Cause/UnknownError" = effect.UnknownErrorTypeId
 
@@ -1550,8 +1550,8 @@ export const isUnknownError: (u: unknown) => u is UnknownError = effect.isUnknow
  *
  * @see {@link isUnknownError} — type guard
  *
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export interface UnknownError extends YieldableError {
   readonly [UnknownErrorTypeId]: typeof UnknownErrorTypeId

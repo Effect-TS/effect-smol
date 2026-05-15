@@ -14,8 +14,8 @@ import * as Persistence from "./Persistence.ts"
 const TypeId = "~effect/persistence/PersistedCache" as const
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface PersistedCache<K extends Persistable.Any, out R = never> {
   readonly [TypeId]: typeof TypeId
@@ -34,8 +34,8 @@ export interface PersistedCache<K extends Persistable.Any, out R = never> {
 }
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make: <
   K extends Persistable.Any,

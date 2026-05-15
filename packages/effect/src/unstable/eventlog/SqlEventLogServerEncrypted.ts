@@ -15,8 +15,8 @@ import * as EventLogEncryption from "./EventLogEncryption.ts"
 import * as EventLogServerEncrypted from "./EventLogServerEncrypted.ts"
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const makeStorage = (options?: {
   readonly entryTablePrefix?: string
@@ -287,8 +287,8 @@ const decodeSessionAuthBindings = (
 ): Effect.Effect<ReadonlyArray<SessionAuthBindingSql>, Schema.SchemaError> => decodeSessionAuthBindingRows(rows)
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerStorage = (options?: {
   readonly entryTablePrefix?: string
@@ -301,8 +301,8 @@ export const layerStorage = (options?: {
 > => Layer.effect(EventLogServerEncrypted.Storage)(makeStorage(options))
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerStorageSubtle = (options?: {
   readonly entryTablePrefix?: string

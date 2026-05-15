@@ -19,8 +19,8 @@ import type * as DurableDeferred from "./DurableDeferred.ts"
 import * as Workflow from "./Workflow.ts"
 
 /**
- * @since 4.0.0
  * @category Services
+ * @since 4.0.0
  */
 export class WorkflowEngine extends Context.Service<
   WorkflowEngine,
@@ -196,8 +196,8 @@ export class WorkflowEngine extends Context.Service<
 >()("effect/workflow/WorkflowEngine") {}
 
 /**
- * @since 4.0.0
  * @category Services
+ * @since 4.0.0
  */
 export class WorkflowInstance extends Context.Service<
   WorkflowInstance,
@@ -261,8 +261,8 @@ export class WorkflowInstance extends Context.Service<
 }
 
 /**
- * @since 4.0.0
  * @category Encoded
+ * @since 4.0.0
  */
 export interface Encoded {
   readonly register: (
@@ -330,8 +330,8 @@ export interface Encoded {
 }
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const makeUnsafe = (options: Encoded): WorkflowEngine["Service"] =>
   WorkflowEngine.of({
@@ -524,8 +524,8 @@ const defaultRetrySchedule = Schedule.exponential(200, 1.5).pipe(
  * and local development, but is not suitable for production use as it does not
  * provide durability guarantees.
  *
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerMemory: Layer.Layer<WorkflowEngine> = Layer.effect(WorkflowEngine)(
   Effect.gen(function*() {

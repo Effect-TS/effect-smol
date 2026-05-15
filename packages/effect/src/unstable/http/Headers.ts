@@ -19,26 +19,26 @@ import type { Mutable } from "../../Types.ts"
 /**
  * This is a symbol to allow direct access of keys without conflicts.
  *
- * @since 4.0.0
  * @category type ids
+ * @since 4.0.0
  */
 export const TypeId: unique symbol = Symbol.for("~effect/http/Headers")
 
 /**
- * @since 4.0.0
  * @category type ids
+ * @since 4.0.0
  */
 export type TypeId = typeof TypeId
 
 /**
- * @since 4.0.0
  * @category refinements
+ * @since 4.0.0
  */
 export const isHeaders = (u: unknown): u is Headers => Predicate.hasProperty(u, TypeId)
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Headers extends Redactable.Redactable {
   readonly [TypeId]: TypeId
@@ -83,20 +83,20 @@ const make = (input: Record.ReadonlyRecord<string, string>): Mutable<Headers> =>
   Object.assign(Object.create(Proto), input) as Headers
 
 /**
- * @since 4.0.0
  * @category Equivalence
+ * @since 4.0.0
  */
 export const Equivalence: Equ.Equivalence<Headers> = Record.makeEquivalence(Equ.strictEqual<string>())
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export interface HeadersSchema extends Schema.declare<Headers, { readonly [x: string]: string }> {}
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const HeadersSchema: HeadersSchema = Schema.declare(
   isHeaders,
@@ -124,22 +124,22 @@ export const HeadersSchema: HeadersSchema = Schema.declare(
 )
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Input =
   | Record.ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>
   | Iterable<readonly [string, string]>
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const empty: Headers = Object.create(Proto)
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fromInput: (input?: Input) => Headers = (input) => {
   if (input === undefined) {
@@ -163,15 +163,15 @@ export const fromInput: (input?: Input) => Headers = (input) => {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fromRecordUnsafe = (input: Record.ReadonlyRecord<string, string>): Headers =>
   Object.setPrototypeOf(input, Proto) as Headers
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const has: {
   (key: string): (self: Headers) => boolean
@@ -182,8 +182,8 @@ export const has: {
 >(2, (self, key) => key.toLowerCase() in self)
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const get: {
   (key: string): (self: Headers) => Option.Option<string>
@@ -194,8 +194,8 @@ export const get: {
 >(2, (self, key) => Option.fromUndefinedOr(self[key.toLowerCase()]))
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const set: {
   (key: string, value: string): (self: Headers) => Headers
@@ -210,8 +210,8 @@ export const set: {
 })
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const setAll: {
   (headers: Input): (self: Headers) => Headers
@@ -226,8 +226,8 @@ export const setAll: {
   }))
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const merge: {
   (headers: Headers): (self: Headers) => Headers
@@ -242,8 +242,8 @@ export const merge: {
 })
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const remove: {
   (key: string): (self: Headers) => Headers
@@ -258,8 +258,8 @@ export const remove: {
 })
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const removeMany: {
   (keys: Iterable<string>): (self: Headers) => Headers
@@ -276,8 +276,8 @@ export const removeMany: {
 })
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const redact: {
   (
@@ -320,8 +320,8 @@ export const redact: {
 )
 
 /**
- * @since 4.0.0
  * @category fiber refs
+ * @since 4.0.0
  */
 export const CurrentRedactedNames = Context.Reference<
   ReadonlyArray<string | RegExp>

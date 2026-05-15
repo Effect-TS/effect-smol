@@ -44,8 +44,8 @@ const CommonProto = {
 }
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export type ErrorReason =
   | "UnknownError"
@@ -54,8 +54,8 @@ export type ErrorReason =
   | "TransactionError"
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class IndexedDbQueryError extends Data.TaggedError(
   "IndexedDbQueryError"
@@ -72,8 +72,8 @@ export class IndexedDbQueryError extends Data.TaggedError(
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface IndexedDbQueryBuilder<
   Source extends IndexedDbVersion.AnyWithProps
@@ -114,29 +114,29 @@ export interface IndexedDbQueryBuilder<
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type KeyPath<TableSchema extends IndexedDbTable.AnySchemaStruct> =
   | IndexedDbValidKeys<TableSchema>
   | NonEmptyReadonlyArray<IndexedDbValidKeys<TableSchema>>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type KeyPathNumber<TableSchema extends IndexedDbTable.AnySchemaStruct> =
   | IndexedDbValidNumberKeys<TableSchema>
   | NonEmptyReadonlyArray<IndexedDbValidNumberKeys<TableSchema>>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export declare namespace IndexedDbQuery {
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type SelectType<
     Table extends IndexedDbTable.AnyWithProps
@@ -146,8 +146,8 @@ export declare namespace IndexedDbQuery {
     IndexedDbTable.TableSchema<Table>["Type"]
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type ModifyType<
     Table extends IndexedDbTable.AnyWithProps
@@ -178,8 +178,8 @@ export declare namespace IndexedDbQuery {
       : {})
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type EqualsType<
     Table extends IndexedDbTable.AnyWithProps,
@@ -190,8 +190,8 @@ export declare namespace IndexedDbQuery {
     : { [I in keyof KeyPath]: KeyPath[I] extends keyof Type ? Type[KeyPath[I]] | [] : never }
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type ExtractIndexType<
     Table extends IndexedDbTable.AnyWithProps,
@@ -207,14 +207,14 @@ export declare namespace IndexedDbQuery {
     never
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type ModifyWithKey<Table extends IndexedDbTable.AnyWithProps> = ModifyType<Table>
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface From<Table extends IndexedDbTable.AnyWithProps> {
     readonly table: Table
@@ -274,8 +274,8 @@ export declare namespace IndexedDbQuery {
   }
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Clear<
     Table extends IndexedDbTable.AnyWithProps
@@ -286,8 +286,8 @@ export declare namespace IndexedDbQuery {
   type ComparisonKeys = "equals" | "gte" | "lte" | "gt" | "lt" | "between"
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Count<
     Table extends IndexedDbTable.AnyWithProps,
@@ -329,8 +329,8 @@ export declare namespace IndexedDbQuery {
   }
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface DeletePartial<
     Table extends IndexedDbTable.AnyWithProps,
@@ -377,8 +377,8 @@ export declare namespace IndexedDbQuery {
   > = Omit<Delete<Table, Index, ExcludedKeys>, ExcludedKeys>
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Delete<
     Table extends IndexedDbTable.AnyWithProps,
@@ -420,8 +420,8 @@ export declare namespace IndexedDbQuery {
   > = Omit<Select<Table, Index, ExcludedKeys>, ExcludedKeys>
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Select<
     Table extends IndexedDbTable.AnyWithProps,
@@ -523,8 +523,8 @@ export declare namespace IndexedDbQuery {
   }
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface First<
     Table extends IndexedDbTable.AnyWithProps,
@@ -566,8 +566,8 @@ export declare namespace IndexedDbQuery {
   }
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Filter<
     Table extends IndexedDbTable.AnyWithProps,
@@ -587,8 +587,8 @@ export declare namespace IndexedDbQuery {
   }
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Modify<
     Table extends IndexedDbTable.AnyWithProps
@@ -614,8 +614,8 @@ export declare namespace IndexedDbQuery {
   }
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface ModifyAll<
     Table extends IndexedDbTable.AnyWithProps
@@ -642,8 +642,8 @@ export declare namespace IndexedDbQuery {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class IndexedDbTransaction extends Context.Service<IndexedDbTransaction, globalThis.IDBTransaction>()(
   "@effect/platform-browser/IndexedDbQueryBuilder/IndexedDbTransaction"
@@ -1910,8 +1910,8 @@ const QueryBuilderProto: Omit<
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = <Source extends IndexedDbVersion.AnyWithProps>({
   IDBKeyRange,

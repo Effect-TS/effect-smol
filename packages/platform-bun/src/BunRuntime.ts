@@ -29,8 +29,8 @@ import type { Teardown } from "effect/Runtime"
  * when you need structured error handling, log management, interrupt support,
  * or advanced teardown capabilities.
  *
- * @since 1.0.0
  * @category Run main
+ * @since 1.0.0
  */
 export const runMain: {
   (

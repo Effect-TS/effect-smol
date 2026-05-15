@@ -55,8 +55,8 @@ function useStore<A>(registry: AtomRegistry.AtomRegistry, atom: Atom.Atom<A>): A
 const initialValuesSet = new WeakMap<AtomRegistry.AtomRegistry, WeakSet<Atom.Atom<any>>>()
 
 /**
- * @since 1.0.0
  * @category hooks
+ * @since 1.0.0
  */
 export const useAtomInitialValues = (initialValues: Iterable<readonly [Atom.Atom<any>, any]>): void => {
   const registry = React.useContext(RegistryContext)
@@ -74,8 +74,8 @@ export const useAtomInitialValues = (initialValues: Iterable<readonly [Atom.Atom
 }
 
 /**
- * @since 1.0.0
  * @category hooks
+ * @since 1.0.0
  */
 export const useAtomValue: {
   <A>(atom: Atom.Atom<A>): A
@@ -129,8 +129,8 @@ const flattenExit = <A, E>(exit: Exit.Exit<A, E>): A => {
 }
 
 /**
- * @since 1.0.0
  * @category hooks
+ * @since 1.0.0
  */
 export const useAtomMount = <A>(atom: Atom.Atom<A>): void => {
   const registry = React.useContext(RegistryContext)
@@ -138,8 +138,8 @@ export const useAtomMount = <A>(atom: Atom.Atom<A>): void => {
 }
 
 /**
- * @since 1.0.0
  * @category hooks
+ * @since 1.0.0
  */
 export const useAtomSet = <
   R,
@@ -164,8 +164,8 @@ export const useAtomSet = <
 }
 
 /**
- * @since 1.0.0
  * @category hooks
+ * @since 1.0.0
  */
 export const useAtomRefresh = <A>(atom: Atom.Atom<A>): () => void => {
   const registry = React.useContext(RegistryContext)
@@ -176,8 +176,8 @@ export const useAtomRefresh = <A>(atom: Atom.Atom<A>): () => void => {
 }
 
 /**
- * @since 1.0.0
  * @category hooks
+ * @since 1.0.0
  */
 export const useAtom = <R, W, const Mode extends "value" | "promise" | "promiseExit" = never>(
   atom: Atom.Writable<R, W>,
@@ -243,8 +243,8 @@ function atomResultOrSuspend<A, E>(
 }
 
 /**
- * @since 1.0.0
  * @category hooks
+ * @since 1.0.0
  */
 export const useAtomSuspense = <A, E, const IncludeFailure extends boolean = false>(
   atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
@@ -262,8 +262,8 @@ export const useAtomSuspense = <A, E, const IncludeFailure extends boolean = fal
 }
 
 /**
- * @since 1.0.0
  * @category hooks
+ * @since 1.0.0
  */
 export const useAtomSubscribe = <A>(
   atom: Atom.Atom<A>,
@@ -278,8 +278,8 @@ export const useAtomSubscribe = <A>(
 }
 
 /**
- * @since 1.0.0
  * @category hooks
+ * @since 1.0.0
  */
 export const useAtomRef = <A>(ref: AtomRef.ReadonlyRef<A>): A => {
   const [, setValue] = React.useState(ref.value)
@@ -288,15 +288,15 @@ export const useAtomRef = <A>(ref: AtomRef.ReadonlyRef<A>): A => {
 }
 
 /**
- * @since 1.0.0
  * @category hooks
+ * @since 1.0.0
  */
 export const useAtomRefProp = <A, K extends keyof A>(ref: AtomRef.AtomRef<A>, prop: K): AtomRef.AtomRef<A[K]> =>
   React.useMemo(() => ref.prop(prop), [ref, prop])
 
 /**
- * @since 1.0.0
  * @category hooks
+ * @since 1.0.0
  */
 export const useAtomRefPropValue = <A, K extends keyof A>(ref: AtomRef.AtomRef<A>, prop: K): A[K] =>
   useAtomRef(useAtomRefProp(ref, prop))

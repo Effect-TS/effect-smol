@@ -18,14 +18,14 @@ import * as UrlParams from "./UrlParams.ts"
 const TypeId = "~effect/http/HttpBody"
 
 /**
- * @since 4.0.0
  * @category refinements
+ * @since 4.0.0
  */
 export const isHttpBody = (u: unknown): u is HttpBody => Predicate.hasProperty(u, TypeId)
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type HttpBody = Empty | Raw | Uint8Array | FormData | Stream
 
@@ -34,8 +34,8 @@ export type HttpBody = Empty | Raw | Uint8Array | FormData | Stream
  */
 export declare namespace HttpBody {
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Proto extends Inspectable.Inspectable {
     readonly [TypeId]: typeof TypeId
@@ -45,8 +45,8 @@ export declare namespace HttpBody {
   }
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface FileLike {
     readonly name: string
@@ -60,8 +60,8 @@ export declare namespace HttpBody {
 const HttpBodyErrorTypeId = "~effect/http/HttpBody/HttpBodyError"
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class HttpBodyError extends Data.TaggedError("HttpBodyError")<{
   readonly reason: ErrorReason
@@ -74,8 +74,8 @@ export class HttpBodyError extends Data.TaggedError("HttpBodyError")<{
 }
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export type ErrorReason = {
   readonly _tag: "JsonError"
@@ -100,8 +100,8 @@ abstract class Proto implements HttpBody.Proto {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class Empty extends Proto {
   readonly _tag = "Empty"
@@ -114,14 +114,14 @@ export class Empty extends Proto {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const empty: Empty = new Empty()
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class Raw extends Proto {
   readonly _tag = "Raw"
@@ -151,8 +151,8 @@ export class Raw extends Proto {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const raw = (
   body: unknown,
@@ -163,8 +163,8 @@ export const raw = (
 ): Raw => new Raw(body, options?.contentType, options?.contentLength)
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class Uint8Array extends Proto {
   readonly _tag = "Uint8Array"
@@ -195,8 +195,8 @@ export class Uint8Array extends Proto {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const uint8Array = (body: globalThis.Uint8Array, contentType?: string): Uint8Array =>
   new Uint8Array(body, contentType ?? "application/octet-stream", body.length)
@@ -204,22 +204,22 @@ export const uint8Array = (body: globalThis.Uint8Array, contentType?: string): U
 const encoder = new TextEncoder()
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const text = (body: string, contentType?: string): Uint8Array =>
   uint8Array(encoder.encode(body), contentType ?? "text/plain")
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const jsonUnsafe = (body: unknown, contentType?: string): Uint8Array =>
   text(JSON.stringify(body), contentType ?? "application/json")
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const json = (body: unknown, contentType?: string): Effect.Effect<Uint8Array, HttpBodyError> =>
   Effect.try({
@@ -228,8 +228,8 @@ export const json = (body: unknown, contentType?: string): Effect.Effect<Uint8Ar
   })
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const jsonSchema = <S extends Schema.Top>(
   schema: S,
@@ -244,15 +244,15 @@ export const jsonSchema = <S extends Schema.Top>(
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const urlParams = (urlParams: UrlParams.UrlParams, contentType?: string): Uint8Array =>
   text(UrlParams.toString(urlParams), contentType ?? "application/x-www-form-urlencoded")
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class FormData extends Proto {
   readonly _tag = "FormData"
@@ -276,20 +276,20 @@ export class FormData extends Proto {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const formData = (body: globalThis.FormData): FormData => new FormData(body)
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type FormDataInput = Record<string, FormDataCoercible | ReadonlyArray<FormDataCoercible>>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type FormDataCoercible = string | number | boolean | globalThis.File | globalThis.Blob | null | undefined
 
@@ -305,8 +305,8 @@ const appendFormDataValue = (formData: globalThis.FormData, key: string, value: 
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const formDataRecord = (entries: FormDataInput): FormData => {
   const data = new globalThis.FormData()
@@ -323,8 +323,8 @@ export const formDataRecord = (entries: FormDataInput): FormData => {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class Stream extends Proto {
   readonly _tag = "Stream"
@@ -353,8 +353,8 @@ export class Stream extends Proto {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const stream = (
   body: Stream_.Stream<globalThis.Uint8Array, unknown>,
@@ -363,8 +363,8 @@ export const stream = (
 ): Stream => new Stream(body, contentType ?? "application/octet-stream", contentLength)
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const file = (
   path: string,
@@ -387,8 +387,8 @@ export const file = (
   )
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fileFromInfo = (
   path: string,

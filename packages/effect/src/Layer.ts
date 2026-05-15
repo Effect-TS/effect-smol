@@ -49,8 +49,8 @@ const TypeId = "~effect/Layer"
  * - E: The possible errors during layer construction
  * - RIn: The services this layer requires as dependencies
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Layer<in ROut, out E = never, out RIn = never> extends Variance<ROut, E, RIn>, Pipeable {
   /** @internal */
@@ -61,8 +61,8 @@ export interface Layer<in ROut, out E = never, out RIn = never> extends Variance
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface LayerUnify<A extends { [Unify.typeSymbol]?: any }> {
   Layer?: () => A[Unify.typeSymbol] extends Layer<any, any, any> | infer _ ? Layer<
@@ -74,16 +74,16 @@ export interface LayerUnify<A extends { [Unify.typeSymbol]?: any }> {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface LayerUnifyIgnore {}
 
 /**
  * The variance interface for Layer type parameters.
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Variance<in ROut, out E, out RIn> {
   readonly [TypeId]: {
@@ -98,8 +98,8 @@ export interface Variance<in ROut, out E, out RIn> {
  * This interface is used to constrain generic types to Layer types
  * without specifying exact type parameters.
  *
- * @since 3.9.0
  * @category type-level
+ * @since 3.9.0
  */
 export interface Any {
   readonly [TypeId]: {
@@ -111,8 +111,8 @@ export interface Any {
 /**
  * Extracts the service dependencies (RIn) from a Layer type.
  *
- * @since 2.0.0
  * @category type-level
+ * @since 2.0.0
  */
 export type Services<T extends Any> = T extends infer L
   ? L extends Layer<infer _ROut, infer _E, infer _RIn> ? _RIn : never
@@ -120,15 +120,15 @@ export type Services<T extends Any> = T extends infer L
 /**
  * Extracts the error type (E) from a Layer type.
  *
- * @since 2.0.0
  * @category type-level
+ * @since 2.0.0
  */
 export type Error<T extends Any> = T extends Layer<infer _ROut, infer _E, infer _RIn> ? _E : never
 /**
  * Extracts the service output type (ROut) from a Layer type.
  *
- * @since 2.0.0
  * @category type-level
+ * @since 2.0.0
  */
 export type Success<T extends Any> = T extends Layer<infer _ROut, infer _E, infer _RIn> ? _ROut : never
 
@@ -162,8 +162,8 @@ const MemoMapTypeId = "~effect/Layer/MemoMap"
  * })
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface MemoMap {
   readonly [MemoMapTypeId]: typeof MemoMapTypeId
@@ -194,8 +194,8 @@ export interface MemoMap {
  * console.log(Layer.isLayer(notALayer)) // false
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const isLayer = (u: unknown): u is Layer<unknown, unknown, unknown> => hasProperty(u, TypeId)
 
@@ -244,8 +244,8 @@ const fromBuildUnsafe = <ROut, E, RIn>(
  * )
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fromBuild = <ROut, E, RIn>(
   build: (
@@ -285,8 +285,8 @@ export const fromBuild = <ROut, E, RIn>(
  * )
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fromBuildMemo = <ROut, E, RIn>(
   build: (
@@ -373,8 +373,8 @@ class MemoMapImpl implements MemoMap {
  * })
  * ```
  *
- * @since 4.0.0
  * @category memo map
+ * @since 4.0.0
  */
 export const makeMemoMapUnsafe = (): MemoMap => new MemoMapImpl()
 
@@ -403,8 +403,8 @@ export const makeMemoMapUnsafe = (): MemoMap => new MemoMapImpl()
  * })
  * ```
  *
- * @since 2.0.0
  * @category memo map
+ * @since 2.0.0
  */
 export const makeMemoMap: Effect<MemoMap> = internalEffect.sync(makeMemoMapUnsafe)
 
@@ -414,8 +414,8 @@ export const makeMemoMap: Effect<MemoMap> = internalEffect.sync(makeMemoMapUnsaf
  * This service provides access to the current memoization map during layer building,
  * allowing layers to share memoized results.
  *
- * @since 3.13.0
  * @category models
+ * @since 3.13.0
  */
 export class CurrentMemoMap extends Context.Service<CurrentMemoMap, MemoMap>()("effect/Layer/CurrentMemoMap") {
   static getOrCreate: <Services>(self: Context.Context<Services>) => MemoMap = Context.getOrElse(
@@ -468,8 +468,8 @@ export class CurrentMemoMap extends Context.Service<CurrentMemoMap, MemoMap>()("
  * })
  * ```
  *
- * @since 2.0.0
  * @category memo map
+ * @since 2.0.0
  */
 export const buildWithMemoMap: {
   (
@@ -519,8 +519,8 @@ export const buildWithMemoMap: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category destructors
+ * @since 2.0.0
  */
 export const build = <RIn, E, ROut>(
   self: Layer<ROut, E, RIn>
@@ -570,8 +570,8 @@ export const build = <RIn, E, ROut>(
  * })
  * ```
  *
- * @since 2.0.0
  * @category destructors
+ * @since 2.0.0
  */
 export const buildWithScope: {
   (scope: Scope.Scope): <RIn, E, ROut>(self: Layer<ROut, E, RIn>) => Effect<Context.Context<ROut>, E, RIn>
@@ -627,8 +627,8 @@ export const buildWithScope: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const succeed: {
   <I, S>(service: Context.Key<I, S>): (resource: S) => Layer<I>
@@ -670,8 +670,8 @@ export const succeed: {
  * const layer = Layer.succeedContext(context)
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const succeedContext = <A>(context: Context.Context<A>): Layer<A> =>
   fromBuildUnsafe(constant(internalEffect.succeed(context)))
@@ -689,8 +689,8 @@ export const succeedContext = <A>(context: Context.Context<A>): Layer<A> =>
  * const emptyLayer = Layer.empty
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const empty: Layer<never> = succeedContext(Context.empty())
 
@@ -713,8 +713,8 @@ export const empty: Layer<never> = succeedContext(Context.empty())
  * }))
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const sync: {
   <I, S>(service: Context.Key<I, S>): (evaluate: LazyArg<S>) => Layer<I>
@@ -748,8 +748,8 @@ export const sync: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const syncContext = <A>(evaluate: LazyArg<Context.Context<A>>): Layer<A> =>
   fromBuildMemo(constant(internalEffect.sync(evaluate)))
@@ -782,8 +782,8 @@ export const syncContext = <A>(evaluate: LazyArg<Context.Context<A>>): Layer<A> 
  * )
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const effect: {
   <I, S>(service: Context.Key<I, S>): <E, R>(
@@ -829,8 +829,8 @@ const effectImpl = <I, S, E, R>(
  * )
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const effectContext = <A, E, R>(
   effect: Effect<Context.Context<A>, E, R>
@@ -859,8 +859,8 @@ export const effectContext = <A, E, R>(
  * )
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E, Exclude<R, Scope.Scope>> =>
   effectContext(internalEffect.as(effect, Context.empty()))
@@ -886,8 +886,8 @@ export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E,
  * )
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const suspend = <A, E, R>(evaluate: LazyArg<Layer<A, E, R>>): Layer<A, E, R> =>
   fromBuildMemo((memoMap, scope) => internalEffect.suspend(() => evaluate().build(memoMap, scope)))
@@ -914,8 +914,8 @@ export const suspend = <A, E, R>(evaluate: LazyArg<Layer<A, E, R>>): Layer<A, E,
  * const unwrappedLayer = Layer.unwrap(layerEffect)
  * ```
  *
- * @since 4.0.0
  * @category utils
+ * @since 4.0.0
  */
 export const unwrap = <A, E1, R1, E, R>(
   self: Effect<Layer<A, E1, R1>, E, R>
@@ -969,8 +969,8 @@ const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<n
  * const mergedLayer = Layer.mergeAll(dbLayer, loggerLayer)
  * ```
  *
- * @since 2.0.0
  * @category zipping
+ * @since 2.0.0
  */
 export const mergeAll = <Layers extends [Layer<never, any, any>, ...Array<Layer<never, any, any>>]>(
   ...layers: Layers
@@ -1008,8 +1008,8 @@ export const mergeAll = <Layers extends [Layer<never, any, any>, ...Array<Layer<
  * const mergedLayer = Layer.merge(dbLayer, loggerLayer)
  * ```
  *
- * @since 2.0.0
  * @category zipping
+ * @since 2.0.0
  */
 export const merge: {
   <RIn, E, ROut>(
@@ -1127,8 +1127,8 @@ const provideWith = (
  * )
  * ```
  *
- * @since 2.0.0
  * @category utils
+ * @since 2.0.0
  */
 export const provide: {
   <RIn, E, ROut>(
@@ -1231,8 +1231,8 @@ export const provide: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category utils
+ * @since 2.0.0
  */
 export const provideMerge: {
   <RIn, E, ROut>(
@@ -1338,8 +1338,8 @@ export const provideMerge: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category sequencing
+ * @since 2.0.0
  */
 export const flatMap: {
   <A, A2, E2, R2>(
@@ -1363,8 +1363,8 @@ export const flatMap: {
 /**
  * Performs the specified effect if this layer succeeds.
  *
- * @since 4.0.0
  * @category sequencing
+ * @since 4.0.0
  */
 export const tap: {
   <ROut, XR extends ROut, RIn2, E2, X>(
@@ -1388,8 +1388,8 @@ export const tap: {
 /**
  * Performs the specified effect if this layer fails.
  *
- * @since 4.0.0
  * @category sequencing
+ * @since 4.0.0
  */
 export const tapError: {
   <E, XE extends E, RIn2, E2, X>(
@@ -1419,8 +1419,8 @@ export const tapError: {
  *
  * - `Layer.tapErrorCause`
  *
- * @since 4.0.0
  * @category sequencing
+ * @since 4.0.0
  */
 export const tapCause: {
   <E, XE extends E, RIn2, E2, X>(
@@ -1484,8 +1484,8 @@ export const tapCause: {
  * // instead of the effect failing with DatabaseError
  * ```
  *
- * @since 2.0.0
  * @category error handling
+ * @since 2.0.0
  */
 export const orDie = <A, E, R>(self: Layer<A, E, R>): Layer<A, never, R> =>
   fromBuildUnsafe((memoMap, scope) => internalEffect.orDie(self.build(memoMap, scope)))
@@ -1513,8 +1513,8 @@ export {
   /**
    * Recovers from all errors.
    *
-   * @since 4.0.0
    * @category error handling
+   * @since 4.0.0
    */
   catch_ as catch
 }
@@ -1541,8 +1541,8 @@ export {
  * )
  * ```
  *
- * @since 4.0.0
  * @category error handling
+ * @since 4.0.0
  */
 export const catchTag: {
   <const K extends Types.Tags<E> | NonEmptyReadonlyArray<Types.Tags<E>>, E, RIn2, E2, ROut2>(
@@ -1649,8 +1649,8 @@ export const catchTag: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category error handling
+ * @since 2.0.0
  */
 export const catchCause: {
   <E, RIn2, E2, ROut2>(
@@ -1686,8 +1686,8 @@ export const catchCause: {
  * This is useful for adapting or extending a service's behavior during the
  * creation of a layer.
  *
- * @since 3.13.0
  * @category utils
+ * @since 3.13.0
  */
 export const updateService: {
   <I, A>(
@@ -1756,8 +1756,8 @@ export const updateService: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category utils
+ * @since 2.0.0
  */
 export const fresh = <A, E, R>(self: Layer<A, E, R>): Layer<A, E, R> =>
   fromBuildUnsafe((_, scope) => self.build(makeMemoMapUnsafe(), scope))
@@ -1813,8 +1813,8 @@ export const fresh = <A, E, R>(self: Layer<A, E, R>): Layer<A, E, R> =>
  * // Effect.runFork(application)
  * ```
  *
- * @since 2.0.0
  * @category conversions
+ * @since 2.0.0
  */
 export const launch = <RIn, E, ROut>(self: Layer<ROut, E, RIn>): Effect<never, E, RIn> =>
   internalEffect.scoped(internalEffect.andThen(build(self), internalEffect.never))
@@ -1826,8 +1826,8 @@ export const launch = <RIn, E, ROut>(self: Layer<ROut, E, RIn>): Effect<never, E
  * while keeping non-Effect properties required. This allows you to provide
  * only the methods you need to test while leaving others unimplemented.
  *
- * @since 4.0.0
  * @category Testing
+ * @since 4.0.0
  */
 export type PartialEffectful<A extends object> = Types.Simplify<
   & {
@@ -1889,8 +1889,8 @@ type AnyEffectOrStream =
  * )
  * ```
  *
- * @since 4.0.0
  * @category Testing
+ * @since 4.0.0
  */
 export const mock: {
   <I, S extends object>(service: Context.Key<I, S>): (implementation: PartialEffectful<S>) => Layer<I>
@@ -1974,8 +1974,8 @@ const ChannelTypeId: Channel.TypeId = "~effect/Channel"
  * // Type 'number' is not assignable to type 'string'
  * ```
  *
- * @since 4.0.0
  * @category Type constraints
+ * @since 4.0.0
  */
 export const satisfiesSuccessType =
   <ROut>() => <ROut2 extends ROut, E, RIn>(layer: Layer<ROut2, E, RIn>): Layer<ROut2, E, RIn> => layer
@@ -2006,8 +2006,8 @@ export const satisfiesSuccessType =
  * // Type 'string' is not assignable to type 'Error'
  * ```
  *
- * @since 4.0.0
  * @category Type constraints
+ * @since 4.0.0
  */
 export const satisfiesErrorType =
   <E>() => <ROut, E2 extends E, RIn>(layer: Layer<ROut, E2, RIn>): Layer<ROut, E2, RIn> => layer
@@ -2037,8 +2037,8 @@ export const satisfiesErrorType =
  * // Type 'string' is not assignable to type 'number'
  * ```
  *
- * @since 4.0.0
  * @category Type constraints
+ * @since 4.0.0
  */
 export const satisfiesServicesType =
   <RIn>() => <ROut, E, RIn2 extends RIn>(layer: Layer<ROut, E, RIn2>): Layer<ROut, E, RIn2> => layer
@@ -2051,8 +2051,8 @@ export const satisfiesServicesType =
  * Represents options that can be used to control the behavior of spans created
  * for layers.
  *
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface SpanOptions extends Tracer.SpanOptions {
   /**
@@ -2106,8 +2106,8 @@ export interface SpanOptions extends Tracer.SpanOptions {
  * })
  * ```
  *
- * @since 4.0.0
  * @category tracing
+ * @since 4.0.0
  */
 export const span = (
   name: string,
@@ -2160,8 +2160,8 @@ export const span = (
  * }))))
  * ```
  *
- * @since 4.0.0
  * @category tracing
+ * @since 4.0.0
  */
 export const parentSpan = (span: Tracer.AnySpan): Layer<Tracer.ParentSpan> =>
   succeedContext(Tracer.ParentSpan.context(span))
@@ -2221,8 +2221,8 @@ export const parentSpan = (span: Tracer.AnySpan): Layer<Tracer.ParentSpan> =>
  * )
  * ```
  *
- * @since 4.0.0
  * @category tracing
+ * @since 4.0.0
  */
 export const withSpan: {
   (
@@ -2324,8 +2324,8 @@ export const withSpan: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category tracing
+ * @since 4.0.0
  */
 export const withParentSpan: {
   (

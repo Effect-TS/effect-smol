@@ -10,8 +10,8 @@
 /**
  * OpenAI-specific error metadata fields.
  *
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export type OpenAiErrorMetadata = {
   /**
@@ -34,8 +34,8 @@ export type OpenAiErrorMetadata = {
  * Extends base error metadata with rate limit specific information from
  * OpenAI's rate limit headers.
  *
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export type OpenAiRateLimitMetadata = OpenAiErrorMetadata & {
   /**

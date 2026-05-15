@@ -73,8 +73,8 @@ import * as Param from "./Param.ts"
  * }, (config) => Console.log(`Hello, ${config.name}!`))
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Command<in out Name extends string, in Input, out ContextInput = {}, out E = never, out R = never>
   extends
@@ -130,8 +130,8 @@ export interface Command<in out Name extends string, in Input, out ContextInput 
  */
 export declare namespace Command {
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Variance<in Input, out E, out R> {
     readonly Input: Contravariant<Input>
@@ -142,8 +142,8 @@ export declare namespace Command {
   /**
    * Represents a concrete usage example for a command.
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Example {
     readonly command: string
@@ -183,8 +183,8 @@ export declare namespace Command {
    * }
    * ```
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Config {
     readonly [key: string]:
@@ -198,8 +198,8 @@ export declare namespace Command {
    *
    * Only flags are allowed here; arguments are intentionally excluded.
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface FlagConfig {
     readonly [key: string]:
@@ -211,8 +211,8 @@ export declare namespace Command {
   /**
    * Utilities for working with command configurations.
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export namespace Config {
     /**
@@ -244,8 +244,8 @@ export declare namespace Command {
      * // }
      * ```
      *
-     * @since 4.0.0
      * @category models
+     * @since 4.0.0
      */
     export type Infer<A extends Config> = Simplify<
       { readonly [Key in keyof A]: InferValue<A[Key]> }
@@ -254,8 +254,8 @@ export declare namespace Command {
     /**
      * Helper type utility for recursively inferring types from Config values.
      *
-     * @since 4.0.0
      * @category models
+     * @since 4.0.0
      */
     export type InferValue<A> = A extends ReadonlyArray<any> ? { readonly [Key in keyof A]: InferValue<A[Key]> }
       : A extends Param.Param<infer _Kind, infer _Value> ? _Value
@@ -266,8 +266,8 @@ export declare namespace Command {
   /**
    * Represents any Command regardless of its type parameters.
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Any extends Effect.Effect<any, never, any> {
     readonly [TypeId]: any
@@ -286,8 +286,8 @@ export declare namespace Command {
   /**
    * A grouped set of subcommands used by `Command.withSubcommands`.
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface SubcommandGroup<Commands extends ReadonlyArray<Any> = ReadonlyArray<Any>> {
     readonly group: string
@@ -297,8 +297,8 @@ export declare namespace Command {
   /**
    * Entry type accepted by `Command.withSubcommands`.
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type SubcommandEntry = Any | SubcommandGroup<ReadonlyArray<Any>>
 }
@@ -306,16 +306,16 @@ export declare namespace Command {
 /**
  * The environment required by CLI commands, including file system and path operations.
  *
- * @since 4.0.0
  * @category utility types
+ * @since 4.0.0
  */
 export type Environment = FileSystem.FileSystem | Path.Path | Terminal.Terminal | ChildProcessSpawner | Stdio.Stdio
 
 /**
  * A utility type to extract the error type from a `Command`.
  *
- * @since 4.0.0
  * @category utility types
+ * @since 4.0.0
  */
 export type Error<C> = C extends Command<
   infer _Name,
@@ -361,8 +361,8 @@ export type Error<C> = C extends Command<
  * // Usage: app --verbose --config prod.json deploy --target staging
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface CommandContext<Name extends string> {
   readonly _: unique symbol
@@ -372,8 +372,8 @@ export interface CommandContext<Name extends string> {
 /**
  * Represents the parsed tokens from command-line input before validation.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ParsedTokens {
   readonly flags: Record<string, ReadonlyArray<string>>
@@ -386,8 +386,8 @@ export interface ParsedTokens {
 }
 
 /**
- * @since 4.0.0
  * @category Guards
+ * @since 4.0.0
  */
 export const isCommand = (u: unknown): u is Command.Any => Predicate.hasProperty(u, TypeId)
 
@@ -445,8 +445,8 @@ export const isCommand = (u: unknown): u is Command.Any => Predicate.hasProperty
  *   }))
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make: {
   <Name extends string>(name: Name): Command<Name, {}, {}, never, never>
@@ -499,8 +499,8 @@ export const make: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withHandler: {
   <A, R, E>(
@@ -604,8 +604,8 @@ const normalizeSubcommandEntries = (
  * // Usage: git --verbose clone --repo github.com/foo/bar
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withSubcommands: {
   <const Subcommands extends ReadonlyArray<Command.SubcommandEntry>>(
@@ -720,8 +720,8 @@ export const withSubcommands: {
  * handlers via `yield* parentCommand`. Shared flags are accepted both before
  * and after a selected subcommand name (npm-style).
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withSharedFlags: {
   <const SharedFlags extends Command.FlagConfig>(
@@ -816,8 +816,8 @@ export const withSharedFlags: {
  *
  * Declared global flags apply to the command and all of its descendants.
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withGlobalFlags: {
   <const GlobalFlags extends ReadonlyArray<GlobalFlag.GlobalFlag<any>>>(
@@ -888,8 +888,8 @@ type ExtractSubcommandContext<T extends ReadonlyArray<Command.SubcommandEntry>> 
  *   )
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withDescription: {
   (description: string): <const Name extends string, Input, E, R, ContextInput>(
@@ -911,8 +911,8 @@ export const withDescription: {
  * shell completions. If no short description is provided, the full
  * `description` is used as a fallback.
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withShortDescription: {
   (shortDescription: string): <const Name extends string, Input, E, R, ContextInput>(
@@ -933,8 +933,8 @@ export const withShortDescription: {
  * Aliases are accepted as alternate subcommand names during parsing and are
  * shown in help output as `name, alias`.
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withAlias: {
   (alias: string): <const Name extends string, Input, E, R, ContextInput>(
@@ -952,8 +952,8 @@ export const withAlias: {
 /**
  * Adds a custom annotation to a command.
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const annotate: {
   <I, S>(
@@ -979,8 +979,8 @@ export const annotate: {
 /**
  * Merges a Context of annotations into a command.
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const annotateMerge: {
   <I>(
@@ -1018,8 +1018,8 @@ export const annotateMerge: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withExamples: {
   (examples: ReadonlyArray<Command.Example>): <const Name extends string, Input, E, R, ContextInput>(
@@ -1080,8 +1080,8 @@ const mapHandler = <Name extends string, Input, E, R, ContextInput, E2, R2>(
  *   )
  * ```
  *
- * @since 4.0.0
  * @category providing services
+ * @since 4.0.0
  */
 export const provide: {
   <Input, LR, LE, LA>(
@@ -1113,8 +1113,8 @@ export const provide: {
  * Provides the handler of a command with the implementation of a service that
  * optionally depends on the command-line input to be constructed.
  *
- * @since 4.0.0
  * @category providing services
+ * @since 4.0.0
  */
 export const provideSync: {
   <I, S, Input>(
@@ -1144,8 +1144,8 @@ export const provideSync: {
  * Provides the handler of a command with the service produced by an effect
  * that optionally depends on the command-line input to be created.
  *
- * @since 4.0.0
  * @category providing services
+ * @since 4.0.0
  */
 export const provideEffect: {
   <I, S, Input, R2, E2>(
@@ -1174,8 +1174,8 @@ export const provideEffect: {
  * Allows for execution of an effect, which optionally depends on command-line
  * input to be created, prior to executing the handler of a command.
  *
- * @since 4.0.0
  * @category providing services
+ * @since 4.0.0
  */
 export const provideEffectDiscard: {
   <_, Input, E2, R2>(
@@ -1270,8 +1270,8 @@ const showHelp = <Name extends string, Input, E, R, ContextInput>(
  * })
  * ```
  *
- * @since 4.0.0
  * @category command execution
+ * @since 4.0.0
  */
 export const run: {
   (config: {
@@ -1334,8 +1334,8 @@ export const run: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category command execution
+ * @since 4.0.0
  */
 export const runWith = <const Name extends string, Input, E, R, ContextInput>(
   command: Command<Name, Input, ContextInput, E, R>,

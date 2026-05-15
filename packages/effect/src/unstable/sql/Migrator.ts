@@ -301,8 +301,8 @@ const isConstraintConflict = (error: SqlError): boolean =>
   error.reason._tag === "ConstraintError" || error.reason._tag === "UniqueViolation"
 
 /**
- * @since 4.0.0
  * @category loaders
+ * @since 4.0.0
  */
 export const fromGlob = (
   migrations: Record<string, () => Promise<any>>
@@ -322,8 +322,8 @@ export const fromGlob = (
   )
 
 /**
- * @since 4.0.0
  * @category loaders
+ * @since 4.0.0
  */
 export const fromBabelGlob = (migrations: Record<string, any>): Loader =>
   pipe(
@@ -341,8 +341,8 @@ export const fromBabelGlob = (migrations: Record<string, any>): Loader =>
   )
 
 /**
- * @since 4.0.0
  * @category loaders
+ * @since 4.0.0
  */
 export const fromRecord = (migrations: Record<string, Effect.Effect<void, unknown, Client.SqlClient>>): Loader =>
   pipe(
@@ -360,8 +360,8 @@ export const fromRecord = (migrations: Record<string, Effect.Effect<void, unknow
   )
 
 /**
- * @since 4.0.0
  * @category loaders
+ * @since 4.0.0
  */
 export const fromFileSystem: (directory: string) => Loader<FileSystem> = Effect.fnUntraced(function*(directory) {
   const Fs = yield* FileSystem

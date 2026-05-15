@@ -10,8 +10,8 @@ import * as Schema from "../../Schema.ts"
 /**
  * Run a sql query with a request schema and a result schema.
  *
- * @since 4.0.0
  * @category constructor
+ * @since 4.0.0
  */
 export const findAll = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
   options: {
@@ -34,8 +34,8 @@ export const findAll = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
 /**
  * Run a sql query with a request schema and a result schema.
  *
- * @since 4.0.0
  * @category constructor
+ * @since 4.0.0
  */
 export const findNonEmpty = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
   options: {
@@ -74,8 +74,8 @@ export {
   /**
    * Run a sql query with a request schema and discard the result.
    *
-   * @since 4.0.0
    * @category constructor
+   * @since 4.0.0
    */
   void_ as void
 }
@@ -83,8 +83,8 @@ export {
 /**
  * Run a sql query with a request schema and a result schema and return the first result.
  *
- * @since 4.0.0
  * @category constructor
+ * @since 4.0.0
  */
 export const findOne = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
   options: {
@@ -115,8 +115,8 @@ export const findOne = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
 /**
  * Run a sql query with a request schema and a result schema and return the first result.
  *
- * @since 4.0.0
  * @category constructor
+ * @since 4.0.0
  */
 export const findOneOption = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
   options: {

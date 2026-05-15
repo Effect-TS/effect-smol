@@ -28,21 +28,21 @@ import * as UrlParams from "./UrlParams.ts"
 
 export {
   /**
-   * @since 4.0.0
    * @category fiber refs
+   * @since 4.0.0
    */
   MaxBodySize
 } from "./HttpIncomingMessage.ts"
 
 /**
- * @since 4.0.0
  * @category Type IDs
+ * @since 4.0.0
  */
 export const TypeId = "~effect/http/HttpServerRequest"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface HttpServerRequest extends HttpIncomingMessage.HttpIncomingMessage<HttpServerError> {
   readonly [TypeId]: typeof TypeId
@@ -71,16 +71,16 @@ export interface HttpServerRequest extends HttpIncomingMessage.HttpIncomingMessa
 }
 
 /**
- * @since 4.0.0
  * @category context
+ * @since 4.0.0
  */
 export const HttpServerRequest: Context.Service<HttpServerRequest, HttpServerRequest> = Context.Service(
   "effect/http/HttpServerRequest"
 )
 
 /**
- * @since 4.0.0
  * @category search params
+ * @since 4.0.0
  */
 export class ParsedSearchParams extends Context.Service<
   ParsedSearchParams,
@@ -88,8 +88,8 @@ export class ParsedSearchParams extends Context.Service<
 >()("effect/http/ParsedSearchParams") {}
 
 /**
- * @since 4.0.0
  * @category search params
+ * @since 4.0.0
  */
 export const searchParamsFromURL = (url: URL): ReadonlyRecord<string, string | Array<string>> => {
   const out: Record<string, string | Array<string>> = {}
@@ -109,8 +109,8 @@ export const searchParamsFromURL = (url: URL): ReadonlyRecord<string, string | A
 }
 
 /**
- * @since 4.0.0
  * @category accessors
+ * @since 4.0.0
  */
 export const upgradeChannel = <IE = never>(): Channel.Channel<
   Arr.NonEmptyReadonlyArray<Uint8Array>,
@@ -128,8 +128,8 @@ export const upgradeChannel = <IE = never>(): Channel.Channel<
   )
 
 /**
- * @since 4.0.0
  * @category schema
+ * @since 4.0.0
  */
 export const schemaCookies = <A, I extends Readonly<Record<string, string | undefined>>, RD, RE>(
   schema: Schema.Codec<A, I, RD, RE>,
@@ -140,8 +140,8 @@ export const schemaCookies = <A, I extends Readonly<Record<string, string | unde
 }
 
 /**
- * @since 4.0.0
  * @category schema
+ * @since 4.0.0
  */
 export const schemaHeaders = <A, I extends Readonly<Record<string, string | undefined>>, RD, RE>(
   schema: Schema.Codec<A, I, RD, RE>,
@@ -152,8 +152,8 @@ export const schemaHeaders = <A, I extends Readonly<Record<string, string | unde
 }
 
 /**
- * @since 4.0.0
  * @category schema
+ * @since 4.0.0
  */
 export const schemaSearchParams = <
   A,
@@ -168,8 +168,8 @@ export const schemaSearchParams = <
   return Effect.flatMap(ParsedSearchParams, (params) => parse(params, options))
 }
 /**
- * @since 4.0.0
  * @category schema
+ * @since 4.0.0
  */
 export const schemaBodyJson = <A, I, RD, RE>(
   schema: Schema.Codec<A, I, RD, RE>,
@@ -184,8 +184,8 @@ const isMultipart = (request: HttpServerRequest) =>
   getFormDataBody(request) !== undefined
 
 /**
- * @since 4.0.0
  * @category schema
+ * @since 4.0.0
  */
 export const schemaBodyForm = <A, I extends Partial<Multipart.Persisted>, RD, RE>(
   schema: Schema.Codec<A, I, RD, RE>,
@@ -206,8 +206,8 @@ export const schemaBodyForm = <A, I extends Partial<Multipart.Persisted>, RD, RE
 }
 
 /**
- * @since 4.0.0
  * @category schema
+ * @since 4.0.0
  */
 export const schemaBodyUrlParams = <
   A,
@@ -223,8 +223,8 @@ export const schemaBodyUrlParams = <
 }
 
 /**
- * @since 4.0.0
  * @category schema
+ * @since 4.0.0
  */
 export const schemaBodyMultipart = <A, I extends Partial<Multipart.Persisted>, RD, RE>(
   schema: Schema.Codec<A, I, RD, RE>,
@@ -242,8 +242,8 @@ export const schemaBodyMultipart = <A, I extends Partial<Multipart.Persisted>, R
 }
 
 /**
- * @since 4.0.0
  * @category schema
+ * @since 4.0.0
  */
 export const schemaBodyFormJson = <A, I, RD, RE>(
   schema: Schema.Codec<A, I, RD, RE>,
@@ -281,8 +281,8 @@ export const schemaBodyFormJson = <A, I, RD, RE>(
 }
 
 /**
- * @since 4.0.0
  * @category conversions
+ * @since 4.0.0
  */
 export const fromClientRequest = (request: HttpClientRequest.HttpClientRequest): HttpServerRequest => {
   const url = Option.match(HttpClientRequest.toUrl(request), {
@@ -293,15 +293,15 @@ export const fromClientRequest = (request: HttpClientRequest.HttpClientRequest):
 }
 
 /**
- * @since 4.0.0
  * @category conversions
+ * @since 4.0.0
  */
 export const fromWeb = (request: globalThis.Request): HttpServerRequest =>
   new ServerRequestImpl(request, removeHost(request.url))
 
 /**
- * @since 4.0.0
  * @category conversions
+ * @since 4.0.0
  */
 export const toClientRequest = (request: HttpServerRequest): HttpClientRequest.HttpClientRequest =>
   HttpClientRequest.setUrl(
@@ -878,8 +878,8 @@ const isFormData = (u: unknown): u is FormData => typeof FormData !== "undefined
 const textDecoder = new TextDecoder()
 
 /**
- * @since 4.0.0
  * @category conversions
+ * @since 4.0.0
  */
 export const toURL = (self: HttpServerRequest): Option.Option<URL> => {
   const host = self.headers.host ?? "localhost"
@@ -892,8 +892,8 @@ export const toURL = (self: HttpServerRequest): Option.Option<URL> => {
 }
 
 /**
- * @since 4.0.0
  * @category conversions
+ * @since 4.0.0
  */
 export const toWebResult = (self: HttpServerRequest, options?: {
   readonly signal?: AbortSignal | undefined
@@ -926,8 +926,8 @@ export const toWebResult = (self: HttpServerRequest, options?: {
 }
 
 /**
- * @since 4.0.0
  * @category conversions
+ * @since 4.0.0
  */
 export const toWeb = (self: HttpServerRequest, options?: {
   readonly signal?: AbortSignal | undefined

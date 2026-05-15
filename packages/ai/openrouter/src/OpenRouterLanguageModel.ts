@@ -40,8 +40,8 @@ import { type ChatStreamingResponseChunkData, OpenRouterClient } from "./OpenRou
 /**
  * Service definition for OpenRouter language model configuration.
  *
- * @since 1.0.0
  * @category services
+ * @since 1.0.0
  */
 export class Config extends Context.Service<
   Config,
@@ -69,14 +69,14 @@ export class Config extends Context.Service<
 // =============================================================================
 
 /**
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export type ReasoningDetails = Exclude<typeof Generated.AssistantMessage.Encoded["reasoning_details"], undefined>
 
 /**
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export type FileAnnotation = Extract<
   NonNullable<typeof Generated.AssistantMessage.fields.annotations.Type>[number],
@@ -227,8 +227,8 @@ declare module "effect/unstable/ai/Response" {
 // =============================================================================
 
 /**
- * @since 1.0.0
  * @category constructors
+ * @since 1.0.0
  */
 export const model = (
   model: string,
@@ -239,8 +239,8 @@ export const model = (
 /**
  * Creates an OpenRouter language model service.
  *
- * @since 1.0.0
  * @category constructors
+ * @since 1.0.0
  */
 export const make = Effect.fnUntraced(function*({ model, config: providerConfig }: {
   readonly model: string
@@ -308,8 +308,8 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
 /**
  * Creates a layer for the OpenRouter language model.
  *
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layer = (options: {
   readonly model: string
@@ -320,8 +320,8 @@ export const layer = (options: {
 /**
  * Provides config overrides for OpenRouter language model operations.
  *
- * @since 1.0.0
  * @category configuration
+ * @since 1.0.0
  */
 export const withConfigOverride: {
   (overrides: typeof Config.Service): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, Config>>

@@ -42,8 +42,8 @@ const TypeId = "~effect/transactions/TxPubSub"
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface TxPubSub<in out A> extends Inspectable, Pipeable {
   readonly [TypeId]: typeof TypeId
@@ -115,8 +115,8 @@ const makeTxPubSub = <A>(
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const bounded = <A = never>(capacity: number): Effect.Effect<TxPubSub<A>> =>
   Effect.gen(function*() {
@@ -150,8 +150,8 @@ export const bounded = <A = never>(capacity: number): Effect.Effect<TxPubSub<A>>
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const dropping = <A = never>(capacity: number): Effect.Effect<TxPubSub<A>> =>
   Effect.gen(function*() {
@@ -184,8 +184,8 @@ export const dropping = <A = never>(capacity: number): Effect.Effect<TxPubSub<A>
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const sliding = <A = never>(capacity: number): Effect.Effect<TxPubSub<A>> =>
   Effect.gen(function*() {
@@ -215,8 +215,8 @@ export const sliding = <A = never>(capacity: number): Effect.Effect<TxPubSub<A>>
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const unbounded = <A = never>(): Effect.Effect<TxPubSub<A>> =>
   Effect.gen(function*() {
@@ -242,8 +242,8 @@ export const unbounded = <A = never>(): Effect.Effect<TxPubSub<A>> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const capacity = <A>(self: TxPubSub<A>): number => self.capacity
 
@@ -269,8 +269,8 @@ export const capacity = <A>(self: TxPubSub<A>): number => self.capacity
  * })
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const size = <A>(self: TxPubSub<A>): Effect.Effect<number> =>
   Effect.gen(function*() {
@@ -297,8 +297,8 @@ export const size = <A>(self: TxPubSub<A>): Effect.Effect<number> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const isEmpty = <A>(self: TxPubSub<A>): Effect.Effect<boolean> => Effect.map(size(self), (s) => s === 0)
 
@@ -316,8 +316,8 @@ export const isEmpty = <A>(self: TxPubSub<A>): Effect.Effect<boolean> => Effect.
  * })
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const isFull = <A>(self: TxPubSub<A>): Effect.Effect<boolean> =>
   Effect.gen(function*() {
@@ -344,8 +344,8 @@ export const isFull = <A>(self: TxPubSub<A>): Effect.Effect<boolean> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const isShutdown = <A>(self: TxPubSub<A>): Effect.Effect<boolean> => TxRef.get(self.shutdownRef)
 
@@ -385,8 +385,8 @@ export const isShutdown = <A>(self: TxPubSub<A>): Effect.Effect<boolean> => TxRe
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const publish: {
   <A>(value: A): (self: TxPubSub<A>) => Effect.Effect<boolean>
@@ -434,8 +434,8 @@ export const publish: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const publishAll: {
   <A>(values: Iterable<A>): (self: TxPubSub<A>) => Effect.Effect<boolean>
@@ -482,8 +482,8 @@ export const publishAll: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const subscribe = <A>(self: TxPubSub<A>): Effect.Effect<TxQueue.TxQueue<A>, never, Scope.Scope> =>
   Effect.acquireRelease(
@@ -498,8 +498,8 @@ export const subscribe = <A>(self: TxPubSub<A>): Effect.Effect<TxQueue.TxQueue<A
  * callers can compose it with other Tx operations in a single transaction
  * (e.g. `TxSubscriptionRef.changes`).
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const acquireSubscriber = <A>(
   self: TxPubSub<A>
@@ -516,8 +516,8 @@ export const acquireSubscriber = <A>(
  * This is the transactional release step of `subscribe`, exposed so that
  * callers can compose it with other Tx operations in a single transaction.
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const releaseSubscriber: {
   <A>(queue: TxQueue.TxQueue<A>): (self: TxPubSub<A>) => Effect.Effect<void, never, Effect.Transaction>
@@ -570,8 +570,8 @@ const makeSubscriberQueue = <A>(
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const shutdown = <A>(self: TxPubSub<A>): Effect.Effect<void> =>
   Effect.gen(function*() {
@@ -601,8 +601,8 @@ export const shutdown = <A>(self: TxPubSub<A>): Effect.Effect<void> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const awaitShutdown = <A>(self: TxPubSub<A>): Effect.Effect<void> =>
   Effect.gen(function*() {
@@ -629,7 +629,7 @@ export const awaitShutdown = <A>(self: TxPubSub<A>): Effect.Effect<void> =>
  * }
  * ```
  *
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isTxPubSub = (u: unknown): u is TxPubSub<unknown> => hasProperty(u, TypeId)

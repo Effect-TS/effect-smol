@@ -6,8 +6,8 @@
 import * as predicate from "./Predicate.ts"
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  * @example
  * ```ts
  * import { RegExp } from "effect"

@@ -19,8 +19,8 @@ import * as Transformation from "../../SchemaTransformation.ts"
 const MsgPackErrorTypeId = "~effect/encoding/MsgPack/MsgPackError"
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class MsgPackError extends Data.TaggedError("MsgPackError")<{
   readonly kind: "Pack" | "Unpack"
@@ -40,8 +40,8 @@ export class MsgPackError extends Data.TaggedError("MsgPackError")<{
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const encode = <IE = never, Done = unknown>(): Channel.Channel<
   Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
@@ -65,8 +65,8 @@ export const encode = <IE = never, Done = unknown>(): Channel.Channel<
   )
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const encodeSchema = <S extends Schema.Top>(
   schema: S
@@ -82,8 +82,8 @@ export const encodeSchema = <S extends Schema.Top>(
 > => Channel.pipeTo(ChannelSchema.encode(schema)(), encode())
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const decode = <IE = never, Done = unknown>(): Channel.Channel<
   Arr.NonEmptyReadonlyArray<unknown>,
@@ -131,8 +131,8 @@ export const decode = <IE = never, Done = unknown>(): Channel.Channel<
   )
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const decodeSchema = <S extends Schema.Top>(
   schema: S
@@ -148,8 +148,8 @@ export const decodeSchema = <S extends Schema.Top>(
 > => Channel.pipeTo(decode<IE, Done>(), ChannelSchema.decodeUnknown(schema)())
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const duplex = <R, IE, OE, OutDone, InDone>(
   self: Channel.Channel<
@@ -176,8 +176,8 @@ export const duplex = <R, IE, OE, OutDone, InDone>(
   )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const duplexSchema: {
   <In extends Schema.Top, Out extends Schema.Top>(
@@ -252,14 +252,14 @@ export const duplexSchema: {
 > => ChannelSchema.duplexUnknown(duplex(self), options))
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export interface schema<S extends Schema.Top> extends Schema.decodeTo<S, Schema.instanceOf<Uint8Array<ArrayBuffer>>> {}
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const transformation: Transformation.Transformation<
   unknown,
@@ -290,8 +290,8 @@ export const transformation: Transformation.Transformation<
 })
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const schema = <S extends Schema.Top>(schema: S): schema<S> =>
   (Schema.Uint8Array as Schema.instanceOf<Uint8Array<ArrayBuffer>>).pipe(

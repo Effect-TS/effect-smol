@@ -78,8 +78,8 @@ const report = Command.make("report", { paths: reportPaths }).pipe(
 )
 
 /**
- * @since 1.0.0
  * @category commands
+ * @since 1.0.0
  */
 export const cli = Command.make("bundle").pipe(
   Command.withSubcommands([compare, report, visualize])

@@ -14,8 +14,8 @@ const NdjsonErrorTypeId = "~effect/encoding/Ndjson/NdjsonError"
 const encoder = new TextEncoder()
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class NdjsonError extends Data.TaggedError("NdjsonError")<{
   readonly kind: "Pack" | "Unpack"
@@ -35,8 +35,8 @@ export class NdjsonError extends Data.TaggedError("NdjsonError")<{
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const encodeString = <IE = never, Done = unknown>(): Channel.Channel<
   Arr.NonEmptyReadonlyArray<string>,
@@ -57,8 +57,8 @@ export const encodeString = <IE = never, Done = unknown>(): Channel.Channel<
   )
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const encode = <IE = never, Done = unknown>(): Channel.Channel<
   Arr.NonEmptyReadonlyArray<Uint8Array>,
@@ -70,8 +70,8 @@ export const encode = <IE = never, Done = unknown>(): Channel.Channel<
 > => Channel.map(encodeString(), Arr.map((_) => encoder.encode(_)))
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const encodeSchema = <S extends Schema.Top>(
   schema: S
@@ -87,8 +87,8 @@ export const encodeSchema = <S extends Schema.Top>(
 > => Channel.pipeTo(ChannelSchema.encode(schema)(), encode())
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const encodeSchemaString = <S extends Schema.Top>(
   schema: S
@@ -104,8 +104,8 @@ export const encodeSchemaString = <S extends Schema.Top>(
 > => Channel.pipeTo(ChannelSchema.encode(schema)(), encodeString())
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const decodeString = <IE = never, Done = unknown>(options?: {
   readonly ignoreEmptyLines?: boolean | undefined
@@ -132,8 +132,8 @@ export const decodeString = <IE = never, Done = unknown>(options?: {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const decode = <IE = never, Done = unknown>(options?: {
   readonly ignoreEmptyLines?: boolean | undefined
@@ -149,8 +149,8 @@ export const decode = <IE = never, Done = unknown>(options?: {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const decodeSchema = <S extends Schema.Top>(
   schema: S
@@ -168,8 +168,8 @@ export const decodeSchema = <S extends Schema.Top>(
 > => Channel.pipeTo(decode(options), ChannelSchema.decodeUnknown(schema)())
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const decodeSchemaString = <S extends Schema.Top>(
   schema: S
@@ -187,8 +187,8 @@ export const decodeSchemaString = <S extends Schema.Top>(
 > => Channel.pipeTo(decodeString(options), ChannelSchema.decodeUnknown(schema)())
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const duplex: {
   (options?: {
@@ -262,8 +262,8 @@ export const duplex: {
   ))
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const duplexString: {
   (options?: {
@@ -337,8 +337,8 @@ export const duplexString: {
   ))
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const duplexSchema: {
   <In extends Schema.Top, Out extends Schema.Top>(
@@ -416,8 +416,8 @@ export const duplexSchema: {
 > => ChannelSchema.duplexUnknown(duplex(self, options), options))
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const duplexSchemaString: {
   <In extends Schema.Top, Out extends Schema.Top>(

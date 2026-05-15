@@ -78,8 +78,8 @@ const TypeId = "~effect/time/Cron"
  * console.log(matches) // true if it's 9 AM on a weekday
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Cron extends Pipeable, Equal.Equal, Inspectable {
   readonly [TypeId]: typeof TypeId
@@ -207,8 +207,8 @@ const CronProto = {
  * console.log(Cron.isCron("not a cron")) // false
  * ```
  *
- * @since 2.0.0
  * @category guards
+ * @since 2.0.0
  */
 export const isCron = (u: unknown): u is Cron => hasProperty(u, TypeId)
 
@@ -306,8 +306,8 @@ export const isCron = (u: unknown): u is Cron => hasProperty(u, TypeId)
  * })
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const make = (values: {
   readonly seconds?: Iterable<number> | undefined
@@ -427,8 +427,8 @@ const CronParseErrorTypeId = "~effect/time/Cron/CronParseError"
  * }
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class CronParseError extends Data.TaggedError("CronParseError")<{
   readonly message: string
@@ -458,8 +458,8 @@ export class CronParseError extends Data.TaggedError("CronParseError")<{
  * console.log(Cron.isCronParseError("not an error")) // false
  * ```
  *
- * @since 2.0.0
  * @category guards
+ * @since 2.0.0
  */
 export const isCronParseError = (u: unknown): u is CronParseError => hasProperty(u, CronParseErrorTypeId)
 
@@ -487,8 +487,8 @@ export const isCronParseError = (u: unknown): u is CronParseError => hasProperty
  * )
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const parse = (cron: string, tz?: DateTime.TimeZone | string): Result.Result<Cron, CronParseError> => {
   const segments = cron.split(" ").filter(String.isNonEmpty)
@@ -540,8 +540,8 @@ export const parse = (cron: string, tz?: DateTime.TimeZone | string): Result.Res
  * // const invalid = Cron.parseUnsafe("invalid expression")
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const parseUnsafe = (cron: string, tz?: DateTime.TimeZone | string): Cron => Result.getOrThrow(parse(cron, tz))
 
@@ -569,8 +569,8 @@ export const parseUnsafe = (cron: string, tz?: DateTime.TimeZone | string): Cron
  * console.log(matches3) // false - wrong day
  * ```
  *
- * @since 2.0.0
  * @category utils
+ * @since 2.0.0
  */
 export const match = (cron: Cron, date: DateTime.DateTime.Input): boolean => {
   const parts = dateTime.makeZonedUnsafe(date, {
@@ -634,8 +634,8 @@ const daysInMonth = (date: Date): number =>
  * console.log(nextFromNow) // Next occurrence from now
  * ```
  *
- * @since 2.0.0
  * @category utils
+ * @since 2.0.0
  */
 export const next = (cron: Cron, now?: DateTime.DateTime.Input): Date => {
   return stepCron(cron, now, "next")
@@ -644,8 +644,8 @@ export const next = (cron: Cron, now?: DateTime.DateTime.Input): Date => {
 /**
  * Returns the previous scheduled date/time for the given Cron instance.
  *
- * @since 4.0.0
  * @category utils
+ * @since 4.0.0
  */
 export const prev = (cron: Cron, now?: DateTime.DateTime.Input): Date => {
   return stepCron(cron, now, "prev")
@@ -826,8 +826,8 @@ const stepCron = (cron: Cron, now: DateTime.DateTime.Input | undefined, directio
  * // [Mon Jan 02 2023 09:00:00, Tue Jan 03 2023 09:00:00, ...]
  * ```
  *
- * @since 2.0.0
  * @category utils
+ * @since 2.0.0
  */
 export const sequence = function*(cron: Cron, now?: DateTime.DateTime.Input): IterableIterator<Date> {
   while (true) {
@@ -865,8 +865,8 @@ export const sequence = function*(cron: Cron, now?: DateTime.DateTime.Input): It
  * console.log(Cron.Equivalence(cron1, cron2)) // true
  * ```
  *
- * @since 2.0.0
  * @category instances
+ * @since 2.0.0
  */
 export const Equivalence: Equ.Equivalence<Cron> = Equ.make((self, that) =>
   restrictionsEquals(self.seconds, that.seconds) &&
@@ -911,8 +911,8 @@ const restrictionsEquals = (self: ReadonlySet<number>, that: ReadonlySet<number>
  * console.log(Cron.equals(cron1)(cron2)) // true (curried form)
  * ```
  *
- * @since 2.0.0
  * @category predicates
+ * @since 2.0.0
  */
 export const equals: {
   (that: Cron): (self: Cron) => boolean

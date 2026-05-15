@@ -10,8 +10,8 @@ import * as internalEffect from "./internal/effect.ts"
 import * as Result from "./Result.ts"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Pull<out A, out E = never, out Done = void, out R = never>
   extends Effect<A, E | Cause.Done<Done>, R>
@@ -20,16 +20,16 @@ export interface Pull<out A, out E = never, out Done = void, out R = never>
 /**
  * Extracts the success type from a Pull type.
  *
- * @since 4.0.0
  * @category type extractors
+ * @since 4.0.0
  */
 export type Success<P> = P extends Effect<infer _A, infer _E, infer _R> ? _A : never
 
 /**
  * Extracts the error type from a Pull type, excluding Done errors.
  *
- * @since 4.0.0
  * @category type extractors
+ * @since 4.0.0
  */
 export type Error<P> = P extends Effect<infer _A, infer _E, infer _R> ? _E extends Cause.Done<infer _L> ? never : _E
   : never
@@ -37,8 +37,8 @@ export type Error<P> = P extends Effect<infer _A, infer _E, infer _R> ? _E exten
 /**
  * Extracts the leftover type from a Pull type.
  *
- * @since 4.0.0
  * @category type extractors
+ * @since 4.0.0
  */
 export type Leftover<P> = P extends Effect<infer _A, infer _E, infer _R> ? _E extends Cause.Done<infer _L> ? _L : never
   : never
@@ -46,16 +46,16 @@ export type Leftover<P> = P extends Effect<infer _A, infer _E, infer _R> ? _E ex
 /**
  * Extracts the service requirements (context) type from a Pull type.
  *
- * @since 4.0.0
  * @category type extractors
+ * @since 4.0.0
  */
 export type Services<P> = P extends Effect<infer _A, infer _E, infer _R> ? _R : never
 
 /**
  * Excludes done errors from an error type union.
  *
- * @since 4.0.0
  * @category type extractors
+ * @since 4.0.0
  */
 export type ExcludeDone<E> = Exclude<E, Cause.Done<any>>
 
@@ -64,8 +64,8 @@ export type ExcludeDone<E> = Exclude<E, Cause.Done<any>>
 // -----------------------------------------------------------------------------
 
 /**
- * @since 4.0.0
  * @category Done
+ * @since 4.0.0
  */
 export const catchDone: {
   <E, A2, E2, R2>(f: (leftover: Cause.Done.Extract<E>) => Effect<A2, E2, R2>): <A, R>(
@@ -84,16 +84,16 @@ export const catchDone: {
 /**
  * Checks if a Cause contains any done errors.
  *
- * @since 4.0.0
  * @category Done
+ * @since 4.0.0
  */
 export const isDoneCause = <E>(cause: Cause.Cause<E>): boolean => cause.reasons.some(isDoneFailure)
 
 /**
  * Checks if a Cause failure is a done error.
  *
- * @since 4.0.0
  * @category Done
+ * @since 4.0.0
  */
 export const isDoneFailure = <E>(
   failure: Cause.Reason<E>
@@ -102,8 +102,8 @@ export const isDoneFailure = <E>(
 /**
  * Filters a Cause to extract only halt errors.
  *
- * @since 4.0.0
  * @category Done
+ * @since 4.0.0
  */
 export const filterDone: <E>(
   input: Cause.Cause<E>
@@ -116,8 +116,8 @@ export const filterDone: <E>(
 /**
  * Filters a Cause to extract only halt errors.
  *
- * @since 4.0.0
  * @category Done
+ * @since 4.0.0
  */
 export const filterDoneVoid: <E extends Cause.Done>(
   input: Cause.Cause<E>
@@ -127,8 +127,8 @@ export const filterDoneVoid: <E extends Cause.Done>(
 ) as any
 
 /**
- * @since 4.0.0
  * @category Done
+ * @since 4.0.0
  */
 export const filterNoDone: <E>(
   input: Cause.Cause<E>
@@ -142,8 +142,8 @@ export const filterNoDone: <E>(
 /**
  * Filters a Cause to extract the leftover value from done errors.
  *
- * @since 4.0.0
  * @category Done
+ * @since 4.0.0
  */
 export const filterDoneLeftover: <E>(
   cause: Cause.Cause<E>
@@ -155,8 +155,8 @@ export const filterDoneLeftover: <E>(
 /**
  * Converts a Cause into an Exit, extracting halt leftovers as success values.
  *
- * @since 4.0.0
  * @category Done
+ * @since 4.0.0
  */
 export const doneExitFromCause = <E>(cause: Cause.Cause<E>): Exit.Exit<Cause.Done.Extract<E>, ExcludeDone<E>> => {
   const halt = filterDone(cause)
@@ -179,8 +179,8 @@ export const doneExitFromCause = <E>(cause: Cause.Cause<E>): Exit.Exit<Cause.Don
  * })
  * ```
  *
- * @since 4.0.0
  * @category pattern matching
+ * @since 4.0.0
  */
 export const matchEffect: {
   <A, E, L, AS, ES, RS, AF, EF, RF, AH, EH, RH>(options: {

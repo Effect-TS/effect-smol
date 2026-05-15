@@ -10,8 +10,8 @@ import * as Worker from "effect/unstable/workers/Worker"
 import { WorkerError, WorkerUnknownError } from "effect/unstable/workers/WorkerError"
 
 /**
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layer = (
   spawn: (id: number) => globalThis.Worker
@@ -22,8 +22,8 @@ export const layer = (
   )
 
 /**
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layerPlatform = Layer.succeed(Worker.WorkerPlatform)(
   Worker.makePlatform<globalThis.Worker>()({

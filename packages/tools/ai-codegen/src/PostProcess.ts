@@ -29,8 +29,8 @@ import * as ChildProcessSpawner from "effect/unstable/process/ChildProcessSpawne
  * })
  * ```
  *
- * @since 1.0.0
  * @category errors
+ * @since 1.0.0
  */
 export class PostProcessError extends Data.TaggedError("PostProcessError")<{
   readonly step: "lint" | "format"
@@ -62,8 +62,8 @@ export class PostProcessError extends Data.TaggedError("PostProcessError")<{
 /**
  * Service for post-processing generated code.
  *
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export interface PostProcessor {
   readonly lint: (filePath: string) => Effect.Effect<void, PostProcessError>
@@ -71,8 +71,8 @@ export interface PostProcessor {
 }
 
 /**
- * @since 1.0.0
  * @category tags
+ * @since 1.0.0
  */
 export const PostProcessor: Context.Service<PostProcessor, PostProcessor> = Context.Service(
   "@effect/ai-codegen/PostProcessor"
@@ -81,8 +81,8 @@ export const PostProcessor: Context.Service<PostProcessor, PostProcessor> = Cont
 /**
  * Layer providing the PostProcessor service.
  *
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layer: Layer.Layer<
   PostProcessor,

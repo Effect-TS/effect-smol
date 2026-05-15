@@ -11,8 +11,8 @@ import * as Scope from "../../Scope.ts"
 import { WorkerError, WorkerSendError } from "./WorkerError.ts"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class WorkerPlatform extends Context.Service<WorkerPlatform, {
   readonly spawn: <O = unknown, I = unknown>(
@@ -21,8 +21,8 @@ export class WorkerPlatform extends Context.Service<WorkerPlatform, {
 }>()("effect/workers/Worker/WorkerPlatform") {}
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Worker<O = unknown, I = unknown> {
   readonly send: (
@@ -40,8 +40,8 @@ export interface Worker<O = unknown, I = unknown> {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export const makeUnsafe = (options: {
   readonly send: (
@@ -63,22 +63,22 @@ export const makeUnsafe = (options: {
 })
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type PlatformMessage = readonly [ready: 0] | readonly [data: 1, unknown]
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Spawner {
   readonly _: unique symbol
 }
 
 /**
- * @since 4.0.0
  * @category tags
+ * @since 4.0.0
  */
 export const Spawner: Context.Service<
   Spawner,
@@ -86,16 +86,16 @@ export const Spawner: Context.Service<
 > = Context.Service("effect/workers/Worker/Spawner")
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface SpawnerFn<W = unknown> {
   (id: number): W
 }
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerSpawner: <W = unknown>(
   spawner: SpawnerFn<W>

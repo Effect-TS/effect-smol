@@ -10,38 +10,38 @@ const textDecoder = new TextDecoder("utf-8", { fatal: true })
 const constLengthPrefixBytes = 4
 
 /**
- * @since 4.0.0
  * @category constants
+ * @since 4.0.0
  */
 export const AuthPayloadContext = "eventlog-auth-v1"
 
 /**
- * @since 4.0.0
  * @category constants
+ * @since 4.0.0
  */
 export const Ed25519PublicKeyLength = 32
 
 /**
- * @since 4.0.0
  * @category constants
+ * @since 4.0.0
  */
 export const Ed25519SignatureLength = 64
 
 /**
- * @since 4.0.0
  * @category constants
+ * @since 4.0.0
  */
 export const SessionAuthChallengeLength = 32
 
 /**
- * @since 4.0.0
  * @category constants
+ * @since 4.0.0
  */
 export const SessionAuthChallengeTimeToLiveMillis = 30_000
 
 /**
- * @since 4.0.0
  * @category model
+ * @since 4.0.0
  */
 export interface SessionAuthPayload {
   readonly remoteId: string | Uint8Array
@@ -51,8 +51,8 @@ export interface SessionAuthPayload {
 }
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class EventLogSessionAuthError extends Data.TaggedError("EventLogSessionAuthError")<{
   readonly reason:
@@ -214,8 +214,8 @@ const encodeRemoteIdField = (remoteId: string | Uint8Array): Uint8Array =>
  * 4. publicKey
  * 5. signingPublicKey bytes
  *
- * @since 4.0.0
  * @category encoding
+ * @since 4.0.0
  */
 export const encodeSessionAuthPayload = Effect.fnUntraced(function*(payload: SessionAuthPayload) {
   yield* assertSigningPublicKeyLength(payload.signingPublicKey)
@@ -245,8 +245,8 @@ export const encodeSessionAuthPayload = Effect.fnUntraced(function*(payload: Ses
 })
 
 /**
- * @since 4.0.0
  * @category encoding
+ * @since 4.0.0
  */
 export const decodeSessionAuthPayload = Effect.fnUntraced(
   function*(payload: Uint8Array): Effect.fn.Return<SessionAuthPayload, EventLogSessionAuthError> {
@@ -283,8 +283,8 @@ export const decodeSessionAuthPayload = Effect.fnUntraced(
 )
 
 /**
- * @since 4.0.0
  * @category signing
+ * @since 4.0.0
  */
 export const signSessionAuthPayloadBytes = Effect.fnUntraced(function*(options: {
   readonly payload: Uint8Array
@@ -323,8 +323,8 @@ export const signSessionAuthPayloadBytes = Effect.fnUntraced(function*(options: 
 })
 
 /**
- * @since 4.0.0
  * @category verification
+ * @since 4.0.0
  */
 export const verifySessionAuthPayloadBytes = Effect.fnUntraced(function*(options: {
   readonly payload: Uint8Array
@@ -358,8 +358,8 @@ export const verifySessionAuthPayloadBytes = Effect.fnUntraced(function*(options
 })
 
 /**
- * @since 4.0.0
  * @category signing
+ * @since 4.0.0
  */
 export const signSessionAuthPayload = (
   options: SessionAuthPayload & {
@@ -376,8 +376,8 @@ export const signSessionAuthPayload = (
   )
 
 /**
- * @since 4.0.0
  * @category verification
+ * @since 4.0.0
  */
 export const verifySessionAuthPayload = (
   options: SessionAuthPayload & {
@@ -395,8 +395,8 @@ export const verifySessionAuthPayload = (
   )
 
 /**
- * @since 4.0.0
  * @category challenge
+ * @since 4.0.0
  */
 export const makeSessionAuthChallenge: Effect.Effect<
   Uint8Array<ArrayBuffer>,
@@ -409,8 +409,8 @@ export const makeSessionAuthChallenge: Effect.Effect<
 })
 
 /**
- * @since 4.0.0
  * @category verification
+ * @since 4.0.0
  */
 export const verifySessionAuthenticateRequest = Effect.fnUntraced(function*(options: {
   readonly remoteId: string | Uint8Array

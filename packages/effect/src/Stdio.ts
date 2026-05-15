@@ -9,20 +9,20 @@ import * as Sink from "./Sink.ts"
 import * as Stream from "./Stream.ts"
 
 /**
- * @since 4.0.0
  * @category Type IDs
+ * @since 4.0.0
  */
 export type TypeId = "~effect/Stdio"
 
 /**
- * @since 4.0.0
  * @category Type IDs
+ * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/Stdio"
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface Stdio {
   readonly [TypeId]: TypeId
@@ -36,14 +36,14 @@ export interface Stdio {
   readonly stdin: Stream.Stream<Uint8Array, PlatformError>
 }
 /**
- * @since 4.0.0
  * @category Services
+ * @since 4.0.0
  */
 export const Stdio: Context.Service<Stdio, Stdio> = Context.Service<Stdio>(TypeId)
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make = (options: Omit<Stdio, TypeId>): Stdio => ({
   [TypeId]: TypeId,
@@ -51,8 +51,8 @@ export const make = (options: Omit<Stdio, TypeId>): Stdio => ({
 })
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerTest = (impl: Partial<Stdio>): Layer.Layer<Stdio> =>
   Layer.succeed(

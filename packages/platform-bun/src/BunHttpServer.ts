@@ -44,8 +44,8 @@ import * as BunServices from "./BunServices.ts"
 import * as BunStream from "./BunStream.ts"
 
 /**
- * @since 1.0.0
  * @category Options
+ * @since 1.0.0
  */
 export type ServeOptions<R extends string> =
   & (
@@ -55,8 +55,8 @@ export type ServeOptions<R extends string> =
   & { readonly routes?: Bun.Serve.Routes<WebSocketContext, R> }
 
 /**
- * @since 1.0.0
  * @category Constructors
+ * @since 1.0.0
  */
 export const make = Effect.fnUntraced(
   function*<R extends string>(
@@ -210,8 +210,8 @@ const makeResponse = (
 }
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerServer: <R extends string>(
   options: ServeOptions<R> & {
@@ -221,8 +221,8 @@ export const layerServer: <R extends string>(
 ) => Layer.Layer<Server.HttpServer> = flow(make, Layer.effect(Server.HttpServer)) as any
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerHttpServices: Layer.Layer<
   | HttpPlatform
@@ -235,8 +235,8 @@ export const layerHttpServices: Layer.Layer<
 )
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layer = <R extends string>(
   options: ServeOptions<R> & {
@@ -251,8 +251,8 @@ export const layer = <R extends string>(
 > => Layer.mergeAll(layerServer(options), layerHttpServices)
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerTest: Layer.Layer<
   Server.HttpServer | HttpPlatform | FileSystem.FileSystem | Etag.Generator | Path.Path | HttpClient
@@ -264,8 +264,8 @@ export const layerTest: Layer.Layer<
 )
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerConfig = <R extends string>(
   options: Config.Wrap<

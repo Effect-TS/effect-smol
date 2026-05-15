@@ -15,8 +15,8 @@ import * as OtlpSerialization from "./OtlpSerialization.ts"
 import * as OtlpTracer from "./OtlpTracer.ts"
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layer = (options: {
   readonly baseUrl: string
@@ -70,8 +70,8 @@ export const layer = (options: {
 }
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerJson: (options: {
   readonly baseUrl: string
@@ -93,8 +93,8 @@ export const layerJson: (options: {
 }) => Layer.Layer<never, never, HttpClient.HttpClient> = flow(layer, Layer.provide(OtlpSerialization.layerJson))
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerProtobuf: (options: {
   readonly baseUrl: string

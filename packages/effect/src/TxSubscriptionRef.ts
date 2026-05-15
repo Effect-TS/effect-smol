@@ -45,8 +45,8 @@ const TypeId = "~effect/transactions/TxSubscriptionRef"
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface TxSubscriptionRef<in out A> extends Inspectable, Pipeable {
   readonly [TypeId]: typeof TypeId
@@ -89,8 +89,8 @@ const TxSubscriptionRefProto: Omit<TxSubscriptionRef<any>, typeof TypeId | "ref"
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = <A>(value: A): Effect.Effect<TxSubscriptionRef<A>> =>
   Effect.gen(function*() {
@@ -121,8 +121,8 @@ export const make = <A>(value: A): Effect.Effect<TxSubscriptionRef<A>> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const get = <A>(self: TxSubscriptionRef<A>): Effect.Effect<A> => TxRef.get(self.ref)
 
@@ -146,8 +146,8 @@ export const get = <A>(self: TxSubscriptionRef<A>): Effect.Effect<A> => TxRef.ge
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const modify: {
   <A, B>(
@@ -186,8 +186,8 @@ export const modify: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const set: {
   <A>(value: A): (self: TxSubscriptionRef<A>) => Effect.Effect<void>
@@ -212,8 +212,8 @@ export const set: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const update: {
   <A>(f: (current: A) => A): (self: TxSubscriptionRef<A>) => Effect.Effect<void>
@@ -240,8 +240,8 @@ export const update: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const getAndSet: {
   <A>(value: A): (self: TxSubscriptionRef<A>) => Effect.Effect<A>
@@ -267,8 +267,8 @@ export const getAndSet: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const getAndUpdate: {
   <A>(f: (current: A) => A): (self: TxSubscriptionRef<A>) => Effect.Effect<A>
@@ -294,8 +294,8 @@ export const getAndUpdate: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const updateAndGet: {
   <A>(f: (current: A) => A): (self: TxSubscriptionRef<A>) => Effect.Effect<A>
@@ -338,8 +338,8 @@ export const updateAndGet: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category subscriptions
+ * @since 4.0.0
  */
 export const changes = <A>(
   self: TxSubscriptionRef<A>
@@ -376,8 +376,8 @@ export const changes = <A>(
  * })
  * ```
  *
- * @since 4.0.0
  * @category subscriptions
+ * @since 4.0.0
  */
 export const changesStream = <A>(self: TxSubscriptionRef<A>): Stream.Stream<A, never, never> =>
   Stream.unwrap(
@@ -405,7 +405,7 @@ export const changesStream = <A>(self: TxSubscriptionRef<A>): Stream.Stream<A, n
  * }
  * ```
  *
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isTxSubscriptionRef = (u: unknown): u is TxSubscriptionRef<unknown> => hasProperty(u, TypeId)

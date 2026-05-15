@@ -21,8 +21,8 @@ import type { Sharding } from "./Sharding.ts"
 import * as Singleton from "./Singleton.ts"
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make = <E, R>(options: {
   readonly name: string

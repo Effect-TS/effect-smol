@@ -6,14 +6,14 @@ import * as Socket from "../socket/Socket.ts"
 import * as DevToolsClient from "./DevToolsClient.ts"
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerSocket: Layer.Layer<never, never, Socket.Socket> = DevToolsClient.layerTracer
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerWebSocket = (
   url = "ws://localhost:34437"
@@ -23,8 +23,8 @@ export const layerWebSocket = (
   )
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layer = (url = "ws://localhost:34437"): Layer.Layer<never> =>
   layerWebSocket(url).pipe(

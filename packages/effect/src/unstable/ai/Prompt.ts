@@ -81,8 +81,8 @@ import type * as Response from "./Response.ts"
  * }
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export const ProviderOptions: Schema.$Record<
   Schema.String,
@@ -90,8 +90,8 @@ export const ProviderOptions: Schema.$Record<
 > = Schema.Record(Schema.String, Schema.NullOr(Schema.Json))
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ProviderOptions = typeof ProviderOptions.Type
 
@@ -104,8 +104,8 @@ const PartTypeId = "~effect/ai/Prompt/Part" as const
 /**
  * Type guard to check if a value is a Part.
  *
- * @since 4.0.0
  * @category Guards
+ * @since 4.0.0
  */
 export const isPart = (u: unknown): u is Part => Predicate.hasProperty(u, PartTypeId)
 
@@ -115,8 +115,8 @@ export const isPart = (u: unknown): u is Part => Predicate.hasProperty(u, PartTy
  * Parts are the building blocks of message content, supporting text, files,
  * reasoning, tool calls, and tool results.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Part =
   | TextPart
@@ -130,8 +130,8 @@ export type Part =
 /**
  * Encoded representation of a Part.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type PartEncoded =
   | TextPartEncoded
@@ -147,8 +147,8 @@ export type PartEncoded =
  *
  * Provides common structure including type and provider options.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface BasePart<Type extends string, Options extends ProviderOptions> {
   readonly [PartTypeId]: typeof PartTypeId
@@ -165,8 +165,8 @@ export interface BasePart<Type extends string, Options extends ProviderOptions> 
 /**
  * Base interface for encoded content parts.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface BasePartEncoded<Type extends string, Options extends ProviderOptions> {
   /**
@@ -204,8 +204,8 @@ const BasePart = Schema.Struct({
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const makePart = <const Type extends Part["type"]>(
   /**
@@ -232,8 +232,8 @@ export const makePart = <const Type extends Part["type"]>(
  * A utility type for specifying the parameters required to construct a
  * specific part of a prompt.
  *
- * @since 4.0.0
  * @category Utility Types
+ * @since 4.0.0
  */
 export type PartConstructorParams<P extends Part> = Omit<P, typeof PartTypeId | "type" | "options"> & {
   /**
@@ -260,8 +260,8 @@ export type PartConstructorParams<P extends Part> = Omit<P, typeof PartTypeId | 
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface TextPart extends BasePart<"text", TextPartOptions> {
   /**
@@ -273,8 +273,8 @@ export interface TextPart extends BasePart<"text", TextPartOptions> {
 /**
  * Encoded representation of text parts for serialization.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface TextPartEncoded extends BasePartEncoded<"text", TextPartOptions> {
   /**
@@ -287,16 +287,16 @@ export interface TextPartEncoded extends BasePartEncoded<"text", TextPartOptions
  * Represents provider-specific options that can be associated with a
  * `TextPart` through module augmentation.
  *
- * @since 4.0.0
  * @category ProviderOptions
+ * @since 4.0.0
  */
 export interface TextPartOptions extends ProviderOptions {}
 
 /**
  * Schema for validation and encoding of text parts.
  *
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const TextPart: Schema.Struct<
   {
@@ -319,8 +319,8 @@ export const TextPart: Schema.Struct<
 /**
  * Constructs a new text part.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const textPart = (params: PartConstructorParams<TextPart>): TextPart => makePart("text", params as any)
 
@@ -341,8 +341,8 @@ export const textPart = (params: PartConstructorParams<TextPart>): TextPart => m
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ReasoningPart extends BasePart<"reasoning", ReasoningPartOptions> {
   /**
@@ -354,8 +354,8 @@ export interface ReasoningPart extends BasePart<"reasoning", ReasoningPartOption
 /**
  * Encoded representation of reasoning parts for serialization.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ReasoningPartEncoded extends BasePartEncoded<"reasoning", ReasoningPartOptions> {
   /**
@@ -368,16 +368,16 @@ export interface ReasoningPartEncoded extends BasePartEncoded<"reasoning", Reaso
  * Represents provider-specific options that can be associated with a
  * `ReasoningPart` through module augmentation.
  *
- * @since 4.0.0
  * @category ProviderOptions
+ * @since 4.0.0
  */
 export interface ReasoningPartOptions extends ProviderOptions {}
 
 /**
  * Schema for validation and encoding of reasoning parts.
  *
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const ReasoningPart: Schema.Struct<{
   readonly type: Schema.Literal<"reasoning">
@@ -398,8 +398,8 @@ export const ReasoningPart: Schema.Struct<{
 /**
  * Constructs a new reasoning part.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const reasoningPart = (params: PartConstructorParams<ReasoningPart>): ReasoningPart =>
   makePart("reasoning", params as any)
@@ -431,8 +431,8 @@ export const reasoningPart = (params: PartConstructorParams<ReasoningPart>): Rea
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface FilePart extends BasePart<"file", FilePartOptions> {
   /**
@@ -452,8 +452,8 @@ export interface FilePart extends BasePart<"file", FilePartOptions> {
 /**
  * Encoded representation of file parts for serialization.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface FilePartEncoded extends BasePartEncoded<"file", FilePartOptions> {
   /**
@@ -474,16 +474,16 @@ export interface FilePartEncoded extends BasePartEncoded<"file", FilePartOptions
  * Represents provider-specific options that can be associated with a
  * `FilePart` through module augmentation.
  *
- * @since 4.0.0
  * @category ProviderOptions
+ * @since 4.0.0
  */
 export interface FilePartOptions extends ProviderOptions {}
 
 /**
  * Schema for validation and encoding of file parts.
  *
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const FilePart: Schema.Struct<{
   readonly type: Schema.Literal<"file">
@@ -508,8 +508,8 @@ export const FilePart: Schema.Struct<{
 /**
  * Constructs a new file part.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const filePart = (params: PartConstructorParams<FilePart>): FilePart => makePart("file", params as any)
 
@@ -532,8 +532,8 @@ export const filePart = (params: PartConstructorParams<FilePart>): FilePart => m
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ToolCallPart extends BasePart<"tool-call", ToolCallPartOptions> {
   /**
@@ -557,8 +557,8 @@ export interface ToolCallPart extends BasePart<"tool-call", ToolCallPartOptions>
 /**
  * Encoded representation of tool call parts for serialization.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ToolCallPartEncoded extends BasePartEncoded<"tool-call", ToolCallPartOptions> {
   /**
@@ -583,16 +583,16 @@ export interface ToolCallPartEncoded extends BasePartEncoded<"tool-call", ToolCa
  * Represents provider-specific options that can be associated with a
  * `ToolCallPart` through module augmentation.
  *
- * @since 4.0.0
  * @category ProviderOptions
+ * @since 4.0.0
  */
 export interface ToolCallPartOptions extends ProviderOptions {}
 
 /**
  * Schema for validation and encoding of tool call parts.
  *
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const ToolCallPart: Schema.Struct<{
   readonly type: Schema.Literal<"tool-call">
@@ -619,8 +619,8 @@ export const ToolCallPart: Schema.Struct<{
 /**
  * Constructs a new tool call part.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const toolCallPart = (params: PartConstructorParams<ToolCallPart>): ToolCallPart =>
   makePart("tool-call", params as any)
@@ -648,8 +648,8 @@ export const toolCallPart = (params: PartConstructorParams<ToolCallPart>): ToolC
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ToolResultPart extends BasePart<"tool-result", ToolResultPartOptions> {
   /**
@@ -673,8 +673,8 @@ export interface ToolResultPart extends BasePart<"tool-result", ToolResultPartOp
 /**
  * Encoded representation of tool result parts for serialization.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ToolResultPartEncoded extends BasePartEncoded<"tool-result", ToolResultPartOptions> {
   /**
@@ -699,16 +699,16 @@ export interface ToolResultPartEncoded extends BasePartEncoded<"tool-result", To
  * Represents provider-specific options that can be associated with a
  * `ToolResultPart` through module augmentation.
  *
- * @since 4.0.0
  * @category ProviderOptions
+ * @since 4.0.0
  */
 export interface ToolResultPartOptions extends ProviderOptions {}
 
 /**
  * Schema for validation and encoding of tool result parts.
  *
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const ToolResultPart: Schema.Struct<{
   readonly type: Schema.Literal<"tool-result">
@@ -735,8 +735,8 @@ export const ToolResultPart: Schema.Struct<{
 /**
  * Constructs a new tool result part.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const toolResultPart = (params: PartConstructorParams<ToolResultPart>): ToolResultPart =>
   makePart("tool-result", params as any)
@@ -773,8 +773,8 @@ export const toolResultPart = (params: PartConstructorParams<ToolResultPart>): T
  * )
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ToolApprovalResponsePart extends BasePart<"tool-approval-response", ToolApprovalResponsePartOptions> {
   /**
@@ -794,8 +794,8 @@ export interface ToolApprovalResponsePart extends BasePart<"tool-approval-respon
 /**
  * Encoded representation of tool approval response parts for serialization.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ToolApprovalResponsePartEncoded
   extends BasePartEncoded<"tool-approval-response", ToolApprovalResponsePartOptions>
@@ -818,16 +818,16 @@ export interface ToolApprovalResponsePartEncoded
  * Represents provider-specific options that can be associated with a
  * `ToolApprovalResponsePart` through module augmentation.
  *
- * @since 4.0.0
  * @category ProviderOptions
+ * @since 4.0.0
  */
 export interface ToolApprovalResponsePartOptions extends ProviderOptions {}
 
 /**
  * Schema for validation and encoding of tool approval response parts.
  *
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const ToolApprovalResponsePart: Schema.Struct<{
   readonly type: Schema.Literal<"tool-approval-response">
@@ -852,8 +852,8 @@ export const ToolApprovalResponsePart: Schema.Struct<{
 /**
  * Constructs a new tool approval response part.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const toolApprovalResponsePart = (
   params: PartConstructorParams<ToolApprovalResponsePart>
@@ -883,8 +883,8 @@ export const toolApprovalResponsePart = (
  * )
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ToolApprovalRequestPart extends BasePart<"tool-approval-request", ToolApprovalRequestPartOptions> {
   /**
@@ -900,8 +900,8 @@ export interface ToolApprovalRequestPart extends BasePart<"tool-approval-request
 /**
  * Encoded representation of tool approval request parts for serialization.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ToolApprovalRequestPartEncoded
   extends BasePartEncoded<"tool-approval-request", ToolApprovalRequestPartOptions>
@@ -920,16 +920,16 @@ export interface ToolApprovalRequestPartEncoded
  * Represents provider-specific options that can be associated with a
  * `ToolApprovalRequestPart` through module augmentation.
  *
- * @since 4.0.0
  * @category ProviderOptions
+ * @since 4.0.0
  */
 export interface ToolApprovalRequestPartOptions extends ProviderOptions {}
 
 /**
  * Schema for validation and encoding of tool approval request parts.
  *
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const ToolApprovalRequestPart: Schema.Struct<{
   readonly type: Schema.Literal<"tool-approval-request">
@@ -952,8 +952,8 @@ export const ToolApprovalRequestPart: Schema.Struct<{
 /**
  * Constructs a new tool approval request part.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const toolApprovalRequestPart = (
   params: PartConstructorParams<ToolApprovalRequestPart>
@@ -968,8 +968,8 @@ const MessageTypeId = "~effect/ai/Prompt/Message" as const
 /**
  * Type guard to check if a value is a Message.
  *
- * @since 4.0.0
  * @category Guards
+ * @since 4.0.0
  */
 export const isMessage = (u: unknown): u is Message => Predicate.hasProperty(u, MessageTypeId)
 
@@ -978,8 +978,8 @@ export const isMessage = (u: unknown): u is Message => Predicate.hasProperty(u, 
  *
  * Provides common structure including role and provider options.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface BaseMessage<Role extends string, Options extends ProviderOptions> {
   readonly [MessageTypeId]: typeof MessageTypeId
@@ -998,8 +998,8 @@ export interface BaseMessage<Role extends string, Options extends ProviderOption
  *
  * @template Role - String literal type for the message role
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface BaseMessageEncoded<Role extends string, Options extends ProviderOptions> {
   /**
@@ -1035,8 +1035,8 @@ const BaseMessage = Schema.Struct({
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const makeMessage = <const Role extends Message["role"]>(
   role: Role,
@@ -1054,8 +1054,8 @@ export const makeMessage = <const Role extends Message["role"]>(
  * A utility type for specifying the parameters required to construct a
  * specific message for a prompt.
  *
- * @since 4.0.0
  * @category Utility Types
+ * @since 4.0.0
  */
 export type MessageConstructorParams<M extends Message> = Omit<M, typeof MessageTypeId | "role" | "options"> & {
   /**
@@ -1068,8 +1068,8 @@ export type MessageConstructorParams<M extends Message> = Omit<M, typeof Message
  * Schema for decoding message content (i.e. an array containing a single
  * `TextPart`) from a string.
  *
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const ContentFromString: Schema.decodeTo<
   Schema.NonEmptyArray<
@@ -1115,8 +1115,8 @@ export const ContentFromString: Schema.decodeTo<
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface SystemMessage extends BaseMessage<"system", SystemMessageOptions> {
   /**
@@ -1128,8 +1128,8 @@ export interface SystemMessage extends BaseMessage<"system", SystemMessageOption
 /**
  * Encoded representation of system messages for serialization.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface SystemMessageEncoded extends BaseMessageEncoded<"system", SystemMessageOptions> {
   /**
@@ -1142,16 +1142,16 @@ export interface SystemMessageEncoded extends BaseMessageEncoded<"system", Syste
  * Represents provider-specific options that can be associated with a
  * `SystemMessage` through module augmentation.
  *
- * @since 4.0.0
  * @category ProviderOptions
+ * @since 4.0.0
  */
 export interface SystemMessageOptions extends ProviderOptions {}
 
 /**
  * Schema for validation and encoding of system messages.
  *
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const SystemMessage: Schema.Struct<{
   readonly role: Schema.Literal<"system">
@@ -1172,8 +1172,8 @@ export const SystemMessage: Schema.Struct<{
 /**
  * Constructs a new system message.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const systemMessage = (params: MessageConstructorParams<SystemMessage>): SystemMessage =>
   makeMessage("system", params)
@@ -1211,8 +1211,8 @@ export const systemMessage = (params: MessageConstructorParams<SystemMessage>): 
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface UserMessage extends BaseMessage<"user", UserMessageOptions> {
   /**
@@ -1224,16 +1224,16 @@ export interface UserMessage extends BaseMessage<"user", UserMessageOptions> {
 /**
  * Union type of content parts allowed in user messages.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type UserMessagePart = TextPart | FilePart
 
 /**
  * Encoded representation of user messages for serialization.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface UserMessageEncoded extends BaseMessageEncoded<"user", UserMessageOptions> {
   /**
@@ -1245,8 +1245,8 @@ export interface UserMessageEncoded extends BaseMessageEncoded<"user", UserMessa
 /**
  * Union type of encoded content parts for user messages.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type UserMessagePartEncoded = TextPartEncoded | FilePartEncoded
 
@@ -1254,16 +1254,16 @@ export type UserMessagePartEncoded = TextPartEncoded | FilePartEncoded
  * Represents provider-specific options that can be associated with a
  * `UserMessage` through module augmentation.
  *
- * @since 4.0.0
  * @category ProviderOptions
+ * @since 4.0.0
  */
 export interface UserMessageOptions extends ProviderOptions {}
 
 /**
  * Schema for validation and encoding of user messages.
  *
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const UserMessage: Schema.Struct<{
   readonly role: Schema.Literal<"user">
@@ -1340,8 +1340,8 @@ export const UserMessage: Schema.Struct<{
 /**
  * Constructs a new user message.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const userMessage = (params: MessageConstructorParams<UserMessage>): UserMessage => makeMessage("user", params)
 
@@ -1387,8 +1387,8 @@ export const userMessage = (params: MessageConstructorParams<UserMessage>): User
  * )
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface AssistantMessage extends BaseMessage<"assistant", AssistantMessageOptions> {
   /**
@@ -1400,8 +1400,8 @@ export interface AssistantMessage extends BaseMessage<"assistant", AssistantMess
 /**
  * Union type of content parts allowed in assistant messages.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type AssistantMessagePart =
   | TextPart
@@ -1414,8 +1414,8 @@ export type AssistantMessagePart =
 /**
  * Encoded representation of assistant messages for serialization.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface AssistantMessageEncoded extends BaseMessageEncoded<"assistant", AssistantMessageOptions> {
   readonly content: string | ReadonlyArray<AssistantMessagePartEncoded>
@@ -1424,8 +1424,8 @@ export interface AssistantMessageEncoded extends BaseMessageEncoded<"assistant",
 /**
  * Union type of encoded content parts for assistant messages.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type AssistantMessagePartEncoded =
   | TextPartEncoded
@@ -1439,16 +1439,16 @@ export type AssistantMessagePartEncoded =
  * Represents provider-specific options that can be associated with a
  * `AssistantMessage` through module augmentation.
  *
- * @since 4.0.0
  * @category ProviderOptions
+ * @since 4.0.0
  */
 export interface AssistantMessageOptions extends ProviderOptions {}
 
 /**
  * Schema for validation and encoding of assistant messages.
  *
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const AssistantMessage: Schema.Struct<{
   readonly role: Schema.Literal<"assistant">
@@ -1514,8 +1514,8 @@ export const AssistantMessage: Schema.Struct<{
 /**
  * Constructs a new assistant message.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const assistantMessage = (params: MessageConstructorParams<AssistantMessage>): AssistantMessage =>
   makeMessage("assistant", params)
@@ -1549,8 +1549,8 @@ export const assistantMessage = (params: MessageConstructorParams<AssistantMessa
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ToolMessage extends BaseMessage<"tool", ToolMessageOptions> {
   /**
@@ -1562,16 +1562,16 @@ export interface ToolMessage extends BaseMessage<"tool", ToolMessageOptions> {
 /**
  * Union type of content parts allowed in tool messages.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ToolMessagePart = ToolResultPart | ToolApprovalResponsePart
 
 /**
  * Encoded representation of tool messages for serialization.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ToolMessageEncoded extends BaseMessageEncoded<"tool", ToolMessageOptions> {
   /**
@@ -1583,8 +1583,8 @@ export interface ToolMessageEncoded extends BaseMessageEncoded<"tool", ToolMessa
 /**
  * Union type of encoded content parts for tool messages.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ToolMessagePartEncoded = ToolResultPartEncoded | ToolApprovalResponsePartEncoded
 
@@ -1592,16 +1592,16 @@ export type ToolMessagePartEncoded = ToolResultPartEncoded | ToolApprovalRespons
  * Represents provider-specific options that can be associated with a
  * `ToolMessage` through module augmentation.
  *
- * @since 4.0.0
  * @category ProviderOptions
+ * @since 4.0.0
  */
 export interface ToolMessageOptions extends ProviderOptions {}
 
 /**
  * Schema for validation and encoding of tool messages.
  *
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const ToolMessage: Schema.Struct<{
   readonly role: Schema.Literal<"tool">
@@ -1624,8 +1624,8 @@ export const ToolMessage: Schema.Struct<{
 /**
  * Constructs a new tool message.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const toolMessage = (params: MessageConstructorParams<ToolMessage>): ToolMessage => makeMessage("tool", params)
 
@@ -1636,8 +1636,8 @@ export const toolMessage = (params: MessageConstructorParams<ToolMessage>): Tool
 /**
  * A type representing all possible message types in a conversation.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Message =
   | SystemMessage
@@ -1648,8 +1648,8 @@ export type Message =
 /**
  * A type representing all possible encoded message types for serialization.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type MessageEncoded =
   | SystemMessageEncoded
@@ -1660,8 +1660,8 @@ export type MessageEncoded =
 /**
  * Schema for validation and encoding of messages.
  *
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const Message: Schema.Codec<Message, MessageEncoded> = Schema.Union([
   SystemMessage,
@@ -1679,8 +1679,8 @@ const TypeId = "~effect/unstable/ai/Prompt" as const
 /**
  * Type guard to check if a value is a Prompt.
  *
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isPrompt = (u: unknown): u is Prompt => Predicate.hasProperty(u, TypeId)
 
@@ -1688,8 +1688,8 @@ export const isPrompt = (u: unknown): u is Prompt => Predicate.hasProperty(u, Ty
  * A Prompt contains a sequence of messages that form the context of a
  * conversation with a large language model.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Prompt extends Pipeable {
   readonly [TypeId]: typeof TypeId
@@ -1702,8 +1702,8 @@ export interface Prompt extends Pipeable {
 /**
  * Encoded representation of prompts for serialization.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface PromptEncoded {
   /**
@@ -1720,8 +1720,8 @@ const $Prompt = Schema.declare((u) => isPrompt(u), { identifier: "Prompt" })
 /**
  * Describes a schema that represents a `Prompt` instance.
  *
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const Prompt: Schema.Codec<Prompt, PromptEncoded> = Schema.Struct({
   content: Schema.Array(Schema.toEncoded(Message))
@@ -1775,8 +1775,8 @@ export const Prompt: Schema.Codec<Prompt, PromptEncoded> = Schema.Struct({
  * const promptInput: Prompt.RawInput = existingPrompt
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type RawInput =
   | string
@@ -1808,8 +1808,8 @@ const decodeMessagesSync = Schema.decodeSync(Schema.Array(Message))
  * console.log(emptyPrompt.content) // []
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const empty: Prompt = makePrompt([])
 
@@ -1837,8 +1837,8 @@ export const empty: Prompt = makePrompt([])
  * const copiedPrompt = Prompt.make(existingPrompt)
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = (input: RawInput): Prompt => {
   if (typeof input === "string") {
@@ -1875,8 +1875,8 @@ export const make = (input: RawInput): Prompt => {
  * const prompt = Prompt.fromMessages(messages)
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fromMessages = (messages: ReadonlyArray<Message>): Prompt => makePrompt(messages)
 
@@ -1916,8 +1916,8 @@ export const fromMessages = (messages: ReadonlyArray<Message>): Prompt => makePr
  * // Creates an assistant message with the response content
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fromResponseParts = (parts: ReadonlyArray<Response.AnyPart>): Prompt => {
   if (parts.length === 0) {
@@ -2054,8 +2054,8 @@ export const fromResponseParts = (parts: ReadonlyArray<Response.AnyPart>): Promp
  * const merged = Prompt.concat(systemPrompt, "Hello, world!")
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const concat: {
   (input: RawInput): (self: Prompt) => Prompt
@@ -2101,8 +2101,8 @@ export const concat: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const setSystem: {
   (content: string): (self: Prompt) => Prompt
@@ -2144,8 +2144,8 @@ export const setSystem: {
  * // result content: "You are a helpful assistant. You are an expert in programming."
  * ```
  *
- * @since 1.0.0
  * @category Combinators
+ * @since 1.0.0
  */
 export const prependSystem: {
   (content: string): (self: Prompt) => Prompt
@@ -2193,8 +2193,8 @@ export const prependSystem: {
  * // result content: "You are an expert in programming. You are a helpful assistant."
  * ```
  *
- * @since 1.0.0
  * @category Combinators
+ * @since 1.0.0
  */
 export const appendSystem: {
   (content: string): (self: Prompt) => Prompt

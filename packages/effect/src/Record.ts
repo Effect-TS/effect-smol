@@ -279,8 +279,8 @@ export const fromIterableBy = <A, K extends string | symbol>(
  * assert.deepStrictEqual(Record.fromEntries(input), { a: 1, b: 2 })
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const fromEntries: <Entry extends readonly [string | symbol, any]>(
   entries: Iterable<Entry>

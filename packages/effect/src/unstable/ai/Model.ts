@@ -50,8 +50,8 @@ const TypeId = "~effect/ai/Model" as const
  * @template Provides - Services that this model provides.
  * @template Requires - Services that this model requires.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Model<in out Provider, in out Provides, in out Requires>
   extends Layer.Layer<Provides | ProviderName | ModelName, never, Requires>
@@ -80,8 +80,8 @@ export interface Model<in out Provider, in out Provides, in out Requires>
  * access the name of the provider that is currently in use within a given
  * Effect program.
  *
- * @since 4.0.0
  * @category services
+ * @since 4.0.0
  */
 export class ProviderName extends Context.Service<ProviderName, string>()(
   "effect/unstable/ai/Model/ProviderName"
@@ -94,8 +94,8 @@ export class ProviderName extends Context.Service<ProviderName, string>()(
  * access the name of the model that is currently in use within a given Effect
  * program.
  *
- * @since 4.0.0
  * @category services
+ * @since 4.0.0
  */
 export class ModelName extends Context.Service<ModelName, string>()(
   "effect/unstable/ai/Model/ModelName"
@@ -152,8 +152,8 @@ const Proto = {
  * // Will log: "Generating with: amazon-bedrock/claude-3-5-haiku"
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = <const Provider extends string, const Name extends string, Provides, Requires>(
   /**

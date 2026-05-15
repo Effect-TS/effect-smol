@@ -4,19 +4,19 @@
 import * as Schema from "../../Schema.ts"
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const EntityType = Schema.String.pipe(Schema.brand("~effect/cluster/EntityType"))
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type EntityType = typeof EntityType.Type
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = (value: string): EntityType => value as EntityType

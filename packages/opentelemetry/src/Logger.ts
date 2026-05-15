@@ -19,8 +19,8 @@ import { nanosToHrTime, unknownToAttributeValue } from "./internal/attributes.ts
 import { Resource } from "./Resource.ts"
 
 /**
- * @since 1.0.0
  * @category Services
+ * @since 1.0.0
  */
 export class OtelLoggerProvider extends Context.Service<
   OtelLoggerProvider,
@@ -35,8 +35,8 @@ export class OtelLoggerProvider extends Context.Service<
  * (e.g. Info=20000), which falls outside the OTel spec — backends that
  * validate the field map such values to `UNSPECIFIED`.
  *
- * @since 1.0.0
  * @category Conversions
+ * @since 1.0.0
  */
 export const logLevelToSeverityNumber = (level: LogLevel.LogLevel): SeverityNumber => {
   switch (level) {
@@ -58,8 +58,8 @@ export const logLevelToSeverityNumber = (level: LogLevel.LogLevel): SeverityNumb
 }
 
 /**
- * @since 1.0.0
  * @category Constructors
+ * @since 1.0.0
  */
 export const make: Effect.Effect<
   Logger.Logger<unknown, void>,
@@ -104,8 +104,8 @@ export const make: Effect.Effect<
 })
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layer = (options: {
   /**
@@ -124,8 +124,8 @@ export const layer = (options: {
   })
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerLoggerProvider = (
   processor: Otel.LogRecordProcessor | NonEmptyReadonlyArray<Otel.LogRecordProcessor>,

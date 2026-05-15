@@ -21,8 +21,8 @@ import * as Response from "./HttpServerResponse.ts"
 import { appendPreResponseHandlerUnsafe, requestPreResponseHandlers } from "./internal/preResponseHandler.ts"
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const toHandled = <E, R, EH, RH>(
   self: Effect.Effect<HttpServerResponse, E, R>,
@@ -110,16 +110,16 @@ const handledSymbol = Symbol.for("effect/http/HttpEffect/handled")
  * If you want to finalize the http request scope elsewhere, you can use this
  * function to eject from the default scope closure.
  *
- * @since 4.0.0
  * @category Scope
+ * @since 4.0.0
  */
 export const scopeDisableClose = (scope: Scope.Scope): void => {
   ;(scope as any)[scopeEjected] = true
 }
 
 /**
- * @since 4.0.0
  * @category Scope
+ * @since 4.0.0
  */
 export const scopeTransferToStream = (
   response: HttpServerResponse
@@ -155,8 +155,8 @@ const scoped = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   })
 
 /**
- * @since 4.0.0
  * @category Pre-response handlers
+ * @since 4.0.0
  */
 export type PreResponseHandler = (
   request: HttpServerRequest,
@@ -164,8 +164,8 @@ export type PreResponseHandler = (
 ) => Effect.Effect<HttpServerResponse, HttpServerError>
 
 /**
- * @since 4.0.0
  * @category fiber refs
+ * @since 4.0.0
  */
 export const appendPreResponseHandler = (handler: PreResponseHandler): Effect.Effect<void, never, HttpServerRequest> =>
   HttpServerRequest.use((request) => {
@@ -175,15 +175,15 @@ export const appendPreResponseHandler = (handler: PreResponseHandler): Effect.Ef
 
 export {
   /**
-   * @since 4.0.0
    * @category fiber refs
+   * @since 4.0.0
    */
   appendPreResponseHandlerUnsafe
 }
 
 /**
- * @since 4.0.0
  * @category fiber refs
+ * @since 4.0.0
  */
 export const withPreResponseHandler: {
   (handler: PreResponseHandler): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R | HttpServerRequest>
@@ -200,8 +200,8 @@ export const withPreResponseHandler: {
   }))
 
 /**
- * @since 4.0.0
  * @category conversions
+ * @since 4.0.0
  */
 export const toWebHandlerWith = <Provided, R = never, ReqR = Exclude<R, Provided | Scope.Scope | HttpServerRequest>>(
   context: Context.Context<Provided>
@@ -240,8 +240,8 @@ export const toWebHandlerWith = <Provided, R = never, ReqR = Exclude<R, Provided
 }
 
 /**
- * @since 4.0.0
  * @category conversions
+ * @since 4.0.0
  */
 export const toWebHandler: <E>(
   self: Effect.Effect<HttpServerResponse, E, HttpServerRequest | Scope.Scope>,
@@ -250,8 +250,8 @@ export const toWebHandler: <E>(
   toWebHandlerWith(Context.empty())
 
 /**
- * @since 4.0.0
  * @category conversions
+ * @since 4.0.0
  */
 export const toWebHandlerLayerWith = <
   E,
@@ -310,8 +310,8 @@ export const toWebHandlerLayerWith = <
 }
 
 /**
- * @since 4.0.0
  * @category conversions
+ * @since 4.0.0
  */
 export const toWebHandlerLayer = <E, R, Provided, LE, ReqR = Exclude<R, Provided | Scope.Scope | HttpServerRequest>>(
   self: Effect.Effect<HttpServerResponse, E, R>,
@@ -335,8 +335,8 @@ export const toWebHandlerLayer = <E, R, Provided, LE, ReqR = Exclude<R, Provided
   })
 
 /**
- * @since 4.0.0
  * @category conversions
+ * @since 4.0.0
  */
 export const fromWebHandler = (
   handler: (request: Request) => Promise<Response>

@@ -7,28 +7,28 @@ import * as Schema from "../../Schema.ts"
 import * as Msgpack from "../encoding/Msgpack.ts"
 
 /**
- * @since 4.0.0
  * @category type ids
+ * @since 4.0.0
  */
 export type TypeId = "~effect/eventlog/Event"
 
 /**
- * @since 4.0.0
  * @category type ids
+ * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/eventlog/Event"
 
 /**
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isEvent = (u: unknown): u is Event<any, any, any, any> => Predicate.hasProperty(u, TypeId)
 
 /**
  * Represents an event in an EventLog.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Event<
   out Tag extends string,
@@ -46,8 +46,8 @@ export interface Event<
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface EventHandler<in out Tag extends string> {
   readonly _: unique symbol
@@ -55,8 +55,8 @@ export interface EventHandler<in out Tag extends string> {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Any {
   readonly [TypeId]: TypeId
@@ -69,14 +69,14 @@ export interface Any {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface AnyWithProps extends Any {}
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ToService<A> = A extends Event<
   infer _Tag,
@@ -87,8 +87,8 @@ export type ToService<A> = A extends Event<
   never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Tag<A> = A extends Event<
   infer _Tag,
@@ -99,8 +99,8 @@ export type Tag<A> = A extends Event<
   never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ErrorSchema<A extends Any> = A extends Event<
   infer _Tag,
@@ -111,14 +111,14 @@ export type ErrorSchema<A extends Any> = A extends Event<
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Error<A extends Any> = Schema.Schema.Type<ErrorSchema<A>>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type AddError<A extends Any, Error extends Schema.Top> = A extends Event<
   infer _Tag,
@@ -129,8 +129,8 @@ export type AddError<A extends Any, Error extends Schema.Top> = A extends Event<
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type PayloadSchema<A extends Any> = A extends Event<
   infer _Tag,
@@ -141,8 +141,8 @@ export type PayloadSchema<A extends Any> = A extends Event<
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type PayloadSchemaWithTag<A extends Any, Tag extends string> = A extends Event<
   Tag,
@@ -153,14 +153,14 @@ export type PayloadSchemaWithTag<A extends Any, Tag extends string> = A extends 
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Payload<A extends Any> = Schema.Schema.Type<PayloadSchema<A>>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type TaggedPayload<A extends Any> = A extends Event<
   infer _Tag,
@@ -174,8 +174,8 @@ export type TaggedPayload<A extends Any> = A extends Event<
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type SuccessSchema<A extends Any> = A extends Event<
   infer _Tag,
@@ -186,14 +186,14 @@ export type SuccessSchema<A extends Any> = A extends Event<
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Success<A extends Any> = Schema.Schema.Type<SuccessSchema<A>>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ServicesClient<A> = A extends Event<
   infer _Tag,
@@ -207,8 +207,8 @@ export type ServicesClient<A> = A extends Event<
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ServicesServer<A> = A extends Event<
   infer _Tag,
@@ -222,8 +222,8 @@ export type ServicesServer<A> = A extends Event<
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Services<A> = A extends Event<
   infer _Tag,
@@ -240,38 +240,38 @@ export type Services<A> = A extends Event<
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type WithTag<Events extends Any, Tag extends string> = Extract<Events, { readonly tag: Tag }>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ExcludeTag<Events extends Any, Tag extends string> = Exclude<Events, { readonly tag: Tag }>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type PayloadWithTag<Events extends Any, Tag extends string> = Payload<WithTag<Events, Tag>>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type SuccessWithTag<Events extends Any, Tag extends string> = Success<WithTag<Events, Tag>>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ErrorWithTag<Events extends Any, Tag extends string> = Error<WithTag<Events, Tag>>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ServicesClientWithTag<Events extends Any, Tag extends string> = ServicesClient<WithTag<Events, Tag>>
 
@@ -283,8 +283,8 @@ const Proto = {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export function make<
   Tag extends string,
@@ -319,8 +319,8 @@ export function make(options: {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export function addError<A extends Any, Error2 extends Schema.Top>(
   event: A,

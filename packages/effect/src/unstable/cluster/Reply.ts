@@ -22,32 +22,32 @@ import { Snowflake, SnowflakeFromBigInt } from "./Snowflake.ts"
 const TypeId = "~effect/cluster/Reply"
 
 /**
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isReply = (u: unknown): u is Reply<Rpc.Any> => hasProperty(u, TypeId)
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Reply<R extends Rpc.Any> = WithExit<R> | Chunk<R>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Encoded = WithExitEncoded | ChunkEncoded
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export const Encoded: Schema.Codec<Encoded> = Schema.Any as any
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class ReplyWithContext<R extends Rpc.Any> extends Data.TaggedClass("ReplyWithContext")<{
   readonly reply: Reply<R>
@@ -98,8 +98,8 @@ const neverRpc = Rpc.make("Never", {
 })
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface WithExitEncoded<A = unknown, E = unknown> {
   readonly _tag: "WithExit"
@@ -109,8 +109,8 @@ export interface WithExitEncoded<A = unknown, E = unknown> {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ChunkEncoded {
   readonly _tag: "Chunk"
@@ -123,8 +123,8 @@ export interface ChunkEncoded {
 const schemaCache = new WeakMap<Rpc.Any, Schema.Top>()
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class Chunk<R extends Rpc.Any> extends Data.TaggedClass("Chunk")<{
   readonly requestId: Snowflake
@@ -225,8 +225,8 @@ export class Chunk<R extends Rpc.Any> extends Data.TaggedClass("Chunk")<{
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class WithExit<R extends Rpc.Any> extends Data.TaggedClass("WithExit")<{
   readonly requestId: Snowflake
@@ -311,8 +311,8 @@ export class WithExit<R extends Rpc.Any> extends Data.TaggedClass("WithExit")<{
 }
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const Reply = <R extends Rpc.Any>(
   rpc: R
@@ -331,8 +331,8 @@ export const Reply = <R extends Rpc.Any>(
 }
 
 /**
- * @since 4.0.0
  * @category serialization / deserialization
+ * @since 4.0.0
  */
 export const serialize = <R extends Rpc.Any>(
   self: ReplyWithContext<R>
@@ -347,8 +347,8 @@ export const serialize = <R extends Rpc.Any>(
 }
 
 /**
- * @since 4.0.0
  * @category serialization / deserialization
+ * @since 4.0.0
  */
 export const serializeLastReceived = <R extends Rpc.Any>(
   self: OutgoingRequest<R>

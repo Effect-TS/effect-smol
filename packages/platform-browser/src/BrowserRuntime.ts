@@ -5,8 +5,8 @@ import type * as Effect from "effect/Effect"
 import { makeRunMain, type Teardown } from "effect/Runtime"
 
 /**
- * @since 1.0.0
  * @category Runtime
+ * @since 1.0.0
  */
 export const runMain: {
   (

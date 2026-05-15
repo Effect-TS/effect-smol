@@ -9,8 +9,8 @@ import * as Worker from "effect/unstable/workers/Worker"
 import { WorkerError, WorkerReceiveError } from "effect/unstable/workers/WorkerError"
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layer = (
   spawn: (id: number) => Worker | SharedWorker | MessagePort
@@ -21,8 +21,8 @@ export const layer = (
   )
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerPlatform: Layer.Layer<Worker.WorkerPlatform> = Layer.succeed(Worker.WorkerPlatform)(
   Worker.makePlatform<globalThis.SharedWorker | globalThis.Worker | MessagePort>()({

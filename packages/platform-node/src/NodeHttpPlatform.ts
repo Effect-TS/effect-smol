@@ -13,8 +13,8 @@ import Mime from "./Mime.ts"
 import * as NodeFileSystem from "./NodeFileSystem.ts"
 
 /**
- * @since 1.0.0
  * @category Constructors
+ * @since 1.0.0
  */
 export const make = Platform.make({
   fileResponse(path, status, statusText, headers, start, end, contentLength) {
@@ -47,8 +47,8 @@ export const make = Platform.make({
 })
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layer: Layer.Layer<Platform.HttpPlatform> = pipe(
   Layer.effect(Platform.HttpPlatform)(make),

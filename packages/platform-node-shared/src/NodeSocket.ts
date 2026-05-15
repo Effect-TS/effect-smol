@@ -18,22 +18,22 @@ import * as Net from "node:net"
 import type { Duplex } from "node:stream"
 
 /**
- * @since 1.0.0
  * @category re-exports
+ * @since 1.0.0
  */
 export * as NodeWS from "ws"
 
 /**
- * @since 1.0.0
  * @category tags
+ * @since 1.0.0
  */
 export class NetSocket extends Context.Service<NetSocket, Net.Socket>()(
   "@effect/platform-node/NodeSocket/NetSocket"
 ) {}
 
 /**
- * @since 1.0.0
  * @category constructors
+ * @since 1.0.0
  */
 export const makeNet = (
   options: Net.NetConnectOpts & {
@@ -77,8 +77,8 @@ export const makeNet = (
   )
 
 /**
- * @since 1.0.0
  * @category constructors
+ * @since 1.0.0
  */
 export const fromDuplex = <RO>(
   open: Effect.Effect<Duplex, Socket.SocketError, RO>,
@@ -212,8 +212,8 @@ export const fromDuplex = <RO>(
   })
 
 /**
- * @since 1.0.0
  * @category constructors
+ * @since 1.0.0
  */
 export const makeNetChannel = <IE = never>(
   options: Net.NetConnectOpts
@@ -229,8 +229,8 @@ export const makeNetChannel = <IE = never>(
   )
 
 /**
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layerNet: (options: Net.NetConnectOpts) => Layer.Layer<
   Socket.Socket,

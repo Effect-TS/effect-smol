@@ -47,8 +47,8 @@ import * as Predicate from "./Predicate.ts"
  * })
  * ```
  *
- * @since 4.0.0
  * @category Random Number Generators
+ * @since 4.0.0
  */
 export const Random: Context.Reference<{
   nextIntUnsafe(): number
@@ -71,8 +71,8 @@ const randomWith = <A>(f: (random: typeof Random["Service"]) => A): Effect.Effec
  * })
  * ```
  *
- * @since 4.0.0
  * @category Random Number Generators
+ * @since 4.0.0
  */
 export const next: Effect.Effect<number> = randomWith((r) => r.nextDoubleUnsafe())
 
@@ -89,8 +89,8 @@ export const next: Effect.Effect<number> = randomWith((r) => r.nextDoubleUnsafe(
  * })
  * ```
  *
- * @since 4.0.0
  * @category Random Number Generators
+ * @since 4.0.0
  */
 export const nextBoolean: Effect.Effect<boolean> = randomWith((r) => r.nextDoubleUnsafe() > 0.5)
 
@@ -108,8 +108,8 @@ export const nextBoolean: Effect.Effect<boolean> = randomWith((r) => r.nextDoubl
  * })
  * ```
  *
- * @since 4.0.0
  * @category Random Number Generators
+ * @since 4.0.0
  */
 export const nextInt: Effect.Effect<number> = randomWith((r) => r.nextIntUnsafe())
 
@@ -126,8 +126,8 @@ export const nextInt: Effect.Effect<number> = randomWith((r) => r.nextIntUnsafe(
  * })
  * ```
  *
- * @since 4.0.0
  * @category Random Number Generators
+ * @since 4.0.0
  */
 export const nextBetween = (min: number, max: number): Effect.Effect<number> =>
   randomWith((r) => r.nextDoubleUnsafe() * (max - min) + min)
@@ -151,8 +151,8 @@ export const nextBetween = (min: number, max: number): Effect.Effect<number> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category Random Number Generators
+ * @since 4.0.0
  */
 export const nextIntBetween = (min: number, max: number, options?: {
   readonly halfOpen?: boolean
@@ -178,8 +178,8 @@ export const nextIntBetween = (min: number, max: number, options?: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category Random Number Generators
+ * @since 4.0.0
  */
 export const shuffle = <A>(elements: Iterable<A>): Effect.Effect<Array<A>> =>
   randomWith((r) => {
@@ -206,8 +206,8 @@ export const shuffle = <A>(elements: Iterable<A>): Effect.Effect<Array<A>> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category Random Number Generators
+ * @since 4.0.0
  */
 export const nextUUIDv4: Effect.Effect<string> = randomWith((r) => {
   // Generate 16 random bytes (128 bits) for UUID
@@ -260,8 +260,8 @@ export const nextUUIDv4: Effect.Effect<string> = randomWith((r) => {
  * Effect.runPromise(seeded2)
  * ```
  *
- * @since 4.0.0
  * @category Seeding
+ * @since 4.0.0
  */
 export const withSeed: {
   (seed: string | number): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>

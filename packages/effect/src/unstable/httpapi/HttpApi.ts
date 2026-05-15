@@ -18,8 +18,8 @@ import * as HttpApiSchema from "./HttpApiSchema.ts"
 const TypeId = "~effect/httpapi/HttpApi"
 
 /**
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isHttpApi = (u: unknown): u is Any => Predicate.hasProperty(u, TypeId)
 
@@ -29,8 +29,8 @@ export const isHttpApi = (u: unknown): u is Any => Predicate.hasProperty(u, Type
  *
  * The endpoints can be implemented later using the `HttpApiBuilder.make` api.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface HttpApi<
   out Id extends string,
@@ -82,16 +82,16 @@ export interface HttpApi<
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Any {
   readonly [TypeId]: typeof TypeId
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type AnyWithProps = HttpApi<string, HttpApiGroup.AnyWithProps>
 
@@ -181,8 +181,8 @@ const makeProto = <Id extends string, Groups extends HttpApiGroup.Any>(
  * You can then use `HttpApiBuilder.layer(api)` to implement the endpoints of the
  * `HttpApi`.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = <const Id extends string>(identifier: Id): HttpApi<Id, never> =>
   makeProto({
@@ -192,8 +192,8 @@ export const make = <const Id extends string>(identifier: Id): HttpApi<Id, never
   })
 
 /**
- * @since 4.0.0
  * @category Reflection
+ * @since 4.0.0
  */
 export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
   self: HttpApi<Id, Groups>,
@@ -280,8 +280,8 @@ const extractResponseContent = (
  * Adds additional schemas to components/schemas.
  * The provided schemas must have a `identifier` annotation.
  *
- * @since 4.0.0
  * @category tags
+ * @since 4.0.0
  */
 export class AdditionalSchemas extends Context.Service<
   AdditionalSchemas,

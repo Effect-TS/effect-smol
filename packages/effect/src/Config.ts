@@ -104,8 +104,8 @@ const TypeId = "~effect/Config"
  * console.log(Config.isConfig("not a config"))        // false
  * ```
  *
- * @since 4.0.0
  * @category Guards
+ * @since 4.0.0
  */
 export const isConfig = (u: unknown): u is Config<unknown> => Predicate.hasProperty(u, TypeId)
 
@@ -125,8 +125,8 @@ export const isConfig = (u: unknown): u is Config<unknown> => Predicate.hasPrope
  * @see {@link orElse} – recover from a ConfigError
  * @see {@link withDefault} – provide a fallback for missing-data errors
  *
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export class ConfigError {
   readonly _tag = "ConfigError"

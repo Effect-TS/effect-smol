@@ -17,8 +17,8 @@ const TypeId = "~effect/RcRef"
  * The resource is lazily acquired on the first call to `get` and automatically
  * released when the last reference is released.
  *
- * @since 3.5.0
  * @category models
+ * @since 3.5.0
  * @example
  * ```ts
  * import { Effect, RcRef } from "effect"
@@ -49,8 +49,8 @@ export interface RcRef<out A, out E = never> extends Pipeable {
 }
 
 /**
- * @since 3.5.0
  * @category models
+ * @since 3.5.0
  * @example
  * ```ts
  * import type { RcRef } from "effect"
@@ -62,8 +62,8 @@ export interface RcRef<out A, out E = never> extends Pipeable {
  */
 export declare namespace RcRef {
   /**
-   * @since 3.5.0
    * @category models
+   * @since 3.5.0
    * @example
    * ```ts
    * import type { RcRef } from "effect"
@@ -90,8 +90,8 @@ export declare namespace RcRef {
  * The resource is lazily acquired on the first call to `get` and released when
  * the last reference is released.
  *
- * @since 3.5.0
  * @category constructors
+ * @since 3.5.0
  * @example
  * ```ts
  * import { Effect, RcRef } from "effect"
@@ -131,8 +131,8 @@ export const make: <A, E, R>(
  * the reference count if it has. The resource will be automatically released
  * when the returned scope is closed.
  *
- * @since 3.5.0
  * @category combinators
+ * @since 3.5.0
  * @example
  * ```ts
  * import { Effect, RcRef } from "effect"
@@ -160,7 +160,7 @@ export const make: <A, E, R>(
 export const get: <A, E>(self: RcRef<A, E>) => Effect.Effect<A, E, Scope> = internal.get
 
 /**
- * @since 3.19.6
  * @category combinators
+ * @since 3.19.6
  */
 export const invalidate: <A, E>(self: RcRef<A, E>) => Effect.Effect<void> = internal.invalidate

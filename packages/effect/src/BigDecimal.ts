@@ -94,8 +94,8 @@ const BigDecimalProto: Omit<BigDecimal, "value" | "scale" | "normalized"> = {
  * console.log(BigDecimal.isBigDecimal("123.45")) // false
  * ```
  *
- * @since 2.0.0
  * @category guards
+ * @since 2.0.0
  */
 export const isBigDecimal = (u: unknown): u is BigDecimal => hasProperty(u, TypeId)
 
@@ -115,8 +115,8 @@ export const isBigDecimal = (u: unknown): u is BigDecimal => hasProperty(u, Type
  * console.log(BigDecimal.format(integer)) // "42"
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const make = (value: bigint, scale: number): BigDecimal => {
   const o = Object.create(BigDecimalProto)
@@ -168,8 +168,8 @@ const one = makeNormalizedUnsafe(bigint1, 0)
  * )
  * ```
  *
- * @since 2.0.0
  * @category scaling
+ * @since 2.0.0
  */
 export const normalize = (self: BigDecimal): BigDecimal => {
   if (self.normalized === undefined) {
@@ -221,8 +221,8 @@ export const normalize = (self: BigDecimal): BigDecimal => {
  * console.log(BigDecimal.format(reduced)) // "123.4"
  * ```
  *
- * @since 2.0.0
  * @category scaling
+ * @since 2.0.0
  */
 export const scale: {
   (scale: number): (self: BigDecimal) => BigDecimal
@@ -253,8 +253,8 @@ export const scale: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category math
+ * @since 2.0.0
  */
 export const sum: {
   (that: BigDecimal): (self: BigDecimal) => BigDecimal
@@ -293,8 +293,8 @@ export const sum: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category math
+ * @since 4.0.0
  */
 export const sumAll = (collection: Iterable<BigDecimal>): BigDecimal => {
   let out: BigDecimal = zero
@@ -318,8 +318,8 @@ export const sumAll = (collection: Iterable<BigDecimal>): BigDecimal => {
  * )
  * ```
  *
- * @since 2.0.0
  * @category math
+ * @since 2.0.0
  */
 export const multiply: {
   (that: BigDecimal): (self: BigDecimal) => BigDecimal
@@ -346,8 +346,8 @@ export const multiply: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category math
+ * @since 4.0.0
  */
 export const multiplyAll = (collection: Iterable<BigDecimal>): BigDecimal => {
   let out: BigDecimal = one
@@ -374,8 +374,8 @@ export const multiplyAll = (collection: Iterable<BigDecimal>): BigDecimal => {
  * )
  * ```
  *
- * @since 2.0.0
  * @category math
+ * @since 2.0.0
  */
 export const subtract: {
   (that: BigDecimal): (self: BigDecimal) => BigDecimal
@@ -504,8 +504,8 @@ export const roundTerminal = (n: bigint): bigint => {
  * )
  * ```
  *
- * @since 2.0.0
  * @category math
+ * @since 2.0.0
  */
 export const divide: {
   (that: BigDecimal): (self: BigDecimal) => Option.Option<BigDecimal>
@@ -550,8 +550,8 @@ export const divide: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category math
+ * @since 2.0.0
  */
 export const divideUnsafe: {
   (that: BigDecimal): (self: BigDecimal) => BigDecimal
@@ -588,8 +588,8 @@ export const divideUnsafe: {
  * console.log(BigDecimal.Order(a, c)) // 0 (a === c)
  * ```
  *
- * @since 2.0.0
  * @category instances
+ * @since 2.0.0
  */
 export const Order: order.Order<BigDecimal> = order.make((self, that) => {
   const scmp = order.Number(sign(self), sign(that))
@@ -630,8 +630,8 @@ export const Order: order.Order<BigDecimal> = order.make((self, that) => {
  * )
  * ```
  *
- * @since 2.0.0
  * @category predicates
+ * @since 2.0.0
  */
 export const isLessThan: {
   (that: BigDecimal): (self: BigDecimal) => boolean
@@ -660,8 +660,8 @@ export const isLessThan: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category predicates
+ * @since 2.0.0
  */
 export const isLessThanOrEqualTo: {
   (that: BigDecimal): (self: BigDecimal) => boolean
@@ -690,8 +690,8 @@ export const isLessThanOrEqualTo: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category predicates
+ * @since 2.0.0
  */
 export const isGreaterThan: {
   (that: BigDecimal): (self: BigDecimal) => boolean
@@ -720,8 +720,8 @@ export const isGreaterThan: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category predicates
+ * @since 2.0.0
  */
 export const isGreaterThanOrEqualTo: {
   (that: BigDecimal): (self: BigDecimal) => boolean
@@ -746,8 +746,8 @@ export const isGreaterThanOrEqualTo: {
  * assert.deepStrictEqual(between(BigDecimal.fromStringUnsafe("6")), false)
  * ```
  *
- * @since 2.0.0
  * @category predicates
+ * @since 2.0.0
  */
 export const between: {
   (options: {
@@ -791,8 +791,8 @@ export const between: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category math
+ * @since 2.0.0
  */
 export const clamp: {
   (options: {
@@ -819,8 +819,8 @@ export const clamp: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category math
+ * @since 2.0.0
  */
 export const min: {
   (that: BigDecimal): (self: BigDecimal) => BigDecimal
@@ -841,8 +841,8 @@ export const min: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category math
+ * @since 2.0.0
  */
 export const max: {
   (that: BigDecimal): (self: BigDecimal) => BigDecimal
@@ -862,8 +862,8 @@ export const max: {
  * assert.deepStrictEqual(sign(fromStringUnsafe("5")), 1)
  * ```
  *
- * @since 2.0.0
  * @category math
+ * @since 2.0.0
  */
 export const sign = (n: BigDecimal): Ordering => n.value === bigint0 ? 0 : n.value < bigint0 ? -1 : 1
 
@@ -880,8 +880,8 @@ export const sign = (n: BigDecimal): Ordering => n.value === bigint0 ? 0 : n.val
  * assert.deepStrictEqual(abs(fromStringUnsafe("5")), fromStringUnsafe("5"))
  * ```
  *
- * @since 2.0.0
  * @category math
+ * @since 2.0.0
  */
 export const abs = (n: BigDecimal): BigDecimal => n.value < bigint0 ? make(-n.value, n.scale) : n
 
@@ -897,8 +897,8 @@ export const abs = (n: BigDecimal): BigDecimal => n.value < bigint0 ? make(-n.va
  * assert.deepStrictEqual(negate(fromStringUnsafe("-6")), fromStringUnsafe("6"))
  * ```
  *
- * @since 2.0.0
  * @category math
+ * @since 2.0.0
  */
 export const negate = (n: BigDecimal): BigDecimal => make(-n.value, n.scale)
 
@@ -935,8 +935,8 @@ export const negate = (n: BigDecimal): BigDecimal => make(-n.value, n.scale)
  * )
  * ```
  *
- * @since 2.0.0
  * @category math
+ * @since 2.0.0
  */
 export const remainder: {
   (divisor: BigDecimal): (self: BigDecimal) => Option.Option<BigDecimal>
@@ -974,8 +974,8 @@ export const remainder: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category math
+ * @since 2.0.0
  */
 export const remainderUnsafe: {
   (divisor: BigDecimal): (self: BigDecimal) => BigDecimal
@@ -1034,8 +1034,8 @@ export const Equivalence: Equ.Equivalence<BigDecimal> = Equ.make((self, that) =>
  * console.log(BigDecimal.equals(a, c)) // false
  * ```
  *
- * @since 2.0.0
  * @category predicates
+ * @since 2.0.0
  */
 export const equals: {
   (that: BigDecimal): (self: BigDecimal) => boolean
@@ -1056,8 +1056,8 @@ export const equals: {
  * console.log(BigDecimal.format(largeBigInt)) // "9007199254740991"
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const fromBigInt = (n: bigint): BigDecimal => make(n, 0)
 
@@ -1078,8 +1078,8 @@ export const fromBigInt = (n: bigint): BigDecimal => make(n, 0)
  * assert.deepStrictEqual(fromNumberUnsafe(123.456), make(123456n, 3))
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fromNumberUnsafe = (n: number): BigDecimal => {
   return Option.getOrThrowWith(fromNumber(n), () => new RangeError(`Number must be finite, got ${n}`))
@@ -1106,8 +1106,8 @@ export const fromNumberUnsafe = (n: number): BigDecimal => {
  * assert.deepStrictEqual(BigDecimal.fromNumber(Infinity), Option.none())
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fromNumber = (n: number): Option.Option<BigDecimal> => {
   if (!Number.isFinite(n)) {
@@ -1139,8 +1139,8 @@ export const fromNumber = (n: number): Option.Option<BigDecimal> => {
  * assert.deepStrictEqual(BigDecimal.fromString("123.abc"), Option.none())
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const fromString = (s: string): Option.Option<BigDecimal> => {
   if (s === "") {
@@ -1200,8 +1200,8 @@ export const fromString = (s: string): Option.Option<BigDecimal> => {
  * assert.throws(() => fromStringUnsafe("123.abc"))
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const fromStringUnsafe = (s: string): BigDecimal => {
   return Option.getOrThrowWith(fromString(s), () => new Error(`Invalid numerical string: ${s}`))
@@ -1223,8 +1223,8 @@ export const fromStringUnsafe = (s: string): BigDecimal => {
  * assert.deepStrictEqual(format(fromStringUnsafe("-0.00000123")), "-0.00000123")
  * ```
  *
- * @since 2.0.0
  * @category conversions
+ * @since 2.0.0
  */
 export const format = (n: BigDecimal): string => {
   const normalized = normalize(n)
@@ -1268,8 +1268,8 @@ export const format = (n: BigDecimal): string => {
  * assert.deepStrictEqual(toExponential(make(123456n, -5)), "1.23456e+10")
  * ```
  *
- * @since 4.0.0
  * @category conversions
+ * @since 4.0.0
  */
 export const toExponential = (n: BigDecimal): string => {
   if (isZero(n)) {
@@ -1303,8 +1303,8 @@ export const toExponential = (n: BigDecimal): string => {
  * assert.deepStrictEqual(toNumberUnsafe(fromStringUnsafe("123.456")), 123.456)
  * ```
  *
- * @since 2.0.0
  * @category conversions
+ * @since 2.0.0
  */
 export const toNumberUnsafe = (n: BigDecimal): number => Number(format(n))
 
@@ -1321,8 +1321,8 @@ export const toNumberUnsafe = (n: BigDecimal): number => Number(format(n))
  * assert.deepStrictEqual(isInteger(fromStringUnsafe("1.1")), false)
  * ```
  *
- * @since 2.0.0
  * @category predicates
+ * @since 2.0.0
  */
 export const isInteger = (n: BigDecimal): boolean => normalize(n).scale <= 0
 
@@ -1338,8 +1338,8 @@ export const isInteger = (n: BigDecimal): boolean => normalize(n).scale <= 0
  * assert.deepStrictEqual(isZero(fromStringUnsafe("1")), false)
  * ```
  *
- * @since 2.0.0
  * @category predicates
+ * @since 2.0.0
  */
 export const isZero = (n: BigDecimal): boolean => n.value === bigint0
 
@@ -1356,8 +1356,8 @@ export const isZero = (n: BigDecimal): boolean => n.value === bigint0
  * assert.deepStrictEqual(isNegative(fromStringUnsafe("1")), false)
  * ```
  *
- * @since 2.0.0
  * @category predicates
+ * @since 2.0.0
  */
 export const isNegative = (n: BigDecimal): boolean => n.value < bigint0
 
@@ -1374,8 +1374,8 @@ export const isNegative = (n: BigDecimal): boolean => n.value < bigint0
  * assert.deepStrictEqual(isPositive(fromStringUnsafe("1")), true)
  * ```
  *
- * @since 2.0.0
  * @category predicates
+ * @since 2.0.0
  */
 export const isPositive = (n: BigDecimal): boolean => n.value > bigint0
 
@@ -1395,8 +1395,8 @@ const isBigDecimalArgs = (args: IArguments) => isBigDecimal(args[0])
  * `half-even`: round to the nearest neighbor; if equidistant round to the neighbor with an even digit
  * `half-odd`: round to the nearest neighbor; if equidistant round to the neighbor with an odd digit
  *
- * @since 4.0.0
  * @category math
+ * @since 4.0.0
  */
 export type RoundingMode =
   | "ceil"
@@ -1428,8 +1428,8 @@ export type RoundingMode =
  * )
  * ```
  *
- * @since 4.0.0
  * @category math
+ * @since 4.0.0
  */
 export const round: {
   (options: { scale?: number; mode?: RoundingMode }): (self: BigDecimal) => BigDecimal
@@ -1499,8 +1499,8 @@ export const round: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category math
+ * @since 4.0.0
  */
 export const truncate: {
   (scale: number): (self: BigDecimal) => BigDecimal
@@ -1529,8 +1529,8 @@ export const truncate: {
  * assert.deepStrictEqual(ceil(fromStringUnsafe("-14.5")), fromStringUnsafe("-14"))
  * ```
  *
- * @since 4.0.0
  * @category math
+ * @since 4.0.0
  */
 export const ceil: {
   (scale: number): (self: BigDecimal) => BigDecimal
@@ -1582,8 +1582,8 @@ export const digitAt: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category math
+ * @since 4.0.0
  */
 export const floor: {
   (scale: number): (self: BigDecimal) => BigDecimal

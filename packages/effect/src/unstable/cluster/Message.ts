@@ -16,20 +16,20 @@ import type * as Reply from "./Reply.ts"
 import type { Snowflake } from "./Snowflake.ts"
 
 /**
- * @since 4.0.0
  * @category incoming
+ * @since 4.0.0
  */
 export type Incoming<R extends Rpc.Any> = IncomingRequest<R> | IncomingEnvelope
 
 /**
- * @since 4.0.0
  * @category incoming
+ * @since 4.0.0
  */
 export type IncomingLocal<R extends Rpc.Any> = IncomingRequestLocal<R> | IncomingEnvelope
 
 /**
- * @since 4.0.0
  * @category incoming
+ * @since 4.0.0
  */
 export const incomingLocalFromOutgoing = <R extends Rpc.Any>(self: Outgoing<R>): IncomingLocal<R> => {
   if (self._tag === "OutgoingEnvelope") {
@@ -47,8 +47,8 @@ export const incomingLocalFromOutgoing = <R extends Rpc.Any>(self: Outgoing<R>):
 }
 
 /**
- * @since 4.0.0
  * @category incoming
+ * @since 4.0.0
  */
 export class IncomingRequest<R extends Rpc.Any> extends Data.TaggedClass("IncomingRequest")<{
   readonly envelope: Envelope.PartialRequest
@@ -57,8 +57,8 @@ export class IncomingRequest<R extends Rpc.Any> extends Data.TaggedClass("Incomi
 }> {}
 
 /**
- * @since 4.0.0
  * @category outgoing
+ * @since 4.0.0
  */
 export class IncomingRequestLocal<R extends Rpc.Any> extends Data.TaggedClass("IncomingRequestLocal")<{
   readonly envelope: Envelope.Request<R>
@@ -68,8 +68,8 @@ export class IncomingRequestLocal<R extends Rpc.Any> extends Data.TaggedClass("I
 }> {}
 
 /**
- * @since 4.0.0
  * @category incoming
+ * @since 4.0.0
  */
 export class IncomingEnvelope extends Data.TaggedClass("IncomingEnvelope")<{
   readonly _tag: "IncomingEnvelope"
@@ -77,14 +77,14 @@ export class IncomingEnvelope extends Data.TaggedClass("IncomingEnvelope")<{
 }> {}
 
 /**
- * @since 4.0.0
  * @category outgoing
+ * @since 4.0.0
  */
 export type Outgoing<R extends Rpc.Any> = OutgoingRequest<R> | OutgoingEnvelope
 
 /**
- * @since 4.0.0
  * @category outgoing
+ * @since 4.0.0
  */
 export class OutgoingRequest<R extends Rpc.Any> extends Data.TaggedClass("OutgoingRequest")<{
   readonly envelope: Envelope.Request<R>
@@ -101,8 +101,8 @@ export class OutgoingRequest<R extends Rpc.Any> extends Data.TaggedClass("Outgoi
 }
 
 /**
- * @since 4.0.0
  * @category outgoing
+ * @since 4.0.0
  */
 export class OutgoingEnvelope extends Data.TaggedClass("OutgoingEnvelope")<{
   readonly envelope: Envelope.AckChunk | Envelope.Interrupt
@@ -130,8 +130,8 @@ const neverRpc = Rpc.make("Never", {
 })
 
 /**
- * @since 4.0.0
  * @category serialization / deserialization
+ * @since 4.0.0
  */
 export const serialize = <Rpc extends Rpc.Any>(
   message: Outgoing<Rpc>
@@ -147,8 +147,8 @@ export const serialize = <Rpc extends Rpc.Any>(
 }
 
 /**
- * @since 4.0.0
  * @category serialization / deserialization
+ * @since 4.0.0
  */
 export const serializeEnvelope = <Rpc extends Rpc.Any>(
   message: Outgoing<Rpc>
@@ -159,8 +159,8 @@ export const serializeEnvelope = <Rpc extends Rpc.Any>(
   )
 
 /**
- * @since 4.0.0
  * @category serialization / deserialization
+ * @since 4.0.0
  */
 export const serializeRequest = <Rpc extends Rpc.Any>(
   self: OutgoingRequest<Rpc>
@@ -177,8 +177,8 @@ export const serializeRequest = <Rpc extends Rpc.Any>(
 }
 
 /**
- * @since 4.0.0
  * @category serialization / deserialization
+ * @since 4.0.0
  */
 export const deserializeLocal = <Rpc extends Rpc.Any>(
   self: Outgoing<Rpc>,

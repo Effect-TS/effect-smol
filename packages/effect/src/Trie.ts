@@ -59,8 +59,8 @@ const TypeId = TR.TrieTypeId
  * console.log(Trie.size(trie)) // 4
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Trie<in out Value> extends Iterable<[string, Value]>, Equal, Pipeable, Inspectable {
   readonly [TypeId]: {
@@ -82,8 +82,8 @@ export interface Trie<in out Value> extends Iterable<[string, Value]>, Equal, Pi
  * assert.deepStrictEqual(Array.from(trie), [])
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const empty: <V = never>() => Trie<V> = TR.empty
 
@@ -116,8 +116,8 @@ export const empty: <V = never>() => Trie<V> = TR.empty
  * )
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const fromIterable: <V>(entries: Iterable<readonly [string, V]>) => Trie<V> = TR.fromIterable
 
@@ -139,8 +139,8 @@ export const fromIterable: <V>(entries: Iterable<readonly [string, V]>) => Trie<
  * )
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const make: <Entries extends Array<readonly [string, any]>>(
   ...entries: Entries
@@ -170,8 +170,8 @@ export const make: <Entries extends Array<readonly [string, any]>>(
  * ]])
  * ```
  *
- * @since 2.0.0
  * @category mutations
+ * @since 2.0.0
  */
 export const insert: {
   <V>(key: string, value: V): (self: Trie<V>) => Trie<V>
@@ -198,8 +198,8 @@ export const insert: {
  * assert.deepStrictEqual(result, ["abc", "bca", "cab"])
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const keys: <V>(self: Trie<V>) => IterableIterator<string> = TR.keys
 
@@ -223,8 +223,8 @@ export const keys: <V>(self: Trie<V>) => IterableIterator<string> = TR.keys
  * assert.deepStrictEqual(result, [2, 0, 1])
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const values: <V>(self: Trie<V>) => IterableIterator<V> = TR.values
 
@@ -247,8 +247,8 @@ export const values: <V>(self: Trie<V>) => IterableIterator<V> = TR.values
  * assert.deepStrictEqual(result, [["call", 0], ["me", 1]])
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const entries: <V>(self: Trie<V>) => IterableIterator<[string, V]> = TR.entries
 
@@ -271,8 +271,8 @@ export const entries: <V>(self: Trie<V>) => IterableIterator<[string, V]> = TR.e
  * assert.deepStrictEqual(result, [["call", 0], ["me", 1]])
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const toEntries = <V>(self: Trie<V>): Array<[string, V]> => Array.from(entries(self))
 
@@ -296,8 +296,8 @@ export const toEntries = <V>(self: Trie<V>): Array<[string, V]> => Array.from(en
  * assert.deepStrictEqual(result, ["she", "shells"])
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const keysWithPrefix: {
   (prefix: string): <V>(self: Trie<V>) => IterableIterator<string>
@@ -326,8 +326,8 @@ export const keysWithPrefix: {
  * assert.deepStrictEqual(result, [0, 1])
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const valuesWithPrefix: {
   (prefix: string): <V>(self: Trie<V>) => IterableIterator<V>
@@ -354,8 +354,8 @@ export const valuesWithPrefix: {
  * assert.deepStrictEqual(result, [["she", 0], ["shells", 1]])
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const entriesWithPrefix: {
   (prefix: string): <V>(self: Trie<V>) => IterableIterator<[string, V]>
@@ -382,8 +382,8 @@ export const entriesWithPrefix: {
  * assert.deepStrictEqual(result, [["she", 3], ["shells", 0]])
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const toEntriesWithPrefix: {
   (prefix: string): <V>(self: Trie<V>) => Array<[string, V]>
@@ -415,8 +415,8 @@ export const toEntriesWithPrefix: {
  * }
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const longestPrefixOf: {
   (key: string): <V>(self: Trie<V>) => Option<[string, V]>
@@ -439,8 +439,8 @@ export const longestPrefixOf: {
  * assert.equal(Trie.size(trie), 2)
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const size: <V>(self: Trie<V>) => number = TR.size
 
@@ -470,8 +470,8 @@ export const size: <V>(self: Trie<V>) => number = TR.size
  * assert.deepStrictEqual(Trie.get(trie, "mea"), Option.none())
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const get: {
   (key: string): <V>(self: Trie<V>) => Option<V>
@@ -503,8 +503,8 @@ export const get: {
  * assert.equal(Trie.has(trie, "mea"), false)
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const has: {
   (key: string): <V>(self: Trie<V>) => boolean
@@ -526,8 +526,8 @@ export const has: {
  * assert.equal(Trie.isEmpty(trie1), false)
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const isEmpty: <V>(self: Trie<V>) => boolean = TR.isEmpty
 
@@ -550,8 +550,8 @@ export const isEmpty: <V>(self: Trie<V>) => boolean = TR.isEmpty
  * assert.throws(() => Trie.getUnsafe(trie, "mae"))
  * ```
  *
- * @since 2.0.0
  * @category unsafe
+ * @since 2.0.0
  */
 export const getUnsafe: {
   (key: string): <V>(self: Trie<V>) => V
@@ -582,8 +582,8 @@ export const getUnsafe: {
  * assert.deepStrictEqual(Trie.get(trie2, "call"), Option.none())
  * ```
  *
- * @since 2.0.0
  * @category mutations
+ * @since 2.0.0
  */
 export const remove: {
   (key: string): <V>(self: Trie<V>) => Trie<V>
@@ -624,8 +624,8 @@ export const remove: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category folding
+ * @since 2.0.0
  */
 export const reduce: {
   <Z, V>(zero: Z, f: (accumulator: Z, value: V, key: string) => Z): (self: Trie<V>) => Z
@@ -663,8 +663,8 @@ export const reduce: {
  * assert.equal(Equal.equals(Trie.map(trie, (_, k) => k.length), trieMapK), true)
  * ```
  *
- * @since 2.0.0
  * @category folding
+ * @since 2.0.0
  */
 export const map: {
   <A, V>(f: (value: V, key: string) => A): (self: Trie<V>) => Trie<A>
@@ -702,8 +702,8 @@ export const map: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category filtering
+ * @since 2.0.0
  */
 export const filter: {
   <A, B extends A>(f: (a: NoInfer<A>, k: string) => a is B): (self: Trie<A>) => Trie<B>
@@ -757,8 +757,8 @@ export const filter: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category filtering
+ * @since 2.0.0
  */
 export const filterMap: {
   <A, B, X>(f: (input: A, key: string) => Result<B, X>): (self: Trie<A>) => Trie<B>
@@ -789,8 +789,8 @@ export const filterMap: {
  * assert.equal(Equal.equals(Trie.compact(trie), trieMapV), true)
  * ```
  *
- * @since 2.0.0
  * @category filtering
+ * @since 2.0.0
  */
 export const compact: <A>(self: Trie<Option<A>>) => Trie<A> = TR.compact
 
@@ -816,8 +816,8 @@ export const compact: <A>(self: Trie<Option<A>>) => Trie<A> = TR.compact
  * assert.equal(value, 17)
  * ```
  *
- * @since 2.0.0
  * @category traversing
+ * @since 2.0.0
  */
 export const forEach: {
   <V>(f: (value: V, key: string) => void): (self: Trie<V>) => void
@@ -848,8 +848,8 @@ export const forEach: {
  * assert.equal(Equal.equals(trie.pipe(Trie.modify("me", (v) => v)), trie), true)
  * ```
  *
- * @since 2.0.0
  * @category mutations
+ * @since 2.0.0
  */
 export const modify: {
   <V>(key: string, f: (v: V) => V): (self: Trie<V>) => Trie<V>
@@ -880,8 +880,8 @@ export const modify: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category mutations
+ * @since 2.0.0
  */
 export const removeMany: {
   (keys: Iterable<string>): <V>(self: Trie<V>) => Trie<V>
@@ -916,8 +916,8 @@ export const removeMany: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category mutations
+ * @since 2.0.0
  */
 export const insertMany: {
   <V>(iter: Iterable<[string, V]>): (self: Trie<V>) => Trie<V>

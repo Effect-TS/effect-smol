@@ -11,8 +11,8 @@ import * as Redis from "effect/unstable/persistence/Redis"
 import * as IoRedis from "ioredis"
 
 /**
- * @since 1.0.0
  * @category Service
+ * @since 1.0.0
  */
 export class NodeRedis extends Context.Service<NodeRedis, {
   readonly client: IoRedis.Redis
@@ -51,16 +51,16 @@ const make = Effect.fnUntraced(function*(
 })
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layer = (
   options?: IoRedis.RedisOptions | undefined
 ): Layer.Layer<Redis.Redis | NodeRedis> => Layer.effectContext(make(options))
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerConfig: (
   options: Config.Wrap<IoRedis.RedisOptions>

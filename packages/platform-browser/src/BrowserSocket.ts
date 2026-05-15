@@ -5,8 +5,8 @@ import * as Layer from "effect/Layer"
 import * as Socket from "effect/unstable/socket/Socket"
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerWebSocket = (url: string, options?: {
   readonly closeCodeIsError?: (code: number) => boolean
@@ -18,8 +18,8 @@ export const layerWebSocket = (url: string, options?: {
 /**
  * A WebSocket constructor that uses `globalThis.WebSocket`.
  *
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerWebSocketConstructor: Layer.Layer<Socket.WebSocketConstructor> =
   Socket.layerWebSocketConstructorGlobal

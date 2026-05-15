@@ -43,8 +43,8 @@ import type * as Workflow from "./Workflow.ts"
  * )
  * ```
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const toRpcGroup = <
   const Workflows extends NonEmptyReadonlyArray<Workflow.Any>,
@@ -127,8 +127,8 @@ export type ConvertRpcs<Workflows extends Workflow.Any, Prefix extends string> =
  * )
  * ```
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const toHttpApiGroup = <const Name extends string, const Workflows extends NonEmptyReadonlyArray<Workflow.Any>>(
   name: Name,

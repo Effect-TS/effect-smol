@@ -81,8 +81,8 @@ const TxHashSetProto = {
  * })
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface TxHashSet<in out V> extends Inspectable, Pipeable {
   readonly [TypeId]: typeof TypeId
@@ -111,8 +111,8 @@ export interface TxHashSet<in out V> extends Inspectable, Pipeable {
  * })
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export declare namespace TxHashSet {
   /**
@@ -130,8 +130,8 @@ export declare namespace TxHashSet {
    * }
    * ```
    *
-   * @since 2.0.0
    * @category type-level
+   * @since 2.0.0
    */
   export type Value<T> = T extends TxHashSet<infer V> ? V : never
 }
@@ -162,8 +162,8 @@ const makeTxHashSet = <V>(ref: TxRef.TxRef<HashSet.HashSet<V>>): TxHashSet<V> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const empty = <V = never>(): Effect.Effect<TxHashSet<V>> =>
   Effect.gen(function*() {
@@ -190,8 +190,8 @@ export const empty = <V = never>(): Effect.Effect<TxHashSet<V>> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const make = <Values extends ReadonlyArray<any>>(
   ...values: Values
@@ -222,8 +222,8 @@ export const make = <Values extends ReadonlyArray<any>>(
  * })
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const fromIterable = <V>(values: Iterable<V>): Effect.Effect<TxHashSet<V>> =>
   Effect.gen(function*() {
@@ -254,8 +254,8 @@ export const fromIterable = <V>(values: Iterable<V>): Effect.Effect<TxHashSet<V>
  * })
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const fromHashSet = <V>(hashSet: HashSet.HashSet<V>): Effect.Effect<TxHashSet<V>> =>
   Effect.gen(function*() {
@@ -283,8 +283,8 @@ export const fromHashSet = <V>(hashSet: HashSet.HashSet<V>): Effect.Effect<TxHas
  * })
  * ```
  *
- * @since 2.0.0
  * @category guards
+ * @since 2.0.0
  */
 export const isTxHashSet = (u: unknown): u is TxHashSet<unknown> => hasProperty(u, TypeId)
 
@@ -311,8 +311,8 @@ export const isTxHashSet = (u: unknown): u is TxHashSet<unknown> => hasProperty(
  * })
  * ```
  *
- * @since 2.0.0
  * @category mutations
+ * @since 2.0.0
  */
 export const add: {
   <V>(value: V): (self: TxHashSet<V>) => Effect.Effect<void>
@@ -346,8 +346,8 @@ export const add: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category mutations
+ * @since 2.0.0
  */
 export const remove: {
   <V>(value: V): (self: TxHashSet<V>) => Effect.Effect<boolean>
@@ -396,8 +396,8 @@ export const remove: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const has: {
   <V>(value: V): (self: TxHashSet<V>) => Effect.Effect<boolean>
@@ -430,8 +430,8 @@ export const has: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const size = <V>(self: TxHashSet<V>): Effect.Effect<number> =>
   Effect.gen(function*() {
@@ -455,8 +455,8 @@ export const size = <V>(self: TxHashSet<V>): Effect.Effect<number> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const isEmpty = <V>(self: TxHashSet<V>): Effect.Effect<boolean> =>
   Effect.gen(function*() {
@@ -484,8 +484,8 @@ export const isEmpty = <V>(self: TxHashSet<V>): Effect.Effect<boolean> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category mutations
+ * @since 2.0.0
  */
 export const clear = <V>(self: TxHashSet<V>): Effect.Effect<void> => TxRef.set(self.ref, HashSet.empty<V>())
 
@@ -507,8 +507,8 @@ export const clear = <V>(self: TxHashSet<V>): Effect.Effect<void> => TxRef.set(s
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const union: {
   <V1>(that: TxHashSet<V1>): <V0>(self: TxHashSet<V0>) => Effect.Effect<TxHashSet<V1 | V0>>
@@ -547,8 +547,8 @@ export const union: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const intersection: {
   <V1>(that: TxHashSet<V1>): <V0>(self: TxHashSet<V0>) => Effect.Effect<TxHashSet<V1 & V0>>
@@ -587,8 +587,8 @@ export const intersection: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const difference: {
   <V1>(that: TxHashSet<V1>): <V0>(self: TxHashSet<V0>) => Effect.Effect<TxHashSet<V0>>
@@ -628,8 +628,8 @@ export const difference: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const isSubset: {
   <V1>(that: TxHashSet<V1>): <V0>(self: TxHashSet<V0>) => Effect.Effect<boolean>
@@ -662,8 +662,8 @@ export const isSubset: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const some: {
   <V>(predicate: Predicate<V>): (self: TxHashSet<V>) => Effect.Effect<boolean>
@@ -695,8 +695,8 @@ export const some: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const every: {
   <V>(predicate: Predicate<V>): (self: TxHashSet<V>) => Effect.Effect<boolean>
@@ -733,8 +733,8 @@ export const every: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category mapping
+ * @since 2.0.0
  */
 export const map: {
   <V, U>(f: (value: V) => U): (self: TxHashSet<V>) => Effect.Effect<TxHashSet<U>>
@@ -766,8 +766,8 @@ export const map: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category filtering
+ * @since 2.0.0
  */
 export const filter: {
   <V, U extends V>(
@@ -823,8 +823,8 @@ export const filter: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category folding
+ * @since 2.0.0
  */
 export const reduce: {
   <V, U>(
@@ -874,7 +874,7 @@ export const reduce: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category conversions
+ * @since 2.0.0
  */
 export const toHashSet = <V>(self: TxHashSet<V>): Effect.Effect<HashSet.HashSet<V>> => TxRef.get(self.ref)

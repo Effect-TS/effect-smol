@@ -15,8 +15,8 @@ import * as ShardingConfig from "./ShardingConfig.ts"
  * MessageStorage is backed by an in-memory driver, and RunnerStorage is backed
  * by an in-memory driver.
  *
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<
   Sharding.Sharding | Runners.Runners | MessageStorage.MessageStorage | MessageStorage.MemoryDriver

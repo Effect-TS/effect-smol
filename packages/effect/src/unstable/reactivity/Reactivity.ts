@@ -14,8 +14,8 @@ import * as Scope from "../../Scope.ts"
 import * as Stream from "../../Stream.ts"
 
 /**
- * @since 4.0.0
  * @category tags
+ * @since 4.0.0
  */
 export class Reactivity extends Context.Service<
   Reactivity,
@@ -45,8 +45,8 @@ export class Reactivity extends Context.Service<
 >()("effect/reactivity/Reactivity") {}
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = Effect.sync(() => {
   const handlers = new Map<number | string, Set<() => void>>()
@@ -188,8 +188,8 @@ class PendingInvalidation extends Context.Service<PendingInvalidation, Set<strin
 ) {}
 
 /**
- * @since 4.0.0
  * @category accessors
+ * @since 4.0.0
  */
 export const mutation: {
   (
@@ -205,8 +205,8 @@ export const mutation: {
 ): Effect.Effect<A, E, R | Reactivity> => Reactivity.use((_) => _.mutation(keys, effect)))
 
 /**
- * @since 4.0.0
  * @category accessors
+ * @since 4.0.0
  */
 export const query: {
   (
@@ -225,8 +225,8 @@ export const query: {
   Reactivity.use((r) => r.query(keys, effect)))
 
 /**
- * @since 4.0.0
  * @category accessors
+ * @since 4.0.0
  */
 export const stream: {
   (
@@ -246,16 +246,16 @@ export const stream: {
   ))
 
 /**
- * @since 4.0.0
  * @category accessors
+ * @since 4.0.0
  */
 export const invalidate = (
   keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>
 ): Effect.Effect<void, never, Reactivity> => Reactivity.use((r) => r.invalidate(keys))
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<Reactivity> = Layer.effect(Reactivity)(make)
 

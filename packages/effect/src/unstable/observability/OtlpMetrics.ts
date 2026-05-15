@@ -43,14 +43,14 @@ import { OtlpSerialization } from "./OtlpSerialization.ts"
  * })
  * ```
  *
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export type AggregationTemporality = "cumulative" | "delta"
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make: (options: {
   readonly url: string
@@ -429,8 +429,8 @@ export const make: (options: {
 })
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layer = (options: {
   readonly url: string

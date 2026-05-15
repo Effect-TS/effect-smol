@@ -18,8 +18,8 @@ const TypeId = "~effect/Resource" as const
  * A `Resource` is a value loaded into memory that can be refreshed manually or
  * automatically according to a schedule.
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Resource<in out A, in out E = never> extends Pipeable {
   readonly [TypeId]: typeof TypeId
@@ -28,8 +28,8 @@ export interface Resource<in out A, in out E = never> extends Pipeable {
 }
 
 /**
- * @since 2.0.0
  * @category guards
+ * @since 2.0.0
  */
 export const isResource: (u: unknown) => u is Resource<unknown, unknown> = (
   u: unknown
@@ -58,8 +58,8 @@ const makeUnsafe = <A, E>(
 /**
  * Creates a `Resource` that must be refreshed manually.
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const manual = <A, E, R>(
   acquire: Effect.Effect<A, E, R>
@@ -79,8 +79,8 @@ export const manual = <A, E, R>(
  * Creates a `Resource` that refreshes automatically according to the supplied
  * schedule.
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const auto = <A, E, R, Out, E2, R2>(
   acquire: Effect.Effect<A, E, R>,
@@ -94,8 +94,8 @@ export const auto = <A, E, R, Out, E2, R2>(
 /**
  * Retrieves the current value stored in this resource.
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const get = <A, E>(self: Resource<A, E>): Effect.Effect<A, E> =>
   Effect.flatMap(ScopedRef.get(self.scopedRef), identity)
@@ -103,8 +103,8 @@ export const get = <A, E>(self: Resource<A, E>): Effect.Effect<A, E> =>
 /**
  * Refreshes this resource.
  *
- * @since 2.0.0
  * @category utils
+ * @since 2.0.0
  */
 export const refresh = <A, E>(self: Resource<A, E>): Effect.Effect<void, E> =>
   ScopedRef.set(self.scopedRef, Effect.map(self.acquire, Exit.succeed))

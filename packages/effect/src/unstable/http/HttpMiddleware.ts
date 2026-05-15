@@ -22,8 +22,8 @@ import * as TraceContext from "./HttpTraceContext.ts"
 import { appendPreResponseHandlerUnsafe } from "./internal/preResponseHandler.ts"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface HttpMiddleware {
   <E, R>(self: Effect.Effect<HttpServerResponse, E, R | HttpServerRequest>): Effect.Effect<HttpServerResponse, any, any>
@@ -42,8 +42,8 @@ export declare namespace HttpMiddleware {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = <M extends HttpMiddleware>(middleware: M): M => middleware
 
@@ -63,8 +63,8 @@ const stripSearchAndHash = (url: string): string => {
 }
 
 /**
- * @since 4.0.0
  * @category Logger
+ * @since 4.0.0
  */
 export const withLoggerDisabled = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R | HttpServerRequest> =>
   Effect.withFiber((fiber) => {
@@ -74,8 +74,8 @@ export const withLoggerDisabled = <A, E, R>(self: Effect.Effect<A, E, R>): Effec
   })
 
 /**
- * @since 4.0.0
  * @category Tracer
+ * @since 4.0.0
  */
 export const TracerDisabledWhen = Context.Reference<Predicate<HttpServerRequest>>(
   "effect/http/HttpMiddleware/TracerDisabledWhen",
@@ -83,16 +83,16 @@ export const TracerDisabledWhen = Context.Reference<Predicate<HttpServerRequest>
 )
 
 /**
- * @since 4.0.0
  * @category Tracer
+ * @since 4.0.0
  */
 export const layerTracerDisabledForUrls = (
   urls: ReadonlyArray<string>
 ): Layer.Layer<never> => Layer.succeed(TracerDisabledWhen)((req) => urls.includes(req.url))
 
 /**
- * @since 4.0.0
  * @category Tracer
+ * @since 4.0.0
  */
 export const SpanNameGenerator = Context.Reference<(request: HttpServerRequest) => string>(
   "@effect/platform/HttpMiddleware/SpanNameGenerator",
@@ -100,8 +100,8 @@ export const SpanNameGenerator = Context.Reference<(request: HttpServerRequest) 
 )
 
 /**
- * @since 4.0.0
  * @category Logger
+ * @since 4.0.0
  */
 export const logger: <E, R>(
   httpApp: Effect.Effect<HttpServerResponse, E, HttpServerRequest | R>
@@ -139,8 +139,8 @@ export const logger: <E, R>(
 )
 
 /**
- * @since 4.0.0
  * @category Tracer
+ * @since 4.0.0
  */
 export const tracer: <E, R>(
   httpApp: Effect.Effect<HttpServerResponse, E, HttpServerRequest | R>
@@ -202,8 +202,8 @@ export const tracer: <E, R>(
 )
 
 /**
- * @since 4.0.0
  * @category Proxying
+ * @since 4.0.0
  */
 export const xForwardedHeaders = make((httpApp) =>
   Effect.updateService(httpApp, HttpServerRequest, (request) =>
@@ -220,8 +220,8 @@ export const xForwardedHeaders = make((httpApp) =>
 )
 
 /**
- * @since 4.0.0
  * @category Search params
+ * @since 4.0.0
  */
 export const searchParamsParser = <E, R>(
   httpApp: Effect.Effect<HttpServerResponse, E, R>
@@ -238,8 +238,8 @@ export const searchParamsParser = <E, R>(
   })
 
 /**
- * @since 4.0.0
  * @category CORS
+ * @since 4.0.0
  */
 export const cors = (options?: {
   readonly allowedOrigins?: ReadonlyArray<string> | Predicate<string> | undefined

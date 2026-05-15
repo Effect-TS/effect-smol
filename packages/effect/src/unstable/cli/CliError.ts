@@ -6,8 +6,8 @@ import * as Runtime from "../../Runtime.ts"
 import * as Schema from "../../Schema.ts"
 
 /**
- * @since 4.0.0
  * @category type id
+ * @since 4.0.0
  */
 const TypeId = "~effect/cli/CliError"
 
@@ -37,8 +37,8 @@ const TypeId = "~effect/cli/CliError"
  * })
  * ```
  *
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isCliError = (u: unknown): u is CliError => Predicate.hasProperty(u, TypeId)
 
@@ -70,8 +70,8 @@ export const isCliError = (u: unknown): u is CliError => Predicate.hasProperty(u
  * }
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type CliError =
   | UnrecognizedOption
@@ -112,8 +112,8 @@ export type CliError =
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class UnrecognizedOption extends Schema.ErrorClass<UnrecognizedOption>(`${TypeId}/UnrecognizedOption`)({
   _tag: Schema.tag("UnrecognizedOption"),
@@ -158,8 +158,8 @@ export class UnrecognizedOption extends Schema.ErrorClass<UnrecognizedOption>(`$
  * // Parent will always claim this flag (Mode A semantics). Consider renaming one of them to avoid confusion."
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class DuplicateOption extends Schema.ErrorClass<DuplicateOption>(`${TypeId}/DuplicateOption`)({
   _tag: Schema.tag("DuplicateOption"),
@@ -207,8 +207,8 @@ export class DuplicateOption extends Schema.ErrorClass<DuplicateOption>(`${TypeI
  *   })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class MissingOption extends Schema.ErrorClass<MissingOption>(`${TypeId}/MissingOption`)({
   _tag: Schema.tag("MissingOption"),
@@ -252,8 +252,8 @@ export class MissingOption extends Schema.ErrorClass<MissingOption>(`${TypeId}/M
  *   })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class MissingArgument extends Schema.ErrorClass<MissingArgument>(`${TypeId}/MissingArgument`)({
   _tag: Schema.tag("MissingArgument"),
@@ -302,8 +302,8 @@ export class MissingArgument extends Schema.ErrorClass<MissingArgument>(`${TypeI
  * // "Invalid value for argument <count>: "abc". Expected: integer"
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class InvalidValue extends Schema.ErrorClass<InvalidValue>(`${TypeId}/InvalidValue`)({
   _tag: Schema.tag("InvalidValue"),
@@ -360,8 +360,8 @@ export class InvalidValue extends Schema.ErrorClass<InvalidValue>(`${TypeId}/Inv
  *   })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class UnknownSubcommand extends Schema.ErrorClass<UnknownSubcommand>(`${TypeId}/UnknownSubcommand`)({
   _tag: Schema.tag("UnknownSubcommand"),
@@ -419,8 +419,8 @@ export class UnknownSubcommand extends Schema.ErrorClass<UnknownSubcommand>(`${T
  * }
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class UserError extends Schema.ErrorClass<UserError>(`${TypeId}/UserError`)({
   _tag: Schema.tag("UserError"),
@@ -436,8 +436,8 @@ export class UserError extends Schema.ErrorClass<UserError>(`${TypeId}/UserError
  * Represents errors that should not trigger the display of the CLI's help
  * documentation.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export const NonShowHelpErrors: Schema.Union<
   readonly [
@@ -460,8 +460,8 @@ export const NonShowHelpErrors: Schema.Union<
 ])
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type NonShowHelpErrors = typeof NonShowHelpErrors.Type
 
@@ -469,8 +469,8 @@ export type NonShowHelpErrors = typeof NonShowHelpErrors.Type
  * Control flow indicator when help is requested via --help flag.
  * This is not an error but uses the error channel for control flow.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class ShowHelp extends Schema.ErrorClass<ShowHelp>(`${TypeId}/ShowHelp`)({
   _tag: Schema.tag("ShowHelp"),

@@ -140,8 +140,8 @@ const TypeId = "~effect/Logger"
  * )
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Logger<in Message, out Output> extends Pipeable {
   readonly [TypeId]: typeof TypeId
@@ -170,8 +170,8 @@ export interface Logger<in Message, out Output> extends Pipeable {
  * )
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Options<out Message> {
   readonly message: Message
@@ -197,8 +197,8 @@ export interface Options<out Message> {
  * console.log(Logger.isLogger({ log: () => {} })) // false
  * ```
  *
- * @since 2.0.0
  * @category guards
+ * @since 2.0.0
  */
 export const isLogger = (u: unknown): u is Logger<unknown, unknown> => Predicate.hasProperty(u, TypeId)
 
@@ -223,14 +223,14 @@ export const isLogger = (u: unknown): u is Logger<unknown, unknown> => Predicate
  * })
  * ```
  *
- * @since 4.0.0
  * @category references
+ * @since 4.0.0
  */
 export const CurrentLoggers: Context.Reference<ReadonlySet<Logger<unknown, any>>> = effect.CurrentLoggers
 
 /**
- * @since 4.0.0
  * @category references
+ * @since 4.0.0
  */
 export const LogToStderr: Context.Reference<boolean> = effect.LogToStderr
 
@@ -264,8 +264,8 @@ export const LogToStderr: Context.Reference<boolean> = effect.LogToStderr
  * )
  * ```
  *
- * @since 2.0.0
  * @category utils
+ * @since 2.0.0
  */
 export const map = dual<
   <Output, Output2>(
@@ -303,8 +303,8 @@ export const map = dual<
  * )
  * ```
  *
- * @since 2.0.0
  * @category utils
+ * @since 2.0.0
  */
 export const withConsoleLog = <Message, Output>(
   self: Logger<Message, Output>
@@ -337,8 +337,8 @@ export const withConsoleLog = <Message, Output>(
  * )
  * ```
  *
- * @since 2.0.0
  * @category utils
+ * @since 2.0.0
  */
 export const withConsoleError = <Message, Output>(
   self: Logger<Message, Output>
@@ -381,8 +381,8 @@ export const withConsoleError = <Message, Output>(
  * )
  * ```
  *
- * @since 2.0.0
  * @category utils
+ * @since 2.0.0
  */
 export const withLeveledConsole = <Message, Output>(
   self: Logger<Message, Output>
@@ -503,8 +503,8 @@ const format = (
  * )
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const make: <Message, Output>(
   log: (options: Options<Message>) => Output
@@ -535,8 +535,8 @@ export const make: <Message, Output>(
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const defaultLogger: Logger<unknown, void> = effect.defaultLogger
 
@@ -569,8 +569,8 @@ export const defaultLogger: Logger<unknown, void> = effect.defaultLogger
  * )
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const formatSimple = effect.loggerMake(format(escapeDoubleQuotes))
 
@@ -607,8 +607,8 @@ export const formatSimple = effect.loggerMake(format(escapeDoubleQuotes))
  * const productionLogger = Logger.formatLogFmt
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const formatLogFmt = effect.loggerMake(format(JSON.stringify, 0))
 
@@ -654,8 +654,8 @@ export const formatLogFmt = effect.loggerMake(format(JSON.stringify, 0))
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const formatStructured: Logger<unknown, {
   readonly level: string
@@ -734,8 +734,8 @@ export const formatStructured: Logger<unknown, {
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const formatJson = map(formatStructured, Formatter.formatJson)
 
@@ -788,8 +788,8 @@ export const formatJson = map(formatStructured, Formatter.formatJson)
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const batched = dual<
   <Output>(options: {
@@ -884,8 +884,8 @@ export const batched = dual<
  * const ciLogger = Logger.consolePretty({ colors: false })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const consolePretty: (
   options?: {
@@ -935,8 +935,8 @@ export const consolePretty: (
  * ])
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const consoleLogFmt: Logger<unknown, void> = withConsoleLog(formatLogFmt)
 
@@ -994,8 +994,8 @@ export const consoleLogFmt: Logger<unknown, void> = withConsoleLog(formatLogFmt)
  * )
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const consoleStructured: Logger<unknown, void> = withConsoleLog(formatStructured)
 
@@ -1051,8 +1051,8 @@ export const consoleStructured: Logger<unknown, void> = withConsoleLog(formatStr
  * )
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const consoleJson: Logger<unknown, void> = withConsoleLog(formatJson)
 
@@ -1104,8 +1104,8 @@ export const consoleJson: Logger<unknown, void> = withConsoleLog(formatJson)
  * )
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const tracerLogger: Logger<unknown, void> = effect.tracerLogger
 
@@ -1147,8 +1147,8 @@ export const tracerLogger: Logger<unknown, void> = effect.tracerLogger
  * )
  * ```
  *
- * @since 4.0.0
  * @category context
+ * @since 4.0.0
  */
 export const layer = <
   const Loggers extends ReadonlyArray<Logger<unknown, unknown> | Effect.Effect<Logger<unknown, unknown>, any, any>>
@@ -1255,8 +1255,8 @@ export const layer = <
  * )
  * ```
  *
- * @since 4.0.0
  * @category file
+ * @since 4.0.0
  */
 export const toFile = dual<
   (

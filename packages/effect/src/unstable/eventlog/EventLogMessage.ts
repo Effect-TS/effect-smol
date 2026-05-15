@@ -14,32 +14,32 @@ import type { Identity } from "./EventLog.ts"
 import { EncryptedEntry, EncryptedRemoteEntry } from "./EventLogEncryption.ts"
 
 /**
- * @since 4.0.0
  * @category StoreId
+ * @since 4.0.0
  */
 export type StoreIdTypeId = "effect/eventlog/EventLog/StoreId"
 
 /**
- * @since 4.0.0
  * @category StoreId
+ * @since 4.0.0
  */
 export const StoreIdTypeId: StoreIdTypeId = "effect/eventlog/EventLog/StoreId"
 
 /**
- * @since 4.0.0
  * @category StoreId
+ * @since 4.0.0
  */
 export type StoreId = string & Brand<StoreIdTypeId>
 
 /**
- * @since 4.0.0
  * @category StoreId
+ * @since 4.0.0
  */
 export const StoreId = Schema.String.pipe(Schema.brand(StoreIdTypeId))
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export class EventLogProtocolError extends Schema.TaggedErrorClass<EventLogProtocolError>(
   "effect/eventlog/EventLogRemote/ProtocolError"
@@ -52,8 +52,8 @@ export class EventLogProtocolError extends Schema.TaggedErrorClass<EventLogProto
 }) {}
 
 /**
- * @since 4.0.0
  * @category Middleware
+ * @since 4.0.0
  */
 export class EventLogAuthentication extends RpcMiddleware.Service<EventLogAuthentication, {
   provides: Identity
@@ -62,8 +62,8 @@ export class EventLogAuthentication extends RpcMiddleware.Service<EventLogAuthen
 }) {}
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export class HelloResponse extends Schema.Class<HelloResponse>("effect/eventlog/EventLogRemote/HelloResponse")({
   remoteId: RemoteId,
@@ -71,16 +71,16 @@ export class HelloResponse extends Schema.Class<HelloResponse>("effect/eventlog/
 }) {}
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export class HelloRpc extends Rpc.make("EventLog.Hello", {
   success: HelloResponse
 }) {}
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export class Authenticate extends Schema.Class<Authenticate>("effect/eventlog/EventLogRemote/Authenticate")({
   publicKey: Schema.String,
@@ -90,8 +90,8 @@ export class Authenticate extends Schema.Class<Authenticate>("effect/eventlog/Ev
 }) {}
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export class AuthenticateRpc extends Rpc.make("EventLog.Authenticate", {
   payload: Authenticate,
@@ -99,8 +99,8 @@ export class AuthenticateRpc extends Rpc.make("EventLog.Authenticate", {
 }) {}
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export class SingleMessage
   extends Schema.TaggedClass<SingleMessage>("effect/eventlog/EventLogRemote/SingleMessage")("Single", {
@@ -109,8 +109,8 @@ export class SingleMessage
 {}
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export class ChunkedMessage
   extends Schema.TaggedClass<ChunkedMessage>("effect/eventlog/EventLogRemote/ChunkedMessage")("Chunked", {
@@ -186,8 +186,8 @@ export class ChunkedMessage
 }
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export class WriteChunkedRpc extends Rpc.make("EventLog.WriteChunked", {
   payload: ChunkedMessage,
@@ -195,8 +195,8 @@ export class WriteChunkedRpc extends Rpc.make("EventLog.WriteChunked", {
 }).middleware(EventLogAuthentication) {}
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export class WriteEntries extends Schema.Class<WriteEntries>("effect/eventlog/EventLogRemote/WriteEntries")({
   publicKey: Schema.String,
@@ -213,8 +213,8 @@ export class WriteEntries extends Schema.Class<WriteEntries>("effect/eventlog/Ev
 }
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export class WriteEntriesUnencrypted
   extends Schema.Class<WriteEntriesUnencrypted>("effect/eventlog/EventLogRemote/WriteEntriesUnencrypted")({
@@ -232,8 +232,8 @@ export class WriteEntriesUnencrypted
 }
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export class WriteSingleRpc extends Rpc.make("EventLog.WriteSingle", {
   payload: {
@@ -243,8 +243,8 @@ export class WriteSingleRpc extends Rpc.make("EventLog.WriteSingle", {
 }).middleware(EventLogAuthentication) {}
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export class ChangesRpc extends Rpc.make("EventLog.Changes", {
   payload: {
@@ -265,8 +265,8 @@ export class ChangesRpc extends Rpc.make("EventLog.Changes", {
 }
 
 /**
- * @since 4.0.0
  * @category protocol
+ * @since 4.0.0
  */
 export class EventLogRemoteRpcs extends RpcGroup.make(
   HelloRpc,

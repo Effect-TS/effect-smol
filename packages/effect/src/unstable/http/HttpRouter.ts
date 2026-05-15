@@ -25,8 +25,8 @@ import * as HttpServerResponse from "./HttpServerResponse.ts"
 const TypeId = "~effect/http/HttpRouter"
 
 /**
- * @since 4.0.0
  * @category HttpRouter
+ * @since 4.0.0
  */
 export interface HttpRouter {
   readonly [TypeId]: typeof TypeId
@@ -77,16 +77,16 @@ export interface HttpRouter {
 }
 
 /**
- * @since 4.0.0
  * @category HttpRouter
+ * @since 4.0.0
  */
 export const HttpRouter: Context.Service<HttpRouter, HttpRouter> = Context.Service<HttpRouter>(
   "effect/http/HttpRouter"
 )
 
 /**
- * @since 4.0.0
  * @category HttpRouter
+ * @since 4.0.0
  */
 export const make = Effect.gen(function*() {
   const router = FindMyWay.make<Route<any, never>>(yield* RouterConfig)
@@ -215,8 +215,8 @@ function sliceRequestUrl(request: HttpServerRequest.HttpServerRequest, prefix: s
 }
 
 /**
- * @since 4.0.0
  * @category Configuration
+ * @since 4.0.0
  */
 export const RouterConfig = Context.Reference<Partial<FindMyWay.RouterConfig>>(
   "effect/http/HttpRouter/RouterConfig",
@@ -224,8 +224,8 @@ export const RouterConfig = Context.Reference<Partial<FindMyWay.RouterConfig>>(
 )
 
 /**
- * @since 4.0.0
  * @category RouteContext
+ * @since 4.0.0
  */
 export class RouteContext extends Context.Service<RouteContext, {
   readonly params: Readonly<Record<string, string | undefined>>
@@ -233,8 +233,8 @@ export class RouteContext extends Context.Service<RouteContext, {
 }>()("effect/http/HttpRouter/RouteContext") {}
 
 /**
- * @since 4.0.0
  * @category RouteContext
+ * @since 4.0.0
  */
 export const params: Effect.Effect<
   ReadonlyRecord<string, string | undefined>,
@@ -243,8 +243,8 @@ export const params: Effect.Effect<
 > = Effect.map(RouteContext, (_) => _.params)
 
 /**
- * @since 4.0.0
  * @category Schema
+ * @since 4.0.0
  */
 export const schemaJson = <
   A,
@@ -292,8 +292,8 @@ export const schemaJson = <
 }
 
 /**
- * @since 4.0.0
  * @category Schema
+ * @since 4.0.0
  */
 export const schemaNoBody = <
   A,
@@ -338,8 +338,8 @@ export const schemaNoBody = <
 }
 
 /**
- * @since 4.0.0
  * @category Schema
+ * @since 4.0.0
  */
 export const schemaParams = <A, I extends Readonly<Record<string, string | ReadonlyArray<string> | undefined>>, RD, RE>(
   schema: Schema.Codec<A, I, RD, RE>,
@@ -354,8 +354,8 @@ export const schemaParams = <A, I extends Readonly<Record<string, string | Reado
 }
 
 /**
- * @since 4.0.0
  * @category Schema
+ * @since 4.0.0
  */
 export const schemaPathParams = <A, I extends Readonly<Record<string, string | undefined>>, RD, RE>(
   schema: Schema.Codec<A, I, RD, RE>,
@@ -380,8 +380,8 @@ export const schemaPathParams = <A, I extends Readonly<Record<string, string | u
  * }))
  * ```
  *
- * @since 4.0.0
  * @category HttpRouter
+ * @since 4.0.0
  */
 export const use = <A, E, R>(
   f: (router: HttpRouter) => Effect.Effect<A, E, R>
@@ -402,8 +402,8 @@ export const use = <A, E, R>(
  * )
  * ```
  *
- * @since 4.0.0
  * @category HttpRouter
+ * @since 4.0.0
  */
 export const add = <E = never, R = never>(
   method: "*" | "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS",
@@ -435,8 +435,8 @@ export const add = <E = never, R = never>(
  * ])
  * ```
  *
- * @since 4.0.0
  * @category HttpRouter
+ * @since 4.0.0
  */
 export const addAll = <Routes extends ReadonlyArray<Route<any, any>>, EX = never, RX = never>(
   routes: Routes | Effect.Effect<Routes, EX, RX>,
@@ -461,14 +461,14 @@ export const addAll = <Routes extends ReadonlyArray<Route<any, any>>, EX = never
   }))
 
 /**
- * @since 4.0.0
  * @category HttpRouter
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<HttpRouter> = Layer.effect(HttpRouter)(make)
 
 /**
- * @since 4.0.0
  * @category HttpRouter
+ * @since 4.0.0
  */
 export const toHttpEffect = <A, E, R>(
   appLayer: Layer.Layer<A, E, R>
@@ -491,8 +491,8 @@ export const toHttpEffect = <A, E, R>(
 const RouteTypeId = "~effect/http/HttpRouter/Route"
 
 /**
- * @since 4.0.0
  * @category Route
+ * @since 4.0.0
  */
 export interface Route<E = never, R = never> {
   readonly [RouteTypeId]: typeof RouteTypeId
@@ -504,19 +504,19 @@ export interface Route<E = never, R = never> {
 }
 
 /**
- * @since 4.0.0
  * @category Route
+ * @since 4.0.0
  */
 export declare namespace Route {
   /**
-   * @since 4.0.0
    * @category Route
+   * @since 4.0.0
    */
   export type Error<R extends Route<any, any>> = R extends Route<infer E, infer _R> ? E : never
 
   /**
-   * @since 4.0.0
    * @category Route
+   * @since 4.0.0
    */
   export type Context<T extends Route<any, any>> = T extends Route<infer _E, infer R> ? R : never
 }
@@ -535,8 +535,8 @@ const makeRoute = <E, R>(options: {
 }) as Route<E, Exclude<R, Provided>>)
 
 /**
- * @since 4.0.0
  * @category Route
+ * @since 4.0.0
  */
 export const route = <E = never, R = never>(
   method: "*" | HttpMethod.HttpMethod,
@@ -562,8 +562,8 @@ export const route = <E = never, R = never>(
   })
 
 /**
- * @since 4.0.0
  * @category PathInput
+ * @since 4.0.0
  */
 export type PathInput = `/${string}` | "*"
 
@@ -572,8 +572,8 @@ const removeTrailingSlash = (
 ): PathInput => (path.endsWith("/") ? path.slice(0, -1) : path) as any
 
 /**
- * @since 4.0.0
  * @category PathInput
+ * @since 4.0.0
  */
 export const prefixPath: {
   (prefix: string): (self: string) => string
@@ -586,8 +586,8 @@ export const prefixPath: {
 })
 
 /**
- * @since 4.0.0
  * @category Route
+ * @since 4.0.0
  */
 export const prefixRoute: {
   (prefix: string): <E, R>(self: Route<E, R>) => Route<E, R>
@@ -606,8 +606,8 @@ export const prefixRoute: {
  * Represents a request-level dependency, that needs to be provided by
  * middleware.
  *
- * @since 4.0.0
  * @category Request types
+ * @since 4.0.0
  */
 export interface Request<Kind extends string, T> {
   readonly _: unique symbol
@@ -616,25 +616,25 @@ export interface Request<Kind extends string, T> {
 }
 
 /**
- * @since 4.0.0
  * @category Request types
+ * @since 4.0.0
  */
 export declare namespace Request {
   /**
-   * @since 4.0.0
    * @category Request types
+   * @since 4.0.0
    */
   export type From<Kind extends string, R> = R extends infer T ? Request<Kind, T> : never
 
   /**
-   * @since 4.0.0
    * @category Request types
+   * @since 4.0.0
    */
   export type Only<Kind extends string, A> = A extends Request<Kind, infer T> ? T : never
 
   /**
-   * @since 4.0.0
    * @category Request types
+   * @since 4.0.0
    */
   export type Without<A> = A extends Request<infer _Kind, infer _> ? never : A
 }
@@ -643,8 +643,8 @@ export declare namespace Request {
  * Services provided by the HTTP router, which are available in the
  * request context.
  *
- * @since 4.0.0
  * @category Request types
+ * @since 4.0.0
  */
 export type Provided =
   | HttpServerRequest.HttpServerRequest
@@ -655,8 +655,8 @@ export type Provided =
 /**
  * Services provided to global middleware.
  *
- * @since 4.0.0
  * @category Request types
+ * @since 4.0.0
  */
 export type GlobalProvided =
   | HttpServerRequest.HttpServerRequest
@@ -665,8 +665,8 @@ export type GlobalProvided =
 const MiddlewareTypeId = "~effect/http/HttpRouter/Middleware"
 
 /**
- * @since 4.0.0
  * @category Middleware
+ * @since 4.0.0
  */
 export interface Middleware<
   Config extends {
@@ -766,8 +766,8 @@ export interface Middleware<
  * )
  * ```
  *
- * @since 4.0.0
  * @category Middleware
+ * @since 4.0.0
  */
 export const middleware:
   & middleware.Make<never, never>
@@ -890,13 +890,13 @@ const getMiddleware = (context: Context.Context<never>): Array<middleware.Fn> =>
 }
 
 /**
- * @since 4.0.0
  * @category Middleware
+ * @since 4.0.0
  */
 export declare namespace middleware {
   /**
-   * @since 4.0.0
    * @category Middleware
+   * @since 4.0.0
    */
   export type Make<Provides = never, Handles = never> = {
     <E, R, EX, RX, const Global extends boolean = false>(
@@ -977,8 +977,8 @@ export declare namespace middleware {
   }
 
   /**
-   * @since 4.0.0
    * @category Middleware
+   * @since 4.0.0
    */
   export type Fn = (
     effect: Effect.Effect<HttpServerResponse.HttpServerResponse>
@@ -988,8 +988,8 @@ export declare namespace middleware {
 /**
  * A middleware that applies CORS headers to the HTTP response.
  *
- * @since 4.0.0
  * @category Middleware
+ * @since 4.0.0
  */
 export const cors = (
   options?: {
@@ -1021,16 +1021,16 @@ export const cors = (
  * )
  * ```
  *
- * @since 4.0.0
  * @category Middleware
+ * @since 4.0.0
  */
 export const disableLogger: Layer.Layer<never> = middleware(HttpMiddleware.withLoggerDisabled).layer
 
 /**
  * Provides request-level dependencies to some routes.
  *
- * @since 4.0.0
  * @category Middleware
+ * @since 4.0.0
  */
 export const provideRequest =
   <A2, E2, R2>(layer: Layer.Layer<A2, E2, R2>) =>
@@ -1054,8 +1054,8 @@ export const provideRequest =
 /**
  * Serves the provided application layer as an HTTP server.
  *
- * @since 4.0.0
  * @category Server
+ * @since 4.0.0
  */
 export const serve = <A, E, R, HE, HR = Request.Only<"Requires", R> | Request.Only<"GlobalRequires", R>>(
   appLayer: Layer.Layer<A, E, R>,
@@ -1110,8 +1110,8 @@ export const serve = <A, E, R, HE, HR = Request.Only<"Requires", R> | Request.On
 }
 
 /**
- * @since 4.0.0
  * @category Server
+ * @since 4.0.0
  */
 export const toWebHandler = <
   A,

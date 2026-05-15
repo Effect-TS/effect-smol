@@ -25,8 +25,8 @@ const TypeId = "~effect/httpapi/HttpApiMiddleware"
 const SecurityTypeId = "~effect/httpapi/HttpApiMiddleware/Security"
 
 /**
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isSecurity = (u: AnyService): u is AnyServiceSecurity => hasProperty(u, SecurityTypeId)
 
@@ -37,8 +37,8 @@ type ErrorSchemaFromConstraint<E> = E extends ReadonlyArray<Schema.Top> ? E[numb
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type HttpApiMiddleware<Provides, E extends ErrorConstraint, Requires> = (
   httpEffect: Effect.Effect<HttpServerResponse, unhandled, Provides>,
@@ -49,8 +49,8 @@ export type HttpApiMiddleware<Provides, E extends ErrorConstraint, Requires> = (
 ) => Effect.Effect<HttpServerResponse, unhandled | ErrorSchemaFromConstraint<E>["Type"], Requires | HttpRouter.Provided>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type HttpApiMiddlewareSecurity<
   Security extends Record<string, HttpApiSecurity.HttpApiSecurity>,
@@ -73,8 +73,8 @@ export type HttpApiMiddlewareSecurity<
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface HttpApiMiddlewareClient<_E, CE, R> {
   (options: {
@@ -88,8 +88,8 @@ export interface HttpApiMiddlewareClient<_E, CE, R> {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ForClient<Id> {
   readonly _: unique symbol
@@ -97,8 +97,8 @@ export interface ForClient<Id> {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface AnyService extends Context.Key<any, any> {
   readonly [TypeId]: typeof TypeId
@@ -109,8 +109,8 @@ export interface AnyService extends Context.Key<any, any> {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface AnyServiceSecurity extends AnyService {
   readonly [SecurityTypeId]: typeof SecurityTypeId
@@ -118,8 +118,8 @@ export interface AnyServiceSecurity extends AnyService {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface AnyId {
   readonly [TypeId]: {
@@ -132,39 +132,39 @@ export interface AnyId {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Provides<A> = A extends { readonly [TypeId]: { readonly provides: infer P } } ? P : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Requires<A> = A extends { readonly [TypeId]: { readonly requires: infer R } } ? R : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ApplyServices<A extends AnyId, R> = Exclude<R, Provides<A>> | Requires<A>
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ErrorSchema<A> = A extends { readonly [TypeId]: { readonly error: infer E } } ? ErrorSchemaFromConstraint<E>
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Error<A> = ErrorSchema<A>["Type"]
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ClientError<A> = A extends {
   readonly [TypeId]: {
@@ -175,8 +175,8 @@ export type ClientError<A> = A extends {
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type MiddlewareClient<A> = A extends {
   readonly [TypeId]: {
@@ -186,20 +186,20 @@ export type MiddlewareClient<A> = A extends {
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ErrorServicesEncode<A> = ErrorSchema<A>["EncodingServices"]
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ErrorServicesDecode<A> = ErrorSchema<A>["DecodingServices"]
 
 /**
- * @since 4.0.0
  * @category Schemas
+ * @since 4.0.0
  */
 export type ServiceClass<
   Self,
@@ -238,8 +238,8 @@ export type ServiceClass<
   })
 
 /**
- * @since 4.0.0
  * @category Schemas
+ * @since 4.0.0
  */
 export const Service = <
   Self,
@@ -329,8 +329,8 @@ function getError(error: ErrorConstraint | undefined): ReadonlySet<Schema.Top> {
  * )
  * ```
  *
- * @since 4.0.0
  * @category SchemaError transform
+ * @since 4.0.0
  */
 export const layerSchemaErrorTransform = <Id, E extends ErrorConstraint, Requires>(
   service: Context.Service<Id, HttpApiMiddleware<never, E, Requires>>,
@@ -357,8 +357,8 @@ export const layerSchemaErrorTransform = <Id, E extends ErrorConstraint, Require
   )
 
 /**
- * @since 4.0.0
  * @category client
+ * @since 4.0.0
  */
 export const layerClient = <Id extends AnyId, S, R, EX = never, RX = never>(
   tag: Context.Key<Id, S>,

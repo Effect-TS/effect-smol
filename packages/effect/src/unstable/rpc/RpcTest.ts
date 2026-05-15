@@ -9,8 +9,8 @@ import type * as RpcGroup from "./RpcGroup.ts"
 import * as RpcServer from "./RpcServer.ts"
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const makeClient: <Rpcs extends Rpc.Any, const Flatten extends boolean = false>(
   group: RpcGroup.RpcGroup<Rpcs>,

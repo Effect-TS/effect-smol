@@ -137,20 +137,20 @@ import * as References from "./References.ts"
  * const debugLevel = "Debug" // LogLevel
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type LogLevel = "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace" | "None"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Severity = "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export const values: ReadonlyArray<LogLevel> = ["All", "Fatal", "Error", "Warn", "Info", "Debug", "Trace", "None"]
 
@@ -170,8 +170,8 @@ export const values: ReadonlyArray<LogLevel> = ["All", "Fatal", "Error", "Warn",
  * console.log(LogLevel.Order("Info", "Info")) // 0 (Info == Info)
  * ```
  *
- * @since 2.0.0
  * @category ordering
+ * @since 2.0.0
  */
 export const Order: Ord.Order<LogLevel> = effect.LogLevelOrder
 
@@ -194,8 +194,8 @@ export const Equivalence: Equ.Equivalence<LogLevel> = Equ.strictEqual<LogLevel>(
 /**
  * Returns the ordinal value of the log level.
  *
- * @since 4.0.0
  * @category ordering
+ * @since 4.0.0
  */
 export const getOrdinal = (self: LogLevel): number => effect.logLevelToOrder(self)
 
@@ -227,8 +227,8 @@ export const getOrdinal = (self: LogLevel): number => effect.logLevelToOrder(sel
  * console.log(isMoreSevereThanInfo("Debug")) // false
  * ```
  *
- * @since 2.0.0
  * @category ordering
+ * @since 2.0.0
  */
 export const isGreaterThan: {
   (that: LogLevel): (self: LogLevel) => boolean
@@ -271,8 +271,8 @@ export const isGreaterThan: {
  * const shouldLog = isInfoOrAbove("Error") // true
  * ```
  *
- * @since 2.0.0
  * @category ordering
+ * @since 2.0.0
  */
 export const isGreaterThanOrEqualTo: {
   (that: LogLevel): (self: LogLevel) => boolean
@@ -307,8 +307,8 @@ export const isGreaterThanOrEqualTo: {
  * console.log(isLessSevereThanError("Fatal")) // false
  * ```
  *
- * @since 2.0.0
  * @category ordering
+ * @since 2.0.0
  */
 export const isLessThan: {
   (that: LogLevel): (self: LogLevel) => boolean
@@ -349,8 +349,8 @@ export const isLessThan: {
  * const shouldLog = isInfoOrBelow("Debug") // true
  * ```
  *
- * @since 2.0.0
  * @category ordering
+ * @since 2.0.0
  */
 export const isLessThanOrEqualTo: {
   (that: LogLevel): (self: LogLevel) => boolean
@@ -379,8 +379,8 @@ export const isLessThanOrEqualTo: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category filtering
+ * @since 4.0.0
  */
 export const isEnabled = (self: LogLevel): Effect.Effect<boolean> =>
   core.withFiber((fiber) => effect.succeed(!isGreaterThan(fiber.getRef(References.MinimumLogLevel), self)))

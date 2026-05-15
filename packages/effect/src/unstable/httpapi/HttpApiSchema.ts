@@ -191,8 +191,8 @@ export interface NoContent extends Schema.Void {}
  * A void schema with the HTTP status code 204.
  * This is used to represent empty responses with the status code 204.
  *
- * @since 4.0.0
  * @category Empty
+ * @since 4.0.0
  */
 export const NoContent: NoContent = Empty(204)
 

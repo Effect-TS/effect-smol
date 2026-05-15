@@ -13,20 +13,20 @@ import * as Predicate from "./Predicate.ts"
 import type * as Schedule from "./Schedule.ts"
 
 /**
- * @since 3.16.0
  * @category Type IDs
+ * @since 3.16.0
  */
 export type TypeId = "~effect/ExecutionPlan"
 
 /**
- * @since 3.16.0
  * @category Type IDs
+ * @since 3.16.0
  */
 export const TypeId: TypeId = "~effect/ExecutionPlan"
 
 /**
- * @since 3.16.0
  * @category Guards
+ * @since 3.16.0
  */
 export const isExecutionPlan = (u: unknown): u is ExecutionPlan<any> => Predicate.hasProperty(u, TypeId)
 
@@ -70,8 +70,8 @@ export const isExecutionPlan = (u: unknown): u is ExecutionPlan<any> => Predicat
  * const withPlan: Effect.Effect<void> = Effect.withExecutionPlan(effect, ThePlan)
  * ```
  *
- * @since 3.16.0
  * @category Models
+ * @since 3.16.0
  */
 export interface ExecutionPlan<
   Config extends {
@@ -109,8 +109,8 @@ export interface ExecutionPlan<
 }
 
 /**
- * @since 3.16.0
  * @category Models
+ * @since 3.16.0
  */
 export type ConfigBase = {
   provides: any
@@ -159,8 +159,8 @@ export type ConfigBase = {
  * const withPlan: Effect.Effect<void> = Effect.withExecutionPlan(effect, ThePlan)
  * ```
  *
- * @since 3.16.0
  * @category Constructors
+ * @since 3.16.0
  */
 export const make = <const Steps extends NonEmptyReadonlyArray<make.Step>>(
   ...steps: Steps & { [K in keyof Steps]: make.Step }
@@ -285,8 +285,8 @@ const makeProto = <Provides, In, PlanE, PlanR>(
 }
 
 /**
- * @since 3.16.0
  * @category Combining
+ * @since 3.16.0
  */
 export const merge = <const Plans extends NonEmptyReadonlyArray<ExecutionPlan<any>>>(
   ...plans: Plans
@@ -298,8 +298,8 @@ export const merge = <const Plans extends NonEmptyReadonlyArray<ExecutionPlan<an
 }> => makeProto(plans.flatMap((plan) => plan.steps) as any)
 
 /**
- * @since 4.0.0
  * @category Metadata
+ * @since 4.0.0
  */
 export interface Metadata {
   readonly attempt: number
@@ -307,8 +307,8 @@ export interface Metadata {
 }
 
 /**
- * @since 4.0.0
  * @category Metadata
+ * @since 4.0.0
  */
 export const CurrentMetadata = Context.Reference<Metadata>("effect/ExecutionPlan/CurrentMetadata", {
   defaultValue: constant({

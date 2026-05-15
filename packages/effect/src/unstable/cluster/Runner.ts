@@ -19,8 +19,8 @@ const TypeId = "~effect/cluster/Runner"
  * The version of a Runner is used during rebalancing to give priority to newer
  * application servers and slowly decommission older ones.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class Runner extends Schema.Class<Runner>(TypeId)({
   address: RunnerAddress,
@@ -86,8 +86,8 @@ export class Runner extends Schema.Class<Runner>(TypeId)({
  * The version of a Runner is used during rebalancing to give priority to newer
  * application servers and slowly decommission older ones.
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make = (props: {
   readonly address: RunnerAddress

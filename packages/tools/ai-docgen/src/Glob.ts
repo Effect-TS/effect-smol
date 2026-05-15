@@ -12,8 +12,8 @@ import * as GlobLib from "glob"
 /**
  * Error during glob pattern matching.
  *
- * @since 1.0.0
  * @category errors
+ * @since 1.0.0
  */
 export class GlobError extends Data.TaggedError("GlobError")<{
   readonly pattern: string | ReadonlyArray<string>
@@ -21,8 +21,8 @@ export class GlobError extends Data.TaggedError("GlobError")<{
 }> {}
 
 /**
- * @since 1.0.0
  * @category tags
+ * @since 1.0.0
  */
 export class Glob extends Context.Service<Glob, {
   readonly glob: (
@@ -34,8 +34,8 @@ export class Glob extends Context.Service<Glob, {
 /**
  * Layer providing the Glob service.
  *
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layer: Layer.Layer<Glob> = Layer.succeed(Glob, {
   glob: (pattern, options) =>

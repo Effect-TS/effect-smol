@@ -29,8 +29,8 @@ import {
 import * as EventLogSessionAuth from "./EventLogSessionAuth.ts"
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerAuthMiddleware: Layer.Layer<
   EventLogAuthentication
@@ -48,8 +48,8 @@ export const layerAuthMiddleware: Layer.Layer<
 })
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerRpcHandlers = (options: {
   readonly remoteId: RemoteId
@@ -184,8 +184,8 @@ export const layerRpcHandlers = (options: {
   )
 
 /**
- * @since 4.0.0
  * @category ChunkedMessage state
+ * @since 4.0.0
  */
 export class ChunkedMessageState extends Context.Reference<
   Map<number, {

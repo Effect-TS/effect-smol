@@ -5,8 +5,8 @@ import * as Layer from "effect/Layer"
 import * as GlobLib from "glob"
 
 /**
- * @since 1.0.0
  * @category errors
+ * @since 1.0.0
  */
 export class GlobError extends Data.TaggedError("GlobError")<{
   readonly pattern: string | ReadonlyArray<string>
@@ -14,8 +14,8 @@ export class GlobError extends Data.TaggedError("GlobError")<{
 }> {}
 
 /**
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export interface Glob {
   readonly glob: (
@@ -25,14 +25,14 @@ export interface Glob {
 }
 
 /**
- * @since 1.0.0
  * @category tags
+ * @since 1.0.0
  */
 export const Glob: Context.Service<Glob, Glob> = Context.Service("@effect/utils/Glob")
 
 /**
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layer: Layer.Layer<Glob> = Layer.succeed(Glob, {
   glob: (pattern, options) =>

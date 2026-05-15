@@ -1204,8 +1204,8 @@ const pascalCaseTransform = (input: string, index: number): string => {
 /**
  * Converts a string to PascalCase.
  *
- * @since 4.0.0
  * @category transforming
+ * @since 4.0.0
  */
 export const pascalCase: (self: string) => string = noCase({
   delimiter: "",
@@ -1220,8 +1220,8 @@ const camelCaseTransform = (input: string, index: number): string =>
 /**
  * Converts a string to camelCase.
  *
- * @since 4.0.0
  * @category transforming
+ * @since 4.0.0
  */
 export const camelCase: (self: string) => string = noCase({
   delimiter: "",
@@ -1231,8 +1231,8 @@ export const camelCase: (self: string) => string = noCase({
 /**
  * Converts a string to CONSTANT_CASE (uppercase with underscores).
  *
- * @since 4.0.0
  * @category transforming
+ * @since 4.0.0
  */
 export const constantCase: (self: string) => string = noCase({
   delimiter: "_",
@@ -1242,8 +1242,8 @@ export const constantCase: (self: string) => string = noCase({
 /**
  * Converts a string to kebab-case (lowercase with hyphens).
  *
- * @since 4.0.0
  * @category transforming
+ * @since 4.0.0
  */
 export const kebabCase: (self: string) => string = noCase({
   delimiter: "-"
@@ -1252,8 +1252,8 @@ export const kebabCase: (self: string) => string = noCase({
 /**
  * Converts a string to snake_case (lowercase with underscores).
  *
- * @since 4.0.0
  * @category transforming
+ * @since 4.0.0
  */
 export const snakeCase: (self: string) => string = noCase({
   delimiter: "_"

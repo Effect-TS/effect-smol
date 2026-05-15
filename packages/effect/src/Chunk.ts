@@ -547,8 +547,8 @@ const reverseChunk = <A>(self: Chunk<A>): Chunk<A> => {
  * // { _id: 'Chunk', values: [ 3, 2, 1 ] }
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const reverse: <S extends Chunk<any>>(self: S) => Chunk.With<S, Chunk.Infer<S>> = reverseChunk as any
 
@@ -598,8 +598,8 @@ export const get: {
  * console.log(Chunk.toArray(chunk)) // [999, 2, 3, 4, 5]
  * ```
  *
- * @since 2.0.0
  * @category unsafe
+ * @since 2.0.0
  */
 export const fromArrayUnsafe = <A>(self: ReadonlyArray<A>): Chunk<A> =>
   self.length === 0 ? empty() : self.length === 1 ? of(self[0]) : makeChunk({ _tag: "IArray", array: self })
@@ -620,8 +620,8 @@ export const fromArrayUnsafe = <A>(self: ReadonlyArray<A>): Chunk<A> =>
  * console.log(Chunk.isNonEmpty(chunk)) // true
  * ```
  *
- * @since 2.0.0
  * @category unsafe
+ * @since 2.0.0
  */
 export const fromNonEmptyArrayUnsafe = <A>(self: NonEmptyReadonlyArray<A>): NonEmptyChunk<A> =>
   fromArrayUnsafe(self) as any
@@ -646,8 +646,8 @@ export const fromNonEmptyArrayUnsafe = <A>(self: NonEmptyReadonlyArray<A>): NonE
  * }
  * ```
  *
- * @since 2.0.0
  * @category unsafe
+ * @since 2.0.0
  */
 export const getUnsafe: {
   (index: number): <A>(self: Chunk<A>) => A
@@ -1016,8 +1016,8 @@ export const appendAll: {
  * console.log(Chunk.toArray(evenIndexNumbers)) // [1]
  * ```
  *
- * @since 2.0.0
  * @category filtering
+ * @since 2.0.0
  */
 export const filterMap: {
   <A, B, X>(f: (input: A, i: number) => Result<B, X>): (self: Chunk<A>) => Chunk<B>
@@ -1054,8 +1054,8 @@ export const filterMap: {
  * console.log(Chunk.toArray(numbers)) // [42, 100]
  * ```
  *
- * @since 2.0.0
  * @category filtering
+ * @since 2.0.0
  */
 export const filter: {
   <A, B extends A>(refinement: Refinement<NoInfer<A>, B>): (self: Chunk<A>) => Chunk<B>
@@ -1091,8 +1091,8 @@ export const filter: {
  * console.log(Chunk.toArray(allNumbers)) // [1, 2, 3, 4]
  * ```
  *
- * @since 2.0.0
  * @category filtering
+ * @since 2.0.0
  */
 export const filterMapWhile: {
   <A, B, X>(f: Filter.Filter<A, B, X>): (self: Chunk<A>) => Chunk<B>
@@ -1161,8 +1161,8 @@ export const compact = <A>(self: Chunk<Option<A>>): Chunk<A> => {
  * console.log(Chunk.toArray(indexed)) // [1, 3, 5]
  * ```
  *
- * @since 2.0.0
  * @category sequencing
+ * @since 2.0.0
  */
 export const flatMap: {
   <S extends Chunk<any>, T extends Chunk<any>>(
@@ -1215,8 +1215,8 @@ export const flatMap: {
  * // Index 3: 4
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const forEach: {
   <A, B>(f: (a: A, index: number) => B): (self: Chunk<A>) => void
@@ -1247,8 +1247,8 @@ export const forEach: {
  * console.log(Chunk.toArray(Chunk.flatten(withEmpty))) // [1, 2, 3, 4]
  * ```
  *
- * @since 2.0.0
  * @category sequencing
+ * @since 2.0.0
  */
 export const flatten: <S extends Chunk<Chunk<any>>>(self: S) => Chunk.Flatten<S> = flatMap(identity) as any
 
@@ -1272,8 +1272,8 @@ export const flatten: <S extends Chunk<Chunk<any>>>(self: S) => Chunk.Flatten<S>
  * // [[1, 2], [3, 4], [5]]
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const chunksOf: {
   (n: number): <A>(self: Chunk<A>) => Chunk<Chunk<A>>
@@ -1319,8 +1319,8 @@ export const chunksOf: {
  * console.log(Chunk.toArray(Chunk.intersection(chunk3, chunk4))) // []
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const intersection: {
   <A>(that: Chunk<A>): <B>(self: Chunk<B>) => Chunk<A & B>
@@ -1402,8 +1402,8 @@ export const head: <A>(self: Chunk<A>) => Option<A> = get(0)
  * }
  * ```
  *
- * @since 2.0.0
  * @category unsafe
+ * @since 2.0.0
  */
 export const headUnsafe = <A>(self: Chunk<A>): A => getUnsafe(self, 0)
 
@@ -1424,8 +1424,8 @@ export const headUnsafe = <A>(self: Chunk<A>): A => getUnsafe(self, 0)
  * // Chunk.headNonEmpty(Chunk.empty()) // TypeScript error
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const headNonEmpty: <A>(self: NonEmptyChunk<A>) => A = headUnsafe
 
@@ -1468,8 +1468,8 @@ export const last = <A>(self: Chunk<A>): Option<A> => get(self, self.length - 1)
  * }
  * ```
  *
- * @since 2.0.0
  * @category unsafe
+ * @since 2.0.0
  */
 export const lastUnsafe = <A>(self: Chunk<A>): A => getUnsafe(self, self.length - 1)
 
@@ -1490,8 +1490,8 @@ export const lastUnsafe = <A>(self: Chunk<A>): A => getUnsafe(self, self.length 
  * // Chunk.lastNonEmpty(Chunk.empty()) // TypeScript error
  * ```
  *
- * @since 3.4.0
  * @category elements
+ * @since 3.4.0
  */
 export const lastNonEmpty: <A>(self: NonEmptyChunk<A>) => A = lastUnsafe
 
@@ -1660,8 +1660,8 @@ export declare namespace Chunk {
  * // { _id: 'Chunk', values: [ 2, 3 ] }
  * ```
  *
- * @since 2.0.0
  * @category mapping
+ * @since 2.0.0
  */
 export const map: {
   <S extends Chunk<any>, B>(f: (a: Chunk.Infer<S>, i: number) => B): (self: S) => Chunk.With<S, B>
@@ -1698,8 +1698,8 @@ export const map: {
  * console.log(Chunk.toArray(indexed)) // ["0: hello", "1: world", "2: effect"]
  * ```
  *
- * @since 2.0.0
  * @category folding
+ * @since 2.0.0
  */
 export const mapAccum: {
   <S, A, B>(s: S, f: (s: S, a: A) => readonly [S, B]): (self: Chunk<A>) => [S, Chunk<B>]
@@ -1823,8 +1823,8 @@ export const size = <A>(self: Chunk<A>): number => self.length
  * console.log(Chunk.toArray(sortedWords)) // ["apple", "banana", "cherry"]
  * ```
  *
- * @since 2.0.0
  * @category sorting
+ * @since 2.0.0
  */
 export const sort: {
   <B>(O: Order.Order<B>): <A extends B>(self: Chunk<A>) => Chunk<A>
@@ -1864,8 +1864,8 @@ export const sort: {
  * console.log(Chunk.toArray(byLength)) // ["a", "ab", "abc"]
  * ```
  *
- * @since 2.0.0
  * @category sorting
+ * @since 2.0.0
  */
 export const sortWith: {
   <A, B>(f: (a: A) => B, order: Order.Order<B>): (self: Chunk<A>) => Chunk<A>
@@ -1898,8 +1898,8 @@ export const sortWith: {
  * console.log(Chunk.toArray(empty2)) // []
  * ```
  *
- * @since 2.0.0
  * @category splitting
+ * @since 2.0.0
  */
 export const splitAt: {
   (n: number): <A>(self: Chunk<A>) => [beforeIndex: Chunk<A>, fromIndex: Chunk<A>]
@@ -1965,8 +1965,8 @@ export const splitNonEmptyAt: {
  * // [[1, 2, 3, 4, 5, 6, 7, 8, 9]]
  * ```
  *
- * @since 2.0.0
  * @category splitting
+ * @since 2.0.0
  */
 export const split: {
   (n: number): <A>(self: Chunk<A>) => Chunk<Chunk<A>>
@@ -2032,8 +2032,8 @@ export const splitWhere: {
  * console.log(Chunk.tail(empty)) // Option.none()
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const tail = <A>(self: Chunk<A>): O.Option<Chunk<A>> => self.length > 0 ? O.some(drop(self, 1)) : O.none()
 
@@ -2056,8 +2056,8 @@ export const tail = <A>(self: Chunk<A>): O.Option<Chunk<A>> => self.length > 0 ?
  * // Chunk.tailNonEmpty(Chunk.empty()) // TypeScript error
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const tailNonEmpty = <A>(self: NonEmptyChunk<A>): Chunk<A> => drop(self, 1)
 
@@ -2081,8 +2081,8 @@ export const tailNonEmpty = <A>(self: NonEmptyChunk<A>): Chunk<A> => drop(self, 
  * console.log(Chunk.toArray(none)) // []
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const takeRight: {
   (n: number): <A>(self: Chunk<A>) => Chunk<A>
@@ -2110,8 +2110,8 @@ export const takeRight: {
  * console.log(Chunk.toArray(all)) // [1, 2, 3]
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const takeWhile: {
   <A, B extends A>(refinement: Refinement<NoInfer<A>, B>): (self: Chunk<A>) => Chunk<B>
@@ -2149,8 +2149,8 @@ export const takeWhile: {
  * console.log(Chunk.toArray(unified)) // [1, 2, 3]
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const union: {
   <A>(that: Chunk<A>): <B>(self: Chunk<B>) => Chunk<A | B>
@@ -2182,8 +2182,8 @@ export const union: {
  * console.log(Chunk.toArray(uniqueDeduped)) // [1, 2, 3]
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const dedupe = <A>(self: Chunk<A>): Chunk<A> => fromArrayUnsafe(RA.dedupe(toReadonlyArray(self)))
 
@@ -2204,8 +2204,8 @@ export const dedupe = <A>(self: Chunk<A>): Chunk<A> => fromArrayUnsafe(RA.dedupe
  * console.log(Chunk.toArray(mixedResult)) // ["a", "b", "a"]
  * ```
  *
- * @since 2.0.0
  * @category filtering
+ * @since 2.0.0
  */
 export const dedupeAdjacent = <A>(self: Chunk<A>): Chunk<A> => fromArrayUnsafe(RA.dedupeAdjacent(self))
 
@@ -2234,8 +2234,8 @@ export const dedupeAdjacent = <A>(self: Chunk<A>): Chunk<A> => fromArrayUnsafe(R
  * console.log(Chunk.toArray(emptyStrs)) // []
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const unzip = <A, B>(self: Chunk<readonly [A, B]>): [Chunk<A>, Chunk<B>] => {
   const [left, right] = RA.unzip(self)
@@ -2261,8 +2261,8 @@ export const unzip = <A, B>(self: Chunk<readonly [A, B]>): [Chunk<A>, Chunk<B>] 
  * console.log(Chunk.toArray(mixed)) // [[1, "a"], [2, "b"]]
  * ```
  *
- * @since 2.0.0
  * @category zipping
+ * @since 2.0.0
  */
 export const zipWith: {
   <A, B, C>(that: Chunk<B>, f: (a: A, b: B) => C): (self: Chunk<A>) => Chunk<C>
@@ -2292,8 +2292,8 @@ export const zipWith: {
  * console.log(Chunk.toArray(zipped)) // [[1, "a"], [2, "b"]]
  * ```
  *
- * @since 2.0.0
  * @category zipping
+ * @since 2.0.0
  */
 export const zip: {
   <B>(that: Chunk<B>): <A>(self: Chunk<A>) => Chunk<[A, B]>

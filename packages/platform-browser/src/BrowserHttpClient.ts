@@ -28,18 +28,18 @@ import * as HeaderParser from "multipasta/HeadersParser"
 
 export {
   /**
-   * @since 1.0.0
    * @category Fetch
+   * @since 1.0.0
    */
   Fetch,
   /**
-   * @since 1.0.0
    * @category Fetch
+   * @since 1.0.0
    */
   layer as layerFetch,
   /**
-   * @since 1.0.0
    * @category Fetch
+   * @since 1.0.0
    */
   RequestInit
 } from "effect/unstable/http/FetchHttpClient"
@@ -49,14 +49,14 @@ export {
 // =============================================================================
 
 /**
- * @since 1.0.0
  * @category Models
+ * @since 1.0.0
  */
 export type XHRResponseType = "arraybuffer" | "text"
 
 /**
- * @since 1.0.0
  * @category References
+ * @since 1.0.0
  */
 export const CurrentXHRResponseType: Context.Reference<XHRResponseType> = Context.Reference(
   "@effect/platform-browser/BrowserHttpClient/CurrentXHRResponseType",
@@ -64,8 +64,8 @@ export const CurrentXHRResponseType: Context.Reference<XHRResponseType> = Contex
 )
 
 /**
- * @since 1.0.0
  * @category References
+ * @since 1.0.0
  */
 export const withXHRArrayBuffer = <A, E, R>(
   self: Effect.Effect<A, E, R>
@@ -77,8 +77,8 @@ export const withXHRArrayBuffer = <A, E, R>(
   )
 
 /**
- * @since 1.0.0
  * @category Services
+ * @since 1.0.0
  */
 export class XMLHttpRequest extends Context.Service<
   XMLHttpRequest,
@@ -384,8 +384,8 @@ class ClientResponseImpl extends IncomingMessageImpl<HttpClientError.HttpClientE
 }
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerXMLHttpRequest: Layer.Layer<HttpClient.HttpClient> = HttpClient.layerMergedContext(
   Effect.succeed(makeXmlHttpRequest)

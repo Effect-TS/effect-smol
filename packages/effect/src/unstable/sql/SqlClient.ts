@@ -186,8 +186,8 @@ export const make = Effect.fnUntraced(function*(options: SqlClient.MakeOptions) 
 })
 
 /**
- * @since 4.0.0
  * @category transactions
+ * @since 4.0.0
  */
 export const makeWithTransaction = <I, S>(options: {
   readonly transactionService: Context.Key<I, readonly [conn: S, counter: number]>

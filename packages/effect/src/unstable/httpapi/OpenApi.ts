@@ -21,78 +21,78 @@ import * as HttpApiSchema from "./HttpApiSchema.ts"
 import type { HttpApiSecurity } from "./HttpApiSecurity.ts"
 
 /**
- * @since 4.0.0
  * @category annotations
+ * @since 4.0.0
  */
 export class Identifier extends Context.Service<Identifier, string>()("effect/httpapi/OpenApi/Identifier") {}
 
 /**
- * @since 4.0.0
  * @category annotations
+ * @since 4.0.0
  */
 export class Title extends Context.Service<Title, string>()("effect/httpapi/OpenApi/Title") {}
 
 /**
- * @since 4.0.0
  * @category annotations
+ * @since 4.0.0
  */
 export class Version extends Context.Service<Version, string>()("effect/httpapi/OpenApi/Version") {}
 
 /**
- * @since 4.0.0
  * @category annotations
+ * @since 4.0.0
  */
 export class Description extends Context.Service<Description, string>()("effect/httpapi/OpenApi/Description") {}
 
 /**
- * @since 4.0.0
  * @category annotations
+ * @since 4.0.0
  */
 export class License extends Context.Service<License, OpenAPISpecLicense>()("effect/httpapi/OpenApi/License") {}
 
 /**
- * @since 4.0.0
  * @category annotations
+ * @since 4.0.0
  */
 export class ExternalDocs
   extends Context.Service<ExternalDocs, OpenAPISpecExternalDocs>()("effect/httpapi/OpenApi/ExternalDocs")
 {}
 
 /**
- * @since 4.0.0
  * @category annotations
+ * @since 4.0.0
  */
 export class Servers
   extends Context.Service<Servers, ReadonlyArray<OpenAPISpecServer>>()("effect/httpapi/OpenApi/Servers")
 {}
 
 /**
- * @since 4.0.0
  * @category annotations
+ * @since 4.0.0
  */
 export class Format extends Context.Service<Format, string>()("effect/httpapi/OpenApi/Format") {}
 
 /**
- * @since 4.0.0
  * @category annotations
+ * @since 4.0.0
  */
 export class Summary extends Context.Service<Summary, string>()("effect/httpapi/OpenApi/Summary") {}
 
 /**
- * @since 4.0.0
  * @category annotations
+ * @since 4.0.0
  */
 export class Deprecated extends Context.Service<Deprecated, boolean>()("effect/httpapi/OpenApi/Deprecated") {}
 
 /**
- * @since 4.0.0
  * @category annotations
+ * @since 4.0.0
  */
 export class Override extends Context.Service<Override, Record<string, unknown>>()("effect/httpapi/OpenApi/Override") {}
 
 /**
- * @since 4.0.0
  * @category annotations
+ * @since 4.0.0
  */
 export const Exclude = Context.Reference<boolean>("effect/httpapi/OpenApi/Exclude", {
   defaultValue: constFalse
@@ -101,8 +101,8 @@ export const Exclude = Context.Reference<boolean>("effect/httpapi/OpenApi/Exclud
 /**
  * Transforms the generated OpenAPI specification
  *
- * @since 4.0.0
  * @category annotations
+ * @since 4.0.0
  */
 export class Transform extends Context.Service<
   Transform,
@@ -129,8 +129,8 @@ const servicesPartial = <Tags extends Record<string, Context.Key<any, any> | Con
 }
 
 /**
- * @since 4.0.0
  * @category annotations
+ * @since 4.0.0
  */
 export const annotations: (
   options: {

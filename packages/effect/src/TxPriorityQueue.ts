@@ -42,8 +42,8 @@ const TypeId = "~effect/transactions/TxPriorityQueue"
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface TxPriorityQueue<in out A> extends Inspectable, Pipeable {
   readonly [TypeId]: typeof TypeId
@@ -106,8 +106,8 @@ const insertSorted = <A>(chunk: Chunk<A>, value: A, ord: Order<A>): Chunk<A> => 
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const empty = <A>(order: Order<A>): Effect.Effect<TxPriorityQueue<A>> =>
   Effect.map(TxRef.make<Chunk<A>>(C.empty()), (ref) => makeTxPriorityQueue(ref, order))
@@ -126,8 +126,8 @@ export const empty = <A>(order: Order<A>): Effect.Effect<TxPriorityQueue<A>> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fromIterable: {
   <A>(order: Order<A>): (iterable: Iterable<A>) => Effect.Effect<TxPriorityQueue<A>>
@@ -157,8 +157,8 @@ export const fromIterable: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = <A>(order: Order<A>) => (...elements: Array<A>): Effect.Effect<TxPriorityQueue<A>> =>
   fromIterable(order, elements)
@@ -177,8 +177,8 @@ export const make = <A>(order: Order<A>) => (...elements: Array<A>): Effect.Effe
  * })
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const size = <A>(self: TxPriorityQueue<A>): Effect.Effect<number> => Effect.map(TxRef.get(self.ref), C.size)
 
@@ -196,8 +196,8 @@ export const size = <A>(self: TxPriorityQueue<A>): Effect.Effect<number> => Effe
  * })
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const isEmpty = <A>(self: TxPriorityQueue<A>): Effect.Effect<boolean> => Effect.map(size(self), (n) => n === 0)
 
@@ -215,8 +215,8 @@ export const isEmpty = <A>(self: TxPriorityQueue<A>): Effect.Effect<boolean> => 
  * })
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const isNonEmpty = <A>(self: TxPriorityQueue<A>): Effect.Effect<boolean> => Effect.map(size(self), (n) => n > 0)
 
@@ -235,8 +235,8 @@ export const isNonEmpty = <A>(self: TxPriorityQueue<A>): Effect.Effect<boolean> 
  * })
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const peek = <A>(self: TxPriorityQueue<A>): Effect.Effect<A> =>
   Effect.gen(function*() {
@@ -263,8 +263,8 @@ export const peek = <A>(self: TxPriorityQueue<A>): Effect.Effect<A> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const peekOption = <A>(self: TxPriorityQueue<A>): Effect.Effect<Option<A>> =>
   Effect.map(TxRef.get(self.ref), C.head)
@@ -285,8 +285,8 @@ export const peekOption = <A>(self: TxPriorityQueue<A>): Effect.Effect<Option<A>
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const offer: {
   <A>(value: A): (self: TxPriorityQueue<A>) => Effect.Effect<void>
@@ -312,8 +312,8 @@ export const offer: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const offerAll: {
   <A>(values: Iterable<A>): (self: TxPriorityQueue<A>) => Effect.Effect<void>
@@ -341,8 +341,8 @@ export const offerAll: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const take = <A>(self: TxPriorityQueue<A>): Effect.Effect<A> =>
   Effect.gen(function*() {
@@ -369,8 +369,8 @@ export const take = <A>(self: TxPriorityQueue<A>): Effect.Effect<A> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const takeAll = <A>(self: TxPriorityQueue<A>): Effect.Effect<Array<A>> =>
   Effect.map(
@@ -392,8 +392,8 @@ export const takeAll = <A>(self: TxPriorityQueue<A>): Effect.Effect<Array<A>> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const takeOption = <A>(self: TxPriorityQueue<A>): Effect.Effect<Option<A>> =>
   TxRef.modify(self.ref, (chunk) => {
@@ -418,8 +418,8 @@ export const takeOption = <A>(self: TxPriorityQueue<A>): Effect.Effect<Option<A>
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const takeUpTo: {
   (n: number): <A>(self: TxPriorityQueue<A>) => Effect.Effect<Array<A>>
@@ -452,8 +452,8 @@ export const takeUpTo: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category filtering
+ * @since 4.0.0
  */
 export const removeIf: {
   <A>(predicate: Predicate<A>): (self: TxPriorityQueue<A>) => Effect.Effect<void>
@@ -479,8 +479,8 @@ export const removeIf: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category filtering
+ * @since 4.0.0
  */
 export const retainIf: {
   <A>(predicate: Predicate<A>): (self: TxPriorityQueue<A>) => Effect.Effect<void>
@@ -505,8 +505,8 @@ export const retainIf: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category conversions
+ * @since 4.0.0
  */
 export const toArray = <A>(self: TxPriorityQueue<A>): Effect.Effect<Array<A>> =>
   Effect.map(TxRef.get(self.ref), C.toArray)
@@ -525,7 +525,7 @@ export const toArray = <A>(self: TxPriorityQueue<A>): Effect.Effect<Array<A>> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isTxPriorityQueue = (u: unknown): u is TxPriorityQueue<unknown> => hasProperty(u, TypeId)

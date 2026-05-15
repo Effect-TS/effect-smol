@@ -11,20 +11,20 @@ import * as Schema from "../../Schema.ts"
 import * as Redis from "./Redis.ts"
 
 /**
- * @since 4.0.0
  * @category Type IDs
+ * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/persistence/RateLimiter"
 
 /**
- * @since 4.0.0
  * @category Type IDs
+ * @since 4.0.0
  */
 export type TypeId = "~effect/persistence/RateLimiter"
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface RateLimiter {
   readonly [TypeId]: TypeId
@@ -40,14 +40,14 @@ export interface RateLimiter {
 }
 
 /**
- * @since 4.0.0
  * @category Tags
+ * @since 4.0.0
  */
 export const RateLimiter: Context.Service<RateLimiter, RateLimiter> = Context.Service<RateLimiter>(TypeId)
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make: Effect.Effect<
   RateLimiter,
@@ -182,8 +182,8 @@ export const make: Effect.Effect<
 })
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<
   RateLimiter,
@@ -215,8 +215,8 @@ export const layer: Layer.Layer<
  * })
  * ```
  *
- * @since 4.0.0
  * @category Accessors
+ * @since 4.0.0
  */
 export const makeWithRateLimiter: Effect.Effect<
   ((options: {
@@ -260,8 +260,8 @@ export const makeWithRateLimiter: Effect.Effect<
  * })
  * ```
  *
- * @since 4.0.0
  * @category Accessors
+ * @since 4.0.0
  */
 export const makeSleep: Effect.Effect<
   ((options: {
@@ -289,20 +289,20 @@ export const makeSleep: Effect.Effect<
 )
 
 /**
- * @since 4.0.0
  * @category Errors
+ * @since 4.0.0
  */
 export const ErrorTypeId: ErrorTypeId = "~@effect/experimental/RateLimiter/RateLimiterError"
 
 /**
- * @since 4.0.0
  * @category Errors
+ * @since 4.0.0
  */
 export type ErrorTypeId = "~@effect/experimental/RateLimiter/RateLimiterError"
 
 /**
- * @since 4.0.0
  * @category Errors
+ * @since 4.0.0
  */
 export class RateLimitExceeded extends Schema.ErrorClass<RateLimitExceeded>(
   "effect/persistence/RateLimiter/RateLimitExceeded"
@@ -322,8 +322,8 @@ export class RateLimitExceeded extends Schema.ErrorClass<RateLimitExceeded>(
 }
 
 /**
- * @since 4.0.0
  * @category Errors
+ * @since 4.0.0
  */
 export class RateLimitStoreError extends Schema.ErrorClass<RateLimitStoreError>(
   "effect/persistence/RateLimiter/RateLimitStoreError"
@@ -334,14 +334,14 @@ export class RateLimitStoreError extends Schema.ErrorClass<RateLimitStoreError>(
 }) {}
 
 /**
- * @since 4.0.0
  * @category Errors
+ * @since 4.0.0
  */
 export type RateLimiterErrorReason = RateLimitExceeded | RateLimitStoreError
 
 /**
- * @since 4.0.0
  * @category Errors
+ * @since 4.0.0
  */
 export const RateLimiterErrorReason: Schema.Union<[
   typeof RateLimitExceeded,
@@ -349,8 +349,8 @@ export const RateLimiterErrorReason: Schema.Union<[
 ]> = Schema.Union([RateLimitExceeded, RateLimitStoreError])
 
 /**
- * @since 4.0.0
  * @category Errors
+ * @since 4.0.0
  */
 export class RateLimiterError extends Schema.ErrorClass<RateLimiterError>(ErrorTypeId)({
   _tag: Schema.tag("RateLimiterError"),
@@ -381,8 +381,8 @@ export class RateLimiterError extends Schema.ErrorClass<RateLimiterError>(ErrorT
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface ConsumeResult {
   /**
@@ -410,8 +410,8 @@ export interface ConsumeResult {
 }
 
 /**
- * @since 4.0.0
  * @category RateLimiterStore
+ * @since 4.0.0
  */
 export class RateLimiterStore extends Context.Service<
   RateLimiterStore,
@@ -454,8 +454,8 @@ export class RateLimiterStore extends Context.Service<
 >()("effect/persistence/RateLimiter/RateLimiterStore") {}
 
 /**
- * @since 4.0.0
  * @category RateLimiterStore
+ * @since 4.0.0
  */
 export const layerStoreMemory: Layer.Layer<
   RateLimiterStore
@@ -511,8 +511,8 @@ export const layerStoreMemory: Layer.Layer<
 })
 
 /**
- * @since 4.0.0
  * @category RateLimiterStore
+ * @since 4.0.0
  */
 export const makeStoreRedis = Effect.fnUntraced(function*(
   options?: {
@@ -646,8 +646,8 @@ return next
 ).withReturnType<number>()
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerStoreRedis: (
   options?: { readonly prefix?: string | undefined }
@@ -658,8 +658,8 @@ export const layerStoreRedis: (
 > = flow(makeStoreRedis, Layer.effect(RateLimiterStore))
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerStoreRedisConfig = (
   options: Config.Wrap<{ readonly prefix?: string | undefined }>

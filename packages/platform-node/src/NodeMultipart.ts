@@ -16,8 +16,8 @@ import * as NodeStreamP from "node:stream/promises"
 import * as NodeStream from "./NodeStream.ts"
 
 /**
- * @since 1.0.0
  * @category constructors
+ * @since 1.0.0
  */
 export const stream = (
   source: Readable,
@@ -39,8 +39,8 @@ export const stream = (
   )
 
 /**
- * @since 1.0.0
  * @category constructors
+ * @since 1.0.0
  */
 export const persisted = (
   source: Readable,

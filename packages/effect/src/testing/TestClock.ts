@@ -72,8 +72,8 @@ import * as Semaphore from "../Semaphore.ts"
  * })
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface TestClock extends Clock.Clock {
   /**
@@ -112,8 +112,8 @@ export interface TestClock extends Clock.Clock {
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export declare namespace TestClock {
   /**
@@ -133,8 +133,8 @@ export declare namespace TestClock {
    * })
    * ```
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Options {
     /**
@@ -161,8 +161,8 @@ export declare namespace TestClock {
    * })
    * ```
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface State {
     readonly timestamp: number
@@ -211,8 +211,8 @@ const SleepOrder = Order.flip(Order.Struct({
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = Effect.fnUntraced(function*(
   options?: TestClock.Options
@@ -364,8 +364,8 @@ export const make = Effect.fnUntraced(function*(
  * }).pipe(Effect.provide(testClockLayer))
  * ```
  *
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layer: (options?: TestClock.Options) => Layer.Layer<TestClock> = flow(
   make,
@@ -394,8 +394,8 @@ export const layer: (options?: TestClock.Options) => Layer.Layer<TestClock> = fl
  * })
  * ```
  *
- * @since 2.0.0
  * @category utils
+ * @since 2.0.0
  */
 export const testClockWith = <A, E, R>(
   f: (testClock: TestClock) => Effect.Effect<A, E, R>
@@ -428,8 +428,8 @@ export const testClockWith = <A, E, R>(
  * })
  * ```
  *
- * @since 2.0.0
  * @category utils
+ * @since 2.0.0
  */
 export const adjust = (duration: Duration.Input): Effect.Effect<void> =>
   testClockWith((testClock) => testClock.adjust(duration))
@@ -461,8 +461,8 @@ export const adjust = (duration: Duration.Input): Effect.Effect<void> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category utils
+ * @since 2.0.0
  */
 export const setTime = (timestamp: number): Effect.Effect<void> =>
   testClockWith((testClock) => testClock.setTime(timestamp))
@@ -494,8 +494,8 @@ export const setTime = (timestamp: number): Effect.Effect<void> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category utils
+ * @since 2.0.0
  */
 export const withLive = <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
   testClockWith((testClock) => testClock.withLive(effect))

@@ -21,8 +21,8 @@ import { Resource } from "./Resource.ts"
 // =============================================================================
 
 /**
- * @since 1.0.0
  * @category Services
+ * @since 1.0.0
  */
 export class OtelTracer extends Context.Service<
   OtelTracer,
@@ -30,8 +30,8 @@ export class OtelTracer extends Context.Service<
 >()("@effect/opentelemetry/Tracer") {}
 
 /**
- * @since 1.0.0
  * @category Services
+ * @since 1.0.0
  */
 export class OtelTracerProvider extends Context.Service<
   OtelTracerProvider,
@@ -39,8 +39,8 @@ export class OtelTracerProvider extends Context.Service<
 >()("@effect/opentelemetry/Tracer/OtelTracerProvider") {}
 
 /**
- * @since 1.0.0
  * @category Services
+ * @since 1.0.0
  */
 export class OtelTraceFlags extends Context.Service<
   OtelTraceFlags,
@@ -48,8 +48,8 @@ export class OtelTraceFlags extends Context.Service<
 >()("@effect/opentelemetry/Tracer/OtelTraceFlags") {}
 
 /**
- * @since 1.0.0
  * @category Services
+ * @since 1.0.0
  */
 export class OtelTraceState extends Context.Service<
   OtelTraceState,
@@ -61,8 +61,8 @@ export class OtelTraceState extends Context.Service<
 // =============================================================================
 
 /**
- * @since 1.0.0
  * @category Constructors
+ * @since 1.0.0
  */
 export const make: Effect.Effect<Tracer.Tracer, never, OtelTracer> = Effect.map(
   Effect.service(OtelTracer),
@@ -92,8 +92,8 @@ export const make: Effect.Effect<Tracer.Tracer, never, OtelTracer> = Effect.map(
 )
 
 /**
- * @since 1.0.0
  * @category Constructors
+ * @since 1.0.0
  */
 export const makeExternalSpan = (options: {
   readonly traceId: string
@@ -134,8 +134,8 @@ export const makeExternalSpan = (options: {
 // =============================================================================
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerGlobalProvider: Layer.Layer<OtelTracerProvider> = Layer.sync(
   OtelTracerProvider,
@@ -143,8 +143,8 @@ export const layerGlobalProvider: Layer.Layer<OtelTracerProvider> = Layer.sync(
 )
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerTracer: Layer.Layer<OtelTracer, never, OtelTracerProvider | Resource> = Layer.effect(
   OtelTracer,
@@ -159,30 +159,30 @@ export const layerTracer: Layer.Layer<OtelTracer, never, OtelTracerProvider | Re
 )
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerGlobalTracer: Layer.Layer<OtelTracer, never, Resource> = layerTracer.pipe(
   Layer.provide(layerGlobalProvider)
 )
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerGlobal: Layer.Layer<OtelTracer, never, Resource> = Layer.effect(Tracer.Tracer, make).pipe(
   Layer.provideMerge(layerGlobalTracer)
 )
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerWithoutOtelTracer: Layer.Layer<never, never, OtelTracer> = Layer.effect(Tracer.Tracer, make)
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layer: Layer.Layer<OtelTracer, never, OtelTracerProvider | Resource> = layerWithoutOtelTracer.pipe(
   Layer.provideMerge(layerTracer)
@@ -204,8 +204,8 @@ const bigint1e9 = BigInt(1_000_000_000)
  * When using OTLP, the returned span is a wrapper that conforms to the
  * OpenTelemetry `Span` interface.
  *
- * @since 1.0.0
  * @category accessors
+ * @since 1.0.0
  */
 export const currentOtelSpan: Effect.Effect<Otel.Span, Cause.NoSuchElementError> = Effect.clockWith((clock) =>
   Effect.map(Effect.currentSpan, (span) =>
@@ -307,8 +307,8 @@ const convertOtelTimeInput = (input: Otel.TimeInput | undefined, clock: Clock.Cl
  * This is handy when you set up OpenTelemetry outside of Effect and want to
  * attach to a parent span.
  *
- * @since 1.0.0
  * @category Propagation
+ * @since 1.0.0
  */
 export const withSpanContext: {
   (

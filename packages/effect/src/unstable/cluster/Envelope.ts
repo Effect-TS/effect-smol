@@ -12,20 +12,20 @@ import { EntityAddress } from "./EntityAddress.ts"
 import { type Snowflake, SnowflakeFromBigInt } from "./Snowflake.ts"
 
 /**
- * @since 4.0.0
  * @category Type IDs
+ * @since 4.0.0
  */
 export const TypeId = "~effect/cluster/Envelope"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Envelope<R extends Rpc.Any> = Request<R> | AckChunk | Interrupt
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Encoded = PartialRequestEncoded | AckChunkEncoded | InterruptEncoded
 
@@ -34,15 +34,15 @@ export type Encoded = PartialRequestEncoded | AckChunkEncoded | InterruptEncoded
  */
 export declare namespace Envelope {
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type Any = Envelope<any>
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Request<in out Rpc extends Rpc.Any> {
   readonly [TypeId]: typeof TypeId
@@ -58,8 +58,8 @@ export interface Request<in out Rpc extends Rpc.Any> {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class PartialRequest extends Schema.Opaque<PartialRequest>()(Schema.Struct({
   _tag: Schema.tag("Request"),
@@ -74,8 +74,8 @@ export class PartialRequest extends Schema.Opaque<PartialRequest>()(Schema.Struc
 })) {}
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface PartialRequestEncoded {
   readonly _tag: "Request"
@@ -97,8 +97,8 @@ export interface PartialRequestEncoded {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class AckChunk extends Schema.Class<AckChunk>("effect/cluster/Envelope/AckChunk")({
   _tag: Schema.tag("AckChunk"),
@@ -124,8 +124,8 @@ export class AckChunk extends Schema.Class<AckChunk>("effect/cluster/Envelope/Ac
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface AckChunkEncoded {
   readonly _tag: "AckChunk"
@@ -143,8 +143,8 @@ export interface AckChunkEncoded {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class Interrupt extends Schema.Class<Interrupt>("effect/cluster/Envelope/Interrupt")({
   _tag: Schema.tag("Interrupt"),
@@ -169,8 +169,8 @@ export class Interrupt extends Schema.Class<Interrupt>("effect/cluster/Envelope/
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface InterruptEncoded {
   readonly _tag: "Interrupt"
@@ -187,8 +187,8 @@ export interface InterruptEncoded {
 }
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const Partial: Schema.Union<
   readonly [
@@ -199,14 +199,14 @@ export const Partial: Schema.Union<
 > = Schema.Union([PartialRequest, AckChunk, Interrupt])
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export type Partial = typeof Partial.Type
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const PartialJson: Schema.Codec<
   AckChunk | Interrupt | PartialRequest,
@@ -214,8 +214,8 @@ export const PartialJson: Schema.Codec<
 > = Schema.toCodecJson(Partial) as any
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const PartialArray: Schema.mutable<
   Schema.$Array<Schema.Codec<AckChunk | Interrupt | PartialRequest, Encoded>>
@@ -226,21 +226,21 @@ export const PartialArray: Schema.mutable<
  */
 export declare namespace Request {
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type Any = Request<any>
 }
 
 /**
- * @since 4.0.0
  * @category refinements
+ * @since 4.0.0
  */
 export const isEnvelope = (u: unknown): u is Envelope<any> => Predicate.hasProperty(u, TypeId)
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const makeRequest = <Rpc extends Rpc.Any>(
   options: {
@@ -271,16 +271,16 @@ export const makeRequest = <Rpc extends Rpc.Any>(
 })
 
 /**
- * @since 4.0.0
  * @category serialization / deserialization
+ * @since 4.0.0
  */
 export const Envelope = Schema.declare(isEnvelope, {
   identifier: "Envelope"
 })
 
 /**
- * @since 4.0.0
  * @category serialization / deserialization
+ * @since 4.0.0
  */
 export const Request = Schema.declare(
   (u): u is Request.Any => isEnvelope(u) && u._tag === "Request",
@@ -288,8 +288,8 @@ export const Request = Schema.declare(
 )
 
 /**
- * @since 4.0.0
  * @category serialization / deserialization
+ * @since 4.0.0
  */
 export const RequestTransform: Transformation.Transformation<
   Request.Any,
@@ -300,8 +300,8 @@ export const RequestTransform: Transformation.Transformation<
 })
 
 /**
- * @since 4.0.0
  * @category primary key
+ * @since 4.0.0
  */
 export const primaryKey = <R extends Rpc.Any>(envelope: Envelope<R>): string | null => {
   if (envelope._tag !== "Request" || !PrimaryKey.isPrimaryKey(envelope.payload)) {
@@ -315,8 +315,8 @@ export const primaryKey = <R extends Rpc.Any>(envelope: Envelope<R>): string | n
 }
 
 /**
- * @since 4.0.0
  * @category primary key
+ * @since 4.0.0
  */
 export const primaryKeyByAddress = (options: {
   readonly address: EntityAddress

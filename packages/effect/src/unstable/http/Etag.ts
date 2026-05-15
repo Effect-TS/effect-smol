@@ -9,14 +9,14 @@ import * as Option from "../../Option.ts"
 import type * as Body from "./HttpBody.ts"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Etag = Weak | Strong
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Weak {
   readonly _tag: "Weak"
@@ -24,8 +24,8 @@ export interface Weak {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Strong {
   readonly _tag: "Strong"
@@ -33,8 +33,8 @@ export interface Strong {
 }
 
 /**
- * @since 4.0.0
  * @category convertions
+ * @since 4.0.0
  */
 export const toString = (self: Etag): string => {
   switch (self._tag) {
@@ -46,8 +46,8 @@ export const toString = (self: Etag): string => {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class Generator extends Context.Service<Generator, {
   readonly fromFileInfo: (info: FileSystem.File.Info) => Effect.Effect<Etag>
@@ -67,8 +67,8 @@ const fromFileWeb = (file: Body.HttpBody.FileLike) => {
 }
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<Generator> = Layer.succeed(
   Generator
@@ -82,8 +82,8 @@ export const layer: Layer.Layer<Generator> = Layer.succeed(
 })
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerWeak: Layer.Layer<Generator> = Layer.succeed(
   Generator

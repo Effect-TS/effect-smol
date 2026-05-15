@@ -3,8 +3,8 @@
  */
 
 /**
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  * @example
  * ```ts
  * import { Effect } from "effect"
@@ -500,8 +500,8 @@ export interface Pipeable {
 }
 
 /**
- * @since 2.0.0
  * @category utilities
+ * @since 2.0.0
  * @example
  * ```ts
  * import { Pipeable } from "effect"
@@ -561,8 +561,8 @@ export const Prototype: Pipeable = {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const Class: new() => Pipeable = (function() {
   function PipeableBase() {}
@@ -571,16 +571,16 @@ export const Class: new() => Pipeable = (function() {
 })()
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface PipeableConstructor {
   new(...args: ReadonlyArray<any>): Pipeable
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const Mixin = <TBase extends new(...args: ReadonlyArray<any>) => any>(
   klass: TBase

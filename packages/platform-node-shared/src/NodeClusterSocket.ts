@@ -14,8 +14,8 @@ import * as NodeSocket from "./NodeSocket.ts"
 import * as NodeSocketServer from "./NodeSocketServer.ts"
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerClientProtocol: Layer.Layer<
   Runners.RpcClientProtocol,
@@ -40,8 +40,8 @@ export const layerClientProtocol: Layer.Layer<
 )
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerSocketServer: Layer.Layer<
   SocketServer.SocketServer,

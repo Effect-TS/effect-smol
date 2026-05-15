@@ -3,8 +3,8 @@
  */
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type HttpMethod =
   | "GET"
@@ -17,19 +17,19 @@ export type HttpMethod =
   | "TRACE"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export declare namespace HttpMethod {
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type NoBody = "GET" | "HEAD" | "OPTIONS" | "TRACE"
 
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type WithBody = Exclude<HttpMethod, NoBody>
 }
@@ -84,7 +84,7 @@ export const allShort = [
  * // false
  * ```
  *
- * @since 4.0.0
  * @category refinements
+ * @since 4.0.0
  */
 export const isHttpMethod = (u: unknown): u is HttpMethod => all.has(u as HttpMethod)

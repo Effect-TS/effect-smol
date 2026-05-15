@@ -9,33 +9,33 @@ import type * as Rpc from "./Rpc.ts"
 import type { RpcClientError } from "./RpcClientError.ts"
 
 /**
- * @since 4.0.0
  * @category request
+ * @since 4.0.0
  */
 export type FromClient<A extends Rpc.Any> = Request<A> | Ack | Interrupt | Eof
 
 /**
- * @since 4.0.0
  * @category request
+ * @since 4.0.0
  */
 export type FromClientEncoded = RequestEncoded | AckEncoded | InterruptEncoded | Ping | Eof
 
 /**
- * @since 4.0.0
  * @category request
+ * @since 4.0.0
  */
 export type RequestId = Branded<bigint, "~effect/rpc/RpcMessage/RequestId">
 
 /**
- * @since 4.0.0
  * @category request
+ * @since 4.0.0
  */
 export const RequestId = (id: bigint | string): RequestId =>
   typeof id === "bigint" ? id as RequestId : BigInt(id) as RequestId
 
 /**
- * @since 4.0.0
  * @category request
+ * @since 4.0.0
  */
 export interface RequestEncoded {
   readonly _tag: "Request"
@@ -49,8 +49,8 @@ export interface RequestEncoded {
 }
 
 /**
- * @since 4.0.0
  * @category request
+ * @since 4.0.0
  */
 export interface Request<A extends Rpc.Any> {
   readonly _tag: "Request"
@@ -64,8 +64,8 @@ export interface Request<A extends Rpc.Any> {
 }
 
 /**
- * @since 4.0.0
  * @category request
+ * @since 4.0.0
  */
 export interface Ack {
   readonly _tag: "Ack"
@@ -73,8 +73,8 @@ export interface Ack {
 }
 
 /**
- * @since 4.0.0
  * @category request
+ * @since 4.0.0
  */
 export interface Interrupt {
   readonly _tag: "Interrupt"
@@ -83,8 +83,8 @@ export interface Interrupt {
 }
 
 /**
- * @since 4.0.0
  * @category request
+ * @since 4.0.0
  */
 export interface AckEncoded {
   readonly _tag: "Ack"
@@ -92,8 +92,8 @@ export interface AckEncoded {
 }
 
 /**
- * @since 4.0.0
  * @category request
+ * @since 4.0.0
  */
 export interface InterruptEncoded {
   readonly _tag: "Interrupt"
@@ -101,36 +101,36 @@ export interface InterruptEncoded {
 }
 
 /**
- * @since 4.0.0
  * @category request
+ * @since 4.0.0
  */
 export interface Eof {
   readonly _tag: "Eof"
 }
 
 /**
- * @since 4.0.0
  * @category request
+ * @since 4.0.0
  */
 export interface Ping {
   readonly _tag: "Ping"
 }
 
 /**
- * @since 4.0.0
  * @category request
+ * @since 4.0.0
  */
 export const constEof: Eof = { _tag: "Eof" }
 
 /**
- * @since 4.0.0
  * @category request
+ * @since 4.0.0
  */
 export const constPing: Ping = { _tag: "Ping" }
 
 /**
- * @since 4.0.0
  * @category response
+ * @since 4.0.0
  */
 export type FromServer<A extends Rpc.Any> =
   | ResponseChunk<A>
@@ -139,8 +139,8 @@ export type FromServer<A extends Rpc.Any> =
   | ClientEnd
 
 /**
- * @since 4.0.0
  * @category response
+ * @since 4.0.0
  */
 export type FromServerEncoded =
   | ResponseChunkEncoded
@@ -150,26 +150,26 @@ export type FromServerEncoded =
   | ClientProtocolError
 
 /**
- * @since 4.0.0
  * @category response
+ * @since 4.0.0
  */
 export const ResponseIdTypeId = "~effect//rpc/RpcServer/ResponseId"
 
 /**
- * @since 4.0.0
  * @category response
+ * @since 4.0.0
  */
 export type ResponseIdTypeId = typeof ResponseIdTypeId
 
 /**
- * @since 4.0.0
  * @category response
+ * @since 4.0.0
  */
 export type ResponseId = Branded<number, ResponseIdTypeId>
 
 /**
- * @since 4.0.0
  * @category response
+ * @since 4.0.0
  */
 export interface ResponseChunkEncoded {
   readonly _tag: "Chunk"
@@ -178,8 +178,8 @@ export interface ResponseChunkEncoded {
 }
 
 /**
- * @since 4.0.0
  * @category response
+ * @since 4.0.0
  */
 export interface ResponseChunk<A extends Rpc.Any> {
   readonly _tag: "Chunk"
@@ -189,8 +189,8 @@ export interface ResponseChunk<A extends Rpc.Any> {
 }
 
 /**
- * @since 4.0.0
  * @category response
+ * @since 4.0.0
  */
 export type ExitEncoded<A, E> = {
   readonly _tag: "Success"
@@ -212,8 +212,8 @@ export type ExitEncoded<A, E> = {
 }
 
 /**
- * @since 4.0.0
  * @category response
+ * @since 4.0.0
  */
 export interface ResponseExitEncoded {
   readonly _tag: "Exit"
@@ -222,8 +222,8 @@ export interface ResponseExitEncoded {
 }
 
 /**
- * @since 4.0.0
  * @category response
+ * @since 4.0.0
  */
 export interface ClientProtocolError {
   readonly _tag: "ClientProtocolError"
@@ -231,8 +231,8 @@ export interface ClientProtocolError {
 }
 
 /**
- * @since 4.0.0
  * @category response
+ * @since 4.0.0
  */
 export interface ResponseExit<A extends Rpc.Any> {
   readonly _tag: "Exit"
@@ -242,8 +242,8 @@ export interface ResponseExit<A extends Rpc.Any> {
 }
 
 /**
- * @since 4.0.0
  * @category response
+ * @since 4.0.0
  */
 export interface ResponseDefectEncoded {
   readonly _tag: "Defect"
@@ -253,8 +253,8 @@ export interface ResponseDefectEncoded {
 const encodeDefect = Schema.encodeSync(Schema.Defect)
 
 /**
- * @since 4.0.0
  * @category response
+ * @since 4.0.0
  */
 export const ResponseExitDieEncoded = (options: {
   readonly requestId: RequestId
@@ -272,8 +272,8 @@ export const ResponseExitDieEncoded = (options: {
 })
 
 /**
- * @since 4.0.0
  * @category response
+ * @since 4.0.0
  */
 export const ResponseDefectEncoded = (input: unknown): ResponseDefectEncoded => ({
   _tag: "Defect",
@@ -281,8 +281,8 @@ export const ResponseDefectEncoded = (input: unknown): ResponseDefectEncoded => 
 })
 
 /**
- * @since 4.0.0
  * @category response
+ * @since 4.0.0
  */
 export interface ResponseDefect {
   readonly _tag: "Defect"
@@ -291,8 +291,8 @@ export interface ResponseDefect {
 }
 
 /**
- * @since 4.0.0
  * @category response
+ * @since 4.0.0
  */
 export interface ClientEnd {
   readonly _tag: "ClientEnd"
@@ -300,15 +300,15 @@ export interface ClientEnd {
 }
 
 /**
- * @since 4.0.0
  * @category response
+ * @since 4.0.0
  */
 export interface Pong {
   readonly _tag: "Pong"
 }
 
 /**
- * @since 4.0.0
  * @category response
+ * @since 4.0.0
  */
 export const constPong: Pong = { _tag: "Pong" }

@@ -66,8 +66,8 @@ const TypeId = "~effect/Ref"
  * })
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Ref<in out A> extends Ref.Variance<A>, Pipeable {
   readonly ref: MutableRef.MutableRef<A>
@@ -76,8 +76,8 @@ export interface Ref<in out A> extends Ref.Variance<A>, Pipeable {
 /**
  * The Ref namespace containing type definitions and utilities.
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export declare namespace Ref {
   /**
@@ -98,8 +98,8 @@ export declare namespace Ref {
    * })
    * ```
    *
-   * @since 2.0.0
    * @category models
+   * @since 2.0.0
    */
   export interface Variance<in out A> {
     readonly [TypeId]: {
@@ -142,8 +142,8 @@ const RefProto = {
  * // Prefer Ref.make for Effect-wrapped creation
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const makeUnsafe = <A>(value: A): Ref<A> => {
   const self = Object.create(RefProto)
@@ -168,8 +168,8 @@ export const makeUnsafe = <A>(value: A): Ref<A> => {
  * })
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const make = <A>(value: A): Effect.Effect<Ref<A>> => Effect.sync(() => makeUnsafe(value))
 
@@ -187,8 +187,8 @@ export const make = <A>(value: A): Effect.Effect<Ref<A>> => Effect.sync(() => ma
  * })
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const get = <A>(self: Ref<A>) => Effect.sync(() => self.ref.current)
 
@@ -215,8 +215,8 @@ export const get = <A>(self: Ref<A>) => Effect.sync(() => self.ref.current)
  * })
  * ```
  *
- * @since 2.0.0
  * @category setters
+ * @since 2.0.0
  */
 export const set = dual<
   <A>(value: A) => (self: Ref<A>) => Effect.Effect<void>,
@@ -244,8 +244,8 @@ export const set = dual<
  * })
  * ```
  *
- * @since 2.0.0
  * @category utils
+ * @since 2.0.0
  */
 export const getAndSet = dual<
   <A>(value: A) => (self: Ref<A>) => Effect.Effect<A>,
@@ -278,8 +278,8 @@ export const getAndSet = dual<
  * })
  * ```
  *
- * @since 2.0.0
  * @category utils
+ * @since 2.0.0
  */
 export const getAndUpdate = dual<
   <A>(f: (a: A) => A) => (self: Ref<A>) => Effect.Effect<A>,
@@ -328,8 +328,8 @@ export const getAndUpdate = dual<
  * })
  * ```
  *
- * @since 2.0.0
  * @category utils
+ * @since 2.0.0
  */
 export const getAndUpdateSome = dual<
   <A>(pf: (a: A) => Option.Option<A>) => (self: Ref<A>) => Effect.Effect<A>,
@@ -374,8 +374,8 @@ export const getAndUpdateSome = dual<
  * })
  * ```
  *
- * @since 2.0.0
  * @category utils
+ * @since 2.0.0
  */
 export const setAndGet = dual<
   <A>(value: A) => (self: Ref<A>) => Effect.Effect<A>,
@@ -420,8 +420,8 @@ export const setAndGet = dual<
  * })
  * ```
  *
- * @since 2.0.0
  * @category setters
+ * @since 2.0.0
  */
 export const modify = dual<
   <A, B>(f: (a: A) => readonly [B, A]) => (self: Ref<A>) => Effect.Effect<B>,
@@ -478,8 +478,8 @@ export const modify = dual<
  * })
  * ```
  *
- * @since 2.0.0
  * @category setters
+ * @since 2.0.0
  */
 export const modifySome: {
   <B, A>(pf: (a: A) => readonly [B, Option.Option<A>]): (self: Ref<A>) => Effect.Effect<B>
@@ -524,8 +524,8 @@ export const modifySome: {
  * })
  * ```
  *
- * @since 2.0.0
  * @category setters
+ * @since 2.0.0
  */
 export const update = dual<
   <A>(f: (a: A) => A) => (self: Ref<A>) => Effect.Effect<void>,
@@ -555,8 +555,8 @@ export const update = dual<
  * })
  * ```
  *
- * @since 2.0.0
  * @category utils
+ * @since 2.0.0
  */
 export const updateAndGet = dual<
   <A>(f: (a: A) => A) => (self: Ref<A>) => Effect.Effect<A>,
@@ -598,8 +598,8 @@ export const updateAndGet = dual<
  * })
  * ```
  *
- * @since 2.0.0
  * @category setters
+ * @since 2.0.0
  */
 export const updateSome = dual<
   <A>(f: (a: A) => Option.Option<A>) => (self: Ref<A>) => Effect.Effect<void>,
@@ -643,8 +643,8 @@ export const updateSome = dual<
  * })
  * ```
  *
- * @since 2.0.0
  * @category utils
+ * @since 2.0.0
  */
 export const updateSomeAndGet = dual<
   <A>(pf: (a: A) => Option.Option<A>) => (self: Ref<A>) => Effect.Effect<A>,
@@ -679,7 +679,7 @@ export const updateSomeAndGet = dual<
  * // Prefer Ref.get for Effect-wrapped access
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const getUnsafe = <A>(self: Ref<A>): A => self.ref.current

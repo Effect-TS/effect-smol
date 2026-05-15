@@ -47,8 +47,8 @@ const clientErrors = [
  * )
  * ```
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const toRpcGroup = <Type extends string, Rpcs extends Rpc.Any>(
   entity: Entity.Entity<Type, Rpcs>
@@ -166,8 +166,8 @@ const entityIdPath = {
  * )
  * ```
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const toHttpApiGroup = <const Name extends string, Type extends string, Rpcs extends Rpc.Any>(
   name: Name,

@@ -17,8 +17,8 @@ import * as Response from "./HttpServerResponse.ts"
 const TypeId = "~effect/http/HttpServerError"
 
 /**
- * @since 4.0.0
  * @category error
+ * @since 4.0.0
  */
 export class HttpServerError extends Data.TaggedError("HttpServerError")<{
   readonly reason: HttpServerErrorReason
@@ -62,8 +62,8 @@ export class HttpServerError extends Data.TaggedError("HttpServerError")<{
 }
 
 /**
- * @since 4.0.0
  * @category error
+ * @since 4.0.0
  */
 export class RequestParseError extends Data.TaggedError("RequestParseError")<{
   readonly request: Request.HttpServerRequest
@@ -87,8 +87,8 @@ export class RequestParseError extends Data.TaggedError("RequestParseError")<{
 }
 
 /**
- * @since 4.0.0
  * @category error
+ * @since 4.0.0
  */
 export class RouteNotFound extends Data.TaggedError("RouteNotFound")<{
   readonly request: Request.HttpServerRequest
@@ -111,8 +111,8 @@ export class RouteNotFound extends Data.TaggedError("RouteNotFound")<{
 }
 
 /**
- * @since 4.0.0
  * @category error
+ * @since 4.0.0
  */
 export class InternalError extends Data.TaggedError("InternalError")<{
   readonly request: Request.HttpServerRequest
@@ -136,14 +136,14 @@ export class InternalError extends Data.TaggedError("InternalError")<{
 }
 
 /**
- * @since 4.0.0
  * @category predicates
+ * @since 4.0.0
  */
 export const isHttpServerError = (u: unknown): u is HttpServerError => hasProperty(u, TypeId)
 
 /**
- * @since 4.0.0
  * @category error
+ * @since 4.0.0
  */
 export class ResponseError extends Data.TaggedError("ResponseError")<{
   readonly request: Request.HttpServerRequest
@@ -166,28 +166,28 @@ export class ResponseError extends Data.TaggedError("ResponseError")<{
 }
 
 /**
- * @since 4.0.0
  * @category error
+ * @since 4.0.0
  */
 export type RequestError = RequestParseError | RouteNotFound | InternalError
 
 /**
- * @since 4.0.0
  * @category error
+ * @since 4.0.0
  */
 export type HttpServerErrorReason = RequestError | ResponseError
 
 /**
- * @since 4.0.0
  * @category error
+ * @since 4.0.0
  */
 export class ServeError extends Data.TaggedError("ServeError")<{
   readonly cause: unknown
 }> {}
 
 /**
- * @since 4.0.0
  * @category Annotations
+ * @since 4.0.0
  */
 export class ClientAbort extends Context.Service<ClientAbort, true>()("effect/http/HttpServerError/ClientAbort") {
   static annotation = this.context(true).pipe(

@@ -31,8 +31,8 @@ const toFileUrl = (path: string): Effect.Effect<URL, BadArgument> =>
   })
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerPosix: Layer.Layer<Path> = Layer.succeed(Path)({
   [TypeId]: TypeId,
@@ -42,8 +42,8 @@ export const layerPosix: Layer.Layer<Path> = Layer.succeed(Path)({
 })
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerWin32: Layer.Layer<Path> = Layer.succeed(Path)({
   [TypeId]: TypeId,
@@ -53,8 +53,8 @@ export const layerWin32: Layer.Layer<Path> = Layer.succeed(Path)({
 })
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layer: Layer.Layer<Path> = Layer.succeed(Path)({
   [TypeId]: TypeId,

@@ -17,8 +17,8 @@ import * as Msgpack from "../encoding/Msgpack.ts"
 import type { StoreId } from "./EventLogMessage.ts"
 
 /**
- * @since 4.0.0
  * @category context
+ * @since 4.0.0
  */
 export class EventJournal extends Context.Service<EventJournal, {
   /**
@@ -90,8 +90,8 @@ export class EventJournal extends Context.Service<EventJournal, {
 const TypeId = "effect/eventlog/EventJournal/EventJournalError" as const
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class EventJournalError extends Data.TaggedError("EventJournalError")<{
   readonly method: string
@@ -104,64 +104,64 @@ export class EventJournalError extends Data.TaggedError("EventJournalError")<{
 }
 
 /**
- * @since 4.0.0
  * @category remote
+ * @since 4.0.0
  */
 export type RemoteIdTypeId = "effect/eventlog/EventJournal/RemoteId"
 
 /**
- * @since 4.0.0
  * @category remote
+ * @since 4.0.0
  */
 export const RemoteIdTypeId: RemoteIdTypeId = "effect/eventlog/EventJournal/RemoteId"
 
 /**
- * @since 4.0.0
  * @category remote
+ * @since 4.0.0
  */
 export type RemoteId = Uint8Array & Brand<RemoteIdTypeId>
 
 /**
- * @since 4.0.0
  * @category remote
+ * @since 4.0.0
  */
 export const RemoteId = Schema.Uint8Array.pipe(Schema.brand(RemoteIdTypeId))
 
 /**
- * @since 4.0.0
  * @category remote
+ * @since 4.0.0
  */
 export const makeRemoteIdUnsafe = (): RemoteId => Uuid.v4({}, new globalThis.Uint8Array(16)) as RemoteId
 
 /**
- * @since 4.0.0
  * @category entry
+ * @since 4.0.0
  */
 export const EntryIdTypeId: EntryIdTypeId = "effect/eventlog/EventJournal/EntryId"
 
 /**
- * @since 4.0.0
  * @category entry
+ * @since 4.0.0
  */
 export type EntryIdTypeId = "effect/eventlog/EventJournal/EntryId"
 
 /**
- * @since 4.0.0
  * @category entry
+ * @since 4.0.0
  */
 export type EntryId = Uint8Array<ArrayBuffer> & Brand<EntryIdTypeId>
 
 /**
- * @since 4.0.0
  * @category entry
+ * @since 4.0.0
  */
 export const EntryId = (Schema.Uint8Array as Schema.instanceOf<Uint8Array<ArrayBuffer>>).pipe(
   Schema.brand(EntryIdTypeId)
 )
 
 /**
- * @since 4.0.0
  * @category entry
+ * @since 4.0.0
  */
 export const EntryIdOrder = Order.make<EntryId>((a, b) => {
   for (let i = 0; i < 16; i++) {
@@ -173,15 +173,15 @@ export const EntryIdOrder = Order.make<EntryId>((a, b) => {
 })
 
 /**
- * @since 4.0.0
  * @category entry
+ * @since 4.0.0
  */
 export const makeEntryIdUnsafe = (options: { msecs?: number } = {}): EntryId =>
   Uuid.v7(options, new globalThis.Uint8Array(16)) as EntryId
 
 /**
- * @since 4.0.0
  * @category entry
+ * @since 4.0.0
  */
 export const entryIdMillis = (entryId: EntryId): number => {
   const bytes = new Uint8Array(8)
@@ -190,8 +190,8 @@ export const entryIdMillis = (entryId: EntryId): number => {
 }
 
 /**
- * @since 4.0.0
  * @category entry
+ * @since 4.0.0
  */
 export class Entry extends Schema.Class<Entry>("effect/eventlog/EventJournal/Entry")({
   id: EntryId,
@@ -242,8 +242,8 @@ export class Entry extends Schema.Class<Entry>("effect/eventlog/EventJournal/Ent
 }
 
 /**
- * @since 4.0.0
  * @category entry
+ * @since 4.0.0
  */
 export class RemoteEntry extends Schema.Class<RemoteEntry>("effect/eventlog/EventJournal/RemoteEntry")({
   remoteSequence: Schema.Number,
@@ -251,8 +251,8 @@ export class RemoteEntry extends Schema.Class<RemoteEntry>("effect/eventlog/Even
 }) {}
 
 /**
- * @since 4.0.0
  * @category memory
+ * @since 4.0.0
  */
 export const makeMemory: Effect.Effect<EventJournal["Service"]> = Effect.gen(function*() {
   const journal: Array<Entry> = []
@@ -384,14 +384,14 @@ export const makeMemory: Effect.Effect<EventJournal["Service"]> = Effect.gen(fun
 })
 
 /**
- * @since 4.0.0
  * @category memory
+ * @since 4.0.0
  */
 export const layerMemory: Layer.Layer<EventJournal> = Layer.effect(EventJournal, makeMemory)
 
 /**
- * @since 4.0.0
  * @category indexed db
+ * @since 4.0.0
  */
 export const makeIndexedDb = (options?: {
   readonly database?: string
@@ -648,8 +648,8 @@ const EntryIdbArray = Schema.Array(Entry)
 const decodeEntryIdbArray = Schema.decodeUnknownEffect(EntryIdbArray)
 
 /**
- * @since 4.0.0
  * @category indexed db
+ * @since 4.0.0
  */
 export const layerIndexedDb = (options?: {
   readonly database?: string

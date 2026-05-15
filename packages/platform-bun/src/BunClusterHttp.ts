@@ -29,15 +29,15 @@ import * as BunSocket from "./BunSocket.ts"
 
 export {
   /**
-   * @since 1.0.0
    * @category Re-exports
+   * @since 1.0.0
    */
   layerK8sHttpClient
 }
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerHttpServer: Layer.Layer<
   | HttpPlatform
@@ -56,8 +56,8 @@ export const layerHttpServer: Layer.Layer<
 }).pipe(Layer.unwrap)
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layer = <
   const ClientOnly extends boolean = false,

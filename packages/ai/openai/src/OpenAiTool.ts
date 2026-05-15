@@ -13,8 +13,8 @@ import * as Generated from "./Generated.ts"
 /**
  * Union of all OpenAI provider-defined tools.
  *
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export type OpenAiTool =
   | ReturnType<typeof ApplyPatch>
@@ -34,8 +34,8 @@ export type OpenAiTool =
  * This is a local tool that runs in your environment and requires a handler
  * to execute file operations.
  *
- * @since 1.0.0
  * @category tools
+ * @since 1.0.0
  */
 export const ApplyPatch = Tool.providerDefined({
   id: "openai.apply_patch",
@@ -57,8 +57,8 @@ export const ApplyPatch = Tool.providerDefined({
  *
  * Allows the model to execute Python code in a sandboxed environment.
  *
- * @since 1.0.0
  * @category tools
+ * @since 1.0.0
  */
 export const CodeInterpreter = Tool.providerDefined({
   id: "openai.code_interpreter",
@@ -81,8 +81,8 @@ export const CodeInterpreter = Tool.providerDefined({
  *
  * Enables the model to search through uploaded files and vector stores.
  *
- * @since 1.0.0
  * @category tools
+ * @since 1.0.0
  */
 export const FileSearch = Tool.providerDefined({
   id: "openai.file_search",
@@ -106,8 +106,8 @@ export const FileSearch = Tool.providerDefined({
  *
  * Enables the model to generate images using the GPT image models.
  *
- * @since 1.0.0
  * @category tools
+ * @since 1.0.0
  */
 export const ImageGeneration = Tool.providerDefined({
   id: "openai.image_generation",
@@ -136,8 +136,8 @@ export const ImageGeneration = Tool.providerDefined({
  * Enables the model to run a command with a local shell. This is a local tool
  * that runs in your environment and requires a handler to execute commands.
  *
- * @since 1.0.0
  * @category tools
+ * @since 1.0.0
  */
 export const LocalShell = Tool.providerDefined({
   id: "openai.local_shell",
@@ -158,8 +158,8 @@ export const LocalShell = Tool.providerDefined({
  * Gives the model access to additional tools via remote Model Context Protocol
  * (MCP) servers
  *
- * @since 1.0.0
  * @category tools
+ * @since 1.0.0
  */
 export const Mcp = Tool.providerDefined({
   id: "openai.mcp",
@@ -192,8 +192,8 @@ export const Mcp = Tool.providerDefined({
  * environment. This is a local tool that runs in your environment and requires
  * a handler to execute commands.
  *
- * @since 1.0.0
  * @category tools
+ * @since 1.0.0
  */
 export const Shell = Tool.providerDefined({
   id: "openai.shell",
@@ -213,8 +213,8 @@ export const Shell = Tool.providerDefined({
  *
  * Enables the model to search the web for information.
  *
- * @since 1.0.0
  * @category tools
+ * @since 1.0.0
  */
 export const WebSearch = Tool.providerDefined({
   id: "openai.web_search",
@@ -239,8 +239,8 @@ export const WebSearch = Tool.providerDefined({
  *
  * Preview version of the web search tool with additional features.
  *
- * @since 1.0.0
  * @category tools
+ * @since 1.0.0
  */
 export const WebSearchPreview = Tool.providerDefined({
   id: "openai.web_search_preview",

@@ -19,8 +19,8 @@ import type * as Primitive from "./Primitive.ts"
 /**
  * Represents a command-line flag.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Flag<A> extends Param.Param<typeof Param.flagKind, A> {}
 
@@ -39,8 +39,8 @@ export interface Flag<A> extends Param.Param<typeof Param.flagKind, A> {}
  * // Usage: --name "John Doe"
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const string = (name: string): Flag<string> => Param.string(Param.flagKind, name)
 
@@ -55,8 +55,8 @@ export const string = (name: string): Flag<string> => Param.string(Param.flagKin
  * // Usage: --verbose (true) or --no-verbose (false)
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const boolean = (name: string): Flag<boolean> => Param.boolean(Param.flagKind, name)
 
@@ -71,8 +71,8 @@ export const boolean = (name: string): Flag<boolean> => Param.boolean(Param.flag
  * // Usage: --port 8080
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const integer = (name: string): Flag<number> => Param.integer(Param.flagKind, name)
 
@@ -87,8 +87,8 @@ export const integer = (name: string): Flag<number> => Param.integer(Param.flagK
  * // Usage: --rate 3.14
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const float = (name: string): Flag<number> => Param.float(Param.flagKind, name)
 
@@ -103,8 +103,8 @@ export const float = (name: string): Flag<number> => Param.float(Param.flagKind,
  * // Usage: --start-date 2023-12-25
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const date = (name: string): Flag<Date> => Param.date(Param.flagKind, name)
 
@@ -127,8 +127,8 @@ export const date = (name: string): Flag<Date> => Param.date(Param.flagKind, nam
  * ])
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const choiceWithValue = <const Choice extends ReadonlyArray<readonly [string, any]>>(
   name: string,
@@ -138,8 +138,8 @@ export const choiceWithValue = <const Choice extends ReadonlyArray<readonly [str
 /**
  * Simpler variant of `choiceWithValue` which maps each string to itself.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const choice = <const Choices extends ReadonlyArray<string>>(
   name: string,
@@ -169,8 +169,8 @@ export const choice = <const Choices extends ReadonlyArray<string>>(
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const path = (name: string, options?: {
   readonly pathType?: "file" | "directory" | "either" | undefined
@@ -194,8 +194,8 @@ export const path = (name: string, options?: {
  * // Usage: --config ./config.yaml (file must exist)
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const file = (name: string, options?: {
   readonly mustExist?: boolean | undefined
@@ -217,8 +217,8 @@ export const file = (name: string, options?: {
  * // Usage: --source ./src (directory must exist)
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const directory = (name: string, options?: {
   readonly mustExist?: boolean | undefined
@@ -244,8 +244,8 @@ export const directory = (name: string, options?: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const redacted = (name: string): Flag<Redacted.Redacted<string>> => Param.redacted(Param.flagKind, name)
 
@@ -260,8 +260,8 @@ export const redacted = (name: string): Flag<Redacted.Redacted<string>> => Param
  * // --config-file ./app.json will read the file content
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fileText = (name: string): Flag<string> => Param.fileText(Param.flagKind, name)
 
@@ -283,8 +283,8 @@ export const fileText = (name: string): Flag<string> => Param.fileText(Param.fla
  * const jsonConfig = Flag.fileParse("json-config", { format: "json" })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fileParse = (
   name: string,
@@ -308,8 +308,8 @@ export const fileParse = (
  * const config = Flag.fileSchema("config", ConfigSchema, { format: "json" })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fileSchema = <A>(
   name: string,
@@ -332,8 +332,8 @@ export const fileSchema = <A>(
  * // --env FOO=bar --env BAZ=qux will parse to { FOO: "bar", BAZ: "qux" }
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const keyValuePair = (name: string): Flag<Record<string, string>> => Param.keyValuePair(Param.flagKind, name)
 
@@ -349,8 +349,8 @@ export const keyValuePair = (name: string): Flag<Record<string, string>> => Para
  * const conditionalFlag = true ? Flag.string("value") : Flag.none
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const none: Flag<never> = Param.none(Param.flagKind)
 
@@ -377,8 +377,8 @@ export const none: Flag<never> = Param.none(Param.flagKind)
  * )
  * ```
  *
- * @since 4.0.0
  * @category aliasing
+ * @since 4.0.0
  */
 export const withAlias: {
   <A>(alias: string): (self: Flag<A>) => Flag<A>
@@ -401,8 +401,8 @@ export const withAlias: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category help documentation
+ * @since 4.0.0
  */
 export const withDescription: {
   <A>(description: string): (self: Flag<A>) => Flag<A>
@@ -435,8 +435,8 @@ export const withDescription: {
  * // In help: --timeout SECONDS
  * ```
  *
- * @since 4.0.0
  * @category metadata
+ * @since 4.0.0
  */
 export const withMetavar: {
   <A>(metavar: string): (self: Flag<A>) => Flag<A>
@@ -466,8 +466,8 @@ export const withMetavar: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category optionality
+ * @since 4.0.0
  */
 export const optional = <A>(param: Flag<A>): Flag<Option.Option<A>> => Param.optional(param)
 
@@ -489,8 +489,8 @@ export const optional = <A>(param: Flag<A>): Flag<Option.Option<A>> => Param.opt
  * // If --host is not provided, defaults to "localhost"
  * ```
  *
- * @since 4.0.0
  * @category optionality
+ * @since 4.0.0
  */
 export const withDefault: {
   <const B>(defaultValue: B | Effect.Effect<B, CliError.CliError, Param.Environment>): <A>(self: Flag<A>) => Flag<A | B>
@@ -510,8 +510,8 @@ export const withDefault: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withFallbackConfig: {
   <B>(config: Config.Config<B>): <A>(self: Flag<A>) => Flag<A | B>
@@ -530,8 +530,8 @@ export const withFallbackConfig: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withFallbackPrompt: {
   <B>(prompt: Param.FallbackPrompt<B>): <A>(self: Flag<A>) => Flag<A | B>
@@ -556,8 +556,8 @@ export const withFallbackPrompt: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category mapping
+ * @since 4.0.0
  */
 export const map: {
   <A, B>(f: (a: A) => B): (self: Flag<A>) => Flag<B>
@@ -582,8 +582,8 @@ export const map: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category mapping
+ * @since 4.0.0
  */
 export const mapEffect: {
   <A, B>(
@@ -622,8 +622,8 @@ export const mapEffect: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category mapping
+ * @since 4.0.0
  */
 export const mapTryCatch: {
   <A, B>(f: (a: A) => B, onError: (error: unknown) => string): (self: Flag<A>) => Flag<B>
@@ -651,8 +651,8 @@ export const mapTryCatch: {
  * // Requires at least 1 tag
  * ```
  *
- * @since 4.0.0
  * @category repetition
+ * @since 4.0.0
  */
 export const atLeast: {
   <A>(min: number): (self: Flag<A>) => Flag<ReadonlyArray<A>>
@@ -676,8 +676,8 @@ export const atLeast: {
  * // Allows at most 1 debug flag
  * ```
  *
- * @since 4.0.0
  * @category repetition
+ * @since 4.0.0
  */
 export const atMost: {
   <A>(max: number): (self: Flag<A>) => Flag<ReadonlyArray<A>>
@@ -701,8 +701,8 @@ export const atMost: {
  * // Allows 0-5 exclude patterns
  * ```
  *
- * @since 4.0.0
  * @category repetition
+ * @since 4.0.0
  */
 export const between: {
   <A>(min: number, max: number): (self: Flag<A>) => Flag<ReadonlyArray<A>>
@@ -734,8 +734,8 @@ export const between: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category filtering
+ * @since 4.0.0
  */
 export const filterMap: {
   <A, B>(f: (a: A) => Option.Option<B>, onNone: (a: A) => string): (self: Flag<A>) => Flag<B>
@@ -770,8 +770,8 @@ export const filterMap: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category filtering
+ * @since 4.0.0
  */
 export const filter: {
   <A>(predicate: (a: A) => boolean, onFalse: (a: A) => string): (self: Flag<A>) => Flag<A>
@@ -802,8 +802,8 @@ export const filter: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category alternatives
+ * @since 4.0.0
  */
 export const orElse: {
   <B>(that: LazyArg<Flag<B>>): <A>(self: Flag<A>) => Flag<A | B>
@@ -837,8 +837,8 @@ export const orElse: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category alternatives
+ * @since 4.0.0
  */
 export const orElseResult: {
   <B>(that: LazyArg<Flag<B>>): <A>(self: Flag<A>) => Flag<Result.Result<A, B>>
@@ -878,8 +878,8 @@ export const orElseResult: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const withSchema: {
   <A, B>(schema: Schema.Codec<B, A>): (self: Flag<A>) => Flag<B>

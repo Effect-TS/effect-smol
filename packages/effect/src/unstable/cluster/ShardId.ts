@@ -11,8 +11,8 @@ import * as Getter from "../../SchemaGetter.ts"
 const TypeId = "~effect/cluster/ShardId"
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface ShardId extends Equal.Equal, Hash.Hash, PrimaryKey.PrimaryKey {
   readonly [TypeId]: typeof TypeId
@@ -21,14 +21,14 @@ export interface ShardId extends Equal.Equal, Hash.Hash, PrimaryKey.PrimaryKey {
 }
 
 /**
- * @since 4.0.0
  * @category Guards
+ * @since 4.0.0
  */
 export const isShardId = (u: unknown): u is ShardId => hasProperty(u, TypeId)
 
 /**
- * @since 4.0.0
  * @category Schema
+ * @since 4.0.0
  */
 export const ShardId = S.declare(isShardId, {
   toCodecJson: () =>
@@ -45,8 +45,8 @@ export const ShardId = S.declare(isShardId, {
 })
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make = (group: string, id: number): ShardId => {
   const key = `${group}:${id}`
@@ -84,8 +84,8 @@ const ShardIdProto = {
 }
 
 /**
- * @since 4.0.0
  * @category Conversions
+ * @since 4.0.0
  */
 export const toString = (shardId: {
   readonly group: string

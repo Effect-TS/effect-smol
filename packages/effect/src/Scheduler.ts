@@ -14,8 +14,8 @@ import type * as Fiber from "./Fiber.ts"
  * - Determining when fibers should yield control
  * - Managing the execution flow of Effects
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Scheduler {
   readonly executionMode: "sync" | "async"
@@ -24,8 +24,8 @@ export interface Scheduler {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface SchedulerDispatcher {
   scheduleTask(task: () => void, priority: number): void
@@ -33,8 +33,8 @@ export interface SchedulerDispatcher {
 }
 
 /**
- * @since 4.0.0
  * @category references
+ * @since 4.0.0
  */
 export const Scheduler: Context.Reference<Scheduler> = Context.Reference<Scheduler>("effect/Scheduler", {
   defaultValue: () => new MixedScheduler()
@@ -91,8 +91,8 @@ class PriorityBuckets {
  * - Automatic yielding based on operation count
  * - Optimized for high-throughput scenarios
  *
- * @since 2.0.0
  * @category schedulers
+ * @since 2.0.0
  */
 export class MixedScheduler implements Scheduler {
   readonly executionMode: "sync" | "async"
@@ -185,8 +185,8 @@ class MixedSchedulerDispatcher implements SchedulerDispatcher {
  * The default value is 2048 operations, which provides a good balance between
  * performance and fairness in concurrent execution.
  *
- * @since 4.0.0
  * @category references
+ * @since 4.0.0
  */
 export const MaxOpsBeforeYield = Context.Reference<number>("effect/Scheduler/MaxOpsBeforeYield", {
   defaultValue: () => 2048
@@ -197,8 +197,8 @@ export const MaxOpsBeforeYield = Context.Reference<number>("effect/Scheduler/Max
  * yield checks. When set to `true`, the fiber run loop won't call
  * `Scheduler.shouldYield`.
  *
- * @since 4.0.0
  * @category references
+ * @since 4.0.0
  */
 export const PreventSchedulerYield = Context.Reference<boolean>("effect/Scheduler/PreventSchedulerYield", {
   defaultValue: () => false

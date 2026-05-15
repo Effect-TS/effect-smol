@@ -61,14 +61,14 @@ import type { ReadonlyRecord } from "./Record.ts"
 import type * as Scope from "./Scope.ts"
 
 /**
- * @since 4.0.0
  * @category Type Identifiers
+ * @since 4.0.0
  */
 export type TypeId = "~effect/ErrorReporter"
 
 /**
- * @since 4.0.0
  * @category Type Identifiers
+ * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/ErrorReporter"
 
@@ -81,8 +81,8 @@ export const TypeId: TypeId = "~effect/ErrorReporter"
  * modules. Use {@link make} to create a reporter — it handles deduplication
  * and per-error annotation extraction automatically.
  *
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface ErrorReporter {
   readonly [TypeId]: TypeId
@@ -113,8 +113,8 @@ export interface ErrorReporter {
  * )
  * ```
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make = (
   report: (options: {
@@ -162,8 +162,8 @@ export const make = (
  * reference directly only when you need low-level control (e.g. reading the
  * current reporters or swapping them inside a `FiberRef`).
  *
- * @since 4.0.0
  * @category References
+ * @since 4.0.0
  */
 export const CurrentErrorReporters: Context.Reference<ReadonlySet<ErrorReporter>> = references.CurrentErrorReporters
 
@@ -207,8 +207,8 @@ export const CurrentErrorReporters: Context.Reference<ReadonlySet<ErrorReporter>
  * )
  * ```
  *
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layer = <
   const Reporters extends ReadonlyArray<ErrorReporter | Effect.Effect<ErrorReporter, any, any>>
@@ -255,8 +255,8 @@ export const layer = <
  * })
  * ```
  *
- * @since 4.0.0
  * @category Reporting
+ * @since 4.0.0
  */
 export const report = <E>(cause: Cause.Cause<E>): Effect.Effect<void> =>
   Effect.withFiber((fiber) => {
@@ -275,8 +275,8 @@ export const report = <E>(cause: Cause.Cause<E>): Effect.Effect<void> =>
  * The global `Error` interface is augmented with `Reportable`, so these
  * properties are available on all `Error` instances.
  *
- * @since 4.0.0
  * @category Annotations
+ * @since 4.0.0
  */
 export interface Reportable {
   readonly [ignore]?: boolean
@@ -303,8 +303,8 @@ declare global {
  * }
  * ```
  *
- * @since 4.0.0
  * @category Annotations
+ * @since 4.0.0
  */
 export type ignore = "~effect/ErrorReporter/ignore"
 
@@ -323,8 +323,8 @@ export type ignore = "~effect/ErrorReporter/ignore"
  * }
  * ```
  *
- * @since 4.0.0
  * @category Annotations
+ * @since 4.0.0
  */
 export const ignore: ignore = "~effect/ErrorReporter/ignore"
 
@@ -332,8 +332,8 @@ export const ignore: ignore = "~effect/ErrorReporter/ignore"
  * Returns `true` if the given value has the `ErrorReporter.ignore` annotation
  * set to `true`.
  *
- * @since 4.0.0
  * @category Annotations
+ * @since 4.0.0
  */
 export const isIgnored = (u: unknown): boolean =>
   typeof u === "object" && u !== null && ignore in u && u[ignore] === true
@@ -354,8 +354,8 @@ export const isIgnored = (u: unknown): boolean =>
  * }
  * ```
  *
- * @since 4.0.0
  * @category Annotations
+ * @since 4.0.0
  */
 export type severity = "~effect/ErrorReporter/severity"
 
@@ -375,8 +375,8 @@ export type severity = "~effect/ErrorReporter/severity"
  * }
  * ```
  *
- * @since 4.0.0
  * @category Annotations
+ * @since 4.0.0
  */
 export const severity: severity = "~effect/ErrorReporter/severity"
 
@@ -384,8 +384,8 @@ export const severity: severity = "~effect/ErrorReporter/severity"
  * Reads the `ErrorReporter.severity` annotation from an error object,
  * falling back to `"Error"` when unset or invalid.
  *
- * @since 4.0.0
  * @category Annotations
+ * @since 4.0.0
  */
 export const getSeverity = (error: object): Severity => {
   if (severity in error && LogLevel.values.includes(error[severity] as Severity)) {
@@ -414,8 +414,8 @@ export const getSeverity = (error: object): Severity => {
  * }
  * ```
  *
- * @since 4.0.0
  * @category Annotations
+ * @since 4.0.0
  */
 export type attributes = "~effect/ErrorReporter/attributes"
 
@@ -439,8 +439,8 @@ export type attributes = "~effect/ErrorReporter/attributes"
  * }
  * ```
  *
- * @since 4.0.0
  * @category Annotations
+ * @since 4.0.0
  */
 export const attributes: attributes = "~effect/ErrorReporter/attributes"
 
@@ -448,8 +448,8 @@ export const attributes: attributes = "~effect/ErrorReporter/attributes"
  * Reads the `ErrorReporter.attributes` annotation from an error object,
  * returning an empty record when unset.
  *
- * @since 4.0.0
  * @category Annotations
+ * @since 4.0.0
  */
 export const getAttributes = (error: object): ReadonlyRecord<string, unknown> => {
   return attributes in error ? error[attributes] as any : emptyAttributes

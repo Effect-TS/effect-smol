@@ -21,16 +21,16 @@ import { Resource } from "./Resource.ts"
  * - `delta`: Reports changes since the last export. Each interval is
  *   independent with no dependency on previous measurements.
  *
- * @since 1.0.0
  * @category Models
+ * @since 1.0.0
  */
 export type TemporalityPreference = "cumulative" | "delta"
 
 /**
  * Creates an OpenTelemetry metric producer from Effect metrics.
  *
- * @since 1.0.0
  * @category Constructors
+ * @since 1.0.0
  */
 export const makeProducer = (temporality?: TemporalityPreference): Effect.Effect<MetricProducer, never, Resource> =>
   Effect.gen(function*() {
@@ -42,8 +42,8 @@ export const makeProducer = (temporality?: TemporalityPreference): Effect.Effect
 /**
  * Registers a metric producer with one or more metric readers.
  *
- * @since 1.0.0
  * @category Constructors
+ * @since 1.0.0
  */
 export const registerProducer = (
   self: MetricProducer,
@@ -98,8 +98,8 @@ export const registerProducer = (
  * )
  * ```
  *
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layer = (
   evaluate: LazyArg<MetricReader | Arr.NonEmptyReadonlyArray<MetricReader>>,

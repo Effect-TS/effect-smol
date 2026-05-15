@@ -33,8 +33,8 @@ import {
 import * as EventLogServer from "./EventLogServer.ts"
 
 /**
- * @since 4.0.0
  * @category EventLogServerUnencrypted
+ * @since 4.0.0
  */
 export class EventLogServerUnencrypted extends Context.Service<EventLogServerUnencrypted, {
   readonly makeWrite: <Groups extends EventGroup.Any>(
@@ -53,8 +53,8 @@ export class EventLogServerUnencrypted extends Context.Service<EventLogServerUne
 }>()("effect/eventlog/EventLogServerUnencrypted") {}
 
 /**
- * @since 4.0.0
  * @category EventLogServerUnencrypted
+ * @since 4.0.0
  */
 export const makeWrite = <Groups extends EventGroup.Any>(
   schema: EventLog.EventLogSchema<Groups>
@@ -75,8 +75,8 @@ export const makeWrite = <Groups extends EventGroup.Any>(
 > => EventLogServerUnencrypted.useSync((_) => _.makeWrite(schema))
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerRpcHandlers: Layer.Layer<
   Rpc.ToHandler<RpcGroup.Rpcs<typeof EventLogRemoteRpcs>> | EventLogAuthentication,
@@ -198,8 +198,8 @@ export const layerRpcHandlers: Layer.Layer<
 }))
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class EventLogServerStoreError extends Data.TaggedError("EventLogServerStoreError")<{
   readonly reason: "NotFound" | "PersistenceFailure"
@@ -209,8 +209,8 @@ export class EventLogServerStoreError extends Data.TaggedError("EventLogServerSt
 }> {}
 
 /**
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export class EventLogServerAuthError extends Data.TaggedError("EventLogServerAuthError")<{
   readonly reason: "Unauthorized" | "Forbidden"
@@ -220,8 +220,8 @@ export class EventLogServerAuthError extends Data.TaggedError("EventLogServerAut
 }> {}
 
 /**
- * @since 4.0.0
  * @category context
+ * @since 4.0.0
  */
 export class EventLogServerAuthorization extends Context.Service<EventLogServerAuthorization, {
   readonly authorizeWrite: (options: {
@@ -239,8 +239,8 @@ export class EventLogServerAuthorization extends Context.Service<EventLogServerA
 }>()("effect/eventlog/EventLogServerUnencrypted/EventLogServerAuthorization") {}
 
 /**
- * @since 4.0.0
  * @category context
+ * @since 4.0.0
  */
 export class StoreMapping extends Context.Service<StoreMapping, {
   readonly resolve: (
@@ -269,8 +269,8 @@ const toStoreNotFoundError = (options: {
   })
 
 /**
- * @since 4.0.0
  * @category store
+ * @since 4.0.0
  */
 export const layerStoreMappingStatic = (options: {
   readonly storeId: StoreId
@@ -286,8 +286,8 @@ export const layerStoreMappingStatic = (options: {
   })
 
 /**
- * @since 4.0.0
  * @category storage
+ * @since 4.0.0
  */
 export class Storage extends Context.Service<Storage, {
   readonly getId: Effect.Effect<RemoteId>
@@ -405,8 +405,8 @@ const toCompactedRemoteEntries = (options: {
 }
 
 /**
- * @since 4.0.0
  * @category compaction
+ * @since 4.0.0
  */
 export const compactBacklog = Effect.fnUntraced(function*(options: {
   readonly remoteEntries: ReadonlyArray<RemoteEntry>
@@ -469,8 +469,8 @@ export const compactBacklog = Effect.fnUntraced(function*(options: {
 })
 
 /**
- * @since 4.0.0
  * @category storage
+ * @since 4.0.0
  */
 export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.Scope> = Effect.gen(function*() {
   const knownIds = new Map<string, Map<string, number>>()
@@ -574,14 +574,14 @@ export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.S
 })
 
 /**
- * @since 4.0.0
  * @category storage
+ * @since 4.0.0
  */
 export const layerStorageMemory: Layer.Layer<Storage> = Layer.effect(Storage)(makeStorageMemory)
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = Effect.gen(function*() {
   const storage = yield* Storage
@@ -640,8 +640,8 @@ export const make = Effect.gen(function*() {
 })
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerServer: Layer.Layer<
   EventLogServerUnencrypted | EventLog.Registry,
@@ -652,8 +652,8 @@ export const layerServer: Layer.Layer<
 )
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layer = <Groups extends EventGroup.Any, E, R>(
   _schema: EventLog.EventLogSchema<Groups>,
@@ -674,8 +674,8 @@ export const layer = <Groups extends EventGroup.Any, E, R>(
   )
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerNoRpcServer = <Groups extends EventGroup.Any, E, R>(
   _schema: EventLog.EventLogSchema<Groups>,

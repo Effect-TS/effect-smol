@@ -5,14 +5,14 @@ import type { HttpServerRequest } from "effect/unstable/http/HttpServerRequest"
 import type * as Http from "node:http"
 
 /**
- * @since 1.0.0
  * @category Accessors
+ * @since 1.0.0
  */
 export const toIncomingMessage = (self: HttpServerRequest): Http.IncomingMessage => self.source as any
 
 /**
- * @since 1.0.0
  * @category Accessors
+ * @since 1.0.0
  */
 export const toServerResponse = (self: HttpServerRequest): Http.ServerResponse => {
   const res = (self as any).response

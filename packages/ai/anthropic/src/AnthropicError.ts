@@ -10,8 +10,8 @@
 /**
  * Anthropic-specific error metadata fields.
  *
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export type AnthropicErrorMetadata = {
   /**
@@ -30,8 +30,8 @@ export type AnthropicErrorMetadata = {
  * Extends base error metadata with rate limit specific information from
  * Anthropic's rate limit headers.
  *
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export type AnthropicRateLimitMetadata = AnthropicErrorMetadata & {
   /**

@@ -9,8 +9,8 @@ import * as Layer from "effect/Layer"
 import * as Persistence from "effect/unstable/persistence/Persistence"
 
 /**
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layerBackingIndexedDb = (options?: {
   readonly database?: string | undefined
@@ -42,8 +42,8 @@ const entriesStoreName = "entries"
 const storeIdIndexName = "storeId"
 
 /**
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layerIndexedDb = (options?: {
   readonly database?: string | undefined

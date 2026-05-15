@@ -11,24 +11,24 @@ import type { BundleStats } from "./Rollup.ts"
 import { Rollup } from "./Rollup.ts"
 
 /**
- * @since 1.0.0
  * @category errors
+ * @since 1.0.0
  */
 export class ReporterError extends Data.TaggedError("ReporterError")<{
   readonly cause: unknown
 }> {}
 
 /**
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export interface ReportOptions {
   readonly baseDirectory: string
 }
 
 /**
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export interface VisualizeOptions {
   readonly paths: ReadonlyArray<string>
@@ -36,16 +36,16 @@ export interface VisualizeOptions {
 }
 
 /**
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export interface ReportSelectedOptions {
   readonly paths: ReadonlyArray<string>
 }
 
 /**
- * @since 1.0.0
  * @category services
+ * @since 1.0.0
  */
 export class Reporter extends Context.Service<Reporter>()(
   "@effect/bundle/Reporter",

@@ -28,8 +28,8 @@ import { StoreId } from "./EventLogMessage.ts"
 import type { EventLogRemote } from "./EventLogRemote.ts"
 
 /**
- * @since 4.0.0
  * @category tags
+ * @since 4.0.0
  */
 export class EventLog extends Context.Service<EventLog, {
   readonly write: <Groups extends EventGroup.Any, Tag extends Event.Tag<EventGroup.Events<Groups>>>(options: {
@@ -45,8 +45,8 @@ export class EventLog extends Context.Service<EventLog, {
 }>()("effect/eventlog/EventLog") {}
 
 /**
- * @since 4.0.0
  * @category Registry
+ * @since 4.0.0
  */
 export class Registry extends Context.Service<Registry, {
   readonly registerHandlerUnsafe: (options: {
@@ -81,8 +81,8 @@ export class Registry extends Context.Service<Registry, {
 }>()("effect/unstable/eventlog/EventLog/Registry") {}
 
 /**
- * @since 4.0.0
  * @category Registry
+ * @since 4.0.0
  */
 export const layerRegistry = Layer.effect(
   Registry,
@@ -145,8 +145,8 @@ export const layerRegistry = Layer.effect(
 )
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class Identity extends Context.Service<Identity, {
   readonly publicKey: string
@@ -154,27 +154,27 @@ export class Identity extends Context.Service<Identity, {
 }>()("effect/eventlog/EventLog/Identity") {}
 
 /**
- * @since 4.0.0
  * @category schema
+ * @since 4.0.0
  */
 export type SchemaTypeId = "~effect/eventlog/EventLog/Schema"
 
 /**
- * @since 4.0.0
  * @category schema
+ * @since 4.0.0
  */
 export const SchemaTypeId: SchemaTypeId = "~effect/eventlog/EventLog/Schema"
 
 /**
- * @since 4.0.0
  * @category schema
+ * @since 4.0.0
  */
 export const isEventLogSchema = (u: unknown): u is EventLogSchema<EventGroup.Any> =>
   Predicate.hasProperty(u, SchemaTypeId)
 
 /**
- * @since 4.0.0
  * @category schema
+ * @since 4.0.0
  */
 export interface EventLogSchema<Groups extends EventGroup.Any> {
   readonly [SchemaTypeId]: SchemaTypeId
@@ -182,8 +182,8 @@ export interface EventLogSchema<Groups extends EventGroup.Any> {
 }
 
 /**
- * @since 4.0.0
  * @category schema
+ * @since 4.0.0
  */
 export const schema = <Groups extends ReadonlyArray<EventGroup.Any>>(
   ...groups: Groups
@@ -196,22 +196,22 @@ export const schema = <Groups extends ReadonlyArray<EventGroup.Any>>(
 }
 
 /**
- * @since 4.0.0
  * @category handlers
+ * @since 4.0.0
  */
 export type HandlersTypeId = "~effect/eventlog/EventLog/Handlers"
 
 /**
- * @since 4.0.0
  * @category handlers
+ * @since 4.0.0
  */
 export const HandlersTypeId: HandlersTypeId = "~effect/eventlog/EventLog/Handlers"
 
 /**
  * Represents a handled `EventGroup`.
  *
- * @since 4.0.0
  * @category handlers
+ * @since 4.0.0
  */
 export interface Handlers<
   R,
@@ -245,21 +245,21 @@ export interface Handlers<
 }
 
 /**
- * @since 4.0.0
  * @category handlers
+ * @since 4.0.0
  */
 export declare namespace Handlers {
   /**
-   * @since 4.0.0
    * @category handlers
+   * @since 4.0.0
    */
   export interface Any {
     readonly [HandlersTypeId]: unknown
   }
 
   /**
-   * @since 4.0.0
    * @category handlers
+   * @since 4.0.0
    */
   export type Item<R> = {
     readonly event: Event.AnyWithProps
@@ -276,8 +276,8 @@ export declare namespace Handlers {
   }
 
   /**
-   * @since 4.0.0
    * @category handlers
+   * @since 4.0.0
    */
   export type ValidateReturn<A> = A extends (
     | Handlers<
@@ -297,8 +297,8 @@ export declare namespace Handlers {
     `Must return the implemented handlers`
 
   /**
-   * @since 4.0.0
    * @category handlers
+   * @since 4.0.0
    */
   export type Error<A> = A extends Effect.Effect<
     Handlers<
@@ -311,8 +311,8 @@ export declare namespace Handlers {
     never
 
   /**
-   * @since 4.0.0
    * @category handlers
+   * @since 4.0.0
    */
   export type Services<A> = A extends Handlers<
     infer _R,
@@ -330,8 +330,8 @@ export declare namespace Handlers {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class CurrentStoreId extends Context.Reference<StoreId>("effect/eventlog/EventLog/CurrentStoreId", {
   defaultValue: constant(StoreId.make("default"))
@@ -345,8 +345,8 @@ const RedactedUint8Array = Schema.Uint8ArrayFromBase64.pipe(
 )
 
 /**
- * @since 4.0.0
  * @category schema
+ * @since 4.0.0
  */
 export const IdentitySchema = Schema.Struct({
   publicKey: Schema.String,
@@ -363,8 +363,8 @@ const IdentityStringSchema = Schema.StringFromBase64Url.pipe(
 )
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const decodeIdentityString = (value: string): Identity["Service"] => {
   const decoded = Schema.decodeUnknownSync(IdentityStringSchema)(value)
@@ -375,8 +375,8 @@ export const decodeIdentityString = (value: string): Identity["Service"] => {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const encodeIdentityString = (identity: Identity["Service"]): string =>
   Schema.encodeSync(IdentityStringSchema)({
@@ -385,8 +385,8 @@ export const encodeIdentityString = (identity: Identity["Service"]): string =>
   })
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const makeIdentity: Effect.Effect<Identity["Service"], never, EventLogEncryption.EventLogEncryption> =
   EventLogEncryption.EventLogEncryption.use((_) => _.generateIdentity)
@@ -425,8 +425,8 @@ const makeHandlers = (options: {
 }): Handlers<any, any> => Object.assign(Object.create(handlersProto), options)
 
 /**
- * @since 4.0.0
  * @category handlers
+ * @since 4.0.0
  */
 export const group = <Events extends Event.Any, Return>(
   group: EventGroup.EventGroup<Events>,
@@ -455,8 +455,8 @@ export const group = <Events extends Event.Any, Return>(
   ) as any
 
 /**
- * @since 4.0.0
  * @category compaction
+ * @since 4.0.0
  */
 export const groupCompaction = <Events extends Event.Any, R>(
   group: EventGroup.EventGroup<Events>,
@@ -546,8 +546,8 @@ export const groupCompaction = <Events extends Event.Any, R>(
   )
 
 /**
- * @since 4.0.0
  * @category reactivity
+ * @since 4.0.0
  */
 export const groupReactivity = <Events extends Event.Any>(
   group: EventGroup.EventGroup<Events>,
@@ -571,8 +571,8 @@ export const groupReactivity = <Events extends Event.Any>(
   )
 
 /**
- * @since 4.0.0
  * @category handlers
+ * @since 4.0.0
  */
 export const makeReplayFromRemote = (options: {
   readonly handlers: ReadonlyMap<string, Handlers.Item<any>>
@@ -816,8 +816,8 @@ const make = Effect.gen(function*() {
 })
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerEventLog: Layer.Layer<EventLog | Registry, never, EventJournal | Identity> = Layer.effect(
   EventLog,
@@ -828,8 +828,8 @@ export const layerEventLog: Layer.Layer<EventLog | Registry, never, EventJournal
 )
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layer = <Groups extends EventGroup.Any, E, R>(
   _schema: EventLogSchema<Groups>,
@@ -844,8 +844,8 @@ export const layer = <Groups extends EventGroup.Any, E, R>(
   )
 
 /**
- * @since 4.0.0
  * @category client
+ * @since 4.0.0
  */
 export const makeClient = <Groups extends EventGroup.Any>(
   schema: EventLogSchema<Groups>

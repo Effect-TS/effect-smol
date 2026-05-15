@@ -25,8 +25,8 @@ import type { ShardingConfig } from "./ShardingConfig.ts"
 import * as Snowflake from "./Snowflake.ts"
 
 /**
- * @since 4.0.0
  * @category context
+ * @since 4.0.0
  */
 export class MessageStorage extends Context.Service<MessageStorage, {
   /**
@@ -151,45 +151,45 @@ export class MessageStorage extends Context.Service<MessageStorage, {
 }>()("effect/cluster/MessageStorage") {}
 
 /**
- * @since 4.0.0
  * @category SaveResult
+ * @since 4.0.0
  */
 export type SaveResult<R extends Rpc.Any> = SaveResult.Success | SaveResult.Duplicate<R>
 
 /**
- * @since 4.0.0
  * @category SaveResult
+ * @since 4.0.0
  */
 export const SaveResult = Data.taggedEnum<SaveResult.Constructor>()
 
 /**
- * @since 4.0.0
  * @category SaveResult
+ * @since 4.0.0
  */
 export const SaveResultEncoded = Data.taggedEnum<SaveResult.Encoded>()
 
 /**
- * @since 4.0.0
  * @category SaveResult
+ * @since 4.0.0
  */
 export declare namespace SaveResult {
   /**
-   * @since 4.0.0
    * @category SaveResult
+   * @since 4.0.0
    */
   export type Encoded = SaveResult.Success | SaveResult.DuplicateEncoded
 
   /**
-   * @since 4.0.0
    * @category SaveResult
+   * @since 4.0.0
    */
   export interface Success {
     readonly _tag: "Success"
   }
 
   /**
-   * @since 4.0.0
    * @category SaveResult
+   * @since 4.0.0
    */
   export interface Duplicate<R extends Rpc.Any> {
     readonly _tag: "Duplicate"
@@ -198,8 +198,8 @@ export declare namespace SaveResult {
   }
 
   /**
-   * @since 4.0.0
    * @category SaveResult
+   * @since 4.0.0
    */
   export interface DuplicateEncoded {
     readonly _tag: "Duplicate"
@@ -208,8 +208,8 @@ export declare namespace SaveResult {
   }
 
   /**
-   * @since 4.0.0
    * @category SaveResult
+   * @since 4.0.0
    */
   export interface Constructor extends Data.TaggedEnum.WithGenerics<1> {
     readonly taggedEnum: SaveResult<this["A"] extends Rpc.Any ? this["A"] : never>
@@ -217,8 +217,8 @@ export declare namespace SaveResult {
 }
 
 /**
- * @since 4.0.0
  * @category Encoded
+ * @since 4.0.0
  */
 export type Encoded = {
   /**
@@ -333,8 +333,8 @@ export type Encoded = {
 }
 
 /**
- * @since 4.0.0
  * @category Encoded
+ * @since 4.0.0
  */
 export type EncodedUnprocessedOptions<A> = {
   readonly existingShards: Array<number>
@@ -343,8 +343,8 @@ export type EncodedUnprocessedOptions<A> = {
 }
 
 /**
- * @since 4.0.0
  * @category Encoded
+ * @since 4.0.0
  */
 export type EncodedRepliesOptions<A> = {
   readonly existingRequests: Array<string>
@@ -353,8 +353,8 @@ export type EncodedRepliesOptions<A> = {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = (
   storage: Omit<
@@ -455,8 +455,8 @@ export const make = (
   })
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const makeEncoded: (encoded: Encoded) => Effect.Effect<
   MessageStorage["Service"],
@@ -663,8 +663,8 @@ export const makeEncoded: (encoded: Encoded) => Effect.Effect<
 })
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const noop: MessageStorage["Service"] = Effect.runSync(make({
   saveRequest: () => Effect.succeed(SaveResult.Success()),
@@ -683,8 +683,8 @@ export const noop: MessageStorage["Service"] = Effect.runSync(make({
 }))
 
 /**
- * @since 4.0.0
  * @category Memory
+ * @since 4.0.0
  */
 export type MemoryEntry = {
   readonly envelope: Envelope.Encoded
@@ -696,16 +696,16 @@ export type MemoryEntry = {
 /**
  * Can be used in tests to simulate a transaction.
  *
- * @since 4.0.0
  * @category Memory
+ * @since 4.0.0
  */
 export const MemoryTransaction = Context.Reference<boolean>("effect/cluster/MessageStorage/MemoryTransaction", {
   defaultValue: constFalse
 })
 
 /**
- * @since 4.0.0
  * @category Memory
+ * @since 4.0.0
  */
 export class MemoryDriver extends Context.Service<MemoryDriver>()("effect/cluster/MessageStorage/MemoryDriver", {
   make: Effect.gen(function*() {
@@ -916,14 +916,14 @@ export class MemoryDriver extends Context.Service<MemoryDriver>()("effect/cluste
 }
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerNoop: Layer.Layer<MessageStorage> = Layer.succeed(MessageStorage, noop)
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerMemory: Layer.Layer<
   MessageStorage | MemoryDriver,

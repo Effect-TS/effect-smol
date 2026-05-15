@@ -53,8 +53,8 @@ const TypeId = "~effect/cli/Primitive"
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Primitive<out A> extends Primitive.Variance<A> {
   readonly _tag: string
@@ -66,8 +66,8 @@ export interface Primitive<out A> extends Primitive.Variance<A> {
  */
 export declare namespace Primitive {
   /**
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Variance<out A> {
     readonly [TypeId]: {
@@ -138,8 +138,8 @@ const makeSchemaPrimitive = <T, E>(
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const boolean: Primitive<boolean> = makeSchemaPrimitive(
   "Boolean",
@@ -166,8 +166,8 @@ export const boolean: Primitive<boolean> = makeSchemaPrimitive(
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const float: Primitive<number> = makeSchemaPrimitive(
   "Float",
@@ -194,8 +194,8 @@ export const float: Primitive<number> = makeSchemaPrimitive(
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const integer: Primitive<number> = makeSchemaPrimitive(
   "Integer",
@@ -222,8 +222,8 @@ export const integer: Primitive<number> = makeSchemaPrimitive(
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const date: Primitive<Date> = makeSchemaPrimitive(
   "Date",
@@ -250,8 +250,8 @@ export const date: Primitive<Date> = makeSchemaPrimitive(
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const string: Primitive<string> = makePrimitive("String", (value) => Effect.succeed(value))
 
@@ -281,8 +281,8 @@ export const string: Primitive<string> = makePrimitive("String", (value) => Effe
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const choice = <A>(
   choices: ReadonlyArray<readonly [string, A]>
@@ -315,8 +315,8 @@ export const choice = <A>(
  * const anyPath = Primitive.path("either", false)
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type PathType = "file" | "directory" | "either"
 
@@ -346,8 +346,8 @@ export type PathType = "file" | "directory" | "either"
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const path = (
   pathType: PathType,
@@ -407,8 +407,8 @@ export const path = (
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const redacted: Primitive<Redacted.Redacted<string>> = makePrimitive(
   "Redacted",
@@ -432,8 +432,8 @@ export const redacted: Primitive<Redacted.Redacted<string>> = makePrimitive(
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fileText: Primitive<string> = makePrimitive(
   "FileText",
@@ -480,8 +480,8 @@ export const fileText: Primitive<string> = makePrimitive(
  * Represents options which can be provided to methods that deal with parsing
  * file content.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type FileParseOptions = {
   readonly format?: "ini" | "json" | "toml" | "yaml"
@@ -512,8 +512,8 @@ const fileParsers: Record<string, (content: string) => unknown> = {
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fileParse = (options?: FileParseOptions): Primitive<unknown> => {
   return makePrimitive(
@@ -537,8 +537,8 @@ export const fileParse = (options?: FileParseOptions): Primitive<unknown> => {
  * Represents options which can be provided to methods that deal with parsing
  * file content and decoding the file content with a `Schema`.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type FileSchemaOptions = Struct.Simplify<
   FileParseOptions & {
@@ -571,8 +571,8 @@ export type FileSchemaOptions = Struct.Simplify<
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fileSchema = <A>(
   schema: Schema.Decoder<A>,
@@ -611,8 +611,8 @@ export const fileSchema = <A>(
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const keyValuePair: Primitive<Record<string, string>> = makePrimitive(
   "KeyValuePair",
@@ -651,8 +651,8 @@ export const keyValuePair: Primitive<Record<string, string>> = makePrimitive(
  * // The above effect will fail with "This option does not accept values"
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const none: Primitive<never> = makePrimitive("None", () => Effect.fail("This option does not accept values"))
 
@@ -678,8 +678,8 @@ export const none: Primitive<never> = makePrimitive("None", () => Effect.fail("T
  * console.log(Primitive.getTypeName(logLevelChoice)) // "choice"
  * ```
  *
- * @since 4.0.0
  * @category utilities
+ * @since 4.0.0
  */
 export const getTypeName = <A>(primitive: Primitive<A>): string => {
   switch (primitive._tag) {

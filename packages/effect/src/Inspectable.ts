@@ -64,8 +64,8 @@ import { redact } from "./Redactable.ts"
  * console.log(obj) // Displays: CustomObject(hello)
  * ```
  *
- * @since 2.0.0
  * @category symbols
+ * @since 2.0.0
  */
 export const NodeInspectSymbol = Symbol.for("nodejs.util.inspect.custom")
 
@@ -90,8 +90,8 @@ export const NodeInspectSymbol = Symbol.for("nodejs.util.inspect.custom")
  * console.log(obj) // CustomObject(test)
  * ```
  *
- * @since 2.0.0
  * @category symbols
+ * @since 2.0.0
  */
 export type NodeInspectSymbol = typeof NodeInspectSymbol
 
@@ -130,8 +130,8 @@ export type NodeInspectSymbol = typeof NodeInspectSymbol
  * console.log(success.toString()) // Pretty formatted JSON
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Inspectable {
   toString(): string
@@ -256,8 +256,8 @@ export const BaseProto: Inspectable = {
  * console.log(user) // In Node.js, shows the same formatted output
  * ```
  *
- * @since 2.0.0
  * @category classes
+ * @since 2.0.0
  */
 export abstract class Class {
   /**

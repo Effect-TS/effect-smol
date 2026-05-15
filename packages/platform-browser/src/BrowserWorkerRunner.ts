@@ -22,8 +22,8 @@ if (typeof self !== "undefined" && "onconnect" in self) {
 }
 
 /**
- * @since 1.0.0
  * @category Constructors
+ * @since 1.0.0
  */
 export const make = (self: MessagePort | Window): WorkerRunner.WorkerRunnerPlatform["Service"] => ({
   start: Effect.fnUntraced(function*<O = unknown, I = unknown>() {
@@ -151,16 +151,16 @@ export const make = (self: MessagePort | Window): WorkerRunner.WorkerRunnerPlatf
 })
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.sync(WorkerRunner.WorkerRunnerPlatform)(() =>
   make(self)
 )
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerMessagePort = (port: MessagePort | Window): Layer.Layer<WorkerRunner.WorkerRunnerPlatform> =>
   Layer.succeed(WorkerRunner.WorkerRunnerPlatform)(make(port))

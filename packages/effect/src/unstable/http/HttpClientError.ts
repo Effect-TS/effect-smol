@@ -10,14 +10,14 @@ import type * as ClientResponse from "./HttpClientResponse.ts"
 const TypeId = "~effect/http/HttpClientError"
 
 /**
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isHttpClientError = (u: unknown): u is HttpClientError => hasProperty(u, TypeId)
 
 /**
- * @since 4.0.0
  * @category error
+ * @since 4.0.0
  */
 export class HttpClientError extends Data.TaggedError("HttpClientError")<{
   readonly reason: HttpClientErrorReason
@@ -65,8 +65,8 @@ const formatMessage = (reason: string, description: string | undefined, info: st
   description ? `${reason}: ${description} (${info})` : `${reason} error (${info})`
 
 /**
- * @since 4.0.0
  * @category error
+ * @since 4.0.0
  */
 export class TransportError extends Data.TaggedError("TransportError")<{
   readonly request: HttpClientRequest.HttpClientRequest
@@ -89,8 +89,8 @@ export class TransportError extends Data.TaggedError("TransportError")<{
 }
 
 /**
- * @since 4.0.0
  * @category error
+ * @since 4.0.0
  */
 export class EncodeError extends Data.TaggedError("EncodeError")<{
   readonly request: HttpClientRequest.HttpClientRequest
@@ -113,8 +113,8 @@ export class EncodeError extends Data.TaggedError("EncodeError")<{
 }
 
 /**
- * @since 4.0.0
  * @category error
+ * @since 4.0.0
  */
 export class InvalidUrlError extends Data.TaggedError("InvalidUrlError")<{
   readonly request: HttpClientRequest.HttpClientRequest
@@ -137,8 +137,8 @@ export class InvalidUrlError extends Data.TaggedError("InvalidUrlError")<{
 }
 
 /**
- * @since 4.0.0
  * @category error
+ * @since 4.0.0
  */
 export class StatusCodeError extends Data.TaggedError("StatusCodeError")<{
   readonly request: HttpClientRequest.HttpClientRequest
@@ -163,8 +163,8 @@ export class StatusCodeError extends Data.TaggedError("StatusCodeError")<{
 }
 
 /**
- * @since 4.0.0
  * @category error
+ * @since 4.0.0
  */
 export class DecodeError extends Data.TaggedError("DecodeError")<{
   readonly request: HttpClientRequest.HttpClientRequest
@@ -189,8 +189,8 @@ export class DecodeError extends Data.TaggedError("DecodeError")<{
 }
 
 /**
- * @since 4.0.0
  * @category error
+ * @since 4.0.0
  */
 export class EmptyBodyError extends Data.TaggedError("EmptyBodyError")<{
   readonly request: HttpClientRequest.HttpClientRequest
@@ -215,26 +215,26 @@ export class EmptyBodyError extends Data.TaggedError("EmptyBodyError")<{
 }
 
 /**
- * @since 4.0.0
  * @category error
+ * @since 4.0.0
  */
 export type RequestError = TransportError | EncodeError | InvalidUrlError
 
 /**
- * @since 4.0.0
  * @category error
+ * @since 4.0.0
  */
 export type ResponseError = StatusCodeError | DecodeError | EmptyBodyError
 
 /**
- * @since 4.0.0
  * @category error
+ * @since 4.0.0
  */
 export type HttpClientErrorReason = RequestError | ResponseError
 
 /**
- * @since 4.0.0
  * @category Schema
+ * @since 4.0.0
  */
 export class HttpClientErrorSchema extends Schema.ErrorClass<HttpClientErrorSchema>(TypeId)({
   _tag: Schema.tag("HttpError"),

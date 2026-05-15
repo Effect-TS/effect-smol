@@ -21,8 +21,8 @@
  * - Size: O(1)
  * - Iteration: O(n)
  *
- * @since 2.0.0
  * @category data-structures
+ * @since 2.0.0
  */
 import type { NonEmptyArray } from "./Array.ts"
 import * as Equal from "./Equal.ts"
@@ -63,8 +63,8 @@ const TypeId = "~effect/collections/MutableHashMap"
  * console.log(entries) // [["count", 42], ["total", 100]]
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface MutableHashMap<out K, out V> extends Iterable<[K, V]>, Pipeable, Inspectable {
   readonly [TypeId]: typeof TypeId
@@ -118,8 +118,8 @@ const MutableHashMapProto: Omit<MutableHashMap<unknown, unknown>, "backing" | "b
  * console.log(MutableHashMap.size(map)) // 2
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const empty = <K, V>(): MutableHashMap<K, V> => {
   const self = Object.create(MutableHashMapProto)
@@ -145,8 +145,8 @@ export const empty = <K, V>(): MutableHashMap<K, V> => {
  * console.log(MutableHashMap.size(map)) // 3
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const make: <Entries extends Array<readonly [any, any]>>(
   ...entries: Entries
@@ -178,8 +178,8 @@ export const make: <Entries extends Array<readonly [any, any]>>(
  * console.log(MutableHashMap.get(fromMap, "x")) // Some(10)
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const fromIterable = <K, V>(entries: Iterable<readonly [K, V]>): MutableHashMap<K, V> => {
   const self = empty<K, V>()
@@ -206,8 +206,8 @@ export const fromIterable = <K, V>(entries: Iterable<readonly [K, V]>): MutableH
  * console.log(getValue(map)) // Some(42)
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const get: {
   <K>(key: K): <V>(self: MutableHashMap<K, V>) => Option.Option<V>
@@ -256,8 +256,8 @@ const isSimpleKey = (u: unknown): boolean => typeof u !== "object" && typeof u !
  * const hasRequiredKeys = allKeys.includes("apple") && allKeys.includes("banana")
  * ```
  *
- * @since 3.8.0
  * @category elements
+ * @since 3.8.0
  */
 export const keys = <K, V>(self: MutableHashMap<K, V>): Iterable<K> => self.backing.keys()
 
@@ -286,8 +286,8 @@ export const keys = <K, V>(self: MutableHashMap<K, V>): Iterable<K> => self.back
  * console.log(largeValues) // [2, 3]
  * ```
  *
- * @since 3.8.0
  * @category elements
+ * @since 3.8.0
  */
 export const values = <K, V>(self: MutableHashMap<K, V>): Iterable<V> => self.backing.values()
 
@@ -323,8 +323,8 @@ const getFromBucket = <K, V>(
  * console.log(hasKey(map)) // true
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const has: {
   <K>(key: K): <V>(self: MutableHashMap<K, V>) => boolean
@@ -361,8 +361,8 @@ export const has: {
  * console.log(MutableHashMap.size(map)) // 3
  * ```
  *
- * @since 2.0.0
  * @category mutations
+ * @since 2.0.0
  */
 export const set: {
   <K, V>(key: K, value: V): (self: MutableHashMap<K, V>) => MutableHashMap<K, V>
@@ -437,8 +437,8 @@ const getRefKey = <K>(
  * increment(map)
  * ```
  *
- * @since 2.0.0
  * @category mutations
+ * @since 2.0.0
  */
 export const modify: {
   <K, V>(key: K, f: (v: V) => V): (self: MutableHashMap<K, V>) => MutableHashMap<K, V>
@@ -516,8 +516,8 @@ export const modify: {
  * console.log(MutableHashMap.has(map, "new")) // false (42 <= 50)
  * ```
  *
- * @since 2.0.0
  * @category mutations
+ * @since 2.0.0
  */
 export const modifyAt: {
   <K, V>(key: K, f: (value: Option.Option<V>) => Option.Option<V>): (self: MutableHashMap<K, V>) => MutableHashMap<K, V>
@@ -576,8 +576,8 @@ export const modifyAt: {
  * console.log(MutableHashMap.size(map)) // 1
  * ```
  *
- * @since 2.0.0
  * @category mutations
+ * @since 2.0.0
  */
 export const remove: {
   <K>(key: K): <V>(self: MutableHashMap<K, V>) => MutableHashMap<K, V>
@@ -638,8 +638,8 @@ export const remove: {
  * console.log(MutableHashMap.size(map)) // 1
  * ```
  *
- * @since 2.0.0
  * @category mutations
+ * @since 2.0.0
  */
 export const clear = <K, V>(self: MutableHashMap<K, V>) => {
   self.backing.clear()
@@ -668,8 +668,8 @@ export const clear = <K, V>(self: MutableHashMap<K, V>) => {
  * console.log(MutableHashMap.size(map)) // 0
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const size = <K, V>(self: MutableHashMap<K, V>): number => self.backing.size
 

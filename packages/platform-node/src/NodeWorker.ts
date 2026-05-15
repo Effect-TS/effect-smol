@@ -12,8 +12,8 @@ import type * as ChildProcess from "node:child_process"
 import type * as WorkerThreads from "node:worker_threads"
 
 /**
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layerPlatform: Layer.Layer<Worker.WorkerPlatform> = Layer.succeed(Worker.WorkerPlatform)(
   Worker.makePlatform<WorkerThreads.Worker | ChildProcess.ChildProcess>()({
@@ -93,8 +93,8 @@ export const layerPlatform: Layer.Layer<Worker.WorkerPlatform> = Layer.succeed(W
 )
 
 /**
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layer = (
   spawn: (id: number) => WorkerThreads.Worker | ChildProcess.ChildProcess

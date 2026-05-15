@@ -27,8 +27,8 @@ const withLogAddress = <A, E, R>(layer: Layer.Layer<A, E, R>): Layer.Layer<A, E,
   })).pipe(Layer.provideMerge(layer))
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<
   Sharding.Sharding | Runners.Runners,
@@ -46,8 +46,8 @@ export const layer: Layer.Layer<
 )
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerClientOnly: Layer.Layer<
   Sharding.Sharding | Runners.Runners,

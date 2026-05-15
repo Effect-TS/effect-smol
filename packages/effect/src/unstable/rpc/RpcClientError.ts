@@ -9,8 +9,8 @@ import { WorkerErrorReason } from "../workers/WorkerError.ts"
 const TypeId = "~effect/rpc/RpcClientError"
 
 /**
- * @since 4.0.0
  * @category Errors
+ * @since 4.0.0
  */
 export class RpcClientDefect extends Schema.ErrorClass<RpcClientDefect>("effect/rpc/RpcClientError/RpcClientDefect")({
   _tag: Schema.tag("RpcClientDefect"),
@@ -19,8 +19,8 @@ export class RpcClientDefect extends Schema.ErrorClass<RpcClientDefect>("effect/
 }) {}
 
 /**
- * @since 4.0.0
  * @category Errors
+ * @since 4.0.0
  */
 export class RpcClientError extends Schema.ErrorClass<RpcClientError>(TypeId)({
   _tag: Schema.tag("RpcClientError"),

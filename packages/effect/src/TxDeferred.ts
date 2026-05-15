@@ -47,8 +47,8 @@ const TypeId = "~effect/transactions/TxDeferred"
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface TxDeferred<in out A, in out E = never> extends Inspectable, Pipeable {
   readonly [TypeId]: typeof TypeId
@@ -90,8 +90,8 @@ const makeTxDeferred = <A, E>(ref: TxRef.TxRef<Option<Result<A, E>>>): TxDeferre
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = <A, E = never>(): Effect.Effect<TxDeferred<A, E>> =>
   Effect.map(TxRef.make<Option<Result<A, E>>>(O.none()), makeTxDeferred)
@@ -112,8 +112,8 @@ export const make = <A, E = never>(): Effect.Effect<TxDeferred<A, E>> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 const await_ = <A, E>(self: TxDeferred<A, E>): Effect.Effect<A, E> =>
   Effect.gen(function*() {
@@ -131,8 +131,8 @@ export {
    * Reads the deferred value. Retries the transaction if the deferred has not
    * been completed yet.
    *
-   * @since 4.0.0
    * @category getters
+   * @since 4.0.0
    */
   await_ as await
 }
@@ -156,8 +156,8 @@ export {
  * })
  * ```
  *
- * @since 4.0.0
  * @category getters
+ * @since 4.0.0
  */
 export const poll = <A, E>(self: TxDeferred<A, E>): Effect.Effect<Option<Result<A, E>>> => TxRef.get(self.ref)
 
@@ -178,8 +178,8 @@ export const poll = <A, E>(self: TxDeferred<A, E>): Effect.Effect<Option<Result<
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const done: {
   <A, E>(result: Result<A, E>): (self: TxDeferred<A, E>) => Effect.Effect<boolean>
@@ -212,8 +212,8 @@ export const done: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const succeed: {
   <A>(value: A): <E>(self: TxDeferred<A, E>) => Effect.Effect<boolean>
@@ -240,8 +240,8 @@ export const succeed: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category mutations
+ * @since 4.0.0
  */
 export const fail: {
   <E>(error: E): <A>(self: TxDeferred<A, E>) => Effect.Effect<boolean>
@@ -265,7 +265,7 @@ export const fail: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isTxDeferred = (u: unknown): u is TxDeferred<unknown, unknown> => hasProperty(u, TypeId)

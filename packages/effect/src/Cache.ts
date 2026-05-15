@@ -87,8 +87,8 @@ const TypeId = "~effect/Cache"
  * })
  * ```
  *
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface Cache<in out Key, in out A, in out E = never, out R = never> extends Pipeable {
   readonly [TypeId]: typeof TypeId
@@ -102,8 +102,8 @@ export interface Cache<in out Key, in out A, in out E = never, out R = never> ex
  * Represents a cache entry containing a deferred value and optional expiration time.
  * This is used internally by the cache implementation to track cached values and their lifetimes.
  *
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface Entry<A, E> {
   expiresAt: number | undefined
@@ -140,8 +140,8 @@ export interface Entry<A, E> {
  * })
  * ```
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const makeWith = <
   Key,
@@ -223,8 +223,8 @@ export const makeWith = <
  * })
  * ```
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make = <
   Key,
@@ -343,8 +343,8 @@ const defaultTimeToLive = <A, E>(_: Exit.Exit<A, E>, _key: unknown): Duration.Du
  * })
  * ```
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const get: {
   <Key, A>(key: Key): <E, R>(self: Cache<Key, A, E, R>) => Effect.Effect<A, E, R>
@@ -488,8 +488,8 @@ const checkCapacity = <K, A, E, R>(self: Cache<K, A, E, R>) => {
  * })
  * ```
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const getOption: {
   <Key, A>(key: Key): <E, R>(self: Cache<Key, A, E, R>) => Effect.Effect<Option.Option<A>, E>
@@ -526,8 +526,8 @@ const getImpl = <Key, A, E, R>(
  * Retrieves the value associated with the specified key from the cache, only if
  * it contains a resolved successful value.
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const getSuccess: {
   <Key, A, R>(key: Key): <E>(self: Cache<Key, A, E, R>) => Effect.Effect<Option.Option<A>>
@@ -634,8 +634,8 @@ export const getSuccess: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const set: {
   <Key, A>(key: Key, value: A): <E, R>(self: Cache<Key, A, E, R>) => Effect.Effect<void>
@@ -741,8 +741,8 @@ export const set: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const has: {
   <Key, A>(key: Key): <E, R>(self: Cache<Key, A, E, R>) => Effect.Effect<boolean>
@@ -797,8 +797,8 @@ export const has: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const invalidate: {
   <Key, A>(key: Key): <E, R>(self: Cache<Key, A, E, R>) => Effect.Effect<void>
@@ -869,8 +869,8 @@ export const invalidate: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const invalidateWhen: {
   <Key, A>(key: Key, f: Predicate<A>): <E, R>(self: Cache<Key, A, E, R>) => Effect.Effect<boolean>
@@ -980,8 +980,8 @@ export const invalidateWhen: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const refresh: {
   <Key, A>(key: Key): <E, R>(self: Cache<Key, A, E, R>) => Effect.Effect<A, E, R>
@@ -1051,8 +1051,8 @@ export const refresh: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const invalidateAll = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<void> =>
   effect.sync(() => {
@@ -1093,8 +1093,8 @@ export const invalidateAll = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.E
  * })
  * ```
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const size = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<number> =>
   effect.sync(() => MutableHashMap.size(self.map))
@@ -1125,8 +1125,8 @@ export const size = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<num
  * })
  * ```
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const keys = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<Iterable<Key>> =>
   core.withFiber((fiber) => {
@@ -1167,8 +1167,8 @@ export const keys = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<Ite
  * })
  * ```
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const values = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<Iterable<A>> =>
   effect.map(entries(self), Iterable.map(([, value]) => value))
@@ -1178,8 +1178,8 @@ export const values = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<I
  * only returns entries with successfully resolved values, filtering out any
  * failed lookups or expired entries.
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const entries = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<Iterable<[Key, A]>> =>
   core.withFiber((fiber) => {

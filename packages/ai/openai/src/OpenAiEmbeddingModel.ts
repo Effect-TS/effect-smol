@@ -17,16 +17,16 @@ import { OpenAiClient } from "./OpenAiClient.ts"
 import type * as OpenAiSchema from "./OpenAiSchema.ts"
 
 /**
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export type Model = "text-embedding-ada-002" | "text-embedding-3-small" | "text-embedding-3-large"
 
 /**
  * Service definition for OpenAI embedding model configuration.
  *
- * @since 1.0.0
  * @category services
+ * @since 1.0.0
  */
 export class Config extends Context.Service<
   Config,
@@ -44,8 +44,8 @@ export class Config extends Context.Service<
 >()("@effect/ai-openai/OpenAiEmbeddingModel/Config") {}
 
 /**
- * @since 1.0.0
  * @category constructors
+ * @since 1.0.0
  */
 export const model = (
   model: (string & {}) | Model,
@@ -72,8 +72,8 @@ export const model = (
 /**
  * Creates an OpenAI embedding model service.
  *
- * @since 1.0.0
  * @category constructors
+ * @since 1.0.0
  */
 export const make = Effect.fnUntraced(function*({ model, config: providerConfig }: {
   readonly model: (string & {}) | Model
@@ -98,8 +98,8 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
 /**
  * Creates a layer for the OpenAI embedding model.
  *
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layer = (options: {
   readonly model: (string & {}) | Model
@@ -110,8 +110,8 @@ export const layer = (options: {
 /**
  * Provides config overrides for OpenAI embedding model operations.
  *
- * @since 1.0.0
  * @category configuration
+ * @since 1.0.0
  */
 export const withConfigOverride: {
   (overrides: typeof Config.Service): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, Config>>

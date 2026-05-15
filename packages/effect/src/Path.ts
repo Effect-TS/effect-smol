@@ -13,8 +13,8 @@ import { BadArgument } from "./PlatformError.ts"
 export const TypeId = "~effect/platform/Path"
 
 /**
- * @since 4.0.0
  * @category model
+ * @since 4.0.0
  * @example
  * ```ts
  * import { Effect, Path } from "effect"
@@ -66,8 +66,8 @@ export interface Path {
 }
 
 /**
- * @since 4.0.0
  * @category namespace
+ * @since 4.0.0
  * @example
  * ```ts
  * import { Effect, Path } from "effect"
@@ -94,8 +94,8 @@ export interface Path {
  */
 export declare namespace Path {
   /**
-   * @since 4.0.0
    * @category model
+   * @since 4.0.0
    * @example
    * ```ts
    * import { Effect, Path } from "effect"
@@ -134,8 +134,8 @@ export declare namespace Path {
 }
 
 /**
- * @since 4.0.0
  * @category tag
+ * @since 4.0.0
  * @example
  * ```ts
  * import { Effect, Layer, Path } from "effect"
@@ -786,7 +786,7 @@ const posixImpl = Path.of({
 })
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<Path> = Layer.succeed(Path)(posixImpl)

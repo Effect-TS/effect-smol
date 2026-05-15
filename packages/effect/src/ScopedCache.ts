@@ -21,8 +21,8 @@ import * as Scope from "./Scope.ts"
 const TypeId = "~effect/ScopedCache"
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface ScopedCache<in out Key, in out A, in out E = never, out R = never> extends Pipeable {
   readonly [TypeId]: typeof TypeId
@@ -33,8 +33,8 @@ export interface ScopedCache<in out Key, in out A, in out E = never, out R = nev
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export type State<K, A, E> = {
   readonly _tag: "Open"
@@ -47,8 +47,8 @@ export type State<K, A, E> = {
  * Represents a cache entry containing a deferred value and optional expiration time.
  * This is used internally by the cache implementation to track cached values and their lifetimes.
  *
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface Entry<A, E> {
   expiresAt: number | undefined
@@ -57,8 +57,8 @@ export interface Entry<A, E> {
 }
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const makeWith = <
   Key,
@@ -103,8 +103,8 @@ export const makeWith = <
   })
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make = <
   Key,
@@ -144,8 +144,8 @@ const Proto = {
 const defaultTimeToLive = <A, E>(_: Exit.Exit<A, E>, _key: unknown): Duration.Duration => Duration.infinity
 
 /**
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const get: {
   <Key, A>(key: Key): <E, R>(self: ScopedCache<Key, A, E, R>) => Effect.Effect<A, E, R>
@@ -217,8 +217,8 @@ const checkCapacity = <K, A, E>(
 }
 
 /**
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const getOption: {
   <Key, A>(key: Key): <E, R>(self: ScopedCache<Key, A, E, R>) => Effect.Effect<Option.Option<A>, E>
@@ -266,8 +266,8 @@ const getImpl = <Key, A, E, R>(
  * Retrieves the value associated with the specified key from the cache, only if
  * it contains a resolved successful value.
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const getSuccess: {
   <Key, A, R>(key: Key): <E>(self: ScopedCache<Key, A, E, R>) => Effect.Effect<Option.Option<A>>
@@ -295,8 +295,8 @@ export const getSuccess: {
  * Sets the value associated with the specified key in the cache. This will
  * overwrite any existing value for that key, skipping the lookup function.
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const set: {
   <Key, A>(key: Key, value: A): <E, R>(self: ScopedCache<Key, A, E, R>) => Effect.Effect<void>
@@ -333,8 +333,8 @@ export const set: {
 /**
  * Checks if the cache contains an entry for the specified key.
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const has: {
   <Key, A>(key: Key): <E, R>(self: ScopedCache<Key, A, E, R>) => Effect.Effect<boolean>
@@ -350,8 +350,8 @@ export const has: {
 /**
  * Invalidates the entry associated with the specified key in the cache.
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const invalidate: {
   <Key, A>(key: Key): <E, R>(self: ScopedCache<Key, A, E, R>) => Effect.Effect<void>
@@ -375,8 +375,8 @@ export const invalidate: {
  * Conditionally invalidates the entry associated with the specified key in the cache
  * if the predicate returns true for the cached value.
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const invalidateWhen: {
   <Key, A>(key: Key, f: Predicate.Predicate<A>): <E, R>(self: ScopedCache<Key, A, E, R>) => Effect.Effect<boolean>
@@ -413,8 +413,8 @@ export const invalidateWhen: {
  * It will always invoke the lookup function to construct a new value,
  * overwriting any existing value for that key.
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const refresh: {
   <Key, A>(key: Key): <E, R>(self: ScopedCache<Key, A, E, R>) => Effect.Effect<A, E, R>
@@ -464,8 +464,8 @@ export const refresh: {
 /**
  * Invalidates all entries in the cache.
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const invalidateAll = <Key, A, E, R>(self: ScopedCache<Key, A, E, R>): Effect.Effect<void> =>
   core.withFiber((parent) => {
@@ -494,8 +494,8 @@ const invalidateAllImpl = <Key, A, E>(
  * The size reflects the current number of entries stored, not the number
  * of valid entries.
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const size = <Key, A, E, R>(self: ScopedCache<Key, A, E, R>): Effect.Effect<number> =>
   effect.sync(() => self.state._tag === "Closed" ? 0 : MutableHashMap.size(self.state.map))
@@ -503,8 +503,8 @@ export const size = <Key, A, E, R>(self: ScopedCache<Key, A, E, R>): Effect.Effe
 /**
  * Retrieves all active keys from the cache, automatically filtering out expired entries.
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const keys = <Key, A, E, R>(self: ScopedCache<Key, A, E, R>): Effect.Effect<Array<Key>> =>
   core.withFiber((fiber) => {
@@ -528,8 +528,8 @@ export const keys = <Key, A, E, R>(self: ScopedCache<Key, A, E, R>): Effect.Effe
  * Retrieves all successfully cached values from the cache, excluding failed
  * lookups and expired entries.
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const values = <Key, A, E, R>(self: ScopedCache<Key, A, E, R>): Effect.Effect<Array<A>> =>
   effect.map(entries(self), Arr.map(([, value]) => value))
@@ -539,8 +539,8 @@ export const values = <Key, A, E, R>(self: ScopedCache<Key, A, E, R>): Effect.Ef
  * only returns entries with successfully resolved values, filtering out any
  * failed lookups or expired entries.
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const entries = <Key, A, E, R>(self: ScopedCache<Key, A, E, R>): Effect.Effect<Array<[Key, A]>> =>
   core.withFiber((fiber) => {

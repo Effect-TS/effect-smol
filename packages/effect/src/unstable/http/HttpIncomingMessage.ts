@@ -15,20 +15,20 @@ import type * as Headers from "./Headers.ts"
 import * as UrlParams from "./UrlParams.ts"
 
 /**
- * @since 4.0.0
  * @category Type IDs
+ * @since 4.0.0
  */
 export const TypeId = "~effect/http/HttpIncomingMessage"
 
 /**
- * @since 4.0.0
  * @category Guards
+ * @since 4.0.0
  */
 export const isHttpIncomingMessage = (u: unknown): u is HttpIncomingMessage => hasProperty(u, TypeId)
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface HttpIncomingMessage<E = unknown> extends Inspectable.Inspectable {
   readonly [TypeId]: typeof TypeId
@@ -42,8 +42,8 @@ export interface HttpIncomingMessage<E = unknown> extends Inspectable.Inspectabl
 }
 
 /**
- * @since 4.0.0
  * @category schema
+ * @since 4.0.0
  */
 export const schemaBodyJson = <S extends Schema.Top>(schema: S, options?: ParseOptions | undefined) => {
   const decode = Schema.decodeEffect(Schema.toCodecJson(schema))
@@ -54,8 +54,8 @@ export const schemaBodyJson = <S extends Schema.Top>(schema: S, options?: ParseO
 }
 
 /**
- * @since 4.0.0
  * @category schema
+ * @since 4.0.0
  */
 export const schemaBodyUrlParams = <
   A,
@@ -75,8 +75,8 @@ export const schemaBodyUrlParams = <
 }
 
 /**
- * @since 4.0.0
  * @category schema
+ * @since 4.0.0
  */
 export const schemaHeaders = <A, I extends Readonly<Record<string, string | undefined>>, RD, RE>(
   schema: Schema.Codec<A, I, RD, RE>,
@@ -87,8 +87,8 @@ export const schemaHeaders = <A, I extends Readonly<Record<string, string | unde
 }
 
 /**
- * @since 4.0.0
  * @category References
+ * @since 4.0.0
  */
 export const MaxBodySize = Context.Reference<FileSystem.Size | undefined>(
   "effect/http/HttpIncomingMessage/MaxBodySize",

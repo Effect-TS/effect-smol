@@ -16,8 +16,8 @@ import * as ShardId from "./ShardId.ts"
  * Represents a generic interface to the persistent storage required by the
  * cluster.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class RunnerStorage extends Context.Service<RunnerStorage, {
   /**
@@ -73,8 +73,8 @@ export class RunnerStorage extends Context.Service<RunnerStorage, {
 }>()("effect/cluster/RunnerStorage") {}
 
 /**
- * @since 4.0.0
  * @category Encoded
+ * @since 4.0.0
  */
 export interface Encoded {
   /**
@@ -130,8 +130,8 @@ export interface Encoded {
 }
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const makeEncoded = (encoded: Encoded) =>
   RunnerStorage.of({
@@ -176,8 +176,8 @@ export const makeEncoded = (encoded: Encoded) =>
   })
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const makeMemory = Effect.gen(function*() {
   const runners = MutableHashMap.empty<RunnerAddress, Runner>()
@@ -207,8 +207,8 @@ export const makeMemory = Effect.gen(function*() {
 })
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerMemory: Layer.Layer<RunnerStorage> = Layer.effect(RunnerStorage)(makeMemory)
 

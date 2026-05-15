@@ -12,20 +12,20 @@ import * as Result from "./Result.ts"
 // -------------------------------------------------------------------------------------
 
 /**
- * @since 4.0.0
  * @category symbols
+ * @since 4.0.0
  */
 export const EncodingErrorTypeId = "~effect/encoding/EncodingError" as const
 
 /**
- * @since 4.0.0
  * @category symbols
+ * @since 4.0.0
  */
 export type EncodingErrorTypeId = typeof EncodingErrorTypeId
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export class EncodingError extends Data.TaggedError("EncodingError")<{
   kind: "Decode" | "Encode"
@@ -40,8 +40,8 @@ export class EncodingError extends Data.TaggedError("EncodingError")<{
 }
 
 /**
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isEncodingError = (u: unknown): u is EncodingError => hasProperty(u, EncodingErrorTypeId)
 
@@ -64,8 +64,8 @@ export const isEncodingError = (u: unknown): u is EncodingError => hasProperty(u
  * console.log(Encoding.encodeBase64(bytes)) // "SGVsbG8="
  * ```
  *
- * @since 4.0.0
  * @category encoding
+ * @since 4.0.0
  */
 export const encodeBase64: (input: Uint8Array | string) => string = (input) =>
   typeof input === "string" ? base64EncodeUint8Array(encoder.encode(input)) : base64EncodeUint8Array(input)
@@ -83,8 +83,8 @@ export const encodeBase64: (input: Uint8Array | string) => string = (input) =>
  * }
  * ```
  *
- * @since 4.0.0
  * @category decoding
+ * @since 4.0.0
  */
 export const decodeBase64 = (str: string): Result.Result<Uint8Array, EncodingError> => {
   const stripped = stripCrlf(str)
@@ -152,8 +152,8 @@ export const decodeBase64 = (str: string): Result.Result<Uint8Array, EncodingErr
  * }
  * ```
  *
- * @since 4.0.0
  * @category decoding
+ * @since 4.0.0
  */
 export const decodeBase64String = (str: string) => Result.map(decodeBase64(str), (_) => decoder.decode(_))
 
@@ -175,8 +175,8 @@ export const decodeBase64String = (str: string) => Result.map(decodeBase64(str),
  * console.log(Encoding.encodeBase64Url(bytes)) // "SGVsbG8_"
  * ```
  *
- * @since 4.0.0
  * @category encoding
+ * @since 4.0.0
  */
 export const encodeBase64Url: (input: Uint8Array | string) => string = (input) =>
   typeof input === "string" ? base64UrlEncodeUint8Array(encoder.encode(input)) : base64UrlEncodeUint8Array(input)
@@ -194,8 +194,8 @@ export const encodeBase64Url: (input: Uint8Array | string) => string = (input) =
  * }
  * ```
  *
- * @since 4.0.0
  * @category decoding
+ * @since 4.0.0
  */
 export const decodeBase64Url = (str: string): Result.Result<Uint8Array, EncodingError> => {
   const stripped = stripCrlf(str)
@@ -242,8 +242,8 @@ export const decodeBase64Url = (str: string): Result.Result<Uint8Array, Encoding
  * }
  * ```
  *
- * @since 4.0.0
  * @category decoding
+ * @since 4.0.0
  */
 export const decodeBase64UrlString = (str: string) => Result.map(decodeBase64Url(str), (_) => decoder.decode(_))
 
@@ -266,8 +266,8 @@ export const decodeBase64UrlString = (str: string) => Result.map(decodeBase64Url
  * console.log(Encoding.encodeHex(bytes)) // "48656c6c6f"
  * ```
  *
- * @since 4.0.0
  * @category encoding
+ * @since 4.0.0
  */
 export const encodeHex: (input: Uint8Array | string) => string = (input) =>
   typeof input === "string" ? hexEncodeUint8Array(encoder.encode(input)) : hexEncodeUint8Array(input)
@@ -285,8 +285,8 @@ export const encodeHex: (input: Uint8Array | string) => string = (input) =>
  * }
  * ```
  *
- * @since 4.0.0
  * @category decoding
+ * @since 4.0.0
  */
 export const decodeHex = (str: string): Result.Result<Uint8Array, EncodingError> => {
   const bytes = new TextEncoder().encode(str)
@@ -336,8 +336,8 @@ export const decodeHex = (str: string): Result.Result<Uint8Array, EncodingError>
  * }
  * ```
  *
- * @since 4.0.0
  * @category decoding
+ * @since 4.0.0
  */
 export const decodeHexString = (str: string) => Result.map(decodeHex(str), (_) => decoder.decode(_))
 

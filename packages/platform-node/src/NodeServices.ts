@@ -14,14 +14,14 @@ import * as NodeStdio from "./NodeStdio.ts"
 import * as NodeTerminal from "./NodeTerminal.ts"
 
 /**
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export type NodeServices = ChildProcessSpawner | FileSystem | Path | Stdio | Terminal
 
 /**
- * @since 1.0.0
  * @category layer
+ * @since 1.0.0
  */
 export const layer: Layer.Layer<NodeServices> = Layer.provideMerge(
   NodeChildProcessSpawner.layer,

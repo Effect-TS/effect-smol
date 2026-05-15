@@ -78,8 +78,8 @@ import * as effect from "./internal/effect.ts"
  * })
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Clock {
   /**

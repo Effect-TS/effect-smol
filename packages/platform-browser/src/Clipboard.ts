@@ -10,8 +10,8 @@ const TypeId = "~@effect/platform-browser/Clipboard"
 const ErrorTypeId = "~@effect/platform-browser/Clipboard/ClipboardError"
 
 /**
- * @since 1.0.0
  * @category Models
+ * @since 1.0.0
  */
 export interface Clipboard {
   readonly [TypeId]: typeof TypeId
@@ -24,8 +24,8 @@ export interface Clipboard {
 }
 
 /**
- * @since 1.0.0
  * @category Errors
+ * @since 1.0.0
  */
 export class ClipboardError extends Data.TaggedError("ClipboardError")<{
   readonly message: string
@@ -35,14 +35,14 @@ export class ClipboardError extends Data.TaggedError("ClipboardError")<{
 }
 
 /**
- * @since 1.0.0
  * @category Service
+ * @since 1.0.0
  */
 export const Clipboard: Context.Service<Clipboard, Clipboard> = Context.Service<Clipboard>(TypeId)
 
 /**
- * @since 1.0.0
  * @category Constructors
+ * @since 1.0.0
  */
 export const make = (
   impl: Omit<Clipboard, "clear" | "writeBlob" | typeof TypeId>
@@ -57,8 +57,8 @@ export const make = (
 /**
  * A layer that directly interfaces with the navigator.clipboard api
  *
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layer: Layer.Layer<Clipboard> = Layer.succeed(
   Clipboard,

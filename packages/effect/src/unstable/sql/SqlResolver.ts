@@ -16,8 +16,8 @@ import * as SqlClient from "./SqlClient.ts"
 import { ResultLengthMismatch } from "./SqlError.ts"
 
 /**
- * @since 4.0.0
  * @category requests
+ * @since 4.0.0
  */
 export interface SqlRequest<In, A, E, R> extends Request.Request<A, E | Schema.SchemaError, R> {
   readonly payload: In
@@ -37,8 +37,8 @@ const SqlRequestProto = {
 }
 
 /**
- * @since 4.0.0
  * @category requests
+ * @since 4.0.0
  */
 export const request: {
   <In, A, E, R>(
@@ -57,8 +57,8 @@ export const request: {
 } as any
 
 /**
- * @since 4.0.0
  * @category requests
+ * @since 4.0.0
  */
 export const SqlRequest = <In, A, E, R>(payload: In): SqlRequest<In, A, E, R> => {
   const self = Object.create(SqlRequestProto)
@@ -74,8 +74,8 @@ export const SqlRequest = <In, A, E, R>(payload: In): SqlRequest<In, A, E, R> =>
  *
  * Results are mapped to the requests in order, so the length of the results must match the length of the requests.
  *
- * @since 4.0.0
  * @category resolvers
+ * @since 4.0.0
  */
 export const ordered = <Req extends Schema.Top, Res extends Schema.Top, _, E, R>(
   options: {
@@ -122,8 +122,8 @@ export const ordered = <Req extends Schema.Top, Res extends Schema.Top, _, E, R>
  *
  * Results are grouped by a common key extracted from the request and result.
  *
- * @since 4.0.0
  * @category resolvers
+ * @since 4.0.0
  */
 export const grouped = <Req extends Schema.Top, Res extends Schema.Top, K, Row, E, R>(
   options: {
@@ -189,8 +189,8 @@ export const grouped = <Req extends Schema.Top, Res extends Schema.Top, K, Row, 
 /**
  * Create a resolver that resolves results by id.
  *
- * @since 4.0.0
  * @category resolvers
+ * @since 4.0.0
  */
 export const findById = <Id extends Schema.Top, Res extends Schema.Top, Row, E, R>(
   options: {
@@ -289,8 +289,8 @@ export {
   /**
    * Create a resolver that performs side effects.
    *
-   * @since 4.0.0
    * @category resolvers
+   * @since 4.0.0
    */
   void_ as void
 }

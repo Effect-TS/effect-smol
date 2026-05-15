@@ -15,8 +15,8 @@ import * as WorkerRunner from "effect/unstable/workers/WorkerRunner"
 declare const self: MessagePort
 
 /**
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.succeed(WorkerRunner.WorkerRunnerPlatform)({
   start: Effect.fnUntraced(function*<O = unknown, I = unknown>() {

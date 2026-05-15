@@ -17,8 +17,8 @@ import * as HttpClientRequest from "../http/HttpClientRequest.ts"
 import * as HttpClientResponse from "../http/HttpClientResponse.ts"
 
 /**
- * @since 4.0.0
  * @category Tags
+ * @since 4.0.0
  */
 export class K8sHttpClient extends Context.Service<
   K8sHttpClient,
@@ -26,8 +26,8 @@ export class K8sHttpClient extends Context.Service<
 >()("effect/cluster/K8sHttpClient") {}
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<
   K8sHttpClient,
@@ -52,8 +52,8 @@ export const layer: Layer.Layer<
 )
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const makeGetPods: (
   options?: {
@@ -93,8 +93,8 @@ export const makeGetPods: (
 })
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const makeCreatePod = Effect.gen(function*() {
   const client = yield* K8sHttpClient
@@ -195,8 +195,8 @@ export const makeCreatePod = Effect.gen(function*() {
 })
 
 /**
- * @since 4.0.0
  * @category Schemas
+ * @since 4.0.0
  */
 export class PodStatus extends Schema.Class<PodStatus>("@effect/cluster/K8sHttpClient/PodStatus")({
   phase: Schema.String,
@@ -210,8 +210,8 @@ export class PodStatus extends Schema.Class<PodStatus>("@effect/cluster/K8sHttpC
 }) {}
 
 /**
- * @since 4.0.0
  * @category Schemas
+ * @since 4.0.0
  */
 export class Pod extends Schema.Class<Pod>("@effect/cluster/K8sHttpClient/Pod")({
   status: PodStatus

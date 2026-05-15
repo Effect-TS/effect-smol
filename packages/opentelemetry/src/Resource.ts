@@ -11,8 +11,8 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 
 /**
- * @since 1.0.0
  * @category Services
+ * @since 1.0.0
  */
 export class Resource extends Context.Service<
   Resource,
@@ -20,8 +20,8 @@ export class Resource extends Context.Service<
 >()("@effect/opentelemetry/Resource") {}
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layer = (config: {
   readonly serviceName: string
@@ -34,8 +34,8 @@ export const layer = (config: {
   )
 
 /**
- * @since 1.0.0
  * @category Configuration
+ * @since 1.0.0
  */
 export const configToAttributes = (options: {
   readonly serviceName: string
@@ -57,8 +57,8 @@ export const configToAttributes = (options: {
 }
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerFromEnv = (
   additionalAttributes?:
@@ -94,8 +94,8 @@ export const layerFromEnv = (
   )
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerEmpty = Layer.succeed(
   Resource,

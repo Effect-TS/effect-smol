@@ -154,8 +154,8 @@ export const pipeThroughSimple: {
 ): Stream.Stream<Uint8Array, Cause.UnknownError | E, R> => pipeThroughDuplex(self, { evaluate: duplex }))
 
 /**
- * @since 1.0.0
  * @category conversions
+ * @since 1.0.0
  */
 export const toReadable = <E, R>(stream: Stream.Stream<string | Uint8Array, E, R>): Effect.Effect<Readable, never, R> =>
   Effect.map(
@@ -164,8 +164,8 @@ export const toReadable = <E, R>(stream: Stream.Stream<string | Uint8Array, E, R
   )
 
 /**
- * @since 1.0.0
  * @category conversions
+ * @since 1.0.0
  */
 export const toReadableNever = <E>(stream: Stream.Stream<string | Uint8Array, E, never>): Readable =>
   new StreamAdapter(
@@ -174,8 +174,8 @@ export const toReadableNever = <E>(stream: Stream.Stream<string | Uint8Array, E,
   )
 
 /**
- * @since 1.0.0
  * @category conversions
+ * @since 1.0.0
  */
 export const toString = <E = Cause.UnknownError>(
   readable: LazyArg<Readable | NodeJS.ReadableStream>,
@@ -223,8 +223,8 @@ export const toString = <E = Cause.UnknownError>(
 }
 
 /**
- * @since 1.0.0
  * @category conversions
+ * @since 1.0.0
  */
 export const toArrayBuffer = <E = Cause.UnknownError>(
   readable: LazyArg<Readable | NodeJS.ReadableStream>,
@@ -270,8 +270,8 @@ export const toArrayBuffer = <E = Cause.UnknownError>(
 }
 
 /**
- * @since 1.0.0
  * @category conversions
+ * @since 1.0.0
  */
 export const toUint8Array = <E = Cause.UnknownError>(
   readable: LazyArg<Readable | NodeJS.ReadableStream>,

@@ -21,8 +21,8 @@ import type { SqlError } from "../sql/SqlError.ts"
 const TypeId = "~effect/persistence/KeyValueStore" as const
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface KeyValueStore {
   readonly [TypeId]: typeof TypeId
@@ -84,8 +84,8 @@ export interface KeyValueStore {
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export type MakeOptions = Partial<KeyValueStore> & {
   /**
@@ -120,8 +120,8 @@ export type MakeOptions = Partial<KeyValueStore> & {
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export type MakeStringOptions = Partial<Omit<KeyValueStore, "set">> & {
   /**
@@ -153,8 +153,8 @@ export type MakeStringOptions = Partial<Omit<KeyValueStore, "set">> & {
 const ErrorTypeId = "~effect/persistence/KeyValueStore/KeyValueStoreError" as const
 
 /**
- * @since 4.0.0
  * @category Errors
+ * @since 4.0.0
  */
 export class KeyValueStoreError extends Data.TaggedError("KeyValueStoreError")<{
   message: string
@@ -169,8 +169,8 @@ export class KeyValueStoreError extends Data.TaggedError("KeyValueStoreError")<{
 }
 
 /**
- * @since 4.0.0
  * @category tags
+ * @since 4.0.0
  */
 export const KeyValueStore: Context.Service<
   KeyValueStore,
@@ -178,8 +178,8 @@ export const KeyValueStore: Context.Service<
 > = Context.Service("effect/persistence/KeyValueStore")
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = (options: MakeOptions): KeyValueStore =>
   KeyValueStore.of({
@@ -215,8 +215,8 @@ export const make = (options: MakeOptions): KeyValueStore =>
   })
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const makeStringOnly = (
   options: MakeStringOptions
@@ -241,8 +241,8 @@ export const makeStringOnly = (
 }
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const prefix: {
   (prefix: string): (self: KeyValueStore) => KeyValueStore
@@ -259,8 +259,8 @@ export const prefix: {
 }))
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerMemory: Layer.Layer<KeyValueStore> = Layer.sync(KeyValueStore)(() => {
   const store = new Map<string, string | Uint8Array>()
@@ -285,8 +285,8 @@ export const layerMemory: Layer.Layer<KeyValueStore> = Layer.sync(KeyValueStore)
 })
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerFileSystem = (
   directory: string
@@ -386,8 +386,8 @@ export const layerFileSystem = (
   }))
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export interface LayerSqlOptions {
   /**
@@ -399,8 +399,8 @@ export interface LayerSqlOptions {
 }
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerSql = (
   options: LayerSqlOptions = {}
@@ -609,8 +609,8 @@ export const layerSql = (
 const SchemaStoreTypeId = "~effect/persistence/KeyValueStore/SchemaStore" as const
 
 /**
- * @since 4.0.0
  * @category SchemaStore
+ * @since 4.0.0
  */
 export interface SchemaStore<S extends Schema.Top> {
   readonly [SchemaStoreTypeId]: typeof SchemaStoreTypeId
@@ -668,8 +668,8 @@ export interface SchemaStore<S extends Schema.Top> {
 }
 
 /**
- * @since 4.0.0
  * @category SchemaStore
+ * @since 4.0.0
  */
 export const toSchemaStore = <S extends Schema.Top>(self: KeyValueStore, schema: S): SchemaStore<S> => {
   const serializer = Schema.toCodecJson(schema)
@@ -721,8 +721,8 @@ export const toSchemaStore = <S extends Schema.Top>(self: KeyValueStore, schema:
  *
  * @see https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API
  *
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerStorage = (
   evaluate: LazyArg<Storage>

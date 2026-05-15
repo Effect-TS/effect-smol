@@ -138,8 +138,8 @@ const redactHeaders = (headers: Record<string, string>): Record<string, string> 
  * // "Transport: Connection timeout after 30 seconds (POST https://api.openai.com/v1/completions)"
  * ```
  *
- * @since 1.0.0
  * @category reason
+ * @since 1.0.0
  */
 export class NetworkError extends Schema.ErrorClass<NetworkError>(
   "effect/ai/AiError/NetworkError"
@@ -176,8 +176,8 @@ export class NetworkError extends Schema.ErrorClass<NetworkError>(
    * const aiError = AiError.NetworkError.fromRequestError(platformError)
    * ```
    *
-   * @since 1.0.0
    * @category constructors
+   * @since 1.0.0
    */
   static fromRequestError(error: HttpClientError.RequestError): NetworkError {
     return new NetworkError({
@@ -248,8 +248,8 @@ export class NetworkError extends Schema.ErrorClass<NetworkError>(
  * }
  * ```
  *
- * @since 1.0.0
  * @category schemas
+ * @since 1.0.0
  */
 export const ProviderMetadata: Schema.$Record<
   Schema.String,
@@ -257,96 +257,96 @@ export const ProviderMetadata: Schema.$Record<
 > = Schema.Record(Schema.String, Schema.NullOr(Schema.MutableJson))
 
 /**
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export type ProviderMetadata = typeof ProviderMetadata.Type
 
 /**
  * Provider-specific metadata attached to `RateLimitError`.
  *
- * @since 1.0.0
  * @category provider options
+ * @since 1.0.0
  */
 export interface RateLimitErrorMetadata extends ProviderMetadata {}
 
 /**
  * Provider-specific metadata attached to `QuotaExhaustedError`.
  *
- * @since 1.0.0
  * @category provider options
+ * @since 1.0.0
  */
 export interface QuotaExhaustedErrorMetadata extends ProviderMetadata {}
 
 /**
  * Provider-specific metadata attached to `AuthenticationError`.
  *
- * @since 1.0.0
  * @category provider options
+ * @since 1.0.0
  */
 export interface AuthenticationErrorMetadata extends ProviderMetadata {}
 
 /**
  * Provider-specific metadata attached to `ContentPolicyError`.
  *
- * @since 1.0.0
  * @category provider options
+ * @since 1.0.0
  */
 export interface ContentPolicyErrorMetadata extends ProviderMetadata {}
 
 /**
  * Provider-specific metadata attached to `InvalidRequestError`.
  *
- * @since 1.0.0
  * @category provider options
+ * @since 1.0.0
  */
 export interface InvalidRequestErrorMetadata extends ProviderMetadata {}
 
 /**
  * Provider-specific metadata attached to `InternalProviderError`.
  *
- * @since 1.0.0
  * @category provider options
+ * @since 1.0.0
  */
 export interface InternalProviderErrorMetadata extends ProviderMetadata {}
 
 /**
  * Provider-specific metadata attached to `InvalidOutputError`.
  *
- * @since 1.0.0
  * @category provider options
+ * @since 1.0.0
  */
 export interface InvalidOutputErrorMetadata extends ProviderMetadata {}
 
 /**
  * Provider-specific metadata attached to `StructuredOutputError`.
  *
- * @since 1.0.0
  * @category provider options
+ * @since 1.0.0
  */
 export interface StructuredOutputErrorMetadata extends ProviderMetadata {}
 
 /**
  * Provider-specific metadata attached to `UnsupportedSchemaError`.
  *
- * @since 1.0.0
  * @category provider options
+ * @since 1.0.0
  */
 export interface UnsupportedSchemaErrorMetadata extends ProviderMetadata {}
 
 /**
  * Provider-specific metadata attached to `UnknownError`.
  *
- * @since 1.0.0
  * @category provider options
+ * @since 1.0.0
  */
 export interface UnknownErrorMetadata extends ProviderMetadata {}
 
 /**
  * Token usage information from AI operations.
  *
- * @since 1.0.0
  * @category schemas
+ * @since 1.0.0
  */
 export const UsageInfo = Schema.Struct({
   promptTokens: Schema.optional(Schema.Number),
@@ -357,8 +357,8 @@ export const UsageInfo = Schema.Struct({
 /**
  * Combined HTTP context for error reporting.
  *
- * @since 1.0.0
  * @category schemas
+ * @since 1.0.0
  */
 export const HttpContext = Schema.Struct({
   request: HttpRequestDetails,
@@ -389,8 +389,8 @@ export const HttpContext = Schema.Struct({
  * console.log(rateLimitError.message) // "Rate limit exceeded. Retry after 1 minute"
  * ```
  *
- * @since 1.0.0
  * @category reason
+ * @since 1.0.0
  */
 export class RateLimitError extends Schema.ErrorClass<RateLimitError>(
   "effect/ai/AiError/RateLimitError"
@@ -437,8 +437,8 @@ export class RateLimitError extends Schema.ErrorClass<RateLimitError>(
  * // "Quota exhausted. Check your account billing and usage limits."
  * ```
  *
- * @since 1.0.0
  * @category reason
+ * @since 1.0.0
  */
 export class QuotaExhaustedError extends Schema.ErrorClass<QuotaExhaustedError>(
   "effect/ai/AiError/QuotaExhaustedError"
@@ -487,8 +487,8 @@ export class QuotaExhaustedError extends Schema.ErrorClass<QuotaExhaustedError>(
  * // "InvalidKey: Verify your API key is correct"
  * ```
  *
- * @since 1.0.0
  * @category reason
+ * @since 1.0.0
  */
 export class AuthenticationError extends Schema.ErrorClass<AuthenticationError>(
   "effect/ai/AiError/AuthenticationError"
@@ -542,8 +542,8 @@ export class AuthenticationError extends Schema.ErrorClass<AuthenticationError>(
  * // "Content policy violation: Input contains prohibited content"
  * ```
  *
- * @since 1.0.0
  * @category reason
+ * @since 1.0.0
  */
 export class ContentPolicyError extends Schema.ErrorClass<ContentPolicyError>(
   "effect/ai/AiError/ContentPolicyError"
@@ -592,8 +592,8 @@ export class ContentPolicyError extends Schema.ErrorClass<ContentPolicyError>(
  * // "Invalid request: parameter 'temperature' must be between 0 and 2. Temperature value 5 is out of range"
  * ```
  *
- * @since 1.0.0
  * @category reason
+ * @since 1.0.0
  */
 export class InvalidRequestError extends Schema.ErrorClass<InvalidRequestError>(
   "effect/ai/AiError/InvalidRequestError"
@@ -646,8 +646,8 @@ export class InvalidRequestError extends Schema.ErrorClass<InvalidRequestError>(
  * // "Internal provider error: Server encountered an unexpected error"
  * ```
  *
- * @since 1.0.0
  * @category reason
+ * @since 1.0.0
  */
 export class InternalProviderError extends Schema.ErrorClass<InternalProviderError>(
   "effect/ai/AiError/InternalProviderError"
@@ -694,8 +694,8 @@ export class InternalProviderError extends Schema.ErrorClass<InternalProviderErr
  * // "Invalid output: Expected a string but received a number"
  * ```
  *
- * @since 1.0.0
  * @category reason
+ * @since 1.0.0
  */
 export class InvalidOutputError extends Schema.ErrorClass<InvalidOutputError>(
   "effect/ai/AiError/InvalidOutputError"
@@ -732,8 +732,8 @@ export class InvalidOutputError extends Schema.ErrorClass<InvalidOutputError>(
    * const parseError = AiError.InvalidOutputError.fromSchemaError(schemaError)
    * ```
    *
-   * @since 1.0.0
    * @category constructors
+   * @since 1.0.0
    */
   static fromSchemaError(error: Schema.SchemaError): InvalidOutputError {
     return new InvalidOutputError({
@@ -766,8 +766,8 @@ export class InvalidOutputError extends Schema.ErrorClass<InvalidOutputError>(
  * // "Structured output validation failed: Expected a valid JSON object"
  * ```
  *
- * @since 1.0.0
  * @category reason
+ * @since 1.0.0
  */
 export class StructuredOutputError extends Schema.ErrorClass<StructuredOutputError>(
   "effect/ai/AiError/StructuredOutputError"
@@ -806,8 +806,8 @@ export class StructuredOutputError extends Schema.ErrorClass<StructuredOutputErr
    * const parseError = AiError.StructuredOutputError.fromSchemaError(schemaError, rawText)
    * ```
    *
-   * @since 1.0.0
    * @category constructors
+   * @since 1.0.0
    */
   static fromSchemaError(error: Schema.SchemaError, responseText: string): StructuredOutputError {
     return new StructuredOutputError({
@@ -841,8 +841,8 @@ export class StructuredOutputError extends Schema.ErrorClass<StructuredOutputErr
  * // "Unsupported schema: Unions are not supported in Anthropic structured output"
  * ```
  *
- * @since 1.0.0
  * @category reason
+ * @since 1.0.0
  */
 export class UnsupportedSchemaError extends Schema.ErrorClass<UnsupportedSchemaError>(
   "effect/ai/AiError/UnsupportedSchemaError"
@@ -888,8 +888,8 @@ export class UnsupportedSchemaError extends Schema.ErrorClass<UnsupportedSchemaE
  * // "An unexpected error occurred"
  * ```
  *
- * @since 1.0.0
  * @category reason
+ * @since 1.0.0
  */
 export class UnknownError extends Schema.ErrorClass<UnknownError>(
   "effect/ai/AiError/UnknownError"
@@ -942,8 +942,8 @@ export class UnknownError extends Schema.ErrorClass<UnknownError>(
  * // "Tool 'unknownTool' not found. Available tools: GetWeather, GetTime"
  * ```
  *
- * @since 1.0.0
  * @category reason
+ * @since 1.0.0
  */
 export class ToolNotFoundError extends Schema.ErrorClass<ToolNotFoundError>(
   "effect/ai/AiError/ToolNotFoundError"
@@ -993,8 +993,8 @@ export class ToolNotFoundError extends Schema.ErrorClass<ToolNotFoundError>(
  * // "Invalid parameters for tool 'GetWeather': Expected string, got number"
  * ```
  *
- * @since 1.0.0
  * @category reason
+ * @since 1.0.0
  */
 export class ToolParameterValidationError extends Schema.ErrorClass<ToolParameterValidationError>(
   "effect/ai/AiError/ToolParameterValidationError"
@@ -1044,8 +1044,8 @@ export class ToolParameterValidationError extends Schema.ErrorClass<ToolParamete
  * // "Tool 'GetWeather' returned invalid result: missing 'temperature' field"
  * ```
  *
- * @since 1.0.0
  * @category reason
+ * @since 1.0.0
  */
 export class InvalidToolResultError extends Schema.ErrorClass<InvalidToolResultError>(
   "effect/ai/AiError/InvalidToolResultError"
@@ -1094,8 +1094,8 @@ export class InvalidToolResultError extends Schema.ErrorClass<InvalidToolResultE
  * // "Failed to encode result for tool 'GetWeather': Cannot encode circular reference"
  * ```
  *
- * @since 1.0.0
  * @category reason
+ * @since 1.0.0
  */
 export class ToolResultEncodingError extends Schema.ErrorClass<ToolResultEncodingError>(
   "effect/ai/AiError/ToolResultEncodingError"
@@ -1144,8 +1144,8 @@ export class ToolResultEncodingError extends Schema.ErrorClass<ToolResultEncodin
  * // "Invalid configuration for tool 'OpenAiCodeInterpreter': Invalid container ID format"
  * ```
  *
- * @since 1.0.0
  * @category reason
+ * @since 1.0.0
  */
 export class ToolConfigurationError extends Schema.ErrorClass<ToolConfigurationError>(
   "effect/ai/AiError/ToolConfigurationError"
@@ -1192,8 +1192,8 @@ export class ToolConfigurationError extends Schema.ErrorClass<ToolConfigurationE
  * // "Toolkit required to resolve pending tool approvals: GetWeather, SendEmail"
  * ```
  *
- * @since 1.0.0
  * @category reason
+ * @since 1.0.0
  */
 export class ToolkitRequiredError extends Schema.ErrorClass<ToolkitRequiredError>(
   "effect/ai/AiError/ToolkitRequiredError"
@@ -1242,8 +1242,8 @@ export class ToolkitRequiredError extends Schema.ErrorClass<ToolkitRequiredError
  * // "Invalid user input: Unsupported media type 'video/mp4'. Supported types: image/*, application/pdf, text/plain"
  * ```
  *
- * @since 1.0.0
  * @category reason
+ * @since 1.0.0
  */
 export class InvalidUserInputError extends Schema.ErrorClass<InvalidUserInputError>(
   "effect/ai/AiError/InvalidUserInputError"
@@ -1283,8 +1283,8 @@ export class InvalidUserInputError extends Schema.ErrorClass<InvalidUserInputErr
  * - Optional `retryAfter` duration for rate limit/throttling errors
  * - Rich context including provider metadata and HTTP details
  *
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export type AiErrorReason =
   | RateLimitError
@@ -1309,8 +1309,8 @@ export type AiErrorReason =
 /**
  * Schema for validating and parsing AI error reasons.
  *
- * @since 1.0.0
  * @category schemas
+ * @since 1.0.0
  */
 export const AiErrorReason: Schema.Union<[
   typeof RateLimitError,
@@ -1386,8 +1386,8 @@ const TypeId = "~effect/unstable/ai/AiError/AiError" as const
  * )
  * ```
  *
- * @since 1.0.0
  * @category schemas
+ * @since 1.0.0
  */
 export class AiError extends Schema.ErrorClass<AiError>(
   "effect/ai/AiError/AiError"
@@ -1426,8 +1426,8 @@ export class AiError extends Schema.ErrorClass<AiError>(
 /**
  * The encoded (serialized) form of an `AiError`.
  *
- * @since 1.0.0
  * @category schemas
+ * @since 1.0.0
  */
 export type AiErrorEncoded = typeof AiError["Encoded"]
 
@@ -1452,8 +1452,8 @@ export type AiErrorEncoded = typeof AiError["Encoded"]
  * console.log(AiError.isAiError(aiError)) // true
  * ```
  *
- * @since 1.0.0
  * @category guards
+ * @since 1.0.0
  */
 export const isAiError = (u: unknown): u is AiError => Predicate.hasProperty(u, TypeId)
 
@@ -1474,8 +1474,8 @@ export const isAiError = (u: unknown): u is AiError => Predicate.hasProperty(u, 
  * console.log(AiError.isAiErrorReason(genericError)) // false
  * ```
  *
- * @since 1.0.0
  * @category guards
+ * @since 1.0.0
  */
 export const isAiErrorReason = (u: unknown): u is AiErrorReason => Predicate.hasProperty(u, ReasonTypeId)
 
@@ -1499,8 +1499,8 @@ export const isAiErrorReason = (u: unknown): u is AiErrorReason => Predicate.has
  * // "OpenAI.completion: Rate limit exceeded. Retry after 1 minute"
  * ```
  *
- * @since 1.0.0
  * @category constructors
+ * @since 1.0.0
  */
 export const make = (params: {
   readonly module: string
@@ -1525,8 +1525,8 @@ export const make = (params: {
  * console.log(reason._tag) // "RateLimitError"
  * ```
  *
- * @since 1.0.0
  * @category constructors
+ * @since 1.0.0
  */
 export const reasonFromHttpStatus = (params: {
   readonly status: number

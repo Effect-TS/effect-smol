@@ -17,8 +17,8 @@ const TypeId = "~effect/platform/Terminal"
  * A `Terminal` represents a command-line interface which can read input from a
  * user and display messages to a user.
  *
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface Terminal {
   readonly [TypeId]: typeof TypeId
@@ -47,8 +47,8 @@ export interface Terminal {
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface Key {
   /**
@@ -70,8 +70,8 @@ export interface Key {
 }
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface UserInput {
   /**
@@ -90,8 +90,8 @@ const QuitErrorTypeId = "effect/platform/Terminal/QuitError"
  * A `QuitError` represents an error that occurs when a user attempts to
  * quit out of a `Terminal` prompt for input (usually by entering `ctrl`+`c`).
  *
- * @since 4.0.0
  * @category QuitError
+ * @since 4.0.0
  */
 export class QuitError extends Schema.ErrorClass<QuitError>("QuitError")({
   _tag: Schema.tag("QuitError")
@@ -103,22 +103,22 @@ export class QuitError extends Schema.ErrorClass<QuitError>("QuitError")({
 }
 
 /**
- * @since 4.0.0
  * @category QuitError
+ * @since 4.0.0
  */
 export const isQuitError = (u: unknown): u is QuitError => Predicate.hasProperty(u, QuitErrorTypeId)
 
 /**
- * @since 4.0.0
  * @category Services
+ * @since 4.0.0
  */
 export const Terminal: Context.Service<Terminal, Terminal> = Context.Service("effect/platform/Terminal")
 
 /**
  * Creates a Terminal implementation
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make = (
   impl: Omit<Terminal, typeof TypeId>

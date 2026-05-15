@@ -25,8 +25,8 @@ const TypeId = "~effect/Pool"
  * associated with the acquisition and release of resources. An attempt to get
  * an item `A` from a pool may fail with an error of type `E`.
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Pool<in out A, in out E = never> extends Pipeable {
   readonly [TypeId]: typeof TypeId
@@ -35,8 +35,8 @@ export interface Pool<in out A, in out E = never> extends Pipeable {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Config<A, E> {
   readonly acquire: Effect.Effect<A, E, Scope.Scope>
@@ -48,8 +48,8 @@ export interface Config<A, E> {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface State<A, E> {
   readonly scope: Scope.Scope
@@ -64,8 +64,8 @@ export interface State<A, E> {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface PoolItem<A, E> {
   readonly exit: Exit.Exit<A, E>
@@ -75,8 +75,8 @@ export interface PoolItem<A, E> {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Strategy<A, E> {
   readonly run: (pool: Pool<A, E>) => Effect.Effect<void>
@@ -87,8 +87,8 @@ export interface Strategy<A, E> {
 /**
  * Returns `true` if the specified value is a `Pool`, `false` otherwise.
  *
- * @since 2.0.0
  * @category refinements
+ * @since 2.0.0
  */
 export const isPool = (u: unknown): u is Pool<unknown, unknown> => hasProperty(u, TypeId)
 
@@ -108,8 +108,8 @@ export const isPool = (u: unknown): u is Pool<unknown, unknown> => hasProperty(u
  * A `targetUtilization` of 0.5 will create new pool items when the existing items are
  * 50% utilized.
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const make = <A, E, R>(options: {
   readonly acquire: Effect.Effect<A, E, R>
@@ -163,8 +163,8 @@ export const make = <A, E, R>(options: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const makeWithTTL = <A, E, R>(options: {
   readonly acquire: Effect.Effect<A, E, R>
@@ -183,8 +183,8 @@ export const makeWithTTL = <A, E, R>(options: {
   )
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const makeWithStrategy = <A, E, R>(options: {
   readonly acquire: Effect.Effect<A, E, R>
@@ -269,8 +269,8 @@ const shutdown = Effect.fnUntraced(function*<A, E>(self: Pool<A, E>) {
  * acquisition fails, then the returned effect will fail for that same reason.
  * Retrying a failed acquisition attempt will repeat the acquisition attempt.
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const get = <A, E>(self: Pool<A, E>): Effect.Effect<A, E, Scope.Scope> =>
   Effect.suspend(() => {
@@ -346,8 +346,8 @@ const getPoolItemInner = Effect.fnUntraced(function*<A, E>(
  * reallocate the item, although this reallocation may occur lazily rather
  * than eagerly.
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const invalidate: {
   <A>(item: A): <E>(self: Pool<A, E>) => Effect.Effect<void, never, Scope.Scope>

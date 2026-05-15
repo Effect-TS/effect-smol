@@ -21,33 +21,33 @@ import { CurrentTraceLevel, DisablePropagation, MinimumTraceLevel, type SpanLink
 
 export {
   /**
-   * @since 4.0.0
    * @category references
+   * @since 4.0.0
    */
   CurrentTraceLevel,
   /**
-   * @since 4.0.0
    * @category references
+   * @since 4.0.0
    */
   DisablePropagation,
   /**
-   * @since 4.0.0
    * @category references
+   * @since 4.0.0
    */
   MaxOpsBeforeYield,
   /**
-   * @since 4.0.0
    * @category references
+   * @since 4.0.0
    */
   MinimumTraceLevel,
   /**
-   * @since 4.0.0
    * @category references
+   * @since 4.0.0
    */
   PreventSchedulerYield,
   /**
-   * @since 4.0.0
    * @category references
+   * @since 4.0.0
    */
   Tracer
 }
@@ -143,8 +143,8 @@ export const CurrentConcurrency: Context.Reference<number | "unbounded"> = refer
  * })
  * ```
  *
- * @since 4.0.0
  * @category references
+ * @since 4.0.0
  */
 export const CurrentLogAnnotations: Context.Reference<ReadonlyRecord<string, unknown>> =
   references.CurrentLogAnnotations
@@ -246,15 +246,15 @@ export const CurrentLogLevel: Context.Reference<Severity> = references.CurrentLo
  * })
  * ```
  *
- * @since 4.0.0
  * @category references
+ * @since 4.0.0
  */
 export const CurrentLogSpans: Context.Reference<ReadonlyArray<[label: string, timestamp: number]>> =
   references.CurrentLogSpans
 
 /**
- * @since 4.0.0
  * @category references
+ * @since 4.0.0
  */
 export const CurrentStackFrame: Context.Reference<StackFrame | undefined> = references.CurrentStackFrame
 
@@ -350,8 +350,8 @@ export const MinimumLogLevel: Context.Reference<LogLevel> = references.MinimumLo
  * })
  * ```
  *
- * @since 4.0.0
  * @category references
+ * @since 4.0.0
  */
 export const TracerEnabled: Context.Reference<boolean> = references.TracerEnabled
 
@@ -402,8 +402,8 @@ export const TracerEnabled: Context.Reference<boolean> = references.TracerEnable
  * })
  * ```
  *
- * @since 4.0.0
  * @category references
+ * @since 4.0.0
  */
 export const TracerSpanAnnotations: Context.Reference<ReadonlyRecord<string, unknown>> =
   references.TracerSpanAnnotations
@@ -465,8 +465,8 @@ export const TracerSpanAnnotations: Context.Reference<ReadonlyRecord<string, unk
  * })
  * ```
  *
- * @since 4.0.0
  * @category references
+ * @since 4.0.0
  */
 export const TracerSpanLinks: Context.Reference<ReadonlyArray<SpanLink>> = references.TracerSpanLinks
 
@@ -508,8 +508,8 @@ export const TracerSpanLinks: Context.Reference<ReadonlyArray<SpanLink>> = refer
  * })
  * ```
  *
- * @since 4.0.0
  * @category references
+ * @since 4.0.0
  */
 export const TracerTimingEnabled: Context.Reference<boolean> = references.TracerTimingEnabled
 
@@ -523,8 +523,8 @@ export const TracerTimingEnabled: Context.Reference<boolean> = references.Tracer
 export const UnhandledLogLevel: Context.Reference<Severity | undefined> = references.UnhandledLogLevel
 
 /**
- * @since 4.0.0
  * @category references
+ * @since 4.0.0
  */
 export interface StackFrame {
   readonly name: string
@@ -533,14 +533,14 @@ export interface StackFrame {
 }
 
 /**
- * @since 4.0.0
  * @category references
+ * @since 4.0.0
  */
 export const CurrentLoggers: Context.Reference<ReadonlySet<Logger<unknown, any>>> = internalEffect.CurrentLoggers
 
 /**
- * @since 4.0.0
  * @category references
+ * @since 4.0.0
  */
 export const LogToStderr: Context.Reference<boolean> = internalEffect.LogToStderr
 

@@ -8,8 +8,8 @@ import * as Schema from "../../Schema.ts"
 import * as Getter from "../../SchemaGetter.ts"
 
 /**
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export class Collector extends Context.Service<Collector, {
   readonly addAll: (
@@ -23,8 +23,8 @@ export class Collector extends Context.Service<Collector, {
 }>()("effect/workers/Transferable/Collector") {}
 
 /**
- * @since 1.0.0
  * @category constructors
+ * @since 1.0.0
  */
 export const makeCollectorUnsafe = (): Collector["Service"] => {
   let tranferables: Array<globalThis.Transferable> = []
@@ -48,14 +48,14 @@ export const makeCollectorUnsafe = (): Collector["Service"] => {
 }
 
 /**
- * @since 1.0.0
  * @category constructors
+ * @since 1.0.0
  */
 export const makeCollector: Effect.Effect<Collector["Service"]> = Effect.sync(makeCollectorUnsafe)
 
 /**
- * @since 1.0.0
  * @category accessors
+ * @since 1.0.0
  */
 export const addAll = (
   tranferables: Iterable<globalThis.Transferable>
@@ -68,8 +68,8 @@ export const addAll = (
   })
 
 /**
- * @since 1.0.0
  * @category Getter
+ * @since 1.0.0
  */
 export const getterAddAll = <A>(
   f: (_: A) => Iterable<globalThis.Transferable>
@@ -84,8 +84,8 @@ export const getterAddAll = <A>(
   )
 
 /**
- * @since 1.0.0
  * @category schema
+ * @since 1.0.0
  */
 export interface Transferable<S extends Schema.Top> extends
   Schema.decodeTo<
@@ -95,8 +95,8 @@ export interface Transferable<S extends Schema.Top> extends
 {}
 
 /**
- * @since 1.0.0
  * @category schema
+ * @since 1.0.0
  */
 export const schema: {
   <S extends Schema.Top>(
@@ -128,8 +128,8 @@ const passthroughLink = Schema.link()(Schema.Any, {
 })
 
 /**
- * @since 1.0.0
  * @category schema
+ * @since 1.0.0
  */
 export const ImageData: Transferable<Schema.declare<ImageData>> = schema(
   Schema.Any as any as Schema.declare<globalThis.ImageData>,
@@ -137,8 +137,8 @@ export const ImageData: Transferable<Schema.declare<ImageData>> = schema(
 )
 
 /**
- * @since 1.0.0
  * @category schema
+ * @since 1.0.0
  */
 export const MessagePort: Transferable<Schema.declare<MessagePort>> = schema(
   Schema.Any as any as Schema.declare<MessagePort>,
@@ -146,8 +146,8 @@ export const MessagePort: Transferable<Schema.declare<MessagePort>> = schema(
 )
 
 /**
- * @since 1.0.0
  * @category schema
+ * @since 1.0.0
  */
 export const Uint8Array: Transferable<Schema.instanceOf<globalThis.Uint8Array<ArrayBuffer>>> = schema(
   Schema.Uint8Array as any,

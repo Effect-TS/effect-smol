@@ -48,8 +48,8 @@ import type * as Option from "../../Option.ts"
  * }
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface HelpDoc {
   /**
@@ -97,8 +97,8 @@ export interface HelpDoc {
 /**
  * Documentation for a command usage example
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ExampleDoc {
   /**
@@ -137,8 +137,8 @@ export interface ExampleDoc {
  * }
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface FlagDoc {
   /**
@@ -202,8 +202,8 @@ export interface FlagDoc {
  * }
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface SubcommandDoc {
   /**
@@ -230,8 +230,8 @@ export interface SubcommandDoc {
 /**
  * Documentation for a grouped subcommand listing
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface SubcommandGroupDoc {
   /**
@@ -280,8 +280,8 @@ export interface SubcommandGroupDoc {
  * }
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ArgDoc {
   /**

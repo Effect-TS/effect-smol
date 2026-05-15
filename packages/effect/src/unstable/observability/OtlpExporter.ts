@@ -35,8 +35,8 @@ const policy = Schedule.forever.pipe(
 )
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make: (
   options: {

@@ -6,16 +6,16 @@ import * as Tracer from "../../Tracer.ts"
 import * as Headers from "./Headers.ts"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface FromHeaders {
   (headers: Headers.Headers): Option.Option<Tracer.ExternalSpan>
 }
 
 /**
- * @since 4.0.0
  * @category encoding
+ * @since 4.0.0
  */
 export const toHeaders = (span: Tracer.Span): Headers.Headers =>
   Headers.fromRecordUnsafe({
@@ -29,8 +29,8 @@ export const toHeaders = (span: Tracer.Span): Headers.Headers =>
   })
 
 /**
- * @since 4.0.0
  * @category decoding
+ * @since 4.0.0
  */
 export const fromHeaders = (headers: Headers.Headers): Option.Option<Tracer.ExternalSpan> => {
   let span = w3c(headers)
@@ -45,8 +45,8 @@ export const fromHeaders = (headers: Headers.Headers): Option.Option<Tracer.Exte
 }
 
 /**
- * @since 4.0.0
  * @category decoding
+ * @since 4.0.0
  */
 export const b3: FromHeaders = (headers) => {
   if (!("b3" in headers)) {
@@ -64,8 +64,8 @@ export const b3: FromHeaders = (headers) => {
 }
 
 /**
- * @since 4.0.0
  * @category decoding
+ * @since 4.0.0
  */
 export const xb3: FromHeaders = (headers) => {
   if (!(headers["x-b3-traceid"]) || !(headers["x-b3-spanid"])) {
@@ -82,8 +82,8 @@ const w3cTraceId = /^[0-9a-f]{32}$/i
 const w3cSpanId = /^[0-9a-f]{16}$/i
 
 /**
- * @since 4.0.0
  * @category decoding
+ * @since 4.0.0
  */
 export const w3c: FromHeaders = (headers) => {
   if (!(headers["traceparent"])) {

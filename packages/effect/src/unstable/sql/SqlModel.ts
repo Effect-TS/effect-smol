@@ -1,6 +1,6 @@
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 import type * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
@@ -16,8 +16,8 @@ import * as SqlSchema from "./SqlSchema.ts"
 /**
  * Create a simple CRUD repository from a model.
  *
- * @since 4.0.0
  * @category repository
+ * @since 4.0.0
  */
 export const makeRepository = <
   S extends Model.Any,
@@ -212,8 +212,8 @@ select * from ${sql(options.tableName)} where ${withSoftDeleteFilter(sql`${sql(i
 /**
  * Create some simple data loaders from a model.
  *
- * @since 4.0.0
  * @category repository
+ * @since 4.0.0
  */
 export const makeResolvers = <
   S extends Model.Any,

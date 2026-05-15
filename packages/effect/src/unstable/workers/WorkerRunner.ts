@@ -7,8 +7,8 @@ import type * as Queue from "../../Queue.ts"
 import type { WorkerError } from "./WorkerError.ts"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface WorkerRunner<O = unknown, I = unknown> {
   readonly run: <A, E, R>(
@@ -28,14 +28,14 @@ export interface WorkerRunner<O = unknown, I = unknown> {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type PlatformMessage<I> = readonly [request: 0, I] | readonly [close: 1]
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class WorkerRunnerPlatform extends Context.Service<WorkerRunnerPlatform, {
   readonly start: <O = unknown, I = unknown>() => Effect.Effect<WorkerRunner<O, I>, WorkerError>

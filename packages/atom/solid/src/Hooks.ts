@@ -15,8 +15,8 @@ import { RegistryContext } from "./RegistryContext.ts"
 const initialValuesSet = new WeakMap<AtomRegistry.AtomRegistry, WeakSet<Atom.Atom<any>>>()
 
 /**
- * @since 1.0.0
  * @category hooks
+ * @since 1.0.0
  */
 export const useAtomInitialValues = (initialValues: Iterable<readonly [Atom.Atom<any>, any]>): void => {
   const registry = useContext(RegistryContext)
@@ -34,8 +34,8 @@ export const useAtomInitialValues = (initialValues: Iterable<readonly [Atom.Atom
 }
 
 /**
- * @since 1.0.0
  * @category hooks
+ * @since 1.0.0
  */
 export const useAtomValue: {
   <A>(atom: () => Atom.Atom<A>): Accessor<A>
@@ -98,8 +98,8 @@ const flattenExit = <A, E>(exit: Exit.Exit<A, E>): A => {
 }
 
 /**
- * @since 1.0.0
  * @category hooks
+ * @since 1.0.0
  */
 export const useAtomMount = <A>(atom: () => Atom.Atom<A>): void => {
   const registry = useContext(RegistryContext)
@@ -107,8 +107,8 @@ export const useAtomMount = <A>(atom: () => Atom.Atom<A>): void => {
 }
 
 /**
- * @since 1.0.0
  * @category hooks
+ * @since 1.0.0
  */
 export const useAtomSet = <
   R,
@@ -133,8 +133,8 @@ export const useAtomSet = <
 }
 
 /**
- * @since 1.0.0
  * @category hooks
+ * @since 1.0.0
  */
 export const useAtomRefresh = <A>(atom: () => Atom.Atom<A>): () => void => {
   const registry = useContext(RegistryContext)
@@ -144,8 +144,8 @@ export const useAtomRefresh = <A>(atom: () => Atom.Atom<A>): () => void => {
 }
 
 /**
- * @since 1.0.0
  * @category hooks
+ * @since 1.0.0
  */
 export const useAtom = <R, W, const Mode extends "value" | "promise" | "promiseExit" = never>(
   atom: () => Atom.Writable<R, W>,
@@ -170,8 +170,8 @@ export const useAtom = <R, W, const Mode extends "value" | "promise" | "promiseE
 }
 
 /**
- * @since 1.0.0
  * @category hooks
+ * @since 1.0.0
  */
 export const useAtomSubscribe = <A>(
   atom: () => Atom.Atom<A>,
@@ -185,8 +185,8 @@ export const useAtomSubscribe = <A>(
 }
 
 /**
- * @since 1.0.0
  * @category hooks
+ * @since 1.0.0
  */
 export const useAtomResource = <A, E>(
   atom: () => Atom.Atom<AsyncResult.AsyncResult<A, E>>,
@@ -208,8 +208,8 @@ export const useAtomResource = <A, E>(
 const constUnresolvedPromise = new Promise<never>(() => {})
 
 /**
- * @since 1.0.0
  * @category hooks
+ * @since 1.0.0
  */
 export const useAtomRef = <A>(ref: () => AtomRef.ReadonlyRef<A>): Accessor<A> => {
   const [value, setValue] = createSignal(null as A)
@@ -222,8 +222,8 @@ export const useAtomRef = <A>(ref: () => AtomRef.ReadonlyRef<A>): Accessor<A> =>
 }
 
 /**
- * @since 1.0.0
  * @category hooks
+ * @since 1.0.0
  */
 export const useAtomRefProp = <A, K extends keyof A>(
   ref: () => AtomRef.AtomRef<A>,
@@ -231,8 +231,8 @@ export const useAtomRefProp = <A, K extends keyof A>(
 ): Accessor<AtomRef.AtomRef<A[K]>> => createMemo(() => ref().prop(prop))
 
 /**
- * @since 1.0.0
  * @category hooks
+ * @since 1.0.0
  */
 export const useAtomRefPropValue = <A, K extends keyof A>(ref: () => AtomRef.AtomRef<A>, prop: K): Accessor<A[K]> =>
   useAtomRef(useAtomRefProp(ref, prop))

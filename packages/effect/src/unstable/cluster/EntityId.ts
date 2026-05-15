@@ -4,19 +4,19 @@
 import * as Schema from "../../Schema.ts"
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const EntityId = Schema.String.pipe(Schema.brand("~effect/cluster/EntityId"))
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type EntityId = typeof EntityId.Type
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = (id: string): EntityId => id as EntityId

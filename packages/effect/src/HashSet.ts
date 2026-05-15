@@ -36,8 +36,8 @@ const TypeId = internal.HashSetTypeId
  * console.log(HashSet.size(smaller)) // 2
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface HashSet<out Value> extends Iterable<Value>, Equal, Pipeable, Inspectable {
   readonly [TypeId]: typeof TypeId
@@ -63,8 +63,8 @@ export interface HashSet<out Value> extends Iterable<Value>, Equal, Pipeable, In
  * }
  * ```
  *
- * @since 2.0.0
  * @category namespace
+ * @since 2.0.0
  */
 export declare namespace HashSet {
   /**
@@ -80,8 +80,8 @@ export declare namespace HashSet {
    * const processNumber = (n: NumberType) => n * 2
    * ```
    *
-   * @since 2.0.0
    * @category type-level
+   * @since 2.0.0
    */
   export type Value<T> = T extends HashSet<infer V> ? V : never
 }
@@ -103,8 +103,8 @@ export declare namespace HashSet {
  * console.log(HashSet.size(withValues)) // 2
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const empty: <V = never>() => HashSet<V> = internal.empty
 
@@ -125,8 +125,8 @@ export const empty: <V = never>() => HashSet<V> = internal.empty
  * console.log(HashSet.size(mixed)) // 3
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const make: <Values extends ReadonlyArray<any>>(
   ...values: Values
@@ -149,8 +149,8 @@ export const make: <Values extends ReadonlyArray<any>>(
  * console.log(Array.from(fromString)) // ["h", "e", "l", "o"]
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const fromIterable: <V>(values: Iterable<V>) => HashSet<V> = internal.fromIterable
 
@@ -169,8 +169,8 @@ export const fromIterable: <V>(values: Iterable<V>) => HashSet<V> = internal.fro
  * console.log(HashSet.isHashSet(null)) // false
  * ```
  *
- * @since 2.0.0
  * @category guards
+ * @since 2.0.0
  */
 export const isHashSet: {
   <V>(u: Iterable<V>): u is HashSet<V>
@@ -196,8 +196,8 @@ export const isHashSet: {
  * console.log(HashSet.size(same)) // 2
  * ```
  *
- * @since 2.0.0
  * @category mutations
+ * @since 2.0.0
  */
 export const add: {
   <V>(value: V): (self: HashSet<V>) => HashSet<V>
@@ -238,8 +238,8 @@ export const add: {
  * console.log(HashSet.has(people, new Person("Alice"))) // true
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const has: {
   <V>(value: V): (self: HashSet<V>) => boolean
@@ -268,8 +268,8 @@ export const has: {
  * console.log(HashSet.size(same)) // 3
  * ```
  *
- * @since 2.0.0
  * @category mutations
+ * @since 2.0.0
  */
 export const remove: {
   <V>(value: V): (self: HashSet<V>) => HashSet<V>
@@ -296,8 +296,8 @@ export const remove: {
  * console.log(HashSet.size(withDuplicates)) // 3
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const size: <V>(self: HashSet<V>) => number = internal.size
 
@@ -315,8 +315,8 @@ export const size: <V>(self: HashSet<V>) => number = internal.size
  * console.log(HashSet.isEmpty(nonEmpty)) // false
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const isEmpty: <V>(self: HashSet<V>) => boolean = internal.isEmpty
 
@@ -335,8 +335,8 @@ export const isEmpty: <V>(self: HashSet<V>) => boolean = internal.isEmpty
  * console.log(HashSet.size(combined)) // 3
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const union: {
   <V1>(that: HashSet<V1>): <V0>(self: HashSet<V0>) => HashSet<V1 | V0>
@@ -361,8 +361,8 @@ export const union: {
  * console.log(HashSet.size(common)) // 2
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const intersection: {
   <V1>(that: HashSet<V1>): <V0>(self: HashSet<V0>) => HashSet<V1 & V0>
@@ -387,8 +387,8 @@ export const intersection: {
  * console.log(HashSet.size(diff)) // 2
  * ```
  *
- * @since 2.0.0
  * @category combinators
+ * @since 2.0.0
  */
 export const difference: {
   <V1>(that: HashSet<V1>): <V0>(self: HashSet<V0>) => HashSet<V0>
@@ -415,8 +415,8 @@ export const difference: {
  * console.log(HashSet.isSubset(small, small)) // true
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const isSubset: {
   <V1>(that: HashSet<V1>): <V0>(self: HashSet<V0>) => boolean
@@ -445,8 +445,8 @@ export const isSubset: {
  * console.log(Array.from(lengths).sort()) // [5, 6] (apple=5, banana=6, cherry=6)
  * ```
  *
- * @since 2.0.0
  * @category mapping
+ * @since 2.0.0
  */
 export const map: {
   <V, U>(f: (value: V) => U): (self: HashSet<V>) => HashSet<U>
@@ -470,8 +470,8 @@ export const map: {
  * console.log(HashSet.size(evens)) // 3
  * ```
  *
- * @since 2.0.0
  * @category filtering
+ * @since 2.0.0
  */
 export const filter: {
   <V, U extends V>(refinement: Refinement<NoInfer<V>, U>): (self: HashSet<V>) => HashSet<U>
@@ -505,8 +505,8 @@ export const filter: {
  * console.log(HashSet.some(empty, (n) => n > 0)) // false
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const some: {
   <V>(predicate: Predicate<V>): (self: HashSet<V>) => boolean
@@ -532,8 +532,8 @@ export const some: {
  * console.log(HashSet.every(empty, (n) => n > 0)) // true (vacuously true)
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const every: {
   <V>(predicate: Predicate<V>): (self: HashSet<V>) => boolean
@@ -560,8 +560,8 @@ export const every: {
  * console.log(concatenated) // Order may vary: "abc", "bac", etc.
  * ```
  *
- * @since 2.0.0
  * @category folding
+ * @since 2.0.0
  */
 export const reduce: {
   <V, U>(zero: U, f: (accumulator: U, value: V) => U): (self: HashSet<V>) => U

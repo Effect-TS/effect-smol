@@ -20,8 +20,8 @@ import * as NodeSocket from "./NodeSocket.ts"
 import { NodeWS } from "./NodeSocket.ts"
 
 /**
- * @since 1.0.0
  * @category tags
+ * @since 1.0.0
  */
 export class IncomingMessage extends Context.Service<
   IncomingMessage,
@@ -29,8 +29,8 @@ export class IncomingMessage extends Context.Service<
 >()("@effect/platform-node-shared/NodeSocketServer/IncomingMessage") {}
 
 /**
- * @since 1.0.0
  * @category constructors
+ * @since 1.0.0
  */
 export const make = Effect.fnUntraced(function*(
   options: Net.ServerOpts & Net.ListenOptions
@@ -144,8 +144,8 @@ export const make = Effect.fnUntraced(function*(
 })
 
 /**
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layer: (
   options: Net.ServerOpts & Net.ListenOptions
@@ -155,8 +155,8 @@ export const layer: (
 > = Function.flow(make, Layer.effect(SocketServer.SocketServer))
 
 /**
- * @since 1.0.0
  * @category constructors
+ * @since 1.0.0
  */
 export const makeWebSocket: (
   options: NodeWS.ServerOptions<typeof NodeWS.WebSocket, typeof Http.IncomingMessage>
@@ -255,8 +255,8 @@ export const makeWebSocket: (
 })
 
 /**
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layerWebSocket: (
   options: NodeSocket.NodeWS.ServerOptions<typeof NodeSocket.NodeWS.WebSocket, typeof Http.IncomingMessage>

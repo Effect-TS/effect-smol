@@ -24,8 +24,8 @@ import * as Sharding from "./Sharding.ts"
 import type * as ShardingConfig from "./ShardingConfig.ts"
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerClientProtocolHttp = (options: {
   readonly path: string
@@ -53,8 +53,8 @@ export const layerClientProtocolHttp = (options: {
   )
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerClientProtocolHttpDefault: Layer.Layer<
   Runners.RpcClientProtocol,
@@ -63,8 +63,8 @@ export const layerClientProtocolHttpDefault: Layer.Layer<
 > = layerClientProtocolHttp({ path: "/" })
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerClientProtocolWebsocket = (options: {
   readonly path: string
@@ -94,8 +94,8 @@ export const layerClientProtocolWebsocket = (options: {
   )
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerClientProtocolWebsocketDefault: Layer.Layer<
   Runners.RpcClientProtocol,
@@ -104,8 +104,8 @@ export const layerClientProtocolWebsocketDefault: Layer.Layer<
 > = layerClientProtocolWebsocket({ path: "/" })
 
 /**
- * @since 4.0.0
  * @category Http App
+ * @since 4.0.0
  */
 export const toHttpEffect: Effect.Effect<
   Effect.Effect<HttpServerResponse, never, Scope | HttpServerRequest>,
@@ -120,8 +120,8 @@ export const toHttpEffect: Effect.Effect<
 })
 
 /**
- * @since 4.0.0
  * @category Http App
+ * @since 4.0.0
  */
 export const toHttpEffectWebsocket: Effect.Effect<
   Effect.Effect<HttpServerResponse, never, Scope | HttpServerRequest>,
@@ -136,8 +136,8 @@ export const toHttpEffectWebsocket: Effect.Effect<
 })
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerClient: Layer.Layer<
   Sharding.Sharding | Runners.Runners,
@@ -151,8 +151,8 @@ export const layerClient: Layer.Layer<
  * A HTTP layer for the `Runners` services, that adds a route to the provided
  * `HttpRouter`.
  *
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerHttpOptions = (options: {
   readonly path: HttpRouter.PathInput
@@ -172,8 +172,8 @@ export const layerHttpOptions = (options: {
   )
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerWebsocketOptions = (options: {
   readonly path: HttpRouter.PathInput
@@ -193,8 +193,8 @@ export const layerWebsocketOptions = (options: {
   )
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerHttp: Layer.Layer<
   Sharding.Sharding | Runners.Runners,
@@ -211,8 +211,8 @@ export const layerHttp: Layer.Layer<
 )
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerHttpClientOnly: Layer.Layer<
   Sharding.Sharding | Runners.Runners,
@@ -227,8 +227,8 @@ export const layerHttpClientOnly: Layer.Layer<
 )
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerWebsocket: Layer.Layer<
   Sharding.Sharding | Runners.Runners,
@@ -245,8 +245,8 @@ export const layerWebsocket: Layer.Layer<
 )
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerWebsocketClientOnly: Layer.Layer<
   Sharding.Sharding | Runners.Runners,

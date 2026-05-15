@@ -100,8 +100,8 @@ import * as Toolkit from "./Toolkit.ts"
  * })
  * ```
  *
- * @since 4.0.0
  * @category services
+ * @since 4.0.0
  */
 export class LanguageModel extends Context.Service<LanguageModel, Service>()(
   "effect/unstable/ai/LanguageModel"
@@ -113,8 +113,8 @@ export class LanguageModel extends Context.Service<LanguageModel, Service>()(
  * Defines the contract that all language model implementations must fulfill,
  * providing text generation, structured output, and streaming capabilities.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Service {
   /**
@@ -225,8 +225,8 @@ export interface Service {
  * schemas they accept. A `CodecTransformer` rewrites a codec's encoded side to
  * satisfy those constraints while preserving the decoded type.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type CodecTransformer = <T, E, RD, RE>(schema: Schema.Codec<T, E, RD, RE>) => {
   readonly codec: Schema.Codec<T, unknown, RD, RE>
@@ -237,16 +237,16 @@ export type CodecTransformer = <T, E, RD, RE>(schema: Schema.Codec<T, E, RD, RE>
  * The default codec transformer that passes schemas through without
  * provider-specific rewrites.
  *
- * @since 4.0.0
  * @category services
+ * @since 4.0.0
  */
 export const defaultCodecTransformer: CodecTransformer = InternalCodecTransformer.defaultCodecTransformer
 
 /**
  * Configuration options for text generation.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface GenerateTextOptions<Tools extends Record<string, Tool.Any>> {
   /**
@@ -305,8 +305,8 @@ type GenerateTextOptionsWithoutToolkit = Omit<GenerateTextOptions<{}>, "toolkit"
 /**
  * Configuration options for structured object generation.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface GenerateObjectOptions<
   Tools extends Record<string, Tool.Any>,
@@ -339,8 +339,8 @@ export interface GenerateObjectOptions<
  *   `"required"`, the model **must** call one tool from the allowed subset of
  *   tools.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type ToolChoice<ToolName extends string> =
   | "auto"
@@ -379,8 +379,8 @@ export type ToolChoice<ToolName extends string> =
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class GenerateTextResponse<Tools extends Record<string, Tool.Any>> {
   readonly content: Array<Response.Part<Tools>>
@@ -494,8 +494,8 @@ export class GenerateTextResponse<Tools extends Record<string, Tool.Any>> {
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export class GenerateObjectResponse<
   Tools extends Record<string, Tool.Any>,
@@ -519,8 +519,8 @@ export class GenerateObjectResponse<
 /**
  * The supported toolkit option shapes for language model operations.
  *
- * @since 4.0.0
  * @category utility types
+ * @since 4.0.0
  */
 export type ToolkitOption<
   Tools extends Record<string, Tool.Any>,
@@ -543,8 +543,8 @@ export type ToolkitOption<
  * intended for call-site assignability, while `ToolkitOption` remains the
  * distributive helper used for extraction and inference.
  *
- * @since 4.0.0
  * @category utility types
+ * @since 4.0.0
  */
 export type ToolkitInput<
   Tools extends Record<string, Tool.Any>,
@@ -570,8 +570,8 @@ type ExtractToolsFromToolkitOption<ToolkitValue> = ToolkitValue extends Toolkit.
 /**
  * Utility type that extracts the toolset from LanguageModel options.
  *
- * @since 4.0.0
  * @category utility types
+ * @since 4.0.0
  */
 export type ExtractTools<Options> = Options extends {
   readonly toolkit: infer ToolkitValue
@@ -622,8 +622,8 @@ type ExtractToolkitResolutionServices<ToolkitValue> = ToolkitValue extends Effec
  * Automatically infers the possible error types based on toolkit configuration
  * and tool call resolution settings.
  *
- * @since 4.0.0
  * @category utility types
+ * @since 4.0.0
  */
 export type ExtractError<Options> = Options extends {
   readonly disableToolCallResolution: true
@@ -642,8 +642,8 @@ export type ExtractError<Options> = Options extends {
  *
  * Automatically infers the required services based on the toolkit configuration.
  *
- * @since 4.0.0
  * @category utility types
+ * @since 4.0.0
  */
 export type ExtractServices<Options> = Options extends {
   readonly disableToolCallResolution: true
@@ -665,8 +665,8 @@ export type ExtractServices<Options> = Options extends {
  * underlying provider implementation, regardless of the specific provider being
  * used.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ProviderOptions {
   /**
@@ -740,8 +740,8 @@ export interface ProviderOptions {
  * This constructor takes provider-specific implementations for text generation
  * and streaming text generation and returns a LanguageModel service.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make: (params: {
   /**
@@ -1613,8 +1613,8 @@ export const make: (params: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category text generation
+ * @since 4.0.0
  */
 export const generateText: {
   // No toolkit: force `{}` instead of falling back to `Record<string, Tool.Any>`.
@@ -1689,8 +1689,8 @@ export const generateText: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category object generation
+ * @since 4.0.0
  */
 export const generateObject = <
   ObjectEncoded extends Record<string, any>,
@@ -1732,8 +1732,8 @@ export const generateObject = <
  * }))
  * ```
  *
- * @since 4.0.0
  * @category text generation
+ * @since 4.0.0
  */
 export const streamText: {
   // No toolkit: force `{}` instead of falling back to `Record<string, Tool.Any>`.

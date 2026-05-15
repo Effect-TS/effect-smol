@@ -6,13 +6,13 @@
 import Mime from "mime"
 
 /**
- * @since 1.0.0
  * @category re-exports
+ * @since 1.0.0
  */
 export * from "mime"
 
 /**
- * @since 1.0.0
  * @category re-exports
+ * @since 1.0.0
  */
 export default Mime

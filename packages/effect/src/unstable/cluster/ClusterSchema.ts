@@ -8,8 +8,8 @@ import type { EntityId } from "./EntityId.ts"
 import type { Request } from "./Envelope.ts"
 
 /**
- * @since 4.0.0
  * @category Annotations
+ * @since 4.0.0
  */
 export const Persisted = Context.Reference<boolean>("effect/cluster/ClusterSchema/Persisted", {
   defaultValue: constFalse
@@ -19,8 +19,8 @@ export const Persisted = Context.Reference<boolean>("effect/cluster/ClusterSchem
  * Whether to wrap the request with a storage transaction, so sql queries are
  * committed atomically.
  *
- * @since 4.0.0
  * @category Annotations
+ * @since 4.0.0
  */
 export const WithTransaction = Context.Reference<boolean>(
   "effect/cluster/ClusterSchema/WithTransaction",
@@ -28,8 +28,8 @@ export const WithTransaction = Context.Reference<boolean>(
 )
 
 /**
- * @since 4.0.0
  * @category Annotations
+ * @since 4.0.0
  */
 export const Uninterruptible = Context.Reference<boolean | "client" | "server">(
   "effect/cluster/ClusterSchema/Uninterruptible",
@@ -37,8 +37,8 @@ export const Uninterruptible = Context.Reference<boolean | "client" | "server">(
 )
 
 /**
- * @since 4.0.0
  * @category Annotations
+ * @since 4.0.0
  */
 export const isUninterruptibleForServer = (context: Context.Context<never>): boolean => {
   const value = Context.get(context, Uninterruptible)
@@ -46,8 +46,8 @@ export const isUninterruptibleForServer = (context: Context.Context<never>): boo
 }
 
 /**
- * @since 4.0.0
  * @category Annotations
+ * @since 4.0.0
  */
 export const isUninterruptibleForClient = (context: Context.Context<never>): boolean => {
   const value = Context.get(context, Uninterruptible)
@@ -55,8 +55,8 @@ export const isUninterruptibleForClient = (context: Context.Context<never>): boo
 }
 
 /**
- * @since 4.0.0
  * @category Annotations
+ * @since 4.0.0
  */
 export const ShardGroup = Context.Reference<(entityId: EntityId) => string>(
   "effect/cluster/ClusterSchema/ShardGroup",
@@ -64,8 +64,8 @@ export const ShardGroup = Context.Reference<(entityId: EntityId) => string>(
 )
 
 /**
- * @since 4.0.0
  * @category Annotations
+ * @since 4.0.0
  */
 export const ClientTracingEnabled = Context.Reference<boolean>("effect/cluster/ClusterSchema/ClientTracingEnabled", {
   defaultValue: constTrue
@@ -75,8 +75,8 @@ export const ClientTracingEnabled = Context.Reference<boolean>("effect/cluster/C
  * Dynamically transform the request annotations based on the request.
  * This only applies to the requests handled by the Entity, not the client.
  *
- * @since 4.0.0
  * @category Annotations
+ * @since 4.0.0
  */
 export const Dynamic = Context.Reference<
   (annotations: Context.Context<never>, request: Request<Rpc.AnyWithProps>) => Context.Context<never>

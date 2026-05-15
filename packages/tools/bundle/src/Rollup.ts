@@ -16,16 +16,16 @@ import { rollup } from "rollup"
 import { createPlugins } from "./Plugins.ts"
 
 /**
- * @since 1.0.0
  * @category errors
+ * @since 1.0.0
  */
 export class RollupError extends Data.TaggedError("RollupError")<{
   readonly cause: unknown
 }> {}
 
 /**
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export class BundleStats extends Data.TaggedClass("BundleStats")<{
   readonly path: string
@@ -33,8 +33,8 @@ export class BundleStats extends Data.TaggedClass("BundleStats")<{
 }> {}
 
 /**
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export interface BundleOptions {
   readonly path: string
@@ -43,8 +43,8 @@ export interface BundleOptions {
 }
 
 /**
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export interface BundleAllOptions {
   readonly paths: ReadonlyArray<string>
@@ -53,8 +53,8 @@ export interface BundleAllOptions {
 }
 
 /**
- * @since 1.0.0
  * @category services
+ * @since 1.0.0
  */
 export class Rollup extends Context.Service<Rollup>()(
   "@effect/bundle/Rollup",

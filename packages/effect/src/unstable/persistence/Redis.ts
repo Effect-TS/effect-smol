@@ -10,8 +10,8 @@ import * as Hash from "../../Hash.ts"
 import * as Schema from "../../Schema.ts"
 
 /**
- * @since 4.0.0
  * @category Service
+ * @since 4.0.0
  */
 export class Redis extends Context.Service<Redis, {
   readonly send: <A = unknown>(command: string, ...args: ReadonlyArray<string>) => Effect.Effect<A, RedisError>
@@ -25,8 +25,8 @@ export class Redis extends Context.Service<Redis, {
 }>()("effect/persistence/Redis") {}
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make = Effect.fnUntraced(function*(
   options: {
@@ -65,8 +65,8 @@ type ErrorTypeId = "~effect/persistence/Redis/RedisError"
 const ErrorTypeId: ErrorTypeId = "~effect/persistence/Redis/RedisError"
 
 /**
- * @since 4.0.0
  * @category Errors
+ * @since 4.0.0
  */
 export class RedisError extends Schema.ErrorClass<RedisError>(ErrorTypeId)({
   _tag: Schema.tag("RedisError"),
@@ -82,8 +82,8 @@ type ScriptTypeId = "~effect/persistence/Redis/Script"
 const ScriptTypeId: ScriptTypeId = "~effect/persistence/Redis/Script"
 
 /**
- * @since 4.0.0
  * @category Scripting
+ * @since 4.0.0
  */
 export interface Script<
   Config extends {
@@ -125,8 +125,8 @@ const ScriptProto = {
 }
 
 /**
- * @since 4.0.0
  * @category Scripting
+ * @since 4.0.0
  */
 export const script = <Params extends ReadonlyArray<any>>(
   f: (...params: Params) => ReadonlyArray<unknown>,

@@ -15,8 +15,8 @@ import type * as Body from "./HttpBody.ts"
 import * as Response from "./HttpServerResponse.ts"
 
 /**
- * @since 4.0.0
  * @category tags
+ * @since 4.0.0
  */
 export class HttpPlatform extends Context.Service<HttpPlatform, {
   readonly fileResponse: (
@@ -38,8 +38,8 @@ export class HttpPlatform extends Context.Service<HttpPlatform, {
 }>()("effect/http/HttpPlatform") {}
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make: (impl: {
   readonly fileResponse: (
@@ -117,8 +117,8 @@ export const make: (impl: {
 })
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layer = Layer.effect(HttpPlatform)(
   Effect.flatMap(FileSystem.FileSystem, (fs) =>

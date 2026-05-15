@@ -13,8 +13,8 @@ import * as Stream_ from "../../Stream.ts"
 const StreamSchemaTypeId = "~effect/rpc/RpcSchema/StreamSchema"
 
 /**
- * @since 4.0.0
  * @category Stream
+ * @since 4.0.0
  */
 export function isStreamSchema(schema: Schema.Top): schema is Stream<Schema.Top, Schema.Top> {
   return Predicate.hasProperty(schema, StreamSchemaTypeId)
@@ -34,8 +34,8 @@ export function getStreamSchemas(schema: Schema.Top): Option.Option<{
 }
 
 /**
- * @since 4.0.0
  * @category Stream
+ * @since 4.0.0
  */
 export interface Stream<A extends Schema.Top, E extends Schema.Top> extends
   Schema.Bottom<
@@ -56,16 +56,16 @@ export interface Stream<A extends Schema.Top, E extends Schema.Top> extends
 const schema = Schema.declare(Stream_.isStream)
 
 /**
- * @since 4.0.0
  * @category Stream
+ * @since 4.0.0
  */
 export function Stream<A extends Schema.Top, E extends Schema.Top>(success: A, error: E): Stream<A, E> {
   return Schema.make(schema.ast, { [StreamSchemaTypeId]: StreamSchemaTypeId, success, error })
 }
 
 /**
- * @since 4.0.0
  * @category Cause annotations
+ * @since 4.0.0
  */
 export class ClientAbort extends Context.Service<ClientAbort, true>()("effect/rpc/RpcSchema/ClientAbort") {
   static annotation = this.context(true).pipe(

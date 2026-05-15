@@ -13,8 +13,8 @@ import type * as Http from "node:http"
 import * as NodeStream from "./NodeStream.ts"
 
 /**
- * @since 1.0.0
  * @category Constructors
+ * @since 1.0.0
  */
 export abstract class NodeHttpIncomingMessage<E> extends Inspectable.Class
   implements IncomingMessage.HttpIncomingMessage<E>

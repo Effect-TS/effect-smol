@@ -37,8 +37,8 @@ import * as Tool from "./Tool.ts"
  * If the schema is already compatible, the original codec is returned
  * unchanged.
  *
- * @since 1.0.0
  * @category Codec Transformation
+ * @since 1.0.0
  */
 export function toCodecOpenAI<T, E, RD, RE>(
   schema: Schema.Codec<T, E, RD, RE>

@@ -13,8 +13,8 @@ const ErrorTypeId = "~@effect/platform-browser/Permissions/PermissionsError"
  * Wrapper on the Permission API (`navigator.permissions`) with methods for
  * querying status of permissions.
  *
- * @since 1.0.0
  * @category Models
+ * @since 1.0.0
  */
 export interface Permissions {
   readonly [TypeId]: typeof TypeId
@@ -33,8 +33,8 @@ export interface Permissions {
 }
 
 /**
- * @since 1.0.0
  * @category errors
+ * @since 1.0.0
  */
 export class PermissionsInvalidStateError extends Data.TaggedError("InvalidStateError")<{
   readonly cause: unknown
@@ -45,8 +45,8 @@ export class PermissionsInvalidStateError extends Data.TaggedError("InvalidState
 }
 
 /**
- * @since 1.0.0
  * @category errors
+ * @since 1.0.0
  */
 export class PermissionsTypeError extends Data.TaggedError("TypeError")<{
   readonly cause: unknown
@@ -57,14 +57,14 @@ export class PermissionsTypeError extends Data.TaggedError("TypeError")<{
 }
 
 /**
- * @since 1.0.0
  * @category errors
+ * @since 1.0.0
  */
 export type PermissionsErrorReason = PermissionsInvalidStateError | PermissionsTypeError
 
 /**
- * @since 1.0.0
  * @category errors
+ * @since 1.0.0
  */
 export class PermissionsError extends Data.TaggedError("PermissionsError")<{
   readonly reason: PermissionsErrorReason
@@ -84,16 +84,16 @@ export class PermissionsError extends Data.TaggedError("PermissionsError")<{
 }
 
 /**
- * @since 1.0.0
  * @category Service
+ * @since 1.0.0
  */
 export const Permissions: Context.Service<Permissions, Permissions> = Context.Service<Permissions>(TypeId)
 
 /**
  * A layer that directly interfaces with the `navigator.permissions` api
  *
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layer: Layer.Layer<Permissions> = Layer.succeed(
   Permissions,

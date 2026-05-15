@@ -30,8 +30,8 @@ import { OpenRouterConfig } from "./OpenRouterConfig.ts"
  * Provides methods for interacting with OpenRouter's Chat Completions API,
  * including both synchronous and streaming message creation.
  *
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export interface Service {
   readonly client: Generated.OpenRouterClient
@@ -55,8 +55,8 @@ export interface Service {
 }
 
 /**
- * @since 1.0.0
  * @category Models
+ * @since 1.0.0
  */
 export type ChatStreamingResponseChunkData = typeof Generated.ChatStreamingResponseChunk.fields.data.Type
 
@@ -67,8 +67,8 @@ export type ChatStreamingResponseChunkData = typeof Generated.ChatStreamingRespo
 /**
  * Service identifier for the OpenRouter client.
  *
- * @since 1.0.0
  * @category service
+ * @since 1.0.0
  */
 export class OpenRouterClient extends Context.Service<
   OpenRouterClient,
@@ -82,8 +82,8 @@ export class OpenRouterClient extends Context.Service<
 /**
  * Configuration options for creating an OpenRouter client.
  *
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export type Options = {
   readonly apiKey?: Redacted.Redacted<string> | undefined
@@ -115,8 +115,8 @@ export type Options = {
 /**
  * Creates an OpenRouter client service with the given options.
  *
- * @since 1.0.0
  * @category constructors
+ * @since 1.0.0
  */
 export const make = Effect.fnUntraced(
   function*(options: Options): Effect.fn.Return<Service, never, HttpClient.HttpClient> {
@@ -212,8 +212,8 @@ export const make = Effect.fnUntraced(
 /**
  * Creates a layer for the OpenRouter client with the given options.
  *
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layer = (options: Options): Layer.Layer<OpenRouterClient, never, HttpClient.HttpClient> =>
   Layer.effect(OpenRouterClient, make(options))
@@ -222,8 +222,8 @@ export const layer = (options: Options): Layer.Layer<OpenRouterClient, never, Ht
  * Creates a layer for the OpenRouter client, loading the requisite
  * configuration via Effect's `Config` module.
  *
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layerConfig = (options?: {
   /**

@@ -7,14 +7,14 @@ import type { JSX } from "solid-js"
 import { createComponent, createContext, onCleanup } from "solid-js"
 
 /**
- * @since 1.0.0
  * @category context
+ * @since 1.0.0
  */
 export const RegistryContext = createContext<AtomRegistry.AtomRegistry>(AtomRegistry.make())
 
 /**
- * @since 1.0.0
  * @category context
+ * @since 1.0.0
  */
 export const RegistryProvider = (options: {
   readonly children?: JSX.Element | undefined

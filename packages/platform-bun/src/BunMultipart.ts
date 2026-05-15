@@ -10,8 +10,8 @@ import * as Multipart from "effect/unstable/http/Multipart"
 import * as BunStream from "./BunStream.ts"
 
 /**
- * @since 1.0.0
  * @category Constructors
+ * @since 1.0.0
  */
 export const stream = (source: Request): Stream.Stream<Multipart.Part, Multipart.MultipartError> =>
   BunStream.fromReadableStream({
@@ -29,8 +29,8 @@ const emptyReadbleStream = new ReadableStream({
 })
 
 /**
- * @since 1.0.0
  * @category Constructors
+ * @since 1.0.0
  */
 export const persisted = (
   source: Request

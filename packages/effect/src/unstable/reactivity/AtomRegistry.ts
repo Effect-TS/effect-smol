@@ -18,26 +18,26 @@ import * as Result from "./AsyncResult.ts"
 import type * as Atom from "./Atom.ts"
 
 /**
- * @since 4.0.0
  * @category type ids
+ * @since 4.0.0
  */
 export type TypeId = "~effect/reactivity/AtomRegistry"
 
 /**
- * @since 4.0.0
  * @category type ids
+ * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/reactivity/AtomRegistry"
 
 /**
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isAtomRegistry = (u: unknown): u is AtomRegistry => hasProperty(u, TypeId)
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface AtomRegistry {
   readonly [TypeId]: TypeId
@@ -61,8 +61,8 @@ export interface AtomRegistry {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Node<A> {
   readonly atom: Atom.Atom<A>
@@ -74,8 +74,8 @@ export interface Node<A> {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = (
   options?: {
@@ -93,14 +93,14 @@ export const make = (
   )
 
 /**
- * @since 4.0.0
  * @category Tags
+ * @since 4.0.0
  */
 export const AtomRegistry = Context.Service<AtomRegistry>(TypeId)
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerOptions = (options?: {
   readonly initialValues?: Iterable<readonly [Atom.Atom<any>, any]> | undefined
@@ -122,8 +122,8 @@ export const layerOptions = (options?: {
   )
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<AtomRegistry> = layerOptions()
 
@@ -132,8 +132,8 @@ export const layer: Layer.Layer<AtomRegistry> = layerOptions()
 // -----------------------------------------------------------------------------
 
 /**
- * @since 4.0.0
  * @category Conversions
+ * @since 4.0.0
  */
 export const toStream: {
   <A>(atom: Atom.Atom<A>): (self: AtomRegistry) => Stream.Stream<A>
@@ -154,8 +154,8 @@ export const toStream: {
 )
 
 /**
- * @since 4.0.0
  * @category Conversions
+ * @since 4.0.0
  */
 export const toStreamResult: {
   <A, E>(atom: Atom.Atom<Result.AsyncResult<A, E>>): (self: AtomRegistry) => Stream.Stream<A, E>
@@ -173,8 +173,8 @@ export const toStreamResult: {
 )
 
 /**
- * @since 4.0.0
  * @category Conversions
+ * @since 4.0.0
  */
 export const getResult: {
   <A, E>(atom: Atom.Atom<Result.AsyncResult<A, E>>, options?: {
@@ -206,8 +206,8 @@ export const getResult: {
 )
 
 /**
- * @since 4.0.0
  * @category Conversions
+ * @since 4.0.0
  */
 export const mount: {
   <A>(atom: Atom.Atom<A>): (self: AtomRegistry) => Effect.Effect<void, never, Scope.Scope>

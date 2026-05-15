@@ -23,8 +23,8 @@ import * as Tuple from "../../Tuple.ts"
 const TypeId = "~effect/http/UrlParams"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface UrlParams extends Pipeable, Inspectable, Iterable<readonly [string, string]> {
   readonly [TypeId]: typeof TypeId
@@ -32,14 +32,14 @@ export interface UrlParams extends Pipeable, Inspectable, Iterable<readonly [str
 }
 
 /**
- * @since 4.0.0
  * @category Guards
+ * @since 4.0.0
  */
 export const isUrlParams = (u: unknown): u is UrlParams => hasProperty(u, TypeId)
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Input =
   | CoercibleRecordInput
@@ -51,14 +51,14 @@ type CoercibleRecordInput = CoercibleRecord & {
 }
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Coercible = string | number | bigint | boolean | null | undefined
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 type CoercibleRecordField<A> = A extends Coercible ? A
   : A extends ReadonlyArray<infer Item> ? ReadonlyArray<Item extends Coercible ? Item : never>
@@ -66,8 +66,8 @@ type CoercibleRecordField<A> = A extends Coercible ? A
   : never
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type CoercibleRecord<A extends object = any> = {
   readonly [K in keyof A]: CoercibleRecordField<A[K]>
@@ -94,8 +94,8 @@ const Proto = {
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = (params: ReadonlyArray<readonly [string, string]>): UrlParams => {
   const self = Object.create(Proto)
@@ -104,8 +104,8 @@ export const make = (params: ReadonlyArray<readonly [string, string]>): UrlParam
 }
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const fromInput = (input: Input): UrlParams => {
   const parsed = fromInputNested(input)
@@ -146,8 +146,8 @@ const fromInputNested = (input: Input): Array<[string | Array<string>, any]> => 
 }
 
 /**
- * @since 4.0.0
  * @category Equivalence
+ * @since 4.0.0
  */
 export const Equivalence: Equ.Equivalence<UrlParams> = Equ.make<UrlParams>((a, b) =>
   arrayEquivalence(a.params, b.params)
@@ -158,14 +158,14 @@ const arrayEquivalence = Arr.makeEquivalence(
 )
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export interface UrlParamsSchema extends Schema.declare<UrlParams, ReadonlyArray<readonly [string, string]>> {}
 
 /**
- * @since 4.0.0
  * @category schemas
+ * @since 4.0.0
  */
 export const UrlParamsSchema: UrlParamsSchema = Schema.declare(
   isUrlParams,
@@ -193,14 +193,14 @@ export const UrlParamsSchema: UrlParamsSchema = Schema.declare(
 )
 
 /**
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const empty: UrlParams = make([])
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const getAll: {
   (key: string): (self: UrlParams) => ReadonlyArray<string>
@@ -217,8 +217,8 @@ export const getAll: {
 )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const getFirst: {
   (key: string): (self: UrlParams) => Option.Option<string>
@@ -232,8 +232,8 @@ export const getFirst: {
 )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const getLast: {
   (key: string): (self: UrlParams) => Option.Option<string>
@@ -244,8 +244,8 @@ export const getLast: {
   ))
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const set: {
   (key: string, value: Coercible): (self: UrlParams) => UrlParams
@@ -259,8 +259,8 @@ export const set: {
   ))
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const transform: {
   (f: (params: UrlParams["params"]) => UrlParams["params"]): (self: UrlParams) => UrlParams
@@ -271,8 +271,8 @@ export const transform: {
 )
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const setAll: {
   (input: Input): (self: UrlParams) => UrlParams
@@ -292,8 +292,8 @@ export const setAll: {
 })
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const append: {
   (key: string, value: Coercible): (self: UrlParams) => UrlParams
@@ -305,8 +305,8 @@ export const append: {
   )))
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const appendAll: {
   (input: Input): (self: UrlParams) => UrlParams
@@ -314,8 +314,8 @@ export const appendAll: {
 } = dual(2, (self: UrlParams, input: Input): UrlParams => transform(self, Arr.appendAll(fromInput(input).params)))
 
 /**
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const remove: {
   (key: string): (self: UrlParams) => UrlParams
@@ -323,16 +323,16 @@ export const remove: {
 } = dual(2, (self: UrlParams, key: string): UrlParams => transform(self, Arr.filter(([k]) => k !== key)))
 
 /**
- * @since 4.0.0
  * @category Errors
+ * @since 4.0.0
  */
 export class UrlParamsError extends Data.TaggedError("UrlParamsError")<{
   cause: unknown
 }> {}
 
 /**
- * @since 4.0.0
  * @category conversions
+ * @since 4.0.0
  */
 export const makeUrl = (
   url: string,
@@ -357,8 +357,8 @@ export const makeUrl = (
 }
 
 /**
- * @since 4.0.0
  * @category conversions
+ * @since 4.0.0
  */
 export const toString = (self: UrlParams): string => new URLSearchParams(self.params as any).toString()
 
@@ -399,8 +399,8 @@ const baseUrl = (): string | undefined => {
  * )
  * ```
  *
- * @since 4.0.0
  * @category conversions
+ * @since 4.0.0
  */
 export const toRecord = (self: UrlParams): Record<string, string | Arr.NonEmptyArray<string>> => {
   const out: Record<string, string | Arr.NonEmptyArray<string>> = {}
@@ -418,15 +418,15 @@ export const toRecord = (self: UrlParams): Record<string, string | Arr.NonEmptyA
 }
 
 /**
- * @since 4.0.0
  * @category conversions
+ * @since 4.0.0
  */
 export const toReadonlyRecord: (self: UrlParams) => ReadonlyRecord<string, string | Arr.NonEmptyReadonlyArray<string>> =
   toRecord as any
 
 /**
- * @since 4.0.0
  * @category Schemas
+ * @since 4.0.0
  */
 export interface schemaJsonField extends Schema.decodeTo<Schema.UnknownFromJsonString, UrlParamsSchema> {}
 
@@ -453,8 +453,8 @@ export interface schemaJsonField extends Schema.decodeTo<Schema.UnknownFromJsonS
  * )
  * ```
  *
- * @since 4.0.0
  * @category Schemas
+ * @since 4.0.0
  */
 export const schemaJsonField = (field: string): schemaJsonField =>
   UrlParamsSchema.pipe(
@@ -474,8 +474,8 @@ export const schemaJsonField = (field: string): schemaJsonField =>
 /**
  * Extract a record of key-value pairs from the `UrlParams`.
  *
- * @since 4.0.0
  * @category Schemas
+ * @since 4.0.0
  */
 export interface schemaRecord extends
   Schema.decodeTo<
@@ -510,8 +510,8 @@ export interface schemaRecord extends
  * )
  * ```
  *
- * @since 4.0.0
  * @category schema
+ * @since 4.0.0
  */
 export const schemaRecord: schemaRecord = UrlParamsSchema.pipe(
   Schema.decodeTo(

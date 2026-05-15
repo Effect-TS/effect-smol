@@ -25,20 +25,20 @@ import * as Undici from "./Undici.ts"
 
 export {
   /**
-   * @since 1.0.0
    * @category Re-exports
+   * @since 1.0.0
    */
   layerClientProtocol,
   /**
-   * @since 1.0.0
    * @category Re-exports
+   * @since 1.0.0
    */
   layerSocketServer
 }
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layer = <
   const ClientOnly extends boolean = false,
@@ -111,8 +111,8 @@ export const layer = <
 }
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerDispatcherK8s: Layer.Layer<NodeHttpClient.Dispatcher> = Layer.effect(NodeHttpClient.Dispatcher)(
   Effect.gen(function*() {
@@ -140,8 +140,8 @@ export const layerDispatcherK8s: Layer.Layer<NodeHttpClient.Dispatcher> = Layer.
 )
 
 /**
- * @since 1.0.0
  * @category Layers
+ * @since 1.0.0
  */
 export const layerK8sHttpClient: Layer.Layer<K8sHttpClient.K8sHttpClient> = K8sHttpClient.layer.pipe(
   Layer.provide(Layer.fresh(NodeHttpClient.layerUndiciNoDispatcher)),

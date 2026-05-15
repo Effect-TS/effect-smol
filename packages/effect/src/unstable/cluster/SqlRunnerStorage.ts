@@ -18,8 +18,8 @@ import * as ShardingConfig from "./ShardingConfig.ts"
 const withTracerDisabled = Effect.withTracerEnabled(false)
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make = Effect.fnUntraced(function*(options: {
   readonly prefix?: string | undefined
@@ -643,8 +643,8 @@ export const make = Effect.fnUntraced(function*(options: {
 }, withTracerDisabled)
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<
   RunnerStorage.RunnerStorage,
@@ -653,8 +653,8 @@ export const layer: Layer.Layer<
 > = Layer.effect(RunnerStorage.RunnerStorage)(make({}))
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerWith = (options: {
   readonly prefix?: string | undefined

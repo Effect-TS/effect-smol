@@ -9,22 +9,22 @@ import type { HttpServerResponse } from "./HttpServerResponse.ts"
 import * as Response from "./HttpServerResponse.ts"
 
 /**
- * @since 4.0.0
  * @category Type IDs
+ * @since 4.0.0
  */
 export const symbol = "~effect/http/HttpServerRespondable"
 
 /**
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Respondable {
   [symbol](): Effect.Effect<HttpServerResponse, unknown>
 }
 
 /**
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isRespondable = (u: unknown): u is Respondable => hasProperty(u, symbol)
 
@@ -32,8 +32,8 @@ const badRequest = Response.empty({ status: 400 })
 const notFound = Response.empty({ status: 404 })
 
 /**
- * @since 4.0.0
  * @category accessors
+ * @since 4.0.0
  */
 export const toResponse = (self: Respondable): Effect.Effect<HttpServerResponse> => {
   if (Response.isHttpServerResponse(self)) {
@@ -43,8 +43,8 @@ export const toResponse = (self: Respondable): Effect.Effect<HttpServerResponse>
 }
 
 /**
- * @since 4.0.0
  * @category accessors
+ * @since 4.0.0
  */
 export const toResponseOrElse = (u: unknown, orElse: HttpServerResponse): Effect.Effect<HttpServerResponse> => {
   if (Response.isHttpServerResponse(u)) {
@@ -61,8 +61,8 @@ export const toResponseOrElse = (u: unknown, orElse: HttpServerResponse): Effect
 }
 
 /**
- * @since 4.0.0
  * @category accessors
+ * @since 4.0.0
  */
 export const toResponseOrElseDefect = (u: unknown, orElse: HttpServerResponse): Effect.Effect<HttpServerResponse> => {
   if (Response.isHttpServerResponse(u)) {

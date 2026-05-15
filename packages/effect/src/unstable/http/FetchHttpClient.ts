@@ -11,16 +11,16 @@ import * as HttpClientError from "./HttpClientError.ts"
 import * as HttpClientResponse from "./HttpClientResponse.ts"
 
 /**
- * @since 4.0.0
  * @category tags
+ * @since 4.0.0
  */
 export const Fetch = Context.Reference<typeof globalThis.fetch>("effect/http/FetchHttpClient/Fetch", {
   defaultValue: () => globalThis.fetch
 })
 
 /**
- * @since 4.0.0
  * @category tags
+ * @since 4.0.0
  */
 export class RequestInit extends Context.Service<RequestInit, globalThis.RequestInit>()(
   "effect/http/FetchHttpClient/RequestInit"
@@ -68,7 +68,7 @@ const fetch: HttpClient.HttpClient = HttpClient.make((request, url, signal, fibe
 })
 
 /**
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<HttpClient.HttpClient> = HttpClient.layerMergedContext(Effect.succeed(fetch))

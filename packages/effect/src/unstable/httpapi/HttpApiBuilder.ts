@@ -46,8 +46,8 @@ import * as OpenApi from "./OpenApi.ts"
 /**
  * Register an `HttpApi` with a `HttpRouter`.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
   api: HttpApi.HttpApi<Id, Groups>,
@@ -101,8 +101,8 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
  *
  * You can implement endpoints using the `handlers.handle` api.
  *
- * @since 4.0.0
  * @category handlers
+ * @since 4.0.0
  */
 export const group = <
   ApiId extends string,
@@ -142,22 +142,22 @@ export const group = <
   })) as any
 
 /**
- * @since 4.0.0
  * @category handlers
+ * @since 4.0.0
  */
 export const HandlersTypeId: unique symbol = Symbol.for("@effect/platform/HttpApiBuilder/Handlers")
 
 /**
- * @since 4.0.0
  * @category handlers
+ * @since 4.0.0
  */
 export type HandlersTypeId = typeof HandlersTypeId
 
 /**
  * Represents a handled `HttpApi`.
  *
- * @since 4.0.0
  * @category handlers
+ * @since 4.0.0
  */
 export interface Handlers<
   R,
@@ -210,21 +210,21 @@ export interface Handlers<
 }
 
 /**
- * @since 4.0.0
  * @category handlers
+ * @since 4.0.0
  */
 export declare namespace Handlers {
   /**
-   * @since 4.0.0
    * @category handlers
+   * @since 4.0.0
    */
   export interface Any {
     readonly [HandlersTypeId]: any
   }
 
   /**
-   * @since 4.0.0
    * @category handlers
+   * @since 4.0.0
    */
   export type Item<R> = {
     readonly endpoint: HttpApiEndpoint.AnyWithProps
@@ -234,8 +234,8 @@ export declare namespace Handlers {
   }
 
   /**
-   * @since 4.0.0
    * @category handlers
+   * @since 4.0.0
    */
   export type FromGroup<Group extends HttpApiGroup.Any> = Handlers<
     never,
@@ -243,8 +243,8 @@ export declare namespace Handlers {
   >
 
   /**
-   * @since 4.0.0
    * @category handlers
+   * @since 4.0.0
    */
   export type ValidateReturn<A> = A extends (
     | Handlers<
@@ -264,8 +264,8 @@ export declare namespace Handlers {
     `Must return the implemented handlers`
 
   /**
-   * @since 4.0.0
    * @category handlers
+   * @since 4.0.0
    */
   export type Error<A> = A extends Effect.Effect<
     Handlers<
@@ -278,8 +278,8 @@ export declare namespace Handlers {
     never
 
   /**
-   * @since 4.0.0
    * @category handlers
+   * @since 4.0.0
    */
   export type Context<A> = A extends Handlers<
     infer _R,
@@ -297,8 +297,8 @@ export declare namespace Handlers {
 }
 
 /**
- * @since 4.0.0
  * @category handlers
+ * @since 4.0.0
  */
 export const endpoint = <
   ApiId extends string,
@@ -351,8 +351,8 @@ export const endpoint = <
   })
 
 /**
- * @since 4.0.0
  * @category security
+ * @since 4.0.0
  */
 export const securityDecode = <Security extends HttpApiSecurity.HttpApiSecurity>(
   self: Security
@@ -415,8 +415,8 @@ export const securityDecode = <Security extends HttpApiSecurity.HttpApiSecurity>
 }
 
 /**
- * @since 4.0.0
  * @category security
+ * @since 4.0.0
  */
 export const securitySetCookie = (
   self: HttpApiSecurity.ApiKey,
