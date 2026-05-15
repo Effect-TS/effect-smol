@@ -70,7 +70,6 @@
  * - {@link gen} for generator-based syntax
  *
  * @since 2.0.0
- * @module
  */
 import * as Combiner from "./Combiner.ts"
 import * as Equal from "./Equal.ts"

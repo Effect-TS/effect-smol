@@ -2634,7 +2634,6 @@ export * as Number from "./Number.ts"
  * - {@link some} / {@link success} / {@link failure} — built-in prisms
  *
  * @since 4.0.0
- * @module
  */
 export * as Optic from "./Optic.ts"
 
@@ -2710,7 +2709,6 @@ export * as Optic from "./Optic.ts"
  * - {@link gen} for generator-based syntax
  *
  * @since 2.0.0
- * @module
  */
 export * as Option from "./Option.ts"
 

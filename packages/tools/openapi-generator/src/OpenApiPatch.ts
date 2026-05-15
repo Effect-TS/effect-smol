@@ -6,8 +6,6 @@
  * - JSON files (.json)
  * - YAML files (.yaml, .yml)
  * - Inline JSON strings
- *
- * @module OpenApiPatch
  */
 
 import * as Effect from "effect/Effect"

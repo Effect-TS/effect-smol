@@ -92,7 +92,6 @@
  * - {@link some} / {@link success} / {@link failure} — built-in prisms
  *
  * @since 4.0.0
- * @module
  */
 
 import { format } from "./Formatter.ts"

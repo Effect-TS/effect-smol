@@ -20,6 +20,20 @@
     }],
     "effect/no-js-extension-imports": "error",
     "effect/no-opaque-instance-fields": "error",
+    // Staged rollout: add package/module globs to include.
+    "effect/standard-jsdoc": ["error", {
+      "include": [
+        "packages/effect/src/Option.ts"
+      ],
+      "exclude": [
+        "packages/**/src/index.ts",
+        "packages/**/src/*Generated.ts"
+      ],
+      "examples": {
+        "values": "optional",
+        "types": "forbidden"
+      }
+    }],
     // Tune native rules
     // Import rules
     "typescript/consistent-type-imports": ["error", {
