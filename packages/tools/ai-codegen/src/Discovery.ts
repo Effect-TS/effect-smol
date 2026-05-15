@@ -17,7 +17,8 @@ import * as Glob from "./Glob.ts"
 /**
  * A discovered AI provider with resolved paths.
  *
- * @example
+ * **Example** (Inspecting a discovered provider)
+ *
  * ```ts
  * import type * as Discovery from "@effect/ai-codegen/Discovery"
  *
@@ -68,7 +69,8 @@ export const ProviderDiscovery: Context.Service<ProviderDiscovery, ProviderDisco
 /**
  * Error during provider discovery.
  *
- * @example
+ * **Example** (Creating a discovery error)
+ *
  * ```ts
  * import * as Discovery from "@effect/ai-codegen/Discovery"
  *
@@ -89,7 +91,8 @@ export class DiscoveryError extends Data.TaggedError("DiscoveryError")<{
 /**
  * Error when a specific provider is not found.
  *
- * @example
+ * **Example** (Creating a provider not found error)
+ *
  * ```ts
  * import * as Discovery from "@effect/ai-codegen/Discovery"
  *

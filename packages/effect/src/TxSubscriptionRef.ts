@@ -24,7 +24,8 @@ const TypeId = "~effect/transactions/TxSubscriptionRef"
  * committed changes. Subscribers receive the current value followed by every subsequent
  * update via a transactional dequeue.
  *
- * @example
+ * **Example** (Subscribing to transactional changes)
+ *
  * ```ts
  * import { Effect, TxSubscriptionRef, TxQueue } from "effect"
  *
@@ -78,7 +79,8 @@ const TxSubscriptionRefProto: Omit<TxSubscriptionRef<any>, typeof TypeId | "ref"
 /**
  * Creates a new TxSubscriptionRef with the specified initial value.
  *
- * @example
+ * **Example** (Creating a transactional subscription reference)
+ *
  * ```ts
  * import { Effect, TxSubscriptionRef } from "effect"
  *
@@ -110,7 +112,8 @@ export const make = <A>(value: A): Effect.Effect<TxSubscriptionRef<A>> =>
 /**
  * Reads the current value of the TxSubscriptionRef.
  *
- * @example
+ * **Example** (Reading the current value)
+ *
  * ```ts
  * import { Effect, TxSubscriptionRef } from "effect"
  *
@@ -134,7 +137,8 @@ export const get = <A>(self: TxSubscriptionRef<A>): Effect.Effect<A> => TxRef.ge
  * Modifies the value of the TxSubscriptionRef using a function that returns both a
  * result and the new value. The new value is published to all subscribers atomically.
  *
- * @example
+ * **Example** (Modifying and returning a value)
+ *
  * ```ts
  * import { Effect, TxSubscriptionRef } from "effect"
  *
@@ -175,7 +179,8 @@ export const modify: {
 /**
  * Sets the value of the TxSubscriptionRef and publishes the new value to all subscribers.
  *
- * @example
+ * **Example** (Setting a new value)
+ *
  * ```ts
  * import { Effect, TxSubscriptionRef } from "effect"
  *
@@ -201,7 +206,8 @@ export const set: {
  * Updates the value of the TxSubscriptionRef using a function and publishes the new
  * value to all subscribers.
  *
- * @example
+ * **Example** (Updating a value)
+ *
  * ```ts
  * import { Effect, TxSubscriptionRef } from "effect"
  *
@@ -228,7 +234,8 @@ export const update: {
  * Gets the current value and sets a new value atomically. Publishes the new value
  * to all subscribers.
  *
- * @example
+ * **Example** (Getting and setting atomically)
+ *
  * ```ts
  * import { Effect, TxSubscriptionRef } from "effect"
  *
@@ -255,7 +262,8 @@ export const getAndSet: {
  * Gets the current value and updates it using a function atomically. Publishes
  * the new value to all subscribers.
  *
- * @example
+ * **Example** (Getting and updating atomically)
+ *
  * ```ts
  * import { Effect, TxSubscriptionRef } from "effect"
  *
@@ -283,7 +291,8 @@ export const getAndUpdate: {
  * Updates the value using a function and returns the new value. Publishes the
  * new value to all subscribers.
  *
- * @example
+ * **Example** (Updating and reading atomically)
+ *
  * ```ts
  * import { Effect, TxSubscriptionRef } from "effect"
  *
@@ -317,7 +326,8 @@ export const updateAndGet: {
  * Subscribes to all changes of the TxSubscriptionRef. Returns a scoped TxDequeue
  * that first yields the current value, then every subsequent update.
  *
- * @example
+ * **Example** (Subscribing to changes)
+ *
  * ```ts
  * import { Effect, TxSubscriptionRef, TxQueue } from "effect"
  *
@@ -360,7 +370,8 @@ export const changes = <A>(
  * Returns a Stream of all changes to the TxSubscriptionRef, starting with the
  * current value followed by every subsequent update.
  *
- * @example
+ * **Example** (Streaming changes)
+ *
  * ```ts
  * import { Effect, Stream, TxSubscriptionRef } from "effect"
  *
@@ -394,7 +405,8 @@ export const changesStream = <A>(self: TxSubscriptionRef<A>): Stream.Stream<A, n
 /**
  * Checks if the given value is a TxSubscriptionRef.
  *
- * @example
+ * **Example** (Checking transactional subscription references)
+ *
  * ```ts
  * import { TxSubscriptionRef } from "effect"
  *

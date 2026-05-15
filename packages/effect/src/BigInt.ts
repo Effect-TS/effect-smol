@@ -17,7 +17,8 @@ import * as Reducer from "./Reducer.ts"
 /**
  * Reference to the global BigInt constructor.
  *
- * @example
+ * **Example** (Constructing bigints)
+ *
  * ```ts
  * import * as BigInt from "effect/BigInt"
  *
@@ -40,7 +41,8 @@ const bigint2 = BigInt(2)
 /**
  * Tests if a value is a `bigint`.
  *
- * @example
+ * **Example** (Checking for bigints)
+ *
  * ```ts
  * import { isBigInt } from "effect/BigInt"
  * import * as assert from "node:assert"
@@ -57,7 +59,8 @@ export const isBigInt: (u: unknown) => u is bigint = predicate.isBigInt
 /**
  * Provides an addition operation on `bigint`s.
  *
- * @example
+ * **Example** (Adding bigints)
+ *
  * ```ts
  * import { sum } from "effect/BigInt"
  * import * as assert from "node:assert"
@@ -76,7 +79,8 @@ export const sum: {
 /**
  * Provides a multiplication operation on `bigint`s.
  *
- * @example
+ * **Example** (Multiplying bigints)
+ *
  * ```ts
  * import { multiply } from "effect/BigInt"
  * import * as assert from "node:assert"
@@ -95,7 +99,8 @@ export const multiply: {
 /**
  * Provides a subtraction operation on `bigint`s.
  *
- * @example
+ * **Example** (Subtracting bigints)
+ *
  * ```ts
  * import { subtract } from "effect/BigInt"
  * import * as assert from "node:assert"
@@ -119,7 +124,8 @@ export const subtract: {
  *
  * Returns `Option.none()` if the divisor is `0n`.
  *
- * @example
+ * **Example** (Dividing bigints safely)
+ *
  * ```ts
  * import { divide } from "effect/BigInt"
  * import * as assert from "node:assert"
@@ -149,7 +155,8 @@ export const divide: {
  *
  * Throws a `RangeError` if the divisor is `0n`.
  *
- * @example
+ * **Example** (Dividing bigints unsafely)
+ *
  * ```ts
  * import { divideUnsafe } from "effect/BigInt"
  * import * as assert from "node:assert"
@@ -169,7 +176,8 @@ export const divideUnsafe: {
 /**
  * Returns the result of adding `1n` to a given number.
  *
- * @example
+ * **Example** (Incrementing a bigint)
+ *
  * ```ts
  * import { increment } from "effect/BigInt"
  * import * as assert from "node:assert"
@@ -185,7 +193,8 @@ export const increment = (n: bigint): bigint => n + bigint1
 /**
  * Decrements a number by `1n`.
  *
- * @example
+ * **Example** (Decrementing a bigint)
+ *
  * ```ts
  * import { decrement } from "effect/BigInt"
  * import * as assert from "node:assert"
@@ -201,7 +210,8 @@ export const decrement = (n: bigint): bigint => n - bigint1
 /**
  * Provides an `Order` instance for `bigint` that allows comparing and sorting BigInt values.
  *
- * @example
+ * **Example** (Comparing bigints with Order)
+ *
  * ```ts
  * import * as BigInt from "effect/BigInt"
  *
@@ -222,7 +232,8 @@ export const Order: order.Order<bigint> = order.BigInt
 /**
  * An `Equivalence` instance for bigints using strict equality (`===`).
  *
- * @example
+ * **Example** (Comparing bigints for equivalence)
+ *
  * ```ts
  * import { BigInt } from "effect"
  *
@@ -238,7 +249,8 @@ export const Equivalence: Equ.Equivalence<bigint> = Equ.BigInt
 /**
  * Returns `true` if the first argument is less than the second, otherwise `false`.
  *
- * @example
+ * **Example** (Checking less-than comparisons)
+ *
  * ```ts
  * import { isLessThan } from "effect/BigInt"
  * import * as assert from "node:assert"
@@ -259,7 +271,8 @@ export const isLessThan: {
 /**
  * Returns a function that checks if a given `bigint` is less than or equal to the provided one.
  *
- * @example
+ * **Example** (Checking less-than-or-equal comparisons)
+ *
  * ```ts
  * import { isLessThanOrEqualTo } from "effect/BigInt"
  * import * as assert from "node:assert"
@@ -280,7 +293,8 @@ export const isLessThanOrEqualTo: {
 /**
  * Returns `true` if the first argument is greater than the second, otherwise `false`.
  *
- * @example
+ * **Example** (Checking greater-than comparisons)
+ *
  * ```ts
  * import { isGreaterThan } from "effect/BigInt"
  * import * as assert from "node:assert"
@@ -301,7 +315,8 @@ export const isGreaterThan: {
 /**
  * Returns a function that checks if a given `bigint` is greater than or equal to the provided one.
  *
- * @example
+ * **Example** (Checking greater-than-or-equal comparisons)
+ *
  * ```ts
  * import { isGreaterThanOrEqualTo } from "effect/BigInt"
  * import * as assert from "node:assert"
@@ -322,7 +337,8 @@ export const isGreaterThanOrEqualTo: {
 /**
  * Checks if a `bigint` is between a `minimum` and `maximum` value (inclusive).
  *
- * @example
+ * **Example** (Checking whether a bigint is within bounds)
+ *
  * ```ts
  * import * as BigInt from "effect/BigInt"
  * import * as assert from "node:assert"
@@ -355,7 +371,8 @@ export const between: {
  * - If the `bigint` is greater than the `maximum` value, the function returns the `maximum` value.
  * - Otherwise, it returns the original `bigint`.
  *
- * @example
+ * **Example** (Clamping a bigint to bounds)
+ *
  * ```ts
  * import * as BigInt from "effect/BigInt"
  * import * as assert from "node:assert"
@@ -384,7 +401,8 @@ export const clamp: {
 /**
  * Returns the minimum between two `bigint`s.
  *
- * @example
+ * **Example** (Finding the minimum bigint)
+ *
  * ```ts
  * import { min } from "effect/BigInt"
  * import * as assert from "node:assert"
@@ -403,7 +421,8 @@ export const min: {
 /**
  * Returns the maximum between two `bigint`s.
  *
- * @example
+ * **Example** (Finding the maximum bigint)
+ *
  * ```ts
  * import { max } from "effect/BigInt"
  * import * as assert from "node:assert"
@@ -422,7 +441,8 @@ export const max: {
 /**
  * Determines the sign of a given `bigint`.
  *
- * @example
+ * **Example** (Determining bigint signs)
+ *
  * ```ts
  * import { sign } from "effect/BigInt"
  * import * as assert from "node:assert"
@@ -440,7 +460,8 @@ export const sign = (n: bigint): Ordering => order.BigInt(n, bigint0)
 /**
  * Determines the absolute value of a given `bigint`.
  *
- * @example
+ * **Example** (Calculating absolute values)
+ *
  * ```ts
  * import { abs } from "effect/BigInt"
  * import * as assert from "node:assert"
@@ -458,7 +479,8 @@ export const abs = (n: bigint): bigint => (n < bigint0 ? -n : n)
 /**
  * Determines the greatest common divisor of two `bigint`s.
  *
- * @example
+ * **Example** (Calculating greatest common divisors)
+ *
  * ```ts
  * import { gcd } from "effect/BigInt"
  * import * as assert from "node:assert"
@@ -486,7 +508,8 @@ export const gcd: {
 /**
  * Determines the least common multiple of two `bigint`s.
  *
- * @example
+ * **Example** (Calculating least common multiples)
+ *
  * ```ts
  * import { lcm } from "effect/BigInt"
  * import * as assert from "node:assert"
@@ -507,7 +530,8 @@ export const lcm: {
 /**
  * Determines the square root of a given `bigint` unsafely. Throws if the given `bigint` is negative.
  *
- * @example
+ * **Example** (Calculating square roots unsafely)
+ *
  * ```ts
  * import { sqrtUnsafe } from "effect/BigInt"
  * import * as assert from "node:assert"
@@ -538,7 +562,7 @@ export const sqrtUnsafe = (n: bigint): bigint => {
  * Determines the square root of a given `bigint` safely. Returns `Option.none()` if
  * the given `bigint` is negative.
  *
- * **Example**
+ * **Example** (Calculating square roots safely)
  *
  * ```ts
  * import { BigInt } from "effect"
@@ -558,7 +582,8 @@ export const sqrt = (n: bigint): Option.Option<bigint> =>
 /**
  * Takes an `Iterable` of `bigint`s and returns their sum as a single `bigint
  *
- * @example
+ * **Example** (Summing iterable bigints)
+ *
  * ```ts
  * import { sumAll } from "effect/BigInt"
  * import * as assert from "node:assert"
@@ -580,7 +605,8 @@ export const sumAll = (collection: Iterable<bigint>): bigint => {
 /**
  * Takes an `Iterable` of `bigint`s and returns their multiplication as a single `number`.
  *
- * @example
+ * **Example** (Multiplying iterable bigints)
+ *
  * ```ts
  * import { multiplyAll } from "effect/BigInt"
  * import * as assert from "node:assert"
@@ -608,7 +634,8 @@ export const multiplyAll = (collection: Iterable<bigint>): bigint => {
  * If the `bigint` is outside the safe integer range for JavaScript (`Number.MAX_SAFE_INTEGER`
  * and `Number.MIN_SAFE_INTEGER`), it returns `Option.none()`.
  *
- * @example
+ * **Example** (Converting bigints to numbers)
+ *
  * ```ts
  * import { BigInt as BI } from "effect"
  *
@@ -633,7 +660,8 @@ export const toNumber = (b: bigint): Option.Option<number> => {
  * If the string is empty or contains characters that cannot be converted into a
  * `bigint`, it returns `Option.none()`.
  *
- * @example
+ * **Example** (Parsing strings as bigints)
+ *
  * ```ts
  * import { BigInt } from "effect"
  *
@@ -662,7 +690,8 @@ export const fromString = (s: string): Option.Option<bigint> => {
  * (`Number.MAX_SAFE_INTEGER` and `Number.MIN_SAFE_INTEGER`) or if the number is
  * not a valid `bigint`, it returns `Option.none()`.
  *
- * @example
+ * **Example** (Converting numbers to bigints)
+ *
  * ```ts
  * import { BigInt } from "effect"
  *
@@ -690,7 +719,8 @@ export function fromNumber(n: number): Option.Option<bigint> {
 /**
  * Returns the remainder of dividing the first `bigint` by the second `bigint`.
  *
- * @example
+ * **Example** (Calculating remainders)
+ *
  * ```ts
  * import { BigInt } from "effect"
  *

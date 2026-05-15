@@ -36,7 +36,8 @@ import * as Reducer_ from "./Reducer.ts"
  * - `0` indicates the values are equal
  * - `1` indicates the first value is greater than the second
  *
- * @example
+ * **Example** (Defining comparison results)
+ *
  * ```ts
  * import type { Ordering } from "effect"
  *
@@ -66,7 +67,8 @@ export type Ordering = -1 | 0 | 1
  * Inverts the ordering of the input Ordering.
  * This is useful for creating descending sort orders from ascending ones.
  *
- * @example
+ * **Example** (Reversing comparison order)
+ *
  * ```ts
  * import { Ordering } from "effect"
  *
@@ -101,7 +103,8 @@ export const reverse = (o: Ordering): Ordering => (o === -1 ? 1 : o === 1 ? -1 :
 /**
  * Depending on the `Ordering` parameter given to it, returns a value produced by one of the 3 functions provided as parameters.
  *
- * @example
+ * **Example** (Pattern matching on orderings)
+ *
  * ```ts
  * import { Ordering } from "effect"
  * import { constant } from "effect/Function"

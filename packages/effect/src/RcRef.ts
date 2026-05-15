@@ -17,9 +17,8 @@ const TypeId = "~effect/RcRef"
  * The resource is lazily acquired on the first call to `get` and automatically
  * released when the last reference is released.
  *
- * @category models
- * @since 3.5.0
- * @example
+ * **Example** (Sharing a lazily acquired resource)
+ *
  * ```ts
  * import { Effect, RcRef } from "effect"
  *
@@ -43,15 +42,17 @@ const TypeId = "~effect/RcRef"
  *   return [connection1, connection2]
  * })
  * ```
+ *
+ * @category models
+ * @since 3.5.0
  */
 export interface RcRef<out A, out E = never> extends Pipeable {
   readonly [TypeId]: RcRef.Variance<A, E>
 }
 
 /**
- * @category models
- * @since 3.5.0
- * @example
+ * **Example** (Referencing namespace types)
+ *
  * ```ts
  * import type { RcRef } from "effect"
  *
@@ -59,12 +60,14 @@ export interface RcRef<out A, out E = never> extends Pipeable {
  * type MyRcRef = RcRef.RcRef<string, Error>
  * type MyVariance = RcRef.RcRef.Variance<string, Error>
  * ```
+ *
+ * @category models
+ * @since 3.5.0
  */
 export declare namespace RcRef {
   /**
-   * @category models
-   * @since 3.5.0
-   * @example
+   * **Example** (Referencing variance types)
+   *
    * ```ts
    * import type { RcRef } from "effect"
    *
@@ -74,6 +77,9 @@ export declare namespace RcRef {
    * // Shows that both A and E are covariant
    * declare const variance: StringRcRefVariance
    * ```
+   *
+   * @category models
+   * @since 3.5.0
    */
   export interface Variance<A, E> {
     readonly _A: Types.Covariant<A>
@@ -90,9 +96,8 @@ export declare namespace RcRef {
  * The resource is lazily acquired on the first call to `get` and released when
  * the last reference is released.
  *
- * @category constructors
- * @since 3.5.0
- * @example
+ * **Example** (Creating a reference-counted resource)
+ *
  * ```ts
  * import { Effect, RcRef } from "effect"
  *
@@ -112,6 +117,9 @@ export declare namespace RcRef {
  *   )
  * })
  * ```
+ *
+ * @category constructors
+ * @since 3.5.0
  */
 export const make: <A, E, R>(
   options: {
@@ -131,9 +139,8 @@ export const make: <A, E, R>(
  * the reference count if it has. The resource will be automatically released
  * when the returned scope is closed.
  *
- * @category combinators
- * @since 3.5.0
- * @example
+ * **Example** (Sharing one acquired value)
+ *
  * ```ts
  * import { Effect, RcRef } from "effect"
  *
@@ -156,6 +163,9 @@ export const make: <A, E, R>(
  *   return value1
  * })
  * ```
+ *
+ * @category combinators
+ * @since 3.5.0
  */
 export const get: <A, E>(self: RcRef<A, E>) => Effect.Effect<A, E, Scope> = internal.get
 

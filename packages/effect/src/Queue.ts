@@ -73,7 +73,8 @@ export const asDequeue: <A, E>(self: Queue<A, E>) => Dequeue<A, E> = identity
  * This interface represents the write-only part of a Queue, allowing you to offer
  * elements to the queue but not take elements from it.
  *
- * @example
+ * **Example** (Offering through enqueue handles)
+ *
  * ```ts
  * import { Effect, Queue } from "effect"
  *
@@ -126,7 +127,8 @@ export declare namespace Enqueue {
  * This interface represents the read-only part of a Queue, allowing you to take
  * elements from the queue but not offer elements to it.
  *
- * @example
+ * **Example** (Taking through dequeue handles)
+ *
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
  *
@@ -186,7 +188,8 @@ export declare namespace Dequeue {
  *
  * - `Mailbox`
  *
- * @example
+ * **Example** (Offering and taking queue values)
+ *
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
  *
@@ -306,7 +309,8 @@ const QueueProto = {
  *
  * @category Constructors
  * @since 3.8.0
- * @example
+ * **Example** (Creating queues)
+ *
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
  * import * as assert from "node:assert"
@@ -361,7 +365,8 @@ export const make = <A, E = never>(
  * When the queue reaches capacity, producers will be suspended until space becomes available.
  * This ensures all messages are processed but may slow down producers.
  *
- * @example
+ * **Example** (Creating bounded queues)
+ *
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
  *
@@ -389,7 +394,8 @@ export const bounded = <A, E = never>(capacity: number): Effect<Queue<A, E>> => 
  * This strategy prevents producers from being blocked but may result in message loss.
  * Useful when you want to maintain a rolling window of the most recent messages.
  *
- * @example
+ * **Example** (Creating sliding queues)
+ *
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
  *
@@ -421,7 +427,8 @@ export const sliding = <A, E = never>(capacity: number): Effect<Queue<A, E>> => 
  * This strategy prevents producers from being blocked and preserves existing messages,
  * but new messages may be lost when the queue is full.
  *
- * @example
+ * **Example** (Creating dropping queues)
+ *
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
  *
@@ -455,7 +462,8 @@ export const dropping = <A, E = never>(capacity: number): Effect<Queue<A, E>> =>
  * can always add messages successfully. This is useful when you want to prioritize
  * producer throughput over memory usage control.
  *
- * @example
+ * **Example** (Creating unbounded queues)
+ *
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
  *
@@ -489,7 +497,8 @@ export const unbounded = <A, E = never>(): Effect<Queue<A, E>> => make()
  * depending on the backpressure strategy. For dropping/sliding queues, it may
  * return false or succeed immediately by dropping/sliding existing messages.
  *
- * @example
+ * **Example** (Offering a value)
+ *
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
  *
@@ -542,7 +551,8 @@ export const offer = <A, E>(self: Enqueue<A, E>, message: Types.NoInfer<A>): Eff
  * This is an unsafe operation that directly modifies the queue without Effect wrapping.
  * Use this only when you're certain about the synchronous nature of the operation.
  *
- * @example
+ * **Example** (Offering a value synchronously)
+ *
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
  *
@@ -592,7 +602,8 @@ export const offerUnsafe = <A, E>(self: Enqueue<A, E>, message: Types.NoInfer<A>
  * enough capacity. The operation returns an array of messages that couldn't
  * be added (empty array means all messages were successfully added).
  *
- * @example
+ * **Example** (Offering multiple values)
+ *
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
  *
@@ -628,7 +639,8 @@ export const offerAll = <A, E>(self: Enqueue<A, E>, messages: Iterable<A>): Effe
  *
  * This is an unsafe operation that directly modifies the queue without Effect wrapping.
  *
- * @example
+ * **Example** (Offering multiple values synchronously)
+ *
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
  *
@@ -687,7 +699,8 @@ export const offerAllUnsafe = <A, E>(self: Enqueue<A, E>, messages: Iterable<A>)
  * Fail the queue with an error. If the queue is already done, `false` is
  * returned.
  *
- * @example
+ * **Example** (Failing queues with an error)
+ *
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
  *
@@ -716,7 +729,8 @@ export const fail = <A, E>(self: Enqueue<A, E>, error: E) => failCause(self, cor
  * Fail the queue with a cause. If the queue is already done, `false` is
  * returned.
  *
- * @example
+ * **Example** (Failing queues with a cause)
+ *
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
  *
@@ -753,7 +767,8 @@ export const failCause: {
  *
  * This is an unsafe operation that directly modifies the queue without Effect wrapping.
  *
- * @example
+ * **Example** (Failing queues with a cause synchronously)
+ *
  * ```ts
  * import { Effect, Cause } from "effect"
  * import { Queue } from "effect"
@@ -798,7 +813,8 @@ export const failCauseUnsafe = <A, E>(self: Enqueue<A, E>, cause: Cause<E>): boo
  * Signal that the queue is complete. If the queue is already done, `false` is
  * returned.
  *
- * @example
+ * **Example** (Ending queues)
+ *
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
  *
@@ -834,7 +850,8 @@ export const end = <A, E>(self: Enqueue<A, E | Done>): Effect<boolean> => failCa
  *
  * This is an unsafe operation that directly modifies the queue without Effect wrapping.
  *
- * @example
+ * **Example** (Ending queues synchronously)
+ *
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
  *
@@ -866,7 +883,8 @@ export const endUnsafe = <A, E>(self: Enqueue<A, E | Done>) => failCauseUnsafe(s
  * This operation stops accepting new offers but allows existing messages to be consumed.
  * Once all messages are drained, the queue transitions to the Done state with an interrupt cause.
  *
- * @example
+ * **Example** (Interrupting queues gracefully)
+ *
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
  *
@@ -908,7 +926,8 @@ export const interrupt = <A, E>(self: Enqueue<A, E>): Effect<boolean> =>
  * Shutdown the queue, canceling any pending operations.
  * If the queue is already done, `false` is returned.
  *
- * @example
+ * **Example** (Shutting down queues)
+ *
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
  *
@@ -960,7 +979,8 @@ export const shutdown = <A, E>(self: Enqueue<A, E>): Effect<boolean> =>
  * Take all messages from the queue, returning an empty array if the queue
  * is empty or done.
  *
- * @example
+ * **Example** (Clearing queued values)
+ *
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
  *
@@ -1006,7 +1026,8 @@ export const clear = <A, E>(self: Dequeue<A, E>): Effect<Array<A>, Pull.ExcludeD
  * If the queue is done, the `done` flag will be `true`. If the queue
  * fails, the Effect will fail with the error.
  *
- * @example
+ * **Example** (Taking all available values)
+ *
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
  *
@@ -1031,7 +1052,8 @@ export const takeAll = <A, E>(self: Dequeue<A, E>): Effect<Arr.NonEmptyArray<A>,
 /**
  * Take all messages from the queue, until the queue has errored or is done.
  *
- * @example
+ * **Example** (Collecting values until completion)
+ *
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
  *
@@ -1079,7 +1101,8 @@ export const collect = <A, E>(self: Dequeue<A, E | Done>): Effect<Array<A>, Pull
  * If the queue is done, the `done` flag will be `true`. If the queue
  * fails, the Effect will fail with the error.
  *
- * @example
+ * **Example** (Taking a fixed number of values)
+ *
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
  *
@@ -1121,7 +1144,8 @@ export const takeN = <A, E>(
  * If the queue is done, the `done` flag will be `true`. If the queue
  * fails, the Effect will fail with the error.
  *
- * @example
+ * **Example** (Taking a bounded batch of values)
+ *
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
  *
@@ -1163,7 +1187,8 @@ export const takeBetween = <A, E>(
  * If the queue is done, it will fail with `Done`. If the
  * queue fails, the Effect will fail with the error.
  *
- * @example
+ * **Example** (Taking one value)
+ *
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
  *
@@ -1204,7 +1229,8 @@ export const take = <A, E>(self: Dequeue<A, E>): Effect<A, E> =>
  *
  * Returns `Option.some` with the item if available, or `Option.none` if the queue is empty or done.
  *
- * @example
+ * **Example** (Polling without blocking)
+ *
  * ```ts
  * import { Effect, Option, Queue } from "effect"
  *
@@ -1244,7 +1270,8 @@ export const poll = <A, E>(self: Dequeue<A, E>): Effect<Option.Option<A>> =>
  *
  * Blocks until an item is available. If the queue is done or fails, the error is propagated.
  *
- * @example
+ * **Example** (Peeking at the next value)
+ *
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
  *
@@ -1282,7 +1309,8 @@ export const peek = <A, E>(self: Dequeue<A, E>): Effect<A, E> =>
  *
  * This is an unsafe operation that directly accesses the queue without Effect wrapping.
  *
- * @example
+ * **Example** (Taking one value synchronously)
+ *
  * ```ts
  * import { Effect, Queue } from "effect"
  *
@@ -1360,7 +1388,8 @@ export {
  *
  * If the queue is complete, it will return `None`.
  *
- * @example
+ * **Example** (Checking queue size)
+ *
  * ```ts
  * import { Cause, Effect, Option, Queue } from "effect"
  *
@@ -1395,7 +1424,8 @@ export const size = <A, E>(self: Dequeue<A, E>): Effect<number> => internalEffec
 /**
  * Check if the queue is full.
  *
- * @example
+ * **Example** (Checking if queues are full)
+ *
  * ```ts
  * import { Cause, Effect, Option, Queue } from "effect"
  *
@@ -1422,7 +1452,8 @@ export const isFull = <A, E>(self: Dequeue<A, E>): Effect<boolean> => internalEf
  * If the queue is complete, it will return `None`.
  * This is an unsafe operation that directly accesses the queue without Effect wrapping.
  *
- * @example
+ * **Example** (Checking queue size synchronously)
+ *
  * ```ts
  * import { Cause, Effect, Option, Queue } from "effect"
  *
@@ -1459,7 +1490,8 @@ export const sizeUnsafe = <A, E>(self: Dequeue<A, E>): number => self.state._tag
 /**
  * Check if the queue is full synchronously.
  *
- * @example
+ * **Example** (Checking fullness synchronously)
+ *
  * ```ts
  * import { Cause, Effect, Option, Queue } from "effect"
  *
@@ -1484,7 +1516,8 @@ export const isFullUnsafe = <A, E>(self: Dequeue<A, E>): boolean => sizeUnsafe(s
  * Run an `Effect` into a `Queue`, where success ends the queue and failure
  * fails the queue.
  *
- * @example
+ * **Example** (Running effects into queues)
+ *
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
  *

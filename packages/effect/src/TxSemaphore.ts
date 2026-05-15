@@ -19,7 +19,8 @@ const TypeId = "~effect/transactions/TxSemaphore"
  * TxSemaphore provides atomic permit acquisition and release operations within Effect transactions,
  * ensuring thread-safe concurrency control for limited resources.
  *
- * @example
+ * **Example** (Managing permits transactionally)
+ *
  * ```ts
  * import { Effect, TxSemaphore } from "effect"
  *
@@ -74,7 +75,8 @@ const makeTxSemaphore = (permitsRef: TxRef.TxRef<number>, capacity: number): TxS
 /**
  * Creates a new TxSemaphore with the specified number of permits.
  *
- * @example
+ * **Example** (Creating a semaphore)
+ *
  * ```ts
  * import { Console, Effect, TxSemaphore } from "effect"
  *
@@ -114,7 +116,8 @@ export const make = (permits: number): Effect.Effect<TxSemaphore> =>
 /**
  * Gets the current number of available permits in the semaphore.
  *
- * @example
+ * **Example** (Checking available permits)
+ *
  * ```ts
  * import { Console, Effect, TxSemaphore } from "effect"
  *
@@ -146,7 +149,8 @@ export const available = (self: TxSemaphore): Effect.Effect<number> => TxRef.get
 /**
  * Gets the maximum capacity (total permits) of the semaphore.
  *
- * @example
+ * **Example** (Checking semaphore capacity)
+ *
  * ```ts
  * import { Console, Effect, TxSemaphore } from "effect"
  *
@@ -175,7 +179,8 @@ export const capacity = (self: TxSemaphore): Effect.Effect<number> => Effect.suc
  * Acquires a single permit from the semaphore. If no permits are available,
  * the effect will block until one becomes available.
  *
- * @example
+ * **Example** (Acquiring a permit)
+ *
  * ```ts
  * import { Console, Effect, TxSemaphore } from "effect"
  *
@@ -214,7 +219,8 @@ export const acquire = (self: TxSemaphore): Effect.Effect<void> =>
  * Acquires the specified number of permits from the semaphore. If not enough
  * permits are available, the effect will block until they become available.
  *
- * @example
+ * **Example** (Acquiring multiple permits)
+ *
  * ```ts
  * import { Console, Effect, TxSemaphore } from "effect"
  *
@@ -254,7 +260,8 @@ export const acquireN = (self: TxSemaphore, n: number): Effect.Effect<void> => {
  * Tries to acquire a single permit from the semaphore without blocking.
  * Returns true if successful, false if no permits are available.
  *
- * @example
+ * **Example** (Trying to acquire a permit)
+ *
  * ```ts
  * import { Console, Effect, TxSemaphore } from "effect"
  *
@@ -289,7 +296,8 @@ export const tryAcquire = (self: TxSemaphore): Effect.Effect<boolean> =>
  * Tries to acquire the specified number of permits from the semaphore without blocking.
  * Returns true if successful, false if not enough permits are available.
  *
- * @example
+ * **Example** (Trying to acquire multiple permits)
+ *
  * ```ts
  * import { Console, Effect, TxSemaphore } from "effect"
  *
@@ -328,7 +336,8 @@ export const tryAcquireN = (self: TxSemaphore, n: number): Effect.Effect<boolean
 /**
  * Releases a single permit back to the semaphore, making it available for acquisition.
  *
- * @example
+ * **Example** (Releasing a permit)
+ *
  * ```ts
  * import { Console, Effect, TxSemaphore } from "effect"
  *
@@ -359,7 +368,8 @@ export const release = (self: TxSemaphore): Effect.Effect<void> =>
 /**
  * Releases the specified number of permits back to the semaphore.
  *
- * @example
+ * **Example** (Releasing multiple permits)
+ *
  * ```ts
  * import { Console, Effect, TxSemaphore } from "effect"
  *
@@ -403,7 +413,8 @@ export const releaseN = (self: TxSemaphore, n: number): Effect.Effect<void> => {
  * **Note**: The permit acquisition and release operations use atomic semantics
  * to ensure proper resource management with Effect's scoped operations.
  *
- * @example
+ * **Example** (Running an effect with a permit)
+ *
  * ```ts
  * import { Console, Effect, TxSemaphore } from "effect"
  *
@@ -462,7 +473,8 @@ export const withPermit: {
  * **Note**: The permit acquisition and release operations use atomic semantics
  * to ensure proper resource management with Effect's scoped operations.
  *
- * @example
+ * **Example** (Running an effect with multiple permits)
+ *
  * ```ts
  * import { Console, Effect, TxSemaphore } from "effect"
  *
@@ -522,7 +534,8 @@ export const withPermits: {
  * **Note**: The permit acquisition and release operations use atomic semantics
  * to ensure proper resource management with Effect's scoped operations.
  *
- * @example
+ * **Example** (Acquiring a scoped permit)
+ *
  * ```ts
  * import { Console, Effect, TxSemaphore } from "effect"
  *
@@ -562,7 +575,8 @@ export const withPermitScoped = (self: TxSemaphore): Effect.Effect<void, never, 
 /**
  * Determines if the provided value is a TxSemaphore.
  *
- * @example
+ * **Example** (Checking semaphore values)
+ *
  * ```ts
  * import { Effect, TxSemaphore } from "effect"
  *

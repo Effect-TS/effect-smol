@@ -77,7 +77,8 @@ export const TypeId: TypeId = "~effect/Stream"
  * evaluation. They support monadic composition and error handling similar to
  * `Effect`, adapted for multiple values.
  *
- * @example
+ * **Example** (Creating and consuming streams)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -108,7 +109,8 @@ export interface Stream<out A, out E = never, out R = never> extends Variance<A,
 /**
  * Type-level unification hook for Stream within the Effect type system.
  *
- * @example
+ * **Example** (Unifying stream types)
+ *
  * ```ts
  * import { Effect, Stream } from "effect"
  *
@@ -130,7 +132,8 @@ export interface StreamUnify<A extends { [Unify.typeSymbol]?: any }> extends Eff
 /**
  * Type-level marker that excludes Stream from unification.
  *
- * @example
+ * **Example** (Ignoring stream unification)
+ *
  * ```ts
  * import type * as Stream from "effect/Stream"
  *
@@ -149,7 +152,8 @@ export interface StreamUnifyIgnore {
 /**
  * Type lambda for Stream used in higher-kinded type operations.
  *
- * @example
+ * **Example** (Using the stream type lambda)
+ *
  * ```ts
  * import type { Kind } from "effect/HKT"
  * import type { StreamTypeLambda } from "effect/Stream"
@@ -191,7 +195,8 @@ export interface VarianceStruct<out A, out E, out R> {
 /**
  * Extract the success type from a Stream type.
  *
- * @example
+ * **Example** (Extracting the success type from a Stream type)
+ *
  * ```ts
  * import type { Stream } from "effect"
  *
@@ -208,7 +213,8 @@ export type Success<T extends Stream<any, any, any>> = [T] extends [Stream<infer
 /**
  * Extract the error type from a Stream type.
  *
- * @example
+ * **Example** (Extracting the error type from a Stream type)
+ *
  * ```ts
  * import type { Stream } from "effect"
  *
@@ -229,7 +235,8 @@ export type Error<T extends Stream<any, any, any>> = [T] extends [Stream<infer _
  *
  * This type alias was named `Context` in Effect 3.x.
  *
- * @example
+ * **Example** (Extracting the services type from a Stream type)
+ *
  * ```ts
  * import type { Stream } from "effect"
  *
@@ -250,7 +257,8 @@ export type Services<T extends Stream<any, any, any>> = [T] extends [Stream<infe
 /**
  * Checks whether a value is a Stream.
  *
- * @example
+ * **Example** (Checking whether a value is a Stream)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -275,7 +283,8 @@ export const isStream = (u: unknown): u is Stream<unknown, unknown, unknown> => 
 /**
  * The default chunk size used by Stream constructors and combinators.
  *
- * @example
+ * **Example** (Reading the default chunk size)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -309,7 +318,8 @@ export type HaltStrategy = Channel.HaltStrategy
 /**
  * Creates a stream from a array-emitting `Channel`.
  *
- * @example
+ * **Example** (Creating a stream from an array-emitting channel)
+ *
  * ```ts
  * import { Channel, Console, Effect, Stream } from "effect"
  *
@@ -334,7 +344,8 @@ export const fromChannel: <Arr extends Arr.NonEmptyReadonlyArray<any>, E, R>(
  * Either emits the success value of this effect or terminates the stream
  * with the failure value of this effect.
  *
- * @example
+ * **Example** (Creating a stream from an effect)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -357,7 +368,8 @@ export const fromEffect = <A, E, R>(effect: Effect.Effect<A, E, R>): Stream<A, E
 /**
  * Accesses a service from the context and emits it as a single element.
  *
- * @example
+ * **Example** (Accessing a service as a stream)
+ *
  * ```ts
  * import { Effect, Context, Stream } from "effect"
  *
@@ -391,7 +403,8 @@ export const service = <I, S>(service: Context.Key<I, S>): Stream<S, never, I> =
  * Optionally accesses a service from the context and emits the result as a
  * single element.
  *
- * @example
+ * **Example** (Accessing an optional service as a stream)
+ *
  * ```ts
  * import { Effect, Option, Context, Stream } from "effect"
  *
@@ -430,7 +443,8 @@ export const serviceOption = <I, S>(service: Context.Key<I, S>): Stream<Option.O
 /**
  * Creates a stream that runs the effect and emits no elements.
  *
- * @example
+ * **Example** (Draining an effect into a stream)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -459,7 +473,8 @@ export const fromEffectDrain = <A, E, R>(effect: Effect.Effect<A, E, R>): Stream
  *
  * - `Stream.repeatEffect`
  *
- * @example
+ * **Example** (Repeating an effect forever)
+ *
  * ```ts
  * import { Console, Effect, Random, Stream } from "effect"
  *
@@ -491,7 +506,8 @@ export const fromEffectRepeat = <A, E, R>(effect: Effect.Effect<A, E, R>): Strea
  *
  * - `Stream.repeatEffectWithSchedule`
  *
- * @example
+ * **Example** (Repeating an effect with a schedule)
+ *
  * ```ts
  * import { Console, Effect, Schedule, Stream } from "effect"
  *
@@ -538,7 +554,8 @@ export const fromEffectSchedule = <A, E, R, X, AS extends A, ES, RS>(
 /**
  * Creates a stream that emits void values spaced by the specified duration.
  *
- * @example
+ * **Example** (Emitting ticks on an interval)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -577,7 +594,8 @@ export const tick = (interval: Duration.Input): Stream<void> =>
  * A pull effect yields chunks on demand and completes when the upstream stream ends.
  * See `Stream.toPull` for a matching producer.
  *
- * @example
+ * **Example** (Creating a stream from a pull effect)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -605,7 +623,8 @@ export const fromPull = <A, E, R, EX, RX>(
 /**
  * Derive a stream by transforming its pull effect.
  *
- * @example
+ * **Example** (Transforming a pull effect)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -645,7 +664,8 @@ export const transformPull = <A, E, R, B, E2, R2, EX, RX>(
  * A forked scope is also provided to the transformation function, which is
  * closed once the resulting stream has finished processing.
  *
- * @example
+ * **Example** (Transforming a stream by effectfully transforming its pull effect)
+ *
  * ```ts
  * import { Console, Effect, Scope, Stream } from "effect"
  *
@@ -694,7 +714,8 @@ export const transformPullBracket = <A, E, R, B, E2, R2, EX, RX>(
 /**
  * Creates a channel from a stream.
  *
- * @example
+ * **Example** (Converting a stream to a channel)
+ *
  * ```ts
  * import { Channel, Console, Effect, Stream } from "effect"
  *
@@ -735,7 +756,8 @@ export const toChannel = <A, E, R>(
  * - `Stream.asyncPush`
  * - `Stream.asyncScoped`
  *
- * @example
+ * **Example** (Creating a stream from a callback that can emit values into a queue)
+ *
  * ```ts
  * import { Console, Effect, Queue, Stream } from "effect"
  *
@@ -773,7 +795,8 @@ export const callback = <A, E = never, R = never>(
 /**
  * Creates an empty stream.
  *
- * @example
+ * **Example** (Creating an empty stream)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -794,7 +817,8 @@ export const empty: Stream<never> = fromChannel(Channel.empty)
 /**
  * Creates a single-valued pure stream.
  *
- * @example
+ * **Example** (Creating a single-valued pure stream)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -815,7 +839,8 @@ export const succeed = <A>(value: A): Stream<A> => fromChannel(Channel.succeed(A
 /**
  * Creates a stream from a sequence of values.
  *
- * @example
+ * **Example** (Creating a stream from a sequence of values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -839,7 +864,8 @@ export const make = <const As extends ReadonlyArray<any>>(...values: As): Stream
  *
  * The function is evaluated each time the stream is run.
  *
- * @example
+ * **Example** (Evaluating a value synchronously)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -862,7 +888,8 @@ export const sync = <A>(evaluate: LazyArg<A>): Stream<A> => fromChannel(Channel.
  *
  * The stream factory is evaluated each time the stream is run.
  *
- * @example
+ * **Example** (Creating a lazily constructed stream)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -884,7 +911,8 @@ export const suspend = <A, E, R>(stream: LazyArg<Stream<A, E, R>>): Stream<A, E,
 /**
  * Terminates with the specified error.
  *
- * @example
+ * **Example** (Failing a stream)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -906,7 +934,8 @@ export const fail = <E>(error: E): Stream<never, E> => fromChannel(Channel.fail(
 /**
  * Terminates with the specified lazily evaluated error.
  *
- * @example
+ * **Example** (Failing a stream lazily)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -930,7 +959,8 @@ export const failSync = <E>(evaluate: LazyArg<E>): Stream<never, E> => fromChann
 /**
  * Creates a stream that fails with the specified `Cause`.
  *
- * @example
+ * **Example** (Failing with a cause)
+ *
  * ```ts
  * import { Cause, Console, Effect, Stream } from "effect"
  *
@@ -955,7 +985,8 @@ export const failCause = <E>(cause: Cause.Cause<E>): Stream<never, E> => fromCha
 /**
  * The stream that dies with the specified defect.
  *
- * @example
+ * **Example** (Dying with a defect)
+ *
  * ```ts
  * import { Cause, Console, Effect, Exit, Stream } from "effect"
  *
@@ -987,7 +1018,8 @@ export const die = (defect: unknown): Stream<never> => fromChannel(Channel.die(d
 /**
  * The stream that always fails with the specified lazily evaluated `Cause`.
  *
- * @example
+ * **Example** (Failing with a lazy cause)
+ *
  * ```ts
  * import { Cause, Console, Effect, Stream } from "effect"
  *
@@ -1016,7 +1048,8 @@ export const failCauseSync = <E>(evaluate: LazyArg<Cause.Cause<E>>): Stream<neve
  *
  * The `maxChunkSize` parameter controls how many values are pulled per chunk.
  *
- * @example
+ * **Example** (Consuming values from an iterator)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -1050,7 +1083,8 @@ export const fromIteratorSucceed = <A>(iterator: IterableIterator<A>, maxChunkSi
  *
  * - `chunkSize`: Maximum number of values emitted per chunk.
  *
- * @example
+ * **Example** (Creating a stream from an iterable)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -1082,7 +1116,8 @@ export const fromIterable = <A>(
 /**
  * Creates a stream from an effect producing an iterable of values.
  *
- * @example
+ * **Example** (Creating a stream from an iterable effect)
+ *
  * ```ts
  * import { Console, Effect, Context, Stream } from "effect"
  *
@@ -1125,7 +1160,8 @@ export const fromIterableEffect = <A, E, R>(iterable: Effect.Effect<Iterable<A>,
  *
  * - `Stream.repeatEffectChunk`
  *
- * @example
+ * **Example** (Repeating an iterable effect)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -1157,7 +1193,8 @@ export const fromIterableEffectRepeat = <A, E, R>(
  *
  * - `Stream.fromChunk`
  *
- * @example
+ * **Example** (Creating a stream from an array of values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -1180,7 +1217,8 @@ export const fromArray = <A>(array: ReadonlyArray<A>): Stream<A> =>
 /**
  * Creates a stream from an effect that produces an array of values.
  *
- * @example
+ * **Example** (Creating a stream from an effect that produces an array of values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -1210,7 +1248,8 @@ export const fromArrayEffect = <A, E, R>(
  *
  * - `Stream.fromChunks`
  *
- * @example
+ * **Example** (Creating a stream from an arbitrary number of arrays)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -1239,7 +1278,8 @@ export const fromArrays = <Arr extends ReadonlyArray<ReadonlyArray<any>>>(
  * - `maxChunkSize`: The maximum number of queued elements to put in one chunk in the stream
  * - `shutdown`: If `true`, the queue will be shutdown after the stream is evaluated (defaults to `false`)
  *
- * @example
+ * **Example** (Creating a stream from a queue of values)
+ *
  * ```ts
  * import { Console, Effect, Queue, Stream } from "effect"
  *
@@ -1268,7 +1308,8 @@ export const fromQueue = <A, E>(queue: Queue.Dequeue<A, E>): Stream<A, Exclude<E
 /**
  * Creates a stream from a subscription to a `PubSub`.
  *
- * @example
+ * **Example** (Creating a stream from a subscription to a PubSub)
+ *
  * ```ts
  * import { Console, Effect, Fiber, PubSub, Stream } from "effect"
  *
@@ -1303,7 +1344,8 @@ export const fromPubSub = <A>(pubsub: PubSub.PubSub<A>): Stream<A> => fromChanne
  *
  * `Take` values include end and failure signals.
  *
- * @example
+ * **Example** (Creating a stream from PubSub takes)
+ *
  * ```ts
  * import { Console, Effect, Exit, PubSub, Stream, Take } from "effect"
  *
@@ -1335,7 +1377,8 @@ export const fromPubSubTake = <A, E>(pubsub: PubSub.PubSub<Take.Take<A, E>>): St
  *
  * See https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream.
  *
- * @example
+ * **Example** (Creating a stream from a ReadableStream)
+ *
  * ```ts
  * import { Console, Data, Effect, Stream } from "effect"
  *
@@ -1393,7 +1436,8 @@ export const fromReadableStream = <A, E>(
 /**
  * Creates a stream from an AsyncIterable.
  *
- * @example
+ * **Example** (Creating a stream from an AsyncIterable)
+ *
  * ```ts
  * import { Console, Data, Effect, Stream } from "effect"
  *
@@ -1427,7 +1471,8 @@ export const fromAsyncIterable = <A, E>(
  * Creates a stream that emits each output of a schedule that does not require input,
  * for as long as the schedule continues.
  *
- * @example
+ * **Example** (Creating a stream from a schedule)
+ *
  * ```ts
  * import { Console, Effect, Schedule, Stream } from "effect"
  *
@@ -1461,7 +1506,8 @@ export const fromSchedule = <O, E, R>(schedule: Schedule.Schedule<O, unknown, E,
  * Use `PubSub.subscribe` to create the subscription and `Stream.take` or
  * cancellation to control how many values are consumed.
  *
- * @example
+ * **Example** (Creating a stream from a PubSub subscription)
+ *
  * ```ts
  * import { Console, Effect, PubSub, Stream } from "effect"
  *
@@ -1516,7 +1562,8 @@ export interface EventListener<A> {
 /**
  * Creates a stream from an event listener.
  *
- * @example
+ * **Example** (Creating a stream from an event listener)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -1560,7 +1607,8 @@ export const fromEventListener = <A = unknown>(
 /**
  * Creates a stream by peeling off successive layers of a state value.
  *
- * @example
+ * **Example** (Unfolding stream state)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -1595,7 +1643,8 @@ export const unfold = <S, A, E, R>(
  * than the unfolding of the state. This is useful for embedding paginated APIs,
  * hence the name.
  *
- * @example
+ * **Example** (Paginating stream state)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  * import * as Option from "effect/Option"
@@ -1641,7 +1690,8 @@ export const paginate = <S, A, E = never, R = never>(
 /**
  * Creates an infinite stream by repeatedly applying a function to a seed value.
  *
- * @example
+ * **Example** (Iterating from a seed value)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -1668,7 +1718,8 @@ export const iterate = <A>(value: A, next: (value: A) => A): Stream<A> =>
  * If the provided `min` is greater than `max`, the stream will not emit any
  * values.
  *
- * @example
+ * **Example** (Creating a numeric range)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -1708,7 +1759,8 @@ export const range = (
 /**
  * The stream that never produces any value or fails with any error.
  *
- * @example
+ * **Example** (Creating a never-ending stream)
+ *
  * ```ts
  * import { Effect, Stream } from "effect"
  *
@@ -1729,7 +1781,8 @@ export const never: Stream<never> = fromChannel(Channel.never)
 /**
  * Creates a stream produced from an `Effect`.
  *
- * @example
+ * **Example** (Unwrapping a stream effect)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -1755,7 +1808,8 @@ export const unwrap = <A, E2, R2, E, R>(
  * Runs a stream that requires `Scope` in a managed scope, ensuring its
  * finalizers are run when the stream completes.
  *
- * @example
+ * **Example** (Scoping a stream)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -1784,7 +1838,8 @@ export const scoped = <A, E, R>(
 /**
  * Transforms the elements of this stream using the supplied function.
  *
- * @example
+ * **Example** (Mapping stream values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -1815,7 +1870,8 @@ export const map: {
 /**
  * Maps both the failure and success channels of a stream.
  *
- * @example
+ * **Example** (Mapping both the failure and success channels of a stream)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -1873,7 +1929,8 @@ export const mapBoth: {
  *
  * - `Stream.mapChunks`
  *
- * @example
+ * **Example** (Mapping stream chunks)
+ *
  * ```ts
  * import { Array, Console, Effect, Stream } from "effect"
  *
@@ -1909,7 +1966,8 @@ export const mapArray: {
 /**
  * Maps over elements of the stream with the specified effectful function.
  *
- * @example
+ * **Example** (Effectfully mapping stream values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -1974,7 +2032,8 @@ export const mapEffect: {
 /**
  * Flattens a stream of `Effect` values into a stream of their results.
  *
- * @example
+ * **Example** (Flattening a stream of Effect values into a stream of their results)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -2028,7 +2087,8 @@ export const flattenEffect: <
  *
  * - `Stream.mapChunksEffect`
  *
- * @example
+ * **Example** (Effectfully mapping stream chunks)
+ *
  * ```ts
  * import { Array, Console, Effect, Stream } from "effect"
  *
@@ -2074,7 +2134,8 @@ export const mapArrayEffect: {
  *
  * - `Stream.either`
  *
- * @example
+ * **Example** (Converting failures to results)
+ *
  * ```ts
  * import { Console, Effect, Result, Stream } from "effect"
  *
@@ -2107,7 +2168,8 @@ export const result = <A, E, R>(self: Stream<A, E, R>): Stream<Result.Result<A, 
 /**
  * Runs the provided effect for each element while preserving the elements.
  *
- * @example
+ * **Example** (Tapping stream values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -2166,7 +2228,8 @@ export const tap: {
 /**
  * Returns a stream that effectfully "peeks" at elements and failures.
  *
- * @example
+ * **Example** (Tapping values and errors)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -2227,7 +2290,8 @@ export const tapBoth: {
  * Sends all elements emitted by this stream to the specified sink in addition
  * to emitting them.
  *
- * @example
+ * **Example** (Tapping values with a sink)
+ *
  * ```ts
  * import { Console, Effect, Ref, Sink, Stream } from "effect"
  *
@@ -2324,7 +2388,8 @@ export const tapSink: {
 /**
  * Maps each element to a stream and concatenates the results in order.
  *
- * @example
+ * **Example** (FlatMapping stream values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -2377,7 +2442,8 @@ export const flatMap: {
  * Switches to the latest stream produced by the mapping function, interrupting
  * the previous stream when a new element arrives.
  *
- * @example
+ * **Example** (Switching to the latest stream)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -2430,7 +2496,8 @@ export const switchMap: {
  * Flattens a stream of streams into a single stream by concatenating the
  * inner streams in strict order.
  *
- * @example
+ * **Example** (Flattening nested streams)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -2487,7 +2554,8 @@ export const flatten: <
  *
  * - `Stream.flattenChunks`
  *
- * @example
+ * **Example** (Flattening a stream of non-empty arrays into a stream of elements)
+ *
  * ```ts
  * import { Array, Console, Effect, Stream } from "effect"
  *
@@ -2511,7 +2579,8 @@ export const flattenArray = <A, E, R>(self: Stream<Arr.NonEmptyReadonlyArray<A>,
 /**
  * Converts this stream to one that runs its effects but emits no elements.
  *
- * @example
+ * **Example** (Draining stream values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -2533,7 +2602,8 @@ export const drain = <A, E, R>(self: Stream<A, E, R>): Stream<never, E, R> => fr
  * Runs the provided stream in the background while this stream runs, interrupting it
  * when this stream completes and failing if the background stream fails or defects.
  *
- * @example
+ * **Example** (Draining a stream in the background)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -2568,7 +2638,8 @@ export const drainFork: {
 /**
  * Repeats the entire stream according to the provided schedule.
  *
- * @example
+ * **Example** (Repeating a stream on a schedule)
+ *
  * ```ts
  * import { Console, Effect, Schedule, Stream } from "effect"
  *
@@ -2616,7 +2687,8 @@ export const repeat: {
 /**
  * Spaces the stream's elements according to the provided `schedule`.
  *
- * @example
+ * **Example** (Scheduling stream elements)
+ *
  * ```ts
  * import { Console, Effect, Schedule, Stream } from "effect"
  *
@@ -2658,7 +2730,8 @@ export const schedule: {
 /**
  * Ends the stream if it does not produce a value within the specified duration.
  *
- * @example
+ * **Example** (Timing out a stream)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -2769,7 +2842,8 @@ export const timeoutOrElse: {
  *
  * @category Sequencing
  * @since 2.0.0
- * @example
+ * **Example** (Repeating stream elements)
+ *
  * ```ts
  * import { Console, Effect, Schedule, Stream } from "effect"
  *
@@ -2833,7 +2907,8 @@ export const repeatElements: {
 /**
  * Repeats this stream forever.
  *
- * @example
+ * **Example** (Repeating a stream forever)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -2865,7 +2940,8 @@ export const forever = <A, E, R>(self: Stream<A, E, R>): Stream<A, E, R> => from
  *
  * - `Stream.flattenIterables`
  *
- * @example
+ * **Example** (Flattening iterable values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -2889,7 +2965,8 @@ export const flattenIterable = <A, E, R>(self: Stream<Iterable<A>, E, R>): Strea
  * Unwraps `Take` values, emitting elements from non-empty arrays and ending or
  * failing when the `Exit` signals completion.
  *
- * @example
+ * **Example** (Flattening Take values)
+ *
  * ```ts
  * import { Array, Console, Effect, Exit, Stream } from "effect"
  *
@@ -2922,7 +2999,8 @@ export const flattenTake = <A, E, E2, R>(self: Stream<Take.Take<A, E>, E2, R>): 
  * Concatenates two streams, emitting all elements from the first stream
  * followed by all elements from the second stream.
  *
- * @example
+ * **Example** (Concatenating streams)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -2950,7 +3028,8 @@ export const concat: {
 /**
  * Prepends the values from the provided iterable before the stream's elements.
  *
- * @example
+ * **Example** (Prepending values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -2984,7 +3063,8 @@ export const prepend: {
  * By default, the merged stream ends when both streams end. Use
  * `haltStrategy` to change the termination behavior.
  *
- * @example
+ * **Example** (Merging stream values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -3036,7 +3116,8 @@ export const merge: {
  *
  * @category Merging
  * @since 4.0.0
- * @example
+ * **Example** (Merging with a background effect)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -3076,7 +3157,8 @@ export const mergeEffect: {
  *
  * - `Stream.mergeEither`
  *
- * @example
+ * **Example** (Merging streams into results)
+ *
  * ```ts
  * import { Console, Effect, Result, Stream } from "effect"
  *
@@ -3129,7 +3211,8 @@ export const mergeResult: {
  * stream are propagated. The merged stream completes when the left stream
  * completes, interrupting the right stream.
  *
- * @example
+ * **Example** (Merging streams while keeping left values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -3163,7 +3246,8 @@ export const mergeLeft: {
  * The merged stream ends when the right stream completes, interrupting the
  * left stream. Failures from the left stream still fail the merged stream.
  *
- * @example
+ * **Example** (Merging streams while keeping right values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -3201,7 +3285,8 @@ export const mergeRight: {
  * @category Merging
  * @since 2.0.0
  *
- * @example
+ * **Example** (Merging streams with bounded concurrency)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -3249,7 +3334,8 @@ export const mergeAll: {
  *
  * See also `Stream.zip` for the more common point-wise variant.
  *
- * @example
+ * **Example** (Computing cartesian products)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -3282,7 +3368,8 @@ export const cross: {
  *
  * See also `Stream.zipWith` for the more common point-wise variant.
  *
- * @example
+ * **Example** (Combining cartesian products)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -3320,7 +3407,8 @@ export const crossWith: {
 /**
  * Zips two streams point-wise with a combining function, ending when either stream ends.
  *
- * @example
+ * **Example** (Zipping streams with a function)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -3385,7 +3473,8 @@ const zipArrays = <AL, AR, A>(
  *
  * - `Stream.zipWithChunks`
  *
- * @example
+ * **Example** (Zipping stream chunks)
+ *
  * ```ts
  * import { Array, Console, Effect, Stream } from "effect"
  *
@@ -3493,7 +3582,8 @@ export const zipWithArray: {
  * Zips this stream with another point-wise and emits tuples of elements from
  * both streams. The new stream ends when either stream ends.
  *
- * @example
+ * **Example** (Zipping streams)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -3531,7 +3621,8 @@ export const zip: {
  *
  * The resulting stream ends when either side ends.
  *
- * @example
+ * **Example** (Zipping streams while keeping left values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -3572,7 +3663,8 @@ export const zipLeft: {
 /**
  * Zips this stream with another point-wise, keeping only right values and ending when either stream ends.
  *
- * @example
+ * **Example** (Zipping streams while keeping right values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -3616,7 +3708,8 @@ export const zipRight: {
  *
  * The new stream will end when one of the sides ends.
  *
- * @example
+ * **Example** (Zipping and flattening tuples)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -3658,7 +3751,8 @@ export const zipFlatten: {
 /**
  * Zips this stream together with the index of elements.
  *
- * @example
+ * **Example** (Zipping elements with indices)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -3683,7 +3777,8 @@ export const zipWithIndex = <A, E, R>(self: Stream<A, E, R>): Stream<[A, number]
  * Zips each element with the next element, pairing the final element with
  * `Option.none()`.
  *
- * @example
+ * **Example** (Zipping elements with next values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -3727,7 +3822,8 @@ export const zipWithNext = <A, E, R>(self: Stream<A, E, R>): Stream<[A, Option.O
 /**
  * Zips each element with its previous element, starting with `None`.
  *
- * @example
+ * **Example** (Zipping elements with previous values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -3764,7 +3860,8 @@ export const zipWithPrevious = <A, E, R>(self: Stream<A, E, R>): Stream<[Option.
 /**
  * Zips each element with its previous and next values.
  *
- * @example
+ * **Example** (Zipping elements with neighbors)
+ *
  * ```ts
  * import { Console, Effect, Option, Stream } from "effect"
  *
@@ -3822,7 +3919,8 @@ export const zipWithPreviousAndNext = <A, E, R>(
  * that emitted elements that are not the last value in arrays will never be
  * used for zipping.
  *
- * @example
+ * **Example** (Zipping latest values from many streams)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -3890,7 +3988,8 @@ export const zipLatestAll = <T extends ReadonlyArray<Stream<any, any, any>>>(
  * that emitted elements that are not the last value in arrays will never be
  * used for zipping.
  *
- * @example
+ * **Example** (Zipping latest values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -3932,7 +4031,8 @@ export const zipLatest: {
  * that emitted elements that are not the last value in arrays will never be
  * used for zipping.
  *
- * @example
+ * **Example** (Zipping latest values with a function)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -3979,7 +4079,8 @@ export const zipLatestWith: {
  * @category Racing
  * @since 3.7.0
  *
- * @example
+ * **Example** (Racing multiple streams)
+ *
  * ```ts
  * import { Console, Effect, Schedule, Stream } from "effect"
  *
@@ -4028,7 +4129,8 @@ export const raceAll = <S extends ReadonlyArray<Stream<any, any, any>>>(
  * Returns a stream that mirrors the first upstream to emit an item.
  * As soon as one stream emits, the other is interrupted and failures propagate.
  *
- * @example
+ * **Example** (Racing two streams)
+ *
  * ```ts
  * import { Console, Effect, Schedule, Stream } from "effect"
  *
@@ -4065,7 +4167,8 @@ export const race: {
 /**
  * Filters a stream to the elements that satisfy a predicate.
  *
- * @example
+ * **Example** (Filtering stream values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -4125,7 +4228,8 @@ export const filterMap: {
 /**
  * Effectfully filters elements in a single pass.
  *
- * @example
+ * **Example** (Effectfully filtering stream values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -4186,7 +4290,8 @@ export const filterMapEffect: {
  *
  * Each queue fails with the stream error or `Cause.Done` when the source ends.
  *
- * @example
+ * **Example** (Partitioning a stream into queues)
+ *
  * ```ts
  * import { Console, Effect, Result, Stream } from "effect"
  *
@@ -4369,7 +4474,8 @@ export const partitionEffect: {
  * @category Filtering
  * @since 4.0.0
  *
- * @example
+ * **Example** (Partitioning a stream)
+ *
  * ```ts
  * import { Console, Effect, Result, Stream } from "effect"
  *
@@ -4428,7 +4534,8 @@ export const partition: {
  * Returns the specified stream if the given condition is satisfied, otherwise
  * returns an empty stream.
  *
- * @example
+ * **Example** (Conditionally keeping a stream)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -4469,7 +4576,8 @@ export const when: {
  *
  * The returned stream is only valid within the scope.
  *
- * @example
+ * **Example** (Peeling a stream with a sink)
+ *
  * ```ts
  * import { Console, Effect, Sink, Stream } from "effect"
  *
@@ -4531,7 +4639,8 @@ export const peel: {
  * Note: This combinator destroys chunking. Use `Stream.rechunk` afterwards if
  * you need fixed chunk sizes.
  *
- * @example
+ * **Example** (Buffering stream elements)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -4584,7 +4693,8 @@ export const buffer: {
  *
  * - `Stream.bufferChunks`
  *
- * @example
+ * **Example** (Buffering stream chunks)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -4635,7 +4745,8 @@ export const bufferArray: {
  *
  * - `Stream.catchAllCause`
  *
- * @example
+ * **Example** (Catching stream causes)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -4687,7 +4798,8 @@ export const catchCause: {
  *
  * - `Stream.tapErrorCause`
  *
- * @example
+ * **Example** (Tapping stream causes)
+ *
  * ```ts
  * import { Cause, Console, Effect, Stream } from "effect"
  *
@@ -4750,7 +4862,8 @@ export {
    *
    * - `Stream.catchAll`
    *
-   * @example
+   * **Example** (Catching stream failures)
+   *
    * ```ts
    * import { Console, Effect, Stream } from "effect"
    *
@@ -4777,7 +4890,8 @@ export {
 /**
  * Effectfully peeks at errors without changing the stream unless the tap fails.
  *
- * @example
+ * **Example** (Effectfully peeking at errors)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -4831,7 +4945,8 @@ export const tapError: {
  *
  * - `Stream.catchSome`
  *
- * @example
+ * **Example** (Catching matching failures)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -4958,7 +5073,8 @@ export const catchFilter: {
  * Use `catchTag` when your error type is a tagged union with a readonly `_tag`
  * field and you want to handle a specific error case.
  *
- * @example
+ * **Example** (Catching tagged failures)
+ *
  * ```ts
  * import { Console, Data, Effect, Stream } from "effect"
  *
@@ -5053,7 +5169,8 @@ export const catchTag: {
 /**
  * Switches to a recovery stream based on matching `_tag` handlers.
  *
- * @example
+ * **Example** (Catching tagged failures with handlers)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -5167,7 +5284,8 @@ export const catchTags: {
  * Use this to handle nested error causes without removing the parent error
  * from the error channel. The handler receives the unwrapped reason.
  *
- * @example
+ * **Example** (Catching a tagged error reason)
+ *
  * ```ts
  * import { Console, Data, Effect, Stream } from "effect"
  *
@@ -5289,7 +5407,8 @@ export const catchReason: {
 /**
  * Catches multiple reasons within a tagged error using an object of handlers.
  *
- * @example
+ * **Example** (Catching tagged error reasons)
+ *
  * ```ts
  * import { Console, Data, Effect, Stream } from "effect"
  *
@@ -5430,7 +5549,8 @@ export const catchReasons: {
 /**
  * Transforms the errors emitted by this stream using `f`.
  *
- * @example
+ * **Example** (Mapping stream errors)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -5468,7 +5588,8 @@ export const mapError: {
  *
  * - `Stream.catchSomeCause`
  *
- * @example
+ * **Example** (Catching matching causes)
+ *
  * ```ts
  * import { Cause, Console, Effect, Stream } from "effect"
  *
@@ -5551,7 +5672,8 @@ export const catchCauseFilter: {
 /**
  * Switches to a fallback stream if this stream is empty.
  *
- * @example
+ * **Example** (Switching on empty streams)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -5590,7 +5712,8 @@ export const orElseIfEmpty: {
 /**
  * Returns a stream that emits a fallback value when this stream fails.
  *
- * @example
+ * **Example** (Recovering with a fallback value)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -5626,7 +5749,8 @@ export const orElseSucceed: {
 /**
  * Turns typed failures into defects, making the stream infallible.
  *
- * @example
+ * **Example** (Turning failures into defects)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -5653,7 +5777,8 @@ export const orDie = <A, E, R>(self: Stream<A, E, R>): Stream<A, never, R> => fr
  *
  * Use the `log` option to emit the full {@link Cause} when the stream fails.
  *
- * @example
+ * **Example** (Ignoring stream failures)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -5670,7 +5795,8 @@ export const orDie = <A, E, R>(self: Stream<A, E, R>): Stream<A, never, R> => fr
  * // Output: [ 1, 2, 3 ]
  * ```
  *
- * @example
+ * **Example** (Configuring ignore logging)
+ *
  * ```ts
  * import { Stream } from "effect"
  *
@@ -5707,7 +5833,8 @@ export const ignore: <
  *
  * Use the `log` option to emit the full {@link Cause} when the stream fails.
  *
- * @example
+ * **Example** (Ignoring stream failure causes)
+ *
  * ```ts
  * import { Effect, Stream } from "effect"
  *
@@ -5749,7 +5876,8 @@ export const ignoreCause: <
  * The schedule is reset as soon as the first element passes through the
  * stream again.
  *
- * @example
+ * **Example** (Retrying stream failures)
+ *
  * ```ts
  * import { Console, Effect, Schedule, Stream } from "effect"
  *
@@ -5807,7 +5935,8 @@ export const retry: {
  * `preventFallbackOnPartialStream` to fail instead of mixing partial output with
  * a later fallback.
  *
- * @example
+ * **Example** (Applying an execution plan)
+ *
  * ```ts
  * import { Console, Effect, ExecutionPlan, Layer, Context, Stream } from "effect"
  *
@@ -5932,7 +6061,8 @@ export const withExecutionPlan: {
 /**
  * Takes the first `n` elements from this stream, returning `Stream.empty` when `n < 1`.
  *
- * @example
+ * **Example** (Taking values from the left)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -5963,7 +6093,8 @@ export const take: {
 /**
  * Keeps the last `n` elements from this stream.
  *
- * @example
+ * **Example** (Taking elements from the right)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -6006,7 +6137,8 @@ export const takeRight: {
  *
  * When `excludeLast` is `true`, the matching element is dropped.
  *
- * @example
+ * **Example** (Taking until a predicate matches)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -6067,7 +6199,8 @@ export const takeUntil: {
 /**
  * Effectful predicate version of `takeUntil`.
  *
- * @example
+ * **Example** (Taking until an effectful predicate matches)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -6128,7 +6261,8 @@ export const takeUntilEffect: {
 /**
  * Takes the longest initial prefix of elements that satisfy the predicate.
  *
- * @example
+ * **Example** (Taking while a predicate holds)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -6221,7 +6355,8 @@ export const takeWhileFilter: {
 /**
  * Takes elements from the stream while the effectful predicate is `true`.
  *
- * @example
+ * **Example** (Effectfully taking while a predicate holds)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -6261,7 +6396,8 @@ export const takeWhileEffect: {
 /**
  * Drops the first `n` elements from this stream.
  *
- * @example
+ * **Example** (Dropping values from the left)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -6305,7 +6441,8 @@ export const drop: {
  * Drops elements until the specified predicate evaluates to `true`, then drops
  * that matching element.
  *
- * @example
+ * **Example** (Dropping until a predicate matches)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -6335,7 +6472,8 @@ export const dropUntil: {
  *
  * The first element that satisfies the predicate is also dropped.
  *
- * @example
+ * **Example** (Dropping until an effectful predicate matches)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -6377,7 +6515,8 @@ export const dropUntilEffect: {
 /**
  * Drops elements from the stream while the specified predicate evaluates to `true`.
  *
- * @example
+ * **Example** (Dropping while a predicate holds)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -6444,7 +6583,8 @@ export const dropWhileFilter: {
 /**
  * Drops elements while the specified effectful predicate evaluates to `true`.
  *
- * @example
+ * **Example** (Effectfully dropping while a predicate holds)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -6500,7 +6640,8 @@ export const dropWhileEffect: {
  *
  * Keeps the last `n` elements in memory to drop them on completion.
  *
- * @example
+ * **Example** (Dropping values from the right)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -6543,7 +6684,8 @@ export const dropRight: {
 /**
  * Exposes the underlying chunks as a stream of non-empty arrays.
  *
- * @example
+ * **Example** (Exposing stream chunks)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -6574,7 +6716,8 @@ export const chunks = <A, E, R>(self: Stream<A, E, R>): Stream<Arr.NonEmptyReado
  *
  * The size is clamped to at least 1.
  *
- * @example
+ * **Example** (Rechunking stream elements)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -6646,7 +6789,8 @@ export const rechunk: {
 /**
  * Emits a sliding window of `n` elements.
  *
- * @example
+ * **Example** (Emitting sliding windows)
+ *
  * ```ts
  * import { Console, Effect, Stream, pipe } from "effect"
  *
@@ -6675,6 +6819,8 @@ export const sliding: {
 
 /**
  * Emits sliding windows of `chunkSize` elements, advancing by `stepSize`.
+ *
+ * **Example** (Emitting sliding windows with a step size)
  *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
@@ -6745,7 +6891,8 @@ export const slidingSize: {
  *
  * Matching elements act as delimiters and are not included in the output.
  *
- * @example
+ * **Example** (Splitting on matching values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -6804,7 +6951,8 @@ export const split: {
  * Where possible, prefer `Stream.combineArray` for a more efficient
  * implementation.
  *
- * @example
+ * **Example** (Combining streams with state)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -6883,7 +7031,8 @@ export const combine: {
  *
  * - `Stream.combineChunks`
  *
- * @example
+ * **Example** (Combining stream chunks with state)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -6951,7 +7100,8 @@ export const combineArray: {
 /**
  * Statefully maps elements, emitting zero or more outputs per input.
  *
- * @example
+ * **Example** (Statefully mapping stream values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -7025,7 +7175,8 @@ export const mapAccum: {
  *
  * The mapping function runs once per chunk and the state is threaded across chunks.
  *
- * @example
+ * **Example** (Statefully mapping stream chunks)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -7095,7 +7246,8 @@ const emptyArr = Arr.empty<never>()
 /**
  * Statefully and effectfully maps over the elements of this stream to produce new elements.
  *
- * @example
+ * **Example** (Effectfully mapping stream values with state)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -7168,7 +7320,8 @@ export const mapAccumEffect: {
 /**
  * Statefully and effectfully maps over chunks of this stream to emit new values.
  *
- * @example
+ * **Example** (Effectfully mapping stream chunks with state)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -7243,7 +7396,8 @@ export const mapAccumArrayEffect: {
 /**
  * Accumulates state across the stream, emitting the initial state and each updated state.
  *
- * @example
+ * **Example** (Scanning stream state)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -7296,7 +7450,8 @@ export const scan: {
 /**
  * Effectfully accumulates state and emits the initial state plus each accumulated state.
  *
- * @example
+ * **Example** (Effectfully scanning stream state)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -7338,7 +7493,8 @@ export const scanEffect: {
 /**
  * Drops earlier elements within the debounce window and emits only the latest element after the pause.
  *
- * @example
+ * **Example** (Debouncing stream elements)
+ *
  * ```ts
  * import { Console, Duration, Effect, Stream } from "effect"
  *
@@ -7443,7 +7599,8 @@ export const debounce: {
  *
  * Defaults to the "shape" strategy.
  *
- * @example
+ * **Example** (Throttling stream chunks effectfully)
+ *
  * ```ts
  * import { Console, Effect, Schedule, Stream } from "effect"
  *
@@ -7599,7 +7756,8 @@ const throttleShapeEffect = <A, E, R, E2, R2>(
  *
  * Defaults to the "shape" strategy.
  *
- * @example
+ * **Example** (Throttling stream chunks)
+ *
  * ```ts
  * import { Console, Effect, Schedule, Stream } from "effect"
  *
@@ -7664,7 +7822,8 @@ export const throttle: {
  *
  * The final array may be smaller if there are not enough elements to fill it.
  *
- * @example
+ * **Example** (Grouping elements by size)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -7695,7 +7854,8 @@ export const grouped: {
  * Partitions the stream into arrays, emitting when the chunk size is reached
  * or the duration passes.
  *
- * @example
+ * **Example** (Grouping elements by size or time)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -7734,7 +7894,8 @@ export const groupedWithin: {
 /**
  * Groups elements into keyed substreams using an effectful classifier.
  *
- * @example
+ * **Example** (Grouping elements into keyed substreams using an effectful classifier)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -7805,7 +7966,8 @@ export const groupBy: {
 /**
  * Groups elements by a key and emits a stream per key.
  *
- * @example
+ * **Example** (Grouping elements by key)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -7993,7 +8155,8 @@ export const groupAdjacentBy: {
 /**
  * Applies a sink transducer to the stream and emits each sink result.
  *
- * @example
+ * **Example** (Transducing with a sink)
+ *
  * ```ts
  * import { Console, Effect, Sink, Stream } from "effect"
  *
@@ -8064,7 +8227,8 @@ export const transduce = dual<
  * The stream runs the upstream and downstream in separate fibers, so the sink can keep
  * consuming input while downstream is busy processing the previous output.
  *
- * @example
+ * **Example** (Aggregating with a sink)
+ *
  * ```ts
  * import { Console, Effect, Sink, Stream } from "effect"
  *
@@ -8102,7 +8266,8 @@ export const aggregate: {
  *
  * The schedule can flush the current aggregation even if the sink has not finished.
  *
- * @example
+ * **Example** (Aggregating with a sink and schedule)
+ *
  * ```ts
  * import { Console, Effect, Schedule, Sink, Stream } from "effect"
  *
@@ -8221,7 +8386,8 @@ export const aggregateWithin: {
  *
  * The returned stream is scoped and uses the provided PubSub capacity and replay settings.
  *
- * @example
+ * **Example** (Broadcasting a stream)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -8289,7 +8455,8 @@ export const broadcast: {
  * If `idleTimeToLive` is set, the upstream is kept alive for that duration so a later subscriber can continue from
  * the next element instead of restarting.
  *
- * @example
+ * **Example** (Sharing a stream)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -8366,7 +8533,8 @@ export const share: {
  * The channel receives `NonEmptyReadonlyArray` chunks and can transform both the
  * output elements and error type.
  *
- * @example
+ * **Example** (Piping through a channel)
+ *
  * ```ts
  * import { Array, Channel, Console, Effect, Stream } from "effect"
  *
@@ -8412,7 +8580,8 @@ export const pipeThroughChannel: {
  * Upstream failures are not passed to the channel, so the resulting stream can
  * fail with either the original stream error or the channel error.
  *
- * @example
+ * **Example** (Piping through a channel with failures)
+ *
  * ```ts
  * import type { Channel } from "effect"
  * import { Console, Effect, Stream } from "effect"
@@ -8460,7 +8629,8 @@ export const pipeThroughChannelOrFail: {
  *
  * If the sink completes mid-chunk, the remaining elements become the output stream.
  *
- * @example
+ * **Example** (Piping through a sink)
+ *
  * ```ts
  * import { Console, Effect, Sink, Stream } from "effect"
  *
@@ -8496,7 +8666,8 @@ export const pipeThrough: {
 /**
  * Collects all elements into an array and emits it as a single element.
  *
- * @example
+ * **Example** (Collecting values into a stream element)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -8519,7 +8690,8 @@ export const collect = <A, E, R>(self: Stream<A, E, R>): Stream<Array<A>, E, R> 
 /**
  * Accumulates elements into a growing array, emitting the cumulative array for each input chunk.
  *
- * @example
+ * **Example** (Accumulating stream elements)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -8549,7 +8721,8 @@ export const accumulate = <A, E, R>(self: Stream<A, E, R>): Stream<Arr.NonEmptyA
 /**
  * Emits only elements that differ from the previous one.
  *
- * @example
+ * **Example** (Emitting changed values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -8574,7 +8747,8 @@ export const changes = <A, E, R>(self: Stream<A, E, R>): Stream<A, E, R> => chan
 /**
  * Returns a stream that only emits elements that are not equal to the previously emitted element, as determined by the specified predicate.
  *
- * @example
+ * **Example** (Emitting values that changed by equivalence)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -8629,7 +8803,8 @@ export const changesWith: {
  *
  * The predicate runs for each element after the first; returning `true` treats it as equal and skips it.
  *
- * @example
+ * **Example** (Effectfully emitting changed values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -8696,7 +8871,8 @@ export const changesWithEffect: {
 /**
  * Decodes Uint8Array chunks into strings using TextDecoder with an optional encoding.
  *
- * @example
+ * **Example** (Decoding Uint8Array chunks into strings using TextDecoder with an optional encoding)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -8747,7 +8923,8 @@ export const decodeText: <
 /**
  * Encodes a stream of strings into UTF-8 `Uint8Array` chunks.
  *
- * @example
+ * **Example** (Encoding a stream of strings into UTF-8 Uint8Array chunks)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -8775,7 +8952,8 @@ export const encodeText = <E, R>(self: Stream<string, E, R>): Stream<Uint8Array,
 /**
  * Splits a stream of strings into lines, handling `\n`, `\r`, and `\r\n` delimiters across chunks.
  *
- * @example
+ * **Example** (Splitting streamed text into lines)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -8800,7 +8978,8 @@ export const splitLines = <E, R>(self: Stream<string, E, R>): Stream<string, E, 
 /**
  * Inserts the provided element between emitted elements.
  *
- * @example
+ * **Example** (Interspersing stream elements)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -8839,7 +9018,8 @@ export const intersperse: {
  *
  * The start and end values are always emitted, even when the stream is empty.
  *
- * @example
+ * **Example** (Interspersing stream affixes)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -8881,7 +9061,8 @@ export const intersperseAffixes: {
  * each stream; when one ends, the remaining values from the other stream are
  * emitted.
  *
- * @example
+ * **Example** (Interleaving streams)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -8920,7 +9101,8 @@ export const interleave: {
  * The decider controls how many elements are pulled; if one side ends, pulls for
  * that side are ignored.
  *
- * @example
+ * **Example** (Interleaving two streams deterministically by following a boolean decider stream)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -9007,7 +9189,8 @@ export const interleaveWith: {
  * If the effect completes with a failure before the stream completes, the
  * returned stream will emit that failure.
  *
- * @example
+ * **Example** (Interrupting when an effect completes)
+ *
  * ```ts
  * import { Console, Deferred, Effect, Stream } from "effect"
  *
@@ -9045,7 +9228,8 @@ export const interruptWhen: {
 /**
  * Halts evaluation after the current element once the provided effect completes; the effect is forked, its success is discarded, failures fail the stream, and it does not interrupt an in-progress pull (use `interruptWhen` for that).
  *
- * @example
+ * **Example** (Halting a stream after an effect completes)
+ *
  * ```ts
  * import { Console, Deferred, Effect, Stream } from "effect"
  *
@@ -9079,7 +9263,8 @@ export const haltWhen: {
 /**
  * Runs the provided finalizer when the stream exits, passing the exit value.
  *
- * @example
+ * **Example** (Running a finalizer on exit)
+ *
  * ```ts
  * import { Console, Effect, Exit, Stream } from "effect"
  *
@@ -9120,7 +9305,8 @@ export const onExit: {
  * Note: Unlike `Effect.onError` there is no guarantee that the provided
  * effect will not be interrupted.
  *
- * @example
+ * **Example** (Running an effect on errors)
+ *
  * ```ts
  * import { Cause, Console, Effect, Stream } from "effect"
  *
@@ -9157,7 +9343,8 @@ export const onError: {
 /**
  * Runs the provided effect before this stream starts.
  *
- * @example
+ * **Example** (Running an effect on start)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -9195,7 +9382,8 @@ export const onStart: {
 /**
  * Runs the provided effect with the first element emitted by the stream.
  *
- * @example
+ * **Example** (Running an effect on the first value)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -9227,7 +9415,8 @@ export const onFirst: {
 /**
  * Runs the provided effect when the stream ends successfully.
  *
- * @example
+ * **Example** (Running an effect on end)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -9263,7 +9452,8 @@ export const onEnd: {
 /**
  * Executes the provided finalizer after this stream's finalizers run.
  *
- * @example
+ * **Example** (Ensuring finalization)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -9300,7 +9490,8 @@ export const ensuring: {
  *
  * **Previously Known As:** `provideSomeLayer`, `provideSomeContext`.
  *
- * @example
+ * **Example** (Providing stream requirements)
+ *
  * ```ts
  * import { Console, Effect, Layer, Context, Stream } from "effect"
  *
@@ -9356,7 +9547,8 @@ export const provide: {
 /**
  * Provides multiple services to the stream using a context.
  *
- * @example
+ * **Example** (Providing multiple services to the stream using a context)
+ *
  * ```ts
  * import { Console, Effect, Context, Stream } from "effect"
  *
@@ -9400,7 +9592,8 @@ export const provideContext: {
  * Provides the stream with a single required service, eliminating that
  * requirement from its environment.
  *
- * @example
+ * **Example** (Providing a stream service)
+ *
  * ```ts
  * import { Console, Effect, Context, Stream } from "effect"
  *
@@ -9453,7 +9646,8 @@ export const provideService: {
 /**
  * Provides a service to the stream using an effect, removing the requirement and adding the effect's error and environment.
  *
- * @example
+ * **Example** (Providing a stream service effectfully)
+ *
  * ```ts
  * import { Console, Effect, Context, Stream } from "effect"
  *
@@ -9510,7 +9704,8 @@ export const provideServiceEffect: {
  * Transforms the stream's required services by mapping the current context
  * to a new one.
  *
- * @example
+ * **Example** (Updating the stream context)
+ *
  * ```ts
  * import { Console, Effect, Context, Stream } from "effect"
  *
@@ -9563,7 +9758,8 @@ export const updateContext: {
 /**
  * Updates a single service in the stream environment by applying a function.
  *
- * @example
+ * **Example** (Updating a stream service)
+ *
  * ```ts
  * import { Console, Effect, Context, Stream } from "effect"
  *
@@ -9612,7 +9808,8 @@ export const updateService: {
 /**
  * Wraps the stream with a new span for tracing.
  *
- * @example
+ * **Example** (Wrapping a stream in a span)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -9647,7 +9844,8 @@ export const withSpan: {
 /**
  * Provides the entry point for do-notation style stream composition.
  *
- * @example
+ * **Example** (Starting stream do notation)
+ *
  * ```ts
  * import { Console, Effect, Stream, pipe } from "effect"
  *
@@ -9691,7 +9889,8 @@ export {
   /**
    * Adds a computed field to the current Do-notation record.
    *
-   * @example
+   * **Example** (Adding a computed field)
+   *
    * ```ts
    * import { Console, Effect, Stream } from "effect"
    *
@@ -9718,7 +9917,8 @@ export {
 /**
  * Binds the result of a stream to a field in the do-notation record.
  *
- * @example
+ * **Example** (Binding a stream value)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -9768,7 +9968,8 @@ export const bind: {
 /**
  * Binds an Effect-produced value into the do-notation record for each stream element.
  *
- * @example
+ * **Example** (Binding an effect value)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -9824,7 +10025,8 @@ export const bindEffect: {
 /**
  * Maps each element into a record keyed by the provided name.
  *
- * @example
+ * **Example** (Binding values to a record key)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -9850,7 +10052,8 @@ export const bindTo: {
 /**
  * Runs a stream with a sink and returns the sink result.
  *
- * @example
+ * **Example** (Running a stream with a sink)
+ *
  * ```ts
  * import { Console, Effect, Sink, Stream } from "effect"
  *
@@ -9885,7 +10088,8 @@ export const run: {
 /**
  * Runs the stream and collects all elements into an array.
  *
- * @example
+ * **Example** (Collecting stream values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -9918,7 +10122,8 @@ export const runCollect = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<Array<
 /**
  * Runs the stream and returns the number of elements emitted.
  *
- * @example
+ * **Example** (Counting stream values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -9942,7 +10147,8 @@ export const runCount = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<number, 
 /**
  * Runs the stream and returns the numeric sum of its elements.
  *
- * @example
+ * **Example** (Summing stream values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -9969,7 +10175,8 @@ export const runSum = <E, R>(self: Stream<number, E, R>): Effect.Effect<number, 
 /**
  * Runs the stream and folds elements using a pure reducer.
  *
- * @example
+ * **Example** (Folding stream values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -10016,7 +10223,8 @@ export const runFold: {
 /**
  * Runs the stream and folds elements using an effectful reducer.
  *
- * @example
+ * **Example** (Effectfully folding stream values)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -10072,7 +10280,8 @@ export const runFoldEffect: {
 /**
  * Runs the stream and returns the first element as an `Option`.
  *
- * @example
+ * **Example** (Getting the first stream value)
+ *
  * ```ts
  * import { Console, Effect, Option, Stream } from "effect"
  *
@@ -10103,7 +10312,8 @@ export const runLast = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<Option.Op
 /**
  * Runs the provided effectful callback for each element of the stream.
  *
- * @example
+ * **Example** (Running an effect for each value)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -10147,7 +10357,8 @@ export const runForEach: {
  * Runs the stream, applying the effectful predicate to each element and
  * stopping when it returns `false`.
  *
- * @example
+ * **Example** (Running effects while a predicate holds)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -10202,7 +10413,8 @@ export const runForEachWhile: {
 /**
  * Consumes the stream in chunks, passing each non-empty array to the callback.
  *
- * @example
+ * **Example** (Consuming stream chunks)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -10237,7 +10449,8 @@ export const runForEachArray: {
 /**
  * Runs the stream for its effects, discarding emitted elements.
  *
- * @example
+ * **Example** (Draining a stream run)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -10266,7 +10479,8 @@ export const runDrain = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<void, E,
  * The pull fails with `Cause.Done` when the stream ends and with the stream
  * error on failure.
  *
- * @example
+ * **Example** (Creating a scoped pull)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -10294,7 +10508,8 @@ export const toPull = <A, E, R>(
 /**
  * Concatenates all emitted strings into a single string.
  *
- * @example
+ * **Example** (Joining strings from a stream)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -10321,7 +10536,8 @@ export const mkString = <E, R>(self: Stream<string, E, R>): Effect.Effect<string
 /**
  * Concatenates the stream's `Uint8Array` chunks into a single `Uint8Array`.
  *
- * @example
+ * **Example** (Joining Uint8Array chunks)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -10374,7 +10590,8 @@ export const mkUint8Array = <E, R>(self: Stream<Uint8Array, E, R>): Effect.Effec
  *
  * See https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream.
  *
- * @example
+ * **Example** (Converting to a ReadableStream with services)
+ *
  * ```ts
  * import { Context, Stream } from "effect"
  *
@@ -10447,7 +10664,8 @@ export const toReadableStreamWith = dual<
  *
  * See https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream.
  *
- * @example
+ * **Example** (Converting a stream to a ReadableStream)
+ *
  * ```ts
  * import { Stream } from "effect"
  *
@@ -10481,7 +10699,8 @@ export const toReadableStream: {
  *
  * See https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream.
  *
- * @example
+ * **Example** (Creating a ReadableStream effect)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -10523,7 +10742,8 @@ export const toReadableStreamEffect: {
 /**
  * Converts the stream to an `AsyncIterable` using the provided services.
  *
- * @example
+ * **Example** (Converting to an AsyncIterable with services)
+ *
  * ```ts
  * import { Context, Stream } from "effect"
  *
@@ -10591,7 +10811,8 @@ export const toAsyncIterableWith: {
 /**
  * Creates an effect that yields an `AsyncIterable` using the current services.
  *
- * @example
+ * **Example** (Creating an AsyncIterable effect)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
@@ -10625,7 +10846,8 @@ export const toAsyncIterableEffect = <A, E, R>(self: Stream<A, E, R>): Effect.Ef
 /**
  * Converts a stream to an `AsyncIterable` for `for await...of` consumption.
  *
- * @example
+ * **Example** (Converting to an async iterable)
+ *
  * ```ts
  * import { Effect, Stream } from "effect"
  *
@@ -10656,7 +10878,8 @@ export const toAsyncIterable = <A, E>(self: Stream<A, E>): AsyncIterable<A> =>
  * `shutdownOnEnd` controls whether the PubSub is shut down when the stream ends.
  * It only shuts down when set to `true`.
  *
- * @example
+ * **Example** (Running a stream into a PubSub)
+ *
  * ```ts
  * import { Console, Effect, PubSub, Stream } from "effect"
  *
@@ -10709,7 +10932,8 @@ export const runIntoPubSub: {
  * `shutdownOnEnd` indicates whether the PubSub should be shut down when the
  * stream ends. By default this is `true`.
  *
- * @example
+ * **Example** (Converting a stream to a PubSub for concurrent consumption)
+ *
  * ```ts
  * import { Console, Effect, PubSub, Stream } from "effect"
  *
@@ -10775,7 +10999,8 @@ export const toPubSub: {
  *
  * `Take` values include the stream's end and failure signals.
  *
- * @example
+ * **Example** (Converting to a PubSub of takes)
+ *
  * ```ts
  * import { Console, Effect, PubSub, Stream } from "effect"
  *
@@ -10836,7 +11061,8 @@ export const toPubSubTake: {
 /**
  * Converts a stream to a Queue for concurrent consumption.
  *
- * @example
+ * **Example** (Converting a stream to a Queue for concurrent consumption)
+ *
  * ```ts
  * import { Effect, Queue, Stream } from "effect"
  *
@@ -10886,7 +11112,8 @@ export const toQueue: {
  * Runs the stream, offering each element to the provided queue and ending it
  * with `Cause.Done` when the stream completes.
  *
- * @example
+ * **Example** (Running a stream into a queue)
+ *
  * ```ts
  * import { Cause, Effect, Queue, Stream } from "effect"
  *

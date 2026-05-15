@@ -10,7 +10,8 @@
  * for stream processing and memory-efficient data manipulation. All functions in this
  * module preserve the lazy nature of iterables where possible.
  *
- * @example
+ * **Example** (Working with iterables)
+ *
  * ```ts
  * import { Iterable, Option } from "effect"
  *
@@ -52,7 +53,8 @@ import type { NoInfer } from "./Types.ts"
  * @param f - Function that receives the index and returns the element
  * @param options - Configuration object with optional length
  *
- * @example
+ * **Example** (Generating values by index)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -97,7 +99,8 @@ export const makeBy = <A>(f: (i: number) => A, options?: {
  *
  * If `end` is omitted, the range will not have an upper bound.
  *
- * @example
+ * **Example** (Creating a range)
+ *
  * ```ts
  * import { range } from "effect/Iterable"
  * import * as assert from "node:assert"
@@ -122,7 +125,8 @@ export const range = (start: number, end?: number): Iterable<number> => {
  *
  * **Note**. `n` is normalized to an integer >= 1.
  *
- * @example
+ * **Example** (Repeating a value)
+ *
  * ```ts
  * import { replicate } from "effect/Iterable"
  * import * as assert from "node:assert"
@@ -156,7 +160,8 @@ export const forever = <A>(self: Iterable<A>): Iterable<A> => repeat(self, Infin
 /**
  * Takes a record and returns an Iterable of tuples containing its keys and values.
  *
- * @example
+ * **Example** (Converting a record to entries)
+ *
  * ```ts
  * import { fromRecord } from "effect/Iterable"
  * import * as assert from "node:assert"
@@ -184,7 +189,8 @@ export const fromRecord = <K extends string, A>(self: Readonly<Record<K, A>>): I
 /**
  * Prepend an element to the front of an `Iterable`, creating a new `Iterable`.
  *
- * @example
+ * **Example** (Prepending an element)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -209,7 +215,8 @@ export const prepend: {
 /**
  * Prepends the specified prefix iterable to the beginning of the specified iterable.
  *
- * @example
+ * **Example** (Prepending another iterable)
+ *
  * ```ts
  * import { Iterable } from "effect"
  * import * as assert from "node:assert"
@@ -234,7 +241,8 @@ export const prependAll: {
 /**
  * Append an element to the end of an `Iterable`, creating a new `Iterable`.
  *
- * @example
+ * **Example** (Appending an element)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -261,7 +269,8 @@ export const append: {
 /**
  * Concatenates two iterables, combining their elements.
  *
- * @example
+ * **Example** (Concatenating iterables)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -317,7 +326,8 @@ export const appendAll: {
 /**
  * Reduce an `Iterable` from the left, keeping all intermediate results instead of only the final result.
  *
- * @example
+ * **Example** (Tracking running results)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -366,7 +376,8 @@ export const scan: {
 /**
  * Determine if an `Iterable` is empty
  *
- * @example
+ * **Example** (Checking for emptiness)
+ *
  * ```ts
  * import { isEmpty } from "effect/Iterable"
  * import * as assert from "node:assert"
@@ -386,7 +397,8 @@ export const isEmpty = <A>(self: Iterable<A>): self is Iterable<never> => {
 /**
  * Return the number of elements in a `Iterable`.
  *
- * @example
+ * **Example** (Counting iterable elements)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -420,7 +432,8 @@ export const size = <A>(self: Iterable<A>): number => {
 /**
  * Get the first element of a `Iterable`, or `None` if the `Iterable` is empty.
  *
- * @example
+ * **Example** (Getting the first element)
+ *
  * ```ts
  * import { Iterable } from "effect"
  * import * as Option from "effect/Option"
@@ -454,7 +467,8 @@ export const head = <A>(self: Iterable<A>): Option<A> => {
 /**
  * Get the first element of a `Iterable`, or throw an error if the `Iterable` is empty.
  *
- * @example
+ * **Example** (Getting the first element unsafely)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -492,7 +506,8 @@ export const headUnsafe = <A>(self: Iterable<A>): A => {
  *
  * **Note**. `n` is normalized to a non negative integer.
  *
- * @example
+ * **Example** (Taking from the start)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -539,7 +554,8 @@ export const take: {
 /**
  * Calculate the longest initial Iterable for which all element satisfy the specified predicate, creating a new `Iterable`.
  *
- * @example
+ * **Example** (Taking while a predicate holds)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -595,7 +611,8 @@ export const takeWhile: {
  *
  * **Note**. `n` is normalized to a non negative integer.
  *
- * @example
+ * **Example** (Dropping from the start)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -645,7 +662,8 @@ export const drop: {
  * Returns the first element that satisfies the specified
  * predicate, or `None` if no such element exists.
  *
- * @example
+ * **Example** (Finding the first match)
+ *
  * ```ts
  * import { Iterable } from "effect"
  * import * as Option from "effect/Option"
@@ -712,7 +730,8 @@ export const findFirst: {
 /**
  * Find the last element for which a predicate holds.
  *
- * @example
+ * **Example** (Finding the last match)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -772,7 +791,8 @@ export const findLast: {
 /**
  * Takes two `Iterable`s and returns an `Iterable` of corresponding pairs.
  *
- * @example
+ * **Example** (Zipping iterables)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -815,7 +835,8 @@ export const zip: {
  * Apply a function to pairs of elements at the same index in two `Iterable`s, collecting the results. If one
  * input `Iterable` is short, excess elements of the longer `Iterable` are discarded.
  *
- * @example
+ * **Example** (Zipping with a combining function)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -881,7 +902,8 @@ export const zipWith: {
  * Places an element in between members of an `Iterable`.
  * If the input is a non-empty array, the result is also a non-empty array.
  *
- * @example
+ * **Example** (Interspersing separators)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -942,7 +964,8 @@ export const intersperse: {
 /**
  * Returns a function that checks if an `Iterable` contains a given value using a provided `isEquivalent` function.
  *
- * @example
+ * **Example** (Checking membership with custom equivalence)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -991,7 +1014,8 @@ export const containsWith = <A>(isEquivalent: (self: A, that: A) => boolean): {
 /**
  * Returns a function that checks if a `Iterable` contains a given value using the default `Equivalence`.
  *
- * @example
+ * **Example** (Checking membership)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -1026,7 +1050,8 @@ export const contains: {
  * Splits an `Iterable` into length-`n` pieces. The last piece will be shorter if `n` does not evenly divide the length of
  * the `Iterable`.
  *
- * @example
+ * **Example** (Chunking an iterable)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -1094,7 +1119,8 @@ export const chunksOf: {
 /**
  * Group equal, consecutive elements of an `Iterable` into `NonEmptyArray`s using the provided `isEquivalent` function.
  *
- * @example
+ * **Example** (Grouping consecutive elements with custom equivalence)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -1172,7 +1198,8 @@ export const groupWith: {
 /**
  * Group equal, consecutive elements of an `Iterable` into `NonEmptyArray`s.
  *
- * @example
+ * **Example** (Grouping consecutive elements)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -1209,7 +1236,8 @@ export const group: <A>(self: Iterable<A>) => Iterable<NonEmptyArray<A>> = group
  * Splits an `Iterable` into sub-non-empty-arrays stored in an object, based on the result of calling a `string`-returning
  * function on each element, and grouping the results according to values returned
  *
- * @example
+ * **Example** (Grouping by a key)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -1290,7 +1318,8 @@ const constEmptyIterator: Iterator<never> = {
  * This function returns a reusable empty iterable that can be used as a base case
  * for operations or when you need to represent "no data" in a type-safe way.
  *
- * @example
+ * **Example** (Creating an empty iterable)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -1318,7 +1347,8 @@ export const empty = <A = never>(): Iterable<A> => constEmpty
  *
  * @param a - The single element to wrap in an iterable
  *
- * @example
+ * **Example** (Wrapping a single value)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -1357,7 +1387,8 @@ export const of = <A>(a: A): Iterable<A> => [a]
  * @param self - The source iterable to transform
  * @param f - Function that transforms each element (receives value and index)
  *
- * @example
+ * **Example** (Mapping elements)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -1405,7 +1436,8 @@ export const map: {
 /**
  * Applies a function to each element in an Iterable and returns a new Iterable containing the concatenated mapped elements.
  *
- * @example
+ * **Example** (FlatMapping iterables)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -1452,7 +1484,8 @@ export const flatMap: {
 /**
  * Flattens an Iterable of Iterables into a single Iterable
  *
- * @example
+ * **Example** (Flattening nested iterables)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -1510,7 +1543,8 @@ export const flatten = <A>(self: Iterable<Iterable<A>>): Iterable<A> => ({
  * This combines mapping and filtering in a single operation - the function is applied to each element,
  * and only elements that result in `Result.succeed` are included in the result.
  *
- * @example
+ * **Example** (Filtering and transforming Result values)
+ *
  * ```ts
  * import { Iterable } from "effect"
  * import * as Result from "effect/Result"
@@ -1578,7 +1612,8 @@ export const filterMap: {
 /**
  * Transforms all elements of the `Iterable` for as long as the specified function succeeds.
  *
- * @example
+ * **Example** (Filtering and transforming until failure)
+ *
  * ```ts
  * import { Iterable } from "effect"
  * import * as Result from "effect/Result"
@@ -1637,7 +1672,8 @@ export const filterMapWhile: {
 /**
  * Retrieves the `Some` values from an `Iterable` of `Option`s.
  *
- * @example
+ * **Example** (Extracting Some values)
+ *
  * ```ts
  * import { Iterable } from "effect"
  * import * as Option from "effect/Option"
@@ -1677,7 +1713,8 @@ export const getSomes = <A>(self: Iterable<Option<A>>): Iterable<A> => {
 /**
  * Retrieves the `Err` values from an `Iterable` of `Result`s.
  *
- * @example
+ * **Example** (Extracting failures)
+ *
  * ```ts
  * import { Iterable } from "effect"
  * import * as Result from "effect/Result"
@@ -1721,7 +1758,8 @@ export const getFailures = <R0, L>(self: Iterable<Result<R0, L>>): Iterable<L> =
 /**
  * Retrieves the `Ok` values from an `Iterable` of `Result`s.
  *
- * @example
+ * **Example** (Extracting successes)
+ *
  * ```ts
  * import { Iterable } from "effect"
  * import * as Result from "effect/Result"
@@ -1772,7 +1810,8 @@ export const getSuccesses = <R0, L>(self: Iterable<Result<R0, L>>): Iterable<R0>
  * @param self - The source iterable to filter
  * @param predicate - Function that tests each element (receives value and index)
  *
- * @example
+ * **Example** (Filtering elements)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -1838,7 +1877,8 @@ export const filter: {
  * This is useful when working with APIs or functions that return nullable values,
  * providing a clean way to filter out null/undefined while transforming.
  *
- * @example
+ * **Example** (FlatMapping nullable results)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -1889,7 +1929,8 @@ export const flatMapNullishOr: {
 /**
  * Check if a predicate holds true for some `Iterable` element.
  *
- * @example
+ * **Example** (Checking whether some element matches)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -1950,7 +1991,8 @@ export const some: {
  * maintains state. The function should return `Option.some([value, nextState])`
  * to continue or `Option.none()` to stop.
  *
- * @example
+ * **Example** (Unfolding state into values)
+ *
  * ```ts
  * import { Iterable, Option } from "effect"
  *
@@ -1999,7 +2041,8 @@ export const unfold = <B, A>(b: B, f: (b: B) => Option<readonly [A, B]>): Iterab
 /**
  * Iterate over the `Iterable` applying `f`.
  *
- * @example
+ * **Example** (Iterating with side effects)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -2049,7 +2092,8 @@ export const forEach: {
  * This function applies a reducing function against an accumulator and each element
  * of the iterable (from left to right) to reduce it to a single value.
  *
- * @example
+ * **Example** (Reducing an iterable)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -2109,7 +2153,8 @@ export const reduce: {
 /**
  * Deduplicates adjacent elements that are identical using the provided `isEquivalent` function.
  *
- * @example
+ * **Example** (Deduplicating adjacent elements with custom equivalence)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -2179,7 +2224,8 @@ export const dedupeAdjacentWith: {
 /**
  * Deduplicates adjacent elements that are identical.
  *
- * @example
+ * **Example** (Deduplicating adjacent elements)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -2218,7 +2264,8 @@ export const dedupeAdjacent: <A>(self: Iterable<A>) => Iterable<A> = dedupeAdjac
 /**
  * Zips this Iterable crosswise with the specified Iterable using the specified combiner.
  *
- * @example
+ * **Example** (Combining cartesian products)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -2276,7 +2323,8 @@ export const cartesianWith: {
 /**
  * Zips this Iterable crosswise with the specified Iterable.
  *
- * @example
+ * **Example** (Generating cartesian pairs)
+ *
  * ```ts
  * import { Iterable } from "effect"
  *
@@ -2324,7 +2372,7 @@ export const cartesian: {
 /**
  * Counts all the element of the given iterable that pass the given predicate
  *
- * **Example**
+ * **Example** (Counting matching elements)
  *
  * ```ts
  * import { Iterable } from "effect"

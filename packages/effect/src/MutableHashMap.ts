@@ -38,7 +38,8 @@ import { hasProperty } from "./Predicate.ts"
 const TypeId = "~effect/collections/MutableHashMap"
 
 /**
- * @example
+ * **Example** (Using a mutable hash map)
+ *
  * ```ts
  * import * as MutableHashMap from "effect/MutableHashMap"
  *
@@ -105,7 +106,8 @@ const MutableHashMapProto: Omit<MutableHashMap<unknown, unknown>, "backing" | "b
 /**
  * Creates an empty MutableHashMap.
  *
- * @example
+ * **Example** (Creating an empty map)
+ *
  * ```ts
  * import * as MutableHashMap from "effect/MutableHashMap"
  *
@@ -131,7 +133,8 @@ export const empty = <K, V>(): MutableHashMap<K, V> => {
 /**
  * Creates a MutableHashMap from a variable number of key-value pairs.
  *
- * @example
+ * **Example** (Creating a map from entries)
+ *
  * ```ts
  * import * as MutableHashMap from "effect/MutableHashMap"
  *
@@ -158,7 +161,8 @@ export const make: <Entries extends Array<readonly [any, any]>>(
 /**
  * Creates a MutableHashMap from an iterable collection of key-value pairs.
  *
- * @example
+ * **Example** (Creating a map from an iterable)
+ *
  * ```ts
  * import * as MutableHashMap from "effect/MutableHashMap"
  *
@@ -192,7 +196,8 @@ export const fromIterable = <K, V>(entries: Iterable<readonly [K, V]>): MutableH
 /**
  * Retrieves the value associated with the specified key from the MutableHashMap.
  *
- * @example
+ * **Example** (Getting a value)
+ *
  * ```ts
  * import * as MutableHashMap from "effect/MutableHashMap"
  *
@@ -239,7 +244,8 @@ const isSimpleKey = (u: unknown): boolean => typeof u !== "object" && typeof u !
 /**
  * Extracts all keys from the MutableHashMap into an array.
  *
- * @example
+ * **Example** (Reading keys)
+ *
  * ```ts
  * import * as MutableHashMap from "effect/MutableHashMap"
  *
@@ -264,7 +270,8 @@ export const keys = <K, V>(self: MutableHashMap<K, V>): Iterable<K> => self.back
 /**
  * Extracts all values from the MutableHashMap into an array.
  *
- * @example
+ * **Example** (Reading values)
+ *
  * ```ts
  * import * as MutableHashMap from "effect/MutableHashMap"
  *
@@ -309,7 +316,8 @@ const getFromBucket = <K, V>(
 /**
  * Checks if the MutableHashMap contains the specified key.
  *
- * @example
+ * **Example** (Checking for a key)
+ *
  * ```ts
  * import * as MutableHashMap from "effect/MutableHashMap"
  *
@@ -338,7 +346,8 @@ export const has: {
  * Sets a key-value pair in the MutableHashMap, mutating the map in place.
  * If the key already exists, its value is updated.
  *
- * @example
+ * **Example** (Setting key-value pairs)
+ *
  * ```ts
  * import * as MutableHashMap from "effect/MutableHashMap"
  *
@@ -414,7 +423,8 @@ const getRefKey = <K>(
  * Updates the value of the specified key within the MutableHashMap if it exists.
  * If the key doesn't exist, the map remains unchanged.
  *
- * @example
+ * **Example** (Modifying existing values)
+ *
  * ```ts
  * import * as MutableHashMap from "effect/MutableHashMap"
  *
@@ -480,7 +490,8 @@ export const modify: {
  * If the function returns Some, the key is set to that value.
  * If the function returns None, the key is removed.
  *
- * @example
+ * **Example** (Updating or removing a key)
+ *
  * ```ts
  * import * as MutableHashMap from "effect/MutableHashMap"
  * import * as Option from "effect/Option"
@@ -549,7 +560,8 @@ export const modifyAt: {
  * Removes the specified key from the MutableHashMap, mutating the map in place.
  * If the key doesn't exist, the map remains unchanged.
  *
- * @example
+ * **Example** (Removing a key)
+ *
  * ```ts
  * import * as MutableHashMap from "effect/MutableHashMap"
  *
@@ -615,7 +627,8 @@ export const remove: {
  * Removes all key-value pairs from the MutableHashMap, mutating the map in place.
  * The map becomes empty after this operation.
  *
- * @example
+ * **Example** (Clearing all entries)
+ *
  * ```ts
  * import * as MutableHashMap from "effect/MutableHashMap"
  *
@@ -650,7 +663,8 @@ export const clear = <K, V>(self: MutableHashMap<K, V>) => {
 /**
  * Returns the number of key-value pairs in the MutableHashMap.
  *
- * @example
+ * **Example** (Checking map size)
+ *
  * ```ts
  * import * as MutableHashMap from "effect/MutableHashMap"
  *

@@ -1,7 +1,8 @@
 /**
  * The `EmbeddingModel` module provides provider-agnostic text embedding capabilities.
  *
- * @example
+ * **Example** (Embedding text with a model)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { EmbeddingModel } from "effect/unstable/ai"

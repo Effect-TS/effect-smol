@@ -19,7 +19,8 @@
  * true for your functions, rather than writing specific test cases. The library
  * then generates many random inputs to verify these properties.
  *
- * @example
+ * **Example** (Checking an array reversal property)
+ *
  * ```ts
  * import * as FastCheck from "effect/testing/FastCheck"
  *
@@ -37,7 +38,8 @@
  * FastCheck.assert(reverseProp)
  * ```
  *
- * @example
+ * **Example** (Checking string concatenation properties)
+ *
  * ```ts
  * import * as FastCheck from "effect/testing/FastCheck"
  *
@@ -56,7 +58,8 @@
  * FastCheck.assert(concatProp)
  * ```
  *
- * @example
+ * **Example** (Generating record data for properties)
+ *
  * ```ts
  * import * as FastCheck from "effect/testing/FastCheck"
  *

@@ -15,9 +15,8 @@ const TypeId = "~effect/LayerMap"
 type IdleTimeToLiveInput<K> = Duration.Input | ((key: K) => Duration.Input)
 
 /**
- * @category Models
- * @since 3.14.0
- * @example
+ * **Example** (Managing keyed layers)
+ *
  * ```ts
  * import { Effect, Layer, LayerMap, Context } from "effect"
  *
@@ -47,6 +46,9 @@ type IdleTimeToLiveInput<K> = Duration.Input | ((key: K) => Duration.Input)
  *   yield* layerMap.invalidate("development")
  * })
  * ```
+ *
+ * @category Models
+ * @since 3.14.0
  */
 export interface LayerMap<in out K, in out I, in out E = never> {
   readonly [TypeId]: typeof TypeId
@@ -73,13 +75,11 @@ export interface LayerMap<in out K, in out I, in out E = never> {
 }
 
 /**
- * @category Constructors
- * @since 3.14.0
- *
  * A `LayerMap` allows you to create a map of Layer's that can be used to
  * dynamically access resources based on a key.
  *
- * @example
+ * **Example** (Creating a layer map)
+ *
  * ```ts
  * import { Effect, Layer, LayerMap, Context } from "effect"
  *
@@ -113,6 +113,9 @@ export interface LayerMap<in out K, in out I, in out E = never> {
  *   console.log(result) // "development: SELECT * FROM users"
  * })
  * ```
+ *
+ * @category Constructors
+ * @since 3.14.0
  */
 export const make: <
   K,
@@ -155,9 +158,8 @@ export const make: <
 })
 
 /**
- * @category Constructors
- * @since 3.14.0
- * @example
+ * **Example** (Creating a layer map from a record)
+ *
  * ```ts
  * import { Effect, Layer, LayerMap, Context } from "effect"
  *
@@ -193,6 +195,9 @@ export const make: <
  *   console.log("LayerMap created from record")
  * })
  * ```
+ *
+ * @category Constructors
+ * @since 3.14.0
  */
 export const fromRecord = <
   const Layers extends Record<string, Layer.Layer<any, any, any>>,
@@ -263,13 +268,11 @@ export interface TagClass<
 }
 
 /**
- * @category Service
- * @since 3.14.0
- *
  * Create a `LayerMap` service that provides a dynamic set of resources based on
  * a key.
  *
- * @example
+ * **Example** (Defining a layer map service)
+ *
  * ```ts
  * import { Console, Effect, Layer, LayerMap, Context } from "effect"
  *
@@ -303,6 +306,9 @@ export interface TagClass<
  *   Effect.provide(GreeterMap.layer)
  * )
  * ```
+ *
+ * @category Service
+ * @since 3.14.0
  */
 export const Service = <Self>() =>
 <

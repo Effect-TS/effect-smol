@@ -140,7 +140,8 @@ const MemoMapTypeId = "~effect/Layer/MemoMap"
  * The MemoMap prevents duplicate construction of the same layer instance,
  * enabling efficient resource sharing across layer dependencies.
  *
- * @example
+ * **Example** (Sharing layer construction with a memo map)
+ *
  * ```ts
  * import { Effect, Layer, Context } from "effect"
  *
@@ -177,7 +178,8 @@ export interface MemoMap {
 /**
  * Returns `true` if the specified value is a `Layer`, `false` otherwise.
  *
- * @example
+ * **Example** (Checking whether a value is a layer)
+ *
  * ```ts
  * import { Effect, Layer, Context } from "effect"
  *
@@ -227,7 +229,8 @@ const fromBuildUnsafe = <ROut, E, RIn>(
  * The function receives a `MemoMap` for memoization and a `Scope` for resource management.
  * A child scope is created, and if the build fails, the child scope is closed.
  *
- * @example
+ * **Example** (Constructing a layer from a build function)
+ *
  * ```ts
  * import { Effect, Layer, Context } from "effect"
  *
@@ -268,7 +271,8 @@ export const fromBuild = <ROut, E, RIn>(
  * This is similar to `fromBuild` but provides automatic memoization of the layer construction.
  * The layer will be memoized based on the provided `MemoMap`.
  *
- * @example
+ * **Example** (Memoizing layer construction)
+ *
  * ```ts
  * import { Effect, Layer, Context } from "effect"
  *
@@ -351,7 +355,8 @@ class MemoMapImpl implements MemoMap {
 /**
  * Constructs a `MemoMap` that can be used to build additional layers.
  *
- * @example
+ * **Example** (Creating a memo map unsafely)
+ *
  * ```ts
  * import { Effect, Layer, Context } from "effect"
  *
@@ -381,7 +386,8 @@ export const makeMemoMapUnsafe = (): MemoMap => new MemoMapImpl()
 /**
  * Constructs a `MemoMap` that can be used to build additional layers.
  *
- * @example
+ * **Example** (Creating a memo map in an effect)
+ *
  * ```ts
  * import { Effect, Layer, Context } from "effect"
  *
@@ -428,7 +434,8 @@ export class CurrentMemoMap extends Context.Service<CurrentMemoMap, MemoMap>()("
  * Builds a layer into an `Effect` value, using the specified `MemoMap` to memoize
  * the layer construction.
  *
- * @example
+ * **Example** (Building layers with an explicit memo map)
+ *
  * ```ts
  * import { Effect, Layer, Context } from "effect"
  *
@@ -495,7 +502,8 @@ export const buildWithMemoMap: {
 /**
  * Builds a layer into a scoped value.
  *
- * @example
+ * **Example** (Building a layer into a context)
+ *
  * ```ts
  * import { Effect, Layer, Context } from "effect"
  *
@@ -540,7 +548,8 @@ export const build = <RIn, E, ROut>(
  * the services output by the layer exceed the lifetime of the effect the
  * layer is provided to.
  *
- * @example
+ * **Example** (Building a layer with an explicit scope)
+ *
  * ```ts
  * import { Effect, Layer, Scope, Context } from "effect"
  *
@@ -591,7 +600,8 @@ export const buildWithScope: {
 /**
  * Constructs a layer from the specified value.
  *
- * @example
+ * **Example** (Providing services from values)
+ *
  * ```ts
  * import { Effect, Layer, Context } from "effect"
  *
@@ -647,7 +657,8 @@ export const succeed: {
  * This is a more general version of `succeed` that allows you to provide multiple
  * services at once through a `Context`.
  *
- * @example
+ * **Example** (Providing multiple services from a context)
+ *
  * ```ts
  * import { Effect, Layer, Context } from "effect"
  *
@@ -682,7 +693,8 @@ export const succeedContext = <A>(context: Context.Context<A>): Layer<A> =>
  * This layer provides no services and can be used as a neutral element
  * in layer composition or as a starting point for building layers.
  *
- * @example
+ * **Example** (Creating an empty layer)
+ *
  * ```ts
  * import { Layer } from "effect"
  *
@@ -700,7 +712,8 @@ export const empty: Layer<never> = succeedContext(Context.empty())
  * This is a lazy version of `succeed` where the service value is computed
  * synchronously only when the layer is built.
  *
- * @example
+ * **Example** (Lazily providing a service)
+ *
  * ```ts
  * import { Effect, Layer, Context } from "effect"
  *
@@ -733,7 +746,8 @@ export const sync: {
  * This is a lazy version of `succeedContext` where the Context is computed
  * synchronously only when the layer is built.
  *
- * @example
+ * **Example** (Lazily providing a context)
+ *
  * ```ts
  * import { Effect, Layer, Context } from "effect"
  *
@@ -767,7 +781,8 @@ export const syncContext = <A>(evaluate: LazyArg<Context.Context<A>>): Layer<A> 
  *
  * - `Layer.scoped`
  *
- * @example
+ * **Example** (Creating a layer from an effect)
+ *
  * ```ts
  * import { Effect, Layer, Context } from "effect"
  *
@@ -813,7 +828,8 @@ const effectImpl = <I, S, E, R>(
  * This allows you to create a Layer from an effectful computation that returns
  * multiple services. The Effect is executed in the scope of the layer.
  *
- * @example
+ * **Example** (Creating a layer from an effectful context)
+ *
  * ```ts
  * import { Effect, Layer, Context } from "effect"
  *
@@ -848,7 +864,8 @@ export const effectContext = <A, E, R>(
  *
  * - `Layer.scopedDiscard`
  *
- * @example
+ * **Example** (Running an effect during layer construction)
+ *
  * ```ts
  * import { Effect, Layer } from "effect"
  *
@@ -871,7 +888,8 @@ export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E,
  * The factory is evaluated only when the suspended layer is first built, and
  * the result is memoized with normal layer sharing semantics.
  *
- * @example
+ * **Example** (Choosing a layer lazily)
+ *
  * ```ts
  * import { Layer, Context } from "effect"
  *
@@ -899,7 +917,8 @@ export const suspend = <A, E, R>(evaluate: LazyArg<Layer<A, E, R>>): Layer<A, E,
  * use that Layer directly. The resulting Layer will have the combined error and
  * dependency types from both the outer Effect and the inner Layer.
  *
- * @example
+ * **Example** (Unwrapping an effectful layer)
+ *
  * ```ts
  * import { Effect, Layer, Context } from "effect"
  *
@@ -947,7 +966,8 @@ const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<n
  * All layers are built concurrently, and their outputs are merged into a single layer.
  * This is useful when you need to combine multiple independent layers.
  *
- * @example
+ * **Example** (Merging independent layers)
+ *
  * ```ts
  * import { Effect, Layer, Context } from "effect"
  *
@@ -986,7 +1006,8 @@ export const mergeAll = <Layers extends [Layer<never, any, any>, ...Array<Layer<
  * This is a binary version of `mergeAll` that merges exactly two layers or one layer with an array of layers.
  * The layers are built concurrently and their outputs are combined.
  *
- * @example
+ * **Example** (Merging two layers)
+ *
  * ```ts
  * import { Effect, Layer, Context } from "effect"
  *
@@ -1069,7 +1090,8 @@ const provideWith = (
  * builder, resulting in a new builder with the inputs of this builder as
  * well as any leftover inputs, and the outputs of the specified builder.
  *
- * @example
+ * **Example** (Providing layer dependencies)
+ *
  * ```ts
  * import { Effect, Layer, Context } from "effect"
  *
@@ -1167,7 +1189,8 @@ export const provide: {
  * layer, resulting in a new layer with the inputs of this layer, and the
  * outputs of both layers.
  *
- * @example
+ * **Example** (Providing dependencies while retaining services)
+ *
  * ```ts
  * import { Effect, Layer, Context } from "effect"
  *
@@ -1274,7 +1297,8 @@ export const provideMerge: {
 /**
  * Constructs a layer dynamically based on the output of this layer.
  *
- * @example
+ * **Example** (Creating services from layer output)
+ *
  * ```ts
  * import { Effect, Layer, Context } from "effect"
  *
@@ -1446,7 +1470,8 @@ export const tapCause: {
  * Translates effect failure into death of the fiber, making all failures
  * unchecked and not a part of the type of the layer.
  *
- * @example
+ * **Example** (Converting layer failures to defects)
+ *
  * ```ts
  * import { Data, Effect, Layer, Context } from "effect"
  *
@@ -1522,7 +1547,8 @@ export {
 /**
  * Recovers from specific tagged errors.
  *
- * @example
+ * **Example** (Recovering from tagged layer errors)
+ *
  * ```ts
  * import { Data, Effect, Layer, Context } from "effect"
  *
@@ -1598,7 +1624,8 @@ export const catchTag: {
 /**
  * Recovers from all errors.
  *
- * @example
+ * **Example** (Recovering from layer failures by cause)
+ *
  * ```ts
  * import { Data, Effect, Layer, Context } from "effect"
  *
@@ -1711,7 +1738,8 @@ export const updateService: {
 /**
  * Creates a fresh version of this layer that will not be shared.
  *
- * @example
+ * **Example** (Creating non-shared layer instances)
+ *
  * ```ts
  * import { Effect, Layer, Ref, Context } from "effect"
  *
@@ -1766,7 +1794,8 @@ export const fresh = <A, E, R>(self: Layer<A, E, R>): Layer<A, E, R> =>
  * Builds this layer and uses it until it is interrupted. This is useful when
  * your entire application is a layer, such as an HTTP server.
  *
- * @example
+ * **Example** (Launching an application layer)
+ *
  * ```ts
  * import { Console, Effect, Layer, Context } from "effect"
  *
@@ -1851,7 +1880,8 @@ type AnyEffectOrStream =
  * implementation of the service, and any methods not provided will
  * throw an unimplemented defect when called.
  *
- * @example
+ * **Example** (Mocking services for tests)
+ *
  * ```ts
  * import { Effect, Layer, Context } from "effect"
  *
@@ -1955,7 +1985,8 @@ const ChannelTypeId: Channel.TypeId = "~effect/Channel"
  * This function provides compile-time type checking to ensure that the success
  * value of an layer conforms to a specific type constraint.
  *
- * @example
+ * **Example** (Constraining layer success types)
+ *
  * ```ts
  * import { Layer } from "effect"
  *
@@ -1986,7 +2017,8 @@ export const satisfiesSuccessType =
  * This function provides compile-time type checking to ensure that the error
  * type of an layer conforms to a specific type constraint.
  *
- * @example
+ * **Example** (Constraining layer error types)
+ *
  * ```ts
  * import { Layer } from "effect"
  *
@@ -2018,7 +2050,8 @@ export const satisfiesErrorType =
  * This function provides compile-time type checking to ensure that the
  * requirements (context) type of an layer conforms to a specific type constraint.
  *
- * @example
+ * **Example** (Constraining layer service requirements)
+ *
  * ```ts
  * import { Layer } from "effect"
  *
@@ -2072,7 +2105,8 @@ export interface SpanOptions extends Tracer.SpanOptions {
  * operations within the layer constructor part of the same trace span. The span
  * is automatically closed when the layer's scope is closed.
  *
- * @example
+ * **Example** (Tracing layer construction with a span)
+ *
  * ```ts
  * import { Console, Effect, Layer, Context, type Tracer } from "effect"
  *
@@ -2133,7 +2167,8 @@ export const span = (
  * operations within the layer constructor part of the same trace span. The span
  * is automatically closed when the layer's scope is closed.
  *
- * @example
+ * **Example** (Using an existing parent span)
+ *
  * ```ts
  * import { Console, Effect, Layer, Context, Tracer } from "effect"
  *
@@ -2174,7 +2209,8 @@ export const parentSpan = (span: Tracer.AnySpan): Layer<Tracer.ParentSpan> =>
  * is automatically ended when the layer's scope is closed. This is useful for
  * tracking the lifecycle and performance of layer initialization.
  *
- * @example
+ * **Example** (Wrapping a layer with a span)
+ *
  * ```ts
  * import { Effect, Layer, Context } from "effect"
  *
@@ -2275,7 +2311,8 @@ export const withSpan: {
  * the layer children of the provided parent span. This is useful for integrating
  * layer construction into an existing trace hierarchy.
  *
- * @example
+ * **Example** (Attaching layers to an existing parent span)
+ *
  * ```ts
  * import { Effect, Layer, Context, Tracer } from "effect"
  *

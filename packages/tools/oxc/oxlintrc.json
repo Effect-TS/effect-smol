@@ -23,7 +23,7 @@
     // Staged rollout: add package/module globs to include.
     "effect/standard-jsdoc": ["error", {
       "include": [
-        "packages/effect/src/Effect.ts"
+        "packages/effect/src/Array.ts"
       ],
       "exclude": [
         "packages/**/src/index.ts",
@@ -31,7 +31,7 @@
       ],
       "examples": {
         "values": "optional",
-        "types": "forbidden"
+        "types": "optional"
       }
     }],
     // Tune native rules

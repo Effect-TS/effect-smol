@@ -133,7 +133,8 @@ export interface ManagedRuntime<in R, out ER> {
  *
  * @category runtime class
  * @since 2.0.0
- * @example
+ * **Example** (Creating a managed runtime)
+ *
  * ```ts
  * import { Console, Effect, Layer, ManagedRuntime, Context } from "effect"
  *

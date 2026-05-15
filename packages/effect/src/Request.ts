@@ -30,7 +30,8 @@ const TypeId = "~effect/Request"
  * A `Request<A, E, R>` is a request from a data source for a value of type `A`
  * that may fail with an `E` and have requirements of type `R`.
  *
- * @example
+ * **Example** (Defining typed requests)
+ *
  * ```ts
  * import type { Request } from "effect"
  *
@@ -70,7 +71,8 @@ export interface Variance<out A, out E, out R> {
 }
 
 /**
- * @example
+ * **Example** (Using generated request constructors)
+ *
  * ```ts
  * import { Request } from "effect"
  *
@@ -94,7 +96,8 @@ export interface Constructor<R extends Request<any, any, any>, T extends keyof R
 /**
  * A utility type to extract the error type from a `Request`.
  *
- * @example
+ * **Example** (Extracting a request error type)
+ *
  * ```ts
  * import type { Request } from "effect"
  *
@@ -114,7 +117,8 @@ export type Error<T extends Request<any, any, any>> = [T] extends [Request<infer
 /**
  * A utility type to extract the value type from a `Request`.
  *
- * @example
+ * **Example** (Extracting a request success type)
+ *
  * ```ts
  * import type { Request } from "effect"
  *
@@ -145,7 +149,8 @@ export type Services<T extends Request<any, any, any>> = [T] extends [Request<in
 /**
  * A utility type to extract the result type from a `Request`.
  *
- * @example
+ * **Example** (Extracting a request result type)
+ *
  * ```ts
  * import type { Request } from "effect"
  *
@@ -184,7 +189,8 @@ export const RequestPrototype: Request<any, any, any> = {
 /**
  * Tests if a value is a `Request`.
  *
- * @example
+ * **Example** (Checking request values)
+ *
  * ```ts
  * import { Request } from "effect"
  *
@@ -212,7 +218,8 @@ export const isRequest = (u: unknown): u is Request<unknown, unknown, unknown> =
 /**
  * Creates a constructor function for a specific Request type.
  *
- * @example
+ * **Example** (Creating untagged request constructors)
+ *
  * ```ts
  * import { Request } from "effect"
  *
@@ -244,7 +251,8 @@ export const of = <R extends Request<any, any, any>>(): Constructor<R> => (args)
  * Creates a constructor function for a tagged Request type. The tag is automatically
  * added to the request, making it useful for discriminated unions.
  *
- * @example
+ * **Example** (Creating tagged request constructors)
+ *
  * ```ts
  * import { Request } from "effect"
  *
@@ -292,7 +300,8 @@ export const tagged = <R extends Request<any, any, any> & { _tag: string }>(
 }
 
 /**
- * @example
+ * **Example** (Defining request classes)
+ *
  * ```ts
  * import { Request } from "effect"
  *
@@ -323,7 +332,8 @@ export const Class: new<A extends Record<string, any>, Success, Error = never, C
 })()
 
 /**
- * @example
+ * **Example** (Defining tagged request classes)
+ *
  * ```ts
  * import { Request } from "effect"
  *

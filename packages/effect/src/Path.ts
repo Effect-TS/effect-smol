@@ -13,9 +13,8 @@ import { BadArgument } from "./PlatformError.ts"
 export const TypeId = "~effect/platform/Path"
 
 /**
- * @category model
- * @since 4.0.0
- * @example
+ * **Example** (Using path operations)
+ *
  * ```ts
  * import { Effect, Path } from "effect"
  *
@@ -46,6 +45,9 @@ export const TypeId = "~effect/platform/Path"
  *   })
  * })
  * ```
+ *
+ * @category model
+ * @since 4.0.0
  */
 export interface Path {
   readonly [TypeId]: typeof TypeId
@@ -66,9 +68,8 @@ export interface Path {
 }
 
 /**
- * @category namespace
- * @since 4.0.0
- * @example
+ * **Example** (Working with parsed paths)
+ *
  * ```ts
  * import { Effect, Path } from "effect"
  *
@@ -91,12 +92,14 @@ export interface Path {
  *   console.log(parsed, exampleParsed)
  * })
  * ```
+ *
+ * @category namespace
+ * @since 4.0.0
  */
 export declare namespace Path {
   /**
-   * @category model
-   * @since 4.0.0
-   * @example
+   * **Example** (Parsing and formatting paths)
+   *
    * ```ts
    * import { Effect, Path } from "effect"
    *
@@ -123,6 +126,9 @@ export declare namespace Path {
    *   console.log(formatted) // "/home/user/newfile.ts"
    * })
    * ```
+   *
+   * @category model
+   * @since 4.0.0
    */
   export interface Parsed {
     readonly root: string
@@ -134,9 +140,8 @@ export declare namespace Path {
 }
 
 /**
- * @category tag
- * @since 4.0.0
- * @example
+ * **Example** (Providing a custom Path service)
+ *
  * ```ts
  * import { Effect, Layer, Path } from "effect"
  *
@@ -190,6 +195,9 @@ export declare namespace Path {
  * // Run with custom path implementation
  * const result = Effect.provide(program, customPathLayer)
  * ```
+ *
+ * @category tag
+ * @since 4.0.0
  */
 export const Path: Context.Service<Path, Path> = Context.Service("effect/Path")
 

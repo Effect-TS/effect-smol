@@ -28,7 +28,8 @@ export const TypeId: TypeId = "~@effect/atom-react/ScopedAtom"
  *
  * Scoped Atom interface with a provider-backed instance.
  *
- * @example
+ * **Example** (Providing and reading a scoped atom)
+ *
  * ```ts
  * import * as Atom from "effect/unstable/reactivity/Atom"
  * import * as React from "react"
@@ -62,7 +63,8 @@ export interface ScopedAtom<A extends Atom.Atom<any>, Input = never> {
  *
  * Creates a ScopedAtom from a factory function.
  *
- * @example
+ * **Example** (Creating a scoped atom with input)
+ *
  * ```ts
  * import * as Atom from "effect/unstable/reactivity/Atom"
  * import * as React from "react"

@@ -13,7 +13,8 @@
  * Use the annotation symbols (`ignore`, `severity`, `attributes`) on your
  * error classes to control reporting behavior per-error.
  *
- * @example
+ * **Example** (Reporting errors with annotations)
+ *
  * ```ts
  * import { Data, Effect, ErrorReporter } from "effect"
  *
@@ -101,7 +102,8 @@ export interface ErrorReporter {
  * and resolves the `ignore`, `severity`, and `attributes` annotations on
  * each error before invoking your callback.
  *
- * @example
+ * **Example** (Forwarding errors to the console)
+ *
  * ```ts
  * import { ErrorReporter } from "effect"
  *
@@ -177,7 +179,8 @@ export const CurrentErrorReporters: Context.Reference<ReadonlySet<ErrorReporter>
  * reporters. Set `mergeWithExisting: true` to add them alongside existing
  * ones.
  *
- * @example
+ * **Example** (Providing error reporters)
+ *
  * ```ts
  * import { Effect, ErrorReporter } from "effect"
  *
@@ -243,7 +246,8 @@ export const layer = <
  * This is useful when you want to report an error for observability without
  * actually failing the fiber.
  *
- * @example
+ * **Example** (Reporting a cause manually)
+ *
  * ```ts
  * import { Cause, Effect, ErrorReporter } from "effect"
  *
@@ -294,7 +298,8 @@ declare global {
  * Set this property to `true` on any error class to prevent it from being
  * forwarded to reporters. Useful for expected errors such as HTTP 404s.
  *
- * @example
+ * **Example** (Ignoring expected errors)
+ *
  * ```ts
  * import { Data, ErrorReporter } from "effect"
  *
@@ -314,7 +319,8 @@ export type ignore = "~effect/ErrorReporter/ignore"
  * Set this property to `true` on any error class to prevent it from being
  * forwarded to reporters. Useful for expected errors such as HTTP 404s.
  *
- * @example
+ * **Example** (Marking errors as ignored)
+ *
  * ```ts
  * import { Data, ErrorReporter } from "effect"
  *
@@ -345,7 +351,8 @@ export const isIgnored = (u: unknown): boolean =>
  * of the default `"Error"`. Accepted values are the `LogLevel.Severity`
  * literals: `"Trace"`, `"Debug"`, `"Info"`, `"Warn"`, `"Error"`, `"Fatal"`.
  *
- * @example
+ * **Example** (Overriding error severity)
+ *
  * ```ts
  * import { Data, ErrorReporter } from "effect"
  *
@@ -366,7 +373,8 @@ export type severity = "~effect/ErrorReporter/severity"
  * of the default `"Error"`. Accepted values are the `LogLevel.Severity`
  * literals: `"Trace"`, `"Debug"`, `"Info"`, `"Warn"`, `"Error"`, `"Fatal"`.
  *
- * @example
+ * **Example** (Setting error severity annotations)
+ *
  * ```ts
  * import { Data, ErrorReporter } from "effect"
  *
@@ -401,7 +409,8 @@ export const getSeverity = (error: object): Severity => {
  * include contextual information such as user IDs, request IDs, or any
  * domain-specific data useful for debugging.
  *
- * @example
+ * **Example** (Attaching error attributes)
+ *
  * ```ts
  * import { Data, ErrorReporter } from "effect"
  *
@@ -426,7 +435,8 @@ export type attributes = "~effect/ErrorReporter/attributes"
  * include contextual information such as user IDs, request IDs, or any
  * domain-specific data useful for debugging.
  *
- * @example
+ * **Example** (Setting error attributes)
+ *
  * ```ts
  * import { Data, ErrorReporter } from "effect"
  *

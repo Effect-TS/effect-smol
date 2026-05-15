@@ -38,7 +38,8 @@ const emptyState: LockState = {
  * Multiple readers can hold the lock concurrently, or a single writer can hold exclusive
  * access. A fiber holding the write lock may acquire additional read/write locks (reentrancy).
  *
- * @example
+ * **Example** (Using read and write locks)
+ *
  * ```ts
  * import { Effect, TxReentrantLock } from "effect"
  *
@@ -84,7 +85,8 @@ const TxReentrantLockProto: Omit<TxReentrantLock, typeof TypeId | "stateRef"> = 
 /**
  * Creates a new TxReentrantLock.
  *
- * @example
+ * **Example** (Creating a reentrant lock)
+ *
  * ```ts
  * import { Effect, TxReentrantLock } from "effect"
  *
@@ -116,7 +118,8 @@ export const make = (): Effect.Effect<TxReentrantLock> =>
  * If the current fiber already holds the write lock, the read lock is granted (reentrancy).
  * Returns the current number of read locks held by this fiber.
  *
- * @example
+ * **Example** (Acquiring a read lock)
+ *
  * ```ts
  * import { Effect, TxReentrantLock } from "effect"
  *
@@ -159,7 +162,8 @@ export const acquireRead = (self: TxReentrantLock): Effect.Effect<number> =>
  * If the current fiber holds a read lock, the write lock is granted (upgrade).
  * Returns the current number of write locks held by this fiber.
  *
- * @example
+ * **Example** (Acquiring a write lock)
+ *
  * ```ts
  * import { Effect, TxReentrantLock } from "effect"
  *
@@ -216,7 +220,8 @@ export const acquireWrite = (self: TxReentrantLock): Effect.Effect<number> =>
  * Releases a read lock held by the current fiber.
  * Returns the remaining number of read locks held by this fiber.
  *
- * @example
+ * **Example** (Releasing a read lock)
+ *
  * ```ts
  * import { Effect, TxReentrantLock } from "effect"
  *
@@ -254,7 +259,8 @@ export const releaseRead = (self: TxReentrantLock): Effect.Effect<number> =>
  * Releases a write lock held by the current fiber.
  * Returns the remaining number of write locks held by this fiber.
  *
- * @example
+ * **Example** (Releasing a write lock)
+ *
  * ```ts
  * import { Effect, TxReentrantLock } from "effect"
  *
@@ -291,7 +297,8 @@ export const releaseWrite = (self: TxReentrantLock): Effect.Effect<number> =>
  * Acquires a read lock for the duration of the scope.
  * The lock is automatically released when the scope closes.
  *
- * @example
+ * **Example** (Holding a scoped read lock)
+ *
  * ```ts
  * import { Effect, TxReentrantLock } from "effect"
  *
@@ -321,7 +328,8 @@ export const readLock = (self: TxReentrantLock): Effect.Effect<number, never, Sc
  * Acquires a write lock for the duration of the scope.
  * The lock is automatically released when the scope closes.
  *
- * @example
+ * **Example** (Holding a scoped write lock)
+ *
  * ```ts
  * import { Effect, TxReentrantLock } from "effect"
  *
@@ -351,7 +359,8 @@ export const writeLock = (self: TxReentrantLock): Effect.Effect<number, never, S
  * Runs the provided effect while holding a read lock. The lock is automatically
  * released after the effect completes, fails, or is interrupted.
  *
- * @example
+ * **Example** (Running an effect with a read lock)
+ *
  * ```ts
  * import { Effect, TxReentrantLock } from "effect"
  *
@@ -393,7 +402,8 @@ export const withReadLock: {
  * Runs the provided effect while holding a write lock. The lock is automatically
  * released after the effect completes, fails, or is interrupted.
  *
- * @example
+ * **Example** (Running an effect with a write lock)
+ *
  * ```ts
  * import { Effect, TxReentrantLock } from "effect"
  *
@@ -434,7 +444,8 @@ export const withWriteLock: {
 /**
  * Alias for `withWriteLock`. Runs the provided effect while holding a write lock.
  *
- * @example
+ * **Example** (Running an effect with exclusive access)
+ *
  * ```ts
  * import { Effect, TxReentrantLock } from "effect"
  *
@@ -463,7 +474,8 @@ export const withLock: {
 /**
  * Returns the total number of read locks held across all fibers.
  *
- * @example
+ * **Example** (Counting read locks)
+ *
  * ```ts
  * import { Effect, TxReentrantLock } from "effect"
  *
@@ -492,7 +504,8 @@ export const readLocks = (self: TxReentrantLock): Effect.Effect<number> =>
 /**
  * Returns the number of write locks held (0 or the reentrant count).
  *
- * @example
+ * **Example** (Counting write locks)
+ *
  * ```ts
  * import { Effect, TxReentrantLock } from "effect"
  *
@@ -515,7 +528,8 @@ export const writeLocks = (self: TxReentrantLock): Effect.Effect<number> =>
 /**
  * Checks if the lock is held by any fiber (read or write).
  *
- * @example
+ * **Example** (Checking whether a lock is held)
+ *
  * ```ts
  * import { Effect, TxReentrantLock } from "effect"
  *
@@ -538,7 +552,8 @@ export const locked = (self: TxReentrantLock): Effect.Effect<boolean> =>
 /**
  * Checks if any fiber holds a read lock.
  *
- * @example
+ * **Example** (Checking whether a read lock is held)
+ *
  * ```ts
  * import { Effect, TxReentrantLock } from "effect"
  *
@@ -561,7 +576,8 @@ export const readLocked = (self: TxReentrantLock): Effect.Effect<boolean> =>
 /**
  * Checks if any fiber holds a write lock.
  *
- * @example
+ * **Example** (Checking whether a write lock is held)
+ *
  * ```ts
  * import { Effect, TxReentrantLock } from "effect"
  *
@@ -588,7 +604,8 @@ export const writeLocked = (self: TxReentrantLock): Effect.Effect<boolean> =>
 /**
  * Checks if the given value is a TxReentrantLock.
  *
- * @example
+ * **Example** (Checking for TxReentrantLock values)
+ *
  * ```ts
  * import { TxReentrantLock } from "effect"
  *

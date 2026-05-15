@@ -24,7 +24,8 @@ const TypeId = "~effect/Cache"
  * A cache interface that provides a mutable key-value store with automatic TTL management,
  * capacity limits, and lookup functions for cache misses.
  *
- * @example
+ * **Example** (Creating a basic cache)
+ *
  * ```ts
  * import { Cache, Effect } from "effect"
  *
@@ -44,7 +45,8 @@ const TypeId = "~effect/Cache"
  * })
  * ```
  *
- * @example
+ * **Example** (Handling lookup failures)
+ *
  * ```ts
  * import { Cache, Effect } from "effect"
  *
@@ -66,7 +68,8 @@ const TypeId = "~effect/Cache"
  * })
  * ```
  *
- * @example
+ * **Example** (Using complex keys with TTL)
+ *
  * ```ts
  * import { Cache, Data, Duration, Effect } from "effect"
  *
@@ -116,7 +119,8 @@ export interface Entry<A, E> {
  * The timeToLive function receives both the exit result and the key, allowing
  * for flexible TTL policies based on success/failure state and key characteristics.
  *
- * @example
+ * **Example** (Using dynamic time to live)
+ *
  * ```ts
  * import { Cache, Effect, Exit } from "effect"
  *
@@ -179,7 +183,8 @@ export const makeWith = <
  * This is the basic cache constructor where all entries share the same TTL.
  * The lookup function will be called when a key is not found or has expired.
  *
- * @example
+ * **Example** (Creating a basic cache)
+ *
  * ```ts
  * import { Cache, Effect } from "effect"
  *
@@ -196,7 +201,8 @@ export const makeWith = <
  * })
  * ```
  *
- * @example
+ * **Example** (Creating a cache with TTL and async lookup)
+ *
  * ```ts
  * import { Cache, Effect } from "effect"
  *
@@ -269,7 +275,8 @@ const defaultTimeToLive = <A, E>(_: Exit.Exit<A, E>, _key: unknown): Duration.Du
  * If the key is not present or has expired, it will invoke the lookup function
  * to construct the value, store it in the cache, and return it.
  *
- * @example
+ * **Example** (Getting cached values)
+ *
  * ```ts
  * import { Cache, Effect } from "effect"
  *
@@ -291,7 +298,8 @@ const defaultTimeToLive = <A, E>(_: Exit.Exit<A, E>, _key: unknown): Duration.Du
  * })
  * ```
  *
- * @example
+ * **Example** (Handling lookup failures)
+ *
  * ```ts
  * import { Cache, Effect } from "effect"
  *
@@ -315,7 +323,8 @@ const defaultTimeToLive = <A, E>(_: Exit.Exit<A, E>, _key: unknown): Duration.Du
  * })
  * ```
  *
- * @example
+ * **Example** (Sharing concurrent lookups)
+ *
  * ```ts
  * import { Cache, Effect } from "effect"
  *
@@ -408,7 +417,8 @@ const checkCapacity = <K, A, E, R>(self: Cache<K, A, E, R>) => {
  * Unlike `get`, this function will not invoke the lookup function if the key
  * is missing or expired.
  *
- * @example
+ * **Example** (Reading cached values without lookup)
+ *
  * ```ts
  * import { Cache, Effect } from "effect"
  *
@@ -433,7 +443,8 @@ const checkCapacity = <K, A, E, R>(self: Cache<K, A, E, R>) => {
  * })
  * ```
  *
- * @example
+ * **Example** (Skipping expired entries)
+ *
  * ```ts
  * import { Cache, Effect } from "effect"
  * import { TestClock } from "effect/testing"
@@ -462,7 +473,8 @@ const checkCapacity = <K, A, E, R>(self: Cache<K, A, E, R>) => {
  * })
  * ```
  *
- * @example
+ * **Example** (Waiting for pending lookups)
+ *
  * ```ts
  * import { Cache, Deferred, Effect, Fiber } from "effect"
  *
@@ -548,7 +560,8 @@ export const getSuccess: {
  * Sets the value associated with the specified key in the cache. This will
  * overwrite any existing value for that key, skipping the lookup function.
  *
- * @example
+ * **Example** (Setting values directly)
+ *
  * ```ts
  * import { Cache, Effect } from "effect"
  *
@@ -565,7 +578,8 @@ export const getSuccess: {
  * })
  * ```
  *
- * @example
+ * **Example** (Overwriting cached values)
+ *
  * ```ts
  * import { Cache, Effect } from "effect"
  *
@@ -587,7 +601,8 @@ export const getSuccess: {
  * })
  * ```
  *
- * @example
+ * **Example** (Applying TTL to set values)
+ *
  * ```ts
  * import { Cache, Effect } from "effect"
  * import { TestClock } from "effect/testing"
@@ -610,7 +625,8 @@ export const getSuccess: {
  * })
  * ```
  *
- * @example
+ * **Example** (Enforcing capacity when setting values)
+ *
  * ```ts
  * import { Cache, Effect } from "effect"
  *
@@ -666,7 +682,8 @@ export const set: {
 /**
  * Checks if the cache contains an entry for the specified key.
  *
- * @example
+ * **Example** (Checking for cached keys)
+ *
  * ```ts
  * import { Cache, Effect } from "effect"
  *
@@ -685,7 +702,8 @@ export const set: {
  * })
  * ```
  *
- * @example
+ * **Example** (Checking TTL expiration)
+ *
  * ```ts
  * import { Cache, Effect } from "effect"
  * import { TestClock } from "effect/testing"
@@ -712,7 +730,8 @@ export const set: {
  * })
  * ```
  *
- * @example
+ * **Example** (Checking multiple keys)
+ *
  * ```ts
  * import { Cache, Effect } from "effect"
  *
@@ -759,7 +778,8 @@ export const has: {
 /**
  * Invalidates the entry associated with the specified key in the cache.
  *
- * @example
+ * **Example** (Invalidating cached entries)
+ *
  * ```ts
  * import { Cache, Effect } from "effect"
  *
@@ -812,7 +832,8 @@ export const invalidate: {
  * Conditionally invalidates the entry associated with the specified key in the cache
  * if the predicate returns true for the cached value.
  *
- * @example
+ * **Example** (Invalidating entries conditionally)
+ *
  * ```ts
  * import { Cache, Effect } from "effect"
  *
@@ -902,7 +923,8 @@ export const invalidateWhen: {
  * It will always invoke the lookup function to construct a new value,
  * overwriting any existing value for that key.
  *
- * @example
+ * **Example** (Refreshing cached values)
+ *
  * ```ts
  * import { Cache, Effect } from "effect"
  *
@@ -932,7 +954,8 @@ export const invalidateWhen: {
  * })
  * ```
  *
- * @example
+ * **Example** (Resetting TTL on refresh)
+ *
  * ```ts
  * import { Cache, Effect } from "effect"
  * import { TestClock } from "effect/testing"
@@ -960,7 +983,8 @@ export const invalidateWhen: {
  * })
  * ```
  *
- * @example
+ * **Example** (Refreshing missing keys)
+ *
  * ```ts
  * import { Cache, Effect } from "effect"
  *
@@ -1021,7 +1045,8 @@ export const refresh: {
 /**
  * Invalidates all entries in the cache.
  *
- * @example
+ * **Example** (Invalidating all entries)
+ *
  * ```ts
  * import { Cache, Effect } from "effect"
  *
@@ -1066,7 +1091,8 @@ export const invalidateAll = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.E
  * The size reflects the current number of entries stored, not the number
  * of valid entries.
  *
- * @example
+ * **Example** (Reading cache size)
+ *
  * ```ts
  * import { Cache, Effect } from "effect"
  *
@@ -1102,7 +1128,8 @@ export const size = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<num
 /**
  * Retrieves all active keys from the cache, automatically filtering out expired entries.
  *
- * @example
+ * **Example** (Reading active keys)
+ *
  * ```ts
  * import { Cache, Effect } from "effect"
  *
@@ -1144,7 +1171,8 @@ export const keys = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<Ite
  * Retrieves all successfully cached values from the cache, excluding failed
  * lookups and expired entries.
  *
- * @example
+ * **Example** (Reading all cached values)
+ *
  * ```ts
  * import { Cache, Effect } from "effect"
  *

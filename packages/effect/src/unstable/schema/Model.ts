@@ -59,7 +59,8 @@ export {
    *
    * @category constructors
    * @since 4.0.0
-   * @example
+   * **Example** (Defining a variant model class)
+   *
    * ```ts
    * import { Schema } from "effect"
    * import { Model } from "effect/unstable/schema"

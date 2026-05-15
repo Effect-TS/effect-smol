@@ -74,7 +74,8 @@ export const registerProducer = (
 /**
  * Creates a Layer that registers a metric producer with metric readers.
  *
- * @example
+ * **Example** (Creating a metrics layer with temporality)
+ *
  * ```ts
  * import { Metrics } from "@effect/opentelemetry"
  * import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics"

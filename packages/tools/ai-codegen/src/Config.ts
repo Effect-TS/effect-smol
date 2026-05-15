@@ -10,7 +10,8 @@ import * as Schema from "effect/Schema"
 /**
  * Configuration for AI provider code generation.
  *
- * @example
+ * **Example** (Decoding a codegen configuration)
+ *
  * ```ts
  * import * as Config from "@effect/ai-codegen/Config"
  * import * as Schema from "effect/Schema"
@@ -175,7 +176,8 @@ export declare namespace SpecSource {
 /**
  * Constructors and utilities for `SpecSource`.
  *
- * @example
+ * **Example** (Creating spec sources)
+ *
  * ```ts
  * import * as Config from "@effect/ai-codegen/Config"
  *
@@ -247,7 +249,8 @@ export const SpecSource = {
 /**
  * Error when parsing a codegen configuration file fails.
  *
- * @example
+ * **Example** (Creating a config parse error)
+ *
  * ```ts
  * import * as Config from "@effect/ai-codegen/Config"
  *
@@ -268,7 +271,8 @@ export class ConfigParseError extends Data.TaggedError("ConfigParseError")<{
 /**
  * Error when a codegen configuration file is not found.
  *
- * @example
+ * **Example** (Creating a config not found error)
+ *
  * ```ts
  * import * as Config from "@effect/ai-codegen/Config"
  *

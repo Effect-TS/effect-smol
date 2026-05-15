@@ -26,7 +26,8 @@ import { OtlpSerialization } from "./OtlpSerialization.ts"
  * - `"delta"`: Reports changes since the last export. Each interval is
  *   independent with no dependency on previous measurements.
  *
- * @example
+ * **Example** (Configuring aggregation temporality)
+ *
  * ```ts
  * import * as OtlpMetrics from "effect/unstable/observability/OtlpMetrics"
  *

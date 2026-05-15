@@ -31,7 +31,8 @@ import type * as Types from "./Types.ts"
  * - **Closing**: No new offers accepted, serving remaining items until empty
  * - **Done**: Terminal state with completion cause, no further operations possible
  *
- * @example
+ * **Example** (Inspecting queue lifecycle states)
+ *
  * ```ts
  * import type { TxQueue } from "effect"
  *
@@ -70,7 +71,8 @@ const TypeId = "~effect/transactions/TxQueue"
 /**
  * Namespace containing type definitions for TxEnqueue variance annotations.
  *
- * @example
+ * **Example** (Referencing TxEnqueue variance)
+ *
  * ```ts
  * import type { TxQueue } from "effect"
  *
@@ -85,7 +87,8 @@ export declare namespace TxEnqueue {
   /**
    * Variance annotation interface for TxEnqueue contravariance.
    *
-   * @example
+   * **Example** (Using TxEnqueue variance annotations)
+   *
    * ```ts
    * import type { TxQueue } from "effect"
    *
@@ -105,7 +108,8 @@ export declare namespace TxEnqueue {
 /**
  * Namespace containing type definitions for TxDequeue variance annotations.
  *
- * @example
+ * **Example** (Referencing TxDequeue variance)
+ *
  * ```ts
  * import type { TxQueue } from "effect"
  *
@@ -120,7 +124,8 @@ export declare namespace TxDequeue {
   /**
    * Variance annotation interface for TxDequeue covariance.
    *
-   * @example
+   * **Example** (Using TxDequeue variance annotations)
+   *
    * ```ts
    * import type { TxQueue } from "effect"
    *
@@ -140,7 +145,8 @@ export declare namespace TxDequeue {
 /**
  * Namespace containing type definitions for TxQueue variance annotations.
  *
- * @example
+ * **Example** (Referencing TxQueue variance)
+ *
  * ```ts
  * import type { TxQueue } from "effect"
  *
@@ -155,7 +161,8 @@ export declare namespace TxQueue {
   /**
    * Variance annotation interface for TxQueue invariance.
    *
-   * @example
+   * **Example** (Using TxQueue variance annotations)
+   *
    * ```ts
    * import type { TxQueue } from "effect"
    *
@@ -191,7 +198,8 @@ export interface TxQueueState extends Inspectable {
  * A TxEnqueue represents the write-only interface of a transactional queue, providing
  * operations for adding elements (enqueue operations) and inspecting queue state.
  *
- * @example
+ * **Example** (Offering values through enqueue handles)
+ *
  * ```ts
  * import type { Cause } from "effect"
  * import { Effect, TxQueue } from "effect"
@@ -227,7 +235,8 @@ export interface TxEnqueue<in A, in E = never> extends TxQueueState {
  * A TxDequeue represents the read-only interface of a transactional queue, providing
  * operations for consuming elements (dequeue operations) and inspecting queue state.
  *
- * @example
+ * **Example** (Taking values through dequeue handles)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -258,7 +267,8 @@ export interface TxDequeue<out A, out E = never> extends TxQueueState {
  * A TxQueue represents a transactional queue data structure that provides both
  * enqueue and dequeue operations with Software Transactional Memory (STM) semantics.
  *
- * @example
+ * **Example** (Combining enqueue and dequeue operations)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -290,7 +300,8 @@ export interface TxQueue<in out A, in out E = never> extends TxEnqueue<A, E>, Tx
 /**
  * Checks if the given value is a TxEnqueue.
  *
- * @example
+ * **Example** (Checking enqueue handles)
+ *
  * ```ts
  * import { TxQueue } from "effect"
  *
@@ -310,7 +321,8 @@ export const isTxEnqueue = <A = unknown, E = unknown>(u: unknown): u is TxEnqueu
 /**
  * Checks if the given value is a TxDequeue.
  *
- * @example
+ * **Example** (Checking dequeue handles)
+ *
  * ```ts
  * import { TxQueue } from "effect"
  *
@@ -330,7 +342,8 @@ export const isTxDequeue = <A = unknown, E = unknown>(u: unknown): u is TxDequeu
 /**
  * Checks if the given value is a TxQueue.
  *
- * @example
+ * **Example** (Checking queue handles)
+ *
  * ```ts
  * import { TxQueue } from "effect"
  *
@@ -380,7 +393,8 @@ const TxQueueProto = {
  * **Return behavior**: This function returns a new TxQueue reference with
  * the specified capacity. No existing TxQueue instances are modified.
  *
- * @example
+ * **Example** (Creating bounded queues)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -424,7 +438,8 @@ export const bounded = <A = never, E = never>(
  * **Return behavior**: This function returns a new TxQueue reference with
  * unlimited capacity. No existing TxQueue instances are modified.
  *
- * @example
+ * **Example** (Creating unbounded queues)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -466,7 +481,8 @@ export const unbounded = <A = never, E = never>(): Effect.Effect<TxQueue<A, E>> 
  * **Return behavior**: This function returns a new TxQueue reference with
  * dropping strategy. No existing TxQueue instances are modified.
  *
- * @example
+ * **Example** (Creating dropping queues)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -508,7 +524,8 @@ export const dropping = <A = never, E = never>(
  * **Return behavior**: This function returns a new TxQueue reference with
  * sliding strategy. No existing TxQueue instances are modified.
  *
- * @example
+ * **Example** (Creating sliding queues)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -556,7 +573,8 @@ export const sliding = <A = never, E = never>(
  * **Mutation behavior**: This function mutates the original TxQueue by adding
  * the item according to the queue's strategy. It does not return a new TxQueue reference.
  *
- * @example
+ * **Example** (Offering a value)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -622,7 +640,8 @@ export const offer: {
  * **Mutation behavior**: This function mutates the original TxQueue by adding
  * items according to the queue's strategy. It does not return a new TxQueue reference.
  *
- * @example
+ * **Example** (Offering multiple values)
+ *
  * ```ts
  * import { Chunk, Effect, TxQueue } from "effect"
  *
@@ -665,7 +684,8 @@ export const offerAll: {
  * **Mutation behavior**: This function mutates the original TxQueue by removing
  * the first item. It does not return a new TxQueue reference.
  *
- * @example
+ * **Example** (Taking a value)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -721,7 +741,8 @@ export const take = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
 /**
  * Tries to take an item from the queue without blocking.
  *
- * @example
+ * **Example** (Polling without blocking)
+ *
  * ```ts
  * import { Effect, Option, TxQueue } from "effect"
  *
@@ -769,7 +790,8 @@ export const poll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Option.Option<A
  * **Mutation behavior**: This function mutates the original TxQueue by removing
  * all items. It does not return a new TxQueue reference.
  *
- * @example
+ * **Example** (Taking all queued values)
+ *
  * ```ts
  * import { Array, Effect, TxQueue } from "effect"
  *
@@ -841,7 +863,8 @@ export const takeAll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Arr.NonEmpty
  * **Mutation behavior**: This function mutates the original TxQueue by removing
  * the taken items. It does not return a new TxQueue reference.
  *
- * @example
+ * **Example** (Taking a fixed number of values)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -925,7 +948,8 @@ export const takeN: {
  * Takes a variable number of items between a specified minimum and maximum from the queue.
  * Waits for at least the minimum number of items to be available.
  *
- * @example
+ * **Example** (Taking batches within bounds)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -1009,7 +1033,8 @@ export const takeBetween: {
  * Views the next item without removing it. If the queue is in a failed state,
  * the error is propagated through the E-channel.
  *
- * @example
+ * **Example** (Peeking without removing values)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -1059,7 +1084,8 @@ export const peek = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
 /**
  * Gets the current size of the queue.
  *
- * @example
+ * **Example** (Reading queue size)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -1080,7 +1106,8 @@ export const size = (self: TxQueueState): Effect.Effect<number> => TxChunk.size(
 /**
  * Checks if the queue is empty.
  *
- * @example
+ * **Example** (Checking whether a queue is empty)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -1104,7 +1131,8 @@ export const isEmpty = (self: TxQueueState): Effect.Effect<boolean> => TxChunk.i
 /**
  * Checks if the queue is at capacity.
  *
- * @example
+ * **Example** (Checking whether a queue is full)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -1134,7 +1162,8 @@ export const isFull = (self: TxQueueState): Effect.Effect<boolean> =>
  * **Mutation behavior**: This function mutates the original TxQueue by marking
  * it for graceful closure. It does not return a new TxQueue reference.
  *
- * @example
+ * **Example** (Interrupting queues)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -1160,7 +1189,8 @@ export const interrupt = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<boolean> =
  * **Mutation behavior**: This function mutates the original TxQueue by marking
  * it as failed. It does not return a new TxQueue reference.
  *
- * @example
+ * **Example** (Failing queues)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -1203,7 +1233,8 @@ export const fail: {
  * **Mutation behavior**: This function mutates the original TxQueue by marking
  * it as completed. It does not return a new TxQueue reference.
  *
- * @example
+ * **Example** (Failing queues with causes)
+ *
  * ```ts
  * import { Cause, Effect, TxQueue } from "effect"
  *
@@ -1254,7 +1285,8 @@ export const failCause: {
  * When a queue is ended, all subsequent operations (take, peek, etc.) will fail with
  * `Cause.Done`, propagating through the E-channel.
  *
- * @example
+ * **Example** (Ending queues)
+ *
  * ```ts
  * import { Cause, Effect, TxQueue } from "effect"
  *
@@ -1289,7 +1321,8 @@ export const end = <A, E>(self: TxEnqueue<A, E | Cause.Done>): Effect.Effect<boo
  * **Mutation behavior**: This function mutates the original TxQueue by removing
  * all elements. It does not return a new TxQueue reference.
  *
- * @example
+ * **Example** (Clearing queues)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -1336,7 +1369,8 @@ export const clear = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<Array<A>, Excl
  * **Mutation behavior**: This function mutates the original TxQueue by clearing
  * its contents and marking it as shutdown. It does not return a new TxQueue reference.
  *
- * @example
+ * **Example** (Shutting down queues)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -1369,7 +1403,8 @@ export const shutdown = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<boolean> =>
 /**
  * Checks if the queue is in the open state.
  *
- * @example
+ * **Example** (Checking open state)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -1394,7 +1429,8 @@ export const isOpen = (self: TxQueueState): Effect.Effect<boolean> =>
 /**
  * Checks if the queue is in the closing state.
  *
- * @example
+ * **Example** (Checking closing state)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -1420,7 +1456,8 @@ export const isClosing = (self: TxQueueState): Effect.Effect<boolean> =>
 /**
  * Checks if the queue is done (completed or failed).
  *
- * @example
+ * **Example** (Checking done state)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -1445,7 +1482,8 @@ export const isDone = (self: TxQueueState): Effect.Effect<boolean> =>
 /**
  * Checks if the queue is shutdown (legacy compatibility).
  *
- * @example
+ * **Example** (Checking shutdown state)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -1469,7 +1507,8 @@ export const isShutdown = (self: TxQueueState): Effect.Effect<boolean> => isDone
 /**
  * Waits for the queue to complete (either successfully or with failure).
  *
- * @example
+ * **Example** (Awaiting queue completion)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *

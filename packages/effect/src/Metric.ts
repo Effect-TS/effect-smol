@@ -38,6 +38,8 @@
  *
  * ## Basic Usage
  *
+ * **Example** (Creating and updating metrics)
+ *
  * ```ts
  * import { Effect, Metric } from "effect"
  *
@@ -67,6 +69,8 @@
  *
  * ## Attributes and Tagging
  *
+ * **Example** (Tagging metrics with attributes)
+ *
  * ```ts
  * import { Effect, Metric } from "effect"
  *
@@ -94,6 +98,8 @@
  * ```
  *
  * ## Advanced Examples
+ *
+ * **Example** (Recording business and performance metrics)
  *
  * ```ts
  * import { Effect, Metric } from "effect"
@@ -170,7 +176,8 @@ import type { Contravariant, Covariant } from "./Types.ts"
  *   - Histograms
  *   - Summaries
  *
- * @example
+ * **Example** (Using multiple metric types)
+ *
  * ```ts
  * import { Data, Effect, Metric } from "effect"
  *
@@ -246,7 +253,8 @@ export interface Metric<in Input, out State> extends Pipeable {
  * Counters are useful for tracking monotonically increasing values like request counts,
  * bytes processed, errors encountered, or any value that accumulates over time.
  *
- * @example
+ * **Example** (Using counter metrics)
+ *
  * ```ts
  * import { Data, Effect, Metric } from "effect"
  *
@@ -308,7 +316,8 @@ export interface Counter<in Input extends number | bigint> extends Metric<Input,
 /**
  * State interface for Counter metrics containing the current count and increment mode.
  *
- * @example
+ * **Example** (Reading counter state)
+ *
  * ```ts
  * import { Data, Effect, Metric } from "effect"
  *
@@ -376,7 +385,8 @@ export interface CounterState<in Input extends number | bigint> {
  * how many times specific string values occur, such as HTTP status codes, user actions,
  * error types, or any discrete string-based events.
  *
- * @example
+ * **Example** (Using frequency metrics)
+ *
  * ```ts
  * import { Data, Effect, Metric } from "effect"
  *
@@ -454,7 +464,8 @@ export interface Frequency extends Metric<string, FrequencyState> {}
 /**
  * State interface for Frequency metrics containing occurrence counts for discrete string values.
  *
- * @example
+ * **Example** (Reading frequency state)
+ *
  * ```ts
  * import { Data, Effect, Metric } from "effect"
  *
@@ -543,7 +554,8 @@ export interface FrequencyState {
  * Gauges are useful for tracking current state values like memory usage, CPU load,
  * active connections, queue sizes, or any value that represents a current level.
  *
- * @example
+ * **Example** (Using gauge metrics)
+ *
  * ```ts
  * import { Data, Effect, Metric } from "effect"
  *
@@ -598,7 +610,8 @@ export interface Gauge<in Input extends number | bigint> extends Metric<Input, G
 /**
  * State interface for Gauge metrics containing the current instantaneous value.
  *
- * @example
+ * **Example** (Reading gauge state)
+ *
  * ```ts
  * import { Data, Effect, Metric } from "effect"
  *
@@ -671,7 +684,8 @@ export interface GaugeState<in Input extends number | bigint> {
  * Histograms are ideal for measuring request durations, response sizes, and other continuous values
  * where you need to understand the distribution of values rather than just aggregates.
  *
- * @example
+ * **Example** (Using histogram metrics)
+ *
  * ```ts
  * import { Data, Effect, Metric } from "effect"
  *
@@ -754,7 +768,8 @@ export interface Histogram<Input> extends Metric<Input, HistogramState> {}
 /**
  * State interface for Histogram metrics containing bucket distributions and aggregate statistics.
  *
- * @example
+ * **Example** (Reading histogram state)
+ *
  * ```ts
  * import { Data, Effect, Metric } from "effect"
  *
@@ -850,7 +865,8 @@ export interface HistogramState {
  * (percentiles) such as median (50th), 95th percentile, 99th percentile, etc. They're ideal for
  * understanding performance characteristics like response time distributions.
  *
- * @example
+ * **Example** (Using summary metrics)
+ *
  * ```ts
  * import { Data, Effect, Metric } from "effect"
  *
@@ -943,7 +959,8 @@ export interface Summary<Input> extends Metric<Input, SummaryState> {}
 /**
  * State interface for Summary metrics containing quantile calculations and aggregate statistics.
  *
- * @example
+ * **Example** (Reading summary state)
+ *
  * ```ts
  * import { Data, Effect, Metric } from "effect"
  *
@@ -1031,7 +1048,8 @@ export interface SummaryState {
  * The `Metric` namespace provides a comprehensive system for collecting, aggregating, and observing
  * application metrics in Effect applications.
  *
- * @example
+ * **Example** (Collecting application metrics)
+ *
  * ```ts
  * import { Data, Effect, Metric } from "effect"
  *
@@ -1076,7 +1094,8 @@ export declare namespace Metric {
   /**
    * Union type representing all available metric types in the Effect metrics system.
    *
-   * @example
+   * **Example** (Inspecting metric types)
+   *
    * ```ts
    * import { Data, Effect, Metric } from "effect"
    *
@@ -1156,7 +1175,8 @@ export declare namespace Metric {
   /**
    * Union type for metric attributes that can be provided as either an object or array of tuples.
    *
-   * @example
+   * **Example** (Providing attributes in different formats)
+   *
    * ```ts
    * import { Data, Effect, Metric } from "effect"
    *
@@ -1231,7 +1251,8 @@ export declare namespace Metric {
   /**
    * Type for metric attributes as a readonly record of string key-value pairs.
    *
-   * @example
+   * **Example** (Combining metric attribute sets)
+   *
    * ```ts
    * import { Data, Effect, Metric } from "effect"
    *
@@ -1308,7 +1329,8 @@ export declare namespace Metric {
   /**
    * Utility type to extract the Input type from a Metric type.
    *
-   * @example
+   * **Example** (Extracting metric input types)
+   *
    * ```ts
    * import { Metric } from "effect"
    *
@@ -1358,7 +1380,8 @@ export declare namespace Metric {
   /**
    * Utility type to extract the State type from a Metric type.
    *
-   * @example
+   * **Example** (Extracting metric state types)
+   *
    * ```ts
    * import { Effect, Metric } from "effect"
    *
@@ -1417,7 +1440,8 @@ export declare namespace Metric {
   /**
    * Interface defining the core hooks for metric operations: get, update, and modify.
    *
-   * @example
+   * **Example** (Using metric hooks)
+   *
    * ```ts
    * import { Data, Effect, Metric } from "effect"
    *
@@ -1465,7 +1489,8 @@ export declare namespace Metric {
   /**
    * Interface containing complete metadata information about a metric.
    *
-   * @example
+   * **Example** (Inspecting metric metadata)
+   *
    * ```ts
    * import { Data, Effect, Metric } from "effect"
    *
@@ -1532,7 +1557,8 @@ export declare namespace Metric {
   /**
    * Protocol interface for metric snapshots containing metadata and current state.
    *
-   * @example
+   * **Example** (Inspecting metric snapshot protocols)
+   *
    * ```ts
    * import { Data, Effect, Metric } from "effect"
    *
@@ -1604,7 +1630,8 @@ export declare namespace Metric {
   /**
    * Union type representing all possible metric snapshot types with their corresponding states.
    *
-   * @example
+   * **Example** (Analyzing metric snapshots)
+   *
    * ```ts
    * import { Data, Effect, Metric } from "effect"
    *
@@ -1680,7 +1707,8 @@ export declare namespace Metric {
 /**
  * Service key for the current metric attributes context.
  *
- * @example
+ * **Example** (Using the current attributes key)
+ *
  * ```ts
  * import { Data, Effect, Metric } from "effect"
  *
@@ -1730,7 +1758,8 @@ export const CurrentMetricAttributesKey = "effect/Metric/CurrentMetricAttributes
 /**
  * Service class for managing the current metric attributes context.
  *
- * @example
+ * **Example** (Providing current metric attributes)
+ *
  * ```ts
  * import { Data, Effect, Metric } from "effect"
  *
@@ -2150,7 +2179,8 @@ class MetricTransform<in Input, out State, in Input2> extends Metric$<Input2, St
  * This function is useful for runtime type checking and ensuring that a value
  * conforms to the Metric interface before performing metric operations.
  *
- * @example
+ * **Example** (Checking metric values)
+ *
  * ```ts
  * import { Metric } from "effect"
  *
@@ -2183,7 +2213,8 @@ export const isMetric = (u: unknown): u is Metric<unknown, never> =>
  * - `incremental` - Set to `true` to create a `Counter` that can only ever be
  *                   incremented.
  *
- * @example
+ * **Example** (Creating counter metrics)
+ *
  * ```ts
  * import { Data, Effect, Metric } from "effect"
  *
@@ -2262,7 +2293,8 @@ export const counter: {
  * - `attributes`  - The attributes to associate with the `Gauge`.
  * - `bigint`      - Indicates if the `Gauge` should use the `bigint` type.
  *
- * @example
+ * **Example** (Creating gauge metrics)
+ *
  * ```ts
  * import { Data, Effect, Metric } from "effect"
  *
@@ -2339,7 +2371,8 @@ export const gauge: {
  * - `preregisteredWords` - Occurrences which are pre-registered with the
  *                          `Frequency` metric occurrences.
  *
- * @example
+ * **Example** (Creating frequency metrics)
+ *
  * ```ts
  * import { Data, Effect, Metric } from "effect"
  *
@@ -2418,7 +2451,8 @@ export const frequency = (name: string, options?: {
  * - `attributes`  - The attributes to associate with the `Histogram`.
  * - `boundaries`  - The bucket boundaries of the `Histogram`
  *
- * @example
+ * **Example** (Creating histogram metrics)
+ *
  * ```ts
  * import { Data, Effect, Metric } from "effect"
  *
@@ -2497,7 +2531,8 @@ export const histogram = (name: string, options: {
  * - `maxSize`     - The maximum number of observations to keep.
  * - `quantiles`   - An array of quantiles to calculate (e.g., [0.5, 0.9]).
  *
- * @example
+ * **Example** (Creating summary metrics)
+ *
  * ```ts
  * import { Data, Duration, Effect, Metric } from "effect"
  *
@@ -2585,7 +2620,8 @@ export const summary = (name: string, options: {
  * - `maxSize`     - The maximum number of observations to keep.
  * - `quantiles`   - An array of quantiles to calculate (e.g., [0.5, 0.9]).
  *
- * @example
+ * **Example** (Creating summaries with explicit timestamps)
+ *
  * ```ts
  * import { Metric } from "effect"
  *
@@ -2621,7 +2657,8 @@ export const summaryWithTimestamp = (name: string, options: {
  * If `options.boundaries` is not provided, the boundaries will be computed
  * using `Metric.exponentialBoundaries({ start: 0.5, factor: 2, count: 35 })`.
  *
- * @example
+ * **Example** (Recording durations with a timer)
+ *
  * ```ts
  * import { Data, Duration, Effect, Metric } from "effect"
  *
@@ -2673,7 +2710,8 @@ export const timer = (name: string, options?: {
  * - Histogram: `{ buckets: Array<[number, number]>, count: number, min: number, max: number, sum: number }`
  * - Summary: `{ quantiles: Array<[number, number | undefined]>, count: number, min: number, max: number, sum: number }`
  *
- * @example
+ * **Example** (Reading metric state)
+ *
  * ```ts
  * import { Effect, Metric } from "effect"
  *
@@ -2722,7 +2760,8 @@ export const value = <Input, State>(
  * - **Histogram**: Same as `update` - records the input value in the appropriate bucket
  * - **Summary**: Same as `update` - records the input observation
  *
- * @example
+ * **Example** (Modifying metric values)
+ *
  * ```ts
  * import { Effect, Metric } from "effect"
  *
@@ -2774,7 +2813,8 @@ export const modify: {
  * - **Histogram**: Records the input value in the appropriate bucket
  * - **Summary**: Records the input value as a new observation
  *
- * @example
+ * **Example** (Updating metric values)
+ *
  * ```ts
  * import { Effect, Metric } from "effect"
  *
@@ -2830,7 +2870,8 @@ export const update: {
  * of the specified new type, which must be transformable to the input type of
  * this metric.
  *
- * @example
+ * **Example** (Mapping metric inputs)
+ *
  * ```ts
  * import { Data, Effect, Metric } from "effect"
  *
@@ -2895,7 +2936,8 @@ export const mapInput: {
  * of any type, and translates them to updates with the specified constant
  * update value.
  *
- * @example
+ * **Example** (Ignoring inputs with a constant value)
+ *
  * ```ts
  * import { Data, Effect, Metric } from "effect"
  *
@@ -2940,7 +2982,8 @@ export const withConstantInput: {
  * enabling filtering, grouping, and more detailed analysis. Each combination
  * of attribute values creates a separate metric series.
  *
- * @example
+ * **Example** (Applying metric attributes)
+ *
  * ```ts
  * import { Effect, Metric } from "effect"
  *
@@ -3013,7 +3056,8 @@ export const withAttributes: {
  * Returns an array of metric snapshots, each containing the metric's metadata
  * (name, description, type) and current state (values, counts, etc.).
  *
- * @example
+ * **Example** (Capturing metric snapshots)
+ *
  * ```ts
  * import { Console, Data, Effect, Metric } from "effect"
  *
@@ -3068,7 +3112,8 @@ export const snapshot: Effect<ReadonlyArray<Metric.Snapshot>> = InternalEffect.m
  * in an easy-to-read table showing names, descriptions, types, attributes,
  * and current state values.
  *
- * @example
+ * **Example** (Dumping metrics as text)
+ *
  * ```ts
  * import { Console, Data, Effect, Metric } from "effect"
  *
@@ -3157,7 +3202,8 @@ export const dump: Effect<string> = InternalEffect.flatMap(InternalEffect.contex
  * manual handling of the services context. Use the safe `snapshot` function for normal
  * application code.
  *
- * @example
+ * **Example** (Capturing snapshots from a context)
+ *
  * ```ts
  * import { Data, Effect, Metric } from "effect"
  *
@@ -3286,7 +3332,8 @@ const attributesToString = (attributes: Metric.AttributeSet): string => {
  * non-positive values, and automatically appending positive infinity as the
  * final boundary.
  *
- * @example
+ * **Example** (Creating boundaries from values)
+ *
  * ```ts
  * import { Data, Effect, Metric } from "effect"
  *
@@ -3353,7 +3400,8 @@ export const boundariesFromIterable = (iterable: Iterable<number>): ReadonlyArra
  * Creates evenly-spaced boundaries starting from a base value and incrementing
  * by a fixed width. Automatically adds positive infinity as the final boundary.
  *
- * @example
+ * **Example** (Creating linear boundaries)
+ *
  * ```ts
  * import { Data, Effect, Metric } from "effect"
  *
@@ -3404,7 +3452,8 @@ export const linearBoundaries = (options: {
  * Creates boundaries that grow exponentially, useful for metrics that span
  * multiple orders of magnitude. Each boundary is calculated as start * factor^i.
  *
- * @example
+ * **Example** (Creating exponential boundaries)
+ *
  * ```ts
  * import { Data, Effect, Metric } from "effect"
  *
@@ -3476,7 +3525,8 @@ const fiberFailures = counter("child_fiber_failures", {
 /**
  * Service key for the fiber runtime metrics service.
  *
- * @example
+ * **Example** (Using the fiber runtime metrics key)
+ *
  * ```ts
  * import { Data, Effect, Layer, Metric } from "effect"
  *
@@ -3515,7 +3565,8 @@ export const FiberRuntimeMetricsKey: "effect/observability/Metric/FiberRuntimeMe
 /**
  * Interface for the fiber runtime metrics service that tracks fiber lifecycle events.
  *
- * @example
+ * **Example** (Providing a custom fiber metrics service)
+ *
  * ```ts
  * import type { Context } from "effect"
  * import { Data, Effect, Layer, Metric } from "effect"
@@ -3559,7 +3610,8 @@ export interface FiberRuntimeMetricsService {
 /**
  * Service class for managing fiber runtime metrics collection.
  *
- * @example
+ * **Example** (Accessing the fiber runtime metrics service)
+ *
  * ```ts
  * import { Data, Effect, Metric } from "effect"
  *
@@ -3609,7 +3661,8 @@ export const FiberRuntimeMetrics = Context.Reference<FiberRuntimeMetricsService 
 /**
  * Default implementation of the fiber runtime metrics service.
  *
- * @example
+ * **Example** (Using the default fiber metrics implementation)
+ *
  * ```ts
  * import { Data, Effect, Layer, Metric } from "effect"
  *
@@ -3674,7 +3727,8 @@ export const FiberRuntimeMetricsImpl: FiberRuntimeMetricsService = {
  * the recommended approach for production applications that need comprehensive
  * fiber monitoring.
  *
- * @example
+ * **Example** (Enabling runtime metrics with a layer)
+ *
  * ```ts
  * import { Console, Data, Effect, Layer, Metric } from "effect"
  *
@@ -3767,7 +3821,8 @@ export const enableRuntimeMetricsLayer = Layer.succeed(FiberRuntimeMetrics)(Fibe
 /**
  * A Layer that disables automatic collection of fiber runtime metrics.
  *
- * @example
+ * **Example** (Disabling runtime metrics with a layer)
+ *
  * ```ts
  * import { Data, Effect, Metric } from "effect"
  *
@@ -3811,7 +3866,8 @@ export const disableRuntimeMetricsLayer = Layer.succeed(FiberRuntimeMetrics)(und
  * started fibers, successful completions, and failures. These metrics provide valuable
  * insights into the concurrency patterns and health of your Effect application.
  *
- * @example
+ * **Example** (Enabling runtime metrics for an effect)
+ *
  * ```ts
  * import { Console, Data, Effect, Layer, Metric } from "effect"
  *
@@ -3895,7 +3951,8 @@ export const enableRuntimeMetrics: <A, E, R>(self: Effect<A, E, R>) => Effect<A,
  * parts of your application while keeping them enabled elsewhere, or when you need
  * to avoid the overhead of metrics collection in performance-critical sections.
  *
- * @example
+ * **Example** (Disabling runtime metrics for an effect)
+ *
  * ```ts
  * import { Console, Data, Effect, Layer, Metric } from "effect"
  *

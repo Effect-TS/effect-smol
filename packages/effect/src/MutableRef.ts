@@ -39,7 +39,8 @@ import type { Pipeable } from "./Pipeable.ts"
 const TypeId = "~effect/MutableRef"
 
 /**
- * @example
+ * **Example** (Creating and updating refs)
+ *
  * ```ts
  * import { MutableRef } from "effect"
  *
@@ -92,7 +93,8 @@ const MutableRefProto: Omit<MutableRef<unknown>, "current"> = {
 /**
  * Creates a new MutableRef with the specified initial value.
  *
- * @example
+ * **Example** (Creating mutable refs)
+ *
  * ```ts
  * import { MutableRef } from "effect"
  *
@@ -124,7 +126,8 @@ export const make = <T>(value: T): MutableRef<T> => {
  * Returns true if the value was updated, false otherwise.
  * Uses Effect's Equal interface for value comparison.
  *
- * @example
+ * **Example** (Comparing and setting values)
+ *
  * ```ts
  * import { MutableRef } from "effect"
  *
@@ -172,7 +175,8 @@ export const compareAndSet: {
 /**
  * Decrements a numeric MutableRef by 1 and returns the reference.
  *
- * @example
+ * **Example** (Decrementing numeric refs)
+ *
  * ```ts
  * import { MutableRef } from "effect"
  *
@@ -203,7 +207,8 @@ export const decrement = (self: MutableRef<number>): MutableRef<number> => updat
 /**
  * Decrements a numeric MutableRef by 1 and returns the new value.
  *
- * @example
+ * **Example** (Decrementing and reading refs)
+ *
  * ```ts
  * import { MutableRef } from "effect"
  *
@@ -234,7 +239,8 @@ export const decrementAndGet = (self: MutableRef<number>): number => updateAndGe
 /**
  * Gets the current value of the MutableRef.
  *
- * @example
+ * **Example** (Reading current values)
+ *
  * ```ts
  * import { MutableRef } from "effect"
  *
@@ -263,7 +269,8 @@ export const get = <T>(self: MutableRef<T>): T => self.current
 /**
  * Decrements a numeric MutableRef by 1 and returns the previous value.
  *
- * @example
+ * **Example** (Reading before decrementing)
+ *
  * ```ts
  * import { MutableRef } from "effect"
  *
@@ -295,7 +302,8 @@ export const getAndDecrement = (self: MutableRef<number>): number => getAndUpdat
 /**
  * Increments a numeric MutableRef by 1 and returns the previous value.
  *
- * @example
+ * **Example** (Reading before incrementing)
+ *
  * ```ts
  * import { MutableRef } from "effect"
  *
@@ -335,7 +343,8 @@ export const getAndIncrement = (self: MutableRef<number>): number => getAndUpdat
 /**
  * Sets the MutableRef to a new value and returns the previous value.
  *
- * @example
+ * **Example** (Reading before setting)
+ *
  * ```ts
  * import { MutableRef } from "effect"
  *
@@ -382,7 +391,8 @@ export const getAndSet: {
  * Updates the MutableRef with the result of applying a function to its current value,
  * and returns the previous value.
  *
- * @example
+ * **Example** (Reading before updating)
+ *
  * ```ts
  * import { MutableRef } from "effect"
  *
@@ -430,7 +440,8 @@ export const getAndUpdate: {
 /**
  * Increments a numeric MutableRef by 1 and returns the reference.
  *
- * @example
+ * **Example** (Incrementing numeric refs)
+ *
  * ```ts
  * import { MutableRef } from "effect"
  *
@@ -464,7 +475,8 @@ export const increment = (self: MutableRef<number>): MutableRef<number> => updat
 /**
  * Increments a numeric MutableRef by 1 and returns the new value.
  *
- * @example
+ * **Example** (Incrementing and reading refs)
+ *
  * ```ts
  * import { MutableRef } from "effect"
  *
@@ -499,7 +511,8 @@ export const incrementAndGet = (self: MutableRef<number>): number => updateAndGe
 /**
  * Sets the MutableRef to a new value and returns the reference.
  *
- * @example
+ * **Example** (Setting values)
+ *
  * ```ts
  * import { MutableRef } from "effect"
  *
@@ -548,7 +561,8 @@ export const set: {
 /**
  * Sets the MutableRef to a new value and returns the new value.
  *
- * @example
+ * **Example** (Setting and reading values)
+ *
  * ```ts
  * import { MutableRef } from "effect"
  *
@@ -594,7 +608,8 @@ export const setAndGet: {
  * Updates the MutableRef with the result of applying a function to its current value,
  * and returns the reference.
  *
- * @example
+ * **Example** (Updating values)
+ *
  * ```ts
  * import { MutableRef } from "effect"
  *
@@ -645,7 +660,8 @@ export const update: {
  * Updates the MutableRef with the result of applying a function to its current value,
  * and returns the new value.
  *
- * @example
+ * **Example** (Updating and reading values)
+ *
  * ```ts
  * import { MutableRef } from "effect"
  *
@@ -697,7 +713,8 @@ export const updateAndGet: {
 /**
  * Toggles a boolean MutableRef (true becomes false, false becomes true) and returns the reference.
  *
- * @example
+ * **Example** (Toggling boolean refs)
+ *
  * ```ts
  * import { MutableRef } from "effect"
  *

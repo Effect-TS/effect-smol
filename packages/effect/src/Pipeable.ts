@@ -5,7 +5,8 @@
 /**
  * @category models
  * @since 2.0.0
- * @example
+ * **Example** (Chaining operations with pipe)
+ *
  * ```ts
  * import { Effect } from "effect"
  *
@@ -502,7 +503,8 @@ export interface Pipeable {
 /**
  * @category utilities
  * @since 2.0.0
- * @example
+ * **Example** (Implementing custom piping)
+ *
  * ```ts
  * import { Pipeable } from "effect"
  *

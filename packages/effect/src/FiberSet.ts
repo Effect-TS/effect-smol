@@ -22,7 +22,8 @@ const TypeId = "~effect/FiberSet"
  * A FiberSet is a collection of fibers that can be managed together.
  * When the associated Scope is closed, all fibers in the set will be interrupted.
  *
- * @example
+ * **Example** (Managing fibers in a set)
+ *
  * ```ts
  * import { Effect, FiberSet } from "effect"
  *
@@ -57,9 +58,8 @@ export interface FiberSet<out A = unknown, out E = unknown>
 /**
  * Checks if a value is a FiberSet.
  *
- * @category refinements
- * @since 2.0.0
- * @example
+ * **Example** (Checking if a value is a FiberSet)
+ *
  * ```ts
  * import { Effect, FiberSet } from "effect"
  *
@@ -70,6 +70,9 @@ export interface FiberSet<out A = unknown, out E = unknown>
  *   console.log(FiberSet.isFiberSet({})) // false
  * })
  * ```
+ *
+ * @category refinements
+ * @since 2.0.0
  */
 export const isFiberSet = (u: unknown): u is FiberSet<unknown, unknown> => Predicate.hasProperty(u, TypeId)
 
@@ -107,7 +110,8 @@ const makeUnsafe = <A, E>(
  * You can add fibers to the set using `FiberSet.add` or `FiberSet.run`, and the fibers will
  * be automatically removed from the FiberSet when they complete.
  *
- * @example
+ * **Example** (Creating a scoped FiberSet)
+ *
  * ```ts
  * import { Effect, FiberSet } from "effect"
  *
@@ -145,9 +149,8 @@ export const make = <A = unknown, E = unknown>(): Effect.Effect<FiberSet<A, E>, 
 /**
  * Create an Effect run function that is backed by a FiberSet.
  *
- * @category constructors
- * @since 2.0.0
- * @example
+ * **Example** (Creating a scoped runtime)
+ *
  * ```ts
  * import { Effect, Fiber, FiberSet } from "effect"
  *
@@ -164,6 +167,9 @@ export const make = <A = unknown, E = unknown>(): Effect.Effect<FiberSet<A, E>, 
  *   console.log(result1, result2) // "hello" "world"
  * })
  * ```
+ *
+ * @category constructors
+ * @since 2.0.0
  */
 export const makeRuntime = <R = never, A = unknown, E = unknown>(): Effect.Effect<
   (<XE extends E, XA extends A>(
@@ -182,7 +188,8 @@ export const makeRuntime = <R = never, A = unknown, E = unknown>(): Effect.Effec
  * Create an Effect run function that is backed by a FiberSet.
  * The returned run function will return Promise's.
  *
- * @example
+ * **Example** (Creating a promise runtime)
+ *
  * ```ts
  * import { Effect, FiberSet } from "effect"
  *
@@ -226,7 +233,8 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
  * Add a fiber to the FiberSet. When the fiber completes, it will be removed.
  * This is the unsafe version that doesn't return an Effect.
  *
- * @example
+ * **Example** (Adding a fiber unsafely)
+ *
  * ```ts
  * import { Effect, FiberSet } from "effect"
  *
@@ -294,7 +302,8 @@ export const addUnsafe: {
 /**
  * Add a fiber to the FiberSet. When the fiber completes, it will be removed.
  *
- * @example
+ * **Example** (Adding a fiber)
+ *
  * ```ts
  * import { Effect, FiberSet } from "effect"
  *
@@ -341,7 +350,8 @@ export const add: {
 /**
  * Interrupt all fibers in the FiberSet and clear the set.
  *
- * @example
+ * **Example** (Clearing all fibers)
+ *
  * ```ts
  * import { Effect, FiberSet } from "effect"
  *
@@ -386,7 +396,8 @@ const constInterruptedFiber = (function() {
  * Fork an Effect and add the forked fiber to the FiberSet.
  * When the fiber completes, it will be removed from the FiberSet.
  *
- * @example
+ * **Example** (Forking effects into a set)
+ *
  * ```ts
  * import { Effect, Fiber, FiberSet } from "effect"
  *
@@ -454,7 +465,8 @@ const runImpl = <A, E, R, XE extends E, XA extends A>(
 /**
  * Capture a Runtime and use it to fork Effect's, adding the forked fibers to the FiberSet.
  *
- * @example
+ * **Example** (Capturing a runtime)
+ *
  * ```ts
  * import { Effect, FiberSet, Context } from "effect"
  *
@@ -516,7 +528,8 @@ export const runtime: <A, E>(
  *
  * The returned run function will return Promise's.
  *
- * @example
+ * **Example** (Running effects as promises)
+ *
  * ```ts
  * import { Effect, FiberSet } from "effect"
  *
@@ -572,7 +585,8 @@ export const runtimePromise = <A, E>(self: FiberSet<A, E>): <R = never>() => Eff
 /**
  * Get the number of fibers currently in the FiberSet.
  *
- * @example
+ * **Example** (Checking the set size)
+ *
  * ```ts
  * import { Effect, FiberSet } from "effect"
  *
@@ -599,7 +613,8 @@ export const size = <A, E>(self: FiberSet<A, E>): Effect.Effect<number> =>
  * Join all fibers in the FiberSet. If any of the Fiber's in the set terminate with a failure,
  * the returned Effect will terminate with the first failure that occurred.
  *
- * @example
+ * **Example** (Joining failing fibers)
+ *
  * ```ts
  * import { Effect, FiberSet } from "effect"
  *
@@ -621,7 +636,8 @@ export const join = <A, E>(self: FiberSet<A, E>): Effect.Effect<void, E> =>
 /**
  * Wait until the fiber set is empty.
  *
- * @example
+ * **Example** (Waiting for an empty set)
+ *
  * ```ts
  * import { Effect, FiberSet } from "effect"
  *

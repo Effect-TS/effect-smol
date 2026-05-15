@@ -15,7 +15,8 @@ import type { EqualsWith, ExcludeTag, ExtractReason, ExtractTag, ReasonTags, Tag
  * A filter takes an input value and either returns a boxed pass value or
  * the special `fail` type to indicate the value should be filtered out.
  *
- * @example
+ * **Example** (Defining a positive number filter)
+ *
  * ```ts
  * import { Filter, Result } from "effect"
  *
@@ -39,7 +40,8 @@ export interface Filter<in Input, out Pass = Input, out Fail = Input> {
  * Similar to a regular Filter, but the filtering operation itself can be effectful,
  * allowing for asynchronous operations, error handling, and dependency injection.
  *
- * @example
+ * **Example** (Defining an effectful user filter)
+ *
  * ```ts
  * import { Effect, Filter, Result } from "effect"
  *
@@ -83,7 +85,8 @@ export interface FilterEffect<
  * This is the primary constructor for creating custom filters. The function
  * should return either `Result.succeed(value)` or `Result.fail(value)`.
  *
- * @example
+ * **Example** (Creating custom filters)
+ *
  * ```ts
  * import { Filter, Result } from "effect"
  *
@@ -110,7 +113,8 @@ export const make = <Input, Pass, Fail>(
  * effectful computations, such as async operations, error handling, or
  * accessing services from the environment.
  *
- * @example
+ * **Example** (Creating effectful filters)
+ *
  * ```ts
  * import { Effect, Filter, Result } from "effect"
  *
@@ -172,7 +176,8 @@ export {
  * When the predicate returns true, the input value is passed through unchanged.
  * When it returns false, the `fail` type is returned.
  *
- * @example
+ * **Example** (Creating filters from predicates)
+ *
  * ```ts
  * import { Filter, Result } from "effect"
  *
@@ -220,7 +225,8 @@ export const toPredicate = <A, Pass, Fail>(
 /**
  * A predefined filter that only passes through string values.
  *
- * @example
+ * **Example** (Filtering strings)
+ *
  * ```ts
  * import { Filter, Result } from "effect"
  *
@@ -263,7 +269,8 @@ export const instanceOf =
 /**
  * A predefined filter that only passes through number values.
  *
- * @example
+ * **Example** (Filtering numbers)
+ *
  * ```ts
  * import { Filter, Result } from "effect"
  *
@@ -437,7 +444,8 @@ export const zipWith: {
  * Both filters must succeed for the combination to succeed. If both pass,
  * their outputs are combined into a tuple.
  *
- * @example
+ * **Example** (Zipping filters)
+ *
  * ```ts
  * import { Filter } from "effect"
  *
@@ -469,7 +477,8 @@ export const zip: {
 /**
  * Combines two filters but only returns the result of the left filter.
  *
- * @example
+ * **Example** (Keeping the left filter result)
+ *
  * ```ts
  * import { Filter } from "effect"
  *
@@ -500,7 +509,8 @@ export const andLeft: {
 /**
  * Combines two filters but only returns the result of the right filter.
  *
- * @example
+ * **Example** (Keeping the right filter result)
+ *
  * ```ts
  * import { Filter, Result } from "effect"
  *
@@ -533,7 +543,8 @@ export const andRight: {
 /**
  * Composes two filters sequentially, feeding the output of the first into the second.
  *
- * @example
+ * **Example** (Composing filters)
+ *
  * ```ts
  * import { Filter, Result } from "effect"
  *

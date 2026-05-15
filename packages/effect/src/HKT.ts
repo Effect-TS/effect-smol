@@ -10,7 +10,8 @@
  * can represent complex type relationships with multiple type parameters, including
  * contravariant, covariant, and invariant positions.
  *
- * @example
+ * **Example** (Encoding type lambdas)
+ *
  * ```ts
  * import type { HKT } from "effect"
  *
@@ -43,7 +44,8 @@ import type * as Types from "./Types.ts"
  * with their corresponding TypeLambda. It provides a way to link runtime
  * type class instances with their compile-time type information.
  *
- * @example
+ * **Example** (Defining type classes)
+ *
  * ```ts
  * import type { HKT } from "effect"
  *
@@ -67,7 +69,8 @@ export declare const URI: unique symbol
  * that matches the given TypeLambda. This enables writing generic code that
  * works across different container types like Array, Option, Effect, etc.
  *
- * @example
+ * **Example** (Defining higher-kinded type classes)
+ *
  * ```ts
  * import type { HKT } from "effect"
  *
@@ -108,7 +111,8 @@ export interface TypeClass<F extends TypeLambda> {
  * - `Out1`: Covariant output parameter (often used for context/environment)
  * - `Target`: Invariant target parameter (the main type)
  *
- * @example
+ * **Example** (Defining type lambdas)
+ *
  * ```ts
  * import type { Effect, HKT } from "effect"
  *
@@ -149,7 +153,8 @@ export interface TypeLambda {
  * This is the core mechanism that allows HKT to work - it transforms
  * abstract type constructors into concrete types by applying arguments.
  *
- * @example
+ * **Example** (Applying type lambdas)
+ *
  * ```ts
  * import type { Effect, HKT, Option } from "effect"
  *

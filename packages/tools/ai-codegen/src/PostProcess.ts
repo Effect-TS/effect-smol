@@ -14,7 +14,8 @@ import * as ChildProcessSpawner from "effect/unstable/process/ChildProcessSpawne
 /**
  * Error during post-processing (lint or format).
  *
- * @example
+ * **Example** (Creating a post-process error)
+ *
  * ```ts
  * import * as PostProcess from "@effect/ai-codegen/PostProcess"
  *

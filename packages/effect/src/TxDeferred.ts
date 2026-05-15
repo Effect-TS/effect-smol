@@ -26,7 +26,8 @@ const TypeId = "~effect/transactions/TxDeferred"
  * Readers block (retry the transaction) until a value is committed.
  * Writers succeed only on the first call; subsequent writes return `false`.
  *
- * @example
+ * **Example** (Completing a transactional deferred)
+ *
  * ```ts
  * import { Effect, TxDeferred } from "effect"
  *
@@ -79,7 +80,8 @@ const makeTxDeferred = <A, E>(ref: TxRef.TxRef<Option<Result<A, E>>>): TxDeferre
 /**
  * Creates a new empty `TxDeferred`.
  *
- * @example
+ * **Example** (Creating a transactional deferred)
+ *
  * ```ts
  * import { Effect, Option, TxDeferred } from "effect"
  *
@@ -100,7 +102,8 @@ export const make = <A, E = never>(): Effect.Effect<TxDeferred<A, E>> =>
  * Reads the deferred value. Retries the transaction if the deferred has not
  * been completed yet.
  *
- * @example
+ * **Example** (Awaiting a deferred value)
+ *
  * ```ts
  * import { Effect, TxDeferred } from "effect"
  *
@@ -141,7 +144,8 @@ export {
  * Reads the current state of the deferred without retrying. Returns `None` if
  * not yet completed.
  *
- * @example
+ * **Example** (Polling a deferred)
+ *
  * ```ts
  * import { Effect, Option, Result, TxDeferred } from "effect"
  *
@@ -165,7 +169,8 @@ export const poll = <A, E>(self: TxDeferred<A, E>): Effect.Effect<Option<Result<
  * Completes the deferred with a `Result`. Returns `true` if this was the first
  * completion, `false` if already completed.
  *
- * @example
+ * **Example** (Completing with a result)
+ *
  * ```ts
  * import { Effect, Result, TxDeferred } from "effect"
  *
@@ -199,7 +204,8 @@ export const done: {
  * Completes the deferred with a success value. Returns `true` if this was the
  * first completion, `false` if already completed.
  *
- * @example
+ * **Example** (Completing with a success value)
+ *
  * ```ts
  * import { Effect, TxDeferred } from "effect"
  *
@@ -227,7 +233,8 @@ export const succeed: {
  * Completes the deferred with a failure. Returns `true` if this was the first
  * completion, `false` if already completed.
  *
- * @example
+ * **Example** (Completing with a failure)
+ *
  * ```ts
  * import { Effect, TxDeferred } from "effect"
  *
@@ -254,7 +261,8 @@ export const fail: {
 /**
  * Determines if the provided value is a `TxDeferred`.
  *
- * @example
+ * **Example** (Checking transactional deferreds)
+ *
  * ```ts
  * import { Effect, TxDeferred } from "effect"
  *

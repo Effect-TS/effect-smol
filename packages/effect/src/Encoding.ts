@@ -52,7 +52,8 @@ export const isEncodingError = (u: unknown): u is EncodingError => hasProperty(u
 /**
  * Encodes the given value into a base64 (RFC4648) `string`.
  *
- * @example
+ * **Example** (Encoding Base64 strings and bytes)
+ *
  * ```ts
  * import { Encoding } from "effect"
  *
@@ -73,7 +74,8 @@ export const encodeBase64: (input: Uint8Array | string) => string = (input) =>
 /**
  * Decodes a base64 (RFC4648) encoded `string` into a `Uint8Array`.
  *
- * @example
+ * **Example** (Decoding Base64 bytes)
+ *
  * ```ts
  * import { Encoding, Result } from "effect"
  *
@@ -142,7 +144,8 @@ export const decodeBase64 = (str: string): Result.Result<Uint8Array, EncodingErr
 /**
  * Decodes a base64 (RFC4648) encoded `string` into a UTF-8 `string`.
  *
- * @example
+ * **Example** (Decoding Base64 strings)
+ *
  * ```ts
  * import { Encoding, Result } from "effect"
  *
@@ -164,7 +167,8 @@ export const decodeBase64String = (str: string) => Result.map(decodeBase64(str),
 /**
  * Encodes the given value into a base64 (URL) `string`.
  *
- * @example
+ * **Example** (Encoding URL-safe Base64)
+ *
  * ```ts
  * import { Encoding } from "effect"
  *
@@ -184,7 +188,8 @@ export const encodeBase64Url: (input: Uint8Array | string) => string = (input) =
 /**
  * Decodes a base64 (URL) encoded `string` into a `Uint8Array`.
  *
- * @example
+ * **Example** (Decoding URL-safe Base64 bytes)
+ *
  * ```ts
  * import { Encoding, Result } from "effect"
  *
@@ -232,7 +237,8 @@ export const decodeBase64Url = (str: string): Result.Result<Uint8Array, Encoding
 /**
  * Decodes a base64 (URL) encoded `string` into a UTF-8 `string`.
  *
- * @example
+ * **Example** (Decoding URL-safe Base64 strings)
+ *
  * ```ts
  * import { Encoding, Result } from "effect"
  *
@@ -254,7 +260,8 @@ export const decodeBase64UrlString = (str: string) => Result.map(decodeBase64Url
 /**
  * Encodes the given value into a hex `string`.
  *
- * @example
+ * **Example** (Encoding hex strings and bytes)
+ *
  * ```ts
  * import { Encoding } from "effect"
  *
@@ -275,7 +282,8 @@ export const encodeHex: (input: Uint8Array | string) => string = (input) =>
 /**
  * Decodes a hex encoded `string` into a `Uint8Array`.
  *
- * @example
+ * **Example** (Decoding hex bytes)
+ *
  * ```ts
  * import { Encoding, Result } from "effect"
  *
@@ -326,7 +334,8 @@ export const decodeHex = (str: string): Result.Result<Uint8Array, EncodingError>
 /**
  * Decodes a hex encoded `string` into a UTF-8 `string`.
  *
- * @example
+ * **Example** (Decoding hex strings)
+ *
  * ```ts
  * import { Encoding, Result } from "effect"
  *

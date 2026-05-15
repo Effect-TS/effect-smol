@@ -46,7 +46,8 @@ const TypeId = "~effect/RequestResolver"
  * requests they receive. Failing to do so will lead to a `QueryFailure` error
  * during query execution.
  *
- * @example
+ * **Example** (Defining a request resolver)
+ *
  * ```ts
  * import type { Request } from "effect"
  * import { Effect, Exit, RequestResolver } from "effect"
@@ -159,7 +160,8 @@ const defaultKey = (_request: unknown): unknown => defaultKeyObject
 /**
  * Constructs a request resolver with the specified method to run requests.
  *
- * @example
+ * **Example** (Creating a request resolver)
+ *
  * ```ts
  * import { Effect, Exit, Request, RequestResolver } from "effect"
  *
@@ -202,7 +204,8 @@ export const make = <A extends Request.Any>(
  *
  * The key can use the Equal trait to determine if two keys are equal.
  *
- * @example
+ * **Example** (Grouping requests by key)
+ *
  * ```ts
  * import { Effect, Exit, Request, RequestResolver } from "effect"
  *
@@ -258,7 +261,8 @@ const hashGroupKey = <A, K>(get: (entry: Request.Entry<A>) => K) => {
 /**
  * Constructs a request resolver from a pure function.
  *
- * @example
+ * **Example** (Creating a resolver from a pure function)
+ *
  * ```ts
  * import { Effect, Request, RequestResolver } from "effect"
  *
@@ -302,7 +306,8 @@ export const fromFunction = <A extends Request.Any>(
  * and returns a list of results of the same size. Each item in the result
  * list must correspond to the item at the same index in the request list.
  *
- * @example
+ * **Example** (Batching pure request handling)
+ *
  * ```ts
  * import { Effect, Request, RequestResolver } from "effect"
  *
@@ -344,7 +349,8 @@ export const fromFunctionBatched = <A extends Request.Any>(
 /**
  * Constructs a request resolver from an effectual function.
  *
- * @example
+ * **Example** (Creating a resolver from an effectful function)
+ *
  * ```ts
  * import { Effect, Request, RequestResolver } from "effect"
  *
@@ -406,7 +412,8 @@ export const fromEffect = <A extends Request.Any>(
  * in the result list must correspond to the item at the same index in the
  * request list.
  *
- * @example
+ * **Example** (Handling tagged request batches)
+ *
  * ```ts
  * import type { Request } from "effect"
  * import { Effect, RequestResolver } from "effect"
@@ -483,7 +490,8 @@ export const fromEffectTagged = <A extends Request.Any & { readonly _tag: string
 /**
  * Sets the batch delay effect for this request resolver.
  *
- * @example
+ * **Example** (Setting an effectful batch delay)
+ *
  * ```ts
  * import { Effect, Exit, Request, RequestResolver } from "effect"
  *
@@ -528,7 +536,8 @@ export const setDelayEffect: {
 /**
  * Sets the batch delay window for this request resolver to the specified duration.
  *
- * @example
+ * **Example** (Setting a batch delay)
+ *
  * ```ts
  * import { Effect, Exit, Request, RequestResolver } from "effect"
  *
@@ -571,7 +580,8 @@ export const setDelay: {
  * A request resolver aspect that executes requests between two effects, `before`
  * and `after`, where the result of `before` can be used by `after`.
  *
- * @example
+ * **Example** (Running effects around request resolution)
+ *
  * ```ts
  * import { Effect, Exit, Request, RequestResolver } from "effect"
  *
@@ -643,7 +653,8 @@ export const never: RequestResolver<never> = make(() => Effect.never)
 /**
  * Returns a request resolver that executes at most `n` requests in parallel.
  *
- * @example
+ * **Example** (Limiting parallel request batches)
+ *
  * ```ts
  * import { Effect, Exit, Request, RequestResolver } from "effect"
  *
@@ -688,7 +699,8 @@ export const batchN: {
  * Transform a request resolver by grouping requests using the specified key
  * function.
  *
- * @example
+ * **Example** (Grouping resolver requests)
+ *
  * ```ts
  * import { Effect, Exit, Request, RequestResolver } from "effect"
  *
@@ -753,7 +765,8 @@ export const grouped: {
  *
  * The batch delay is determined by the first request resolver.
  *
- * @example
+ * **Example** (Racing request resolvers)
+ *
  * ```ts
  * import { Effect, Exit, Request, RequestResolver } from "effect"
  *
@@ -810,7 +823,8 @@ export const race: {
  * Add a tracing span to the request resolver, which will also add any span
  * links from the request's.
  *
- * @example
+ * **Example** (Adding a tracing span)
+ *
  * ```ts
  * import { Effect, Exit, Request, RequestResolver } from "effect"
  *

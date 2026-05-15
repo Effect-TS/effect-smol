@@ -29,7 +29,8 @@ import * as Yaml from "yaml"
  * - JSON or YAML syntax is invalid
  * - The file format is unsupported
  *
- * @example
+ * **Example** (Creating a parse error)
+ *
  * ```ts
  * import * as OpenApiPatch from "@effect/openapi-generator/OpenApiPatch"
  *
@@ -64,7 +65,8 @@ export class JsonPatchParseError extends Schema.ErrorClass<JsonPatchParseError>(
  * - An operation has an unsupported op value
  * - An add/replace operation is missing the value field
  *
- * @example
+ * **Example** (Creating a validation error)
+ *
  * ```ts
  * import * as OpenApiPatch from "@effect/openapi-generator/OpenApiPatch"
  *
@@ -98,7 +100,8 @@ export class JsonPatchValidationError extends Schema.ErrorClass<JsonPatchValidat
  * - An array index is out of bounds
  * - The target location is not a valid container
  *
- * @example
+ * **Example** (Creating an application error)
+ *
  * ```ts
  * import * as OpenApiPatch from "@effect/openapi-generator/OpenApiPatch"
  *
@@ -139,7 +142,8 @@ export class JsonPatchApplicationError
  * This error aggregates all application errors so users can see every
  * failing operation at once instead of fixing them one at a time.
  *
- * @example
+ * **Example** (Creating an aggregate error)
+ *
  * ```ts
  * import * as OpenApiPatch from "@effect/openapi-generator/OpenApiPatch"
  *
@@ -263,7 +267,8 @@ export const JsonPatchOperation: Schema.Codec<JsonPatch.JsonPatchOperation> = Sc
  * document. Operations are applied in sequence, with each operation seeing
  * the result of previous operations.
  *
- * @example
+ * **Example** (Decoding a patch document)
+ *
  * ```ts
  * import { Schema } from "effect"
  * import * as OpenApiPatch from "@effect/openapi-generator/OpenApiPatch"
@@ -411,7 +416,8 @@ const parseInlinePatch = Effect.fn("parseInlinePatch")(function*(input: string) 
  * and parsed based on its extension (.json, .yaml, .yml). Otherwise, the
  * input is parsed as inline JSON.
  *
- * @example
+ * **Example** (Parsing patch input)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import * as OpenApiPatch from "@effect/openapi-generator/OpenApiPatch"
@@ -455,7 +461,8 @@ export const parsePatchInput = Effect.fn("parsePatchInput")(function*(input: str
  * the previous one. All operations are attempted, and if any fail, the errors
  * are accumulated and reported together so users can fix all issues at once.
  *
- * @example
+ * **Example** (Applying patches)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import * as OpenApiPatch from "@effect/openapi-generator/OpenApiPatch"

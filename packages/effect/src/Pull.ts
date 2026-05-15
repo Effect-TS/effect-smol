@@ -166,7 +166,8 @@ export const doneExitFromCause = <E>(cause: Cause.Cause<E>): Exit.Exit<Cause.Don
 /**
  * Pattern matches on a Pull, handling success, failure, and done cases.
  *
- * @example
+ * **Example** (Matching Pull outcomes)
+ *
  * ```ts
  * import { Cause, Effect, Pull } from "effect"
  *

@@ -5,9 +5,8 @@ import type * as Effect from "./Effect.ts"
 import * as internal from "./internal/effect.ts"
 
 /**
- * @category models
- * @since 3.8.0
- * @example
+ * **Example** (Coordinating fibers with a latch)
+ *
  * ```ts
  * import { Effect, Latch } from "effect"
  *
@@ -21,6 +20,9 @@ import * as internal from "./internal/effect.ts"
  *   return "Latch was opened!"
  * })
  * ```
+ *
+ * @category models
+ * @since 3.8.0
  */
 export interface Latch {
   /** open the latch, releasing all fibers waiting on it */
@@ -48,7 +50,8 @@ export interface Latch {
  *
  * - `Effect.makeLatchUnsafe`
  *
- * @example
+ * **Example** (Creating a latch unsafely)
+ *
  * ```ts
  * import { Effect, Latch } from "effect"
  *
@@ -83,7 +86,8 @@ export const makeUnsafe: (open?: boolean | undefined) => Latch = internal.makeLa
  *
  * - `Effect.makeLatch`
  *
- * @example
+ * **Example** (Creating a latch)
+ *
  * ```ts
  * import { Effect, Latch } from "effect"
  *

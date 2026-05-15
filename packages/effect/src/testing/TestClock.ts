@@ -25,6 +25,8 @@ import * as Semaphore from "../Semaphore.ts"
  *
  * For example, here is how we can test `Effect.timeout` using `TestClock`:
  *
+ * **Example** (Testing timeouts deterministically)
+ *
  * ```ts
  * import { Effect, Fiber, Option, pipe } from "effect"
  * import { TestClock } from "effect/testing"
@@ -50,7 +52,8 @@ import * as Semaphore from "../Semaphore.ts"
  * being tested, then adjust the clock time, and finally verify that the
  * expected effects have been performed.
  *
- * @example
+ * **Example** (Advancing time deterministically)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { TestClock } from "effect/testing"
@@ -95,7 +98,8 @@ export interface TestClock extends Clock.Clock {
 }
 
 /**
- * @example
+ * **Example** (Configuring a test clock)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { TestClock } from "effect/testing"
@@ -117,7 +121,8 @@ export interface TestClock extends Clock.Clock {
  */
 export declare namespace TestClock {
   /**
-   * @example
+   * **Example** (Configuring the warning delay)
+   *
    * ```ts
    * import { Effect } from "effect"
    * import { TestClock } from "effect/testing"
@@ -145,7 +150,8 @@ export declare namespace TestClock {
   }
 
   /**
-   * @example
+   * **Example** (Inspecting test clock state)
+   *
    * ```ts
    * import { Effect } from "effect"
    * import { TestClock } from "effect/testing"
@@ -190,7 +196,8 @@ const SleepOrder = Order.flip(Order.Struct({
 /**
  * Creates a `TestClock` with optional configuration.
  *
- * @example
+ * **Example** (Creating a test clock)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { TestClock } from "effect/testing"
@@ -345,7 +352,8 @@ export const make = Effect.fnUntraced(function*(
 /**
  * Creates a `Layer` which constructs a `TestClock`.
  *
- * @example
+ * **Example** (Providing a test clock layer)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { TestClock } from "effect/testing"
@@ -376,7 +384,8 @@ export const layer: (options?: TestClock.Options) => Layer.Layer<TestClock> = fl
  * Retrieves the `TestClock` service for this test and uses it to run the
  * specified workflow.
  *
- * @example
+ * **Example** (Accessing the test clock)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { TestClock } from "effect/testing"
@@ -406,7 +415,8 @@ export const testClockWith = <A, E, R>(
  * by the specified duration, running any actions scheduled for on or before
  * the new time in order.
  *
- * @example
+ * **Example** (Advancing the test clock)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { TestClock } from "effect/testing"
@@ -438,7 +448,8 @@ export const adjust = (duration: Duration.Input): Effect.Effect<void> =>
  * Sets the current clock time to the specified `timestamp`. Any effects that
  * were scheduled to occur on or before the new time will be run in order.
  *
- * @example
+ * **Example** (Setting the test clock time)
+ *
  * ```ts
  * import { Duration, Effect } from "effect"
  * import { TestClock } from "effect/testing"
@@ -471,7 +482,8 @@ export const setTime = (timestamp: number): Effect.Effect<void> =>
  * Executes the specified effect with the live `Clock` instead of the
  * `TestClock`.
  *
- * @example
+ * **Example** (Running with the live clock)
+ *
  * ```ts
  * import { Clock, Effect } from "effect"
  * import { TestClock } from "effect/testing"

@@ -228,7 +228,8 @@ export const isGraph = (u: unknown): u is Graph<unknown, unknown> => hasProperty
 /**
  * Creates a directed graph, optionally with initial mutations.
  *
- * @example
+ * **Example** (Creating a directed graph)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -269,7 +270,8 @@ export const directed = <N, E>(mutate?: (mutable: MutableDirectedGraph<N, E>) =>
 /**
  * Creates an undirected graph, optionally with initial mutations.
  *
- * @example
+ * **Example** (Creating an undirected graph)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -314,7 +316,8 @@ export const undirected = <N, E>(mutate?: (mutable: MutableUndirectedGraph<N, E>
 /**
  * Creates a mutable scope for safe graph mutations by copying the data structure.
  *
- * @example
+ * **Example** (Beginning a mutation scope)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -358,7 +361,8 @@ export const beginMutation = <N, E, T extends Kind = "directed">(
 /**
  * Converts a mutable graph back to an immutable graph, ending the mutation scope.
  *
- * @example
+ * **Example** (Ending a mutation scope)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -391,7 +395,8 @@ export const endMutation = <N, E, T extends Kind = "directed">(
 /**
  * Performs scoped mutations on a graph, automatically managing the mutation lifecycle.
  *
- * @example
+ * **Example** (Applying scoped mutations)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -429,7 +434,8 @@ export const mutate: {
 /**
  * Adds a new node to a mutable graph and returns its index.
  *
- * @example
+ * **Example** (Adding nodes)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -466,7 +472,8 @@ export const addNode = <N, E, T extends Kind = "directed">(
 /**
  * Gets the data associated with a node index, if it exists.
  *
- * @example
+ * **Example** (Getting node data)
+ *
  * ```ts
  * import { Graph } from "effect"
  * import * as Option from "effect/Option"
@@ -502,7 +509,8 @@ export const getNode: {
 /**
  * Checks if a node with the given index exists in the graph.
  *
- * @example
+ * **Example** (Checking node existence)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -533,7 +541,8 @@ export const hasNode: {
 /**
  * Returns the number of nodes in the graph.
  *
- * @example
+ * **Example** (Counting nodes)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -559,7 +568,8 @@ export const nodeCount = <N, E, T extends Kind = "directed">(
 /**
  * Finds the first node that matches the given predicate.
  *
- * @example
+ * **Example** (Finding the first matching node)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -602,7 +612,8 @@ export const findNode: {
 /**
  * Finds all nodes that match the given predicate.
  *
- * @example
+ * **Example** (Finding matching nodes)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -646,7 +657,8 @@ export const findNodes: {
 /**
  * Finds the first edge that matches the given predicate.
  *
- * @example
+ * **Example** (Finding the first matching edge)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -691,7 +703,8 @@ export const findEdge: {
 /**
  * Finds all edges that match the given predicate.
  *
- * @example
+ * **Example** (Finding matching edges)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -738,7 +751,8 @@ export const findEdges: {
 /**
  * Updates a single node's data by applying a transformation function.
  *
- * @example
+ * **Example** (Updating node data)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -772,7 +786,8 @@ export const updateNode = <N, E, T extends Kind = "directed">(
 /**
  * Updates a single edge's data by applying a transformation function.
  *
- * @example
+ * **Example** (Updating edge data)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -807,7 +822,8 @@ export const updateEdge = <N, E, T extends Kind = "directed">(
 /**
  * Creates a new graph with transformed node data using the provided mapping function.
  *
- * @example
+ * **Example** (Mapping node data)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -839,7 +855,8 @@ export const mapNodes = <N, E, T extends Kind = "directed">(
 /**
  * Transforms all edge data in a mutable graph using the provided mapping function.
  *
- * @example
+ * **Example** (Mapping edge data)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -876,7 +893,8 @@ export const mapEdges = <N, E, T extends Kind = "directed">(
 /**
  * Reverses all edge directions in a mutable graph by swapping source and target nodes.
  *
- * @example
+ * **Example** (Reversing edge directions)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -936,7 +954,8 @@ export const reverse = <N, E, T extends Kind = "directed">(
  * Filters and optionally transforms nodes in a mutable graph using a predicate function.
  * Nodes that return Option.none are removed along with all their connected edges.
  *
- * @example
+ * **Example** (Filtering and mapping nodes)
+ *
  * ```ts
  * import { Graph } from "effect"
  * import * as Option from "effect/Option"
@@ -990,7 +1009,8 @@ export const filterMapNodes = <N, E, T extends Kind = "directed">(
  * Filters and optionally transforms edges in a mutable graph using a predicate function.
  * Edges that return Option.none are removed from the graph.
  *
- * @example
+ * **Example** (Filtering and mapping edges)
+ *
  * ```ts
  * import { Graph } from "effect"
  * import * as Option from "effect/Option"
@@ -1047,7 +1067,8 @@ export const filterMapEdges = <N, E, T extends Kind = "directed">(
  * Filters nodes by removing those that don't match the predicate.
  * This function modifies the mutable graph in place.
  *
- * @example
+ * **Example** (Filtering nodes)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -1090,7 +1111,8 @@ export const filterNodes = <N, E, T extends Kind = "directed">(
  * Filters edges by removing those that don't match the predicate.
  * This function modifies the mutable graph in place.
  *
- * @example
+ * **Example** (Filtering edges)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -1163,7 +1185,8 @@ const invalidateCycleFlagOnAddition = <N, E, T extends Kind = "directed">(
 /**
  * Adds a new edge to a mutable graph and returns its index.
  *
- * @example
+ * **Example** (Adding edges)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -1235,7 +1258,8 @@ export const addEdge = <N, E, T extends Kind = "directed">(
 /**
  * Removes a node and all its incident edges from a mutable graph.
  *
- * @example
+ * **Example** (Removing a node)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -1298,7 +1322,8 @@ export const removeNode = <N, E, T extends Kind = "directed">(
 /**
  * Removes an edge from a mutable graph.
  *
- * @example
+ * **Example** (Removing an edge)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -1390,7 +1415,8 @@ const removeEdgeInternal = <N, E, T extends Kind = "directed">(
 /**
  * Gets the edge data associated with an edge index, if it exists.
  *
- * @example
+ * **Example** (Getting edge data)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -1429,7 +1455,8 @@ export const getEdge: {
 /**
  * Checks if an edge exists between two nodes in the graph.
  *
- * @example
+ * **Example** (Checking edge existence)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -1488,7 +1515,8 @@ export const hasEdge: {
 /**
  * Returns the number of edges in the graph.
  *
- * @example
+ * **Example** (Counting edges)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -1517,7 +1545,8 @@ export const edgeCount = <N, E, T extends Kind = "directed">(
 /**
  * Returns the neighboring nodes (targets of outgoing edges) for a given node.
  *
- * @example
+ * **Example** (Getting outgoing neighbors)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -1579,7 +1608,8 @@ export const neighbors: {
 /**
  * Get neighbors of a node in a specific direction for bidirectional traversal.
  *
- * @example
+ * **Example** (Traversing directed neighbors)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -1651,7 +1681,8 @@ export const neighborsDirected: {
  * Provides customization for node labels, edge labels, and graph naming
  * in DOT format compatible with GraphViz tools.
  *
- * @example
+ * **Example** (Configuring GraphViz labels)
+ *
  * ```ts
  * import type * as Graph from "effect/Graph"
  *
@@ -1695,7 +1726,8 @@ export interface GraphVizOptions<N, E> {
 /**
  * Exports a graph to GraphViz DOT format for visualization.
  *
- * @example
+ * **Example** (Exporting GraphViz DOT)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -1781,7 +1813,8 @@ export const toGraphViz: {
  * - `subroutine`: Subroutine-style nodes `A[["label"]]`
  * - `cylindrical`: Cylindrical database-style nodes `A[("label")]`
  *
- * @example
+ * **Example** (Selecting Mermaid node shapes)
+ *
  * ```ts
  * import type * as Graph from "effect/Graph"
  *
@@ -1821,7 +1854,8 @@ export type MermaidNodeShape =
  * - `LR`: Left to Right (horizontal layout)
  * - `RL`: Right to Left (reverse horizontal)
  *
- * @example
+ * **Example** (Configuring Mermaid directions)
+ *
  * ```ts
  * import type * as Graph from "effect/Graph"
  *
@@ -1861,7 +1895,8 @@ export type MermaidDirection =
  * When not specified, automatically selects based on graph type:
  * directed graphs use "flowchart", undirected graphs use "graph".
  *
- * @example
+ * **Example** (Selecting Mermaid diagram types)
+ *
  * ```ts
  * import type * as Graph from "effect/Graph"
  *
@@ -1898,7 +1933,8 @@ export type MermaidDiagramType =
  * Provides customization for node labels, edge labels, diagram type,
  * layout direction, node shapes, and graph naming in Mermaid format.
  *
- * @example
+ * **Example** (Configuring Mermaid output)
+ *
  * ```ts
  * import type * as Graph from "effect/Graph"
  *
@@ -2015,7 +2051,8 @@ const formatMermaidNode = (
  * structures to valid Mermaid syntax for use in documentation, web applications,
  * and visualization tools.
  *
- * @example
+ * **Example** (Exporting a directed Mermaid diagram)
+ *
  * ```ts
  * import * as Graph from "effect/Graph"
  *
@@ -2038,7 +2075,8 @@ const formatMermaidNode = (
  * //   0 -->|"2"| 2
  * ```
  *
- * @example
+ * **Example** (Exporting an undirected Mermaid diagram)
+ *
  * ```ts
  * import * as Graph from "effect/Graph"
  *
@@ -2065,7 +2103,8 @@ const formatMermaidNode = (
  * //   1 ---|"colleagues"| 2
  * ```
  *
- * @example
+ * **Example** (Customizing Mermaid node shapes)
+ *
  * ```ts
  * import * as Graph from "effect/Graph"
  *
@@ -2116,7 +2155,8 @@ const formatMermaidNode = (
  * //   2 --> 3
  * ```
  *
- * @example
+ * **Example** (Visualizing dependency graphs)
+ *
  * ```ts
  * import * as Graph from "effect/Graph"
  *
@@ -2246,7 +2286,8 @@ export const toMermaid: {
 /**
  * Direction for graph traversal, indicating which edges to follow.
  *
- * @example
+ * **Example** (Traversing by direction)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -2283,7 +2324,8 @@ export type Direction = "outgoing" | "incoming"
  * For directed graphs, any back edge creates a cycle. For undirected graphs,
  * a back edge that doesn't go to the immediate parent creates a cycle.
  *
- * @example
+ * **Example** (Checking cycles)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -2393,7 +2435,8 @@ export const isAcyclic = <N, E, T extends Kind = "directed">(
  * such that no two vertices within the same set are adjacent. Uses BFS coloring
  * to determine bipartiteness.
  *
- * @example
+ * **Example** (Checking bipartite graphs)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -2502,7 +2545,8 @@ const getUndirectedNeighbors = <N, E>(
  * Find connected components in an undirected graph.
  * Each component is represented as an array of node indices.
  *
- * @example
+ * **Example** (Finding connected components)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -2560,7 +2604,8 @@ export const connectedComponents = <N, E>(
  * Find strongly connected components in a directed graph using Kosaraju's algorithm.
  * Each SCC is represented as an array of node indices.
  *
- * @example
+ * **Example** (Finding strongly connected components)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -2707,7 +2752,8 @@ export interface DijkstraConfig<E> {
  * Dijkstra's algorithm works with non-negative edge weights and finds the shortest
  * path from a source node to a target node in O((V + E) log V) time complexity.
  *
- * @example
+ * **Example** (Finding shortest paths with Dijkstra)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -2889,7 +2935,8 @@ export interface AllPairsResult<E> {
  *
  * Throws if a negative cycle is detected that affects the path to target.
  *
- * @example
+ * **Example** (Finding all-pairs shortest paths)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -3049,7 +3096,8 @@ export interface AstarConfig<E, N> {
  * the search towards the target, potentially finding paths faster than Dijkstra's.
  * The heuristic must be admissible (never overestimate the actual cost).
  *
- * @example
+ * **Example** (Finding shortest paths with A-star)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -3260,7 +3308,8 @@ export interface BellmanFordConfig<E> {
  * It has O(VE) time complexity, slower than Dijkstra's but more versatile.
  * Returns Option.none() if a negative cycle is detected that affects the path.
  *
- * @example
+ * **Example** (Finding shortest paths with Bellman-Ford)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -3432,7 +3481,8 @@ export const bellmanFord: {
  * including traversal iterators (DFS, BFS, etc.) and element iterators (nodes, externals).
  * It uses a mapEntry function pattern for flexible iteration and transformation.
  *
- * @example
+ * **Example** (Working with node walkers)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -3470,7 +3520,8 @@ export class Walker<T, N> implements Iterable<[T, N]> {
    * and returns an iterable of the mapped values. Skips elements that
    * no longer exist in the graph.
    *
-   * @example
+   * **Example** (Visiting walker elements)
+   *
    * ```ts
    * import { Graph } from "effect"
    *
@@ -3506,7 +3557,8 @@ export class Walker<T, N> implements Iterable<[T, N]> {
      * and returns an iterable of the mapped values. Skips elements that
      * no longer exist in the graph.
      *
-     * @example
+     * **Example** (Visiting walker elements)
+     *
      * ```ts
      * import { Graph } from "effect"
      *
@@ -3560,7 +3612,8 @@ export type EdgeWalker<E> = Walker<EdgeIndex, Edge<E>>
 /**
  * Returns an iterator over the indices in the walker.
  *
- * @example
+ * **Example** (Iterating walker indices)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -3583,7 +3636,8 @@ export const indices = <T, N>(walker: Walker<T, N>): Iterable<T> => walker.visit
 /**
  * Returns an iterator over the values (data) in the walker.
  *
- * @example
+ * **Example** (Iterating walker values)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -3606,7 +3660,8 @@ export const values = <T, N>(walker: Walker<T, N>): Iterable<N> => walker.visit(
 /**
  * Returns an iterator over [index, data] entries in the walker.
  *
- * @example
+ * **Example** (Iterating walker entries)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -3644,7 +3699,8 @@ export interface SearchConfig {
  * The iterator maintains a stack of nodes to visit and tracks discovered nodes.
  * It provides lazy evaluation of the depth-first search.
  *
- * @example
+ * **Example** (Traversing depth-first)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -3737,7 +3793,8 @@ export const dfs: {
  * The iterator maintains a queue of nodes to visit and tracks discovered nodes.
  * It provides lazy evaluation of the breadth-first search.
  *
- * @example
+ * **Example** (Traversing breadth-first)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -3836,7 +3893,8 @@ export interface TopoConfig {
  * The iterator uses Kahn's algorithm to lazily produce nodes in topological order.
  * Throws an error if the graph contains cycles.
  *
- * @example
+ * **Example** (Sorting topologically)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -3970,7 +4028,8 @@ export const topo: {
  * in postorder (after all descendants have been processed). Essential for
  * dependency resolution and tree destruction algorithms.
  *
- * @example
+ * **Example** (Traversing in postorder)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -4073,7 +4132,8 @@ export const dfsPostOrder: {
  * The iterator produces node indices in the order they were added to the graph.
  * This provides access to all nodes regardless of connectivity.
  *
- * @example
+ * **Example** (Iterating all nodes)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -4118,7 +4178,8 @@ export const nodes = <N, E, T extends Kind = "directed">(
  * The iterator produces edge indices in the order they were added to the graph.
  * This provides access to all edges regardless of connectivity.
  *
- * @example
+ * **Example** (Iterating all edges)
+ *
  * ```ts
  * import { Graph } from "effect"
  *
@@ -4175,7 +4236,8 @@ export interface ExternalsConfig {
  * no incoming edges (direction="incoming"). These are useful for finding
  * sources, sinks, or isolated nodes.
  *
- * @example
+ * **Example** (Iterating external nodes)
+ *
  * ```ts
  * import { Graph } from "effect"
  *

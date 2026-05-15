@@ -220,7 +220,8 @@ const Proto = {
 /**
  * Type guard to check if a value is a Param.
  *
- * @example
+ * **Example** (Checking for params)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -241,7 +242,8 @@ export const isParam = (u: unknown): u is Param<any, ParamKind> => Predicate.has
 /**
  * Type guard to check if a param is a Single param (not composed).
  *
- * @example
+ * **Example** (Checking for single params)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -298,7 +300,8 @@ export const makeSingle = <const Kind extends ParamKind, A>(params: {
 /**
  * Creates a string parameter.
  *
- * @example
+ * **Example** (Creating string parameters)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -329,7 +332,8 @@ export const string = <const Kind extends ParamKind>(
 /**
  * Creates a boolean parameter.
  *
- * @example
+ * **Example** (Creating boolean parameters)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -361,7 +365,8 @@ export const boolean = <const Kind extends ParamKind>(
 /**
  * Creates an integer parameter.
  *
- * @example
+ * **Example** (Creating integer parameters)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -392,7 +397,8 @@ export const integer = <const Kind extends ParamKind>(
 /**
  * Creates a floating-point number parameter.
  *
- * @example
+ * **Example** (Creating float parameters)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -423,7 +429,8 @@ export const float = <const Kind extends ParamKind>(
 /**
  * Creates a date parameter that parses ISO date strings.
  *
- * @example
+ * **Example** (Creating date parameters)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -456,7 +463,8 @@ export const date = <const Kind extends ParamKind>(
  * Constructs command-line params that represent a choice between several
  * inputs. The input will be mapped to it's associated value during parsing.
  *
- * @example
+ * **Example** (Creating valued choices)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -495,7 +503,8 @@ export const choiceWithValue = <
  * Constructs command-line params that represent a choice between several
  * string inputs.
  *
- * @example
+ * **Example** (Creating string choices)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -523,7 +532,8 @@ export const choice = <
 /**
  * Creates a path parameter that accepts file or directory paths.
  *
- * @example
+ * **Example** (Creating path parameters)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -568,7 +578,8 @@ export const path = <Kind extends ParamKind>(
  * This is a convenience function that creates a path parameter with the
  * `pathType` set to `"directory"` and a default type name of `"directory"`.
  *
- * @example
+ * **Example** (Creating directory parameters)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -605,7 +616,8 @@ export const directory = <Kind extends ParamKind>(
  * This is a convenience function that creates a path parameter with a
  * `pathType` set to `"file"` and a default type name of `"file"`.
  *
- * @example
+ * **Example** (Creating file parameters)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -640,7 +652,8 @@ export const file = <Kind extends ParamKind>(
  * Creates a redacted parameter for sensitive data like passwords.
  * The value is masked in help output and logging.
  *
- * @example
+ * **Example** (Creating redacted parameters)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -671,7 +684,8 @@ export const redacted = <Kind extends ParamKind>(
 /**
  * Creates a parameter that reads and returns file content as a string.
  *
- * @example
+ * **Example** (Reading file text)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -702,7 +716,8 @@ export const fileText = <Kind extends ParamKind>(kind: Kind, name: string): Para
  * The parser that is utilized will depend on the specified `format`, or the
  * extension of the file passed on the command-line if no `format` is specified.
  *
- * @example
+ * **Example** (Parsing file contents)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -735,7 +750,8 @@ export const fileParse = <Kind extends ParamKind>(
 /**
  * Creates a parameter that reads and validates file content using a schema.
  *
- * @example
+ * **Example** (Validating file contents)
+ *
  * ```ts
  * import { Schema } from "effect"
  * import * as Param from "effect/unstable/cli/Param"
@@ -781,7 +797,8 @@ export const fileSchema = <Kind extends ParamKind, A>(
  * Note: Requires at least one key=value pair. The parsed pairs are merged
  * into a single record object.
  *
- * @example
+ * **Example** (Parsing key-value pairs)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -818,7 +835,8 @@ export const keyValuePair = <Kind extends ParamKind>(
  *
  * This is useful for creating placeholder parameters or for combinators.
  *
- * @example
+ * **Example** (Creating sentinel parameters)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -854,7 +872,8 @@ const FLAG_DASH_REGEXP = /^-+/
  * This works on any param structure by recursively finding the underlying
  * `Single` node and applying the alias there.
  *
- * @example
+ * **Example** (Adding parameter aliases)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -892,7 +911,8 @@ export const withAlias: {
  * Descriptions provide users with information about what the option does
  * when they view help documentation.
  *
- * @example
+ * **Example** (Adding help descriptions)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -921,7 +941,8 @@ export const withDescription: {
 /**
  * Transforms the parsed value of an option using a mapping function.
  *
- * @example
+ * **Example** (Mapping parsed values)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -968,7 +989,8 @@ const transform = <Kind extends ParamKind, A, B>(
 /**
  * Transforms the parsed value of an option using an effectful mapping function.
  *
- * @example
+ * **Example** (Mapping parsed values effectfully)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -1020,7 +1042,8 @@ export const mapEffect: {
  * Transforms the parsed value of an option using a function that may throw,
  * converting any thrown errors into failure messages.
  *
- * @example
+ * **Example** (Mapping thrown errors)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -1083,7 +1106,8 @@ export const mapTryCatch: {
  * Optional options never fail with MissingOption errors. If the option is not
  * provided on the command line, Option.none() is returned instead.
  *
- * @example
+ * **Example** (Making parameters optional)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -1137,7 +1161,8 @@ export const optional = <Kind extends ParamKind, A>(
  * by providing a fallback value that will be used when the option is not
  * provided on the command line.
  *
- * @example
+ * **Example** (Providing default values)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -1274,7 +1299,8 @@ export type VariadicParamOptions = {
  * The min and max parameters are optional - if not provided, the parameter can be
  * specified any number of times (0 to infinity).
  *
- * @example
+ * **Example** (Accepting multiple values)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -1327,7 +1353,8 @@ export const variadic = <Kind extends ParamKind, A>(
  * This combinator transforms an option to accept between `min` and `max`
  * occurrences on the command line, returning an array of all provided values.
  *
- * @example
+ * **Example** (Bounding repeated values)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -1374,7 +1401,8 @@ export const between: {
  * This combinator transforms an option to accept between 0 and `max`
  * occurrences on the command line, returning an array of all provided values.
  *
- * @example
+ * **Example** (Limiting repeated values)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -1408,7 +1436,8 @@ export const atMost: {
  * This combinator transforms an option to accept at least `min`
  * occurrences on the command line, returning an array of all provided values.
  *
- * @example
+ * **Example** (Requiring repeated values)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -1443,7 +1472,8 @@ export const atLeast: {
  *
  * This combinator is useful for validation and transformation in a single step.
  *
- * @example
+ * **Example** (Filtering and transforming values)
+ *
  * ```ts
  * import { Option } from "effect"
  * import * as Param from "effect/unstable/cli/Param"
@@ -1495,7 +1525,8 @@ export const filterMap: {
 /**
  * Filters parsed values, failing with a custom error message if the predicate returns false.
  *
- * @example
+ * **Example** (Filtering parsed values)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -1534,7 +1565,8 @@ export const filter: {
  * The metavar is displayed in usage text to indicate what value the user should provide.
  * For example, `--output FILE` shows `FILE` as the metavar.
  *
- * @example
+ * **Example** (Setting metavars)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -1568,7 +1600,8 @@ export const withMetavar: {
 /**
  * Validates parsed values against a Schema, providing detailed error messages.
  *
- * @example
+ * **Example** (Validating with schemas)
+ *
  * ```ts
  * import { Schema } from "effect"
  * import * as Param from "effect/unstable/cli/Param"
@@ -1611,7 +1644,8 @@ export const withSchema: {
 /**
  * Provides a fallback param to use if this param fails to parse.
  *
- * @example
+ * **Example** (Falling back to another parameter)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *
@@ -1645,7 +1679,8 @@ export const orElse: {
 /**
  * Provides a fallback param, wrapping results in Either to distinguish which param succeeded.
  *
- * @example
+ * **Example** (Returning fallback results)
+ *
  * ```ts
  * import * as Param from "effect/unstable/cli/Param"
  *

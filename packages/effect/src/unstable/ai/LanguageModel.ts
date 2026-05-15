@@ -8,7 +8,8 @@
  * unified API that can be implemented by different AI providers while
  * maintaining type safety and effect management.
  *
- * @example
+ * **Example** (Generating text)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { LanguageModel } from "effect/unstable/ai"
@@ -25,7 +26,8 @@
  * })
  * ```
  *
- * @example
+ * **Example** (Generating structured output)
+ *
  * ```ts
  * import { Effect, Schema } from "effect"
  * import { LanguageModel } from "effect/unstable/ai"
@@ -86,7 +88,8 @@ import * as Toolkit from "./Toolkit.ts"
  * application, enabling text generation, streaming, and structured output
  * capabilities.
  *
- * @example
+ * **Example** (Accessing the language model service)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { LanguageModel } from "effect/unstable/ai"
@@ -361,7 +364,8 @@ export type ToolChoice<ToolName extends string> =
  * extracting different types of response parts like text, tool calls, and usage
  * information.
  *
- * @example
+ * **Example** (Inspecting a text response)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { LanguageModel } from "effect/unstable/ai"
@@ -471,7 +475,8 @@ export class GenerateTextResponse<Tools extends Record<string, Tool.Any>> {
 /**
  * Response class for structured object generation operations.
  *
- * @example
+ * **Example** (Inspecting an object response)
+ *
  * ```ts
  * import { Effect, Schema } from "effect"
  * import { LanguageModel } from "effect/unstable/ai"
@@ -1595,7 +1600,8 @@ export const make: (params: {
 /**
  * Generate text using a language model.
  *
- * @example
+ * **Example** (Generating text with options)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { LanguageModel } from "effect/unstable/ai"
@@ -1663,7 +1669,8 @@ export const generateText: {
 /**
  * Generate a structured object from a schema using a language model.
  *
- * @example
+ * **Example** (Generating an object)
+ *
  * ```ts
  * import { Effect, Schema } from "effect"
  * import { LanguageModel } from "effect/unstable/ai"
@@ -1717,7 +1724,8 @@ export const generateObject = <
  * Returns a stream of response parts that are emitted as soon as they are
  * available from the model, enabling real-time text generation experiences.
  *
- * @example
+ * **Example** (Streaming text deltas)
+ *
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  * import { LanguageModel } from "effect/unstable/ai"

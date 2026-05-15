@@ -28,7 +28,8 @@ const TypeId = "~effect/transactions/TxPriorityQueue"
  * construction time. `take` returns the smallest element, `peek` observes it
  * without removing.
  *
- * @example
+ * **Example** (Dequeuing values by priority)
+ *
  * ```ts
  * import { Effect, Order, TxPriorityQueue } from "effect"
  *
@@ -95,7 +96,8 @@ const insertSorted = <A>(chunk: Chunk<A>, value: A, ord: Order<A>): Chunk<A> => 
 /**
  * Creates an empty `TxPriorityQueue` with the given ordering.
  *
- * @example
+ * **Example** (Creating an empty priority queue)
+ *
  * ```ts
  * import { Effect, Order, TxPriorityQueue } from "effect"
  *
@@ -115,7 +117,8 @@ export const empty = <A>(order: Order<A>): Effect.Effect<TxPriorityQueue<A>> =>
 /**
  * Creates a `TxPriorityQueue` from an iterable of elements.
  *
- * @example
+ * **Example** (Creating a priority queue from an iterable)
+ *
  * ```ts
  * import { Effect, Order, TxPriorityQueue } from "effect"
  *
@@ -146,7 +149,8 @@ export const fromIterable: {
 /**
  * Creates a `TxPriorityQueue` from variadic elements.
  *
- * @example
+ * **Example** (Creating a priority queue from variadic values)
+ *
  * ```ts
  * import { Effect, Order, TxPriorityQueue } from "effect"
  *
@@ -166,7 +170,8 @@ export const make = <A>(order: Order<A>) => (...elements: Array<A>): Effect.Effe
 /**
  * Returns the number of elements in the queue.
  *
- * @example
+ * **Example** (Getting the queue size)
+ *
  * ```ts
  * import { Effect, Order, TxPriorityQueue } from "effect"
  *
@@ -185,7 +190,8 @@ export const size = <A>(self: TxPriorityQueue<A>): Effect.Effect<number> => Effe
 /**
  * Returns `true` if the queue is empty.
  *
- * @example
+ * **Example** (Checking whether a queue is empty)
+ *
  * ```ts
  * import { Effect, Order, TxPriorityQueue } from "effect"
  *
@@ -204,7 +210,8 @@ export const isEmpty = <A>(self: TxPriorityQueue<A>): Effect.Effect<boolean> => 
 /**
  * Returns `true` if the queue has at least one element.
  *
- * @example
+ * **Example** (Checking whether a queue has elements)
+ *
  * ```ts
  * import { Effect, Order, TxPriorityQueue } from "effect"
  *
@@ -224,7 +231,8 @@ export const isNonEmpty = <A>(self: TxPriorityQueue<A>): Effect.Effect<boolean> 
  * Observes the smallest element without removing it. Retries if the queue is
  * empty.
  *
- * @example
+ * **Example** (Peeking at the next value)
+ *
  * ```ts
  * import { Effect, Order, TxPriorityQueue } from "effect"
  *
@@ -252,7 +260,8 @@ export const peek = <A>(self: TxPriorityQueue<A>): Effect.Effect<A> =>
  * Observes the smallest element without removing it. Returns `None` if the
  * queue is empty.
  *
- * @example
+ * **Example** (Peeking without retrying)
+ *
  * ```ts
  * import { Effect, Option, Order, TxPriorityQueue } from "effect"
  *
@@ -272,7 +281,8 @@ export const peekOption = <A>(self: TxPriorityQueue<A>): Effect.Effect<Option<A>
 /**
  * Inserts an element into the queue in sorted position.
  *
- * @example
+ * **Example** (Offering a value)
+ *
  * ```ts
  * import { Effect, Order, TxPriorityQueue } from "effect"
  *
@@ -300,7 +310,8 @@ export const offer: {
 /**
  * Inserts all elements from an iterable into the queue.
  *
- * @example
+ * **Example** (Offering multiple values)
+ *
  * ```ts
  * import { Effect, Order, TxPriorityQueue } from "effect"
  *
@@ -330,7 +341,8 @@ export const offerAll: {
 /**
  * Takes the smallest element from the queue. Retries if the queue is empty.
  *
- * @example
+ * **Example** (Taking the next value)
+ *
  * ```ts
  * import { Effect, Order, TxPriorityQueue } from "effect"
  *
@@ -358,7 +370,8 @@ export const take = <A>(self: TxPriorityQueue<A>): Effect.Effect<A> =>
 /**
  * Takes all elements from the queue, returning them in priority order.
  *
- * @example
+ * **Example** (Taking all values in priority order)
+ *
  * ```ts
  * import { Effect, Order, TxPriorityQueue } from "effect"
  *
@@ -381,7 +394,8 @@ export const takeAll = <A>(self: TxPriorityQueue<A>): Effect.Effect<Array<A>> =>
 /**
  * Tries to take the smallest element. Returns `None` if the queue is empty.
  *
- * @example
+ * **Example** (Taking without retrying)
+ *
  * ```ts
  * import { Effect, Option, Order, TxPriorityQueue } from "effect"
  *
@@ -407,7 +421,8 @@ export const takeOption = <A>(self: TxPriorityQueue<A>): Effect.Effect<Option<A>
 /**
  * Takes up to `n` elements from the queue in priority order.
  *
- * @example
+ * **Example** (Taking up to a limit)
+ *
  * ```ts
  * import { Effect, Order, TxPriorityQueue } from "effect"
  *
@@ -440,7 +455,8 @@ export const takeUpTo: {
 /**
  * Removes elements matching the predicate.
  *
- * @example
+ * **Example** (Removing matching values)
+ *
  * ```ts
  * import { Effect, Order, TxPriorityQueue } from "effect"
  *
@@ -467,7 +483,8 @@ export const removeIf: {
 /**
  * Retains only elements matching the predicate.
  *
- * @example
+ * **Example** (Retaining matching values)
+ *
  * ```ts
  * import { Effect, Order, TxPriorityQueue } from "effect"
  *
@@ -494,7 +511,8 @@ export const retainIf: {
 /**
  * Returns all elements in priority order without removing them.
  *
- * @example
+ * **Example** (Reading values in priority order)
+ *
  * ```ts
  * import { Effect, Order, TxPriorityQueue } from "effect"
  *
@@ -514,7 +532,8 @@ export const toArray = <A>(self: TxPriorityQueue<A>): Effect.Effect<Array<A>> =>
 /**
  * Determines if the provided value is a `TxPriorityQueue`.
  *
- * @example
+ * **Example** (Checking for a TxPriorityQueue)
+ *
  * ```ts
  * import { Effect, Order, TxPriorityQueue } from "effect"
  *

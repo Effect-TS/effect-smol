@@ -12,7 +12,8 @@ import type { HelpDoc } from "./HelpDoc.ts"
  * Service interface for formatting CLI output including help, errors, and version info.
  * This allows customization of output formatting, including color support.
  *
- * @example
+ * **Example** (Customizing CLI output formatting)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { CliOutput } from "effect/unstable/cli"
@@ -43,7 +44,8 @@ export interface Formatter {
   /**
    * Formats a HelpDoc structure into a readable string format.
    *
-   * @example
+   * **Example** (Formatting help documents)
+   *
    * ```ts
    * import { Option as O } from "effect"
    * import type { HelpDoc } from "effect/unstable/cli"
@@ -85,7 +87,8 @@ export interface Formatter {
   /**
    * Formats a CLI error for display. Default implementation mirrors the error message.
    *
-   * @example
+   * **Example** (Formatting CLI errors)
+   *
    * ```ts
    * import * as Data from "effect/Data"
    * import { CliOutput } from "effect/unstable/cli"
@@ -107,7 +110,8 @@ export interface Formatter {
   /**
    * Formats an error section with proper styling and color reset.
    *
-   * @example
+   * **Example** (Formatting error sections)
+   *
    * ```ts
    * import * as Data from "effect/Data"
    * import { CliOutput } from "effect/unstable/cli"
@@ -135,7 +139,8 @@ export interface Formatter {
   /**
    * Formats version output for display.
    *
-   * @example
+   * **Example** (Formatting version output)
+   *
    * ```ts
    * import { CliOutput } from "effect/unstable/cli"
    *
@@ -159,7 +164,8 @@ export interface Formatter {
   /**
    * Formats multiple CLI errors for display, grouping by error type.
    *
-   * @example
+   * **Example** (Formatting grouped errors)
+   *
    * ```ts
    * import { CliError, CliOutput } from "effect/unstable/cli"
    *
@@ -187,7 +193,8 @@ export interface Formatter {
  * Service reference for the CLI output formatter. Provides a default implementation
  * that can be overridden for custom formatting or testing.
  *
- * @example
+ * **Example** (Accessing the output formatter)
+ *
  * ```ts
  * import * as Effect from "effect/Effect"
  * import { CliOutput } from "effect/unstable/cli"
@@ -218,7 +225,8 @@ export const Formatter: Context.Reference<Formatter> = Context.Reference(
 /**
  * Creates a Layer that provides a custom Formatter implementation.
  *
- * @example
+ * **Example** (Providing a custom formatter)
+ *
  * ```ts
  * import * as Console from "effect/Console"
  * import * as Effect from "effect/Effect"
@@ -257,7 +265,8 @@ export const layer = (formatter: Formatter): Layer.Layer<never> => Layer.succeed
 /**
  * Creates a default formatter with configurable options.
  *
- * @example
+ * **Example** (Creating default formatters)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { CliError, CliOutput } from "effect/unstable/cli"

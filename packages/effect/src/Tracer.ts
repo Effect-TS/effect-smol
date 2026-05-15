@@ -40,9 +40,8 @@ export interface EffectPrimitive<X> {
 }
 
 /**
- * @category models
- * @since 2.0.0
- * @example
+ * **Example** (Creating span statuses)
+ *
  * ```ts
  * import type { Tracer } from "effect"
  * import { Exit } from "effect"
@@ -61,6 +60,9 @@ export interface EffectPrimitive<X> {
  *   exit: Exit.succeed("result")
  * }
  * ```
+ *
+ * @category models
+ * @since 2.0.0
  */
 export type SpanStatus = {
   _tag: "Started"
@@ -73,9 +75,8 @@ export type SpanStatus = {
 }
 
 /**
- * @category models
- * @since 2.0.0
- * @example
+ * **Example** (Accepting any span)
+ *
  * ```ts
  * import { Effect, Tracer } from "effect"
  *
@@ -91,26 +92,30 @@ export type SpanStatus = {
  *   traceId: "trace-456"
  * })
  * ```
+ *
+ * @category models
+ * @since 2.0.0
  */
 export type AnySpan = Span | ExternalSpan
 
 /**
- * @category tags
- * @since 2.0.0
- * @example
+ * **Example** (Reading the parent span key)
+ *
  * ```ts
  * import { Tracer } from "effect"
  *
  * // The key used to identify parent spans in the context
  * console.log(Tracer.ParentSpanKey) // "effect/Tracer/ParentSpan"
  * ```
+ *
+ * @category tags
+ * @since 2.0.0
  */
 export const ParentSpanKey = "effect/Tracer/ParentSpan"
 
 /**
- * @category tags
- * @since 2.0.0
- * @example
+ * **Example** (Accessing the parent span)
+ *
  * ```ts
  * import { Effect, Tracer } from "effect"
  *
@@ -120,13 +125,15 @@ export const ParentSpanKey = "effect/Tracer/ParentSpan"
  *   console.log(`Parent span: ${parentSpan.spanId}`)
  * })
  * ```
+ *
+ * @category tags
+ * @since 2.0.0
  */
 export class ParentSpan extends Context.Service<ParentSpan, AnySpan>()(ParentSpanKey) {}
 
 /**
- * @category models
- * @since 2.0.0
- * @example
+ * **Example** (Creating an external span value)
+ *
  * ```ts
  * import type { Tracer } from "effect"
  * import { Context } from "effect"
@@ -142,6 +149,9 @@ export class ParentSpan extends Context.Service<ParentSpan, AnySpan>()(ParentSpa
  *
  * console.log(`External span: ${externalSpan.spanId}`)
  * ```
+ *
+ * @category models
+ * @since 2.0.0
  */
 export interface ExternalSpan {
   readonly _tag: "ExternalSpan"
@@ -152,9 +162,8 @@ export interface ExternalSpan {
 }
 
 /**
- * @category models
- * @since 3.1.0
- * @example
+ * **Example** (Configuring span options)
+ *
  * ```ts
  * import type { Tracer } from "effect"
  * import { Effect } from "effect"
@@ -171,6 +180,9 @@ export interface ExternalSpan {
  *   Effect.withSpan("my-operation", options)
  * )
  * ```
+ *
+ * @category models
+ * @since 3.1.0
  */
 export interface SpanOptions extends SpanOptionsNoTrace, TraceOptions {}
 
@@ -198,9 +210,8 @@ export interface TraceOptions {
 }
 
 /**
- * @category models
- * @since 3.1.0
- * @example
+ * **Example** (Configuring span kinds)
+ *
  * ```ts
  * import type { Tracer } from "effect"
  * import { Effect } from "effect"
@@ -218,13 +229,15 @@ export interface TraceOptions {
  *   kind: "internal" as Tracer.SpanKind
  * })
  * ```
+ *
+ * @category models
+ * @since 3.1.0
  */
 export type SpanKind = "internal" | "server" | "client" | "producer" | "consumer"
 
 /**
- * @category models
- * @since 2.0.0
- * @example
+ * **Example** (Working with spans)
+ *
  * ```ts
  * import { Effect } from "effect"
  *
@@ -236,6 +249,9 @@ export type SpanKind = "internal" | "server" | "client" | "producer" | "consumer
  * // The span interface defines the properties available
  * // when working with tracing in your effects
  * ```
+ *
+ * @category models
+ * @since 2.0.0
  */
 export interface Span {
   readonly _tag: "Span"
@@ -256,9 +272,8 @@ export interface Span {
 }
 
 /**
- * @category models
- * @since 2.0.0
- * @example
+ * **Example** (Linking spans)
+ *
  * ```ts
  * import { Effect, Tracer } from "effect"
  *
@@ -277,6 +292,9 @@ export interface Span {
  *   Effect.withSpan("linked-operation", { links: [link] })
  * )
  * ```
+ *
+ * @category models
+ * @since 2.0.0
  */
 export interface SpanLink {
   readonly span: AnySpan
@@ -290,9 +308,8 @@ export interface SpanLink {
 export const make = (options: Tracer): Tracer => options
 
 /**
- * @category constructors
- * @since 2.0.0
- * @example
+ * **Example** (Creating an external span)
+ *
  * ```ts
  * import { Effect, Tracer } from "effect"
  *
@@ -308,6 +325,9 @@ export const make = (options: Tracer): Tracer => options
  *   Effect.withSpan("child-operation", { parent: span })
  * )
  * ```
+ *
+ * @category constructors
+ * @since 2.0.0
  */
 export const externalSpan = (
   options: {
@@ -325,9 +345,8 @@ export const externalSpan = (
 })
 
 /**
- * @category references
- * @since 3.12.0
- * @example
+ * **Example** (Disabling span propagation)
+ *
  * ```ts
  * import { Effect, Tracer } from "effect"
  *
@@ -338,6 +357,9 @@ export const externalSpan = (
  *   Effect.provideService(Tracer.DisablePropagation, true)
  * )
  * ```
+ *
+ * @category references
+ * @since 3.12.0
  */
 export const DisablePropagation = Context.Reference<boolean>(
   "effect/Tracer/DisablePropagation",
@@ -374,9 +396,8 @@ export const MinimumTraceLevel = Context.Reference<
 export const TracerKey = "effect/Tracer"
 
 /**
- * @category references
- * @since 4.0.0
- * @example
+ * **Example** (Accessing the current tracer)
+ *
  * ```ts
  * import { Effect, Tracer } from "effect"
  *
@@ -392,6 +413,9 @@ export const TracerKey = "effect/Tracer"
  *   console.log("Current tracer obtained")
  * })
  * ```
+ *
+ * @category references
+ * @since 4.0.0
  */
 export const Tracer: Context.Reference<Tracer> = Context.Reference<Tracer>(TracerKey, {
   defaultValue: () =>

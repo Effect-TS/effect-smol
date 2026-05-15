@@ -515,7 +515,8 @@ export const layer = (options: {
 /**
  * Run the McpServer, using stdio for input and output.
  *
- * @example
+ * **Example** (Running an MCP server over stdio)
+ *
  * ```ts
  * import { NodeRuntime, NodeStdio } from "@effect/platform-node"
  * import { Effect, Layer, Logger, Schema } from "effect"

@@ -7,7 +7,8 @@
  * AI models to perform actions like searching databases, calling APIs, or
  * executing code within your application context.
  *
- * @example
+ * **Example** (Defining a calculator tool)
+ *
  * ```ts
  * import { Schema } from "effect"
  * import { Tool } from "effect/unstable/ai"
@@ -149,7 +150,8 @@ export type NeedsApproval<Params extends Schema.Top> =
  * to extend their functionality beyond text generation. Each tool has a defined
  * schema for parameters, results, and failures.
  *
- * @example
+ * **Example** (Defining a weather lookup tool)
+ *
  * ```ts
  * import { Schema } from "effect"
  * import { Tool } from "effect/unstable/ai"
@@ -327,7 +329,8 @@ export interface Tool<
  * by your application. However, they can optionally require custom handlers
  * implemented in your application to process provider generated results.
  *
- * @example
+ * **Example** (Defining a provider-defined web search tool)
+ *
  * ```ts
  * import { Schema } from "effect"
  * import { Tool } from "effect/unstable/ai"
@@ -416,7 +419,8 @@ export interface ProviderDefined<
  * This enables scenarios such as MCP tools discovered at runtime, user-defined
  * functions loaded from external sources, or plugin systems.
  *
- * @example
+ * **Example** (Defining dynamic tools)
+ *
  * ```ts
  * import { Schema } from "effect"
  * import { Tool } from "effect/unstable/ai"
@@ -482,7 +486,8 @@ export interface Dynamic<
 /**
  * Type guard to check if a value is a user-defined tool.
  *
- * @example
+ * **Example** (Checking for user-defined tools)
+ *
  * ```ts
  * import { Schema } from "effect"
  * import { Tool } from "effect/unstable/ai"
@@ -526,7 +531,8 @@ export const isUserDefined = (u: unknown): u is Tool<string, any, any> =>
 /**
  * Type guard to check if a value is a provider-defined tool.
  *
- * @example
+ * **Example** (Checking for provider-defined tools)
+ *
  * ```ts
  * import { Schema } from "effect"
  * import { Tool } from "effect/unstable/ai"
@@ -571,7 +577,8 @@ export const isProviderDefined = (
 /**
  * Type guard to check if a value is a dynamic tool.
  *
- * @example
+ * **Example** (Checking for dynamic tools)
+ *
  * ```ts
  * import { Schema } from "effect"
  * import { Tool } from "effect/unstable/ai"
@@ -1132,7 +1139,8 @@ const dynamicProto = <
  * If a tool accepts no parameters but still needs an explicit empty object
  * schema, use {@link EmptyParams}.
  *
- * @example
+ * **Example** (Creating a tool without parameters)
+ *
  * ```ts
  * import { Schema } from "effect"
  * import { Tool } from "effect/unstable/ai"
@@ -1229,7 +1237,8 @@ export const make = <
  * - When `parameters` is an Effect Schema: full type safety with validation
  * - When `parameters` is a JSON Schema: handler receives `unknown`, no validation
  *
- * @example
+ * **Example** (Creating a dynamic tool)
+ *
  * ```ts
  * import { Schema } from "effect"
  * import { Tool } from "effect/unstable/ai"
@@ -1322,7 +1331,8 @@ export const dynamic: {
  * by your application. However, they can optionally require custom handlers
  * implemented in your application to process provider generated results.
  *
- * @example
+ * **Example** (Creating a provider-defined tool)
+ *
  * ```ts
  * import { Schema } from "effect"
  * import { Tool } from "effect/unstable/ai"
@@ -1510,7 +1520,8 @@ export class NameMapper<Tools extends ReadonlyArray<Any>> {
  * Returns the tool's description if explicitly set, otherwise attempts to
  * extract it from the parameter schema's AST annotations.
  *
- * @example
+ * **Example** (Reading a tool description)
+ *
  * ```ts
  * import { Tool } from "effect/unstable/ai"
  *
@@ -1546,7 +1557,8 @@ export const getDescription = <Tool extends Any>(tool: Tool): string | undefined
  * tool parameter schema so that the resultant JSON schema for the tool call
  * parameters are in a format that conforms to any provider-specific constraints.
  *
- * @example
+ * **Example** (Generating a tool JSON schema)
+ *
  * ```ts
  * import { Schema } from "effect"
  * import { Tool } from "effect/unstable/ai"
@@ -1606,7 +1618,8 @@ export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S, options
 /**
  * Annotation for providing a human-readable title for tools.
  *
- * @example
+ * **Example** (Annotating a tool title)
+ *
  * ```ts
  * import { Tool } from "effect/unstable/ai"
  *
@@ -1622,13 +1635,15 @@ export class Title extends Context.Service<Title, string>()("effect/ai/Tool/Titl
 /**
  * Annotation for providing tool metadata for MCP.
  *
- * @example
+ * **Example** (Annotating MCP metadata)
+ *
  * ```ts
  * import { Tool } from "effect/unstable/ai"
  *
  * const myCalculatorUi = Tool.make("calculator_ui", {})
  *   .annotate(Tool.Meta, { ui: { resourceUri: "ui://example/calculator-ui" } })
  * ```
+ *
  * @category annotations
  * @since 1.0.0
  */
@@ -1637,7 +1652,8 @@ export class Meta extends Context.Service<Meta, Record<string, unknown>>()("effe
 /**
  * Annotation indicating whether a tool only reads data without making changes.
  *
- * @example
+ * **Example** (Marking a tool as read-only)
+ *
  * ```ts
  * import { Tool } from "effect/unstable/ai"
  *
@@ -1655,7 +1671,8 @@ export const Readonly = Context.Reference<boolean>("effect/ai/Tool/Readonly", {
 /**
  * Annotation indicating whether a tool performs destructive operations.
  *
- * @example
+ * **Example** (Marking a tool as non-destructive)
+ *
  * ```ts
  * import { Tool } from "effect/unstable/ai"
  *
@@ -1673,7 +1690,8 @@ export const Destructive = Context.Reference<boolean>("effect/ai/Tool/Destructiv
 /**
  * Annotation indicating whether a tool can be called multiple times safely.
  *
- * @example
+ * **Example** (Marking a tool as idempotent)
+ *
  * ```ts
  * import { Tool } from "effect/unstable/ai"
  *
@@ -1691,7 +1709,8 @@ export const Idempotent = Context.Reference<boolean>("effect/ai/Tool/Idempotent"
 /**
  * Annotation indicating whether a tool can handle arbitrary external data.
  *
- * @example
+ * **Example** (Disabling open-world access)
+ *
  * ```ts
  * import { Tool } from "effect/unstable/ai"
  *
@@ -1717,7 +1736,8 @@ export const OpenWorld = Context.Reference<boolean>("effect/ai/Tool/OpenWorld", 
  * When `undefined` (default), the provider's global configuration determines
  * the behavior (e.g. `Config.strictJsonSchema` for OpenAI).
  *
- * @example
+ * **Example** (Disabling strict JSON schema mode)
+ *
  * ```ts
  * import { Tool } from "effect/unstable/ai"
  *

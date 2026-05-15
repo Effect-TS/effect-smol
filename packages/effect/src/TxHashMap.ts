@@ -41,7 +41,8 @@ const TxHashMapProto = {
  * on key-value pairs within Effect transactions. It uses an immutable HashMap internally
  * with TxRef for transactional semantics, ensuring all operations are performed atomically.
  *
- * @example
+ * **Example** (Using transactional hash maps)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *
@@ -82,7 +83,8 @@ export interface TxHashMap<in out K, in out V> extends Inspectable, Pipeable {
  * The TxHashMap namespace contains type-level utilities and helper types
  * for working with TxHashMap instances.
  *
- * @example
+ * **Example** (Reusing extracted TxHashMap types)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *
@@ -117,7 +119,8 @@ export declare namespace TxHashMap {
   /**
    * Extracts the key type from a TxHashMap type.
    *
-   * @example
+   * **Example** (Extracting key types)
+   *
    * ```ts
    * import { Effect, TxHashMap } from "effect"
    *
@@ -145,7 +148,8 @@ export declare namespace TxHashMap {
   /**
    * Extracts the value type from a TxHashMap type.
    *
-   * @example
+   * **Example** (Extracting value types)
+   *
    * ```ts
    * import { Effect, TxHashMap } from "effect"
    *
@@ -177,7 +181,8 @@ export declare namespace TxHashMap {
   /**
    * Extracts the entry type from a TxHashMap type.
    *
-   * @example
+   * **Example** (Extracting entry types)
+   *
    * ```ts
    * import { Effect, TxHashMap } from "effect"
    *
@@ -213,7 +218,8 @@ export declare namespace TxHashMap {
 /**
  * Creates an empty TxHashMap.
  *
- * @example
+ * **Example** (Creating an empty map)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *
@@ -247,7 +253,8 @@ export const empty = <K, V>(): Effect.Effect<TxHashMap<K, V>> =>
 /**
  * Creates a TxHashMap from the provided key-value pairs.
  *
- * @example
+ * **Example** (Creating a map from entries)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *
@@ -287,7 +294,8 @@ export const make = <K, V>(
 /**
  * Creates a TxHashMap from an iterable of key-value pairs.
  *
- * @example
+ * **Example** (Creating a map from an iterable)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *
@@ -330,7 +338,8 @@ export const fromIterable = <K, V>(
 /**
  * Safely lookup the value for the specified key in the TxHashMap.
  *
- * @example
+ * **Example** (Looking up values safely)
+ *
  * ```ts
  * import { Effect, Option, TxHashMap } from "effect"
  *
@@ -376,7 +385,8 @@ export const get: {
  * **Mutation behavior**: This function mutates the original TxHashMap by updating
  * its internal state. It does not return a new TxHashMap reference.
  *
- * @example
+ * **Example** (Setting values)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *
@@ -416,7 +426,8 @@ export const set: {
 /**
  * Checks if the specified key exists in the TxHashMap.
  *
- * @example
+ * **Example** (Checking for keys)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *
@@ -461,7 +472,8 @@ export const has: {
  * **Mutation behavior**: This function mutates the original TxHashMap by removing
  * the specified key-value pair. It does not return a new TxHashMap reference.
  *
- * @example
+ * **Example** (Removing keys)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *
@@ -514,7 +526,8 @@ export const remove: {
  * **Mutation behavior**: This function mutates the original TxHashMap by clearing
  * all key-value pairs. It does not return a new TxHashMap reference.
  *
- * @example
+ * **Example** (Clearing all entries)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *
@@ -549,7 +562,8 @@ export const clear = <K, V>(self: TxHashMap<K, V>): Effect.Effect<void> => TxRef
 /**
  * Returns the number of entries in the TxHashMap.
  *
- * @example
+ * **Example** (Counting entries)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *
@@ -587,7 +601,8 @@ export const size = <K, V>(self: TxHashMap<K, V>): Effect.Effect<number> =>
 /**
  * Checks if the TxHashMap is empty.
  *
- * @example
+ * **Example** (Checking for an empty map)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *
@@ -621,7 +636,8 @@ export const isEmpty = <K, V>(self: TxHashMap<K, V>): Effect.Effect<boolean> =>
 /**
  * Checks if the TxHashMap is non-empty.
  *
- * @example
+ * **Example** (Checking for a non-empty map)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *
@@ -650,7 +666,8 @@ export const isNonEmpty = <K, V>(self: TxHashMap<K, V>): Effect.Effect<boolean> 
  * **Mutation behavior**: This function mutates the original TxHashMap by updating
  * the value at the specified key. It does not return a new TxHashMap reference.
  *
- * @example
+ * **Example** (Updating existing values)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *
@@ -719,7 +736,8 @@ export const modify: {
  * adding, or removing the key-value pair based on the function result. It does not
  * return a new TxHashMap reference.
  *
- * @example
+ * **Example** (Updating values with Option)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *
@@ -794,7 +812,8 @@ export const modifyAt: {
 /**
  * Returns an array of all keys in the TxHashMap.
  *
- * @example
+ * **Example** (Reading keys)
+ *
  * ```ts
  * import { Effect, Option, TxHashMap } from "effect"
  *
@@ -830,7 +849,8 @@ export const keys = <K, V>(self: TxHashMap<K, V>): Effect.Effect<Array<K>> =>
 /**
  * Returns an array of all values in the TxHashMap.
  *
- * @example
+ * **Example** (Reading values)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *
@@ -867,7 +887,8 @@ export const values = <K, V>(self: TxHashMap<K, V>): Effect.Effect<Array<V>> =>
 /**
  * Returns an array of all key-value pairs in the TxHashMap.
  *
- * @example
+ * **Example** (Reading entries)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *
@@ -906,7 +927,8 @@ export const entries = <K, V>(
 /**
  * Returns an immutable snapshot of the current TxHashMap state.
  *
- * @example
+ * **Example** (Taking immutable snapshots)
+ *
  * ```ts
  * import { Effect, HashMap, TxHashMap } from "effect"
  *
@@ -948,7 +970,8 @@ export const snapshot = <K, V>(
  * **Mutation behavior**: This function mutates the original TxHashMap by merging
  * the provided HashMap into it. It does not return a new TxHashMap reference.
  *
- * @example
+ * **Example** (Merging HashMaps)
+ *
  * ```ts
  * import { Effect, HashMap, TxHashMap } from "effect"
  *
@@ -1010,7 +1033,8 @@ export const union: {
  * **Mutation behavior**: This function mutates the original TxHashMap by removing
  * all specified keys. It does not return a new TxHashMap reference.
  *
- * @example
+ * **Example** (Removing multiple keys)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *
@@ -1061,7 +1085,8 @@ export const removeMany: {
  * **Mutation behavior**: This function mutates the original TxHashMap by setting
  * all provided key-value pairs. It does not return a new TxHashMap reference.
  *
- * @example
+ * **Example** (Setting multiple entries)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *
@@ -1131,7 +1156,8 @@ export const setMany: {
 /**
  * Returns `true` if the specified value is a `TxHashMap`, `false` otherwise.
  *
- * @example
+ * **Example** (Checking TxHashMap values)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *
@@ -1165,7 +1191,8 @@ export const isTxHashMap = <K, V>(value: unknown): value is TxHashMap<K, V> => {
  * Lookup the value for the specified key in the TxHashMap using a custom hash.
  * This can provide performance benefits when the hash is precomputed.
  *
- * @example
+ * **Example** (Looking up values with precomputed hashes)
+ *
  * ```ts
  * import { Effect, Hash, TxHashMap } from "effect"
  *
@@ -1220,7 +1247,8 @@ export const getHash: {
  * Checks if the specified key has an entry in the TxHashMap using a custom hash.
  * This can provide performance benefits when the hash is precomputed.
  *
- * @example
+ * **Example** (Checking keys with precomputed hashes)
+ *
  * ```ts
  * import { Effect, Hash, TxHashMap } from "effect"
  *
@@ -1282,7 +1310,8 @@ export const hasHash: {
  * **Return behavior**: This function returns a new TxHashMap reference with the
  * transformed values. The original TxHashMap is not modified.
  *
- * @example
+ * **Example** (Mapping values)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *
@@ -1348,7 +1377,8 @@ export const map: {
  * **Return behavior**: This function returns a new TxHashMap reference containing
  * only the entries that match the condition. The original TxHashMap is not modified.
  *
- * @example
+ * **Example** (Filtering entries)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *
@@ -1422,7 +1452,8 @@ export const filter: {
  * Reduces the TxHashMap entries to a single value by applying a reducer function.
  * Iterates over all key-value pairs and accumulates them into a final result.
  *
- * @example
+ * **Example** (Reducing entries)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *
@@ -1498,7 +1529,8 @@ export const reduce: {
  * **Return behavior**: This function returns a new TxHashMap reference containing
  * only the transformed entries that succeeded. The original TxHashMap is not modified.
  *
- * @example
+ * **Example** (Filtering and mapping entries)
+ *
  * ```ts
  * import { Effect, Option, Result, TxHashMap } from "effect"
  *
@@ -1572,7 +1604,8 @@ export const filterMap: {
 /**
  * Checks if any entry in the TxHashMap matches the given predicate.
  *
- * @example
+ * **Example** (Checking entries with a predicate)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *
@@ -1629,7 +1662,8 @@ export const hasBy: {
  * Finds the first entry in the TxHashMap that matches the given predicate.
  * Returns the key-value pair as a tuple wrapped in an Option.
  *
- * @example
+ * **Example** (Finding the first matching entry)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *
@@ -1687,7 +1721,8 @@ export const findFirst: {
 /**
  * Checks if at least one entry in the TxHashMap satisfies the given predicate.
  *
- * @example
+ * **Example** (Checking whether some entries match)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *
@@ -1743,7 +1778,8 @@ export const some: {
 /**
  * Checks if all entries in the TxHashMap satisfy the given predicate.
  *
- * @example
+ * **Example** (Checking whether every entry matches)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *
@@ -1800,7 +1836,8 @@ export const every: {
  * Executes a side-effect function for each entry in the TxHashMap.
  * The function receives the value and key as parameters and can perform effects.
  *
- * @example
+ * **Example** (Running effects for each entry)
+ *
  * ```ts
  * import { Console, Effect, TxHashMap } from "effect"
  *
@@ -1865,7 +1902,8 @@ export const forEach: {
  * **Return behavior**: This function returns a new TxHashMap reference with the
  * flattened results. The original TxHashMap is not modified.
  *
- * @example
+ * **Example** (Flat mapping entries)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *
@@ -1944,7 +1982,8 @@ export const flatMap: {
  * **Return behavior**: This function returns a new TxHashMap reference with only
  * the Some values unwrapped. The original TxHashMap is not modified.
  *
- * @example
+ * **Example** (Compacting optional values)
+ *
  * ```ts
  * import { Effect, Option, TxHashMap } from "effect"
  *
@@ -1996,7 +2035,8 @@ export const compact = <K, A>(
  * Returns an array of all key-value pairs in the TxHashMap.
  * This is an alias for the `entries` function, providing API consistency with HashMap.
  *
- * @example
+ * **Example** (Converting to entries)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *
@@ -2034,7 +2074,8 @@ export const toEntries = <K, V>(
  * Returns an array of all values in the TxHashMap.
  * This is an alias for the `values` function, providing API consistency with HashMap.
  *
- * @example
+ * **Example** (Converting to values)
+ *
  * ```ts
  * import { Effect, TxHashMap } from "effect"
  *

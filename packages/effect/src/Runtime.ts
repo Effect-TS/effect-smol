@@ -5,7 +5,8 @@
  * teardown, error reporting, and exit code management. These utilities are particularly useful
  * for creating CLI applications and server processes that need to manage their lifecycle properly.
  *
- * @example
+ * **Example** (Creating a main runner)
+ *
  * ```ts
  * import { Effect, Fiber, Runtime } from "effect"
  *
@@ -38,10 +39,8 @@ import type * as Fiber from "./Fiber.ts"
  * The teardown function is called when an Effect program completes (either successfully or with failure)
  * and is responsible for determining the appropriate exit code and performing any cleanup operations.
  *
- * @param exit - The result of the Effect program execution
- * @param onExit - Callback to execute with the determined exit code
+ * **Example** (Customizing teardown behavior)
  *
- * @example
  * ```ts
  * import { Effect, Exit, Runtime } from "effect"
  *
@@ -69,6 +68,9 @@ import type * as Fiber from "./Fiber.ts"
  * runMain(program, { teardown: customTeardown })
  * ```
  *
+ * @param exit - The result of the Effect program execution
+ * @param onExit - Callback to execute with the determined exit code
+ *
  * @category Model
  * @since 4.0.0
  */
@@ -84,7 +86,8 @@ export interface Teardown {
  * - Returns exit code 1 for failures (except interruption-only failures)
  * - Returns exit code 0 for interruption-only failures
  *
- * @example
+ * **Example** (Using default teardown)
+ *
  * ```ts
  * import { Effect, Exit, Runtime } from "effect"
  *
@@ -129,9 +132,8 @@ export const defaultTeardown: Teardown = <E, A>(
  * handling process signals, fiber management, and teardown operations. The provided
  * function receives a fiber and teardown callback to implement platform-specific behavior.
  *
- * @param f - Function that sets up platform-specific behavior for the running Effect
+ * **Example** (Creating platform runners)
  *
- * @example
  * ```ts
  * import { Effect, Fiber, Runtime } from "effect"
  *
@@ -174,6 +176,8 @@ export const defaultTeardown: Teardown = <E, A>(
  *   }
  * })
  * ```
+ *
+ * @param f - Function that sets up platform-specific behavior for the running Effect
  *
  * @category Run main
  * @since 4.0.0
@@ -240,6 +244,8 @@ export type errorExitCode = "~effect/Runtime/errorExitCode"
  * Allows associating an exit code with an error for determining the process
  * exit code on failure.
  *
+ * **Example** (Setting a process exit code)
+ *
  * ```ts
  * import { Data, Effect, Runtime } from "effect"
  * import { NodeRuntime } from "@effect/platform-node"
@@ -279,6 +285,8 @@ export type errorReported = "~effect/Runtime/errorReported"
 
 /**
  * Allows an error to opt-out of error reporting.
+ *
+ * **Example** (Suppressing error reporting)
  *
  * ```ts
  * import { Data, Effect, Runtime } from "effect"

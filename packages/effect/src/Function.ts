@@ -7,7 +7,8 @@ import { pipeArguments } from "./Pipeable.ts"
 /**
  * Type lambda for function types, used for higher-kinded type operations.
  *
- * @example
+ * **Example** (Creating a function type with a type lambda)
+ *
  * ```ts
  * import type { FunctionTypeLambda } from "effect/Function"
  * import type { Kind } from "effect/HKT"
@@ -41,7 +42,8 @@ export interface FunctionTypeLambda extends TypeLambda {
  * which determines if the function is being used in a data-first or
  * data-last style.
  *
- * @example
+ * **Example** (Creating a dual API with arity)
+ *
  * ```ts
  * import { dual, pipe } from "effect/Function"
  *
@@ -162,7 +164,8 @@ export const dual: {
 /**
  * Apply a function to a given value.
  *
- * @example
+ * **Example** (Applying an argument to a function)
+ *
  * ```ts
  * import { apply, pipe } from "effect/Function"
  * import { length } from "effect/String"
@@ -179,7 +182,8 @@ export const apply = <A>(a: A) => <B>(self: (a: A) => B): B => self(a)
 /**
  * A lazy argument.
  *
- * @example
+ * **Example** (Creating a lazy argument)
+ *
  * ```ts
  * import { constant, type LazyArg } from "effect/Function"
  *
@@ -194,7 +198,8 @@ export type LazyArg<A> = () => A
 /**
  * Represents a function with multiple arguments.
  *
- * @example
+ * **Example** (Typing a variadic function)
+ *
  * ```ts
  * import type { FunctionN } from "effect/Function"
  * import * as assert from "node:assert"
@@ -211,7 +216,8 @@ export type FunctionN<A extends ReadonlyArray<unknown>, B> = (...args: A) => B
 /**
  * The identity function, i.e. A function that returns its input argument.
  *
- * @example
+ * **Example** (Returning the same value)
+ *
  * ```ts
  * import { identity } from "effect/Function"
  * import * as assert from "node:assert"
@@ -228,7 +234,8 @@ export const identity = <A>(a: A): A => a
  * A function that ensures that the type of an expression matches some type,
  * without changing the resulting type of that expression.
  *
- * @example
+ * **Example** (Checking an expression against a type)
+ *
  * ```ts
  * import { satisfies } from "effect/Function"
  * import * as assert from "node:assert"
@@ -261,7 +268,8 @@ export const cast: <A, B>(a: A) => B = identity as any
  * This is useful when you want to pass a value to a higher-order function (a function that takes another function as its argument)
  * and want that inner function to always use the same value, no matter how many times it is called.
  *
- * @example
+ * **Example** (Creating a constant thunk)
+ *
  * ```ts
  * import { constant } from "effect/Function"
  * import * as assert from "node:assert"
@@ -280,7 +288,8 @@ export const constant = <A>(value: A): LazyArg<A> => () => value
 /**
  * A thunk that returns always `true`.
  *
- * @example
+ * **Example** (Returning true from a thunk)
+ *
  * ```ts
  * import { constTrue } from "effect/Function"
  * import * as assert from "node:assert"
@@ -296,7 +305,8 @@ export const constTrue: LazyArg<boolean> = constant(true)
 /**
  * A thunk that returns always `false`.
  *
- * @example
+ * **Example** (Returning false from a thunk)
+ *
  * ```ts
  * import { constFalse } from "effect/Function"
  * import * as assert from "node:assert"
@@ -312,7 +322,8 @@ export const constFalse: LazyArg<boolean> = constant(false)
 /**
  * A thunk that returns always `null`.
  *
- * @example
+ * **Example** (Returning null from a thunk)
+ *
  * ```ts
  * import { constNull } from "effect/Function"
  * import * as assert from "node:assert"
@@ -328,7 +339,8 @@ export const constNull: LazyArg<null> = constant(null)
 /**
  * A thunk that returns always `undefined`.
  *
- * @example
+ * **Example** (Returning undefined from a thunk)
+ *
  * ```ts
  * import { constUndefined } from "effect/Function"
  * import * as assert from "node:assert"
@@ -344,7 +356,8 @@ export const constUndefined: LazyArg<undefined> = constant(undefined)
 /**
  * A thunk that returns always `void`.
  *
- * @example
+ * **Example** (Returning void from a thunk)
+ *
  * ```ts
  * import { constVoid } from "effect/Function"
  * import * as assert from "node:assert"
@@ -360,7 +373,8 @@ export const constVoid: LazyArg<void> = constUndefined
 /**
  * Reverses the order of arguments for a curried function.
  *
- * @example
+ * **Example** (Flipping curried arguments)
+ *
  * ```ts
  * import { flip } from "effect/Function"
  * import * as assert from "node:assert"
@@ -383,7 +397,8 @@ export const flip = <A extends Array<unknown>, B extends Array<unknown>, C>(
  * Composes two functions, `ab` and `bc` into a single function that takes in an argument `a` of type `A` and returns a result of type `C`.
  * The result is obtained by first applying the `ab` function to `a` and then applying the `bc` function to the result of `ab`.
  *
- * @example
+ * **Example** (Composing two functions)
+ *
  * ```ts
  * import { compose } from "effect/Function"
  * import * as assert from "node:assert"
@@ -408,7 +423,8 @@ export const compose: {
  *
  * This function is particularly useful when it's necessary to specify that certain cases are impossible.
  *
- * @example
+ * **Example** (Handling impossible values)
+ *
  * ```ts
  * import { absurd } from "effect/Function"
  *
@@ -427,7 +443,8 @@ export const absurd = <A>(_: never): A => {
 /**
  * Creates a tupled version of this function: instead of `n` arguments, it accepts a single tuple argument.
  *
- * @example
+ * **Example** (Converting arguments to a tuple)
+ *
  * ```ts
  * import { tupled } from "effect/Function"
  * import * as assert from "node:assert"
@@ -445,7 +462,8 @@ export const tupled = <A extends ReadonlyArray<unknown>, B>(f: (...a: A) => B): 
 /**
  * Inverse function of `tupled`
  *
- * @example
+ * **Example** (Converting a tuple to arguments)
+ *
  * ```ts
  * import { untupled } from "effect/Function"
  * import * as assert from "node:assert"
@@ -470,10 +488,17 @@ export const untupled = <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): (
  * passes it as the input to the next function in the pipeline. This enables us
  * to build complex transformations by chaining multiple functions together.
  *
- * ```ts skip-type-checking
+ * **Example** (Showing pipeline syntax)
+ *
+ * ```ts
  * import { pipe } from "effect"
  *
- * const result = pipe(input, func1, func2, ..., funcN)
+ * const input = 1
+ * const func1 = (n: number) => n + 1
+ * const func2 = (n: number) => n * 2
+ * const funcN = (n: number) => `result: ${n}`
+ *
+ * const result = pipe(input, func1, func2, funcN)
  * ```
  *
  * In this syntax, `input` is the initial value, and `func1`, `func2`, ...,
@@ -497,14 +522,26 @@ export const untupled = <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): (
  * This is useful in combination with data-last functions as a simulation of
  * methods:
  *
- * ```ts skip-type-checking
+ * **Example** (Chaining methods before conversion)
+ *
+ * ```ts
+ * const as = [1, 2, 3]
+ * const f = (n: number) => n * 2
+ * const g = (n: number) => n > 2
+ *
  * as.map(f).filter(g)
  * ```
  *
  * becomes:
  *
- * ```ts skip-type-checking
+ * **Example** (Rewriting method chains with pipe)
+ *
+ * ```ts
  * import { Array, pipe } from "effect"
+ *
+ * const as = [1, 2, 3]
+ * const f = (n: number) => n * 2
+ * const g = (n: number) => n > 2
  *
  * pipe(as, Array.map(f), Array.filter(g))
  * ```
@@ -526,7 +563,8 @@ export const untupled = <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): (
  * // Output: 2
  * ```
  *
- * @example
+ * **Example** (Building a simple transformation pipeline)
+ *
  * ```ts
  * import { pipe } from "effect"
  *
@@ -1001,7 +1039,8 @@ export function pipe(a: unknown, ...args: Array<any>): unknown {
  *
  * See also [`pipe`](#pipe).
  *
- * @example
+ * **Example** (Composing functions left to right)
+ *
  * ```ts
  * import { flow } from "effect/Function"
  * import * as assert from "node:assert"
@@ -1185,7 +1224,8 @@ export function flow(
 /**
  * Type hole simulation. Creates a placeholder for any type, primarily used during development.
  *
- * @example
+ * **Example** (Creating a development placeholder)
+ *
  * ```ts
  * import { hole } from "effect/Function"
  *
@@ -1204,7 +1244,8 @@ export const hole: <T>() => T = cast(absurd)
  *
  * This function is useful for discarding the first argument passed to it and returning the second argument.
  *
- * @example
+ * **Example** (Discarding the first argument)
+ *
  * ```ts
  * import { SK } from "effect/Function"
  * import * as assert from "node:assert"

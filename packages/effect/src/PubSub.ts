@@ -5,7 +5,8 @@
  * can subscribe to receive those messages. PubSub supports various backpressure strategies,
  * message replay, and concurrent access from multiple producers and consumers.
  *
- * @example
+ * **Example** (Creating and using a PubSub)
+ *
  * ```ts
  * import { Effect, PubSub } from "effect"
  *
@@ -51,7 +52,8 @@ const TypeId = "~effect/PubSub"
  * messages of type `A` and subscribers can subscribe to take messages of type
  * `A`.
  *
- * @example
+ * **Example** (Publishing and subscribing to messages)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import * as PubSub from "effect/PubSub"
@@ -210,7 +212,8 @@ const SubscriptionTypeId = "~effect/PubSub/Subscription"
 /**
  * A subscription represents a consumer's connection to a PubSub, allowing them to take messages.
  *
- * @example
+ * **Example** (Taking messages from a subscription)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import * as PubSub from "effect/PubSub"
@@ -254,7 +257,8 @@ export interface Subscription<out A> extends Pipeable {
 /**
  * Creates a PubSub with a custom atomic implementation and strategy.
  *
- * @example
+ * **Example** (Creating a PubSub with a custom strategy)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import * as PubSub from "effect/PubSub"
@@ -302,7 +306,8 @@ export const make = <A>(
  *                   with capacity and optional replay buffer size
  * @returns An Effect that creates a bounded PubSub
  *
- * @example
+ * **Example** (Creating a bounded PubSub)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import * as PubSub from "effect/PubSub"
@@ -339,7 +344,8 @@ export const bounded = <A>(
  *
  * For best performance use capacities that are powers of two.
  *
- * @example
+ * **Example** (Dropping messages when full)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import * as PubSub from "effect/PubSub"
@@ -383,7 +389,8 @@ export const dropping = <A>(
  *
  * For best performance use capacities that are powers of two.
  *
- * @example
+ * **Example** (Sliding old messages when full)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import * as PubSub from "effect/PubSub"
@@ -429,7 +436,8 @@ export const sliding = <A>(
 /**
  * Creates an unbounded `PubSub`.
  *
- * @example
+ * **Example** (Creating an unbounded PubSub)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import * as PubSub from "effect/PubSub"
@@ -504,7 +512,8 @@ export const makeAtomicUnbounded = <A>(options?: {
 /**
  *  Returns the number of elements the queue can hold.
  *
- * @example
+ * **Example** (Getting PubSub capacity)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import * as PubSub from "effect/PubSub"
@@ -530,7 +539,8 @@ export const capacity = <A>(self: PubSub<A>): number => self.pubsub.capacity
  * in the queue. This may be negative if fibers are suspended waiting for
  * elements to be added to the queue.
  *
- * @example
+ * **Example** (Getting PubSub size)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import * as PubSub from "effect/PubSub"
@@ -560,7 +570,8 @@ export const size = <A>(self: PubSub<A>): Effect.Effect<number> => Effect.sync((
  * in the queue. This may be negative if fibers are suspended waiting for
  * elements to be added to the queue.
  *
- * @example
+ * **Example** (Reading size synchronously)
+ *
  * ```ts
  * import { PubSub } from "effect"
  *
@@ -585,7 +596,8 @@ export const sizeUnsafe = <A>(self: PubSub<A>): number => {
  * Returns `true` if the `PubSub` contains at least one element, `false`
  * otherwise.
  *
- * @example
+ * **Example** (Checking whether a PubSub is full)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import * as PubSub from "effect/PubSub"
@@ -615,7 +627,8 @@ export const isFull = <A>(self: PubSub<A>): Effect.Effect<boolean> =>
 /**
  * Returns `true` if the `Pubsub` contains zero elements, `false` otherwise.
  *
- * @example
+ * **Example** (Checking whether a PubSub is empty)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import * as PubSub from "effect/PubSub"
@@ -644,7 +657,8 @@ export const isEmpty = <A>(self: PubSub<A>): Effect.Effect<boolean> => Effect.ma
  * Interrupts any fibers that are suspended on `offer` or `take`. Future calls
  * to `offer*` and `take*` will be interrupted immediately.
  *
- * @example
+ * **Example** (Shutting down a PubSub)
+ *
  * ```ts
  * import { Effect, Fiber, PubSub } from "effect"
  *
@@ -684,7 +698,8 @@ export const shutdown = <A>(self: PubSub<A>): Effect.Effect<void> =>
 /**
  * Returns `true` if `shutdown` has been called, otherwise returns `false`.
  *
- * @example
+ * **Example** (Checking whether a PubSub is shutdown)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import * as PubSub from "effect/PubSub"
@@ -712,7 +727,8 @@ export const isShutdown = <A>(self: PubSub<A>): Effect.Effect<boolean> => Effect
 /**
  * Returns `true` if `shutdown` has been called, otherwise returns `false`.
  *
- * @example
+ * **Example** (Checking shutdown synchronously)
+ *
  * ```ts
  * import { PubSub } from "effect"
  *
@@ -737,7 +753,8 @@ export const isShutdownUnsafe = <A>(self: PubSub<A>): boolean => self.shutdownFl
  * not resume until the queue has been shutdown. If the queue is already
  * shutdown, the `Effect` will resume right away.
  *
- * @example
+ * **Example** (Waiting for shutdown)
+ *
  * ```ts
  * import { Effect, Fiber, PubSub } from "effect"
  *
@@ -772,7 +789,8 @@ export const awaitShutdown = <A>(self: PubSub<A>): Effect.Effect<void> => self.s
  * Publishes a message to the `PubSub`, returning whether the message was published
  * to the `PubSub`.
  *
- * @example
+ * **Example** (Publishing a message)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import * as PubSub from "effect/PubSub"
@@ -830,7 +848,8 @@ export const publish: {
  * Publishes a message to the `PubSub`, returning whether the message was published
  * to the `PubSub`.
  *
- * @example
+ * **Example** (Publishing without suspending)
+ *
  * ```ts
  * import { PubSub } from "effect"
  *
@@ -870,7 +889,8 @@ export const publishUnsafe: {
  * Publishes all of the specified messages to the `PubSub`, returning whether they
  * were published to the `PubSub`.
  *
- * @example
+ * **Example** (Publishing multiple messages)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import * as PubSub from "effect/PubSub"
@@ -929,7 +949,8 @@ export const publishAll: {
  * be evaluated multiple times within the scope to take a message from the `PubSub`
  * each time.
  *
- * @example
+ * **Example** (Subscribing to messages)
+ *
  * ```ts
  * import { Effect, PubSub } from "effect"
  *
@@ -1010,7 +1031,8 @@ const unsubscribe = <A>(self: Subscription<A>): Effect.Effect<void> =>
  * Takes a single message from the subscription. If no messages are available,
  * this will suspend until a message becomes available.
  *
- * @example
+ * **Example** (Taking a message)
+ *
  * ```ts
  * import { Effect, Fiber, PubSub } from "effect"
  *
@@ -1062,7 +1084,8 @@ export const take = <A>(self: Subscription<A>): Effect.Effect<A> =>
  * Takes all available messages from the subscription, suspending if no items
  * are available.
  *
- * @example
+ * **Example** (Taking all available messages)
+ *
  * ```ts
  * import { Effect, PubSub } from "effect"
  *
@@ -1132,7 +1155,8 @@ const pollForItem = <A>(self: Subscription<A>) => {
 /**
  * Takes up to the specified number of messages from the subscription without suspending.
  *
- * @example
+ * **Example** (Taking up to a maximum number of messages)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import * as PubSub from "effect/PubSub"
@@ -1188,7 +1212,8 @@ export const takeUpTo: {
  * Takes between the specified minimum and maximum number of messages from the subscription.
  * Will suspend if the minimum number is not immediately available.
  *
- * @example
+ * **Example** (Taking between a minimum and maximum)
+ *
  * ```ts
  * import { Effect, Fiber, PubSub } from "effect"
  *
@@ -1261,7 +1286,8 @@ const takeRemainderLoop = <A>(
 /**
  * Returns the number of messages currently available in the subscription.
  *
- * @example
+ * **Example** (Checking remaining messages)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import * as PubSub from "effect/PubSub"
@@ -1301,7 +1327,8 @@ export const remaining = <A>(self: Subscription<A>): Effect.Effect<number> =>
 /**
  * Returns the number of messages currently available in the subscription.
  *
- * @example
+ * **Example** (Checking remaining messages synchronously)
+ *
  * ```ts
  * import { PubSub } from "effect"
  *
@@ -2312,7 +2339,8 @@ export class BackPressureStrategy<in out A> implements PubSub.Strategy<A> {
  * other subscribers and that subscribers may not receive all messages
  * published to the `PubSub` while they are subscribed.
  *
- * @example
+ * **Example** (Using a dropping strategy)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import * as PubSub from "effect/PubSub"
@@ -2388,7 +2416,8 @@ export class DroppingStrategy<in out A> implements PubSub.Strategy<A> {
  * subscribers. However, it creates the risk that a slow subscriber will
  * not receive some messages published to the `PubSub` while it is subscribed.
  *
- * @example
+ * **Example** (Using a sliding strategy)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import * as PubSub from "effect/PubSub"

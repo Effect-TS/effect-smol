@@ -85,7 +85,8 @@ export const make = <A>(value: A): Effect.Effect<SubscriptionRef<A>> =>
  * The stream will first emit the current value, then emit all future changes
  * as they occur.
  *
- * @example
+ * **Example** (Streaming changes)
+ *
  * ```ts
  * import { Effect, Stream, SubscriptionRef } from "effect"
  *
@@ -116,7 +117,8 @@ export const changes = <A>(self: SubscriptionRef<A>): Stream.Stream<A> => Stream
  * synchronization. It should only be used when you're certain there are no
  * concurrent modifications.
  *
- * @example
+ * **Example** (Reading the current value unsafely)
+ *
  * ```ts
  * import { Effect, SubscriptionRef } from "effect"
  *
@@ -136,7 +138,8 @@ export const getUnsafe = <A>(self: SubscriptionRef<A>): A => self.value
 /**
  * Retrieves the current value of the `SubscriptionRef`.
  *
- * @example
+ * **Example** (Reading the current value)
+ *
  * ```ts
  * import { Effect, SubscriptionRef } from "effect"
  *
@@ -157,7 +160,8 @@ export const get = <A>(self: SubscriptionRef<A>): Effect.Effect<A> => Effect.syn
  * Atomically retrieves the current value and sets a new value, notifying
  * subscribers of the change.
  *
- * @example
+ * **Example** (Getting and setting a value)
+ *
  * ```ts
  * import { Effect, SubscriptionRef } from "effect"
  *
@@ -194,7 +198,8 @@ const setUnsafe = <A>(self: SubscriptionRef<A>, value: A) => {
  * Atomically retrieves the current value and updates it with the result of
  * applying a function, notifying subscribers of the change.
  *
- * @example
+ * **Example** (Getting and updating a value)
+ *
  * ```ts
  * import { Effect, SubscriptionRef } from "effect"
  *
@@ -227,7 +232,8 @@ export const getAndUpdate: {
  * Atomically retrieves the current value and updates it with the result of
  * applying an effectful function, notifying subscribers of the change.
  *
- * @example
+ * **Example** (Getting and updating with an effect)
+ *
  * ```ts
  * import { Effect, SubscriptionRef } from "effect"
  *
@@ -268,7 +274,8 @@ export const getAndUpdateEffect: {
  * result of applying a function that returns an `Option`, notifying
  * subscribers only if the value changes.
  *
- * @example
+ * **Example** (Getting and conditionally updating a value)
+ *
  * ```ts
  * import { Effect, Option, SubscriptionRef } from "effect"
  *
@@ -311,7 +318,8 @@ export const getAndUpdateSome: {
  * result of applying an effectful function that returns an `Option`,
  * notifying subscribers only if the value changes.
  *
- * @example
+ * **Example** (Getting and conditionally updating with an effect)
+ *
  * ```ts
  * import { Effect, Option, SubscriptionRef } from "effect"
  *
@@ -357,7 +365,8 @@ export const getAndUpdateSomeEffect: {
  * Atomically modifies the `SubscriptionRef` with a function that computes a
  * return value and a new value, notifying subscribers of the change.
  *
- * @example
+ * **Example** (Modifying a value)
+ *
  * ```ts
  * import { Effect, SubscriptionRef } from "effect"
  *
@@ -396,7 +405,8 @@ export const modify: {
  * computes a return value and a new value, notifying subscribers of the
  * change.
  *
- * @example
+ * **Example** (Modifying with an effect)
+ *
  * ```ts
  * import { Effect, SubscriptionRef } from "effect"
  *
@@ -441,7 +451,8 @@ export const modifyEffect: {
  * return value and optionally a new value, notifying subscribers only if the
  * value changes.
  *
- * @example
+ * **Example** (Conditionally modifying a value)
+ *
  * ```ts
  * import { Effect, Option, SubscriptionRef } from "effect"
  *
@@ -487,7 +498,8 @@ export const modifySome: {
  * computes a return value and optionally a new value, notifying subscribers
  * only if the value changes.
  *
- * @example
+ * **Example** (Conditionally modifying with an effect)
+ *
  * ```ts
  * import { Effect, Option, SubscriptionRef } from "effect"
  *
@@ -537,7 +549,8 @@ export const modifySomeEffect: {
  * Sets the value of the `SubscriptionRef`, notifying all subscribers of the
  * change.
  *
- * @example
+ * **Example** (Setting a value)
+ *
  * ```ts
  * import { Effect, SubscriptionRef } from "effect"
  *
@@ -566,7 +579,8 @@ export const set: {
  * Sets the value of the `SubscriptionRef` and returns the new value,
  * notifying all subscribers of the change.
  *
- * @example
+ * **Example** (Setting and reading the new value)
+ *
  * ```ts
  * import { Effect, SubscriptionRef } from "effect"
  *
@@ -594,7 +608,8 @@ export const setAndGet: {
  * Updates the value of the `SubscriptionRef` with the result of applying a
  * function, notifying subscribers of the change.
  *
- * @example
+ * **Example** (Updating a value)
+ *
  * ```ts
  * import { Effect, SubscriptionRef } from "effect"
  *
@@ -624,7 +639,8 @@ export const update: {
  * Updates the value of the `SubscriptionRef` with the result of applying an
  * effectful function, notifying subscribers of the change.
  *
- * @example
+ * **Example** (Updating with an effect)
+ *
  * ```ts
  * import { Effect, SubscriptionRef } from "effect"
  *
@@ -656,7 +672,8 @@ export const updateEffect: {
  * Updates the value of the `SubscriptionRef` with the result of applying a
  * function and returns the new value, notifying subscribers of the change.
  *
- * @example
+ * **Example** (Updating and reading the new value)
+ *
  * ```ts
  * import { Effect, SubscriptionRef } from "effect"
  *
@@ -686,7 +703,8 @@ export const updateAndGet: {
  * effectful function and returns the new value, notifying subscribers of the
  * change.
  *
- * @example
+ * **Example** (Updating with an effect and reading the new value)
+ *
  * ```ts
  * import { Effect, SubscriptionRef } from "effect"
  *
@@ -723,7 +741,8 @@ export const updateAndGetEffect: {
  * applying a function that returns an `Option`, notifying subscribers only if
  * the value changes.
  *
- * @example
+ * **Example** (Conditionally updating a value)
+ *
  * ```ts
  * import { Effect, Option, SubscriptionRef } from "effect"
  *
@@ -761,7 +780,8 @@ export const updateSome: {
  * applying an effectful function that returns an `Option`, notifying
  * subscribers only if the value changes.
  *
- * @example
+ * **Example** (Conditionally updating with an effect)
+ *
  * ```ts
  * import { Effect, Option, SubscriptionRef } from "effect"
  *
@@ -805,7 +825,8 @@ export const updateSomeEffect: {
  * applying a function that returns an `Option` and returns the new value,
  * notifying subscribers only if the value changes.
  *
- * @example
+ * **Example** (Conditionally updating and reading the new value)
+ *
  * ```ts
  * import { Effect, Option, SubscriptionRef } from "effect"
  *
@@ -843,7 +864,8 @@ export const updateSomeAndGet: {
  * applying an effectful function that returns an `Option` and returns the new
  * value, notifying subscribers only if the value changes.
  *
- * @example
+ * **Example** (Conditionally updating with an effect and reading the new value)
+ *
  * ```ts
  * import { Effect, Option, SubscriptionRef } from "effect"
  *

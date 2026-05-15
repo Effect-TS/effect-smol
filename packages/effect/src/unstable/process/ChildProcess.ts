@@ -4,7 +4,8 @@
  * This module uses an AST-based approach where commands are built first
  * using `make` and `pipeTo`, then executed using `spawn`.
  *
- * @example
+ * **Example** (Spawning and piping commands)
+ *
  * ```ts
  * import { NodeServices } from "@effect/platform-node"
  * import { Effect, Stream } from "effect"
@@ -133,7 +134,8 @@ export type PipeToOption = "stdin" | `fd${number}`
 /**
  * Options for controlling how commands are piped together.
  *
- * @example
+ * **Example** (Piping stderr between commands)
+ *
  * ```ts
  * import { ChildProcess } from "effect/unstable/process"
  *
@@ -463,7 +465,8 @@ export interface CommandOptions extends KillOptions {
    * The file descriptor index is determined by the numeric suffix (i.e. `fd3`
    * has a file descriptor index of 3).
    *
-   * @example
+   * **Example** (Configuring additional file descriptors)
+   *
    * ```ts
    * import { ChildProcess } from "effect/unstable/process"
    *
@@ -574,7 +577,8 @@ const makePipedCommand = (
  * Template literals are not parsed until execution time, allowing parsing
  * errors to flow through Effect's error channel.
  *
- * @example
+ * **Example** (Creating commands)
+ *
  * ```ts
  * import { ChildProcess } from "effect/unstable/process"
  *
@@ -652,7 +656,8 @@ export const make: {
  * By default, pipes `stdout` from the source to `stdin` of the destination.
  * Use the `options` parameter to customize which streams are connected.
  *
- * @example
+ * **Example** (Piping command output)
+ *
  * ```ts
  * import { ChildProcess } from "effect/unstable/process"
  *
@@ -688,7 +693,8 @@ export const pipeTo: {
  *
  * For pipelines, only the leftmost command is prefixed.
  *
- * @example
+ * **Example** (Prefixing commands)
+ *
  * ```ts
  * import { ChildProcess } from "effect/unstable/process"
  *
@@ -753,7 +759,8 @@ const applyPrefix = (self: Command, prefixSpec: PrefixSpec): Command => {
  *
  * For pipelines, applies to each command in the pipeline.
  *
- * @example
+ * **Example** (Setting command working directories)
+ *
  * ```ts
  * import { ChildProcess } from "effect/unstable/process"
  *
@@ -787,7 +794,8 @@ export const setCwd: {
  *
  * For pipelines, applies to each command in the pipeline.
  *
- * @example
+ * **Example** (Setting command environment variables)
+ *
  * ```ts
  * import { ChildProcess } from "effect/unstable/process"
  *

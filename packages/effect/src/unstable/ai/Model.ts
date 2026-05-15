@@ -6,7 +6,8 @@
  * functionality with provider identification, allowing for seamless switching
  * between different AI service providers while maintaining type safety.
  *
- * @example
+ * **Example** (Creating a provider-specific model)
+ *
  * ```ts
  * import type { Layer } from "effect"
  * import { Effect } from "effect"
@@ -126,7 +127,8 @@ const Proto = {
 /**
  * Creates a Model from a provider name and a Layer that constructs AI services.
  *
- * @example
+ * **Example** (Providing model metadata)
+ *
  * ```ts
  * import type { Layer } from "effect"
  * import { Effect } from "effect"

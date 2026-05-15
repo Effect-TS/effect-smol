@@ -26,7 +26,8 @@ import type { Covariant, NoInfer } from "./Types.ts"
 const TypeId = TR.TrieTypeId
 
 /**
- * @example
+ * **Example** (Using a trie for prefix search)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  *
@@ -71,7 +72,8 @@ export interface Trie<in out Value> extends Iterable<[string, Value]>, Equal, Pi
 /**
  * Creates an empty `Trie`.
  *
- * @example
+ * **Example** (Creating an empty trie)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -90,7 +92,8 @@ export const empty: <V = never>() => Trie<V> = TR.empty
 /**
  * Creates a new `Trie` from an iterable collection of key/value pairs (e.g. `Array<[string, V]>`).
  *
- * @example
+ * **Example** (Creating a trie from entries)
+ *
  * ```ts
  * import * as Equal from "effect/Equal"
  * import * as Trie from "effect/Trie"
@@ -124,7 +127,8 @@ export const fromIterable: <V>(entries: Iterable<readonly [string, V]>) => Trie<
 /**
  * Constructs a new `Trie` from the specified entries (`[string, V]`).
  *
- * @example
+ * **Example** (Constructing a trie from entries)
+ *
  * ```ts
  * import * as Equal from "effect/Equal"
  * import * as Trie from "effect/Trie"
@@ -149,7 +153,8 @@ export const make: <Entries extends Array<readonly [string, any]>>(
 /**
  * Insert a new entry in the `Trie`.
  *
- * @example
+ * **Example** (Inserting entries)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -183,7 +188,8 @@ export const insert: {
  *
  * The keys are returned in alphabetical order, regardless of insertion order.
  *
- * @example
+ * **Example** (Reading keys in alphabetical order)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -208,7 +214,8 @@ export const keys: <V>(self: Trie<V>) => IterableIterator<string> = TR.keys
  *
  * Values are ordered based on their key in alphabetical order, regardless of insertion order.
  *
- * @example
+ * **Example** (Reading values by key order)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -233,7 +240,8 @@ export const values: <V>(self: Trie<V>) => IterableIterator<V> = TR.values
  *
  * The entries are returned by keys in alphabetical order, regardless of insertion order.
  *
- * @example
+ * **Example** (Reading entries in alphabetical order)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -257,7 +265,8 @@ export const entries: <V>(self: Trie<V>) => IterableIterator<[string, V]> = TR.e
  *
  * Equivalent to `Array.from(Trie.entries(trie))`.
  *
- * @example
+ * **Example** (Converting entries to an array)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -280,7 +289,8 @@ export const toEntries = <V>(self: Trie<V>): Array<[string, V]> => Array.from(en
  * Returns an `IterableIterator` of the keys within the `Trie`
  * that have `prefix` as prefix (`prefix` included if it exists).
  *
- * @example
+ * **Example** (Finding keys with a prefix)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -308,7 +318,8 @@ export const keysWithPrefix: {
  * Returns an `IterableIterator` of the values within the `Trie`
  * that have `prefix` as prefix (`prefix` included if it exists).
  *
- * @example
+ * **Example** (Finding values with a prefix)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -338,7 +349,8 @@ export const valuesWithPrefix: {
  * Returns an `IterableIterator` of the entries within the `Trie`
  * that have `prefix` as prefix (`prefix` included if it exists).
  *
- * @example
+ * **Example** (Finding entries with a prefix)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -366,7 +378,8 @@ export const entriesWithPrefix: {
  * Returns `Array<[K, V]>` of the entries within the `Trie`
  * that have `prefix` as prefix (`prefix` included if it exists).
  *
- * @example
+ * **Example** (Converting prefixed entries to an array)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -394,7 +407,8 @@ export const toEntriesWithPrefix: {
  * Returns the longest key/value in the `Trie`
  * that is a prefix of that `key` if it exists, `None` otherwise.
  *
- * @example
+ * **Example** (Finding the longest prefix)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -426,7 +440,8 @@ export const longestPrefixOf: {
 /**
  * Returns the size of the `Trie` (number of entries in the `Trie`).
  *
- * @example
+ * **Example** (Getting the size)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -447,7 +462,8 @@ export const size: <V>(self: Trie<V>) => number = TR.size
 /**
  * Safely lookup the value for the specified key in the `Trie`.
  *
- * @example
+ * **Example** (Looking up values safely)
+ *
  * ```ts
  * import * as Option from "effect/Option"
  * import * as Trie from "effect/Trie"
@@ -481,7 +497,8 @@ export const get: {
 /**
  * Check if the given key exists in the `Trie`.
  *
- * @example
+ * **Example** (Checking key membership)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -514,7 +531,8 @@ export const has: {
 /**
  * Checks if the `Trie` contains any entries.
  *
- * @example
+ * **Example** (Checking whether a trie is empty)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -537,7 +555,8 @@ export const isEmpty: <V>(self: Trie<V>) => boolean = TR.isEmpty
  * `getUnsafe` will throw if the key is not found. Use `get` instead to safely
  * get a value from the `Trie`.
  *
- * @example
+ * **Example** (Looking up values unsafely)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -561,7 +580,8 @@ export const getUnsafe: {
 /**
  * Remove the entry for the specified key in the `Trie`.
  *
- * @example
+ * **Example** (Removing entries)
+ *
  * ```ts
  * import * as Option from "effect/Option"
  * import * as Trie from "effect/Trie"
@@ -593,7 +613,8 @@ export const remove: {
 /**
  * Reduce a state over the entries of the `Trie`.
  *
- * @example
+ * **Example** (Reducing entries)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -635,7 +656,8 @@ export const reduce: {
 /**
  * Maps over the entries of the `Trie` using the specified function.
  *
- * @example
+ * **Example** (Mapping entries)
+ *
  * ```ts
  * import * as Equal from "effect/Equal"
  * import * as Trie from "effect/Trie"
@@ -674,7 +696,8 @@ export const map: {
 /**
  * Filters entries out of a `Trie` using the specified predicate.
  *
- * @example
+ * **Example** (Filtering entries)
+ *
  * ```ts
  * import * as Equal from "effect/Equal"
  * import * as Trie from "effect/Trie"
@@ -716,7 +739,8 @@ export const filter: {
  * Maps over the entries of the `Trie` using the specified filter and keeps
  * only successful results.
  *
- * @example
+ * **Example** (Filtering and mapping entries)
+ *
  * ```ts
  * import * as Equal from "effect/Equal"
  * import * as Result from "effect/Result"
@@ -768,7 +792,8 @@ export const filterMap: {
 /**
  * Filters out `None` values from a `Trie` of `Options`s.
  *
- * @example
+ * **Example** (Compacting optional values)
+ *
  * ```ts
  * import * as Equal from "effect/Equal"
  * import * as Option from "effect/Option"
@@ -797,7 +822,8 @@ export const compact: <A>(self: Trie<Option<A>>) => Trie<A> = TR.compact
 /**
  * Applies the specified function to the entries of the `Trie`.
  *
- * @example
+ * **Example** (Iterating over entries)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -827,7 +853,8 @@ export const forEach: {
 /**
  * Updates the value of the specified key within the `Trie` if it exists.
  *
- * @example
+ * **Example** (Modifying an existing value)
+ *
  * ```ts
  * import * as Equal from "effect/Equal"
  * import * as Option from "effect/Option"
@@ -859,7 +886,8 @@ export const modify: {
 /**
  * Removes all entries in the `Trie` which have the specified keys.
  *
- * @example
+ * **Example** (Removing multiple entries)
+ *
  * ```ts
  * import * as Equal from "effect/Equal"
  * import * as Trie from "effect/Trie"
@@ -891,7 +919,8 @@ export const removeMany: {
 /**
  * Insert multiple entries in the `Trie` at once.
  *
- * @example
+ * **Example** (Inserting multiple entries)
+ *
  * ```ts
  * import * as Equal from "effect/Equal"
  * import * as Trie from "effect/Trie"

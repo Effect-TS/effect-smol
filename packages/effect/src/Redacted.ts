@@ -18,7 +18,8 @@ import type { Covariant } from "./Types.ts"
 const TypeId = "~effect/data/Redacted"
 
 /**
- * @example
+ * **Example** (Creating redacted values)
+ *
  * ```ts
  * import { Redacted } from "effect"
  *
@@ -37,7 +38,8 @@ export interface Redacted<out A = string> extends Redacted.Variance<A>, Equal.Eq
 }
 
 /**
- * @example
+ * **Example** (Using namespace utilities)
+ *
  * ```ts
  * import { Redacted } from "effect"
  *
@@ -53,7 +55,8 @@ export interface Redacted<out A = string> extends Redacted.Variance<A>, Equal.Eq
  */
 export declare namespace Redacted {
   /**
-   * @example
+   * **Example** (Creating redacted values with different types)
+   *
    * ```ts
    * import { Redacted } from "effect"
    *
@@ -74,7 +77,8 @@ export declare namespace Redacted {
   }
 
   /**
-   * @example
+   * **Example** (Extracting the redacted value type)
+   *
    * ```ts
    * import { Redacted } from "effect"
    *
@@ -90,7 +94,8 @@ export declare namespace Redacted {
 }
 
 /**
- * @example
+ * **Example** (Checking for redacted values)
+ *
  * ```ts
  * import { Redacted } from "effect"
  *
@@ -110,7 +115,8 @@ export const isRedacted = (u: unknown): u is Redacted<unknown> => hasProperty(u,
  * This function creates a `Redacted<A>` instance from a given value `A`,
  * securely hiding its content.
  *
- * @example
+ * **Example** (Creating a redacted value)
+ *
  * ```ts
  * import { Redacted } from "effect"
  *
@@ -161,7 +167,8 @@ const Proto = {
  * Retrieves the original value from a `Redacted` instance. Use this function
  * with caution, as it exposes the sensitive data.
  *
- * @example
+ * **Example** (Retrieving a redacted value)
+ *
  * ```ts
  * import { Redacted } from "effect"
  * import * as assert from "node:assert"
@@ -181,7 +188,8 @@ export const value: <T>(self: Redacted<T>) => T = redacted.value
  * This function is intended to ensure that sensitive data does not remain in
  * memory longer than necessary.
  *
- * @example
+ * **Example** (Wiping a redacted value)
+ *
  * ```ts
  * import { Redacted } from "effect"
  * import * as assert from "node:assert"
@@ -208,7 +216,8 @@ export const wipeUnsafe = <T>(self: Redacted<T>): boolean => redacted.redactedRe
  * equivalence relation for the underlying values `A`. This function is useful
  * for comparing `Redacted` instances without exposing their contents.
  *
- * @example
+ * **Example** (Comparing redacted values)
+ *
  * ```ts
  * import { Equivalence, Redacted } from "effect"
  * import * as assert from "node:assert"

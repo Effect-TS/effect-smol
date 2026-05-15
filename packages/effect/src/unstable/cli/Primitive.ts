@@ -31,7 +31,8 @@ const TypeId = "~effect/cli/Primitive"
 /**
  * Represents a primitive type that can parse string input into a typed value.
  *
- * @example
+ * **Example** (Parsing values with primitives)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { Primitive } from "effect/unstable/cli"
@@ -118,7 +119,8 @@ const makeSchemaPrimitive = <T, E>(
  * - True values: "true", "1", "y", "yes", "on"
  * - False values: "false", "0", "n", "no", "off"
  *
- * @example
+ * **Example** (Parsing boolean values)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { Primitive } from "effect/unstable/cli"
@@ -149,7 +151,8 @@ export const boolean: Primitive<boolean> = makeSchemaPrimitive(
 /**
  * Creates a primitive that parses floating-point numbers from string input.
  *
- * @example
+ * **Example** (Parsing floating-point numbers)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { Primitive } from "effect/unstable/cli"
@@ -177,7 +180,8 @@ export const float: Primitive<number> = makeSchemaPrimitive(
 /**
  * Creates a primitive that parses integer numbers from string input.
  *
- * @example
+ * **Example** (Parsing integer values)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { Primitive } from "effect/unstable/cli"
@@ -205,7 +209,8 @@ export const integer: Primitive<number> = makeSchemaPrimitive(
 /**
  * Creates a primitive that parses Date objects from string input.
  *
- * @example
+ * **Example** (Parsing date values)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { Primitive } from "effect/unstable/cli"
@@ -233,7 +238,8 @@ export const date: Primitive<Date> = makeSchemaPrimitive(
 /**
  * Creates a primitive that accepts any string value without validation.
  *
- * @example
+ * **Example** (Parsing string values)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { Primitive } from "effect/unstable/cli"
@@ -258,7 +264,8 @@ export const string: Primitive<string> = makePrimitive("String", (value) => Effe
 /**
  * Creates a primitive that accepts only specific choice values mapped to custom types.
  *
- * @example
+ * **Example** (Parsing choices)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { Primitive } from "effect/unstable/cli"
@@ -301,7 +308,8 @@ export const choice = <A>(
 /**
  * Specifies the type of path validation to perform.
  *
- * @example
+ * **Example** (Choosing path validation)
+ *
  * ```ts
  * import { Primitive } from "effect/unstable/cli"
  *
@@ -323,7 +331,8 @@ export type PathType = "file" | "directory" | "either"
 /**
  * Creates a primitive that validates and resolves file system paths.
  *
- * @example
+ * **Example** (Parsing file system paths)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { Primitive } from "effect/unstable/cli"
@@ -395,7 +404,8 @@ export const path = (
 /**
  * Creates a primitive that wraps string input in a redacted type for secure handling.
  *
- * @example
+ * **Example** (Parsing redacted values)
+ *
  * ```ts
  * import { Effect, Redacted } from "effect"
  * import { Primitive } from "effect/unstable/cli"
@@ -418,7 +428,8 @@ export const redacted: Primitive<Redacted.Redacted<string>> = makePrimitive(
 /**
  * Creates a primitive that reads and returns the contents of a file as a string.
  *
- * @example
+ * **Example** (Reading file text)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { Primitive } from "effect/unstable/cli"
@@ -498,7 +509,8 @@ const fileParsers: Record<string, (content: string) => unknown> = {
 /**
  * Reads and parses file content using the specified schema.
  *
- * @example
+ * **Example** (Parsing file content)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { Primitive } from "effect/unstable/cli"
@@ -549,7 +561,8 @@ export type FileSchemaOptions = Struct.Simplify<
 /**
  * Reads and parses file content using the specified schema.
  *
- * @example
+ * **Example** (Parsing file content with a schema)
+ *
  * ```ts
  * import { Effect, Schema } from "effect"
  * import { Primitive } from "effect/unstable/cli"
@@ -594,7 +607,8 @@ export const fileSchema = <A>(
 /**
  * Parses a single `key=value` pair into a record object.
  *
- * @example
+ * **Example** (Parsing key-value pairs)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { Primitive } from "effect/unstable/cli"
@@ -638,7 +652,8 @@ export const keyValuePair: Primitive<Record<string, string>> = makePrimitive(
  *
  * Used for flags that don't accept values.
  *
- * @example
+ * **Example** (Rejecting option values)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { Primitive } from "effect/unstable/cli"
@@ -661,7 +676,8 @@ export const none: Primitive<never> = makePrimitive("None", () => Effect.fail("T
  *
  * Used for generating help documentation.
  *
- * @example
+ * **Example** (Getting primitive type names)
+ *
  * ```ts
  * import { Primitive } from "effect/unstable/cli"
  *

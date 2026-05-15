@@ -9,9 +9,8 @@ import * as internal from "./internal/effect.ts"
 import type * as Option from "./Option.ts"
 
 /**
- * @category models
- * @since 2.0.0
- * @example
+ * **Example** (Controlling concurrent access)
+ *
  * ```ts
  * import { Effect, Semaphore } from "effect"
  *
@@ -24,6 +23,9 @@ import type * as Option from "./Option.ts"
  *   )
  * })
  * ```
+ *
+ * @category models
+ * @since 2.0.0
  */
 export interface Semaphore {
   /**
@@ -101,7 +103,8 @@ export interface Semaphore {
  *
  * - `Effect.makeSemaphoreUnsafe`
  *
- * @example
+ * **Example** (Creating an unsafe semaphore)
+ *
  * ```ts
  * import { Effect, Semaphore } from "effect"
  *
@@ -244,7 +247,8 @@ class SemaphoreImpl implements Semaphore {
  *
  * - `Effect.makeSemaphore`
  *
- * @example
+ * **Example** (Creating a semaphore)
+ *
  * ```ts
  * import { Effect, Semaphore } from "effect"
  *

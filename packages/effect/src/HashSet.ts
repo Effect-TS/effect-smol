@@ -16,7 +16,8 @@ const TypeId = internal.HashSetTypeId
  * A HashSet is an immutable set data structure that provides efficient storage
  * and retrieval of unique values. It uses a HashMap internally for optimal performance.
  *
- * @example
+ * **Example** (Creating and updating a HashSet)
+ *
  * ```ts
  * import * as HashSet from "effect/HashSet"
  *
@@ -47,7 +48,8 @@ export interface HashSet<out Value> extends Iterable<Value>, Equal, Pipeable, In
  * The HashSet namespace contains type-level utilities and helper types
  * for working with HashSet instances.
  *
- * @example
+ * **Example** (Extracting value types from a HashSet)
+ *
  * ```ts
  * import * as HashSet from "effect/HashSet"
  *
@@ -68,7 +70,8 @@ export interface HashSet<out Value> extends Iterable<Value>, Equal, Pipeable, In
  */
 export declare namespace HashSet {
   /**
-   * @example
+   * **Example** (Extracting a HashSet value type)
+   *
    * ```ts
    * import * as HashSet from "effect/HashSet"
    *
@@ -89,7 +92,8 @@ export declare namespace HashSet {
 /**
  * Creates an empty HashSet.
  *
- * @example
+ * **Example** (Creating an empty HashSet)
+ *
  * ```ts
  * import * as HashSet from "effect/HashSet"
  *
@@ -111,7 +115,8 @@ export const empty: <V = never>() => HashSet<V> = internal.empty
 /**
  * Creates a HashSet from a variable number of values.
  *
- * @example
+ * **Example** (Creating a HashSet from values)
+ *
  * ```ts
  * import * as HashSet from "effect/HashSet"
  *
@@ -135,7 +140,8 @@ export const make: <Values extends ReadonlyArray<any>>(
 /**
  * Creates a HashSet from an iterable collection of values.
  *
- * @example
+ * **Example** (Creating a HashSet from an iterable)
+ *
  * ```ts
  * import * as HashSet from "effect/HashSet"
  *
@@ -157,7 +163,8 @@ export const fromIterable: <V>(values: Iterable<V>) => HashSet<V> = internal.fro
 /**
  * Checks if a value is a HashSet.
  *
- * @example
+ * **Example** (Checking for a HashSet)
+ *
  * ```ts
  * import * as HashSet from "effect/HashSet"
  *
@@ -180,7 +187,8 @@ export const isHashSet: {
 /**
  * Adds a value to the HashSet, returning a new HashSet.
  *
- * @example
+ * **Example** (Adding values to a HashSet)
+ *
  * ```ts
  * import * as HashSet from "effect/HashSet"
  *
@@ -210,7 +218,8 @@ export const add: {
 /**
  * Checks if the HashSet contains the specified value.
  *
- * @example
+ * **Example** (Checking HashSet membership)
+ *
  * ```ts
  * import * as HashSet from "effect/HashSet" // false
  *
@@ -252,7 +261,8 @@ export const has: {
 /**
  * Removes a value from the HashSet, returning a new HashSet.
  *
- * @example
+ * **Example** (Removing values from a HashSet)
+ *
  * ```ts
  * import * as HashSet from "effect/HashSet"
  *
@@ -282,7 +292,8 @@ export const remove: {
 /**
  * Returns the number of values in the HashSet.
  *
- * @example
+ * **Example** (Getting the HashSet size)
+ *
  * ```ts
  * import * as HashSet from "effect/HashSet"
  *
@@ -304,7 +315,8 @@ export const size: <V>(self: HashSet<V>) => number = internal.size
 /**
  * Checks if the HashSet is empty.
  *
- * @example
+ * **Example** (Checking whether a HashSet is empty)
+ *
  * ```ts
  * import * as HashSet from "effect/HashSet"
  *
@@ -323,7 +335,8 @@ export const isEmpty: <V>(self: HashSet<V>) => boolean = internal.isEmpty
 /**
  * Creates the union of two HashSets.
  *
- * @example
+ * **Example** (Combining HashSets)
+ *
  * ```ts
  * import * as HashSet from "effect/HashSet"
  *
@@ -349,7 +362,8 @@ export const union: {
 /**
  * Creates the intersection of two HashSets.
  *
- * @example
+ * **Example** (Finding common HashSet values)
+ *
  * ```ts
  * import * as HashSet from "effect/HashSet"
  *
@@ -375,7 +389,8 @@ export const intersection: {
 /**
  * Creates the difference of two HashSets (elements in the first set that are not in the second).
  *
- * @example
+ * **Example** (Finding HashSet differences)
+ *
  * ```ts
  * import * as HashSet from "effect/HashSet"
  *
@@ -401,7 +416,8 @@ export const difference: {
 /**
  * Checks if a HashSet is a subset of another HashSet.
  *
- * @example
+ * **Example** (Checking subset relationships)
+ *
  * ```ts
  * import * as HashSet from "effect/HashSet"
  *
@@ -429,7 +445,8 @@ export const isSubset: {
 /**
  * Maps each value in the HashSet using the provided function.
  *
- * @example
+ * **Example** (Mapping HashSet values)
+ *
  * ```ts
  * import * as HashSet from "effect/HashSet"
  *
@@ -459,7 +476,8 @@ export const map: {
 /**
  * Filters the HashSet keeping only values that satisfy the predicate.
  *
- * @example
+ * **Example** (Filtering HashSet values)
+ *
  * ```ts
  * import * as HashSet from "effect/HashSet"
  *
@@ -492,7 +510,8 @@ export const filter: {
 /**
  * Tests whether at least one value in the HashSet satisfies the predicate.
  *
- * @example
+ * **Example** (Testing whether some values match)
+ *
  * ```ts
  * import * as HashSet from "effect/HashSet"
  *
@@ -519,7 +538,8 @@ export const some: {
 /**
  * Tests whether all values in the HashSet satisfy the predicate.
  *
- * @example
+ * **Example** (Testing whether every value matches)
+ *
  * ```ts
  * import * as HashSet from "effect/HashSet"
  *
@@ -546,7 +566,8 @@ export const every: {
 /**
  * Reduces the HashSet to a single value by iterating through the values and applying an accumulator function.
  *
- * @example
+ * **Example** (Reducing HashSet values)
+ *
  * ```ts
  * import * as HashSet from "effect/HashSet"
  *

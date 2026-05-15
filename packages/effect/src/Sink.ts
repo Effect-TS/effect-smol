@@ -36,7 +36,8 @@ const TypeId = "~effect/Sink"
  * and will eventually yield a value of type `A` together with a remainder of
  * type `L` (i.e. any leftovers).
  *
- * @example
+ * **Example** (Running a sink with a stream)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import * as Sink from "effect/Sink"
@@ -80,7 +81,8 @@ const endVoid = Effect.succeed([void 0] as End<void, never>)
  * Interface for Sink unification, used internally by the Effect type system
  * to provide proper type inference when using Sink with other Effect types.
  *
- * @example
+ * **Example** (Unifying sink and effect types)
+ *
  * ```ts
  * import type { Effect } from "effect"
  * import type * as Sink from "effect/Sink"
@@ -114,7 +116,8 @@ export interface SinkUnify<A extends { [Unify.typeSymbol]?: any }> extends Effec
  * Interface used to ignore certain types during Sink unification.
  * Part of the internal type system machinery.
  *
- * @example
+ * **Example** (Configuring sink unification ignores)
+ *
  * ```ts
  * import type * as Sink from "effect/Sink"
  *
@@ -132,7 +135,8 @@ export interface SinkUnifyIgnore {
 /**
  * Namespace containing types and interfaces for Sink variance and type relationships.
  *
- * @example
+ * **Example** (Referencing sink type definitions)
+ *
  * ```ts
  * import type * as Sink from "effect/Sink"
  *
@@ -149,7 +153,8 @@ export declare namespace Sink {
    * Represents the variance annotations for a Sink type.
    * Used internally to track how type parameters flow through the Sink.
    *
-   * @example
+   * **Example** (Referencing sink variance annotations)
+   *
    * ```ts
    * import type * as Sink from "effect/Sink"
    *
@@ -168,7 +173,8 @@ export declare namespace Sink {
    * The internal structure representing Sink variance annotations.
    * Contains the actual variance markers for each type parameter.
    *
-   * @example
+   * **Example** (Referencing sink variance structure)
+   *
    * ```ts
    * import type * as Sink from "effect/Sink"
    *
@@ -207,7 +213,8 @@ const SinkProto = {
 /**
  * Checks if a value is a Sink.
  *
- * @example
+ * **Example** (Checking for a sink)
+ *
  * ```ts
  * import { Sink } from "effect"
  *
@@ -265,7 +272,8 @@ export const fromTransform = <In, A, E, R, L = never>(
 /**
  * Creates a `Channel` from a Sink.
  *
- * @example
+ * **Example** (Converting a sink to a channel)
+ *
  * ```ts
  * import { Sink } from "effect"
  *
@@ -443,7 +451,8 @@ export const fromPubSub = <A>(
 /**
  * A sink that immediately ends with the specified value.
  *
- * @example
+ * **Example** (Succeeding with a value)
+ *
  * ```ts
  * import { Effect, Sink, Stream } from "effect"
  *
@@ -484,7 +493,8 @@ export const suspend = <A, In, L, E, R>(evaluate: LazyArg<Sink<A, In, L, E, R>>)
 /**
  * A sink that always fails with the specified error.
  *
- * @example
+ * **Example** (Failing with an error)
+ *
  * ```ts
  * import { Effect, Sink, Stream } from "effect"
  *
@@ -507,7 +517,8 @@ export const fail = <E>(e: E): Sink<never, unknown, never, E> => fromEffectEnd(E
 /**
  * A sink that always fails with the specified lazily evaluated error.
  *
- * @example
+ * **Example** (Failing with a lazy error)
+ *
  * ```ts
  * import { Effect, Sink, Stream } from "effect"
  *
@@ -531,7 +542,8 @@ export const failSync = <E>(evaluate: LazyArg<E>): Sink<never, unknown, never, E
 /**
  * Creates a sink halting with a specified `Cause`.
  *
- * @example
+ * **Example** (Failing with a cause)
+ *
  * ```ts
  * import { Cause, Effect, Sink, Stream } from "effect"
  *
@@ -555,7 +567,8 @@ export const failCause = <E>(cause: Cause.Cause<E>): Sink<never, unknown, never,
 /**
  * Creates a sink halting with a specified lazily evaluated `Cause`.
  *
- * @example
+ * **Example** (Failing with a lazy cause)
+ *
  * ```ts
  * import { Cause, Effect, Sink, Stream } from "effect"
  *
@@ -579,7 +592,8 @@ export const failCauseSync = <E>(evaluate: LazyArg<Cause.Cause<E>>): Sink<never,
 /**
  * Creates a sink halting with a specified defect.
  *
- * @example
+ * **Example** (Dying with a defect)
+ *
  * ```ts
  * import { Effect, Sink, Stream } from "effect"
  *
@@ -1465,7 +1479,8 @@ export const takeUntilEffect = <In, E, R>(
  * A sink that executes the provided effectful function for every item fed
  * to it.
  *
- * @example
+ * **Example** (Running effects for each item)
+ *
  * ```ts
  * import { Console, Effect, Sink, Stream } from "effect"
  *
@@ -1494,7 +1509,8 @@ export const forEach = <In, X, E, R>(
  * A sink that executes the provided effectful function for every Chunk fed
  * to it.
  *
- * @example
+ * **Example** (Running effects for each chunk)
+ *
  * ```ts
  * import { Console, Effect, Sink, Stream } from "effect"
  *
@@ -1561,7 +1577,8 @@ export const forEachWhileArray = <In, E, R>(
 /**
  * Creates a sink produced from a scoped effect.
  *
- * @example
+ * **Example** (Unwrapping a sink effect)
+ *
  * ```ts
  * import { Console, Effect, Sink, Stream } from "effect"
  *

@@ -3,7 +3,8 @@
  * `Tool`s which can be used to enhance the capabilities of a large language
  * model beyond simple text generation.
  *
- * @example
+ * **Example** (Creating and implementing toolkits)
+ *
  * ```ts
  * import { Effect, Schema } from "effect"
  * import { Tool, Toolkit } from "effect/unstable/ai"
@@ -59,7 +60,8 @@ const TypeId = "~effect/ai/Toolkit" as const
  * Represents a collection of tools which can be used to enhance the
  * capabilities of a large language model.
  *
- * @example
+ * **Example** (Defining AI toolkits)
+ *
  * ```ts
  * import { Effect, Schema } from "effect"
  * import { Tool, Toolkit } from "effect/unstable/ai"
@@ -473,7 +475,8 @@ export const empty: Toolkit<{}> = makeProto({})
  * tools and organizes them into a toolkit that can be provided to AI language
  * models.
  *
- * @example
+ * **Example** (Creating a toolkit)
+ *
  * ```ts
  * import { Schema } from "effect"
  * import { Tool, Toolkit } from "effect/unstable/ai"
@@ -541,7 +544,8 @@ export type MergedTools<Toolkits extends ReadonlyArray<Any>> = SimplifyRecord<
  * If there are naming conflicts, tools from later toolkits will override
  * tools from earlier ones.
  *
- * @example
+ * **Example** (Merging toolkits)
+ *
  * ```ts
  * import { Schema } from "effect"
  * import { Tool, Toolkit } from "effect/unstable/ai"

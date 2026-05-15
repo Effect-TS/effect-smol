@@ -16,6 +16,8 @@
  *
  * ## Basic Usage
  *
+ * **Example** (Logging messages with structured data)
+ *
  * ```ts
  * import { Effect } from "effect"
  *
@@ -35,6 +37,8 @@
  * ```
  *
  * ## Custom Loggers
+ *
+ * **Example** (Creating and providing custom loggers)
  *
  * ```ts
  * import { Effect, Logger } from "effect"
@@ -57,6 +61,8 @@
  *
  * ## Multiple Loggers
  *
+ * **Example** (Combining multiple loggers)
+ *
  * ```ts
  * import { Effect, Logger } from "effect"
  *
@@ -72,6 +78,8 @@
  * ```
  *
  * ## Batched Logging
+ *
+ * **Example** (Batching log messages)
  *
  * ```ts
  * import { Duration, Effect, Logger } from "effect"
@@ -120,7 +128,8 @@ import type * as Scope from "./Scope.ts"
 const TypeId = "~effect/Logger"
 
 /**
- * @example
+ * **Example** (Creating custom loggers)
+ *
  * ```ts
  * import { Effect, Logger } from "effect"
  *
@@ -149,7 +158,8 @@ export interface Logger<in Message, out Output> extends Pipeable {
 }
 
 /**
- * @example
+ * **Example** (Accessing logger options)
+ *
  * ```ts
  * import { Effect, Logger } from "effect"
  *
@@ -184,7 +194,8 @@ export interface Options<out Message> {
 /**
  * Returns `true` if the specified value is a `Logger`, otherwise returns `false`.
  *
- * @example
+ * **Example** (Checking logger values)
+ *
  * ```ts
  * import { Logger } from "effect"
  *
@@ -203,7 +214,8 @@ export interface Options<out Message> {
 export const isLogger = (u: unknown): u is Logger<unknown, unknown> => Predicate.hasProperty(u, TypeId)
 
 /**
- * @example
+ * **Example** (Accessing current loggers)
+ *
  * ```ts
  * import { Effect, Logger } from "effect"
  *
@@ -240,7 +252,8 @@ export const LogToStderr: Context.Reference<boolean> = effect.LogToStderr
  * This allows you to modify, enhance, or completely change the output format
  * of an existing logger without recreating the entire logging logic.
  *
- * @example
+ * **Example** (Transforming logger output)
+ *
  * ```ts
  * import { Logger } from "effect"
  *
@@ -286,7 +299,8 @@ export const map = dual<
  * This is useful for taking any logger that produces string or object output
  * and routing it to the console for development or debugging purposes.
  *
- * @example
+ * **Example** (Writing logger output with console.log)
+ *
  * ```ts
  * import { Effect, Logger } from "effect"
  *
@@ -320,7 +334,8 @@ export const withConsoleLog = <Message, Output>(
  * This is particularly useful for error logging where you want to ensure
  * log messages appear in the error stream (stderr) rather than standard output.
  *
- * @example
+ * **Example** (Writing logger output with console.error)
+ *
  * ```ts
  * import { Effect, Logger } from "effect"
  *
@@ -361,7 +376,8 @@ export const withConsoleError = <Message, Output>(
  * - `Error` and `Fatal` -> `console.error`
  * - Others -> `console.log`
  *
- * @example
+ * **Example** (Writing logs with level-based console methods)
+ *
  * ```ts
  * import { Effect, Logger } from "effect"
  *
@@ -471,7 +487,8 @@ const format = (
  * The log function receives an options object containing the message, log level,
  * cause, fiber information, and timestamp, and should return the desired output.
  *
- * @example
+ * **Example** (Creating loggers from functions)
+ *
  * ```ts
  * import { Effect, Logger } from "effect"
  * import { CurrentLogAnnotations } from "effect/References"
@@ -513,7 +530,8 @@ export const make: <Message, Output>(
 /**
  * The default logging implementation used by the Effect runtime.
  *
- * @example
+ * **Example** (Using the default logger)
+ *
  * ```ts
  * import { Effect, Logger } from "effect"
  *
@@ -548,7 +566,8 @@ export const defaultLogger: Logger<unknown, void> = effect.defaultLogger
  * timestamp=2025-01-03T14:22:47.570Z level=INFO fiber=#1 message=hello
  * ```
  *
- * @example
+ * **Example** (Formatting logs as simple strings)
+ *
  * ```ts
  * import { Effect, Logger } from "effect"
  *
@@ -583,7 +602,8 @@ export const formatSimple = effect.loggerMake(format(escapeDoubleQuotes))
  * timestamp=2025-01-03T14:22:47.570Z level=INFO fiber=#1 message=hello
  * ```
  *
- * @example
+ * **Example** (Formatting logs as logfmt)
+ *
  * ```ts
  * import { Effect, Logger } from "effect"
  *
@@ -627,7 +647,8 @@ export const formatLogFmt = effect.loggerMake(format(JSON.stringify, 0))
  * }
  * ```
  *
- * @example
+ * **Example** (Formatting logs as structured objects)
+ *
  * ```ts
  * import { Effect, Logger } from "effect"
  *
@@ -703,7 +724,8 @@ export const formatStructured: Logger<unknown, {
  * {"message":["hello"],"level":"INFO","timestamp":"2025-01-03T14:28:57.508Z","annotations":{"key":"value"},"spans":{"label":0},"fiberId":"#1"}
  * ```
  *
- * @example
+ * **Example** (Formatting logs as JSON)
+ *
  * ```ts
  * import { Effect, Logger } from "effect"
  *
@@ -748,7 +770,8 @@ export const formatJson = map(formatStructured, Formatter.formatJson)
  * This is useful for implementing efficient batch processing of logs, such as
  * writing multiple log entries to a database or file in a single operation.
  *
- * @example
+ * **Example** (Batching logger output)
+ *
  * ```ts
  * import { Duration, Effect, Logger } from "effect"
  *
@@ -852,7 +875,8 @@ export const batched = dual<
  *   key: value
  * ```
  *
- * @example
+ * **Example** (Logging with pretty console output)
+ *
  * ```ts
  * import { Effect, Logger } from "effect"
  *
@@ -905,7 +929,8 @@ export const consolePretty: (
  * timestamp=2025-01-03T14:22:47.570Z level=INFO fiber=#1 message=info
  * ```
  *
- * @example
+ * **Example** (Logging logfmt output to the console)
+ *
  * ```ts
  * import { Effect, Logger } from "effect"
  *
@@ -956,7 +981,8 @@ export const consoleLogFmt: Logger<unknown, void> = withConsoleLog(formatLogFmt)
  * }
  * ```
  *
- * @example
+ * **Example** (Logging structured output to the console)
+ *
  * ```ts
  * import { Effect, Logger } from "effect"
  *
@@ -1008,7 +1034,8 @@ export const consoleStructured: Logger<unknown, void> = withConsoleLog(formatStr
  * {"message":["hello"],"level":"INFO","timestamp":"2025-01-03T14:28:57.508Z","annotations":{"key":"value"},"spans":{"label":0},"fiberId":"#1"}
  * ```
  *
- * @example
+ * **Example** (Logging JSON output to the console)
+ *
  * ```ts
  * import { Effect, Logger } from "effect"
  *
@@ -1067,7 +1094,8 @@ export const consoleJson: Logger<unknown, void> = withConsoleLog(formatJson)
  * Effect programs, so log messages automatically appear as span events unless
  * you override the default loggers.
  *
- * @example
+ * **Example** (Recording logs as trace span events)
+ *
  * ```ts
  * import { Effect, Logger } from "effect"
  *
@@ -1116,7 +1144,8 @@ export const tracerLogger: Logger<unknown, void> = effect.tracerLogger
  * If the specified array of `loggers` should be _merged_ with the current set
  * of loggers (instead of overwriting them), set `mergeWithExisting` to `true`.
  *
- * @example
+ * **Example** (Providing logger layers)
+ *
  * ```ts
  * import { Effect, Logger } from "effect"
  *
@@ -1177,7 +1206,7 @@ export const layer = <
 /**
  * Create a Logger from another string Logger that writes to the specified file.
  *
- * **Example**
+ * **Example** (Writing JSON logs to a file)
  *
  * ```ts
  * import { NodeFileSystem, NodeRuntime } from "@effect/platform-node"
@@ -1198,7 +1227,8 @@ export const layer = <
  * )
  * ```
  *
- * @example
+ * **Example** (Writing logs to files)
+ *
  * ```ts
  * import { NodeFileSystem } from "@effect/platform-node"
  * import { Duration, Effect, Logger } from "effect"

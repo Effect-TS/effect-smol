@@ -50,7 +50,8 @@ export interface Key<out Identifier, out Shape> extends Effect<Shape, never, Ide
 }
 
 /**
- * @example
+ * **Example** (Defining a service key)
+ *
  * ```ts
  * import { Context } from "effect"
  *
@@ -101,7 +102,8 @@ export declare namespace ServiceClass {
 }
 
 /**
- * @example
+ * **Example** (Creating service keys)
+ *
  * ```ts
  * import { Context } from "effect"
  *
@@ -227,7 +229,8 @@ const ServiceProto: any = {
 const ReferenceTypeId = "~effect/Context/Reference" as const
 
 /**
- * @example
+ * **Example** (Defining a reference with a default value)
+ *
  * ```ts
  * import { Context } from "effect"
  *
@@ -253,7 +256,8 @@ export interface Reference<in out Shape> extends Service<never, Shape> {
 }
 
 /**
- * @example
+ * **Example** (Extracting service types)
+ *
  * ```ts
  * import { Context } from "effect"
  *
@@ -273,7 +277,8 @@ export interface Reference<in out Shape> extends Service<never, Shape> {
  */
 export declare namespace Service {
   /**
-   * @example
+   * **Example** (Typing any service key)
+   *
    * ```ts
    * import { Context } from "effect"
    *
@@ -290,7 +295,8 @@ export declare namespace Service {
   export type Any = Key<never, any> | Key<any, any>
 
   /**
-   * @example
+   * **Example** (Extracting a service shape)
+   *
    * ```ts
    * import { Context } from "effect"
    *
@@ -309,7 +315,8 @@ export declare namespace Service {
   export type Shape<T> = T extends Key<infer _I, infer S> ? S : never
 
   /**
-   * @example
+   * **Example** (Extracting a service identifier)
+   *
    * ```ts
    * import { Context } from "effect"
    *
@@ -331,7 +338,8 @@ export declare namespace Service {
 const TypeId = "~effect/Context" as const
 
 /**
- * @example
+ * **Example** (Creating a context with multiple services)
+ *
  * ```ts
  * import { Context } from "effect"
  *
@@ -359,7 +367,8 @@ export interface Context<in Services> extends Equal.Equal, Pipeable, Inspectable
 }
 
 /**
- * @example
+ * **Example** (Creating a context from a map)
+ *
  * ```ts
  * import { Context } from "effect"
  *
@@ -415,7 +424,8 @@ const Proto: Omit<Context<never>, "mapUnsafe" | "mutable"> = {
 /**
  * Checks if the provided argument is a `Context`.
  *
- * @example
+ * **Example** (Checking for contexts)
+ *
  * ```ts
  * import { Context } from "effect"
  * import * as assert from "node:assert"
@@ -431,7 +441,8 @@ export const isContext = (u: unknown): u is Context<never> => hasProperty(u, Typ
 /**
  * Checks if the provided argument is a `Key`.
  *
- * @example
+ * **Example** (Checking for keys)
+ *
  * ```ts
  * import { Context } from "effect"
  * import * as assert from "node:assert"
@@ -447,7 +458,8 @@ export const isKey = (u: unknown): u is Key<any, any> => hasProperty(u, ServiceT
 /**
  * Checks if the provided argument is a `Reference`.
  *
- * @example
+ * **Example** (Checking for references)
+ *
  * ```ts
  * import { Context } from "effect"
  * import * as assert from "node:assert"
@@ -468,7 +480,8 @@ export const isReference = (u: unknown): u is Reference<any> => hasProperty(u, R
 /**
  * Returns an empty `Context`.
  *
- * @example
+ * **Example** (Creating an empty context)
+ *
  * ```ts
  * import { Context } from "effect"
  * import * as assert from "node:assert"
@@ -485,7 +498,8 @@ const emptyContext = makeUnsafe(new Map())
 /**
  * Creates a new `Context` with a single service associated to the key.
  *
- * @example
+ * **Example** (Creating a context with one service)
+ *
  * ```ts
  * import { Context } from "effect"
  * import * as assert from "node:assert"
@@ -508,7 +522,8 @@ export const make = <I, S>(
 /**
  * Adds a service to a given `Context`.
  *
- * @example
+ * **Example** (Adding a service to a context)
+ *
  * ```ts
  * import { pipe, Context } from "effect"
  * import * as assert from "node:assert"
@@ -580,7 +595,8 @@ export const addOrOmit: {
  * Get a service from the context that corresponds to the given key, or
  * use the fallback value.
  *
- * @example
+ * **Example** (Falling back for missing services)
+ *
  * ```ts
  * import { Context } from "effect"
  * import * as assert from "node:assert"
@@ -641,7 +657,8 @@ export const getOrUndefined: {
  * @param self - The `Context` to search for the service.
  * @param service - The `Service` of the service to retrieve.
  *
- * @example
+ * **Example** (Getting services unsafely)
+ *
  * ```ts
  * import { Context } from "effect"
  * import * as assert from "node:assert"
@@ -678,7 +695,8 @@ export const getUnsafe: {
  * @param self - The `Context` to search for the service.
  * @param service - The `Service` of the service to retrieve.
  *
- * @example
+ * **Example** (Getting a service from a context)
+ *
  * ```ts
  * import { pipe, Context } from "effect"
  * import * as assert from "node:assert"
@@ -703,7 +721,8 @@ export const get: {
 } = getUnsafe
 
 /**
- * @example
+ * **Example** (Getting reference defaults unsafely)
+ *
  * ```ts
  * import { Context } from "effect"
  * import * as assert from "node:assert"
@@ -766,7 +785,8 @@ const serviceNotFoundError = (service: Key<any, any>) => {
  * @param self - The `Context` to search for the service.
  * @param service - The `Service` of the service to retrieve.
  *
- * @example
+ * **Example** (Getting optional services)
+ *
  * ```ts
  * import { Option, Context } from "effect"
  * import * as assert from "node:assert"
@@ -802,7 +822,8 @@ export const getOption: {
  * @param self - The first `Context` to merge.
  * @param that - The second `Context` to merge.
  *
- * @example
+ * **Example** (Merging two contexts)
+ *
  * ```ts
  * import { Context } from "effect"
  * import * as assert from "node:assert"
@@ -836,7 +857,8 @@ export const merge: {
 /**
  * Merges any number of `Context`s, returning a new `Context` containing the services of all.
  *
- * @example
+ * **Example** (Merging multiple contexts)
+ *
  * ```ts
  * import { Context } from "effect"
  * import * as assert from "node:assert"
@@ -880,7 +902,8 @@ export const mergeAll = <T extends Array<unknown>>(
  * @param self - The `Context` to prune services from.
  * @param services - The list of `Service`s to be included in the new `Context`.
  *
- * @example
+ * **Example** (Picking services from a context)
+ *
  * ```ts
  * import { Option, pipe, Context } from "effect"
  * import * as assert from "node:assert"
@@ -918,7 +941,8 @@ export const pick = <S extends ReadonlyArray<Key<any, any>>>(
   })
 
 /**
- * @example
+ * **Example** (Omitting services from a context)
+ *
  * ```ts
  * import { Option, pipe, Context } from "effect"
  * import * as assert from "node:assert"
@@ -996,7 +1020,8 @@ const withMapUnsafe = <Services, B>(self: Context<Services>, f: (map: Map<string
  * when the context is accessed, or override it with a custom implementation
  * when needed.
  *
- * @example
+ * **Example** (Creating references with default values)
+ *
  * ```ts
  * import { Context } from "effect"
  *

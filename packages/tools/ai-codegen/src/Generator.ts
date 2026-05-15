@@ -18,7 +18,8 @@ import type { DiscoveredProvider } from "./Discovery.ts"
 /**
  * Error during code generation.
  *
- * @example
+ * **Example** (Creating a generation error)
+ *
  * ```ts
  * import * as Generator from "@effect/ai-codegen/Generator"
  *
@@ -39,7 +40,8 @@ export class GenerationError extends Data.TaggedError("GenerationError")<{
 /**
  * Error during patch application.
  *
- * @example
+ * **Example** (Creating a patch error)
+ *
  * ```ts
  * import * as Generator from "@effect/ai-codegen/Generator"
  *

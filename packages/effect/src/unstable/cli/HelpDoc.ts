@@ -11,7 +11,8 @@ import type * as Option from "../../Option.ts"
  * This data structure is independent of formatting, allowing for
  * different output formats (text, markdown, JSON, etc.).
  *
- * @example
+ * **Example** (Defining command help documentation)
+ *
  * ```ts
  * import { Option as O, Context } from "effect"
  * import type * as HelpDoc from "effect/unstable/cli/HelpDoc"
@@ -115,7 +116,8 @@ export interface ExampleDoc {
 /**
  * Documentation for a single command-line flag/option
  *
- * @example
+ * **Example** (Documenting command flags)
+ *
  * ```ts
  * import { Option as O } from "effect"
  * import type { HelpDoc } from "effect/unstable/cli"
@@ -170,7 +172,8 @@ export interface FlagDoc {
 /**
  * Documentation for a subcommand
  *
- * @example
+ * **Example** (Documenting subcommands)
+ *
  * ```ts
  * import { Option as O, Context } from "effect"
  * import type { HelpDoc } from "effect/unstable/cli"
@@ -249,7 +252,8 @@ export interface SubcommandGroupDoc {
 /**
  * Documentation for a positional argument
  *
- * @example
+ * **Example** (Documenting positional arguments)
+ *
  * ```ts
  * import { Option as O, Context } from "effect"
  * import type { HelpDoc } from "effect/unstable/cli"

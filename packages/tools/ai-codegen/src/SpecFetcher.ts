@@ -16,7 +16,8 @@ import type { SpecSource } from "./Config.ts"
 /**
  * Error when fetching a spec fails.
  *
- * @example
+ * **Example** (Creating a spec fetch error)
+ *
  * ```ts
  * import * as SpecFetcher from "@effect/ai-codegen/SpecFetcher"
  *

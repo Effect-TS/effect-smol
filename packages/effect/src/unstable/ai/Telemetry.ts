@@ -4,7 +4,8 @@
  * attributes and utilities that follow the OpenTelemetry GenAI semantic
  * conventions.
  *
- * @example
+ * **Example** (Annotating AI spans)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { Telemetry } from "effect/unstable/ai"
@@ -239,7 +240,8 @@ export type WellKnownSystem =
  * Transforms attribute keys by adding a prefix and formatting them according to
  * OpenTelemetry conventions (camelCase to snake_case).
  *
- * @example
+ * **Example** (Prefixing telemetry attributes)
+ *
  * ```ts
  * import type { Telemetry } from "effect/unstable/ai"
  *
@@ -271,7 +273,8 @@ export type AttributesWithPrefix<Attributes extends Record<string, any>, Prefix 
  * This type recursively transforms string literal types from camelCase to
  * snake_case, which is the standard format for OpenTelemetry attributes.
  *
- * @example
+ * **Example** (Formatting attribute names)
+ *
  * ```ts
  * import type { Telemetry } from "effect/unstable/ai"
  *
@@ -295,7 +298,8 @@ export type FormatAttributeName<T extends string | number | symbol> = T extends 
  * This utility function is used internally to create specialized functions for adding
  * different types of telemetry attributes to OpenTelemetry spans.
  *
- * @example
+ * **Example** (Adding prefixed span attributes)
+ *
  * ```ts
  * import type { Tracer } from "effect"
  * import { String } from "effect"
@@ -358,7 +362,8 @@ const addSpanUsageAttributes = addSpanAttributes("gen_ai.usage", String.camelToS
  * Combines base attributes with optional grouped attributes for comprehensive
  * telemetry coverage of AI operations.
  *
- * @example
+ * **Example** (Configuring GenAI telemetry attributes)
+ *
  * ```ts
  * import type { Telemetry } from "effect/unstable/ai"
  *
@@ -418,7 +423,8 @@ export type GenAITelemetryAttributeOptions = BaseAttributes & {
  *
  * **Note**: This function mutates the provided span in-place.
  *
- * @example
+ * **Example** (Adding GenAI telemetry annotations)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { Telemetry } from "effect/unstable/ai"
@@ -455,7 +461,8 @@ export const addGenAIAnnotations: {
  * Span transformers receive the complete request/response context from AI operations
  * and can add custom telemetry attributes, metrics, or other observability data.
  *
- * @example
+ * **Example** (Transforming AI spans)
+ *
  * ```ts
  * import type { Telemetry } from "effect/unstable/ai"
  *

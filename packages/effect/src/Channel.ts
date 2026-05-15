@@ -28,7 +28,8 @@
  * 2. **Sequencing**: Use the result of one channel to create another
  * 3. **Concatenating**: Combine multiple channels into a single channel
  *
- * @example
+ * **Example** (Creating a simple channel)
+ *
  * ```ts
  * import { Channel } from "effect"
  *
@@ -41,7 +42,8 @@
  * // Running the channel would output: 84
  * ```
  *
- * @example
+ * **Example** (Transforming array-backed channels)
+ *
  * ```ts
  * import { Channel } from "effect"
  *
@@ -107,7 +109,8 @@ export const TypeId: TypeId = "~effect/Channel"
 /**
  * Tests if a value is a `Channel`.
  *
- * @example
+ * **Example** (Checking for channels)
+ *
  * ```ts
  * import { Channel } from "effect"
  *
@@ -146,7 +149,8 @@ export const isChannel = (
  *    channels, which are all concatenated together. The first channel and the
  *    function that makes the other channels can be composed into a channel.
  *
- * @example
+ * **Example** (Typing channels)
+ *
  * ```ts
  * import type { Channel } from "effect"
  *
@@ -265,7 +269,8 @@ const ChannelProto = {
 /**
  * Creates a `Channel` from a transformation function that operates on upstream pulls.
  *
- * @example
+ * **Example** (Creating channels from transforms)
+ *
  * ```ts
  * import { Channel, Effect } from "effect"
  *
@@ -300,7 +305,8 @@ export const fromTransform = <OutElem, OutErr, OutDone, InElem, InErr, InDone, E
 /**
  * Transforms a Channel by applying a function to its Pull implementation.
  *
- * @example
+ * **Example** (Transforming pull behavior)
+ *
  * ```ts
  * import { Channel, Effect } from "effect"
  *
@@ -353,7 +359,8 @@ export const transformPull = <
 /**
  * Creates a `Channel` from an `Effect` that produces a `Pull`.
  *
- * @example
+ * **Example** (Creating channels from pulls)
+ *
  * ```ts
  * import { Channel, Effect } from "effect"
  *
@@ -401,7 +408,8 @@ export const fromTransformBracket = <OutElem, OutErr, OutDone, InElem, InErr, In
 /**
  * Converts a `Channel` back to its underlying transformation function.
  *
- * @example
+ * **Example** (Extracting channel transforms)
+ *
  * ```ts
  * import { Channel } from "effect"
  *
@@ -423,7 +431,8 @@ export const toTransform = <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env
 /**
  * The default chunk size used by channels for batching operations.
  *
- * @example
+ * **Example** (Reading the default chunk size)
+ *
  * ```ts
  * import { Channel } from "effect"
  *
@@ -454,7 +463,8 @@ const asyncQueue = <A, E = never, R = never>(
 /**
  * Creates a `Channel` that interacts with a callback function using a queue.
  *
- * @example
+ * **Example** (Creating channels from callbacks)
+ *
  * ```ts
  * import { Channel, Effect, Queue } from "effect"
  *
@@ -482,7 +492,8 @@ export const callback = <A, E = never, R = never>(
 /**
  * Creates a `Channel` that interacts with a callback function using a queue, emitting arrays.
  *
- * @example
+ * **Example** (Creating array channels from callbacks)
+ *
  * ```ts
  * import { Channel, Effect, Queue } from "effect"
  *
@@ -508,7 +519,8 @@ export const callbackArray = <A, E = never, R = never>(
 /**
  * Creates a `Channel` that lazily evaluates to another channel.
  *
- * @example
+ * **Example** (Suspending channel creation)
+ *
  * ```ts
  * import { Channel } from "effect"
  *
@@ -527,7 +539,8 @@ export const suspend = <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
 /**
  * Creates a `Channel` with resource management using acquire-use-release pattern.
  *
- * @example
+ * **Example** (Managing resources with acquire-use-release)
+ *
  * ```ts
  * import { Channel, Effect } from "effect"
  *
@@ -562,7 +575,8 @@ export const acquireUseRelease = <A, E, R, OutElem, OutErr, OutDone, InElem, InE
 /**
  * Creates a `Channel` with resource management using acquire-release pattern.
  *
- * @example
+ * **Example** (Managing resources with acquire-release)
+ *
  * ```ts
  * import { Channel, Effect } from "effect"
  *
@@ -595,7 +609,8 @@ export const acquireRelease: {
 /**
  * Creates a `Channel` from an iterator.
  *
- * @example
+ * **Example** (Creating channels from iterators)
+ *
  * ```ts
  * import { Channel } from "effect"
  *
@@ -621,7 +636,8 @@ export const fromIterator = <A, L>(iterator: LazyArg<Iterator<A, L>>): Channel<A
 /**
  * Creates a `Channel` that emits all elements from an array.
  *
- * @example
+ * **Example** (Creating channels from arrays)
+ *
  * ```ts
  * import { Channel } from "effect"
  *
@@ -641,7 +657,8 @@ export const fromArray = <A>(array: ReadonlyArray<A>): Channel<A> =>
 /**
  * Creates a `Channel` that emits all elements from a chunk.
  *
- * @example
+ * **Example** (Creating channels from chunks)
+ *
  * ```ts
  * import { Channel, Chunk } from "effect"
  *
@@ -658,7 +675,8 @@ export const fromChunk = <A>(chunk: Chunk.Chunk<A>): Channel<A> => fromArray(Chu
 /**
  * Creates a `Channel` from an iterator that emits arrays of elements.
  *
- * @example
+ * **Example** (Batching iterator output)
+ *
  * ```ts
  * import { Channel } from "effect"
  *
@@ -679,7 +697,8 @@ export const fromChunk = <A>(chunk: Chunk.Chunk<A>): Channel<A> => fromArray(Chu
  * // This will emit arrays: [0, 1], [2], then complete with "finished"
  * ```
  *
- * @example
+ * **Example** (Batching generator output)
+ *
  * ```ts
  * import { Channel } from "effect"
  *
@@ -729,7 +748,8 @@ export const fromIteratorArray = <A, L>(
 /**
  * Creates a `Channel` that emits all elements from an iterable.
  *
- * @example
+ * **Example** (Creating channels from iterables)
+ *
  * ```ts
  * import { Channel } from "effect"
  *
@@ -747,7 +767,8 @@ export const fromIterable = <A, L>(iterable: Iterable<A, L>): Channel<A, never, 
 /**
  * Creates a `Channel` that emits arrays of elements from an iterable.
  *
- * @example
+ * **Example** (Batching iterable output)
+ *
  * ```ts
  * import { Channel } from "effect"
  *
@@ -767,7 +788,8 @@ export const fromIterableArray = <A, L>(
 /**
  * Creates a `Channel` that emits a single value and then ends.
  *
- * @example
+ * **Example** (Creating channels that succeed)
+ *
  * ```ts
  * import { Channel } from "effect"
  *
@@ -783,7 +805,8 @@ export const succeed = <A>(value: A): Channel<A> => fromEffect(Effect.succeed(va
 /**
  * Creates a `Channel` that immediately ends with the specified value.
  *
- * @example
+ * **Example** (Ending with a value)
+ *
  * ```ts
  * import { Channel } from "effect"
  *
@@ -808,7 +831,8 @@ export const endSync = <A>(evaluate: LazyArg<A>): Channel<never, never, A> =>
 /**
  * Creates a `Channel` that emits a single value computed by a lazy evaluation.
  *
- * @example
+ * **Example** (Computing values lazily)
+ *
  * ```ts
  * import { Channel } from "effect"
  *
@@ -824,7 +848,8 @@ export const sync = <A>(evaluate: LazyArg<A>): Channel<A> => fromEffect(Effect.s
 /**
  * Represents an Channel that emits no elements
  *
- * @example
+ * **Example** (Using empty channels)
+ *
  * ```ts
  * import { Channel } from "effect"
  *
@@ -848,7 +873,8 @@ export const empty: Channel<never> = fromPull(Effect.succeed(Cause.done()))
 /**
  * Represents an Channel that never completes
  *
- * @example
+ * **Example** (Using non-terminating channels)
+ *
  * ```ts
  * import { Channel } from "effect"
  *
@@ -874,7 +900,8 @@ export const never: Channel<never, never, never> = fromPull(Effect.succeed(Effec
 /**
  * Constructs a channel that fails immediately with the specified error.
  *
- * @example
+ * **Example** (Failing with an error)
+ *
  * ```ts
  * import { Channel } from "effect"
  *
@@ -906,7 +933,8 @@ export const fail = <E>(error: E): Channel<never, E, never> => fromPull(Effect.s
  * Constructs a channel that fails immediately with the specified lazily
  * evaluated error.
  *
- * @example
+ * **Example** (Failing with a lazy error)
+ *
  * ```ts
  * import { Channel } from "effect"
  *
@@ -936,7 +964,8 @@ export const failSync = <E>(evaluate: LazyArg<E>): Channel<never, E, never> => f
 /**
  * Constructs a channel that fails immediately with the specified `Cause`.
  *
- * @example
+ * **Example** (Failing with causes)
+ *
  * ```ts
  * import { Cause, Channel } from "effect"
  *
@@ -962,7 +991,8 @@ export const failCause = <E>(cause: Cause.Cause<E>): Channel<never, E, never> =>
  * Constructs a channel that fails immediately with the specified lazily
  * evaluated `Cause`.
  *
- * @example
+ * **Example** (Failing with lazy causes)
+ *
  * ```ts
  * import { Cause, Channel } from "effect"
  *
@@ -989,7 +1019,8 @@ export const failCauseSync = <E>(
 /**
  * Constructs a channel that fails immediately with the specified defect.
  *
- * @example
+ * **Example** (Dying with defects)
+ *
  * ```ts
  * import { Channel } from "effect"
  *
@@ -1014,7 +1045,8 @@ export const die = (defect: unknown): Channel<never, never, never> => failCause(
 /**
  * Use an effect to write a single value to the channel.
  *
- * @example
+ * **Example** (Creating channels from effects)
+ *
  * ```ts
  * import { Channel, Data, Effect } from "effect"
  *
@@ -1092,7 +1124,8 @@ export const fromEffectTake = <A, E, Done, E2, R>(
 /**
  * Create a channel from a queue
  *
- * @example
+ * **Example** (Creating channels from queues)
+ *
  * ```ts
  * import { Channel, Data, Effect, Queue } from "effect"
  *
@@ -1134,7 +1167,8 @@ export const fromQueue = <A, E>(
 /**
  * Create a channel from a queue that emits arrays of elements
  *
- * @example
+ * **Example** (Creating batched channels from queues)
+ *
  * ```ts
  * import { Channel, Data, Effect, Queue } from "effect"
  *
@@ -1187,7 +1221,8 @@ export const identity = <Elem, Err, Done>(): Channel<Elem, Err, Done, Elem, Err,
 /**
  * Create a channel from a PubSub subscription
  *
- * @example
+ * **Example** (Creating channels from subscriptions)
+ *
  * ```ts
  * import { Channel, Data, Effect, PubSub } from "effect"
  *
@@ -1241,7 +1276,8 @@ export const fromSubscription = <A>(
  * @param subscription - The PubSub subscription to read from
  * @param chunkSize - The maximum number of elements to read in each chunk (default: 4096)
  *
- * @example
+ * **Example** (Batching subscription values)
+ *
  * ```ts
  * import { Channel, Data, Effect, PubSub } from "effect"
  *
@@ -1267,7 +1303,8 @@ export const fromSubscription = <A>(
  * })
  * ```
  *
- * @example
+ * **Example** (Processing subscription values in batches)
+ *
  * ```ts
  * import { Channel, Data, Effect, PubSub } from "effect"
  *
@@ -1292,7 +1329,8 @@ export const fromSubscription = <A>(
  * })
  * ```
  *
- * @example
+ * **Example** (Aggregating subscription metrics)
+ *
  * ```ts
  * import { Channel, Data, Effect, PubSub } from "effect"
  *
@@ -1348,7 +1386,8 @@ export const fromSubscriptionArray = <A>(
  *
  * @param pubsub - The PubSub to read from
  *
- * @example
+ * **Example** (Creating channels from PubSubs)
+ *
  * ```ts
  * import { Channel, Data, Effect, PubSub } from "effect"
  *
@@ -1372,7 +1411,8 @@ export const fromSubscriptionArray = <A>(
  * })
  * ```
  *
- * @example
+ * **Example** (Streaming PubSub notifications)
+ *
  * ```ts
  * import { Channel, Data, Effect, PubSub } from "effect"
  *
@@ -1397,7 +1437,8 @@ export const fromSubscriptionArray = <A>(
  * })
  * ```
  *
- * @example
+ * **Example** (Processing PubSub events)
+ *
  * ```ts
  * import { Channel, Data, Effect, PubSub } from "effect"
  *
@@ -1451,7 +1492,8 @@ export const fromPubSub = <A>(
  * @param pubsub - The PubSub to read from
  * @param chunkSize - The maximum number of elements to collect in each array (default: 4096)
  *
- * @example
+ * **Example** (Batching PubSub values)
+ *
  * ```ts
  * import { Channel, Data, Effect, PubSub } from "effect"
  *
@@ -1476,7 +1518,8 @@ export const fromPubSub = <A>(
  * })
  * ```
  *
- * @example
+ * **Example** (Processing PubSub orders in batches)
+ *
  * ```ts
  * import { Channel, Data, Effect, PubSub } from "effect"
  *
@@ -1518,7 +1561,8 @@ export const fromPubSub = <A>(
  * })
  * ```
  *
- * @example
+ * **Example** (Processing PubSub logs in batches)
+ *
  * ```ts
  * import { Channel, Data, Effect, PubSub } from "effect"
  *
@@ -1630,7 +1674,8 @@ export const fromAsyncIterableArray = <A, D, E>(
 /**
  * Maps the output of this channel using the specified function.
  *
- * @example
+ * **Example** (Mapping channel output)
+ *
  * ```ts
  * import { Channel, Data } from "effect"
  *
@@ -1752,7 +1797,8 @@ const concurrencyIsSequential = (
  * perform the functions of this channel, before performing the functions of
  * the created channel (including yielding its terminal value).
  *
- * @example
+ * **Example** (Mapping channel output with effects)
+ *
  * ```ts
  * import { Channel, Data, Effect } from "effect"
  *
@@ -2011,7 +2057,8 @@ export const mapInputError: {
  * debugging) on each element emitted by a channel without modifying the
  * elements themselves.
  *
- * @example
+ * **Example** (Tapping channel output)
+ *
  * ```ts
  * import { Channel, Console, Data } from "effect"
  *
@@ -2070,7 +2117,8 @@ export const tap: {
  * perform the functions of this channel, before performing the functions of
  * the created channel (including yielding its terminal value).
  *
- * @example
+ * **Example** (FlatMapping channel output)
+ *
  * ```ts
  * import { Channel, Data } from "effect"
  *
@@ -2275,7 +2323,8 @@ const flatMapConcurrent = <
  * Concatenates this channel with another channel created from the terminal value
  * of this channel. The new channel is created using the provided function.
  *
- * @example
+ * **Example** (Concatenating with completion values)
+ *
  * ```ts
  * import { Channel, Data } from "effect"
  *
@@ -2387,7 +2436,8 @@ export const concatWith: {
  * Concatenates this channel with another channel, so that the second channel
  * starts emitting values after the first channel has completed.
  *
- * @example
+ * **Example** (Concatenating channels)
+ *
  * ```ts
  * import { Channel, Data } from "effect"
  *
@@ -2694,7 +2744,8 @@ export const orElseIfEmpty: {
 /**
  * Flatten a channel of channels.
  *
- * @example
+ * **Example** (Flattening nested channels)
+ *
  * ```ts
  * import { Channel, Data } from "effect"
  *
@@ -2748,7 +2799,8 @@ export const flatten = <
 /**
  * Flattens a channel that outputs arrays into a channel that outputs individual elements.
  *
- * @example
+ * **Example** (Flattening arrays of channel output)
+ *
  * ```ts
  * import { Channel, Data } from "effect"
  *
@@ -2834,7 +2886,8 @@ export const flattenTake = <
  * Creates a new channel that consumes all output from the source channel
  * but emits nothing, preserving only the completion value.
  *
- * @example
+ * **Example** (Draining channel output)
+ *
  * ```ts
  * import { Channel } from "effect"
  *
@@ -2981,7 +3034,8 @@ export const schedule: {
  * Filters the output elements of a channel using a predicate function.
  * Elements that don't match the predicate are discarded.
  *
- * @example
+ * **Example** (Filtering channel output)
+ *
  * ```ts
  * import { Channel } from "effect"
  *
@@ -3142,7 +3196,8 @@ export const filterMapEffect: {
  * Filters arrays of elements emitted by a channel, applying the filter
  * to each element within the arrays and only emitting non-empty filtered arrays.
  *
- * @example
+ * **Example** (Filtering array output)
+ *
  * ```ts
  * import { Array, Channel } from "effect"
  *
@@ -3310,7 +3365,8 @@ export const filterMapArrayEffect: {
 /**
  * Statefully maps over a channel with an accumulator, where each element can produce multiple output values.
  *
- * @example
+ * **Example** (Mapping with accumulated state)
+ *
  * ```ts
  * import { Channel, Effect } from "effect"
  *
@@ -3451,7 +3507,8 @@ export const mapAccum: {
  * Statefully transforms a channel by scanning over its output with an accumulator function.
  * Emits the intermediate results of the scan operation.
  *
- * @example
+ * **Example** (Scanning channel output)
+ *
  * ```ts
  * import { Channel } from "effect"
  *
@@ -3509,7 +3566,8 @@ export const scan: {
  * Statefully transforms a channel by scanning over its output with an effectful accumulator function.
  * Emits the intermediate results of the scan operation.
  *
- * @example
+ * **Example** (Scanning channel output with effects)
+ *
  * ```ts
  * import { Channel, Data, Effect } from "effect"
  *
@@ -3600,7 +3658,8 @@ export const scanEffect: {
  * Catches any cause of failure from the channel and allows recovery by
  * creating a new channel based on the caught cause.
  *
- * @example
+ * **Example** (Recovering from failure causes)
+ *
  * ```ts
  * import { Cause, Channel, Data } from "effect"
  *
@@ -4712,7 +4771,8 @@ export const catchTag: {
 /**
  * Catches a specific reason within a tagged error.
  *
- * @example
+ * **Example** (Recovering from nested reasons)
+ *
  * ```ts
  * import { Channel, Data } from "effect"
  *
@@ -5085,7 +5145,8 @@ export const catchReasons: {
 /**
  * Promotes nested reason errors into the channel error, replacing the parent error.
  *
- * @example
+ * **Example** (Promoting nested reasons)
+ *
  * ```ts
  * import { Channel, Data } from "effect"
  *
@@ -5204,7 +5265,8 @@ export const mapError: {
  * Converts all errors in the channel to defects (unrecoverable failures).
  * This is useful when you want to treat errors as programming errors.
  *
- * @example
+ * **Example** (Converting failures to defects)
+ *
  * ```ts
  * import { Channel, Data } from "effect"
  *
@@ -5405,7 +5467,8 @@ export const retry: {
  * perform the functions of this channel, before performing the functions of
  * the created channel (including yielding its terminal value).
  *
- * @example
+ * **Example** (Switching mapped channels)
+ *
  * ```ts
  * import { Channel, Data } from "effect"
  *
@@ -5523,7 +5586,8 @@ export const switchMap: {
 /**
  * Merges multiple channels with specified concurrency and buffering options.
  *
- * @example
+ * **Example** (Merging nested channels)
+ *
  * ```ts
  * import { Channel, Data } from "effect"
  *
@@ -5690,7 +5754,8 @@ export const mergeAll: {
 /**
  * Represents strategies for halting merged channels when one completes or fails.
  *
- * @example
+ * **Example** (Choosing merge halt strategies)
+ *
  * ```ts
  * import type { Channel } from "effect"
  *
@@ -5710,7 +5775,8 @@ export type HaltStrategy = "left" | "right" | "both" | "either"
  * Returns a new channel, which is the merge of this channel and the specified
  * channel.
  *
- * @example
+ * **Example** (Merging channels)
+ *
  * ```ts
  * import { Channel, Data } from "effect"
  *
@@ -5904,7 +5970,7 @@ export const mergeEffect: {
  * if the stream ends without a terminator the final partial line is still
  * emitted.
  *
- * **Example**
+ * **Example** (Splitting string chunks into lines)
  *
  * ```ts
  * import { Effect, Stream } from "effect"
@@ -6067,7 +6133,8 @@ export const encodeText = <Err, Done>(): Channel<
  * and the output type of the specified channel, terminating with the value of
  * the specified channel.
  *
- * @example
+ * **Example** (Piping one channel into another)
+ *
  * ```ts
  * import { Channel, Data } from "effect"
  *
@@ -6114,7 +6181,8 @@ export const pipeTo: {
  * specified channel and preserves this channel's failures without providing
  * them to the other channel for observation.
  *
- * @example
+ * **Example** (Piping while preserving failures)
+ *
  * ```ts
  * import { Channel, Data } from "effect"
  *
@@ -6175,7 +6243,8 @@ export const pipeToOrFail: {
  * Constructs a `Channel` from a scoped effect that will result in a
  * `Channel` if successful.
  *
- * @example
+ * **Example** (Unwrapping channel effects)
+ *
  * ```ts
  * import { Channel, Data, Effect } from "effect"
  *
@@ -6224,7 +6293,8 @@ export const scoped = <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
 /**
  * Returns a new channel which embeds the given input handler into a Channel.
  *
- * @example
+ * **Example** (Embedding custom input handling)
+ *
  * ```ts
  * import { Channel, Data, Effect } from "effect"
  *
@@ -6457,7 +6527,8 @@ export const onError: {
  * guaranteed to be executed so long as the channel begins execution (and
  * regardless of whether or not it completes).
  *
- * @example
+ * **Example** (Running exit finalizers)
+ *
  * ```ts
  * import { Channel, Console, Data, Exit } from "effect"
  *
@@ -6577,7 +6648,8 @@ export const onEnd: {
  * guaranteed to be executed so long as the channel begins execution (and
  * regardless of whether or not it completes).
  *
- * @example
+ * **Example** (Ensuring cleanup runs)
+ *
  * ```ts
  * import { Channel, Console, Data } from "effect"
  *
@@ -7068,7 +7140,8 @@ export const bindTo: {
 /**
  * Runs a channel and counts the number of elements it outputs.
  *
- * @example
+ * **Example** (Counting channel output)
+ *
  * ```ts
  * import { Channel, Data } from "effect"
  *
@@ -7095,7 +7168,8 @@ export const runCount = <OutElem, OutErr, OutDone, Env>(
 /**
  * Runs a channel and discards all output elements, returning only the final result.
  *
- * @example
+ * **Example** (Draining channel output at runtime)
+ *
  * ```ts
  * import { Channel, Data } from "effect"
  *
@@ -7126,7 +7200,8 @@ export const runDrain = <OutElem, OutErr, OutDone, Env>(
 /**
  * Runs a channel and applies an effect to each output element.
  *
- * @example
+ * **Example** (Running effects for each output)
+ *
  * ```ts
  * import { Channel, Console, Data } from "effect"
  *
@@ -7199,7 +7274,8 @@ export const runForEachWhile: {
 /**
  * Runs a channel and collects all output elements into an array.
  *
- * @example
+ * **Example** (Collecting channel output)
+ *
  * ```ts
  * import { Channel, Data } from "effect"
  *
@@ -7283,7 +7359,8 @@ export const runLast = <OutElem, OutErr, OutDone, Env>(
 /**
  * Runs a channel and folds over all output elements with an accumulator.
  *
- * @example
+ * **Example** (Folding channel output)
+ *
  * ```ts
  * import { Channel, Data } from "effect"
  *
@@ -7379,7 +7456,8 @@ export const runFoldEffect: {
 /**
  * Converts a channel to a Pull data structure for low-level consumption.
  *
- * @example
+ * **Example** (Converting channels to pulls)
+ *
  * ```ts
  * import { Channel, Data, Effect } from "effect"
  *
@@ -7427,7 +7505,8 @@ export const toPull: <OutElem, OutErr, OutDone, Env>(
 /**
  * Converts a channel to a Pull within an existing scope.
  *
- * @example
+ * **Example** (Converting channels to scoped pulls)
+ *
  * ```ts
  * import { Channel, Data, Effect, Scope } from "effect"
  *
@@ -7525,7 +7604,8 @@ export const runIntoQueueArray: {
 /**
  * Converts a channel to a queue for concurrent consumption.
  *
- * @example
+ * **Example** (Converting channels to queues)
+ *
  * ```ts
  * import { Channel, Data } from "effect"
  *

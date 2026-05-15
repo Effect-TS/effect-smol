@@ -31,7 +31,8 @@ export interface Flag<A> extends Param.Param<typeof Param.flagKind, A> {}
 /**
  * Creates a string flag that accepts text input.
  *
- * @example
+ * **Example** (Creating string flags)
+ *
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
@@ -47,7 +48,8 @@ export const string = (name: string): Flag<string> => Param.string(Param.flagKin
 /**
  * Creates a boolean flag that can be enabled or disabled.
  *
- * @example
+ * **Example** (Creating boolean flags)
+ *
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
@@ -63,7 +65,8 @@ export const boolean = (name: string): Flag<boolean> => Param.boolean(Param.flag
 /**
  * Creates an integer flag that accepts whole number input.
  *
- * @example
+ * **Example** (Creating integer flags)
+ *
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
@@ -79,7 +82,8 @@ export const integer = (name: string): Flag<number> => Param.integer(Param.flagK
 /**
  * Creates a float flag that accepts decimal number input.
  *
- * @example
+ * **Example** (Creating float flags)
+ *
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
@@ -95,7 +99,8 @@ export const float = (name: string): Flag<number> => Param.float(Param.flagKind,
 /**
  * Creates a date flag that accepts date input in ISO format.
  *
- * @example
+ * **Example** (Creating date flags)
+ *
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
@@ -112,7 +117,8 @@ export const date = (name: string): Flag<Date> => Param.date(Param.flagKind, nam
  * Constructs option parameters that represent a choice between several inputs.
  * Each tuple maps a string flag value to an associated typed value.
  *
- * @example
+ * **Example** (Creating flag choices with values)
+ *
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
@@ -149,7 +155,8 @@ export const choice = <const Choices extends ReadonlyArray<string>>(
 /**
  * Creates a path flag that accepts file system path input with validation options.
  *
- * @example
+ * **Example** (Creating path flags)
+ *
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
@@ -181,7 +188,8 @@ export const path = (name: string, options?: {
 /**
  * Creates a file path flag that accepts file paths with optional existence validation.
  *
- * @example
+ * **Example** (Creating file flags)
+ *
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
@@ -204,7 +212,8 @@ export const file = (name: string, options?: {
 /**
  * Creates a directory path flag that accepts directory paths with optional existence validation.
  *
- * @example
+ * **Example** (Creating directory flags)
+ *
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
@@ -227,7 +236,8 @@ export const directory = (name: string, options?: {
 /**
  * Creates a redacted flag that securely handles sensitive string input.
  *
- * @example
+ * **Example** (Creating redacted flags)
+ *
  * ```ts
  * import { Effect, Redacted } from "effect"
  * import { Flag } from "effect/unstable/cli"
@@ -252,7 +262,8 @@ export const redacted = (name: string): Flag<Redacted.Redacted<string>> => Param
 /**
  * Creates a flag that reads and returns file content as a string.
  *
- * @example
+ * **Example** (Reading file text)
+ *
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
@@ -271,7 +282,8 @@ export const fileText = (name: string): Flag<string> => Param.fileText(Param.fla
  * The parser that is utilized will depend on the specified `format`, or the
  * extension of the file passed on the command-line if no `format` is specified.
  *
- * @example
+ * **Example** (Parsing file contents)
+ *
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
@@ -295,7 +307,8 @@ export const fileParse = (
  * Creates a flag that reads and validates file content using the specified
  * schema.
  *
- * @example
+ * **Example** (Validating file contents)
+ *
  * ```ts
  * import { Schema } from "effect"
  * import { Flag } from "effect/unstable/cli"
@@ -324,7 +337,8 @@ export const fileSchema = <A>(
  * Note: Requires at least one key=value pair. Multiple pairs are merged
  * into a single record.
  *
- * @example
+ * **Example** (Parsing key-value pairs)
+ *
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
@@ -341,7 +355,8 @@ export const keyValuePair = (name: string): Flag<Record<string, string>> => Para
  * Creates an empty sentinel flag that always fails to parse.
  * This is useful for creating placeholder flags or for combinators.
  *
- * @example
+ * **Example** (Creating sentinel flags)
+ *
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
@@ -361,7 +376,8 @@ export const none: Flag<never> = Param.none(Param.flagKind)
 /**
  * Adds an alias to a flag, allowing it to be referenced by multiple names.
  *
- * @example
+ * **Example** (Adding flag aliases)
+ *
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
@@ -388,7 +404,8 @@ export const withAlias: {
 /**
  * Adds a description to a flag for help documentation.
  *
- * @example
+ * **Example** (Adding help descriptions)
+ *
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
@@ -419,7 +436,8 @@ export const withDescription: {
  * The metavar is displayed in usage text to indicate what value the user should provide.
  * For example, `--output FILE` shows `FILE` as the metavar.
  *
- * @example
+ * **Example** (Setting metavars)
+ *
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
@@ -446,7 +464,8 @@ export const withMetavar: {
 /**
  * Makes a flag optional, returning an Option type that can be None if not provided.
  *
- * @example
+ * **Example** (Making flags optional)
+ *
  * ```ts
  * import { Effect, Option } from "effect"
  * import { Flag } from "effect/unstable/cli"
@@ -474,7 +493,8 @@ export const optional = <A>(param: Flag<A>): Flag<Option.Option<A>> => Param.opt
 /**
  * Provides a default value for a flag when it's not specified.
  *
- * @example
+ * **Example** (Providing default values)
+ *
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
@@ -500,7 +520,8 @@ export const withDefault: {
 /**
  * Adds a fallback config that is loaded when a required flag is missing.
  *
- * @example
+ * **Example** (Falling back to config)
+ *
  * ```ts
  * import { Config } from "effect"
  * import { Flag } from "effect/unstable/cli"
@@ -521,7 +542,8 @@ export const withFallbackConfig: {
 /**
  * Adds a fallback prompt that is shown when a required flag is missing.
  *
- * @example
+ * **Example** (Falling back to prompts)
+ *
  * ```ts
  * import { Flag, Prompt } from "effect/unstable/cli"
  *
@@ -541,7 +563,8 @@ export const withFallbackPrompt: {
 /**
  * Transforms the parsed value of a flag using a mapping function.
  *
- * @example
+ * **Example** (Mapping parsed values)
+ *
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
@@ -567,7 +590,8 @@ export const map: {
 /**
  * Transforms the parsed value using an Effect that can perform IO operations.
  *
- * @example
+ * **Example** (Mapping parsed values effectfully)
+ *
  * ```ts
  * import { Effect, FileSystem } from "effect"
  * import { Flag } from "effect/unstable/cli"
@@ -601,7 +625,8 @@ export const mapEffect: {
 /**
  * Transforms the parsed value using a function that might throw, with error handling.
  *
- * @example
+ * **Example** (Mapping thrown errors)
+ *
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
@@ -637,7 +662,8 @@ export const mapTryCatch: {
 /**
  * Requires a flag to be specified at least a minimum number of times.
  *
- * @example
+ * **Example** (Requiring repeated values)
+ *
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
@@ -662,7 +688,8 @@ export const atLeast: {
 /**
  * Limits a flag to be specified at most a maximum number of times.
  *
- * @example
+ * **Example** (Limiting repeated values)
+ *
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
@@ -687,7 +714,8 @@ export const atMost: {
 /**
  * Constrains a flag to be specified between a minimum and maximum number of times.
  *
- * @example
+ * **Example** (Bounding repeated values)
+ *
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
@@ -712,7 +740,8 @@ export const between: {
 /**
  * Transforms and filters a flag value, failing with a custom error if the transformation returns None.
  *
- * @example
+ * **Example** (Filtering and transforming values)
+ *
  * ```ts
  * import { Option } from "effect"
  * import { Flag } from "effect/unstable/cli"
@@ -749,7 +778,8 @@ export const filterMap: {
 /**
  * Filters a flag value based on a predicate, failing with a custom error if the predicate returns false.
  *
- * @example
+ * **Example** (Filtering parsed values)
+ *
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
@@ -785,7 +815,8 @@ export const filter: {
 /**
  * Provides an alternative flag if the first one fails to parse.
  *
- * @example
+ * **Example** (Falling back to another flag)
+ *
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
@@ -813,7 +844,8 @@ export const orElse: {
 /**
  * Tries to parse with the first flag, then the second, returning a Result that indicates which succeeded.
  *
- * @example
+ * **Example** (Returning fallback results)
+ *
  * ```ts
  * import { Effect, Result } from "effect"
  * import { Flag } from "effect/unstable/cli"
@@ -848,7 +880,8 @@ export const orElseResult: {
 /**
  * Validates and transforms a flag value using a Schema codec.
  *
- * @example
+ * **Example** (Validating with schemas)
+ *
  * ```ts
  * import { Schema } from "effect"
  * import { Flag } from "effect/unstable/cli"

@@ -40,7 +40,8 @@ import * as Param from "./Param.ts"
  * - Handler function for execution
  * - Optional subcommands for hierarchical structures
  *
- * @example
+ * **Example** (Defining CLI commands)
+ *
  * ```ts
  * import { Console } from "effect"
  * import { Argument, Command, Flag } from "effect/unstable/cli"
@@ -158,7 +159,8 @@ export declare namespace Command {
    * - Nested configuration objects for organization
    * - Arrays of parameters for repeated elements
    *
-   * @example
+   * **Example** (Configuring command input)
+   *
    * ```ts
    * import { Argument, Flag } from "effect/unstable/cli"
    * import type * as CliCommand from "effect/unstable/cli/Command"
@@ -221,7 +223,8 @@ export declare namespace Command {
      * This type utility extracts the final configuration type that handlers will receive,
      * preserving the nested structure while converting Param types to their values.
      *
-     * @example
+     * **Example** (Inferring command input)
+     *
      * ```ts
      * import { Flag } from "effect/unstable/cli"
      * import type * as CliCommand from "effect/unstable/cli/Command"
@@ -334,7 +337,8 @@ export type Error<C> = C extends Command<
  * Effect's service system - each command automatically creates a service that provides
  * its parsed input to child commands.
  *
- * @example
+ * **Example** (Accessing parent command context)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  * import { Command, Flag } from "effect/unstable/cli"
@@ -402,7 +406,8 @@ export const isCommand = (u: unknown): u is Command.Any => Predicate.hasProperty
  * to support different patterns of command creation, from simple commands with no configuration
  * to complex commands with nested configurations and error handling.
  *
- * @example
+ * **Example** (Creating commands)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  * import { Argument, Command, Flag } from "effect/unstable/cli"
@@ -481,7 +486,8 @@ export const make: {
 /**
  * Adds or replaces the handler for a command.
  *
- * @example
+ * **Example** (Adding command handlers)
+ *
  * ```ts
  * import { Console } from "effect"
  * import { Command, Flag } from "effect/unstable/cli"
@@ -576,7 +582,8 @@ const normalizeSubcommandEntries = (
  * command within their handler. This enables shared parent flags that affect
  * all subcommands.
  *
- * @example
+ * **Example** (Adding subcommands)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  * import { Command, Flag } from "effect/unstable/cli"
@@ -873,7 +880,8 @@ type ExtractSubcommandContext<T extends ReadonlyArray<Command.SubcommandEntry>> 
  * Descriptions provide users with information about what the command does
  * when they view help documentation.
  *
- * @example
+ * **Example** (Setting descriptions)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  * import { Command, Flag } from "effect/unstable/cli"
@@ -1006,7 +1014,8 @@ export const annotateMerge: {
  * Examples are exposed in structured `HelpDoc` data and rendered by the
  * default formatter in an `EXAMPLES` section.
  *
- * @example
+ * **Example** (Adding usage examples)
+ *
  * ```ts
  * import { Command } from "effect/unstable/cli"
  *
@@ -1051,7 +1060,8 @@ const mapHandler = <Name extends string, Input, E, R, ContextInput, E2, R2>(
  * Provides the handler of a command with the services produced by a layer
  * that optionally depends on the command-line input to be created.
  *
- * @example
+ * **Example** (Providing command services)
+ *
  * ```ts
  * import { Effect, FileSystem, PlatformError } from "effect"
  * import { Command, Flag } from "effect/unstable/cli"
@@ -1252,7 +1262,8 @@ const showHelp = <Name extends string, Input, E, R, ContextInput>(
 /**
  * Runs a command with the provided input arguments.
  *
- * @example
+ * **Example** (Running commands with standard input)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  * import { Command, Flag } from "effect/unstable/cli"
@@ -1304,7 +1315,8 @@ export const run: {
  * This function is useful for testing CLI applications or when you want to
  * programmatically execute commands with specific arguments.
  *
- * @example
+ * **Example** (Running commands with explicit arguments)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  * import { Command, Flag } from "effect/unstable/cli"

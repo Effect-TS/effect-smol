@@ -3,7 +3,8 @@
  * programs. It offers a testable and composable way to work with randomness,
  * supporting integers, floating-point numbers, and range-based generation.
  *
- * @example
+ * **Example** (Generating random values)
+ *
  * ```ts
  * import { Effect, Random } from "effect"
  *
@@ -30,7 +31,8 @@ import * as Predicate from "./Predicate.ts"
 /**
  * Represents a service for generating random numbers.
  *
- * @example
+ * **Example** (Accessing the random service)
+ *
  * ```ts
  * import { Effect, Random } from "effect"
  *
@@ -61,7 +63,8 @@ const randomWith = <A>(f: (random: typeof Random["Service"]) => A): Effect.Effec
 /**
  * Generates a random number between 0 (inclusive) and 1 (inclusive).
  *
- * @example
+ * **Example** (Generating a random number)
+ *
  * ```ts
  * import { Effect, Random } from "effect"
  *
@@ -79,7 +82,8 @@ export const next: Effect.Effect<number> = randomWith((r) => r.nextDoubleUnsafe(
 /**
  * Generates a random boolean value.
  *
- * @example
+ * **Example** (Generating a random boolean)
+ *
  * ```ts
  * import { Effect, Random } from "effect"
  *
@@ -98,7 +102,8 @@ export const nextBoolean: Effect.Effect<boolean> = randomWith((r) => r.nextDoubl
  * Generates a random integer between `Number.MIN_SAFE_INTEGER` (inclusive)
  * and `Number.MAX_SAFE_INTEGER` (inclusive).
  *
- * @example
+ * **Example** (Generating a random integer)
+ *
  * ```ts
  * import { Effect, Random } from "effect"
  *
@@ -116,7 +121,8 @@ export const nextInt: Effect.Effect<number> = randomWith((r) => r.nextIntUnsafe(
 /**
  * Generates a random number between `min` (inclusive) and `max` (inclusive).
  *
- * @example
+ * **Example** (Generating a bounded random number)
+ *
  * ```ts
  * import { Effect, Random } from "effect"
  *
@@ -138,7 +144,8 @@ export const nextBetween = (min: number, max: number): Effect.Effect<number> =>
  * Set `options.halfOpen: true` to generate in the half-open range
  * `[min, max)`.
  *
- * @example
+ * **Example** (Generating a bounded random integer)
+ *
  * ```ts
  * import { Effect, Random } from "effect"
  *
@@ -168,7 +175,8 @@ export const nextIntBetween = (min: number, max: number, options?: {
 /**
  * Uses the pseudo-random number generator to shuffle the specified iterable.
  *
- * @example
+ * **Example** (Shuffling values)
+ *
  * ```ts
  * import { Effect, Random } from "effect"
  *
@@ -196,7 +204,8 @@ export const shuffle = <A>(elements: Iterable<A>): Effect.Effect<Array<A>> =>
 /**
  * Generates a random UUID (v4) string.
  *
- * @example
+ * **Example** (Generating a UUID)
+ *
  * ```ts
  * import { Effect, Random } from "effect"
  *
@@ -241,7 +250,8 @@ export const nextUUIDv4: Effect.Effect<string> = randomWith((r) => {
  * Take care to select a seed wit hhigh entropy to avoid issues with the
  * quality of random number generation.
  *
- * @example
+ * **Example** (Seeding random generation)
+ *
  * ```ts
  * import { Effect, Random } from "effect"
  *

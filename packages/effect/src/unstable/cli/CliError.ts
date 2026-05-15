@@ -14,7 +14,8 @@ const TypeId = "~effect/cli/CliError"
 /**
  * Type guard to check if a value is a CLI error.
  *
- * @example
+ * **Example** (Checking CLI errors)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { CliError } from "effect/unstable/cli"
@@ -45,7 +46,8 @@ export const isCliError = (u: unknown): u is CliError => Predicate.hasProperty(u
 /**
  * Union type representing all possible CLI error conditions.
  *
- * @example
+ * **Example** (Handling CLI errors)
+ *
  * ```ts
  * import type { CliError } from "effect/unstable/cli"
  *
@@ -86,7 +88,8 @@ export type CliError =
 /**
  * Error thrown when an unrecognized option is encountered.
  *
- * @example
+ * **Example** (Creating unrecognized option errors)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { CliError } from "effect/unstable/cli"
@@ -143,7 +146,8 @@ export class UnrecognizedOption extends Schema.ErrorClass<UnrecognizedOption>(`$
 /**
  * Error thrown when duplicate option names are detected between parent and child commands.
  *
- * @example
+ * **Example** (Creating duplicate option errors)
+ *
  * ```ts
  * import { CliError } from "effect/unstable/cli"
  *
@@ -184,7 +188,8 @@ export class DuplicateOption extends Schema.ErrorClass<DuplicateOption>(`${TypeI
 /**
  * Error thrown when a required option is missing.
  *
- * @example
+ * **Example** (Creating missing option errors)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { CliError } from "effect/unstable/cli"
@@ -230,7 +235,8 @@ export class MissingOption extends Schema.ErrorClass<MissingOption>(`${TypeId}/M
 /**
  * Error thrown when a required positional argument is missing.
  *
- * @example
+ * **Example** (Creating missing argument errors)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { CliError } from "effect/unstable/cli"
@@ -275,7 +281,8 @@ export class MissingArgument extends Schema.ErrorClass<MissingArgument>(`${TypeI
 /**
  * Error thrown when an option or argument value is invalid.
  *
- * @example
+ * **Example** (Creating invalid value errors)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { CliError } from "effect/unstable/cli"
@@ -331,7 +338,8 @@ export class InvalidValue extends Schema.ErrorClass<InvalidValue>(`${TypeId}/Inv
 /**
  * Error thrown when an unknown subcommand is encountered.
  *
- * @example
+ * **Example** (Creating unknown subcommand errors)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { CliError } from "effect/unstable/cli"
@@ -390,7 +398,8 @@ export class UnknownSubcommand extends Schema.ErrorClass<UnknownSubcommand>(`${T
 /**
  * Wrapper for user (handler) errors to unify under CLI error channel when desired.
  *
- * @example
+ * **Example** (Wrapping user errors)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { CliError } from "effect/unstable/cli"

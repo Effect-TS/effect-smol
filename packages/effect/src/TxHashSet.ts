@@ -52,7 +52,8 @@ const TxHashSetProto = {
  * - The original TxHashSet remains unchanged
  * - Examples: `union`, `intersection`, `difference`, `map`, `filter`
  *
- * @example
+ * **Example** (Using transactional hash sets)
+ *
  * ```ts
  * import { Effect, TxHashSet } from "effect"
  *
@@ -93,7 +94,8 @@ export interface TxHashSet<in out V> extends Inspectable, Pipeable {
  * The TxHashSet namespace contains type-level utilities and helper types
  * for working with TxHashSet instances.
  *
- * @example
+ * **Example** (Extracting value types inside transactions)
+ *
  * ```ts
  * import { Effect, TxHashSet } from "effect"
  *
@@ -116,7 +118,8 @@ export interface TxHashSet<in out V> extends Inspectable, Pipeable {
  */
 export declare namespace TxHashSet {
   /**
-   * @example
+   * **Example** (Extracting a TxHashSet value type)
+   *
    * ```ts
    * import { TxHashSet } from "effect"
    *
@@ -145,7 +148,8 @@ const makeTxHashSet = <V>(ref: TxRef.TxRef<HashSet.HashSet<V>>): TxHashSet<V> =>
 /**
  * Creates an empty TxHashSet.
  *
- * @example
+ * **Example** (Creating an empty transactional hash set)
+ *
  * ```ts
  * import { Effect, TxHashSet } from "effect"
  *
@@ -174,7 +178,8 @@ export const empty = <V = never>(): Effect.Effect<TxHashSet<V>> =>
 /**
  * Creates a TxHashSet from a variable number of values.
  *
- * @example
+ * **Example** (Creating transactional hash sets from values)
+ *
  * ```ts
  * import { Effect, TxHashSet } from "effect"
  *
@@ -205,7 +210,8 @@ export const make = <Values extends ReadonlyArray<any>>(
 /**
  * Creates a TxHashSet from an iterable collection of values.
  *
- * @example
+ * **Example** (Creating a transactional hash set from an iterable)
+ *
  * ```ts
  * import { Effect, TxHashSet } from "effect"
  *
@@ -235,7 +241,8 @@ export const fromIterable = <V>(values: Iterable<V>): Effect.Effect<TxHashSet<V>
 /**
  * Creates a TxHashSet from an existing HashSet.
  *
- * @example
+ * **Example** (Creating a transactional hash set from a HashSet)
+ *
  * ```ts
  * import { Effect, TxHashSet } from "effect"
  * import * as HashSet from "effect/HashSet"
@@ -266,7 +273,8 @@ export const fromHashSet = <V>(hashSet: HashSet.HashSet<V>): Effect.Effect<TxHas
 /**
  * Checks if a value is a TxHashSet.
  *
- * @example
+ * **Example** (Checking for a TxHashSet)
+ *
  * ```ts
  * import { Effect, TxHashSet } from "effect"
  * import * as HashSet from "effect/HashSet"
@@ -294,7 +302,8 @@ export const isTxHashSet = (u: unknown): u is TxHashSet<unknown> => hasProperty(
  * **Mutation behavior**: This function mutates the original TxHashSet by adding
  * the specified value. It does not return a new TxHashSet reference.
  *
- * @example
+ * **Example** (Adding values)
+ *
  * ```ts
  * import { Effect, TxHashSet } from "effect"
  *
@@ -328,7 +337,8 @@ export const add: {
  * **Mutation behavior**: This function mutates the original TxHashSet by removing
  * the specified value. It does not return a new TxHashSet reference.
  *
- * @example
+ * **Example** (Removing values)
+ *
  * ```ts
  * import { Effect, TxHashSet } from "effect"
  *
@@ -368,7 +378,8 @@ export const remove: {
 /**
  * Checks if the TxHashSet contains the specified value.
  *
- * @example
+ * **Example** (Checking membership)
+ *
  * ```ts
  * import { Effect, Equal, Hash, TxHashSet } from "effect"
  *
@@ -414,7 +425,8 @@ export const has: {
 /**
  * Returns the number of values in the TxHashSet.
  *
- * @example
+ * **Example** (Getting the set size)
+ *
  * ```ts
  * import { Effect, TxHashSet } from "effect"
  *
@@ -442,7 +454,8 @@ export const size = <V>(self: TxHashSet<V>): Effect.Effect<number> =>
 /**
  * Checks if the TxHashSet is empty.
  *
- * @example
+ * **Example** (Checking whether a set is empty)
+ *
  * ```ts
  * import { Effect, TxHashSet } from "effect"
  *
@@ -470,7 +483,8 @@ export const isEmpty = <V>(self: TxHashSet<V>): Effect.Effect<boolean> =>
  * **Mutation behavior**: This function mutates the original TxHashSet by clearing
  * all values. It does not return a new TxHashSet reference.
  *
- * @example
+ * **Example** (Clearing all values)
+ *
  * ```ts
  * import { Effect, TxHashSet } from "effect"
  *
@@ -492,7 +506,8 @@ export const clear = <V>(self: TxHashSet<V>): Effect.Effect<void> => TxRef.set(s
 /**
  * Creates the union of two TxHashSets, returning a new TxHashSet.
  *
- * @example
+ * **Example** (Combining sets with union)
+ *
  * ```ts
  * import { Effect, TxHashSet } from "effect"
  *
@@ -532,7 +547,8 @@ export const union: {
 /**
  * Creates the intersection of two TxHashSets, returning a new TxHashSet.
  *
- * @example
+ * **Example** (Finding common values)
+ *
  * ```ts
  * import { Effect, TxHashSet } from "effect"
  *
@@ -572,7 +588,8 @@ export const intersection: {
 /**
  * Creates the difference of two TxHashSets (elements in the first set that are not in the second), returning a new TxHashSet.
  *
- * @example
+ * **Example** (Finding values absent from another set)
+ *
  * ```ts
  * import { Effect, TxHashSet } from "effect"
  *
@@ -612,7 +629,8 @@ export const difference: {
 /**
  * Checks if a TxHashSet is a subset of another TxHashSet.
  *
- * @example
+ * **Example** (Checking subset relationships)
+ *
  * ```ts
  * import { Effect, TxHashSet } from "effect"
  *
@@ -647,7 +665,8 @@ export const isSubset: {
 /**
  * Tests whether at least one value in the TxHashSet satisfies the predicate.
  *
- * @example
+ * **Example** (Testing whether some values match)
+ *
  * ```ts
  * import { Effect, TxHashSet } from "effect"
  *
@@ -680,7 +699,8 @@ export const some: {
 /**
  * Tests whether all values in the TxHashSet satisfy the predicate.
  *
- * @example
+ * **Example** (Testing whether every value matches)
+ *
  * ```ts
  * import { Effect, TxHashSet } from "effect"
  *
@@ -713,7 +733,8 @@ export const every: {
 /**
  * Maps each value in the TxHashSet using the provided function, returning a new TxHashSet.
  *
- * @example
+ * **Example** (Mapping values)
+ *
  * ```ts
  * import { Effect, TxHashSet } from "effect"
  *
@@ -752,7 +773,8 @@ export const map: {
 /**
  * Filters the TxHashSet keeping only values that satisfy the predicate, returning a new TxHashSet.
  *
- * @example
+ * **Example** (Filtering values)
+ *
  * ```ts
  * import { Effect, TxHashSet } from "effect"
  *
@@ -807,7 +829,8 @@ export const filter: {
 /**
  * Reduces the TxHashSet to a single value by iterating through the values and applying an accumulator function.
  *
- * @example
+ * **Example** (Reducing values)
+ *
  * ```ts
  * import { Effect, TxHashSet } from "effect"
  *
@@ -855,7 +878,8 @@ export const reduce: {
 /**
  * Converts the TxHashSet to an immutable HashSet snapshot.
  *
- * @example
+ * **Example** (Taking a HashSet snapshot)
+ *
  * ```ts
  * import { Effect, TxHashSet } from "effect"
  * import * as HashSet from "effect/HashSet"

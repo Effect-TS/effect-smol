@@ -501,7 +501,8 @@ export const endpoint = <
 /**
  * Creates a type-safe URL builder that mirrors `HttpApiClient.make`.
  *
- * @example
+ * **Example** (Building typed URLs)
+ *
  * ```ts
  * import { Schema } from "effect"
  * import { HttpApi, HttpApiClient, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
@@ -523,6 +524,7 @@ export const endpoint = <
  * })
  * //=> "https://api.example.com/users/123"
  * ```
+ *
  * @category constructors
  * @since 4.0.0
  */

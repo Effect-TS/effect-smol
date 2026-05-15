@@ -41,7 +41,8 @@
  * Each reason type has an `isRetryable` getter indicating whether the error is
  * transient. Some errors also provide a `retryAfter` duration hint.
  *
- * @example
+ * **Example** (Handling AI errors by reason)
+ *
  * ```ts
  * import { Effect, Match } from "effect"
  * import type { AiError } from "effect/unstable/ai"
@@ -64,7 +65,8 @@
  * )
  * ```
  *
- * @example
+ * **Example** (Creating an AI error with a reason)
+ *
  * ```ts
  * import { Duration, Effect } from "effect"
  * import { AiError } from "effect/unstable/ai"
@@ -114,7 +116,8 @@ export * as AnthropicStructuredOutput from "./AnthropicStructuredOutput.ts"
  * text generation. It integrates seamlessly with the Effect AI ecosystem,
  * providing type-safe conversational AI capabilities.
  *
- * @example
+ * **Example** (Creating a chat session)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { Chat } from "effect/unstable/ai"
@@ -134,7 +137,8 @@ export * as AnthropicStructuredOutput from "./AnthropicStructuredOutput.ts"
  * })
  * ```
  *
- * @example
+ * **Example** (Streaming chat responses)
+ *
  * ```ts
  * import { Effect, Stream } from "effect"
  * import { Chat } from "effect/unstable/ai"
@@ -156,7 +160,8 @@ export * as Chat from "./Chat.ts"
 /**
  * The `EmbeddingModel` module provides provider-agnostic text embedding capabilities.
  *
- * @example
+ * **Example** (Embedding text with a model)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { EmbeddingModel } from "effect/unstable/ai"
@@ -178,7 +183,8 @@ export * as EmbeddingModel from "./EmbeddingModel.ts"
  * This module offers a flexible and configurable approach to ID generation, supporting
  * custom alphabets, prefixes, separators, and sizes.
  *
- * @example
+ * **Example** (Generating IDs with the default service)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { IdGenerator } from "effect/unstable/ai"
@@ -195,7 +201,8 @@ export * as EmbeddingModel from "./EmbeddingModel.ts"
  * ))
  * ```
  *
- * @example
+ * **Example** (Providing a custom ID generator)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { IdGenerator } from "effect/unstable/ai"
@@ -230,7 +237,8 @@ export * as IdGenerator from "./IdGenerator.ts"
  * unified API that can be implemented by different AI providers while
  * maintaining type safety and effect management.
  *
- * @example
+ * **Example** (Generating text)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { LanguageModel } from "effect/unstable/ai"
@@ -247,7 +255,8 @@ export * as IdGenerator from "./IdGenerator.ts"
  * })
  * ```
  *
- * @example
+ * **Example** (Generating structured output)
+ *
  * ```ts
  * import { Effect, Schema } from "effect"
  * import { LanguageModel } from "effect/unstable/ai"
@@ -290,7 +299,8 @@ export * as McpServer from "./McpServer.ts"
  * functionality with provider identification, allowing for seamless switching
  * between different AI service providers while maintaining type safety.
  *
- * @example
+ * **Example** (Creating a provider-specific model)
+ *
  * ```ts
  * import type { Layer } from "effect"
  * import { Effect } from "effect"
@@ -330,7 +340,8 @@ export * as OpenAiStructuredOutput from "./OpenAiStructuredOutput.ts"
  * options. It supports rich content types like text, files, tool calls, and
  * reasoning.
  *
- * @example
+ * **Example** (Creating a structured conversation)
+ *
  * ```ts
  * import { Prompt } from "effect/unstable/ai"
  *
@@ -357,7 +368,8 @@ export * as OpenAiStructuredOutput from "./OpenAiStructuredOutput.ts"
  * ])
  * ```
  *
- * @example
+ * **Example** (Combining prompts)
+ *
  * ```ts
  * import { Prompt } from "effect/unstable/ai"
  *
@@ -384,7 +396,8 @@ export * as Prompt from "./Prompt.ts"
  * various content parts for text, reasoning, tool calls, files, and metadata,
  * supporting both streaming and non-streaming responses.
  *
- * @example
+ * **Example** (Creating response parts)
+ *
  * ```ts
  * import { Response } from "effect/unstable/ai"
  *
@@ -417,7 +430,8 @@ export * as ResponseIdTracker from "./ResponseIdTracker.ts"
  * attributes and utilities that follow the OpenTelemetry GenAI semantic
  * conventions.
  *
- * @example
+ * **Example** (Annotating AI spans)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { Telemetry } from "effect/unstable/ai"
@@ -454,7 +468,8 @@ export * as Telemetry from "./Telemetry.ts"
  * prompts based on token limits, essential for managing context length
  * constraints in large language models.
  *
- * @example
+ * **Example** (Tokenizing text)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { Tokenizer } from "effect/unstable/ai"
@@ -467,7 +482,8 @@ export * as Telemetry from "./Telemetry.ts"
  * })
  * ```
  *
- * @example
+ * **Example** (Truncating a prompt)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { Tokenizer } from "effect/unstable/ai"
@@ -494,7 +510,8 @@ export * as Tokenizer from "./Tokenizer.ts"
  * AI models to perform actions like searching databases, calling APIs, or
  * executing code within your application context.
  *
- * @example
+ * **Example** (Defining a calculator tool)
+ *
  * ```ts
  * import { Schema } from "effect"
  * import { Tool } from "effect/unstable/ai"
@@ -520,7 +537,8 @@ export * as Tool from "./Tool.ts"
  * `Tool`s which can be used to enhance the capabilities of a large language
  * model beyond simple text generation.
  *
- * @example
+ * **Example** (Creating and implementing toolkits)
+ *
  * ```ts
  * import { Effect, Schema } from "effect"
  * import { Tool, Toolkit } from "effect/unstable/ai"

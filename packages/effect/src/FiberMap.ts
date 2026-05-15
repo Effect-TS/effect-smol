@@ -25,7 +25,8 @@ const TypeId = "~effect/FiberMap"
  * Scope is closed, all fibers in the map will be interrupted. Fibers are
  * automatically removed from the map when they complete.
  *
- * @example
+ * **Example** (Managing fibers in a map)
+ *
  * ```ts
  * import { Effect, FiberMap } from "effect"
  *
@@ -60,7 +61,8 @@ export interface FiberMap<in out K, out A = unknown, out E = unknown>
 }
 
 /**
- * @example
+ * **Example** (Checking if a value is a FiberMap)
+ *
  * ```ts
  * import { Effect, FiberMap } from "effect"
  *
@@ -112,7 +114,8 @@ const makeUnsafe = <K, A = unknown, E = unknown>(
  * You can add fibers to the map using `FiberMap.set` or `FiberMap.run`, and the fibers will
  * be automatically removed from the FiberMap when they complete.
  *
- * @example
+ * **Example** (Creating a scoped FiberMap)
+ *
  * ```ts
  * import { Effect, FiberMap } from "effect"
  *
@@ -154,7 +157,8 @@ export const make = <K, A = unknown, E = unknown>(): Effect.Effect<FiberMap<K, A
 /**
  * Create an Effect run function that is backed by a FiberMap.
  *
- * @example
+ * **Example** (Creating a scoped runtime)
+ *
  * ```ts
  * import { Effect, Fiber, FiberMap } from "effect"
  *
@@ -198,7 +202,8 @@ export const makeRuntime = <R, K, E = unknown, A = unknown>(): Effect.Effect<
  * Create an Effect run function that is backed by a FiberMap.
  * Returns a Promise instead of a Fiber for more convenient use with async/await.
  *
- * @example
+ * **Example** (Creating a promise runtime)
+ *
  * ```ts
  * import { Effect, FiberMap } from "effect"
  *
@@ -248,7 +253,8 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
  * Add a fiber to the FiberMap. When the fiber completes, it will be removed from the FiberMap.
  * If the key already exists in the FiberMap, the previous fiber will be interrupted.
  *
- * @example
+ * **Example** (Adding a fiber unsafely)
+ *
  * ```ts
  * import { Effect, Fiber, FiberMap } from "effect"
  *
@@ -338,7 +344,8 @@ export const setUnsafe: {
  * If the key already exists in the FiberMap, the previous fiber will be interrupted.
  * This is the Effect-wrapped version of `setUnsafe`.
  *
- * @example
+ * **Example** (Adding a fiber)
+ *
  * ```ts
  * import { Effect, Fiber, FiberMap } from "effect"
  *
@@ -389,7 +396,8 @@ export const set: {
 /**
  * Retrieve a fiber from the FiberMap.
  *
- * @example
+ * **Example** (Retrieving a fiber unsafely)
+ *
  * ```ts
  * import { Effect, Fiber, FiberMap } from "effect"
  *
@@ -427,7 +435,8 @@ export const getUnsafe: {
  *
  * Returns an `Option` wrapped in `Effect`.
  *
- * @example
+ * **Example** (Retrieving a fiber)
+ *
  * ```ts
  * import { Effect, Fiber, FiberMap } from "effect"
  *
@@ -462,7 +471,8 @@ export const get: {
 /**
  * Check if a key exists in the FiberMap.
  *
- * @example
+ * **Example** (Checking if a key exists unsafely)
+ *
  * ```ts
  * import { Effect, FiberMap } from "effect"
  *
@@ -494,7 +504,8 @@ export const hasUnsafe: {
  * Check if a key exists in the FiberMap.
  * This is the Effect-wrapped version of `hasUnsafe`.
  *
- * @example
+ * **Example** (Checking if a key exists)
+ *
  * ```ts
  * import { Effect, FiberMap } from "effect"
  *
@@ -527,7 +538,8 @@ export const has: {
 /**
  * Remove a fiber from the FiberMap, interrupting it if it exists.
  *
- * @example
+ * **Example** (Removing a fiber)
+ *
  * ```ts
  * import { Effect, FiberMap } from "effect"
  *
@@ -576,7 +588,8 @@ export const remove: {
 /**
  * Remove all fibers from the FiberMap, interrupting them.
  *
- * @example
+ * **Example** (Clearing all fibers)
+ *
  * ```ts
  * import { Effect, FiberMap } from "effect"
  *
@@ -622,7 +635,8 @@ const constInterruptedFiber = (function() {
  * Run an Effect and add the forked fiber to the FiberMap.
  * When the fiber completes, it will be removed from the FiberMap.
  *
- * @example
+ * **Example** (Forking effects into a map)
+ *
  * ```ts
  * import { Effect, Fiber, FiberMap } from "effect"
  *
@@ -700,7 +714,8 @@ const runImpl = <K, A, E, R, XE extends E, XA extends A>(
 /**
  * Capture a Runtime and use it to fork Effect's, adding the forked fibers to the FiberMap.
  *
- * @example
+ * **Example** (Capturing a runtime)
+ *
  * ```ts
  * import { Effect, FiberMap, Context } from "effect"
  *
@@ -772,7 +787,8 @@ export const runtime: <K, A, E>(
  * Capture a Runtime and use it to fork Effect's, adding the forked fibers to the FiberMap.
  * Returns a Promise instead of a Fiber for convenience.
  *
- * @example
+ * **Example** (Running effects as promises)
+ *
  * ```ts
  * import { Effect, FiberMap } from "effect"
  *
@@ -834,7 +850,8 @@ export const runtimePromise = <K, A, E>(self: FiberMap<K, A, E>): <R = never>() 
 /**
  * Get the number of fibers currently in the FiberMap.
  *
- * @example
+ * **Example** (Checking the map size)
+ *
  * ```ts
  * import { Effect, FiberMap } from "effect"
  *
@@ -861,7 +878,8 @@ export const size = <K, A, E>(self: FiberMap<K, A, E>): Effect.Effect<number> =>
  * Join all fibers in the FiberMap. If any of the Fiber's in the map terminate with a failure,
  * the returned Effect will terminate with the first failure that occurred.
  *
- * @example
+ * **Example** (Joining failing fibers)
+ *
  * ```ts
  * import { Effect, FiberMap } from "effect"
  *
@@ -884,7 +902,8 @@ export const join = <K, A, E>(self: FiberMap<K, A, E>): Effect.Effect<void, E> =
  * Wait for the FiberMap to be empty.
  * This will wait for all currently running fibers to complete.
  *
- * @example
+ * **Example** (Waiting for an empty map)
+ *
  * ```ts
  * import { Effect, FiberMap } from "effect"
  *

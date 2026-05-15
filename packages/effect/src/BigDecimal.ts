@@ -33,7 +33,8 @@ const TypeId = "~effect/BigDecimal"
 /**
  * Represents an arbitrary precision decimal number.
  *
- * @example
+ * **Example** (Inspecting BigDecimal storage)
+ *
  * ```ts
  * import { BigDecimal } from "effect"
  *
@@ -84,7 +85,8 @@ const BigDecimalProto: Omit<BigDecimal, "value" | "scale" | "normalized"> = {
 /**
  * Checks if a given value is a `BigDecimal`.
  *
- * @example
+ * **Example** (Checking BigDecimal values)
+ *
  * ```ts
  * import { BigDecimal } from "effect"
  *
@@ -102,7 +104,8 @@ export const isBigDecimal = (u: unknown): u is BigDecimal => hasProperty(u, Type
 /**
  * Creates a `BigDecimal` from a `bigint` value and a scale.
  *
- * @example
+ * **Example** (Creating decimals from bigint and scale)
+ *
  * ```ts
  * import { BigDecimal } from "effect"
  *
@@ -153,7 +156,8 @@ const one = makeNormalizedUnsafe(bigint1, 0)
 /**
  * Normalizes a given `BigDecimal` by removing trailing zeros.
  *
- * @example
+ * **Example** (Normalizing trailing zeros)
+ *
  * ```ts
  * import { fromStringUnsafe, make, normalize } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -206,7 +210,8 @@ export const normalize = (self: BigDecimal): BigDecimal => {
  * If the given scale is smaller than the current scale, the value will be rounded down to
  * the nearest integer.
  *
- * @example
+ * **Example** (Scaling decimal precision)
+ *
  * ```ts
  * import { BigDecimal } from "effect"
  *
@@ -242,7 +247,8 @@ export const scale: {
 /**
  * Provides an addition operation on `BigDecimal`s.
  *
- * @example
+ * **Example** (Adding decimals)
+ *
  * ```ts
  * import { fromStringUnsafe, sum } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -282,7 +288,8 @@ export const sum: {
 /**
  * Takes an `Iterable` of `BigDecimal`s and returns their sum as a single `BigDecimal`.
  *
- * @example
+ * **Example** (Adding multiple decimals)
+ *
  * ```ts
  * import { fromStringUnsafe, sumAll } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -307,7 +314,8 @@ export const sumAll = (collection: Iterable<BigDecimal>): BigDecimal => {
 /**
  * Provides a multiplication operation on `BigDecimal`s.
  *
- * @example
+ * **Example** (Multiplying decimals)
+ *
  * ```ts
  * import { fromStringUnsafe, multiply } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -335,7 +343,8 @@ export const multiply: {
 /**
  * Takes an `Iterable` of `BigDecimal`s and returns their multiplication as a single `BigDecimal`.
  *
- * @example
+ * **Example** (Multiplying multiple decimals)
+ *
  * ```ts
  * import { fromStringUnsafe, multiplyAll } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -363,7 +372,8 @@ export const multiplyAll = (collection: Iterable<BigDecimal>): BigDecimal => {
 /**
  * Provides a subtraction operation on `BigDecimal`s.
  *
- * @example
+ * **Example** (Subtracting decimals)
+ *
  * ```ts
  * import { fromStringUnsafe, subtract } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -476,7 +486,8 @@ export const roundTerminal = (n: bigint): bigint => {
  *
  * If the divisor is `0`, the result will be `Option.none()`.
  *
- * @example
+ * **Example** (Dividing decimals safely)
+ *
  * ```ts
  * import { BigDecimal, Option } from "effect"
  * import * as assert from "node:assert"
@@ -535,7 +546,8 @@ export const divide: {
  *
  * Throws a `RangeError` if the divisor is `0`.
  *
- * @example
+ * **Example** (Dividing decimals unsafely)
+ *
  * ```ts
  * import { divideUnsafe, fromStringUnsafe } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -575,7 +587,8 @@ export const divideUnsafe: {
 /**
  * Provides an `Order` instance for `BigDecimal` that allows comparing and sorting BigDecimal values.
  *
- * @example
+ * **Example** (Comparing decimals)
+ *
  * ```ts
  * import { BigDecimal } from "effect"
  *
@@ -611,7 +624,8 @@ export const Order: order.Order<BigDecimal> = order.make((self, that) => {
 /**
  * Returns `true` if the first argument is less than the second, otherwise `false`.
  *
- * @example
+ * **Example** (Checking less-than comparisons)
+ *
  * ```ts
  * import { fromStringUnsafe, isLessThan } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -641,7 +655,8 @@ export const isLessThan: {
 /**
  * Checks if a given `BigDecimal` is less than or equal to the provided one.
  *
- * @example
+ * **Example** (Checking less-than-or-equal comparisons)
+ *
  * ```ts
  * import { fromStringUnsafe, isLessThanOrEqualTo } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -671,7 +686,8 @@ export const isLessThanOrEqualTo: {
 /**
  * Returns `true` if the first argument is greater than the second, otherwise `false`.
  *
- * @example
+ * **Example** (Checking greater-than comparisons)
+ *
  * ```ts
  * import { fromStringUnsafe, isGreaterThan } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -701,7 +717,8 @@ export const isGreaterThan: {
 /**
  * Checks if a given `BigDecimal` is greater than or equal to the provided one.
  *
- * @example
+ * **Example** (Checking greater-than-or-equal comparisons)
+ *
  * ```ts
  * import { fromStringUnsafe, isGreaterThanOrEqualTo } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -731,7 +748,8 @@ export const isGreaterThanOrEqualTo: {
 /**
  * Checks if a `BigDecimal` is between a `minimum` and `maximum` value (inclusive).
  *
- * @example
+ * **Example** (Checking decimal ranges)
+ *
  * ```ts
  * import { BigDecimal } from "effect"
  * import * as assert from "node:assert"
@@ -767,7 +785,8 @@ export const between: {
  * - If the `BigDecimal` is greater than the `maximum` value, the function returns the `maximum` value.
  * - Otherwise, it returns the original `BigDecimal`.
  *
- * @example
+ * **Example** (Clamping decimals to a range)
+ *
  * ```ts
  * import { BigDecimal } from "effect"
  * import * as assert from "node:assert"
@@ -808,7 +827,8 @@ export const clamp: {
 /**
  * Returns the minimum between two `BigDecimal`s.
  *
- * @example
+ * **Example** (Selecting the smaller decimal)
+ *
  * ```ts
  * import { fromStringUnsafe, min } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -830,7 +850,8 @@ export const min: {
 /**
  * Returns the maximum between two `BigDecimal`s.
  *
- * @example
+ * **Example** (Selecting the larger decimal)
+ *
  * ```ts
  * import { fromStringUnsafe, max } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -852,7 +873,8 @@ export const max: {
 /**
  * Determines the sign of a given `BigDecimal`.
  *
- * @example
+ * **Example** (Reading decimal signs)
+ *
  * ```ts
  * import { fromStringUnsafe, sign } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -870,7 +892,8 @@ export const sign = (n: BigDecimal): Ordering => n.value === bigint0 ? 0 : n.val
 /**
  * Determines the absolute value of a given `BigDecimal`.
  *
- * @example
+ * **Example** (Calculating absolute values)
+ *
  * ```ts
  * import { abs, fromStringUnsafe } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -888,7 +911,8 @@ export const abs = (n: BigDecimal): BigDecimal => n.value < bigint0 ? make(-n.va
 /**
  * Provides a negate operation on `BigDecimal`s.
  *
- * @example
+ * **Example** (Negating decimals)
+ *
  * ```ts
  * import { fromStringUnsafe, negate } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -907,7 +931,8 @@ export const negate = (n: BigDecimal): BigDecimal => make(-n.value, n.scale)
  *
  * If the divisor is `0`, the result will be `Option.none()`.
  *
- * @example
+ * **Example** (Computing remainders safely)
+ *
  * ```ts
  * import { BigDecimal, Option } from "effect"
  * import * as assert from "node:assert"
@@ -955,7 +980,8 @@ export const remainder: {
  *
  * Throws a `RangeError` if the divisor is `0`.
  *
- * @example
+ * **Example** (Computing remainders unsafely)
+ *
  * ```ts
  * import { fromStringUnsafe, remainderUnsafe } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -992,7 +1018,8 @@ export const remainderUnsafe: {
 /**
  * Provides an `Equivalence` instance for `BigDecimal` that determines equality between BigDecimal values.
  *
- * @example
+ * **Example** (Checking decimal equivalence)
+ *
  * ```ts
  * import { BigDecimal } from "effect"
  *
@@ -1022,7 +1049,8 @@ export const Equivalence: Equ.Equivalence<BigDecimal> = Equ.make((self, that) =>
 /**
  * Checks if two `BigDecimal`s are equal.
  *
- * @example
+ * **Example** (Checking decimal equality)
+ *
  * ```ts
  * import { BigDecimal } from "effect"
  *
@@ -1045,7 +1073,8 @@ export const equals: {
 /**
  * Creates a `BigDecimal` from a `bigint` value.
  *
- * @example
+ * **Example** (Creating decimals from bigint)
+ *
  * ```ts
  * import { BigDecimal } from "effect"
  *
@@ -1069,7 +1098,8 @@ export const fromBigInt = (n: bigint): BigDecimal => make(n, 0)
  *
  * Throws a `RangeError` if the number is not finite (`NaN`, `+Infinity` or `-Infinity`).
  *
- * @example
+ * **Example** (Creating decimals from finite numbers)
+ *
  * ```ts
  * import { fromNumberUnsafe, make } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -1093,7 +1123,8 @@ export const fromNumberUnsafe = (n: number): BigDecimal => {
  *
  * Returns `Option.none()` for `NaN`, `+Infinity` or `-Infinity`.
  *
- * @example
+ * **Example** (Creating decimals from numbers safely)
+ *
  * ```ts
  * import { BigDecimal, Option } from "effect"
  * import * as assert from "node:assert"
@@ -1126,7 +1157,8 @@ export const fromNumber = (n: number): Option.Option<BigDecimal> => {
 /**
  * Parses a numerical `string` into a `BigDecimal`.
  *
- * @example
+ * **Example** (Parsing decimal strings safely)
+ *
  * ```ts
  * import { BigDecimal, Option } from "effect"
  * import * as assert from "node:assert"
@@ -1190,7 +1222,8 @@ export const fromString = (s: string): Option.Option<BigDecimal> => {
 /**
  * Parses a numerical `string` into a `BigDecimal`.
  *
- * @example
+ * **Example** (Parsing decimal strings unsafely)
+ *
  * ```ts
  * import { fromStringUnsafe, make } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -1213,7 +1246,8 @@ export const fromStringUnsafe = (s: string): BigDecimal => {
  * If the scale of the `BigDecimal` is greater than or equal to 16, the `BigDecimal` will
  * be formatted in scientific notation.
  *
- * @example
+ * **Example** (Formatting decimals)
+ *
  * ```ts
  * import { format, fromStringUnsafe } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -1260,7 +1294,8 @@ export const format = (n: BigDecimal): string => {
 /**
  * Formats a given `BigDecimal` as a `string` in scientific notation.
  *
- * @example
+ * **Example** (Formatting decimals exponentially)
+ *
  * ```ts
  * import { make, toExponential } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -1295,7 +1330,8 @@ export const toExponential = (n: BigDecimal): string => {
  *
  * This function will produce incorrect results if the `BigDecimal` exceeds the 64-bit range of a `number`.
  *
- * @example
+ * **Example** (Converting decimals to numbers)
+ *
  * ```ts
  * import { fromStringUnsafe, toNumberUnsafe } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -1311,7 +1347,8 @@ export const toNumberUnsafe = (n: BigDecimal): number => Number(format(n))
 /**
  * Checks if a given `BigDecimal` is an integer.
  *
- * @example
+ * **Example** (Checking integer decimals)
+ *
  * ```ts
  * import { fromStringUnsafe, isInteger } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -1329,7 +1366,8 @@ export const isInteger = (n: BigDecimal): boolean => normalize(n).scale <= 0
 /**
  * Checks if a given `BigDecimal` is `0`.
  *
- * @example
+ * **Example** (Checking zero decimals)
+ *
  * ```ts
  * import { fromStringUnsafe, isZero } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -1346,7 +1384,8 @@ export const isZero = (n: BigDecimal): boolean => n.value === bigint0
 /**
  * Checks if a given `BigDecimal` is negative.
  *
- * @example
+ * **Example** (Checking negative decimals)
+ *
  * ```ts
  * import { fromStringUnsafe, isNegative } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -1364,7 +1403,8 @@ export const isNegative = (n: BigDecimal): boolean => n.value < bigint0
 /**
  * Checks if a given `BigDecimal` is positive.
  *
- * @example
+ * **Example** (Checking positive decimals)
+ *
  * ```ts
  * import { fromStringUnsafe, isPositive } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -1413,7 +1453,8 @@ export type RoundingMode =
 /**
  * Rounds a `BigDecimal` at the given scale with the specified rounding mode.
  *
- * @example
+ * **Example** (Rounding decimals)
+ *
  * ```ts
  * import { fromStringUnsafe, round } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -1484,7 +1525,8 @@ export const round: {
 /**
  * Truncate a `BigDecimal` at the given scale. This is the same operation as rounding away from zero.
  *
- * @example
+ * **Example** (Truncating decimals)
+ *
  * ```ts
  * import { fromStringUnsafe, truncate } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -1517,7 +1559,8 @@ export const truncate: {
 /**
  * Calculate the ceiling of a `BigDecimal` at the given scale.
  *
- * @example
+ * **Example** (Rounding decimals up)
+ *
  * ```ts
  * import { ceil, fromStringUnsafe } from "effect/BigDecimal"
  * import * as assert from "node:assert"
@@ -1567,7 +1610,8 @@ export const digitAt: {
 /**
  * Calculate the floor of a `BigDecimal` at the given scale.
  *
- * @example
+ * **Example** (Rounding decimals down)
+ *
  * ```ts
  * import { floor, fromStringUnsafe } from "effect/BigDecimal"
  * import * as assert from "node:assert"

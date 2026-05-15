@@ -4,7 +4,8 @@
  * This module provides functionality to export Effect metrics in the Prometheus
  * exposition format, making them scrapeable by Prometheus servers.
  *
- * @example
+ * **Example** (Exporting Prometheus metrics)
+ *
  * ```ts
  * import { Effect, Metric } from "effect"
  * import * as PrometheusMetrics from "effect/unstable/observability/PrometheusMetrics"
@@ -37,7 +38,8 @@ import * as HttpServerResponse from "../http/HttpServerResponse.ts"
 /**
  * A function that transforms metric names before formatting.
  *
- * @example
+ * **Example** (Mapping metric names)
+ *
  * ```ts
  * import type * as PrometheusMetrics from "effect/unstable/observability/PrometheusMetrics"
  *
@@ -85,7 +87,8 @@ export interface HttpOptions extends FormatOptions {
 /**
  * Format all metrics in the registry to Prometheus exposition format.
  *
- * @example
+ * **Example** (Formatting metrics)
+ *
  * ```ts
  * import { Effect, Metric } from "effect"
  * import * as PrometheusMetrics from "effect/unstable/observability/PrometheusMetrics"
@@ -166,7 +169,8 @@ export const formatUnsafe = (
  * metrics in Prometheus exposition format. By default, the endpoint is
  * registered at `/metrics`, but this can be customized via the `path` option.
  *
- * @example
+ * **Example** (Serving metrics over HTTP)
+ *
  * ```ts
  * import * as PrometheusMetrics from "effect/unstable/observability/PrometheusMetrics"
  *

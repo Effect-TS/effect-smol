@@ -7,7 +7,8 @@ import * as predicate from "./Predicate.ts"
 /**
  * Tests if a value is a `symbol`.
  *
- * @example
+ * **Example** (Checking for symbols)
+ *
  * ```ts
  * import * as Predicate from "effect/Predicate"
  * import * as assert from "node:assert"

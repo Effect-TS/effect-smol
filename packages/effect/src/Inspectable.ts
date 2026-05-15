@@ -8,7 +8,8 @@
  * The module also includes redaction capabilities for sensitive data, allowing objects
  * to provide different representations based on the current execution context.
  *
- * @example
+ * **Example** (Creating inspectable values)
+ *
  * ```ts
  * import { Inspectable } from "effect"
  * import { format } from "effect/Formatter"
@@ -48,7 +49,8 @@ import { redact } from "./Redactable.ts"
  * for custom object representation. When an object has a method with this symbol,
  * it will be called to determine how the object should be displayed.
  *
- * @example
+ * **Example** (Defining custom Node inspection)
+ *
  * ```ts
  * import { Inspectable } from "effect"
  *
@@ -74,7 +76,8 @@ export const NodeInspectSymbol = Symbol.for("nodejs.util.inspect.custom")
  * This symbol type is used to implement custom inspection behavior in Node.js
  * environments.
  *
- * @example
+ * **Example** (Typing custom Node inspection)
+ *
  * ```ts
  * import { Inspectable } from "effect"
  *
@@ -102,7 +105,8 @@ export type NodeInspectSymbol = typeof NodeInspectSymbol
  * JSON serialization, and Node.js inspection. This is particularly useful for creating
  * custom data types that display meaningful information during development.
  *
- * @example
+ * **Example** (Implementing inspectable objects)
+ *
  * ```ts
  * import { Inspectable } from "effect"
  * import { format } from "effect/Formatter"
@@ -188,7 +192,8 @@ export const toStringUnknown = (u: unknown, whitespace: number | string | undefi
  * It can be used as a prototype for objects that want to be inspectable,
  * or as a mixin to add inspection capabilities to existing objects.
  *
- * @example
+ * **Example** (Using the base inspectable prototype)
+ *
  * ```ts
  * import { Inspectable } from "effect"
  *
@@ -228,7 +233,8 @@ export const BaseProto: Inspectable = {
  * Subclasses only need to implement the `toJSON()` method, and they automatically
  * get proper `toString()` and Node.js inspection support.
  *
- * @example
+ * **Example** (Extending the inspectable base class)
+ *
  * ```ts
  * import { Inspectable } from "effect"
  *

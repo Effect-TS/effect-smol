@@ -22,6 +22,8 @@
  *
  * ## Basic Usage
  *
+ * **Example** (Requiring a non-empty iterable)
+ *
  * ```ts
  * import * as NonEmptyIterable from "effect/NonEmptyIterable"
  *
@@ -57,6 +59,8 @@
  * ```
  *
  * ## Working with Different Iterable Types
+ *
+ * **Example** (Adapting iterable inputs)
  *
  * ```ts
  * import { Array } from "effect"
@@ -103,9 +107,10 @@
  *
  * ## Integration with Effect Arrays
  *
+ * **Example** (Processing non-empty iterables with Array)
+ *
  * ```ts
  * import { Array, pipe } from "effect"
- * import type * as NonEmptyIterable from "effect/NonEmptyIterable"
  * import type * as NonEmptyIterable from "effect/NonEmptyIterable"
  *
  * // Many Array functions work with NonEmptyIterable
@@ -136,7 +141,8 @@
  * `Iterable<A>`, providing compile-time guarantees about non-emptiness while
  * maintaining full compatibility with the JavaScript iteration protocol.
  *
- * @example
+ * **Example** (Branding non-empty iterables)
+ *
  * ```ts
  * import type * as NonEmptyIterable from "effect/NonEmptyIterable"
  *
@@ -169,7 +175,8 @@ export declare const nonEmpty: unique symbol
  * The type is branded with a unique symbol to ensure type safety while maintaining
  * full compatibility with JavaScript's iteration protocol.
  *
- * @example
+ * **Example** (Working with non-empty iterables)
+ *
  * ```ts
  * import { Array } from "effect"
  * import * as Chunk from "effect/Chunk"
@@ -226,10 +233,8 @@ export interface NonEmptyIterable<out A> extends Iterable<A> {
  * head (first element) and tail (remaining elements as an iterator). Since the
  * iterable is guaranteed to be non-empty, the first element is always available.
  *
- * @param self - The non-empty iterable to deconstruct
- * @returns A tuple containing the first element and an iterator for the remaining elements
+ * **Example** (Extracting first and remaining elements)
  *
- * @example
  * ```ts
  * import { Array } from "effect"
  * import * as Chunk from "effect/Chunk"
@@ -328,6 +333,9 @@ export interface NonEmptyIterable<out A> extends Iterable<A> {
  * ) as unknown as NonEmptyIterable.NonEmptyIterable<number>
  * const sum = reduceNonEmpty(data, (acc, x) => acc + x, 0) // 10
  * ```
+ *
+ * @param self - The non-empty iterable to deconstruct
+ * @returns A tuple containing the first element and an iterator for the remaining elements
  *
  * @category getters
  * @since 2.0.0

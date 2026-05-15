@@ -35,7 +35,8 @@ import { hasProperty } from "./Predicate.ts"
 const TypeId = "~effect/collections/MutableHashSet"
 
 /**
- * @example
+ * **Example** (Using a mutable hash set)
+ *
  * ```ts
  * import { MutableHashSet } from "effect"
  *
@@ -108,7 +109,8 @@ const fromHashMap = <V>(keyMap: MutableHashMap.MutableHashMap<V, boolean>): Muta
 /**
  * Creates an empty MutableHashSet.
  *
- * @example
+ * **Example** (Creating an empty set)
+ *
  * ```ts
  * import { MutableHashSet } from "effect"
  *
@@ -132,7 +134,8 @@ export const empty = <K = never>(): MutableHashSet<K> => fromHashMap(MutableHash
  * Creates a MutableHashSet from an iterable collection of values.
  * Duplicates are automatically removed.
  *
- * @example
+ * **Example** (Creating a set from an iterable)
+ *
  * ```ts
  * import { MutableHashSet } from "effect"
  *
@@ -161,7 +164,8 @@ export const fromIterable = <K = never>(keys: Iterable<K>): MutableHashSet<K> =>
  * Creates a MutableHashSet from a variable number of values.
  * Duplicates are automatically removed.
  *
- * @example
+ * **Example** (Creating a set from values)
+ *
  * ```ts
  * import { MutableHashSet } from "effect"
  *
@@ -191,7 +195,8 @@ export const make = <Keys extends ReadonlyArray<unknown>>(
  * Adds a value to the MutableHashSet, mutating the set in place.
  * If the value already exists, the set remains unchanged.
  *
- * @example
+ * **Example** (Adding values)
+ *
  * ```ts
  * import { MutableHashSet } from "effect"
  *
@@ -228,7 +233,8 @@ export const add: {
 /**
  * Checks if the MutableHashSet contains the specified value.
  *
- * @example
+ * **Example** (Checking for a value)
+ *
  * ```ts
  * import { MutableHashSet } from "effect"
  *
@@ -261,7 +267,8 @@ export const has: {
  * Removes the specified value from the MutableHashSet, mutating the set in place.
  * If the value doesn't exist, the set remains unchanged.
  *
- * @example
+ * **Example** (Removing a value)
+ *
  * ```ts
  * import { MutableHashSet } from "effect"
  *
@@ -298,7 +305,8 @@ export const remove: {
 /**
  * Returns the number of unique values in the MutableHashSet.
  *
- * @example
+ * **Example** (Checking set size)
+ *
  * ```ts
  * import { MutableHashSet } from "effect"
  *
@@ -326,7 +334,8 @@ export const size = <V>(self: MutableHashSet<V>): number => MutableHashMap.size(
  * Removes all values from the MutableHashSet, mutating the set in place.
  * The set becomes empty after this operation.
  *
- * @example
+ * **Example** (Clearing all values)
+ *
  * ```ts
  * import { MutableHashSet } from "effect"
  *

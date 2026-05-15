@@ -7,7 +7,8 @@
  * allowing you to work with files and directories in a functional, composable way. All operations
  * return `Effect` values that can be composed, transformed, and executed safely.
  *
- * @example
+ * **Example** (Working with files and directories)
+ *
  * ```ts
  * import { Console, Effect, FileSystem } from "effect"
  *
@@ -59,7 +60,8 @@ const TypeId = "~effect/platform/FileSystem"
  * that work cross-platform. All operations return Effect values that can be composed,
  * transformed, and executed safely with proper error handling.
  *
- * @example
+ * **Example** (Accessing file system operations)
+ *
  * ```ts
  * import { Console, Effect, FileSystem } from "effect"
  *
@@ -374,7 +376,8 @@ export interface FileSystem {
  * bigint allows for handling very large file sizes beyond JavaScript's
  * number precision limits.
  *
- * @example
+ * **Example** (Creating branded file sizes)
+ *
  * ```ts
  * import { Effect, FileSystem } from "effect"
  *
@@ -402,7 +405,8 @@ export type Size = Brand.Branded<bigint, "Size">
  * different formats for convenience, which are then normalized to the
  * branded `Size` type internally.
  *
- * @example
+ * **Example** (Using size inputs)
+ *
  * ```ts
  * import { Effect, FileSystem } from "effect"
  *
@@ -428,7 +432,8 @@ export type SizeInput = bigint | number | Size
  * branded Size type. This function handles the conversion and ensures
  * type safety for file size operations.
  *
- * @example
+ * **Example** (Converting size inputs)
+ *
  * ```ts
  * import { Effect, FileSystem } from "effect"
  *
@@ -463,7 +468,8 @@ export const Size = (bytes: SizeInput): Size => typeof bytes === "bigint" ? byte
  * Converts a number of kilobytes to the equivalent size in bytes.
  * Uses binary kilobytes (1024 bytes) rather than decimal (1000 bytes).
  *
- * @example
+ * **Example** (Creating kibibyte sizes)
+ *
  * ```ts
  * import { Effect, FileSystem } from "effect"
  *
@@ -493,7 +499,8 @@ export const KiB = (n: number): Size => Size(n * 1024)
  * Converts a number of mebibytes to the equivalent size in bytes.
  * Uses binary mebibytes (1,048,576 bytes) rather than decimal megabytes.
  *
- * @example
+ * **Example** (Creating mebibyte sizes)
+ *
  * ```ts
  * import { Effect, FileSystem } from "effect"
  *
@@ -527,7 +534,8 @@ export const MiB = (n: number): Size => Size(n * 1024 * 1024)
  * Converts a number of gibibytes to the equivalent size in bytes.
  * Uses binary gibibytes (1,073,741,824 bytes) rather than decimal gigabytes.
  *
- * @example
+ * **Example** (Creating gibibyte sizes)
+ *
  * ```ts
  * import { Console, Effect, FileSystem } from "effect"
  *
@@ -557,7 +565,8 @@ export const GiB = (n: number): Size => Size(n * 1024 * 1024 * 1024)
  * Converts a number of tebibytes to the equivalent size in bytes.
  * Uses binary tebibytes (1,099,511,627,776 bytes) rather than decimal terabytes.
  *
- * @example
+ * **Example** (Creating tebibyte sizes)
+ *
  * ```ts
  * import { Console, Effect, FileSystem } from "effect"
  *
@@ -594,7 +603,8 @@ const bigintPiB = bigint1024 * bigint1024 * bigint1024 * bigint1024 * bigint1024
  * Uses binary pebibytes (1,125,899,906,842,624 bytes) rather than decimal petabytes.
  * This function uses BigInt arithmetic to handle the very large numbers involved.
  *
- * @example
+ * **Example** (Creating pebibyte sizes)
+ *
  * ```ts
  * import { Console, Effect, FileSystem } from "effect"
  *
@@ -637,7 +647,8 @@ export const PiB = (n: number): Size => Size(BigInt(n) * bigintPiB)
  * - `"a+"` - Read/write. Appends to file or creates new file.
  * - `"ax+"` - Like 'a+' but fails if file exists.
  *
- * @example
+ * **Example** (Opening files with flags)
+ *
  * ```ts
  * import { Effect, FileSystem } from "effect"
  *
@@ -679,7 +690,8 @@ export type OpenFlag =
  * This key is used to provide and access the FileSystem service in the Effect context.
  * Use this to inject file system implementations or access file system operations.
  *
- * @example
+ * **Example** (Accessing and providing FileSystem)
+ *
  * ```ts
  * import { Effect, FileSystem } from "effect"
  *
@@ -820,7 +832,8 @@ const notFound = (method: string, path: string) =>
  * This is useful for testing scenarios where you want to control specific file system
  * behaviors without affecting the actual file system.
  *
- * @example
+ * **Example** (Creating a no-op FileSystem)
+ *
  * ```ts
  * import { Effect, FileSystem, PlatformError } from "effect"
  *
@@ -959,7 +972,8 @@ export const makeNoop = (fileSystem: Partial<FileSystem>): FileSystem =>
  * This is a convenience function that wraps `makeNoop` in a Layer, making it easy
  * to provide the test filesystem to your Effect programs.
  *
- * @example
+ * **Example** (Providing a no-op FileSystem layer)
+ *
  * ```ts
  * import { Effect, FileSystem } from "effect"
  *
@@ -1009,7 +1023,8 @@ export const isFile = (u: unknown): u is File => hasProperty(u, FileTypeId)
  * and retrieving file information. File handles are automatically managed
  * within scoped operations to ensure proper cleanup.
  *
- * @example
+ * **Example** (Working with file handles)
+ *
  * ```ts
  * import { Console, Effect, FileSystem } from "effect"
  *
@@ -1098,7 +1113,8 @@ export declare namespace File {
    * permissions, and size information. This structure is returned by file
    * stat operations.
    *
-   * @example
+   * **Example** (Inspecting file information)
+   *
    * ```ts
    * import { Console, Effect, FileSystem, Option } from "effect"
    *
@@ -1228,7 +1244,8 @@ export declare namespace WatchEvent {
  * implemented differently on various platforms (e.g., inotify on Linux,
  * FSEvents on macOS, etc.).
  *
- * @example
+ * **Example** (Providing a custom watch backend)
+ *
  * ```ts
  * import { Effect, FileSystem, Option, Stream } from "effect"
  *

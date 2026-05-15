@@ -16,7 +16,8 @@ import * as HttpServerResponse from "./HttpServerResponse.ts"
 /**
  * Creates an `HttpApp` that serves files from a directory.
  *
- * @example
+ * **Example** (Serving files from a directory)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import * as HttpStaticServer from "effect/unstable/http/HttpStaticServer"
@@ -168,7 +169,8 @@ export const make: (options: {
 /**
  * Creates a layer that mounts static files on an `HttpRouter`.
  *
- * @example
+ * **Example** (Mounting static files on a router)
+ *
  * ```ts
  * import { Layer } from "effect"
  * import * as HttpRouter from "effect/unstable/http/HttpRouter"

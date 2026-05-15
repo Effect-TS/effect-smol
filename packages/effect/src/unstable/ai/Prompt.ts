@@ -7,7 +7,8 @@
  * options. It supports rich content types like text, files, tool calls, and
  * reasoning.
  *
- * @example
+ * **Example** (Creating a structured conversation)
+ *
  * ```ts
  * import { Prompt } from "effect/unstable/ai"
  *
@@ -34,7 +35,8 @@
  * ])
  * ```
  *
- * @example
+ * **Example** (Combining prompts)
+ *
  * ```ts
  * import { Prompt } from "effect/unstable/ai"
  *
@@ -189,7 +191,8 @@ const BasePart = Schema.Struct({
 /**
  * Creates a new content part of the specified type.
  *
- * @example
+ * **Example** (Creating content parts)
+ *
  * ```ts
  * import { Prompt } from "effect/unstable/ai"
  *
@@ -251,7 +254,8 @@ export type PartConstructorParams<P extends Part> = Omit<P, typeof PartTypeId | 
  *
  * The most basic content type used for textual information in messages.
  *
- * @example
+ * **Example** (Creating text parts)
+ *
  * ```ts
  * import { Prompt } from "effect/unstable/ai"
  *
@@ -331,7 +335,8 @@ export const textPart = (params: PartConstructorParams<TextPart>): TextPart => m
 /**
  * Content part representing reasoning or chain-of-thought.
  *
- * @example
+ * **Example** (Creating reasoning parts)
+ *
  * ```ts
  * import { Prompt } from "effect/unstable/ai"
  *
@@ -414,7 +419,8 @@ export const reasoningPart = (params: PartConstructorParams<ReasoningPart>): Rea
  *
  * Supports various file types including images, documents, and binary data.
  *
- * @example
+ * **Example** (Creating file parts)
+ *
  * ```ts
  * import { Prompt } from "effect/unstable/ai"
  *
@@ -520,7 +526,8 @@ export const filePart = (params: PartConstructorParams<FilePart>): FilePart => m
 /**
  * Content part representing a tool call request.
  *
- * @example
+ * **Example** (Creating tool call parts)
+ *
  * ```ts
  * import { Prompt } from "effect/unstable/ai"
  *
@@ -632,7 +639,8 @@ export const toolCallPart = (params: PartConstructorParams<ToolCallPart>): ToolC
 /**
  * Content part representing the result of a tool call.
  *
- * @example
+ * **Example** (Creating tool result parts)
+ *
  * ```ts
  * import { Prompt } from "effect/unstable/ai"
  *
@@ -751,7 +759,8 @@ export const toolResultPart = (params: PartConstructorParams<ToolResultPart>): T
  * Used in tool messages to approve or deny tool execution when tools have
  * the `needsApproval` property set.
  *
- * @example
+ * **Example** (Creating tool approval responses)
+ *
  * ```ts
  * import { Prompt } from "effect/unstable/ai"
  *
@@ -870,7 +879,8 @@ export const toolApprovalResponsePart = (
  * execution. The user responds with a `ToolApprovalResponsePart` in a tool
  * message.
  *
- * @example
+ * **Example** (Creating tool approval requests)
+ *
  * ```ts
  * import { Prompt } from "effect/unstable/ai"
  *
@@ -1022,7 +1032,8 @@ const BaseMessage = Schema.Struct({
 /**
  * Creates a new message with the specified role.
  *
- * @example
+ * **Example** (Creating messages)
+ *
  * ```ts
  * import { Prompt } from "effect/unstable/ai"
  *
@@ -1105,7 +1116,8 @@ export const ContentFromString: Schema.decodeTo<
 /**
  * Message representing system instructions or context.
  *
- * @example
+ * **Example** (Creating system messages)
+ *
  * ```ts
  * import { Prompt } from "effect/unstable/ai"
  *
@@ -1185,7 +1197,8 @@ export const systemMessage = (params: MessageConstructorParams<SystemMessage>): 
 /**
  * Message representing user input or questions.
  *
- * @example
+ * **Example** (Creating user messages)
+ *
  * ```ts
  * import { Prompt } from "effect/unstable/ai"
  *
@@ -1352,7 +1365,8 @@ export const userMessage = (params: MessageConstructorParams<UserMessage>): User
 /**
  * Message representing large language model assistant responses.
  *
- * @example
+ * **Example** (Creating assistant messages)
+ *
  * ```ts
  * import { Prompt } from "effect/unstable/ai"
  *
@@ -1527,7 +1541,8 @@ export const assistantMessage = (params: MessageConstructorParams<AssistantMessa
 /**
  * Message representing tool execution results.
  *
- * @example
+ * **Example** (Creating tool messages)
+ *
  * ```ts
  * import { Prompt } from "effect/unstable/ai"
  *
@@ -1757,7 +1772,8 @@ export const Prompt: Schema.Codec<Prompt, PromptEncoded> = Schema.Struct({
  * Supports various input formats for convenience, including simple strings,
  * message arrays, response parts, and existing prompts.
  *
- * @example
+ * **Example** (Accepting raw prompt input)
+ *
  * ```ts
  * import type { Prompt } from "effect/unstable/ai"
  *
@@ -1800,7 +1816,8 @@ const decodeMessagesSync = Schema.decodeSync(Schema.Array(Message))
 /**
  * An empty prompt with no messages.
  *
- * @example
+ * **Example** (Creating an empty prompt)
+ *
  * ```ts
  * import { Prompt } from "effect/unstable/ai"
  *
@@ -1819,7 +1836,8 @@ export const empty: Prompt = makePrompt([])
  * This is the primary constructor for creating prompts, supporting multiple
  * input formats for convenience and flexibility.
  *
- * @example
+ * **Example** (Creating prompts from inputs)
+ *
  * ```ts
  * import { Prompt } from "effect/unstable/ai"
  *
@@ -1859,7 +1877,8 @@ export const make = (input: RawInput): Prompt => {
 /**
  * Creates a Prompt from an array of messages.
  *
- * @example
+ * **Example** (Creating prompts from messages)
+ *
  * ```ts
  * import { Prompt } from "effect/unstable/ai"
  *
@@ -1887,7 +1906,8 @@ export const fromMessages = (messages: ReadonlyArray<Message>): Prompt => makePr
  * Converts streaming or non-streaming AI response parts into a structured
  * prompt, typically for use in conversation history or further processing.
  *
- * @example
+ * **Example** (Creating prompts from response parts)
+ *
  * ```ts
  * import { Prompt, Response } from "effect/unstable/ai"
  *
@@ -2042,7 +2062,8 @@ export const fromResponseParts = (parts: ReadonlyArray<Response.AnyPart>): Promp
  * Creates a new prompt containing all messages from both the original prompt,
  * and the provided raw input, maintaining the order of messages.
  *
- * @example
+ * **Example** (Concatenating prompts)
+ *
  * ```ts
  * import { Prompt } from "effect/unstable/ai"
  *
@@ -2082,7 +2103,8 @@ export const concat: {
  * **NOTE**: This method will remove and replace any previous system message
  * from the prompt.
  *
- * @example
+ * **Example** (Replacing system instructions)
+ *
  * ```ts
  * import { Prompt } from "effect/unstable/ai"
  *
@@ -2124,7 +2146,8 @@ export const setSystem: {
  * If no system message exists in the specified prompt, the provided content
  * will be used to create a system message.
  *
- * @example
+ * **Example** (Prepending system instructions)
+ *
  * ```ts
  * import { Prompt } from "effect/unstable/ai"
  *
@@ -2173,7 +2196,8 @@ export const prependSystem: {
  * If no system message exists in the specified prompt, the provided content
  * will be used to create a system message.
  *
- * @example
+ * **Example** (Appending system instructions)
+ *
  * ```ts
  * import { Prompt } from "effect/unstable/ai"
  *

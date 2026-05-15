@@ -36,7 +36,8 @@ export interface Argument<A> extends Param.Param<typeof Param.argumentKind, A> {
 /**
  * Creates a positional string argument.
  *
- * @example
+ * **Example** (Creating a string argument)
+ *
  * ```ts
  * import { Argument } from "effect/unstable/cli"
  *
@@ -51,7 +52,8 @@ export const string = (name: string): Argument<string> => Param.string(Param.arg
 /**
  * Creates a positional integer argument.
  *
- * @example
+ * **Example** (Creating an integer argument)
+ *
  * ```ts
  * import { Argument } from "effect/unstable/cli"
  *
@@ -66,7 +68,8 @@ export const integer = (name: string): Argument<number> => Param.integer(Param.a
 /**
  * Creates a positional file path argument.
  *
- * @example
+ * **Example** (Creating file path arguments)
+ *
  * ```ts
  * import { Argument } from "effect/unstable/cli"
  *
@@ -84,7 +87,8 @@ export const file = (name: string, options?: {
 /**
  * Creates a positional directory path argument.
  *
- * @example
+ * **Example** (Creating a directory path argument)
+ *
  * ```ts
  * import { Argument } from "effect/unstable/cli"
  *
@@ -101,7 +105,8 @@ export const directory = (name: string, options?: {
 /**
  * Creates a positional float argument.
  *
- * @example
+ * **Example** (Creating a float argument)
+ *
  * ```ts
  * import { Argument } from "effect/unstable/cli"
  *
@@ -116,7 +121,8 @@ export const float = (name: string): Argument<number> => Param.float(Param.argum
 /**
  * Creates a positional date argument.
  *
- * @example
+ * **Example** (Creating a date argument)
+ *
  * ```ts
  * import { Argument } from "effect/unstable/cli"
  *
@@ -131,7 +137,8 @@ export const date = (name: string): Argument<Date> => Param.date(Param.argumentK
 /**
  * Creates a positional choice argument.
  *
- * @example
+ * **Example** (Creating a choice argument)
+ *
  * ```ts
  * import { Argument } from "effect/unstable/cli"
  *
@@ -149,7 +156,8 @@ export const choice = <const Choices extends ReadonlyArray<string>>(
 /**
  * Creates a positional path argument.
  *
- * @example
+ * **Example** (Creating a path argument)
+ *
  * ```ts
  * import { Argument } from "effect/unstable/cli"
  *
@@ -167,7 +175,8 @@ export const path = (name: string, options?: {
 /**
  * Creates a positional redacted argument that obscures its value.
  *
- * @example
+ * **Example** (Creating a redacted argument)
+ *
  * ```ts
  * import { Argument } from "effect/unstable/cli"
  *
@@ -182,7 +191,8 @@ export const redacted = (name: string): Argument<Redacted.Redacted<string>> => P
 /**
  * Creates a positional argument that reads file content as a string.
  *
- * @example
+ * **Example** (Reading file text)
+ *
  * ```ts
  * import { Argument } from "effect/unstable/cli"
  *
@@ -197,7 +207,8 @@ export const fileText = (name: string): Argument<string> => Param.fileText(Param
 /**
  * Creates a positional argument that reads and validates file content using a schema.
  *
- * @example
+ * **Example** (Parsing file content)
+ *
  * ```ts
  * import { Argument } from "effect/unstable/cli"
  *
@@ -215,7 +226,8 @@ export const fileParse = (
 /**
  * Creates a positional argument that reads and validates file content using a schema.
  *
- * @example
+ * **Example** (Validating file content with a schema)
+ *
  * ```ts
  * import { Schema } from "effect"
  * import { Argument } from "effect/unstable/cli"
@@ -240,7 +252,8 @@ export const fileSchema = <A>(
 /**
  * Creates an empty sentinel argument that always fails to parse.
  *
- * @example
+ * **Example** (Creating a sentinel argument)
+ *
  * ```ts
  * import { Argument } from "effect/unstable/cli"
  *
@@ -260,7 +273,8 @@ export const none: Argument<never> = Param.none(Param.argumentKind)
 /**
  * Makes a positional argument optional.
  *
- * @example
+ * **Example** (Making an argument optional)
+ *
  * ```ts
  * import { Argument } from "effect/unstable/cli"
  *
@@ -275,7 +289,8 @@ export const optional = <A>(arg: Argument<A>): Argument<Option.Option<A>> => Par
 /**
  * Adds a description to a positional argument.
  *
- * @example
+ * **Example** (Adding an argument description)
+ *
  * ```ts
  * import { Argument } from "effect/unstable/cli"
  *
@@ -295,7 +310,8 @@ export const withDescription: {
 /**
  * Provides a default value for a positional argument.
  *
- * @example
+ * **Example** (Providing a default value)
+ *
  * ```ts
  * import { Argument } from "effect/unstable/cli"
  *
@@ -318,7 +334,8 @@ export const withDefault: {
 /**
  * Adds a fallback config that is loaded when a required argument is missing.
  *
- * @example
+ * **Example** (Loading a fallback config)
+ *
  * ```ts
  * import { Config } from "effect"
  * import { Argument } from "effect/unstable/cli"
@@ -339,7 +356,8 @@ export const withFallbackConfig: {
 /**
  * Adds a fallback prompt that is shown when a required argument is missing.
  *
- * @example
+ * **Example** (Showing a fallback prompt)
+ *
  * ```ts
  * import { Argument, Prompt } from "effect/unstable/cli"
  *
@@ -359,7 +377,8 @@ export const withFallbackPrompt: {
 /**
  * Creates a variadic positional argument that accepts multiple values.
  *
- * @example
+ * **Example** (Accepting multiple values)
+ *
  * ```ts
  * import { Argument } from "effect/unstable/cli"
  *
@@ -391,7 +410,8 @@ export const variadic: {
 /**
  * Transforms the parsed value of a positional argument.
  *
- * @example
+ * **Example** (Mapping parsed values)
+ *
  * ```ts
  * import { Argument } from "effect/unstable/cli"
  *
@@ -411,7 +431,8 @@ export const map: {
 /**
  * Transforms the parsed value of a positional argument using an effectful function.
  *
- * @example
+ * **Example** (Validating values effectfully)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { Argument, CliError } from "effect/unstable/cli"
@@ -448,7 +469,8 @@ export const mapEffect: {
 /**
  * Transforms the parsed value of a positional argument using a function that may throw.
  *
- * @example
+ * **Example** (Mapping values that may throw)
+ *
  * ```ts
  * import { Argument } from "effect/unstable/cli"
  *
@@ -479,7 +501,8 @@ export const mapTryCatch: {
 /**
  * Creates a variadic argument that requires at least n values.
  *
- * @example
+ * **Example** (Requiring a minimum number of values)
+ *
  * ```ts
  * import { Argument } from "effect/unstable/cli"
  *
@@ -497,7 +520,8 @@ export const atLeast: {
 /**
  * Creates a variadic argument that accepts at most n values.
  *
- * @example
+ * **Example** (Limiting the maximum number of values)
+ *
  * ```ts
  * import { Argument } from "effect/unstable/cli"
  *
@@ -515,7 +539,8 @@ export const atMost: {
 /**
  * Creates a variadic argument that accepts between min and max values.
  *
- * @example
+ * **Example** (Requiring a range of values)
+ *
  * ```ts
  * import { Argument } from "effect/unstable/cli"
  *
@@ -533,7 +558,8 @@ export const between: {
 /**
  * Validates parsed values against a Schema.
  *
- * @example
+ * **Example** (Validating parsed values with a schema)
+ *
  * ```ts
  * import { Schema } from "effect"
  * import { Argument } from "effect/unstable/cli"
@@ -554,7 +580,8 @@ export const withSchema: {
 /**
  * Creates a positional choice argument with custom value mapping.
  *
- * @example
+ * **Example** (Mapping choices to values)
+ *
  * ```ts
  * import { Argument } from "effect/unstable/cli"
  *
@@ -584,7 +611,8 @@ export const choiceWithValue = <const Choices extends ReadonlyArray<readonly [st
  * The metavar is displayed in usage text to indicate what value the user should provide.
  * For example, `<FILE>` shows `FILE` as the metavar.
  *
- * @example
+ * **Example** (Setting a metavar)
+ *
  * ```ts
  * import { Argument } from "effect/unstable/cli"
  *
@@ -604,7 +632,8 @@ export const withMetavar: {
 /**
  * Filters parsed values, failing with a custom error message if the predicate returns false.
  *
- * @example
+ * **Example** (Filtering parsed values)
+ *
  * ```ts
  * import { Argument } from "effect/unstable/cli"
  *
@@ -632,7 +661,8 @@ export const filter: {
  * Filters and transforms parsed values, failing with a custom error message
  * if the filter function returns None.
  *
- * @example
+ * **Example** (Filtering and mapping parsed values)
+ *
  * ```ts
  * import { Option } from "effect"
  * import { Argument } from "effect/unstable/cli"
@@ -660,7 +690,8 @@ export const filterMap: {
 /**
  * Provides a fallback argument to use if this argument fails to parse.
  *
- * @example
+ * **Example** (Providing a fallback argument)
+ *
  * ```ts
  * import { Argument } from "effect/unstable/cli"
  *
@@ -680,7 +711,8 @@ export const orElse: {
 /**
  * Provides a fallback argument, wrapping results in Result to distinguish which succeeded.
  *
- * @example
+ * **Example** (Returning which fallback succeeded)
+ *
  * ```ts
  * import { Argument } from "effect/unstable/cli"
  *

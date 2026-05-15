@@ -16,7 +16,8 @@
  * - **Supervision**: Monitor and restart failed fibers
  * - **Resource management**: Ensure proper cleanup on interruption
  *
- * @example
+ * **Example** (Running effects in fibers)
+ *
  * ```ts
  * import { Console, Effect, Fiber } from "effect"
  *
@@ -95,7 +96,8 @@ const TypeId = `~effect/Fiber/${version}`
  * Effects concurrently while maintaining structured concurrency and
  * cancellation safety.
  *
- * @example
+ * **Example** (Awaiting a forked fiber)
+ *
  * ```ts
  * import { Effect, Fiber } from "effect"
  *
@@ -142,7 +144,8 @@ export interface Fiber<out A, out E = never> extends Pipeable {
  * The Fiber namespace contains utility types and functions for working with fibers.
  * It provides type-level utilities for fiber operations and variance encoding.
  *
- * @example
+ * **Example** (Working with fiber types)
+ *
  * ```ts
  * import { Effect, Fiber } from "effect"
  *
@@ -170,7 +173,8 @@ export declare namespace Fiber {
    * Variance encoding for the Fiber type, specifying covariance in both the
    * success type `A` and the error type `E`.
    *
-   * @example
+   * **Example** (Upcasting fibers safely)
+   *
    * ```ts
    * import type { Fiber } from "effect"
    *
@@ -193,7 +197,8 @@ export {
   /**
    * Waits for a fiber to complete and returns its exit value.
    *
-   * @example
+   * **Example** (Awaiting a fiber exit)
+   *
    * ```ts
    * import { Effect, Fiber } from "effect"
    *
@@ -213,7 +218,8 @@ export {
  * Waits for all fibers in the provided iterable to complete and returns
  * an array of their exit values.
  *
- * @example
+ * **Example** (Awaiting multiple fiber exits)
+ *
  * ```ts
  * import { Effect, Fiber } from "effect"
  *
@@ -243,7 +249,8 @@ export const awaitAll: <A extends Fiber<any, any>>(
  * Joins a fiber, blocking until it completes. If the fiber succeeds,
  * returns its value. If it fails, the error is propagated.
  *
- * @example
+ * **Example** (Joining a fiber)
+ *
  * ```ts
  * import { Effect, Fiber } from "effect"
  *
@@ -277,7 +284,8 @@ export const joinAll: <A extends Iterable<Fiber<any, any>>>(
  * Interrupts a fiber, causing it to stop executing and clean up any
  * acquired resources.
  *
- * @example
+ * **Example** (Interrupting a fiber)
+ *
  * ```ts
  * import { Effect, Fiber } from "effect"
  *
@@ -299,7 +307,8 @@ export const interrupt: <A, E>(self: Fiber<A, E>) => Effect<void> = effect.fiber
  * Interrupts a fiber with a specific fiber ID as the interruptor. This allows
  * tracking which fiber initiated the interruption.
  *
- * @example
+ * **Example** (Interrupting a fiber as another fiber)
+ *
  * ```ts
  * import { Effect, Fiber } from "effect"
  *
@@ -333,7 +342,8 @@ export const interruptAs: {
  * Interrupts all fibers in the provided iterable, causing them to stop executing
  * and clean up any acquired resources.
  *
- * @example
+ * **Example** (Interrupting multiple fibers)
+ *
  * ```ts
  * import { Console, Effect, Fiber } from "effect"
  *
@@ -383,7 +393,8 @@ export const interruptAll: <A extends Iterable<Fiber<any, any>>>(
  * interrupting fiber. This allows you to control which fiber is considered the source
  * of the interruption, which can be useful for debugging and tracing.
  *
- * @example
+ * **Example** (Interrupting multiple fibers as another fiber)
+ *
  * ```ts
  * import { Console, Effect, Fiber } from "effect"
  *
@@ -428,7 +439,8 @@ export const interruptAllAs: {
  * Tests if a value is a Fiber. This is a type guard that can be used to
  * determine if an unknown value is a Fiber instance.
  *
- * @example
+ * **Example** (Checking for fibers)
+ *
  * ```ts
  * import { Effect, Fiber } from "effect"
  *
@@ -462,7 +474,8 @@ export const isFiber = (
  * Returns the current fiber if called from within a fiber context,
  * otherwise returns `undefined`.
  *
- * @example
+ * **Example** (Getting the current fiber)
+ *
  * ```ts
  * import { Effect, Fiber } from "effect"
  *

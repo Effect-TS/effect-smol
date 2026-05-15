@@ -20,7 +20,8 @@ import type * as Scope from "./Scope.ts"
 const TypeId = "~effect/FiberHandle"
 
 /**
- * @example
+ * **Example** (Managing a single fiber)
+ *
  * ```ts
  * import { Effect, Fiber, FiberHandle } from "effect"
  *
@@ -50,7 +51,8 @@ export interface FiberHandle<out A = unknown, out E = unknown> extends Pipeable,
 }
 
 /**
- * @example
+ * **Example** (Checking fiber handles)
+ *
  * ```ts
  * import { Effect, FiberHandle } from "effect"
  *
@@ -92,7 +94,8 @@ const makeUnsafe = <A = unknown, E = unknown>(): FiberHandle<A, E> => {
  * You can add a fiber to the handle using `FiberHandle.run`, and the fiber will
  * be automatically removed from the FiberHandle when it completes.
  *
- * @example
+ * **Example** (Creating a scoped fiber handle)
+ *
  * ```ts
  * import { Effect, FiberHandle } from "effect"
  *
@@ -132,7 +135,8 @@ export const make = <A = unknown, E = unknown>(): Effect.Effect<FiberHandle<A, E
 /**
  * Create an Effect run function that is backed by a FiberHandle.
  *
- * @example
+ * **Example** (Running effects with a fiber handle)
+ *
  * ```ts
  * import { Effect, Fiber, FiberHandle } from "effect"
  *
@@ -175,7 +179,8 @@ export const makeRuntime = <R, E = unknown, A = unknown>(): Effect.Effect<
 /**
  * Create an Effect run function that is backed by a FiberHandle.
  *
- * @example
+ * **Example** (Running effects as promises)
+ *
  * ```ts
  * import { Effect, FiberHandle } from "effect"
  *
@@ -220,7 +225,8 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
  * Set the fiber in a FiberHandle. When the fiber completes, it will be removed from the FiberHandle.
  * If a fiber is already running, it will be interrupted unless `options.onlyIfMissing` is set.
  *
- * @example
+ * **Example** (Setting a fiber unsafely)
+ *
  * ```ts
  * import { Effect, Fiber, FiberHandle } from "effect"
  *
@@ -303,7 +309,8 @@ export const setUnsafe: {
  * If a fiber already exists in the `FiberHandle`, it will be interrupted
  * unless `options.onlyIfMissing` is set.
  *
- * @example
+ * **Example** (Setting a fiber safely)
+ *
  * ```ts
  * import { Effect, Fiber, FiberHandle } from "effect"
  *
@@ -357,7 +364,8 @@ export const set: {
 /**
  * Retrieve the fiber from the FiberHandle.
  *
- * @example
+ * **Example** (Reading the current fiber unsafely)
+ *
  * ```ts
  * import { Effect, FiberHandle } from "effect"
  *
@@ -385,7 +393,8 @@ export function getUnsafe<A, E>(self: FiberHandle<A, E>): Option.Option<Fiber.Fi
 /**
  * Retrieve the fiber from the FiberHandle.
  *
- * @example
+ * **Example** (Reading the current fiber)
+ *
  * ```ts
  * import { Effect, Fiber, FiberHandle } from "effect"
  *
@@ -412,7 +421,8 @@ export function get<A, E>(self: FiberHandle<A, E>): Effect.Effect<Option.Option<
 }
 
 /**
- * @example
+ * **Example** (Clearing a fiber handle)
+ *
  * ```ts
  * import { Effect, FiberHandle } from "effect"
  *
@@ -463,7 +473,8 @@ const constInterruptedFiber = (function() {
  * Run an Effect and add the forked fiber to the FiberHandle.
  * When the fiber completes, it will be removed from the FiberHandle.
  *
- * @example
+ * **Example** (Running an effect in a fiber handle)
+ *
  * ```ts
  * import { Effect, Fiber, FiberHandle } from "effect"
  *
@@ -535,7 +546,8 @@ const runImpl = <A, E, R, XE extends E, XA extends A>(
 /**
  * Capture a Runtime and use it to fork Effect's, adding the forked fibers to the FiberHandle.
  *
- * @example
+ * **Example** (Capturing a runtime for fiber handles)
+ *
  * ```ts
  * import { Effect, FiberHandle, Context } from "effect"
  *
@@ -613,7 +625,8 @@ export const runtime: <A, E>(
  * The returned run function will return Promise's that will resolve when the
  * fiber completes.
  *
- * @example
+ * **Example** (Capturing a runtime for promises)
+ *
  * ```ts
  * import { Effect, FiberHandle } from "effect"
  *
@@ -676,7 +689,8 @@ export const runtimePromise = <A, E>(self: FiberHandle<A, E>): <R = never>() => 
  * If any of the Fiber's in the handle terminate with a failure,
  * the returned Effect will terminate with the first failure that occurred.
  *
- * @example
+ * **Example** (Propagating fiber failures)
+ *
  * ```ts
  * import { Effect, FiberHandle } from "effect"
  *
@@ -698,7 +712,8 @@ export const join = <A, E>(self: FiberHandle<A, E>): Effect.Effect<void, E> =>
 /**
  * Wait for the fiber in the FiberHandle to complete.
  *
- * @example
+ * **Example** (Waiting for a fiber to complete)
+ *
  * ```ts
  * import { Effect, FiberHandle } from "effect"
  *

@@ -6,7 +6,8 @@
  * various content parts for text, reasoning, tool calls, files, and metadata,
  * supporting both streaming and non-streaming responses.
  *
- * @example
+ * **Example** (Creating response parts)
+ *
  * ```ts
  * import { Response } from "effect/unstable/ai"
  *
@@ -167,7 +168,8 @@ export type AllPartsEncoded =
  * Generates a schema that includes all possible response parts, with tool call
  * and tool result parts dynamically created based on the provided toolkit.
  *
- * @example
+ * **Example** (Building a response parts schema)
+ *
  * ```ts
  * import { Schema } from "effect"
  * import { Response, Tool, Toolkit } from "effect/unstable/ai"
@@ -511,7 +513,8 @@ const BasePart = Schema.Struct({
 /**
  * Creates a new response content part of the specified type.
  *
- * @example
+ * **Example** (Creating response content parts)
+ *
  * ```ts
  * import { Response } from "effect/unstable/ai"
  *
@@ -574,7 +577,8 @@ export type ConstructorParams<Part extends AnyPart> =
 /**
  * Response part representing plain text content.
  *
- * @example
+ * **Example** (Creating a text part)
+ *
  * ```ts
  * import { Response } from "effect/unstable/ai"
  *
@@ -833,7 +837,8 @@ export const TextEndPart: Schema.Struct<{
  * Contains the internal reasoning process or explanation from the large
  * language model.
  *
- * @example
+ * **Example** (Creating a reasoning part)
+ *
  * ```ts
  * import { Response } from "effect/unstable/ai"
  *
@@ -1311,7 +1316,8 @@ export const ToolParamsEndPart: Schema.Struct<{
 /**
  * Response part representing a tool call request.
  *
- * @example
+ * **Example** (Creating a tool call part)
+ *
  * ```ts
  * import { Schema } from "effect"
  * import { Response } from "effect/unstable/ai"
@@ -1514,7 +1520,8 @@ export interface ToolResultFailure<Name extends string, Failure> extends BaseToo
 /**
  * Response part representing the result of a tool call.
  *
- * @example
+ * **Example** (Creating a tool result part)
+ *
  * ```ts
  * import { Response } from "effect/unstable/ai"
  *
@@ -1725,7 +1732,8 @@ export const toolResultPart = <const Params extends ConstructorParams<ToolResult
  * checks the tool's `needsApproval` property and emits this part instead of
  * executing the tool when approval is required.
  *
- * @example
+ * **Example** (Creating an approval request part)
+ *
  * ```ts
  * import { Response } from "effect/unstable/ai"
  *
@@ -1823,7 +1831,8 @@ export const toolApprovalRequestPart = (
  *
  * Supports various file types including images, documents, and binary data.
  *
- * @example
+ * **Example** (Creating a file part)
+ *
  * ```ts
  * import { Response } from "effect/unstable/ai"
  *
@@ -2095,7 +2104,8 @@ export const UrlSourcePart: Schema.Struct<{
  * AI provider, enabling inspection of request metadata for debugging and
  * observability purposes.
  *
- * @example
+ * **Example** (Describing an HTTP request)
+ *
  * ```ts
  * import type { Response } from "effect/unstable/ai"
  *
@@ -2132,7 +2142,8 @@ export const HttpRequestDetails = Schema.Struct({
  * the AI provider, including status codes and headers for debugging and
  * observability purposes.
  *
- * @example
+ * **Example** (Describing an HTTP response)
+ *
  * ```ts
  * import type { Response } from "effect/unstable/ai"
  *
@@ -2166,7 +2177,8 @@ export const HttpResponseDetails = Schema.Struct({
 /**
  * Response part containing metadata about the large language model response.
  *
- * @example
+ * **Example** (Creating a metadata part)
+ *
  * ```ts
  * import { DateTime } from "effect"
  * import { Response } from "effect/unstable/ai"
@@ -2368,7 +2380,8 @@ export class Usage extends Schema.Class<Usage>("effect/ai/AiResponse/Usage")({
 /**
  * Response part indicating the completion of a response generation.
  *
- * @example
+ * **Example** (Creating a finish part)
+ *
  * ```ts
  * import { Response } from "effect/unstable/ai"
  *
@@ -2478,7 +2491,8 @@ export const FinishPart: Schema.Struct<{
 /**
  * Response part indicating that an error occurred generating the response.
  *
- * @example
+ * **Example** (Creating an error part)
+ *
  * ```ts
  * import { Response } from "effect/unstable/ai"
  *

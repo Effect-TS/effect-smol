@@ -242,7 +242,8 @@ export const strictEqual: <A>() => Equivalence<A> = () => isStrictEquivalent
 /**
  * An `Equivalence` instance for strings using strict equality (`===`).
  *
- * @example
+ * **Example** (Comparing strings)
+ *
  * ```ts
  * import { Equivalence } from "effect"
  *
@@ -260,7 +261,8 @@ export const String: Equivalence<string> = isStrictEquivalent
  *
  * `NaN` is considered equal to `NaN`.
  *
- * @example
+ * **Example** (Comparing numbers)
+ *
  * ```ts
  * import { Equivalence } from "effect"
  *
@@ -279,7 +281,8 @@ export const Number: Equivalence<number> = make((self, that) =>
 /**
  * An `Equivalence` instance for booleans using strict equality (`===`).
  *
- * @example
+ * **Example** (Comparing booleans)
+ *
  * ```ts
  * import { Equivalence } from "effect"
  *
@@ -295,7 +298,8 @@ export const Boolean: Equivalence<boolean> = isStrictEquivalent
 /**
  * An `Equivalence` instance for bigints using strict equality (`===`).
  *
- * @example
+ * **Example** (Comparing bigints)
+ *
  * ```ts
  * import { Equivalence } from "effect"
  *
@@ -866,7 +870,7 @@ export function makeReducer<A>() {
  * - Internally uses {@link Number} equivalence
  * - Different `Date` instances representing the same time are considered equivalent
  *
- * **Example**
+ * **Example** (Comparing Date values)
  *
  * ```ts
  * import { Equivalence } from "effect"

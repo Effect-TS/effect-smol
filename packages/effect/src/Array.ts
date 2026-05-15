@@ -2947,7 +2947,8 @@ export declare namespace ReadonlyArray {
   /**
    * Infers the element type of an iterable.
    *
-   * @example
+   * **Example** (Inferring an element type)
+   *
    * ```ts
    * import type { Array } from "effect"
    *
@@ -2965,7 +2966,8 @@ export declare namespace ReadonlyArray {
   /**
    * Constructs an array type preserving non-emptiness.
    *
-   * @example
+   * **Example** (Preserving non-emptiness)
+   *
    * ```ts
    * import type { Array } from "effect"
    *
@@ -2982,7 +2984,8 @@ export declare namespace ReadonlyArray {
   /**
    * Creates a non-empty array if either input is non-empty.
    *
-   * @example
+   * **Example** (Preserving non-emptiness from either input)
+   *
    * ```ts
    * import type { Array } from "effect"
    *
@@ -3008,7 +3011,8 @@ export declare namespace ReadonlyArray {
   /**
    * Creates a non-empty array only if both inputs are non-empty.
    *
-   * @example
+   * **Example** (Preserving non-emptiness from both inputs)
+   *
    * ```ts
    * import type { Array } from "effect"
    *
@@ -3034,7 +3038,8 @@ export declare namespace ReadonlyArray {
   /**
    * Flattens a nested array type.
    *
-   * @example
+   * **Example** (Flattening nested array types)
+   *
    * ```ts
    * import type { Array } from "effect"
    *

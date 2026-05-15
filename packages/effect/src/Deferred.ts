@@ -15,7 +15,8 @@
  * - **Fiber-safe**: Thread-safe operations across concurrent fibers
  * - **Composable**: Works seamlessly with other Effect operations
  *
- * @example
+ * **Example** (Coordinating fibers with a Deferred)
+ *
  * ```ts
  * import { Deferred, Effect, Fiber } from "effect"
  *
@@ -89,7 +90,8 @@ const TypeId = "~effect/Deferred"
  * require the coordinated action of multiple fibers, and for building
  * higher-level concurrent or asynchronous structures.
  *
- * @example
+ * **Example** (Creating a Deferred for inter-fiber communication)
+ *
  * ```ts
  * import { Deferred, Effect, Fiber } from "effect"
  *
@@ -166,7 +168,8 @@ const DeferredProto = {
 /**
  * Unsafely creates a new `Deferred`
  *
- * @example
+ * **Example** (Creating a Deferred unsafely)
+ *
  * ```ts
  * import { Deferred } from "effect"
  *
@@ -187,7 +190,8 @@ export const makeUnsafe = <A, E = never>(): Deferred<A, E> => {
 /**
  * Creates a new `Deferred`.
  *
- * @example
+ * **Example** (Creating a Deferred)
+ *
  * ```ts
  * import { Deferred, Effect } from "effect"
  *
@@ -220,7 +224,8 @@ export {
    * Retrieves the value of the `Deferred`, suspending the fiber running the
    * workflow until the result is available.
    *
-   * @example
+   * **Example** (Awaiting a Deferred value)
+   *
    * ```ts
    * import { Deferred, Effect } from "effect"
    *
@@ -246,7 +251,8 @@ export {
  * Note that `Deferred.completeWith` will be much faster, so consider using
  * that if you do not need to memoize the result of the specified effect.
  *
- * @example
+ * **Example** (Completing a Deferred from an effect)
+ *
  * ```ts
  * import { Deferred, Effect } from "effect"
  *
@@ -276,7 +282,8 @@ export const complete: {
  * Completes the deferred with the result of the specified effect. If the
  * deferred has already been completed, the method will produce false.
  *
- * @example
+ * **Example** (Completing a Deferred with an effect)
+ *
  * ```ts
  * import { Deferred, Effect } from "effect"
  *
@@ -306,7 +313,8 @@ export const completeWith: {
  * Exits the `Deferred` with the specified `Exit` value, which will be
  * propagated to all fibers waiting on the value of the `Deferred`.
  *
- * @example
+ * **Example** (Completing a Deferred with an Exit)
+ *
  * ```ts
  * import { Deferred, Effect, Exit } from "effect"
  *
@@ -331,7 +339,8 @@ export const done: {
  * Fails the `Deferred` with the specified error, which will be propagated to
  * all fibers waiting on the value of the `Deferred`.
  *
- * @example
+ * **Example** (Failing a Deferred with an error)
+ *
  * ```ts
  * import { Deferred, Effect } from "effect"
  *
@@ -354,7 +363,8 @@ export const fail: {
  * Fails the `Deferred` with the specified error, which will be propagated to
  * all fibers waiting on the value of the `Deferred`.
  *
- * @example
+ * **Example** (Failing a Deferred with a lazy error)
+ *
  * ```ts
  * import { Deferred, Effect } from "effect"
  *
@@ -381,7 +391,8 @@ export const failSync: {
  * Fails the `Deferred` with the specified `Cause`, which will be propagated to
  * all fibers waiting on the value of the `Deferred`.
  *
- * @example
+ * **Example** (Failing a Deferred with a Cause)
+ *
  * ```ts
  * import { Cause, Deferred, Effect } from "effect"
  *
@@ -410,7 +421,8 @@ export const failCause: {
  * Fails the `Deferred` with the specified `Cause`, which will be propagated to
  * all fibers waiting on the value of the `Deferred`.
  *
- * @example
+ * **Example** (Failing a Deferred with a lazy Cause)
+ *
  * ```ts
  * import { Cause, Deferred, Effect } from "effect"
  *
@@ -440,7 +452,8 @@ export const failCauseSync: {
  * Kills the `Deferred` with the specified defect, which will be propagated to
  * all fibers waiting on the value of the `Deferred`.
  *
- * @example
+ * **Example** (Killing a Deferred with a defect)
+ *
  * ```ts
  * import { Deferred, Effect } from "effect"
  *
@@ -466,7 +479,8 @@ export const die: {
  * Kills the `Deferred` with the specified defect, which will be propagated to
  * all fibers waiting on the value of the `Deferred`.
  *
- * @example
+ * **Example** (Killing a Deferred with a lazy defect)
+ *
  * ```ts
  * import { Deferred, Effect } from "effect"
  *
@@ -497,7 +511,8 @@ export const dieSync: {
  * waiting on the value of the `Deferred` with the `FiberId` of the fiber
  * calling this method.
  *
- * @example
+ * **Example** (Interrupting a Deferred)
+ *
  * ```ts
  * import { Deferred, Effect } from "effect"
  *
@@ -518,7 +533,8 @@ export const interrupt = <A, E>(self: Deferred<A, E>): Effect<boolean> =>
  * Completes the `Deferred` with interruption. This will interrupt all fibers
  * waiting on the value of the `Deferred` with the specified `FiberId`.
  *
- * @example
+ * **Example** (Interrupting a Deferred with a fiber id)
+ *
  * ```ts
  * import { Deferred, Effect } from "effect"
  *
@@ -545,7 +561,8 @@ export const interruptWith: {
  * Returns `true` if this `Deferred` has already been completed with a value or
  * an error, `false` otherwise.
  *
- * @example
+ * **Example** (Checking Deferred completion)
+ *
  * ```ts
  * import { Deferred, Effect } from "effect"
  *
@@ -579,7 +596,8 @@ export const isDoneUnsafe = <A, E>(self: Deferred<A, E>): boolean => self.effect
  * `Option.some(effect)` when the `Deferred` is completed, `Option.none()`
  * otherwise.
  *
- * @example
+ * **Example** (Polling Deferred completion)
+ *
  * ```ts
  * import { Deferred, Effect } from "effect"
  *
@@ -604,7 +622,8 @@ export function poll<A, E>(self: Deferred<A, E>): Effect<Option.Option<Effect<A,
 /**
  * Completes the `Deferred` with the specified value.
  *
- * @example
+ * **Example** (Completing a Deferred with a value)
+ *
  * ```ts
  * import { Deferred, Effect } from "effect"
  *
@@ -628,7 +647,8 @@ export const succeed: {
 /**
  * Completes the `Deferred` with the specified lazily evaluated value.
  *
- * @example
+ * **Example** (Completing a Deferred with a lazy value)
+ *
  * ```ts
  * import { Deferred, Effect } from "effect"
  *
@@ -657,7 +677,8 @@ export const sync: {
  * Unsafely exits the `Deferred` with the specified `Exit` value, which will be
  * propagated to all fibers waiting on the value of the `Deferred`.
  *
- * @example
+ * **Example** (Completing a Deferred unsafely)
+ *
  * ```ts
  * import { Deferred, Effect } from "effect"
  *
@@ -691,7 +712,8 @@ export const doneUnsafe = <A, E>(self: Deferred<A, E>, effect: Effect<A, E>): bo
  * completed with the success value. If the effect fails, the `Deferred` is completed with the
  * failure. Additionally, if the effect is interrupted, the `Deferred` will also be interrupted.
  *
- * @example
+ * **Example** (Completing a Deferred from an effect result)
+ *
  * ```ts
  * import { Deferred, Effect } from "effect"
  *

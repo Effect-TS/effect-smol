@@ -10,7 +10,8 @@ import { identity } from "./Function.ts"
  * This symbol is used internally by the Effect type system to enable automatic
  * unification of Effect types in unions and complex type operations.
  *
- * @example
+ * **Example** (Declaring unification symbols)
+ *
  * ```ts
  * import type { Unify } from "effect"
  *
@@ -33,7 +34,8 @@ export declare const unifySymbol: unique symbol
  * behavior in Effect types. It's typically used in type-level operations
  * to enable automatic type unification.
  *
- * @example
+ * **Example** (Referencing the unification symbol type)
+ *
  * ```ts
  * import type { Unify } from "effect"
  *
@@ -55,7 +57,8 @@ export type unifySymbol = typeof unifySymbol
  * This symbol is used internally by the Effect type system to store type
  * information that can be used during type unification operations.
  *
- * @example
+ * **Example** (Declaring type metadata symbols)
+ *
  * ```ts
  * import type { Unify } from "effect"
  *
@@ -78,7 +81,8 @@ export declare const typeSymbol: unique symbol
  * in types that support unification. It's used in type-level operations
  * to access and manipulate type information.
  *
- * @example
+ * **Example** (Referencing the type metadata symbol type)
+ *
  * ```ts
  * import type { Unify } from "effect"
  *
@@ -101,7 +105,8 @@ export type typeSymbol = typeof typeSymbol
  * that should be excluded from the unification process, allowing for more
  * precise type handling in complex scenarios.
  *
- * @example
+ * **Example** (Declaring ignored unification fields)
+ *
  * ```ts
  * import type { Unify } from "effect"
  *
@@ -124,7 +129,8 @@ export declare const ignoreSymbol: unique symbol
  * be ignored during unification operations. It's used in type-level operations
  * to exclude specific types from the unification process.
  *
- * @example
+ * **Example** (Referencing the ignored field symbol type)
+ *
  * ```ts
  * import type { Unify } from "effect"
  *
@@ -179,7 +185,8 @@ type FilterOut<A> = A extends any ? typeSymbol extends keyof A ? never : A : nev
  * It's primarily used internally by the Effect type system to handle
  * complex type unions and provide better type inference.
  *
- * @example
+ * **Example** (Unifying protocol types)
+ *
  * ```ts
  * import type * as Unify from "effect/Unify"
  *
@@ -234,7 +241,8 @@ export type Unify<A> = Values<
  * It's useful when you need to ensure that complex type unions are properly unified according
  * to the Effect type system's unification protocol.
  *
- * @example
+ * **Example** (Unifying values and function results)
+ *
  * ```ts
  * import { Unify } from "effect"
  *

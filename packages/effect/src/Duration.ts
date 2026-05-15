@@ -109,7 +109,8 @@ export type Input =
  *
  * Compatible with Temporal.Duration-like objects.
  *
- * @example
+ * **Example** (Combining duration object fields)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -139,7 +140,8 @@ const DURATION_REGEXP = /^(-?\d+(?:\.\d+)?)\s+(nanos?|micros?|millis?|seconds?|m
  *
  * If the input is not a valid `Duration.Input`, it throws an error.
  *
- * @example
+ * **Example** (Decoding duration inputs)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -242,7 +244,7 @@ const invalid = (input: unknown): never => {
  * Safely decodes a `Input` value into a `Duration`, returning
  * `Option.none()` if decoding fails.
  *
- * **Example**
+ * **Example** (Safely decoding duration inputs)
  *
  * ```ts
  * import { Duration, Option } from "effect"
@@ -326,7 +328,8 @@ const make = (input: number | bigint): Duration => {
 /**
  * Checks if a value is a Duration.
  *
- * @example
+ * **Example** (Checking for durations)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -342,7 +345,8 @@ export const isDuration = (u: unknown): u is Duration => hasProperty(u, TypeId)
 /**
  * Checks if a Duration is finite (not infinite).
  *
- * @example
+ * **Example** (Checking finite durations)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -359,7 +363,8 @@ export const isFinite = (self: Duration): boolean =>
 /**
  * Checks if a Duration is zero.
  *
- * @example
+ * **Example** (Checking for zero durations)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -385,7 +390,8 @@ export const isZero = (self: Duration): boolean => {
 /**
  * Returns `true` if the duration is negative (strictly less than zero).
  *
- * @example
+ * **Example** (Checking for negative durations)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -413,7 +419,8 @@ export const isNegative = (self: Duration): boolean => {
 /**
  * Returns `true` if the duration is positive (strictly greater than zero).
  *
- * @example
+ * **Example** (Checking for positive durations)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -441,7 +448,8 @@ export const isPositive = (self: Duration): boolean => {
 /**
  * Returns the absolute value of the duration.
  *
- * @example
+ * **Example** (Taking absolute duration values)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -467,7 +475,8 @@ export const abs = (self: Duration): Duration => {
 /**
  * Negates the duration.
  *
- * @example
+ * **Example** (Negating durations)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -494,7 +503,8 @@ export const negate = (self: Duration): Duration => {
 /**
  * A Duration representing zero time.
  *
- * @example
+ * **Example** (Using the zero duration)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -509,7 +519,8 @@ export const zero: Duration = make(0)
 /**
  * A Duration representing infinite time.
  *
- * @example
+ * **Example** (Using infinite duration)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -524,7 +535,8 @@ export const infinity: Duration = make(Infinity)
 /**
  * A Duration representing negative infinite time.
  *
- * @example
+ * **Example** (Using negative infinite duration)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -539,7 +551,8 @@ export const negativeInfinity: Duration = make(-Infinity)
 /**
  * Creates a Duration from nanoseconds.
  *
- * @example
+ * **Example** (Creating durations from nanoseconds)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -555,7 +568,8 @@ export const nanos = (nanos: bigint): Duration => make(nanos)
 /**
  * Creates a Duration from microseconds.
  *
- * @example
+ * **Example** (Creating durations from microseconds)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -571,7 +585,8 @@ export const micros = (micros: bigint): Duration => make(micros * bigint1e3)
 /**
  * Creates a Duration from milliseconds.
  *
- * @example
+ * **Example** (Creating durations from milliseconds)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -587,7 +602,8 @@ export const millis = (millis: number): Duration => make(millis)
 /**
  * Creates a Duration from seconds.
  *
- * @example
+ * **Example** (Creating durations from seconds)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -603,7 +619,8 @@ export const seconds = (seconds: number): Duration => make(seconds * 1000)
 /**
  * Creates a Duration from minutes.
  *
- * @example
+ * **Example** (Creating durations from minutes)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -619,7 +636,8 @@ export const minutes = (minutes: number): Duration => make(minutes * 60_000)
 /**
  * Creates a Duration from hours.
  *
- * @example
+ * **Example** (Creating durations from hours)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -635,7 +653,8 @@ export const hours = (hours: number): Duration => make(hours * 3_600_000)
 /**
  * Creates a Duration from days.
  *
- * @example
+ * **Example** (Creating durations from days)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -651,7 +670,8 @@ export const days = (days: number): Duration => make(days * 86_400_000)
 /**
  * Creates a Duration from weeks.
  *
- * @example
+ * **Example** (Creating durations from weeks)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -667,7 +687,8 @@ export const weeks = (weeks: number): Duration => make(weeks * 604_800_000)
 /**
  * Converts a Duration to milliseconds.
  *
- * @example
+ * **Example** (Converting durations to milliseconds)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -689,7 +710,8 @@ export const toMillis = (self: Input): number =>
 /**
  * Converts a Duration to seconds.
  *
- * @example
+ * **Example** (Converting durations to seconds)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -711,7 +733,8 @@ export const toSeconds = (self: Input): number =>
 /**
  * Converts a Duration to minutes.
  *
- * @example
+ * **Example** (Converting durations to minutes)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -733,7 +756,8 @@ export const toMinutes = (self: Input): number =>
 /**
  * Converts a Duration to hours.
  *
- * @example
+ * **Example** (Converting durations to hours)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -755,7 +779,8 @@ export const toHours = (self: Input): number =>
 /**
  * Converts a Duration to days.
  *
- * @example
+ * **Example** (Converting durations to days)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -777,7 +802,8 @@ export const toDays = (self: Input): number =>
 /**
  * Converts a Duration to weeks.
  *
- * @example
+ * **Example** (Converting durations to weeks)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -801,7 +827,8 @@ export const toWeeks = (self: Input): number =>
  *
  * If the duration is infinite, it throws an error.
  *
- * @example
+ * **Example** (Reading nanoseconds unsafely)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -838,7 +865,7 @@ export const toNanosUnsafe = (input: Input): bigint => {
  *
  * If the duration is infinite, returns `Option.none()`.
  *
- * **Example**
+ * **Example** (Safely reading nanoseconds)
  *
  * ```ts
  * import { Duration, Option } from "effect"
@@ -857,7 +884,8 @@ export const toNanos: (self: Input) => Option.Option<bigint> = Option.liftThrowa
 /**
  * Converts a Duration to high-resolution time format [seconds, nanoseconds].
  *
- * @example
+ * **Example** (Converting durations to high-resolution time)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -900,7 +928,8 @@ export const toHrTime = (input: Input): [seconds: number, nanos: number] => {
 /**
  * Pattern matches on a Duration, providing different handlers for millis and nanos.
  *
- * @example
+ * **Example** (Pattern matching on duration representations)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -957,7 +986,8 @@ export const match: {
 /**
  * Pattern matches on two `Duration`s, providing handlers that receive both values.
  *
- * @example
+ * **Example** (Pattern matching on duration pairs)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -1017,7 +1047,8 @@ export const matchPair: {
  *
  * `NegativeInfinity` < any finite value < `Infinity`.
  *
- * @example
+ * **Example** (Sorting durations)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -1052,7 +1083,8 @@ export const Order: order.Order<Duration> = order.make((self, that) =>
 /**
  * Checks if a `Duration` is between a `minimum` and `maximum` value.
  *
- * @example
+ * **Example** (Checking duration ranges)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -1074,7 +1106,8 @@ export const between: {
 /**
  * Equivalence instance for `Duration`, allowing equality comparisons.
  *
- * @example
+ * **Example** (Comparing durations for equivalence)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -1095,7 +1128,8 @@ export const Equivalence: Equ.Equivalence<Duration> = (self, that) =>
 /**
  * Returns the smaller of two Durations.
  *
- * @example
+ * **Example** (Selecting the shorter duration)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -1114,7 +1148,8 @@ export const min: {
 /**
  * Returns the larger of two Durations.
  *
- * @example
+ * **Example** (Selecting the longer duration)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -1133,7 +1168,8 @@ export const max: {
 /**
  * Clamps a Duration between a minimum and maximum value.
  *
- * @example
+ * **Example** (Clamping durations to a range)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -1155,7 +1191,7 @@ export const clamp: {
 /**
  * Divides a Duration by a number, returning `Option.none()` if division is invalid.
  *
- * **Example**
+ * **Example** (Safely dividing durations)
  *
  * ```ts
  * import { Duration, Option } from "effect"
@@ -1195,7 +1231,8 @@ export const divide: {
 /**
  * Divides a Duration by a number, potentially returning infinity or zero.
  *
- * @example
+ * **Example** (Dividing durations unsafely)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -1241,7 +1278,8 @@ export const divideUnsafe: {
 /**
  * Multiplies a Duration by a number.
  *
- * @example
+ * **Example** (Multiplying durations)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -1279,7 +1317,8 @@ export const times: {
  * - finite - infinity = negativeInfinity
  * - finite - negativeInfinity = infinity
  *
- * @example
+ * **Example** (Subtracting durations)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -1319,7 +1358,8 @@ export const subtract: {
  * - negativeInfinity + negativeInfinity = negativeInfinity
  * - negativeInfinity + finite = negativeInfinity
  *
- * @example
+ * **Example** (Adding durations)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -1355,7 +1395,8 @@ export const sum: {
 /**
  * Checks if the first Duration is less than the second.
  *
- * @example
+ * **Example** (Comparing durations with less than)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -1374,7 +1415,8 @@ export const isLessThan: {
 /**
  * Checks if the first Duration is less than or equal to the second.
  *
- * @example
+ * **Example** (Comparing durations with less than or equal)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -1396,7 +1438,8 @@ export const isLessThanOrEqualTo: {
 /**
  * Checks if the first Duration is greater than the second.
  *
- * @example
+ * **Example** (Comparing durations with greater than)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -1415,7 +1458,8 @@ export const isGreaterThan: {
 /**
  * Checks if the first Duration is greater than or equal to the second.
  *
- * @example
+ * **Example** (Comparing durations with greater than or equal)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -1437,7 +1481,8 @@ export const isGreaterThanOrEqualTo: {
 /**
  * Checks if two Durations are equal.
  *
- * @example
+ * **Example** (Checking duration equality)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -1456,7 +1501,8 @@ export const equals: {
 /**
  * Converts a `Duration` to its parts.
  *
- * @example
+ * **Example** (Decomposing durations into parts)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
@@ -1547,15 +1593,17 @@ export const parts = (self: Duration): {
 /**
  * Converts a `Duration` to a human readable string.
  *
- * @category conversions
- * @since 2.0.0
- * @example
+ * **Example** (Formatting durations)
+ *
  * ```ts
  * import { Duration } from "effect"
  *
  * Duration.format(Duration.millis(1000)) // "1s"
  * Duration.format(Duration.millis(1001)) // "1s 1ms"
  * ```
+ *
+ * @category conversions
+ * @since 2.0.0
  */
 export const format = (self: Duration): string => {
   if (self.value._tag === "Infinity") {

@@ -6,7 +6,8 @@
  * along with a delay duration. Schedules can be combined, transformed, and used to implement
  * sophisticated retry and repetition logic.
  *
- * @example
+ * **Example** (Retrying and repeating effects)
+ *
  * ```ts
  * import { Effect, Schedule } from "effect"
  *
@@ -53,7 +54,8 @@ const randomNext: Effect<number> = random.Random.useSync((random) => random.next
 /**
  * A Schedule defines a strategy for repeating or retrying effects based on some policy.
  *
- * @example
+ * **Example** (Defining retry and repeat schedules)
+ *
  * ```ts
  * import { Console, Effect, Schedule } from "effect"
  *
@@ -93,7 +95,8 @@ export interface Schedule<out Output, in Input = unknown, out Error = never, out
 /**
  * Metadata provided to schedule functions containing timing and input information.
  *
- * @example
+ * **Example** (Reading schedule input metadata)
+ *
  * ```ts
  * import { Console, Effect, Schedule } from "effect"
  *
@@ -127,7 +130,8 @@ export interface InputMetadata<Input> {
 /**
  * Extended metadata that includes both input metadata and the output value from the schedule.
  *
- * @example
+ * **Example** (Logging schedule output metadata)
+ *
  * ```ts
  * import { Console, Duration, Effect, Schedule } from "effect"
  *
@@ -182,7 +186,8 @@ export const CurrentMetadata = Context.Reference<Metadata>("effect/Schedule/Curr
 /**
  * The Schedule namespace contains types and utilities for working with schedules.
  *
- * @example
+ * **Example** (Creating custom schedules with the namespace)
+ *
  * ```ts
  * import { Duration, Effect, Schedule } from "effect"
  *
@@ -216,7 +221,8 @@ export declare namespace Schedule {
   /**
    * Variance interface that defines the type parameter relationships for Schedule.
    *
-   * @example
+   * **Example** (Understanding schedule variance)
+   *
    * ```ts
    * import { Effect, Schedule } from "effect"
    *
@@ -250,7 +256,8 @@ export declare namespace Schedule {
   /**
    * Internal structure that holds the variance annotations for Schedule type parameters.
    *
-   * @example
+   * **Example** (Inspecting schedule variance annotations)
+   *
    * ```ts
    * import { Effect, Schedule } from "effect"
    *
@@ -301,7 +308,8 @@ const ScheduleProto = {
 /**
  * Type guard that checks if a value is a Schedule.
  *
- * @example
+ * **Example** (Checking for schedules)
+ *
  * ```ts
  * import { Schedule } from "effect"
  *
@@ -322,7 +330,8 @@ export const isSchedule = (u: unknown): u is Schedule<unknown, never, unknown, u
 /**
  * Creates a Schedule from a step function that returns a Pull.
  *
- * @example
+ * **Example** (Choosing simpler schedule constructors)
+ *
  * ```ts
  * import { Schedule } from "effect"
  *
@@ -371,7 +380,8 @@ const metadataFn = () => {
 /**
  * Creates a Schedule from a step function that receives metadata about the schedule's execution.
  *
- * @example
+ * **Example** (Creating metadata-aware schedules)
+ *
  * ```ts
  * import { Effect, Schedule } from "effect"
  *
@@ -407,7 +417,8 @@ export const fromStepWithMetadata = <Input, Output, EnvX, ErrorX, Error, Env>(
 /**
  * Extracts the step function from a Schedule.
  *
- * @example
+ * **Example** (Extracting a schedule step function)
+ *
  * ```ts
  * import { Effect, Schedule } from "effect"
  *
@@ -479,7 +490,8 @@ export const toStepWithMetadata = <Output, Input, Error, Env>(
 /**
  * Extracts a step function from a Schedule that automatically handles sleep delays.
  *
- * @example
+ * **Example** (Extracting a sleeping step function)
+ *
  * ```ts
  * import { Effect, Schedule } from "effect"
  *
@@ -521,7 +533,8 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
  * Returns a new `Schedule` that adds the delay computed by the specified
  * effectful function to the the next recurrence of the schedule.
  *
- * @example
+ * **Example** (Adding jitter to retry delays)
+ *
  * ```ts
  * import { Console, Data, Duration, Effect, Schedule } from "effect"
  *
@@ -660,7 +673,8 @@ export const addDelay: {
  * schedule to completion. Once the left schedule is complete, the right (i.e.
  * `other`) schedule will be executed to completion.
  *
- * @example
+ * **Example** (Sequencing quick and slow retries)
+ *
  * ```ts
  * import { Console, Data, Effect, Schedule } from "effect"
  *
@@ -720,7 +734,8 @@ export const andThen: {
  * left schedule are emitted as `Result.Err<Output>` and outputs of the right
  * schedule are emitted as `Result.Ok<Output>`.
  *
- * @example
+ * **Example** (Tracking sequential schedule phases)
+ *
  * ```ts
  * import { Console, Effect, Result, Schedule } from "effect"
  *
@@ -815,7 +830,8 @@ export const andThenResult: {
  * to recur, using the maximum of the two durations between recurrences and
  * outputting a tuple of the outputs of both schedules.
  *
- * @example
+ * **Example** (Combining time and attempt limits)
+ *
  * ```ts
  * import { Console, Data, Effect, Schedule } from "effect"
  *
@@ -900,7 +916,8 @@ export const both: {
  * to recur, using the maximum of the two durations between recurrences and
  * outputting the result of the left schedule (i.e. `self`).
  *
- * @example
+ * **Example** (Combining schedules and keeping the left output)
+ *
  * ```ts
  * import { Console, Effect, Schedule } from "effect"
  *
@@ -946,7 +963,8 @@ export const bothLeft: {
  * to recur, using the maximum of the two durations between recurrences and
  * outputting the result of the right schedule (i.e. `other`).
  *
- * @example
+ * **Example** (Combining schedules and keeping the right output)
+ *
  * ```ts
  * import { Console, Effect, Schedule } from "effect"
  *
@@ -995,7 +1013,8 @@ export const bothRight: {
  * outputting the result of the combination of both schedule outputs using the
  * specified `combine` function.
  *
- * @example
+ * **Example** (Combining schedule outputs)
+ *
  * ```ts
  * import { Console, Effect, Schedule } from "effect"
  *
@@ -1071,7 +1090,8 @@ export const bothWith: {
  * Returns a new `Schedule` that always recurs, collecting all inputs of the
  * schedule into an array.
  *
- * @example
+ * **Example** (Collecting schedule inputs)
+ *
  * ```ts
  * import { Console, Effect, Schedule } from "effect"
  *
@@ -1104,7 +1124,8 @@ export const collectInputs = <Output, Input, Error, Env>(
  * Returns a new `Schedule` that always recurs, collecting all outputs of the
  * schedule into an array.
  *
- * @example
+ * **Example** (Collecting schedule outputs)
+ *
  * ```ts
  * import { Console, Effect, Schedule } from "effect"
  *
@@ -1135,7 +1156,8 @@ export const collectOutputs = <Output, Input, Error, Env>(
  * Returns a new `Schedule` that recurs as long as the specified `predicate`
  * returns `true`, collecting all outputs of the schedule into an array.
  *
- * @example
+ * **Example** (Collecting outputs while a condition holds)
+ *
  * ```ts
  * import { Console, Effect, Schedule } from "effect"
  *
@@ -1264,7 +1286,8 @@ export const collectWhile: {
  * Returns a new `Schedule` that recurs on the specified `Cron` schedule and
  * outputs the duration between recurrences.
  *
- * @example
+ * **Example** (Scheduling work with cron expressions)
+ *
  * ```ts
  * import { Console, Data, Effect, Schedule } from "effect"
  *
@@ -1401,7 +1424,8 @@ export const cron: {
 /**
  * Returns a new schedule that outputs the delay between each occurence.
  *
- * @example
+ * **Example** (Extracting schedule delays)
+ *
  * ```ts
  * import { Console, Effect, Schedule } from "effect"
  *
@@ -1515,7 +1539,8 @@ export const duration = (durationInput: Duration.Input): Schedule<Duration.Durat
  * Returns a new `Schedule` that will always recur, but only during the
  * specified `duration` of time.
  *
- * @example
+ * **Example** (Repeating work during a duration)
+ *
  * ```ts
  * import { Console, Data, Effect, Schedule } from "effect"
  *
@@ -1609,7 +1634,8 @@ export const during = (duration: Duration.Input): Schedule<Duration.Duration> =>
  * to recur, using the minimum of the two durations between recurrences and
  * outputting a tuple of the outputs of both schedules.
  *
- * @example
+ * **Example** (Combining schedules with either semantics)
+ *
  * ```ts
  * import { Console, Data, Effect, Schedule } from "effect"
  *
@@ -1696,7 +1722,8 @@ export const either: {
  * to recur, using the minimum of the two durations between recurrences and
  * outputting the result of the left schedule (i.e. `self`).
  *
- * @example
+ * **Example** (Combining either schedules and keeping the left output)
+ *
  * ```ts
  * import { Console, Effect, Schedule } from "effect"
  *
@@ -1745,7 +1772,8 @@ export const eitherLeft: {
  * to recur, using the minimum of the two durations between recurrences and
  * outputting the result of the right schedule (i.e. `other`).
  *
- * @example
+ * **Example** (Combining either schedules and keeping the right output)
+ *
  * ```ts
  * import { Console, Effect, Schedule } from "effect"
  *
@@ -1795,7 +1823,8 @@ export const eitherRight: {
  * outputting the result of the combination of both schedule outputs using the
  * specified `combine` function.
  *
- * @example
+ * **Example** (Combining either schedule outputs)
+ *
  * ```ts
  * import { Console, Effect, Schedule } from "effect"
  *
@@ -1886,7 +1915,8 @@ export const eitherWith: {
  *
  * @returns A schedule that outputs the elapsed duration and never stops
  *
- * @example
+ * **Example** (Measuring elapsed schedule time)
+ *
  * ```ts
  * import { Console, Duration, Effect, Schedule } from "effect"
  *
@@ -1916,7 +1946,8 @@ export const elapsed: Schedule<Duration.Duration> = fromStepWithMetadata(
  * repetitions, given by `base * factor.pow(n)`, where `n` is the number of
  * repetitions so far. Returns the current duration between recurrences.
  *
- * @example
+ * **Example** (Retrying with exponential backoff)
+ *
  * ```ts
  * import { Console, Data, Effect, Schedule } from "effect"
  *
@@ -1975,7 +2006,8 @@ export const exponential = (
  * two delays (similar to the fibonacci sequence). Returns the current
  * duration between recurrences.
  *
- * @example
+ * **Example** (Retrying with fibonacci backoff)
+ *
  * ```ts
  * import { Console, Data, Effect, Schedule } from "effect"
  *
@@ -2063,7 +2095,8 @@ export const fibonacci = (one: Duration.Input): Schedule<Duration.Duration> => {
  * |---------action--------||action|-----|action|-----------|
  * ```
  *
- * @example
+ * **Example** (Repeating on fixed intervals)
+ *
  * ```ts
  * import { Console, Effect, Schedule } from "effect"
  *
@@ -2141,7 +2174,8 @@ export const fixed = (interval: Duration.Input): Schedule<number> => {
  * Returns a new `Schedule` that maps the output of this schedule using the
  * specified function.
  *
- * @example
+ * **Example** (Mapping schedule outputs)
+ *
  * ```ts
  * import { Console, Effect, Schedule } from "effect"
  *
@@ -2233,7 +2267,8 @@ export const map: {
  * Returns a new `Schedule` that modifies the delay of the next recurrence
  * of the schedule using the specified effectual function.
  *
- * @example
+ * **Example** (Modifying delays from schedule output)
+ *
  * ```ts
  * import { Console, Duration, Effect, Schedule } from "effect"
  *
@@ -2310,7 +2345,8 @@ export const jittered = <Output, Input, Error, Env>(
 /**
  * Returns a new `Schedule` that outputs the inputs of the specified schedule.
  *
- * @example
+ * **Example** (Passing inputs through as outputs)
+ *
  * ```ts
  * import { Console, Effect, Schedule } from "effect"
  *
@@ -2349,7 +2385,8 @@ export const passthrough = <Output, Input, Error, Env>(
  * Returns a `Schedule` which can only be stepped the specified number of
  * `times` before it terminates.
  *
- * @example
+ * **Example** (Limiting recurrences)
+ *
  * ```ts
  * import { Console, Data, Effect, Schedule } from "effect"
  *
@@ -2409,7 +2446,8 @@ export const recurs = (times: number): Schedule<number> =>
  * using the specified effectful `combine` function and starting from the
  * specified `initial` state.
  *
- * @example
+ * **Example** (Reducing schedule outputs)
+ *
  * ```ts
  * import { Console, Effect, Schedule } from "effect"
  *
@@ -2559,7 +2597,8 @@ export const reduce: {
  * Returns a schedule that recurs continuously, each repetition spaced the
  * specified duration from the last run.
  *
- * @example
+ * **Example** (Repeating with fixed spacing)
+ *
  * ```ts
  * import { Console, Effect, Schedule } from "effect"
  *
@@ -2614,7 +2653,8 @@ export const spaced = (duration: Duration.Input): Schedule<number> => {
  * every input to the schedule, but does not alter the inputs and outputs of
  * the schedule.
  *
- * @example
+ * **Example** (Tapping retry inputs)
+ *
  * ```ts
  * import { Console, Data, Effect, Schedule } from "effect"
  *
@@ -2757,7 +2797,8 @@ export const tapInput: {
  * every output of the schedule, but does not alter the inputs and outputs of
  * the schedule.
  *
- * @example
+ * **Example** (Tapping schedule outputs)
+ *
  * ```ts
  * import { Console, Data, Effect, Schedule } from "effect"
  *
@@ -2861,7 +2902,8 @@ export const tapOutput: {
  * from the schedule. Once the specified number of outputs is reached, the
  * schedule will stop.
  *
- * @example
+ * **Example** (Taking a limited number of recurrences)
+ *
  * ```ts
  * import { Console, Data, Effect, Schedule } from "effect"
  *
@@ -2953,7 +2995,8 @@ export const take: {
  * Creates a schedule that unfolds a state by repeatedly applying a function,
  * outputting the current state and computing the next state.
  *
- * @example
+ * **Example** (Unfolding schedule state)
+ *
  * ```ts
  * import { Console, Effect, Schedule } from "effect"
  *
@@ -3121,7 +3164,8 @@ export {
  * |action------|sleep---|act|-sleep|action----|
  * ```
  *
- * @example
+ * **Example** (Repeating on aligned windows)
+ *
  * ```ts
  * import { Console, Effect, Schedule } from "effect"
  *
@@ -3159,7 +3203,8 @@ export const windowed = (interval: Duration.Input): Schedule<number> => {
  * The output of the schedule is the current count of its repetitions thus far
  * (i.e. `0, 1, 2, ...`).
  *
- * @example
+ * **Example** (Repeating forever)
+ *
  * ```ts
  * import { Console, Effect, Schedule } from "effect"
  *
@@ -3207,7 +3252,8 @@ export {
 /**
  * Ensures that the provided schedule respects a specified input type.
  *
- * @example
+ * **Example** (Constraining schedule input types)
+ *
  * ```ts
  * import { Schedule } from "effect"
  *
@@ -3247,7 +3293,8 @@ export const setInputType =
 /**
  * Ensures that the provided schedule respects a specified output type.
  *
- * @example
+ * **Example** (Constraining schedule output types)
+ *
  * ```ts
  * import { Effect, Schedule } from "effect"
  *
@@ -3272,7 +3319,8 @@ export const satisfiesOutputType = <T>() =>
 /**
  * Ensures that the provided schedule respects a specified error type.
  *
- * @example
+ * **Example** (Constraining schedule error types)
+ *
  * ```ts
  * import { Data, Schedule } from "effect"
  *
@@ -3303,7 +3351,8 @@ export const satisfiesErrorType = <T>() =>
 /**
  * Ensures that the provided schedule respects a specified context type.
  *
- * @example
+ * **Example** (Constraining schedule service types)
+ *
  * ```ts
  * import { Schedule } from "effect"
  *

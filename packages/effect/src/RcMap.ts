@@ -22,9 +22,8 @@ const TypeId = "~effect/RcMap"
  * of resources indexed by keys. Resources are lazily acquired and automatically
  * released when no longer in use.
  *
- * @category models
- * @since 3.5.0
- * @example
+ * **Example** (Inspecting a reference-counted map)
+ *
  * ```ts
  * import { Effect, RcMap } from "effect"
  *
@@ -49,6 +48,9 @@ const TypeId = "~effect/RcMap"
  *   console.log(`Capacity: ${dbConnectionMap.capacity}`)
  * }).pipe(Effect.scoped)
  * ```
+ *
+ * @category models
+ * @since 3.5.0
  */
 export interface RcMap<in out K, in out A, in out E = never> extends Pipeable {
   readonly [TypeId]: typeof TypeId
@@ -64,9 +66,8 @@ export interface RcMap<in out K, in out A, in out E = never> extends Pipeable {
  * Represents the internal state of an RcMap, which can be either Open (active)
  * or Closed (shutdown and no longer accepting operations).
  *
- * @category Models
- * @since 4.0.0
- * @example
+ * **Example** (Narrowing map state)
+ *
  * ```ts
  * import type { RcMap } from "effect"
  *
@@ -84,15 +85,17 @@ export interface RcMap<in out K, in out A, in out E = never> extends Pipeable {
  *   console.log("Map is closed")
  * }
  * ```
+ *
+ * @category Models
+ * @since 4.0.0
  */
 export type State<K, A, E> = State.Open<K, A, E> | State.Closed
 
 /**
  * Namespace containing the internal state types for RcMap.
  *
- * @category Models
- * @since 4.0.0
- * @example
+ * **Example** (Referencing state types)
+ *
  * ```ts
  * import type { RcMap } from "effect"
  *
@@ -105,15 +108,17 @@ export type State<K, A, E> = State.Open<K, A, E> | State.Closed
  * declare const closedState: RcMap.State.Closed
  * declare const entry: RcMap.State.Entry<number, never>
  * ```
+ *
+ * @category Models
+ * @since 4.0.0
  */
 export declare namespace State {
   /**
    * Represents the open/active state of an RcMap, containing the actual
    * resource map that stores entries.
    *
-   * @category Models
-   * @since 4.0.0
-   * @example
+   * **Example** (Inspecting open state)
+   *
    * ```ts
    * import type { RcMap } from "effect"
    * import * as MutableHashMap from "effect/MutableHashMap"
@@ -128,6 +133,9 @@ export declare namespace State {
    *   console.log(`Map contains key: ${hasKey}`)
    * }
    * ```
+   *
+   * @category Models
+   * @since 4.0.0
    */
   export interface Open<K, A, E> {
     readonly _tag: "Open"
@@ -138,9 +146,8 @@ export declare namespace State {
    * Represents the closed state of an RcMap, indicating that the map has been
    * shut down and will no longer accept new operations.
    *
-   * @category Models
-   * @since 4.0.0
-   * @example
+   * **Example** (Checking closed state)
+   *
    * ```ts
    * import type { RcMap } from "effect"
    *
@@ -153,6 +160,9 @@ export declare namespace State {
    *   // Any attempt to get resources will result in interruption
    * }
    * ```
+   *
+   * @category Models
+   * @since 4.0.0
    */
   export interface Closed {
     readonly _tag: "Closed"
@@ -162,9 +172,8 @@ export declare namespace State {
    * Represents an individual entry in the RcMap, containing the resource's
    * metadata including reference count, expiration time, and lifecycle management.
    *
-   * @category Models
-   * @since 4.0.0
-   * @example
+   * **Example** (Inspecting entry metadata)
+   *
    * ```ts
    * import type { RcMap } from "effect"
    *
@@ -182,6 +191,9 @@ export declare namespace State {
    * console.log(`Reference count: ${entry.refCount}`)
    * console.log(`Expires at: ${entry.expiresAt}`)
    * ```
+   *
+   * @category Models
+   * @since 4.0.0
    */
   export interface Entry<A, E> {
     readonly deferred: Deferred.Deferred<A, E>
@@ -228,9 +240,8 @@ const makeUnsafe = <K, A, E>(options: {
  * - `capacity`: The maximum number of resources that can be held in the map.
  * - `idleTimeToLive`: When the reference count reaches zero, the resource will be released after this duration.
  *
- * @category models
- * @since 3.5.0
- * @example
+ * **Example** (Creating a reference-counted map)
+ *
  * ```ts
  * import { Effect, RcMap } from "effect"
  *
@@ -251,6 +262,9 @@ const makeUnsafe = <K, A, E>(options: {
  *   )
  * })
  * ```
+ *
+ * @category models
+ * @since 3.5.0
  */
 export const make: {
   <K, A, E, R>(options: {
@@ -307,9 +321,8 @@ export const make: {
  * acquired using the lookup function. The resource is reference counted and will be
  * released when the scope closes.
  *
- * @category combinators
- * @since 3.5.0
- * @example
+ * **Example** (Acquiring a resource)
+ *
  * ```ts
  * import { Effect, RcMap } from "effect"
  *
@@ -327,6 +340,9 @@ export const make: {
  *   console.log(resource) // "Resource: database"
  * }).pipe(Effect.scoped)
  * ```
+ *
+ * @category combinators
+ * @since 3.5.0
  */
 export const get: {
   <K>(key: K): <A, E>(self: RcMap<K, A, E>) => Effect.Effect<A, E, Scope.Scope>
@@ -422,9 +438,8 @@ const release = <K, A, E>(self: RcMap<K, A, E>, key: K, entry: State.Entry<A, E>
 /**
  * Returns an array of all keys currently stored in the RcMap.
  *
- * @category combinators
- * @since 3.5.0
- * @example
+ * **Example** (Listing keys)
+ *
  * ```ts
  * import { Effect, RcMap } from "effect"
  *
@@ -443,6 +458,9 @@ const release = <K, A, E>(self: RcMap<K, A, E>, key: K, entry: State.Entry<A, E>
  *   console.log(allKeys) // ["foo", "bar", "baz"]
  * }).pipe(Effect.scoped)
  * ```
+ *
+ * @category combinators
+ * @since 3.5.0
  */
 export const keys = <K, A, E>(self: RcMap<K, A, E>): Effect.Effect<Iterable<K>> => {
   return Effect.suspend(() =>
@@ -454,9 +472,8 @@ export const keys = <K, A, E>(self: RcMap<K, A, E>): Effect.Effect<Iterable<K>> 
  * Invalidates and removes a specific key from the RcMap. If the resource is not
  * currently in use (reference count is 0), it will be immediately released.
  *
- * @category combinators
- * @since 3.5.0
- * @example
+ * **Example** (Invalidating a resource)
+ *
  * ```ts
  * import { Effect, RcMap } from "effect"
  *
@@ -480,6 +497,9 @@ export const keys = <K, A, E>(self: RcMap<K, A, E>): Effect.Effect<Iterable<K>> 
  *   yield* RcMap.get(map, "cache")
  * }).pipe(Effect.scoped)
  * ```
+ *
+ * @category combinators
+ * @since 3.5.0
  */
 export const invalidate: {
   <K>(key: K): <A, E>(self: RcMap<K, A, E>) => Effect.Effect<void>
@@ -519,9 +539,8 @@ export const has: {
  * `idleTimeToLive` configured, calling `touch` will reset the expiration
  * timer for the specified key.
  *
- * @category combinators
- * @since 3.5.0
- * @example
+ * **Example** (Extending resource idle time)
+ *
  * ```ts
  * import { Effect, RcMap } from "effect"
  *
@@ -546,6 +565,9 @@ export const has: {
  *   // from the time it was touched
  * }).pipe(Effect.scoped)
  * ```
+ *
+ * @category combinators
+ * @since 3.5.0
  */
 export const touch: {
   <K>(key: K): <A, E>(self: RcMap<K, A, E>) => Effect.Effect<void>
