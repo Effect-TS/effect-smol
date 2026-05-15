@@ -31,7 +31,7 @@
       ],
       "examples": {
         "values": "optional",
-        "types": "forbidden"
+        "types": "optional"
       }
     }],
     // Tune native rules

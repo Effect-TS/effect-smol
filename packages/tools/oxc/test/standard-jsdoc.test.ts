@@ -178,6 +178,40 @@ export const value = 1
     )
   })
 
+  it("allows @see tags with a link and trailing explanation", () => {
+    const source = `/**
+ * A value.
+ *
+ * @see {@link other} for more details
+ * @category constructors
+ * @since 1.0.0
+ */
+export const value = 1
+`
+    const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
+    const exportNode = exportNamed(source, "export const value", declaration)
+    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
+
+    expect(errors).toHaveLength(0)
+  })
+
+  it("allows directive comments between JSDoc and an exported declaration", () => {
+    const source = `/**
+ * A value.
+ *
+ * @category constructors
+ * @since 1.0.0
+ */
+// @ts-expect-error
+export const value = 1
+`
+    const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
+    const exportNode = exportNamed(source, "export const value", declaration)
+    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
+
+    expect(errors).toHaveLength(0)
+  })
+
   it("lets @internal declarations opt out but rejects additional tags", () => {
     const source = `/**
  * Private.
@@ -200,7 +234,7 @@ export interface Secret {
     expect(errors[0].message).toBe("JSDoc blocks with @internal must not contain other block tags")
   })
 
-  it("requires member descriptions recursively in exported object types", () => {
+  it("allows undocumented members recursively in exported object types", () => {
     const source = `/**
  * Options.
  *
@@ -232,11 +266,215 @@ export interface Options {
     const exportNode = exportNamed(source, "export interface Options", declaration)
     const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
 
-    expect(errors).toHaveLength(1)
-    expect(errors[0].message).toBe("Member JSDoc is required")
+    expect(errors).toHaveLength(0)
   })
 
-  it("requires public class member docs but ignores constructors and private members", () => {
+  it("validates member docs recursively when present", () => {
+    const source = `/**
+ * Options.
+ *
+ * @category models
+ * @since 1.0.0
+ */
+export interface Options {
+  readonly outer: {
+    /**
+     * Inner options.
+     *
+     * @category models
+     */
+    readonly inner: string
+  }
+}
+`
+    const inner = node(source, "readonly inner", "TSPropertySignature")
+    const outer = node(source, "readonly outer", "TSPropertySignature", {
+      typeAnnotation: {
+        type: "TSTypeAnnotation",
+        typeAnnotation: {
+          type: "TSTypeLiteral",
+          members: [inner]
+        }
+      }
+    })
+    const declaration = node(source, "export interface Options", "TSInterfaceDeclaration", {
+      body: { body: [outer] }
+    })
+    const exportNode = exportNamed(source, "export interface Options", declaration)
+    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
+
+    expect(errors).toHaveLength(1)
+    expect(errors[0].message).toBe("@category is not allowed in member JSDoc")
+  })
+
+  it("does not require member docs for anonymous call signatures in exported value type literals", () => {
+    const source = `/**
+ * A callable value.
+ *
+ * @category constructors
+ * @since 1.0.0
+ */
+export const value: {
+  <A>(self: A): A
+  new <A>(self: A): A
+  /**
+   * A named member.
+   */
+  readonly member: string
+} = undefined as never
+`
+    const callSignature = node(source, "<A>(self", "TSCallSignatureDeclaration", {
+      params: [],
+      returnType: null
+    })
+    const constructSignature = node(source, "new <A>(self", "TSConstructSignatureDeclaration", {
+      params: [],
+      returnType: null
+    })
+    const member = node(source, "readonly member", "TSPropertySignature")
+    const declaration = node(source, "export const value", "VariableDeclaration", {
+      declarations: [{
+        id: {
+          typeAnnotation: {
+            type: "TSTypeAnnotation",
+            typeAnnotation: {
+              type: "TSTypeLiteral",
+              members: [callSignature, constructSignature, member]
+            }
+          }
+        },
+        init: null
+      }]
+    })
+    const exportNode = exportNamed(source, "export const value", declaration)
+    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
+
+    expect(errors).toHaveLength(0)
+  })
+
+  it("does not require member docs for named members in exported value type literals", () => {
+    const source = `/**
+ * A callable value.
+ *
+ * @category constructors
+ * @since 1.0.0
+ */
+export const value: {
+  <A>(self: A): A
+  readonly member: string
+} = undefined as never
+`
+    const callSignature = node(source, "<A>(self", "TSCallSignatureDeclaration", {
+      params: [],
+      returnType: null
+    })
+    const member = node(source, "readonly member", "TSPropertySignature")
+    const declaration = node(source, "export const value", "VariableDeclaration", {
+      declarations: [{
+        id: {
+          typeAnnotation: {
+            type: "TSTypeAnnotation",
+            typeAnnotation: {
+              type: "TSTypeLiteral",
+              members: [callSignature, member]
+            }
+          }
+        },
+        init: null
+      }]
+    })
+    const exportNode = exportNamed(source, "export const value", declaration)
+    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
+
+    expect(errors).toHaveLength(0)
+  })
+
+  it("does not require member docs for anonymous call signatures in exported value return types", () => {
+    const source = `/**
+ * Makes a callable value.
+ *
+ * @category constructors
+ * @since 1.0.0
+ */
+export const make = <A>(): {
+  (self: A): A
+} => undefined as never
+`
+    const callSignature = node(source, "(self: A)", "TSCallSignatureDeclaration", {
+      params: [],
+      returnType: null
+    })
+    const declaration = node(source, "export const make", "VariableDeclaration", {
+      declarations: [{
+        id: { typeAnnotation: null },
+        init: {
+          type: "ArrowFunctionExpression",
+          params: [],
+          returnType: {
+            type: "TSTypeAnnotation",
+            typeAnnotation: {
+              type: "TSTypeLiteral",
+              members: [callSignature]
+            }
+          }
+        }
+      }]
+    })
+    const exportNode = exportNamed(source, "export const make", declaration)
+    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
+
+    expect(errors).toHaveLength(0)
+  })
+
+  it("does not require member docs for inline object parameters of anonymous call signatures", () => {
+    const source = `/**
+ * Matches a value.
+ *
+ * @category pattern matching
+ * @since 1.0.0
+ */
+export const match: {
+  <A, B>(options: {
+    readonly onNone: () => B
+    readonly onSome: (a: A) => B
+  }): (self: A) => B
+} = undefined as never
+`
+    const onNone = node(source, "readonly onNone", "TSPropertySignature")
+    const onSome = node(source, "readonly onSome", "TSPropertySignature")
+    const callSignature = node(source, "<A, B>(options", "TSCallSignatureDeclaration", {
+      params: [{
+        typeAnnotation: {
+          type: "TSTypeAnnotation",
+          typeAnnotation: {
+            type: "TSTypeLiteral",
+            members: [onNone, onSome]
+          }
+        }
+      }],
+      returnType: null
+    })
+    const declaration = node(source, "export const match", "VariableDeclaration", {
+      declarations: [{
+        id: {
+          typeAnnotation: {
+            type: "TSTypeAnnotation",
+            typeAnnotation: {
+              type: "TSTypeLiteral",
+              members: [callSignature]
+            }
+          }
+        },
+        init: null
+      }]
+    })
+    const exportNode = exportNamed(source, "export const match", declaration)
+    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
+
+    expect(errors).toHaveLength(0)
+  })
+
+  it("does not require public class member docs", () => {
     const source = `/**
  * A service.
  *
@@ -261,8 +499,7 @@ export class Service {
     const exportNode = exportNamed(source, "export class Service", declaration)
     const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
 
-    expect(errors).toHaveLength(1)
-    expect(errors[0].message).toBe("Member JSDoc is required")
+    expect(errors).toHaveLength(0)
   })
 
   it("requires module JSDoc only when the file has public exports", () => {
@@ -351,6 +588,40 @@ export function decode(input: unknown): string {
     ])
 
     expect(errors).toHaveLength(0)
+  })
+
+  it("does not report namespace member exports twice", () => {
+    const source = `/**
+ * Option namespace.
+ *
+ * @category namespaces
+ * @since 1.0.0
+ */
+export declare namespace Option {
+  /**
+   * Extracts the value type.
+   *
+   * @since 1.0.0
+   * @category type-level utils
+   */
+  export type Value<T> = T
+}
+`
+    const valueDeclaration = node(source, "export type Value", "TSTypeAliasDeclaration", {
+      typeAnnotation: null
+    })
+    const valueExport = exportNamed(source, "export type Value", valueDeclaration)
+    const namespaceDeclaration = node(source, "export declare namespace Option", "TSModuleDeclaration", {
+      body: { body: [valueExport] }
+    })
+    const namespaceExport = exportNamed(source, "export declare namespace Option", namespaceDeclaration)
+    const errors = runRuleWithSource(source, [
+      { visitor: "ExportNamedDeclaration", node: namespaceExport },
+      { visitor: "ExportNamedDeclaration", node: valueExport }
+    ])
+
+    expect(errors).toHaveLength(1)
+    expect(errors[0].message).toBe("@category is out of order in JSDoc")
   })
 
   it("skips files outside the configured include globs", () => {

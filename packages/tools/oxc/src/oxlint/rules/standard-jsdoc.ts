@@ -57,7 +57,7 @@ const moduleTags = new Set(["deprecated", "see", "since"])
 const onePerBlockTags = new Set(["deprecated", "default", "category", "since", "internal"])
 
 const stableSemverRegex = /^\d+\.\d+\.\d+$/
-const seeRegex = /^(?:\{@link\s+[^}]+\}|https?:\/\/\S+)$/
+const seeRegex = /(?:\{@link\s+[^}]+\}|https?:\/\/\S+)/
 
 function normalizePathName(filePath: string): string {
   return filePath.replaceAll(path.sep, "/")
@@ -122,11 +122,34 @@ function getCwd(context: { readonly cwd?: string; getCwd?: () => string }): stri
   return context.cwd ?? context.getCwd?.() ?? process.cwd()
 }
 
-function findLeadingJSDoc(source: string, node: AstNode, ignoredRange?: [number, number]): JSDocBlock | undefined {
-  let end = node.range[0]
+function skipWhitespace(source: string, end: number): number {
   while (end > 0 && /\s/.test(source[end - 1])) {
     end--
   }
+  return end
+}
+
+function isSkippableDirectiveComment(line: string): boolean {
+  const trimmed = line.trim()
+  return trimmed.startsWith("// @ts-expect-error") ||
+    trimmed.startsWith("// @ts-ignore") ||
+    trimmed.startsWith("// eslint-disable-next-line") ||
+    trimmed.startsWith("// oxlint-disable-next-line")
+}
+
+function skipDirectiveComments(source: string, end: number): number {
+  while (end > 0) {
+    const lineStart = source.lastIndexOf("\n", end - 1) + 1
+    if (!isSkippableDirectiveComment(source.slice(lineStart, end))) {
+      return end
+    }
+    end = skipWhitespace(source, lineStart)
+  }
+  return end
+}
+
+function findLeadingJSDoc(source: string, node: AstNode, ignoredRange?: [number, number]): JSDocBlock | undefined {
+  const end = skipDirectiveComments(source, skipWhitespace(source, node.range[0]))
   if (!source.slice(0, end).endsWith("*/")) {
     return undefined
   }
@@ -353,6 +376,7 @@ const rule: CreateRule = {
     let moduleBlock: JSDocBlock | undefined
     let hasPublicExport = false
     let firstPublicExport: AstNode | undefined
+    const checkedExports = new Set<string>()
     const checkedFunctionOverloads = new Set<string>()
 
     function report(node: AstNode, message: string) {
@@ -418,7 +442,7 @@ const rule: CreateRule = {
         } else if (tag.name === "default" && tag.value.trim() === "") {
           report(node, "@default must include a value")
         } else if (tag.name === "see" && !seeRegex.test(tag.value.trim())) {
-          report(node, "@see must be either an inline {@link ...} tag or an http(s) URL")
+          report(node, "@see must include an inline {@link ...} tag or an http(s) URL")
         } else if (tag.name === "category" && tag.value.trim() === "") {
           report(node, "@category must include a value")
         } else if (tag.name === "since" && !stableSemverRegex.test(tag.value.trim())) {
@@ -488,12 +512,9 @@ const rule: CreateRule = {
       validateExamples(node, block, "optional")
     }
 
-    function checkMember(node: AstNode, options?: { readonly requireDoc?: boolean }) {
+    function validateMemberIfPresent(node: AstNode) {
       const block = getLeadingBlock(node)
       if (!block) {
-        if (options?.requireDoc !== false) {
-          report(node, "Member JSDoc is required")
-        }
         return false
       }
       validateMemberBlock(node, block)
@@ -589,7 +610,7 @@ const rule: CreateRule = {
     }
 
     function checkTypeMember(member: AstNode) {
-      const internal = checkMember(member)
+      const internal = validateMemberIfPresent(member)
       if (internal) {
         return
       }
@@ -632,9 +653,8 @@ const rule: CreateRule = {
           continue
         }
 
-        const isConstructor = member.type === "MethodDefinition" && member.kind === "constructor"
-        const internal = checkMember(member, { requireDoc: !isConstructor })
-        if (internal || isConstructor) {
+        const internal = validateMemberIfPresent(member)
+        if (internal || member.type === "MethodDefinition" && member.kind === "constructor") {
           continue
         }
 
@@ -717,11 +737,20 @@ const rule: CreateRule = {
       return !checkedFunctionOverloads.has(name)
     }
 
+    function getNodeKey(node: AstNode): string {
+      return `${node.range[0]}:${node.range[1]}`
+    }
+
     function checkExportedDeclaration(exportNode: AstNode, declaration: AstNode) {
       const bucket = getDeclarationBucket(declaration)
       if (!bucket) {
         return
       }
+      const key = getNodeKey(exportNode)
+      if (checkedExports.has(key)) {
+        return
+      }
+      checkedExports.add(key)
       if (!shouldCheckOverload(declaration)) {
         return
       }

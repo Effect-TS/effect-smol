@@ -105,23 +105,6 @@ const TypeId = "~effect/data/Option"
  * - Returning from partial functions (not defined for all inputs)
  * - Managing optional fields in data structures
  *
- * **Example** (Creating and matching Options)
- *
- * ```ts
- * import { Option } from "effect"
- *
- * const someValue: Option.Option<number> = Option.some(42)
- * const noneValue: Option.Option<number> = Option.none()
- *
- * const result = Option.match(someValue, {
- *   onNone: () => "No value",
- *   onSome: (value) => `Value is ${value}`
- * })
- *
- * console.log(result)
- * // Output: "Value is 42"
- * ```
- *
  * @see {@link some} for creating a `Some`
  * @see {@link none} for creating a `None`
  * @see {@link match} for pattern matching
@@ -163,8 +146,11 @@ export interface None<out A> extends Pipeable, Inspectable {
 }
 
 /**
- * @since 4.0.0
+ * Iterator protocol used to yield an `Option` inside {@link gen}, returning the
+ * contained value type back to the generator.
+ *
  * @category Models
+ * @since 4.0.0
  */
 export interface OptionIterator<T extends Option<any>> {
   next(
@@ -220,18 +206,6 @@ export interface OptionUnify<A extends { [Unify.typeSymbol]?: any }> {
 /**
  * Namespace containing utility types for `Option`.
  *
- * **Example** (Extracting the value type)
- *
- * ```ts
- * import type { Option } from "effect"
- *
- * declare const myOption: Option.Option<string>
- *
- * //      ┌─── string
- * //      ▼
- * type MyType = Option.Option.Value<typeof myOption>
- * ```
- *
  * @category Namespaces
  * @since 2.0.0
  */
@@ -251,8 +225,8 @@ export declare namespace Option {
    * type MyType = Option.Option.Value<typeof myOption>
    * ```
    *
-   * @since 2.0.0
    * @category Type-level Utils
+   * @since 2.0.0
    */
   export type Value<T extends Option<any>> = [T] extends [Option<infer _A>] ? _A : never
 }
@@ -2596,6 +2570,7 @@ export const gen: Gen.Gen<OptionTypeLambda> = (...args) => {
  *
  * @see {@link makeReducerFailFast} for fail-fast semantics
  *
+ * @category Reducer
  * @since 4.0.0
  */
 export function makeReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<Option<A>> {
@@ -2635,6 +2610,7 @@ export function makeReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<
  *
  * @see {@link makeReducerFailFast} to get a full `Reducer`
  *
+ * @category Combiner
  * @since 4.0.0
  */
 export function makeCombinerFailFast<A>(combiner: Combiner.Combiner<A>): Combiner.Combiner<Option<A>> {
@@ -2675,6 +2651,7 @@ export function makeCombinerFailFast<A>(combiner: Combiner.Combiner<A>): Combine
  * @see {@link makeCombinerFailFast} for just the combiner
  * @see {@link makeReducer} for non-fail-fast semantics
  *
+ * @category Reducer
  * @since 4.0.0
  */
 export function makeReducerFailFast<A>(reducer: Reducer.Reducer<A>): Reducer.Reducer<Option<A>> {
