@@ -1,8 +1,9 @@
 import { NodeHttpServer, NodeSocket, NodeSocketServer } from "@effect/platform-node"
 import { assert, describe, it } from "@effect/vitest"
-import { Cause, Deferred, Effect, Layer } from "effect"
+import { Cause, Deferred, Effect, Layer, Schema } from "effect"
 import { Entity, EntityProxy, EntityProxyServer, Sharding } from "effect/unstable/cluster"
-import { HttpClient, HttpClientRequest, HttpRouter, HttpServer } from "effect/unstable/http"
+import { HttpBody, HttpClient, HttpClientRequest, HttpRouter, HttpServer } from "effect/unstable/http"
+import { HttpApi, HttpApiBuilder, HttpApiSwagger } from "effect/unstable/httpapi"
 import { Rpc, RpcClient, RpcSerialization, RpcServer, RpcTest } from "effect/unstable/rpc"
 import { SocketServer } from "effect/unstable/socket"
 import { e2eSuite, UsersClient } from "./fixtures/rpc-e2e.ts"
@@ -209,5 +210,46 @@ describe("RpcServer", () => {
         })
         yield* Deferred.await(called)
       }))
+
+    it.effect("layerHttpApi correctly passes path params to entity client", () => {
+      const Ping = Rpc.make("Ping", {
+        payload: { value: Schema.String },
+        success: Schema.Struct({ entityId: Schema.String, value: Schema.String })
+      })
+      const PingEntity = Entity.make("PingEntity", [Ping])
+
+      const PingGroup = EntityProxy.toHttpApiGroup("ping", PingEntity).prefix("/ping")
+      const PingApi = HttpApi.make("ping-api").add(PingGroup)
+
+      const testClient = (entityId: string) => ({
+        Ping: (payload: { value: string }) =>
+          Effect.succeed({ entityId, value: payload.value })
+      })
+      const sharding = Sharding.Sharding.of({
+        ...({} as Sharding.Sharding["Service"]),
+        isShutdown: Effect.succeed(false),
+        makeClient: () => Effect.succeed(testClient) as never,
+        pollStorage: Effect.void
+      })
+
+      const ApiHandlers = EntityProxyServer.layerHttpApi(PingApi, "ping", PingEntity)
+      const AppLayer = HttpApiBuilder.layer(PingApi).pipe(Layer.provide(ApiHandlers))
+      const ServerLive = HttpRouter.serve(AppLayer, {
+        disableListenLog: true,
+        disableLogger: true
+      }).pipe(
+        Layer.provideMerge(NodeHttpServer.layerTest),
+        Layer.provideService(Sharding.Sharding, sharding)
+      )
+
+      return Effect.gen(function*() {
+        const res = yield* HttpClient.post("/ping/ping/test-entity-123", {
+          body: HttpBody.jsonUnsafe({ value: "hello" })
+        })
+        assert.strictEqual(res.status, 200)
+        const body = yield* res.json
+        assert.deepStrictEqual(body, { entityId: "test-entity-123", value: "hello" })
+      }).pipe(Effect.provide(ServerLive))
+    })
   })
 })
