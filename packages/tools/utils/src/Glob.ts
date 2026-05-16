@@ -1,3 +1,13 @@
+/**
+ * Provides the glob service used by tooling commands to discover files from
+ * glob patterns while keeping filesystem matching inside Effect.
+ *
+ * The service wraps the `glob` package and converts matching failures into
+ * `GlobError` values so command implementations can compose file discovery
+ * with other typed Effect workflows.
+ *
+ * @since 4.0.0
+ */
 import * as Context from "effect/Context"
 import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"

@@ -1,3 +1,13 @@
+/**
+ * Shared utility helpers for the OpenAPI generator.
+ *
+ * This module centralizes the small transformations used while rendering
+ * generated TypeScript, including operation-name normalization, optional
+ * description handling, safe JSDoc comment emission, and direct array merging
+ * for code-generation accumulators.
+ *
+ * @since 4.0.0
+ */
 import * as String from "effect/String"
 import * as UndefinedOr from "effect/UndefinedOr"
 

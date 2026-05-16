@@ -1,3 +1,15 @@
+/**
+ * Normalized OpenAPI operation model shared by the generator pipeline.
+ *
+ * This module records the shape produced after an OpenAPI document is resolved
+ * into stable generator inputs: document metadata, tags, security schemes,
+ * per-operation parameters, request bodies, response media types, derived
+ * schema references, path templates, and streaming capabilities. Renderers
+ * consume this representation to emit HttpClient or HttpApi modules without
+ * reinterpreting raw OpenAPI path-item structures.
+ *
+ * @since 4.0.0
+ */
 import type * as Types from "effect/Types"
 import type {
   OpenAPISecurityRequirement,

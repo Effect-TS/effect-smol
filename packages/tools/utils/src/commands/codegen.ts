@@ -1,3 +1,11 @@
+/**
+ * Defines the `codegen` CLI command for regenerating annotated barrel files in
+ * the utilities package. The command wires together the code generation and
+ * globbing services, resolves the requested working directory, discovers
+ * `@barrel` annotations, and rewrites matching barrel exports.
+ *
+ * @since 4.0.0
+ */
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Path from "effect/Path"

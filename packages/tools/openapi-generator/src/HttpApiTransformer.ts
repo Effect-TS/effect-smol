@@ -1,3 +1,14 @@
+/**
+ * Renders parsed OpenAPI operations into generated Effect HttpApi source code.
+ *
+ * This module maps normalized OpenAPI metadata, tags, request bodies,
+ * responses, and security requirements into import declarations, HttpApi
+ * groups, endpoint definitions, schema annotations, and middleware classes.
+ * The rendered TypeScript can be emitted by the OpenAPI generator as an
+ * executable Effect `HttpApi` module.
+ *
+ * @since 4.0.0
+ */
 import type {
   ParsedOpenApi,
   ParsedOpenApiSecurityScheme,

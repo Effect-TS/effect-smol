@@ -1,3 +1,15 @@
+/**
+ * Barrel file discovery and export generation for Effect development tools.
+ *
+ * This module provides the `BarrelGenerator` service used by the codegen CLI to
+ * find files annotated with `@barrel` comments and rewrite the generated export
+ * section beneath each annotation. The generator resolves matching modules
+ * relative to each annotated barrel file, preserves the discovered modules'
+ * leading JSDoc blocks in the generated output, and normalizes export paths so
+ * the produced TypeScript is stable across platforms.
+ *
+ * @since 4.0.0
+ */
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as FileSystem from "effect/FileSystem"

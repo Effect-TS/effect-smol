@@ -1,3 +1,13 @@
+/**
+ * Command-line entry point for generating Effect HTTP clients or HttpApi
+ * definitions from an OpenAPI specification.
+ *
+ * The CLI reads a spec file, optionally applies JSON patches in order, selects
+ * the generator layer for the requested output format, reports generation
+ * warnings to stderr, and writes the generated source to stdout.
+ *
+ * @since 4.0.0
+ */
 import * as Console from "effect/Console"
 import * as Effect from "effect/Effect"
 import type * as Schema from "effect/Schema"

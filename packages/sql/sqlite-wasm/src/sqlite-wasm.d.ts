@@ -1,4 +1,6 @@
 /**
+ * Declares the wa-sqlite IndexedDB batch-atomic VFS example module.
+ *
  * @since 4.0.0
  */
 declare module "@effect/wa-sqlite/src/examples/IDBBatchAtomicVFS.js" {
@@ -21,6 +23,8 @@ declare module "@effect/wa-sqlite/src/examples/IDBBatchAtomicVFS.js" {
 }
 
 /**
+ * Declares the wa-sqlite OPFS access-handle pool VFS example module.
+ *
  * @since 4.0.0
  */
 declare module "@effect/wa-sqlite/src/examples/AccessHandlePoolVFS.js" {

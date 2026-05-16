@@ -741,6 +741,39 @@ export const value = 1
     ))
   })
 
+  it("uses top-level ambient module JSDoc as module JSDoc", () => {
+    const source = `/**
+ * Declares the upstream virtual file system module.
+ *
+ * @since 1.0.0
+ */
+declare module "upstream/vfs" {
+  /**
+   * A virtual file system implementation.
+   *
+   * @category models
+   * @since 1.0.0
+   */
+  // oxlint-disable-next-line @typescript-eslint/no-extraneous-class
+  export class Vfs {}
+}
+`
+    const declaration = node(source, "export class Vfs", "ClassDeclaration", {
+      body: { body: [] }
+    })
+    const exportNode = exportNamed(source, "export class Vfs", declaration)
+    const moduleDeclaration = node(source, "declare module", "TSModuleDeclaration", {
+      body: { body: [exportNode] }
+    })
+    const errors = runRuleWithSource(
+      source,
+      [{ visitor: "ExportNamedDeclaration", node: exportNode }],
+      [moduleDeclaration]
+    )
+
+    expect(errors).toHaveLength(0)
+  })
+
   it("ignores re-export-only files", () => {
     const source = `export { Foo } from "./Foo"`
     const exportNode = node(source, "export { Foo }", "ExportNamedDeclaration", {

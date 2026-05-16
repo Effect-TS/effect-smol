@@ -1,3 +1,15 @@
+/**
+ * OpenAPI-to-HttpClient code generation for the OpenAPI generator.
+ *
+ * This module defines the `OpenApiTransformer` service used to render parsed
+ * OpenAPI operations into Effect `HttpClient` modules. It provides both
+ * schema-backed and type-only transformer implementations, including generated
+ * imports, public client interfaces, operation implementations, typed API
+ * errors, optional response handling, and helpers for server-sent events and
+ * binary response streams.
+ *
+ * @since 4.0.0
+ */
 import * as Context from "effect/Context"
 import * as Layer from "effect/Layer"
 import * as Predicate from "effect/Predicate"

@@ -1,3 +1,15 @@
+/**
+ * The `OpenApiGenerator` module orchestrates converting OpenAPI and Swagger
+ * documents into generated Effect source.
+ *
+ * It normalizes Swagger 2.0 input, resolves local references, builds the
+ * parsed operation model, registers request and response schemas, applies
+ * HttpApi-specific adaptations such as multipart helpers and security metadata,
+ * emits warnings for unsupported or lossy OpenAPI features, and then delegates
+ * final rendering to the HttpClient or HttpApi code generators.
+ *
+ * @since 4.0.0
+ */
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import type * as JsonSchema from "effect/JsonSchema"

@@ -183,7 +183,8 @@ function findModuleJSDoc(source: string, program: ESTree.Program): JSDocBlock | 
     statement.type === "ExportDefaultDeclaration" ||
     statement.type === "ExportAllDeclaration" ||
     statement.type === "TSExportAssignment" ||
-    statement.type === "TSNamespaceExportDeclaration"
+    statement.type === "TSNamespaceExportDeclaration" ||
+    statement.type === "TSModuleDeclaration"
   )
   if (!firstImportOrExport) {
     return undefined
