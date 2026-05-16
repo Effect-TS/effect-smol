@@ -16,6 +16,16 @@ interface GenerateHttpApiOptions extends GenerateOptions {
   } | undefined
 }
 
+/**
+ * Create a stateful JSON Schema code generator for OpenAPI-derived schemas.
+ *
+ * Schemas registered with the returned generator are converted into TypeScript
+ * type aliases and Effect Schema runtime declarations, with reusable OpenAPI
+ * component definitions supplied at generation time.
+ *
+ * @category code generation
+ * @since 1.0.0
+ */
 export function make() {
   const store: Record<string, JsonSchema.JsonSchema> = {}
 

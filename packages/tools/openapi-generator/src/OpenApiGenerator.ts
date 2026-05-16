@@ -12,13 +12,23 @@ import * as OpenApiTransformer from "./OpenApiTransformer.ts"
 import * as ParsedOperation from "./ParsedOperation.ts"
 import * as Utils from "./Utils.ts"
 
+/**
+ * Service for turning OpenAPI or Swagger specifications into generated Effect
+ * HTTP client or HttpApi source code.
+ */
 export class OpenApiGenerator extends Context.Service<
   OpenApiGenerator,
   { readonly generate: (spec: OpenAPISpec, options: OpenApiGenerateOptions) => Effect.Effect<string> }
 >()("OpenApiGenerator") {}
 
+/**
+ * Output targets supported by the OpenAPI generator.
+ */
 export type OpenApiGeneratorFormat = "httpclient" | "httpclient-type-only" | "httpapi"
 
+/**
+ * Stable identifiers for non-fatal OpenAPI generation warnings.
+ */
 export type OpenApiGeneratorWarningCode =
   | "cookie-parameter-dropped"
   | "additional-tags-dropped"
@@ -30,6 +40,10 @@ export type OpenApiGeneratorWarningCode =
   | "no-body-method-request-body-skipped"
   | "naming-collision"
 
+/**
+ * Describes a non-fatal issue encountered while mapping an OpenAPI operation to
+ * generated Effect source.
+ */
 export interface OpenApiGeneratorWarning {
   readonly code: OpenApiGeneratorWarningCode
   readonly message: string
@@ -38,6 +52,9 @@ export interface OpenApiGeneratorWarning {
   readonly operationId?: string | undefined
 }
 
+/**
+ * Options that control one OpenAPI generation run.
+ */
 export interface OpenApiGenerateOptions {
   /**
    * The name to give to the generated output.
@@ -73,6 +90,9 @@ const methodNames: ReadonlyArray<OpenAPISpecMethodName> = [
   "trace"
 ]
 
+/**
+ * Constructs the OpenAPI generator service implementation.
+ */
 export const make = Effect.gen(function*() {
   const generate = Effect.fn(
     function*(spec: OpenAPISpec, options: OpenApiGenerateOptions) {
@@ -1018,8 +1038,14 @@ function getDialect(spec: OpenAPISpec): "openapi-3.0" | "openapi-3.1" {
   return spec.openapi.trim().startsWith("3.0") ? "openapi-3.0" : "openapi-3.1"
 }
 
+/**
+ * Layer providing an OpenAPI generator for Schema-backed HTTP client and HttpApi output.
+ */
 export const layerTransformerSchema: Layer.Layer<OpenApiGenerator> = Layer.effect(OpenApiGenerator, make)
 
+/**
+ * Layer providing an OpenAPI generator for type-only HTTP client output.
+ */
 export const layerTransformerTs: Layer.Layer<OpenApiGenerator> = Layer.effect(OpenApiGenerator, make)
 
 const isSwaggerSpec = (spec: OpenAPISpec) => "swagger" in spec

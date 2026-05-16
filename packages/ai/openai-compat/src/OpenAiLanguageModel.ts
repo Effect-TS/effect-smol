@@ -112,7 +112,13 @@ export class Config extends Context.Service<
 // =============================================================================
 
 declare module "effect/unstable/ai/Prompt" {
+  /**
+   * OpenAI-compatible options for file prompt parts.
+   */
   export interface FilePartOptions extends ProviderOptions {
+    /**
+     * Provider-specific file options for OpenAI-compatible APIs.
+     */
     readonly openai?: {
       /**
        * The detail level of the image to be sent to the model. One of `high`, `low`, or `auto`. Defaults to `auto`.
@@ -121,7 +127,13 @@ declare module "effect/unstable/ai/Prompt" {
     } | null
   }
 
+  /**
+   * OpenAI-compatible options for reasoning prompt parts.
+   */
   export interface ReasoningPartOptions extends ProviderOptions {
+    /**
+     * Provider-specific reasoning options for OpenAI-compatible APIs.
+     */
     readonly openai?: {
       /**
        * The ID of the item to reference.
@@ -136,40 +148,58 @@ declare module "effect/unstable/ai/Prompt" {
     } | null
   }
 
+  /**
+   * OpenAI-compatible options for assistant tool-call prompt parts.
+   */
   export interface ToolCallPartOptions extends ProviderOptions {
+    /**
+     * Provider-specific tool-call options for OpenAI-compatible APIs.
+     */
     readonly openai?: {
       /**
        * The ID of the item to reference.
        */
       readonly itemId?: string | null
       /**
-       * The status of item.
+       * The status to send for the tool-call item.
        */
       readonly status?: MessageStatus | null
     } | null
   }
 
+  /**
+   * OpenAI-compatible options for tool-result prompt parts.
+   */
   export interface ToolResultPartOptions extends ProviderOptions {
+    /**
+     * Provider-specific tool-result options for OpenAI-compatible APIs.
+     */
     readonly openai?: {
       /**
        * The ID of the item to reference.
        */
       readonly itemId?: string | null
       /**
-       * The status of item.
+       * The status to send for the tool-result item.
        */
       readonly status?: MessageStatus | null
     } | null
   }
 
+  /**
+   * OpenAI-compatible options for text prompt parts.
+   */
   export interface TextPartOptions extends ProviderOptions {
+    /**
+     * Provider-specific text options for OpenAI-compatible APIs.
+     */
     readonly openai?: {
       /**
        * The ID of the item to reference.
        */
       readonly itemId?: string | null
       /**
-       * The status of item.
+       * The status to send for the text item.
        */
       readonly status?: MessageStatus | null
       /**
@@ -181,8 +211,17 @@ declare module "effect/unstable/ai/Prompt" {
 }
 
 declare module "effect/unstable/ai/Response" {
+  /**
+   * OpenAI-compatible metadata attached to a complete text response part.
+   */
   export interface TextPartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific metadata returned for the text part.
+     */
     readonly openai?: {
+      /**
+       * The OpenAI item ID associated with the text part.
+       */
       readonly itemId?: string | null
       /**
        * If the model emits a refusal content part, the refusal explanation
@@ -191,7 +230,7 @@ declare module "effect/unstable/ai/Response" {
        */
       readonly refusal?: string | null
       /**
-       * The status of item.
+       * The status returned for the text item.
        */
       readonly status?: MessageStatus | null
       /**
@@ -201,55 +240,139 @@ declare module "effect/unstable/ai/Response" {
     }
   }
 
+  /**
+   * OpenAI-compatible metadata emitted when a streamed text part starts.
+   */
   export interface TextStartPartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific metadata returned for the streamed text start.
+     */
     readonly openai?: {
+      /**
+       * The OpenAI item ID associated with the streamed text part.
+       */
       readonly itemId?: string | null
     } | null
   }
 
+  /**
+   * OpenAI-compatible metadata emitted when a streamed text part ends.
+   */
   export interface TextEndPartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific metadata returned for the streamed text end.
+     */
     readonly openai?: {
+      /**
+       * The OpenAI item ID associated with the streamed text part.
+       */
       readonly itemId?: string | null
+      /**
+       * The annotations collected for the completed streamed text part.
+       */
       readonly annotations?: ReadonlyArray<Annotation> | null
     } | null
   }
 
+  /**
+   * OpenAI-compatible metadata attached to a complete reasoning response part.
+   */
   export interface ReasoningPartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific metadata returned for the reasoning part.
+     */
     readonly openai?: {
+      /**
+       * The OpenAI item ID associated with the reasoning part.
+       */
       readonly itemId?: string | null
+      /**
+       * Encrypted reasoning content that can be sent back in later requests.
+       */
       readonly encryptedContent?: string | null
     } | null
   }
 
+  /**
+   * OpenAI-compatible metadata emitted when a streamed reasoning part starts.
+   */
   export interface ReasoningStartPartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific metadata returned for the streamed reasoning start.
+     */
     readonly openai?: {
+      /**
+       * The OpenAI item ID associated with the reasoning part.
+       */
       readonly itemId?: string | null
+      /**
+       * Encrypted reasoning content that can be sent back in later requests.
+       */
       readonly encryptedContent?: string | null
     } | null
   }
 
+  /**
+   * OpenAI-compatible metadata emitted for a streamed reasoning delta.
+   */
   export interface ReasoningDeltaPartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific metadata returned for the streamed reasoning delta.
+     */
     readonly openai?: {
+      /**
+       * The OpenAI item ID associated with the reasoning part.
+       */
       readonly itemId?: string | null
     } | null
   }
 
+  /**
+   * OpenAI-compatible metadata emitted when a streamed reasoning part ends.
+   */
   export interface ReasoningEndPartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific metadata returned for the streamed reasoning end.
+     */
     readonly openai?: {
+      /**
+       * The OpenAI item ID associated with the reasoning part.
+       */
       readonly itemId?: string | null
+      /**
+       * Encrypted reasoning content that can be sent back in later requests.
+       */
       readonly encryptedContent?: string
     } | null
   }
 
+  /**
+   * OpenAI-compatible metadata attached to tool-call response parts.
+   */
   export interface ToolCallPartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific metadata returned for the tool call.
+     */
     readonly openai?: {
+      /**
+       * The OpenAI item ID associated with the tool call.
+       */
       readonly itemId?: string | null
     } | null
   }
 
+  /**
+   * OpenAI-compatible metadata attached to document source citations.
+   */
   export interface DocumentSourcePartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific citation metadata for OpenAI-compatible APIs.
+     */
     readonly openai?:
       | {
+        /**
+         * Identifies a citation to an uploaded file.
+         */
         readonly type: "file_citation"
         /**
          * The index of the file in the list of files.
@@ -261,6 +384,9 @@ declare module "effect/unstable/ai/Response" {
         readonly fileId: string
       }
       | {
+        /**
+         * Identifies a citation to a generated file path.
+         */
         readonly type: "file_path"
         /**
          * The index of the file in the list of files.
@@ -272,6 +398,9 @@ declare module "effect/unstable/ai/Response" {
         readonly fileId: string
       }
       | {
+        /**
+         * Identifies a citation to a file inside a container.
+         */
         readonly type: "container_file_citation"
         /**
          * The ID of the file.
@@ -285,8 +414,17 @@ declare module "effect/unstable/ai/Response" {
       | null
   }
 
+  /**
+   * OpenAI-compatible metadata attached to URL source citations.
+   */
   export interface UrlSourcePartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific URL citation metadata for OpenAI-compatible APIs.
+     */
     readonly openai?: {
+      /**
+       * Identifies a citation to a URL.
+       */
       readonly type: "url_citation"
       /**
        * The index of the first character of the URL citation in the message.
@@ -299,8 +437,17 @@ declare module "effect/unstable/ai/Response" {
     } | null
   }
 
+  /**
+   * OpenAI-compatible metadata attached to finish response parts.
+   */
   export interface FinishPartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific metadata returned when generation finishes.
+     */
     readonly openai?: {
+      /**
+       * The service tier reported by the OpenAI-compatible provider.
+       */
       readonly serviceTier?: "default" | "auto" | "flex" | "scale" | "priority" | null
     } | null
   }

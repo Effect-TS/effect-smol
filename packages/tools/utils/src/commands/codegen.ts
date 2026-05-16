@@ -8,6 +8,14 @@ import * as Glob from "../Glob.ts"
 
 const CodegenLayer = Layer.provideMerge(Codegen.layer, Glob.layer)
 
+/**
+ * CLI command that regenerates annotated barrel files.
+ *
+ * The command scans `cwd` for files matching `pattern`, finds `@barrel` annotations, and rewrites each annotated barrel with generated exports from matching modules.
+ *
+ * @category commands
+ * @since 1.0.0
+ */
 export const codegen = Command.make("codegen", {
   cwd: Flag.directory("cwd", { mustExist: true }).pipe(Flag.withDefault(".")),
   pattern: Flag.string("pattern").pipe(Flag.withDefault("src/**/index.ts"))

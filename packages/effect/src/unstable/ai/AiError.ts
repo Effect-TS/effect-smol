@@ -1296,12 +1296,12 @@ export class ToolkitRequiredError extends Schema.ErrorClass<ToolkitRequiredError
  * import { AiError } from "effect/unstable/ai"
  *
  * const error = new AiError.InvalidUserInputError({
- *   description: "Unsupported media type 'video/mp4'. Supported types: image/*, application/pdf, text/plain"
+ *   description: "Unsupported media type 'video/mp4'. Supported types include images, application/pdf, text/plain"
  * })
  *
  * console.log(error.isRetryable) // false
  * console.log(error.message)
- * // "Invalid user input: Unsupported media type 'video/mp4'. Supported types: image/*, application/pdf, text/plain"
+ * // "Invalid user input: Unsupported media type 'video/mp4'. Supported types include images, application/pdf, text/plain"
  * ```
  *
  * @category reason

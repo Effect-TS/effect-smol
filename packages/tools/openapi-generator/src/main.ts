@@ -78,6 +78,13 @@ const root = Command.make("openapigen", { spec, format, name, patch }).pipe(
   )
 )
 
+/**
+ * Runs the OpenAPI generator command-line program.
+ *
+ * The command reads an OpenAPI specification, optionally applies JSON patches,
+ * generates source code in the selected format, writes any generation warnings
+ * to stderr, and prints the generated source to stdout.
+ */
 export const run: Effect.Effect<void, CliError.CliError, Command.Environment> = Command.run(root, {
   version: "0.0.0"
 })

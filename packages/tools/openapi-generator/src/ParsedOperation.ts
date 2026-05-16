@@ -7,6 +7,9 @@ import type {
   OpenAPISpecServer
 } from "effect/unstable/httpapi/OpenApi"
 
+/**
+ * Root OpenAPI metadata preserved for generated client and HttpApi output.
+ */
 export interface ParsedOpenApiMetadata {
   readonly title: string
   readonly version: string
@@ -16,12 +19,18 @@ export interface ParsedOpenApiMetadata {
   readonly servers: ReadonlyArray<OpenAPISpecServer> | undefined
 }
 
+/**
+ * Tag metadata used to group and annotate generated operations.
+ */
 export interface ParsedOpenApiTag {
   readonly name: string
   readonly description: string | undefined
   readonly externalDocs: OpenAPISpecExternalDocs | undefined
 }
 
+/**
+ * Supported security scheme extracted from an OpenAPI components section.
+ */
 export interface ParsedOpenApiSecurityScheme {
   readonly name: string
   readonly type: "basic" | "bearer" | "apiKey"
@@ -31,6 +40,9 @@ export interface ParsedOpenApiSecurityScheme {
   readonly in: "header" | "query" | "cookie" | undefined
 }
 
+/**
+ * Normalized OpenAPI document consumed by the generator renderers.
+ */
 export interface ParsedOpenApi {
   readonly metadata: ParsedOpenApiMetadata
   readonly tags: ReadonlyArray<ParsedOpenApiTag>
@@ -38,6 +50,9 @@ export interface ParsedOpenApi {
   readonly operations: ReadonlyArray<ParsedOperation>
 }
 
+/**
+ * Documentation and lifecycle metadata associated with an operation.
+ */
 export interface ParsedOperationMetadata {
   readonly summary: string | undefined
   readonly description: string | undefined
@@ -45,6 +60,9 @@ export interface ParsedOperationMetadata {
   readonly externalDocs: OpenAPISpecExternalDocs | undefined
 }
 
+/**
+ * Resolved OpenAPI parameter grouped by where it appears in the request.
+ */
 export interface ParsedOperationParameter {
   readonly name: string
   readonly in: "path" | "query" | "header" | "cookie"
@@ -53,11 +71,17 @@ export interface ParsedOperationParameter {
   readonly schema: {}
 }
 
+/**
+ * Summary of the request body declaration before per-media schemas are rendered.
+ */
 export interface ParsedOperationRequestBody {
   readonly required: boolean
   readonly contentTypes: Array<string>
 }
 
+/**
+ * Encoding strategy the generator can use for a request or response media type.
+ */
 export type ParsedOperationMediaTypeEncoding =
   | "json"
   | "multipart"
@@ -65,12 +89,18 @@ export type ParsedOperationMediaTypeEncoding =
   | "text"
   | "binary"
 
+/**
+ * Media type whose schema can be represented in generated Effect code.
+ */
 export interface ParsedOperationMediaTypeSchema {
   readonly contentType: string
   readonly encoding: ParsedOperationMediaTypeEncoding
   readonly schema: string
 }
 
+/**
+ * Parsed response metadata together with generated schema references.
+ */
 export interface ParsedOperationResponse {
   readonly status: string
   readonly description: string | undefined
@@ -80,8 +110,14 @@ export interface ParsedOperationResponse {
   readonly representable: ReadonlyArray<ParsedOperationMediaTypeSchema>
 }
 
+/**
+ * Resolved security requirement applied to a parsed operation.
+ */
 export type ParsedOperationSecurityRequirement = Readonly<OpenAPISecurityRequirement>
 
+/**
+ * Normalized operation model shared by all OpenAPI generator backends.
+ */
 export interface ParsedOperation {
   readonly id: string
   readonly operationId: string | undefined
@@ -125,6 +161,9 @@ export interface ParsedOperation {
   readonly binaryResponse: boolean
 }
 
+/**
+ * Creates a mutable operation accumulator populated with parser defaults.
+ */
 export const makeDeepMutable = (options: {
   readonly id: string
   readonly method: OpenAPISpecMethodName

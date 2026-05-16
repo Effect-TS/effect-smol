@@ -57,43 +57,164 @@ export type OpenAiRateLimitMetadata = OpenAiErrorMetadata & {
 }
 
 declare module "effect/unstable/ai/AiError" {
+  /**
+   * OpenAI metadata attached to `RateLimitError` values.
+   *
+   * Captures OpenAI error details together with rate limit header information
+   * from responses where the provider rejected the request because a limit was
+   * reached.
+   *
+   * @category provider options
+   * @since 1.0.0
+   */
   export interface RateLimitErrorMetadata {
+    /**
+     * OpenAI-specific details for the rate limit response.
+     */
     readonly openai?: OpenAiRateLimitMetadata | null
   }
 
+  /**
+   * OpenAI metadata attached to `QuotaExhaustedError` values.
+   *
+   * Preserves provider error details for failures caused by exhausted account,
+   * billing, or usage quota.
+   *
+   * @category provider options
+   * @since 1.0.0
+   */
   export interface QuotaExhaustedErrorMetadata {
+    /**
+     * OpenAI-specific details for the quota exhaustion response.
+     */
     readonly openai?: OpenAiErrorMetadata | null
   }
 
+  /**
+   * OpenAI metadata attached to `AuthenticationError` values.
+   *
+   * Preserves provider error details for failed API key, authorization, or
+   * permission checks.
+   *
+   * @category provider options
+   * @since 1.0.0
+   */
   export interface AuthenticationErrorMetadata {
+    /**
+     * OpenAI-specific details for the authentication failure.
+     */
     readonly openai?: OpenAiErrorMetadata | null
   }
 
+  /**
+   * OpenAI metadata attached to `ContentPolicyError` values.
+   *
+   * Preserves provider error details when OpenAI rejects input or output because
+   * it violates a content policy.
+   *
+   * @category provider options
+   * @since 1.0.0
+   */
   export interface ContentPolicyErrorMetadata {
+    /**
+     * OpenAI-specific details for the content policy response.
+     */
     readonly openai?: OpenAiErrorMetadata | null
   }
 
+  /**
+   * OpenAI metadata attached to `InvalidRequestError` values.
+   *
+   * Preserves provider error details for malformed requests, unsupported
+   * parameters, or other request validation failures reported by OpenAI.
+   *
+   * @category provider options
+   * @since 1.0.0
+   */
   export interface InvalidRequestErrorMetadata {
+    /**
+     * OpenAI-specific details for the invalid request response.
+     */
     readonly openai?: OpenAiErrorMetadata | null
   }
 
+  /**
+   * OpenAI metadata attached to `InternalProviderError` values.
+   *
+   * Preserves provider error details for OpenAI-side failures such as transient
+   * server errors.
+   *
+   * @category provider options
+   * @since 1.0.0
+   */
   export interface InternalProviderErrorMetadata {
+    /**
+     * OpenAI-specific details for the internal provider response.
+     */
     readonly openai?: OpenAiErrorMetadata | null
   }
 
+  /**
+   * OpenAI metadata attached to `InvalidOutputError` values.
+   *
+   * Preserves provider error details when an OpenAI response cannot be parsed or
+   * validated as the expected output.
+   *
+   * @category provider options
+   * @since 1.0.0
+   */
   export interface InvalidOutputErrorMetadata {
+    /**
+     * OpenAI-specific details for the invalid output response.
+     */
     readonly openai?: OpenAiErrorMetadata | null
   }
 
+  /**
+   * OpenAI metadata attached to `StructuredOutputError` values.
+   *
+   * Preserves provider error details when OpenAI returns content that does not
+   * satisfy the requested structured output schema.
+   *
+   * @category provider options
+   * @since 1.0.0
+   */
   export interface StructuredOutputErrorMetadata {
+    /**
+     * OpenAI-specific details for the structured output failure.
+     */
     readonly openai?: OpenAiErrorMetadata | null
   }
 
+  /**
+   * OpenAI metadata attached to `UnsupportedSchemaError` values.
+   *
+   * Preserves provider error details when an unsupported schema failure is
+   * associated with an OpenAI response.
+   *
+   * @category provider options
+   * @since 1.0.0
+   */
   export interface UnsupportedSchemaErrorMetadata {
+    /**
+     * OpenAI-specific details for the unsupported schema failure.
+     */
     readonly openai?: OpenAiErrorMetadata | null
   }
 
+  /**
+   * OpenAI metadata attached to `UnknownError` values.
+   *
+   * Preserves provider error details for OpenAI failures that do not map cleanly
+   * to a more specific AI error category.
+   *
+   * @category provider options
+   * @since 1.0.0
+   */
   export interface UnknownErrorMetadata {
+    /**
+     * OpenAI-specific details for the unclassified provider failure.
+     */
     readonly openai?: OpenAiErrorMetadata | null
   }
 }

@@ -24,6 +24,16 @@ interface SecurityRenderModel {
 
 const fallbackGroupIdentifier = "default"
 
+/**
+ * Render the import declarations required by generated HttpApi source.
+ *
+ * The schema namespace import is named by the caller so generated code can
+ * avoid collisions with symbols already present in the output module. Multipart
+ * support is included only when the parsed OpenAPI document needs it.
+ *
+ * @category code generation
+ * @since 1.0.0
+ */
 export const imports = (
   importName: string,
   options?: {
@@ -36,6 +46,16 @@ export const imports = (
     `import { HttpApi, HttpApiEndpoint, HttpApiGroup, HttpApiMiddleware, HttpApiSchema, HttpApiSecurity, OpenApi } from "effect/unstable/httpapi"`
   ].join("\n")
 
+/**
+ * Convert a parsed OpenAPI document into Effect HttpApi source code.
+ *
+ * The generated implementation contains security declarations, reusable
+ * middleware classes, HttpApi groups, endpoint definitions, and OpenAPI
+ * annotations derived from the parsed operation metadata.
+ *
+ * @category code generation
+ * @since 1.0.0
+ */
 export const toImplementation = (
   _importName: string,
   name: string,

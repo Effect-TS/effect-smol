@@ -61,42 +61,132 @@ export type AnthropicRateLimitMetadata = AnthropicErrorMetadata & {
 }
 
 declare module "effect/unstable/ai/AiError" {
+  /**
+   * Anthropic metadata attached to `RateLimitError` values.
+   *
+   * Includes request identifiers, Anthropic error types, and parsed request or
+   * token limit headers when the provider rejects a request due to rate limits.
+   *
+   * @category provider options
+   * @since 1.0.0
+   */
   export interface RateLimitErrorMetadata {
     readonly anthropic?: AnthropicRateLimitMetadata | null
   }
 
+  /**
+   * Anthropic metadata attached to `QuotaExhaustedError` values.
+   *
+   * Captures the Anthropic error type and request identifier for failures where
+   * the account or workspace has exhausted its available quota.
+   *
+   * @category provider options
+   * @since 1.0.0
+   */
   export interface QuotaExhaustedErrorMetadata {
     readonly anthropic?: AnthropicErrorMetadata | null
   }
 
+  /**
+   * Anthropic metadata attached to `AuthenticationError` values.
+   *
+   * Preserves Anthropic error details for missing, invalid, or unauthorized API
+   * credentials while keeping the error in the shared AI error model.
+   *
+   * @category provider options
+   * @since 1.0.0
+   */
   export interface AuthenticationErrorMetadata {
     readonly anthropic?: AnthropicErrorMetadata | null
   }
 
+  /**
+   * Anthropic metadata attached to `ContentPolicyError` values.
+   *
+   * Records Anthropic error details returned when a request or response is
+   * rejected by Anthropic safety or content policy enforcement.
+   *
+   * @category provider options
+   * @since 1.0.0
+   */
   export interface ContentPolicyErrorMetadata {
     readonly anthropic?: AnthropicErrorMetadata | null
   }
 
+  /**
+   * Anthropic metadata attached to `InvalidRequestError` values.
+   *
+   * Provides the Anthropic error type and request identifier for malformed or
+   * unsupported requests rejected before model execution.
+   *
+   * @category provider options
+   * @since 1.0.0
+   */
   export interface InvalidRequestErrorMetadata {
     readonly anthropic?: AnthropicErrorMetadata | null
   }
 
+  /**
+   * Anthropic metadata attached to `InternalProviderError` values.
+   *
+   * Preserves Anthropic request correlation data for provider-side failures
+   * that should be reported or investigated with Anthropic support.
+   *
+   * @category provider options
+   * @since 1.0.0
+   */
   export interface InternalProviderErrorMetadata {
     readonly anthropic?: AnthropicErrorMetadata | null
   }
 
+  /**
+   * Anthropic metadata attached to `InvalidOutputError` values.
+   *
+   * Describes Anthropic-specific context for responses that could not be
+   * decoded or interpreted as valid AI output.
+   *
+   * @category provider options
+   * @since 1.0.0
+   */
   export interface InvalidOutputErrorMetadata {
     readonly anthropic?: AnthropicErrorMetadata | null
   }
 
+  /**
+   * Anthropic metadata attached to `StructuredOutputError` values.
+   *
+   * Captures Anthropic error details for structured-output failures, including
+   * request correlation data useful when diagnosing schema-related responses.
+   *
+   * @category provider options
+   * @since 1.0.0
+   */
   export interface StructuredOutputErrorMetadata {
     readonly anthropic?: AnthropicErrorMetadata | null
   }
 
+  /**
+   * Anthropic metadata attached to `UnsupportedSchemaError` values.
+   *
+   * Provides Anthropic error details for schemas that cannot be represented by
+   * or submitted to the Anthropic API.
+   *
+   * @category provider options
+   * @since 1.0.0
+   */
   export interface UnsupportedSchemaErrorMetadata {
     readonly anthropic?: AnthropicErrorMetadata | null
   }
 
+  /**
+   * Anthropic metadata attached to `UnknownError` values.
+   *
+   * Retains the Anthropic error type and request identifier when a provider
+   * response cannot be classified as a more specific AI error.
+   *
+   * @category provider options
+   * @since 1.0.0
+   */
   export interface UnknownErrorMetadata {
     readonly anthropic?: AnthropicErrorMetadata | null
   }
