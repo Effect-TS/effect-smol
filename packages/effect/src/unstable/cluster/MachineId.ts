@@ -1,4 +1,19 @@
 /**
+ * The `MachineId` module provides the branded integer identifier used to
+ * distinguish cluster runners when generating distributed ids and coordinating
+ * runner state.
+ *
+ * **When to use**
+ *
+ * - Persisting or exchanging the machine id assigned to a cluster runner
+ * - Passing a runner-specific identity to the cluster snowflake generator
+ * - Decoding machine ids from storage while keeping them distinct from plain numbers
+ *
+ * **Gotchas**
+ *
+ * - Machine ids must be unique for concurrently active runners that generate snowflakes
+ * - Snowflake ids store the machine component in 10 bits, so only the value modulo 1024 is encoded
+ *
  * @since 4.0.0
  */
 import * as Schema from "../../Schema.ts"

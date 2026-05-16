@@ -1,4 +1,21 @@
 /**
+ * The `ScopedAtom` module provides a small React integration for creating atom
+ * instances that are scoped to a component subtree. A scoped atom bundles a
+ * React provider, context, and `use` accessor so each mounted provider owns its
+ * own atom instance instead of sharing a single module-level atom.
+ *
+ * Use `ScopedAtom` when an atom needs to be isolated per feature, route,
+ * component instance, test harness, or provider input. The provider may receive
+ * an initial `value` that is passed to the atom factory, making it useful for
+ * state that should be seeded from React props while still being consumed by the
+ * atom hooks in descendants.
+ *
+ * **Gotchas**
+ *
+ * - `use` must be called under the matching provider or it throws.
+ * - The provider creates the atom once for its lifetime; changing the provider
+ *   `value` prop after mount does not recreate the atom.
+ *
  * @since 1.0.0
  */
 "use client"

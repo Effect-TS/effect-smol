@@ -1,4 +1,22 @@
 /**
+ * The `EntityAddress` module defines the value used to locate an entity within
+ * a cluster. An address combines the entity type, entity id, and shard id so
+ * messages, persisted envelopes, workflow executions, and entity managers can
+ * agree on the same routing target.
+ *
+ * **Common tasks**
+ *
+ * - Build an address after resolving an entity id to a shard with `Sharding`
+ * - Attach an address to cluster envelopes and persisted messages
+ * - Compare or hash addresses when tracking active or resuming entities
+ *
+ * **Gotchas**
+ *
+ * - The shard id is part of the address identity; the same entity type and id
+ *   on a different shard is a different address.
+ * - Entity ids should be routed through the same shard group logic used by the
+ *   entity definition so messages are sent to the runner that owns the shard.
+ *
  * @since 4.0.0
  */
 import * as Equal from "../../Equal.ts"

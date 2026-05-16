@@ -1,4 +1,30 @@
 /**
+ * The `AnthropicLanguageModel` module provides the Anthropic implementation of
+ * Effect AI's `LanguageModel` service. It turns Effect AI prompts, tools, files,
+ * reasoning parts, and provider options into Anthropic Messages API requests,
+ * and converts Anthropic responses and streams back into Effect AI response
+ * parts with Anthropic-specific metadata.
+ *
+ * **Common tasks**
+ *
+ * - Create an Anthropic-backed model with {@link model}
+ * - Build or provide a `LanguageModel.LanguageModel` layer with {@link layer}
+ *   or {@link make}
+ * - Supply default request options through {@link Config}
+ * - Override configuration for a scoped operation with {@link withConfigOverride}
+ * - Attach Anthropic provider options for prompt caching, document citations,
+ *   reasoning signatures, MCP metadata, and server-side tools
+ *
+ * **Gotchas**
+ *
+ * - Prompt files are translated to Anthropic image or document blocks; only the
+ *   supported media types can be sent to the provider.
+ * - Structured output support depends on the selected Claude model, so this
+ *   module may use Anthropic's native structured output or fall back to a JSON
+ *   response tool.
+ * - Some features require Anthropic beta headers, which are added
+ *   automatically from the selected tools, files, and model capabilities.
+ *
  * @since 1.0.0
  */
 /** @effect-diagnostics preferSchemaOverJson:skip-file */

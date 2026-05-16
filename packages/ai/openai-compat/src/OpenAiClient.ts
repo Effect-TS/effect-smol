@@ -1,4 +1,27 @@
 /**
+ * The `OpenAiClient` module provides an Effect service for calling
+ * OpenAI-compatible chat completions and embeddings APIs. It builds on the
+ * Effect HTTP client, adds authentication and OpenAI header handling, and
+ * exposes typed helpers for regular responses, server-sent event streaming, and
+ * embedding requests.
+ *
+ * **Common tasks**
+ *
+ * - Create a client service directly with {@link make}
+ * - Provide the service as a layer with {@link layer} or {@link layerConfig}
+ * - Send non-streaming chat completion requests with `createResponse`
+ * - Send streaming chat completion requests with `createResponseStream`
+ * - Generate embeddings with `createEmbedding`
+ * - Reuse the exported request and response types when integrating compatible providers
+ *
+ * **Gotchas**
+ *
+ * - The default base URL is `https://api.openai.com/v1`; set `apiUrl` for other
+ *   OpenAI-compatible providers.
+ * - `createResponseStream` forces `stream: true` and requests usage events with
+ *   `stream_options.include_usage`.
+ * - HTTP and schema decoding failures are mapped into `AiError`.
+ *
  * @since 1.0.0
  */
 import * as Array from "effect/Array"

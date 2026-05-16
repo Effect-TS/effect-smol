@@ -1,4 +1,19 @@
 /**
+ * The `ShardingConfig` module defines the configuration used by a cluster
+ * runner to participate in Effect Cluster sharding. It describes how a runner is
+ * addressed by other runners, which shard groups it can host, how many shards
+ * are assigned per group, and the timing settings used for locks, assignment
+ * refreshes, health checks, entity lifecycle, and message polling.
+ *
+ * Use this module when wiring a sharded application locally with
+ * {@link layer}, loading deployment settings from environment variables with
+ * {@link layerFromEnv}, or overriding selected defaults for tests and
+ * single-node development. In production, keep cluster-wide values such as
+ * `shardsPerGroup` and shard groups consistent across runners, choose stable
+ * externally reachable runner addresses, and tune lock expiration and refresh
+ * intervals to match the storage backend and shutdown behavior of the
+ * deployment platform.
+ *
  * @since 4.0.0
  */
 import * as Config from "../../Config.ts"

@@ -1,4 +1,25 @@
 /**
+ * The `ClusterError` module defines the typed error values used by the
+ * unstable cluster runtime when routing messages to entities, coordinating
+ * runners, and persisting mailbox work.
+ *
+ * These errors are useful when implementing cluster transports, runner
+ * supervision, mailbox storage, and entity request handling. They make common
+ * distributed-system failures explicit: a message may reach a runner that no
+ * longer owns the entity, a runner may be unavailable or unregistered, a
+ * payload may fail to decode, persistence may fail, a mailbox may be at
+ * capacity, or an envelope may already be in progress.
+ *
+ * **Gotchas**
+ *
+ * - Entity ownership and runner availability can change while messages are in
+ *   flight, so routing errors should generally be treated as retryable or
+ *   recoverable by higher-level cluster logic.
+ * - `MalformedMessage` points to a schema/serialization boundary failure,
+ *   while `PersistenceError` preserves failures from durable mailbox storage.
+ * - `AlreadyProcessingMessage` protects an entity mailbox from processing the
+ *   same envelope concurrently.
+ *
  * @since 4.0.0
  */
 import * as Cause from "../../Cause.ts"

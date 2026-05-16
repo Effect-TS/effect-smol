@@ -1,4 +1,26 @@
 /**
+ * The `OpenRouterClient` module provides an Effect service for calling
+ * OpenRouter's chat completions API. It wraps the generated OpenRouter HTTP
+ * client with Effect-native constructors, layers, typed errors, and streaming
+ * support.
+ *
+ * **Common tasks**
+ *
+ * - Build a client from explicit options with {@link make}
+ * - Provide the client to an application with {@link layer} or {@link layerConfig}
+ * - Create non-streaming chat completions with {@link Service.createChatCompletion}
+ * - Create server-sent event chat completion streams with
+ *   {@link Service.createChatCompletionStream}
+ * - Customize authentication, base URL, OpenRouter ranking headers, or the
+ *   underlying HTTP client through {@link Options}
+ *
+ * **Gotchas**
+ *
+ * - Streaming requests are sent directly to `/chat/completions` with `stream`
+ *   and `stream_options.include_usage` enabled by this module.
+ * - OpenRouter API failures, HTTP client failures, and schema decoding failures
+ *   are mapped into `AiError` values for the exported service methods.
+ *
  * @since 1.0.0
  */
 import type * as Config from "effect/Config"

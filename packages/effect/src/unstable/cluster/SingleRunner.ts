@@ -1,4 +1,26 @@
 /**
+ * The `SingleRunner` module provides a ready-to-use layer for running the
+ * cluster sharding services in a single process. It wires together sharding,
+ * message storage, runner registration, runner health, and sharding
+ * configuration so durable entities and workflows can run without a fleet of
+ * external runners.
+ *
+ * **Common tasks**
+ *
+ * - Start a local or embedded cluster runner backed by SQL message storage
+ * - Run durable entities and workflows in development, tests, or small
+ *   single-node deployments
+ * - Choose SQL runner storage for persistence or in-memory runner storage for
+ *   short-lived scenarios
+ * - Override sharding configuration while still using the standard
+ *   environment-based defaults
+ *
+ * **Gotchas**
+ *
+ * - The layer still requires a `SqlClient` because message storage is SQL-backed
+ * - Runner health and runner coordination are no-op implementations, so this is
+ *   for single-node use rather than multi-runner cluster coordination
+ *
  * @since 4.0.0
  */
 import * as Layer from "effect/Layer"

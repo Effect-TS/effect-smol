@@ -1,4 +1,34 @@
 /**
+ * The `Runners` module defines the service used by the unstable cluster runtime
+ * to communicate with processes that host entity shards. It is the transport
+ * boundary between sharding decisions and runner execution: callers can ping a
+ * runner, send requests or envelopes, notify a runner that persisted work is
+ * available, and report an address as unavailable.
+ *
+ * The default implementation wraps lower-level runner callbacks with cluster
+ * message semantics. Persisted messages are written to `MessageStorage` before
+ * delivery, duplicate requests can resume from stored replies, and local sends
+ * can optionally serialize and deserialize messages to exercise the same path as
+ * remote delivery.
+ *
+ * **Common tasks**
+ *
+ * - Provide runner communication with {@link layerRpc}
+ * - Build a custom implementation with {@link make}
+ * - Use {@link makeNoop} or {@link layerNoop} when no remote runners are
+ *   available
+ * - Define runner-to-runner protocol support with {@link Rpcs} and
+ *   {@link RpcClientProtocol}
+ *
+ * **Gotchas**
+ *
+ * - `notify` is only for RPCs annotated as persisted; non-persisted messages
+ *   should be sent directly.
+ * - Failed remote sends can fall back to reading replies from storage, so reply
+ *   polling and `entityReplyPollInterval` affect recovery latency.
+ * - Unavailable runners invalidate cached RPC clients, but shard ownership and
+ *   rebalancing are coordinated by the sharding layer rather than this module.
+ *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"

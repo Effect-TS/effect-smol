@@ -1,4 +1,27 @@
 /**
+ * The `RunnerStorage` module defines the persistence boundary used by clustered
+ * runners to register themselves and coordinate shard ownership.
+ *
+ * Implementations keep track of runner metadata, health, machine ids, and shard
+ * locks so a cluster can rebalance work as runners join, leave, or lose their
+ * leases. Production adapters usually implement the string-encoded interface and
+ * adapt it with {@link makeEncoded}; tests and local setups can use
+ * {@link makeMemory}.
+ *
+ * **Common tasks**
+ *
+ * - Register and unregister runners in a shared store
+ * - Read runner health for scheduling and rebalancing decisions
+ * - Acquire, refresh, and release shard locks for distributed processing
+ * - Bridge typed cluster values to string or numeric database representations
+ *
+ * **Gotchas**
+ *
+ * - Shard acquisition may be partial; callers must use the returned shard list
+ * - Refreshing leases is part of keeping shard ownership during rebalancing
+ * - The in-memory implementation is process-local and does not persist runner
+ *   registrations or locks across restarts
+ *
  * @since 4.0.0
  */
 import { isArrayNonEmpty, type NonEmptyArray } from "../../Array.ts"

@@ -1,4 +1,32 @@
 /**
+ * The `Command` module provides the core building block for defining and
+ * running Effect-based command-line applications. A `Command` combines a name,
+ * typed flags and positional arguments, optional subcommands, metadata for help
+ * output, and an effectful handler.
+ *
+ * **Common tasks**
+ *
+ * - Create commands with {@link make}
+ * - Add handlers with {@link withHandler}
+ * - Build nested command trees with {@link withSubcommands}
+ * - Share parent flags with subcommands using {@link withSharedFlags}
+ * - Add command-scoped global flags with {@link withGlobalFlags}
+ * - Attach help metadata with {@link withDescription}, {@link withShortDescription},
+ *   {@link withAlias}, and {@link withExamples}
+ * - Provide handler dependencies with {@link provide}, {@link provideSync},
+ *   {@link provideEffect}, and {@link provideEffectDiscard}
+ * - Execute commands with {@link run} or test them with {@link runWith}
+ *
+ * **Gotchas**
+ *
+ * - `withSharedFlags` accepts only flags, not positional arguments, and the
+ *   parsed values are available to descendants by yielding the parent command.
+ * - Shared flags may be written before or after the selected subcommand name.
+ * - Duplicate flags across command scopes are rejected so parsing and help
+ *   output remain unambiguous.
+ * - `runWith` is the preferred entry point for tests because it accepts an
+ *   explicit argument array instead of reading from the `Stdio` service.
+ *
  * @since 4.0.0
  */
 import type { NonEmptyArray, NonEmptyReadonlyArray } from "../../Array.ts"

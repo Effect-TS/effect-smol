@@ -1,4 +1,28 @@
 /**
+ * The `MessageStorage` module defines the persistence boundary used by Effect
+ * Cluster to store mailbox messages and replies. Storage implementations keep
+ * requests, envelopes, and reply chunks durable enough for runners to recover
+ * work after restarts, replay unprocessed messages for assigned shards, and
+ * deliver replies back to locally registered handlers.
+ *
+ * **Common use cases**
+ *
+ * - Persist outgoing requests and control envelopes before delivery
+ * - Detect duplicate requests by primary key and resume from an existing reply
+ * - Query unprocessed messages when shards are assigned to a runner
+ * - Store, load, and clear replies for request streams and completions
+ * - Reset or clear mailbox state during shard or address lifecycle changes
+ *
+ * **Gotchas**
+ *
+ * - Implementations should make save and reply operations transactional when
+ *   possible so recovery does not observe partial mailbox state
+ * - Duplicate detection depends on stable request primary keys and persisted
+ *   request ids
+ * - Reply handlers are local process state; persisted replies may need to be
+ *   loaded again after restarts or reassignment
+ * - Concurrent runners must only process messages for shards they currently own
+ *
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"

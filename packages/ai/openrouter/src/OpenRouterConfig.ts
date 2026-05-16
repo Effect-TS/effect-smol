@@ -1,4 +1,22 @@
 /**
+ * The `OpenRouterConfig` module provides contextual configuration for the
+ * OpenRouter provider integration. It is used to customize the HTTP client that
+ * backs OpenRouter requests without rebuilding the provider layer itself.
+ *
+ * Use {@link withClientTransform} when a single effect, workflow, or scoped
+ * portion of an application needs to add cross-cutting HTTP client behavior
+ * such as request logging, retries, proxy routing, additional headers, or test
+ * doubles. The configuration is read from the current Effect context, so the
+ * transform only applies where the returned effect is run with that context.
+ *
+ * **Gotchas**
+ *
+ * - Each call to {@link withClientTransform} replaces the current client
+ *   transform for the provided effect; compose transforms manually when both
+ *   behaviors should apply.
+ * - The transform receives and returns an `HttpClient`, so it should preserve
+ *   the OpenRouter client contract while adding behavior around it.
+ *
  * @since 1.0.0
  */
 import * as Context from "effect/Context"

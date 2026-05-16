@@ -1,4 +1,27 @@
 /**
+ * The `EntityResource` module provides helpers for acquiring resources inside a
+ * cluster entity and keeping them available across entity restarts. It is useful
+ * for long-lived resources tied to an entity address, such as external
+ * processes, network clients, Kubernetes Pods, or other handles that should not
+ * be torn down during routine shard movement.
+ *
+ * **Common tasks**
+ *
+ * - Create a reusable entity-scoped resource with {@link make}
+ * - Keep an entity alive while the resource is acquired
+ * - Explicitly release the resource with `EntityResource.close`
+ * - Attach cleanup work to the resource close scope with {@link CloseScope}
+ * - Create and manage a Kubernetes Pod resource with {@link makeK8sPod}
+ *
+ * **Lifecycle gotchas**
+ *
+ * - Resources are retained by an `RcRef` and are only fully released after
+ *   `idleTimeToLive` expires or `close` is called
+ * - The default idle time to live is infinite, so resources remain alive until
+ *   explicitly closed
+ * - `CloseScope` is separate from the caller scope and is not closed by entity
+ *   restarts, shard movement, or node shutdown finalization
+ *
  * @since 4.0.0
  */
 import type * as v1 from "kubernetes-types/core/v1.d.ts"

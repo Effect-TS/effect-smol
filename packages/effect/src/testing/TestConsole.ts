@@ -1,4 +1,14 @@
 /**
+ * The `TestConsole` module provides a test implementation of the `Console`
+ * service that records console calls instead of writing them to the host
+ * environment. It is useful when testing workflows that use `Console.log` or
+ * `Console.error` and need to assert on the produced output.
+ *
+ * Use {@link layer} to provide the test console to an effect, then inspect
+ * captured output with {@link logLines} and {@link errorLines}. Because console
+ * operations are service-based effects, programs under test must be run with
+ * this layer for their output to be captured.
+ *
  * @since 4.0.0
  */
 import * as Array from "../Array.ts"

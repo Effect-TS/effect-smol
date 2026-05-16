@@ -1,4 +1,25 @@
 /**
+ * The `SocketRunner` module wires cluster runner RPCs to socket transports. It
+ * provides a complete runner layer that serves RPC handlers on a `SocketServer`
+ * and installs `Sharding` and `Runners` clients for talking to other runners
+ * through the socket RPC protocol.
+ *
+ * **Common tasks**
+ *
+ * - Run a cluster worker over TCP or Unix sockets with {@link layer}
+ * - Connect to other runners while exposing `Sharding` and `Runners` clients
+ * - Embed a client-only cluster participant with {@link layerClientOnly} when
+ *   the process should send messages but not receive shard assignments
+ *
+ * **Transport gotchas**
+ *
+ * - The server listen address comes from the provided `SocketServer` and is
+ *   logged when {@link layer} starts
+ * - TCP addresses are logged as `hostname:port`, while Unix socket addresses
+ *   are logged as their filesystem path
+ * - The client-only layer does not start a socket server; provide the full
+ *   layer when the process must accept runner RPCs
+ *
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"

@@ -1,4 +1,33 @@
 /**
+ * SQL-backed storage for Effect Cluster runner metadata and shard ownership.
+ *
+ * The `SqlRunnerStorage` module builds a `RunnerStorage` implementation from a
+ * `SqlClient`, creating the runner and lock tables it needs using the configured
+ * table prefix. It is used by clustered applications that need runner
+ * registration, health tracking, shard acquisition, refresh, and release to be
+ * coordinated through an external database instead of in-memory state.
+ *
+ * **Common tasks**
+ *
+ * - Provide the default storage layer with {@link layer}
+ * - Use {@link layerWith} when multiple clusters share the same database and
+ *   need distinct table prefixes
+ * - Create a storage implementation directly with {@link make} for custom layer
+ *   composition
+ *
+ * **Gotchas**
+ *
+ * - Runner heartbeats and persisted shard locks expire according to
+ *   `ShardingConfig.shardLockExpiration`; stale rows may be reused or cleaned up
+ *   by later storage operations.
+ * - PostgreSQL and MySQL use advisory locks by default, keeping shard ownership
+ *   tied to a reserved database connection. Set
+ *   `ShardingConfig.shardLockDisableAdvisory` when persisted lock rows should be
+ *   used instead.
+ * - The selected table prefix controls the generated `runners` and `locks`
+ *   table names, so changing it points the cluster at a different storage
+ *   namespace.
+ *
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"

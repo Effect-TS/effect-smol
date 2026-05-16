@@ -1,4 +1,16 @@
 /**
+ * The `ResponseIdTracker` module provides a small service for reusing provider
+ * response IDs across incremental language model calls. It records which prompt
+ * message objects were sent for a provider response, then prepares a later
+ * prompt by returning the recognized `previousResponseId` together with only
+ * the new messages that should be sent.
+ *
+ * Use this when integrating providers that support continuing a conversation
+ * from a prior response ID instead of resending the entire prompt. The tracker
+ * is intentionally identity-based and mutable: it only recognizes the same
+ * message objects that were previously marked, and it clears its state when a
+ * prompt can no longer be matched safely.
+ *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"

@@ -1,4 +1,22 @@
 /**
+ * The `AnthropicConfig` module provides contextual configuration for the
+ * Anthropic AI provider integration. It is used to customize the generated
+ * Anthropic HTTP client without changing individual request code.
+ *
+ * **Common tasks**
+ *
+ * - Provide a shared `HttpClient` transformation for Anthropic requests
+ * - Add provider-specific concerns such as request instrumentation, proxying,
+ *   retries, or header manipulation
+ * - Scope a client transformation to a single effect with {@link withClientTransform}
+ *
+ * **Gotchas**
+ *
+ * - Configuration is read from the Effect context, so overrides only apply to
+ *   effects run inside the configured scope
+ * - `withClientTransform` replaces the current `transformClient` value while
+ *   preserving any other Anthropic configuration fields
+ *
  * @since 1.0.0
  */
 import * as Context from "effect/Context"

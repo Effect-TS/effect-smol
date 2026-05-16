@@ -1,4 +1,24 @@
 /**
+ * The `OpenAiConfig` module provides shared configuration for clients that
+ * talk to OpenAI-compatible APIs. It is used to customize the HTTP client
+ * wiring around a provider without changing the higher-level model,
+ * embeddings, or tool-calling APIs that consume the client.
+ *
+ * **Common tasks**
+ *
+ * - Install a client transform with {@link withClientTransform}
+ * - Add provider-specific HTTP behavior, such as headers, retries, proxies, or
+ *   instrumentation
+ * - Read the active configuration from the Effect context when implementing
+ *   OpenAI-compatible integrations
+ *
+ * **Gotchas**
+ *
+ * - The transform receives and returns an `HttpClient`, so it should preserve
+ *   the existing client behavior unless it intentionally replaces it
+ * - Configuration is provided through Effect context and is scoped to the
+ *   effect that receives the service
+ *
  * @since 1.0.0
  */
 import * as Context from "effect/Context"

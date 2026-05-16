@@ -1,4 +1,18 @@
 /**
+ * The `SingletonAddress` module defines the address used by cluster sharding to
+ * identify a registered singleton. A singleton address combines the singleton
+ * name with the `ShardId` that owns it, giving the runtime a stable key for
+ * registration events, equality checks, hashing, and runner-local fiber
+ * tracking.
+ *
+ * Use this module when observing singleton registrations or working with
+ * sharding internals that need to tell which shard currently owns a singleton.
+ * The shard id is derived from the singleton name and shard group at
+ * registration time, so changing either value changes ownership and routing.
+ * Ownership can also move as shard locks are acquired or released, so an address
+ * identifies the target shard rather than guaranteeing that a particular runner
+ * is currently executing the singleton.
+ *
  * @since 4.0.0
  */
 import * as Equal from "../../Equal.ts"

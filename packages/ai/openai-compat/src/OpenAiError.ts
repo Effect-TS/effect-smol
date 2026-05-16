@@ -1,4 +1,17 @@
 /**
+ * The `OpenAiError` module defines OpenAI-specific metadata that can be
+ * attached to the shared `AiError` error types used by the AI packages. It is
+ * primarily used by OpenAI-compatible clients to preserve provider details
+ * such as error codes, error types, request IDs, and rate limit headers while
+ * still exposing errors through the provider-neutral Effect AI error model.
+ *
+ * Use this module when mapping OpenAI API failures into `AiError` values and
+ * when consumers need enough structured metadata to debug failed requests,
+ * inspect quota or rate limit responses, or correlate an error with OpenAI
+ * support. The exported types are metadata shapes only; the module augmentation
+ * makes those shapes available on the corresponding shared AI error metadata
+ * interfaces without defining new runtime error classes.
+ *
  * @since 1.0.0
  */
 

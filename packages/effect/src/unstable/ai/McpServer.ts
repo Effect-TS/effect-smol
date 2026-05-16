@@ -1,4 +1,27 @@
 /**
+ * The `McpServer` module provides Effect services and layers for building
+ * Model Context Protocol servers. It keeps track of registered tools,
+ * resources, resource templates, prompts, completions, and server
+ * notifications, then exposes them through the MCP request handlers.
+ *
+ * **Common tasks**
+ *
+ * - Start a server over stdio with {@link layerStdio}
+ * - Register HTTP routes for an existing `HttpRouter` with {@link layerHttp}
+ * - Expose Effect AI toolkits as MCP tools with {@link registerToolkit}
+ * - Register resources, resource templates, and prompts with {@link resource}
+ *   and {@link prompt}
+ * - Ask the connected MCP client for structured input with {@link elicit}
+ *
+ * **Gotchas**
+ *
+ * - Registration helpers require an `McpServer` service, usually provided by
+ *   one of this module's layers.
+ * - HTTP clients must complete MCP initialization before other requests; the
+ *   server tracks initialized sessions with the `Mcp-Session-Id` header.
+ * - Resource template parameters are decoded with the schemas embedded in the
+ *   template literal.
+ *
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"

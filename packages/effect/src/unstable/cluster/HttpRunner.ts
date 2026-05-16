@@ -1,4 +1,27 @@
 /**
+ * The `HttpRunner` module wires cluster runner RPCs to HTTP transports. It
+ * provides client protocol layers for contacting runners over HTTP or
+ * WebSocket, server-side HTTP effects for exposing runner RPC handlers, and
+ * complete layers that install those routes into an `HttpRouter`.
+ *
+ * **Common tasks**
+ *
+ * - Serve runner RPC routes with {@link layerHttp} or {@link layerWebsocket}
+ * - Configure client-only runner communication with {@link layerHttpClientOnly}
+ *   or {@link layerWebsocketClientOnly}
+ * - Use custom route paths with {@link layerHttpOptions},
+ *   {@link layerWebsocketOptions}, {@link layerClientProtocolHttp}, or
+ *   {@link layerClientProtocolWebsocket}
+ *
+ * **Transport gotchas**
+ *
+ * - Client protocol paths are appended to each runner address when building the
+ *   target URL
+ * - `https: true` switches HTTP clients from `http` to `https`, and WebSocket
+ *   clients from `ws` to `wss`
+ * - The default complete layers serve and connect at `/`; use the `Options`
+ *   variants when your runner routes live under a different path
+ *
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"

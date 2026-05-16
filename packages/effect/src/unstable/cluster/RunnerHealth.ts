@@ -1,4 +1,24 @@
 /**
+ * The `RunnerHealth` module defines the health-check service used by cluster
+ * sharding to decide whether a runner may still own its assigned shards. A
+ * runner that is reported as alive is allowed to keep processing messages,
+ * while a runner that is reported as unavailable can have its shards moved to
+ * another runner.
+ *
+ * **Common tasks**
+ *
+ * - Provide a custom {@link RunnerHealth} service for a cluster deployment
+ * - Use {@link layerPing} to check runners through the cluster runner protocol
+ * - Use {@link layerK8s} when Kubernetes pod readiness should drive health
+ * - Use {@link layerNoop} in tests or environments where runners are always considered healthy
+ *
+ * **Gotchas**
+ *
+ * - Health checks affect shard reassignment, so false negatives can move shards
+ *   away from runners that may still be processing messages
+ * - The Kubernetes implementation treats API failures as healthy to avoid
+ *   reassignment caused by a temporary control-plane outage
+ *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"

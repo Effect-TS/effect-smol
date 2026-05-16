@@ -1,4 +1,36 @@
 /**
+ * The `Entity` module defines sharded, addressable actors for Effect Cluster.
+ * An entity type pairs a stable entity name with an RPC protocol and describes
+ * how requests for individual entity ids are routed to shard groups and
+ * runners.
+ *
+ * **Mental model**
+ *
+ * - An `Entity` is the cluster-facing definition for one logical actor type
+ * - Each entity id maps deterministically to a shard group and shard id
+ * - Clients are created per entity id and send typed RPC messages through the
+ *   cluster sharding layer
+ * - Server layers register handlers or mailbox processors for the entity type
+ *
+ * **Common tasks**
+ *
+ * - Define an entity protocol with RPCs and create an entity with {@link make}
+ * - Send messages to a specific entity id with {@link Entity.client}
+ * - Register typed RPC handlers with {@link Entity.toLayer}
+ * - Process envelopes directly with {@link Entity.toLayerQueue}
+ * - Access the current entity or runner address with {@link CurrentAddress} and
+ *   {@link CurrentRunnerAddress}
+ *
+ * **Gotchas**
+ *
+ * - Entity ids are part of routing: changing id formats can move work to
+ *   different shards
+ * - Entity type names should be stable and unique within a cluster deployment
+ * - Mailbox capacity and concurrency determine back pressure and duplicate
+ *   processing behavior
+ * - Persistence, mailbox, and already-processing failures are surfaced through
+ *   the generated clients
+ *
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"

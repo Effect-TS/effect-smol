@@ -1,4 +1,32 @@
 /**
+ * The `McpSchema` module defines Effect Schema and RPC models for the Model
+ * Context Protocol (MCP). It provides the shared protocol vocabulary used by
+ * MCP clients and servers, including JSON-RPC request identifiers, metadata,
+ * capabilities, errors, resources, prompts, tools, logging, sampling,
+ * completions, roots, and elicitation.
+ *
+ * **Common tasks**
+ *
+ * - Describe MCP payloads with schemas such as {@link Resource}, {@link Tool},
+ *   {@link Prompt}, and {@link ContentBlock}
+ * - Build typed protocol handlers with request RPCs such as {@link Initialize},
+ *   {@link ListResources}, {@link ReadResource}, {@link ListTools}, and
+ *   {@link CallTool}
+ * - Work with protocol notifications such as
+ *   {@link ProgressNotification}, {@link ResourceUpdatedNotification}, and
+ *   {@link LoggingMessageNotification}
+ * - Use {@link ClientRpcs} and server RPC groups to derive encoded request,
+ *   notification, success, and failure message types
+ *
+ * **Gotchas**
+ *
+ * - MCP distinguishes absent fields from present fields whose value is
+ *   `undefined`; use {@link optional} and {@link optionalWithDefault} for
+ *   protocol fields so encoding omits undefined values consistently.
+ * - Capability objects are extensible. Known fields are modeled here, but
+ *   `experimental` and `extensions` allow implementations to advertise
+ *   additional protocol features.
+ *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"

@@ -1,4 +1,20 @@
 /**
+ * SQL-backed message storage for the unstable cluster runtime.
+ *
+ * This module persists encoded cluster envelopes and replies in SQL tables so
+ * shards can resume work after process restarts, redeliver unprocessed messages,
+ * deduplicate requests by primary key, and replay outstanding reply chunks until
+ * they are acknowledged. It is the storage implementation to use when a cluster
+ * needs durable request / reply state backed by `SqlClient` rather than an
+ * in-memory store.
+ *
+ * The storage layer runs its own migrations and creates messages, replies, and
+ * migration tables using the configured prefix (`cluster` by default). Choose a
+ * stable prefix before deploying, because changing it points the runtime at a
+ * different set of tables. Existing deployments should also keep the generated
+ * migration history table with the message tables so future schema changes can
+ * be applied consistently across supported SQL dialects.
+ *
  * @since 4.0.0
  */
 // eslint-disable effect/no-bigint-literals

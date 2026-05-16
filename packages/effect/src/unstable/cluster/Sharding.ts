@@ -1,4 +1,26 @@
 /**
+ * The `Sharding` module coordinates cluster-wide placement and delivery for
+ * entities and singletons. It hashes entity ids into shard ids, tracks which
+ * runner owns each shard, acquires local shard locks, and routes RPC messages
+ * to the runner that is responsible for the addressed entity.
+ *
+ * Use this module when building clustered services that need location
+ * transparency for stateful entities, singleton workloads that should run once
+ * per shard group, or durable message processing backed by cluster storage.
+ * Registered entity handlers are started on demand for shards owned by the
+ * current runner, while clients produced by {@link Sharding.makeClient} route
+ * requests through the sharding service instead of calling handlers directly.
+ *
+ * **Gotchas**
+ *
+ * - Shard assignment and shard acquisition are distinct: a runner may be
+ *   assigned a shard before it has acquired the storage lock for that shard.
+ * - Routing depends on the entity shard group and the configured shard count,
+ *   so changing either value affects where entity ids are placed.
+ * - Persisted messages are only read and dispatched for shards currently owned
+ *   by the local runner; shutdown and runner health changes can temporarily
+ *   move work between runners.
+ *
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"

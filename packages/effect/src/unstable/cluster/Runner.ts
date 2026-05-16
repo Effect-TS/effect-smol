@@ -1,4 +1,28 @@
 /**
+ * The `Runner` module defines the membership record used by the unstable
+ * cluster runtime to describe a process that can host entity shards.
+ *
+ * A runner combines the network address used by other runners to reach it, the
+ * shard groups it participates in, and a relative weight used when the sharding
+ * service assigns shards across the healthy runners in each group.
+ *
+ * **Common tasks**
+ *
+ * - Construct the runner registered by the local `Sharding` layer
+ * - Persist or exchange runner metadata through `RunnerStorage`
+ * - Encode and decode runner values at cluster transport or storage boundaries
+ * - Tune shard distribution by adjusting the runner's group membership and
+ *   relative weight
+ *
+ * **Gotchas**
+ *
+ * - Runner addresses must be stable and unique while a runner is registered,
+ *   because they identify the owner used for routing and shard locks.
+ * - Weights are relative within each shard group; changing weights or groups can
+ *   rebalance shard ownership as the cluster refreshes its runner view.
+ * - Runner equality and hashing are based on address and weight, so compare
+ *   `groups` explicitly when group membership is the important distinction.
+ *
  * @since 4.0.0
  */
 import * as Equal from "../../Equal.ts"

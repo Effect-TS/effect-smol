@@ -1,4 +1,28 @@
 /**
+ * The `TestClock` module provides a controllable implementation of the Effect
+ * `Clock` service for tests. Instead of waiting for real time to pass, effects
+ * that use `Effect.sleep`, timeouts, schedules, retries, and other time-based
+ * operators can be driven deterministically by advancing the test clock.
+ *
+ * **Common use cases**
+ *
+ * - Testing sleeps, delays, timeouts, debouncing, retries, and schedules without
+ *   slowing the test suite down
+ * - Advancing time with {@link adjust} or jumping to an exact timestamp with
+ *   {@link setTime}
+ * - Running a specific effect against the live clock with {@link withLive}
+ *   while the rest of the test remains under test-clock control
+ *
+ * **Testing gotchas**
+ *
+ * - Effects that sleep semantically block until the clock is advanced far
+ *   enough, so tests usually fork the time-dependent effect before calling
+ *   {@link adjust} or {@link setTime}
+ * - Scheduled sleeps are resumed in clock-time order as the test clock moves
+ *   forward
+ * - If a test uses time but never advances the `TestClock`, the module starts a
+ *   delayed warning to help identify a hanging test
+ *
  * @since 2.0.0
  */
 import * as Arr from "../Array.ts"

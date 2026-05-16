@@ -28,7 +28,8 @@
       "exclude": [
         "packages/**/src/index.ts",
         "packages/**/src/*Generated.ts",
-        "packages/**/src/internal/**"
+        "packages/**/src/internal/**",
+        "packages/**/src/**/internal/**"
       ],
       "checks": {
         "description": true,

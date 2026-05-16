@@ -1,4 +1,22 @@
 /**
+ * The `K8sHttpClient` module provides an HTTP client service for talking to the
+ * Kubernetes API from code running inside a cluster.
+ *
+ * It configures requests for the in-cluster service endpoint, attaches the
+ * mounted service-account token when present, and exposes helpers for common
+ * cluster tasks such as discovering running pods by namespace or label selector
+ * and creating scoped pods that are cleaned up automatically.
+ *
+ * **Gotchas**
+ *
+ * - The default layer targets `https://kubernetes.default.svc/api`, so it is
+ *   intended for workloads with Kubernetes DNS and service-account mounts.
+ * - Pod discovery is keyed by pod IP address and only includes pods whose phase
+ *   is `Running`; callers should choose selectors that match the intended
+ *   service topology.
+ * - Network policies, RBAC, and service-account token availability can all
+ *   prevent the client from reaching or authorizing with the Kubernetes API.
+ *
  * @since 4.0.0
  */
 import type * as v1 from "kubernetes-types/core/v1.d.ts"

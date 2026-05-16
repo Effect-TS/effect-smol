@@ -1,4 +1,30 @@
 /**
+ * The `ClusterSchema` module defines the schema annotations used by Effect
+ * Cluster protocols. These annotations attach cluster-specific behavior to
+ * RPCs and entities without changing the request or response schemas
+ * themselves.
+ *
+ * **Common tasks**
+ *
+ * - Mark requests as persisted so mailbox storage can replay them after
+ *   interruption or restart
+ * - Run server-side handling inside a storage transaction when durable state
+ *   and SQL updates must commit together
+ * - Control whether client sending, server handling, or both are treated as
+ *   uninterruptible
+ * - Route entity ids into shard groups
+ * - Disable client tracing for internal protocols such as cron dispatch
+ * - Derive per-request annotations from the encoded request with {@link Dynamic}
+ *
+ * **Protocol notes**
+ *
+ * Cluster transports serialize the RPC payloads, not arbitrary runtime
+ * annotation values. Prefer static, deterministic annotations, and use
+ * {@link Dynamic} when a persisted or transactional decision depends on the
+ * request value that is already part of the protocol. Persisted requests require
+ * message storage support, and shard group selection must remain stable for a
+ * given entity id so routing is consistent across cluster members.
+ *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"

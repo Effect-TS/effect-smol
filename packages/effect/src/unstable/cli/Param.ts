@@ -1,13 +1,30 @@
 /**
+ * The `Param` module defines the shared parser tree used by the unstable CLI
+ * `Argument` and `Flag` modules. A `Param<Kind, A>` describes how to consume
+ * either positional arguments or named flags from parsed command-line input and
+ * return a typed value.
+ *
+ * **Common tasks**
+ *
+ * - Build primitive CLI inputs such as strings, booleans, numbers, choices,
+ *   paths, files, and redacted values
+ * - Attach help metadata with aliases and descriptions
+ * - Transform parsed values with pure or effectful validation
+ * - Model missing inputs with `Option`, defaults, config fallbacks, or prompts
+ * - Accept repeated inputs with variadic, bounded, and non-empty parameters
+ *
+ * **Gotchas**
+ *
+ * - The `Kind` type parameter (`"argument"` or `"flag"`) keeps positional
+ *   arguments and flags separate while allowing the implementation and
+ *   combinators to be shared.
+ * - Combinators preserve the parameter kind, so an argument parameter cannot be
+ *   accidentally composed into a flag parameter or the reverse.
+ * - Parsers return both the remaining positional arguments and the parsed
+ *   value; this is important for argument ordering and variadic parameters.
+ * - Some parsers require CLI services such as filesystem, path, terminal, or
+ *   child-process support through the parsing environment.
  * @internal
- *
- * Param is the polymorphic implementation shared by Argument.ts and Flag.ts.
- * The `Kind` type parameter ("argument" | "flag") enables type-safe separation
- * while sharing parsing logic and combinators.
- *
- * Users should import from `Argument` and `Flag` modules, not this module directly.
- * This module is not exported from the public API.
- *
  * @since 4.0.0
  */
 import * as Config from "../../Config.ts"

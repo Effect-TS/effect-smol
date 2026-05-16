@@ -1,4 +1,27 @@
 /**
+ * The `ShardId` module models the address of a shard inside an Effect Cluster
+ * shard group. A shard id is made from a string `group` and numeric `id`, and
+ * the module gives that pair stable equality, hashing, primary-key behavior,
+ * schema support, and conversion to and from the `group:id` string form used by
+ * routing and storage boundaries.
+ *
+ * **Common tasks**
+ *
+ * - Create or reuse a cached shard identifier with {@link make}
+ * - Check runtime values with {@link isShardId}
+ * - Encode or decode shard identifiers with {@link ShardId}
+ * - Format for logs, persistence, or transport with {@link toString}
+ * - Parse encoded shard keys with {@link fromString} or {@link fromStringEncoded}
+ *
+ * **Gotchas**
+ *
+ * - Equality and hashing are based on the `group:id` representation, so both
+ *   fields must match for two shard ids to be equal
+ * - Encoded strings are split at the last `:`; groups may contain colons, but
+ *   ids must parse as numbers
+ * - This module identifies shards after a routing or hashing decision; it does
+ *   not choose a shard for an arbitrary entity key
+ *
  * @since 4.0.0
  */
 import * as Equal from "../../Equal.ts"

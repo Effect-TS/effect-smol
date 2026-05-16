@@ -1,4 +1,25 @@
 /**
+ * React helpers for hydrating Atom registry state that was serialized on the
+ * server or produced by a previous render. This module exposes
+ * {@link HydrationBoundary}, a client component that receives dehydrated Atom
+ * values and applies them to the nearest {@link RegistryContext} before
+ * rendering children when it is safe to do so.
+ *
+ * **Common use cases**
+ *
+ * - Reusing Atom values that were collected during server rendering
+ * - Restoring client-side Atom state around a routed subtree
+ * - Keeping Atom-backed React trees consistent during hydration and transitions
+ *
+ * **React gotchas**
+ *
+ * - New Atom values can be hydrated during render so children see them
+ *   immediately.
+ * - Existing Atom values are queued until after commit to avoid updating the
+ *   current UI with transition data that might later be discarded.
+ * - Hydration is idempotent, so repeated or older dehydrated values are safe to
+ *   pass through the boundary.
+ *
  * @since 1.0.0
  */
 "use client"
