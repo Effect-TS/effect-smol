@@ -187,6 +187,29 @@ export type Services<T extends Request<any, any, any>> = [T] extends [Request<in
 export type Result<T extends Request<any, any, any>> = T extends Request<infer A, infer E, infer _R> ? Exit.Exit<A, E>
   : never
 
+/**
+ * A utility type to extract the parameters type from a `Request`.
+ *
+ * @example
+ * ```ts
+ * import type { Request } from "effect"
+ *
+ * interface GetUser extends Request.Request<string, Error> {
+ *   readonly _tag: "GetUser"
+ *   readonly id: number
+ * }
+ *
+ * // Extract the paramters from a Request using the utility
+ * type GetUserParameters = Request.Parameters<GetUser> // { id: number }
+ * ```
+ *
+ * @since 4.0.0
+ * @category type-level
+ */
+export type Parameters<T extends Any> = Types.Equals<Omit<T, "_tag" | keyof Variance<any, any, any>>, {}> extends true ?
+  void
+  : { readonly [P in keyof T as P extends "_tag" | keyof Any ? never : P]: T[P] }
+
 const requestVariance = Equal.byReferenceUnsafe({
   /* c8 ignore next */
   _E: (_: never) => _,
@@ -318,7 +341,7 @@ export const of = <R extends Request<any, any, any>>(): Constructor<R> => (args)
  */
 export const tagged = <R extends Request<any, any, any> & { _tag: string }>(
   tag: R["_tag"]
-): Constructor<R, "_tag"> =>
+): Constructor<R> =>
 (args) => {
   const request = Object.create(RequestPrototype)
   if (args) Object.assign(request, args)
