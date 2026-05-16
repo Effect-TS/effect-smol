@@ -408,7 +408,7 @@ export function declare<T, Iso = T>(
 
 /**
  * Widens a schema's type to the fully-parameterized {@link Bottom} interface,
- * making all 15 type parameters visible to TypeScript.
+ * making all type parameters visible to TypeScript.
  *
  * Normally, concrete schema interfaces (e.g. `Schema<string>`) hide most type
  * parameters. `revealBottom` is useful when writing generic utilities that need
@@ -421,10 +421,10 @@ export function declare<T, Iso = T>(
  *
  * const schema = Schema.String
  *
- * // Widen to Bottom to access all 15 type parameters
+ * // Widen to Bottom to access all type parameters
  * const bottom = Schema.revealBottom(schema)
  *
- * // `bottom` now exposes all 15 type parameters, including Type, Encoded,
+ * // `bottom` now exposes all type parameters, including Type, Encoded,
  * // DecodingServices, EncodingServices,
  * // ast, Rebuild, ~type.make.in, Iso, ~type.parameters, etc.
  * type T = typeof bottom["Type"]     // string
@@ -2623,16 +2623,15 @@ function makeEncodedFields<
   const encodedFields: any = {}
   const reverseMapping: any = {}
   const seen = new Map<PropertyKey, PropertyKey>()
-  const symbolize = (key: PropertyKey) => typeof key === "symbol" ? globalThis.String(key) : key
+  const keyToDisplay = (key: PropertyKey) =>
+    typeof key === "string" ? globalThis.JSON.stringify(key) : globalThis.String(key)
   for (const key of Reflect.ownKeys(fields) as Array<keyof Fields & PropertyKey>) {
     const encodedKey = Object.hasOwn(mapping, key) ? mapping[key]! : key
     const previous = seen.get(encodedKey)
     if (previous !== undefined && previous !== key) {
       throw new globalThis.Error(
-        `Duplicate encoded key ${globalThis.JSON.stringify(symbolize(encodedKey))} for fields ${
-          globalThis.JSON.stringify(symbolize(previous))
-        } and ${
-          globalThis.JSON.stringify(symbolize(key))
+        `Duplicate encoded key ${keyToDisplay(encodedKey)} for fields ${keyToDisplay(previous)} and ${
+          keyToDisplay(key)
         }`
       )
     }
@@ -2640,6 +2639,8 @@ function makeEncodedFields<
     let encoded = toEncoded(fields[key])
     const annotations = encoded.ast.context?.annotations
     if (annotations?.encodedKey !== undefined) {
+      // The field-local encoded key has already been applied at the struct level,
+      // so clear it here to avoid re-applying it when building the encoded struct.
       encoded = annotateKey<typeof encoded>({ encodedKey: undefined })(encoded)
     }
     encodedFields[encodedKey] = encoded
