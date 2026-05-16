@@ -523,6 +523,18 @@ describe("Schema", () => {
     )
   })
 
+  it("encodedKey", () => {
+    const schema = Schema.Struct({
+      a: Schema.String.pipe(Schema.encodedKey("c"))
+    })
+    expect(Schema.revealCodec(schema)).type.toBe<
+      Schema.Codec<{ readonly a: string }, { readonly c: string }, never, never>
+    >()
+    expect(schema).type.toBe<
+      Schema.Struct<{ readonly a: Schema.encodedKey<Schema.String, "c"> }>
+    >()
+  })
+
   describe("Never", () => {
     const schema = Schema.Never
 
@@ -830,6 +842,18 @@ describe("Schema", () => {
       const flipped = Schema.flip(schema)
       expect(Schema.revealCodec(flipped)).type.toBe<
         Schema.Codec<{ readonly a?: string | undefined }, { readonly a?: number | undefined }>
+      >()
+    })
+
+    it("encodedKey", () => {
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.encodedKey("mapped_a"))
+      })
+      const flipped = Schema.flip(schema)
+
+      expect(Schema.flip(Schema.flip(schema))).type.toBe<typeof schema>()
+      expect(Schema.revealCodec(flipped)).type.toBe<
+        Schema.Codec<{ readonly mapped_a: string }, { readonly a: number }>
       >()
     })
 
