@@ -424,7 +424,8 @@ export function declare<T, Iso = T>(
  * // Widen to Bottom to access all 15 type parameters
  * const bottom = Schema.revealBottom(schema)
  *
- * // `bottom` now exposes Type, Encoded, DecodingServices, EncodingServices,
+ * // `bottom` now exposes all 15 type parameters, including Type, Encoded,
+ * // DecodingServices, EncodingServices,
  * // ast, Rebuild, ~type.make.in, Iso, ~type.parameters, etc.
  * type T = typeof bottom["Type"]     // string
  * type E = typeof bottom["Encoded"]  // string
@@ -2485,7 +2486,8 @@ export declare namespace Struct {
       : never
   }[keyof Fields]
 
-  type EncodedName<F extends Fields, K extends keyof F> = F[K] extends { readonly "~encoded.key": infer Key extends PropertyKey }
+  type ResolveEncodedKey<F extends Fields, K extends keyof F> =
+    F[K] extends { readonly "~encoded.key": infer Key extends PropertyKey }
     ? Key
     : K
 
@@ -2494,10 +2496,10 @@ export declare namespace Struct {
     O extends keyof F = EncodedOptionalKeys<F>,
     M extends keyof F = EncodedMutableKeys<F>
   > =
-    & { readonly [K in keyof F as K extends M | O ? never : EncodedName<F, K>]: F[K]["Encoded"] }
-    & { readonly [K in keyof F as K extends O ? K extends M ? never : EncodedName<F, K> : never]?: F[K]["Encoded"] }
-    & { -readonly [K in keyof F as K extends M ? K extends O ? never : EncodedName<F, K> : never]: F[K]["Encoded"] }
-    & { -readonly [K in keyof F as K extends M & O ? EncodedName<F, K> : never]?: F[K]["Encoded"] }
+    & { readonly [K in keyof F as K extends M | O ? never : ResolveEncodedKey<F, K>]: F[K]["Encoded"] }
+    & { readonly [K in keyof F as K extends O ? K extends M ? never : ResolveEncodedKey<F, K> : never]?: F[K]["Encoded"] }
+    & { -readonly [K in keyof F as K extends M ? K extends O ? never : ResolveEncodedKey<F, K> : never]: F[K]["Encoded"] }
+    & { -readonly [K in keyof F as K extends M & O ? ResolveEncodedKey<F, K> : never]?: F[K]["Encoded"] }
 
   /**
    * @since 4.0.0
@@ -2621,16 +2623,16 @@ function makeEncodedFields<
   const encodedFields: any = {}
   const reverseMapping: any = {}
   const seen = new Map<PropertyKey, PropertyKey>()
-  const formatPropertyKey = (key: PropertyKey) => typeof key === "symbol" ? globalThis.String(key) : key
+  const symbolize = (key: PropertyKey) => typeof key === "symbol" ? globalThis.String(key) : key
   for (const key of Reflect.ownKeys(fields) as Array<keyof Fields & PropertyKey>) {
     const encodedKey = Object.hasOwn(mapping, key) ? mapping[key]! : key
     const previous = seen.get(encodedKey)
     if (previous !== undefined && previous !== key) {
       throw new globalThis.Error(
-        `Duplicate encoded key ${globalThis.JSON.stringify(formatPropertyKey(encodedKey))} for fields ${
-          globalThis.JSON.stringify(formatPropertyKey(previous))
+        `Duplicate encoded key ${globalThis.JSON.stringify(symbolize(encodedKey))} for fields ${
+          globalThis.JSON.stringify(symbolize(previous))
         } and ${
-          globalThis.JSON.stringify(formatPropertyKey(key))
+          globalThis.JSON.stringify(symbolize(key))
         }`
       )
     }
