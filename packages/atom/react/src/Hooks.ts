@@ -99,6 +99,9 @@ export const useAtomInitialValues = (initialValues: Iterable<readonly [Atom.Atom
 }
 
 /**
+ * Subscribes to an atom in the current React registry and returns its current
+ * value, optionally mapped through a selector.
+ *
  * @category hooks
  * @since 4.0.0
  */
@@ -154,6 +157,9 @@ const flattenExit = <A, E>(exit: Exit.Exit<A, E>): A => {
 }
 
 /**
+ * Mounts an atom in the current React registry for the lifetime of the
+ * component.
+ *
  * @category hooks
  * @since 4.0.0
  */
@@ -163,6 +169,8 @@ export const useAtomMount = <A>(atom: Atom.Atom<A>): void => {
 }
 
 /**
+ * Mounts a writable atom and returns a setter without subscribing to its value.
+ *
  * @category hooks
  * @since 4.0.0
  */
@@ -189,6 +197,9 @@ export const useAtomSet = <
 }
 
 /**
+ * Mounts an atom and returns a callback that refreshes it in the current React
+ * registry.
+ *
  * @category hooks
  * @since 4.0.0
  */
@@ -201,6 +212,9 @@ export const useAtomRefresh = <A>(atom: Atom.Atom<A>): () => void => {
 }
 
 /**
+ * Subscribes to a writable atom and returns its current value together with a
+ * setter for updating it.
+ *
  * @category hooks
  * @since 4.0.0
  */
@@ -268,6 +282,9 @@ function atomResultOrSuspend<A, E>(
 }
 
 /**
+ * Reads an `AsyncResult` atom through React Suspense, suspending while the
+ * result is initial or configured as waiting.
+ *
  * @category hooks
  * @since 4.0.0
  */
@@ -287,6 +304,9 @@ export const useAtomSuspense = <A, E, const IncludeFailure extends boolean = fal
 }
 
 /**
+ * Subscribes a callback to an atom in the current React registry for the
+ * component lifetime.
+ *
  * @category hooks
  * @since 4.0.0
  */
@@ -303,6 +323,8 @@ export const useAtomSubscribe = <A>(
 }
 
 /**
+ * Subscribes to an atom ref and returns its latest value.
+ *
  * @category hooks
  * @since 4.0.0
  */
@@ -313,6 +335,8 @@ export const useAtomRef = <A>(ref: AtomRef.ReadonlyRef<A>): A => {
 }
 
 /**
+ * Returns a memoized atom ref for a property of another atom ref.
+ *
  * @category hooks
  * @since 4.0.0
  */
@@ -320,6 +344,9 @@ export const useAtomRefProp = <A, K extends keyof A>(ref: AtomRef.AtomRef<A>, pr
   React.useMemo(() => ref.prop(prop), [ref, prop])
 
 /**
+ * Subscribes to a property ref derived from an atom ref and returns its current
+ * value.
+ *
  * @category hooks
  * @since 4.0.0
  */

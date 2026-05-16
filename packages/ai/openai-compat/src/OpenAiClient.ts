@@ -74,6 +74,9 @@ export interface Service {
 }
 
 /**
+ * Context service tag for accessing an OpenAI-compatible client from the
+ * Effect context.
+ *
  * @category service
  * @since 4.0.0
  */
@@ -82,6 +85,8 @@ export class OpenAiClient extends Context.Service<OpenAiClient, Service>()(
 ) {}
 
 /**
+ * Configuration options used to construct an OpenAI-compatible client.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -99,6 +104,11 @@ const RedactedOpenAiHeaders = {
 }
 
 /**
+ * Constructs an OpenAI-compatible client service from explicit options.
+ *
+ * The returned service applies the configured base URL, authentication, and
+ * OpenAI organization/project headers to the underlying HTTP client.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -240,6 +250,8 @@ export const make = Effect.fnUntraced(
 )
 
 /**
+ * Creates a layer that provides an OpenAI-compatible client from explicit options.
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -247,6 +259,9 @@ export const layer = (options: Options): Layer.Layer<OpenAiClient, never, HttpCl
   Layer.effect(OpenAiClient, make(options))
 
 /**
+ * Creates a layer that loads OpenAI-compatible client settings from `Config`
+ * values before constructing the service.
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -285,6 +300,8 @@ export const layerConfig = (options?: {
 type JsonObject = { readonly [x: string]: Schema.Json }
 
 /**
+ * Optional response fields that can be requested with the `include` parameter.
+ *
  * @since 4.0.0
  */
 export type IncludeEnum =
@@ -293,6 +310,8 @@ export type IncludeEnum =
   | "message.output_text.logprobs"
 
 /**
+ * Lifecycle status shared by message, reasoning, and tool-call items.
+ *
  * @since 4.0.0
  */
 export type MessageStatus = "in_progress" | "completed" | "incomplete"
@@ -318,11 +337,15 @@ type InputFileContent = {
 }
 
 /**
+ * Content blocks accepted in input messages.
+ *
  * @since 4.0.0
  */
 export type InputContent = InputTextContent | InputImageContent | InputFileContent
 
 /**
+ * Text content block used for model-provided reasoning summaries.
+ *
  * @since 4.0.0
  */
 export type SummaryTextContent = {
@@ -382,6 +405,8 @@ type FilePathAnnotation = {
 }
 
 /**
+ * Citation and file-path annotations attached to output text content.
+ *
  * @since 4.0.0
  */
 export type Annotation =
@@ -417,6 +442,9 @@ type OutputMessage = {
 }
 
 /**
+ * Reasoning output item containing encrypted reasoning content, summaries, and
+ * optional reasoning text.
+ *
  * @since 4.0.0
  */
 export type ReasoningItem = {
@@ -466,6 +494,11 @@ type ItemReference = {
 }
 
 /**
+ * Item shapes accepted by a Responses-style `input` field.
+ *
+ * Supports input messages, output messages, tool calls, tool outputs, reasoning
+ * items, custom tool interactions, and item references.
+ *
  * @since 4.0.0
  */
 export type InputItem =
@@ -504,6 +537,8 @@ type CustomToolParam = {
 }
 
 /**
+ * Tool definitions that can be supplied to a Responses-style request.
+ *
  * @since 4.0.0
  */
 export type Tool =
@@ -529,6 +564,9 @@ type ToolChoice =
   }
 
 /**
+ * Text output format configuration for plain text, JSON object, or JSON Schema
+ * responses.
+ *
  * @since 4.0.0
  */
 export type TextResponseFormatConfiguration =
@@ -547,6 +585,9 @@ export type TextResponseFormatConfiguration =
   }
 
 /**
+ * Request options for creating a Responses-style response with an
+ * OpenAI-compatible provider.
+ *
  * @since 4.0.0
  */
 export type CreateResponse = {
@@ -584,6 +625,8 @@ export type CreateResponse = {
 }
 
 /**
+ * Token accounting reported on Responses-style response objects.
+ *
  * @since 4.0.0
  */
 export type ResponseUsage = {
@@ -601,6 +644,9 @@ type OutputItem =
   | CustomToolCall
 
 /**
+ * Responses-style response object returned by compatible providers or embedded
+ * in response stream lifecycle events.
+ *
  * @since 4.0.0
  */
 export type Response = {
@@ -727,6 +773,8 @@ type UnknownResponseStreamEvent = {
 }
 
 /**
+ * Server-sent event shapes emitted by Responses-style response streams.
+ *
  * @since 4.0.0
  */
 export type ResponseStreamEvent =
@@ -763,6 +811,8 @@ export type Embedding = {
 }
 
 /**
+ * Request payload for the embeddings endpoint.
+ *
  * @since 4.0.0
  */
 export type CreateEmbeddingRequest = {
@@ -774,6 +824,8 @@ export type CreateEmbeddingRequest = {
 }
 
 /**
+ * Successful response payload returned by the embeddings endpoint.
+ *
  * @since 4.0.0
  */
 export type CreateEmbeddingResponse = {
@@ -787,14 +839,20 @@ export type CreateEmbeddingResponse = {
 }
 
 /**
+ * JSON request body accepted by the embeddings endpoint.
+ *
  * @since 4.0.0
  */
 export type CreateEmbeddingRequestJson = CreateEmbeddingRequest
 /**
+ * Decoded successful embeddings response body.
+ *
  * @since 4.0.0
  */
 export type CreateEmbedding200 = CreateEmbeddingResponse
 /**
+ * Structured content parts accepted in chat completion messages.
+ *
  * @since 4.0.0
  */
 export type ChatCompletionContentPart =
@@ -810,6 +868,8 @@ export type ChatCompletionContentPart =
     }
   }
 /**
+ * Tool call data attached to an assistant chat completion message.
+ *
  * @since 4.0.0
  */
 export type ChatCompletionRequestToolCall = {
@@ -821,6 +881,8 @@ export type ChatCompletionRequestToolCall = {
   }
 }
 /**
+ * Message shapes accepted by the chat completions endpoint.
+ *
  * @since 4.0.0
  */
 export type ChatCompletionRequestMessage =
@@ -835,6 +897,8 @@ export type ChatCompletionRequestMessage =
     readonly content: string
   }
 /**
+ * Function tool definition accepted by the chat completions endpoint.
+ *
  * @since 4.0.0
  */
 export type ChatCompletionTool = {
@@ -847,6 +911,8 @@ export type ChatCompletionTool = {
   }
 }
 /**
+ * Controls whether the model may call tools and can force a specific function.
+ *
  * @since 4.0.0
  */
 export type ChatCompletionToolChoice =
@@ -860,6 +926,8 @@ export type ChatCompletionToolChoice =
     }
   }
 /**
+ * JSON response format configuration for chat completion requests.
+ *
  * @since 4.0.0
  */
 export type ChatCompletionResponseFormat =
@@ -876,6 +944,8 @@ export type ChatCompletionResponseFormat =
     }
   }
 /**
+ * Request payload for the OpenAI-compatible chat completions endpoint.
+ *
  * @since 4.0.0
  */
 export type ChatCompletionRequest = {
@@ -899,14 +969,20 @@ export type ChatCompletionRequest = {
   readonly [x: string]: unknown
 }
 /**
+ * JSON request body used by this client when creating a chat completion response.
+ *
  * @since 4.0.0
  */
 export type CreateResponseRequestJson = ChatCompletionRequest
 /**
+ * Decoded successful chat completion response body returned by `createResponse`.
+ *
  * @since 4.0.0
  */
 export type CreateResponse200 = ChatCompletionResponse
 /**
+ * Decoded server-sent event payload emitted by `createResponseStream`.
+ *
  * @since 4.0.0
  */
 export type CreateResponse200Sse = ChatCompletionStreamEvent
@@ -997,30 +1073,45 @@ const ChatCompletionChunk = Schema.Struct({
 })
 
 /**
+ * Decoded tool-call object from a chat completion response or streaming chunk.
+ *
  * @since 4.0.0
  */
 export type ChatCompletionToolCall = typeof ChatCompletionToolCall.Type
 /**
+ * Decoded message object from a non-streaming chat completion choice.
+ *
  * @since 4.0.0
  */
 export type ChatCompletionMessage = typeof ChatCompletionMessage.Type
 /**
+ * Decoded choice object returned by chat completion responses and chunks.
+ *
  * @since 4.0.0
  */
 export type ChatCompletionChoice = typeof ChatCompletionChoice.Type
 /**
+ * Decoded token usage summary returned by chat completions.
+ *
  * @since 4.0.0
  */
 export type ChatCompletionUsage = typeof ChatCompletionUsage.Type
 /**
+ * Decoded successful response from the chat completions endpoint.
+ *
  * @since 4.0.0
  */
 export type ChatCompletionResponse = typeof ChatCompletionResponse.Type
 /**
+ * Decoded streaming chunk emitted by the chat completions endpoint.
+ *
  * @since 4.0.0
  */
 export type ChatCompletionChunk = typeof ChatCompletionChunk.Type
 /**
+ * Streaming chat completion event, including decoded chunks and the `[DONE]`
+ * sentinel.
+ *
  * @since 4.0.0
  */
 export type ChatCompletionStreamEvent = ChatCompletionChunk | "[DONE]"

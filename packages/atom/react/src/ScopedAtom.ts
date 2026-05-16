@@ -24,25 +24,22 @@ import type * as Atom from "effect/unstable/reactivity/Atom"
 import * as React from "react"
 
 /**
+ * Type identifier for ScopedAtom.
+ *
  * @category Type IDs
  * @since 4.0.0
- *
- * Type identifier for ScopedAtom.
  */
 export type TypeId = "~@effect/atom-react/ScopedAtom"
 
 /**
+ * Type identifier for ScopedAtom.
+ *
  * @category Type IDs
  * @since 4.0.0
- *
- * Type identifier for ScopedAtom.
  */
 export const TypeId: TypeId = "~@effect/atom-react/ScopedAtom"
 
 /**
- * @category models
- * @since 4.0.0
- *
  * Scoped Atom interface with a provider-backed instance.
  *
  * **Example** (Providing and reading a scoped atom)
@@ -65,6 +62,9 @@ export const TypeId: TypeId = "~@effect/atom-react/ScopedAtom"
  *   return React.createElement(Counter.Provider, null, React.createElement(View))
  * }
  * ```
+ *
+ * @category models
+ * @since 4.0.0
  */
 export interface ScopedAtom<A extends Atom.Atom<any>, Input = never> {
   readonly [TypeId]: TypeId
@@ -75,9 +75,6 @@ export interface ScopedAtom<A extends Atom.Atom<any>, Input = never> {
 }
 
 /**
- * @category constructors
- * @since 4.0.0
- *
  * Creates a ScopedAtom from a factory function.
  *
  * **Example** (Creating a scoped atom with input)
@@ -104,6 +101,9 @@ export interface ScopedAtom<A extends Atom.Atom<any>, Input = never> {
  *   )
  * }
  * ```
+ *
+ * @category constructors
+ * @since 4.0.0
  */
 export const make = <A extends Atom.Atom<any>, Input = never>(
   f: (() => A) | ((input: Input) => A)

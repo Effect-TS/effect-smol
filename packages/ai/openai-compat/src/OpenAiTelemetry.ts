@@ -99,6 +99,9 @@ export type WellKnownResponseFormat = "json_object" | "json_schema" | "text"
 export type WellKnownServiceTier = "auto" | "default"
 
 /**
+ * Options accepted by `addGenAIAnnotations`, combining standard GenAI telemetry
+ * attributes with optional OpenAI-compatible request and response attributes.
+ *
  * @since 4.0.0
  * @since models
  */

@@ -29,12 +29,19 @@ import type { JSX } from "solid-js"
 import { createComponent, createContext, onCleanup } from "solid-js"
 
 /**
+ * A Solid context that carries the `AtomRegistry` used by atom hooks in the
+ * current owner tree.
+ *
  * @category context
  * @since 4.0.0
  */
 export const RegistryContext = createContext<AtomRegistry.AtomRegistry>(AtomRegistry.make())
 
 /**
+ * Creates an `AtomRegistry` for a Solid subtree, optionally seeding initial atom
+ * values and scheduler settings, and disposes the registry when the owner is
+ * cleaned up.
+ *
  * @category context
  * @since 4.0.0
  */

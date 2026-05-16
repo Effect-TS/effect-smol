@@ -31,6 +31,9 @@ import * as React from "react"
 import * as Scheduler from "scheduler"
 
 /**
+ * Schedules Atom registry work with React's scheduler at low priority and
+ * returns a cancellation function for the scheduled task.
+ *
  * @category context
  * @since 4.0.0
  */
@@ -40,6 +43,10 @@ export function scheduleTask(f: () => void): () => void {
 }
 
 /**
+ * React context that supplies the `AtomRegistry` used by Atom hooks and
+ * hydration helpers, defaulting to a standalone registry when no provider is
+ * present.
+ *
  * @category context
  * @since 4.0.0
  */
@@ -49,6 +56,9 @@ export const RegistryContext = React.createContext<AtomRegistry.AtomRegistry>(At
 }))
 
 /**
+ * Provides a stable `AtomRegistry` to a React subtree, optionally seeding
+ * initial atom values and overriding registry scheduling or idle settings.
+ *
  * @category context
  * @since 4.0.0
  */

@@ -89,12 +89,18 @@ export class Config extends Context.Service<
 // =============================================================================
 
 /**
+ * OpenRouter assistant reasoning detail blocks preserved for multi-turn
+ * conversations.
+ *
  * @category models
  * @since 4.0.0
  */
 export type ReasoningDetails = Exclude<typeof Generated.AssistantMessage.Encoded["reasoning_details"], undefined>
 
 /**
+ * File annotations emitted on OpenRouter assistant messages and exposed in
+ * finish metadata.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -409,6 +415,8 @@ declare module "effect/unstable/ai/Response" {
 // =============================================================================
 
 /**
+ * Creates an AI model descriptor for an OpenRouter language model.
+ *
  * @category constructors
  * @since 4.0.0
  */

@@ -23,6 +23,9 @@ import { dual } from "effect/Function"
 import type { HttpClient } from "effect/unstable/http/HttpClient"
 
 /**
+ * Context service carrying scoped OpenAI configuration for provider
+ * operations.
+ *
  * @category services
  * @since 4.0.0
  */
@@ -42,10 +45,15 @@ export class OpenAiConfig extends Context.Service<
 }
 
 /**
+ * Types used by the `OpenAiConfig` context service.
+ *
  * @since 4.0.0
  */
 export declare namespace OpenAiConfig {
   /**
+   * Configuration values read by OpenAI provider operations when executing
+   * requests.
+   *
    * @category models
    * @since 1.0.
    */
@@ -55,6 +63,9 @@ export declare namespace OpenAiConfig {
 }
 
 /**
+ * Provides a scoped transform for the OpenAI HTTP client used by provider
+ * operations.
+ *
  * @category configuration
  * @since 4.0.0
  */

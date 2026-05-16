@@ -370,12 +370,16 @@ export const layerConfig = (options?: {
 // =============================================================================
 
 /**
+ * Response stream event emitted by the OpenAI Responses API.
+ *
  * @category Events
  * @since 4.0.0
  */
 export type ResponseStreamEvent = typeof OpenAiSchema.ResponseStreamEvent.Type
 
 /**
+ * Service for creating OpenAI response streams over a WebSocket connection.
+ *
  * @category Websocket mode
  * @since 4.0.0
  */

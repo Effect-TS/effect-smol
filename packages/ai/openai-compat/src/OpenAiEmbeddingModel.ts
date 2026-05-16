@@ -17,6 +17,8 @@ import type { CreateEmbedding200, CreateEmbeddingRequestJson } from "./OpenAiCli
 import { OpenAiClient } from "./OpenAiClient.ts"
 
 /**
+ * A model identifier accepted by an OpenAI-compatible embeddings endpoint.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -44,6 +46,9 @@ export class Config extends Context.Service<
 >()("@effect/ai-openai-compat/OpenAiEmbeddingModel/Config") {}
 
 /**
+ * Creates an OpenAI-compatible embedding model that can be used with
+ * `AiModel.provide`.
+ *
  * @category constructors
  * @since 4.0.0
  */

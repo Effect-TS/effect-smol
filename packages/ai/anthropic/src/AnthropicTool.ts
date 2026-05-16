@@ -1485,6 +1485,8 @@ export const WebFetchCitationsConfig = Schema.Struct({
   enabled: Schema.Boolean
 })
 /**
+ * Configuration payload for enabling or disabling citations on web fetch results.
+ *
  * @category Web Fetch
  * @since 4.0.0
  */
@@ -1527,6 +1529,8 @@ export const WebFetch_20250910_Args = Schema.Struct({
   maxContentTokens: Schema.optional(Schema.Number)
 })
 /**
+ * Configuration arguments for the Anthropic web fetch tool, including usage limits, domain filters, citation settings, and token limits.
+ *
  * @category Web Fetch
  * @since 4.0.0
  */
@@ -1550,6 +1554,8 @@ export const WebFetchParameters = Schema.Struct({
   url: Schema.String
 })
 /**
+ * Type of the parameters Claude supplies when invoking the Anthropic web fetch tool.
+ *
  * @category Web Fetch
  * @since 4.0.0
  */
@@ -1604,6 +1610,8 @@ export const ToolSearchRegexParameters = Schema.Struct({
   query: Schema.String
 })
 /**
+ * Type of the parameters Claude supplies when invoking regex-based Anthropic tool search.
+ *
  * @category Tool Search
  * @since 4.0.0
  */
@@ -1622,6 +1630,8 @@ export const ToolSearchBM25Parameters = Schema.Struct({
   query: Schema.String
 })
 /**
+ * Type of the parameters Claude supplies when invoking BM25 natural-language Anthropic tool search.
+ *
  * @category Tool Search
  * @since 4.0.0
  */

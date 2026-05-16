@@ -53,21 +53,31 @@ export interface SingletonRegistered {
 }
 
 /**
+ * Generated helpers for pattern matching and constructing sharding registration
+ * events.
+ *
  * @category pattern matching
  * @since 4.0.0
  */
 export const {
   /**
+   * Pattern matches on a sharding registration event and dispatches to the
+   * matching variant handler.
+   *
    * @category pattern matching
    * @since 4.0.0
    */
   $match: match,
   /**
+   * Creates an event for an entity registered by the local runner.
+   *
    * @category constructors
    * @since 4.0.0
    */
   EntityRegistered,
   /**
+   * Creates an event for a singleton registered by the local runner.
+   *
    * @category constructors
    * @since 4.0.0
    */

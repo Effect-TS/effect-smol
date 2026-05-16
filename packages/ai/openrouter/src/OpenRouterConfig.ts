@@ -25,6 +25,9 @@ import { dual } from "effect/Function"
 import type { HttpClient } from "effect/unstable/http/HttpClient"
 
 /**
+ * Context service carrying scoped OpenRouter provider configuration for client
+ * operations.
+ *
  * @category services
  * @since 4.0.0
  */
@@ -44,10 +47,15 @@ export class OpenRouterConfig extends Context.Service<
 }
 
 /**
+ * Types associated with the `OpenRouterConfig` context service.
+ *
  * @since 4.0.0
  */
 export declare namespace OpenRouterConfig {
   /**
+   * Configuration values read by OpenRouter provider operations when resolving
+   * the generated HTTP client.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -57,6 +65,9 @@ export declare namespace OpenRouterConfig {
 }
 
 /**
+ * Provides a scoped transform for the OpenRouter HTTP client used by provider
+ * operations.
+ *
  * @category configuration
  * @since 4.0.0
  */

@@ -28,6 +28,9 @@ import * as React from "react"
 import { RegistryContext } from "./RegistryContext.ts"
 
 /**
+ * Props for a boundary that applies dehydrated Atom values to the nearest
+ * {@link RegistryContext} while rendering its children.
+ *
  * @category components
  * @since 4.0.0
  */
@@ -37,6 +40,13 @@ export interface HydrationBoundaryProps {
 }
 
 /**
+ * Hydrates dehydrated Atom values into the current Atom registry for a React
+ * subtree.
+ *
+ * New Atom values are hydrated during render so descendants can read them
+ * immediately, while values for existing Atoms are deferred until after commit
+ * so transition data does not update the current UI before React accepts it.
+ *
  * @category components
  * @since 4.0.0
  */

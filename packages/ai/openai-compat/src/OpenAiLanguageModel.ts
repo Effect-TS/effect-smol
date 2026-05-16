@@ -458,6 +458,8 @@ declare module "effect/unstable/ai/Response" {
 // =============================================================================
 
 /**
+ * Creates an AI model descriptor for an OpenAI-compatible language model.
+ *
  * @category constructors
  * @since 4.0.0
  */

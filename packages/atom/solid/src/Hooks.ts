@@ -62,6 +62,9 @@ export const useAtomInitialValues = (initialValues: Iterable<readonly [Atom.Atom
 }
 
 /**
+ * Subscribes to an atom in the current Solid registry and returns its value as
+ * a Solid accessor.
+ *
  * @category hooks
  * @since 4.0.0
  */
@@ -126,6 +129,9 @@ const flattenExit = <A, E>(exit: Exit.Exit<A, E>): A => {
 }
 
 /**
+ * Mounts an atom in the current Solid registry for the lifetime of the current
+ * Solid computation.
+ *
  * @category hooks
  * @since 4.0.0
  */
@@ -135,6 +141,8 @@ export const useAtomMount = <A>(atom: () => Atom.Atom<A>): void => {
 }
 
 /**
+ * Returns a setter for a writable atom without subscribing to its value.
+ *
  * @category hooks
  * @since 4.0.0
  */
@@ -161,6 +169,8 @@ export const useAtomSet = <
 }
 
 /**
+ * Mounts an atom and returns a callback that refreshes the current atom.
+ *
  * @category hooks
  * @since 4.0.0
  */
@@ -172,6 +182,9 @@ export const useAtomRefresh = <A>(atom: () => Atom.Atom<A>): () => void => {
 }
 
 /**
+ * Returns a Solid accessor for a writable atom together with a setter for
+ * updating it.
+ *
  * @category hooks
  * @since 4.0.0
  */
@@ -198,6 +211,8 @@ export const useAtom = <R, W, const Mode extends "value" | "promise" | "promiseE
 }
 
 /**
+ * Subscribes a callback to an atom in the current Solid registry.
+ *
  * @category hooks
  * @since 4.0.0
  */
@@ -213,6 +228,8 @@ export const useAtomSubscribe = <A>(
 }
 
 /**
+ * Converts an `AsyncResult` atom into a Solid resource.
+ *
  * @category hooks
  * @since 4.0.0
  */
@@ -236,6 +253,8 @@ export const useAtomResource = <A, E>(
 const constUnresolvedPromise = new Promise<never>(() => {})
 
 /**
+ * Subscribes to an atom ref and returns its value as a Solid accessor.
+ *
  * @category hooks
  * @since 4.0.0
  */
@@ -250,6 +269,8 @@ export const useAtomRef = <A>(ref: () => AtomRef.ReadonlyRef<A>): Accessor<A> =>
 }
 
 /**
+ * Returns a Solid accessor for a property ref derived from an atom ref.
+ *
  * @category hooks
  * @since 4.0.0
  */
@@ -259,6 +280,9 @@ export const useAtomRefProp = <A, K extends keyof A>(
 ): Accessor<AtomRef.AtomRef<A[K]>> => createMemo(() => ref().prop(prop))
 
 /**
+ * Returns a Solid accessor for the value of a property ref derived from an atom
+ * ref.
+ *
  * @category hooks
  * @since 4.0.0
  */

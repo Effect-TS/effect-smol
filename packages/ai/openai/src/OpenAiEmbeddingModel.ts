@@ -17,6 +17,8 @@ import { OpenAiClient } from "./OpenAiClient.ts"
 import type * as OpenAiSchema from "./OpenAiSchema.ts"
 
 /**
+ * Model identifiers supported by OpenAI's embeddings API.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -44,6 +46,8 @@ export class Config extends Context.Service<
 >()("@effect/ai-openai/OpenAiEmbeddingModel/Config") {}
 
 /**
+ * Creates an `AiModel` for an OpenAI embedding model with its configured vector dimensions.
+ *
  * @category constructors
  * @since 4.0.0
  */

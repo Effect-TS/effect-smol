@@ -41,6 +41,8 @@ const ResponseModelIds = Generated.ModelIdsResponses.members[1]
 const SharedModelIds = Generated.ModelIdsShared.members[1]
 
 /**
+ * OpenAI model identifiers supported by the Responses API language model.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -462,6 +464,8 @@ declare module "effect/unstable/ai/Response" {
 // =============================================================================
 
 /**
+ * Creates an OpenAI language model that can be used with `AiModel.provide`.
+ *
  * @category constructors
  * @since 4.0.0
  */
