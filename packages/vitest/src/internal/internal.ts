@@ -74,11 +74,11 @@ const makeTester = <R>(
   const only: Vitest.Vitest.Tester<R>["only"] = (name, self, timeout) =>
     it.only(name, testOptions(timeout), (ctx) => run(ctx, [ctx], self))
 
-  const each: Vitest.Vitest.Tester<R>["each"] = (cases) => (name, self, timeout) =>
+  const for_: Vitest.Vitest.Tester<R>["for"] = (cases) => (name, self, timeout) =>
     it.for(cases)(
       name,
       testOptions(timeout),
-      (args, ctx) => run(ctx, [args], self) as any
+      (args, ctx) => run(ctx, [args, ctx], self) as any
     )
 
   const fails: Vitest.Vitest.Tester<R>["fails"] = (name, self, timeout) =>
@@ -132,7 +132,7 @@ const makeTester = <R>(
     )
   }
 
-  return Object.assign(f, { skip, skipIf, runIf, only, each, fails, prop })
+  return Object.assign(f, { skip, skipIf, runIf, only, for: for_, fails, prop })
 }
 
 /** @internal */

@@ -16,7 +16,7 @@ describe("@effect/vitest basics", () => {
       assert.isTrue(upper.includes("ADA"))
     }))
 
-  it.effect.each([
+  it.effect.for([
     { input: " Ada ", expected: "ada" },
     { input: " Lin ", expected: "lin" },
     { input: " Nia ", expected: "nia" }

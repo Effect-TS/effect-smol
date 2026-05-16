@@ -370,7 +370,7 @@ describe("OtlpMetrics", () => {
   })
 
   describe("Gauge (no temporality)", () => {
-    it.effect.each([
+    it.effect.for([
       ["cumulative", TestLayerCumulative] as const,
       ["delta", TestLayerDelta] as const
     ])("%s temporality reports current value", ([_, layer]) =>
