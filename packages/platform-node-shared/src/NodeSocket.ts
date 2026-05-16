@@ -13,7 +13,7 @@
  * after Node accepts or flushes the chunk, and abnormal close events are
  * surfaced as close errors while normal remote ends complete the socket run.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type { Array } from "effect"
 import * as Channel from "effect/Channel"
@@ -33,7 +33,7 @@ import type { Duplex } from "node:stream"
 
 /**
  * @category re-exports
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as NodeWS from "ws"
 
@@ -42,7 +42,7 @@ export * as NodeWS from "ws"
  * socket connection.
  *
  * @category tags
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class NetSocket extends Context.Service<NetSocket, Net.Socket>()(
   "@effect/platform-node/NodeSocket/NetSocket"
@@ -54,7 +54,7 @@ export class NetSocket extends Context.Service<NetSocket, Net.Socket>()(
  * socket when the enclosing scope is finalized.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeNet = (
   options: Net.NetConnectOpts & {
@@ -103,7 +103,7 @@ export const makeNet = (
  * failures to `SocketError`.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fromDuplex = <RO>(
   open: Effect.Effect<Duplex, Socket.SocketError, RO>,
@@ -241,7 +241,7 @@ export const fromDuplex = <RO>(
  * chunks and writing arrays of bytes, strings, or socket close events.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeNetChannel = <IE = never>(
   options: Net.NetConnectOpts
@@ -261,7 +261,7 @@ export const makeNetChannel = <IE = never>(
  * Node `net` connection options.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerNet: (options: Net.NetConnectOpts) => Layer.Layer<
   Socket.Socket,

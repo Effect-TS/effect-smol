@@ -25,7 +25,7 @@
  * })
  * ```
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type * as DateTime from "../../DateTime.ts"
 import * as Effect from "../../Effect.ts"
@@ -46,7 +46,7 @@ const PartTypeId = "~effect/ai/Content/Part" as const
  * Type guard to check if a value is a Response Part.
  *
  * @category guards
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const isPart = (u: unknown): u is AnyPart => Predicate.hasProperty(u, PartTypeId)
 
@@ -54,7 +54,7 @@ export const isPart = (u: unknown): u is AnyPart => Predicate.hasProperty(u, Par
  * Union type representing all possible response content parts.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type AnyPart =
   | TextPart
@@ -82,7 +82,7 @@ export type AnyPart =
  * Encoded representation of all possible response content parts for serialization.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type AnyPartEncoded =
   | TextPartEncoded
@@ -110,7 +110,7 @@ export type AnyPartEncoded =
  * Union type for all response parts with tool-specific typing.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type AllParts<Tools extends Record<string, Tool.Any>> =
   | TextPart
@@ -138,7 +138,7 @@ export type AllParts<Tools extends Record<string, Tool.Any>> =
  * Encoded representation of all response parts for serialization.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type AllPartsEncoded =
   | TextPartEncoded
@@ -185,7 +185,7 @@ export type AllPartsEncoded =
  * ```
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const AllParts = <T extends Toolkit.Any | Toolkit.WithHandler<any>>(
   toolkit: T
@@ -236,7 +236,7 @@ export const AllParts = <T extends Toolkit.Any | Toolkit.WithHandler<any>>(
  * typing.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Part<Tools extends Record<string, Tool.Any>> =
   | TextPart
@@ -254,7 +254,7 @@ export type Part<Tools extends Record<string, Tool.Any>> =
  * Encoded representation of non-streaming response parts for serialization.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type PartEncoded =
   | TextPartEncoded
@@ -274,7 +274,7 @@ export type PartEncoded =
  * Creates a Schema for non-streaming response parts based on a toolkit.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Part = <T extends Toolkit.Any | Toolkit.WithHandler<any>>(
   toolkit: T
@@ -314,7 +314,7 @@ export const Part = <T extends Toolkit.Any | Toolkit.WithHandler<any>>(
  * A type for representing streaming response parts with tool-specific typing.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type StreamPart<Tools extends Record<string, Tool.Any>> =
   | TextStartPart
@@ -340,7 +340,7 @@ export type StreamPart<Tools extends Record<string, Tool.Any>> =
  * Encoded representation of streaming response parts for serialization.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type StreamPartEncoded =
   | TextStartPartEncoded
@@ -366,7 +366,7 @@ export type StreamPartEncoded =
  * Creates a Schema for streaming response parts based on a toolkit.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const StreamPart = <T extends Toolkit.Any | Toolkit.WithHandler<any>>(
   toolkit: T
@@ -414,7 +414,7 @@ export const StreamPart = <T extends Toolkit.Any | Toolkit.WithHandler<any>>(
  * Utility type that extracts tool call parts from a set of tools.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ToolCallParts<Tools extends Record<string, Tool.Any>> = {
   [Name in keyof Tools]: Name extends string ? ToolCallPart<Name, Tool.Parameters<Tools[Name]>>
@@ -425,7 +425,7 @@ export type ToolCallParts<Tools extends Record<string, Tool.Any>> = {
  * Utility type that extracts tool result parts from a set of tools.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ToolResultParts<Tools extends Record<string, Tool.Any>> = {
   [Name in keyof Tools]: Name extends string
@@ -442,7 +442,7 @@ export type ToolResultParts<Tools extends Record<string, Tool.Any>> = {
  * represented as a record from provider-specific keys to JSON values or `null`.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const ProviderMetadata: Schema.$Record<
   Schema.String,
@@ -454,7 +454,7 @@ export const ProviderMetadata: Schema.$Record<
  * provider-specific names with JSON or `null` values.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ProviderMetadata = typeof ProviderMetadata.Type
 
@@ -464,7 +464,7 @@ export type ProviderMetadata = typeof ProviderMetadata.Type
  * Provides common structure including type identifier and optional metadata.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface BasePart<Type extends string, Metadata extends ProviderMetadata> {
   readonly [PartTypeId]: typeof PartTypeId
@@ -482,7 +482,7 @@ export interface BasePart<Type extends string, Metadata extends ProviderMetadata
  * Base interface for encoded response content parts.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface BasePartEncoded<Type extends string, Metadata extends ProviderMetadata> {
   /**
@@ -525,7 +525,7 @@ const BasePart = Schema.Struct({
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makePart = <const Type extends AnyPart["type"]>(
   /**
@@ -553,7 +553,7 @@ export const makePart = <const Type extends AnyPart["type"]>(
  * specific response part.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ConstructorParams<Part extends AnyPart> =
   & Omit<Part, typeof PartTypeId | "type" | "sourceType" | "metadata">
@@ -582,7 +582,7 @@ export type ConstructorParams<Part extends AnyPart> =
  * ```
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface TextPart extends BasePart<"text", TextPartMetadata> {
   /**
@@ -595,7 +595,7 @@ export interface TextPart extends BasePart<"text", TextPartMetadata> {
  * Encoded representation of text parts for serialization.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface TextPartEncoded extends BasePartEncoded<"text", TextPartMetadata> {
   /**
@@ -609,7 +609,7 @@ export interface TextPartEncoded extends BasePartEncoded<"text", TextPartMetadat
  * `TextPart` through module augmentation.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface TextPartMetadata extends ProviderMetadata {}
 
@@ -617,7 +617,7 @@ export interface TextPartMetadata extends ProviderMetadata {}
  * Schema for validation and encoding of text parts.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const TextPart: Schema.Struct<{
   readonly type: Schema.tag<"text">
@@ -642,7 +642,7 @@ export const TextPart: Schema.Struct<{
  * Marks the beginning of a text chunk with a unique identifier.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface TextStartPart extends BasePart<"text-start", TextStartPartMetadata> {
   /**
@@ -655,7 +655,7 @@ export interface TextStartPart extends BasePart<"text-start", TextStartPartMetad
  * Encoded representation of text start parts for serialization.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface TextStartPartEncoded extends BasePartEncoded<"text-start", TextStartPartMetadata> {
   /**
@@ -669,7 +669,7 @@ export interface TextStartPartEncoded extends BasePartEncoded<"text-start", Text
  * `TextStartPart` through module augmentation.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface TextStartPartMetadata extends ProviderMetadata {}
 
@@ -677,7 +677,7 @@ export interface TextStartPartMetadata extends ProviderMetadata {}
  * Schema for validation and encoding of text start parts.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const TextStartPart: Schema.Struct<{
   readonly type: Schema.tag<"text-start">
@@ -701,7 +701,7 @@ export const TextStartPart: Schema.Struct<{
  * text chunk with the same unique identifier.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface TextDeltaPart extends BasePart<"text-delta", TextDeltaPartMetadata> {
   /**
@@ -718,7 +718,7 @@ export interface TextDeltaPart extends BasePart<"text-delta", TextDeltaPartMetad
  * Encoded representation of text delta parts for serialization.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface TextDeltaPartEncoded extends BasePartEncoded<"text-delta", TextDeltaPartMetadata> {
   /**
@@ -736,7 +736,7 @@ export interface TextDeltaPartEncoded extends BasePartEncoded<"text-delta", Text
  * `TextDeltaPart` through module augmentation.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface TextDeltaPartMetadata extends ProviderMetadata {}
 
@@ -744,7 +744,7 @@ export interface TextDeltaPartMetadata extends ProviderMetadata {}
  * Schema for validation and encoding of text delta parts.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const TextDeltaPart: Schema.Struct<{
   readonly type: Schema.tag<"text-delta">
@@ -771,7 +771,7 @@ export const TextDeltaPart: Schema.Struct<{
  * Marks the completion of a text chunk.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface TextEndPart extends BasePart<"text-end", TextEndPartMetadata> {
   /**
@@ -784,7 +784,7 @@ export interface TextEndPart extends BasePart<"text-end", TextEndPartMetadata> {
  * Encoded representation of text end parts for serialization.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface TextEndPartEncoded extends BasePartEncoded<"text-end", TextEndPartMetadata> {
   /**
@@ -798,7 +798,7 @@ export interface TextEndPartEncoded extends BasePartEncoded<"text-end", TextEndP
  * `TextEndPart` through module augmentation.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface TextEndPartMetadata extends ProviderMetadata {}
 
@@ -806,7 +806,7 @@ export interface TextEndPartMetadata extends ProviderMetadata {}
  * Schema for validation and encoding of text end parts.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const TextEndPart: Schema.Struct<{
   readonly type: Schema.tag<"text-end">
@@ -842,7 +842,7 @@ export const TextEndPart: Schema.Struct<{
  * ```
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ReasoningPart extends BasePart<"reasoning", ReasoningPartMetadata> {
   /**
@@ -855,7 +855,7 @@ export interface ReasoningPart extends BasePart<"reasoning", ReasoningPartMetada
  * Encoded representation of reasoning parts for serialization.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ReasoningPartEncoded extends BasePartEncoded<"reasoning", ReasoningPartMetadata> {
   /**
@@ -869,7 +869,7 @@ export interface ReasoningPartEncoded extends BasePartEncoded<"reasoning", Reaso
  * `ReasoningPart` through module augmentation.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ReasoningPartMetadata extends ProviderMetadata {}
 
@@ -877,7 +877,7 @@ export interface ReasoningPartMetadata extends ProviderMetadata {}
  * Schema for validation and encoding of reasoning parts.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const ReasoningPart: Schema.Struct<{
   readonly type: Schema.tag<"reasoning">
@@ -902,7 +902,7 @@ export const ReasoningPart: Schema.Struct<{
  * Marks the beginning of a reasoning chunk with a unique identifier.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ReasoningStartPart extends BasePart<"reasoning-start", ReasoningStartPartMetadata> {
   /**
@@ -915,7 +915,7 @@ export interface ReasoningStartPart extends BasePart<"reasoning-start", Reasonin
  * Encoded representation of reasoning start parts for serialization.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ReasoningStartPartEncoded extends BasePartEncoded<"reasoning-start", ReasoningStartPartMetadata> {
   /**
@@ -929,7 +929,7 @@ export interface ReasoningStartPartEncoded extends BasePartEncoded<"reasoning-st
  * `ReasoningStartPart` through module augmentation.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ReasoningStartPartMetadata extends ProviderMetadata {}
 
@@ -937,7 +937,7 @@ export interface ReasoningStartPartMetadata extends ProviderMetadata {}
  * Schema for validation and encoding of reasoning start parts.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const ReasoningStartPart: Schema.Struct<{
   readonly type: Schema.tag<"reasoning-start">
@@ -961,7 +961,7 @@ export const ReasoningStartPart: Schema.Struct<{
  * existing chunk of reasoning text with the same unique identifier.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ReasoningDeltaPart extends BasePart<"reasoning-delta", ReasoningDeltaPartMetadata> {
   /**
@@ -978,7 +978,7 @@ export interface ReasoningDeltaPart extends BasePart<"reasoning-delta", Reasonin
  * Encoded representation of reasoning delta parts for serialization.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ReasoningDeltaPartEncoded extends BasePartEncoded<"reasoning-delta", ReasoningDeltaPartMetadata> {
   /**
@@ -996,7 +996,7 @@ export interface ReasoningDeltaPartEncoded extends BasePartEncoded<"reasoning-de
  * `ReasoningDeltaPart` through module augmentation.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ReasoningDeltaPartMetadata extends ProviderMetadata {}
 
@@ -1004,7 +1004,7 @@ export interface ReasoningDeltaPartMetadata extends ProviderMetadata {}
  * Schema for validation and encoding of reasoning delta parts.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const ReasoningDeltaPart: Schema.Struct<{
   readonly type: Schema.tag<"reasoning-delta">
@@ -1031,7 +1031,7 @@ export const ReasoningDeltaPart: Schema.Struct<{
  * Marks the completion of a chunk of reasoning content.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ReasoningEndPart extends BasePart<"reasoning-end", ReasoningEndPartMetadata> {
   /**
@@ -1044,7 +1044,7 @@ export interface ReasoningEndPart extends BasePart<"reasoning-end", ReasoningEnd
  * Encoded representation of reasoning end parts for serialization.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ReasoningEndPartEncoded extends BasePartEncoded<"reasoning-end", ReasoningEndPartMetadata> {
   /**
@@ -1058,7 +1058,7 @@ export interface ReasoningEndPartEncoded extends BasePartEncoded<"reasoning-end"
  * `ReasoningEndPart` through module augmentation.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ReasoningEndPartMetadata extends ProviderMetadata {}
 
@@ -1066,7 +1066,7 @@ export interface ReasoningEndPartMetadata extends ProviderMetadata {}
  * Schema for validation and encoding of reasoning end parts.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const ReasoningEndPart: Schema.Struct<{
   readonly type: Schema.tag<"reasoning-end">
@@ -1092,7 +1092,7 @@ export const ReasoningEndPart: Schema.Struct<{
  * call.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ToolParamsStartPart extends BasePart<"tool-params-start", ToolParamsStartPartMetadata> {
   /**
@@ -1114,7 +1114,7 @@ export interface ToolParamsStartPart extends BasePart<"tool-params-start", ToolP
  * Encoded representation of tool params start parts for serialization.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ToolParamsStartPartEncoded extends BasePartEncoded<"tool-params-start", ToolParamsStartPartMetadata> {
   /**
@@ -1137,7 +1137,7 @@ export interface ToolParamsStartPartEncoded extends BasePartEncoded<"tool-params
  * `ToolParamsStartPart` through module augmentation.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ToolParamsStartPartMetadata extends ProviderMetadata {}
 
@@ -1145,7 +1145,7 @@ export interface ToolParamsStartPartMetadata extends ProviderMetadata {}
  * Schema for validation and encoding of tool params start parts.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const ToolParamsStartPart: Schema.Struct<{
   readonly type: Schema.tag<"tool-params-start">
@@ -1178,7 +1178,7 @@ export const ToolParamsStartPart: Schema.Struct<{
  * incremental JSON content that forms the tool parameters.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ToolParamsDeltaPart extends BasePart<"tool-params-delta", ToolParamsDeltaPartMetadata> {
   /**
@@ -1195,7 +1195,7 @@ export interface ToolParamsDeltaPart extends BasePart<"tool-params-delta", ToolP
  * Encoded representation of tool params delta parts for serialization.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ToolParamsDeltaPartEncoded extends BasePartEncoded<"tool-params-delta", ToolParamsDeltaPartMetadata> {
   /**
@@ -1213,7 +1213,7 @@ export interface ToolParamsDeltaPartEncoded extends BasePartEncoded<"tool-params
  * `ToolParamsDeltaPart` through module augmentation.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ToolParamsDeltaPartMetadata extends ProviderMetadata {}
 
@@ -1221,7 +1221,7 @@ export interface ToolParamsDeltaPartMetadata extends ProviderMetadata {}
  * Schema for validation and encoding of tool params delta parts.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const ToolParamsDeltaPart: Schema.Struct<{
   readonly type: Schema.tag<"tool-params-delta">
@@ -1252,7 +1252,7 @@ export const ToolParamsDeltaPart: Schema.Struct<{
  * parameter data has been sent and the tool call is ready to be executed.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ToolParamsEndPart extends BasePart<"tool-params-end", ToolParamsEndPartMetadata> {
   /**
@@ -1265,7 +1265,7 @@ export interface ToolParamsEndPart extends BasePart<"tool-params-end", ToolParam
  * Encoded representation of tool params end parts for serialization.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ToolParamsEndPartEncoded extends BasePartEncoded<"tool-params-end", ToolParamsEndPartMetadata> {
   /**
@@ -1279,7 +1279,7 @@ export interface ToolParamsEndPartEncoded extends BasePartEncoded<"tool-params-e
  * `ToolParamsEndPart` through module augmentation.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ToolParamsEndPartMetadata extends ProviderMetadata {}
 
@@ -1287,7 +1287,7 @@ export interface ToolParamsEndPartMetadata extends ProviderMetadata {}
  * Schema for validation and encoding of tool params end parts.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const ToolParamsEndPart: Schema.Struct<{
   readonly type: Schema.tag<"tool-params-end">
@@ -1335,7 +1335,7 @@ export const ToolParamsEndPart: Schema.Struct<{
  * ```
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ToolCallPart<Name extends string, Params> extends BasePart<"tool-call", ToolCallPartMetadata> {
   /**
@@ -1361,7 +1361,7 @@ export interface ToolCallPart<Name extends string, Params> extends BasePart<"too
  * Encoded representation of tool call parts for serialization.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ToolCallPartEncoded extends BasePartEncoded<"tool-call", ToolCallPartMetadata> {
   /**
@@ -1388,7 +1388,7 @@ export interface ToolCallPartEncoded extends BasePartEncoded<"tool-call", ToolCa
  * `ToolCallPart` through module augmentation.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ToolCallPartMetadata extends ProviderMetadata {}
 
@@ -1396,7 +1396,7 @@ export interface ToolCallPartMetadata extends ProviderMetadata {}
  * Creates a Schema for tool call parts with specific tool name and parameters.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const ToolCallPart: <const Name extends string, Params extends Schema.Top>(
   name: Name,
@@ -1430,7 +1430,7 @@ export const ToolCallPart: <const Name extends string, Params extends Schema.Top
  * Constructs a new tool call part.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toolCallPart = <const Name extends string, Params>(
   params: ConstructorParams<ToolCallPart<Name, Params>>
@@ -1444,7 +1444,7 @@ export const toolCallPart = <const Name extends string, Params>(
  * The base fields of a tool result part.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface BaseToolResult<Name extends string> extends BasePart<"tool-result", ToolResultPartMetadata> {
   /**
@@ -1480,7 +1480,7 @@ export interface BaseToolResult<Name extends string> extends BasePart<"tool-resu
  * Represents a successful tool call result.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ToolResultSuccess<Name extends string, Success> extends BaseToolResult<Name> {
   /**
@@ -1497,7 +1497,7 @@ export interface ToolResultSuccess<Name extends string, Success> extends BaseToo
  * Represents a failed tool call result.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ToolResultFailure<Name extends string, Failure> extends BaseToolResult<Name> {
   /**
@@ -1548,7 +1548,7 @@ export interface ToolResultFailure<Name extends string, Failure> extends BaseToo
  * ```
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ToolResultPart<Name extends string, Success, Failure> =
   | ToolResultSuccess<Name, Success>
@@ -1558,7 +1558,7 @@ export type ToolResultPart<Name extends string, Success, Failure> =
  * Encoded representation of tool result parts for serialization.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ToolResultPartEncoded extends BasePartEncoded<"tool-result", ToolResultPartMetadata> {
   /**
@@ -1595,7 +1595,7 @@ export interface ToolResultPartEncoded extends BasePartEncoded<"tool-result", To
  * `ToolResultPart` through module augmentation.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ToolResultPartMetadata extends ProviderMetadata {}
 
@@ -1603,7 +1603,7 @@ export interface ToolResultPartMetadata extends ProviderMetadata {}
  * Creates a Schema for tool result parts with specific tool name and result type.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const ToolResultPart: <const Name extends string, Success extends Schema.Top, Failure extends Schema.Top>(
   name: Name,
@@ -1698,7 +1698,7 @@ export const ToolResultPart: <const Name extends string, Success extends Schema.
  * Constructs a new tool result part.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toolResultPart = <const Params extends ConstructorParams<ToolResultPart<string, unknown, unknown>>>(
   params: Params
@@ -1740,7 +1740,7 @@ export const toolResultPart = <const Params extends ConstructorParams<ToolResult
  * ```
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ToolApprovalRequestPart extends BasePart<"tool-approval-request", ToolApprovalRequestPartMetadata> {
   /**
@@ -1757,7 +1757,7 @@ export interface ToolApprovalRequestPart extends BasePart<"tool-approval-request
  * Encoded representation of tool approval request parts for serialization.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ToolApprovalRequestPartEncoded
   extends BasePartEncoded<"tool-approval-request", ToolApprovalRequestPartMetadata>
@@ -1777,7 +1777,7 @@ export interface ToolApprovalRequestPartEncoded
  * `ToolApprovalRequestPart` through module augmentation.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ToolApprovalRequestPartMetadata extends ProviderMetadata {}
 
@@ -1785,7 +1785,7 @@ export interface ToolApprovalRequestPartMetadata extends ProviderMetadata {}
  * Schema for validation and encoding of tool approval request parts.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const ToolApprovalRequestPart: Schema.Struct<{
   readonly type: Schema.tag<"tool-approval-request">
@@ -1809,7 +1809,7 @@ export const ToolApprovalRequestPart: Schema.Struct<{
  * Constructs a new tool approval request part.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toolApprovalRequestPart = (
   params: ConstructorParams<ToolApprovalRequestPart>
@@ -1836,7 +1836,7 @@ export const toolApprovalRequestPart = (
  * ```
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface FilePart extends BasePart<"file", FilePartMetadata> {
   /**
@@ -1853,7 +1853,7 @@ export interface FilePart extends BasePart<"file", FilePartMetadata> {
  * Encoded representation of file parts for serialization.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface FilePartEncoded extends BasePartEncoded<"file", FilePartMetadata> {
   /**
@@ -1871,7 +1871,7 @@ export interface FilePartEncoded extends BasePartEncoded<"file", FilePartMetadat
  * `FilePart` through module augmentation.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface FilePartMetadata extends ProviderMetadata {}
 
@@ -1879,7 +1879,7 @@ export interface FilePartMetadata extends ProviderMetadata {}
  * Schema for validation and encoding of file parts.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const FilePart: Schema.Struct<{
   readonly type: Schema.tag<"file">
@@ -1906,7 +1906,7 @@ export const FilePart: Schema.Struct<{
  * Used to reference documents that were used in generating the response.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface DocumentSourcePart extends BasePart<"source", DocumentSourcePartMetadata> {
   /**
@@ -1935,7 +1935,7 @@ export interface DocumentSourcePart extends BasePart<"source", DocumentSourcePar
  * Encoded representation of document source parts for serialization.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface DocumentSourcePartEncoded extends BasePartEncoded<"source", DocumentSourcePartMetadata> {
   /**
@@ -1965,7 +1965,7 @@ export interface DocumentSourcePartEncoded extends BasePartEncoded<"source", Doc
  * `DocumentSourcePart` through module augmentation.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface DocumentSourcePartMetadata extends ProviderMetadata {}
 
@@ -1973,7 +1973,7 @@ export interface DocumentSourcePartMetadata extends ProviderMetadata {}
  * Schema for validation and encoding of document source parts.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const DocumentSourcePart: Schema.Struct<{
   readonly type: Schema.tag<"source">
@@ -2006,7 +2006,7 @@ export const DocumentSourcePart: Schema.Struct<{
  * Used to reference web URLs that were used in generating the response.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface UrlSourcePart extends BasePart<"source", UrlSourcePartMetadata> {
   /**
@@ -2031,7 +2031,7 @@ export interface UrlSourcePart extends BasePart<"source", UrlSourcePartMetadata>
  * Encoded representation of URL source parts for serialization.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface UrlSourcePartEncoded extends BasePartEncoded<"source", UrlSourcePartMetadata> {
   /**
@@ -2057,7 +2057,7 @@ export interface UrlSourcePartEncoded extends BasePartEncoded<"source", UrlSourc
  * `UrlSourcePart` through module augmentation.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface UrlSourcePartMetadata extends ProviderMetadata {}
 
@@ -2065,7 +2065,7 @@ export interface UrlSourcePartMetadata extends ProviderMetadata {}
  * Schema for validation and encoding of url source parts.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const UrlSourcePart: Schema.Struct<{
   readonly type: Schema.tag<"source">
@@ -2112,7 +2112,7 @@ export const UrlSourcePart: Schema.Struct<{
  * ```
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const HttpRequestDetails = Schema.Struct({
   method: Schema.Literals(["GET", "POST", "PATCH", "PUT", "DELETE", "HEAD", "OPTIONS", "TRACE"]),
@@ -2150,7 +2150,7 @@ export const HttpRequestDetails = Schema.Struct({
  * ```
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const HttpResponseDetails = Schema.Struct({
   status: Schema.Number,
@@ -2188,7 +2188,7 @@ export const HttpResponseDetails = Schema.Struct({
  * ```
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ResponseMetadataPart extends BasePart<"response-metadata", ResponseMetadataPartMetadata> {
   /**
@@ -2213,7 +2213,7 @@ export interface ResponseMetadataPart extends BasePart<"response-metadata", Resp
  * Encoded representation of response metadata parts for serialization.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ResponseMetadataPartEncoded
   extends BasePartEncoded<"response-metadata", ResponseMetadataPartMetadata>
@@ -2241,7 +2241,7 @@ export interface ResponseMetadataPartEncoded
  * `ResponseMetadataPart` through module augmentation.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ResponseMetadataPartMetadata extends ProviderMetadata {}
 
@@ -2249,7 +2249,7 @@ export interface ResponseMetadataPartMetadata extends ProviderMetadata {}
  * Schema for validation and encoding of response metadata parts.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const ResponseMetadataPart: Schema.Struct<{
   readonly type: Schema.tag<"response-metadata">
@@ -2291,7 +2291,7 @@ export const ResponseMetadataPart: Schema.Struct<{
  * - `"unknown"`: The model did not specify a finish reason.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const FinishReason: Schema.Literals<[
   "stop",
@@ -2321,7 +2321,7 @@ export const FinishReason: Schema.Literals<[
  * reasons.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type FinishReason = typeof FinishReason.Type
 
@@ -2333,7 +2333,7 @@ export type FinishReason = typeof FinishReason.Type
  * metadata of the finish part of the response.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Usage extends Schema.Class<Usage>("effect/ai/AiResponse/Usage")({
   /**
@@ -2404,7 +2404,7 @@ export class Usage extends Schema.Class<Usage>("effect/ai/AiResponse/Usage")({
  * ```
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface FinishPart extends BasePart<"finish", FinishPartMetadata> {
   /**
@@ -2425,7 +2425,7 @@ export interface FinishPart extends BasePart<"finish", FinishPartMetadata> {
  * Encoded representation of finish parts for serialization.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface FinishPartEncoded extends BasePartEncoded<"finish", FinishPartMetadata> {
   /**
@@ -2447,7 +2447,7 @@ export interface FinishPartEncoded extends BasePartEncoded<"finish", FinishPartM
  * `FinishPart` through module augmentation.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface FinishPartMetadata extends ProviderMetadata {}
 
@@ -2455,7 +2455,7 @@ export interface FinishPartMetadata extends ProviderMetadata {}
  * Schema for validation and encoding of finish parts.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const FinishPart: Schema.Struct<{
   readonly type: Schema.tag<"finish">
@@ -2501,7 +2501,7 @@ export const FinishPart: Schema.Struct<{
  * ```
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ErrorPart extends BasePart<"error", ErrorPartMetadata> {
   readonly error: unknown
@@ -2511,7 +2511,7 @@ export interface ErrorPart extends BasePart<"error", ErrorPartMetadata> {
  * Encoded representation of error parts for serialization.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ErrorPartEncoded extends BasePartEncoded<"error", ErrorPartMetadata> {
   readonly error: unknown
@@ -2522,7 +2522,7 @@ export interface ErrorPartEncoded extends BasePartEncoded<"error", ErrorPartMeta
  * `ErrorPart` through module augmentation.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ErrorPartMetadata extends ProviderMetadata {}
 
@@ -2530,7 +2530,7 @@ export interface ErrorPartMetadata extends ProviderMetadata {}
  * Schema for validation and encoding of error parts.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const ErrorPart: Schema.Struct<{
   readonly type: Schema.tag<"error">

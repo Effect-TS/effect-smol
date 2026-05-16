@@ -19,7 +19,7 @@
  * choose this layer or narrower service-specific layers depending on how much
  * of the Bun runtime they want to expose.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type { FileSystem } from "effect/FileSystem"
 import * as Layer from "effect/Layer"
@@ -38,7 +38,7 @@ import * as BunTerminal from "./BunTerminal.ts"
  * process spawning, filesystem, path, stdio, and terminal services.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type BunServices = ChildProcessSpawner | FileSystem | Path | Terminal | Stdio
 
@@ -47,7 +47,7 @@ export type BunServices = ChildProcessSpawner | FileSystem | Path | Terminal | S
  * filesystem, path, stdio, and terminal services.
  *
  * @category layer
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<BunServices> = BunChildProcessSpawner.layer.pipe(
   Layer.provideMerge(Layer.mergeAll(

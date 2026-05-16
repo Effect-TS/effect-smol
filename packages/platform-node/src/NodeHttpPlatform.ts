@@ -20,7 +20,7 @@
  * consumed and prefer the portable `HttpServerResponse` constructors when a
  * response does not depend on Node file or stream behavior.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import { pipe } from "effect/Function"
 import * as Layer from "effect/Layer"
@@ -38,7 +38,7 @@ import * as NodeFileSystem from "./NodeFileSystem.ts"
  * streams and adding MIME type and content-length headers when needed.
  *
  * @category Constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = Platform.make({
   fileResponse(path, status, statusText, headers, start, end, contentLength) {
@@ -75,7 +75,7 @@ export const make = Platform.make({
  * services it needs for file responses.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<Platform.HttpPlatform> = pipe(
   Layer.effect(Platform.HttpPlatform)(make),

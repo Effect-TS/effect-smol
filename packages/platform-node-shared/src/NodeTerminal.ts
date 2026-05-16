@@ -16,7 +16,7 @@
  * redirected input, or CI, raw mode is unavailable, keypress behavior is
  * limited, and stdout dimensions may be reported as zero.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type * as Cause from "effect/Cause"
 import * as Effect from "effect/Effect"
@@ -36,7 +36,7 @@ import * as readline from "node:readline"
  * key input should end.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make: (
   shouldQuit?: (input: Terminal.UserInput) => boolean
@@ -129,7 +129,7 @@ export const make: (
  * Ctrl+C or Ctrl+D.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<Terminal.Terminal> = Layer.effect(Terminal.Terminal, make(defaultShouldQuit))
 

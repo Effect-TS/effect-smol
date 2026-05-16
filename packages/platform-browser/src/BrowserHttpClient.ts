@@ -28,7 +28,7 @@
  * an incompatible `Content-Type` header so the browser can generate the
  * multipart boundary.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Cause from "effect/Cause"
 import * as Context from "effect/Context"
@@ -58,17 +58,17 @@ import * as HeaderParser from "multipasta/HeadersParser"
 export {
   /**
    * @category Fetch
-   * @since 1.0.0
+   * @since 4.0.0
    */
   Fetch,
   /**
    * @category Fetch
-   * @since 1.0.0
+   * @since 4.0.0
    */
   layer as layerFetch,
   /**
    * @category Fetch
-   * @since 1.0.0
+   * @since 4.0.0
    */
   RequestInit
 } from "effect/unstable/http/FetchHttpClient"
@@ -81,7 +81,7 @@ export {
  * Allowed response body modes for the browser XHR HTTP client.
  *
  * @category Models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type XHRResponseType = "arraybuffer" | "text"
 
@@ -89,7 +89,7 @@ export type XHRResponseType = "arraybuffer" | "text"
  * Reference that controls the `XMLHttpRequest.responseType` used by the browser XHR HTTP client, defaulting to `"text"`.
  *
  * @category References
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const CurrentXHRResponseType: Context.Reference<XHRResponseType> = Context.Reference(
   "@effect/platform-browser/BrowserHttpClient/CurrentXHRResponseType",
@@ -100,7 +100,7 @@ export const CurrentXHRResponseType: Context.Reference<XHRResponseType> = Contex
  * Runs an effect with `CurrentXHRResponseType` set to `"arraybuffer"` so the XHR HTTP client receives response bodies as `ArrayBuffer` values.
  *
  * @category References
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const withXHRArrayBuffer = <A, E, R>(
   self: Effect.Effect<A, E, R>
@@ -115,7 +115,7 @@ export const withXHRArrayBuffer = <A, E, R>(
  * Service tag for the `XMLHttpRequest` constructor used by the browser XHR HTTP client.
  *
  * @category Services
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class XMLHttpRequest extends Context.Service<
   XMLHttpRequest,
@@ -424,7 +424,7 @@ class ClientResponseImpl extends IncomingMessageImpl<HttpClientError.HttpClientE
  * Layer that provides an `HttpClient` implementation backed by the browser `XMLHttpRequest` API.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerXMLHttpRequest: Layer.Layer<HttpClient.HttpClient> = HttpClient.layerMergedContext(
   Effect.succeed(makeXmlHttpRequest)

@@ -28,7 +28,7 @@
  * disabled, finalizing a serve scope also starts a graceful server close, using
  * the configured timeout or the default timeout.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Cause from "effect/Cause"
 import * as Config from "effect/Config"
@@ -86,7 +86,7 @@ import { NodeWS } from "./NodeSocket.ts"
  * the server during scope finalization with optional graceful-shutdown control.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = Effect.fnUntraced(function*(
   evaluate: LazyArg<Http.Server>,
@@ -183,7 +183,7 @@ export const make = Effect.fnUntraced(function*(
  * client closes the response before it finishes.
  *
  * @category Handlers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeHandler = <
   R,
@@ -225,7 +225,7 @@ export const makeHandler = <
  * interrupting the request fiber when the socket closes early.
  *
  * @category Handlers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeUpgradeHandler = <
   R,
@@ -411,7 +411,7 @@ class ServerRequestImpl extends NodeHttpIncomingMessage<HttpServerError> impleme
  * `http.Server` with the supplied listen and shutdown options.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerServer: (
   evaluate: LazyArg<Http.Server<typeof Http.IncomingMessage, typeof Http.ServerResponse>>,
@@ -426,7 +426,7 @@ export const layerServer: (
  * the HTTP platform, ETag generator, and core Node platform services.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerHttpServices: Layer.Layer<
   NodeServices.NodeServices | HttpPlatform.HttpPlatform | Etag.Generator
@@ -441,7 +441,7 @@ export const layerHttpServices: Layer.Layer<
  * core platform services required to serve requests.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = (
   evaluate: LazyArg<Http.Server>,
@@ -463,7 +463,7 @@ export const layer = (
  * and shutdown options from a `Config` value.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerConfig = (
   evaluate: LazyArg<Http.Server>,
@@ -489,7 +489,7 @@ export const layerConfig = (
  * Fetch-backed `HttpClient` configured for server integration tests.
  *
  * @category Testing
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerTest: Layer.Layer<
   | HttpServer.HttpServer

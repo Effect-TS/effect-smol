@@ -21,7 +21,7 @@
  * browser `once` option, pair the stream with `Stream.take(1)` if a finite
  * stream is required.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 
 import * as Stream from "effect/Stream"
@@ -33,7 +33,7 @@ import * as Stream from "effect/Stream"
  * buffer size an object as the second argument with the `bufferSize` field.
  *
  * @category Streams
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fromEventListenerWindow = <K extends keyof WindowEventMap>(
   type: K,
@@ -52,7 +52,7 @@ export const fromEventListenerWindow = <K extends keyof WindowEventMap>(
  * buffer size an object as the second argument with the `bufferSize` field.
  *
  * @category Streams
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fromEventListenerDocument = <K extends keyof DocumentEventMap>(
   type: K,

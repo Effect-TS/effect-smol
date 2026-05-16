@@ -13,7 +13,7 @@
  * UNC paths, and URL encoding rules can also differ by platform. Invalid
  * file URL conversions are reported through `BadArgument`.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
@@ -49,7 +49,7 @@ const toFileUrl = (path: string): Effect.Effect<URL, BadArgument> =>
  * file URL conversion helpers.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerPosix: Layer.Layer<Path> = Layer.succeed(Path)({
   [TypeId]: TypeId,
@@ -63,7 +63,7 @@ export const layerPosix: Layer.Layer<Path> = Layer.succeed(Path)({
  * file URL conversion helpers.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerWin32: Layer.Layer<Path> = Layer.succeed(Path)({
   [TypeId]: TypeId,
@@ -77,7 +77,7 @@ export const layerWin32: Layer.Layer<Path> = Layer.succeed(Path)({
  * implementation plus file URL conversion helpers.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<Path> = Layer.succeed(Path)({
   [TypeId]: TypeId,

@@ -20,7 +20,7 @@
  * and shut down during application shutdown, especially when using batching
  * processors that may otherwise drop buffered logs.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import { SeverityNumber } from "@opentelemetry/api-logs"
 import * as Otel from "@opentelemetry/sdk-logs"
@@ -43,7 +43,7 @@ import { Resource } from "./Resource.ts"
  * Context service containing the OpenTelemetry `LoggerProvider` used to emit Effect log records.
  *
  * @category Services
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class OtelLoggerProvider extends Context.Service<
   OtelLoggerProvider,
@@ -59,7 +59,7 @@ export class OtelLoggerProvider extends Context.Service<
  * validate the field map such values to `UNSPECIFIED`.
  *
  * @category Conversions
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const logLevelToSeverityNumber = (level: LogLevel.LogLevel): SeverityNumber => {
   switch (level) {
@@ -84,7 +84,7 @@ export const logLevelToSeverityNumber = (level: LogLevel.LogLevel): SeverityNumb
  * Creates an Effect logger that emits log records through the configured OpenTelemetry logger provider.
  *
  * @category Constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make: Effect.Effect<
   Logger.Logger<unknown, void>,
@@ -132,7 +132,7 @@ export const make: Effect.Effect<
  * Creates a layer that installs the OpenTelemetry-backed Effect logger, merging with existing loggers by default.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = (options: {
   /**
@@ -154,7 +154,7 @@ export const layer = (options: {
  * Creates a scoped OpenTelemetry logger provider from one or more log record processors, using the current `Resource` and flushing and shutting down the provider when the layer is released.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerLoggerProvider = (
   processor: Otel.LogRecordProcessor | NonEmptyReadonlyArray<Otel.LogRecordProcessor>,

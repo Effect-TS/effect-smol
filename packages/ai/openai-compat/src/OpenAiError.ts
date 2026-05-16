@@ -12,14 +12,14 @@
  * makes those shapes available on the corresponding shared AI error metadata
  * interfaces without defining new runtime error classes.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 
 /**
  * OpenAI-specific error metadata fields.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type OpenAiErrorMetadata = {
   /**
@@ -43,7 +43,7 @@ export type OpenAiErrorMetadata = {
  * OpenAI's rate limit headers.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type OpenAiRateLimitMetadata = OpenAiErrorMetadata & {
   /**
@@ -69,7 +69,7 @@ declare module "effect/unstable/ai/AiError" {
    * Metadata attached to rate limit errors returned by OpenAI-compatible APIs.
    *
    * @category models
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface RateLimitErrorMetadata {
     readonly openai?: OpenAiRateLimitMetadata | null
@@ -80,7 +80,7 @@ declare module "effect/unstable/ai/AiError" {
    * billing limits have been exhausted.
    *
    * @category models
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface QuotaExhaustedErrorMetadata {
     readonly openai?: OpenAiErrorMetadata | null
@@ -91,7 +91,7 @@ declare module "effect/unstable/ai/AiError" {
    * such as invalid, missing, or unauthorized API credentials.
    *
    * @category models
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface AuthenticationErrorMetadata {
     readonly openai?: OpenAiErrorMetadata | null
@@ -102,7 +102,7 @@ declare module "effect/unstable/ai/AiError" {
    * it violates a safety or usage policy.
    *
    * @category models
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface ContentPolicyErrorMetadata {
     readonly openai?: OpenAiErrorMetadata | null
@@ -113,7 +113,7 @@ declare module "effect/unstable/ai/AiError" {
    * OpenAI-compatible API before model execution.
    *
    * @category models
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface InvalidRequestErrorMetadata {
     readonly openai?: OpenAiErrorMetadata | null
@@ -124,7 +124,7 @@ declare module "effect/unstable/ai/AiError" {
    * OpenAI-compatible provider.
    *
    * @category models
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface InternalProviderErrorMetadata {
     readonly openai?: OpenAiErrorMetadata | null
@@ -135,7 +135,7 @@ declare module "effect/unstable/ai/AiError" {
    * into the expected AI package output shape.
    *
    * @category models
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface InvalidOutputErrorMetadata {
     readonly openai?: OpenAiErrorMetadata | null
@@ -146,7 +146,7 @@ declare module "effect/unstable/ai/AiError" {
    * not satisfy the requested schema or parsing constraints.
    *
    * @category models
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface StructuredOutputErrorMetadata {
     readonly openai?: OpenAiErrorMetadata | null
@@ -157,7 +157,7 @@ declare module "effect/unstable/ai/AiError" {
    * schema supplied for structured output or tool definitions.
    *
    * @category models
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface UnsupportedSchemaErrorMetadata {
     readonly openai?: OpenAiErrorMetadata | null
@@ -168,7 +168,7 @@ declare module "effect/unstable/ai/AiError" {
    * to a more specific shared AI error category.
    *
    * @category models
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface UnknownErrorMetadata {
     readonly openai?: OpenAiErrorMetadata | null

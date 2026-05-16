@@ -17,7 +17,7 @@
  * support, event coalescing, and reported paths can vary by runtime and
  * platform.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Cause from "effect/Cause"
 import * as Effect from "effect/Effect"
@@ -657,6 +657,6 @@ const makeFileSystem = Effect.map(Effect.serviceOption(FileSystem.WatchBackend),
  * file operations, directory operations, links, metadata, and file watching.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<FileSystem.FileSystem> = Layer.effect(FileSystem.FileSystem)(makeFileSystem)

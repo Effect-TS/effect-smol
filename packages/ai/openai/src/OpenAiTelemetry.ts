@@ -5,7 +5,7 @@
  * semantic conventions, extending the base GenAI attributes with OpenAI-specific
  * request and response metadata.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import { dual } from "effect/Function"
 import * as String from "effect/String"
@@ -20,7 +20,7 @@ import * as Telemetry from "effect/unstable/ai/Telemetry"
  * {@see https://opentelemetry.io/docs/specs/semconv/attributes-registry/gen-ai/}
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type OpenAiTelemetryAttributes = Simplify<
   & Telemetry.GenAITelemetryAttributes
@@ -33,7 +33,7 @@ export type OpenAiTelemetryAttributes = Simplify<
  * including the OpenAi-specific attributes.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type AllAttributes = Telemetry.AllAttributes & RequestAttributes & ResponseAttributes
 
@@ -42,7 +42,7 @@ export type AllAttributes = Telemetry.AllAttributes & RequestAttributes & Respon
  * namespaced by `gen_ai.openai.request`.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface RequestAttributes {
   /**
@@ -60,7 +60,7 @@ export interface RequestAttributes {
  * namespaced by `gen_ai.openai.response`.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ResponseAttributes {
   /**
@@ -82,7 +82,7 @@ export interface ResponseAttributes {
  * otherwise, a custom value **MAY** be used.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type WellKnownResponseFormat = "json_object" | "json_schema" | "text"
 
@@ -94,12 +94,12 @@ export type WellKnownResponseFormat = "json_object" | "json_schema" | "text"
  * otherwise, a custom value **MAY** be used.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type WellKnownServiceTier = "auto" | "default"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @since models
  */
 export type OpenAiTelemetryAttributeOptions = Telemetry.GenAITelemetryAttributeOptions & {
@@ -122,7 +122,7 @@ const addOpenAiResponseAttributes = Telemetry.addSpanAttributes("gen_ai.openai.r
  *
  * **NOTE**: This method will mutate the `Span` **in-place**.
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @since utilities
  */
 export const addGenAIAnnotations: {

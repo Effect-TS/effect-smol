@@ -15,7 +15,7 @@
  * or externally owned streams, pass `closeOnDone` or `endOnDone` carefully, and
  * use `maxBytes` on collection helpers to avoid buffering unbounded input.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Arr from "effect/Array"
 import * as Cause from "effect/Cause"
@@ -41,7 +41,7 @@ import { pullIntoWritable } from "./NodeSink.ts"
  * the readable on completion unless `closeOnDone` is `false`.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fromReadable = <A = Uint8Array, E = Cause.UnknownError>(options: {
   readonly evaluate: LazyArg<Readable | NodeJS.ReadableStream>
@@ -57,7 +57,7 @@ export const fromReadable = <A = Uint8Array, E = Cause.UnknownError>(options: {
  * `closeOnDone` is `false`.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fromReadableChannel = <A = Uint8Array, E = Cause.UnknownError>(options: {
   readonly evaluate: LazyArg<Readable | NodeJS.ReadableStream>
@@ -81,7 +81,7 @@ export const fromReadableChannel = <A = Uint8Array, E = Cause.UnknownError>(opti
  * the writable side when upstream completes.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fromDuplex = <IE, I = Uint8Array, O = Uint8Array, E = Cause.UnknownError>(
   options: {
@@ -127,7 +127,7 @@ export const fromDuplex = <IE, I = Uint8Array, O = Uint8Array, E = Cause.Unknown
  * chunks to the duplex and emitting chunks read back from it.
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const pipeThroughDuplex: {
   <B = Uint8Array, E2 = Cause.UnknownError>(
@@ -172,7 +172,7 @@ export const pipeThroughDuplex: {
  * options and `Cause.UnknownError` for stream failures.
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const pipeThroughSimple: {
   (
@@ -193,7 +193,7 @@ export const pipeThroughSimple: {
  * fails.
  *
  * @category conversions
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toReadable = <E, R>(stream: Stream.Stream<string | Uint8Array, E, R>): Effect.Effect<Readable, never, R> =>
   Effect.map(
@@ -206,7 +206,7 @@ export const toReadable = <E, R>(stream: Stream.Stream<string | Uint8Array, E, R
  * empty Effect context.
  *
  * @category conversions
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toReadableNever = <E>(stream: Stream.Stream<string | Uint8Array, E, never>): Readable =>
   new StreamAdapter(
@@ -220,7 +220,7 @@ export const toReadableNever = <E>(stream: Stream.Stream<string | Uint8Array, E,
  * and destroying the stream on interruption or failure.
  *
  * @category conversions
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toString = <E = Cause.UnknownError>(
   readable: LazyArg<Readable | NodeJS.ReadableStream>,
@@ -273,7 +273,7 @@ export const toString = <E = Cause.UnknownError>(
  * stream on interruption or failure.
  *
  * @category conversions
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toArrayBuffer = <E = Cause.UnknownError>(
   readable: LazyArg<Readable | NodeJS.ReadableStream>,
@@ -323,7 +323,7 @@ export const toArrayBuffer = <E = Cause.UnknownError>(
  * mapping and `maxBytes` handling as `toArrayBuffer`.
  *
  * @category conversions
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toUint8Array = <E = Cause.UnknownError>(
   readable: LazyArg<Readable | NodeJS.ReadableStream>,

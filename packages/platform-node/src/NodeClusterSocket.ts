@@ -28,7 +28,7 @@
  * - Ping health checks use the same socket protocol, so unreachable ports,
  *   firewalls, or serialization mismatches can make a runner appear unhealthy
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import { layerClientProtocol, layerSocketServer } from "@effect/platform-node-shared/NodeClusterSocket"
 import type { ConfigError } from "effect/Config"
@@ -55,12 +55,12 @@ import * as Undici from "./Undici.ts"
 export {
   /**
    * @category Re-exports
-   * @since 1.0.0
+   * @since 4.0.0
    */
   layerClientProtocol,
   /**
    * @category Re-exports
-   * @since 1.0.0
+   * @since 4.0.0
    */
   layerSocketServer
 }
@@ -71,7 +71,7 @@ export {
  * client-only mode.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = <
   const ClientOnly extends boolean = false,
@@ -149,7 +149,7 @@ export const layer = <
  * dispatcher otherwise.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerDispatcherK8s: Layer.Layer<NodeHttpClient.Dispatcher> = Layer.effect(NodeHttpClient.Dispatcher)(
   Effect.gen(function*() {
@@ -181,7 +181,7 @@ export const layerDispatcherK8s: Layer.Layer<NodeHttpClient.Dispatcher> = Layer.
  * Kubernetes-aware dispatcher.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerK8sHttpClient: Layer.Layer<K8sHttpClient.K8sHttpClient> = K8sHttpClient.layer.pipe(
   Layer.provide(Layer.fresh(NodeHttpClient.layerUndiciNoDispatcher)),

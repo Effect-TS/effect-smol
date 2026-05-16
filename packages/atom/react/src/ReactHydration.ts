@@ -20,7 +20,7 @@
  * - Hydration is idempotent, so repeated or older dehydrated values are safe to
  *   pass through the boundary.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 "use client"
 import * as Hydration from "effect/unstable/reactivity/Hydration"
@@ -29,7 +29,7 @@ import { RegistryContext } from "./RegistryContext.ts"
 
 /**
  * @category components
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface HydrationBoundaryProps {
   state?: Iterable<Hydration.DehydratedAtom>
@@ -38,7 +38,7 @@ export interface HydrationBoundaryProps {
 
 /**
  * @category components
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const HydrationBoundary: React.FC<HydrationBoundaryProps> = ({
   children,

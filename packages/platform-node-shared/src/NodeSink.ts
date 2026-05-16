@@ -16,7 +16,7 @@
  * for externally owned or long-lived writables, and make sure `onError` keeps
  * Node's untyped errors meaningful for the calling Effect workflow.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type { NonEmptyReadonlyArray } from "effect/Array"
 import * as Cause from "effect/Cause"
@@ -33,7 +33,7 @@ import type { Writable } from "node:stream"
  * on completion unless `endOnDone` is `false`.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fromWritable = <E, A = Uint8Array | string>(
   options: {
@@ -51,7 +51,7 @@ export const fromWritable = <E, A = Uint8Array | string>(
  * writable when upstream is done.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fromWritableChannel = <IE, E, A = Uint8Array | string>(
   options: {
@@ -71,7 +71,7 @@ export const fromWritableChannel = <IE, E, A = Uint8Array | string>(
  * waiting for `drain` when needed, failing on writable errors, and ending the
  * writable on upstream completion unless disabled.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const pullIntoWritable = <A, IE, E>(options: {
   readonly pull: Pull.Pull<NonEmptyReadonlyArray<A>, IE, unknown>

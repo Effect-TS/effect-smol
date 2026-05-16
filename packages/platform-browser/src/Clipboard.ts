@@ -15,7 +15,7 @@
  * while `ClipboardItem` and non-text MIME types may be unavailable or restricted
  * in some browsers. Failed browser operations are surfaced as `ClipboardError`.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Context from "effect/Context"
 import * as Data from "effect/Data"
@@ -29,7 +29,7 @@ const ErrorTypeId = "~@effect/platform-browser/Clipboard/ClipboardError"
  * Service interface for reading from, writing to, and clearing the browser clipboard.
  *
  * @category Models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Clipboard {
   readonly [TypeId]: typeof TypeId
@@ -45,7 +45,7 @@ export interface Clipboard {
  * Tagged error raised when a browser clipboard operation fails.
  *
  * @category Errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class ClipboardError extends Data.TaggedError("ClipboardError")<{
   readonly message: string
@@ -58,7 +58,7 @@ export class ClipboardError extends Data.TaggedError("ClipboardError")<{
  * Service tag for the browser `Clipboard` service.
  *
  * @category Service
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Clipboard: Context.Service<Clipboard, Clipboard> = Context.Service<Clipboard>(TypeId)
 
@@ -66,7 +66,7 @@ export const Clipboard: Context.Service<Clipboard, Clipboard> = Context.Service<
  * Builds a `Clipboard` service from primitive read and write operations, deriving `clear` and `writeBlob` helpers.
  *
  * @category Constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = (
   impl: Omit<Clipboard, "clear" | "writeBlob" | typeof TypeId>
@@ -82,7 +82,7 @@ export const make = (
  * A layer that directly interfaces with the navigator.clipboard api
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<Clipboard> = Layer.succeed(
   Clipboard,

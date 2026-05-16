@@ -1,7 +1,7 @@
 /**
  * Provides codec transformations for OpenAI structured output.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"
 import * as JsonSchema from "../../JsonSchema.ts"
@@ -38,7 +38,7 @@ import * as Tool from "./Tool.ts"
  * unchanged.
  *
  * @category Codec Transformation
- * @since 1.0.0
+ * @since 4.0.0
  */
 export function toCodecOpenAI<T, E, RD, RE>(
   schema: Schema.Codec<T, E, RD, RE>

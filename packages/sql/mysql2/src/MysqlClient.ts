@@ -16,7 +16,7 @@
  * capacity. Size `maxConnections`, `connectionTTL`, and any mysql2 `poolConfig` with that in
  * mind.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Config from "effect/Config"
 import * as Context from "effect/Context"
@@ -146,7 +146,7 @@ const classifyError = (
  * Runtime type identifier used to mark `MysqlClient` values.
  *
  * @category type ids
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-mysql2/MysqlClient"
 
@@ -154,7 +154,7 @@ export const TypeId: TypeId = "~@effect/sql-mysql2/MysqlClient"
  * Type-level identifier used to mark `MysqlClient` values.
  *
  * @category type ids
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type TypeId = "~@effect/sql-mysql2/MysqlClient"
 
@@ -162,7 +162,7 @@ export type TypeId = "~@effect/sql-mysql2/MysqlClient"
  * mysql2-backed SQL client service, extending `SqlClient` with its runtime type marker and client configuration.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface MysqlClient extends Client.SqlClient {
   readonly [TypeId]: TypeId
@@ -173,7 +173,7 @@ export interface MysqlClient extends Client.SqlClient {
  * Context tag used to access the `MysqlClient` service.
  *
  * @category tags
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const MysqlClient = Context.Service<MysqlClient>("@effect/sql-mysql2/MysqlClient")
 
@@ -181,7 +181,7 @@ export const MysqlClient = Context.Service<MysqlClient>("@effect/sql-mysql2/Mysq
  * Configuration for a mysql2 client, including connection URI or connection fields, pool options, span attributes, and query/result name transforms.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface MysqlClientConfig {
   /**
@@ -210,7 +210,7 @@ export interface MysqlClientConfig {
  * Creates a scoped MySQL client backed by a managed mysql2 pool, verifying connectivity and supporting streaming queries through mysql2 query streams.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = (
   options: MysqlClientConfig
@@ -414,7 +414,7 @@ export const make = (
  * Creates a layer from a `Config`-wrapped MySQL client configuration, providing both `MysqlClient` and `SqlClient`.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerConfig = (
   config: Config.Wrap<MysqlClientConfig>
@@ -434,7 +434,7 @@ export const layerConfig = (
  * Creates a layer from a concrete MySQL client configuration, providing both `MysqlClient` and `SqlClient`.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = (
   config: MysqlClientConfig
@@ -450,7 +450,7 @@ export const layer = (
  * Creates the MySQL statement compiler, using `?` placeholders and backtick-escaped identifiers.
  *
  * @category compiler
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeCompiler = (transform?: (_: string) => string) =>
   Statement.makeCompiler({

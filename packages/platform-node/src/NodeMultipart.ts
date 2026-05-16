@@ -16,7 +16,7 @@
  * `Scope`, and filenames supplied by clients should be treated as metadata, not
  * trusted filesystem paths.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Effect from "effect/Effect"
 import type * as FileSystem from "effect/FileSystem"
@@ -38,7 +38,7 @@ import * as NodeStream from "./NodeStream.ts"
  * `MultipartError`.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const stream = (
   source: Readable,
@@ -64,7 +64,7 @@ export const stream = (
  * parts using the current `FileSystem`, `Path`, and `Scope` services.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const persisted = (
   source: Readable,
@@ -84,7 +84,7 @@ export const persisted = (
  * Returns the underlying Node readable stream for a multipart file produced by
  * the Node multipart parser.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fileToReadable = (file: Multipart.File): Readable => (file as FileImpl).file
 

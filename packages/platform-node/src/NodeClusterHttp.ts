@@ -32,7 +32,7 @@
  * - Ping health checks use the selected transport and serialization, so route,
  *   port, proxy, or codec mismatches can make a runner appear unhealthy
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type * as Config from "effect/Config"
 import * as Effect from "effect/Effect"
@@ -63,7 +63,7 @@ import * as NodeSocket from "./NodeSocket.ts"
 export {
   /**
    * @category Re-exports
-   * @since 1.0.0
+   * @since 4.0.0
    */
   layerK8sHttpClient
 } from "./NodeClusterSocket.ts"
@@ -74,7 +74,7 @@ export {
  * optional client-only mode.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = <
   const ClientOnly extends boolean = false,
@@ -158,7 +158,7 @@ export const layer = <
  * listening on `ShardingConfig.runnerListenAddress` or `runnerAddress`.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerHttpServer: Layer.Layer<
   | HttpPlatform

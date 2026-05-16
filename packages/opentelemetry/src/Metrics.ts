@@ -15,7 +15,7 @@
  * cumulative temporality and can be configured with `temporality: "delta"` for
  * backends that require interval-based values.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type { MetricProducer, MetricReader } from "@opentelemetry/sdk-metrics"
 import type * as Arr from "effect/Array"
@@ -38,7 +38,7 @@ import { Resource } from "./Resource.ts"
  *   independent with no dependency on previous measurements.
  *
  * @category Models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type TemporalityPreference = "cumulative" | "delta"
 
@@ -46,7 +46,7 @@ export type TemporalityPreference = "cumulative" | "delta"
  * Creates an OpenTelemetry metric producer from Effect metrics.
  *
  * @category Constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeProducer = (temporality?: TemporalityPreference): Effect.Effect<MetricProducer, never, Resource> =>
   Effect.gen(function*() {
@@ -59,7 +59,7 @@ export const makeProducer = (temporality?: TemporalityPreference): Effect.Effect
  * Registers a metric producer with one or more metric readers.
  *
  * @category Constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const registerProducer = (
   self: MetricProducer,
@@ -116,7 +116,7 @@ export const registerProducer = (
  * ```
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = (
   evaluate: LazyArg<MetricReader | Arr.NonEmptyReadonlyArray<MetricReader>>,

@@ -18,7 +18,7 @@
  * When closing intentionally, send `Socket.CloseEvent` values so the close code
  * and reason are preserved through the socket lifecycle.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type * as Duration from "effect/Duration"
 import type { Effect } from "effect/Effect"
@@ -27,7 +27,7 @@ import * as Layer from "effect/Layer"
 import * as Socket from "effect/unstable/socket/Socket"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * from "@effect/platform-node-shared/NodeSocket"
 
@@ -36,7 +36,7 @@ export * from "@effect/platform-node-shared/NodeSocket"
  * `WebSocket` implementation.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerWebSocketConstructor: Layer.Layer<
   Socket.WebSocketConstructor
@@ -50,7 +50,7 @@ export const layerWebSocketConstructor: Layer.Layer<
  * error options.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerWebSocket: (
   url: string | Effect<string>,

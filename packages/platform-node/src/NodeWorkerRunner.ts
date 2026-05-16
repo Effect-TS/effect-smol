@@ -17,7 +17,7 @@
  * Shutdown is coordinated by the parent message protocol, so long-running
  * handlers should remain interruptible and keep resource cleanup in scopes.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Cause from "effect/Cause"
 import * as Deferred from "effect/Deferred"
@@ -35,7 +35,7 @@ import * as WorkerThreads from "node:worker_threads"
  * and sending responses back through the parent channel.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.succeed(WorkerRunner.WorkerRunnerPlatform)({
   start<O = unknown, I = unknown>() {

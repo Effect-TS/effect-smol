@@ -22,7 +22,7 @@
  *   `stream_options.include_usage`.
  * - HTTP and schema decoding failures are mapped into `AiError`.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Array from "effect/Array"
 import type * as Config from "effect/Config"
@@ -49,7 +49,7 @@ import { OpenAiConfig } from "./OpenAiConfig.ts"
  * Exposes the configured HTTP client plus helpers for non-streaming chat completions, streaming chat completions, and embeddings. Transport and schema decoding failures are mapped to `AiError`.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Service {
   readonly client: HttpClient.HttpClient
@@ -75,7 +75,7 @@ export interface Service {
 
 /**
  * @category service
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class OpenAiClient extends Context.Service<OpenAiClient, Service>()(
   "@effect/ai-openai-compat/OpenAiClient"
@@ -83,7 +83,7 @@ export class OpenAiClient extends Context.Service<OpenAiClient, Service>()(
 
 /**
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Options = {
   readonly apiKey?: Redacted.Redacted<string> | undefined
@@ -100,7 +100,7 @@ const RedactedOpenAiHeaders = {
 
 /**
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = Effect.fnUntraced(
   function*(options: Options): Effect.fn.Return<Service, never, HttpClient.HttpClient> {
@@ -241,14 +241,14 @@ export const make = Effect.fnUntraced(
 
 /**
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = (options: Options): Layer.Layer<OpenAiClient, never, HttpClient.HttpClient> =>
   Layer.effect(OpenAiClient, make(options))
 
 /**
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerConfig = (options?: {
   readonly apiKey?: Config.Config<Redacted.Redacted<string> | undefined> | undefined
@@ -285,7 +285,7 @@ export const layerConfig = (options?: {
 type JsonObject = { readonly [x: string]: Schema.Json }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type IncludeEnum =
   | "message.input_image.image_url"
@@ -293,7 +293,7 @@ export type IncludeEnum =
   | "message.output_text.logprobs"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type MessageStatus = "in_progress" | "completed" | "incomplete"
 
@@ -318,12 +318,12 @@ type InputFileContent = {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type InputContent = InputTextContent | InputImageContent | InputFileContent
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type SummaryTextContent = {
   readonly type: "summary_text"
@@ -382,7 +382,7 @@ type FilePathAnnotation = {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Annotation =
   | FileCitationAnnotation
@@ -417,7 +417,7 @@ type OutputMessage = {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ReasoningItem = {
   readonly type: "reasoning"
@@ -466,7 +466,7 @@ type ItemReference = {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type InputItem =
   | {
@@ -504,7 +504,7 @@ type CustomToolParam = {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Tool =
   | FunctionTool
@@ -529,7 +529,7 @@ type ToolChoice =
   }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type TextResponseFormatConfiguration =
   | {
@@ -547,7 +547,7 @@ export type TextResponseFormatConfiguration =
   }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type CreateResponse = {
   readonly metadata?: Readonly<Record<string, string>> | null | undefined
@@ -584,7 +584,7 @@ export type CreateResponse = {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ResponseUsage = {
   readonly input_tokens: number
@@ -601,7 +601,7 @@ type OutputItem =
   | CustomToolCall
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Response = {
   readonly id: string
@@ -727,7 +727,7 @@ type UnknownResponseStreamEvent = {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ResponseStreamEvent =
   | ResponseCreatedEvent
@@ -754,7 +754,7 @@ export type ResponseStreamEvent =
  * string. The `index` field identifies the input item that produced this
  * embedding.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Embedding = {
   readonly embedding: ReadonlyArray<number> | string
@@ -763,7 +763,7 @@ export type Embedding = {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type CreateEmbeddingRequest = {
   readonly input: string | ReadonlyArray<string> | ReadonlyArray<number> | ReadonlyArray<ReadonlyArray<number>>
@@ -774,7 +774,7 @@ export type CreateEmbeddingRequest = {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type CreateEmbeddingResponse = {
   readonly data: ReadonlyArray<Embedding>
@@ -787,15 +787,15 @@ export type CreateEmbeddingResponse = {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type CreateEmbeddingRequestJson = CreateEmbeddingRequest
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type CreateEmbedding200 = CreateEmbeddingResponse
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ChatCompletionContentPart =
   | {
@@ -810,7 +810,7 @@ export type ChatCompletionContentPart =
     }
   }
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ChatCompletionRequestToolCall = {
   readonly id: string
@@ -821,7 +821,7 @@ export type ChatCompletionRequestToolCall = {
   }
 }
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ChatCompletionRequestMessage =
   | {
@@ -835,7 +835,7 @@ export type ChatCompletionRequestMessage =
     readonly content: string
   }
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ChatCompletionTool = {
   readonly type: "function"
@@ -847,7 +847,7 @@ export type ChatCompletionTool = {
   }
 }
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ChatCompletionToolChoice =
   | "none"
@@ -860,7 +860,7 @@ export type ChatCompletionToolChoice =
     }
   }
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ChatCompletionResponseFormat =
   | {
@@ -876,7 +876,7 @@ export type ChatCompletionResponseFormat =
     }
   }
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ChatCompletionRequest = {
   readonly model: string
@@ -899,15 +899,15 @@ export type ChatCompletionRequest = {
   readonly [x: string]: unknown
 }
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type CreateResponseRequestJson = ChatCompletionRequest
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type CreateResponse200 = ChatCompletionResponse
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type CreateResponse200Sse = ChatCompletionStreamEvent
 
@@ -997,31 +997,31 @@ const ChatCompletionChunk = Schema.Struct({
 })
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ChatCompletionToolCall = typeof ChatCompletionToolCall.Type
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ChatCompletionMessage = typeof ChatCompletionMessage.Type
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ChatCompletionChoice = typeof ChatCompletionChoice.Type
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ChatCompletionUsage = typeof ChatCompletionUsage.Type
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ChatCompletionResponse = typeof ChatCompletionResponse.Type
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ChatCompletionChunk = typeof ChatCompletionChunk.Type
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ChatCompletionStreamEvent = ChatCompletionChunk | "[DONE]"
 

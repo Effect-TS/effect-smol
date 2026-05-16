@@ -3,7 +3,7 @@
  *
  * Provides an EmbeddingModel implementation for OpenAI's embeddings API.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
@@ -18,7 +18,7 @@ import type * as OpenAiSchema from "./OpenAiSchema.ts"
 
 /**
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Model = "text-embedding-ada-002" | "text-embedding-3-small" | "text-embedding-3-large"
 
@@ -26,7 +26,7 @@ export type Model = "text-embedding-ada-002" | "text-embedding-3-small" | "text-
  * Service definition for OpenAI embedding model configuration.
  *
  * @category services
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Config extends Context.Service<
   Config,
@@ -45,7 +45,7 @@ export class Config extends Context.Service<
 
 /**
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const model = (
   model: (string & {}) | Model,
@@ -73,7 +73,7 @@ export const model = (
  * Creates an OpenAI embedding model service.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = Effect.fnUntraced(function*({ model, config: providerConfig }: {
   readonly model: (string & {}) | Model
@@ -99,7 +99,7 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
  * Creates a layer for the OpenAI embedding model.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = (options: {
   readonly model: (string & {}) | Model
@@ -111,7 +111,7 @@ export const layer = (options: {
  * Provides config overrides for OpenAI embedding model operations.
  *
  * @category configuration
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const withConfigOverride: {
   (overrides: typeof Config.Service): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, Config>>

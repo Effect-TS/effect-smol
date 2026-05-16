@@ -20,7 +20,7 @@
  * subscriptions are registered in Solid computations and disposed with
  * `onCleanup` when the computation changes or the component unmounts.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Cause from "effect/Cause"
 import * as Effect from "effect/Effect"
@@ -44,7 +44,7 @@ const initialValuesSet = new WeakMap<AtomRegistry.AtomRegistry, WeakSet<Atom.Ato
  * computations do not overwrite values that have already been established.
  *
  * @category hooks
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const useAtomInitialValues = (initialValues: Iterable<readonly [Atom.Atom<any>, any]>): void => {
   const registry = useContext(RegistryContext)
@@ -63,7 +63,7 @@ export const useAtomInitialValues = (initialValues: Iterable<readonly [Atom.Atom
 
 /**
  * @category hooks
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const useAtomValue: {
   <A>(atom: () => Atom.Atom<A>): Accessor<A>
@@ -127,7 +127,7 @@ const flattenExit = <A, E>(exit: Exit.Exit<A, E>): A => {
 
 /**
  * @category hooks
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const useAtomMount = <A>(atom: () => Atom.Atom<A>): void => {
   const registry = useContext(RegistryContext)
@@ -136,7 +136,7 @@ export const useAtomMount = <A>(atom: () => Atom.Atom<A>): void => {
 
 /**
  * @category hooks
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const useAtomSet = <
   R,
@@ -162,7 +162,7 @@ export const useAtomSet = <
 
 /**
  * @category hooks
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const useAtomRefresh = <A>(atom: () => Atom.Atom<A>): () => void => {
   const registry = useContext(RegistryContext)
@@ -173,7 +173,7 @@ export const useAtomRefresh = <A>(atom: () => Atom.Atom<A>): () => void => {
 
 /**
  * @category hooks
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const useAtom = <R, W, const Mode extends "value" | "promise" | "promiseExit" = never>(
   atom: () => Atom.Writable<R, W>,
@@ -199,7 +199,7 @@ export const useAtom = <R, W, const Mode extends "value" | "promise" | "promiseE
 
 /**
  * @category hooks
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const useAtomSubscribe = <A>(
   atom: () => Atom.Atom<A>,
@@ -214,7 +214,7 @@ export const useAtomSubscribe = <A>(
 
 /**
  * @category hooks
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const useAtomResource = <A, E>(
   atom: () => Atom.Atom<AsyncResult.AsyncResult<A, E>>,
@@ -237,7 +237,7 @@ const constUnresolvedPromise = new Promise<never>(() => {})
 
 /**
  * @category hooks
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const useAtomRef = <A>(ref: () => AtomRef.ReadonlyRef<A>): Accessor<A> => {
   const [value, setValue] = createSignal(null as A)
@@ -251,7 +251,7 @@ export const useAtomRef = <A>(ref: () => AtomRef.ReadonlyRef<A>): Accessor<A> =>
 
 /**
  * @category hooks
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const useAtomRefProp = <A, K extends keyof A>(
   ref: () => AtomRef.AtomRef<A>,
@@ -260,7 +260,7 @@ export const useAtomRefProp = <A, K extends keyof A>(
 
 /**
  * @category hooks
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const useAtomRefPropValue = <A, K extends keyof A>(ref: () => AtomRef.AtomRef<A>, prop: K): Accessor<A[K]> =>
   useAtomRef(useAtomRefProp(ref, prop))

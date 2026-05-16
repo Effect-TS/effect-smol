@@ -1,7 +1,7 @@
 /**
  * Provider discovery service for AI codegen.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Context from "effect/Context"
 import * as Data from "effect/Data"
@@ -29,7 +29,7 @@ import * as Glob from "./Glob.ts"
  * ```
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface DiscoveredProvider {
   readonly name: string
@@ -43,7 +43,7 @@ export interface DiscoveredProvider {
  * Service for discovering AI provider configurations.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ProviderDiscovery {
   readonly discover: () => Effect.Effect<
@@ -62,7 +62,7 @@ export interface ProviderDiscovery {
  * Context service tag for discovering AI provider codegen configurations.
  *
  * @category tags
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const ProviderDiscovery: Context.Service<ProviderDiscovery, ProviderDiscovery> = Context.Service(
   "@effect/ai-codegen/ProviderDiscovery"
@@ -83,7 +83,7 @@ export const ProviderDiscovery: Context.Service<ProviderDiscovery, ProviderDisco
  * ```
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class DiscoveryError extends Data.TaggedError("DiscoveryError")<{
   readonly message: string
@@ -105,7 +105,7 @@ export class DiscoveryError extends Data.TaggedError("DiscoveryError")<{
  * ```
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class ProviderNotFoundError extends Data.TaggedError("ProviderNotFoundError")<{
   readonly provider: string
@@ -116,7 +116,7 @@ export class ProviderNotFoundError extends Data.TaggedError("ProviderNotFoundErr
  * Layer providing the ProviderDiscovery service.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<
   ProviderDiscovery,

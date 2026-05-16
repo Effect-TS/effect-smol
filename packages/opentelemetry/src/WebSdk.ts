@@ -25,7 +25,7 @@
  * application teardown when possible so batched exporters and periodic metric
  * readers can deliver buffered telemetry before the page is unloaded.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type * as Otel from "@opentelemetry/api"
 import type { LoggerProviderConfig, LogRecordProcessor } from "@opentelemetry/sdk-logs"
@@ -46,7 +46,7 @@ import * as Tracer from "./Tracer.ts"
  * Configuration for the Web OpenTelemetry layer, including resource metadata and optional tracing, metrics, and logging settings.
  *
  * @category Models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Configuration {
   readonly spanProcessor?: SpanProcessor | ReadonlyArray<SpanProcessor> | undefined
@@ -67,7 +67,7 @@ export interface Configuration {
  * Creates a scoped Web OpenTelemetry tracer provider from one or more span processors and shuts it down when the layer is released.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerTracerProvider = (
   processor: SpanProcessor | NonEmptyReadonlyArray<SpanProcessor>,
@@ -98,7 +98,7 @@ export const layerTracerProvider = (
  * Creates a Web OpenTelemetry layer from configuration, providing the resource and enabling tracing, metrics, and logging when configured.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: {
   (evaluate: LazyArg<Configuration>): Layer.Layer<Resource.Resource>

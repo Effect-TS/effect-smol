@@ -4,14 +4,14 @@
  * Provides OpenRouter-specific metadata fields for AI error types through
  * module augmentation, enabling typed access to OpenRouter error details.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 
 /**
  * OpenRouter-specific error metadata fields.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type OpenRouterErrorMetadata = {
   /**
@@ -32,7 +32,7 @@ export type OpenRouterErrorMetadata = {
  * OpenRouter-specific rate limit metadata fields.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type OpenRouterRateLimitMetadata = OpenRouterErrorMetadata & {
   readonly limit: string | null
@@ -50,7 +50,7 @@ declare module "effect/unstable/ai/AiError" {
    * a limit was reached.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface RateLimitErrorMetadata {
     /**
@@ -66,7 +66,7 @@ declare module "effect/unstable/ai/AiError" {
    * billing, or usage quota.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface QuotaExhaustedErrorMetadata {
     /**
@@ -82,7 +82,7 @@ declare module "effect/unstable/ai/AiError" {
    * permission checks.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface AuthenticationErrorMetadata {
     /**
@@ -98,7 +98,7 @@ declare module "effect/unstable/ai/AiError" {
    * because it violates a content policy.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface ContentPolicyErrorMetadata {
     /**
@@ -114,7 +114,7 @@ declare module "effect/unstable/ai/AiError" {
    * parameters, or other request validation failures reported by OpenRouter.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface InvalidRequestErrorMetadata {
     /**
@@ -130,7 +130,7 @@ declare module "effect/unstable/ai/AiError" {
    * transient server errors or overload responses.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface InternalProviderErrorMetadata {
     /**
@@ -146,7 +146,7 @@ declare module "effect/unstable/ai/AiError" {
    * parsed or validated as the expected output.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface InvalidOutputErrorMetadata {
     /**
@@ -162,7 +162,7 @@ declare module "effect/unstable/ai/AiError" {
    * not satisfy the requested structured output schema.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface StructuredOutputErrorMetadata {
     /**
@@ -178,7 +178,7 @@ declare module "effect/unstable/ai/AiError" {
    * associated with an OpenRouter response.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface UnsupportedSchemaErrorMetadata {
     /**
@@ -194,7 +194,7 @@ declare module "effect/unstable/ai/AiError" {
    * cleanly to a more specific AI error category.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface UnknownErrorMetadata {
     /**

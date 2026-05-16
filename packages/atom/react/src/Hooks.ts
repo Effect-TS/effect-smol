@@ -17,7 +17,7 @@
  * - Writable atoms are mounted by the write-oriented hooks before updates are sent
  * - Suspense support throws promises for initial or waiting `AsyncResult` values and defects for failures unless `includeFailure` is enabled
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 "use client"
 
@@ -81,7 +81,7 @@ const initialValuesSet = new WeakMap<AtomRegistry.AtomRegistry, WeakSet<Atom.Ato
  * renders do not overwrite values that have already been established.
  *
  * @category hooks
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const useAtomInitialValues = (initialValues: Iterable<readonly [Atom.Atom<any>, any]>): void => {
   const registry = React.useContext(RegistryContext)
@@ -100,7 +100,7 @@ export const useAtomInitialValues = (initialValues: Iterable<readonly [Atom.Atom
 
 /**
  * @category hooks
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const useAtomValue: {
   <A>(atom: Atom.Atom<A>): A
@@ -155,7 +155,7 @@ const flattenExit = <A, E>(exit: Exit.Exit<A, E>): A => {
 
 /**
  * @category hooks
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const useAtomMount = <A>(atom: Atom.Atom<A>): void => {
   const registry = React.useContext(RegistryContext)
@@ -164,7 +164,7 @@ export const useAtomMount = <A>(atom: Atom.Atom<A>): void => {
 
 /**
  * @category hooks
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const useAtomSet = <
   R,
@@ -190,7 +190,7 @@ export const useAtomSet = <
 
 /**
  * @category hooks
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const useAtomRefresh = <A>(atom: Atom.Atom<A>): () => void => {
   const registry = React.useContext(RegistryContext)
@@ -202,7 +202,7 @@ export const useAtomRefresh = <A>(atom: Atom.Atom<A>): () => void => {
 
 /**
  * @category hooks
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const useAtom = <R, W, const Mode extends "value" | "promise" | "promiseExit" = never>(
   atom: Atom.Writable<R, W>,
@@ -269,7 +269,7 @@ function atomResultOrSuspend<A, E>(
 
 /**
  * @category hooks
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const useAtomSuspense = <A, E, const IncludeFailure extends boolean = false>(
   atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
@@ -288,7 +288,7 @@ export const useAtomSuspense = <A, E, const IncludeFailure extends boolean = fal
 
 /**
  * @category hooks
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const useAtomSubscribe = <A>(
   atom: Atom.Atom<A>,
@@ -304,7 +304,7 @@ export const useAtomSubscribe = <A>(
 
 /**
  * @category hooks
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const useAtomRef = <A>(ref: AtomRef.ReadonlyRef<A>): A => {
   const [, setValue] = React.useState(ref.value)
@@ -314,14 +314,14 @@ export const useAtomRef = <A>(ref: AtomRef.ReadonlyRef<A>): A => {
 
 /**
  * @category hooks
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const useAtomRefProp = <A, K extends keyof A>(ref: AtomRef.AtomRef<A>, prop: K): AtomRef.AtomRef<A[K]> =>
   React.useMemo(() => ref.prop(prop), [ref, prop])
 
 /**
  * @category hooks
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const useAtomRefPropValue = <A, K extends keyof A>(ref: AtomRef.AtomRef<A>, prop: K): A[K] =>
   useAtomRef(useAtomRefProp(ref, prop))

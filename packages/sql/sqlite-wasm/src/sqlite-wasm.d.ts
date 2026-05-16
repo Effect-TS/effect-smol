@@ -1,5 +1,5 @@
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 declare module "@effect/wa-sqlite/src/examples/IDBBatchAtomicVFS.js" {
   /**
@@ -7,7 +7,7 @@ declare module "@effect/wa-sqlite/src/examples/IDBBatchAtomicVFS.js" {
    * commits them atomically.
    *
    * @category models
-   * @since 1.0.0
+   * @since 4.0.0
    */
   // oxlint-disable-next-line @typescript-eslint/no-extraneous-class
   export class IDBBatchAtomicVFS {
@@ -21,7 +21,7 @@ declare module "@effect/wa-sqlite/src/examples/IDBBatchAtomicVFS.js" {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 declare module "@effect/wa-sqlite/src/examples/AccessHandlePoolVFS.js" {
   /**
@@ -29,7 +29,7 @@ declare module "@effect/wa-sqlite/src/examples/AccessHandlePoolVFS.js" {
    * handles for persistent browser storage.
    *
    * @category models
-   * @since 1.0.0
+   * @since 4.0.0
    */
   // oxlint-disable-next-line @typescript-eslint/no-extraneous-class
   export class AccessHandlePoolVFS {

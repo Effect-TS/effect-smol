@@ -16,7 +16,7 @@
  * the handler, each `run` call owns the scope for its connection fibers, and
  * the enclosing scope closes the underlying Node server.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type { Cause } from "effect/Cause"
 import * as Context from "effect/Context"
@@ -41,7 +41,7 @@ import { NodeWS } from "./NodeSocket.ts"
  * WebSocket server connection.
  *
  * @category tags
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class IncomingMessage extends Context.Service<
   IncomingMessage,
@@ -54,7 +54,7 @@ export class IncomingMessage extends Context.Service<
  * is called, and closes the server when the scope ends.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = Effect.fnUntraced(function*(
   options: Net.ServerOpts & Net.ListenOptions
@@ -172,7 +172,7 @@ export const make = Effect.fnUntraced(function*(
  * `net.Server` with the supplied server and listen options.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: (
   options: Net.ServerOpts & Net.ListenOptions
@@ -187,7 +187,7 @@ export const layer: (
  * handlers and closing the server when the scope ends.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeWebSocket: (
   options: NodeWS.ServerOptions<typeof NodeWS.WebSocket, typeof Http.IncomingMessage>
@@ -290,7 +290,7 @@ export const makeWebSocket: (
  * with the supplied server options.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerWebSocket: (
   options: NodeSocket.NodeWS.ServerOptions<typeof NodeSocket.NodeWS.WebSocket, typeof Http.IncomingMessage>

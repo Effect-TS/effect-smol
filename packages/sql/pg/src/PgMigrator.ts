@@ -19,7 +19,7 @@
  * intentionally strip comments, session settings, ownership, and privilege
  * statements to keep schema snapshots portable across PostgreSQL environments.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Effect from "effect/Effect"
 import * as FileSystem from "effect/FileSystem"
@@ -34,7 +34,7 @@ import type { SqlError } from "effect/unstable/sql/SqlError"
 import { PgClient } from "./PgClient.ts"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * from "effect/unstable/sql/Migrator"
 
@@ -42,7 +42,7 @@ export * from "effect/unstable/sql/Migrator"
  * Runs PostgreSQL SQL migrations using the configured clients. Schema dumps use `pg_dump` and require child process, filesystem, and path services.
  *
  * @category constructor
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const run: <R2 = never>(
   options: Migrator.MigratorOptions<R2>
@@ -116,7 +116,7 @@ export const run: <R2 = never>(
  * Creates a layer that runs PostgreSQL migrations during layer construction, including `pg_dump`-based schema dump support when requested.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = <R>(
   options: Migrator.MigratorOptions<R>

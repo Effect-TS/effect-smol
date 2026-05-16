@@ -13,7 +13,7 @@
  * handling follows the `SqlClient` fiber-local setting, `executeStream` is not implemented, and
  * SQLite does not support `updateValues`.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import Sqlite from "better-sqlite3"
 import * as Cache from "effect/Cache"
@@ -42,7 +42,7 @@ const classifyError = (cause: unknown, message: string, operation: string) =>
  * Runtime type identifier used to mark Node `SqliteClient` values.
  *
  * @category type ids
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-sqlite-node/SqliteClient"
 
@@ -50,7 +50,7 @@ export const TypeId: TypeId = "~@effect/sql-sqlite-node/SqliteClient"
  * Type-level identifier used to mark Node `SqliteClient` values.
  *
  * @category type ids
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type TypeId = "~@effect/sql-sqlite-node/SqliteClient"
 
@@ -58,7 +58,7 @@ export type TypeId = "~@effect/sql-sqlite-node/SqliteClient"
  * Node SQLite client service, extending `SqlClient` with database export, backup, and extension loading helpers. `updateValues` is not supported.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface SqliteClient extends Client.SqlClient {
   readonly [TypeId]: TypeId
@@ -75,7 +75,7 @@ export interface SqliteClient extends Client.SqlClient {
  * Metadata returned from a Node SQLite backup operation, reporting total and remaining page counts.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface BackupMetadata {
   readonly totalPages: number
@@ -86,7 +86,7 @@ export interface BackupMetadata {
  * Context service tag for the node SQLite client implementation.
  *
  * @category tags
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const SqliteClient = Context.Service<SqliteClient>("@effect/sql-sqlite-node/SqliteClient")
 
@@ -94,7 +94,7 @@ export const SqliteClient = Context.Service<SqliteClient>("@effect/sql-sqlite-no
  * Configuration for a node SQLite client backed by `better-sqlite3`, including the database filename, read-only mode, statement cache settings, WAL behavior, span attributes, and query/result name transforms.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface SqliteClientConfig {
   readonly filename: string
@@ -118,7 +118,7 @@ interface SqliteConnection extends Connection {
  * Creates a scoped node SQLite client from the supplied configuration, using a single serialized connection with WAL enabled by default and exposing SQLite-specific `export`, `backup`, and `loadExtension` operations.
  *
  * @category constructor
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = (
   options: SqliteClientConfig
@@ -285,7 +285,7 @@ export const make = (
  * Builds a layer from an Effect `Config` value, providing both the node `SqliteClient` service and the generic `SqlClient` service.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerConfig = (
   config: Config.Wrap<SqliteClientConfig>
@@ -305,7 +305,7 @@ export const layerConfig = (
  * Builds a layer from a node SQLite client configuration, providing both `SqliteClient` and the generic `SqlClient` service.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = (
   config: SqliteClientConfig

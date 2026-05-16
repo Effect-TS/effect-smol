@@ -15,7 +15,7 @@
  * When multiple transforms are needed, compose them into a single
  * `HttpClient => HttpClient` function before providing the configuration.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
@@ -24,7 +24,7 @@ import type { HttpClient } from "effect/unstable/http/HttpClient"
 
 /**
  * @category services
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class OpenAiConfig extends Context.Service<
   OpenAiConfig,
@@ -33,7 +33,7 @@ export class OpenAiConfig extends Context.Service<
   /**
    * Gets the configured OpenAI service from the current context when present.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   static readonly getOrUndefined: Effect.Effect<typeof OpenAiConfig.Service | undefined> = Effect.map(
     Effect.context<never>(),
@@ -42,7 +42,7 @@ export class OpenAiConfig extends Context.Service<
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export declare namespace OpenAiConfig {
   /**
@@ -56,7 +56,7 @@ export declare namespace OpenAiConfig {
 
 /**
  * @category configuration
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const withClientTransform: {
   (transform: (client: HttpClient) => HttpClient): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>

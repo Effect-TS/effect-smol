@@ -14,7 +14,7 @@
  * writers can surface SQLite lock timeout errors, and this adapter does not
  * currently write SQLite schema dumps for `schemaDirectory`.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
@@ -23,7 +23,7 @@ import type * as Client from "effect/unstable/sql/SqlClient"
 import type { SqlError } from "effect/unstable/sql/SqlError"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * from "effect/unstable/sql/Migrator"
 
@@ -31,7 +31,7 @@ export * from "effect/unstable/sql/Migrator"
  * Runs SQL migrations for a SQLite database using the shared `Migrator` implementation and the current `SqlClient`.
  *
  * @category constructor
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const run: <R2 = never>(
   options: Migrator.MigratorOptions<R2>
@@ -87,7 +87,7 @@ export const run: <R2 = never>(
  * Creates a layer that runs the configured SQLite migrations during layer construction and provides no services.
  *
  * @category constructor
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = <R>(
   options: Migrator.MigratorOptions<R>

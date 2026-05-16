@@ -17,7 +17,7 @@
  * schemas, transfer lists, `messageerror` events, and worker `error` events
  * should be considered at the boundary.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Cause from "effect/Cause"
 import * as Deferred from "effect/Deferred"
@@ -38,7 +38,7 @@ declare const self: MessagePort
  * through the worker port.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.succeed(WorkerRunner.WorkerRunnerPlatform)({
   start: Effect.fnUntraced(function*<O = unknown, I = unknown>() {

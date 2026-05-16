@@ -20,7 +20,7 @@
  * interruption, and use browser-specific persistence or delivery APIs for work
  * that must survive page teardown.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type * as Effect from "effect/Effect"
 import { makeRunMain, type Teardown } from "effect/Runtime"
@@ -29,7 +29,7 @@ import { makeRunMain, type Teardown } from "effect/Runtime"
  * Runs an effect as the browser main program and interrupts its fiber when the page receives a `beforeunload` event.
  *
  * @category Runtime
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const runMain: {
   (

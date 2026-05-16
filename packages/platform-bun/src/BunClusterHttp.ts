@@ -32,7 +32,7 @@
  * - Ping health checks use the selected transport and serialization, so route,
  *   port, proxy, or codec mismatches can make a runner appear unhealthy
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type * as Config from "effect/Config"
 import * as Effect from "effect/Effect"
@@ -63,7 +63,7 @@ import * as BunSocket from "./BunSocket.ts"
 export {
   /**
    * @category Re-exports
-   * @since 1.0.0
+   * @since 4.0.0
    */
   layerK8sHttpClient
 }
@@ -72,7 +72,7 @@ export {
  * Bun HTTP server layer for cluster runners, using `ShardingConfig.runnerListenAddress` or `runnerAddress` as the listen address.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerHttpServer: Layer.Layer<
   | HttpPlatform
@@ -94,7 +94,7 @@ export const layerHttpServer: Layer.Layer<
  * Creates Bun cluster layers for HTTP or WebSocket transport, configuring serialization, storage, runner health, and optional client-only mode.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = <
   const ClientOnly extends boolean = false,

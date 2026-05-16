@@ -25,7 +25,7 @@
  * the correct data types and output values can be collected from `returnValue`
  * events.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Config from "effect/Config"
 import * as Context from "effect/Context"
@@ -159,7 +159,7 @@ const classifyError = (
  * Runtime type identifier used to mark `MssqlClient` values.
  *
  * @category type ids
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const TypeId: unique symbol = Symbol.for("@effect/sql-mssql/MssqlClient")
 
@@ -167,7 +167,7 @@ export const TypeId: unique symbol = Symbol.for("@effect/sql-mssql/MssqlClient")
  * Type-level identifier used to mark `MssqlClient` values.
  *
  * @category type ids
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type TypeId = typeof TypeId
 
@@ -175,7 +175,7 @@ export type TypeId = typeof TypeId
  * Microsoft SQL Server client service, extending `SqlClient` with typed parameter fragments and stored procedure calls.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface MssqlClient extends Client.SqlClient {
   readonly [TypeId]: TypeId
@@ -201,7 +201,7 @@ export interface MssqlClient extends Client.SqlClient {
  * Context tag used to access the `MssqlClient` service.
  *
  * @category tags
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const MssqlClient = Context.Service<MssqlClient>("@effect/sql-mssql/MssqlClient")
 
@@ -209,7 +209,7 @@ export const MssqlClient = Context.Service<MssqlClient>("@effect/sql-mssql/Mssql
  * Configuration for a Microsoft SQL Server client, including connection, authentication, pool, parameter type, span attribute, and query/result name transform options.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface MssqlClientConfig {
   readonly domain?: string | undefined
@@ -259,7 +259,7 @@ let clientIdCounter = 0
  * Creates a scoped Microsoft SQL Server client backed by a connection pool, with transaction and stored procedure support. Streaming queries are not implemented.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = (
   options: MssqlClientConfig
@@ -606,7 +606,7 @@ export const make = (
  * Creates a layer from a `Config`-wrapped SQL Server client configuration, providing both `MssqlClient` and `SqlClient`.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerConfig: (
   config: Config.Wrap<MssqlClientConfig>
@@ -628,7 +628,7 @@ export const layerConfig: (
  * Creates a layer from a concrete SQL Server client configuration, providing both `MssqlClient` and `SqlClient`.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = (
   config: MssqlClientConfig
@@ -644,7 +644,7 @@ export const layer = (
  * Creates the SQL Server statement compiler, using `@1`-style placeholders, bracket-escaped identifiers, and SQL Server `OUTPUT INSERTED` returning clauses.
  *
  * @category compiler
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeCompiler = (transform?: (_: string) => string) =>
   Statement.makeCompiler<MssqlCustom>({
@@ -695,7 +695,7 @@ function numberToParamName(n: number) {
 /**
  * Default mapping from Effect SQL primitive value kinds to Tedious SQL Server parameter data types.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const defaultParameterTypes: Record<Statement.PrimitiveKind, DataType> = {
   string: Tedious.TYPES.VarChar,

@@ -25,7 +25,7 @@
  * - Some features require Anthropic beta headers, which are added
  *   automatically from the selected tools, files, and model capabilities.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 /** @effect-diagnostics preferSchemaOverJson:skip-file */
 import * as Arr from "effect/Array"
@@ -63,7 +63,7 @@ import * as InternalUtilities from "./internal/utilities.ts"
  * The available Anthropic Claude model identifiers.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Model = typeof Generated.Model.Type
 
@@ -78,7 +78,7 @@ export type Model = typeof Generated.Model.Type
  * override configuration on a per-request basis.
  *
  * @category configuration
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Config extends Context.Service<
   Config,
@@ -531,7 +531,7 @@ declare module "effect/unstable/ai/Response" {
  * Creates an Anthropic language model that can be used with `AiModel.provide`.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const model = (
   model: (string & {}) | Model,
@@ -543,7 +543,7 @@ export const model = (
  * Creates an Anthropic language model service.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = Effect.fnUntraced(function*({ model, config: providerConfig }: {
   readonly model: (string & {}) | Model
@@ -630,7 +630,7 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
  * Creates a layer for the Anthropic language model.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = (options: {
   readonly model: (string & {}) | Model
@@ -642,7 +642,7 @@ export const layer = (options: {
  * Provides config overrides for Anthropic language model operations.
  *
  * @category configuration
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const withConfigOverride: {
   (overrides: typeof Config.Service): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, Config>>
@@ -1070,7 +1070,7 @@ const prepareMessages = Effect.fnUntraced(
  * Represents a user-defined tool that can be passed to the Anthropic API.
  *
  * @category tools
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type AnthropicUserDefinedTool = typeof Generated.BetaTool.Encoded
 
@@ -1081,7 +1081,7 @@ export type AnthropicUserDefinedTool = typeof Generated.BetaTool.Encoded
  * web search, and text editing.
  *
  * @category tools
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type AnthropicProviderDefinedTool =
   | typeof Generated.BetaBashTool_20241022.Encoded

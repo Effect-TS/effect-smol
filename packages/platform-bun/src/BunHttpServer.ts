@@ -30,7 +30,7 @@
  * a serve scope also starts that stop with the configured graceful shutdown
  * timeout or the default timeout.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type { Server as BunServer, ServerWebSocket } from "bun"
 import * as Config from "effect/Config"
@@ -78,7 +78,7 @@ import * as BunStream from "./BunStream.ts"
  * Bun serve options accepted by the HTTP server, extended with typed route definitions.
  *
  * @category Options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ServeOptions<R extends string> =
   & (
@@ -91,7 +91,7 @@ export type ServeOptions<R extends string> =
  * Creates a scoped Bun `HttpServer` from `Bun.serve` options, stopping the server on scope finalization with optional graceful shutdown settings.
  *
  * @category Constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = Effect.fnUntraced(
   function*<R extends string>(
@@ -248,7 +248,7 @@ const makeResponse = (
  * Layer that provides only `HttpServer` by constructing a scoped Bun server from the supplied serve options.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerServer: <R extends string>(
   options: ServeOptions<R> & {
@@ -261,7 +261,7 @@ export const layerServer: <R extends string>(
  * Layer that provides Bun HTTP support services: `HttpPlatform`, weak ETag generation, and `BunServices`.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerHttpServices: Layer.Layer<
   | HttpPlatform
@@ -277,7 +277,7 @@ export const layerHttpServices: Layer.Layer<
  * Layer that provides a Bun `HttpServer` together with the Bun HTTP platform, ETag generator, and Bun services.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = <R extends string>(
   options: ServeOptions<R> & {
@@ -295,7 +295,7 @@ export const layer = <R extends string>(
  * Test layer that starts a Bun HTTP server on an ephemeral port and provides the HTTP test client dependencies.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerTest: Layer.Layer<
   Server.HttpServer | HttpPlatform | FileSystem.FileSystem | Etag.Generator | Path.Path | HttpClient
@@ -310,7 +310,7 @@ export const layerTest: Layer.Layer<
  * Creates the Bun HTTP server and support-services layer from configurable serve options.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerConfig = <R extends string>(
   options: Config.Wrap<

@@ -17,7 +17,7 @@
  * worker close signal, waits for Bun's `close` event for a short grace period,
  * and then terminates the worker if graceful shutdown does not complete.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Deferred from "effect/Deferred"
 import * as Effect from "effect/Effect"
@@ -32,7 +32,7 @@ import { WorkerError, WorkerUnknownError } from "effect/unstable/workers/WorkerE
  * from the supplied worker spawning function.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = (
   spawn: (id: number) => globalThis.Worker
@@ -48,7 +48,7 @@ export const layer = (
  * finalization before terminating on timeout.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerPlatform = Layer.succeed(Worker.WorkerPlatform)(
   Worker.makePlatform<globalThis.Worker>()({

@@ -4,14 +4,14 @@
  * Provides Anthropic-specific metadata fields for AI error types through module
  * augmentation, enabling typed access to Anthropic error details.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 
 /**
  * Anthropic-specific error metadata fields.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type AnthropicErrorMetadata = {
   /**
@@ -31,7 +31,7 @@ export type AnthropicErrorMetadata = {
  * Anthropic's rate limit headers.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type AnthropicRateLimitMetadata = AnthropicErrorMetadata & {
   /**
@@ -68,7 +68,7 @@ declare module "effect/unstable/ai/AiError" {
    * token limit headers when the provider rejects a request due to rate limits.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface RateLimitErrorMetadata {
     readonly anthropic?: AnthropicRateLimitMetadata | null
@@ -81,7 +81,7 @@ declare module "effect/unstable/ai/AiError" {
    * the account or workspace has exhausted its available quota.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface QuotaExhaustedErrorMetadata {
     readonly anthropic?: AnthropicErrorMetadata | null
@@ -94,7 +94,7 @@ declare module "effect/unstable/ai/AiError" {
    * credentials while keeping the error in the shared AI error model.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface AuthenticationErrorMetadata {
     readonly anthropic?: AnthropicErrorMetadata | null
@@ -107,7 +107,7 @@ declare module "effect/unstable/ai/AiError" {
    * rejected by Anthropic safety or content policy enforcement.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface ContentPolicyErrorMetadata {
     readonly anthropic?: AnthropicErrorMetadata | null
@@ -120,7 +120,7 @@ declare module "effect/unstable/ai/AiError" {
    * unsupported requests rejected before model execution.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface InvalidRequestErrorMetadata {
     readonly anthropic?: AnthropicErrorMetadata | null
@@ -133,7 +133,7 @@ declare module "effect/unstable/ai/AiError" {
    * that should be reported or investigated with Anthropic support.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface InternalProviderErrorMetadata {
     readonly anthropic?: AnthropicErrorMetadata | null
@@ -146,7 +146,7 @@ declare module "effect/unstable/ai/AiError" {
    * decoded or interpreted as valid AI output.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface InvalidOutputErrorMetadata {
     readonly anthropic?: AnthropicErrorMetadata | null
@@ -159,7 +159,7 @@ declare module "effect/unstable/ai/AiError" {
    * request correlation data useful when diagnosing schema-related responses.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface StructuredOutputErrorMetadata {
     readonly anthropic?: AnthropicErrorMetadata | null
@@ -172,7 +172,7 @@ declare module "effect/unstable/ai/AiError" {
    * or submitted to the Anthropic API.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface UnsupportedSchemaErrorMetadata {
     readonly anthropic?: AnthropicErrorMetadata | null
@@ -185,7 +185,7 @@ declare module "effect/unstable/ai/AiError" {
    * response cannot be classified as a more specific AI error.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface UnknownErrorMetadata {
     readonly anthropic?: AnthropicErrorMetadata | null

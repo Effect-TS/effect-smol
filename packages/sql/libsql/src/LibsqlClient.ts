@@ -16,7 +16,7 @@
  * until commit or rollback; direct SDK calls made outside this service are not
  * coordinated with Effect SQL transactions. Row streaming is not implemented.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Libsql from "@libsql/client"
 import * as Config from "effect/Config"
@@ -43,7 +43,7 @@ const classifyError = (cause: unknown, message: string, operation: string) =>
  * Runtime type identifier used to mark `LibsqlClient` values.
  *
  * @category type ids
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-libsql/LibsqlClient"
 
@@ -51,7 +51,7 @@ export const TypeId: TypeId = "~@effect/sql-libsql/LibsqlClient"
  * Type-level identifier used to mark `LibsqlClient` values.
  *
  * @category type ids
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type TypeId = "~@effect/sql-libsql/LibsqlClient"
 
@@ -59,7 +59,7 @@ export type TypeId = "~@effect/sql-libsql/LibsqlClient"
  * libSQL-backed SQL client service, extending `SqlClient` with its runtime type marker and client configuration.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface LibsqlClient extends Client.SqlClient {
   readonly [TypeId]: TypeId
@@ -70,7 +70,7 @@ export interface LibsqlClient extends Client.SqlClient {
  * Context tag used to access the `LibsqlClient` service.
  *
  * @category tags
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const LibsqlClient = Context.Service<LibsqlClient>("@effect/sql-libsql/LibsqlClient")
 
@@ -82,21 +82,21 @@ const LibsqlTransaction = Context.Service<readonly [LibsqlConnection, counter: n
  * Configuration for a libSQL client, either by supplying connection options or an existing live libSQL client.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type LibsqlClientConfig = LibsqlClientConfig.Full | LibsqlClientConfig.Live
 
 /**
  * Namespace containing the configuration variants for `LibsqlClient`.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export declare namespace LibsqlClientConfig {
   /**
    * Shared libSQL client options for span attributes and query/result name transformations.
    *
    * @category models
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface Base {
     readonly spanAttributes?: Record<string, unknown> | undefined
@@ -108,7 +108,7 @@ export declare namespace LibsqlClientConfig {
    * Connection-based libSQL configuration used to create a managed client, including URL, credentials, sync, integer mode, TLS, and concurrency options.
    *
    * @category models
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface Full extends Base {
     /** The database URL.
@@ -154,7 +154,7 @@ export declare namespace LibsqlClientConfig {
    * Configuration that uses an existing libSQL client. The supplied `liveClient` is caller-owned and is not closed by the Effect client.
    *
    * @category models
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface Live extends Base {
     readonly liveClient: Libsql.Client
@@ -171,7 +171,7 @@ interface LibsqlConnection extends Connection {
  * Creates a scoped libSQL SQL client with transaction support. When given connection options it creates and closes the SDK client; when given `liveClient`, the caller retains ownership.
  *
  * @category constructor
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = (
   options: LibsqlClientConfig
@@ -339,7 +339,7 @@ export const make = (
  * Creates a layer from a `Config`-wrapped libSQL client configuration, providing both `LibsqlClient` and `SqlClient`.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerConfig: (
   config: Config.Wrap<LibsqlClientConfig>
@@ -361,7 +361,7 @@ export const layerConfig: (
  * Creates a layer from a concrete libSQL client configuration, providing both `LibsqlClient` and `SqlClient`.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = (
   config: LibsqlClientConfig

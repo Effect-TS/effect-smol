@@ -13,7 +13,7 @@
  * In pipes, redirected input, or CI, raw mode may be unavailable, keypress input
  * is limited, and stdout dimensions may be reported as zero.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as NodeTerminal from "@effect/platform-node-shared/NodeTerminal"
 import type { Effect } from "effect/Effect"
@@ -26,7 +26,7 @@ import type { Terminal, UserInput } from "effect/Terminal"
  * optional predicate to decide when key input should end the input stream.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make: (shouldQuit?: (input: UserInput) => boolean) => Effect<Terminal, never, Scope> = NodeTerminal.make
 
@@ -35,6 +35,6 @@ export const make: (shouldQuit?: (input: UserInput) => boolean) => Effect<Termin
  * the default quit keys.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: Layer<Terminal> = NodeTerminal.layer

@@ -48,7 +48,7 @@
  * // [{ temperature: 72, condition: "sunny in San Francisco" }]
  * ```
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type * as Cause from "../../Cause.ts"
 import * as Context from "../../Context.ts"
@@ -96,7 +96,7 @@ const TypeId = "~effect/ai/Toolkit" as const
  * ```
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Toolkit<in out Tools extends Record<string, Tool.Any>> extends
   Effect.Effect<
@@ -143,7 +143,7 @@ export interface Toolkit<in out Tools extends Record<string, Tool.Any>> extends
  * Context provided to tool handlers during execution.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface HandlerContext<Tool extends Tool.Any> {
   /**
@@ -159,7 +159,7 @@ export interface HandlerContext<Tool extends Tool.Any> {
  * Represents any `Toolkit` instance, used for generic constraints.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Any {
   readonly [TypeId]: typeof TypeId
@@ -171,7 +171,7 @@ export interface Any {
  * toolkit.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Tools<T> = T extends Toolkit<infer Tools> ? Tools : never
 
@@ -180,7 +180,7 @@ export type Tools<T> = T extends Toolkit<infer Tools> ? Tools : never
  * a record where keys are tool names and values are the tool instances.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ToolsByName<Tools> = Tools extends Record<string, Tool.Any> ?
   { readonly [Name in keyof Tools]: Tools[Name] }
@@ -194,7 +194,7 @@ export type ToolsByName<Tools> = Tools extends Record<string, Tool.Any> ?
  * (which will be wrapped in `AiError`), or a full `AiError`.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type HandlersFrom<Tools extends Record<string, Tool.Any>> = {
   readonly [Name in keyof Tools as Tool.RequiresHandler<Tools[Name]> extends true ? Name : never]: (
@@ -211,7 +211,7 @@ export type HandlersFrom<Tools extends Record<string, Tool.Any>> = {
  * A toolkit instance with registered handlers ready for tool execution.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface WithHandler<in out Tools extends Record<string, Tool.Any>> {
   /**
@@ -250,7 +250,7 @@ export interface WithHandler<in out Tools extends Record<string, Tool.Any>> {
  * handlers.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type WithHandlerTools<T> = T extends WithHandler<infer Tools> ? Tools : never
 
@@ -465,7 +465,7 @@ const resolveInput = <Tools extends ReadonlyArray<Tool.Any>>(
  * be extended using the merge function to add tools.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const empty: Toolkit<{}> = makeProto({})
 
@@ -500,7 +500,7 @@ export const empty: Toolkit<{}> = makeProto({})
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = <Tools extends ReadonlyArray<Tool.Any>>(
   ...tools: Tools
@@ -510,7 +510,7 @@ export const make = <Tools extends ReadonlyArray<Tool.Any>>(
  * A utility type which flattens a record type for improved IDE display.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type SimplifyRecord<T> = { [K in keyof T]: T[K] } & {}
 
@@ -518,7 +518,7 @@ export type SimplifyRecord<T> = { [K in keyof T]: T[K] } & {}
  * A utility type which merges a union of tool records into a single record.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type MergeRecords<U> = {
   readonly [K in Extract<U extends unknown ? keyof U : never, string>]: Extract<
@@ -532,7 +532,7 @@ export type MergeRecords<U> = {
  * record.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type MergedTools<Toolkits extends ReadonlyArray<Any>> = SimplifyRecord<
   MergeRecords<Tools<Toolkits[number]>>
@@ -565,7 +565,7 @@ export type MergedTools<Toolkits extends ReadonlyArray<Any>> = SimplifyRecord<
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const merge = <const Toolkits extends ReadonlyArray<Any>>(
   /**

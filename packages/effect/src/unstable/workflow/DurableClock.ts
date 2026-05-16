@@ -72,7 +72,7 @@ const InstanceTag = Context.Service<
  * below the threshold and scheduling a durable clock for longer durations.
  *
  * @category Sleeping
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const sleep: (
   options: {

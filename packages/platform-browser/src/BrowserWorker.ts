@@ -19,7 +19,7 @@
  * dedicated `Worker` remains responsible for any broader lifecycle such as
  * terminating it.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Deferred from "effect/Deferred"
 import * as Effect from "effect/Effect"
@@ -32,7 +32,7 @@ import { WorkerError, WorkerReceiveError } from "effect/unstable/workers/WorkerE
  * Creates browser worker layers by combining the default `WorkerPlatform` with a spawner for `Worker`, `SharedWorker`, or `MessagePort` instances.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = (
   spawn: (id: number) => Worker | SharedWorker | MessagePort
@@ -46,7 +46,7 @@ export const layer = (
  * Layer that provides the browser `WorkerPlatform` for `Worker`, `SharedWorker`, and `MessagePort` communication.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerPlatform: Layer.Layer<Worker.WorkerPlatform> = Layer.succeed(Worker.WorkerPlatform)(
   Worker.makePlatform<globalThis.SharedWorker | globalThis.Worker | MessagePort>()({

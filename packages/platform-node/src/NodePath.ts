@@ -13,7 +13,7 @@
  * already includes the default Node path layer, so provide this module directly
  * when you want the narrower service or one of the platform-specific variants.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as NodePath from "@effect/platform-node-shared/NodePath"
 import type * as Layer from "effect/Layer"
@@ -24,7 +24,7 @@ import type { Path } from "effect/Path"
  * implementation.
  *
  * @category layer
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<Path> = NodePath.layer
 
@@ -33,7 +33,7 @@ export const layer: Layer.Layer<Path> = NodePath.layer
  * regardless of the host platform.
  *
  * @category layer
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerPosix: Layer.Layer<Path> = NodePath.layerPosix
 
@@ -42,6 +42,6 @@ export const layerPosix: Layer.Layer<Path> = NodePath.layerPosix
  * regardless of the host platform.
  *
  * @category layer
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerWin32: Layer.Layer<Path> = NodePath.layerWin32

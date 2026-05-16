@@ -16,7 +16,7 @@
  * handling follows the `SqlClient` fiber-local setting, `executeStream` is not implemented, and
  * SQLite does not support `updateValues`.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import { Database } from "bun:sqlite"
 import * as Config from "effect/Config"
@@ -43,7 +43,7 @@ const classifyError = (cause: unknown, message: string, operation: string) =>
  * Runtime type identifier used to mark Bun `SqliteClient` values.
  *
  * @category type ids
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-sqlite-bun/SqliteClient"
 
@@ -51,7 +51,7 @@ export const TypeId: TypeId = "~@effect/sql-sqlite-bun/SqliteClient"
  * Type-level identifier used to mark Bun `SqliteClient` values.
  *
  * @category type ids
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type TypeId = "~@effect/sql-sqlite-bun/SqliteClient"
 
@@ -59,7 +59,7 @@ export type TypeId = "~@effect/sql-sqlite-bun/SqliteClient"
  * Bun SQLite client service, extending `SqlClient` with database export and extension loading helpers. `updateValues` is not supported.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface SqliteClient extends Client.SqlClient {
   readonly [TypeId]: TypeId
@@ -75,7 +75,7 @@ export interface SqliteClient extends Client.SqlClient {
  * Context tag used to access the Bun `SqliteClient` service.
  *
  * @category tags
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const SqliteClient = Context.Service<SqliteClient>("@effect/sql-sqlite-bun/Client")
 
@@ -83,7 +83,7 @@ export const SqliteClient = Context.Service<SqliteClient>("@effect/sql-sqlite-bu
  * Configuration for a Bun SQLite client, including filename, open mode flags, WAL behavior, span attributes, and query/result name transforms.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface SqliteClientConfig {
   readonly filename: string
@@ -107,7 +107,7 @@ interface SqliteConnection extends Connection {
  * Creates a scoped Bun SQLite client for a database file, enabling WAL by default and serializing access. Streaming queries are not implemented.
  *
  * @category constructor
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = (
   options: SqliteClientConfig
@@ -235,7 +235,7 @@ export const make = (
  * Creates a layer from a `Config`-wrapped Bun SQLite client configuration, providing both `SqliteClient` and `SqlClient`.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerConfig = (
   config: Config.Wrap<SqliteClientConfig>
@@ -255,7 +255,7 @@ export const layerConfig = (
  * Creates a layer from a concrete Bun SQLite client configuration, providing both `SqliteClient` and `SqlClient`.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = (
   config: SqliteClientConfig

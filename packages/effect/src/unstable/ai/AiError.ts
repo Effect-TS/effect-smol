@@ -78,7 +78,7 @@
  * console.log(error.message) // "OpenAI.completion: Rate limit exceeded. Retry after 1 minute"
  * ```
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
@@ -142,7 +142,7 @@ const redactHeaders = (headers: Record<string, string>): Record<string, string> 
  * ```
  *
  * @category reason
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class NetworkError extends Schema.ErrorClass<NetworkError>(
   "effect/ai/AiError/NetworkError"
@@ -155,14 +155,14 @@ export class NetworkError extends Schema.ErrorClass<NetworkError>(
   /**
    * Marks `NetworkError` as a semantic AI error reason for runtime guards.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Transport errors are retryable; encoding and URL errors are not.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   get isRetryable(): boolean {
     return this.reason === "TransportError"
@@ -183,7 +183,7 @@ export class NetworkError extends Schema.ErrorClass<NetworkError>(
    * ```
    *
    * @category constructors
-   * @since 1.0.0
+   * @since 4.0.0
    */
   static fromRequestError(error: HttpClientError.RequestError): NetworkError {
     return new NetworkError({
@@ -255,7 +255,7 @@ export class NetworkError extends Schema.ErrorClass<NetworkError>(
  * ```
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const ProviderMetadata: Schema.$Record<
   Schema.String,
@@ -269,7 +269,7 @@ export const ProviderMetadata: Schema.$Record<
  * JSON metadata or `null`.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ProviderMetadata = typeof ProviderMetadata.Type
 
@@ -277,7 +277,7 @@ export type ProviderMetadata = typeof ProviderMetadata.Type
  * Provider-specific metadata attached to `RateLimitError`.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface RateLimitErrorMetadata extends ProviderMetadata {}
 
@@ -285,7 +285,7 @@ export interface RateLimitErrorMetadata extends ProviderMetadata {}
  * Provider-specific metadata attached to `QuotaExhaustedError`.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface QuotaExhaustedErrorMetadata extends ProviderMetadata {}
 
@@ -293,7 +293,7 @@ export interface QuotaExhaustedErrorMetadata extends ProviderMetadata {}
  * Provider-specific metadata attached to `AuthenticationError`.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface AuthenticationErrorMetadata extends ProviderMetadata {}
 
@@ -301,7 +301,7 @@ export interface AuthenticationErrorMetadata extends ProviderMetadata {}
  * Provider-specific metadata attached to `ContentPolicyError`.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ContentPolicyErrorMetadata extends ProviderMetadata {}
 
@@ -309,7 +309,7 @@ export interface ContentPolicyErrorMetadata extends ProviderMetadata {}
  * Provider-specific metadata attached to `InvalidRequestError`.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface InvalidRequestErrorMetadata extends ProviderMetadata {}
 
@@ -317,7 +317,7 @@ export interface InvalidRequestErrorMetadata extends ProviderMetadata {}
  * Provider-specific metadata attached to `InternalProviderError`.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface InternalProviderErrorMetadata extends ProviderMetadata {}
 
@@ -325,7 +325,7 @@ export interface InternalProviderErrorMetadata extends ProviderMetadata {}
  * Provider-specific metadata attached to `InvalidOutputError`.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface InvalidOutputErrorMetadata extends ProviderMetadata {}
 
@@ -333,7 +333,7 @@ export interface InvalidOutputErrorMetadata extends ProviderMetadata {}
  * Provider-specific metadata attached to `StructuredOutputError`.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface StructuredOutputErrorMetadata extends ProviderMetadata {}
 
@@ -341,7 +341,7 @@ export interface StructuredOutputErrorMetadata extends ProviderMetadata {}
  * Provider-specific metadata attached to `UnsupportedSchemaError`.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface UnsupportedSchemaErrorMetadata extends ProviderMetadata {}
 
@@ -349,7 +349,7 @@ export interface UnsupportedSchemaErrorMetadata extends ProviderMetadata {}
  * Provider-specific metadata attached to `UnknownError`.
  *
  * @category provider options
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface UnknownErrorMetadata extends ProviderMetadata {}
 
@@ -357,7 +357,7 @@ export interface UnknownErrorMetadata extends ProviderMetadata {}
  * Token usage information from AI operations.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const UsageInfo = Schema.Struct({
   promptTokens: Schema.optional(Schema.Number),
@@ -369,7 +369,7 @@ export const UsageInfo = Schema.Struct({
  * Combined HTTP context for error reporting.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const HttpContext = Schema.Struct({
   request: HttpRequestDetails,
@@ -402,7 +402,7 @@ export const HttpContext = Schema.Struct({
  * ```
  *
  * @category reason
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class RateLimitError extends Schema.ErrorClass<RateLimitError>(
   "effect/ai/AiError/RateLimitError"
@@ -415,14 +415,14 @@ export class RateLimitError extends Schema.ErrorClass<RateLimitError>(
   /**
    * Marks `RateLimitError` as a semantic AI error reason for runtime guards.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Rate limit errors are always retryable.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   get isRetryable(): boolean {
     return true
@@ -453,7 +453,7 @@ export class RateLimitError extends Schema.ErrorClass<RateLimitError>(
  * ```
  *
  * @category reason
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class QuotaExhaustedError extends Schema.ErrorClass<QuotaExhaustedError>(
   "effect/ai/AiError/QuotaExhaustedError"
@@ -466,14 +466,14 @@ export class QuotaExhaustedError extends Schema.ErrorClass<QuotaExhaustedError>(
   /**
    * Marks `QuotaExhaustedError` as a semantic AI error reason for runtime guards.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Quota exhausted errors require user action and are not retryable.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   get isRetryable(): boolean {
     return false
@@ -506,7 +506,7 @@ export class QuotaExhaustedError extends Schema.ErrorClass<QuotaExhaustedError>(
  * ```
  *
  * @category reason
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class AuthenticationError extends Schema.ErrorClass<AuthenticationError>(
   "effect/ai/AiError/AuthenticationError"
@@ -519,14 +519,14 @@ export class AuthenticationError extends Schema.ErrorClass<AuthenticationError>(
   /**
    * Marks `AuthenticationError` as a semantic AI error reason for runtime guards.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Authentication errors require credential changes and are not retryable.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   get isRetryable(): boolean {
     return false
@@ -564,7 +564,7 @@ export class AuthenticationError extends Schema.ErrorClass<AuthenticationError>(
  * ```
  *
  * @category reason
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class ContentPolicyError extends Schema.ErrorClass<ContentPolicyError>(
   "effect/ai/AiError/ContentPolicyError"
@@ -577,14 +577,14 @@ export class ContentPolicyError extends Schema.ErrorClass<ContentPolicyError>(
   /**
    * Marks `ContentPolicyError` as a semantic AI error reason for runtime guards.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Content policy errors require content changes and are not retryable.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   get isRetryable(): boolean {
     return false
@@ -617,7 +617,7 @@ export class ContentPolicyError extends Schema.ErrorClass<ContentPolicyError>(
  * ```
  *
  * @category reason
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class InvalidRequestError extends Schema.ErrorClass<InvalidRequestError>(
   "effect/ai/AiError/InvalidRequestError"
@@ -632,14 +632,14 @@ export class InvalidRequestError extends Schema.ErrorClass<InvalidRequestError>(
   /**
    * Marks `InvalidRequestError` as a semantic AI error reason for runtime guards.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Invalid request errors require fixing the request and are not retryable.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   get isRetryable(): boolean {
     return false
@@ -674,7 +674,7 @@ export class InvalidRequestError extends Schema.ErrorClass<InvalidRequestError>(
  * ```
  *
  * @category reason
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class InternalProviderError extends Schema.ErrorClass<InternalProviderError>(
   "effect/ai/AiError/InternalProviderError"
@@ -687,14 +687,14 @@ export class InternalProviderError extends Schema.ErrorClass<InternalProviderErr
   /**
    * Marks `InternalProviderError` as a semantic AI error reason for runtime guards.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Internal provider errors are typically transient and are retryable.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   get isRetryable(): boolean {
     return true
@@ -725,7 +725,7 @@ export class InternalProviderError extends Schema.ErrorClass<InternalProviderErr
  * ```
  *
  * @category reason
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class InvalidOutputError extends Schema.ErrorClass<InvalidOutputError>(
   "effect/ai/AiError/InvalidOutputError"
@@ -738,14 +738,14 @@ export class InvalidOutputError extends Schema.ErrorClass<InvalidOutputError>(
   /**
    * Marks `InvalidOutputError` as a semantic AI error reason for runtime guards.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Invalid output errors are retryable since LLM outputs are non-deterministic.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   get isRetryable(): boolean {
     return true
@@ -766,7 +766,7 @@ export class InvalidOutputError extends Schema.ErrorClass<InvalidOutputError>(
    * ```
    *
    * @category constructors
-   * @since 1.0.0
+   * @since 4.0.0
    */
   static fromSchemaError(error: Schema.SchemaError): InvalidOutputError {
     return new InvalidOutputError({
@@ -801,7 +801,7 @@ export class InvalidOutputError extends Schema.ErrorClass<InvalidOutputError>(
  * ```
  *
  * @category reason
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class StructuredOutputError extends Schema.ErrorClass<StructuredOutputError>(
   "effect/ai/AiError/StructuredOutputError"
@@ -815,14 +815,14 @@ export class StructuredOutputError extends Schema.ErrorClass<StructuredOutputErr
   /**
    * Marks `StructuredOutputError` as a semantic AI error reason for runtime guards.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Structured output errors are retryable since LLM outputs are non-deterministic.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   get isRetryable(): boolean {
     return true
@@ -844,7 +844,7 @@ export class StructuredOutputError extends Schema.ErrorClass<StructuredOutputErr
    * ```
    *
    * @category constructors
-   * @since 1.0.0
+   * @since 4.0.0
    */
   static fromSchemaError(error: Schema.SchemaError, responseText: string): StructuredOutputError {
     return new StructuredOutputError({
@@ -880,7 +880,7 @@ export class StructuredOutputError extends Schema.ErrorClass<StructuredOutputErr
  * ```
  *
  * @category reason
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class UnsupportedSchemaError extends Schema.ErrorClass<UnsupportedSchemaError>(
   "effect/ai/AiError/UnsupportedSchemaError"
@@ -892,14 +892,14 @@ export class UnsupportedSchemaError extends Schema.ErrorClass<UnsupportedSchemaE
   /**
    * Marks `UnsupportedSchemaError` as a semantic AI error reason for runtime guards.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Unsupported schema errors are not retryable because they indicate a programmer error.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   get isRetryable(): boolean {
     return false
@@ -930,7 +930,7 @@ export class UnsupportedSchemaError extends Schema.ErrorClass<UnsupportedSchemaE
  * ```
  *
  * @category reason
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class UnknownError extends Schema.ErrorClass<UnknownError>(
   "effect/ai/AiError/UnknownError"
@@ -943,14 +943,14 @@ export class UnknownError extends Schema.ErrorClass<UnknownError>(
   /**
    * Marks `UnknownError` as a semantic AI error reason for runtime guards.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Unknown errors are not retryable by default.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   get isRetryable(): boolean {
     return false
@@ -987,7 +987,7 @@ export class UnknownError extends Schema.ErrorClass<UnknownError>(
  * ```
  *
  * @category reason
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class ToolNotFoundError extends Schema.ErrorClass<ToolNotFoundError>(
   "effect/ai/AiError/ToolNotFoundError"
@@ -999,14 +999,14 @@ export class ToolNotFoundError extends Schema.ErrorClass<ToolNotFoundError>(
   /**
    * Marks `ToolNotFoundError` as a semantic AI error reason for runtime guards.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Tool not found errors are retryable because the model may self-correct.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   get isRetryable(): boolean {
     return true
@@ -1041,7 +1041,7 @@ export class ToolNotFoundError extends Schema.ErrorClass<ToolNotFoundError>(
  * ```
  *
  * @category reason
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class ToolParameterValidationError extends Schema.ErrorClass<ToolParameterValidationError>(
   "effect/ai/AiError/ToolParameterValidationError"
@@ -1054,14 +1054,14 @@ export class ToolParameterValidationError extends Schema.ErrorClass<ToolParamete
   /**
    * Marks `ToolParameterValidationError` as a semantic AI error reason for runtime guards.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Parameter validation errors are retryable because the model may correct parameters.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   get isRetryable(): boolean {
     return true
@@ -1095,7 +1095,7 @@ export class ToolParameterValidationError extends Schema.ErrorClass<ToolParamete
  * ```
  *
  * @category reason
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class InvalidToolResultError extends Schema.ErrorClass<InvalidToolResultError>(
   "effect/ai/AiError/InvalidToolResultError"
@@ -1107,14 +1107,14 @@ export class InvalidToolResultError extends Schema.ErrorClass<InvalidToolResultE
   /**
    * Marks `InvalidToolResultError` as a semantic AI error reason for runtime guards.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Invalid tool result errors are not retryable because they indicate a bug in the handler.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   get isRetryable(): boolean {
     return false
@@ -1148,7 +1148,7 @@ export class InvalidToolResultError extends Schema.ErrorClass<InvalidToolResultE
  * ```
  *
  * @category reason
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class ToolResultEncodingError extends Schema.ErrorClass<ToolResultEncodingError>(
   "effect/ai/AiError/ToolResultEncodingError"
@@ -1161,14 +1161,14 @@ export class ToolResultEncodingError extends Schema.ErrorClass<ToolResultEncodin
   /**
    * Marks `ToolResultEncodingError` as a semantic AI error reason for runtime guards.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Encoding errors are not retryable because they indicate a code bug.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   get isRetryable(): boolean {
     return false
@@ -1201,7 +1201,7 @@ export class ToolResultEncodingError extends Schema.ErrorClass<ToolResultEncodin
  * ```
  *
  * @category reason
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class ToolConfigurationError extends Schema.ErrorClass<ToolConfigurationError>(
   "effect/ai/AiError/ToolConfigurationError"
@@ -1213,14 +1213,14 @@ export class ToolConfigurationError extends Schema.ErrorClass<ToolConfigurationE
   /**
    * Marks `ToolConfigurationError` as a semantic AI error reason for runtime guards.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Configuration errors are not retryable because they indicate a code bug.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   get isRetryable(): boolean {
     return false
@@ -1252,7 +1252,7 @@ export class ToolConfigurationError extends Schema.ErrorClass<ToolConfigurationE
  * ```
  *
  * @category reason
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class ToolkitRequiredError extends Schema.ErrorClass<ToolkitRequiredError>(
   "effect/ai/AiError/ToolkitRequiredError"
@@ -1264,14 +1264,14 @@ export class ToolkitRequiredError extends Schema.ErrorClass<ToolkitRequiredError
   /**
    * Marks `ToolkitRequiredError` as a semantic AI error reason for runtime guards.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Toolkit required errors are not retryable without providing a toolkit.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   get isRetryable(): boolean {
     return false
@@ -1305,7 +1305,7 @@ export class ToolkitRequiredError extends Schema.ErrorClass<ToolkitRequiredError
  * ```
  *
  * @category reason
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class InvalidUserInputError extends Schema.ErrorClass<InvalidUserInputError>(
   "effect/ai/AiError/InvalidUserInputError"
@@ -1316,14 +1316,14 @@ export class InvalidUserInputError extends Schema.ErrorClass<InvalidUserInputErr
   /**
    * Marks `InvalidUserInputError` as a semantic AI error reason for runtime guards.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Invalid user input errors require fixing the input and are not retryable.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   get isRetryable(): boolean {
     return false
@@ -1346,7 +1346,7 @@ export class InvalidUserInputError extends Schema.ErrorClass<InvalidUserInputErr
  * provider metadata, usage information, or HTTP context.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type AiErrorReason =
   | RateLimitError
@@ -1372,7 +1372,7 @@ export type AiErrorReason =
  * Schema for validating and parsing AI error reasons.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const AiErrorReason: Schema.Union<[
   typeof RateLimitError,
@@ -1450,7 +1450,7 @@ const TypeId = "~effect/unstable/ai/AiError/AiError" as const
  * ```
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class AiError extends Schema.ErrorClass<AiError>(
   "effect/ai/AiError/AiError"
@@ -1466,7 +1466,7 @@ export class AiError extends Schema.ErrorClass<AiError>(
   /**
    * Delegates to the underlying reason's `isRetryable` getter.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   get isRetryable(): boolean {
     return this.reason.isRetryable
@@ -1475,7 +1475,7 @@ export class AiError extends Schema.ErrorClass<AiError>(
   /**
    * Delegates to the underlying reason's `retryAfter` if present.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   get retryAfter(): Duration.Duration | undefined {
     return "retryAfter" in this.reason ? this.reason.retryAfter : undefined
@@ -1490,7 +1490,7 @@ export class AiError extends Schema.ErrorClass<AiError>(
  * The encoded (serialized) form of an `AiError`.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type AiErrorEncoded = typeof AiError["Encoded"]
 
@@ -1517,7 +1517,7 @@ export type AiErrorEncoded = typeof AiError["Encoded"]
  * ```
  *
  * @category guards
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const isAiError = (u: unknown): u is AiError => Predicate.hasProperty(u, TypeId)
 
@@ -1540,7 +1540,7 @@ export const isAiError = (u: unknown): u is AiError => Predicate.hasProperty(u, 
  * ```
  *
  * @category guards
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const isAiErrorReason = (u: unknown): u is AiErrorReason => Predicate.hasProperty(u, ReasonTypeId)
 
@@ -1566,7 +1566,7 @@ export const isAiErrorReason = (u: unknown): u is AiErrorReason => Predicate.has
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = (params: {
   readonly module: string
@@ -1593,7 +1593,7 @@ export const make = (params: {
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const reasonFromHttpStatus = (params: {
   readonly status: number

@@ -1,7 +1,7 @@
 /**
  * Configuration schema and types for AI provider code generation.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Data from "effect/Data"
 import type * as Path from "effect/Path"
@@ -11,7 +11,7 @@ import * as Schema from "effect/Schema"
  * A text replacement to apply to generated code.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Replacement extends Schema.Class<Replacement>("Replacement")({
   from: Schema.String,
@@ -22,7 +22,7 @@ export class Replacement extends Schema.Class<Replacement>("Replacement")({
  * Structured spec source configuration for Stainless stats indirection.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const SpecSourceConfig = Schema.Struct({
   type: Schema.Literal("stainless-stats"),
@@ -49,7 +49,7 @@ export const SpecSourceConfig = Schema.Struct({
  * ```
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class CodegenConfig extends Schema.Class<CodegenConfig>("CodegenConfig")({
   spec: Schema.Union([Schema.String, SpecSourceConfig]),
@@ -65,7 +65,7 @@ export class CodegenConfig extends Schema.Class<CodegenConfig>("CodegenConfig")(
   /**
    * Get the client name, defaulting to "Client" if not specified.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   get clientName(): string {
     return this.name ?? "Client"
@@ -74,7 +74,7 @@ export class CodegenConfig extends Schema.Class<CodegenConfig>("CodegenConfig")(
   /**
    * Check if type-only generation is enabled.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   get isTypeOnly(): boolean {
     return this.typeOnly ?? false
@@ -83,7 +83,7 @@ export class CodegenConfig extends Schema.Class<CodegenConfig>("CodegenConfig")(
   /**
    * Get the list of patch files/strings to apply.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   get patchList(): ReadonlyArray<string> {
     return this.patches ?? []
@@ -92,7 +92,7 @@ export class CodegenConfig extends Schema.Class<CodegenConfig>("CodegenConfig")(
   /**
    * Get the list of text replacements to apply.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   get replacementList(): ReadonlyArray<Replacement> {
     return this.replacements ?? []
@@ -101,7 +101,7 @@ export class CodegenConfig extends Schema.Class<CodegenConfig>("CodegenConfig")(
   /**
    * Get the header content to prepend to generated files.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   get headerContent(): string | undefined {
     return this.header
@@ -110,7 +110,7 @@ export class CodegenConfig extends Schema.Class<CodegenConfig>("CodegenConfig")(
   /**
    * Get the list of annotation keys to exclude from generated code.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   get excludeAnnotationsList(): ReadonlyArray<string> | undefined {
     return this.excludeAnnotations
@@ -119,7 +119,7 @@ export class CodegenConfig extends Schema.Class<CodegenConfig>("CodegenConfig")(
   /**
    * Check if additionalProperties should be forced to false on all object schemas.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   get shouldDisableAdditionalProperties(): boolean {
     return this.disableAdditionalProperties ?? false
@@ -130,21 +130,21 @@ export class CodegenConfig extends Schema.Class<CodegenConfig>("CodegenConfig")(
  * Represents the source of an OpenAPI specification.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type SpecSource = SpecSource.Url | SpecSource.File | SpecSource.StainlessStats
 
 /**
  * Namespace containing the supported OpenAPI specification source variants.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export declare namespace SpecSource {
   /**
    * A URL-based spec source.
    *
    * @category models
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface Url {
     readonly _tag: "Url"
@@ -155,7 +155,7 @@ export declare namespace SpecSource {
    * A file-based spec source.
    *
    * @category models
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface File {
     readonly _tag: "File"
@@ -166,7 +166,7 @@ export declare namespace SpecSource {
    * Stainless SDK stats.yml indirection - fetches stats file and extracts openapi_spec_url.
    *
    * @category models
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface StainlessStats {
     readonly _tag: "StainlessStats"
@@ -190,27 +190,27 @@ export declare namespace SpecSource {
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const SpecSource = {
   /**
    * Create a URL-based spec source.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   Url: (url: string): SpecSource => ({ _tag: "Url", url }),
 
   /**
    * Create a file-based spec source.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   File: (path: string): SpecSource => ({ _tag: "File", path }),
 
   /**
    * Create a Stainless stats-based spec source.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   StainlessStats: (statsUrl: string): SpecSource => ({ _tag: "StainlessStats", statsUrl }),
 
@@ -218,7 +218,7 @@ export const SpecSource = {
    * Parse a spec string into a `SpecSource`.
    * URLs (http:// or https://) become `Url`, otherwise `File`.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   fromString: (spec: string, packagePath: string, pathService: Path.Path): SpecSource => {
     if (spec.startsWith("http://") || spec.startsWith("https://")) {
@@ -230,7 +230,7 @@ export const SpecSource = {
   /**
    * Parse a spec config (string or object) into a `SpecSource`.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   fromConfig: (
     spec: string | { readonly type: string; readonly statsUrl?: string },
@@ -262,7 +262,7 @@ export const SpecSource = {
  * ```
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class ConfigParseError extends Data.TaggedError("ConfigParseError")<{
   readonly path: string
@@ -284,7 +284,7 @@ export class ConfigParseError extends Data.TaggedError("ConfigParseError")<{
  * ```
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class ConfigNotFoundError extends Data.TaggedError("ConfigNotFoundError")<{
   readonly provider: string

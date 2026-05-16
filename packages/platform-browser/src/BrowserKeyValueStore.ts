@@ -15,7 +15,7 @@
  * synchronously on the main thread, so prefer it for small payloads and avoid
  * treating it as a database or a secure place for sensitive data.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type * as Layer from "effect/Layer"
 import * as KeyValueStore from "effect/unstable/persistence/KeyValueStore"
@@ -26,7 +26,7 @@ import * as KeyValueStore from "effect/unstable/persistence/KeyValueStore"
  * Values are stored between sessions.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerLocalStorage: Layer.Layer<KeyValueStore.KeyValueStore> = KeyValueStore.layerStorage(() =>
   globalThis.localStorage
@@ -38,7 +38,7 @@ export const layerLocalStorage: Layer.Layer<KeyValueStore.KeyValueStore> = KeyVa
  * Values are stored only for the current session.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerSessionStorage: Layer.Layer<KeyValueStore.KeyValueStore> = KeyValueStore.layerStorage(() =>
   globalThis.sessionStorage

@@ -4,14 +4,14 @@
  * Provides OpenAI-specific metadata fields for AI error types through module
  * augmentation, enabling typed access to OpenAI error details.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 
 /**
  * OpenAI-specific error metadata fields.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type OpenAiErrorMetadata = {
   /**
@@ -35,7 +35,7 @@ export type OpenAiErrorMetadata = {
  * OpenAI's rate limit headers.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type OpenAiRateLimitMetadata = OpenAiErrorMetadata & {
   /**
@@ -65,7 +65,7 @@ declare module "effect/unstable/ai/AiError" {
    * reached.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface RateLimitErrorMetadata {
     /**
@@ -81,7 +81,7 @@ declare module "effect/unstable/ai/AiError" {
    * billing, or usage quota.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface QuotaExhaustedErrorMetadata {
     /**
@@ -97,7 +97,7 @@ declare module "effect/unstable/ai/AiError" {
    * permission checks.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface AuthenticationErrorMetadata {
     /**
@@ -113,7 +113,7 @@ declare module "effect/unstable/ai/AiError" {
    * it violates a content policy.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface ContentPolicyErrorMetadata {
     /**
@@ -129,7 +129,7 @@ declare module "effect/unstable/ai/AiError" {
    * parameters, or other request validation failures reported by OpenAI.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface InvalidRequestErrorMetadata {
     /**
@@ -145,7 +145,7 @@ declare module "effect/unstable/ai/AiError" {
    * server errors.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface InternalProviderErrorMetadata {
     /**
@@ -161,7 +161,7 @@ declare module "effect/unstable/ai/AiError" {
    * validated as the expected output.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface InvalidOutputErrorMetadata {
     /**
@@ -177,7 +177,7 @@ declare module "effect/unstable/ai/AiError" {
    * satisfy the requested structured output schema.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface StructuredOutputErrorMetadata {
     /**
@@ -193,7 +193,7 @@ declare module "effect/unstable/ai/AiError" {
    * associated with an OpenAI response.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface UnsupportedSchemaErrorMetadata {
     /**
@@ -209,7 +209,7 @@ declare module "effect/unstable/ai/AiError" {
    * to a more specific AI error category.
    *
    * @category provider options
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface UnknownErrorMetadata {
     /**

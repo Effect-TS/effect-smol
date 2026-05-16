@@ -21,7 +21,7 @@
  * - Overriding `scheduleTask` changes when atom work is flushed, so it should
  *   return a cancellation function that is safe to call during Solid cleanup
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type * as Atom from "effect/unstable/reactivity/Atom"
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
@@ -30,13 +30,13 @@ import { createComponent, createContext, onCleanup } from "solid-js"
 
 /**
  * @category context
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const RegistryContext = createContext<AtomRegistry.AtomRegistry>(AtomRegistry.make())
 
 /**
  * @category context
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const RegistryProvider = (options: {
   readonly children?: JSX.Element | undefined

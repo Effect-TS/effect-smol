@@ -2169,7 +2169,7 @@ export const setSystem: {
  * ```
  *
  * @category Combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const prependSystem: {
   (content: string): (self: Prompt) => Prompt
@@ -2218,7 +2218,7 @@ export const prependSystem: {
  * ```
  *
  * @category Combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const appendSystem: {
   (content: string): (self: Prompt) => Prompt

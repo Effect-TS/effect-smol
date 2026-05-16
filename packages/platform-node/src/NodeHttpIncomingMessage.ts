@@ -11,7 +11,7 @@
  * strategy per message: raw `stream` access is not cached, and Node request
  * bodies cannot be replayed once the underlying stream has been consumed.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Effect from "effect/Effect"
 import * as Inspectable from "effect/Inspectable"
@@ -30,7 +30,7 @@ import * as NodeStream from "./NodeStream.ts"
  * parameter, and array-buffer body decoders with caller-provided error mapping.
  *
  * @category Constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export abstract class NodeHttpIncomingMessage<E> extends Inspectable.Class
   implements IncomingMessage.HttpIncomingMessage<E>
@@ -38,7 +38,7 @@ export abstract class NodeHttpIncomingMessage<E> extends Inspectable.Class
   /**
    * Marks this value as an HTTP incoming message for runtime guards.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   readonly [IncomingMessage.TypeId]: typeof IncomingMessage.TypeId
   readonly source: Http.IncomingMessage

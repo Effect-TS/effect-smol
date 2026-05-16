@@ -20,7 +20,7 @@
  * application needs bookmark-based sequential consistency or read replicas.
  * Streaming queries and `updateValues` are not supported.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type { D1Database, D1PreparedStatement } from "@cloudflare/workers-types"
 import * as Cache from "effect/Cache"
@@ -47,7 +47,7 @@ const classifyError = (cause: unknown, message: string, operation: string) =>
  * Unique runtime identifier used to tag `D1Client` values.
  *
  * @category type ids
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-d1/D1Client"
 
@@ -55,7 +55,7 @@ export const TypeId: TypeId = "~@effect/sql-d1/D1Client"
  * Type-level literal for the `D1Client` runtime identifier.
  *
  * @category type ids
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type TypeId = "~@effect/sql-d1/D1Client"
 
@@ -63,7 +63,7 @@ export type TypeId = "~@effect/sql-d1/D1Client"
  * Cloudflare D1 SQL client service, extending `SqlClient` with its D1 configuration and no `updateValues` support.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface D1Client extends Client.SqlClient {
   readonly [TypeId]: TypeId
@@ -77,7 +77,7 @@ export interface D1Client extends Client.SqlClient {
  * Context tag used to access the `D1Client` service.
  *
  * @category tags
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const D1Client = Context.Service<D1Client>("@effect/sql-d1/D1Client")
 
@@ -85,7 +85,7 @@ export const D1Client = Context.Service<D1Client>("@effect/sql-d1/D1Client")
  * Configuration for a Cloudflare D1 client, including the `D1Database`, prepared statement cache settings, span attributes, and query/result name transforms.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface D1ClientConfig {
   readonly db: D1Database
@@ -101,7 +101,7 @@ export interface D1ClientConfig {
  * Creates a scoped Cloudflare D1 SQL client. Prepared statements are cached, while transactions and streaming queries are not supported by this driver.
  *
  * @category constructor
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = (
   options: D1ClientConfig
@@ -223,7 +223,7 @@ export const make = (
  * Creates a layer from a `Config`-wrapped D1 client configuration, providing both `D1Client` and `SqlClient`.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerConfig = (
   config: Config.Wrap<D1ClientConfig>
@@ -243,7 +243,7 @@ export const layerConfig = (
  * Creates a layer from a concrete D1 client configuration, providing both `D1Client` and `SqlClient`.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = (
   config: D1ClientConfig

@@ -1,7 +1,7 @@
 /**
  * Minimal local OpenAI schemas used by the handwritten Responses client path.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Predicate from "effect/Predicate"
 import * as Schema from "effect/Schema"
@@ -20,7 +20,7 @@ const ImageDetail = Schema.Literals(["low", "high", "auto"])
  * **Details**
  * These values request additional response fields such as image URLs, encrypted reasoning content, output logprobs, code interpreter outputs, or web search sources.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const IncludeEnum = Schema.Literals([
   "message.input_image.image_url",
@@ -31,17 +31,17 @@ export const IncludeEnum = Schema.Literals([
 ])
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type IncludeEnum = typeof IncludeEnum.Type
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const MessageStatus = Schema.Literals(["in_progress", "completed", "incomplete"])
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type MessageStatus = typeof MessageStatus.Type
 
@@ -66,7 +66,7 @@ const InputFileContent = Schema.Struct({
 })
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const InputContent = Schema.Union([
   InputTextContent,
@@ -75,12 +75,12 @@ export const InputContent = Schema.Union([
 ])
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type InputContent = typeof InputContent.Type
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const SummaryTextContent = Schema.Struct({
   type: Schema.Literal("summary_text"),
@@ -88,7 +88,7 @@ export const SummaryTextContent = Schema.Struct({
 })
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type SummaryTextContent = typeof SummaryTextContent.Type
 
@@ -144,7 +144,7 @@ const FilePathAnnotation = Schema.Struct({
 })
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Annotation = Schema.Union([
   FileCitationAnnotation,
@@ -154,7 +154,7 @@ export const Annotation = Schema.Union([
 ])
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Annotation = typeof Annotation.Type
 
@@ -186,7 +186,7 @@ const OutputMessage = Schema.Struct({
 })
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const ReasoningItem = Schema.Struct({
   type: Schema.Literal("reasoning"),
@@ -198,7 +198,7 @@ export const ReasoningItem = Schema.Struct({
 })
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ReasoningItem = typeof ReasoningItem.Type
 
@@ -284,7 +284,7 @@ const RequestMessageItem = Schema.Struct({
 })
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const InputItem = Schema.Union([
   RequestMessageItem,
@@ -302,7 +302,7 @@ export const InputItem = Schema.Union([
 ])
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type InputItem = typeof InputItem.Type
 
@@ -339,7 +339,7 @@ const ProviderDefinedTool = Schema.StructWithRest(
 )
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Tool = Schema.Union([
   FunctionTool,
@@ -348,12 +348,12 @@ export const Tool = Schema.Union([
 ])
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Tool = typeof Tool.Type
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const ToolChoice = Schema.Union([
   Schema.Literals(["none", "auto", "required"]),
@@ -389,12 +389,12 @@ export const ToolChoice = Schema.Union([
 ])
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ToolChoice = typeof ToolChoice.Type
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const TextResponseFormatConfiguration = Schema.Union([
   Schema.Struct({ type: Schema.Literal("text") }),
@@ -409,12 +409,12 @@ export const TextResponseFormatConfiguration = Schema.Union([
 ])
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type TextResponseFormatConfiguration = typeof TextResponseFormatConfiguration.Type
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const CreateResponse = Schema.Struct({
   metadata: Schema.optional(Schema.Record(Schema.String, Schema.String)),
@@ -459,12 +459,12 @@ export const CreateResponse = Schema.Struct({
 })
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type CreateResponse = typeof CreateResponse.Type
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const ResponseUsage = Schema.StructWithRest(
   Schema.Struct({
@@ -478,7 +478,7 @@ export const ResponseUsage = Schema.StructWithRest(
 )
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ResponseUsage = typeof ResponseUsage.Type
 
@@ -575,7 +575,7 @@ const OutputItem = Schema.Union([
 ])
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Response = Schema.Struct({
   id: Schema.String,
@@ -595,7 +595,7 @@ export const Response = Schema.Struct({
 })
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Response = typeof Response.Type
 
@@ -772,7 +772,7 @@ const knownResponseStreamEventTypes = new Set([
 ])
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type UnknownResponseStreamEvent = {
   readonly type: string
@@ -791,7 +791,7 @@ const UnknownResponseStreamEvent = Schema.declare<UnknownResponseStreamEvent>(
 )
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const ResponseStreamEvent = Schema.Union([
   ResponseCreatedEvent,
@@ -817,12 +817,12 @@ export const ResponseStreamEvent = Schema.Union([
 ])
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ResponseStreamEvent = typeof ResponseStreamEvent.Type
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Embedding = Schema.Struct({
   embedding: Schema.Union([
@@ -834,12 +834,12 @@ export const Embedding = Schema.Struct({
 })
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Embedding = typeof Embedding.Type
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const CreateEmbeddingRequest = Schema.Struct({
   input: Schema.Union([
@@ -855,12 +855,12 @@ export const CreateEmbeddingRequest = Schema.Struct({
 })
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type CreateEmbeddingRequest = typeof CreateEmbeddingRequest.Type
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const CreateEmbeddingResponse = Schema.Struct({
   data: Schema.Array(Embedding),
@@ -875,6 +875,6 @@ export const CreateEmbeddingResponse = Schema.Struct({
 })
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type CreateEmbeddingResponse = typeof CreateEmbeddingResponse.Type

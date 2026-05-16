@@ -11,7 +11,7 @@
  * removed lazily when they are read, so this module is best suited for application-managed cached objects rather than
  * security-sensitive or authoritative data.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type * as Arr from "effect/Array"
 import * as Clock from "effect/Clock"
@@ -24,7 +24,7 @@ import * as Persistence from "effect/unstable/persistence/Persistence"
  * Creates a `BackingPersistence` layer backed by IndexedDB, optionally using the provided database name.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerBackingIndexedDb = (options?: {
   readonly database?: string | undefined
@@ -59,7 +59,7 @@ const storeIdIndexName = "storeId"
  * Creates a `Persistence` layer backed by IndexedDB, optionally using the provided database name.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerIndexedDb = (options?: {
   readonly database?: string | undefined

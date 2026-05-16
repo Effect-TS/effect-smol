@@ -15,7 +15,7 @@
  * raw mode, echo, colors, and cursor movement should be coordinated with the
  * terminal APIs instead of assuming this layer has exclusive control.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
@@ -30,7 +30,7 @@ import { fromReadable } from "./NodeStream.ts"
  * default.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<Stdio.Stdio> = Layer.succeed(
   Stdio.Stdio,

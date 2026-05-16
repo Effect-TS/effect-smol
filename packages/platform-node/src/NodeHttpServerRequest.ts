@@ -18,7 +18,7 @@
  * must be coordinated carefully to avoid duplicate writes. Upgrade requests may
  * create that response lazily when it is first requested.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type { HttpServerRequest } from "effect/unstable/http/HttpServerRequest"
 import type * as Http from "node:http"
@@ -28,7 +28,7 @@ import type * as Http from "node:http"
  * `HttpServerRequest`.
  *
  * @category Accessors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toIncomingMessage = (self: HttpServerRequest): Http.IncomingMessage => self.source as any
 
@@ -38,7 +38,7 @@ export const toIncomingMessage = (self: HttpServerRequest): Http.IncomingMessage
  * was created lazily.
  *
  * @category Accessors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toServerResponse = (self: HttpServerRequest): Http.ServerResponse => {
   const res = (self as any).response

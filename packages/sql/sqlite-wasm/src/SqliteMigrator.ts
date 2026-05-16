@@ -17,7 +17,7 @@
  * browser- and origin-dependent, and this adapter does not currently write
  * SQLite schema dumps for `schemaDirectory`.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
@@ -26,7 +26,7 @@ import type * as Client from "effect/unstable/sql/SqlClient"
 import type { SqlError } from "effect/unstable/sql/SqlError"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * from "effect/unstable/sql/Migrator"
 
@@ -34,7 +34,7 @@ export * from "effect/unstable/sql/Migrator"
  * Runs SQL migrations for a SQLite WASM database using the shared `Migrator` implementation and the current `SqlClient`.
  *
  * @category constructor
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const run: <R>(
   options: Migrator.MigratorOptions<R>
@@ -48,7 +48,7 @@ export const run: <R>(
  * Creates a layer that runs the configured SQLite WASM migrations during layer construction and provides no services.
  *
  * @category constructor
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = <R>(
   options: Migrator.MigratorOptions<R>

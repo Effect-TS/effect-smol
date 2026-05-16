@@ -22,7 +22,7 @@
  * frames that represent an intentional close should be sent as `CloseEvent`
  * values so the underlying `WebSocket.close` code and reason are preserved.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Layer from "effect/Layer"
 import * as Socket from "effect/unstable/socket/Socket"
@@ -31,7 +31,7 @@ import * as Socket from "effect/unstable/socket/Socket"
  * Creates a `Socket` layer connected to the given URL using the browser `WebSocket` constructor.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerWebSocket = (url: string, options?: {
   readonly closeCodeIsError?: (code: number) => boolean
@@ -44,7 +44,7 @@ export const layerWebSocket = (url: string, options?: {
  * Layer that provides a `WebSocketConstructor` service backed by `globalThis.WebSocket`.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerWebSocketConstructor: Layer.Layer<Socket.WebSocketConstructor> =
   Socket.layerWebSocketConstructorGlobal

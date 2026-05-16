@@ -17,7 +17,7 @@
  * `ChildProcess.send`. Scope finalization sends the worker close signal and
  * waits for exit before falling back to `terminate()` or `SIGKILL`.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Deferred from "effect/Deferred"
 import * as Effect from "effect/Effect"
@@ -35,7 +35,7 @@ import type * as WorkerThreads from "node:worker_threads"
  * terminating the worker if graceful shutdown times out.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerPlatform: Layer.Layer<Worker.WorkerPlatform> = Layer.succeed(Worker.WorkerPlatform)(
   Worker.makePlatform<WorkerThreads.Worker | ChildProcess.ChildProcess>()({
@@ -119,7 +119,7 @@ export const layerPlatform: Layer.Layer<Worker.WorkerPlatform> = Layer.succeed(W
  * from the supplied worker or child-process spawning function.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = (
   spawn: (id: number) => WorkerThreads.Worker | ChildProcess.ChildProcess

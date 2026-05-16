@@ -18,7 +18,7 @@
  * high-cardinality rate-limit keys unless you have a cleanup or bounding
  * strategy.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Config from "effect/Config"
 import * as Context from "effect/Context"
@@ -35,7 +35,7 @@ import * as IoRedis from "ioredis"
  * `RedisError`.
  *
  * @category Service
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class NodeRedis extends Context.Service<NodeRedis, {
   readonly client: IoRedis.Redis
@@ -78,7 +78,7 @@ const make = Effect.fnUntraced(function*(
  * created with the supplied options and closed when the layer scope ends.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = (
   options?: IoRedis.RedisOptions | undefined
@@ -89,7 +89,7 @@ export const layer = (
  * options, closing the client when the layer scope ends.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerConfig: (
   options: Config.Wrap<IoRedis.RedisOptions>

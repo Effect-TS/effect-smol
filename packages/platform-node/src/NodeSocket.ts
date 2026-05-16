@@ -16,7 +16,7 @@
  * and falls back to `ws`; use `layerWebSocketConstructorWS` when you need the
  * `ws` implementation consistently across Node versions.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import { NodeWS as WS } from "@effect/platform-node-shared/NodeSocket"
 import type * as Duration from "effect/Duration"
@@ -26,7 +26,7 @@ import * as Layer from "effect/Layer"
 import * as Socket from "effect/unstable/socket/Socket"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * from "@effect/platform-node-shared/NodeSocket"
 
@@ -35,7 +35,7 @@ export * from "@effect/platform-node-shared/NodeSocket"
  * available and falling back to the `ws` package otherwise.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerWebSocketConstructor: Layer.Layer<
   Socket.WebSocketConstructor
@@ -51,7 +51,7 @@ export const layerWebSocketConstructor: Layer.Layer<
  * package.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerWebSocketConstructorWS: Layer.Layer<
   Socket.WebSocketConstructor
@@ -65,7 +65,7 @@ export const layerWebSocketConstructorWS: Layer.Layer<
  * options.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerWebSocket: (
   url: string | Effect.Effect<string>,

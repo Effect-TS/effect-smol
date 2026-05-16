@@ -20,7 +20,7 @@
  * migration layer has finished. This adapter does not currently write SQLite
  * schema dumps for `schemaDirectory`.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
@@ -29,7 +29,7 @@ import type * as Client from "effect/unstable/sql/SqlClient"
 import type { SqlError } from "effect/unstable/sql/SqlError"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * from "effect/unstable/sql/Migrator"
 
@@ -37,7 +37,7 @@ export * from "effect/unstable/sql/Migrator"
  * Runs SQL migrations using the configured `SqlClient`, returning the migrations that were applied.
  *
  * @category constructor
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const run: <R2 = never>(
   { loader, schemaDirectory, table }: Migrator.MigratorOptions<R2>
@@ -51,7 +51,7 @@ export const run: <R2 = never>(
  * Creates a layer that runs the configured SQL migrations during layer construction.
  *
  * @category constructor
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = <R>(
   options: Migrator.MigratorOptions<R>

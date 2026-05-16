@@ -747,7 +747,7 @@ const waitForZero = Effect.fnUntraced(function*(instance: WorkflowInstance["Serv
  * completes.
  *
  * @category Scope
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const scope: Effect.Effect<
   Scope.Scope,
@@ -765,7 +765,7 @@ export const scope: Effect.Effect<
  * completes.
  *
  * @category Scope
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const provideScope = <A, E, R>(
   effect: Effect.Effect<A, E, R>
@@ -777,7 +777,7 @@ export const provideScope = <A, E, R>(
  * services available when the finalizer is registered.
  *
  * @category Scope
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const addFinalizer: <R>(
   f: (exit: Exit.Exit<unknown, unknown>) => Effect.Effect<void, never, R>
@@ -802,7 +802,7 @@ export const addFinalizer: <R>(
  * finalizers are only registered for top-level effects in the workflow.
  *
  * @category Compensation
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const withCompensation: {
   <A, R2>(

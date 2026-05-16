@@ -17,7 +17,7 @@
  * - The transform receives and returns an `HttpClient`, so it should preserve
  *   the OpenRouter client contract while adding behavior around it.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
@@ -26,7 +26,7 @@ import type { HttpClient } from "effect/unstable/http/HttpClient"
 
 /**
  * @category services
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class OpenRouterConfig extends Context.Service<
   OpenRouterConfig,
@@ -35,7 +35,7 @@ export class OpenRouterConfig extends Context.Service<
   /**
    * Gets the configured OpenRouter service from the current context when present.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   static readonly getOrUndefined: Effect.Effect<typeof OpenRouterConfig.Service | undefined> = Effect.map(
     Effect.context<never>(),
@@ -44,12 +44,12 @@ export class OpenRouterConfig extends Context.Service<
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export declare namespace OpenRouterConfig {
   /**
    * @category models
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface Service {
     readonly transformClient?: ((client: HttpClient) => HttpClient) | undefined
@@ -58,7 +58,7 @@ export declare namespace OpenRouterConfig {
 
 /**
  * @category configuration
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const withClientTransform: {
   (transform: (client: HttpClient) => HttpClient): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>

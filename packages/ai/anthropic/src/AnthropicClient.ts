@@ -4,7 +4,7 @@
  * Provides a type-safe, Effect-based client for Anthropic operations including
  * messages and streaming responses.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Array from "effect/Array"
 import type * as Config from "effect/Config"
@@ -39,7 +39,7 @@ import * as Errors from "./internal/errors.ts"
  * both synchronous and streaming message creation.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Service {
   /**
@@ -114,7 +114,7 @@ export interface Service {
  * - `error`: Error events with type and message
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type MessageStreamEvent =
   | typeof Generated.BetaMessageStartEvent.Type
@@ -133,7 +133,7 @@ export type MessageStreamEvent =
  * Service identifier for the Anthropic client.
  *
  * @category service
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class AnthropicClient extends Context.Service<AnthropicClient, Service>()(
   "@effect/ai-anthropic/AnthropicClient"
@@ -147,7 +147,7 @@ export class AnthropicClient extends Context.Service<AnthropicClient, Service>()
  * Configuration options for creating an Anthropic client.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Options = {
   /**
@@ -205,7 +205,7 @@ const RedactedAnthropicHeaders = {
  * Requires an `HttpClient` in the context.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = Effect.fnUntraced(
   function*(options: Options): Effect.fn.Return<Service, never, HttpClient.HttpClient> {
@@ -353,7 +353,7 @@ export const make = Effect.fnUntraced(
  * Creates a layer for the Anthropic client with the given options.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = (options: Options): Layer.Layer<AnthropicClient, never, HttpClient.HttpClient> =>
   Layer.effect(AnthropicClient, make(options))
@@ -363,7 +363,7 @@ export const layer = (options: Options): Layer.Layer<AnthropicClient, never, Htt
  * via Effect's `Config` module.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerConfig = (options?: {
   /**

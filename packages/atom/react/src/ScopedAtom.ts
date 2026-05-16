@@ -16,7 +16,7 @@
  * - The provider creates the atom once for its lifetime; changing the provider
  *   `value` prop after mount does not recreate the atom.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 "use client"
 
@@ -25,7 +25,7 @@ import * as React from "react"
 
 /**
  * @category Type IDs
- * @since 1.0.0
+ * @since 4.0.0
  *
  * Type identifier for ScopedAtom.
  */
@@ -33,7 +33,7 @@ export type TypeId = "~@effect/atom-react/ScopedAtom"
 
 /**
  * @category Type IDs
- * @since 1.0.0
+ * @since 4.0.0
  *
  * Type identifier for ScopedAtom.
  */
@@ -41,7 +41,7 @@ export const TypeId: TypeId = "~@effect/atom-react/ScopedAtom"
 
 /**
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  *
  * Scoped Atom interface with a provider-backed instance.
  *
@@ -76,7 +76,7 @@ export interface ScopedAtom<A extends Atom.Atom<any>, Input = never> {
 
 /**
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  *
  * Creates a ScopedAtom from a factory function.
  *

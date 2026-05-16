@@ -25,7 +25,7 @@
  * and body read failures are reported as `HttpClientError` decode or transport
  * errors.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
@@ -63,17 +63,17 @@ import * as Undici from "./Undici.ts"
 export {
   /**
    * @category Fetch
-   * @since 1.0.0
+   * @since 4.0.0
    */
   Fetch,
   /**
    * @category Fetch
-   * @since 1.0.0
+   * @since 4.0.0
    */
   layer as layerFetch,
   /**
    * @category Fetch
-   * @since 1.0.0
+   * @since 4.0.0
    */
   RequestInit
 } from "effect/unstable/http/FetchHttpClient"
@@ -87,7 +87,7 @@ export {
  * client.
  *
  * @category Dispatcher
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Dispatcher extends Context.Service<Dispatcher, Undici.Dispatcher>()(
   "@effect/platform-node/NodeHttpClient/Dispatcher"
@@ -98,7 +98,7 @@ export class Dispatcher extends Context.Service<Dispatcher, Undici.Dispatcher>()
  * scope is finalized.
  *
  * @category Dispatcher
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeDispatcher: Effect.Effect<Undici.Dispatcher, never, Scope.Scope> = Effect.acquireRelease(
   Effect.sync(() => new Undici.Agent()),
@@ -109,7 +109,7 @@ export const makeDispatcher: Effect.Effect<Undici.Dispatcher, never, Scope.Scope
  * Provides the `Dispatcher` service using a scoped Undici `Agent`.
  *
  * @category Dispatcher
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerDispatcher: Layer.Layer<Dispatcher> = Layer.effect(Dispatcher)(makeDispatcher)
 
@@ -118,7 +118,7 @@ export const layerDispatcher: Layer.Layer<Dispatcher> = Layer.effect(Dispatcher)
  * without creating or owning a new agent.
  *
  * @category Dispatcher
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const dispatcherLayerGlobal: Layer.Layer<Dispatcher> = Layer.sync(Dispatcher)(() => Undici.getGlobalDispatcher())
 
@@ -127,7 +127,7 @@ export const dispatcherLayerGlobal: Layer.Layer<Dispatcher> = Layer.sync(Dispatc
  * sent by `makeUndici`.
  *
  * @category undici
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const UndiciOptions = Context.Reference<Partial<Undici.Dispatcher.RequestOptions>>(
   "@effect/platform-node/NodeHttpClient/UndiciOptions",
@@ -140,7 +140,7 @@ export const UndiciOptions = Context.Reference<Partial<Undici.Dispatcher.Request
  * transport and decode failures to `HttpClientError`.
  *
  * @category undici
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeUndici = Effect.gen(function*() {
   const dispatcher = yield* Dispatcher
@@ -357,7 +357,7 @@ class UndiciResponse extends Inspectable.Class implements HttpClientResponse, Pi
  * service.
  *
  * @category Undici
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerUndiciNoDispatcher: Layer.Layer<
   Client.HttpClient,
@@ -370,7 +370,7 @@ export const layerUndiciNoDispatcher: Layer.Layer<
  * Undici `Agent` dispatcher.
  *
  * @category Undici
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerUndici: Layer.Layer<Client.HttpClient> = Layer.provide(layerUndiciNoDispatcher, layerDispatcher)
 
@@ -383,7 +383,7 @@ export const layerUndici: Layer.Layer<Client.HttpClient> = Layer.provide(layerUn
  * node:http-backed HTTP client.
  *
  * @category HttpAgent
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class HttpAgent extends Context.Service<HttpAgent, {
   readonly http: Http.Agent
@@ -395,7 +395,7 @@ export class HttpAgent extends Context.Service<HttpAgent, {
  * destroys both agents when the enclosing scope is finalized.
  *
  * @category HttpAgent
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeAgent = (options?: Https.AgentOptions): Effect.Effect<HttpAgent["Service"], never, Scope.Scope> =>
   Effect.zipWith(
@@ -415,7 +415,7 @@ export const makeAgent = (options?: Https.AgentOptions): Effect.Effect<HttpAgent
  * agents configured with the supplied options.
  *
  * @category HttpAgent
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerAgentOptions: (options?: Https.AgentOptions | undefined) => Layer.Layer<
   HttpAgent
@@ -426,7 +426,7 @@ export const layerAgentOptions: (options?: Https.AgentOptions | undefined) => La
  * `https` agents.
  *
  * @category HttpAgent
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerAgent: Layer.Layer<HttpAgent> = layerAgentOptions()
 
@@ -436,7 +436,7 @@ export const layerAgent: Layer.Layer<HttpAgent> = layerAgentOptions()
  * as `HttpClientResponse` values.
  *
  * @category node:http
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeNodeHttp = Effect.gen(function*() {
   const agent = yield* HttpAgent
@@ -649,7 +649,7 @@ class NodeHttpResponse extends NodeHttpIncomingMessage<Error.HttpClientError> im
  * service.
  *
  * @category node:http
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerNodeHttpNoAgent: Layer.Layer<
   Client.HttpClient,
@@ -662,6 +662,6 @@ export const layerNodeHttpNoAgent: Layer.Layer<
  * `http` and `https` agents.
  *
  * @category node:http
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerNodeHttp: Layer.Layer<Client.HttpClient> = Layer.provide(layerNodeHttpNoAgent, layerAgent)

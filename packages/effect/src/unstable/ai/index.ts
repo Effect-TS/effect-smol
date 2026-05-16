@@ -84,7 +84,7 @@
  * console.log(error.message) // "OpenAI.completion: Rate limit exceeded. Retry after 1 minute"
  * ```
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as AiError from "./AiError.ts"
 
@@ -103,7 +103,7 @@ export * as AiError from "./AiError.ts"
  * - Stripping unsupported annotations and preserving only Anthropic-compatible
  *   formats and descriptions
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as AnthropicStructuredOutput from "./AnthropicStructuredOutput.ts"
 
@@ -327,7 +327,7 @@ export * as Model from "./Model.ts"
 /**
  * Provides codec transformations for OpenAI structured output.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as OpenAiStructuredOutput from "./OpenAiStructuredOutput.ts"
 
@@ -415,7 +415,7 @@ export * as Prompt from "./Prompt.ts"
  * })
  * ```
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as Response from "./Response.ts"
 
@@ -528,7 +528,7 @@ export * as Tokenizer from "./Tokenizer.ts"
  * })
  * ```
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as Tool from "./Tool.ts"
 
@@ -571,6 +571,6 @@ export * as Tool from "./Tool.ts"
  * })
  * ```
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as Toolkit from "./Toolkit.ts"

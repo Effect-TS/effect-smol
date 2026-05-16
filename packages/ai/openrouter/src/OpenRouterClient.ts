@@ -21,7 +21,7 @@
  * - OpenRouter API failures, HTTP client failures, and schema decoding failures
  *   are mapped into `AiError` values for the exported service methods.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type * as Config from "effect/Config"
 import * as Context from "effect/Context"
@@ -53,7 +53,7 @@ import { OpenRouterConfig } from "./OpenRouterConfig.ts"
  * including both synchronous and streaming message creation.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Service {
   readonly client: Generated.OpenRouterClient
@@ -85,7 +85,7 @@ export interface Service {
  * include an OpenRouter error object for a streamed response.
  *
  * @category Models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ChatStreamingResponseChunkData = typeof Generated.ChatStreamingResponseChunk.fields.data.Type
 
@@ -97,7 +97,7 @@ export type ChatStreamingResponseChunkData = typeof Generated.ChatStreamingRespo
  * Service identifier for the OpenRouter client.
  *
  * @category service
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class OpenRouterClient extends Context.Service<
   OpenRouterClient,
@@ -112,7 +112,7 @@ export class OpenRouterClient extends Context.Service<
  * Configuration options for creating an OpenRouter client.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Options = {
   readonly apiKey?: Redacted.Redacted<string> | undefined
@@ -145,7 +145,7 @@ export type Options = {
  * Creates an OpenRouter client service with the given options.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = Effect.fnUntraced(
   function*(options: Options): Effect.fn.Return<Service, never, HttpClient.HttpClient> {
@@ -242,7 +242,7 @@ export const make = Effect.fnUntraced(
  * Creates a layer for the OpenRouter client with the given options.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = (options: Options): Layer.Layer<OpenRouterClient, never, HttpClient.HttpClient> =>
   Layer.effect(OpenRouterClient, make(options))
@@ -252,7 +252,7 @@ export const layer = (options: Options): Layer.Layer<OpenRouterClient, never, Ht
  * configuration via Effect's `Config` module.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerConfig = (options?: {
   /**

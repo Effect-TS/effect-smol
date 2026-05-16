@@ -16,7 +16,7 @@
  * watching `change` or `onchange`, account for browser differences and clean up
  * listeners when the surrounding Effect scope ends.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Context from "effect/Context"
 import * as Data from "effect/Data"
@@ -31,7 +31,7 @@ const ErrorTypeId = "~@effect/platform-browser/Permissions/PermissionsError"
  * querying status of permissions.
  *
  * @category Models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Permissions {
   readonly [TypeId]: typeof TypeId
@@ -53,7 +53,7 @@ export interface Permissions {
  * Error reason for an `InvalidStateError` raised by the browser Permissions API.
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class PermissionsInvalidStateError extends Data.TaggedError("InvalidStateError")<{
   readonly cause: unknown
@@ -67,7 +67,7 @@ export class PermissionsInvalidStateError extends Data.TaggedError("InvalidState
  * Error reason for a `TypeError` raised by the browser Permissions API.
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class PermissionsTypeError extends Data.TaggedError("TypeError")<{
   readonly cause: unknown
@@ -81,7 +81,7 @@ export class PermissionsTypeError extends Data.TaggedError("TypeError")<{
  * Union of browser Permissions API error reasons represented by the service.
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type PermissionsErrorReason = PermissionsInvalidStateError | PermissionsTypeError
 
@@ -89,7 +89,7 @@ export type PermissionsErrorReason = PermissionsInvalidStateError | PermissionsT
  * Tagged error wrapping a browser Permissions API failure reason.
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class PermissionsError extends Data.TaggedError("PermissionsError")<{
   readonly reason: PermissionsErrorReason
@@ -112,7 +112,7 @@ export class PermissionsError extends Data.TaggedError("PermissionsError")<{
  * Service tag for the browser `Permissions` service.
  *
  * @category Service
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Permissions: Context.Service<Permissions, Permissions> = Context.Service<Permissions>(TypeId)
 
@@ -120,7 +120,7 @@ export const Permissions: Context.Service<Permissions, Permissions> = Context.Se
  * A layer that directly interfaces with the `navigator.permissions` api
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<Permissions> = Layer.succeed(
   Permissions,

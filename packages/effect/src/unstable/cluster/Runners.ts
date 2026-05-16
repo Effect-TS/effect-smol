@@ -63,7 +63,7 @@ import * as Snowflake from "./Snowflake.ts"
  * runners unavailable.
  *
  * @category context
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Runners extends Context.Service<Runners, {
   /**
@@ -151,7 +151,7 @@ export class Runners extends Context.Service<Runners, {
  * simulation, and polling for persisted replies.
  *
  * @category Constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make: (options: Omit<Runners["Service"], "sendLocal" | "notifyLocal">) => Effect.Effect<
   Runners["Service"],
@@ -423,7 +423,7 @@ export const make: (options: Omit<Runners["Service"], "sendLocal" | "notifyLocal
  * runner reports.
  *
  * @category No-op
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeNoop: Effect.Effect<
   Runners["Service"],
@@ -441,7 +441,7 @@ export const makeNoop: Effect.Effect<
  * generator.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerNoop: Layer.Layer<
   Runners,
@@ -464,7 +464,7 @@ const rpcErrors: Schema.Union<[
  * effect, stream, and envelope messages.
  *
  * @category Rpcs
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Rpcs extends RpcGroup.make(
   Rpc.make("Ping"),
@@ -505,7 +505,7 @@ export class Rpcs extends RpcGroup.make(
  * Client interface generated from the runner RPC group.
  *
  * @category Rpcs
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface RpcClient extends RpcClient_.FromGroup<typeof Rpcs, RpcClientError> {}
 
@@ -514,7 +514,7 @@ export interface RpcClient extends RpcClient_.FromGroup<typeof Rpcs, RpcClientEr
  * `Runners` span prefix with tracing disabled.
  *
  * @category Rpcs
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeRpcClient: Effect.Effect<
   RpcClient,
@@ -528,7 +528,7 @@ export const makeRpcClient: Effect.Effect<
  * the runner protocol.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeRpc: Effect.Effect<
   Runners["Service"],
@@ -664,7 +664,7 @@ export const makeRpc: Effect.Effect<
  * message storage, sharding configuration, and the default snowflake generator.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerRpc: Layer.Layer<
   Runners,
@@ -679,7 +679,7 @@ export const layerRpc: Layer.Layer<
  * given address.
  *
  * @category Client
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class RpcClientProtocol extends Context.Service<
   RpcClientProtocol,

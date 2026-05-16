@@ -17,7 +17,7 @@
  * a reachable socket does not by itself guarantee that runner membership,
  * shard ownership, or persisted message notification is current.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
@@ -36,7 +36,7 @@ import * as NodeSocketServer from "./NodeSocketServer.ts"
  * addresses and using the current RPC serialization service.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerClientProtocol: Layer.Layer<
   Runners.RpcClientProtocol,
@@ -65,7 +65,7 @@ export const layerClientProtocol: Layer.Layer<
  * `ShardingConfig.runnerListenAddress` or `runnerAddress`.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerSocketServer: Layer.Layer<
   SocketServer.SocketServer,

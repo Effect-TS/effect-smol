@@ -21,7 +21,7 @@
  * - Overriding `scheduleTask` changes when atom work is flushed, so it should
  *   return a cancellation function compatible with React unmounts
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 "use client"
 
@@ -32,7 +32,7 @@ import * as Scheduler from "scheduler"
 
 /**
  * @category context
- * @since 1.0.0
+ * @since 4.0.0
  */
 export function scheduleTask(f: () => void): () => void {
   const node = Scheduler.unstable_scheduleCallback(Scheduler.unstable_LowPriority, f)
@@ -41,7 +41,7 @@ export function scheduleTask(f: () => void): () => void {
 
 /**
  * @category context
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const RegistryContext = React.createContext<AtomRegistry.AtomRegistry>(AtomRegistry.make({
   scheduleTask,
@@ -50,7 +50,7 @@ export const RegistryContext = React.createContext<AtomRegistry.AtomRegistry>(At
 
 /**
  * @category context
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const RegistryProvider = (options: {
   readonly children?: React.ReactNode | undefined

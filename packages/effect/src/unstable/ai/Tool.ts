@@ -25,7 +25,7 @@
  * })
  * ```
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Context from "../../Context.ts"
 import type * as Effect from "../../Effect.ts"
@@ -52,7 +52,7 @@ import type * as Prompt from "./Prompt.ts"
  * to distinguish user-defined, provider-defined, and dynamic tools.
  *
  * @category type ids
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/ai/Tool"
 
@@ -60,7 +60,7 @@ export const TypeId: TypeId = "~effect/ai/Tool"
  * Type-level representation of the Effect AI tool runtime type identifier.
  *
  * @category type ids
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type TypeId = "~effect/ai/Tool"
 
@@ -71,7 +71,7 @@ export type TypeId = "~effect/ai/Tool"
  * an AI provider from user-defined and dynamic tools.
  *
  * @category type ids
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const ProviderDefinedTypeId: ProviderDefinedTypeId = "~effect/ai/Tool/ProviderDefined"
 
@@ -80,7 +80,7 @@ export const ProviderDefinedTypeId: ProviderDefinedTypeId = "~effect/ai/Tool/Pro
  * identifier.
  *
  * @category type ids
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ProviderDefinedTypeId = "~effect/ai/Tool/ProviderDefined"
 
@@ -91,7 +91,7 @@ export type ProviderDefinedTypeId = "~effect/ai/Tool/ProviderDefined"
  * provided at runtime from user-defined and provider-defined tools.
  *
  * @category type ids
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const DynamicTypeId: DynamicTypeId = "~effect/ai/Tool/Dynamic"
 
@@ -99,7 +99,7 @@ export const DynamicTypeId: DynamicTypeId = "~effect/ai/Tool/Dynamic"
  * Type-level representation of the dynamic tool runtime type identifier.
  *
  * @category type ids
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type DynamicTypeId = "~effect/ai/Tool/Dynamic"
 
@@ -118,7 +118,7 @@ export type DynamicTypeId = "~effect/ai/Tool/Dynamic"
  * will be captured and returned as part of the tool call result.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type FailureMode = "error" | "return"
 
@@ -127,7 +127,7 @@ export type FailureMode = "error" | "return"
  * determining if a tool requires user approval.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface NeedsApprovalContext {
   /**
@@ -144,7 +144,7 @@ export interface NeedsApprovalContext {
  * Function type for dynamically determining if a tool requires approval.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type NeedsApprovalFunction<Params extends Schema.Top> = (
   params: Params["Type"],
@@ -159,7 +159,7 @@ export type NeedsApprovalFunction<Params extends Schema.Top> = (
  * - `NeedsApprovalFunction`: Dynamic approval based on parameters/context
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type NeedsApproval<Params extends Schema.Top> =
   | boolean
@@ -194,7 +194,7 @@ export type NeedsApproval<Params extends Schema.Top> =
  * ```
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Tool<
   out Name extends string,
@@ -376,7 +376,7 @@ export interface Tool<
  * ```
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ProviderDefined<
   out Identifier extends `${string}.${string}`,
@@ -469,7 +469,7 @@ export interface ProviderDefined<
  * ```
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Dynamic<
   out Name extends string,
@@ -545,7 +545,7 @@ export interface Dynamic<
  * ```
  *
  * @category guards
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const isUserDefined = (u: unknown): u is Tool<string, any, any> =>
   Predicate.hasProperty(u, TypeId) && !isProviderDefined(u) && !isDynamic(u)
@@ -590,7 +590,7 @@ export const isUserDefined = (u: unknown): u is Tool<string, any, any> =>
  * ```
  *
  * @category guards
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const isProviderDefined = (
   u: unknown
@@ -619,7 +619,7 @@ export const isProviderDefined = (
  * ```
  *
  * @category guards
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const isDynamic = (u: unknown): u is Dynamic<string, any> => Predicate.hasProperty(u, DynamicTypeId)
 
@@ -631,7 +631,7 @@ export const isDynamic = (u: unknown): u is Dynamic<string, any> => Predicate.ha
  * A type which represents any `Tool`.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Any extends
   Tool<any, {
@@ -646,7 +646,7 @@ export interface Any extends
  * A type which represents any provider-defined `Tool`.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface AnyProviderDefined extends
   ProviderDefined<any, any, {
@@ -662,7 +662,7 @@ export interface AnyProviderDefined extends
  * A type which represents any dynamic `Tool`.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface AnyDynamic extends
   Dynamic<any, {
@@ -674,7 +674,7 @@ export interface AnyDynamic extends
 {}
 
 // /**
-//  * @since 1.0.0
+//  * @since 4.0.0
 //  * @category utility types
 //  */
 // export interface AnyStructSchema extends Schema.Top {
@@ -685,7 +685,7 @@ export interface AnyDynamic extends
  * A utility type to extract the `Name` type from an `Tool`.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Name<T> = T extends Tool<
   infer _Name,
@@ -698,7 +698,7 @@ export type Name<T> = T extends Tool<
  * A utility type to extract the type of the tool call parameters.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Parameters<T> = T extends Tool<
   infer _Name,
@@ -711,7 +711,7 @@ export type Parameters<T> = T extends Tool<
  * A utility type to extract the encoded type of the tool call parameters.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ParametersEncoded<T> = T extends Tool<
   infer _Name,
@@ -725,7 +725,7 @@ export type ParametersEncoded<T> = T extends Tool<
  * must be called with.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ParametersSchema<T> = T extends Tool<
   infer _Name,
@@ -738,7 +738,7 @@ export type ParametersSchema<T> = T extends Tool<
  * A utility type to extract the type of the tool call result when it succeeds.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Success<T> = T extends Tool<
   infer _Name,
@@ -752,7 +752,7 @@ export type Success<T> = T extends Tool<
  * it succeeds.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type SuccessEncoded<T> = T extends Tool<
   infer _Name,
@@ -766,7 +766,7 @@ export type SuccessEncoded<T> = T extends Tool<
  * the tool call succeeds.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type SuccessSchema<T> = T extends Tool<
   infer _Name,
@@ -779,7 +779,7 @@ export type SuccessSchema<T> = T extends Tool<
  * A utility type to extract the type of the tool call result when it fails.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Failure<T> = T extends Tool<
   infer _Name,
@@ -793,7 +793,7 @@ export type Failure<T> = T extends Tool<
  * it fails.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type FailureEncoded<T> = T extends Tool<
   infer _Name,
@@ -808,7 +808,7 @@ export type FailureEncoded<T> = T extends Tool<
  * and `AiError`.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type FailureResult<T> = T extends Tool<
   infer _Name,
@@ -822,7 +822,7 @@ export type FailureResult<T> = T extends Tool<
  * The encoded version of `FailureResult`.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type FailureResultEncoded<T> = T extends Tool<
   infer _Name,
@@ -839,7 +839,7 @@ export type FailureResultEncoded<T> = T extends Tool<
  * When `failureMode` is `"return"`, the result may also be an `AiError`.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Result<T> = T extends Tool<
   infer _Name,
@@ -856,7 +856,7 @@ export type Result<T> = T extends Tool<
  * When `failureMode` is `"return"`, the result may also be an encoded `AiError`.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ResultEncoded<T> = T extends Tool<
   infer _Name,
@@ -870,7 +870,7 @@ export type ResultEncoded<T> = T extends Tool<
  * A utility type to extract the requirements of a `Tool` call handler.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type HandlerServices<T> = T extends Tool<
   infer _Name,
@@ -890,7 +890,7 @@ export type HandlerServices<T> = T extends Tool<
  * a `Tool` call.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ResultEncodingServices<T> = T extends Tool<
   infer _Name,
@@ -904,7 +904,7 @@ export type ResultEncodingServices<T> = T extends Tool<
  * a `Tool` call.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ResultDecodingServices<T> = T extends Tool<
   infer _Name,
@@ -917,7 +917,7 @@ export type ResultDecodingServices<T> = T extends Tool<
  * Represents an `Tool` that has been implemented within the application.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Handler<Name extends string> {
   readonly _: unique symbol
@@ -930,7 +930,7 @@ export interface Handler<Name extends string> {
  * Represents the result of calling the handler for a particular `Tool`.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface HandlerResult<Tool extends Any> {
   /**
@@ -964,7 +964,7 @@ export interface HandlerResult<Tool extends Any> {
  * - `Final`: The last result, which is the authoritative output
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type HandlerOutput<Success> =
   | { readonly _tag: "Preliminary"; readonly value: Success }
@@ -975,7 +975,7 @@ export type HandlerOutput<Success> =
  * a tool call's handler.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type HandlerError<T> = T extends Tool<
   infer _Name,
@@ -990,7 +990,7 @@ export type HandlerError<T> = T extends Tool<
  * record.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type HandlersFor<Tools extends Record<string, Any>> = {
   [Name in keyof Tools]: RequiresHandler<Tools[Name]> extends true ? Handler<Tools[Name]["name"]>
@@ -1002,7 +1002,7 @@ export type HandlersFor<Tools extends Record<string, Any>> = {
  * handler to be implemented.
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type RequiresHandler<Tool extends Any> = Tool extends ProviderDefined<
   infer _Name,
@@ -1175,7 +1175,7 @@ const dynamicProto = <
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = <
   const Name extends string,
@@ -1287,7 +1287,7 @@ export const make = <
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const dynamic: {
   <
@@ -1378,7 +1378,7 @@ export const dynamic: {
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const providerDefined = <
   const Identifier extends `${string}.${string}`,
@@ -1484,7 +1484,7 @@ export const providerDefined = <
  * `"OpenAiWebSearch"`).
  *
  * @category utilities
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class NameMapper<Tools extends ReadonlyArray<Any>> {
   readonly #customToProvider: Map<string, string> = new Map()
@@ -1556,7 +1556,7 @@ export class NameMapper<Tools extends ReadonlyArray<Any>> {
  * ```
  *
  * @category utilities
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const getDescription = <Tool extends Any>(tool: Tool): string | undefined => {
   if (tool.description !== undefined) {
@@ -1605,7 +1605,7 @@ export const getDescription = <Tool extends Any>(tool: Tool): string | undefined
  * ```
  *
  * @category utilities
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const getJsonSchema = <Tool extends Any>(tool: Tool, options?: {
   readonly transformer?: CodecTransformer
@@ -1625,7 +1625,7 @@ export const getJsonSchema = <Tool extends Any>(tool: Tool, options?: {
  * `$defs`.
  *
  * @category utilities
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S, options?: {
   readonly transformer?: CodecTransformer
@@ -1657,7 +1657,7 @@ export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S, options
  * ```
  *
  * @category annotations
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Title extends Context.Service<Title, string>()("effect/ai/Tool/Title") {}
 
@@ -1674,7 +1674,7 @@ export class Title extends Context.Service<Title, string>()("effect/ai/Tool/Titl
  * ```
  *
  * @category annotations
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Meta extends Context.Service<Meta, Record<string, unknown>>()("effect/ai/Tool/Meta") {}
 
@@ -1694,7 +1694,7 @@ export class Meta extends Context.Service<Meta, Record<string, unknown>>()("effe
  * ```
  *
  * @category annotations
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Readonly = Context.Reference<boolean>("effect/ai/Tool/Readonly", {
   defaultValue: constFalse
@@ -1716,7 +1716,7 @@ export const Readonly = Context.Reference<boolean>("effect/ai/Tool/Readonly", {
  * ```
  *
  * @category annotations
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Destructive = Context.Reference<boolean>("effect/ai/Tool/Destructive", {
   defaultValue: constTrue
@@ -1739,7 +1739,7 @@ export const Destructive = Context.Reference<boolean>("effect/ai/Tool/Destructiv
  * ```
  *
  * @category annotations
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Idempotent = Context.Reference<boolean>("effect/ai/Tool/Idempotent", {
   defaultValue: constFalse
@@ -1762,7 +1762,7 @@ export const Idempotent = Context.Reference<boolean>("effect/ai/Tool/Idempotent"
  * ```
  *
  * @category annotations
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const OpenWorld = Context.Reference<boolean>("effect/ai/Tool/OpenWorld", {
   defaultValue: constTrue
@@ -1789,7 +1789,7 @@ export const OpenWorld = Context.Reference<boolean>("effect/ai/Tool/OpenWorld", 
  * ```
  *
  * @category annotations
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Strict = Context.Reference<boolean | undefined>("effect/ai/Tool/Strict", {
   defaultValue: () => undefined
@@ -1799,7 +1799,7 @@ export const Strict = Context.Reference<boolean | undefined>("effect/ai/Tool/Str
  * Returns the strict mode setting for a tool, or `undefined` if not set.
  *
  * @category utilities
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const getStrictMode = <T extends Any>(tool: T): boolean | undefined => Context.get(tool.annotations, Strict)
 
@@ -1884,7 +1884,7 @@ function filter(obj: any) {
  * found in the parsed JSON or if the provided JSON text is not parseable.
  *
  * @category utilities
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const unsafeSecureJsonParse = (text: string): unknown => {
   // Performance optimization, see https://github.com/fastify/secure-json-parse/pull/90

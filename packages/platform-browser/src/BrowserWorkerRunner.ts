@@ -17,7 +17,7 @@
  * `messageerror` events, and the lifetime of each `MessagePort` must be
  * considered when crossing worker boundaries.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Cause from "effect/Cause"
 import * as Deferred from "effect/Deferred"
@@ -43,7 +43,7 @@ if (typeof self !== "undefined" && "onconnect" in self) {
  * Creates a `WorkerRunnerPlatform` service that runs worker handlers over a `MessagePort` or `Window`.
  *
  * @category Constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = (self: MessagePort | Window): WorkerRunner.WorkerRunnerPlatform["Service"] => ({
   start: Effect.fnUntraced(function*<O = unknown, I = unknown>() {
@@ -174,7 +174,7 @@ export const make = (self: MessagePort | Window): WorkerRunner.WorkerRunnerPlatf
  * Layer that provides a browser `WorkerRunnerPlatform` using the global `self` worker context.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.sync(WorkerRunner.WorkerRunnerPlatform)(() =>
   make(self)
@@ -184,7 +184,7 @@ export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.sync(
  * Layer that provides a `WorkerRunnerPlatform` using the supplied `MessagePort` or `Window`.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerMessagePort = (port: MessagePort | Window): Layer.Layer<WorkerRunner.WorkerRunnerPlatform> =>
   Layer.succeed(WorkerRunner.WorkerRunnerPlatform)(make(port))

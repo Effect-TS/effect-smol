@@ -19,7 +19,7 @@
  * ClickHouse-specific clauses such as engines, `SETTINGS`, `FORMAT`, or
  * cluster directives explicitly.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Clickhouse from "@clickhouse/client"
 import * as NodeStream from "@effect/platform-node/NodeStream"
@@ -97,7 +97,7 @@ const classifyError = (
  * Unique runtime identifier used to tag `ClickhouseClient` values.
  *
  * @category type ids
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-clickhouse/ClickhouseClient"
 
@@ -105,7 +105,7 @@ export const TypeId: TypeId = "~@effect/sql-clickhouse/ClickhouseClient"
  * Type-level literal for the `ClickhouseClient` runtime identifier.
  *
  * @category type ids
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type TypeId = "~@effect/sql-clickhouse/ClickhouseClient"
 
@@ -115,7 +115,7 @@ export type TypeId = "~@effect/sql-clickhouse/ClickhouseClient"
  * per-effect query ID and ClickHouse settings.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ClickhouseClient extends Client.SqlClient {
   readonly [TypeId]: TypeId
@@ -146,7 +146,7 @@ export interface ClickhouseClient extends Client.SqlClient {
  * Context service tag for accessing the active `ClickhouseClient`.
  *
  * @category tags
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const ClickhouseClient = Context.Service<ClickhouseClient>("@effect/sql-clickhouse/ClickhouseClient")
 
@@ -156,7 +156,7 @@ export const ClickhouseClient = Context.Service<ClickhouseClient>("@effect/sql-c
  * name transforms.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ClickhouseClientConfig extends Clickhouse.ClickHouseClientConfigOptions {
   readonly spanAttributes?: Record<string, unknown> | undefined
@@ -170,7 +170,7 @@ export interface ClickhouseClientConfig extends Clickhouse.ClickHouseClientConfi
  * to `SqlError`, and aborts plus kills in-flight queries when interrupted.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = (
   options: ClickhouseClientConfig
@@ -403,7 +403,7 @@ export const make = (
  * or command execution for statements; defaults to `query`.
  *
  * @category References
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const ClientMethod = Context.Reference<"query" | "command" | "insert">(
   "@effect/sql-clickhouse/ClickhouseClient/ClientMethod",
@@ -417,7 +417,7 @@ export const ClientMethod = Context.Reference<"query" | "command" | "insert">(
  * inserts; a random UUID is generated when no query ID is set.
  *
  * @category References
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const QueryId = Context.Reference<string | undefined>(
   "@effect/sql-clickhouse/ClickhouseClient/QueryId",
@@ -429,7 +429,7 @@ export const QueryId = Context.Reference<string | undefined>(
  * commands, and inserts.
  *
  * @category References
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const ClickhouseSettings: Context.Reference<
   NonNullable<Clickhouse.BaseQueryParams["clickhouse_settings"]>
@@ -442,7 +442,7 @@ export const ClickhouseSettings: Context.Reference<
  * `Config`-backed ClickHouse client configuration.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerConfig: (
   config: Config.Wrap<ClickhouseClientConfig>
@@ -465,7 +465,7 @@ export const layerConfig: (
  * ClickHouse client configuration.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = (
   config: ClickhouseClientConfig
@@ -508,7 +508,7 @@ const typeFromUnknown = (value: unknown): string => {
  * name transform.
  *
  * @category compiler
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeCompiler = (transform?: (_: string) => string) =>
   Statement.makeCompiler<ClickhouseCustom>({
@@ -538,13 +538,13 @@ const escape = Statement.defaultEscape("\"")
  * `ClickhouseClient.param`.
  *
  * @category custom types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ClickhouseCustom = ClickhouseParam
 
 /**
  * @category custom types
- * @since 1.0.0
+ * @since 4.0.0
  */
 interface ClickhouseParam extends Statement.Custom<"ClickhouseParam", string, unknown> {}
 
