@@ -242,13 +242,10 @@ export const prop: Vitest.Methods["prop"] = internal.prop
  * @since 4.0.0
  */
 
-/** @ignored */
-const methods = { effect, live, flakyTest, layer, prop } as const
-
 /**
  * @since 4.0.0
  */
-export const it: Vitest.Methods = Object.assign(V.it, methods)
+export const it: Vitest.Methods = internal.makeMethods(V.it)
 
 /**
  * @since 4.0.0

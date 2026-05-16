@@ -177,11 +177,32 @@ const MemoMapTypeId = "~effect/Layer/MemoMap"
  */
 export interface MemoMap {
   readonly [MemoMapTypeId]: typeof MemoMapTypeId
+  readonly get: <RIn, E, ROut>(
+    layer: Layer<ROut, E, RIn>,
+    scope: Scope.Scope
+  ) => Effect<Context.Context<ROut>, E, RIn> | undefined
   readonly getOrElseMemoize: <RIn, E, ROut>(
     layer: Layer<ROut, E, RIn>,
     scope: Scope.Scope,
     build: (memoMap: MemoMap, scope: Scope.Scope) => Effect<Context.Context<ROut>, E, RIn>
   ) => Effect<Context.Context<ROut>, E, RIn>
+}
+
+type MemoMapEntry = {
+  observers: number
+  effect: Effect<Context.Context<any>, any>
+  readonly finalizer: (exit: Exit.Exit<unknown, unknown>) => Effect<void>
+}
+
+const memoMapReuse = <RIn, E, ROut>(
+  entry: MemoMapEntry,
+  scope: Scope.Scope
+): Effect<Context.Context<ROut>, E, RIn> => {
+  entry.observers++
+  return internalEffect.andThen(
+    internalEffect.scopeAddFinalizerExit(scope, (exit) => entry.finalizer(exit)),
+    entry.effect
+  )
 }
 
 /**
@@ -311,53 +332,71 @@ export const fromBuildMemo = <ROut, E, RIn>(
   return self
 }
 
+const memoMapBuild = <RIn, E, ROut>(
+  memoMap: MemoMapImpl,
+  layer: Layer<ROut, E, RIn>,
+  scope: Scope.Scope,
+  build: (memoMap: MemoMap, scope: Scope.Scope) => Effect<Context.Context<ROut>, E, RIn>
+): Effect<Context.Context<ROut>, E, RIn> => {
+  const layerScope = Scope.makeUnsafe()
+  const deferred = Deferred.makeUnsafe<Context.Context<ROut>, E>()
+  const entry: MemoMapEntry = {
+    observers: 1,
+    effect: Deferred.await(deferred),
+    finalizer: (exit: Exit.Exit<unknown, unknown>) =>
+      internalEffect.suspend(() => {
+        entry.observers--
+        if (entry.observers === 0) {
+          memoMap.map.delete(layer)
+          return Scope.close(layerScope, exit)
+        }
+        return internalEffect.void
+      })
+  }
+  memoMap.map.set(layer, entry)
+  return internalEffect.scopeAddFinalizerExit(scope, entry.finalizer).pipe(
+    internalEffect.flatMap(() => build(memoMap, layerScope)),
+    internalEffect.onExit((exit) => {
+      entry.effect = exit
+      return Deferred.done(deferred, exit)
+    })
+  )
+}
+
 class MemoMapImpl implements MemoMap {
   get [MemoMapTypeId](): typeof MemoMapTypeId {
     return MemoMapTypeId
   }
 
-  readonly map = new Map<Layer<any, any, any>, {
-    observers: number
-    effect: Effect<Context.Context<any>, any>
-    readonly finalizer: (exit: Exit.Exit<unknown, unknown>) => Effect<void>
-  }>()
+  readonly parent: MemoMap | undefined
+
+  constructor(parent?: MemoMap) {
+    this.parent = parent
+  }
+
+  readonly map = new Map<Layer<any, any, any>, MemoMapEntry>()
+
+  get<RIn, E, ROut>(
+    layer: Layer<ROut, E, RIn>,
+    scope: Scope.Scope
+  ): Effect<Context.Context<ROut>, E, RIn> | undefined {
+    const local = this.map.get(layer)
+    if (local) {
+      return memoMapReuse(local, scope)
+    }
+    return this.parent?.get(layer, scope)
+  }
 
   getOrElseMemoize<RIn, E, ROut>(
     layer: Layer<ROut, E, RIn>,
     scope: Scope.Scope,
     build: (memoMap: MemoMap, scope: Scope.Scope) => Effect<Context.Context<ROut>, E, RIn>
   ): Effect<Context.Context<ROut>, E, RIn> {
-    if (this.map.has(layer)) {
-      const entry = this.map.get(layer)!
-      entry.observers++
-      return internalEffect.andThen(
-        internalEffect.scopeAddFinalizerExit(scope, (exit) => entry.finalizer(exit)),
-        entry.effect
-      )
+    const existing = this.get(layer, scope)
+    if (existing) {
+      return existing
     }
-    const layerScope = Scope.makeUnsafe()
-    const deferred = Deferred.makeUnsafe<Context.Context<ROut>, E>()
-    const entry = {
-      observers: 1,
-      effect: Deferred.await(deferred),
-      finalizer: (exit: Exit.Exit<unknown, unknown>) =>
-        internalEffect.suspend(() => {
-          entry.observers--
-          if (entry.observers === 0) {
-            this.map.delete(layer)
-            return Scope.close(layerScope, exit)
-          }
-          return internalEffect.void
-        })
-    }
-    this.map.set(layer, entry)
-    return internalEffect.scopeAddFinalizerExit(scope, entry.finalizer).pipe(
-      internalEffect.flatMap(() => build(this, layerScope)),
-      internalEffect.onExit((exit) => {
-        entry.effect = exit
-        return Deferred.done(deferred, exit)
-      })
-    )
+    return memoMapBuild(this, layer, scope, build)
   }
 }
 
@@ -393,6 +432,15 @@ class MemoMapImpl implements MemoMap {
 export const makeMemoMapUnsafe = (): MemoMap => new MemoMapImpl()
 
 /**
+ * Constructs a child `MemoMap` that can reuse layers already memoized in the
+ * parent while isolating any new layer allocations to the child map.
+ *
+ * @since 4.0.0
+ * @category memo map
+ */
+export const forkMemoMapUnsafe = (parent: MemoMap): MemoMap => new MemoMapImpl(parent)
+
+/**
  * Constructs a `MemoMap` that can be used to build additional layers.
  *
  * **Example** (Creating a memo map in an effect)
@@ -422,6 +470,15 @@ export const makeMemoMapUnsafe = (): MemoMap => new MemoMapImpl()
  * @since 2.0.0
  */
 export const makeMemoMap: Effect<MemoMap> = internalEffect.sync(makeMemoMapUnsafe)
+
+/**
+ * Constructs a child `MemoMap` that can reuse layers already memoized in the
+ * parent while isolating any new layer allocations to the child map.
+ *
+ * @since 4.0.0
+ * @category memo map
+ */
+export const forkMemoMap = (parent: MemoMap): Effect<MemoMap> => internalEffect.sync(() => forkMemoMapUnsafe(parent))
 
 /**
  * A service reference for the current `MemoMap` used in layer construction.
