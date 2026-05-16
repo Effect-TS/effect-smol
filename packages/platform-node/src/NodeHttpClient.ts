@@ -1,4 +1,30 @@
 /**
+ * Node.js implementations of the Effect `HttpClient`.
+ *
+ * This module provides the Node-specific layers and constructors for sending
+ * Effect HTTP client requests. It re-exports the fetch-based client for
+ * programs that want to use `globalThis.fetch`, provides an Undici-backed
+ * client for applications that need Undici dispatcher control, and provides a
+ * lower-level `node:http` / `node:https` client for integrations that need
+ * native Node agent configuration.
+ *
+ * Use these clients in server-side applications, CLIs, tests, and integrations
+ * where requests should participate in Effect resource management, interruption,
+ * streaming, and typed transport / decode errors. The Undici path sends each
+ * request through the current `Dispatcher`; `layerUndici` owns a scoped
+ * `Agent`, while `dispatcherLayerGlobal` uses Undici's process-global dispatcher
+ * without destroying it. The `node:http` path uses separate scoped HTTP and
+ * HTTPS agents, making it the right choice when native agent options such as
+ * TLS, proxy, keep-alive, or socket behavior need to be configured directly.
+ *
+ * The backends are not completely interchangeable. Fetch, Undici, and
+ * `node:http` expose different agent and dispatcher hooks, body implementations,
+ * abort behavior, upgrade support, and response body readers. This module
+ * converts Effect request bodies to the selected runtime representation:
+ * streams remain streaming, `FormData` may contribute generated content headers,
+ * and body read failures are reported as `HttpClientError` decode or transport
+ * errors.
+ *
  * @since 1.0.0
  */
 import * as Context from "effect/Context"

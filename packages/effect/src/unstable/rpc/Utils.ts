@@ -1,4 +1,27 @@
 /**
+ * Internal helpers for constructing RPC protocol services whose receive loop is
+ * installed separately from the operations that write to it.
+ *
+ * This module is used by the client and server `Protocol.make` constructors to
+ * let transports expose a stable service immediately while buffering messages
+ * until the protocol's `run` method has installed the active receiver. Buffered
+ * writes keep the `Context` that was current at the time of the write, so
+ * replaying early messages preserves fiber-local services such as tracing or
+ * request metadata.
+ *
+ * The general `withRun` helper is for single receive-loop services, such as
+ * server transports, while `withRunClient` specializes the same pattern for
+ * client transports by tracking active client ids and keeping a separate buffer
+ * per client. They are most useful when implementing custom RPC transports or
+ * test protocols that need to send before the consumer fiber has started.
+ *
+ * These helpers intentionally work on `Omit<Service, "run">` and re-add `run`
+ * so generated `Context.Service` static `make` members can preserve their
+ * exact service shape. When using them from generated or type-helper-heavy
+ * protocol code, keep the `run` signature aligned with the target service:
+ * the server helper has one shared writer, but the client helper requires a
+ * `clientId` because responses and buffered messages are routed per client.
+ *
  * @since 4.0.0
  */
 import type * as Context from "../../Context.ts"

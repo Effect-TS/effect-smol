@@ -1,4 +1,16 @@
 /**
+ * Provides the low-level client used by the unstable devtools integration to
+ * exchange telemetry with an Effect devtools server over the current `Socket`.
+ *
+ * The client speaks the devtools NDJSON protocol, publishes span starts, span
+ * events, span completions, and metric snapshots, and exposes layers for
+ * installing a tracer that mirrors the current tracer while forwarding data to
+ * devtools. Most applications should use the higher-level devtools layers
+ * instead of constructing this service directly. When using this module
+ * directly, provide a live `Socket`, keep the layer scoped so the background
+ * ping and stream fibers are finalized, and prefer `layerTracer` when the goal
+ * is to observe an application's Effect traces.
+ *
  * @since 4.0.0
  */
 import * as Cause from "../../Cause.ts"

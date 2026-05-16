@@ -1,4 +1,16 @@
 /**
+ * Error types used by the HTTP client to describe failures that occur while
+ * preparing requests, sending them, validating response status codes, and
+ * decoding response bodies.
+ *
+ * The module exposes the `HttpClientError` wrapper together with the specific
+ * reason classes it can carry, so applications can either handle all HTTP
+ * client failures uniformly or branch on the exact `_tag` for retries, logging,
+ * metrics, and user-facing messages. A common gotcha is that only response
+ * errors carry an `HttpClientResponse`: transport, encoding, and invalid URL
+ * failures happen before a response is available, while status-code, decode, and
+ * empty-body failures preserve the response that triggered them.
+ *
  * @since 4.0.0
  */
 import * as Data from "../../Data.ts"

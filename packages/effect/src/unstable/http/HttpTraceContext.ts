@@ -1,4 +1,22 @@
 /**
+ * Utilities for HTTP trace-context propagation.
+ *
+ * This module converts Effect `Tracer.Span` values to outbound tracing headers
+ * and decodes inbound propagation headers into `Tracer.ExternalSpan` parents.
+ * It is used by traced HTTP clients to continue the current span across an
+ * outbound request, and by server middleware to parent request spans from
+ * upstream services. The helpers are also useful for adapters or middleware
+ * that need to bridge Effect tracing with W3C Trace Context or B3-compatible
+ * systems.
+ *
+ * Outbound propagation writes both W3C `traceparent` and compact B3 `b3`
+ * headers. Inbound decoding prefers W3C `traceparent`, then compact B3, then
+ * multi-header B3 (`x-b3-*`). Header names in `Headers.Headers` are expected to
+ * be lowercase; use the safe header constructors when accepting raw platform
+ * headers. Invalid or unsupported header shapes simply decode to `Option.none`,
+ * so callers should treat missing trace context as "start a new trace" rather
+ * than as an error.
+ *
  * @since 4.0.0
  */
 import * as Option from "../../Option.ts"

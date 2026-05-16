@@ -1,4 +1,20 @@
 /**
+ * Server-side RPC handlers for accepting remote event-log writes and streaming
+ * changes back to authenticated clients.
+ *
+ * This module is the protocol glue used by concrete event-log servers: it
+ * performs the hello / authenticate challenge flow, attaches the authenticated
+ * `EventLog.Identity` to subsequent RPC requests, reassembles chunked writes,
+ * and chunks large change payloads before they are sent to clients. It is useful
+ * when exposing an event-log replica over HTTP-backed RPC, for example to sync
+ * browser, edge, or service replicas with a central journal.
+ *
+ * The authentication state is tied to the RPC client session annotations, so the
+ * transport must preserve a stable client session between `Hello`,
+ * `Authenticate`, writes, and change streams. Deployments should run the endpoint
+ * over TLS, avoid exposing unauthenticated write or changes routes, and persist
+ * session-auth key bindings with the same trust boundary as the event-log data.
+ *
  * @since 4.0.0
  */
 import type { NonEmptyReadonlyArray } from "../../Array.ts"

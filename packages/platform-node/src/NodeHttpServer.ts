@@ -1,4 +1,33 @@
 /**
+ * Node.js implementation of the Effect `HttpServer`.
+ *
+ * This module adapts a supplied Node `http.Server` into Effect's
+ * platform-independent HTTP server service. It starts the server with Node
+ * `listen` options, converts `request` events into `HttpServerRequest` values,
+ * writes `HttpServerResponse` bodies through Node's `ServerResponse`, and
+ * handles `upgrade` events by exposing the upgraded socket through
+ * `HttpServerRequest.upgrade`.
+ *
+ * Common use cases include serving an Effect HTTP application with {@link layer}
+ * or {@link layerConfig}, embedding request or upgrade handlers into an
+ * existing Node server with {@link makeHandler} and {@link makeUpgradeHandler},
+ * and using {@link layerTest} for integration tests that need an ephemeral
+ * listening port and a client pointed at it.
+ *
+ * Listen options are passed directly to Node, so host, port, backlog, and Unix
+ * socket path behavior follow `node:http`. The server begins listening when the
+ * `HttpServer` is acquired, and handlers are installed when `serve` is run.
+ * Request fibers are interrupted with `ClientAbort` when the client disconnects
+ * before a response finishes. WebSocket support only applies to Node `upgrade`
+ * requests, and ordinary HTTP requests fail if their application attempts to use
+ * `HttpServerRequest.upgrade`.
+ *
+ * Scope ownership is important: the server is closed when the acquiring scope
+ * finalizes, while each `serve` call installs its own request and upgrade
+ * listeners and removes them on finalization. Unless preemptive shutdown is
+ * disabled, finalizing a serve scope also starts a graceful server close, using
+ * the configured timeout or the default timeout.
+ *
  * @since 1.0.0
  */
 import * as Cause from "effect/Cause"

@@ -1,4 +1,23 @@
 /**
+ * The `AtomRegistry` module provides the runtime cache used by reactivity
+ * atoms. A registry owns the node graph for a group of atoms, stores their
+ * current values, records parent/child dependencies while atoms are read, and
+ * coordinates writes, refreshes, stream conversions, and node disposal.
+ *
+ * Create a registry directly with {@link make} or provide it with {@link layer}
+ * or {@link layerOptions} when a UI root, request, test, or other Effect scope
+ * needs its own atom state. The same atom can have different cached values in
+ * different registries, while serializable atoms are keyed by their
+ * serialization key so preloaded values can hydrate a node before its first
+ * read.
+ *
+ * Subscriptions and {@link mount} keep nodes alive and must be released when
+ * the consumer is done; scoped helpers install finalizers for this. Unobserved
+ * non-`keepAlive` atoms may be removed immediately or after their `idleTTL` (or
+ * the registry `defaultIdleTTL`), which means later reads can rebuild derived
+ * state. Disposing a registry clears its cache and makes future atom access an
+ * error.
+ *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"

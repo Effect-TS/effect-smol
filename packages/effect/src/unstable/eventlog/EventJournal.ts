@@ -1,4 +1,20 @@
 /**
+ * Low-level storage and replay primitives for the unstable event-log system.
+ *
+ * An `EventJournal` records committed event entries, exposes them for replay,
+ * and tracks the replication state needed to exchange entries with remote
+ * journals. It is the persistence boundary used by higher-level event-log
+ * schemas and handlers for workflows such as rebuilding projections, syncing
+ * offline clients, importing remote changes, and coordinating per-store writes.
+ *
+ * Journal entries are ordered by their UUID v7 entry ids, so persistence and
+ * replay code should account for clock-derived ordering when detecting
+ * conflicts. Payloads are stored as encoded bytes and must remain compatible
+ * with the event schemas that will decode them later. Remote writes may include
+ * duplicate entries, compaction can rewrite the set of imported entries before
+ * effects run, and replay handlers should be prepared for entries that arrive
+ * after local changes for the same event and primary key.
+ *
  * @since 4.0.0
  */
 import * as Uuid from "uuid"

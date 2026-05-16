@@ -1,4 +1,26 @@
 /**
+ * The `Reactivity` module provides an in-memory service for connecting writes to
+ * dependent reads through explicit invalidation keys. It is useful for keeping
+ * query results, UI subscriptions, read models, or other derived views fresh
+ * after mutations without coupling the writer to every consumer that should
+ * rerun.
+ *
+ * Reads are modeled with {@link query} and {@link stream}: the effect runs once
+ * immediately and then runs again whenever one of its keys is invalidated.
+ * Writes can use {@link mutation} to invalidate keys only after the wrapped
+ * effect succeeds, or call {@link invalidate} directly. Keys may be supplied as
+ * a flat collection or as a record of namespaces with ids, which lets callers
+ * invalidate both broad groups and individual records.
+ *
+ * The service tracks handlers by hashed keys and does not cache values by
+ * itself; consumers receive fresh queue or stream emissions and decide how to
+ * store them. Registrations are tied to the surrounding scope, failures from a
+ * query fail the queue or stream, and invalidations that arrive while a query is
+ * already running schedule a single follow-up run. Use stable key values, be
+ * aware that the default layer is process-local, and wrap related work in
+ * {@link Reactivity.withBatch} when many invalidations should be coalesced until
+ * the batch exits.
+ *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"

@@ -1,4 +1,22 @@
 /**
+ * Defines typed table descriptors for the browser IndexedDB integration.
+ *
+ * An `IndexedDbTable` records the object store name, row schema, primary key
+ * path, indexes, auto-increment behavior, and transaction durability used by
+ * database versions, migrations, and typed queries. These descriptors are
+ * useful for local caches, offline-first application state, background queues,
+ * drafts, and other browser-persisted data that should be validated through
+ * `Schema`.
+ *
+ * Key paths and index paths must reference encoded schema fields whose values
+ * are valid IndexedDB keys, and compound paths are represented as readonly
+ * arrays. Tables without a key path use an out-of-line `key` that is added to
+ * reads and required for writes, so the row schema itself cannot define a
+ * `key` field. Auto-increment tables require a numeric key path; when that key
+ * is omitted on write, the module uses a derived schema without the generated
+ * key. Declaring indexes here types query builder index selection, but the
+ * indexes still need to be created during database migrations.
+ *
  * @since 4.0.0
  */
 import { type Pipeable, pipeArguments } from "effect/Pipeable"

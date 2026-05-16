@@ -1,4 +1,22 @@
 /**
+ * Browser runtime support for Effect worker runners.
+ *
+ * This module is intended for code that is already executing in a browser
+ * worker context, or for tests and adapters that supply a `MessagePort` or
+ * `Window` endpoint directly. It provides the `WorkerRunnerPlatform` used by
+ * `WorkerRunner` and `RpcServer.layerProtocolWorkerRunner` to receive parent
+ * or client requests, run Effect handlers, and send responses through the
+ * browser `postMessage` channel.
+ *
+ * Use it with `BrowserWorker` when a browser application needs to move RPC
+ * handlers, CPU-bound computations, or browser-only services into a dedicated
+ * worker or shared worker. Dedicated workers communicate through the current
+ * `self` endpoint; shared workers accept multiple `onconnect` ports and cache
+ * ports that connect before the runner layer starts. Messages still use the
+ * browser structured-clone algorithm, so payload schemas, transfer lists,
+ * `messageerror` events, and the lifetime of each `MessagePort` must be
+ * considered when crossing worker boundaries.
+ *
  * @since 1.0.0
  */
 import * as Cause from "effect/Cause"

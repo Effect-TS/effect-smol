@@ -1,4 +1,20 @@
 /**
+ * Browser geolocation support for Effect programs.
+ *
+ * This module provides a `Geolocation` service and browser-backed layer for
+ * reading device location through `navigator.geolocation`. Use
+ * `getCurrentPosition` when an application needs one location fix, such as a
+ * nearby-search, check-in, or delivery estimate, and `watchPosition` when it
+ * needs a stream of updates for navigation, tracking, or location-aware UI.
+ *
+ * The implementation is browser-only and relies on the browser permission and
+ * policy model for geolocation. Calls may prompt the user, fail when permission
+ * is denied, time out, or report that position data is unavailable because of
+ * device, browser, privacy, origin, or secure-context restrictions. Watched
+ * positions are scoped so the underlying browser watch is cleared when the
+ * stream is finalized, and slow consumers should account for the sliding
+ * buffer used by `watchPosition`.
+ *
  * @since 1.0.0
  */
 import * as Cause from "effect/Cause"

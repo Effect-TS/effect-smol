@@ -1,4 +1,23 @@
 /**
+ * Composable HTTP client service for executing `HttpClientRequest` values and
+ * receiving `HttpClientResponse` values inside Effect programs.
+ *
+ * This module provides the `HttpClient` service tag, method-specific accessors,
+ * constructors for low-level runtimes, and middleware-style combinators for
+ * common client concerns such as request rewriting, response filtering, retries,
+ * redirects, cookies, rate limiting, and tracing. It is intended for code that
+ * needs dependency-injected outbound HTTP calls, reusable clients customized for
+ * an API, or cross-cutting behavior layered around a concrete platform client.
+ *
+ * Responses are successful Effects even for non-2xx status codes unless a
+ * filter such as `filterStatus` or `filterStatusOk` is applied. Request
+ * middleware is ordered by whether it prepends to or appends after the existing
+ * preprocessing pipeline, so use `mapRequestInput` for transformations that
+ * should run before previously installed request middleware and `mapRequest`
+ * for transformations that should run after it. Non-scoped responses are tied to
+ * an abort controller for interruption cleanup; use `withScope` when the request
+ * lifetime should instead be controlled by a surrounding `Scope`.
+ *
  * @since 4.0.0
  */
 import type { NonEmptyReadonlyArray } from "../../Array.ts"

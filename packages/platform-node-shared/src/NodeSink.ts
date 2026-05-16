@@ -1,4 +1,21 @@
 /**
+ * Sink adapters for writing Effect stream chunks into Node writable streams.
+ *
+ * This module is used at the boundary where Effect `Stream`s or `Channel`s need
+ * to push data into Node's writable side: file streams, HTTP request or
+ * response bodies, process stdio, sockets, and transform inputs such as
+ * compression or encryption streams. It exposes both a `Sink` constructor for
+ * ordinary stream pipelines and lower-level `Channel` and pull helpers used by
+ * other Node stream adapters.
+ *
+ * The implementation follows Node writable semantics. Chunks are written in
+ * order; when `write` returns `false`, pulling pauses until `drain` so upstream
+ * producers do not overrun the writable buffer. Writable `error` events are
+ * mapped through `onError`, and the writable is ended and awaited via `finish`
+ * when upstream completes unless `endOnDone` is `false`. Use `endOnDone: false`
+ * for externally owned or long-lived writables, and make sure `onError` keeps
+ * Node's untyped errors meaningful for the calling Effect workflow.
+ *
  * @since 1.0.0
  */
 import type { NonEmptyReadonlyArray } from "effect/Array"

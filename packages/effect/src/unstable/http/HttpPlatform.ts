@@ -1,4 +1,25 @@
 /**
+ * Platform-specific support for serving files as HTTP server responses.
+ *
+ * `HttpPlatform` is the boundary between the portable HTTP response model and
+ * the runtime that knows how to stream bytes from the host platform. Server
+ * code uses this service when it needs to return local files, static assets,
+ * downloads, byte ranges, or Web `File`-like values without constructing the
+ * response body by hand.
+ *
+ * The helpers in this module enrich those responses with file metadata such as
+ * `etag`, `last-modified`, and content length where available. Path-based
+ * responses require `FileSystem` and can fail with `PlatformError` while
+ * inspecting or streaming the file; `File`-like responses use the Web
+ * `ReadableStream` and `lastModified` metadata exposed by the value.
+ *
+ * Provide `layer` when the default streaming implementation is suitable, or
+ * use `make` to plug in a runtime-specific response constructor. The default
+ * layer supplies weak ETag generation itself, but the surrounding runtime still
+ * needs to provide the `FileSystem` service and run the resulting
+ * `HttpServerResponse` on an HTTP server adapter that understands Effect
+ * streams.
+ *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"

@@ -1,4 +1,33 @@
 /**
+ * The `NodeClusterSocket` module provides the Node.js socket transport for
+ * Effect Cluster runners. It wires `SocketRunner` to Node TCP sockets, supplies
+ * RPC client and server protocol layers, and builds a complete sharding layer
+ * with serialization, runner health, runner storage, and message storage.
+ *
+ * **Common tasks**
+ *
+ * - Run a Node process as a cluster runner over raw TCP sockets with
+ *   {@link layer}
+ * - Connect a client-only process to an existing socket cluster without
+ *   starting a runner server
+ * - Use SQL-backed storage for durable multi-process clusters, `local` storage
+ *   for short-lived development, or `byo` storage when the deployment owns the
+ *   persistence boundary
+ * - Check runner health with socket pings or Kubernetes pod readiness through
+ *   {@link layerK8sHttpClient}
+ *
+ * **Gotchas**
+ *
+ * - `runnerAddress` is the host and port advertised to other runners; set
+ *   `runnerListenAddress` when the local bind address differs from the
+ *   externally reachable address
+ * - The socket transport is point-to-point RPC, not cluster gossip: runner
+ *   membership, shard ownership, and persisted delivery are coordinated through
+ *   `RunnerStorage`, `MessageStorage`, and `RunnerHealth`
+ * - `clientOnly` does not start a socket server or receive shard assignments
+ * - Ping health checks use the same socket protocol, so unreachable ports,
+ *   firewalls, or serialization mismatches can make a runner appear unhealthy
+ *
  * @since 1.0.0
  */
 import { layerClientProtocol, layerSocketServer } from "@effect/platform-node-shared/NodeClusterSocket"

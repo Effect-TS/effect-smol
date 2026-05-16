@@ -1,4 +1,21 @@
 /**
+ * Exports Effect log records to an OpenTelemetry Protocol (OTLP) logs endpoint.
+ *
+ * Use this module to send Effect log messages, annotations, fiber identifiers,
+ * causes, and active span identifiers to an OpenTelemetry Collector or OTLP
+ * compatible observability backend. `make` is useful for custom logger wiring,
+ * while `layer` installs the logger for an application and can merge it with
+ * any existing loggers.
+ *
+ * Records are buffered by the shared OTLP exporter. `exportInterval`,
+ * `maxBatchSize`, and `shutdownTimeout` control periodic exports, early batch
+ * flushes, and how long scope finalization waits for the final flush. Resource
+ * options are attached to every export and override OpenTelemetry resource
+ * environment variables, so ensure a `service.name` is available through the
+ * options, `OTEL_RESOURCE_ATTRIBUTES`, or `OTEL_SERVICE_NAME`; use `headers`
+ * for collector authentication and `excludeLogSpans` when log span duration
+ * attributes would be too noisy.
+ *
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"

@@ -1,4 +1,24 @@
 /**
+ * The `AsyncResult` module models the state of an asynchronous value inside the
+ * reactivity APIs. It represents whether a computation has not produced a
+ * result yet, has succeeded, or has failed, while keeping `waiting` as a
+ * separate flag for first loads, refreshes, retries, and other in-flight work.
+ *
+ * This is useful for atoms and UI integrations that need to render async
+ * queries, background refreshes, optimistic transitions, stream pulls, or RPC
+ * and HTTP calls without losing track of the current value. `Success` contains
+ * the latest value and timestamp, and `Failure` contains a `Cause` plus an
+ * optional `previousSuccess` so callers can keep showing stale data after a
+ * refresh fails.
+ *
+ * Treat `waiting` as an overlay rather than a fourth state: an `Initial` result
+ * can be waiting with no value, and a `Success` or `Failure` can also be waiting
+ * while a newer computation is running. Accessors such as `value` and
+ * `getOrElse` may return the previous success stored in a failure, so inspect
+ * `cause` or `error` when the difference between a current success and stale
+ * data matters. Matchers such as `matchWithWaiting` prioritize the waiting flag,
+ * while `match` and `matchWithError` expose the underlying state.
+ *
  * @since 4.0.0
  */
 import * as Cause from "../../Cause.ts"

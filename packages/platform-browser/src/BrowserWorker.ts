@@ -1,4 +1,24 @@
 /**
+ * Parent-side browser support for Effect workers.
+ *
+ * This module provides the `WorkerPlatform` used by browser applications that
+ * spawn or connect to `Worker`, `SharedWorker`, and `MessagePort` endpoints
+ * through Effect's worker protocol. Pair it with `BrowserWorkerRunner` in the
+ * worker entrypoint when building worker-backed RPC clients, moving CPU-bound
+ * work off the main thread, isolating browser-only services, or adapting an
+ * existing `MessageChannel` in tests and custom transports.
+ *
+ * Dedicated workers communicate through the worker object itself, while shared
+ * workers communicate through `worker.port`; raw `MessagePort` values are also
+ * accepted and are started when supported. Messages are posted with the browser
+ * structured-clone algorithm, so payloads must be cloneable by the target
+ * runtime. Transfer lists can avoid copying values such as `ArrayBuffer` or
+ * `MessagePort`, but transferring moves ownership away from the sender and
+ * invalid or mismatched transferables can fail the send. Scope finalization
+ * sends the worker close signal over the port; the application that created a
+ * dedicated `Worker` remains responsible for any broader lifecycle such as
+ * terminating it.
+ *
  * @since 1.0.0
  */
 import * as Deferred from "effect/Deferred"

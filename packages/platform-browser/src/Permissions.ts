@@ -1,4 +1,21 @@
 /**
+ * Browser Permissions API support for Effect programs.
+ *
+ * This module provides a `Permissions` service and browser-backed layer for
+ * querying `navigator.permissions` from Effect code. Use it to check whether a
+ * browser capability is currently `granted`, `prompt`, or `denied` before
+ * showing UI for flows such as geolocation, notifications, clipboard access,
+ * camera, microphone, or persistent storage.
+ *
+ * Permission queries do not request access by themselves and should not replace
+ * the feature API that actually performs the operation. Browser support for
+ * permission names and states is uneven, queries may reject for unsupported or
+ * invalid descriptors, and some permissions are only meaningful in secure
+ * contexts or after user activation. Returned `PermissionStatus` objects can
+ * change when the user updates browser settings or responds to prompts; when
+ * watching `change` or `onchange`, account for browser differences and clean up
+ * listeners when the surrounding Effect scope ends.
+ *
  * @since 1.0.0
  */
 import * as Context from "effect/Context"

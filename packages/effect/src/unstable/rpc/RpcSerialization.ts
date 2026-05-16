@@ -1,4 +1,28 @@
 /**
+ * Serialization support for the unstable RPC protocol.
+ *
+ * This module provides the `RpcSerialization` service used by RPC clients and
+ * servers to encode and decode transport-level `RpcMessage` envelopes. Use the
+ * built-in JSON, newline-delimited JSON, JSON-RPC 2.0, and MessagePack
+ * implementations when wiring HTTP, sockets, workers, or custom transports, or
+ * provide a custom service when a transport needs a different content type,
+ * frame format, or binary codec.
+ *
+ * Serialization runs after RPC schemas have encoded payloads, successes,
+ * failures, and stream chunks into transport-safe values, and before schemas
+ * decode those values on the other side. Choose a format that can represent the
+ * schema-encoded data: JSON is easy to inspect but needs schema encodings for
+ * arbitrary binary values, while MessagePack is more compact and carries binary
+ * data more naturally.
+ *
+ * Transport framing is significant. `json` and `jsonRpc` expect a complete
+ * payload for each decode call and are intended for transports such as HTTP
+ * that already delimit message bodies. `ndjson`, `ndJsonRpc`, and `msgPack`
+ * maintain parser state for chunked streams, so they can decode multiple
+ * messages or incomplete fragments from sockets and other streaming transports.
+ * Match the serialization layer to the transport boundary, otherwise messages
+ * may be buffered, split, or parsed at the wrong frame.
+ *
  * @since 4.0.0
  */
 import * as Msgpackr from "msgpackr"

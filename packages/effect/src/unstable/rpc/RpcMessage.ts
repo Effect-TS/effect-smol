@@ -1,4 +1,21 @@
 /**
+ * Defines the protocol message envelopes shared by unstable RPC clients,
+ * servers, and transports.
+ *
+ * This module is used when implementing or testing RPC transports, codecs, and
+ * protocol handlers. It separates decoded messages, which carry typed RPC tags,
+ * payloads, headers, exits, and branded request identifiers, from encoded
+ * messages, which are suitable for transport boundaries where request ids and
+ * payloads have already been serialized.
+ *
+ * Request identifiers are the correlation point for requests, response chunks,
+ * terminal exits, acknowledgements, and interrupts, so transports must preserve
+ * them across the encoded string form and the decoded branded form. Streaming
+ * responses can send one or more `Chunk` batches before a terminal `Exit`; use
+ * `Ack` messages only for transports that require backpressure, treat `Eof` as
+ * the end of client input, and reserve `Ping`/`Pong` for connection liveness
+ * rather than RPC completion.
+ *
  * @since 4.0.0
  */
 import type { NonEmptyReadonlyArray } from "../../Array.ts"

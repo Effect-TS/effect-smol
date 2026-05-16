@@ -1,4 +1,24 @@
 /**
+ * Utilities for representing, transforming, and serializing URL query
+ * parameters.
+ *
+ * This module provides an immutable `UrlParams` collection backed by ordered
+ * string key-value pairs. It is used for HTTP client request queries,
+ * URL-encoded form bodies, and server-side decoding workflows where query
+ * parameters need to be built from records, iterables, or native
+ * `URLSearchParams`, then inspected, appended, replaced, removed, converted to a
+ * URL, or decoded with schemas.
+ *
+ * Duplicate keys are preserved by the core representation and by append-style
+ * operations; use `getAll` when all values matter, and note that `set` and
+ * `setAll` replace existing values for matching keys. Serialization through
+ * `toString` and `makeUrl` delegates to the platform `URLSearchParams` / `URL`
+ * implementations, so provide decoded strings rather than pre-encoded query
+ * fragments. Record-based and schema-based conversions intentionally collapse
+ * repeated keys into string arrays and do not preserve the full global pair
+ * ordering; `schemaJsonField` reads the first matching value for the selected
+ * field.
+ *
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"

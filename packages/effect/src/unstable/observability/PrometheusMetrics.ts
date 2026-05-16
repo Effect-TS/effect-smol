@@ -1,8 +1,24 @@
 /**
  * Prometheus metrics exporter for Effect's Metric system.
  *
- * This module provides functionality to export Effect metrics in the Prometheus
- * exposition format, making them scrapeable by Prometheus servers.
+ * This module snapshots the metrics registered in the current Effect context
+ * and renders them in the Prometheus text exposition format. It is intended for
+ * services that already record `Metric` counters, gauges, histograms,
+ * frequencies, or summaries and need a pull-based `/metrics` endpoint, or for
+ * integrations that want the formatted scrape body for a custom HTTP server.
+ *
+ * Use `format` when you need the current runtime's registry rendered as a
+ * string, `formatUnsafe` when you already have the `Context`, and `layerHttp`
+ * when an `HttpRouter` should serve `GET /metrics` directly. Formatting happens
+ * at scrape time; the module does not push metrics, schedule exports, or start
+ * an HTTP server on its own. Make sure the route is installed in the same
+ * application context that records the metrics you want to expose.
+ *
+ * Metric and label names are sanitized for Prometheus, optional prefixes and
+ * name mappers are applied before output, and metric attributes become labels.
+ * Keep attributes low-cardinality, avoid relying on invalid characters being
+ * preserved exactly, and configure Prometheus to scrape the route served by
+ * `layerHttp` with the expected `text/plain; version=0.0.4` response.
  *
  * **Example** (Exporting Prometheus metrics)
  *

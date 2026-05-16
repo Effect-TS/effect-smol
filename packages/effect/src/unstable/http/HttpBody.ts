@@ -1,4 +1,18 @@
 /**
+ * Utilities and data types for describing outgoing HTTP body content.
+ *
+ * This module provides a small set of `HttpBody` variants used by HTTP client
+ * requests and server responses: empty bodies, raw runtime values, in-memory
+ * bytes, `FormData`, and byte streams. Constructors cover the common cases of
+ * text, JSON, URL-encoded forms, multipart forms, and files while carrying the
+ * content type and, when known, the content length used by platform adapters.
+ *
+ * Streaming bodies are represented as streams of `Uint8Array` chunks and may
+ * omit `contentLength` when the size is not known ahead of time. Multipart
+ * `FormData` intentionally leaves `contentType` unset so the runtime can add
+ * the required boundary; setting that header manually can produce invalid
+ * requests.
+ *
  * @since 4.0.0
  */
 import * as Data from "../../Data.ts"

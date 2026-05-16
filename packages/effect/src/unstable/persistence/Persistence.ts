@@ -1,4 +1,27 @@
 /**
+ * Durable storage for encoded `Persistable` request results.
+ *
+ * The `Persistence` service creates scoped stores that read and write
+ * schema-encoded `Exit` values keyed by each request's `PrimaryKey`. It is the
+ * lower-level persistence layer used by `PersistedCache` and similar request
+ * workflows to reuse expensive or idempotent lookup results across fibers,
+ * process restarts, and workers that share a backing store.
+ *
+ * Each store is selected by a `storeId`, while each entry id comes from the
+ * request's primary key. Keep both stable and collision-free: changing the
+ * `storeId`, the primary-key format, or the success/error schemas is a
+ * persistence migration, because old entries may stop being found or fail to
+ * decode. Values are encoded with the request's success and error schemas using
+ * the JSON codec, so any required schema services must be available at store
+ * read and write time, and the backing value must stay JSON-compatible.
+ *
+ * TTLs are computed from the stored `Exit` and request key. Infinite TTLs are
+ * stored without an expiration, finite TTLs become backing-store expirations,
+ * and zero or negative TTLs skip the write entirely. Backing layers provide
+ * process-local memory, `KeyValueStore`, Redis, and SQL implementations; store
+ * ids are used as prefixes, table names, or SQL partitions and should be
+ * chosen with the target backing store in mind.
+ *
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"

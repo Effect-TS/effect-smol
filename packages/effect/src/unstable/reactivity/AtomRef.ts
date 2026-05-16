@@ -1,4 +1,21 @@
 /**
+ * Mutable reactive references for local, in-memory state that should be read,
+ * updated, and observed without going through an `AtomRegistry`.
+ *
+ * `AtomRef` is useful for small state models, form-like state, and collections
+ * of item references where callers need direct mutation methods together with
+ * subscriptions. A ref exposes its current `value`, notifies subscribers after
+ * `set` or `update`, can derive read-only views with `map`, and can focus on
+ * nested object or array properties with `prop`.
+ *
+ * Notifications are equality-aware: setting a value that is `Equal.equals` to
+ * the current value is ignored, and mapped or property subscriptions only emit
+ * when their derived value changes. Mutate state through `set`, `update`, or a
+ * property ref so subscribers are notified; direct mutation of the stored value
+ * does not notify listeners. Collection subscribers are notified when items are
+ * inserted, removed, or when an item ref changes, while `toArray` returns the
+ * current raw item values.
+ *
  * @since 4.0.0
  */
 import * as Equal from "../../Equal.ts"

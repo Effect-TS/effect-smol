@@ -1,4 +1,23 @@
 /**
+ * The `HttpApiError` module defines the built-in error types used by Effect's
+ * unstable HTTP API layer for common failure responses.
+ *
+ * Each exported status error is a `Schema.ErrorClass` with an `httpApiStatus`
+ * annotation, so it can be declared as an endpoint or middleware error schema
+ * and then used by reflection, OpenAPI generation, clients, and server response
+ * encoding. The classes also implement `HttpServerRespondable`, which means
+ * using one directly as a server response produces an empty response with the
+ * matching HTTP status.
+ *
+ * Use the `*NoContent` variants when the wire response intentionally has no
+ * body but clients should still decode that status into a typed error value.
+ * For custom error schemas, make sure to add the intended
+ * `HttpApiSchema.status` annotation; error schemas without one are treated as
+ * `500 Internal Server Error` by the HTTP API machinery. Schema failures raised
+ * while decoding params, headers, query, body, or payload values are represented
+ * separately by `HttpApiSchemaError`, which responds as `400 Bad Request` unless
+ * transformed by middleware.
+ *
  * @since 4.0.0
  */
 import * as Data from "../../Data.ts"

@@ -1,4 +1,20 @@
 /**
+ * Typed IndexedDB schema version definitions.
+ *
+ * This module represents one logical IndexedDB database version as a non-empty set of `IndexedDbTable` definitions.
+ * Versions are consumed by `IndexedDbDatabase.make` and `.add` to type query builders and migration transactions, so
+ * applications can describe the tables available after initialization or after each schema upgrade.
+ *
+ * Use an `IndexedDbVersion` when defining the initial stores for a browser database, adding or removing object stores,
+ * changing indexes, or moving data between differently shaped table schemas. The version value is a typed description of
+ * the target schema; creating and deleting object stores or indexes still happens explicitly inside the corresponding
+ * `IndexedDbDatabase` migration callback.
+ *
+ * IndexedDB versioning is ordered by the migration chain rather than by a number stored here. Each `.add` step becomes
+ * the next browser database version, and only migrations after the browser's current version are run. Include every table
+ * that should be queryable in each target version, avoid duplicate table names, and remember that key-path or
+ * auto-increment changes usually require creating a new object store and copying data during the upgrade transaction.
+ *
  * @since 4.0.0
  */
 import type { NonEmptyReadonlyArray } from "effect/Array"

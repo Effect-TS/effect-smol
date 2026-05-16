@@ -1,29 +1,40 @@
 /**
- * HttpApiSchema provides helpers to annotate Effect Schema values with HTTP API metadata
- * (status codes and payload/response encodings) used by the HttpApi builder, client,
- * and OpenAPI generation.
+ * Helpers for attaching HTTP API metadata to Effect Schema values.
  *
- * Mental model:
- * - A "Schema" is the base validation/encoding description from `Schema`.
- * - An "Encoding" tells HttpApi how to serialize/parse a payload or response body.
- * - A "Status" is metadata that chooses the HTTP response status code.
- * - "Empty" schemas represent responses with no body (204/201/202 or custom).
- * - "NoContent" schemas can still decode into a value via {@link asNoContent}.
- * - Multipart is a payload-only encoding for file-like form data.
+ * This module is the schema-side bridge used by the unstable HttpApi endpoint
+ * builder, generated clients, and OpenAPI support. It does not define routes or
+ * perform IO. Instead, helpers such as {@link status}, {@link asJson},
+ * {@link asMultipart}, and {@link asNoContent} annotate schemas so downstream
+ * HTTP tooling can choose response status codes, content types, body codecs, and
+ * no-body handling while the original schema remains usable for validation and
+ * transformation.
  *
- * Common tasks:
- * - Set a response status on a schema -> {@link status}
- * - Declare an empty response -> {@link Empty}, {@link NoContent}, {@link Created}, {@link Accepted}
- * - Decode an empty response into a value -> {@link asNoContent}
- * - Force a specific encoding -> {@link asJson}, {@link asFormUrlEncoded}, {@link asText}, {@link asUint8Array}
- * - Mark multipart payloads -> {@link asMultipart}, {@link asMultipartStream}
+ * Common use cases:
+ * - Mark success or error schemas with explicit HTTP statuses using
+ *   {@link status}, {@link NoContent}, {@link Created}, {@link Accepted}, or
+ *   {@link Empty}.
+ * - Override the default JSON encoding for request payloads or responses with
+ *   {@link asFormUrlEncoded}, {@link asText}, {@link asUint8Array}, or
+ *   {@link asJson}.
+ * - Describe buffered or streaming multipart request payloads with
+ *   {@link asMultipart} and {@link asMultipartStream}.
+ * - Represent an HTTP response with no body while still decoding a client-side
+ *   value through {@link asNoContent}.
  *
- * Gotchas:
- * - If you don't set an encoding, HttpApi assumes JSON by default.
- * - {@link asFormUrlEncoded} expects the schema's encoded type to be a record of strings.
- * - {@link asText} expects the encoded type to be `string`, and {@link asUint8Array} expects `Uint8Array`.
- * - Multipart encodings are intended for request payloads; response multipart is not supported.
- * - These helpers annotate schemas; they don't perform validation or IO by themselves.
+ * Status and encoding details:
+ * - {@link status} only stores an annotation. The same annotation is interpreted
+ *   by the surrounding HttpApi context; unannotated success responses default to
+ *   `200`, and unannotated error responses default to `500`.
+ * - Missing encodings default to JSON for bodies and responses. Payload schemas
+ *   used with methods that have no request body fall back to form-url-encoded
+ *   metadata for parameter encoding.
+ * - {@link asFormUrlEncoded} expects the schema's encoded side to be a record
+ *   of strings. {@link asText} expects `string`, and {@link asUint8Array}
+ *   expects `Uint8Array`.
+ * - Multipart encodings are payload-only; response multipart is rejected when
+ *   response encoding is resolved.
+ * - These helpers attach annotations consumed by HttpApi internals. They do not
+ *   validate, encode, decode, or send data by themselves.
  *
  * @since 4.0.0
  */

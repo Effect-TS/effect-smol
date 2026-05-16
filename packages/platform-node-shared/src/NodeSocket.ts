@@ -1,4 +1,18 @@
 /**
+ * Shared Node socket constructors for adapting `node:net` connections and
+ * other Node `Duplex` streams to Effect's `Socket.Socket` interface.
+ *
+ * Use this module when building TCP clients, Unix domain socket clients, or
+ * higher-level protocols that already expose a Node `Duplex`. Connections are
+ * scoped, so finalizers close or destroy the underlying stream, open timeouts
+ * are reported as socket open errors, and Node read, write, and close events
+ * are translated into `SocketError` values.
+ *
+ * Node sockets have a few operational details worth keeping in mind: Unix
+ * socket paths are supplied through `NetConnectOpts.path`, writes complete only
+ * after Node accepts or flushes the chunk, and abnormal close events are
+ * surfaced as close errors while normal remote ends complete the socket run.
+ *
  * @since 1.0.0
  */
 import type { Array } from "effect"

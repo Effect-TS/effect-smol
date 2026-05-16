@@ -1,4 +1,28 @@
 /**
+ * The `HttpApiSecurity` module defines the security scheme values used by
+ * declarative HTTP APIs.
+ *
+ * Use these constructors when an API group or endpoint needs authentication
+ * middleware for bearer tokens, API keys, or HTTP Basic credentials. The values
+ * are intentionally small declarations: `HttpApiMiddleware.Service` attaches
+ * them to middleware, `HttpApiBuilder` decodes the matching credential shape from
+ * each request, and OpenAPI generation emits the corresponding
+ * `components.securitySchemes` and operation security requirements.
+ *
+ * Common uses include modeling `Authorization: Bearer ...` tokens, Basic
+ * username/password credentials, and API keys passed through headers, query
+ * parameters, or cookies. Bearer tokens and API-key values are exposed to
+ * middleware as `Redacted` values; Basic credentials expose the username with a
+ * redacted password. Cookie API keys can also be written to responses with
+ * `HttpApiBuilder.securitySetCookie`.
+ *
+ * A security scheme does not authenticate by itself: middleware must reject empty
+ * or invalid credentials. Bearer and Basic schemes read the `Authorization`
+ * header, while API-key headers use HTTP header name normalization and API-key
+ * query or cookie names are matched exactly. OpenAPI annotations such as
+ * descriptions and bearer formats affect generated documentation only; they do
+ * not change runtime decoding.
+ *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"

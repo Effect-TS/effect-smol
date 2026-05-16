@@ -1,4 +1,16 @@
 /**
+ * Utilities for adapting Node `http.IncomingMessage` values to the Effect HTTP
+ * incoming message interface used by the platform Node server and client
+ * implementations.
+ *
+ * This module is useful when code needs to keep access to Node's request or
+ * response object while also exposing Effect's typed headers, remote address,
+ * body decoders, and stream interface. The body helpers consume Node's readable
+ * stream, cache decoded text and array-buffer results, and honor the
+ * `HttpIncomingMessage.MaxBodySize` fiber ref. Prefer a single body access
+ * strategy per message: raw `stream` access is not cached, and Node request
+ * bodies cannot be replayed once the underlying stream has been consumed.
+ *
  * @since 1.0.0
  */
 import * as Effect from "effect/Effect"

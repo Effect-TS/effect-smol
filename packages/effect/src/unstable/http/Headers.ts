@@ -1,4 +1,20 @@
 /**
+ * Utilities for representing and transforming HTTP headers.
+ *
+ * This module provides an immutable `Headers` collection for request and
+ * response metadata, along with constructors and combinators for common header
+ * workflows such as reading values, checking for presence, setting or merging
+ * header sets, removing names, and redacting sensitive headers before
+ * inspection.
+ *
+ * Header names are normalized to lowercase by the safe constructors and
+ * lookups, matching HTTP's case-insensitive header-name semantics. Each stored
+ * header name maps to a single string value: array values in record input are
+ * joined with `", "`, iterable input keeps the last value for duplicate names,
+ * and later values override earlier ones when setting or merging. Be careful
+ * with headers that require distinct field lines, such as `set-cookie`, because
+ * this representation does not preserve multiple values separately.
+ *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"

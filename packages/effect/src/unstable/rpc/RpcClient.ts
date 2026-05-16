@@ -1,4 +1,30 @@
 /**
+ * Client-side support for calling RPCs defined in an `RpcGroup`.
+ *
+ * This module derives typed client APIs from RPC definitions, turns method
+ * calls into request messages, and routes server responses back to the waiting
+ * `Effect` or `Stream`. Use it to construct schema-aware clients over the
+ * provided HTTP, socket, and worker transports, or use `makeNoSerialization`
+ * when an already-decoded message channel should participate in the same
+ * request, interruption, acknowledgement, and streaming lifecycle.
+ *
+ * The `make` constructor requires a `Protocol`, which owns the encoded
+ * transport. HTTP sends one request per call and does not support client
+ * acknowledgements, while socket and worker protocols keep receive loops alive,
+ * support streaming acknowledgements, and can fail in-flight requests with
+ * protocol errors. Streaming RPCs return `Stream`s by default, or scoped
+ * queues when `asQueue` is enabled, so `streamBufferSize` controls the client
+ * side of streaming back pressure.
+ *
+ * Payloads, exits, and stream chunks are encoded and decoded through the RPC
+ * schemas with the active `RpcSerialization`; any schema services required by
+ * those codecs remain part of the generated client method environments.
+ * Client middleware declared on an RPC is looked up from
+ * `Rpc.MiddlewareClient`, can rewrite or short-circuit outgoing requests, and
+ * contributes its client error type to the call signature. Outgoing request
+ * headers combine `CurrentHeaders` with per-call headers before the request is
+ * passed through middleware and then to the transport.
+ *
  * @since 4.0.0
  */
 import type { NonEmptyReadonlyArray } from "../../Array.ts"

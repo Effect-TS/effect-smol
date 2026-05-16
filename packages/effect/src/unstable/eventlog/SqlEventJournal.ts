@@ -1,4 +1,22 @@
 /**
+ * SQL-backed persistence for the unstable event-log journal.
+ *
+ * This module provides an `EventJournal` implementation that stores local
+ * entries and remote replication metadata in a `SqlClient` database. It is
+ * useful when event-log data needs to survive process restarts, be replayed to
+ * rebuild projections, or be synchronized with other journals such as remote
+ * servers, peer replicas, or offline clients that later reconnect.
+ *
+ * The adapter creates the entry and remotes tables with dialect-specific UUID,
+ * binary payload, and timestamp column types, but it only performs the minimal
+ * `CREATE TABLE IF NOT EXISTS` setup needed by the journal. Applications that
+ * customize table names, add indexes, or evolve storage should manage those
+ * migrations explicitly and keep encoded payloads compatible with the schemas
+ * that will decode historical entries. Remote sequence rows are persisted
+ * separately from entries, duplicate imports are ignored by primary key, and
+ * conflict checks rely on event name, primary key, and the timestamp derived
+ * from the entry id.
+ *
  * @since 4.0.0
  */
 import * as Uuid from "uuid"

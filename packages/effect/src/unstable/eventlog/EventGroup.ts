@@ -1,4 +1,19 @@
 /**
+ * Defines typed groups of event-log event definitions.
+ *
+ * Event groups describe the events that belong to one event-log domain, such as
+ * commands for an aggregate, application workflow, or synced local store. Start
+ * from `empty`, add event tags with their payload, success, and error schemas,
+ * then use the group with `EventLog.group` to provide the handlers that execute
+ * and commit those events.
+ *
+ * Each event tag becomes the key in the group's events record, so tags should be
+ * unique within a group. The `primaryKey` function is part of the event
+ * definition and should derive the stable partition key from the decoded
+ * payload. Omitted schemas default to `Schema.Void` for payload and success, and
+ * `Schema.Never` for errors; use `addError` when every event in the group shares
+ * an additional error schema.
+ *
  * @since 4.0.0
  */
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"

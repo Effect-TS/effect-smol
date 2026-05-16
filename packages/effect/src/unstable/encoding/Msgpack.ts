@@ -1,4 +1,20 @@
 /**
+ * Utilities for encoding Effect channel payloads and schema values as
+ * MessagePack bytes.
+ *
+ * This module is useful when a protocol or storage layer expects compact binary
+ * frames instead of JSON text, such as RPC transports, socket streams, caches,
+ * or database columns that carry typed Effect data. Use the raw channel helpers
+ * when both sides already agree on the MessagePack value shape, and use the
+ * schema-aware helpers when values should be validated, transformed, or decoded
+ * into domain types at the boundary.
+ *
+ * MessagePack preserves binary data and common JavaScript collection shapes, but
+ * it is still a data format rather than an Effect schema. Schema encoders run
+ * before packing and schema decoders run after unpacking, so unsupported runtime
+ * values, lossy schema encodings, or mismatched schemas surface as either
+ * `MsgPackError` or `SchemaError` depending on where the failure occurs.
+ *
  * @since 4.0.0
  */
 import { Packr, Unpackr } from "msgpackr"

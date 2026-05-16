@@ -1,4 +1,21 @@
 /**
+ * Utilities for moving serializable reactivity state between atom registries.
+ *
+ * `dehydrate` snapshots atoms marked with `Atom.serializable` from an
+ * `AtomRegistry`, preserving their serialization keys, encoded values, and
+ * dehydration time so another registry can preload the same state with `hydrate`.
+ * This is useful for server rendering, browser bootstrapping, route transitions,
+ * and other handoffs where a registry should start from values that were already
+ * computed elsewhere.
+ *
+ * Only serializable atoms are included, and the receiving registry needs atoms
+ * with matching stable keys and compatible schemas. Values crossing a
+ * client/server boundary should be the encoded JSON-safe values produced by the
+ * atom codecs. The optional `resultPromise` used for `AsyncResult.Initial`
+ * handoffs is a live JavaScript promise, so it cannot be sent through JSON and
+ * should be omitted or replaced by an application-level streaming protocol when
+ * dehydrated state leaves the current runtime.
+ *
  * @since 4.0.0
  */
 import * as AsyncResult from "./AsyncResult.ts"

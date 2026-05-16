@@ -1,4 +1,26 @@
 /**
+ * Browser IndexedDB primitives and key schemas for Effect applications.
+ *
+ * This module is the low-level bridge used by the platform-browser IndexedDB
+ * integration. It provides an `IndexedDb` service around the browser
+ * `indexedDB` factory and `IDBKeyRange` constructor, a `layerWindow` layer for
+ * wiring those primitives from `window`, and schemas for the key shapes accepted
+ * by IndexedDB object stores and indexes.
+ *
+ * Use it when building typed local persistence for browser caches,
+ * offline-first state, background queues, drafts, or other client-side data
+ * that should be validated before it reaches IndexedDB. Higher-level database,
+ * version, table, and query modules build on these primitives for migrations
+ * and typed transactions.
+ *
+ * IndexedDB still follows the browser rules: schema changes happen only during
+ * version upgrades, upgrades may be blocked by other open tabs or connections,
+ * and reads or writes must run in transactions scoped to the object stores they
+ * touch. The `layerWindow` constructor should be used only where browser
+ * globals are available, and code that also runs during SSR or in restricted
+ * browser contexts should account for `indexedDB` or `IDBKeyRange` being
+ * missing.
+ *
  * @since 4.0.0
  */
 import * as Config from "effect/Config"

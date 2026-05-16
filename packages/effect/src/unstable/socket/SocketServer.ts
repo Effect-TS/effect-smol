@@ -1,4 +1,26 @@
 /**
+ * Effect service model for servers that accept socket connections and hand each
+ * accepted connection to an Effect handler as a `Socket.Socket`.
+ *
+ * This module contains the shared, platform-independent contract for socket
+ * servers: a bound `address`, a long-running `run` accept loop, the TCP and
+ * Unix socket address models, and the server-level errors reported while
+ * opening or running a server. Concrete transports, such as Node TCP servers or
+ * WebSocket servers, provide this service through platform-specific layers.
+ *
+ * `SocketServer` is commonly used as the server transport for RPC protocols,
+ * cluster runners, developer tools, and tests that need an ephemeral TCP port or
+ * Unix-domain socket. A server address may differ from the requested listen
+ * options after binding, for example when listening on port `0`, so consumers
+ * should read the provided `address` from the service.
+ *
+ * The `run` effect represents the server accept loop and is expected to remain
+ * alive until interrupted or until the providing scope is closed. Protocol
+ * framing is intentionally outside this module: handlers receive a generic
+ * `Socket.Socket`, so callers are responsible for choosing byte, string, raw
+ * frame, or higher-level protocol adapters and for treating connection-level
+ * failures separately from `SocketServerError` values.
+ *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"

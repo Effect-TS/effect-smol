@@ -1,4 +1,20 @@
 /**
+ * Low-level Redis integration for the persistence modules.
+ *
+ * This module defines the `Redis` service used by Redis-backed persistence,
+ * persisted queues, and rate limiter stores. It adapts an external Redis
+ * connection to Effect through `send` for raw commands and `eval` for typed
+ * Lua scripts that are loaded with `SCRIPT LOAD` and executed with `EVALSHA`.
+ *
+ * The service does not create or manage Redis connections; callers provide a
+ * command sender from their Redis client or pool. Higher-level stores layer on
+ * key prefixes and store ids, so choose stable prefixes to avoid collisions
+ * and remember that schema or primary-key changes can make previously persisted
+ * JSON values fail to decode. Finite TTLs in the persistence stores are applied
+ * with millisecond Redis expirations, while non-finite TTLs are stored without
+ * expiration. Script parameters are stringified before execution, and the
+ * script descriptor's key count controls how Redis splits `KEYS` from `ARGV`.
+ *
  * @since 4.0.0
  */
 import * as Cache from "../../Cache.ts"

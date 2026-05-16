@@ -1,4 +1,23 @@
 /**
+ * Helpers and data types for describing the OTLP resource attached to exported
+ * logs, metrics, and traces.
+ *
+ * A resource identifies the service that produced telemetry and carries
+ * process- or deployment-level attributes that should be shared across every
+ * signal sent by the Effect OTLP logger, metrics exporter, and tracer. Use this
+ * module when building explicit resource metadata, reading the standard OTEL
+ * resource environment variables, or converting application metadata into OTLP
+ * `KeyValue` / `AnyValue` shapes before serialization.
+ *
+ * `service.name` is required because the signal exporters also use it as the
+ * instrumentation scope name. Explicit resource options take precedence over
+ * `OTEL_RESOURCE_ATTRIBUTES`, `OTEL_SERVICE_NAME`, and
+ * `OTEL_SERVICE_VERSION`; `service.name` and `service.version` are normalized
+ * through the service metadata inputs and re-added as canonical OTLP
+ * attributes rather than left in the custom attribute map. Attribute values are
+ * converted to OTLP scalar or array values where possible, with unsupported
+ * runtime values formatted as strings.
+ *
  * @since 4.0.0
  */
 import * as Config from "../../Config.ts"

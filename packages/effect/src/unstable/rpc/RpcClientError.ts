@@ -1,4 +1,20 @@
 /**
+ * Shared error types for the RPC client protocol layer.
+ *
+ * This module defines the client-side failures added to schema-aware RPC
+ * clients. `RpcClientError` wraps transport failures from the built-in HTTP,
+ * socket, and worker protocols, while `RpcClientDefect` records protocol
+ * problems such as empty HTTP responses, malformed response batches, failed
+ * transport decoding, or unexpected connection failures.
+ *
+ * These errors are separate from a remote handler's typed error. Remote
+ * failures that match an RPC's error schema are decoded from the RPC exit and
+ * remain part of the procedure's domain error channel. Server defects and
+ * schema mismatches are not normal remote errors: they surface as defects or
+ * protocol failures, so handlers commonly inspect `RpcClientError.reason` to
+ * decide whether a failure is retryable transport trouble or an incompatible
+ * client/server schema or serialization boundary.
+ *
  * @since 4.0.0
  */
 import * as Schema from "../../Schema.ts"

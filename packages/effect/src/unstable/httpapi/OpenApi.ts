@@ -1,4 +1,33 @@
 /**
+ * The `OpenApi` module converts declarative `HttpApi` definitions into
+ * OpenAPI 3.1 specifications and provides annotations for shaping the
+ * generated document.
+ *
+ * Use this module when you need to publish an `HttpApi` contract to tooling
+ * such as Swagger UI, Scalar, client generators, API gateways, or documentation
+ * pipelines. `fromApi` reflects the API's groups and endpoints into tags,
+ * paths, operations, parameters, request bodies, responses, security schemes,
+ * and component schemas while preserving Effect Schema metadata where OpenAPI
+ * can represent it.
+ *
+ * The generated specification is driven by annotations on APIs, groups,
+ * endpoints, security definitions, and schemas. `Title`, `Description`,
+ * `Summary`, `Version`, `Servers`, `License`, `ExternalDocs`, `Identifier`,
+ * `Deprecated`, and `Format` feed the corresponding OpenAPI fields; `Exclude`
+ * omits a group or endpoint; `Override` shallowly merges custom fields; and
+ * `Transform` can rewrite the generated API, tag, or operation object. Schema
+ * identifiers are important for stable component names, additional schemas must
+ * have identifiers, and invalid OpenAPI component keys are rejected during
+ * generation.
+ *
+ * A few generation details are worth keeping in mind: `HttpApiSchema`
+ * encodings choose media types and special representations for JSON,
+ * form-url-encoded, text, binary, and multipart payloads; no-content schemas
+ * emit responses without bodies; request and response unions are grouped by
+ * status code and content type; path parameters are rendered from `:id` route
+ * segments as `{id}`; and schemas are converted through the OpenAPI 3.1 JSON
+ * Schema representation before being patched into the final document.
+ *
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"

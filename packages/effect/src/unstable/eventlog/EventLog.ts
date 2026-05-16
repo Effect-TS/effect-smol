@@ -1,4 +1,20 @@
 /**
+ * Typed event-log runtime for appending domain events to an `EventJournal` and
+ * replaying entries from remote replicas.
+ *
+ * This module is used to define event-log schemas, register handlers for event
+ * groups, build clients that write typed payloads, and connect local journals to
+ * authenticated remote sessions. It is useful for event-sourced state,
+ * offline-first synchronization, audit trails, and replicated stores where each
+ * event must run its handler before the entry is committed.
+ *
+ * Local appends encode payloads with the event schema and commit only after the
+ * registered handler succeeds. Remote replay decodes entries with the same
+ * schema, passes duplicate or conflicting entries to handlers, may run
+ * compaction before committing, and invalidates registered reactivity keys.
+ * Remote sessions depend on the current `Identity` and `CurrentStoreId`, so use
+ * stable values when multiple replicas or stores must share the same log.
+ *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"

@@ -1,4 +1,18 @@
 /**
+ * Node.js SQLite client implementation for Effect SQL, backed by `better-sqlite3`.
+ *
+ * This module exposes constructors and layers for providing both the SQLite-specific `SqliteClient`
+ * service and the generic `SqlClient` service. It is intended for file-backed or in-memory SQLite
+ * databases in Node applications, local development tools, tests, migrations, and embedded
+ * persistence use cases that need Effect SQL query compilation plus SQLite-specific operations such
+ * as exporting a database, creating backups, or loading native SQLite extensions.
+ *
+ * Each client owns one scoped `better-sqlite3` connection and serializes access through it. WAL mode
+ * is enabled by default, so set `disableWAL` when opening read-only databases or when the database
+ * location cannot change journal mode. Prepared statements are cached by SQL text, safe integer
+ * handling follows the `SqlClient` fiber-local setting, `executeStream` is not implemented, and
+ * SQLite does not support `updateValues`.
+ *
  * @since 1.0.0
  */
 import Sqlite from "better-sqlite3"

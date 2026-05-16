@@ -1,4 +1,25 @@
 /**
+ * Effect SQL migration helpers for loading, ordering, and running schema
+ * changes against a `SqlClient`.
+ *
+ * This module provides a migrator constructor plus loaders for common migration
+ * layouts, including dynamic glob imports, Babel-style glob records, in-memory
+ * records, and filesystem directories. It is intended for applications and
+ * libraries that need to apply numbered SQL migrations on startup, in tests, or
+ * as part of deployment tooling while keeping migration effects inside the
+ * Effect environment.
+ *
+ * The migrator tracks applied migrations in a configurable table, defaults that
+ * table to `effect_sql_migrations`, rejects duplicate migration ids, and only
+ * runs migrations with an id greater than the latest recorded id. Pending
+ * migrations are recorded and executed inside a `SqlClient` transaction; on
+ * PostgreSQL the migrations table is explicitly locked, while other dialects
+ * rely on the table's primary key or unique constraint to detect concurrent
+ * runners. Migration effects should therefore be written to be transaction-aware,
+ * and callers should account for dialect-specific DDL transaction behavior and
+ * custom table names when coordinating schema dumps or external migration
+ * tooling.
+ *
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"

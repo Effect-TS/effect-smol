@@ -1,4 +1,21 @@
 /**
+ * Defines the serialization boundary used by the OTLP observability layers.
+ *
+ * `OtlpSerialization` converts Effect's in-memory OTLP trace, metric, and log
+ * data into `HttpBody` values so exporters can send them to collectors over
+ * OTLP/HTTP. Use this module to choose between the JSON encoding that is useful
+ * for debugging and collector endpoints that explicitly accept OTLP/HTTP JSON,
+ * and the protobuf encoding commonly expected by production OpenTelemetry
+ * collectors.
+ *
+ * The JSON layer writes the telemetry structures directly with
+ * `HttpBody.jsonUnsafe`; the protobuf layer encodes the same structures with
+ * the internal OTLP protobuf encoder and sets the `application/x-protobuf`
+ * content type. Endpoint paths, authentication headers, batching, retries, and
+ * shutdown flushing are handled by the OTLP exporter layers that consume this
+ * service, while this module focuses only on preserving the wire format chosen
+ * for traces, metrics, and logs.
+ *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"

@@ -1,4 +1,38 @@
 /**
+ * Server-side support for running RPCs defined in an `RpcGroup`.
+ *
+ * This module connects typed RPC handlers to an encoded or already-decoded
+ * transport, decodes client requests, invokes the matching handler, and sends
+ * exits, stream chunks, defects, interrupts, and client-end notifications back
+ * through the active server protocol. Use it to expose an RPC group through
+ * `layerHttp`, standalone HTTP effects, websocket or socket servers, stdio,
+ * worker runners, or a custom `Protocol`; use `makeNoSerialization` when the
+ * surrounding system already owns message serialization.
+ *
+ * The `Protocol` service is the transport boundary. It declares how encoded
+ * client messages are received and how encoded responses are written, plus
+ * whether the transport supports stream acknowledgements, transferable
+ * objects, and span propagation. HTTP request/response serving is useful for
+ * simple calls and response streaming, but it does not provide client
+ * acknowledgements or span propagation; websocket, socket, stdio, and worker
+ * protocols keep a live channel and can participate in the streaming
+ * acknowledgement lifecycle.
+ *
+ * **Handler gotchas**
+ *
+ * - Server handlers are looked up from `Rpc.ToHandler`, while RPC middleware
+ *   is looked up from `Rpc.Middleware` and wraps the handler with metadata
+ *   containing the `Rpc.ServerClient`, request id, headers, and decoded payload
+ * - Payloads are decoded on the server and exits, stream chunks, and request
+ *   defects are encoded on the server using the RPC schemas and the handler's
+ *   schema services; encode failures are reported as request defects and the
+ *   in-flight request is interrupted
+ * - Streaming RPCs send chunks before the final exit, and transports with
+ *   acknowledgement support wait for client acknowledgements between chunks to
+ *   provide back pressure
+ * - Fatal handler defects are sent as protocol defects by default; set
+ *   `disableFatalDefects` when defects should remain ordinary request exits
+ *
  * @since 4.0.0
  */
 import type { NonEmptyReadonlyArray } from "../../Array.ts"

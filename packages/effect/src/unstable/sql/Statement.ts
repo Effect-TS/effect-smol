@@ -1,4 +1,21 @@
 /**
+ * Building blocks for Effect's unstable SQL statement API.
+ *
+ * This module defines the low-level `Statement` and `Fragment` model used by
+ * SQL clients, the tagged-template `Constructor` for creating executable
+ * parameterized statements, and dialect compilers that turn statement segments
+ * into SQL text plus bind parameters. It also provides helpers for escaped
+ * identifiers, `IN` lists, comma-separated clause fragments, record inserts and
+ * updates, custom segments, and row or identifier transforms.
+ *
+ * In tagged templates, interpolated `Fragment`s and known `Segment`s are
+ * spliced into the statement, while ordinary values become bound parameters. Use
+ * identifiers for table and column names and the record helpers for generated
+ * column lists; `literal` and `unsafe` insert SQL text directly and should only
+ * be used with trusted SQL. Compilation is dialect-specific, caches rendered SQL
+ * on the statement, and has a `withoutTransform` path for bypassing identifier
+ * transforms, so compiled output can differ from normal transformed execution.
+ *
  * @since 4.0.0
  */
 import { Clock } from "../../Clock.ts"

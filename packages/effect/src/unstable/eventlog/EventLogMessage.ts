@@ -1,4 +1,18 @@
 /**
+ * Defines the wire messages used by event-log remotes to authenticate clients,
+ * write event batches, and stream changes back to replicas.
+ *
+ * This module is the protocol boundary between `EventLogRemote` clients and
+ * event-log servers: it provides schemas for store identifiers, protocol
+ * errors, session handshake payloads, authenticated RPCs, and the msgpack
+ * payloads used to carry encrypted or plaintext journal entries.
+ *
+ * Event batches are serialized as binary payloads before transport. Small
+ * payloads can be sent as a single frame, while larger payloads are split into
+ * `ChunkedMessage` parts and must be reassembled by message id after every part
+ * has arrived. Transports should preserve `Uint8Array` bytes exactly and avoid
+ * treating msgpack data as text.
+ *
  * @since 4.0.0
  */
 import type { NonEmptyArray, NonEmptyReadonlyArray } from "../../Array.ts"

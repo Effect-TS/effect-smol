@@ -1,4 +1,25 @@
 /**
+ * Builds type-safe clients and URL builders from `HttpApi` declarations.
+ *
+ * This module turns the groups and endpoints described by an `HttpApi` into
+ * callable client methods backed by an `HttpClient`. Applications commonly use
+ * `make` or `makeWith` to call a remote API with the same schema-driven contract
+ * as the server, while `group`, `endpoint`, and `urlBuilder` are useful when only
+ * part of an API or only the encoded URL is needed.
+ *
+ * Client calls encode path parameters, query values, headers, and payloads from
+ * endpoint schemas before executing the request, then decode successful responses
+ * according to the endpoint success schemas. The selected `responseMode` can
+ * return the decoded value, the raw `HttpClientResponse`, or both; the raw
+ * response mode skips success and error decoding for custom response handling.
+ *
+ * Pay attention to the endpoint schemas when shaping requests: payloads for HTTP
+ * methods without request bodies are encoded into URL parameters, multipart
+ * payloads must be supplied as `FormData`, and response decoding can fail with
+ * `SchemaError`. Declared error responses are decoded into the endpoint error
+ * type, unknown statuses fail as `HttpClientError.DecodeError`, and failures while
+ * decoding a declared error response include the original status-code failure.
+ *
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"

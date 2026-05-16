@@ -1,4 +1,21 @@
 /**
+ * Schemas and TypeScript types for the Effect devtools protocol.
+ *
+ * This module defines the wire format used by devtools clients and servers to
+ * exchange telemetry, including spans, span events, metric snapshots, fiber
+ * dumps, heartbeat messages, and request/response payloads. Use these schemas
+ * when encoding or decoding messages at the devtools boundary, validating
+ * custom transports, or building integrations that need to inspect the same
+ * protocol data as the built-in devtools implementation.
+ *
+ * The exported values describe serialized protocol payloads rather than the
+ * full in-memory runtime data structures. Some fields intentionally normalize
+ * runtime values for transport, for example ended span exits are encoded with
+ * successful values erased via `Exit.asVoid`, timestamps are represented as
+ * `bigint`s, and arbitrary attributes are accepted as unknown schema values.
+ * The module lives under `unstable`, so consumers should treat the protocol
+ * shape as experimental.
+ *
  * @since 4.0.0
  */
 import * as Exit from "../../Exit.ts"

@@ -1,4 +1,18 @@
 /**
+ * Utilities for parsing and immutably updating HTTP URLs.
+ *
+ * This module works with the platform `URL` type used by HTTP clients and
+ * servers, adding safe constructors and pipeable setters for common workflows
+ * such as resolving request targets against a base URL, changing credentials,
+ * host, path, protocol, query, and hash components, and reading or rewriting
+ * query parameters through `UrlParams`.
+ *
+ * Parsing and serialization follow the platform WHATWG `URL` behavior. Relative
+ * inputs need an explicit base, assigned components may be normalized or
+ * percent-encoded by `URL`, and query strings should usually be handled through
+ * `UrlParams` when preserving repeated keys or applying key/value encoding is
+ * important.
+ *
  * @since 4.0.0
  */
 import * as Cause from "../../Cause.ts"

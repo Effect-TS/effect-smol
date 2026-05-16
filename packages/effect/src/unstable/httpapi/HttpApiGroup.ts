@@ -1,4 +1,28 @@
 /**
+ * The `HttpApiGroup` module defines named collections of `HttpApiEndpoint`s
+ * within an `HttpApi`.
+ *
+ * Groups are the main way to organize endpoints by a domain boundary, resource,
+ * or feature area before those endpoints are added to an API and implemented
+ * with `HttpApiBuilder.group`. A group carries its identifier, endpoint set,
+ * annotations, and `topLevel` flag, which are later used by builders, clients,
+ * URL builders, and OpenAPI generation. Non-top-level groups expose nested
+ * client methods under the group name, while top-level groups expose their
+ * endpoint methods directly.
+ *
+ * Composition is order-sensitive. Adding an endpoint with the same name as an
+ * existing endpoint replaces it, and `prefix`, `middleware`,
+ * `annotateEndpoints`, and `annotateEndpointsMerge` only affect endpoints that
+ * are already present when those APIs are called. Group annotations apply to the
+ * group itself; use the endpoint annotation helpers when metadata should be
+ * attached to each endpoint.
+ *
+ * The type helpers in this module reflect the endpoint union for a group and
+ * aggregate the services required by endpoint schemas, middleware, and declared
+ * errors. Error schemas are still declared on endpoints, while middleware can
+ * contribute additional error schemas and client/server service requirements
+ * through the endpoint middleware set.
+ *
  * @since 4.0.0
  */
 import type { NonEmptyReadonlyArray } from "../../Array.ts"

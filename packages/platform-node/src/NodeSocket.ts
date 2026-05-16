@@ -1,4 +1,21 @@
 /**
+ * Node platform socket entry point for Effect sockets backed by Node streams
+ * and WebSocket implementations.
+ *
+ * This module re-exports the shared Node socket constructors for TCP clients,
+ * Unix domain socket clients, and adapters from existing Node `Duplex` streams,
+ * then adds Node-specific WebSocket constructor layers. Use it when connecting
+ * to raw socket protocols, wiring RPC transports over TCP or Unix sockets, or
+ * opening WebSocket clients in Node.
+ *
+ * TCP and Unix socket behavior comes from the shared Node layer: Unix sockets
+ * are selected with `NetConnectOpts.path`, scoped sockets close or destroy the
+ * underlying stream on finalization, and Node open, read, write, and close
+ * events are translated into `SocketError` values. For WebSockets,
+ * `layerWebSocketConstructor` prefers `globalThis.WebSocket` when available
+ * and falls back to `ws`; use `layerWebSocketConstructorWS` when you need the
+ * `ws` implementation consistently across Node versions.
+ *
  * @since 1.0.0
  */
 import { NodeWS as WS } from "@effect/platform-node-shared/NodeSocket"

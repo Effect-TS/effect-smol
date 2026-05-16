@@ -1,4 +1,21 @@
 /**
+ * Persistent caching for `Persistable` request keys.
+ *
+ * A `PersistedCache` combines a scoped in-memory `Cache` with a named
+ * `Persistence` store. It is useful for expensive or idempotent lookups such as
+ * remote API calls, database reads, and request results that should be reused
+ * across fibers, process restarts, or multiple workers sharing the same backing
+ * store.
+ *
+ * The persistent `timeToLive` is evaluated for the stored `Exit`, so successes
+ * and failures can be cached with different lifetimes. The in-memory cache has
+ * its own `inMemoryTTL` and capacity, and `invalidate` removes both the
+ * persisted value and the in-memory entry. Persisted values are encoded with
+ * the key's success and error schemas and stored under the key's primary key, so
+ * schema changes, primary-key changes, or store-id collisions can make old
+ * entries fail to decode until they are invalidated or written under a new
+ * `storeId`.
+ *
  * @since 4.0.0
  */
 import * as Cache from "../../Cache.ts"

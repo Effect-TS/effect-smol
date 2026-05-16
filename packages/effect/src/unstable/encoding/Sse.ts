@@ -1,4 +1,21 @@
 /**
+ * Utilities for parsing and rendering Server-Sent Events text streams.
+ *
+ * This module is useful at HTTP streaming boundaries that speak the EventSource
+ * wire format, such as live updates, notifications, progress feeds, and other
+ * unidirectional server-to-client event streams. It provides low-level parser
+ * and encoder primitives, channel combinators for streaming chunks through
+ * Effect pipelines, and schema-aware helpers for validating or transforming the
+ * `id`, `event`, and string `data` fields at the edge of an application.
+ *
+ * SSE is line-oriented text rather than a framed binary protocol. Incoming
+ * chunks may split fields across arbitrary boundaries, events are dispatched by
+ * a blank line, repeated `data:` lines are joined with newlines, and `retry:`
+ * directives are control messages rather than regular events. The decoder
+ * handles UTF-8 byte order marks, CRLF and LF line endings, default `message`
+ * events, and retry directives so callers can reconnect with the requested
+ * delay while preserving the last event ID when available.
+ *
  * @since 4.0.0
  */
 import type { NonEmptyReadonlyArray } from "../../Array.ts"

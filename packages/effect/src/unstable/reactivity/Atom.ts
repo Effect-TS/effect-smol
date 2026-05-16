@@ -1,4 +1,27 @@
 /**
+ * The `Atom` module defines reactive values and the helpers for constructing,
+ * composing, running, and persisting them with an `AtomRegistry`. Atoms are
+ * small read functions whose regular `get` reads form a dependency graph, so
+ * derived values are cached by the registry and invalidated when their
+ * dependencies, writable state, refresh hooks, or subscriptions change.
+ *
+ * Use atoms for application and UI state, derived data, `Effect` or `Stream`
+ * queries exposed as `AsyncResult`, writable function atoms for commands,
+ * subscription refs, pull-based streams, optimistic updates, URL search
+ * parameters, `KeyValueStore` entries, and serializable or server-specific
+ * hydration.
+ *
+ * The cache belongs to the registry, not the atom object: the same atom can have
+ * different values in different registries, and serializable atoms are keyed by
+ * their serialization key. Stable atom identity matters for dependency tracking
+ * and cache reuse, so use `family` for parameterized atoms. Unobserved atoms are
+ * disposed unless kept alive or retained by an idle TTL, which can cause derived
+ * state, effects, streams, and finalizers to be rebuilt later. Runtime-backed
+ * atoms run effects and streams with the registry scheduler, scope, and
+ * `AtomRuntime` layer context; `runtime.withReactivity` only refreshes after
+ * explicit `Reactivity` invalidations, while one-shot reads such as `once` do
+ * not create dependency edges.
+ *
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"

@@ -1,4 +1,21 @@
 /**
+ * Helpers for passing a schema-encoded bootstrap message to worker-backed RPC
+ * protocols.
+ *
+ * Worker RPC protocols can send one initial message when each worker starts,
+ * before ordinary RPC requests begin flowing. Use this module to build and
+ * provide that message from the client side, and to decode it inside the
+ * worker-side server. Common payloads include per-worker configuration,
+ * credentials or session metadata, feature flags, preloaded data, or
+ * transferable resources such as `ArrayBuffer` and `MessagePort` values.
+ *
+ * The initial message uses the supplied schema's JSON codec and is posted as a
+ * worker message, so it is separate from the normal `RpcSerialization` used for
+ * RPC request and response traffic. Values still need to be valid for the
+ * worker transport's structured clone boundary. Transferable annotations can
+ * collect objects for the `postMessage` transfer list, but transferring moves
+ * ownership to the worker and may detach buffers from the sender.
+ *
  * @since 4.0.0
  */
 import type { NoSuchElementError } from "../../Cause.ts"

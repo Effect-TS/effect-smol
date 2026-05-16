@@ -1,4 +1,29 @@
 /**
+ * The `HttpApiMiddleware` module defines middleware services that can wrap
+ * `HttpApi` endpoint execution on the server and request execution in generated
+ * clients.
+ *
+ * Use this module for cross-cutting HTTP API behavior such as authentication and
+ * authorization, request logging or tracing, rate limiting, adding request-scoped
+ * services to the endpoint context, normalizing schema errors, or installing
+ * client-side request middleware for APIs that require the same concern on both
+ * sides. Middleware services carry type-level metadata describing the services
+ * they require and provide, the error schemas they may fail with, whether they
+ * implement security schemes, and whether generated clients must provide a
+ * matching client middleware.
+ *
+ * Security middleware is declared with non-empty `security` schemes and receives
+ * decoded credentials from `HttpApiSecurity`; ordinary middleware receives only
+ * endpoint and group metadata. Error declarations must be `Schema` values (or an
+ * array of them) because middleware failures are added to the endpoint error
+ * surface and must be encodable by the HTTP API builder. If a middleware turns
+ * `HttpApiSchemaError` failures into API errors, use
+ * `layerSchemaErrorTransform` and make sure the transformed error is covered by
+ * the middleware's declared schema. Client middleware installed with
+ * `layerClient` is made available through the `ForClient` marker and captures
+ * its surrounding context, so client requirements should be declared explicitly
+ * when `requiredForClient` is enabled.
+ *
  * @since 4.0.0
  */
 /** @effect-diagnostics floatingEffect:skip-file */

@@ -1,4 +1,23 @@
 /**
+ * Client-side remote replica support for writing event-log entries and
+ * receiving change streams over the event-log RPC protocol.
+ *
+ * This module builds `EventLogRemote` services backed by `EventLogRemoteRpcs`.
+ * It is used by local event logs that need to replicate entries to another
+ * journal, subscribe to remote changes from a sequence number, or run effects
+ * only after the current event-log identity has completed the remote
+ * authentication handshake. The encrypted constructor is the default choice for
+ * synchronizing browser, edge, or service replicas across an untrusted network,
+ * while the unencrypted constructor is intended for trusted transports or tests.
+ *
+ * Remote sessions begin with `Hello` and `Authenticate`, cache authentication by
+ * identity public key, and retry forbidden responses by refreshing the handshake.
+ * The RPC transport must preserve a stable client session across hello,
+ * authentication, writes, and change streams. Entries and change batches may be
+ * split into protocol chunks, so callers should treat `changes` as a scoped
+ * streaming queue and rely on the remote `Registry` registration instead of
+ * manually sharing partially assembled payloads between sessions.
+ *
  * @since 4.0.0
  */
 import * as Cache from "../../Cache.ts"

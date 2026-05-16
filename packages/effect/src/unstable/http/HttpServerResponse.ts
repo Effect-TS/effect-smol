@@ -1,4 +1,24 @@
 /**
+ * Server-side HTTP response values and constructors for Effect HTTP handlers.
+ *
+ * This module defines `HttpServerResponse`, the immutable response model returned
+ * from routers and server effects, together with constructors for empty,
+ * redirect, text, HTML, JSON, URL-encoded, raw, form-data, stream, and file
+ * bodies. It also includes combinators for adjusting status, headers, cookies,
+ * and bodies, plus conversions to and from Web `Response` and client responses.
+ *
+ * Response constructors choose status defaults for common cases: `204` for
+ * `empty`, `302` for `redirect`, and `200` for responses with bodies. Body
+ * metadata is mirrored into headers, so content type and content length carried
+ * by the body are written to `content-type` and `content-length`, overriding
+ * existing values when present. JSON helpers can fail while encoding or
+ * serializing unless the unsafe constructor is used.
+ *
+ * Cookies are tracked separately from the normal header map so they can be
+ * encoded as `Set-Cookie` headers when converting to platform responses. Use the
+ * effectful cookie helpers when invalid cookie names, values, or options should
+ * stay in the Effect error channel.
+ *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"

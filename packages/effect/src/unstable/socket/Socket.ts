@@ -1,4 +1,26 @@
 /**
+ * Effect-based socket abstractions for bidirectional connections that exchange
+ * text frames, binary frames, and close events.
+ *
+ * This module defines the `Socket` service, constructors for WebSocket-backed
+ * and transform-stream-backed sockets, typed socket errors, and adapters that
+ * expose a socket as a bidirectional `Channel`. It is intended for WebSocket
+ * clients, HTTP server upgrades, protocol clients and servers, and tests or
+ * adapters that need a scoped duplex transport inside Effect programs.
+ *
+ * Incoming data can be consumed as raw frames, binary bytes, or strings.
+ * `runRaw` preserves whether the transport delivered a string or `Uint8Array`,
+ * while `run` encodes string frames as UTF-8 bytes and `runString` decodes
+ * binary frames with `TextDecoder`. Use the raw or mapping APIs when preserving
+ * frame boundaries, binary payloads, or text encodings matters.
+ *
+ * Writers are scoped to an active run and are gated until the underlying
+ * connection is open; use `onOpen` when startup writes must wait for that
+ * point. Outgoing strings and bytes are sent as data frames, while `CloseEvent`
+ * values request a close. Close events are modeled as `SocketCloseError` by
+ * default, and `closeCodeIsError` controls which close codes should fail a run
+ * versus complete cleanly.
+ *
  * @since 4.0.0
  */
 import type { NonEmptyReadonlyArray } from "../../Array.ts"

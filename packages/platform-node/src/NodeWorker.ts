@@ -1,4 +1,22 @@
 /**
+ * Parent-side Node.js support for Effect workers.
+ *
+ * This module provides the `WorkerPlatform` used by Node programs that spawn
+ * and communicate with `node:worker_threads` workers or IPC-enabled child
+ * processes through Effect's worker protocol. Pair it with `NodeWorkerRunner`
+ * in the worker entrypoint when building worker-backed RPC clients, offloading
+ * CPU-bound work, isolating Node resources, or hosting services that should
+ * exchange typed messages with the parent process.
+ *
+ * Worker-thread spawners can use `postMessage` transfer lists for values such
+ * as `ArrayBuffer` and `MessagePort`, but transferring moves ownership and
+ * invalid transfer lists surface as worker send or receive failures.
+ * Child-process spawners must provide an IPC channel, for example via
+ * `child_process.fork` or `stdio: "ipc"`; their messages use Node IPC
+ * serialization and this module does not forward transfer lists to
+ * `ChildProcess.send`. Scope finalization sends the worker close signal and
+ * waits for exit before falling back to `terminate()` or `SIGKILL`.
+ *
  * @since 1.0.0
  */
 import * as Deferred from "effect/Deferred"

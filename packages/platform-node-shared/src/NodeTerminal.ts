@@ -1,4 +1,21 @@
 /**
+ * Shared Node.js implementation of Effect's `Terminal` service.
+ *
+ * This module is the process-backed terminal implementation used by Node
+ * platform packages. It adapts Node's `readline` APIs and the current
+ * process' `stdin` and `stdout` streams into a `Terminal`, making it suitable
+ * for CLIs, REPLs, prompts, full-screen terminal programs, and other
+ * command-line tools that need line input, keypress input, terminal
+ * dimensions, or prompt output.
+ *
+ * The implementation works with global process streams, so callers should
+ * acquire it with a scope or provide `layer` to ensure cleanup. When `stdin`
+ * is a TTY, raw mode is enabled while the scoped readline interface is active
+ * and restored on release; raw mode changes how keys are delivered and can
+ * affect other code reading stdin. In non-TTY environments such as pipes,
+ * redirected input, or CI, raw mode is unavailable, keypress behavior is
+ * limited, and stdout dimensions may be reported as zero.
+ *
  * @since 1.0.0
  */
 import type * as Cause from "effect/Cause"

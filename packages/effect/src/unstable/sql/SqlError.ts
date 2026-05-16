@@ -1,4 +1,22 @@
 /**
+ * Structured SQL errors used by the unstable SQL APIs.
+ *
+ * This module defines the top-level `SqlError` wrapper, the concrete
+ * `SqlErrorReason` variants used by drivers and adapters, and helpers for
+ * recognizing and classifying database failures. It is useful when turning
+ * native driver errors into typed Effect failures, choosing retry policies from
+ * `isRetryable`, or distinguishing user-facing query problems such as syntax
+ * and constraint failures from infrastructure problems such as connection,
+ * lock, statement timeout, deadlock, and serialization failures.
+ *
+ * Query, connection, and migration code should preserve the original cause and
+ * operation metadata when constructing these errors. Retrying can be appropriate
+ * for transient connection and concurrency failures, but syntax, authorization,
+ * authentication, and constraint failures generally require changing the query,
+ * credentials, permissions, or migration data. When classifying SQLite errors,
+ * the helpers inspect `code` and `errno` values and extract unique constraint
+ * names when available.
+ *
  * @since 4.0.0
  */
 import * as Predicate from "../../Predicate.ts"

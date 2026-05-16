@@ -1,4 +1,31 @@
 /**
+ * The `HttpApiBuilder` module connects declarative `HttpApi` definitions to
+ * runnable HTTP server routes.
+ *
+ * Use this module when you have described an API with `HttpApi`,
+ * `HttpApiGroup`, and `HttpApiEndpoint` values and need to provide the
+ * server-side implementation. `group` creates a layer for implementing every
+ * endpoint in one API group, `layer` registers the implemented groups with an
+ * `HttpRouter` and can expose the generated OpenAPI specification, and
+ * `endpoint` builds the effect for a single endpoint when custom composition is
+ * needed.
+ *
+ * The builder performs the runtime work implied by endpoint metadata: it decodes
+ * path parameters, headers, query parameters, and request payloads with
+ * `Schema`, applies endpoint middleware and security middleware, invokes the
+ * registered handler, and encodes successful or declared error results into
+ * `HttpServerResponse` values. Handlers can return an `HttpServerResponse`
+ * directly to bypass success encoding, and `handleRaw` can be used when payload
+ * decoding should be handled manually.
+ *
+ * A few implementation details are worth keeping in mind. Every group in the
+ * API must be provided with `HttpApiBuilder.group` before `layer` is evaluated,
+ * otherwise registration fails with a defect that names the missing group and
+ * the available group services. Payload decoding is selected by request media type;
+ * unsupported content types produce a `415` response before the handler runs.
+ * Schema failures are wrapped as `HttpApiSchemaError`, while ordinary handler
+ * failures are encoded with the endpoint's declared error schemas.
+ *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"

@@ -1,4 +1,22 @@
 /**
+ * Service and helpers for running Effect HTTP applications on a concrete server
+ * runtime.
+ *
+ * This module defines the `HttpServer` service tag used by platform integrations
+ * to expose a listening server, plus accessors for serving an
+ * `HttpServerResponse` effect, formatting and logging server addresses, and
+ * building test clients against a running server. It is intended for low-level
+ * server runtimes, router integrations, HTTP API tests, and applications that
+ * need to start serving from a provided `Layer`.
+ *
+ * The server supplies `HttpServerRequest` for each request, so application
+ * effects should rely on the server for request-scoped data while still
+ * providing their other services through the surrounding environment. `serve`
+ * returns a `Layer` whose listener lifetime is managed by the layer scope; use
+ * `serveEffect` when composing directly in an effect with an explicit `Scope`.
+ * Test clients only support TCP addresses, and rewrite `0.0.0.0` to
+ * `127.0.0.1` for local requests.
+ *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"

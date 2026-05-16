@@ -1,4 +1,20 @@
 /**
+ * Shared Node.js implementation of the Effect `Stdio` service.
+ *
+ * This module builds the `Stdio` layer used by Node platform packages by
+ * wiring the service to the current process: command-line arguments come from
+ * `process.argv`, input is read from `process.stdin`, and output and error
+ * output are written to `process.stdout` and `process.stderr`. It is intended
+ * for CLIs, scripts, command runners, test harnesses, and other
+ * process-oriented programs that need standard I/O through Effect services.
+ *
+ * The process stdio streams are global resources owned by Node. This layer
+ * leaves stdin open and does not end stdout or stderr by default, avoiding
+ * accidental closure of handles other code in the process may still use. Those
+ * streams may be pipes, files, or TTYs; interactive terminal behavior such as
+ * raw mode, echo, colors, and cursor movement should be coordinated with the
+ * terminal APIs instead of assuming this layer has exclusive control.
+ *
  * @since 1.0.0
  */
 import * as Effect from "effect/Effect"

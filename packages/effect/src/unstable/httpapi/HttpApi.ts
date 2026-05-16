@@ -1,4 +1,27 @@
 /**
+ * The `HttpApi` module defines the top-level contract for an Effect HTTP API.
+ * An `HttpApi` names an API and collects one or more `HttpApiGroup`s, whose
+ * endpoints describe the request inputs, response schemas, middleware, and
+ * annotations that later drive server builders, clients, and OpenAPI
+ * generation.
+ *
+ * Use this module when you want to compose a domain API from endpoint groups,
+ * combine APIs from multiple modules, apply a shared path prefix or middleware,
+ * attach annotations, or reflect over the final route shape. Implementations are
+ * provided separately with `HttpApiBuilder.group`, and the completed API is
+ * registered with `HttpApiBuilder.layer`.
+ *
+ * A few composition details are worth keeping in mind: group identifiers are
+ * used as keys, so adding another group with the same identifier replaces the
+ * previous one; `prefix` and `middleware` are applied to the groups and
+ * endpoints already present when they are called; and `addHttpApi` merges the
+ * added API's annotations into its groups. During reflection, success and error
+ * schemas are grouped by the HTTP status recorded on their `HttpApiSchema`
+ * annotations, endpoints without an explicit success schema default to
+ * `NoContent`, and middleware error schemas are included with endpoint errors.
+ * Extra schemas supplied through `AdditionalSchemas` must have an `identifier`
+ * annotation so they can be emitted as OpenAPI components.
+ *
  * @since 4.0.0
  */
 import type { NonEmptyReadonlyArray } from "../../Array.ts"

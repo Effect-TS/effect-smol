@@ -1,4 +1,24 @@
 /**
+ * Server-side RPC layers and storage contracts for encrypted event-log
+ * replication.
+ *
+ * This module is used by encrypted `EventLogRemote` clients that need a remote
+ * synchronization endpoint without exposing plaintext events to the server. The
+ * server stores ciphertext, initialization vectors, entry ids, and remote
+ * sequence numbers keyed by the client's public key and store id, then streams
+ * encrypted changes back to clients so they can decrypt locally with their
+ * identity private key material. This makes it suitable for offline-first
+ * synchronization, multi-device replication, and hosted backends where the
+ * transport or storage layer should not inspect event payloads.
+ *
+ * The server does not derive or hold encryption keys. It treats public keys as
+ * log identities, persists one session authentication binding per public key,
+ * and reuses the initialization vector supplied with each encrypted write
+ * request for the entries in that batch. Persisted remote ids, session signing
+ * key bindings, ciphertext, IVs, and sequence numbers are therefore part of the
+ * encrypted replication protocol and should be kept stable by durable storage
+ * implementations.
+ *
  * @since 4.0.0
  */
 import * as Uuid from "uuid"

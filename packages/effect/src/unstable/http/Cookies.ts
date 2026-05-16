@@ -1,4 +1,18 @@
 /**
+ * Utilities for representing, validating, parsing, and serializing HTTP cookies.
+ *
+ * This module provides an immutable `Cookies` collection keyed by cookie name,
+ * constructors for validated `Cookie` values, and helpers for common server and
+ * client flows such as reading `Cookie` request headers, emitting `Set-Cookie`
+ * response headers, merging cookie sets, and expiring cookies.
+ *
+ * Cookie parsing is intentionally tolerant of malformed input: unsupported or
+ * invalid `Set-Cookie` attributes are ignored, values are percent-decoded on a
+ * best-effort basis, and collections keep one cookie per name. Security
+ * attributes such as `HttpOnly`, `Secure`, `SameSite`, and `Partitioned` are
+ * serialized when present, but browsers enforce their final behavior, so set
+ * them explicitly for session, cross-site, and HTTPS-sensitive cookies.
+ *
  * @since 4.0.0
  */
 import * as Data from "../../Data.ts"

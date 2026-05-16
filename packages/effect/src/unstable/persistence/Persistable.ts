@@ -1,4 +1,24 @@
 /**
+ * Defines the request-side contract used by the persistence layer.
+ *
+ * A `Persistable` request is a `PrimaryKey` value that carries the success and
+ * error schemas needed to encode and decode the stored `Exit` for that request.
+ * Persisted request resolvers and `PersistedCache` use this metadata to restore
+ * previous lookup results from a backing store before running the lookup again.
+ *
+ * Use `Class` for cacheable or durable requests whose results can safely be
+ * reused across fibers, processes, or restarts. The request primary key is the
+ * entry id inside a persistence store, so it should be stable, collision-free,
+ * and usually include a request-specific prefix. The `storeId` is configured on
+ * `Persistence` or `PersistedCache`; it selects the backing store namespace and
+ * is separate from the request primary key.
+ *
+ * Success and error schemas are encoded with the JSON codec, so persisted
+ * values must be representable by those schemas and any required schema services
+ * must be available where the store reads or writes entries. Changing a schema,
+ * primary-key format, or store id can make existing persisted values fail to
+ * decode or stop being found, so treat those changes as persistence migrations.
+ *
  * @since 4.0.0
  */
 import type * as Duration from "../../Duration.ts"

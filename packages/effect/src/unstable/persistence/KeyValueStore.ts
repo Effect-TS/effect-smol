@@ -1,4 +1,25 @@
 /**
+ * Effectful key/value storage for persistence backends.
+ *
+ * This module defines the `KeyValueStore` service used by the persistence
+ * package when a simple string or binary store is enough. It is useful for
+ * lightweight durable state, browser storage, local file-backed data, SQL
+ * tables, test stores, and as the storage primitive underneath higher-level
+ * persistence APIs.
+ *
+ * Values are stored as strings or `Uint8Array`s, and `toSchemaStore` adds a
+ * schema-aware JSON layer for typed values. Schema changes can make existing
+ * JSON fail to decode, and `prefix` should be used to separate namespaces when
+ * several logical stores share the same backend. This service does not provide
+ * native TTL support; higher-level persistence layers encode expiration
+ * metadata in stored values when they need TTLs.
+ *
+ * Backend behavior is intentionally small but not identical: Web Storage is
+ * string-only, `makeStringOnly` stores binary values as base64, filesystem
+ * keys become encoded file names, SQL stores value type metadata in a table,
+ * and the memory layer is process-local. Choose keys, prefixes, table names,
+ * and value formats with those backend constraints in mind.
+ *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"

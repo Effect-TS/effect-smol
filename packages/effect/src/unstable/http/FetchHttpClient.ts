@@ -1,4 +1,20 @@
 /**
+ * Provides an `HttpClient` implementation backed by the Web Fetch API.
+ *
+ * Use this module when an application should run HTTP requests through the
+ * platform's `fetch` implementation, such as browser code, edge runtimes, or
+ * Node.js environments that provide `globalThis.fetch`. The `Fetch` reference
+ * allows tests and custom runtimes to supply a different fetch function, while
+ * `RequestInit` can provide defaults such as credentials, redirect behavior,
+ * cache mode, or other platform-specific fetch options.
+ *
+ * The client translates Effect HTTP requests into fetch calls and wraps Web
+ * `Response` values as `HttpClientResponse`s. Fetch implementations control
+ * details such as CORS, cookies, redirect handling, and abort semantics, so
+ * behavior can vary by platform. Stream request bodies are sent as Web streams
+ * with `duplex: "half"` for runtimes that require it, and `content-length` is
+ * omitted so fetch can manage body framing itself.
+ *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"

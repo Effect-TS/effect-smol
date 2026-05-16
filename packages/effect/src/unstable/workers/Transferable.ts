@@ -1,4 +1,20 @@
 /**
+ * Utilities for marking the parts of worker messages that should be transferred
+ * through `postMessage` instead of copied by the structured clone algorithm.
+ *
+ * This module is used with worker message schemas to collect
+ * `globalThis.Transferable` values while encoding a message, so the worker
+ * platform can pass the collected list as the `postMessage` transfer list.
+ * Common cases include sending large `Uint8Array` payloads, `ImageData` pixel
+ * buffers, or `MessagePort` channels without paying for an extra copy.
+ *
+ * Transferable annotations do not make an otherwise unsupported value
+ * structured-cloneable; the encoded message still has to be valid for
+ * `postMessage`. Transferring also moves ownership to the receiver, so buffers
+ * are detached from the sender after the send completes. Be careful when a
+ * typed array view shares a backing buffer with other data, since collecting
+ * that buffer transfers ownership of the whole buffer.
+ *
  * @since 1.0.0
  */
 import * as Context from "../../Context.ts"

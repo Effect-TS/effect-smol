@@ -1,4 +1,16 @@
 /**
+ * Browser-backed persistence layers for Effect's persistence service.
+ *
+ * This module provides IndexedDB implementations of the Effect persistence services for applications that need a
+ * durable client-side cache, such as remembered query results, offline-capable workflows, or values that should survive
+ * page reloads. Entries are stored by persistence store id and key in a shared IndexedDB object store, with optional
+ * expiration timestamps for TTL-based invalidation.
+ *
+ * Because this storage depends on browser IndexedDB, operations can fail when storage is unavailable, quota is exceeded,
+ * data is cleared by the user or browser, or the payload cannot be structured-cloned by IndexedDB. Expired entries are
+ * removed lazily when they are read, so this module is best suited for application-managed cached objects rather than
+ * security-sensitive or authoritative data.
+ *
  * @since 1.0.0
  */
 import type * as Arr from "effect/Array"

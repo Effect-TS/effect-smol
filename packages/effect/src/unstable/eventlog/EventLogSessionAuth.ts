@@ -1,4 +1,22 @@
 /**
+ * Utilities for authenticating event log sessions with short-lived challenges
+ * and Ed25519 signatures.
+ *
+ * This module builds and verifies the canonical payload that a remote peer signs
+ * when proving control of a session signing key. It is used by event log
+ * transports that need to bind a connection attempt to a remote identifier,
+ * session challenge, advertised event log public key, and signing public key
+ * before accepting session traffic.
+ *
+ * Callers are responsible for issuing fresh challenges, enforcing the challenge
+ * time-to-live, and tracking whether a challenge has already been consumed. The
+ * helpers here provide deterministic payload encoding, algorithm checks,
+ * signature validation, and Web Crypto integration; they do not establish peer
+ * trust by themselves. Trust decisions still need to compare the supplied keys
+ * and remote identity against the application's authorization policy, and
+ * signed payloads should be treated as bearer authentication material until the
+ * challenge expires.
+ *
  * @since 4.0.0
  */
 import * as Data from "../../Data.ts"

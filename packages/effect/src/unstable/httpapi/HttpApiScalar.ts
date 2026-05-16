@@ -1,4 +1,23 @@
 /**
+ * The `HttpApiScalar` module mounts an interactive Scalar API reference for a
+ * declarative `HttpApi`.
+ *
+ * Use this module when you want a browser-friendly documentation page for an
+ * `HttpApi` without maintaining a separate OpenAPI document. The `layer`
+ * helper registers a `GET` route on an `HttpRouter`, generates the OpenAPI
+ * specification with `OpenApi.fromApi`, embeds it into the HTML page, and loads
+ * the bundled Scalar browser script. `layerCdn` provides the same UI while
+ * loading Scalar from jsDelivr, optionally pinned with `version`.
+ *
+ * The mounted path is a documentation UI route, defaulting to `/docs`, rather
+ * than a raw JSON specification endpoint. If clients, gateways, or external
+ * documentation pipelines need the OpenAPI document directly, expose it
+ * separately with `HttpApiBuilder.layer`'s `openapiPath` option. Scalar
+ * configuration is forwarded to the page through `ScalarConfig`; values such as
+ * `proxyUrl`, theme and layout settings, and `baseServerURL` matter when
+ * enabling "Test Request", styling the docs, or rendering relative server URLs
+ * outside the browser origin.
+ *
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"

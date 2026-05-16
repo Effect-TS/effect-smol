@@ -1,4 +1,34 @@
 /**
+ * The `Rpc` module defines the typed declaration for a single remote
+ * procedure. An RPC definition is the shared contract used by `RpcGroup`,
+ * clients, and servers: it stores the procedure tag, payload schema, success
+ * schema, error schema, defect schema, middleware, annotations, and the type
+ * information needed to derive client calls and server handler signatures.
+ *
+ * Use this module to declare request/response procedures with {@link make},
+ * build custom constructors that transform success and error schemas with
+ * {@link custom}, add middleware or annotations to individual procedures, and
+ * derive helper types such as {@link Payload}, {@link Success},
+ * {@link Error}, and {@link ToHandlerFn}. Server implementations can also use
+ * {@link fork} and {@link uninterruptible} wrappers to control how handler
+ * results are executed.
+ *
+ * **Schema gotchas**
+ *
+ * - Payloads default to `Schema.Void`; passing struct fields creates a
+ *   `Schema.Struct`, while `primaryKey` creates a payload class with a derived
+ *   `PrimaryKey`
+ * - Success values default to `Schema.Void`, ordinary errors default to
+ *   `Schema.Never`, and middleware errors are included in the effective RPC
+ *   error channel
+ * - Streaming RPCs store the element and stream error schemas in
+ *   `RpcSchema.Stream`; the immediate exit success is `void` and the normal
+ *   RPC error schema is set to `Schema.Never`
+ * - Defects use a separate defect schema, defaulting to `Schema.Defect`; custom
+ *   defect schemas must not require decoding or encoding services
+ * - Schema services are directional: clients encode payloads and decode
+ *   responses, while servers decode payloads and encode responses
+ *
  * @since 4.0.0
  */
 import type * as Cause from "../../Cause.ts"

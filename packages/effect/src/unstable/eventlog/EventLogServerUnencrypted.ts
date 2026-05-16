@@ -1,4 +1,20 @@
 /**
+ * Server implementation for event logs whose entries are persisted and streamed
+ * in plaintext.
+ *
+ * This module is useful for trusted deployments, local development, tests, and
+ * server-side event sources that need typed event handlers, conflict detection,
+ * compaction, and RPC change streams without an encryption layer. It includes
+ * services for mapping client store ids to server stores, authorizing reads and
+ * writes, storing remote entries, and binding session authentication keys.
+ *
+ * Because payloads and journals are unencrypted, storage must be protected by
+ * the surrounding infrastructure. Session authentication bindings are part of
+ * the storage contract and must be persisted by durable implementations so a
+ * public key cannot silently bind to a different signing key after a restart.
+ * The provided memory storage is process-local and intended for ephemeral
+ * servers, tests, or examples rather than durable multi-process use.
+ *
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"

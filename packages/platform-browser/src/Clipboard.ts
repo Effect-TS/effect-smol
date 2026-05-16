@@ -1,4 +1,20 @@
 /**
+ * Browser clipboard service for Effect programs.
+ *
+ * This module wraps the browser `navigator.clipboard` API in a `Clipboard`
+ * service so client-side applications can read, write, and clear clipboard
+ * contents as typed Effects. It is useful for common UI workflows such as copy
+ * buttons, paste/import actions, sharing generated text, and moving rich
+ * clipboard payloads like `Blob`-backed `ClipboardItem`s through an Effect
+ * environment.
+ *
+ * Browser clipboard rules still apply. Clipboard access generally requires a
+ * secure context, and browsers may require a user gesture, permission prompt, or
+ * active focused document before reads or writes are allowed. Support also
+ * varies by operation and payload type: text helpers are the most portable,
+ * while `ClipboardItem` and non-text MIME types may be unavailable or restricted
+ * in some browsers. Failed browser operations are surfaced as `ClipboardError`.
+ *
  * @since 1.0.0
  */
 import * as Context from "effect/Context"

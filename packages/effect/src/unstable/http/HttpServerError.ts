@@ -1,4 +1,24 @@
 /**
+ * Error types and response conversion helpers used by the HTTP server runtime.
+ *
+ * This module models the failure cases that can happen around a server request:
+ * malformed or unreadable requests, unmatched routes, unexpected handler
+ * failures, response construction or delivery failures, and lower-level server
+ * implementation failures. These errors keep the relevant request, and for
+ * response failures the response that was being produced, so applications can
+ * report, inspect, or translate failures without losing HTTP context.
+ *
+ * Most users encounter these errors when decoding request bodies, implementing
+ * fallback routes, adding error reporting, or customizing how handler failures
+ * become responses. Request parse errors become `400` responses, missing routes
+ * become `404` responses and are ignored by the error reporter, and internal or
+ * response errors become `500` responses. A `ResponseError` records the response
+ * involved in the failure, but its default conversion intentionally sends an
+ * empty `500` instead of reusing a response that may already be invalid or
+ * partially failed. Handler causes can also contain respondable failures,
+ * response defects, or interrupts; the conversion helpers preserve those
+ * distinctions, including `499` for client aborts and `503` for server aborts.
+ *
  * @since 4.0.0
  */
 import * as Cause from "../../Cause.ts"

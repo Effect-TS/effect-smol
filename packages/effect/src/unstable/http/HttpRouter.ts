@@ -1,4 +1,21 @@
 /**
+ * Layer-based server-side HTTP routing for Effect applications.
+ *
+ * This module provides the `HttpRouter` service and helpers for registering
+ * method/path handlers, grouping routes under prefixes, decoding request
+ * schemas from route and search parameters, and turning an application layer
+ * into an `HttpServer` or Fetch-compatible handler. It is intended for HTTP
+ * APIs, webhooks, and other server endpoints that want request-scoped services
+ * and typed middleware to be composed through `Layer`.
+ *
+ * Route paths must be absolute paths beginning with `/`, or the wildcard `*`.
+ * Prefixed routes remove the matched prefix from the request URL seen by the
+ * handler, `HEAD` requests fall back to matching `GET` routes, and wildcard
+ * paths ending in `/*` also match the prefix path itself. Use router middleware
+ * when you need to provide request dependencies, handle configured route errors,
+ * or modify route responses; server middleware wraps the wider server chain and
+ * is not the right hook for changing the final response body or headers.
+ *
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"

@@ -1,4 +1,21 @@
 /**
+ * Utilities for inspecting, decoding, and filtering HTTP client responses.
+ *
+ * An `HttpClientResponse` pairs the platform `Response` with the request that
+ * produced it, exposing status, headers, cookies, and effectful views of the
+ * response body. Use this module after an `HttpClient` call to branch on status
+ * with `matchStatus` or `filterStatus`, decode JSON or URL-encoded bodies with
+ * schemas, stream bytes, or adapt a Web `Response` with `fromWeb`.
+ *
+ * Response bodies come from the underlying Web response and should be decoded
+ * deliberately: `json` parses an empty text body as `null`, body readers fail
+ * with `HttpClientError` when decoding fails, and the raw stream fails when no
+ * body is present. Headers are represented by the HTTP `Headers` module's
+ * single-value, lowercase map, while response cookies are parsed separately from
+ * `Set-Cookie` headers. Status values are not considered errors by themselves;
+ * use the provided filters or matchers when only specific status codes are
+ * acceptable.
+ *
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"

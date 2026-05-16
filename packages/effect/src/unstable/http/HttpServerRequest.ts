@@ -1,4 +1,21 @@
 /**
+ * Utilities for working with the request visible to HTTP server handlers.
+ *
+ * This module defines `HttpServerRequest`, the request-scoped context service
+ * used by server effects, middleware, schema decoders, multipart parsers,
+ * WebSocket upgrades, and conversions between Effect HTTP requests, client
+ * requests, and Web `Request` values. Handlers commonly use it to inspect the
+ * method, URL, headers, cookies, remote address, and body, or to decode those
+ * parts with schemas instead of parsing raw values by hand.
+ *
+ * Body access is effectful because reading, parsing, schema decoding, or
+ * multipart persistence can fail. Streaming request bodies may be single-use
+ * depending on the underlying platform, while cached accessors such as text,
+ * JSON, URL parameters, array buffers, and persisted multipart data reuse the
+ * first read. Multipart persistence also requires `Scope`, `FileSystem`, and
+ * `Path` services, and search parameter decoding depends on the
+ * `ParsedSearchParams` service being provided by the router or adapter.
+ *
  * @since 4.0.0
  */
 import type * as Arr from "../../Array.ts"

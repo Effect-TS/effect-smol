@@ -1,4 +1,20 @@
 /**
+ * Utilities for encoding Effect channel payloads and schema values as
+ * newline-delimited JSON.
+ *
+ * NDJSON represents a stream as one complete JSON value per line, making this
+ * module useful for log pipelines, long-lived HTTP responses, socket protocols,
+ * and file formats where records should be processed incrementally instead of
+ * buffering a whole JSON array. Use the byte helpers at transport boundaries
+ * that speak UTF-8, the string helpers when text framing is already handled,
+ * and the schema-aware helpers when each record should be validated or
+ * transformed at the boundary.
+ *
+ * Encoders append a trailing newline after each emitted chunk, and decoders
+ * tolerate records split across input chunks. Empty lines are only skipped when
+ * `ignoreEmptyLines` is enabled; otherwise they are passed to `JSON.parse` and
+ * fail like any other invalid JSON record.
+ *
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"

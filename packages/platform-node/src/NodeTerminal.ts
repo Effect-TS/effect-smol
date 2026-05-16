@@ -1,4 +1,14 @@
 /**
+ * Provides the Node.js `Terminal` service for interactive command-line
+ * programs, prompts, and tools that need to read lines, react to key presses,
+ * write to stdout, or inspect terminal dimensions.
+ *
+ * The implementation is backed by the current process' stdin and stdout. When
+ * stdin is a TTY, key input temporarily enables raw mode for the scope of the
+ * service, so callers should acquire it with a scope or use the provided layer
+ * to ensure terminal state is restored. In non-TTY environments, terminal
+ * dimensions may be reported as zero and raw-mode key handling is unavailable.
+ *
  * @since 1.0.0
  */
 import * as NodeTerminal from "@effect/platform-node-shared/NodeTerminal"
