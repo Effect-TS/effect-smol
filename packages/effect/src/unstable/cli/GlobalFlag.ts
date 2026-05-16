@@ -176,7 +176,7 @@ export const Help: Action<boolean> = action({
 })
 
 /**
- * The `--version` global flag.
+ * The `--version` / `-v` global flag.
  * Shows version information for the command.
  *
  * @category references
@@ -184,6 +184,7 @@ export const Help: Action<boolean> = action({
  */
 export const Version: Action<boolean> = action({
   flag: Flag.boolean("version").pipe(
+    Flag.withAlias("v"),
     Flag.withDescription("Show version information")
   ),
   run: (_, { command, version }) =>

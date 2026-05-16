@@ -407,9 +407,9 @@ export const none: Flag<never> = Param.none(Param.flagKind)
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
- * // Flag can be used as both --verbose and -v
- * const verboseFlag = Flag.boolean("verbose").pipe(
- *   Flag.withAlias("v")
+ * // Flag can be used as both --quiet and -q
+ * const quietFlag = Flag.boolean("quiet").pipe(
+ *   Flag.withAlias("q")
  * )
  *
  * // Multiple aliases can be chained
