@@ -7288,7 +7288,9 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
             a: Schema.String.pipe(Schema.encodedKey("dup")),
             b: Schema.Number.pipe(Schema.encodedKey("dup"))
           }),
-        /Duplicate encoded key "dup"/
+        (error) => {
+          strictEqual((error as Error).message, `Duplicate encoded key "dup" for fields "a" and "b"`)
+        }
       )
     })
 

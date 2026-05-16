@@ -408,7 +408,7 @@ export function declare<T, Iso = T>(
 
 /**
  * Widens a schema's type to the fully-parameterized {@link Bottom} interface,
- * making all 14 type parameters visible to TypeScript.
+ * making all type parameters visible to TypeScript.
  *
  * Normally, concrete schema interfaces (e.g. `Schema<string>`) hide most type
  * parameters. `revealBottom` is useful when writing generic utilities that need
@@ -421,7 +421,7 @@ export function declare<T, Iso = T>(
  *
  * const schema = Schema.String
  *
- * // Widen to Bottom to access all 14 type parameters
+ * // Widen to Bottom to access all type parameters
  * const bottom = Schema.revealBottom(schema)
  *
  * // `bottom` now exposes Type, Encoded, DecodingServices, EncodingServices,
@@ -449,7 +449,8 @@ export function revealBottom<S extends Top>(
   S["~type.optionality"],
   S["~type.constructor.default"],
   S["~encoded.mutability"],
-  S["~encoded.optionality"]
+  S["~encoded.optionality"],
+  S["~encoded.key"]
 > {
   return bottom
 }
@@ -563,7 +564,7 @@ export interface encodedKey<S extends Top, Key extends PropertyKey> extends
     S["DecodingServices"],
     S["EncodingServices"],
     S["ast"],
-    encodedKey<S, Key>,
+    S["Rebuild"],
     S["~type.make.in"],
     S["Iso"],
     S["~type.parameters"],
@@ -636,7 +637,8 @@ export interface Top extends
     Optionality,
     ConstructorDefault,
     Mutability,
-    Optionality
+    Optionality,
+    PropertyKey
   >
 {}
 
@@ -2623,9 +2625,11 @@ function makeEncodedFields<
     const encodedKey = Object.hasOwn(mapping, key) ? mapping[key]! : key
     const previous = seen.get(encodedKey)
     if (previous !== undefined && previous !== key) {
-      throw new Error(
-        `Duplicate encoded key ${JSON.stringify(String(encodedKey))} for fields ${JSON.stringify(String(previous))} and ${
-          JSON.stringify(String(key))
+      throw new globalThis.Error(
+        `Duplicate encoded key ${globalThis.JSON.stringify(globalThis.String(encodedKey))} for fields ${
+          globalThis.JSON.stringify(globalThis.String(previous))
+        } and ${
+          globalThis.JSON.stringify(globalThis.String(key))
         }`
       )
     }
@@ -2667,7 +2671,7 @@ function makeStruct<const Fields extends Struct.Fields>(
     makeStructMethods(fields)
   )) as Struct<Fields>
   const mapping = getFieldEncodedKeyMapping(fields)
-  return Reflect.ownKeys(mapping).length === 0 ? out : Object.assign(encodeKeys(mapping)(out), makeStructMethods(fields))
+  return Reflect.ownKeys(mapping).length === 0 ? out : Object.assign(encodeKeys(mapping)(out), makeStructMethods(fields)) as any
 }
 
 /**
