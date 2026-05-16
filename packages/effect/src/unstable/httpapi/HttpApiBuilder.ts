@@ -563,6 +563,7 @@ type PayloadDecoder =
   }
   | {
     readonly _tag: "Json" | "FormUrlEncoded" | "Uint8Array" | "Text"
+    readonly undefinedOnEmpty: boolean
     readonly nullOnEmpty: boolean
     readonly decode: (input: unknown) => Effect.Effect<unknown, Schema.SchemaError, unknown>
   }
@@ -579,11 +580,18 @@ function buildPayloadDecoders(
       result.set(contentType, {
         _tag: encoding._tag,
         decode,
+        undefinedOnEmpty: schemas.some((s) => hasUndefined(AST.toType(s.ast))),
         nullOnEmpty: schemas.some((s) => AST.isNull(AST.toEncoded(s.ast)))
       })
     }
   })
   return result
+}
+
+function hasUndefined(ast: AST.AST): boolean {
+  if (AST.isUndefined(ast) || AST.isVoid(ast)) return true
+  if (AST.isUnion(ast)) return ast.types.some(hasUndefined)
+  return false
 }
 
 function decodePayload(
@@ -616,13 +624,13 @@ function decodePayload(
       )
     }
     case "Json":
-      const json = Effect.orDie(Effect.flatMap(httpRequest.text, (text) => {
+      return Effect.orDie(Effect.flatMap(httpRequest.text, (text) => {
         if (text === "") {
-          return existing.nullOnEmpty ? Effect.succeed(null) : Effect.undefined
+          if (existing.undefinedOnEmpty) return Effect.undefined
+          return decode(existing.nullOnEmpty ? null : undefined)
         }
-        return Effect.succeed(JSON.parse(text))
+        return Effect.flatMap(Effect.succeed(JSON.parse(text)), decode)
       }))
-      return Effect.flatMap(json, decode)
     case "Text":
       return Effect.flatMap(Effect.orDie(httpRequest.text), decode)
     case "FormUrlEncoded": {
