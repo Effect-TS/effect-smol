@@ -37,3 +37,9 @@ scratchpad/**/*
 
 # Codex
 .agents/
+
+# OpenCode
+.opencode/session-logs
+.opencode/plugins
+.opencode/package-lock.json
+opencode.jsonc
