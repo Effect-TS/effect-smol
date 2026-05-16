@@ -244,6 +244,8 @@ export interface Secret {
 export interface Options {
   /**
    * Outer options.
+   *
+   * @category models
    */
   readonly outer: {
     readonly inner: string
@@ -267,6 +269,31 @@ export interface Options {
     const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
 
     expect(errors).toHaveLength(0)
+  })
+
+  it("requires @category when member docs are present", () => {
+    const source = `/**
+ * Options.
+ *
+ * @category models
+ * @since 1.0.0
+ */
+export interface Options {
+  /**
+   * Outer options.
+   */
+  readonly outer: string
+}
+`
+    const outer = node(source, "readonly outer", "TSPropertySignature")
+    const declaration = node(source, "export interface Options", "TSInterfaceDeclaration", {
+      body: { body: [outer] }
+    })
+    const exportNode = exportNamed(source, "export interface Options", declaration)
+    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
+
+    expect(errors).toHaveLength(1)
+    expect(errors[0].message).toBe("Member JSDoc must include @category")
   })
 
   it("validates member docs recursively when present", () => {
@@ -303,8 +330,7 @@ export interface Options {
     const exportNode = exportNamed(source, "export interface Options", declaration)
     const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
 
-    expect(errors).toHaveLength(1)
-    expect(errors[0].message).toBe("@category is not allowed in member JSDoc")
+    expect(errors).toHaveLength(0)
   })
 
   it("does not require member docs for anonymous call signatures in exported value type literals", () => {
@@ -319,6 +345,8 @@ export const value: {
   new <A>(self: A): A
   /**
    * A named member.
+   *
+   * @category models
    */
   readonly member: string
 } = undefined as never
@@ -590,7 +618,7 @@ export function decode(input: unknown): string {
     expect(errors).toHaveLength(0)
   })
 
-  it("does not report namespace member exports twice", () => {
+  it("forbids @category on namespace JSDoc", () => {
     const source = `/**
  * Option namespace.
  *
@@ -601,8 +629,8 @@ export declare namespace Option {
   /**
    * Extracts the value type.
    *
-   * @since 1.0.0
    * @category type-level utils
+   * @since 1.0.0
    */
   export type Value<T> = T
 }
@@ -621,7 +649,67 @@ export declare namespace Option {
     ])
 
     expect(errors).toHaveLength(1)
-    expect(errors[0].message).toBe("@category is out of order in JSDoc")
+    expect(errors[0].message).toBe("@category is not allowed in namespace JSDoc")
+  })
+
+  it("does not require public JSDoc tags on namespace member exports", () => {
+    const source = `/**
+ * Option namespace.
+ *
+ * @since 1.0.0
+ */
+export declare namespace Option {
+  export type Value<T> = T
+}
+`
+    const valueDeclaration = node(source, "export type Value", "TSTypeAliasDeclaration", {
+      typeAnnotation: null
+    })
+    const valueExport = exportNamed(source, "export type Value", valueDeclaration)
+    const namespaceDeclaration = node(source, "export declare namespace Option", "TSModuleDeclaration", {
+      body: { body: [valueExport] }
+    })
+    const namespaceExport = exportNamed(source, "export declare namespace Option", namespaceDeclaration)
+    const errors = runRuleWithSource(source, [
+      { visitor: "ExportNamedDeclaration", node: namespaceExport },
+      { visitor: "ExportNamedDeclaration", node: valueExport }
+    ])
+
+    expect(errors).toHaveLength(0)
+  })
+
+  it("allows @category on documented class members", () => {
+    const source = `/**
+ * A service.
+ *
+ * @category services
+ * @since 1.0.0
+ */
+export class Service {
+  /**
+   * Runs the service.
+   *
+   * @category services
+   * @since 1.0.0
+   */
+  run() {}
+}
+`
+    const run = node(source, "run", "MethodDefinition", {
+      kind: "method",
+      value: {
+        type: "FunctionExpression",
+        params: [],
+        returnType: null
+      }
+    })
+    const declaration = node(source, "export class Service", "ClassDeclaration", {
+      body: { body: [run] }
+    })
+    const exportNode = exportNamed(source, "export class Service", declaration)
+    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
+
+    expect(errors).toHaveLength(0)
   })
 
   it("skips files outside the configured include globs", () => {

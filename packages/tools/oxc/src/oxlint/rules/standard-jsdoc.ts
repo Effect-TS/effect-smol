@@ -13,7 +13,7 @@ interface RuleOptions {
 }
 
 type ExportBucket = "value" | "type"
-type JSDocKind = "declaration" | "member" | "module"
+type JSDocKind = "declaration" | "member" | "module" | "namespace"
 
 interface AstNode {
   readonly type: string
@@ -52,7 +52,8 @@ const masterTagOrder = new Map([
 ])
 
 const declarationTags = new Set(["deprecated", "default", "see", "category", "since", "internal"])
-const memberTags = new Set(["deprecated", "default", "see", "since", "internal"])
+const namespaceTags = new Set(["deprecated", "default", "see", "since", "internal"])
+const memberTags = declarationTags
 const moduleTags = new Set(["deprecated", "see", "since"])
 const onePerBlockTags = new Set(["deprecated", "default", "category", "since", "internal"])
 
@@ -378,6 +379,7 @@ const rule: CreateRule = {
     let firstPublicExport: AstNode | undefined
     const checkedExports = new Set<string>()
     const checkedFunctionOverloads = new Set<string>()
+    const checkedNamespaceMemberExports = new Set<string>()
 
     function report(node: AstNode, message: string) {
       context.report({ node: node as ESTree.Node, message })
@@ -474,12 +476,17 @@ const rule: CreateRule = {
       }
     }
 
-    function validatePublicBlock(node: AstNode, block: JSDocBlock, bucket: ExportBucket) {
-      validateTags(node, block, declarationTags, "declaration")
+    function validatePublicBlock(node: AstNode, block: JSDocBlock, bucket: ExportBucket, isNamespace: boolean) {
+      validateTags(
+        node,
+        block,
+        isNamespace ? namespaceTags : declarationTags,
+        isNamespace ? "namespace" : "declaration"
+      )
       if (!block.hasDescription) {
         report(node, "Public JSDoc must include a description")
       }
-      if (tagCount(block, "category") === 0) {
+      if (!isNamespace && tagCount(block, "category") === 0) {
         report(node, "Public JSDoc must include @category")
       }
       if (tagCount(block, "since") === 0) {
@@ -497,6 +504,9 @@ const rule: CreateRule = {
       validateTags(node, block, memberTags, "member")
       if (!block.hasDescription) {
         report(node, "Member JSDoc must include a description")
+      }
+      if (tagCount(block, "category") === 0) {
+        report(node, "Member JSDoc must include @category")
       }
       validateExamples(node, block, "forbidden")
     }
@@ -685,12 +695,48 @@ const rule: CreateRule = {
       }
     }
 
+    function checkDeclarationMembers(declaration: AstNode) {
+      switch (declaration.type) {
+        case "VariableDeclaration":
+          checkVariableDeclaration(declaration)
+          break
+        case "FunctionDeclaration":
+        case "TSDeclareFunction":
+          inspectFunctionLike(declaration)
+          break
+        case "ClassDeclaration":
+        case "ClassExpression":
+          checkClassMembers(declaration)
+          break
+        case "TSEnumDeclaration":
+          checkEnumMembers(declaration)
+          break
+        case "TSTypeAliasDeclaration":
+          inspectType(declaration.typeAnnotation)
+          break
+        case "TSInterfaceDeclaration":
+          checkTypeLiteralMembers(declaration.body?.body)
+          break
+        case "TSModuleDeclaration":
+          checkNamespaceMembers(declaration)
+          break
+      }
+    }
+
     function checkNamespaceMembers(namespaceNode: AstNode) {
       for (const statement of namespaceNode.body?.body ?? []) {
         if (statement.type === "ExportNamedDeclaration" && statement.declaration) {
-          checkExportedDeclaration(statement, statement.declaration)
+          checkedNamespaceMemberExports.add(getNodeKey(statement))
+          const internal = validateMemberIfPresent(statement)
+          if (!internal) {
+            checkDeclarationMembers(statement.declaration)
+          }
         } else if (statement.type === "ExportDefaultDeclaration") {
-          checkExportedDeclaration(statement, statement.declaration)
+          checkedNamespaceMemberExports.add(getNodeKey(statement))
+          const internal = validateMemberIfPresent(statement)
+          if (!internal) {
+            checkDeclarationMembers(statement.declaration)
+          }
         }
       }
     }
@@ -747,6 +793,9 @@ const rule: CreateRule = {
         return
       }
       const key = getNodeKey(exportNode)
+      if (checkedNamespaceMemberExports.has(key)) {
+        return
+      }
       if (checkedExports.has(key)) {
         return
       }
@@ -768,33 +817,9 @@ const rule: CreateRule = {
         return
       }
 
-      validatePublicBlock(exportNode, block, bucket)
+      validatePublicBlock(exportNode, block, bucket, declaration.type === "TSModuleDeclaration")
 
-      switch (declaration.type) {
-        case "VariableDeclaration":
-          checkVariableDeclaration(declaration)
-          break
-        case "FunctionDeclaration":
-        case "TSDeclareFunction":
-          inspectFunctionLike(declaration)
-          break
-        case "ClassDeclaration":
-        case "ClassExpression":
-          checkClassMembers(declaration)
-          break
-        case "TSEnumDeclaration":
-          checkEnumMembers(declaration)
-          break
-        case "TSTypeAliasDeclaration":
-          inspectType(declaration.typeAnnotation)
-          break
-        case "TSInterfaceDeclaration":
-          checkTypeLiteralMembers(declaration.body?.body)
-          break
-        case "TSModuleDeclaration":
-          checkNamespaceMembers(declaration)
-          break
-      }
+      checkDeclarationMembers(declaration)
     }
 
     return {
