@@ -73,6 +73,9 @@ export class RunnerStorage extends Context.Service<RunnerStorage, {
 }>()("effect/cluster/RunnerStorage") {}
 
 /**
+ * String-encoded runner storage interface used by adapters that persist runner
+ * addresses, runners, machine ids, and shard ids outside the in-memory model.
+ *
  * @category Encoded
  * @since 4.0.0
  */
@@ -130,6 +133,10 @@ export interface Encoded {
 }
 
 /**
+ * Adapts an encoded runner storage implementation into `RunnerStorage`, converting
+ * runner addresses, runners, machine ids, and shard ids between typed values and
+ * their string or numeric storage forms.
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -176,6 +183,11 @@ export const makeEncoded = (encoded: Encoded) =>
   })
 
 /**
+ * Creates an in-memory `RunnerStorage` implementation for tests and local use.
+ *
+ * Registered runners are treated as healthy and shard acquisition is kept only in
+ * process memory.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -207,6 +219,8 @@ export const makeMemory = Effect.gen(function*() {
 })
 
 /**
+ * Layer that provides the in-memory `RunnerStorage` implementation.
+ *
  * @category layers
  * @since 4.0.0
  */

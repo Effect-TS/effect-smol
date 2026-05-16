@@ -14,6 +14,11 @@ import * as EventJournal from "./EventJournal.ts"
 type WriteFromRemoteOptions = Parameters<EventJournal.EventJournal["Service"]["writeFromRemote"]>[0]
 
 /**
+ * Creates an `EventJournal` backed by a SQL database.
+ *
+ * The constructor creates the entry and remote metadata tables when needed,
+ * persists local and remote entries, and uses the configured `SqlClient`.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -267,6 +272,9 @@ export const make = (options?: {
   })
 
 /**
+ * Provides `EventJournal` using the SQL-backed implementation created by
+ * `make`.
+ *
  * @category layers
  * @since 4.0.0
  */

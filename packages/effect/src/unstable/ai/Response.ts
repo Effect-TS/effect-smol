@@ -438,17 +438,8 @@ export type ToolResultParts<Tools extends Record<string, Tool.Any>> = {
 // =============================================================================
 
 /**
- * Schema for provider-specific metadata which can be attached to response parts.
- *
- * Provider-specific metadata is namespaced by provider and has the structure:
- *
- * ```
- * {
- *   "<provider-specific-key>": {
- *     // Provider-specific metadata
- *   }
- * }
- * ```
+ * Schema for provider-specific metadata attached to response parts,
+ * represented as a record from provider-specific keys to JSON values or `null`.
  *
  * @category schemas
  * @since 1.0.0
@@ -459,6 +450,9 @@ export const ProviderMetadata: Schema.$Record<
 > = Schema.Record(Schema.String, Schema.NullOr(Schema.Json))
 
 /**
+ * Type of provider-specific metadata attached to response parts, keyed by
+ * provider-specific names with JSON or `null` values.
+ *
  * @category models
  * @since 1.0.0
  */
@@ -832,10 +826,9 @@ export const TextEndPart: Schema.Struct<{
 // =============================================================================
 
 /**
- * Response part representing reasoning or chain-of-thought content.
- *
- * Contains the internal reasoning process or explanation from the large
- * language model.
+ * Response part carrying provider-supplied reasoning text, such as an exposed
+ * reasoning summary or explanation. Do not assume it contains hidden
+ * chain-of-thought.
  *
  * **Example** (Creating a reasoning part)
  *
@@ -2321,6 +2314,12 @@ export const FinishReason: Schema.Literals<[
 ])
 
 /**
+ * Type of the reason why a model stopped generating a response.
+ *
+ * Values include normal stops, token-limit stops, content filtering,
+ * tool-call pauses, provider errors, and unknown provider-specific finish
+ * reasons.
+ *
  * @category models
  * @since 1.0.0
  */

@@ -11,6 +11,8 @@ import type { BundleStats } from "./Rollup.ts"
 import { Rollup } from "./Rollup.ts"
 
 /**
+ * Error raised when generating a bundle size report or visualization fails.
+ *
  * @category errors
  * @since 1.0.0
  */
@@ -19,6 +21,8 @@ export class ReporterError extends Data.TaggedError("ReporterError")<{
 }> {}
 
 /**
+ * Options for generating a bundle size comparison report against fixture files from a base directory.
+ *
  * @category models
  * @since 1.0.0
  */
@@ -27,6 +31,8 @@ export interface ReportOptions {
 }
 
 /**
+ * Options for generating bundle visualizations for selected entry files into an output directory.
+ *
  * @category models
  * @since 1.0.0
  */
@@ -36,6 +42,8 @@ export interface VisualizeOptions {
 }
 
 /**
+ * Options for generating a bundle size report for an explicit list of entry files.
+ *
  * @category models
  * @since 1.0.0
  */
@@ -44,6 +52,8 @@ export interface ReportSelectedOptions {
 }
 
 /**
+ * Context service for producing bundle size reports and visualizations from Rollup-generated fixture stats.
+ *
  * @category services
  * @since 1.0.0
  */

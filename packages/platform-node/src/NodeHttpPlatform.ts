@@ -13,6 +13,9 @@ import Mime from "./Mime.ts"
 import * as NodeFileSystem from "./NodeFileSystem.ts"
 
 /**
+ * Creates the Node `HttpPlatform`, serving file responses from Node readable
+ * streams and adding MIME type and content-length headers when needed.
+ *
  * @category Constructors
  * @since 1.0.0
  */
@@ -47,6 +50,9 @@ export const make = Platform.make({
 })
 
 /**
+ * Provides the Node `HttpPlatform` together with the filesystem and ETag
+ * services it needs for file responses.
+ *
  * @category Layers
  * @since 1.0.0
  */

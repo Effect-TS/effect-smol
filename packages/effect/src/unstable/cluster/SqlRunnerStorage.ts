@@ -18,6 +18,10 @@ import * as ShardingConfig from "./ShardingConfig.ts"
 const withTracerDisabled = Effect.withTracerEnabled(false)
 
 /**
+ * Creates a SQL-backed `RunnerStorage` implementation for registered runners and
+ * shard locks, using the configured table prefix and advisory locks where
+ * supported and enabled.
+ *
  * @category Constructors
  * @since 4.0.0
  */
@@ -643,6 +647,8 @@ export const make = Effect.fnUntraced(function*(options: {
 }, withTracerDisabled)
 
 /**
+ * Layer that provides SQL-backed `RunnerStorage` using the default table prefix.
+ *
  * @category Layers
  * @since 4.0.0
  */
@@ -653,6 +659,8 @@ export const layer: Layer.Layer<
 > = Layer.effect(RunnerStorage.RunnerStorage)(make({}))
 
 /**
+ * Layer that provides SQL-backed `RunnerStorage` using a custom table prefix.
+ *
  * @category Layers
  * @since 4.0.0
  */

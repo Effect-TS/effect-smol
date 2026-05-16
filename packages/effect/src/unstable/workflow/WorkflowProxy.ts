@@ -76,6 +76,9 @@ export const toRpcGroup = <
 }
 
 /**
+ * Maps each workflow to the RPC definitions generated for execute, discard,
+ * and resume operations.
+ *
  * @since 4.0.0
  */
 export type ConvertRpcs<Workflows extends Workflow.Any, Prefix extends string> = Workflows extends Workflow.Workflow<
@@ -162,6 +165,9 @@ const tagToPath = (tag: string): string =>
     .toLowerCase()
 
 /**
+ * Maps each workflow to the HTTP API endpoints generated for execute,
+ * discard, and resume operations.
+ *
  * @since 4.0.0
  */
 export type ConvertHttpApi<Workflows extends Workflow.Any> = Workflows extends Workflow.Workflow<

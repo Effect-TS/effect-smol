@@ -23,12 +23,18 @@ import * as HttpApiSchema from "./HttpApiSchema.ts"
 const TypeId = "~effect/httpapi/HttpApiEndpoint"
 
 /**
+ * Returns `true` when a value is an `HttpApiEndpoint`, narrowing the value to the
+ * endpoint interface.
+ *
  * @category guards
  * @since 4.0.0
  */
 export const isHttpApiEndpoint = (u: unknown): u is HttpApiEndpoint<any, any, any> => Predicate.hasProperty(u, TypeId)
 
 /**
+ * Maps content types to the payload encoding strategy and one or more schemas that
+ * can decode or encode payloads for that content type.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -183,6 +189,9 @@ export function getErrorSchemas(endpoint: AnyWithProps): Array<Schema.Top> {
 }
 
 /**
+ * A widened `HttpApiEndpoint` type used when the concrete method, path, schemas,
+ * and middleware types are not needed.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -194,6 +203,9 @@ export interface Any extends Pipeable {
 }
 
 /**
+ * A widened endpoint type that preserves concrete runtime properties such as
+ * method, path, schemas, annotations, and middleware sets.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -202,6 +214,8 @@ export interface AnyWithProps
 {}
 
 /**
+ * Extracts the name literal from an `HttpApiEndpoint`.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -221,6 +235,8 @@ export type Name<Endpoint> = Endpoint extends HttpApiEndpoint<
   : never
 
 /**
+ * Extracts the success schema associated with an endpoint.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -240,6 +256,8 @@ export type Success<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   : never
 
 /**
+ * Extracts the error schema associated with an endpoint.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -259,6 +277,8 @@ export type Error<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   : never
 
 /**
+ * Extracts the schema used for an endpoint's path parameters.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -278,6 +298,8 @@ export type Params<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   : never
 
 /**
+ * Extracts the schema used for an endpoint's query parameters.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -297,6 +319,8 @@ export type Query<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   : never
 
 /**
+ * Extracts the schema used for an endpoint's request payload.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -316,6 +340,8 @@ export type Payload<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   : never
 
 /**
+ * Extracts the schema used for an endpoint's request headers.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -335,6 +361,8 @@ export type Headers<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   : never
 
 /**
+ * Extracts the middleware identifiers attached to an endpoint.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -354,24 +382,34 @@ export type Middleware<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   : never
 
 /**
+ * Computes the services provided by the middleware attached to an endpoint.
+ *
  * @category models
  * @since 4.0.0
  */
 export type MiddlewareProvides<Endpoint extends Any> = HttpApiMiddleware.Provides<Middleware<Endpoint>>
 
 /**
+ * Computes the client-side middleware services required by an endpoint.
+ *
  * @category models
  * @since 4.0.0
  */
 export type MiddlewareClient<Endpoint extends Any> = HttpApiMiddleware.MiddlewareClient<Middleware<Endpoint>>
 
 /**
+ * Computes the error types that can be produced by the middleware attached to an
+ * endpoint.
+ *
  * @category models
  * @since 4.0.0
  */
 export type MiddlewareError<Endpoint extends Any> = HttpApiMiddleware.Error<Middleware<Endpoint>>
 
 /**
+ * Computes the full error value union for an endpoint, including the endpoint
+ * error schema's type and errors introduced by middleware.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -391,6 +429,9 @@ export type Errors<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   : never
 
 /**
+ * Computes the services required to encode an endpoint's error responses,
+ * including services required by middleware error encoders.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -410,6 +451,10 @@ export type ErrorServicesEncode<Endpoint extends Any> = Endpoint extends HttpApi
   : never
 
 /**
+ * Builds the decoded request shape passed to a normal endpoint handler, including
+ * available params, query, payload, headers, the raw request, endpoint, and group.
+ * Multipart stream payloads are exposed as streams of parts.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -441,6 +486,10 @@ export type Request<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   : {}
 
 /**
+ * Builds the request shape passed to a raw endpoint handler, including decoded
+ * params, query, and headers plus the raw request, endpoint, and group, while
+ * leaving payload handling to the raw request.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -468,6 +517,10 @@ export type RequestRaw<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   : {}
 
 /**
+ * Builds the request object accepted by a generated client method, including only
+ * the params, query, headers, payload, and response mode fields required by the
+ * endpoint. Multipart payloads are supplied as `FormData`.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -492,12 +545,18 @@ export type ClientRequest<
   void
 
 /**
+ * Controls what a generated client method returns: the decoded success value,
+ * the decoded value paired with the raw response, or only the raw response.
+ *
  * @category models
  * @since 4.0.0
  */
 export type ClientResponseMode = "decoded-only" | "decoded-and-response" | "response-only"
 
 /**
+ * Computes the services required on the server to decode endpoint inputs and
+ * encode endpoint success, error, and middleware error responses.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -524,6 +583,9 @@ export type ServerServices<Endpoint> = Endpoint extends HttpApiEndpoint<
   : never
 
 /**
+ * Computes the services required on the client to encode endpoint requests and
+ * decode endpoint success or error responses.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -549,6 +611,8 @@ export type ClientServices<Endpoint> = Endpoint extends HttpApiEndpoint<
   : never
 
 /**
+ * Extracts the additional services required by middleware applied to an endpoint.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -568,6 +632,9 @@ export type MiddlewareServices<Endpoint> = Endpoint extends HttpApiEndpoint<
   : never
 
 /**
+ * Computes the services required to decode an endpoint's error responses,
+ * including services required by middleware error decoders.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -587,6 +654,9 @@ export type ErrorServicesDecode<Endpoint> = Endpoint extends HttpApiEndpoint<
   : never
 
 /**
+ * The normal server handler for an endpoint, accepting the decoded request shape
+ * and returning either the endpoint success value or a custom `HttpServerResponse`.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -595,6 +665,9 @@ export type Handler<Endpoint extends Any, E, R> = (
 ) => Effect<Endpoint["~Success"]["Type"] | HttpServerResponse, Endpoint["~Error"]["Type"] | E, R>
 
 /**
+ * The raw server handler for an endpoint, receiving a request shape without a
+ * decoded payload so the handler can read the raw `HttpServerRequest` directly.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -603,18 +676,25 @@ export type HandlerRaw<Endpoint extends Any, E, R> = (
 ) => Effect<Endpoint["~Success"]["Type"] | HttpServerResponse, Endpoint["~Error"]["Type"] | E, R>
 
 /**
+ * Selects the endpoint with the specified name from a union of endpoints.
+ *
  * @category models
  * @since 4.0.0
  */
 export type WithName<Endpoints extends Any, Name extends string> = Extract<Endpoints, { readonly name: Name }>
 
 /**
+ * Removes endpoints with the specified name from a union of endpoints.
+ *
  * @category models
  * @since 4.0.0
  */
 export type ExcludeName<Endpoints extends Any, Name extends string> = Exclude<Endpoints, { readonly name: Name }>
 
 /**
+ * Derives the normal handler type for the endpoint with the specified name in an
+ * endpoint union.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -625,6 +705,9 @@ export type HandlerWithName<Endpoints extends Any, Name extends string, E, R> = 
 >
 
 /**
+ * Derives the raw handler type for the endpoint with the specified name in an
+ * endpoint union.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -635,6 +718,9 @@ export type HandlerRawWithName<Endpoints extends Any, Name extends string, E, R>
 >
 
 /**
+ * Extracts the decoded success value type for the endpoint with the specified name
+ * in an endpoint union.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -643,12 +729,18 @@ export type SuccessWithName<Endpoints extends Any, Name extends string> = Succes
 >["Type"]
 
 /**
+ * Computes the full error value union for the endpoint with the specified name in
+ * an endpoint union.
+ *
  * @category models
  * @since 4.0.0
  */
 export type ErrorsWithName<Endpoints extends Any, Name extends string> = Errors<WithName<Endpoints, Name>>
 
 /**
+ * Computes the server-side service requirements for the endpoint with the
+ * specified name in an endpoint union.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -657,12 +749,18 @@ export type ServerServicesWithName<Endpoints extends Any, Name extends string> =
 >
 
 /**
+ * Extracts the middleware identifiers for the endpoint with the specified name in
+ * an endpoint union.
+ *
  * @category models
  * @since 4.0.0
  */
 export type MiddlewareWithName<Endpoints extends Any, Name extends string> = Middleware<WithName<Endpoints, Name>>
 
 /**
+ * Extracts the middleware service requirements for the endpoint with the specified
+ * name in an endpoint union.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -671,6 +769,9 @@ export type MiddlewareServicesWithName<Endpoints extends Any, Name extends strin
 >
 
 /**
+ * Removes services provided by the HTTP router and the named endpoint's middleware
+ * from a service requirement union.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -680,6 +781,9 @@ export type ExcludeProvidedWithName<Endpoints extends Any, Name extends string, 
 >
 
 /**
+ * Removes services provided by the HTTP router and endpoint middleware from a
+ * service requirement union.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -690,6 +794,9 @@ export type ExcludeProvided<Endpoint extends Any, R> = Exclude<
 >
 
 /**
+ * Returns an endpoint type with the supplied path prefix prepended while
+ * preserving the endpoint's schemas, method, errors, and middleware.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -721,6 +828,9 @@ export type AddPrefix<Endpoint extends Any, Prefix extends HttpRouter.PathInput>
   never
 
 /**
+ * Returns an endpoint type with an additional error schema added to the endpoint's
+ * existing error schema union.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -752,6 +862,9 @@ export type AddError<Endpoint extends Any, E extends Schema.Top> = Endpoint exte
   never
 
 /**
+ * Returns an endpoint type with additional middleware applied and the endpoint's
+ * middleware service requirements updated accordingly.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -854,6 +967,9 @@ function makeProto<
 }
 
 /**
+ * Constraint for path parameter schemas: each parameter must encode to
+ * `string | undefined`, or the schema must encode to a record of those values.
+ *
  * @category constraints
  * @since 4.0.0
  */
@@ -862,6 +978,9 @@ export type ParamsConstraint =
   | Schema.Encoder<Record<string, string | undefined>, unknown>
 
 /**
+ * Constraint for header schemas: each header must encode to `string | undefined`,
+ * or the schema must encode to a record of those values.
+ *
  * @category constraints
  * @since 4.0.0
  */
@@ -870,6 +989,9 @@ export type HeadersConstraint =
   | Schema.Encoder<Record<string, string | undefined>, unknown>
 
 /**
+ * Constraint for query schemas: each field must encode to `string`, an array of
+ * strings, or `undefined`, or the schema must encode to a record of those values.
+ *
  * @category constraints
  * @since 4.0.0
  */
@@ -895,6 +1017,10 @@ export type PayloadConstraint<Method extends HttpMethod> = Method extends HttpMe
   SuccessConstraint
 
 /**
+ * Payload constraint used when automatic codecs are enabled: no-body methods
+ * accept field records for query-style encoding, while body methods accept one or
+ * more schemas.
+ *
  * @category constraints
  * @since 4.0.0
  */
@@ -903,18 +1029,29 @@ export type PayloadConstraintCodecs<Method extends HttpMethod> = Method extends 
   Schema.Top | ReadonlyArray<Schema.Top>
 
 /**
+ * Constraint for success response schemas, allowing either a single schema or a
+ * readonly array of schemas.
+ *
  * @category constraints
  * @since 4.0.0
  */
 export type SuccessConstraint = Schema.Top | ReadonlyArray<Schema.Top>
 
 /**
+ * Constraint for error response schemas, allowing either a single schema or a
+ * readonly array of schemas.
+ *
  * @category constraints
  * @since 4.0.0
  */
 export type ErrorConstraint = Schema.Top | ReadonlyArray<Schema.Top>
 
 /**
+ * Creates endpoint constructors for a specific HTTP method. The resulting
+ * constructor builds an `HttpApiEndpoint` from a name, path, and optional request
+ * and response schemas, applying automatic JSON or string-tree codecs unless
+ * `disableCodecs` is enabled.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -1042,6 +1179,9 @@ type ExtractSchemaOrArray<S extends Schema.Struct.Fields | Schema.Top | Readonly
   : S
 
 /**
+ * A schema codec that decodes and encodes the schema's value type through JSON
+ * transport values.
+ *
  * @category Codecs
  * @since 4.0.0
  */
@@ -1050,6 +1190,9 @@ export interface Json<S extends Schema.Top>
 {}
 
 /**
+ * A schema codec that decodes and encodes the schema's value type through
+ * `Schema.StringTree` transport values.
+ *
  * @category Codecs
  * @since 4.0.0
  */
@@ -1141,24 +1284,32 @@ function transformPayload(schema: Schema.Top, method: HttpMethod): Schema.Top {
 }
 
 /**
+ * Creates a `GET` endpoint declaration.
+ *
  * @category constructors
  * @since 4.0.0
  */
 export const get = make("GET")
 
 /**
+ * Creates a `POST` endpoint declaration.
+ *
  * @category constructors
  * @since 4.0.0
  */
 export const post = make("POST")
 
 /**
+ * Creates a `PUT` endpoint declaration.
+ *
  * @category constructors
  * @since 4.0.0
  */
 export const put = make("PUT")
 
 /**
+ * Creates a `PATCH` endpoint declaration.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -1175,12 +1326,16 @@ export {
 }
 
 /**
+ * Creates a `HEAD` endpoint declaration.
+ *
  * @category constructors
  * @since 4.0.0
  */
 export const head = make("HEAD")
 
 /**
+ * Creates an `OPTIONS` endpoint declaration.
+ *
  * @category constructors
  * @since 4.0.0
  */

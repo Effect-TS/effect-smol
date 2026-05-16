@@ -23,18 +23,24 @@ const classifyError = (cause: unknown, message: string, operation: string) =>
   classifySqliteError(cause, { message, operation })
 
 /**
+ * Runtime type identifier used to mark Bun `SqliteClient` values.
+ *
  * @category type ids
  * @since 1.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-sqlite-bun/SqliteClient"
 
 /**
+ * Type-level identifier used to mark Bun `SqliteClient` values.
+ *
  * @category type ids
  * @since 1.0.0
  */
 export type TypeId = "~@effect/sql-sqlite-bun/SqliteClient"
 
 /**
+ * Bun SQLite client service, extending `SqlClient` with database export and extension loading helpers. `updateValues` is not supported.
+ *
  * @category models
  * @since 1.0.0
  */
@@ -49,12 +55,16 @@ export interface SqliteClient extends Client.SqlClient {
 }
 
 /**
+ * Context tag used to access the Bun `SqliteClient` service.
+ *
  * @category tags
  * @since 1.0.0
  */
 export const SqliteClient = Context.Service<SqliteClient>("@effect/sql-sqlite-bun/Client")
 
 /**
+ * Configuration for a Bun SQLite client, including filename, open mode flags, WAL behavior, span attributes, and query/result name transforms.
+ *
  * @category models
  * @since 1.0.0
  */
@@ -77,6 +87,8 @@ interface SqliteConnection extends Connection {
 }
 
 /**
+ * Creates a scoped Bun SQLite client for a database file, enabling WAL by default and serializing access. Streaming queries are not implemented.
+ *
  * @category constructor
  * @since 1.0.0
  */
@@ -203,6 +215,8 @@ export const make = (
   })
 
 /**
+ * Creates a layer from a `Config`-wrapped Bun SQLite client configuration, providing both `SqliteClient` and `SqlClient`.
+ *
  * @category layers
  * @since 1.0.0
  */
@@ -221,6 +235,8 @@ export const layerConfig = (
   ).pipe(Layer.provide(Reactivity.layer))
 
 /**
+ * Creates a layer from a concrete Bun SQLite client configuration, providing both `SqliteClient` and `SqlClient`.
+ *
  * @category layers
  * @since 1.0.0
  */

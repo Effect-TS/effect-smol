@@ -15,6 +15,12 @@ import type { Invariant } from "./Types.ts"
 const TypeId = "~effect/SubscriptionRef"
 
 /**
+ * A mutable reference whose updates are serialized and published to
+ * subscribers.
+ *
+ * Use `changes` to observe the current value and subsequent updates as a
+ * stream.
+ *
  * @category models
  * @since 2.0.0
  */
@@ -25,6 +31,8 @@ export interface SubscriptionRef<in out A> extends SubscriptionRef.Variance<A>, 
 }
 
 /**
+ * Returns `true` if the provided value is a `SubscriptionRef`.
+ *
  * @category guards
  * @since 4.0.0
  */
@@ -33,12 +41,16 @@ export const isSubscriptionRef: (u: unknown) => u is SubscriptionRef<unknown> = 
 ): u is SubscriptionRef<unknown> => hasProperty(u, TypeId)
 
 /**
- * The `SynchronizedRef` namespace containing type definitions and utilities.
+ * The `SubscriptionRef` namespace containing type definitions associated with
+ * subscription references.
  *
  * @since 2.0.0
  */
 export declare namespace SubscriptionRef {
   /**
+   * Type-level variance marker for the value type carried by a
+   * `SubscriptionRef`.
+   *
    * @category models
    * @since 2.0.0
    */
@@ -277,9 +289,9 @@ export const getAndUpdateEffect: {
   })))
 
 /**
- * Atomically retrieves the current value and optionally updates it with the
- * result of applying a function that returns an `Option`, notifying
- * subscribers only if the value changes.
+ * Atomically retrieves the current value and applies an update function. If
+ * the function returns `Option.some`, sets and publishes that value; if it
+ * returns `Option.none`, leaves the reference unchanged and does not publish.
  *
  * **Example** (Getting and conditionally updating a value)
  *
@@ -321,9 +333,10 @@ export const getAndUpdateSome: {
   })))
 
 /**
- * Atomically retrieves the current value and optionally updates it with the
- * result of applying an effectful function that returns an `Option`,
- * notifying subscribers only if the value changes.
+ * Atomically retrieves the current value and applies an effectful update
+ * function. If it succeeds with `Option.some`, sets and publishes that value;
+ * if it succeeds with `Option.none`, leaves the reference unchanged and does
+ * not publish.
  *
  * **Example** (Getting and conditionally updating with an effect)
  *
@@ -454,9 +467,9 @@ export const modifyEffect: {
   )))
 
 /**
- * Atomically modifies the `SubscriptionRef` with a function that computes a
- * return value and optionally a new value, notifying subscribers only if the
- * value changes.
+ * Atomically computes a return value and an optional new value. If the function
+ * returns `Option.some` for the new value, sets and publishes it; if it returns
+ * `Option.none`, leaves the reference unchanged and does not publish.
  *
  * **Example** (Conditionally modifying a value)
  *
@@ -501,9 +514,10 @@ export const modifySome: {
   })))
 
 /**
- * Atomically modifies the `SubscriptionRef` with an effectful function that
- * computes a return value and optionally a new value, notifying subscribers
- * only if the value changes.
+ * Atomically computes a return value and an optional new value with an
+ * effectful function. If the effect succeeds with `Option.some`, sets and
+ * publishes the new value; if it succeeds with `Option.none`, leaves the
+ * reference unchanged and does not publish.
  *
  * **Example** (Conditionally modifying with an effect)
  *
@@ -744,9 +758,9 @@ export const updateAndGetEffect: {
   )))
 
 /**
- * Optionally updates the value of the `SubscriptionRef` with the result of
- * applying a function that returns an `Option`, notifying subscribers only if
- * the value changes.
+ * Applies an update function to the current value. If it returns
+ * `Option.some`, sets and publishes that value; if it returns `Option.none`,
+ * leaves the reference unchanged and does not publish.
  *
  * **Example** (Conditionally updating a value)
  *
@@ -783,9 +797,9 @@ export const updateSome: {
   })))
 
 /**
- * Optionally updates the value of the `SubscriptionRef` with the result of
- * applying an effectful function that returns an `Option`, notifying
- * subscribers only if the value changes.
+ * Applies an effectful update function to the current value. If it succeeds
+ * with `Option.some`, sets and publishes that value; if it succeeds with
+ * `Option.none`, leaves the reference unchanged and does not publish.
  *
  * **Example** (Conditionally updating with an effect)
  *
@@ -828,9 +842,10 @@ export const updateSomeEffect: {
   )))
 
 /**
- * Optionally updates the value of the `SubscriptionRef` with the result of
- * applying a function that returns an `Option` and returns the new value,
- * notifying subscribers only if the value changes.
+ * Applies an update function and returns the resulting current value. If the
+ * function returns `Option.some`, sets, publishes, and returns that value; if
+ * it returns `Option.none`, returns the unchanged current value without
+ * publishing.
  *
  * **Example** (Conditionally updating and reading the new value)
  *
@@ -867,9 +882,10 @@ export const updateSomeAndGet: {
   })))
 
 /**
- * Optionally updates the value of the `SubscriptionRef` with the result of
- * applying an effectful function that returns an `Option` and returns the new
- * value, notifying subscribers only if the value changes.
+ * Applies an effectful update function and returns the resulting current
+ * value. If the effect succeeds with `Option.some`, sets, publishes, and
+ * returns that value; if it succeeds with `Option.none`, returns the unchanged
+ * current value without publishing.
  *
  * **Example** (Conditionally updating with an effect and reading the new value)
  *

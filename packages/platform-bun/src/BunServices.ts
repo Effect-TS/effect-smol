@@ -14,12 +14,18 @@ import * as BunStdio from "./BunStdio.ts"
 import * as BunTerminal from "./BunTerminal.ts"
 
 /**
+ * The union of core services provided by the Bun platform layer, including child
+ * process spawning, filesystem, path, stdio, and terminal services.
+ *
  * @category models
  * @since 1.0.0
  */
 export type BunServices = ChildProcessSpawner | FileSystem | Path | Terminal | Stdio
 
 /**
+ * Provides the default Bun implementations for child process spawning,
+ * filesystem, path, stdio, and terminal services.
+ *
  * @category layer
  * @since 1.0.0
  */

@@ -11,6 +11,10 @@ import * as HttpClientError from "./HttpClientError.ts"
 import * as HttpClientResponse from "./HttpClientResponse.ts"
 
 /**
+ * Context reference for the `fetch` implementation used by the fetch-based HTTP client.
+ *
+ * Defaults to `globalThis.fetch`.
+ *
  * @category tags
  * @since 4.0.0
  */
@@ -19,6 +23,10 @@ export const Fetch = Context.Reference<typeof globalThis.fetch>("effect/http/Fet
 })
 
 /**
+ * Service containing default `RequestInit` options for the fetch-based HTTP client.
+ *
+ * Request-specific method, headers, body, and abort signal are supplied by the client when a request is executed.
+ *
  * @category tags
  * @since 4.0.0
  */
@@ -68,6 +76,8 @@ const fetch: HttpClient.HttpClient = HttpClient.make((request, url, signal, fibe
 })
 
 /**
+ * Layer that provides an `HttpClient` implementation backed by the configured `Fetch` function.
+ *
  * @category layers
  * @since 4.0.0
  */

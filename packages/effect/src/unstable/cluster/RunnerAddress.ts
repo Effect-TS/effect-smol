@@ -10,6 +10,8 @@ import * as Schema from "../../Schema.ts"
 const TypeId = "~effect/cluster/RunnerAddress"
 
 /**
+ * Network address of a cluster runner, identified by host and port.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -59,6 +61,8 @@ export class RunnerAddress extends Schema.Class<RunnerAddress>(TypeId)({
 }
 
 /**
+ * Constructs a `RunnerAddress` from a host and port.
+ *
  * @category constructors
  * @since 4.0.0
  */

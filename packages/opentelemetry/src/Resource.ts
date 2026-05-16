@@ -11,6 +11,8 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 
 /**
+ * Context service containing the OpenTelemetry `Resource` associated with emitted telemetry.
+ *
  * @category Services
  * @since 1.0.0
  */
@@ -20,6 +22,8 @@ export class Resource extends Context.Service<
 >()("@effect/opentelemetry/Resource") {}
 
 /**
+ * Creates a `Resource` layer from service metadata and additional OpenTelemetry attributes.
+ *
  * @category Layers
  * @since 1.0.0
  */
@@ -34,6 +38,8 @@ export const layer = (config: {
   )
 
 /**
+ * Converts resource configuration into OpenTelemetry attributes, adding service name, optional service version, and telemetry SDK metadata.
+ *
  * @category Configuration
  * @since 1.0.0
  */
@@ -57,6 +63,8 @@ export const configToAttributes = (options: {
 }
 
 /**
+ * Creates a `Resource` layer from OpenTelemetry environment variables, optionally merging additional attributes.
+ *
  * @category Layers
  * @since 1.0.0
  */
@@ -94,6 +102,8 @@ export const layerFromEnv = (
   )
 
 /**
+ * Layer that provides an empty OpenTelemetry resource.
+ *
  * @category Layers
  * @since 1.0.0
  */

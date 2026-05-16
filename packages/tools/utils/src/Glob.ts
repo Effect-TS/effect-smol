@@ -5,6 +5,8 @@ import * as Layer from "effect/Layer"
 import * as GlobLib from "glob"
 
 /**
+ * Error raised when glob pattern matching fails.
+ *
  * @category errors
  * @since 1.0.0
  */
@@ -14,6 +16,8 @@ export class GlobError extends Data.TaggedError("GlobError")<{
 }> {}
 
 /**
+ * Service interface for matching filesystem paths with glob patterns.
+ *
  * @category models
  * @since 1.0.0
  */
@@ -25,12 +29,16 @@ export interface Glob {
 }
 
 /**
+ * Context service tag for filesystem glob pattern matching.
+ *
  * @category tags
  * @since 1.0.0
  */
 export const Glob: Context.Service<Glob, Glob> = Context.Service("@effect/utils/Glob")
 
 /**
+ * Layer that provides the `Glob` service using the `glob` package and maps matching failures to `GlobError`.
+ *
  * @category layers
  * @since 1.0.0
  */

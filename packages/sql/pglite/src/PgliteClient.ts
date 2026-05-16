@@ -32,18 +32,24 @@ import type { Custom, Fragment } from "effect/unstable/sql/Statement"
 import * as Statement from "effect/unstable/sql/Statement"
 
 /**
+ * Runtime type identifier used to mark `PgliteClient` values.
+ *
  * @category type ids
  * @since 1.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-pglite/PgliteClient"
 
 /**
+ * Type-level identifier used to mark `PgliteClient` values.
+ *
  * @category type ids
  * @since 1.0.0
  */
 export type TypeId = "~@effect/sql-pglite/PgliteClient"
 
 /**
+ * PGlite-backed PostgreSQL client service, extending `SqlClient` with access to the PGlite instance, JSON fragments, LISTEN/NOTIFY, data directory dumps, and array type refresh.
+ *
  * @category models
  * @since 1.0.0
  */
@@ -59,23 +65,31 @@ export interface PgliteClient extends Client.SqlClient {
 }
 
 /**
+ * Context tag used to access the `PgliteClient` service.
+ *
  * @category tags
  * @since 1.0.0
  */
 export const PgliteClient = Context.Service<PgliteClient>("@effect/sql-pglite/PgliteClient")
 
 /**
+ * Configuration for a PGlite client, either by supplying PGlite creation options or an existing live PGlite client.
+ *
  * @category models
  * @since 1.0.0
  */
 export type PgliteClientConfig = PgliteClientConfig.Create | PgliteClientConfig.Live
 
 /**
+ * Namespace containing the configuration variants for `PgliteClient`.
+ *
  * @category models
  * @since 1.0.0
  */
 export declare namespace PgliteClientConfig {
   /**
+   * Shared PGlite client options for span attributes, query/result name transformations, and JSON value transformation.
+   *
    * @category models
    * @since 1.0.0
    */
@@ -87,12 +101,16 @@ export declare namespace PgliteClientConfig {
   }
 
   /**
+   * Configuration used to create a managed PGlite instance from PGlite constructor options.
+   *
    * @category models
    * @since 1.0.0
    */
   export interface Create extends Base, PGliteOptions {}
 
   /**
+   * Configuration that uses an existing PGlite client. The supplied `liveClient` is caller-owned and is not closed by the Effect client.
+   *
    * @category models
    * @since 1.0.0
    */
@@ -101,6 +119,8 @@ export declare namespace PgliteClientConfig {
   }
 
   /**
+   * Config-friendly subset of PGlite creation options, including data directory, username, database, relaxed durability, and shared transform options.
+   *
    * @category models
    * @since 1.0.0
    */
@@ -113,6 +133,8 @@ export declare namespace PgliteClientConfig {
 }
 
 /**
+ * Creates a scoped PGlite SQL client. When no live client is supplied it creates and closes a PGlite instance; when `liveClient` is supplied, the caller retains ownership.
+ *
  * @category constructor
  * @since 1.0.0
  */
@@ -139,6 +161,8 @@ export const make = (
   })
 
 /**
+ * Builds a `PgliteClient` around an existing PGlite instance, adding SQL client operations, LISTEN/NOTIFY, dump helpers, and serialized access.
+ *
  * @category constructor
  * @since 1.0.0
  */
@@ -293,6 +317,8 @@ class PgliteConnection implements Connection {
 }
 
 /**
+ * Creates a layer from an effect that acquires a `PgliteClient`, providing both `PgliteClient` and `SqlClient`.
+ *
  * @category layers
  * @since 1.0.0
  */
@@ -307,6 +333,8 @@ export const layerFrom = <E, R>(
   ).pipe(Layer.provide(Reactivity.layer)) as any
 
 /**
+ * Creates a layer from a `Config`-wrapped PGlite client configuration, providing both `PgliteClient` and `SqlClient`.
+ *
  * @category layers
  * @since 1.0.0
  */
@@ -321,6 +349,8 @@ export const layerConfig: (
   ))
 
 /**
+ * Creates a layer from a concrete PGlite client configuration, providing both `PgliteClient` and `SqlClient`.
+ *
  * @category layers
  * @since 1.0.0
  */
@@ -329,6 +359,8 @@ export const layer = (
 ): Layer.Layer<PgliteClient | Client.SqlClient, SqlError> => layerFrom(make(config))
 
 /**
+ * Creates the PGlite statement compiler, using PostgreSQL `$1` placeholders, double-quoted identifiers, returning clauses, and optional JSON value transformation.
+ *
  * @category constructor
  * @since 1.0.0
  */
@@ -379,6 +411,8 @@ const escape = Statement.defaultEscape("\"")
 const escapeLiteral = (value: string) => `'${value.replace(/'/g, "''")}'`
 
 /**
+ * PGlite-specific custom statement fragments supported by the compiler, currently JSON parameter fragments.
+ *
  * @category custom types
  * @since 1.0.0
  */

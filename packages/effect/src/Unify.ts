@@ -163,11 +163,11 @@ export type Unify<A> = Values<
   : never
 
 /**
- * Unifies the return type of a function or value.
+ * Applies `Unify` to a value or function return type at compile time.
  *
- * This function applies type unification to the result of a function or to a value directly.
- * It's useful when you need to ensure that complex type unions are properly unified according
- * to the Effect type system's unification protocol.
+ * This is an identity function at runtime. For functions, the returned function
+ * has the same runtime behavior while its return type is normalized with the
+ * Effect unification protocol.
  *
  * **Example** (Unifying values and function results)
  *

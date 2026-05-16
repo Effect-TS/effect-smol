@@ -10,17 +10,23 @@ import type { Covariant } from "../../Types.ts"
 const TypeId = "~effect/httpapi/HttpApiSecurity"
 
 /**
+ * Union of security schemes supported by the HTTP API OpenAPI model.
+ *
  * @category models
  * @since 4.0.0
  */
 export type HttpApiSecurity = Bearer | ApiKey | Basic
 
 /**
+ * Helper types for HTTP API security schemes.
+ *
  * @category models
  * @since 4.0.0
  */
 export declare namespace HttpApiSecurity {
   /**
+   * Common prototype for security schemes, carrying the credential type and OpenAPI annotations.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -32,6 +38,8 @@ export declare namespace HttpApiSecurity {
   }
 
   /**
+   * Extracts the credential type produced by a security scheme.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -39,6 +47,8 @@ export declare namespace HttpApiSecurity {
 }
 
 /**
+ * Bearer token security scheme whose decoded credential is a redacted token.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -47,6 +57,8 @@ export interface Bearer extends HttpApiSecurity.Proto<Redacted> {
 }
 
 /**
+ * API key security scheme identifying the key name and whether it is read from a header, query parameter, or cookie.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -57,6 +69,8 @@ export interface ApiKey extends HttpApiSecurity.Proto<Redacted> {
 }
 
 /**
+ * HTTP Basic authentication security scheme whose decoded credential is `Credentials`.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -65,6 +79,8 @@ export interface Basic extends HttpApiSecurity.Proto<Credentials> {
 }
 
 /**
+ * Decoded credentials for HTTP Basic authentication.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -120,6 +136,11 @@ export const apiKey = (options: {
   })
 
 /**
+ * Creates an HTTP Basic authentication security scheme.
+ *
+ * You can implement API middleware for this security scheme with
+ * `HttpApiBuilder.middlewareSecurity`.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -129,6 +150,8 @@ export const basic: Basic = Object.assign(Object.create(Proto), {
 })
 
 /**
+ * Merges OpenAPI annotations into a security scheme.
+ *
  * @category annotations
  * @since 4.0.0
  */
@@ -145,6 +168,8 @@ export const annotateMerge: {
 )
 
 /**
+ * Adds an OpenAPI annotation value to a security scheme.
+ *
  * @category annotations
  * @since 4.0.0
  */

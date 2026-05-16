@@ -14,12 +14,18 @@ import * as NodeStdio from "./NodeStdio.ts"
 import * as NodeTerminal from "./NodeTerminal.ts"
 
 /**
+ * The union of core services provided by the Node platform layer, including
+ * child process spawning, filesystem, path, stdio, and terminal services.
+ *
  * @category models
  * @since 1.0.0
  */
 export type NodeServices = ChildProcessSpawner | FileSystem | Path | Stdio | Terminal
 
 /**
+ * Provides the default Node implementations for child process spawning,
+ * filesystem, path, stdio, and terminal services.
+ *
  * @category layer
  * @since 1.0.0
  */

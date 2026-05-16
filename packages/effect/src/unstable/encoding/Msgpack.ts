@@ -19,6 +19,11 @@ import * as Transformation from "../../SchemaTransformation.ts"
 const MsgPackErrorTypeId = "~effect/encoding/MsgPack/MsgPackError"
 
 /**
+ * Error raised when MessagePack encoding or decoding fails.
+ *
+ * The `kind` field identifies whether the failure happened while packing or
+ * unpacking, and `cause` preserves the original error.
+ *
  * @category errors
  * @since 4.0.0
  */
@@ -40,6 +45,11 @@ export class MsgPackError extends Data.TaggedError("MsgPackError")<{
 }
 
 /**
+ * Creates a channel that encodes non-empty chunks of values as MessagePack byte
+ * arrays.
+ *
+ * The channel fails with `MsgPackError` when any value cannot be packed.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -65,6 +75,11 @@ export const encode = <IE = never, Done = unknown>(): Channel.Channel<
   )
 
 /**
+ * Creates a MessagePack encoder channel for values of a schema.
+ *
+ * Values are first encoded with the schema and then packed as MessagePack bytes,
+ * so the channel can fail with either schema errors or `MsgPackError`.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -82,6 +97,11 @@ export const encodeSchema = <S extends Schema.Top>(
 > => Channel.pipeTo(ChannelSchema.encode(schema)(), encode())
 
 /**
+ * Creates a channel that decodes MessagePack byte chunks into values.
+ *
+ * Incomplete frames are buffered across chunks, and invalid MessagePack data
+ * fails with `MsgPackError`.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -131,6 +151,11 @@ export const decode = <IE = never, Done = unknown>(): Channel.Channel<
   )
 
 /**
+ * Creates a MessagePack decoder channel for values of a schema.
+ *
+ * The channel unpacks bytes into unknown values and then decodes each value with
+ * the schema.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -148,6 +173,11 @@ export const decodeSchema = <S extends Schema.Top>(
 > => Channel.pipeTo(decode<IE, Done>(), ChannelSchema.decodeUnknown(schema)())
 
 /**
+ * Wraps a bidirectional byte channel with MessagePack encoding and decoding.
+ *
+ * Outgoing values are packed as MessagePack bytes before reaching the wrapped
+ * channel, and incoming bytes are unpacked into values.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -176,6 +206,13 @@ export const duplex = <R, IE, OE, OutDone, InDone>(
   )
 
 /**
+ * Wraps a bidirectional byte channel with schema-aware MessagePack encoding and
+ * decoding.
+ *
+ * Values sent to the wrapped channel are encoded with `inputSchema` and packed
+ * as MessagePack bytes; bytes received from it are unpacked and decoded with
+ * `outputSchema`.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -252,12 +289,21 @@ export const duplexSchema: {
 > => ChannelSchema.duplexUnknown(duplex(self), options))
 
 /**
+ * Schema type for values encoded as MessagePack bytes.
+ *
+ * It decodes a `Uint8Array` MessagePack payload to the target schema type and
+ * encodes the target type back to bytes.
+ *
  * @category schemas
  * @since 4.0.0
  */
 export interface schema<S extends Schema.Top> extends Schema.decodeTo<S, Schema.instanceOf<Uint8Array<ArrayBuffer>>> {}
 
 /**
+ * Schema transformation between MessagePack bytes and decoded values.
+ *
+ * MessagePack codec failures are converted to `InvalidValue` schema issues.
+ *
  * @category schemas
  * @since 4.0.0
  */
@@ -290,6 +336,11 @@ export const transformation: Transformation.Transformation<
 })
 
 /**
+ * Builds a schema that stores values as MessagePack bytes.
+ *
+ * The resulting schema decodes `Uint8Array` payloads with MessagePack and the
+ * provided schema, and encodes values back to MessagePack bytes.
+ *
  * @category schemas
  * @since 4.0.0
  */

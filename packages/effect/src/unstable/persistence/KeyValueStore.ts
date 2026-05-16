@@ -21,6 +21,8 @@ import type { SqlError } from "../sql/SqlError.ts"
 const TypeId = "~effect/persistence/KeyValueStore" as const
 
 /**
+ * Effectful key/value store service for string and binary values.
+ *
  * @category Models
  * @since 4.0.0
  */
@@ -84,6 +86,11 @@ export interface KeyValueStore {
 }
 
 /**
+ * Implementation callbacks used by `make` to construct a `KeyValueStore`.
+ *
+ * Primitive operations are required, while helpers such as `has`, `isEmpty`,
+ * and `modify` can be supplied to override the defaults.
+ *
  * @category Models
  * @since 4.0.0
  */
@@ -120,6 +127,9 @@ export type MakeOptions = Partial<KeyValueStore> & {
 }
 
 /**
+ * Implementation callbacks for adapting a string-only backing store into a
+ * `KeyValueStore`.
+ *
  * @category Models
  * @since 4.0.0
  */
@@ -153,6 +163,9 @@ export type MakeStringOptions = Partial<Omit<KeyValueStore, "set">> & {
 const ErrorTypeId = "~effect/persistence/KeyValueStore/KeyValueStoreError" as const
 
 /**
+ * Error raised by key/value store operations, including the failed method,
+ * optional key, message, and cause.
+ *
  * @category Errors
  * @since 4.0.0
  */
@@ -169,6 +182,8 @@ export class KeyValueStoreError extends Data.TaggedError("KeyValueStoreError")<{
 }
 
 /**
+ * Context service tag for the `KeyValueStore` service.
+ *
  * @category tags
  * @since 4.0.0
  */
@@ -178,6 +193,11 @@ export const KeyValueStore: Context.Service<
 > = Context.Service("effect/persistence/KeyValueStore")
 
 /**
+ * Constructs a `KeyValueStore` from primitive store operations.
+ *
+ * Default implementations are derived for `has`, `isEmpty`, `modify`, and
+ * `modifyUint8Array` unless they are provided in the options.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -215,6 +235,11 @@ export const make = (options: MakeOptions): KeyValueStore =>
   })
 
 /**
+ * Adapts a string-only backing store into a `KeyValueStore`.
+ *
+ * `Uint8Array` values are stored as base64 strings. `getUint8Array` decodes
+ * base64 values and falls back to UTF-8 encoding for non-base64 strings.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -241,6 +266,9 @@ export const makeStringOnly = (
 }
 
 /**
+ * Returns a view of a `KeyValueStore` that prepends the given prefix to every
+ * key.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -259,6 +287,8 @@ export const prefix: {
 }))
 
 /**
+ * Provides a process-local in-memory `KeyValueStore` backed by a `Map`.
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -285,6 +315,10 @@ export const layerMemory: Layer.Layer<KeyValueStore> = Layer.sync(KeyValueStore)
 })
 
 /**
+ * Provides a `KeyValueStore` backed by files in the specified directory.
+ *
+ * The directory is created if needed, and each key is encoded as a file name.
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -386,6 +420,8 @@ export const layerFileSystem = (
   }))
 
 /**
+ * Options for configuring the SQL-backed `KeyValueStore` layer.
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -399,6 +435,11 @@ export interface LayerSqlOptions {
 }
 
 /**
+ * Provides a SQL-backed `KeyValueStore`.
+ *
+ * The layer creates the configured table if it does not exist and stores both
+ * string and binary values through the current `SqlClient`.
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -609,6 +650,8 @@ export const layerSql = (
 const SchemaStoreTypeId = "~effect/persistence/KeyValueStore/SchemaStore" as const
 
 /**
+ * Schema-aware view of a `KeyValueStore` that stores values as encoded JSON.
+ *
  * @category SchemaStore
  * @since 4.0.0
  */
@@ -668,6 +711,8 @@ export interface SchemaStore<S extends Schema.Top> {
 }
 
 /**
+ * Adapts a `KeyValueStore` into a `SchemaStore` using the schema's JSON codec.
+ *
  * @category SchemaStore
  * @since 4.0.0
  */
@@ -717,7 +762,8 @@ export const toSchemaStore = <S extends Schema.Top>(self: KeyValueStore, schema:
 }
 
 /**
- * Creates an KeyValueStorage from an instance of the `Storage` api.
+ * Provides a `KeyValueStore` backed by a Web `Storage` instance such as
+ * `localStorage` or `sessionStorage`.
  *
  * @see https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API
  *

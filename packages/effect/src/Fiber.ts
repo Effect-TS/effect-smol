@@ -267,6 +267,12 @@ export const awaitAll: <A extends Fiber<any, any>>(
 export const join: <A, E>(self: Fiber<A, E>) => Effect<A, E> = effect.fiberJoin
 
 /**
+ * Waits for all fibers to succeed and returns their values in input order.
+ *
+ * If any fiber fails, the returned `Effect` fails with that fiber's cause and
+ * stops waiting for additional results. This does not interrupt the remaining
+ * fibers.
+ *
  * @category combinators
  * @since 2.0.0
  */
@@ -493,7 +499,10 @@ export const isFiber = (
 export const getCurrent: () => Fiber<any, any> | undefined = effect.getCurrentFiber
 
 /**
- * Links the lifetime of a fiber to the provided scope.
+ * Links a fiber to a `Scope` and returns the same fiber.
+ *
+ * When the scope is closed, the fiber is interrupted. If the scope is already
+ * closed, the fiber is interrupted immediately.
  *
  * @category Scope
  * @since 4.0.0

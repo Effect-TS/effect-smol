@@ -20,6 +20,11 @@ import type * as Scope from "./Scope.ts"
 const TypeId = "~effect/FiberHandle"
 
 /**
+ * Scoped handle that manages at most one fiber.
+ *
+ * The current fiber is interrupted when the handle's scope closes, and managed
+ * fibers are removed from the handle when they complete.
+ *
  * **Example** (Managing a single fiber)
  *
  * ```ts
@@ -51,6 +56,10 @@ export interface FiberHandle<out A = unknown, out E = unknown> extends Pipeable,
 }
 
 /**
+ * Returns `true` if a value is a `FiberHandle`.
+ *
+ * This is a type guard that checks for the `FiberHandle` runtime marker.
+ *
  * **Example** (Checking fiber handles)
  *
  * ```ts
@@ -133,7 +142,11 @@ export const make = <A = unknown, E = unknown>(): Effect.Effect<FiberHandle<A, E
   )
 
 /**
- * Create an Effect run function that is backed by a FiberHandle.
+ * Creates a scoped run function that forks effects into a new `FiberHandle`.
+ *
+ * Each call returns the forked fiber, stores it in the handle, and interrupts
+ * the previous fiber unless `onlyIfMissing` is set. The managed fiber is
+ * interrupted when the handle's scope closes.
  *
  * **Example** (Running effects with a fiber handle)
  *
@@ -177,7 +190,12 @@ export const makeRuntime = <R, E = unknown, A = unknown>(): Effect.Effect<
   )
 
 /**
- * Create an Effect run function that is backed by a FiberHandle.
+ * Creates a scoped run function that forks effects into a new `FiberHandle`
+ * and returns a `Promise` for each effect result.
+ *
+ * Each call stores the fiber in the handle and interrupts the previous fiber
+ * unless `onlyIfMissing` is set. The returned Promise resolves with the
+ * effect's success value or rejects with the squashed failure cause.
  *
  * **Example** (Running effects as promises)
  *
@@ -421,6 +439,9 @@ export function get<A, E>(self: FiberHandle<A, E>): Effect.Effect<Option.Option<
 }
 
 /**
+ * Interrupts the fiber currently stored in the `FiberHandle`, if any, and
+ * leaves the handle empty.
+ *
  * **Example** (Clearing a fiber handle)
  *
  * ```ts
@@ -470,8 +491,11 @@ const constInterruptedFiber = (function() {
 })()
 
 /**
- * Run an Effect and add the forked fiber to the FiberHandle.
- * When the fiber completes, it will be removed from the FiberHandle.
+ * Forks an Effect and stores the resulting fiber in the `FiberHandle`.
+ *
+ * The handle manages only one fiber: running a new effect interrupts the
+ * previous fiber unless `onlyIfMissing` is set. When the managed fiber
+ * completes, it is removed from the handle.
  *
  * **Example** (Running an effect in a fiber handle)
  *
@@ -544,7 +568,11 @@ const runImpl = <A, E, R, XE extends E, XA extends A>(
   })
 
 /**
- * Capture a Runtime and use it to fork Effect's, adding the forked fibers to the FiberHandle.
+ * Captures the current runtime and returns a function for forking effects into
+ * an existing `FiberHandle`.
+ *
+ * Each call returns the forked fiber, stores it in the handle, and interrupts
+ * the previous fiber unless `onlyIfMissing` is set.
  *
  * **Example** (Capturing a runtime for fiber handles)
  *
@@ -620,10 +648,12 @@ export const runtime: <A, E>(
   )
 
 /**
- * Capture a Runtime and use it to fork Effect's, adding the forked fibers to the FiberHandle.
+ * Captures the current runtime and returns a function for running effects in
+ * an existing `FiberHandle` as Promises.
  *
- * The returned run function will return Promise's that will resolve when the
- * fiber completes.
+ * Each call stores the forked fiber in the handle and interrupts the previous
+ * fiber unless `onlyIfMissing` is set. The Promise resolves with the effect's
+ * success value or rejects with the squashed failure cause.
  *
  * **Example** (Capturing a runtime for promises)
  *
@@ -686,8 +716,12 @@ export const runtimePromise = <A, E>(self: FiberHandle<A, E>): <R = never>() => 
   )
 
 /**
- * If any of the Fiber's in the handle terminate with a failure,
- * the returned Effect will terminate with the first failure that occurred.
+ * Waits for the `FiberHandle` to fail or close.
+ *
+ * The returned Effect fails with the first managed fiber failure that is not
+ * ignored by the handle's interruption rules. Normal successful completion of
+ * a managed fiber only removes it from the handle; use `awaitEmpty` to wait
+ * for the current fiber to finish.
  *
  * **Example** (Propagating fiber failures)
  *

@@ -12,6 +12,12 @@ import type * as Entity from "./Entity.ts"
 import type { Sharding } from "./Sharding.ts"
 
 /**
+ * Creates HTTP API handlers for an entity proxy group.
+ *
+ * Each generated endpoint reads the `entityId` path parameter and forwards the
+ * request payload to the corresponding entity client method, including discard
+ * endpoints.
+ *
  * @category Layers
  * @since 4.0.0
  */
@@ -72,6 +78,11 @@ export const layerHttpApi = <
   )
 
 /**
+ * Creates RPC handlers for the group produced by `EntityProxy.toRpcGroup`.
+ *
+ * The handlers forward each prefixed proxy RPC to the target entity client using
+ * the `entityId` embedded in the proxy payload.
+ *
  * @category Layers
  * @since 4.0.0
  */
@@ -105,6 +116,10 @@ export const layerRpcHandlers = <
   }))
 
 /**
+ * Union of RPC handler services required to serve the proxy RPCs for an entity.
+ *
+ * Includes both the normal prefixed RPC handler and its discard variant.
+ *
  * @since 4.0.0
  */
 export type RpcHandlers<Rpcs extends Rpc.Any, Prefix extends string> = Rpcs extends Rpc.Rpc<

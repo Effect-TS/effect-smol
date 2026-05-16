@@ -52,6 +52,10 @@ import * as NodeServices from "./NodeServices.ts"
 import { NodeWS } from "./NodeSocket.ts"
 
 /**
+ * Creates a scoped `HttpServer` from a Node `http.Server`, starts listening
+ * with the supplied options, registers request and upgrade handling, and closes
+ * the server during scope finalization with optional graceful-shutdown control.
+ *
  * @category constructors
  * @since 1.0.0
  */
@@ -145,6 +149,10 @@ export const make = Effect.fnUntraced(function*(
 })
 
 /**
+ * Creates a Node `request` event handler for an Effect HTTP application,
+ * injecting a `HttpServerRequest` and interrupting the request fiber if the
+ * client closes the response before it finishes.
+ *
  * @category Handlers
  * @since 1.0.0
  */
@@ -183,6 +191,10 @@ export const makeHandler = <
 }
 
 /**
+ * Creates a Node `upgrade` event handler for an Effect HTTP application,
+ * exposing the upgraded WebSocket as the request's `upgrade` effect and
+ * interrupting the request fiber when the socket closes early.
+ *
  * @category Handlers
  * @since 1.0.0
  */
@@ -366,6 +378,9 @@ class ServerRequestImpl extends NodeHttpIncomingMessage<HttpServerError> impleme
 }
 
 /**
+ * Provides an `HttpServer` by creating and managing a scoped Node
+ * `http.Server` with the supplied listen and shutdown options.
+ *
  * @category Layers
  * @since 1.0.0
  */
@@ -378,6 +393,9 @@ export const layerServer: (
 ) => Layer.Layer<HttpServer.HttpServer, ServeError> = flow(make, Layer.effect(HttpServer.HttpServer))
 
 /**
+ * Provides the Node HTTP support services used by `NodeHttpServer`, including
+ * the HTTP platform, ETag generator, and core Node platform services.
+ *
  * @category Layers
  * @since 1.0.0
  */
@@ -390,6 +408,9 @@ export const layerHttpServices: Layer.Layer<
 )
 
 /**
+ * Provides a Node `HttpServer` together with the Node HTTP platform, ETag, and
+ * core platform services required to serve requests.
+ *
  * @category Layers
  * @since 1.0.0
  */
@@ -409,6 +430,9 @@ export const layer = (
   )
 
 /**
+ * Provides a Node `HttpServer` and HTTP support services, reading the listen
+ * and shutdown options from a `Config` value.
+ *
  * @category Layers
  * @since 1.0.0
  */
@@ -432,6 +456,9 @@ export const layerConfig = (
   )
 
 /**
+ * Provides a test HTTP server listening on an ephemeral port together with a
+ * Fetch-backed `HttpClient` configured for server integration tests.
+ *
  * @category Testing
  * @since 1.0.0
  */

@@ -39,7 +39,10 @@ import * as OpenAiSchema from "./OpenAiSchema.ts"
 // =============================================================================
 
 /**
- * The OpenAI client interface.
+ * Effect service interface for the handwritten OpenAI client.
+ *
+ * **Details**
+ * Provides the configured HTTP client plus helpers for Responses API calls, streaming Responses events, and embeddings. Transport and schema decoding failures are mapped to `AiError`.
  *
  * @category models
  * @since 1.0.0

@@ -234,7 +234,11 @@ export const directory = (name: string, options?: {
 }): Flag<string> => Param.directory(Param.flagKind, name, options)
 
 /**
- * Creates a redacted flag that securely handles sensitive string input.
+ * Creates a string flag whose parsed value is wrapped in `Redacted.Redacted`
+ * so stringification and logging redact the value.
+ *
+ * Values supplied on the command line may still be visible to the operating
+ * system or shell history.
  *
  * **Example** (Creating redacted flags)
  *

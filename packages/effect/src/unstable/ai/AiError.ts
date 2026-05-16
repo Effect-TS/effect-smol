@@ -261,6 +261,11 @@ export const ProviderMetadata: Schema.$Record<
 > = Schema.Record(Schema.String, Schema.NullOr(Schema.MutableJson))
 
 /**
+ * Type of provider-specific metadata attached to AI error reasons.
+ *
+ * Metadata is keyed by provider name, and each provider value is either mutable
+ * JSON metadata or `null`.
+ *
  * @category models
  * @since 1.0.0
  */
@@ -1300,11 +1305,9 @@ export class InvalidUserInputError extends Schema.ErrorClass<InvalidUserInputErr
 /**
  * Union type of all semantic error reasons that can occur during AI operations.
  *
- * Each reason type provides:
- * - Semantic categorization of the failure mode
- * - `isRetryable` getter indicating if the error is transient
- * - Optional `retryAfter` duration for rate limit/throttling errors
- * - Rich context including provider metadata and HTTP details
+ * Every reason carries a semantic `_tag`, a human-readable message, and an
+ * `isRetryable` getter. Provider-facing reasons may also include retry timing,
+ * provider metadata, usage information, or HTTP context.
  *
  * @category models
  * @since 1.0.0

@@ -147,7 +147,10 @@ export const make = <A = unknown, E = unknown>(): Effect.Effect<FiberSet<A, E>, 
   )
 
 /**
- * Create an Effect run function that is backed by a FiberSet.
+ * Creates a scoped run function that forks effects into a new `FiberSet`.
+ *
+ * Each call returns the forked fiber and adds it to the set. Managed fibers are
+ * removed when they complete and are interrupted when the set's scope closes.
  *
  * **Example** (Creating a scoped runtime)
  *
@@ -185,8 +188,12 @@ export const makeRuntime = <R = never, A = unknown, E = unknown>(): Effect.Effec
   )
 
 /**
- * Create an Effect run function that is backed by a FiberSet.
- * The returned run function will return Promise's.
+ * Creates a scoped run function that forks effects into a new `FiberSet` and
+ * returns a `Promise` for each effect result.
+ *
+ * Managed fibers are removed when they complete and are interrupted when the
+ * set's scope closes. Each Promise resolves with the effect's success value or
+ * rejects with the squashed failure cause.
  *
  * **Example** (Creating a promise runtime)
  *
@@ -230,8 +237,12 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
 ))
 
 /**
- * Add a fiber to the FiberSet. When the fiber completes, it will be removed.
- * This is the unsafe version that doesn't return an Effect.
+ * Adds an existing fiber to the `FiberSet` using a synchronous, unsafe
+ * mutation.
+ *
+ * When the fiber completes, it is removed from the set. If the set is already
+ * closed, the supplied fiber is interrupted immediately. Non-interruption
+ * failures are recorded for `FiberSet.join`.
  *
  * **Example** (Adding a fiber unsafely)
  *

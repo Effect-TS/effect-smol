@@ -25,6 +25,8 @@ const TypeId = "~effect/httpapi/HttpApiMiddleware"
 const SecurityTypeId = "~effect/httpapi/HttpApiMiddleware/Security"
 
 /**
+ * Returns `true` when an HTTP API middleware service is security middleware.
+ *
  * @category guards
  * @since 4.0.0
  */
@@ -37,6 +39,12 @@ type ErrorSchemaFromConstraint<E> = E extends ReadonlyArray<Schema.Top> ? E[numb
   : never
 
 /**
+ * Server-side middleware function for an HTTP API endpoint.
+ *
+ * It receives the endpoint response effect and endpoint/group metadata, and returns
+ * a new response effect that may require additional services and fail with the
+ * middleware's declared error schema.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -49,6 +57,11 @@ export type HttpApiMiddleware<Provides, E extends ErrorConstraint, Requires> = (
 ) => Effect.Effect<HttpServerResponse, unhandled | ErrorSchemaFromConstraint<E>["Type"], Requires | HttpRouter.Provided>
 
 /**
+ * Server-side middleware implementations for one or more security schemes.
+ *
+ * Each property handles the credential decoded for that scheme and wraps the
+ * endpoint response effect with the middleware's declared requirements and errors.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -73,6 +86,11 @@ export type HttpApiMiddlewareSecurity<
 }
 
 /**
+ * Client-side middleware function for generated HTTP API clients.
+ *
+ * It receives endpoint/group metadata, the outgoing request, and a `next` function
+ * for continuing the request pipeline.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -88,6 +106,8 @@ export interface HttpApiMiddlewareClient<_E, CE, R> {
 }
 
 /**
+ * Client-side service marker required when a middleware declares `requiredForClient`.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -97,6 +117,8 @@ export interface ForClient<Id> {
 }
 
 /**
+ * Base service key shape for HTTP API middleware services, including provided services, declared error schemas, and client requirements.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -109,6 +131,8 @@ export interface AnyService extends Context.Key<any, any> {
 }
 
 /**
+ * Middleware service key shape for security middleware, including the security schemes handled by the service.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -118,6 +142,8 @@ export interface AnyServiceSecurity extends AnyService {
 }
 
 /**
+ * Type-level identifier carried by middleware services to track provided services, required services, errors, client errors, and client requirements.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -132,24 +158,32 @@ export interface AnyId {
 }
 
 /**
+ * Extracts the services provided by a middleware identifier.
+ *
  * @category models
  * @since 4.0.0
  */
 export type Provides<A> = A extends { readonly [TypeId]: { readonly provides: infer P } } ? P : never
 
 /**
+ * Extracts the services required to run a middleware implementation.
+ *
  * @category models
  * @since 4.0.0
  */
 export type Requires<A> = A extends { readonly [TypeId]: { readonly requires: infer R } } ? R : never
 
 /**
+ * Applies a middleware's service changes to an existing requirement type by removing services it provides and adding services it requires.
+ *
  * @category models
  * @since 4.0.0
  */
 export type ApplyServices<A extends AnyId, R> = Exclude<R, Provides<A>> | Requires<A>
 
 /**
+ * Extracts the schema or schema union used for errors declared by a middleware identifier.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -157,12 +191,16 @@ export type ErrorSchema<A> = A extends { readonly [TypeId]: { readonly error: in
   : never
 
 /**
+ * Extracts the decoded error type declared by a middleware identifier.
+ *
  * @category models
  * @since 4.0.0
  */
 export type Error<A> = ErrorSchema<A>["Type"]
 
 /**
+ * Extracts the client-side error type for middleware that is required on generated clients.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -175,6 +213,8 @@ export type ClientError<A> = A extends {
   : never
 
 /**
+ * Computes the client-side service marker required for middleware that must also run in generated clients.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -186,18 +226,27 @@ export type MiddlewareClient<A> = A extends {
   : never
 
 /**
+ * Extracts the schema services required to encode errors declared by a middleware identifier.
+ *
  * @category models
  * @since 4.0.0
  */
 export type ErrorServicesEncode<A> = ErrorSchema<A>["EncodingServices"]
 
 /**
+ * Extracts the schema services required to decode errors declared by a middleware identifier.
+ *
  * @category models
  * @since 4.0.0
  */
 export type ErrorServicesDecode<A> = ErrorSchema<A>["DecodingServices"]
 
 /**
+ * Class type produced by `Service` for an HTTP API middleware service.
+ *
+ * It combines a `Context.Service` class with the middleware metadata used by
+ * endpoints, builders, and generated clients.
+ *
  * @category Schemas
  * @since 4.0.0
  */
@@ -238,6 +287,12 @@ export type ServiceClass<
   })
 
 /**
+ * Creates a `Context.Service` class for an HTTP API middleware implementation.
+ *
+ * Use the optional configuration to declare required services, provided services,
+ * typed error schemas, security schemes, client errors, and whether generated
+ * clients must provide a matching client middleware.
+ *
  * @category Schemas
  * @since 4.0.0
  */
@@ -308,7 +363,11 @@ function getError(error: ErrorConstraint | undefined): ReadonlySet<Schema.Top> {
 }
 
 /**
- * Implement a middleware Layer that transforms `SchemaError`'s.
+ * Creates a middleware layer that transforms `HttpApiSchemaError` failures.
+ *
+ * The middleware catches schema errors produced while running an endpoint and uses
+ * the supplied `transform` function to convert them into the middleware's declared
+ * error schema.
  *
  * ```ts
  * import { Effect, Schema } from "effect"
@@ -357,6 +416,11 @@ export const layerSchemaErrorTransform = <Id, E extends ErrorConstraint, Require
   )
 
 /**
+ * Provides a client-side middleware implementation for a middleware that is required by generated clients.
+ *
+ * The layer captures the surrounding services and makes the middleware available
+ * through the `ForClient` service marker used by HTTP API clients.
+ *
  * @category client
  * @since 4.0.0
  */

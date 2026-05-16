@@ -16,6 +16,10 @@ import * as NodeStreamP from "node:stream/promises"
 import * as NodeStream from "./NodeStream.ts"
 
 /**
+ * Parses multipart data from a Node readable request body and headers into a
+ * stream of `Multipart.Part` values, converting parser failures to
+ * `MultipartError`.
+ *
  * @category constructors
  * @since 1.0.0
  */
@@ -39,6 +43,9 @@ export const stream = (
   )
 
 /**
+ * Parses multipart data from a Node readable request body and persists file
+ * parts using the current `FileSystem`, `Path`, and `Scope` services.
+ *
  * @category constructors
  * @since 1.0.0
  */
@@ -57,6 +64,9 @@ export const persisted = (
     }))
 
 /**
+ * Returns the underlying Node readable stream for a multipart file produced by
+ * the Node multipart parser.
+ *
  * @since 1.0.0
  */
 export const fileToReadable = (file: Multipart.File): Readable => (file as FileImpl).file

@@ -95,9 +95,11 @@ export const makeBy = <A>(f: (i: number) => A, options?: {
 }
 
 /**
- * Return a `Iterable` containing a range of integers, including both endpoints.
+ * Returns an iterable of integers starting at `start` and increasing by `1`.
  *
- * If `end` is omitted, the range will not have an upper bound.
+ * When `end` is provided and `start <= end`, both endpoints are included. When
+ * `end` is omitted, the iterable is unbounded. When `start > end`, the
+ * iterable contains only `start`.
  *
  * **Example** (Creating a range)
  *
@@ -143,6 +145,11 @@ export const replicate: {
 } = dual(2, <A>(a: A, n: number): Iterable<A> => makeBy(() => a, { length: n }))
 
 /**
+ * Repeats an iterable `n` times, yielding the full contents of `self` for each
+ * repetition.
+ *
+ * The result is lazy. Each repetition obtains a new iterator from `self`.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -152,6 +159,11 @@ export const repeat: {
 } = dual(2, <A>(self: Iterable<A>, n: number): Iterable<A> => flatten(makeBy(() => self, { length: n })))
 
 /**
+ * Repeats an iterable without an upper bound.
+ *
+ * The returned iterable is lazy and should usually be bounded with `take` or
+ * another terminating consumer before materializing it.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -1007,7 +1019,11 @@ export const containsWith = <A>(isEquivalent: (self: A, that: A) => boolean): {
   })
 
 /**
- * Returns a function that checks if a `Iterable` contains a given value using the default `Equivalence`.
+ * Checks whether an iterable contains a value using Effect's default `Equal`
+ * equivalence.
+ *
+ * Can be called as `contains(self, value)` or curried as
+ * `contains(value)(self)`.
  *
  * **Example** (Checking membership)
  *
@@ -1228,8 +1244,11 @@ export const group: <A>(self: Iterable<A>) => Iterable<NonEmptyArray<A>> = group
 )
 
 /**
- * Splits an `Iterable` into sub-non-empty-arrays stored in an object, based on the result of calling a `string`-returning
- * function on each element, and grouping the results according to values returned
+ * Groups all elements by the string or symbol key returned by `f`.
+ *
+ * Each property in the returned record contains a non-empty array of elements
+ * that produced that key. Unlike `group`, matching elements do not need to be
+ * consecutive.
  *
  * **Example** (Grouping by a key)
  *
@@ -1706,7 +1725,8 @@ export const getSomes = <A>(self: Iterable<Option<A>>): Iterable<A> => {
 }
 
 /**
- * Retrieves the `Err` values from an `Iterable` of `Result`s.
+ * Returns a lazy iterable containing the failure values from an iterable of
+ * `Result`s, skipping successful results.
  *
  * **Example** (Extracting failures)
  *
@@ -1751,7 +1771,8 @@ export const getFailures = <R0, L>(self: Iterable<Result<R0, L>>): Iterable<L> =
 }
 
 /**
- * Retrieves the `Ok` values from an `Iterable` of `Result`s.
+ * Returns a lazy iterable containing the success values from an iterable of
+ * `Result`s, skipping failed results.
  *
  * **Example** (Extracting successes)
  *

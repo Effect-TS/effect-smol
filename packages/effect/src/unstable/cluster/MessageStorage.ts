@@ -25,6 +25,12 @@ import type { ShardingConfig } from "./ShardingConfig.ts"
 import * as Snowflake from "./Snowflake.ts"
 
 /**
+ * Service for cluster mailbox persistence and reply delivery.
+ *
+ * It stores outgoing requests, control envelopes, and replies; reads unprocessed
+ * messages; manages reply handlers; and provides transaction wrapping for storage
+ * operations.
+ *
  * @category context
  * @since 4.0.0
  */
@@ -151,35 +157,54 @@ export class MessageStorage extends Context.Service<MessageStorage, {
 }>()("effect/cluster/MessageStorage") {}
 
 /**
+ * Result of saving a request or envelope into message storage.
+ *
+ * A duplicate result carries the original request ID and the last reply already
+ * received for the duplicated request.
+ *
  * @category SaveResult
  * @since 4.0.0
  */
 export type SaveResult<R extends Rpc.Any> = SaveResult.Success | SaveResult.Duplicate<R>
 
 /**
+ * Tagged enum constructor for creating and matching `SaveResult` values.
+ *
  * @category SaveResult
  * @since 4.0.0
  */
 export const SaveResult = Data.taggedEnum<SaveResult.Constructor>()
 
 /**
+ * Tagged enum constructor for encoded save results returned by encoded storage
+ * drivers.
+ *
  * @category SaveResult
  * @since 4.0.0
  */
 export const SaveResultEncoded = Data.taggedEnum<SaveResult.Encoded>()
 
 /**
+ * Variants and helper types for `SaveResult`.
+ *
  * @category SaveResult
  * @since 4.0.0
  */
 export declare namespace SaveResult {
   /**
+   * Encoded storage-driver form of `SaveResult`.
+   *
+   * Duplicate results contain an encoded last received reply instead of a decoded
+   * reply.
+   *
    * @category SaveResult
    * @since 4.0.0
    */
   export type Encoded = SaveResult.Success | SaveResult.DuplicateEncoded
 
   /**
+   * Variant indicating that the message was saved as a new storage entry.
+   *
    * @category SaveResult
    * @since 4.0.0
    */
@@ -188,6 +213,11 @@ export declare namespace SaveResult {
   }
 
   /**
+   * Variant indicating that the request duplicates an existing stored request.
+   *
+   * It carries the original request ID and the latest decoded reply, when one is
+   * available.
+   *
    * @category SaveResult
    * @since 4.0.0
    */
@@ -198,6 +228,11 @@ export declare namespace SaveResult {
   }
 
   /**
+   * Encoded duplicate-save variant returned by lower-level storage drivers.
+   *
+   * It carries the original request ID and the latest encoded reply, when one is
+   * available.
+   *
    * @category SaveResult
    * @since 4.0.0
    */
@@ -208,6 +243,8 @@ export declare namespace SaveResult {
   }
 
   /**
+   * Generic tagged enum constructor type for `SaveResult`.
+   *
    * @category SaveResult
    * @since 4.0.0
    */
@@ -217,6 +254,11 @@ export declare namespace SaveResult {
 }
 
 /**
+ * Low-level storage-driver contract for encoded envelopes and replies.
+ *
+ * Implementations persist encoded messages, track primary keys and delayed
+ * delivery, read unprocessed messages, and provide transaction wrapping.
+ *
  * @category Encoded
  * @since 4.0.0
  */
@@ -333,6 +375,11 @@ export type Encoded = {
 }
 
 /**
+ * Cursor options for reading encoded unprocessed messages across shard sets.
+ *
+ * The fields distinguish existing shards from newly assigned shards and carry the
+ * driver-specific pagination cursor.
+ *
  * @category Encoded
  * @since 4.0.0
  */
@@ -343,6 +390,11 @@ export type EncodedUnprocessedOptions<A> = {
 }
 
 /**
+ * Cursor options for reading encoded replies across request sets.
+ *
+ * The fields distinguish existing requests from new requests and carry the
+ * driver-specific pagination cursor.
+ *
  * @category Encoded
  * @since 4.0.0
  */
@@ -353,6 +405,11 @@ export type EncodedRepliesOptions<A> = {
 }
 
 /**
+ * Wraps a concrete message storage implementation with reply-handler management.
+ *
+ * The returned service can register waiting reply handlers, notify them when
+ * replies are saved, and fail them when a request or shard is unregistered.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -455,6 +512,12 @@ export const make = (
   })
 
 /**
+ * Builds a `MessageStorage` service from an encoded storage driver.
+ *
+ * The adapter handles envelope and reply encoding and decoding, primary-key
+ * generation, delayed delivery checks, duplicate decoding, and malformed-message
+ * defect replies.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -663,6 +726,8 @@ export const makeEncoded: (encoded: Encoded) => Effect.Effect<
 })
 
 /**
+ * No-op `MessageStorage` service that does not persist messages or replies.
+ *
  * @category Constructors
  * @since 4.0.0
  */
@@ -683,6 +748,11 @@ export const noop: MessageStorage["Service"] = Effect.runSync(make({
 }))
 
 /**
+ * In-memory storage entry for a request envelope.
+ *
+ * It stores the encoded envelope, last acknowledged chunk, accumulated replies,
+ * and optional delivery time.
+ *
  * @category Memory
  * @since 4.0.0
  */
@@ -704,6 +774,12 @@ export const MemoryTransaction = Context.Reference<boolean>("effect/cluster/Mess
 })
 
 /**
+ * In-memory message storage driver with inspectable backing state.
+ *
+ * It provides a `MessageStorage` service, the encoded driver implementation, and
+ * maps used to track requests, primary keys, unprocessed envelopes, reply IDs,
+ * and the journal.
+ *
  * @category Memory
  * @since 4.0.0
  */
@@ -916,12 +992,16 @@ export class MemoryDriver extends Context.Service<MemoryDriver>()("effect/cluste
 }
 
 /**
+ * Layer that provides the no-op `MessageStorage` service.
+ *
  * @category layers
  * @since 4.0.0
  */
 export const layerNoop: Layer.Layer<MessageStorage> = Layer.succeed(MessageStorage, noop)
 
 /**
+ * Layer that provides in-memory message storage and its backing `MemoryDriver`.
+ *
  * @category layers
  * @since 4.0.0
  */

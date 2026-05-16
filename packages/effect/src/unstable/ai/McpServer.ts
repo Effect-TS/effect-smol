@@ -72,6 +72,12 @@ import * as Tool from "./Tool.ts"
 import type * as Toolkit from "./Toolkit.ts"
 
 /**
+ * Service that stores and serves an MCP server's registered tools, resources,
+ * prompts, completions, and outgoing notifications.
+ *
+ * Handlers use this service to register capabilities and resolve incoming MCP
+ * requests.
+ *
  * @category server
  * @since 4.0.0
  */
@@ -323,6 +329,12 @@ const mcpSessionIdHeader = "mcp-session-id"
 const mcpProtocolVersionHeader = "mcp-protocol-version"
 
 /**
+ * Runs an MCP server over the current `RpcServer.Protocol`.
+ *
+ * The server performs initialization and session handling, serves registered
+ * tools, resources, and prompts, and forwards queued server notifications to
+ * initialized clients.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -500,6 +512,10 @@ export const run: (options: {
 }, Effect.scoped)
 
 /**
+ * Creates a layer that starts an MCP server over an existing
+ * `RpcServer.Protocol` and provides the `McpServer` and `McpServerClient`
+ * services.
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -691,6 +707,9 @@ export const toolkit = <Tools extends Record<string, Tool.Any>>(
   )
 
 /**
+ * Utility type that validates a completion-handler record against the allowed
+ * parameter keys.
+ *
  * @since 4.0.0
  */
 export type ValidateCompletions<Completions, Keys extends string> =
@@ -700,6 +719,12 @@ export type ValidateCompletions<Completions, Keys extends string> =
   }
 
 /**
+ * Completion-handler map for a resource URI template.
+ *
+ * Each schema interpolation contributes a parameter key, using an explicit
+ * `Param` name when present or `paramN` otherwise, and each handler returns
+ * candidate values for that parameter.
+ *
  * @since 4.0.0
  */
 export type ResourceCompletions<Schemas extends ReadonlyArray<Schema.Top>> = {
@@ -1050,7 +1075,11 @@ export const prompt = <
   )
 
 /**
- * Create an elicitation request
+ * Requests structured input from the current MCP client and decodes the
+ * accepted response with `schema`.
+ *
+ * Accepted content is decoded with the supplied schema, declined requests fail
+ * with `ElicitationDeclined`, and canceled requests interrupt the effect.
  *
  * @category elicitation
  * @since 4.0.0

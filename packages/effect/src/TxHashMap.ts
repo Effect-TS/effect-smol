@@ -661,7 +661,10 @@ export const isNonEmpty = <K, V>(self: TxHashMap<K, V>): Effect.Effect<boolean> 
   Effect.map(isEmpty(self), (empty) => !empty)
 
 /**
- * Updates the value for the specified key if it exists.
+ * Updates the value for the specified key if it exists, returning the previous
+ * value in `Some`.
+ *
+ * Returns `None` and leaves the map unchanged when the key is absent.
  *
  * **Mutation behavior**: This function mutates the original TxHashMap by updating
  * the value at the specified key. It does not return a new TxHashMap reference.
@@ -1189,8 +1192,11 @@ export const isTxHashMap = <K, V>(value: unknown): value is TxHashMap<K, V> => {
 }
 
 /**
- * Lookup the value for the specified key in the TxHashMap using a custom hash.
- * This can provide performance benefits when the hash is precomputed.
+ * Looks up the value for the specified key using a caller-supplied hash.
+ *
+ * The supplied hash must be the hash for the same key, such as a precomputed
+ * `Hash.hash(key)` value. If the hash does not match the key, an existing entry
+ * may not be found.
  *
  * **Example** (Looking up values with precomputed hashes)
  *
@@ -1245,8 +1251,11 @@ export const getHash: {
 )
 
 /**
- * Checks if the specified key has an entry in the TxHashMap using a custom hash.
- * This can provide performance benefits when the hash is precomputed.
+ * Checks whether the specified key has an entry using a caller-supplied hash.
+ *
+ * The supplied hash must be the hash for the same key, such as a precomputed
+ * `Hash.hash(key)` value. If the hash does not match the key, an existing entry
+ * may not be found.
  *
  * **Example** (Checking keys with precomputed hashes)
  *
@@ -1898,8 +1907,7 @@ export const forEach: {
 )
 
 /**
- * Transforms the TxHashMap by applying a function that returns a TxHashMap to each entry,
- * then flattening the results. Useful for complex transformations that require creating new maps.
+ * Effectfully maps each entry to a `TxHashMap` and flattens the produced maps.
  *
  * **Return behavior**: This function returns a new TxHashMap reference with the
  * flattened results. The original TxHashMap is not modified.

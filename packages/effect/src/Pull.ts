@@ -10,6 +10,13 @@ import * as internalEffect from "./internal/effect.ts"
 import * as Result from "./Result.ts"
 
 /**
+ * An effectful pull step that either produces a value, fails with `E`, or
+ * signals completion with `Cause.Done<Done>`.
+ *
+ * `Pull` represents completion in the error channel so low-level stream
+ * consumers can distinguish ordinary failures from end-of-input and carry a
+ * leftover value when needed.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -64,6 +71,12 @@ export type ExcludeDone<E> = Exclude<E, Cause.Done<any>>
 // -----------------------------------------------------------------------------
 
 /**
+ * Handles `Cause.Done` failures in an effect while leaving ordinary failures
+ * in the error channel.
+ *
+ * The handler receives the done leftover value and may recover with a new
+ * effect. Non-done errors are preserved.
+ *
  * @category Done
  * @since 4.0.0
  */
@@ -100,7 +113,10 @@ export const isDoneFailure = <E>(
 ): failure is Cause.Fail<E & Cause.Done<any>> => failure._tag === "Fail" && Cause.isDone(failure.error)
 
 /**
- * Filters a Cause to extract only halt errors.
+ * Finds a `Cause.Done` failure in a `Cause`.
+ *
+ * Returns a successful `Result` with the `Cause.Done` value when one is
+ * present, otherwise returns a failed `Result` containing the non-done cause.
  *
  * @category Done
  * @since 4.0.0
@@ -114,7 +130,10 @@ export const filterDone: <E>(
   ) as any
 
 /**
- * Filters a Cause to extract only halt errors.
+ * Finds a `Cause.Done` failure in a cause whose done value is not used.
+ *
+ * Returns a successful `Result` with the done marker when present, otherwise
+ * returns a failed `Result` with the non-done cause.
  *
  * @category Done
  * @since 4.0.0
@@ -127,6 +146,11 @@ export const filterDoneVoid: <E extends Cause.Done>(
 ) as any
 
 /**
+ * Keeps a `Cause` only when it contains no `Cause.Done` failures.
+ *
+ * Returns a successful `Result` with the cause when every failure is non-done;
+ * otherwise returns a failed `Result` with the original cause.
+ *
  * @category Done
  * @since 4.0.0
  */
@@ -153,7 +177,11 @@ export const filterDoneLeftover: <E>(
 ) as any
 
 /**
- * Converts a Cause into an Exit, extracting halt leftovers as success values.
+ * Converts a `Cause` into an `Exit`, treating `Cause.Done` as successful
+ * completion.
+ *
+ * If the cause contains a done value, that leftover becomes the successful
+ * value. Otherwise the non-done cause becomes the failure cause.
  *
  * @category Done
  * @since 4.0.0

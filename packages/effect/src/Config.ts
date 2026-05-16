@@ -467,6 +467,8 @@ export const option = <A>(self: Config<A>): Config<Option.Option<A>> =>
   self.pipe(map(Option.some), withDefault(Option.none()))
 
 /**
+ * Extracts the successfully parsed value type from a `Config`.
+ *
  * @since 3.0.0
  */
 export type Success<T> = [T] extends [Config<infer A>] ? A : never

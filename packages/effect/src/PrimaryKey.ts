@@ -50,6 +50,11 @@ export interface PrimaryKey {
 }
 
 /**
+ * Checks whether a value implements the `PrimaryKey` protocol.
+ *
+ * This is a structural guard for the `PrimaryKey.symbol` property. It does not
+ * call the method or verify that it returns a string.
+ *
  * @category models
  * @since 2.0.0
  */

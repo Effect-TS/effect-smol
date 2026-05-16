@@ -113,8 +113,12 @@ export interface MutableList<in out A> {
  */
 export declare namespace MutableList {
   /**
-   * Internal bucket structure used by MutableList to store elements efficiently.
-   * Buckets are linked together to form the list structure.
+   * Storage node used by the exposed `head` and `tail` fields of a
+   * `MutableList`.
+   *
+   * Most code should treat buckets as an implementation detail and use
+   * `MutableList` operations such as `append`, `prepend`, and `take` instead
+   * of constructing or mutating buckets directly.
    *
    * **Example** (Inspecting buckets)
    *
@@ -648,6 +652,13 @@ export const takeN = <A>(self: MutableList<A>, n: number): Array<A> => {
 }
 
 /**
+ * Removes up to `n` elements from the beginning of the `MutableList` without
+ * returning them.
+ *
+ * If `n` is less than or equal to zero, or the list is empty, the list is left
+ * unchanged. If `n` is greater than or equal to the current length, the list is
+ * cleared.
+ *
  * @category elements
  * @since 4.0.0
  */
@@ -785,6 +796,11 @@ export const take = <A>(self: MutableList<A>): Empty | A => {
 }
 
 /**
+ * Copies up to `n` elements from the beginning of the `MutableList` into a new
+ * array without modifying the list.
+ *
+ * Use `takeN` when the copied elements should also be removed from the list.
+ *
  * @category elements
  * @since 4.0.0
  */
@@ -804,6 +820,12 @@ export const toArrayN = <A>(self: MutableList<A>, n: number): Array<A> => {
 }
 
 /**
+ * Copies all current elements of the `MutableList` into a new array without
+ * modifying the list.
+ *
+ * Use `takeAll` when the list should be emptied after converting it to an
+ * array.
+ *
  * @category elements
  * @since 4.0.0
  */
@@ -873,8 +895,11 @@ export const filter = <A>(self: MutableList<A>, f: (value: A, i: number) => bool
 }
 
 /**
- * Removes all occurrences of a specific value from the MutableList.
- * This operation modifies the list in place.
+ * Removes all occurrences of a value from the `MutableList` using JavaScript
+ * strict equality semantics.
+ *
+ * The list is modified in place. Values are compared with `!==`, so this does
+ * not use Effect structural equality.
  *
  * **Example** (Removing matching values)
  *

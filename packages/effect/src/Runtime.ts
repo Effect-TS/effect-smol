@@ -229,6 +229,9 @@ declare global {
 }
 
 /**
+ * Type-level key for the `Runtime.errorExitCode` property that can be attached
+ * to an `Error` to customize the process exit code used by `runMain`.
+ *
  * @category Exit code management
  * @since 4.0.0
  */
@@ -258,6 +261,13 @@ export type errorExitCode = "~effect/Runtime/errorExitCode"
 export const errorExitCode: errorExitCode = "~effect/Runtime/errorExitCode"
 
 /**
+ * Reads the runtime exit-code marker from an unknown error value.
+ *
+ * **Details**
+ * Returns the numeric `[Runtime.errorExitCode]` property when it is present on
+ * an object. Otherwise returns `1`, the default failure exit code used by
+ * `defaultTeardown`.
+ *
  * @category Exit code management
  * @since 4.0.0
  */
@@ -272,13 +282,21 @@ export const getErrorExitCode = (u: unknown): number => {
 }
 
 /**
+ * Type-level key for the `Runtime.errorReported` property that controls default
+ * `runMain` error logging for an `Error`.
+ *
  * @category Error reporting management
  * @since 4.0.0
  */
 export type errorReported = "~effect/Runtime/errorReported"
 
 /**
- * Allows an error to opt-out of error reporting.
+ * Runtime marker that controls default `runMain` error logging for an error.
+ *
+ * **Details**
+ * Set `[Runtime.errorReported]` to `false` on an error object to suppress the
+ * runtime log because the error has already been reported. Omitted or
+ * non-boolean values are treated as `true`, so failures are logged by default.
  *
  * **Example** (Suppressing error reporting)
  *
@@ -301,6 +319,12 @@ export type errorReported = "~effect/Runtime/errorReported"
 export const errorReported: errorReported = "~effect/Runtime/errorReported"
 
 /**
+ * Reads the runtime error-reporting marker from an unknown error value.
+ *
+ * **Details**
+ * Returns a boolean `[Runtime.errorReported]` property when it is present on an
+ * object. Otherwise returns `true`, so failures are logged by default.
+ *
  * @category Error reporting management
  * @since 4.0.0
  */

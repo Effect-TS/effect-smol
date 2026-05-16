@@ -13,6 +13,9 @@ import * as Stream_ from "../../Stream.ts"
 const StreamSchemaTypeId = "~effect/rpc/RpcSchema/StreamSchema"
 
 /**
+ * Returns `true` when a schema is an RPC stream schema created by
+ * `RpcSchema.Stream`.
+ *
  * @category Stream
  * @since 4.0.0
  */
@@ -34,6 +37,9 @@ export function getStreamSchemas(schema: Schema.Top): Option.Option<{
 }
 
 /**
+ * A schema marker for RPC streaming responses, storing the success element
+ * schema and stream error schema used for encoding and decoding stream chunks.
+ *
  * @category Stream
  * @since 4.0.0
  */
@@ -56,6 +62,9 @@ export interface Stream<A extends Schema.Top, E extends Schema.Top> extends
 const schema = Schema.declare(Stream_.isStream)
 
 /**
+ * Creates an RPC stream schema from a stream element success schema and stream
+ * error schema.
+ *
  * @category Stream
  * @since 4.0.0
  */
@@ -64,6 +73,9 @@ export function Stream<A extends Schema.Top, E extends Schema.Top>(success: A, e
 }
 
 /**
+ * Cause annotation used to mark interruptions that originate from an RPC client
+ * abort.
+ *
  * @category Cause annotations
  * @since 4.0.0
  */

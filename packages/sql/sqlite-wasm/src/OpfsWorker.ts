@@ -14,6 +14,8 @@ const classifyError = (cause: unknown, message: string, operation: string) =>
   classifySqliteError(cause, { message, operation })
 
 /**
+ * Configuration for the SQLite OPFS worker, including the message port used for the client protocol and the OPFS database name to open.
+ *
  * @category models
  * @since 1.0.0
  */
@@ -23,6 +25,8 @@ export interface OpfsWorkerConfig {
 }
 
 /**
+ * Runs the SQLite OPFS worker loop, opening the configured database, posting a ready message, handling query/import/export/update-hook messages, and closing when a close message is received.
+ *
  * @category constructor
  * @since 1.0.0
  */

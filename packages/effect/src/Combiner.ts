@@ -105,10 +105,8 @@ export interface Combiner<A> {
  * - You have a custom combining operation that is not covered by the built-in
  *   constructors (`min`, `max`, `first`, `last`, `constant`).
  *
- * Behavior:
- * - Returns a new `Combiner` whose `combine` method delegates to the provided
- *   function.
- * - Pure – the returned combiner does not mutate its arguments.
+ * The returned combiner's `combine` method delegates to the provided function.
+ * Any purity, associativity, or mutation behavior comes from that function.
  *
  * **Example** (multiplying numbers)
  *

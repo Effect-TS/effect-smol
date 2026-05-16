@@ -5,18 +5,28 @@ import * as Equal from "../../Equal.ts"
 import * as Hash from "../../Hash.ts"
 
 /**
+ * The literal type used to identify `AtomRef` values.
+ *
  * @category type ids
  * @since 4.0.0
  */
 export type TypeId = "~effect/reactivity/AtomRef"
 
 /**
+ * The runtime type id used to identify `AtomRef` values.
+ *
  * @category type ids
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/reactivity/AtomRef"
 
 /**
+ * A read-only reactive reference.
+ *
+ * It exposes a stable key, the current value, subscriptions to value changes, and
+ * `map` for creating derived read-only references. Equality and hashing are based
+ * on the current value.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -29,6 +39,11 @@ export interface ReadonlyRef<A> extends Equal.Equal {
 }
 
 /**
+ * A mutable reactive reference.
+ *
+ * It supports replacing the whole value, updating it from the current value, and
+ * creating mutable references to nested properties.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -39,6 +54,11 @@ export interface AtomRef<A> extends ReadonlyRef<A> {
 }
 
 /**
+ * A reactive collection of mutable item references.
+ *
+ * The collection can push, insert, and remove item refs, and `toArray` returns the
+ * current raw item values.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -50,12 +70,19 @@ export interface Collection<A> extends ReadonlyRef<ReadonlyArray<AtomRef<A>>> {
 }
 
 /**
+ * Creates a mutable reactive reference initialized with the supplied value.
+ *
  * @category constructors
  * @since 4.0.0
  */
 export const make = <A>(value: A): AtomRef<A> => new AtomRefImpl(value)
 
 /**
+ * Creates a reactive collection from an iterable of initial item values.
+ *
+ * Each item is wrapped in an `AtomRef`, and changes to item refs notify the
+ * collection subscribers.
+ *
  * @category constructors
  * @since 4.0.0
  */

@@ -8,7 +8,8 @@ import type * as Option from "../../Option.ts"
 import * as Schema from "../../Schema.ts"
 
 /**
- * Run a sql query with a request schema and a result schema.
+ * Builds a query function that encodes the request, decodes all result rows,
+ * and fails with `NoSuchElementError` when the result set is empty.
  *
  * @category constructor
  * @since 4.0.0
@@ -81,7 +82,8 @@ export {
 }
 
 /**
- * Run a sql query with a request schema and a result schema and return the first result.
+ * Builds a query function that encodes the request, decodes the first result
+ * row, and fails with `NoSuchElementError` when no rows are returned.
  *
  * @category constructor
  * @since 4.0.0
@@ -113,7 +115,8 @@ export const findOne = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
 }
 
 /**
- * Run a sql query with a request schema and a result schema and return the first result.
+ * Builds a query function that encodes the request, decodes the first result row
+ * as `Option.some`, and returns `Option.none` when no rows are returned.
  *
  * @category constructor
  * @since 4.0.0

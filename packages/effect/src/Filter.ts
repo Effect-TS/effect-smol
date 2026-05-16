@@ -135,6 +135,9 @@ export const makeEffect = <Input, Pass, Fail, E, R>(
 ): FilterEffect<Input, Pass, Fail, E, R> => f as any
 
 /**
+ * Transforms the failure value produced by a `Filter`, leaving successful
+ * results unchanged.
+ *
  * @category Mapping
  * @since 4.0.0
  */
@@ -201,7 +204,9 @@ export const fromPredicate: {
   predicate(input) ? Result.succeed(input as B) : Result.fail(input)
 
 /**
- * Creates a Filter from a function that returns an Option.
+ * Creates a `Filter` from a function that returns an `Option`.
+ *
+ * `Some(value)` passes with `value`. `None` fails with the original input.
  *
  * @category Constructors
  * @since 4.0.0
@@ -240,6 +245,9 @@ export const toPredicate = <A, Pass, Fail>(
 export const string: Filter<unknown, string> = fromPredicate(Predicate.isString)
 
 /**
+ * Creates a `Filter` that passes only values strictly equal to the specified
+ * value using JavaScript `===` comparison.
+ *
  * @category Constructors
  * @since 4.0.0
  */
@@ -248,6 +256,9 @@ export const equalsStrict =
     (u as unknown) === value ? Result.succeed(value) : Result.fail(u as any)
 
 /**
+ * Creates a `Filter` that passes inputs whose `has(key)` method returns
+ * `true` for the specified key.
+ *
  * @category Constructors
  * @since 4.0.0
  */
@@ -578,11 +589,11 @@ export const compose: {
 })
 
 /**
- * Composes two filters sequentially, allowing the output of the first to be
- * passed to the second.
+ * Composes two filters sequentially, passing the successful output of the
+ * first filter to the second.
  *
- * This is similar to `compose`, but it will always fail with the original
- * input.
+ * If either filter fails, the returned filter fails with the original input
+ * instead of the intermediate failure value.
  *
  * @category Combinators
  * @since 4.0.0
@@ -608,6 +619,9 @@ export const composePassthrough: {
 })
 
 /**
+ * Converts a `Filter` into a function that returns `Some` for passed values
+ * and `None` for filtered-out values.
+ *
  * @category Conversions
  * @since 4.0.0
  */
@@ -620,6 +634,9 @@ export const toOption = <A, Pass, Fail>(
 }
 
 /**
+ * Converts a `Filter` into a function that returns the underlying
+ * `Result.Result` for each input.
+ *
  * @category Conversions
  * @since 4.0.0
  */

@@ -9,6 +9,8 @@ import * as Layer from "effect/Layer"
 import * as Persistence from "effect/unstable/persistence/Persistence"
 
 /**
+ * Creates a `BackingPersistence` layer backed by IndexedDB, optionally using the provided database name.
+ *
  * @category layers
  * @since 1.0.0
  */
@@ -42,6 +44,8 @@ const entriesStoreName = "entries"
 const storeIdIndexName = "storeId"
 
 /**
+ * Creates a `Persistence` layer backed by IndexedDB, optionally using the provided database name.
+ *
  * @category layers
  * @since 1.0.0
  */

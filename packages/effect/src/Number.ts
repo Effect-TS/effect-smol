@@ -640,14 +640,14 @@ export const ReducerMultiply: Reducer.Reducer<number> = Reducer.make((a, b) => a
 })
 
 /**
- * A `Combiner` that returns the maximum `number`.
+ * A `Reducer` for reducing `number`s by keeping the maximum value.
  *
  * @since 4.0.0
  */
 export const ReducerMax: Reducer.Reducer<number> = Reducer.make((a, b) => Math.max(a, b), -Infinity)
 
 /**
- * A `Combiner` that returns the minimum `number`.
+ * A `Reducer` for reducing `number`s by keeping the minimum value.
  *
  * @since 4.0.0
  */

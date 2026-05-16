@@ -51,6 +51,8 @@ export interface SpecFetcher {
 }
 
 /**
+ * Context service tag for fetching OpenAPI specifications from configured sources.
+ *
  * @category tags
  * @since 1.0.0
  */

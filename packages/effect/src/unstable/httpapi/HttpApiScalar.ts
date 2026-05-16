@@ -12,6 +12,8 @@ import * as internal from "./internal/httpApiScalar.ts"
 import * as OpenApi from "./OpenApi.ts"
 
 /**
+ * Theme preset identifier accepted by the Scalar API reference UI.
+ *
  * @category model
  * @since 4.0.0
  */
@@ -30,6 +32,8 @@ export type ScalarThemeId =
   | "none"
 
 /**
+ * Configuration passed to the embedded Scalar API reference UI.
+ *
  * @see https://github.com/scalar/scalar/blob/main/documentation/configuration.md
  *
  * @category model
@@ -165,6 +169,11 @@ const makeHandler = <Id extends string, Groups extends HttpApiGroup.Any>(options
 }
 
 /**
+ * Mounts a Scalar API reference page for an `HttpApi` using the bundled Scalar script.
+ *
+ * The route serves the OpenAPI specification generated from the API at the
+ * configured path, defaulting to `/docs`.
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -188,6 +197,12 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
   }))
 
 /**
+ * Mounts a Scalar API reference page for an `HttpApi` that loads Scalar from jsDelivr.
+ *
+ * The route serves the OpenAPI specification generated from the API at the
+ * configured path, defaulting to `/docs`; `version` selects the Scalar package
+ * version loaded from the CDN.
+ *
  * @category layers
  * @since 4.0.0
  */

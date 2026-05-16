@@ -14,6 +14,11 @@ const RequestSchema = Schema.toCodecJson(DevToolsSchema.Request)
 const ResponseSchema = Schema.toCodecJson(DevToolsSchema.Response)
 
 /**
+ * Handle for a connected devtools client.
+ *
+ * It exposes a queue of non-ping requests received from the socket and a
+ * `send` function for non-pong responses.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -23,6 +28,12 @@ export interface Client {
 }
 
 /**
+ * Runs the devtools socket server.
+ *
+ * Each connection is decoded as NDJSON devtools protocol messages, `Ping`
+ * requests are answered with `Pong`, and all other requests are delivered
+ * through the `Client` passed to the handler.
+ *
  * @category constructors
  * @since 4.0.0
  */

@@ -270,10 +270,12 @@ export const countReset = (label?: string): Effect.Effect<void> =>
   )
 
 /**
- * Outputs a debug message to the console.
+ * Writes a debug message through the current `Console` service.
  *
- * This function logs messages at the debug level, which may be filtered
- * out in production environments.
+ * **Details**
+ * The arguments are passed to the service's `debug` method when the returned
+ * Effect is executed. Any filtering behavior depends on the active console
+ * implementation.
  *
  * **Example** (Writing debug messages)
  *

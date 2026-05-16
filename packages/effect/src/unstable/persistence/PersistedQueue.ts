@@ -23,18 +23,28 @@ import type { SqlError } from "../sql/SqlError.ts"
 import * as Redis from "./Redis.ts"
 
 /**
+ * Runtime type identifier for `PersistedQueue` values.
+ *
  * @category Type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/persistence/PersistedQueue"
 
 /**
+ * Type-level identifier used to brand `PersistedQueue` values.
+ *
  * @category Type IDs
  * @since 4.0.0
  */
 export type TypeId = "~effect/persistence/PersistedQueue"
 
 /**
+ * Persistent queue of schema-encoded values.
+ *
+ * `offer` enqueues values by id, and `take` processes one value at a time,
+ * marking it complete on success or retrying it until the maximum attempts is
+ * reached.
+ *
  * @category Models
  * @since 4.0.0
  */
@@ -72,6 +82,8 @@ export interface PersistedQueue<in out A, out R = never> {
 }
 
 /**
+ * Service for constructing named `PersistedQueue` instances from schemas.
+ *
  * @category Factory
  * @since 4.0.0
  */
@@ -86,6 +98,9 @@ export class PersistedQueueFactory extends Context.Service<
 >()("effect/persistence/PersistedQueue/PersistedQueueFactory") {}
 
 /**
+ * Accesses `PersistedQueueFactory` to create a named persisted queue for a
+ * schema.
+ *
  * @category Accessors
  * @since 4.0.0
  */
@@ -99,6 +114,12 @@ export const make = <S extends Schema.Top>(options: {
 > => PersistedQueueFactory.use((factory) => factory.make(options))
 
 /**
+ * Creates a `PersistedQueueFactory` from the current `PersistedQueueStore`.
+ *
+ * Values are encoded and decoded with the supplied schema, automatically
+ * assigned an id when needed, and acknowledged or retried according to the
+ * `take` handler's exit.
+ *
  * @category Factory
  * @since 4.0.0
  */
@@ -153,6 +174,8 @@ export const makeFactory = Effect.gen(function*() {
 })
 
 /**
+ * Provides `PersistedQueueFactory` using the current `PersistedQueueStore`.
+ *
  * @category Factory
  * @since 4.0.0
  */
@@ -163,18 +186,24 @@ export const layer: Layer.Layer<
 > = Layer.effect(PersistedQueueFactory, makeFactory)
 
 /**
+ * Runtime type identifier for `PersistedQueueError`.
+ *
  * @category Errors
  * @since 4.0.0
  */
 export const ErrorTypeId: ErrorTypeId = "~@effect/experimental/PersistedQueue/PersistedQueueError"
 
 /**
+ * Type-level identifier used to brand `PersistedQueueError` values.
+ *
  * @category Errors
  * @since 4.0.0
  */
 export type ErrorTypeId = "~@effect/experimental/PersistedQueue/PersistedQueueError"
 
 /**
+ * Error raised by persisted queue store operations.
+ *
  * @category Errors
  * @since 4.0.0
  */
@@ -192,6 +221,11 @@ export class PersistedQueueError extends Schema.ErrorClass<PersistedQueueError>(
 }
 
 /**
+ * Low-level backing store service used by `PersistedQueue`.
+ *
+ * The store persists offered elements and returns taken elements in a scope so
+ * the finalizer can complete or retry them based on the processing exit.
+ *
  * @category Store
  * @since 4.0.0
  */
@@ -223,6 +257,11 @@ export class PersistedQueueStore extends Context.Service<
 >()("effect/persistence/PersistedQueue/PersistedQueueStore") {}
 
 /**
+ * Provides an in-memory `PersistedQueueStore`.
+ *
+ * The store is process-local and volatile; failed takes are requeued until the
+ * configured maximum attempts is reached.
+ *
  * @category Store
  * @since 4.0.0
  */
@@ -289,6 +328,12 @@ export const layerStoreMemory: Layer.Layer<
 })
 
 /**
+ * Creates a Redis-backed `PersistedQueueStore`.
+ *
+ * The store uses Redis lists and hashes with worker locks, periodically
+ * refreshes locks while items are being processed, and moves exhausted items
+ * to a failed queue.
+ *
  * @category Store
  * @since 4.0.0
  */
@@ -648,6 +693,8 @@ end
 )
 
 /**
+ * Provides a Redis-backed `PersistedQueueStore` using `makeStoreRedis`.
+ *
  * @category Store
  * @since 4.0.0
  */
@@ -665,6 +712,12 @@ export const layerStoreRedis: (
 > = flow(makeStoreRedis, Layer.effect(PersistedQueueStore))
 
 /**
+ * Creates a SQL-backed `PersistedQueueStore`.
+ *
+ * The store creates the queue table and indexes, acquires rows with
+ * per-worker locks, refreshes active locks while scoped takes are running, and
+ * retries or completes rows according to the processing exit.
+ *
  * @category Store
  * @since 4.0.0
  */
@@ -1093,6 +1146,8 @@ class QueueKey extends Data.Class<{
 }> {}
 
 /**
+ * Provides a SQL-backed `PersistedQueueStore` using `makeStoreSql`.
+ *
  * @category Store
  * @since 4.0.0
  */

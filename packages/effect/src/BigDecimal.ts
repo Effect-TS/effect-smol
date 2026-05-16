@@ -205,10 +205,11 @@ export const normalize = (self: BigDecimal): BigDecimal => {
 }
 
 /**
- * Scales a given `BigDecimal` to the specified scale.
+ * Scales a `BigDecimal` to the specified scale.
  *
- * If the given scale is smaller than the current scale, the value will be rounded down to
- * the nearest integer.
+ * Increasing the scale appends decimal zeros. Decreasing the scale discards
+ * digits beyond the target scale by `bigint` division, which truncates toward
+ * zero.
  *
  * **Example** (Scaling decimal precision)
  *
@@ -1150,7 +1151,11 @@ export const fromNumber = (n: number): Option.Option<BigDecimal> => {
 }
 
 /**
- * Parses a numerical `string` into a `BigDecimal`.
+ * Safely parses a decimal string into a `BigDecimal`.
+ *
+ * Returns `Option.some` for valid decimal or exponent notation and
+ * `Option.none` when the string cannot be parsed or would produce an unsafe
+ * scale. The empty string parses as zero.
  *
  * **Example** (Parsing decimal strings safely)
  *
@@ -1215,7 +1220,11 @@ export const fromString = (s: string): Option.Option<BigDecimal> => {
 }
 
 /**
- * Parses a numerical `string` into a `BigDecimal`.
+ * Parses a decimal string into a `BigDecimal`, throwing if the string is
+ * invalid.
+ *
+ * Accepts the same syntax as `fromString`. Use `fromString` when invalid input
+ * should be represented as `Option.none` instead of throwing.
  *
  * **Example** (Parsing decimal strings unsafely)
  *
@@ -1236,10 +1245,11 @@ export const fromStringUnsafe = (s: string): BigDecimal => {
 }
 
 /**
- * Formats a given `BigDecimal` as a `string`.
+ * Formats a `BigDecimal` as a string.
  *
- * If the scale of the `BigDecimal` is greater than or equal to 16, the `BigDecimal` will
- * be formatted in scientific notation.
+ * The value is normalized before formatting. Scientific notation is used when
+ * the absolute value of the normalized scale is at least `16`; otherwise plain
+ * decimal notation is used.
  *
  * **Example** (Formatting decimals)
  *
@@ -1321,9 +1331,11 @@ export const toExponential = (n: BigDecimal): string => {
 }
 
 /**
- * Converts a `BigDecimal` to a `number`.
+ * Converts a `BigDecimal` to a JavaScript `number`.
  *
- * This function will produce incorrect results if the `BigDecimal` exceeds the 64-bit range of a `number`.
+ * This conversion is unsafe because the result can lose integer or fractional
+ * precision, round to a nearby representable value, or become `Infinity` when
+ * the decimal cannot be represented as a finite JavaScript `number`.
  *
  * **Example** (Converting decimals to numbers)
  *

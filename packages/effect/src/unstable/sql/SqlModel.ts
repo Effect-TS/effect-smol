@@ -14,7 +14,10 @@ import * as SqlResolver from "./SqlResolver.ts"
 import * as SqlSchema from "./SqlSchema.ts"
 
 /**
- * Create a simple CRUD repository from a model.
+ * Creates a CRUD repository for a schema model backed by a SQL table, with
+ * insert, update, find-by-id, and delete operations. When `softDeleteColumn` is
+ * supplied, reads ignore soft-deleted rows and delete updates that column
+ * instead of removing the row.
  *
  * @category repository
  * @since 4.0.0
@@ -210,7 +213,8 @@ select * from ${sql(options.tableName)} where ${withSoftDeleteFilter(sql`${sql(i
   })
 
 /**
- * Create some simple data loaders from a model.
+ * Creates batched request resolvers for a schema model's insert, insert-void,
+ * find-by-id, and delete operations, honoring the optional soft-delete column.
  *
  * @category repository
  * @since 4.0.0

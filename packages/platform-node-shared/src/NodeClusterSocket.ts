@@ -14,6 +14,9 @@ import * as NodeSocket from "./NodeSocket.ts"
 import * as NodeSocketServer from "./NodeSocketServer.ts"
 
 /**
+ * Provides the cluster `RpcClientProtocol` by opening TCP sockets to runner
+ * addresses and using the current RPC serialization service.
+ *
  * @category Layers
  * @since 1.0.0
  */
@@ -40,6 +43,9 @@ export const layerClientProtocol: Layer.Layer<
 )
 
 /**
+ * Provides the socket server used by cluster runners, listening on
+ * `ShardingConfig.runnerListenAddress` or `runnerAddress`.
+ *
  * @category Layers
  * @since 1.0.0
  */

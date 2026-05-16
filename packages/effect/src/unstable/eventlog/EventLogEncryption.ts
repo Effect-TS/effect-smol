@@ -12,6 +12,9 @@ import type { Identity } from "./EventLog.ts"
 import { makeGetIdentityRootSecretMaterial } from "./internal/identityRootSecretDerivation.ts"
 
 /**
+ * Schema for an encrypted journal entry paired with the id of the original
+ * entry.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -21,12 +24,17 @@ export const EncryptedEntry = Schema.Struct({
 })
 
 /**
+ * Type of an encrypted remote entry, including its remote sequence number,
+ * initialization vector, entry id, and encrypted entry bytes.
+ *
  * @category models
  * @since 4.0.0
  */
 export interface EncryptedRemoteEntry extends Schema.Schema.Type<typeof EncryptedRemoteEntry> {}
 
 /**
+ * Schema for encrypted entries exchanged with a remote event-log server.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -46,6 +54,9 @@ const toArrayBuffer = (data: Uint8Array): ArrayBuffer => {
 const toBufferSource = (data: Uint8Array): ArrayBufferView<ArrayBuffer> => new Uint8Array(toArrayBuffer(data))
 
 /**
+ * Service used by event-log replication for identity generation, entry
+ * encryption and decryption, and SHA-256 hashing.
+ *
  * @category services
  * @since 4.0.0
  */
@@ -67,6 +78,9 @@ export class EventLogEncryption extends Context.Service<EventLogEncryption, {
 }>()("effect/eventlog/EventLogEncryption") {}
 
 /**
+ * Creates an `EventLogEncryption` service backed by the Web Crypto `SubtleCrypto`
+ * APIs from the supplied `Crypto` implementation.
+ *
  * @category encryption
  * @since 4.0.0
  */
@@ -132,6 +146,8 @@ export const makeEncryptionSubtle = (crypto: Crypto): Effect.Effect<EventLogEncr
   })
 
 /**
+ * Provides `EventLogEncryption` using `globalThis.crypto`.
+ *
  * @category encryption
  * @since 4.0.0
  */

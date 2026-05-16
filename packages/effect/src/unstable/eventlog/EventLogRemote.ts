@@ -32,6 +32,11 @@ import { encodeSessionAuthPayload, signSessionAuthPayloadBytes } from "./EventLo
 import { makeGetIdentityRootSecretMaterial } from "./internal/identityRootSecretDerivation.ts"
 
 /**
+ * Service representing a remote event-log replica.
+ *
+ * It can write local entries to the remote, stream remote changes from a sequence
+ * number, and run effects only after the supplied identity has authenticated.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -53,6 +58,9 @@ export class EventLogRemote extends Context.Service<EventLogRemote, {
 }>()("effect/eventlog/EventLogRemote") {}
 
 /**
+ * Error raised by `EventLogRemote` operations, recording the failed method and
+ * underlying cause.
+ *
  * @category errors
  * @since 4.0.0
  */
@@ -88,6 +96,8 @@ const makeAuthenticate = Effect.fnUntraced(function*(options: {
 })
 
 /**
+ * Typed RPC client service for the `EventLogRemoteRpcs` protocol.
+ *
  * @category RpcClient
  * @since 4.0.0
  */
@@ -106,6 +116,13 @@ export class EventLogRemoteClient extends Context.Service<
 }
 
 /**
+ * Creates an `EventLogRemote` from custom write encoding and change decoding
+ * functions.
+ *
+ * The remote performs the hello/authentication handshake, retries after forbidden
+ * responses by re-authenticating, chunks large writes, and registers itself with
+ * the `Registry` for the current scope.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -251,6 +268,9 @@ class IdentityService extends Context.Service<Identity, Identity["Service"]>()(
 ) {}
 
 /**
+ * Creates an `EventLogRemote` that encrypts outgoing entries and decrypts
+ * incoming changes with `EventLogEncryption`.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -284,6 +304,8 @@ export const makeEncrypted = Effect.gen(function*(): Effect.fn.Return<
 })
 
 /**
+ * Creates an `EventLogRemote` that sends and receives plaintext entry payloads.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -302,6 +324,9 @@ export const makeUnencrypted: Effect.Effect<
 })
 
 /**
+ * Provides an encrypted `EventLogRemote` using the remote RPC client and the
+ * default Web Crypto encryption layer.
+ *
  * @category Layers
  * @since 4.0.0
  */
@@ -315,6 +340,8 @@ export const layerEncrypted: Layer.Layer<
 )
 
 /**
+ * Provides an unencrypted `EventLogRemote` using the remote RPC client.
+ *
  * @category Layers
  * @since 4.0.0
  */

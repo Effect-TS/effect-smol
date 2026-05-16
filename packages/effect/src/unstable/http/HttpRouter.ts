@@ -25,6 +25,12 @@ import * as HttpServerResponse from "./HttpServerResponse.ts"
 const TypeId = "~effect/http/HttpRouter"
 
 /**
+ * Service interface for registering HTTP routes and middleware.
+ *
+ * An `HttpRouter` can add routes, apply path prefixes, install global middleware,
+ * and expose the registered routes as an Effect that handles the current server
+ * request.
+ *
  * @category HttpRouter
  * @since 4.0.0
  */
@@ -77,6 +83,11 @@ export interface HttpRouter {
 }
 
 /**
+ * Service tag for the HTTP router used while constructing an HTTP application.
+ *
+ * Route and middleware layers require this service to register themselves with
+ * the router.
+ *
  * @category HttpRouter
  * @since 4.0.0
  */
@@ -85,6 +96,11 @@ export const HttpRouter: Context.Service<HttpRouter, HttpRouter> = Context.Servi
 )
 
 /**
+ * Constructs an empty `HttpRouter` service.
+ *
+ * The returned router accepts route and middleware registrations and later routes
+ * the current `HttpServerRequest` to the matching `HttpServerResponse`.
+ *
  * @category HttpRouter
  * @since 4.0.0
  */
@@ -215,6 +231,11 @@ function sliceRequestUrl(request: HttpServerRequest.HttpServerRequest, prefix: s
 }
 
 /**
+ * Context reference for low-level router configuration.
+ *
+ * The value is passed to the route matcher when an `HttpRouter` is created and
+ * defaults to an empty configuration.
+ *
  * @category Configuration
  * @since 4.0.0
  */
@@ -224,6 +245,11 @@ export const RouterConfig = Context.Reference<Partial<FindMyWay.RouterConfig>>(
 )
 
 /**
+ * Request-scoped service containing information about the matched route.
+ *
+ * It provides the route definition and the path parameters captured by the route
+ * matcher.
+ *
  * @category RouteContext
  * @since 4.0.0
  */
@@ -233,6 +259,8 @@ export class RouteContext extends Context.Service<RouteContext, {
 }>()("effect/http/HttpRouter/RouteContext") {}
 
 /**
+ * Effect that returns the path parameters captured for the current matched route.
+ *
  * @category RouteContext
  * @since 4.0.0
  */
@@ -243,6 +271,12 @@ export const params: Effect.Effect<
 > = Effect.map(RouteContext, (_) => _.params)
 
 /**
+ * Decodes a schema from the current request and its JSON body.
+ *
+ * The input passed to the schema includes the request method, URL, headers,
+ * cookies, path parameters, search parameters, and parsed JSON body. The effect
+ * fails if the body cannot be parsed or the schema decode fails.
+ *
  * @category Schema
  * @since 4.0.0
  */
@@ -292,6 +326,11 @@ export const schemaJson = <
 }
 
 /**
+ * Decodes a schema from the current request without reading the request body.
+ *
+ * The input passed to the schema includes the request method, URL, headers,
+ * cookies, path parameters, and search parameters.
+ *
  * @category Schema
  * @since 4.0.0
  */
@@ -338,6 +377,10 @@ export const schemaNoBody = <
 }
 
 /**
+ * Decodes a schema from the current route path parameters and search parameters.
+ *
+ * When the same key appears in both sources, the path parameter value is used.
+ *
  * @category Schema
  * @since 4.0.0
  */
@@ -354,6 +397,9 @@ export const schemaParams = <A, I extends Readonly<Record<string, string | Reado
 }
 
 /**
+ * Decodes a schema from the path parameters captured for the current matched
+ * route.
+ *
  * @category Schema
  * @since 4.0.0
  */
@@ -366,7 +412,11 @@ export const schemaPathParams = <A, I extends Readonly<Record<string, string | u
 }
 
 /**
- * A helper function that is the equivalent of:
+ * Creates a layer that accesses the current `HttpRouter` service and runs the
+ * supplied effect.
+ *
+ * Use it to register routes or middleware with the router during layer
+ * construction.
  *
  * ```ts
  * import { Effect } from "effect"
@@ -461,12 +511,21 @@ export const addAll = <Routes extends ReadonlyArray<Route<any, any>>, EX = never
   }))
 
 /**
+ * Layer that provides a newly constructed `HttpRouter`.
+ *
  * @category HttpRouter
  * @since 4.0.0
  */
 export const layer: Layer.Layer<HttpRouter> = Layer.effect(HttpRouter)(make)
 
 /**
+ * Builds an application layer with a router and returns the router as an HTTP
+ * handler effect.
+ *
+ * The returned effect handles the current `HttpServerRequest` in the current
+ * `Scope`; route request markers are converted into the ordinary requirements of
+ * the returned handler.
+ *
  * @category HttpRouter
  * @since 4.0.0
  */
@@ -491,6 +550,11 @@ export const toHttpEffect = <A, E, R>(
 const RouteTypeId = "~effect/http/HttpRouter/Route"
 
 /**
+ * Description of a registered HTTP route.
+ *
+ * A route pairs an HTTP method and path pattern with a response handler, plus
+ * metadata used for prefix handling and interruptibility.
+ *
  * @category Route
  * @since 4.0.0
  */
@@ -504,17 +568,24 @@ export interface Route<E = never, R = never> {
 }
 
 /**
+ * Helper types for extracting the error and context types carried by `Route`
+ * values.
+ *
  * @category Route
  * @since 4.0.0
  */
 export declare namespace Route {
   /**
+   * Extracts the error type produced by a `Route` handler.
+   *
    * @category Route
    * @since 4.0.0
    */
   export type Error<R extends Route<any, any>> = R extends Route<infer E, infer _R> ? E : never
 
   /**
+   * Extracts the context requirements of a `Route` handler.
+   *
    * @category Route
    * @since 4.0.0
    */
@@ -535,6 +606,12 @@ const makeRoute = <E, R>(options: {
 }) as Route<E, Exclude<R, Provided>>)
 
 /**
+ * Constructs a `Route` from an HTTP method, path, and handler.
+ *
+ * The handler may be a static response, an effect that produces a response, or a
+ * function from the current request to a response effect. Set `uninterruptible` to
+ * prevent the route handler from being made interruptible while it runs.
+ *
  * @category Route
  * @since 4.0.0
  */
@@ -562,6 +639,10 @@ export const route = <E = never, R = never>(
   })
 
 /**
+ * Path pattern accepted by the router.
+ *
+ * Routes must use an absolute path beginning with `/` or the wildcard `*`.
+ *
  * @category PathInput
  * @since 4.0.0
  */
@@ -572,6 +653,11 @@ const removeTrailingSlash = (
 ): PathInput => (path.endsWith("/") ? path.slice(0, -1) : path) as any
 
 /**
+ * Adds a path prefix to a route path.
+ *
+ * Trailing slashes are removed from the prefix; `/` becomes the prefix itself and
+ * `*` becomes a wildcard route under the prefix.
+ *
  * @category PathInput
  * @since 4.0.0
  */
@@ -586,6 +672,12 @@ export const prefixPath: {
 })
 
 /**
+ * Returns a copy of a route with its path prefixed.
+ *
+ * The prefix is also tracked on the route so that, when the route handles a
+ * request, the matched prefix can be removed from the request URL seen by the
+ * handler.
+ *
  * @category Route
  * @since 4.0.0
  */
@@ -616,23 +708,34 @@ export interface Request<Kind extends string, T> {
 }
 
 /**
+ * Helper types for request-level dependency markers used by router layers and
+ * middleware.
+ *
  * @category Request types
  * @since 4.0.0
  */
 export declare namespace Request {
   /**
+   * Wraps a type in a request-level marker of the supplied kind.
+   *
    * @category Request types
    * @since 4.0.0
    */
   export type From<Kind extends string, R> = R extends infer T ? Request<Kind, T> : never
 
   /**
+   * Extracts the payload types from request-level markers that have the supplied
+   * kind.
+   *
    * @category Request types
    * @since 4.0.0
    */
   export type Only<Kind extends string, A> = A extends Request<Kind, infer T> ? T : never
 
   /**
+   * Removes request-level markers from a union, leaving only ordinary requirement
+   * or error types.
+   *
    * @category Request types
    * @since 4.0.0
    */
@@ -665,6 +768,12 @@ export type GlobalProvided =
 const MiddlewareTypeId = "~effect/http/HttpRouter/Middleware"
 
 /**
+ * Composable descriptor for route-scoped HTTP router middleware.
+ *
+ * Its `layer` can be provided to route layers, and `combine` composes middleware
+ * while tracking provided services, handled errors, and remaining requirements at
+ * the type level.
+ *
  * @category Middleware
  * @since 4.0.0
  */
@@ -890,11 +999,19 @@ const getMiddleware = (context: Context.Context<never>): Array<middleware.Fn> =>
 }
 
 /**
+ * Types used by the `middleware` constructor.
+ *
  * @category Middleware
  * @since 4.0.0
  */
 export declare namespace middleware {
   /**
+   * Overloaded constructor type for router middleware.
+   *
+   * It builds either a route-scoped `Middleware` or, when `global` is `true`, a
+   * layer that installs middleware for all routes. The type tracks provided
+   * services, handled errors, middleware failures, and remaining requirements.
+   *
    * @category Middleware
    * @since 4.0.0
    */
@@ -977,6 +1094,9 @@ export declare namespace middleware {
   }
 
   /**
+   * Function that transforms an HTTP response effect into another HTTP response
+   * effect.
+   *
    * @category Middleware
    * @since 4.0.0
    */
@@ -1110,6 +1230,13 @@ export const serve = <A, E, R, HE, HR = Request.Only<"Requires", R> | Request.On
 }
 
 /**
+ * Builds a Fetch-compatible request handler from an HTTP router application
+ * layer.
+ *
+ * The result contains a `handler` function that converts Web `Request` values to
+ * Web `Response` values and a `dispose` function for releasing the layer
+ * resources.
+ *
  * @category Server
  * @since 4.0.0
  */

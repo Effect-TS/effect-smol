@@ -16,6 +16,8 @@ import { rollup } from "rollup"
 import { createPlugins } from "./Plugins.ts"
 
 /**
+ * Error raised when Rollup bundling, output generation, or bundle size measurement fails.
+ *
  * @category errors
  * @since 1.0.0
  */
@@ -24,6 +26,8 @@ export class RollupError extends Data.TaggedError("RollupError")<{
 }> {}
 
 /**
+ * Bundle size statistics for an entry file, including its path and gzipped size in bytes.
+ *
  * @category models
  * @since 1.0.0
  */
@@ -33,6 +37,8 @@ export class BundleStats extends Data.TaggedClass("BundleStats")<{
 }> {}
 
 /**
+ * Options for bundling one entry file, optionally writing a minified output and generating a visualization.
+ *
  * @category models
  * @since 1.0.0
  */
@@ -43,6 +49,8 @@ export interface BundleOptions {
 }
 
 /**
+ * Options for bundling multiple entry files with shared visualization and output-directory settings.
+ *
  * @category models
  * @since 1.0.0
  */
@@ -53,6 +61,8 @@ export interface BundleAllOptions {
 }
 
 /**
+ * Context service for bundling entry files with Rollup and measuring their gzipped output size.
+ *
  * @category services
  * @since 1.0.0
  */

@@ -293,10 +293,11 @@ export type FormatAttributeName<T extends string | number | symbol> = T extends 
   never
 
 /**
- * Creates a function to add attributes to a span with a given prefix and key transformation.
+ * Creates a reusable span-attribute writer for a key prefix and key
+ * transformer.
  *
- * This utility function is used internally to create specialized functions for adding
- * different types of telemetry attributes to OpenTelemetry spans.
+ * The returned function mutates the supplied span by adding each non-nullish
+ * attribute as `${prefix}.${transformedKey}`.
  *
  * **Example** (Adding prefixed span attributes)
  *
@@ -492,7 +493,7 @@ export interface SpanTransformer {
 }
 
 /**
- * Service key for providing a span transformer to large langauge model
+ * Service tag for providing a `SpanTransformer` to large language model
  * operations.
  *
  * @category services

@@ -9,6 +9,10 @@ import { hasProperty } from "../../Predicate.ts"
 import type * as RpcMessage from "./RpcMessage.ts"
 
 /**
+ * Service describing how RPC protocol messages are encoded and decoded,
+ * including the content type and whether the serialization format provides
+ * message framing.
+ *
  * @category serialization
  * @since 4.0.0
  */
@@ -19,6 +23,9 @@ export class RpcSerialization extends Context.Service<RpcSerialization, {
 }>()("effect/rpc/RpcSerialization") {}
 
 /**
+ * A stateful parser for an RPC serialization format, able to decode input
+ * chunks into protocol messages and encode messages for transport.
+ *
  * @category serialization
  * @since 4.0.0
  */
@@ -28,6 +35,10 @@ export interface Parser {
 }
 
 /**
+ * JSON RPC serialization for whole message payloads. It does not include
+ * message framing, so it is intended for transports that frame responses
+ * themselves.
+ *
  * @category serialization
  * @since 4.0.0
  */
@@ -47,6 +58,9 @@ export const json: RpcSerialization["Service"] = RpcSerialization.of({
 })
 
 /**
+ * Newline-delimited JSON RPC serialization that frames each protocol message
+ * with a trailing newline.
+ *
  * @category serialization
  * @since 4.0.0
  */
@@ -87,6 +101,9 @@ export const ndjson: RpcSerialization["Service"] = RpcSerialization.of({
 })
 
 /**
+ * Creates a JSON-RPC 2.0 serialization for RPC protocol messages without
+ * additional message framing.
+ *
  * @category serialization
  * @since 4.0.0
  */
@@ -118,6 +135,9 @@ export const jsonRpc = (options?: {
   })
 
 /**
+ * Creates a newline-delimited JSON-RPC 2.0 serialization for RPC protocol
+ * messages.
+ *
  * @category serialization
  * @since 4.0.0
  */
@@ -442,6 +462,9 @@ export const makeMsgPack = (options?: Msgpackr.Options | undefined): RpcSerializ
   })
 
 /**
+ * Default MessagePack RPC serialization using record support and built-in
+ * message framing.
+ *
  * @category serialization
  * @since 4.0.0
  */

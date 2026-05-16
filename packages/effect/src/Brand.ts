@@ -103,6 +103,9 @@ export class BrandError {
 }
 
 /**
+ * Namespace containing type-level helpers for working with branded types and
+ * brand constructors.
+ *
  * @since 2.0.0
  */
 export declare namespace Brand {
@@ -199,6 +202,12 @@ export function make<A extends Brand<any>>(
 }
 
 /**
+ * Creates a branded type `Constructor` from one or more schema checks.
+ *
+ * Calling the returned constructor validates the unbranded value and throws on
+ * failure. Use the returned `option`, `result`, or `is` methods for
+ * non-throwing validation.
+ *
  * @since 4.0.0
  */
 export function check<A extends Brand<any>>(

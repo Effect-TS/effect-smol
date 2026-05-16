@@ -172,6 +172,12 @@ export const toJson = (input: unknown): unknown => {
 }
 
 /**
+ * Converts an unknown value to a string for diagnostics.
+ *
+ * Strings are returned unchanged. Objects are formatted as JSON using the
+ * provided whitespace setting when possible, and values that cannot be
+ * formatted are converted with `String`.
+ *
  * @since 2.0.0
  */
 export const toStringUnknown = (u: unknown, whitespace: number | string | undefined = 2): string => {

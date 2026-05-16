@@ -8,6 +8,10 @@ import type { Protocol } from "./RpcClient.ts"
 import type { FromServerEncoded } from "./RpcMessage.ts"
 
 /**
+ * Builds a service with a `run` method that buffers writes until `run` installs
+ * a writer, replays buffered writes with their original contexts, and restores
+ * the previous writer when the run ends.
+ *
  * @since 4.0.0
  */
 export const withRun = <
@@ -46,6 +50,10 @@ export const withRun = <
   })
 
 /**
+ * Builds an RPC client protocol service that tracks active client IDs and
+ * buffers server responses per client until that client's `run` handler is
+ * installed.
+ *
  * @since 4.0.0
  */
 export const withRunClient = <EX, RX>(

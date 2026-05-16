@@ -10,12 +10,16 @@ import type * as ClientResponse from "./HttpClientResponse.ts"
 const TypeId = "~effect/http/HttpClientError"
 
 /**
+ * Returns `true` when a value is an `HttpClientError`.
+ *
  * @category guards
  * @since 4.0.0
  */
 export const isHttpClientError = (u: unknown): u is HttpClientError => hasProperty(u, TypeId)
 
 /**
+ * Error wrapper for HTTP client failures, exposing the failed request and the optional response through its `reason`.
+ *
  * @category error
  * @since 4.0.0
  */
@@ -65,6 +69,8 @@ const formatMessage = (reason: string, description: string | undefined, info: st
   description ? `${reason}: ${description} (${info})` : `${reason} error (${info})`
 
 /**
+ * Request error for transport-level failures that occur while sending an HTTP request.
+ *
  * @category error
  * @since 4.0.0
  */
@@ -89,6 +95,8 @@ export class TransportError extends Data.TaggedError("TransportError")<{
 }
 
 /**
+ * Request error for failures while encoding an HTTP request body.
+ *
  * @category error
  * @since 4.0.0
  */
@@ -113,6 +121,8 @@ export class EncodeError extends Data.TaggedError("EncodeError")<{
 }
 
 /**
+ * Request error for failures while constructing a URL from an HTTP client request.
+ *
  * @category error
  * @since 4.0.0
  */
@@ -137,6 +147,8 @@ export class InvalidUrlError extends Data.TaggedError("InvalidUrlError")<{
 }
 
 /**
+ * Response error for HTTP responses rejected because of their status code.
+ *
  * @category error
  * @since 4.0.0
  */
@@ -163,6 +175,8 @@ export class StatusCodeError extends Data.TaggedError("StatusCodeError")<{
 }
 
 /**
+ * Response error for failures while decoding an HTTP response body.
+ *
  * @category error
  * @since 4.0.0
  */
@@ -189,6 +203,8 @@ export class DecodeError extends Data.TaggedError("DecodeError")<{
 }
 
 /**
+ * Response error for operations that expected a response body but received an empty body.
+ *
  * @category error
  * @since 4.0.0
  */
@@ -215,24 +231,32 @@ export class EmptyBodyError extends Data.TaggedError("EmptyBodyError")<{
 }
 
 /**
+ * Union of HTTP client errors that occur before a response is available.
+ *
  * @category error
  * @since 4.0.0
  */
 export type RequestError = TransportError | EncodeError | InvalidUrlError
 
 /**
+ * Union of HTTP client errors that include an HTTP response.
+ *
  * @category error
  * @since 4.0.0
  */
 export type ResponseError = StatusCodeError | DecodeError | EmptyBodyError
 
 /**
+ * Union of all specific failure reasons carried by `HttpClientError`.
+ *
  * @category error
  * @since 4.0.0
  */
 export type HttpClientErrorReason = RequestError | ResponseError
 
 /**
+ * Serializable schema representation of an `HttpClientError`, preserving the specific error kind and cause.
+ *
  * @category Schema
  * @since 4.0.0
  */

@@ -20,6 +20,9 @@ import * as NodeSocket from "./NodeSocket.ts"
 import { NodeWS } from "./NodeSocket.ts"
 
 /**
+ * Service tag for the Node `IncomingMessage` associated with the current
+ * WebSocket server connection.
+ *
  * @category tags
  * @since 1.0.0
  */
@@ -29,6 +32,10 @@ export class IncomingMessage extends Context.Service<
 >()("@effect/platform-node-shared/NodeSocketServer/IncomingMessage") {}
 
 /**
+ * Creates a scoped TCP `SocketServer` from a Node `net.Server`, starts
+ * listening with the supplied options, queues pending connections until `run`
+ * is called, and closes the server when the scope ends.
+ *
  * @category constructors
  * @since 1.0.0
  */
@@ -144,6 +151,9 @@ export const make = Effect.fnUntraced(function*(
 })
 
 /**
+ * Provides a TCP `SocketServer` by creating and managing a scoped Node
+ * `net.Server` with the supplied server and listen options.
+ *
  * @category layers
  * @since 1.0.0
  */
@@ -155,6 +165,10 @@ export const layer: (
 > = Function.flow(make, Layer.effect(SocketServer.SocketServer))
 
 /**
+ * Creates a scoped WebSocket `SocketServer` backed by the `ws` package,
+ * providing the WebSocket and its Node `IncomingMessage` to connection
+ * handlers and closing the server when the scope ends.
+ *
  * @category constructors
  * @since 1.0.0
  */
@@ -255,6 +269,9 @@ export const makeWebSocket: (
 })
 
 /**
+ * Provides a WebSocket `SocketServer` backed by the `ws` package and managed
+ * with the supplied server options.
+ *
  * @category layers
  * @since 1.0.0
  */

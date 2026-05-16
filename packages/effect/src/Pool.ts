@@ -35,6 +35,13 @@ export interface Pool<in out A, in out E = never> extends Pipeable {
 }
 
 /**
+ * Normalized configuration used by a `Pool`.
+ *
+ * **Details**
+ *
+ * The config stores the acquire effect, size bounds, per-item concurrency,
+ * target utilization, and resizing strategy used by the pool implementation.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -48,6 +55,15 @@ export interface Config<A, E> {
 }
 
 /**
+ * Mutable runtime state maintained by a `Pool`.
+ *
+ * **Details**
+ *
+ * This state tracks the pool scope, active and available items, invalidated
+ * items, semaphores, waiters, and shutdown status. It is exposed for
+ * inspection and implementation support; user code should prefer the
+ * high-level pool operations.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -64,6 +80,14 @@ export interface State<A, E> {
 }
 
 /**
+ * Internal record for a value managed by a `Pool`.
+ *
+ * **Details**
+ *
+ * Each item stores the acquisition `Exit`, its finalizer, the current
+ * reference count, and whether automatic reclaiming has been disabled because
+ * the item was invalidated.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -75,6 +99,15 @@ export interface PoolItem<A, E> {
 }
 
 /**
+ * Strategy used by a `Pool` to manage background resizing and item
+ * reclamation.
+ *
+ * **Details**
+ *
+ * `run` starts any strategy-specific background work, `onAcquire` is invoked
+ * when an item is acquired, and `reclaim` selects an item that can be removed
+ * or replaced.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -120,28 +153,22 @@ export const make = <A, E, R>(options: {
   makeWithStrategy({ ...options, min: options.size, max: options.size, strategy: strategyNoop() })
 
 /**
- * Makes a new pool with the specified minimum and maximum sizes and time to
- * live before a pool whose excess items are not being used will be shrunk
- * down to the minimum size. The pool is returned in a `Scope`, which governs
- * the lifetime of the pool. When the pool is shutdown because the `Scope` is
- * used, the individual items allocated by the pool will be released in some
- * unspecified order.
+ * Creates a scoped pool with minimum and maximum sizes and a time-to-live
+ * policy for shrinking unused excess items.
  *
- * By setting the `concurrency` parameter, you can control the level of concurrent
- * access per pool item. By default, the number of permits is set to `1`.
+ * **Details**
  *
- * `targetUtilization` determines when to create new pool items. It is a value
- * between 0 and 1, where 1 means only create new pool items when all the existing
- * items are fully utilized.
+ * The returned pool requires `Scope`; when that scope is closed, allocated
+ * items are released in an unspecified order. `concurrency` controls how many
+ * fibers may use each pool item at once and defaults to `1`.
  *
- * A `targetUtilization` of 0.5 will create new pool items when the existing items are
- * 50% utilized.
+ * `targetUtilization` controls when new items are created and is clamped by the
+ * pool implementation. A value of `1` waits until existing items are fully
+ * utilized before creating more items.
  *
- * The `timeToLiveStrategy` determines how items are invalidated. If set to
- * "creation", then items are invalidated based on their creation time. If set
- * to "usage", then items are invalidated based on pool usage.
- *
- * By default, the `timeToLiveStrategy` is set to "usage".
+ * `timeToLiveStrategy` controls when excess items expire: `"creation"` measures
+ * from item creation, while `"usage"` measures from pool usage. The default is
+ * `"usage"`.
  *
  * ```ts skip-type-checking
  * import { Duration, Effect, Pool } from "effect"
@@ -183,6 +210,14 @@ export const makeWithTTL = <A, E, R>(options: {
   )
 
 /**
+ * Creates a scoped pool using a custom resizing and reclamation strategy.
+ *
+ * **Details**
+ *
+ * The returned pool requires `Scope`; closing the scope shuts down the pool and
+ * releases allocated items. Use this constructor when `make` and `makeWithTTL`
+ * do not provide the desired item lifecycle behavior.
+ *
  * @category constructors
  * @since 4.0.0
  */

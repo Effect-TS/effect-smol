@@ -78,6 +78,8 @@ export interface ResponseAttributes {
 }
 
 /**
+ * Options accepted by `addGenAIAnnotations`, combining standard GenAI telemetry attributes with optional Anthropic request and response attributes.
+ *
  * @category models
  * @since 1.0.0
  */

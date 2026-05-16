@@ -13,18 +13,28 @@ import * as Predicate from "./Predicate.ts"
 import type * as Schedule from "./Schedule.ts"
 
 /**
+ * String literal type used as the runtime type identifier for `ExecutionPlan`
+ * values.
+ *
  * @category Type IDs
  * @since 3.16.0
  */
 export type TypeId = "~effect/ExecutionPlan"
 
 /**
+ * Runtime type identifier attached to `ExecutionPlan` values and used by
+ * `isExecutionPlan`.
+ *
  * @category Type IDs
  * @since 3.16.0
  */
 export const TypeId: TypeId = "~effect/ExecutionPlan"
 
 /**
+ * Returns `true` if a value is an `ExecutionPlan`.
+ *
+ * This is a type guard that checks for the `ExecutionPlan.TypeId` marker.
+ *
  * @category Guards
  * @since 3.16.0
  */
@@ -109,6 +119,13 @@ export interface ExecutionPlan<
 }
 
 /**
+ * Base type-level configuration carried by an `ExecutionPlan`.
+ *
+ * `provides` tracks services supplied by plan steps, `input` tracks the error
+ * input consumed by schedules and `while` predicates, `error` tracks failures
+ * from plan layers or predicates, and `requirements` tracks services needed to
+ * build or run the plan.
+ *
  * @category Models
  * @since 3.16.0
  */
@@ -195,10 +212,18 @@ export const make = <const Steps extends NonEmptyReadonlyArray<make.Step>>(
   }) as any)
 
 /**
+ * Namespace containing type helpers used by `ExecutionPlan.make`.
+ *
  * @since 3.16.0
  */
 export declare namespace make {
   /**
+   * Input shape for a single execution-plan step.
+   *
+   * Each step provides a `Context` or `Layer` and may limit attempts, add a
+   * `while` predicate for retry decisions, or attach a `Schedule` for retry
+   * timing.
+   *
    * @since 3.16.0
    */
   export type Step = {
@@ -209,6 +234,9 @@ export declare namespace make {
   }
 
   /**
+   * Computes the intersection of services provided by a list of execution-plan
+   * steps.
+   *
    * @since 3.16.1
    */
   export type StepProvides<Steps extends ReadonlyArray<any>, Out = unknown> = Steps extends
@@ -223,6 +251,8 @@ export declare namespace make {
     Out
 
   /**
+   * Computes the intersection of services provided by a list of execution plans.
+   *
    * @since 3.16.1
    */
   export type PlanProvides<Plans extends ReadonlyArray<any>, Out = unknown> = Plans extends
@@ -231,6 +261,9 @@ export declare namespace make {
     Out
 
   /**
+   * Computes the input type consumed by the `while` predicates and schedules in
+   * a list of execution-plan steps.
+   *
    * @since 3.16.0
    */
   export type StepInput<Steps extends ReadonlyArray<any>, Out = unknown> = Steps extends
@@ -245,6 +278,8 @@ export declare namespace make {
     Out
 
   /**
+   * Computes the combined input type consumed by a list of execution plans.
+   *
    * @since 3.16.0
    */
   export type PlanInput<Plans extends ReadonlyArray<any>, Out = unknown> = Plans extends
@@ -285,6 +320,11 @@ const makeProto = <Provides, In, PlanE, PlanR>(
 }
 
 /**
+ * Combines multiple execution plans by concatenating their steps in order.
+ *
+ * The resulting plan tries every step from the first plan, then every step from
+ * the next plan, and so on.
+ *
  * @category Combining
  * @since 3.16.0
  */
@@ -298,6 +338,11 @@ export const merge = <const Plans extends NonEmptyReadonlyArray<ExecutionPlan<an
 }> => makeProto(plans.flatMap((plan) => plan.steps) as any)
 
 /**
+ * Metadata describing the currently running execution-plan attempt.
+ *
+ * `attempt` is the current 1-based attempt number, and `stepIndex` is the
+ * 0-based index of the plan step currently being evaluated.
+ *
  * @category Metadata
  * @since 4.0.0
  */
@@ -307,6 +352,9 @@ export interface Metadata {
 }
 
 /**
+ * `Context.Reference` containing metadata for the currently running
+ * execution-plan attempt.
+ *
  * @category Metadata
  * @since 4.0.0
  */

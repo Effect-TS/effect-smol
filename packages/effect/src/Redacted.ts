@@ -18,6 +18,14 @@ import type { Covariant } from "./Types.ts"
 const TypeId = "~effect/data/Redacted"
 
 /**
+ * A wrapper for sensitive values whose string, JSON, and inspection output is
+ * redacted.
+ *
+ * The underlying value is still stored in memory and can be recovered with
+ * `Redacted.value` until the wrapper is wiped or becomes unreachable. Use
+ * `Redacted` to reduce accidental disclosure in logs and diagnostics, not as a
+ * cryptographic protection mechanism.
+ *
  * **Example** (Creating redacted values)
  *
  * ```ts
@@ -38,6 +46,8 @@ export interface Redacted<out A = string> extends Redacted.Variance<A>, Equal.Eq
 }
 
 /**
+ * Namespace containing type-level members associated with `Redacted` values.
+ *
  * **Example** (Using namespace utilities)
  *
  * ```ts
@@ -55,6 +65,11 @@ export interface Redacted<out A = string> extends Redacted.Variance<A>, Equal.Eq
  */
 export declare namespace Redacted {
   /**
+   * Type-level variance marker for `Redacted`.
+   *
+   * This interface records the covariant value type carried by a `Redacted`
+   * value and is not normally referenced directly by users.
+   *
    * @category models
    * @since 3.3.0
    */
@@ -65,6 +80,8 @@ export declare namespace Redacted {
   }
 
   /**
+   * Extracts the underlying value type from a `Redacted` type.
+   *
    * **Example** (Extracting the redacted value type)
    *
    * ```ts
@@ -87,6 +104,11 @@ export declare namespace Redacted {
 }
 
 /**
+ * Returns `true` if a value is a `Redacted` wrapper.
+ *
+ * When this function returns `true`, TypeScript narrows the value to
+ * `Redacted<unknown>`.
+ *
  * **Example** (Checking for redacted values)
  *
  * ```ts
@@ -105,8 +127,11 @@ export declare namespace Redacted {
 export const isRedacted = (u: unknown): u is Redacted<unknown> => hasProperty(u, TypeId)
 
 /**
- * This function creates a `Redacted<A>` instance from a given value `A`,
- * securely hiding its content.
+ * Creates a `Redacted` wrapper for a sensitive value.
+ *
+ * The wrapper redacts string, JSON, and inspection output to reduce accidental
+ * disclosure. The original value remains retrievable with `Redacted.value`
+ * until the wrapper is wiped or becomes unreachable.
  *
  * **Example** (Creating a redacted value)
  *
@@ -177,9 +202,12 @@ const Proto = {
 export const value: <T>(self: Redacted<T>) => T = redacted.value
 
 /**
- * Erases the underlying value of a `Redacted` instance, rendering it unusable.
- * This function is intended to ensure that sensitive data does not remain in
- * memory longer than necessary.
+ * Deletes the stored value for a `Redacted` wrapper, making future
+ * `Redacted.value` calls on that wrapper fail.
+ *
+ * This unsafe operation does not zero memory and does not affect other
+ * references to the original value. It only removes the value from the
+ * internal redacted registry.
  *
  * **Example** (Wiping a redacted value)
  *

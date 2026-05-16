@@ -22,30 +22,47 @@ import { Snowflake, SnowflakeFromBigInt } from "./Snowflake.ts"
 const TypeId = "~effect/cluster/Reply"
 
 /**
+ * Returns `true` when the supplied value is a runtime cluster reply.
+ *
+ * The check is based on the reply type identifier.
+ *
  * @category guards
  * @since 4.0.0
  */
 export const isReply = (u: unknown): u is Reply<Rpc.Any> => hasProperty(u, TypeId)
 
 /**
+ * Runtime reply sent for an RPC request.
+ *
+ * A reply is either a final exit or a chunk of a streaming success value.
+ *
  * @category models
  * @since 4.0.0
  */
 export type Reply<R extends Rpc.Any> = WithExit<R> | Chunk<R>
 
 /**
+ * JSON-serializable form of a cluster reply.
+ *
  * @category models
  * @since 4.0.0
  */
 export type Encoded = WithExitEncoded | ChunkEncoded
 
 /**
+ * Codec used for reply values that are already in encoded form.
+ *
+ * Per-RPC payload validation is performed by `Reply(rpc)`.
+ *
  * @category models
  * @since 4.0.0
  */
 export const Encoded: Schema.Codec<Encoded> = Schema.Any as any
 
 /**
+ * A cluster reply paired with the RPC definition and service context required to
+ * serialize it for transport.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -98,6 +115,9 @@ const neverRpc = Rpc.make("Never", {
 })
 
 /**
+ * Wire-format representation of a terminal reply containing the request id, reply
+ * id, and encoded RPC exit value.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -109,6 +129,9 @@ export interface WithExitEncoded<A = unknown, E = unknown> {
 }
 
 /**
+ * Wire-format representation of a streaming reply chunk, including the request id,
+ * reply id, sequence number, and non-empty encoded values.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -123,6 +146,9 @@ export interface ChunkEncoded {
 const schemaCache = new WeakMap<Rpc.Any, Schema.Top>()
 
 /**
+ * A streaming RPC reply chunk for a request, carrying a non-empty batch of success
+ * values together with the reply id and sequence number.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -225,6 +251,9 @@ export class Chunk<R extends Rpc.Any> extends Data.TaggedClass("Chunk")<{
 }
 
 /**
+ * A terminal RPC reply for a request, carrying the final `Exit` for the remote
+ * call.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -311,6 +340,9 @@ export class WithExit<R extends Rpc.Any> extends Data.TaggedClass("WithExit")<{
 }
 
 /**
+ * Builds the transport codec for replies to the specified RPC, covering terminal
+ * `WithExit` replies and streaming `Chunk` replies.
+ *
  * @category schemas
  * @since 4.0.0
  */
@@ -331,6 +363,10 @@ export const Reply = <R extends Rpc.Any>(
 }
 
 /**
+ * Serializes a `ReplyWithContext` into its encoded wire representation, using the
+ * reply's RPC schema and context and refailing encoding errors as
+ * `MalformedMessage`.
+ *
  * @category serialization / deserialization
  * @since 4.0.0
  */
@@ -347,6 +383,10 @@ export const serialize = <R extends Rpc.Any>(
 }
 
 /**
+ * Serializes an outgoing request's last received reply when one exists, returning
+ * `None` when no reply has been received and refailing encoding errors as
+ * `MalformedMessage`.
+ *
  * @category serialization / deserialization
  * @since 4.0.0
  */

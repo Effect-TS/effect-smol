@@ -9,6 +9,10 @@ import { fromWritable } from "./NodeSink.ts"
 import { fromReadable } from "./NodeStream.ts"
 
 /**
+ * Provides `Stdio` from `process.argv`, `process.stdin`, `process.stdout`,
+ * and `process.stderr`; stdin remains open and stdout/stderr are not ended by
+ * default.
+ *
  * @category Layers
  * @since 1.0.0
  */

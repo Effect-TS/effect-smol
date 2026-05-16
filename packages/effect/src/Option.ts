@@ -193,8 +193,11 @@ export interface Some<out A> extends Pipeable, Inspectable {
 }
 
 /**
- * Internal unification interface for `Option` types. Used by the Effect
- * library's type system for type-level operations.
+ * Type-level unification support for `Option` values.
+ *
+ * This is used by Effect's `Unify` machinery to preserve the contained value
+ * type when generic code returns or combines `Option` values. Users normally
+ * do not need to reference this interface directly.
  *
  * @category Models
  * @since 2.0.0
@@ -232,7 +235,10 @@ export declare namespace Option {
 }
 
 /**
- * Internal interface for type unification ignore behavior.
+ * Marker interface used by Effect's `Unify` machinery for `Option` values.
+ *
+ * This supports type-level unification behavior for `Option`. Users normally
+ * do not need to reference this interface directly.
  *
  * @category Models
  * @since 2.0.0
@@ -544,14 +550,14 @@ export const fromIterable = <A>(collection: Iterable<A>): Option<A> => {
 /**
  * Converts a `Result` into an `Option`, keeping only the success value.
  *
- * **When to use**
+ * **When to Use**
  *
- * - Discarding the error channel when you only care about success
+ * - Discarding the failure channel when you only care about success
  *
- * **Behavior**
+ * **Details**
  *
- * - `Ok` → `Some` with the success value
- * - `Err` → `None` (error is discarded)
+ * - `Success` becomes `Some` with the success value
+ * - `Failure` becomes `None` and the failure value is discarded
  *
  * **Example** (Extracting the success side)
  *
@@ -573,16 +579,16 @@ export const fromIterable = <A>(collection: Iterable<A>): Option<A> => {
 export const getSuccess: <A, E>(self: Result<A, E>) => Option<A> = result.getSuccess
 
 /**
- * Converts a `Result` into an `Option`, keeping only the error value.
+ * Converts a `Result` into an `Option`, keeping only the failure value.
  *
- * **When to use**
+ * **When to Use**
  *
- * - Extracting the error when you don't need the success channel
+ * - Extracting the failure when you do not need the success value
  *
- * **Behavior**
+ * **Details**
  *
- * - `Err` → `Some` with the error value
- * - `Ok` → `None` (success value is discarded)
+ * - `Failure` becomes `Some` with the failure value
+ * - `Success` becomes `None` and the success value is discarded
  *
  * **Example** (Extracting the failure side)
  *

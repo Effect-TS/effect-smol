@@ -11,6 +11,8 @@ import * as SchemaIssue from "effect/SchemaIssue"
 const TypeId = "~@effect/platform-browser/IndexedDb"
 
 /**
+ * Service interface that provides the browser `indexedDB` factory and `IDBKeyRange` constructor.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -21,6 +23,8 @@ export interface IndexedDb {
 }
 
 /**
+ * Service tag for browser IndexedDB primitives.
+ *
  * @category tag
  * @since 4.0.0
  */
@@ -39,7 +43,7 @@ const IDBFlatKey = Schema.Union([
 ])
 
 /**
- * Schema for `IDBValidKey` (`number | string | Date | BufferSource | IDBValidKey[]`).
+ * Schema for IndexedDB keys: strings, non-NaN numbers, valid dates, buffer sources, or arrays of those flat key values.
  *
  * @category schemas
  * @since 4.0.0
@@ -47,7 +51,7 @@ const IDBFlatKey = Schema.Union([
 export const IDBValidKey = Schema.Union([IDBFlatKey, Schema.Array(IDBFlatKey)])
 
 /**
- * Schema for `autoIncrement` key path (`number`).
+ * Schema for auto-incremented IndexedDB keys, accepting integers from 1 through `2 ** 53`.
  *
  * @category schemas
  * @since 4.0.0
@@ -61,13 +65,15 @@ export const AutoIncrement = Schema.Int.check(
 })
 
 /**
+ * Creates an `IndexedDb` service from an `IDBFactory` and `IDBKeyRange` constructor.
+ *
  * @category constructor
  * @since 4.0.0
  */
 export const make = (impl: Omit<IndexedDb, typeof TypeId>): IndexedDb => IndexedDb.of({ [TypeId]: TypeId, ...impl })
 
 /**
- * Instance of IndexedDb from the `window` object.
+ * Layer that provides `IndexedDb` from `window.indexedDB` and `window.IDBKeyRange`, failing with a config error when they are unavailable.
  *
  * @category constructors
  * @since 4.0.0

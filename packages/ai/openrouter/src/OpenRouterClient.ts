@@ -55,6 +55,13 @@ export interface Service {
 }
 
 /**
+ * Decoded `data` payload from an OpenRouter chat completion streaming chunk.
+ *
+ * **Details**
+ *
+ * The payload contains streamed choices, model metadata, optional usage, and may
+ * include an OpenRouter error object for a streamed response.
+ *
  * @category Models
  * @since 1.0.0
  */

@@ -389,10 +389,10 @@ export {
 }
 
 /**
- * A pre-built `Result<void>` holding `undefined` as its failure value.
+ * A pre-built failed `Result` whose failure value is `undefined`.
  *
- * - Use when you need a `Result` that represents "failed with no meaningful value"
- * - Equivalent to `Result.fail(undefined)` but avoids an extra allocation
+ * This is equivalent to `Result.fail(undefined)` with type
+ * `Result<never, void>`, but avoids allocating a new `Failure` wrapper.
  *
  * @see {@link fail}
  *

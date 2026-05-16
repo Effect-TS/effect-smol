@@ -179,16 +179,17 @@ export type JsonPatchOperation =
 export type JsonPatch = ReadonlyArray<JsonPatchOperation>
 
 /**
- * Compute a patch that transforms `oldValue` into `newValue`.
+ * Computes a patch that transforms `oldValue` into `newValue`.
  *
- * Generates a structural diff between two JSON values, producing a patch that when applied to `oldValue` yields `newValue`.
+ * Generates a structural diff between two JSON values, producing a patch that
+ * yields `newValue` when applied to `oldValue`.
  *
  * ## When to use this
  *
  * - Computing differences between JSON documents
  * - Detecting changes in data structures
  * - Generating patches for synchronization or version control
- * - Creating minimal update operations from before/after states
+ * - Creating deterministic update operations from before/after states
  *
  * ## Behavior
  *

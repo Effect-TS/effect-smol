@@ -36,6 +36,10 @@ export {
 } from "./NodeClusterSocket.ts"
 
 /**
+ * Builds the Node cluster HTTP/WebSocket sharding layer, configuring runner
+ * transport, RPC serialization, message storage, runner health checks, and
+ * optional client-only mode.
+ *
  * @category Layers
  * @since 1.0.0
  */
@@ -117,6 +121,9 @@ export const layer = <
 }
 
 /**
+ * Provides the HTTP server and Node HTTP services used by cluster runners,
+ * listening on `ShardingConfig.runnerListenAddress` or `runnerAddress`.
+ *
  * @category Layers
  * @since 1.0.0
  */

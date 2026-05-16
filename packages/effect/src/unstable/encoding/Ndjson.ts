@@ -14,6 +14,11 @@ const NdjsonErrorTypeId = "~effect/encoding/Ndjson/NdjsonError"
 const encoder = new TextEncoder()
 
 /**
+ * Error raised when NDJSON encoding or decoding fails.
+ *
+ * The `kind` field identifies whether the failure happened while packing or
+ * unpacking, and `cause` preserves the original error.
+ *
  * @category errors
  * @since 4.0.0
  */
@@ -35,6 +40,11 @@ export class NdjsonError extends Data.TaggedError("NdjsonError")<{
 }
 
 /**
+ * Creates a channel that encodes chunks of values as NDJSON strings.
+ *
+ * Each input item is `JSON.stringify`-encoded, separated by newlines, and the
+ * output chunk ends with a trailing newline.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -57,6 +67,8 @@ export const encodeString = <IE = never, Done = unknown>(): Channel.Channel<
   )
 
 /**
+ * Creates a channel that encodes chunks of values as UTF-8 NDJSON bytes.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -70,6 +82,11 @@ export const encode = <IE = never, Done = unknown>(): Channel.Channel<
 > => Channel.map(encodeString(), Arr.map((_) => encoder.encode(_)))
 
 /**
+ * Creates an NDJSON byte encoder channel for values of a schema.
+ *
+ * Values are first encoded with the schema and then written as UTF-8
+ * newline-delimited JSON.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -87,6 +104,11 @@ export const encodeSchema = <S extends Schema.Top>(
 > => Channel.pipeTo(ChannelSchema.encode(schema)(), encode())
 
 /**
+ * Creates an NDJSON string encoder channel for values of a schema.
+ *
+ * Values are first encoded with the schema and then written as newline-delimited
+ * JSON strings.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -104,6 +126,11 @@ export const encodeSchemaString = <S extends Schema.Top>(
 > => Channel.pipeTo(ChannelSchema.encode(schema)(), encodeString())
 
 /**
+ * Creates a channel that parses NDJSON string chunks into values.
+ *
+ * Lines may span input chunks. Set `ignoreEmptyLines` to skip blank lines before
+ * calling `JSON.parse`; otherwise blank lines are parsed and fail as invalid JSON.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -132,6 +159,11 @@ export const decodeString = <IE = never, Done = unknown>(options?: {
 }
 
 /**
+ * Creates a channel that decodes UTF-8 byte chunks and parses them as NDJSON.
+ *
+ * Lines may span input chunks, and `ignoreEmptyLines` controls whether blank
+ * lines are skipped before JSON parsing.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -149,6 +181,11 @@ export const decode = <IE = never, Done = unknown>(options?: {
 }
 
 /**
+ * Creates an NDJSON byte decoder channel for values of a schema.
+ *
+ * The channel decodes UTF-8 bytes, parses each NDJSON line, and then decodes
+ * each parsed value with the schema.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -168,6 +205,11 @@ export const decodeSchema = <S extends Schema.Top>(
 > => Channel.pipeTo(decode(options), ChannelSchema.decodeUnknown(schema)())
 
 /**
+ * Creates an NDJSON string decoder channel for values of a schema.
+ *
+ * The channel parses each line as JSON and then decodes each parsed value with
+ * the schema.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -187,6 +229,11 @@ export const decodeSchemaString = <S extends Schema.Top>(
 > => Channel.pipeTo(decodeString(options), ChannelSchema.decodeUnknown(schema)())
 
 /**
+ * Wraps a bidirectional byte channel with NDJSON encoding and decoding.
+ *
+ * Outgoing values are written as UTF-8 NDJSON bytes, and incoming bytes are
+ * parsed as NDJSON values.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -262,6 +309,11 @@ export const duplex: {
   ))
 
 /**
+ * Wraps a bidirectional string channel with NDJSON encoding and decoding.
+ *
+ * Outgoing values are written as NDJSON strings, and incoming strings are parsed
+ * as NDJSON values.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -337,6 +389,12 @@ export const duplexString: {
   ))
 
 /**
+ * Wraps a bidirectional byte channel with schema-aware NDJSON encoding and
+ * decoding.
+ *
+ * Values sent to the wrapped channel are encoded with `inputSchema`; bytes
+ * received from it are parsed as NDJSON and decoded with `outputSchema`.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -416,6 +474,12 @@ export const duplexSchema: {
 > => ChannelSchema.duplexUnknown(duplex(self, options), options))
 
 /**
+ * Wraps a bidirectional string channel with schema-aware NDJSON encoding and
+ * decoding.
+ *
+ * Values sent to the wrapped channel are encoded with `inputSchema`; strings
+ * received from it are parsed as NDJSON and decoded with `outputSchema`.
+ *
  * @category combinators
  * @since 4.0.0
  */

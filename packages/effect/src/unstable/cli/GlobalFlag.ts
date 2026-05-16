@@ -58,10 +58,15 @@ export interface Setting<Id extends string, A> extends Context.Service<Setting.I
 }
 
 /**
+ * Namespace containing type helpers for global setting flags.
+ *
  * @since 4.0.0
  */
 export declare namespace Setting {
   /**
+   * Type-level service identifier used by `Setting` global flags for the
+   * parsed value associated with a setting id.
+   *
    * @category models
    * @since 4.0.0
    */

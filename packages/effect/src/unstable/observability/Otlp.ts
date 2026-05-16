@@ -15,6 +15,11 @@ import * as OtlpSerialization from "./OtlpSerialization.ts"
 import * as OtlpTracer from "./OtlpTracer.ts"
 
 /**
+ * Creates a combined OTLP layer for logs, metrics, and traces.
+ *
+ * The layer sends data to `/v1/logs`, `/v1/metrics`, and `/v1/traces` below
+ * `baseUrl` and requires an `OtlpSerialization` implementation.
+ *
  * @category Layers
  * @since 4.0.0
  */
@@ -70,6 +75,9 @@ export const layer = (options: {
 }
 
 /**
+ * Creates the combined OTLP logs, metrics, and traces layer using JSON
+ * serialization.
+ *
  * @category Layers
  * @since 4.0.0
  */
@@ -93,6 +101,9 @@ export const layerJson: (options: {
 }) => Layer.Layer<never, never, HttpClient.HttpClient> = flow(layer, Layer.provide(OtlpSerialization.layerJson))
 
 /**
+ * Creates the combined OTLP logs, metrics, and traces layer using protobuf
+ * serialization.
+ *
  * @category Layers
  * @since 4.0.0
  */

@@ -995,14 +995,11 @@ export function isObjectOrArray(input: unknown): input is { [x: PropertyKey]: un
 }
 
 /**
- * Checks whether a value is a plain object (not an array, not `null`).
+ * Checks whether a value is a non-null object value that is not an array.
  *
- * When to use:
- * - You need to accept objects but exclude arrays.
- *
- * Behavior:
- * - Pure; does not mutate input.
- * - Uses `typeof input === "object" && input !== null && !Array.isArray(input)`.
+ * This is a structural runtime check using `typeof input === "object"`, so it
+ * also accepts object instances such as `Date`, `Map`, class instances, and
+ * typed arrays. It excludes `null` and arrays.
  *
  * **Example** (Guard object)
  *
@@ -1023,14 +1020,12 @@ export function isObject(input: unknown): input is { [x: PropertyKey]: unknown }
 }
 
 /**
- * Checks whether a value is a readonly object.
+ * Checks whether a value is a non-null, non-array object and narrows it to a
+ * readonly indexable object type.
  *
- * When to use:
- * - You need a guard for object-like values and do not care about mutability.
- *
- * Behavior:
- * - Pure; does not mutate input.
- * - Delegates to {@link isObject}.
+ * Readonly-ness is a TypeScript type-level view; it is not observable at
+ * runtime. This delegates to `isObject`, so class instances and built-in object
+ * instances are accepted.
  *
  * **Example** (Readonly object)
  *

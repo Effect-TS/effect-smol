@@ -31,6 +31,11 @@ import * as Prompt from "./Prompt.ts"
 const TypeId = "~effect/cli/Param"
 
 /**
+ * Polymorphic CLI parameter shared by `Argument` and `Flag`.
+ *
+ * A parameter knows whether it consumes positional arguments or flags and
+ * parses a `ParsedArgs` value into its typed result.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -41,12 +46,18 @@ export interface Param<Kind extends ParamKind, out A> extends Param.Variance<A> 
 }
 
 /**
+ * Discriminator for whether a `Param` parses positional arguments or
+ * command-line flags.
+ *
  * @category models
  * @since 4.0.0
  */
 export type ParamKind = "argument" | "flag"
 
 /**
+ * Services that parameter parsing can require, such as filesystem, path,
+ * terminal, and child-process support.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -93,6 +104,12 @@ export type AnyArgument = Param<typeof argumentKind, unknown>
 export type AnyFlag = Param<typeof flagKind, unknown>
 
 /**
+ * Function type used by parameters to parse currently available flags and
+ * positional arguments.
+ *
+ * It returns the remaining positional arguments together with the parsed value,
+ * or fails with a `CliError` while requiring the CLI parsing environment.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -103,10 +120,14 @@ export type Parse<A> = (args: ParsedArgs) => Effect.Effect<
 >
 
 /**
+ * Namespace containing type-level utilities attached to the `Param` interface.
+ *
  * @since 4.0.0
  */
 export declare namespace Param {
   /**
+   * Variance and pipeability marker carried by every `Param` value.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -151,6 +172,11 @@ export type FallbackPrompt<A> =
   | Effect.Effect<Prompt.Prompt<A>, CliError.CliError, Environment>
 
 /**
+ * Leaf parameter that reads one named argument or flag with a primitive parser.
+ *
+ * Single parameters carry the user-facing name, aliases, description, primitive
+ * type, and optional metavar/type name used in help output.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -165,6 +191,9 @@ export interface Single<Kind extends ParamKind, out A> extends Param<Kind, A> {
 }
 
 /**
+ * Parameter node that maps the successfully parsed value of another parameter
+ * with a pure function.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -176,6 +205,10 @@ export interface Map<Kind extends ParamKind, in out A, out B> extends Param<Kind
 }
 
 /**
+ * Parameter node that rewrites another parameter's parser, allowing effectful
+ * validation, fallback behavior, or error translation while preserving the same
+ * parameter kind.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -187,6 +220,9 @@ export interface Transform<Kind extends ParamKind, in out A, out B> extends Para
 }
 
 /**
+ * Parameter node that turns a missing argument or flag into `Option.none()` and
+ * a present parsed value into `Option.some(value)`.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -197,6 +233,10 @@ export interface Optional<Kind extends ParamKind, A> extends Param<Kind, Option.
 }
 
 /**
+ * Parameter node that parses another parameter zero or more times and returns
+ * all parsed values as an array, respecting optional minimum and maximum
+ * occurrence bounds.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -273,6 +313,12 @@ export const isFlagParam = <A>(
 ): single is Single<typeof flagKind, A> => single.kind === "flag"
 
 /**
+ * Constructs a leaf `Single` parameter from its kind, name, primitive parser,
+ * and optional help metadata.
+ *
+ * The returned parser reads either one positional argument or the named flag,
+ * depending on `kind`.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -1101,10 +1147,11 @@ export const mapTryCatch: {
 })
 
 /**
- * Creates an optional option that returns None when not provided.
+ * Makes a flag or positional argument optional.
  *
- * Optional options never fail with MissingOption errors. If the option is not
- * provided on the command line, Option.none() is returned instead.
+ * When the parameter is absent, parsing succeeds with `Option.none()` instead
+ * of failing with a missing option or missing argument error. When present, the
+ * parsed value is wrapped in `Option.some()`.
  *
  * **Example** (Making parameters optional)
  *
@@ -1155,11 +1202,10 @@ export const optional = <Kind extends ParamKind, A>(
 }
 
 /**
- * Makes an option optional by providing a default value.
+ * Makes a flag or positional argument optional by supplying a fallback value.
  *
- * This combinator is useful when you want to make an existing option optional
- * by providing a fallback value that will be used when the option is not
- * provided on the command line.
+ * The fallback may be a pure value or an effect. It is used only when the
+ * parameter is absent; provided values are parsed normally.
  *
  * **Example** (Providing default values)
  *
@@ -1677,7 +1723,11 @@ export const orElse: {
   ))
 
 /**
- * Provides a fallback param, wrapping results in Either to distinguish which param succeeded.
+ * Provides a fallback param and returns a `Result` indicating which param
+ * succeeded.
+ *
+ * The original param's value is returned as `Result.succeed`, while the
+ * fallback param's value is returned as `Result.fail`.
  *
  * **Example** (Returning fallback results)
  *

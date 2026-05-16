@@ -18,22 +18,34 @@ import * as UrlParams from "./UrlParams.ts"
 const TypeId = "~effect/http/HttpBody"
 
 /**
+ * Returns `true` if the provided value is an `HttpBody`.
+ *
  * @category refinements
  * @since 4.0.0
  */
 export const isHttpBody = (u: unknown): u is HttpBody => Predicate.hasProperty(u, TypeId)
 
 /**
+ * Represents an HTTP request body.
+ *
+ * Supported variants include empty bodies, raw bodies, byte arrays, `FormData`, and streams of bytes.
+ *
  * @category models
  * @since 4.0.0
  */
 export type HttpBody = Empty | Raw | Uint8Array | FormData | Stream
 
 /**
+ * Namespace containing type-level members associated with `HttpBody`.
+ *
  * @since 4.0.0
  */
 export declare namespace HttpBody {
   /**
+   * Common protocol implemented by all HTTP body variants.
+   *
+   * It carries the variant tag plus optional `contentType` and `contentLength` metadata.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -45,6 +57,8 @@ export declare namespace HttpBody {
   }
 
   /**
+   * Minimal Web `File`-like shape used by HTTP helpers that need file metadata.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -60,6 +74,8 @@ export declare namespace HttpBody {
 const HttpBodyErrorTypeId = "~effect/http/HttpBody/HttpBodyError"
 
 /**
+ * Error produced while constructing an HTTP body from JSON or schema-encoded input.
+ *
  * @category errors
  * @since 4.0.0
  */
@@ -74,6 +90,10 @@ export class HttpBodyError extends Data.TaggedError("HttpBodyError")<{
 }
 
 /**
+ * Reason for an `HttpBodyError`.
+ *
+ * `JsonError` represents a `JSON.stringify` failure; `SchemaError` represents a schema encoding issue.
+ *
  * @category errors
  * @since 4.0.0
  */
@@ -100,6 +120,8 @@ abstract class Proto implements HttpBody.Proto {
 }
 
 /**
+ * HTTP body variant representing the absence of request content.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -114,12 +136,16 @@ export class Empty extends Proto {
 }
 
 /**
+ * Singleton empty HTTP body.
+ *
  * @category constructors
  * @since 4.0.0
  */
 export const empty: Empty = new Empty()
 
 /**
+ * HTTP body variant containing an arbitrary runtime body value with optional content metadata.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -151,6 +177,8 @@ export class Raw extends Proto {
 }
 
 /**
+ * Creates a raw HTTP body from an arbitrary value and optional `contentType` and `contentLength` metadata.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -163,6 +191,10 @@ export const raw = (
 ): Raw => new Raw(body, options?.contentType, options?.contentLength)
 
 /**
+ * HTTP body variant backed by a `Uint8Array`.
+ *
+ * It stores the bytes, content type, and byte length.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -195,6 +227,10 @@ export class Uint8Array extends Proto {
 }
 
 /**
+ * Creates a byte-array HTTP body.
+ *
+ * The content type defaults to `application/octet-stream`, and the content length is the byte array length.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -204,6 +240,10 @@ export const uint8Array = (body: globalThis.Uint8Array, contentType?: string): U
 const encoder = new TextEncoder()
 
 /**
+ * Creates a UTF-8 encoded text HTTP body.
+ *
+ * The content type defaults to `text/plain`.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -211,6 +251,10 @@ export const text = (body: string, contentType?: string): Uint8Array =>
   uint8Array(encoder.encode(body), contentType ?? "text/plain")
 
 /**
+ * Creates a JSON HTTP body using `JSON.stringify`, throwing if serialization fails.
+ *
+ * The content type defaults to `application/json`.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -218,6 +262,10 @@ export const jsonUnsafe = (body: unknown, contentType?: string): Uint8Array =>
   text(JSON.stringify(body), contentType ?? "application/json")
 
 /**
+ * Creates a JSON HTTP body in an `Effect`.
+ *
+ * `JSON.stringify` failures are captured as `HttpBodyError` values, and the content type defaults to `application/json`.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -228,6 +276,10 @@ export const json = (body: unknown, contentType?: string): Effect.Effect<Uint8Ar
   })
 
 /**
+ * Creates a JSON body constructor that first encodes values with the schema's JSON codec.
+ *
+ * Schema encoding issues and JSON serialization failures are returned as `HttpBodyError` values.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -244,6 +296,8 @@ export const jsonSchema = <S extends Schema.Top>(
 }
 
 /**
+ * Creates an `application/x-www-form-urlencoded` HTTP body from `UrlParams`.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -251,6 +305,10 @@ export const urlParams = (urlParams: UrlParams.UrlParams, contentType?: string):
   text(UrlParams.toString(urlParams), contentType ?? "application/x-www-form-urlencoded")
 
 /**
+ * HTTP body variant backed by Web `FormData`.
+ *
+ * The content type and content length are left unset so the runtime can supply multipart boundaries.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -276,18 +334,28 @@ export class FormData extends Proto {
 }
 
 /**
+ * Wraps a Web `FormData` value as an HTTP body.
+ *
  * @category constructors
  * @since 4.0.0
  */
 export const formData = (body: globalThis.FormData): FormData => new FormData(body)
 
 /**
+ * Record input accepted by `formDataRecord`.
+ *
+ * Each field may be a single coercible value or an array of coercible values.
+ *
  * @category models
  * @since 4.0.0
  */
 export type FormDataInput = Record<string, FormDataCoercible | ReadonlyArray<FormDataCoercible>>
 
 /**
+ * Value that can be appended by `formDataRecord`.
+ *
+ * `File` and `Blob` values are appended directly, primitive values are converted to strings, and `null` or `undefined` values are skipped.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -305,6 +373,10 @@ const appendFormDataValue = (formData: globalThis.FormData, key: string, value: 
 }
 
 /**
+ * Creates a `FormData` HTTP body from a record.
+ *
+ * Array fields append each item under the same key; primitive values are stringified, `File` and `Blob` values are appended directly, and nullish values are skipped.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -323,6 +395,8 @@ export const formDataRecord = (entries: FormDataInput): FormData => {
 }
 
 /**
+ * HTTP body variant backed by a stream of `Uint8Array` chunks.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -353,6 +427,10 @@ export class Stream extends Proto {
 }
 
 /**
+ * Creates a streaming HTTP body from a stream of byte chunks.
+ *
+ * The content type defaults to `application/octet-stream`; content length is optional.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -363,6 +441,10 @@ export const stream = (
 ): Stream => new Stream(body, contentType ?? "application/octet-stream", contentLength)
 
 /**
+ * Creates a streaming HTTP body for a file path.
+ *
+ * The effect requires `FileSystem`, stats the file to set the content length, and can fail with `PlatformError`.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -387,6 +469,10 @@ export const file = (
   )
 
 /**
+ * Creates a streaming HTTP body for a file path using already-known file information.
+ *
+ * The effect requires `FileSystem`, uses the provided file size as the content length, and can fail with `PlatformError`.
+ *
  * @category constructors
  * @since 4.0.0
  */

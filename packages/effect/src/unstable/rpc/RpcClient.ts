@@ -42,17 +42,27 @@ import * as RpcWorker from "./RpcWorker.ts"
 import { withRunClient } from "./Utils.ts"
 
 /**
+ * The object-shaped client generated from a union of RPC definitions, with one
+ * method per RPC tag.
+ *
  * @category client
  * @since 4.0.0
  */
 export type RpcClient<Rpcs extends Rpc.Any, E = never> = Struct.Simplify<RpcClient.From<Rpcs, E>>
 
 /**
+ * Type-level helpers for deriving RPC client call signatures from RPC
+ * definitions.
+ *
  * @category client
  * @since 4.0.0
  */
 export declare namespace RpcClient {
   /**
+   * Builds an object client type from an RPC union, mapping each RPC tag to a
+   * method that accepts the RPC payload and returns either an `Effect` or
+   * `Stream` based on the RPC success schema.
+   *
    * @category client
    * @since 4.0.0
    */
@@ -115,6 +125,9 @@ export declare namespace RpcClient {
   }
 
   /**
+   * Builds a flattened RPC client function that accepts an RPC tag and payload,
+   * returning the corresponding `Effect` or `Stream` for that RPC.
+   *
    * @category client
    * @since 4.0.0
    */
@@ -175,6 +188,9 @@ export declare namespace RpcClient {
 }
 
 /**
+ * Derives the object-shaped RPC client type for all RPCs contained in an
+ * `RpcGroup`.
+ *
  * @category client
  * @since 4.0.0
  */
@@ -183,6 +199,10 @@ export type FromGroup<Group, E = never> = RpcClient<RpcGroup.Rpcs<Group>, E>
 let requestIdCounter = BigInt(0)
 
 /**
+ * Creates an RPC client for an already-decoded message channel, returning the
+ * client API together with a `write` function for delivering server messages
+ * back to the client.
+ *
  * @category client
  * @since 4.0.0
  */
@@ -590,6 +610,9 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
 let clientIdCounter = 0
 
 /**
+ * Creates a schema-aware RPC client for a group using the current client
+ * `Protocol`, encoding requests and decoding server responses.
+ *
  * @category client
  * @since 4.0.0
  */
@@ -767,6 +790,9 @@ const rpcSchemas = (rpc: Rpc.AnyWithProps) => {
 }
 
 /**
+ * A fiber-local reference containing headers that are merged into outgoing RPC
+ * client requests.
+ *
  * @category headers
  * @since 4.0.0
  */
@@ -775,6 +801,9 @@ export const CurrentHeaders = Context.Reference<Headers.Headers>("effect/rpc/Rpc
 })
 
 /**
+ * Runs an effect with additional RPC client headers, merging them with the
+ * current `CurrentHeaders` value for outgoing requests.
+ *
  * @category headers
  * @since 4.0.0
  */
@@ -788,6 +817,9 @@ export const withHeaders: {
 )
 
 /**
+ * Service interface for an RPC client transport, responsible for running the
+ * receive loop and sending encoded client messages.
+ *
  * @category protocol
  * @since 4.0.0
  */
@@ -811,6 +843,9 @@ export class Protocol extends Context.Service<Protocol, {
 }
 
 /**
+ * Creates a client `Protocol` that sends each RPC request through the supplied
+ * `HttpClient` and decodes responses with the current `RpcSerialization`.
+ *
  * @category protocol
  * @since 4.0.0
  */
@@ -899,6 +934,9 @@ export const makeProtocolHttp = (client: HttpClient.HttpClient): Effect.Effect<
   }))
 
 /**
+ * Provides a client `Protocol` backed by `HttpClient`, targeting the configured
+ * URL and optionally transforming the client before use.
+ *
  * @category protocol
  * @since 4.0.0
  */
@@ -917,6 +955,10 @@ export const layerProtocolHttp = (options: {
   )
 
 /**
+ * Creates a client `Protocol` over the current `Socket`, using the current
+ * `RpcSerialization`, connection hooks, ping timeouts, and the configured retry
+ * policy.
+ *
  * @category protocol
  * @since 4.0.0
  */
@@ -1081,6 +1123,9 @@ const makePinger = Effect.fnUntraced(function*<A, E, R>(writePing: Effect.Effect
 })
 
 /**
+ * Provides a client `Protocol` backed by the current `Socket` and
+ * `RpcSerialization` services.
+ *
  * @category protocol
  * @since 4.0.0
  */
@@ -1093,6 +1138,9 @@ export const layerProtocolSocket = (options?: {
 > => Layer.effect(Protocol)(makeProtocolSocket(options))
 
 /**
+ * Creates a client `Protocol` backed by a pool of workers, routing RPC requests
+ * to workers and supporting transferable values when the platform does.
+ *
  * @category protocol
  * @since 4.0.0
  */
@@ -1256,6 +1304,9 @@ export const makeProtocolWorker = (
   }))
 
 /**
+ * Provides a client `Protocol` backed by a worker pool using the current worker
+ * platform and spawner services.
+ *
  * @category protocol
  * @since 4.0.0
  */
@@ -1278,6 +1329,9 @@ export const layerProtocolWorker: (
 > = flow(makeProtocolWorker, Layer.effect(Protocol))
 
 /**
+ * Optional client protocol hooks that run when a transport connects and
+ * disconnects.
+ *
  * @category ConnectionHooks
  * @since 4.0.0
  */

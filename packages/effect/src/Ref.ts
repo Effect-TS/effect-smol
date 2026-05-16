@@ -446,11 +446,14 @@ export const modify = dual<
   }))
 
 /**
- * Atomically modifies the value of the Ref using the given partial function.
+ * Atomically computes a result and optionally updates the value of the `Ref`.
  *
- * The function receives the current value and returns an Option of [result, newValue].
- * If the function returns `Option.some([result, newValue])`, the Ref is updated with newValue and result is returned.
- * If it returns `Option.none()`, the Ref is left unchanged and the fallback value is returned.
+ * **Details**
+ *
+ * The callback receives the current value and returns `[result, nextValue]`,
+ * where `nextValue` is an `Option`. If `nextValue` is `Option.some(value)`,
+ * the `Ref` is updated to `value`; if it is `Option.none()`, the `Ref` is left
+ * unchanged. The returned effect always succeeds with `result`.
  *
  * **Example** (Conditionally modifying a value)
  *

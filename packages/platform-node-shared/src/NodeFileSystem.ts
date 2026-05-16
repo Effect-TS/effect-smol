@@ -635,6 +635,9 @@ const makeFileSystem = Effect.map(Effect.serviceOption(FileSystem.WatchBackend),
   }))
 
 /**
+ * Provides the `FileSystem` service backed by Node filesystem APIs, including
+ * file operations, directory operations, links, metadata, and file watching.
+ *
  * @category Layers
  * @since 1.0.0
  */

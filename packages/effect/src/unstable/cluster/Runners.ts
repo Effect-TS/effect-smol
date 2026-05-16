@@ -28,6 +28,10 @@ import { ShardingConfig } from "./ShardingConfig.ts"
 import * as Snowflake from "./Snowflake.ts"
 
 /**
+ * Service for communicating with cluster runners, including pinging runners,
+ * sending and notifying messages, coordinating persisted replies, and marking
+ * runners unavailable.
+ *
  * @category context
  * @since 1.0.0
  */
@@ -112,6 +116,10 @@ export class Runners extends Context.Service<Runners, {
 }>()("effect/cluster/Runners") {}
 
 /**
+ * Builds the `Runners` service from remote runner callbacks and adds local
+ * message persistence, duplicate request handling, optional local serialization
+ * simulation, and polling for persisted replies.
+ *
  * @category Constructors
  * @since 1.0.0
  */
@@ -380,6 +388,10 @@ export const make: (options: Omit<Runners["Service"], "sendLocal" | "notifyLocal
 })
 
 /**
+ * Creates a no-op `Runners` service that rejects sends with
+ * `EntityNotAssignedToRunner` and ignores notifications, pings, and unavailable
+ * runner reports.
+ *
  * @category No-op
  * @since 1.0.0
  */
@@ -395,6 +407,9 @@ export const makeNoop: Effect.Effect<
 })
 
 /**
+ * Layer that provides the no-op `Runners` service, using the default snowflake
+ * generator.
+ *
  * @category Layers
  * @since 1.0.0
  */
@@ -415,6 +430,9 @@ const rpcErrors: Schema.Union<[
 ])
 
 /**
+ * RPC group used for runner-to-runner communication, including ping, notify,
+ * effect, stream, and envelope messages.
+ *
  * @category Rpcs
  * @since 1.0.0
  */
@@ -454,12 +472,17 @@ export class Rpcs extends RpcGroup.make(
 ) {}
 
 /**
+ * Client interface generated from the runner RPC group.
+ *
  * @category Rpcs
  * @since 1.0.0
  */
 export interface RpcClient extends RpcClient_.FromGroup<typeof Rpcs, RpcClientError> {}
 
 /**
+ * Builds a runner RPC client from the current `RpcClient.Protocol`, using the
+ * `Runners` span prefix with tracing disabled.
+ *
  * @category Rpcs
  * @since 1.0.0
  */
@@ -470,6 +493,10 @@ export const makeRpcClient: Effect.Effect<
 > = RpcClient_.make(Rpcs, { spanPrefix: "Runners", disableTracing: true })
 
 /**
+ * Builds a `Runners` service backed by RPC clients, caching a client per runner
+ * address and dispatching ping, notify, effect, stream, and envelope messages over
+ * the runner protocol.
+ *
  * @category constructors
  * @since 1.0.0
  */
@@ -603,6 +630,9 @@ export const makeRpc: Effect.Effect<
 })
 
 /**
+ * Layer that provides an RPC-backed `Runners` service using `RpcClientProtocol`,
+ * message storage, sharding configuration, and the default snowflake generator.
+ *
  * @category Layers
  * @since 1.0.0
  */
@@ -615,6 +645,9 @@ export const layerRpc: Layer.Layer<
 )
 
 /**
+ * Service that creates an RPC client protocol for communicating with a runner at a
+ * given address.
+ *
  * @category Client
  * @since 1.0.0
  */

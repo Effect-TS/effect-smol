@@ -8,11 +8,19 @@ import * as Layer from "./Layer.ts"
 import { BadArgument } from "./PlatformError.ts"
 
 /**
+ * Runtime type identifier used to mark implementations of the `Path` service.
+ *
  * @since 4.0.0
  */
 export const TypeId = "~effect/platform/Path"
 
 /**
+ * Service interface for platform-specific path manipulation.
+ *
+ * The service exposes operations for joining, normalizing, parsing,
+ * formatting, and converting file system paths. URL conversion methods return
+ * `Effect`s because invalid file URLs or paths can fail with `BadArgument`.
+ *
  * **Example** (Using path operations)
  *
  * ```ts
@@ -68,6 +76,8 @@ export interface Path {
 }
 
 /**
+ * Namespace containing types associated with the `Path` service.
+ *
  * **Example** (Working with parsed paths)
  *
  * ```ts
@@ -98,6 +108,12 @@ export interface Path {
  */
 export declare namespace Path {
   /**
+   * Structured representation of a parsed file system path.
+   *
+   * The fields correspond to the path root, directory, base filename,
+   * extension, and filename without extension, matching the shape consumed by
+   * `Path.format`.
+   *
    * **Example** (Parsing and formatting paths)
    *
    * ```ts
@@ -140,6 +156,11 @@ export declare namespace Path {
 }
 
 /**
+ * Context service tag for accessing the current `Path` implementation.
+ *
+ * Yield this service inside an effect to use path operations supplied by the
+ * environment, or provide a custom implementation with `Layer.succeed`.
+ *
  * **Example** (Providing a custom Path service)
  *
  * ```ts
@@ -794,6 +815,11 @@ const posixImpl = Path.of({
 })
 
 /**
+ * Layer that provides the built-in POSIX `Path` implementation.
+ *
+ * Use this layer when an effect requires the `Path` service and should use
+ * forward-slash path semantics.
+ *
  * @category Layers
  * @since 4.0.0
  */

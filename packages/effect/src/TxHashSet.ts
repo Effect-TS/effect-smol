@@ -118,6 +118,8 @@ export interface TxHashSet<in out V> extends Inspectable, Pipeable {
  */
 export declare namespace TxHashSet {
   /**
+   * Extracts the value type from a `TxHashSet` type.
+   *
    * **Example** (Extracting a TxHashSet value type)
    *
    * ```ts

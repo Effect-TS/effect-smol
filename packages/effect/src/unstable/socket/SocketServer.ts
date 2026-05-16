@@ -7,6 +7,9 @@ import type * as Effect from "../../Effect.ts"
 import type * as Socket from "./Socket.ts"
 
 /**
+ * Context service for a socket server, exposing its bound address and a run
+ * loop that handles each accepted `Socket`.
+ *
  * @category tags
  * @since 4.0.0
  */
@@ -18,18 +21,24 @@ export class SocketServer extends Context.Service<SocketServer, {
 }>()("@effect/platform/SocketServer") {}
 
 /**
+ * Runtime type identifier attached to `SocketServerError` values.
+ *
  * @category errors
  * @since 4.0.0
  */
 export const ErrorTypeId: ErrorTypeId = "@effect/platform/SocketServer/SocketServerError"
 
 /**
+ * Type-level identifier used to mark `SocketServerError` values.
+ *
  * @category errors
  * @since 4.0.0
  */
 export type ErrorTypeId = "@effect/platform/SocketServer/SocketServerError"
 
 /**
+ * Error reason for failures that occur while opening a socket server.
+ *
  * @category errors
  * @since 4.0.0
  */
@@ -42,6 +51,8 @@ export class SocketServerOpenError extends Data.TaggedError("SocketServerOpenErr
 }
 
 /**
+ * Error reason for uncategorized socket server failures.
+ *
  * @category errors
  * @since 4.0.0
  */
@@ -54,12 +65,17 @@ export class SocketServerUnknownError extends Data.TaggedError("SocketServerUnkn
 }
 
 /**
+ * Union of socket server error reasons.
+ *
  * @category errors
  * @since 4.0.0
  */
 export type SocketServerErrorReason = SocketServerOpenError | SocketServerUnknownError
 
 /**
+ * Tagged socket server error that wraps a server error reason and exposes its
+ * cause.
+ *
  * @category errors
  * @since 4.0.0
  */
@@ -88,12 +104,16 @@ export class SocketServerError extends Data.TaggedError("SocketServerError")<{
 }
 
 /**
+ * Socket server address, either a TCP host and port or a Unix socket path.
+ *
  * @category models
  * @since 4.0.0
  */
 export type Address = UnixAddress | TcpAddress
 
 /**
+ * TCP socket server address with hostname and port.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -104,6 +124,8 @@ export interface TcpAddress {
 }
 
 /**
+ * Unix socket server address identified by a filesystem path.
+ *
  * @category models
  * @since 4.0.0
  */

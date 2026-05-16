@@ -57,6 +57,9 @@ export {
 // -----------------------------------------------------------------------------
 
 /**
+ * Service tag for the Undici `Dispatcher` used by the Undici-backed HTTP
+ * client.
+ *
  * @category Dispatcher
  * @since 1.0.0
  */
@@ -65,6 +68,9 @@ export class Dispatcher extends Context.Service<Dispatcher, Undici.Dispatcher>()
 ) {}
 
 /**
+ * Acquires a new Undici `Agent` dispatcher and destroys it when the enclosing
+ * scope is finalized.
+ *
  * @category Dispatcher
  * @since 1.0.0
  */
@@ -74,18 +80,26 @@ export const makeDispatcher: Effect.Effect<Undici.Dispatcher, never, Scope.Scope
 )
 
 /**
+ * Provides the `Dispatcher` service using a scoped Undici `Agent`.
+ *
  * @category Dispatcher
  * @since 1.0.0
  */
 export const layerDispatcher: Layer.Layer<Dispatcher> = Layer.effect(Dispatcher)(makeDispatcher)
 
 /**
+ * Provides the `Dispatcher` service from Undici's process-global dispatcher,
+ * without creating or owning a new agent.
+ *
  * @category Dispatcher
  * @since 1.0.0
  */
 export const dispatcherLayerGlobal: Layer.Layer<Dispatcher> = Layer.sync(Dispatcher)(() => Undici.getGlobalDispatcher())
 
 /**
+ * Fiber reference containing default Undici request options applied to requests
+ * sent by `makeUndici`.
+ *
  * @category undici
  * @since 1.0.0
  */
@@ -95,6 +109,10 @@ export const UndiciOptions = Context.Reference<Partial<Undici.Dispatcher.Request
 )
 
 /**
+ * Creates an `HttpClient` that sends requests through the current Undici
+ * `Dispatcher`, converts Effect HTTP bodies to Undici bodies, and maps
+ * transport and decode failures to `HttpClientError`.
+ *
  * @category undici
  * @since 1.0.0
  */
@@ -309,6 +327,9 @@ class UndiciResponse extends Inspectable.Class implements HttpClientResponse, Pi
 }
 
 /**
+ * Provides an Undici-backed `HttpClient` using the current `Dispatcher`
+ * service.
+ *
  * @category Undici
  * @since 1.0.0
  */
@@ -319,6 +340,9 @@ export const layerUndiciNoDispatcher: Layer.Layer<
 > = Client.layerMergedContext(makeUndici)
 
 /**
+ * Provides an Undici-backed `HttpClient` together with a scoped default
+ * Undici `Agent` dispatcher.
+ *
  * @category Undici
  * @since 1.0.0
  */
@@ -329,6 +353,9 @@ export const layerUndici: Layer.Layer<Client.HttpClient> = Layer.provide(layerUn
 // -----------------------------------------------------------------------------
 
 /**
+ * Service tag for the paired Node `http` and `https` agents used by the
+ * node:http-backed HTTP client.
+ *
  * @category HttpAgent
  * @since 1.0.0
  */
@@ -338,6 +365,9 @@ export class HttpAgent extends Context.Service<HttpAgent, {
 }>()("@effect/platform-node/NodeHttpClient/HttpAgent") {}
 
 /**
+ * Acquires Node `http` and `https` agents with the supplied options and
+ * destroys both agents when the enclosing scope is finalized.
+ *
  * @category HttpAgent
  * @since 1.0.0
  */
@@ -355,6 +385,9 @@ export const makeAgent = (options?: Https.AgentOptions): Effect.Effect<HttpAgent
   )
 
 /**
+ * Provides the `HttpAgent` service using scoped Node `http` and `https`
+ * agents configured with the supplied options.
+ *
  * @category HttpAgent
  * @since 1.0.0
  */
@@ -363,12 +396,19 @@ export const layerAgentOptions: (options?: Https.AgentOptions | undefined) => La
 > = flow(makeAgent, Layer.effect(HttpAgent))
 
 /**
+ * Provides the `HttpAgent` service using default scoped Node `http` and
+ * `https` agents.
+ *
  * @category HttpAgent
  * @since 1.0.0
  */
 export const layerAgent: Layer.Layer<HttpAgent> = layerAgentOptions()
 
 /**
+ * Creates an `HttpClient` backed by Node `http` and `https`, using the
+ * current `HttpAgent`, streaming request bodies, and wrapping Node responses
+ * as `HttpClientResponse` values.
+ *
  * @category node:http
  * @since 1.0.0
  */
@@ -579,6 +619,9 @@ class NodeHttpResponse extends NodeHttpIncomingMessage<Error.HttpClientError> im
 }
 
 /**
+ * Provides a node:http-backed `HttpClient` using the current `HttpAgent`
+ * service.
+ *
  * @category node:http
  * @since 1.0.0
  */
@@ -589,6 +632,9 @@ export const layerNodeHttpNoAgent: Layer.Layer<
 > = Client.layerMergedContext(makeNodeHttp)
 
 /**
+ * Provides a node:http-backed `HttpClient` together with default scoped Node
+ * `http` and `https` agents.
+ *
  * @category node:http
  * @since 1.0.0
  */

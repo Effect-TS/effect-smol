@@ -13,6 +13,9 @@ import type { SqlError } from "effect/unstable/sql/SqlError"
 export * from "effect/unstable/sql/Migrator"
 
 /**
+ * Runs SQL migrations for ClickHouse using the supplied migrator options and
+ * returns the applied migration IDs and names.
+ *
  * @category constructor
  * @since 1.0.0
  */
@@ -25,6 +28,9 @@ export const run: <R2 = never>(
 > = Migrator.make({})
 
 /**
+ * Creates a layer that runs the configured ClickHouse migrations during layer
+ * construction and provides no services.
+ *
  * @category layers
  * @since 1.0.0
  */

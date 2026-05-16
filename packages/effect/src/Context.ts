@@ -24,19 +24,32 @@ import { hasProperty } from "./Predicate.ts"
 import type * as Types from "./Types.ts"
 
 /**
+ * String literal type used as the runtime type identifier for `Context`
+ * service keys.
+ *
  * @category Type Identifiers
  * @since 4.0.0
  */
 export type ServiceTypeId = "~effect/Context/Service"
 
 /**
+ * Runtime type identifier attached to `Context` service keys and used by
+ * `isKey` to recognize them.
+ *
  * @category Type Identifiers
  * @since 4.0.0
  */
 export const ServiceTypeId: ServiceTypeId = "~effect/Context/Service"
 
 /**
- * The base type used for all Context keys.
+ * Typed identifier for a service stored in a `Context`.
+ *
+ * **Details**
+ *
+ * `Identifier` tracks the requirement in Effect types, while `Shape` is the
+ * service implementation retrieved by the key. A key is also an Effect value,
+ * so yielding it inside `Effect.gen` retrieves the service from the current
+ * fiber context.
  *
  * @category Models
  * @since 4.0.0
@@ -50,6 +63,14 @@ export interface Key<out Identifier, out Shape> extends Effect<Shape, never, Ide
 }
 
 /**
+ * Context key with helper methods for working with a service.
+ *
+ * **Details**
+ *
+ * `context` creates a one-service `Context`, `use` and `useSync` retrieve the
+ * service from the current Effect context before applying a function, and `of`
+ * is a type-level helper for service values.
+ *
  * **Example** (Defining a service key)
  *
  * ```ts
@@ -75,6 +96,13 @@ export interface Service<in out Identifier, in out Shape> extends Key<Identifier
 }
 
 /**
+ * Class-style service key produced by `Context.Service<Self, Shape>()("Id")`.
+ *
+ * **Details**
+ *
+ * Use this shape when declaring services as classes. The class itself is the
+ * Context key, and its string `key` identifies the service at runtime.
+ *
  * @category Models
  * @since 4.0.0
  */
@@ -86,11 +114,17 @@ export interface ServiceClass<in out Self, in out Identifier extends string, in 
 }
 
 /**
+ * Namespace containing helper types for class-style `Context.Service`
+ * declarations.
+ *
  * @category Models
  * @since 4.0.0
  */
 export declare namespace ServiceClass {
   /**
+   * Runtime and type-level metadata carried by a class-style service key,
+   * including its service type identifier, string key, and service shape.
+   *
    * @category Models
    * @since 4.0.0
    */
@@ -102,6 +136,15 @@ export declare namespace ServiceClass {
 }
 
 /**
+ * Creates a `Context` service key.
+ *
+ * **Details**
+ *
+ * Call `Context.Service("Key")` for a function-style key, or use the two-stage
+ * form `Context.Service<Self, Shape>()("Key")` for class-style service
+ * declarations. The returned key can be yielded as an Effect and passed to
+ * `Context.make`, `Context.add`, and the Context getter functions.
+ *
  * **Example** (Creating service keys)
  *
  * ```ts
@@ -229,6 +272,14 @@ const ServiceProto: any = {
 const ReferenceTypeId = "~effect/Context/Reference" as const
 
 /**
+ * Service key with a lazily computed default value.
+ *
+ * **Details**
+ *
+ * When a `Reference` is requested from a `Context` that does not contain an
+ * override, Context getters that resolve references return the cached default
+ * value instead of failing.
+ *
  * **Example** (Defining a reference with a default value)
  *
  * ```ts
@@ -256,6 +307,8 @@ export interface Reference<in out Shape> extends Service<never, Shape> {
 }
 
 /**
+ * Namespace containing utility types for `Context` service keys.
+ *
  * **Example** (Extracting service types)
  *
  * ```ts
@@ -277,6 +330,9 @@ export interface Reference<in out Shape> extends Service<never, Shape> {
  */
 export declare namespace Service {
   /**
+   * Type that matches any `Context` service key regardless of its identifier or
+   * service shape.
+   *
    * **Example** (Typing any service key)
    *
    * ```ts
@@ -295,6 +351,9 @@ export declare namespace Service {
   export type Any = Key<never, any> | Key<any, any>
 
   /**
+   * Extracts the service implementation type stored behind a `Context` service
+   * key.
+   *
    * **Example** (Extracting a service shape)
    *
    * ```ts
@@ -315,6 +374,9 @@ export declare namespace Service {
   export type Shape<T> = T extends Key<infer _I, infer S> ? S : never
 
   /**
+   * Extracts the identifier, or requirement type, associated with a `Context`
+   * service key.
+   *
    * **Example** (Extracting a service identifier)
    *
    * ```ts
@@ -338,6 +400,14 @@ export declare namespace Service {
 const TypeId = "~effect/Context" as const
 
 /**
+ * Immutable collection of service implementations used for dependency
+ * injection in Effect programs.
+ *
+ * **Details**
+ *
+ * The type parameter tracks the service identifiers available in the context.
+ * At runtime, services are stored by each key's string `key`.
+ *
  * **Example** (Creating a context with multiple services)
  *
  * ```ts
@@ -367,6 +437,15 @@ export interface Context<in Services> extends Equal.Equal, Pipeable, Inspectable
 }
 
 /**
+ * Creates a `Context` from an existing service map without validating or
+ * copying it.
+ *
+ * **Notes**
+ *
+ * This is unsafe because later mutation of the provided map can affect the
+ * created `Context`. Prefer `empty`, `make`, `add`, or `merge` for normal
+ * Context construction.
+ *
  * **Example** (Creating a context from a map)
  *
  * ```ts
@@ -565,6 +644,13 @@ export const add: {
   }))
 
 /**
+ * Adds or removes a service depending on an `Option`.
+ *
+ * **Details**
+ *
+ * When `service` is `Option.some`, the value is stored for the key. When it is
+ * `Option.none`, the key is removed from the returned `Context`.
+ *
  * @category Adders
  * @since 4.0.0
  */
@@ -592,8 +678,13 @@ export const addOrOmit: {
   }))
 
 /**
- * Get a service from the context that corresponds to the given key, or
- * use the fallback value.
+ * Gets the service for a key, or evaluates the fallback when a non-reference
+ * key is absent.
+ *
+ * **Details**
+ *
+ * If the key is a `Context.Reference` and no override is stored in the
+ * context, its cached default value is returned instead of the fallback.
  *
  * **Example** (Falling back for missing services)
  *
@@ -634,6 +725,14 @@ export const getOrElse: {
 })
 
 /**
+ * Returns the service currently stored for a key, or `undefined` when the key
+ * is absent.
+ *
+ * **Notes**
+ *
+ * This is a raw lookup and does not resolve default values for
+ * `Context.Reference` keys.
+ *
  * @category Getters
  * @since 4.0.0
  */
@@ -646,10 +745,14 @@ export const getOrUndefined: {
 )
 
 /**
- * Get a service from the context that corresponds to the given key.
+ * Gets the service for a key, throwing if an absent non-reference key cannot be
+ * resolved.
  *
- * This function is unsafe because if the key is not present in the context, a
- * runtime error will be thrown.
+ * **Details**
+ *
+ * If the key is a `Context.Reference` and no override is stored in the
+ * context, its cached default value is returned. For absent non-reference keys,
+ * this function throws a runtime error.
  *
  * For a safer version see {@link getOption}.
  *
@@ -720,6 +823,9 @@ export const get: {
 } = getUnsafe
 
 /**
+ * Gets the value for a `Context.Reference`, returning its cached default when
+ * the context does not contain an override.
+ *
  * **Example** (Getting reference defaults unsafely)
  *
  * ```ts
@@ -776,9 +882,13 @@ const serviceNotFoundError = (service: Key<any, any>) => {
 }
 
 /**
- * Get the value associated with the specified key from the context wrapped in
- * an `Option` object. If the key is not found, the `Option` object will be
- * `None`.
+ * Gets the service for a key wrapped in an `Option`.
+ *
+ * **Details**
+ *
+ * Returns `Option.some` when the service is stored in the context. If the key
+ * is a `Context.Reference` and no override is stored, returns `Option.some` of
+ * the cached default value. Missing non-reference keys return `Option.none`.
  *
  * @param self - The `Context` to search for the service.
  * @param service - The `Service` of the service to retrieve.
@@ -815,7 +925,12 @@ export const getOption: {
 })
 
 /**
- * Merges two `Context`s, returning a new `Context` containing the services of both.
+ * Merges two `Context`s into one.
+ *
+ * **Details**
+ *
+ * When both contexts contain the same service key, the service from `that`
+ * overrides the service from `self`.
  *
  * @param self - The first `Context` to merge.
  * @param that - The second `Context` to merge.
@@ -853,7 +968,12 @@ export const merge: {
 })
 
 /**
- * Merges any number of `Context`s, returning a new `Context` containing the services of all.
+ * Merges any number of `Context`s into one.
+ *
+ * **Details**
+ *
+ * When multiple contexts contain the same service key, the service from the
+ * last context with that key is kept.
  *
  * **Example** (Merging multiple contexts)
  *
@@ -939,6 +1059,8 @@ export const pick = <S extends ReadonlyArray<Key<any, any>>>(
   })
 
 /**
+ * Returns a new `Context` with the specified service keys removed.
+ *
  * **Example** (Omitting services from a context)
  *
  * ```ts

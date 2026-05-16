@@ -24,7 +24,7 @@ export function fail(message: string) {
 }
 
 /**
- * Asserts that `actual` is equal to `expected` using the `Equal.equals` trait.
+ * Asserts that `actual` is deeply strictly equal to `expected` using Node's `assert.deepStrictEqual`.
  *
  * @since 4.0.0
  */
@@ -33,7 +33,7 @@ export function deepStrictEqual<A>(actual: A, expected: A, message?: string, ...
 }
 
 /**
- * Asserts that `actual` is not equal to `expected` using the `Equal.equals` trait.
+ * Asserts that `actual` is not deeply strictly equal to `expected` using Node's `assert.notDeepStrictEqual`.
  *
  * @since 4.0.0
  */
@@ -42,7 +42,7 @@ export function notDeepStrictEqual<A>(actual: A, expected: A, message?: string, 
 }
 
 /**
- * Asserts that `actual` is equal to `expected` using the `Equal.equals` trait.
+ * Asserts that `actual` is strictly equal to `expected` using Node's `assert.strictEqual`.
  *
  * @since 4.0.0
  */
@@ -132,7 +132,7 @@ export function assertMatch(actual: string, regExp: RegExp, ..._: Array<never>) 
 }
 
 /**
- * Asserts that `thunk` throws an error.
+ * Asserts that `thunk` throws, optionally checking the thrown value against an expected `Error` or validation function.
  *
  * @since 4.0.0
  */
@@ -154,7 +154,7 @@ export function throws(thunk: () => void, error?: Error | ((u: unknown) => undef
 }
 
 /**
- * Asserts that `thunk` throws an error.
+ * Asserts that `thunk` throws or returns a rejected promise, optionally checking the failure value against an expected `Error` or validation function.
  *
  * @since 4.0.0
  */
@@ -219,7 +219,7 @@ export function assertUndefined<A>(
 }
 
 /**
- * Asserts that `option` is `Some`.
+ * Asserts that `option` is `Some` and contains a value equal to `expected`.
  *
  * @since 4.0.0
  */
@@ -236,7 +236,7 @@ export function assertSome<A>(
 // ----------------------------
 
 /**
- * Asserts that `result` is `Success`.
+ * Asserts that `result` is `Success` and contains a value equal to `expected`.
  *
  * @since 4.0.0
  */
@@ -249,7 +249,7 @@ export function assertSuccess<A, E>(
 }
 
 /**
- * Asserts that `result` is `Failure`.
+ * Asserts that `result` is `Failure` and contains an error equal to `expected`.
  *
  * @since 4.0.0
  */
@@ -266,7 +266,7 @@ export function assertFailure<A, E>(
 // ----------------------------
 
 /**
- * Asserts that `exit` is a failure.
+ * Asserts that `exit` is a failure with a cause equal to `expected`.
  *
  * @since 4.0.0
  */
@@ -279,7 +279,7 @@ export function assertExitFailure<A, E>(
 }
 
 /**
- * Asserts that `exit` is a success.
+ * Asserts that `exit` is a success with a value equal to `expected`.
  *
  * @since 4.0.0
  */

@@ -11,6 +11,10 @@ import * as Redis from "effect/unstable/persistence/Redis"
 import * as IoRedis from "ioredis"
 
 /**
+ * Service tag for the Node Redis integration, exposing the underlying
+ * `ioredis` client and a `use` helper that maps client failures to
+ * `RedisError`.
+ *
  * @category Service
  * @since 1.0.0
  */
@@ -51,6 +55,9 @@ const make = Effect.fnUntraced(function*(
 })
 
 /**
+ * Provides `Redis` and `NodeRedis` services backed by an `ioredis` client
+ * created with the supplied options and closed when the layer scope ends.
+ *
  * @category Layers
  * @since 1.0.0
  */
@@ -59,6 +66,9 @@ export const layer = (
 ): Layer.Layer<Redis.Redis | NodeRedis> => Layer.effectContext(make(options))
 
 /**
+ * Provides `Redis` and `NodeRedis` services from `Config`-backed ioredis
+ * options, closing the client when the layer scope ends.
+ *
  * @category Layers
  * @since 1.0.0
  */

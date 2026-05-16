@@ -37,17 +37,10 @@ import type { Unify } from "./Unify.ts"
 const TypeId = internal.TypeId
 
 /**
- * Pattern matching follows a structured process:
+ * Union type for matchers created by `Match.type` and `Match.value`.
  *
- * - **Creating a matcher**: Define a `Matcher` that operates on either a
- *   specific `Match.type` or `Match.value`.
- *
- * - **Defining patterns**: Use combinators such as `Match.when`, `Match.not`,
- *   and `Match.tag` to specify matching conditions.
- *
- * - **Completing the match**: Apply a finalizer such as `Match.exhaustive`,
- *   `Match.orElse`, or `Match.option` to determine how unmatched cases should
- *   be handled.
+ * A `Matcher` carries the input type, accumulated filters, remaining cases,
+ * result type, and, for value matchers, the provided value being matched.
  *
  * **Example** (Matching string and number values)
  *
@@ -811,19 +804,15 @@ export const discriminators: <D extends string>(
 > = internal.discriminators
 
 /**
- * Matches values based on a discriminator field and **ensures all cases are
- * handled**.
+ * Matches values by a discriminator field and requires every possible case to
+ * be handled.
  *
- * **Details*+
+ * **Details**
  *
- * This function is similar to {@link discriminators}, but **requires that all
- * possible cases** are explicitly handled. It is useful when working with
- * discriminated unions, where a specific field (e.g., `"type"`) determines the
- * shape of an object. Each possible value of the field must have a
- * corresponding handler, ensuring **exhaustiveness checking** at compile time.
- *
- * This function **does not require** `Match.exhaustive` at the end of the
- * pipeline because it enforces exhaustiveness by design.
+ * This is the exhaustive variant of {@link discriminators}. Each possible
+ * discriminator value must have a corresponding handler, so the matcher is
+ * finalized directly and does not require `Match.exhaustive` at the end of the
+ * pipeline.
  *
  * **Example** (Handling all discriminator cases)
  *
@@ -1502,11 +1491,12 @@ export const symbol: Predicate.Refinement<unknown, symbol> = Predicate.isSymbol
 export const date: Predicate.Refinement<unknown, Date> = Predicate.isDate
 
 /**
- * Matches objects where keys are `string` or `symbol` and values are `unknown`.
+ * Matches non-null objects other than arrays.
  *
- * This predicate refines unknown values to record objects, allowing pattern
- * matching on plain objects. It excludes arrays, functions, dates, and other
- * special object types, matching only plain objects and object literals.
+ * This predicate uses `Predicate.isObject`: it returns `true` for values whose
+ * runtime type is `"object"`, are not `null`, and are not arrays. It can match
+ * `Date`, `RegExp`, and class instances; use `instanceOf` or a more specific
+ * pattern when those cases need to be distinguished.
  *
  * **Example** (Matching record objects)
  *

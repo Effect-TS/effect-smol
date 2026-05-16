@@ -117,12 +117,10 @@ export const subtract: {
 } = dual(2, (self: bigint, that: bigint): bigint => self - that)
 
 /**
- * Provides a division operation on `bigint`s.
+ * Safely divides one `bigint` by another.
  *
- * If the dividend is not a multiple of the divisor the result will be a `bigint` value
- * which represents the integer division rounded down to the nearest integer.
- *
- * Returns `Option.none()` if the divisor is `0n`.
+ * Uses JavaScript `bigint` division, so non-exact quotients are truncated
+ * toward zero. Returns `Option.none()` when the divisor is `0n`.
  *
  * **Example** (Dividing bigints safely)
  *
@@ -148,12 +146,10 @@ export const divide: {
 )
 
 /**
- * Provides a division operation on `bigint`s.
+ * Divides one `bigint` by another, throwing if the divisor is zero.
  *
- * If the dividend is not a multiple of the divisor the result will be a `bigint` value
- * which represents the integer division rounded down to the nearest integer.
- *
- * Throws a `RangeError` if the divisor is `0n`.
+ * Uses JavaScript `bigint` division, so non-exact quotients are truncated
+ * toward zero. Throws a `RangeError` when the divisor is `0n`.
  *
  * **Example** (Dividing bigints unsafely)
  *
@@ -174,7 +170,7 @@ export const divideUnsafe: {
 } = dual(2, (self: bigint, that: bigint): bigint => self / that)
 
 /**
- * Returns the result of adding `1n` to a given number.
+ * Returns the result of adding `1n` to a `bigint`.
  *
  * **Example** (Incrementing a bigint)
  *
@@ -191,7 +187,7 @@ export const divideUnsafe: {
 export const increment = (n: bigint): bigint => n + bigint1
 
 /**
- * Decrements a number by `1n`.
+ * Returns the result of subtracting `1n` from a `bigint`.
  *
  * **Example** (Decrementing a bigint)
  *
@@ -528,7 +524,10 @@ export const lcm: {
 } = dual(2, (self: bigint, that: bigint): bigint => (self * that) / gcd(self, that))
 
 /**
- * Determines the square root of a given `bigint` unsafely. Throws if the given `bigint` is negative.
+ * Returns the integer square root of a non-negative `bigint`.
+ *
+ * For non-perfect squares, returns the largest `bigint` whose square is less
+ * than or equal to the input. Throws a `RangeError` if the input is negative.
  *
  * **Example** (Calculating square roots unsafely)
  *
@@ -559,8 +558,11 @@ export const sqrtUnsafe = (n: bigint): bigint => {
 }
 
 /**
- * Determines the square root of a given `bigint` safely. Returns `Option.none()` if
- * the given `bigint` is negative.
+ * Safely returns the integer square root of a `bigint`.
+ *
+ * For non-perfect squares, returns the largest `bigint` whose square is less
+ * than or equal to the input. Returns `Option.none()` when the input is
+ * negative.
  *
  * **Example** (Calculating square roots safely)
  *
@@ -580,7 +582,9 @@ export const sqrt = (n: bigint): Option.Option<bigint> =>
   isGreaterThanOrEqualTo(n, bigint0) ? Option.some(sqrtUnsafe(n)) : Option.none()
 
 /**
- * Takes an `Iterable` of `bigint`s and returns their sum as a single `bigint
+ * Takes an `Iterable` of `bigint`s and returns their sum as a single `bigint`.
+ *
+ * Returns `0n` for an empty iterable.
  *
  * **Example** (Summing iterable bigints)
  *
@@ -603,7 +607,10 @@ export const sumAll = (collection: Iterable<bigint>): bigint => {
 }
 
 /**
- * Takes an `Iterable` of `bigint`s and returns their multiplication as a single `number`.
+ * Takes an `Iterable` of `bigint`s and returns their product as a single
+ * `bigint`.
+ *
+ * Returns `1n` for an empty iterable.
  *
  * **Example** (Multiplying iterable bigints)
  *
@@ -717,7 +724,10 @@ export function fromNumber(n: number): Option.Option<bigint> {
 }
 
 /**
- * Returns the remainder of dividing the first `bigint` by the second `bigint`.
+ * Returns the JavaScript remainder of dividing one `bigint` by another.
+ *
+ * The result follows JavaScript `%` semantics, including the sign of the
+ * dividend. Throws a `RangeError` when the divisor is `0n`.
  *
  * **Example** (Calculating remainders)
  *

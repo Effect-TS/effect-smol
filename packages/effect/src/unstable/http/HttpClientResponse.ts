@@ -36,12 +36,16 @@ export {
 } from "./HttpIncomingMessage.ts"
 
 /**
+ * Type identifier for `HttpClientResponse` values.
+ *
  * @category Type IDs
  * @since 4.0.0
  */
 export const TypeId = "~effect/http/HttpClientResponse"
 
 /**
+ * Model of an HTTP client response, including the original request, status, cookies, headers, and body accessors.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -54,6 +58,8 @@ export interface HttpClientResponse extends HttpIncomingMessage.HttpIncomingMess
 }
 
 /**
+ * Wraps a Web `Response` and its original `HttpClientRequest` as an `HttpClientResponse`.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -61,6 +67,8 @@ export const fromWeb = (request: HttpClientRequest.HttpClientRequest, source: Re
   new WebHttpClientResponse(request, source)
 
 /**
+ * Creates a decoder for a response's status, headers, and JSON body using the supplied schema.
+ *
  * @category schema
  * @since 4.0.0
  */
@@ -90,6 +98,8 @@ export const schemaJson = <
 }
 
 /**
+ * Creates a decoder for a response's status and headers without reading a response body.
+ *
  * @category schema
  * @since 4.0.0
  */
@@ -114,6 +124,8 @@ export const schemaNoBody = <
 }
 
 /**
+ * Converts an effect producing an `HttpClientResponse` into a stream of response body bytes.
+ *
  * @category accessors
  * @since 4.0.0
  */
@@ -122,6 +134,8 @@ export const stream = <E, R>(
 ): Stream.Stream<Uint8Array, Error.HttpClientError | E, R> => Stream.unwrap(Effect.map(effect, (self) => self.stream))
 
 /**
+ * Pattern matches on a response status, checking exact status handlers before status-class handlers and `orElse`.
+ *
  * @category pattern matching
  * @since 4.0.0
  */
@@ -172,6 +186,8 @@ export const matchStatus: {
 })
 
 /**
+ * Succeeds with the response when its status satisfies the predicate, otherwise fails with `HttpClientError`.
+ *
  * @category filters
  * @since 4.0.0
  */
@@ -197,6 +213,8 @@ export const filterStatus: {
 )
 
 /**
+ * Succeeds with the response only when its status is in the 2xx range, otherwise fails with `HttpClientError`.
+ *
  * @category filters
  * @since 4.0.0
  */

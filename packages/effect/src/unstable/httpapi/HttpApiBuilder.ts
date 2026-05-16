@@ -142,19 +142,27 @@ export const group = <
   })) as any
 
 /**
+ * Type identifier symbol used to brand `Handlers` values.
+ *
  * @category handlers
  * @since 4.0.0
  */
 export const HandlersTypeId: unique symbol = Symbol.for("@effect/platform/HttpApiBuilder/Handlers")
 
 /**
+ * Type of the `Handlers` type identifier symbol.
+ *
  * @category handlers
  * @since 4.0.0
  */
 export type HandlersTypeId = typeof HandlersTypeId
 
 /**
- * Represents a handled `HttpApi`.
+ * Mutable handler collection for one `HttpApi` group.
+ *
+ * Each call to `handle` or `handleRaw` registers an endpoint implementation and
+ * removes that endpoint from the type-level set of endpoints still requiring
+ * handlers.
  *
  * @category handlers
  * @since 4.0.0
@@ -210,11 +218,15 @@ export interface Handlers<
 }
 
 /**
+ * Namespace containing helper types for `HttpApiBuilder` handler collections.
+ *
  * @category handlers
  * @since 4.0.0
  */
 export declare namespace Handlers {
   /**
+   * A `Handlers` value with its context and endpoint types erased.
+   *
    * @category handlers
    * @since 4.0.0
    */
@@ -223,6 +235,11 @@ export declare namespace Handlers {
   }
 
   /**
+   * Record stored for a registered endpoint handler.
+   *
+   * It keeps the endpoint metadata, handler function, whether raw request handling
+   * is used, and whether the handler should run uninterruptibly.
+   *
    * @category handlers
    * @since 4.0.0
    */
@@ -234,6 +251,9 @@ export declare namespace Handlers {
   }
 
   /**
+   * Creates a handler collection for a group where every endpoint in the group is
+   * still awaiting an implementation.
+   *
    * @category handlers
    * @since 4.0.0
    */
@@ -243,6 +263,10 @@ export declare namespace Handlers {
   >
 
   /**
+   * Validates the return value of a group handler builder, preserving successful
+   * handler collections and producing a descriptive type error when endpoints remain
+   * unhandled.
+   *
    * @category handlers
    * @since 4.0.0
    */
@@ -264,6 +288,9 @@ export declare namespace Handlers {
     `Must return the implemented handlers`
 
   /**
+   * Extracts the error channel from an effect that produces a `Handlers`
+   * collection, returning `never` for non-effectful handler collections.
+   *
    * @category handlers
    * @since 4.0.0
    */
@@ -278,6 +305,9 @@ export declare namespace Handlers {
     never
 
   /**
+   * Extracts the services required by a handler collection, including both handler
+   * requirements and the environment required to construct the handlers.
+   *
    * @category handlers
    * @since 4.0.0
    */
@@ -297,6 +327,9 @@ export declare namespace Handlers {
 }
 
 /**
+ * Builds the server-side HTTP effect for a single endpoint in an API group using
+ * the endpoint metadata, middleware, codecs, and supplied handler.
+ *
  * @category handlers
  * @since 4.0.0
  */
@@ -351,6 +384,9 @@ export const endpoint = <
   })
 
 /**
+ * Decodes credentials for an HTTP API security scheme from the current request,
+ * supporting bearer, API key, and basic authentication inputs.
+ *
  * @category security
  * @since 4.0.0
  */
@@ -415,6 +451,9 @@ export const securityDecode = <Security extends HttpApiSecurity.HttpApiSecurity>
 }
 
 /**
+ * Registers a pre-response handler that sets an API-key cookie on the outgoing
+ * response, defaulting the cookie to `secure` and `httpOnly` unless overridden.
+ *
  * @category security
  * @since 4.0.0
  */

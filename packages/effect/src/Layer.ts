@@ -61,6 +61,12 @@ export interface Layer<in ROut, out E = never, out RIn = never> extends Variance
 }
 
 /**
+ * Type-level hook that allows `Layer` values to participate in `Unify`
+ * inference.
+ *
+ * This is used by Effect's pipe and unification machinery to preserve the
+ * provided services, error, and requirements of a `Layer`.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -74,6 +80,9 @@ export interface LayerUnify<A extends { [Unify.typeSymbol]?: any }> {
 }
 
 /**
+ * Type-level marker used by `Unify` for `Layer` types that should be ignored
+ * during unification.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -1435,7 +1444,13 @@ export const tapError: {
   ))
 
 /**
- * Performs the specified effect if this layer fails.
+ * Performs the specified effect when this layer fails with any cause.
+ *
+ * **Details**
+ * The callback receives the layer's `Cause`, so it can inspect typed errors,
+ * defects, and interruption information. If the callback succeeds, the layer
+ * fails again with the original cause; if the callback fails, that failure is
+ * added to the layer's error type.
  *
  * **Previously Known As**
  *
@@ -1617,7 +1632,12 @@ export const catchTag: {
   ))
 
 /**
- * Recovers from all errors.
+ * Recovers from any failure cause by switching to another layer.
+ *
+ * **Details**
+ * The handler receives the full `Cause` of the failed layer, including typed
+ * errors, defects, and interruption information, and returns the fallback layer
+ * to build instead.
  *
  * **Example** (Recovering from layer failures by cause)
  *
@@ -2160,12 +2180,12 @@ export const span = (
 }
 
 /**
- * Constructs a new `Layer` which takes an existing span and registers it as the
- * current parent span.
+ * Constructs a layer that provides an existing span as the current parent span.
  *
- * This allows you to create a traced scope for layer construction, making all
- * operations within the layer constructor part of the same trace span. The span
- * is automatically closed when the layer's scope is closed.
+ * **Details**
+ * The supplied span is made available through `Tracer.ParentSpan` for layers
+ * that are built with this layer. This API does not create, end, or close the
+ * span; the caller remains responsible for the span's lifetime.
  *
  * **Example** (Using an existing parent span)
  *
@@ -2305,11 +2325,12 @@ export const withSpan: {
 } as any
 
 /**
- * Wraps a `Layer` with a new tracing span and sets the span as the parent span.
+ * Wraps a layer so spans created during its construction use the supplied span
+ * as their parent.
  *
- * This attaches a layer to an existing trace span, making all operations within
- * the layer children of the provided parent span. This is useful for integrating
- * layer construction into an existing trace hierarchy.
+ * **Details**
+ * Use this to attach layer construction to an existing trace hierarchy. This API
+ * does not create or end the supplied parent span.
  *
  * **Example** (Attaching layers to an existing parent span)
  *

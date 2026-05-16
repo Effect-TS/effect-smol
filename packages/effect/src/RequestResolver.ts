@@ -27,24 +27,20 @@ import * as Persistence from "./unstable/persistence/Persistence.ts"
 const TypeId = "~effect/RequestResolver"
 
 /**
- * The `RequestResolver<A, R>` interface requires an environment `R` and handles
- * the execution of requests of type `A`.
+ * A resolver that executes and completes batched `Request` entries.
  *
- * Implementations must provide a `runAll` method, which processes a collection
- * of requests and produces an effect that fulfills these requests. Requests are
- * organized into a `Array<Array<A>>`, where the outer `Array` groups requests
- * into batches that are executed sequentially, and each inner `Array` contains
- * requests that can be executed in parallel. This structure allows
- * implementations to analyze all incoming requests collectively and optimize
- * query execution accordingly.
+ * **Details**
  *
- * Implementations are typically specialized for a subtype of `Request<A, E>`.
- * However, they are not strictly limited to these subtypes as long as they can
- * map any given request type to `Request<A, E>`. Implementations should inspect
- * the collection of requests to identify the needed information and execute the
- * corresponding queries. It is imperative that implementations resolve all the
- * requests they receive. Failing to do so will lead to a `QueryFailure` error
- * during query execution.
+ * A resolver controls how requests are grouped, delayed, optionally
+ * pre-checked, and finally run. Its `runAll` method receives a non-empty batch
+ * of `Request.Entry` values for a single batch key and must complete every
+ * received entry, usually by calling `completeUnsafe` or one of the `Request`
+ * completion helpers.
+ *
+ * **Notes**
+ *
+ * If a resolver finishes without completing an entry, the waiting request fails
+ * because the resolver did not supply a result.
  *
  * **Example** (Defining a request resolver)
  *
@@ -98,11 +94,20 @@ export interface RequestResolver<in A extends Request.Any> extends RequestResolv
 }
 
 /**
+ * Namespace containing type-level helpers associated with `RequestResolver`.
+ *
  * @category models
  * @since 2.0.0
  */
 export declare namespace RequestResolver {
   /**
+   * Variance marker carried by every `RequestResolver`.
+   *
+   * **Notes**
+   *
+   * This marker preserves the request type accepted by the resolver for
+   * Effect's type-level machinery. Users normally do not implement it directly.
+   *
    * @category models
    * @since 2.0.0
    */
@@ -652,7 +657,14 @@ export const around: {
 export const never: RequestResolver<never> = make(() => Effect.never)
 
 /**
- * Returns a request resolver that executes at most `n` requests in parallel.
+ * Returns a request resolver that collects at most `n` requests into each
+ * batch.
+ *
+ * **Details**
+ *
+ * When more than `n` requests are waiting for the same resolver and batch key,
+ * the current batch is run and additional requests are collected into later
+ * batches.
  *
  * **Example** (Limiting parallel request batches)
  *
@@ -760,11 +772,13 @@ export const grouped: {
 )
 
 /**
- * Returns a new request resolver that executes requests by sending them to this
- * request resolver and that request resolver, returning the results from the first data
- * source to complete and safely interrupting the loser.
+ * Returns a request resolver that sends each batch to both resolvers and
+ * completes with the first resolver to finish.
  *
- * The batch delay is determined by the first request resolver.
+ * **Details**
+ *
+ * The losing resolver run is interrupted after the winning resolver completes
+ * the batch.
  *
  * **Example** (Racing request resolvers)
  *
@@ -1039,6 +1053,19 @@ export const withCache: {
   }))
 
 /**
+ * Wraps a request resolver with persistent storage for persistable requests.
+ *
+ * **Details**
+ *
+ * Cached results are loaded from the configured persistence store before
+ * running the underlying resolver. Missing entries, and entries marked stale by
+ * `staleWhileRevalidate`, are resolved normally and written back to the store.
+ *
+ * **Notes**
+ *
+ * Creating the persisted resolver requires `Persistence.Persistence` and
+ * `Scope`.
+ *
  * @category Persistence
  * @since 4.0.0
  */

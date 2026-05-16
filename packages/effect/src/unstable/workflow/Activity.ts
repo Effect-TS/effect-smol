@@ -19,6 +19,10 @@ import type { WorkflowEngine, WorkflowInstance } from "./WorkflowEngine.ts"
 const TypeId = "~effect/workflow/Activity"
 
 /**
+ * Durable workflow activity that behaves as an `Effect` and records its name,
+ * result schemas, annotations, and encoded execution form for the workflow
+ * engine.
+ *
  * @category Models
  * @since 4.0.0
  */
@@ -73,6 +77,9 @@ export interface Activity<
 }
 
 /**
+ * Type-erased activity shape for APIs that only need the activity identity,
+ * name, annotations, and encoded execution.
+ *
  * @category Models
  * @since 4.0.0
  */
@@ -84,6 +91,9 @@ export interface Any {
 }
 
 /**
+ * Type-erased activity shape that also exposes success and error schemas for
+ * derived workflow APIs.
+ *
  * @category Models
  * @since 4.0.0
  */
@@ -96,6 +106,9 @@ export interface AnyWithProps {
 }
 
 /**
+ * Creates a workflow activity from an effect, using the provided schemas to
+ * encode successes and failures for durable execution.
+ *
  * @category Constructors
  * @since 4.0.0
  */
@@ -178,6 +191,9 @@ const retryOnInterrupt = (
   )
 
 /**
+ * Retries an effect with `Effect.retry` while updating `CurrentAttempt` for
+ * each attempt.
+ *
  * @category Error handling
  * @since 4.0.0
  */
@@ -199,6 +215,9 @@ export const retry: {
 )
 
 /**
+ * Context reference containing the current activity retry attempt, defaulting
+ * to `1`.
+ *
  * @category Attempts
  * @since 4.0.0
  */
@@ -208,6 +227,9 @@ export const CurrentAttempt = Context.Reference<number>(
 )
 
 /**
+ * Computes a deterministic activity idempotency key from the current workflow
+ * execution ID, the supplied name, and optionally the current attempt.
+ *
  * @category Idempotency
  * @since 4.0.0
  */
@@ -230,6 +252,9 @@ export const idempotencyKey: (
 })
 
 /**
+ * Runs a non-empty collection of activities as a durable race and returns the
+ * first completed success or failure using unioned success and error schemas.
+ *
  * @category Racing
  * @since 4.0.0
  */

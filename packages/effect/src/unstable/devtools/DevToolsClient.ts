@@ -21,6 +21,9 @@ const RequestSchema = Schema.toCodecJson(DevToolsSchema.Request)
 const ResponseSchema = Schema.toCodecJson(DevToolsSchema.Response)
 
 /**
+ * Service for sending span and span-event telemetry to the Effect devtools
+ * connection.
+ *
  * @category tags
  * @since 4.0.0
  */
@@ -103,6 +106,10 @@ const toMetricsSnapshot = (
 })
 
 /**
+ * Creates a devtools client over the current `Socket`, speaking the devtools
+ * NDJSON protocol, sending periodic pings, and responding to metrics snapshot
+ * requests.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -118,6 +125,8 @@ export const make: Effect.Effect<
 )
 
 /**
+ * Layer that provides `DevToolsClient` using the current `Socket`.
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -157,6 +166,9 @@ const makeTracerEffect = Effect.gen(function*() {
 })
 
 /**
+ * Creates a tracer that delegates to the current tracer while sending span
+ * starts, span events, and span ends to `DevToolsClient`.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -168,6 +180,9 @@ export const makeTracer: Effect.Effect<Tracer.Tracer, never, DevToolsClient> = m
 )
 
 /**
+ * Layer that creates a `DevToolsClient` from the current `Socket` and installs
+ * the devtools tracer.
+ *
  * @category layers
  * @since 4.0.0
  */

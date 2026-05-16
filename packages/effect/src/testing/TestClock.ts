@@ -98,6 +98,8 @@ export interface TestClock extends Clock.Clock {
 }
 
 /**
+ * Namespace containing `TestClock` configuration and state types.
+ *
  * **Example** (Configuring a test clock)
  *
  * ```ts
@@ -121,6 +123,10 @@ export interface TestClock extends Clock.Clock {
  */
 export declare namespace TestClock {
   /**
+   * Options used when constructing a `TestClock`. `warningDelay` controls how
+   * long the live clock waits before logging a warning when a test uses time
+   * without advancing the test clock.
+   *
    * **Example** (Configuring the warning delay)
    *
    * ```ts
@@ -150,6 +156,10 @@ export declare namespace TestClock {
   }
 
   /**
+   * Represents the state tracked by a `TestClock`, including the current
+   * millisecond timestamp and the sleeps scheduled to resume when the clock
+   * reaches their target time.
+   *
    * @category models
    * @since 4.0.0
    */

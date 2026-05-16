@@ -139,10 +139,11 @@ export const nextBetween = (min: number, max: number): Effect.Effect<number> =>
   randomWith((r) => r.nextDoubleUnsafe() * (max - min) + min)
 
 /**
- * Generates a random number between `min` (inclusive) and `max` (inclusive).
+ * Generates a random integer between `min` and `max`.
  *
- * Set `options.halfOpen: true` to generate in the half-open range
- * `[min, max)`.
+ * The lower bound is rounded up with `Math.ceil` and the upper bound is
+ * rounded down with `Math.floor`. By default the range is inclusive; set
+ * `options.halfOpen: true` to exclude the upper bound.
  *
  * **Example** (Generating a bounded random integer)
  *
@@ -245,10 +246,12 @@ export const nextUUIDv4: Effect.Effect<string> = randomWith((r) => {
 })
 
 /**
- * Seeds the pseudorandom number generator with the specified value.
+ * Runs an effect with a pseudorandom number generator initialized from the
+ * specified seed.
  *
- * Take care to select a seed wit hhigh entropy to avoid issues with the
- * quality of random number generation.
+ * Using the same seed produces the same random sequence, which is useful for
+ * tests and reproducible simulations. Use an unpredictable seed when uniqueness
+ * or unpredictability matters.
  *
  * **Example** (Seeding random generation)
  *

@@ -17,24 +17,33 @@ import * as Stream from "../../Stream.ts"
 import type { Command, KillOptions } from "./ChildProcess.ts"
 
 /**
+ * Branded number representing the exit code reported by a child process.
+ *
  * @category Models
  * @since 4.0.0
  */
 export type ExitCode = Brand.Branded<number, "ExitCode">
 
 /**
+ * Brand constructor for child process `ExitCode` values.
+ *
  * @category Constructors
  * @since 4.0.0
  */
 export const ExitCode: Brand.Constructor<ExitCode> = Brand.nominal<ExitCode>()
 
 /**
+ * Branded number representing the operating system process identifier of a
+ * child process.
+ *
  * @category Models
  * @since 4.0.0
  */
 export type ProcessId = Brand.Branded<number, "ProcessId">
 
 /**
+ * Brand constructor for child process `ProcessId` values.
+ *
  * @category Constructors
  * @since 4.0.0
  */
@@ -174,7 +183,8 @@ export const makeHandle = (params: Omit<ChildProcessHandle, typeof HandleTypeId>
   Object.assign(Object.create(HandleProto), params)
 
 /**
- * Create a new `ChildProcessSpawner` service from a `spawn` funciton
+ * Creates a `ChildProcessSpawner` service from a `spawn` function, deriving
+ * helpers for exit codes and output collection from that implementation.
  *
  * @category Models
  * @since 4.0.0

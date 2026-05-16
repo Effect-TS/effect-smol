@@ -15,6 +15,13 @@ const TypeId = "~effect/LayerMap"
 type IdleTimeToLiveInput<K> = Duration.Input | ((key: K) => Duration.Input)
 
 /**
+ * A scoped, keyed map of layer-built service contexts.
+ *
+ * **Details**
+ *
+ * A `LayerMap` builds resources for a key on demand, exposes them as a `Layer`
+ * or scoped `Context`, and can invalidate cached resources for a key.
+ *
  * **Example** (Managing keyed layers)
  *
  * ```ts
@@ -158,6 +165,13 @@ export const make: <
 })
 
 /**
+ * Creates a `LayerMap` from a record of predefined layers.
+ *
+ * **Details**
+ *
+ * The record keys become the keys accepted by the returned `LayerMap`, and the
+ * record values are the layers built for those keys.
+ *
  * **Example** (Creating a layer map from a record)
  *
  * ```ts
@@ -223,6 +237,13 @@ export const fromRecord = <
   }) as any
 
 /**
+ * Service class shape produced by `LayerMap.Service`.
+ *
+ * **Details**
+ *
+ * It combines a `Context.Service` tag for the `LayerMap` with default layers
+ * and helper accessors for retrieving, using, and invalidating keyed resources.
+ *
  * @category Service
  * @since 3.14.0
  */
@@ -379,11 +400,15 @@ export const Service = <Self>() =>
 }
 
 /**
+ * Type helpers for values created with `LayerMap.Service`.
+ *
  * @category Service
  * @since 3.14.0
  */
 export declare namespace Service {
   /**
+   * Extracts the key type accepted by a `LayerMap.Service` definition.
+   *
    * @category Service
    * @since 3.14.0
    */
@@ -392,6 +417,8 @@ export declare namespace Service {
     : never
 
   /**
+   * Extracts the layer type produced by a `LayerMap.Service` definition.
+   *
    * @category Service
    * @since 3.14.0
    */
@@ -400,18 +427,26 @@ export declare namespace Service {
     : never
 
   /**
+   * Extracts the services provided by the layers in a `LayerMap.Service`
+   * definition.
+   *
    * @category Service
    * @since 3.14.0
    */
   export type Success<Options> = Layers<Options> extends Layer.Layer<infer _A, infer _E, infer _R> ? _A : never
 
   /**
+   * Extracts the error type of the layers in a `LayerMap.Service` definition.
+   *
    * @category Service
    * @since 3.14.0
    */
   export type Error<Options> = Layers<Options> extends Layer.Layer<infer _A, infer _E, infer _R> ? _E : never
 
   /**
+   * Extracts the service requirements of the layers in a `LayerMap.Service`
+   * definition.
+   *
    * @category Service
    * @since 3.14.0
    */

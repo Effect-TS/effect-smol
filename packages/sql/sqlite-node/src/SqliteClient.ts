@@ -25,18 +25,24 @@ const classifyError = (cause: unknown, message: string, operation: string) =>
   classifySqliteError(cause, { message, operation })
 
 /**
+ * Runtime type identifier used to mark Node `SqliteClient` values.
+ *
  * @category type ids
  * @since 1.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-sqlite-node/SqliteClient"
 
 /**
+ * Type-level identifier used to mark Node `SqliteClient` values.
+ *
  * @category type ids
  * @since 1.0.0
  */
 export type TypeId = "~@effect/sql-sqlite-node/SqliteClient"
 
 /**
+ * Node SQLite client service, extending `SqlClient` with database export, backup, and extension loading helpers. `updateValues` is not supported.
+ *
  * @category models
  * @since 1.0.0
  */
@@ -52,6 +58,8 @@ export interface SqliteClient extends Client.SqlClient {
 }
 
 /**
+ * Metadata returned from a Node SQLite backup operation, reporting total and remaining page counts.
+ *
  * @category models
  * @since 1.0.0
  */
@@ -61,12 +69,16 @@ export interface BackupMetadata {
 }
 
 /**
+ * Context service tag for the node SQLite client implementation.
+ *
  * @category tags
  * @since 1.0.0
  */
 export const SqliteClient = Context.Service<SqliteClient>("@effect/sql-sqlite-node/SqliteClient")
 
 /**
+ * Configuration for a node SQLite client backed by `better-sqlite3`, including the database filename, read-only mode, statement cache settings, WAL behavior, span attributes, and query/result name transforms.
+ *
  * @category models
  * @since 1.0.0
  */
@@ -89,6 +101,8 @@ interface SqliteConnection extends Connection {
 }
 
 /**
+ * Creates a scoped node SQLite client from the supplied configuration, using a single serialized connection with WAL enabled by default and exposing SQLite-specific `export`, `backup`, and `loadExtension` operations.
+ *
  * @category constructor
  * @since 1.0.0
  */
@@ -254,6 +268,8 @@ export const make = (
   })
 
 /**
+ * Builds a layer from an Effect `Config` value, providing both the node `SqliteClient` service and the generic `SqlClient` service.
+ *
  * @category layers
  * @since 1.0.0
  */
@@ -272,6 +288,8 @@ export const layerConfig = (
   ).pipe(Layer.provide(Reactivity.layer))
 
 /**
+ * Builds a layer from a node SQLite client configuration, providing both `SqliteClient` and the generic `SqlClient` service.
+ *
  * @category layers
  * @since 1.0.0
  */

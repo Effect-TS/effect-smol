@@ -8,6 +8,10 @@ import type { Stream } from "../../Stream.ts"
 import type { SqlError } from "./SqlError.ts"
 
 /**
+ * Low-level SQL driver connection capable of executing compiled SQL as
+ * transformed rows, raw results, streams, value arrays, or unprepared
+ * statements.
+ *
  * @category model
  * @since 4.0.0
  */
@@ -46,18 +50,25 @@ export interface Connection {
 }
 
 /**
+ * Scoped effect that acquires a `Connection`, may fail with `SqlError`, and
+ * requires a `Scope` for release.
+ *
  * @category model
  * @since 4.0.0
  */
 export type Acquirer = Effect<Connection, SqlError, Scope>
 
 /**
+ * Context service tag for a low-level SQL `Connection`.
+ *
  * @category tag
  * @since 4.0.0
  */
 export const Connection = Context.Service<Connection>("effect/sql/SqlConnection")
 
 /**
+ * Generic SQL row shape mapping column names to unknown values.
+ *
  * @category model
  * @since 4.0.0
  */

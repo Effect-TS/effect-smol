@@ -46,36 +46,58 @@ import type * as Prompt from "./Prompt.ts"
 // =============================================================================
 
 /**
+ * Runtime type identifier carried by Effect AI tool values.
+ *
+ * The tool type guards use this marker, together with more specific markers,
+ * to distinguish user-defined, provider-defined, and dynamic tools.
+ *
  * @category type ids
  * @since 1.0.0
  */
 export const TypeId: TypeId = "~effect/ai/Tool"
 
 /**
+ * Type-level representation of the Effect AI tool runtime type identifier.
+ *
  * @category type ids
  * @since 1.0.0
  */
 export type TypeId = "~effect/ai/Tool"
 
 /**
+ * Runtime type identifier carried by provider-defined tools.
+ *
+ * `isProviderDefined` uses this marker to distinguish tools that are built into
+ * an AI provider from user-defined and dynamic tools.
+ *
  * @category type ids
  * @since 1.0.0
  */
 export const ProviderDefinedTypeId: ProviderDefinedTypeId = "~effect/ai/Tool/ProviderDefined"
 
 /**
+ * Type-level representation of the provider-defined tool runtime type
+ * identifier.
+ *
  * @category type ids
  * @since 1.0.0
  */
 export type ProviderDefinedTypeId = "~effect/ai/Tool/ProviderDefined"
 
 /**
+ * Runtime type identifier carried by dynamic tools.
+ *
+ * `isDynamic` uses this marker to distinguish tools whose schema may be
+ * provided at runtime from user-defined and provider-defined tools.
+ *
  * @category type ids
  * @since 1.0.0
  */
 export const DynamicTypeId: DynamicTypeId = "~effect/ai/Tool/Dynamic"
 
 /**
+ * Type-level representation of the dynamic tool runtime type identifier.
+ *
  * @category type ids
  * @since 1.0.0
  */
@@ -1595,6 +1617,13 @@ export const getJsonSchema = <Tool extends Any>(tool: Tool, options?: {
 }
 
 /**
+ * Generates a JSON Schema from an Effect `Schema`.
+ *
+ * If a `CodecTransformer` is supplied, the transformed schema's JSON Schema is
+ * returned. Otherwise, the schema is converted with
+ * `Schema.toJsonSchemaDocument` and any generated definitions are attached as
+ * `$defs`.
+ *
  * @category utilities
  * @since 1.0.0
  */
@@ -1652,6 +1681,9 @@ export class Meta extends Context.Service<Meta, Record<string, unknown>>()("effe
 /**
  * Annotation indicating whether a tool only reads data without making changes.
  *
+ * This is emitted as the MCP `readOnlyHint`; unannotated tools default to
+ * `false`.
+ *
  * **Example** (Marking a tool as read-only)
  *
  * ```ts
@@ -1669,7 +1701,10 @@ export const Readonly = Context.Reference<boolean>("effect/ai/Tool/Readonly", {
 })
 
 /**
- * Annotation indicating whether a tool performs destructive operations.
+ * Annotation indicating whether a tool may perform destructive operations.
+ *
+ * This is emitted as the MCP `destructiveHint`; unannotated tools default to
+ * `true`, so annotate safe tools with `false`.
  *
  * **Example** (Marking a tool as non-destructive)
  *
@@ -1688,7 +1723,11 @@ export const Destructive = Context.Reference<boolean>("effect/ai/Tool/Destructiv
 })
 
 /**
- * Annotation indicating whether a tool can be called multiple times safely.
+ * Annotation indicating whether a tool can be called repeatedly with the same
+ * parameters without changing the result beyond the first call.
+ *
+ * This is emitted as the MCP `idempotentHint`; unannotated tools default to
+ * `false`.
  *
  * **Example** (Marking a tool as idempotent)
  *
@@ -1707,7 +1746,11 @@ export const Idempotent = Context.Reference<boolean>("effect/ai/Tool/Idempotent"
 })
 
 /**
- * Annotation indicating whether a tool can handle arbitrary external data.
+ * Annotation indicating whether a tool may interact with arbitrary external
+ * data or systems.
+ *
+ * This is emitted as the MCP `openWorldHint`; unannotated tools default to
+ * `true`.
  *
  * **Example** (Disabling open-world access)
  *
@@ -1855,6 +1898,11 @@ export const unsafeSecureJsonParse = (text: string): unknown => {
 }
 
 /**
+ * Type of the `EmptyParams` schema used for tools with no parameters.
+ *
+ * It is a record schema with string keys and `never` values, so the generated
+ * parameter schema accepts an empty object shape with no properties.
+ *
  * @since 4.0.0
  */
 export interface EmptyParams extends Schema.$Record<Schema.String, Schema.Never> {}

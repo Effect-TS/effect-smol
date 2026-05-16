@@ -21,6 +21,12 @@ import type { Sharding } from "./Sharding.ts"
 import * as Singleton from "./Singleton.ts"
 
 /**
+ * Creates a layer that runs a cron job through the cluster sharding system.
+ *
+ * The job is scheduled as persisted entity messages, with an initial singleton
+ * scheduling step and optional controls for shard group, next-run calculation,
+ * and skipping stale scheduled runs.
+ *
  * @category Constructors
  * @since 4.0.0
  */

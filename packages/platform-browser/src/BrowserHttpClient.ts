@@ -49,12 +49,16 @@ export {
 // =============================================================================
 
 /**
+ * Allowed response body modes for the browser XHR HTTP client.
+ *
  * @category Models
  * @since 1.0.0
  */
 export type XHRResponseType = "arraybuffer" | "text"
 
 /**
+ * Reference that controls the `XMLHttpRequest.responseType` used by the browser XHR HTTP client, defaulting to `"text"`.
+ *
  * @category References
  * @since 1.0.0
  */
@@ -64,6 +68,8 @@ export const CurrentXHRResponseType: Context.Reference<XHRResponseType> = Contex
 )
 
 /**
+ * Runs an effect with `CurrentXHRResponseType` set to `"arraybuffer"` so the XHR HTTP client receives response bodies as `ArrayBuffer` values.
+ *
  * @category References
  * @since 1.0.0
  */
@@ -77,6 +83,8 @@ export const withXHRArrayBuffer = <A, E, R>(
   )
 
 /**
+ * Service tag for the `XMLHttpRequest` constructor used by the browser XHR HTTP client.
+ *
  * @category Services
  * @since 1.0.0
  */
@@ -384,6 +392,8 @@ class ClientResponseImpl extends IncomingMessageImpl<HttpClientError.HttpClientE
 }
 
 /**
+ * Layer that provides an `HttpClient` implementation backed by the browser `XMLHttpRequest` API.
+ *
  * @category Layers
  * @since 1.0.0
  */

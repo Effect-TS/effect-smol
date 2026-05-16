@@ -13,6 +13,8 @@ import type { SqlError } from "effect/unstable/sql/SqlError"
 export * from "effect/unstable/sql/Migrator"
 
 /**
+ * Runs SQL migrations for a SQLite WASM database using the shared `Migrator` implementation and the current `SqlClient`.
+ *
  * @category constructor
  * @since 1.0.0
  */
@@ -25,6 +27,8 @@ export const run: <R>(
 > = Migrator.make({})
 
 /**
+ * Creates a layer that runs the configured SQLite WASM migrations during layer construction and provides no services.
+ *
  * @category constructor
  * @since 1.0.0
  */

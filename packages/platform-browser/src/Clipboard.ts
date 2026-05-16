@@ -10,6 +10,8 @@ const TypeId = "~@effect/platform-browser/Clipboard"
 const ErrorTypeId = "~@effect/platform-browser/Clipboard/ClipboardError"
 
 /**
+ * Service interface for reading from, writing to, and clearing the browser clipboard.
+ *
  * @category Models
  * @since 1.0.0
  */
@@ -24,6 +26,8 @@ export interface Clipboard {
 }
 
 /**
+ * Tagged error raised when a browser clipboard operation fails.
+ *
  * @category Errors
  * @since 1.0.0
  */
@@ -35,12 +39,16 @@ export class ClipboardError extends Data.TaggedError("ClipboardError")<{
 }
 
 /**
+ * Service tag for the browser `Clipboard` service.
+ *
  * @category Service
  * @since 1.0.0
  */
 export const Clipboard: Context.Service<Clipboard, Clipboard> = Context.Service<Clipboard>(TypeId)
 
 /**
+ * Builds a `Clipboard` service from primitive read and write operations, deriving `clear` and `writeBlob` helpers.
+ *
  * @category Constructors
  * @since 1.0.0
  */

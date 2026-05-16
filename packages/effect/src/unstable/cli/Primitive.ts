@@ -63,10 +63,14 @@ export interface Primitive<out A> extends Primitive.Variance<A> {
 }
 
 /**
+ * Namespace containing type-level helpers for `Primitive`.
+ *
  * @since 4.0.0
  */
 export declare namespace Primitive {
   /**
+   * Type-level variance marker for the value parsed by a `Primitive`.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -402,7 +406,10 @@ export const path = (
   )
 
 /**
- * Creates a primitive that wraps string input in a redacted type for secure handling.
+ * Creates a primitive that wraps string input in `Redacted`.
+ *
+ * The wrapped value is hidden when formatted or inspected, while the original
+ * string remains available through the `Redacted` API when explicitly needed.
  *
  * **Example** (Parsing redacted values)
  *
@@ -517,7 +524,11 @@ const fileParsers: Record<string, (content: string) => unknown> = {
 }
 
 /**
- * Reads and parses file content using the specified schema.
+ * Creates a primitive that reads a file and parses its content as structured
+ * data.
+ *
+ * The parser is selected from `options.format` when provided, otherwise from
+ * the file extension. Supported formats include INI, JSON, TOML, YAML, and YML.
  *
  * **Example** (Parsing file content)
  *

@@ -911,15 +911,8 @@ export function make(input: unknown, ast: AST.AST, out: Schema.FilterOutput): Is
  * representation. Specialisation of the generic `Formatter` from
  * `Formatter.ts` with `Value` fixed to `Issue`.
  *
- * When to use:
- *
- * - Type custom formatters that accept an `Issue` and return any output format.
- * - Use with {@link makeFormatterDefault} or
- *   {@link makeFormatterStandardSchemaV1} to obtain built-in implementations.
- *
  * @see {@link makeFormatterDefault} — creates a `Formatter<string>`
- * @see {@link makeFormatterStandardSchemaV1} — creates a
- *   `Formatter<StandardSchemaV1.FailureResult>`
+ * @see {@link makeFormatterStandardSchemaV1} — creates a `Formatter<StandardSchemaV1.FailureResult>`
  *
  * @category Formatter
  * @since 4.0.0

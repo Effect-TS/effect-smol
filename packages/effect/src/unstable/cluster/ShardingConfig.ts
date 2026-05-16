@@ -125,6 +125,10 @@ export class ShardingConfig extends Context.Service<ShardingConfig, {
 const defaultRunnerAddress = RunnerAddress.make({ host: "localhost", port: 34431 })
 
 /**
+ * Default values for `ShardingConfig`, including the default local runner address,
+ * shard group, shard count, mailbox settings, polling intervals, and remote
+ * serialization simulation.
+ *
  * @category defaults
  * @since 4.0.0
  */
@@ -151,6 +155,9 @@ export const defaults: ShardingConfig["Service"] = {
 }
 
 /**
+ * Creates a `ShardingConfig` layer by merging the provided partial options over
+ * `defaults`.
+ *
  * @category Layers
  * @since 4.0.0
  */
@@ -158,12 +165,17 @@ export const layer = (options?: Partial<ShardingConfig["Service"]>): Layer.Layer
   Layer.succeed(ShardingConfig)({ ...defaults, ...options })
 
 /**
+ * Layer that provides the default `ShardingConfig` values.
+ *
  * @category defaults
  * @since 4.0.0
  */
 export const layerDefaults: Layer.Layer<ShardingConfig> = layer()
 
 /**
+ * Config descriptor for loading `ShardingConfig` values, applying the same
+ * defaults used by the in-memory `defaults` object.
+ *
  * @category Config
  * @since 4.0.0
  */
@@ -260,6 +272,9 @@ export const config: Config.Config<ShardingConfig["Service"]> = Config.all({
 })
 
 /**
+ * Effect that loads `ShardingConfig` from environment variables using the
+ * constant-case config provider.
+ *
  * @category Config
  * @since 4.0.0
  */
@@ -273,6 +288,9 @@ export const configFromEnv = config.pipe(
 )
 
 /**
+ * Layer that loads `ShardingConfig` from environment variables and, when options
+ * are provided, overlays those options on top of the loaded values.
+ *
  * @category Layers
  * @since 4.0.0
  */

@@ -9,18 +9,28 @@ import * as Sink from "./Sink.ts"
 import * as Stream from "./Stream.ts"
 
 /**
+ * String literal type used as the unique brand for the `Stdio` service.
+ *
  * @category Type IDs
  * @since 4.0.0
  */
 export type TypeId = "~effect/Stdio"
 
 /**
+ * Runtime identifier stored on `Stdio` service implementations.
+ *
  * @category Type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/Stdio"
 
 /**
+ * Service interface for process standard I/O.
+ *
+ * It provides command-line arguments, sinks for standard output and standard
+ * error, and a stream of standard input bytes. I/O operations can fail with
+ * `PlatformError`.
+ *
  * @category Models
  * @since 4.0.0
  */
@@ -36,12 +46,17 @@ export interface Stdio {
   readonly stdin: Stream.Stream<Uint8Array, PlatformError>
 }
 /**
+ * Context service tag for the `Stdio` service.
+ *
  * @category Services
  * @since 4.0.0
  */
 export const Stdio: Context.Service<Stdio, Stdio> = Context.Service<Stdio>(TypeId)
 
 /**
+ * Creates a `Stdio` service implementation from the provided fields and
+ * attaches the `Stdio` type identifier.
+ *
  * @category Constructors
  * @since 4.0.0
  */
@@ -51,6 +66,12 @@ export const make = (options: Omit<Stdio, TypeId>): Stdio => ({
 })
 
 /**
+ * Creates a test layer for `Stdio`.
+ *
+ * Any provided fields override defaults. By default, arguments are empty,
+ * standard output and error are draining sinks, and standard input is an empty
+ * stream.
+ *
  * @category Layers
  * @since 4.0.0
  */

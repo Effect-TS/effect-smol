@@ -216,8 +216,12 @@ export const acquire = (self: TxSemaphore): Effect.Effect<void> =>
   }).pipe(Effect.tx)
 
 /**
- * Acquires the specified number of permits from the semaphore. If not enough
- * permits are available, the effect will block until they become available.
+ * Acquires the specified number of permits from the semaphore.
+ *
+ * If fewer than `n` permits are available, the transaction retries until enough
+ * permits are released. Passing a non-positive `n` dies with a defect. Passing a
+ * value greater than the semaphore capacity will wait forever unless the
+ * semaphore's capacity can somehow be changed externally.
  *
  * **Example** (Acquiring multiple permits)
  *
@@ -334,7 +338,11 @@ export const tryAcquireN = (self: TxSemaphore, n: number): Effect.Effect<boolean
 }
 
 /**
- * Releases a single permit back to the semaphore, making it available for acquisition.
+ * Releases one permit back to the semaphore, making it available for
+ * acquisition.
+ *
+ * If the semaphore is already at capacity, this operation leaves the permit
+ * count unchanged.
  *
  * **Example** (Releasing a permit)
  *
@@ -367,6 +375,9 @@ export const release = (self: TxSemaphore): Effect.Effect<void> =>
 
 /**
  * Releases the specified number of permits back to the semaphore.
+ *
+ * The available permit count is capped at the semaphore capacity. Passing a
+ * non-positive `n` dies with a defect.
  *
  * **Example** (Releasing multiple permits)
  *
@@ -466,12 +477,12 @@ export const withPermit: {
 }) as any
 
 /**
- * Executes an effect with the specified number of permits from the semaphore.
- * The permits are automatically acquired before execution and released afterwards,
- * even if the effect fails or is interrupted.
+ * Runs an effect while holding the specified number of permits from the
+ * semaphore.
  *
- * **Note**: The permit acquisition and release operations use atomic semantics
- * to ensure proper resource management with Effect's scoped operations.
+ * The permits are acquired before the effect starts and released after it
+ * completes, fails, or is interrupted. Passing a non-positive `n` dies with a
+ * defect; passing a value greater than the semaphore capacity can wait forever.
  *
  * **Example** (Running an effect with multiple permits)
  *

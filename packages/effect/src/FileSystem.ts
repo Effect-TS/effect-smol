@@ -824,14 +824,12 @@ const notFound = (method: string, path: string) =>
   })
 
 /**
- * Creates a no-op FileSystem implementation for testing purposes.
+ * Creates a stub `FileSystem` implementation for tests.
  *
- * This function creates a FileSystem where most operations fail with "NotFound" errors,
- * except for operations that can be safely stubbed. You can override specific methods
- * by providing them in the `fileSystem` parameter.
- *
- * This is useful for testing scenarios where you want to control specific file system
- * behaviors without affecting the actual file system.
+ * By default, `exists` returns `false`, `remove` succeeds, many file operations
+ * fail with `PlatformError` `NotFound`, and temporary-directory/file operations
+ * die as not implemented. Pass method overrides to provide the behavior needed
+ * by a specific test without touching the real file system.
  *
  * **Example** (Creating a no-op FileSystem)
  *
@@ -1001,6 +999,9 @@ export const layerNoop = (fileSystem: Partial<FileSystem>): Layer.Layer<FileSyst
   Layer.succeed(FileSystem)(makeNoop(fileSystem))
 
 /**
+ * Runtime type identifier attached to `FileSystem.File` handles and used by
+ * `isFile` to recognize them.
+ *
  * @category File
  * @since 4.0.0
  */
@@ -1073,6 +1074,9 @@ export interface File {
 }
 
 /**
+ * Namespace containing types associated with open file handles, including file
+ * descriptors, entry kinds, and stat information.
+ *
  * @category File
  * @since 4.0.0
  */
@@ -1199,6 +1203,8 @@ export type SeekMode = "start" | "current"
 export type WatchEvent = WatchEvent.Create | WatchEvent.Update | WatchEvent.Remove
 
 /**
+ * Namespace containing the concrete event shapes emitted by `FileSystem.watch`.
+ *
  * @category model
  * @since 4.0.0
  */

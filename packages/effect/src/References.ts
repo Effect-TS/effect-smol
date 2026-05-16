@@ -152,7 +152,11 @@ export const CurrentLogAnnotations: Context.Reference<ReadonlyRecord<string, unk
   references.CurrentLogAnnotations
 
 /**
- * Reference for controlling the current log level for dynamic filtering.
+ * Reference for the current log severity used by `Effect.log` when no explicit
+ * level is provided.
+ *
+ * **Notes**
+ * Use `MinimumLogLevel` to control which log entries are filtered out.
  *
  * **Example** (Changing the current log level)
  *
@@ -258,6 +262,14 @@ export const CurrentLogSpans: Context.Reference<ReadonlyArray<[label: string, ti
   references.CurrentLogSpans
 
 /**
+ * Reference containing the current captured stack-frame chain for the running
+ * fiber.
+ *
+ * **Details**
+ * Effect and Layer tracing use this reference to attach stack-frame information
+ * to failures and interruption causes. It is normally managed by tracing APIs
+ * rather than provided directly by application code.
+ *
  * @category references
  * @since 4.0.0
  */
@@ -533,6 +545,12 @@ export const TracerTimingEnabled: Context.Reference<boolean> = references.Tracer
 export const UnhandledLogLevel: Context.Reference<Severity | undefined> = references.UnhandledLogLevel
 
 /**
+ * A captured stack-frame node used to describe the traced execution path.
+ *
+ * **Details**
+ * Each frame has a span or operation `name`, a lazy `stack` supplier, and an
+ * optional `parent` frame that links it to the previous captured frame.
+ *
  * @category references
  * @since 4.0.0
  */
@@ -543,12 +561,25 @@ export interface StackFrame {
 }
 
 /**
+ * Reference containing the set of loggers currently used by Effect logging
+ * operations.
+ *
+ * **Details**
+ * Providing this reference changes which `Logger` instances receive log entries
+ * in the current context.
+ *
  * @category references
  * @since 4.0.0
  */
 export const CurrentLoggers: Context.Reference<ReadonlySet<Logger<unknown, any>>> = internalEffect.CurrentLoggers
 
 /**
+ * Reference controlling whether the default console logger writes to stderr.
+ *
+ * **Details**
+ * When set to `true`, the pretty console logger uses `console.error`; otherwise
+ * it uses `console.log`.
+ *
  * @category references
  * @since 4.0.0
  */

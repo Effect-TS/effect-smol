@@ -62,12 +62,17 @@ import type { ReadonlyRecord } from "./Record.ts"
 import type * as Scope from "./Scope.ts"
 
 /**
+ * String literal type used as the runtime type identifier for
+ * `ErrorReporter` values.
+ *
  * @category Type Identifiers
  * @since 4.0.0
  */
 export type TypeId = "~effect/ErrorReporter"
 
 /**
+ * Runtime type identifier attached to `ErrorReporter` values.
+ *
  * @category Type Identifiers
  * @since 4.0.0
  */
@@ -269,15 +274,15 @@ export const report = <E>(cause: Cause.Cause<E>): Effect.Effect<void> =>
   })
 
 /**
- * Interface that errors can implement to control reporting behavior.
+ * Interface that object errors can implement to control reporting behavior.
  *
  * All three annotation properties are optional:
- * - `[ErrorReporter.ignore]` — when `true`, the error is never reported
- * - `[ErrorReporter.severity]` — overrides the default `"Error"` severity
- * - `[ErrorReporter.attributes]` — extra key/value pairs forwarded to reporters
+ * - `[ErrorReporter.ignore]` - when `true`, the error is not reported
+ * - `[ErrorReporter.severity]` - overrides the default `"Info"` severity
+ * - `[ErrorReporter.attributes]` - extra key/value pairs forwarded to reporters
  *
  * The global `Error` interface is augmented with `Reportable`, so these
- * properties are available on all `Error` instances.
+ * properties are available on `Error` instances at the type level.
  *
  * @category Annotations
  * @since 4.0.0
@@ -293,10 +298,12 @@ declare global {
 }
 
 /**
- * Symbol key used to mark an error as unreportable.
+ * String property key used to mark an object error as ignored by error
+ * reporting.
  *
- * Set this property to `true` on any error class to prevent it from being
- * forwarded to reporters. Useful for expected errors such as HTTP 404s.
+ * Set this property to `true` on an error class or object error to prevent it
+ * from being forwarded to reporters. This is useful for expected failures such
+ * as HTTP 404 responses.
  *
  * @category Annotations
  * @since 4.0.0
@@ -304,10 +311,12 @@ declare global {
 export type ignore = "~effect/ErrorReporter/ignore"
 
 /**
- * Symbol key used to mark an error as unreportable.
+ * Runtime property key used to mark an object error as ignored by error
+ * reporting.
  *
- * Set this property to `true` on any error class to prevent it from being
- * forwarded to reporters. Useful for expected errors such as HTTP 404s.
+ * Set `error[ErrorReporter.ignore]` to `true` to prevent the error from being
+ * forwarded to reporters. This is useful for expected failures such as HTTP 404
+ * responses.
  *
  * **Example** (Marking errors as ignored)
  *
@@ -335,11 +344,10 @@ export const isIgnored = (u: unknown): boolean =>
   typeof u === "object" && u !== null && ignore in u && u[ignore] === true
 
 /**
- * Symbol key used to override the severity level of an error.
+ * String property key used to override the severity level of an object error.
  *
- * When set, the reporter callback receives this value as `severity` instead
- * of the default `"Error"`. Accepted values are the `LogLevel.Severity`
- * literals: `"Trace"`, `"Debug"`, `"Info"`, `"Warn"`, `"Error"`, `"Fatal"`.
+ * When set to a valid `LogLevel.Severity`, the reporter callback receives this
+ * value as `severity`. Missing or invalid values fall back to `"Info"`.
  *
  * @category Annotations
  * @since 4.0.0
@@ -347,11 +355,10 @@ export const isIgnored = (u: unknown): boolean =>
 export type severity = "~effect/ErrorReporter/severity"
 
 /**
- * Symbol key used to override the severity level of an error.
+ * Runtime property key used to override the severity level of an object error.
  *
- * When set, the reporter callback receives this value as `severity` instead
- * of the default `"Error"`. Accepted values are the `LogLevel.Severity`
- * literals: `"Trace"`, `"Debug"`, `"Info"`, `"Warn"`, `"Error"`, `"Fatal"`.
+ * Set `error[ErrorReporter.severity]` to a valid `LogLevel.Severity` value.
+ * Missing or invalid values fall back to `"Info"`.
  *
  * **Example** (Setting error severity annotations)
  *
@@ -370,7 +377,7 @@ export const severity: severity = "~effect/ErrorReporter/severity"
 
 /**
  * Reads the `ErrorReporter.severity` annotation from an error object,
- * falling back to `"Error"` when unset or invalid.
+ * falling back to `"Info"` when the annotation is unset or invalid.
  *
  * @category Annotations
  * @since 4.0.0
@@ -383,11 +390,12 @@ export const getSeverity = (error: object): Severity => {
 }
 
 /**
- * Symbol key used to attach extra key/value metadata to an error report.
+ * String property key used to attach extra key/value metadata to an object
+ * error report.
  *
  * Reporters receive these attributes alongside the error, making it easy to
- * include contextual information such as user IDs, request IDs, or any
- * domain-specific data useful for debugging.
+ * include contextual information such as user IDs, request IDs, or other
+ * domain-specific debugging data.
  *
  * @category Annotations
  * @since 4.0.0
@@ -395,11 +403,11 @@ export const getSeverity = (error: object): Severity => {
 export type attributes = "~effect/ErrorReporter/attributes"
 
 /**
- * Symbol key used to attach extra key/value metadata to an error report.
+ * Runtime property key used to attach extra key/value metadata to an object
+ * error report.
  *
- * Reporters receive these attributes alongside the error, making it easy to
- * include contextual information such as user IDs, request IDs, or any
- * domain-specific data useful for debugging.
+ * Set `error[ErrorReporter.attributes]` to a record of metadata that should be
+ * forwarded to reporters alongside the error.
  *
  * **Example** (Setting error attributes)
  *

@@ -3,6 +3,8 @@
  */
 
 /**
+ * Union of supported uppercase HTTP method literals.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -17,17 +19,23 @@ export type HttpMethod =
   | "TRACE"
 
 /**
+ * Namespace containing subtype helpers associated with `HttpMethod`.
+ *
  * @category models
  * @since 4.0.0
  */
 export declare namespace HttpMethod {
   /**
+   * HTTP methods that this module treats as not carrying a request body.
+   *
    * @category models
    * @since 4.0.0
    */
   export type NoBody = "GET" | "HEAD" | "OPTIONS" | "TRACE"
 
   /**
+   * HTTP methods that this module treats as capable of carrying a request body.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -35,12 +43,16 @@ export declare namespace HttpMethod {
 }
 
 /**
+ * Returns `true` when a method can carry a request body and narrows it to `HttpMethod.WithBody`.
+ *
  * @since 4.0.0
  */
 export const hasBody = (method: HttpMethod): method is HttpMethod.WithBody =>
   method !== "GET" && method !== "HEAD" && method !== "OPTIONS" && method !== "TRACE"
 
 /**
+ * Set containing every supported `HttpMethod` literal.
+ *
  * @since 4.0.0
  */
 export const all: ReadonlySet<HttpMethod> = new Set([
@@ -55,6 +67,8 @@ export const all: ReadonlySet<HttpMethod> = new Set([
 ])
 
 /**
+ * Tuples mapping each supported HTTP method to its short request-constructor name.
+ *
  * @since 4.0.0
  */
 export const allShort = [

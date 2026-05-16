@@ -16,18 +16,32 @@ import type * as Reply from "./Reply.ts"
 import type { Snowflake } from "./Snowflake.ts"
 
 /**
+ * Message read by a runner from storage or transport.
+ *
+ * An incoming message is either a persisted request with an encoded payload or an
+ * incoming control envelope.
+ *
  * @category incoming
  * @since 4.0.0
  */
 export type Incoming<R extends Rpc.Any> = IncomingRequest<R> | IncomingEnvelope
 
 /**
+ * Locally decoded incoming message for in-process delivery.
+ *
+ * It is either a request with a decoded payload or an incoming control envelope.
+ *
  * @category incoming
  * @since 4.0.0
  */
 export type IncomingLocal<R extends Rpc.Any> = IncomingRequestLocal<R> | IncomingEnvelope
 
 /**
+ * Converts an outgoing message into a locally deliverable incoming message.
+ *
+ * Request messages keep their decoded payload and response callback, while
+ * control envelopes are wrapped as incoming envelopes.
+ *
  * @category incoming
  * @since 4.0.0
  */
@@ -47,6 +61,12 @@ export const incomingLocalFromOutgoing = <R extends Rpc.Any>(self: Outgoing<R>):
 }
 
 /**
+ * Incoming persisted request whose payload has not yet been decoded with the RPC
+ * schema.
+ *
+ * It carries the last reply that was sent and a callback for persisting encoded
+ * replies.
+ *
  * @category incoming
  * @since 4.0.0
  */
@@ -57,6 +77,11 @@ export class IncomingRequest<R extends Rpc.Any> extends Data.TaggedClass("Incomi
 }> {}
 
 /**
+ * Incoming request for local delivery with a decoded payload.
+ *
+ * It includes dynamic annotations, the last sent reply, and a callback for
+ * replying with decoded replies.
+ *
  * @category outgoing
  * @since 4.0.0
  */
@@ -68,6 +93,8 @@ export class IncomingRequestLocal<R extends Rpc.Any> extends Data.TaggedClass("I
 }> {}
 
 /**
+ * Incoming control envelope carrying an `AckChunk` or `Interrupt`.
+ *
  * @category incoming
  * @since 4.0.0
  */
@@ -77,12 +104,21 @@ export class IncomingEnvelope extends Data.TaggedClass("IncomingEnvelope")<{
 }> {}
 
 /**
+ * Message produced for storage or transport.
+ *
+ * An outgoing message is either an entity request or a control envelope.
+ *
  * @category outgoing
  * @since 4.0.0
  */
 export type Outgoing<R extends Rpc.Any> = OutgoingRequest<R> | OutgoingEnvelope
 
 /**
+ * Outgoing entity request with decoded payload and RPC metadata.
+ *
+ * It carries the service context used for serialization, the last received reply,
+ * the reply callback, dynamic annotations, and an optional encoded request cache.
+ *
  * @category outgoing
  * @since 4.0.0
  */
@@ -101,6 +137,11 @@ export class OutgoingRequest<R extends Rpc.Any> extends Data.TaggedClass("Outgoi
 }
 
 /**
+ * Outgoing control envelope paired with RPC metadata.
+ *
+ * Use `OutgoingEnvelope.interrupt` to construct an interrupt envelope for an
+ * in-flight request.
+ *
  * @category outgoing
  * @since 4.0.0
  */
@@ -130,6 +171,11 @@ const neverRpc = Rpc.make("Never", {
 })
 
 /**
+ * Serializes an outgoing message into a partial envelope.
+ *
+ * Control envelopes pass through unchanged. Requests are encoded with their RPC
+ * payload schema, reusing the cached encoded request when available.
+ *
  * @category serialization / deserialization
  * @since 4.0.0
  */
@@ -147,6 +193,10 @@ export const serialize = <Rpc extends Rpc.Any>(
 }
 
 /**
+ * Serializes an outgoing message into its JSON envelope representation.
+ *
+ * Schema encoding failures are converted to `MalformedMessage`.
+ *
  * @category serialization / deserialization
  * @since 4.0.0
  */
@@ -159,6 +209,11 @@ export const serializeEnvelope = <Rpc extends Rpc.Any>(
   )
 
 /**
+ * Encodes the payload of an `OutgoingRequest` with the request's RPC payload
+ * schema and service context.
+ *
+ * The result is a `PartialRequest` suitable for storage or transport.
+ *
  * @category serialization / deserialization
  * @since 4.0.0
  */
@@ -177,6 +232,12 @@ export const serializeRequest = <Rpc extends Rpc.Any>(
 }
 
 /**
+ * Decodes a partial envelope back into a locally deliverable incoming message.
+ *
+ * Control envelopes pass through directly. Request envelopes require the original
+ * `OutgoingRequest` so the payload can be decoded with the correct RPC schema and
+ * context.
+ *
  * @category serialization / deserialization
  * @since 4.0.0
  */

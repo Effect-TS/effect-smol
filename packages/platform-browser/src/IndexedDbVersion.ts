@@ -9,6 +9,8 @@ import type * as IndexedDbTable from "./IndexedDbTable.ts"
 const TypeId = "~@effect/platform-browser/IndexedDbVersion"
 
 /**
+ * Typed IndexedDB version definition containing the tables available in that schema version.
+ *
  * @category interface
  * @since 4.0.0
  */
@@ -21,6 +23,8 @@ export interface IndexedDbVersion<
 }
 
 /**
+ * Type-erased shape of an `IndexedDbVersion`.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -29,18 +33,24 @@ export interface Any {
 }
 
 /**
+ * Type-erased `IndexedDbVersion` retaining version properties with broad table types.
+ *
  * @category models
  * @since 4.0.0
  */
 export type AnyWithProps = IndexedDbVersion<IndexedDbTable.AnyWithProps>
 
 /**
+ * Extracts the table union from an `IndexedDbVersion`.
+ *
  * @category models
  * @since 4.0.0
  */
 export type Tables<Db extends Any> = Db extends IndexedDbVersion<infer _Tables> ? _Tables : never
 
 /**
+ * Selects a table by name from an `IndexedDbVersion`.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -50,6 +60,8 @@ export type TableWithName<
 > = IndexedDbTable.WithName<Tables<Db>, TableName>
 
 /**
+ * Extracts the schema for a named table within an `IndexedDbVersion`.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -76,6 +88,8 @@ const makeProto = <Tables extends IndexedDbTable.AnyWithProps>(options: {
 }
 
 /**
+ * Creates an `IndexedDbVersion` from one or more table definitions.
+ *
  * @category constructors
  * @since 4.0.0
  */

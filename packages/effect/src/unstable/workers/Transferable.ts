@@ -8,6 +8,9 @@ import * as Schema from "../../Schema.ts"
 import * as Getter from "../../SchemaGetter.ts"
 
 /**
+ * Service for collecting `Transferable` objects while encoding worker messages
+ * so they can be passed to `postMessage` transfer lists.
+ *
  * @category models
  * @since 1.0.0
  */
@@ -23,6 +26,9 @@ export class Collector extends Context.Service<Collector, {
 }>()("effect/workers/Transferable/Collector") {}
 
 /**
+ * Creates a mutable `Collector` service directly, exposing unsafe synchronous
+ * methods for reading, adding, and clearing collected transferables.
+ *
  * @category constructors
  * @since 1.0.0
  */
@@ -48,12 +54,18 @@ export const makeCollectorUnsafe = (): Collector["Service"] => {
 }
 
 /**
+ * Effect that creates a fresh `Collector` service for accumulating
+ * transferables.
+ *
  * @category constructors
  * @since 1.0.0
  */
 export const makeCollector: Effect.Effect<Collector["Service"]> = Effect.sync(makeCollectorUnsafe)
 
 /**
+ * Adds transferables to the current `Collector` when one is present in the
+ * context, and does nothing otherwise.
+ *
  * @category accessors
  * @since 1.0.0
  */
@@ -68,6 +80,9 @@ export const addAll = (
   })
 
 /**
+ * Creates a schema getter that records transferables derived from a value in
+ * the current `Collector` while passing the value through unchanged.
+ *
  * @category Getter
  * @since 1.0.0
  */
@@ -84,6 +99,9 @@ export const getterAddAll = <A>(
   )
 
 /**
+ * Schema wrapper whose encode path can record transferables with a `Collector`
+ * while preserving the wrapped schema's decoded type.
+ *
  * @category schema
  * @since 1.0.0
  */
@@ -95,6 +113,9 @@ export interface Transferable<S extends Schema.Top> extends
 {}
 
 /**
+ * Wraps a schema so encoding records transferables selected from the encoded
+ * value, enabling worker messages to populate a `postMessage` transfer list.
+ *
  * @category schema
  * @since 1.0.0
  */
@@ -128,6 +149,9 @@ const passthroughLink = Schema.link()(Schema.Any, {
 })
 
 /**
+ * Transferable schema for `ImageData` values that records the underlying pixel
+ * data buffer.
+ *
  * @category schema
  * @since 1.0.0
  */
@@ -137,6 +161,9 @@ export const ImageData: Transferable<Schema.declare<ImageData>> = schema(
 )
 
 /**
+ * Transferable schema for `MessagePort` values that records the port itself as
+ * transferable.
+ *
  * @category schema
  * @since 1.0.0
  */
@@ -146,6 +173,9 @@ export const MessagePort: Transferable<Schema.declare<MessagePort>> = schema(
 )
 
 /**
+ * Transferable schema for `Uint8Array` values that records the array's backing
+ * buffer.
+ *
  * @category schema
  * @since 1.0.0
  */

@@ -22,16 +22,22 @@ export const isManagedRuntime = (input: unknown): input is ManagedRuntime<unknow
   hasProperty(input, TypeId)
 
 /**
+ * Type helpers associated with `ManagedRuntime`.
+ *
  * @since 3.4.0
  */
 export declare namespace ManagedRuntime {
   /**
+   * Extracts the services available from a `ManagedRuntime`.
+   *
    * @category type-level
    * @since 4.0.0
    */
   export type Services<T extends ManagedRuntime<never, any>> = [T] extends [ManagedRuntime<infer R, infer _E>] ? R
     : never
   /**
+   * Extracts the layer construction error type of a `ManagedRuntime`.
+   *
    * @category type-level
    * @since 3.4.0
    */
@@ -39,6 +45,14 @@ export declare namespace ManagedRuntime {
 }
 
 /**
+ * A runtime built from a layer that can execute effects requiring that layer's
+ * services.
+ *
+ * **Details**
+ * The runtime builds and caches its service context, owns the scope for
+ * resources acquired by the layer, and should be disposed with `dispose` or
+ * `disposeEffect` when it is no longer needed.
+ *
  * @category models
  * @since 2.0.0
  */
@@ -128,8 +142,12 @@ export interface ManagedRuntime<in R, out ER> {
 }
 
 /**
- * Convert a Layer into an ManagedRuntime, that can be used to run Effect's using
- * your services.
+ * Creates a `ManagedRuntime` from a layer.
+ *
+ * **Details**
+ * The layer is built lazily on first use and its context is cached for
+ * subsequent runs. Resources acquired by the layer are owned by the runtime and
+ * are released when `dispose` or `disposeEffect` is run.
  *
  * @category runtime class
  * @since 2.0.0

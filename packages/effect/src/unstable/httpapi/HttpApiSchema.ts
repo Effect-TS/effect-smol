@@ -183,6 +183,8 @@ export function status(code: number | StatusLiteral) {
 export const Empty = (code: number): Schema.Void => Schema.Void.pipe(status(code))
 
 /**
+ * Type of the `NoContent` schema, a void schema annotated with HTTP status code 204.
+ *
  * @since 4.0.0
  */
 export interface NoContent extends Schema.Void {}
@@ -197,6 +199,8 @@ export interface NoContent extends Schema.Void {}
 export const NoContent: NoContent = Empty(204)
 
 /**
+ * Type of the `Created` schema, a void schema annotated with HTTP status code 201.
+ *
  * @since 4.0.0
  */
 export interface Created extends Schema.Void {}
@@ -211,6 +215,8 @@ export interface Created extends Schema.Void {}
 export const Created: Created = Empty(201)
 
 /**
+ * Type of the `Accepted` schema, a void schema annotated with HTTP status code 202.
+ *
  * @since 4.0.0
  */
 export interface Accepted extends Schema.Void {}
@@ -225,14 +231,17 @@ export interface Accepted extends Schema.Void {}
 export const Accepted: Accepted = Empty(202)
 
 /**
+ * Schema type returned by `asNoContent`, encoding as `void` while decoding to the original schema type.
+ *
  * @since 4.0.0
  */
 export interface asNoContent<S extends Schema.Top> extends Schema.decodeTo<Schema.toType<S>, Schema.Void> {}
 
 /**
- * Marks a schema as a no content response.
+ * Marks a schema as a no-content response while preserving a decoded client value.
  *
- * The `decode` function is used to decode the response body on the client side into a meaningful value.
+ * The server encodes the response as `void`; generated clients call `decode` to
+ * produce the schema's decoded value when the response has no body.
  *
  * @see {@link NoContent} for a void schema with the status code 204.
  * @see {@link Empty} for creating a void schema with a specific status code.
@@ -257,16 +266,22 @@ export function asNoContent<S extends Schema.Top>(options: {
 }
 
 /**
+ * Runtime brand key used to mark schemas as buffered multipart payloads.
+ *
  * @since 4.0.0
  */
 export const MultipartTypeId = "~effect/httpapi/HttpApiSchema/Multipart"
 
 /**
+ * Type-level brand identifier used by `asMultipart`.
+ *
  * @since 4.0.0
  */
 export type MultipartTypeId = typeof MultipartTypeId
 
 /**
+ * Schema type returned by `asMultipart` for buffered multipart payloads.
+ *
  * @since 4.0.0
  */
 export interface asMultipart<S extends Schema.Top> extends Schema.brand<S["Rebuild"], MultipartTypeId> {}
@@ -292,16 +307,22 @@ export function asMultipart(options?: Multipart_.withLimits.Options) {
 }
 
 /**
+ * Runtime brand key used to mark schemas as streaming multipart payloads.
+ *
  * @since 4.0.0
  */
 export const MultipartStreamTypeId = "~effect/httpapi/HttpApiSchema/MultipartStream"
 
 /**
+ * Type-level brand identifier used by `asMultipartStream`.
+ *
  * @since 4.0.0
  */
 export type MultipartStreamTypeId = typeof MultipartStreamTypeId
 
 /**
+ * Schema type returned by `asMultipartStream` for streaming multipart payloads.
+ *
  * @since 4.0.0
  */
 export interface asMultipartStream<S extends Schema.Top> extends Schema.brand<S["Rebuild"], MultipartStreamTypeId> {}
@@ -366,9 +387,9 @@ export function asJson(options?: {
 }
 
 /**
- * Marks a schema as a URL params payload / response.
+ * Marks a schema as an `application/x-www-form-urlencoded` payload or response.
  *
- * The schema encoded side must be a record of strings.
+ * The schema's encoded side must be a record of strings.
  *
  * @category Encoding
  * @since 4.0.0
@@ -411,6 +432,11 @@ export function asUint8Array(options?: {
     asNonMultipartEncoding(self, { _tag: "Uint8Array", ...options })
 }
 /**
+ * Returns `true` when a schema AST represents a no-content response.
+ *
+ * The check succeeds for direct `void` schemas and schemas whose encoded or
+ * transformation target is `void`.
+ *
  * @since 4.0.0
  */
 export const isNoContent = (ast: AST.AST): boolean => {

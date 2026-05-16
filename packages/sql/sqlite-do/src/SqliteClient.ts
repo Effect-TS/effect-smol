@@ -23,18 +23,24 @@ const classifyError = (cause: unknown, message: string, operation: string) =>
   classifySqliteError(cause, { message, operation })
 
 /**
+ * Runtime type identifier used to mark Cloudflare Durable Object `SqliteClient` values.
+ *
  * @category type ids
  * @since 1.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-sqlite-do/SqliteClient"
 
 /**
+ * Type-level identifier used to mark Cloudflare Durable Object `SqliteClient` values.
+ *
  * @category type ids
  * @since 1.0.0
  */
 export type TypeId = "~@effect/sql-sqlite-do/SqliteClient"
 
 /**
+ * Cloudflare Durable Object SQLite client service, extending `SqlClient` with its configuration. `updateValues` is not supported.
+ *
  * @category models
  * @since 1.0.0
  */
@@ -47,12 +53,16 @@ export interface SqliteClient extends Client.SqlClient {
 }
 
 /**
+ * Context tag used to access the Cloudflare Durable Object `SqliteClient` service.
+ *
  * @category tags
  * @since 1.0.0
  */
 export const SqliteClient = Context.Service<SqliteClient>("@effect/sql-sqlite-do/SqliteClient")
 
 /**
+ * Configuration for a Cloudflare Durable Object SQLite client, including the `SqlStorage` handle, span attributes, and query/result name transforms.
+ *
  * @category models
  * @since 1.0.0
  */
@@ -65,6 +75,8 @@ export interface SqliteClientConfig {
 }
 
 /**
+ * Creates a scoped Cloudflare Durable Object SQLite client around `SqlStorage`, serializing access and converting returned `ArrayBuffer` values to `Uint8Array`.
+ *
  * @category constructor
  * @since 1.0.0
  */
@@ -188,6 +200,8 @@ export const make = (
   })
 
 /**
+ * Creates a layer from a `Config`-wrapped Durable Object SQLite client configuration, providing both `SqliteClient` and `SqlClient`.
+ *
  * @category layers
  * @since 1.0.0
  */
@@ -206,6 +220,8 @@ export const layerConfig = (
   ).pipe(Layer.provide(Reactivity.layer))
 
 /**
+ * Creates a layer from a concrete Durable Object SQLite client configuration, providing both `SqliteClient` and `SqlClient`.
+ *
  * @category layers
  * @since 1.0.0
  */

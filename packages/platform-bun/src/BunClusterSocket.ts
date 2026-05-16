@@ -36,6 +36,8 @@ export {
 }
 
 /**
+ * Creates Bun socket cluster layers, configuring serialization, storage, runner health, and optional client-only mode.
+ *
  * @category Layers
  * @since 1.0.0
  */
@@ -110,6 +112,8 @@ export const layer = <
 }
 
 /**
+ * Layer that provides `K8sHttpClient`, using the Kubernetes service-account CA certificate when it is available.
+ *
  * @category Layers
  * @since 1.0.0
  */

@@ -152,12 +152,18 @@ import * as References from "./References.ts"
 export type LogLevel = "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace" | "None"
 
 /**
+ * Log levels that represent actual message severities, excluding the `All` and
+ * `None` sentinel levels.
+ *
  * @category models
  * @since 4.0.0
  */
 export type Severity = "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace"
 
 /**
+ * All `LogLevel` values in order from `All` through the concrete severities to
+ * `None`.
+ *
  * @category models
  * @since 4.0.0
  */

@@ -20,35 +20,47 @@ import * as SchemaTransformation from "../../SchemaTransformation.ts"
 import type * as Types from "../../Types.ts"
 
 /**
+ * Type-level identifier used to recognize `AsyncResult` values.
+ *
  * @category type ids
  * @since 4.0.0
  */
 export type TypeId = "~effect/reactivity/AsyncResult"
 
 /**
+ * Runtime identifier attached to `AsyncResult` values and used by `isAsyncResult`.
+ *
  * @category type ids
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/reactivity/AsyncResult"
 
 /**
+ * Represents the state of an asynchronous value as `Initial`, `Success`, or `Failure`, with a `waiting` flag for in-flight refreshes.
+ *
  * @category models
  * @since 4.0.0
  */
 export type AsyncResult<A, E = never> = Initial<A, E> | Success<A, E> | Failure<A, E>
 
 /**
+ * Returns `true` when a value is an `AsyncResult`.
+ *
  * @category Guards
  * @since 4.0.0
  */
 export const isAsyncResult = (u: unknown): u is AsyncResult<unknown, unknown> => hasProperty(u, TypeId)
 
 /**
+ * Namespace containing type-level helpers and the shared prototype shape for `AsyncResult` values.
+ *
  * @category models
  * @since 4.0.0
  */
 export declare namespace AsyncResult {
   /**
+   * Common prototype fields implemented by every `AsyncResult` variant, including pipeability, the type marker, phantom type members, and the `waiting` flag.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -61,17 +73,23 @@ export declare namespace AsyncResult {
   }
 
   /**
+   * Extracts the success value type from an `AsyncResult`.
+   *
    * @since 4.0.0
    */
   export type Success<R> = R extends AsyncResult<infer A, infer _> ? A : never
 
   /**
+   * Extracts the failure error type from an `AsyncResult`.
+   *
    * @since 4.0.0
    */
   export type Failure<R> = R extends AsyncResult<infer _, infer E> ? E : never
 }
 
 /**
+ * Rebuilds an `AsyncResult` with new success and failure types while preserving the variant of another result.
+ *
  * @since 4.0.0
  */
 export type With<R extends AsyncResult<any, any>, A, E> = R extends Initial<infer _A, infer _E> ? Initial<A, E>
@@ -110,12 +128,16 @@ const ResultProto = {
 }
 
 /**
+ * Returns whether an `AsyncResult` is currently waiting for an asynchronous computation or refresh to finish.
+ *
  * @category refinements
  * @since 4.0.0
  */
 export const isWaiting = <A, E>(result: AsyncResult<A, E>): boolean => result.waiting
 
 /**
+ * Initial `AsyncResult` state before a success value or failure cause is available.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -124,6 +146,8 @@ export interface Initial<A, E = never> extends AsyncResult.Proto<A, E> {
 }
 
 /**
+ * Converts an `Exit` into a `Success` when it succeeds or a `Failure` carrying the exit cause when it fails.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -131,6 +155,8 @@ export const fromExit = <A, E>(exit: Exit.Exit<A, E>): Success<A, E> | Failure<A
   exit._tag === "Success" ? success(exit.value) : failure(exit.cause)
 
 /**
+ * Converts an `Exit` to a result, preserving the latest previous success when the exit is a failure.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -141,6 +167,8 @@ export const fromExitWithPrevious = <A, E>(
   exit._tag === "Success" ? success(exit.value) : failureWithPrevious(exit.cause, { previous })
 
 /**
+ * Creates a waiting result from an optional previous result, using `Initial(true)` when no previous result exists.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -152,12 +180,16 @@ export const waitingFrom = <A, E>(previous: Option.Option<AsyncResult<A, E>>): A
 }
 
 /**
+ * Returns `true` when an `AsyncResult` is in the `Initial` state.
+ *
  * @category refinements
  * @since 4.0.0
  */
 export const isInitial = <A, E>(result: AsyncResult<A, E>): result is Initial<A, E> => result._tag === "Initial"
 
 /**
+ * Returns `true` when an `AsyncResult` is either `Success` or `Failure`.
+ *
  * @category refinements
  * @since 4.0.0
  */
@@ -165,6 +197,8 @@ export const isNotInitial = <A, E>(result: AsyncResult<A, E>): result is Success
   result._tag !== "Initial"
 
 /**
+ * Creates an `Initial` result, optionally marking it as waiting.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -176,6 +210,8 @@ export const initial = <A = never, E = never>(waiting = false): Initial<A, E> =>
 }
 
 /**
+ * Successful `AsyncResult` containing the current value, its timestamp, and the shared waiting flag.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -186,12 +222,16 @@ export interface Success<A, E = never> extends AsyncResult.Proto<A, E> {
 }
 
 /**
+ * Returns `true` when an `AsyncResult` is a `Success`.
+ *
  * @category refinements
  * @since 4.0.0
  */
 export const isSuccess = <A, E>(result: AsyncResult<A, E>): result is Success<A, E> => result._tag === "Success"
 
 /**
+ * Creates a `Success` result with a value and optional `waiting` flag or timestamp override.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -208,6 +248,8 @@ export const success = <A, E = never>(value: A, options?: {
 }
 
 /**
+ * Failed `AsyncResult` containing a failure cause and the latest previous success when one is available.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -218,12 +260,16 @@ export interface Failure<A, E = never> extends AsyncResult.Proto<A, E> {
 }
 
 /**
+ * Returns `true` when an `AsyncResult` is a `Failure`.
+ *
  * @category refinements
  * @since 4.0.0
  */
 export const isFailure = <A, E>(result: AsyncResult<A, E>): result is Failure<A, E> => result._tag === "Failure"
 
 /**
+ * Returns `true` when an `AsyncResult` is a `Failure` whose cause contains only interruptions.
+ *
  * @category refinements
  * @since 4.0.0
  */
@@ -231,6 +277,8 @@ export const isInterrupted = <A, E>(result: AsyncResult<A, E>): result is Failur
   result._tag === "Failure" && Cause.hasInterruptsOnly(result.cause)
 
 /**
+ * Creates a `Failure` result from a `Cause`, optionally preserving a previous success and marking the result as waiting.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -250,6 +298,8 @@ export const failure = <A, E = never>(
 }
 
 /**
+ * Creates a `Failure` result from a `Cause`, carrying forward the latest success stored in a previous result.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -271,6 +321,8 @@ export const failureWithPrevious = <A, E>(
   })
 
 /**
+ * Creates a `Failure` result from a typed error, wrapping it in `Cause.fail`.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -280,6 +332,8 @@ export const fail = <E, A = never>(error: E, options?: {
 }): Failure<A, E> => failure(Cause.fail(error), options)
 
 /**
+ * Creates a `Failure` result from a typed error while carrying forward the latest success stored in a previous result.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -292,6 +346,8 @@ export const failWithPrevious = <A, E>(
 ): Failure<A, E> => failureWithPrevious(Cause.fail(error), options)
 
 /**
+ * Marks an `AsyncResult` as waiting, optionally touching the timestamp when the result is a `Success`.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -310,6 +366,8 @@ export const waiting = <R extends AsyncResult<any, any>>(self: R, options?: {
 }
 
 /**
+ * Refreshes the timestamp of a `Success` result while preserving its value and waiting flag; non-success results are returned unchanged.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -321,6 +379,8 @@ export const touch = <A extends AsyncResult<any, any>>(result: A): A => {
 }
 
 /**
+ * For a `Failure`, replaces its stored previous success with the latest success found in another result; non-failures are returned unchanged.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -335,6 +395,8 @@ export const replacePrevious = <R extends AsyncResult<any, any>, XE, A>(
 }
 
 /**
+ * Returns the current success value, or the previous success value stored in a failure, as an `Option`.
+ *
  * @category accessors
  * @since 4.0.0
  */
@@ -348,6 +410,8 @@ export const value = <A, E>(self: AsyncResult<A, E>): Option.Option<A> => {
 }
 
 /**
+ * Returns the available value from `value`, or evaluates the fallback when no current or previous success exists.
+ *
  * @category accessors
  * @since 4.0.0
  */
@@ -357,6 +421,8 @@ export const getOrElse: {
 } = dual(2, <A, E, B>(self: AsyncResult<A, E>, orElse: LazyArg<B>): A | B => Option.getOrElse(value(self), orElse))
 
 /**
+ * Returns the available value from `value`, or throws `NoSuchElementError` when no current or previous success exists.
+ *
  * @category accessors
  * @since 4.0.0
  */
@@ -364,6 +430,8 @@ export const getOrThrow = <A, E>(self: AsyncResult<A, E>): A =>
   Option.getOrThrowWith(value(self), () => new Cause.NoSuchElementError("AsyncResult.getOrThrow: no value found"))
 
 /**
+ * Returns the failure cause when the result is a `Failure`, otherwise `None`.
+ *
  * @category accessors
  * @since 4.0.0
  */
@@ -371,6 +439,8 @@ export const cause = <A, E>(self: AsyncResult<A, E>): Option.Option<Cause.Cause<
   self._tag === "Failure" ? Option.some(self.cause) : Option.none()
 
 /**
+ * Returns the first typed error from a failure cause, or `None` for successes, initial results, defects, and interrupt-only causes.
+ *
  * @category accessors
  * @since 4.0.0
  */
@@ -378,6 +448,8 @@ export const error = <A, E>(self: AsyncResult<A, E>): Option.Option<E> =>
   self._tag === "Failure" ? Cause.findErrorOption(self.cause) : Option.none()
 
 /**
+ * Converts a result to an `Exit`, succeeding with a success value, failing with a failure cause, or failing with `NoSuchElementError` for `Initial`.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -398,6 +470,8 @@ export const toExit = <A, E>(
 }
 
 /**
+ * Maps the success value of an `AsyncResult`, also mapping any previous success stored in a failure while leaving initial results unchanged.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -419,6 +493,8 @@ export const map: {
 })
 
 /**
+ * Flat maps a success result with a function returning another `AsyncResult`, leaves initial results unchanged, and preserves failure causes while remapping stored previous successes when possible.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -451,6 +527,8 @@ export const flatMap: {
 )
 
 /**
+ * Pattern matches an `AsyncResult` by calling the handler for `Initial`, `Failure`, or `Success`.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -481,6 +559,8 @@ export const match: {
 })
 
 /**
+ * Pattern matches a result, handling successes and initials directly while splitting failures into typed errors or squashed non-error causes passed to `onDefect`.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -519,6 +599,8 @@ export const matchWithError: {
 })
 
 /**
+ * Pattern matches a result by calling `onWaiting` for waiting or initial states, otherwise handling successes and splitting failures into typed errors or squashed non-error causes.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -560,8 +642,7 @@ export const matchWithWaiting: {
 })
 
 /**
- * Combines multiple results into a single result. Also works with non-result
- * values.
+ * Combines an iterable or record of `AsyncResult` and plain values into one `AsyncResult`, returning the first non-success result or a success of the collected values marked waiting when any input success is waiting.
  *
  * @category combinators
  * @since 4.0.0
@@ -605,6 +686,8 @@ export const all = <const Arg extends Iterable<any> | Record<string, any>>(
 }
 
 /**
+ * Creates a typed builder for rendering an `AsyncResult` by handling waiting, initial, success, error, defect, interrupt, and failure cases.
+ *
  * @category Builder
  * @since 4.0.0
  */
@@ -617,6 +700,8 @@ export const builder = <A extends AsyncResult<any, any>>(self: A): Builder<
 > => new BuilderImpl(self) as any
 
 /**
+ * Type marker used by `Builder` to track whether defect failures still need to be handled.
+ *
  * @category Builder
  * @since 4.0.0
  */
@@ -625,6 +710,8 @@ export interface Defect {
 }
 
 /**
+ * Type marker used by `Builder` to track whether interrupt failures still need to be handled.
+ *
  * @category Builder
  * @since 4.0.0
  */
@@ -633,6 +720,8 @@ export interface Interrupt {
 }
 
 /**
+ * Fluent renderer for `AsyncResult` values that tracks unhandled cases at the type level and exposes `exhaustive` only after all possible cases are handled.
+ *
  * @category Builder
  * @since 4.0.0
  */
@@ -806,6 +895,8 @@ class BuilderImpl<Out, A, E> {
 }
 
 /**
+ * Schema interface for `AsyncResult` values, retaining the schemas used for success values and failure errors.
+ *
  * @category Schemas
  * @since 4.0.0
  */
@@ -824,6 +915,8 @@ export interface Schema<
 }
 
 /**
+ * Creates a schema for `AsyncResult` values using optional schemas for success values and failure errors.
+ *
  * @category Schemas
  * @since 4.0.0
  */

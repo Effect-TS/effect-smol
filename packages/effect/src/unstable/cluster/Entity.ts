@@ -44,6 +44,11 @@ import * as Snowflake from "./Snowflake.ts"
 const TypeId = "~effect/cluster/Entity"
 
 /**
+ * Represents a cluster entity type and the RPC protocol it can handle.
+ *
+ * An entity defines how ids map to shard groups, exposes a sharded client, and
+ * can be registered as a layer using RPC handlers or a mailbox queue.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -179,12 +184,21 @@ export interface Entity<
   >
 }
 /**
+ * Type alias for any cluster `Entity`, regardless of entity type or RPC
+ * protocol.
+ *
  * @category models
  * @since 4.0.0
  */
 export type Any = Entity<string, Rpc.Any>
 
 /**
+ * Maps each RPC in an entity protocol to the handler function expected by
+ * `Entity.toLayer`.
+ *
+ * Each handler receives the entity request envelope for that RPC and returns the
+ * RPC result or a supported RPC wrapper.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -195,6 +209,10 @@ export type HandlersFrom<Rpc extends Rpc.Any> = {
 }
 
 /**
+ * Returns `true` when the supplied value is a cluster `Entity`.
+ *
+ * The check is based on the internal entity type identifier.
+ *
  * @category refinements
  * @since 4.0.0
  */
@@ -425,6 +443,11 @@ export class CurrentRunnerAddress extends Context.Service<
 >()("effect/cluster/Entity/RunnerAddress") {}
 
 /**
+ * Reply API passed to queue-based entity handlers.
+ *
+ * Use it to complete an entity request by succeeding, failing, failing with a
+ * cause, or supplying an explicit `Exit`.
+ *
  * @category Replier
  * @since 4.0.0
  */
@@ -451,11 +474,18 @@ export interface Replier<Rpcs extends Rpc.Any> {
 }
 
 /**
+ * Helper types used by the `Replier` API.
+ *
  * @category Replier
  * @since 4.0.0
  */
 export declare namespace Replier {
   /**
+   * Success value accepted by a `Replier` for a single RPC.
+   *
+   * For streaming RPCs this may be either a stream of success chunks or a dequeue
+   * of success chunks. For non-streaming RPCs it is the RPC success value.
+   *
    * @category Replier
    * @since 4.0.0
    */
@@ -465,6 +495,11 @@ export declare namespace Replier {
 }
 
 /**
+ * Entity request envelope delivered to entity handlers.
+ *
+ * It includes the underlying request envelope plus the last stream reply chunk
+ * that was sent, allowing handlers to resume chunk sequencing after a restart.
+ *
  * @category Request
  * @since 4.0.0
  */
@@ -494,6 +529,11 @@ export class Request<Rpc extends Rpc.Any> extends Data.Class<
 const shardingTag = Context.Service<Sharding, Sharding["Service"]>("effect/cluster/Sharding")
 
 /**
+ * Builds an in-memory test client for an entity layer.
+ *
+ * The returned function creates a no-serialization RPC client for each entity ID,
+ * using a test sharding service instead of the cluster transport.
+ *
  * @category Testing
  * @since 4.0.0
  */
@@ -596,6 +636,11 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
 })
 
 /**
+ * Enables or disables keep-alive for the current entity.
+ *
+ * When enabled it sends the internal keep-alive RPC for the current address; when
+ * disabled it releases the keep-alive latch if one is present.
+ *
  * @category Keep alive
  * @since 4.0.0
  */
@@ -645,6 +690,11 @@ export const keepAlive: (
   ))
 
 /**
+ * Internal persisted RPC used to keep an entity active while a resource is held.
+ *
+ * The RPC is marked as persisted and uninterruptible so the keep-alive signal
+ * survives normal entity restarts.
+ *
  * @category Keep alive
  * @since 4.0.0
  */
@@ -653,6 +703,11 @@ export const KeepAliveRpc = Rpc.make("Cluster/Entity/keepAlive")
   .annotate(Uninterruptible, true)
 
 /**
+ * Service tag for the latch that coordinates entity keep-alive state.
+ *
+ * `keepAlive` closes the latch when keep-alive is active and opens it again when
+ * the resource no longer needs to keep the entity alive.
+ *
  * @category Keep alive
  * @since 4.0.0
  */

@@ -62,6 +62,10 @@ import { SingletonAddress } from "./SingletonAddress.ts"
 import * as Snowflake from "./Snowflake.ts"
 
 /**
+ * Cluster sharding service for registering entities and singletons, routing
+ * messages to owned shards, generating runner-local snowflake ids, and polling
+ * storage for persisted work.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -1430,6 +1434,10 @@ const make = Effect.gen(function*() {
 })
 
 /**
+ * Layer that constructs the `Sharding` service from sharding configuration,
+ * runner communication, message storage, runner storage, runner health, the
+ * snowflake generator, and the entity reaper.
+ *
  * @category layers
  * @since 4.0.0
  */

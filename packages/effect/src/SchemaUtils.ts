@@ -6,6 +6,13 @@ import * as Schema from "./Schema.ts"
 import * as Transformation from "./SchemaTransformation.ts"
 
 /**
+ * Builds an experimental schema for instances of a native class using a struct
+ * schema as the encoded representation.
+ *
+ * Decoding constructs `new constructor(props)` from the encoded fields.
+ * Encoding uses the instance as the encoded shape, so the class should expose
+ * properties compatible with the provided encoding schema.
+ *
  * @since 4.0.0
  * @experimental
  */

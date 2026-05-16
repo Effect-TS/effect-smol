@@ -85,7 +85,10 @@ export interface TxRef<in out A> extends Pipeable {
 export const make = <A>(initial: A) => Effect.sync(() => makeUnsafe(initial))
 
 /**
- * Creates a new `TxRef` with the specified initial value.
+ * Synchronously creates a new `TxRef` with the specified initial value.
+ *
+ * Prefer `make` in Effect code so allocation stays inside the Effect workflow.
+ * Use `makeUnsafe` only when a `TxRef` must be constructed outside an effect.
  *
  * **Example** (Creating transactional references unsafely)
  *

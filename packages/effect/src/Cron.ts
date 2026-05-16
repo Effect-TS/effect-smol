@@ -469,7 +469,13 @@ export class CronParseError extends Data.TaggedError("CronParseError")<{
 export const isCronParseError = (u: unknown): u is CronParseError => hasProperty(u, CronParseErrorTypeId)
 
 /**
- * Parses a cron expression into a `Cron` instance.
+ * Parses a cron expression into a `Cron` instance, returning a `Result` instead
+ * of throwing.
+ *
+ * The expression may contain five fields, where seconds default to `0`, or six
+ * fields including seconds. Fields support `*`, comma-separated values, ranges,
+ * steps, and month or weekday aliases. Invalid expressions fail with
+ * `CronParseError`.
  *
  * **Example** (Parsing cron expressions)
  *
@@ -553,11 +559,12 @@ export const parse = (cron: string, tz?: DateTime.TimeZone | string): Result.Res
 export const parseUnsafe = (cron: string, tz?: DateTime.TimeZone | string): Cron => Result.getOrThrow(parse(cron, tz))
 
 /**
- * Checks if a given date/time falls within an active Cron time window.
+ * Returns `true` when a date/time matches a `Cron` schedule.
  *
- * This function determines whether a specific date and time matches
- * the cron schedule, taking into account all time constraints and
- * the optional timezone.
+ * Seconds, minutes, hours, months, and the optional timezone are checked
+ * directly. For day constraints, an empty `days` or `weekdays` set means that
+ * field matches every value; when both sets are non-empty, a date matches if
+ * either the day-of-month or weekday matches.
  *
  * **Example** (Matching dates against a schedule)
  *
@@ -846,11 +853,11 @@ export const sequence = function*(cron: Cron, now?: DateTime.DateTime.Input): It
 }
 
 /**
- * An Equivalence instance for comparing Cron schedules.
+ * An `Equivalence` instance for comparing the field restrictions of two `Cron`
+ * schedules.
  *
- * This equivalence compares two Cron instances by checking if their
- * time constraints (seconds, minutes, hours, days, months, weekdays)
- * are equivalent, regardless of the internal order.
+ * This comparison checks seconds, minutes, hours, days, months, and weekdays.
+ * It does not compare the optional timezone.
  *
  * **Example** (Comparing schedules with equivalence)
  *
@@ -893,10 +900,10 @@ const restrictionsEquals = (self: ReadonlySet<number>, that: ReadonlySet<number>
   restrictionsArrayEquals(Arr.fromIterable(self), Arr.fromIterable(that))
 
 /**
- * Checks if two Cron instances are equal.
+ * Checks whether two `Cron` instances have the same field restrictions.
  *
- * This function compares two Cron instances to determine if they represent
- * the same schedule by checking all their time constraints for equality.
+ * The comparison checks seconds, minutes, hours, days, months, and weekdays.
+ * It does not compare the optional timezone.
  *
  * **Example** (Checking schedule equality)
  *

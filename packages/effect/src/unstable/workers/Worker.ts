@@ -11,6 +11,9 @@ import * as Scope from "../../Scope.ts"
 import { WorkerError, WorkerSendError } from "./WorkerError.ts"
 
 /**
+ * Service that spawns effect `Worker` instances for numeric worker ids using
+ * the configured `Spawner`.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -21,6 +24,10 @@ export class WorkerPlatform extends Context.Service<WorkerPlatform, {
 }>()("effect/workers/Worker/WorkerPlatform") {}
 
 /**
+ * Effect-based worker abstraction that can send input messages and run a
+ * long-lived handler for output messages, failing with `WorkerError` or handler
+ * errors.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -40,6 +47,10 @@ export interface Worker<O = unknown, I = unknown> {
 }
 
 /**
+ * Wraps platform-specific send and run functions into a `Worker`, translating
+ * platform ready/data messages and running the optional `onSpawn` effect when
+ * the worker reports readiness.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -63,12 +74,18 @@ export const makeUnsafe = (options: {
 })
 
 /**
+ * Internal worker platform protocol message: `[0]` signals readiness and
+ * `[1, payload]` carries data.
+ *
  * @category models
  * @since 4.0.0
  */
 export type PlatformMessage = readonly [ready: 0] | readonly [data: 1, unknown]
 
 /**
+ * Phantom identifier for the service that maps worker ids to platform-specific
+ * worker instances.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -77,6 +94,8 @@ export interface Spawner {
 }
 
 /**
+ * Context service tag for the worker `SpawnerFn`.
+ *
  * @category tags
  * @since 4.0.0
  */
@@ -86,6 +105,9 @@ export const Spawner: Context.Service<
 > = Context.Service("effect/workers/Worker/Spawner")
 
 /**
+ * Function that creates or locates a platform-specific worker instance for a
+ * numeric worker id.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -94,6 +116,8 @@ export interface SpawnerFn<W = unknown> {
 }
 
 /**
+ * Creates a layer that provides a worker `Spawner` service from a `SpawnerFn`.
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -102,6 +126,10 @@ export const layerSpawner: <W = unknown>(
 ) => Layer.Layer<Spawner> = Layer.succeed(Spawner)
 
 /**
+ * Creates a `WorkerPlatform` from platform-specific setup and listen hooks,
+ * buffering sent messages until the worker is ready and scoping port cleanup to
+ * the worker run.
+ *
  * @since 4.0.0
  */
 export const makePlatform = <W>() =>

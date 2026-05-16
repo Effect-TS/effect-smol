@@ -790,7 +790,8 @@ export const setCwd: {
 )
 
 /**
- * Set environment variables for a command.
+ * Adds environment variables to a command, merging them with any existing
+ * command environment and overriding duplicate keys.
  *
  * For pipelines, applies to each command in the pipeline.
  *

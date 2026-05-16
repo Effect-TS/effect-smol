@@ -26,6 +26,10 @@ import type { Covariant, NoInfer } from "./Types.ts"
 const TypeId = TR.TrieTypeId
 
 /**
+ * An immutable string-keyed map optimized for prefix lookup. Iteration yields
+ * `[key, value]` pairs in key order, and update operations such as insert and
+ * remove return new `Trie` values.
+ *
  * **Example** (Using a trie for prefix search)
  *
  * ```ts
@@ -261,7 +265,7 @@ export const values: <V>(self: Trie<V>) => IterableIterator<V> = TR.values
 export const entries: <V>(self: Trie<V>) => IterableIterator<[string, V]> = TR.entries
 
 /**
- * Returns an `Array<[K, V]>` of the entries within the `Trie`.
+ * Returns an `Array<[string, V]>` of the entries within the `Trie`.
  *
  * Equivalent to `Array.from(Trie.entries(trie))`.
  *
@@ -375,8 +379,8 @@ export const entriesWithPrefix: {
 } = TR.entriesWithPrefix
 
 /**
- * Returns `Array<[K, V]>` of the entries within the `Trie`
- * that have `prefix` as prefix (`prefix` included if it exists).
+ * Returns an `Array<[string, V]>` of the entries within the `Trie` whose keys
+ * start with `prefix`, including the entry for `prefix` itself when it exists.
  *
  * **Example** (Converting prefixed entries to an array)
  *
@@ -529,7 +533,7 @@ export const has: {
 } = TR.has
 
 /**
- * Checks if the `Trie` contains any entries.
+ * Returns `true` when the `Trie` contains no entries.
  *
  * **Example** (Checking whether a trie is empty)
  *

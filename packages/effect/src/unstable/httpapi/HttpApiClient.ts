@@ -28,6 +28,9 @@ import type * as HttpApiMiddleware from "./HttpApiMiddleware.ts"
 import * as HttpApiSchema from "./HttpApiSchema.ts"
 
 /**
+ * The type-safe client shape generated from HTTP API groups, with non-top-level
+ * groups exposed as nested objects and top-level endpoints exposed as methods.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -46,6 +49,9 @@ export type Client<Groups extends HttpApiGroup.Any, E = never, R = never> = Simp
 >
 
 /**
+ * Derives the typed client interface for an `HttpApi`, preserving any additional
+ * client error and service requirements supplied by the caller.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -54,17 +60,26 @@ export type ForApi<Api extends HttpApi.Any, E = never, R = never> = Api extends
   never
 
 /**
+ * Helper types used to describe generated HTTP API clients, including endpoint
+ * methods, response modes, and grouped client shapes.
+ *
  * @category models
  * @since 4.0.0
  */
 export declare namespace Client {
   /**
+   * The response mode accepted by generated client methods, controlling whether a
+   * call returns the decoded success value, the raw response, or both.
+   *
    * @category models
    * @since 4.0.0
    */
   export type ResponseMode = HttpApiEndpoint.ClientResponseMode
 
   /**
+   * Computes the value returned by a client method for a success type and response
+   * mode.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -74,6 +89,9 @@ export declare namespace Client {
     : Success
 
   /**
+   * The client object for one API group, mapping each endpoint name in that group to
+   * its typed client method.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -85,6 +103,10 @@ export declare namespace Client {
       never
 
   /**
+   * The typed function generated for an endpoint, accepting the endpoint request
+   * shape and returning an effect whose success, error, and service channels reflect
+   * the endpoint schemas, middleware, and selected response mode.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -121,6 +143,9 @@ export declare namespace Client {
     never
 
   /**
+   * Extracts client methods for endpoints in top-level groups so they can be exposed
+   * directly on the generated client object.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -145,6 +170,9 @@ type UrlBuilderArgs<Endpoint extends HttpApiEndpoint.Any> = [UrlBuilderRequest<E
   : [request: UrlBuilderRequest<Endpoint>]
 
 /**
+ * The type-safe URL builder shape for an HTTP API, mirroring the generated client
+ * layout while returning URL strings instead of executing requests.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -369,6 +397,9 @@ export const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any
   })
 
 /**
+ * Constructs a type-safe client for an HTTP API using the `HttpClient` service,
+ * endpoint schemas, middleware, and optional client or response transformations.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -393,6 +424,10 @@ export const make = <ApiId extends string, Groups extends HttpApiGroup.Any>(
     }))
 
 /**
+ * Constructs a type-safe client for an HTTP API from the supplied `HttpClient`,
+ * using the API metadata to encode requests, execute middleware, and decode
+ * responses.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -420,6 +455,9 @@ export const makeWith = <ApiId extends string, Groups extends HttpApiGroup.Any, 
 }
 
 /**
+ * Builds a typed client object for a single API group from the supplied
+ * `HttpClient`, filtering the API to that group.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -455,6 +493,9 @@ export const group = <
 }
 
 /**
+ * Builds the typed client method for one endpoint in one API group, using the
+ * supplied `HttpClient` and endpoint metadata.
+ *
  * @category constructors
  * @since 4.0.0
  */

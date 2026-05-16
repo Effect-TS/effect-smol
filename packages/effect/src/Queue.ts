@@ -105,12 +105,19 @@ export interface Enqueue<in A, in E = never> extends Inspectable {
 }
 
 /**
+ * Companion namespace containing type-level metadata for the `Enqueue`
+ * write-only queue interface.
+ *
  * @category Models
  * @since 4.0.0
  */
 export declare namespace Enqueue {
   /**
-   * Variance interface for Enqueue types, defining the type parameter constraints.
+   * Type-level variance marker for `Enqueue`.
+   *
+   * `Enqueue` is contravariant in both its offered value type `A` and failure
+   * type `E`, because values and failures flow into the queue through this
+   * handle.
    *
    * @category Models
    * @since 4.0.0
@@ -161,12 +168,18 @@ export interface Dequeue<out A, out E = never> extends Inspectable {
 }
 
 /**
+ * Companion namespace containing type-level metadata for the `Dequeue`
+ * read-only queue interface.
+ *
  * @category Models
  * @since 4.0.0
  */
 export declare namespace Dequeue {
   /**
-   * Variance interface for Dequeue types, defining the type parameter constraints.
+   * Type-level variance marker for `Dequeue`.
+   *
+   * `Dequeue` is covariant in both the taken value type `A` and failure type
+   * `E`, because values and failures are observed through this handle.
    *
    * @category Models
    * @since 3.8.0
@@ -218,12 +231,18 @@ export interface Queue<in out A, in out E = never> extends Enqueue<A, E>, Dequeu
 }
 
 /**
+ * Companion namespace containing type-level metadata and low-level state types
+ * for `Queue`.
+ *
  * @category Models
  * @since 3.8.0
  */
 export declare namespace Queue {
   /**
-   * Variance interface for Queue types, defining the type parameter constraints.
+   * Type-level variance marker for `Queue`.
+   *
+   * A full `Queue` is invariant in both `A` and `E` because the same handle can
+   * both produce and consume values and failures.
    *
    * @category Models
    * @since 3.8.0
@@ -234,7 +253,12 @@ export declare namespace Queue {
   }
 
   /**
-   * Represents the internal state of a Queue.
+   * Tagged state of a `Queue`.
+   *
+   * `Open` queues can accept offers and takers, `Closing` queues are
+   * completing with a stored failure exit, and `Done` queues have finished.
+   * This is low-level metadata exposed by the queue model; most users should
+   * inspect queues through the public operations.
    *
    * @category Models
    * @since 4.0.0
@@ -259,7 +283,11 @@ export declare namespace Queue {
     }
 
   /**
-   * Represents an entry in the queue's offer buffer.
+   * Represents a suspended offer waiting to be admitted to a bounded queue.
+   *
+   * An entry is either a single message or a batch with an offset into its
+   * remaining messages, plus a resume callback that completes the suspended
+   * offer when the queue can accept more input.
    *
    * @category Models
    * @since 4.0.0
@@ -297,9 +325,12 @@ const QueueProto = {
 }
 
 /**
- * A `Queue` is an asynchronous queue that can be offered to and taken from.
+ * Creates a `Queue` with optional capacity and overflow strategy.
  *
- * It also supports signaling that it is done or failed.
+ * By default the queue is unbounded and uses the `"suspend"` strategy. Provide
+ * `capacity` for a bounded queue and choose `"suspend"`, `"dropping"`, or
+ * `"sliding"` to control what happens when the queue is full. The returned
+ * queue can be offered to, taken from, failed, ended, interrupted, or shut down.
  *
  * **Previously Known As**
  *
@@ -922,8 +953,13 @@ export const interrupt = <A, E>(self: Enqueue<A, E>): Effect<boolean> =>
   core.withFiber((fiber) => failCause(self, internalEffect.causeInterrupt(fiber.id)))
 
 /**
- * Shutdown the queue, canceling any pending operations.
- * If the queue is already done, `false` is returned.
+ * Shuts down the queue immediately, discarding buffered messages and resuming
+ * pending operations.
+ *
+ * **Details**
+ *
+ * The operation is idempotent and returns `true`, including when the queue has
+ * already been shut down or completed.
  *
  * **Example** (Shutting down queues)
  *
@@ -972,8 +1008,12 @@ export const shutdown = <A, E>(self: Enqueue<A, E>): Effect<boolean> =>
   })
 
 /**
- * Take all messages from the queue, returning an empty array if the queue
- * is empty or done.
+ * Drains and returns all currently buffered messages without waiting for more.
+ *
+ * **Details**
+ *
+ * Returns an empty array when the queue is empty or has completed normally. If
+ * the queue has failed, the effect fails with the queue's error.
  *
  * **Example** (Clearing queued values)
  *
@@ -1017,10 +1057,13 @@ export const clear = <A, E>(self: Dequeue<A, E>): Effect<Array<A>, Pull.ExcludeD
   })
 
 /**
- * Take all messages from the queue, or wait for messages to be available.
+ * Takes all currently available messages, waiting until at least one message
+ * is available when the queue is empty.
  *
- * If the queue is done, the `done` flag will be `true`. If the queue
- * fails, the Effect will fail with the error.
+ * **Details**
+ *
+ * Returns a non-empty array. If the queue completes or fails before a message
+ * can be taken, the effect fails with the queue's terminal error.
  *
  * **Example** (Taking all available values)
  *
@@ -1091,11 +1134,14 @@ export const collect = <A, E>(self: Dequeue<A, E | Done>): Effect<Array<A>, Pull
   }) as any
 
 /**
- * Take a specified number of messages from the queue. It will only take
- * up to the capacity of the queue.
+ * Takes up to `n` messages from the queue.
  *
- * If the queue is done, the `done` flag will be `true`. If the queue
- * fails, the Effect will fail with the error.
+ * **Details**
+ *
+ * The operation may wait until enough messages are available to satisfy the
+ * queue's batching rules. If `n` is less than or equal to zero, it succeeds
+ * with an empty array. If the queue completes or fails before messages can be
+ * taken, the effect fails with the queue's terminal error.
  *
  * **Example** (Taking a fixed number of values)
  *
@@ -1131,11 +1177,14 @@ export const takeN = <A, E>(
 ): Effect<Array<A>, E> => takeBetween(self, n, n)
 
 /**
- * Take a variable number of messages from the queue, between specified min and max.
- * It will only take up to the capacity of the queue.
+ * Takes between `min` and `max` messages from the queue.
  *
- * If the queue is done, the `done` flag will be `true`. If the queue
- * fails, the Effect will fail with the error.
+ * **Details**
+ *
+ * The operation waits when fewer than the required minimum messages are
+ * available. It returns at most `max` messages. If the queue completes or fails
+ * before the minimum can be satisfied, the effect fails with the queue's
+ * terminal error.
  *
  * **Example** (Taking a bounded batch of values)
  *
@@ -1218,9 +1267,13 @@ export const take = <A, E>(self: Dequeue<A, E>): Effect<A, E> =>
   )
 
 /**
- * Tries to take an item from the queue without blocking.
+ * Attempts to take one item from the queue without waiting.
  *
- * Returns `Option.some` with the item if available, or `Option.none` if the queue is empty or done.
+ * **Details**
+ *
+ * Returns `Option.some` when an item is immediately available. Returns
+ * `Option.none` when no item is available, when the queue is done, or when the
+ * immediate take observes a queue failure.
  *
  * **Example** (Polling without blocking)
  *
@@ -1293,14 +1346,13 @@ export const peek = <A, E>(self: Dequeue<A, E>): Effect<A, E> =>
   })
 
 /**
- * Take a single message from the queue synchronously, or wait for a message to be
- * available.
+ * Attempts to take one message from the queue synchronously.
  *
- * If the queue is done, it will fail with `Done`. If the
- * queue fails, the Effect will fail with the error.
- * Returns `undefined` if no message is immediately available.
+ * **Details**
  *
- * This is an unsafe operation that directly accesses the queue without Effect wrapping.
+ * Returns an `Exit` for an immediately available message or for the queue's
+ * terminal state. Returns `undefined` when no message is immediately available.
+ * This operation does not wait or register a taker.
  *
  * **Example** (Taking one value synchronously)
  *
@@ -1377,9 +1429,11 @@ export {
 }
 
 /**
- * Check the size of the queue.
+ * Returns the current number of buffered messages in the queue.
  *
- * If the queue is complete, it will return `None`.
+ * **Details**
+ *
+ * Completed queues report a size of `0`.
  *
  * **Example** (Checking queue size)
  *
@@ -1440,10 +1494,12 @@ export const size = <A, E>(self: Dequeue<A, E>): Effect<number> => internalEffec
 export const isFull = <A, E>(self: Dequeue<A, E>): Effect<boolean> => internalEffect.sync(() => isFullUnsafe(self))
 
 /**
- * Check the size of the queue synchronously.
+ * Returns the current number of buffered messages in the queue synchronously.
  *
- * If the queue is complete, it will return `None`.
- * This is an unsafe operation that directly accesses the queue without Effect wrapping.
+ * **Details**
+ *
+ * Completed queues report a size of `0`. This unsafe operation reads the queue
+ * state directly without Effect wrapping.
  *
  * **Example** (Checking queue size synchronously)
  *
