@@ -2613,8 +2613,8 @@ function makeStructMethods<const Fields extends Struct.Fields>(fields: Fields) {
 function decorateStruct<const Fields extends Struct.Fields, S extends Top>(schema: S, fields: Fields): S & Struct<Fields> {
   const methods = makeStructMethods(fields)
   const out = Object.assign(schema, methods)
-  const rebuild = out.rebuild.bind(out)
-  out.rebuild = (ast: S["ast"]) => decorateStruct(rebuild(ast) as S, fields) as any
+  const originalRebuild = out.rebuild.bind(out)
+  out.rebuild = (ast: S["ast"]) => decorateStruct(originalRebuild(ast) as S, fields) as any
   return out as any
 }
 

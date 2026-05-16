@@ -2431,22 +2431,22 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       })
 
       const flipped = schema.pipe(Schema.flip)
-      const assertsFlipped = new TestSchema.Asserts(flipped)
+      const flippedAsserts = new TestSchema.Asserts(flipped)
 
-      const decodingFlipped = assertsFlipped.decoding()
+      const decodingFlipped = flippedAsserts.decoding()
       await decodingFlipped.succeed({ a: 1 }, { mapped_a: "1" })
 
-      const encodingFlipped = assertsFlipped.encoding()
+      const encodingFlipped = flippedAsserts.encoding()
       await encodingFlipped.succeed({ mapped_a: "1" }, { a: 1 })
 
       const flipped2 = flipped.pipe(Schema.flip)
-      const assertsFlipped2 = new TestSchema.Asserts(flipped2)
+      const doubleFlippedAsserts = new TestSchema.Asserts(flipped2)
       deepStrictEqual(flipped2.fields, schema.fields)
 
-      const decodingFlipped2 = assertsFlipped2.decoding()
+      const decodingFlipped2 = doubleFlippedAsserts.decoding()
       await decodingFlipped2.succeed({ mapped_a: "1" }, { a: 1 })
 
-      const encodingFlipped2 = assertsFlipped2.encoding()
+      const encodingFlipped2 = doubleFlippedAsserts.encoding()
       await encodingFlipped2.succeed({ a: 1 }, { mapped_a: "1" })
     })
   })
