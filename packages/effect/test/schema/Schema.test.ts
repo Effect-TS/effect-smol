@@ -7216,7 +7216,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   })
 
   describe("encodeKeys", () => {
-    it("field-local encodedKey", async () => {
+    it("fieldLocalEncodedKey", async () => {
       const myMappedField = Schema.FiniteFromString.pipe(Schema.encodedKey("mapped_name"))
       const schema = Schema.Struct({
         a: myMappedField

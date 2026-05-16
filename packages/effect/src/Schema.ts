@@ -408,7 +408,7 @@ export function declare<T, Iso = T>(
 
 /**
  * Widens a schema's type to the fully-parameterized {@link Bottom} interface,
- * making all type parameters visible to TypeScript.
+ * making all 15 type parameters visible to TypeScript.
  *
  * Normally, concrete schema interfaces (e.g. `Schema<string>`) hide most type
  * parameters. `revealBottom` is useful when writing generic utilities that need
@@ -421,7 +421,7 @@ export function declare<T, Iso = T>(
  *
  * const schema = Schema.String
  *
- * // Widen to Bottom to access all type parameters
+ * // Widen to Bottom to access all 15 type parameters
  * const bottom = Schema.revealBottom(schema)
  *
  * // `bottom` now exposes Type, Encoded, DecodingServices, EncodingServices,
@@ -2621,15 +2621,16 @@ function makeEncodedFields<
   const encodedFields: any = {}
   const reverseMapping: any = {}
   const seen = new Map<PropertyKey, PropertyKey>()
+  const formatPropertyKey = (key: PropertyKey) => typeof key === "symbol" ? globalThis.String(key) : key
   for (const key of Reflect.ownKeys(fields) as Array<keyof Fields & PropertyKey>) {
     const encodedKey = Object.hasOwn(mapping, key) ? mapping[key]! : key
     const previous = seen.get(encodedKey)
     if (previous !== undefined && previous !== key) {
       throw new globalThis.Error(
-        `Duplicate encoded key ${globalThis.JSON.stringify(globalThis.String(encodedKey))} for fields ${
-          globalThis.JSON.stringify(globalThis.String(previous))
+        `Duplicate encoded key ${globalThis.JSON.stringify(formatPropertyKey(encodedKey))} for fields ${
+          globalThis.JSON.stringify(formatPropertyKey(previous))
         } and ${
-          globalThis.JSON.stringify(globalThis.String(key))
+          globalThis.JSON.stringify(formatPropertyKey(key))
         }`
       )
     }
