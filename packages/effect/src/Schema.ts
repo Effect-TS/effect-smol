@@ -2610,6 +2610,14 @@ function makeStructMethods<const Fields extends Struct.Fields>(fields: Fields) {
   }
 }
 
+function decorateStruct<const Fields extends Struct.Fields, S extends Top>(schema: S, fields: Fields): S & Struct<Fields> {
+  const methods = makeStructMethods(fields)
+  const out = Object.assign(schema, methods)
+  const rebuild = out.rebuild.bind(out)
+  out.rebuild = (ast: S["ast"]) => decorateStruct(rebuild(ast) as S, fields) as any
+  return out as any
+}
+
 function makeEncodedFields<
   Fields extends Struct.Fields,
   M extends { readonly [K in keyof Fields]?: PropertyKey }
@@ -2671,11 +2679,14 @@ function makeStruct<const Fields extends Struct.Fields>(
     readonly identifier?: string | undefined
   }
 ): Struct<Fields> {
-  const out = make(AST.struct(fields, options?.checks, options?.identifier ? { identifier: options.identifier } : undefined), (
-    makeStructMethods(fields)
-  )) as Struct<Fields>
+  const out = decorateStruct(
+    make(AST.struct(fields, options?.checks, options?.identifier ? { identifier: options.identifier } : undefined)) as Struct<
+      Fields
+    >,
+    fields
+  )
   const mapping = getFieldEncodedKeyMapping(fields)
-  return Reflect.ownKeys(mapping).length === 0 ? out : Object.assign(encodeKeys(mapping)(out), makeStructMethods(fields)) as any
+  return Reflect.ownKeys(mapping).length === 0 ? out : decorateStruct(encodeKeys(mapping)(out), fields)
 }
 
 /**

@@ -845,6 +845,18 @@ describe("Schema", () => {
       >()
     })
 
+    it("encodedKey", () => {
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.encodedKey("mapped_a"))
+      })
+      const flipped = Schema.flip(schema)
+
+      expect(Schema.flip(Schema.flip(schema))).type.toBe<typeof schema>()
+      expect(Schema.revealCodec(flipped)).type.toBe<
+        Schema.Codec<{ readonly mapped_a: string }, { readonly a: number }>
+      >()
+    })
+
     it("Struct & withConstructorDefault", () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(Schema.withConstructorDefault(Effect.succeed("c")))
