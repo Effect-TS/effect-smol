@@ -29,8 +29,14 @@
   ],
   "exports": {
     "./package.json": "./package.json",
-    "./oxlint": "./src/oxlint/index.ts",
-    "./oxlint/rules/*": "./src/oxlint/rules/*.ts",
+    "./oxlint": {
+      "types": "./dist/oxlint/index.d.ts",
+      "default": "./dist/oxlint/index.js"
+    },
+    "./oxlint/rules/*": {
+      "types": "./dist/oxlint/rules/*.d.ts",
+      "default": "./dist/oxlint/rules/*.js"
+    },
     "./oxlintrc.json": "./oxlintrc.json"
   },
   "files": [

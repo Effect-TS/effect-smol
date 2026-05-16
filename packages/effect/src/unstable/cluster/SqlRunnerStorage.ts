@@ -283,15 +283,18 @@ export const make = Effect.fnUntraced(function*(options: {
       return Effect.fnUntraced(function*(_address: string, shardIds: ReadonlyArray<string>) {
         const [conn, pid] = yield* lockConn!.await
         const acquiredShardIds: Array<string> = []
-        const toAcquire = new Map(shardIds.map((shardId) => [lockNumbers.get(shardId)!, shardId]))
-        const takenLocks = yield* conn.executeValues(
-          `SELECT objid FROM pg_locks WHERE locktype = 'advisory' AND granted = true AND pid = ${pid} ORDER BY objid`,
-          []
+        const toAcquire = new Set(shardIds)
+        const takenLocks = yield* conn.executeUnprepared(
+          `SELECT ${pgHeldLocks(shardIds, pid)}`,
+          [],
+          undefined
         )
-        for (let i = 0; i < takenLocks.length; i++) {
-          const lockNum = takenLocks[i][0] as number
-          acquiredShardIds.push(lockNumbersReverse.get(lockNum)!)
-          toAcquire.delete(lockNum)
+        const heldLocks = takenLocks[0] as Record<string, boolean>
+        for (const shardId in heldLocks) {
+          if (heldLocks[shardId]) {
+            acquiredShardIds.push(shardId)
+            toAcquire.delete(shardId)
+          }
         }
         if (toAcquire.size === 0) {
           return acquiredShardIds
@@ -389,19 +392,6 @@ export const make = Effect.fnUntraced(function*(options: {
     }
   })
 
-  const lockNumbers = new Map<string, number>()
-  const lockNumbersReverse = new Map<number, string>()
-  for (let i = 0; i < config.shardGroups.length; i++) {
-    const group = config.shardGroups[i]
-    const base = (i + 1) * 1000000
-    for (let shard = 1; shard <= config.shardsPerGroup; shard++) {
-      const shardId = ShardId.make(group, shard).toString()
-      const lockNum = base + shard
-      lockNumbers.set(shardId, lockNum)
-      lockNumbersReverse.set(lockNum, shardId)
-    }
-  }
-
   const shardIdsIndex = new Map<string, number>()
   const lockNames = new Map<string, string>()
   const lockNamesReverse = new Map<string, string>()
@@ -419,11 +409,22 @@ export const make = Effect.fnUntraced(function*(options: {
     }
   }
 
-  const pgLocks = (shardIdsMap: Map<number, string>) =>
-    Array.from(
-      shardIdsMap.entries(),
-      ([lockNum, shardId]) => `pg_try_advisory_lock(${lockNum}) AS "${shardId}"`
-    ).join(", ")
+  const pgLockSeed = 1337
+  const pgLockKey = (shardId: string) => `hashtextextended(${wrapString(shardId)}, ${pgLockSeed})`
+  const pgLockExists = (shardId: string, pid: number | "pg_backend_pid()") =>
+    `EXISTS (
+      SELECT 1 FROM pg_locks
+      WHERE locktype = 'advisory'
+        AND granted = true
+        AND pid = ${pid}
+        AND ((classid::bigint << 32) | objid::bigint) = ${pgLockKey(shardId)}
+    )`
+
+  const pgLocks = (shardIds: ReadonlySet<string>) =>
+    Array.from(shardIds, (shardId) => `pg_try_advisory_lock(${pgLockKey(shardId)}) AS "${shardId}"`).join(", ")
+
+  const pgHeldLocks = (shardIds: ReadonlyArray<string>, pid: number) =>
+    shardIds.map((shardId) => `${pgLockExists(shardId, pid)} AS "${shardId}"`).join(", ")
 
   const mysqlLocks = (shardIds: ReadonlyArray<string>) =>
     shardIds.map((shardId) => `GET_LOCK('${lockNames.get(shardId)!}', 0) AS "${shardId}"`).join(", ")
@@ -551,12 +552,11 @@ export const make = Effect.fnUntraced(function*(options: {
         }
         return Effect.fnUntraced(
           function*(_address, shardId) {
-            const lockNum = lockNumbers.get(shardId)!
             for (let i = 0; i < 5; i++) {
               const [conn] = yield* lockConn!.await
-              yield* conn.executeRaw(`SELECT pg_advisory_unlock(${lockNum})`, [])
+              yield* conn.executeRaw(`SELECT pg_advisory_unlock(${pgLockKey(shardId)})`, [])
               const takenLocks = yield* conn.executeValues(
-                `SELECT 1 FROM pg_locks WHERE locktype = 'advisory' AND granted = true AND pid = pg_backend_pid() AND objid = ${lockNum}`,
+                `SELECT 1 WHERE ${pgLockExists(shardId, "pg_backend_pid()")}`,
                 []
               )
               if (takenLocks.length === 0) return

@@ -1,7 +1,7 @@
 import { NodeFileSystem } from "@effect/platform-node"
 import { SqliteClient } from "@effect/sql-sqlite-node"
-import { describe, expect, it } from "@effect/vitest"
-import { Effect, FileSystem, Layer } from "effect"
+import { assert, describe, expect, it } from "@effect/vitest"
+import { Context, Effect, FileSystem, Layer } from "effect"
 import {
   Runner,
   RunnerAddress,
@@ -88,9 +88,42 @@ describe("SqlRunnerStorage", () => {
         }))
     })
   })
+
+  it.effect("pg advisory locks do not collide across shard groups", () =>
+    Effect.scoped(Effect.gen(function*() {
+      const memoMap = yield* Layer.makeMemoMap
+      const scope = yield* Effect.scope
+      const pgLayer = Layer.orDie(PgContainer.layerClient)
+      const alphaLayer = StorageLive.pipe(
+        Layer.provideMerge(pgLayer),
+        Layer.provide(ShardingConfig.layer({
+          shardGroups: ["alpha"],
+          shardsPerGroup: 1
+        }))
+      )
+      const bravoLayer = StorageLive.pipe(
+        Layer.provideMerge(pgLayer),
+        Layer.provide(ShardingConfig.layer({
+          shardGroups: ["bravo"],
+          shardsPerGroup: 1
+        }))
+      )
+
+      const alphaContext = yield* Layer.buildWithMemoMap(alphaLayer, memoMap, scope)
+      const bravoContext = yield* Layer.buildWithMemoMap(bravoLayer, memoMap, scope)
+      const alphaStorage = Context.get(alphaContext, RunnerStorage.RunnerStorage)
+      const bravoStorage = Context.get(bravoContext, RunnerStorage.RunnerStorage)
+
+      const alphaAcquired = yield* alphaStorage.acquire(runnerAddress1, [ShardId.make("alpha", 1)])
+      const bravoAcquired = yield* bravoStorage.acquire(runnerAddress2, [ShardId.make("bravo", 1)])
+
+      assert.deepStrictEqual(alphaAcquired.map((_) => _.toString()), ["alpha:1"])
+      assert.deepStrictEqual(bravoAcquired.map((_) => _.toString()), ["bravo:1"])
+    })))
 })
 
 const runnerAddress1 = RunnerAddress.make("localhost", 1234)
+const runnerAddress2 = RunnerAddress.make("localhost", 1235)
 
 const SqliteLayer = Effect.gen(function*() {
   const fs = yield* FileSystem.FileSystem
