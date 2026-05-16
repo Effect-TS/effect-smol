@@ -1,4 +1,20 @@
 /**
+ * Bun entry-point helpers for running Effect programs.
+ *
+ * This module exposes `runMain`, the Bun runtime launcher used at the edge of
+ * CLIs, scripts, servers, and worker processes. It runs an already
+ * self-contained Effect as the process main program, using the shared
+ * Node-compatible runtime implementation for error reporting, teardown, and
+ * `process` signal handling available in Bun.
+ *
+ * `BunRuntime` does not provide application services by itself. Provide any
+ * required layers, such as `BunServices.layer` or narrower service-specific
+ * layers, before passing the effect to `runMain`. On `SIGINT` or `SIGTERM`,
+ * the main fiber is interrupted so scoped resources and finalizers can shut
+ * down; keep long-running servers, workers, and subscriptions attached to that
+ * scope and avoid finalizers that never complete, otherwise process shutdown
+ * can be delayed.
+ *
  * @since 1.0.0
  */
 import * as NodeRuntime from "@effect/platform-node-shared/NodeRuntime"

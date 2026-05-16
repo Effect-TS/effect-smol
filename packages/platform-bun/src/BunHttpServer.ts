@@ -1,4 +1,35 @@
 /**
+ * Bun implementation of the Effect `HttpServer`.
+ *
+ * This module builds an Effect HTTP server from `Bun.serve`, translating Bun's
+ * Web `Request` objects into `HttpServerRequest` values and Effect
+ * `HttpServerResponse` values back into Web `Response` objects. It is the Bun
+ * runtime entry point for serving `HttpApp`s, streaming responses, file
+ * responses through `BunHttpPlatform`, multipart requests, and websocket
+ * endpoints through `HttpServerRequest.upgrade`.
+ *
+ * Common use cases include using {@link layer} or {@link layerConfig} to serve
+ * an application from Bun configuration, {@link layerServer} when only the
+ * `HttpServer` service is needed, and {@link layerTest} for tests that need an
+ * ephemeral Bun listener and fetch-compatible client.
+ *
+ * Bun supplies absolute request URLs and Web-standard request bodies. This
+ * adapter stores the normalized path-and-query URL on `HttpServerRequest.url`,
+ * while the underlying `Request` still follows Web body rules: pick the
+ * streamed, text, JSON, URL-encoded, or multipart view that matches the route
+ * instead of consuming the same body in incompatible ways. Because `Bun.serve`
+ * has a single active `fetch` handler, each `serve` call reloads that handler
+ * and restores the previous one when the serve scope finalizes.
+ *
+ * WebSocket upgrades must happen from the Bun request handler. The
+ * `HttpServerRequest.upgrade` effect calls `server.upgrade`, fails when Bun says
+ * the request is not upgradeable, buffers messages that arrive before the
+ * Effect socket handler is installed, and maps non-normal close codes into
+ * `Socket` errors. The server is stopped with `server.stop()` when its
+ * acquisition scope closes; unless preemptive shutdown is disabled, finalizing
+ * a serve scope also starts that stop with the configured graceful shutdown
+ * timeout or the default timeout.
+ *
  * @since 1.0.0
  */
 import type { Server as BunServer, ServerWebSocket } from "bun"

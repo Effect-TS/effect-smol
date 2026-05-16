@@ -1,4 +1,21 @@
 /**
+ * Bridges Effect tracing into OpenTelemetry by installing an Effect `Tracer`
+ * that creates OpenTelemetry spans, records attributes, events, links, errors,
+ * and status, and keeps OpenTelemetry context active while traced effects run.
+ * Use this module when an application already has an OpenTelemetry
+ * `TracerProvider`, or when the Node and Web SDK layers should expose Effect
+ * spans to OTLP, console, or other OpenTelemetry-compatible exporters.
+ *
+ * The layer constructors wire Effect's tracer service to either the global
+ * OpenTelemetry tracer provider or an explicitly provided `OtelTracer`. This
+ * module does not create exporters or span processors by itself, so spans are
+ * exported only when the provider has been configured by the application or by
+ * the Node/Web SDK layers. Parentage is taken from Effect spans first and can
+ * also attach to the active OpenTelemetry context, while `makeExternalSpan` and
+ * `withSpanContext` are the entry points for continuing an incoming remote
+ * trace. Preserve `traceFlags` and `traceState` when building external spans;
+ * otherwise sampling defaults to sampled and trace state cannot be propagated.
+ *
  * @since 1.0.0
  */
 import * as Otel from "@opentelemetry/api"

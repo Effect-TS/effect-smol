@@ -1,4 +1,19 @@
 /**
+ * Rollup-backed bundling and size measurement for the Effect bundle-size tools.
+ *
+ * This module provides the service used by the bundle CLI and reporter to turn
+ * fixture or selected TypeScript entrypoints into ESM Rollup output, optionally
+ * write a minified artifact, and return the gzipped byte count used in
+ * bundle-size comparisons.
+ *
+ * Bundles are generated in memory so the emitted code can be streamed to both
+ * gzip measurement and optional file output. Only Rollup `chunk` outputs are
+ * included; assets are ignored, and when Rollup creates multiple chunks (for
+ * example because of dynamic imports or shared chunks) their code is streamed
+ * together for measurement. The optional output file is named from the
+ * entrypoint stem, so it is best treated as an inspection artifact rather than
+ * a complete Rollup output directory.
+ *
  * @since 1.0.0
  */
 import * as NodeStream from "@effect/platform-node/NodeStream"

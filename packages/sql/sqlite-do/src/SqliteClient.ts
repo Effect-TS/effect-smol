@@ -1,4 +1,22 @@
 /**
+ * Provides an Effect SQL client for Cloudflare Durable Object SQLite storage.
+ *
+ * This module adapts a Durable Object `SqlStorage` handle into both the
+ * Durable Object-specific `SqliteClient` service and the generic Effect
+ * `SqlClient` service. Use it from inside a Durable Object to run local
+ * per-object queries, repositories, migrations, transactional read/write
+ * workflows, and tests that exercise Cloudflare's SQLite-backed storage API.
+ *
+ * Durable Object SQLite storage is scoped to one object id, so each object
+ * instance has its own database and callers should pass the same `SqlStorage`
+ * handle that the object uses for normal reads and writes. This adapter
+ * serializes Effect SQL access through one connection; a transaction holds that
+ * permit for the lifetime of its scope, so keep transactions short, avoid
+ * suspending them across unrelated work, and use them when multi-statement
+ * writes must commit atomically. `SqlStorage.exec` returns `ArrayBuffer` values
+ * for SQLite blobs, which this client normalizes to `Uint8Array`, and SQLite
+ * does not support `updateValues`.
+ *
  * @since 1.0.0
  */
 import type { SqlStorage } from "@cloudflare/workers-types"

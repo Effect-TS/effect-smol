@@ -1,4 +1,21 @@
 /**
+ * PostgreSQL client implementation for Effect SQL, backed by `pg`.
+ *
+ * This module exposes constructors for creating a scoped `PgClient` from a
+ * managed `pg` pool, a single managed `pg` client, or lower-level connection
+ * acquirers. The resulting service can be provided as both `PgClient` and the
+ * generic `SqlClient`, and is intended for application database access,
+ * migrations, transactional workflows, row streaming, JSON parameters, and
+ * PostgreSQL LISTEN/NOTIFY integration.
+ *
+ * Pool-backed clients acquire connections per operation and reserve dedicated
+ * connections for transactions and cursor streams. Clients built from one
+ * `pg.Client` serialize shared access; enable `acquireForStream` when streams
+ * or listeners need their own client instead of sharing the query connection.
+ * LISTEN uses a scoped long-lived client and automatically issues `UNLISTEN`
+ * when the stream scope closes, so listeners should be scoped for as long as
+ * notifications are needed.
+ *
  * @since 1.0.0
  */
 import * as Arr from "effect/Array"

@@ -1,4 +1,25 @@
 /**
+ * Bun stream interoperability for Effect streams.
+ *
+ * This module provides Bun-specific adapters for working with streaming data at
+ * the boundary between Bun APIs and Effect. It re-exports the shared Node stream
+ * adapters for Bun's Node-compatible stream APIs, and adds an optimized
+ * `ReadableStream` constructor that uses Bun's `readMany` support to pull
+ * batches of Web Stream values into an Effect `Stream`.
+ *
+ * Common uses include adapting Bun `Request` and `Response` bodies, multipart
+ * uploads, and other Web `ReadableStream` sources so they can be transformed,
+ * decoded, or piped with Effect stream operators. Pulling from the Effect stream
+ * drives reads from the underlying reader, while Bun and the Web Streams runtime
+ * still control their own internal buffering and source backpressure.
+ *
+ * Web `ReadableStream` readers take an exclusive lock on the source. Request and
+ * response bodies are also one-shot: once consumed they become disturbed and
+ * should not be read through another API. The adapter cancels the reader when
+ * the consuming scope is finalized by default; set `releaseLockOnEnd` when the
+ * stream is externally owned and should only have its lock released. Read errors
+ * are mapped through the provided `onError` function.
+ *
  * @since 1.0.0
  */
 import * as Arr from "effect/Array"

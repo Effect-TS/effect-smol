@@ -1,4 +1,21 @@
 /**
+ * Typed builders for Microsoft SQL Server stored procedure definitions.
+ *
+ * This module describes the metadata consumed by `MssqlClient.call`: create a
+ * definition with `make`, add input and output parameters with their Tedious
+ * data types and `ParameterOptions`, optionally describe the returned row shape
+ * with `withRows`, and use `compile` to bind the input values before execution.
+ * It is useful when application code calls stored procedures for commands,
+ * reports, migrations, or workflows that return both result sets and output
+ * parameters.
+ *
+ * Parameter value types are supplied explicitly through `param<A>()` and
+ * `outputParam<A>()`; they are not inferred from the Tedious data type. Input
+ * values must be keyed by the parameter names in the definition, output
+ * parameters are collected separately from returned rows, and `withRows` only
+ * records the expected TypeScript row type, so row names and transforms still
+ * follow the configured `MssqlClient` result handling.
+ *
  * @since 1.0.0
  */
 import { identity } from "effect/Function"

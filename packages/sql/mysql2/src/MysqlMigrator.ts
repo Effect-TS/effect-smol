@@ -1,4 +1,22 @@
 /**
+ * Utilities for applying Effect SQL migrations to MySQL databases through the
+ * mysql2-backed `SqlClient`.
+ *
+ * This module re-exports the shared `Migrator` loaders and error types, then
+ * provides `run` and `layer` helpers for applying ordered migrations using the
+ * currently configured MySQL `SqlClient`. It is commonly used during application
+ * startup, in integration tests that provision a temporary schema, or in layer
+ * graphs where dependent services should not start until the database schema is
+ * current.
+ *
+ * Applied migrations are stored in `effect_sql_migrations` by default and use
+ * the shared `<id>_<name>` loader convention. Only migrations with ids greater
+ * than the latest recorded id are run. MySQL DDL can cause implicit commits, and
+ * this adapter relies on migration table constraints to detect concurrent
+ * runners, so coordinate startup runners and write migrations to tolerate
+ * MySQL's transactional semantics. Schema dump support is not enabled in this
+ * adapter, so `schemaDirectory` does not emit a MySQL dump.
+ *
  * @since 1.0.0
  */
 import type * as Effect from "effect/Effect"

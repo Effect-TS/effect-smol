@@ -1,4 +1,20 @@
 /**
+ * Bridges Effect metrics into OpenTelemetry by exposing the current Effect
+ * metric snapshot as an OpenTelemetry `MetricProducer` and registering it with
+ * one or more SDK `MetricReader`s. Use this module when an application already
+ * records metrics with Effect and needs those counters, gauges, histograms,
+ * frequencies, or summaries exported through OTLP, Prometheus, or another
+ * OpenTelemetry-compatible reader/exporter.
+ *
+ * The `layer` constructor is the usual entry point, and is also used by the
+ * Node and Web SDK layers when `metricReader` configuration is supplied. Metric
+ * readers are acquired inside the layer scope and shut down when the scope is
+ * released, so periodic exporters need the runtime to stay alive long enough to
+ * collect and export data. The exporter or backend determines whether
+ * cumulative or delta aggregation is expected; this module defaults to
+ * cumulative temporality and can be configured with `temporality: "delta"` for
+ * backends that require interval-based values.
+ *
  * @since 1.0.0
  */
 import type { MetricProducer, MetricReader } from "@opentelemetry/sdk-metrics"

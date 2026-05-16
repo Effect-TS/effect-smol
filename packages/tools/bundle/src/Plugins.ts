@@ -1,4 +1,21 @@
 /**
+ * Utilities for assembling the Rollup plugin pipeline used by the Effect
+ * bundle-size tooling.
+ *
+ * This module is responsible for the bundler-specific work that turns local
+ * fixture entrypoints into comparable ESM output: resolving Effect package
+ * imports against each package's built `dist` files, replacing production
+ * environment checks, lowering TypeScript with esbuild, minifying with terser,
+ * and optionally adding a bundle visualizer. It is primarily used by the
+ * Rollup service when measuring gzipped fixture sizes or opening a
+ * visualization for bundle inspection.
+ *
+ * Keep plugin ordering intentional when changing this module. Local package
+ * resolution must run before normal node resolution so workspace imports are
+ * measured from built artifacts, esbuild must emit ESM for Rollup to continue
+ * tree-shaking, and terser mangling is disabled while visualizing so reported
+ * module names stay readable.
+ *
  * @since 1.0.0
  */
 import { nodeResolve } from "@rollup/plugin-node-resolve"

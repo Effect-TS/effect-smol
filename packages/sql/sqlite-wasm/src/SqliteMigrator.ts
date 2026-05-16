@@ -1,4 +1,22 @@
 /**
+ * Utilities for applying Effect SQL migrations to SQLite WASM databases.
+ *
+ * This module re-exports the shared `Migrator` loaders and error types, then
+ * provides `run` and `layer` helpers that execute ordered migrations through the
+ * current SQLite WASM `SqlClient`. Use it when a browser, worker, or test
+ * runtime needs to create or upgrade a local SQLite schema before repositories,
+ * caches, sync services, or other database-backed services start.
+ *
+ * The migrator operates on whichever WASM client is in the environment. With
+ * `SqliteClient.makeMemory`, migrations update an in-memory database, so the
+ * resulting schema is transient unless you persist it with the client's
+ * `export` and `import` operations. With worker-backed OPFS databases, run the
+ * migrator against the same worker configuration and OPFS database name used by
+ * the rest of the application, and coordinate startup across tabs or workers so
+ * only one migrator upgrades a given database at a time. OPFS availability is
+ * browser- and origin-dependent, and this adapter does not currently write
+ * SQLite schema dumps for `schemaDirectory`.
+ *
  * @since 1.0.0
  */
 import type * as Effect from "effect/Effect"

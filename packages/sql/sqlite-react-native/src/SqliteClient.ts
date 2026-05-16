@@ -1,4 +1,19 @@
 /**
+ * Provides a React Native SQLite `SqlClient` backed by `@op-engineering/op-sqlite`.
+ *
+ * Use this module to open an on-device SQLite database, expose it as both the
+ * React Native-specific `SqliteClient` and the generic Effect `SqlClient`, and
+ * run application queries, migrations, and transactional reads or writes from
+ * Effect services and layers.
+ *
+ * The client uses one serialized connection. Regular queries and transactions
+ * share that handle, and a transaction holds it for the lifetime of its scope,
+ * so keep mobile transactions short and wrap multi-statement writes in a
+ * transaction to avoid partial updates. By default statements use the driver's
+ * synchronous API, which can block the JavaScript thread; `withAsyncQuery`
+ * switches a fiber to the asynchronous driver API when UI responsiveness is more
+ * important than sync execution.
+ *
  * @since 1.0.0
  */
 import * as Sqlite from "@op-engineering/op-sqlite"

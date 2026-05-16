@@ -1,4 +1,30 @@
 /**
+ * Microsoft SQL Server client implementation for Effect SQL, backed by the
+ * `tedious` driver.
+ *
+ * This module provides the `MssqlClient` service and layers that also satisfy
+ * the generic `SqlClient` service. It is intended for server applications,
+ * background workers, migrations, and tests that need SQL Server query
+ * compilation, Tedious parameter typing, scoped connection management,
+ * transactions, and typed stored procedure calls.
+ *
+ * Clients own a scoped pool of Tedious connections and validate startup with
+ * `SELECT 1`. Regular queries borrow a pooled connection per operation, while
+ * transactions keep one pooled connection for their lifetime and use SQL Server
+ * savepoints for nested transactions. Long-running transactions therefore
+ * reduce available pool capacity; size `maxConnections`, `connectionTTL`, and
+ * `connectTimeout` accordingly.
+ *
+ * Tedious permits one active request per connection. This client compiles
+ * statements with named `@1`-style parameters, maps Effect SQL primitive values
+ * to Tedious `DataType`s unless `param` is used, and does not implement
+ * streaming queries. Be deliberate about TLS options: `encrypt` defaults to
+ * `false` and `trustServerCertificate` defaults to `true` unless overridden.
+ * Stored procedure calls go through `callProcedure`; define input and output
+ * parameters with the `Procedure` and `Parameter` helpers so Tedious receives
+ * the correct data types and output values can be collected from `returnValue`
+ * events.
+ *
  * @since 1.0.0
  */
 import * as Config from "effect/Config"

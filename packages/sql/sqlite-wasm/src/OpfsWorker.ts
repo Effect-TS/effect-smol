@@ -1,4 +1,23 @@
 /**
+ * Worker-side entry point for SQLite WASM databases stored in the browser
+ * Origin Private File System.
+ *
+ * This module opens `@effect/wa-sqlite` with the OPFS access-handle VFS and
+ * serves the message protocol used by `SqliteClient.make`. Run it from a
+ * dedicated worker, or from a `SharedWorker` connection port, when an
+ * application needs durable local SQLite storage for local-first data, offline
+ * caches, client-side migrations, or import/export workflows that keep the
+ * database off the main thread.
+ *
+ * The worker owns the SQLite connection for the lifetime of `run`: it posts a
+ * `ready` message after opening the database, responds to query, import,
+ * export, and update-hook messages, and releases the database when the client
+ * sends `close` or the surrounding scope is interrupted. Because OPFS support
+ * depends on the browser and origin, applications should start this worker only
+ * in supported secure contexts, close unused ports so access handles are
+ * released, and coordinate multiple tabs or workers before opening or migrating
+ * the same OPFS database.
+ *
  * @since 1.0.0
  */
 /// <reference lib="webworker" />

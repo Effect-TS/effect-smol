@@ -1,4 +1,30 @@
 /**
+ * Schema-aware `RequestResolver` helpers for SQL-backed data loading.
+ *
+ * This module bridges `Effect.request` with `SqlClient` by representing each
+ * lookup or mutation as a `SqlRequest` and batching concurrent requests into a
+ * single SQL operation. Request payloads are encoded with the request schema
+ * before `execute` is called, and rows returned by the query are decoded with
+ * the result schema before entries are completed.
+ *
+ * Use `ordered` when a query returns exactly one row per request in the same
+ * order, `findById` for `where id in (...)` lookups, `grouped` for one-to-many
+ * relationships, and `void` for inserts, updates, deletes, or other
+ * side-effecting statements where no row is needed.
+ *
+ * **Gotchas**
+ *
+ * - `ordered` requires the result count and order to match the request batch.
+ * - `grouped` and `findById` rely on stable request/result keys and fail
+ *   missing requests with `NoSuchElementError`.
+ * - Equal payloads are equal `SqlRequest`s, which enables request batching,
+ *   deduplication, and cache reuse; model payload identity deliberately.
+ * - Batches are split by the active SQL transaction connection, so requests
+ *   made in different transactions are not resolved together.
+ * - Queries like `where id in (...)` often return rows in database order; use
+ *   `findById` or `grouped`, or preserve input order explicitly before choosing
+ *   `ordered`.
+ *
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"

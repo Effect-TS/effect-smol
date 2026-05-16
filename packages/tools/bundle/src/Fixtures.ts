@@ -1,4 +1,18 @@
 /**
+ * Discovers the TypeScript entrypoint fixtures used by the bundle-size tools.
+ *
+ * The bundle CLI uses these fixture names to build current bundle reports,
+ * compare them against a base directory, and populate the visualization
+ * selector. Fixtures are intentionally discovered from the package's local
+ * `fixtures` directory as top-level `.ts` files and sorted by name so reports
+ * are deterministic.
+ *
+ * When adding or renaming fixtures, keep in mind that comparison reports match
+ * files by basename between the current fixtures directory and the provided
+ * base directory. Each fixture is bundled as its own Rollup entrypoint, so it
+ * should represent the import shape being measured and avoid depending on
+ * incidental fixture discovery order.
+ *
  * @since 1.0.0
  */
 import * as Array from "effect/Array"

@@ -1,4 +1,18 @@
 /**
+ * Bundle report generation for the Effect bundle-size tooling.
+ *
+ * The reporter coordinates fixture discovery with the Rollup service to turn
+ * measured fixture bundles into Markdown tables or visualization output. It is
+ * used by the bundle CLI to compare the current workspace against a checked-out
+ * base directory, to print a one-off report for selected entry files, and to
+ * generate visualizations when a size change needs inspection.
+ *
+ * Reports compare files by basename and display gzipped Rollup output sizes in
+ * decimal kilobytes. If a current fixture has no matching basename in the base
+ * directory it is reported as unchanged, and visualization artifacts are named
+ * from entry file stems in the requested output directory, so duplicate names can
+ * make the output misleading.
+ *
  * @since 1.0.0
  */
 import * as Context from "effect/Context"

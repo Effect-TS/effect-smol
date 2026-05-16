@@ -1,4 +1,21 @@
 /**
+ * Builds SQL repositories and request resolvers from Effect schema models.
+ *
+ * Use this module when a `Model` describes rows in a concrete SQL table and
+ * you want the common insert, update, find-by-id, and delete operations without
+ * hand-writing the schema encoding, row decoding, and resolver batching each
+ * time. The helpers are intended for model-backed tables where the model field
+ * names line up with the encoded table columns and the chosen `idColumn` is
+ * present in both the model fields and update schema.
+ *
+ * Returned rows are decoded with the full model schema, while insert and update
+ * requests are encoded with the model's dedicated input schemas. Soft deletes
+ * are opt-in via `softDeleteColumn`: reads and updates only see rows where that
+ * column is `null`, and deletes set it to `CURRENT_TIMESTAMP` instead of
+ * removing the row. Dialects with `returning` support return changed rows
+ * directly; MySQL performs a follow-up `select`, so generated ids, defaults,
+ * and trigger-updated values must be observable from that query.
+ *
  * @category models
  * @since 4.0.0
  */

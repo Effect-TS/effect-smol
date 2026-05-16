@@ -1,4 +1,25 @@
 /**
+ * Connects Effect's logging system to the OpenTelemetry Logs SDK.
+ *
+ * This module provides a logger provider service, an Effect `Logger` that
+ * emits OpenTelemetry log records, and layers for installing that logger in an
+ * application. It is commonly used to send Effect logs to OTLP, console, or
+ * vendor-specific exporters through OpenTelemetry `LogRecordProcessor`s while
+ * keeping logs correlated with Effect fibers and spans. Emitted records include
+ * the current fiber id, span identifiers when a parent span is present, log
+ * annotations, log spans, severity text, and the matching OpenTelemetry
+ * severity number.
+ *
+ * Log export depends on the configured OpenTelemetry processors and exporters;
+ * this module creates the provider and logger, but does not choose an exporter.
+ * Use the `Resource` layer to attach service and deployment metadata to the
+ * provider rather than repeating that data on every log record. When using
+ * `layerLoggerProvider`, the provider is scoped and is force-flushed and shut
+ * down when the layer is released, with a configurable shutdown timeout. If you
+ * supply or manage an OpenTelemetry provider yourself, make sure it is flushed
+ * and shut down during application shutdown, especially when using batching
+ * processors that may otherwise drop buffered logs.
+ *
  * @since 1.0.0
  */
 import { SeverityNumber } from "@opentelemetry/api-logs"

@@ -1,4 +1,24 @@
 /**
+ * ClickHouse client implementation for Effect SQL, backed by
+ * `@clickhouse/client`.
+ *
+ * This module exposes constructors and layers for providing both the
+ * ClickHouse-specific `ClickhouseClient` service and the generic `SqlClient`
+ * service. It is intended for analytical application queries, migrations,
+ * background jobs, bulk inserts, and streaming reads that need Effect SQL query
+ * compilation, scoped lifecycle management, interruption, and consistent
+ * `SqlError` classification for ClickHouse failures.
+ *
+ * The client uses the ClickHouse HTTP client APIs for `query`, `command`, and
+ * `insert` operations. Regular queries read JSON result sets, `executeValues`
+ * requests `JSONCompact`, streams request `JSONEachRow`, and `insertQuery`
+ * defaults inserts to `JSONEachRow`. Interrupting an operation aborts the
+ * underlying HTTP request and attempts to kill the generated or supplied
+ * `query_id`. The statement compiler emits ClickHouse typed placeholders such
+ * as `{p1: Type}`; use `param` when the inferred type is too broad, and write
+ * ClickHouse-specific clauses such as engines, `SETTINGS`, `FORMAT`, or
+ * cluster directives explicitly.
+ *
  * @since 1.0.0
  */
 import * as Clickhouse from "@clickhouse/client"

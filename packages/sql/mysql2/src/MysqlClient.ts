@@ -1,4 +1,21 @@
 /**
+ * MySQL client implementation for Effect SQL, backed by the `mysql2` driver.
+ *
+ * This module exposes constructors and layers for providing both the MySQL-specific
+ * `MysqlClient` service and the generic `SqlClient` service. It is intended for server
+ * applications, background workers, migrations, and tests that need Effect SQL query
+ * compilation, scoped resource management, streaming queries, and consistent `SqlError`
+ * classification for MySQL driver failures.
+ *
+ * Each client owns a scoped mysql2 pool, validates connectivity with `SELECT 1` during
+ * acquisition, and closes the pool when the surrounding scope is released. You can configure
+ * the pool from a connection URI or discrete connection fields; when `url` is supplied it
+ * takes precedence over the host, port, database, username, and password fields. Regular
+ * queries run through the shared pool, while transactions acquire a dedicated pooled
+ * connection for their lifetime, so long-running transactions and streams can occupy pool
+ * capacity. Size `maxConnections`, `connectionTTL`, and any mysql2 `poolConfig` with that in
+ * mind.
+ *
  * @since 1.0.0
  */
 import * as Config from "effect/Config"
