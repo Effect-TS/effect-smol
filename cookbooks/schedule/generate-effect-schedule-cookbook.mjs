@@ -761,7 +761,14 @@ const renderPart = (part) => `
   ${part.chapters.map((chapter) => renderChapter(part, chapter)).join("\n")}
 </section>`
 
-const renderFrontMatter = () => outline.frontMatter.map((chapter) => `
+const numberedFrontMatter = () => outline.frontMatter
+  .map((chapter) => ({
+    ...chapter,
+    subsections: chapter.subsections.filter((subsection) => subsection.number)
+  }))
+  .filter((chapter) => chapter.subsections.length > 0)
+
+const renderFrontMatter = () => numberedFrontMatter().map((chapter) => `
 <section class="part-section front-matter" id="${chapter.id}">
   <header class="part-header">
     <p>Front matter</p>
@@ -795,7 +802,7 @@ const tocPart = (part) => `
   <ol>${part.chapters.map(tocChapter).join("")}</ol>
 </details>`
 
-const tocFrontMatter = () => outline.frontMatter.map((chapter) => `
+const tocFrontMatter = () => numberedFrontMatter().map((chapter) => `
 <details class="toc-part front-toc" open>
   <summary><a href="#${chapter.id}">${titleHtml(chapter.title)}</a></summary>
   <ol>${chapter.subsections.map(tocSubsection).join("")}</ol>

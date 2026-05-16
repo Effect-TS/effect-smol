@@ -1,0 +1,89 @@
+---
+book: Effect `Schedule` Cookbook
+section_number: "40.3"
+section_title: "Slow background cadence after readiness"
+part_title: "Part IX — Composition Recipes"
+chapter_title: "40. Warm-up and Steady-State Schedules"
+status: "draft"
+code_included: true
+---
+
+# 40.3 Slow background cadence after readiness
+
+Many services need to check readiness aggressively during startup, then keep checking at a much slower background cadence after the dependency is ready. The important distinction is that readiness is a phase transition, not just a longer delay.
+
+Use one schedule for the startup phase and another for the steady-state phase. `Schedule.andThen` runs the first schedule until it completes, then switches to the second schedule. When the first phase uses the latest successful observation as schedule input, the schedule itself can express "poll quickly until ready, then monitor slowly."
+
+## Problem
+
+A worker cannot do useful work until a dependency is ready. During startup, you want short gaps so the process becomes useful quickly. After readiness has been observed, continuing to check every few hundred milliseconds only creates noise and unnecessary load.
+
+The recurrence policy should make that operational intent visible:
+
+- fast checks while readiness is still pending
+- a clear switch once `Ready` is observed
+- slow, steady background monitoring afterward
+
+## When to use it
+
+Use this recipe for service readiness checks, cache warm-up probes, leader-election status checks, or control-plane watches where startup latency matters but long-term polling pressure should stay low.
+
+It is especially useful when the same effect can be repeated in both phases: first to discover readiness, then to continue observing the dependency at a maintenance cadence.
+
+## When not to use it
+
+Do not use this as a substitute for a real startup deadline. If the service must fail fast when readiness never arrives, add an outer timeout or a separate startup budget around the readiness workflow.
+
+Also avoid polling when the dependency can push a readiness signal, emit an event, or complete a handshake directly. In those cases, a schedule may be unnecessary background work.
+
+## Schedule shape
+
+The startup phase uses `Schedule.spaced("250 millis")` so each failed-to-be-ready observation is followed by a short pause. `Schedule.passthrough` makes the successful value from the repeated effect available as the schedule output, and `Schedule.while` stops the startup phase once that value is `Ready`.
+
+The steady-state phase uses a slower `Schedule.spaced("30 seconds")`. Because it is sequenced with `Schedule.andThen`, it starts only after the startup phase completes.
+
+## Code
+
+```ts
+import { Effect, Schedule } from "effect"
+
+type Readiness =
+  | { readonly _tag: "Starting" }
+  | { readonly _tag: "Ready" }
+
+type ProbeError = { readonly _tag: "ProbeError" }
+
+declare const probeDependency: Effect.Effect<Readiness, ProbeError>
+
+const waitUntilReady = Schedule.spaced("250 millis").pipe(
+  Schedule.satisfiesInputType<Readiness>(),
+  Schedule.passthrough,
+  Schedule.while(({ input }) => input._tag !== "Ready")
+)
+
+const backgroundCadence = Schedule.spaced("30 seconds").pipe(
+  Schedule.satisfiesInputType<Readiness>()
+)
+
+const readinessThenBackground = Schedule.andThen(
+  waitUntilReady,
+  backgroundCadence
+)
+
+export const program = Effect.repeat(
+  probeDependency,
+  readinessThenBackground
+)
+```
+
+## Variants
+
+Use a shorter startup spacing when local readiness usually appears almost immediately, and a longer spacing when the check itself is expensive. For fleet-wide background monitoring, apply `Schedule.jittered` to the steady-state cadence so ready instances do not all probe on the same boundary.
+
+If the monitoring must run on wall-clock intervals, use `Schedule.fixed` for the background phase instead of `Schedule.spaced`. `Schedule.fixed` targets interval boundaries; `Schedule.spaced` waits after each probe completes.
+
+## Notes and caveats
+
+`Effect.repeat` feeds each successful `probeDependency` value into the schedule. That is what lets `waitUntilReady` inspect `Readiness` and complete when it sees `Ready`.
+
+The schedule does not make the first probe wait. The effect runs once, then the schedule decides whether and when to run it again. After `Ready` is observed, the sequenced schedule switches from startup responsiveness to slow background cadence.

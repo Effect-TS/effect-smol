@@ -1,0 +1,148 @@
+---
+book: Effect `Schedule` Cookbook
+section_number: "40.2"
+section_title: "Fast checks during initialization"
+part_title: "Part IX — Composition Recipes"
+chapter_title: "40. Warm-up and Steady-State Schedules"
+status: "draft"
+code_included: true
+---
+
+# 40.2 Fast checks during initialization
+
+During startup, many services need a few quick readiness checks before they can
+accept traffic. A database socket may be opening, a broker connection may still
+be handshaking, or a local cache may need one more probe before it is usable.
+Those checks should happen quickly, but they should not become an unbounded
+startup loop.
+
+Use a short schedule for initialization and make its limits visible. The first
+check runs immediately. The schedule controls only the follow-up attempts after
+a failed check.
+
+## Problem
+
+You need to retry startup checks for a short time while dependencies finish
+coming online. The policy should answer three questions directly:
+
+- how long to wait between checks
+- how many follow-up checks are allowed
+- how much startup time the check may consume
+
+Without an explicit schedule, these rules tend to disappear into ad hoc sleeps
+and counters.
+
+## When to use it
+
+Use this recipe for initialization checks that are expected to settle quickly:
+opening a connection pool, checking a local sidecar, validating that a required
+topic exists, or confirming a warm cache is reachable.
+
+The check must be safe to run more than once. It should observe readiness or
+perform idempotent setup, not repeat a write that could create duplicate work.
+
+## When not to use it
+
+Do not use a fast startup schedule for steady-state monitoring. Once the
+service is running, switch to a slower runtime schedule so health checks do not
+create constant pressure.
+
+Do not retry permanent configuration failures. Missing credentials, malformed
+connection strings, unsupported schema versions, and authorization failures
+should fail startup immediately.
+
+Do not treat the schedule as a hard timeout for an individual check.
+`Schedule.during("2 seconds")` is evaluated at recurrence decision points. Add
+a timeout to the check itself if one probe must not run too long.
+
+## Schedule shape
+
+Combine a fast cadence with a retryable-error predicate, a count limit, and a
+short elapsed budget:
+
+```ts
+Schedule.spaced("100 millis").pipe(
+  Schedule.satisfiesInputType<StartupCheckError>(),
+  Schedule.while(({ input }) => input._tag === "DependencyUnavailable"),
+  Schedule.both(Schedule.recurs(12)),
+  Schedule.both(
+    Schedule.during("2 seconds").pipe(
+      Schedule.satisfiesInputType<StartupCheckError>()
+    )
+  )
+)
+```
+
+`Schedule.spaced("100 millis")` waits briefly after each failed check.
+`Schedule.while` prevents retries for permanent startup errors.
+`Schedule.recurs(12)` allows at most twelve follow-up attempts.
+`Schedule.during("2 seconds")` stops recurrence once the startup budget has
+been used.
+
+The `both` combinator gives intersection semantics: the retry continues only
+while all pieces of the policy still allow another recurrence.
+
+## Code
+
+```ts
+import { Effect, Schedule } from "effect"
+
+type StartupCheckError =
+  | { readonly _tag: "DependencyUnavailable"; readonly dependency: string }
+  | { readonly _tag: "InvalidConfiguration"; readonly message: string }
+
+declare const checkDatabase: Effect.Effect<void, StartupCheckError>
+declare const checkMessageBroker: Effect.Effect<void, StartupCheckError>
+
+const startupChecks = Effect.fnUntraced(function*() {
+  yield* checkDatabase
+  yield* checkMessageBroker
+})
+
+const fastInitializationChecks = Schedule.spaced("100 millis").pipe(
+  Schedule.satisfiesInputType<StartupCheckError>(),
+  Schedule.while(({ input }) => input._tag === "DependencyUnavailable"),
+  Schedule.both(Schedule.recurs(12)),
+  Schedule.both(
+    Schedule.during("2 seconds").pipe(
+      Schedule.satisfiesInputType<StartupCheckError>()
+    )
+  )
+)
+
+export const initialize = startupChecks().pipe(
+  Effect.retry(fastInitializationChecks)
+)
+```
+
+`initialize` runs the first startup check immediately. If a dependency is not
+available yet, it retries every 100 milliseconds while the twelve-retry and
+two-second limits both still allow another attempt. If the check fails with
+`InvalidConfiguration`, the schedule stops and the original failure is returned.
+
+## Variants
+
+For a purely local readiness check, reduce the delay and count, for example
+`Schedule.spaced("25 millis").pipe(Schedule.both(Schedule.recurs(8)))`.
+Keep the elapsed budget short so startup failure is reported quickly.
+
+For startup across many replicas, add `Schedule.jittered` after the cadence is
+correct. Jitter spreads retries so a fleet does not hit the same dependency in
+lockstep during a rollout.
+
+For checks that may hang, place `Effect.timeout` on the checked effect before
+`Effect.retry`. The timeout bounds one probe; the schedule bounds the retry
+window.
+
+## Notes and caveats
+
+`Effect.retry` feeds failures into the schedule. That is why the error type is
+made explicit with `Schedule.satisfiesInputType<StartupCheckError>()` before
+reading `metadata.input` in `Schedule.while`.
+
+The schedule does not delay the first check. It only decides whether to perform
+another check after a failure.
+
+The elapsed budget is checked between attempts. Time spent inside each startup
+check contributes to the elapsed schedule time before the next recurrence
+decision, but the schedule does not interrupt an in-flight check.
