@@ -9,12 +9,18 @@ import * as Option from "../../Option.ts"
 import type * as Body from "./HttpBody.ts"
 
 /**
+ * Represents an HTTP entity tag, either weak or strong.
+ *
  * @category models
  * @since 4.0.0
  */
 export type Etag = Weak | Strong
 
 /**
+ * Weak HTTP entity tag.
+ *
+ * The `value` is the raw tag value without the surrounding quotes or `W/` prefix.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -24,6 +30,10 @@ export interface Weak {
 }
 
 /**
+ * Strong HTTP entity tag.
+ *
+ * The `value` is the raw tag value without the surrounding quotes.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -33,6 +43,8 @@ export interface Strong {
 }
 
 /**
+ * Formats an `Etag` as an HTTP header value, including quotes and the `W/` prefix for weak tags.
+ *
  * @category convertions
  * @since 4.0.0
  */
@@ -46,6 +58,8 @@ export const toString = (self: Etag): string => {
 }
 
 /**
+ * Service for generating ETags from filesystem file information or Web `File`-like metadata.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -67,6 +81,8 @@ const fromFileWeb = (file: Body.HttpBody.FileLike) => {
 }
 
 /**
+ * Layer that provides a `Generator` which produces strong ETags from file size and modification time metadata.
+ *
  * @category Layers
  * @since 4.0.0
  */
@@ -82,6 +98,8 @@ export const layer: Layer.Layer<Generator> = Layer.succeed(
 })
 
 /**
+ * Layer that provides a `Generator` which produces weak ETags from file size and modification time metadata.
+ *
  * @category Layers
  * @since 4.0.0
  */

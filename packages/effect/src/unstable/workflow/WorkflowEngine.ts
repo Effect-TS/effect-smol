@@ -19,6 +19,10 @@ import type * as DurableDeferred from "./DurableDeferred.ts"
 import * as Workflow from "./Workflow.ts"
 
 /**
+ * Service interface for workflow runtimes, responsible for registering and
+ * executing workflows and coordinating activities, durable deferreds,
+ * interrupts, resumes, and clocks.
+ *
  * @category Services
  * @since 4.0.0
  */
@@ -196,6 +200,10 @@ export class WorkflowEngine extends Context.Service<
 >()("effect/workflow/WorkflowEngine") {}
 
 /**
+ * Per-execution workflow service containing the execution ID, workflow
+ * definition, long-lived scope, suspension state, interruption state, and
+ * activity coordination state.
+ *
  * @category Services
  * @since 4.0.0
  */
@@ -261,6 +269,9 @@ export class WorkflowInstance extends Context.Service<
 }
 
 /**
+ * Low-level workflow engine contract that works with encoded payloads and
+ * results before `makeUnsafe` adds typed schema decoding and encoding.
+ *
  * @category Encoded
  * @since 4.0.0
  */
@@ -330,6 +341,10 @@ export interface Encoded {
 }
 
 /**
+ * Builds a typed `WorkflowEngine` service from a low-level encoded
+ * implementation. This is unsafe because the implementation must correctly
+ * persist, resume, and encode workflow state.
+ *
  * @category Constructors
  * @since 4.0.0
  */

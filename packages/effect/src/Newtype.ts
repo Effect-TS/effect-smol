@@ -107,6 +107,9 @@ export interface Newtype<in out Key extends string, out Carrier> {
 }
 
 /**
+ * Namespace containing type-level helpers for `Newtype` values, including
+ * constraints and utilities for extracting a newtype's key and carrier type.
+ *
  * @since 4.0.0
  */
 export declare namespace Newtype {

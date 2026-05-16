@@ -368,11 +368,11 @@ export const structureKeys = (o: object, keys: Iterable<PropertyKey>) => {
 }
 
 /**
- * Computes a hash value for an object using all of its enumerable keys.
+ * Computes a structural hash for an object using Effect's object key
+ * collection.
  *
- * This function creates a hash value based on all enumerable properties of an object.
- * It's a convenient way to hash an entire object structure when you want to consider
- * all its properties.
+ * The hash is based on the object's structural keys and their values, including
+ * symbol keys and relevant prototype keys for non-plain objects.
  *
  * **Example** (Hashing object structures)
  *

@@ -17,12 +17,16 @@ import type * as Types from "../../Types.ts"
 const TypeId = "~effect/http/Cookies"
 
 /**
+ * Returns `true` when a value is a `Cookies` collection.
+ *
  * @category refinements
  * @since 4.0.0
  */
 export const isCookies = (u: unknown): u is Cookies => Predicate.hasProperty(u, TypeId)
 
 /**
+ * Immutable collection of HTTP cookies keyed by cookie name.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -32,12 +36,19 @@ export interface Cookies extends Pipeable, Inspectable.Inspectable {
 }
 
 /**
+ * Schema interface for validating and encoding `Cookies` collections.
+ *
  * @category Schemas
  * @since 4.0.0
  */
 export interface CookiesSchema extends Schema.declare<Cookies, Record.ReadonlyRecord<string, Cookie>> {}
 
 /**
+ * Schema for `Cookies` collections.
+ *
+ * JSON encoding uses `Set-Cookie` header strings, while isomorphic encoding uses
+ * a readonly record of cookie values.
+ *
  * @category Schemas
  * @since 4.0.0
  */
@@ -76,6 +87,9 @@ export const CookiesSchema: CookiesSchema = Schema.declare(
 const CookieTypeId = "~effect/http/Cookies/Cookie"
 
 /**
+ * HTTP cookie value with its decoded value, encoded value, and optional cookie
+ * attributes such as domain, path, expiration, security, and same-site settings.
+ *
  * @category cookie
  * @since 4.0.0
  */
@@ -98,18 +112,24 @@ export interface Cookie extends Inspectable.Inspectable {
 }
 
 /**
+ * Returns `true` when a value is a `Cookie`.
+ *
  * @category Guards
  * @since 4.0.0
  */
 export const isCookie = (u: unknown): u is Cookie => Predicate.hasProperty(u, CookieTypeId)
 
 /**
+ * Schema interface for validating `Cookie` values.
+ *
  * @category Schemas
  * @since 4.0.0
  */
 export interface CookieSchema extends Schema.declare<Cookie> {}
 
 /**
+ * Schema for `Cookie` values.
+ *
  * @category Schemas
  * @since 4.0.0
  */
@@ -131,6 +151,9 @@ export const CookieSchema: CookieSchema = Schema.declare(
 const CookieErrorTypeId = "~effect/http/Cookies/CookieError"
 
 /**
+ * Structured reason describing why cookie construction failed, such as invalid
+ * name, value, domain, path, or infinite max-age.
+ *
  * @category errors
  * @since 4.0.0
  */
@@ -145,6 +168,10 @@ export class CookiesErrorReason extends Data.Error<{
 }> {}
 
 /**
+ * Error returned when a cookie name, value, domain, path, or max-age option is invalid.
+ *
+ * Inspect `reason` to determine the specific validation failure.
+ *
  * @category errors
  * @since 4.0.0
  */
@@ -186,7 +213,7 @@ const Proto: Omit<Cookies, "cookies"> = {
 }
 
 /**
- * Create a Cookies object from an Iterable
+ * Creates a `Cookies` collection from an existing readonly record of cookies keyed by cookie name.
  *
  * @category constructors
  * @since 4.0.0
@@ -370,6 +397,8 @@ function parseSetCookie(header: string): Cookie | undefined {
 export const empty: Cookies = fromIterable([])
 
 /**
+ * Returns `true` when the `Cookies` collection contains no cookies.
+ *
  * @category refinements
  * @since 4.0.0
  */
@@ -392,7 +421,9 @@ const CookieProto = {
 }
 
 /**
- * Create a new cookie
+ * Creates a cookie, validating the name, encoded value, domain, path, and finite `maxAge`.
+ *
+ * Returns a `CookiesError` in the `Result` failure channel when validation fails.
  *
  * @category constructors
  * @since 4.0.0
@@ -521,7 +552,9 @@ export const get: {
 )
 
 /**
- * Get a cookie from a Cookies object
+ * Gets the decoded value of a cookie by name.
+ *
+ * Returns `Option.none()` when the cookie is not present.
  *
  * @category combinators
  * @since 4.0.0
@@ -535,7 +568,9 @@ export const getValue: {
 )
 
 /**
- * Add a cookie to a Cookies object
+ * Creates and adds a cookie by name and value.
+ *
+ * The cookie fields are validated first; invalid input returns a `CookiesError` in the `Result` failure channel.
  *
  * @category combinators
  * @since 4.0.0
@@ -562,7 +597,7 @@ export const set: {
 )
 
 /**
- * Add a cookie to a Cookies object
+ * Creates and adds a cookie by name and value, throwing if the cookie fields are invalid.
  *
  * @category combinators
  * @since 4.0.0
@@ -590,7 +625,9 @@ export const setUnsafe: {
 )
 
 /**
- * Add an expired cookie to a Cookies object
+ * Adds an expired cookie with an empty value, `Max-Age=0`, and an epoch `Expires` value.
+ *
+ * Returns a `CookiesError` in the `Result` failure channel when the name or options are invalid.
  *
  * @category combinators
  * @since 4.0.0
@@ -650,7 +687,9 @@ export const expireCookieUnsafe: {
 )
 
 /**
- * Add multiple cookies to a Cookies object
+ * Creates and adds multiple cookies from name/value/options tuples.
+ *
+ * If any tuple is invalid, returns the first `CookiesError` and leaves the original collection unchanged.
  *
  * @category combinators
  * @since 4.0.0
@@ -786,6 +825,8 @@ export const toCookieHeader = (self: Cookies): string =>
   Object.values(self.cookies).map((cookie) => `${cookie.name}=${cookie.valueEncoded}`).join("; ")
 
 /**
+ * Converts a `Cookies` collection to a record of decoded cookie values keyed by cookie name.
+ *
  * @category encoding
  * @since 4.0.0
  */
@@ -800,6 +841,8 @@ export const toRecord = (self: Cookies): Record<string, string> => {
 }
 
 /**
+ * Schema transformation between `Cookies` and a record of decoded string values keyed by cookie name.
+ *
  * @category Schemas
  * @since 4.0.0
  */
@@ -814,7 +857,7 @@ export const schemaRecord = CookiesSchema.pipe(
 )
 
 /**
- * Serialize a Cookies object into Headers object containing one or more Set-Cookie headers
+ * Serializes a `Cookies` collection into an array of `Set-Cookie` header values.
  *
  * @category encoding
  * @since 4.0.0

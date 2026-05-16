@@ -6,6 +6,8 @@
 import * as predicate from "./Predicate.ts"
 
 /**
+ * Re-exports the JavaScript `RegExp` constructor from `globalThis`.
+ *
  * **Example** (Creating a regular expression)
  *
  * ```ts

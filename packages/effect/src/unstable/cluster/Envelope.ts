@@ -12,28 +12,41 @@ import { EntityAddress } from "./EntityAddress.ts"
 import { type Snowflake, SnowflakeFromBigInt } from "./Snowflake.ts"
 
 /**
+ * Type identifier used to mark runtime cluster envelope values.
+ *
  * @category Type IDs
  * @since 4.0.0
  */
 export const TypeId = "~effect/cluster/Envelope"
 
 /**
+ * Union of cluster envelopes exchanged for an RPC request.
+ *
+ * An envelope is either a request, an acknowledgement for a streamed reply chunk,
+ * or an interrupt signal.
+ *
  * @category models
  * @since 4.0.0
  */
 export type Envelope<R extends Rpc.Any> = Request<R> | AckChunk | Interrupt
 
 /**
+ * JSON-serializable form of a cluster envelope.
+ *
  * @category models
  * @since 4.0.0
  */
 export type Encoded = PartialRequestEncoded | AckChunkEncoded | InterruptEncoded
 
 /**
+ * Helper types associated with cluster envelopes.
+ *
  * @since 4.0.0
  */
 export declare namespace Envelope {
   /**
+   * Envelope type for any RPC protocol.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -41,6 +54,11 @@ export declare namespace Envelope {
 }
 
 /**
+ * Runtime envelope for an RPC request addressed to a specific entity.
+ *
+ * It carries the request ID, entity address, RPC tag, decoded payload, request
+ * headers, and optional tracing context.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -58,6 +76,11 @@ export interface Request<in out Rpc extends Rpc.Any> {
 }
 
 /**
+ * Schema for a request envelope before its RPC payload has been decoded.
+ *
+ * The envelope metadata is decoded, while the payload remains `unknown` until it
+ * is decoded with the target RPC payload schema.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -74,6 +97,11 @@ export class PartialRequest extends Schema.Opaque<PartialRequest>()(Schema.Struc
 })) {}
 
 /**
+ * Serialized JSON shape of a request envelope.
+ *
+ * Identifiers are encoded as strings and the RPC payload remains unknown until
+ * decoded with the RPC schema.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -97,6 +125,10 @@ export interface PartialRequestEncoded {
 }
 
 /**
+ * Envelope acknowledging receipt of a streamed reply chunk for a request.
+ *
+ * The `replyId` identifies the chunk reply that has been received.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -124,6 +156,8 @@ export class AckChunk extends Schema.Class<AckChunk>("effect/cluster/Envelope/Ac
 }
 
 /**
+ * Serialized JSON shape of an `AckChunk` envelope.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -143,6 +177,8 @@ export interface AckChunkEncoded {
 }
 
 /**
+ * Envelope used to interrupt an in-flight entity request.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -169,6 +205,8 @@ export class Interrupt extends Schema.Class<Interrupt>("effect/cluster/Envelope/
 }
 
 /**
+ * Serialized JSON shape of an `Interrupt` envelope.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -187,6 +225,10 @@ export interface InterruptEncoded {
 }
 
 /**
+ * Schema union for partially decoded cluster envelopes.
+ *
+ * It accepts `PartialRequest`, `AckChunk`, and `Interrupt` envelope values.
+ *
  * @category schemas
  * @since 4.0.0
  */
@@ -199,12 +241,16 @@ export const Partial: Schema.Union<
 > = Schema.Union([PartialRequest, AckChunk, Interrupt])
 
 /**
+ * Decoded value type produced by the `Partial` envelope schema.
+ *
  * @category schemas
  * @since 4.0.0
  */
 export type Partial = typeof Partial.Type
 
 /**
+ * JSON codec for partial cluster envelopes.
+ *
  * @category schemas
  * @since 4.0.0
  */
@@ -214,6 +260,8 @@ export const PartialJson: Schema.Codec<
 > = Schema.toCodecJson(Partial) as any
 
 /**
+ * Mutable array schema for JSON-encoded partial cluster envelopes.
+ *
  * @category schemas
  * @since 4.0.0
  */
@@ -222,10 +270,14 @@ export const PartialArray: Schema.mutable<
 > = Schema.mutable(Schema.Array(PartialJson))
 
 /**
+ * Helper types associated with request envelopes.
+ *
  * @since 4.0.0
  */
 export declare namespace Request {
   /**
+   * Request envelope type for any RPC protocol.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -233,12 +285,20 @@ export declare namespace Request {
 }
 
 /**
+ * Returns `true` when the supplied value is a runtime cluster envelope.
+ *
+ * The check is based on the envelope type identifier.
+ *
  * @category refinements
  * @since 4.0.0
  */
 export const isEnvelope = (u: unknown): u is Envelope<any> => Predicate.hasProperty(u, TypeId)
 
 /**
+ * Constructs a runtime request envelope and attaches the envelope type identifier.
+ *
+ * Tracing fields are included only when a `traceId` is provided.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -271,6 +331,9 @@ export const makeRequest = <Rpc extends Rpc.Any>(
 })
 
 /**
+ * Schema declaration that recognizes runtime `Envelope` values by their type
+ * identifier.
+ *
  * @category serialization / deserialization
  * @since 4.0.0
  */
@@ -279,6 +342,8 @@ export const Envelope = Schema.declare(isEnvelope, {
 })
 
 /**
+ * Schema declaration that recognizes runtime request envelopes.
+ *
  * @category serialization / deserialization
  * @since 4.0.0
  */
@@ -288,6 +353,9 @@ export const Request = Schema.declare(
 )
 
 /**
+ * Transformation that decodes plain request data with `makeRequest` and encodes
+ * request envelopes back to their raw representation.
+ *
  * @category serialization / deserialization
  * @since 4.0.0
  */
@@ -300,6 +368,9 @@ export const RequestTransform: Transformation.Transformation<
 })
 
 /**
+ * Returns the storage primary key for a request envelope whose payload has a
+ * primary key, or `null` when the envelope is not a keyed request.
+ *
  * @category primary key
  * @since 4.0.0
  */
@@ -315,6 +386,9 @@ export const primaryKey = <R extends Rpc.Any>(envelope: Envelope<R>): string | n
 }
 
 /**
+ * Builds a storage primary-key string from an entity address, RPC tag, and
+ * payload primary-key ID.
+ *
  * @category primary key
  * @since 4.0.0
  */

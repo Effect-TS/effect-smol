@@ -60,6 +60,8 @@ const SchemaProto = {
 }
 
 /**
+ * String union describing the failure categories for IndexedDB database opening, migration, and schema operations.
+ *
  * @category errors
  * @since 4.0.0
  */
@@ -73,6 +75,8 @@ export type ErrorReason =
   | "MissingIndex"
 
 /**
+ * Tagged error for IndexedDB database operations, carrying a database error reason and the original cause.
+ *
  * @category errors
  * @since 4.0.0
  */
@@ -90,6 +94,8 @@ export class IndexedDbDatabaseError extends Data.TaggedError(
 }
 
 /**
+ * Service tag for an open IndexedDB database, its `IDBKeyRange` constructor, reactivity service, and rebuild effect.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -104,6 +110,8 @@ export class IndexedDbDatabase extends Context.Service<
 >()(TypeId) {}
 
 /**
+ * Describes an IndexedDB schema version and its migrations, and acts as an effect that yields a query builder for the target version.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -155,6 +163,8 @@ export interface IndexedDbSchema<
 }
 
 /**
+ * Query builder available during a database migration, extended with object-store and index management helpers for the active `IDBTransaction`.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -192,6 +202,8 @@ export interface Transaction<
 }
 
 /**
+ * Extracts the string-literal index names defined by an `IndexedDbTable`.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -201,6 +213,8 @@ export type IndexFromTable<Table extends IndexedDbTable.AnyWithProps> = IsString
   : never
 
 /**
+ * Extracts the valid index names for a table name within an IndexedDB version.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -212,6 +226,8 @@ export type IndexFromTableName<
 >
 
 /**
+ * Type-erased IndexedDB schema shape used when traversing schema migration chains.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -227,6 +243,8 @@ export interface Any {
 }
 
 /**
+ * Type-erased `IndexedDbSchema` covering any source version, target version, and migration error type.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -237,6 +255,8 @@ export type AnySchema = IndexedDbSchema<
 >
 
 /**
+ * Creates the initial `IndexedDbSchema` from a version and an initialization migration run during database upgrade.
+ *
  * @category constructors
  * @since 4.0.0
  */

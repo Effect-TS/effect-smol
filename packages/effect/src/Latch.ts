@@ -5,6 +5,14 @@ import type * as Effect from "./Effect.ts"
 import * as internal from "./internal/effect.ts"
 
 /**
+ * A reusable coordination primitive that lets fibers wait until they are
+ * released by the latch.
+ *
+ * A closed latch causes `await` and `whenOpen` to suspend. `open` opens the
+ * latch and releases current and future waiters, `release` releases only
+ * current waiters without opening it, and `close` makes future waiters suspend
+ * again.
+ *
  * **Example** (Coordinating fibers with a latch)
  *
  * ```ts
@@ -42,7 +50,10 @@ export interface Latch {
 }
 
 /**
- * Creates a new Latch unsafely.
+ * Creates a `Latch` synchronously, outside of `Effect`.
+ *
+ * The latch starts closed by default; pass `true` to create it open. Use this
+ * only when synchronous allocation is required, otherwise prefer `make`.
  *
  * **Previously Known As**
  *
@@ -78,7 +89,9 @@ export interface Latch {
 export const makeUnsafe: (open?: boolean | undefined) => Latch = internal.makeLatchUnsafe
 
 /**
- * Creates a new Latch.
+ * Creates a `Latch` inside `Effect`.
+ *
+ * The latch starts closed by default; pass `true` to create it open.
  *
  * **Previously Known As**
  *
@@ -116,7 +129,10 @@ export const makeUnsafe: (open?: boolean | undefined) => Latch = internal.makeLa
 export const make: (open?: boolean | undefined) => Effect.Effect<Latch> = internal.makeLatch
 
 /**
- * Opens the latch, releasing all fibers waiting on it.
+ * Opens the latch and releases fibers waiting on it.
+ *
+ * The returned effect succeeds with `true` when this call changed the latch
+ * from closed to open, or `false` if it was already open.
  *
  * @category combinators
  * @since 4.0.0
@@ -124,7 +140,11 @@ export const make: (open?: boolean | undefined) => Effect.Effect<Latch> = intern
 export const open = (self: Latch): Effect.Effect<boolean> => self.open
 
 /**
- * Opens the latch, releasing all fibers waiting on it.
+ * Synchronously opens the latch and releases fibers waiting on it.
+ *
+ * Returns `true` when this call changed the latch from closed to open, or
+ * `false` if it was already open. This unsafe variant performs the state
+ * change immediately instead of returning an `Effect`.
  *
  * @category unsafe
  * @since 4.0.0
@@ -132,7 +152,11 @@ export const open = (self: Latch): Effect.Effect<boolean> => self.open
 export const openUnsafe = (self: Latch): boolean => self.openUnsafe()
 
 /**
- * Releases all fibers waiting on the latch, without opening it.
+ * Releases the fibers currently waiting on a closed latch without opening it.
+ *
+ * The returned effect succeeds with `true` when release was requested while
+ * the latch was closed, or `false` if the latch was already open. Future
+ * waiters still suspend until the latch is opened or released again.
  *
  * @category combinators
  * @since 4.0.0
@@ -152,7 +176,10 @@ export {
 }
 
 /**
- * Closes the latch.
+ * Closes the latch so future `await` and `whenOpen` calls suspend.
+ *
+ * The returned effect succeeds with `true` when this call changed the latch
+ * from open to closed, or `false` if it was already closed.
  *
  * @category combinators
  * @since 4.0.0
@@ -160,7 +187,12 @@ export {
 export const close = (self: Latch): Effect.Effect<boolean> => self.close
 
 /**
- * Closes the latch.
+ * Synchronously closes the latch so future `await` and `whenOpen` calls
+ * suspend.
+ *
+ * Returns `true` when this call changed the latch from open to closed, or
+ * `false` if it was already closed. This unsafe variant performs the state
+ * change immediately instead of returning an `Effect`.
  *
  * @category unsafe
  * @since 4.0.0
@@ -168,7 +200,12 @@ export const close = (self: Latch): Effect.Effect<boolean> => self.close
 export const closeUnsafe = (self: Latch): boolean => self.closeUnsafe()
 
 /**
- * Runs the given effect only when the latch is open.
+ * Waits on the latch, then runs the provided effect.
+ *
+ * If the latch is open, the effect runs immediately. If it is closed, the
+ * returned effect suspends until the latch is opened or the current waiters are
+ * released. The provided effect's success, failure, and requirements are
+ * preserved.
  *
  * @category combinators
  * @since 4.0.0

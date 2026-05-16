@@ -9,6 +9,9 @@ import { WorkerErrorReason } from "../workers/WorkerError.ts"
 const TypeId = "~effect/rpc/RpcClientError"
 
 /**
+ * Represents a client-side RPC defect, such as a protocol violation or
+ * decoding failure, with a message and original cause.
+ *
  * @category Errors
  * @since 4.0.0
  */
@@ -19,6 +22,9 @@ export class RpcClientDefect extends Schema.ErrorClass<RpcClientDefect>("effect/
 }) {}
 
 /**
+ * The public RPC client error type, wrapping worker, socket, HTTP client, and
+ * client protocol defect failures.
+ *
  * @category Errors
  * @since 4.0.0
  */

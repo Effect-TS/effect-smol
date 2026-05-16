@@ -15,6 +15,8 @@ import type * as Body from "./HttpBody.ts"
 import * as Response from "./HttpServerResponse.ts"
 
 /**
+ * Service for platform-specific HTTP response helpers, including file-backed server responses.
+ *
  * @category tags
  * @since 4.0.0
  */
@@ -38,6 +40,8 @@ export class HttpPlatform extends Context.Service<HttpPlatform, {
 }>()("effect/http/HttpPlatform") {}
 
 /**
+ * Creates an `HttpPlatform` service from platform-specific file response constructors, using `FileSystem` and `Etag.Generator`.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -117,6 +121,12 @@ export const make: (impl: {
 })
 
 /**
+ * Provides the default `HttpPlatform` implementation for serving file paths and
+ * `File`-like values as streamed HTTP responses.
+ *
+ * The layer uses the `FileSystem` and weak ETag services to add file metadata
+ * headers such as `etag` and `last-modified`.
+ *
  * @category layers
  * @since 4.0.0
  */

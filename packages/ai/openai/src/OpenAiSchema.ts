@@ -15,6 +15,11 @@ const MessageRole = Schema.Literals(["system", "developer", "user", "assistant"]
 const ImageDetail = Schema.Literals(["low", "high", "auto"])
 
 /**
+ * Schema for optional `include` values on OpenAI Responses requests.
+ *
+ * **Details**
+ * These values request additional response fields such as image URLs, encrypted reasoning content, output logprobs, code interpreter outputs, or web search sources.
+ *
  * @since 1.0.0
  */
 export const IncludeEnum = Schema.Literals([

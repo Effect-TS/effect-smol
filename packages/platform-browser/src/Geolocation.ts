@@ -13,6 +13,8 @@ const TypeId = "~@effect/platform-browser/Geolocation"
 const ErrorTypeId = "~@effect/platform-browser/Geolocation/GeolocationError"
 
 /**
+ * Service interface for browser geolocation, providing effects for the current position and streams of watched positions.
+ *
  * @category Models
  * @since 1.0.0
  */
@@ -31,12 +33,16 @@ export interface Geolocation {
 }
 
 /**
+ * Service tag for the browser `Geolocation` service.
+ *
  * @category Service
  * @since 1.0.0
  */
 export const Geolocation: Context.Service<Geolocation, Geolocation> = Context.Service<Geolocation>(TypeId)
 
 /**
+ * Tagged error wrapping a browser geolocation failure reason.
+ *
  * @category Errors
  * @since 1.0.0
  */
@@ -60,6 +66,8 @@ export class GeolocationError extends Data.TaggedError("GeolocationError")<{
 }
 
 /**
+ * Error reason for the browser geolocation `POSITION_UNAVAILABLE` failure.
+ *
  * @category Errors
  * @since 1.0.0
  */
@@ -72,6 +80,8 @@ export class PositionUnavailable extends Data.TaggedError("PositionUnavailable")
 }
 
 /**
+ * Error reason for the browser geolocation `PERMISSION_DENIED` failure.
+ *
  * @category Errors
  * @since 1.0.0
  */
@@ -84,6 +94,8 @@ export class PermissionDenied extends Data.TaggedError("PermissionDenied")<{
 }
 
 /**
+ * Error reason for the browser geolocation `TIMEOUT` failure.
+ *
  * @category Errors
  * @since 1.0.0
  */
@@ -96,6 +108,8 @@ export class Timeout extends Data.TaggedError("Timeout")<{
 }
 
 /**
+ * Union of browser geolocation error reasons represented by the service.
+ *
  * @category Errors
  * @since 1.0.0
  */
@@ -141,6 +155,8 @@ const makeQueue = (
   )
 
 /**
+ * Layer that provides `Geolocation` using `navigator.geolocation`, with watched positions buffered in a sliding queue.
+ *
  * @category Layers
  * @since 1.0.0
  */
@@ -162,6 +178,8 @@ export const layer: Layer.Layer<Geolocation> = Layer.succeed(
 )
 
 /**
+ * Streams positions from the `Geolocation` service using `watchPosition`, with an optional sliding buffer size.
+ *
  * @category Accessors
  * @since 1.0.0
  */

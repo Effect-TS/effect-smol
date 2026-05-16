@@ -216,7 +216,10 @@ export const uncapitalize = <T extends string>(self: T): Uncapitalize<T> => {
 }
 
 /**
- * Replaces the first occurrence of a substring or pattern in a string.
+ * Replaces matches in a string using `String.prototype.replace`.
+ *
+ * String search values and non-global regular expressions replace the first
+ * match; global regular expressions replace every match.
  *
  * **Example** (Replacing a substring)
  *
@@ -394,7 +397,7 @@ export const isEmpty = (self: string): self is "" => self.length === 0
 export const isNonEmpty = (self: string): boolean => self.length > 0
 
 /**
- * Calculate the number of characters in a `string`.
+ * Returns the JavaScript string length, measured in UTF-16 code units.
  *
  * **Example** (Getting string length)
  *
@@ -634,7 +637,9 @@ export const lastIndexOf = (searchString: string) => (self: string): Option.Opti
   Option.filter(Option.some(self.lastIndexOf(searchString)), number.isGreaterThanOrEqualTo(0))
 
 /**
- * Compares two strings according to the current locale.
+ * Compares two strings using locale-aware collation, with optional locales and
+ * collator options, and returns the result as an `Ordering` (`-1`, `0`, or
+ * `1`).
  *
  * **Example** (Comparing strings by locale)
  *
@@ -655,7 +660,8 @@ export const localeCompare =
     number.sign(self.localeCompare(that, locales, options))
 
 /**
- * A `pipe`-able version of the native `match` method.
+ * Matches a string against a pattern and returns `Option.some` with the match
+ * array, or `Option.none` when the pattern does not match.
  *
  * **Example** (Matching regular expressions)
  *
@@ -678,7 +684,8 @@ export const match = (regExp: RegExp | string) => (self: string): Option.Option<
   Option.fromNullOr(self.match(regExp))
 
 /**
- * It is the `pipe`-able version of the native `matchAll` method.
+ * Returns an iterator over all regular expression matches in the string using
+ * native `String.prototype.matchAll` semantics.
  *
  * **Example** (Iterating regular expression matches)
  *
@@ -797,7 +804,8 @@ export const replaceAll = (searchValue: string | RegExp, replaceValue: string) =
   self.replaceAll(searchValue, replaceValue)
 
 /**
- * Searches for a match between a regular expression and the string.
+ * Returns the index of the first match for a string or regular expression, or
+ * `Option.none` when no match is found.
  *
  * **Example** (Searching strings)
  *
@@ -1195,7 +1203,8 @@ const isLineBreak2 = (char0: string, char1: string): boolean => char0.charCodeAt
 const linesSeparated = (self: string, stripped: boolean): LinesIterator => new LinesIterator(self, stripped)
 
 /**
- * Normalize a string to a specific case format
+ * Normalizes a string by splitting it into word parts, transforming each part,
+ * and joining the parts with a configurable delimiter.
  *
  * @category transforming
  * @since 4.0.0

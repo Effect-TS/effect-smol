@@ -49,7 +49,10 @@ export interface Duration extends Equal.Equal, Pipeable, Inspectable.Inspectable
 }
 
 /**
- * The internal representation of a `Duration` value.
+ * Tagged representation of a `Duration` value.
+ *
+ * A duration is represented as milliseconds, nanoseconds, positive infinity,
+ * or negative infinity.
  *
  * @category models
  * @since 2.0.0
@@ -922,7 +925,11 @@ export const toHrTime = (input: Input): [seconds: number, nanos: number] => {
 }
 
 /**
- * Pattern matches on a Duration, providing different handlers for millis and nanos.
+ * Pattern matches on the representation of a `Duration`.
+ *
+ * Provide handlers for millisecond-backed values, nanosecond-backed values,
+ * and positive infinity. Use `onNegativeInfinity` to handle negative infinity
+ * separately; otherwise negative infinity is handled by `onInfinity`.
  *
  * **Example** (Pattern matching on duration representations)
  *
@@ -1077,7 +1084,8 @@ export const Order: order.Order<Duration> = order.make((self, that) =>
 )
 
 /**
- * Checks if a `Duration` is between a `minimum` and `maximum` value.
+ * Returns `true` if a `Duration` is greater than or equal to `minimum` and
+ * less than or equal to `maximum`, according to `Duration.Order`.
  *
  * **Example** (Checking duration ranges)
  *
@@ -1185,7 +1193,11 @@ export const clamp: {
 } = order.clamp(Order)
 
 /**
- * Divides a Duration by a number, returning `Option.none()` if division is invalid.
+ * Safely divides a `Duration` by a finite, non-zero number.
+ *
+ * Returns `Option.none()` for zero, negative zero, or non-finite divisors. For
+ * nanosecond-backed durations, also returns `Option.none()` when the divisor
+ * cannot be converted to a `bigint`, such as a fractional divisor.
  *
  * **Example** (Safely dividing durations)
  *
@@ -1225,7 +1237,14 @@ export const divide: {
 )
 
 /**
- * Divides a Duration by a number, potentially returning infinity or zero.
+ * Divides a `Duration` by a number using fallback rules instead of returning
+ * an `Option`.
+ *
+ * Non-finite divisors return `Duration.zero`. Division by positive or negative
+ * zero can produce signed infinity for non-zero finite durations, while zero
+ * or infinite durations divided by zero produce `Duration.zero`.
+ * Nanosecond-backed durations return `Duration.zero` when the divisor cannot
+ * be converted to a `bigint`.
  *
  * **Example** (Dividing durations unsafely)
  *
@@ -1272,7 +1291,12 @@ export const divideUnsafe: {
 )
 
 /**
- * Multiplies a Duration by a number.
+ * Multiplies a `Duration` by a number.
+ *
+ * For nanosecond-backed durations, the multiplier must be convertible to a
+ * `bigint`; fractional or non-finite multipliers can throw. Infinite
+ * durations return positive infinity, negative infinity, or zero depending on
+ * the multiplier sign.
  *
  * **Example** (Multiplying durations)
  *
@@ -1495,7 +1519,11 @@ export const equals: {
 } = dual(2, (self: Duration, that: Duration): boolean => Equivalence(self, that))
 
 /**
- * Converts a `Duration` to its parts.
+ * Decomposes a `Duration` into normalized signed components.
+ *
+ * Finite durations are returned as `{ days, hours, minutes, seconds, millis,
+ * nanos }`. Infinite durations return every component as `Infinity` or
+ * `-Infinity`.
  *
  * **Example** (Decomposing durations into parts)
  *

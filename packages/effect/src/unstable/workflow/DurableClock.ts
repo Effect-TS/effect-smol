@@ -12,6 +12,9 @@ import type { WorkflowEngine, WorkflowInstance } from "./WorkflowEngine.ts"
 const TypeId = "~effect/workflow/DurableClock"
 
 /**
+ * Represents a durable workflow timer with a name, duration, and deferred
+ * completed when the timer wakes.
+ *
  * @category Models
  * @since 4.0.0
  */
@@ -23,6 +26,9 @@ export interface DurableClock {
 }
 
 /**
+ * Creates a durable clock definition and its associated deferred wake-up
+ * signal.
+ *
  * @category Constructors
  * @since 4.0.0
  */
@@ -48,6 +54,9 @@ const InstanceTag = Context.Service<
 )
 
 /**
+ * Sleeps inside a workflow, using an in-memory activity for durations at or
+ * below the threshold and scheduling a durable clock for longer durations.
+ *
  * @category Sleeping
  * @since 1.0.0
  */

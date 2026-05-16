@@ -44,6 +44,8 @@ const CommonProto = {
 }
 
 /**
+ * String union describing IndexedDB query failure categories such as decoding, encoding, and transaction errors.
+ *
  * @category errors
  * @since 4.0.0
  */
@@ -54,6 +56,8 @@ export type ErrorReason =
   | "TransactionError"
 
 /**
+ * Tagged error for IndexedDB query operations, carrying a query error reason and the original cause.
+ *
  * @category errors
  * @since 4.0.0
  */
@@ -72,6 +76,8 @@ export class IndexedDbQueryError extends Data.TaggedError(
 }
 
 /**
+ * Typed query builder for an IndexedDB version, with helpers for table queries, database access, clearing data, and running effects in a shared transaction.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -114,6 +120,8 @@ export interface IndexedDbQueryBuilder<
 }
 
 /**
+ * Valid key-path type for a table schema, using encoded fields whose values are IndexedDB-valid keys.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -122,6 +130,8 @@ export type KeyPath<TableSchema extends IndexedDbTable.AnySchemaStruct> =
   | NonEmptyReadonlyArray<IndexedDbValidKeys<TableSchema>>
 
 /**
+ * Valid numeric key-path type for a table schema, used for auto-increment key paths.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -130,11 +140,15 @@ export type KeyPathNumber<TableSchema extends IndexedDbTable.AnySchemaStruct> =
   | NonEmptyReadonlyArray<IndexedDbValidNumberKeys<TableSchema>>
 
 /**
+ * Namespace containing the typed IndexedDB query model interfaces and helper types.
+ *
  * @category models
  * @since 4.0.0
  */
 export declare namespace IndexedDbQuery {
   /**
+   * Decoded row type returned by select queries, adding a `key` field when the table does not define a key path.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -146,6 +160,8 @@ export declare namespace IndexedDbQuery {
     IndexedDbTable.TableSchema<Table>["Type"]
 
   /**
+   * Input type for insert and upsert operations, adjusted for auto-increment keys and out-of-line keys.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -178,6 +194,8 @@ export declare namespace IndexedDbQuery {
       : {})
 
   /**
+   * Value type accepted by `equals` comparisons for a table key path or index.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -190,6 +208,8 @@ export declare namespace IndexedDbQuery {
     : { [I in keyof KeyPath]: KeyPath[I] extends keyof Type ? Type[KeyPath[I]] | [] : never }
 
   /**
+   * Value type accepted by range comparisons for a table key path or index, including partial tuples for compound indexes.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -207,12 +227,16 @@ export declare namespace IndexedDbQuery {
     never
 
   /**
+   * Mutation input type for insert and upsert operations, including any required key fields.
+   *
    * @category models
    * @since 4.0.0
    */
   export type ModifyWithKey<Table extends IndexedDbTable.AnyWithProps> = ModifyType<Table>
 
   /**
+   * Query entry point for a table, exposing clear, select, count, delete, insert, and upsert operations.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -274,6 +298,8 @@ export declare namespace IndexedDbQuery {
   }
 
   /**
+   * Effect model for clearing all rows from a table.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -286,6 +312,8 @@ export declare namespace IndexedDbQuery {
   type ComparisonKeys = "equals" | "gte" | "lte" | "gt" | "lt" | "between"
 
   /**
+   * Effect model for counting table rows, optionally constrained by an index and key-range comparisons.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -329,6 +357,8 @@ export declare namespace IndexedDbQuery {
   }
 
   /**
+   * Intermediate delete builder used to choose a key range or limit before producing an executable delete query.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -377,6 +407,8 @@ export declare namespace IndexedDbQuery {
   > = Omit<Delete<Table, Index, ExcludedKeys>, ExcludedKeys>
 
   /**
+   * Effect model for deleting rows from a table, with optional key-range, limit, filter, and reactivity invalidation helpers.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -420,6 +452,8 @@ export declare namespace IndexedDbQuery {
   > = Omit<Select<Table, Index, ExcludedKeys>, ExcludedKeys>
 
   /**
+   * Effect model for selecting rows from a table, with chainable range, paging, filtering, streaming, and reactive query helpers.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -523,6 +557,8 @@ export declare namespace IndexedDbQuery {
   }
 
   /**
+   * Effect model for selecting the first matching row, failing with `NoSuchElementError` when no row is found.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -566,6 +602,8 @@ export declare namespace IndexedDbQuery {
   }
 
   /**
+   * Effect model for a select query filtered by one or more predicates over encoded table rows.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -587,6 +625,8 @@ export declare namespace IndexedDbQuery {
   }
 
   /**
+   * Effect model for inserting or upserting one row, returning the resulting IndexedDB key and supporting reactivity invalidation.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -614,6 +654,8 @@ export declare namespace IndexedDbQuery {
   }
 
   /**
+   * Effect model for inserting or upserting multiple rows, returning the resulting IndexedDB keys and supporting reactivity invalidation.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -642,6 +684,8 @@ export declare namespace IndexedDbQuery {
 }
 
 /**
+ * Service tag for the active `IDBTransaction` used to share a transaction across IndexedDB query effects.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -1910,6 +1954,8 @@ const QueryBuilderProto: Omit<
 }
 
 /**
+ * Creates an `IndexedDbQueryBuilder` from an open database reference, key-range constructor, table map, and reactivity service.
+ *
  * @category constructors
  * @since 4.0.0
  */

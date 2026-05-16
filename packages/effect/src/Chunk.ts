@@ -209,7 +209,8 @@ function copy<A>(
 const emptyArray: ReadonlyArray<never> = []
 
 /**
- * Compares the two chunks of equal length using the specified function
+ * Creates an `Equivalence` for chunks that compares chunk lengths and then
+ * compares corresponding elements with the provided element equivalence.
  *
  * **Example** (Comparing chunks for equivalence)
  *
@@ -1776,7 +1777,11 @@ export const partition: {
 )
 
 /**
- * Partitions the elements of this chunk into two chunks.
+ * Separates a chunk of `Result` values into a chunk of failures and a chunk of
+ * successes.
+ *
+ * The returned tuple is `[failures, successes]`, preserving the original order
+ * within each side.
  *
  * **Example** (Separating failures and successes)
  *
@@ -1938,8 +1943,12 @@ export const splitAt: {
 } = dual(2, <A>(self: Chunk<A>, n: number): [Chunk<A>, Chunk<A>] => [take(self, n), drop(self, n)])
 
 /**
- * Splits a `NonEmptyChunk` into two segments, with the first segment containing a maximum of `n` elements.
- * The value of `n` must be `>= 1`.
+ * Splits a `NonEmptyChunk` at `n`, returning a non-empty prefix and the
+ * remaining suffix.
+ *
+ * `n` is floored and normalized to at least `1`. If `n` is greater than or
+ * equal to the chunk length, the first result is the original chunk and the
+ * second result is empty.
  *
  * **Example** (Splitting non-empty chunks at an index)
  *
@@ -1974,7 +1983,10 @@ export const splitNonEmptyAt: {
 })
 
 /**
- * Splits this chunk into `n` equally sized chunks.
+ * Splits a chunk into up to `n` chunks, distributing elements in order.
+ *
+ * The chunk size is derived from the input length and `n`; the final chunk may
+ * contain fewer elements than the others.
  *
  * **Example** (Splitting chunks into groups)
  *
@@ -2200,7 +2212,8 @@ export const union: {
 )
 
 /**
- * Remove duplicates from an array, keeping the first occurrence of an element.
+ * Removes duplicate elements from a `Chunk`, preserving the first occurrence
+ * of each value.
  *
  * **Example** (Removing duplicate values)
  *
@@ -2466,7 +2479,11 @@ export const makeBy: {
 } = dual(2, (n, f) => fromIterable(RA.makeBy(n, f)))
 
 /**
- * Create a non empty `Chunk` containing a range of integers, including both endpoints.
+ * Creates a non-empty `Chunk` of consecutive integers from `start` through
+ * `end`, inclusive.
+ *
+ * If `start` is greater than `end`, returns a single-element chunk containing
+ * `start`.
  *
  * **Example** (Creating a range)
  *

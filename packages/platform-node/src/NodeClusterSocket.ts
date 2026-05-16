@@ -37,6 +37,10 @@ export {
 }
 
 /**
+ * Builds the Node cluster socket sharding layer, configuring RPC
+ * serialization, message storage, runner health checks, and optional
+ * client-only mode.
+ *
  * @category Layers
  * @since 1.0.0
  */
@@ -111,6 +115,10 @@ export const layer = <
 }
 
 /**
+ * Provides an Undici dispatcher for Kubernetes API calls, using the service
+ * account CA certificate when it is available and falling back to the default
+ * dispatcher otherwise.
+ *
  * @category Layers
  * @since 1.0.0
  */
@@ -140,6 +148,9 @@ export const layerDispatcherK8s: Layer.Layer<NodeHttpClient.Dispatcher> = Layer.
 )
 
 /**
+ * Provides a `K8sHttpClient` backed by the Undici HTTP client and the
+ * Kubernetes-aware dispatcher.
+ *
  * @category Layers
  * @since 1.0.0
  */

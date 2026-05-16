@@ -744,9 +744,10 @@ export const squash: <E>(self: Cause<E>) => unknown = effect.causeSquash
 export const hasFails: <E>(self: Cause<E>) => boolean = effect.hasFails
 
 /**
- * Returns the first {@link Fail} reason from a cause, including its
- * annotations. Returns `Filter.fail` with the remaining cause when no
- * `Fail` is found.
+ * Returns a `Result` whose success value is the first {@link Fail} reason in
+ * the cause, including its annotations. If the cause has no `Fail` reason, the
+ * failure value is the original cause narrowed to `Cause<never>`, because it
+ * contains no typed error reasons.
  *
  * Use {@link findError} if you only need the unwrapped error value `E`.
  *
@@ -770,8 +771,10 @@ export const hasFails: <E>(self: Cause<E>) => boolean = effect.hasFails
 export const findFail: <E>(self: Cause<E>) => Result.Result<Fail<E>, Cause<never>> = effect.findFail
 
 /**
- * Returns the first typed error value `E` from a cause.
- * Returns `Filter.fail` with the remaining cause when no `Fail` is found.
+ * Returns a `Result` whose success value is the first typed error value `E`
+ * from a {@link Fail} reason in the cause. If the cause has no `Fail` reason,
+ * the failure value is the original cause narrowed to `Cause<never>`, because
+ * it contains no typed error reasons.
  *
  * Use {@link findFail} if you need the full {@link Fail} reason (including
  * annotations). Use {@link findErrorOption} if you prefer an `Option`.
@@ -799,8 +802,8 @@ export const findError: <E>(self: Cause<E>) => Result.Result<E, Cause<never>> = 
  * Returns the first typed error value `E` from a cause wrapped in
  * `Option.some`, or `Option.none` if no {@link Fail} reason exists.
  *
- * This is a convenience wrapper around {@link findError} for code that
- * already works with `Option` instead of `Filter`.
+ * This is the `Option`-returning variant of {@link findError} for code that
+ * does not need the original cause returned in a failed `Result`.
  *
  * **Example** (extracting an error as Option)
  *
@@ -842,9 +845,9 @@ export const findErrorOption: <E>(input: Cause<E>) => Option<E> = effect.findErr
 export const hasDies: <E>(self: Cause<E>) => boolean = effect.hasDies
 
 /**
- * Returns the first {@link Die} reason from a cause, including its
- * annotations. Returns `Filter.fail` with the original cause when no
- * `Die` is found.
+ * Returns a `Result` whose success value is the first {@link Die} reason in
+ * the cause, including its annotations. If the cause has no `Die` reason, the
+ * failure value is the original cause.
  *
  * Use {@link findDefect} if you only need the unwrapped defect value.
  *
@@ -868,9 +871,9 @@ export const hasDies: <E>(self: Cause<E>) => boolean = effect.hasDies
 export const findDie: <E>(self: Cause<E>) => Result.Result<Die, Cause<E>> = effect.findDie
 
 /**
- * Returns the first defect value (`unknown`) from a cause.
- * Returns `Filter.fail` with the original cause when no {@link Die} reason
- * is found.
+ * Returns a `Result` whose success value is the first defect value from a
+ * {@link Die} reason in the cause. If the cause has no `Die` reason, the
+ * failure value is the original cause.
  *
  * Use {@link findDie} if you need the full `Die` reason (including
  * annotations).
@@ -916,9 +919,9 @@ export const findDefect: <E>(self: Cause<E>) => Result.Result<unknown, Cause<E>>
 export const hasInterrupts: <E>(self: Cause<E>) => boolean = effect.hasInterrupts
 
 /**
- * Returns the first {@link Interrupt} reason from a cause, including its
- * annotations. Returns `Filter.fail` with the original cause when no
- * `Interrupt` is found.
+ * Returns a `Result` whose success value is the first {@link Interrupt} reason
+ * in the cause, including its annotations. If the cause has no `Interrupt`
+ * reason, the failure value is the original cause.
  *
  * **Example** (extracting the first interrupt)
  *
@@ -939,11 +942,13 @@ export const hasInterrupts: <E>(self: Cause<E>) => boolean = effect.hasInterrupt
 export const findInterrupt: <E>(self: Cause<E>) => Result.Result<Interrupt, Cause<E>> = effect.findInterrupt
 
 /**
- * Collects the fiber IDs of all {@link Interrupt} reasons in the cause into
- * a `ReadonlySet`. Returns an empty set when the cause has no interrupts.
+ * Collects the defined fiber IDs from all {@link Interrupt} reasons in the
+ * cause into a `ReadonlySet`. Interrupt reasons without a `fiberId` are
+ * ignored. Returns an empty set when the cause has no interrupting fiber IDs.
  *
- * This always succeeds (no `Filter.fail`). Use {@link filterInterruptors}
- * for the `Filter`-based variant.
+ * This always succeeds. Use {@link filterInterruptors} when you want a
+ * `Result` that fails with the original cause if there are no `Interrupt`
+ * reasons.
  *
  * **Example** (collecting interruptors)
  *
@@ -965,12 +970,12 @@ export const findInterrupt: <E>(self: Cause<E>) => Result.Result<Interrupt, Caus
 export const interruptors: <E>(self: Cause<E>) => ReadonlySet<number> = effect.causeInterruptors
 
 /**
- * Extracts the set of interrupting fiber IDs from a cause.
- * Returns `Filter.fail` with the original cause when no {@link Interrupt}
- * reason is found.
+ * Returns a `Result` whose success value is the set of defined fiber IDs from
+ * the cause's {@link Interrupt} reasons. If the cause has no `Interrupt`
+ * reason, the failure value is the original cause.
  *
- * Use {@link interruptors} if you always want a `Set` (possibly empty)
- * without `Filter` wrapping.
+ * Use {@link interruptors} if you always want a `Set` without `Result`
+ * wrapping.
  *
  * **Example** (extracting interruptors with Filter)
  *
@@ -1066,13 +1071,13 @@ export const pretty: <E>(cause: Cause<E>) => string = effect.causePretty
 
 /**
  * Base interface for error classes that can be yielded directly inside
- * `Effect.gen` (via `Symbol.iterator`) or converted to a failing Effect
- * via ``.
+ * `Effect.gen`. Yielding one of these errors fails the generator with that
+ * error as the typed failure value.
  *
  * All built-in error classes in this module ({@link NoSuchElementError},
  * {@link TimeoutError}, {@link IllegalArgumentError},
- * {@link ExceededCapacityError}, {@link UnknownError}) extend this
- * interface.
+ * {@link ExceededCapacityError}, {@link AsyncFiberError}, and
+ * {@link UnknownError}) implement this interface.
  *
  * **Example** (yielding an error in Effect.gen)
  *
@@ -1120,11 +1125,16 @@ export const isNoSuchElementError: (u: unknown) => u is NoSuchElementError = cor
 export const NoSuchElementErrorTypeId: "~effect/Cause/NoSuchElementError" = core.NoSuchElementErrorTypeId
 
 /**
- * An error indicating that a requested element does not exist.
+ * An error indicating that an expected value was absent.
  *
- * Thrown by APIs like `Array.head`, `Option.getOrThrow`, `Map.get`, etc.
- * when no element matches. Implements {@link YieldableError} so it can be
+ * Used by APIs that convert absence into an exception or effect failure, such
+ * as `Option.getOrThrow`. Implements {@link YieldableError} so it can be
  * yielded directly in `Effect.gen`.
+ *
+ * **Notes**
+ *
+ * Safe lookup APIs that return `Option` should document the `None` case rather
+ * than describing it as a thrown `NoSuchElementError`.
  *
  * **Example** (creating and checking)
  *
@@ -1481,6 +1491,8 @@ export const ExceededCapacityError: new(message?: string) => ExceededCapacityErr
 export const AsyncFiberErrorTypeId: "~effect/Cause/AsyncFiberError" = effect.AsyncFiberErrorTypeId
 
 /**
+ * Tests if an arbitrary value is an {@link AsyncFiberError}.
+ *
  * @category guards
  * @since 4.0.0
  */

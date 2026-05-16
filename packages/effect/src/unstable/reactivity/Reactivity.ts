@@ -14,6 +14,12 @@ import * as Scope from "../../Scope.ts"
 import * as Stream from "../../Stream.ts"
 
 /**
+ * A service for key-based reactive invalidation.
+ *
+ * It can register handlers for keys, invalidate those keys, wrap mutations so
+ * successful effects invalidate keys, and turn query effects into queues or
+ * streams that rerun when keys are invalidated.
+ *
  * @category tags
  * @since 4.0.0
  */
@@ -45,6 +51,11 @@ export class Reactivity extends Context.Service<
 >()("effect/reactivity/Reactivity") {}
 
 /**
+ * Creates an in-memory `Reactivity` service.
+ *
+ * The service tracks handlers by hashed keys and runs the registered handlers when
+ * matching keys are invalidated.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -188,6 +199,10 @@ class PendingInvalidation extends Context.Service<PendingInvalidation, Set<strin
 ) {}
 
 /**
+ * Wraps an effect so the supplied keys are invalidated after the effect succeeds.
+ *
+ * If the effect fails, the keys are not invalidated.
+ *
  * @category accessors
  * @since 4.0.0
  */
@@ -205,6 +220,11 @@ export const mutation: {
 ): Effect.Effect<A, E, R | Reactivity> => Reactivity.use((_) => _.mutation(keys, effect)))
 
 /**
+ * Runs an effect as a query tied to the supplied invalidation keys.
+ *
+ * The returned queue receives the initial result and each later result after the
+ * keys are invalidated. The registration is removed when the current scope closes.
+ *
  * @category accessors
  * @since 4.0.0
  */
@@ -225,6 +245,11 @@ export const query: {
   Reactivity.use((r) => r.query(keys, effect)))
 
 /**
+ * Runs an effect as a stream of query results tied to the supplied invalidation
+ * keys.
+ *
+ * The effect runs initially and reruns whenever the keys are invalidated.
+ *
  * @category accessors
  * @since 4.0.0
  */
@@ -246,6 +271,11 @@ export const stream: {
   ))
 
 /**
+ * Invalidates the supplied keys through the `Reactivity` service.
+ *
+ * Registered queries for matching keys are rerun immediately, or collected until
+ * the enclosing reactivity batch completes.
+ *
  * @category accessors
  * @since 4.0.0
  */
@@ -254,6 +284,8 @@ export const invalidate = (
 ): Effect.Effect<void, never, Reactivity> => Reactivity.use((r) => r.invalidate(keys))
 
 /**
+ * The default layer that provides an in-memory `Reactivity` service.
+ *
  * @category layers
  * @since 4.0.0
  */

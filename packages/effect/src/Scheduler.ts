@@ -24,6 +24,14 @@ export interface Scheduler {
 }
 
 /**
+ * A dispatcher created by a `Scheduler` for enqueuing tasks and forcing queued
+ * tasks to run.
+ *
+ * **Details**
+ * `scheduleTask` queues a task with a priority. `flush` drains pending work
+ * synchronously, which is useful when callers need deterministic completion of
+ * already scheduled tasks.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -33,6 +41,12 @@ export interface SchedulerDispatcher {
 }
 
 /**
+ * Context reference for the scheduler used by the Effect runtime.
+ *
+ * **Details**
+ * The default value creates a `MixedScheduler`. Provide this service to
+ * customize execution mode, task dispatching, or yield behavior.
+ *
  * @category references
  * @since 4.0.0
  */

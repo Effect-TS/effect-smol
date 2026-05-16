@@ -18,6 +18,8 @@ import * as Resource from "./Resource.ts"
 import * as Tracer from "./Tracer.ts"
 
 /**
+ * Configuration for the Node OpenTelemetry layer, including optional tracing, metrics, logging, resource, and shutdown settings.
+ *
  * @category Models
  * @since 1.0.0
  */
@@ -38,6 +40,8 @@ export interface Configuration {
 }
 
 /**
+ * Creates a scoped Node OpenTelemetry tracer provider from one or more span processors and shuts it down when the layer is released.
+ *
  * @category Layers
  * @since 1.0.0
  */
@@ -71,6 +75,8 @@ export const layerTracerProvider = (
   )
 
 /**
+ * Creates a Node OpenTelemetry layer from configuration, enabling tracing, metrics, and logging only when their processors or readers are supplied.
+ *
  * @category Layers
  * @since 1.0.0
  */
@@ -122,6 +128,8 @@ export const layer: {
   )
 
 /**
+ * Layer that provides an empty OpenTelemetry `Resource`.
+ *
  * @category layer
  * @since 2.0.0
  */

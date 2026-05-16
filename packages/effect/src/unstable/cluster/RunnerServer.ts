@@ -22,6 +22,9 @@ import { ShardingConfig } from "./ShardingConfig.ts"
 const constVoid = constant(Effect.void)
 
 /**
+ * Layer of RPC handlers for the runner protocol, forwarding ping, notify, effect,
+ * stream, and envelope requests to `Sharding` and `MessageStorage`.
+ *
  * @category Layers
  * @since 4.0.0
  */

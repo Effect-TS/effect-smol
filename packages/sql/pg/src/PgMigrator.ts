@@ -19,6 +19,8 @@ import { PgClient } from "./PgClient.ts"
 export * from "effect/unstable/sql/Migrator"
 
 /**
+ * Runs PostgreSQL SQL migrations using the configured clients. Schema dumps use `pg_dump` and require child process, filesystem, and path services.
+ *
  * @category constructor
  * @since 1.0.0
  */
@@ -91,6 +93,8 @@ export const run: <R2 = never>(
 })
 
 /**
+ * Creates a layer that runs PostgreSQL migrations during layer construction, including `pg_dump`-based schema dump support when requested.
+ *
  * @category layers
  * @since 1.0.0
  */

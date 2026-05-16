@@ -23,18 +23,24 @@ const classifyError = (cause: unknown, message: string, operation: string) =>
   new UnknownError({ cause, message, operation })
 
 /**
+ * Unique runtime identifier used to tag `D1Client` values.
+ *
  * @category type ids
  * @since 1.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-d1/D1Client"
 
 /**
+ * Type-level literal for the `D1Client` runtime identifier.
+ *
  * @category type ids
  * @since 1.0.0
  */
 export type TypeId = "~@effect/sql-d1/D1Client"
 
 /**
+ * Cloudflare D1 SQL client service, extending `SqlClient` with its D1 configuration and no `updateValues` support.
+ *
  * @category models
  * @since 1.0.0
  */
@@ -47,12 +53,16 @@ export interface D1Client extends Client.SqlClient {
 }
 
 /**
+ * Context tag used to access the `D1Client` service.
+ *
  * @category tags
  * @since 1.0.0
  */
 export const D1Client = Context.Service<D1Client>("@effect/sql-d1/D1Client")
 
 /**
+ * Configuration for a Cloudflare D1 client, including the `D1Database`, prepared statement cache settings, span attributes, and query/result name transforms.
+ *
  * @category models
  * @since 1.0.0
  */
@@ -67,6 +77,8 @@ export interface D1ClientConfig {
 }
 
 /**
+ * Creates a scoped Cloudflare D1 SQL client. Prepared statements are cached, while transactions and streaming queries are not supported by this driver.
+ *
  * @category constructor
  * @since 1.0.0
  */
@@ -187,6 +199,8 @@ export const make = (
   })
 
 /**
+ * Creates a layer from a `Config`-wrapped D1 client configuration, providing both `D1Client` and `SqlClient`.
+ *
  * @category layers
  * @since 1.0.0
  */
@@ -205,6 +219,8 @@ export const layerConfig = (
   ).pipe(Layer.provide(Reactivity.layer))
 
 /**
+ * Creates a layer from a concrete D1 client configuration, providing both `D1Client` and `SqlClient`.
+ *
  * @category layers
  * @since 1.0.0
  */

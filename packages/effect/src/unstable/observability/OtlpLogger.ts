@@ -19,6 +19,12 @@ import * as OtlpResource from "./OtlpResource.ts"
 import { OtlpSerialization } from "./OtlpSerialization.ts"
 
 /**
+ * Creates an Effect `Logger` that exports log records through OTLP.
+ *
+ * The logger serializes records with the configured resource, sends them
+ * through the OTLP exporter, and requires `Scope` so pending records can be
+ * flushed on shutdown.
+ *
  * @category Constructors
  * @since 4.0.0
  */
@@ -76,6 +82,10 @@ export const make: (
 })
 
 /**
+ * Installs the OTLP logger created by `make` as an Effect logging layer.
+ *
+ * By default the OTLP logger is merged with any existing loggers.
+ *
  * @category Layers
  * @since 4.0.0
  */
@@ -98,6 +108,8 @@ export const layer = (options: {
   })
 
 /**
+ * OTLP logs payload serialized by `OtlpLogger`.
+ *
  * @since 4.0.0
  */
 export interface LogsData {

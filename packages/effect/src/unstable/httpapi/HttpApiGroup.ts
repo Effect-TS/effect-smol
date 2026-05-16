@@ -13,6 +13,9 @@ import type * as HttpApiMiddleware from "./HttpApiMiddleware.ts"
 const TypeId = "~effect/httpapi/HttpApiGroup"
 
 /**
+ * Returns `true` when a value is an `HttpApiGroup`, narrowing the value to the
+ * group interface.
+ *
  * @category guards
  * @since 4.0.0
  */
@@ -95,6 +98,9 @@ export interface HttpApiGroup<
 }
 
 /**
+ * Type-level identity for a group within an HTTP API, pairing the API id with the
+ * group name for service derivation.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -105,6 +111,9 @@ export interface ApiGroup<ApiId extends string, Name extends string> {
 }
 
 /**
+ * A widened `HttpApiGroup` type used when the concrete group name, endpoints, and
+ * top-level flag are not needed.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -116,12 +125,17 @@ export interface Any {
 }
 
 /**
+ * A widened group type that preserves concrete runtime properties such as
+ * identifier, key, top-level status, endpoints, and annotations.
+ *
  * @category models
  * @since 4.0.0
  */
 export type AnyWithProps = HttpApiGroup<string, HttpApiEndpoint.AnyWithProps, boolean>
 
 /**
+ * Derives the API-specific `ApiGroup` service identity for an HTTP API group.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -130,12 +144,16 @@ export type ToService<ApiId extends string, A> = A extends HttpApiGroup<infer Na
   : never
 
 /**
+ * Selects the group with the specified identifier from a union of groups.
+ *
  * @category models
  * @since 4.0.0
  */
 export type WithName<Group, Name extends string> = Extract<Group, { readonly identifier: Name }>
 
 /**
+ * Extracts the identifier literal from an `HttpApiGroup`.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -143,6 +161,8 @@ export type Name<Group> = Group extends HttpApiGroup<infer _Name, infer _Endpoin
   : never
 
 /**
+ * Extracts the endpoint union contained in an `HttpApiGroup`.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -150,48 +170,67 @@ export type Endpoints<Group> = Group extends HttpApiGroup<infer _Name, infer _En
   : never
 
 /**
+ * Computes the services required to encode error responses for every endpoint in a
+ * group.
+ *
  * @category models
  * @since 4.0.0
  */
 export type ErrorServicesEncode<Group> = HttpApiEndpoint.ErrorServicesEncode<Endpoints<Group>>
 
 /**
+ * Computes the services required to decode error responses for every endpoint in a
+ * group.
+ *
  * @category models
  * @since 4.0.0
  */
 export type ErrorServicesDecode<Group> = HttpApiEndpoint.ErrorServicesDecode<Endpoints<Group>>
 
 /**
+ * Computes the middleware error union for every endpoint in a group.
+ *
  * @category models
  * @since 4.0.0
  */
 export type MiddlewareError<Group> = HttpApiEndpoint.MiddlewareError<Endpoints<Group>>
 
 /**
+ * Computes the services provided by middleware attached to any endpoint in a
+ * group.
+ *
  * @category models
  * @since 4.0.0
  */
 export type MiddlewareProvides<Group> = HttpApiEndpoint.MiddlewareProvides<Endpoints<Group>>
 
 /**
+ * Computes the client-side middleware services required by endpoints in a group.
+ *
  * @category models
  * @since 4.0.0
  */
 export type MiddlewareClient<Group> = HttpApiEndpoint.MiddlewareClient<Endpoints<Group>>
 
 /**
+ * Extracts the runtime services required by middleware attached to the endpoints in an `HttpApiGroup`.
+ *
  * @category models
  * @since 4.0.0
  */
 export type MiddlewareServices<Group> = HttpApiEndpoint.MiddlewareServices<Endpoints<Group>>
 
 /**
+ * Selects the endpoints in a group whose `name` matches the provided endpoint name.
+ *
  * @category models
  * @since 4.0.0
  */
 export type EndpointsWithName<Group extends Any, Name extends string> = Endpoints<WithName<Group, Name>>
 
 /**
+ * Computes the schema encoding and decoding services required by clients for all endpoints in a group.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -200,6 +239,8 @@ export type ClientServices<Group> = Group extends HttpApiGroup<infer _Name, infe
   : never
 
 /**
+ * Returns the type of a group after adding the supplied path prefix to each endpoint in the group.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -209,6 +250,8 @@ export type AddPrefix<Group, Prefix extends PathInput> = Group extends
   : never
 
 /**
+ * Returns the type of a group after applying a middleware identifier to every endpoint in the group.
+ *
  * @category models
  * @since 4.0.0
  */

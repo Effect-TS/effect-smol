@@ -15,18 +15,24 @@ import type * as Headers from "./Headers.ts"
 import * as UrlParams from "./UrlParams.ts"
 
 /**
+ * Type identifier for `HttpIncomingMessage` values.
+ *
  * @category Type IDs
  * @since 4.0.0
  */
 export const TypeId = "~effect/http/HttpIncomingMessage"
 
 /**
+ * Returns `true` when a value is an `HttpIncomingMessage`.
+ *
  * @category Guards
  * @since 4.0.0
  */
 export const isHttpIncomingMessage = (u: unknown): u is HttpIncomingMessage => hasProperty(u, TypeId)
 
 /**
+ * Common model for incoming HTTP messages, with headers, remote address, and effectful body accessors.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -42,6 +48,8 @@ export interface HttpIncomingMessage<E = unknown> extends Inspectable.Inspectabl
 }
 
 /**
+ * Creates a decoder that reads an incoming message's JSON body and decodes it with the supplied schema.
+ *
  * @category schema
  * @since 4.0.0
  */
@@ -54,6 +62,8 @@ export const schemaBodyJson = <S extends Schema.Top>(schema: S, options?: ParseO
 }
 
 /**
+ * Creates a decoder that reads an incoming message's URL-encoded body parameters and decodes them with the supplied schema.
+ *
  * @category schema
  * @since 4.0.0
  */
@@ -75,6 +85,8 @@ export const schemaBodyUrlParams = <
 }
 
 /**
+ * Creates a decoder that validates and decodes an incoming message's headers with the supplied schema.
+ *
  * @category schema
  * @since 4.0.0
  */
@@ -87,6 +99,8 @@ export const schemaHeaders = <A, I extends Readonly<Record<string, string | unde
 }
 
 /**
+ * Context reference for the optional maximum size allowed when reading an incoming message body.
+ *
  * @category References
  * @since 4.0.0
  */
@@ -96,6 +110,8 @@ export const MaxBodySize = Context.Reference<FileSystem.Size | undefined>(
 )
 
 /**
+ * Builds an inspectable object for an incoming message, redacting headers and including a synchronously readable JSON or text body when available.
+ *
  * @since 4.0.0
  */
 export const inspect = <E>(self: HttpIncomingMessage<E>, that: object): object => {

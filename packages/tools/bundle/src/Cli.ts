@@ -78,6 +78,8 @@ const report = Command.make("report", { paths: reportPaths }).pipe(
 )
 
 /**
+ * Bundle analysis CLI command with subcommands for comparing fixture bundle sizes, reporting selected fixtures, and generating visualizations.
+ *
  * @category commands
  * @since 1.0.0
  */

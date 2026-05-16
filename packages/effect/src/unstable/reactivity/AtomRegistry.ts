@@ -18,24 +18,36 @@ import * as Result from "./AsyncResult.ts"
 import type * as Atom from "./Atom.ts"
 
 /**
+ * The literal type used to identify `AtomRegistry` services and values.
+ *
  * @category type ids
  * @since 4.0.0
  */
 export type TypeId = "~effect/reactivity/AtomRegistry"
 
 /**
+ * The runtime type id used to identify `AtomRegistry` services and values.
+ *
  * @category type ids
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/reactivity/AtomRegistry"
 
 /**
+ * Returns `true` when the value has the `AtomRegistry` type id.
+ *
  * @category guards
  * @since 4.0.0
  */
 export const isAtomRegistry = (u: unknown): u is AtomRegistry => hasProperty(u, TypeId)
 
 /**
+ * The runtime registry that stores atom nodes and coordinates reads, writes,
+ * refreshes, subscriptions, and disposal.
+ *
+ * It also manages scheduler configuration, serializable preloaded values, and node
+ * addition/removal callbacks.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -61,6 +73,11 @@ export interface AtomRegistry {
 }
 
 /**
+ * A registry node for a single atom.
+ *
+ * Nodes expose the current value, parent and child dependency links, listener set,
+ * and current lifecycle state.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -74,6 +91,12 @@ export interface Node<A> {
 }
 
 /**
+ * Creates an `AtomRegistry`.
+ *
+ * Options can preload initial atom values, provide a custom task scheduler,
+ * configure timeout bucket resolution, and set a default idle time-to-live for
+ * unused atoms.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -93,12 +116,19 @@ export const make = (
   )
 
 /**
+ * The `Context` service tag for the current `AtomRegistry`.
+ *
  * @category Tags
  * @since 4.0.0
  */
 export const AtomRegistry = Context.Service<AtomRegistry>(TypeId)
 
 /**
+ * Creates a layer that provides an `AtomRegistry` configured with the supplied
+ * options.
+ *
+ * The registry is disposed when the layer scope is finalized.
+ *
  * @category Layers
  * @since 4.0.0
  */
@@ -122,6 +152,8 @@ export const layerOptions = (options?: {
   )
 
 /**
+ * The default layer that provides a fresh `AtomRegistry`.
+ *
  * @category Layers
  * @since 4.0.0
  */
@@ -132,6 +164,11 @@ export const layer: Layer.Layer<AtomRegistry> = layerOptions()
 // -----------------------------------------------------------------------------
 
 /**
+ * Converts an atom in this registry into a stream.
+ *
+ * The stream emits the current value immediately, emits subsequent changes, and
+ * unsubscribes from the registry when the stream scope closes.
+ *
  * @category Conversions
  * @since 4.0.0
  */
@@ -154,6 +191,12 @@ export const toStream: {
 )
 
 /**
+ * Converts an `AsyncResult` atom in this registry into a stream of successful
+ * values.
+ *
+ * Initial results are skipped, failures fail the stream with their cause, and
+ * duplicate stream values are dropped with `Stream.changes`.
+ *
  * @category Conversions
  * @since 4.0.0
  */
@@ -173,6 +216,11 @@ export const toStreamResult: {
 )
 
 /**
+ * Reads an `AsyncResult` atom from this registry as an effect.
+ *
+ * The effect waits for the result to leave `Initial`, and also waits through
+ * waiting results when `suspendOnWaiting` is enabled.
+ *
  * @category Conversions
  * @since 4.0.0
  */
@@ -206,6 +254,11 @@ export const getResult: {
 )
 
 /**
+ * Mounts an atom in this registry for the lifetime of the current scope.
+ *
+ * The atom is subscribed with a no-op listener and the subscription is released
+ * when the scope finalizer runs.
+ *
  * @category Conversions
  * @since 4.0.0
  */

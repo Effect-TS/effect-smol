@@ -12,6 +12,9 @@ import * as Client from "./SqlClient.ts"
 import type { SqlError } from "./SqlError.ts"
 
 /**
+ * Options for running SQL migrations, including the migration loader, optional
+ * schema dump directory, and migrations table name.
+ *
  * @category model
  * @since 4.0.0
  */
@@ -22,6 +25,9 @@ export interface MigratorOptions<R = never> {
 }
 
 /**
+ * Effect that resolves the available migrations for the migrator or fails with a
+ * `MigrationError`.
+ *
  * @category model
  * @since 4.0.0
  */
@@ -32,6 +38,9 @@ export type Loader<R = never> = Effect.Effect<
 >
 
 /**
+ * Tuple produced by a migration loader, containing the migration id, migration
+ * name, and an effect that loads the migration implementation.
+ *
  * @category model
  * @since 4.0.0
  */
@@ -42,6 +51,9 @@ export type ResolvedMigration = readonly [
 ]
 
 /**
+ * Metadata for a migration recorded in the migrations table, including its id,
+ * name, and creation timestamp.
+ *
  * @category model
  * @since 4.0.0
  */
@@ -52,6 +64,8 @@ export interface Migration {
 }
 
 /**
+ * Error raised while loading, validating, locking, or running SQL migrations.
+ *
  * @category errors
  * @since 4.0.0
  */
@@ -68,6 +82,10 @@ export class MigrationError extends Data.TaggedError("MigrationError")<{
 }> {}
 
 /**
+ * Creates a migrator that ensures the migrations table exists, runs pending
+ * migrations in a transaction, and optionally dumps the schema after successful
+ * migrations.
+ *
  * @category constructor
  * @since 4.0.0
  */
@@ -301,6 +319,10 @@ const isConstraintConflict = (error: SqlError): boolean =>
   error.reason._tag === "ConstraintError" || error.reason._tag === "UniqueViolation"
 
 /**
+ * Creates a migration loader from a glob record of dynamic import functions,
+ * parsing files named `<id>_<name>.js` or `<id>_<name>.ts` and sorting
+ * migrations by id.
+ *
  * @category loaders
  * @since 4.0.0
  */
@@ -322,6 +344,9 @@ export const fromGlob = (
   )
 
 /**
+ * Creates a migration loader from a Babel-style glob record, parsing keys such
+ * as `_<id>_<name>Js` or `_<id>_<name>Ts` and sorting migrations by id.
+ *
  * @category loaders
  * @since 4.0.0
  */
@@ -341,6 +366,9 @@ export const fromBabelGlob = (migrations: Record<string, any>): Loader =>
   )
 
 /**
+ * Creates a migration loader from a record of migration effects keyed by
+ * `<id>_<name>`, sorted by migration id.
+ *
  * @category loaders
  * @since 4.0.0
  */
@@ -360,6 +388,9 @@ export const fromRecord = (migrations: Record<string, Effect.Effect<void, unknow
   )
 
 /**
+ * Creates a migration loader that reads a directory with `FileSystem`, imports
+ * files named `<id>_<name>.js` or `<id>_<name>.ts`, and sorts migrations by id.
+ *
  * @category loaders
  * @since 4.0.0
  */

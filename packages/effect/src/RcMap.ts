@@ -225,9 +225,15 @@ export const make: {
   })
 
 /**
- * Retrieves a value from the RcMap by key. If the resource doesn't exist, it will be
- * acquired using the lookup function. The resource is reference counted and will be
- * released when the scope closes.
+ * Gets the resource for a key, acquiring it with the map's lookup function when
+ * the key is not already cached.
+ *
+ * **Details**
+ *
+ * The resource's reference count is incremented for the current `Scope`, and a
+ * release finalizer is added to that scope. When the current scope closes, the
+ * reference is released; the resource is closed when the last reference is
+ * released, subject to the map's idle time-to-live setting.
  *
  * **Example** (Acquiring a resource)
  *
@@ -344,7 +350,11 @@ const release = <K, A, E>(self: RcMap<K, A, E>, key: K, entry: State.Entry<A, E>
   })
 
 /**
- * Returns an array of all keys currently stored in the RcMap.
+ * Returns an iterable of all keys currently stored in the `RcMap`.
+ *
+ * **Details**
+ *
+ * If the `RcMap` has been closed, the effect is interrupted.
  *
  * **Example** (Listing keys)
  *
@@ -427,6 +437,14 @@ export const invalidate: {
 )
 
 /**
+ * Returns whether the `RcMap` currently contains an entry for the specified
+ * key.
+ *
+ * **Details**
+ *
+ * This operation only checks the current map state; it does not run the lookup
+ * function or acquire a missing resource. Closed maps return `false`.
+ *
  * @category combinators
  * @since 3.17.7
  */

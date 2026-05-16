@@ -13,6 +13,9 @@ import * as Socket from "effect/unstable/socket/Socket"
 export * from "@effect/platform-node-shared/NodeSocket"
 
 /**
+ * Provides a `Socket.WebSocketConstructor` backed by Bun's global
+ * `WebSocket` implementation.
+ *
  * @category layers
  * @since 1.0.0
  */
@@ -23,6 +26,10 @@ export const layerWebSocketConstructor: Layer.Layer<
 )
 
 /**
+ * Creates a `Socket.Socket` layer for a WebSocket URL using Bun's global
+ * `WebSocket` constructor, honoring protocol, open-timeout, and close-code
+ * error options.
+ *
  * @category layers
  * @since 1.0.0
  */

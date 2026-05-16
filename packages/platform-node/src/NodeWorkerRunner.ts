@@ -12,6 +12,10 @@ import * as WorkerRunner from "effect/unstable/workers/WorkerRunner"
 import * as WorkerThreads from "node:worker_threads"
 
 /**
+ * Provides the `WorkerRunnerPlatform` for code running inside a Node worker
+ * thread or child process, routing parent messages to the registered handler
+ * and sending responses back through the parent channel.
+ *
  * @category layers
  * @since 1.0.0
  */

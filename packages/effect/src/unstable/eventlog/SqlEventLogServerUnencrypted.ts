@@ -15,6 +15,12 @@ import { Entry, EntryId, makeRemoteIdUnsafe, RemoteEntry, type RemoteId } from "
 import * as EventLogServerUnencrypted from "./EventLogServerUnencrypted.ts"
 
 /**
+ * Creates unencrypted event-log server `Storage` backed by SQL.
+ *
+ * The implementation creates tables for the server remote id, store sequences,
+ * entries, and session authentication bindings, then persists and streams
+ * plaintext remote entries.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -424,6 +430,8 @@ export const makeStorage = (options?: {
   }).pipe(withTracerDisabled)
 
 /**
+ * Provides unencrypted server `Storage` using the SQL-backed implementation.
+ *
  * @category layers
  * @since 4.0.0
  */

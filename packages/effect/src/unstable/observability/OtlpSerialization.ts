@@ -10,6 +10,9 @@ import type { MetricsData } from "./OtlpMetrics.ts"
 import type { TraceData } from "./OtlpTracer.ts"
 
 /**
+ * Service for serializing OTLP traces, metrics, and logs into HTTP request
+ * bodies.
+ *
  * @category Services
  * @since 4.0.0
  */
@@ -20,6 +23,8 @@ export class OtlpSerialization extends Context.Service<OtlpSerialization, {
 }>()("effect/observability/OtlpSerialization") {}
 
 /**
+ * Provides `OtlpSerialization` using OTLP/HTTP JSON bodies.
+ *
  * @category Layers
  * @since 4.0.0
  */
@@ -30,6 +35,9 @@ export const layerJson = Layer.succeed(OtlpSerialization, {
 })
 
 /**
+ * Provides `OtlpSerialization` using protobuf-encoded OTLP bodies with the
+ * `application/x-protobuf` content type.
+ *
  * @category Layers
  * @since 4.0.0
  */

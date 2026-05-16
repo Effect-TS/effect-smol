@@ -3,6 +3,12 @@
  */
 
 /**
+ * Interface for values that support method-style `pipe` composition.
+ *
+ * Calling `value.pipe(f, g, h)` passes the value through each function from
+ * left to right, returning the final result. Many Effect data types implement
+ * this so operations can be chained without nesting function calls.
+ *
  * @category models
  * @since 2.0.0
  * **Example** (Chaining operations with pipe)
@@ -501,6 +507,13 @@ export interface Pipeable {
 }
 
 /**
+ * Applies a `pipe` method's variadic arguments to an initial value from left
+ * to right.
+ *
+ * This helper is intended for implementing `Pipeable.pipe` methods that
+ * receive JavaScript's `arguments` object. With no functions it returns the
+ * original value; otherwise it feeds each result into the next function.
+ *
  * @category utilities
  * @since 2.0.0
  * **Example** (Implementing a pipe method)
@@ -556,6 +569,11 @@ export const pipeArguments = <A>(self: A, args: IArguments): unknown => {
 }
 
 /**
+ * Reusable prototype that implements `Pipeable.pipe`.
+ *
+ * Classes or object prototypes can reuse this value when they need the
+ * standard pipe implementation backed by `pipeArguments`.
+ *
  * @since 4.0.0
  */
 export const Prototype: Pipeable = {
@@ -565,6 +583,12 @@ export const Prototype: Pipeable = {
 }
 
 /**
+ * Base constructor whose instances implement the standard `Pipeable.pipe`
+ * method.
+ *
+ * Extend or compose this constructor when defining a class that should support
+ * Effect-style method chaining through `.pipe(...)`.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -575,6 +599,8 @@ export const Class: new() => Pipeable = (function() {
 })()
 
 /**
+ * Constructor type for classes whose instances implement `Pipeable`.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -583,6 +609,12 @@ export interface PipeableConstructor {
 }
 
 /**
+ * Returns a subclass of the provided class that adds the standard `pipe`
+ * method.
+ *
+ * The original constructor and instance members are preserved, and the added
+ * method delegates to `pipeArguments`.
+ *
  * @category constructors
  * @since 4.0.0
  */

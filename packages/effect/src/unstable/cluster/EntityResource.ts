@@ -13,18 +13,27 @@ import * as K8sHttpClient from "./K8sHttpClient.ts"
 import type { Sharding } from "./Sharding.ts"
 
 /**
+ * Type identifier used to brand `EntityResource` values.
+ *
  * @category Type ids
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/cluster/EntityResource"
 
 /**
+ * Literal type of the `EntityResource` type identifier.
+ *
  * @category Type ids
  * @since 4.0.0
  */
 export type TypeId = "~effect/cluster/EntityResource"
 
 /**
+ * A resource acquired inside a cluster entity and kept alive across restarts.
+ *
+ * `get` acquires or reuses the resource in the caller's scope, while `close`
+ * invalidates it so its close scope can be released.
+ *
  * @category Models
  * @since 4.0.0
  */
@@ -110,6 +119,11 @@ export const make: <A, E, R>(options: {
 })
 
 /**
+ * Creates an `EntityResource` backed by a Kubernetes Pod.
+ *
+ * The pod is created and waited on through `K8sHttpClient`, and is kept alive
+ * until the resource is closed or its idle time to live expires.
+ *
  * @category Kubernetes
  * @since 4.0.0
  */

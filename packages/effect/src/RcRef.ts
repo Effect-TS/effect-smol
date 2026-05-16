@@ -51,6 +51,8 @@ export interface RcRef<out A, out E = never> extends Pipeable {
 }
 
 /**
+ * Namespace containing type-level members associated with `RcRef`.
+ *
  * **Example** (Referencing namespace types)
  *
  * ```ts
@@ -66,6 +68,14 @@ export interface RcRef<out A, out E = never> extends Pipeable {
  */
 export declare namespace RcRef {
   /**
+   * Type-level variance marker for `RcRef`.
+   *
+   * **Notes**
+   *
+   * This interface records the covariant value and error types carried by an
+   * `RcRef`. It is used by Effect's type machinery and is not normally
+   * referenced directly by users.
+   *
    * @category models
    * @since 3.5.0
    */
@@ -76,13 +86,15 @@ export declare namespace RcRef {
 }
 
 /**
- * Create an `RcRef` from an acquire `Effect`.
+ * Creates an `RcRef` from an acquire effect.
  *
- * An RcRef wraps a reference counted resource that can be acquired and released
- * multiple times.
+ * **Details**
  *
- * The resource is lazily acquired on the first call to `get` and released when
- * the last reference is released.
+ * The resource is acquired lazily on the first `get` and shared by subsequent
+ * gets while it remains cached. Each `get` adds a reference to the current
+ * `Scope`. When the last reference is released, the resource is closed
+ * immediately by default, or after `idleTimeToLive` when that option is
+ * provided.
  *
  * **Example** (Creating a reference-counted resource)
  *
@@ -121,11 +133,14 @@ export const make: <A, E, R>(
 ) => Effect.Effect<RcRef<A, E>, never, R | Scope> = internal.make
 
 /**
- * Get the value from an RcRef.
+ * Gets the value from an `RcRef`, acquiring it first if needed.
  *
- * This will acquire the resource if it hasn't been acquired yet, or increment
- * the reference count if it has. The resource will be automatically released
- * when the returned scope is closed.
+ * **Details**
+ *
+ * The reference count is incremented for the current `Scope`, and a release
+ * finalizer is added to that scope. When the current scope closes, the
+ * reference is released; the resource is closed when the final reference is
+ * released, subject to any configured idle time-to-live.
  *
  * **Example** (Sharing one acquired value)
  *
@@ -158,6 +173,14 @@ export const make: <A, E, R>(
 export const get: <A, E>(self: RcRef<A, E>) => Effect.Effect<A, E, Scope> = internal.get
 
 /**
+ * Invalidates the currently cached resource, if one has been acquired.
+ *
+ * **Details**
+ *
+ * After invalidation, the next `get` acquires a fresh resource. If the current
+ * resource is still referenced by active scopes, it remains usable until those
+ * scopes close; otherwise it is closed immediately.
+ *
  * @category combinators
  * @since 3.19.6
  */

@@ -27,6 +27,9 @@ const withLogAddress = <A, E, R>(layer: Layer.Layer<A, E, R>): Layer.Layer<A, E,
   })).pipe(Layer.provideMerge(layer))
 
 /**
+ * Layer that runs a cluster runner over the socket RPC protocol, providing
+ * `Sharding` and `Runners` clients and logging the socket listen address.
+ *
  * @category Layers
  * @since 4.0.0
  */
@@ -46,6 +49,9 @@ export const layer: Layer.Layer<
 )
 
 /**
+ * Client-only socket runner layer that provides `Sharding` and `Runners` clients
+ * without starting a runner server or receiving shard assignments.
+ *
  * @category Layers
  * @since 4.0.0
  */

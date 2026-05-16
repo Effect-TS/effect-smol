@@ -13,6 +13,9 @@ import type * as Workflow from "./Workflow.ts"
 import type { WorkflowEngine } from "./WorkflowEngine.ts"
 
 /**
+ * Creates handlers for a workflow HTTP API group, wiring execute, discard, and
+ * resume endpoints to the supplied workflows.
+ *
  * @category Layers
  * @since 4.0.0
  */
@@ -77,6 +80,9 @@ export const layerHttpApi = <
   )
 
 /**
+ * Creates RPC handlers for the supplied workflows, wiring execute, discard,
+ * and resume RPCs to workflow operations.
+ *
  * @category Layers
  * @since 4.0.0
  */
@@ -122,6 +128,9 @@ export const layerRpcHandlers = <
   }))
 
 /**
+ * Union of RPC handler services required to serve the generated workflow
+ * execute, discard, and resume RPCs.
+ *
  * @since 4.0.0
  */
 export type RpcHandlers<Workflows extends Workflow.Any, Prefix extends string> = Workflows extends Workflow.Workflow<

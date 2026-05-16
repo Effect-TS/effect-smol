@@ -102,6 +102,8 @@ const TypeId = core.ExitTypeId
 export type Exit<A, E = never> = Success<A, E> | Failure<A, E>
 
 /**
+ * Namespace containing helper types shared by `Exit` values.
+ *
  * @category models
  * @since 2.0.0
  */

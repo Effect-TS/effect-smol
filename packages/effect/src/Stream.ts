@@ -58,12 +58,17 @@ import type {
 import type * as Unify from "./Unify.ts"
 
 /**
+ * String literal type used as the unique brand for `Stream` values.
+ *
  * @category Type Identifiers
  * @since 4.0.0
  */
 export type TypeId = "~effect/Stream"
 
 /**
+ * Runtime identifier stored on `Stream` values and used by `isStream` to
+ * recognize them.
+ *
  * @category Type Identifiers
  * @since 4.0.0
  */
@@ -148,7 +153,10 @@ export interface StreamTypeLambda extends TypeLambda {
 }
 
 /**
- * Variance markers for Stream type parameters.
+ * Type-level variance marker for `Stream`.
+ *
+ * The emitted value `A`, error `E`, and service requirement `R` type
+ * parameters are covariant.
  *
  * @category Models
  * @since 2.0.0
@@ -158,7 +166,10 @@ export interface Variance<out A, out E, out R> {
 }
 
 /**
- * Structural encoding of Stream type parameter variance.
+ * Structural encoding used by `Variance` to record each `Stream` type
+ * parameter's variance.
+ *
+ * `_A`, `_E`, and `_R` are covariant markers.
  *
  * @category Models
  * @since 2.0.0
@@ -529,7 +540,8 @@ export const fromEffectSchedule = <A, E, R, X, AS extends A, ES, RS>(
   }))
 
 /**
- * Creates a stream that emits void values spaced by the specified duration.
+ * Creates a stream that emits `void` immediately once, then emits another
+ * `void` after each specified interval.
  *
  * **Example** (Emitting ticks on an interval)
  *
@@ -1248,12 +1260,10 @@ export const fromArrays = <Arr extends ReadonlyArray<ReadonlyArray<any>>>(
 ): Stream<Arr[number][number]> => fromChannel(Channel.fromArray(Arr.filter(arrays, Arr.isReadonlyArrayNonEmpty)))
 
 /**
- * Creates a stream from a queue of values.
+ * Creates a stream that pulls values from a `Queue.Dequeue`.
  *
- * **Options**
- *
- * - `maxChunkSize`: The maximum number of queued elements to put in one chunk in the stream
- * - `shutdown`: If `true`, the queue will be shutdown after the stream is evaluated (defaults to `false`)
+ * The stream emits non-empty batches of queued values and ends when the queue
+ * fails with `Cause.Done`; other queue failures are propagated.
  *
  * **Example** (Creating a stream from a queue of values)
  *
@@ -1350,9 +1360,11 @@ export const fromPubSubTake = <A, E>(pubsub: PubSub.PubSub<Take.Take<A, E>>): St
   fromChannel(Channel.fromPubSubTake(pubsub))
 
 /**
- * Creates a stream from a `ReadableStream`.
+ * Creates a stream from a lazily supplied Web `ReadableStream`.
  *
- * See https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream.
+ * The stream reads from a `ReadableStreamDefaultReader`, maps read failures
+ * with `onError`, and closes the reader when the stream finalizes. By default
+ * the reader is canceled; set `releaseLockOnEnd` to release the lock instead.
  *
  * **Example** (Creating a stream from a ReadableStream)
  *
@@ -1589,7 +1601,11 @@ export const fromEventListener = <A = unknown>(
   }, { bufferSize: typeof options === "object" ? options.bufferSize : undefined })
 
 /**
- * Creates a stream by peeling off successive layers of a state value.
+ * Creates a stream by repeatedly applying an effectful step function to a
+ * state.
+ *
+ * Each `readonly [value, nextState]` result emits `value` and continues with
+ * `nextState`; returning `undefined` ends the stream.
  *
  * **Example** (Unfolding stream state)
  *
@@ -2370,7 +2386,12 @@ export const tapSink: {
 )
 
 /**
- * Maps each element to a stream and concatenates the results in order.
+ * Maps each element to a stream and flattens the resulting streams.
+ *
+ * With the default sequential concurrency, inner streams are concatenated in
+ * input order. When `concurrency` is greater than `1` or `"unbounded"`,
+ * multiple inner streams may run at the same time and their outputs are merged
+ * as they arrive.
  *
  * **Example** (FlatMapping stream values)
  *
@@ -2477,8 +2498,12 @@ export const switchMap: {
   ))
 
 /**
- * Flattens a stream of streams into a single stream by concatenating the
- * inner streams in strict order.
+ * Flattens a stream of streams into a single stream.
+ *
+ * With the default sequential concurrency, inner streams are concatenated in
+ * strict order. When `concurrency` is greater than `1` or `"unbounded"`,
+ * multiple inner streams may run at the same time and their outputs are merged
+ * as they arrive.
  *
  * **Example** (Flattening nested streams)
  *
@@ -2748,6 +2773,13 @@ export const timeout: {
 )
 
 /**
+ * Switches to a fallback stream if this stream does not emit a value within
+ * the specified duration.
+ *
+ * The timeout is checked for each pull. A zero duration uses `orElse`
+ * immediately, while an infinite duration leaves the original stream
+ * unchanged.
+ *
  * @category Rate Limiting
  * @since 2.0.0
  */
@@ -4058,7 +4090,12 @@ export const zipLatestWith: {
 )
 
 /**
- * Races multiple streams and emits values from the first stream to produce a value, interrupting the rest.
+ * Runs all streams concurrently until one stream emits its first value, then
+ * mirrors that winning stream and interrupts the rest.
+ *
+ * Failures or completion from losing streams before a winner is chosen are
+ * ignored unless every stream fails or completes before emitting. After a
+ * winner is chosen, that stream's later failures are propagated.
  *
  * @category Racing
  * @since 3.7.0
@@ -4110,8 +4147,12 @@ export const raceAll = <S extends ReadonlyArray<Stream<any, any, any>>>(
   ))
 
 /**
- * Returns a stream that mirrors the first upstream to emit an item.
- * As soon as one stream emits, the other is interrupted and failures propagate.
+ * Runs both streams concurrently until one stream emits its first value, then
+ * mirrors that winning stream and interrupts the other.
+ *
+ * A failure or completion from one side before the other side emits does not
+ * win the race unless both sides fail or complete before emitting. After a
+ * winner is chosen, that stream's later failures are propagated.
  *
  * **Example** (Racing two streams)
  *
@@ -4270,9 +4311,12 @@ export const filterMapEffect: {
 )
 
 /**
- * Partitions a stream using a `Filter` and exposes passing and failing values as queues.
+ * Partitions a stream using a `Filter` and exposes passing and failing values
+ * as scoped queues.
  *
- * Each queue fails with the stream error or `Cause.Done` when the source ends.
+ * The queues are backed by a fiber in the current scope and should be consumed
+ * while that scope remains open. Each queue fails with the stream error or
+ * `Cause.Done` when the source ends.
  *
  * **Example** (Partitioning a stream into queues)
  *
@@ -4390,7 +4434,12 @@ export const partitionQueue: {
 )
 
 /**
- * Splits a stream using an effectful `Filter`, producing pass and fail streams.
+ * Splits a stream with an effectful `Filter`, returning scoped streams for
+ * filter successes and failures.
+ *
+ * The returned streams are backed by queues in the current scope and should be
+ * consumed while that scope remains open. The first stream emits success values
+ * from the filter, and the second emits failure values.
  *
  * @category Filtering
  * @since 4.0.0
@@ -4450,10 +4499,12 @@ export const partitionEffect: {
 )
 
 /**
- * Splits a stream into excluded and satisfying substreams using a `Filter`.
+ * Splits a stream into scoped excluded and satisfying substreams using a
+ * `Filter`.
  *
- * The faster stream may advance up to `bufferSize` elements ahead of the slower
- * one.
+ * The returned streams are backed by queues in the current scope and should be
+ * consumed while that scope remains open. The faster stream may advance up to
+ * `bufferSize` elements ahead of the slower one.
  *
  * @category Filtering
  * @since 4.0.0
@@ -4620,8 +4671,10 @@ export const peel: {
  * Buffers up to `capacity` elements so a faster producer can progress
  * independently of a slower consumer.
  *
- * Note: This combinator destroys chunking. Use `Stream.rechunk` afterwards if
- * you need fixed chunk sizes.
+ * Finite buffers use the configured queue strategy: `"suspend"` applies
+ * backpressure, while `"dropping"` and `"sliding"` may discard elements when
+ * the buffer is full. This combinator destroys chunking; use `Stream.rechunk`
+ * afterward if you need fixed chunk sizes.
  *
  * **Example** (Buffering stream elements)
  *
@@ -4669,7 +4722,10 @@ export const buffer: {
  * Allows a faster producer to progress independently of a slower consumer by
  * buffering up to `capacity` chunks in a queue.
  *
- * This combinator preserves chunking and is best with power-of-2 capacities.
+ * Finite buffers use the configured queue strategy: `"suspend"` applies
+ * backpressure, while `"dropping"` and `"sliding"` may discard chunks when the
+ * buffer is full. This combinator preserves chunking and is best with
+ * power-of-2 capacities.
  *
  * **Previously Known As**
  *
@@ -6310,7 +6366,10 @@ export const takeWhile: {
 )
 
 /**
- * Takes the longest initial prefix of elements that satisfy the filter.
+ * Takes the longest initial prefix accepted by a `Filter` and emits the
+ * filter's success values.
+ *
+ * The stream stops at the first `Result.fail` returned by the filter.
  *
  * @category Filtering
  * @since 4.0.0
@@ -7238,7 +7297,12 @@ export const mapAccumArray: {
 const emptyArr = Arr.empty<never>()
 
 /**
- * Statefully and effectfully maps over the elements of this stream to produce new elements.
+ * Statefully and effectfully maps each element, emitting zero or more output
+ * values per input.
+ *
+ * The mapping effect receives the current state and element, then returns the
+ * next state plus the values to emit. The state is threaded through the
+ * stream.
  *
  * **Example** (Effectfully mapping stream values with state)
  *
@@ -7312,7 +7376,11 @@ export const mapAccumEffect: {
   ))
 
 /**
- * Statefully and effectfully maps over chunks of this stream to emit new values.
+ * Statefully and effectfully maps each non-empty input chunk, emitting zero or
+ * more output values per chunk.
+ *
+ * The mapping effect receives the current state and chunk, then returns the
+ * next state plus the values to emit. The state is threaded across chunks.
  *
  * **Example** (Effectfully mapping stream chunks with state)
  *
@@ -8089,6 +8157,12 @@ const groupByImpl = <A, E, R, K, V, E2, R2>(
   )
 
 /**
+ * Groups consecutive elements that have equal keys into non-empty arrays.
+ *
+ * The key is computed with `f`; adjacent elements whose keys are equal by
+ * `Equal.equals` are emitted as one `[key, group]`. Later non-adjacent runs
+ * with the same key are emitted separately.
+ *
  * @category Grouping
  * @since 2.0.0
  */
@@ -11051,7 +11125,12 @@ export const toPubSubTake: {
 )
 
 /**
- * Converts a stream to a Queue for concurrent consumption.
+ * Creates a scoped dequeue that is fed by the stream for concurrent
+ * consumption.
+ *
+ * Elements are offered to the queue as the stream runs. Stream completion is
+ * signaled with `Cause.Done`, stream failures fail the queue, and the queue is
+ * shut down when the surrounding scope closes.
  *
  * **Example** (Converting a stream to a Queue for concurrent consumption)
  *

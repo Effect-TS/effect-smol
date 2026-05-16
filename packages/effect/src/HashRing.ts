@@ -12,6 +12,12 @@ import * as PrimaryKey from "./PrimaryKey.ts"
 const TypeId = "~effect/cluster/HashRing" as const
 
 /**
+ * A weighted consistent-hashing ring for assigning inputs to nodes with stable
+ * remapping as nodes are added or removed.
+ *
+ * Nodes are identified by their `PrimaryKey` value and can be iterated from the
+ * ring.
+ *
  * @category Models
  * @since 4.0.0
  */
@@ -24,12 +30,19 @@ export interface HashRing<A extends PrimaryKey.PrimaryKey> extends Pipeable, Ite
 }
 
 /**
+ * Checks whether a value is a `HashRing`.
+ *
  * @category Guards
  * @since 4.0.0
  */
 export const isHashRing = (u: unknown): u is HashRing<any> => hasProperty(u, TypeId)
 
 /**
+ * Creates an empty `HashRing`.
+ *
+ * `baseWeight` controls how many virtual points are added for a node with
+ * weight `1`; it defaults to `128` and is clamped to at least `1`.
+ *
  * @category Constructors
  * @since 4.0.0
  */
@@ -157,6 +170,8 @@ export const remove: {
 })
 
 /**
+ * Checks whether the ring contains a node with the same `PrimaryKey` value.
+ *
  * @category Combinators
  * @since 4.0.0
  */

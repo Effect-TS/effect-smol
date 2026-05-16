@@ -31,6 +31,8 @@ const make: Effect.Effect<
 })
 
 /**
+ * Layer that provides the Bun `HttpPlatform`, including file responses backed by `Bun.file`.
+ *
  * @category Layers
  * @since 1.0.0
  */

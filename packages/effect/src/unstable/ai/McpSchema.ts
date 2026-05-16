@@ -16,6 +16,11 @@ import * as RpcGroup from "../rpc/RpcGroup.ts"
 import * as RpcMiddleware from "../rpc/RpcMiddleware.ts"
 
 /**
+ * Schema type returned by `optionalWithDefault`.
+ *
+ * It represents an optional struct field that supplies a default value when the
+ * field is absent during decoding or construction.
+ *
  * @since 4.0.0
  */
 export interface optionalWithDefault<S extends Schema.Top & Schema.WithoutConstructorDefault>
@@ -23,6 +28,12 @@ export interface optionalWithDefault<S extends Schema.Top & Schema.WithoutConstr
 {}
 
 /**
+ * Marks a struct field as optional and supplies `defaultValue` when the field
+ * is absent.
+ *
+ * The default is used during decoding and as the constructor default for the
+ * schema field.
+ *
  * @since 4.0.0
  */
 export const optionalWithDefault = <S extends Schema.Top & Schema.WithoutConstructorDefault>(
@@ -42,6 +53,11 @@ export const optionalWithDefault = <S extends Schema.Top & Schema.WithoutConstru
 }
 
 /**
+ * Creates an optional MCP struct-field schema from a required schema.
+ *
+ * The field may be absent, and explicit `undefined` values are omitted when
+ * encoding.
+ *
  * @since 4.0.0
  */
 export const optional = <S extends Schema.Top>(schema: S): Schema.decodeTo<Schema.optional<S>, Schema.optionalKey<S>> =>
@@ -97,6 +113,11 @@ export const ProgressToken: Schema.Union<[
 export type ProgressToken = typeof ProgressToken.Type
 
 /**
+ * Schema for optional MCP request metadata.
+ *
+ * Request metadata may include a progress token that asks the receiver to send
+ * out-of-band progress notifications for the request.
+ *
  * @category common
  * @since 4.0.0
  */
@@ -114,6 +135,11 @@ export class RequestMeta extends Schema.Opaque<RequestMeta>()(Schema.Struct({
 })) {}
 
 /**
+ * Schema for optional MCP result metadata.
+ *
+ * The `_meta` field is reserved for protocol, extension, or implementation
+ * metadata attached to a result.
+ *
  * @category common
  * @since 4.0.0
  */
@@ -126,6 +152,11 @@ export class ResultMeta extends Schema.Opaque<ResultMeta>()(Schema.Struct({
 })) {}
 
 /**
+ * Schema for optional MCP notification metadata.
+ *
+ * The `_meta` field is reserved for protocol, extension, or implementation
+ * metadata attached to a notification.
+ *
  * @category common
  * @since 4.0.0
  */
@@ -146,12 +177,21 @@ export class NotificationMeta extends Schema.Opaque<NotificationMeta>()(Schema.S
 export const Cursor: typeof Schema.String = Schema.String
 
 /**
+ * Type represented by the MCP cursor schema.
+ *
+ * A cursor is an opaque string token used to continue paginated requests.
+ *
  * @category common
  * @since 4.0.0
  */
 export type Cursor = typeof Cursor.Type
 
 /**
+ * Schema for MCP request metadata used by paginated requests.
+ *
+ * It includes the base request metadata fields plus an optional cursor
+ * indicating where the server should continue listing results.
+ *
  * @category common
  * @since 4.0.0
  */
@@ -165,6 +205,11 @@ export class PaginatedRequestMeta extends Schema.Opaque<PaginatedRequestMeta>()(
 })) {}
 
 /**
+ * Schema for MCP result metadata returned by paginated operations.
+ *
+ * It includes the base result metadata fields plus an optional `nextCursor`,
+ * which indicates that more results may be available.
+ *
  * @category common
  * @since 4.0.0
  */
@@ -185,6 +230,10 @@ export class PaginatedResultMeta extends Schema.Opaque<PaginatedResultMeta>()(Sc
 export const Role: Schema.Literals<["user", "assistant"]> = Schema.Literals(["user", "assistant"])
 
 /**
+ * Type represented by the MCP role schema.
+ *
+ * Valid roles are `"user"` and `"assistant"`.
+ *
  * @category common
  * @since 4.0.0
  */
@@ -330,6 +379,11 @@ export class ServerCapabilities extends Schema.Opaque<ServerCapabilities>()(Sche
 // =============================================================================
 
 /**
+ * Base schema for MCP and JSON-RPC error objects.
+ *
+ * It contains the numeric error `code`, a concise `message`, and optional
+ * sender-defined `data`.
+ *
  * @category errors
  * @since 4.0.0
  */
@@ -353,32 +407,47 @@ export class McpErrorBase extends Schema.Class<McpErrorBase>(
 }) {}
 
 /**
+ * JSON-RPC error code for requests that are not valid request objects.
+ *
  * @category errors
  * @since 4.0.0
  */
 export const INVALID_REQUEST_ERROR_CODE = -32600 as const
 /**
+ * JSON-RPC error code for requests whose method does not exist or is not
+ * available.
+ *
  * @category errors
  * @since 4.0.0
  */
 export const METHOD_NOT_FOUND_ERROR_CODE = -32601 as const
 /**
+ * JSON-RPC error code for invalid method parameters.
+ *
  * @category errors
  * @since 4.0.0
  */
 export const INVALID_PARAMS_ERROR_CODE = -32602 as const
 /**
+ * JSON-RPC error code for internal server errors.
+ *
  * @category errors
  * @since 4.0.0
  */
 export const INTERNAL_ERROR_CODE = -32603 as const
 /**
+ * JSON-RPC error code for invalid JSON that could not be parsed.
+ *
  * @category errors
  * @since 4.0.0
  */
 export const PARSE_ERROR_CODE = -32700 as const
 
 /**
+ * MCP/JSON-RPC error for invalid JSON that could not be parsed.
+ *
+ * This error uses the standard parse error code `-32700`.
+ *
  * @category errors
  * @since 4.0.0
  */
@@ -389,6 +458,10 @@ export class ParseError extends Schema.ErrorClass<ParseError>("effect/ai/McpSche
 }) {}
 
 /**
+ * MCP/JSON-RPC error for a request object that is not valid.
+ *
+ * This error uses the standard invalid request code `-32600`.
+ *
  * @category errors
  * @since 4.0.0
  */
@@ -399,6 +472,10 @@ export class InvalidRequest extends Schema.ErrorClass<InvalidRequest>("effect/ai
 }) {}
 
 /**
+ * MCP/JSON-RPC error for a method that does not exist or is not available.
+ *
+ * This error uses the standard method not found code `-32601`.
+ *
  * @category errors
  * @since 4.0.0
  */
@@ -409,6 +486,10 @@ export class MethodNotFound extends Schema.ErrorClass<MethodNotFound>("effect/ai
 }) {}
 
 /**
+ * MCP/JSON-RPC error for invalid method parameters.
+ *
+ * This error uses the standard invalid params code `-32602`.
+ *
  * @category errors
  * @since 4.0.0
  */
@@ -419,6 +500,11 @@ export class InvalidParams extends Schema.ErrorClass<InvalidParams>("effect/ai/M
 }) {}
 
 /**
+ * MCP/JSON-RPC error for unexpected internal server failures.
+ *
+ * This error uses the standard internal error code `-32603` and includes
+ * `InternalError.notImplemented` for unimplemented handlers.
+ *
  * @category errors
  * @since 4.0.0
  */
@@ -431,6 +517,9 @@ export class InternalError extends Schema.ErrorClass<InternalError>("effect/ai/M
 }
 
 /**
+ * Schema for MCP protocol errors returned in JSON-RPC failure responses,
+ * including standard protocol errors and custom `McpErrorBase` values.
+ *
  * @category errors
  * @since 4.0.0
  */
@@ -538,6 +627,12 @@ export class InitializedNotification extends Rpc.make("notifications/initialized
 // =============================================================================
 
 /**
+ * Notification sent by either peer to cancel a previously issued request in
+ * the same direction.
+ *
+ * The payload identifies the request to cancel and may include a
+ * human-readable reason.
+ *
  * @category cancellation
  * @since 4.0.0
  */
@@ -878,6 +973,11 @@ export class Unsubscribe extends Rpc.make("resources/unsubscribe", {
 }) {}
 
 /**
+ * Notification sent by the server when a subscribed resource URI has changed.
+ *
+ * The URI may identify a sub-resource of the resource that the client
+ * originally subscribed to.
+ *
  * @category resources
  * @since 4.0.0
  */
@@ -1037,6 +1137,9 @@ export class ResourceLink extends Schema.Opaque<ResourceLink>()(Schema.Struct({
 })) {}
 
 /**
+ * Union of MCP content blocks that can appear in prompt messages or tool
+ * results, including text, media, embedded resources, and resource links.
+ *
  * @category prompts
  * @since 4.0.0
  */
@@ -1381,6 +1484,11 @@ export class SetLevel extends Rpc.make("logging/setLevel", {
 }) {}
 
 /**
+ * Server notification carrying a log message for the client.
+ *
+ * The notification includes the severity level, optional logger name, and
+ * JSON-serializable log data.
+ *
  * @category logging
  * @since 4.0.0
  */
@@ -1802,6 +1910,12 @@ export const ElicitResult = Schema.Union([
 ])
 
 /**
+ * Request sent by the server asking the client to collect structured input
+ * from the user.
+ *
+ * The client responds with accepted content, an explicit decline, or a
+ * cancellation.
+ *
  * @category elicitation
  * @since 4.0.0
  */
@@ -1823,6 +1937,12 @@ export class Elicit extends Rpc.make("elicitation/create", {
 }) {}
 
 /**
+ * Error raised when an MCP elicitation request is declined or fails before
+ * accepted content is returned.
+ *
+ * The error stores the original elicitation request and, when available, the
+ * underlying cause.
+ *
  * @category elicitation
  * @since 4.0.0
  */
@@ -1839,6 +1959,11 @@ export class ElicitationDeclined
 // =============================================================================
 
 /**
+ * Service available while handling an MCP client request.
+ *
+ * It exposes the current client id, the client's initialize payload, and a
+ * scoped RPC client for server-initiated requests back to that client.
+ *
  * @category client
  * @since 4.0.0
  */
@@ -1853,6 +1978,9 @@ export class McpServerClient extends Context.Service<McpServerClient, {
 }>()("effect/ai/McpSchema/McpServerClient") {}
 
 /**
+ * RPC middleware that provides `McpServerClient` to handlers for initialized
+ * MCP clients.
+ *
  * @category middleware
  * @since 4.0.0
  */
@@ -1865,6 +1993,9 @@ export class McpServerClientMiddleware extends RpcMiddleware.Service<McpServerCl
 // =============================================================================
 
 /**
+ * Encoded JSON-RPC request message for an RPC in `Group`, including the request
+ * id, method, and encoded payload.
+ *
  * @category protocol
  * @since 4.0.0
  */
@@ -1886,6 +2017,9 @@ export type RequestEncoded<Group extends RpcGroup.Any> = RpcGroup.Rpcs<
   : never
 
 /**
+ * Encoded notification message for an RPC in `Group`, including the method and
+ * encoded payload without a request id.
+ *
  * @category protocol
  * @since 4.0.0
  */
@@ -1906,6 +2040,9 @@ export type NotificationEncoded<Group extends RpcGroup.Any> = RpcGroup.Rpcs<
   : never
 
 /**
+ * Encoded success response for an RPC in `Group`, containing the original
+ * request id and encoded result.
+ *
  * @category protocol
  * @since 4.0.0
  */
@@ -1926,6 +2063,9 @@ export type SuccessEncoded<Group extends RpcGroup.Any> = RpcGroup.Rpcs<
   : never
 
 /**
+ * Encoded failure response for an RPC in `Group`, containing the original
+ * request id and encoded error.
+ *
  * @category protocol
  * @since 4.0.0
  */
@@ -1946,6 +2086,12 @@ export type FailureEncoded<Group extends RpcGroup.Any> = RpcGroup.Rpcs<
   : never
 
 /**
+ * RPC group for requests that MCP clients send to the server.
+ *
+ * The group includes initialization, resource, prompt, tool, logging,
+ * completion, and ping requests, and installs `McpServerClientMiddleware` for
+ * handlers.
+ *
  * @category protocol
  * @since 4.0.0
  */
@@ -1966,12 +2112,17 @@ export class ClientRequestRpcs extends RpcGroup.make(
 ).middleware(McpServerClientMiddleware) {}
 
 /**
+ * Encoded union of all client-to-server MCP request messages.
+ *
  * @category protocol
  * @since 4.0.0
  */
 export type ClientRequestEncoded = RequestEncoded<typeof ClientRequestRpcs>
 
 /**
+ * RPC group for notifications that MCP clients send to the server, such as
+ * cancellation, progress, initialization completion, and roots list changes.
+ *
  * @category protocol
  * @since 4.0.0
  */
@@ -1983,30 +2134,41 @@ export class ClientNotificationRpcs extends RpcGroup.make(
 ) {}
 
 /**
+ * Encoded union of all client-to-server MCP notification messages.
+ *
  * @category protocol
  * @since 4.0.0
  */
 export type ClientNotificationEncoded = NotificationEncoded<typeof ClientNotificationRpcs>
 
 /**
+ * RPC group combining all client-to-server MCP requests and notifications.
+ *
  * @category protocol
  * @since 4.0.0
  */
 export class ClientRpcs extends ClientRequestRpcs.merge(ClientNotificationRpcs) {}
 
 /**
+ * Encoded success response sent by a client for a server-initiated request.
+ *
  * @category protocol
  * @since 4.0.0
  */
 export type ClientSuccessEncoded = SuccessEncoded<typeof ServerRequestRpcs>
 
 /**
+ * Encoded failure response sent by a client for a server-initiated request.
+ *
  * @category protocol
  * @since 4.0.0
  */
 export type ClientFailureEncoded = FailureEncoded<typeof ServerRequestRpcs>
 
 /**
+ * RPC group for requests that an MCP server can send to a client, including
+ * ping, sampling, roots listing, and elicitation.
+ *
  * @category protocol
  * @since 4.0.0
  */
@@ -2018,12 +2180,18 @@ export class ServerRequestRpcs extends RpcGroup.make(
 ) {}
 
 /**
+ * Encoded union of all server-to-client MCP request messages.
+ *
  * @category protocol
  * @since 4.0.0
  */
 export type ServerRequestEncoded = RequestEncoded<typeof ServerRequestRpcs>
 
 /**
+ * RPC group for notifications that an MCP server can send to a client,
+ * including cancellation, progress, logging, and list or resource update
+ * notifications.
+ *
  * @category protocol
  * @since 4.0.0
  */
@@ -2038,36 +2206,50 @@ export class ServerNotificationRpcs extends RpcGroup.make(
 ) {}
 
 /**
+ * Encoded union of all server-to-client MCP notification messages.
+ *
  * @category protocol
  * @since 4.0.0
  */
 export type ServerNotificationEncoded = NotificationEncoded<typeof ServerNotificationRpcs>
 
 /**
+ * Encoded success response sent by the server for a client-initiated request.
+ *
  * @category protocol
  * @since 4.0.0
  */
 export type ServerSuccessEncoded = SuccessEncoded<typeof ClientRequestRpcs>
 
 /**
+ * Encoded failure response sent by the server for a client-initiated request.
+ *
  * @category protocol
  * @since 4.0.0
  */
 export type ServerFailureEncoded = FailureEncoded<typeof ClientRequestRpcs>
 
 /**
+ * Encoded server response to a client request, either success or failure.
+ *
  * @category protocol
  * @since 4.0.0
  */
 export type ServerResultEncoded = ServerSuccessEncoded | ServerFailureEncoded
 
 /**
+ * Encoded MCP messages accepted from a client by the server protocol: client
+ * requests and client notifications.
+ *
  * @category protocol
  * @since 4.0.0
  */
 export type FromClientEncoded = ClientRequestEncoded | ClientNotificationEncoded
 
 /**
+ * Encoded MCP messages emitted by the server protocol to a client: server
+ * responses and server notifications.
+ *
  * @category protocol
  * @since 4.0.0
  */
@@ -2076,6 +2258,9 @@ export type FromServerEncoded = ServerResultEncoded | ServerNotificationEncoded
 const ParamSchemaTypeId = "~effect/ai/McpSchema/ParamSchema"
 
 /**
+ * Returns `true` when a schema was created with `param` and therefore carries
+ * a resource URI template parameter name.
+ *
  * @category parameters
  * @since 4.0.0
  */
@@ -2084,6 +2269,11 @@ export function isParam(schema: Schema.Top): schema is Param<string, Schema.Top>
 }
 
 /**
+ * Schema wrapper used for resource URI template parameters.
+ *
+ * A `Param` behaves like the wrapped schema while carrying the parameter name
+ * used for template compilation and completion lookup.
+ *
  * @category parameters
  * @since 4.0.0
  */

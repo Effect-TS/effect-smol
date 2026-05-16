@@ -9,6 +9,8 @@ import * as Worker from "effect/unstable/workers/Worker"
 import { WorkerError, WorkerReceiveError } from "effect/unstable/workers/WorkerError"
 
 /**
+ * Creates browser worker layers by combining the default `WorkerPlatform` with a spawner for `Worker`, `SharedWorker`, or `MessagePort` instances.
+ *
  * @category Layers
  * @since 1.0.0
  */
@@ -21,6 +23,8 @@ export const layer = (
   )
 
 /**
+ * Layer that provides the browser `WorkerPlatform` for `Worker`, `SharedWorker`, and `MessagePort` communication.
+ *
  * @category Layers
  * @since 1.0.0
  */

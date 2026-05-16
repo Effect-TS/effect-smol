@@ -8,6 +8,11 @@ import type { EntityId } from "./EntityId.ts"
 import type { Request } from "./Envelope.ts"
 
 /**
+ * Annotation that marks whether a cluster request should be persisted in mailbox
+ * storage.
+ *
+ * The default value is `false`.
+ *
  * @category Annotations
  * @since 4.0.0
  */
@@ -28,6 +33,13 @@ export const WithTransaction = Context.Reference<boolean>(
 )
 
 /**
+ * Annotation that controls whether a cluster request is treated as
+ * uninterruptible.
+ *
+ * Use `true` for both client and server handling, `"client"` for client-side
+ * handling only, `"server"` for server-side handling only, or `false` to allow
+ * interruption.
+ *
  * @category Annotations
  * @since 4.0.0
  */
@@ -37,6 +49,9 @@ export const Uninterruptible = Context.Reference<boolean | "client" | "server">(
 )
 
 /**
+ * Returns whether the `Uninterruptible` annotation applies to server-side
+ * request handling for the provided context.
+ *
  * @category Annotations
  * @since 4.0.0
  */
@@ -46,6 +61,9 @@ export const isUninterruptibleForServer = (context: Context.Context<never>): boo
 }
 
 /**
+ * Returns whether the `Uninterruptible` annotation applies to client-side
+ * request handling for the provided context.
+ *
  * @category Annotations
  * @since 4.0.0
  */
@@ -55,6 +73,10 @@ export const isUninterruptibleForClient = (context: Context.Context<never>): boo
 }
 
 /**
+ * Annotation that selects the shard group for an entity id.
+ *
+ * By default, every entity id is assigned to the `"default"` shard group.
+ *
  * @category Annotations
  * @since 4.0.0
  */
@@ -64,6 +86,11 @@ export const ShardGroup = Context.Reference<(entityId: EntityId) => string>(
 )
 
 /**
+ * Annotation that controls whether client-side cluster request tracing is
+ * enabled.
+ *
+ * The default value is `true`.
+ *
  * @category Annotations
  * @since 4.0.0
  */

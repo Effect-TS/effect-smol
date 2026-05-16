@@ -38,6 +38,13 @@ import { hasProperty } from "./Predicate.ts"
 const TypeId = "~effect/collections/MutableHashMap"
 
 /**
+ * A mutable hash map that stores key-value pairs and supports both referential
+ * and Effect structural equality.
+ *
+ * Operations mutate the map in place. Keys that implement `Equal` / `Hash` can
+ * be looked up structurally; other keys use normal JavaScript reference or
+ * primitive equality.
+ *
  * **Example** (Using a mutable hash map)
  *
  * ```ts
@@ -194,7 +201,10 @@ export const fromIterable = <K, V>(entries: Iterable<readonly [K, V]>): MutableH
 }
 
 /**
- * Retrieves the value associated with the specified key from the MutableHashMap.
+ * Looks up a key in the `MutableHashMap`.
+ *
+ * Returns `Some(value)` when an equal key is present and `None` when the key is
+ * absent.
  *
  * **Example** (Getting a value)
  *
@@ -242,7 +252,7 @@ const referentialKeysCache = new WeakMap<any, any>()
 const isSimpleKey = (u: unknown): boolean => typeof u !== "object" && typeof u !== "function"
 
 /**
- * Extracts all keys from the MutableHashMap into an array.
+ * Returns an iterable over the keys in the `MutableHashMap`.
  *
  * **Example** (Reading keys)
  *
@@ -268,7 +278,7 @@ const isSimpleKey = (u: unknown): boolean => typeof u !== "object" && typeof u !
 export const keys = <K, V>(self: MutableHashMap<K, V>): Iterable<K> => self.backing.keys()
 
 /**
- * Extracts all values from the MutableHashMap into an array.
+ * Returns an iterable over the values in the `MutableHashMap`.
  *
  * **Example** (Reading values)
  *
@@ -688,11 +698,18 @@ export const clear = <K, V>(self: MutableHashMap<K, V>) => {
 export const size = <K, V>(self: MutableHashMap<K, V>): number => self.backing.size
 
 /**
+ * Returns `true` when the `MutableHashMap` contains no key-value pairs.
+ *
  * @since 2.0.0
  */
 export const isEmpty = <K, V>(self: MutableHashMap<K, V>): boolean => self.backing.size === 0
 
 /**
+ * Runs a callback for each key-value pair in the `MutableHashMap`.
+ *
+ * Iteration follows the backing map's order. The callback receives the value
+ * first and the key second, matching `Map.prototype.forEach`.
+ *
  * @since 2.0.0
  */
 export const forEach: {

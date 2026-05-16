@@ -7,25 +7,34 @@ import * as Schema from "../../Schema.ts"
 import * as Msgpack from "../encoding/Msgpack.ts"
 
 /**
+ * Unique type identifier used to mark event log event definitions.
+ *
  * @category type ids
  * @since 4.0.0
  */
 export type TypeId = "~effect/eventlog/Event"
 
 /**
+ * Runtime type identifier used to mark event log event definitions.
+ *
  * @category type ids
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/eventlog/Event"
 
 /**
+ * Returns `true` when a value is an event log event definition.
+ *
  * @category guards
  * @since 4.0.0
  */
 export const isEvent = (u: unknown): u is Event<any, any, any, any> => Predicate.hasProperty(u, TypeId)
 
 /**
- * Represents an event in an EventLog.
+ * Definition of an event type that can be written to an `EventLog`.
+ *
+ * An event definition contains its tag, primary-key function, payload schema,
+ * MessagePack payload schema, success schema, and error schema.
  *
  * @category models
  * @since 4.0.0
@@ -46,6 +55,11 @@ export interface Event<
 }
 
 /**
+ * Marker service associated with the handler for an event tag.
+ *
+ * `ToService` derives this service from an `Event` so handler layers can expose
+ * which events they implement.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -55,6 +69,11 @@ export interface EventHandler<in out Tag extends string> {
 }
 
 /**
+ * Type-erased event log event definition.
+ *
+ * It preserves the runtime tag, primary-key function, payload schema, success
+ * schema, and error schema without retaining the original type parameters.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -69,12 +88,17 @@ export interface Any {
 }
 
 /**
+ * Type-erased event definition with its runtime properties available
+ * structurally.
+ *
  * @category models
  * @since 4.0.0
  */
 export interface AnyWithProps extends Any {}
 
 /**
+ * Derives the handler service marker for an event definition.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -87,6 +111,8 @@ export type ToService<A> = A extends Event<
   never
 
 /**
+ * Extracts the tag string from an event definition.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -99,6 +125,8 @@ export type Tag<A> = A extends Event<
   never
 
 /**
+ * Extracts the error schema from an event definition.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -111,12 +139,17 @@ export type ErrorSchema<A extends Any> = A extends Event<
   : never
 
 /**
+ * Decoded error value type for an event definition.
+ *
  * @category models
  * @since 4.0.0
  */
 export type Error<A extends Any> = Schema.Schema.Type<ErrorSchema<A>>
 
 /**
+ * Returns an event definition type whose error schema also includes the provided
+ * error schema.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -129,6 +162,8 @@ export type AddError<A extends Any, Error extends Schema.Top> = A extends Event<
   : never
 
 /**
+ * Extracts the payload schema from an event definition.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -141,6 +176,8 @@ export type PayloadSchema<A extends Any> = A extends Event<
   : never
 
 /**
+ * Extracts the payload schema for the event in a union with the specified tag.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -153,12 +190,19 @@ export type PayloadSchemaWithTag<A extends Any, Tag extends string> = A extends 
   : never
 
 /**
+ * Decoded payload value type for an event definition.
+ *
  * @category models
  * @since 4.0.0
  */
 export type Payload<A extends Any> = Schema.Schema.Type<PayloadSchema<A>>
 
 /**
+ * Tagged payload value for an event definition.
+ *
+ * The result contains `_tag` set to the event tag and `payload` set to the
+ * decoded payload value.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -174,6 +218,8 @@ export type TaggedPayload<A extends Any> = A extends Event<
   : never
 
 /**
+ * Extracts the success schema from an event definition.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -186,12 +232,19 @@ export type SuccessSchema<A extends Any> = A extends Event<
   : never
 
 /**
+ * Decoded success value type for an event definition.
+ *
  * @category models
  * @since 4.0.0
  */
 export type Success<A extends Any> = Schema.Schema.Type<SuccessSchema<A>>
 
 /**
+ * Schema services required by a client for an event definition.
+ *
+ * This includes payload encoding services plus success and error decoding
+ * services.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -207,6 +260,11 @@ export type ServicesClient<A> = A extends Event<
   : never
 
 /**
+ * Schema services required by a server for an event definition.
+ *
+ * This includes payload decoding services plus success and error encoding
+ * services.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -222,6 +280,9 @@ export type ServicesServer<A> = A extends Event<
   : never
 
 /**
+ * All schema services required to encode and decode the payload, success, and
+ * error schemas for an event definition.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -240,36 +301,49 @@ export type Services<A> = A extends Event<
   : never
 
 /**
+ * Extracts the event definition with the specified tag from an event union.
+ *
  * @category models
  * @since 4.0.0
  */
 export type WithTag<Events extends Any, Tag extends string> = Extract<Events, { readonly tag: Tag }>
 
 /**
+ * Removes event definitions with the specified tag from an event union.
+ *
  * @category models
  * @since 4.0.0
  */
 export type ExcludeTag<Events extends Any, Tag extends string> = Exclude<Events, { readonly tag: Tag }>
 
 /**
+ * Decoded payload value type for the event in a union with the specified tag.
+ *
  * @category models
  * @since 4.0.0
  */
 export type PayloadWithTag<Events extends Any, Tag extends string> = Payload<WithTag<Events, Tag>>
 
 /**
+ * Decoded success value type for the event in a union with the specified tag.
+ *
  * @category models
  * @since 4.0.0
  */
 export type SuccessWithTag<Events extends Any, Tag extends string> = Success<WithTag<Events, Tag>>
 
 /**
+ * Decoded error value type for the event in a union with the specified tag.
+ *
  * @category models
  * @since 4.0.0
  */
 export type ErrorWithTag<Events extends Any, Tag extends string> = Error<WithTag<Events, Tag>>
 
 /**
+ * Client-side schema services required for the event in a union with the specified
+ * tag.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -283,6 +357,12 @@ const Proto = {
 }
 
 /**
+ * Creates an event log event definition.
+ *
+ * If omitted, the payload and success schemas default to `Schema.Void`, the error
+ * schema defaults to `Schema.Never`, and the MessagePack payload schema is derived
+ * from the payload schema.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -319,6 +399,11 @@ export function make(options: {
 }
 
 /**
+ * Adds another error schema to an event definition.
+ *
+ * The returned event keeps the same tag, primary key, payload, and success schema
+ * while replacing the error schema with a union of the existing and new errors.
+ *
  * @category constructors
  * @since 4.0.0
  */

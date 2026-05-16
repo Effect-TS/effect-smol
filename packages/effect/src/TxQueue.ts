@@ -516,7 +516,11 @@ export const sliding = <A = never, E = never>(
 // =============================================================================
 
 /**
- * Offers an item to the queue.
+ * Offers an item to the queue and returns whether it was accepted.
+ *
+ * Open unbounded queues always accept; open bounded queues retry while full;
+ * dropping queues return `false` when full; sliding queues evict the oldest item
+ * when full. Closing or done queues return `false`.
  *
  * **Mutation behavior**: This function mutates the original TxQueue by adding
  * the item according to the queue's strategy. It does not return a new TxQueue reference.
@@ -581,9 +585,12 @@ export const offer: {
 )
 
 /**
- * Offers multiple items to the queue.
+ * Offers multiple items to the queue, returning the items that were not
+ * accepted.
  *
- * Returns an array of items that were rejected (not added to the queue).
+ * Each item follows `offer` semantics: bounded queues retry while full,
+ * dropping queues reject new items when full, sliding queues evict old items to
+ * accept new items, and closing or done queues reject all items.
  *
  * **Mutation behavior**: This function mutates the original TxQueue by adding
  * items according to the queue's strategy. It does not return a new TxQueue reference.
@@ -627,7 +634,10 @@ export const offerAll: {
 )
 
 /**
- * Takes an item from the queue.
+ * Takes the next item from the queue, retrying the transaction while the queue
+ * is empty.
+ *
+ * If the queue is done, the effect fails with the queue's completion cause.
  *
  * **Mutation behavior**: This function mutates the original TxQueue by removing
  * the first item. It does not return a new TxQueue reference.
@@ -797,16 +807,13 @@ export const takeAll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Arr.NonEmpty
   }).pipe(Effect.tx)
 
 /**
- * Takes exactly N items from the queue in a single atomic transaction.
+ * Takes up to `n` items from the queue in a single transaction.
  *
- * This function waits (retries the transaction) until N items are available, then takes
- * exactly N items. The only exception is when N exceeds the queue's capacity - in that
- * case, it takes up to the queue's capacity and returns immediately.
- *
- * **Behavior**:
- * - **Normal case**: Waits for exactly N items to be available
- * - **Bounded queue with N > capacity**: Takes up to capacity items immediately
- * - **Closing queue**: Takes available items and transitions to Done state
+ * For an open queue, waits until `min(n, capacity)` items are available, then
+ * removes that many items. If `n` is less than or equal to zero, returns an
+ * empty array without modifying the queue. If the queue is closing, drains the
+ * currently available items and transitions to `Done`. If the queue is already
+ * done, the effect fails with the queue's completion cause.
  *
  * **Mutation behavior**: This function mutates the original TxQueue by removing
  * the taken items. It does not return a new TxQueue reference.
@@ -894,8 +901,13 @@ export const takeN: {
 )
 
 /**
- * Takes a variable number of items between a specified minimum and maximum from the queue.
- * Waits for at least the minimum number of items to be available.
+ * Takes between `min` and `max` currently available items, waiting for `min` on
+ * an open queue.
+ *
+ * If the queue is closing, drains the currently available items even when fewer
+ * than `min` are available and transitions to `Done`. Invalid ranges
+ * (`min <= 0`, `max <= 0`, or `min > max`) return an empty array. If the queue
+ * is already done, the effect fails with the queue's completion cause.
  *
  * **Example** (Taking batches within bounds)
  *
@@ -979,8 +991,11 @@ export const takeBetween: {
 )
 
 /**
- * Views the next item without removing it. If the queue is in a failed state,
- * the error is propagated through the E-channel.
+ * Waits transactionally for the next item and returns it without removing it.
+ *
+ * If the queue is open but empty, the transaction retries until an item is
+ * available or the queue completes. If the queue is done, the queue's
+ * completion cause is propagated through the error channel.
  *
  * **Example** (Peeking without removing values)
  *
@@ -1106,10 +1121,12 @@ export const isFull = (self: TxQueueState): Effect.Effect<boolean> =>
     : Effect.map(size(self), (currentSize) => currentSize >= self.capacity)
 
 /**
- * Interrupts the queue, transitioning it to a closing state.
+ * Gracefully interrupts the queue with the current fiber's interruption cause.
  *
- * **Mutation behavior**: This function mutates the original TxQueue by marking
- * it for graceful closure. It does not return a new TxQueue reference.
+ * If the queue still contains items, it enters the closing state so buffered
+ * items can be drained before consumers observe the interruption. If it is
+ * empty, it transitions directly to done. Returns `false` if the queue was
+ * already closing or done.
  *
  * **Example** (Interrupting queues)
  *
@@ -1133,10 +1150,10 @@ export const interrupt = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<boolean> =
   Effect.withFiber((fiber) => failCause(self, Cause.interrupt(fiber.id)))
 
 /**
- * Fails the queue with the specified error.
+ * Fails the queue with the specified error, discarding any buffered items.
  *
- * **Mutation behavior**: This function mutates the original TxQueue by marking
- * it as failed. It does not return a new TxQueue reference.
+ * The queue transitions directly to done with `Cause.fail(error)`. Returns
+ * `false` if the queue was already closing or done.
  *
  * **Example** (Failing queues)
  *
@@ -1177,10 +1194,11 @@ export const fail: {
 )
 
 /**
- * Completes the queue with the specified exit value.
+ * Completes the queue with the specified cause.
  *
- * **Mutation behavior**: This function mutates the original TxQueue by marking
- * it as completed. It does not return a new TxQueue reference.
+ * If the queue is empty, it transitions directly to done. If it still contains
+ * items, it enters the closing state so buffered items can be drained before the
+ * cause is observed. Returns `false` if the queue was already closing or done.
  *
  * **Example** (Failing queues with causes)
  *
@@ -1226,13 +1244,12 @@ export const failCause: {
 )
 
 /**
- * Ends a queue by signaling completion with a Done error.
+ * Ends a queue by signaling completion with a `Cause.Done` error.
  *
- * This function provides a clean way to signal the end of a queue by calling
- * `failCause` with `Cause.Done`. This is a convenience function for
- * queues that are typed to accept `Cause.Done` in their error channel.
- * When a queue is ended, all subsequent operations (take, peek, etc.) will fail with
- * `Cause.Done`, propagating through the E-channel.
+ * This is a convenience wrapper around `failCause` for queues whose error
+ * channel can contain `Cause.Done`. If buffered items remain, the queue enters
+ * the closing state and those items may still be consumed before later `take` or
+ * `peek` operations fail with `Cause.Done`.
  *
  * **Example** (Ending queues)
  *
@@ -1262,11 +1279,12 @@ export const end = <A, E>(self: TxEnqueue<A, E | Cause.Done>): Effect.Effect<boo
   failCause(self, Cause.fail(Cause.Done()))
 
 /**
- * Clears all elements from the queue without affecting its state.
- * Returns the cleared elements, or an empty array if the queue is done with Done or interrupt.
+ * Removes and returns all currently buffered elements without changing the
+ * queue state.
  *
- * **Mutation behavior**: This function mutates the original TxQueue by removing
- * all elements. It does not return a new TxQueue reference.
+ * If the queue is already done with a `Cause.Done` error, returns an empty
+ * array. If the queue is done for any other cause, including interruption or
+ * failure, that cause is propagated.
  *
  * **Example** (Clearing queues)
  *

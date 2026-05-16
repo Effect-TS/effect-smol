@@ -457,7 +457,8 @@ export declare namespace TaggedEnum {
    * Function type that constructs a tagged-union variant from its fields,
    * excluding the keys listed in `Tag`.
    *
-   * Returns `void` when no fields remain after excluding `Tag` keys.
+   * The constructor returns the full variant type `A`. If no fields remain
+   * after excluding `Tag` keys, the constructor argument type becomes `void`.
    *
    * @since 4.0.0
    */

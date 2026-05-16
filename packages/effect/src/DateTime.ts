@@ -28,6 +28,11 @@ const TimeZoneTypeId = Internal.TimeZoneTypeId
 export type DateTime = Utc | Zoned
 
 /**
+ * Represents a `DateTime` stored as an absolute UTC instant with no associated
+ * time zone.
+ *
+ * Use `DateTime.isUtc` to narrow a `DateTime` to this variant.
+ *
  * @category models
  * @since 3.6.0
  */
@@ -38,6 +43,12 @@ export interface Utc extends DateTime.Proto {
 }
 
 /**
+ * Represents a `DateTime` with an associated `TimeZone`.
+ *
+ * A zoned value still represents an absolute instant through
+ * `epochMilliseconds`, while the time zone is used for wall-clock parts,
+ * formatting, and zone-aware transformations.
+ *
  * @category models
  * @since 3.6.0
  */
@@ -51,29 +62,53 @@ export interface Zoned extends DateTime.Proto {
 }
 
 /**
+ * Companion namespace containing the public helper types used by `DateTime`
+ * constructors, parts APIs, formatting, and date/time arithmetic.
+ *
  * @category models
  * @since 3.6.0
  */
 export declare namespace DateTime {
   /**
+   * Input accepted by `DateTime.make`, `DateTime.makeUnsafe`, and the zoned
+   * constructors.
+   *
+   * Includes existing `DateTime` values, partial date parts, epoch-millisecond
+   * objects, epoch milliseconds, JavaScript `Date` instances, and parseable date
+   * strings.
+   *
    * @category models
    * @since 3.6.0
    */
   export type Input = DateTime | Partial<Parts> | Instant | InstantWithZone | Date | number | string
 
   /**
+   * Type-level helper used by constructors to preserve a zoned input.
+   *
+   * When the input type is `DateTime.Zoned`, the result type is
+   * `DateTime.Zoned`; otherwise the result type is `DateTime.Utc`.
+   *
    * @category models
    * @since 3.6.0
    */
   export type PreserveZone<A extends DateTime.Input> = A extends Zoned ? Zoned : Utc
 
   /**
+   * Date and time unit name accepted by `DateTime` rounding and arithmetic
+   * APIs.
+   *
+   * Includes both singular units, such as `"day"`, and plural units, such as
+   * `"days"`.
+   *
    * @category models
    * @since 3.6.0
    */
   export type Unit = UnitSingular | UnitPlural
 
   /**
+   * Singular date and time unit names used by rounding APIs such as
+   * `DateTime.startOf`, `DateTime.endOf`, and `DateTime.nearest`.
+   *
    * @category models
    * @since 3.6.0
    */
@@ -88,6 +123,9 @@ export declare namespace DateTime {
     | "year"
 
   /**
+   * Plural date and time unit names used by `DateTime.PartsForMath` for
+   * amount-based arithmetic.
+   *
    * @category models
    * @since 3.6.0
    */
@@ -102,6 +140,12 @@ export declare namespace DateTime {
     | "years"
 
   /**
+   * Calendar and time components of a `DateTime`, including the weekday.
+   *
+   * `month` is one-based (`1` for January through `12` for December), and
+   * `weekDay` follows JavaScript `Date#getUTCDay` numbering (`0` for Sunday
+   * through `6` for Saturday).
+   *
    * @category models
    * @since 3.6.0
    */
@@ -117,6 +161,10 @@ export declare namespace DateTime {
   }
 
   /**
+   * Calendar and time components of a `DateTime`, without weekday information.
+   *
+   * `month` is one-based (`1` for January through `12` for December).
+   *
    * @category models
    * @since 3.6.0
    */
@@ -131,6 +179,10 @@ export declare namespace DateTime {
   }
 
   /**
+   * Plural amount fields accepted by `DateTime.add` and `DateTime.subtract`.
+   *
+   * Each field represents the number of units to add or subtract for that part.
+   *
    * @category models
    * @since 3.6.0
    */
@@ -146,6 +198,9 @@ export declare namespace DateTime {
   }
 
   /**
+   * Object input representing an absolute instant as milliseconds since the Unix
+   * epoch.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -154,6 +209,11 @@ export declare namespace DateTime {
   }
 
   /**
+   * Object input representing an absolute instant plus a time zone identifier.
+   *
+   * `DateTime.makeZoned` and `DateTime.makeZonedUnsafe` use `timeZoneId` when
+   * no explicit `timeZone` option is supplied.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -163,6 +223,11 @@ export declare namespace DateTime {
   }
 
   /**
+   * Shared protocol implemented by all `DateTime` values.
+   *
+   * Provides the `DateTime` type identifier along with pipe and inspection
+   * support.
+   *
    * @category models
    * @since 3.6.0
    */
@@ -172,17 +237,28 @@ export declare namespace DateTime {
 }
 
 /**
+ * Represents a time zone used by `DateTime.Zoned`.
+ *
+ * A `TimeZone` is either a fixed offset from UTC or a named IANA time zone.
+ *
  * @category models
  * @since 3.6.0
  */
 export type TimeZone = TimeZone.Offset | TimeZone.Named
 
 /**
+ * Companion namespace containing the public variant and protocol types for
+ * `TimeZone`.
+ *
  * @category models
  * @since 3.6.0
  */
 export declare namespace TimeZone {
   /**
+   * Shared protocol implemented by all `TimeZone` values.
+   *
+   * Provides the `TimeZone` type identifier and inspection support.
+   *
    * @category models
    * @since 3.6.0
    */
@@ -191,6 +267,11 @@ export declare namespace TimeZone {
   }
 
   /**
+   * Fixed-offset time zone.
+   *
+   * The `offset` is measured in milliseconds from UTC. Positive offsets are
+   * ahead of UTC, and negative offsets are behind UTC.
+   *
    * @category models
    * @since 3.6.0
    */
@@ -200,6 +281,11 @@ export declare namespace TimeZone {
   }
 
   /**
+   * Named IANA time zone.
+   *
+   * The `id` field contains the resolved time zone identifier, such as
+   * `"Europe/London"` or `"America/New_York"`.
+   *
    * @category models
    * @since 3.6.0
    */
@@ -279,6 +365,8 @@ export type Disambiguation = "compatible" | "earlier" | "later" | "reject"
 // =============================================================================
 
 /**
+ * Checks whether a value is a `DateTime`.
+ *
  * @category guards
  * @since 3.6.0
  */
@@ -504,20 +592,23 @@ export const makeZonedUnsafe: (input: DateTime.Input, options?: {
 }) => Zoned = Internal.makeZonedUnsafe
 
 /**
- * Create a `DateTime.Zoned` using `DateTime.make` and a time zone.
+ * Creates a `DateTime.Zoned` from an input and a time zone.
  *
- * The input is treated as UTC and then the time zone is attached, unless
- * `adjustForTimeZone` is set to `true`. In that case, the input is treated as
- * already in the time zone.
+ * By default, the input is interpreted as a UTC instant and the time zone is
+ * attached without changing that instant. When `adjustForTimeZone` is `true`,
+ * the input is interpreted as wall-clock time in the target zone.
  *
- * When `adjustForTimeZone` is true and ambiguous times occur during DST transitions,
- * the `disambiguation` option controls how to resolve the ambiguity:
- * - `compatible` (default): Choose earlier time for repeated times, later for gaps
- * - `earlier`: Always choose the earlier of two possible times
- * - `later`: Always choose the later of two possible times
- * - `reject`: Throw an error when ambiguous times are encountered
+ * When `adjustForTimeZone` is `true`, `disambiguation` controls
+ * daylight-saving gaps and repeated times:
  *
- * If the date time input or time zone is invalid, `None` will be returned.
+ * - `"compatible"` (default): chooses the earlier occurrence for repeated
+ *   times and the later interpretation for gaps
+ * - `"earlier"`: chooses the earlier possible instant
+ * - `"later"`: chooses the later possible instant
+ * - `"reject"`: rejects ambiguous or nonexistent wall-clock times
+ *
+ * Returns `Some` when construction succeeds, or `None` when the input, time
+ * zone, or disambiguation cannot be resolved.
  *
  * **Example** (Creating optional zoned DateTime values)
  *
@@ -547,15 +638,17 @@ export const makeZoned: (
 ) => Option.Option<Zoned> = Internal.makeZoned
 
 /**
- * Create a `DateTime` from one of the following:
+ * Creates a `DateTime` from one of the following:
  *
  * - A `DateTime`
- * - A `Date` instance (invalid dates will throw an `IllegalArgumentError`)
- * - The `number` of milliseconds since the Unix epoch
- * - An object with the parts of a date
- * - A `string` that can be parsed by `Date.parse`
+ * - A JavaScript `Date`
+ * - The number of milliseconds since the Unix epoch
+ * - An object with date and time parts
+ * - A string that can be parsed as a date
  *
- * If the input is invalid, `None` will be returned.
+ * Returns `Some` with the constructed `DateTime` when the input is valid, or
+ * `None` when construction would fail, including invalid `Date` instances or
+ * unparseable strings.
  *
  * **Example** (Creating optional DateTime values)
  *
@@ -584,9 +677,12 @@ export const makeZoned: (
 export const make: <A extends DateTime.Input>(input: A) => Option.Option<DateTime.PreserveZone<A>> = Internal.make
 
 /**
- * Create a `DateTime.Zoned` from a string.
+ * Parses an ISO zoned date-time string into a `DateTime.Zoned`.
  *
- * It uses the format: `YYYY-MM-DDTHH:mm:ss.sss+HH:MM[Time/Zone]`.
+ * Accepts named-zone strings such as
+ * `YYYY-MM-DDTHH:mm:ss.sss+HH:MM[Time/Zone]` and offset-only strings such as
+ * `YYYY-MM-DDTHH:mm:ss.sss+HH:MM`. Returns `None` when the input cannot be
+ * parsed.
  *
  * **Example** (Parsing zoned DateTime strings)
  *
@@ -630,7 +726,8 @@ export const makeZonedFromString: (input: string) => Option.Option<Zoned> = Inte
 export const now: Effect.Effect<Utc> = Internal.now
 
 /**
- * Get the current time using the `Clock` service and convert it to a `DateTime`.
+ * Gets the current time from the `Clock` service and returns it as a
+ * JavaScript `Date`.
  *
  * **Example** (Getting the current Date)
  *
@@ -1571,6 +1668,13 @@ export const setPartsUtc: {
 // =============================================================================
 
 /**
+ * Context service that supplies the ambient `TimeZone` for APIs that work in
+ * the current zone, such as `DateTime.setZoneCurrent` and
+ * `DateTime.nowInCurrentZone`.
+ *
+ * Provide it with `DateTime.withCurrentZone`, one of the `withCurrentZone*`
+ * helpers, or one of the `layerCurrentZone*` layers.
+ *
  * **Example** (Accessing the current time zone service)
  *
  * ```ts
@@ -1844,8 +1948,11 @@ export const mapEpochMillis: {
 } = Internal.mapEpochMillis
 
 /**
- * Using the time zone adjusted `Date`, apply a function to the `Date` and
- * return the result.
+ * Applies a function to a JavaScript `Date` representing the `DateTime`'s UTC
+ * instant and returns the function's result.
+ *
+ * This ignores any associated time zone. Use `DateTime.withDate` when the
+ * callback should receive the time-zone-adjusted wall-clock date.
  *
  * **Example** (Using time zone adjusted Dates)
  *
@@ -1867,8 +1974,11 @@ export const withDate: {
 } = Internal.withDate
 
 /**
- * Using the time zone adjusted `Date`, apply a function to the `Date` and
- * return the result.
+ * Applies a function to a JavaScript `Date` representing the `DateTime`'s UTC
+ * instant and returns the function's result.
+ *
+ * This ignores any associated time zone. Use `DateTime.withDate` when the
+ * callback should receive the time-zone-adjusted wall-clock date.
  *
  * **Example** (Using UTC Dates)
  *
@@ -2129,12 +2239,14 @@ export const nearest: {
 // =============================================================================
 
 /**
- * Format a `DateTime` as a string using the `DateTimeFormat` API.
+ * Formats a `DateTime` with `Intl.DateTimeFormat`.
  *
- * The `timeZone` option is set to the offset of the time zone.
+ * Unless a `timeZone` option is supplied, UTC values are formatted in UTC and
+ * zoned values are formatted in their named zone or fixed-offset zone.
  *
- * Note: On Node versions < 22, fixed "Offset" zones will set the time zone to
- * "UTC" and use the adjusted `Date`.
+ * Fixed-offset zones depend on runtime support for offset `timeZone`
+ * identifiers. When unsupported, formatting falls back to UTC with the
+ * `DateTime` adjusted to the offset.
  *
  * **Example** (Formatting DateTime values with Intl options)
  *

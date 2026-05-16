@@ -165,7 +165,7 @@ export const dual: {
 export const apply = <A>(a: A) => <B>(self: (a: A) => B): B => self(a)
 
 /**
- * A lazy argument.
+ * A zero-argument function that produces a value when invoked.
  *
  * **Example** (Creating a lazy argument)
  *
@@ -240,7 +240,10 @@ export const identity = <A>(a: A): A => a
 export const satisfies = <A>() => <B extends A>(b: B) => b
 
 /**
- * Casts the result to the specified type.
+ * Returns the input value with a different static type.
+ *
+ * This is a type-level cast only; it performs no runtime validation or
+ * conversion.
  *
  * @category type utils
  * @since 2.0.0
@@ -248,10 +251,10 @@ export const satisfies = <A>() => <B extends A>(b: B) => b
 export const cast: <A, B>(a: A) => B = identity as any
 
 /**
- * Creates a constant value that never changes.
+ * Creates a zero-argument function that always returns the provided value.
  *
- * This is useful when you want to pass a value to a higher-order function (a function that takes another function as its argument)
- * and want that inner function to always use the same value, no matter how many times it is called.
+ * Use `constant` when an API expects a thunk or callback and every invocation
+ * should return the same value.
  *
  * **Example** (Creating a constant thunk)
  *
@@ -1216,7 +1219,10 @@ export function flow(
 }
 
 /**
- * Type hole simulation. Creates a placeholder for any type, primarily used during development.
+ * Creates a compile-time placeholder for a value of any type.
+ *
+ * `hole` is intended for temporary development use. If the placeholder is
+ * evaluated at runtime, it throws.
  *
  * **Example** (Creating a development placeholder)
  *
@@ -1258,6 +1264,9 @@ export const hole: <T>() => T = cast(absurd)
 export const SK = <A, B>(_: A, b: B): B => b
 
 /**
+ * Memoizes a function whose input is an object, caching results by object
+ * identity.
+ *
  * @since 4.0.0
  */
 export function memoize<A extends object, O>(f: (a: A) => O): (ast: A) => O {

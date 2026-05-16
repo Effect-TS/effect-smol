@@ -14,6 +14,10 @@ import * as Terminal from "effect/Terminal"
 import * as readline from "node:readline"
 
 /**
+ * Creates a scoped process-backed `Terminal` using Node `readline`, enabling
+ * TTY raw mode while in scope and using the supplied predicate to decide when
+ * key input should end.
+ *
  * @category constructors
  * @since 1.0.0
  */
@@ -104,6 +108,9 @@ export const make: (
 )
 
 /**
+ * Provides the default process-backed `Terminal` service, ending key input on
+ * Ctrl+C or Ctrl+D.
+ *
  * @category layers
  * @since 1.0.0
  */

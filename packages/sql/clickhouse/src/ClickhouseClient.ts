@@ -74,18 +74,26 @@ const classifyError = (
 }
 
 /**
+ * Unique runtime identifier used to tag `ClickhouseClient` values.
+ *
  * @category type ids
  * @since 1.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-clickhouse/ClickhouseClient"
 
 /**
+ * Type-level literal for the `ClickhouseClient` runtime identifier.
+ *
  * @category type ids
  * @since 1.0.0
  */
 export type TypeId = "~@effect/sql-clickhouse/ClickhouseClient"
 
 /**
+ * ClickHouse-specific `SqlClient` extension with access to its configuration,
+ * typed parameter fragments, command-mode execution, insert queries, and
+ * per-effect query ID and ClickHouse settings.
+ *
  * @category models
  * @since 1.0.0
  */
@@ -115,12 +123,18 @@ export interface ClickhouseClient extends Client.SqlClient {
 }
 
 /**
+ * Context service tag for accessing the active `ClickhouseClient`.
+ *
  * @category tags
  * @since 1.0.0
  */
 export const ClickhouseClient = Context.Service<ClickhouseClient>("@effect/sql-clickhouse/ClickhouseClient")
 
 /**
+ * Configuration for creating a ClickHouse client, combining
+ * `@clickhouse/client` options with optional span attributes and query/result
+ * name transforms.
+ *
  * @category constructors
  * @since 1.0.0
  */
@@ -131,6 +145,10 @@ export interface ClickhouseClientConfig extends Clickhouse.ClickHouseClientConfi
 }
 
 /**
+ * Creates a scoped `ClickhouseClient`, verifies connectivity with `SELECT 1`,
+ * closes the underlying client when the scope ends, maps ClickHouse failures
+ * to `SqlError`, and aborts plus kills in-flight queries when interrupted.
+ *
  * @category constructors
  * @since 1.0.0
  */
@@ -361,6 +379,9 @@ export const make = (
   })
 
 /**
+ * Fiber reference read by the low-level ClickHouse connection to choose query
+ * or command execution for statements; defaults to `query`.
+ *
  * @category References
  * @since 1.0.0
  */
@@ -372,6 +393,9 @@ export const ClientMethod = Context.Reference<"query" | "command" | "insert">(
 )
 
 /**
+ * Fiber reference for the ClickHouse `query_id` applied to queries and
+ * inserts; a random UUID is generated when no query ID is set.
+ *
  * @category References
  * @since 1.0.0
  */
@@ -381,6 +405,9 @@ export const QueryId = Context.Reference<string | undefined>(
 )
 
 /**
+ * Fiber reference containing ClickHouse settings to attach to queries,
+ * commands, and inserts.
+ *
  * @category References
  * @since 1.0.0
  */
@@ -391,6 +418,9 @@ export const ClickhouseSettings: Context.Reference<
 })
 
 /**
+ * Provides both `ClickhouseClient` and generic `SqlClient` services from a
+ * `Config`-backed ClickHouse client configuration.
+ *
  * @category layers
  * @since 1.0.0
  */
@@ -411,6 +441,9 @@ export const layerConfig: (
   ).pipe(Layer.provide(Reactivity.layer))
 
 /**
+ * Provides both `ClickhouseClient` and generic `SqlClient` services from a
+ * ClickHouse client configuration.
+ *
  * @category layers
  * @since 1.0.0
  */
@@ -450,6 +483,10 @@ const typeFromUnknown = (value: unknown): string => {
 }
 
 /**
+ * Creates the SQL statement compiler for ClickHouse, emitting typed
+ * `{pN: Type}` placeholders and escaping identifiers with an optional query
+ * name transform.
+ *
  * @category compiler
  * @since 1.0.0
  */
@@ -477,6 +514,9 @@ export const makeCompiler = (transform?: (_: string) => string) =>
 const escape = Statement.defaultEscape("\"")
 
 /**
+ * Custom SQL fragment type used for ClickHouse typed parameters created by
+ * `ClickhouseClient.param`.
+ *
  * @category custom types
  * @since 1.0.0
  */

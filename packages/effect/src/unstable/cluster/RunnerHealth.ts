@@ -40,6 +40,10 @@ export const layerNoop = Layer.succeed(RunnerHealth, {
 })
 
 /**
+ * Creates a `RunnerHealth` service that pings runners through `Runners`, retrying
+ * failed pings on a short schedule and treating a successful ping within the
+ * timeout as healthy.
+ *
  * @category Constructors
  * @since 4.0.0
  */
@@ -75,6 +79,11 @@ export const layerPing: Layer.Layer<
 > = Layer.effect(RunnerHealth, makePing)
 
 /**
+ * Creates a `RunnerHealth` service that checks Kubernetes pod readiness for a
+ * runner host, optionally scoped by namespace and label selector.
+ *
+ * If the Kubernetes API check fails, the runner is treated as healthy.
+ *
  * @category Constructors
  * @since 4.0.0
  */
@@ -94,13 +103,12 @@ export const makeK8s = Effect.fnUntraced(function*(options?: {
 })
 
 /**
- * A layer which will check the Kubernetes API to see if a Runner is healthy.
+ * A layer which checks Kubernetes pod readiness to determine whether a runner is
+ * healthy.
  *
- * The provided HttpClient will need to add the pod's CA certificate to its
- * trusted root certificates in order to communicate with the Kubernetes API.
- *
- * The pod service account will also need to have permissions to list pods in
- * order to use this layer.
+ * The provided `HttpClient` must trust the pod CA certificate and the pod service
+ * account must be allowed to list pods. If the Kubernetes API check fails, the
+ * runner is treated as healthy.
  *
  * @category layers
  * @since 4.0.0

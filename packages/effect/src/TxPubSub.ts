@@ -468,9 +468,13 @@ export const publishAll: {
 )
 
 /**
- * Subscribes to the TxPubSub, returning a TxQueue that receives all messages
- * published after subscription. The subscription is automatically removed when
- * the scope is closed.
+ * Subscribes to the TxPubSub, returning a scoped `TxQueue` for messages
+ * published after subscription.
+ *
+ * The returned queue uses the hub's capacity strategy: bounded subscriptions
+ * backpressure publishers when full, dropping subscriptions may miss new
+ * messages when full, and sliding subscriptions may evict older queued
+ * messages. The subscription is automatically removed when the scope is closed.
  *
  * **Example** (Subscribing multiple queues)
  *
@@ -564,8 +568,12 @@ const makeSubscriberQueue = <A>(
 }
 
 /**
- * Shuts down the TxPubSub and all subscriber queues. Subsequent publish operations
- * will return `false`. Subsequent subscribe operations will receive an already-shutdown queue.
+ * Shuts down the TxPubSub and all subscriber queues registered at the time of
+ * shutdown.
+ *
+ * After shutdown, `publish` and `publishAll` return `false`, and
+ * `awaitShutdown` completes. The operation is idempotent; subscribers acquired
+ * after shutdown are not automatically shut down by this call.
  *
  * **Example** (Shutting down a pub/sub)
  *

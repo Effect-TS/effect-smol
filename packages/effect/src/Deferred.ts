@@ -133,17 +133,26 @@ export interface Deferred<in out A, in out E = never> extends Deferred.Variance<
 }
 
 /**
+ * Checks whether a value is a `Deferred`.
+ *
  * @category Guards
  * @since 2.0.0
  */
 export const isDeferred = <A, E>(u: unknown): u is Deferred<A, E> => hasProperty(u, TypeId)
 
 /**
+ * Companion namespace containing type-level metadata for `Deferred`.
+ *
  * @category models
  * @since 2.0.0
  */
 export declare namespace Deferred {
   /**
+   * Type-level variance marker for the value and error channels of `Deferred`.
+   *
+   * This interface is part of the public type structure and is not intended to
+   * be constructed directly.
+   *
    * @category models
    * @since 2.0.0
    */
@@ -166,7 +175,10 @@ const DeferredProto = {
 }
 
 /**
- * Unsafely creates a new `Deferred`
+ * Synchronously creates an empty `Deferred` outside the `Effect` runtime.
+ *
+ * Prefer `Deferred.make` in effectful code so allocation is represented in
+ * `Effect`; use this only when direct synchronous allocation is required.
  *
  * **Example** (Creating a Deferred unsafely)
  *
@@ -245,8 +257,15 @@ export {
 }
 
 /**
- * Completes the deferred with the result of the specified effect. If the
- * deferred has already been completed, the method will produce false.
+ * Completes the `Deferred` with the supplied `Effect` without running or
+ * memoizing it.
+ *
+ * Awaiting fibers run the stored effect when they await, so repeated awaits can
+ * repeat the effect. Returns `false` if the `Deferred` has already been
+ * completed.
+ *
+ * Use `Deferred.complete` when the effect should be evaluated once and the
+ * resulting `Exit` memoized.
  *
  * Note that `Deferred.completeWith` will be much faster, so consider using
  * that if you do not need to memoize the result of the specified effect.
@@ -336,8 +355,11 @@ export const done: {
 } = completeWith as any
 
 /**
- * Fails the `Deferred` with the specified error, which will be propagated to
- * all fibers waiting on the value of the `Deferred`.
+ * Attempts to complete the `Deferred` with the specified error.
+ *
+ * Fibers waiting on the `Deferred` fail with that error only if this call
+ * completes it. The returned effect succeeds with `true` when this call
+ * completed the `Deferred`, or `false` if it was already completed.
  *
  * **Example** (Failing a Deferred with an error)
  *
@@ -360,8 +382,12 @@ export const fail: {
 } = dual(2, <A, E>(self: Deferred<A, E>, error: E): Effect<boolean> => done(self, core.exitFail(error)))
 
 /**
- * Fails the `Deferred` with the specified error, which will be propagated to
- * all fibers waiting on the value of the `Deferred`.
+ * Computes an error when the returned effect is run, then attempts to complete
+ * the `Deferred` with that error.
+ *
+ * Fibers waiting on the `Deferred` fail with the computed error only if this
+ * call completes it. The returned effect succeeds with `true` when this call
+ * completed the `Deferred`, or `false` if it was already completed.
  *
  * **Example** (Failing a Deferred with a lazy error)
  *
@@ -388,8 +414,11 @@ export const failSync: {
 )
 
 /**
- * Fails the `Deferred` with the specified `Cause`, which will be propagated to
- * all fibers waiting on the value of the `Deferred`.
+ * Attempts to complete the `Deferred` with the specified `Cause`.
+ *
+ * Fibers waiting on the `Deferred` observe that cause only if this call
+ * completes it. The returned effect succeeds with `true` when this call
+ * completed the `Deferred`, or `false` if it was already completed.
  *
  * **Example** (Failing a Deferred with a Cause)
  *
@@ -418,8 +447,12 @@ export const failCause: {
 )
 
 /**
- * Fails the `Deferred` with the specified `Cause`, which will be propagated to
- * all fibers waiting on the value of the `Deferred`.
+ * Computes a `Cause` when the returned effect is run, then attempts to
+ * complete the `Deferred` with that cause.
+ *
+ * Fibers waiting on the `Deferred` observe the computed cause only if this
+ * call completes it. The returned effect succeeds with `true` when this call
+ * completed the `Deferred`, or `false` if it was already completed.
  *
  * **Example** (Failing a Deferred with a lazy Cause)
  *
@@ -449,8 +482,11 @@ export const failCauseSync: {
 )
 
 /**
- * Kills the `Deferred` with the specified defect, which will be propagated to
- * all fibers waiting on the value of the `Deferred`.
+ * Attempts to complete the `Deferred` with a defect.
+ *
+ * Fibers waiting on the `Deferred` die with that defect only if this call
+ * completes it. The returned effect succeeds with `true` when this call
+ * completed the `Deferred`, or `false` if it was already completed.
  *
  * **Example** (Killing a Deferred with a defect)
  *
@@ -476,8 +512,12 @@ export const die: {
 } = dual(2, <A, E>(self: Deferred<A, E>, defect: unknown): Effect<boolean> => done(self, core.exitDie(defect)))
 
 /**
- * Kills the `Deferred` with the specified defect, which will be propagated to
- * all fibers waiting on the value of the `Deferred`.
+ * Computes a defect when the returned effect is run, then attempts to complete
+ * the `Deferred` with that defect.
+ *
+ * Fibers waiting on the `Deferred` die with the computed defect only if this
+ * call completes it. The returned effect succeeds with `true` when this call
+ * completed the `Deferred`, or `false` if it was already completed.
  *
  * **Example** (Killing a Deferred with a lazy defect)
  *
@@ -507,9 +547,12 @@ export const dieSync: {
 )
 
 /**
- * Completes the `Deferred` with interruption. This will interrupt all fibers
- * waiting on the value of the `Deferred` with the `FiberId` of the fiber
- * calling this method.
+ * Attempts to complete the `Deferred` with interruption by the current fiber.
+ *
+ * Fibers waiting on the `Deferred` are interrupted with the current fiber id
+ * only if this call completes it. The returned effect succeeds with `true`
+ * when this call completed the `Deferred`, or `false` if it was already
+ * completed.
  *
  * **Example** (Interrupting a Deferred)
  *
@@ -530,8 +573,12 @@ export const interrupt = <A, E>(self: Deferred<A, E>): Effect<boolean> =>
   core.withFiber((fiber) => interruptWith(self, fiber.id))
 
 /**
- * Completes the `Deferred` with interruption. This will interrupt all fibers
- * waiting on the value of the `Deferred` with the specified `FiberId`.
+ * Attempts to complete the `Deferred` with interruption by the specified
+ * `FiberId`.
+ *
+ * Fibers waiting on the `Deferred` are interrupted with that fiber id only if
+ * this call completes it. The returned effect succeeds with `true` when this
+ * call completed the `Deferred`, or `false` if it was already completed.
  *
  * **Example** (Interrupting a Deferred with a fiber id)
  *
@@ -620,7 +667,11 @@ export function poll<A, E>(self: Deferred<A, E>): Effect<Option.Option<Effect<A,
 }
 
 /**
- * Completes the `Deferred` with the specified value.
+ * Attempts to complete the `Deferred` with the specified value.
+ *
+ * Fibers waiting on the `Deferred` receive the value only if this call
+ * completes it. The returned effect succeeds with `true` when this call
+ * completed the `Deferred`, or `false` if it was already completed.
  *
  * **Example** (Completing a Deferred with a value)
  *
@@ -645,7 +696,12 @@ export const succeed: {
 } = dual(2, <A, E>(self: Deferred<A, E>, value: A): Effect<boolean> => done(self, core.exitSucceed(value)))
 
 /**
- * Completes the `Deferred` with the specified lazily evaluated value.
+ * Computes a value when the returned effect is run, then attempts to complete
+ * the `Deferred` with that value.
+ *
+ * Fibers waiting on the `Deferred` receive the computed value only if this call
+ * completes it. The returned effect succeeds with `true` when this call
+ * completed the `Deferred`, or `false` if it was already completed.
  *
  * **Example** (Completing a Deferred with a lazy value)
  *
@@ -674,8 +730,12 @@ export const sync: {
 )
 
 /**
- * Unsafely exits the `Deferred` with the specified `Exit` value, which will be
- * propagated to all fibers waiting on the value of the `Deferred`.
+ * Synchronously attempts to complete the `Deferred` with the specified
+ * completion effect.
+ *
+ * This mutates the `Deferred` directly and should be reserved for low-level
+ * code; prefer the effectful completion APIs when possible. Returns `true` if
+ * this call completed the `Deferred`, or `false` if it was already completed.
  *
  * **Example** (Completing a Deferred unsafely)
  *
@@ -703,14 +763,15 @@ export const doneUnsafe = <A, E>(self: Deferred<A, E>, effect: Effect<A, E>): bo
 }
 
 /**
- * Converts an `Effect` into an operation that completes a `Deferred` with its result.
+ * Runs an `Effect` and attempts to complete a `Deferred` with the effect's
+ * result.
  *
  * **Details**
  *
- * The `into` function takes an effect and a `Deferred` and ensures that the `Deferred`
- * is completed based on the outcome of the effect. If the effect succeeds, the `Deferred` is
- * completed with the success value. If the effect fails, the `Deferred` is completed with the
- * failure. Additionally, if the effect is interrupted, the `Deferred` will also be interrupted.
+ * If the effect succeeds, fails, dies, or is interrupted, that result is used
+ * as the attempted completion. The returned effect cannot fail; it succeeds
+ * with `true` if it completed the `Deferred`, or `false` if the `Deferred` was
+ * already completed.
  *
  * **Example** (Completing a Deferred from an effect result)
  *

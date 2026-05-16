@@ -12,6 +12,10 @@ import type * as ChildProcess from "node:child_process"
 import type * as WorkerThreads from "node:worker_threads"
 
 /**
+ * Provides the Node `WorkerPlatform` for `worker_threads` workers and child
+ * process workers, wiring messages, errors, and exits into Effect workers and
+ * terminating the worker if graceful shutdown times out.
+ *
  * @category layers
  * @since 1.0.0
  */
@@ -93,6 +97,9 @@ export const layerPlatform: Layer.Layer<Worker.WorkerPlatform> = Layer.succeed(W
 )
 
 /**
+ * Provides the Node `WorkerPlatform` together with a `Worker.Spawner` created
+ * from the supplied worker or child-process spawning function.
+ *
  * @category layers
  * @since 1.0.0
  */

@@ -16,6 +16,9 @@ import * as SqlClient from "./SqlClient.ts"
 import { ResultLengthMismatch } from "./SqlError.ts"
 
 /**
+ * Request type used by SQL request resolvers, carrying the input payload
+ * together with the resolver's result, error, and environment types.
+ *
  * @category requests
  * @since 4.0.0
  */
@@ -37,6 +40,9 @@ const SqlRequestProto = {
 }
 
 /**
+ * Submits a payload as a `SqlRequest` to a request resolver, either directly
+ * with a payload and resolver or curried by resolver.
+ *
  * @category requests
  * @since 4.0.0
  */
@@ -57,6 +63,9 @@ export const request: {
 } as any
 
 /**
+ * Constructs a `SqlRequest` from a payload. Equality and hashing are based on
+ * the payload so equal requests can be batched and deduplicated.
+ *
  * @category requests
  * @since 4.0.0
  */
@@ -118,9 +127,9 @@ export const ordered = <Req extends Schema.Top, Res extends Schema.Top, _, E, R>
 }
 
 /**
- * Create a resolver the can return multiple results for a single request.
- *
- * Results are grouped by a common key extracted from the request and result.
+ * Creates a batched SQL request resolver that encodes requests, decodes result
+ * rows, groups decoded results by matching request and result keys, and fails a
+ * request with `NoSuchElementError` when no result group exists.
  *
  * @category resolvers
  * @since 4.0.0
@@ -187,7 +196,9 @@ export const grouped = <Req extends Schema.Top, Res extends Schema.Top, K, Row, 
 }
 
 /**
- * Create a resolver that resolves results by id.
+ * Creates a batched resolver that fetches rows for encoded ids, decodes
+ * results, completes each matching request using `ResultId`, and fails missing
+ * ids with `NoSuchElementError`.
  *
  * @category resolvers
  * @since 4.0.0

@@ -127,10 +127,18 @@ export interface Command<in out Name extends string, in Input, out ContextInput 
 }
 
 /**
+ * Companion namespace containing type-level helpers and configuration shapes
+ * used by `Command`.
+ *
  * @since 4.0.0
  */
 export declare namespace Command {
   /**
+   * Type-level variance marker for `Command`.
+   *
+   * The parsed input type is contravariant, while the command error and service
+   * requirement types are covariant.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -307,7 +315,11 @@ export declare namespace Command {
 }
 
 /**
- * The environment required by CLI commands, including file system and path operations.
+ * Services required by CLI parsing and execution.
+ *
+ * This includes file-system and path services for arguments, terminal and
+ * stdio services for running commands, and child-process spawning for
+ * process-related CLI features.
  *
  * @category utility types
  * @since 4.0.0
@@ -390,6 +402,8 @@ export interface ParsedTokens {
 }
 
 /**
+ * Returns `true` if the provided value is a `Command`.
+ *
  * @category Guards
  * @since 4.0.0
  */
@@ -400,11 +414,12 @@ export const isCommand = (u: unknown): u is Command.Any => Predicate.hasProperty
 /* ========================================================================== */
 
 /**
- * Creates a Command from a name, optional config, optional handler function, and optional description.
+ * Creates a `Command` from a name, an optional configuration, and an optional
+ * handler.
  *
- * The make function is the primary constructor for CLI commands. It provides multiple overloads
- * to support different patterns of command creation, from simple commands with no configuration
- * to complex commands with nested configurations and error handling.
+ * Use `withDescription` and related metadata combinators to add help text. The
+ * overloads support simple commands, configured commands, and commands with
+ * effectful handlers.
  *
  * **Example** (Creating commands)
  *
@@ -1260,7 +1275,10 @@ const showHelp = <Name extends string, Input, E, R, ContextInput>(
   })
 
 /**
- * Runs a command with the provided input arguments.
+ * Runs a command using the arguments supplied by the `Stdio` service.
+ *
+ * Use `runWith` when you need to execute a command with an explicit argument
+ * array, such as in tests.
  *
  * **Example** (Running commands with standard input)
  *

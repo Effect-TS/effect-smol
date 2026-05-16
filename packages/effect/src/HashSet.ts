@@ -70,6 +70,10 @@ export interface HashSet<out Value> extends Iterable<Value>, Equal, Pipeable, In
  */
 export declare namespace HashSet {
   /**
+   * Extracts the element type from a `HashSet`.
+   *
+   * For `HashSet.HashSet<A>`, `HashSet.Value<...>` resolves to `A`.
+   *
    * **Example** (Extracting a HashSet value type)
    *
    * ```ts

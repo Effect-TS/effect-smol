@@ -5,6 +5,8 @@ import * as Layer from "effect/Layer"
 import * as Socket from "effect/unstable/socket/Socket"
 
 /**
+ * Creates a `Socket` layer connected to the given URL using the browser `WebSocket` constructor.
+ *
  * @category Layers
  * @since 1.0.0
  */
@@ -16,7 +18,7 @@ export const layerWebSocket = (url: string, options?: {
   )
 
 /**
- * A WebSocket constructor that uses `globalThis.WebSocket`.
+ * Layer that provides a `WebSocketConstructor` service backed by `globalThis.WebSocket`.
  *
  * @category Layers
  * @since 1.0.0

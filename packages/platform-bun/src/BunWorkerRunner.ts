@@ -15,6 +15,10 @@ import * as WorkerRunner from "effect/unstable/workers/WorkerRunner"
 declare const self: MessagePort
 
 /**
+ * Provides the `WorkerRunnerPlatform` for code running inside a Bun worker,
+ * routing parent messages to the registered handler and sending responses back
+ * through the worker port.
+ *
  * @category layers
  * @since 1.0.0
  */

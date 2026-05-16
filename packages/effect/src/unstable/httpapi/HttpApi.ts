@@ -18,16 +18,19 @@ import * as HttpApiSchema from "./HttpApiSchema.ts"
 const TypeId = "~effect/httpapi/HttpApi"
 
 /**
+ * Returns `true` when a value is an `HttpApi`.
+ *
  * @category guards
  * @since 4.0.0
  */
 export const isHttpApi = (u: unknown): u is Any => Predicate.hasProperty(u, TypeId)
 
 /**
- * An `HttpApi` is a collection of `HttpApiEndpoint`s. You can use an `HttpApi` to
- * represent a portion of your domain.
+ * An `HttpApi` is a collection of HTTP API groups and endpoints that represents a
+ * portion of your domain.
  *
- * The endpoints can be implemented later using the `HttpApiBuilder.make` api.
+ * Endpoint implementations can be provided with `HttpApiBuilder.group`, and the
+ * completed API can be registered with `HttpApiBuilder.layer`.
  *
  * @category models
  * @since 4.0.0
@@ -82,6 +85,8 @@ export interface HttpApi<
 }
 
 /**
+ * An `HttpApi` value with its identifier and group types erased.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -90,6 +95,9 @@ export interface Any {
 }
 
 /**
+ * An `HttpApi` with broad identifier and group types while retaining the concrete
+ * runtime properties used by implementation helpers.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -175,11 +183,10 @@ const makeProto = <Id extends string, Groups extends HttpApiGroup.Any>(
 }
 
 /**
- * An `HttpApi` is a collection of `HttpApiEndpoint`s. You can use an `HttpApi` to
- * represent a portion of your domain.
+ * Creates an empty `HttpApi` with the supplied identifier.
  *
- * You can then use `HttpApiBuilder.layer(api)` to implement the endpoints of the
- * `HttpApi`.
+ * Add groups with `add` or `addHttpApi`, provide endpoint implementations with
+ * `HttpApiBuilder.group`, and register the API with `HttpApiBuilder.layer`.
  *
  * @category constructors
  * @since 4.0.0
@@ -192,6 +199,11 @@ export const make = <const Id extends string>(identifier: Id): HttpApi<Id, never
   })
 
 /**
+ * Walks the groups and endpoints in an `HttpApi`.
+ *
+ * The callbacks receive each group or endpoint with merged annotations, endpoint
+ * middleware, and response schemas grouped by HTTP status.
+ *
  * @category Reflection
  * @since 4.0.0
  */

@@ -11,6 +11,9 @@ import * as Semaphore from "./Semaphore.ts"
 const TypeId = "~effect/SynchronizedRef"
 
 /**
+ * A mutable reference whose update and modify operations are serialized with an
+ * internal semaphore, including effectful transformations.
+ *
  * @category models
  * @since 2.0.0
  */
@@ -32,6 +35,10 @@ const Proto = {
 }
 
 /**
+ * Creates a `SynchronizedRef` synchronously from an initial value.
+ *
+ * This bypasses `Effect` construction; prefer `make` in effectful code.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -43,24 +50,34 @@ export const makeUnsafe = <A>(value: A): SynchronizedRef<A> => {
 }
 
 /**
+ * Creates a `SynchronizedRef` from an initial value, wrapped in an `Effect`.
+ *
  * @category constructors
  * @since 2.0.0
  */
 export const make = <A>(value: A): Effect.Effect<SynchronizedRef<A>> => Effect.sync(() => makeUnsafe(value))
 
 /**
+ * Reads the current value synchronously, bypassing the `Effect` API and the
+ * ref's semaphore.
+ *
  * @category getters
  * @since 2.0.0
  */
 export const getUnsafe = <A>(self: SynchronizedRef<A>): A => self.backing.ref.current
 
 /**
+ * Returns an `Effect` that reads the current value of the `SynchronizedRef`.
+ *
  * @category getters
  * @since 2.0.0
  */
 export const get = <A>(self: SynchronizedRef<A>): Effect.Effect<A> => Effect.sync(() => getUnsafe(self))
 
 /**
+ * Atomically sets a new value and returns the previous value, serialized by the
+ * ref's semaphore.
+ *
  * @category utils
  * @since 2.0.0
  */
@@ -74,6 +91,9 @@ export const getAndSet: {
 )
 
 /**
+ * Atomically updates the current value with a function and returns the previous
+ * value, serialized by the ref's semaphore.
+ *
  * @category utils
  * @since 2.0.0
  */
@@ -87,6 +107,9 @@ export const getAndUpdate: {
 )
 
 /**
+ * Atomically runs an effectful update while holding the ref's semaphore, sets
+ * the new value if the effect succeeds, and returns the previous value.
+ *
  * @category utils
  * @since 2.0.0
  */
@@ -106,6 +129,10 @@ export const getAndUpdateEffect: {
 )
 
 /**
+ * Atomically applies a partial update and returns the previous value. If the
+ * function returns `Option.some`, the ref is updated; if it returns
+ * `Option.none`, the ref is left unchanged.
+ *
  * @category utils
  * @since 2.0.0
  */
@@ -119,6 +146,10 @@ export const getAndUpdateSome: {
 )
 
 /**
+ * Atomically runs an effectful partial update while holding the ref's semaphore
+ * and returns the previous value. `Option.some` updates the ref; `Option.none`
+ * leaves it unchanged.
+ *
  * @category utils
  * @since 2.0.0
  */
@@ -141,6 +172,9 @@ export const getAndUpdateSomeEffect: {
 )
 
 /**
+ * Atomically computes a return value and a new ref value, stores the new value,
+ * and returns the computed result.
+ *
  * @category utils
  * @since 2.0.0
  */
@@ -154,6 +188,9 @@ export const modify: {
 )
 
 /**
+ * Atomically runs an effectful modification while holding the ref's semaphore,
+ * stores the new value if the effect succeeds, and returns the computed result.
+ *
  * @category utils
  * @since 2.0.0
  */
@@ -173,6 +210,9 @@ export const modifyEffect: {
 )
 
 /**
+ * Atomically computes a return value and an optional new ref value.
+ * `Option.some` updates the ref; `Option.none` leaves it unchanged.
+ *
  * @category utils
  * @since 2.0.0
  */
@@ -193,6 +233,10 @@ export const modifySome: {
 )
 
 /**
+ * Atomically runs an effectful modification while holding the ref's semaphore.
+ * The effect computes a return value and an optional new ref value;
+ * `Option.some` updates the ref and `Option.none` leaves it unchanged.
+ *
  * @category utils
  * @since 2.0.0
  */
@@ -224,6 +268,8 @@ export const modifySomeEffect: {
 )
 
 /**
+ * Sets the value of the `SynchronizedRef`, serialized by the ref's semaphore.
+ *
  * @category utils
  * @since 2.0.0
  */
@@ -237,6 +283,8 @@ export const set: {
 )
 
 /**
+ * Sets the value of the `SynchronizedRef` and returns the new value.
+ *
  * @category utils
  * @since 2.0.0
  */
@@ -250,6 +298,9 @@ export const setAndGet: {
 )
 
 /**
+ * Updates the value of the `SynchronizedRef` with a function, serialized by the
+ * ref's semaphore.
+ *
  * @category utils
  * @since 2.0.0
  */
@@ -263,6 +314,9 @@ export const update: {
 )
 
 /**
+ * Runs an effectful update while holding the ref's semaphore and stores the new
+ * value if the effect succeeds.
+ *
  * @category utils
  * @since 2.0.0
  */
@@ -281,6 +335,9 @@ export const updateEffect: {
 )
 
 /**
+ * Updates the value of the `SynchronizedRef` with a function and returns the
+ * new value.
+ *
  * @category utils
  * @since 2.0.0
  */
@@ -294,6 +351,9 @@ export const updateAndGet: {
 )
 
 /**
+ * Runs an effectful update while holding the ref's semaphore, stores the new
+ * value if the effect succeeds, and returns that new value.
+ *
  * @category utils
  * @since 2.0.0
  */
@@ -313,6 +373,9 @@ export const updateAndGetEffect: {
 )
 
 /**
+ * Applies a partial update to the current value. `Option.some` stores the new
+ * value; `Option.none` leaves the ref unchanged.
+ *
  * @category utils
  * @since 2.0.0
  */
@@ -326,6 +389,9 @@ export const updateSome: {
 )
 
 /**
+ * Runs an effectful partial update while holding the ref's semaphore.
+ * `Option.some` stores the new value; `Option.none` leaves the ref unchanged.
+ *
  * @category utils
  * @since 2.0.0
  */
@@ -349,6 +415,10 @@ export const updateSomeEffect: {
 )
 
 /**
+ * Applies a partial update and returns the resulting current value.
+ * `Option.some` stores and returns the new value; `Option.none` returns the
+ * unchanged value.
+ *
  * @category utils
  * @since 2.0.0
  */
@@ -362,6 +432,10 @@ export const updateSomeAndGet: {
 )
 
 /**
+ * Runs an effectful partial update while holding the ref's semaphore and
+ * returns the resulting current value. `Option.some` stores and returns the new
+ * value; `Option.none` returns the unchanged value.
+ *
  * @category utils
  * @since 2.0.0
  */

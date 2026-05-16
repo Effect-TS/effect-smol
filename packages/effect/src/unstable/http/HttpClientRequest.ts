@@ -25,12 +25,16 @@ import * as UrlParams from "./UrlParams.ts"
 const TypeId = "~effect/http/HttpClientRequest"
 
 /**
+ * Returns `true` when a value is an `HttpClientRequest`.
+ *
  * @category Guards
  * @since 4.0.0
  */
 export const isHttpClientRequest = (u: unknown): u is HttpClientRequest => hasProperty(u, TypeId)
 
 /**
+ * Immutable model of an outgoing HTTP client request, including its method, URL components, headers, and body.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -45,6 +49,8 @@ export interface HttpClientRequest extends Inspectable.Inspectable, Pipeable {
 }
 
 /**
+ * Options for constructing or modifying an `HttpClientRequest`.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -60,10 +66,14 @@ export interface Options {
 }
 
 /**
+ * Namespace containing option types associated with `HttpClientRequest` construction.
+ *
  * @since 4.0.0
  */
 export declare namespace Options {
   /**
+   * Request options that omit the method and URL for helpers that already receive those values separately.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -90,6 +100,8 @@ const Proto = {
 }
 
 /**
+ * Constructs an `HttpClientRequest` from fully normalized request components.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -112,6 +124,8 @@ export function makeWith(
 }
 
 /**
+ * An empty `GET` request with no URL, query parameters, hash, headers, or body.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -125,6 +139,8 @@ export const empty: HttpClientRequest = makeWith(
 )
 
 /**
+ * Creates a request constructor for the specified HTTP method.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -142,24 +158,32 @@ export const make = <M extends HttpMethod>(
   })
 
 /**
+ * Creates a `GET` request for the specified URL.
+ *
  * @category constructors
  * @since 4.0.0
  */
 export const get: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = make("GET")
 
 /**
+ * Creates a `POST` request for the specified URL.
+ *
  * @category constructors
  * @since 4.0.0
  */
 export const post: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = make("POST")
 
 /**
+ * Creates a `PATCH` request for the specified URL.
+ *
  * @category constructors
  * @since 4.0.0
  */
 export const patch: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = make("PATCH")
 
 /**
+ * Creates a `PUT` request for the specified URL.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -176,24 +200,32 @@ export {
 }
 
 /**
+ * Creates a `HEAD` request for the specified URL.
+ *
  * @category constructors
  * @since 4.0.0
  */
 export const head: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = make("HEAD")
 
 /**
+ * Creates an `OPTIONS` request for the specified URL.
+ *
  * @category constructors
  * @since 4.0.0
  */
 export const options: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = make("OPTIONS")
 
 /**
+ * Creates a `TRACE` request for the specified URL.
+ *
  * @category constructors
  * @since 4.0.0
  */
 export const trace: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = make("TRACE")
 
 /**
+ * Applies request options to an `HttpClientRequest`, returning a new request.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -232,6 +264,8 @@ export const modify: {
 })
 
 /**
+ * Sets the HTTP method on a request, returning a new request.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -245,6 +279,8 @@ export const setMethod: {
 )
 
 /**
+ * Sets a single request header, replacing any existing value for that header.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -262,6 +298,8 @@ export const setHeader: {
   ))
 
 /**
+ * Sets multiple request headers from an input collection, replacing existing values with matching names.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -279,6 +317,8 @@ export const setHeaders: {
   ))
 
 /**
+ * Sets the `Authorization` header using HTTP Basic authentication credentials.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -303,6 +343,8 @@ export const basicAuth: {
 )
 
 /**
+ * Sets the `Authorization` header using a bearer token.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -316,6 +358,8 @@ export const bearerToken: {
 )
 
 /**
+ * Sets the `Accept` header to the specified media type.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -325,12 +369,16 @@ export const accept: {
 } = dual(2, (self: HttpClientRequest, mediaType: string): HttpClientRequest => setHeader(self, "Accept", mediaType))
 
 /**
+ * Sets the `Accept` header to `application/json`.
+ *
  * @category combinators
  * @since 4.0.0
  */
 export const acceptJson: (self: HttpClientRequest) => HttpClientRequest = accept("application/json")
 
 /**
+ * Sets the request URL. When given a `URL`, its search parameters and hash are extracted into the request's structured fields.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -364,6 +412,8 @@ export const setUrl: {
 })
 
 /**
+ * Prepends a URL segment to the request URL, inserting or trimming one slash as needed.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -383,6 +433,8 @@ export const prependUrl: {
 })
 
 /**
+ * Appends a URL segment to the request URL, inserting or trimming one slash as needed.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -414,6 +466,8 @@ const joinSegments = (first: string, second: string): string => {
 }
 
 /**
+ * Updates the request URL by applying a function to the current URL string.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -431,6 +485,8 @@ export const updateUrl: {
   ))
 
 /**
+ * Sets one query parameter, replacing existing values for that parameter name.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -448,6 +504,8 @@ export const setUrlParam: {
   ))
 
 /**
+ * Sets query parameters from an input collection, replacing existing values for matching names.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -465,6 +523,8 @@ export const setUrlParams: {
   ))
 
 /**
+ * Appends one query parameter value without removing existing values for the same name.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -482,6 +542,8 @@ export const appendUrlParam: {
   ))
 
 /**
+ * Appends query parameters from an input collection without removing existing values for matching names.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -499,6 +561,8 @@ export const appendUrlParams: {
   ))
 
 /**
+ * Sets the URL fragment on a request without the leading `#`.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -516,6 +580,8 @@ export const setHash: {
   ))
 
 /**
+ * Removes the URL fragment from a request.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -530,6 +596,8 @@ export const removeHash = (self: HttpClientRequest): HttpClientRequest =>
   )
 
 /**
+ * Sets the request body and updates `Content-Type` and `Content-Length` headers from the body metadata when available.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -559,6 +627,8 @@ export const setBody: {
 })
 
 /**
+ * Sets a `Uint8Array` request body with an optional content type.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -572,6 +642,8 @@ export const bodyUint8Array: {
 )
 
 /**
+ * Sets a text request body with an optional content type.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -585,6 +657,8 @@ export const bodyText: {
 )
 
 /**
+ * Encodes a value as a JSON request body and sets it on the request, failing with `HttpBodyError` if encoding fails.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -598,6 +672,8 @@ export const bodyJson: {
 )
 
 /**
+ * Sets a JSON request body using unsafe JSON encoding, which may throw instead of failing in the Effect error channel.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -607,6 +683,8 @@ export const bodyJsonUnsafe: {
 } = dual(2, (self: HttpClientRequest, body: unknown): HttpClientRequest => setBody(self, HttpBody.jsonUnsafe(body)))
 
 /**
+ * Creates a schema-based JSON body encoder that sets the encoded value on a request.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -636,6 +714,8 @@ export const schemaBodyJson = <S extends Schema.Top>(
 }
 
 /**
+ * Sets an `application/x-www-form-urlencoded` request body from URL parameter input.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -649,6 +729,8 @@ export const bodyUrlParams: {
 )
 
 /**
+ * Sets a `FormData` request body.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -658,6 +740,8 @@ export const bodyFormData: {
 } = dual(2, (self: HttpClientRequest, body: FormData): HttpClientRequest => setBody(self, HttpBody.formData(body)))
 
 /**
+ * Creates a `FormData` request body from record-style entries and sets it on the request.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -671,6 +755,8 @@ export const bodyFormDataRecord: {
 )
 
 /**
+ * Sets a streaming `Uint8Array` request body with optional content type and content length metadata.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -698,6 +784,8 @@ export const bodyStream: {
 )
 
 /**
+ * Creates a file-backed request body from a filesystem path and sets it on the request.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -740,6 +828,8 @@ export const bodyFile: {
 )
 
 /**
+ * Builds a `URL` from the request URL, query parameters, and hash, returning `Option.none()` if the URL is invalid.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -752,6 +842,8 @@ export function toUrl(self: HttpClientRequest): Option.Option<URL> {
 }
 
 /**
+ * Converts a Web `Request` into an `HttpClientRequest`, preserving method, URL, headers, and supported request bodies.
+ *
  * @category conversions
  * @since 4.0.0
  */
@@ -784,6 +876,8 @@ const parseContentLength = (contentLength: string | null): number | undefined =>
 }
 
 /**
+ * Converts an `HttpClientRequest` to a Web `Request` as a `Result`, failing when the request URL is invalid.
+ *
  * @category conversions
  * @since 4.0.0
  */
@@ -839,6 +933,8 @@ const isReadableStream = (u: unknown): u is ReadableStream<Uint8Array> =>
   typeof ReadableStream !== "undefined" && u instanceof ReadableStream
 
 /**
+ * Converts an `HttpClientRequest` to a Web `Request`, failing with `UrlParamsError` when the request URL is invalid.
+ *
  * @category conversions
  * @since 4.0.0
  */

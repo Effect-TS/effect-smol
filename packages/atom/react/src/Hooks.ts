@@ -55,6 +55,13 @@ function useStore<A>(registry: AtomRegistry.AtomRegistry, atom: Atom.Atom<A>): A
 const initialValuesSet = new WeakMap<AtomRegistry.AtomRegistry, WeakSet<Atom.Atom<any>>>()
 
 /**
+ * Seeds initial atom values in the current React atom registry.
+ *
+ * **Details**
+ *
+ * Each atom is initialized at most once for a given registry, so subsequent
+ * renders do not overwrite values that have already been established.
+ *
  * @category hooks
  * @since 1.0.0
  */

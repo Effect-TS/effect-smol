@@ -24,6 +24,9 @@ import type { Duplex } from "node:stream"
 export * as NodeWS from "ws"
 
 /**
+ * Service tag for the underlying Node `net.Socket` associated with the current
+ * socket connection.
+ *
  * @category tags
  * @since 1.0.0
  */
@@ -32,6 +35,10 @@ export class NetSocket extends Context.Service<NetSocket, Net.Socket>()(
 ) {}
 
 /**
+ * Opens a TCP connection with Node `net.createConnection` and exposes it as a
+ * `Socket.Socket`, supporting `openTimeout` and closing or destroying the
+ * socket when the enclosing scope is finalized.
+ *
  * @category constructors
  * @since 1.0.0
  */
@@ -77,6 +84,10 @@ export const makeNet = (
   )
 
 /**
+ * Adapts a Node `Duplex` into a `Socket.Socket`, wiring data events to socket
+ * handlers, providing a scoped writer, and mapping open, read, write, and close
+ * failures to `SocketError`.
+ *
  * @category constructors
  * @since 1.0.0
  */
@@ -212,6 +223,9 @@ export const fromDuplex = <RO>(
   })
 
 /**
+ * Creates a `Channel` over a TCP socket, reading arrays of `Uint8Array`
+ * chunks and writing arrays of bytes, strings, or socket close events.
+ *
  * @category constructors
  * @since 1.0.0
  */
@@ -229,6 +243,9 @@ export const makeNetChannel = <IE = never>(
   )
 
 /**
+ * Provides a `Socket.Socket` by opening a TCP connection with the supplied
+ * Node `net` connection options.
+ *
  * @category layers
  * @since 1.0.0
  */

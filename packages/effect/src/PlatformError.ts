@@ -6,6 +6,11 @@ import * as Data from "./Data.ts"
 const TypeId = "~effect/platform/PlatformError"
 
 /**
+ * Error data for an invalid argument passed to a platform API.
+ *
+ * The error records the module and method that rejected the argument, with an
+ * optional description and cause. It is usually wrapped in `PlatformError`.
+ *
  * @category Models
  * @since 4.0.0
  */
@@ -24,6 +29,11 @@ export class BadArgument extends Data.TaggedError("BadArgument")<{
 }
 
 /**
+ * Normalized category for failures reported by platform or system operations.
+ *
+ * The tags group lower-level platform errors into a stable set such as
+ * `NotFound`, `PermissionDenied`, `TimedOut`, and `Unknown`.
+ *
  * @category Model
  * @since 4.0.0
  */
@@ -41,6 +51,12 @@ export type SystemErrorTag =
   | "WriteZero"
 
 /**
+ * Error data for a platform or system operation failure.
+ *
+ * The error records a normalized `_tag`, the module and method that failed,
+ * and optional details such as the syscall, path or descriptor, description,
+ * and original cause. It is usually wrapped in `PlatformError`.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -64,6 +80,12 @@ export class SystemError extends Data.Error<{
 }
 
 /**
+ * Tagged error used by platform APIs to report either invalid arguments or
+ * system-level failures.
+ *
+ * The `reason` field contains the underlying `BadArgument` or `SystemError`.
+ * When that reason has a cause, the cause is preserved on the wrapper.
+ *
  * @category Models
  * @since 4.0.0
  */
@@ -89,6 +111,11 @@ export class PlatformError extends Data.TaggedError("PlatformError")<{
 }
 
 /**
+ * Creates a `PlatformError` whose reason is a `SystemError`.
+ *
+ * Use this helper when adapting an operating-system or platform failure into
+ * the normalized platform error model.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -103,6 +130,11 @@ export const systemError = (options: {
 }): PlatformError => new PlatformError(new SystemError(options))
 
 /**
+ * Creates a `PlatformError` whose reason is a `BadArgument`.
+ *
+ * Use this helper when a platform API rejects caller input before performing
+ * the underlying operation.
+ *
  * @category constructors
  * @since 4.0.0
  */

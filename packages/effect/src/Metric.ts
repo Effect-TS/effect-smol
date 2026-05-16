@@ -1756,7 +1756,13 @@ export declare namespace Metric {
 export const CurrentMetricAttributesKey = "effect/Metric/CurrentMetricAttributes" as const
 
 /**
- * Service class for managing the current metric attributes context.
+ * `Context.Reference` for metric attributes applied from the current Effect
+ * context.
+ *
+ * **Details**
+ * The default value is an empty attribute set. Metric reads and updates merge
+ * these contextual attributes with the metric's own attributes to select the
+ * metric series being accessed.
  *
  * **Example** (Providing current metric attributes)
  *
@@ -1797,7 +1803,11 @@ export const CurrentMetricAttributes = Context.Reference<Metric.AttributeSet>(Cu
 const MetricRegistryKey = "~effect/observability/Metric/MetricRegistryKey"
 
 /**
- * Service class for accessing the current metric registry.
+ * `Context.Reference` for the metric registry in the current context.
+ *
+ * **Details**
+ * The default registry is an empty `Map`. Metrics register their metadata and
+ * hooks lazily in this map when they are read or updated.
  *
  * @category References
  * @since 4.0.0
@@ -2611,11 +2621,12 @@ export const summary = (name: string, options: {
     ] as [number, number])
 
 /**
- * Creates a `Summary` metric that records observations and calculates quantiles
- * which takes a value and the current timestamp as input.
+ * Creates a `Summary` metric that records observations with explicit
+ * timestamps and calculates quantiles.
  *
- * Summary metrics are most suitable for providing statistical information about
- * a set of values, including quantiles.
+ * Summary metrics are most suitable for statistical information about a set of
+ * values. Inputs to this metric are `[value, timestamp]` pairs; the current
+ * clock is used when reading quantiles against the configured `maxAge`.
  *
  * **Options**
  *
@@ -2711,13 +2722,14 @@ export const timer = (name: string, options?: {
 /**
  * Retrieves the current state of the specified `Metric`.
  *
- * This function returns an Effect that, when executed, will provide the current
- * aggregated state of the metric. The state type depends on the metric type:
- * - Counter: `{ count: number | bigint }`
- * - Gauge: `{ value: number | bigint }`
- * - Frequency: `{ occurrences: Map<string, number> }`
- * - Histogram: `{ buckets: Array<[number, number]>, count: number, min: number, max: number, sum: number }`
- * - Summary: `{ quantiles: Array<[number, number | undefined]>, count: number, min: number, max: number, sum: number }`
+ * **Details**
+ * The returned state depends on the metric type:
+ *
+ * - Counter: `CounterState<number | bigint>` with `count` and `incremental`
+ * - Gauge: `GaugeState<number | bigint>` with `value`
+ * - Frequency: `FrequencyState` with `occurrences`
+ * - Histogram: `HistogramState` with buckets, count, min, max, and sum
+ * - Summary: `SummaryState` with quantiles, count, min, max, and sum
  *
  * **Example** (Reading metric state)
  *
@@ -3404,11 +3416,14 @@ export const boundariesFromIterable = (iterable: Iterable<number>): ReadonlyArra
   Arr.append(Arr.filter(new Set(iterable), (n) => n > 0), Number.POSITIVE_INFINITY)
 
 /**
- * A helper method to create histogram bucket boundaries with linearly
- * increasing values.
+ * Creates histogram bucket boundaries from a linear sequence and appends
+ * positive infinity.
  *
- * Creates evenly-spaced boundaries starting from a base value and incrementing
- * by a fixed width. Automatically adds positive infinity as the final boundary.
+ * **Details**
+ * Generates `count - 1` finite boundaries using `start + width + index` for
+ * each zero-based index, then applies the same normalization as
+ * `boundariesFromIterable`: non-positive values are removed, duplicates are
+ * collapsed, and `Infinity` is appended.
  *
  * **Example** (Creating linear boundaries)
  *
@@ -3617,7 +3632,12 @@ export interface FiberRuntimeMetricsService {
 }
 
 /**
- * Service class for managing fiber runtime metrics collection.
+ * `Context.Reference` for the optional fiber runtime metrics service.
+ *
+ * **Details**
+ * When provided, the runtime can notify the service about child-fiber start and
+ * end events. When the reference is `undefined`, automatic fiber runtime metric
+ * collection is disabled.
  *
  * **Example** (Accessing the fiber runtime metrics service)
  *

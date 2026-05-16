@@ -82,6 +82,11 @@ export const toRpcGroup = <Type extends string, Rpcs extends Rpc.Any>(
 }
 
 /**
+ * Type-level conversion used by `toRpcGroup`.
+ *
+ * For each entity RPC it creates a prefixed request RPC and a discard RPC whose
+ * payload includes `entityId`, and whose errors include cluster client errors.
+ *
  * @since 4.0.0
  */
 export type ConvertRpcs<Rpcs extends Rpc.Any, Prefix extends string> = Rpcs extends Rpc.Rpc<
@@ -205,6 +210,11 @@ const tagToPath = (tag: string): string =>
     .toLowerCase()
 
 /**
+ * Type-level conversion used by `toHttpApiGroup`.
+ *
+ * For each entity RPC it creates a POST endpoint at `/<tag>/:entityId` and a
+ * discard endpoint at `/<tag>/:entityId/discard`, including cluster client errors.
+ *
  * @since 4.0.0
  */
 export type ConvertHttpApi<Rpcs extends Rpc.Any> = Rpcs extends Rpc.Rpc<

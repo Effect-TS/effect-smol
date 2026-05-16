@@ -92,6 +92,9 @@ export const ProviderOptions: Schema.$Record<
 > = Schema.Record(Schema.String, Schema.NullOr(Schema.Json))
 
 /**
+ * Type of provider-specific options that can be attached to prompt messages
+ * and content parts.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -333,7 +336,8 @@ export const textPart = (params: PartConstructorParams<TextPart>): TextPart => m
 // =============================================================================
 
 /**
- * Content part representing reasoning or chain-of-thought.
+ * Content part carrying reasoning text in an assistant message, such as a
+ * provider-supplied reasoning summary or explanation.
  *
  * **Example** (Creating reasoning parts)
  *
@@ -1076,8 +1080,8 @@ export type MessageConstructorParams<M extends Message> = Omit<M, typeof Message
 }
 
 /**
- * Schema for decoding message content (i.e. an array containing a single
- * `TextPart`) from a string.
+ * Schema that decodes a string into content containing a single `TextPart` and,
+ * when encoding, emits the `text` value of the first part.
  *
  * @category schemas
  * @since 4.0.0
@@ -1539,7 +1543,8 @@ export const assistantMessage = (params: MessageConstructorParams<AssistantMessa
 // =============================================================================
 
 /**
- * Message representing tool execution results.
+ * Message carrying tool-side content, including tool execution results and
+ * responses to tool approval requests.
  *
  * **Example** (Creating tool messages)
  *
@@ -1767,10 +1772,8 @@ export const Prompt: Schema.Codec<Prompt, PromptEncoded> = Schema.Struct({
 )
 
 /**
- * Raw input types that can be converted into a Prompt.
- *
- * Supports various input formats for convenience, including simple strings,
- * message arrays, response parts, and existing prompts.
+ * Raw input accepted by `make`: a string, an iterable of encoded messages, or
+ * an existing `Prompt`.
  *
  * **Example** (Accepting raw prompt input)
  *
@@ -1900,11 +1903,10 @@ export const make = (input: RawInput): Prompt => {
 export const fromMessages = (messages: ReadonlyArray<Message>): Prompt => makePrompt(messages)
 
 /**
- * Creates a Prompt from the response parts of a previous interaction with a
- * large language model.
- *
- * Converts streaming or non-streaming AI response parts into a structured
- * prompt, typically for use in conversation history or further processing.
+ * Creates a `Prompt` from response parts by folding completed text and
+ * reasoning streams into assistant parts, placing tool calls and approval
+ * requests in an assistant message, and placing non-preliminary tool results
+ * in a tool message using their encoded results.
  *
  * **Example** (Creating prompts from response parts)
  *
@@ -2140,11 +2142,10 @@ export const setSystem: {
 })
 
 /**
- * Creates a new prompt from the specified prompt with the provided text content
- * prepended to the start of existing system message content.
- *
- * If no system message exists in the specified prompt, the provided content
- * will be used to create a system message.
+ * Creates a new prompt with a leading system message. If the prompt already has
+ * a system message, the new message uses the provided content prepended to the
+ * first existing system message's content; the original messages remain after
+ * it.
  *
  * **Example** (Prepending system instructions)
  *
@@ -2190,11 +2191,10 @@ export const prependSystem: {
 })
 
 /**
- * Creates a new prompt from the specified prompt with the provided text content
- * appended to the end of existing system message content.
- *
- * If no system message exists in the specified prompt, the provided content
- * will be used to create a system message.
+ * Creates a new prompt with a leading system message. If the prompt already has
+ * a system message, the new message uses the provided content appended to the
+ * first existing system message's content; the original messages remain after
+ * it.
  *
  * **Example** (Appending system instructions)
  *

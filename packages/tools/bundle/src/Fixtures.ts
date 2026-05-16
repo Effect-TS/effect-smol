@@ -9,6 +9,8 @@ import * as Order from "effect/Order"
 import * as Glob from "glob"
 
 /**
+ * Context service that discovers and sorts TypeScript fixture files used by the bundle size tooling.
+ *
  * @category services
  * @since 1.0.0
  */

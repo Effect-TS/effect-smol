@@ -45,18 +45,24 @@ import * as PgConnString from "pg-connection-string"
 import Cursor from "pg-cursor"
 
 /**
+ * Runtime type identifier used to mark `PgClient` values.
+ *
  * @category type ids
  * @since 1.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-pg/PgClient"
 
 /**
+ * Type-level identifier used to mark `PgClient` values.
+ *
  * @category type ids
  * @since 1.0.0
  */
 export type TypeId = "~@effect/sql-pg/PgClient"
 
 /**
+ * PostgreSQL client service, extending `SqlClient` with JSON parameter fragments and LISTEN/NOTIFY helpers.
+ *
  * @category models
  * @since 1.0.0
  */
@@ -69,12 +75,16 @@ export interface PgClient extends Client.SqlClient {
 }
 
 /**
+ * Context tag used to access the `PgClient` service.
+ *
  * @category tags
  * @since 1.0.0
  */
 export const PgClient = Context.Service<PgClient>("@effect/sql-pg/PgClient")
 
 /**
+ * Configuration for a PostgreSQL client, including connection, TLS, custom stream, application name, type parser, JSON transform, and query/result name transform options.
+ *
  * @category constructors
  * @since 1.0.0
  */
@@ -103,6 +113,8 @@ export interface PgClientConfig {
 }
 
 /**
+ * PostgreSQL pool configuration, extending `PgClientConfig` with idle timeout, pool size, and connection lifetime settings.
+ *
  * @category constructors
  * @since 1.0.0
  */
@@ -115,6 +127,8 @@ export interface PgPoolConfig extends PgClientConfig {
 }
 
 /**
+ * Creates a scoped PostgreSQL client backed by a managed `pg` connection pool.
+ *
  * @category constructors
  * @since 1.0.0
  */
@@ -179,6 +193,8 @@ export const make = (options: PgPoolConfig): Effect.Effect<PgClient, SqlError, S
   })
 
 /**
+ * Creates a scoped PostgreSQL client backed by a managed single `pg` client, optionally acquiring a separate client for streaming and LISTEN operations.
+ *
  * @category constructors
  * @since 1.0.0
  */
@@ -237,6 +253,8 @@ export const makeClient = (
   })
 
 /**
+ * Builds a PostgreSQL client from a scoped `pg` pool acquisition effect, deriving transaction, streaming, and LISTEN/NOTIFY support from that pool.
+ *
  * @category constructors
  * @since 1.0.0
  */
@@ -439,6 +457,8 @@ export const fromPool = Effect.fnUntraced(function*(
 })
 
 /**
+ * Builds a PostgreSQL client from a scoped `pg` client acquisition effect, serializing access when sharing the client and optionally using separate clients for streams and LISTEN.
+ *
  * @category constructors
  * @since 1.0.0
  */
@@ -513,6 +533,8 @@ export const fromClient = Effect.fnUntraced(function*(
 })
 
 /**
+ * Low-level constructor for a `PgClient` from SQL connection acquirers, a LISTEN acquirer, client configuration, and transformation options.
+ *
  * @category constructors
  * @since 1.0.0
  */
@@ -727,6 +749,8 @@ const makeCancel = (pool: Pg.Pool, client: Pg.PoolClient) => {
 }
 
 /**
+ * Creates a layer from an effect that acquires a `PgClient`, providing both `PgClient` and `SqlClient`.
+ *
  * @category layers
  * @since 1.0.0
  */
@@ -741,6 +765,8 @@ export const layerFrom = <E, R>(
   ).pipe(Layer.provide(Reactivity.layer)) as any
 
 /**
+ * Creates a layer from a `Config`-wrapped PostgreSQL pool configuration, providing both `PgClient` and `SqlClient`.
+ *
  * @category layers
  * @since 1.0.0
  */
@@ -755,6 +781,8 @@ export const layerConfig: (
   ))
 
 /**
+ * Creates a layer from a concrete PostgreSQL pool configuration, providing both `PgClient` and `SqlClient`.
+ *
  * @category layers
  * @since 1.0.0
  */
@@ -763,6 +791,8 @@ export const layer = (
 ): Layer.Layer<PgClient | Client.SqlClient, SqlError> => layerFrom(make(config))
 
 /**
+ * Creates the PostgreSQL statement compiler, using `$1` placeholders, double-quoted identifiers, PostgreSQL returning clauses, and optional JSON value transformation.
+ *
  * @category constructor
  * @since 1.0.0
  */
@@ -812,6 +842,8 @@ export const makeCompiler = (
 const escape = Statement.defaultEscape("\"")
 
 /**
+ * PostgreSQL-specific custom statement fragments supported by the compiler, currently JSON parameter fragments.
+ *
  * @category custom types
  * @since 1.0.0
  */

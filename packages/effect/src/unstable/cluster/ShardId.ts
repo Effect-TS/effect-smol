@@ -11,6 +11,9 @@ import * as Getter from "../../SchemaGetter.ts"
 const TypeId = "~effect/cluster/ShardId"
 
 /**
+ * Identifier for a shard within a shard group, with equality, hashing, and primary
+ * key behavior based on the `group:id` string form.
+ *
  * @category Models
  * @since 4.0.0
  */
@@ -21,12 +24,17 @@ export interface ShardId extends Equal.Equal, Hash.Hash, PrimaryKey.PrimaryKey {
 }
 
 /**
+ * Returns `true` when the value carries the `ShardId` runtime marker.
+ *
  * @category Guards
  * @since 4.0.0
  */
 export const isShardId = (u: unknown): u is ShardId => hasProperty(u, TypeId)
 
 /**
+ * Schema for `ShardId` values encoded as `{ group, id }` objects and decoded via
+ * `make`.
+ *
  * @category Schema
  * @since 4.0.0
  */
@@ -45,6 +53,9 @@ export const ShardId = S.declare(isShardId, {
 })
 
 /**
+ * Creates or reuses the cached `ShardId` for the specified shard group and numeric
+ * id.
+ *
  * @category Constructors
  * @since 4.0.0
  */
@@ -84,6 +95,8 @@ const ShardIdProto = {
 }
 
 /**
+ * Formats a shard identifier as `group:id`.
+ *
  * @category Conversions
  * @since 4.0.0
  */
@@ -94,6 +107,11 @@ export const toString = (shardId: {
   return `${shardId.group}:${shardId.id}`
 }
 /**
+ * Parses a `group:id` string into plain shard id parts.
+ *
+ * Throws an `Error` when the string has no colon separator or the id segment is
+ * not numeric.
+ *
  * @since 4.0.0
  */
 export function fromStringEncoded(s: string): {
@@ -113,6 +131,11 @@ export function fromStringEncoded(s: string): {
 }
 
 /**
+ * Parses a `group:id` string into a cached `ShardId`.
+ *
+ * Throws an `Error` when the string has no colon separator or the id segment is
+ * not numeric.
+ *
  * @since 4.0.0
  */
 export function fromString(s: string): ShardId {

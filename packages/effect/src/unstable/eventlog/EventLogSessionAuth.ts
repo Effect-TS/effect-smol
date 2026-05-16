@@ -10,36 +10,50 @@ const textDecoder = new TextDecoder("utf-8", { fatal: true })
 const constLengthPrefixBytes = 4
 
 /**
+ * Domain-separation string embedded in canonical session authentication payloads.
+ *
  * @category constants
  * @since 4.0.0
  */
 export const AuthPayloadContext = "eventlog-auth-v1"
 
 /**
+ * Required byte length for raw Ed25519 public keys used in session
+ * authentication.
+ *
  * @category constants
  * @since 4.0.0
  */
 export const Ed25519PublicKeyLength = 32
 
 /**
+ * Required byte length for Ed25519 signatures used in session authentication.
+ *
  * @category constants
  * @since 4.0.0
  */
 export const Ed25519SignatureLength = 64
 
 /**
+ * Number of random bytes generated for a session authentication challenge.
+ *
  * @category constants
  * @since 4.0.0
  */
 export const SessionAuthChallengeLength = 32
 
 /**
+ * Time-to-live, in milliseconds, for a pending session authentication challenge.
+ *
  * @category constants
  * @since 4.0.0
  */
 export const SessionAuthChallengeTimeToLiveMillis = 30_000
 
 /**
+ * Payload fields that are canonicalized and signed during session
+ * authentication.
+ *
  * @category model
  * @since 4.0.0
  */
@@ -51,6 +65,9 @@ export interface SessionAuthPayload {
 }
 
 /**
+ * Error raised while encoding, decoding, signing, verifying, or generating
+ * session authentication challenges.
+ *
  * @category errors
  * @since 4.0.0
  */
@@ -245,6 +262,11 @@ export const encodeSessionAuthPayload = Effect.fnUntraced(function*(payload: Ses
 })
 
 /**
+ * Decodes a canonical session authentication payload.
+ *
+ * The decoder validates the context field, UTF-8 fields, signing public key
+ * length, and rejects truncated or trailing bytes.
+ *
  * @category encoding
  * @since 4.0.0
  */
@@ -283,6 +305,11 @@ export const decodeSessionAuthPayload = Effect.fnUntraced(
 )
 
 /**
+ * Signs canonical session authentication payload bytes with an Ed25519 private
+ * key.
+ *
+ * The private key must be PKCS#8-encoded bytes importable by `SubtleCrypto`.
+ *
  * @category signing
  * @since 4.0.0
  */
@@ -323,6 +350,12 @@ export const signSessionAuthPayloadBytes = Effect.fnUntraced(function*(options: 
 })
 
 /**
+ * Verifies an Ed25519 signature for canonical session authentication payload
+ * bytes.
+ *
+ * The payload, signing public key, and signature lengths are validated before
+ * calling `SubtleCrypto.verify`.
+ *
  * @category verification
  * @since 4.0.0
  */
@@ -358,6 +391,9 @@ export const verifySessionAuthPayloadBytes = Effect.fnUntraced(function*(options
 })
 
 /**
+ * Encodes a session authentication payload in canonical form and signs it with an
+ * Ed25519 private key.
+ *
  * @category signing
  * @since 4.0.0
  */
@@ -376,6 +412,9 @@ export const signSessionAuthPayload = (
   )
 
 /**
+ * Encodes a session authentication payload in canonical form and verifies its
+ * Ed25519 signature.
+ *
  * @category verification
  * @since 4.0.0
  */
@@ -395,6 +434,8 @@ export const verifySessionAuthPayload = (
   )
 
 /**
+ * Generates a random session authentication challenge using `globalThis.crypto`.
+ *
  * @category challenge
  * @since 4.0.0
  */
@@ -409,6 +450,9 @@ export const makeSessionAuthChallenge: Effect.Effect<
 })
 
 /**
+ * Verifies an authentication request by requiring the `Ed25519` algorithm and
+ * checking the signature over the canonical session authentication payload.
+ *
  * @category verification
  * @since 4.0.0
  */

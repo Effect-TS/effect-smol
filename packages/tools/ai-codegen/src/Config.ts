@@ -135,6 +135,8 @@ export class CodegenConfig extends Schema.Class<CodegenConfig>("CodegenConfig")(
 export type SpecSource = SpecSource.Url | SpecSource.File | SpecSource.StainlessStats
 
 /**
+ * Namespace containing the supported OpenAPI specification source variants.
+ *
  * @category models
  * @since 1.0.0
  */

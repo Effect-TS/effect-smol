@@ -35,22 +35,32 @@ import * as UrlParams from "./UrlParams.ts"
 const TypeId = "~effect/http/HttpClient"
 
 /**
+ * Returns `true` if the provided value is an `HttpClient`.
+ *
  * @category Guards
  * @since 4.0.0
  */
 export const isHttpClient = (u: unknown): u is HttpClient => Predicate.hasProperty(u, TypeId)
 
 /**
+ * HTTP client whose requests produce `HttpClientResponse` values and can fail with `HttpClientError`.
+ *
  * @category models
  * @since 4.0.0
  */
 export interface HttpClient extends HttpClient.With<Error.HttpClientError> {}
 
 /**
+ * Namespace containing type-level members associated with `HttpClient`.
+ *
  * @since 4.0.0
  */
 export declare namespace HttpClient {
   /**
+   * Parameterized HTTP client that may fail with `E` and require environment `R`.
+   *
+   * It exposes preprocessing, postprocessing, direct request execution, and method-specific helpers.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -93,6 +103,8 @@ export declare namespace HttpClient {
   }
 
   /**
+   * Effectful transformation applied to a request before the client executes it.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -101,6 +113,8 @@ export declare namespace HttpClient {
   ) => Effect.Effect<HttpClientRequest.HttpClientRequest, E, R>
 
   /**
+   * Function that turns a preprocessed request effect into the response effect executed by the client.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -110,6 +124,8 @@ export declare namespace HttpClient {
 }
 
 /**
+ * Service tag for the default `HttpClient` used by HTTP client accessors.
+ *
  * @category tags
  * @since 4.0.0
  */
@@ -124,6 +140,8 @@ const accessor = (method: keyof HttpClient) => (...args: Array<any>): Effect.Eff
   )
 
 /**
+ * Executes a prebuilt `HttpClientRequest` using the `HttpClient` service from the environment.
+ *
  * @category accessors
  * @since 4.0.0
  */
@@ -132,6 +150,8 @@ export const execute: (
 ) => Effect.Effect<HttpClientResponse.HttpClientResponse, Error.HttpClientError, HttpClient> = accessor("execute")
 
 /**
+ * Executes a `GET` request using the `HttpClient` service from the environment.
+ *
  * @category accessors
  * @since 4.0.0
  */
@@ -142,6 +162,8 @@ export const get: (url: string | URL, options?: HttpClientRequest.Options.NoUrl 
 > = accessor("get")
 
 /**
+ * Executes a `HEAD` request using the `HttpClient` service from the environment.
+ *
  * @category accessors
  * @since 4.0.0
  */
@@ -152,6 +174,8 @@ export const head: (url: string | URL, options?: HttpClientRequest.Options.NoUrl
 > = accessor("head")
 
 /**
+ * Executes a `POST` request using the `HttpClient` service from the environment.
+ *
  * @category accessors
  * @since 4.0.0
  */
@@ -162,6 +186,8 @@ export const post: (url: string | URL, options?: HttpClientRequest.Options.NoUrl
 > = accessor("post")
 
 /**
+ * Executes a `PATCH` request using the `HttpClient` service from the environment.
+ *
  * @category accessors
  * @since 4.0.0
  */
@@ -172,6 +198,8 @@ export const patch: (url: string | URL, options?: HttpClientRequest.Options.NoUr
 > = accessor("patch")
 
 /**
+ * Executes a `PUT` request using the `HttpClient` service from the environment.
+ *
  * @category accessors
  * @since 4.0.0
  */
@@ -182,6 +210,8 @@ export const put: (url: string | URL, options?: HttpClientRequest.Options.NoUrl 
 > = accessor("put")
 
 /**
+ * Executes a `DELETE` request using the `HttpClient` service from the environment.
+ *
  * @category accessors
  * @since 4.0.0
  */
@@ -192,6 +222,8 @@ export const del: (url: string | URL, options?: HttpClientRequest.Options.NoUrl 
 > = accessor("del")
 
 /**
+ * Executes an `OPTIONS` request using the `HttpClient` service from the environment.
+ *
  * @category accessors
  * @since 4.0.0
  */
@@ -202,6 +234,10 @@ export const options: (url: string | URL, options?: HttpClientRequest.Options.No
 > = accessor("options")
 
 /**
+ * Transforms a client by wrapping the response effect for each request.
+ *
+ * The transformation receives both the response effect and the original request, allowing it to change success, error, and environment behavior.
+ *
  * @category mapping & sequencing
  * @since 4.0.0
  */
@@ -232,6 +268,8 @@ export const transform: {
   ))
 
 /**
+ * Transforms a client by applying an effectful transformation to each response effect.
+ *
  * @category mapping & sequencing
  * @since 4.0.0
  */
@@ -279,6 +317,8 @@ export {
 }
 
 /**
+ * Handles client failures with one or more matching `_tag` values and returns a transformed client.
+ *
  * @category error handling
  * @since 4.0.0
  */
@@ -311,6 +351,8 @@ export const catchTag: {
 )
 
 /**
+ * Handles client failures by matching their `_tag` values against a case map.
+ *
  * @category error handling
  * @since 4.0.0
  */
@@ -448,7 +490,7 @@ export const filterOrElse: {
 } = dual(3, (self, f, orElse) => transformResponse(self, Effect.filterOrElse(f, orElse)))
 
 /**
- * Filters the result of a response, or throws an error if the predicate fails.
+ * Filters successful responses, or fails with the error produced by `orFailWith` when the predicate does not match.
  *
  * @category filters
  * @since 4.0.0
@@ -499,6 +541,10 @@ export const filterStatusOk: <E, R>(self: HttpClient.With<E, R>) => HttpClient.W
   transformResponse(Effect.flatMap(HttpClientResponse.filterStatusOk))
 
 /**
+ * Constructs an `HttpClient.With` from a preprocessing function and a postprocessing function.
+ *
+ * `execute` applies preprocessing to the request and then passes the resulting request effect to postprocessing.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -538,6 +584,10 @@ const Proto = {
 }
 
 /**
+ * Constructs an `HttpClient` from a low-level request runner.
+ *
+ * The runner receives the request, resolved URL, abort signal, and current fiber. The client wrapper handles URL construction failures, tracing and propagation, header redaction, and aborting non-scoped requests on interruption.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -729,11 +779,17 @@ export const mapRequestInputEffect: {
 )
 
 /**
+ * Namespace containing type-level helpers for retrying HTTP clients.
+ *
  * @category error handling
  * @since 4.0.0
  */
 export declare namespace Retry {
   /**
+   * Computes the client type returned by `retry` for a given set of retry options.
+   *
+   * The result includes errors and requirements introduced by schedules and effectful retry predicates.
+   *
    * @category error handling
    * @since 4.0.0
    */
@@ -884,11 +940,17 @@ export const retryTransient: {
 )
 
 /**
+ * Namespace containing configuration types for `withRateLimiter`.
+ *
  * @category rate limiting
  * @since 4.0.0
  */
 export declare namespace WithRateLimiter {
   /**
+   * Options used to configure `withRateLimiter`.
+   *
+   * They define the backing limiter, initial limit window, keying strategy, algorithm, token cost, and whether response headers update future limits.
+   *
    * @category rate limiting
    * @since 4.0.0
    */
@@ -1321,6 +1383,8 @@ export const followRedirects: {
   ))
 
 /**
+ * Context reference for a predicate that disables client-side tracing for matching outgoing requests.
+ *
  * @category References
  * @since 4.0.0
  */
@@ -1331,6 +1395,8 @@ export const TracerDisabledWhen = Context.Reference<
 })
 
 /**
+ * Context reference that controls whether outgoing client spans are propagated to request headers.
+ *
  * @category References
  * @since 4.0.0
  */
@@ -1339,6 +1405,8 @@ export const TracerPropagationEnabled = Context.Reference<boolean>("effect/HttpC
 })
 
 /**
+ * Context reference for generating the span name used for outgoing client request spans.
+ *
  * @category References
  * @since 4.0.0
  */
@@ -1349,6 +1417,8 @@ export const SpanNameGenerator = Context.Reference<
 })
 
 /**
+ * Creates an `HttpClient` layer and merges the layer construction context into client response effects.
+ *
  * @since 4.0.0
  */
 export const layerMergedContext = <E, R>(

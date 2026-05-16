@@ -38,6 +38,12 @@ import * as Sharding from "./Sharding.ts"
 import * as Snowflake from "./Snowflake.ts"
 
 /**
+ * Creates a `WorkflowEngine` implementation backed by cluster sharding and
+ * message storage.
+ *
+ * Workflow executions, activities, deferred completions, resumes, interrupts,
+ * and durable clock wakeups are coordinated through persisted cluster entities.
+ *
  * @category Constructors
  * @since 4.0.0
  */
@@ -693,6 +699,12 @@ const ClockEntityLayer = ClockEntity.toLayer(Effect.gen(function*() {
 const InterruptSignal = DurableDeferred.make("Workflow/InterruptSignal")
 
 /**
+ * Layer that provides `WorkflowEngine.WorkflowEngine` using the cluster workflow
+ * engine implementation.
+ *
+ * It requires cluster sharding and message storage, and also registers the
+ * durable clock entity used for workflow wakeups.
+ *
  * @category Layers
  * @since 4.0.0
  */

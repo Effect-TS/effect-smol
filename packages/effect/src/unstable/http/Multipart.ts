@@ -25,21 +25,34 @@ import * as IncomingMessage from "./HttpIncomingMessage.ts"
 import * as MP from "./Multipasta.ts"
 
 /**
+ * Type identifier used to brand multipart part values.
+ *
  * @since 4.0.0
  */
 export const TypeId = "~effect/http/Multipart"
 
 /**
+ * A parsed multipart part.
+ *
+ * A part is either a text `Field` or a streamed `File`.
+ *
  * @category models
  * @since 4.0.0
  */
 export type Part = Field | File
 
 /**
+ * Namespace containing shared multipart part model types.
+ *
  * @since 4.0.0
  */
 export declare namespace Part {
   /**
+   * Common protocol implemented by multipart part values.
+   *
+   * It provides the multipart type identifier, tag, and inspectable behavior shared
+   * by fields, files, and persisted files.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -50,6 +63,11 @@ export declare namespace Part {
 }
 
 /**
+ * Multipart form field containing a decoded text value.
+ *
+ * The `key` is the field name, `contentType` is the part media type, and `value`
+ * is the decoded field content.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -61,18 +79,27 @@ export interface Field extends Part.Proto {
 }
 
 /**
+ * Returns `true` when a value is a multipart `Part`.
+ *
  * @category Guards
  * @since 4.0.0
  */
 export const isPart = (u: unknown): u is Part => Predicate.hasProperty(u, TypeId)
 
 /**
+ * Returns `true` when a value is a multipart text `Field`.
+ *
  * @category Guards
  * @since 4.0.0
  */
 export const isField = (u: unknown): u is Field => isPart(u) && u._tag === "Field"
 
 /**
+ * Multipart file part.
+ *
+ * The file content is exposed as a byte stream. `contentEffect` collects the full
+ * file into memory and should be used only when the file size is acceptable.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -86,12 +113,19 @@ export interface File extends Part.Proto {
 }
 
 /**
+ * Returns `true` when a value is a multipart `File`.
+ *
  * @category Guards
  * @since 4.0.0
  */
 export const isFile = (u: unknown): u is File => isPart(u) && u._tag === "File"
 
 /**
+ * Multipart file part that has been written to the filesystem.
+ *
+ * The `path` points to the persisted file while the scope used to persist the
+ * multipart data remains open.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -104,6 +138,8 @@ export interface PersistedFile extends Part.Proto {
 }
 
 /**
+ * Returns `true` when a value is a persisted multipart file.
+ *
  * @category Guards
  * @since 4.0.0
  */
@@ -111,6 +147,11 @@ export const isPersistedFile = (u: unknown): u is PersistedFile =>
   Predicate.hasProperty(u, TypeId) && Predicate.isTagged(u, "PersistedFile")
 
 /**
+ * Record representation of persisted multipart data.
+ *
+ * Field names map to text values, arrays of text values, or arrays of
+ * `PersistedFile` values.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -121,6 +162,11 @@ export interface Persisted {
 const MultipartErrorTypeId = "~effect/http/Multipart/MultipartError"
 
 /**
+ * Reason carried by a `MultipartError`.
+ *
+ * It identifies parser and limit failures such as oversized files or fields, too
+ * many parts, total body size limits, parse errors, and internal errors.
+ *
  * @category Errors
  * @since 4.0.0
  */
@@ -130,6 +176,10 @@ export class MultipartErrorReason extends Data.Error<{
 }> {}
 
 /**
+ * Error raised while parsing, streaming, or persisting multipart form data.
+ *
+ * The `reason` field contains the concrete `MultipartErrorReason`.
+ *
  * @category Errors
  * @since 4.0.0
  */
@@ -157,12 +207,19 @@ export class MultipartError extends Data.TaggedError("MultipartError")<{
 }
 
 /**
+ * Schema type for persisted multipart files.
+ *
  * @category Schemas
  * @since 4.0.0
  */
 export interface PersistedFileSchema extends Schema.declare<PersistedFile> {}
 
 /**
+ * Schema for persisted multipart files.
+ *
+ * The encoded form contains the field key, original file name, content type, and
+ * filesystem path.
+ *
  * @category Schemas
  * @since 4.0.0
  */
@@ -200,12 +257,19 @@ export const PersistedFileSchema: PersistedFileSchema = Schema.declare(
 )
 
 /**
+ * Schema for an array of persisted multipart files.
+ *
  * @category Schemas
  * @since 4.0.0
  */
 export const FilesSchema: Schema.$Array<PersistedFileSchema> = Schema.Array(PersistedFileSchema)
 
 /**
+ * Schema for exactly one persisted multipart file.
+ *
+ * The encoded form is a one-element file array, while the decoded value is the
+ * single `PersistedFile`.
+ *
  * @category Schemas
  * @since 4.0.0
  */
@@ -223,6 +287,11 @@ export const SingleFileSchema: Schema.decodeTo<PersistedFileSchema, Schema.$Arra
   )
 
 /**
+ * Creates a decoder for persisted multipart data using the supplied schema.
+ *
+ * The returned function decodes an unknown input into the schema output and fails
+ * with `SchemaError` when validation fails.
+ *
  * @category Schemas
  * @since 4.0.0
  */
@@ -232,6 +301,11 @@ export const schemaPersisted = <A, I extends Partial<Persisted>, RD, RE>(
   Schema.decodeUnknownEffect(schema)
 
 /**
+ * Creates a decoder for a JSON-encoded field in persisted multipart data.
+ *
+ * The selected field is parsed from a JSON string and decoded with the supplied
+ * schema.
+ *
  * @category Schemas
  * @since 4.0.0
  */
@@ -253,6 +327,12 @@ export const schemaJson = <A, I, RD, RE>(schema: Schema.Codec<A, I, RD, RE>, opt
 }
 
 /**
+ * Builds the low-level multipart parser configuration from request headers and
+ * the current fiber context.
+ *
+ * Parser limits are read from the multipart references, including maximum parts,
+ * field size, file size, total body size, and field MIME type overrides.
+ *
  * @category Config
  * @since 4.0.0
  */
@@ -275,6 +355,12 @@ export const makeConfig = (
   })
 
 /**
+ * Creates a channel that parses multipart byte chunks into multipart parts.
+ *
+ * The channel consumes non-empty batches of `Uint8Array` chunks and emits
+ * non-empty batches of parsed `Part` values, failing with `MultipartError` for
+ * parser and limit failures.
+ *
  * @category Parsers
  * @since 4.0.0
  */
@@ -464,6 +550,11 @@ const defaultWriteFile = (path: string, file: File) =>
   )
 
 /**
+ * Runs a channel of byte chunks and collects all output into a single
+ * `Uint8Array`.
+ *
+ * This materializes the full content in memory.
+ *
  * @since 4.0.0
  */
 export const collectUint8Array = <OE, OD, R>(
@@ -482,6 +573,12 @@ export const collectUint8Array = <OE, OD, R>(
   })
 
 /**
+ * Persists a stream of multipart parts into a record.
+ *
+ * Text fields are collected as strings, and file parts are written to files in a
+ * scoped temporary directory. Persisted file paths remain valid for the lifetime
+ * of the scope.
+ *
  * @category Conversions
  * @since 4.0.0
  */
@@ -560,6 +657,11 @@ class PersistedFileImpl extends PartBase implements PersistedFile {
 }
 
 /**
+ * Creates a context containing multipart parser limit settings.
+ *
+ * The context can provide maximum part count, field size, file size, total body
+ * size, and MIME types that should be parsed as fields.
+ *
  * @category References
  * @since 4.0.0
  */
@@ -590,11 +692,18 @@ export const limitsServices = (options: {
 }
 
 /**
+ * Namespace containing multipart parser limit option types.
+ *
  * @category fiber refs
  * @since 4.0.0
  */
 export declare namespace withLimits {
   /**
+   * Options for overriding multipart parser limits.
+   *
+   * These settings control maximum part count, field size, file size, total body
+   * size, and MIME types that should be treated as fields instead of files.
+   *
    * @category fiber refs
    * @since 4.0.0
    */
@@ -608,6 +717,10 @@ export declare namespace withLimits {
 }
 
 /**
+ * Context reference for the maximum number of multipart parts allowed.
+ *
+ * The default is `undefined`, meaning no explicit part-count limit.
+ *
  * @category References
  * @since 4.0.0
  */
@@ -616,6 +729,10 @@ export const MaxParts = Context.Reference<number | undefined>("effect/http/Multi
 })
 
 /**
+ * Context reference for the maximum size of a multipart field value.
+ *
+ * The default limit is 10 MiB.
+ *
  * @category References
  * @since 4.0.0
  */
@@ -624,6 +741,10 @@ export const MaxFieldSize = Context.Reference<FileSystem.SizeInput>("effect/http
 })
 
 /**
+ * Context reference for the maximum size of a multipart file part.
+ *
+ * The default is `undefined`, meaning no explicit per-file limit.
+ *
  * @category References
  * @since 4.0.0
  */
@@ -633,6 +754,11 @@ export const MaxFileSize = Context.Reference<FileSystem.SizeInput | undefined>(
 )
 
 /**
+ * Context reference for MIME type fragments that should be parsed as multipart
+ * fields instead of files.
+ *
+ * The default treats `application/json` parts as fields.
+ *
  * @category References
  * @since 4.0.0
  */

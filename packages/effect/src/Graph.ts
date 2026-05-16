@@ -53,7 +53,12 @@ export class Edge<E> extends Data.Class<{
 export type Kind = "directed" | "undirected"
 
 /**
- * Graph prototype interface.
+ * Common structural interface shared by immutable and mutable graphs.
+ *
+ * **Details**
+ *
+ * Contains the node and edge maps, adjacency indexes, allocation counters, and
+ * shared protocols used by both `Graph` and `MutableGraph`.
  *
  * @category models
  * @since 4.0.0
@@ -205,6 +210,10 @@ const ProtoGraph = {
 // TODO: Do we need safe variants for these?
 
 /**
+ * Error thrown by graph operations when the requested graph structure is
+ * invalid, such as referencing a missing node or using unsupported edge
+ * weights.
+ *
  * @category errors
  * @since 4.0.0
  */
@@ -220,6 +229,9 @@ const missingNode = (node: number) => new GraphError({ message: `Node ${node} do
 // =============================================================================
 
 /**
+ * Returns `true` if a value has the graph runtime type identifier, narrowing
+ * it to a `Graph`.
+ *
  * @category Guards
  * @since 4.0.0
  */
@@ -824,7 +836,12 @@ export const updateEdge = <N, E, T extends Kind = "directed">(
 }
 
 /**
- * Creates a new graph with transformed node data using the provided mapping function.
+ * Transforms every node's data in a mutable graph in place using the provided
+ * mapping function.
+ *
+ * **Details**
+ *
+ * Node indices and edges are preserved; only the stored node data is replaced.
  *
  * **Example** (Mapping node data)
  *
@@ -1547,7 +1564,12 @@ export const edgeCount = <N, E, T extends Kind = "directed">(
 ): number => graph.edges.size
 
 /**
- * Returns the neighboring nodes (targets of outgoing edges) for a given node.
+ * Returns the neighboring node indices for a node.
+ *
+ * **Details**
+ *
+ * For directed graphs, neighbors are the targets of outgoing edges. For
+ * undirected graphs, neighbors are the other endpoints of incident edges.
  *
  * **Example** (Getting outgoing neighbors)
  *
@@ -2727,7 +2749,12 @@ export const stronglyConnectedComponents = <N, E, T extends Kind = "directed">(
 // =============================================================================
 
 /**
- * Result of a shortest path computation containing the path and total distance.
+ * Result of a shortest path computation.
+ *
+ * **Details**
+ *
+ * Contains the node-index path, the total numeric distance, and the edge data
+ * encountered along the path.
  *
  * @category models
  * @since 4.0.0
@@ -2739,7 +2766,12 @@ export interface PathResult<E> {
 }
 
 /**
- * Configuration for Dijkstra's algorithm.
+ * Configuration for finding a shortest path with Dijkstra's algorithm.
+ *
+ * **Details**
+ *
+ * Specifies the source and target node indices, plus a cost function that maps
+ * each edge's data to a non-negative numeric weight.
  *
  * @category models
  * @since 4.0.0
@@ -2751,10 +2783,14 @@ export interface DijkstraConfig<E> {
 }
 
 /**
- * Find the shortest path between two nodes using Dijkstra's algorithm.
+ * Finds the shortest path from the configured source node to the target node
+ * using Dijkstra's algorithm.
  *
- * Dijkstra's algorithm works with non-negative edge weights and finds the shortest
- * path from a source node to a target node in O((V + E) log V) time complexity.
+ * **Details**
+ *
+ * Edge costs must be non-negative. Returns `Option.none()` when the target is
+ * not reachable, and throws a `GraphError` when either endpoint is missing or a
+ * negative edge cost is encountered.
  *
  * **Example** (Finding shortest paths with Dijkstra)
  *
@@ -2920,7 +2956,12 @@ export const dijkstra: {
 })
 
 /**
- * Result of all-pairs shortest path computation.
+ * Result of an all-pairs shortest path computation.
+ *
+ * **Details**
+ *
+ * Contains distance, node-path, and edge-data maps keyed by source and target
+ * node indices.
  *
  * @category models
  * @since 4.0.0
@@ -2932,12 +2973,14 @@ export interface AllPairsResult<E> {
 }
 
 /**
- * Find shortest paths between all pairs of nodes using Floyd-Warshall algorithm.
+ * Finds shortest paths between all pairs of nodes using the Floyd-Warshall
+ * algorithm.
  *
- * Floyd-Warshall algorithm computes shortest paths between all pairs of nodes in O(V³) time.
- * It can handle negative edge weights and detect negative cycles.
+ * **Details**
  *
- * Throws if a negative cycle is detected that affects the path to target.
+ * Computes distances, reconstructed node paths, and edge-data paths for every
+ * source and target pair in O(V^3) time. Negative edge weights are allowed, but
+ * a `GraphError` is thrown if any negative cycle is detected.
  *
  * **Example** (Finding all-pairs shortest paths)
  *
@@ -3081,7 +3124,12 @@ export const floydWarshall: {
 })
 
 /**
- * Configuration for A* pathfinding algorithm.
+ * Configuration for finding a shortest path with the A* algorithm.
+ *
+ * **Details**
+ *
+ * Specifies the source and target node indices, an edge-cost function, and a
+ * heuristic that estimates the remaining cost from a node to the target.
  *
  * @category models
  * @since 4.0.0
@@ -3094,11 +3142,15 @@ export interface AstarConfig<E, N> {
 }
 
 /**
- * Find the shortest path between two nodes using A* pathfinding algorithm.
+ * Finds the shortest path from the configured source node to the target node
+ * using the A* pathfinding algorithm.
  *
- * A* is an extension of Dijkstra's algorithm that uses a heuristic function to guide
- * the search towards the target, potentially finding paths faster than Dijkstra's.
- * The heuristic must be admissible (never overestimate the actual cost).
+ * **Details**
+ *
+ * The edge-cost function must return non-negative weights, and the heuristic
+ * should be admissible to preserve shortest-path guarantees. Returns
+ * `Option.none()` when the target is not reachable, and throws a `GraphError`
+ * when either endpoint is missing or a negative edge cost is encountered.
  *
  * **Example** (Finding shortest paths with A-star)
  *
@@ -3294,7 +3346,12 @@ export const astar: {
 })
 
 /**
- * Configuration for Bellman-Ford algorithm.
+ * Configuration for finding a shortest path with the Bellman-Ford algorithm.
+ *
+ * **Details**
+ *
+ * Specifies the source and target node indices, plus a cost function that maps
+ * each edge's data to a numeric weight.
  *
  * @category models
  * @since 4.0.0
@@ -3306,11 +3363,14 @@ export interface BellmanFordConfig<E> {
 }
 
 /**
- * Find the shortest path between two nodes using Bellman-Ford algorithm.
+ * Finds the shortest path from the configured source node to the target node
+ * using the Bellman-Ford algorithm.
  *
- * Bellman-Ford algorithm can handle negative edge weights and detects negative cycles.
- * It has O(VE) time complexity, slower than Dijkstra's but more versatile.
- * Returns Option.none() if a negative cycle is detected that affects the path.
+ * **Details**
+ *
+ * Negative edge weights are allowed. Returns `Option.none()` when the target is
+ * unreachable or when a negative cycle affects the path to the target. Throws a
+ * `GraphError` when either endpoint is missing.
  *
  * **Example** (Finding shortest paths with Bellman-Ford)
  *
@@ -3479,11 +3539,13 @@ export const bellmanFord: {
 })
 
 /**
- * Concrete class for iterables that produce [NodeIndex, NodeData] tuples.
+ * Iterable wrapper used by graph traversal and listing APIs.
  *
- * This class provides a common abstraction for all iterables that return node data,
- * including traversal iterators (DFS, BFS, etc.) and element iterators (nodes, externals).
- * It uses a mapEntry function pattern for flexible iteration and transformation.
+ * **Details**
+ *
+ * A `Walker` yields `[index, data]` pairs lazily and can be viewed as just the
+ * indices, just the values, or mapped entries with `indices`, `values`,
+ * `entries`, and `visit`.
  *
  * **Example** (Working with node walkers)
  *
@@ -3687,7 +3749,13 @@ export const entries = <T, N>(walker: Walker<T, N>): Iterable<[T, N]> =>
   walker.visit((index, data) => [index, data] as [T, N])
 
 /**
- * Configuration options for search iterators.
+ * Configuration for DFS, BFS, and postorder graph traversals.
+ *
+ * **Details**
+ *
+ * `start` supplies the node indices where traversal begins. If it is omitted,
+ * the iterator is empty. `direction` chooses whether traversal follows
+ * outgoing or incoming edges.
  *
  * @category models
  * @since 4.0.0
@@ -3698,10 +3766,14 @@ export interface SearchConfig {
 }
 
 /**
- * Creates a new DFS iterator with optional configuration.
+ * Creates a lazy depth-first traversal iterator from the configured start
+ * nodes.
  *
- * The iterator maintains a stack of nodes to visit and tracks discovered nodes.
- * It provides lazy evaluation of the depth-first search.
+ * **Details**
+ *
+ * If no start nodes are supplied, the iterator is empty. The `direction` option
+ * chooses whether to follow outgoing or incoming edges. Throws a `GraphError`
+ * if any configured start node does not exist.
  *
  * **Example** (Traversing depth-first)
  *
@@ -3792,10 +3864,14 @@ export const dfs: {
 })
 
 /**
- * Creates a new BFS iterator with optional configuration.
+ * Creates a lazy breadth-first traversal iterator from the configured start
+ * nodes.
  *
- * The iterator maintains a queue of nodes to visit and tracks discovered nodes.
- * It provides lazy evaluation of the breadth-first search.
+ * **Details**
+ *
+ * If no start nodes are supplied, the iterator is empty. The `direction` option
+ * chooses whether to follow outgoing or incoming edges. Throws a `GraphError`
+ * if any configured start node does not exist.
  *
  * **Example** (Traversing breadth-first)
  *
@@ -3882,7 +3958,13 @@ export const bfs: {
 })
 
 /**
- * Configuration options for topological sort iterator.
+ * Configuration for the topological sort iterator.
+ *
+ * **Details**
+ *
+ * `initials` optionally supplies the node indices used as initial queue
+ * entries. When omitted, topological sorting starts from all nodes with zero
+ * in-degree.
  *
  * @category models
  * @since 4.0.0
@@ -4024,11 +4106,14 @@ export const topo: {
 })
 
 /**
- * Creates a new DFS postorder iterator with optional configuration.
+ * Creates a lazy depth-first postorder traversal iterator from the configured
+ * start nodes.
  *
- * The iterator maintains a stack with visit state tracking and emits nodes
- * in postorder (after all descendants have been processed). Essential for
- * dependency resolution and tree destruction algorithms.
+ * **Details**
+ *
+ * Nodes are emitted after their reachable descendants have been processed. If
+ * no start nodes are supplied, the iterator is empty. The `direction` option
+ * chooses whether to follow outgoing or incoming edges.
  *
  * **Example** (Traversing in postorder)
  *
@@ -4222,7 +4307,13 @@ export const edges = <N, E, T extends Kind = "directed">(
   }))
 
 /**
- * Configuration for externals iterator.
+ * Configuration for selecting external nodes.
+ *
+ * **Details**
+ *
+ * `direction` chooses which missing edge direction makes a node external:
+ * `"outgoing"` selects nodes with no outgoing edges, and `"incoming"` selects
+ * nodes with no incoming edges.
  *
  * @category models
  * @since 4.0.0

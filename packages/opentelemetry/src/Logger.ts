@@ -19,6 +19,8 @@ import { nanosToHrTime, unknownToAttributeValue } from "./internal/attributes.ts
 import { Resource } from "./Resource.ts"
 
 /**
+ * Context service containing the OpenTelemetry `LoggerProvider` used to emit Effect log records.
+ *
  * @category Services
  * @since 1.0.0
  */
@@ -58,6 +60,8 @@ export const logLevelToSeverityNumber = (level: LogLevel.LogLevel): SeverityNumb
 }
 
 /**
+ * Creates an Effect logger that emits log records through the configured OpenTelemetry logger provider.
+ *
  * @category Constructors
  * @since 1.0.0
  */
@@ -104,6 +108,8 @@ export const make: Effect.Effect<
 })
 
 /**
+ * Creates a layer that installs the OpenTelemetry-backed Effect logger, merging with existing loggers by default.
+ *
  * @category Layers
  * @since 1.0.0
  */
@@ -124,6 +130,8 @@ export const layer = (options: {
   })
 
 /**
+ * Creates a scoped OpenTelemetry logger provider from one or more log record processors, using the current `Resource` and flushing and shutting down the provider when the layer is released.
+ *
  * @category Layers
  * @since 1.0.0
  */

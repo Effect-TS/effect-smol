@@ -175,6 +175,14 @@ export interface Metadata<Output = unknown, Input = unknown> extends InputMetada
 }
 
 /**
+ * Context reference containing metadata for the currently running schedule step.
+ *
+ * **Details**
+ * Repeat, retry, stream, and channel scheduling operations provide this service
+ * to effects run between schedule steps. The default value contains undefined
+ * input and output values, zero duration, and zeroed timing fields before any
+ * schedule step has produced metadata.
+ *
  * @category Metadata
  * @since 4.0.0
  */
@@ -262,7 +270,12 @@ export declare namespace Schedule {
   }
 
   /**
-   * Internal structure that holds the variance annotations for Schedule type parameters.
+   * Type-level marker used by `Schedule.Variance` to record the variance of
+   * `Schedule` type parameters.
+   *
+   * **Notes**
+   * This interface exists for TypeScript inference and assignability. Users
+   * normally do not construct or inspect it directly.
    *
    * @category Models
    * @since 2.0.0
@@ -688,9 +701,9 @@ export const andThen: {
  * schedule to completion. Once the left schedule is complete, the right (i.e.
  * `other`) schedule will be executed to completion.
  *
- * The output of the resulting schedule is a `Result` where outputs of the
- * left schedule are emitted as `Result.Err<Output>` and outputs of the right
- * schedule are emitted as `Result.Ok<Output>`.
+ * The resulting schedule emits a `Result` to indicate which phase produced
+ * each output: outputs from `self` are emitted as `Failure`, and outputs from
+ * `other` are emitted as `Success`.
  *
  * **Example** (Tracking sequential schedule phases)
  *
@@ -1045,8 +1058,12 @@ export const bothWith: {
   )))
 
 /**
- * Returns a new `Schedule` that always recurs, collecting all inputs of the
- * schedule into an array.
+ * Returns a new `Schedule` that follows `self` and outputs the inputs seen so
+ * far as an array.
+ *
+ * **Details**
+ * This does not make the schedule run forever. The collected schedule stops
+ * when `self` stops and fails when `self` fails.
  *
  * **Example** (Collecting schedule inputs)
  *
@@ -1079,8 +1096,12 @@ export const collectInputs = <Output, Input, Error, Env>(
 ): Schedule<Array<Input>, Input, Error, Env> => collectWhile(passthrough(self), () => effect.succeed(true))
 
 /**
- * Returns a new `Schedule` that always recurs, collecting all outputs of the
- * schedule into an array.
+ * Returns a new `Schedule` that follows `self` and outputs the schedule outputs
+ * seen so far as an array.
+ *
+ * **Details**
+ * This does not make the schedule run forever. The collected schedule stops
+ * when `self` stops and fails when `self` fails.
  *
  * **Example** (Collecting schedule outputs)
  *

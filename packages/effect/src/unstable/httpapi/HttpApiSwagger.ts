@@ -43,7 +43,10 @@ const makeHandler = <Id extends string, Groups extends HttpApiGroup.Any>(options
 }
 
 /**
- * Exported layer mounting Swagger/OpenAPI documentation UI.
+ * Mounts Swagger UI for an `HttpApi`.
+ *
+ * The route serves the OpenAPI specification generated from the API at the
+ * configured path, defaulting to `/docs`.
  *
  * @param options.path Optional mount path (default "/docs").
  *

@@ -10,6 +10,12 @@ import type { LogLevel } from "./LogLevel.ts"
 import * as Option from "./Option.ts"
 
 /**
+ * A tracing backend used by Effect to create spans.
+ *
+ * Custom tracers implement `span` to allocate a span from the supplied name,
+ * parent, annotations, links, start time, kind, root flag, and sampling
+ * decision.
+ *
  * @category models
  * @since 2.0.0
  */
@@ -32,6 +38,9 @@ export interface Tracer {
 const evaluate = "~effect/Effect/evaluate" satisfies core.evaluate
 
 /**
+ * A low-level Effect primitive that can be evaluated by a tracer-specific
+ * context for the current fiber.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -40,6 +49,11 @@ export interface EffectPrimitive<X> {
 }
 
 /**
+ * Lifecycle state of a span.
+ *
+ * `Started` records the start time, while `Ended` records the start time, end
+ * time, and exit value with which the span completed.
+ *
  * **Example** (Creating span statuses)
  *
  * ```ts
@@ -79,6 +93,9 @@ export type SpanStatus = {
 }
 
 /**
+ * A span value that can participate in tracing, either an Effect-managed
+ * `Span` or an `ExternalSpan` propagated from another tracing system.
+ *
  * **Example** (Accepting any span)
  *
  * ```ts
@@ -103,6 +120,8 @@ export type SpanStatus = {
 export type AnySpan = Span | ExternalSpan
 
 /**
+ * The string key used to identify the `ParentSpan` context service.
+ *
  * **Example** (Reading the parent span key)
  *
  * ```ts
@@ -118,6 +137,9 @@ export type AnySpan = Span | ExternalSpan
 export const ParentSpanKey = "effect/Tracer/ParentSpan"
 
 /**
+ * Context service containing the `Span` or `ExternalSpan` to use as the parent
+ * of newly-created child spans.
+ *
  * **Example** (Accessing the parent span)
  *
  * ```ts
@@ -136,6 +158,10 @@ export const ParentSpanKey = "effect/Tracer/ParentSpan"
 export class ParentSpan extends Context.Service<ParentSpan, AnySpan>()(ParentSpanKey) {}
 
 /**
+ * Represents a span created outside Effect's tracer, carrying trace and span
+ * identifiers, sampling state, and annotations so it can be used as a parent or
+ * link in Effect tracing.
+ *
  * **Example** (Creating an external span value)
  *
  * ```ts
@@ -166,6 +192,10 @@ export interface ExternalSpan {
 }
 
 /**
+ * Options accepted by span-creating APIs, combining span metadata such as
+ * attributes, links, parent/root selection, kind, sampling, and trace level
+ * with stack trace capture settings.
+ *
  * **Example** (Configuring span options)
  *
  * ```ts
@@ -191,6 +221,10 @@ export interface ExternalSpan {
 export interface SpanOptions extends SpanOptionsNoTrace, TraceOptions {}
 
 /**
+ * Span creation options that do not control stack trace capture, including
+ * attributes, links, parent or root selection, annotations, span kind,
+ * sampling, and the trace level used for filtering.
+ *
  * @category models
  * @since 3.1.0
  */
@@ -206,6 +240,10 @@ export interface SpanOptionsNoTrace {
 }
 
 /**
+ * Options that control stack trace capture for tracing wrappers.
+ *
+ * `captureStackTrace` can disable capture or provide a lazy stack string.
+ *
  * @category models
  * @since 3.1.0
  */
@@ -214,6 +252,9 @@ export interface TraceOptions {
 }
 
 /**
+ * OpenTelemetry-style role describing the kind of operation represented by a
+ * span: internal work, server handling, client calls, producing, or consuming.
+ *
  * **Example** (Configuring span kinds)
  *
  * ```ts
@@ -240,6 +281,12 @@ export interface TraceOptions {
 export type SpanKind = "internal" | "server" | "client" | "producer" | "consumer"
 
 /**
+ * A span created by an Effect tracer.
+ *
+ * It carries trace identity, parent, annotations, attributes, links, sampling
+ * and kind information, lifecycle status, and methods to end the span or add
+ * attributes, events, and links.
+ *
  * **Example** (Working with spans)
  *
  * ```ts
@@ -311,6 +358,9 @@ export interface Span {
 }
 
 /**
+ * A relationship from one span to another span, with attributes describing the
+ * relationship.
+ *
  * **Example** (Linking spans)
  *
  * ```ts
@@ -341,12 +391,18 @@ export interface SpanLink {
 }
 
 /**
+ * Creates a `Tracer` value from a tracer implementation object.
+ *
  * @category constructors
  * @since 2.0.0
  */
 export const make = (options: Tracer): Tracer => options
 
 /**
+ * Creates an `ExternalSpan` from trace and span identifiers, defaulting
+ * `sampled` to `true` and annotations to an empty context when they are not
+ * provided.
+ *
  * **Example** (Creating an external span)
  *
  * ```ts
@@ -384,6 +440,12 @@ export const externalSpan = (
 })
 
 /**
+ * Reference used to disable trace propagation.
+ *
+ * When set on the fiber or span annotations, new spans are created as
+ * non-propagating no-op spans and disabled spans are skipped when deriving a
+ * parent span.
+ *
  * **Example** (Disabling span propagation)
  *
  * ```ts
@@ -429,12 +491,18 @@ export const MinimumTraceLevel = Context.Reference<
 >("effect/Tracer/MinimumTraceLevel", { defaultValue: () => "All" })
 
 /**
+ * The string key used to identify the active `Tracer` context reference.
+ *
  * @category references
  * @since 4.0.0
  */
 export const TracerKey = "effect/Tracer"
 
 /**
+ * Context reference for the active tracer service.
+ *
+ * By default it uses the native tracer, which creates `NativeSpan` instances.
+ *
  * **Example** (Accessing the current tracer)
  *
  * ```ts
@@ -464,6 +532,11 @@ export const Tracer: Context.Reference<Tracer> = Context.Reference<Tracer>(Trace
 })
 
 /**
+ * Default in-memory `Span` implementation used by the native tracer.
+ *
+ * It generates span and trace identifiers, stores attributes, events, and
+ * links, and records `Started` or `Ended` status.
+ *
  * @category native tracer
  * @since 4.0.0
  */

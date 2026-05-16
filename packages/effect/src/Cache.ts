@@ -102,8 +102,14 @@ export interface Cache<in out Key, in out A, in out E = never, out R = never> ex
 }
 
 /**
- * Represents a cache entry containing a deferred value and optional expiration time.
- * This is used internally by the cache implementation to track cached values and their lifetimes.
+ * Represents a low-level cache entry containing a deferred lookup result and
+ * an optional expiration timestamp.
+ *
+ * **Notes**
+ *
+ * An `expiresAt` value of `undefined` means the entry does not expire. Most
+ * users should interact with entries through the `Cache` combinators rather
+ * than constructing them directly.
  *
  * @category Models
  * @since 4.0.0
@@ -277,10 +283,14 @@ const Proto = {
 const defaultTimeToLive = <A, E>(_: Exit.Exit<A, E>, _key: unknown): Duration.Duration => Duration.infinity
 
 /**
- * Retrieves the value associated with the specified key from the cache.
+ * Retrieves the value for a key, invoking the lookup function on a cache miss
+ * or expired entry.
  *
- * If the key is not present or has expired, it will invoke the lookup function
- * to construct the value, store it in the cache, and return it.
+ * **Details**
+ *
+ * Concurrent `get` calls for the same missing key share the same pending
+ * lookup. The cache stores the lookup `Exit`, so failed lookups are cached and
+ * will fail again until the entry expires, is invalidated, or is refreshed.
  *
  * **Example** (Getting cached values)
  *
@@ -417,12 +427,14 @@ const checkCapacity = <K, A, E, R>(self: Cache<K, A, E, R>) => {
 }
 
 /**
- * Retrieves the value associated with the specified key from the cache,
- * returning an `Option` that is `Some` if the key exists and has not expired,
- * or `None` if the key does not exist or has expired.
+ * Reads an existing cache entry without invoking the lookup function.
  *
- * Unlike `get`, this function will not invoke the lookup function if the key
- * is missing or expired.
+ * **Details**
+ *
+ * Returns `Option.none()` when the key is missing or expired, and `Option.some`
+ * when a cached lookup has succeeded. If the entry is still pending, waits for
+ * it to complete. If the cached or pending lookup fails, this effect fails with
+ * the same error.
  *
  * **Example** (Reading cached values without lookup)
  *

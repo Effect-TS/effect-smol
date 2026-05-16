@@ -5,6 +5,10 @@ import type { Effect } from "effect/Effect"
 import * as Runtime from "effect/Runtime"
 
 /**
+ * Runs an Effect as the Node process main program, interrupting the fiber on
+ * `SIGINT` or `SIGTERM` and invoking the configured teardown to determine the
+ * process exit code.
+ *
  * @category Run main
  * @since 1.0.0
  */

@@ -128,6 +128,13 @@ import type * as Scope from "./Scope.ts"
 const TypeId = "~effect/Logger"
 
 /**
+ * A logger that transforms a runtime log event into an output value.
+ *
+ * **Details**
+ * The runtime calls `log` with the message, level, cause, fiber, and timestamp
+ * for each log event. Use `Logger.layer` to install one or more loggers for an
+ * effect.
+ *
  * **Example** (Creating custom loggers)
  *
  * ```ts
@@ -158,6 +165,11 @@ export interface Logger<in Message, out Output> extends Pipeable {
 }
 
 /**
+ * Information supplied to a `Logger` for a single log event.
+ *
+ * **Details**
+ * Includes the logged message, log level, cause, current fiber, and timestamp.
+ *
  * **Example** (Accessing logger options)
  *
  * ```ts
@@ -214,6 +226,13 @@ export interface Options<out Message> {
 export const isLogger = (u: unknown): u is Logger<unknown, unknown> => Predicate.hasProperty(u, TypeId)
 
 /**
+ * Context reference containing the active loggers for the current fiber.
+ *
+ * **Details**
+ * By default this set includes the default logger and the tracer logger.
+ * Providing `Logger.layer` replaces or merges with this set depending on its
+ * options.
+ *
  * **Example** (Accessing current loggers)
  *
  * ```ts
@@ -241,6 +260,9 @@ export const isLogger = (u: unknown): u is Logger<unknown, unknown> => Predicate
 export const CurrentLoggers: Context.Reference<ReadonlySet<Logger<unknown, any>>> = effect.CurrentLoggers
 
 /**
+ * Context reference that controls whether console-style loggers write to
+ * `console.error` instead of `console.log`.
+ *
  * @category references
  * @since 4.0.0
  */
@@ -763,13 +785,12 @@ export const formatStructured: Logger<unknown, {
 export const formatJson = map(formatStructured, Formatter.formatJson)
 
 /**
- * Returns a new `Logger` which will aggregate logs output by the specified
- * `Logger` over the provided `window`. After the `window` has elapsed, the
- * provided `flush` function will be called with the logs aggregated during
- * the last `window`.
+ * Creates, in a scope, a logger that batches the output of another logger.
  *
- * This is useful for implementing efficient batch processing of logs, such as
- * writing multiple log entries to a database or file in a single operation.
+ * **Details**
+ * The returned effect starts a scoped background process that periodically
+ * passes buffered outputs to `flush`. When the scope closes, the background
+ * process is interrupted and any remaining buffered entries are flushed.
  *
  * **Example** (Batching logger output)
  *
@@ -1205,7 +1226,12 @@ export const layer = <
   )
 
 /**
- * Create a Logger from another string Logger that writes to the specified file.
+ * Creates, in a scope, a logger that writes string logger output to a file.
+ *
+ * **Details**
+ * The returned effect requires `FileSystem` and `Scope`. The file logger batches
+ * string output, writes each batch to the specified path, and flushes remaining
+ * entries when the scope closes.
  *
  * **Example** (Writing JSON logs to a file)
  *

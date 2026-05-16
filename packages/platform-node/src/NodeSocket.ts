@@ -14,6 +14,9 @@ import * as Socket from "effect/unstable/socket/Socket"
 export * from "@effect/platform-node-shared/NodeSocket"
 
 /**
+ * Provides a `Socket.WebSocketConstructor`, using `globalThis.WebSocket` when
+ * available and falling back to the `ws` package otherwise.
+ *
  * @category layers
  * @since 1.0.0
  */
@@ -27,6 +30,9 @@ export const layerWebSocketConstructor: Layer.Layer<
 })
 
 /**
+ * Provides a `Socket.WebSocketConstructor` backed explicitly by the `ws`
+ * package.
+ *
  * @category layers
  * @since 1.0.0
  */
@@ -37,6 +43,10 @@ export const layerWebSocketConstructorWS: Layer.Layer<
 )
 
 /**
+ * Creates a `Socket.Socket` layer for a WebSocket URL using the Node WebSocket
+ * constructor layer, honoring protocol, open-timeout, and close-code error
+ * options.
+ *
  * @category layers
  * @since 1.0.0
  */

@@ -44,6 +44,8 @@ import * as BunServices from "./BunServices.ts"
 import * as BunStream from "./BunStream.ts"
 
 /**
+ * Bun serve options accepted by the HTTP server, extended with typed route definitions.
+ *
  * @category Options
  * @since 1.0.0
  */
@@ -55,6 +57,8 @@ export type ServeOptions<R extends string> =
   & { readonly routes?: Bun.Serve.Routes<WebSocketContext, R> }
 
 /**
+ * Creates a scoped Bun `HttpServer` from `Bun.serve` options, stopping the server on scope finalization with optional graceful shutdown settings.
+ *
  * @category Constructors
  * @since 1.0.0
  */
@@ -210,6 +214,8 @@ const makeResponse = (
 }
 
 /**
+ * Layer that provides only `HttpServer` by constructing a scoped Bun server from the supplied serve options.
+ *
  * @category Layers
  * @since 1.0.0
  */
@@ -221,6 +227,8 @@ export const layerServer: <R extends string>(
 ) => Layer.Layer<Server.HttpServer> = flow(make, Layer.effect(Server.HttpServer)) as any
 
 /**
+ * Layer that provides Bun HTTP support services: `HttpPlatform`, weak ETag generation, and `BunServices`.
+ *
  * @category Layers
  * @since 1.0.0
  */
@@ -235,6 +243,8 @@ export const layerHttpServices: Layer.Layer<
 )
 
 /**
+ * Layer that provides a Bun `HttpServer` together with the Bun HTTP platform, ETag generator, and Bun services.
+ *
  * @category Layers
  * @since 1.0.0
  */
@@ -251,6 +261,8 @@ export const layer = <R extends string>(
 > => Layer.mergeAll(layerServer(options), layerHttpServices)
 
 /**
+ * Test layer that starts a Bun HTTP server on an ephemeral port and provides the HTTP test client dependencies.
+ *
  * @category Layers
  * @since 1.0.0
  */
@@ -264,6 +276,8 @@ export const layerTest: Layer.Layer<
 )
 
 /**
+ * Creates the Bun HTTP server and support-services layer from configurable serve options.
+ *
  * @category Layers
  * @since 1.0.0
  */

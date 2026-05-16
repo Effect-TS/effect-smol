@@ -21,6 +21,8 @@ import * as Redis from "./Redis.ts"
 const ErrorTypeId = "~effect/persistence/Persistence/PersistenceError" as const
 
 /**
+ * Error raised by persistence and backing-store operations.
+ *
  * @category errors
  * @since 4.0.0
  */
@@ -36,6 +38,9 @@ export class PersistenceError extends Schema.ErrorClass<PersistenceError>(ErrorT
 }
 
 /**
+ * Service for creating scoped stores of persisted `Persistable` request
+ * results.
+ *
  * @category Models
  * @since 4.0.0
  */
@@ -47,6 +52,8 @@ export class Persistence extends Context.Service<Persistence, {
 }>()("effect/persistence/Persistence") {}
 
 /**
+ * Typed store for persisted `Exit` values keyed by `Persistable` requests.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -79,6 +86,8 @@ export interface PersistenceStore {
 }
 
 /**
+ * Service for creating raw backing stores for persistence store ids.
+ *
  * @category BackingPersistence
  * @since 4.0.0
  */
@@ -87,6 +96,9 @@ export class BackingPersistence extends Context.Service<BackingPersistence, {
 }>()("effect/persistence/BackingPersistence") {}
 
 /**
+ * Raw persistence backing store for JSON-compatible objects with optional
+ * TTLs.
+ *
  * @category BackingPersistence
  * @since 4.0.0
  */
@@ -108,6 +120,11 @@ export interface BackingPersistenceStore {
 }
 
 /**
+ * Provides `Persistence` from `BackingPersistence`.
+ *
+ * The layer serializes and deserializes `Persistable` exits, applies
+ * per-entry TTLs, and skips writes whose TTL is zero or negative.
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -202,6 +219,10 @@ export const layer = Layer.effect(Persistence)(Effect.gen(function*() {
 }))
 
 /**
+ * Provides an in-memory `BackingPersistence` grouped by store id.
+ *
+ * Entries are process-local and expire according to their stored TTL.
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -249,6 +270,11 @@ export const layerBackingMemory: Layer.Layer<BackingPersistence> = Layer.sync(Ba
 )
 
 /**
+ * Provides SQL-backed persistence using one table per store id.
+ *
+ * Each table is created if needed and stores JSON-encoded values with optional
+ * expiration timestamps.
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -457,6 +483,11 @@ export const layerBackingSqlMultiTable: Layer.Layer<
 }))
 
 /**
+ * Provides SQL-backed persistence using a shared `effect_persistence` table.
+ *
+ * Rows are partitioned by `store_id` and store JSON-encoded values with
+ * optional expiration timestamps.
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -695,6 +726,11 @@ export const layerBackingSql: Layer.Layer<
 }))
 
 /**
+ * Provides Redis-backed persistence.
+ *
+ * Each store id is used as a key prefix, values are JSON-encoded, and finite
+ * TTLs are stored with Redis expiration.
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -849,6 +885,11 @@ end
 )
 
 /**
+ * Provides `BackingPersistence` using a `KeyValueStore`.
+ *
+ * Each store id becomes a key prefix, and values are stored as JSON with
+ * optional expiration timestamps.
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -945,6 +986,8 @@ export const layerBackingKvs: Layer.Layer<
 }))
 
 /**
+ * Provides `Persistence` backed by the current `KeyValueStore`.
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -953,6 +996,8 @@ export const layerKvs: Layer.Layer<Persistence, never, KeyValueStore.KeyValueSto
 )
 
 /**
+ * Provides `Persistence` backed by process-local in-memory storage.
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -961,6 +1006,8 @@ export const layerMemory: Layer.Layer<Persistence> = layer.pipe(
 )
 
 /**
+ * Provides `Persistence` backed by the current `Redis` service.
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -969,6 +1016,8 @@ export const layerRedis: Layer.Layer<Persistence, never, Redis.Redis> = layer.pi
 )
 
 /**
+ * Provides `Persistence` backed by SQL with one table per store id.
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -977,6 +1026,8 @@ export const layerSqlMultiTable: Layer.Layer<Persistence, never, SqlClient.SqlCl
 )
 
 /**
+ * Provides `Persistence` backed by SQL using a shared persistence table.
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -985,6 +1036,11 @@ export const layerSql: Layer.Layer<Persistence, never, SqlClient.SqlClient> = la
 )
 
 /**
+ * Converts a TTL to an absolute expiration timestamp in milliseconds.
+ *
+ * Returns `null` for no TTL and uses `clock.currentTimeMillisUnsafe`, so it is
+ * intended for backing-store internals.
+ *
  * @since 4.0.0
  */
 export const unsafeTtlToExpires = (clock: Clock.Clock, ttl: Duration.Duration | undefined): number | null =>

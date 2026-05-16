@@ -11,6 +11,10 @@ import * as Sink from "effect/Sink"
 import type { Writable } from "node:stream"
 
 /**
+ * Creates a `Sink` that writes chunks to a Node writable stream, respecting
+ * backpressure, mapping writable errors with `onError`, and ending the stream
+ * on completion unless `endOnDone` is `false`.
+ *
  * @category constructors
  * @since 1.0.0
  */
@@ -25,6 +29,10 @@ export const fromWritable = <E, A = Uint8Array | string>(
   Sink.fromChannel(Channel.mapDone(fromWritableChannel<never, E, A>(options), (_) => [_]))
 
 /**
+ * Creates a `Channel` that pulls chunks from upstream and writes them to a
+ * Node writable stream, respecting backpressure and optionally ending the
+ * writable when upstream is done.
+ *
  * @category constructors
  * @since 1.0.0
  */
@@ -42,6 +50,10 @@ export const fromWritableChannel = <IE, E, A = Uint8Array | string>(
   })
 
 /**
+ * Repeatedly pulls non-empty chunks and writes them to a Node writable stream,
+ * waiting for `drain` when needed, failing on writable errors, and ending the
+ * writable on upstream completion unless disabled.
+ *
  * @since 1.0.0
  */
 export const pullIntoWritable = <A, IE, E>(options: {

@@ -13,6 +13,10 @@ import type * as Http from "node:http"
 import * as NodeStream from "./NodeStream.ts"
 
 /**
+ * Base adapter from Node `IncomingMessage` to Effect HTTP incoming messages,
+ * exposing headers, remote address, stream access, and cached text, JSON, URL
+ * parameter, and array-buffer body decoders with caller-provided error mapping.
+ *
  * @category Constructors
  * @since 1.0.0
  */

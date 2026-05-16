@@ -11,18 +11,25 @@ import * as Schema from "../../Schema.ts"
 import * as Redis from "./Redis.ts"
 
 /**
+ * Runtime type identifier for `RateLimiter` values.
+ *
  * @category Type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/persistence/RateLimiter"
 
 /**
+ * Type-level identifier used to brand `RateLimiter` values.
+ *
  * @category Type IDs
  * @since 4.0.0
  */
 export type TypeId = "~effect/persistence/RateLimiter"
 
 /**
+ * Service for consuming rate-limit tokens for a key using fixed-window or
+ * token-bucket algorithms.
+ *
  * @category Models
  * @since 4.0.0
  */
@@ -40,12 +47,19 @@ export interface RateLimiter {
 }
 
 /**
+ * Context service tag for the `RateLimiter` service.
+ *
  * @category Tags
  * @since 4.0.0
  */
 export const RateLimiter: Context.Service<RateLimiter, RateLimiter> = Context.Service<RateLimiter>(TypeId)
 
 /**
+ * Creates a `RateLimiter` from the current `RateLimiterStore`.
+ *
+ * The limiter supports fixed-window and token-bucket algorithms and either
+ * fails or returns a delay when a limit is exceeded.
+ *
  * @category Constructors
  * @since 4.0.0
  */
@@ -182,6 +196,8 @@ export const make: Effect.Effect<
 })
 
 /**
+ * Provides `RateLimiter` using the current `RateLimiterStore`.
+ *
  * @category Layers
  * @since 4.0.0
  */
@@ -289,18 +305,26 @@ export const makeSleep: Effect.Effect<
 )
 
 /**
+ * Runtime type identifier for `RateLimiterError`.
+ *
  * @category Errors
  * @since 4.0.0
  */
 export const ErrorTypeId: ErrorTypeId = "~@effect/experimental/RateLimiter/RateLimiterError"
 
 /**
+ * Type-level identifier used to brand `RateLimiterError` values.
+ *
  * @category Errors
  * @since 4.0.0
  */
 export type ErrorTypeId = "~@effect/experimental/RateLimiter/RateLimiterError"
 
 /**
+ * Error reason for a rate-limit check that exceeded the configured limit.
+ *
+ * Includes the affected key, limit, remaining token count, and retry delay.
+ *
  * @category Errors
  * @since 4.0.0
  */
@@ -322,6 +346,8 @@ export class RateLimitExceeded extends Schema.ErrorClass<RateLimitExceeded>(
 }
 
 /**
+ * Error reason for failures in the backing `RateLimiterStore`.
+ *
  * @category Errors
  * @since 4.0.0
  */
@@ -334,12 +360,16 @@ export class RateLimitStoreError extends Schema.ErrorClass<RateLimitStoreError>(
 }) {}
 
 /**
+ * Union of reasons carried by `RateLimiterError`.
+ *
  * @category Errors
  * @since 4.0.0
  */
 export type RateLimiterErrorReason = RateLimitExceeded | RateLimitStoreError
 
 /**
+ * Schema for all reasons that can be carried by `RateLimiterError`.
+ *
  * @category Errors
  * @since 4.0.0
  */
@@ -349,6 +379,9 @@ export const RateLimiterErrorReason: Schema.Union<[
 ]> = Schema.Union([RateLimitExceeded, RateLimitStoreError])
 
 /**
+ * Error raised by rate limiter operations, wrapping a concrete failure
+ * `reason`.
+ *
  * @category Errors
  * @since 4.0.0
  */
@@ -381,6 +414,8 @@ export class RateLimiterError extends Schema.ErrorClass<RateLimiterError>(ErrorT
 }
 
 /**
+ * Metadata returned after consuming tokens from a rate limiter.
+ *
  * @category Models
  * @since 4.0.0
  */
@@ -410,6 +445,8 @@ export interface ConsumeResult {
 }
 
 /**
+ * Low-level backing store for fixed-window counters and token-bucket state.
+ *
  * @category RateLimiterStore
  * @since 4.0.0
  */
@@ -454,6 +491,8 @@ export class RateLimiterStore extends Context.Service<
 >()("effect/persistence/RateLimiter/RateLimiterStore") {}
 
 /**
+ * Provides a process-local in-memory `RateLimiterStore`.
+ *
  * @category RateLimiterStore
  * @since 4.0.0
  */
@@ -511,6 +550,9 @@ export const layerStoreMemory: Layer.Layer<
 })
 
 /**
+ * Creates a Redis-backed `RateLimiterStore` using Lua scripts and the
+ * configured key prefix.
+ *
  * @category RateLimiterStore
  * @since 4.0.0
  */
@@ -646,6 +688,8 @@ return next
 ).withReturnType<number>()
 
 /**
+ * Provides a Redis-backed `RateLimiterStore` using `makeStoreRedis`.
+ *
  * @category Layers
  * @since 4.0.0
  */
@@ -658,6 +702,9 @@ export const layerStoreRedis: (
 > = flow(makeStoreRedis, Layer.effect(RateLimiterStore))
 
 /**
+ * Provides a Redis-backed `RateLimiterStore` from wrapped configuration
+ * options.
+ *
  * @category Layers
  * @since 4.0.0
  */

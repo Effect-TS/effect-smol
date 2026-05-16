@@ -72,6 +72,8 @@ export interface PostProcessor {
 }
 
 /**
+ * Context service tag for linting and formatting generated code.
+ *
  * @category tags
  * @since 1.0.0
  */

@@ -49,6 +49,8 @@ export class EntityAddress extends Schema.Class<EntityAddress>(TypeId)({
   }
 }
 /**
+ * Constructs an `EntityAddress` from a shard ID, entity type, and entity ID.
+ *
  * @category constructors
  * @since 4.0.0
  */

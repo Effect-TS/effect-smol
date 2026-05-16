@@ -9,6 +9,9 @@ import type * as RpcGroup from "./RpcGroup.ts"
 import * as RpcServer from "./RpcServer.ts"
 
 /**
+ * Creates an in-memory RPC client for a group, backed by the group's handlers
+ * from the environment and using the no-serialization test transport.
+ *
  * @category constructors
  * @since 4.0.0
  */

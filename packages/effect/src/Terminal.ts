@@ -47,6 +47,9 @@ export interface Terminal {
 }
 
 /**
+ * Keyboard key metadata for terminal input, including the key name and
+ * modifier state.
+ *
  * @category Models
  * @since 4.0.0
  */
@@ -70,6 +73,9 @@ export interface Key {
 }
 
 /**
+ * A terminal input event containing an optional raw character and the parsed
+ * key that was pressed.
+ *
  * @category Models
  * @since 4.0.0
  */
@@ -103,12 +109,16 @@ export class QuitError extends Schema.ErrorClass<QuitError>("QuitError")({
 }
 
 /**
+ * Returns `true` if the provided value is a `Terminal.QuitError`.
+ *
  * @category QuitError
  * @since 4.0.0
  */
 export const isQuitError = (u: unknown): u is QuitError => Predicate.hasProperty(u, QuitErrorTypeId)
 
 /**
+ * Context service tag for accessing a `Terminal` implementation.
+ *
  * @category Services
  * @since 4.0.0
  */

@@ -205,7 +205,11 @@ export const redacted = (name: string): Argument<Redacted.Redacted<string>> => P
 export const fileText = (name: string): Argument<string> => Param.fileText(Param.argumentKind, name)
 
 /**
- * Creates a positional argument that reads and validates file content using a schema.
+ * Creates a positional argument that reads a file and parses its content.
+ *
+ * The parser is chosen from the explicit `format` option or, when omitted, the
+ * file extension. The parsed value is `unknown`; use `fileSchema` when the
+ * parsed content should also be decoded with a Schema.
  *
  * **Example** (Parsing file content)
  *

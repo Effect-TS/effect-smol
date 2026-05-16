@@ -6,6 +6,9 @@ import type * as Layer from "effect/Layer"
 import type { Stdio } from "effect/Stdio"
 
 /**
+ * Provides the `Stdio` service backed by the current process arguments,
+ * stdin, stdout, and stderr streams.
+ *
  * @category layer
  * @since 1.0.0
  */

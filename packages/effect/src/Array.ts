@@ -1541,8 +1541,12 @@ export const findFirst: {
 } = moduleIterable.findFirst
 
 /**
- * Returns a tuple `[element, index]` of the first element matching a
- * predicate, wrapped in an `Option`.
+ * Returns the first selected value together with its index, wrapped in an
+ * `Option`.
+ *
+ * Accepts a predicate, a refinement, or a function returning `Option`. For an
+ * `Option`-returning function, returns `[mappedValue, index]` for the first
+ * `Some`, or `Option.none()` if no element is selected.
  *
  * **Example** (Finding element with its index)
  *
@@ -1675,9 +1679,10 @@ export const insertAt: {
 })
 
 /**
- * Replaces the element at the specified index with a new value, returning a new
- * array, wrapped in an `Option`.
+ * Replaces the element at the specified index with a new value, returning the
+ * updated array in `Option.some`.
  *
+ * - Returns `Option.none()` when the index is out of bounds.
  * - Does not mutate the input.
  *
  * **Example** (Replacing an element)
@@ -1709,9 +1714,10 @@ export const replace: {
 )
 
 /**
- * Applies a function to the element at the specified index, returning a new
- * array, wrapped in an `Option`.
+ * Applies a function to the element at the specified index, returning the
+ * updated array in `Option.some`.
  *
+ * - Returns `Option.none()` when the index is out of bounds.
  * - Does not mutate the input.
  *
  * **Example** (Modifying an element)
@@ -2173,11 +2179,12 @@ export const setLastNonEmpty: {
 )
 
 /**
- * Rotates an array by `n` steps. Positive `n` rotates left (front elements
- * move to the back).
+ * Rotates an array by `n` steps. Positive `n` rotates right; negative `n`
+ * rotates left.
  *
+ * - `n` is rounded to the nearest integer before rotating.
  * - Preserves `NonEmptyArray` in the return type.
- * - Returns a copy for empty arrays or `n === 0`.
+ * - Returns a copy for empty arrays or when the normalized rotation is `0`.
  *
  * **Example** (Rotating elements)
  *
@@ -3364,9 +3371,10 @@ export const partition: {
 )
 
 /**
- * Separates an iterable of `Result`s into two arrays: failures and successes.
+ * Separates an iterable of `Result`s into failure values and success values.
  *
- * - Equivalent to `partitionMap(identity)`.
+ * - Returns `[failures, successes]`.
+ * - Equivalent to `partition(identity)`.
  *
  * **Example** (Separating Results)
  *

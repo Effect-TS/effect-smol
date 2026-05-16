@@ -7,6 +7,9 @@ import type { Scope } from "../../Scope.ts"
 import { Sharding } from "./Sharding.ts"
 
 /**
+ * Creates a layer that registers a singleton effect with `Sharding` under the
+ * specified name and optional shard group.
+ *
  * @category constructors
  * @since 4.0.0
  */

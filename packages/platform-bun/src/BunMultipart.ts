@@ -10,6 +10,8 @@ import * as Multipart from "effect/unstable/http/Multipart"
 import * as BunStream from "./BunStream.ts"
 
 /**
+ * Parses a Bun `Request` body as multipart data and returns a stream of multipart parts.
+ *
  * @category Constructors
  * @since 1.0.0
  */
@@ -29,6 +31,8 @@ const emptyReadbleStream = new ReadableStream({
 })
 
 /**
+ * Parses and persists multipart data from a Bun `Request`, requiring file-system, path, and scope services.
+ *
  * @category Constructors
  * @since 1.0.0
  */

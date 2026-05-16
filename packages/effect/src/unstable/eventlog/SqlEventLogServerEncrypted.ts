@@ -15,6 +15,12 @@ import * as EventLogEncryption from "./EventLogEncryption.ts"
 import * as EventLogServerEncrypted from "./EventLogServerEncrypted.ts"
 
 /**
+ * Creates encrypted event-log server `Storage` backed by SQL.
+ *
+ * It persists the server remote id, session authentication bindings, and encrypted
+ * entries in dialect-specific tables, creating per-identity/store entry tables as
+ * needed.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -287,6 +293,8 @@ const decodeSessionAuthBindings = (
 ): Effect.Effect<ReadonlyArray<SessionAuthBindingSql>, Schema.SchemaError> => decodeSessionAuthBindingRows(rows)
 
 /**
+ * Provides encrypted server `Storage` using the SQL-backed implementation.
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -301,6 +309,9 @@ export const layerStorage = (options?: {
 > => Layer.effect(EventLogServerEncrypted.Storage)(makeStorage(options))
 
 /**
+ * Provides SQL-backed encrypted server `Storage` and supplies the default Web
+ * Crypto `EventLogEncryption` layer.
+ *
  * @category layers
  * @since 4.0.0
  */

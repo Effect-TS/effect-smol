@@ -50,6 +50,12 @@ import { OtlpSerialization } from "./OtlpSerialization.ts"
 export type AggregationTemporality = "cumulative" | "delta"
 
 /**
+ * Starts a scoped OTLP metrics exporter.
+ *
+ * The exporter snapshots registered Effect metrics on the configured interval,
+ * serializes them with the selected aggregation temporality, and flushes during
+ * scope finalization up to `shutdownTimeout`.
+ *
  * @category Constructors
  * @since 4.0.0
  */
@@ -430,6 +436,8 @@ export const make: (options: {
 })
 
 /**
+ * Layer that starts the OTLP metrics exporter created by `make`.
+ *
  * @category Layers
  * @since 4.0.0
  */
@@ -447,6 +455,8 @@ export const layer = (options: {
 }): Layer.Layer<never, never, HttpClient.HttpClient | OtlpSerialization> => Layer.effectDiscard(make(options))
 
 /**
+ * OTLP metrics payload serialized by `OtlpMetrics`.
+ *
  * @since 4.0.0
  */
 export interface MetricsData {

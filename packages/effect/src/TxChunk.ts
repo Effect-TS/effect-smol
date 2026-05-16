@@ -599,11 +599,12 @@ export const slice: {
 )
 
 /**
- * Maps each element of the `TxChunk` using the provided function.
- * Note: This only works when the mapped type B is assignable to A.
+ * Maps each element of the `TxChunk` using a function that returns the same
+ * element type.
  *
- * **Mutation behavior**: This function mutates the original TxChunk by transforming
- * each element in place. It does not return a new TxChunk reference.
+ * **Mutation behavior**: This function mutates the original `TxChunk` by
+ * transforming each element in place. It does not return a new `TxChunk`
+ * reference.
  *
  * **Example** (Mapping elements)
  *

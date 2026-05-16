@@ -61,6 +61,10 @@ export interface FiberMap<in out K, out A = unknown, out E = unknown>
 }
 
 /**
+ * Returns `true` if a value is a `FiberMap`.
+ *
+ * This is a type guard that checks for the `FiberMap` runtime marker.
+ *
  * **Example** (Checking if a value is a FiberMap)
  *
  * ```ts
@@ -155,7 +159,12 @@ export const make = <K, A = unknown, E = unknown>(): Effect.Effect<FiberMap<K, A
   )
 
 /**
- * Create an Effect run function that is backed by a FiberMap.
+ * Creates a scoped run function that forks effects into a new `FiberMap`.
+ *
+ * Each call stores the forked fiber under the supplied key and returns that
+ * fiber. If the key already has a fiber, the previous fiber is interrupted
+ * unless `onlyIfMissing` is set. All managed fibers are interrupted when the
+ * map's scope closes.
  *
  * **Example** (Creating a scoped runtime)
  *
@@ -199,8 +208,13 @@ export const makeRuntime = <R, K, E = unknown, A = unknown>(): Effect.Effect<
   )
 
 /**
- * Create an Effect run function that is backed by a FiberMap.
- * Returns a Promise instead of a Fiber for more convenient use with async/await.
+ * Creates a scoped run function that forks effects into a new `FiberMap` and
+ * returns a `Promise` for each effect result.
+ *
+ * Each call stores the fiber under the supplied key, interrupting any previous
+ * fiber for that key unless `onlyIfMissing` is set. The returned Promise
+ * resolves with the effect's success value or rejects with the squashed failure
+ * cause.
  *
  * **Example** (Creating a promise runtime)
  *
@@ -250,8 +264,12 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
 ))
 
 /**
- * Add a fiber to the FiberMap. When the fiber completes, it will be removed from the FiberMap.
- * If the key already exists in the FiberMap, the previous fiber will be interrupted.
+ * Adds a fiber to the `FiberMap` under a key using a synchronous, unsafe
+ * mutation.
+ *
+ * When the fiber completes, it is removed from the map. If the key already has
+ * a fiber, that previous fiber is interrupted unless `onlyIfMissing` is set;
+ * in that case the new fiber is interrupted and the existing entry is kept.
  *
  * **Example** (Adding a fiber unsafely)
  *
@@ -343,8 +361,12 @@ export const setUnsafe: {
 })
 
 /**
- * Add a fiber to the FiberMap. When the fiber completes, it will be removed from the FiberMap.
- * If the key already exists in the FiberMap, the previous fiber will be interrupted.
+ * Adds a fiber to the `FiberMap` under a key.
+ *
+ * When the fiber completes, it is removed from the map. If the key already has
+ * a fiber, that previous fiber is interrupted unless `onlyIfMissing` is set;
+ * in that case the new fiber is interrupted and the existing entry is kept.
+ *
  * This is the Effect-wrapped version of `setUnsafe`.
  *
  * **Example** (Adding a fiber)
@@ -644,8 +666,10 @@ const constInterruptedFiber = (function() {
 })()
 
 /**
- * Run an Effect and add the forked fiber to the FiberMap.
- * When the fiber completes, it will be removed from the FiberMap.
+ * Forks an Effect and stores the resulting fiber in the `FiberMap` under a key.
+ *
+ * When the fiber completes, it is removed from the map. If the key already has
+ * a fiber, the previous fiber is interrupted unless `onlyIfMissing` is set.
  *
  * **Example** (Forking effects into a map)
  *
@@ -724,7 +748,11 @@ const runImpl = <K, A, E, R, XE extends E, XA extends A>(
   })
 
 /**
- * Capture a Runtime and use it to fork Effect's, adding the forked fibers to the FiberMap.
+ * Captures the current runtime and returns a function for forking effects into
+ * an existing `FiberMap`.
+ *
+ * Each call stores the forked fiber under the supplied key. If that key already
+ * has a fiber, the previous fiber is interrupted unless `onlyIfMissing` is set.
  *
  * **Example** (Capturing a runtime)
  *
@@ -796,8 +824,13 @@ export const runtime: <K, A, E>(
   )
 
 /**
- * Capture a Runtime and use it to fork Effect's, adding the forked fibers to the FiberMap.
- * Returns a Promise instead of a Fiber for convenience.
+ * Captures the current runtime and returns a function for running effects in
+ * an existing `FiberMap` as Promises.
+ *
+ * Each call stores the forked fiber under the supplied key, interrupting any
+ * previous fiber for that key unless `onlyIfMissing` is set. The Promise
+ * resolves with the effect's success value or rejects with the squashed failure
+ * cause.
  *
  * **Example** (Running effects as promises)
  *
@@ -887,8 +920,12 @@ export const size = <K, A, E>(self: FiberMap<K, A, E>): Effect.Effect<number> =>
   Effect.sync(() => self.state._tag === "Closed" ? 0 : MutableHashMap.size(self.state.backing))
 
 /**
- * Join all fibers in the FiberMap. If any of the Fiber's in the map terminate with a failure,
- * the returned Effect will terminate with the first failure that occurred.
+ * Waits for the `FiberMap` to fail or close.
+ *
+ * The returned Effect fails with the first managed fiber failure that is not
+ * ignored by the map's interruption rules. Normal successful completion
+ * removes fibers from the map; use `awaitEmpty` to wait until the map has no
+ * fibers.
  *
  * **Example** (Joining failing fibers)
  *

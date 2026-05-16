@@ -11,6 +11,8 @@ import * as Scope from "effect/Scope"
 import * as Redis from "effect/unstable/persistence/Redis"
 
 /**
+ * Service tag for Bun Redis integration, exposing the raw `RedisClient` and a `use` helper that maps client promise failures to `RedisError`.
+ *
  * @category Service
  * @since 1.0.0
  */
@@ -53,6 +55,8 @@ const make = Effect.fnUntraced(function*(
 })
 
 /**
+ * Creates scoped Bun Redis layers for `Redis.Redis` and `BunRedis`, closing the underlying client when the scope finalizes.
+ *
  * @category Layers
  * @since 1.0.0
  */
@@ -61,6 +65,8 @@ export const layer = (
 ): Layer.Layer<Redis.Redis | BunRedis> => Layer.effectContext(make(options))
 
 /**
+ * Creates scoped Bun Redis layers from configurable Redis options, closing the underlying client when the scope finalizes.
+ *
  * @category Layers
  * @since 1.0.0
  */

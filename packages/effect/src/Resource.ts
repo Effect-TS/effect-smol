@@ -28,6 +28,8 @@ export interface Resource<in out A, in out E = never> extends Pipeable {
 }
 
 /**
+ * Returns `true` if the specified value is a `Resource`.
+ *
  * @category guards
  * @since 2.0.0
  */
@@ -101,7 +103,11 @@ export const get = <A, E>(self: Resource<A, E>): Effect.Effect<A, E> =>
   Effect.flatMap(ScopedRef.get(self.scopedRef), identity)
 
 /**
- * Refreshes this resource.
+ * Re-runs this resource's acquisition effect and updates the current value.
+ *
+ * Refreshing replaces the value stored in the resource's scoped reference and
+ * releases resources associated with the previous value. If acquisition fails,
+ * the returned effect fails with the acquisition error.
  *
  * @category utils
  * @since 2.0.0

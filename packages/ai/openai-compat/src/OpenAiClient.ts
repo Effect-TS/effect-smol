@@ -20,6 +20,11 @@ import * as Errors from "./internal/errors.ts"
 import { OpenAiConfig } from "./OpenAiConfig.ts"
 
 /**
+ * Effect service interface for OpenAI-compatible chat completions and embeddings.
+ *
+ * **Details**
+ * Exposes the configured HTTP client plus helpers for non-streaming chat completions, streaming chat completions, and embeddings. Transport and schema decoding failures are mapped to `AiError`.
+ *
  * @category models
  * @since 1.0.0
  */
@@ -718,6 +723,14 @@ export type ResponseStreamEvent =
   | UnknownResponseStreamEvent
 
 /**
+ * Represents one embedding item returned by an OpenAI-compatible embeddings API.
+ *
+ * **Details**
+ *
+ * The embedding can be returned either as a numeric vector or as a base64-encoded
+ * string. The `index` field identifies the input item that produced this
+ * embedding.
+ *
  * @since 1.0.0
  */
 export type Embedding = {

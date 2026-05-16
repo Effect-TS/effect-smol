@@ -8,28 +8,35 @@ import type * as Schema from "../../Schema.ts"
 import * as Event from "./Event.ts"
 
 /**
+ * Unique type identifier used to mark event log event groups.
+ *
  * @category type ids
  * @since 4.0.0
  */
 export type TypeId = "~effect/eventlog/EventGroup"
 
 /**
+ * Runtime type identifier used to mark event log event groups.
+ *
  * @category type ids
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/eventlog/EventGroup"
 
 /**
+ * Returns `true` when a value is an event log event group.
+ *
  * @category guards
  * @since 4.0.0
  */
 export const isEventGroup = (u: unknown): u is Any => Predicate.hasProperty(u, TypeId)
 
 /**
- * An `EventGroup` is a collection of `Event`s. You can use an `EventGroup` to
- * represent a portion of your domain.
+ * Typed collection of event definitions that represents a portion of an event log
+ * domain.
  *
- * The events can be implemented later using the `EventLogBuilder.group` api.
+ * Build groups from `empty.add(...)`, then provide implementations for the events
+ * with `EventLog.group`.
  *
  * @category models
  * @since 4.0.0
@@ -63,6 +70,8 @@ export interface EventGroup<
 }
 
 /**
+ * Type-erased marker for an event log event group.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -71,12 +80,16 @@ export interface Any {
 }
 
 /**
+ * Type-erased event group with its events record available structurally.
+ *
  * @category models
  * @since 4.0.0
  */
 export type AnyWithProps = EventGroup<Event.Any>
 
 /**
+ * Derives the handler service markers required for all events in an event group.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -84,6 +97,8 @@ export type ToService<A> = A extends EventGroup<infer _Events> ? Event.ToService
   : never
 
 /**
+ * Extracts the union of event definitions contained in an event group.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -91,12 +106,16 @@ export type Events<Group> = Group extends EventGroup<infer _Events> ? _Events
   : never
 
 /**
+ * Client-side schema services required by all events in an event group.
+ *
  * @category models
  * @since 4.0.0
  */
 export type ServicesClient<Group> = Event.ServicesClient<Events<Group>>
 
 /**
+ * Server-side schema services required by all events in an event group.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -151,10 +170,9 @@ const makeProto = <
 }
 
 /**
- * An `EventGroup` is a collection of `Event`s. You can use an `EventGroup` to
- * represent a portion of your domain.
+ * Empty event group used as the starting point for defining a group.
  *
- * The events can be implemented later using the `EventLog.group` api.
+ * Call `.add(...)` to add event definitions and build a typed `EventGroup`.
  *
  * @category constructors
  * @since 4.0.0

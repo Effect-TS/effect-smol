@@ -7,6 +7,8 @@ import { dual } from "effect/Function"
 import type { HttpClient } from "effect/unstable/http/HttpClient"
 
 /**
+ * Service tag for Anthropic client configuration overrides, such as transformations applied to the generated HTTP client.
+ *
  * @category services
  * @since 1.0.0
  */
@@ -24,10 +26,17 @@ export class AnthropicConfig extends Context.Service<
 }
 
 /**
+ * Namespace containing types associated with the `AnthropicConfig` service.
+ *
  * @since 1.0.0
  */
 export declare namespace AnthropicConfig {
   /**
+   * Configuration provided through `AnthropicConfig`.
+   *
+   * **Details**
+   * Use `transformClient` to wrap or replace the `HttpClient` used by generated Anthropic API requests.
+   *
    * @category models
    * @since 1.0.0
    */
@@ -37,6 +46,8 @@ export declare namespace AnthropicConfig {
 }
 
 /**
+ * Runs an effect with an `AnthropicConfig` override that transforms the underlying `HttpClient` used by generated Anthropic requests.
+ *
  * @category configuration
  * @since 1.0.0
  */

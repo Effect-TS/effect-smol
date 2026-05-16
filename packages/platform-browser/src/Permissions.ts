@@ -33,6 +33,8 @@ export interface Permissions {
 }
 
 /**
+ * Error reason for an `InvalidStateError` raised by the browser Permissions API.
+ *
  * @category errors
  * @since 1.0.0
  */
@@ -45,6 +47,8 @@ export class PermissionsInvalidStateError extends Data.TaggedError("InvalidState
 }
 
 /**
+ * Error reason for a `TypeError` raised by the browser Permissions API.
+ *
  * @category errors
  * @since 1.0.0
  */
@@ -57,12 +61,16 @@ export class PermissionsTypeError extends Data.TaggedError("TypeError")<{
 }
 
 /**
+ * Union of browser Permissions API error reasons represented by the service.
+ *
  * @category errors
  * @since 1.0.0
  */
 export type PermissionsErrorReason = PermissionsInvalidStateError | PermissionsTypeError
 
 /**
+ * Tagged error wrapping a browser Permissions API failure reason.
+ *
  * @category errors
  * @since 1.0.0
  */
@@ -84,6 +92,8 @@ export class PermissionsError extends Data.TaggedError("PermissionsError")<{
 }
 
 /**
+ * Service tag for the browser `Permissions` service.
+ *
  * @category Service
  * @since 1.0.0
  */

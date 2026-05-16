@@ -36,6 +36,8 @@ export {
 }
 
 /**
+ * Bun HTTP server layer for cluster runners, using `ShardingConfig.runnerListenAddress` or `runnerAddress` as the listen address.
+ *
  * @category Layers
  * @since 1.0.0
  */
@@ -56,6 +58,8 @@ export const layerHttpServer: Layer.Layer<
 }).pipe(Layer.unwrap)
 
 /**
+ * Creates Bun cluster layers for HTTP or WebSocket transport, configuring serialization, storage, runner health, and optional client-only mode.
+ *
  * @category Layers
  * @since 1.0.0
  */

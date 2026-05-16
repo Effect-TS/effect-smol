@@ -279,7 +279,7 @@ export const make: <Entries extends ReadonlyArray<readonly [any, any]>>(
 export const fromIterable: <K, V>(entries: Iterable<readonly [K, V]>) => HashMap<K, V> = internal.fromIterable
 
 /**
- * Checks if the `HashMap` contains any entries.
+ * Checks whether the `HashMap` contains no entries.
  *
  * **Example** (Checking for empty HashMaps)
  *
@@ -668,7 +668,10 @@ export const toEntries = <K, V>(self: HashMap<K, V>): Array<[K, V]> => Array.fro
 export const size: <K, V>(self: HashMap<K, V>) => number = internal.size
 
 /**
- * Marks the `HashMap` as mutable for performance optimization during batch operations.
+ * Creates a transient mutable `HashMap` for efficient batched updates.
+ *
+ * Apply updates to the returned map, then call `endMutation` to finish the
+ * mutation window and use the result as an immutable `HashMap`.
  *
  * **Example** (Beginning batch mutation)
  *
@@ -728,7 +731,11 @@ export const beginMutation: <K, V>(self: HashMap<K, V>) => HashMap<K, V> = inter
 export const endMutation: <K, V>(self: HashMap<K, V>) => HashMap<K, V> = internal.endMutation
 
 /**
- * Mutates the `HashMap` within the context of the provided function.
+ * Runs a batch of updates against a transient mutable copy of the `HashMap`
+ * and returns the finalized immutable result.
+ *
+ * The callback may call mutation-oriented helpers such as `set` and `remove`
+ * on the transient map.
  *
  * **Example** (Applying batched mutations)
  *
@@ -752,12 +759,11 @@ export const mutate: {
 } = internal.mutate
 
 /**
- * Set or remove the specified key in the `HashMap` using the specified
- * update function. The value of the specified key will be computed using the
- * provided hash.
+ * Sets or removes the specified key using an update function.
  *
- * The update function will be invoked with the current value of the key if it
- * exists, or `None` if no such value exists.
+ * The update function receives `Some(value)` when the key exists or `None`
+ * when it does not. Returning `Some(newValue)` stores the value, and returning
+ * `None` removes the key or leaves it absent.
  *
  * **Example** (Updating values with Options)
  *
@@ -784,14 +790,12 @@ export const modifyAt: {
 } = internal.modifyAt
 
 /**
- * Alter the value of the specified key in the `HashMap` using the specified
- * update function. The value of the specified key will be computed using the
- * provided hash.
+ * Sets or removes the specified key using a precomputed hash and an update
+ * function.
  *
- * The update function will be invoked with the current value of the key if it
- * exists, or `None` if no such value exists.
- *
- * This function will always either update or insert a value into the `HashMap`.
+ * The update function receives `Some(value)` when the key exists or `None`
+ * when it does not. Returning `Some(newValue)` stores the value, and returning
+ * `None` removes the key or leaves it absent.
  *
  * **Example** (Updating values with a hash)
  *
@@ -864,7 +868,10 @@ export const modify: {
 } = internal.modify
 
 /**
- * Performs a union of this `HashMap` and that `HashMap`.
+ * Combines two `HashMap`s into one.
+ *
+ * Entries from `that` are inserted into `self`; when both maps contain an
+ * equal key, the value from `that` replaces the value from `self`.
  *
  * **Example** (Combining HashMaps)
  *

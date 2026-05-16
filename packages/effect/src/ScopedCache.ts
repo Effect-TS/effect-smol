@@ -21,6 +21,14 @@ import * as Scope from "./Scope.ts"
 const TypeId = "~effect/ScopedCache"
 
 /**
+ * A scoped cache whose values are acquired by a lookup effect and stored in
+ * per-entry scopes.
+ *
+ * Concurrent requests for the same key share the same in-flight lookup.
+ * Entries can expire based on the lookup exit, are evicted when capacity is
+ * exceeded, and release their entry scopes when invalidated, evicted, expired,
+ * or when the cache's owning scope closes.
+ *
  * @category Models
  * @since 4.0.0
  */
@@ -33,6 +41,12 @@ export interface ScopedCache<in out Key, in out A, in out E = never, out R = nev
 }
 
 /**
+ * Represents whether a `ScopedCache` is open or closed.
+ *
+ * `Open` stores cached entries in access order for reuse and eviction.
+ * `Closed` means the owning scope has closed and the cache can no longer
+ * perform lookup operations.
+ *
  * @category Models
  * @since 4.0.0
  */
@@ -44,8 +58,11 @@ export type State<K, A, E> = {
 }
 
 /**
- * Represents a cache entry containing a deferred value and optional expiration time.
- * This is used internally by the cache implementation to track cached values and their lifetimes.
+ * A single scoped cache entry.
+ *
+ * The entry contains the deferred lookup result shared by readers, the scope
+ * that owns resources acquired while computing the value, and an optional
+ * expiration time in milliseconds. Removing the entry closes its scope.
  *
  * @category Models
  * @since 4.0.0
@@ -57,6 +74,15 @@ export interface Entry<A, E> {
 }
 
 /**
+ * Creates a `ScopedCache` from a lookup function, maximum capacity, and a
+ * time-to-live function computed from each lookup exit and key.
+ *
+ * The cache must be constructed in a `Scope`. Each lookup runs in its own entry
+ * scope, and that scope is closed when the entry expires, is invalidated, is
+ * evicted by capacity, or when the cache's owning scope closes.
+ * `requireServicesAt` controls whether lookup services are captured at
+ * construction time or required when lookup operations run.
+ *
  * @category Constructors
  * @since 4.0.0
  */
@@ -103,6 +129,13 @@ export const makeWith = <
   })
 
 /**
+ * Creates a `ScopedCache` with a fixed time-to-live for every lookup result.
+ *
+ * This is the constant-TTL variant of `makeWith`: values are acquired by the
+ * lookup effect in per-entry scopes, capacity can evict older entries, and
+ * entry scopes are closed when entries expire, are invalidated, are evicted, or
+ * when the cache's owning scope closes.
+ *
  * @category Constructors
  * @since 4.0.0
  */
@@ -144,6 +177,13 @@ const Proto = {
 const defaultTimeToLive = <A, E>(_: Exit.Exit<A, E>, _key: unknown): Duration.Duration => Duration.infinity
 
 /**
+ * Gets the value for a key, running the cache lookup when no unexpired entry is
+ * present.
+ *
+ * Concurrent `get` calls for the same key share the same in-flight lookup.
+ * Successful and failed lookup exits are cached according to the configured
+ * TTL. If the cache is closed, the effect is interrupted.
+ *
  * @category Combinators
  * @since 4.0.0
  */
@@ -217,6 +257,12 @@ const checkCapacity = <K, A, E>(
 }
 
 /**
+ * Reads an existing unexpired cache entry without running the lookup function.
+ *
+ * Returns `Option.none` when the key is absent or expired. If an entry exists,
+ * the effect waits for its cached result and returns `Option.some(value)` on
+ * success, or fails with the cached lookup error.
+ *
  * @category Combinators
  * @since 4.0.0
  */
@@ -292,8 +338,11 @@ export const getSuccess: {
 )
 
 /**
- * Sets the value associated with the specified key in the cache. This will
- * overwrite any existing value for that key, skipping the lookup function.
+ * Stores a successful value for a key without running the lookup function.
+ *
+ * This replaces and closes any existing entry scope for the key, applies the
+ * cache's TTL using a successful exit for the value, and may evict older
+ * entries if the cache capacity is exceeded.
  *
  * @category Combinators
  * @since 4.0.0
@@ -348,7 +397,10 @@ export const has: {
 )
 
 /**
- * Invalidates the entry associated with the specified key in the cache.
+ * Removes the entry associated with a key and closes its entry scope.
+ *
+ * If the key is absent, this is a no-op. If the cache is closed, the effect is
+ * interrupted.
  *
  * @category Combinators
  * @since 4.0.0
@@ -462,7 +514,9 @@ export const refresh: {
 )
 
 /**
- * Invalidates all entries in the cache.
+ * Removes every entry from the cache and closes each entry scope.
+ *
+ * If the cache is closed, the effect is interrupted.
  *
  * @category Combinators
  * @since 4.0.0

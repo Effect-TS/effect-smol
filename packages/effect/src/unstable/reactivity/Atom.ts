@@ -33,18 +33,24 @@ import * as Registry from "./AtomRegistry.ts"
 import * as Reactivity from "./Reactivity.ts"
 
 /**
+ * Type-level identifier used to recognize `Atom` values.
+ *
  * @category type ids
  * @since 4.0.0
  */
 export type TypeId = "~effect/reactivity/Atom"
 
 /**
+ * Runtime identifier attached to `Atom` values and used by `isAtom`.
+ *
  * @category type ids
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/reactivity/Atom"
 
 /**
+ * Reactive value read by an `AtomRegistry`, with metadata controlling caching, laziness, refresh behavior, and initial value targeting.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -60,50 +66,68 @@ export interface Atom<A> extends Pipeable, Inspectable.Inspectable {
 }
 
 /**
+ * Returns `true` when a value is an `Atom`.
+ *
  * @category Guards
  * @since 4.0.0
  */
 export const isAtom = (u: unknown): u is Atom<any> => hasProperty(u, TypeId)
 
 /**
+ * Extracts the value type produced by an `Atom`.
+ *
  * @since 4.0.0
  */
 export type Type<T extends Atom<any>> = T extends Atom<infer A> ? A : never
 
 /**
+ * Extracts the success value type from an atom whose value is an `AsyncResult`.
+ *
  * @since 4.0.0
  */
 export type Success<T extends Atom<any>> = T extends Atom<AsyncResult.AsyncResult<infer A, infer _>> ? A : never
 
 /**
+ * Extracts the item type from an atom whose value is a `PullResult`.
+ *
  * @since 4.0.0
  */
 export type PullSuccess<T extends Atom<any>> = T extends Atom<PullResult<infer A, infer _>> ? A : never
 
 /**
+ * Extracts the failure error type from an atom whose value is an `AsyncResult`.
+ *
  * @since 4.0.0
  */
 export type Failure<T extends Atom<any>> = T extends Atom<AsyncResult.AsyncResult<infer _, infer E>> ? E : never
 
 /**
+ * Returns an atom type without serializable metadata, preserving `Writable` read and write types when the input atom is writable.
+ *
  * @since 4.0.0
  */
 export type WithoutSerializable<T extends Atom<any>> = T extends Writable<infer R, infer W> ? Writable<R, W>
   : Atom<Type<T>>
 
 /**
+ * Runtime identifier attached to writable atoms and used by `isWritable`.
+ *
  * @category type ids
  * @since 4.0.0
  */
 export const WritableTypeId: WritableTypeId = "~effect/reactivity/Atom/Writable"
 
 /**
+ * Type-level identifier used to recognize writable atoms.
+ *
  * @category type ids
  * @since 4.0.0
  */
 export type WritableTypeId = "~effect/reactivity/Atom/Writable"
 
 /**
+ * Atom that can also be written to, using a `WriteContext` and an input value to update reactive state.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -113,6 +137,8 @@ export interface Writable<R, W = R> extends Atom<R> {
 }
 
 /**
+ * Context passed to atom read functions for reading dependencies, awaiting `AsyncResult` or `Option` values, managing subscriptions and finalizers, refreshing atoms, and updating writable atoms.
+ *
  * @category context
  * @since 4.0.0
  */
@@ -151,6 +177,8 @@ export interface AtomContext {
 }
 
 /**
+ * Context passed to writable atom write functions for reading atoms, refreshing or setting the current atom, and writing to other writable atoms.
+ *
  * @category context
  * @since 4.0.0
  */
@@ -162,6 +190,8 @@ export interface WriteContext<A> {
 }
 
 /**
+ * Returns a copy of an atom with an idle time-to-live: finite durations dispose it after inactivity, while an infinite duration keeps it alive.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -307,12 +337,16 @@ const WritableProto = {
 } as const
 
 /**
+ * Returns `true` when an atom is writable.
+ *
  * @category refinements
  * @since 4.0.0
  */
 export const isWritable = <R, W>(atom: Atom<R>): atom is Writable<R, W> => WritableTypeId in atom
 
 /**
+ * Creates a read-only atom from a read function and an optional custom refresh registration callback.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -329,6 +363,8 @@ export const readable = <A>(
 }
 
 /**
+ * Creates a writable atom from read and write functions, with an optional custom refresh registration callback.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -355,6 +391,8 @@ function constSetSelf<A>(ctx: WriteContext<A>, value: A) {
 // -----------------------------------------------------------------------------
 
 /**
+ * Creates an atom from a synchronous value or read function, or from an `Effect` or `Stream` whose state is exposed as an `AsyncResult`; plain values create writable state atoms.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -553,6 +591,8 @@ function runCallbackSync<R, A, E, ER = never>(
 // -----------------------------------------------------------------------------
 
 /**
+ * Atom that builds a `Context` from a `Layer` and exposes constructors for atoms, functions, pulls, and subscription refs that run with that context.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -638,6 +678,8 @@ export interface AtomRuntime<R, ER = never> extends Atom<AsyncResult.AsyncResult
 }
 
 /**
+ * Factory for `AtomRuntime` values that share a `Layer.MemoMap` and a set of global layers.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -660,6 +702,8 @@ export interface RuntimeFactory {
 }
 
 /**
+ * Creates a `RuntimeFactory` backed by the supplied `Layer.MemoMap`.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -719,12 +763,16 @@ export const context: (options: {
 }
 
 /**
+ * Default `Layer.MemoMap` used by the module-level `runtime` factory.
+ *
  * @category context
  * @since 4.0.0
  */
 export const defaultMemoMap: Layer.MemoMap = Layer.makeMemoMapUnsafe()
 
 /**
+ * Default `RuntimeFactory` created with `defaultMemoMap`.
+ *
  * @category context
  * @since 4.0.0
  */
@@ -828,6 +876,8 @@ function makeStream<A, E>(
 // -----------------------------------------------------------------------------
 
 /**
+ * Creates a writable atom backed by a `SubscriptionRef`, or by an effect that produces one, updating from ref changes and writing atom updates back to the ref.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -914,6 +964,8 @@ const makeSubRef = (
 // -----------------------------------------------------------------------------
 
 /**
+ * Context passed to `fn` and `fnSync` computations for reading atoms, awaiting results, registering finalizers, refreshing atoms, subscribing to changes, and writing updates.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -945,6 +997,8 @@ export interface FnContext {
 }
 
 /**
+ * Creates a writable atom for a synchronous function; writing an argument re-runs the function, returning `Option.none` before the first call unless an initial value is supplied.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -993,6 +1047,8 @@ const makeFnSync = <Arg, A>(f: (arg: Arg, get: FnContext) => A, options?: {
 }
 
 /**
+ * Writable async function atom whose value is an `AsyncResult` and whose writes accept function arguments plus `Reset` and `Interrupt` controls.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -1001,30 +1057,40 @@ export interface AtomResultFn<Arg, A, E = never>
 {}
 
 /**
+ * Control symbol that can be written to an `AtomResultFn` to reset it to its initial state.
+ *
  * @category symbols
  * @since 4.0.0
  */
 export const Reset = Symbol.for("effect/reactivity/atom/Atom/Reset")
 
 /**
+ * Type of the `Reset` control symbol accepted by `AtomResultFn` writes.
+ *
  * @category symbols
  * @since 4.0.0
  */
 export type Reset = typeof Reset
 
 /**
+ * Control symbol that can be written to an `AtomResultFn` to interrupt the current asynchronous computation.
+ *
  * @category symbols
  * @since 4.0.0
  */
 export const Interrupt = Symbol.for("effect/reactivity/atom/Atom/Interrupt")
 
 /**
+ * Type of the `Interrupt` control symbol accepted by `AtomResultFn` writes.
+ *
  * @category symbols
  * @since 4.0.0
  */
 export type Interrupt = typeof Interrupt
 
 /**
+ * Creates a writable atom for an `Effect` or `Stream` function; writing an argument starts the computation and exposes its state as an `AsyncResult`.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -1130,6 +1196,8 @@ function makeResultFn<Arg, E, A>(
 }
 
 /**
+ * `AsyncResult` produced by `pull`, containing a non-empty batch of pulled items and a `done` flag, or `NoSuchElementError` when the stream completes without items.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -1139,6 +1207,8 @@ export type PullResult<A, E = never> = AsyncResult.AsyncResult<{
 }, E | Cause.NoSuchElementError>
 
 /**
+ * Creates a writable atom that pulls an initial chunk from a stream and then pulls the next chunk whenever it is written to, accumulating items unless `disableAccumulation` is enabled.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -1236,6 +1306,8 @@ const makeStreamPull = <A, E>(
   })
 
 /**
+ * Creates a memoized atom factory that returns the same object for the same argument, using weak references for cached values when the platform supports them.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -1277,6 +1349,8 @@ export const family = typeof WeakRef === "undefined" || typeof FinalizationRegis
   }
 
 /**
+ * Uses a fallback `AsyncResult` atom while the primary atom is `Initial`, marking the fallback result as waiting until the primary atom produces a non-initial result.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -1355,6 +1429,8 @@ export const withFallback: {
 })
 
 /**
+ * Returns a copy of an atom that remains cached and mounted even when no subscribers are using it.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -1380,6 +1456,11 @@ export const autoDispose = <A extends Atom<any>>(self: A): A =>
   })
 
 /**
+ * Sets whether an atom should be lazy.
+ *
+ * Lazy atoms defer recomputation while they have no active listeners or active
+ * non-lazy dependents, rebuilding the next time their value is observed.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -1393,6 +1474,11 @@ export const setLazy: {
   }))
 
 /**
+ * Attaches a diagnostic label to an atom.
+ *
+ * The label is used for inspection and debugging metadata and does not change the
+ * atom's read or write behavior.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -1409,6 +1495,11 @@ export const withLabel: {
   }))
 
 /**
+ * Pairs an atom with an initial value for registry initialization.
+ *
+ * The returned tuple can be supplied to `AtomRegistry` initial values so the atom
+ * starts with the provided value before it is first rebuilt.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -1421,6 +1512,13 @@ export const initialValue: {
 >(2, (self, initialValue) => [self, initialValue])
 
 /**
+ * Creates a derived atom by reading another atom with a custom `AtomContext`
+ * function.
+ *
+ * If the source is writable, the derived atom keeps the source write input and
+ * forwards writes to the source. `initialValueTarget` controls which atom receives
+ * preloaded initial values for the derived atom.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -1483,6 +1581,11 @@ const getInitialValueTarget = <A>(atom: Atom<A>): Atom<A> => {
 }
 
 /**
+ * Maps the current value of an atom with a pure function.
+ *
+ * When the source atom is writable, the returned atom remains writable and keeps
+ * the source atom's write input type.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -1500,6 +1603,11 @@ export const map: {
 )
 
 /**
+ * Maps the successful value inside an `AsyncResult` atom.
+ *
+ * Initial and failure states are preserved, and writable source atoms keep their
+ * original write input type.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -1525,6 +1633,12 @@ export const mapResult: {
   : Atom<AsyncResult.AsyncResult<B, AsyncResult.AsyncResult.Failure<Type<R>>>> => map(self, AsyncResult.map(f)))
 
 /**
+ * Creates an atom that publishes source changes only after the source has stopped
+ * changing for the specified duration.
+ *
+ * The current source value is used immediately, and any pending debounce timer is
+ * cleared when the derived atom is disposed.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -1556,8 +1670,10 @@ export const debounce: {
 )
 
 /**
- * Ensures that the value of the atom is refreshed at most once per specified
- * duration.
+ * Creates a derived atom that reads the source and schedules a refresh after the
+ * specified duration.
+ *
+ * The scheduled refresh is canceled when the derived atom's lifetime is disposed.
  *
  * @category combinators
  * @since 4.0.0
@@ -1674,6 +1790,13 @@ const shouldRevalidateSWR = <A, E>(result: AsyncResult.AsyncResult<A, E>, staleT
 }
 
 /**
+ * Wraps an atom in a writable optimistic atom.
+ *
+ * Writes accept transition atoms containing `AsyncResult` values. Waiting
+ * successes are shown optimistically while transitions run; when successful
+ * transitions finish, the source atom is refreshed, and failures roll the value
+ * back to the latest source value.
+ *
  * @category Optimistic
  * @since 4.0.0
  */
@@ -1768,6 +1891,13 @@ export const optimistic = <A>(self: Atom<A>): Writable<A, Atom<AsyncResult.Async
 }
 
 /**
+ * Creates an `AtomResultFn` that applies an optimistic update before running the
+ * underlying mutation.
+ *
+ * The reducer computes the provisional value from the current value and mutation
+ * input. The wrapped function result then completes the transition or updates the
+ * optimistic value through the provided setter callback.
+ *
  * @category Optimistic
  * @since 4.0.0
  */
@@ -1828,6 +1958,11 @@ export const optimisticFn: {
 })
 
 /**
+ * Runs synchronous atom updates as a batch.
+ *
+ * Stale nodes are rebuilt and listeners are notified after the callback completes,
+ * so dependent updates observe the final batched state.
+ *
  * @category batching
  * @since 4.0.0
  */
@@ -1838,6 +1973,11 @@ export const batch: (f: () => void) => void = Registry.batch
 // -----------------------------------------------------------------------------
 
 /**
+ * A browser-only signal atom that increments when the document becomes visible.
+ *
+ * It listens for `visibilitychange` events on `window` and removes the listener
+ * when the atom is disposed.
+ *
  * @category Focus
  * @since 4.0.0
  */
@@ -1856,6 +1996,12 @@ export const windowFocusSignal: Atom<number> = readable((get) => {
 })
 
 /**
+ * Creates a combinator that refreshes an atom whenever the supplied signal atom
+ * changes.
+ *
+ * The derived atom also subscribes to the source atom so normal source updates are
+ * forwarded to its own value.
+ *
  * @category Focus
  * @since 4.0.0
  */
@@ -1868,6 +2014,11 @@ export const makeRefreshOnSignal = <_>(signal: Atom<_>) => <A extends Atom<any>>
   }, { initialValueTarget: self }) as any
 
 /**
+ * Refreshes an atom whenever `windowFocusSignal` changes.
+ *
+ * This helper is browser-only because `windowFocusSignal` depends on `window` and
+ * `document.visibilityState`.
+ *
  * @category Focus
  * @since 4.0.0
  */
@@ -1880,6 +2031,12 @@ export const refreshOnWindowFocus: <A extends Atom<any>>(self: A) => WithoutSeri
 // -----------------------------------------------------------------------------
 
 /**
+ * Creates a writable atom backed by a `KeyValueStore` entry.
+ *
+ * Values are encoded and decoded with the supplied schema. In sync mode the atom
+ * exposes the decoded value and writes the default value when the key is missing;
+ * in async mode it exposes an `AsyncResult` of the decoded value.
+ *
  * @category KeyValueStore
  * @since 4.0.0
  */
@@ -2025,6 +2182,11 @@ function updateSearchParams() {
 // -----------------------------------------------------------------------------
 
 /**
+ * Converts an atom into a stream using the `AtomRegistry` service.
+ *
+ * The stream emits the atom's current value immediately and then emits subsequent
+ * changes until the stream scope is closed.
+ *
  * @category Conversions
  * @since 4.0.0
  */
@@ -2032,6 +2194,11 @@ export const toStream = <A>(self: Atom<A>): Stream.Stream<A, never, AtomRegistry
   Stream.unwrap(AtomRegistry.use((r) => Effect.succeed(Registry.toStream(r, self))))
 
 /**
+ * Converts an `AsyncResult` atom into a stream using the `AtomRegistry` service.
+ *
+ * Initial results are skipped, successes are emitted as stream values, and
+ * failures fail the stream with the result cause.
+ *
  * @category Conversions
  * @since 4.0.0
  */
@@ -2039,6 +2206,8 @@ export const toStreamResult = <A, E>(self: Atom<AsyncResult.AsyncResult<A, E>>):
   Stream.unwrap(AtomRegistry.use((r) => Effect.succeed(Registry.toStreamResult(r, self))))
 
 /**
+ * Reads an atom's current value from the `AtomRegistry` service.
+ *
  * @category Conversions
  * @since 4.0.0
  */
@@ -2046,6 +2215,9 @@ export const get = <A>(self: Atom<A>): Effect.Effect<A, never, AtomRegistry> =>
   AtomRegistry.use((r) => Effect.succeed(r.get(self)))
 
 /**
+ * Reads a writable atom, computes a return value and next write value, writes the
+ * next value, and returns the computed result.
+ *
  * @category Conversions
  * @since 4.0.0
  */
@@ -2061,6 +2233,8 @@ export const modify: {
 )
 
 /**
+ * Writes a value to a writable atom through the `AtomRegistry` service.
+ *
  * @category Conversions
  * @since 4.0.0
  */
@@ -2074,6 +2248,9 @@ export const set: {
 )
 
 /**
+ * Updates a writable atom by reading its current value from the registry and
+ * writing the value returned by the update function.
+ *
  * @category Conversions
  * @since 4.0.0
  */
@@ -2087,6 +2264,12 @@ export const update: {
 )
 
 /**
+ * Reads an `AsyncResult` atom as an effect through the `AtomRegistry` service.
+ *
+ * The effect waits while the result is `Initial`, and also while it is waiting
+ * when `suspendOnWaiting` is enabled. Successes succeed with the value and
+ * failures fail with the result cause.
+ *
  * @category Conversions
  * @since 4.0.0
  */
@@ -2096,6 +2279,8 @@ export const getResult = <A, E>(
 ): Effect.Effect<A, E, AtomRegistry> => AtomRegistry.use(Registry.getResult(self, options))
 
 /**
+ * Requests a refresh of an atom through the `AtomRegistry` service.
+ *
  * @category Conversions
  * @since 4.0.0
  */
@@ -2103,6 +2288,11 @@ export const refresh = <A>(self: Atom<A>): Effect.Effect<void, never, AtomRegist
   Effect.map(AtomRegistry, (_) => _.refresh(self))
 
 /**
+ * Mounts an atom in the `AtomRegistry` for the lifetime of the current scope.
+ *
+ * Mounting keeps the atom subscribed with a no-op listener until the scope
+ * finalizer releases it.
+ *
  * @category Conversions
  * @since 4.0.0
  */
@@ -2114,18 +2304,27 @@ export const mount = <A>(self: Atom<A>): Effect.Effect<void, never, AtomRegistry
 // -----------------------------------------------------------------------------
 
 /**
+ * The type id used to mark atoms that carry serialization metadata.
+ *
  * @category Serializable
  * @since 4.0.0
  */
 export const SerializableTypeId: SerializableTypeId = "~effect-atom/atom/Atom/Serializable"
 
 /**
+ * The literal type of the serializable atom marker.
+ *
  * @category Serializable
  * @since 4.0.0
  */
 export type SerializableTypeId = "~effect-atom/atom/Atom/Serializable"
 
 /**
+ * Serialization metadata attached to an atom.
+ *
+ * The key identifies the atom in dehydrated state, and the encode/decode
+ * functions convert between the atom value and the schema encoded value.
+ *
  * @category Serializable
  * @since 4.0.0
  */
@@ -2138,12 +2337,19 @@ export interface Serializable<S extends Schema.Top> {
 }
 
 /**
+ * Returns `true` when an atom carries `Serializable` metadata.
+ *
  * @category Serializable
  * @since 4.0.0
  */
 export const isSerializable = (self: Atom<any>): self is Atom<any> & Serializable<any> => SerializableTypeId in self
 
 /**
+ * Attaches serialization metadata to an atom using a schema and stable key.
+ *
+ * The schema is converted to a JSON codec for synchronous encode/decode, and the
+ * key is also used as the atom label when the atom does not already have one.
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -2173,6 +2379,8 @@ export const serializable: {
 })
 
 /**
+ * The type id used to mark atoms with a server-side read override.
+ *
  * @category ServerValue
  * @since 4.0.0
  */
@@ -2197,7 +2405,8 @@ export const withServerValue: {
 )
 
 /**
- * Sets the Atom's server value to `Result.initial(true)`.
+ * Sets an `AsyncResult` atom's server-side value to
+ * `AsyncResult.initial(true)`.
  *
  * @category ServerValue
  * @since 4.0.0
@@ -2206,6 +2415,11 @@ export const withServerValueInitial = <A extends Atom<AsyncResult.AsyncResult<an
   withServerValue(self, constant(AsyncResult.initial(true)) as any)
 
 /**
+ * Reads an atom from a registry, using its server-side read override when one is
+ * present.
+ *
+ * Nested reads performed by the override are resolved against the same registry.
+ *
  * @category ServerValue
  * @since 4.0.0
  */

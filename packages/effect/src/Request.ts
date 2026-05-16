@@ -53,12 +53,22 @@ const TypeId = "~effect/Request"
 export interface Request<out A, out E = never, out R = never> extends Variance<A, E, R> {}
 
 /**
+ * Alias for any `Request`, regardless of its success, error, or service
+ * requirements.
+ *
  * @category models
  * @since 2.0.0
  */
 export type Any = Request<any, any, any>
 
 /**
+ * Variance marker carried by every `Request`.
+ *
+ * **Notes**
+ *
+ * This marker preserves the success, error, and service requirement types for
+ * Effect's type-level machinery. Users normally get it by extending `Request`.
+ *
  * @category models
  * @since 2.0.0
  */
@@ -71,6 +81,14 @@ export interface Variance<out A, out E, out R> {
 }
 
 /**
+ * The constructor type returned by `Request.of` and `Request.tagged`.
+ *
+ * **Details**
+ *
+ * The constructor accepts the request's data fields, excluding request variance
+ * fields and any fields already supplied by the constructor such as `_tag`, and
+ * returns a value of the request type.
+ *
  * **Example** (Using generated request constructors)
  *
  * ```ts
@@ -179,6 +197,15 @@ const requestVariance = Equal.byReferenceUnsafe({
 })
 
 /**
+ * Prototype used by Effect's request constructors.
+ *
+ * **Notes**
+ *
+ * This low-level value provides the structural request marker for values
+ * created by `Request.of`, `Request.tagged`, `Request.Class`, and
+ * `Request.TaggedClass`. Most users should use those constructors instead of
+ * interacting with the prototype directly.
+ *
  * @since 4.0.0
  */
 export const RequestPrototype: Request<any, any, any> = {
@@ -300,6 +327,13 @@ export const tagged = <R extends Request<any, any, any> & { _tag: string }>(
 }
 
 /**
+ * Base class constructor for defining request types with TypeScript classes.
+ *
+ * **Details**
+ *
+ * Subclasses pass their data fields to `super`, and instances are marked as
+ * `Request` values while retaining the provided readonly fields.
+ *
  * **Example** (Defining request classes)
  *
  * ```ts
@@ -332,6 +366,13 @@ export const Class: new<A extends Record<string, any>, Success, Error = never, C
 })()
 
 /**
+ * Creates a class constructor for requests with a fixed `_tag` field.
+ *
+ * **Details**
+ *
+ * Use this when defining class-based request types that should participate in
+ * tagged unions or tag-based request resolvers.
+ *
  * **Example** (Defining tagged request classes)
  *
  * ```ts
@@ -377,6 +418,14 @@ export const complete: {
 )
 
 /**
+ * Completes a request entry with the result of an effect.
+ *
+ * **Details**
+ *
+ * If the effect succeeds, the entry is completed successfully with its value.
+ * If the effect fails, the entry is completed with that failure. The returned
+ * effect itself does not fail with the request error.
+ *
  * @category completion
  * @since 2.0.0
  */
@@ -393,6 +442,8 @@ export const completeEffect: {
 )
 
 /**
+ * Completes a request entry with a typed failure.
+ *
  * @category completion
  * @since 2.0.0
  */
@@ -405,6 +456,13 @@ export const fail: {
 )
 
 /**
+ * Completes a request entry with a failure `Cause`.
+ *
+ * **Details**
+ *
+ * Use this when the request should fail with structured cause information
+ * rather than only the request's typed error value.
+ *
  * @category completion
  * @since 2.0.0
  */
@@ -418,6 +476,8 @@ export const failCause: {
 )
 
 /**
+ * Completes a request entry successfully with the supplied value.
+ *
  * @category completion
  * @since 2.0.0
  */
@@ -431,6 +491,14 @@ export const succeed: {
 )
 
 /**
+ * A pending request handed to a `RequestResolver`.
+ *
+ * **Details**
+ *
+ * An entry contains the original request, the fiber context needed to run it,
+ * an `uninterruptible` flag used by batching and caching internals, and the
+ * `completeUnsafe` callback used by resolvers to supply the final `Exit`.
+ *
  * @category entry
  * @since 2.0.0
  */
@@ -449,6 +517,14 @@ export interface Entry<out R> {
 }
 
 /**
+ * Creates a `Request.Entry` from its component fields.
+ *
+ * **Notes**
+ *
+ * This is a low-level helper for request runtime and resolver infrastructure;
+ * most application code receives entries from a `RequestResolver` instead of
+ * constructing them directly.
+ *
  * @category entry
  * @since 2.0.0
  */

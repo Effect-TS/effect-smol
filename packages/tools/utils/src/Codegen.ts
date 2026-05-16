@@ -42,6 +42,8 @@ const parseAnnotation = (line: string): string | undefined => {
 }
 
 /**
+ * Metadata for a barrel file discovered from a `@barrel` annotation, including the file path, glob pattern, and insertion offset for generated exports.
+ *
  * @category models
  * @since 1.0.0
  */
@@ -52,6 +54,8 @@ export interface BarrelFile {
 }
 
 /**
+ * Service interface for discovering annotated barrel files and regenerating their export contents.
+ *
  * @category models
  * @since 1.0.0
  */
@@ -64,6 +68,8 @@ export interface BarrelGenerator {
 }
 
 /**
+ * Context service tag for barrel file generation.
+ *
  * @category tags
  * @since 1.0.0
  */
@@ -72,6 +78,8 @@ export const BarrelGenerator: Context.Service<BarrelGenerator, BarrelGenerator> 
 )
 
 /**
+ * Builds the `BarrelGenerator` service, discovering files with `@barrel` annotations and rewriting their generated export sections from matching modules.
+ *
  * @category layers
  * @since 1.0.0
  */
