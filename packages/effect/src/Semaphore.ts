@@ -1,4 +1,23 @@
 /**
+ * The `Semaphore` module provides a counting semaphore for coordinating
+ * concurrent access to shared or limited resources. A semaphore tracks a fixed
+ * number of permits: effects acquire permits before entering a critical section
+ * and release them when they leave.
+ *
+ * Use semaphores to bound parallel work, protect rate-limited services, or
+ * serialize access to resources that cannot safely handle unlimited
+ * concurrency. Prefer {@link withPermit} and {@link withPermits} when possible,
+ * because they release permits automatically when the protected effect exits.
+ * Use {@link take} and {@link release} for lower-level protocols that need
+ * manual control.
+ *
+ * **Gotchas**
+ *
+ * - Pending acquisitions wait until enough permits are available.
+ * - {@link withPermitsIfAvailable} does not wait; it returns `Option.none` when
+ *   the requested permits cannot be acquired immediately.
+ * - Manual `take` / `release` usage must keep permit counts balanced.
+ *
  * @since 2.0.0
  */
 import type * as Effect from "./Effect.ts"

@@ -1,4 +1,56 @@
 /**
+ * The `Queue` module provides asynchronous queues for communicating between
+ * fibers. A `Queue<A, E>` can receive values of type `A`, deliver them to
+ * consumers in order, and eventually complete or fail with an error of type
+ * `E`.
+ *
+ * **Mental model**
+ *
+ * - A queue is a fiber-aware channel with one write side ({@link Enqueue}) and
+ *   one read side ({@link Dequeue})
+ * - Producers add values with {@link offer} or {@link offerAll}; consumers
+ *   remove values with {@link take}, {@link takeN}, {@link takeBetween}, or
+ *   {@link takeAll}
+ * - Bounded queues use an overflow strategy: {@link bounded} suspends
+ *   producers, {@link dropping} rejects new values, and {@link sliding} drops
+ *   old values
+ * - Queues can be completed with {@link end}, failed with {@link fail} or
+ *   {@link failCause}, interrupted with {@link interrupt}, and shut down with
+ *   {@link shutdown}
+ * - Operations are expressed as `Effect` values so waiting producers and
+ *   consumers compose with interruption, scheduling, and structured
+ *   concurrency
+ *
+ * **Common tasks**
+ *
+ * - Create queues: {@link make}, {@link bounded}, {@link dropping},
+ *   {@link sliding}, {@link unbounded}
+ * - Restrict capabilities: {@link asEnqueue}, {@link asDequeue}
+ * - Produce values: {@link offer}, {@link offerAll}
+ * - Consume values: {@link take}, {@link takeN}, {@link takeBetween},
+ *   {@link takeAll}, {@link poll}, {@link peek}
+ * - Drain or reset buffered values: {@link collect}, {@link clear}
+ * - Signal lifecycle: {@link end}, {@link fail}, {@link failCause},
+ *   {@link interrupt}, {@link shutdown}
+ * - Inspect state: {@link size}, {@link isFull}
+ *
+ * **Gotchas**
+ *
+ * - `take` waits when the queue is empty; use {@link poll} when absence should
+ *   be represented as `Option.None`
+ * - `dropping` and `sliding` queues can lose values by design; use
+ *   {@link bounded} when every offered value must be preserved
+ * - Completion and failure are observed by consumers through the queue's error
+ *   channel, so include `Cause.Done` in the error type when using {@link end}
+ * - The `Unsafe` variants are synchronous, low-level operations; prefer the
+ *   effectful APIs in application code
+ *
+ * **See also**
+ *
+ * - {@link Enqueue} for write-only queue handles
+ * - {@link Dequeue} for read-only queue handles
+ * - {@link Pull} for stream-style completion errors
+ *
  * @since 3.8.0
  */
 import * as Arr from "./Array.ts"

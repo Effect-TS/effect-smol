@@ -1,26 +1,32 @@
 /**
- * @since 2.0.0
+ * The `NonEmptyIterable` module provides a type-level representation of any
+ * JavaScript `Iterable` that is known to contain at least one element. A
+ * `NonEmptyIterable<A>` can be consumed anywhere an `Iterable<A>` is expected,
+ * while also carrying the guarantee that reading the first element is safe.
  *
- * The `NonEmptyIterable` module provides types and utilities for working with iterables
- * that are guaranteed to contain at least one element. This provides compile-time
- * safety when working with collections that must not be empty.
+ * **Mental model**
  *
- * ## Key Features
+ * - `NonEmptyIterable<A>` is an `Iterable<A>` branded with a non-empty guarantee
+ * - The guarantee is static: values should only be typed this way when construction or validation proves at least one element exists
+ * - The iterable can be an array, string, set, map, generator, or any custom iterable
+ * - `unprepend` safely separates the first element from an iterator for the remaining elements
+ * - Operations that may remove elements, such as filtering, usually return ordinary collections because they can become empty
  *
- * - **Type Safety**: Compile-time guarantee that the iterable contains at least one element
- * - **Iterator Protocol**: Fully compatible with JavaScript's built-in iteration protocol
- * - **Functional Operations**: Safe operations that preserve the non-empty property
- * - **Lightweight**: Minimal overhead with maximum type safety
+ * **Common tasks**
  *
- * ## Why NonEmptyIterable?
+ * - Accept inputs that must contain at least one value
+ * - Extract a head element and process the remaining iterator with {@link unprepend}
+ * - Model APIs such as reductions, comparisons, or aggregation that are undefined for empty inputs
+ * - Preserve compatibility with the JavaScript iteration protocol while documenting the stronger invariant
  *
- * Many operations require non-empty collections to be meaningful:
- * - Finding the maximum or minimum value
- * - Getting the first or last element
- * - Reducing without an initial value
- * - Operations that would otherwise need runtime checks
+ * **Gotchas**
  *
- * ## Basic Usage
+ * - A type assertion does not make an empty iterable non-empty; only assert after a trusted check or constructor
+ * - Iterators are stateful, so calling {@link unprepend} consumes the first yielded value from that iterator
+ * - The order of the first element follows the source iterable's iteration order, for example insertion order for `Map` and `Set`
+ * - Some transformations preserve non-emptiness, but transformations that can discard elements must account for the empty case
+ *
+ * **Quickstart**
  *
  * **Example** (Requiring a non-empty iterable)
  *
@@ -132,6 +138,8 @@
  *   // This would still be non-empty if the source was non-empty
  * )
  * ```
+ *
+ * @since 2.0.0
  */
 
 /**

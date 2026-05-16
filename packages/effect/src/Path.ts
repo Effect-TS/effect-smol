@@ -1,4 +1,34 @@
 /**
+ * The `Path` module provides a platform path service for manipulating file
+ * system paths through Effect's environment. It models path operations as a
+ * replaceable service so programs can depend on path behavior without directly
+ * coupling to a particular runtime implementation.
+ *
+ * **Mental model**
+ *
+ * - `Path.Path` is a `Context.Service` tag used to access the current path implementation
+ * - The service offers familiar path operations such as joining, resolving, parsing, and formatting
+ * - Most operations are pure string transformations and follow POSIX-style path semantics
+ * - File URL conversions return `Effect`s because invalid paths or URLs can fail with `BadArgument`
+ * - Custom implementations can be provided with `Layer.succeed` for alternate platforms or tests
+ *
+ * **Common tasks**
+ *
+ * - Combine path segments with `join` or turn segments into an absolute path with `resolve`
+ * - Normalize `.` and `..` segments with `normalize`
+ * - Inspect paths with `basename`, `dirname`, `extname`, and `isAbsolute`
+ * - Convert between structured path parts and strings with `parse` and `format`
+ * - Compute relative paths with `relative`
+ * - Convert between file paths and `file:` URLs with `toFileUrl` and `fromFileUrl`
+ *
+ * **Gotchas**
+ *
+ * - Path strings are not checked against the file system; these operations only manipulate syntax
+ * - `resolve` may consult the host current working directory when no absolute segment is supplied
+ * - `fromFileUrl` only accepts valid `file:` URLs and rejects encoded path separators
+ * - Use the service from the environment when writing portable Effect code instead of importing
+ *   host-specific path APIs directly
+ *
  * @since 4.0.0
  */
 import * as Context from "./Context.ts"

@@ -1,4 +1,39 @@
 /**
+ * The `FiberMap` module provides a scoped, mutable collection for managing
+ * fibers by key. A `FiberMap<K, A, E>` owns a set of running fibers, interrupts
+ * them when its scope closes, and automatically removes each entry when the
+ * corresponding fiber completes.
+ *
+ * **Mental model**
+ *
+ * - A `FiberMap` is a keyed registry of fibers with lifecycle management
+ * - Keys identify the currently active fiber for a logical task or resource
+ * - Adding a fiber under an existing key interrupts the previous fiber by default
+ * - Completed fibers remove themselves from the map if they are still current
+ * - Closing the map's scope interrupts every fiber that remains in the map
+ * - The map can surface the first non-ignored managed fiber failure via {@link join}
+ *
+ * **Common tasks**
+ *
+ * - Create a scoped map: {@link make}
+ * - Fork effects into the map: {@link run}
+ * - Add existing fibers: {@link set}
+ * - Create captured runners: {@link makeRuntime}, {@link runtime}
+ * - Bridge to Promise-based callers: {@link makeRuntimePromise}, {@link runtimePromise}
+ * - Inspect entries: {@link get}, {@link has}, {@link size}
+ * - Stop work: {@link remove}, {@link clear}
+ * - Coordinate completion or failure: {@link awaitEmpty}, {@link join}
+ *
+ * **Gotchas**
+ *
+ * - `FiberMap` is scoped; use it with `Effect.scoped` or another scope owner so
+ *   managed fibers are interrupted when the scope closes
+ * - Reusing a key is a replacement operation unless `onlyIfMissing` is enabled
+ * - `join` waits for the map to fail or close; use {@link awaitEmpty} to wait
+ *   until all currently managed fibers have completed
+ * - The `Unsafe` variants mutate synchronously and should only be used when the
+ *   caller already controls the surrounding execution context
+ *
  * @since 2.0.0
  */
 import * as Cause from "./Cause.ts"

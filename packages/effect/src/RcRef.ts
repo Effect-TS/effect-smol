@@ -1,4 +1,20 @@
 /**
+ * The `RcRef` module provides reference-counted access to a shared resource
+ * whose lifecycle is managed by `Scope`. An `RcRef<A, E>` lazily acquires its
+ * resource the first time it is requested, shares that resource across active
+ * users, and releases it when the final scope holding a reference closes.
+ *
+ * Use `RcRef` when several scoped operations should reuse the same expensive
+ * or stateful resource, such as a connection, client, cache, or worker, without
+ * making each operation acquire and release its own copy. `make` defines how
+ * the resource is acquired, `get` borrows the current resource for the active
+ * scope, and `invalidate` forces a future `get` to acquire a fresh resource.
+ *
+ * The resource is tied to scopes rather than ordinary object reachability:
+ * every `get` must run with a `Scope`, and the reference count is decremented
+ * when that scope closes. If `idleTimeToLive` is configured, a resource whose
+ * reference count reaches zero can remain cached briefly before release.
+ *
  * @since 3.5.0
  */
 import type * as Duration from "./Duration.ts"

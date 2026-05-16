@@ -1,110 +1,87 @@
 /**
+ * The `Logger` module defines the logging model used by the Effect runtime and
+ * provides constructors for formatting, routing, batching, and installing
+ * loggers. A `Logger<Message, Output>` receives each runtime log event as an
+ * {@link Options} value and transforms it into an output such as a string,
+ * structured object, JSON line, console write, file write, or trace span event.
+ *
+ * **Mental model**
+ *
+ * - Effect programs emit log events with APIs such as `Effect.log`,
+ *   `Effect.logInfo`, `Effect.logWarning`, and `Effect.logError`
+ * - Each event contains a message, log level, cause, fiber, and timestamp
+ * - Loggers are ordinary values created with {@link make} and installed with
+ *   {@link layer}
+ * - Multiple loggers can be active at once by providing a layer with several
+ *   logger values
+ * - Formatter loggers such as {@link formatLogFmt}, {@link formatStructured},
+ *   and {@link formatJson} return formatted data without writing it anywhere
+ * - Console loggers such as {@link consolePretty}, {@link consoleLogFmt},
+ *   {@link consoleStructured}, and {@link consoleJson} write formatted output
+ *   to the active Effect console
+ *
+ * **Log output structure**
+ *
+ * Built-in formatters include the log level, timestamp, fiber identifier, and
+ * logged message. When present, they also include the pretty-printed cause,
+ * active log annotations, and active log spans. Structured and JSON loggers keep
+ * these fields as machine-readable data, while logfmt and pretty loggers render
+ * them as human-readable text.
+ *
+ * **Common tasks**
+ *
+ * - Create a custom logger: {@link make}
+ * - Transform logger output: {@link map}
+ * - Write formatter output to the console: {@link withConsoleLog},
+ *   {@link withConsoleError}, {@link withLeveledConsole}
+ * - Use built-in console loggers: {@link consolePretty}, {@link consoleLogFmt},
+ *   {@link consoleStructured}, {@link consoleJson}
+ * - Use built-in formatter loggers: {@link formatSimple}, {@link formatLogFmt},
+ *   {@link formatStructured}, {@link formatJson}
+ * - Batch logger output before flushing to a sink: {@link batched}
+ * - Write string logger output to a file: {@link toFile}
+ * - Preserve trace correlation by including {@link tracerLogger}
+ * - Install or replace loggers for an effect: {@link layer}
+ *
+ * **Gotchas**
+ *
+ * - {@link layer} replaces the current logger set by default; pass
+ *   `mergeWithExisting: true` when adding loggers to the existing runtime
+ *   loggers
+ * - Formatter loggers only produce values; wrap them with console, file, batch,
+ *   or custom sink loggers when output should be written somewhere
+ * - {@link batched} and {@link toFile} are scoped; keep their scope open while
+ *   logs are being emitted so buffered entries can flush reliably
+ * - {@link toFile} accepts only loggers that output strings, so pair it with
+ *   string formatters such as {@link formatJson} or {@link formatLogFmt}
+ * - The default runtime logger set includes {@link tracerLogger}; replacing
+ *   loggers without merging may remove automatic log-to-trace-span recording
+ *
+ * **Quickstart**
+ *
+ * **Example** (Installing a JSON console logger)
+ *
+ * ```ts
+ * import { Effect, Logger } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   yield* Effect.logInfo("request started", { method: "GET", path: "/users" })
+ *   yield* Effect.logError("request failed", { status: 500 })
+ * }).pipe(
+ *   Effect.annotateLogs("service", "users-api"),
+ *   Effect.withLogSpan("http.request"),
+ *   Effect.provide(Logger.layer([Logger.consoleJson]))
+ * )
+ * ```
+ *
+ * **See also**
+ *
+ * - {@link make} for defining custom loggers
+ * - {@link layer} for installing loggers
+ * - {@link formatJson} and {@link consoleJson} for structured production logs
+ * - {@link consolePretty} for readable local logs
+ *
  * @since 2.0.0
- *
- * The `Logger` module provides a robust and flexible logging system for Effect applications.
- * It offers structured logging, multiple output formats, and seamless integration with the
- * Effect runtime's tracing and context management.
- *
- * ## Key Features
- *
- * - **Structured Logging**: Built-in support for structured log messages with metadata
- * - **Multiple Formats**: JSON, LogFmt, Pretty, and custom formatting options
- * - **Context Integration**: Automatic capture of fiber context, spans, and annotations
- * - **Batching**: Efficient log aggregation and batch processing
- * - **File Output**: Direct file writing with configurable batch windows
- * - **Composable**: Transform and compose loggers using functional patterns
- *
- * ## Basic Usage
- *
- * **Example** (Logging messages with structured data)
- *
- * ```ts
- * import { Effect } from "effect"
- *
- * // Basic logging
- * const program = Effect.gen(function*() {
- *   yield* Effect.log("Application started")
- *   yield* Effect.logInfo("Processing user request")
- *   yield* Effect.logWarning("Resource limit approaching")
- *   yield* Effect.logError("Database connection failed")
- * })
- *
- * // With structured data
- * const structuredLog = Effect.gen(function*() {
- *   yield* Effect.log("User action", { userId: 123, action: "login" })
- *   yield* Effect.logInfo("Request processed", { duration: 150, statusCode: 200 })
- * })
- * ```
- *
- * ## Custom Loggers
- *
- * **Example** (Creating and providing custom loggers)
- *
- * ```ts
- * import { Effect, Logger } from "effect"
- *
- * // Create a custom logger
- * const customLogger = Logger.make((options) => {
- *   console.log(`[${options.logLevel}] ${options.message}`)
- * })
- *
- * // Use JSON format for production
- * const jsonLogger = Logger.consoleJson
- *
- * // Pretty format for development
- * const prettyLogger = Logger.consolePretty()
- *
- * const program = Effect.log("Hello World").pipe(
- *   Effect.provide(Logger.layer([jsonLogger]))
- * )
- * ```
- *
- * ## Multiple Loggers
- *
- * **Example** (Combining multiple loggers)
- *
- * ```ts
- * import { Effect, Logger } from "effect"
- *
- * // Combine multiple loggers
- * const CombinedLoggerLive = Logger.layer([
- *   Logger.consoleJson,
- *   Logger.consolePretty()
- * ])
- *
- * const program = Effect.log("Application event").pipe(
- *   Effect.provide(CombinedLoggerLive)
- * )
- * ```
- *
- * ## Batched Logging
- *
- * **Example** (Batching log messages)
- *
- * ```ts
- * import { Duration, Effect, Logger } from "effect"
- *
- * const batchedLogger = Logger.batched(Logger.formatJson, {
- *   window: Duration.seconds(5),
- *   flush: (messages) =>
- *     Effect.sync(() => {
- *       // Process batch of log messages
- *       console.log("Flushing", messages.length, "log entries")
- *     })
- * })
- *
- * const program = Effect.gen(function*() {
- *   const logger = yield* batchedLogger
- *   yield* Effect.provide(
- *     Effect.all([
- *       Effect.log("Event 1"),
- *       Effect.log("Event 2"),
- *       Effect.log("Event 3")
- *     ]),
- *     Logger.layer([logger])
- *   )
- * })
- * ```
  */
 import * as Array from "./Array.ts"
 import type * as Cause from "./Cause.ts"

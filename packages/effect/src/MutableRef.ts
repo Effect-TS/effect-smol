@@ -1,31 +1,34 @@
 /**
- * @fileoverview
- * MutableRef provides a mutable reference container that allows safe mutation of values
- * in functional programming contexts. It serves as a bridge between functional and imperative
- * programming paradigms, offering atomic operations for state management.
+ * The `MutableRef` module provides a small synchronous container for mutable
+ * state. A `MutableRef<A>` stores one current value of type `A`, exposes that
+ * value through `.current`, and offers pipeable helpers for reading, replacing,
+ * and transforming the value in place.
  *
- * Unlike regular variables, MutableRef encapsulates mutable state and provides controlled
- * access through a standardized API. It supports atomic compare-and-set operations for
- * thread-safe updates and integrates seamlessly with Effect's ecosystem.
+ * **Mental model**
  *
- * Key Features:
- * - Mutable reference semantics with functional API
- * - Atomic compare-and-set operations for safe concurrent updates
- * - Specialized operations for numeric and boolean values
- * - Chainable operations that return the reference or the value
- * - Integration with Effect's Equal interface for value comparison
+ * - `MutableRef<A>` is a stable reference whose `.current` field may change over time
+ * - Reads and writes are synchronous and return immediately
+ * - `set`, `update`, `increment`, `decrement`, and `toggle` mutate the same reference in place
+ * - `getAnd*` helpers return the previous value, while `*AndGet` helpers return the new value
+ * - `compareAndSet` updates only when the current value is equal to the expected value using `Equal.equals`
+ * - A `MutableRef` is useful for local mutable state, but it does not make updates transactional or effectful
  *
- * Common Use Cases:
- * - State containers in functional applications
- * - Counters and accumulators
- * - Configuration that needs to be updated at runtime
- * - Caching and memoization scenarios
- * - Inter-module communication via shared references
+ * **Common tasks**
  *
- * Performance Characteristics:
- * - Get/Set: O(1)
- * - Compare-and-set: O(1)
- * - All operations: O(1)
+ * - Create a reference: {@link make}
+ * - Read the current value: {@link get} or `.current`
+ * - Replace the current value: {@link set}, {@link setAndGet}, {@link getAndSet}
+ * - Transform the current value: {@link update}, {@link updateAndGet}, {@link getAndUpdate}
+ * - Coordinate conditional replacement: {@link compareAndSet}
+ * - Work with counters: {@link increment}, {@link decrement}, {@link incrementAndGet}, {@link decrementAndGet}
+ * - Work with boolean flags: {@link toggle}
+ *
+ * **Gotchas**
+ *
+ * - All updates are imperative mutations; aliases to the same `MutableRef` observe the same changing value
+ * - Updating object or array values does not clone them unless the update function creates a new value
+ * - `compareAndSet` compares with Effect equality semantics, not only JavaScript reference equality
+ * - For state that must participate in `Effect` workflows, interruption, or fiber coordination, prefer higher-level Effect data types
  *
  * @category data-structures
  * @since 2.0.0

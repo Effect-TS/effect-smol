@@ -1,4 +1,24 @@
 /**
+ * The `ScopedRef` module provides a mutable reference for values that are tied
+ * to scoped resources. Each value stored in a `ScopedRef` is acquired within its
+ * own `Scope`, and replacing the value safely releases the resources associated
+ * with the previous value.
+ *
+ * Use `ScopedRef` when an application needs to keep a current resource-backed
+ * value, such as a live client, connection, subscription, or cached handle, and
+ * later swap it for a newly acquired value without leaking the old resources.
+ * Reads are simple, while updates are synchronized and resource-safe.
+ *
+ * **Gotchas**
+ *
+ * - A `ScopedRef` must itself be created and used within a `Scope`; when that
+ *   scope closes, the currently stored value is finalized.
+ * - Use {@link fromAcquire} or {@link set} for resourceful values so acquisition
+ *   and finalization are tracked correctly.
+ * - Use {@link make} only for values that do not acquire resources.
+ * - Updating a `ScopedRef` waits for the replacement acquisition and old
+ *   finalization to complete before returning.
+ *
  * @since 2.0.0
  */
 import * as Effect from "./Effect.ts"

@@ -1,4 +1,34 @@
 /**
+ * The `PlatformError` module defines the normalized error model used by
+ * platform APIs when adapting host operations into Effect programs. It gives
+ * callers a stable `PlatformError` wrapper whose `reason` is either a
+ * `BadArgument`, for invalid inputs rejected before an operation runs, or a
+ * `SystemError`, for failures reported by the host platform or operating
+ * system.
+ *
+ * Use this module when implementing or consuming platform services such as
+ * file systems, terminal access, sockets, or other environment-specific APIs.
+ * `SystemError` intentionally groups many low-level failures into a small set
+ * of portable tags like `NotFound`, `PermissionDenied`, and `TimedOut`, while
+ * still preserving operation details such as the module, method, syscall, path
+ * or descriptor, description, and original cause when available.
+ *
+ * **Common tasks**
+ *
+ * - Create platform failures from system operations with {@link systemError}
+ * - Report rejected caller input with {@link badArgument}
+ * - Inspect the underlying reason via {@link PlatformError.reason}
+ * - Match normalized system failures with {@link SystemErrorTag}
+ *
+ * **Gotchas**
+ *
+ * - `PlatformError` is a wrapper; inspect `reason` to distinguish
+ *   `BadArgument` from `SystemError`
+ * - `SystemErrorTag` values are normalized categories, not necessarily raw
+ *   platform error codes
+ * - The original cause is preserved when provided, but portable handling
+ *   should rely on the normalized fields
+ *
  * @since 4.0.0
  */
 import * as Data from "./Data.ts"

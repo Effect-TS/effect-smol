@@ -1,4 +1,36 @@
 /**
+ * The `Sink` module provides composable consumers for `Stream` values. A
+ * `Sink<A, In, L, E, R>` pulls input elements of type `In`, may require
+ * services `R`, may fail with `E`, and eventually produces a result `A` plus
+ * any leftover input `L` that was read but not consumed.
+ *
+ * **Mental model**
+ *
+ * - A sink is the terminal consumer used by `Stream.run`
+ * - Sinks can consume zero, one, many, or all input elements before finishing
+ * - Leftovers allow one sink to stop early without losing already-pulled input
+ * - Sink composition preserves typed errors and service requirements
+ * - Most sinks are built from `Channel` internally, but users compose them with
+ *   the higher-level APIs in this module
+ *
+ * **Common tasks**
+ *
+ * - Create simple sinks: {@link succeed}, {@link fail}, {@link fromEffect}
+ * - Fold input: {@link fold}, {@link foldEffect}, {@link foldLeft}
+ * - Collect values: {@link collectAll}, {@link collectAllN}, {@link collectAllWhile}
+ * - Count or drain input: {@link count}, {@link drain}
+ * - Transform results: {@link map}, {@link mapEffect}, {@link as}
+ * - Combine sinks: {@link zip}, {@link zipWith}, {@link race}
+ * - Filter and refine input: {@link filterInput}, {@link filterInputEffect}
+ *
+ * **Gotchas**
+ *
+ * - A sink can finish before the stream is exhausted; check leftover-aware
+ *   combinators when composing parsers or protocol decoders
+ * - `In` is contravariant, so a sink that accepts broader input can be used
+ *   where narrower input is expected
+ * - Resource and service requirements are tracked in the `R` type parameter
+ *
  * @since 2.0.0
  */
 import type { NonEmptyReadonlyArray } from "./Array.ts"

@@ -1,110 +1,41 @@
 /**
+ * The `LogLevel` module defines the levels used by Effect logging and the
+ * ordering operations used to compare, filter, and enable log output.
+ *
+ * **Mental model**
+ *
+ * - A `LogLevel` is one of `All`, `Fatal`, `Error`, `Warn`, `Info`, `Debug`,
+ *   `Trace`, or `None`
+ * - `Fatal` is the most severe concrete level and `Trace` is the least severe
+ * - `All` and `None` are sentinel levels: `All` enables every message and
+ *   `None` disables every message
+ * - Ordering follows logging severity, so higher levels are more important and
+ *   lower levels are more verbose
+ * - Filtering is usually expressed as "log this message when its level is
+ *   greater than or equal to the configured minimum"
+ *
+ * **Common tasks**
+ *
+ * - Enumerate levels with {@link values}
+ * - Compare exact levels with {@link Equivalence}
+ * - Sort or compare by severity with {@link Order} and {@link getOrdinal}
+ * - Check thresholds with {@link isGreaterThanOrEqualTo} and
+ *   {@link isLessThanOrEqualTo}
+ * - Test whether a level is enabled for the current fiber with
+ *   {@link isEnabled}
+ *
+ * **Gotchas**
+ *
+ * - `All` and `None` are useful for configuration boundaries, but they are not
+ *   concrete message severities; use {@link Severity} when only emitted message
+ *   levels are valid
+ * - The comparison helpers compare severity, not declaration position in source
+ *   code or alphabetical order
+ * - `isEnabled` reads the current fiber's `MinimumLogLevel` reference, so it is
+ *   context-sensitive; use the pure comparison helpers when checking an
+ *   explicit threshold
+ *
  * @since 2.0.0
- *
- * The `LogLevel` module provides utilities for managing log levels in Effect applications.
- * It defines a hierarchy of log levels and provides functions for comparing and filtering logs
- * based on their severity.
- *
- * ## Log Level Hierarchy
- *
- * The log levels are ordered from most severe to least severe:
- *
- * 1. **All** - Special level that allows all messages
- * 2. **Fatal** - System is unusable, immediate attention required
- * 3. **Error** - Error conditions that should be investigated
- * 4. **Warn** - Warning conditions that may indicate problems
- * 5. **Info** - Informational messages about normal operation
- * 6. **Debug** - Debug information useful during development
- * 7. **Trace** - Very detailed trace information
- * 8. **None** - Special level that suppresses all messages
- *
- * ## Basic Usage
- *
- * **Example** (Logging at different levels)
- *
- * ```ts
- * import { Effect } from "effect"
- *
- * // Basic log level usage
- * const program = Effect.gen(function*() {
- *   yield* Effect.logFatal("System is shutting down")
- *   yield* Effect.logError("Database connection failed")
- *   yield* Effect.logWarning("Memory usage is high")
- *   yield* Effect.logInfo("User logged in")
- *   yield* Effect.logDebug("Processing request")
- *   yield* Effect.logTrace("Variable value: xyz")
- * })
- * ```
- *
- * ## Level Comparison
- *
- * **Example** (Comparing log levels)
- *
- * ```ts
- * import { LogLevel } from "effect"
- *
- * // Check if one level is more severe than another
- * console.log(LogLevel.isGreaterThan("Error", "Info")) // true
- * console.log(LogLevel.isGreaterThan("Debug", "Error")) // false
- *
- * // Check if level meets minimum threshold
- * console.log(LogLevel.isGreaterThanOrEqualTo("Info", "Debug")) // true
- * console.log(LogLevel.isLessThan("Trace", "Info")) // true
- * ```
- *
- * ## Filtering by Level
- *
- * **Example** (Filtering logger output)
- *
- * ```ts
- * import { Logger, LogLevel } from "effect"
- *
- * // Create a logger that only logs Error and above
- * const errorLogger = Logger.make((options) => {
- *   if (LogLevel.isGreaterThanOrEqualTo(options.logLevel, "Error")) {
- *     console.log(`[${options.logLevel}] ${options.message}`)
- *   }
- * })
- *
- * // Production logger - Info and above
- * const productionLogger = Logger.make((options) => {
- *   if (LogLevel.isGreaterThanOrEqualTo(options.logLevel, "Info")) {
- *     console.log(
- *       `${options.date.toISOString()} [${options.logLevel}] ${options.message}`
- *     )
- *   }
- * })
- *
- * // Development logger - Debug and above
- * const devLogger = Logger.make((options) => {
- *   if (LogLevel.isGreaterThanOrEqualTo(options.logLevel, "Debug")) {
- *     console.log(`[${options.logLevel}] ${options.message}`)
- *   }
- * })
- * ```
- *
- * ## Runtime Configuration
- *
- * **Example** (Configuring log level from the environment)
- *
- * ```ts
- * import { Config, Effect, Logger, LogLevel } from "effect"
- *
- * // Configure log level from environment
- * const logLevelConfig = Config.string("LOG_LEVEL").pipe(
- *   Config.withDefault("Info")
- * )
- *
- * const configurableLogger = Effect.gen(function*() {
- *   const minLevel = yield* logLevelConfig
- *
- *   return Logger.make((options) => {
- *     if (LogLevel.isGreaterThanOrEqualTo(options.logLevel, minLevel)) {
- *       console.log(`[${options.logLevel}] ${options.message}`)
- *     }
- *   })
- * })
- * ```
  */
 import type * as Effect from "./Effect.ts"
 import * as Equ from "./Equivalence.ts"

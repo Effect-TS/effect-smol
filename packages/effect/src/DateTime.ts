@@ -1,4 +1,53 @@
 /**
+ * The `DateTime` module provides immutable data types and utilities for working
+ * with instants, UTC date-times, zoned date-times, and time zones. A
+ * `DateTime` is always an absolute point in time, represented internally by
+ * epoch milliseconds, and may also carry a `TimeZone` for zone-aware calendar
+ * parts and formatting.
+ *
+ * **Mental model**
+ *
+ * - `DateTime` is a discriminated union: `Utc | Zoned`
+ * - `Utc` stores an absolute instant without an associated time zone
+ * - `Zoned` stores the same kind of absolute instant plus a `TimeZone`
+ * - Time zones can be fixed offsets or named IANA zones such as `"Europe/Rome"`
+ * - Comparison and ordering use the instant, so two values in different zones
+ *   can still be equivalent
+ * - Calendar parts and formatted output depend on whether you ask for UTC parts
+ *   or zone-adjusted parts
+ *
+ * **Common tasks**
+ *
+ * - Construct values: {@link make}, {@link makeUnsafe}, {@link makeZoned}, {@link makeZonedUnsafe}
+ * - Get the current instant: {@link now}, {@link nowInCurrentZone}
+ * - Create time zones: {@link zoneMakeOffset}, {@link zoneMakeNamed}, {@link zoneFromString}
+ * - Attach or change zones: {@link setZone}, {@link setZoneNamed}, {@link setZoneCurrent}, {@link toUtc}
+ * - Convert to platform values or parts: {@link toDate}, {@link toDateUtc}, {@link toEpochMillis}, {@link toParts}, {@link toPartsUtc}
+ * - Compare and bound values: {@link Equivalence}, {@link Order}, {@link distance}, {@link min}, {@link max}, {@link clamp}, {@link between}
+ * - Transform values: {@link add}, {@link subtract}, {@link startOf}, {@link endOf}, {@link nearest}, {@link setParts}, {@link mutate}
+ * - Format values: {@link format}, {@link formatUtc}, {@link formatLocal}, {@link formatIntl}, {@link formatIso}, {@link formatIsoZoned}
+ * - Provide an application time zone: {@link CurrentTimeZone}, {@link withCurrentZone}, {@link layerCurrentZone}
+ *
+ * **Gotchas**
+ *
+ * - `make` and `makeZoned` return `Option`; unsafe constructors throw on invalid
+ *   input
+ * - `DateTime` equality is instant-based, not display-time-based
+ * - `setZone` changes the zone used for local parts and formatting without
+ *   changing the represented instant
+ * - Use `adjustForTimeZone` with {@link makeZoned} when input parts should be
+ *   interpreted as wall-clock time in the target zone
+ * - Daylight-saving gaps and repeated local times are resolved with
+ *   `Disambiguation`
+ * - Prefer the Clock-backed {@link now} and `CurrentTimeZone` services in
+ *   Effect workflows; unsafe helpers read from the host environment directly
+ *
+ * **See also**
+ *
+ * - {@link DateTime} for the UTC/zoned data model
+ * - {@link TimeZone} for offset and named time-zone values
+ * - {@link Disambiguation} for daylight-saving ambiguity handling
+ *
  * @since 3.6.0
  */
 import type { IllegalArgumentError } from "./Cause.ts"

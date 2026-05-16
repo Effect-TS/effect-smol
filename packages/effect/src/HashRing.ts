@@ -1,4 +1,62 @@
 /**
+ * The `HashRing` module provides a weighted consistent-hashing data structure
+ * for assigning arbitrary string inputs to a changing set of nodes. A hash ring
+ * minimizes remapping when nodes are added, removed, or reweighted, which makes
+ * it useful for routing requests, partitioning keys, and distributing shards
+ * across service instances or storage backends.
+ *
+ * **Mental model**
+ *
+ * - Each node is identified by its {@link PrimaryKey.PrimaryKey} value
+ * - {@link add} and {@link addMany} place weighted virtual points on the ring
+ * - {@link get} hashes an input string and returns the nearest node on the ring
+ * - {@link getShards} assigns a fixed number of shard indexes across the nodes
+ * - Higher weights receive proportionally more virtual points and shard
+ *   allocations
+ * - Operations mutate and return the same ring instance
+ *
+ * **Common tasks**
+ *
+ * - Create an empty ring: {@link make}
+ * - Add or update nodes: {@link add}, {@link addMany}
+ * - Remove nodes: {@link remove}
+ * - Check membership by primary key: {@link has}
+ * - Route an input key to a node: {@link get}
+ * - Precompute shard ownership: {@link getShards}
+ * - Guard unknown values: {@link isHashRing}
+ *
+ * **Gotchas**
+ *
+ * - Empty rings return `undefined` from {@link get} and {@link getShards}
+ * - Nodes with the same primary key represent the same ring member
+ * - Weights are clamped to a positive minimum so a node remains represented
+ * - Mutating a ring in place is intentional; create a new ring when independent
+ *   snapshots are required
+ *
+ * **Quickstart**
+ *
+ * **Example** (Routing keys across nodes)
+ *
+ * ```ts
+ * import { HashRing, PrimaryKey } from "effect"
+ *
+ * class Node implements PrimaryKey.PrimaryKey {
+ *   constructor(readonly id: string) {}
+ *
+ *   [PrimaryKey.symbol](): string {
+ *     return this.id
+ *   }
+ * }
+ *
+ * const ring = HashRing.make<Node>().pipe(
+ *   HashRing.add(new Node("node-a")),
+ *   HashRing.add(new Node("node-b"), { weight: 2 })
+ * )
+ *
+ * const owner = HashRing.get(ring, "user:123")
+ * console.log(owner ? PrimaryKey.value(owner) : undefined)
+ * ```
+ *
  * @since 4.0.0
  */
 import { dual } from "./Function.ts"

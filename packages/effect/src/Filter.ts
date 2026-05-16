@@ -1,4 +1,38 @@
 /**
+ * The `Filter` module provides composable functions for accepting, rejecting,
+ * narrowing, and transforming values. A `Filter<Input, Pass, Fail>` receives an
+ * input and returns a `Result`: success means the value passed the filter, while
+ * failure means the value was filtered out.
+ *
+ * **Mental model**
+ *
+ * - A filter is a typed predicate that can also transform the successful value
+ * - Predicate-based filters pass the original input when the predicate returns `true`
+ * - Refinement-based filters narrow the successful type, for example from `unknown` to `string`
+ * - Custom filters return `Result.succeed(pass)` or `Result.fail(fail)` directly
+ * - Filters compose with logical and sequential combinators instead of throwing exceptions
+ * - `FilterEffect` is the effectful form for filters that need asynchronous work, errors, or services
+ *
+ * **Common tasks**
+ *
+ * - Build filters: {@link make}, {@link makeEffect}, {@link fromPredicate}, {@link fromPredicateOption}
+ * - Narrow unknown values: {@link string}, {@link number}, {@link boolean}, {@link bigint}, {@link symbol}, {@link date}
+ * - Match shapes and variants: {@link instanceOf}, {@link tagged}, {@link reason}, {@link has}
+ * - Match exact values: {@link equals}, {@link equalsStrict}
+ * - Combine alternatives: {@link or}
+ * - Require multiple filters: {@link zip}, {@link zipWith}, {@link andLeft}, {@link andRight}
+ * - Run filters in sequence: {@link compose}, {@link composePassthrough}
+ * - Convert results: {@link toPredicate}, {@link toOption}, {@link toResult}
+ * - Adjust failure values: {@link mapFail}
+ *
+ * **Gotchas**
+ *
+ * - A failed filter is data in the `Result` failure channel; it is not an exception
+ * - `compose` preserves intermediate failure values, while {@link composePassthrough} fails with the original input
+ * - `equalsStrict` uses JavaScript `===`; use {@link equals} for structural equality
+ * - `fromPredicateOption` fails with the original input when the returned `Option` is `None`
+ * - Prefer refinement predicates when you want TypeScript to narrow the successful value type
+ *
  * @since 4.0.0
  */
 import type { Effect } from "./Effect.ts"

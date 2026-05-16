@@ -1,4 +1,18 @@
 /**
+ * The `SubscriptionRef` module provides a mutable reference that can be read
+ * and updated like a `Ref`, while also exposing a stream of its current value
+ * and every subsequent change. It is useful when one part of an application
+ * owns evolving state and many fibers need to subscribe to consistent updates,
+ * such as configuration, coordination state, cached snapshots, or UI models.
+ *
+ * Updates are serialized with an internal semaphore and each update is
+ * published to subscribers. The {@link changes} stream replays the latest value
+ * first, then emits future updates, so new subscribers can start from the
+ * current state without performing a separate read. Prefer the effectful
+ * getters and update operations for concurrent code; the unsafe helpers bypass
+ * synchronization and should only be used when the caller already controls
+ * access.
+ *
  * @since 2.0.0
  */
 import * as Effect from "./Effect.ts"

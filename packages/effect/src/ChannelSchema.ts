@@ -1,4 +1,46 @@
 /**
+ * The `ChannelSchema` module provides helpers for applying `Schema` encoding
+ * and decoding at `Channel` boundaries. It is useful when a channel should
+ * expose typed values to application code while communicating with an upstream
+ * or downstream component through an encoded representation such as JSON-ready
+ * data, wire protocol values, or any other schema-defined format.
+ *
+ * **Mental model**
+ *
+ * - A channel schema adapter is a streaming boundary: chunks flow through a
+ *   `Channel`, and each non-empty chunk is validated and transformed with a
+ *   `Schema`
+ * - `encode` turns typed schema values into their encoded representation before
+ *   they leave a typed part of a pipeline
+ * - `decode` turns encoded input into typed schema values before application
+ *   code consumes them
+ * - `duplex` wraps a bidirectional channel so callers work with typed input and
+ *   output while the wrapped channel continues to operate on encoded chunks
+ * - Schema failures are surfaced through the channel error type as
+ *   `SchemaError`, and schema services are reflected in the channel
+ *   requirements
+ *
+ * **Common tasks**
+ *
+ * - Encode typed channel input before sending it to an encoded transport:
+ *   {@link encode}
+ * - Decode encoded channel output before handling it as domain data:
+ *   {@link decode}
+ * - Use unknown encoded boundaries when static encoded types are intentionally
+ *   erased: {@link encodeUnknown} and {@link decodeUnknown}
+ * - Wrap a bidirectional encoded channel with typed input and output schemas:
+ *   {@link duplex} or {@link duplexUnknown}
+ *
+ * **Gotchas**
+ *
+ * - These helpers operate on `NonEmptyReadonlyArray` chunks, so schemas are
+ *   applied to non-empty batches rather than individual scalar values
+ * - Encoding and decoding can require services from the schema; those
+ *   requirements become part of the resulting channel type
+ * - `duplex` encodes values flowing into the wrapped channel and decodes values
+ *   emitted by it, so choose `inputSchema` and `outputSchema` from the
+ *   perspective of the typed caller
+ *
  * @since 4.0.0
  */
 import type * as Arr from "./Array.ts"

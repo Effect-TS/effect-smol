@@ -1,4 +1,23 @@
 /**
+ * The `SchemaParser` module turns schemas into reusable runtime operations for
+ * constructing, validating, decoding, and encoding values. It is the execution
+ * layer behind a schema's AST: parsers walk the schema structure, apply
+ * transformations, honor parse options, run checks, and report failures as
+ * `SchemaIssue.Issue` values.
+ *
+ * Use this module when you need a parser with a specific result shape:
+ * `Effect` for effectful parsing and service requirements, `Promise` for
+ * JavaScript interop, `Exit` or `Result` when failures should stay in data,
+ * `Option` for yes/no validation, and synchronous helpers when throwing is the
+ * desired boundary.
+ *
+ * Decoding reads from the encoded/input side of a schema into its decoded
+ * `Type`, while encoding runs the schema in the opposite direction. The
+ * `make*` helpers construct decoded values and apply constructor defaults before
+ * validation. Parse options supplied when a parser is created are merged with
+ * options supplied at call time, and schema-level parse annotations can further
+ * refine behavior.
+ *
  * @since 4.0.0
  */
 import * as Arr from "./Array.ts"

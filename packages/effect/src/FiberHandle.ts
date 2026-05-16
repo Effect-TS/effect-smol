@@ -1,4 +1,43 @@
 /**
+ * The `FiberHandle` module provides a scoped handle for managing the lifecycle
+ * of at most one fiber at a time. A `FiberHandle<A, E>` can hold one
+ * `Fiber<A, E>`; when a new fiber is installed, the previous fiber is
+ * interrupted unless the operation is configured with `onlyIfMissing`.
+ *
+ * **Mental model**
+ *
+ * - A handle is either open with zero or one current fiber, or closed by its
+ *   surrounding `Scope`
+ * - Closing the scope interrupts the current fiber and prevents new work from
+ *   being accepted
+ * - Completed fibers remove themselves from the handle, so the handle can be
+ *   reused for later work
+ * - Replacing a fiber uses the handle's internal interruption id, allowing
+ *   expected replacement interruptions to be distinguished from real failures
+ *
+ * **Common tasks**
+ *
+ * - Create a scoped handle: {@link make}
+ * - Fork an effect into the handle: {@link run}
+ * - Store an existing fiber: {@link set}
+ * - Read or clear the current fiber: {@link get}, {@link clear}
+ * - Capture runtime-specific runners: {@link makeRuntime}, {@link runtime}
+ * - Run handled effects as Promises: {@link makeRuntimePromise},
+ *   {@link runtimePromise}
+ * - Wait for failure or closure: {@link join}
+ * - Wait until the current fiber is gone: {@link awaitEmpty}
+ *
+ * **Gotchas**
+ *
+ * - The handle never contains more than one live fiber; starting or setting
+ *   another fiber interrupts the previous one by default
+ * - Use `onlyIfMissing` when a call should leave an already running fiber in
+ *   place instead of replacing it
+ * - `join` observes the handle's failure/close signal; successful fiber
+ *   completion only empties the handle
+ * - `awaitEmpty` waits for the fiber that is current when it starts; later
+ *   calls to {@link run} or {@link set} can install new work
+ *
  * @since 2.0.0
  */
 import * as Cause from "./Cause.ts"

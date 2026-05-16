@@ -1,4 +1,24 @@
 /**
+ * The `Pipeable` module defines the shared interface and implementation helpers
+ * for values that support Effect-style method chaining with `.pipe(...)`.
+ *
+ * A `Pipeable` value can pass itself through a sequence of unary functions from
+ * left to right, so code can be written as `value.pipe(f, g, h)` instead of
+ * deeply nesting calls. This is the method form used by many Effect data types
+ * to compose transformations, validations, and effectful operations while
+ * keeping the original value as the starting point of the pipeline.
+ *
+ * **Common tasks**
+ *
+ * - Type values that expose a `.pipe(...)` method with the {@link Pipeable} interface
+ * - Implement a custom `.pipe(...)` method with {@link pipeArguments}
+ * - Reuse the standard implementation through {@link Prototype}, {@link Class}, or {@link Mixin}
+ *
+ * **Gotchas**
+ *
+ * - Each function receives the result of the previous function, not the original value
+ * - The overloads preserve precise types for long pipelines, but very long chains may be easier to read when split
+ *
  * @since 2.0.0
  */
 

@@ -1,36 +1,52 @@
 /**
+ * The `MutableList` module provides a mutable linked list for accumulating,
+ * ordering, inspecting, and draining values with efficient operations at both
+ * ends of the list.
+ *
+ * A `MutableList<A>` stores values in linked buckets of arrays. Appending adds
+ * values to the tail, prepending adds values to the head, and taking removes
+ * values from the head. Unlike persistent collections, every mutation updates
+ * the list object in place: operations such as {@link append}, {@link prepend},
+ * {@link take}, {@link takeN}, {@link clear}, {@link filter}, and {@link remove}
+ * change the same `MutableList` instance and update its `length`.
+ *
+ * **Mental model**
+ *
+ * - `MutableList<A>` is a stateful container with `head`, `tail`, and `length`
+ * - Values are consumed from the head with {@link take}, {@link takeN}, or
+ *   {@link takeAll}
+ * - {@link append} and {@link appendAll} preserve FIFO queue order for normal
+ *   producer-consumer use cases
+ * - {@link prepend} and {@link prependAll} place values before the current
+ *   contents, which is useful for priority work or restoring items to the front
+ * - {@link toArray} and {@link toArrayN} copy values without modifying the list
+ * - The `head` and `tail` bucket fields are exposed for advanced use, but most
+ *   code should treat them as implementation details
+ *
+ * **Common tasks**
+ *
+ * - Create an empty list: {@link make}
+ * - Add one value: {@link append}, {@link prepend}
+ * - Add many values: {@link appendAll}, {@link prependAll}
+ * - Drain one value: {@link take}
+ * - Drain many values: {@link takeN}, {@link takeAll}
+ * - Inspect without draining: {@link toArrayN}, {@link toArray}
+ * - Reset the list: {@link clear}
+ * - Mutate contents in place: {@link filter}, {@link remove}
+ *
+ * **Gotchas**
+ *
+ * - `MutableList` is intentionally mutable; sharing a list means sharing its
+ *   changing state
+ * - {@link take} returns the {@link Empty} symbol when the list has no value, so
+ *   compare with `MutableList.Empty` instead of relying on falsy checks
+ * - {@link appendAllUnsafe} and {@link prependAllUnsafe} may reuse the provided
+ *   array when `mutable` is `true`; only enable that optimization when callers
+ *   will not keep using the array independently
+ * - {@link remove} uses JavaScript strict equality semantics, not structural
+ *   equality
+ *
  * @fileoverview
- * MutableList is an efficient, mutable linked list implementation optimized for high-throughput
- * scenarios like logging, queuing, and streaming. It uses a bucket-based architecture where
- * elements are stored in arrays (buckets) linked together, providing optimal performance for
- * both append and prepend operations.
- *
- * The implementation uses a sophisticated bucket system:
- * - Each bucket contains an array of elements with an offset pointer
- * - Buckets can be marked as mutable or immutable for optimization
- * - Elements are taken from the head and added to the tail
- * - Memory is efficiently managed through bucket reuse and cleanup
- *
- * Key Features:
- * - Highly optimized for high-frequency append/prepend operations
- * - Memory efficient with automatic cleanup of consumed elements
- * - Support for bulk operations (appendAll, prependAll, takeN)
- * - Filtering and removal operations
- * - Zero-copy optimizations for certain scenarios
- *
- * Performance Characteristics:
- * - Append/Prepend: O(1) amortized
- * - Take/TakeN: O(1) per element taken
- * - Length: O(1)
- * - Clear: O(1)
- * - Filter: O(n)
- *
- * Ideal Use Cases:
- * - High-throughput logging systems
- * - Producer-consumer queues
- * - Streaming data buffers
- * - Real-time data processing pipelines
- *
  * @category data-structures
  * @since 4.0.0
  */

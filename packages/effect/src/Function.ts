@@ -1,4 +1,49 @@
 /**
+ * The `Function` module provides small, pure helpers for defining, composing,
+ * adapting, and reusing TypeScript functions. It is the foundation for the
+ * data-first and data-last APIs used throughout Effect, and it includes the
+ * core pipeline utilities that make those APIs ergonomic.
+ *
+ * **Mental model**
+ *
+ * - {@link pipe} starts with a value and passes it through one unary function at
+ *   a time
+ * - {@link flow} composes unary functions into a reusable function
+ * - {@link dual} builds APIs that support both direct calls and `pipe`-friendly
+ *   data-last calls
+ * - {@link identity}, {@link constant}, and the `const*` helpers model common
+ *   identity and thunk patterns without allocating ad hoc callbacks
+ * - {@link tupled}, {@link untupled}, {@link flip}, and {@link apply} adapt
+ *   call shapes without changing the underlying behavior
+ * - Type helpers such as {@link LazyArg}, {@link FunctionN}, {@link satisfies},
+ *   and {@link cast} describe or constrain functions at the type level
+ *
+ * **Common tasks**
+ *
+ * - Build readable transformation pipelines: {@link pipe}
+ * - Create reusable composed functions: {@link flow}, {@link compose}
+ * - Define functions callable in both data-first and data-last style: {@link dual}
+ * - Return a value unchanged: {@link identity}
+ * - Create thunks and common constant functions: {@link constant},
+ *   {@link constTrue}, {@link constFalse}, {@link constNull},
+ *   {@link constUndefined}, {@link constVoid}
+ * - Convert between rest-argument and tuple-argument functions: {@link tupled},
+ *   {@link untupled}
+ * - Express impossible branches: {@link absurd}
+ * - Cache results for object keys: {@link memoize}
+ *
+ * **Gotchas**
+ *
+ * - Functions passed to {@link pipe} and {@link flow} are applied left-to-right
+ *   and should be unary at each step
+ * - {@link dual} uses either an arity or a predicate to decide whether a call is
+ *   data-first or data-last; use a predicate when optional arguments make arity
+ *   ambiguous
+ * - {@link cast} changes only the static TypeScript type and performs no runtime
+ *   validation
+ * - {@link memoize} is intended for object keys and stores cached values in a
+ *   `WeakMap`
+ *
  * @since 2.0.0
  */
 import type { TypeLambda } from "./HKT.ts"

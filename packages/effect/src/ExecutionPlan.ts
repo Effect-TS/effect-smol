@@ -1,4 +1,41 @@
 /**
+ * The `ExecutionPlan` module provides a way to describe ordered fallback
+ * strategies for effects and streams that need different resources across
+ * repeated attempts. An `ExecutionPlan` is a non-empty list of steps, where
+ * each step supplies a `Context` or `Layer` and may control retries with an
+ * attempt limit, a `Schedule`, or a `while` predicate.
+ *
+ * **Mental model**
+ *
+ * - A plan is evaluated step by step until the wrapped effect or stream
+ *   succeeds, or until every step has been exhausted
+ * - Each step provides the services used while that step is active
+ * - `attempts` limits how many times a step may be tried
+ * - `schedule` controls retry timing and receives the failure input
+ * - `while` can stop retrying a step based on the failure input
+ * - `CurrentMetadata` exposes the current 1-based attempt and 0-based step
+ *   index to code running under a plan
+ *
+ * **Common tasks**
+ *
+ * - Build a plan with {@link make}
+ * - Run an effect with a plan using `Effect.withExecutionPlan`
+ * - Run a stream with a plan using `Stream.withExecutionPlan`
+ * - Combine plans in order with {@link merge}
+ * - Capture required services up front with `captureRequirements`
+ * - Inspect the current attempt and step with {@link CurrentMetadata}
+ *
+ * **Gotchas**
+ *
+ * - Plans must contain at least one step
+ * - `attempts` must be greater than zero when provided
+ * - If `attempts` is omitted, a step is attempted once unless a `schedule` is
+ *   provided
+ * - A `while` predicate returning `false` skips the remaining retries for that
+ *   step and moves the plan forward
+ * - Layer, schedule, and predicate requirements are tracked in the plan type
+ *   until they are provided or captured
+ *
  * @since 3.16.0
  */
 import type { NonEmptyReadonlyArray } from "./Array.ts"

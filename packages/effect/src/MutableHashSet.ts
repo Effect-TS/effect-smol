@@ -1,26 +1,74 @@
 /**
+ * The `MutableHashSet` module provides a mutable hash set for storing unique
+ * values with efficient membership checks, insertion, removal, and iteration.
+ * It is built on {@link MutableHashMap}: each set value is stored as a map key,
+ * so uniqueness follows the same hashing and equality rules as the underlying
+ * mutable hash map.
+ *
+ * **Mental model**
+ *
+ * - `MutableHashSet<V>` is a mutable collection of unique values of type `V`
+ * - Operations such as {@link add}, {@link remove}, and {@link clear} mutate
+ *   the set in place
+ * - Duplicate values are ignored according to Effect equality and hashing semantics
+ * - Values that implement `Equal` / `Hash` are compared structurally
+ * - Primitive values and references that do not implement Effect equality use
+ *   the normal hash map behavior
+ * - The set is iterable, so `Array.from(set)` or `for...of` can be used to
+ *   inspect its values
+ *
+ * **Common tasks**
+ *
+ * - Create an empty set: {@link empty}
+ * - Create from values: {@link make}
+ * - Create from any iterable: {@link fromIterable}
+ * - Add a value: {@link add}
+ * - Check membership: {@link has}
+ * - Remove a value: {@link remove}
+ * - Remove all values: {@link clear}
+ * - Count unique values: {@link size}
+ * - Narrow unknown values: {@link isMutableHashSet}
+ *
+ * **Gotchas**
+ *
+ * - This data structure is intentionally mutable; keep ownership clear when
+ *   sharing it between callers
+ * - Mutating operations return the same set instance for convenient piping, not
+ *   a copy
+ * - Iteration order should not be used as a stable sorting mechanism
+ * - For immutable set operations, use Effect's immutable collection modules
+ *   instead
+ *
+ * **Performance**
+ *
+ * - Add, membership checks, and removal are O(1) on average and O(n) in the
+ *   presence of hash collisions
+ * - Clearing and reading the size are O(1)
+ * - Iteration is O(n)
+ *
+ * **Quickstart**
+ *
+ * **Example** (Tracking unique values)
+ *
+ * ```ts
+ * import { MutableHashSet } from "effect"
+ *
+ * const set = MutableHashSet.make("apple", "banana", "apple")
+ *
+ * MutableHashSet.add(set, "cherry")
+ * MutableHashSet.remove(set, "banana")
+ *
+ * console.log(MutableHashSet.has(set, "apple"))
+ * // Output: true
+ *
+ * console.log(MutableHashSet.size(set))
+ * // Output: 2
+ *
+ * console.log(Array.from(set))
+ * // Output: ["apple", "cherry"]
+ * ```
+ *
  * @fileoverview
- * MutableHashSet is a high-performance, mutable set implementation that provides efficient storage
- * and retrieval of unique values. Built on top of MutableHashMap, it inherits the same performance
- * characteristics and support for both structural and referential equality.
- *
- * The implementation uses a MutableHashMap internally where each value is stored as a key with a
- * boolean flag, providing O(1) average-case performance for all operations.
- *
- * Key Features:
- * - Mutable operations for performance-critical scenarios
- * - Supports both structural and referential equality
- * - Efficient duplicate detection and removal
- * - Iterable interface for easy traversal
- * - Memory-efficient storage with automatic deduplication
- * - Seamless integration with Effect's Equal and Hash interfaces
- *
- * Performance Characteristics:
- * - Add/Has/Remove: O(1) average, O(n) worst case (hash collisions)
- * - Clear: O(1)
- * - Size: O(1)
- * - Iteration: O(n)
- *
  * @category data-structures
  * @since 2.0.0
  */

@@ -1,4 +1,38 @@
 /**
+ * The `PartitionedSemaphore` module provides a semaphore for limiting
+ * concurrency across a shared permit pool while keeping waiters grouped by
+ * partition key. A `PartitionedSemaphore<K>` is useful when many independent
+ * groups of work compete for the same bounded resource and each group should
+ * make progress without one busy group monopolizing released permits.
+ *
+ * **Mental model**
+ *
+ * - The semaphore has a fixed shared capacity measured in permits
+ * - Work acquires permits with a partition key of type `K`
+ * - Waiting acquisitions are tracked per partition
+ * - Released permits are assigned to waiting partitions in round-robin order
+ * - `withPermit` and `withPermits` acquire permits around an effect and
+ *   release them when the effect exits, fails, or is interrupted
+ *
+ * **Common tasks**
+ *
+ * - Create a semaphore: {@link make}, {@link makeUnsafe}
+ * - Inspect capacity and availability: {@link capacity}, {@link available}
+ * - Acquire and release manually: {@link take}, {@link release}
+ * - Limit a single operation per partition: {@link withPermit}
+ * - Limit weighted work per partition: {@link withPermits}
+ * - Run only when permits are immediately available:
+ *   {@link withPermitsIfAvailable}
+ *
+ * **Gotchas**
+ *
+ * - `withPermitsIfAvailable` does not use a partition key; it only succeeds
+ *   when the shared pool has enough permits immediately
+ * - Acquiring more permits than the semaphore capacity never completes
+ * - Requests for zero or negative permits complete without acquiring anything
+ * - Non-finite capacities create an unbounded semaphore whose acquire and
+ *   release operations complete immediately
+ *
  * @since 4.0.0
  */
 import * as Effect from "./Effect.ts"

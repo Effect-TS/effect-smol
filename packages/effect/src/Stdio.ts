@@ -1,4 +1,20 @@
 /**
+ * The `Stdio` module defines the service interface used by Effect programs to
+ * interact with process standard I/O. It models command-line arguments,
+ * standard output, standard error, and standard input as Effects, Sinks, and
+ * Streams so programs can depend on console I/O through `Context` instead of
+ * directly coupling to a specific runtime.
+ *
+ * Use this module when building command-line programs, tests, or platform
+ * integrations that need to read bytes from stdin, write text or bytes to
+ * stdout/stderr, or provide deterministic replacements for those capabilities.
+ * The `layerTest` helper is useful for tests because it supplies inert defaults
+ * and lets individual fields be overridden.
+ *
+ * Standard I/O operations are platform capabilities and may fail with
+ * `PlatformError`; handle those failures in the Effect error channel rather than
+ * assuming writes or reads are infallible.
+ *
  * @since 4.0.0
  */
 import * as Context from "./Context.ts"

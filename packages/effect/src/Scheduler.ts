@@ -1,4 +1,23 @@
 /**
+ * The `Scheduler` module defines the runtime scheduling services used by
+ * Effect fibers. A scheduler decides how runnable tasks are enqueued, when they
+ * are dispatched, and whether a fiber should yield after consuming its
+ * operation budget.
+ *
+ * **Common tasks**
+ *
+ * - Use {@link Scheduler} to provide a custom runtime scheduler
+ * - Use {@link MixedScheduler} for the default priority-aware scheduler
+ * - Use {@link MaxOpsBeforeYield} to tune fairness for CPU-bound fibers
+ * - Use {@link PreventSchedulerYield} only when a runtime should bypass yield checks
+ *
+ * **Gotchas**
+ *
+ * - Scheduler priorities affect the order of queued runtime tasks, not the
+ *   semantic result of an `Effect`
+ * - Disabling scheduler yields can improve throughput for controlled workloads,
+ *   but it can also let long-running fibers monopolize the JavaScript thread
+ *
  * @since 2.0.0
  */
 import * as Context from "./Context.ts"

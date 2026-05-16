@@ -1,4 +1,20 @@
 /**
+ * The `Terminal` module defines the service interface used by platform
+ * integrations to model command-line input and output. It gives programs a
+ * uniform way to query terminal dimensions, read lines, stream low-level key
+ * events, and write text without depending directly on Node, the browser, or a
+ * test-specific console implementation.
+ *
+ * Use this module when building interactive command-line tools, prompts, or
+ * platform abstractions that need terminal capabilities as an Effect service.
+ * Implementations are supplied through context, so application code can depend
+ * on `Terminal` while tests and runtimes provide the concrete behavior.
+ *
+ * `readLine` can fail with {@link QuitError} when the user requests to quit,
+ * commonly via `Ctrl+C`. For lower-level interaction, `readInput` returns a
+ * scoped stream of {@link UserInput} values containing parsed key metadata and
+ * any raw character input.
+ *
  * @since 4.0.0
  */
 import type * as Cause from "./Cause.ts"

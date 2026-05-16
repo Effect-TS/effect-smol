@@ -1,4 +1,32 @@
 /**
+ * The `Pool` module provides scoped resource pools for sharing expensive or
+ * limited resources across fibers. A `Pool<A, E>` manages values of type `A`
+ * acquired by an effect that may fail with `E`, automatically releasing all
+ * allocated resources when the surrounding `Scope` closes.
+ *
+ * **Mental model**
+ *
+ * - A pool owns a bounded set of acquired items and hands them out with {@link get}
+ * - Each checkout is scoped; leaving the scope returns the item to the pool
+ * - `concurrency` controls how many fibers may use the same item at once
+ * - `targetUtilization` controls when the pool grows between its minimum and maximum sizes
+ * - {@link invalidate} removes a specific item so it can be replaced lazily
+ *
+ * **Common tasks**
+ *
+ * - Create a fixed-size pool with {@link make}
+ * - Create an elastic pool with time-to-live reclamation using {@link makeWithTTL}
+ * - Implement custom resizing and reclamation behavior with {@link makeWithStrategy}
+ * - Borrow resources safely in scoped effects with {@link get}
+ *
+ * **Gotchas**
+ *
+ * - Pool construction and item checkout require `Scope`; closing the scope shuts
+ *   down the pool or returns the borrowed item
+ * - Failed acquisitions are represented by the `get` effect failing with the
+ *   acquisition error, and retrying `get` can retry acquisition
+ * - Resource finalization order during shutdown is unspecified
+ *
  * @since 2.0.0
  */
 import type * as Cause from "./Cause.ts"

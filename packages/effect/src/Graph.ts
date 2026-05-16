@@ -1,4 +1,54 @@
 /**
+ * The `Graph` module provides immutable and scoped-mutable graph data
+ * structures for modeling relationships between indexed nodes and edges. A
+ * graph can be directed or undirected, stores user-defined data on both nodes
+ * and edges, and exposes traversal, analysis, path finding, transformation, and
+ * diagram export utilities.
+ *
+ * **Mental model**
+ *
+ * - Nodes and edges are addressed by stable numeric indices: {@link NodeIndex}
+ *   and {@link EdgeIndex}
+ * - Node data has type `N`; edge data has type `E`
+ * - {@link Graph} values are immutable snapshots; use {@link MutableGraph}
+ *   through {@link mutate}, {@link beginMutation}, or constructor callbacks to
+ *   add, remove, or update nodes and edges
+ * - Directed graphs follow edge direction for neighbors and traversals, while
+ *   undirected graphs treat each edge as connecting both endpoints
+ * - Missing lookups return `Option`, while structurally invalid operations such
+ *   as adding an edge to a missing node throw {@link GraphError}
+ *
+ * **Common tasks**
+ *
+ * - Create graphs: {@link directed}, {@link undirected}
+ * - Mutate safely: {@link mutate}, {@link addNode}, {@link addEdge},
+ *   {@link removeNode}, {@link removeEdge}
+ * - Query contents: {@link getNode}, {@link getEdge}, {@link hasNode},
+ *   {@link hasEdge}, {@link nodeCount}, {@link edgeCount}, {@link neighbors}
+ * - Transform data: {@link updateNode}, {@link updateEdge}, {@link mapNodes},
+ *   {@link mapEdges}, {@link filterNodes}, {@link filterEdges},
+ *   {@link filterMapNodes}, {@link filterMapEdges}
+ * - Traverse lazily: {@link dfs}, {@link bfs}, {@link topo},
+ *   {@link dfsPostOrder}, {@link nodes}, {@link edges}, {@link Walker}
+ * - Analyze structure: {@link isAcyclic}, {@link isBipartite},
+ *   {@link connectedComponents}, {@link stronglyConnectedComponents},
+ *   {@link externals}
+ * - Find paths: {@link dijkstra}, {@link astar}, {@link bellmanFord},
+ *   {@link floydWarshall}
+ * - Export diagrams: {@link toGraphViz}, {@link toMermaid}
+ *
+ * **Gotchas**
+ *
+ * - Only mutable graphs can be changed. Create one with {@link mutate} or by
+ *   passing a callback to {@link directed} / {@link undirected}.
+ * - Traversal APIs return lazy {@link Walker} values. Use {@link indices},
+ *   {@link values}, or {@link entries} to choose what each iteration yields.
+ * - `NodeIndex` and `EdgeIndex` values are identifiers, not array offsets. They
+ *   are not reused after removals.
+ * - Shortest-path algorithms require a cost function. {@link dijkstra} and
+ *   {@link astar} reject negative weights; use {@link bellmanFord} or
+ *   {@link floydWarshall} when negative weights are part of the model.
+ *
  * @since 4.0.0
  */
 

@@ -1,4 +1,29 @@
 /**
+ * The `TxHashMap` module provides a transactional hash map for storing and
+ * updating key-value pairs inside Effect transactions. It is useful when
+ * multiple fibers need to coordinate shared map state and each read-modify-write
+ * sequence must be committed atomically.
+ *
+ * A `TxHashMap<K, V>` has the familiar shape of a `HashMap<K, V>`, but every
+ * operation returns an `Effect` and participates in transaction semantics
+ * through `TxRef`. Use it for concurrent registries, caches, counters, indexes,
+ * and other mutable maps whose updates should compose safely with other
+ * transactional references.
+ *
+ * **Common tasks**
+ *
+ * - Create maps with {@link empty}, {@link fromIterable}, or {@link make}
+ * - Read entries with {@link get}, {@link has}, {@link keys}, {@link values}, and {@link entries}
+ * - Update entries with {@link set}, {@link modify}, {@link modifyAt}, and {@link remove}
+ * - Inspect aggregate state with {@link size}, {@link isEmpty}, and {@link reduce}
+ *
+ * **Gotchas**
+ *
+ * - Operations are effectful; run them in `Effect.gen` and wrap multi-step
+ *   transactions with `Effect.tx` when the whole sequence must commit together.
+ * - Reads that may be absent return `Option`, so handle both `Some` and `None`
+ *   instead of assuming a key exists.
+ *
  * @since 2.0.0
  */
 

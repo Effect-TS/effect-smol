@@ -1,4 +1,41 @@
 /**
+ * The `Stream` module provides a typed, composable way to describe effectful
+ * sequences of values. A `Stream<A, E, R>` can emit zero or more `A` values,
+ * fail with an `E`, and require services from `R` while preserving
+ * backpressure and resource safety.
+ *
+ * **Mental model**
+ *
+ * - A stream is a lazy description; it runs only when consumed with a `run*` function
+ * - Streams are pull-based and emit chunks internally for efficient throughput
+ * - `A` is the element type, `E` is the failure type, and `R` is the required context
+ * - Stream composition mirrors `Effect`: use `map`, `flatMap`, error handling, and `pipe`
+ * - Resource scopes, interruption, and finalizers are tracked by the Effect runtime
+ * - Interop functions connect streams to queues, pub/subs, web streams, async iterables, and channels
+ *
+ * **Common tasks**
+ *
+ * - Create streams: {@link make}, {@link fromIterable}, {@link fromEffect}, {@link fromQueue}
+ * - Transform values: {@link map}, {@link mapEffect}, {@link flatMap}, {@link filter}
+ * - Combine streams: {@link concat}, {@link merge}, {@link zip}, {@link race}
+ * - Control demand and timing: {@link take}, {@link drop}, {@link debounce}, {@link throttle}
+ * - Manage errors: {@link catchCause}, {@link catchIf}, {@link mapError}, {@link retry}
+ * - Manage resources and services: {@link scoped}, {@link ensuring}, {@link provide}
+ * - Consume streams: {@link runCollect}, {@link runForEach}, {@link runFold}, {@link runDrain}
+ *
+ * **Gotchas**
+ *
+ * - A stream is not a collection; constructors and operators build a description until it is run
+ * - Re-running a stream re-executes its effects unless it is explicitly shared or backed by external state
+ * - Operators such as {@link merge}, {@link race}, and {@link broadcast} introduce concurrency and interruption semantics
+ * - Prefer bounded constructors and sinks for large or infinite streams instead of collecting everything into memory
+ *
+ * **See also**
+ *
+ * - {@link Effect.Effect} for single-result effectful programs
+ * - {@link Sink.Sink} for consuming and folding streams
+ * - {@link Channel.Channel} for the lower-level primitive underlying streams
+ *
  * @since 2.0.0
  */
 // @effect-diagnostics returnEffectInGen:off

@@ -1,49 +1,54 @@
 /**
- * @since 2.0.0
+ * The `Metric` module provides tools for defining, updating, tagging, and
+ * reading application metrics from Effect programs. A `Metric<Input, State>`
+ * accepts typed input values and aggregates them into a typed state that can be
+ * read directly or exported from a snapshot.
  *
- * The `Metric` module provides a comprehensive system for collecting, aggregating, and observing
- * application metrics in Effect applications. It offers type-safe, concurrent metrics that can
- * be used to monitor performance, track business metrics, and gain insights into application behavior.
+ * **Mental model**
  *
- * ## Key Features
+ * - A metric has an identifier, a type, an optional description, optional attributes, and mutable aggregate state
+ * - Use counters for cumulative values such as requests, errors, retries, or bytes processed
+ * - Use gauges for point-in-time values that can rise or fall, such as active connections or queue size
+ * - Use frequencies to count occurrences of discrete string values, such as status codes or action names
+ * - Use histograms to bucket numeric observations and inspect count, min, max, and sum
+ * - Use summaries to calculate quantiles over a bounded, time-based observation window
+ * - Metrics are updated from effects with {@link update} and {@link modify}, and read with {@link value}
+ * - Attributes tag metrics with key-value dimensions so the same logical metric can be grouped by service, endpoint, method, or other labels
+ * - Snapshots capture the currently registered metrics and their aggregate states for reporting or export
  *
- * - **Five Metric Types**: Counters, Gauges, Frequencies, Histograms, and Summaries
- * - **Type Safety**: Fully typed metrics with compile-time guarantees
- * - **Concurrency Safe**: Thread-safe metrics that work with Effect's concurrency model
- * - **Attributes**: Tag metrics with key-value attributes for filtering and grouping
- * - **Snapshots**: Take point-in-time snapshots of all metrics for reporting
- * - **Runtime Integration**: Automatic fiber runtime metrics collection
+ * **Common tasks**
  *
- * ## Metric Types
+ * - Create counters: {@link counter}
+ * - Create gauges: {@link gauge}
+ * - Create frequencies: {@link frequency}
+ * - Create histograms: {@link histogram}, {@link linearBoundaries}, {@link exponentialBoundaries}
+ * - Create summaries: {@link summary}, {@link summaryWithTimestamp}
+ * - Measure effect duration: {@link timer}
+ * - Update a metric: {@link update}
+ * - Apply relative updates where supported: {@link modify}
+ * - Read one metric: {@link value}
+ * - Tag a metric: {@link withAttributes}
+ * - Transform accepted input values: {@link mapInput}
+ * - Record a constant input for repeated events: {@link withConstantInput}
+ * - Inspect all registered metrics: {@link snapshot}, {@link dump}
+ * - Enable fiber runtime metrics: {@link enableRuntimeMetrics}
  *
- * ### Counter
- * Tracks cumulative values that only increase or can be reset to zero.
- * Perfect for counting events, requests, errors, etc.
+ * **Gotchas**
  *
- * ### Gauge
- * Represents a single numerical value that can go up or down.
- * Ideal for current resource usage, temperature, queue sizes, etc.
+ * - Counter and gauge metrics can use `number` inputs by default or `bigint` inputs with the `bigint` option
+ * - Incremental counters ignore negative updates; use non-incremental counters only when decreases are meaningful
+ * - {@link update} sets a gauge to an absolute value, while {@link modify} changes it relative to its current value
+ * - Histogram buckets are cumulative and depend on the boundaries supplied when the metric is created
+ * - Summary quantiles are calculated from the configured sliding window, so old observations expire
+ * - Prefer low-cardinality attributes; using unbounded values such as request IDs can create too many metric series
  *
- * ### Frequency
- * Counts occurrences of discrete string values.
- * Useful for tracking categorical data like HTTP status codes, user actions, etc.
- *
- * ### Histogram
- * Records observations in configurable buckets to analyze distribution.
- * Great for response times, request sizes, and other measured values.
- *
- * ### Summary
- * Calculates quantiles over a sliding time window.
- * Provides statistical insights into value distributions over time.
- *
- * ## Basic Usage
+ * **Quickstart**
  *
  * **Example** (Creating and updating metrics)
  *
  * ```ts
  * import { Effect, Metric } from "effect"
  *
- * // Create metrics
  * const requestCount = Metric.counter("http_requests_total", {
  *   description: "Total number of HTTP requests"
  * })
@@ -53,33 +58,7 @@
  *   boundaries: Metric.linearBoundaries({ start: 0, width: 50, count: 20 })
  * })
  *
- * // Use metrics in your application
  * const handleRequest = Effect.gen(function*() {
- *   yield* Metric.update(requestCount, 1)
- *
- *   const startTime = yield* Effect.clockWith((clock) => clock.currentTimeMillis)
- *
- *   // Process request...
- *   yield* Effect.sleep("100 millis")
- *
- *   const endTime = yield* Effect.clockWith((clock) => clock.currentTimeMillis)
- *   yield* Metric.update(responseTime, endTime - startTime)
- * })
- * ```
- *
- * ## Attributes and Tagging
- *
- * **Example** (Tagging metrics with attributes)
- *
- * ```ts
- * import { Effect, Metric } from "effect"
- *
- * const requestCount = Metric.counter("requests", {
- *   description: "Number of requests by endpoint and method"
- * })
- *
- * const program = Effect.gen(function*() {
- *   // Add attributes to metrics
  *   yield* Metric.update(
  *     Metric.withAttributes(requestCount, {
  *       endpoint: "/api/users",
@@ -88,59 +67,21 @@
  *     1
  *   )
  *
- *   // Or use withAttributes for compile-time attributes
- *   const taggedCounter = Metric.withAttributes(requestCount, {
- *     endpoint: "/api/posts",
- *     method: "POST"
- *   })
- *   yield* Metric.update(taggedCounter, 1)
+ *   yield* Metric.update(responseTime, 125)
+ *
+ *   return yield* Metric.value(requestCount)
  * })
  * ```
  *
- * ## Advanced Examples
+ * **See also**
  *
- * **Example** (Recording business and performance metrics)
+ * - {@link counter} / {@link gauge} / {@link frequency} for common metric types
+ * - {@link histogram} / {@link summary} for distribution metrics
+ * - {@link update} / {@link modify} / {@link value} for working with metric state
+ * - {@link withAttributes} for adding dimensions
+ * - {@link snapshot} for exporting all registered metric values
  *
- * ```ts
- * import { Effect, Metric } from "effect"
- *
- * // Business metrics
- * const userSignups = Metric.counter("user_signups_total")
- * const activeUsers = Metric.gauge("active_users_current")
- * const featureUsage = Metric.frequency("feature_usage")
- *
- * // Performance metrics
- * const dbQueryTime = Metric.summary("db_query_duration", {
- *   maxAge: "5 minutes",
- *   maxSize: 1000,
- *   quantiles: [0.5, 0.9, 0.95, 0.99]
- * })
- *
- * const program = Effect.gen(function*() {
- *   // Track user signup
- *   yield* Metric.update(userSignups, 1)
- *
- *   // Update active user count
- *   yield* Metric.update(activeUsers, 1250)
- *
- *   // Record feature usage
- *   yield* Metric.update(featureUsage, "dashboard_view")
- *
- *   // Measure database query time
- *   yield* Effect.timed(performDatabaseQuery).pipe(
- *     Effect.tap(([duration]) => Metric.update(dbQueryTime, duration))
- *   )
- * })
- *
- * // Get metric snapshots
- * const getMetrics = Effect.gen(function*() {
- *   const snapshots = yield* Metric.snapshot
- *
- *   for (const metric of snapshots) {
- *     console.log(`${metric.id}: ${JSON.stringify(metric.state)}`)
- *   }
- * })
- * ```
+ * @since 2.0.0
  */
 
 import * as Arr from "./Array.ts"

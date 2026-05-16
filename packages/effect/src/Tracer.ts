@@ -1,4 +1,42 @@
 /**
+ * The `Tracer` module defines the low-level tracing model used by Effect to
+ * describe and propagate spans. A span records the lifetime of an operation,
+ * including its name, parent, attributes, links, annotations, sampling decision,
+ * kind, and completion status.
+ *
+ * **Mental model**
+ *
+ * - `Tracer` is the backend interface responsible for creating spans
+ * - `Span` values represent Effect-managed operations with mutable lifecycle
+ *   hooks for ending spans and adding attributes, events, or links
+ * - `ExternalSpan` represents trace context imported from another tracing
+ *   system so Effect spans can be parented by or linked to external work
+ * - `ParentSpan`, `Tracer`, and related context references control propagation,
+ *   sampling, and trace-level filtering through the Effect context
+ *
+ * **Common tasks**
+ *
+ * - Implement a custom tracing backend with {@link make}
+ * - Provide or inspect parent span context with {@link ParentSpan}
+ * - Convert external trace identifiers into Effect span values with
+ *   {@link externalSpan}
+ * - Configure span metadata with {@link SpanOptions}, {@link SpanKind}, and
+ *   {@link SpanLink}
+ * - Disable propagation or adjust trace filtering with
+ *   {@link DisablePropagation}, {@link CurrentTraceLevel}, and
+ *   {@link MinimumTraceLevel}
+ *
+ * **Gotchas**
+ *
+ * - This module exposes the tracing data model and backend hooks; most
+ *   application code should create spans through higher-level Effect APIs such
+ *   as `Effect.withSpan`
+ * - `ExternalSpan` only carries identity and metadata from another system; it
+ *   does not have lifecycle methods like `Span`
+ * - Propagation and sampling are context-dependent, so parent selection can be
+ *   affected by disabled propagation, root span options, and trace-level
+ *   thresholds
+ *
  * @since 2.0.0
  */
 import * as Context from "./Context.ts"

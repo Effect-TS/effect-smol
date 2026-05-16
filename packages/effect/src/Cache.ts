@@ -1,4 +1,39 @@
 /**
+ * The `Cache` module provides an effectful, mutable key-value cache for values
+ * that are computed by a lookup function. A `Cache<Key, A, E, R>` stores lookup
+ * results for keys, shares concurrent lookups for the same key, and manages
+ * entry lifetime with capacity limits and optional time-to-live policies.
+ *
+ * **Mental model**
+ *
+ * - A cache is created from a lookup function and a maximum capacity
+ * - {@link get} returns a cached value when present, or runs the lookup on a miss
+ * - Concurrent misses for the same key share one pending lookup
+ * - Lookup failures are cached as failures until the entry expires, is invalidated, or is refreshed
+ * - Entries can live forever, expire after a fixed duration, or use a dynamic TTL based on the lookup `Exit`
+ * - Capacity is enforced by removing the oldest stored entries when new entries are added
+ *
+ * **Common tasks**
+ *
+ * - Create a cache: {@link make}, {@link makeWith}
+ * - Read values: {@link get}, {@link getOption}, {@link getSuccess}
+ * - Seed or overwrite values: {@link set}
+ * - Refresh values: {@link refresh}
+ * - Remove entries: {@link invalidate}, {@link invalidateWhen}, {@link invalidateAll}
+ * - Inspect contents: {@link has}, {@link size}, {@link keys}, {@link values}, {@link entries}
+ *
+ * **Gotchas**
+ *
+ * - {@link getOption} does not run the lookup; it only reads an existing non-expired entry
+ * - {@link size} may include expired entries until they are observed and removed
+ * - {@link values} and {@link entries} include only successfully resolved entries
+ * - Use `Data` or another `Equal`-compatible key type when keys need structural equality
+ *
+ * **See also**
+ *
+ * - {@link Duration} for configuring fixed or dynamic time-to-live values
+ * - {@link Effect} for the lookup effects used to compute cached values
+ *
  * @since 4.0.0
  */
 import * as Context from "./Context.ts"

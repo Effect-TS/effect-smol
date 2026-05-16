@@ -1,4 +1,22 @@
 /**
+ * The `TxSemaphore` module provides a transactional semaphore for coordinating
+ * access to limited resources from within Effect transactions. A semaphore
+ * tracks a fixed number of permits, and transactional operations can acquire,
+ * release, or inspect those permits atomically with other transactional state.
+ *
+ * Use `TxSemaphore` when permit accounting needs to compose with `TxRef` and
+ * other transactional updates, such as guarding resource pools, rate-limited
+ * sections, or workflows that must reserve capacity consistently before
+ * committing related state changes.
+ *
+ * **Gotchas**
+ *
+ * - Permit operations are intended for transactional workflows and are wrapped
+ *   with `Effect.tx`.
+ * - The semaphore capacity is fixed at construction time; releasing more
+ *   permits than the original capacity fails.
+ * - Creating a semaphore with a negative number of permits defects.
+ *
  * @since 4.0.0
  */
 

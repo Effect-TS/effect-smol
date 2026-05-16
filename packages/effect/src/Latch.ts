@@ -1,4 +1,36 @@
 /**
+ * The `Latch` module provides a reusable synchronization primitive for
+ * coordinating fibers. A `Latch` is either open or closed: when it is closed,
+ * fibers that use {@link await} or {@link whenOpen} suspend until the latch is
+ * opened or the current waiters are released.
+ *
+ * **Mental model**
+ *
+ * - An open latch lets current and future waiters continue immediately
+ * - A closed latch causes `await` and `whenOpen` to suspend
+ * - {@link open} permanently opens the latch until it is closed again
+ * - {@link release} wakes only the fibers currently waiting and leaves the
+ *   latch closed for future waiters
+ * - {@link close} resets the latch so later waiters suspend again
+ *
+ * **Common tasks**
+ *
+ * - Create a latch inside `Effect`: {@link make}
+ * - Create a latch synchronously: {@link makeUnsafe}
+ * - Wait for a signal before continuing: {@link await}
+ * - Guard an effect so it runs only after the latch is open: {@link whenOpen}
+ * - Let all current and future waiters proceed: {@link open}
+ * - Let only the current waiters proceed: {@link release}
+ * - Re-enable waiting after opening: {@link close}
+ *
+ * **Gotchas**
+ *
+ * - `release` is not the same as `open`; new waiters still suspend after the
+ *   current waiters are released
+ * - `open` and `close` report whether they changed the latch state
+ * - Prefer the effectful APIs unless synchronous allocation or mutation is
+ *   required
+ *
  * @since 3.8.0
  */
 import type * as Effect from "./Effect.ts"
