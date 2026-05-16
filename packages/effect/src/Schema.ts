@@ -223,7 +223,8 @@ export interface Bottom<
   out TypeOptionality extends Optionality = "required",
   out TypeConstructorDefault extends ConstructorDefault = "no-default",
   out EncodedMutability extends Mutability = "readonly",
-  out EncodedOptionality extends Optionality = "required"
+  out EncodedOptionality extends Optionality = "required",
+  out EncodedKey extends PropertyKey = never
 > extends Pipeable.Pipeable {
   readonly [TypeId]: typeof TypeId
 
@@ -245,6 +246,7 @@ export interface Bottom<
   readonly "~type.optionality": TypeOptionality
   readonly "~encoded.mutability": EncodedMutability
   readonly "~encoded.optionality": EncodedOptionality
+  readonly "~encoded.key": EncodedKey
 
   annotate(annotations: Annotations.Bottom<this["Type"], this["~type.parameters"]>): this["Rebuild"]
   annotateKey(annotations: Annotations.Key<this["Type"]>): this["Rebuild"]
@@ -545,6 +547,61 @@ export function annotateEncoded<S extends Top>(annotations: Annotations.Bottom<S
 export function annotateKey<S extends Top>(annotations: Annotations.Key<S["Type"]>) {
   return (self: S): S["Rebuild"] => {
     return self.rebuild(AST.annotateKey(self.ast, annotations))
+  }
+}
+
+/**
+ * Companion type for {@link encodedKey}. Carries a field-local encoded property
+ * name so it can be preserved across struct field reuse.
+ *
+ * @since 4.0.0
+ */
+export interface encodedKey<S extends Top, Key extends PropertyKey> extends
+  Bottom<
+    S["Type"],
+    S["Encoded"],
+    S["DecodingServices"],
+    S["EncodingServices"],
+    S["ast"],
+    encodedKey<S, Key>,
+    S["~type.make.in"],
+    S["Iso"],
+    S["~type.parameters"],
+    S["~type.make"],
+    S["~type.mutability"],
+    S["~type.optionality"],
+    S["~type.constructor.default"],
+    S["~encoded.mutability"],
+    S["~encoded.optionality"],
+    Key
+  >
+{
+  readonly schema: S
+}
+
+/**
+ * Sets the encoded property name for a field schema. The mapping is attached to
+ * the field itself, so it is preserved when the field is reused in other
+ * structs, spread into field objects, or carried through `mapFields`.
+ *
+ * **Example** (Reusable renamed field)
+ *
+ * ```ts
+ * import { Schema } from "effect"
+ *
+ * const fullName = Schema.String.pipe(Schema.encodedKey("full_name"))
+ *
+ * const Person = Schema.Struct({
+ *   name: fullName
+ * })
+ * ```
+ *
+ * @category Struct transformations
+ * @since 4.0.0
+ */
+export function encodedKey<const Key extends PropertyKey>(key: Key) {
+  return <S extends Top>(self: S): encodedKey<S, Key> => {
+    return make(AST.annotateKey(self.ast, { encodedKey: key }), { schema: self }) as any
   }
 }
 
@@ -1585,7 +1642,8 @@ export interface optionalKey<S extends Top> extends
     "optional",
     S["~type.constructor.default"],
     S["~encoded.mutability"],
-    "optional"
+    "optional",
+    S["~encoded.key"]
   >
 {
   readonly schema: S
@@ -1639,8 +1697,27 @@ export const requiredKey = Struct_.lambda<requiredKeyLambda>((self) => self.sche
  *
  * @since 4.0.0
  */
-export interface optional<S extends Top> extends optionalKey<UndefinedOr<S>> {
-  readonly "Rebuild": optional<S>
+export interface optional<S extends Top> extends
+  Bottom<
+    UndefinedOr<S>["Type"],
+    UndefinedOr<S>["Encoded"],
+    UndefinedOr<S>["DecodingServices"],
+    UndefinedOr<S>["EncodingServices"],
+    UndefinedOr<S>["ast"],
+    optional<S>,
+    UndefinedOr<S>["~type.make.in"],
+    UndefinedOr<S>["Iso"],
+    UndefinedOr<S>["~type.parameters"],
+    UndefinedOr<S>["~type.make"],
+    UndefinedOr<S>["~type.mutability"],
+    "optional",
+    UndefinedOr<S>["~type.constructor.default"],
+    UndefinedOr<S>["~encoded.mutability"],
+    "optional",
+    S["~encoded.key"]
+  >
+{
+  readonly schema: UndefinedOr<S>
 }
 
 interface optionalLambda extends Lambda {
@@ -1673,7 +1750,11 @@ interface optionalLambda extends Lambda {
  *
  * @since 4.0.0
  */
-export const optional = Struct_.lambda<optionalLambda>((self) => optionalKey(UndefinedOr(self)))
+export const optional = Struct_.lambda<optionalLambda>((self) => {
+  const out = optionalKey(UndefinedOr(self))
+  const annotations = resolveAnnotationsKey(self)
+  return (annotations === undefined ? out : annotateKey<typeof out>(annotations)(out)) as any
+})
 
 interface requiredLambda extends Lambda {
   <S extends Top>(self: optional<S>): S
@@ -1711,7 +1792,8 @@ export interface mutableKey<S extends Top> extends
     S["~type.optionality"],
     S["~type.constructor.default"],
     "mutable",
-    S["~encoded.optionality"]
+    S["~encoded.optionality"],
+    S["~encoded.key"]
   >
 {
   readonly schema: S
@@ -2401,15 +2483,19 @@ export declare namespace Struct {
       : never
   }[keyof Fields]
 
+  type EncodedName<F extends Fields, K extends keyof F> = F[K] extends { readonly "~encoded.key": infer Key extends PropertyKey }
+    ? Key
+    : K
+
   type Encoded_<
     F extends Fields,
     O extends keyof F = EncodedOptionalKeys<F>,
     M extends keyof F = EncodedMutableKeys<F>
   > =
-    & { readonly [K in keyof F as K extends M | O ? never : K]: F[K]["Encoded"] }
-    & { readonly [K in keyof F as K extends O ? K extends M ? never : K : never]?: F[K]["Encoded"] }
-    & { -readonly [K in keyof F as K extends M ? K extends O ? never : K : never]: F[K]["Encoded"] }
-    & { -readonly [K in keyof F as K extends M & O ? K : never]?: F[K]["Encoded"] }
+    & { readonly [K in keyof F as K extends M | O ? never : EncodedName<F, K>]: F[K]["Encoded"] }
+    & { readonly [K in keyof F as K extends O ? K extends M ? never : EncodedName<F, K> : never]?: F[K]["Encoded"] }
+    & { -readonly [K in keyof F as K extends M ? K extends O ? never : EncodedName<F, K> : never]: F[K]["Encoded"] }
+    & { -readonly [K in keyof F as K extends M & O ? EncodedName<F, K> : never]?: F[K]["Encoded"] }
 
   /**
    * @since 4.0.0
@@ -2503,8 +2589,8 @@ export interface Struct<Fields extends Struct.Fields> extends
   ): Struct<Simplify<Readonly<To>>>
 }
 
-function makeStruct<const Fields extends Struct.Fields>(ast: AST.Objects, fields: Fields): Struct<Fields> {
-  return make(ast, {
+function makeStructMethods<const Fields extends Struct.Fields>(fields: Fields) {
+  return {
     fields,
     mapFields<To extends Struct.Fields>(
       this: Struct<Fields>,
@@ -2513,17 +2599,83 @@ function makeStruct<const Fields extends Struct.Fields>(ast: AST.Objects, fields
         readonly unsafePreserveChecks?: boolean | undefined
       } | undefined
     ): Struct<To> {
-      const fields = f(this.fields)
-      return makeStruct(AST.struct(fields, options?.unsafePreserveChecks ? this.ast.checks : undefined), fields)
+      return makeStruct(f(this.fields), {
+        checks: options?.unsafePreserveChecks ? this.ast.checks : undefined
+      })
     }
-  })
+  }
+}
+
+function makeEncodedFields<
+  Fields extends Struct.Fields,
+  M extends { readonly [K in keyof Fields]?: PropertyKey }
+>(
+  fields: Fields,
+  mapping: M
+): {
+  readonly fields: { readonly [K in keyof Fields as K extends keyof M ? M[K] extends PropertyKey ? M[K] : K : K]: toEncoded<Fields[K]> }
+  readonly reverseMapping: { readonly [K in keyof Fields as K extends keyof M ? M[K] extends PropertyKey ? M[K] : never : never]: K }
+} {
+  const encodedFields: any = {}
+  const reverseMapping: any = {}
+  const seen = new Map<PropertyKey, PropertyKey>()
+  for (const key of Reflect.ownKeys(fields) as Array<keyof Fields & PropertyKey>) {
+    const encodedKey = Object.hasOwn(mapping, key) ? mapping[key]! : key
+    const previous = seen.get(encodedKey)
+    if (previous !== undefined && previous !== key) {
+      throw new Error(
+        `Duplicate encoded key ${JSON.stringify(String(encodedKey))} for fields ${JSON.stringify(String(previous))} and ${
+          JSON.stringify(String(key))
+        }`
+      )
+    }
+    seen.set(encodedKey, key)
+    let encoded = toEncoded(fields[key])
+    const annotations = encoded.ast.context?.annotations
+    if (annotations?.encodedKey !== undefined) {
+      encoded = annotateKey<typeof encoded>({ encodedKey: undefined })(encoded)
+    }
+    encodedFields[encodedKey] = encoded
+    if (encodedKey !== key) {
+      reverseMapping[encodedKey] = key
+    }
+  }
+  return { fields: encodedFields, reverseMapping } as any
+}
+
+function getFieldEncodedKeyMapping<Fields extends Struct.Fields>(fields: Fields): {
+  readonly [K in keyof Fields]?: PropertyKey
+} {
+  const mapping: any = {}
+  for (const key of Reflect.ownKeys(fields) as Array<keyof Fields & PropertyKey>) {
+    const encodedKey = fields[key].ast.context?.annotations?.encodedKey
+    if (encodedKey !== undefined) {
+      mapping[key] = encodedKey
+    }
+  }
+  return mapping
+}
+
+function makeStruct<const Fields extends Struct.Fields>(
+  fields: Fields,
+  options?: {
+    readonly checks?: AST.Checks | undefined
+    readonly identifier?: string | undefined
+  }
+): Struct<Fields> {
+  const out = make(AST.struct(fields, options?.checks, options?.identifier ? { identifier: options.identifier } : undefined), (
+    makeStructMethods(fields)
+  )) as Struct<Fields>
+  const mapping = getFieldEncodedKeyMapping(fields)
+  return Reflect.ownKeys(mapping).length === 0 ? out : Object.assign(encodeKeys(mapping)(out), makeStructMethods(fields))
 }
 
 /**
  * Defines a struct schema from a map of field schemas.
  *
  * Each field value is a schema. Use {@link optionalKey} or {@link optional} to
- * mark fields as optional, and {@link mutableKey} to mark them as mutable.
+ * mark fields as optional, {@link mutableKey} to mark them as mutable, and
+ * {@link encodedKey} to rename a field in the encoded form.
  *
  * The resulting schema's `Type` is a readonly object type with the fields'
  * decoded types. The `Encoded` form mirrors the field schemas' encoded types.
@@ -2551,7 +2703,7 @@ function makeStruct<const Fields extends Struct.Fields>(ast: AST.Objects, fields
  * @since 4.0.0
  */
 export function Struct<const Fields extends Struct.Fields>(fields: Fields): Struct<Fields> {
-  return makeStruct(AST.struct(fields, undefined), fields)
+  return makeStruct(fields)
 }
 
 interface fieldsAssign<NewFields extends Struct.Fields> extends Lambda {
@@ -2626,6 +2778,9 @@ export interface encodeKeys<
  * const alice = Schema.decodeUnknownSync(Encoded)({ full_name: "Alice", age: 30 })
  * console.log(alice)
  * // { name: 'Alice', age: 30 }
+ *
+ * Field-local key renames created with {@link encodedKey} are applied first.
+ * Calling `encodeKeys` lets you override or add an explicit mapping on top.
  * ```
  *
  * @category Struct transformations
@@ -2636,17 +2791,7 @@ export function encodeKeys<
   const M extends { readonly [K in keyof S["fields"]]?: PropertyKey }
 >(mapping: M) {
   return function(self: S): encodeKeys<S, M> {
-    const fields: any = {}
-    const reverseMapping: any = {}
-    for (const k in self.fields) {
-      const encoded = toEncoded(self.fields[k])
-      if (Object.hasOwn(mapping, k)) {
-        fields[mapping[k]!] = encoded
-        reverseMapping[mapping[k]!] = k
-      } else {
-        fields[k] = encoded
-      }
-    }
+    const { fields, reverseMapping } = makeEncodedFields(self.fields, mapping)
     return Struct(fields).pipe(decodeTo(
       self,
       Transformation.transform<any, any>({
@@ -10616,7 +10761,7 @@ function makeClass<
         return makeClass(
           this,
           identifier,
-          makeStruct(AST.struct(fields, struct.ast.checks, { identifier }), fields),
+          makeStruct(fields, { checks: struct.ast.checks, identifier }),
           annotations,
           proto
         )
@@ -12062,6 +12207,11 @@ export declare namespace Annotations {
    * @since 4.0.0
    */
   export interface Key<T> extends Documentation<T> {
+    /**
+     * The property name to use for this field in the encoded representation of
+     * a struct.
+     */
+    readonly encodedKey?: PropertyKey | undefined
     /**
      * The message to use when a key is missing.
      */

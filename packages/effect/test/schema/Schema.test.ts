@@ -7216,6 +7216,82 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   })
 
   describe("encodeKeys", () => {
+    it("field-local encodedKey", async () => {
+      const myMappedField = Schema.FiniteFromString.pipe(Schema.encodedKey("mapped_name"))
+      const schema = Schema.Struct({
+        a: myMappedField
+      })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({ mapped_name: "1" }, { a: 1 })
+
+      const encoding = asserts.encoding()
+      await encoding.succeed({ a: 1 }, { mapped_name: "1" })
+    })
+
+    it("preserves field-local encoded keys when spreading fields", async () => {
+      const sharedFields = {
+        a: Schema.FiniteFromString.pipe(Schema.encodedKey("mapped_name"))
+      }
+      const schema = Schema.Struct({
+        ...sharedFields,
+        b: Schema.String
+      })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({ mapped_name: "1", b: "b" }, { a: 1, b: "b" })
+
+      const encoding = asserts.encoding()
+      await encoding.succeed({ a: 1, b: "b" }, { mapped_name: "1", b: "b" })
+    })
+
+    it("preserves field-local encoded keys through mapFields", async () => {
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.encodedKey("mapped_a")),
+        b: Schema.String
+      }).mapFields((fields) => ({
+        ...fields,
+        c: Schema.Boolean.pipe(Schema.encodedKey("mapped_c"))
+      }))
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({ mapped_a: "1", b: "b", mapped_c: true }, { a: 1, b: "b", c: true })
+
+      const encoding = asserts.encoding()
+      await encoding.succeed({ a: 1, b: "b", c: true }, { mapped_a: "1", b: "b", mapped_c: true })
+    })
+
+    it("Class.mapFields preserves field-local encoded keys", async () => {
+      class A extends Schema.Class<A>("A")({
+        a: Schema.FiniteFromString.pipe(Schema.encodedKey("mapped_a"))
+      }) {}
+      const schema = A.mapFields((fields) => ({
+        ...fields,
+        b: Schema.String.pipe(Schema.encodedKey("mapped_b"))
+      }))
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({ mapped_a: "1", mapped_b: "b" }, { a: 1, b: "b" })
+
+      const encoding = asserts.encoding()
+      await encoding.succeed({ a: 1, b: "b" }, { mapped_a: "1", mapped_b: "b" })
+    })
+
+    it("throws on duplicate encoded keys", () => {
+      throws(
+        () =>
+          Schema.Struct({
+            a: Schema.String.pipe(Schema.encodedKey("dup")),
+            b: Schema.Number.pipe(Schema.encodedKey("dup"))
+          }),
+        /Duplicate encoded key "dup"/
+      )
+    })
+
     it("Struct", async () => {
       const schema = Schema.Struct({
         a: Schema.FiniteFromString,

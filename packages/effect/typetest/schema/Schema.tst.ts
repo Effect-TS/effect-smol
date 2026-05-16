@@ -523,6 +523,18 @@ describe("Schema", () => {
     )
   })
 
+  it("encodedKey", () => {
+    const schema = Schema.Struct({
+      a: Schema.String.pipe(Schema.encodedKey("c"))
+    })
+    expect(Schema.revealCodec(schema)).type.toBe<
+      Schema.Codec<{ readonly a: string }, { readonly c: string }, never, never>
+    >()
+    expect(schema).type.toBe<
+      Schema.Struct<{ readonly a: Schema.encodedKey<Schema.String, "c"> }>
+    >()
+  })
+
   describe("Never", () => {
     const schema = Schema.Never
 
