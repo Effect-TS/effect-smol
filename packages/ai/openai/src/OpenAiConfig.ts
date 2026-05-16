@@ -15,6 +15,8 @@ export class OpenAiConfig extends Context.Service<
   OpenAiConfig.Service
 >()("@effect/ai-openai/OpenAiConfig") {
   /**
+   * Gets the configured OpenAI service from the current context when present.
+   *
    * @since 1.0.0
    */
   static readonly getOrUndefined: Effect.Effect<typeof OpenAiConfig.Service | undefined> = Effect.map(

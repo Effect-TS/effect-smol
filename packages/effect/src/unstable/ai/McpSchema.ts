@@ -1724,6 +1724,8 @@ export class CompleteResult extends Schema.Opaque<CompleteResult>()(Schema.Struc
   })
 })) {
   /**
+   * Empty completion result used when a completion request has no values.
+   *
    * @since 4.0.0
    */
   static readonly empty = CompleteResult.make({

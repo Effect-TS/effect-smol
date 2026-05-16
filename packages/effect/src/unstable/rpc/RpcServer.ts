@@ -832,6 +832,8 @@ export class Protocol extends Context.Service<
   }
 >()("effect/rpc/RpcServer/Protocol") {
   /**
+   * Creates a server protocol service from the supplied RPC implementation.
+   *
    * @since 4.0.0
    */
   static make = withRun<Protocol["Service"]>()

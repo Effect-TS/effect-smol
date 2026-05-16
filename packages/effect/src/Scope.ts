@@ -108,7 +108,6 @@ export interface Closeable extends Scope {
  * })
  * ```
  *
- * @category models
  * @since 2.0.0
  */
 export namespace State {

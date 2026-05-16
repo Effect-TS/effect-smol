@@ -81,6 +81,8 @@ export class RequestParseError extends Data.TaggedError("RequestParseError")<{
   readonly cause?: unknown
 }> implements Respondable.Respondable {
   /**
+   * Converts the request error into a `400 Bad Request` response.
+   *
    * @since 4.0.0
    */
   [Respondable.symbol]() {
@@ -139,6 +141,8 @@ export class InternalError extends Data.TaggedError("InternalError")<{
   readonly cause?: unknown
 }> implements Respondable.Respondable {
   /**
+   * Converts the server error into a `500 Internal Server Error` response.
+   *
    * @since 4.0.0
    */
   [Respondable.symbol]() {

@@ -24,6 +24,8 @@ export abstract class NodeHttpIncomingMessage<E> extends Inspectable.Class
   implements IncomingMessage.HttpIncomingMessage<E>
 {
   /**
+   * Marks this value as an HTTP incoming message for runtime guards.
+   *
    * @since 1.0.0
    */
   readonly [IncomingMessage.TypeId]: typeof IncomingMessage.TypeId

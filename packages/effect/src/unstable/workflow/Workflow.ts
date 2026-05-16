@@ -491,11 +491,15 @@ export class Complete<A, E> extends Data.TaggedClass("Complete")<{
   readonly exit: Exit.Exit<A, E>
 }> {
   /**
+   * Marks this value as a workflow result for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [ResultTypeId] = ResultTypeId
 
   /**
+   * Builds the schema for completed workflow results from success and error schemas.
+   *
    * @since 4.0.0
    */
   static Schema<Success extends Schema.Top, Error extends Schema.Top>(options: {
@@ -562,6 +566,8 @@ export class Suspended extends Schema.Class<Suspended>(
   cause: Schema.optional(Schema.Cause(Schema.Never, Schema.Defect))
 }) {
   /**
+   * Marks this value as a workflow result for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [ResultTypeId] = ResultTypeId

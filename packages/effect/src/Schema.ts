@@ -251,6 +251,8 @@ export interface Bottom<
   check(...checks: readonly [AST.Check<this["Type"]>, ...Array<AST.Check<this["Type"]>>]): this["Rebuild"]
   rebuild(ast: this["ast"]): this["Rebuild"]
   /**
+   * Constructs a value from the make input representation.
+   *
    * @throws {Error} The issue is contained in the error cause.
    */
   make(input: this["~type.make.in"], options?: MakeOptions): this["Type"]

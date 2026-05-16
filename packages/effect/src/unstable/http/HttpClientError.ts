@@ -40,11 +40,15 @@ export class HttpClientError extends Data.TaggedError("HttpClientError")<{
   }
 
   /**
+   * Marks this value as an HTTP client error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [TypeId] = TypeId
 
   /**
+   * HTTP request associated with the client failure.
+   *
    * @since 4.0.0
    */
   get request(): HttpClientRequest.HttpClientRequest {
@@ -52,6 +56,8 @@ export class HttpClientError extends Data.TaggedError("HttpClientError")<{
   }
 
   /**
+   * HTTP response associated with the client failure, when one was received.
+   *
    * @since 4.0.0
    */
   get response(): ClientResponse.HttpClientResponse | undefined {
@@ -80,6 +86,8 @@ export class TransportError extends Data.TaggedError("TransportError")<{
   readonly description?: string
 }> {
   /**
+   * Formats the request method and URL for transport error messages.
+   *
    * @since 4.0.0
    */
   get methodAndUrl() {
@@ -87,6 +95,8 @@ export class TransportError extends Data.TaggedError("TransportError")<{
   }
 
   /**
+   * Builds the transport error message from the optional description and request details.
+   *
    * @since 4.0.0
    */
   override get message() {
@@ -106,6 +116,8 @@ export class EncodeError extends Data.TaggedError("EncodeError")<{
   readonly description?: string
 }> {
   /**
+   * Formats the request method and URL for request encoding error messages.
+   *
    * @since 4.0.0
    */
   get methodAndUrl() {
@@ -113,6 +125,8 @@ export class EncodeError extends Data.TaggedError("EncodeError")<{
   }
 
   /**
+   * Builds the request encoding error message from the optional description and request details.
+   *
    * @since 4.0.0
    */
   override get message() {
@@ -132,6 +146,8 @@ export class InvalidUrlError extends Data.TaggedError("InvalidUrlError")<{
   readonly description?: string
 }> {
   /**
+   * Formats the request method and URL for invalid URL error messages.
+   *
    * @since 4.0.0
    */
   get methodAndUrl() {
@@ -139,6 +155,8 @@ export class InvalidUrlError extends Data.TaggedError("InvalidUrlError")<{
   }
 
   /**
+   * Builds the invalid URL error message from the optional description and request details.
+   *
    * @since 4.0.0
    */
   override get message() {
@@ -159,6 +177,8 @@ export class StatusCodeError extends Data.TaggedError("StatusCodeError")<{
   readonly description?: string | undefined
 }> {
   /**
+   * Formats the request method and URL for status code error messages.
+   *
    * @since 4.0.0
    */
   get methodAndUrl() {
@@ -166,6 +186,8 @@ export class StatusCodeError extends Data.TaggedError("StatusCodeError")<{
   }
 
   /**
+   * Builds the status code error message from the response status, optional description, and request details.
+   *
    * @since 4.0.0
    */
   override get message() {
@@ -187,6 +209,8 @@ export class DecodeError extends Data.TaggedError("DecodeError")<{
   readonly description?: string | undefined
 }> {
   /**
+   * Formats the request method and URL for response decoding error messages.
+   *
    * @since 4.0.0
    */
   get methodAndUrl() {
@@ -194,6 +218,8 @@ export class DecodeError extends Data.TaggedError("DecodeError")<{
   }
 
   /**
+   * Builds the response decoding error message from the response status, optional description, and request details.
+   *
    * @since 4.0.0
    */
   override get message() {
@@ -215,6 +241,8 @@ export class EmptyBodyError extends Data.TaggedError("EmptyBodyError")<{
   readonly description?: string | undefined
 }> {
   /**
+   * Formats the request method and URL for empty response body error messages.
+   *
    * @since 4.0.0
    */
   get methodAndUrl() {
@@ -222,6 +250,8 @@ export class EmptyBodyError extends Data.TaggedError("EmptyBodyError")<{
   }
 
   /**
+   * Builds the empty body error message from the response status, optional description, and request details.
+   *
    * @since 4.0.0
    */
   override get message() {
@@ -275,6 +305,8 @@ export class HttpClientErrorSchema extends Schema.ErrorClass<HttpClientErrorSche
   cause: Schema.optional(Schema.Defect)
 }) {
   /**
+   * Builds the serializable schema representation for an HTTP client error.
+   *
    * @since 4.0.0
    */
   static fromHttpClientError(error: HttpClientError): HttpClientErrorSchema {

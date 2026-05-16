@@ -137,7 +137,6 @@ export type SpecSource = SpecSource.Url | SpecSource.File | SpecSource.Stainless
 /**
  * Namespace containing the supported OpenAPI specification source variants.
  *
- * @category models
  * @since 1.0.0
  */
 export declare namespace SpecSource {

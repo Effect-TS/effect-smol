@@ -100,6 +100,8 @@ export class PersistedEntry extends Schema.Class<PersistedEntry>(
   encryptedEntry: Transferable.Uint8Array
 }) {
   /**
+   * String representation of the encrypted entry id.
+   *
    * @since 4.0.0
    */
   get entryIdString(): string {

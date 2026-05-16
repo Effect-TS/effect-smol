@@ -21,6 +21,8 @@ export class BadArgument extends Data.TaggedError("BadArgument")<{
   cause?: unknown
 }> {
   /**
+   * Formats the module, method, and optional description that rejected the argument.
+   *
    * @since 4.0.0
    */
   override get message(): string {
@@ -70,6 +72,8 @@ export class SystemError extends Data.Error<{
   cause?: unknown
 }> {
   /**
+   * Formats the normalized system error tag with operation and path details.
+   *
    * @since 4.0.0
    */
   override get message(): string {
@@ -101,6 +105,8 @@ export class PlatformError extends Data.TaggedError("PlatformError")<{
   }
 
   /**
+   * Marks this value as a platform error wrapper for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [TypeId]: typeof TypeId = TypeId

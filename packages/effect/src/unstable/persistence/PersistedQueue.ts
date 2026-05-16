@@ -215,6 +215,8 @@ export class PersistedQueueError extends Schema.ErrorClass<PersistedQueueError>(
   cause: Schema.optional(Schema.Defect)
 }) {
   /**
+   * Marks this value as a persisted queue error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [ErrorTypeId]: ErrorTypeId = ErrorTypeId

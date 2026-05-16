@@ -72,7 +72,6 @@ export type LibsqlClientConfig = LibsqlClientConfig.Full | LibsqlClientConfig.Li
 /**
  * Namespace containing the configuration variants for `LibsqlClient`.
  *
- * @category models
  * @since 1.0.0
  */
 export declare namespace LibsqlClientConfig {

@@ -98,7 +98,6 @@ export interface PubSub<in out A> extends Pipeable {
  * `PubSub`, including atomic implementations, backing subscriptions, replay
  * windows, and delivery strategies.
  *
- * @category models
  * @since 2.0.0
  */
 export namespace PubSub {

@@ -125,11 +125,15 @@ export class UnrecognizedOption extends Schema.ErrorClass<UnrecognizedOption>(`$
   suggestions: Schema.Array(Schema.String)
 }) {
   /**
+   * Marks this value as a CLI parsing error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [TypeId] = TypeId
 
   /**
+   * Formats the unrecognized option with command context and suggestions.
+   *
    * @since 4.0.0
    */
   override get message() {
@@ -172,11 +176,15 @@ export class DuplicateOption extends Schema.ErrorClass<DuplicateOption>(`${TypeI
   childCommand: Schema.String
 }) {
   /**
+   * Marks this value as a CLI configuration error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [TypeId] = TypeId
 
   /**
+   * Explains which parent and child commands define the duplicate option.
+   *
    * @since 4.0.0
    */
   override get message() {
@@ -220,11 +228,15 @@ export class MissingOption extends Schema.ErrorClass<MissingOption>(`${TypeId}/M
   option: Schema.String
 }) {
   /**
+   * Marks this value as a missing CLI option error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [TypeId] = TypeId
 
   /**
+   * Formats the missing required flag for display.
+   *
    * @since 4.0.0
    */
   override get message() {
@@ -266,11 +278,15 @@ export class MissingArgument extends Schema.ErrorClass<MissingArgument>(`${TypeI
   argument: Schema.String
 }) {
   /**
+   * Marks this value as a missing CLI argument error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [TypeId] = TypeId
 
   /**
+   * Formats the missing required positional argument for display.
+   *
    * @since 4.0.0
    */
   override get message() {
@@ -320,11 +336,15 @@ export class InvalidValue extends Schema.ErrorClass<InvalidValue>(`${TypeId}/Inv
   kind: Schema.Union([Schema.Literal("flag"), Schema.Literal("argument")])
 }) {
   /**
+   * Marks this value as an invalid CLI value error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [TypeId] = TypeId
 
   /**
+   * Formats the invalid flag or argument value with the expected input.
+   *
    * @since 4.0.0
    */
   override get message() {
@@ -378,11 +398,15 @@ export class UnknownSubcommand extends Schema.ErrorClass<UnknownSubcommand>(`${T
   suggestions: Schema.Array(Schema.String)
 }) {
   /**
+   * Marks this value as an unknown CLI subcommand error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [TypeId] = TypeId
 
   /**
+   * Formats the unknown subcommand with parent command context and suggestions.
+   *
    * @since 4.0.0
    */
   override get message() {
@@ -436,6 +460,8 @@ export class UserError extends Schema.ErrorClass<UserError>(`${TypeId}/UserError
   cause: Schema.Defect
 }) {
   /**
+   * Marks this value as a user handler error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [TypeId] = TypeId

@@ -72,6 +72,8 @@ export class ReplyWithContext<R extends Rpc.Any> extends Data.TaggedClass("Reply
   readonly rpc: R
 }> {
   /**
+   * Creates a terminal reply context that dies with the supplied defect.
+   *
    * @since 4.0.0
    */
   static fromDefect(options: {
@@ -90,6 +92,8 @@ export class ReplyWithContext<R extends Rpc.Any> extends Data.TaggedClass("Reply
     })
   }
   /**
+   * Creates a terminal reply context that interrupts the supplied request.
+   *
    * @since 4.0.0
    */
   static interrupt(options: {
@@ -159,11 +163,15 @@ export class Chunk<R extends Rpc.Any> extends Data.TaggedClass("Chunk")<{
   readonly values: NonEmptyReadonlyArray<Rpc.SuccessChunk<R>>
 }> {
   /**
+   * Marks this value as a runtime cluster reply.
+   *
    * @since 4.0.0
    */
   readonly [TypeId] = TypeId
 
   /**
+   * Creates an empty chunk reply for the supplied request id.
+   *
    * @since 4.0.0
    */
   static emptyFrom(requestId: Snowflake) {
@@ -176,11 +184,15 @@ export class Chunk<R extends Rpc.Any> extends Data.TaggedClass("Chunk")<{
   }
 
   /**
+   * Schema that accepts any runtime chunk reply without validating payload values.
+   *
    * @since 4.0.0
    */
   static readonly Any = Schema.declare((u): u is Chunk<never> => isReply(u) && u._tag === "Chunk")
 
   /**
+   * Transformation between encoded chunk records and `Chunk` instances.
+   *
    * @since 4.0.0
    */
   static readonly transform: Transformation.Transformation<any, any> = Transformation.transform({
@@ -189,6 +201,8 @@ export class Chunk<R extends Rpc.Any> extends Data.TaggedClass("Chunk")<{
   })
 
   /**
+   * Builds a chunk schema from the streaming success schema of an RPC.
+   *
    * @since 4.0.0
    */
   static schema<R extends Rpc.Any>(
@@ -202,6 +216,8 @@ export class Chunk<R extends Rpc.Any> extends Data.TaggedClass("Chunk")<{
   }
 
   /**
+   * Builds a chunk schema that validates each success value with the supplied schema.
+   *
    * @since 4.0.0
    */
   static schemaFrom<Success extends Schema.Top>(
@@ -240,6 +256,8 @@ export class Chunk<R extends Rpc.Any> extends Data.TaggedClass("Chunk")<{
   }
 
   /**
+   * Returns a copy of this chunk associated with the supplied request id.
+   *
    * @since 4.0.0
    */
   withRequestId(requestId: Snowflake): Chunk<R> {
@@ -263,11 +281,15 @@ export class WithExit<R extends Rpc.Any> extends Data.TaggedClass("WithExit")<{
   readonly exit: Rpc.Exit<R>
 }> {
   /**
+   * Marks this value as a runtime cluster reply.
+   *
    * @since 4.0.0
    */
   readonly [TypeId] = TypeId
 
   /**
+   * Returns `true` when the value is a terminal `WithExit` reply.
+   *
    * @since 4.0.0
    */
   static is(u: unknown): u is WithExit<any> {
@@ -275,6 +297,8 @@ export class WithExit<R extends Rpc.Any> extends Data.TaggedClass("WithExit")<{
   }
 
   /**
+   * Builds a terminal reply schema from the exit schema of an RPC.
+   *
    * @since 4.0.0
    */
   static schema<R extends Rpc.Any>(
@@ -288,6 +312,8 @@ export class WithExit<R extends Rpc.Any> extends Data.TaggedClass("WithExit")<{
   }
 
   /**
+   * Builds a terminal reply schema that validates the encoded exit value.
+   *
    * @since 4.0.0
    */
   static schemaFrom<Success extends Schema.Top, Error extends Schema.Top, Defect extends Schema.Top>(
@@ -329,6 +355,8 @@ export class WithExit<R extends Rpc.Any> extends Data.TaggedClass("WithExit")<{
   }
 
   /**
+   * Returns a copy of this terminal reply associated with the supplied request id.
+   *
    * @since 4.0.0
    */
   withRequestId(requestId: Snowflake): WithExit<R> {

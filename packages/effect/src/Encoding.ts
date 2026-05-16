@@ -46,6 +46,8 @@ export class EncodingError extends Data.TaggedError("EncodingError")<{
   message: string
 }> {
   /**
+   * Marks this value as an encoding or decoding error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [EncodingErrorTypeId]: EncodingErrorTypeId = EncodingErrorTypeId

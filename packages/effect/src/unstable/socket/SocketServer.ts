@@ -91,11 +91,15 @@ export class SocketServerError extends Data.TaggedError("SocketServerError")<{
     } as any)
   }
   /**
+   * Marks this value as a socket server error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [ErrorTypeId]: ErrorTypeId = ErrorTypeId
 
   /**
+   * Delegates the public message to the underlying socket server error reason.
+   *
    * @since 4.0.0
    */
   override get message(): string {

@@ -500,16 +500,22 @@ export class Retry extends Data.TaggedClass("Retry")<{
   readonly lastEventId: string | undefined
 }> {
   /**
+   * Marks this value as an SSE retry directive for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [RetryTypeId]: typeof RetryTypeId = RetryTypeId
   /**
+   * Returns `true` when the value is an SSE retry directive.
+   *
    * @since 4.0.0
    */
   static is(u: unknown): u is Retry {
     return hasProperty(u, RetryTypeId)
   }
   /**
+   * Separates SSE retry directives from regular event values.
+   *
    * @since 4.0.0
    */
   static filter<A>(u: A): Result.Result<Retry, Exclude<A, Retry>> {

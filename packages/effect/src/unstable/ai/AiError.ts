@@ -153,6 +153,8 @@ export class NetworkError extends Schema.ErrorClass<NetworkError>(
   description: Schema.optional(Schema.String)
 }) {
   /**
+   * Marks `NetworkError` as a semantic AI error reason for runtime guards.
+   *
    * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
@@ -411,6 +413,8 @@ export class RateLimitError extends Schema.ErrorClass<RateLimitError>(
   http: Schema.optional(HttpContext)
 }) {
   /**
+   * Marks `RateLimitError` as a semantic AI error reason for runtime guards.
+   *
    * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
@@ -460,6 +464,8 @@ export class QuotaExhaustedError extends Schema.ErrorClass<QuotaExhaustedError>(
   http: Schema.optional(HttpContext)
 }) {
   /**
+   * Marks `QuotaExhaustedError` as a semantic AI error reason for runtime guards.
+   *
    * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
@@ -511,6 +517,8 @@ export class AuthenticationError extends Schema.ErrorClass<AuthenticationError>(
   http: Schema.optional(HttpContext)
 }) {
   /**
+   * Marks `AuthenticationError` as a semantic AI error reason for runtime guards.
+   *
    * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
@@ -567,6 +575,8 @@ export class ContentPolicyError extends Schema.ErrorClass<ContentPolicyError>(
   http: Schema.optional(HttpContext)
 }) {
   /**
+   * Marks `ContentPolicyError` as a semantic AI error reason for runtime guards.
+   *
    * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
@@ -620,6 +630,8 @@ export class InvalidRequestError extends Schema.ErrorClass<InvalidRequestError>(
   http: Schema.optional(HttpContext)
 }) {
   /**
+   * Marks `InvalidRequestError` as a semantic AI error reason for runtime guards.
+   *
    * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
@@ -673,6 +685,8 @@ export class InternalProviderError extends Schema.ErrorClass<InternalProviderErr
   http: Schema.optional(HttpContext)
 }) {
   /**
+   * Marks `InternalProviderError` as a semantic AI error reason for runtime guards.
+   *
    * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
@@ -722,6 +736,8 @@ export class InvalidOutputError extends Schema.ErrorClass<InvalidOutputError>(
   usage: Schema.optional(UsageInfo)
 }) {
   /**
+   * Marks `InvalidOutputError` as a semantic AI error reason for runtime guards.
+   *
    * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
@@ -797,6 +813,8 @@ export class StructuredOutputError extends Schema.ErrorClass<StructuredOutputErr
   usage: Schema.optional(UsageInfo)
 }) {
   /**
+   * Marks `StructuredOutputError` as a semantic AI error reason for runtime guards.
+   *
    * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
@@ -872,6 +890,8 @@ export class UnsupportedSchemaError extends Schema.ErrorClass<UnsupportedSchemaE
   metadata: providerMetadataWithDefaults<UnsupportedSchemaErrorMetadata>()
 }) {
   /**
+   * Marks `UnsupportedSchemaError` as a semantic AI error reason for runtime guards.
+   *
    * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
@@ -921,6 +941,8 @@ export class UnknownError extends Schema.ErrorClass<UnknownError>(
   http: Schema.optional(HttpContext)
 }) {
   /**
+   * Marks `UnknownError` as a semantic AI error reason for runtime guards.
+   *
    * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
@@ -975,6 +997,8 @@ export class ToolNotFoundError extends Schema.ErrorClass<ToolNotFoundError>(
   availableTools: Schema.Array(Schema.String)
 }) {
   /**
+   * Marks `ToolNotFoundError` as a semantic AI error reason for runtime guards.
+   *
    * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
@@ -1028,6 +1052,8 @@ export class ToolParameterValidationError extends Schema.ErrorClass<ToolParamete
   description: Schema.String
 }) {
   /**
+   * Marks `ToolParameterValidationError` as a semantic AI error reason for runtime guards.
+   *
    * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
@@ -1079,6 +1105,8 @@ export class InvalidToolResultError extends Schema.ErrorClass<InvalidToolResultE
   description: Schema.String
 }) {
   /**
+   * Marks `InvalidToolResultError` as a semantic AI error reason for runtime guards.
+   *
    * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
@@ -1131,6 +1159,8 @@ export class ToolResultEncodingError extends Schema.ErrorClass<ToolResultEncodin
   description: Schema.String
 }) {
   /**
+   * Marks `ToolResultEncodingError` as a semantic AI error reason for runtime guards.
+   *
    * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
@@ -1181,6 +1211,8 @@ export class ToolConfigurationError extends Schema.ErrorClass<ToolConfigurationE
   description: Schema.String
 }) {
   /**
+   * Marks `ToolConfigurationError` as a semantic AI error reason for runtime guards.
+   *
    * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
@@ -1230,6 +1262,8 @@ export class ToolkitRequiredError extends Schema.ErrorClass<ToolkitRequiredError
   description: Schema.optional(Schema.String)
 }) {
   /**
+   * Marks `ToolkitRequiredError` as a semantic AI error reason for runtime guards.
+   *
    * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
@@ -1280,6 +1314,8 @@ export class InvalidUserInputError extends Schema.ErrorClass<InvalidUserInputErr
   description: Schema.String
 }) {
   /**
+   * Marks `InvalidUserInputError` as a semantic AI error reason for runtime guards.
+   *
    * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId

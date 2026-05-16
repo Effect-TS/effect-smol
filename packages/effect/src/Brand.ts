@@ -77,24 +77,34 @@ export class BrandError {
     this.issue = issue
   }
   /**
+   * Discriminant used to identify brand construction failures.
+   *
    * @since 4.0.0
    */
   readonly _tag = "BrandError"
   /**
+   * Error name used by tools that inspect JavaScript error-like objects.
+   *
    * @since 4.0.0
    */
   readonly name: string = "BrandError"
   /**
+   * Schema issue describing why brand validation failed.
+   *
    * @since 4.0.0
    */
   readonly issue: Issue.Issue
   /**
+   * Human-readable rendering of the validation issue.
+   *
    * @since 4.0.0
    */
   get message() {
     return this.issue.toString()
   }
   /**
+   * Formats the brand error together with its validation message.
+   *
    * @since 4.0.0
    */
   toString() {

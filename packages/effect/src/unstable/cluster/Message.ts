@@ -131,6 +131,8 @@ export class OutgoingRequest<R extends Rpc.Any> extends Data.TaggedClass("Outgoi
   readonly annotations: Context.Context<never>
 }> {
   /**
+   * Cached encoded envelope payload reused when sending the request.
+   *
    * @since 4.0.0
    */
   public encodedCache?: Envelope.PartialRequest
@@ -150,6 +152,8 @@ export class OutgoingEnvelope extends Data.TaggedClass("OutgoingEnvelope")<{
   readonly rpc: Rpc.AnyWithProps
 }> {
   /**
+   * Creates an outgoing interrupt envelope for the supplied request.
+   *
    * @since 4.0.0
    */
   static interrupt(options: {

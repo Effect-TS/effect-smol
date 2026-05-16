@@ -509,6 +509,8 @@ export class Request<Rpc extends Rpc.Any> extends Data.Class<
   }
 > {
   /**
+   * Most recent success chunk value sent by the entity, when one exists.
+   *
    * @since 4.0.0
    */
   get lastSentChunkValue(): Option.Option<Rpc.SuccessChunk<Rpc>> {
@@ -516,6 +518,8 @@ export class Request<Rpc extends Rpc.Any> extends Data.Class<
   }
 
   /**
+   * Sequence number to use for the entity's next outgoing success chunk.
+   *
    * @since 4.0.0
    */
   get nextSequence(): number {

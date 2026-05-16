@@ -3,9 +3,18 @@ import type { CreateRule, ESTree, Visitor } from "oxlint"
 
 type ExamplePolicy = "required" | "optional" | "forbidden"
 
+interface RuleChecks {
+  readonly description?: boolean
+  readonly tags?: boolean
+  readonly category?: boolean
+  readonly since?: boolean
+  readonly examples?: boolean
+}
+
 interface RuleOptions {
   readonly include?: Array<string>
   readonly exclude?: Array<string>
+  readonly checks?: RuleChecks
   readonly examples?: {
     readonly values?: ExamplePolicy
     readonly types?: ExamplePolicy
@@ -53,7 +62,7 @@ const masterTagOrder = new Map([
 
 const declarationTags = new Set(["deprecated", "default", "see", "category", "since", "internal"])
 const namespaceTags = new Set(["deprecated", "default", "see", "since", "internal"])
-const memberTags = declarationTags
+const memberTags = new Set(["deprecated", "default", "see", "since", "internal"])
 const moduleTags = new Set(["deprecated", "see", "since"])
 const onePerBlockTags = new Set(["deprecated", "default", "category", "since", "internal"])
 
@@ -134,6 +143,7 @@ function isSkippableDirectiveComment(line: string): boolean {
   const trimmed = line.trim()
   return trimmed.startsWith("// @ts-expect-error") ||
     trimmed.startsWith("// @ts-ignore") ||
+    trimmed.startsWith("// @effect-diagnostics") ||
     trimmed.startsWith("// eslint-disable-next-line") ||
     trimmed.startsWith("// oxlint-disable-next-line")
 }
@@ -332,6 +342,16 @@ function isAllowedTag(tagName: string, allowedTags: ReadonlySet<string>): boolea
   return allowedTags.has(tagName)
 }
 
+function resolveChecks(checks: RuleChecks | undefined): Required<RuleChecks> {
+  return {
+    description: checks?.description ?? true,
+    tags: checks?.tags ?? true,
+    category: checks?.category ?? true,
+    since: checks?.since ?? true,
+    examples: checks?.examples ?? true
+  }
+}
+
 const rule: CreateRule = {
   meta: {
     type: "problem",
@@ -349,6 +369,17 @@ const rule: CreateRule = {
           exclude: {
             type: "array",
             items: { type: "string" }
+          },
+          checks: {
+            type: "object",
+            properties: {
+              description: { type: "boolean" },
+              tags: { type: "boolean" },
+              category: { type: "boolean" },
+              since: { type: "boolean" },
+              examples: { type: "boolean" }
+            },
+            additionalProperties: false
           },
           examples: {
             type: "object",
@@ -374,6 +405,7 @@ const rule: CreateRule = {
 
     const valueExamplePolicy = options.examples?.values ?? "optional"
     const typeExamplePolicy = options.examples?.types ?? "forbidden"
+    const checks = resolveChecks(options.checks)
     let moduleBlock: JSDocBlock | undefined
     let hasPublicExport = false
     let firstPublicExport: AstNode | undefined
@@ -385,6 +417,13 @@ const rule: CreateRule = {
       context.report({ node: node as ESTree.Node, message })
     }
 
+    function jsdocNode(block: JSDocBlock): AstNode {
+      return {
+        type: "JSDocBlock",
+        range: block.range
+      }
+    }
+
     function getLeadingBlock(node: AstNode): JSDocBlock | undefined {
       return findLeadingJSDoc(source, node, moduleBlock?.range)
     }
@@ -394,20 +433,35 @@ const rule: CreateRule = {
       firstPublicExport ??= node
     }
 
+    function requiresPublicJSDoc(bucket: ExportBucket): boolean {
+      const examplePolicy = bucket === "value" ? valueExamplePolicy : typeExamplePolicy
+      return checks.description || checks.category || checks.since ||
+        checks.examples && examplePolicy === "required"
+    }
+
+    function requiresModuleJSDoc(): boolean {
+      return checks.description || checks.since
+    }
+
     function validateInternalBlock(node: AstNode, block: JSDocBlock) {
       const internals = block.tags.filter((tag) => tag.name === "internal")
-      if (internals.length !== 1) {
-        report(node, "JSDoc blocks may contain at most one @internal tag")
-      }
-      if (internals[0]?.value.trim() !== "") {
-        report(node, "@internal must not have a value")
-      }
-      for (const tag of block.tags) {
-        if (tag.name !== "internal") {
-          report(node, "JSDoc blocks with @internal must not contain other block tags")
+      if (checks.tags) {
+        if (internals.length !== 1) {
+          report(node, "JSDoc blocks may contain at most one @internal tag")
+        }
+        if (internals[0]?.value.trim() !== "") {
+          report(node, "@internal must not have a value")
+        }
+        for (const tag of block.tags) {
+          if (tag.name !== "internal") {
+            report(node, "JSDoc blocks with @internal must not contain other block tags")
+          }
         }
       }
-      if (block.examples.hasExampleHeading || block.examples.hasTsFence) {
+      if (!checks.tags && checks.category && tagCount(block, "category") > 0) {
+        report(node, "@category is not allowed in internal JSDoc")
+      }
+      if (checks.examples && (block.examples.hasExampleHeading || block.examples.hasTsFence)) {
         report(node, "JSDoc blocks with @internal must not contain examples")
       }
     }
@@ -415,16 +469,21 @@ const rule: CreateRule = {
     function validateTags(node: AstNode, block: JSDocBlock, allowedTags: ReadonlySet<string>, kind: JSDocKind) {
       const counts = new Map<string, number>()
       let previousOrder = -1
+      let previousTag: JSDocTag | undefined
 
       for (const tag of block.tags) {
         if (tag.name === "example") {
-          report(node, "@example is not allowed; use a canonical **Example** (Title) section")
+          if (checks.examples) {
+            report(node, "@example is not allowed; use a canonical **Example** (Title) section")
+          }
           continue
         }
 
         if (!isAllowedTag(tag.name, allowedTags)) {
-          const scope = kind === "module" ? "module" : kind
-          report(node, `@${tag.name} is not allowed in ${scope} JSDoc`)
+          if (tag.name === "category" ? checks.category : checks.tags) {
+            const scope = kind === "module" ? "module" : kind
+            report(node, `@${tag.name} is not allowed in ${scope} JSDoc`)
+          }
           continue
         }
 
@@ -433,33 +492,43 @@ const rule: CreateRule = {
         const order = masterTagOrder.get(tag.name)
         if (order !== undefined) {
           if (order < previousOrder) {
-            report(node, `@${tag.name} is out of order in JSDoc`)
+            if (checks.tags) {
+              report(node, `@${tag.name} is out of order in JSDoc`)
+            } else if (checks.category && (tag.name === "category" || previousTag?.name === "category")) {
+              report(node, "@category is out of order in JSDoc")
+            }
           } else {
             previousOrder = order
+            previousTag = tag
           }
         }
 
-        if (tag.name === "deprecated" && tag.value.trim() === "") {
+        if (tag.name === "category" && tag.value.trim() === "" && checks.category) {
+          report(node, "@category must include a value")
+        } else if (!checks.tags) {
+          continue
+        } else if (tag.name === "deprecated" && tag.value.trim() === "") {
           report(node, "@deprecated must include a message")
         } else if (tag.name === "default" && tag.value.trim() === "") {
           report(node, "@default must include a value")
         } else if (tag.name === "see" && !seeRegex.test(tag.value.trim())) {
           report(node, "@see must include an inline {@link ...} tag or an http(s) URL")
-        } else if (tag.name === "category" && tag.value.trim() === "") {
-          report(node, "@category must include a value")
         } else if (tag.name === "since" && !stableSemverRegex.test(tag.value.trim())) {
           report(node, "@since must be a stable semver version like 1.2.3")
         }
       }
 
       for (const tagName of onePerBlockTags) {
-        if ((counts.get(tagName) ?? 0) > 1) {
+        if ((tagName === "category" ? checks.category : checks.tags) && (counts.get(tagName) ?? 0) > 1) {
           report(node, `JSDoc blocks may contain at most one @${tagName} tag`)
         }
       }
     }
 
     function validateExamples(node: AstNode, block: JSDocBlock, policy: ExamplePolicy) {
+      if (!checks.examples) {
+        return
+      }
       if (policy === "forbidden") {
         if (block.examples.hasExampleHeading || block.examples.hasTsFence) {
           report(node, "Examples are not allowed in this JSDoc block")
@@ -483,13 +552,13 @@ const rule: CreateRule = {
         isNamespace ? namespaceTags : declarationTags,
         isNamespace ? "namespace" : "declaration"
       )
-      if (!block.hasDescription) {
+      if (checks.description && !block.hasDescription) {
         report(node, "Public JSDoc must include a description")
       }
-      if (!isNamespace && tagCount(block, "category") === 0) {
+      if (checks.category && !isNamespace && tagCount(block, "category") === 0) {
         report(node, "Public JSDoc must include @category")
       }
-      if (tagCount(block, "since") === 0) {
+      if (checks.since && tagCount(block, "since") === 0) {
         report(node, "Public JSDoc must include @since")
       }
       validateExamples(node, block, bucket === "value" ? valueExamplePolicy : typeExamplePolicy)
@@ -502,21 +571,19 @@ const rule: CreateRule = {
       }
 
       validateTags(node, block, memberTags, "member")
-      if (!block.hasDescription) {
+      if (checks.description && !block.hasDescription) {
         report(node, "Member JSDoc must include a description")
-      }
-      if (tagCount(block, "category") === 0) {
-        report(node, "Member JSDoc must include @category")
       }
       validateExamples(node, block, "forbidden")
     }
 
-    function validateModuleBlock(node: AstNode, block: JSDocBlock) {
+    function validateModuleBlock(block: JSDocBlock) {
+      const node = jsdocNode(block)
       validateTags(node, block, moduleTags, "module")
-      if (!block.hasDescription) {
+      if (checks.description && !block.hasDescription) {
         report(node, "Module JSDoc must include a description")
       }
-      if (tagCount(block, "since") === 0) {
+      if (checks.since && tagCount(block, "since") === 0) {
         report(node, "Module JSDoc must include @since")
       }
       validateExamples(node, block, "optional")
@@ -727,18 +794,40 @@ const rule: CreateRule = {
       for (const statement of namespaceNode.body?.body ?? []) {
         if (statement.type === "ExportNamedDeclaration" && statement.declaration) {
           checkedNamespaceMemberExports.add(getNodeKey(statement))
-          const internal = validateMemberIfPresent(statement)
-          if (!internal) {
-            checkDeclarationMembers(statement.declaration)
-          }
+          checkNamespaceMemberExport(statement, statement.declaration)
         } else if (statement.type === "ExportDefaultDeclaration") {
           checkedNamespaceMemberExports.add(getNodeKey(statement))
-          const internal = validateMemberIfPresent(statement)
-          if (!internal) {
-            checkDeclarationMembers(statement.declaration)
-          }
+          checkNamespaceMemberExport(statement, statement.declaration)
         }
       }
+    }
+
+    function checkNamespaceMemberExport(exportNode: AstNode, declaration: AstNode) {
+      const bucket = getDeclarationBucket(declaration)
+      if (!bucket) {
+        checkDeclarationMembers(declaration)
+        return
+      }
+      if (!shouldCheckOverload(declaration)) {
+        return
+      }
+
+      const block = getLeadingBlock(exportNode)
+      if (block && isInternal(block)) {
+        validateInternalBlock(exportNode, block)
+        return
+      }
+
+      if (!block) {
+        if (requiresPublicJSDoc(bucket)) {
+          report(exportNode, "Public JSDoc is required")
+        }
+        checkDeclarationMembers(declaration)
+        return
+      }
+
+      validatePublicBlock(exportNode, block, bucket, declaration.type === "TSModuleDeclaration")
+      checkDeclarationMembers(declaration)
     }
 
     function getDeclarationBucket(declaration: AstNode): ExportBucket | undefined {
@@ -813,7 +902,10 @@ const rule: CreateRule = {
       markPublicExport(exportNode)
 
       if (!block) {
-        report(exportNode, "Public JSDoc is required")
+        if (requiresPublicJSDoc(bucket)) {
+          report(exportNode, "Public JSDoc is required")
+        }
+        checkDeclarationMembers(declaration)
         return
       }
 
@@ -840,10 +932,12 @@ const rule: CreateRule = {
           return
         }
         if (!moduleBlock) {
-          report(firstPublicExport!, "Module JSDoc is required")
+          if (requiresModuleJSDoc()) {
+            report(firstPublicExport!, "Module JSDoc is required")
+          }
           return
         }
-        validateModuleBlock(firstPublicExport!, moduleBlock)
+        validateModuleBlock(moduleBlock)
       }
     } as Visitor
   }

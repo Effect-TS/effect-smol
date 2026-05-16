@@ -837,6 +837,8 @@ export class Protocol extends Context.Service<Protocol, {
   readonly supportsTransferables: boolean
 }>()("effect/rpc/RpcClient/Protocol") {
   /**
+   * Creates a client protocol service from the supplied RPC request runner.
+   *
    * @since 4.0.0
    */
   static make = withRunClient

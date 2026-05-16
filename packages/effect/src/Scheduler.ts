@@ -121,6 +121,8 @@ export class MixedScheduler implements Scheduler {
   }
 
   /**
+   * Returns whether the fiber has reached its operation budget and should yield.
+   *
    * @since 2.0.0
    */
   shouldYield(fiber: Fiber.Fiber<unknown, unknown>) {
@@ -128,6 +130,8 @@ export class MixedScheduler implements Scheduler {
   }
 
   /**
+   * Creates a dispatcher that schedules work through this scheduler.
+   *
    * @since 2.0.0
    */
   makeDispatcher() {

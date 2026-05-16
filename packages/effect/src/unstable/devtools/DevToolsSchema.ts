@@ -464,7 +464,6 @@ export type Request = Schema.Schema.Type<typeof Request>
 /**
  * Namespace containing helper types for devtools protocol requests.
  *
- * @category schemas
  * @since 4.0.0
  */
 export declare namespace Request {
@@ -503,7 +502,6 @@ export type Response = Schema.Schema.Type<typeof Response>
 /**
  * Namespace containing helper types for devtools protocol responses.
  *
- * @category schemas
  * @since 4.0.0
  */
 export declare namespace Response {

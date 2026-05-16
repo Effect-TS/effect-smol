@@ -15,6 +15,8 @@ export class OpenRouterConfig extends Context.Service<
   OpenRouterConfig.Service
 >()("@effect/ai-openrouter/OpenRouterConfig") {
   /**
+   * Gets the configured OpenRouter service from the current context when present.
+   *
    * @since 1.0.0
    */
   static readonly getOrUndefined: Effect.Effect<typeof OpenRouterConfig.Service | undefined> = Effect.map(

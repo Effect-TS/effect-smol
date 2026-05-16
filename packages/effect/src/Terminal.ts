@@ -103,6 +103,8 @@ export class QuitError extends Schema.ErrorClass<QuitError>("QuitError")({
   _tag: Schema.tag("QuitError")
 }) {
   /**
+   * Marks this value as a terminal quit error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [QuitErrorTypeId] = QuitErrorTypeId

@@ -38,6 +38,8 @@ export class RpcClientError extends Schema.ErrorClass<RpcClientError>(TypeId)({
   ])
 }) {
   /**
+   * Marks this value as an RPC client error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [TypeId] = TypeId

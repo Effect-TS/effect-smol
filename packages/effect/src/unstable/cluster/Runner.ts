@@ -24,26 +24,36 @@ export class Runner extends Schema.Class<Runner>(TypeId)({
   weight: Schema.Number
 }) {
   /**
+   * Formatter for rendering runner values consistently.
+   *
    * @since 4.0.0
    */
   static format = Schema.toFormatter(this)
 
   /**
+   * Marks this value as a cluster runner for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [TypeId] = TypeId
 
   /**
+   * Decodes a runner from its JSON string representation.
+   *
    * @since 4.0.0
    */
   static readonly decodeSync = Schema.decodeSync(Schema.fromJsonString(Runner))
 
   /**
+   * Encodes a runner to its JSON string representation.
+   *
    * @since 4.0.0
    */
   static readonly encodeSync = Schema.encodeSync(Schema.fromJsonString(Runner))
 
   /**
+   * Formats this runner as a string.
+   *
    * @since 4.0.0
    */
   override toString(): string {
@@ -51,6 +61,8 @@ export class Runner extends Schema.Class<Runner>(TypeId)({
   }
 
   /**
+   * Formats this runner for Node.js inspection.
+   *
    * @since 4.0.0
    */
   [NodeInspectSymbol](): string {
@@ -58,6 +70,8 @@ export class Runner extends Schema.Class<Runner>(TypeId)({
   }
 
   /**
+   * Compares runners by address and shard-assignment weight.
+   *
    * @since 4.0.0
    */
   [Equal.symbol](that: Runner): boolean {
@@ -65,6 +79,8 @@ export class Runner extends Schema.Class<Runner>(TypeId)({
   }
 
   /**
+   * Computes a structural hash from the runner address and shard-assignment weight.
+   *
    * @since 4.0.0
    */
   [Hash.symbol](): number {

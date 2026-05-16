@@ -17,6 +17,8 @@ export class AnthropicConfig extends Context.Service<
   AnthropicConfig.Service
 >()("@effect/ai-anthropic/AnthropicConfig") {
   /**
+   * Gets the configured Anthropic service from the current context when present.
+   *
    * @since 1.0.0
    */
   static readonly getOrUndefined: Effect.Effect<typeof AnthropicConfig.Service | undefined> = Effect.map(

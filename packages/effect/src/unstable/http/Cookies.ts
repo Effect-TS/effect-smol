@@ -179,6 +179,8 @@ export class CookiesError extends Data.TaggedError("CookieError")<{
   readonly reason: CookiesErrorReason
 }> {
   /**
+   * Creates a cookie error from a reason tag and optional cause.
+   *
    * @since 4.0.0
    */
   static fromReason(reason: CookiesError["reason"]["_tag"], cause?: unknown): CookiesError {
@@ -186,11 +188,15 @@ export class CookiesError extends Data.TaggedError("CookieError")<{
   }
 
   /**
+   * Marks this value as a cookie validation error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [CookieErrorTypeId] = CookieErrorTypeId
 
   /**
+   * Uses the concrete cookie error reason as the public message.
+   *
    * @since 4.0.0
    */
   override get message() {

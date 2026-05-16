@@ -209,7 +209,6 @@ export interface OptionUnify<A extends { [Unify.typeSymbol]?: any }> {
 /**
  * Namespace containing utility types for `Option`.
  *
- * @category Namespaces
  * @since 2.0.0
  */
 export declare namespace Option {

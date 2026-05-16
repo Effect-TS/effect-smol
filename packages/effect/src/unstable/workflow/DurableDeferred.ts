@@ -324,6 +324,8 @@ export class TokenParsed extends Schema.Class<TokenParsed>(
   deferredName: Schema.String
 }) {
   /**
+   * Encodes the parsed workflow, execution, and deferred names back into a token.
+   *
    * @since 4.0.0
    */
   get asToken(): Token {
@@ -333,6 +335,8 @@ export class TokenParsed extends Schema.Class<TokenParsed>(
   }
 
   /**
+   * Schema for decoding and encoding durable deferred tokens as strings.
+   *
    * @since 4.0.0
    */
   static readonly FromString = Schema.String.pipe(
@@ -366,11 +370,15 @@ export class TokenParsed extends Schema.Class<TokenParsed>(
   )
 
   /**
+   * Decodes a durable deferred token string into its parsed components.
+   *
    * @since 4.0.0
    */
   static readonly fromString = Schema.decodeSync(TokenParsed.FromString)
 
   /**
+   * Encodes parsed durable deferred token components into a token string.
+   *
    * @since 4.0.0
    */
   static readonly encode = Schema.encodeSync(TokenParsed.FromString)

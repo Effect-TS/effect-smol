@@ -20,7 +20,6 @@ let topLevelMissingCategoryTotal = 0
 let topLevelCategoryWithoutSinceTotal = 0
 let topLevelNamespaceCategoryTotal = 0
 let nestedJSDocTotal = 0
-let nestedMissingCategoryTotal = 0
 let nestedCategoryTotal = 0
 
 for (const file of files) {
@@ -33,13 +32,12 @@ for (const file of files) {
   topLevelCategoryWithoutSinceTotal += summary.topLevelCategoryWithoutSince
   topLevelNamespaceCategoryTotal += summary.topLevelNamespaceCategory
   nestedJSDocTotal += summary.nestedJSDoc
-  nestedMissingCategoryTotal += summary.nestedMissingCategory
   nestedCategoryTotal += summary.nestedCategory
 
   if (
     summary.topLevelRelevant === 0 &&
     summary.topLevelNamespaceCategory === 0 &&
-    summary.nestedJSDoc === 0
+    summary.nestedCategory === 0
   ) {
     continue
   }
@@ -65,16 +63,15 @@ writeQueue(entries, {
   topLevelCategoryWithoutSince: topLevelCategoryWithoutSinceTotal,
   topLevelNamespaceCategory: topLevelNamespaceCategoryTotal,
   nestedJSDoc: nestedJSDocTotal,
-  nestedMissingCategory: nestedMissingCategoryTotal,
   nestedCategory: nestedCategoryTotal
 })
 
 console.log(`Scanned ${files.length} source file(s).`)
 console.log(`Queued ${entries.length} file(s) for JSDoc category cleanup.`)
-console.log(`Found ${topLevelRelevantTotal} non-namespace top-level exported JSDoc block(s) with @since or @category.`)
-console.log(`Found ${topLevelMissingCategoryTotal} non-namespace top-level exported @since block(s) missing @category.`)
+console.log(`Found ${topLevelRelevantTotal} public non-namespace exported JSDoc block(s) with @since or @category.`)
+console.log(`Found ${topLevelMissingCategoryTotal} public non-namespace exported @since block(s) missing @category.`)
 console.log(`Found ${topLevelNamespaceCategoryTotal} namespace @category tag(s) to remove.`)
-console.log(`Found ${nestedMissingCategoryTotal} nested JSDoc block(s) missing @category.`)
+console.log(`Found ${nestedCategoryTotal} nested @category tag(s) to remove.`)
 console.log(`Wrote ${Path.join(outputDirectory, "queue.md")}.`)
 
 function getArg(name) {
@@ -137,7 +134,6 @@ function summarizeFile(sourceFile) {
   let topLevelCategoryWithoutSince = 0
   let topLevelNamespaceCategory = 0
   let nestedJSDoc = 0
-  let nestedMissingCategory = 0
   let nestedCategory = 0
 
   for (const statement of sourceFile.statements) {
@@ -153,23 +149,12 @@ function summarizeFile(sourceFile) {
       if (!topLevelInternal && ts.isModuleDeclaration(statement) && hasTag(parsed, "category")) {
         topLevelNamespaceCategory += tagCount(parsed, "category")
       }
-      if (
-        !topLevelInternal &&
-        !ts.isModuleDeclaration(statement) &&
-        (hasTag(parsed, "since") || hasTag(parsed, "category"))
-      ) {
-        topLevelRelevant++
-
-        const categoryValues = tagValues(parsed, "category")
-        if (categoryValues.length === 0) {
-          topLevelMissingCategory++
-        }
-        if (!hasTag(parsed, "since")) {
-          topLevelCategoryWithoutSince++
-        }
-        for (const category of categoryValues) {
-          categories.set(category, (categories.get(category) ?? 0) + 1)
-        }
+      if (!topLevelInternal && !ts.isModuleDeclaration(statement)) {
+        const summary = summarizePublicJSDoc(parsed)
+        topLevelRelevant += summary.relevant
+        topLevelMissingCategory += summary.missingCategory
+        topLevelCategoryWithoutSince += summary.categoryWithoutSince
+        addCategories(categories, summary.categories)
       }
     }
 
@@ -177,12 +162,21 @@ function summarizeFile(sourceFile) {
       continue
     }
 
-    const nested = summarizeNestedJSDocs(sourceFile, statement)
-    nestedJSDoc += nested.count
-    nestedMissingCategory += nested.missingCategory
-    nestedCategory += nested.category
-    for (const category of nested.categories) {
-      nestedCategories.set(category.name, (nestedCategories.get(category.name) ?? 0) + category.count)
+    if (ts.isModuleDeclaration(statement)) {
+      const namespace = summarizeNamespaceMembers(sourceFile, statement)
+      topLevelRelevant += namespace.relevant
+      topLevelMissingCategory += namespace.missingCategory
+      topLevelCategoryWithoutSince += namespace.categoryWithoutSince
+      topLevelNamespaceCategory += namespace.namespaceCategory
+      nestedJSDoc += namespace.nestedJSDoc
+      nestedCategory += namespace.nestedCategory
+      addCategories(categories, namespace.categories)
+      addCategories(nestedCategories, namespace.nestedCategories)
+    } else {
+      const nested = summarizeNestedJSDocs(sourceFile, statement)
+      nestedJSDoc += nested.count
+      nestedCategory += nested.category
+      addCategories(nestedCategories, nested.categories)
     }
   }
 
@@ -192,7 +186,6 @@ function summarizeFile(sourceFile) {
     topLevelCategoryWithoutSince,
     topLevelNamespaceCategory,
     nestedJSDoc,
-    nestedMissingCategory,
     nestedCategory,
     categories: Array.from(categories, ([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)),
@@ -213,13 +206,101 @@ function isExportedTopLevelDeclaration(node) {
   ) && hasModifier(node, ts.SyntaxKind.ExportKeyword)
 }
 
+function summarizeNamespaceMembers(sourceFile, namespaceNode) {
+  const categories = new Map()
+  const nestedCategories = new Map()
+  let relevant = 0
+  let missingCategory = 0
+  let categoryWithoutSince = 0
+  let namespaceCategory = 0
+  let nestedJSDoc = 0
+  let nestedCategory = 0
+
+  for (const statement of getNamespaceStatements(namespaceNode)) {
+    if (!isExportedTopLevelDeclaration(statement)) {
+      continue
+    }
+
+    let internal = false
+    const jsdoc = getLeadingJSDoc(statement)
+    if (jsdoc !== undefined) {
+      const parsed = parseJSDoc(sourceFile, jsdoc)
+      internal = hasTag(parsed, "internal")
+      if (!internal && ts.isModuleDeclaration(statement) && hasTag(parsed, "category")) {
+        namespaceCategory += tagCount(parsed, "category")
+      }
+      if (!internal && !ts.isModuleDeclaration(statement)) {
+        const summary = summarizePublicJSDoc(parsed)
+        relevant += summary.relevant
+        missingCategory += summary.missingCategory
+        categoryWithoutSince += summary.categoryWithoutSince
+        addCategories(categories, summary.categories)
+      }
+    }
+
+    if (internal) {
+      continue
+    }
+
+    const nested = ts.isModuleDeclaration(statement)
+      ? summarizeNamespaceMembers(sourceFile, statement)
+      : summarizeNestedJSDocs(sourceFile, statement)
+
+    if (ts.isModuleDeclaration(statement)) {
+      relevant += nested.relevant
+      missingCategory += nested.missingCategory
+      categoryWithoutSince += nested.categoryWithoutSince
+      namespaceCategory += nested.namespaceCategory
+      nestedJSDoc += nested.nestedJSDoc
+      nestedCategory += nested.nestedCategory
+      addCategories(categories, nested.categories)
+      addCategories(nestedCategories, nested.nestedCategories)
+    } else {
+      nestedJSDoc += nested.count
+      nestedCategory += nested.category
+      addCategories(nestedCategories, nested.categories)
+    }
+  }
+
+  return {
+    relevant,
+    missingCategory,
+    categoryWithoutSince,
+    namespaceCategory,
+    nestedJSDoc,
+    nestedCategory,
+    categories: Array.from(categories, ([name, count]) => ({ name, count })),
+    nestedCategories: Array.from(nestedCategories, ([name, count]) => ({ name, count }))
+  }
+}
+
+function summarizePublicJSDoc(parsed) {
+  const categoryValues = tagValues(parsed, "category")
+  const relevant = hasTag(parsed, "since") || categoryValues.length > 0 ? 1 : 0
+  return {
+    relevant,
+    missingCategory: relevant === 1 && categoryValues.length === 0 ? 1 : 0,
+    categoryWithoutSince: categoryValues.length > 0 && !hasTag(parsed, "since") ? 1 : 0,
+    categories: categoryValues.map((name) => ({ name, count: 1 }))
+  }
+}
+
+function getNamespaceStatements(namespaceNode) {
+  return namespaceNode.body?.statements ?? []
+}
+
 function hasModifier(node, kind) {
   return node.modifiers?.some((modifier) => modifier.kind === kind) === true
 }
 
+function addCategories(target, categories) {
+  for (const category of categories) {
+    target.set(category.name, (target.get(category.name) ?? 0) + category.count)
+  }
+}
+
 function summarizeNestedJSDocs(sourceFile, root) {
   let count = 0
-  let missingCategory = 0
   let category = 0
   const categories = new Map()
 
@@ -231,9 +312,6 @@ function summarizeNestedJSDocs(sourceFile, root) {
         if (!hasTag(parsed, "internal")) {
           count++
           const categoryValues = tagValues(parsed, "category")
-          if (categoryValues.length === 0) {
-            missingCategory++
-          }
           category += categoryValues.length
           for (const value of categoryValues) {
             categories.set(value, (categories.get(value) ?? 0) + 1)
@@ -252,7 +330,6 @@ function summarizeNestedJSDocs(sourceFile, root) {
   ts.forEachChild(root, visit)
   return {
     count,
-    missingCategory,
     category,
     categories: Array.from(categories, ([name, count]) => ({ name, count }))
   }
@@ -326,17 +403,17 @@ function renderQueue(entries, summary) {
     "",
     "Generated by `node scripts/audit-jsdoc-categories.mjs`.",
     "",
-    "This file is a work queue, not a semantic audit result. The script only partitions files that contain non-namespace top-level exported JSDoc blocks with `@since` or `@category`, namespace JSDoc blocks with `@category`, or nested JSDoc blocks inside top-level exports.",
+    "This file is a work queue, not a semantic audit result. The script only partitions files that contain public non-namespace exported JSDoc blocks with `@since` or `@category`, namespace JSDoc blocks with `@category`, or ordinary nested JSDoc blocks that already contain `@category`.",
     "",
     "## Swarm Instructions",
     "",
     "- Use one worker per file.",
     "- Keep at most 6 workers active at a time.",
     "- Workers may edit only `@category` lines in their assigned source file.",
-    "- For non-namespace top-level exported JSDocs, redesign the file-local category taxonomy for generated docs navigation.",
-    "- For non-namespace top-level exported JSDocs with `@since` but no `@category`, add a category from the file-local taxonomy.",
+    "- For public non-namespace exported JSDocs, including direct namespace exports, redesign the file-local category taxonomy for generated docs navigation.",
+    "- For public non-namespace exported JSDocs with `@since` but no `@category`, add a category from the file-local taxonomy.",
     "- For namespace JSDocs, remove `@category`.",
-    "- For nested JSDocs inside top-level exported declarations, add or improve `@category` using the file-local taxonomy.",
+    "- For nested JSDocs inside top-level exported declarations, remove `@category`.",
     "- Do not edit descriptions, examples, `@since`, runtime code, types, imports, exports, or generated `index.ts` files.",
     "- Only the coordinator should update this queue.",
     "- Mark a file as done by changing `[ ]` to `[x]`; leave a short note when a category decision was ambiguous.",
@@ -345,13 +422,12 @@ function renderQueue(entries, summary) {
     "",
     `- Source files scanned: ${summary.files}`,
     `- Files queued: ${entries.length}`,
-    `- Non-namespace top-level exported JSDoc blocks with @since or @category: ${summary.topLevelRelevant}`,
-    `- Non-namespace top-level exported @since blocks missing @category: ${summary.topLevelMissingCategory}`,
-    `- Non-namespace top-level exported @category blocks missing @since: ${summary.topLevelCategoryWithoutSince}`,
+    `- Public non-namespace exported JSDoc blocks with @since or @category: ${summary.topLevelRelevant}`,
+    `- Public non-namespace exported @since blocks missing @category: ${summary.topLevelMissingCategory}`,
+    `- Public non-namespace exported @category blocks missing @since: ${summary.topLevelCategoryWithoutSince}`,
     `- Namespace @category tags to remove: ${summary.topLevelNamespaceCategory}`,
     `- Nested JSDoc blocks inside top-level exports: ${summary.nestedJSDoc}`,
-    `- Nested JSDoc blocks missing @category: ${summary.nestedMissingCategory}`,
-    `- Existing nested @category tags: ${summary.nestedCategory}`,
+    `- Nested @category tags to remove: ${summary.nestedCategory}`,
     "",
     "## Files",
     ""
@@ -362,13 +438,12 @@ function renderQueue(entries, summary) {
       `- [ ] \`${entry.file}\``,
       `  - Package: \`${entry.packageName}\``,
       `  - Module: \`${entry.moduleName}\``,
-      `  - Non-namespace top-level relevant JSDocs: ${entry.topLevelRelevant}`,
-      `  - Missing non-namespace top-level @category: ${entry.topLevelMissingCategory}`,
-      `  - Non-namespace top-level @category without @since: ${entry.topLevelCategoryWithoutSince}`,
+      `  - Public non-namespace relevant JSDocs: ${entry.topLevelRelevant}`,
+      `  - Missing public non-namespace @category: ${entry.topLevelMissingCategory}`,
+      `  - Public non-namespace @category without @since: ${entry.topLevelCategoryWithoutSince}`,
       `  - Namespace @category tags to remove: ${entry.topLevelNamespaceCategory}`,
       `  - Nested JSDoc blocks: ${entry.nestedJSDoc}`,
-      `  - Nested JSDoc blocks missing @category: ${entry.nestedMissingCategory}`,
-      `  - Existing nested @category tags: ${entry.nestedCategory}`,
+      `  - Nested @category tags to remove: ${entry.nestedCategory}`,
       `  - Current top-level categories: ${renderCategories(entry.categories)}`,
       `  - Current nested categories: ${renderCategories(entry.nestedCategories)}`
     )

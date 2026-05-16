@@ -19,16 +19,22 @@ export class SingletonAddress extends Schema.Class<SingletonAddress>(TypeId)({
   name: Schema.String
 }) {
   /**
+   * Marks this value as a cluster singleton address for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [TypeId] = TypeId;
   /**
+   * Computes a structural hash from the singleton name and shard id.
+   *
    * @since 4.0.0
    */
   [Hash.symbol]() {
     return Hash.string(`${this.name}:${this.shardId.toString()}`)
   }
   /**
+   * Compares singleton addresses by name and shard id.
+   *
    * @since 4.0.0
    */
   [Equal.symbol](that: SingletonAddress): boolean {

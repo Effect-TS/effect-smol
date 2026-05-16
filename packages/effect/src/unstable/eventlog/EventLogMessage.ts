@@ -165,6 +165,8 @@ export class ChunkedMessage
   }
 
   /**
+   * Splits binary event-log message data into numbered chunks.
+   *
    * @since 4.0.0
    */
   static split(id: number, data: Uint8Array): NonEmptyReadonlyArray<ChunkedMessage> {
@@ -183,6 +185,8 @@ export class ChunkedMessage
   }
 
   /**
+   * Reassembles all chunks for a message id into the original binary payload.
+   *
    * @since 4.0.0
    */
   static join(

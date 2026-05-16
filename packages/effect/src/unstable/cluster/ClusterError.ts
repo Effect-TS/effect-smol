@@ -25,11 +25,15 @@ export class EntityNotAssignedToRunner
   })
 {
   /**
+   * Marks this value as a cluster error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [TypeId] = TypeId
 
   /**
+   * Returns `true` when the value is an `EntityNotAssignedToRunner` error.
+   *
    * @since 4.0.0
    */
   static is(u: unknown): u is EntityNotAssignedToRunner {
@@ -49,11 +53,15 @@ export class MalformedMessage extends Schema.ErrorClass<MalformedMessage>(`${Typ
   cause: Schema.Defect
 }) {
   /**
+   * Marks this value as a cluster error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [TypeId] = TypeId
 
   /**
+   * Returns `true` when the value is a `MalformedMessage` error.
+   *
    * @since 4.0.0
    */
   static is(u: unknown): u is MalformedMessage {
@@ -61,6 +69,8 @@ export class MalformedMessage extends Schema.ErrorClass<MalformedMessage>(`${Typ
   }
 
   /**
+   * Maps failures from the supplied effect into `MalformedMessage` errors.
+   *
    * @since 4.0.0
    */
   static refail: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<
@@ -82,11 +92,15 @@ export class PersistenceError extends Schema.ErrorClass<PersistenceError>(`${Typ
   cause: Schema.Defect
 }) {
   /**
+   * Marks this value as a cluster error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [TypeId] = TypeId
 
   /**
+   * Maps failures from the supplied effect into `PersistenceError` values.
+   *
    * @since 4.0.0
    */
   static refail<A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, PersistenceError, R> {
@@ -106,6 +120,8 @@ export class RunnerNotRegistered extends Schema.ErrorClass<RunnerNotRegistered>(
   address: RunnerAddress
 }) {
   /**
+   * Marks this value as a cluster error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [TypeId] = TypeId
@@ -122,11 +138,15 @@ export class RunnerUnavailable extends Schema.ErrorClass<RunnerUnavailable>(`${T
   address: RunnerAddress
 }) {
   /**
+   * Marks this value as a cluster error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [TypeId] = TypeId
 
   /**
+   * Returns `true` when the value is a `RunnerUnavailable` error.
+   *
    * @since 4.0.0
    */
   static is(u: unknown): u is RunnerUnavailable {
@@ -145,11 +165,15 @@ export class MailboxFull extends Schema.ErrorClass<MailboxFull>(`${TypeId}/Mailb
   address: EntityAddress
 }) {
   /**
+   * Marks this value as a cluster error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [TypeId] = TypeId
 
   /**
+   * Returns `true` when the value is a `MailboxFull` error.
+   *
    * @since 4.0.0
    */
   static is(u: unknown): u is MailboxFull {
@@ -172,11 +196,15 @@ export class AlreadyProcessingMessage
   })
 {
   /**
+   * Marks this value as a cluster error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [TypeId] = TypeId
 
   /**
+   * Returns `true` when the value is an `AlreadyProcessingMessage` error.
+   *
    * @since 4.0.0
    */
   static is(u: unknown): u is AlreadyProcessingMessage {

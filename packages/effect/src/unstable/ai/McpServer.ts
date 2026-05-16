@@ -154,6 +154,8 @@ export class McpServer extends Context.Service<McpServer, {
   ) => Effect.Effect<CompleteResult, InternalError, McpServerClient>
 }>()("effect/ai/McpServer") {
   /**
+   * Builds an MCP server service from registered tools, prompts, resources, and completions.
+   *
    * @since 4.0.0
    */
   static readonly make = Effect.gen(function*() {
@@ -313,6 +315,8 @@ export class McpServer extends Context.Service<McpServer, {
   })
 
   /**
+   * Layer that provides the MCP server and client services.
+   *
    * @since 4.0.0
    */
   static readonly layer: Layer.Layer<McpServer | McpServerClient> = Layer.effect(McpServer)(McpServer.make) as any

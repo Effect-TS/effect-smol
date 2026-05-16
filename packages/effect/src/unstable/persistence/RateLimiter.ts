@@ -338,6 +338,8 @@ export class RateLimitExceeded extends Schema.ErrorClass<RateLimitExceeded>(
   remaining: Schema.Number
 }) {
   /**
+   * Public message used when the rate limiter rejects a request.
+   *
    * @since 4.0.0
    */
   override get message(): string {
@@ -404,6 +406,8 @@ export class RateLimiterError extends Schema.ErrorClass<RateLimiterError>(ErrorT
   }
 
   /**
+   * Marks this value as a rate limiter error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [ErrorTypeId]: ErrorTypeId = ErrorTypeId

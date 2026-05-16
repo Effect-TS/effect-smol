@@ -32,11 +32,15 @@ export class MsgPackError extends Data.TaggedError("MsgPackError")<{
   readonly cause: unknown
 }> {
   /**
+   * Marks this value as a MessagePack encoding or decoding error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [MsgPackErrorTypeId] = MsgPackErrorTypeId
 
   /**
+   * Uses the failed MessagePack operation as the public message.
+   *
    * @since 4.0.0
    */
   override get message() {

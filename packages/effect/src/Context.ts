@@ -117,7 +117,6 @@ export interface ServiceClass<in out Self, in out Identifier extends string, in 
  * Namespace containing helper types for class-style `Context.Service`
  * declarations.
  *
- * @category Models
  * @since 4.0.0
  */
 export declare namespace ServiceClass {
@@ -325,7 +324,6 @@ export interface Reference<in out Shape> extends Service<never, Shape> {
  * type DatabaseId = Context.Service.Identifier<typeof Database>
  * ```
  *
- * @category Models
  * @since 4.0.0
  */
 export declare namespace Service {

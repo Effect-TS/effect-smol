@@ -984,6 +984,8 @@ export class MemoryDriver extends Context.Service<MemoryDriver>()("effect/cluste
   })
 }) {
   /**
+   * Layer that provides the in-memory message storage driver.
+   *
    * @since 4.0.0
    */
   static readonly layer: Layer.Layer<MemoryDriver> = Layer.effect(this)(this.make).pipe(

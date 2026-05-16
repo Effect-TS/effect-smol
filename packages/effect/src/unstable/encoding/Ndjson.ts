@@ -27,11 +27,15 @@ export class NdjsonError extends Data.TaggedError("NdjsonError")<{
   readonly cause: unknown
 }> {
   /**
+   * Marks this value as an NDJSON encoding or decoding error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [NdjsonErrorTypeId] = NdjsonErrorTypeId
 
   /**
+   * Uses the failed NDJSON operation as the public message.
+   *
    * @since 4.0.0
    */
   override get message() {

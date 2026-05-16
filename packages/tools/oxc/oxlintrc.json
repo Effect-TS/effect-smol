@@ -20,13 +20,23 @@
     }],
     "effect/no-js-extension-imports": "error",
     "effect/no-opaque-instance-fields": "error",
-    // Staged rollout: add package/module globs to include.
     "effect/standard-jsdoc": ["error", {
-      "include": [],
+      "include": [
+        "packages/**/src/*.ts",
+        "packages/**/src/**/*.ts"
+      ],
       "exclude": [
         "packages/**/src/index.ts",
-        "packages/**/src/*Generated.ts"
+        "packages/**/src/*Generated.ts",
+        "packages/**/src/internal/**"
       ],
+      "checks": {
+        "description": true,
+        "tags": false,
+        "category": false,
+        "since": false,
+        "examples": false
+      },
       "examples": {
         "values": "optional",
         "types": "optional"

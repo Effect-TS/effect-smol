@@ -140,11 +140,15 @@ export class AckChunk extends Schema.Class<AckChunk>("effect/cluster/Envelope/Ac
   replyId: SnowflakeFromBigInt
 }) {
   /**
+   * Marks this value as a cluster envelope for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [TypeId] = TypeId
 
   /**
+   * Returns a copy of this acknowledgement associated with the supplied request id.
+   *
    * @since 4.0.0
    */
   withRequestId(requestId: Snowflake): AckChunk {
@@ -189,11 +193,15 @@ export class Interrupt extends Schema.Class<Interrupt>("effect/cluster/Envelope/
   requestId: SnowflakeFromBigInt
 }) {
   /**
+   * Marks this value as a cluster envelope for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [TypeId] = TypeId
 
   /**
+   * Returns a copy of this interrupt associated with the supplied request id.
+   *
    * @since 4.0.0
    */
   withRequestId(requestId: Snowflake): Interrupt {

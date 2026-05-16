@@ -82,6 +82,8 @@ export class RedisError extends Schema.ErrorClass<RedisError>(ErrorTypeId)({
   cause: Schema.Defect
 }) {
   /**
+   * Marks this value as a Redis persistence error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [ErrorTypeId]: ErrorTypeId = ErrorTypeId

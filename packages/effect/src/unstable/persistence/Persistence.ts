@@ -32,6 +32,8 @@ export class PersistenceError extends Schema.ErrorClass<PersistenceError>(ErrorT
   cause: Schema.optional(Schema.Defect)
 }) {
   /**
+   * Marks this value as a persistence error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [ErrorTypeId]: typeof ErrorTypeId = ErrorTypeId

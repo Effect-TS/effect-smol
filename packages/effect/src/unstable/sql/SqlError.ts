@@ -23,11 +23,15 @@ export class ConnectionError extends Schema.TaggedErrorClass<ConnectionError>("e
   ReasonFields
 ) {
   /**
+   * Marks this value as a structured SQL error reason for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
+   * Indicates whether retrying the failed SQL operation may succeed.
+   *
    * @since 4.0.0
    */
   get isRetryable(): boolean {
@@ -45,11 +49,15 @@ export class AuthenticationError extends Schema.TaggedErrorClass<AuthenticationE
   "effect/sql/SqlError/AuthenticationError"
 )("AuthenticationError", ReasonFields) {
   /**
+   * Marks this value as a structured SQL error reason for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
+   * Indicates whether retrying the failed SQL operation may succeed.
+   *
    * @since 4.0.0
    */
   get isRetryable(): boolean {
@@ -67,11 +75,15 @@ export class AuthorizationError extends Schema.TaggedErrorClass<AuthorizationErr
   "effect/sql/SqlError/AuthorizationError"
 )("AuthorizationError", ReasonFields) {
   /**
+   * Marks this value as a structured SQL error reason for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
+   * Indicates whether retrying the failed SQL operation may succeed.
+   *
    * @since 4.0.0
    */
   get isRetryable(): boolean {
@@ -89,11 +101,15 @@ export class SqlSyntaxError extends Schema.TaggedErrorClass<SqlSyntaxError>("eff
   ReasonFields
 ) {
   /**
+   * Marks this value as a structured SQL error reason for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
+   * Indicates whether retrying the failed SQL operation may succeed.
+   *
    * @since 4.0.0
    */
   get isRetryable(): boolean {
@@ -117,11 +133,15 @@ export class UniqueViolation extends Schema.TaggedErrorClass<UniqueViolation>("e
   UniqueViolationFields
 ) {
   /**
+   * Marks this value as a structured SQL error reason for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
+   * Indicates whether retrying the failed SQL operation may succeed.
+   *
    * @since 4.0.0
    */
   get isRetryable(): boolean {
@@ -139,11 +159,15 @@ export class ConstraintError extends Schema.TaggedErrorClass<ConstraintError>("e
   ReasonFields
 ) {
   /**
+   * Marks this value as a structured SQL error reason for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
+   * Indicates whether retrying the failed SQL operation may succeed.
+   *
    * @since 4.0.0
    */
   get isRetryable(): boolean {
@@ -161,11 +185,15 @@ export class DeadlockError extends Schema.TaggedErrorClass<DeadlockError>("effec
   ReasonFields
 ) {
   /**
+   * Marks this value as a structured SQL error reason for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
+   * Indicates whether retrying the failed SQL operation may succeed.
+   *
    * @since 4.0.0
    */
   get isRetryable(): boolean {
@@ -183,11 +211,15 @@ export class SerializationError extends Schema.TaggedErrorClass<SerializationErr
   "effect/sql/SqlError/SerializationError"
 )("SerializationError", ReasonFields) {
   /**
+   * Marks this value as a structured SQL error reason for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
+   * Indicates whether retrying the failed SQL operation may succeed.
+   *
    * @since 4.0.0
    */
   get isRetryable(): boolean {
@@ -206,11 +238,15 @@ export class LockTimeoutError extends Schema.TaggedErrorClass<LockTimeoutError>(
   ReasonFields
 ) {
   /**
+   * Marks this value as a structured SQL error reason for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
+   * Indicates whether retrying the failed SQL operation may succeed.
+   *
    * @since 4.0.0
    */
   get isRetryable(): boolean {
@@ -227,11 +263,15 @@ export class StatementTimeoutError extends Schema.TaggedErrorClass<StatementTime
   "effect/sql/SqlError/StatementTimeoutError"
 )("StatementTimeoutError", ReasonFields) {
   /**
+   * Marks this value as a structured SQL error reason for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
+   * Indicates whether retrying the failed SQL operation may succeed.
+   *
    * @since 4.0.0
    */
   get isRetryable(): boolean {
@@ -249,11 +289,15 @@ export class UnknownError extends Schema.TaggedErrorClass<UnknownError>("effect/
   ReasonFields
 ) {
   /**
+   * Marks this value as a structured SQL error reason for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
+   * Indicates whether retrying the failed SQL operation may succeed.
+   *
    * @since 4.0.0
    */
   get isRetryable(): boolean {
@@ -321,16 +365,22 @@ export class SqlError extends Schema.TaggedErrorClass<SqlError>("effect/sql/SqlE
   reason: SqlErrorReason
 }) {
   /**
+   * Marks this value as the top-level SQL error wrapper for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [TypeId] = TypeId
 
   /**
+   * Exposes the structured SQL reason as the JavaScript error cause.
+   *
    * @since 4.0.0
    */
   override readonly cause = this.reason
 
   /**
+   * Uses the reason message when present, otherwise falls back to the reason tag.
+   *
    * @since 4.0.0
    */
   override get message(): string {
@@ -338,6 +388,8 @@ export class SqlError extends Schema.TaggedErrorClass<SqlError>("effect/sql/SqlE
   }
 
   /**
+   * Delegates retryability to the underlying SQL error reason.
+   *
    * @since 4.0.0
    */
   get isRetryable(): boolean {
@@ -501,6 +553,8 @@ export class ResultLengthMismatch
   })
 {
   /**
+   * Explains the mismatch between expected and actual batched SQL result counts.
+   *
    * @since 4.0.0
    */
   override get message() {

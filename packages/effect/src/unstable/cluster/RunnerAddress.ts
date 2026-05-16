@@ -20,11 +20,15 @@ export class RunnerAddress extends Schema.Class<RunnerAddress>(TypeId)({
   port: Schema.Number
 }) {
   /**
+   * Marks this value as a cluster runner address for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [TypeId] = TypeId;
 
   /**
+   * Compares runner addresses by host and port.
+   *
    * @since 4.0.0
    */
   [Equal.symbol](that: RunnerAddress): boolean {
@@ -32,6 +36,8 @@ export class RunnerAddress extends Schema.Class<RunnerAddress>(TypeId)({
   }
 
   /**
+   * Computes a structural hash from the host and port.
+   *
    * @since 4.0.0
    */
   [Hash.symbol]() {
@@ -39,6 +45,8 @@ export class RunnerAddress extends Schema.Class<RunnerAddress>(TypeId)({
   }
 
   /**
+   * Stable primary key used to identify the runner address.
+   *
    * @since 4.0.0
    */
   [PrimaryKey.symbol](): string {
@@ -46,6 +54,8 @@ export class RunnerAddress extends Schema.Class<RunnerAddress>(TypeId)({
   }
 
   /**
+   * Formats the runner address with its host and port.
+   *
    * @since 4.0.0
    */
   override toString(): string {
@@ -53,6 +63,8 @@ export class RunnerAddress extends Schema.Class<RunnerAddress>(TypeId)({
   }
 
   /**
+   * Formats the runner address for Node.js inspection.
+   *
    * @since 4.0.0
    */
   [NodeInspectSymbol](): string {

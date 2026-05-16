@@ -187,6 +187,8 @@ export class MultipartError extends Data.TaggedError("MultipartError")<{
   readonly reason: MultipartErrorReason
 }> {
   /**
+   * Creates a multipart error from a reason tag and optional cause.
+   *
    * @since 4.0.0
    */
   static fromReason(reason: MultipartErrorReason["_tag"], cause?: unknown): MultipartError {
@@ -194,11 +196,15 @@ export class MultipartError extends Data.TaggedError("MultipartError")<{
   }
 
   /**
+   * Marks this value as a multipart error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [MultipartErrorTypeId] = MultipartErrorTypeId
 
   /**
+   * Uses the concrete multipart error reason as the public message.
+   *
    * @since 4.0.0
    */
   override get message(): string {

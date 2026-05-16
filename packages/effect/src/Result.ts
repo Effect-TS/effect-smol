@@ -277,7 +277,6 @@ export interface ResultTypeLambda extends TypeLambda {
  * type E = Result.Result.Failure<R>
  * ```
  *
- * @category Type Level
  * @since 4.0.0
  */
 export declare namespace Result {

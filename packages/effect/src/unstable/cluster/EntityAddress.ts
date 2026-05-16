@@ -22,11 +22,15 @@ export class EntityAddress extends Schema.Class<EntityAddress>(TypeId)({
   entityId: EntityId
 }) {
   /**
+   * Marks this value as a cluster entity address for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [TypeId] = TypeId
 
   /**
+   * Formats the entity type, entity id, and shard id as a readable address.
+   *
    * @since 4.0.0
    */
   override toString() {
@@ -34,6 +38,8 @@ export class EntityAddress extends Schema.Class<EntityAddress>(TypeId)({
   }
 
   /**
+   * Compares entity addresses by entity type, entity id, and shard id.
+   *
    * @since 4.0.0
    */
   [Equal.symbol](that: EntityAddress): boolean {
@@ -42,6 +48,8 @@ export class EntityAddress extends Schema.Class<EntityAddress>(TypeId)({
   }
 
   /**
+   * Computes a structural hash from the entity type, entity id, and shard id.
+   *
    * @since 4.0.0
    */
   [Hash.symbol]() {

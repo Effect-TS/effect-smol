@@ -87,6 +87,8 @@ export class IndexedDbDatabaseError extends Data.TaggedError(
   cause: unknown
 }> {
   /**
+   * Marks this value as an IndexedDB database error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [ErrorTypeId]: typeof ErrorTypeId = ErrorTypeId

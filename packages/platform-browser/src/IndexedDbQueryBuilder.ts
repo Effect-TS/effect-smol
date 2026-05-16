@@ -68,6 +68,8 @@ export class IndexedDbQueryError extends Data.TaggedError(
   cause: unknown
 }> {
   /**
+   * Marks this value as an IndexedDB query builder error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [ErrorTypeId]: typeof ErrorTypeId = ErrorTypeId

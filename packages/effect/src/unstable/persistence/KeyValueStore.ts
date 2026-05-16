@@ -176,6 +176,8 @@ export class KeyValueStoreError extends Data.TaggedError("KeyValueStoreError")<{
   cause?: unknown
 }> {
   /**
+   * Marks this value as a key-value store error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [ErrorTypeId]: typeof ErrorTypeId = ErrorTypeId

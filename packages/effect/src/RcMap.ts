@@ -72,7 +72,7 @@ export type State<K, A, E> = State.Open<K, A, E> | State.Closed
 
 /**
  * Namespace containing the internal state types for RcMap.
- * @category Models
+ *
  * @since 4.0.0
  */
 export declare namespace State {

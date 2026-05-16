@@ -146,6 +146,8 @@ const CloseEventTypeId = "~effect/socket/Socket/CloseEvent"
  */
 export class CloseEvent {
   /**
+   * Marks this value as a socket close event for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [CloseEventTypeId]: typeof CloseEventTypeId
@@ -158,6 +160,8 @@ export class CloseEvent {
     this.reason = reason
   }
   /**
+   * Formats the close code and optional reason for display.
+   *
    * @since 4.0.0
    */
   toString() {
@@ -208,6 +212,8 @@ export class SocketReadError extends Schema.ErrorClass<SocketReadError>("effect/
   cause: Schema.Defect
 }) {
   /**
+   * Default message used for socket read failures.
+   *
    * @since 4.0.0
    */
   override readonly message = `An error occurred during Read`
@@ -224,6 +230,8 @@ export class SocketWriteError extends Schema.ErrorClass<SocketWriteError>("effec
   cause: Schema.Defect
 }) {
   /**
+   * Default message used for socket write failures.
+   *
    * @since 4.0.0
    */
   override readonly message = `An error occurred during Write`
@@ -242,6 +250,8 @@ export class SocketOpenError extends Schema.ErrorClass<SocketOpenError>("effect/
   cause: Schema.Defect
 }) {
   /**
+   * Formats timeout and unknown open failures for display.
+   *
    * @since 4.0.0
    */
   override get message() {
@@ -264,6 +274,8 @@ export class SocketCloseError extends Schema.ErrorClass<SocketCloseError>("effec
   closeReason: Schema.optional(Schema.String)
 }) {
   /**
+   * Separates clean socket close errors from errors that should remain failures.
+   *
    * @since 4.0.0
    */
   static filterClean(isClean: (code: number) => boolean): <E>(u: E) => Result.Result<SocketCloseError, E> {
@@ -333,11 +345,15 @@ export class SocketError extends Schema.TaggedErrorClass<SocketError>(SocketErro
   }
 
   /**
+   * Marks this value as a socket error wrapper for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [SocketErrorTypeId]: SocketErrorTypeId = SocketErrorTypeId
 
   /**
+   * Returns `true` when the value is a `SocketError`.
+   *
    * @since 4.0.0
    */
   static is(u: unknown): u is SocketError {

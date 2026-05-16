@@ -107,6 +107,8 @@ export class EventJournalError extends Data.TaggedError("EventJournalError")<{
   readonly cause: unknown
 }> {
   /**
+   * Marks this value as an event journal error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [TypeId] = TypeId
@@ -245,26 +247,36 @@ export class Entry extends Schema.Class<Entry>("effect/eventlog/EventJournal/Ent
   payload: Schema.Uint8Array
 }) {
   /**
+   * MessagePack schema for arrays of committed event journal entries.
+   *
    * @since 4.0.0
    */
   static arrayMsgpack = Schema.Array(Msgpack.schema(Entry))
 
   /**
+   * Encodes arrays of committed entries with the MessagePack entry schema.
+   *
    * @since 4.0.0
    */
   static encodeArray = Schema.encodeUnknownEffect(Entry.arrayMsgpack)
 
   /**
+   * Decodes arrays of committed entries with the MessagePack entry schema.
+   *
    * @since 4.0.0
    */
   static decodeArray = Schema.decodeUnknownEffect(Entry.arrayMsgpack)
 
   /**
+   * Ordering for committed entries by their event journal entry id.
+   *
    * @since 4.0.0
    */
   static Order = Order.make<Entry>((a, b) => EntryIdOrder(a.id, b.id))
 
   /**
+   * String representation of the entry id.
+   *
    * @since 4.0.0
    */
   get idString(): string {
@@ -272,6 +284,8 @@ export class Entry extends Schema.Class<Entry>("effect/eventlog/EventJournal/Ent
   }
 
   /**
+   * Creation timestamp encoded in the UUID v7 entry id, in epoch milliseconds.
+   *
    * @since 4.0.0
    */
   get createdAtMillis(): number {
@@ -279,6 +293,8 @@ export class Entry extends Schema.Class<Entry>("effect/eventlog/EventJournal/Ent
   }
 
   /**
+   * Creation timestamp encoded in the UUID v7 entry id, as a UTC date-time.
+   *
    * @since 4.0.0
    */
   get createdAt(): DateTime.Utc {

@@ -130,6 +130,8 @@ export class WorkerError extends Schema.ErrorClass<WorkerError>(TypeId)({
     } as any)
   }
   /**
+   * Marks this value as a worker error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [TypeId]: TypeId = TypeId

@@ -84,6 +84,8 @@ export class HttpBodyError extends Data.TaggedError("HttpBodyError")<{
   readonly cause?: unknown
 }> {
   /**
+   * Marks this value as an HTTP body error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [HttpBodyErrorTypeId] = HttpBodyErrorTypeId

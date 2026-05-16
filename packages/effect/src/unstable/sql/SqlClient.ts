@@ -84,7 +84,6 @@ export const SqlClient = Context.Service<SqlClient>("effect/sql/SqlClient")
 /**
  * Namespace containing types associated with the `SqlClient` service.
  *
- * @category models
  * @since 4.0.0
  */
 export namespace SqlClient {
