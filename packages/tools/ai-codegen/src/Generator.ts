@@ -1,7 +1,7 @@
 /**
  * Code generator service wrapping @effect/openapi-generator.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as OpenApiGenerator from "@effect/openapi-generator/OpenApiGenerator"
 import * as OpenApiPatch from "@effect/openapi-generator/OpenApiPatch"
@@ -30,7 +30,7 @@ import type { DiscoveredProvider } from "./Discovery.ts"
  * ```
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class GenerationError extends Data.TaggedError("GenerationError")<{
   readonly provider: string
@@ -52,7 +52,7 @@ export class GenerationError extends Data.TaggedError("GenerationError")<{
  * ```
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class PatchError extends Data.TaggedError("PatchError")<{
   readonly provider: string
@@ -63,7 +63,7 @@ export class PatchError extends Data.TaggedError("PatchError")<{
  * Service for generating Effect code from OpenAPI specs.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface CodeGenerator {
   readonly generate: (
@@ -76,7 +76,7 @@ export interface CodeGenerator {
  * Context service tag for generating Effect client code from OpenAPI specifications.
  *
  * @category tags
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const CodeGenerator: Context.Service<CodeGenerator, CodeGenerator> = Context.Service(
   "@effect/ai-codegen/CodeGenerator"
@@ -86,7 +86,7 @@ export const CodeGenerator: Context.Service<CodeGenerator, CodeGenerator> = Cont
  * Layer providing the CodeGenerator service.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<
   CodeGenerator,
@@ -166,7 +166,7 @@ export const layer: Layer.Layer<
  * Layer providing the CodeGenerator with schema transformer (default).
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerSchema: Layer.Layer<CodeGenerator, never, FileSystem.FileSystem | Path_.Path> = layer.pipe(
   Layer.provide(OpenApiGenerator.layerTransformerSchema)
@@ -176,7 +176,7 @@ export const layerSchema: Layer.Layer<CodeGenerator, never, FileSystem.FileSyste
  * Layer providing the CodeGenerator with TypeScript-only transformer.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerTypeScript: Layer.Layer<CodeGenerator, never, FileSystem.FileSystem | Path_.Path> = layer.pipe(
   Layer.provide(OpenApiGenerator.layerTransformerTs)

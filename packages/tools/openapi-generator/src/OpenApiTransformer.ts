@@ -13,7 +13,7 @@ import * as Utils from "./Utils.ts"
  * choose between schema-backed clients and type-only clients.
  *
  * @category code generation
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class OpenApiTransformer extends Context.Service<
   OpenApiTransformer,
@@ -54,7 +54,7 @@ const requiresStreaming = (requirements: ImportRequirements): boolean =>
  * payloads are typed against each schema's encoded representation.
  *
  * @category code generation
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeTransformerSchema = () => {
   const operationsToInterface = (
@@ -445,7 +445,7 @@ export const make = (
  * decoding with generated Effect Schema values.
  *
  * @category code generation
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerTransformerSchema = Layer.sync(
   OpenApiTransformer,
@@ -461,7 +461,7 @@ export const layerTransformerSchema = Layer.sync(
  * shapes.
  *
  * @category code generation
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeTransformerTs = () => {
   const operationsToInterface = (
@@ -852,7 +852,7 @@ export const make = (
  * decoding.
  *
  * @category code generation
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerTransformerTs = Layer.sync(
   OpenApiTransformer,

@@ -19,7 +19,7 @@
  * details such as reasoning blocks and file annotations when the selected model
  * supports them.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 /** @effect-diagnostics preferSchemaOverJson:skip-file */
 import * as Arr from "effect/Array"
@@ -61,7 +61,7 @@ import { type ChatStreamingResponseChunkData, OpenRouterClient } from "./OpenRou
  * Service definition for OpenRouter language model configuration.
  *
  * @category services
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Config extends Context.Service<
   Config,
@@ -90,13 +90,13 @@ export class Config extends Context.Service<
 
 /**
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ReasoningDetails = Exclude<typeof Generated.AssistantMessage.Encoded["reasoning_details"], undefined>
 
 /**
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type FileAnnotation = Extract<
   NonNullable<typeof Generated.AssistantMessage.fields.annotations.Type>[number],
@@ -410,7 +410,7 @@ declare module "effect/unstable/ai/Response" {
 
 /**
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const model = (
   model: string,
@@ -422,7 +422,7 @@ export const model = (
  * Creates an OpenRouter language model service.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = Effect.fnUntraced(function*({ model, config: providerConfig }: {
   readonly model: string
@@ -491,7 +491,7 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
  * Creates a layer for the OpenRouter language model.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = (options: {
   readonly model: string
@@ -503,7 +503,7 @@ export const layer = (options: {
  * Provides config overrides for OpenRouter language model operations.
  *
  * @category configuration
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const withConfigOverride: {
   (overrides: typeof Config.Service): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, Config>>

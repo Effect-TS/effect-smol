@@ -20,7 +20,7 @@
  * stream is externally owned and should only have its lock released. Read errors
  * are mapped through the provided `onError` function.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Arr from "effect/Array"
 import * as Cause from "effect/Cause"
@@ -32,7 +32,7 @@ import * as Scope from "effect/Scope"
 import * as Stream from "effect/Stream"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * from "@effect/platform-node-shared/NodeStream"
 
@@ -40,7 +40,7 @@ export * from "@effect/platform-node-shared/NodeStream"
  * An optimized version of `Stream.fromReadableStream` that uses the Bun
  * .readMany API to read multiple values at once from a `ReadableStream`.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fromReadableStream = <A, E>(
   options: {

@@ -17,7 +17,7 @@
  * and terminal dimensions should be coordinated with terminal APIs rather than
  * assumed from this layer.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as NodeStdio from "@effect/platform-node-shared/NodeStdio"
 import type * as Layer from "effect/Layer"
@@ -28,6 +28,6 @@ import type { Stdio } from "effect/Stdio"
  * stdin, stdout, and stderr streams.
  *
  * @category layer
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<Stdio> = NodeStdio.layer

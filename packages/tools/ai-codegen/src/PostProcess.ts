@@ -1,7 +1,7 @@
 /**
  * Post-processing service for linting and formatting generated code.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Context from "effect/Context"
 import * as Data from "effect/Data"
@@ -31,7 +31,7 @@ import * as ChildProcessSpawner from "effect/unstable/process/ChildProcessSpawne
  * ```
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class PostProcessError extends Data.TaggedError("PostProcessError")<{
   readonly step: "lint" | "format"
@@ -64,7 +64,7 @@ export class PostProcessError extends Data.TaggedError("PostProcessError")<{
  * Service for post-processing generated code.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface PostProcessor {
   readonly lint: (filePath: string) => Effect.Effect<void, PostProcessError>
@@ -75,7 +75,7 @@ export interface PostProcessor {
  * Context service tag for linting and formatting generated code.
  *
  * @category tags
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const PostProcessor: Context.Service<PostProcessor, PostProcessor> = Context.Service(
   "@effect/ai-codegen/PostProcessor"
@@ -85,7 +85,7 @@ export const PostProcessor: Context.Service<PostProcessor, PostProcessor> = Cont
  * Layer providing the PostProcessor service.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<
   PostProcessor,

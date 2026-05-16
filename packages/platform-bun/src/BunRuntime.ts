@@ -15,7 +15,7 @@
  * scope and avoid finalizers that never complete, otherwise process shutdown
  * can be delayed.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as NodeRuntime from "@effect/platform-node-shared/NodeRuntime"
 import type { Effect } from "effect/Effect"
@@ -46,7 +46,7 @@ import type { Teardown } from "effect/Runtime"
  * or advanced teardown capabilities.
  *
  * @category Run main
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const runMain: {
   (

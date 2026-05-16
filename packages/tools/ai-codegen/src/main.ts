@@ -1,7 +1,7 @@
 /**
  * CLI entry point for ai-codegen tool.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Console from "effect/Console"
 import * as Effect from "effect/Effect"
@@ -230,7 +230,7 @@ const ServicesLayer = Layer.mergeAll(
  * Run the CLI.
  *
  * @category execution
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const run = Command.run(root, { version: "0.0.0" }).pipe(
   Effect.provide(ServicesLayer)

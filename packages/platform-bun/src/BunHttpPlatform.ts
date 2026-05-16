@@ -21,7 +21,7 @@
  * `BunHttpServer`, so decode and validate URL pathnames before mapping them to
  * files.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type { Effect } from "effect"
 import type { FileSystem } from "effect/FileSystem"
@@ -33,7 +33,7 @@ import * as BunFileSystem from "./BunFileSystem.ts"
 
 /**
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 const make: Effect.Effect<
   Platform.HttpPlatform["Service"],
@@ -56,7 +56,7 @@ const make: Effect.Effect<
  * Layer that provides the Bun `HttpPlatform`, including file responses backed by `Bun.file`.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = Layer.effect(Platform.HttpPlatform)(make).pipe(
   Layer.provide(BunFileSystem.layer),

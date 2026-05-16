@@ -13,7 +13,7 @@
  * from entry file stems in the requested output directory, so duplicate names can
  * make the output misleading.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Context from "effect/Context"
 import * as Data from "effect/Data"
@@ -28,7 +28,7 @@ import { Rollup } from "./Rollup.ts"
  * Error raised when generating a bundle size report or visualization fails.
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class ReporterError extends Data.TaggedError("ReporterError")<{
   readonly cause: unknown
@@ -38,7 +38,7 @@ export class ReporterError extends Data.TaggedError("ReporterError")<{
  * Options for generating a bundle size comparison report against fixture files from a base directory.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ReportOptions {
   readonly baseDirectory: string
@@ -48,7 +48,7 @@ export interface ReportOptions {
  * Options for generating bundle visualizations for selected entry files into an output directory.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface VisualizeOptions {
   readonly paths: ReadonlyArray<string>
@@ -59,7 +59,7 @@ export interface VisualizeOptions {
  * Options for generating a bundle size report for an explicit list of entry files.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ReportSelectedOptions {
   readonly paths: ReadonlyArray<string>
@@ -69,7 +69,7 @@ export interface ReportSelectedOptions {
  * Context service for producing bundle size reports and visualizations from Rollup-generated fixture stats.
  *
  * @category services
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Reporter extends Context.Service<Reporter>()(
   "@effect/bundle/Reporter",

@@ -1,7 +1,7 @@
 /**
  * Glob pattern matching service.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Context from "effect/Context"
 import * as Data from "effect/Data"
@@ -13,7 +13,7 @@ import * as GlobLib from "glob"
  * Error during glob pattern matching.
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class GlobError extends Data.TaggedError("GlobError")<{
   readonly pattern: string | ReadonlyArray<string>
@@ -24,7 +24,7 @@ export class GlobError extends Data.TaggedError("GlobError")<{
  * Context service for glob pattern matching used by AI docgen tooling.
  *
  * @category tags
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Glob extends Context.Service<Glob, {
   readonly glob: (
@@ -37,7 +37,7 @@ export class Glob extends Context.Service<Glob, {
  * Layer providing the Glob service.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<Glob> = Layer.succeed(Glob, {
   glob: (pattern, options) =>

@@ -23,7 +23,7 @@
  * unbounded high-cardinality rate-limit keys unless you have a cleanup or
  * bounding strategy.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import { RedisClient, type RedisOptions } from "bun"
 import * as Config from "effect/Config"
@@ -38,7 +38,7 @@ import * as Redis from "effect/unstable/persistence/Redis"
  * Service tag for Bun Redis integration, exposing the raw `RedisClient` and a `use` helper that maps client promise failures to `RedisError`.
  *
  * @category Service
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class BunRedis extends Context.Service<BunRedis, {
   readonly client: RedisClient
@@ -82,7 +82,7 @@ const make = Effect.fnUntraced(function*(
  * Creates scoped Bun Redis layers for `Redis.Redis` and `BunRedis`, closing the underlying client when the scope finalizes.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = (
   options?: ({ readonly url?: string } & RedisOptions) | undefined
@@ -92,7 +92,7 @@ export const layer = (
  * Creates scoped Bun Redis layers from configurable Redis options, closing the underlying client when the scope finalizes.
  *
  * @category Layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerConfig = (
   options: Config.Wrap<{ readonly url?: string } & RedisOptions>

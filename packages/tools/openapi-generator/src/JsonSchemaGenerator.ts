@@ -24,7 +24,7 @@ interface GenerateHttpApiOptions extends GenerateOptions {
  * component definitions supplied at generation time.
  *
  * @category code generation
- * @since 1.0.0
+ * @since 4.0.0
  */
 export function make() {
   const store: Record<string, JsonSchema.JsonSchema> = {}

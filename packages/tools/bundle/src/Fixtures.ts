@@ -13,7 +13,7 @@
  * should represent the import shape being measured and avoid depending on
  * incidental fixture discovery order.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Array from "effect/Array"
 import * as Context from "effect/Context"
@@ -26,7 +26,7 @@ import * as Glob from "glob"
  * Context service that discovers and sorts TypeScript fixture files used by the bundle size tooling.
  *
  * @category services
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Fixtures extends Context.Service<Fixtures>()(
   "@effect/bundle/Fixtures",

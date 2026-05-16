@@ -32,7 +32,7 @@ const fallbackGroupIdentifier = "default"
  * support is included only when the parsed OpenAPI document needs it.
  *
  * @category code generation
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const imports = (
   importName: string,
@@ -54,7 +54,7 @@ export const imports = (
  * annotations derived from the parsed operation metadata.
  *
  * @category code generation
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toImplementation = (
   _importName: string,

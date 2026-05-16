@@ -16,7 +16,7 @@
  * tree-shaking, and terser mangling is disabled while visualizing so reported
  * module names stay readable.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import { nodeResolve } from "@rollup/plugin-node-resolve"
 import replace from "@rollup/plugin-replace"
@@ -33,7 +33,7 @@ const EFFECT_PACKAGE_REGEX = /^(@effect\/[\w-]+|effect)(\/.*)?$/
  * Options for configuring Rollup plugins.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface PluginOptions {
   readonly nodeTarget?: string | undefined
@@ -71,7 +71,7 @@ const resolvePluginOptions = (options: PluginOptions): ResolvedPluginOptions => 
  * local dist directories.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const createResolveLocalPackageImports = (pathService: Path.Path): Plugin => ({
   name: "rollup-plugin-resolve-imports",
@@ -95,7 +95,7 @@ export const createResolveLocalPackageImports = (pathService: Path.Path): Plugin
  * Creates the full Rollup plugin pipeline for bundling.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const createPlugins = (pathService: Path.Path, options: PluginOptions = {}): Array<Plugin> => {
   const resolved = resolvePluginOptions(options)

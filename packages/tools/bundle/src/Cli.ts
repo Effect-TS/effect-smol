@@ -15,7 +15,7 @@
  * uses `--output-dir` (`-o`) for generated bundle artifacts, so `-o` names a
  * file for `compare` but a directory for `visualize`.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Console from "effect/Console"
 import * as Effect from "effect/Effect"
@@ -97,7 +97,7 @@ const report = Command.make("report", { paths: reportPaths }).pipe(
  * Bundle analysis CLI command with subcommands for comparing fixture bundle sizes, reporting selected fixtures, and generating visualizations.
  *
  * @category commands
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const cli = Command.make("bundle").pipe(
   Command.withSubcommands([compare, report, visualize])
