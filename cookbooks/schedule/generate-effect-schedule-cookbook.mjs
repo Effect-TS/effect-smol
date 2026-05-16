@@ -1,19 +1,18 @@
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs"
+import { createRequire } from "node:module"
 import { dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
+const require = createRequire(import.meta.url)
+const Prism = require("prismjs")
+require("prismjs/components/prism-typescript")
+
 const sourceDir = dirname(fileURLToPath(import.meta.url))
 const root = resolve(sourceDir, "..", "..")
-const outputPath = join(root, "effect-schedule-cookbook.html")
+const outputPath = join(sourceDir, "effect-schedule-cookbook.html")
 
 const embeddedPublicOutline = String.raw`
 # Effect \`Schedule\` Cookbook
-
-## Preface
-
-### Who this cookbook is for
-### What this cookbook is not
-### A quick mental model of \`Schedule\`
 
 # Part I — Foundations
 
@@ -481,8 +480,16 @@ const renderInline = (raw) => {
   text = text.replace(/__([^_]+)__/g, "<strong>$1</strong>")
   text = text.replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>")
   text = text.replace(/(^|[^_])_([^_\n]+)_/g, "$1<em>$2</em>")
-  text = text.replace(/%%CODESPAN(\d+)%%/g, (_match, index) => `<code>${escapeHtml(codeSpans[Number(index)])}</code>`)
+  text = text.replace(/%%CODESPAN(\d+)%%/g, (_match, index) => {
+    const code = codeSpans[Number(index)]
+    return code === "Schedule" ? escapeHtml(code) : `<code>${escapeHtml(code)}</code>`
+  })
   return text
+}
+
+const highlightCode = (source) => {
+  const grammar = Prism.languages.typescript
+  return grammar ? Prism.highlight(source, grammar, "typescript") : escapeHtml(source)
 }
 
 const renderMarkdown = (markdown) => {
@@ -519,9 +526,9 @@ const renderMarkdown = (markdown) => {
         index += 1
       }
       const codeId = `code-block-${++codeBlockCount}`
-      html.push(`<figure class="code-card" data-language="${escapeAttr(language)}">`)
-      html.push(`<figcaption><span>${escapeHtml(language)}</span><button class="copy-button" type="button" data-copy-target="${codeId}">Copy</button></figcaption>`)
-      html.push(`<pre><code id="${codeId}" class="language-${escapeAttr(language)}">${escapeHtml(code.join("\n"))}</code></pre>`)
+      html.push('<figure class="code-card">')
+      html.push(`<figcaption><button class="copy-button" type="button" data-copy-target="${codeId}">Copy</button></figcaption>`)
+      html.push(`<pre><code id="${codeId}" class="language-typescript">${highlightCode(code.join("\n"))}</code></pre>`)
       html.push("</figure>")
       continue
     }
@@ -682,14 +689,6 @@ for (const part of outline.parts) {
   }
 }
 
-const previousNext = new Map()
-for (let index = 0; index < allOutlineSubsections.length; index += 1) {
-  previousNext.set(allOutlineSubsections[index].id, {
-    previous: allOutlineSubsections[index - 1] ?? null,
-    next: allOutlineSubsections[index + 1] ?? null
-  })
-}
-
 const renderPlaceholder = (kind) =>
   `<div class="missing-content"><strong>Source content unavailable.</strong><span>${kind === "chapter" ? "This chapter is present in the public outline, but no generated subsection file exists in the current source corpus." : "This subsection is present in the public outline, but no generated Markdown file exists in the current source corpus."}</span></div>`
 
@@ -700,7 +699,6 @@ const renderSubsection = (part, chapter, subsection) => {
   const title = metadata.section_title || subsection.title
   const number = subsection.number || ""
   const id = subsection.id
-  const nav = previousNext.get(id) ?? { previous: null, next: null }
   const bodyHtml = loadedSection ? renderMarkdown(loadedSection.content) : renderPlaceholder("subsection")
   const label = number ? `${number} ${title}` : title
   const entry = {
@@ -731,15 +729,11 @@ const renderSubsection = (part, chapter, subsection) => {
 <article class="subsection${loadedSection ? "" : " is-missing"}" id="${id}" data-section-id="${id}" data-title="${escapeAttr(label)}" data-chapter="${escapeAttr(chapter.title)}" data-part="${escapeAttr(part?.title ?? "Preface")}">
   <header class="subsection-header">
     <p class="kicker">${escapeHtml(part?.title ?? "Preface")} / ${escapeHtml(chapter.title)}</p>
-    <h4>${number ? `<span>${escapeHtml(number)}</span> ` : ""}${titleHtml(title)}${codeIncluded ? '<span class="code-pill">code</span>' : ""}</h4>
+    <h4>${number ? `<span>${escapeHtml(number)}</span> ` : ""}${titleHtml(title)}</h4>
   </header>
   <div class="section-body">
     ${bodyHtml}
   </div>
-  <nav class="section-nav" aria-label="Section navigation">
-    ${nav.previous ? `<a href="#${nav.previous.id}" class="prev-link"><span>Previous</span><strong>${escapeHtml(nav.previous.number ? `${nav.previous.number} ${nav.previous.title}` : nav.previous.title)}</strong></a>` : '<span class="nav-placeholder"></span>'}
-    ${nav.next ? `<a href="#${nav.next.id}" class="next-link"><span>Next</span><strong>${escapeHtml(nav.next.number ? `${nav.next.number} ${nav.next.title}` : nav.next.title)}</strong></a>` : '<span class="nav-placeholder"></span>'}
-  </nav>
 </article>`
 }
 
@@ -747,7 +741,7 @@ const renderChapter = (part, chapter) => {
   const hasSubsections = chapter.subsections.length > 0
   const chapterBody = hasSubsections
     ? chapter.subsections.map((subsection) => renderSubsection(part, chapter, subsection)).join("\n")
-    : renderPlaceholder("chapter")
+    : ""
 
   return `
 <section class="chapter-section" id="${chapter.id}" data-chapter-id="${chapter.id}">
@@ -778,9 +772,8 @@ const renderFrontMatter = () => outline.frontMatter.map((chapter) => `
 
 const tocSubsection = (subsection) => {
   const loadedSection = subsection.number ? loaded.byNumber.get(subsection.number) : undefined
-  const code = loadedSection?.metadata?.code_included === true
   const label = subsection.number ? `${subsection.number} ${subsection.title}` : subsection.title
-  return `<li><a class="toc-section${loadedSection ? "" : " is-missing"}" href="#${subsection.id}" data-target="${subsection.id}"><span>${titleHtml(label)}</span>${code ? '<span class="toc-code" title="Contains code">{}</span>' : ""}</a></li>`
+  return `<li><a class="toc-section${loadedSection ? "" : " is-missing"}" href="#${subsection.id}" data-target="${subsection.id}"><span>${titleHtml(label)}</span></a></li>`
 }
 
 const tocChapter = (chapter) => {
@@ -808,52 +801,73 @@ const tocFrontMatter = () => outline.frontMatter.map((chapter) => `
   <ol>${chapter.subsections.map(tocSubsection).join("")}</ol>
 </details>`).join("")
 
-const generatedCount = loaded.byNumber.size
-const expectedSubsectionCount = allOutlineSubsections.length
-
 const styles = String.raw`
 :root {
   color-scheme: light;
-  --bg: #f7f7f4;
+  --bg: #ffffff;
   --panel: #ffffff;
-  --panel-soft: #fbfbf8;
-  --text: #20231f;
-  --muted: #686d66;
-  --faint: #8b9188;
-  --border: #dedfd8;
-  --border-strong: #c9cbc1;
-  --accent: #0f766e;
-  --accent-strong: #0b5f59;
-  --accent-soft: #dff4ef;
-  --warm: #a15c18;
-  --code-bg: #151916;
-  --code-text: #edf6ef;
-  --code-muted: #aab7ae;
-  --shadow: 0 18px 48px rgba(32, 35, 31, 0.1);
+  --panel-soft: #f8fafc;
+  --text: #0f172a;
+  --muted: #475569;
+  --faint: #94a3b8;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --accent: #0ea5e9;
+  --accent-strong: #0284c7;
+  --accent-soft: #e0f2fe;
+  --warm: #334155;
+  --code-bg: #f8fafc;
+  --code-text: #0f172a;
+  --code-muted: #64748b;
+  --code-line: #e2e8f0;
+  --code-button-bg: #ffffff;
+  --code-button-hover: #f1f5f9;
+  --code-token-comment: #6a737d;
+  --code-token-keyword: #d73a49;
+  --code-token-string: #0a3069;
+  --code-token-number: #0550ae;
+  --code-token-type: #8250df;
+  --code-token-function: #6f42c1;
+  --code-token-operator: #24292f;
+  --shadow: 0 18px 48px rgba(15, 23, 42, 0.1);
   --topbar-height: 68px;
-  --sidebar-width: 330px;
-  --content-width: 850px;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --sidebar-width: 360px;
+  --sidebar-gutter: 44px;
+  --content-width: 780px;
+  --font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-code: "SF Mono", "Cascadia Code", "Roboto Mono", "IBM Plex Mono", ui-monospace, Menlo, Consolas, "Liberation Mono", monospace;
+  font-family: var(--font-body);
   letter-spacing: 0;
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #111311;
-  --panel: #191c19;
-  --panel-soft: #151815;
-  --text: #edf1ec;
-  --muted: #abb4aa;
-  --faint: #838d82;
-  --border: #30362f;
-  --border-strong: #424a40;
-  --accent: #5eead4;
-  --accent-strong: #99f6e4;
-  --accent-soft: rgba(45, 212, 191, 0.14);
-  --warm: #f0a45d;
-  --code-bg: #0b0e0c;
-  --code-text: #eef8f1;
-  --code-muted: #99a69d;
+  --bg: #020617;
+  --panel: #020617;
+  --panel-soft: #0f172a;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --faint: #64748b;
+  --border: #1e293b;
+  --border-strong: #334155;
+  --accent: #38bdf8;
+  --accent-strong: #7dd3fc;
+  --accent-soft: rgba(56, 189, 248, 0.14);
+  --warm: #cbd5e1;
+  --code-bg: #0f172a;
+  --code-text: #e2e8f0;
+  --code-muted: #94a3b8;
+  --code-line: rgba(255, 255, 255, 0.08);
+  --code-button-bg: rgba(255, 255, 255, 0.06);
+  --code-button-hover: rgba(255, 255, 255, 0.12);
+  --code-token-comment: #8b949e;
+  --code-token-keyword: #ff7b72;
+  --code-token-string: #a5d6ff;
+  --code-token-number: #79c0ff;
+  --code-token-type: #ffa657;
+  --code-token-function: #d2a8ff;
+  --code-token-operator: #c9d1d9;
   --shadow: 0 20px 56px rgba(0, 0, 0, 0.38);
 }
 
@@ -870,7 +884,7 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, color-mix(in srgb, var(--accent-soft) 58%, transparent), transparent 34rem),
+    radial-gradient(circle at top left, color-mix(in srgb, var(--accent-soft) 62%, transparent), transparent 32rem),
     linear-gradient(180deg, var(--bg), var(--bg));
   color: var(--text);
 }
@@ -886,19 +900,39 @@ input {
 
 .app-shell {
   display: grid;
-  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  grid-template-columns: calc(var(--sidebar-width) + var(--sidebar-gutter)) minmax(0, 1fr);
   min-height: 100vh;
 }
 
 .sidebar {
   position: sticky;
   top: 0;
+  width: var(--sidebar-width);
   height: 100vh;
   border-right: 1px solid var(--border);
-  background: color-mix(in srgb, var(--panel) 92%, transparent);
-  backdrop-filter: blur(18px);
-  overflow: hidden;
+  background: var(--panel);
+  overflow: visible;
   z-index: 30;
+}
+
+.sidebar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: calc(-1 * var(--sidebar-gutter));
+  width: var(--sidebar-gutter);
+  height: 100%;
+  border-right: 1px solid var(--border);
+  background:
+    repeating-linear-gradient(
+      135deg,
+      transparent 0,
+      transparent 8px,
+      color-mix(in srgb, var(--border) 55%, transparent) 8px,
+      color-mix(in srgb, var(--border) 55%, transparent) 9px
+    );
+  opacity: 0.52;
+  pointer-events: none;
 }
 
 .sidebar-inner {
@@ -906,33 +940,40 @@ input {
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  overflow: hidden;
 }
 
 .sidebar-brand {
-  padding: 22px 22px 18px;
-  border-bottom: 1px solid var(--border);
+  padding: 34px 20px 26px;
 }
 
 .sidebar-brand a {
   display: inline-flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 12px;
+  color: var(--text);
   text-decoration: none;
 }
 
 .sidebar-brand strong {
   font-size: 15px;
-  line-height: 1.25;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
-.sidebar-brand span {
-  color: var(--muted);
-  font-size: 12px;
+.sidebar-brand svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
 }
 
 .toc {
   overflow: auto;
-  padding: 14px 12px 28px;
+  padding: 6px 20px 42px;
   scrollbar-width: thin;
 }
 
@@ -943,7 +984,6 @@ input {
 .toc summary {
   cursor: pointer;
   list-style: none;
-  border-radius: 8px;
 }
 
 .toc summary::-webkit-details-marker {
@@ -956,9 +996,9 @@ input {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 30px;
-  padding: 6px 8px;
-  border-radius: 8px;
+  min-height: 28px;
+  padding: 4px 0;
+  border-radius: 0;
   color: var(--muted);
   text-decoration: none;
 }
@@ -966,41 +1006,58 @@ input {
 .toc summary a:hover,
 .toc-chapter-link:hover,
 .toc-section:hover {
-  background: var(--panel-soft);
-  color: var(--text);
+  background: transparent;
+  color: var(--accent-strong);
 }
 
 .toc-part {
-  margin-bottom: 10px;
+  margin: 0 0 30px;
+}
+
+.toc-part + .toc-part {
+  margin-top: 34px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-strong);
 }
 
 .toc-part > summary a {
-  color: var(--text);
+  color: var(--faint);
+  font-family: var(--font-code);
+  font-size: 12px;
   font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 .toc-chapter > summary a,
 .toc-chapter-link {
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 650;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .toc ol {
   list-style: none;
   margin: 0;
-  padding: 0 0 0 12px;
+  padding: 8px 0 0 0;
 }
 
 .toc-part > ol {
-  padding-left: 4px;
+  padding-left: 0;
+}
+
+.toc-chapter > ol {
+  margin: 2px 0 18px 0;
+  padding: 0 0 0 10px;
+  border-left: 1px solid var(--border);
 }
 
 .toc-section {
   justify-content: space-between;
-  font-size: 12px;
-  line-height: 1.32;
-  padding-left: 12px;
+  position: relative;
+  font-size: 14px;
+  line-height: 1.45;
+  padding: 4px 0 4px 12px;
 }
 
 .toc-section span:first-child {
@@ -1008,23 +1065,24 @@ input {
 }
 
 .toc-section.is-active {
-  background: var(--accent-soft);
-  color: var(--accent-strong);
+  background: transparent;
+  color: var(--text);
   font-weight: 700;
+}
+
+.toc-section.is-active::before {
+  content: "";
+  position: absolute;
+  left: -11px;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  border-radius: 999px;
+  background: var(--text);
 }
 
 .toc-section.is-missing {
   color: var(--faint);
-}
-
-.toc-code {
-  flex: 0 0 auto;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 1px 5px;
-  color: var(--warm);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 10px;
 }
 
 .main-shell {
@@ -1035,13 +1093,13 @@ input {
   position: sticky;
   top: 0;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 16px;
   height: var(--topbar-height);
   padding: 0 28px;
   border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--bg) 84%, transparent);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
   backdrop-filter: blur(20px);
   z-index: 20;
 }
@@ -1055,7 +1113,7 @@ input {
   width: 38px;
   height: 38px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--panel);
   color: var(--text);
   cursor: pointer;
@@ -1065,22 +1123,39 @@ input {
   display: none;
 }
 
-.top-title {
-  min-width: 0;
+.theme-button {
+  border-radius: 10px;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
 }
 
-.top-title strong {
-  display: block;
-  font-size: 14px;
+.theme-button:hover,
+.theme-button:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  outline: none;
 }
 
-.breadcrumb {
+.theme-icon {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.theme-icon-sun {
+  display: none;
+}
+
+:root[data-theme="dark"] .theme-icon-sun {
   display: block;
-  overflow: hidden;
-  color: var(--muted);
-  font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+:root[data-theme="dark"] .theme-icon-moon {
+  display: none;
 }
 
 .top-actions {
@@ -1101,7 +1176,7 @@ input {
   width: 100%;
   height: 40px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--panel);
   color: var(--text);
   padding: 0 12px 0 36px;
@@ -1134,7 +1209,7 @@ input {
 
 .search-input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-soft) 70%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-soft) 82%, transparent);
 }
 
 .search-results {
@@ -1146,7 +1221,7 @@ input {
   max-height: min(620px, calc(100vh - 96px));
   overflow: auto;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--panel);
   box-shadow: var(--shadow);
   padding: 8px;
@@ -1167,7 +1242,7 @@ input {
   display: block;
   width: 100%;
   border: 0;
-  border-radius: 8px;
+  border-radius: 10px;
   background: transparent;
   color: inherit;
   cursor: pointer;
@@ -1206,63 +1281,40 @@ input {
 .reading {
   max-width: var(--content-width);
   margin: 0 auto;
-  padding: 48px 28px 96px;
+  padding: 74px 28px 96px;
 }
 
 .book-hero {
-  padding: 26px 0 44px;
-  border-bottom: 1px solid var(--border);
+  padding: 0 0 68px;
+  border-bottom: 0;
 }
 
 .eyebrow,
 .kicker,
 .part-header p {
   margin: 0 0 10px;
-  color: var(--accent-strong);
+  color: var(--faint);
+  font-family: var(--font-code);
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 700;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
 .book-hero h1 {
   margin: 0;
-  font-family: ui-serif, Georgia, Cambria, "Times New Roman", serif;
-  font-size: 56px;
-  font-weight: 700;
-  line-height: 1.05;
-}
-
-.book-hero h1 code {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--panel);
-  padding: 0 8px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.82em;
+  font-family: var(--font-display);
+  font-size: 44px;
+  font-weight: 680;
+  line-height: 1.12;
 }
 
 .hero-copy {
-  max-width: 680px;
-  margin: 18px 0 0;
+  max-width: 650px;
+  margin: 22px 0 0;
   color: var(--muted);
-  font-size: 17px;
-  line-height: 1.65;
-}
-
-.hero-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 26px;
-}
-
-.hero-stats span {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--panel);
-  padding: 8px 10px;
-  color: var(--muted);
-  font-size: 12px;
+  font-size: 18px;
+  line-height: 1.75;
 }
 
 .part-section,
@@ -1272,33 +1324,35 @@ input {
 }
 
 .part-header {
-  margin-top: 72px;
-  padding: 34px 0 28px;
-  border-bottom: 1px solid var(--border-strong);
+  margin-top: 88px;
+  padding: 0 0 26px;
+  border-bottom: 0;
 }
 
 .part-header h2 {
   margin: 0;
-  font-family: ui-serif, Georgia, Cambria, "Times New Roman", serif;
-  font-size: 38px;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 660;
   line-height: 1.15;
 }
 
 .chapter-header {
-  margin-top: 44px;
+  margin-top: 46px;
 }
 
 .chapter-header h3 {
   margin: 0;
   color: var(--text);
-  font-size: 25px;
+  font-size: 24px;
+  font-weight: 650;
   line-height: 1.28;
 }
 
 .subsection {
-  margin-top: 30px;
-  padding-bottom: 34px;
-  border-bottom: 1px solid var(--border);
+  margin-top: 38px;
+  padding-bottom: 38px;
+  border-bottom: 0;
 }
 
 .subsection-header {
@@ -1311,31 +1365,21 @@ input {
   align-items: center;
   gap: 8px;
   margin: 0;
-  font-size: 23px;
+  font-size: 21px;
+  font-weight: 650;
   line-height: 1.28;
 }
 
 .subsection-header h4 > span:first-child {
   color: var(--accent-strong);
+  font-family: var(--font-code);
   font-variant-numeric: tabular-nums;
 }
 
-.code-pill {
-  align-self: center;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--panel-soft);
-  color: var(--warm);
-  padding: 2px 7px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
 .section-body {
-  color: var(--text);
+  color: var(--muted);
   font-size: 16px;
-  line-height: 1.72;
+  line-height: 1.82;
 }
 
 .section-body p,
@@ -1348,8 +1392,10 @@ input {
 }
 
 .section-body h5 {
-  margin: 30px 0 10px;
-  font-size: 18px;
+  margin: 34px 0 12px;
+  color: var(--text);
+  font-size: 19px;
+  font-weight: 650;
   line-height: 1.35;
 }
 
@@ -1372,8 +1418,9 @@ input {
 
 .section-body a {
   color: var(--accent-strong);
-  text-decoration-thickness: 1px;
-  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 4px;
 }
 
 .section-body code:not(pre code) {
@@ -1381,23 +1428,23 @@ input {
   border-radius: 6px;
   background: var(--panel-soft);
   padding: 0.1em 0.32em;
-  color: color-mix(in srgb, var(--warm) 86%, var(--text));
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--accent-strong);
+  font-family: var(--font-code);
   font-size: 0.9em;
 }
 
 .section-body blockquote {
   border-left: 3px solid var(--accent);
   background: var(--panel-soft);
-  border-radius: 0 8px 8px 0;
-  padding: 12px 16px;
+  border-radius: 0 10px 10px 0;
+  padding: 13px 16px;
   color: var(--muted);
 }
 
 .table-scroll {
   overflow-x: auto;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 12px;
 }
 
 table {
@@ -1422,29 +1469,28 @@ th {
 
 .code-card {
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--border) 42%, transparent);
-  border-radius: 8px;
+  border: 1px solid var(--code-line);
+  border-radius: 12px;
   background: var(--code-bg);
-  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
 }
 
 .code-card figcaption {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  justify-content: flex-end;
   min-height: 38px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 0 10px 0 14px;
+  border-bottom: 1px solid var(--code-line);
+  padding: 0 10px;
   color: var(--code-muted);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--font-code);
   font-size: 12px;
 }
 
 .copy-button {
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 7px;
-  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--code-line);
+  border-radius: 8px;
+  background: var(--code-button-bg);
   color: var(--code-text);
   cursor: pointer;
   padding: 5px 9px;
@@ -1453,22 +1499,62 @@ th {
 
 .copy-button:hover,
 .copy-button:focus {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--code-button-hover);
   outline: none;
 }
 
 .code-card pre {
   margin: 0;
   overflow-x: auto;
-  padding: 18px;
+  padding: 18px 20px;
 }
 
 .code-card code {
   color: var(--code-text);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-family: var(--font-code);
   font-size: 13px;
   line-height: 1.58;
   tab-size: 2;
+}
+
+.code-card .token.comment,
+.code-card .token.prolog,
+.code-card .token.doctype,
+.code-card .token.cdata {
+  color: var(--code-token-comment);
+  font-style: italic;
+}
+
+.code-card .token.keyword,
+.code-card .token.atrule {
+  color: var(--code-token-keyword);
+}
+
+.code-card .token.string,
+.code-card .token.char,
+.code-card .token.attr-value {
+  color: var(--code-token-string);
+}
+
+.code-card .token.number,
+.code-card .token.boolean,
+.code-card .token.constant,
+.code-card .token.symbol {
+  color: var(--code-token-number);
+}
+
+.code-card .token.class-name,
+.code-card .token.builtin {
+  color: var(--code-token-type);
+}
+
+.code-card .token.function {
+  color: var(--code-token-function);
+}
+
+.code-card .token.operator,
+.code-card .token.punctuation {
+  color: var(--code-token-operator);
 }
 
 .missing-content {
@@ -1484,49 +1570,6 @@ th {
 
 .missing-content strong {
   color: var(--text);
-}
-
-.section-nav {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 28px;
-}
-
-.section-nav a {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--panel);
-  padding: 12px;
-  text-decoration: none;
-}
-
-.section-nav a:hover {
-  border-color: var(--accent);
-  background: var(--panel-soft);
-}
-
-.section-nav span {
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 750;
-  text-transform: uppercase;
-}
-
-.section-nav strong {
-  overflow: hidden;
-  font-size: 13px;
-  line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.next-link {
-  text-align: right;
 }
 
 .back-to-top {
@@ -1552,7 +1595,12 @@ th {
 @media (max-width: 1080px) {
   :root {
     --sidebar-width: 300px;
+    --sidebar-gutter: 0px;
     --content-width: 780px;
+  }
+
+  .sidebar::after {
+    display: none;
   }
 }
 
@@ -1595,16 +1643,8 @@ th {
   }
 
   .topbar {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr);
     padding: 0 14px;
-  }
-
-  .top-title strong {
-    font-size: 13px;
-  }
-
-  .breadcrumb {
-    max-width: 40vw;
   }
 
   .search-wrap {
@@ -1642,10 +1682,6 @@ th {
     width: 100%;
   }
 
-  .breadcrumb {
-    max-width: 58vw;
-  }
-
   .book-hero h1 {
     font-size: 34px;
   }
@@ -1659,13 +1695,6 @@ th {
     font-size: 21px;
   }
 
-  .section-nav {
-    grid-template-columns: 1fr;
-  }
-
-  .next-link {
-    text-align: left;
-  }
 }
 `
 
@@ -1680,7 +1709,6 @@ const menuButton = document.getElementById("menu-toggle");
 const sidebarScrim = document.getElementById("sidebar-scrim");
 const searchInput = document.getElementById("search-input");
 const searchResults = document.getElementById("search-results");
-const breadcrumb = document.getElementById("breadcrumb");
 const backToTop = document.getElementById("back-to-top");
 
 const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -1689,8 +1717,8 @@ const storedTheme = localStorage.getItem("effect-schedule-cookbook-theme");
 const applyTheme = (theme) => {
   root.dataset.theme = theme;
   localStorage.setItem("effect-schedule-cookbook-theme", theme);
-  themeButton.textContent = theme === "dark" ? "Light" : "Dark";
   themeButton.setAttribute("aria-label", theme === "dark" ? "Use light theme" : "Use dark theme");
+  themeButton.setAttribute("title", theme === "dark" ? "Use light theme" : "Use dark theme");
 };
 
 applyTheme(storedTheme || (prefersDark ? "dark" : "light"));
@@ -1749,7 +1777,6 @@ const byId = new Map(sectionEntries.map((entry) => [entry.id, entry]));
 const setActiveSection = (id) => {
   document.querySelectorAll(".toc-section.is-active").forEach((link) => link.classList.remove("is-active"));
   const link = tocLinks.get(id);
-  const entry = byId.get(id);
   if (link) {
     link.classList.add("is-active");
     let parent = link.parentElement;
@@ -1759,9 +1786,6 @@ const setActiveSection = (id) => {
       }
       parent = parent.parentElement;
     }
-  }
-  if (entry) {
-    breadcrumb.textContent = entry.partTitle + " / " + entry.chapterTitle + " / " + entry.label;
   }
 };
 
@@ -1921,9 +1945,13 @@ const sidebarHtml = `
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-inner">
     <div class="sidebar-brand">
-      <a href="#book-top">
-        <strong>Effect <code>Schedule</code> Cookbook</strong>
-        <span>${generatedCount} drafted subsections / ${expectedSubsectionCount} outline subsections</span>
+      <a href="#book-top" aria-label="Effect Schedule Cookbook">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4.5 5.5c2.2-1 4.4-1 6.6 0v13c-2.2-1-4.4-1-6.6 0v-13Z"></path>
+          <path d="M12.9 5.5c2.2-1 4.4-1 6.6 0v13c-2.2-1-4.4-1-6.6 0v-13Z"></path>
+          <path d="M11.1 5.5c.6.3 1.2.3 1.8 0"></path>
+        </svg>
+        <strong>Effect Schedule Cookbook</strong>
       </a>
     </div>
     <nav class="toc" aria-label="Table of contents">
@@ -1949,28 +1977,34 @@ const html = `<!doctype html>
     <div class="main-shell">
       <header class="topbar">
         <button class="menu-button" id="menu-toggle" type="button" aria-label="Open table of contents">Menu</button>
-        <div class="top-title">
-          <strong>Effect <code>Schedule</code> Cookbook</strong>
-          <span class="breadcrumb" id="breadcrumb">Reader</span>
-        </div>
         <div class="top-actions">
           <div class="search-wrap">
             <input class="search-input" id="search-input" type="search" placeholder="Search sections and code" autocomplete="off" spellcheck="false" aria-label="Search book">
             <div class="search-results" id="search-results" role="listbox" aria-label="Search results"></div>
           </div>
-          <button class="theme-button" id="theme-toggle" type="button">Theme</button>
+          <button class="theme-button" id="theme-toggle" type="button" aria-label="Toggle theme">
+            <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M21 12.7A8.5 8.5 0 1 1 11.3 3 6.6 6.6 0 0 0 21 12.7Z"></path>
+            </svg>
+            <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2v2"></path>
+              <path d="M12 20v2"></path>
+              <path d="m4.93 4.93 1.41 1.41"></path>
+              <path d="m17.66 17.66 1.41 1.41"></path>
+              <path d="M2 12h2"></path>
+              <path d="M20 12h2"></path>
+              <path d="m6.34 17.66-1.41 1.41"></path>
+              <path d="m19.07 4.93-1.41 1.41"></path>
+            </svg>
+          </button>
         </div>
       </header>
       <main class="reading" id="book-top">
         <section class="book-hero" aria-labelledby="book-title">
           <p class="eyebrow">Technical handbook</p>
-          <h1 id="book-title">Effect <code>Schedule</code> Cookbook</h1>
-          <p class="hero-copy">A practical reading app for recurrence policies in Effect: retries, repeats, polling, backoff, jitter, deadlines, and operational safety. The content below is assembled from the generated subsection Markdown files and ordered by the public outline.</p>
-          <div class="hero-stats" aria-label="Book source status">
-            <span>${generatedCount} generated subsection files</span>
-            <span>${expectedSubsectionCount} outline subsections</span>
-            <span>${loaded.malformed.length} malformed files skipped</span>
-          </div>
+          <h1 id="book-title">Effect Schedule Cookbook</h1>
+          <p class="hero-copy">A practical reading app for recurrence policies in Effect: retries, repeats, polling, backoff, jitter, deadlines, and operational safety.</p>
         </section>
         ${contentHtml}
       </main>
@@ -1986,8 +2020,5 @@ writeFileSync(outputPath, html)
 
 process.stdout.write([
   `Wrote ${outputPath}`,
-  `Outline source: ${publicOutlinePath ?? "embedded fallback"}`,
-  `Loaded ${generatedCount} generated subsection files`,
-  `Expected ${expectedSubsectionCount} outline subsections`,
-  `Malformed files skipped: ${loaded.malformed.length}`
+  `Outline source: ${publicOutlinePath ?? "embedded fallback"}`
 ].join("\n") + "\n")
